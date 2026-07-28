@@ -69,6 +69,7 @@ const shared_named_imports = [_]policy.NamedImport{
     .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
     .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
     .{ .name = "stwo_riscv_frontend", .source = "src/frontends/riscv/mod.zig" },
+    .{ .name = "stwo_riscv_cpu_integration", .source = "src/integrations/riscv_cpu/mod.zig" },
     .{ .name = "native_proof_runner", .source = "src/prover/native/runner.zig" },
     .{ .name = "native_resource_admission", .source = "src/prover/native/resource_admission.zig" },
     .{ .name = "native_transaction", .source = "src/integrations/native/transaction.zig" },

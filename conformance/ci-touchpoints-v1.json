@@ -54,6 +54,13 @@
         ["zig", "build", "test", "--build-file", "src/frontends/riscv/build.zig", "-Doptimize=ReleaseFast", "-j2"]
       ]
     },
+    "riscv_cpu_integration": {
+      "host": "linux",
+      "description": "Independent RISC-V frontend and CPU backend composition package",
+      "commands": [
+        ["zig", "build", "test", "--build-file", "src/integrations/riscv_cpu/build.zig", "-Doptimize=ReleaseFast", "-j2"]
+      ]
+    },
     "cairo_frontend": {
       "host": "linux",
       "description": "Independent official Cairo frontend package",
@@ -221,15 +228,15 @@
   "rules": [
     {
       "prefixes": ["build.zig", "build.zig.zon", "build_support/graph", "build_support/products/catalog", "build_support/products/matrix.zig", "build_support/products/product_specs.zig", "build_support/internal_build.zig", "build_support/root_dispatcher.zig"],
-      "lanes": ["build_graph", "core", "backend_contracts", "prover", "riscv_frontend", "cairo_frontend", "cpu_backend", "cuda_backend", "metal_backend", "package", "native_cpu", "native_oracle", "riscv_cpu", "riscv_metal", "cairo_cpu", "cairo_metal", "aggregate_cpu", "native_metal", "aggregate_metal"]
+      "lanes": ["build_graph", "core", "backend_contracts", "prover", "riscv_frontend", "riscv_cpu_integration", "cairo_frontend", "cpu_backend", "cuda_backend", "metal_backend", "package", "native_cpu", "native_oracle", "riscv_cpu", "riscv_metal", "cairo_cpu", "cairo_metal", "aggregate_cpu", "native_metal", "aggregate_metal"]
     },
     {
       "prefixes": ["build_support/products/core.zig"],
-      "lanes": ["build_graph", "core", "prover", "metal_backend", "package", "native_cpu", "native_oracle", "riscv_cpu", "cairo_cpu", "cairo_metal", "aggregate_cpu", "native_metal", "aggregate_metal"]
+      "lanes": ["build_graph", "core", "prover", "riscv_cpu_integration", "metal_backend", "package", "native_cpu", "native_oracle", "riscv_cpu", "cairo_cpu", "cairo_metal", "aggregate_cpu", "native_metal", "aggregate_metal"]
     },
     {
       "prefixes": ["build_support/products/prover.zig"],
-      "lanes": ["build_graph", "prover", "metal_backend", "package", "native_cpu", "native_oracle", "riscv_cpu", "cairo_cpu", "cairo_metal", "aggregate_cpu", "native_metal", "aggregate_metal"]
+      "lanes": ["build_graph", "prover", "riscv_cpu_integration", "metal_backend", "package", "native_cpu", "native_oracle", "riscv_cpu", "cairo_cpu", "cairo_metal", "aggregate_cpu", "native_metal", "aggregate_metal"]
     },
     {
       "prefixes": ["build_support/products/native_cpu.zig"],
@@ -257,7 +264,7 @@
     },
     {
       "prefixes": ["src/core"],
-      "lanes": ["core", "backend_contracts", "prover", "riscv_frontend", "cairo_frontend", "cpu_backend", "metal_backend", "package", "aggregate_metal"]
+      "lanes": ["core", "backend_contracts", "prover", "riscv_frontend", "riscv_cpu_integration", "cairo_frontend", "cpu_backend", "metal_backend", "package", "aggregate_metal"]
     },
     {
       "prefixes": ["src/backend"],
@@ -265,15 +272,19 @@
     },
     {
       "prefixes": ["src/prover"],
-      "lanes": ["prover", "riscv_frontend", "cairo_frontend", "cpu_backend", "metal_backend", "package", "aggregate_metal"]
+      "lanes": ["prover", "riscv_frontend", "riscv_cpu_integration", "cairo_frontend", "cpu_backend", "metal_backend", "package", "aggregate_metal"]
     },
     {
       "prefixes": ["src/backends/cpu_scalar"],
-      "lanes": ["cpu_backend", "metal_backend", "package"]
+      "lanes": ["cpu_backend", "riscv_cpu_integration", "metal_backend", "package"]
     },
     {
       "prefixes": ["src/frontends/riscv"],
-      "lanes": ["riscv_frontend", "package", "riscv_cpu", "aggregate_cpu", "aggregate_metal"]
+      "lanes": ["riscv_frontend", "riscv_cpu_integration", "package", "riscv_cpu", "aggregate_cpu", "aggregate_metal"]
+    },
+    {
+      "prefixes": ["src/integrations/riscv_cpu"],
+      "lanes": ["riscv_cpu_integration", "package", "aggregate_metal"]
     },
     {
       "prefixes": ["src/frontends/cairo"],
@@ -305,7 +316,7 @@
     },
     {
       "prefixes": [".github/workflows", ".githooks", "scripts/ci_scope_plan.py", "scripts/ci_scope_run.py", "scripts/ci_scope_push.py", "conformance/ci-touchpoints-v1.json"],
-      "lanes": ["build_graph", "core", "backend_contracts", "prover", "riscv_frontend", "cairo_frontend", "cpu_backend", "cuda_backend", "metal_backend", "package", "native_cpu", "native_oracle", "riscv_cpu", "riscv_metal", "cairo_cpu", "cairo_metal", "aggregate_cpu", "deferred", "native_cuda_static", "native_cuda_device", "native_metal", "aggregate_metal", "metal_compile", "metal_aot"]
+      "lanes": ["build_graph", "core", "backend_contracts", "prover", "riscv_frontend", "riscv_cpu_integration", "cairo_frontend", "cpu_backend", "cuda_backend", "metal_backend", "package", "native_cpu", "native_oracle", "riscv_cpu", "riscv_metal", "cairo_cpu", "cairo_metal", "aggregate_cpu", "deferred", "native_cuda_static", "native_cuda_device", "native_metal", "aggregate_metal", "metal_compile", "metal_aot"]
     }
   ],
   "documentation_prefixes": ["README.md", "CONTRIBUTING.md", "LICENSE", "docs", "archive", "conformance"],

@@ -1,7 +1,7 @@
 //! Algebraic public-statement binding over retained production commitments.
 
 const std = @import("std");
-const riscv_cpu = @import("../../integrations/riscv_cpu/mod.zig");
+const riscv_cpu = @import("stwo_riscv_cpu_integration");
 const public_data_mod = @import("stwo_riscv_frontend").air.public_data;
 const relation_export = @import("stwo_riscv_frontend").air.relation_export;
 const memory_boundary = @import("stwo_riscv_frontend").air.memory_commitment.boundary;

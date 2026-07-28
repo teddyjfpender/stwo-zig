@@ -27,7 +27,7 @@ pub const frontends = struct {
 };
 
 pub const integrations = struct {
-    pub const riscv_cpu = @import("integrations/riscv_cpu/mod.zig");
+    pub const riscv_cpu = @import("stwo_riscv_cpu_integration");
 };
 
 pub const interop = struct {

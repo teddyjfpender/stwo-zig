@@ -42,6 +42,7 @@ def catalog_fixture() -> dict[str, object]:
                 "src/prover",
                 "src/backends/cpu_scalar",
                 "src/frontends/riscv",
+                "src/integrations/riscv_cpu",
             ),
             product("core", "src/core"),
             product("prover", "src/core", "src/backend", "src/prover"),
@@ -60,6 +61,7 @@ def catalog_fixture() -> dict[str, object]:
                 "src/prover",
                 "src/backends/cpu_scalar",
                 "src/frontends/riscv",
+                "src/integrations/riscv_cpu",
             ),
             product(
                 "cairo_cpu",
@@ -166,6 +168,7 @@ class PlannerContractTests(unittest.TestCase):
                 "backend_contracts",
                 "prover",
                 "riscv_frontend",
+                "riscv_cpu_integration",
                 "cairo_frontend",
                 "cpu_backend",
                 "metal_backend",
@@ -206,6 +209,7 @@ class PlannerContractTests(unittest.TestCase):
             {
                 "static",
                 "riscv_frontend",
+                "riscv_cpu_integration",
                 "package",
                 "riscv_cpu",
                 "riscv_metal",
@@ -240,6 +244,7 @@ class PlannerContractTests(unittest.TestCase):
             {
                 "static",
                 "cpu_backend",
+                "riscv_cpu_integration",
                 "metal_backend",
                 "package",
                 "native_cpu",
@@ -256,6 +261,17 @@ class PlannerContractTests(unittest.TestCase):
         commands = self.policy["lanes"]["cpu_backend"]["commands"]
         self.assertEqual(1, len(commands))
         self.assertIn("src/backends/cpu_scalar/build.zig", commands[0])
+
+    def test_riscv_cpu_integration_has_an_independent_package_lane(self) -> None:
+        selected = self.lanes_for("src/integrations/riscv_cpu/mod.zig")
+        expected = {
+            "static", "riscv_cpu_integration", "package",
+            "riscv_cpu", "aggregate_cpu", "aggregate_metal",
+        }
+        self.assertTrue(expected.issubset(selected))
+        commands = self.policy["lanes"]["riscv_cpu_integration"]["commands"]
+        self.assertEqual(1, len(commands))
+        self.assertIn("src/integrations/riscv_cpu/build.zig", commands[0])
 
     def test_metal_backend_has_an_independent_package_lane(self) -> None:
         selected = self.lanes_for("src/backends/metal/mod.zig")
@@ -529,7 +545,8 @@ class PlannerContractTests(unittest.TestCase):
                 "cairo_frontend", "cairo_metal", "cpu_backend", "metal_backend",
                 "native_cpu", "native_cuda_device",
                 "native_cuda_static", "native_metal", "native_oracle", "package",
-                "prover", "riscv_cpu", "riscv_frontend", "riscv_metal", "static",
+                "prover", "riscv_cpu", "riscv_cpu_integration",
+                "riscv_frontend", "riscv_metal", "static",
             ],
         )
 

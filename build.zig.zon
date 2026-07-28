@@ -12,5 +12,6 @@
         .stwo_cpu_backend = .{ .path = "src/backends/cpu_scalar" },
         .stwo_metal_backend = .{ .path = "src/backends/metal" },
         .stwo_cuda_backend = .{ .path = "src/backends/cuda" },
+        .stwo_riscv_cpu_integration = .{ .path = "src/integrations/riscv_cpu" },
     },
 }

@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const graph = @import("../graph/modules.zig");
+const integration_graph = @import("../graph/integrations.zig");
 
 const compatibility_product = graph.Product{
     .name = "stwo-compatibility-tools",
@@ -51,12 +52,22 @@ pub fn addProducts(context: Context) void {
         context.optimize,
         stwo,
     );
-    _ = graph.addRiscVFrontendImport(
+    const riscv_frontend = graph.addRiscVFrontendImport(
         b,
         protocol,
         compatibility_product,
         context.target,
         context.optimize,
+        stwo,
+    );
+    _ = integration_graph.addRiscVCpuImport(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        cpu_backend,
+        riscv_frontend,
         stwo,
     );
     const cairo_frontend = graph.addCairoFrontendImport(
@@ -168,12 +179,22 @@ pub fn addProducts(context: Context) void {
 
     const riscv_bench = consumer(context, protocol, "src/riscv_bench_cli.zig");
     riscv_bench.addImport("stwo_cpu_backend", cpu_backend);
-    _ = graph.addRiscVFrontendImport(
+    const bench_riscv_frontend = graph.addRiscVFrontendImport(
         b,
         protocol,
         compatibility_product,
         context.target,
         context.optimize,
+        riscv_bench,
+    );
+    _ = integration_graph.addRiscVCpuImport(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        cpu_backend,
+        bench_riscv_frontend,
         riscv_bench,
     );
     addExecutable(context, riscv_bench, "riscv-bench", "riscv-bench", "Build RISC-V benchmark CLI", false);

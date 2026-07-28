@@ -1,7 +1,7 @@
 //! Reusable mutation/rejection accounting for the CP-12 verifier matrix.
 
 const std = @import("std");
-const riscv_cpu = @import("../../integrations/riscv_cpu/mod.zig");
+const riscv_cpu = @import("stwo_riscv_cpu_integration");
 const prover = @import("stwo_riscv_frontend").prover_mod;
 const postcard = @import("../../interop/postcard.zig");
 const transcript = @import("stwo_riscv_frontend").air.transcript;

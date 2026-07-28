@@ -7,6 +7,10 @@ const product_policy = @import("graph/product.zig");
 const native_metal = @import("products/native_metal.zig");
 const matrix = @import("products/matrix.zig");
 
+test {
+    _ = @import("graph/modules_product_test.zig");
+}
+
 test "deferred compositions are named, reasoned, and non-installable" {
     for (matrix.descriptors) |descriptor| {
         if (descriptor.isConstructible()) continue;

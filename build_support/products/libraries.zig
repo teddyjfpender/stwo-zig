@@ -4,6 +4,7 @@ const std = @import("std");
 const build_identity = @import("../build_identity.zig");
 const construction_observer = @import("../graph/construction_observer.zig");
 const graph = @import("../graph/modules.zig");
+const integration_graph = @import("../graph/integrations.zig");
 const core_product = @import("core.zig");
 const prover_product = @import("prover.zig");
 
@@ -73,12 +74,22 @@ pub fn addPublicModules(context: Context) Result {
         context.optimize,
         stwo,
     );
-    _ = graph.addRiscVFrontendImport(
+    const riscv_frontend = graph.addRiscVFrontendImport(
         context.b,
         protocol,
         sdkProduct(),
         context.target,
         context.optimize,
+        stwo,
+    );
+    _ = integration_graph.addRiscVCpuImport(
+        context.b,
+        protocol,
+        sdkProduct(),
+        context.target,
+        context.optimize,
+        cpu_backend,
+        riscv_frontend,
         stwo,
     );
     _ = graph.addCairoFrontendImport(
@@ -141,12 +152,22 @@ pub fn addProducts(context: Context) Result {
         context.optimize,
         stwo,
     );
-    _ = graph.addRiscVFrontendImport(
+    const riscv_frontend = graph.addRiscVFrontendImport(
         context.b,
         prover.protocol,
         sdkProduct(),
         context.target,
         context.optimize,
+        stwo,
+    );
+    _ = integration_graph.addRiscVCpuImport(
+        context.b,
+        prover.protocol,
+        sdkProduct(),
+        context.target,
+        context.optimize,
+        cpu_backend,
+        riscv_frontend,
         stwo,
     );
     _ = graph.addCairoFrontendImport(

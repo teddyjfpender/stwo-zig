@@ -51,7 +51,12 @@ pub fn addProduct(context: Context) *std.Build.Step.Compile {
         .optimize = context.optimize,
     });
     const riscv_adapter = b.createModule(.{
-        .root_source_file = b.path("src/integrations/riscv_cpu/proof_adapter.zig"),
+        .root_source_file = graph.source(
+            b,
+            "src/integrations/riscv_cpu/proof_adapter.zig",
+            context.target,
+            context.optimize,
+        ),
         .target = context.target,
         .optimize = context.optimize,
     });

@@ -11,6 +11,7 @@ const native_gates = @import("gates/native.zig");
 const release_evidence = @import("gates/release_evidence.zig");
 const riscv_gates = @import("gates/riscv.zig");
 const graph = @import("graph/modules.zig");
+const integration_graph = @import("graph/integrations.zig");
 const metal_core_aot = @import("backends/metal_aot.zig");
 const metal_products = @import("benchmarks/metal.zig");
 const native_benchmarks = @import("benchmarks/native.zig");
@@ -251,12 +252,22 @@ fn addMetalTools(
         optimize,
         stwo,
     );
-    _ = graph.addRiscVFrontendImport(
+    const riscv_frontend = graph.addRiscVFrontendImport(
         b,
         protocol,
         tool_product,
         target,
         optimize,
+        stwo,
+    );
+    _ = integration_graph.addRiscVCpuImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        cpu_backend,
+        riscv_frontend,
         stwo,
     );
     const cairo_frontend = graph.addCairoFrontendImport(

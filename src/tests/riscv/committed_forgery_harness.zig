@@ -46,7 +46,7 @@ const M31 = m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const pcs = @import("stwo_core").pcs;
 
-const riscv_cpu = @import("../../integrations/riscv_cpu/mod.zig");
+const riscv_cpu = @import("stwo_riscv_cpu_integration");
 const orchestration = @import("stwo_riscv_frontend").testing.prover_orchestration;
 const witness_hook = @import("stwo_riscv_frontend").testing.witness_hook;
 const semantic_eval = @import("stwo_riscv_frontend").air.semantic_eval;

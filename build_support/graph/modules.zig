@@ -92,6 +92,7 @@ const OwnedPackage = enum {
     cuda_backend,
     metal_backend,
     riscv_frontend,
+    riscv_cpu_integration,
 };
 
 /// Resolves canonical ownership roots through their package manifests. Other
@@ -126,6 +127,7 @@ pub fn source(
         .cuda_backend => "stwo_cuda_backend",
         .metal_backend => "stwo_metal_backend",
         .riscv_frontend => "stwo_riscv_frontend",
+        .riscv_cpu_integration => "stwo_riscv_cpu_integration",
     };
     return b.dependency(dependency_name, dependency_options).path(owned.sub_path);
 }
@@ -145,6 +147,7 @@ fn ownedSource(root_source_file: []const u8) ?OwnedSource {
         .{ "src/backends/cuda/", OwnedPackage.cuda_backend },
         .{ "src/backends/metal/", OwnedPackage.metal_backend },
         .{ "src/frontends/riscv/", OwnedPackage.riscv_frontend },
+        .{ "src/integrations/riscv_cpu/", OwnedPackage.riscv_cpu_integration },
     };
     inline for (prefixes) |entry| {
         if (std.mem.startsWith(u8, root_source_file, entry[0])) return .{
@@ -414,38 +417,6 @@ pub fn proverProduct(role: Role) Product {
     };
 }
 
-test "executable products require explicit capabilities" {
-    try std.testing.expectError(error.IncompleteProductCapabilities, (Product{
-        .name = "invalid",
-        .frontend = .native,
-        .backend = .none,
-        .role = .cli,
-    }).validate());
-    try (Product{
-        .name = "stwo-native-cpu",
-        .frontend = .native,
-        .backend = .cpu,
-        .role = .cli,
-    }).validate();
-}
-
-test "capability manifests have stable public names" {
-    const riscv = Product{
-        .name = "stwo-riscv-cpu",
-        .frontend = .riscv,
-        .backend = .cpu,
-        .role = .gate,
-    };
-    try std.testing.expectEqualStrings("sail-rv32im-zkvm", riscv.frontendManifest());
-    try std.testing.expectEqualStrings("cpu", riscv.backendManifest());
-}
-
-test "generic prover identifies backend contracts without a concrete backend" {
-    const prover = proverProduct(.library);
-    try prover.validate();
-    try std.testing.expectEqualStrings("contracts", prover.backendManifest());
-}
-
 test "canonical owner roots resolve to package dependencies" {
     try std.testing.expectEqual(
         OwnedPackage.core,
@@ -483,16 +454,9 @@ test "canonical owner roots resolve to package dependencies" {
         OwnedPackage.riscv_frontend,
         ownedSource("src/frontends/riscv/mod.zig").?.package,
     );
+    try std.testing.expectEqual(
+        OwnedPackage.riscv_cpu_integration,
+        ownedSource("src/integrations/riscv_cpu/mod.zig").?.package,
+    );
     try std.testing.expect(ownedSource("src/products/prover/root.zig") == null);
-}
-
-test "aggregate SDK facade has an explicit library identity" {
-    const facade = Product{
-        .name = "stwo",
-        .frontend = .aggregate,
-        .backend = .contracts,
-        .role = .library,
-        .protocol_features = "aggregate-sdk-v1",
-    };
-    try facade.validate();
 }

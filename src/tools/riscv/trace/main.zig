@@ -18,7 +18,7 @@ const opcode_manifest = @import("stwo_riscv_frontend").opcode_manifest;
 const public_data = @import("stwo_riscv_frontend").air.public_data;
 const relation_evidence = @import("stwo_riscv_frontend").air.relation_evidence;
 const public_values_diagnostic = @import("stwo_riscv_frontend").diagnostics.public_values;
-const riscv_cpu = @import("../../../integrations/riscv_cpu/mod.zig");
+const riscv_cpu = @import("stwo_riscv_cpu_integration");
 const pcs = @import("stwo_core").pcs;
 
 pub fn main() !void {

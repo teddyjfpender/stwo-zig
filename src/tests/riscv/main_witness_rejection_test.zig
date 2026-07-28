@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const pcs = @import("stwo_core").pcs;
-const riscv_cpu = @import("../../integrations/riscv_cpu/mod.zig");
+const riscv_cpu = @import("stwo_riscv_cpu_integration");
 const orchestration = @import("stwo_riscv_frontend").testing.prover_orchestration;
 const witness_hook = @import("stwo_riscv_frontend").testing.witness_hook;
 const public_data_mod = @import("stwo_riscv_frontend").air.public_data;

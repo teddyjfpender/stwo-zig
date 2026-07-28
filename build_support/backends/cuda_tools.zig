@@ -4,6 +4,7 @@ const std = @import("std");
 const cuda = @import("cuda.zig");
 const construction_observer = @import("../graph/construction_observer.zig");
 const graph = @import("../graph/modules.zig");
+const integration_graph = @import("../graph/integrations.zig");
 
 pub const Options = struct {
     nvcc: ?[]const u8,
@@ -210,7 +211,7 @@ pub fn addProducts(
         optimize,
         stwo,
     );
-    _ = graph.addRiscVFrontendImport(
+    const riscv_frontend = graph.addRiscVFrontendImport(
         b,
         protocol,
         .{
@@ -221,6 +222,21 @@ pub fn addProducts(
         },
         target,
         optimize,
+        stwo,
+    );
+    _ = integration_graph.addRiscVCpuImport(
+        b,
+        protocol,
+        .{
+            .name = "stwo-native-cuda-tools",
+            .frontend = .native,
+            .backend = .cuda,
+            .role = .library,
+        },
+        target,
+        optimize,
+        cpu_backend,
+        riscv_frontend,
         stwo,
     );
     const cairo_frontend = graph.addCairoFrontendImport(

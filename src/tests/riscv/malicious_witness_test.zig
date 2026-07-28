@@ -9,7 +9,7 @@
 //! individually, and `verifyRiscV` must reject each mutation.
 
 const std = @import("std");
-const riscv_cpu = @import("../../integrations/riscv_cpu/mod.zig");
+const riscv_cpu = @import("stwo_riscv_cpu_integration");
 const prover = @import("stwo_riscv_frontend").prover_mod;
 const postcard = @import("../../interop/postcard.zig");
 const runner_mod = @import("stwo_riscv_frontend").runner;

@@ -6,6 +6,7 @@ const cuda = @import("../backends/cuda.zig");
 const cuda_tools = @import("../backends/cuda_tools.zig");
 const graph_identity = @import("../graph/identity.zig");
 const graph = @import("../graph/modules.zig");
+const integration_graph = @import("../graph/integrations.zig");
 const graph_install = @import("../graph/install.zig");
 const policy = @import("../graph/product.zig");
 
@@ -31,6 +32,7 @@ const source_closure = policy.SourceClosure{
         .{ .name = "stwo_metal_backend", .source = "src/backends/metal/mod.zig" },
         .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
         .{ .name = "stwo_riscv_frontend", .source = "src/frontends/riscv/mod.zig" },
+        .{ .name = "stwo_riscv_cpu_integration", .source = "src/integrations/riscv_cpu/mod.zig" },
     },
     .allowed_files = &.{"src/stwo.zig"},
     .allowed_prefixes = &.{
@@ -215,12 +217,22 @@ fn createStwoModule(
         context.optimize,
         module,
     );
-    _ = graph.addRiscVFrontendImport(
+    const riscv_frontend = graph.addRiscVFrontendImport(
         context.b,
         context.protocol,
         product(role),
         context.target,
         context.optimize,
+        module,
+    );
+    _ = integration_graph.addRiscVCpuImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        cpu_backend,
+        riscv_frontend,
         module,
     );
     _ = graph.addCairoFrontendImport(

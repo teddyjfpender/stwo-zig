@@ -5,6 +5,7 @@ const build_identity = @import("../build_identity.zig");
 const closure_gate = @import("../gates/product_closure.zig");
 const graph_identity = @import("../graph/identity.zig");
 const graph = @import("../graph/modules.zig");
+const integration_graph = @import("../graph/integrations.zig");
 const product_policy = @import("../graph/product.zig");
 
 const product = graph.Product{
@@ -28,6 +29,7 @@ const source_closure = product_policy.SourceClosure{
         .{ .name = "stwo_riscv_frontend", .source = "src/frontends/riscv/mod.zig" },
         .{ .name = "stwo_riscv_cpu", .source = "src/stwo_riscv_cpu.zig" },
         .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
+        .{ .name = "stwo_riscv_cpu_integration", .source = "src/integrations/riscv_cpu/mod.zig" },
         .{ .name = "riscv_adapter", .source = "src/integrations/riscv_cpu/proof_adapter.zig" },
         .{ .name = "riscv_cpu_capabilities", .source = "src/products/riscv_cpu/capabilities.zig" },
         .{ .name = "output_transaction", .source = "src/interop/output_transaction.zig" },
@@ -207,8 +209,7 @@ fn addTraceExecutable(
         .optimize = optimize,
     });
     protocol.addImports(root);
-    _ = graph.addCpuBackendImport(b, protocol, product, target, optimize, root);
-    _ = graph.addRiscVFrontendImport(
+    integration_graph.addRiscVCpuStack(
         b,
         protocol,
         product,
@@ -277,15 +278,7 @@ fn addTests(context: Context) *std.Build.Step.Compile {
         .optimize = context.optimize,
     });
     context.protocol.addImports(root);
-    _ = graph.addCpuBackendImport(
-        b,
-        context.protocol,
-        test_product,
-        context.target,
-        context.optimize,
-        root,
-    );
-    _ = graph.addRiscVFrontendImport(
+    integration_graph.addRiscVCpuStack(
         b,
         context.protocol,
         test_product,
@@ -377,15 +370,7 @@ fn addTestRoot(context: Context, options: TestRoot) *std.Build.Step.Compile {
         .optimize = context.optimize,
     });
     context.protocol.addImports(root);
-    _ = graph.addCpuBackendImport(
-        b,
-        context.protocol,
-        test_product,
-        context.target,
-        context.optimize,
-        root,
-    );
-    _ = graph.addRiscVFrontendImport(
+    integration_graph.addRiscVCpuStack(
         b,
         context.protocol,
         test_product,
@@ -422,15 +407,7 @@ fn createStwoModule(
         .optimize = optimize,
     });
     protocol.addImports(module);
-    _ = graph.addCpuBackendImport(
-        b,
-        protocol,
-        moduleProduct(.library),
-        target,
-        optimize,
-        module,
-    );
-    _ = graph.addRiscVFrontendImport(
+    integration_graph.addRiscVCpuStack(
         b,
         protocol,
         moduleProduct(.library),

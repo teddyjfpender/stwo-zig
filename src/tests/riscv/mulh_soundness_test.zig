@@ -3,7 +3,7 @@
 
 const std = @import("std");
 const pcs = @import("stwo_core").pcs;
-const riscv_cpu = @import("../../integrations/riscv_cpu/mod.zig");
+const riscv_cpu = @import("stwo_riscv_cpu_integration");
 const relation_export = @import("stwo_riscv_frontend").air.relation_export;
 const public_values = @import("stwo_riscv_frontend").diagnostics.public_values;
 const orchestration = @import("stwo_riscv_frontend").testing.prover_orchestration;
