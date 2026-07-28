@@ -318,3 +318,42 @@ with ~59 ms of it irreducible because the memory scatter is bandwidth-bound.
 1.097x is close to this lever's maximum, and the gap to the bar is 3 ms of
 stage time against a 60 ms run-to-run spread. Not self-accepted, not
 self-rejected: **undecided-borderline**, implementation preserved.
+
+## 5. Verification, final tree `17c3893b`
+
+- Digests, every arm of every paired block: memory-7m `e3317e55…`,
+  arithmetic-2m `25e5719f…`, all-opcodes `79ae76e1…`. All equal the campaign
+  values. Every run used `--verify` and self-verified.
+- `STWO_ZIG_WORKERS=1` on arithmetic-2m: proves and self-verifies at
+  `25e5719f…`. Increment 7's serial composition fix still holds. Note that all
+  three new serial fallbacks are `worker_count == 1` degenerations of the same
+  parallel code, not separate paths, so there is no second implementation to
+  drift.
+- `zig build test-cairo-cpu-product test-cairo-frontend -Doptimize=ReleaseFast`
+  passes. `stwo-cairo-cpu closure: PASS` over 330 transitive Zig sources,
+  identity `dirty: false`. Source conformance: 5 explained legacy findings, no
+  new violations (also enforced by the pre-commit hook on every commit).
+- Official Rust verifier on the candidate arithmetic-2m proof:
+  `{"verified":true, "channel":"blake2s",
+  "stwo_cairo_revision":"82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+  "proof_sha256":"25e5719f4c578eb7ef10d76d6033e65f0a4a9d981c2414c3f7ac1950966deea6"}`.
+- Metal arithmetic-2m, pinned AOT bundle: proof `25e5719f…`,
+  `accelerated_without_fallbacks`, 74 dispatches, `cpu_fallbacks: 0`.
+  The metal product needs `-Dmetal-core-aot-bundle=...` on the build line or
+  `zig build stwo-cairo-metal` reports success without reinstalling the binary;
+  the installed one was three commits stale until the flag was passed. Worth
+  knowing for later sessions: always check `identity`'s `source.commit` before
+  trusting a Metal parity run.
+- Pre-existing, unchanged, not chased: `merkle-worker-stress` `blake_deep`
+  `InvalidNRounds`; stale untracked
+  `vectors/reports/merkle_worker_stress_artifacts/`; corpus `pedersen.json`
+  `SegmentPointerOverflow` in the adapter.
+
+### Host load
+
+Every block records `uptime`. The session ran at load average 4.7-15 for the
+measurement of record and 24-36 for the later confirmatory blocks. Note that
+the prover itself is an 18-thread process, so a load average near 12-15 during
+a block is largely self-inflicted and is the normal state for these runs; the
+24-36 window was an unrelated process and is flagged as such. A-B-B-A adjacency
+is the only defence applied, which is why only ratios are read.

@@ -1977,7 +1977,11 @@ byte-exact, mechanism-confirmed stage time for no reason.
 - Pinned official Rust verifier on the candidate arithmetic-2m proof:
   `"verified":true`, channel `blake2s`, `stwo_cairo_revision`
   `82f21252a68ec006d73e299f5bf1ce6d4db0ee78`, `proof_sha256` `25e5719f…`.
-- Metal arithmetic-2m with the pinned AOT bundle: see transcript.
+- Metal arithmetic-2m with the pinned AOT bundle
+  (`-Dmetal-core-aot-bundle=/private/tmp/cairo-quotient-baseline-v2/aot-bundle`):
+  proof `25e5719f…`, `classification: accelerated_without_fallbacks`, 74 Metal
+  dispatches, `cpu_fallbacks: 0`. The three counting passes are host-shared and
+  Metal inherits them cleanly.
 - Pre-existing and unchanged: `merkle-worker-stress` `blake_deep`
   `InvalidNRounds`, stale untracked
   `vectors/reports/merkle_worker_stress_artifacts/`, corpus `pedersen.json`
