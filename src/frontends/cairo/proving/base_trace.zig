@@ -250,49 +250,6 @@ const Collector = struct {
         self.components[component_index] = evaluations;
     }
 
-    /// Lowers a generated component's split-width planes into M31.
-    ///
-    /// This is the pre-extension widening boundary: the plane tag is read once
-    /// per column, and the M31 evaluation the PCS receives is bit-identical to
-    /// the one a uniformly 32-bit witness would have produced.
-    fn captureExecution(
-        self: *Collector,
-        component_index: usize,
-        execution: *const component_executor.Execution,
-    ) !void {
-        const count = execution.output_columns.len;
-        if (component_index >= self.components.len or
-            self.components[component_index] != null or count == 0)
-            return error.InvalidBaseTraceGeometry;
-        const rows = execution.row_count;
-        if (rows < 16 or !std.math.isPowerOfTwo(rows))
-            return error.InvalidBaseTraceGeometry;
-        const evaluations = try self.allocator.alloc(ColumnEvaluation, count);
-        var initialized: usize = 0;
-        errdefer {
-            for (evaluations[0..initialized]) |evaluation| {
-                self.allocator.free(evaluation.values);
-            }
-            self.allocator.free(evaluations);
-        }
-        const log_size: u32 = @intCast(std.math.log2_int(usize, rows));
-        for (evaluations, 0..) |*evaluation, column_index| {
-            const values = try self.allocator.alloc(M31, rows);
-            errdefer self.allocator.free(values);
-            switch (execution.plane(column_index)) {
-                .wide => |source| for (source, values) |raw, *value| {
-                    value.* = M31.fromCanonical(raw);
-                },
-                .narrow => |source| for (source, values) |raw, *value| {
-                    value.* = M31.fromCanonical(raw);
-                },
-            }
-            evaluation.* = .{ .log_size = log_size, .values = values };
-            initialized += 1;
-        }
-        self.components[component_index] = evaluations;
-    }
-
     fn findIndex(self: *const Collector, name: []const u8, instance: u32) ?usize {
         for (self.geometry.components, 0..) |component, index| {
             if (component.instance == instance and
@@ -335,6 +292,14 @@ fn observeGenerated(
     execution: *const component_executor.Execution,
 ) !void {
     const collector: *Collector = @ptrCast(@alignCast(raw_context));
+    const columns = try collector.allocator.alloc(
+        []const u32,
+        execution.output_columns.len,
+    );
+    defer collector.allocator.free(columns);
+    for (execution.output_columns, columns) |source, *destination| {
+        destination.* = source;
+    }
     const component_index: usize = layout.ordinal;
     if (component_index >= collector.components.len or
         !std.mem.eql(
@@ -343,7 +308,7 @@ fn observeGenerated(
             collector.geometry.components[component_index].name,
         ))
         return error.InvalidBaseTraceGeometry;
-    try collector.captureExecution(component_index, execution);
+    try collector.capture(component_index, columns);
 }
 
 fn deinitColumns(

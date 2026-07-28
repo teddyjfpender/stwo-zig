@@ -253,7 +253,7 @@ pub fn executeColumn(
     for (input_columns[0..program.n_inputs]) |input| if (input.len < destination.len) return error.InvalidInput;
     for (destination, 0..) |*output, row| {
         output.* = 0;
-        try executeRow(program, input_columns, @intCast(row), destination.len, column_index, output, null, null, registers, deduce_args, tables, deduce, false, undefined);
+        try executeRow(program, input_columns, @intCast(row), column_index, output, null, null, registers, deduce_args, tables, deduce);
     }
 }
 
@@ -276,30 +276,6 @@ pub const AuxiliaryOutputs = struct {
     multiplicity_tables: []const []u32,
 };
 
-/// One hoisted base-column write: `plane[index][row] = registers[reg]`.
-pub const ColumnWrite = struct {
-    reg: u32,
-    index: u32,
-};
-
-/// Split base-column destinations for one component.
-///
-/// `planes[i]` is non-empty exactly when column `i` is stored at 16 bits, in
-/// which case `output_columns[i]` is empty, and vice versa. The two write
-/// lists partition the program's `col_write` instructions by that same
-/// predicate, so the width decision is taken once per program rather than once
-/// per row: the row loop runs two straight-line stores, never a width branch.
-///
-/// This is a storage representation only. A narrow column is admitted solely
-/// by `plane_widths`, which proves from the recorded bytecode that the value
-/// cannot exceed 16 bits, so the widened read is bit-identical to the u32
-/// store it replaces.
-pub const NarrowColumns = struct {
-    planes: []const []u16,
-    narrow_writes: []const ColumnWrite,
-    wide_writes: []const ColumnWrite,
-};
-
 /// Validates and clears the complete output set before one or more disjoint
 /// row ranges are executed. Multiplicity tables cannot be range-parallel
 /// without private reductions and therefore remain a caller-level policy.
@@ -308,18 +284,15 @@ pub fn initializeAllOutputs(
     input_columns: []const []const u32,
     output_columns: []const []u32,
     auxiliary: ?AuxiliaryOutputs,
-    narrow: ?NarrowColumns,
 ) !usize {
     const row_count = try validateAllBuffers(
         program,
         input_columns,
         output_columns,
         auxiliary,
-        narrow,
     );
     if (!coversEveryOutput(program, .col_write, program.n_cols)) {
         for (output_columns) |output| @memset(output, 0);
-        if (narrow) |columns| for (columns.planes) |plane| @memset(plane, 0);
     }
     if (auxiliary) |outputs| {
         if (!coversEveryOutput(program, .lookup_word, program.n_lookup_words))
@@ -365,14 +338,12 @@ pub fn executeAllRange(
     deduce_args: []u32,
     tables: TableContext,
     deduce: DeduceContext,
-    narrow: ?NarrowColumns,
 ) !void {
     const row_count = try validateAllBuffers(
         program,
         input_columns,
         output_columns,
         auxiliary,
-        narrow,
     );
     if (start > end or end > row_count or
         registers.len < program.n_regs or deduce_args.len < program.n_regs)
@@ -383,45 +354,20 @@ pub fn executeAllRange(
                 return error.InvalidMultiplicityKey;
         }
     }
-    // One dispatch outside the row loop; the width shape is comptime inside it.
-    if (narrow) |columns| {
-        for (start..end) |row| {
-            try executeRow(
-                program,
-                input_columns,
-                @intCast(row),
-                row_count,
-                null,
-                null,
-                output_columns,
-                auxiliary,
-                registers,
-                deduce_args,
-                tables,
-                deduce,
-                true,
-                columns,
-            );
-        }
-    } else {
-        for (start..end) |row| {
-            try executeRow(
-                program,
-                input_columns,
-                @intCast(row),
-                row_count,
-                null,
-                null,
-                output_columns,
-                auxiliary,
-                registers,
-                deduce_args,
-                tables,
-                deduce,
-                false,
-                undefined,
-            );
-        }
+    for (start..end) |row| {
+        try executeRow(
+            program,
+            input_columns,
+            @intCast(row),
+            null,
+            null,
+            output_columns,
+            auxiliary,
+            registers,
+            deduce_args,
+            tables,
+            deduce,
+        );
     }
 }
 
@@ -440,7 +386,6 @@ pub fn executeAll(
         input_columns,
         output_columns,
         auxiliary,
-        null,
     );
     try executeAllRange(
         program,
@@ -453,7 +398,6 @@ pub fn executeAll(
         deduce_args,
         tables,
         deduce,
-        null,
     );
 }
 
@@ -462,29 +406,17 @@ fn validateAllBuffers(
     input_columns: []const []const u32,
     output_columns: []const []u32,
     auxiliary: ?AuxiliaryOutputs,
-    narrow: ?NarrowColumns,
 ) !usize {
     try program.validate();
     if (input_columns.len < program.n_inputs or
         output_columns.len == 0 or output_columns.len != program.n_cols)
         return error.InvalidOutput;
-    var row_count: usize = output_columns[0].len;
-    if (narrow) |columns| {
-        if (columns.planes.len != program.n_cols) return error.InvalidOutput;
-        // Exactly one destination per column, and every destination the same
-        // height. Storage is split; geometry is not.
-        row_count = @max(output_columns[0].len, columns.planes[0].len);
-        for (output_columns, columns.planes) |wide, small| {
-            if ((wide.len == 0) == (small.len == 0)) return error.InvalidOutput;
-            if (@max(wide.len, small.len) != row_count) return error.InvalidOutput;
-        }
-    } else {
-        for (output_columns) |output| {
-            if (output.len != row_count) return error.InvalidOutput;
-        }
-    }
+    const row_count = output_columns[0].len;
     for (input_columns[0..program.n_inputs]) |input| {
         if (input.len < row_count) return error.InvalidInput;
+    }
+    for (output_columns) |output| {
+        if (output.len != row_count) return error.InvalidOutput;
     }
     if (auxiliary) |outputs| {
         const lookup_len = std.math.mul(
@@ -509,7 +441,6 @@ fn executeRow(
     program: Program,
     input_columns: []const []const u32,
     row: u32,
-    row_count: usize,
     selected_column: ?u32,
     selected_output: ?*u32,
     output_columns: ?[]const []u32,
@@ -518,8 +449,6 @@ fn executeRow(
     deduce_args: []u32,
     tables: TableContext,
     deduce: DeduceContext,
-    comptime planned: bool,
-    narrow: NarrowColumns,
 ) !void {
     var pending_args: usize = 0;
     for (program.insts) |inst| {
@@ -549,14 +478,10 @@ fn executeRow(
             .m31_inverse => (M31.fromCanonical(a).inv() catch M31.zero()).v,
             .m31_eq => @intFromBool(a == b),
             .col_write => {
-                // With a width plan the base-column stores are hoisted below,
-                // so the width never reaches this switch.
-                if (!planned) {
-                    if (selected_column) |column| {
-                        if (inst.imm == column) selected_output.?.* = a;
-                    } else {
-                        output_columns.?[inst.imm][row] = a;
-                    }
+                if (selected_column) |column| {
+                    if (inst.imm == column) selected_output.?.* = a;
+                } else {
+                    output_columns.?[inst.imm][row] = a;
                 }
                 continue;
             },
@@ -564,6 +489,7 @@ fn executeRow(
                 if (auxiliary) |outputs| {
                     // Interaction consumers read canonical lookup columns
                     // directly; emitting that layout avoids a full transpose.
+                    const row_count = output_columns.?[0].len;
                     outputs.lookup_words[@as(usize, inst.imm) * row_count + row] = a;
                 }
                 continue;
@@ -600,19 +526,6 @@ fn executeRow(
             },
         };
         registers[inst.dst] = value;
-    }
-    if (planned) {
-        // Straight-line SSA: no register is ever rewritten inside a row, so
-        // deferring every base-column store to the end of the row observes the
-        // same values the inline stores would have.
-        const planes = narrow.planes;
-        const wide = output_columns.?;
-        for (narrow.narrow_writes) |write| {
-            planes[write.index][row] = @truncate(registers[write.reg]);
-        }
-        for (narrow.wide_writes) |write| {
-            wide[write.index][row] = registers[write.reg];
-        }
     }
 }
 
