@@ -765,3 +765,351 @@ by more than 1.29x, and the measured conversion factors say the realistic figure
 is a few percent. The 1.46x gap against pinned Rust is not in the witness
 writers; on this workload it is overwhelmingly in Merkle commitment and
 constraint evaluation.
+
+---
+
+## Increment 2.3: register-resident compiled AIR evaluation
+
+**Outcome: negative audit. The S1 gate failed at `1.241x` against a `1.5x`
+bar. The candidate was built, wired into the product behind structural
+admission, proved byte-exact, measured whole-prover, and reverted. The
+increment's durable output is the reason it failed: the composition loop is
+**QM31-multiply-bound**, not interpreter-bound, and this is the third
+independent mechanism to establish that reducing the interpreter's
+*instruction count* does not reduce its *cycles*.**
+
+Implementation model: Claude Opus 4.5. Orchestration: Claude Fable 5.
+Transcript: `transcripts/session-03.md`. Predecessor: pristine `zig-out` tree
+built from `efe4bef3` in a detached worktree. Host: Apple M5 Max, 12
+performance + 6 efficiency cores, load average 2.5-6.3 across the session —
+the quietest window this campaign has measured in.
+
+### The hypothesis, and what it predicted
+
+Increment 5 left the composition stage at ~22 cycles per interpreted
+instruction over 1.09 G executions. Increment 6 removed 21.4% of the
+interpreter's machine instructions by strip-mining and moved cycles 1.054x,
+which excluded *dispatch* as the binding constraint. The remaining located
+hypothesis was the interpreter's **memory-resident register file**: `base` is
+`max_base_regs` PackedM31 and `extension` is `max_ext_regs` PackedQm31,
+heap-allocated per range (`simd_evaluator.zig:209-212`), so every one of the
+771 instructions in the dominant component's program is a load-operands /
+compute / store-result round trip against 31.5 KB of L1D. Compiled code would
+hold the same values in NEON registers. The peer existence proof is that Rust
+stwo-cairo ships statically compiled per-component evaluators and is 1.46x
+faster overall.
+
+The prediction that follows is quantitative: if the register file is the cost,
+the compiled body's memory operations per group should *collapse*, and cycles
+should follow.
+
+### The candidate: mechanical translation, structural admission
+
+`add_opcode_small` is the dominant arithmetic-2m component and matches
+increment 5's census exactly — 278 base instructions of which 63 are mask
+reads, 493 extension instructions, 32 constraint roots, two distinct mask
+offsets (`0` and `-1`), `max_base_regs = 278`, `max_ext_regs = 493`, semantic
+hash `0x6e7d9762fbd1969a`. Its opcode mix is worth recording because it is
+what the result turns on:
+
+| stream | opcode | count |
+| --- | --- | ---: |
+| base | `constant` | 71 |
+| base | `mul` | 69 |
+| base | `trace_col` | 63 |
+| base | `sub` | 46 |
+| base | `add` | 29 |
+| ext | `secure_col` | 132 |
+| ext | `add` | 110 |
+| ext | `mul` | **107** |
+| ext | `param` | 100 |
+| ext | `constant` | 24 |
+| ext | `sub` | 19 |
+| ext | `neg` | 1 |
+| fold | roots | 32 |
+
+`generated/add_opcode_small_base.zig` and
+`generated/add_opcode_small.zig` are the mechanical translation: one template
+instruction, one Zig `const`, the same `m31.addVec4` / `m31.subVec4` /
+`m31.mulVec4` / `PackedQm31.{add,sub,mul,neg}` primitive with operands in the
+same order, and the same fold (`acc = add(acc, mul(root, coeff))` from zero,
+in root order). Base registers reach the extension stream through a generated
+struct of 90 named fields rather than an array, so inlining leaves them in
+registers instead of materialising a stack array. Row-invariant work — the 100
+`param` splats, the 24 `constant` splats and the 32 coefficient splats — is
+hoisted to once per range, which is free in compiled form.
+
+The files are emitted by a generator run out-of-tree
+(`/private/tmp/inc23/gen.py` in this session); the generator asserts that its
+own canonical byte encoding of the program reproduces the program's
+`semantic_hash` before emitting, which is what makes the digest below
+trustworthy.
+
+**Admission is structural and content-addressed.**
+`compiled_evaluator.zig` filters on `Program.semantic_hash` (a cheap 64-bit
+FNV-1a the format already carries), then checks the header shape
+(`max_base_regs`, `max_ext_regs`, `n_ext_params`, `n_constraints`, both stream
+lengths) and then re-hashes the program's *entire* canonical semantic payload —
+base constants, extension constants, every base instruction, every extension
+instruction, every constraint root — with SHA-256 and compares it against a
+32-byte digest baked into the generated module
+(`268379031004caf095c8742c7ce45d0ecf96afb173e97a47e7c94a377b0ba1bd`). That is
+one pass over ~12 KB per evaluated range, microseconds, and it is
+collision-resistant rather than merely a filter. No workload name, input path,
+proof digest or component label is inspected anywhere. Every non-matching
+program runs the interpreter, which remains the general path.
+
+Two properties made this safe to key. First, the runtime program's semantic
+hash is *equal* to the shipped template's: `template_binding.zig` rebinds
+constants only for `memory_address_to_id` (`rebindDomainConstants`) and for
+builtin segment starts (`rebindSegmentConstant`), and `add_opcode_small` is
+neither, so `replaceBaseConstant` never fires and never recomputes the hash.
+Second, `setDomainLogSize` touches only the header, which the digest does not
+cover — correctly, since the domain size is supplied as an input to the
+evaluator rather than compiled into it.
+
+Everything outside the generated body is the interpreter's own code: the domain
+checks, `read_plan.build`, the per-group offset map, the mask gather, the
+denominator lookup and the scatter. The only difference between the two arms is
+how the arithmetic runs.
+
+### S1 gate: the mechanism is confirmed and the mechanism does not pay
+
+`stwo-prof zig` harnesses `i23-interp` / `i23-compiled`, compiled against the
+repo's real module graph so both arms execute live working-tree source. The
+program is not synthetic: it is parsed out of the shipped
+`vectors/cairo/official/all_builtins_canonical_small.air_programs_v1.bin` with
+the repo's own parser and rebound to `trace_log 17` / `eval_log 18`, matching
+increment 6's sweep shape so the two tables read together. One op is one
+four-row group. 12 iterations per round, four rounds.
+
+| arm | instructions/op | cycles/op | IPC | ns/op |
+| --- | ---: | ---: | ---: | ---: |
+| interpreter | 43,395 | **8,698.3** | 4.99 | 2,025.3 |
+| compiled | 30,961 | **7,000.5** | 4.43 | 1,640.1 |
+| **ratio** | **1.402x** | **1.242x** | 0.89 | 1.235x |
+
+Per-round cycles/op — dispersion is small and the verdict does not depend on a
+round: interpreter `8,522.5 / 8,882.2 / 8,615.2 / 8,773.2`; compiled
+`7,054.4 / 6,973.3 / 6,931.3 / 7,042.9`. Instructions/op agree to five
+significant figures across rounds in both arms.
+
+**`1.242x` against a `1.5x` gate. The hypothesis is falsified.**
+
+### Why: the register file does not disappear, and it is not the cost anyway
+
+Two facts from `objdump` on the harness binaries settle it. The generated
+`evalGroup` is a single straight-line symbol with no loops, so its static
+instruction count *is* its dynamic count per four-row group.
+
+| symbol | instructions | loads | stores | calls |
+| --- | ---: | ---: | ---: | ---: |
+| `generated.add_opcode_small.evalGroup` | 6,552 | 1,513 | 1,397 | 139 |
+| `simd_evaluator.PackedQm31.mul` (out of line) | 161 | 5 | 3 | 0 |
+
+**(1) The register-file traffic did not collapse; it moved to the stack.** The
+interpreter stores every result by construction: 278 sixteen-byte vector stores
+plus 493 × 4 = 1,972, so 2,250 vector stores (36,000 B) per group. The compiled
+body issues 1,397 vector stores and 1,513 loads per group. That is a **1.61x
+reduction in stores, not an elimination** — 493 live PackedQm31 values are
+31.5 KB and 32 NEON registers are 512 B, so LLVM spilled, and a spill slot is
+the same L1D round trip the heap register file was. The prediction the
+hypothesis made about mem ops is directly contradicted by measurement.
+
+**(2) 72% of the compiled arm's instruction budget is one QM31 multiply.**
+`evalGroup` makes exactly 139 calls — 107 extension `mul` instructions plus 32
+fold multiplies — into a 161-instruction out-of-line `PackedQm31.mul`. That is
+`139 x 161 = 22,379` instructions per group, **72.3%** of the compiled arm's
+30,961 and 51.6% of the interpreter's 43,395. The remainder of the compiled arm
+is 6,552 for the whole 771-instruction body plus ~1,500 for the driver's gather,
+offset map, denominator and scatter. Every instruction is accounted for.
+
+`PackedQm31.mul` costs what it costs because the current QM31 product is
+16 `mulVec4` plus 12 `addVec4`/`subVec4` (`simd_evaluator.zig:79-118`): eight
+CM31 sub-products, each two M31 multiplies.
+
+**(3) The IPC signature is increment 6's, repeated.** IPC falls 4.99 → 4.43 in
+lockstep with the 1.40x instruction reduction, exactly as it fell 5.30 → 4.34
+under strip-mining's 1.21x reduction. Three independent mechanisms have now
+removed instructions from this loop:
+
+| increment | mechanism | instructions removed | cycles gained |
+| --- | --- | ---: | ---: |
+| 5 (rejected) | hoist row-invariant instructions | 24.3% | ~1.01x |
+| 6 (rejected) | strip-mine over `T` row groups | 21.4% | 1.054x |
+| **2.3 (this)** | **compile the program to straight-line Zig** | **28.6%** | **1.242x** |
+
+The trend is monotone and this increment is much the largest of the three, but
+it converges on a **cycle floor of ~7,000 per four-row group** that codegen
+cannot cross, because at that point three quarters of the machine instructions
+are the field arithmetic the AIR actually specifies.
+
+**One diagnostic, and its honest limit.** Marking `PackedQm31.mul` `inline`
+takes the interpreter arm from 43,394 to 40,416 instructions/op (−6.9%) and its
+cycles from 8,773.2 to 8,667.1 (−1.2%, inside round-to-round spread). The
+compiled arm **could not be built** with that change — `m31.zig:255: evaluation
+exceeded 1000 backwards branches` — so no compiled inline-mul figure is
+reported; an earlier reading that appeared to show one came from a stale binary
+and is discarded. The interpreter-side reading is enough to make the point:
+call overhead is not where the multiply's cost is.
+
+### Whole-prover corroboration
+
+The S1 gate had already failed, so this is one confirmatory measurement rather
+than an acceptance attempt — the same discipline increment 6 used. A-B-B-A cold
+processes, three blocks, one untimed warmup process per arm, `--verify` on every
+run, uninstrumented binaries both sides, both arms with
+`STWO_CAIRO_PREPROCESSED_CACHE=0`, predecessor the pristine `zig-out` tree built
+from `efe4bef3`. Host load 4.45 at open, 6.30 at close — no block above 10.
+
+| block | comp pred | comp cand | ratio | prove pred | prove cand | ratio |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 381.909 | 362.720 | 1.0529x | 2,559.856 | 2,536.505 | 1.0092x |
+| 2 | 398.032 | 382.997 | 1.0393x | 2,639.375 | 2,606.531 | 1.0126x |
+| 3 | 416.825 | 388.102 | 1.0740x | 2,677.059 | 2,659.926 | 1.0064x |
+| **geomean** | | | **1.0553x** | | | **1.0094x** |
+
+Per-sample ranges: composition pred `[378.910, 432.078]`, cand
+`[360.843, 390.876]` — overlapping; prove pred `[2,541.414, 2,702.353]`, cand
+`[2,533.835, 2,664.599]`. Acceptance required either composition `>= 1.10x`
+with disjoint ranges in three blocks or prove `>= 1.02x` with non-overlapping
+CI. **Neither limb is met**, and the sign is the same in 3 of 3 blocks on both
+observables, so the small effect is real but small.
+
+The change is confined, which is the regression check that matters. Pooled
+ratios on the stages the candidate does not touch: `base_trace_build` 1.0093x,
+`main_trace_commit` 1.0033x, `interaction_trace_commit` 0.9858x,
+`interaction_trace_build` 1.0043x, `fri_quotient_build_and_commit` 1.0004x,
+`sampled_value_evaluation` 1.0048x — all inside this host's noise, none showing
+the incidental heap-layout amplitude increment 2.2 recorded.
+
+**The one number that does not close, stated as such.** S1 says the compiled
+component is 1.242x on cycles. If it were 70% of the composition stage — the
+share increment 5's census implies from 71% of QM31 multiplications — the stage
+should read ~1.157x. It reads 1.0553x, which back-solves to a **27%** share.
+Either the census's instruction share overstates its *time* share, or the real
+log-22 instance is more mask-gather-bound than the log-18 S1 shape (its columns
+are 4.2 M rows and cannot be cache-resident, while the harness's are). Resolving
+it needs a per-component composition probe — increment 5's audit instrumentation,
+preserved at `bb0de1e5` — and this increment did not spend its remaining budget
+there. The discrepancy is recorded rather than explained away.
+
+### Reconciliation with the earlier AOT rejection
+
+The prior "authenticated CPU AIR AOT specialization" on this branch was
+rejected at **1.017x geomean for 5.9 MiB of binary**
+(`2026-07-27-cairo-system-throughput/note.md`; source not retained). The brief's
+working theory was that it failed because it generated code that still routed
+values through a memory register file or blew i-cache.
+
+**That theory is wrong, and this increment is the evidence.** This
+implementation does not route through a register file — its values are ordinary
+locals and its spills are LLVM's own choice — and its `evalGroup` is 26 KB of
+text against this host's 192 KB L1I, on one component, with only one component
+hot at a time. It is not i-cache-bound and not register-file-bound. It measures
+**1.0094x on prove and 1.0553x on the composition stage for 17 KiB**. The old
+result and this one are **the same finding at two binary sizes**: compiling the
+AIR is worth roughly one percent of prove time, because the AIR's own field
+arithmetic — not its interpretation — is what the stage spends its cycles on.
+The old verdict is confirmed on better evidence, and the mechanism is now named.
+
+### Digests and verification
+
+Every proof produced in this increment — all 14 candidate arithmetic-2m proofs
+(3 blocks × 2 samples, warmup, spot proofs, single-worker) — carried the
+campaign digest:
+
+| Workload | SHA-256 |
+| --- | --- |
+| arithmetic-2m | `25e5719f4c578eb7ef10d76d6033e65f0a4a9d981c2414c3f7ac1950966deea6` |
+
+- **Byte-exactness is structural**, and was confirmed on the first run before
+  any timing: the compiled body computes the same values from the same inputs
+  with the same primitives in the same operand order, and accumulates rows in
+  the same ascending order.
+- **Admission was proved to fire, not assumed.** A deliberately sabotaged
+  generated body (`return PackedQm31.zero()`) produces
+  `error: ConstraintsNotSatisfied` on arithmetic-2m, so the compiled path is
+  demonstrably the one executing; with the correct body the digest is
+  `25e5719f…`. This also demonstrates the fail-closed property: a wrong
+  compiled evaluator cannot yield an accepted proof, only a rejected one,
+  because the verifier recomputes the composition polynomial at the OODS point
+  through the interpreter path.
+- **Official verifier** (`stwo-cairo-official-verifier`, revision `82f21252`)
+  on a candidate arithmetic-2m JSON proof: `verified: true`,
+  `proof_sha256 = 25e5719f…`.
+- `zig build test-cairo-cpu-product test-cairo-frontend -Doptimize=ReleaseFast`
+  — exit 0, `stwo-cairo-cpu closure: PASS` over **337** transitive Zig sources
+  (335 + the two generated files + the driver). `src/prover/**` untouched, so
+  `test-stwo-prover` was not required. A new unit test in
+  `compiled_evaluator.zig` re-derives the structural digest from the shipped
+  bundle and fails if the generated module ever drifts from the template it was
+  generated from.
+- **`STWO_ZIG_WORKERS=1`** arithmetic-2m: `25e5719f…`, `--verify` true — the
+  serial composition path takes the same compiled call.
+- **Metal was not rerun.** The reverted tree is bit-identical to `efe4bef3`,
+  whose increment-2.2 record already carries Metal arithmetic-2m at `25e5719f…`
+  with `cpu_fallbacks: 0`. The candidate would have inherited it unchanged in
+  any case: the compiled evaluator is host-side and Metal supplies its own
+  generated composition kernels.
+- Known pre-existing items unchanged and not chased: merkle-worker-stress
+  `blake_deep` `InvalidNRounds`, stale untracked `vectors/`/`reports/`
+  artifacts, corpus `pedersen.json` `SegmentPointerOverflow`.
+
+### Generalization sizing, recorded because the number is cheap and useful
+
+Measured, not estimated: the CPU binary grows from **2,003,632 B** to
+**2,021,088 B**, `+17,456 B` for 803 translated template instructions =
+**21.7 B per template instruction**. The shipped `canonical_small` bundle holds
+**64,193** template instructions across 48 components, so full coverage projects
+to **+1.33 MiB** — a quarter of the old AOT's 5.9 MiB, which says the old
+implementation emitted roughly 4x more code per instruction than a mechanical
+translation needs.
+
+What full coverage would actually require, if a future increment ever wanted it:
+a generator tool inside the repo (this session's lived out-of-tree), which means
+`build.zig` integration and therefore a governance flag; regeneration keyed to
+the bundle so a template change cannot silently leave a stale evaluator behind
+(the unit test added here is the cheap version of that guard); and a per-file
+split discipline, since one component of 803 instructions already needs two
+files under the 850-line ceiling and `partial_ec_mul_generic` has 18,128.
+i-cache is **not** the risk it was assumed to be — components run one at a time
+and the largest hot body here is 26 KB against 192 KB of L1I. The real cost is
+maintenance surface: 64 K lines of generated Zig for ~1% of prove time.
+
+**It should not be done.** Not because it does not work — it works, it is
+byte-exact, and it is 1.24x on the loop in isolation — but because 1.0094x on
+prove does not justify 1.33 MiB and 64 K generated lines, and because the same
+measurement points at a lever with several times the headroom for none of the
+surface.
+
+### Where this leaves the composition lane
+
+The implementation is preserved at `bf2fca42` and reverted immediately after,
+per the rejection protocol. `src/` returns to bit-identity with `efe4bef3`.
+
+The redirect is specific and it is the increment's real output. The composition
+loop spends **72% of its machine instructions inside `PackedQm31.mul`**, at 139
+multiplies per four-row group. Two levers act on that, and neither is codegen:
+
+1. **A cheaper QM31 product.** The current one is 16 M31 multiplies. Karatsuba
+   at both levels — three CM31 products instead of four, each three M31
+   products instead of four — is **9**, a `1.78x` cut on 72% of the instruction
+   budget, worth ~1.4x on the loop if cycles follow instructions at all (and
+   this increment's own evidence is that they follow at roughly half rate, so
+   call it 1.2x on the stage, ~1.04x on prove). It is a change to one function
+   in `simd_evaluator.zig`, it benefits the interpreter and any future compiled
+   body identically, it needs no admission machinery, and it is byte-exact only
+   if the reassociation is proved to preserve canonical representatives — which
+   is the one real risk and is checkable at S1 in minutes.
+2. **Fewer QM31 products per group.** 132 of 493 extension instructions are
+   `secure_col` repacks and 110 are adds; the multiply count is 107. Whether
+   constraint-level factoring can share sub-products across the 32 roots is an
+   algebraic question about the AIR, not an implementation question, and it is
+   the only lever identified in this campaign with more than ~1.1x in it for
+   the stage that is now 20% of memory-7m's prove.
+
+Increments 5, 6 and 2.3 have between them closed the entire "make the
+interpreter cheaper" family with three measurements. The composition stage's
+remaining cost is the field arithmetic, and the next attack on it has to be
+arithmetic.
