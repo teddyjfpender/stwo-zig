@@ -4159,3 +4159,66 @@ there is nothing to compile. The pre-existing failures Phase 0 §8 and increment
    4-6x the entire fusion prize, no existing submission site to disturb. It needs
    an AOT-bundle regeneration, which means it should be batched with the pending
    metallib mint (#124) rather than scheduled independently.
+
+## Increment 3.12: single-submission composition stage
+
+Work-plan item 2 from §3.11, taken as a small pre-gate fix and **preempted
+mid-verification by the #124 metallib delivery**. The change is complete and
+compiles; the end-to-end run is left to the gate-sequence increment.
+
+`composition_stage.zig` submitted one command buffer per component plan and
+waited on each — a blocking round trip per part, ~75 parts on all-opcodes, which
+§3.11 priced at `75 × 0.169 ms = +12.7 ms` of pure round-trip that Phase 1 would
+have landed as a regression the moment the hook came on.
+
+**The change is a three-line structural one, not a new mechanism.** The batching
+primitive already existed and was already used elsewhere:
+`prepareEvalBatch` / `evalBatchPrepared` (`prepared_execution.zig:554-573` →
+`dynamic_evaluation.m:584-680`) build one `MTLCommandBuffer`, give each plan its
+own compute encoder, and `commit` + `waitUntilCompleted` once — the same
+"encode many, wait once" shape as the FRI quotient path
+(`resident_fri_transaction.zig:163`, "2 command buffers, 1 wait"). So:
+
+1. `Entry` carries a `batch: ?metal.EvalBatchPlan`, prepared once at admission
+   as the **fourth step of the existing gate**. A batch is a retained list of
+   pipelines already resolved, so it adds no kernel, no binding and no dispatch,
+   and a component that cannot be grouped declines through the *same* block as
+   one whose kernel will not resolve. The 3.8 admission and decline paths are
+   otherwise untouched, and the hook stays default-off.
+2. The per-plan `evalPrepared` loop becomes one `evalBatchPrepared` call.
+   **Submissions per component go from `parts` to 1; dispatches stay at
+   `parts`.** Bindings are baked into `plan.arguments` at prepare time and are
+   re-bound identically per encoder, dispatch geometry is unchanged, and command
+   encoders inside one command buffer run in encode order — so the cross-part
+   accumulation into the coordinate planes, which the kernels rely on, is
+   preserved. Same kernels, same offsets, same output planes.
+3. `metal_composition_eval_dispatches` telemetry is deliberately **unchanged**:
+   it still records once per part, because it counts dispatches and the dispatch
+   count genuinely did not change. Plan item 1's governance-visible surface is
+   not disturbed. The new `submissions` count is session-local and log-only,
+   which is what makes the gap between the two visible.
+
+Expected recovery on all-opcodes once the hook runs: ~75 submissions → ~14 (one
+per accepted component), i.e. most of the 12.7 ms, with the residual being one
+0.169 ms wait per component rather than per part.
+
+**Verification is partial by preemption.** `zig build metal-check` compiles clean
+and `package-workspace` passes (17 packages, 51 edges) — both re-run *after* the
+#124 delivery landed in the branch, so they hold against the delivered tree, not
+just against `d385ffd9`. `metal-test` is 75/79 with 2 skipped and 2 failed, and
+the two failures (`resident_data_test.zig:617`, `proof_residency_test.zig:193`)
+are **pre-existing and unrelated** — both are `backends/metal` source-contract
+and commit-policy assertions, and a stashed baseline run on `d385ffd9` reproduces
+exactly the same two. Not run: `test-cairo-metal-product` and the all-opcodes
+digest spot (`79ae76e1…`). The hook is off, so product behaviour is unchanged by
+construction, but the digest spot is still owed.
+
+**No rebase is owed.** The #124 delivery (`19026cae`…`f7f8c3a3`, both metallibs
+in-tree) was already merged into the branch when this increment committed, so
+this change sits *on top of* the delivery rather than beside it. The delivery
+touched no file this increment touched.
+
+**What the successor owes this increment:** the two unrun gates above, and then
+the first end-to-end measurement of the batched stage against the now-delivered
+metallib — which is the first time the 12.7 ms claim becomes measurable rather
+than priced. The metallib that blocked it is present as of this commit.

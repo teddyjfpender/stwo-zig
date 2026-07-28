@@ -113,8 +113,13 @@ pub fn device(asset_path: ?[]const u8) device_stage.Device {
 const Entry = struct {
     plan: eval_arena.Plan,
     plans: []metal.EvalPlan,
+    /// The `plans` above, grouped so every part of this component encodes into
+    /// one command buffer. Null until kernel resolution succeeds, and therefore
+    /// non-null for exactly the accepted entries.
+    batch: ?metal.EvalBatchPlan = null,
 
     fn deinit(self: *Entry, allocator: std.mem.Allocator) void {
+        if (self.batch) |*batch| batch.deinit();
         for (self.plans) |*plan| plan.deinit();
         allocator.free(self.plans);
         self.plan.deinit(allocator);
@@ -138,6 +143,10 @@ const Session = struct {
     lift_ns: u64 = 0,
     lifted_bytes: u64 = 0,
     dispatches: u64 = 0,
+    /// Blocking submissions actually made. One per evaluated component, against
+    /// the `dispatches` above which stay one per part; the gap between the two
+    /// is what increment 3.12 bought and is why both are logged.
+    submissions: u64 = 0,
     device_gpu_ms: f64 = 0,
 };
 
@@ -235,7 +244,19 @@ fn open(
             entry.* = null;
             continue;
         }
+        // Grouping is the fourth and last step of the same gate: a batch is a
+        // retained list of the pipelines just resolved above, so it introduces
+        // no kernel, no binding and no dispatch of its own, and a component
+        // that cannot be grouped declines exactly as one that cannot resolve.
+        const batch = lease.runtime.prepareEvalBatch(plans) catch {
+            for (plans) |*plan| plan.deinit();
+            allocator.free(plans);
+            entry.*.?.deinit(allocator);
+            entry.* = null;
+            continue;
+        };
         ready.plans = plans;
+        ready.batch = batch;
         accepted_flag.* = true;
         accepted += 1;
     }
@@ -328,12 +349,13 @@ fn closeAdapter(context: *anyopaque) void {
         const seconds = @as(f64, @floatFromInt(self.lift_ns)) / std.time.ns_per_s;
         std.log.info(
             "device composition: lift {d:.3} ms over {d} MiB ({d:.2} GB/s), " ++
-                "{d} dispatches, device {d:.3} ms",
+                "{d} dispatches in {d} submissions, device {d:.3} ms",
             .{
                 @as(f64, @floatFromInt(self.lift_ns)) / std.time.ns_per_ms,
                 self.lifted_bytes >> 20,
                 @as(f64, @floatFromInt(self.lifted_bytes)) / seconds / 1.0e9,
                 self.dispatches,
+                self.submissions,
                 self.device_gpu_ms,
             },
         );
@@ -427,8 +449,17 @@ fn evaluate(self: *Session, request: *const device_stage.Request) !void {
     for (plan.coordinates) |offset|
         @memset(self.words[offset .. offset + rows], 0);
 
-    for (entry.plans) |plan_handle| {
-        self.device_gpu_ms += try self.lease.runtime.evalPrepared(self.arena, plan_handle);
+    // One submission per component instead of one per part. Each part still gets
+    // its own compute encoder and its own dispatch with the bindings baked at
+    // prepare time, and command encoders within one command buffer run in
+    // encode order, so the cross-part accumulation above is unaffected; what
+    // goes away is the blocking round trip the 3.11 census priced at 0.169 ms.
+    // This is the FRI quotient's "encode many, wait once" pattern
+    // (`resident_fri_transaction.zig:163`), not a new one.
+    const batch = entry.batch orelse return error.UnplannedComponent;
+    self.device_gpu_ms += try self.lease.runtime.evalBatchPrepared(self.arena, batch);
+    self.submissions += 1;
+    for (entry.plans) |_| {
         self.dispatches += 1;
         telemetry.record(.metal_composition_eval_dispatch);
     }
