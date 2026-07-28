@@ -166,6 +166,96 @@ class HostEvidenceTests(unittest.TestCase):
         )
 
 
+class RetainedReportTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.report = csp.load_json(csp.DEFAULT_REPORT)
+        cls.manifest, cls.cases = csp.validate_manifest()
+
+    def test_report_is_the_complete_verified_standard_matrix(self) -> None:
+        report = self.report
+        self.assertEqual(csp.SCHEMA, report["schema"])
+        self.assertEqual(report["measurement_commit"], report["repository_head"])
+        self.assertRegex(report["measurement_commit"], csp.HEX_40)
+        self.assertEqual(
+            csp.sha256_file(csp.MANIFEST),
+            report["suite_manifest_sha256"],
+        )
+        self.assertEqual(
+            {
+                "all_outputs_match": True,
+                "all_peak_memory_available": True,
+                "all_proofs_verified": True,
+                "row_count": 10,
+                "target_count": 2,
+            },
+            report["summary"],
+        )
+        self.assertEqual(list(csp.TARGET_ORDER), report["run"]["targets"])
+        self.assertEqual(list(csp.CANONICAL_SIZES), report["run"]["sizes"])
+        self.assertEqual(1, report["run"]["warmups"])
+        self.assertEqual(10, report["run"]["samples"])
+        self.assertTrue(report["run"]["complete_matrix"])
+
+        measurements = report["measurements"]
+        self.assertEqual(
+            [(case.target, case.input_size) for case in self.cases],
+            [(row["target"], row["input_size"]) for row in measurements],
+        )
+        for case, row in zip(self.cases, measurements, strict=True):
+            with self.subTest(target=case.target, size=case.input_size):
+                self.assertEqual(case.expected_cycles, row["cycles"])
+                self.assertEqual(case.guest_bytes, row["preprocessing_size"])
+                self.assertFalse(row["uses_precompile"])
+                self.assertGreater(row["proof_duration"], 0)
+                self.assertGreater(row["verify_duration"], 0)
+                self.assertGreater(row["proof_size"], 0)
+                self.assertGreater(row["peak_memory"], 0)
+
+                evidence = row["evidence"]
+                self.assertEqual("verified", evidence["status"])
+                self.assertEqual(case.input_sha256, evidence["input_sha256"])
+                self.assertEqual(case.guest_sha256, evidence["guest_sha256"])
+                self.assertEqual(case.expected_digest, evidence["output_digest"])
+                self.assertEqual(
+                    case.expected_digest,
+                    evidence["expected_output_digest"],
+                )
+                self.assertRegex(evidence["proof_sha256"], csp.HEX_32)
+                self.assertRegex(evidence["statement_sha256"], csp.HEX_32)
+                receipt = evidence["retained_verify_receipt"]
+                self.assertEqual("verified", receipt["status"])
+                self.assertEqual(
+                    evidence["statement_sha256"],
+                    receipt["statement_sha256"],
+                )
+                self.assertEqual(evidence["proof_sha256"], receipt["proof_sha256"])
+                self.assertEqual(
+                    report["measurement_commit"],
+                    receipt["implementation_commit"],
+                )
+                self.assertFalse(receipt["implementation_dirty"])
+
+    def test_report_preserves_security_and_host_qualification(self) -> None:
+        report = self.report
+        self.assertEqual("secure", report["security"]["profile"])
+        self.assertEqual(csp.SECURE_PCS_CONFIG, report["security"]["pcs_config"])
+        self.assertEqual("not_requested", report["source_audit"]["status"])
+        self.assertNotIn("hostname", report["host"])
+        self.assertEqual(
+            report["host_matches_official_csp"],
+            report["result_class"] == "official-host-comparable",
+        )
+        self.assertRegex(
+            report["identities"]["prover_executable_sha256"],
+            csp.HEX_32,
+        )
+        self.assertRegex(
+            report["identities"]["trace_executable_sha256"],
+            csp.HEX_32,
+        )
+
+
 class BuildRegistrationTests(unittest.TestCase):
     def test_standard_build_step_is_registered_once(self) -> None:
         product = (
