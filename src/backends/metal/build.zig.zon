@@ -8,6 +8,5 @@
         .stwo_backend_contracts = .{ .path = "../../backend" },
         .stwo_prover_api = .{ .path = "../../prover_api" },
         .stwo_prover_engine = .{ .path = "../../prover" },
-        .stwo_cpu_backend = .{ .path = "../cpu_scalar" },
     },
 }

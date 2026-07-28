@@ -1,10 +1,10 @@
 const std = @import("std");
-const cpu = @import("stwo_cpu_backend").CpuBackend;
 const backend_composition = @import("runtime/backend_composition.zig");
 const column_source_materialization = @import("runtime/column_source_materialization.zig");
 const commit_policy = @import("commit_policy.zig");
 const combined_commit = @import("runtime/combined_commit.zig");
 const fold_inverses = @import("runtime/fold_inverses.zig");
+const host_primitives = @import("host_primitives.zig");
 const merkle = @import("stwo_prover_engine").vcs_lifted.prover;
 const metal_merkle = @import("merkle_tree.zig");
 const ownership_testing = @import("runtime/ownership_testing.zig");
@@ -439,8 +439,8 @@ pub const MetalCommitBackend = struct {
         std.log.debug("Metal circle IFFT+RFFT: {d:.3}ms", .{gpu_ms});
     }
 
-    pub const ColumnType = cpu.ColumnType;
-    pub const batchInverse = cpu.batchInverse;
+    pub const ColumnType = host_primitives.ColumnType;
+    pub const batchInverse = host_primitives.batchInverse;
     pub fn foldCircleIntoLine(
         allocator: std.mem.Allocator,
         dst: []@import("stwo_core").fields.qm31.QM31,
@@ -822,8 +822,8 @@ pub const MetalCommitBackend = struct {
         };
     }
 
-    pub const foldLine = cpu.foldLine;
-    pub const foldLineN = cpu.foldLineN;
+    pub const foldLine = host_primitives.foldLine;
+    pub const foldLineN = host_primitives.foldLineN;
 };
 
 test "Metal commit backend exposes telemetry without constructing a runtime" {

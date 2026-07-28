@@ -239,7 +239,6 @@ fn createStwoModule(
         product(role),
         context.target,
         context.optimize,
-        cpu_backend,
         module,
     );
     const cuda_backend = graph.addCudaBackendImport(

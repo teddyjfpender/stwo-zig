@@ -175,7 +175,7 @@ pub const configure = [_]Configure{
             "src/tests/riscv/metal_backend_test.zig",
             "src/frontends/riscv/mod.zig",
         },
-        .dependency_module_roots = package_dependencies.riscv_metal_cpu_protocol_package_roots,
+        .dependency_module_roots = package_dependencies.riscv_metal_protocol_package_roots,
         .external_tools = &.{"python3"},
         .runtime_probes = &.{ "Metal.framework", "Foundation.framework", "libobjc" },
         .allowed_module_files = &.{

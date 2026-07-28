@@ -224,9 +224,8 @@ pub const riscv_cpu_protocol_package_roots = &.{
     "dependency:../src/prover_api:mod.zig",
 };
 
-pub const riscv_metal_cpu_protocol_package_roots = &.{
+pub const riscv_metal_protocol_package_roots = &.{
     "dependency:../src/backend:mod.zig",
-    "dependency:../src/backends/cpu_scalar:mod.zig",
     "dependency:../src/backends/metal:mod.zig",
     "dependency:../src/core:mod.zig",
     "dependency:../src/frontends/riscv:mod.zig",

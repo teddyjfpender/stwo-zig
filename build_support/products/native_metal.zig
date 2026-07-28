@@ -208,7 +208,6 @@ fn createStwoModule(context: Context, role: graph.Role) *std.Build.Module {
         product(role),
         context.target,
         context.optimize,
-        cpu_backend,
         module,
     );
     const proof_wire = graph.addProofWireImport(

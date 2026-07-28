@@ -309,14 +309,13 @@ pub fn addCudaBackendImport(
     return backend;
 }
 
-/// Constructs the canonical Metal backend with one shared CPU fallback module.
+/// Constructs the canonical Metal backend against protocol-owned primitives.
 pub fn createMetalBackend(
     b: *std.Build,
     protocol: ProtocolModules,
     product: Product,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
-    cpu_backend: *std.Build.Module,
 ) *std.Build.Module {
     const backend = create(b, .{
         .product = product,
@@ -325,7 +324,6 @@ pub fn createMetalBackend(
         .optimize = optimize,
     });
     protocol.addImports(backend);
-    backend.addImport("stwo_cpu_backend", cpu_backend);
     return backend;
 }
 
@@ -336,7 +334,6 @@ pub fn addMetalBackendImport(
     product: Product,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
-    cpu_backend: *std.Build.Module,
     consumer: *std.Build.Module,
 ) *std.Build.Module {
     const backend = createMetalBackend(
@@ -345,7 +342,6 @@ pub fn addMetalBackendImport(
         product,
         target,
         optimize,
-        cpu_backend,
     );
     consumer.addImport("stwo_metal_backend", backend);
     return backend;
