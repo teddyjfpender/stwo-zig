@@ -2,6 +2,10 @@
     .fingerprint = 0xff7eb6a027b1f6ad,
     .name = .stwo_zig,
     .version = "0.1.0",
-    .paths = .{ "." },
-    .dependencies = .{},
+    .paths = .{"."},
+    .dependencies = .{
+        .stwo_core = .{ .path = "src/core" },
+        .stwo_backend_contracts = .{ .path = "src/backend" },
+        .stwo_prover_impl = .{ .path = "src/prover" },
+    },
 }
