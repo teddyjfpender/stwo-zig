@@ -1389,3 +1389,243 @@ adjacency plus the warmup process is the defence applied.
 - **Parallelise the serial accumulator merge or `generateSecurePowers`.** The
   component wall-span probe brackets ~99% of the stage; there is no
   merkle-style serial residue here to recover.
+
+## Increment 6: strip-mined AIR interpreter
+
+**Outcome: negative audit. The candidate was built, proved byte-exact,
+measured, and reverted. Remaining budget went to the fallback base-witness
+graph attribution, which produced the increment's durable finding.**
+
+Implementation model: Claude Opus 4.5. Orchestration: Claude Fable 5.
+Predecessor `6e3daaf2`. Host: 18 cores, 8 MB L2, load average 3.4-6.0 across
+the session.
+
+### What was tested
+
+Increment 5 left the composition stage interpreter-bound: ~22 cycles per
+interpreted instruction over 1.09 G executions, with mask gather, scatter,
+denominators and NEON field arithmetic all excluded as the binding
+constraint. Strip-mining — interchanging the instruction and row-group loops
+so one opcode dispatch feeds `T` four-row groups instead of one — was the
+located attack, gated on an S1 tile sweep because the dominant component's
+register file crosses this host's L1D somewhere between `T=2` and `T=4`.
+
+### S1 tile sweep
+
+`stwo-prof zig` harnesses `r6b-tile-{1,2,4,8}` and `r6b-small-{1,2,4,8}`,
+compiled against the repo's real module graph (`src/core/mod.zig`,
+`src/backend/mod.zig`, `src/prover/mod.zig`, `src/frontends/cairo/mod.zig`) so
+the loop under measurement is live working-tree source, not a copy. The
+workload builds a synthetic captured program matched *structurally* to
+increment 5's census of the dominant arithmetic-2m component — 278 base
+instructions of which 63 are mask reads, 493 extension instructions, 32
+constraint roots, two distinct mask offsets, SSA registers — giving a register
+file of 278 × 16 + 493 × 64 = 36,000 B per tile slot. One op is one four-row
+group, so the counters are directly comparable across `T`. Three rounds,
+twelve iterations each.
+
+Dominant-component shape (36,000 B/slot; `T=4` = 144 KB, past L1D):
+
+| T | instructions/op | cycles/op | ns/op | IPC | cycles vs T=1 |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 50,067 | 9,447.3 | 2,185.9 | 5.30 | 1.000x |
+| 2 | 44,646 | 9,163.3 | 2,120.2 | 4.87 | 1.031x |
+| 4 | 40,887 | 8,965.0 | 2,073.5 | 4.56 | **1.054x** |
+| 8 | 39,338 | 9,058.4 | 2,094.0 | 4.34 | 1.043x |
+
+Control shape, small register file (70 base / 120 extension instructions =
+8,800 B/slot, so even `T=8` at 70 KB sits inside L1D):
+
+| T | instructions/op | cycles/op | ns/op | IPC | cycles vs T=1 |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 16,107 | 3,129.2 | 718.4 | 5.15 | 1.000x |
+| 2 | 14,601 | 3,009.0 | 691.5 | 4.85 | 1.040x |
+| 4 | 13,642 | 2,901.3 | 667.1 | 4.70 | 1.079x |
+| 8 | 13,450 | 2,867.9 | 659.8 | 4.69 | **1.091x** |
+
+Per-round dispersion is tiny: instructions/op agree to five significant
+figures across rounds, cycles/op to within 0.5%.
+
+**The mechanism is confirmed and the mechanism does not pay.** Dispatch
+removal is exactly as predicted — instructions/op falls monotonically with
+`T`, by 21.4% at `T=8` on the dominant shape and 16.5% on the small shape,
+which is 13.9 machine instructions of dispatch per interpreted instruction
+eliminated. But cycles/op barely follows: the best tile is 1.054x on the
+dominant shape and 1.091x even in the most favourable cache regime, against a
+1.15x gate. IPC falls from 5.30 to 4.34 in lockstep with the instruction
+count. That is the whole story: at IPC above 5 on an 8-wide core the
+interpreter's dispatch instructions were already being issued in superscalar
+slack alongside the vector work, so deleting them frees issue slots that were
+never the constraint. The L1D cliff is real but secondary — it costs `T=8`
+about 1% against `T=4` on the dominant shape — and it is not what kills the
+idea. Increment 5's "~22 cycles per interpreted instruction" is not 22 cycles
+of dispatch; it is a vector-issue and dependency-latency figure that
+strip-mining cannot touch.
+
+### Whole-prover corroboration
+
+The S1 gate had already failed, so this was one cheap confirmatory probe, not
+an acceptance attempt: two A-B-B-A blocks on arithmetic-2m, one untimed warmup
+per arm, uninstrumented binaries both sides, predecessor the pristine `zig-out`
+tree copied from `6e3daaf2` before any edit.
+
+```
+block1  pred comp 371.468 prove 2490.966   cand comp 361.335 prove 2472.034
+        cand comp 361.463 prove 2517.963   pred comp 373.814 prove 2557.877
+block2  pred comp 376.144 prove 2562.225   cand comp 363.847 prove 2561.374
+        cand comp 372.823 prove 2575.035   pred comp 386.506 prove 2601.989
+```
+
+| Block | comp pred | comp cand | ratio | prove pred | prove cand | ratio |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 372.641 | 361.399 | 1.0311x | 2,524.42 | 2,495.00 | 1.0118x |
+| 2 | 381.325 | 368.335 | 1.0353x | 2,582.11 | 2,568.20 | 1.0054x |
+| pooled | 376.983 | 364.867 | **1.0332x** | 2,553.26 | 2,531.60 | **1.0086x** |
+
+Against acceptance thresholds of 1.10x composition or 1.02x prove, both limbs
+fail, and the whole-prover number sits close to the S1 prediction of ~1.05x
+minus the stage's non-interpreter residue. The S1 harness read the machine
+correctly.
+
+Every one of the eight samples produced digest
+`25e5719f4c578eb7ef10d76d6033e65f0a4a9d981c2414c3f7ac1950966deea6`, so the
+strip-mined evaluator is byte-exact on a real 2 M-step proof, not merely in
+argument. Byte-exactness is structural: each tile slot computes the same
+values from the same inputs, no value crosses a slot boundary (slot `t` of
+register `r` lives at `r * tile + t`, and an instruction's operands and
+destination share `t`), and output rows are accumulated in the same ascending
+order.
+
+### The implementation, preserved
+
+`c02ce7f1` holds it; `e130f7cb` reverts it. `evaluatePartRangeTiled(comptime
+tile, ...)` in `src/frontends/cairo/proving/air/simd_evaluator.zig`, with
+`chooseTile` selecting the width from the program header's `max_base_regs` and
+`max_ext_regs` against a byte budget — structural admission, no name, path or
+digest inspected — and residual groups below one full tile falling back to the
+`tile == 1` instantiation. It is reinstatable as-is if a future host, a wider
+lane count, or a colder interpreter changes the arithmetic; on this host it
+does not.
+
+### Fallback scope: base-witness graph attribution
+
+Pure audit, no source change. `base_trace_build` is the second-largest CPU
+bucket the campaign has not attributed. The prover already records a
+`base_witness_graph` subtree with per-component leaves, so the instrument is
+the existing stage profile read at pool scale — `STWO_ZIG_WORKERS` at 18, 8
+and 4 — which separates what parallelises from what does not.
+
+memory-7m, all times ms:
+
+| Bucket | W=18 | W=8 | W=4 | W4→W18 |
+| --- | ---: | ---: | ---: | ---: |
+| `base_trace_build` (total) | 824.755 | 1,271.024 | 1,931.992 | 2.343x |
+| `witness_program_execute` | 593.221 | 1,039.870 | 1,704.918 | **2.874x** |
+| outside `base_witness_graph` | 94.126 | 93.936 | 93.869 | 1.000x |
+| `witness_base_lower` | 73.448 | 72.478 | 70.718 | 0.963x |
+| per-component residue | 48.838 | 49.366 | 48.029 | 0.983x |
+| `witness_input_materialize` | 15.037 | 15.298 | 14.387 | 0.957x |
+| `witness_output_initialize` | 0.019 | 0.020 | 0.019 | 1.000x |
+| `witness_output_allocate` | 0.044 | 0.039 | 0.035 | — |
+
+arithmetic-2m, same instrument:
+
+| Bucket | W=18 | W=4 | W4→W18 |
+| --- | ---: | ---: | ---: |
+| `base_trace_build` (total) | 277.012 | 542.149 | 1.957x |
+| `witness_program_execute` | 197.008 | 461.944 | **2.345x** |
+| outside `base_witness_graph` | 38.341 | 38.092 | 0.993x |
+| `witness_base_lower` | 22.796 | 22.913 | 1.005x |
+| per-component residue | 15.044 | 15.486 | 1.029x |
+| `witness_input_materialize` | 3.787 | 3.673 | 0.970x |
+| `witness_output_initialize` | 0.012 | 0.012 | 1.000x |
+
+Four findings, in descending order of usefulness to a witness-writer rework.
+
+**1. Output initialization is not a cost, and the brief's three-way split is
+really a two-way one.** `witness_output_initialize` is 19 µs on memory-7m and
+12 µs on arithmetic-2m — 0.002% of the stage. Increment 2's work already
+removed it. Any R2 scoping that budgets for output init is budgeting for
+nothing.
+
+**2. A pool-invariant 28% of `base_trace_build` is the real residue, and its
+largest part is uninstrumented.** Summing the flat buckets: 231.4 ms on
+memory-7m (28.0% of the stage at W=18) and 79.9 ms on arithmetic-2m (28.8%).
+The two workloads agreeing to within 0.8 points on a 4.5x size difference says
+this is structural, not incidental. The single biggest flat bucket is the
+94.1 ms / 38.3 ms *outside* `base_witness_graph` — the part of
+`base_trace_build` that no probe currently attributes at all, 11.4% of
+memory-7m's stage sitting completely dark. `witness_base_lower` (73.4 / 22.8
+ms) is next and is fully serial. This 231 ms is the Amdahl floor:
+parallelising program execution perfectly would take memory-7m's stage from
+825 ms only to ~231 ms, and every millisecond below that has to come from the
+lowering and post-graph tail.
+
+**3. Program execution parallelises, but poorly, and the reason is component
+granularity.** Efficiency is 64% on memory-7m (2.874x for 4.5x the workers)
+and 52% on arithmetic-2m (2.345x). The component nodes sum to roughly their
+parent — 669.2 ms of top-six against a 730.6 ms graph on memory-7m — so
+components run as a *serial chain*, each internally pool-parallel. And the
+chain is dominated by one link: `add_opcode_small` is 400.966 of 593.221 ms of
+program execution on memory-7m (67.6%) and 188.834 of 197.008 ms on
+arithmetic-2m (**95.9%**). On arithmetic-2m the other eight components are
+effectively free; the stage is one component's row loop. The lever is
+therefore intra-component row-range parallelism inside the witness writers,
+not more components in flight — the pool is already being handed the work one
+component at a time.
+
+**4. Incidental defect: the single-worker path produces wrong composition
+values.** `STWO_ZIG_WORKERS=1` fails with `error: ConstraintsNotSatisfied` on
+both arithmetic-2m and memory-7m, on the pristine `6e3daaf2` predecessor
+binary and on the reverted head alike, while `STWO_ZIG_WORKERS=2` proves
+normally and reproduces `25e5719f…`. It is pre-existing and unrelated to this
+increment. The mechanism is visible in
+`src/frontends/cairo/proving/air/component.zig:170-174`: the serial fallback
+returns `evaluation.evaluateRange(0, row_count, false)` — `additive` hardcoded
+false — and never updates `column.next_fresh_index`, whereas the parallel path
+at lines 180-199 derives `direct_store` from `next_fresh_index`, passes
+`additive = !direct_store`, and writes the index back. A second component
+accumulating into the same composition column therefore clobbers the first
+instead of adding to it. The same hazard applies to the
+`row_count < parallel_row_threshold` branch on the line above. Recorded, not
+fixed: this increment's fallback scope is audit-only.
+
+### Verification
+
+- Tree at `e130f7cb` is byte-identical to `6e3daaf2` (`git diff` empty), so
+  the campaign's accepted state is unchanged.
+- All three campaign digests reproduce on the reverted head: arithmetic-2m
+  `25e5719f4c578eb7ef10d76d6033e65f0a4a9d981c2414c3f7ac1950966deea6`,
+  memory-7m
+  `e3317e55a5db5a4251e04827b3d4f2ccaeb801feb6a9d2848e71ef23daced994`,
+  all-opcodes
+  `79ae76e1ac0c48b1e3b06810ddb1fed8aabe5dfb10d028e879105b79716cb310`.
+- The preserved strip-mined candidate at `c02ce7f1` reproduces
+  `25e5719f…` on all four of its timed arithmetic-2m samples plus the
+  spot proof.
+- `zig build test-cairo-cpu-product test-cairo-frontend
+  -Doptimize=ReleaseFast` passed on the reverted head; `stwo-cairo-cpu
+  closure: PASS` over 328 transitive Zig sources; identity reported
+  `dirty: false` at commit `e130f7cb`.
+- Metal and the official Rust verifier were not rerun: the reverted tree is
+  bit-identical to `6e3daaf2`, whose increment-5 record already carries both
+  results against these same digests. Known pre-existing
+  `merkle-worker-stress` `blake_deep` `InvalidNRounds` and the stale
+  `vectors/reports/merkle_worker_stress_artifacts/` directory are unchanged.
+
+### Rejected alternatives
+
+- **Strip-mining the interpreter over a tile of row groups.** Built,
+  byte-exact on a real proof, measured at 1.054x cycles at S1 and 1.033x
+  composition whole-prover, reverted. Preserved at `c02ce7f1`. Increment 5
+  predicted the L1D register-file cliff would be the binding constraint; the
+  sweep shows the cliff is real but minor and that the idea fails for a
+  different and more fundamental reason — the dispatch instructions were
+  already free. Together with increment 5's rejected row-invariant hoist
+  (24.3% of interpreted instructions removed for 1.01x) this closes the
+  "reduce interpreter instruction count" family: two independent mechanisms
+  have now removed 24% and 21% of instructions respectively for ~1% and ~3%.
+  The composition loop is issue-latency-bound, not instruction-count-bound.
+- **Fixing the single-worker composition path.** Out of scope for an
+  audit-only fallback, and it is a correctness bug on a non-default
+  configuration rather than a throughput lever. Handed to the campaign.
