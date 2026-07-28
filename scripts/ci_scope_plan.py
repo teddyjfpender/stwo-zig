@@ -197,10 +197,26 @@ def select_lanes(
     bindings = ci_package_graph.lane_packages(policy, packages)
     paths = sorted({normalize_path(path) for path in changed_paths})
     if full_matrix:
-        # Post-merge safety net: pushes to main re-run every lane regardless of
-        # the diff, so a selection mistake cannot reach main unnoticed and every
-        # lane's compiler cache stays warm for the next PR.
-        return sorted(policy["lanes"]), {lane: ["full-matrix"] for lane in sorted(policy["lanes"])}
+        # Post-merge safety net: pushes to main re-run every hosted lane
+        # regardless of the diff, so a selection mistake cannot reach main
+        # unnoticed and every hosted lane's compiler cache stays warm for the
+        # next PR. Lanes marked hosted=false run on scarce self-hosted
+        # hardware that must not be summoned by unrelated merges; they keep
+        # the diff-scoped selection even on push.
+        hosted = [
+            lane
+            for lane in sorted(policy["lanes"])
+            if policy["lanes"][lane].get("hosted", True)
+        ]
+        reasons = {lane: ["full-matrix"] for lane in hosted}
+        if paths:
+            scoped, scoped_reasons = select_lanes(
+                changed_paths, catalog, policy, packages, False
+            )
+            for lane in scoped:
+                if not policy["lanes"][lane].get("hosted", True):
+                    reasons[lane] = scoped_reasons[lane]
+        return sorted(reasons), reasons
     if not paths:
         raise PlanError("CI diff contains no changed paths")
     selected = set(policy["always_lanes"])

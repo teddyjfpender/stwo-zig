@@ -287,7 +287,7 @@ class PlanIntegrationTest(unittest.TestCase):
             len(self.select("src/integrations/cairo_cpu/mod.zig")),
         )
 
-    def test_push_full_matrix_selects_every_lane(self) -> None:
+    def test_push_full_matrix_selects_every_hosted_lane(self) -> None:
         lanes, reasons = ci_scope_plan.select_lanes(
             ["autoresearch/notes/x/note.md"],
             self.catalog,
@@ -295,14 +295,60 @@ class PlanIntegrationTest(unittest.TestCase):
             self.packages,
             full_matrix=True,
         )
-        self.assertEqual(set(lanes), set(POLICY["lanes"]))
+        hosted = {
+            lane
+            for lane in POLICY["lanes"]
+            if POLICY["lanes"][lane].get("hosted", True)
+        }
+        self.assertEqual(set(lanes), hosted)
         self.assertEqual(reasons["static"], ["full-matrix"])
+
+    def test_push_full_matrix_spares_unselected_self_hosted_lanes(self) -> None:
+        lanes, reasons = ci_scope_plan.select_lanes(
+            ["autoresearch/notes/x/note.md"],
+            self.catalog,
+            POLICY,
+            self.packages,
+            full_matrix=True,
+        )
+        for lane in lanes:
+            if not POLICY["lanes"][lane].get("hosted", True):
+                self.fail(
+                    f"self-hosted lane {lane} entered the push full matrix "
+                    "on a notes-only diff"
+                )
+
+    def test_push_full_matrix_keeps_diff_selected_self_hosted_lanes(self) -> None:
+        self_hosted = {
+            lane
+            for lane in POLICY["lanes"]
+            if not POLICY["lanes"][lane].get("hosted", True)
+        }
+        if not self_hosted:
+            self.skipTest("policy declares no self-hosted lanes")
+        scoped, _ = ci_scope_plan.select_lanes(
+            ["build.zig"], self.catalog, POLICY, self.packages, full_matrix=False
+        )
+        expected = self_hosted & set(scoped)
+        if not expected:
+            self.skipTest("fail-open selection reaches no self-hosted lane")
+        lanes, reasons = ci_scope_plan.select_lanes(
+            ["build.zig"], self.catalog, POLICY, self.packages, full_matrix=True
+        )
+        for lane in expected:
+            self.assertIn(lane, lanes)
+            self.assertNotEqual(reasons[lane], ["full-matrix"])
 
     def test_full_matrix_survives_an_empty_diff(self) -> None:
         lanes, _ = ci_scope_plan.select_lanes(
             [], self.catalog, POLICY, self.packages, full_matrix=True
         )
-        self.assertEqual(set(lanes), set(POLICY["lanes"]))
+        hosted = {
+            lane
+            for lane in POLICY["lanes"]
+            if POLICY["lanes"][lane].get("hosted", True)
+        }
+        self.assertEqual(set(lanes), hosted)
 
     def test_summary_lists_every_lane_as_selected_or_skipped(self) -> None:
         lanes, reasons = ci_scope_plan.select_lanes(
