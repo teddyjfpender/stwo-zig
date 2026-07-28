@@ -35,6 +35,7 @@ PYTHON_FOUNDATION_LIBRARIES = frozenset({
     "interop_cli_lib",
     "process_resources_lib",
     "product_identity_lib",
+    "riscv_air_ir_lib",
     "zig_protocol_lib",
 })
 # Controller packages with historical executable names that are not a direct
@@ -60,6 +61,17 @@ PYTHON_LIBRARY_DEPENDENCIES = {
     }),
     "riscv_release_oracle_lib": frozenset({"riscv_trace_vectors_lib"}),
     "riscv_release_gate_lib": frozenset({"riscv_trace_vectors_lib"}),
+    "riscv_operand_classes_lib": frozenset({
+        "riscv_equivalence_lib",
+        "riscv_sail_oracle_lib",
+    }),
+    "riscv_infrastructure_uniqueness_lib": frozenset({
+        "air_satisfaction_lib",
+    }),
+    "riscv_poseidon_table_uniqueness_lib": frozenset({
+        "air_satisfaction_lib",
+    }),
+    "riscv_sail_oracle_lib": frozenset({"riscv_equivalence_lib"}),
     "native_profile_capture_lib": frozenset({
         "metal_profile_report_lib",
         "native_proof_matrix_lib",

@@ -6,6 +6,7 @@ const cuda = @import("../backends/cuda.zig");
 const cuda_tools = @import("../backends/cuda_tools.zig");
 const graph_identity = @import("../graph/identity.zig");
 const graph = @import("../graph/modules.zig");
+const integration_graph = @import("../graph/integrations.zig");
 const graph_install = @import("../graph/install.zig");
 const policy = @import("../graph/product.zig");
 
@@ -24,15 +25,25 @@ const source_closure = policy.SourceClosure{
         .{ .name = "stwo_cairo_cuda", .source = "src/cairo_cuda.zig" },
         .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
+        .{ .name = "stwo_cairo_frontend", .source = "src/frontends/cairo/mod.zig" },
+        .{ .name = "stwo_cairo_cuda_integration", .source = "src/integrations/cairo_cuda/mod.zig" },
+        .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
+        .{ .name = "stwo_cuda_backend", .source = "src/backends/cuda/mod.zig" },
+        .{ .name = "stwo_native_cuda_integration", .source = "src/integrations/native_cuda/mod.zig" },
+        .{ .name = "stwo_native_examples", .source = "src/examples/mod.zig" },
+        .{ .name = "stwo_proof_wire", .source = "src/interop/proof_wire/mod.zig" },
         .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
     },
     .allowed_files = &.{"src/cairo_cuda.zig"},
     .allowed_prefixes = &.{
         "src/backend",
+        "src/backends/cpu_scalar",
         "src/backends/cuda",
         "src/core",
+        "src/examples",
         "src/frontends/cairo",
         "src/integrations/cairo_cuda",
+        "src/integrations/native_cuda",
         "src/interop",
         "src/products/cairo_cuda",
         "src/prover",
@@ -156,6 +167,67 @@ fn createStwoModule(
         .optimize = context.optimize,
     });
     context.protocol.addImports(module);
+    const cuda_backend = graph.addCudaBackendImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        module,
+    );
+    const proof_wire = graph.createProofWire(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+    );
+    const cpu_backend = graph.createCpuBackend(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+    );
+    const native_examples = graph.createNativeExamples(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        cpu_backend,
+        proof_wire,
+    );
+    const native_cuda = integration_graph.addNativeCudaImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        cuda_backend,
+        native_examples,
+        proof_wire,
+        module,
+    );
+    const cairo_frontend = graph.addCairoFrontendImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        module,
+    );
+    _ = integration_graph.addCairoCudaImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        cuda_backend,
+        cairo_frontend,
+        native_cuda,
+        module,
+    );
     return module;
 }
 

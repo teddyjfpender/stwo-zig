@@ -2,9 +2,7 @@
 
 const std = @import("std");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
-const quotient_abi = @import(
-    "../../../../backends/cuda/abi/stages/quotient.zig",
-);
+const quotient_abi = @import("stwo_cuda_backend").abi.stages.quotient;
 
 pub const TreeSpan = struct {
     tree_ordinal: u32,

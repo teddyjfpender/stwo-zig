@@ -1,11 +1,7 @@
 const std = @import("std");
-const column = @import("../../../backends/cuda/runtime/column.zig");
-const common = @import(
-    "../../../backends/cuda/runtime/stages/common.zig",
-);
-const telemetry = @import(
-    "../../../backends/cuda/runtime/telemetry.zig",
-);
+const column = @import("stwo_cuda_backend").runtime.column;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
 const pcs_hooks = @import("pcs_hooks.zig");
 const transcript_controller = @import("transcript/controller.zig");
 const transcript_schedule = @import("transcript/schedule.zig");
@@ -178,6 +174,17 @@ const FakeSession = struct {
     fn require(self: *FakeSession, stage: telemetry.Stage) !void {
         if (self.context.active_stage != stage)
             return error.StageOrderViolation;
+    }
+
+    pub fn zeroResidentSlice(
+        self: *FakeSession,
+        comptime F: type,
+        stage: telemetry.Stage,
+        destination: column.DeviceSlice(F),
+    ) !void {
+        try self.require(stage);
+        if (destination.address == 0 or destination.len == 0)
+            return error.InvalidResidentSlice;
     }
 };
 

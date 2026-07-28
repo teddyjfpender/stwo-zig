@@ -4,11 +4,9 @@
 //! external proof-oracle gates remain owned by their narrower modules.
 
 const std = @import("std");
-const arena = @import("../../../backends/cuda/runtime/arena.zig");
-const cuda_plan_mod = @import(
-    "../../../backends/cuda/runtime/execution_plan.zig",
-);
-const telemetry = @import("../../../backends/cuda/runtime/telemetry.zig");
+const arena = @import("stwo_cuda_backend").runtime.arena;
+const cuda_plan_mod = @import("stwo_cuda_backend").runtime.execution_plan;
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
 const canonical_ingress = @import("canonical_ingress.zig");
 const layout_mod = @import("layout.zig");
 const program_mod = @import("program.zig");
@@ -101,7 +99,8 @@ test "prepared plans seal small standard and large admitted geometry" {
         );
         try std.testing.expectEqual(
             geometry.decommit_tree_count,
-            prepared.decommit.fri_trees.len + 2,
+            prepared.decommit.fri_trees.len +
+                geometry.decommitted_trace_tree_count,
         );
         try std.testing.expect(prepared.totalWords() > 0);
         try std.testing.expect(prepared.totalWords() > previous_words);
@@ -110,7 +109,7 @@ test "prepared plans seal small standard and large admitted geometry" {
             prepared.totalWords() <= requirements_mod.max_total_words,
         );
         try std.testing.expectEqual(
-            88 + 3 * @as(usize, log_n_rows),
+            87 + 3 * @as(usize, log_n_rows),
             prepared.requirements().len,
         );
         const inverse_twiddles = try prepared.cuda_plan.arena_plan.placement(

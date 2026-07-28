@@ -1,10 +1,8 @@
 //! Host-sealed topology for uniform-log, single-component STARK proofs.
 
 const std = @import("std");
-const field = @import("../../../backends/cuda/abi/field.zig");
-const quotient_abi = @import(
-    "../../../backends/cuda/abi/stages/quotient.zig",
-);
+const field = @import("stwo_cuda_backend").abi.field;
+const quotient_abi = @import("stwo_cuda_backend").abi.stages.quotient;
 const layout_mod = @import("uniform_layout.zig");
 
 pub const Error = error{

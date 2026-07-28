@@ -1,9 +1,9 @@
 //! Geometry-checked binding for one resident commitment tree.
 
 const std = @import("std");
-const field = @import("../../../backends/cuda/abi/field.zig");
-const column = @import("../../../backends/cuda/runtime/column.zig");
-const common = @import("../../../backends/cuda/runtime/stages/common.zig");
+const field = @import("stwo_cuda_backend").abi.field;
+const column = @import("stwo_cuda_backend").runtime.column;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
 const views = @import("resident_views.zig");
 
 pub fn bind(

@@ -44,9 +44,9 @@ pub fn addressRowCount(input: *const adapter.ProverInput) Error!usize {
 
 pub fn bigComponentCount(input: *const adapter.ProverInput) Error!usize {
     const rows = try packedCount(input.memory.f252_values.len);
-    if (rows == 0) return 0;
-    return std.math.divCeil(usize, rows, max_big_rows) catch
+    const natural = std.math.divCeil(usize, rows, max_big_rows) catch
         return Error.AllocationSizeOverflow;
+    return @max(natural, 1);
 }
 
 pub fn bigRowCount(input: *const adapter.ProverInput, component: usize) Error!usize {
@@ -55,7 +55,10 @@ pub fn bigRowCount(input: *const adapter.ProverInput, component: usize) Error!us
     if (component >= component_count) return Error.InvalidComponent;
     const start = std.math.mul(usize, component, max_big_rows) catch
         return Error.AllocationSizeOverflow;
-    return powerOfTwoRows(@min(max_big_rows, packed_rows - start));
+    return @max(
+        try powerOfTwoRows(@min(max_big_rows, packed_rows -| start)),
+        lane_count,
+    );
 }
 
 pub fn smallRowCount(input: *const adapter.ProverInput) Error!usize {
@@ -146,6 +149,15 @@ test "Cairo memory tables: Rust row geometry pads packed values before powers of
     try std.testing.expectEqual(@as(usize, 1), try bigComponentCount(&input));
     try std.testing.expectEqual(@as(usize, 32), try bigRowCount(&input, 0));
     try std.testing.expectEqual(@as(usize, 64), try smallRowCount(&input));
+}
+
+test "Cairo memory tables: empty big values use one SIMD padding component" {
+    var input = testInput(&.{}, &.{0});
+    try std.testing.expectEqual(@as(usize, 1), try bigComponentCount(&input));
+    try std.testing.expectEqual(lane_count, try bigRowCount(&input, 0));
+    var column: [lane_count]u32 = undefined;
+    try writeBigValueColumn(&input, 0, 0, &column);
+    try std.testing.expectEqualSlices(u32, &([_]u32{0} ** lane_count), &column);
 }
 
 test "Cairo memory tables: value columns use 9-bit limbs and zero padding" {

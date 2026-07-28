@@ -1,8 +1,6 @@
 const std = @import("std");
-const proof_plan = @import("../../frontends/cairo/proof_plan.zig");
-const relation_bundle = @import(
-    "../../frontends/cairo/witness/relation_bundle.zig",
-);
+const proof_plan = @import("stwo_cairo_frontend").proof_plan;
+const relation_bundle = @import("stwo_cairo_frontend").witness.relation_bundle;
 const adapter = @import("relation_adapter.zig");
 
 test "relation adapter rejects cumulative memory-big ID overflow" {

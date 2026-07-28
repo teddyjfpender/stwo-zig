@@ -4,7 +4,7 @@ const common = @import("../common/driver.zig");
 
 pub const DriverFor = common.DriverFor;
 pub const NativeTransaction =
-    @import("../../../backends/cuda/runtime/proof_transaction.zig")
+    @import("stwo_cuda_backend").runtime.proof_transaction
         .ResidentProofTransaction;
 pub const NativeRuntime =
-    @import("../../../backends/cuda/runtime/process_runtime.zig").NativeRuntime;
+    @import("stwo_cuda_backend").runtime.process_runtime.NativeRuntime;

@@ -7,24 +7,12 @@
 
 const std = @import("std");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
-const compact = @import(
-    "../../../frontends/cairo/compact_verifier_interchange.zig",
-);
-const relation_stage = @import(
-    "../../../backends/cuda/runtime/stages/relation.zig",
-);
-const runtime_stages = @import(
-    "../../../backends/cuda/runtime/stages/mod.zig",
-);
-const common = @import(
-    "../../../backends/cuda/runtime/stages/common.zig",
-);
-const proof_transaction = @import(
-    "../../../backends/cuda/runtime/proof_transaction.zig",
-);
-const proof_capture = @import(
-    "../../native_cuda/common/proof_assembly.zig",
-);
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
+const relation_stage = @import("stwo_cuda_backend").runtime.stages.relation;
+const runtime_stages = @import("stwo_cuda_backend").runtime.stages;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const proof_transaction = @import("stwo_cuda_backend").runtime.proof_transaction;
+const proof_capture = @import("stwo_native_cuda_integration").common.proof_assembly;
 const request_compiler = @import("../request_compiler.zig");
 const resident_plan = @import("resident_plan.zig");
 const trace_writer = @import("trace_writer_controller.zig");

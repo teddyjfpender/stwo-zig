@@ -9,6 +9,8 @@
 
 pub const claims = @import("claims.zig");
 pub const components = @import("components/mod.zig");
+pub const official_claim_registry = @import("official_claim_registry.zig");
+pub const template_library = @import("template_library.zig");
 
 pub const CairoClaim = claims.CairoClaim;
 pub const CairoInteractionClaim = claims.CairoInteractionClaim;

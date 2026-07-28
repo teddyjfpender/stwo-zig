@@ -34,6 +34,12 @@ def public_data() -> dict:
         "program_root": 1,
         "initial_rw_root": 2,
         "final_rw_root": 3,
+        "completion": {
+            "kind": "unretired_self_loop",
+            "address": 0x10004,
+            "value": 0x6F,
+            "clock": 0,
+        },
         "io_entries": {
             "input_start": 0,
             "input_len": 1,
@@ -53,7 +59,7 @@ def public_diagnostic(*, dirty: bool) -> str:
         "provenance": {
             "implementation_commit": CANDIDATE,
             "implementation_dirty": dirty,
-            "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+            "oracle_commit": "8c7f2da58de0ba5e4457e4de07e0046f0439f35f",
             "witness_layout_sha256": DIGEST,
         },
         "source": {"elf_sha256": ELF_DIGEST, "input_sha256": INPUT_DIGEST},
@@ -68,17 +74,17 @@ def proof_artifact(*, dirty: bool) -> str:
     flat.update(io)
     return json.dumps({
         "artifact_kind": "stwo_riscv_proof",
-        "schema_version": 3,
-        "exchange_mode": "riscv_proof_json_wire_v3",
+        "schema_version": 4,
+        "exchange_mode": "riscv_proof_json_wire_v4",
         "release_status": "not_release_gated",
         "generator": "zig",
-        "air": "stark_v_rv32im",
+        "air": "sail_rv32im_zkvm_v1",
         "backend": "cpu",
         "protocol": "functional",
         "source": {"elf_sha256": ELF_DIGEST, "input_sha256": INPUT_DIGEST},
         "provenance": {
-            "oracle_repository": "https://github.com/ClementWalter/stark-v",
-            "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+            "oracle_repository": "https://github.com/riscv/sail-riscv",
+            "oracle_commit": "8c7f2da58de0ba5e4457e4de07e0046f0439f35f",
             "implementation_repository": "https://github.com/teddyjfpender/stwo-zig",
             "implementation_commit": CANDIDATE,
             "implementation_dirty": dirty,
@@ -101,22 +107,18 @@ def proof_artifact(*, dirty: bool) -> str:
 
 
 class InventoryTests(unittest.TestCase):
-    def test_full_inventory_is_exactly_the_reviewed_32_rows(self) -> None:
+    def test_full_inventory_is_exactly_the_reviewed_33_rows(self) -> None:
         workloads, identities = model.load_workloads()
         counts = {
             row_class: sum(item.row_class == row_class for item in workloads)
             for row_class in model.FULL_COUNTS
         }
-        self.assertEqual(32, len(workloads))
+        self.assertEqual(33, len(workloads))
         self.assertEqual(
-            {"proof": 20, "execution": 10, "expected_rejection": 2},
+            {"proof": 23, "execution": 10},
             counts,
         )
-        self.assertEqual(
-            {"corpus:mul_div", "corpus:mulhu_only"},
-            {item.row_id for item in workloads if item.row_class == "expected_rejection"},
-        )
-        self.assertEqual(32, len({item.row_id for item in workloads}))
+        self.assertEqual(33, len({item.row_id for item in workloads}))
         contract.require_sha256(identities["row_set_sha256"], "row set")
 
     def test_fixture_digest_mismatch_fails_before_row_construction(self) -> None:
@@ -129,7 +131,7 @@ class InventoryTests(unittest.TestCase):
         selection = controller._selection(workloads, workloads[:1])
         self.assertFalse(selection["complete"])
         self.assertEqual("filtered", selection["mode"])
-        self.assertEqual(32, selection["expected_full_row_count"])
+        self.assertEqual(33, selection["expected_full_row_count"])
 
 
 class DirtyBindingTests(unittest.TestCase):
@@ -206,40 +208,17 @@ class CorrectnessBoundaryTests(unittest.TestCase):
             controller._cycles_from_log(b"Guest program completed with 144 cycles"),
         )
 
-    def test_exact_expected_rejection_is_fail_closed(self) -> None:
-        workload = next(
-            item for item in model.load_workloads()[0] if item.row_id == "corpus:mul_div"
+    def test_signed_multiply_corpus_rows_are_proof_admitted(self) -> None:
+        workloads = model.load_workloads()[0]
+        selected = {
+            item.row_id: item.row_class
+            for item in workloads
+            if item.row_id in {"corpus:mul_div", "corpus:mulhu_only"}
+        }
+        self.assertEqual(
+            {"corpus:mul_div": "proof", "corpus:mulhu_only": "proof"},
+            selected,
         )
-        identity = {"path": "log", "sha256": hashlib.sha256(b"").hexdigest(), "size_bytes": 0}
-        good = controller.Capture(
-            argv=("candidate",),
-            returncode=1,
-            stdout=b"",
-            stderr=controller.UNSUPPORTED_PROOF_FAMILY_STDERR,
-            duration_ns=1,
-            cpu_time_ns=1,
-            stdout_identity=identity,
-            stderr_identity=identity,
-        )
-        with tempfile.TemporaryDirectory() as directory:
-            store = controller.EvidenceStore(Path(directory) / "artifacts")
-            with mock.patch.object(controller, "run_capture", return_value=good):
-                rejection = controller.run_expected_rejection(
-                    Path("candidate"), workload, store,
-                    controller.riscv_cli_admission.Admission(
-                        "candidate", "not_release_gated", True,
-                    ),
-                )
-            self.assertEqual("pass", rejection["status"])
-            bad = controller.Capture(**{**good.__dict__, "stderr": b"wrong\n"})
-            with mock.patch.object(controller, "run_capture", return_value=bad):
-                with self.assertRaisesRegex(controller.MatrixRunError, "exact typed"):
-                    controller.run_expected_rejection(
-                        Path("candidate"), workload, store,
-                        controller.riscv_cli_admission.Admission(
-                            "candidate", "not_release_gated", True,
-                        ),
-                    )
 
 
 class ContractTests(unittest.TestCase):

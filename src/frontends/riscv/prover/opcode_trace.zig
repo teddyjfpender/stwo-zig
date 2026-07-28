@@ -2,8 +2,10 @@
 
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
+const QM31 = @import("stwo_core").fields.qm31.QM31;
 const work_pool = @import("stwo_prover_impl").work_pool;
 const infra = @import("../infra_trace.zig");
+const semantic_eval = @import("../air/semantic_eval.zig");
 const statement_mod = @import("../air/statement.zig");
 const trace = @import("../runner/trace.zig");
 
@@ -223,7 +225,53 @@ pub fn generate(
             domain_sizes[component_index],
         );
     }
+    try validateDirectSemantics(allocator, statement, &result);
     return result;
+}
+
+/// Fail before committing a family witness whose direct AIR constraints do
+/// not vanish. This turns an opaque OODS mismatch into an exact family, row,
+/// and constraint diagnostic without accepting anything the proof would not.
+pub fn validateDirectSemantics(
+    allocator: std.mem.Allocator,
+    statement: statement_mod.RiscVStatement,
+    columns: *const Columns,
+) !void {
+    for (0..statement.n_components) |component_index| {
+        const desc = statement.component_descs[component_index];
+        const component = &columns.components[component_index];
+        const size = @as(usize, 1) << @intCast(desc.log_size);
+        var placement = try infra.BitReversalTable.init(allocator, desc.log_size);
+        defer placement.deinit(allocator);
+        for (0..size) |logical_row| {
+            const physical_row = placement.map(logical_row);
+            var sampled: [trace.MAX_FAMILY_COLUMNS]QM31 = undefined;
+            for (
+                sampled[0..component.n_columns],
+                component.columns[0..component.n_columns],
+            ) |*value, column| {
+                value.* = QM31.fromBase(column[physical_row]);
+            }
+            const is_active = if (logical_row < component.n_real_rows)
+                QM31.one()
+            else
+                QM31.zero();
+            const evaluation = try semantic_eval.evaluate(
+                desc.family,
+                sampled[0..component.n_columns],
+                is_active,
+            );
+            for (evaluation.values[0..evaluation.len], 0..) |value, constraint| {
+                if (!value.isZero()) {
+                    std.log.debug(
+                        "invalid RISC-V semantic witness: family={s} shard={d} row={d} constraint={d}",
+                        .{ @tagName(desc.family), component_index, logical_row, constraint },
+                    );
+                    return error.InvalidSemanticWitness;
+                }
+            }
+        }
+    }
 }
 
 fn deinitPlacements(

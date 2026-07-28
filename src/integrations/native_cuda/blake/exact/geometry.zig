@@ -1,7 +1,7 @@
 //! Exact mixed-height geometry for the pinned upstream Blake AIR.
 
 const std = @import("std");
-const cpu_blake = @import("../../../../examples/blake.zig");
+const cpu_blake = @import("stwo_native_examples").blake;
 const constants = cpu_blake.constants;
 const air_geometry = cpu_blake.geometry;
 const exact_input = cpu_blake.exact_input;

@@ -1,8 +1,8 @@
 //! Public value types for the Cairo CUDA resident-memory contract.
 
 const proof_ir = @import("stwo_backend_contracts").proof_program;
-const arena = @import("../../../backends/cuda/runtime/arena.zig");
-const telemetry = @import("../../../backends/cuda/runtime/telemetry.zig");
+const arena = @import("stwo_cuda_backend").runtime.arena;
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
 
 pub const word_bytes: u64 = @sizeOf(u32);
 

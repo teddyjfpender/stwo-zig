@@ -1,17 +1,55 @@
 {
- "stark_v_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+ "schema": "stwo-riscv-formal-corpus-v1",
+ "profile": "rv32im-zkvm-v1",
+ "authorities": {
+  "sail": {
+   "repository": "https://github.com/riscv/sail-riscv",
+   "revision": "8c7f2da58de0ba5e4457e4de07e0046f0439f35f",
+   "tag": "2026-07-20-8c7f2da",
+   "compiler": "0.20.2",
+   "base_configuration": "rv32",
+   "configuration_overrides_in_order": [
+    "conformance/riscv/sail-rv32im-override.json",
+    "conformance/riscv/sail-rv32im-tagged-options.json"
+   ],
+   "validated_isa_string": "rv32im"
+  },
+  "spike": {
+   "repository": "https://github.com/riscv-software-src/riscv-isa-sim",
+   "revision": "520a5f185083ac3c97b751501dfac02a6c1f5970"
+  },
+  "riscv_arch_test": {
+   "repository": "https://github.com/riscv-non-isa/riscv-arch-test",
+   "revision": "426e1598ebc3688eaf9aba7b4a1b8a81dae9807f"
+  }
+ },
+ "rvfi_transport": {
+  "protocol": "RVFI-DII v1",
+  "entry_point": 65536,
+  "upstream_entry_point": 2147483648,
+  "patch": {
+   "path": "conformance/riscv/sail-rvfi-zkvm-entry.patch",
+   "sha256": "1309655496ea8c8aae3cade751b1ba695dd19b2048f6118d28371be693dbb734"
+  },
+  "scope": "c_emulator harness entry only; Sail ISA model sources are unchanged"
+ },
+ "legacy_protocol_layout": {
+  "repository": "https://github.com/ClementWalter/stark-v",
+  "revision": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+  "semantic_authority": false
+ },
  "captured_by": "scripts/riscv_trace_vectors.py --update",
- "cross_verification": {
-  "tool": "scripts/riscv_equivalence.py --run",
-  "status": "zig-only",
-  "note": "positive-vector digests captured from the Zig runner; rerun the equivalence tool against a Stark-V dumper built at the pinned commit to escalate provenance"
+ "formal_verification": {
+  "tool": "scripts/riscv_trace_vectors.py --sail-bin",
+  "comparison": "every canonical RVFI-shaped retirement field",
+  "policy": "live external authority required for formal/release evidence"
  },
  "vectors": [
   {
    "name": "alu_test",
    "elf": "vectors/riscv_elfs/alu_test.elf",
-   "elf_sha256": "d2b41fe78881aeee2883a134db22e4054701f42a6773acf7b7f218f3a47a793f",
-   "trace_sha256": "d81b2ee8a7eeb014b168e0a6c7cd8adade087842becfb7017e117031b3ad0920",
+   "elf_sha256": "734a06a5fc76833a79620e628f8f8bd47d0e325153b81ccd99ee1d149f9a64ea",
+   "trace_sha256": "9862a1a6a85b615cc6014d0f55a2aaa6d1437aeec96409c0dd6242cc32380856",
    "total_steps": 8,
    "final_pc": 65568,
    "executed_opcode_ids": [
@@ -28,8 +66,8 @@
   {
    "name": "branch_fib",
    "elf": "vectors/riscv_elfs/branch_fib.elf",
-   "elf_sha256": "4dbf634977e3a30e71a16a681f1ac84def562bd0847fa4885f5f9214d003e0f1",
-   "trace_sha256": "02bc87e4ca26df633f26e97a28ffb6c61c6e0561a540996ca39ba2e8358de8a6",
+   "elf_sha256": "7ff124d1aea7433225b018c7f4dbcae7f693506c0ac34d6790c60cd50c7b2c3f",
+   "trace_sha256": "984db6e693b17b96172dcbc6f23ad34a725a2ea3b81d2cd4edc3a88918857fe6",
    "total_steps": 144,
    "final_pc": 65668,
    "executed_opcode_ids": [
@@ -51,8 +89,8 @@
   {
    "name": "bubble_sort",
    "elf": "vectors/riscv_elfs/bubble_sort.elf",
-   "elf_sha256": "1c1049a49be4b904a68a34b1afc5452f44a4a225edb167dbd8974de67cca8ea8",
-   "trace_sha256": "cd298b6f482c45014d88083a910707a9d8ed04d1dd262c5e7f87ce7eca41a83d",
+   "elf_sha256": "ada1f4f99eefd727be458206742694b8d5a873c3a78f021acbfd2357433ac7d3",
+   "trace_sha256": "28ea50bbb9fe2a2b7f40c79a44bc9394bc3a65209febc9ce277df04795ba8ad9",
    "total_steps": 9462,
    "final_pc": 65644,
    "executed_opcode_ids": [
@@ -71,8 +109,8 @@
   {
    "name": "collatz",
    "elf": "vectors/riscv_elfs/collatz.elf",
-   "elf_sha256": "533ba03ba57377b83905f6816d6a84c509ea3c123df202bd7f0fa974212214da",
-   "trace_sha256": "ba2deb85b04ebb710093e3f5564e04f41dc6108d401caf42f5a55d6801ae06d0",
+   "elf_sha256": "5e57a9b3d77dc9a32fd27d4abe6a44d8b7dcfd49793ef64bdef3a214e91398d6",
+   "trace_sha256": "b0580902c1045a82d2a065ef951ff36e54a645857bcba822db2e172153f37c63",
    "total_steps": 34237,
    "final_pc": 65620,
    "executed_opcode_ids": [
@@ -95,8 +133,8 @@
   {
    "name": "declared_region",
    "elf": "vectors/riscv_elfs/declared_region.elf",
-   "elf_sha256": "d2b41fe78881aeee2883a134db22e4054701f42a6773acf7b7f218f3a47a793f",
-   "trace_sha256": "d81b2ee8a7eeb014b168e0a6c7cd8adade087842becfb7017e117031b3ad0920",
+   "elf_sha256": "734a06a5fc76833a79620e628f8f8bd47d0e325153b81ccd99ee1d149f9a64ea",
+   "trace_sha256": "9862a1a6a85b615cc6014d0f55a2aaa6d1437aeec96409c0dd6242cc32380856",
    "total_steps": 8,
    "final_pc": 65568,
    "executed_opcode_ids": [
@@ -111,10 +149,27 @@
    }
   },
   {
+   "name": "fence",
+   "elf": "vectors/riscv_elfs/fence.elf",
+   "elf_sha256": "c81071965bf7d36977cc511b666124a7ecf46a7fa440d9f3af7e0fded2726bc3",
+   "trace_sha256": "9a69e4275a20bc1e9f5e90977353b696616cc9b91e47942bdb4afb13ca23719a",
+   "total_steps": 8,
+   "final_pc": 65568,
+   "executed_opcode_ids": [
+    10,
+    26,
+    35,
+    45
+   ],
+   "proof_admission": {
+    "status": "supported"
+   }
+  },
+  {
    "name": "fib_iter",
    "elf": "vectors/riscv_elfs/fib_iter.elf",
-   "elf_sha256": "cf0f6a37202b356e073e67426a4fa0ab5afb1c0db1da31c106622e2e4e79c558",
-   "trace_sha256": "fc8dcf6db6ee65373966de812bdfd8fb81283cc4029ecbc6766232012c2020cc",
+   "elf_sha256": "42c7de1d3f1c87224e37406383c29fbd4a3d8084e428564bac78a871cb5aacf3",
+   "trace_sha256": "96b98ce7ca3af0387c0225e797f9e7c7a96b64f6445c93920d1c2fca10e98e8f",
    "total_steps": 102408,
    "final_pc": 65588,
    "executed_opcode_ids": [
@@ -131,8 +186,8 @@
   {
    "name": "gcd_euclid",
    "elf": "vectors/riscv_elfs/gcd_euclid.elf",
-   "elf_sha256": "72642542eecc7c26e920c346b21610f06e9d6b28e4e6b0133ce0aadd57c6e183",
-   "trace_sha256": "00e1a7aeff7cfd9d2a99e12f2d7e17b500ff9e971c21d24bf2c34e4fe035d7b8",
+   "elf_sha256": "18c69c1f235919dd322863d1e367fed4477d0a8c27dad8f4c661554307daa298",
+   "trace_sha256": "9069cac5a5993cae5602bddd57e5a6afb988719f76228967fda035ba0be56dac",
    "total_steps": 124931,
    "final_pc": 65584,
    "executed_opcode_ids": [
@@ -151,8 +206,8 @@
   {
    "name": "jal_jalr",
    "elf": "vectors/riscv_elfs/jal_jalr.elf",
-   "elf_sha256": "75ffceb907ed06b1cfdfffab44bea5e765b50c37b653cf23cb992da1fc33555e",
-   "trace_sha256": "5b7477a915854db639390bae68ce361e96209f630cdca252d7d57543d2c1a286",
+   "elf_sha256": "bdd0f3d005aa9d0b49d69ec56a9290ce301317492673ae2a7fb58632c4e9be96",
+   "trace_sha256": "8433f70d7dbaa026b0d4240e462c4b2753498b15f3803b86b6d23fc6ba97af8c",
    "total_steps": 11,
    "final_pc": 65580,
    "executed_opcode_ids": [
@@ -169,8 +224,8 @@
   {
    "name": "mem_ls",
    "elf": "vectors/riscv_elfs/mem_ls.elf",
-   "elf_sha256": "3f2ce9e1fd1136053b274ce6fca02e118c3bc4348cb968a73407466ce923e2be",
-   "trace_sha256": "4c4291a23908b95080d7c6ac87e03ddda638d309f8d29abccb3c0c1f15a7ac9d",
+   "elf_sha256": "e9e828a54ee59376f2c027769910e09e3dbe69580831e544e38b213ae6dfc214",
+   "trace_sha256": "db1f82329de7f0dc4abb2e3c9ed06d79b86616f7cf60c5c2e702be3b7ce52add",
    "total_steps": 18,
    "final_pc": 65608,
    "executed_opcode_ids": [
@@ -193,8 +248,8 @@
   {
    "name": "memcpy_loop",
    "elf": "vectors/riscv_elfs/memcpy_loop.elf",
-   "elf_sha256": "708bf392e6b457313b40f40981c705a51dbf6c47a71f26fd68f472902daee38a",
-   "trace_sha256": "ef86e933e20ed5e0dd0b8e8cb78bcb4e4c9cfdabc2f0a2ea60d4ad7820eed369",
+   "elf_sha256": "a3502eba17d7fc0290c898290722b6be649a82f4b68b65216f197015b8dcfe64",
+   "trace_sha256": "504aedef4ad1005727c51681e5d4f9a6c04f0f5bd98ba9ed27b7d7d5b343fc97",
    "total_steps": 2126,
    "final_pc": 65636,
    "executed_opcode_ids": [
@@ -211,8 +266,8 @@
   {
    "name": "mul_div",
    "elf": "vectors/riscv_elfs/mul_div.elf",
-   "elf_sha256": "58bde51588e8dadd36dfe851b524519079bbc7e1dfbd5531446162f3568428be",
-   "trace_sha256": "9bbf1523b019e409605d966de87e2138ad23b65c08bd1aedff62f88dba850f36",
+   "elf_sha256": "5a211eb73c1de22578b58989e2ede83a2650f9b810b42cb12005c4bd89ac3d56",
+   "trace_sha256": "7c214b9bdcc81694f1a446a37c65eb9ede6616aba160db3a422a40e201c5c154",
    "total_steps": 21,
    "final_pc": 65620,
    "executed_opcode_ids": [
@@ -229,15 +284,14 @@
     44
    ],
    "proof_admission": {
-    "status": "fail_closed_known_limitation",
-    "known_limitation": "stark-v-signed-mulh"
+    "status": "supported"
    }
   },
   {
    "name": "mulhu_only",
    "elf": "vectors/riscv_elfs/mulhu_only.elf",
-   "elf_sha256": "306f5d6957f78d2bcd084c41888476da30045e7b1d262f27bdd31f569f7d2e2d",
-   "trace_sha256": "03c4aefaf2a96274e2c596e9ddd21a488051b6a5c5e5101096bab4897810d300",
+   "elf_sha256": "c8508fdaefc78897cca1ddfa5d7af1d933c1784d2083a4b5be6ab57f4b6f8713",
+   "trace_sha256": "6a4cfc0324c2390aa7e785f9ca3395949b17d64d912447cc605e336c55f726a6",
    "total_steps": 8,
    "final_pc": 65568,
    "executed_opcode_ids": [
@@ -247,15 +301,14 @@
     40
    ],
    "proof_admission": {
-    "status": "diagnostic_balanced_family_fail_closed",
-    "known_limitation": "stark-v-signed-mulh"
+    "status": "supported"
    }
   },
   {
    "name": "multi_shard_addi",
    "elf": "vectors/riscv_elfs/multi_shard_addi.elf",
-   "elf_sha256": "06d217624c13bed63beecbc15127b1fbcd098ee520ac11a20d864cb38d7577a0",
-   "trace_sha256": "3979a686d811e18eddef23fda883a625b7c489540ad2ed86822fe03b71e4924e",
+   "elf_sha256": "c93d9a3dd6104ae0f76a4297f3800ab70e5e59984187b1357e7619a0a0004adb",
+   "trace_sha256": "fe86610ab4806c7b1613bdd8bf00ded115169d2f2bb0bc21451f2d2d77813219",
    "total_steps": 131078,
    "final_pc": 65568,
    "executed_opcode_ids": [
@@ -271,8 +324,8 @@
   {
    "name": "shift_logic",
    "elf": "vectors/riscv_elfs/shift_logic.elf",
-   "elf_sha256": "8cd5492e6434949ca541efba2c817f0fb65b9cd7cab874edff5e3c8417d1c9c1",
-   "trace_sha256": "513b148af08abbb98c981f2517854ef9acff330932ab11504a9f9cb281bf87fe",
+   "elf_sha256": "5616b93315b84b74b65c131bbb35c7936f3104354792f0ab8b1a6cc799b887c7",
+   "trace_sha256": "7307e4b3d9b377ca1e6ae974cc2978da6b734b2b0b51cf196174294934e7698b",
    "total_steps": 23,
    "final_pc": 65628,
    "executed_opcode_ids": [
@@ -303,8 +356,8 @@
   {
    "name": "sieve_primes",
    "elf": "vectors/riscv_elfs/sieve_primes.elf",
-   "elf_sha256": "e17f246064c7edb8ca7cb313f1e5fef369d0fa9ff64d4fa5cc05628f576791a5",
-   "trace_sha256": "9fb1ca2b565b7a28983429bed85f8a612c2e7667e7a53c089cfbef6e2db7d00f",
+   "elf_sha256": "a1c8e2524554cdcff772e0fa931965ee71554a2a494912a0c4090678fbef8328",
+   "trace_sha256": "1b593ee80626092a30df5ca097f9a1d8c6c93225068892783a2f3c4eefab2763",
    "total_steps": 2792,
    "final_pc": 65640,
    "executed_opcode_ids": [
@@ -326,8 +379,8 @@
   {
    "name": "xorshift_prng",
    "elf": "vectors/riscv_elfs/xorshift_prng.elf",
-   "elf_sha256": "a237303b7882124cdf5b013117aa1a3abede047995add871c3525c4ca3fa376e",
-   "trace_sha256": "f13bcfe5f259c56705e7286c198624611ca91da214d6894116b072a18d26f866",
+   "elf_sha256": "eeceec1a36cf32abb12e4f06661d639b4621cdf9d22a8a659a6e0341be857c0c",
+   "trace_sha256": "cf0b859ab75a4cf7c181bd61ed1ca3a82ba43f45294bdac28e1f2f8257c282a7",
    "total_steps": 65544,
    "final_pc": 65600,
    "executed_opcode_ids": [
@@ -346,18 +399,68 @@
  ],
  "negative_vectors": [
   {
+   "name": "fence_i_outside_profile",
+   "elf": "vectors/riscv_elfs/negative/fence_i_outside_profile.elf",
+   "elf_sha256": "a18d8ec830ac209153b29fadc22cff1dc0ec14f2e98cdf42a63d4c79ba64578c",
+   "expected": "zig_reject_before_retirement",
+   "reason": "zifencei_outside_rv32im_profile",
+   "sail_disposition": "retire_profile_exclusion"
+  },
+  {
+   "name": "illegal_opcode",
+   "elf": "vectors/riscv_elfs/negative/illegal_opcode.elf",
+   "elf_sha256": "0dff0f282585020ec3450b6409e61152b837bd79d5ef0752e5b6aefafeb78f2b",
+   "expected": "zig_reject_before_retirement",
+   "reason": "illegal_primary_opcode",
+   "sail_disposition": "trap"
+  },
+  {
+   "name": "misaligned_jump_target",
+   "elf": "vectors/riscv_elfs/negative/misaligned_jump_target.elf",
+   "elf_sha256": "aa9e0f9eec46929159b66e67c0aa5c12eea803b86ac4f9b0efbd74676d92d409",
+   "expected": "zig_reject_before_retirement",
+   "reason": "instruction_address_misaligned",
+   "sail_disposition": "trap"
+  },
+  {
+   "name": "misaligned_word_load",
+   "elf": "vectors/riscv_elfs/negative/misaligned_word_load.elf",
+   "elf_sha256": "3c73da6766d86cb0a639cfd0e95414a5ed372e6efca801c8d9096627d2db4ac4",
+   "expected": "zig_reject_before_retirement",
+   "reason": "data_address_misaligned",
+   "sail_disposition": "trap"
+  },
+  {
+   "name": "reserved_op_funct7",
+   "elf": "vectors/riscv_elfs/negative/reserved_op_funct7.elf",
+   "elf_sha256": "92c2126452079c46162d3e5b21173e7b7e20239c163ca9aa53e2ecece2a30604",
+   "expected": "zig_reject_before_retirement",
+   "reason": "reserved_op_funct7",
+   "sail_disposition": "trap"
+  },
+  {
    "name": "self_loop_sentinel",
    "elf": "vectors/riscv_elfs/negative/self_loop_sentinel.elf",
-   "elf_sha256": "87d50357b54037c695c558f533ef2e98b8c385efa873569cf2614911b1e3a198",
-   "expected": "diagnostic_only_not_release_eligible",
-   "reason": "self_loop_terminates_without_setting_halt_flag"
+   "elf_sha256": "57617eed3526b2dfc6796f2dc5ec87c2a379a0fb341b6b9a1ff0124975be2481",
+   "expected": "zig_reject_before_retirement",
+   "reason": "self_loop_terminates_without_setting_halt_flag",
+   "sail_disposition": "zkvm_environment_only"
+  },
+  {
+   "name": "system_ecall",
+   "elf": "vectors/riscv_elfs/negative/system_ecall.elf",
+   "elf_sha256": "a9bc3d13544ef925bfcec75fe3fdf0cdc35e17dc72a3f3eebc47b3f68ac9a238",
+   "expected": "zig_reject_before_retirement",
+   "reason": "system_instruction_is_environment_control",
+   "sail_disposition": "trap"
   },
   {
    "name": "undeclared_program",
    "elf": "vectors/riscv_elfs/negative/undeclared_program.elf",
-   "elf_sha256": "9b654a408cf44cab02fd7bf472cb64510d1116fbb198525c26487e0342a351a8",
-   "expected": "diagnostic_only_not_release_eligible",
-   "reason": "missing_declared_program_symbols"
+   "elf_sha256": "49f9e8f3d1ec4f4243a6c7eaad31d8c48a52c08e32c82b242af29f076d2d5415",
+   "expected": "zig_reject_before_retirement",
+   "reason": "missing_declared_program_symbols",
+   "sail_disposition": "zkvm_environment_only"
   }
  ]
 }

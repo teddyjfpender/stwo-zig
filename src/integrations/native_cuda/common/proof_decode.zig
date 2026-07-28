@@ -2,11 +2,11 @@
 
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
-const proof_wire = @import("../../../interop/proof_wire.zig");
+const proof_wire = @import("stwo_proof_wire");
 const decommit_bundle =
-    @import("../../../backends/cuda/runtime/proof_assembly/decommit_bundle.zig");
+    @import("stwo_cuda_backend").runtime.proof_assembly.decommit_bundle;
 const stark_bundle =
-    @import("../../../backends/cuda/runtime/proof_assembly/stark_bundle.zig");
+    @import("stwo_cuda_backend").runtime.proof_assembly.stark_bundle;
 const uniform_layout = @import("uniform_layout.zig");
 
 pub const Error = error{
@@ -632,9 +632,10 @@ test "sample reconstruction follows role descriptors" {
     var words: [11 * stark_bundle.secure_words]u32 = undefined;
     for (&words, 0..) |*word, index| word.* = @intCast(index + 1);
     const sampled = try decodeSamples(
+        struct {},
         std.testing.allocator,
         &words,
-        trees,
+        &trees,
     );
     defer {
         for (sampled) |columns| {
@@ -685,9 +686,10 @@ test "sample reconstruction preserves unsampled tree columns" {
     var words: [10 * stark_bundle.secure_words]u32 = undefined;
     for (&words, 0..) |*word, index| word.* = @intCast(index + 1);
     const sampled = try decodeSamples(
+        struct {},
         std.testing.allocator,
         &words,
-        trees,
+        &trees,
     );
     defer {
         for (sampled) |columns| {

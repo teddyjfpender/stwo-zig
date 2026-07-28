@@ -1,24 +1,14 @@
 //! Fail-closed inventory of every Cairo base-trace producer in one proof.
 
 const std = @import("std");
-const product_aot = @import("../../../backends/cuda/aot/product_registry.zig");
-const ec_contract = @import(
-    "../../../backends/cuda/runtime/stages/cairo_ec_op_contract.zig",
-);
-const adapter = @import("../../../frontends/cairo/adapter/mod.zig");
-const proof_plan = @import("../../../frontends/cairo/proof_plan.zig");
-const composition = @import(
-    "../../../frontends/cairo/witness/composition_bundle.zig",
-);
-const feed_bundle = @import(
-    "../../../frontends/cairo/witness/feed_bundle.zig",
-);
-const fixed_bundle = @import(
-    "../../../frontends/cairo/witness/fixed_table_bundle.zig",
-);
-const witness_bundle = @import(
-    "../../../frontends/cairo/witness/bundle.zig",
-);
+const product_aot = @import("stwo_cuda_backend").aot.product_registry;
+const ec_contract = @import("stwo_cuda_backend").runtime.stages.cairo_ec_op_contract;
+const adapter = @import("stwo_cairo_frontend").adapter;
+const proof_plan = @import("stwo_cairo_frontend").proof_plan;
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
+const feed_bundle = @import("stwo_cairo_frontend").witness.feed_bundle;
+const fixed_bundle = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
+const witness_bundle = @import("stwo_cairo_frontend").witness.bundle;
 const fixed_tables = @import("fixed_tables.zig");
 const memory = @import("memory.zig");
 const recorded_binding = @import("../recorded_binding.zig");

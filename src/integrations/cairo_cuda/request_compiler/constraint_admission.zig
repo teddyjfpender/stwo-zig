@@ -1,9 +1,7 @@
 //! Request-local admission map for authenticated Cairo CUDA constraints.
 
 const std = @import("std");
-const composition = @import(
-    "../../../frontends/cairo/witness/composition_bundle.zig",
-);
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
 const eval_aot = @import("../eval_aot.zig");
 const eval_codegen = @import("../eval_codegen.zig");
 const eval_product_registry = @import("../eval_product_registry.zig");

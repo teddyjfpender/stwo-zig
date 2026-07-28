@@ -1,16 +1,10 @@
 //! Quotient and FRI resident bindings for Cairo CUDA.
 
 const proof_ir = @import("stwo_backend_contracts").proof_program;
-const field = @import("../../../backends/cuda/abi/field.zig");
-const quotient_abi = @import(
-    "../../../backends/cuda/abi/stages/quotient.zig",
-);
-const shared_views = @import(
-    "../../native_cuda/common/resident_views.zig",
-);
-const compact = @import(
-    "../../../frontends/cairo/compact_verifier_interchange.zig",
-);
+const field = @import("stwo_cuda_backend").abi.field;
+const quotient_abi = @import("stwo_cuda_backend").abi.stages.quotient;
+const shared_views = @import("stwo_native_cuda_integration").common.resident_views;
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
 const resident_plan = @import("resident_plan.zig");
 const slots = @import("pcs_slot_binding.zig");
 const types = @import("pcs_hooks_types.zig");

@@ -1,6 +1,6 @@
 //! Canonical host-to-resident initialization for one proof transaction.
 
-const field = @import("../../../../backends/cuda/abi/field.zig");
+const field = @import("stwo_cuda_backend").abi.field;
 const canonical_ingress = @import("../canonical_ingress.zig");
 const plan_mod = @import("../plan.zig");
 const slots = @import("../slots.zig");
@@ -223,7 +223,7 @@ fn retainedLayers(
 
 test "ingress writes one zeroed bundle and canonical sealed inputs only" {
     const std = @import("std");
-    const arena = @import("../../../../backends/cuda/runtime/arena.zig");
+    const arena = @import("stwo_cuda_backend").runtime.arena;
     const support = @import("trace/test_support.zig");
 
     const Record = struct {

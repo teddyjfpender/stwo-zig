@@ -1,10 +1,6 @@
 const std = @import("std");
-const composition_bundle = @import(
-    "../../frontends/cairo/witness/composition_bundle.zig",
-);
-const relation_bundle = @import(
-    "../../frontends/cairo/witness/relation_bundle.zig",
-);
+const composition_bundle = @import("stwo_cairo_frontend").witness.composition_bundle;
+const relation_bundle = @import("stwo_cairo_frontend").witness.relation_bundle;
 const fixture_mod = @import("relation_sn2_parity_fixture.zig");
 
 const fixture_path =

@@ -1,8 +1,6 @@
 //! Blake-owned policy for the exact mixed-height resident CUDA AIR kernel.
 
-const runtime_blake = @import(
-    "../../../backends/cuda/runtime/constraints/blake.zig",
-);
+const runtime_blake = @import("stwo_cuda_backend").runtime.constraints.blake;
 const geometry_mod = @import("geometry.zig");
 
 pub const Buffers = runtime_blake.Buffers;

@@ -1,7 +1,7 @@
 const std = @import("std");
-const prover = @import("../../frontends/cairo/prover.zig");
-const rust_oracle = @import("../../frontends/cairo/rust_oracle.zig");
-const semantic_pack = @import("../../frontends/cairo/witness/semantic_pack.zig");
+const prover = @import("stwo_cairo_frontend").prover;
+const rust_oracle = @import("stwo_cairo_frontend").rust_oracle;
+const semantic_pack = @import("stwo_cairo_frontend").witness.semantic_pack;
 
 test {
     std.testing.refAllDecls(prover);

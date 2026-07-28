@@ -1,14 +1,12 @@
 //! Exact arena capacities and lifetimes for a resident Native state-machine proof.
 
 const std = @import("std");
-const arena = @import("../../../backends/cuda/runtime/arena.zig");
-const telemetry = @import("../../../backends/cuda/runtime/telemetry.zig");
+const arena = @import("stwo_cuda_backend").runtime.arena;
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
 const geometry_mod = @import("geometry.zig");
 const oods_policy = @import("oods.zig");
 const proof_bundle = @import("proof_bundle.zig");
-const relation_abi = @import(
-    "../../../backends/cuda/abi/stages/relation.zig",
-);
+const relation_abi = @import("stwo_cuda_backend").abi.stages.relation;
 const relation_mod = @import("relation.zig");
 const slots = @import("slots.zig");
 const topology = @import("topology.zig");

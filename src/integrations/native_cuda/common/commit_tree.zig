@@ -1,10 +1,10 @@
 //! Resident commitment construction over a host-sealed Merkle layout.
 
 const std = @import("std");
-const field = @import("../../../backends/cuda/abi/field.zig");
-const common = @import("../../../backends/cuda/runtime/stages/common.zig");
-const runtime_error = @import("../../../backends/cuda/runtime/error.zig");
-const telemetry = @import("../../../backends/cuda/runtime/telemetry.zig");
+const field = @import("stwo_cuda_backend").abi.field;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const runtime_error = @import("stwo_cuda_backend").runtime.runtime_error;
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
 
 pub const Error = runtime_error.Error || error{InvalidMerkleLayout};
 pub const LiftedSegment = struct {
@@ -267,6 +267,15 @@ test "resident builder uses one sealed layout for base and FRI trees" {
         var layer_calls: usize = 0;
         var tail_calls: usize = 0;
 
+        fn expect(condition: bool) Error!void {
+            if (!condition) return error.InvalidMerkleLayout;
+        }
+
+        fn expectEqual(expected: anytype, actual: @TypeOf(expected)) Error!void {
+            if (!std.meta.eql(expected, actual))
+                return error.InvalidMerkleLayout;
+        }
+
         fn reset() void {
             contiguous_calls = 0;
             init_calls = 0;
@@ -284,9 +293,9 @@ test "resident builder uses one sealed layout for base and FRI trees" {
             columns: common.WordMatrix,
             leaves: common.Hashes,
         ) !void {
-            try std.testing.expectEqual(@as(u32, 8), size);
-            try std.testing.expectEqual(@as(usize, 24), columns.storage.len);
-            try std.testing.expectEqual(@as(usize, 8), leaves.len);
+            try expectEqual(@as(u32, 8), size);
+            try expectEqual(@as(usize, 24), columns.storage.len);
+            try expectEqual(@as(usize, 8), leaves.len);
             contiguous_calls += 1;
         }
 
@@ -295,7 +304,7 @@ test "resident builder uses one sealed layout for base and FRI trees" {
             _: telemetry.Stage,
             states: common.ProgressiveStates,
         ) !void {
-            try std.testing.expectEqual(@as(usize, 8), states.len);
+            try expectEqual(@as(usize, 8), states.len);
             init_calls += 1;
         }
 
@@ -307,9 +316,9 @@ test "resident builder uses one sealed layout for base and FRI trees" {
             columns: common.WordMatrix,
             _: common.ProgressiveStates,
         ) !void {
-            try std.testing.expectEqual(@as(u32, 8), size);
-            try std.testing.expect(absorbed == 0 or absorbed == 1);
-            try std.testing.expect(
+            try expectEqual(@as(u32, 8), size);
+            try expect(absorbed == 0 or absorbed == 1);
+            try expect(
                 columns.storage.len == 8 or columns.storage.len == 16,
             );
             absorb_calls += 1;
@@ -322,8 +331,8 @@ test "resident builder uses one sealed layout for base and FRI trees" {
             _: common.ProgressiveStates,
             leaves: common.Hashes,
         ) !void {
-            try std.testing.expectEqual(@as(u32, 3), columns);
-            try std.testing.expectEqual(@as(usize, 8), leaves.len);
+            try expectEqual(@as(u32, 3), columns);
+            try expectEqual(@as(usize, 8), leaves.len);
             finalize_calls += 1;
         }
 
@@ -336,8 +345,8 @@ test "resident builder uses one sealed layout for base and FRI trees" {
             columns: common.WordMatrix,
             _: common.ProgressiveStates,
         ) !void {
-            try std.testing.expectEqual(@as(u32, 8), size);
-            try std.testing.expect(
+            try expectEqual(@as(u32, 8), size);
+            try expect(
                 (source_size == 2 and absorbed == 0 and
                     columns.storage.len == 2) or
                     (source_size == 4 and absorbed == 1 and
@@ -353,9 +362,9 @@ test "resident builder uses one sealed layout for base and FRI trees" {
             log_rows_per_leaf: u32,
             leaves: common.Hashes,
         ) !void {
-            try std.testing.expectEqual(@as(u32, 8), size);
-            try std.testing.expectEqual(@as(u32, 0), log_rows_per_leaf);
-            try std.testing.expectEqual(@as(usize, 8), leaves.len);
+            try expectEqual(@as(u32, 8), size);
+            try expectEqual(@as(u32, 0), log_rows_per_leaf);
+            try expectEqual(@as(usize, 8), leaves.len);
             fri_leaf_calls += 1;
         }
 
@@ -366,8 +375,8 @@ test "resident builder uses one sealed layout for base and FRI trees" {
             output: common.Hashes,
             four_levels: bool,
         ) !void {
-            try std.testing.expect(!four_levels);
-            try std.testing.expectEqual(previous.len / 2, output.len);
+            try expect(!four_levels);
+            try expectEqual(previous.len / 2, output.len);
             layer_calls += 1;
         }
 
@@ -378,9 +387,9 @@ test "resident builder uses one sealed layout for base and FRI trees" {
             outputs: common.Hashes,
             level_count: u32,
         ) !void {
-            try std.testing.expectEqual(@as(usize, 8), previous.len);
-            try std.testing.expectEqual(@as(usize, 7), outputs.len);
-            try std.testing.expectEqual(@as(u32, 3), level_count);
+            try expectEqual(@as(usize, 8), previous.len);
+            try expectEqual(@as(usize, 7), outputs.len);
+            try expectEqual(@as(u32, 3), level_count);
             tail_calls += 1;
         }
     };

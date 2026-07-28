@@ -116,6 +116,7 @@ pub const BenchElf = struct {
 
 pub const Verify = struct {
     artifact: []const u8,
+    elf_path: ?[]const u8,
     protocol: Protocol,
     expected_statement_digest: ?[32]u8,
 };
@@ -277,6 +278,7 @@ pub fn parse(argv: []const []const u8) !Parsed {
         } },
         .verify => .{ .verify = .{
             .artifact = try requiredPath(scratch.artifact, error.MissingArtifact),
+            .elf_path = try optionalPath(scratch.elf),
             .protocol = scratch.protocol,
             .expected_statement_digest = scratch.expected_statement_digest,
         } },
@@ -480,7 +482,7 @@ fn rejectIrrelevant(command: Command, scratch: Scratch) !void {
             .bench => isRunFlag(flag) or contains(&.{
                 .report_out, .proof_out, .warmups, .samples, .profiled, .elf, .input, .experimental,
             }, flag),
-            .verify => contains(&.{ .artifact, .protocol, .expect_statement_digest }, flag),
+            .verify => contains(&.{ .artifact, .elf, .protocol, .expect_statement_digest }, flag),
             .applications => false,
         };
         if (!allowed) return error.IrrelevantArgument;
@@ -609,9 +611,9 @@ pub fn writeUsage(writer: anytype, command: ?Command) !void {
             \\       stwo-zig prove --elf PATH --backend NAME --output PATH [--input PATH]
             \\
             \\  --report-out PATH  Write the machine-readable proving report
-            \\  --elf PATH         Prove a Stark-V RV32IM guest ELF instead of --air
+            \\  --elf PATH         Prove a Sail-profile RV32IM guest ELF instead of --air
             \\  --input PATH       Guest input bytes (requires --elf)
-            \\  --experimental     Admit the staged Stark-V adapter before its release gate
+            \\  --experimental     Admit the RISC-V CPU adapter in a staged release build
         ),
         .bench => try writer.writeAll(
             \\Usage: stwo-zig bench --air NAME --backend NAME [run options] [benchmark options]
@@ -623,12 +625,13 @@ pub fn writeUsage(writer: anytype, command: ?Command) !void {
             \\  --warmups N        Verified untimed warmups (default: 10, maximum: 10)
             \\  --samples N        Verified timed samples (default: 5, maximum: 21)
             \\  --profiled        Enable diagnostic stage instrumentation
-            \\  --elf PATH         Benchmark a Stark-V RV32IM guest ELF instead of --air
+            \\  --elf PATH         Benchmark a Sail-profile RV32IM guest ELF instead of --air
             \\  --input PATH       Guest input bytes (requires --elf)
-            \\  --experimental     Admit the staged Stark-V adapter before its release gate
+            \\  --experimental     Admit the RISC-V CPU adapter in a staged release build
         ),
         .verify => return writer.writeAll(
-            \\Usage: stwo-zig verify --artifact PATH [--protocol secure|functional|smoke]
+            \\Usage: stwo-zig verify --artifact PATH [--elf PATH] [--protocol secure|functional|smoke]
+            \\  --elf PATH         Required for RISC-V artifacts; rebuilds the program root
             \\       [--expect-statement-digest SHA256]
             \\
         ),
@@ -791,7 +794,7 @@ test "elf runs parse guest inputs and stay mutually exclusive with air" {
     }));
 }
 
-test "bench elf keeps sampling and elf flags stay prove and bench only" {
+test "bench ELF keeps sampling and verify accepts an ELF identity binding" {
     const result = (try parse(&.{
         "bench",     "--elf", "guest.elf", "--backend", "cpu",
         "--warmups", "2",     "--samples", "3",
@@ -807,9 +810,10 @@ test "bench elf keeps sampling and elf flags stay prove and bench only" {
     try std.testing.expectError(error.InputRequiresElf, parse(&.{
         "bench", "--air", "plonk", "--backend", "cpu", "--input", "input.bin",
     }));
-    try std.testing.expectError(error.IrrelevantArgument, parse(&.{
+    const verify = (try parse(&.{
         "verify", "--artifact", "proof.json", "--elf", "guest.elf",
-    }));
+    })).verify;
+    try std.testing.expectEqualStrings("guest.elf", verify.elf_path.?);
     try std.testing.expectError(error.IrrelevantArgument, parse(&.{
         "verify", "--artifact", "proof.json", "--input", "input.bin",
     }));

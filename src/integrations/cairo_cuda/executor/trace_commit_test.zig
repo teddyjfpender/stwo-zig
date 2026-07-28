@@ -1,17 +1,11 @@
 const std = @import("std");
-const field = @import("../../../backends/cuda/abi/field.zig");
-const common = @import("../../../backends/cuda/runtime/stages/common.zig");
-const runtime_error = @import("../../../backends/cuda/runtime/error.zig");
-const telemetry = @import("../../../backends/cuda/runtime/telemetry.zig");
-const composition = @import(
-    "../../../frontends/cairo/witness/composition_bundle.zig",
-);
-const fixed_table = @import(
-    "../../../frontends/cairo/witness/fixed_table_bundle.zig",
-);
-const semantic_authority = @import(
-    "../../../frontends/cairo/proof_plan/semantic_authority.zig",
-);
+const field = @import("stwo_cuda_backend").abi.field;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const runtime_error = @import("stwo_cuda_backend").runtime.runtime_error;
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
+const fixed_table = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
+const semantic_authority = @import("stwo_cairo_frontend").proof_plan.semantic_authority;
 const resident_plan = @import("resident_plan.zig");
 const resident_test = @import("resident_plan_test_support.zig");
 const resident_fixture = @import("resident_plan_test.zig");
@@ -386,6 +380,16 @@ const FakeCommitment = struct {
         absorb_calls = 0;
         finalize_calls = 0;
         tail_calls = 0;
+    }
+
+    pub fn contiguousLeaves(
+        _: anytype,
+        _: telemetry.Stage,
+        _: u32,
+        _: common.WordMatrix,
+        _: common.Hashes,
+    ) runtime_error.Error!void {
+        return error.InvalidKernelDescriptor;
     }
 
     pub fn progressiveInit(

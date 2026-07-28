@@ -1,12 +1,8 @@
 //! Canonical host-to-resident initialization for Native Poseidon.
 
 const std = @import("std");
-const field = @import(
-    "../../../../backends/cuda/abi/field.zig",
-);
-const relation_abi = @import(
-    "../../../../backends/cuda/abi/stages/relation.zig",
-);
+const field = @import("stwo_cuda_backend").abi.field;
+const relation_abi = @import("stwo_cuda_backend").abi.stages.relation;
 const canonical = @import("../canonical_ingress.zig");
 const plan_mod = @import("../plan.zig");
 const proof_assembly = @import("../../common/proof_assembly.zig");

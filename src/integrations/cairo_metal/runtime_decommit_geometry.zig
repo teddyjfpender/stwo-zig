@@ -3,7 +3,7 @@
 const std = @import("std");
 const arena_plan = @import("stwo_backend_contracts").arena_plan;
 const fri_geometry = @import("stwo_core").fri.geometry;
-const composition_bundle = @import("../../frontends/cairo/witness/composition_bundle.zig");
+const composition_bundle = @import("stwo_cairo_frontend").witness.composition_bundle;
 const geometry_mod = @import("decommit_geometry.zig");
 
 pub const Error = error{

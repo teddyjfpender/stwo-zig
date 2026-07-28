@@ -3,8 +3,8 @@
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
-const composition = @import("../../frontends/cairo/witness/composition_bundle.zig");
-const geometry = @import("../../frontends/cairo/witness/resident_geometry.zig");
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
+const geometry = @import("stwo_cairo_frontend").witness.resident_geometry;
 const eval_aot = @import("eval_aot.zig");
 const oracle = @import("eval_simd_oracle.zig");
 

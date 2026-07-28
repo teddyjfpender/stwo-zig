@@ -1,14 +1,12 @@
 //! Exact arena capacities and lifetimes for a resident Native XOR truth-table LogUp proof.
 
 const std = @import("std");
-const arena = @import("../../../backends/cuda/runtime/arena.zig");
-const oods_stage = @import("../../../backends/cuda/runtime/stages/oods.zig");
-const telemetry = @import("../../../backends/cuda/runtime/telemetry.zig");
+const arena = @import("stwo_cuda_backend").runtime.arena;
+const oods_stage = @import("stwo_cuda_backend").runtime.stages.oods;
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
 const geometry_mod = @import("geometry.zig");
 const proof_bundle = @import("proof_bundle.zig");
-const relation_abi = @import(
-    "../../../backends/cuda/abi/stages/relation.zig",
-);
+const relation_abi = @import("stwo_cuda_backend").abi.stages.relation;
 const relation_mod = @import("relation.zig");
 const slots = @import("slots.zig");
 const topology = @import("topology.zig");
@@ -112,7 +110,7 @@ pub fn build(
         &output,
         allocator,
         slots.composition_powers,
-        try secureWords(@import("../../../examples/xor/component.zig").N_CONSTRAINTS),
+        try secureWords(@import("stwo_native_examples").backend_support.xor.component.N_CONSTRAINTS),
         .constraint_evaluation,
         .constraint_evaluation,
     );

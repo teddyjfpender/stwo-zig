@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const ir = @import("stwo_backend_contracts").proof_program;
-const cpu_poseidon = @import("../../../examples/poseidon.zig");
+const cpu_poseidon = @import("stwo_native_examples").poseidon;
 const pcs = @import("stwo_core").pcs;
 
 pub const rust_oracle_repository =

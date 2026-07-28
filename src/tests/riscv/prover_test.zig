@@ -1,11 +1,12 @@
 //! CPU integration tests for backend-neutral RISC-V proof orchestration.
 
 const std = @import("std");
-const riscv_cpu = @import("../../integrations/riscv_cpu/mod.zig");
-const prover = @import("../../frontends/riscv/prover.zig");
-const runner_mod = @import("../../frontends/riscv/runner/mod.zig");
-const memory_state = @import("../../frontends/riscv/runner/memory_state.zig");
-const trace_mod = @import("../../frontends/riscv/runner/trace.zig");
+const riscv_cpu = @import("stwo_riscv_cpu_integration");
+const prover = @import("stwo_riscv_frontend").prover_mod;
+const runner_mod = @import("stwo_riscv_frontend").runner;
+const memory_state = @import("stwo_riscv_frontend").runner.memory_state;
+const trace_mod = @import("stwo_riscv_frontend").runner.trace;
+const strict_clock_fixture = @import("strict_clock_fixture.zig");
 const pcs_core = @import("stwo_core").pcs;
 const qm31 = @import("stwo_core").fields.qm31;
 
@@ -115,38 +116,22 @@ test "riscv prover: end-to-end ELF prove and verify" {
     );
 }
 
-test "riscv prover: prove and verify synthetic trace" {
+test "riscv prover: prove, verify, and sample one runner trace against Sail" {
     const alloc = std.testing.allocator;
-    var exec_trace = trace_mod.Trace.init(alloc);
-    defer exec_trace.deinit();
-
-    exec_trace.initial_pc = 0x1000;
-
-    for (0..8) |i| {
-        try exec_trace.append(.{
-            .clk = @intCast(i + 1),
-            .pc = @intCast(0x1000 + i * 4),
-            .opcode = .ADDI,
-            .rd = 1,
-            .rs1 = 0,
-            .rs2 = 0,
-            .imm = 1,
-            .rs1_val = 0,
-            .rs2_val = 0,
-            .rs1_prev_clk = @intCast(i),
-            .rd_prev_val = if (i == 0) 0 else 1,
-            .rd_prev_clk = @intCast(i),
-            .rd_val = 1,
-            .mem_addr = 0,
-            .mem_val = 0,
-            .is_load = false,
-            .is_store = false,
-            .branch_taken = false,
-            .next_pc = @intCast(0x1000 + (i + 1) * 4),
-            .inst_word = 0x00100093,
-        });
-    }
-    exec_trace.final_pc = 0x1000 + 8 * 4;
+    const elf = runner_mod.trace_dump.buildTestElf(9, .{
+        0x00100093, // ADDI x1, x0, 1
+        0x00100093,
+        0x00100093,
+        0x00100093,
+        0x00100093,
+        0x00100093,
+        0x00100093,
+        0x00100093,
+        0x0000006f, // JAL x0, 0: completion sentinel, not a retirement
+    });
+    var run = try runner_mod.run(alloc, &elf, 1000);
+    defer run.deinit();
+    try std.testing.expectEqual(@as(usize, 8), run.step_count);
 
     const config = pcs_core.PcsConfig{
         .pow_bits = 0,
@@ -157,7 +142,8 @@ test "riscv prover: prove and verify synthetic trace" {
         },
     };
 
-    const output = try proveRiscV(alloc, config, &exec_trace, null, null);
+    const output = try proveRiscV(alloc, config, &run.execution_trace, null, null);
+    defer output.deinitAfterProofMoved(alloc);
 
     try std.testing.expectEqual(@as(u32, 1), output.statement.n_components);
     try std.testing.expectEqual(
@@ -167,6 +153,17 @@ test "riscv prover: prove and verify synthetic trace" {
     try std.testing.expectEqual(@as(u32, 4), output.statement.component_descs[0].log_size);
 
     try verifyRiscV(alloc, config, output.statement, output.proof, output.interaction_claim);
+
+    // This exact runner trace is the one just proven. Keep the sampled Sail
+    // assertion last so a visibly absent oracle costs no proof assertion.
+    try runner_mod.sail_oracle.requireAgreement(
+        alloc,
+        "CPU prover eight-ADDI runner guest",
+        &elf,
+        &run.execution_trace,
+        run.cpu_final,
+        &.{},
+    );
 }
 
 fn singleAddTrace(allocator: std.mem.Allocator, result: u32) !trace_mod.Trace {
@@ -193,6 +190,7 @@ fn singleAddTrace(allocator: std.mem.Allocator, result: u32) !trace_mod.Trace {
         .next_pc = 0x1004,
         .inst_word = 0x002081b3,
     });
+    strict_clock_fixture.assignRegisterClocks(trace.rows.items);
     return trace;
 }
 
@@ -202,6 +200,7 @@ test "riscv prover: base alu register semantics reject forged ADD" {
     var honest = try singleAddTrace(allocator, 16);
     defer honest.deinit();
     const output = try proveRiscV(allocator, TEST_PCS_CONFIG, &honest, null, null);
+    defer output.deinitAfterProofMoved(allocator);
     try verifyRiscV(
         allocator,
         TEST_PCS_CONFIG,
@@ -213,7 +212,7 @@ test "riscv prover: base alu register semantics reject forged ADD" {
     var forged = try singleAddTrace(allocator, 17);
     defer forged.deinit();
     try std.testing.expectError(
-        error.ConstraintsNotSatisfied,
+        error.InvalidSemanticWitness,
         proveRiscV(allocator, TEST_PCS_CONFIG, &forged, null, null),
     );
 }
@@ -242,6 +241,7 @@ fn singleAddiTrace(allocator: std.mem.Allocator, result: u32) !trace_mod.Trace {
         .next_pc = 0x1004,
         .inst_word = 0x00100093,
     });
+    strict_clock_fixture.assignRegisterClocks(trace.rows.items);
     return trace;
 }
 
@@ -251,6 +251,7 @@ test "riscv prover: base alu immediate semantics reject forged ADDI" {
     var honest = try singleAddiTrace(allocator, 1);
     defer honest.deinit();
     const output = try proveRiscV(allocator, TEST_PCS_CONFIG, &honest, null, null);
+    defer output.deinitAfterProofMoved(allocator);
     try verifyRiscV(
         allocator,
         TEST_PCS_CONFIG,
@@ -262,7 +263,7 @@ test "riscv prover: base alu immediate semantics reject forged ADDI" {
     var forged = try singleAddiTrace(allocator, 2);
     defer forged.deinit();
     try std.testing.expectError(
-        error.ConstraintsNotSatisfied,
+        error.InvalidSemanticWitness,
         proveRiscV(allocator, TEST_PCS_CONFIG, &forged, null, null),
     );
 }
@@ -346,6 +347,7 @@ test "riscv prover: multi-family splitting" {
             .inst_word = 0x00208463,
         });
     }
+    strict_clock_fixture.assignRegisterClocks(exec_trace.rows.items);
     exec_trace.final_pc = 0x1040;
 
     const config = pcs_core.PcsConfig{
@@ -358,6 +360,7 @@ test "riscv prover: multi-family splitting" {
     };
 
     const output = try proveRiscV(alloc, config, &exec_trace, null, null);
+    defer output.deinitAfterProofMoved(alloc);
 
     // Should have 3 components.
     try std.testing.expectEqual(@as(u32, 3), output.statement.n_components);
@@ -471,6 +474,7 @@ test "riscv prover: ADDI + ADD + BNE split prove and verify" {
         });
         branch_pc += 8;
     }
+    strict_clock_fixture.assignRegisterClocks(exec_trace.rows.items);
     exec_trace.final_pc = branch_pc;
 
     const config = pcs_core.PcsConfig{
@@ -491,6 +495,7 @@ test "riscv prover: ADDI + ADD + BNE split prove and verify" {
 
     // Prove with component splitting.
     const output = try proveRiscV(alloc, config, &exec_trace, null, null);
+    defer output.deinitAfterProofMoved(alloc);
 
     // Verify statement: 3 components in pinned transcript order.
     try std.testing.expectEqual(@as(u32, 3), output.statement.n_components);
@@ -540,6 +545,7 @@ fn testAddiTrace(alloc: std.mem.Allocator, n: usize) !trace_mod.Trace {
             .inst_word = 0x00100093,
         });
     }
+    strict_clock_fixture.assignRegisterClocks(exec_trace.rows.items);
     exec_trace.final_pc = @intCast(0x1000 + n * 4);
     return exec_trace;
 }
@@ -559,13 +565,14 @@ test "riscv prover: tampered interaction claim is rejected" {
     defer exec_trace.deinit();
 
     const output = try proveRiscV(alloc, TEST_PCS_CONFIG, &exec_trace, null, null);
+    defer output.deinitAfterProofMoved(alloc);
 
-    var tampered = output.interaction_claim;
+    var tampered = output.interaction_claim.*;
     tampered.opcode_claims[0][0] = tampered.opcode_claims[0][0].add(QM31.one());
 
     // verifyRiscV consumes the proof on failure as well. Either the global
     // cancellation or the OODS check must reject; don't over-specify which.
-    const result = verifyRiscV(alloc, TEST_PCS_CONFIG, output.statement, output.proof, tampered);
+    const result = verifyRiscV(alloc, TEST_PCS_CONFIG, output.statement, output.proof, &tampered);
     try std.testing.expect(std.meta.isError(result));
 }
 
@@ -575,11 +582,12 @@ test "riscv prover: tampered interaction PoW is rejected before relation draws" 
     defer exec_trace.deinit();
 
     const output = try proveRiscV(alloc, TEST_PCS_CONFIG, &exec_trace, null, null);
-    var tampered = output.interaction_claim;
+    defer output.deinitAfterProofMoved(alloc);
+    var tampered = output.interaction_claim.*;
     tampered.interaction_pow +%= 1;
     try std.testing.expectError(
         error.InvalidInteractionProofOfWork,
-        verifyRiscV(alloc, TEST_PCS_CONFIG, output.statement, output.proof, tampered),
+        verifyRiscV(alloc, TEST_PCS_CONFIG, output.statement, output.proof, &tampered),
     );
 }
 
@@ -589,7 +597,8 @@ test "riscv prover: opcode batch claims cannot cross-cancel" {
     defer exec_trace.deinit();
 
     const output = try proveRiscV(alloc, TEST_PCS_CONFIG, &exec_trace, null, null);
-    var tampered = output.interaction_claim;
+    defer output.deinitAfterProofMoved(alloc);
+    var tampered = output.interaction_claim.*;
     tampered.opcode_claims[0][0] = tampered.opcode_claims[0][0].add(QM31.one());
     tampered.opcode_claims[0][1] = tampered.opcode_claims[0][1].sub(QM31.one());
     try std.testing.expect(std.meta.isError(verifyRiscV(
@@ -597,7 +606,7 @@ test "riscv prover: opcode batch claims cannot cross-cancel" {
         TEST_PCS_CONFIG,
         output.statement,
         output.proof,
-        tampered,
+        &tampered,
     )));
 }
 
@@ -607,6 +616,7 @@ test "riscv prover: proof-chosen preprocessed selector root is rejected" {
     defer exec_trace.deinit();
 
     var output = try proveRiscV(alloc, TEST_PCS_CONFIG, &exec_trace, null, null);
+    defer output.deinitAfterProofMoved(alloc);
     output.proof.commitment_scheme_proof.commitments.items[0][0] ^= 1;
     try std.testing.expectError(
         ProverError.InvalidPreprocessedCommitment,
@@ -626,6 +636,7 @@ test "riscv prover: missing program binder is rejected before PCS verification" 
     defer exec_trace.deinit();
 
     const output = try proveRiscV(alloc, TEST_PCS_CONFIG, &exec_trace, null, null);
+    defer output.deinitAfterProofMoved(alloc);
     var statement = output.statement;
     statement.n_infra = 0;
     try std.testing.expectError(
@@ -646,6 +657,7 @@ test "riscv prover: tampered final_pc is rejected" {
     defer exec_trace.deinit();
 
     const output = try proveRiscV(alloc, TEST_PCS_CONFIG, &exec_trace, null, null);
+    defer output.deinitAfterProofMoved(alloc);
 
     var tampered_statement = output.statement;
     tampered_statement.final_pc += 4;
@@ -676,6 +688,7 @@ test "riscv prover: tampered RW-memory root presence is rejected" {
         .words = &words,
     };
     const output = try proveRiscV(alloc, TEST_PCS_CONFIG, &exec_trace, null, &snapshot);
+    defer output.deinitAfterProofMoved(alloc);
     try std.testing.expect(output.statement.public_data.initial_rw_root != null);
     try std.testing.expect(output.statement.public_data.final_rw_root != null);
 
@@ -696,6 +709,7 @@ test "riscv prover: public register mutation changes the transcript" {
     defer exec_trace.deinit();
 
     const output = try proveRiscV(alloc, TEST_PCS_CONFIG, &exec_trace, null, null);
+    defer output.deinitAfterProofMoved(alloc);
     var statement = output.statement;
     statement.public_data.final_regs[1] = 99;
     try std.testing.expect(std.meta.isError(verifyRiscV(
@@ -713,6 +727,7 @@ test "riscv prover: public clock mutation is rejected" {
     defer exec_trace.deinit();
 
     const output = try proveRiscV(alloc, TEST_PCS_CONFIG, &exec_trace, null, null);
+    defer output.deinitAfterProofMoved(alloc);
     var statement = output.statement;
     statement.public_data.clock +%= 1;
     try std.testing.expectError(error.InvalidStatement, verifyRiscV(
@@ -724,7 +739,7 @@ test "riscv prover: public clock mutation is rejected" {
     ));
 }
 
-test "riscv prover: exact program component exposes three paired claims" {
+test "riscv prover: exact program component exposes every paired claim" {
     const alloc = std.testing.allocator;
     var exec_trace = try testAddiTrace(alloc, 4);
     defer exec_trace.deinit();
@@ -735,8 +750,9 @@ test "riscv prover: exact program component exposes three paired claims" {
     const claim = output.interaction_claim;
     try std.testing.expectEqual(output.statement.n_components, claim.n_components);
     try std.testing.expectEqual(output.statement.n_infra, claim.n_infra);
-    const expected = claim.program_claims[0][0]
-        .add(claim.program_claims[0][1])
-        .add(claim.program_claims[0][2]);
+    var expected = QM31.zero();
+    for (claim.program_claims[0]) |program_claim| {
+        expected = expected.add(program_claim);
+    }
     try std.testing.expect((try claim.infraClaimTotal(.program, 0)).eql(expected));
 }

@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const checkpoint = @import("interaction_checkpoint.zig");
-const claim_registry = @import("../claim_registry.zig");
+const claim_registry = @import("../air/official_claim_registry.zig");
 
 pub const schema = "stwo-cairo-interaction-trace-checkpoint-v1";
 pub const stwo_cairo_revision = "dcd5834565b7a26a27a614e353c9c60109ebc1d9";
@@ -10,6 +10,7 @@ pub const stwo_revision = "3fe684648ff31e55b71525ad689fab7dfbd88880";
 pub const challenge_purpose = "deterministic_cross_backend_interaction_trace_diagnostics";
 pub const challenge_warning = "fixed diagnostic lookup elements; not Fiat-Shamir proof-transcript challenges";
 pub const challenge_derivation = "sha256(domain) -> eight little-endian u32 -> Blake2sChannel::default().mix_u32s -> CommonLookupElements::draw";
+pub const official_challenge_derivation = challenge_derivation ++ "; independent channel replay exposes z and alpha";
 pub const challenge_domain_hex = "5354574f5f434149524f5f494e544552414354494f4e5f444941474e4f535449435f4348414c4c454e47455f563100";
 pub const lookup_elements_sha256 = "c74885eaf1a19905938559496c6fa73ff21776abc2c5bc578307c1c7f4d7e319";
 
@@ -17,6 +18,7 @@ pub const max_receipt_bytes = 8 * 1024 * 1024;
 pub const max_components = 256;
 pub const max_columns = 16 * 1024;
 pub const max_label_bytes = 128;
+pub const max_string_bytes = 512;
 pub const max_row_count: u64 = @as(u64, 1) << 32;
 
 const WireAuthority = struct {
@@ -62,6 +64,23 @@ const WireReceipt = struct {
 
 pub const Expected = struct {
     input_sha256: checkpoint.Digest,
+    authority: Authority = legacy_authority,
+    challenge_derivation: []const u8 = challenge_derivation,
+};
+
+pub const Authority = struct {
+    stwo_cairo_revision: []const u8,
+    stwo_revision: []const u8,
+};
+
+pub const legacy_authority = Authority{
+    .stwo_cairo_revision = stwo_cairo_revision,
+    .stwo_revision = stwo_revision,
+};
+
+pub const official_authority = Authority{
+    .stwo_cairo_revision = claim_registry.source_revision.stwo_cairo,
+    .stwo_revision = claim_registry.source_revision.stwo,
 };
 
 pub const Challenge = struct {
@@ -128,17 +147,21 @@ pub fn parse(allocator: std.mem.Allocator, encoded: []const u8, expected: Expect
         .allocate = .alloc_always,
         .duplicate_field_behavior = .@"error",
         .ignore_unknown_fields = false,
-        .max_value_len = max_label_bytes + 1,
+        .max_value_len = max_string_bytes,
     });
     errdefer parsed.deinit();
     const wire = parsed.value;
     if (!std.mem.eql(u8, wire.schema, schema)) return Error.InvalidSchema;
-    if (!std.mem.eql(u8, wire.authority.stwo_cairo_revision, stwo_cairo_revision) or
-        !std.mem.eql(u8, wire.authority.stwo_revision, stwo_revision))
+    if (!std.mem.eql(
+        u8,
+        wire.authority.stwo_cairo_revision,
+        expected.authority.stwo_cairo_revision,
+    ) or
+        !std.mem.eql(u8, wire.authority.stwo_revision, expected.authority.stwo_revision))
         return Error.AuthorityMismatch;
     if (!std.mem.eql(u8, &(try decodeDigest(wire.input_sha256)), &expected.input_sha256))
         return Error.InputMismatch;
-    const challenge = try validateChallenge(wire.challenge);
+    const challenge = try validateChallenge(wire.challenge, expected.challenge_derivation);
     if (wire.components.len == 0 or wire.components.len > max_components)
         return Error.InvalidComponentCount;
 
@@ -227,10 +250,10 @@ pub fn parse(allocator: std.mem.Allocator, encoded: []const u8, expected: Expect
     };
 }
 
-fn validateChallenge(wire: WireChallenge) Error!Challenge {
+fn validateChallenge(wire: WireChallenge, expected_derivation: []const u8) Error!Challenge {
     if (!std.mem.eql(u8, wire.purpose, challenge_purpose) or wire.is_proof_transcript or
         !std.mem.eql(u8, wire.warning, challenge_warning) or
-        !std.mem.eql(u8, wire.derivation, challenge_derivation) or
+        !std.mem.eql(u8, wire.derivation, expected_derivation) or
         !std.mem.eql(u8, wire.domain_hex, challenge_domain_hex))
         return Error.InvalidChallenge;
 
@@ -396,7 +419,10 @@ test "interaction receipt rejects semantic and structural mutations" {
         .alpha_powers_m31 = &powers,
         .lookup_elements_sha256 = lookup_elements_sha256,
     };
-    try std.testing.expectError(Error.InvalidChallenge, validateChallenge(malformed_challenge));
+    try std.testing.expectError(
+        Error.InvalidChallenge,
+        validateChallenge(malformed_challenge, challenge_derivation),
+    );
     try std.testing.expectError(error.DuplicateField, parse(
         std.testing.allocator,
         "{\"schema\":\"x\",\"schema\":\"y\"}",
@@ -433,5 +459,67 @@ test "committed Fib25k interaction receipt authenticates the Rust checkpoint" {
     try std.testing.expectEqual(@as(usize, 324), column_count);
     try std.testing.expectEqualStrings("add_opcode", loaded.components[0].label);
     try std.testing.expectEqualStrings("verify_bitwise_xor_9", loaded.components[29].label);
+    try std.testing.expectEqual(expected_accumulator, loaded.final_accumulator);
+}
+
+test "official all-opcodes interaction receipt authenticates every component" {
+    var input_digest: checkpoint.Digest = undefined;
+    _ = try std.fmt.hexToBytes(
+        &input_digest,
+        "7f94bd5dcf32e7dd69a8a47f42d41830b4fdd3b75846ef9f7694f3164117fcd6",
+    );
+    var expected_accumulator: checkpoint.Digest = undefined;
+    _ = try std.fmt.hexToBytes(
+        &expected_accumulator,
+        "74386dacef4d5c36da2b02a570e894ed2a8f050f6d32d7e1228c378b3c7d0a60",
+    );
+    var loaded = try readFile(
+        std.testing.allocator,
+        "vectors/cairo/official/all_opcodes.interaction_trace_checkpoint.json",
+        .{
+            .input_sha256 = input_digest,
+            .authority = official_authority,
+            .challenge_derivation = official_challenge_derivation,
+        },
+    );
+    defer loaded.deinit();
+
+    var column_count: usize = 0;
+    for (loaded.components) |component| column_count += component.columns.len;
+    try std.testing.expectEqual(@as(usize, 46), loaded.components.len);
+    try std.testing.expectEqual(@as(usize, 1032), column_count);
+    try std.testing.expectEqualStrings("add_opcode", loaded.components[0].label);
+    try std.testing.expectEqualStrings("verify_bitwise_xor_9", loaded.components[45].label);
+    try std.testing.expectEqual(expected_accumulator, loaded.final_accumulator);
+}
+
+test "official all-builtins interaction receipt authenticates every component" {
+    var input_digest: checkpoint.Digest = undefined;
+    _ = try std.fmt.hexToBytes(
+        &input_digest,
+        "d7e902c3b8584a79b466ef0c384208ad95ea75340f0b0590ea0ba765c54acac1",
+    );
+    var expected_accumulator: checkpoint.Digest = undefined;
+    _ = try std.fmt.hexToBytes(
+        &expected_accumulator,
+        "c62b56454feb25f110bb16dcebe583aa0adfa42e042cfefcea0827192fc1f37e",
+    );
+    var loaded = try readFile(
+        std.testing.allocator,
+        "vectors/cairo/official/all_builtins.interaction_trace_checkpoint.json",
+        .{
+            .input_sha256 = input_digest,
+            .authority = official_authority,
+            .challenge_derivation = official_challenge_derivation,
+        },
+    );
+    defer loaded.deinit();
+
+    var column_count: usize = 0;
+    for (loaded.components) |component| column_count += component.columns.len;
+    try std.testing.expectEqual(@as(usize, 48), loaded.components.len);
+    try std.testing.expectEqual(@as(usize, 2220), column_count);
+    try std.testing.expectEqualStrings("add_opcode_small", loaded.components[0].label);
+    try std.testing.expectEqualStrings("verify_bitwise_xor_9", loaded.components[47].label);
     try std.testing.expectEqual(expected_accumulator, loaded.final_accumulator);
 }

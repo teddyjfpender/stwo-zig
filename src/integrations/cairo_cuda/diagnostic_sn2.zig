@@ -5,31 +5,17 @@
 //! staged file and retains proof-derived provenance throughout.
 
 const std = @import("std");
-const execution_plan = @import("../../backends/cuda/runtime/execution_plan.zig");
-const adapter = @import("../../frontends/cairo/adapter/mod.zig");
-const compact = @import(
-    "../../frontends/cairo/compact_verifier_interchange.zig",
-);
-const geometry = @import(
-    "../../frontends/cairo/compact_protocol_geometry.zig",
-);
-const semantic_authority = @import(
-    "../../frontends/cairo/proof_plan/semantic_authority.zig",
-);
-const statement = @import("../../frontends/cairo/statement_bootstrap.zig");
-const composition_bundle = @import(
-    "../../frontends/cairo/witness/composition_bundle.zig",
-);
-const feed_bundle = @import(
-    "../../frontends/cairo/witness/feed_bundle.zig",
-);
-const fixed_bundle = @import(
-    "../../frontends/cairo/witness/fixed_table_bundle.zig",
-);
-const relation_bundle = @import(
-    "../../frontends/cairo/witness/relation_bundle.zig",
-);
-const witness_bundle = @import("../../frontends/cairo/witness/bundle.zig");
+const execution_plan = @import("stwo_cuda_backend").runtime.execution_plan;
+const adapter = @import("stwo_cairo_frontend").adapter;
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
+const geometry = @import("stwo_cairo_frontend").compact_protocol_geometry;
+const semantic_authority = @import("stwo_cairo_frontend").proof_plan.semantic_authority;
+const statement = @import("stwo_cairo_frontend").statement_bootstrap;
+const composition_bundle = @import("stwo_cairo_frontend").witness.composition_bundle;
+const feed_bundle = @import("stwo_cairo_frontend").witness.feed_bundle;
+const fixed_bundle = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
+const relation_bundle = @import("stwo_cairo_frontend").witness.relation_bundle;
+const witness_bundle = @import("stwo_cairo_frontend").witness.bundle;
 const identity = @import("identity.zig");
 const request_compiler = @import("request_compiler.zig");
 

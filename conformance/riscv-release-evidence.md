@@ -1,6 +1,12 @@
 # RISC-V release evidence execution
 
-This document defines the hosted CP-13 execution contract for the
+**Status:** ARCHIVED. The pre-Sail owner-dispatched jobs described below are
+disabled, their workflow inputs have been removed, and their receipts cannot
+authorize a release. The current external ISA gate is
+[`riscv-sail-differential-gate.md`](riscv-sail-differential-gate.md); the
+current release runner is `scripts/riscv_release_gate.py --strict`.
+
+This document historically defined the hosted CP-13 execution contract for the
 [RISC-V release goal](2026-07-18-riscv-release-goal.md). It separates periodic
 exhaustive evidence from the per-candidate secure challenge so a promotion
 decision does not rebuild the pinned Rust oracle or rerun the 45-minute suite.

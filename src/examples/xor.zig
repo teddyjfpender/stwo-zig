@@ -21,7 +21,7 @@ const prover_transaction = @import("common/prover_transaction.zig");
 const component_mod = @import("xor/component.zig");
 const interaction = @import("xor/interaction.zig");
 const trace_input = @import("xor/input.zig");
-const CpuBackend = @import("../backends/cpu_scalar/mod.zig").CpuBackend;
+const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
@@ -601,7 +601,7 @@ test "examples xor: prove and prove_ex wrappers emit identical proof bytes" {
     defer output_prove_ex.proof.aux.deinit(alloc);
     defer output_prove_ex.proof.proof.deinit(alloc);
 
-    const proof_wire = @import("../interop/proof_wire.zig");
+    const proof_wire = @import("stwo_proof_wire");
     const prove_bytes = try proof_wire.encodeProofBytes(alloc, output_prove.proof);
     defer alloc.free(prove_bytes);
     const prove_ex_bytes = try proof_wire.encodeProofBytes(alloc, output_prove_ex.proof.proof);

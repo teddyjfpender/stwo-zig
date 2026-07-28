@@ -1,6 +1,6 @@
 //! Stable arena slot identities for one exact resident CUDA Blake proof.
 
-const arena = @import("../../../../backends/cuda/runtime/arena.zig");
+const arena = @import("stwo_cuda_backend").runtime.arena;
 
 pub const SlotId = arena.SlotId;
 

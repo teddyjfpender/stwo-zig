@@ -107,15 +107,21 @@ test "relation component export binds exact program columns and native claim" {
         &sequence,
         &observer,
     );
-    try std.testing.expectEqual(@as(u64, 80), evidence.all.entries);
-    try std.testing.expectEqual(@as(u64, 5), evidence.nonzero.entries);
-    try std.testing.expect(evidence.computed_claim.eql(native_sums[16]));
+    try std.testing.expectEqual(@as(u64, 112), evidence.all.entries);
+    try std.testing.expectEqual(@as(u64, 7), evidence.nonzero.entries);
+    try std.testing.expect(evidence.computed_claim.eql(
+        native_sums[@intFromEnum(relation_export.Component.program)],
+    ));
 
     const original = columns.values[0][0];
     columns.values[0][0] = original.add(M31.one());
     var shadow_ledger = try relation_export.ClaimLedger.init(.{3} ** 32, .{1} ** 32, .{2} ** 32, &native);
     var shadow_sequence = relation_export.Sequence.init();
-    try advanceAbsent(16, &shadow_ledger, &shadow_sequence);
+    try advanceAbsent(
+        @intFromEnum(relation_export.Component.program),
+        &shadow_ledger,
+        &shadow_sequence,
+    );
     try std.testing.expectError(
         error.MainColumnsDigestMismatch,
         components.exportInfrastructure(
@@ -358,7 +364,11 @@ test "relation component export binds lookup main and preprocessed buffers" {
     tuples.columns[0][0] = tuples.columns[0][0].add(M31.one());
     var shadow_ledger = try relation_export.ClaimLedger.init(.{3} ** 32, .{1} ** 32, .{2} ** 32, &native);
     var shadow_sequence = relation_export.Sequence.init();
-    try advanceAbsent(26, &shadow_ledger, &shadow_sequence);
+    try advanceAbsent(
+        @intFromEnum(relation_export.Component.range_check_m31),
+        &shadow_ledger,
+        &shadow_sequence,
+    );
     try std.testing.expectError(
         error.TablePreprocessedDigestMismatch,
         components.exportLookupTable(

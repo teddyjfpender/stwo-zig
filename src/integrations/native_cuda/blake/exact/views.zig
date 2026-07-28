@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const geometry_mod = @import("geometry.zig");
-const air_geometry = @import("../../../../examples/blake/geometry.zig");
+const air_geometry = @import("stwo_native_examples").blake.geometry;
 
 pub const GroupView = struct {
     component: geometry_mod.Component,

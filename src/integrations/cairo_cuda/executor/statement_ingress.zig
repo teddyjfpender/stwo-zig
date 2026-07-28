@@ -1,21 +1,11 @@
 //! Authenticated flattened statement payload for resident transcript ingress.
 
 const std = @import("std");
-const adapter = @import(
-    "../../../frontends/cairo/adapter/mod.zig",
-);
-const compact = @import(
-    "../../../frontends/cairo/compact_verifier_interchange.zig",
-);
-const statement = @import(
-    "../../../frontends/cairo/statement_bootstrap.zig",
-);
-const composition = @import(
-    "../../../frontends/cairo/witness/composition_bundle.zig",
-);
-const common = @import(
-    "../../../backends/cuda/runtime/stages/common.zig",
-);
+const adapter = @import("stwo_cairo_frontend").adapter;
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
+const statement = @import("stwo_cairo_frontend").statement_bootstrap;
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
 const resident_plan = @import("resident_plan.zig");
 const slot_binding = @import("pcs_slot_binding.zig");
 const transcript_schedule = @import("transcript/schedule.zig");

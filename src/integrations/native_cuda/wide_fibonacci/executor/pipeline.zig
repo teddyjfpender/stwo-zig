@@ -1,9 +1,7 @@
 //! Wide-Fibonacci hooks for the shared resident CUDA pipeline.
 
 const std = @import("std");
-const stark_bundle = @import(
-    "../../../../backends/cuda/runtime/proof_assembly/stark_bundle.zig",
-);
+const stark_bundle = @import("stwo_cuda_backend").runtime.proof_assembly.stark_bundle;
 const common_pipeline = @import("../../common/pipeline.zig");
 const canonical_ingress = @import("../canonical_ingress.zig");
 const plan_mod = @import("../plan.zig");

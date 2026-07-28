@@ -163,7 +163,7 @@ test "exact Blake kernel facades fail closed without both identities" {
         .generate_main = callback,
     };
     try std.testing.expectError(
-        error.UnavailableExactBlakeConstraintFacade,
+        error.UnavailableExactBlakeInteractionFacade,
         (Set{ .trace = trace }).requireReady(.{
             .trace_identity = [_]u8{1} ** 32,
             .interaction_identity = [_]u8{3} ** 32,

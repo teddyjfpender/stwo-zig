@@ -1,14 +1,8 @@
 //! Prevalidated device views for the exact Blake interaction authority.
 
-const field = @import(
-    "../../../../backends/cuda/abi/field.zig",
-);
-const column = @import(
-    "../../../../backends/cuda/runtime/column.zig",
-);
-const common = @import(
-    "../../../../backends/cuda/runtime/stages/common.zig",
-);
+const field = @import("stwo_cuda_backend").abi.field;
+const column = @import("stwo_cuda_backend").runtime.column;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
 const geometry_mod = @import("geometry.zig");
 const interaction_plan = @import("interaction_plan.zig");
 const slots = @import("slots.zig");

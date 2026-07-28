@@ -6,9 +6,7 @@ const ingress = @import("ingress.zig");
 const plan_mod = @import("../plan.zig");
 const proof_assembly = @import("../../common/proof_assembly.zig");
 const slots = @import("../slots.zig");
-const stages = @import(
-    "../../../../backends/cuda/runtime/stages/mod.zig",
-);
+const stages = @import("stwo_cuda_backend").runtime.stages;
 const transcript = @import("../../common/transcript_executor.zig");
 
 const NativeOps = struct {

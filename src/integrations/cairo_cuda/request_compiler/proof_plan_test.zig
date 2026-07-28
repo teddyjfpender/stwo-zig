@@ -1,7 +1,5 @@
 const std = @import("std");
-const proof_plan = @import(
-    "../../../frontends/cairo/proof_plan.zig",
-);
+const proof_plan = @import("stwo_cairo_frontend").proof_plan;
 
 test "Cairo CUDA proof plans preserve distinct memory instances" {
     const rows = [_]proof_plan.TracePart{.{ .id = .main, .rows = .{

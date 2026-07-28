@@ -1,15 +1,9 @@
 //! Authenticated resident binding for Cairo multiplicity-feed programs.
 
 const std = @import("std");
-const common = @import(
-    "../../../../backends/cuda/runtime/stages/common.zig",
-);
-const feed_stage = @import(
-    "../../../../backends/cuda/runtime/stages/cairo_base/multiplicity_feed.zig",
-);
-const feed_bundle = @import(
-    "../../../../frontends/cairo/witness/feed_bundle.zig",
-);
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const feed_stage = @import("stwo_cuda_backend").runtime.stages.cairo_base.multiplicity_feed;
+const feed_bundle = @import("stwo_cairo_frontend").witness.feed_bundle;
 const recorded_binding = @import("../../recorded_binding.zig");
 const fixed_plan = @import("../../base_writer_plan/fixed_tables.zig");
 const resident_plan = @import("../resident_plan.zig");

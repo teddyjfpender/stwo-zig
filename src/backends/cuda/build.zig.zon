@@ -1,0 +1,9 @@
+.{
+    .fingerprint = 0x415a1138597997c8,
+    .name = .stwo_cuda_backend,
+    .version = "0.1.0",
+    .paths = .{"."},
+    .dependencies = .{
+        .stwo_backend_contracts = .{ .path = "../../backend" },
+    },
+}

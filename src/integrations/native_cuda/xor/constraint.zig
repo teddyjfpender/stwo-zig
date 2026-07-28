@@ -1,10 +1,8 @@
 //! Exact XOR truth-table LogUp policy for its resident 14-constraint AIR.
 
 const std = @import("std");
-const runtime_constraint = @import(
-    "../../../backends/cuda/runtime/constraints/xor_logup.zig",
-);
-const cpu_component = @import("../../../examples/xor/component.zig");
+const runtime_constraint = @import("stwo_cuda_backend").runtime.constraints.xor_logup;
+const cpu_component = @import("stwo_native_examples").backend_support.xor.component;
 const geometry_mod = @import("geometry.zig");
 const m31 = @import("stwo_core").fields.m31;
 const M31 = m31.M31;

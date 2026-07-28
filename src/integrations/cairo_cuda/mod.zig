@@ -8,12 +8,10 @@ pub const base_writer_plan = @import("base_writer_plan.zig");
 pub const casm_input = @import("casm_input.zig");
 pub const lowering_map = @import("lowering_map.zig");
 pub const native_ec = @import("native_ec.zig");
-pub const native_ec_oracle_receipt = @import(
-    "../../tools/cuda_native_ec_composite_oracle/oracle.zig",
-);
 pub const program = @import("program.zig");
 pub const relation_adapter = @import("relation_adapter.zig");
 pub const recorded_witness = @import("recorded_witness.zig");
+pub const recorded_witness_oracle = @import("recorded_witness_oracle.zig");
 pub const request_compiler = @import("request_compiler.zig");
 pub const diagnostic_sn2 = @import("diagnostic_sn2.zig");
 pub const eval_codegen = @import("eval_codegen.zig");

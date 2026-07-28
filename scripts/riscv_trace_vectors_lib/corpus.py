@@ -5,7 +5,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-EXPECTED_PROOF_OPCODE_IDS = frozenset(range(45))
+EXPECTED_PROOF_OPCODE_IDS = frozenset(range(46))
 
 
 def branch_fib_program(addi, add, blt, beq, bne, bge, bltu, bgeu, epilogue):
@@ -61,7 +61,7 @@ def executed_opcode_ids(
             raise ValueError(f"malformed program tuple line: {line!r}")
         by_pc[int(fields[0], 16)] = int(fields[1])
     try:
-        return sorted({by_pc[step["pc"]] for step in trace["steps"]})
+        return sorted({by_pc[row["pc"]] for row in trace["retirements"]})
     except KeyError as error:
         raise ValueError(
             f"executed PC has no declared program tuple: {error.args[0]:#x}"

@@ -2,14 +2,14 @@
 
 const std = @import("std");
 const artifacts = @import("examples_artifact.zig");
-const proof_wire = @import("proof_wire.zig");
-const blake = @import("../examples/blake.zig");
-const plonk = @import("../examples/plonk.zig");
-const plonk_logup = @import("../examples/plonk_logup.zig");
-const poseidon = @import("../examples/poseidon.zig");
-const state_machine = @import("../examples/state_machine.zig");
-const wide_fibonacci = @import("../examples/wide_fibonacci.zig");
-const xor = @import("../examples/xor.zig");
+const proof_wire = @import("stwo_proof_wire");
+const blake = @import("stwo_native_examples").blake;
+const plonk = @import("stwo_native_examples").plonk;
+const plonk_logup = @import("stwo_native_examples").plonk_logup;
+const poseidon = @import("stwo_native_examples").poseidon;
+const state_machine = @import("stwo_native_examples").state_machine;
+const wide_fibonacci = @import("stwo_native_examples").wide_fibonacci;
+const xor = @import("stwo_native_examples").xor;
 
 pub const Generator = enum { rust, zig };
 pub const Example = enum {

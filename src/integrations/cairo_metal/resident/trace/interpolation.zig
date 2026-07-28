@@ -1,11 +1,11 @@
 //! Base-trace circle interpolation and prepared recipe ownership.
 
 const std = @import("std");
-const arena_plan = @import("../../../../backends/metal/arena_plan.zig");
-const metal_runtime = @import("../../../../backends/metal/runtime.zig");
-const protocol_recipes = @import("../../../../backends/metal/protocol_recipes.zig");
-const fixed_table_bundle_mod = @import("../../../../frontends/cairo/witness/fixed_table_bundle.zig");
-const cairo_proof_plan = @import("../../../../frontends/cairo/proof_plan.zig");
+const arena_plan = @import("stwo_metal_backend").arena_plan;
+const metal_runtime = @import("stwo_metal_backend").runtime;
+const protocol_recipes = @import("stwo_metal_backend").protocol_recipes;
+const fixed_table_bundle_mod = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
+const cairo_proof_plan = @import("stwo_cairo_frontend").proof_plan;
 const M31 = @import("stwo_core").fields.m31.M31;
 const schedule_bindings = @import("../../schedule_bindings.zig");
 const resident_binding = @import("../binding.zig");

@@ -1,12 +1,12 @@
 //! Geometry-checked conversion from arena slots to stage-native descriptors.
 
 const std = @import("std");
-const field = @import("../../../../backends/cuda/abi/field.zig");
-const quotient_abi = @import("../../../../backends/cuda/abi/stages/quotient.zig");
-const column = @import("../../../../backends/cuda/runtime/column.zig");
-const common = @import("../../../../backends/cuda/runtime/stages/common.zig");
-const oods_stage = @import("../../../../backends/cuda/runtime/stages/oods.zig");
-const quotient_stage = @import("../../../../backends/cuda/runtime/stages/quotient.zig");
+const field = @import("stwo_cuda_backend").abi.field;
+const quotient_abi = @import("stwo_cuda_backend").abi.stages.quotient;
+const column = @import("stwo_cuda_backend").runtime.column;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const oods_stage = @import("stwo_cuda_backend").runtime.stages.oods;
+const quotient_stage = @import("stwo_cuda_backend").runtime.stages.quotient;
 const canonical_ingress = @import("../canonical_ingress.zig");
 const plan_mod = @import("../plan.zig");
 const proof_bundle = @import("../proof_bundle.zig");
@@ -106,9 +106,7 @@ fn bindConstraint(
             provider,
             field.SecureField,
             slots.composition_powers,
-            @import(
-                "../../../../examples/poseidon/component.zig",
-            ).N_CONSTRAINTS,
+            @import("stwo_native_examples").backend_support.poseidon.component.N_CONSTRAINTS,
         ),
         .denominator_inverses = try exactWords(
             provider,

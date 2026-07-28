@@ -1,8 +1,6 @@
 //! Poseidon-owned policy for the exact resident CUDA AIR kernel.
 
-const runtime_poseidon = @import(
-    "../../../backends/cuda/runtime/constraints/poseidon.zig",
-);
+const runtime_poseidon = @import("stwo_cuda_backend").runtime.constraints.poseidon;
 const geometry_mod = @import("geometry.zig");
 
 pub const Buffers = runtime_poseidon.Buffers;

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the phase-aware, fail-closed CP-13 RISC-V release gate."""
+"""Run the phase-aware, fail-closed Sail-backed RISC-V release gate."""
 
 try:
     import riscv_release_gate_lib.controller as controller

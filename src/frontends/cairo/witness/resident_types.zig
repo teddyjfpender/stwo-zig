@@ -7,6 +7,7 @@ const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
 const proof_mod = @import("stwo_core").proof;
 const blake2_merkle = @import("stwo_core").vcs_lifted.blake2_merkle;
+const cairo_adapter = @import("../adapter/mod.zig");
 const composition_bundle = @import("composition_bundle.zig");
 const proof_bundle = @import("proof_bundle.zig");
 
@@ -154,7 +155,9 @@ pub const Error = error{
     InvalidFriShape,
     InvalidProtocolGeometry,
     InvalidComponentShape,
+    InvalidGlobalLookupSum,
     InvalidProgram,
+    InvalidStatementBinding,
     NonCanonicalM31,
     MissingMaskValue,
 };
@@ -177,6 +180,9 @@ pub const VerifyInput = struct {
     /// Direct-PIE statement transcript prefix. Roots and proof payloads are
     /// cross-checked against the resident bundle before they are absorbed.
     transcript_inputs: []const TranscriptInput,
+    /// Source of the public Cairo data. The verifier rederives all statement
+    /// ordinals before using its public memory values in global LogUp closure.
+    statement: *const cairo_adapter.ProverInput,
 };
 
 pub fn m31FromWord(word: u32) Error!M31 {

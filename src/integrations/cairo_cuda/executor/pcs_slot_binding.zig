@@ -1,10 +1,8 @@
 //! Exact resident-slot extent and alias checks shared by Cairo PCS binders.
 
 const std = @import("std");
-const column = @import("../../../backends/cuda/runtime/column.zig");
-const quotient_stage = @import(
-    "../../../backends/cuda/runtime/stages/quotient.zig",
-);
+const column = @import("stwo_cuda_backend").runtime.column;
+const quotient_stage = @import("stwo_cuda_backend").runtime.stages.quotient;
 const resident_plan = @import("resident_plan.zig");
 
 pub const Words = column.DeviceSlice(u32);

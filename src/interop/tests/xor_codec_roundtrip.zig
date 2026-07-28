@@ -4,9 +4,9 @@ const std = @import("std");
 const core = @import("stwo_core");
 const fri = core.fri;
 const pcs = core.pcs;
-const xor = @import("../../examples/xor.zig");
+const xor = @import("stwo_native_examples").xor;
 const postcard = @import("../postcard.zig");
-const proof_wire = @import("../proof_wire.zig");
+const proof_wire = @import("stwo_proof_wire");
 
 fn config() !pcs.PcsConfig {
     return .{

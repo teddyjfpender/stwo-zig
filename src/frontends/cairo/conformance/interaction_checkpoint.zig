@@ -86,6 +86,46 @@ pub fn digestLookupElements(
     return result;
 }
 
+/// Hashes one raw interaction base column in logical row order.
+pub fn digestColumn(
+    component_ordinal: u32,
+    label: []const u8,
+    column_ordinal: u32,
+    values: []const u32,
+) Error!Digest {
+    try validateLabel(label);
+    const row_count = std.math.cast(u64, values.len) orelse return Error.RowCountOverflow;
+    var hasher = initColumnHasher(component_ordinal, label, column_ordinal, row_count);
+    for (values) |value| {
+        if (value >= m31.Modulus) return Error.NonCanonicalM31;
+        updateInt(&hasher, u32, value);
+    }
+    var result: Digest = undefined;
+    hasher.final(&result);
+    return result;
+}
+
+/// Hashes one coordinate of a secure interaction column without allocating a
+/// second base-field column.
+pub fn digestSecureCoordinate(
+    component_ordinal: u32,
+    label: []const u8,
+    column_ordinal: u32,
+    values: []const QM31,
+    coordinate: u2,
+) Error!Digest {
+    try validateLabel(label);
+    const row_count = std.math.cast(u64, values.len) orelse return Error.RowCountOverflow;
+    var hasher = initColumnHasher(component_ordinal, label, column_ordinal, row_count);
+    for (values) |value| {
+        const limbs = value.toM31Array();
+        updateInt(&hasher, u32, limbs[coordinate].v);
+    }
+    var result: Digest = undefined;
+    hasher.final(&result);
+    return result;
+}
+
 pub fn extendAccumulator(
     previous: Digest,
     lookup_elements_digest: Digest,
@@ -114,6 +154,22 @@ pub fn extendAccumulator(
     var result: Digest = undefined;
     hasher.final(&result);
     return result;
+}
+
+fn initColumnHasher(
+    component_ordinal: u32,
+    label: []const u8,
+    column_ordinal: u32,
+    row_count: u64,
+) std.crypto.hash.sha2.Sha256 {
+    var hasher = std.crypto.hash.sha2.Sha256.init(.{});
+    hasher.update(column_domain);
+    updateInt(&hasher, u32, component_ordinal);
+    updateInt(&hasher, u32, @intCast(label.len));
+    hasher.update(label);
+    updateInt(&hasher, u32, column_ordinal);
+    updateInt(&hasher, u64, row_count);
+    return hasher;
 }
 
 fn validateLabel(label: []const u8) Error!void {
@@ -146,5 +202,16 @@ test "interaction checkpoint rejects non-canonical M31 limbs" {
     try std.testing.expectError(
         Error.NonCanonicalM31,
         digestLookupElements(diagnostic_z, &powers),
+    );
+}
+
+test "interaction checkpoint hashes secure coordinates as base columns" {
+    const values = [_]QM31{
+        QM31.fromU32Unchecked(1, 2, 3, 4),
+        QM31.fromU32Unchecked(5, 6, 7, 8),
+    };
+    try std.testing.expectEqual(
+        try digestColumn(2, "add_opcode", 7, &.{ 3, 7 }),
+        try digestSecureCoordinate(2, "add_opcode", 7, &values, 2),
     );
 }

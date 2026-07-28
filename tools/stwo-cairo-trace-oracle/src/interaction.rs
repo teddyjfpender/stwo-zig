@@ -1,4 +1,4 @@
-use anyhow::{ensure, Context, Result};
+use anyhow::{Context, Result, ensure};
 use cairo_air::claims::{CairoClaim, CairoInteractionClaim};
 use cairo_air::relations::CommonLookupElements;
 use serde::Serialize;
@@ -6,10 +6,10 @@ use sha2::{Digest, Sha256};
 use stwo::core::channel::{Blake2sChannel, Channel};
 use stwo::core::fields::m31::BaseField;
 use stwo::core::fields::qm31::SecureField;
-use stwo::prover::backend::simd::SimdBackend;
 use stwo::prover::backend::Column;
-use stwo::prover::poly::circle::CircleEvaluation;
+use stwo::prover::backend::simd::SimdBackend;
 use stwo::prover::poly::BitReversedOrder;
+use stwo::prover::poly::circle::CircleEvaluation;
 
 use crate::checkpoint::Authority;
 
@@ -190,27 +190,37 @@ pub fn diagnostic_lookup_elements() -> Result<(CommonLookupElements, ChallengePr
         .chunks_exact(4)
         .map(|bytes| u32::from_le_bytes(bytes.try_into().unwrap()))
         .collect::<Vec<_>>();
+
     let mut channel = Blake2sChannel::default();
     channel.mix_u32s(&seed_words);
     let elements = CommonLookupElements::draw(&mut channel);
-    let z = limbs(elements.z());
-    let powers = elements
-        .alpha_powers()
-        .iter()
-        .copied()
-        .map(limbs)
+
+    // The relation macro deliberately hides its LookupElements field. Replay
+    // the same two channel draws independently so the receipt exposes the
+    // challenge without relying on non-upstream accessors.
+    let mut audit_channel = Blake2sChannel::default();
+    audit_channel.mix_u32s(&seed_words);
+    let [z, alpha]: [SecureField; 2] = audit_channel.draw_secure_felts(2).try_into().unwrap();
+    let mut current = SecureField::from_u32_unchecked(1, 0, 0, 0);
+    let powers = (0..128)
+        .map(|_| {
+            let value = current;
+            current *= alpha;
+            limbs(value)
+        })
         .collect::<Vec<_>>();
-    ensure!(powers.len() >= 2, "lookup element set omits alpha");
-    let digest = lookup_elements_digest(z, &powers)?;
+    let z_m31 = limbs(z);
+    let alpha_m31 = limbs(alpha);
+    let digest = lookup_elements_digest(z_m31, &powers)?;
     let provenance = ChallengeProvenance {
         purpose: "deterministic_cross_backend_interaction_trace_diagnostics",
         is_proof_transcript: false,
         warning: "fixed diagnostic lookup elements; not Fiat-Shamir proof-transcript challenges",
-        derivation: "sha256(domain) -> eight little-endian u32 -> Blake2sChannel::default().mix_u32s -> CommonLookupElements::draw",
+        derivation: "sha256(domain) -> eight little-endian u32 -> Blake2sChannel::default().mix_u32s -> CommonLookupElements::draw; independent channel replay exposes z and alpha",
         domain_hex: hex::encode(CHALLENGE_DOMAIN),
         seed_sha256: hex::encode(seed),
-        z_m31: z,
-        alpha_m31: powers[1],
+        z_m31,
+        alpha_m31,
         alpha_powers_m31: powers,
         lookup_elements_sha256: hex::encode(digest),
     };
@@ -358,8 +368,8 @@ pub fn build(
         schema: "stwo-cairo-interaction-trace-checkpoint-v1",
         input_sha256: hex::encode(input_sha256),
         authority: Authority {
-            stwo_cairo_revision: "dcd5834565b7a26a27a614e353c9c60109ebc1d9",
-            stwo_revision: "3fe684648ff31e55b71525ad689fab7dfbd88880",
+            stwo_cairo_revision: "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+            stwo_revision: "7b211edde786775016ef3eecb837a6240d8fe792",
         },
         challenge,
         components,

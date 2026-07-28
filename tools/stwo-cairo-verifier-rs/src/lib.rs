@@ -5,10 +5,12 @@
 //! proof reconstruction remains a separate, explicitly unsupported codec.
 
 pub mod compact_codec;
+mod interaction_claim_guard;
 
 use crate::compact_codec::{
     reconstruct_cairo_proof_v1, CompactProtocolV1, CompactStatementV1, PROTOCOL_MAGIC,
 };
+use crate::interaction_claim_guard::validate_memory_id_to_big_aggregate;
 use cairo_air::verifier::verify_cairo;
 use cairo_air::{CairoProof, CairoProofForRustVerifier};
 use serde::{Deserialize, Serialize};
@@ -371,20 +373,7 @@ pub fn verify_json_proof_envelope(
 
     let proof = decode_json_proof(&protocol, proof_section.payload)?;
     validate_protocol_against_proof(&protocol, &proof)?;
-
-    match catch_unwind(AssertUnwindSafe(|| {
-        verify_cairo::<Blake2sMerkleChannel>(proof)
-    })) {
-        Ok(Ok(())) => Ok(()),
-        Ok(Err(error)) => Err(CanonicalVerificationFailure::new(
-            "canonical_verification_rejected",
-            error.to_string(),
-        )),
-        Err(payload) => Err(CanonicalVerificationFailure::new(
-            "canonical_verification_panicked",
-            panic_message(payload),
-        )),
-    }
+    verify_pinned_cairo_proof(proof)
 }
 
 pub fn verification_mode(envelope: &Envelope<'_>) -> &'static str {
@@ -452,6 +441,13 @@ pub fn verify_compact_proof_envelope(
         .map_err(|error| CanonicalVerificationFailure::new(error.code, error.message))?;
     let proof = reconstruct_cairo_proof_v1(proof_section.payload, &protocol, &statement)
         .map_err(|error| CanonicalVerificationFailure::new(error.code, error.message))?;
+    verify_pinned_cairo_proof(proof)
+}
+
+fn verify_pinned_cairo_proof(
+    proof: CairoProofForRustVerifier<Blake2sMerkleHasher>,
+) -> Result<(), CanonicalVerificationFailure> {
+    validate_memory_id_to_big_aggregate(&proof)?;
     match catch_unwind(AssertUnwindSafe(|| {
         verify_cairo::<Blake2sMerkleChannel>(proof)
     })) {

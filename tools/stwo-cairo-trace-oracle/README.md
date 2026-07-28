@@ -1,14 +1,15 @@
 # Stwo Cairo Trace Oracle
 
-This isolated Rust tool turns a canonical `STWZCPI/1` adapted Cairo input into
-deterministic base-trace checkpoints. It calls the pinned Rust
-`CairoClaimGenerator::write_trace::<SimdBackend>` implementation and emits
-`stwo-cairo-base-trace-checkpoint-v1` JSON for Zig conformance comparisons.
+This isolated development tool turns an official Stwo-Cairo `ProverInput`
+JSON document into deterministic base- and interaction-trace checkpoints. It
+calls the pinned official Rust `CairoClaimGenerator::write_trace`
+implementation and emits comparison evidence for the Zig port. Released Zig
+products do not build, invoke, or distribute this tool.
 
 ```sh
 cargo run --release --locked -- \
-  /private/tmp/cairo-fib-25000.stwzcpi \
-  /private/tmp/cairo-fib-25000.base-checkpoint.json
+  ../../vectors/cairo/official/all_opcodes.prover_input.json \
+  /private/tmp/all-opcodes.base-checkpoint.json
 ```
 
 Columns retain the committed `CircleEvaluation` value order
@@ -24,8 +25,8 @@ the same base-trace call and emits
 
 ```sh
 cargo run --release --locked -- interaction \
-  /private/tmp/cairo-fib-25000.stwzcpi \
-  /private/tmp/cairo-fib-25000.interaction-checkpoint.json
+  ../../vectors/cairo/official/all_opcodes.prover_input.json \
+  /private/tmp/all-opcodes.interaction-checkpoint.json
 ```
 
 This mode is a deterministic cross-backend diagnostic, not a proof. Its
@@ -63,9 +64,17 @@ including separately labeled `memory_id_to_big[index]` segments.
 Both modes publish output atomically and refuse to replace an existing path.
 Omit the output path to write JSON to standard output.
 
-The source tuple is explicit because `stwo-cairo@dcd58345` contains an
-absolute development patch and does not compile against its manifest's older
-Stwo revision. Cargo's exact replacements make the clean build reproducible:
+The all-builtins fixture requires the same larger worker stack used by
+upstream witness tests:
 
-- `stwo-cairo`: `dcd5834565b7a26a27a614e353c9c60109ebc1d9`
-- companion Stwo performance revision: `3fe684648ff31e55b71525ad689fab7dfbd88880`
+```sh
+RUST_MIN_STACK=67108864 cargo run --release --locked -- \
+  ../../vectors/cairo/official/all_builtins.prover_input.json \
+  /private/tmp/all-builtins.base-checkpoint.json
+```
+
+The standalone manifest has no path dependencies, patches, or replacement
+sources. `Cargo.lock` binds the exact official source tuple:
+
+- `stwo-cairo`: `82f21252a68ec006d73e299f5bf1ce6d4db0ee78`
+- `stwo`: `7b211edde786775016ef3eecb837a6240d8fe792`

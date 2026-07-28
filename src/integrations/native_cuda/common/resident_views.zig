@@ -1,12 +1,12 @@
 //! Typed, allocation-free views over one prepared resident proof arena.
 
 const std = @import("std");
-const quotient_abi = @import("../../../backends/cuda/abi/stages/quotient.zig");
-const column = @import("../../../backends/cuda/runtime/column.zig");
-const common = @import("../../../backends/cuda/runtime/stages/common.zig");
-const decommit_stage = @import("../../../backends/cuda/runtime/stages/decommit.zig");
-const oods_stage = @import("../../../backends/cuda/runtime/stages/oods.zig");
-const quotient_stage = @import("../../../backends/cuda/runtime/stages/quotient.zig");
+const quotient_abi = @import("stwo_cuda_backend").abi.stages.quotient;
+const column = @import("stwo_cuda_backend").runtime.column;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const decommit_stage = @import("stwo_cuda_backend").runtime.stages.decommit;
+const oods_stage = @import("stwo_cuda_backend").runtime.stages.oods;
+const quotient_stage = @import("stwo_cuda_backend").runtime.stages.quotient;
 const trace_layout = @import("uniform_layout.zig");
 
 pub const max_fri_layers: usize = 32;

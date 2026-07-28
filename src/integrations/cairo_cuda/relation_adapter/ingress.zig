@@ -1,8 +1,8 @@
 //! Canonical host-to-device ingress for the Cairo CUDA relation graph.
 
 const std = @import("std");
-const relation_abi = @import("../../../backends/cuda/abi/stages/relation.zig");
-const relation_stage = @import("../../../backends/cuda/runtime/stages/relation.zig");
+const relation_abi = @import("stwo_cuda_backend").abi.stages.relation;
+const relation_stage = @import("stwo_cuda_backend").runtime.stages.relation;
 
 const pointer_words = @sizeOf(usize) / @sizeOf(u32);
 

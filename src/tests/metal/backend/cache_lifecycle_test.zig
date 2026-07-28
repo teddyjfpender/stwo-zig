@@ -1,6 +1,6 @@
 const std = @import("std");
-const metal = @import("../../../backends/metal/runtime.zig");
-const shared_runtime = @import("../../../backends/metal/shared_runtime.zig");
+const metal = @import("stwo_metal_backend").runtime;
+const shared_runtime = @import("stwo_metal_backend").shared_runtime;
 
 extern fn stwo_zig_metal_eval_prepare_library(
     runtime: *anyopaque,

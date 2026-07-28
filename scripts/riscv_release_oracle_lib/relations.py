@@ -1,17 +1,29 @@
-"""Fail-closed CP-11 relation tuple and cumulative-sum comparisons."""
+"""Fail-closed CP-11 relation tuple and cumulative-sum comparisons.
+
+Both relation boundaries are demoted AIR comparisons: the pinned legacy oracle
+admits under-constraints this implementation closes, so a disagreement here is
+reported as a pinned divergence shape rather than as agreement or as a bare
+failure. ``superseded_air`` produces that shape and
+``scripts/riscv_release_gate_lib/air_divergence.py`` decides whether it is
+authorized. Everything that does not depend on the legacy oracle -- schema
+completeness, per-domain balance to zero, candidate binding -- is still enforced
+here unconditionally.
+"""
 
 from __future__ import annotations
 
 import hashlib
-import json
 import re
 import subprocess
-import tempfile
 from pathlib import Path
 
-from riscv_trace_vectors_lib import admission as admission_policy
+try:
+    from riscv_trace_vectors_lib import admission as admission_policy
+except ModuleNotFoundError:  # Imported as scripts.riscv_release_oracle_lib in tests.
+    from scripts.riscv_trace_vectors_lib import admission as admission_policy
 
 from . import nonempty_relations
+from . import superseded_air
 from .witness import load_trace_vectors
 
 
@@ -37,33 +49,9 @@ EMPTY_TUPLE_DIGEST = hashlib.blake2s(
     b"stwo-zig/riscv/relation-tuples/v1\0"
 ).hexdigest()
 EMPTY_INPUT_DIGEST = hashlib.sha256(b"").hexdigest()
-LIMITATION_SCHEMA = "riscv-mulh-limitation-v1"
-LIMITATION_ID = admission_policy.SIGNED_MULH_LIMITATION
-LIMITATION_MODE = "pinned_known_limitation"
 BALANCED_MODE = "balanced_full"
-RANGE_8_11_DOMAIN = 8
-EXPECTED_LIMITATION_COUNTS = {
-    "family_rows": 3,
-    "signed_rows": 2,
-    "unsigned_rows": 1,
-    "raw_nonzero_entries": 60,
-    "range811_requests": 24,
-    "invalid_request_count": 8,
-}
-EXPECTED_INVALID_REQUESTS = (
-    (0, 38, 12, (255, 1_073_741_827)),
-    (0, 38, 13, (235, 12_582_914)),
-    (0, 38, 14, (255, 49_154)),
-    (0, 38, 16, (255, 1_610_612_738)),
-    (2, 39, 12, (255, 1_073_741_827)),
-    (2, 39, 13, (235, 12_582_914)),
-    (2, 39, 14, (255, 49_154)),
-    (2, 39, 16, (255, 1_610_612_738)),
-)
-UNSUPPORTED_FAMILY_DIAGNOSTIC = (
-    "stark-v adapter: error=UnsupportedProofFamily "
-    "stage=statement_validation_before_first_commitment "
-    f"limitation={LIMITATION_ID}\n"
+RELATION_LINEAGE = (
+    "closed component and relation-domain identity and order, parsed from both dumps"
 )
 
 
@@ -386,7 +374,7 @@ def compare_tuple_dumps(rust_output: str, zig_output: str) -> dict[str, object]:
     parsed_zig = parse_tuple_dump(zig_output, require_binding=True)
     zig = _comparable_tuple(parsed_zig)
     difference = _first_difference(rust, zig)
-    return {
+    result: dict[str, object] = {
         "agree": difference is None,
         "first_divergence": difference,
         "binding": parsed_zig["binding"],
@@ -394,281 +382,34 @@ def compare_tuple_dumps(rust_output: str, zig_output: str) -> dict[str, object]:
             "nonzero_entries"
         ],
     }
+    if difference is not None:
+        result["divergence_paths"] = superseded_air.divergence_paths(rust, zig)
+    return result
 
 
 def compare_sum_dumps(rust_output: str, zig_output: str) -> dict[str, object]:
-    rust = parse_sum_dump(rust_output)
-    zig = parse_sum_dump(zig_output, require_binding=True)
-    difference = _first_difference(
-        {key: value for key, value in rust.items() if key != "binding"},
-        {key: value for key, value in zig.items() if key != "binding"},
-    )
-    return {
+    rust = {
+        key: value
+        for key, value in parse_sum_dump(rust_output).items()
+        if key != "binding"
+    }
+    parsed_zig = parse_sum_dump(zig_output, require_binding=True)
+    zig = {key: value for key, value in parsed_zig.items() if key != "binding"}
+    difference = _first_difference(rust, zig)
+    result: dict[str, object] = {
         "agree": difference is None,
         "first_divergence": difference,
-        "binding": zig["binding"],
+        "binding": parsed_zig["binding"],
     }
+    if difference is not None:
+        result["divergence_paths"] = superseded_air.divergence_paths(rust, zig)
+    return result
 
 
 def _run(command: list[str], cwd: Path | None = None) -> str:
     return subprocess.run(
         command, cwd=cwd, check=True, capture_output=True, text=True
     ).stdout
-
-
-def _strict_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
-    result: dict[str, object] = {}
-    for key, value in pairs:
-        if key in result:
-            raise EvidenceError(f"duplicate limitation diagnostic field {key!r}")
-        result[key] = value
-    return result
-
-
-def _exact_json_fields(value: object, expected: set[str], label: str) -> dict:
-    if not isinstance(value, dict):
-        raise EvidenceError(f"{label} is not an object")
-    if set(value) != expected:
-        raise EvidenceError(
-            f"{label} fields are {sorted(value)}, expected {sorted(expected)}"
-        )
-    return value
-
-
-def _json_u32(value: object, label: str) -> int:
-    if type(value) is not int or not 0 <= value <= 0xFFFF_FFFF:
-        raise EvidenceError(f"{label} is not a u32")
-    return value
-
-
-def _json_m31(value: object, label: str) -> int:
-    value = _json_u32(value, label)
-    if value >= M31_MODULUS:
-        raise EvidenceError(f"{label} is not a canonical M31 limb")
-    return value
-
-
-def _limitation_core(payload: dict) -> dict[str, object]:
-    return {
-        field: payload[field]
-        for field in (
-            "schema", "limitation_id", "oracle_commit", "family",
-            "family_rows", "signed_rows", "unsigned_rows",
-            "raw_nonzero_entries", "raw_stream_sha256",
-            "range811_requests", "range811_stream_sha256",
-            "invalid_request_count", "invalid_requests_sha256",
-            "invalid_requests", "outcome", "source",
-        )
-    }
-
-
-def parse_limitation_diagnostic(
-    raw: str,
-    *,
-    producer: str,
-    candidate: str,
-    pinned: str,
-    vector: dict,
-    witness_layout_sha256: str,
-) -> dict[str, object]:
-    """Validate the explicit pre-counter diagnostic; a panic is never evidence."""
-    if len(raw.splitlines()) != 1:
-        raise EvidenceError(f"{producer} limitation diagnostic is not one JSON line")
-    try:
-        payload = json.loads(raw, object_pairs_hook=_strict_object)
-    except (json.JSONDecodeError, TypeError) as error:
-        raise EvidenceError(f"{producer} limitation diagnostic is not strict JSON") from error
-    common_fields = {
-        "schema", "limitation_id", "oracle_commit", "family", "family_rows",
-        "signed_rows", "unsigned_rows", "raw_nonzero_entries",
-        "raw_stream_sha256", "range811_requests", "range811_stream_sha256",
-        "invalid_request_count", "invalid_requests_sha256", "invalid_requests",
-        "outcome", "source",
-    }
-    expected_fields = common_fields | ({"provenance"} if producer == "zig" else set())
-    payload = _exact_json_fields(payload, expected_fields, f"{producer} limitation diagnostic")
-    expected_scalars = {
-        "schema": LIMITATION_SCHEMA,
-        "limitation_id": LIMITATION_ID,
-        "oracle_commit": pinned,
-        "family": "mulh",
-        "outcome": "preprocessed_registration_rejected",
-        **EXPECTED_LIMITATION_COUNTS,
-    }
-    for field, expected in expected_scalars.items():
-        if payload[field] != expected or type(payload[field]) is not type(expected):
-            raise EvidenceError(
-                f"{producer} limitation {field}={payload[field]!r}, expected {expected!r}"
-            )
-    for field in (
-        "raw_stream_sha256", "range811_stream_sha256", "invalid_requests_sha256"
-    ):
-        _digest(payload[field], f"{producer} limitation {field}")
-
-    source = _exact_json_fields(
-        payload["source"], {"elf_sha256", "input_sha256"}, f"{producer} limitation source"
-    )
-    if source != {
-        "elf_sha256": vector["elf_sha256"],
-        "input_sha256": EMPTY_INPUT_DIGEST,
-    }:
-        raise EvidenceError(f"{producer} limitation source is not corpus-bound")
-
-    if producer == "zig":
-        provenance = _exact_json_fields(
-            payload["provenance"],
-            {
-                "implementation_commit", "implementation_dirty", "oracle_commit",
-                "witness_layout_sha256",
-            },
-            "Zig limitation provenance",
-        )
-        expected_provenance = {
-            "implementation_commit": candidate,
-            "implementation_dirty": False,
-            "oracle_commit": pinned,
-            "witness_layout_sha256": witness_layout_sha256,
-        }
-        if provenance != expected_provenance:
-            raise EvidenceError("Zig limitation provenance is not candidate-bound")
-
-    invalid = payload["invalid_requests"]
-    if not isinstance(invalid, list) or len(invalid) != EXPECTED_LIMITATION_COUNTS[
-        "invalid_request_count"
-    ]:
-        raise EvidenceError(f"{producer} limitation has an invalid request list")
-    observed_requests: list[tuple[int, int, int, tuple[int, int]]] = []
-    for index, raw_request in enumerate(invalid):
-        request = _exact_json_fields(
-            raw_request,
-            {"row", "opcode_id", "request_index", "tuple", "classification"},
-            f"{producer} invalid request {index}",
-        )
-        row = _json_u32(request["row"], "invalid request row")
-        opcode_id = _json_u32(request["opcode_id"], "invalid request opcode_id")
-        request_index = _json_u32(
-            request["request_index"], "invalid request request_index"
-        )
-        if row >= EXPECTED_LIMITATION_COUNTS["family_rows"] or opcode_id not in {38, 39}:
-            raise EvidenceError(f"{producer} limitation misclassifies an unsigned or unknown row")
-        if request["classification"] != "range_check_8_11_value_out_of_range":
-            raise EvidenceError(f"{producer} limitation uses an unknown classification")
-        values = request["tuple"]
-        if not isinstance(values, list) or len(values) != 2:
-            raise EvidenceError(f"{producer} limitation request tuple is not arity two")
-        lhs = _json_m31(values[0], "invalid request tuple[0]")
-        rhs = _json_m31(values[1], "invalid request tuple[1]")
-        observed_requests.append((row, opcode_id, request_index, (lhs, rhs)))
-    if tuple(observed_requests) != EXPECTED_INVALID_REQUESTS:
-        raise EvidenceError(
-            f"{producer} limitation invalid request matrix differs from the pinned oracle"
-        )
-    return payload
-
-
-def _run_exact_json(command: list[str], *, cwd: Path, label: str) -> str:
-    completed = subprocess.run(command, cwd=cwd, capture_output=True, text=True)
-    if completed.returncode != 0:
-        raise EvidenceError(
-            f"{label} exited {completed.returncode}; subprocess failure is not evidence"
-        )
-    if completed.stderr:
-        raise EvidenceError(f"{label} wrote unexpected stderr")
-    if len(completed.stdout.splitlines()) != 1:
-        raise EvidenceError(f"{label} did not emit exactly one JSON record")
-    return completed.stdout
-
-
-def _production_rejection(
-    root: Path, elf: Path, admission_arguments: tuple[str, ...],
-) -> dict[str, object]:
-    cli = root / "zig-out" / "bin" / "stwo-zig"
-    with tempfile.TemporaryDirectory() as directory:
-        output = Path(directory) / "proof.json"
-        report = Path(directory) / "report.json"
-        completed = subprocess.run(
-            [
-                str(cli), "prove", "--elf", str(elf), "--backend", "cpu",
-                "--protocol", "functional", *admission_arguments,
-                "--output", str(output),
-                "--report-out", str(report),
-            ],
-            cwd=root,
-            capture_output=True,
-            text=True,
-        )
-        files = list(Path(directory).iterdir())
-    exact = (
-        completed.returncode == 1
-        and completed.stdout == ""
-        and completed.stderr == UNSUPPORTED_FAMILY_DIAGNOSTIC
-        and not files
-    )
-    if not exact:
-        raise EvidenceError(
-            "production CLI did not return the exact precommit UnsupportedProofFamily rejection"
-        )
-    return {
-        "exit_code": 1,
-        "stdout_sha256": hashlib.sha256(b"").hexdigest(),
-        "stderr_sha256": hashlib.sha256(completed.stderr.encode()).hexdigest(),
-        "diagnostic": completed.stderr.rstrip("\n"),
-        "proof_artifact_absent": True,
-        "report_artifact_absent": True,
-        "temporary_residue_absent": True,
-    }
-
-
-def _compare_limitation(
-    oracle_exe: Path, root: Path,
-    receipt: dict,
-    pinned: str,
-    vector: dict,
-    admission_arguments: tuple[str, ...],
-) -> tuple[dict[str, object], str, str]:
-    elf = root / vector["elf"]
-    rust_raw = _run_exact_json(
-        [str(oracle_exe), "--relation-limitation", "--elf", str(elf)],
-        cwd=root,
-        label="pinned Rust relation-limitation diagnostic",
-    )
-    zig_raw = _run_exact_json(
-        [str(root / "zig-out/bin/riscv-trace-dump"), "--relation-limitation", str(elf)],
-        cwd=root,
-        label="Zig relation-limitation diagnostic",
-    )
-    witness_digest = receipt.get("witness_layout_digest_sha256")
-    if not isinstance(witness_digest, str):
-        raise EvidenceError("limitation comparison lacks the live witness-layout digest")
-    rust = parse_limitation_diagnostic(
-        rust_raw,
-        producer="rust",
-        candidate=receipt["candidate_commit"],
-        pinned=pinned,
-        vector=vector,
-        witness_layout_sha256=witness_digest,
-    )
-    zig = parse_limitation_diagnostic(
-        zig_raw,
-        producer="zig",
-        candidate=receipt["candidate_commit"],
-        pinned=pinned,
-        vector=vector,
-        witness_layout_sha256=witness_digest,
-    )
-    rust_core = _limitation_core(rust)
-    zig_core = _limitation_core(zig)
-    if rust_core != zig_core:
-        difference = _first_difference(rust_core, zig_core)
-        raise EvidenceError(f"normalized Rust/Zig limitation core differs: {difference}")
-    production = _production_rejection(root, elf, admission_arguments)
-    return ({
-        "normalized_core": zig_core,
-        "normalized_core_sha256": hashlib.sha256(
-            json.dumps(zig_core, sort_keys=True, separators=(",", ":")).encode()
-        ).hexdigest(),
-        "production_rejection": production,
-    }, rust_raw, zig_raw)
 
 
 def _binding_problem(
@@ -702,8 +443,12 @@ def compare_relation_boundaries(
     receipt: dict,
     root: Path,
     pinned: str,
-    *, admission_arguments: tuple[str, ...],
 ) -> None:
+    """Compare both relation boundaries and publish their verdict or divergence.
+
+    ``receipt`` is borrowed and mutated in place: this writes exactly the
+    ``relation_tuples`` and ``relation_sums`` boundary results.
+    """
     zig_exe = root / "zig-out" / "bin" / "riscv-trace-dump"
     vectors = load_trace_vectors(root, pinned, receipt)
     tuple_cases = []
@@ -714,44 +459,7 @@ def compare_relation_boundaries(
         elf = root / vector["elf"]
         admission = vector["proof_admission"]
         status = admission["status"]
-        if status == admission_policy.FAIL_CLOSED:
-            limitation_error = None
-            limitation = None
-            rust_raw = ""
-            zig_raw = ""
-            try:
-                limitation, rust_raw, zig_raw = _compare_limitation(
-                    oracle_exe, root, receipt, pinned, vector,
-                    admission_arguments,
-                )
-            except (EvidenceError, KeyError, OSError) as error:
-                limitation_error = str(error)
-            agree = limitation is not None
-            base_case = {
-                "name": vector["name"],
-                "elf_sha256": vector["elf_sha256"],
-                "proof_admission": admission,
-                "proof_admitted": False,
-                "evidence_mode": LIMITATION_MODE,
-                "agree": agree,
-                "comparison_outcome": "exact_pinned_limitation_fail_closed",
-                "rust_sha256": hashlib.sha256(rust_raw.encode()).hexdigest(),
-                "zig_sha256": hashlib.sha256(zig_raw.encode()).hexdigest(),
-            }
-            if limitation is not None:
-                base_case["limitation_evidence"] = limitation
-            if limitation_error is not None:
-                base_case["evidence_error"] = limitation_error
-            tuple_cases.append({**base_case, "observation": "raw_relation_requests"})
-            sum_cases.append({**base_case, "observation": "preprocessed_registration"})
-            tuples_ok = tuples_ok and agree
-            sums_ok = sums_ok and agree
-            continue
-
-        if status not in {
-            admission_policy.SUPPORTED,
-            admission_policy.DIAGNOSTIC_FAIL_CLOSED,
-        }:
+        if status != admission_policy.SUPPORTED:
             raise EvidenceError(
                 f"unknown relation proof-admission status for {vector['name']}: {status!r}"
             )
@@ -792,26 +500,13 @@ def compare_relation_boundaries(
             sum_result["agree"] = False
             tuple_result["evidence_error"] = "tuple and sum diagnostic bindings differ"
             sum_result["evidence_error"] = "tuple and sum diagnostic bindings differ"
-        proof_admitted = status == admission_policy.SUPPORTED
-        if status == admission_policy.DIAGNOSTIC_FAIL_CLOSED:
-            nonzero = tuple_result.get("mulh_nonzero_entries")
-            sum_result["mulh_nonzero_entries"] = nonzero
-            if type(nonzero) is not int or nonzero <= 0:
-                tuple_result["agree"] = False
-                sum_result["agree"] = False
-                tuple_result["evidence_error"] = (
-                    "balanced diagnostic does not contain nonzero MULH tuple evidence"
-                )
-                sum_result["evidence_error"] = (
-                    "balanced diagnostic is not backed by nonzero MULH tuple evidence"
-                )
         tuples_ok = tuples_ok and bool(tuple_result["agree"])
         sums_ok = sums_ok and bool(sum_result["agree"])
         tuple_cases.append({
             "name": vector["name"],
             "elf_sha256": vector["elf_sha256"],
             "proof_admission": admission,
-            "proof_admitted": proof_admitted,
+            "proof_admitted": True,
             "evidence_mode": BALANCED_MODE,
             "rust_sha256": hashlib.sha256(rust_tuples.encode()).hexdigest(),
             "zig_sha256": hashlib.sha256(zig_tuples.encode()).hexdigest(),
@@ -822,7 +517,7 @@ def compare_relation_boundaries(
             "name": vector["name"],
             "elf_sha256": vector["elf_sha256"],
             "proof_admission": admission,
-            "proof_admitted": proof_admitted,
+            "proof_admitted": True,
             "evidence_mode": BALANCED_MODE,
             "rust_sha256": hashlib.sha256(rust_sums.encode()).hexdigest(),
             "zig_sha256": hashlib.sha256(zig_sums.encode()).hexdigest(),
@@ -836,15 +531,37 @@ def compare_relation_boundaries(
     tuples_ok = tuples_ok and bool(nonempty_tuple_case["agree"])
     sums_ok = sums_ok and bool(nonempty_sum_case["agree"])
     receipt["boundaries"]["relation_tuples"] = {
-        "status": "pass" if tuples_ok else "fail",
-        "comparison": "canonical production nonzero streams, or the exact normalized pinned signed-MULH pre-counter limitation core",
+        "comparison": "canonical production nonzero streams",
         "padding_policy": "full and zero streams are validated locally but excluded from cross-port equality because Zig may shard a pinned Rust component",
         "corpus": tuple_cases,
         "nonempty_public_input": nonempty_tuple_case,
+        **_verdict("relation_tuples", tuples_ok, [*tuple_cases, nonempty_tuple_case]),
     }
     receipt["boundaries"]["relation_sums"] = {
-        "status": "pass" if sums_ok else "fail",
-        "comparison": "exact balanced relation sums for admitted diagnostics; signed-MULH instead requires normalized pre-counter parity and exact production rejection",
+        "comparison": "exact balanced relation sums over every component prefix and relation domain",
         "corpus": sum_cases,
         "nonempty_public_input": nonempty_sum_case,
+        **_verdict("relation_sums", sums_ok, [*sum_cases, nonempty_sum_case]),
     }
+
+
+def _verdict(boundary: str, agree: bool, cases: list[dict]) -> dict[str, object]:
+    """Return the status fields for a demoted relation boundary.
+
+    Agreement still passes: the demotion only decides what a *disagreement*
+    means. A disagreement publishes the union of the per-case divergence paths as
+    a pinned shape, plus the lineage verdict -- lineage holds exactly when every
+    case parsed against the closed component and relation-domain schema, because
+    a parse failure is recorded as ``evidence_error`` instead of a path.
+    """
+    if agree:
+        return {"status": "pass"}
+    paths = {
+        path
+        for case in cases
+        for path in case.get("divergence_paths", ())
+    }
+    lineage_agree = all("evidence_error" not in case for case in cases)
+    return superseded_air.declaration(
+        paths, {"agree": lineage_agree, "comparison": RELATION_LINEAGE}
+    )

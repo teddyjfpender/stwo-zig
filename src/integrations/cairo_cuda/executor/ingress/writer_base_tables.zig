@@ -1,24 +1,12 @@
 //! Fixed-table and memory-table ingress mapper boundary.
 
 const std = @import("std");
-const adapter = @import(
-    "../../../../frontends/cairo/adapter/mod.zig",
-);
-const proof_plan = @import(
-    "../../../../frontends/cairo/proof_plan.zig",
-);
-const composition = @import(
-    "../../../../frontends/cairo/witness/composition_bundle.zig",
-);
-const fixed_bundle = @import(
-    "../../../../frontends/cairo/witness/fixed_table_bundle.zig",
-);
-const execution_tables = @import(
-    "../../../../frontends/cairo/witness/execution_tables.zig",
-);
-const common = @import(
-    "../../../../backends/cuda/runtime/stages/common.zig",
-);
+const adapter = @import("stwo_cairo_frontend").adapter;
+const proof_plan = @import("stwo_cairo_frontend").proof_plan;
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
+const fixed_bundle = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
+const execution_tables = @import("stwo_cairo_frontend").witness.execution_tables;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
 const fixed_plan = @import("../../base_writer_plan/fixed_tables.zig");
 const memory_plan = @import("../../base_writer_plan/memory.zig");
 const request_compiler = @import("../../request_compiler.zig");
@@ -326,9 +314,7 @@ fn fixedBuffers(
     storage: common.Words,
     cursor: *usize,
     entry: fixed_plan.Entry,
-) !@import(
-    "../../../../backends/cuda/runtime/stages/cairo_base/fixed_tables.zig",
-).Buffers {
+) !@import("stwo_cuda_backend").runtime.stages.cairo_base.fixed_tables.Buffers {
     return .{
         .source_pointer_table = if (entry.source_column_count == 0)
             .{ .address = 0, .len = 0, .owner = 0 }
@@ -402,17 +388,13 @@ fn uploadMemorySources(
                 .id_to_big => execution_tables.limb(
                     input,
                     execution_tables.MEMORY_VALUE_TABLE,
-                    @import(
-                        "../../../../frontends/cairo/common/memory.zig",
-                    ).EncodedMemoryValueId.f252(@intCast(source_index)).raw,
+                    @import("stwo_cairo_frontend").common.memory.EncodedMemoryValueId.f252(@intCast(source_index)).raw,
                     @intCast(limb),
                 ),
                 .id_to_small => execution_tables.limb(
                     input,
                     execution_tables.MEMORY_VALUE_TABLE,
-                    @import(
-                        "../../../../frontends/cairo/common/memory.zig",
-                    ).EncodedMemoryValueId.small(
+                    @import("stwo_cairo_frontend").common.memory.EncodedMemoryValueId.small(
                         @intCast(source_index),
                     ).raw,
                     @intCast(limb),

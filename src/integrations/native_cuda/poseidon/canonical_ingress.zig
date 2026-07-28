@@ -7,7 +7,7 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const prover = @import("stwo_prover_impl");
-const field = @import("../../../backends/cuda/abi/field.zig");
+const field = @import("stwo_cuda_backend").abi.field;
 const geometry_mod = @import("geometry.zig");
 const exact_oods = @import("oods.zig");
 
@@ -95,7 +95,7 @@ pub const Pack = struct {
                 return error.GeometryOverflow;
             offset.* = try friFoldTwiddleOffset(
                 tree.itwiddles.len,
-                max_circle_log - fold_u32,
+                geometry.queryLogSize() - fold_u32,
                 if (fold == 0) .circle_to_line else .line,
             );
         }
@@ -251,17 +251,22 @@ fn deriveCircleConstants(
         .new(geometry.log_n_rows)
         .coset();
     // The exact AIR evaluates over 4N rows and selects the physical coset with
-    // `row >> log_n_rows`. Bit-reversed storage places coset representatives
-    // at the first four logical domain points.
+    // `row >> log_n_rows`. Convert each physical block representative through
+    // the bit-reversed storage map before deriving its inverse.
     const composition_domain = CanonicCoset
         .new(geometry.composition_log_rows)
         .circleDomain();
     var denominator_inverses: [4]u32 = undefined;
     for (&denominator_inverses, 0..) |*inverse, row| {
+        const physical_row = row * try geometry.traceRowCount();
+        const logical_row = core.utils.bitReverseIndex(
+            physical_row,
+            geometry.composition_log_rows,
+        );
         inverse.* = (try core.constraints.cosetVanishing(
             M31,
             trace_coset,
-            composition_domain.at(row),
+            composition_domain.at(logical_row),
         ).inv()).toU32();
     }
 
@@ -360,7 +365,7 @@ test "canonical ingress twiddle suffixes match exact core trees" {
         defer pack.deinit(allocator);
 
         try std.testing.expectEqual(
-            geometry.trace_rows,
+            geometry.commitment_rows,
             pack.twiddle_tree.twiddles.len,
         );
         for (
@@ -412,19 +417,25 @@ test "canonical ingress twiddle suffixes match exact core trees" {
                 offset,
             );
         }
-        try std.testing.expectEqual(@as(u32, 0), pack.fri_inverse_twiddle_offsets[0]);
-        try std.testing.expectEqual(@as(u32, 0), pack.fri_inverse_twiddle_offsets[1]);
+        try std.testing.expectEqual(
+            @as(u32, @intCast(geometry.trace_rows)),
+            pack.fri_inverse_twiddle_offsets[0],
+        );
+        try std.testing.expectEqual(
+            @as(u32, @intCast(geometry.trace_rows)),
+            pack.fri_inverse_twiddle_offsets[1],
+        );
         if (trace_log == 3) {
             try std.testing.expectEqualSlices(
                 u32,
-                &.{ 0, 0, 4 },
+                &.{ 8, 8, 12 },
                 pack.fri_inverse_twiddle_offsets,
             );
         }
         if (trace_log == 5) {
             try std.testing.expectEqualSlices(
                 u32,
-                &.{ 0, 0, 16, 24, 28 },
+                &.{ 32, 32, 48, 56, 60 },
                 pack.fri_inverse_twiddle_offsets,
             );
         }
@@ -569,10 +580,14 @@ test "canonical ingress circle constants satisfy core field identities" {
             .new(geometry.composition_log_rows)
             .circleDomain();
         for (pack.circle.composition_denominator_inverses, 0..) |raw, row| {
+            const logical_row = core.utils.bitReverseIndex(
+                row * try geometry.traceRowCount(),
+                geometry.composition_log_rows,
+            );
             const vanishing = core.constraints.cosetVanishing(
                 M31,
                 trace_coset,
-                composition_domain.at(row),
+                composition_domain.at(logical_row),
             );
             try std.testing.expect(
                 vanishing.mul(M31.fromCanonical(raw)).eql(M31.one()),
@@ -616,7 +631,7 @@ test "canonical ingress denominators match all four physical AIR cosets" {
             core.utils.bitReverseIndex(0, domain_log),
         );
         try std.testing.expectEqual(
-            @as(usize, 1),
+            @as(usize, 2),
             core.utils.bitReverseIndex(geometry.trace_rows, domain_log),
         );
     }

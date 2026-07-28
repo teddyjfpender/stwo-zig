@@ -1,0 +1,34 @@
+{
+  "schema": "stwo-zig-package-contract-v1",
+  "package": "stwo_native_examples",
+  "owner": "native-examples",
+  "public_modules": {
+    "stwo_native_examples": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_core": "../core",
+    "stwo_cpu_backend": "../backends/cpu_scalar",
+    "stwo_proof_wire": "../interop/proof_wire",
+    "stwo_prover_impl": "../prover"
+  },
+  "injected_modules": [],
+  "api_surface": [
+    "backend_support",
+    "blake",
+    "plonk",
+    "plonk_logup",
+    "poseidon",
+    "state_machine",
+    "wide_fibonacci",
+    "xor"
+  ],
+  "ci": {
+    "host": "any",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "-Doptimize=ReleaseFast"
+    ]
+  }
+}

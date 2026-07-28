@@ -2,16 +2,10 @@ const std = @import("std");
 const binding = @import("base_writer_binding.zig");
 const fixed_plan = @import("../base_writer_plan/fixed_tables.zig");
 const memory_plan = @import("../base_writer_plan/memory.zig");
-const memory = @import(
-    "../../../backends/cuda/runtime/stages/cairo_base/memory.zig",
-);
+const memory = @import("stwo_cuda_backend").runtime.stages.cairo_base.memory;
 const schedule = @import("trace_schedule.zig");
-const telemetry = @import(
-    "../../../backends/cuda/runtime/telemetry.zig",
-);
-const common = @import(
-    "../../../backends/cuda/runtime/stages/common.zig",
-);
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
 
 test "fixed ingress derives all tables and its seal detects pointee drift" {
     var source_name = "seq_4".*;
@@ -217,7 +211,7 @@ const TestContext = struct {
 
 fn entry(
     component_index: u32,
-    writer: @import("../../../frontends/cairo/proof_plan.zig").WriterKind,
+    writer: @import("stwo_cairo_frontend").proof_plan.WriterKind,
     api: schedule.PrepareApi,
     identity: [32]u8,
 ) schedule.Entry {

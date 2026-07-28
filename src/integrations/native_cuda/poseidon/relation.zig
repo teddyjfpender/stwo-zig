@@ -1,13 +1,9 @@
 //! Exact Poseidon policy for the generic resident relation graph.
 
 const std = @import("std");
-const relation_abi = @import(
-    "../../../backends/cuda/abi/stages/relation.zig",
-);
-const relation_stage = @import(
-    "../../../backends/cuda/runtime/stages/relation.zig",
-);
-const input = @import("../../../examples/poseidon/input.zig");
+const relation_abi = @import("stwo_cuda_backend").abi.stages.relation;
+const relation_stage = @import("stwo_cuda_backend").runtime.stages.relation;
+const input = @import("stwo_native_examples").backend_support.poseidon.input;
 
 pub const source_pointer_count: u32 =
     input.N_INSTANCES_PER_ROW * input.N_STATE * 2;
@@ -134,9 +130,7 @@ test "exact Poseidon relation topology is immutable and host validated" {
 test "generic descriptor rows equal exact CPU Poseidon fractions" {
     const M31 = @import("stwo_core").fields.m31.M31;
     const QM31 = @import("stwo_core").fields.qm31.QM31;
-    const interaction = @import(
-        "../../../examples/poseidon/interaction.zig",
-    );
+    const interaction = @import("stwo_native_examples").backend_support.poseidon.interaction;
     const allocator = std.testing.allocator;
 
     const trace = try input.genTrace(
@@ -189,9 +183,7 @@ fn evaluateColumn(
     descriptor: relation_abi.ColumnDescriptor,
     sources: []const []const @import("stwo_core").fields.m31.M31,
     row: usize,
-    lookup: @import(
-        "../../../examples/poseidon/interaction.zig",
-    ).LookupElements,
+    lookup: @import("stwo_native_examples").backend_support.poseidon.interaction.LookupElements,
 ) !@import("stwo_core").fields.qm31.QM31 {
     const first = evaluateUse(descriptor.first, sources, row, lookup);
     const second = evaluateUse(descriptor.second, sources, row, lookup);
@@ -204,9 +196,7 @@ fn evaluateUse(
     use: relation_abi.UseDescriptor,
     sources: []const []const @import("stwo_core").fields.m31.M31,
     row: usize,
-    lookup: @import(
-        "../../../examples/poseidon/interaction.zig",
-    ).LookupElements,
+    lookup: @import("stwo_native_examples").backend_support.poseidon.interaction.LookupElements,
 ) struct {
     multiplicity: @import("stwo_core").fields.qm31.QM31,
     denominator: @import("stwo_core").fields.qm31.QM31,

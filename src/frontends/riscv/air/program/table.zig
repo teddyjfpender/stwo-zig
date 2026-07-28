@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const opcode_manifest = @import("../../opcode_manifest.zig");
+const profile = @import("../../isa/profile.zig");
 const decode = @import("decode.zig");
 
 pub const Fetch = struct {
@@ -29,7 +30,7 @@ pub const Table = struct {
     }
 };
 
-pub const Error = decode.Error || std.mem.Allocator.Error || error{
+pub const Error = decode.Error || profile.ProgramAddressError || std.mem.Allocator.Error || error{
     ProgramWordChanged,
     MultiplicityOverflow,
 };
@@ -45,6 +46,7 @@ pub fn generate(allocator: std.mem.Allocator, fetches: []const Fetch) Error!Tabl
     defer rows.deinit(allocator);
 
     for (fetches) |fetch| {
+        try profile.requireProgramWordAddress(fetch.pc);
         const gop = try index_by_pc.getOrPut(fetch.pc);
         if (gop.found_existing) {
             if (gop.value_ptr.word != fetch.word) return Error.ProgramWordChanged;
@@ -88,20 +90,30 @@ test "decoded program table: unique PCs retain order and multiplicity" {
 }
 
 test "decoded program table: changing a word at one PC is rejected" {
-    // The pinned decoder ignores funct7 for SLLI, so these two source words
-    // deliberately project to the same decoded tuple. Program immutability is
-    // still a word-level construction invariant, never a lookup claim.
-    const first_word: u32 = 0x00311093;
-    const changed_word: u32 = 0x02311093;
-    try std.testing.expectEqual(
-        try decode.decodeProgramWord(first_word),
-        try decode.decodeProgramWord(changed_word),
-    );
+    const first_word: u32 = 0x00100093;
+    const changed_word: u32 = 0x00200093;
     const fetches = [_]Fetch{
         .{ .pc = 0x1000, .word = first_word },
         .{ .pc = 0x1000, .word = changed_word },
     };
     try std.testing.expectError(Error.ProgramWordChanged, generate(std.testing.allocator, &fetches));
+}
+
+test "decoded program table: instruction addresses are aligned and commitment-bounded" {
+    try std.testing.expectError(
+        error.MisalignedProgramWord,
+        generate(std.testing.allocator, &.{.{
+            .pc = 0x1002,
+            .word = 0x00100093,
+        }}),
+    );
+    try std.testing.expectError(
+        error.ProgramAddressOutOfRange,
+        generate(std.testing.allocator, &.{.{
+            .pc = profile.program_commitment_size,
+            .word = 0x00100093,
+        }}),
+    );
 }
 
 test "decoded program table: manifest rejection matrix fails before row construction" {

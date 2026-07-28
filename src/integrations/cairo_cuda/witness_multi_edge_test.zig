@@ -1,8 +1,8 @@
 const std = @import("std");
-const column = @import("../../backends/cuda/runtime/column.zig");
-const common = @import("../../backends/cuda/runtime/stages/common.zig");
-const runtime_error = @import("../../backends/cuda/runtime/error.zig");
-const telemetry = @import("../../backends/cuda/runtime/telemetry.zig");
+const column = @import("stwo_cuda_backend").runtime.column;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const runtime_error = @import("stwo_cuda_backend").runtime.runtime_error;
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
 const witness = @import("casm_input.zig");
 
 const owner: usize = 37;

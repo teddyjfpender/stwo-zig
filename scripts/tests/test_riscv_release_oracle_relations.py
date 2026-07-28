@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import sys
 import unittest
 from pathlib import Path
@@ -14,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from riscv_release_oracle_lib import relations  # noqa: E402
+from riscv_release_oracle_lib import superseded_air  # noqa: E402
 from riscv_release_oracle_lib import nonempty_relations  # noqa: E402
 from riscv_release_oracle_lib import public_input_fixture  # noqa: E402
 
@@ -151,54 +151,6 @@ def sum_dump(
     return "\n".join(lines) + "\n"
 
 
-def limitation_payload(producer: str = "rust") -> dict:
-    invalid = [
-        {
-            "row": row,
-            "opcode_id": opcode,
-            "request_index": request,
-            "tuple": list(values),
-            "classification": "range_check_8_11_value_out_of_range",
-        }
-        for row, opcode, request, values in relations.EXPECTED_INVALID_REQUESTS
-    ]
-    payload = {
-        "schema": relations.LIMITATION_SCHEMA,
-        "limitation_id": relations.LIMITATION_ID,
-        "oracle_commit": "b" * 40,
-        "family": "mulh",
-        **relations.EXPECTED_LIMITATION_COUNTS,
-        "raw_stream_sha256": "1" * 64,
-        "range811_stream_sha256": "2" * 64,
-        "invalid_requests_sha256": "3" * 64,
-        "invalid_requests": invalid,
-        "outcome": "preprocessed_registration_rejected",
-        "source": {
-            "elf_sha256": "4" * 64,
-            "input_sha256": relations.EMPTY_INPUT_DIGEST,
-        },
-    }
-    if producer == "zig":
-        payload["provenance"] = {
-            "implementation_commit": "a" * 40,
-            "implementation_dirty": False,
-            "oracle_commit": "b" * 40,
-            "witness_layout_sha256": "5" * 64,
-        }
-    return payload
-
-
-def parse_limitation(payload: dict, producer: str = "rust") -> dict:
-    return relations.parse_limitation_diagnostic(
-        json.dumps(payload, separators=(",", ":")) + "\n",
-        producer=producer,
-        candidate="a" * 40,
-        pinned="b" * 40,
-        vector={"elf_sha256": "4" * 64},
-        witness_layout_sha256="5" * 64,
-    )
-
-
 class RelationEvidenceTest(unittest.TestCase):
     def test_nonempty_fixture_is_deterministic_and_partial_word_shaped(self) -> None:
         payload = public_input_fixture.build_elf()
@@ -283,10 +235,8 @@ class RelationEvidenceTest(unittest.TestCase):
             )
         self.assertFalse(tuple_case["agree"])
 
-    def test_nonempty_comparison_controls_boundary_status(self) -> None:
+    def compare_with(self, tuple_case: dict, sum_case: dict) -> dict:
         receipt = {"boundaries": {}}
-        tuple_case = {"agree": False, "first_divergence": {"path": "/components/lw"}}
-        sum_case = {"agree": True, "first_divergence": None}
         with mock.patch.object(
             relations, "load_trace_vectors", return_value={"vectors": []}
         ), mock.patch.object(
@@ -295,15 +245,42 @@ class RelationEvidenceTest(unittest.TestCase):
             return_value=(tuple_case, sum_case),
         ):
             relations.compare_relation_boundaries(
-                Path("rust"), receipt, ROOT, "b" * 40,
-                admission_arguments=("--experimental",),
+                Path("rust"), receipt, ROOT, "b" * 40
             )
-        self.assertEqual("fail", receipt["boundaries"]["relation_tuples"]["status"])
+        return receipt["boundaries"]
+
+    def test_nonempty_comparison_controls_boundary_status(self) -> None:
+        tuple_case = {
+            "agree": False,
+            "first_divergence": {"path": "/components/lw"},
+            "divergence_paths": ["/components/lw/stream"],
+        }
+        sum_case = {"agree": True, "first_divergence": None}
+        boundaries = self.compare_with(tuple_case, sum_case)
+        tuples = boundaries["relation_tuples"]
+        self.assertEqual(superseded_air.DIVERGENCE_STATUS, tuples["status"])
+        self.assertEqual(superseded_air.LEDGER_REFERENCE, tuples["superseded_by"])
+        self.assertEqual(["/components/lw/stream"], tuples["divergence_paths"])
         self.assertEqual(
-            tuple_case,
-            receipt["boundaries"]["relation_tuples"]["nonempty_public_input"],
+            superseded_air.shape_digest(["/components/lw/stream"]),
+            tuples["divergence_shape_sha256"],
         )
-        self.assertEqual("pass", receipt["boundaries"]["relation_sums"]["status"])
+        self.assertEqual(
+            {"agree": True, "comparison": relations.RELATION_LINEAGE},
+            tuples["lineage"],
+        )
+        self.assertEqual(tuple_case, tuples["nonempty_public_input"])
+        self.assertEqual("pass", boundaries["relation_sums"]["status"])
+
+    def test_unparsable_evidence_clears_the_lineage_verdict(self) -> None:
+        """A parse failure is not a layout-lineage agreement, so it cannot pass."""
+        boundaries = self.compare_with(
+            {"agree": False, "evidence_error": "tuple dump has 3 lines"},
+            {"agree": True, "first_divergence": None},
+        )
+        tuples = boundaries["relation_tuples"]
+        self.assertIs(False, tuples["lineage"]["agree"])
+        self.assertEqual([], tuples["divergence_paths"])
 
     def test_tuple_parser_requires_complete_canonical_evidence(self) -> None:
         parsed = relations.parse_tuple_dump(tuple_dump())
@@ -385,58 +362,52 @@ class RelationEvidenceTest(unittest.TestCase):
         with self.assertRaisesRegex(relations.EvidenceError, "challenge mode"):
             relations.parse_sum_dump(sums, require_binding=True)
 
-    def test_limitation_diagnostic_requires_exact_normalized_core(self) -> None:
-        rust = parse_limitation(limitation_payload())
-        zig = parse_limitation(limitation_payload("zig"), "zig")
-        self.assertEqual(relations._limitation_core(rust), relations._limitation_core(zig))
-
-        malformed = limitation_payload()
-        malformed["invalid_requests"][0]["request_index"] = 9
-        with self.assertRaisesRegex(relations.EvidenceError, "invalid request matrix"):
-            parse_limitation(malformed)
-
-        aliased = limitation_payload()
-        self.assertLess(
-            (aliased["invalid_requests"][0]["tuple"][0]
-             + (aliased["invalid_requests"][0]["tuple"][1] << 8)) & 0xFFFF_FFFF,
-            1 << 19,
+    def test_divergence_paths_enumerate_every_difference_not_only_the_first(self) -> None:
+        """A pinned divergence shape must see the whole difference set."""
+        rust = {"a": {"x": 1, "y": 2}, "b": 3, "only_rust": 4}
+        zig = {"a": {"x": 9, "y": 2}, "b": 9, "only_zig": 4}
+        self.assertEqual(
+            ["/a/x", "/b", "/only_rust", "/only_zig"],
+            superseded_air.divergence_paths(rust, zig),
         )
-        parse_limitation(aliased)
+        self.assertEqual([], superseded_air.divergence_paths(rust, dict(rust)))
 
-    def test_limitation_diagnostic_rejects_relabeling_and_unbound_zig(self) -> None:
-        relabeled = limitation_payload()
-        relabeled["outcome"] = "balanced"
-        with self.assertRaisesRegex(relations.EvidenceError, "outcome"):
-            parse_limitation(relabeled)
+    def test_shape_digest_is_set_valued_and_order_insensitive(self) -> None:
+        self.assertEqual(
+            superseded_air.shape_digest(["/b", "/a", "/a"]),
+            superseded_air.shape_digest(["/a", "/b"]),
+        )
+        self.assertNotEqual(
+            superseded_air.shape_digest(["/a"]),
+            superseded_air.shape_digest(["/a", "/b"]),
+        )
 
-        dirty = limitation_payload("zig")
-        dirty["provenance"]["implementation_dirty"] = True
-        with self.assertRaisesRegex(relations.EvidenceError, "candidate-bound"):
-            parse_limitation(dirty, "zig")
+    def test_witness_row_divergence_separates_lineage_from_row_content(self) -> None:
+        rust = "family=jalr columns=13\nnames=a,b\nrow=1\nfamily=lui columns=4\nnames=c\nrow=2\n"
+        rows_differ = rust.replace("row=1", "row=7")
+        paths, lineage = superseded_air.witness_row_divergence(rust, rows_differ)
+        self.assertEqual(["/jalr/rows"], paths)
+        self.assertTrue(lineage)
 
-        noncanonical = limitation_payload()
-        noncanonical["invalid_requests"][0]["tuple"][1] = relations.M31_MODULUS
-        with self.assertRaisesRegex(relations.EvidenceError, "canonical M31"):
-            parse_limitation(noncanonical)
+        columns_differ = rust.replace("names=a,b", "names=a,b,extra")
+        paths, lineage = superseded_air.witness_row_divergence(rust, columns_differ)
+        self.assertEqual(["/jalr/columns"], paths)
+        self.assertFalse(lineage)
 
-        wrong_source = limitation_payload()
-        wrong_source["source"]["elf_sha256"] = "6" * 64
-        with self.assertRaisesRegex(relations.EvidenceError, "corpus-bound"):
-            parse_limitation(wrong_source)
+        family_missing = "family=jalr columns=13\nnames=a,b\nrow=1\n"
+        paths, lineage = superseded_air.witness_row_divergence(rust, family_missing)
+        self.assertEqual(["/families/lui"], paths)
+        self.assertFalse(lineage)
 
-    def test_subprocess_failure_is_never_limitation_evidence(self) -> None:
-        from unittest import mock
-
-        completed = mock.Mock(returncode=101, stdout="", stderr="panic")
-        with mock.patch.object(relations.subprocess, "run", return_value=completed):
-            with self.assertRaisesRegex(
-                relations.EvidenceError, "subprocess failure is not evidence"
-            ):
-                relations._run_exact_json(
-                    ["oracle", "--relation-limitation"],
-                    cwd=ROOT,
-                    label="oracle",
-                )
+    def test_witness_row_sections_reject_malformed_dumps(self) -> None:
+        with self.assertRaisesRegex(ValueError, "before its first family header"):
+            superseded_air.witness_row_sections("row=1\n")
+        with self.assertRaisesRegex(ValueError, "duplicate family"):
+            superseded_air.witness_row_sections(
+                "family=jalr columns=1\nnames=a\nfamily=jalr columns=1\nnames=a\n"
+            )
+        with self.assertRaisesRegex(ValueError, "no family layouts"):
+            superseded_air.witness_row_sections("")
 
 
 if __name__ == "__main__":

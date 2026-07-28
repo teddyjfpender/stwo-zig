@@ -175,21 +175,31 @@ class CiTests(unittest.TestCase):
         self.assertIn("run: python3 scripts/ci.py --strict\n", workflow)
         self.assertIn("inputs.gate == 'strict'", workflow)
 
-    def test_hosted_ci_exposes_fail_closed_riscv_candidate_evidence_lane(self) -> None:
+    def test_hosted_ci_quarantines_the_pre_sail_riscv_evidence_lane(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
-        self.assertIn("- riscv-candidate", workflow)
-        self.assertIn("- riscv-promoted", workflow)
-        self.assertIn("- riscv-produce-candidate", workflow)
-        self.assertIn("- riscv-produce-promoted", workflow)
-        self.assertIn("candidate_sha:", workflow)
-        self.assertIn("candidate_ref:", workflow)
-        self.assertIn("producer_run_id:", workflow)
-        self.assertIn("name: RISC-V exhaustive release evidence", workflow)
-        self.assertIn("name: RISC-V fast release gate", workflow)
+        dispatch = workflow.split("permissions:", 1)[0]
+        self.assertNotIn("- riscv-candidate", dispatch)
+        self.assertNotIn("- riscv-promoted", dispatch)
+        self.assertNotIn("- riscv-produce-candidate", dispatch)
+        self.assertNotIn("- riscv-produce-promoted", dispatch)
+        self.assertNotIn("candidate_sha:", dispatch)
+        self.assertNotIn("candidate_ref:", dispatch)
+        self.assertNotIn("producer_run_id:", dispatch)
         self.assertIn(
-            "github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'",
-            workflow,
+            "name: Archived RISC-V Stark-V layout evidence (disabled)", workflow
         )
+        self.assertIn(
+            "name: Archived RISC-V Stark-V replay gate (disabled)", workflow
+        )
+        producer = workflow.split("  riscv-release-evidence:", 1)[1].split(
+            "  riscv-fast-release-gate:", 1
+        )[0]
+        fast = workflow.split("  riscv-fast-release-gate:", 1)[1].split(
+            "  architecture-diagnostic:", 1
+        )[0]
+        self.assertIn("if: ${{ false }}", producer)
+        self.assertIn("if: ${{ false }}", fast)
+        self.assertIn("inputs.gate == 'architecture'", workflow)
         tag_or_dispatch_only = (
             "(github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) ||\n"
             "      (github.event_name == 'workflow_dispatch' &&\n"
@@ -420,9 +430,11 @@ class CiTests(unittest.TestCase):
         linux = jobs["architecture-authority-linux"]
         macos = jobs["architecture-authority-macos"]
         verifier = jobs["architecture-authority-verify"]
-        self.assertIn("verify-anchor", (
+        architecture_plan = (
             ROOT / "conformance/build-architecture-ci-plan-v1.json"
-        ).read_text(encoding="utf-8"))
+        ).read_text(encoding="utf-8")
+        self.assertNotIn("riscv_release_bundle.py", architecture_plan)
+        self.assertNotIn("riscv_release_challenge.py", architecture_plan)
         self.assertNotIn("build-and-compare", linux)
         self.assertIn(
             "artifact_name=build-architecture-linux-$CANDIDATE_SHA-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT",

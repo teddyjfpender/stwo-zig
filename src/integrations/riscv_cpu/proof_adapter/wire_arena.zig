@@ -1,4 +1,4 @@
-//! Owned schema-v3 projection of a production RISC-V statement and claim.
+//! Owned schema-v4 projection of a production RISC-V statement and claim.
 
 const std = @import("std");
 const stwo = @import("stwo");
@@ -46,6 +46,8 @@ pub const WireArena = struct {
         }
 
         const io = statement.public_data.io_entries;
+        const completion = statement.public_data.completion orelse
+            return error.InvalidCompletion;
         self.input_words = try allocator.dupe(u32, io.input_words);
         errdefer allocator.free(self.input_words);
         self.output_words = try allocator.alloc(artifact.OutputWordWire, io.output_words.len);
@@ -106,6 +108,15 @@ pub const WireArena = struct {
                 .program_root = statement.public_data.program_root,
                 .initial_rw_root = statement.public_data.initial_rw_root,
                 .final_rw_root = statement.public_data.final_rw_root,
+                .completion = .{
+                    .kind = switch (completion.kind) {
+                        .halt_flag => .halt_flag,
+                        .unretired_self_loop => .unretired_self_loop,
+                    },
+                    .address = completion.address,
+                    .value = completion.value,
+                    .clock = completion.clock,
+                },
                 .input_start = io.input_start,
                 .input_len = io.input_len,
                 .input_words = self.input_words,

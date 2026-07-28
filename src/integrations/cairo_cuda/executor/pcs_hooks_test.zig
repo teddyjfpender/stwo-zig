@@ -1,7 +1,5 @@
 const std = @import("std");
-const column = @import(
-    "../../../backends/cuda/runtime/column.zig",
-);
+const column = @import("stwo_cuda_backend").runtime.column;
 const resident_plan = @import("resident_plan.zig");
 const subject = @import("pcs_hooks.zig");
 
@@ -135,9 +133,7 @@ test "Cairo PCS stages fail closed until semantic schedules exist" {
 
 test "complete Cairo PCS binder remains type-checked" {
     const proof_ir = @import("stwo_backend_contracts").proof_program;
-    const compact = @import(
-        "../../../frontends/cairo/compact_verifier_interchange.zig",
-    );
+    const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
     const CompileProvider = struct {
         pub fn slot(_: @This(), _: u32) !Words {
             return error.InvalidKernelDescriptor;

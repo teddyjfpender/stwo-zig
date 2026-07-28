@@ -3,6 +3,7 @@
 //! Implements all 45 RV32IM instructions using wrapping arithmetic.
 
 const std = @import("std");
+const isa_profile = @import("../isa/profile.zig");
 const Cpu = @import("cpu.zig").Cpu;
 const Memory = @import("memory.zig").Memory;
 const decode = @import("decode.zig");
@@ -13,6 +14,7 @@ pub const ExecuteError = error{
     Ecall,
     Ebreak,
     MisalignedMemoryAccess,
+    InstructionAddressMisaligned,
 };
 
 fn requireAligned(addr: u32, alignment: u32) ExecuteError!void {
@@ -138,13 +140,19 @@ pub fn execute(cpu: *Cpu, mem: *Memory, inst: DecodedInst) ExecuteError!void {
         // ----------------------------------------------------------------
         .BEQ => {
             if (cpu.readReg(inst.rs1) == cpu.readReg(inst.rs2)) {
-                cpu.pc = cpu.pc +% @as(u32, @bitCast(inst.imm));
+                const target = cpu.pc +% @as(u32, @bitCast(inst.imm));
+                isa_profile.requireInstructionAligned(target) catch
+                    return error.InstructionAddressMisaligned;
+                cpu.pc = target;
                 return; // skip the default pc += 4
             }
         },
         .BNE => {
             if (cpu.readReg(inst.rs1) != cpu.readReg(inst.rs2)) {
-                cpu.pc = cpu.pc +% @as(u32, @bitCast(inst.imm));
+                const target = cpu.pc +% @as(u32, @bitCast(inst.imm));
+                isa_profile.requireInstructionAligned(target) catch
+                    return error.InstructionAddressMisaligned;
+                cpu.pc = target;
                 return;
             }
         },
@@ -152,7 +160,10 @@ pub fn execute(cpu: *Cpu, mem: *Memory, inst: DecodedInst) ExecuteError!void {
             const a: i32 = @bitCast(cpu.readReg(inst.rs1));
             const b: i32 = @bitCast(cpu.readReg(inst.rs2));
             if (a < b) {
-                cpu.pc = cpu.pc +% @as(u32, @bitCast(inst.imm));
+                const target = cpu.pc +% @as(u32, @bitCast(inst.imm));
+                isa_profile.requireInstructionAligned(target) catch
+                    return error.InstructionAddressMisaligned;
+                cpu.pc = target;
                 return;
             }
         },
@@ -160,19 +171,28 @@ pub fn execute(cpu: *Cpu, mem: *Memory, inst: DecodedInst) ExecuteError!void {
             const a: i32 = @bitCast(cpu.readReg(inst.rs1));
             const b: i32 = @bitCast(cpu.readReg(inst.rs2));
             if (a >= b) {
-                cpu.pc = cpu.pc +% @as(u32, @bitCast(inst.imm));
+                const target = cpu.pc +% @as(u32, @bitCast(inst.imm));
+                isa_profile.requireInstructionAligned(target) catch
+                    return error.InstructionAddressMisaligned;
+                cpu.pc = target;
                 return;
             }
         },
         .BLTU => {
             if (cpu.readReg(inst.rs1) < cpu.readReg(inst.rs2)) {
-                cpu.pc = cpu.pc +% @as(u32, @bitCast(inst.imm));
+                const target = cpu.pc +% @as(u32, @bitCast(inst.imm));
+                isa_profile.requireInstructionAligned(target) catch
+                    return error.InstructionAddressMisaligned;
+                cpu.pc = target;
                 return;
             }
         },
         .BGEU => {
             if (cpu.readReg(inst.rs1) >= cpu.readReg(inst.rs2)) {
-                cpu.pc = cpu.pc +% @as(u32, @bitCast(inst.imm));
+                const target = cpu.pc +% @as(u32, @bitCast(inst.imm));
+                isa_profile.requireInstructionAligned(target) catch
+                    return error.InstructionAddressMisaligned;
+                cpu.pc = target;
                 return;
             }
         },
@@ -181,12 +201,17 @@ pub fn execute(cpu: *Cpu, mem: *Memory, inst: DecodedInst) ExecuteError!void {
         // Jumps
         // ----------------------------------------------------------------
         .JAL => {
+            const target = cpu.pc +% @as(u32, @bitCast(inst.imm));
+            isa_profile.requireInstructionAligned(target) catch
+                return error.InstructionAddressMisaligned;
             cpu.writeReg(inst.rd, cpu.pc +% 4);
-            cpu.pc = cpu.pc +% @as(u32, @bitCast(inst.imm));
+            cpu.pc = target;
             return; // don't add 4
         },
         .JALR => {
             const target = (cpu.readReg(inst.rs1) +% @as(u32, @bitCast(inst.imm))) & 0xFFFF_FFFE;
+            isa_profile.requireInstructionAligned(target) catch
+                return error.InstructionAddressMisaligned;
             cpu.writeReg(inst.rd, cpu.pc +% 4);
             cpu.pc = target;
             return;
@@ -266,79 +291,6 @@ pub fn execute(cpu: *Cpu, mem: *Memory, inst: DecodedInst) ExecuteError!void {
             } else {
                 cpu.writeReg(inst.rd, a % b);
             }
-        },
-
-        // ----------------------------------------------------------------
-        // RV32A: Atomic memory operations (single-threaded: plain R-M-W)
-        // ----------------------------------------------------------------
-        .LR_W => {
-            // Load Reserved: just a plain word load (no reservation tracking).
-            const addr = cpu.readReg(inst.rs1);
-            cpu.writeReg(inst.rd, mem.readU32(addr));
-        },
-        .SC_W => {
-            // Store Conditional: always succeeds (rd=0), plain store.
-            const addr = cpu.readReg(inst.rs1);
-            mem.writeU32(addr, cpu.readReg(inst.rs2));
-            cpu.writeReg(inst.rd, 0); // 0 = success
-        },
-        .AMOSWAP_W => {
-            const addr = cpu.readReg(inst.rs1);
-            const old = mem.readU32(addr);
-            mem.writeU32(addr, cpu.readReg(inst.rs2));
-            cpu.writeReg(inst.rd, old);
-        },
-        .AMOADD_W => {
-            const addr = cpu.readReg(inst.rs1);
-            const old = mem.readU32(addr);
-            mem.writeU32(addr, old +% cpu.readReg(inst.rs2));
-            cpu.writeReg(inst.rd, old);
-        },
-        .AMOAND_W => {
-            const addr = cpu.readReg(inst.rs1);
-            const old = mem.readU32(addr);
-            mem.writeU32(addr, old & cpu.readReg(inst.rs2));
-            cpu.writeReg(inst.rd, old);
-        },
-        .AMOOR_W => {
-            const addr = cpu.readReg(inst.rs1);
-            const old = mem.readU32(addr);
-            mem.writeU32(addr, old | cpu.readReg(inst.rs2));
-            cpu.writeReg(inst.rd, old);
-        },
-        .AMOXOR_W => {
-            const addr = cpu.readReg(inst.rs1);
-            const old = mem.readU32(addr);
-            mem.writeU32(addr, old ^ cpu.readReg(inst.rs2));
-            cpu.writeReg(inst.rd, old);
-        },
-        .AMOMIN_W => {
-            const addr = cpu.readReg(inst.rs1);
-            const old = mem.readU32(addr);
-            const a: i32 = @bitCast(old);
-            const b: i32 = @bitCast(cpu.readReg(inst.rs2));
-            mem.writeU32(addr, @bitCast(@min(a, b)));
-            cpu.writeReg(inst.rd, old);
-        },
-        .AMOMAX_W => {
-            const addr = cpu.readReg(inst.rs1);
-            const old = mem.readU32(addr);
-            const a: i32 = @bitCast(old);
-            const b: i32 = @bitCast(cpu.readReg(inst.rs2));
-            mem.writeU32(addr, @bitCast(@max(a, b)));
-            cpu.writeReg(inst.rd, old);
-        },
-        .AMOMINU_W => {
-            const addr = cpu.readReg(inst.rs1);
-            const old = mem.readU32(addr);
-            mem.writeU32(addr, @min(old, cpu.readReg(inst.rs2)));
-            cpu.writeReg(inst.rd, old);
-        },
-        .AMOMAXU_W => {
-            const addr = cpu.readReg(inst.rs1);
-            const old = mem.readU32(addr);
-            mem.writeU32(addr, @max(old, cpu.readReg(inst.rs2)));
-            cpu.writeReg(inst.rd, old);
         },
 
         // ----------------------------------------------------------------

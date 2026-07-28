@@ -1,16 +1,10 @@
 //! Exact Poseidon views over its three non-empty resident trace trees.
 
-const field = @import("../../../../backends/cuda/abi/field.zig");
-const column = @import("../../../../backends/cuda/runtime/column.zig");
-const common = @import(
-    "../../../../backends/cuda/runtime/stages/common.zig",
-);
-const poseidon_constraint = @import(
-    "../../../../backends/cuda/runtime/constraints/poseidon.zig",
-);
-const relation_stage = @import(
-    "../../../../backends/cuda/runtime/stages/relation.zig",
-);
+const field = @import("stwo_cuda_backend").abi.field;
+const column = @import("stwo_cuda_backend").runtime.column;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const poseidon_constraint = @import("stwo_cuda_backend").runtime.constraints.poseidon;
+const relation_stage = @import("stwo_cuda_backend").runtime.stages.relation;
 const relation_mod = @import("../relation.zig");
 const shared = @import("../../common/resident_views.zig");
 

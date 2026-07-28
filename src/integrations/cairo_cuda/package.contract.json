@@ -1,0 +1,46 @@
+{
+  "schema": "stwo-zig-package-contract-v1",
+  "package": "stwo_cairo_cuda_integration",
+  "owner": "cairo-cuda-integration",
+  "public_modules": {
+    "stwo_cairo_cuda_integration": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_backend_contracts": "../../backend",
+    "stwo_cairo_frontend": "../../frontends/cairo",
+    "stwo_core": "../../core",
+    "stwo_cuda_backend": "../../backends/cuda",
+    "stwo_native_cuda_integration": "../native_cuda",
+    "stwo_prover_impl": "../../prover"
+  },
+  "injected_modules": [],
+  "api_surface": [
+    "base_writer_plan",
+    "casm_input",
+    "diagnostic_sn2",
+    "eval_aot",
+    "eval_codegen",
+    "eval_parity_fixture",
+    "eval_product_registry",
+    "eval_simd_oracle",
+    "executor",
+    "identity",
+    "lowering_map",
+    "native_ec",
+    "program",
+    "recorded_witness",
+    "recorded_witness_oracle",
+    "relation_adapter",
+    "relation_sn2_parity_fixture",
+    "request_compiler"
+  ],
+  "ci": {
+    "host": "linux",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "-Doptimize=ReleaseFast"
+    ]
+  }
+}

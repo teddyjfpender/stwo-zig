@@ -1,17 +1,17 @@
 //! Cairo proving orchestration over the resident Metal arena.
 
 const std = @import("std");
-const arena_plan = @import("../../backends/metal/arena_plan.zig");
+const arena_plan = @import("stwo_metal_backend").arena_plan;
 const schedule_bindings = @import("schedule_bindings.zig");
-const metal_runtime = @import("../../backends/metal/runtime.zig");
-const protocol_recipes = @import("../../backends/metal/protocol_recipes.zig");
-const transcript_fixture = @import("../../backends/metal/cairo/diagnostics/transcript_fixture.zig");
-const composition_bundle_mod = @import("../../frontends/cairo/witness/composition_bundle.zig");
-const fixed_table_bundle_mod = @import("../../frontends/cairo/witness/fixed_table_bundle.zig");
-const relation_bundle_mod = @import("../../frontends/cairo/witness/relation_bundle.zig");
-const witness_bundle_mod = @import("../../frontends/cairo/witness/bundle.zig");
+const metal_runtime = @import("stwo_metal_backend").runtime;
+const protocol_recipes = @import("stwo_metal_backend").protocol_recipes;
+const transcript_fixture = @import("stwo_metal_backend").cairo.diagnostics.transcript_fixture;
+const composition_bundle_mod = @import("stwo_cairo_frontend").witness.composition_bundle;
+const fixed_table_bundle_mod = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
+const relation_bundle_mod = @import("stwo_cairo_frontend").witness.relation_bundle;
+const witness_bundle_mod = @import("stwo_cairo_frontend").witness.bundle;
 const eval_codegen = @import("eval_codegen.zig");
-const cairo_proof_plan = @import("../../frontends/cairo/proof_plan.zig");
+const cairo_proof_plan = @import("stwo_cairo_frontend").proof_plan;
 const commitment_ordering = @import("resident/commitment/ordering.zig");
 const commitment_telemetry = @import("resident/commitment/telemetry.zig");
 const composition_config = @import("resident/composition/config.zig");

@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
-const eval = @import("../../frontends/cairo/witness/eval_program.zig");
+const eval = @import("stwo_cairo_frontend").witness.eval_program;
 
 pub const lane_count = m31.VEC_WIDTH;
 pub const PackedM31 = m31.Vec4u32;

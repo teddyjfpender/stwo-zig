@@ -61,6 +61,30 @@ pub fn sourceJitIdentity(b: *std.Build) graph_identity.RuntimeHooks {
     };
 }
 
+pub fn authenticatedAotIdentity(
+    b: *std.Build,
+    manifest_sha256: []const u8,
+) graph_identity.RuntimeHooks {
+    if (manifest_sha256.len != 64)
+        @panic("Metal core AOT manifest digest must be lowercase SHA-256");
+    const shader_digest = nativeShaderDigest(b);
+    const runtime_digest = runtimeSourceDigest(b);
+    return .{
+        .runtime_manifest = b.fmt(
+            "metal-runtime-v2:mode=authenticated-aot;shader-amalgamation-sha256={s};runtime-objc-sha256={s};core-aot-manifest-sha256={s}",
+            .{ shader_digest, runtime_digest, manifest_sha256 },
+        ),
+        .sdk_manifest = b.fmt(
+            "apple-metal-sdk-v2:bound-by-core-aot-manifest-sha256={s}",
+            .{manifest_sha256},
+        ),
+        .aot_manifest = b.fmt(
+            "stwo-zig-metal-core-aot-v2:manifest-sha256={s}",
+            .{manifest_sha256},
+        ),
+    };
+}
+
 fn runtimeSourceDigest(b: *std.Build) []const u8 {
     var hasher = std.crypto.hash.sha2.Sha256.init(.{});
     for (runtime_source_units) |path| {

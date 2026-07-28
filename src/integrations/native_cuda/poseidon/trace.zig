@@ -1,10 +1,10 @@
 //! AIR-owned binding from Native Poseidon semantics to a generic CUDA recipe.
 
-const cpu_poseidon = @import("../../../examples/poseidon/input.zig");
-const common = @import("../../../backends/cuda/runtime/stages/common.zig");
-const runtime_error = @import("../../../backends/cuda/runtime/error.zig");
+const cpu_poseidon = @import("stwo_native_examples").backend_support.poseidon.input;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const runtime_error = @import("stwo_cuda_backend").runtime.runtime_error;
 const m31_permutation =
-    @import("../../../backends/cuda/runtime/traces/m31_permutation.zig");
+    @import("stwo_cuda_backend").runtime.traces.m31_permutation;
 
 pub const recipe = m31_permutation.Recipe{
     .initial_row_stride = 1,
@@ -93,9 +93,7 @@ const TestSession = struct {
 
     pub fn launchKernel(
         self: *TestSession,
-        kernel: @import(
-            "../../../backends/cuda/runtime/kernel.zig",
-        ).Kernel,
+        kernel: @import("stwo_cuda_backend").runtime.kernel.Kernel,
         arguments: []const ?*anyopaque,
     ) runtime_error.Error!void {
         try kernel.validate();
@@ -106,15 +104,11 @@ const TestSession = struct {
 };
 
 const TestContext = struct {
-    active_stage: @import(
-        "../../../backends/cuda/runtime/telemetry.zig",
-    ).Stage = .trace_generation,
+    active_stage: @import("stwo_cuda_backend").runtime.telemetry.Stage = .trace_generation,
 
     pub fn requireStage(
         self: *TestContext,
-        expected: @import(
-            "../../../backends/cuda/runtime/telemetry.zig",
-        ).Stage,
+        expected: @import("stwo_cuda_backend").runtime.telemetry.Stage,
     ) runtime_error.Error!void {
         if (self.active_stage != expected) return error.StageOrderViolation;
     }

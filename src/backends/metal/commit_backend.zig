@@ -1,5 +1,5 @@
 const std = @import("std");
-const cpu = @import("../cpu_scalar/mod.zig").CpuBackend;
+const cpu = @import("stwo_cpu_backend").CpuBackend;
 const backend_composition = @import("runtime/backend_composition.zig");
 const column_source_materialization = @import("runtime/column_source_materialization.zig");
 const commit_policy = @import("commit_policy.zig");

@@ -4,9 +4,7 @@ const commit_tree = @import("../../common/commit_tree.zig");
 const ingress = @import("ingress.zig");
 const plan_mod = @import("../plan.zig");
 const proof_assembly = @import("../../common/proof_assembly.zig");
-const stages = @import(
-    "../../../../backends/cuda/runtime/stages/mod.zig",
-);
+const stages = @import("stwo_cuda_backend").runtime.stages;
 const trace = @import("../trace.zig");
 const transcript = @import("../../common/transcript_executor.zig");
 
@@ -147,8 +145,6 @@ fn retainedLayers(
     prepared: *const plan_mod.PreparedPlan,
     first: usize,
     count: usize,
-) []const @import(
-    "../../../../backends/cuda/abi/field.zig",
-).MerkleLayerDescriptor {
+) []const @import("stwo_cuda_backend").abi.field.MerkleLayerDescriptor {
     return prepared.decommit.retained_layers[first..][0..count];
 }

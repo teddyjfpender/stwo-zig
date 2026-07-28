@@ -1,1 +1,1 @@
-"""Live pinned-Rust oracle comparison helpers."""
+"""Legacy Stark-V benchmark and archived receipt-comparison helpers."""

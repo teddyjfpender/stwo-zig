@@ -91,6 +91,22 @@ pub fn initFromAotAdmission(admission: *const core_aot.Admission) MetalError!Run
     return .{ .handle = try runtime_initialization.fromMetallibData(admission.metallib_bytes) };
 }
 
+/// Constructs from admitted bytes on an explicitly selected device.
+///
+/// Process owners normally use `initFromAotAdmission`; this boundary exists
+/// for multi-device schedulers and deterministic device-admission tests.
+pub fn initFromMetallibDataOnDevice(
+    device: ?*anyopaque,
+    bytes: []const u8,
+) MetalError!Runtime {
+    return .{
+        .handle = try runtime_initialization.fromMetallibDataOnDevice(
+            device,
+            bytes,
+        ),
+    };
+}
+
 pub fn deinit(self: *Runtime) void {
     ffi.stwo_zig_metal_runtime_destroy(self.handle);
     self.* = undefined;

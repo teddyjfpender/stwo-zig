@@ -6,6 +6,7 @@ const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
 const pcs = @import("stwo_core").pcs;
 const accumulation = @import("accumulation.zig");
+const component_parallel = @import("component_parallel.zig");
 const prover_circle = @import("../poly/circle/mod.zig");
 const prover_twiddles = @import("../poly/twiddles.zig");
 const secure_column = @import("../secure_column.zig");
@@ -109,6 +110,15 @@ pub const ComponentProver = struct {
     ctx: *const anyopaque,
     vtable: *const ComponentProverVTable,
     backend_composition_capability: ?BackendCompositionCapability = null,
+    /// Optional caller-owned domain split. The composition scheduler invokes
+    /// at most one such evaluator while ordinary component jobs drain from the
+    /// same bounded pool, so implementations may enqueue row tasks safely.
+    domain_parallel_evaluator: ?*const fn (
+        ctx: *const anyopaque,
+        trace: *const Trace,
+        evaluation_accumulator: *accumulation.DomainEvaluationAccumulator,
+        pool: *work_pool_mod.WorkPool,
+    ) anyerror!void = null,
 
     pub inline fn nConstraints(self: ComponentProver) usize {
         return self.vtable.nConstraints(self.ctx);
@@ -178,6 +188,17 @@ pub const ComponentProver = struct {
             trace,
             evaluation_accumulator,
         );
+    }
+
+    pub inline fn evaluateConstraintQuotientsOnDomainParallel(
+        self: ComponentProver,
+        trace: *const Trace,
+        evaluation_accumulator: *accumulation.DomainEvaluationAccumulator,
+        pool: *work_pool_mod.WorkPool,
+    ) anyerror!void {
+        const evaluate = self.domain_parallel_evaluator orelse
+            return self.evaluateConstraintQuotientsOnDomain(trace, evaluation_accumulator);
+        return evaluate(self.ctx, trace, evaluation_accumulator, pool);
     }
 };
 
@@ -316,6 +337,18 @@ pub const ComponentProvers = struct {
                 );
             }
         }
+        if (self.components.len == 1 and
+            self.components[0].domain_parallel_evaluator != null)
+        {
+            if (work_pool_mod.getGlobalPool()) |pool| {
+                return self.computeCompositionEvaluationSingleParallel(
+                    allocator,
+                    random_coeff,
+                    trace,
+                    pool,
+                );
+            }
+        }
 
         // Sequential fallback (single component, no pool, or test mode).
         return self.computeCompositionEvaluationSequential(
@@ -346,22 +379,28 @@ pub const ComponentProvers = struct {
         return accumulator.finalize();
     }
 
-    /// Context passed to each worker thread.
-    const ParallelWorkerCtx = struct {
-        component: ComponentProver,
+    fn computeCompositionEvaluationSingleParallel(
+        self: ComponentProvers,
+        allocator: std.mem.Allocator,
+        random_coeff: QM31,
         trace: *const Trace,
-        accumulator: accumulation.DomainEvaluationAccumulator,
-        err: ?anyerror = null,
+        pool: *work_pool_mod.WorkPool,
+    ) anyerror!SecureColumnByCoords {
+        var accumulator = try accumulation.DomainEvaluationAccumulator.init(
+            allocator,
+            random_coeff,
+            self.compositionLogDegreeBound(),
+            self.totalConstraints(),
+        );
+        defer accumulator.deinit();
 
-        fn run(ctx: *ParallelWorkerCtx) void {
-            ctx.component.evaluateConstraintQuotientsOnDomain(
-                ctx.trace,
-                &ctx.accumulator,
-            ) catch |e| {
-                ctx.err = e;
-            };
-        }
-    };
+        try self.components[0].evaluateConstraintQuotientsOnDomainParallel(
+            trace,
+            &accumulator,
+            pool,
+        );
+        return accumulator.finalize();
+    }
 
     /// Parallel implementation: each component gets its own accumulator
     /// with pre-assigned power ranges, evaluated concurrently, then merged.
@@ -372,71 +411,15 @@ pub const ComponentProvers = struct {
         trace: *const Trace,
         pool: *work_pool_mod.WorkPool,
     ) anyerror!SecureColumnByCoords {
-        const max_log_size = self.compositionLogDegreeBound();
-        const total_constraints = self.totalConstraints();
-
-        // Generate the shared powers array once.
-        const powers = try accumulation.generateSecurePowers(
+        return component_parallel.compute(
             allocator,
+            self.components,
+            self.compositionLogDegreeBound(),
+            self.totalConstraints(),
             random_coeff,
-            total_constraints,
+            trace,
+            pool,
         );
-        defer allocator.free(powers);
-
-        // Allocate per-component worker contexts.
-        const workers = try allocator.alloc(ParallelWorkerCtx, self.components.len);
-        defer allocator.free(workers);
-
-        // Pre-compute the starting power index for each component.
-        // Powers are consumed from the tail: the first component starts at
-        // total_constraints and consumes nConstraints() powers, the second
-        // starts where the first left off, etc.
-        var power_cursor: usize = total_constraints;
-        for (self.components, 0..) |component, i| {
-            const n = component.nConstraints();
-            workers[i] = .{
-                .component = component,
-                .trace = trace,
-                .accumulator = try accumulation.DomainEvaluationAccumulator.initForComponent(
-                    powers,
-                    allocator,
-                    max_log_size,
-                    power_cursor,
-                ),
-            };
-            power_cursor -= n;
-        }
-
-        // Clean up all sub-accumulators on exit (whether success or error).
-        defer {
-            for (workers) |*w| {
-                w.accumulator.deinit();
-            }
-        }
-
-        // Dispatch all but the first component to the thread pool;
-        // process the first on the calling thread to keep it busy.
-        var wg = std.Thread.WaitGroup{};
-        for (workers[1..]) |*w| {
-            pool.spawnWg(&wg, ParallelWorkerCtx.run, .{w});
-        }
-        ParallelWorkerCtx.run(&workers[0]);
-        wg.wait();
-
-        // Check for errors from any worker.
-        for (workers) |w| {
-            if (w.err) |e| return e;
-        }
-
-        // Merge all sub-accumulators into the first one.
-        for (workers[1..]) |*w| {
-            workers[0].accumulator.merge(&w.accumulator);
-        }
-
-        // Set next_power_index to 0 so finalize() succeeds.
-        workers[0].accumulator.next_power_index = 0;
-
-        return workers[0].accumulator.finalize();
     }
 };
 

@@ -1,0 +1,57 @@
+{
+  "schema": "stwo_cairo_compiled_program_corpus_v1",
+  "source": {
+    "repository": "https://github.com/starkware-libs/stwo-cairo",
+    "revision": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78"
+  },
+  "execution": {
+    "adapter": "tools/stwo-cairo-vm-adapter-rs",
+    "cairo_vm_version": "3.2.0",
+    "layout": "all_cairo_stwo",
+    "params": "vectors/cairo/official/all_opcodes.params.json"
+  },
+  "programs": [
+    {
+      "case": "bitwise",
+      "source_path": "test_data/test_prove_verify_bitwise_builtin/compiled.json",
+      "path": "vectors/cairo/programs/test_prove_verify_bitwise_builtin/compiled.json",
+      "bytes": 97842,
+      "sha256": "92049e724dc0d5578bb036d55261c45a801f7b53754a02af3f3e464824251eff"
+    },
+    {
+      "case": "range-check-96",
+      "source_path": "test_data/test_prove_verify_range_check_bits_96_builtin/compiled.json",
+      "path": "vectors/cairo/programs/test_prove_verify_range_check_bits_96_builtin/compiled.json",
+      "bytes": 77859,
+      "sha256": "86cdb3ce554996099490ce28001e5f6bd33bc63d13c6512f6f5dc28f333ed9da"
+    },
+    {
+      "case": "range-check-128",
+      "source_path": "test_data/test_prove_verify_range_check_bits_128_builtin/compiled.json",
+      "path": "vectors/cairo/programs/test_prove_verify_range_check_bits_128_builtin/compiled.json",
+      "bytes": 77784,
+      "sha256": "f14e91e258c25a9ebd780e0070a06b78d8b8715c1b1f6f81f374d89457387850"
+    },
+    {
+      "case": "poseidon",
+      "source_path": "test_data/test_prove_verify_poseidon_builtin/compiled.json",
+      "path": "vectors/cairo/programs/test_prove_verify_poseidon_builtin/compiled.json",
+      "bytes": 135709,
+      "sha256": "e10c31f78bf2fcbd24e80af1acb51bff2d6a270a939c4f3485df1f84df4c4d23"
+    },
+    {
+      "case": "ret",
+      "source_path": "test_data/test_prove_verify_ret_opcode/compiled.json",
+      "path": "vectors/cairo/programs/test_prove_verify_ret_opcode/compiled.json",
+      "bytes": 43604,
+      "sha256": "d4381c90ee04f717aeb6c5ead5a599c4029b8a38faf56d066c865ffe89273d57"
+    },
+    {
+      "case": "pedersen",
+      "source_path": "test_data/test_prove_verify_pedersen_builtin/compiled.json",
+      "path": "vectors/cairo/programs/test_prove_verify_pedersen_builtin/compiled.json",
+      "bytes": 115599,
+      "sha256": "02eee8181d7daa5148344d1b2faeb83505a6de955fb224cb0a6d05ae4591c071"
+    }
+  ]
+}

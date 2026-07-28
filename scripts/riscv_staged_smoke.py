@@ -2,8 +2,8 @@
 """Staged riscv CLI smoke: prove, independently verify, and reject tampering.
 
 Exercises the installed CLI end to end on a committed, cross-verified vector
-ELF: `prove --elf` must produce a v3 artifact that a separate `verify
---artifact` invocation cryptographically accepts (printing its honest
+ELF: `prove --elf` must produce a v4 artifact that a separate `verify
+--artifact --elf` invocation cryptographically accepts (printing its honest
 release status), and a single-bit tamper of the public statement must be
 rejected. Part of the riscv release gate; also runnable standalone.
 """
@@ -26,13 +26,13 @@ sys.path.insert(0, str(ROOT))
 from scripts.riscv_staged_smoke_lib import contracts, mutations, profiles  # noqa: E402
 
 ELF = "vectors/riscv_elfs/branch_fib.elf"
-ELF_SHA256 = "4dbf634977e3a30e71a16a681f1ac84def562bd0847fa4885f5f9214d003e0f1"
+ELF_SHA256 = "7ff124d1aea7433225b018c7f4dbcae7f693506c0ac34d6790c60cd50c7b2c3f"
 COMMAND_TIMEOUT_SECONDS = 1_800
 MULTI_SHARD_TOTAL_STEPS = 131_078
 MULTI_SHARD_ADDI_ROWS = 65_538
 MULTI_SHARD_PROGRAM_WORDS = 8
-MULTI_SHARD_ELF_SHA256 = "06d217624c13bed63beecbc15127b1fbcd098ee520ac11a20d864cb38d7577a0"
-WITNESS_LAYOUT_SHA256 = "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79"
+MULTI_SHARD_ELF_SHA256 = "c93d9a3dd6104ae0f76a4297f3800ab70e5e59984187b1357e7619a0a0004adb"
+WITNESS_LAYOUT_SHA256 = "314f1669804bb2c7fa2c99c5fe7fedb6801f9bf7e0353ace6750e1c2c7b302b9"
 
 
 def write_multi_shard_elf(path: Path) -> None:
@@ -133,6 +133,11 @@ def main() -> int:
     parser.add_argument("--evidence-dir", type=Path)
     args = parser.parse_args()
     fast = args.profile == "fast"
+    if fast:
+        parser.error(
+            "the pre-Sail producer-linked fast profile is retired; run the "
+            "exhaustive profile and scripts/riscv_sail_gate.py instead"
+        )
     if fast and (args.cli is None or args.producer_receipt is None or args.evidence_dir is None):
         parser.error("--profile fast requires --cli, --producer-receipt, and --evidence-dir")
     if not fast and args.producer_receipt is not None:
@@ -266,7 +271,8 @@ def main() -> int:
             with oversized_input.open("wb") as handle:
                 handle.truncate(16 * 1024 * 1024 + 1)
             irrelevant = run(
-                "verify", "--artifact", "does-not-exist.json", "--experimental",
+                "verify", "--artifact", "does-not-exist.json", "--elf", ELF,
+                "--experimental",
             )
             try:
                 rejection_results["irrelevant-experimental"] = require_rejection(
@@ -280,10 +286,6 @@ def main() -> int:
                     "undeclared-release-abi": (
                         elf_prove_args("vectors/riscv_elfs/negative/undeclared_program.elf"),
                         ("MissingReleaseAbiSymbol",),
-                    ),
-                    "self-loop-completion": (
-                        elf_prove_args("vectors/riscv_elfs/negative/self_loop_sentinel.elf"),
-                        ("InvalidReleaseCompletion",),
                     ),
                     "unsupported-instruction": (
                         elf_prove_args(str(unsupported_elf)),
@@ -398,7 +400,8 @@ def main() -> int:
                   file=sys.stderr)
             return 1
         verify = run(
-            "verify", "--artifact", str(artifact), "--protocol", "functional",
+            "verify", "--artifact", str(artifact), "--elf", str(multi_shard_elf),
+            "--protocol", "functional",
             "--expect-statement-digest", statement_digest,
         )
         if verify.returncode != 0:
@@ -421,6 +424,18 @@ def main() -> int:
         except contracts.ContractError as error:
             print(f"riscv staged smoke: {error}", file=sys.stderr)
             return 1
+        wrong_elf = run(
+            "verify", "--artifact", str(artifact), "--elf", ELF,
+            "--protocol", "functional",
+            "--expect-statement-digest", statement_digest,
+        )
+        if wrong_elf.returncode == 0 or "ElfDigestMismatch" not in wrong_elf.stderr:
+            print(
+                "riscv staged smoke: artifact accepted against the wrong ELF: "
+                f"{wrong_elf.stderr}",
+                file=sys.stderr,
+            )
+            return 1
         verify_receipt_path = Path(tmp) / "verify-receipt.json"
         verify_receipt_path.write_text(verify.stdout)
         claim_order_evidence: dict[str, object] | None = None
@@ -436,7 +451,8 @@ def main() -> int:
             claim_swap_path = Path(tmp) / "claim-order-swapped.json"
             claim_swap_path.write_text(json.dumps(claim_swap_payload))
             claim_swap = run(
-                "verify", "--artifact", str(claim_swap_path), "--protocol", "functional",
+                "verify", "--artifact", str(claim_swap_path),
+                "--elf", str(multi_shard_elf), "--protocol", "functional",
                 "--expect-statement-digest", statement_digest,
             )
             if claim_swap.returncode == 0 or "OodsNotMatching" not in claim_swap.stderr:
@@ -444,7 +460,8 @@ def main() -> int:
                       f"OodsNotMatching: {claim_swap.stderr}", file=sys.stderr)
                 return 1
             reverted_claim_swap = run(
-                "verify", "--artifact", str(artifact), "--protocol", "functional",
+                "verify", "--artifact", str(artifact), "--elf", str(multi_shard_elf),
+                "--protocol", "functional",
                 "--expect-statement-digest", statement_digest,
             )
             if reverted_claim_swap.returncode != 0 or reverted_claim_swap.stderr or \
@@ -464,7 +481,8 @@ def main() -> int:
             }
         wrong_digest = "00" * 32 if statement_digest != "00" * 32 else "11" * 32
         wrong_statement = run(
-            "verify", "--artifact", str(artifact), "--protocol", "functional",
+            "verify", "--artifact", str(artifact), "--elf", str(multi_shard_elf),
+            "--protocol", "functional",
             "--expect-statement-digest", wrong_digest,
         )
         if wrong_statement.returncode == 0:
@@ -474,7 +492,7 @@ def main() -> int:
         downgrade: subprocess.CompletedProcess[str] | None = None
         if not fast:
             downgrade = run(
-                "verify", "--artifact", str(artifact),
+                "verify", "--artifact", str(artifact), "--elf", str(multi_shard_elf),
                 "--expect-statement-digest", statement_digest,
             )
             if downgrade.returncode == 0:
@@ -485,7 +503,8 @@ def main() -> int:
         tampered = Path(tmp) / "tampered.json"
         tampered.write_text(json.dumps(payload))
         tamper = run(
-            "verify", "--artifact", str(tampered), "--protocol", "functional",
+            "verify", "--artifact", str(tampered), "--elf", str(multi_shard_elf),
+            "--protocol", "functional",
             "--expect-statement-digest", statement_digest,
         )
         if tamper.returncode == 0:
@@ -497,7 +516,8 @@ def main() -> int:
         provenance_tampered.write_text(json.dumps(payload))
         provenance_tamper = run(
             "verify", "--artifact", str(provenance_tampered),
-            "--protocol", "functional", "--expect-statement-digest", statement_digest,
+            "--elf", str(multi_shard_elf), "--protocol", "functional",
+            "--expect-statement-digest", statement_digest,
         )
         if provenance_tamper.returncode == 0:
             print("riscv staged smoke: MUTATED PROVENANCE ACCEPTED", file=sys.stderr)
@@ -520,7 +540,7 @@ def main() -> int:
             mutation_path.write_text(json.dumps(mutated_payload))
             result = run(
                 "verify", "--artifact", str(mutation_path),
-                "--protocol", "functional",
+                "--elf", str(multi_shard_elf), "--protocol", "functional",
                 "--expect-statement-digest", statement_digest,
             )
             expected_error = expected_wire_errors[mutation]
@@ -544,7 +564,8 @@ def main() -> int:
                 mutation_path.write_text(mutated_text)
                 result = run(
                     "verify", "--artifact", str(mutation_path),
-                    "--protocol", "functional", "--expect-statement-digest", statement_digest,
+                    "--elf", str(multi_shard_elf), "--protocol", "functional",
+                    "--expect-statement-digest", statement_digest,
                 )
                 expected_errors = (expected_error,)
                 if mutation == "corrupt-json":
@@ -615,7 +636,8 @@ def main() -> int:
                 return 1
             benchmark_statement = benchmark_payload["statement_sha256"]
             benchmark_verify = run(
-                "verify", "--artifact", str(benchmark_artifact), "--protocol", "functional",
+                "verify", "--artifact", str(benchmark_artifact), "--elf", ELF,
+                "--protocol", "functional",
                 "--expect-statement-digest", benchmark_statement,
             )
             if benchmark_verify.returncode != 0:

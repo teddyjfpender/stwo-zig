@@ -1,18 +1,12 @@
 //! Geometry-checked views over one prepared resident Native CUDA proof arena.
 const std = @import("std");
-const field = @import("../../../backends/cuda/abi/field.zig");
-const quotient_abi = @import(
-    "../../../backends/cuda/abi/stages/quotient.zig",
-);
-const column = @import("../../../backends/cuda/runtime/column.zig");
-const common = @import("../../../backends/cuda/runtime/stages/common.zig");
-const oods_stage = @import("../../../backends/cuda/runtime/stages/oods.zig");
-const quotient_stage = @import(
-    "../../../backends/cuda/runtime/stages/quotient.zig",
-);
-const constraint = @import(
-    "../../../backends/cuda/runtime/constraints/constant_qm31.zig",
-);
+const field = @import("stwo_cuda_backend").abi.field;
+const quotient_abi = @import("stwo_cuda_backend").abi.stages.quotient;
+const column = @import("stwo_cuda_backend").runtime.column;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const oods_stage = @import("stwo_cuda_backend").runtime.stages.oods;
+const quotient_stage = @import("stwo_cuda_backend").runtime.stages.quotient;
+const constraint = @import("stwo_cuda_backend").runtime.constraints.constant_qm31;
 const tree_binding = @import("resident_tree_binding.zig");
 const proof_binding = @import("resident_proof_binding.zig");
 const views = @import("resident_views.zig");

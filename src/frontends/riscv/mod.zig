@@ -1,16 +1,22 @@
-//! RISC-V RV32IM zkVM frontend (stark-v port).
+//! Sail-authoritative RISC-V RV32IM zkVM frontend.
 //!
 //! Provides an execution runner for RISC-V RV32IM programs (ELF loading,
 //! decode, execute) and AIR constraints for STARK proving of execution traces.
 
 pub const runner = @import("runner/mod.zig");
 pub const air = @import("air/mod.zig");
+pub const access_clock = @import("access_clock.zig");
+pub const diagnostics = @import("diagnostics/mod.zig");
+pub const isa = @import("isa/mod.zig");
 pub const opcode_manifest = @import("opcode_manifest.zig");
 pub const witness_layout = @import("witness_layout.zig");
 pub const prover_mod = @import("prover.zig");
 pub const owned_statement = @import("owned_statement.zig");
 pub const infra_trace = @import("infra_trace.zig");
 pub const host = @import("host/mod.zig");
+/// Explicitly unstable helpers used by the repository's adversarial corpus.
+/// Downstream production code must stay on the package surface above.
+pub const testing = @import("testing.zig");
 
 // Convenience re-exports.
 pub const Cpu = runner.Cpu;
@@ -29,4 +35,6 @@ pub const proveAndVerifyElfWithEngine = prover_mod.proveAndVerifyElfWithEngine;
 test {
     @import("std").testing.refAllDeclsRecursive(infra_trace);
     _ = @import("opcode_coverage_test.zig");
+    _ = @import("air/extract/mod.zig");
+    _ = @import("air/semantic_eval.zig");
 }

@@ -6,8 +6,8 @@
 //! published envelope.
 
 const std = @import("std");
-const compact = @import("../../../frontends/cairo/compact_verifier_interchange.zig");
-const prover = @import("../../../frontends/cairo/prover.zig");
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
+const prover = @import("stwo_cairo_frontend").prover;
 const terminal_decode = @import("terminal_decode.zig");
 
 pub const EnvelopeSummary = compact.EnvelopeSummary;

@@ -1,8 +1,8 @@
 //! Resident main-trace generation, commitment, and transcript prefix.
 
 const std = @import("std");
-const stages = @import("../../../../backends/cuda/runtime/stages/mod.zig");
-const runtime_error = @import("../../../../backends/cuda/runtime/error.zig");
+const stages = @import("stwo_cuda_backend").runtime.stages;
+const runtime_error = @import("stwo_cuda_backend").runtime.runtime_error;
 const commit_tree = @import("../commit_tree.zig");
 const ingress = @import("ingress.zig");
 const plan_mod = @import("../plan.zig");
@@ -209,7 +209,7 @@ fn retainedLayers(
     prepared: *const plan_mod.PreparedPlan,
     offset: usize,
     layer_count: usize,
-) []const @import("../../../../backends/cuda/abi/field.zig").MerkleLayerDescriptor {
+) []const @import("stwo_cuda_backend").abi.field.MerkleLayerDescriptor {
     return prepared.decommit.retained_layers[offset..][0..layer_count];
 }
 
@@ -320,10 +320,21 @@ test "trace executor follows raw upstream prefix without host escape" {
                 previous: anytype,
                 output: anytype,
                 four_levels: bool,
-            ) !void {
-                try std.testing.expect(!four_levels);
-                try std.testing.expectEqual(previous.len / 2, output.len);
+            ) runtime_error.Error!void {
+                if (four_levels or previous.len / 2 != output.len)
+                    return error.InvalidKernelDescriptor;
                 Calls.merkle_layers += 1;
+            }
+            pub fn contiguousTail(
+                _: anytype,
+                _: anytype,
+                previous: anytype,
+                outputs: anytype,
+                level_count: u32,
+            ) runtime_error.Error!void {
+                if (level_count == 0 or outputs.len != previous.len - 1)
+                    return error.InvalidKernelDescriptor;
+                Calls.merkle_layers += level_count;
             }
         };
         const Transcript = struct {
@@ -371,6 +382,10 @@ test "trace executor follows raw upstream prefix without host escape" {
     };
     const FakeTransaction = struct {
         session: struct { context: FakeContext = .{} } = .{},
+
+        pub fn proofSession(self: *@This()) *@TypeOf(self.session) {
+            return &self.session;
+        }
     };
 
     const allocator = std.testing.allocator;

@@ -1,0 +1,10 @@
+.{
+    .fingerprint = 0xd3bdd23bc7927d47,
+    .name = .stwo_prover_impl,
+    .version = "0.1.0",
+    .paths = .{"."},
+    .dependencies = .{
+        .stwo_core = .{ .path = "../core" },
+        .stwo_backend_contracts = .{ .path = "../backend" },
+    },
+}

@@ -5,21 +5,11 @@
 //! then invokes the real strict-AOT/native stage API in dependency order.
 
 const std = @import("std");
-const fixed_tables = @import(
-    "../../../backends/cuda/runtime/stages/cairo_base/fixed_tables.zig",
-);
-const memory = @import(
-    "../../../backends/cuda/runtime/stages/cairo_base/memory.zig",
-);
-const multiplicity_feed = @import(
-    "../../../backends/cuda/runtime/stages/cairo_base/multiplicity_feed.zig",
-);
-const cairo_witness = @import(
-    "../../../backends/cuda/runtime/stages/cairo_witness.zig",
-);
-const cairo_witness_plan = @import(
-    "../../../backends/cuda/runtime/stages/cairo_witness_plan.zig",
-);
+const fixed_tables = @import("stwo_cuda_backend").runtime.stages.cairo_base.fixed_tables;
+const memory = @import("stwo_cuda_backend").runtime.stages.cairo_base.memory;
+const multiplicity_feed = @import("stwo_cuda_backend").runtime.stages.cairo_base.multiplicity_feed;
+const cairo_witness = @import("stwo_cuda_backend").runtime.stages.cairo_witness;
+const cairo_witness_plan = @import("stwo_cuda_backend").runtime.stages.cairo_witness_plan;
 const native_ec = @import("../native_ec.zig");
 const recorded_witness = @import("../recorded_witness.zig");
 const base_binding = @import("base_writer_binding.zig");
@@ -154,12 +144,8 @@ pub const Binding = struct {
 
 pub const GatherBinding = struct {
     topology: cairo_witness_plan.MultiEdgeTopology,
-    producer_arena: @import(
-        "../../../backends/cuda/runtime/stages/common.zig",
-    ).Words,
-    outputs: @import(
-        "../../../backends/cuda/runtime/stages/common.zig",
-    ).WordMatrix,
+    producer_arena: @import("stwo_cuda_backend").runtime.stages.common.Words,
+    outputs: @import("stwo_cuda_backend").runtime.stages.common.WordMatrix,
 };
 
 pub const PostFeed = struct {

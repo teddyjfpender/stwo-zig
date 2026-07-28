@@ -6,30 +6,14 @@
 
 const std = @import("std");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
-const common = @import(
-    "../../../backends/cuda/runtime/stages/common.zig",
-);
-const oods_stage = @import(
-    "../../../backends/cuda/runtime/stages/oods.zig",
-);
-const transcript_stage = @import(
-    "../../../backends/cuda/runtime/stages/transcript.zig",
-);
-const compact = @import(
-    "../../../frontends/cairo/compact_verifier_interchange.zig",
-);
-const composition = @import(
-    "../../../frontends/cairo/witness/composition_bundle.zig",
-);
-const shared_oods = @import(
-    "../../native_cuda/common/oods_executor.zig",
-);
-const proof_capture = @import(
-    "../../native_cuda/common/proof_assembly.zig",
-);
-const shared_views = @import(
-    "../../native_cuda/common/resident_views.zig",
-);
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const oods_stage = @import("stwo_cuda_backend").runtime.stages.oods;
+const transcript_stage = @import("stwo_cuda_backend").runtime.stages.transcript;
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
+const shared_oods = @import("stwo_native_cuda_integration").common.oods_executor;
+const proof_capture = @import("stwo_native_cuda_integration").common.proof_assembly;
+const shared_views = @import("stwo_native_cuda_integration").common.resident_views;
 const bindings_module = @import("pcs_hooks_types.zig");
 const topology_module = @import("pcs_oods_topology.zig");
 const quotient_topology = @import("quotient/topology.zig");

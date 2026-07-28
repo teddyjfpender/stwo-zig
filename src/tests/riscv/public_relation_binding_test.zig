@@ -1,17 +1,17 @@
 //! Algebraic public-statement binding over retained production commitments.
 
 const std = @import("std");
-const riscv_cpu = @import("../../integrations/riscv_cpu/mod.zig");
-const public_data_mod = @import("../../frontends/riscv/air/public_data.zig");
-const relation_export = @import("../../frontends/riscv/air/relation_export.zig");
-const memory_boundary = @import("../../frontends/riscv/air/memory_commitment/boundary.zig");
-const runner = @import("../../frontends/riscv/runner/mod.zig");
+const riscv_cpu = @import("stwo_riscv_cpu_integration");
+const public_data_mod = @import("stwo_riscv_frontend").air.public_data;
+const relation_export = @import("stwo_riscv_frontend").air.relation_export;
+const memory_boundary = @import("stwo_riscv_frontend").air.memory_commitment.boundary;
+const runner = @import("stwo_riscv_frontend").runner;
 const pcs = @import("stwo_core").pcs;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const release_elf_fixture = @import("release_elf_fixture.zig");
 
 const PublicData = public_data_mod.PublicData;
-const RelationDiagnostic = @import("../../frontends/riscv/prover.zig").RelationDiagnostic;
+const RelationDiagnostic = @import("stwo_riscv_frontend").prover_mod.RelationDiagnostic;
 
 const TEST_PCS_CONFIG = pcs.PcsConfig{
     .pow_bits = 0,
@@ -101,6 +101,7 @@ test "riscv public statement: nonempty input proves and binds every public class
         .program_root = null,
         .initial_rw_root = null,
         .final_rw_root = null,
+        .completion = try public_data_mod.completionFromRun(run),
         .io_entries = .{
             .input_start = run.input_start,
             .input_len = @intCast(run.input.len),
@@ -143,6 +144,7 @@ test "riscv public statement: nonempty input proves and binds every public class
         null,
         public_data,
     );
+    defer proof.deinitAfterProofMoved(allocator);
     try riscv_cpu.verifyRiscV(
         allocator,
         TEST_PCS_CONFIG,
@@ -209,4 +211,18 @@ test "riscv public statement: nonempty input proves and binds every public class
     mutated = public_data;
     mutated.initial_rw_root = initial_root.root ^ 1;
     try std.testing.expectError(error.InvalidStatement, diagnose(allocator, &run, mutated));
+
+    // The production proof above and every public-relation mutation are
+    // decided before this sampled semantic attribution. Seed Sail from the
+    // fixture's declared input image, not from the execution trace, and keep
+    // the call last so oracle absence skips only this final leg.
+    const sail_memory = try release_elf_fixture.initialMemory(&input);
+    try runner.sail_oracle.requireAgreement(
+        allocator,
+        "public-relation binding public-I/O guest",
+        elf,
+        &run.execution_trace,
+        run.cpu_final,
+        &sail_memory,
+    );
 }

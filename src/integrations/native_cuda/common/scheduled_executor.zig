@@ -1,8 +1,6 @@
 //! Structural dispatch for a complete resident STARK proof schedule.
 
-const execution_plan = @import(
-    "../../../backends/cuda/runtime/execution_plan.zig",
-);
+const execution_plan = @import("stwo_cuda_backend").runtime.execution_plan;
 const proof_ir = @import("stwo_backend_contracts").proof_program;
 
 /// The adapter supplies AIR-owned operations. Dispatch is deliberately keyed
@@ -93,9 +91,7 @@ fn assertAdapter(comptime Adapter: type) void {
 
 test "structural dispatcher covers every proof operation and rejects drift" {
     const std = @import("std");
-    const telemetry = @import(
-        "../../../backends/cuda/runtime/telemetry.zig",
-    );
+    const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
     const stages = [_]telemetry.Stage{
         .trace_generation,
         .trace_commit,

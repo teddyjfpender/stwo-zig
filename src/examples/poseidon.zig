@@ -14,7 +14,7 @@ const prover_transaction = @import("common/prover_transaction.zig");
 const component_mod = @import("poseidon/component.zig");
 const interaction = @import("poseidon/interaction.zig");
 const trace_input = @import("poseidon/input.zig");
-const CpuBackend = @import("../backends/cpu_scalar/mod.zig").CpuBackend;
+const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 
 pub const Hasher = blake2_merkle.Blake2sPrefixedMerkleHasher;
 pub const MerkleChannel = blake2_merkle.Blake2sPrefixedMerkleChannel;
@@ -534,7 +534,7 @@ test "examples poseidon: prove and prove_ex wrappers emit identical proof bytes"
     defer output_prove_ex.proof.aux.deinit(alloc);
     defer output_prove_ex.proof.proof.deinit(alloc);
 
-    const proof_wire = @import("../interop/proof_wire.zig");
+    const proof_wire = @import("stwo_proof_wire");
     const prove_bytes = try proof_wire.encodeProofBytes(alloc, output_prove.proof);
     defer alloc.free(prove_bytes);
     const prove_ex_bytes = try proof_wire.encodeProofBytes(alloc, output_prove_ex.proof.proof);
@@ -568,7 +568,7 @@ test "examples poseidon: verify wrapper rejects statement mismatch" {
 
 test "examples poseidon: transition and relation sample mutations are rejected" {
     const alloc = std.testing.allocator;
-    const proof_wire = @import("../interop/proof_wire.zig");
+    const proof_wire = @import("stwo_proof_wire");
     const config = pcs_core.PcsConfig{
         .pow_bits = 0,
         .fri_config = try @import("stwo_core").fri.FriConfig.init(0, 1, 3),

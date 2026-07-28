@@ -1,5 +1,5 @@
 const std = @import("std");
-const composition = @import("../../frontends/cairo/witness/composition_bundle.zig");
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
 const eval_aot = @import("eval_aot.zig");
 const fixture_mod = @import("eval_parity_fixture.zig");
 

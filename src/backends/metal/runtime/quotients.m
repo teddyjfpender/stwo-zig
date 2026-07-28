@@ -1,7 +1,12 @@
 // Every segmented source run launches a full row grid and read-modify-writes
-// every quotient accumulator. Keep that repeated domain traffic bounded; a
-// more fragmented input is cheaper to pack once and evaluate in one kernel.
+// every quotient accumulator. Keep that repeated domain traffic bounded.
+// Large fragmented inputs gather on the GPU once; smaller inputs retain the
+// established CPU flat pack.
 static const size_t stwo_zig_quotient_max_segmented_source_runs = 64u;
+static const size_t stwo_zig_quotient_resident_segment_min_bytes =
+    8u * 1024u * 1024u;
+static const size_t stwo_zig_quotient_gpu_flat_pack_min_bytes =
+    64u * 1024u * 1024u;
 
 static StwoZigMetalTree *stwo_zig_quotient_resident_source(
     NSArray<StwoZigMetalTree *> *resident_trees,
@@ -71,6 +76,82 @@ static size_t stwo_zig_quotient_raw_source_run_count(
     return runs;
 }
 
+static bool stwo_zig_encode_quotient_flat_pack(
+    StwoZigMetalRuntime *runtime,
+    id<MTLCommandBuffer> command,
+    const uint32_t *const *raw_columns,
+    const size_t *raw_column_lengths,
+    uint32_t raw_column_count,
+    NSArray<StwoZigMetalTree *> *resident_trees,
+    id<MTLBuffer> destination,
+    NSMutableArray<id<MTLBuffer>> *retained_sources
+) {
+    id<MTLBlitCommandEncoder> pack = [command blitCommandEncoder];
+    if (pack == nil) return false;
+    size_t destination_offset = 0u;
+    size_t page_size = (size_t)getpagesize();
+    for (uint32_t column = 0u; column < raw_column_count; ++column) {
+        if (raw_column_lengths[column] > SIZE_MAX / sizeof(uint32_t)) {
+            [pack endEncoding];
+            return false;
+        }
+        size_t column_bytes = raw_column_lengths[column] * sizeof(uint32_t);
+        uintptr_t resident_begin = 0u;
+        size_t resident_words = 0u;
+        StwoZigMetalTree *resident_tree = stwo_zig_quotient_resident_source(
+            resident_trees,
+            raw_columns[column],
+            raw_column_lengths[column],
+            &resident_begin,
+            &resident_words
+        );
+        id<MTLBuffer> source = nil;
+        size_t source_offset = 0u;
+        if (resident_tree != nil) {
+            source = resident_tree.residentColumns;
+            source_offset = (uintptr_t)raw_columns[column] - resident_begin;
+        } else {
+            uintptr_t address = (uintptr_t)raw_columns[column];
+            uintptr_t alias_address = address - (address % page_size);
+            source_offset = address - alias_address;
+            bool alias_shared = runtime.device.hasUnifiedMemory &&
+                column_bytes <= SIZE_MAX - source_offset;
+            size_t alias_length = 0u;
+            if (alias_shared) {
+                size_t alias_span = source_offset + column_bytes;
+                alias_shared = alias_span <= SIZE_MAX - (page_size - 1u);
+                if (alias_shared)
+                    alias_length = (alias_span + page_size - 1u) / page_size * page_size;
+            }
+            source = alias_shared
+                ? [runtime.device newBufferWithBytesNoCopy:(void *)alias_address
+                                                    length:alias_length
+                                                   options:MTLResourceStorageModeShared
+                                               deallocator:nil]
+                : [runtime.device newBufferWithBytes:raw_columns[column]
+                                              length:column_bytes
+                                             options:MTLResourceStorageModeShared];
+        }
+        if (source == nil ||
+            source_offset > source.length ||
+            column_bytes > source.length - source_offset ||
+            destination_offset > destination.length ||
+            column_bytes > destination.length - destination_offset) {
+            [pack endEncoding];
+            return false;
+        }
+        [retained_sources addObject:source];
+        [pack copyFromBuffer:source
+               sourceOffset:source_offset
+                   toBuffer:destination
+          destinationOffset:destination_offset
+                       size:column_bytes];
+        destination_offset += column_bytes;
+    }
+    [pack endEncoding];
+    return destination_offset == destination.length;
+}
+
 bool stwo_zig_metal_compute_quotients(
     void *runtime_ptr,
     const uint32_t *flat_views, size_t flat_views_len,
@@ -130,6 +211,8 @@ bool stwo_zig_metal_compute_quotients(
                           row_count != (1u << domain_log_size))))
         return false;
     @autoreleasepool {
+        bool profile_quotient = getenv("STWO_ZIG_METAL_QUOTIENT_PROFILE") != NULL;
+        NSTimeInterval quotient_wall_start = [NSDate timeIntervalSinceReferenceDate];
         *tree_out = NULL;
         bool commit_tree = resident_output_ptr != NULL || leaf_seed != NULL || node_seed != NULL;
         if (commit_tree && (resident_output_ptr == NULL || leaf_seed == NULL || node_seed == NULL))
@@ -149,13 +232,33 @@ bool stwo_zig_metal_compute_quotients(
         NSUInteger view_word_count = raw_views ? 9u : 5u;
         id<MTLBuffer> flat_buffer;
         size_t raw_len = 0;
+        size_t raw_bytes = 0u;
+        size_t raw_source_runs = 0u;
         bool gpu_raw_upload = false;
+        bool gpu_flat_pack = false;
         if (raw_views) {
-            for (uint32_t i = 0; i < raw_column_count; ++i) raw_len += raw_column_lengths[i];
-            size_t raw_bytes = raw_len * sizeof(uint32_t);
+            for (uint32_t i = 0; i < raw_column_count; ++i) {
+                if (raw_column_lengths[i] > SIZE_MAX - raw_len) {
+                    write_error(error_message, error_message_len,
+                                @"Metal quotient raw input length overflow");
+                    return false;
+                }
+                raw_len += raw_column_lengths[i];
+            }
+            if (raw_len > SIZE_MAX / sizeof(uint32_t)) {
+                write_error(error_message, error_message_len,
+                            @"Metal quotient raw input byte length overflow");
+                return false;
+            }
+            raw_bytes = raw_len * sizeof(uint32_t);
             bool resident_segment_candidate =
-                resident_tree_count != 0u && raw_bytes >= (8u * 1024u * 1024u);
-            size_t raw_source_runs = resident_segment_candidate
+                resident_tree_count != 0u &&
+                raw_bytes >= stwo_zig_quotient_resident_segment_min_bytes;
+            bool large_segment_candidate =
+                raw_bytes >= stwo_zig_quotient_gpu_flat_pack_min_bytes;
+            bool segmented_candidate =
+                resident_segment_candidate || large_segment_candidate;
+            raw_source_runs = segmented_candidate
                 ? stwo_zig_quotient_raw_source_run_count(
                     raw_columns,
                     raw_column_lengths,
@@ -164,13 +267,26 @@ bool stwo_zig_metal_compute_quotients(
                 )
                 : 0u;
             gpu_raw_upload =
-                raw_bytes >= (64u * 1024u * 1024u) ||
-                (resident_segment_candidate &&
-                 raw_source_runs <= stwo_zig_quotient_max_segmented_source_runs);
+                segmented_candidate &&
+                raw_source_runs <= stwo_zig_quotient_max_segmented_source_runs;
+            gpu_flat_pack =
+                large_segment_candidate && !gpu_raw_upload;
             flat_buffer = gpu_raw_upload
                 ? [runtime.device newBufferWithLength:sizeof(uint32_t) options:MTLResourceStorageModeShared]
-                : [runtime.device newBufferWithLength:raw_len * sizeof(uint32_t) options:MTLResourceStorageModeShared];
-            if (!gpu_raw_upload) {
+                : [runtime.device newBufferWithLength:raw_len * sizeof(uint32_t)
+                                              options:gpu_flat_pack
+                                                  ? MTLResourceStorageModePrivate
+                                                  : MTLResourceStorageModeShared];
+            if (profile_quotient) {
+                fprintf(stderr,
+                        "Metal quotient shape: raw_bytes=%zu columns=%u views=%u "
+                        "source_runs=%zu resident_trees=%u batches=%u rows=%u path=%s\n",
+                        raw_bytes, raw_column_count, view_count, raw_source_runs,
+                        resident_tree_count, batch_count, row_count,
+                        gpu_raw_upload ? "segmented" :
+                            (gpu_flat_pack ? "gpu-flat" : "cpu-flat"));
+            }
+            if (!gpu_raw_upload && !gpu_flat_pack) {
                 uint32_t *destination = flat_buffer.contents;
                 size_t cursor = 0;
                 for (uint32_t i = 0; i < raw_column_count; ++i) {
@@ -342,7 +458,23 @@ bool stwo_zig_metal_compute_quotients(
             }
         }
 
+        NSMutableArray<id<MTLBuffer>> *raw_sources = [NSMutableArray array];
         id<MTLCommandBuffer> command = [runtime.queue commandBuffer];
+        if (gpu_flat_pack &&
+            !stwo_zig_encode_quotient_flat_pack(
+                runtime,
+                command,
+                raw_columns,
+                raw_column_lengths,
+                raw_column_count,
+                resident_trees,
+                flat_buffer,
+                raw_sources
+            )) {
+            write_error(error_message, error_message_len,
+                        @"Metal quotient flat-pack encoding failed");
+            return false;
+        }
         if (build_domain_cache) {
             id<MTLComputeCommandEncoder> domain_encoder = [command computeCommandEncoder];
             [domain_encoder setComputePipelineState:runtime.quotientDomainPointsResident];
@@ -361,7 +493,6 @@ bool stwo_zig_metal_compute_quotients(
                       threadsPerThreadgroup:MTLSizeMake(domain_width, 1u, 1u)];
             [domain_encoder endEncoding];
         }
-        NSMutableArray<id<MTLBuffer>> *raw_sources = [NSMutableArray array];
         if (gpu_raw_upload) {
             id<MTLBuffer> numerators = [runtime.device newBufferWithLength:(NSUInteger)batch_count * row_count * 4u * sizeof(uint32_t)
                                                                    options:MTLResourceStorageModePrivate];
@@ -657,6 +788,17 @@ bool stwo_zig_metal_compute_quotients(
             memcpy(output, output_buffer.contents, output_bytes);
         if (gpu_milliseconds != NULL) {
             *gpu_milliseconds = (command.GPUEndTime - command.GPUStartTime) * 1000.0;
+        }
+        if (profile_quotient) {
+            NSTimeInterval quotient_wall_end = [NSDate timeIntervalSinceReferenceDate];
+            fprintf(stderr,
+                    "Metal quotient timing: gpu_ms=%.3f wall_ms=%.3f path=%s "
+                    "source_runs=%zu\n",
+                    (command.GPUEndTime - command.GPUStartTime) * 1000.0,
+                    (quotient_wall_end - quotient_wall_start) * 1000.0,
+                    gpu_raw_upload ? "segmented" :
+                        (gpu_flat_pack ? "gpu-flat" : "cpu-flat"),
+                    raw_source_runs);
         }
         if (commit_tree) {
             StwoZigMetalTree *tree = [StwoZigMetalTree new];

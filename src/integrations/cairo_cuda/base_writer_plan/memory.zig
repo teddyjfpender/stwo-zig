@@ -1,13 +1,9 @@
 //! Exact memory-table lowering plan derived from Cairo input geometry.
 
 const std = @import("std");
-const adapter = @import("../../../frontends/cairo/adapter/mod.zig");
-const composition = @import(
-    "../../../frontends/cairo/witness/composition_bundle.zig",
-);
-const memory_tables = @import(
-    "../../../frontends/cairo/witness/memory_tables.zig",
-);
+const adapter = @import("stwo_cairo_frontend").adapter;
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
+const memory_tables = @import("stwo_cairo_frontend").witness.memory_tables;
 
 pub const Kind = enum(u8) {
     address_to_id,

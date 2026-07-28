@@ -3,18 +3,10 @@
 const std = @import("std");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
 const canonic = @import("stwo_core").poly.circle.canonic;
-const compact = @import(
-    "../../../../frontends/cairo/compact_verifier_interchange.zig",
-);
-const composition = @import(
-    "../../../../frontends/cairo/witness/composition_bundle.zig",
-);
-const common = @import(
-    "../../../../backends/cuda/runtime/stages/common.zig",
-);
-const quotient_stage = @import(
-    "../../../../backends/cuda/runtime/stages/quotient.zig",
-);
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const quotient_stage = @import("stwo_cuda_backend").runtime.stages.quotient;
 const pcs_types = @import("../pcs_hooks_types.zig");
 const resident_plan = @import("../resident_plan.zig");
 const resident_sources = @import("resident_sources.zig");

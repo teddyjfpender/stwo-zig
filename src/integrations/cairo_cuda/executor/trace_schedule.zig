@@ -7,16 +7,12 @@
 //! executor's responsibility.
 
 const std = @import("std");
-const proof_plan = @import("../../../frontends/cairo/proof_plan.zig");
+const proof_plan = @import("stwo_cairo_frontend").proof_plan;
 const catalog_module = @import("../base_writer_plan/catalog.zig");
 const recorded_witness = @import("../recorded_witness.zig");
 const native_ec = @import("../native_ec.zig");
-const fixed_tables = @import(
-    "../../../backends/cuda/runtime/stages/cairo_base/fixed_tables.zig",
-);
-const memory = @import(
-    "../../../backends/cuda/runtime/stages/cairo_base/memory.zig",
-);
+const fixed_tables = @import("stwo_cuda_backend").runtime.stages.cairo_base.fixed_tables;
+const memory = @import("stwo_cuda_backend").runtime.stages.cairo_base.memory;
 
 pub const expected_entry_count = 58;
 pub const expected_recorded_count = 32;

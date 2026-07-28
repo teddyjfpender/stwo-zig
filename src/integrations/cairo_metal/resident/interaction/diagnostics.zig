@@ -1,14 +1,14 @@
 //! Opt-in host/GPU diagnostics for resident Cairo interaction traces.
 
 const std = @import("std");
-const arena_plan = @import("../../../../backends/metal/arena_plan.zig");
+const arena_plan = @import("stwo_metal_backend").arena_plan;
 const circle_poly_mod = @import("stwo_prover_impl").poly.circle.poly;
 const circle_eval_mod = @import("stwo_prover_impl").poly.circle.evaluation;
 const canonic_circle_mod = @import("stwo_core").poly.circle.canonic;
-const relation_bundle_mod = @import("../../../../frontends/cairo/witness/relation_bundle.zig");
-const interaction_trace_mod = @import("../../../../frontends/cairo/witness/interaction_trace.zig");
-const witness_bundle_mod = @import("../../../../frontends/cairo/witness/bundle.zig");
-const witness_program_mod = @import("../../../../frontends/cairo/witness/program.zig");
+const relation_bundle_mod = @import("stwo_cairo_frontend").witness.relation_bundle;
+const interaction_trace_mod = @import("stwo_cairo_frontend").witness.interaction_trace;
+const witness_bundle_mod = @import("stwo_cairo_frontend").witness.bundle;
+const witness_program_mod = @import("stwo_cairo_frontend").witness.program;
 const schedule_bindings = @import("../../schedule_bindings.zig");
 const resident_binding = @import("../binding.zig");
 const Error = @import("../errors.zig").Error;

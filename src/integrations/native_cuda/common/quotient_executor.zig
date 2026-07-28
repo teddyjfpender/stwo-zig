@@ -1,15 +1,11 @@
 //! AIR-neutral resident quotient construction into FRI layer zero.
 
 const std = @import("std");
-const field = @import("../../../backends/cuda/abi/field.zig");
-const quotient_abi = @import(
-    "../../../backends/cuda/abi/stages/quotient.zig",
-);
-const column = @import("../../../backends/cuda/runtime/column.zig");
-const common = @import("../../../backends/cuda/runtime/stages/common.zig");
-const quotient_stage = @import(
-    "../../../backends/cuda/runtime/stages/quotient.zig",
-);
+const field = @import("stwo_cuda_backend").abi.field;
+const quotient_abi = @import("stwo_cuda_backend").abi.stages.quotient;
+const column = @import("stwo_cuda_backend").runtime.column;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const quotient_stage = @import("stwo_cuda_backend").runtime.stages.quotient;
 const resident_views = @import("resident_views.zig");
 
 const NativeQuotient = quotient_stage.Native;

@@ -1,11 +1,11 @@
 //! Development-only Cairo binding to the resident CASM witness stage.
 
 const implementation =
-    @import("../../backends/cuda/runtime/stages/cairo_witness.zig");
+    @import("stwo_cuda_backend").runtime.stages.cairo_witness;
 const plan =
-    @import("../../backends/cuda/runtime/stages/cairo_witness_plan.zig");
+    @import("stwo_cuda_backend").runtime.stages.cairo_witness_plan;
 const abi =
-    @import("../../backends/cuda/abi/stages/cairo_witness.zig");
+    @import("stwo_cuda_backend").abi.stages.cairo_witness;
 
 pub const Native = implementation.Native;
 pub const Geometry = implementation.Geometry;

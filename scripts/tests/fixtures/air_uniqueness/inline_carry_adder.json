@@ -1,0 +1,56 @@
+{
+  "family": "toy_inline_carry_adder",
+  "modulus": 2147483647,
+  "notes": "The same 32-bit ADD as byte_carry_adder, spelt the way the shipped AIR\nspells it: the carry out of a limb is not a column but the expression\n(a + b + carry_in - s) * inv(256), and inv(256) = 2^23 in M31. Uniqueness holds\nfor the same reason -- with every limb boxed to a byte, a_i + b_i + c_{i-1} - s_i\nlands in [-255, 511] and only one of {0, 256} is reachable -- but the encoding\nsees something very different. Plain interval arithmetic multiplies the width by\n2^23 per limb, so by the fourth carry the quotient discharging `P = p*k` ranges\nover 10^18 values. This model exists so that the rewrite which stops that\ncompounding is tested against the shape it was written for. Expected verdict:\nunsat.",
+  "columns": [
+    {"name": "a0", "role": "input"},
+    {"name": "a1", "role": "input"},
+    {"name": "a2", "role": "input"},
+    {"name": "a3", "role": "input"},
+    {"name": "b0", "role": "input"},
+    {"name": "b1", "role": "input"},
+    {"name": "b2", "role": "input"},
+    {"name": "b3", "role": "input"},
+    {"name": "s0", "role": "output"},
+    {"name": "s1", "role": "output"},
+    {"name": "s2", "role": "output"},
+    {"name": "s3", "role": "output"}
+  ],
+  "exprs": {
+    "inv256": ["const", 8388608],
+    "carry0": [
+      "mul",
+      ["sub", ["add", ["col", "a0"], ["col", "b0"]], ["col", "s0"]],
+      "inv256"
+    ],
+    "carry1": [
+      "mul",
+      ["sub", ["sum", ["col", "a1"], ["col", "b1"], "carry0"], ["col", "s1"]],
+      "inv256"
+    ],
+    "carry2": [
+      "mul",
+      ["sub", ["sum", ["col", "a2"], ["col", "b2"], "carry1"], ["col", "s2"]],
+      "inv256"
+    ],
+    "carry3": [
+      "mul",
+      ["sub", ["sum", ["col", "a3"], ["col", "b3"], "carry2"], ["col", "s3"]],
+      "inv256"
+    ],
+    "bit0": ["bit", "carry0"],
+    "bit1": ["bit", "carry1"],
+    "bit2": ["bit", "carry2"],
+    "bit3": ["bit", "carry3"],
+    "live": ["const", 1]
+  },
+  "constraints": ["bit0", "bit1", "bit2", "bit3"],
+  "lookups": [
+    {"domain": "range_check_8_8", "numerator": "live", "tuple": [["col", "a0"], ["col", "a1"]], "label": "operand a low"},
+    {"domain": "range_check_8_8", "numerator": "live", "tuple": [["col", "a2"], ["col", "a3"]], "label": "operand a high"},
+    {"domain": "range_check_8_8", "numerator": "live", "tuple": [["col", "b0"], ["col", "b1"]], "label": "operand b low"},
+    {"domain": "range_check_8_8", "numerator": "live", "tuple": [["col", "b2"], ["col", "b3"]], "label": "operand b high"},
+    {"domain": "range_check_8_8", "numerator": "live", "tuple": [["col", "s0"], ["col", "s1"]], "label": "sum low"},
+    {"domain": "range_check_8_8", "numerator": "live", "tuple": [["col", "s2"], ["col", "s3"]], "label": "sum high"}
+  ]
+}
