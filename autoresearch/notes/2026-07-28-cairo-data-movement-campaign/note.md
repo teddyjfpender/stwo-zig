@@ -1407,3 +1407,67 @@ that regressed in sampled-value evaluation, so it needs its own S1 and its
 own range proof. The larger lesson for the campaign is the one this increment
 paid for twice: **on this host, reduction placement dominates multiply count,
 and a change that reduces multiplies while adding reductions will lose.**
+
+## Campaign 2 summary (orchestrator)
+
+Orchestration: Claude Fable 5. Implementation: Claude Opus 4.5, one lane at a
+time, four increments, branch c936e430 → 7250e88d.
+
+### Accepted
+
+1. **Increment 2.1 — preprocessed tree-digest artifact** (edec8590): second
+   protocol-identity artifact (134 MB, parallel-chunked integrity hash, 12.5 ms
+   verified load) skips the preprocessed merkle_commit; cache-hit prove
+   1.0754x [1.0219, 1.1316] on all-opcodes; with both artifacts warm the
+   orchestrator measured 1206 ms vs ~1425 ms miss (table 103→1.0 ms,
+   preprocessed commit ~164→41.9 ms). Cost flag: no pruning yet.
+2. **Increment 2.4 — Karatsuba QM31 + unsigned-minimum subVec4** (4c8d79d1):
+   the multiply count was NOT the cost (Karatsuba alone regressed 0.920x);
+   the win is the cheaper canonical subtraction primitive: S1 1.157x
+   (wall CI [1.120, 1.141]), composition 1.039x, prove 1.0092x — kept under
+   the compounding policy; byte-exact, shared primitive, corroborates 2.3's
+   27% multiply share (predicted 1.038x, measured 1.039x).
+
+### Rejected / negative (implementations preserved, evidence committed)
+
+- **2.2 narrowed witness planes**: the bandwidth premise itself is false —
+  the witness region runs at 10 GB/s against a ~40 GB/s ceiling; byte→time
+  conversion 0.14-0.37. Also closed D1's main target by protocol argument
+  (lookup words are Fiat-Shamir-ordered after the base commit; fusable set
+  caps at ~75 ms). D1 and D2 are closed levers.
+- **2.3 register-resident compiled evaluators**: falsified with the old-AOT
+  reconciliation — 1.017x at 5.9 MiB and 1.0094x at 17 KiB are the same
+  finding; the composition cycles are in the AIR's arithmetic (72.3% =
+  out-of-line QM31 multiplies), not in interpretation. The
+  "make-the-interpreter-cheaper" family is closed by three independent
+  measurements.
+
+### The walls, now measured rather than suspected
+
+Witness: neither core-bound (7/8) nor bus-bound (2.2) — bounded residual.
+Merkle: compute-bound at 92% NEON with protocol-fixed hash count. Composition:
+issue-latency-bound; arithmetic family bounded at ~1.06x prove remaining
+(2.4's share model). Preprocessed: cached (structural advantage over the
+pinned Rust lane, which recomputes per process).
+
+### Standing (close2 matrix at 7250e88d, quiet-ish host, cache off)
+
+Zig CPU 1.337x slower than Rust (per-round paired geomean), Zig Metal 1.105x —
+Metal faster than Rust on fibonacci 0.906, arithmetic-2m 0.882, memory-7m
+0.886. Cross-matrix drift ×0.925 (daytime host); drift-normalized campaign-2
+cache-off movement ~1.015x CPU, matching the per-increment ledger. Warmed
+services add ~1.03-1.07x on small rows from the two artifacts. Artifacts:
+`/private/tmp/stwo-cairo-close2-three-lane-20260728/` (21/21 byte-identical
+CPU/Metal pairs; lanes verifier-accepted).
+
+### Supremacy assessment (unchanged by this campaign, sharpened by it)
+
+The CPU lane converges to parity-plus with Rust: every remaining CPU bucket
+is at a measured hardware or protocol wall, and both provers pay the same
+floors. The path to ≥1.6x proving-speed superiority is the Metal lane:
+device-resident witness/interaction/composition over the existing
+authenticated AOT + arena machinery, where commit throughput at native scale
+is already proven and three of seven rows already beat Rust with PCS-only
+residency. Recommended next efforts: (1) the Metal residency program;
+(2) productize the artifact cache (pruning, ops); (3) the bounded arithmetic
+crumbs (m31.zig reduction-placement audit) as fill-in work.
