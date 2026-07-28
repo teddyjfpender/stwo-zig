@@ -3,6 +3,7 @@ const std = @import("std");
 const arena_plan = @import("../arena_plan.zig");
 const recovery = @import("../recovery.zig");
 const runtime = @import("../runtime.zig");
+const telemetry = @import("../telemetry.zig");
 
 pub const RelationInstanceBindings = struct {
     rows: u32,
@@ -162,6 +163,7 @@ pub const RelationRecipe = struct {
 
     pub fn execute(self: *RelationRecipe) !void {
         self.accumulated_gpu_ms += try self.metal.relationPrepared(self.arena.buffer, self.prepared);
+        telemetry.record(.metal_relation_dispatch);
     }
 
     fn run(raw: *anyopaque, tick: u16, requested: arena_plan.Binding, _: []u8) !void {

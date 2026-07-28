@@ -21,6 +21,7 @@
 //! full proving cost, and it does so without any artifact naming the swap.
 
 const std = @import("std");
+const telemetry = @import("../../backends/metal/telemetry.zig");
 
 pub const Error = error{
     InvalidCompositionMetallibPath,
@@ -337,6 +338,10 @@ pub fn policyFromProcess(allocator: std.mem.Allocator) !Policy {
 pub fn authenticateFromProcess(allocator: std.mem.Allocator, path: []const u8) !Admission {
     const policy = try policyFromProcess(allocator);
     return authenticate(path, policy) catch |err| {
+        // Count the decline. A Metal proof that fell back to the host
+        // evaluator because its composition library failed authentication must
+        // not be able to report `accelerated_without_fallbacks`.
+        telemetry.record(.cpu_composition_evaluation);
         std.log.err("composition metallib rejected: {s} ({t})", .{ path, err });
         return err;
     };
