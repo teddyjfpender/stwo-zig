@@ -8,6 +8,7 @@ pub const protocol_recipes = @import("protocol_recipes.zig");
 pub const shared_runtime = @import("shared_runtime.zig");
 pub const telemetry = @import("telemetry.zig");
 pub const commit_policy = @import("commit_policy.zig");
+pub const source_contract = @import("source_contract.zig");
 pub const cairo = struct {
     pub const diagnostics = struct {
         pub const transcript_fixture =

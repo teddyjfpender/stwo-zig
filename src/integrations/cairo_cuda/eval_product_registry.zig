@@ -2,11 +2,11 @@
 
 const std = @import("std");
 const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
+const cuda_backend = @import("stwo_cuda_backend");
 const eval_aot = @import("eval_aot.zig");
 
-const product_manifest = @embedFile(
-    "../../backends/cuda/aot/native/cairo_eval/aot_manifest.json",
-);
+const product_manifest =
+    cuda_backend.product_aot.cairo_eval_product_manifest;
 const expected_body_count = 271;
 
 const WireEntry = struct {

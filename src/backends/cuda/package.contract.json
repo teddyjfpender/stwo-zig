@@ -14,7 +14,8 @@
     "abi",
     "aot",
     "product_aot",
-    "runtime"
+    "runtime",
+    "upstream_sources"
   ],
   "ci": {
     "host": "any",

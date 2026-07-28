@@ -1,17 +1,18 @@
 const std = @import("std");
 const witness = @import("stwo_cairo_frontend").witness.program;
 const shader_manifest = @import("stwo_metal_backend").shaders.manifest;
+const support = shader_manifest.witness_codegen_support;
 
 pub const codegen_version: u64 = 7;
 pub const support_version: u64 = shader_manifest.witness_codegen_support_version;
 
-const base_support = @embedFile("../../backends/metal/shaders/include/base.metal");
-const m31_support = @embedFile("../../backends/metal/shaders/include/m31.metal");
-const felt252_support = @embedFile("../../backends/metal/shaders/include/felt252.metal");
-const ec_support = @embedFile("../../backends/metal/shaders/include/ec.metal");
-const witness_abi_support = @embedFile("../../backends/metal/shaders/include/witness_abi.metal");
-const witness_tables_support = @embedFile("../../backends/metal/shaders/include/witness_tables.metal");
-const witness_deductions_support = @embedFile("../../backends/metal/shaders/include/witness_deductions.metal");
+const base_support = support.base;
+const m31_support = support.m31;
+const felt252_support = support.felt252;
+const ec_support = support.ec;
+const witness_abi_support = support.witness_abi;
+const witness_tables_support = support.witness_tables;
+const witness_deductions_support = support.witness_deductions;
 const generated_support = "#define STWO_ZIG_AMALGAMATED 1\n" ++ base_support ++ m31_support;
 const common_witness_support = witness_abi_support ++ witness_tables_support;
 const deduction_witness_support = felt252_support ++ ec_support ++ witness_deductions_support;

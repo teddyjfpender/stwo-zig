@@ -18,6 +18,10 @@ IMPORT_RE = re.compile(
     r'@import\(\s*"([^"]+)"\s*,?\s*\)',
     re.DOTALL,
 )
+EMBED_FILE_RE = re.compile(
+    r'@embedFile\(\s*"([^"]+)"\s*,?\s*\)',
+    re.DOTALL,
+)
 PUBLIC_DECL_RE = re.compile(
     r"^pub\s+(?:const|fn|var)\s+([A-Za-z_][A-Za-z0-9_]*)",
     re.MULTILINE,
@@ -207,6 +211,18 @@ def _validate_imports(
     )
     for source in sorted(sources):
         text = strip_comments(source.read_text(encoding="utf-8"))
+        for embedded in EMBED_FILE_RE.findall(text):
+            target = (source.parent / embedded).resolve()
+            if not _inside(target, contract.directory):
+                failures.append(
+                    f"{contract.package}: embedded file escapes owner: "
+                    f"{source.relative_to(contract.directory)} -> {embedded}"
+                )
+            elif not target.is_file():
+                failures.append(
+                    f"{contract.package}: embedded file is missing: "
+                    f"{source.relative_to(contract.directory)} -> {embedded}"
+                )
         for imported in IMPORT_RE.findall(text):
             if imported.endswith(".zig"):
                 target = (source.parent / imported).resolve()
@@ -292,6 +308,16 @@ def _validate_relative_ingress(
                 f"{target_owner.package}: relative import enters owner: "
                 f"{source.relative_to(repository)} -> {imported}; "
                 f"use one of {sorted(target_owner.public_modules)}"
+            )
+        for embedded in EMBED_FILE_RE.findall(text):
+            target = (source.parent / embedded).resolve()
+            target_owner = _containing_contract(target, contracts)
+            if target_owner is None or source_owner == target_owner:
+                continue
+            failures.append(
+                f"{target_owner.package}: embedded file enters owner: "
+                f"{source.relative_to(repository)} -> {embedded}; "
+                "consume owner-exported data instead"
             )
 
 

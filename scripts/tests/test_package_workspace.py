@@ -81,6 +81,32 @@ const owned = @import(
             self.assertEqual(1, len(failures))
             self.assertIn("use one of ['owned_package']", failures[0])
 
+    def test_embed_file_cannot_escape_a_package_owner(self) -> None:
+        with TemporaryDirectory() as directory:
+            repository = Path(directory).resolve()
+            owner = repository / "src/owned"
+            owner.mkdir(parents=True)
+            (repository / "private.txt").write_text("private\n", encoding="utf-8")
+            (owner / "mod.zig").write_text(
+                'pub const private = @embedFile("../../private.txt");\n',
+                encoding="utf-8",
+            )
+            contract = subject.Contract(
+                directory=owner,
+                package="owned_package",
+                owner="owned-team",
+                public_modules={"owned_package": "mod.zig"},
+                dependencies={},
+                injected_modules=frozenset(),
+                api_surface=("private",),
+                ci_host="any",
+                ci_command=("zig", "build", "test"),
+            )
+            failures: list[str] = []
+            subject._validate_imports(contract, {}, failures)
+            self.assertEqual(1, len(failures))
+            self.assertIn("embedded file escapes owner", failures[0])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -9,6 +9,8 @@ pub const recorded_witness_identity_scheme =
     "sha256-source-and-blake3-program-v1";
 
 const product_manifest = @embedFile("native/aot_manifest.json");
+pub const cairo_eval_product_manifest =
+    @embedFile("native/cairo_eval/aot_manifest.json");
 
 const Origin = enum {
     authenticated_product,

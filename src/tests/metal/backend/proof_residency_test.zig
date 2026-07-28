@@ -182,13 +182,14 @@ test "metal: failure after combined commitment ownership transfer releases the a
 }
 
 test "metal: quotient residency has no runtime-wide discovery surface" {
-    const runtime_source = @embedFile("../../../backends/metal/runtime.m");
-    const quotient_source = @embedFile("../../../backends/metal/runtime/quotients.m");
+    const source_contract = @import("stwo_metal_backend").source_contract;
+    const runtime_source = source_contract.runtime;
+    const quotient_source = source_contract.quotients;
     try std.testing.expect(std.mem.indexOf(u8, runtime_source, "residentTraceTrees") == null);
     try std.testing.expect(std.mem.indexOf(u8, runtime_source, "compositionTraceBuffer") == null);
     try std.testing.expect(std.mem.indexOf(u8, quotient_source, "resident_tree_handles") != null);
     try std.testing.expect(std.mem.indexOf(u8, quotient_source, "runtimeOwner != runtime") != null);
-    const composition_source = @embedFile("../../../backends/metal/runtime/composition.m");
+    const composition_source = source_contract.composition;
     try std.testing.expect(std.mem.indexOf(u8, composition_source, "resident_tree_handle") != null);
     try std.testing.expect(std.mem.indexOf(u8, composition_source, "runtimeOwner != runtime") != null);
 }
