@@ -33,6 +33,11 @@ pub fn shutdown() MetalCommitBackend.ShutdownError!void {
 }
 
 pub const MetalCommitBackend = struct {
+    pub const capabilities: @import("stwo_backend_contracts").Capabilities = .{
+        .host_batch_inverse = true,
+        .fri_folding = true,
+        .fri_multi_fold = true,
+    };
     pub const rawQuotientInputs = true;
     pub const TelemetrySnapshot = telemetry.Snapshot;
     pub const TelemetryDelta = telemetry.Delta;
@@ -436,9 +441,6 @@ pub const MetalCommitBackend = struct {
 
     pub const ColumnType = cpu.ColumnType;
     pub const batchInverse = cpu.batchInverse;
-    pub const interpolate = cpu.interpolate;
-    pub const evaluateOnDomain = cpu.evaluateOnDomain;
-    pub const evalAtPoint = cpu.evalAtPoint;
     pub fn foldCircleIntoLine(
         allocator: std.mem.Allocator,
         dst: []@import("stwo_core").fields.qm31.QM31,
@@ -822,11 +824,6 @@ pub const MetalCommitBackend = struct {
 
     pub const foldLine = cpu.foldLine;
     pub const foldLineN = cpu.foldLineN;
-    pub const accumulateQuotients = cpu.accumulateQuotients;
-    pub const accumulate = cpu.accumulate;
-    pub const genEqEvals = cpu.genEqEvals;
-    pub const nextLayer = cpu.nextLayer;
-    pub const sumAsPolyInFirstVariable = cpu.sumAsPolyInFirstVariable;
 };
 
 test "Metal commit backend exposes telemetry without constructing a runtime" {
