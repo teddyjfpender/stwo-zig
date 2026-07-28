@@ -2034,3 +2034,315 @@ is the one that reproduces `e3317e55…` and is what this increment used.
    page-aligned `newBufferWithBytesNoCopy` alias rather than the one-memcpy
    fallback — a counter there is the cheapest missing piece of evidence in the
    whole program.
+
+## Increment 3.5: byte-exact device composition binding
+
+Implementation: Claude Opus 4.5. Orchestration: Claude Fable 5.
+Head at start: `4d2472b1`, clean. Predecessor binaries: `/private/tmp/i35-pred/zig-out`
+(built at `4d2472b1`, `identity` verified `dirty = false`,
+`core-aot-manifest-sha256 = 0bc89238…`). Raw data: `/private/tmp/i35/`.
+
+**Verdict: accepted-candidate. The composition binding smoke passes byte-exact
+on four real components of the authenticated bundle — including a 41-part
+2^21-row component, a 90-part 1,252-column component, and `add_opcode`, the
+dominant arithmetic component, at 2^21 rows.** The Phase 1 eval-binding unlock
+is demonstrated. The no-copy alias counter landed and immediately produced the
+attribution increment 3.4 said was the cheapest missing evidence in the program:
+**the arena reaches the commit on all three workloads but only 6 of 14 / 8 of 13
+/ 11 of 15 arena-sourced commits actually take the no-copy alias** — the rest
+pay one memcpy.
+
+### 1. The convention, and the experiment that names it
+
+Increment 3.4 §7 left three candidates for the first-word delta
+(`expected 1825492331, found 1906854193`): the denominator-inverse index basis,
+the random-coefficient/`rc_base` accumulator convention, and the column
+length/lifting shift. **It is the third, and the test's own header comment
+asserted the opposite.**
+
+`simd_evaluator.ResolvedColumn.shift_amt` is not a "0 means natural order" flag.
+The row loop reads
+
+```zig
+site.column.values[((position >> site.column.shift_amt) << 1) + (position & 1)]
+```
+
+and the product's own producer of that struct sets it from the column's stored
+size (`proving/air/component.zig:355-359`):
+
+```zig
+const shift = context.evaluation_log_size - column.log_size;
+return .{ .values = column.values, .shift_amt = @intCast(shift + 1) };
+```
+
+The `<< 1` and the `+ 1` are the lifted-PCS conjugate-pair pairing: the low bit
+of an evaluation-domain position selects within a circle-domain conjugate pair
+and is preserved, while the rest of the position shifts down onto a column
+stored at its own smaller log size. So for a column stored **at**
+evaluation-domain length — which is what the smoke's arena holds, and what the
+device kernel reads with `arena[arena[trace_offsets + global] + row]` — the
+identity map is `shift_amt = 1`. At `shift_amt = 0` the host instead walks
+`values[2 * position + (position & 1)]`.
+
+Two things made this survive a whole increment. First, `shift_amt = 0` *looks*
+like the identity. Second, the smoke handed the reader an unbounded
+`words[start..]` slice, so the stride-2 walk read the **neighbouring column's
+data** instead of tripping a bounds check. Both are fixed: the reader now takes
+`shift_amt = 1` and a slice bounded to the column's own extent.
+
+**The discriminating experiment** (`metal: the eval ABI index map is the
+lifted-column identity at shift 1`) makes the convention observable rather than
+argued. A synthetic one-column, one-constraint part, coefficient `1`,
+denominator inverse `1`, over a column filled with `index + 1` — so the
+coordinate written at row `r` *names the index that was read*. The kernel is
+generated from that program and JIT-compiled, so it is the same codegen the
+bundle's kernels came from. Observed:
+
+| evaluator | index map |
+| --- | --- |
+| device (`stwo_zig_eval_*` via `evalPrepared`) | `r` |
+| host at `shift_amt = 1` | `r` |
+| host at `shift_amt = 0` | `2r + (r & 1)` |
+
+Whichever way a future change breaks it, the failure message is now a
+convention rather than a pair of unattributable field elements. Getting the
+experiment right took one iteration worth recording: the first version filled
+only `row_count` words and asserted `33` where it observed `1`, because at
+`r = 16` the shift-0 map reaches index 32 — one past the column — and read
+`trace_offsets`. The column is now filled to `2 * row_count`, which is what
+lets the experiment observe the map instead of observing where the column ends.
+
+### 2. Smoke coverage: what is now byte-exact
+
+Selection is structural over the authenticated bundle, not by workload name:
+smallest eligible component; largest by `rows x constraints`; most parts; and
+the largest member of the arithmetic component set. `eligible()` refuses
+components this arena contract cannot express (base params, a part whose
+`domain_log_size` disagrees with the component, `eval_log <= trace_log`).
+
+| role | component | eval_log | trace_log | columns | rows | parts | constraints | device ms |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| small | `blake_round_sigma` | 5 | 4 | 22 | 32 | 1 | 1 | 0.20 |
+| dominant | `partial_ec_mul_window_bits_18` | 21 | 20 | 557 | 2,097,152 | 41 | 150 | 484.59 |
+| multipart | `partial_ec_mul_generic` | 19 | 18 | 1,252 | 524,288 | 90 | 448 | 418.82 |
+| arithmetic-dominant | `add_opcode` | 21 | 20 | 123 | 2,097,152 | 3 | 27 | 39.69 |
+
+All four compare **every row and every coordinate** against
+`proving/air/simd_evaluator` on the same arena words, and all four pass. The
+library is admitted by `composition_aot.authenticate(.approved_manifest)` and
+every kernel is resolved by `kernelName(part.semantic_hash)` out of that
+approved library.
+
+Three things about this coverage are worth stating rather than leaving implicit:
+
+1. **Multi-part components are the load-bearing case, not the large ones.** All
+   parts of a component accumulate into the *same* four coordinate words in
+   bundle order and each addresses the shared random-coefficient block at its
+   own `rc_base`. A wrong accumulator convention or a wrong coefficient offset
+   shows up at 41 and 90 parts and *cannot* show up in a single-part comparison
+   — which is exactly what increment 3.4's one-part smoke was. So candidate 2 of
+   3.4's three (the `rc_base` accumulator convention) is now positively
+   verified, not merely bypassed.
+2. **`add_opcode` is named, not derived.** The SN2 bundle carries SN2's
+   geometry, so "arithmetic-2m's dominant component" cannot be identified here
+   by size — only by which component it is. Per §6.2 the metallib kernel is
+   log-size-independent, so the SN2 instance exercises exactly the kernel
+   arithmetic-2m would dispatch; its *geometry* is not arithmetic-2m's and this
+   is not a claim that it is.
+3. **The test costs ~15 minutes in the Debug `metal-test` closure**, because the
+   host reference is a scalar-lane interpreter and two of the four components
+   are 2^21 rows. A `selection_evaluation_log_cap` was written and then reverted:
+   capping at 2^17 would have excluded both `add_opcode` and the dominant
+   component, i.e. exactly the coverage the increment was asked for. The cost is
+   recorded instead of hidden.
+
+`metal-test` result: **67/71 passed, 2 skipped, 2 failed** — up from 65/70 with
+3 failed at `4d2472b1`. The two remaining failures (`resident_data_test`,
+`proof_residency_test`) plus `transform_pipeline_test`'s crash are the
+pre-existing three that increment 3.4 confirmed reproduce at `73dc8790`.
+
+### 3. The no-copy alias counter, and what it says
+
+Increment 3.4's closing item: `main_trace_commit_arena_bound` proves the arena
+reached `commitWithBacking`, but nothing observed whether
+`circle_legacy.m:229` then took the page-aligned `newBufferWithBytesNoCopy`
+alias or fell back to the one memcpy per column — and without that the
+commit-stage mechanism cannot be attributed even when the timing moves.
+
+`stwo_zig_metal_circle_lde` now takes one `uint32_t *source_binding`
+out-parameter, set **from the branch that decides it**:
+
+| code | meaning | site |
+| ---: | --- | --- |
+| 1 | source columns are the base arena and it is page-aligned with page-multiple length: `coefficients` is a no-copy alias, nothing is copied | `circle_legacy.m:231-236` |
+| 2 | source columns are the base arena but the alias preconditions failed: exactly one memcpy per column | `circle_legacy.m:324-329` |
+| 0 | source columns are not the base arena: the fused-upload/blit encoder runs | `circle_legacy.m:267-323` |
+
+Reported rather than re-derived in Zig, so the counter cannot drift away from
+the code it claims to observe. Three telemetry events follow the existing
+pattern and are in **neither** `metalDispatchTotal` (they are not dispatches;
+including them would move every existing workload's dispatch count) **nor**
+`cpuFallbackTotal` (a memcpy'd arena source is still a device commit — calling
+it a fallback would destroy the meaning of `accelerated_without_fallbacks`).
+They surface in `BackendEvidence` beside `metal_dispatches` and in the native
+runner's `BackendCounterDelta`, both defaulting to zero.
+
+One profiled Metal run per workload, cache-off:
+
+| workload | alias | memcpy | upload | arena-sourced commits | alias share |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| all-opcodes | 6 | 8 | 31 | 14 | **43%** |
+| arithmetic-2m | 8 | 5 | 30 | 13 | **62%** |
+| memory-7m | 11 | 4 | 32 | 15 | **73%** |
+
+These counts are identical across every repetition of every workload (all 8
+candidate samples per workload plus the `STWO_ZIG_WORKERS=1` run), so they are
+structural, not sampled.
+
+**This is the attribution, and it explains increment 3.4's null result.** 3.4
+measured commit-stage deltas of −2.79 / −2.24 / +13.97 ms and could not say
+whether the mechanism had engaged. It had engaged, partially: between a quarter
+and a half of the arena-sourced commits are still paying one memcpy per column
+because their group's slice inside the arena is not page-aligned or not a page
+multiple. `trace_arena` page-aligns each *group start* (Phase 1.5 §"Layout"),
+but `circle_legacy.m:229` requires the alias precondition on `base_columns[0]`
+**and** `base_bytes % page_size == 0` for the whole flat span handed to that
+commit, and a group whose column count x row count is not a page multiple fails
+the second test. So the remaining memcpys are a *layout padding* gap, not a
+binding gap, and they are now countable.
+
+Also visible and not previously stated: **the majority of circle-LDE commits are
+not arena-sourced at all** (31 / 30 / 32 uploads). Those are the interaction
+trace, the preprocessed columns and the composition split — none of which the
+trace arena covers. Any future commit-stage claim has to say which of the three
+buckets it moved.
+
+### 4. Paired measurement
+
+A-B-B-A, cold processes, caches off both arms (`STWO_CAIRO_PREPROCESSED_CACHE=0`),
+one untimed warmup per arm per workload, `prove` on pinned prover-inputs,
+**2 blocks** (4 samples per arm). This increment's product surface is a test
+plus telemetry, so full A-B-B-A is not the acceptance instrument; this is a
+regression screen. Host `loadavg` 2.12 → 4.49 → 3.96, the quietest host any
+increment in this campaign has measured on.
+
+| workload | predecessor mean ms | candidate mean ms | cand/pred | predecessor samples | candidate samples | arm spreads |
+| --- | ---: | ---: | ---: | --- | --- | --- |
+| all-opcodes | 1,232.9 | 1,234.4 | **1.0012x** | 1222, 1231, 1231, 1248 | 1232, 1232, 1236, 1239 | 1.022x / 1.006x |
+| arithmetic-2m | 1,771.5 | 1,768.4 | **0.9982x** | 1750, 1773, 1782, 1782 | 1749, 1754, 1777, 1793 | 1.018x / 1.025x |
+
+**No regression on either workload**, both inside their own arm spreads and
+well under the ≤ ~1.01x bar. The out-parameter and three atomic increments per
+proof are, as expected, unmeasurable.
+
+Commit stage, for the record and claimed as nothing: `main_trace_commit`
+101.88 → 102.88 ms (all-opcodes) and 149.34 → 150.70 ms (arithmetic-2m);
+`base_trace_arena_plan` 5.10 → 5.24 and 20.20 → 20.21 ms. All inside noise.
+**No commit-stage change was made this increment**, so these are a control, and
+they behave like one.
+
+### 5. Verification
+
+| check | result |
+| --- | --- |
+| all-opcodes Metal, all 8 candidate samples | `79ae76e1ac0c48b1` = campaign `79ae76e1…` |
+| arithmetic-2m Metal, all 8 candidate samples | `25e5719f4c578eb7` = campaign `25e5719f…` |
+| memory-7m Metal | `e3317e55a5db5a42` = campaign `e3317e55…` |
+| all-opcodes / arithmetic-2m / memory-7m CPU | `79ae76e1…` / `25e5719f…` / `e3317e55…`, byte-identical to Metal, `host-only`, 0 dispatches |
+| `STWO_ZIG_WORKERS=1` arithmetic-2m, CPU | `25e5719f4c578eb7` |
+| `STWO_ZIG_WORKERS=1` arithmetic-2m, Metal | `25e5719f4c578eb7`, 74 dispatches, alias 8 / memcpy 5 / upload 30 |
+| dispatch counts | 75 / 74 / 79 — identical on both arms and to the Phase 0 baseline |
+| `cpu_fallbacks` | 0 on every Metal row; every row `accelerated_without_fallbacks` |
+
+Every digest set is a singleton across all 16 timed Metal samples plus the
+predecessor arms — the counter cannot and does not perturb a proof.
+
+One provenance caveat stated rather than hidden: the timed candidate binaries
+were built from the working tree before the commits landed, so their `identity`
+records `source.commit = 4d2472b1…, dirty = true` rather than the final head.
+After committing, both binaries were rebuilt at the clean head — `identity`
+reports `816cc8a4…`, `dirty = false`, `core-aot-manifest-sha256 = 0bc89238…` —
+and arithmetic-2m reproves to `25e5719f4c578eb7` with the same alias / memcpy /
+upload counts of 8 / 5 / 30 and 74 dispatches. So the committed tree reproduces
+the measured artifact exactly; the timing arms simply predate the commit.
+
+**Official verifier: RUN, and it accepts.** This closes increment 3.4's open
+item 2, which is the one that mattered most because all-opcodes is the row whose
+*path* changed when the arena first engaged.
+`/private/tmp/stwo-zig-cairo-completion-20260726/tools/stwo-cairo-official-verifier-rs/target/debug/stwo-cairo-official-verifier`
+(`stwo_cairo_revision 82f21252`, `stwo_revision 7b211edd`),
+`verify --channel blake2s --proof-format json`, `verified: true` on all ten:
+arena-engaged all-opcodes Metal (two independent samples), arithmetic-2m Metal
+(two samples), memory-7m Metal, all three CPU lanes, and both
+`STWO_ZIG_WORKERS=1` lanes.
+
+| gate | result |
+| --- | --- |
+| `test-cairo-cpu-product` | pass |
+| `test-cairo-frontend` | pass |
+| `test-cairo-metal-product` | pass |
+| `test-stwo-prover` | pass |
+| `package-workspace` | pass (17 packages, 17 public modules, 51 edges) |
+
+No new public module was added, so `package.contract.json` needed no edit.
+
+Pre-existing, noted not chased, unchanged from increment 3.4's list:
+`metal-worker-stress` blake_deep `InvalidNRounds`; stale `vectors/reports`
+artifacts; corpus `pedersen.json` `SegmentPointerOverflow`;
+`metal-prover-session-test` broken; `composition_aot.zig` tests unreachable from
+green steps; `metal-test`'s three failures at `73dc8790`; no green step compiles
+`src/tests.zig`'s `else` branch;
+`/private/tmp/stwo-cairo-holistic-corpus-20260727/memory-7m.prover-input.json`
+`InvalidOutputSegment` (the run used `/private/tmp/stwo-cairo-memory-7m.prover-input.json`).
+
+### 6. What the Phase 1 redo now has, and what it still does not
+
+The eval binding is no longer the unknown. What a product `Engine.evaluateComposition`
+increment can now take as given, measured here rather than assumed:
+
+- The ABI contract, positively verified on real components at real scale: the
+  eleven `EvalLayout` offsets, the interaction/global column indirection, the
+  denominator index basis `row >> trace_log_size`, the `rc_base` coefficient
+  offset, and the lifted-column identity map at evaluation-domain length.
+- **Per-part device cost at scale, which is the cost-model input Phase 1 never
+  had.** `add_opcode` at 2^21 rows, 3 parts, 27 constraints: **39.69 ms** for the
+  whole component, i.e. **~13 ms per dispatch**. `partial_ec_mul_window_bits_18`
+  at 2^21 rows, 41 parts, 150 constraints: 484.59 ms, **~11.8 ms per dispatch**.
+  `partial_ec_mul_generic` at 2^19 rows, 90 parts, 448 constraints: 418.82 ms,
+  **~4.65 ms per dispatch** at a quarter of the rows. So the unfused
+  one-kernel-per-part library costs roughly `5.6 ns x rows` per part regardless
+  of constraint count in this range — the dispatches are **row-bound, not
+  constraint-bound**, which is the single most useful number for pricing fusion.
+  For scale: the composition *stage* is 435.7 ms on arithmetic-2m (§1.3) across
+  its whole component set, and one 2^21-row 41-part component alone costs 484.59
+  ms unfused. **Unfused per-part dispatch is not competitive with the host
+  evaluator**, and §6.2 already recorded that fusion requires a source artifact
+  the checked-in metallib does not contain.
+- The commit-stage bucket split (43% / 62% / 73% alias, ~30 non-arena uploads
+  per proof), so a commit claim can be attributed.
+
+What it still does not have, and these are the two that decide the increment's
+shape:
+
+1. **Trace residency.** Phase 1's blocker is unmoved: `evalPrepared` takes one
+   arena and eleven offsets into it, the product prove path holds host columns,
+   and the smoke got its arena by *constructing one in a test*. Nothing here
+   puts base, interaction, preprocessed, denominator and parameter blocks at
+   planned offsets in one product arena.
+2. **A fused library.** The per-dispatch numbers above say the unfused library
+   cannot win the stage, and minting fused kernels needs a CI round trip and a
+   manifest addition (§6.3.2, §1's limitation 2).
+
+**Recommended acceptance bar for the product-hook increment.** Not the ≥ 2.0x
+composition-stage bar §6.8 set — that bar is unreachable with the artifact that
+exists, and setting it would guarantee a rejection that says nothing new. Set it
+instead on the two facts that are now measurable and that gate everything after:
+(i) one real component's composition evaluated on the device **from the product
+prove path**, inputs read from a product-owned arena rather than a test-built
+one, byte-exact against the host and with the three campaign digests unchanged;
+and (ii) a measured per-dispatch overhead and stage share from that path, priced
+against the `5.6 ns x rows` unfused cost model above, so the fusion decision is
+made on measurement. Stage speedup should be **reported, not gated**, until a
+fused library exists. If the arena work in (i) cannot be scoped inside one
+increment, the honest next increment is the arena alone — which is what Phase 1
+concluded and what increment 3.4's alias counts now let anyone price.
