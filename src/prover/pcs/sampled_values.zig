@@ -58,10 +58,12 @@ pub fn evaluateAndRelease(
         }
 
         for (tree.columns, tree_points, 0..) |column, points, column_idx| {
-            if (column.log_size > lifting_log_size) return error.ShapeMismatch;
             try column.validate();
             tree_values[column_idx] = try allocator.alloc(QM31, points.len);
             initialized_columns += 1;
+            if (points.len != 0 and column.log_size > lifting_log_size) {
+                return error.ShapeMismatch;
+            }
         }
     }
 
@@ -94,9 +96,10 @@ pub fn evaluateAndRelease(
         barycentric_cache.deinit();
     }
 
-    for (trees) |*tree| {
+    for (trees, sampled_points.items) |*tree, tree_points| {
         if (tree.coefficients != null) continue;
-        for (tree.columns) |column| {
+        for (tree.columns, tree_points) |column, points| {
+            if (points.len == 0) continue;
             const entry = try barycentric_cache.getOrPut(column.log_size);
             if (!entry.found_existing) {
                 entry.value_ptr.* = try prover_circle_eval.BarycentricContext.init(
@@ -534,6 +537,7 @@ fn SampledValueWorkerCtx(comptime B: type, comptime H: type) type {
 
             const tree = self.tree;
             for (tree.columns, self.tree_points, 0..) |column, points, column_idx| {
+                if (points.len == 0) continue;
                 const values = self.tree_values[column_idx];
                 const fold_count = self.lifting_log_size - column.log_size;
                 if (tree.coefficients) |coefficients| {
@@ -612,6 +616,7 @@ fn evaluateTreesSequential(
         defer coefficient_plan_index.deinit();
 
         for (tree.columns, tree_points, 0..) |column, points, column_idx| {
+            if (points.len == 0) continue;
             const values = tree_values[column_idx];
             const fold_count = lifting_log_size - column.log_size;
             if (tree.coefficients) |coefficients| {
@@ -736,6 +741,7 @@ fn buildCoefficientPlansForTree(
     var plan_index = std.AutoHashMap(u64, usize).init(allocator);
     defer plan_index.deinit();
     for (columns, tree_points, 0..) |column, points, column_idx| {
+        if (points.len == 0) continue;
         const plan = try getOrCreateCoefficientEvalPlan(
             allocator,
             &plan_index,

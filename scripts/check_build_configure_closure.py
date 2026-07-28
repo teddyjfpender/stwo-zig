@@ -313,6 +313,25 @@ def inspect_linkage(binary: Path) -> str:
     return result.stdout.lower()
 
 
+def validate_application_backends(
+    registry: dict[str, Any],
+    *,
+    metal: bool,
+) -> None:
+    availability = registry["backend_availability"]["metal-hybrid"]
+    if availability is not metal:
+        raise SystemExit(
+            "aggregate registry capability does not match selected Metal product"
+        )
+    for application in registry["applications"]:
+        advertised = "metal-hybrid" in application.get("backends", [])
+        expected = metal and "adapter" not in application
+        if advertised is not expected:
+            raise SystemExit(
+                "aggregate application registry does not match selected products"
+            )
+
+
 def exercise_install(repository: Path, *, metal: bool) -> dict[str, Any]:
     with tempfile.TemporaryDirectory(prefix="stwo-install-closure-") as raw:
         prefix = Path(raw)
@@ -343,13 +362,7 @@ def exercise_install(repository: Path, *, metal: bool) -> dict[str, Any]:
         if registry_run.returncode != 0:
             raise SystemExit(f"aggregate registry failed:\n{registry_run.stderr}")
         registry = json.loads(registry_run.stdout)
-        availability = registry["backend_availability"]["metal-hybrid"]
-        if availability is not metal:
-            raise SystemExit("aggregate registry capability does not match selected Metal product")
-        for application in registry["applications"]:
-            advertised = "metal-hybrid" in application.get("backends", [])
-            if advertised is not metal:
-                raise SystemExit("aggregate application registry leaks an unselected backend")
+        validate_application_backends(registry, metal=metal)
         linkage = inspect_linkage(executable) if sys.platform == "darwin" else ""
         has_metal = "metal.framework" in linkage and "foundation.framework" in linkage
         if sys.platform == "darwin" and has_metal is not metal:

@@ -122,6 +122,8 @@ pub const Runtime = struct {
     pub const initFull = session_ops.initFull;
     pub const initFromAotBundle = session_ops.initFromAotBundle;
     pub const initFromAotAdmission = session_ops.initFromAotAdmission;
+    pub const initFromMetallibDataOnDevice =
+        session_ops.initFromMetallibDataOnDevice;
     pub const deinit = session_ops.deinit;
     pub const pipelineCacheStats = session_ops.pipelineCacheStats;
     pub const archiveStoreStats = session_ops.archiveStoreStats;

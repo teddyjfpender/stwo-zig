@@ -2,7 +2,8 @@ const std = @import("std");
 const witness = @import("../../frontends/cairo/witness/program.zig");
 const shader_manifest = @import("../../backends/metal/shaders/manifest.zig");
 
-pub const codegen_version: u64 = shader_manifest.witness_codegen_support_version;
+pub const codegen_version: u64 = 7;
+pub const support_version: u64 = shader_manifest.witness_codegen_support_version;
 
 const base_support = @embedFile("../../backends/metal/shaders/include/base.metal");
 const m31_support = @embedFile("../../backends/metal/shaders/include/m31.metal");
@@ -53,24 +54,42 @@ pub fn preamblePartsForProgram(program: witness.Program) [5][]const u8 {
     };
 }
 
-pub fn kernelName(allocator: std.mem.Allocator, semantic_hash: u64) ![]u8 {
-    return std.fmt.allocPrint(allocator, "stwo_zig_witness_{x:0>16}", .{semantic_hash});
+pub fn kernelName(
+    allocator: std.mem.Allocator,
+    semantic_identity: [32]u8,
+) ![]u8 {
+    const encoded = std.fmt.bytesToHex(semantic_identity, .lower);
+    return std.fmt.allocPrint(
+        allocator,
+        "stwo_zig_witness_{s}",
+        .{encoded[0..]},
+    );
 }
 
-pub fn kernelNameForMode(allocator: std.mem.Allocator, semantic_hash: u64, mode: KernelMode) ![]u8 {
+pub fn kernelNameForMode(
+    allocator: std.mem.Allocator,
+    semantic_identity: [32]u8,
+    mode: KernelMode,
+) ![]u8 {
+    const base_name = try kernelName(allocator, semantic_identity);
+    defer allocator.free(base_name);
     return switch (mode) {
-        .all => kernelName(allocator, semantic_hash),
-        .base => std.fmt.allocPrint(allocator, "stwo_zig_witness_{x:0>16}_base", .{semantic_hash}),
+        .all => allocator.dupe(u8, base_name),
+        .base => std.fmt.allocPrint(allocator, "{s}_base", .{base_name}),
         .base_lookup => std.fmt.allocPrint(
             allocator,
-            "stwo_zig_witness_{x:0>16}_base_lookup_v{}",
-            .{ semantic_hash, codegen_version },
+            "{s}_base_lookup_v{}",
+            .{ base_name, codegen_version },
         ),
-        .interaction => std.fmt.allocPrint(allocator, "stwo_zig_witness_{x:0>16}_interaction", .{semantic_hash}),
+        .interaction => std.fmt.allocPrint(
+            allocator,
+            "{s}_interaction",
+            .{base_name},
+        ),
         .interaction_subwords => std.fmt.allocPrint(
             allocator,
-            "stwo_zig_witness_{x:0>16}_interaction_subwords_v{}",
-            .{ semantic_hash, codegen_version },
+            "{s}_interaction_subwords_v{}",
+            .{ base_name, codegen_version },
         ),
     };
 }
@@ -78,22 +97,24 @@ pub fn kernelNameForMode(allocator: std.mem.Allocator, semantic_hash: u64, mode:
 pub fn generateKernel(
     allocator: std.mem.Allocator,
     program: witness.Program,
-    semantic_hash: u64,
 ) ![]u8 {
-    return generateKernelForMode(allocator, program, semantic_hash, .all);
+    return generateKernelForMode(allocator, program, .all);
 }
 
 pub fn generateKernelForMode(
     allocator: std.mem.Allocator,
     program: witness.Program,
-    semantic_hash: u64,
     mode: KernelMode,
 ) ![]u8 {
     try program.validate();
     var source = std.ArrayList(u8).empty;
     errdefer source.deinit(allocator);
     const writer = source.writer(allocator);
-    const name = try kernelNameForMode(allocator, semantic_hash, mode);
+    const name = try kernelNameForMode(
+        allocator,
+        program.semanticIdentity(),
+        mode,
+    );
     defer allocator.free(name);
     try writer.print(
         \\kernel void {s}(
@@ -219,6 +240,23 @@ pub fn generateKernelForMode(
     return source.toOwnedSlice(allocator);
 }
 
+/// Emits one self-contained translation unit for diagnostic compilation.
+/// Production AOT builds should shard multiple kernels under one preamble.
+pub fn generateStandaloneKernel(
+    allocator: std.mem.Allocator,
+    program: witness.Program,
+    mode: KernelMode,
+) ![]u8 {
+    var source = std.ArrayList(u8).empty;
+    errdefer source.deinit(allocator);
+    for (preamblePartsForProgram(program)) |part|
+        try source.appendSlice(allocator, part);
+    const kernel = try generateKernelForMode(allocator, program, mode);
+    defer allocator.free(kernel);
+    try source.appendSlice(allocator, kernel);
+    return source.toOwnedSlice(allocator);
+}
+
 const TempAssignment = struct { slot: u32, declare: bool };
 
 const TempPool = struct {
@@ -290,7 +328,7 @@ pub fn generateBatchForMode(
     errdefer source.deinit(allocator);
     for (preambleParts()) |part| try source.appendSlice(allocator, part);
     for (entries) |entry| {
-        const kernel = try generateKernelForMode(allocator, entry.program, entry.semantic_hash, mode);
+        const kernel = try generateKernelForMode(allocator, entry.program, mode);
         defer allocator.free(kernel);
         try source.appendSlice(allocator, kernel);
     }
@@ -308,7 +346,7 @@ pub fn generateBatchForModes(
     errdefer source.deinit(allocator);
     for (preambleParts()) |part| try source.appendSlice(allocator, part);
     for (entries, modes) |entry, mode| {
-        const kernel = try generateKernelForMode(allocator, entry.program, entry.semantic_hash, mode);
+        const kernel = try generateKernelForMode(allocator, entry.program, mode);
         defer allocator.free(kernel);
         try source.appendSlice(allocator, kernel);
     }
@@ -322,7 +360,7 @@ pub fn generateSpecializedBatch(allocator: std.mem.Allocator, entries: anytype) 
     for (preambleParts()) |part| try source.appendSlice(allocator, part);
     for (entries) |entry| {
         inline for (.{ KernelMode.base, KernelMode.interaction }) |mode| {
-            const kernel = try generateKernelForMode(allocator, entry.program, entry.semantic_hash, mode);
+            const kernel = try generateKernelForMode(allocator, entry.program, mode);
             defer allocator.free(kernel);
             try source.appendSlice(allocator, kernel);
         }
@@ -471,7 +509,7 @@ test "Metal witness codegen emits arena-native SSA kernel" {
         .{ .op = @intFromEnum(witness.Op.col_write), .dst = 0, .a = 2, .b = 0, .imm = 0 },
     };
     const program = witness.Program{ .insts = &insts, .n_regs = 3, .n_inputs = 1, .n_cols = 1, .n_mult_tables = 0, .n_lookup_words = 0, .n_sub_words = 0 };
-    const source = try generateKernel(std.testing.allocator, program, program.semanticHash());
+    const source = try generateKernel(std.testing.allocator, program);
     defer std.testing.allocator.free(source);
     try std.testing.expect(std.mem.indexOf(u8, source, "m31_mul(t0, t1)") != null);
     try std.testing.expect(std.mem.indexOf(u8, source, "args.output_offsets") != null);
@@ -485,20 +523,28 @@ test "Metal witness codegen specializes base and interaction outputs" {
         .{ .op = @intFromEnum(witness.Op.sub_word), .dst = 0, .a = 0, .b = 0, .imm = 0 },
     };
     const program = witness.Program{ .insts = &insts, .n_regs = 1, .n_inputs = 1, .n_cols = 1, .n_mult_tables = 0, .n_lookup_words = 1, .n_sub_words = 1 };
-    const base = try generateKernelForMode(std.testing.allocator, program, program.semanticHash(), .base);
+    const base = try generateKernelForMode(std.testing.allocator, program, .base);
     defer std.testing.allocator.free(base);
     try std.testing.expect(std.mem.indexOf(u8, base, "args.output_offsets") != null);
     try std.testing.expect(std.mem.indexOf(u8, base, "args.sub_words") != null);
     try std.testing.expect(std.mem.indexOf(u8, base, "args.lookup_words") == null);
 
-    const base_lookup = try generateKernelForMode(std.testing.allocator, program, program.semanticHash(), .base_lookup);
+    const base_lookup = try generateKernelForMode(
+        std.testing.allocator,
+        program,
+        .base_lookup,
+    );
     defer std.testing.allocator.free(base_lookup);
-    try std.testing.expect(std.mem.indexOf(u8, base_lookup, "_base_lookup_v6") != null);
+    try std.testing.expect(std.mem.indexOf(u8, base_lookup, "_base_lookup_v7") != null);
     try std.testing.expect(std.mem.indexOf(u8, base_lookup, "args.output_offsets") != null);
     try std.testing.expect(std.mem.indexOf(u8, base_lookup, "args.sub_words") != null);
     try std.testing.expect(std.mem.indexOf(u8, base_lookup, "args.lookup_words") != null);
 
-    const interaction = try generateKernelForMode(std.testing.allocator, program, program.semanticHash(), .interaction);
+    const interaction = try generateKernelForMode(
+        std.testing.allocator,
+        program,
+        .interaction,
+    );
     defer std.testing.allocator.free(interaction);
     try std.testing.expect(std.mem.indexOf(u8, interaction, "args.output_offsets") == null);
     try std.testing.expect(std.mem.indexOf(u8, interaction, "args.sub_words") != null);
@@ -507,11 +553,10 @@ test "Metal witness codegen specializes base and interaction outputs" {
     const interaction_subwords = try generateKernelForMode(
         std.testing.allocator,
         program,
-        program.semanticHash(),
         .interaction_subwords,
     );
     defer std.testing.allocator.free(interaction_subwords);
-    try std.testing.expect(std.mem.indexOf(u8, interaction_subwords, "_interaction_subwords_v6") != null);
+    try std.testing.expect(std.mem.indexOf(u8, interaction_subwords, "_interaction_subwords_v7") != null);
     try std.testing.expect(std.mem.indexOf(u8, interaction_subwords, "args.output_offsets") == null);
     try std.testing.expect(std.mem.indexOf(u8, interaction_subwords, "args.lookup_words") == null);
     try std.testing.expect(std.mem.indexOf(u8, interaction_subwords, "args.sub_words") != null);
@@ -539,9 +584,31 @@ test "Metal witness codegen combines a batch under one preamble" {
     };
     const source = try generateBatchForMode(std.testing.allocator, &entries, .base);
     defer std.testing.allocator.free(source);
+    const first_name = try kernelName(
+        std.testing.allocator,
+        entries[0].program.semanticIdentity(),
+    );
+    defer std.testing.allocator.free(first_name);
+    const second_name = try kernelName(
+        std.testing.allocator,
+        entries[1].program.semanticIdentity(),
+    );
+    defer std.testing.allocator.free(second_name);
+    const first_export = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "{s}_base",
+        .{first_name},
+    );
+    defer std.testing.allocator.free(first_export);
+    const second_export = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "{s}_base",
+        .{second_name},
+    );
+    defer std.testing.allocator.free(second_export);
     try std.testing.expectEqual(@as(usize, 1), std.mem.count(u8, source, "#include <metal_stdlib>"));
-    try std.testing.expect(std.mem.indexOf(u8, source, "stwo_zig_witness_0000000000000001_base") != null);
-    try std.testing.expect(std.mem.indexOf(u8, source, "stwo_zig_witness_0000000000000002_base") != null);
+    try std.testing.expect(std.mem.indexOf(u8, source, first_export) != null);
+    try std.testing.expect(std.mem.indexOf(u8, source, second_export) != null);
 }
 
 test "Metal witness codegen combines per-entry mode specializations" {
@@ -563,9 +630,31 @@ test "Metal witness codegen combines per-entry mode specializations" {
     };
     const source = try generateBatchForModes(std.testing.allocator, &entries, &.{ .base, .base_lookup });
     defer std.testing.allocator.free(source);
+    const first_name = try kernelName(
+        std.testing.allocator,
+        entries[0].program.semanticIdentity(),
+    );
+    defer std.testing.allocator.free(first_name);
+    const second_name = try kernelName(
+        std.testing.allocator,
+        entries[1].program.semanticIdentity(),
+    );
+    defer std.testing.allocator.free(second_name);
+    const first_export = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "{s}_base",
+        .{first_name},
+    );
+    defer std.testing.allocator.free(first_export);
+    const second_export = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "{s}_base_lookup_v7",
+        .{second_name},
+    );
+    defer std.testing.allocator.free(second_export);
     try std.testing.expectEqual(@as(usize, 1), std.mem.count(u8, source, "#include <metal_stdlib>"));
-    try std.testing.expect(std.mem.indexOf(u8, source, "stwo_zig_witness_0000000000000001_base") != null);
-    try std.testing.expect(std.mem.indexOf(u8, source, "stwo_zig_witness_0000000000000002_base_lookup_v6") != null);
+    try std.testing.expect(std.mem.indexOf(u8, source, first_export) != null);
+    try std.testing.expect(std.mem.indexOf(u8, source, second_export) != null);
 }
 
 test "Metal witness preamble excludes unrelated backend kernels" {
@@ -595,8 +684,12 @@ test "Metal witness preamble omits Felt252 helpers without deductions" {
 
 test "Metal witness codegen consumes only explicit support headers" {
     const implementation = @embedFile("witness_codegen.zig");
-    try std.testing.expectEqual(shader_manifest.witness_codegen_support_version, codegen_version);
-    try std.testing.expectEqual(@as(u64, 6), codegen_version);
+    try std.testing.expectEqual(
+        shader_manifest.witness_codegen_support_version,
+        support_version,
+    );
+    try std.testing.expectEqual(@as(u64, 6), support_version);
+    try std.testing.expectEqual(@as(u64, 7), codegen_version);
     try std.testing.expect(std.mem.indexOf(
         u8,
         implementation,

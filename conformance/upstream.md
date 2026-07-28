@@ -85,10 +85,43 @@ Pins:
 ## Cairo Lane
 
 This lane governs Cairo AIR, witness generation, statement, proof, and canonical `verify_cairo`
-acceptance. Stwo-Cairo commit `dcd58345` has two deliberately distinct Stwo authorities: the
-verifier-compatible revision declared by the source tree, and the clean companion revision needed
-to compile its complete prover and witness surface. Evidence must name the applicable sub-lane;
-the revisions are not interchangeable.
+acceptance. The production port targets the current official StarkWare source pair:
+
+- Official Stwo-Cairo repository: `https://github.com/starkware-libs/stwo-cairo`
+- Pinned official Stwo-Cairo commit: `82f21252a68ec006d73e299f5bf1ce6d4db0ee78`
+- Official Cairo Stwo repository: `https://github.com/starkware-libs/stwo`
+- Pinned official Cairo Stwo commit: `7b211edde786775016ef3eecb837a6240d8fe792`
+- Cairo language repository: `https://github.com/starkware-libs/cairo`
+- Pinned Cairo language commit: `eea264fa54fac04a1a5745ad533a0c0ab3106ab3`
+- Cairo language version: `2.20.0`
+- Cairo VM version: `3.2.0`
+
+These revisions govern the production AIR registry, isolated base/interaction
+trace oracle, and final Rust `verify_cairo` adapter. The completion
+requirements are recorded in
+`conformance/2026-07-26-stwo-cairo-production-port-goal.md`.
+
+The official-source witness checkpoint is
+`vectors/cairo/official/witness_programs_v1.bin`, authenticated by its adjacent
+provenance and compiler-receipt records. Its 27 programs are deterministically
+compiled from the official source pair above by
+`tools/cairo-witness-compiler` and contain no proof-selected semantics. The
+repository-owned compiler authenticates and isolates the upstream checkout,
+fails closed on unsupported writers, and reproduces the historical migration
+artifact byte-for-byte. The artifact remains `release_eligible: false` until
+the complete official writer and input-edge surfaces are covered and complete
+SIMD and Metal proofs pass the official verifier. The pin gate validates its
+compiler identities, binary grammar, semantic hashes, component order, and
+exact column-parity evidence; it cannot promote the artifact.
+
+### Legacy SN2 evidence
+
+Historical SN2 tooling was built from Stwo-Cairo commit `dcd58345`, which has
+two deliberately distinct Stwo authorities: the verifier-compatible revision
+declared by the source tree, and the clean companion revision needed to compile
+its complete prover and witness surface. This evidence remains bound to the
+following fork revisions and is not eligible to release the official Cairo
+products:
 
 - Stwo-Cairo repository: `https://github.com/teddyjfpender/stwo-cairo`
 - Pinned Stwo-Cairo commit: `dcd5834565b7a26a27a614e353c9c60109ebc1d9`
@@ -96,10 +129,19 @@ the revisions are not interchangeable.
 - Pinned Cairo verifier Stwo commit: `9d7e3d6fa0fc64a0d143a8b2fcb8ee952f4de8f2`
 - Pinned Cairo prover Stwo commit: `3fe684648ff31e55b71525ad689fab7dfbd88880`
 
-The Cairo lane is accepted only by the canonical Rust `verify_cairo` implementation built from
-the Stwo-Cairo and verifier-Stwo pair. Zig scalar, SIMD, Metal, trace-oracle, or Zig-verifier
-agreement cannot override its rejection. Base-trace and witness receipts are authoritative only
-when generated from the Stwo-Cairo and prover-Stwo pair, without path dependencies or dirty source.
+The official Cairo lane is accepted only by the canonical Rust `verify_cairo`
+implementation built from the official Stwo-Cairo and Stwo pair. Zig scalar,
+SIMD, Metal, trace-oracle, legacy-fork, or Zig-verifier agreement cannot
+override its rejection. The official trace oracle supplies component
+checkpoints, not proof acceptance. Legacy base-trace and witness receipts are
+authoritative only for their explicitly labelled legacy comparison and only
+when generated from the fork Stwo-Cairo and prover-Stwo pair, without path
+dependencies or dirty source.
+
+The corresponding historical generated claim registry is retained at
+`archive/cairo/legacy_claim_registry.zig`. Production code must not import it;
+the active registry is the official generated registry under
+`src/frontends/cairo/air/`.
 
 The pinned Stwo-Cairo manifest itself contains a `LOCAL-ONLY` absolute-path patch and does not
 compile its full prover against its declared verifier Stwo revision. Repository-owned Rust prover
@@ -146,7 +188,7 @@ The current Native Stwo increment targets:
 
 1. Name the compatibility lane being upgraded; never reuse evidence from another lane.
 2. Bump every exact revision that composes that lane's Rust oracle in this ledger. For Cairo,
-   state whether the verifier sub-lane, prover sub-lane, or both change.
+   state whether the official production pair, a legacy SN2 evidence pair, or both change.
 3. Update manifests, lockfiles, constants, proof envelopes, receipts, and generated artifacts that
    carry those revisions.
 4. Re-run vector generation for all committed fixtures in the affected lane.

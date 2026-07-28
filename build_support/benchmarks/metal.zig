@@ -156,6 +156,7 @@ pub fn addProducts(context: Context) void {
         .name = "metal-witness-source",
         .root_module = metal_witness_source_module,
     });
+    metal_backend.linkRuntime(b, metal_witness_source);
     const install_metal_witness_source = b.addInstallArtifact(metal_witness_source, .{});
     const metal_witness_source_step = b.step(
         "metal-witness-source",

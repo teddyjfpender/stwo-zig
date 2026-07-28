@@ -87,13 +87,20 @@ void *stwo_zig_metal_runtime_create_from_metallib_data(
     size_t byte_len,
     char *error_message,
     size_t error_message_len
+);
+
+static void *create_runtime_from_metallib_data_on_device(
+    id<MTLDevice> device,
+    const uint8_t *bytes,
+    size_t byte_len,
+    char *error_message,
+    size_t error_message_len
 ) {
     if (bytes == NULL || byte_len == 0u) {
         write_error(error_message, error_message_len, @"Metal library data is empty");
         return NULL;
     }
     @autoreleasepool {
-        id<MTLDevice> device = MTLCreateSystemDefaultDevice();
         if (device == nil) {
             write_error(error_message, error_message_len, @"No Metal device available");
             return NULL;
@@ -127,4 +134,38 @@ void *stwo_zig_metal_runtime_create_from_metallib_data(
         );
         return runtime == nil ? NULL : (__bridge_retained void *)runtime;
     }
+}
+
+void *stwo_zig_metal_runtime_create_from_metallib_data(
+    const uint8_t *bytes,
+    size_t byte_len,
+    char *error_message,
+    size_t error_message_len
+) {
+    return create_runtime_from_metallib_data_on_device(
+        MTLCreateSystemDefaultDevice(),
+        bytes,
+        byte_len,
+        error_message,
+        error_message_len
+    );
+}
+
+void *stwo_zig_metal_runtime_create_from_metallib_data_on_device(
+    void *device_handle,
+    const uint8_t *bytes,
+    size_t byte_len,
+    char *error_message,
+    size_t error_message_len
+) {
+    id<MTLDevice> device = device_handle == NULL
+        ? nil
+        : (__bridge id<MTLDevice>)device_handle;
+    return create_runtime_from_metallib_data_on_device(
+        device,
+        bytes,
+        byte_len,
+        error_message,
+        error_message_len
+    );
 }

@@ -248,7 +248,7 @@ fn fixedDeductionRequirements(bundle: witness_bundle_mod.Bundle) FixedDeductionR
         for (entry.program.insts) |inst| {
             if (@as(witness_program_mod.Op, @enumFromInt(inst.op)) != .deduce_call) continue;
             switch (inst.imm) {
-                2, 3 => result.pedersen = true,
+                2, 3, 12, 13 => result.pedersen = true,
                 8, 10, 11 => result.poseidon = true,
                 else => {},
             }
@@ -491,7 +491,11 @@ fn prepareAotWitnessBatchForMode(
         workspace_storage.*[workspace_index] = .{ .destination = output_pointers, .binding_offsets = outputs };
         workspace_index += 1;
         workspace_storage.*[workspace_index] = .{ .destination = multiplicity_pointers };
-        name.* = try witness_codegen.kernelNameForMode(allocator, entry.semantic_hash, kernel_mode.*);
+        name.* = try witness_codegen.kernelNameForMode(
+            allocator,
+            entry.program.semanticIdentity(),
+            kernel_mode.*,
+        );
         names_initialized += 1;
         invocation.* = .{
             .kernel_name = name.*,

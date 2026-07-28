@@ -1,12 +1,12 @@
-use anyhow::{ensure, Context, Result};
+use anyhow::{Context, Result, ensure};
 use cairo_air::claims::CairoClaim;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use stwo::core::fields::m31::BaseField;
-use stwo::prover::backend::simd::SimdBackend;
 use stwo::prover::backend::Column;
-use stwo::prover::poly::circle::CircleEvaluation;
+use stwo::prover::backend::simd::SimdBackend;
 use stwo::prover::poly::BitReversedOrder;
+use stwo::prover::poly::circle::CircleEvaluation;
 
 const COLUMN_DOMAIN: &[u8] = b"STWO_CAIRO_BASE_COLUMN_V1\0";
 const ACCUMULATOR_DOMAIN: &[u8] = b"STWO_CAIRO_BASE_ACCUMULATOR_V1\0";
@@ -249,8 +249,8 @@ pub fn build(
         schema: "stwo-cairo-base-trace-checkpoint-v1",
         input_sha256: hex::encode(input_sha256),
         authority: Authority {
-            stwo_cairo_revision: "dcd5834565b7a26a27a614e353c9c60109ebc1d9",
-            stwo_revision: "3fe684648ff31e55b71525ad689fab7dfbd88880",
+            stwo_cairo_revision: "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+            stwo_revision: "7b211edde786775016ef3eecb837a6240d8fe792",
         },
         components,
         final_accumulator_sha256: hex::encode(accumulator),

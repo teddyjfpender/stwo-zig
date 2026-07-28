@@ -60,6 +60,24 @@ def catalog_fixture() -> dict[str, object]:
                 "src/frontends/riscv",
             ),
             product(
+                "cairo_cpu",
+                "src/core",
+                "src/backend",
+                "src/prover",
+                "src/frontends/cairo",
+                "src/integrations/cairo_cpu",
+                "src/products/cairo_cpu",
+            ),
+            product(
+                "cairo_metal",
+                "src/core",
+                "src/backend",
+                "src/prover",
+                "src/frontends/cairo",
+                "src/integrations/cairo_metal",
+                "src/products/cairo_metal",
+            ),
+            product(
                 "native_metal",
                 "src/core",
                 "src/backend",
@@ -188,6 +206,31 @@ class PlannerContractTests(unittest.TestCase):
             {"static", "native_cuda_static"},
             self.lanes_for("src/integrations/cairo_cuda/executor/mod.zig"),
         )
+
+    def test_cairo_cpu_runs_official_product_and_oracle_gates(self) -> None:
+        selected = self.lanes_for("src/integrations/cairo_cpu/prover/transaction.zig")
+        self.assertEqual({"static", "cairo_cpu", "cairo_metal"}, selected)
+        lane = self.policy["lanes"]["cairo_cpu"]
+        self.assertEqual("linux", lane["host"])
+        self.assertEqual("hosted", lane["local"])
+        commands = [" ".join(command) for command in lane["commands"]]
+        self.assertTrue(any("test-cairo-cpu-proof" in command for command in commands))
+        self.assertTrue(any("test-cairo-cpu-product" in command for command in commands))
+        self.assertTrue(any("test-cairo-cpu-oracle" in command for command in commands))
+
+    def test_cairo_metal_requires_real_device_and_authenticated_aot(self) -> None:
+        selected = self.lanes_for(
+            "src/integrations/cairo_metal/prover/transaction.zig"
+        )
+        self.assertEqual({"static", "cairo_metal"}, selected)
+        lane = self.policy["lanes"]["cairo_metal"]
+        self.assertEqual("macos", lane["host"])
+        self.assertFalse(lane["hosted"])
+        command = "\n".join(lane["commands"][0])
+        self.assertIn("STWO_METAL_CORE_AOT_BUNDLE", command)
+        self.assertIn("stwo_zig_core.manifest.sha256", command)
+        self.assertIn("test-cairo-metal-product", command)
+        self.assertNotIn("test-cairo-metal-oracle", command)
 
     def test_metal_shader_selects_aot_but_runtime_does_not(self) -> None:
         shader = self.lanes_for(
@@ -322,9 +365,10 @@ class PlannerContractTests(unittest.TestCase):
         self.assertEqual(
             sorted(lanes),
             [
-                "aggregate_cpu", "aggregate_metal", "native_cpu",
-                "native_cuda_device", "native_cuda_static", "native_metal", "native_oracle",
-                "package", "prover", "riscv_cpu", "static",
+                "aggregate_cpu", "aggregate_metal", "cairo_cpu", "cairo_metal",
+                "native_cpu", "native_cuda_device",
+                "native_cuda_static", "native_metal", "native_oracle", "package",
+                "prover", "riscv_cpu", "static",
             ],
         )
 

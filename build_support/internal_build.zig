@@ -56,7 +56,7 @@ pub fn build(b: *std.Build) void {
             baseline.addGate(b);
             construction_observer.recordConstructor(b, "gates/baseline.addGate");
         },
-        .core, .prover, .native_cpu, .native_cuda, .native_metal, .riscv_cpu, .riscv_metal, .cairo_cuda => constructProduct(
+        .core, .prover, .native_cpu, .native_cuda, .native_metal, .riscv_cpu, .riscv_metal, .cairo_cpu, .cairo_metal, .cairo_cuda => constructProduct(
             b,
             target,
             optimize,

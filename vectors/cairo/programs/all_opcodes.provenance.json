@@ -1,0 +1,23 @@
+{
+  "schema": "stwo_cairo_compiled_program_vector_v1",
+  "case": "test_prove_verify_all_opcode_components",
+  "source": {
+    "repository": "https://github.com/starkware-libs/stwo-cairo",
+    "revision": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+    "path": "test_data/test_prove_verify_all_opcode_components/compiled.json"
+  },
+  "program": {
+    "path": "vectors/cairo/programs/all_opcodes.compiled.json",
+    "program_type": "json",
+    "bytes": 3347296,
+    "sha256": "727c4f6aa68b17d70098e50fcbe39619d07a1dc0b1966fd55dd127006e8a3e95"
+  },
+  "execution": {
+    "adapter": "tools/stwo-cairo-vm-adapter-rs",
+    "cairo_vm_version": "3.2.0",
+    "layout": "all_cairo_stwo",
+    "expected_prover_input": "vectors/cairo/official/all_opcodes.prover_input.json",
+    "expected_prover_input_bytes": 181534,
+    "expected_prover_input_sha256": "7f94bd5dcf32e7dd69a8a47f42d41830b4fdd3b75846ef9f7694f3164117fcd6"
+  }
+}

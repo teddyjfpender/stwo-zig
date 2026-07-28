@@ -38,6 +38,7 @@ pub fn request(delta: anytype) report.BackendTelemetryDelta {
             .metal_fri_line_fold_dispatches = counters.metal_fri_line_fold_dispatches,
             .metal_fri_fold_commit_epochs = counters.metal_fri_fold_commit_epochs,
             .metal_qm31_coordinate_dispatches = counters.metal_qm31_coordinate_dispatches,
+            .metal_relation_epochs = counters.metal_relation_epochs,
             .metal_trace_generation_dispatches = counters.metal_trace_generation_dispatches,
             .metal_trace_generation_synchronizations = counters.metal_trace_generation_synchronizations,
             .metal_trace_generation_copybacks = counters.metal_trace_generation_copybacks,

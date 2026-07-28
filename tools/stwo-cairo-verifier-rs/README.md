@@ -16,6 +16,8 @@ The adapter implements the security boundary and two canonical proof codecs:
 - exact-revision `cairo-air` and Stwo dependencies;
 - typed deserialization of complete `CairoProof` JSON emitted by `gpu_bench`;
 - typed deserialization of complete `CairoProofForRustVerifier` JSON;
+- deterministic validation of the redundant `memory_id_to_big` aggregate
+  against every transcript-bound segment claim;
 - exact typed reconstruction of `CairoClaim`, `CairoInteractionClaim`, and
   `StarkProof<Blake2sMerkleHasher>` from `resident_sn2_bundle_v1`;
 - authenticated protocol/statement/provenance bindings; and
@@ -28,7 +30,10 @@ those process controls to itself.
 
 The JSON proof object contains its complete typed `PublicData`, `CairoClaim`,
 interaction claim, and STARK proof. The adapter verifies that complete object
-and exits zero only when the canonical verifier accepts it.
+and exits zero only when the canonical verifier accepts it. The pinned
+`stwo-cairo` revision does not absorb the redundant
+`memory_id_to_big.claimed_sum`; this adapter therefore derives that value from
+`big_claimed_sums` and rejects any mismatch before calling the pinned verifier.
 
 The compact codec constructs the pinned Rust `PublicData`, `CairoClaim`,
 `CairoInteractionClaim`, and complete STARK proof, derives the canonical sample

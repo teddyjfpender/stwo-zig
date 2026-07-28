@@ -19,7 +19,9 @@ pub const Scope = catalog.Scope;
 
 pub const Constructor = enum {
     aggregate,
+    cairo_cpu,
     cairo_cuda,
+    cairo_metal,
     core,
     prover,
     native_cpu,
@@ -58,13 +60,61 @@ pub const products = [_]Spec{
         .generated_module_roots = &.{"generated:options:"},
         .configure_allowed_files = &.{"build_support/product_policy_test.zig"},
     },
-    .{ .descriptor = cairo_cpu.descriptor, .scope = .deferred, .constructor = .unavailable },
-    .{ .descriptor = cairo_metal.descriptor, .scope = .deferred, .constructor = .unavailable },
+    .{
+        .descriptor = cairo_cpu.descriptor,
+        .scope = .cairo_cpu,
+        .constructor = .cairo_cpu,
+        .configure_tools = &.{
+            "cargo",
+            "cmp",
+            "python3",
+            "stwo-cairo-official-verifier",
+        },
+        .generated_module_roots = &.{
+            "generated:options:",
+            "generated:cairo-witness-cpu-aot:",
+        },
+        .configure_allowed_files = &.{
+            "build_support/products/cairo_witness_cpu_aot.zig",
+        },
+        .configure_allowed_prefixes = &.{
+            "src/tools/cairo_witness_cpu_codegen",
+            "third_party/bzip2",
+        },
+    },
+    .{
+        .descriptor = cairo_metal.descriptor,
+        .scope = .cairo_metal,
+        .constructor = .cairo_metal,
+        .configure_tools = &.{
+            "cargo",
+            "cmp",
+            "python3",
+            "stwo-cairo-official-verifier",
+            "xcrun",
+        },
+        .runtime_probes = &.{
+            "Metal.framework",
+            "Foundation.framework",
+            "libobjc",
+        },
+        .generated_module_roots = &.{
+            "generated:options:",
+            "generated:cairo-witness-cpu-aot:",
+        },
+        .configure_allowed_files = &.{
+            "build_support/products/cairo_witness_cpu_aot.zig",
+        },
+        .configure_allowed_prefixes = &.{
+            "src/tools/cairo_witness_cpu_codegen",
+            "third_party/bzip2",
+        },
+    },
     .{
         .descriptor = riscv_metal.descriptor,
         .scope = .riscv_metal,
         .constructor = .riscv_metal,
-        .configure_tools = &.{ "python3", "xcrun" },
+        .configure_tools = &.{"python3"},
         .runtime_probes = &.{ "Metal.framework", "Foundation.framework", "libobjc" },
     },
     .{

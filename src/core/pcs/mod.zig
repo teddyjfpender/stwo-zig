@@ -36,7 +36,6 @@ pub const PcsConfig = struct {
             @as(u32, @intCast(self.fri_config.n_queries)),
             self.fri_config.log_last_layer_degree_bound,
         );
-        channel.mixFelts(&[_]QM31{packed_config_1});
 
         // Preserve the upstream transcript unless fork-only parameters are
         // explicitly selected. Default proofs must remain Rust-compatible.
@@ -47,7 +46,9 @@ pub const PcsConfig = struct {
                 0,
                 0,
             );
-            channel.mixFelts(&[_]QM31{packed_config_2});
+            channel.mixFelts(&[_]QM31{ packed_config_1, packed_config_2 });
+        } else {
+            channel.mixFelts(&[_]QM31{packed_config_1});
         }
     }
 

@@ -9,3 +9,5 @@ pub const Tree = runtime.Tree;
 pub const MetalMerkleTree = @import("merkle_tree.zig").MetalMerkleTree;
 pub const MetalCommitBackend = @import("commit_backend.zig").MetalCommitBackend;
 pub const MetalProverEngine = @import("prover_engine.zig").MetalProverEngine;
+pub const PlainMetalProverEngine =
+    @import("prover_engine.zig").PlainMetalProverEngine;

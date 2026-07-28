@@ -159,9 +159,11 @@ pub const LazyQuotientProvider = struct {
         for (columns.items, sampled_points.items, sampled_values.items) |tree_columns, tree_points, tree_values| {
             if (tree_columns.len != tree_points.len) return QuotientOpsError.ShapeMismatch;
             if (tree_columns.len != tree_values.len) return QuotientOpsError.ShapeMismatch;
-            for (tree_columns) |column| {
+            for (tree_columns, tree_points) |column, points| {
                 try column.validate();
-                if (column.log_size > lifting_log_size) return QuotientOpsError.InvalidColumnLogSize;
+                if (points.len != 0 and column.log_size > lifting_log_size) {
+                    return QuotientOpsError.InvalidColumnLogSize;
+                }
             }
         }
 

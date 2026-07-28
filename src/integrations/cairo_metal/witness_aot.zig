@@ -5,7 +5,7 @@ const cairo_proof_plan = @import("../../frontends/cairo/proof_plan.zig");
 const witness_bundle = @import("../../frontends/cairo/witness/bundle.zig");
 const witness_codegen = @import("witness_codegen.zig");
 
-pub const codegen_version: u64 = 6;
+pub const codegen_version: u64 = 7;
 
 comptime {
     if (witness_codegen.codegen_version != codegen_version)
@@ -36,7 +36,7 @@ pub const RequiredExports = struct {
         for (bundle.entries) |entry| inline for (.{ Epoch.base, Epoch.interaction }) |epoch| {
             names[initialized] = try witness_codegen.kernelNameForMode(
                 allocator,
-                entry.semantic_hash,
+                entry.program.semanticIdentity(),
                 kernelMode(entry.label, epoch),
             );
             initialized += 1;
@@ -90,7 +90,6 @@ pub fn generateSource(
         const kernel = try witness_codegen.generateKernelForMode(
             allocator,
             entry.program,
-            entry.semantic_hash,
             kernelMode(entry.label, epoch),
         );
         defer allocator.free(kernel);
@@ -176,13 +175,13 @@ test "witness AOT manifest covers the active base and interaction kernels exactl
     for (bundle.entries, 0..) |entry, index| {
         const base = try witness_codegen.kernelNameForMode(
             std.testing.allocator,
-            entry.semantic_hash,
+            entry.program.semanticIdentity(),
             kernelMode(entry.label, .base),
         );
         defer std.testing.allocator.free(base);
         const interaction = try witness_codegen.kernelNameForMode(
             std.testing.allocator,
-            entry.semantic_hash,
+            entry.program.semanticIdentity(),
             kernelMode(entry.label, .interaction),
         );
         defer std.testing.allocator.free(interaction);
@@ -261,7 +260,7 @@ test "witness AOT authentication binds identity version and exact exports" {
     );
 }
 
-test "legacy unsuffixed SN2 witness exports fail the v6 AOT contract" {
+test "legacy unsuffixed SN2 witness exports fail the v7 AOT contract" {
     var bundle = try witness_bundle.Bundle.readFile(
         std.testing.allocator,
         "vectors/cairo/sn_pie_2_witness_programs.bin",
@@ -274,7 +273,10 @@ test "legacy unsuffixed SN2 witness exports fail the v6 AOT contract" {
         std.testing.allocator.free(legacy);
     }
     for (bundle.entries, legacy) |entry, *name| {
-        name.* = try witness_codegen.kernelName(std.testing.allocator, entry.semantic_hash);
+        name.* = try witness_codegen.kernelName(
+            std.testing.allocator,
+            entry.program.semanticIdentity(),
+        );
         initialized += 1;
     }
 

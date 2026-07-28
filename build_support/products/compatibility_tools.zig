@@ -40,6 +40,74 @@ pub fn addProducts(context: Context) void {
     cairo_input.addImport("stwo", stwo);
     addExecutable(context, cairo_input, "cairo-input", "cairo-input", "Build adapted Cairo input inspector", false);
 
+    const cairo_composition = consumer(
+        context,
+        protocol,
+        "src/frontends/cairo/witness/composition_bundle.zig",
+    );
+    const cairo_air_bundle =
+        consumer(context, protocol, "src/tools/cairo/air_bundle_inspector.zig");
+    cairo_air_bundle.addImport("cairo_composition_bundle", cairo_composition);
+    addExecutable(
+        context,
+        cairo_air_bundle,
+        "cairo-air-bundle-inspector",
+        "cairo-air-bundle-inspector",
+        "Build official Cairo AIR bundle inspector",
+        false,
+    );
+
+    const cairo_frontend = consumer(context, protocol, "src/frontends/cairo/mod.zig");
+    const cairo_test_root = consumer(context, protocol, "src/frontends/cairo/tests/mod.zig");
+    cairo_test_root.addImport("cairo_frontend", cairo_frontend);
+    const cairo_filters: []const []const u8 = if (b.option(
+        []const u8,
+        "cairo-test-filter",
+        "Compile and run Cairo tests whose names contain this text",
+    )) |filter|
+        b.allocator.dupe([]const u8, &.{filter}) catch @panic("out of memory")
+    else
+        &.{};
+    const cairo_tests = context.b.addTest(.{
+        .root_module = cairo_test_root,
+        .filters = cairo_filters,
+    });
+    const run_cairo_tests = context.b.addRunArtifact(cairo_tests);
+    context.b.step(
+        "test-cairo-frontend",
+        "Run focused backend-neutral Cairo conformance tests",
+    ).dependOn(&run_cairo_tests.step);
+
+    const cairo_cpu_air_test_root = consumer(
+        context,
+        protocol,
+        "src/tests/cairo/cpu_air_test.zig",
+    );
+    cairo_cpu_air_test_root.addImport("stwo", stwo);
+    const cairo_cpu_air_tests = context.b.addTest(.{
+        .root_module = cairo_cpu_air_test_root,
+    });
+    const run_cairo_cpu_air_tests = context.b.addRunArtifact(cairo_cpu_air_tests);
+    context.b.step(
+        "test-cairo-cpu-air",
+        "Run Cairo CPU AIR integration tests",
+    ).dependOn(&run_cairo_cpu_air_tests.step);
+
+    const cairo_cpu_proof_test_root = consumer(
+        context,
+        protocol,
+        "src/tests/cairo/cpu_proof_test.zig",
+    );
+    cairo_cpu_proof_test_root.addImport("stwo", stwo);
+    const cairo_cpu_proof_tests = context.b.addTest(.{
+        .root_module = cairo_cpu_proof_test_root,
+    });
+    const run_cairo_cpu_proof_tests = context.b.addRunArtifact(cairo_cpu_proof_tests);
+    context.b.step(
+        "test-cairo-cpu-proof",
+        "Run the complete official Cairo CPU proof gate",
+    ).dependOn(&run_cairo_cpu_proof_tests.step);
+
     const opcode = consumer(context, protocol, "src/tools/riscv_opcode_manifest/main.zig");
     opcode.addImport("stwo", stwo);
     const opcode_cli = b.addExecutable(.{ .name = "riscv-opcode-manifest", .root_module = opcode });

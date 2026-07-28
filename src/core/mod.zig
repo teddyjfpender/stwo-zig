@@ -18,6 +18,7 @@ pub const air = @import("air/mod.zig");
 pub const fri = @import("fri.zig");
 pub const pcs = @import("pcs/mod.zig");
 pub const proof = @import("proof.zig");
+pub const proof_json = @import("proof_json.zig");
 pub const test_utils = @import("test_utils.zig");
 pub const verifier_types = @import("verifier_types.zig");
 pub const verifier = @import("verifier.zig");

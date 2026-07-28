@@ -28,6 +28,14 @@ class PinLedger:
     riscv_arch_test_revision: str
     riscv_legacy_repository: str
     riscv_legacy_revision: str
+    official_cairo_repository: str
+    official_cairo_revision: str
+    official_cairo_stwo_repository: str
+    official_cairo_stwo_revision: str
+    cairo_language_repository: str
+    cairo_language_revision: str
+    cairo_language_version: str
+    cairo_vm_version: str
     cairo_repository: str
     cairo_revision: str
     cairo_stwo_repository: str
@@ -91,6 +99,46 @@ def parse_ledger(path: Path = DEFAULT_LEDGER) -> PinLedger:
             text,
             rf"^- Pinned legacy Stark-V commit: `({REVISION_RE})`$",
             "legacy Stark-V revision",
+        ),
+        official_cairo_repository=_single_field(
+            text,
+            r"^- Official Stwo-Cairo repository: `([^`]+)`$",
+            "official Stwo-Cairo repository",
+        ),
+        official_cairo_revision=_single_field(
+            text,
+            rf"^- Pinned official Stwo-Cairo commit: `({REVISION_RE})`$",
+            "official Stwo-Cairo revision",
+        ),
+        official_cairo_stwo_repository=_single_field(
+            text,
+            r"^- Official Cairo Stwo repository: `([^`]+)`$",
+            "official Cairo Stwo repository",
+        ),
+        official_cairo_stwo_revision=_single_field(
+            text,
+            rf"^- Pinned official Cairo Stwo commit: `({REVISION_RE})`$",
+            "official Cairo Stwo revision",
+        ),
+        cairo_language_repository=_single_field(
+            text,
+            r"^- Cairo language repository: `([^`]+)`$",
+            "Cairo language repository",
+        ),
+        cairo_language_revision=_single_field(
+            text,
+            rf"^- Pinned Cairo language commit: `({REVISION_RE})`$",
+            "Cairo language revision",
+        ),
+        cairo_language_version=_single_field(
+            text,
+            r"^- Cairo language version: `([0-9]+\.[0-9]+\.[0-9]+)`$",
+            "Cairo language version",
+        ),
+        cairo_vm_version=_single_field(
+            text,
+            r"^- Cairo VM version: `([0-9]+\.[0-9]+\.[0-9]+)`$",
+            "Cairo VM version",
         ),
         cairo_repository=_single_field(
             text, r"^- Stwo-Cairo repository: `([^`]+)`$", "Cairo Stwo-Cairo repository"

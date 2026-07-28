@@ -1,6 +1,5 @@
 const std = @import("std");
 pub const stwo = @import("stwo");
-
 const arena = stwo.backends.metal.arena_plan;
 const metal_runtime = stwo.backends.metal.runtime;
 const protocol_recipes = stwo.backends.metal.protocol_recipes;
@@ -4541,6 +4540,7 @@ fn runOne(
                         .composition = composition_bundle.?,
                         .tree_logs = .{ preprocessed_logs, base_logs, interaction_logs },
                         .transcript_inputs = &verify_inputs,
+                        .statement = if (prover_input) |*p| p else return error.MissingAdaptedInput,
                     }, verifier_geometry);
                     proof_verified = true;
                     const prove_elapsed_ns = if (prove_timer) |*timer|

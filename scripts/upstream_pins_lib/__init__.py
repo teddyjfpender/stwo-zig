@@ -1,1 +1,1 @@
-"""Stable upstream-pin ledger model and parser."""
+"""Stable upstream-ledger models and focused authority validators."""
