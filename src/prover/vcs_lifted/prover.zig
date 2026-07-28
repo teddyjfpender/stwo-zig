@@ -11,6 +11,7 @@ const decommit_mod = @import("decommit.zig");
 const columns_mod = @import("columns.zig");
 const first_layer_sink = @import("first_layer_sink.zig");
 const leaves_mod = @import("leaves.zig");
+const expand_mod = @import("expand.zig");
 const layers_mod = @import("layers.zig");
 const parameters = @import("parameters.zig");
 
@@ -30,6 +31,7 @@ pub fn MerkleProverLifted(comptime H: type) type {
 
         const Self = @This();
         const LeafOps = leaves_mod.Operations(H);
+        const ExpandOps = expand_mod.Operations(H);
         const LayerOps = layers_mod.Operations(H);
         const LayerExecutor = LayerOps.Executor;
         const parallel_min_nodes_per_worker = parameters.parallel_min_nodes_per_worker;
@@ -502,10 +504,7 @@ pub fn MerkleProverLifted(comptime H: type) type {
                         const layer_size = @as(usize, 1) << @intCast(log_size);
                         const shift_amt: std.math.Log2Int(usize) = @intCast(log_ratio + 1);
                         const expanded = try self.allocator.alloc(H, layer_size);
-                        for (0..layer_size) |idx| {
-                            const src_idx = ((idx >> shift_amt) << 1) + (idx & 1);
-                            expanded[idx] = self.leaf_hashers[src_idx];
-                        }
+                        ExpandOps.expandHashers(expanded, self.leaf_hashers, shift_amt);
                         self.allocator.free(self.leaf_hashers);
                         self.leaf_hashers = expanded;
                         self.leaf_log_size = log_size;
