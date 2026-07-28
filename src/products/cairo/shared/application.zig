@@ -3,6 +3,7 @@
 const std = @import("std");
 const cli = @import("cli.zig");
 const execution_adapter = @import("execution_adapter.zig");
+const preprocessed_cache = @import("preprocessed_cache.zig");
 const profile = @import("profile.zig");
 
 pub const BackendEvidence = struct {
@@ -153,6 +154,8 @@ fn proveFile(
         paths.air_template_library,
     );
     defer air_templates.deinit();
+    var cache_activation = try preprocessed_cache.activate(Product, allocator);
+    defer cache_activation.deinit(Product);
     const started = std.time.Instant.now() catch return error.ClockUnavailable;
     var proof_context = try Product.beginProof(allocator);
     var proof_context_owned = true;

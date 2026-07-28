@@ -110,19 +110,30 @@ pub fn proveFixtureWithRecorder(
             "Preprocessed table build",
         );
         defer stage.end();
+        const binding = preprocessed.product_cache.Binding{
+            .variant = variant,
+            .spec_digest = preprocessed.product_cache.specDigest(target),
+            .pcs_digest = preprocessed.product_cache.pcsDigest(
+                official_pcs_config,
+            ),
+        };
         switch (variant) {
             .canonical_without_pedersen => {},
             .canonical => {
-                pedersen = try preprocessed.pedersen_table.Table.init(
+                pedersen = try preprocessed.product_cache.pedersenTable(
                     allocator,
                     .standard,
+                    binding,
+                    recorder,
                 );
                 pedersen_initialized = true;
             },
             .canonical_small => {
-                pedersen = try preprocessed.pedersen_table.Table.init(
+                pedersen = try preprocessed.product_cache.pedersenTable(
                     allocator,
                     .small,
+                    binding,
+                    recorder,
                 );
                 pedersen_initialized = true;
             },
