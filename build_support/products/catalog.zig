@@ -168,6 +168,7 @@ pub const steps = [_]Step{
     .{ .name = "api-parity", .description = "Validate API parity ledger coverage", .scope = .policy },
     .{ .name = "upstream-pins", .description = "Validate upstream pin carriers", .scope = .policy },
     .{ .name = "source-conformance", .description = "Reject source conformance regressions", .scope = .policy },
+    .{ .name = "package-workspace", .description = "Audit package ownership, API, and dependency boundaries", .scope = .policy },
     .{ .name = "upstream-surface", .description = "Validate upstream API surface", .scope = .policy },
     .{ .name = "build-configure-closure", .description = "Verify focused configure closure", .scope = .policy },
     .{ .name = "registry-parity", .description = "Compare focused and aggregate registries", .scope = .policy },

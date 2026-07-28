@@ -142,6 +142,7 @@ class PlannerContractTests(unittest.TestCase):
             {
                 "static",
                 "core",
+                "backend_contracts",
                 "prover",
                 "package",
                 "native_cpu",
@@ -155,6 +156,18 @@ class PlannerContractTests(unittest.TestCase):
             }.issubset(selected)
         )
         self.assertNotIn("metal_aot", selected)
+
+    def test_backend_contract_change_runs_its_package_and_dependents(self) -> None:
+        selected = self.lanes_for("src/backend/merkle_ops.zig")
+        self.assertTrue(
+            {
+                "static",
+                "backend_contracts",
+                "prover",
+                "package",
+            }.issubset(selected)
+        )
+        self.assertNotIn("core", selected)
 
     def test_riscv_lane_produces_and_independently_verifies_real_proofs(self) -> None:
         commands = self.policy["lanes"]["riscv_cpu"]["commands"]

@@ -1,0 +1,48 @@
+{
+  "schema": "stwo-zig-package-contract-v1",
+  "package": "stwo_prover_impl",
+  "owner": "prover-engine",
+  "public_modules": {
+    "stwo_prover_impl": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_core": "../core",
+    "stwo_backend_contracts": "../backend"
+  },
+  "injected_modules": [
+    "native_resource_admission",
+    "stwo"
+  ],
+  "api_surface": [
+    "air",
+    "channel",
+    "engine",
+    "execution",
+    "fft_pool",
+    "fri",
+    "line",
+    "lookups",
+    "measurement",
+    "mmap_alloc",
+    "pcs",
+    "poly",
+    "prove",
+    "resident_storage",
+    "secure_column",
+    "session",
+    "stage_profile",
+    "task_graph",
+    "vcs",
+    "vcs_lifted",
+    "work_pool"
+  ],
+  "ci": {
+    "host": "any",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "-Doptimize=ReleaseFast"
+    ]
+  }
+}

@@ -10,6 +10,7 @@
         ["python3", "-m", "unittest", "discover", "-s", "scripts/tests", "-p", "test_*.py"],
         ["python3", "scripts/check_build_monorepo_baseline.py"],
         ["python3", "scripts/check_source_conformance.py"],
+        ["python3", "scripts/check_package_workspace.py"],
         ["python3", "scripts/check_upstream_pins.py"]
       ]
     },
@@ -27,20 +28,30 @@
       "host": "linux",
       "description": "Focused Stwo core library",
       "commands": [
-        ["zig", "build", "test-stwo-core", "identity-stwo-core", "-Doptimize=ReleaseFast", "-j2"]
+        ["zig", "build", "test-stwo-core", "identity-stwo-core", "-Doptimize=ReleaseFast", "-j2"],
+        ["zig", "build", "test", "--build-file", "src/core/build.zig", "-Doptimize=ReleaseFast", "-j2"]
+      ]
+    },
+    "backend_contracts": {
+      "host": "linux",
+      "description": "Independent backend-contracts package",
+      "commands": [
+        ["zig", "build", "test", "--build-file", "src/backend/build.zig", "-Doptimize=ReleaseFast", "-j2"]
       ]
     },
     "prover": {
       "host": "linux",
       "description": "Focused backend-generic prover library",
       "commands": [
-        ["zig", "build", "test-stwo-prover", "identity-stwo-prover", "-Doptimize=ReleaseFast", "-j2"]
+        ["zig", "build", "test-stwo-prover", "identity-stwo-prover", "-Doptimize=ReleaseFast", "-j2"],
+        ["zig", "build", "test", "--build-file", "src/prover/build.zig", "-Doptimize=ReleaseFast", "-j2"]
       ]
     },
     "package": {
       "host": "linux",
       "description": "External package consumer compatibility",
       "commands": [
+        ["python3", "scripts/check_package_workspace.py"],
         ["zig", "build", "test-downstream-modules", "-Doptimize=ReleaseFast", "-j2"]
       ]
     },
@@ -166,7 +177,7 @@
   "rules": [
     {
       "prefixes": ["build.zig", "build.zig.zon", "build_support/graph", "build_support/products/catalog", "build_support/products/matrix.zig", "build_support/products/product_specs.zig", "build_support/internal_build.zig", "build_support/root_dispatcher.zig"],
-      "lanes": ["build_graph", "core", "prover", "package", "native_cpu", "native_oracle", "riscv_cpu", "cairo_cpu", "cairo_metal", "aggregate_cpu", "native_metal", "aggregate_metal"]
+      "lanes": ["build_graph", "core", "backend_contracts", "prover", "package", "native_cpu", "native_oracle", "riscv_cpu", "cairo_cpu", "cairo_metal", "aggregate_cpu", "native_metal", "aggregate_metal"]
     },
     {
       "prefixes": ["build_support/products/core.zig"],
@@ -202,11 +213,15 @@
     },
     {
       "prefixes": ["src/core"],
-      "lanes": ["package", "aggregate_metal"]
+      "lanes": ["core", "backend_contracts", "prover", "package", "aggregate_metal"]
     },
     {
-      "prefixes": ["src/prover", "src/backend"],
-      "lanes": ["package", "aggregate_metal"]
+      "prefixes": ["src/backend"],
+      "lanes": ["backend_contracts", "prover", "package", "aggregate_metal"]
+    },
+    {
+      "prefixes": ["src/prover"],
+      "lanes": ["prover", "package", "aggregate_metal"]
     },
     {
       "prefixes": ["src/frontends/cairo", "src/integrations/cairo_cpu", "src/products/cairo", "src/products/cairo_cpu", "src/stwo_cairo_cpu.zig", "build_support/products/cairo_cpu.zig", "build_support/products/cairo_cpu", "build_support/products/cairo_support.zig"],
@@ -226,7 +241,7 @@
     },
     {
       "prefixes": [".github/workflows", ".githooks", "scripts/ci_scope_plan.py", "scripts/ci_scope_run.py", "scripts/ci_scope_push.py", "conformance/ci-touchpoints-v1.json"],
-      "lanes": ["build_graph", "core", "prover", "package", "native_cpu", "native_oracle", "riscv_cpu", "cairo_cpu", "cairo_metal", "aggregate_cpu", "deferred", "native_cuda_static", "native_cuda_device", "native_metal", "aggregate_metal", "metal_compile", "metal_aot"]
+      "lanes": ["build_graph", "core", "backend_contracts", "prover", "package", "native_cpu", "native_oracle", "riscv_cpu", "cairo_cpu", "cairo_metal", "aggregate_cpu", "deferred", "native_cuda_static", "native_cuda_device", "native_metal", "aggregate_metal", "metal_compile", "metal_aot"]
     }
   ],
   "documentation_prefixes": ["README.md", "CONTRIBUTING.md", "LICENSE", "docs", "archive", "conformance"],
