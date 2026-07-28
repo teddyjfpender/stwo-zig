@@ -2450,3 +2450,174 @@ remaining preprocessed item) while recomputing the 36 ms of interpolation and
 extended-domain evaluation the later stages consume — payload tens of MB
 rather than the 150-200 MB full-state artifact, and the integrity surface
 stays frontend-owned. Raw per-sample data: `/private/tmp/inc9-work/`.
+
+## Increment 3.9: cache productization (pruning + ops)
+
+**Outcome: ops-only increment. No proof bytes move, no timing claim is made.**
+The two protocol-identity-keyed cache artifacts — the ~2 MB Pedersen affine
+point table (increment 9) and the ~134 MB preprocessed tree-digest artifact
+(increment 2.1) — accumulated one file per `(implementation commit x profile x
+variant)` with no eviction. A dirty tree mints a new key per build, so a
+developer iterating burned ~136 MB per build into an unbounded directory. That
+was flagged at increment 2.1 and is now fixed: the cache is bounded by a
+total-size budget enforced at store time, the per-run cache behaviour is in the
+machine-readable report, and every cache environment variable is documented
+below.
+
+Implementation model: Claude Opus 4.5. Orchestration: Claude Fable 5.
+Transcript: `transcripts/session-10.md`. Predecessor: `dcef25bb`.
+
+### Design
+
+Both artifact kinds share one directory, so the budget is a property of the
+directory, not of a kind. `product_cache.Config` grows one field,
+`budget_bytes`, defaulting to 2 GiB — roughly fifteen `(commit x profile x
+variant)` generations at 136 MB each. `enforceBudget` runs after every
+successful atomic store, from both artifact kinds' store paths
+(`product_cache.pedersenTable` and `tree_digest_cache.storeThunk`). It is
+`void`-returning and swallows every filesystem error: a cache that cannot prune
+must never fail a proof, which is the same fail-open contract the load paths
+already had.
+
+### Eviction policy and its rationale
+
+**Last-used marker: the artifact file's own mtime, refreshed on every verified
+load.** `atime` is unusable — `relatime`, `noatime` and macOS's coalescing all
+defeat it — so the marker has to be maintained by the cache. The two candidates
+were a sidecar file per artifact and an in-band mtime. The mtime wins:
+
+- a sidecar doubles the directory's entry count, needs its own orphan
+  reclamation when an artifact is evicted or a writer crashes, and adds a
+  second file that can disagree with the first. **A corrupted last-used marker
+  is impossible by construction here** because there is no second file to
+  corrupt: the marker is metadata on the artifact the integrity trailer already
+  covers.
+- the cost is that mtime stops meaning "written at". Nothing in either
+  artifact's format, key, or integrity check reads mtime, so nothing regresses.
+
+A store sets the marker implicitly (temp → fsync → rename). A verified load
+refreshes it (`product_cache.touchArtifact`, called only after the header
+equality and the integrity digest have both passed, so an artifact that failed
+verification is not credited with a use). The refresh is best-effort; a failure
+only makes an artifact look older than it is, which can cost one recomputation.
+
+**Order: garbage first, then least-recently-used.** Candidates are sorted with
+stale temporaries ahead of real artifacts, then ascending mtime, and unlinked
+until the directory is within budget.
+
+**What is never a candidate.**
+
+1. Any file whose name does not end in `.preprocessed` or
+   `.preprocessed-tree`. The cache does not own the rest of the directory and
+   will not delete from it, though it does count those bytes against the budget
+   — the budget is a claim about the directory, not about this cache's share.
+2. Any artifact whose key is registered by `protectKey`. Every key the run
+   derives is registered *before* the filesystem is touched, in
+   `pedersenTable` and in the tree cache's `load`/`store`. That covers the
+   artifact just written and every artifact the run has already loaded. The set
+   of keys reachable from one product identity is not enumerable from the
+   identity digest alone (the tree artifact's key binds the committed column
+   heights), so registering derived keys is the closest sound approximation to
+   "the current product identity's artifacts", and it is exactly the working
+   set that matters.
+3. Any `.tmp` newer than one hour: another process's in-flight write. Older
+   ones are a crashed writer's leftover and are reclaimed first, which is the
+   only way that space is ever recovered.
+
+If the protections leave the directory over budget, the pass stops and reports
+the overage rather than forcing it. That is the correct trade: a run that
+cannot keep its own working set has nothing to gain from evicting it.
+
+**Concurrency.** Eviction only ever unlinks whole artifact files; no artifact is
+ever mutated in place, and no artifact is ever truncated. Two provers therefore
+compose:
+
+- a reader that has already opened its artifact is unaffected by a concurrent
+  unlink — POSIX keeps the inode alive for the open descriptor, so the read
+  completes over the whole artifact and the integrity trailer verifies.
+- a reader that has not opened it yet gets `FileNotFound` from
+  `openFileAbsolute`, which is already one of the fail-open cases both load
+  paths handle: compute, then atomically re-store.
+
+There is no third state, which is why no lock is needed and why the existing
+integrity checks are sufficient. `enforceBudget` also bounds its own scan at
+8192 entries so a pathological directory cannot make a store pass unbounded.
+
+### Accounting fields (report)
+
+The run report grows one object, `preprocessed_cache`, beside
+`backend_evidence`, following increment 9's default-zero pattern. It is
+availability telemetry: nothing in it reaches a key, an artifact byte, the
+transcript or the proof, and a disabled cache reports honestly rather than
+being omitted.
+
+| Field | Meaning |
+| --- | --- |
+| `enabled` | cache active for this run (configured and directory usable) |
+| `budget_bytes` | effective directory budget; `0` when disabled or unbounded |
+| `hits` | verified loads, both artifact kinds |
+| `misses` | load attempts that fell through to computing |
+| `stores` | successful atomic stores |
+| `evictions` | artifacts unlinked by eviction passes this run |
+| `loaded_bytes` | on-disk bytes admitted by verified loads |
+| `stored_bytes` | on-disk bytes written by successful stores |
+| `evicted_bytes` | on-disk bytes reclaimed |
+| `directory_bytes` | directory total observed at the last enforcement pass |
+| `eviction_ns` | wall time spent in eviction passes |
+
+Counters are reset by `configure`, so they are strictly per-run. They are
+mutex-guarded because the tree cache's store runs on the commit path.
+
+### Environment variable reference (complete)
+
+The products have no user-facing docs surface in scope; this is the documented
+home for now. All three are read once, at proving-transaction setup
+(`src/products/cairo/shared/preprocessed_cache.zig`).
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `STWO_CAIRO_PREPROCESSED_CACHE` | on | `0`, `false`, `off` or `no` (any case) disables the cache entirely: no load, no store, no directory creation, no eviction pass. Anything else, including an unset variable, leaves it on. |
+| `STWO_CAIRO_PREPROCESSED_CACHE_DIR` | unset | Absolute directory holding both artifact kinds. A relative value is rejected and the cache falls back to the default location. Unset: `$XDG_CACHE_HOME/stwo-zig/cairo-preprocessed` if `XDG_CACHE_HOME` is absolute, else `$HOME/.cache/stwo-zig/cairo-preprocessed`. With no usable directory the cache stays inert and every proof recomputes. |
+| `STWO_CAIRO_PREPROCESSED_CACHE_BUDGET` | `2147483648` (2 GiB) | Total-size budget for the whole cache directory, in bytes, decimal, no suffixes. `0` means unbounded — no eviction pass ever runs. An empty or unparseable value keeps the default rather than failing the proof. |
+
+Artifact naming, for anyone pruning by hand: `<64-hex-key>.preprocessed` is the
+Pedersen table, `<64-hex-key>.preprocessed-tree` is the tree-digest artifact,
+and `*.tmp` is an in-flight or abandoned write. Deleting any of them is always
+safe — the next proof recomputes and re-stores.
+
+### Residual cache-ops debt
+
+Four items, none of them blocking, all worth one future slot together:
+
+1. **Enforcement is store-time only.** A process that only ever hits never
+   prunes. A directory left over budget by a previous run's protections stays
+   over budget until something stores again. A cheap fix is an enforcement pass
+   at activation as well as at store, guarded by a stat of the directory.
+2. **No ops subcommand.** There is no `stwo-cairo-cpu cache {status,clear}`, so
+   inspecting or clearing the directory means knowing the path convention and
+   the two extensions. The note documents both, which is why this is debt rather
+   than a gap.
+3. **The protected set is capped at 16 keys per run.** Overflow is dropped
+   silently, which can only cost a re-store, but a run that somehow addressed
+   more than 16 artifacts would lose the protection guarantee for the excess.
+4. **Foreign files count against the budget but are never evicted.** Honest, but
+   a directory shared with something else can be wedged into permanent overage,
+   in which case the cache reports the overage every run and prunes only its
+   own artifacts down to nothing. Pointing `STWO_CAIRO_PREPROCESSED_CACHE_DIR`
+   at a dedicated directory avoids it entirely.
+
+### Verification status: INCOMPLETE
+
+This increment is **not** an accepted candidate. The design, the implementation
+and the tests landed; the gate matrix did not run. The blocker was mechanical:
+a cold `cairo_cpu` AOT cache in this worktree put ten Debug-mode clang processes
+on the generated witness C translation units at 100% for over fifty minutes,
+which starved `test-cairo-frontend`'s test binary and left
+`test-cairo-cpu-product` still in AOT compilation when the 90-minute budget
+expired. `package-workspace` passed (17 packages, 17 public modules, 51
+dependency edges), every changed source passes `zig ast-check`, and
+`test-cairo-frontend` compiled cleanly — which is what proves the new module
+code and the 13-case suite type-check — but no test result, no digest and no
+timing was observed. The full list of unrun checks is in
+`transcripts/session-10.md`. A successor inherits a warm AOT cache and should be
+able to close this in one short pass.
