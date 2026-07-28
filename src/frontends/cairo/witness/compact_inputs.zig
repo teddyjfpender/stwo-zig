@@ -3,8 +3,14 @@
 const std = @import("std");
 const proof_plan = @import("../proof_plan.zig");
 const gathered_inputs = @import("gathered_inputs.zig");
+const prover = @import("stwo_prover_impl");
+const work_pool = prover.work_pool;
 
 const max_tuple_words: usize = 7;
+
+/// Smallest producer-row span worth handing to its own worker. Below this the
+/// private-table and merge overhead dominates the counting itself.
+const min_rows_per_worker: usize = 1 << 16;
 
 pub const Error = error{
     AllocationSizeOverflow,
@@ -115,8 +121,7 @@ fn materializeInternal(
         geometry.iota_slot != geometry.tuple_words + 1)
         return Error.InvalidGeometry;
 
-    var multiplicities = std.AutoHashMap(Key, u32).init(allocator);
-    defer multiplicities.deinit();
+    var widest_rows: usize = 0;
     for (edges, producers) |edge, producer| {
         if (!std.mem.eql(u8, edge.producer, producer.label) or
             edge.words_per_instance < geometry.tuple_words or edge.instances == 0 or
@@ -127,24 +132,14 @@ fn materializeInternal(
             @as(u64, edge.instances - 1) * edge.words_per_instance +
             geometry.tuple_words;
         if (final_word > producer.words_per_row) return Error.InvalidGeometry;
-        for (0..edge.instances) |instance| {
-            for (0..producer.active_rows) |producer_row| {
-                var key = [_]u32{0} ** max_tuple_words;
-                for (0..geometry.tuple_words) |word| {
-                    const source_word = edge.word_base +
-                        @as(u32, @intCast(instance)) * edge.words_per_instance +
-                        @as(u32, @intCast(word));
-                    key[word] = producer.words[
-                        producer_row * producer.words_per_row + source_word
-                    ];
-                }
-                const result = try multiplicities.getOrPut(key);
-                if (!result.found_existing) result.value_ptr.* = 0;
-                result.value_ptr.* = std.math.add(u32, result.value_ptr.*, 1) catch
-                    return Error.MultiplicityOverflow;
-            }
-        }
+        widest_rows = @max(widest_rows, producer.active_rows);
     }
+
+    var counting = try Counting.init(geometry, edges, producers, widest_rows);
+    defer counting.deinit();
+    try counting.run();
+    const multiplicities = counting.merged();
+
     if (multiplicities.count() == 0) return Error.EmptyInput;
     const rows = try allocator.alloc(Row, multiplicities.count());
     errdefer allocator.free(rows);
@@ -177,6 +172,128 @@ fn materializeInternal(
         .geometry = geometry,
     };
 }
+
+const Histogram = std.AutoHashMapUnmanaged(Key, u32);
+
+/// One worker's private tuple histogram over a disjoint producer-row span.
+///
+/// Every worker sees every edge and every instance, but only the rows in its
+/// own span, so each `(edge, instance, producer_row)` triple is counted exactly
+/// once across the pool. Counts are `u32` additions, so the per-worker partial
+/// histograms merge exactly and the merged result is independent of the span
+/// decomposition and of completion order.
+const CountWorker = struct {
+    geometry: proof_plan.CompactGeometry,
+    edges: []const proof_plan.ProducerEdge,
+    producers: []const gathered_inputs.Producer,
+    index: usize,
+    worker_count: usize,
+    arena: std.heap.ArenaAllocator,
+    map: Histogram,
+    failure: ?anyerror,
+
+    fn run(self: *CountWorker) void {
+        self.accumulate() catch |err| {
+            self.failure = err;
+        };
+    }
+
+    fn accumulate(self: *CountWorker) !void {
+        const scratch = self.arena.allocator();
+        const tuple_words: usize = self.geometry.tuple_words;
+        for (self.edges, self.producers) |edge, producer| {
+            const active: usize = producer.active_rows;
+            const span = std.math.divCeil(usize, active, self.worker_count) catch
+                unreachable;
+            const start = self.index * span;
+            if (start >= active) continue;
+            const end = @min(active, start + span);
+            const words_per_row: usize = producer.words_per_row;
+            for (0..edge.instances) |instance| {
+                const base = @as(usize, edge.word_base) +
+                    instance * @as(usize, edge.words_per_instance);
+                for (start..end) |producer_row| {
+                    var key = [_]u32{0} ** max_tuple_words;
+                    @memcpy(
+                        key[0..tuple_words],
+                        producer.words[producer_row * words_per_row + base ..][0..tuple_words],
+                    );
+                    const result = try self.map.getOrPut(scratch, key);
+                    if (!result.found_existing) result.value_ptr.* = 0;
+                    result.value_ptr.* = std.math.add(u32, result.value_ptr.*, 1) catch
+                        return Error.MultiplicityOverflow;
+                }
+            }
+        }
+    }
+};
+
+/// Pool-split tuple counting with a serial fallback when no pool exists.
+const Counting = struct {
+    slots: [work_pool.MAX_WORKERS]CountWorker,
+    worker_count: usize,
+
+    fn init(
+        geometry: proof_plan.CompactGeometry,
+        edges: []const proof_plan.ProducerEdge,
+        producers: []const gathered_inputs.Producer,
+        widest_rows: usize,
+    ) !Counting {
+        const pool = work_pool.getGlobalPool();
+        const capacity = std.math.divCeil(usize, widest_rows, min_rows_per_worker) catch 1;
+        const worker_count = if (pool) |active|
+            @max(@as(usize, 1), @min(@min(active.workerCount(), work_pool.MAX_WORKERS), capacity))
+        else
+            1;
+        var counting = Counting{ .slots = undefined, .worker_count = worker_count };
+        for (counting.slots[0..worker_count], 0..) |*slot, index| slot.* = .{
+            .geometry = geometry,
+            .edges = edges,
+            .producers = producers,
+            .index = index,
+            .worker_count = worker_count,
+            .arena = std.heap.ArenaAllocator.init(std.heap.page_allocator),
+            .map = .empty,
+            .failure = null,
+        };
+        return counting;
+    }
+
+    fn deinit(self: *Counting) void {
+        for (self.slots[0..self.worker_count]) |*slot| slot.arena.deinit();
+        self.* = undefined;
+    }
+
+    fn run(self: *Counting) !void {
+        if (self.worker_count > 1) {
+            const pool = work_pool.getGlobalPool().?;
+            var wait_group: std.Thread.WaitGroup = .{};
+            for (self.slots[1..self.worker_count]) |*slot|
+                pool.spawnWg(&wait_group, CountWorker.run, .{slot});
+            CountWorker.run(&self.slots[0]);
+            wait_group.wait();
+        } else {
+            CountWorker.run(&self.slots[0]);
+        }
+        for (self.slots[0..self.worker_count]) |slot| {
+            if (slot.failure) |err| return err;
+        }
+        const scratch = self.slots[0].arena.allocator();
+        for (self.slots[1..self.worker_count]) |*slot| {
+            var iterator = slot.map.iterator();
+            while (iterator.next()) |entry| {
+                const result = try self.slots[0].map.getOrPut(scratch, entry.key_ptr.*);
+                if (!result.found_existing) result.value_ptr.* = 0;
+                result.value_ptr.* = std.math.add(u32, result.value_ptr.*, entry.value_ptr.*) catch
+                    return Error.MultiplicityOverflow;
+            }
+        }
+    }
+
+    fn merged(self: *Counting) *const Histogram {
+        return &self.slots[0].map;
+    }
+};
 
 fn lessThanKey(key_words: u32, lhs: Row, rhs: Row) bool {
     for (0..key_words) |word| {
