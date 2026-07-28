@@ -63,6 +63,15 @@ OWNER_ENTRY_RE = re.compile(
     r'\.dependency_name\s*=\s*"([^"]+)"\s*\}',
     re.DOTALL,
 )
+MARKDOWN_LINK_RE = re.compile(r"!?\[[^\]]+\]\(([^)\s]+)\)")
+REQUIRED_README_HEADINGS = (
+    "## Public API",
+    "## Dependencies",
+    "## Build, test, and run",
+    "## Contract and invariants",
+    "## Change checklist",
+    "## Related documentation",
+)
 
 
 @dataclass(frozen=True)
@@ -370,6 +379,90 @@ def _validate_api(contract: Contract, failures: list[str]) -> None:
             f"missing={sorted(set(expected) - set(actual))}, "
             f"added={sorted(set(actual) - set(expected))}"
         )
+
+
+def _validate_readme(
+    repository: Path,
+    contract: Contract,
+    failures: list[str],
+) -> None:
+    path = contract.directory / "README.md"
+    if not path.is_file():
+        failures.append(f"{contract.package}: package README.md is missing")
+        return
+    text = path.read_text(encoding="utf-8")
+    lines = text.splitlines()
+    if not lines or lines[0] != f"# `{contract.package}`":
+        failures.append(
+            f"{contract.package}: README must start with '# `{contract.package}`'"
+        )
+    expected_facts = (
+        f"| Version | `{contract.version}` |",
+        f"| Layer | `{contract.layer}` |",
+        f"| Owner | `{contract.owner}` |",
+        f"| Focused CI host | {'Linux' if contract.ci_host == 'linux' else 'macOS'} |",
+    )
+    for fact in expected_facts:
+        if fact not in text:
+            failures.append(f"{contract.package}: README is missing fact {fact!r}")
+    for module in contract.public_modules:
+        if f'@import("{module}")' not in text:
+            failures.append(
+                f"{contract.package}: README has no import example for {module}"
+            )
+    for dependency in contract.dependencies:
+        if f"`{dependency}`" not in text:
+            failures.append(
+                f"{contract.package}: README omits dependency {dependency}"
+            )
+    for public_name in contract.api_surface:
+        if f"`{public_name}`" not in text:
+            failures.append(
+                f"{contract.package}: README omits public API name {public_name}"
+            )
+    command = " ".join(contract.ci_command)
+    if command not in text:
+        failures.append(
+            f"{contract.package}: README omits exact focused CI command {command!r}"
+        )
+    for heading in REQUIRED_README_HEADINGS:
+        if heading not in lines:
+            failures.append(
+                f"{contract.package}: README is missing heading {heading!r}"
+            )
+    if not any(
+        line.startswith("## ")
+        and ("Purpose" in line or "Architecture" in line)
+        for line in lines
+    ):
+        failures.append(
+            f"{contract.package}: README needs a purpose or architecture section"
+        )
+    if "```mermaid" not in lines:
+        failures.append(f"{contract.package}: README needs an architecture diagram")
+    if sum(line.startswith("```") for line in lines) % 2 != 0:
+        failures.append(f"{contract.package}: README has unbalanced code fences")
+    headings = [
+        len(line) - len(line.lstrip("#"))
+        for line in lines
+        if re.match(r"^#{1,6} ", line)
+    ]
+    if headings.count(1) != 1 or any(
+        current > previous + 1
+        for previous, current in zip(headings, headings[1:])
+    ):
+        failures.append(f"{contract.package}: README heading hierarchy is malformed")
+    if len(re.findall(r"\b[\w'-]+\b", text)) < 350:
+        failures.append(f"{contract.package}: README is too brief for an owner guide")
+    for destination in MARKDOWN_LINK_RE.findall(text):
+        if destination.startswith(("http://", "https://", "mailto:", "#")):
+            continue
+        target = destination.split("#", 1)[0]
+        if target and not (path.parent / target).resolve().exists():
+            relative = path.relative_to(repository)
+            failures.append(
+                f"{contract.package}: {relative} has broken link {destination!r}"
+            )
 
 
 def _relative_import_closure(root: Path, owner: Path) -> set[Path]:
@@ -689,6 +782,7 @@ def check_repository(repository: Path) -> list[str]:
         _validate_manifest(contract, failures)
         _validate_imports(contract, module_to_package, failures)
         _validate_api(contract, failures)
+        _validate_readme(repository, contract, failures)
         _validate_api_contract(contract, failures)
     _validate_relative_ingress(repository, contracts, failures)
     _validate_aggregate_manifests(repository, contracts, failures)

@@ -201,6 +201,36 @@ const owned = @import(
             self.assertEqual(1, len(failures))
             self.assertIn("embedded file escapes owner", failures[0])
 
+    def test_package_readme_is_required(self) -> None:
+        with TemporaryDirectory() as directory:
+            repository = Path(directory).resolve()
+            owner = repository / "src/owned"
+            owner.mkdir(parents=True)
+            contract = subject.Contract(
+                directory=owner,
+                package="owned_package",
+                version="0.1.0",
+                layer="service",
+                owner="owned-team",
+                public_modules={"owned_package": "mod.zig"},
+                dependencies={},
+                injected_modules=frozenset(),
+                api_surface=("Service",),
+                api_contract=subject.ApiContract(
+                    signature_tests=("mod.zig::signature",),
+                    invariant_tests=("mod.zig::invariant",),
+                ),
+                ci_lane="owned_package",
+                ci_host="linux",
+                ci_command=("zig", "build", "test"),
+            )
+            failures: list[str] = []
+            subject._validate_readme(repository, contract, failures)
+            self.assertEqual(
+                ["owned_package: package README.md is missing"],
+                failures,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
