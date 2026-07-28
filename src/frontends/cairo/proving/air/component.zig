@@ -7,7 +7,6 @@ const composition = @import("../../witness/composition_bundle.zig");
 const geometry = @import("../../witness/resident_geometry.zig");
 const verifier_runtime = @import("../../witness/resident_verifier.zig");
 const simd = @import("simd_evaluator.zig");
-const audit = @import("composition_audit.zig");
 
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
@@ -139,13 +138,6 @@ pub const Component = struct {
         maybe_pool: ?*prover.work_pool.WorkPool,
     ) !void {
         const captured = self.runtime.captured;
-        audit.reportComponent(captured);
-        const audit_start = audit.now();
-        defer audit.reportSpan(
-            captured.evaluation_log_size,
-            audit_start,
-            audit.now(),
-        );
         const requests = [_]prover.air.accumulation.ColumnRequest{.{
             .log_size = captured.evaluation_log_size,
             .n_cols = captured.n_constraints,
