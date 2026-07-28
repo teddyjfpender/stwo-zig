@@ -1,5 +1,4 @@
 //! Build ownership for the focused Sail RV32IM + CPU/SIMD product.
-
 const std = @import("std");
 const build_identity = @import("../build_identity.zig");
 const closure_gate = @import("../gates/product_closure.zig");
@@ -7,6 +6,7 @@ const graph_identity = @import("../graph/identity.zig");
 const graph = @import("../graph/modules.zig");
 const integration_graph = @import("../graph/integrations.zig");
 const product_policy = @import("../graph/product.zig");
+const riscv_refinement = @import("riscv_refinement.zig");
 const product = graph.Product{
     .name = "stwo-riscv-cpu",
     .frontend = .riscv,
@@ -19,6 +19,7 @@ const source_closure = product_policy.SourceClosure{
         "src/products/riscv_cpu/main.zig",
         "src/stwo_riscv_cpu.zig",
         "src/riscv_trace_cli.zig",
+        "src/frontends/riscv/refinement_ir_export_test.zig",
     },
     .named_imports = &.{
         .{ .name = "stwo", .source = "src/stwo_riscv_cpu.zig" },
@@ -174,6 +175,7 @@ pub fn addProduct(context: Context) void {
         "test-riscv-air-satisfaction",
         "Export and independently check all RISC-V AIR main-trace components",
     ).dependOn(&air_satisfaction_check.step);
+    riscv_refinement.addPilot(context.b, context.target, context.optimize, context.protocol);
 
     const csp_benchmark = context.b.addSystemCommand(&.{
         "python3",

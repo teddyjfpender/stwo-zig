@@ -1,0 +1,591 @@
+"""Render deterministic AIR packages, Lean capsules, and their manifest."""
+
+from __future__ import annotations
+
+import shutil
+import subprocess
+import tempfile
+from pathlib import Path
+from typing import Any
+
+from . import air, codec, sail
+from .model import LEAN_TOOLCHAIN, PILOT_OPCODES, SCHEMA_VERSION, Paths, RefinementError
+
+SOURCE_PATHS = (
+    "build.zig",
+    "build_support/graph/delegation.zig",
+    "build_support/internal_build.zig",
+    "build_support/products/catalog.zig",
+    "build_support/products/package_dependencies.zig",
+    "build_support/products/riscv_cpu.zig",
+    "build_support/products/riscv_refinement.zig",
+    "src/frontends/riscv/refinement_ir_export_test.zig",
+)
+SOURCE_TREES = ("src/frontends/riscv",)
+
+GENERATOR_PATHS = (
+    "scripts/riscv_refinement.py",
+    "scripts/riscv_refinement_lib/model.py",
+    "scripts/riscv_refinement_lib/codec.py",
+    "scripts/riscv_refinement_lib/air.py",
+    "scripts/riscv_refinement_lib/sail.py",
+    "scripts/riscv_refinement_lib/negative.py",
+    "scripts/riscv_refinement_lib/render.py",
+    "scripts/tests/test_riscv_refinement.py",
+)
+
+PROOF_PATHS = (
+    "formal/riscv-refinement/README.md",
+    "formal/riscv-refinement/lean-toolchain",
+    "formal/riscv-refinement/lake-manifest.json",
+    "formal/riscv-refinement/lakefile.toml",
+    "formal/riscv-refinement/RiscvRefinement.lean",
+    "formal/riscv-refinement/RiscvRefinement/Common.lean",
+    "formal/riscv-refinement/RiscvRefinement/Bridge/Decode.lean",
+    "formal/riscv-refinement/RiscvRefinement/Opcodes/Lui.lean",
+    "formal/riscv-refinement/RiscvRefinement/Opcodes/Addi.lean",
+    "formal/riscv-refinement/RiscvRefinement/NonVacuity.lean",
+    "formal/riscv-refinement/RiscvRefinement/Coverage.lean",
+    "formal/riscv-refinement/RiscvRefinement/AxiomAudit.lean",
+    "soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md",
+)
+
+EXPORTED_FAMILIES = frozenset(
+    {
+        "auipc",
+        "base_alu_imm",
+        "base_alu_reg",
+        "branch_eq",
+        "branch_lt",
+        "div",
+        "fence",
+        "jal",
+        "jalr",
+        "load_store",
+        "lt_imm",
+        "lt_reg",
+        "lui",
+        "mul",
+        "mulh",
+        "shifts_imm",
+        "shifts_reg",
+    }
+)
+
+AIR_LEAN_TEMPLATE = """\
+-- GENERATED FILE. DO NOT EDIT.
+-- Generator: scripts/riscv_refinement.py
+-- Regenerate: python3 scripts/riscv_refinement.py generate
+-- Production binding: symbolic collector plus exact structural validation.
+-- Boundary: normalized predicate; no Lean serialized-M31 interpreter yet.
+
+import RiscvRefinement.Common
+
+namespace RiscvRefinement.Air.Generated
+
+open RiscvRefinement
+
+def luiAirDigest : String := "__LUI_DIGEST__"
+
+def addiAirDigest : String := "__ADDI_DIGEST__"
+
+def luiImmediate
+    (imm0 : BitVec 4)
+    (imm1 imm2 : BitVec 8) :
+    BitVec 20 :=
+  imm2.append (imm1.append imm0)
+
+def luiResult
+    (imm0 : BitVec 4)
+    (imm1 imm2 : BitVec 8) :
+    Word :=
+  (luiImmediate imm0 imm1 imm2).append (BitVec.ofNat 12 0)
+
+def luiResultBytes
+    (imm0 : BitVec 4)
+    (imm1 imm2 : BitVec 8) :
+    WordBytes where
+  limb0 := BitVec.ofNat 8 0
+  limb1 := imm0.append (BitVec.ofNat 4 0)
+  limb2 := imm1
+  limb3 := imm2
+
+structure LuiRow where
+  pc : Word
+  clock : Nat
+  rd : RegisterIndex
+  rdPreviousClock : Nat
+  rdPrevious : WordBytes
+  rdNext : WordBytes
+  imm0 : BitVec 4
+  imm1 : BitVec 8
+  imm2 : BitVec 8
+  rdNonzero : Bool
+  claimedNextPc : Word
+deriving DecidableEq, Repr
+
+structure LuiHolds (row : LuiRow) : Prop where
+  clockPositive : 0 < row.clock
+  destinationClock :
+    validPreviousClock
+      row.rdPreviousClock
+      (accessClock row.clock 1)
+  destinationFlag :
+    row.rdNonzero = decide (row.rd ≠ zeroRegister)
+  destinationLimb0 :
+    row.rdNext.limb0 =
+      if row.rdNonzero
+      then (luiResultBytes row.imm0 row.imm1 row.imm2).limb0
+      else WordBytes.zero.limb0
+  destinationLimb1 :
+    row.rdNext.limb1 =
+      if row.rdNonzero
+      then (luiResultBytes row.imm0 row.imm1 row.imm2).limb1
+      else WordBytes.zero.limb1
+  destinationLimb2 :
+    row.rdNext.limb2 =
+      if row.rdNonzero
+      then (luiResultBytes row.imm0 row.imm1 row.imm2).limb2
+      else WordBytes.zero.limb2
+  destinationLimb3 :
+    row.rdNext.limb3 =
+      if row.rdNonzero
+      then (luiResultBytes row.imm0 row.imm1 row.imm2).limb3
+      else WordBytes.zero.limb3
+  nextPcResult : row.claimedNextPc = nextPc row.pc
+
+def luiRetirement (row : LuiRow) : Retirement where
+  nextPc := row.claimedNextPc
+  write := architecturalWrite row.rd row.rdNext.word
+
+def luiProgramTuple (row : LuiRow) : ProgramTuple where
+  pc := row.pc
+  opcodeId := 35
+  rd := row.rd.toNat
+  rs1 := (luiImmediate row.imm0 row.imm1 row.imm2).toNat
+  operand := 0
+
+structure LuiRelations where
+  program : ProgramTuple
+  stateConsume : StateTuple
+  stateEmit : StateTuple
+  destinationConsume : RegisterTuple
+  destinationEmit : RegisterTuple
+deriving DecidableEq, Repr
+
+def luiRelations (row : LuiRow) : LuiRelations where
+  program := luiProgramTuple row
+  stateConsume := { pc := row.pc, clock := row.clock }
+  stateEmit := { pc := nextPc row.pc, clock := row.clock + 1 }
+  destinationConsume := {
+    addr := row.rd
+    clock := row.rdPreviousClock
+    value := row.rdPrevious.word
+  }
+  destinationEmit := {
+    addr := row.rd
+    clock := accessClock row.clock 1
+    value := row.rdNext.word
+  }
+
+def addiImmediate
+    (imm0 : BitVec 8)
+    (imm1 : BitVec 3)
+    (sign : BitVec 1) :
+    BitVec 12 :=
+  sign.append (imm1.append imm0)
+
+def addiImmediateValue
+    (imm0 : BitVec 8)
+    (imm1 : BitVec 3)
+    (sign : BitVec 1) :
+    Nat :=
+  imm0.toNat +
+    256 * (imm1.toNat + 248 * sign.toNat) +
+    65536 * (255 * sign.toNat) +
+    16777216 * (255 * sign.toNat)
+
+def addiAirImmediate
+    (imm0 : BitVec 8)
+    (imm1 : BitVec 3)
+    (sign : BitVec 1) :
+    Word :=
+  BitVec.ofNat 32 (addiImmediateValue imm0 imm1 sign)
+
+def addiResult
+    (source : Word)
+    (imm0 : BitVec 8)
+    (imm1 : BitVec 3)
+    (sign : BitVec 1) :
+    Word :=
+  source + addiAirImmediate imm0 imm1 sign
+
+structure AddiRow where
+  pc : Word
+  clock : Nat
+  rd : RegisterIndex
+  rdPreviousClock : Nat
+  rdPrevious : WordBytes
+  rdNext : WordBytes
+  rs1 : RegisterIndex
+  rs1PreviousClock : Nat
+  rs1Previous : WordBytes
+  rs1Next : WordBytes
+  imm0 : BitVec 8
+  imm1 : BitVec 3
+  immSign : BitVec 1
+  result : WordBytes
+  rdNonzero : Bool
+  claimedNextPc : Word
+deriving DecidableEq, Repr
+
+structure AddiHolds (row : AddiRow) : Prop where
+  clockPositive : 0 < row.clock
+  sourceClock :
+    validPreviousClock
+      row.rs1PreviousClock
+      (accessClock row.clock 1)
+  destinationClock :
+    validPreviousClock
+      row.rdPreviousClock
+      (accessClock row.clock 2)
+  sourceLimb0 : row.rs1Next.limb0 = row.rs1Previous.limb0
+  sourceLimb1 : row.rs1Next.limb1 = row.rs1Previous.limb1
+  sourceLimb2 : row.rs1Next.limb2 = row.rs1Previous.limb2
+  sourceLimb3 : row.rs1Next.limb3 = row.rs1Previous.limb3
+  carryRecurrence :
+    ∃ carry1 carry2 carry3 carry4 : BitVec 1,
+      row.rs1Next.limb0.toNat + row.imm0.toNat =
+          row.result.limb0.toNat + 256 * carry1.toNat ∧
+      row.rs1Next.limb1.toNat +
+            (row.imm1.toNat + 248 * row.immSign.toNat) +
+            carry1.toNat =
+          row.result.limb1.toNat + 256 * carry2.toNat ∧
+      row.rs1Next.limb2.toNat +
+            255 * row.immSign.toNat +
+            carry2.toNat =
+          row.result.limb2.toNat + 256 * carry3.toNat ∧
+      row.rs1Next.limb3.toNat +
+            255 * row.immSign.toNat +
+            carry3.toNat =
+          row.result.limb3.toNat + 256 * carry4.toNat
+  destinationFlag :
+    row.rdNonzero = decide (row.rd ≠ zeroRegister)
+  destinationLimb0 :
+    row.rdNext.limb0 =
+      if row.rdNonzero then row.result.limb0 else WordBytes.zero.limb0
+  destinationLimb1 :
+    row.rdNext.limb1 =
+      if row.rdNonzero then row.result.limb1 else WordBytes.zero.limb1
+  destinationLimb2 :
+    row.rdNext.limb2 =
+      if row.rdNonzero then row.result.limb2 else WordBytes.zero.limb2
+  destinationLimb3 :
+    row.rdNext.limb3 =
+      if row.rdNonzero then row.result.limb3 else WordBytes.zero.limb3
+  nextPcResult : row.claimedNextPc = nextPc row.pc
+
+def addiRetirement (row : AddiRow) : Retirement where
+  nextPc := row.claimedNextPc
+  write := architecturalWrite row.rd row.rdNext.word
+
+def addiProgramTuple (row : AddiRow) : ProgramTuple where
+  pc := row.pc
+  opcodeId := 10
+  rd := row.rd.toNat
+  rs1 := row.rs1.toNat
+  operand := (addiImmediate row.imm0 row.imm1 row.immSign).toNat
+
+structure AddiRelations where
+  program : ProgramTuple
+  stateConsume : StateTuple
+  stateEmit : StateTuple
+  sourceConsume : RegisterTuple
+  sourceEmit : RegisterTuple
+  destinationConsume : RegisterTuple
+  destinationEmit : RegisterTuple
+deriving DecidableEq, Repr
+
+def addiRelations (row : AddiRow) : AddiRelations where
+  program := addiProgramTuple row
+  stateConsume := { pc := row.pc, clock := row.clock }
+  stateEmit := { pc := nextPc row.pc, clock := row.clock + 1 }
+  sourceConsume := {
+    addr := row.rs1
+    clock := row.rs1PreviousClock
+    value := row.rs1Previous.word
+  }
+  sourceEmit := {
+    addr := row.rs1
+    clock := accessClock row.clock 1
+    value := row.rs1Next.word
+  }
+  destinationConsume := {
+    addr := row.rd
+    clock := row.rdPreviousClock
+    value := row.rdPrevious.word
+  }
+  destinationEmit := {
+    addr := row.rd
+    clock := accessClock row.clock 2
+    value := row.rdNext.word
+  }
+
+end RiscvRefinement.Air.Generated
+"""
+
+SAIL_LEAN_TEMPLATE = """\
+-- GENERATED FILE. DO NOT EDIT.
+-- Generator: scripts/riscv_refinement.py
+-- Regenerate: python3 scripts/riscv_refinement.py generate
+-- Source: exact-profile Sail 0.20.2 theorem-backend definition slices.
+-- Boundary: reviewed normalized capsule; no generated-monad theorem yet.
+
+import RiscvRefinement.Common
+
+namespace RiscvRefinement.Sail.Generated
+
+open RiscvRefinement
+
+def executeUtypeDefinitionDigest : String :=
+  "__UTYPE_DIGEST__"
+
+def executeItypeDefinitionDigest : String :=
+  "__ITYPE_DIGEST__"
+
+def executeLuiValue (imm : BitVec 20) : Word :=
+  BitVec.signExtend 32 (imm.append (BitVec.ofNat 12 0))
+
+def executeAddiValue (source : Word) (imm : BitVec 12) : Word :=
+  source + BitVec.signExtend 32 imm
+
+def executeLui
+    (pc : Word)
+    (rd : RegisterIndex)
+    (imm : BitVec 20) :
+    Retirement where
+  nextPc := nextPc pc
+  write := architecturalWrite rd (executeLuiValue imm)
+
+def executeAddi
+    (pc : Word)
+    (source : Word)
+    (rd : RegisterIndex)
+    (imm : BitVec 12) :
+    Retirement where
+  nextPc := nextPc pc
+  write := architecturalWrite rd (executeAddiValue source imm)
+
+end RiscvRefinement.Sail.Generated
+"""
+
+
+def _source_digests(paths: Paths) -> dict[str, str]:
+    result: dict[str, str] = {}
+    relatives = set(SOURCE_PATHS)
+    for tree in SOURCE_TREES:
+        root = paths.root / tree
+        if not root.is_dir():
+            raise RefinementError(f"missing production source tree {tree}")
+        relatives.update(
+            path.relative_to(paths.root).as_posix()
+            for path in root.rglob("*")
+            if path.is_file()
+        )
+    for relative in sorted(relatives):
+        path = paths.root / relative
+        if not path.is_file():
+            raise RefinementError(f"missing production source {relative}")
+        result[relative] = codec.sha256_file(path)
+    return result
+
+
+def _generator_digests(paths: Paths) -> dict[str, str]:
+    result: dict[str, str] = {}
+    for relative in GENERATOR_PATHS:
+        path = paths.root / relative
+        if not path.is_file():
+            raise RefinementError(f"missing generator source {relative}")
+        result[relative] = codec.sha256_file(path)
+    return result
+
+
+def _proof_digests(paths: Paths) -> dict[str, str]:
+    result: dict[str, str] = {}
+    for relative in PROOF_PATHS:
+        path = paths.root / relative
+        if not path.is_file():
+            raise RefinementError(f"missing proof source {relative}")
+        result[relative] = codec.sha256_file(path)
+    return result
+
+
+def export_air(paths: Paths) -> None:
+    output_parent = paths.root / "zig-out"
+    output_parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(
+        tempfile.mkdtemp(
+            prefix="riscv-refinement-ir.",
+            dir=output_parent,
+        )
+    )
+    try:
+        subprocess.run(
+            [
+                "zig",
+                "build",
+                "riscv-refinement-ir",
+                f"-Driscv-refinement-ir-dir={staging}",
+            ],
+            cwd=paths.root,
+            check=True,
+            timeout=600,
+        )
+        entries = list(staging.iterdir())
+        invalid = [
+            path.name
+            for path in entries
+            if path.is_symlink() or not path.is_file() or path.suffix != ".json"
+        ]
+        if invalid:
+            raise RefinementError(
+                "production AIR export emitted unexpected entries: "
+                + ", ".join(sorted(invalid))
+            )
+        actual = {path.stem for path in entries}
+        if actual != EXPORTED_FAMILIES:
+            missing = sorted(EXPORTED_FAMILIES - actual)
+            extra = sorted(actual - EXPORTED_FAMILIES)
+            raise RefinementError(
+                "production AIR export coverage drifted: "
+                f"missing={missing}, extra={extra}"
+            )
+        for family in EXPORTED_FAMILIES:
+            artifact = staging / f"{family}.json"
+            if artifact.stat().st_size == 0:
+                raise RefinementError(f"production AIR export {artifact.name} is empty")
+        target = paths.uniqueness_ir
+        if target.is_symlink():
+            raise RefinementError(f"refusing symbolic-link AIR target {target}")
+        if target.exists():
+            if not target.is_dir():
+                raise RefinementError(f"AIR target is not a directory: {target}")
+            shutil.rmtree(target)
+        staging.replace(target)
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+        raise RefinementError("production AIR export failed") from exc
+    finally:
+        if staging.exists():
+            shutil.rmtree(staging)
+
+
+def artifacts(paths: Paths, evidence: sail.SailEvidence) -> dict[Path, bytes]:
+    source_digests = _source_digests(paths)
+    packaged = {
+        opcode: air.package_air(
+            paths.uniqueness_ir
+            / ("lui.json" if opcode == "lui" else "base_alu_imm.json"),
+            opcode,
+            source_digests,
+        )
+        for opcode in PILOT_OPCODES
+    }
+    air_outputs = {
+        Path("generated/air") / f"{opcode}.json": codec.pretty_bytes(payload)
+        for opcode, payload in packaged.items()
+    }
+    air_lean = (
+        AIR_LEAN_TEMPLATE.replace(
+            "__LUI_DIGEST__", packaged["lui"]["canonical_digest"]
+        )
+        .replace("__ADDI_DIGEST__", packaged["addi"]["canonical_digest"])
+        .encode("utf-8")
+    )
+    sail_lean = (
+        SAIL_LEAN_TEMPLATE.replace(
+            "__UTYPE_DIGEST__",
+            evidence.definition_hashes["execute_UTYPE"],
+        )
+        .replace(
+            "__ITYPE_DIGEST__",
+            evidence.definition_hashes["execute_ITYPE"],
+        )
+        .encode("utf-8")
+    )
+    outputs: dict[Path, bytes] = {
+        **air_outputs,
+        Path("generated/sail/rv32im-zkvm-v1.json"):
+            evidence.exact_configuration,
+        Path("RiscvRefinement/Air/Generated/Pilot.lean"): air_lean,
+        Path("RiscvRefinement/Sail/Generated/Pilot.lean"): sail_lean,
+    }
+    manifest: dict[str, Any] = {
+        "schema_version": SCHEMA_VERSION,
+        "kind": "stwo-riscv-refinement-generated-manifest",
+        "tier": "level-1-normalized-pilot",
+        "claim_boundary": {
+            "lean_serialized_m31_air_interpreter": False,
+            "lean_generated_sail_monad_normalization": False,
+            "kernel_checked_normalized_refinement": True,
+        },
+        "lean_toolchain": LEAN_TOOLCHAIN,
+        "opcodes": [
+            {
+                "id": 35 if opcode == "lui" else 10,
+                "mnemonic": opcode,
+                "coverage_kind": "normalized-predicate",
+                "air_digest": packaged[opcode]["canonical_digest"],
+                "refinement_theorem": (
+                    "RiscvRefinement.Opcodes.lui_refines"
+                    if opcode == "lui"
+                    else "RiscvRefinement.Opcodes.addi_refines"
+                ),
+                "non_vacuity_theorem": (
+                    "RiscvRefinement.NonVacuity.lui_exists"
+                    if opcode == "lui"
+                    else "RiscvRefinement.NonVacuity.addi_exists"
+                ),
+            }
+            for opcode in PILOT_OPCODES
+        ],
+        "production_sources": source_digests,
+        "generators": _generator_digests(paths),
+        "proof_sources": _proof_digests(paths),
+        "sail": sail.provenance(evidence),
+        "artifacts": {
+            relative.as_posix(): codec.sha256_bytes(data)
+            for relative, data in sorted(
+                outputs.items(), key=lambda item: item[0].as_posix()
+            )
+        },
+    }
+    manifest["canonical_digest"] = codec.content_digest(manifest)
+    outputs[Path("generated-manifest.json")] = codec.pretty_bytes(manifest)
+    return outputs
+
+
+def write_artifacts(paths: Paths, outputs: dict[Path, bytes]) -> None:
+    ordered = sorted(
+        outputs.items(),
+        key=lambda item: (
+            item[0] == Path("generated-manifest.json"),
+            item[0].as_posix(),
+        ),
+    )
+    for relative, data in ordered:
+        destination = paths.formal / relative
+        if destination.is_file() and destination.read_bytes() == data:
+            continue
+        codec.atomic_write(destination, data)
+
+
+def check_artifacts(paths: Paths, outputs: dict[Path, bytes]) -> None:
+    errors: list[str] = []
+    for relative, expected in outputs.items():
+        destination = paths.formal / relative
+        if not destination.is_file():
+            errors.append(f"missing generated artifact {relative}")
+        elif destination.read_bytes() != expected:
+            errors.append(f"generated artifact drifted: {relative}")
+    if errors:
+        raise RefinementError("; ".join(errors))

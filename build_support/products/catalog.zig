@@ -106,6 +106,8 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv-rigidity", .description = "Run the full witness-rigidity sweep over every committed opcode column", .scope = .riscv_cpu },
     .{ .name = "test-riscv-air-satisfaction-export", .description = "Export committed traces for the independent AIR satisfaction checker", .scope = .riscv_cpu },
     .{ .name = "test-riscv-air-satisfaction", .description = "Export and independently check all RISC-V AIR main-trace components", .scope = .riscv_cpu },
+    .{ .name = "riscv-refinement-ir", .description = "Export production symbolic AIR for the LUI/ADDI Lean refinement pilot", .scope = .riscv_cpu },
+    .{ .name = "riscv-refinement-pilot", .description = "Verify the LUI/ADDI normalized AIR-to-Sail Lean pilot", .scope = .riscv_cpu },
     .{ .name = "riscv-csp-bench", .description = "Run the pinned EthProofs CSP benchmark matrix", .scope = .riscv_cpu },
     .{ .name = "metal-arena-plan", .description = "Build sparse Metal arena planner", .scope = .metal_tools },
     .{ .name = "metal-arena-session", .description = "Build persistent Metal SN PIE prover session", .scope = .metal_tools },

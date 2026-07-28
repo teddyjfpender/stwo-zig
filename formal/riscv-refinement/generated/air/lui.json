@@ -1,0 +1,562 @@
+{
+  "canonical_digest": "3d8bc3e94b17bc3137fcf57ea1764f0df2e5806ebbab55842c2b1bef1513217e",
+  "columns": [
+    {
+      "name": "enabler",
+      "role": "witness"
+    },
+    {
+      "name": "clock",
+      "role": "input"
+    },
+    {
+      "name": "pc",
+      "role": "input"
+    },
+    {
+      "name": "rd_addr",
+      "role": "input"
+    },
+    {
+      "name": "rd_previous_0",
+      "role": "input"
+    },
+    {
+      "name": "rd_previous_1",
+      "role": "input"
+    },
+    {
+      "name": "rd_previous_2",
+      "role": "input"
+    },
+    {
+      "name": "rd_previous_3",
+      "role": "input"
+    },
+    {
+      "name": "rd_previous_clock",
+      "role": "input"
+    },
+    {
+      "name": "rd_next_0",
+      "role": "output"
+    },
+    {
+      "name": "rd_next_1",
+      "role": "output"
+    },
+    {
+      "name": "rd_next_2",
+      "role": "output"
+    },
+    {
+      "name": "rd_next_3",
+      "role": "output"
+    },
+    {
+      "name": "imm_0",
+      "role": "witness"
+    },
+    {
+      "name": "imm_1",
+      "role": "witness"
+    },
+    {
+      "name": "imm_2",
+      "role": "witness"
+    },
+    {
+      "name": "destination_nonzero",
+      "role": "witness"
+    },
+    {
+      "name": "destination_inverse",
+      "role": "witness"
+    },
+    {
+      "name": "bus_value_18",
+      "role": "input"
+    },
+    {
+      "name": "bus_value_19",
+      "role": "output"
+    },
+    {
+      "name": "bus_value_20",
+      "role": "output"
+    },
+    {
+      "name": "bus_value_21",
+      "role": "output"
+    }
+  ],
+  "constraints": [
+    20,
+    22,
+    24,
+    26,
+    31,
+    33,
+    35,
+    37,
+    19,
+    54,
+    56,
+    58,
+    60
+  ],
+  "family": "lui",
+  "kind": "stwo-riscv-refinement-air",
+  "lookups": [
+    {
+      "domain": "program_access",
+      "label": "request",
+      "numerator": 50,
+      "tuple": [
+        2,
+        44,
+        3,
+        49,
+        27
+      ]
+    },
+    {
+      "domain": "registers_state",
+      "label": "consumed",
+      "numerator": 50,
+      "tuple": [
+        2,
+        1
+      ]
+    },
+    {
+      "domain": "registers_state",
+      "label": "emitted",
+      "numerator": 0,
+      "tuple": [
+        51,
+        52
+      ]
+    },
+    {
+      "domain": "range_check_8_8_4",
+      "label": "request",
+      "numerator": 50,
+      "tuple": [
+        14,
+        15,
+        13
+      ]
+    },
+    {
+      "domain": "memory_access",
+      "label": "consumed",
+      "numerator": 50,
+      "tuple": [
+        27,
+        3,
+        8,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "domain": "memory_access",
+      "label": "emitted",
+      "numerator": 0,
+      "tuple": [
+        27,
+        3,
+        41,
+        9,
+        10,
+        11,
+        12
+      ]
+    },
+    {
+      "domain": "range_check_20",
+      "label": "request",
+      "numerator": 50,
+      "tuple": [
+        43
+      ]
+    }
+  ],
+  "modulus": 2147483647,
+  "nodes": [
+    {
+      "name": "enabler",
+      "op": "col"
+    },
+    {
+      "name": "clock",
+      "op": "col"
+    },
+    {
+      "name": "pc",
+      "op": "col"
+    },
+    {
+      "name": "rd_addr",
+      "op": "col"
+    },
+    {
+      "name": "rd_previous_0",
+      "op": "col"
+    },
+    {
+      "name": "rd_previous_1",
+      "op": "col"
+    },
+    {
+      "name": "rd_previous_2",
+      "op": "col"
+    },
+    {
+      "name": "rd_previous_3",
+      "op": "col"
+    },
+    {
+      "name": "rd_previous_clock",
+      "op": "col"
+    },
+    {
+      "name": "rd_next_0",
+      "op": "col"
+    },
+    {
+      "name": "rd_next_1",
+      "op": "col"
+    },
+    {
+      "name": "rd_next_2",
+      "op": "col"
+    },
+    {
+      "name": "rd_next_3",
+      "op": "col"
+    },
+    {
+      "name": "imm_0",
+      "op": "col"
+    },
+    {
+      "name": "imm_1",
+      "op": "col"
+    },
+    {
+      "name": "imm_2",
+      "op": "col"
+    },
+    {
+      "name": "destination_nonzero",
+      "op": "col"
+    },
+    {
+      "name": "destination_inverse",
+      "op": "col"
+    },
+    {
+      "op": "const",
+      "value": 1
+    },
+    {
+      "args": [
+        0,
+        18
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        0,
+        19
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        16,
+        18
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        16,
+        21
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        18,
+        16
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        3,
+        23
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        3,
+        17
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        25,
+        16
+      ],
+      "op": "sub"
+    },
+    {
+      "op": "const",
+      "value": 0
+    },
+    {
+      "op": "const",
+      "value": 16
+    },
+    {
+      "args": [
+        13,
+        28
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        16,
+        27
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        9,
+        30
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        16,
+        29
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        10,
+        32
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        16,
+        14
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        11,
+        34
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        16,
+        15
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        12,
+        36
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        1,
+        18
+      ],
+      "op": "sub"
+    },
+    {
+      "op": "const",
+      "value": 4
+    },
+    {
+      "args": [
+        38,
+        39
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        40,
+        18
+      ],
+      "op": "add"
+    },
+    {
+      "args": [
+        41,
+        8
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        42,
+        18
+      ],
+      "op": "sub"
+    },
+    {
+      "op": "const",
+      "value": 35
+    },
+    {
+      "args": [
+        14,
+        28
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        13,
+        45
+      ],
+      "op": "add"
+    },
+    {
+      "op": "const",
+      "value": 4096
+    },
+    {
+      "args": [
+        15,
+        47
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        46,
+        48
+      ],
+      "op": "add"
+    },
+    {
+      "args": [
+        0
+      ],
+      "op": "neg"
+    },
+    {
+      "args": [
+        2,
+        39
+      ],
+      "op": "add"
+    },
+    {
+      "args": [
+        1,
+        18
+      ],
+      "op": "add"
+    },
+    {
+      "name": "bus_value_18",
+      "op": "col"
+    },
+    {
+      "args": [
+        53,
+        49
+      ],
+      "op": "sub"
+    },
+    {
+      "name": "bus_value_19",
+      "op": "col"
+    },
+    {
+      "args": [
+        55,
+        51
+      ],
+      "op": "sub"
+    },
+    {
+      "name": "bus_value_20",
+      "op": "col"
+    },
+    {
+      "args": [
+        57,
+        52
+      ],
+      "op": "sub"
+    },
+    {
+      "name": "bus_value_21",
+      "op": "col"
+    },
+    {
+      "args": [
+        59,
+        41
+      ],
+      "op": "sub"
+    }
+  ],
+  "notes": "Extracted from the shipped AIR by instantiating air/semantics over a\nrecording scalar; the QM31 instantiation of the same source is what the\nprover evaluates, and a differential test pins the two together on random\nassignments.  Covered: per-row witness uniqueness of the emitted machine\nstate, given the fetched instruction and the consumed bus values, granting\nthat a live lookup numerator implies table membership.  NOT covered:\nanything cross-row or multiset -- the LogUp memory argument, clock\nmonotonicity, state-chain telescoping, program binding, public boundary\nclosure -- nor completeness, nor agreement with Sail.",
+  "opcode": {
+    "family": "lui",
+    "id": 35,
+    "mnemonic": "lui",
+    "selector": {
+      "enabler": 1
+    }
+  },
+  "production_binding": {
+    "differential_trials_per_family": 8,
+    "extractor": "src/frontends/riscv/air/extract/mod.zig",
+    "level": "level-1-exact-shape-normalizer",
+    "source_closure_sha256": "9b81a03340070ebf1cc36d8a1acf66d117ed058c75a6b6a155491dbdc34be0f2",
+    "source_ir_sha256": "044c5b95350e4f2d8e3381746d70528e0ddc932e784722bf413fc0108913d12e"
+  },
+  "projection": {
+    "destination_access_lookups": [
+      4,
+      5
+    ],
+    "next_pc_column": "bus_value_19",
+    "program_lookup": 0,
+    "source_access_lookups": [],
+    "state_consume_lookup": 1,
+    "state_emit_lookup": 2
+  },
+  "schema_version": 2,
+  "unmodelled_bus_requests": 5
+}

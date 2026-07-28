@@ -1,6 +1,7 @@
 # Universal AIR → Sail refinement engineering plan
 
-**Status:** engineering design; implementation not started.
+**Status:** Level-1 LUI/ADDI pilot delivered; publication-level production
+binding and the remaining 44 opcodes are open.
 
 **Primary result:** machine-check, for every input admitted by each of the 46
 proof opcodes, that satisfaction of the shipped row AIR and its exact local
@@ -21,6 +22,51 @@ semantics workstream. It is deliberately stricter than “run an SMT solver over
 the current corpus.” Finite Sail agreement, committed-witness mutation tests,
 and two-copy row uniqueness remain valuable evidence, but none quantifies over
 every admitted architectural state. The result specified here does.
+
+### Implemented pilot and exact claim
+
+The repository now contains a kernel-checked vertical prototype for LUI and
+ADDI under `formal/riscv-refinement/`. Its proved implication is:
+
+```text
+generated normalized LUI/ADDI row predicate
+                  +
+explicit local program/register environment
+                  |
+                  v
+reviewed normalized Sail retirement capsule
+```
+
+The Lean proof derives LUI's four destination bytes and ADDI's source
+preservation, four-byte carry recurrence, modular 32-bit sum, x0 behavior,
+decode, next PC, and emitted local tuples. It includes concrete non-vacuity
+witnesses, including the ADDI overflow case
+`0x7fffffff + 1 = 0x80000000`. The exported theorem set is scanned for proof
+escapes and audited with `#print axioms`; only `propext`,
+`Classical.choice`, and `Quot.sound` are permitted.
+
+The generator freshly exports all 17 production symbolic-AIR families, accepts
+only the exact closed LUI and base-ALU-immediate schemas, packages LUI/ADDI,
+and binds every RISC-V frontend source plus the generator and proof closure by
+SHA-256. The Sail side uses the pinned repository and compiler, constructs the
+exact `rv32im-zkvm-v1` configuration from the normative overrides, validates
+that it reports `rv32im`, generates the theorem backend under that
+configuration, and pins the complete generated file and reviewed
+`execute_UTYPE`/`execute_ITYPE` slices.
+
+This is deliberately called a **Level-1 normalized pilot**, not “2 of 46
+production opcodes proved.” Two translation obligations remain outside the
+Lean kernel:
+
+- the Python exact-shape normalizer is not yet replaced by a Lean interpreter
+  of the serialized M31 expression DAG, lookup liveness, and fixed tables; and
+- the reviewed Sail expression capsule is not yet related by theorem to the
+  generated Sail monadic execution definition.
+
+Those are the Level-2/publication gates. The pilot therefore validates the
+proof architecture and its arithmetic, reproducibility, coverage, and audit
+machinery without closing SA-1 premise 5. The receipt records this boundary in
+machine-readable form and fails closed if stale AIR is requested.
 
 ## 1. Objective and claim boundary
 
@@ -307,8 +353,8 @@ rewritten AIR is not a proof of the production system.
 
 ### 6.1 Current extraction
 
-`src/tests/riscv/uniqueness_ir_test.zig` evaluates the generic production
-semantics with a symbolic scalar and emits:
+`src/frontends/riscv/air/extract/mod.zig` evaluates the generic production
+semantics and lookup-entry construction with a symbolic scalar and emits:
 
 - ordered columns and roles;
 - the expression DAG;
@@ -316,9 +362,12 @@ semantics with a symbolic scalar and emits:
 - lookup numerators, domains, tuples, and labels; and
 - row inputs and architectural outputs.
 
-It also runs a 17-family, fixed-seed differential between symbolic and concrete
-evaluation. This is a strong pilot foundation, but the random differential is
-not a universal source-binding proof.
+It also runs an eight-assignment-per-family, fixed-seed differential between
+the recorded DAG and the QM31 instantiation of the same production source.
+The dedicated `riscv-refinement-ir` build root executes this frontend-owned
+extractor directly and rejects a missing, extra, empty, or stale family. This
+is a strong pilot foundation, but the random differential is not a universal
+source-binding proof.
 
 ### 6.2 Canonical refinement IR
 
@@ -573,43 +622,40 @@ theorems instantiate them. Coverage automation compares theorem names and
 opcode IDs against `src/frontends/riscv/opcode_manifest.zig`; an omitted,
 duplicated, or renamed opcode fails closed.
 
-## 11. Planned repository layout
+## 11. Repository layout
 
 The implementation should use one self-contained formal project:
 
 ```text
 formal/riscv-refinement/
   lean-toolchain
-  lakefile.lean
+  lakefile.toml
   lake-manifest.json
   RiscvRefinement/
-    Field.lean
-    Word.lean
-    AccessClock.lean
+    Common.lean
     Air/
-      IR.lean
-      Interpreter.lean
-      Tables.lean
       Generated/
     Sail/
       Generated/
-      Normalize.lean
-      Profile.lean
     Bridge/
       Decode.lean
-      ProgramTuple.lean
-      RegisterTuple.lean
-      MemoryTuple.lean
     Opcodes/
       Lui.lean
-      BaseAluImm.lean
-      LoadStore.lean
-      Div.lean
-      ...
+      Addi.lean
     Coverage.lean
     NonVacuity.lean
+    AxiomAudit.lean
+  generated/
+    air/
+    sail/
   generated-manifest.json
+  refinement-receipt.json
 ```
+
+The smaller `Field`, AIR interpreter/table, tuple-bridge, memory, and
+family-specific modules shown in earlier design revisions remain the intended
+Level-2 expansion. They should be introduced when they own real checked
+objects rather than as empty package ceremony.
 
 Repository tooling should be owned under:
 
@@ -626,23 +672,50 @@ offline reproducibility. If committed, CI regenerates them into a temporary
 directory and requires byte identity. Generated files are never edited by
 hand.
 
-## 12. CI and change control
+## 12. Build, reproduction, and change control
 
-The following commands are planned interfaces, not commands available at the
-date of this document:
+The pilot exposes the following interfaces:
 
 ```sh
+# One-time, after preparing the pinned formal-tool workspace:
+python3 scripts/riscv_refinement.py prepare-sail \
+  --sail-riscv-dir /tmp/stwo-riscv-formal/source/sail-riscv
+
+# Generate or reproduce committed inputs:
 zig build riscv-refinement-ir
 python3 scripts/riscv_refinement.py generate
 python3 scripts/riscv_refinement.py check-generated
 python3 scripts/riscv_refinement.py coverage
-lake --dir formal/riscv-refinement build
+(cd formal/riscv-refinement && lake build)
+
+# Complete public pilot gate:
+zig build riscv-refinement-pilot
+
+# Clean-tree evidence:
 python3 scripts/riscv_refinement.py receipt
+python3 scripts/riscv_refinement.py verify-receipt
 ```
+
+`prepare-sail` writes the merged exact-profile configuration and generates the
+external theorem backend. The repository's existing
+`scripts/riscv_formal_tools.py` owns pinned checkout/compiler/simulator
+preparation. `riscv-refinement-pilot` first runs the dedicated production IR
+export and then checks byte-identical generation, 2/46 coverage, both negative
+controls, Python infrastructure tests, the pinned Lean build, and the complete
+axiom audit.
+
+`--no-export-air` exists only so the root build step can consume the exporter
+it already depends on. Receipt generation rejects that switch and always
+exports into a fresh staging directory before atomically replacing the
+ignored `zig-out/uniqueness-ir` tree.
 
 ### 12.1 Required PR checks
 
-Once the pilot lands, every PR touching the following surfaces triggers the
+The public pilot gate is implemented. Making it a mandatory hosted CI check
+requires provisioning Sail 0.20.2 and the pinned external theorem backend on
+the runner; until that runner image exists it remains an explicit required
+review command rather than silently pretending to run in the generic release
+gate. Once provisioned, every PR touching the following surfaces triggers the
 refinement build:
 
 - `src/frontends/riscv/opcode_manifest.zig`;
@@ -683,23 +756,25 @@ every PR. A nightly-only universal theorem is too weak for a release branch.
 
 ### 12.3 Receipt
 
-The machine-readable receipt contains:
+The Level-1 pilot receipt contains:
 
 - schema;
 - implementation commit and dirty state;
 - Lean version and dependency lock digest;
-- Sail repository, commit, compiler, and configuration digest;
+- Python, Zig, Lake, and Lean binary identities;
+- Sail repository, commit, compiler, simulator, profile, and exact
+  configuration digests through the generated manifest;
 - AIR IR schema and per-opcode digests;
-- fixed-table schema digests;
 - generator digests;
-- 46 exact opcode/theorem mappings;
-- non-vacuity theorem mappings;
+- two exact opcode/theorem and non-vacuity mappings;
 - theorem build result;
 - declared axioms for every exported theorem;
-- wall-clock diagnostics; and
+- the Level-1 claim boundary and negative-control identities; and
 - final canonical receipt digest.
 
-Timing is diagnostic. Coverage, pins, hashes, and proof results are normative.
+The final 46-opcode research receipt must additionally carry every fixed-table
+schema, all opcode mappings, and clean-room timing diagnostics. Timing is
+diagnostic. Coverage, pins, hashes, and proof results are normative.
 
 ## 13. Proof-review discipline
 
@@ -747,6 +822,11 @@ is connected to the obligations it claims to prove.
 
 ### UR-00 — theorem and trusted-base freeze
 
+Status: **partially delivered for Level 1**. The theorem signatures, toolchain,
+closed pilot schemas, digest closure, axiom policy, and claim boundary are
+implemented. The serialized-AIR interpreter and generated-Sail normalization
+theorem remain the trusted-base reduction required for Level 2.
+
 Deliver:
 
 - this document reviewed;
@@ -760,6 +840,12 @@ Exit gate: reviewers agree what a green theorem does and does not mean.
 
 ### UR-01 — formal foundations and LUI
 
+Status: **Level-1 pilot delivered**. The typed word/byte foundations, exact
+LUI shape gate, normalized universal theorem, non-vacuity witness, and mutation
+control are present. “Clean kernel proof from pinned generated inputs” remains
+open in its publication sense until UR-06 removes the Python normalization
+from the semantic trusted base.
+
 Deliver:
 
 - M31, u32, byte, range, and tuple libraries;
@@ -772,6 +858,10 @@ Deliver:
 Exit gate: clean kernel proof from pinned generated inputs.
 
 ### UR-02 — ADDI vertical slice
+
+Status: **Level-1 pilot delivered**. Sign extension, byte carries, modular
+addition, source preservation, alias/x0 behavior, non-vacuity, and mutation
+control are kernel checked. The same Level-2 AIR and Sail bindings remain.
 
 Deliver:
 
@@ -887,8 +977,13 @@ hold:
 
 Before that point, acceptable language is:
 
-> “LUI/ADDI refinement pilot,” “memory/DIV stress mechanization,” or
-> “N of 46 opcodes machine-proved.”
+> “Level-1 normalized LUI/ADDI refinement pilot” or “memory/DIV stress
+> mechanization.”
+
+“N of 46 production opcodes machine-proved” is acceptable only after the
+serialized-AIR and generated-Sail bindings are kernel checked for those N
+opcodes. A digest-bound reviewed normalization is useful evidence, but it is
+not counted as publication-level opcode coverage.
 
 After that point, the precise claim is:
 

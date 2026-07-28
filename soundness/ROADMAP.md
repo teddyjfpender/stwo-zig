@@ -575,6 +575,12 @@ security-bit accounting, and no universal AIR-to-Sail refinement proof.
       pilot, LH/DIV stress gates, 46-opcode rollout, and completion criteria are
       specified in
       [`UNIVERSAL_AIR_SAIL_REFINEMENT.md`](UNIVERSAL_AIR_SAIL_REFINEMENT.md).
+      A Level-1 normalized LUI/ADDI pilot is now implemented: Lean derives the
+      byte/carry arithmetic, decode, x0 behavior, local tuple projections, and
+      non-vacuity with an audited axiom set. It is intentionally not counted as
+      two production opcodes yet because a kernel-checked interpreter for the
+      serialized M31 AIR/lookups and a theorem from generated Sail monadic
+      execution to the normalized capsule remain open.
 - [ ] Obtain independent AIR and protocol audits.
 - [ ] Maintain a public bug-bounty scope for witness construction, statement
       binding, serialization, and verification.
