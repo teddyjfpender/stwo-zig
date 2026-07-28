@@ -258,3 +258,347 @@ preprocessed commit path and keys to its own artifact.
 developer machine that iterates revisions, each dirty tree keys a new 134 MB
 file and nothing prunes them. That is the honest downside and the natural next
 piece of work on this lane.
+
+---
+
+## Increment 2.2: narrowed witness planes
+
+**Outcome: rejected-candidate, with a positive audit and a calibrated
+conversion factor that reprices the whole D2 lever.**
+
+The audit says D2's bytes are there: **33.6%** of memory-7m's pre-extension
+witness plane traffic (3,430 MB of 10,204 MB) is provably narrowable from
+structural evidence alone. The implementation delivers exactly the byte
+reduction it promises and the touched spans shrink accordingly —
+`witness_base_lower` **1.0687x**, `witness_program_execute` **1.0111x**,
+`base_trace_build` **1.0220x** (-16.4 ms). But the transfer function from bytes
+to time is only about **0.37** on the read side and **0.14** on the write side,
+so the full lever projects to roughly **1.011x** on complete prove — below the
+campaign's 1.02x bar and, more damning, below the amplitude of the incidental
+heap-layout shifts the change itself induces in stages it cannot touch.
+
+Implementation model: Claude Opus 4.5. Orchestration: Claude Fable 5.
+Transcript: `transcripts/session-02.md`. Predecessor: pristine `zig-out` tree
+from `f7012f6d`. Host: Apple M5 Max, 12 performance + 6 efficiency cores.
+
+### (a) The structural width source
+
+`Program` (`src/frontends/cairo/witness/program.zig:52-59`) carries only
+counts — `n_regs`, `n_cols`, `n_lookup_words`, `n_sub_words`. There is **no
+declared per-column range** anywhere in the claim registry, the column specs or
+the template library. The campaign-1 sketch assumed one ("chosen per column
+from the captured program's declared value range"); it does not exist.
+
+What does exist is stronger. `Program.validate`
+(`program.zig:124-162`) enforces `inst.dst == next_register` with a
+monotonically increasing counter, so every recorded program is **straight-line
+SSA**. One forward abstract-interpretation pass over the bytecode therefore
+assigns each register a sound upper bound, and a column is narrow when every
+`col_write` into it reads a register bounded by 16 bits. Two opcode-level
+sources carry the analysis:
+
+| Source | Where | Bound |
+| --- | --- | --- |
+| `u16_add`, `u16_shl` | `program.zig:465-466` | `0xffff` |
+| `u16_shr` | `program.zig:467` | `min(a,0xffff) >> s` |
+| `u16_and`, `u32_and` | `program.zig:468` | `imm` |
+| `trunc16` | `program.zig:474` | `0xffff` |
+| `m31_eq` | `program.zig:479` | `1` |
+| `as_m31`, `m31_add`, `m31_mul` | `program.zig:461-475` | propagate operand bounds under the modulus |
+| `table_limb` with `inst.b == MEMORY_VALUE_TABLE` | `execution_tables.zig:60`, `:65` | `0x1ff` (nine-bit memory limb) |
+
+Everything else — `input`, `deduce_call` outputs, `m31_sub`, `m31_neg`,
+`m31_inverse`, `u32_sub`, and `ADDRESS_TO_ID_TABLE` limbs (encoded ids with a
+two-bit tag) — stays 32-bit. The pass is `plane_widths.columnBounds`; it reads
+the bytecode and nothing else, so a column admitted narrow is narrow for every
+proof that program can ever produce.
+
+The nine-bit memory limb is the single biggest contributor: it feeds 12 of
+`add_opcode_small`'s 39 columns and 87 of `add_opcode`'s 103.
+
+**A soundness trap worth recording.** The first implementation classified
+`add_opcode_small` column 12 as narrow and produced
+`error: ConstraintsNotSatisfied`. The cause was Zig's `@min`, which *narrows
+its result type*: `@min(a, m31_max) * @min(b, m31_max)` was evaluated in a
+32-bit type and wrapped, and `(2^31-2)^2 mod 2^32 = 4`, so an unbounded value
+acquired a bound of 4. A wrapped bound is always the unsound direction. The
+fix is explicit saturating u64 arithmetic (`+|`, `*|`, `<<|`). Found by
+trapping `value > 0xffff` at the narrow store — a trap worth keeping in any
+future width pass.
+
+### (a) Width census, official bundle `witness_programs_v1.bin`
+
+64 programs. Columns / lookup words / sub words provably <= 16 bits:
+
+| | total | <= 16 bit | share | <= 8 bit |
+| --- | ---: | ---: | ---: | ---: |
+| output columns | 4,947 | 1,988 | **40.2%** | 362 |
+| lookup words | 11,025 | 4,878 | **44.2%** | — |
+| sub words | 42,268 | 1,108 | 2.6% | — |
+
+The sub-word figure is dominated by `ec_op_builtin`'s 31,516 sub words, which
+are inactive on both large workloads; among the components that actually run on
+memory-7m the sub-word narrow share is 24.2% by traffic.
+
+Per component, the ones that matter (all-workload activity aside):
+
+| component | cols | <=16 | look | <=16 | sub | <=16 | insts |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `add_opcode_small` | 39 | 29 | 116 | 86 | 13 | 5 | 427 |
+| `add_opcode` | 103 | 93 | 116 | 89 | 13 | 5 | 482 |
+| `jnz_opcode_taken` | 47 | 38 | 83 | 61 | 11 | 6 | 317 |
+| `assert_eq_opcode_double_deref` | 19 | 11 | 56 | 34 | 11 | 6 | 222 |
+| `assert_eq_opcode` | 12 | 5 | 23 | 5 | 9 | 5 | 150 |
+| `call_opcode_rel_imm` | 24 | 17 | 116 | 89 | 13 | 6 | 236 |
+| `ret_opcode` | 16 | 10 | 83 | 62 | 11 | 6 | 167 |
+| `generic_opcode` | 243 | 115 | 260 | 91 | 99 | 7 | 2,983 |
+| `blake_round` | 212 | 144 | 851 | 624 | 129 | 32 | 2,179 |
+| `mul_mod_builtin` | 426 | 303 | 1,196 | 750 | 307 | 80 | 6,506 |
+| `partial_ec_mul_generic` | 624 | 7 | 989 | 0 | 424 | 0 | 16,999 |
+
+The two elliptic-curve families are the exception: `partial_ec_mul_*` and
+`poseidon_*_chain` carry almost nothing narrow, because their columns come out
+of `m31_sub` / `m31_inverse` / deduction outputs.
+
+### (a) Traffic math
+
+Each plane cell is written once by the interpreter and read once by its first
+consumer — output columns by base lowering (`base_trace.zig`), lookup words by
+`interaction_fraction_materialize`, sub words by the gathered/compact input
+materializers. Component row counts are the claim log sizes from the measured
+proofs.
+
+memory-7m (`add_opcode_small` at 2^22, `assert_eq_opcode` and
+`assert_eq_opcode_double_deref` at 2^21, `jnz_opcode_taken` at 2^20, four
+components at 2^19):
+
+| plane class | write+read traffic | savable | share |
+| --- | ---: | ---: | ---: |
+| output columns | 2,369.7 MB | 820.5 MB | 34.6% |
+| lookup words | 6,841.1 MB | 2,369.4 MB | 34.6% |
+| sub words | 993.2 MB | 240.3 MB | 24.2% |
+| **total** | **10,204.0 MB** | **3,430.2 MB** | **33.6%** |
+
+arithmetic-2m (`add_opcode_small` at 2^21):
+
+| plane class | write+read traffic | savable | share |
+| --- | ---: | ---: | ---: |
+| output columns | 729.0 MB | 267.5 MB | 36.7% |
+| lookup words | 2,184.0 MB | 800.0 MB | 36.6% |
+| sub words | 261.0 MB | 55.0 MB | 21.1% |
+| **total** | **3,174.1 MB** | **1,122.5 MB** | **35.4%** |
+
+**33.6% clears the audit's 15% gate comfortably**, so the audit is positive and
+the increment proceeded to implementation. Lookup words are 67% of the traffic
+and output columns 23%; that ranking decided the implementation scope below.
+
+### (b) Before-shape: the candidate region on memory-7m
+
+Predecessor, instrumented, `STWO_CAIRO_PREPROCESSED_CACHE=0`:
+
+| span | ms | share of 5,308 ms prove |
+| --- | ---: | ---: |
+| `witness_program_execute` (all components) | 605.3 | 11.4% |
+| `witness_base_lower` | 74.7 | 1.4% |
+| `interaction_fraction_materialize` | 387.2 | 7.3% |
+| **candidate region** | **1,067.2** | **20.1%** |
+
+10,204 MB across 1,067 ms is an effective 9.6 GB/s — a quarter of this host's
+~40 GB/s streaming ceiling. That is the first warning the increment recorded:
+the region is *bandwidth-influenced*, not bandwidth-saturated, so halving bytes
+cannot be expected to convert 1:1 into time.
+
+### Implementation scope, and why it stopped where it did
+
+Output columns only. They have exactly **one** consumer
+(`base_trace.zig` `observeGenerated` → `captureExecution`), no retention past
+the component, and no interaction with the producer feeds — so the widening
+boundary is a single function. Lookup words, the larger prize, have five
+consumer sites (`interaction_source.LookupColumns`, `interaction_topology`,
+`cpu_memory_multiplicity`, `fixed_trace`, and the resident/recovery path) and
+each would need a width-tagged reader; that did not fit the increment's budget
+alongside a full paired measurement, so it is priced below rather than
+half-built.
+
+Mechanism:
+
+- `src/frontends/cairo/witness/plane_widths.zig` — the structural width pass
+  and the split write plan.
+- `program.zig:283-306` `NarrowColumns`; `program.zig:596-614` the hoisted
+  writes. The base-column stores are lifted out of the instruction switch into
+  **two straight-line loops, one per width**, so the width decision is taken
+  once per program and never per row. Deferring them to the end of the row is
+  sound because the SSA invariant means no register is rewritten inside a row.
+- `component_executor.zig:122-171` splits the output storage into a `[]u32`
+  wide arena and a `[]u16` narrow arena, with `Execution.plane(i)` as the
+  width-tagged accessor.
+- `base_trace.zig` `captureExecution` is the **pre-extension widening
+  boundary**: it emits `[]M31` per column exactly as before, so
+  `prepareColumnsForCommitOwnedForBackend` and the three PCS consumers
+  (`decommit.zig:76-91`, leaf hashing, sampled-value evaluation) see bare
+  `[]const M31` and were not touched. Increment 2.1's scoping constraint held
+  without strain.
+
+`conformance/base_execution.zig` `compare` also had to learn the tag, because
+the oracle column digests are defined over widened values. That is a real cost
+of the change: the split representation leaks into the conformance harness.
+
+### (c) Mechanism: the touched spans shrink as the bytes predict
+
+Paired instrumented runs, predecessor vs candidate, same host window:
+
+| span | memory-7m pred | cand | ratio | all-opcodes pred | cand |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `witness_program_execute` | 605.345 | 598.705 | **1.0111** | 1.382 | 1.410 |
+| `witness_base_lower` | 74.704 | 69.901 | **1.0687** | 0.050 | 0.040 |
+| `base_witness_graph` | 714.672 | 697.604 | 1.0245 | 1.640 | 1.712 |
+| `base_trace_build` | 763.738 | 747.314 | **1.0220** | 16.992 | 16.716 |
+| `witness_output_allocate` | 0.036 | 0.069 | 0.52 | 0.026 | 0.087 |
+
+The mechanism is confirmed and the arithmetic closes:
+
+- **Read side.** Base lowering moves 1,184.9 MB of u32 planes in and
+  1,184.9 MB of M31 out. Narrowing the input side to 775.0 MB is a **17.3%**
+  byte reduction; measured time fell **6.4%**. Conversion **0.37**.
+- **Write side.** Execution writes 5,102 MB of planes; narrowing the column
+  share removes 410 MB, an **8.0%** reduction; measured time fell **1.1%**.
+  Conversion **0.14**.
+
+The write-side conversion being weaker than the read side is the expected
+shape: stores retire into the store buffer and overlap with the interpreter's
+dependent vector work, whereas the lowering loop is a pure streaming pass with
+nothing to hide latency behind.
+
+The two allocation-side spans are honest small costs: `witness_output_allocate`
+roughly doubles (0.036 → 0.069 ms on memory-7m) because it now runs the width
+pass and makes two extra allocations per component.
+
+### (d) Prove-level: parity, and the reason it cannot be more
+
+A-B-B-A, 1 untimed warmup per arm, uninstrumented, both arms with
+`STWO_CAIRO_PREPROCESSED_CACHE=0`, predecessor = pristine `zig-out` from
+`f7012f6d`.
+
+| Workload | Blocks | Predecessor | Candidate | Ratio | 95% CI | host load |
+| --- | ---: | ---: | ---: | ---: | --- | --- |
+| memory-7m (quiet) | 3 | 5,858.76 ms | 5,819.88 ms | `1.0066x` | `[0.9995, 1.0139]` | 6.2-11.1 |
+| memory-7m (loaded) | 3 | 6,602.16 ms | 6,834.27 ms | `0.9673x` | `[0.8924, 1.0484]` | 3.0-12.1 |
+| arithmetic-2m | 3 | 2,592.41 ms | 2,594.31 ms | `0.9992x` | `[0.9520, 1.0487]` | 11.3-13.4 |
+| all-opcodes (loaded) | 3 | 1,374.79 ms | 1,392.07 ms | `0.9876x` | `[0.9841, 0.9911]` | 10.1-12.0 |
+
+Per-sample ranges: memory-7m predecessor `[5,684.5, 7,136.5]`, candidate
+`[5,703.0, 7,210.9]`; arithmetic-2m `[2,466.3, 2,659.3]` / `[2,462.3, 2,717.7]`;
+all-opcodes `[1,332.0, 1,514.2]` / `[1,356.2, 1,522.8]`.
+
+The all-opcodes reading looked like a clean 1.2% regression with a tight
+interval, and it is the one number in this increment that a load-aware re-run
+overturned — see the three-arm decomposition below, where the same workload
+reads `1.0001x` in a quiet window. Blocks measured at load average above 10 are
+reported but should not be used; that is now twice in this campaign that a
+loaded window produced a confidently wrong tight interval.
+
+**No reading clears 1.02x on prove, and no touched span clears 1.10x.**
+
+### (e) Three-arm decomposition: hoisting tax vs narrowing gain
+
+To separate the write-restructuring cost from the byte saving, a third arm was
+built with the hoisted writes in place but the width predicate forced to
+`false` — same code path, no narrow planes. A-H-B-B-H-A per block.
+
+all-opcodes, 3 blocks, load 2.1-7.7 (quiet):
+
+| | block 1 | block 2 | block 3 | geomean | 95% CI |
+| --- | ---: | ---: | ---: | ---: | --- |
+| A (pred) ms | 1,253.84 | 1,268.91 | 1,298.35 | | |
+| H (hoist only) ms | 1,257.57 | 1,274.66 | 1,309.00 | | |
+| B (candidate) ms | 1,255.89 | 1,263.94 | 1,300.83 | | |
+| hoisting tax `A/H` | 0.9970 | 0.9955 | 0.9919 | `0.9948x` | `[0.9882, 1.0014]` |
+| narrowing gain `H/B` | 1.0013 | 1.0085 | 1.0063 | `1.0054x` | `[0.9963, 1.0145]` |
+| total `A/B` | 0.9984 | 1.0039 | 0.9981 | `1.0001x` | `[0.9920, 1.0083]` |
+
+On a workload with no plane traffic to speak of, hoisting costs ~0.5% and
+narrowing returns ~0.5%; both intervals touch parity and the net is parity.
+The useful reading is that **the hoisting tax is small and bounded** — the
+write-side restructuring is not what is limiting the lever.
+
+### Repricing D2
+
+Applying the measured conversion factors to the full census:
+
+| lever | bytes removed | region span | projected saving |
+| --- | ---: | ---: | ---: |
+| output columns, read side (landed) | 410 MB of 2,370 | `witness_base_lower` 74.7 ms | 4.8 ms *(measured)* |
+| output columns, write side (landed) | 410 MB of 5,102 | `witness_program_execute` 605.3 ms | 6.6 ms *(measured)* |
+| lookup words, write side | 1,185 MB of 5,102 | same 605.3 ms | ~19 ms |
+| lookup words, read side | 1,185 MB of ~6,800 | `interaction_fraction_materialize` 387.2 ms | ~25 ms |
+| sub words, both sides | 240 MB | — | ~5 ms |
+| **complete D2** | **3,430 MB of 10,204** | **1,067.2 ms** | **~61 ms** |
+
+61 ms on a 5,860 ms proof is **1.011x**. That is the honest ceiling of the D2
+lever on its best workload, and it sits below the 1.02x bar. It also sits below
+the noise the change itself introduces elsewhere: the paired phase split shows
+`composition_evaluation` +21.7 ms, `main_trace_commit` +11.0 ms and
+`interaction_trace_build` +8.6 ms in the candidate on memory-7m — stages that
+narrowing cannot touch, moved by the different heap layout that two extra
+allocations per component produce. At a 16 ms mechanism, incidental layout
+effects are the same size as the signal.
+
+**D2's premise was that a bandwidth-bound region converts bytes into time near
+1:1. Measured, it converts at 0.14-0.37.** The region runs at 9.6 GB/s against
+a ~40 GB/s ceiling, so it is latency- and occupancy-limited rather than
+bandwidth-saturated, and removing bytes from a pass that is not at the
+bandwidth wall buys only the fraction of its time that was actually waiting on
+the bus. Increment 7's efficiency-core parity and increment 8's worker plateau
+established that the region is *not core-bound*; they did not establish that it
+is *bus-bound*, and this increment is the first to test the difference.
+
+### Digests
+
+Byte-exact in every mode. Every proof produced by the candidate in every
+reading — 24 memory-7m samples, 12 arithmetic-2m, 24 all-opcodes, plus
+`STWO_ZIG_WORKERS=1` and Metal — equals the campaign value:
+
+| Workload | SHA-256 |
+| --- | --- |
+| memory-7m | `e3317e55a5db5a4251e04827b3d4f2ccaeb801feb6a9d2848e71ef23daced994` |
+| arithmetic-2m | `25e5719f4c578eb7ef10d76d6033e65f0a4a9d981c2414c3f7ac1950966deea6` |
+| all-opcodes | `79ae76e1ac0c48b1e3b06810ddb1fed8aabe5dfb10d028e879105b79716cb310` |
+
+### Verification
+
+- `zig build test-cairo-cpu-product test-cairo-frontend test-stwo-prover
+  -Doptimize=ReleaseFast` — exit 0. `stwo-cairo-cpu closure: PASS`.
+  `src/prover/**` was not touched; `test-stwo-prover` was run anyway.
+  The merkle-worker-stress `blake_deep` `InvalidNRounds` known-pre-existing
+  item did not surface. Stale untracked `vectors/`/`reports/` artifacts and the
+  corpus `pedersen.json` `SegmentPointerOverflow` remain noted-not-chased.
+- **Conformance regression found and fixed inside the increment.** The first
+  build failed 12 of 20 `test-cairo-frontend` tests
+  (`official_base_checkpoint`, `official_interaction_checkpoint`,
+  `official_live_geometry`) with `recorded graph mismatch component=add_opcode
+  ordinal=0 column=4` — `conformance/base_execution.zig` `compare` read
+  `execution.output_columns` directly and saw an empty slice for every narrow
+  column. Teaching it `Execution.plane` fixed all 12.
+- **Official verifier** (`stwo-cairo-official-verifier`, revision `82f21252`) on
+  candidate proofs: memory-7m `verified: true`, `proof_sha256 = e3317e55…`;
+  arithmetic-2m `verified: true`, `proof_sha256 = 25e5719f…`.
+- **Metal** arithmetic-2m, built with
+  `-Dmetal-core-aot-bundle=/private/tmp/cairo-quotient-baseline-v2/aot-bundle`
+  (identity `core-aot-manifest-sha256=0bc89238…`): `25e5719f…`,
+  `execution: metal-pcs`, `classification: accelerated_without_fallbacks`,
+  74 dispatches, **`cpu_fallbacks: 0`**, `--verify` true. The host-shared
+  witness planes were inherited cleanly with no Metal-side change.
+- **`STWO_ZIG_WORKERS=1`** arithmetic-2m: `25e5719f…`, `--verify` true. Note the
+  campaign-1 single-worker `ConstraintsNotSatisfied` defect
+  (`component.zig:170-174`) does not reproduce on this head.
+- **Byte-parity under `--verify`** on all three workloads before any timing was
+  collected.
+
+### What this leaves
+
+The implementation is preserved at `4b106372` (+ the conformance fix) and
+reverted, per the rejection protocol. `plane_widths.zig` is the durable output:
+a sound, structural, bytecode-only width oracle, with the `@min`-narrowing trap
+documented. Anything that later wants per-column widths — a layout change, a
+generated writer, a device-side plane ABI — can reuse it directly rather than
+rediscovering the abstract interpretation and its one sharp edge.
