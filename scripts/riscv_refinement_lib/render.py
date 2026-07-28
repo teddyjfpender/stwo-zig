@@ -24,6 +24,7 @@ SOURCE_PATHS = (
     "build_support/products/product_specs.zig",
     "build_support/products/riscv_cpu.zig",
     "build_support/products/riscv_refinement.zig",
+    "build_support/products/riscv_test_filter.zig",
     "src/core/build.zig",
     "src/core/build.zig.zon",
     "src/core/mod.zig",

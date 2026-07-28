@@ -1,12 +1,12 @@
 {
   "artifacts": {
-    "RiscvRefinement/Air/Generated/Pilot.lean": "0ee7edba01808012d38ff56938db1da9ed6b7d44242e9e0a9c727e53f4cab274",
+    "RiscvRefinement/Air/Generated/Pilot.lean": "237d830646e43b48381b5cc4acde0b8910ceb8d1df0f45341faa39db31df0644",
     "RiscvRefinement/Sail/Generated/Pilot.lean": "a407f40e35eb85f1f592f89a2ec2b6d15e3cfa724bbb513e08d17d4aacf8906f",
-    "generated/air/addi.json": "c510f6f1f4f677714da4ede83b30928291a6a7d6eee3ae9d8cf44ee3edf130b2",
-    "generated/air/lui.json": "809b1b729128250df067145ce37019968694b1fd5343d2c1dede8280afbd346d",
+    "generated/air/addi.json": "3586c016b25a432d52e1ce49d5d48cec9428810f30ad04e7a68ab6b5985dcf2c",
+    "generated/air/lui.json": "5805b37ca17d41572645c37b00ce22d7ad74900bbb9f88a7f5cc865f363d7199",
     "generated/sail/rv32im-zkvm-v1.json": "5c31e516a205d693386564242d623dbaf4dc1566573f9ecfdcb026611c8fc2c1"
   },
-  "canonical_digest": "ada903ae7226b423ad9af4d764a847c031a9bea3e021b43e9fc384e8e2f654a7",
+  "canonical_digest": "260d9544008e31f53ec4b991c85c08ac9354e5c62438436f75dd73a01f48a460",
   "claim_boundary": {
     "kernel_checked_normalized_refinement": true,
     "lean_generated_sail_monad_normalization": false,
@@ -18,7 +18,7 @@
     "scripts/riscv_refinement_lib/codec.py": "0ae4eaf37dfa9eaec08d26c0a042a1b1e4e8b4b9418e834e28d479e6e3b0b86b",
     "scripts/riscv_refinement_lib/model.py": "ccf52a1d91b30fdea2f618080cdaaa9b9495005518e5c1033a35cf26cb3071bf",
     "scripts/riscv_refinement_lib/negative.py": "350ecd86a9694ee4bace43c74d7fe7518652554d927e8b7b999229c354e93cce",
-    "scripts/riscv_refinement_lib/render.py": "3e0a0539231e3ea7159a2a748f7566b47966980dea95d00fe72be95ab1b6618e",
+    "scripts/riscv_refinement_lib/render.py": "40840b00cedddc9900e170326b96d8ad41e96fa4663a55549c43e375957d1c1e",
     "scripts/riscv_refinement_lib/sail.py": "1cefcbb2b38bb99f0547140522e876fb71f056da1068bae9c0c0a46258ee4b11",
     "scripts/tests/test_riscv_refinement.py": "f0830c0794f6283d1e2a82c14be624b00331ffeda9ffcc30fb2dc0af28334a80"
   },
@@ -26,7 +26,7 @@
   "lean_toolchain": "leanprover/lean4:v4.29.0",
   "opcodes": [
     {
-      "air_digest": "7a5235dc562821c66cca9d19e79630015e0079a5793ce3e72f6f393e86bb79a5",
+      "air_digest": "e4c4d8d0eb6f2a59720e32c41698928b86e07a20c5458400ba2cfe1ea49d4b81",
       "coverage_kind": "normalized-predicate",
       "id": 35,
       "mnemonic": "lui",
@@ -34,7 +34,7 @@
       "refinement_theorem": "RiscvRefinement.Opcodes.lui_refines"
     },
     {
-      "air_digest": "d8a60d889df3e0627c3f2d6fc29a4cc15d299288111e7638662887270af6e9c9",
+      "air_digest": "cc9321b2bcedb54152381d1c8625603a219a0877c59412cf002c48c39c5ea4d3",
       "coverage_kind": "normalized-predicate",
       "id": 10,
       "mnemonic": "addi",
@@ -48,7 +48,7 @@
     "build_support/build.zig.zon": "b170d60ddf58bcd6d246fd03a07bda9a55e3d2e54ea3531aaca21c93179a815b",
     "build_support/graph/configure_manifest.zig": "260db828889655ad1028e94029307d151afed0285f34399a46978d666d3cd4ea",
     "build_support/graph/construction_observer.zig": "7b571e549cf8c0652fe28a9f28100e37edef69a14bb28274f10bedc139811534",
-    "build_support/graph/delegation.zig": "4dc2e133189538268ecfd372dc0237b19b64ed12612ff7fe6e856c2bb88634a0",
+    "build_support/graph/delegation.zig": "7aadc3f8a0eb7cc4b3970feb963702ad4783915cc138e8d4baeea36624bd38ca",
     "build_support/graph/identity.zig": "aad3696bac3dec7d0cf796cd6d23612048198c1d03c19ed419a4851127e867e2",
     "build_support/graph/identity/emitter.zig": "61e817d8c42b6603334c05bf10de5af6b15628b7a4a88f890faa6ced4a8507bd",
     "build_support/graph/identity/encoding.zig": "33079d4c5d05a9b78277048914f53b27c27eca27aee7c173b1ab5c964d5b3e35",
@@ -65,8 +65,9 @@
     "build_support/products/matrix.zig": "ef4f7bd7fd79e450cf75a96507250603d041e4f78ee94bfc32f06c3e192be1f6",
     "build_support/products/package_dependencies.zig": "c35109c9209739c54bceb267f762e37d91d910990f3c4ebc63d875dbcc40feb8",
     "build_support/products/product_specs.zig": "383906d151de99d39d7d5187a660af3ed485ce8ef7a41557570094aaa1f97671",
-    "build_support/products/riscv_cpu.zig": "1ac068019b75f0af7aae06ce7f053bbe9085a97c50152d65c3bac6ecbac782aa",
+    "build_support/products/riscv_cpu.zig": "12037ea3dbc74d0a8681de17ac5f53b5aff795184d6e6c11af3ef7b1a6583655",
     "build_support/products/riscv_refinement.zig": "b938f8bc863efbfa664ed90ada442ff1f035ce4cdc414b1ca8e38f382e99e383",
+    "build_support/products/riscv_test_filter.zig": "e6730f2ab50b2ee973592eb4ac8d1d1c27ee532794c0e720f8ed98166fca2456",
     "src/core/build.zig": "f36357d012657d4fded7fd245e5debfff623d76acdd1d68715bfc9dd5343dd92",
     "src/core/build.zig.zon": "9ff0157486046d10c50ec8386d27871729eec5f6ad9266cba0d91d074036085c",
     "src/core/fields/cm31.zig": "4b7a14c91fba7c467f92e924ce90c7230a22d08329591e3d5b8874d862b31288",
