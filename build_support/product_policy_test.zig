@@ -30,10 +30,16 @@ test "Cairo products expose deliberate release states" {
     }
 }
 
-test "RISC-V accelerators remain unavailable" {
+test "RISC-V accelerators expose deliberate release states" {
     for (matrix.descriptors) |descriptor| {
-        if (descriptor.product.frontend == .riscv and descriptor.product.backend != .cpu)
-            try std.testing.expectEqual(product_policy.State.unavailable, descriptor.state);
+        if (descriptor.product.frontend != .riscv or descriptor.product.backend == .cpu)
+            continue;
+        const expected: product_policy.State = switch (descriptor.product.backend) {
+            .metal => .parity_gated,
+            .cuda => .unavailable,
+            .none, .contracts, .cpu => unreachable,
+        };
+        try std.testing.expectEqual(expected, descriptor.state);
     }
 }
 
