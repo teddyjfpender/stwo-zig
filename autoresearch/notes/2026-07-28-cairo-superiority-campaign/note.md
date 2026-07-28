@@ -1783,3 +1783,234 @@ default workers. Committed at `6d752592`.
   0.998x on the dominant component it was aimed at. Reverted; preserved at
   `39a3c449`. The per-worker claim census is the durable output: the row split
   was already balanced, and witness program execution is bandwidth-bound.
+
+## Increment 8: parallel witness counting passes
+
+**Outcome: undecided-borderline, referred to the orchestrator. The
+implementation is preserved, not reverted.** Three serial counting passes were
+parallelized byte-exactly. The mechanism is confirmed far beyond doubt — the
+three targeted spans collapse 5.9x, 5.6x and 1.25x with fully disjoint paired
+ranges on memory-7m — but the stage bar is straddled rather than cleared
+(`base_trace_build` 1.097x pooled over six quiet paired blocks against a 1.10x
+bar, ranges overlapping) and the prove bar is missed (1.014x against 1.02x).
+arithmetic-2m clears the stage effect with **disjoint** ranges at 1.081x.
+all-opcodes is neutral.
+
+Implementation model: Claude Opus 4.5. Orchestration: Claude Fable 5.
+Transcript: `transcripts/session-08.md`. Predecessor: pristine `zig-out` tree
+from `c8e29225`. Host: Apple M5 Max, 12 performance + 6 efficiency cores.
+
+### Audit: order dependence
+
+A temporary `STWO_INC8_AUDIT` probe measured the shape of each pass on
+memory-7m and was reverted before the first implementation commit.
+
+```
+INC8 compact: rows=7367978 unique=247 tuple_words=7
+INC8 route: routed=8732 dense_words=542848 tables=22
+INC8 populateLiveTopology: route_ms=0.180 range_checks_ms=43.000
+INC8 collectTopology: address=6099360 big=304 small=842576 increments=30891958
+```
+
+| Routine | Output | Order-dependent? | Argument |
+| --- | --- | --- | --- |
+| `compact_inputs.materializeInternal` (`compact_inputs.zig:109`) | unique tuples with additive multiplicities, emitted sorted by `key_words` | **No** | Counts are `u32` adds. The emitted order is a total sort whose comparator has no ties: two rows sharing a `key_words` prefix but differing in the full tuple are rejected as `ConflictingKey`, and two rows with the same full tuple cannot both exist in a hash map. A tie-free sort has one fixed point regardless of the pre-sort permutation. |
+| `cpu_memory_multiplicity.collectTopology` (`cpu_memory_multiplicity.zig:100`) | three dense `u32` count tables | **No** | Scatter-increment histogram. Counts only increase, so a checked add on a merged total fails exactly when the serial running count would have. |
+| `fixed_trace.addMemoryRangeChecksLive` (`fixed_trace.zig:446`) | `range_check_9_9` dense columns | **No** for values, **yes** for one side effect | Same additive argument for the counts. The order-sensitive part is `Tables`' lazy dense allocation and its shared `dense_words` budget: which table trips `GeometryTooLarge` first depends on allocation order. |
+| `multiplicity_tables.Tables.route` | fixed multiplicity tables | No | Not parallelized — see below. |
+
+No pass assigns first-seen ordinals or builds an insertion-ordered table. All
+three are additive histograms and all three admit an exact merge, so this is
+not a negative audit.
+
+**The audit retargeted the third lever.** Increment 7 attributed 44 ms on
+memory-7m to `fixed_trace.populateLiveTopology` as "fixed multiplicities". The
+split shows `Tables.route` — the producer-graph scatter — is **0.180 ms**; it
+touches only 8,732 rows because the producers feeding fixed tables are the
+small ones. The whole 43 ms is `addMemoryRangeChecksLive`, a different shape
+that walks the packed memory *value* table. `route`'s per-row cost is
+genuinely bad — `startsWith` on the target name, a decimal shape parse with
+`splitScalar` + `parseUnsigned`, and a linear `find(label)` string scan over 22
+tables, all per row — and it is worth 0.18 ms, so it was left alone. Recorded
+so nobody re-derives it.
+
+### Mechanisms as implemented
+
+**1. Compact tuple counting** (`compact_inputs.zig:185` `CountWorker`,
+`:228` `Counting`). 7,367,978 `getOrPut` probes collapsing to 247 unique
+tuples: the ideal parallel histogram, because a worker's private table is 247
+entries at worst and the merge is `workers x 247` map operations. Workers own
+disjoint producer-row spans across every edge and instance, count into private
+`AutoHashMapUnmanaged` tables on per-worker arenas, and merge with checked
+adds. The key gather also became a `@memcpy` of the tuple words instead of
+per-word index arithmetic.
+
+**2. Small-value range checks**
+(`conformance/memory_range_checks.zig:36`). `big` holds 304 values so the big
+loop is noise; the cost is `smallRowCount` = 2^20 rows x `small_limb_count/2` =
+4 pairs, i.e. 8.4M limb extractions and 4.2M scattered increments. For the
+small loop **the relation index is the limb-pair index**, so a worker's private
+histogram covers only those four relation columns rather than the whole table.
+Worker 0 counts straight into the live dense columns, which already carry the
+big loop's increments, so only `worker_count - 1` private copies exist and the
+one-worker case allocates nothing. The fold back is split over disjoint output
+slices. `Tables.reserve` (`multiplicity_tables.zig:59`) exposes the lazy dense
+allocation so the parallel pass charges the shared budget serially, in the
+position the first serial increment would have; `increment` routes through the
+same helper so the two cannot drift. `memory_tables.smallValueLimb`
+(`memory_tables.zig:101`) carries the per-row encoding validation that
+`writeSmallValueColumn` used to inline, and that writer now calls it.
+
+**3. Memory multiplicity scatter**
+(`cpu_memory_multiplicity.zig:174` `accumulateTopology`). 30,891,958 increments
+into 6,942,240 slots. Producers and feeds can both hit any address slot, so
+there is no disjoint output partition and private tables are the only exact
+merge — 27.8 MB each. Same worker-0-owns-the-destination shape. Graph
+validation moved ahead of the counting so workers only do arithmetic; every
+rejection it makes is one the serial form also reached, just possibly after
+some counts had landed.
+
+`witness/pool_split.zig` holds the three decisions all of them make
+identically: the structural worker count (`:29`), the disjoint span (`:51`) and
+the spawn-and-collect dispatch (`:64`). Admission is row counts and byte
+volumes only — no name, path, digest or shape is consulted anywhere.
+
+### The worker cap is the interesting constant
+
+The memory scatter is **bandwidth-bound, not core-bound**. Measured with a
+temporary phase timer on memory-7m, varying only the private-copy budget:
+
+| Private budget | Workers | Scatter ms | Merge ms | `base_memory_tables` ms |
+| ---: | ---: | ---: | ---: | ---: |
+| 32 MiB | 1 | — | — | 51.418 |
+| 64 MiB | 2 | 16.707 | 3.256 | 44.831 |
+| 96 MiB | 3 | 12.999 | 2.510 | **38.133** |
+| 128 MiB | 4 | 12.784 | 3.001 | 38.753 |
+| 192 MiB | 7 | 13.188 | 3.084 | 38.700 |
+
+Scatter is flat from three workers to seven while each extra private copy keeps
+costing zeroing, first-touch faults and merge traffic. The shipped budget is
+96 MiB, which puts a 27.8 MB table set at three workers and lets a smaller one
+— where each increment carries less bandwidth — have more. This is the same
+wall increment 7 found in the witness executor, in a different pass.
+
+### Paired measurement
+
+A-B-B-A cold processes, `--verify` on every run, one untimed warmup per arm
+before each workload, uninstrumented binaries both sides, predecessor the
+pristine `zig-out` tree from `c8e29225` copied whole. No sample discarded.
+Per-sample raws in `transcripts/session-08.md`.
+
+memory-7m, six paired blocks on the quietest window of the session:
+
+| Observable | pred mean | pred range | cand mean | cand range | Ratio | Disjoint |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| `base_trace_build` | 980.405 | 884.9-1060.6 | 893.753 | 834.2-943.6 | 1.0970 | no |
+| `verify_instruction` | 42.345 | 38.8-47.0 | 7.171 | 5.2-8.1 | **5.905** | **yes** |
+| `base_fixed_multiplicities` | 49.386 | 45.4-58.1 | 8.761 | 7.8-9.7 | **5.637** | **yes** |
+| `base_memory_tables` | 53.562 | 51.2-56.0 | 43.017 | 40.6-45.3 | **1.245** | **yes** |
+| prove | 6,598.4 | 6191-6985 | 6,506.6 | 6050-6808 | 1.0141 | no |
+
+Per-block `base_trace_build` ratios: 1.1008, 1.1128, 1.0361, 1.1244, 1.1122,
+1.0984. Five of six clear 1.10x; block 3 does not, and it is the block in which
+host load drifted upward between the `pred 1` and `cand` samples.
+
+arithmetic-2m, three paired blocks in the same window:
+
+| Observable | pred mean | pred range | cand mean | cand range | Ratio | Disjoint |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| `base_trace_build` | 310.985 | 307.5-318.2 | 287.801 | 277.3-291.9 | **1.0806** | **yes** |
+| `verify_instruction` | 12.454 | 10.7-14.6 | 2.306 | 2.2-2.7 | **5.401** | **yes** |
+| `base_fixed_multiplicities` | 12.946 | 12.2-13.8 | 6.838 | 6.5-7.0 | **1.893** | **yes** |
+| `base_memory_tables` | 25.109 | 23.5-26.4 | 18.171 | 16.8-19.4 | **1.382** | **yes** |
+| prove | 2,776.2 | 2706-2821 | 2,733.6 | 2631-2776 | 1.0156 | no |
+
+all-opcodes, three paired blocks, shipped candidate: `base_trace_build` 18.246
+vs 18.409 (0.991x), `base_fixed_multiplicities` 5.506 vs 5.629 (0.978x), prove
+1,453.6 vs 1,433.6 (1.014x). All overlapping. The stage is 18 ms of a 1,450 ms
+proof there, so this workload measures nothing about the treatment; it is
+reported because it is the fixed-cost sentinel and it shows **no regression**.
+
+Three further blocks per large workload were taken on the shipped candidate
+after the one-worker fix below, at load average 24-36 with absolute times ~1.8x
+inflated by an unrelated process. They agree in direction and are reported in
+the transcript rather than here: memory-7m `base_trace_build` 1.121x pooled
+(blocks 1.064 / 1.113 / 1.196), arithmetic-2m 1.076x.
+
+**The internal arithmetic is consistent, which is the strongest evidence the
+effect is real.** On arithmetic-2m the three spans lose 50.509 - 27.315 =
+23.19 ms and `base_trace_build` loses 310.985 - 287.801 = 23.18 ms. On
+memory-7m the spans lose 145.293 - 58.949 = 86.34 ms against a stage delta of
+86.65 ms. The stage moves by exactly what the three spans give up, and nothing
+else moves.
+
+### Why this is borderline rather than accepted
+
+The ceiling was known before the work started and is arithmetic, not
+execution: the three passes are ~145 ms of a ~980 ms stage on memory-7m, so
+driving them to zero caps the stage at 1.17x, and 59 ms of irreducible residue
+remains (the memory scatter is bandwidth-bound at 43 ms and cannot go lower
+without moving fewer bytes). 1.097x is close to the achievable maximum for
+this lever, and the gap to the 1.10x bar is 3 ms of stage time against a
+run-to-run spread of 60 ms. At prove level 87 ms on a 6.5 s proof is 1.014x
+and was never going to reach 1.02x.
+
+The honest summary is: the lever is real, exhausted, and smaller than the bar.
+Handed to the orchestrator undecided. The implementation is preserved on the
+branch either way, because reverting it would give back 87 ms of measured,
+byte-exact, mechanism-confirmed stage time for no reason.
+
+### Verification
+
+- Proof bytes byte-identical predecessor versus candidate on every workload and
+  every arm across all paired blocks — one distinct digest per workload:
+  arithmetic-2m `25e5719f4c578eb7ef10d76d6033e65f0a4a9d981c2414c3f7ac1950966deea6`,
+  memory-7m `e3317e55a5db5a4251e04827b3d4f2ccaeb801feb6a9d2848e71ef23daced994`,
+  all-opcodes `79ae76e1ac0c48b1e3b06810ddb1fed8aabe5dfb10d028e879105b79716cb310`.
+  All three equal the campaign values.
+- `STWO_ZIG_WORKERS=1` proves arithmetic-2m at `25e5719f…` and self-verifies,
+  so increment 7's serial-path fix still holds against the new serial
+  fallbacks, all of which are `worker_count == 1` degenerations of the parallel
+  path rather than separate code.
+- `zig build test-cairo-cpu-product test-cairo-frontend -Doptimize=ReleaseFast`
+  passes; closure PASS over 330 transitive Zig sources; identity `dirty: false`.
+- Pinned official Rust verifier on the candidate arithmetic-2m proof:
+  `"verified":true`, channel `blake2s`, `stwo_cairo_revision`
+  `82f21252a68ec006d73e299f5bf1ce6d4db0ee78`, `proof_sha256` `25e5719f…`.
+- Metal arithmetic-2m with the pinned AOT bundle: see transcript.
+- Pre-existing and unchanged: `merkle-worker-stress` `blake_deep`
+  `InvalidNRounds`, stale untracked
+  `vectors/reports/merkle_worker_stress_artifacts/`, corpus `pedersen.json`
+  `SegmentPointerOverflow` in the adapter.
+
+### Rejected alternatives
+
+- **Atomic increments instead of private count tables in the memory scatter.**
+  Built and measured. It removes the copies, the zeroing and the merge
+  entirely, and it is exactly order-independent with fail-closed overflow
+  (the RMW returns the previous value, so the slot crossing `maxInt(u32)` is
+  detected on the increment that crosses it). But 30.9M relaxed
+  read-modify-writes over a 24 MB table ran `base_memory_tables` at **57.4 ms**
+  against 38.1 ms for the private-copy split and 47.5 ms serial — worse than
+  doing nothing. Not kept. The lesson generalizes: on this host a scattered
+  atomic histogram over a DRAM-resident table loses to private copies even when
+  the copies cost 166 MB of traffic.
+- **Parallelize `Tables.route`.** 0.180 ms on memory-7m. Unmeasurable.
+- **Optimize `route`'s per-row dispatch** (hoist the name matching, the shape
+  parse and the table lookup out of the row loop). The same defect increment 2
+  removed from the interaction source, and here it is worth 0.18 ms. Recorded,
+  not done.
+- **Split the memory scatter over more workers.** Flat from three to seven; see
+  the budget table. The pass is bandwidth-bound.
+- **Give every worker a private range-check histogram, including the
+  one-worker case.** Shipped briefly and measured as a **regression** on
+  all-opcodes: `base_fixed_multiplicities` 5.646 ms predecessor against 6.520 ms
+  candidate over six paired samples, because a 4 MB allocation, zeroing and
+  merge were being paid on a pass that is 5 ms long there. Fixed by letting
+  worker 0 own the live columns. This is the reason the fixed-cost sentinel
+  workload is in the portfolio.
+- **Also parallelize `implicit.memoryAddress` (12 ms) and
+  `implicit.memorySmall` (9.7 ms).** They sit in the same stage and are the
+  next 22 ms of `base_memory_tables`. Out of this increment's scope; recorded
+  for the roadmap, though the budget table above suggests they will hit the
+  same bandwidth wall.
