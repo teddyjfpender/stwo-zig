@@ -57,10 +57,10 @@ def cmd_clone(args) -> int:
     return 0
 
 
-def cmd_setup(_args) -> int:
+def cmd_setup(args) -> int:
     from . import workspace
     m = manifest_mod.load()
-    built = workspace.setup(m.root, m)
+    built = workspace.setup(m.root, m, board=args.board)
     print(f"{ansi.OK} toolchain verified; bench targets built for group(s): "
           + ", ".join(built))
     return 0
@@ -595,7 +595,14 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("clone", help="create a searcher workspace (git worktree)")
     p.add_argument("dest")
 
-    sub.add_parser("setup", help="verify toolchain and build the bench target")
+    p = sub.add_parser("setup", help="verify toolchain and build bench targets")
+    p.add_argument(
+        "--board",
+        default=None,
+        choices=["core_cpu", "core_hybrid", "core_metal", "core_cuda",
+                 "heavy_native", "heavy_cairo", "stream", "riscv"],
+        help="build only the workload group owned by this board",
+    )
 
     sub.add_parser(
         "update",
