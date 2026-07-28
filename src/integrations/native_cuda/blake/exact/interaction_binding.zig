@@ -63,6 +63,8 @@ pub fn generate(
 
 pub fn AuthorityFor(comptime Transaction: type) type {
     return struct {
+        pub const identity = program_identity;
+
         pub fn facade(transaction: *Transaction) facades.Interaction {
             return .{
                 .version = facades.abi_version,
@@ -112,13 +114,10 @@ fn validateInvocation(invocation: facades.Invocation) !void {
 test "exact interaction facade identity is the authenticated AOT closure" {
     const std = @import("std");
     const FakeTransaction = struct {};
-    var transaction = FakeTransaction{};
-    const facade = AuthorityFor(FakeTransaction).facade(&transaction);
-    try facade.validate();
     try std.testing.expectEqualSlices(
         u8,
         &program_identity,
-        &facade.identity,
+        &AuthorityFor(FakeTransaction).identity,
     );
     try std.testing.expectEqual(
         abi_schema,

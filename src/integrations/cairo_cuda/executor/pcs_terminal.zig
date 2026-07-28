@@ -2,15 +2,9 @@
 
 const proof_ir = @import("stwo_backend_contracts").proof_program;
 const field = @import("stwo_cuda_backend").abi.field;
-const shared_proof = @import(
-    "../../native_cuda/common/resident_proof_binding.zig",
-);
-const shared_bundle = @import(
-    "../../native_cuda/common/proof_bundle.zig",
-);
-const shared_views = @import(
-    "../../native_cuda/common/resident_views.zig",
-);
+const shared_proof = @import("stwo_native_cuda_integration").common.resident_proof_binding;
+const shared_bundle = @import("stwo_native_cuda_integration").common.proof_bundle;
+const shared_views = @import("stwo_native_cuda_integration").common.resident_views;
 const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
 const resident_plan = @import("resident_plan.zig");
 const slots = @import("pcs_slot_binding.zig");

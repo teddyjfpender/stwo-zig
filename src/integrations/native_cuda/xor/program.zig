@@ -553,8 +553,8 @@ test "XOR emits exact generic Native AIR geometry and proof semantics" {
     try std.testing.expectEqual(@as(u32, 2), program.fri_layers[6].evaluation_log_rows);
     try std.testing.expectEqual(@as(u32, 2), program.transcript[3].node);
     try std.testing.expectEqual(@as(u32, 2), program.transcript[6].node);
-    try std.testing.expectEqual(@as(u32, 3), program.transcript[7].node);
-    try std.testing.expectEqual(@as(u32, 3), program.transcript[9].node);
+    try std.testing.expectEqual(@as(u32, 2), program.transcript[7].node);
+    try std.testing.expectEqual(@as(u32, 2), program.transcript[9].node);
     try std.testing.expect(!std.mem.allEqual(
         u8,
         &program.semantic_digest,

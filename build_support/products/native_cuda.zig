@@ -33,6 +33,7 @@ const source_closure = policy.SourceClosure{
         .{ .name = "stwo_cuda_backend", .source = "src/backends/cuda/mod.zig" },
         .{ .name = "stwo_metal_backend", .source = "src/backends/metal/mod.zig" },
         .{ .name = "stwo_native_examples", .source = "src/examples/mod.zig" },
+        .{ .name = "stwo_native_cuda_integration", .source = "src/integrations/native_cuda/mod.zig" },
         .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
         .{ .name = "stwo_riscv_frontend", .source = "src/frontends/riscv/mod.zig" },
         .{ .name = "stwo_riscv_cpu_integration", .source = "src/integrations/riscv_cpu/mod.zig" },
@@ -222,7 +223,7 @@ fn createStwoModule(
         context.optimize,
         module,
     );
-    _ = graph.addNativeExamplesImport(
+    const native_examples = graph.addNativeExamplesImport(
         context.b,
         context.protocol,
         product(role),
@@ -241,12 +242,23 @@ fn createStwoModule(
         cpu_backend,
         module,
     );
-    _ = graph.addCudaBackendImport(
+    const cuda_backend = graph.addCudaBackendImport(
         context.b,
         context.protocol,
         product(role),
         context.target,
         context.optimize,
+        module,
+    );
+    _ = integration_graph.addNativeCudaImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        cuda_backend,
+        native_examples,
+        proof_wire,
         module,
     );
     const riscv_frontend = graph.addRiscVFrontendImport(

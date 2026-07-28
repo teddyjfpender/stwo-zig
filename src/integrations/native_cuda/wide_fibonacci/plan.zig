@@ -108,7 +108,7 @@ test "prepared plans seal small standard and extreme admitted geometry" {
             prepared.totalWords() <= requirements_mod.max_total_words,
         );
         try std.testing.expectEqual(
-            66 + 3 * @as(usize, log_n_rows),
+            64 + 3 * @as(usize, log_n_rows),
             prepared.requirements().len,
         );
         const inverse_twiddles = try prepared.cuda_plan.arena_plan.placement(

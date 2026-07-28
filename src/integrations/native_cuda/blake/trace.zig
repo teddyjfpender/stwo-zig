@@ -18,7 +18,7 @@ pub const recipe = seeded_xorshift.Recipe{
 pub fn prepare(
     session: anytype,
     destination: common.WordMatrix,
-    statement: @import("stwo_native_examples").blake.Statement,
+    statement: geometry_mod.LegacyStatement,
 ) !seeded_xorshift.PreparedLaunch {
     _ = try geometry_mod.mainColumnCount(statement);
     return seeded_xorshift.prepare(
@@ -36,7 +36,7 @@ pub fn prepare(
 pub fn generate(
     session: anytype,
     destination: common.WordMatrix,
-    statement: @import("stwo_native_examples").blake.Statement,
+    statement: geometry_mod.LegacyStatement,
 ) !void {
     var launch = try prepare(session, destination, statement);
     try launch.launch(session);
@@ -45,7 +45,7 @@ pub fn generate(
 test "Blake binding contributes only statement geometry and AIR recipe" {
     const std = @import("std");
     var session = TestSession{};
-    const statement = @import("stwo_native_examples").blake.Statement{
+    const statement = geometry_mod.LegacyStatement{
         .log_n_rows = 3,
         .n_rounds = 2,
     };

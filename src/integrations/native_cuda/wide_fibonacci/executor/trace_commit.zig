@@ -320,10 +320,21 @@ test "trace executor follows raw upstream prefix without host escape" {
                 previous: anytype,
                 output: anytype,
                 four_levels: bool,
-            ) !void {
-                try std.testing.expect(!four_levels);
-                try std.testing.expectEqual(previous.len / 2, output.len);
+            ) runtime_error.Error!void {
+                if (four_levels or previous.len / 2 != output.len)
+                    return error.InvalidKernelDescriptor;
                 Calls.merkle_layers += 1;
+            }
+            pub fn contiguousTail(
+                _: anytype,
+                _: anytype,
+                previous: anytype,
+                outputs: anytype,
+                level_count: u32,
+            ) runtime_error.Error!void {
+                if (level_count == 0 or outputs.len != previous.len - 1)
+                    return error.InvalidKernelDescriptor;
+                Calls.merkle_layers += level_count;
             }
         };
         const Transcript = struct {
@@ -371,6 +382,10 @@ test "trace executor follows raw upstream prefix without host escape" {
     };
     const FakeTransaction = struct {
         session: struct { context: FakeContext = .{} } = .{},
+
+        pub fn proofSession(self: *@This()) *@TypeOf(self.session) {
+            return &self.session;
+        }
     };
 
     const allocator = std.testing.allocator;

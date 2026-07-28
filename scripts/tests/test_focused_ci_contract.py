@@ -294,6 +294,7 @@ class PlannerContractTests(unittest.TestCase):
             {
                 "static",
                 "cuda_backend",
+                "native_cuda_integration",
                 "package",
                 "native_cuda_static",
                 "native_cuda_device",
@@ -330,6 +331,7 @@ class PlannerContractTests(unittest.TestCase):
             {
                 "static",
                 "cuda_backend",
+                "native_cuda_integration",
                 "package",
                 "native_cuda_static",
                 "native_cuda_device",

@@ -72,7 +72,7 @@ pub fn addPublicModules(context: Context) Result {
         context.optimize,
         stwo,
     );
-    _ = graph.addNativeExamplesImport(
+    const native_examples = graph.addNativeExamplesImport(
         context.b,
         protocol,
         sdkProduct(),
@@ -91,12 +91,23 @@ pub fn addPublicModules(context: Context) Result {
         cpu_backend,
         stwo,
     );
-    _ = graph.addCudaBackendImport(
+    const cuda_backend = graph.addCudaBackendImport(
         context.b,
         protocol,
         sdkProduct(),
         context.target,
         context.optimize,
+        stwo,
+    );
+    _ = integration_graph.addNativeCudaImport(
+        context.b,
+        protocol,
+        sdkProduct(),
+        context.target,
+        context.optimize,
+        cuda_backend,
+        native_examples,
+        proof_wire,
         stwo,
     );
     const riscv_frontend = graph.addRiscVFrontendImport(
@@ -196,7 +207,7 @@ pub fn addProducts(context: Context) Result {
         context.optimize,
         stwo,
     );
-    _ = graph.addNativeExamplesImport(
+    const native_examples = graph.addNativeExamplesImport(
         context.b,
         prover.protocol,
         sdkProduct(),
@@ -215,12 +226,23 @@ pub fn addProducts(context: Context) Result {
         cpu_backend,
         stwo,
     );
-    _ = graph.addCudaBackendImport(
+    const cuda_backend = graph.addCudaBackendImport(
         context.b,
         prover.protocol,
         sdkProduct(),
         context.target,
         context.optimize,
+        stwo,
+    );
+    _ = integration_graph.addNativeCudaImport(
+        context.b,
+        prover.protocol,
+        sdkProduct(),
+        context.target,
+        context.optimize,
+        cuda_backend,
+        native_examples,
+        proof_wire,
         stwo,
     );
     const riscv_frontend = graph.addRiscVFrontendImport(

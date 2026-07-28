@@ -632,9 +632,10 @@ test "sample reconstruction follows role descriptors" {
     var words: [11 * stark_bundle.secure_words]u32 = undefined;
     for (&words, 0..) |*word, index| word.* = @intCast(index + 1);
     const sampled = try decodeSamples(
+        struct {},
         std.testing.allocator,
         &words,
-        trees,
+        &trees,
     );
     defer {
         for (sampled) |columns| {
@@ -685,9 +686,10 @@ test "sample reconstruction preserves unsampled tree columns" {
     var words: [10 * stark_bundle.secure_words]u32 = undefined;
     for (&words, 0..) |*word, index| word.* = @intCast(index + 1);
     const sampled = try decodeSamples(
+        struct {},
         std.testing.allocator,
         &words,
-        trees,
+        &trees,
     );
     defer {
         for (sampled) |columns| {

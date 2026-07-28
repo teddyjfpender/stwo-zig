@@ -10,12 +10,8 @@ const field = @import("stwo_cuda_backend").abi.field;
 const common = @import("stwo_cuda_backend").runtime.stages.common;
 const stages = @import("stwo_cuda_backend").runtime.stages;
 const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
-const commit_tree = @import(
-    "../../native_cuda/common/commit_tree.zig",
-);
-const proof_capture = @import(
-    "../../native_cuda/common/proof_assembly.zig",
-);
+const commit_tree = @import("stwo_native_cuda_integration").common.commit_tree;
+const proof_capture = @import("stwo_native_cuda_integration").common.proof_assembly;
 const bindings_module = @import("pcs_hooks_types.zig");
 const resident_plan = @import("resident_plan.zig");
 const transcript_controller = @import("transcript/controller.zig");
@@ -279,9 +275,7 @@ pub const Topology = struct {
     pub fn upload(
         self: Topology,
         session: anytype,
-        fri: @import(
-            "../../native_cuda/common/resident_views.zig",
-        ).Fri,
+        fri: @import("stwo_native_cuda_integration").common.resident_views.Fri,
     ) !void {
         if (fri.layer_count != self.layers.len)
             return error.InvalidFriControllerBinding;

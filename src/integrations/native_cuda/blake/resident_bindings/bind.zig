@@ -9,6 +9,7 @@ const common = @import("stwo_cuda_backend").runtime.stages.common;
 const oods_stage = @import("stwo_cuda_backend").runtime.stages.oods;
 const quotient_stage = @import("stwo_cuda_backend").runtime.stages.quotient;
 const canonical_ingress = @import("../canonical_ingress.zig");
+const proof_binding = @import("../../common/resident_proof_binding.zig");
 const plan_mod = @import("../plan.zig");
 const proof_bundle = @import("../proof_bundle.zig");
 const geometry_mod = @import("../geometry.zig");
@@ -629,38 +630,13 @@ fn bindProof(
     provider: anytype,
     prepared: *const plan_mod.PreparedPlan,
 ) !types.Proof {
-    const bundle = try exactWords(
+    return proof_binding.bind(
+        geometry_mod,
+        proof_bundle,
+        slots,
         provider,
-        slots.proof_bundle,
-        prepared.proof.total_words,
+        prepared,
     );
-    return .{
-        .bundle = bundle,
-        .degree_verdict = try bundle.sub(15, 1),
-        .trace_commitments = try section(
-            bundle,
-            prepared,
-            .trace_commitments,
-        ),
-        .sampled_values = try section(bundle, prepared, .sampled_values),
-        .fri_commitments = try section(
-            bundle,
-            prepared,
-            .fri_commitments,
-        ),
-        .fri_last_layer = try section(bundle, prepared, .fri_last_layer),
-        .pow_nonce = try section(bundle, prepared, .proof_of_work),
-        .decommitment = try section(bundle, prepared, .decommitment),
-    };
-}
-
-fn section(
-    bundle: Words,
-    prepared: *const plan_mod.PreparedPlan,
-    kind: proof_bundle.SectionKind,
-) !Words {
-    const descriptor = prepared.proof.section(kind);
-    return bundle.sub(descriptor.offset_words, descriptor.words);
 }
 
 fn validatePrepared(prepared: *const plan_mod.PreparedPlan) !void {

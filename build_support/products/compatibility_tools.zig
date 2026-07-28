@@ -50,7 +50,7 @@ pub fn addProducts(context: Context) void {
         context.optimize,
         stwo,
     );
-    _ = graph.addNativeExamplesImport(
+    const native_examples = graph.addNativeExamplesImport(
         b,
         protocol,
         compatibility_product,
@@ -69,12 +69,23 @@ pub fn addProducts(context: Context) void {
         cpu_backend,
         stwo,
     );
-    _ = graph.addCudaBackendImport(
+    const cuda_backend = graph.addCudaBackendImport(
         b,
         protocol,
         compatibility_product,
         context.target,
         context.optimize,
+        stwo,
+    );
+    _ = integration_graph.addNativeCudaImport(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        cuda_backend,
+        native_examples,
+        proof_wire,
         stwo,
     );
     const riscv_frontend = graph.addRiscVFrontendImport(

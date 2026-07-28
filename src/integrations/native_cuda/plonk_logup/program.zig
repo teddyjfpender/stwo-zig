@@ -582,11 +582,15 @@ test "Plonk program tree and sample counts match a decoded CPU proof" {
     try std.testing.expectEqual(@as(usize, 4), proof.queried_values.items.len);
     const widths = [_]usize{ 4, 4, 8, 8 };
     var samples: usize = 0;
-    for (proof.sampled_values.items, widths) |sampled_tree, width| {
+    for (proof.sampled_values.items, widths, 0..) |
+        sampled_tree,
+        width,
+        tree_index,
+    | {
         try std.testing.expectEqual(width, sampled_tree.len);
-        for (sampled_tree) |column| {
+        for (sampled_tree, 0..) |column, column_index| {
             const expected_points: usize =
-                if (sampled_tree.len == 8 and samples == 8) 2 else 1;
+                if (tree_index == 2 and column_index >= 4) 2 else 1;
             try std.testing.expectEqual(expected_points, column.len);
             samples += column.len;
         }

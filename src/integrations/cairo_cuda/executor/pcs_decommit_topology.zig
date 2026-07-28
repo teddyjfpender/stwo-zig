@@ -10,9 +10,7 @@ const field = @import("stwo_cuda_backend").abi.field;
 const common = @import("stwo_cuda_backend").runtime.stages.common;
 const decommit_stage = @import("stwo_cuda_backend").runtime.stages.decommit;
 const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
-const shared_views = @import(
-    "../../native_cuda/common/resident_views.zig",
-);
+const shared_views = @import("stwo_native_cuda_integration").common.resident_views;
 const pcs_types = @import("pcs_hooks_types.zig");
 
 pub const TraceGroup = struct {
@@ -483,9 +481,7 @@ fn treeAt(
     return error.InvalidKernelDescriptor;
 }
 
-fn role(value: proof_ir.CommitmentRole) ?@import(
-    "../../native_cuda/common/uniform_layout.zig",
-).TraceRole {
+fn role(value: proof_ir.CommitmentRole) ?@import("stwo_native_cuda_integration").common.uniform_layout.TraceRole {
     return switch (value) {
         .preprocessed => .preprocessed,
         .main => .main,

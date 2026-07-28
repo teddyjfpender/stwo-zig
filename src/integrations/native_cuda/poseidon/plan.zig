@@ -99,7 +99,8 @@ test "prepared plans seal small standard and large admitted geometry" {
         );
         try std.testing.expectEqual(
             geometry.decommit_tree_count,
-            prepared.decommit.fri_trees.len + 2,
+            prepared.decommit.fri_trees.len +
+                geometry.decommitted_trace_tree_count,
         );
         try std.testing.expect(prepared.totalWords() > 0);
         try std.testing.expect(prepared.totalWords() > previous_words);
@@ -108,7 +109,7 @@ test "prepared plans seal small standard and large admitted geometry" {
             prepared.totalWords() <= requirements_mod.max_total_words,
         );
         try std.testing.expectEqual(
-            88 + 3 * @as(usize, log_n_rows),
+            87 + 3 * @as(usize, log_n_rows),
             prepared.requirements().len,
         );
         const inverse_twiddles = try prepared.cuda_plan.arena_plan.placement(

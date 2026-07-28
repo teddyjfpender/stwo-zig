@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
-const common = @import("../../native_cuda/common/proof_bundle.zig");
+const common = @import("stwo_native_cuda_integration").common.proof_bundle;
 
 pub const container_header_words = common.header_words;
 

@@ -147,3 +147,55 @@ pub fn addCairoMetalImport(
     consumer.addImport("stwo_cairo_metal_integration", integration);
     return integration;
 }
+
+/// Constructs the Native AIR to CUDA backend composition against the exact
+/// protocol, backend, example, and proof-wire package modules selected by the
+/// enclosing product.
+pub fn createNativeCuda(
+    b: *std.Build,
+    protocol: graph.ProtocolModules,
+    product: graph.Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    cuda_backend: *std.Build.Module,
+    native_examples: *std.Build.Module,
+    proof_wire: *std.Build.Module,
+) *std.Build.Module {
+    const integration = graph.create(b, .{
+        .product = product,
+        .root_source_file = "src/integrations/native_cuda/mod.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    protocol.addImports(integration);
+    integration.addImport("stwo_cuda_backend", cuda_backend);
+    integration.addImport("stwo_native_examples", native_examples);
+    integration.addImport("stwo_proof_wire", proof_wire);
+    return integration;
+}
+
+/// Declares a consumer's dependency on the package-owned Native CUDA API.
+pub fn addNativeCudaImport(
+    b: *std.Build,
+    protocol: graph.ProtocolModules,
+    product: graph.Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    cuda_backend: *std.Build.Module,
+    native_examples: *std.Build.Module,
+    proof_wire: *std.Build.Module,
+    consumer: *std.Build.Module,
+) *std.Build.Module {
+    const integration = createNativeCuda(
+        b,
+        protocol,
+        product,
+        target,
+        optimize,
+        cuda_backend,
+        native_examples,
+        proof_wire,
+    );
+    consumer.addImport("stwo_native_cuda_integration", integration);
+    return integration;
+}

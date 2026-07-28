@@ -348,10 +348,21 @@ test "composition executor keeps the complete AOT path resident" {
                 previous: anytype,
                 output: anytype,
                 four_levels: bool,
-            ) !void {
-                try std.testing.expect(!four_levels);
-                try std.testing.expectEqual(previous.len / 2, output.len);
+            ) runtime_error.Error!void {
+                if (four_levels or previous.len / 2 != output.len)
+                    return error.InvalidKernelDescriptor;
                 Calls.merkle_layers += 1;
+            }
+            pub fn contiguousTail(
+                _: anytype,
+                _: anytype,
+                previous: anytype,
+                outputs: anytype,
+                level_count: u32,
+            ) runtime_error.Error!void {
+                if (level_count == 0 or outputs.len != previous.len - 1)
+                    return error.InvalidKernelDescriptor;
+                Calls.merkle_layers += level_count;
             }
         };
     };
@@ -369,6 +380,10 @@ test "composition executor keeps the complete AOT path resident" {
     };
     const FakeTransaction = struct {
         session: struct { context: FakeContext = .{} } = .{},
+
+        pub fn proofSession(self: *@This()) *@TypeOf(self.session) {
+            return &self.session;
+        }
 
         pub fn zeroResidentSlice(
             _: *@This(),

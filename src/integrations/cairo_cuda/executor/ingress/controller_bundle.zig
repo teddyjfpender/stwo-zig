@@ -23,9 +23,7 @@ const trace_commit = @import("../trace_commit.zig");
 const trace_writer = @import("../trace_writer_controller.zig");
 const proof_session = @import("../proof_session.zig");
 const preprocessed_cache = @import("../preprocessed_cache.zig");
-const proof_capture = @import(
-    "../../../native_cuda/common/proof_assembly.zig",
-);
+const proof_capture = @import("stwo_native_cuda_integration").common.proof_assembly;
 const resident_plan = @import("../resident_plan.zig");
 const transcript_controller = @import("../transcript/controller.zig");
 const transcript_schedule = @import("../transcript/schedule.zig");

@@ -3,9 +3,7 @@
 const proof_ir = @import("stwo_backend_contracts").proof_program;
 const field = @import("stwo_cuda_backend").abi.field;
 const quotient_abi = @import("stwo_cuda_backend").abi.stages.quotient;
-const shared_views = @import(
-    "../../native_cuda/common/resident_views.zig",
-);
+const shared_views = @import("stwo_native_cuda_integration").common.resident_views;
 const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
 const resident_plan = @import("resident_plan.zig");
 const slots = @import("pcs_slot_binding.zig");

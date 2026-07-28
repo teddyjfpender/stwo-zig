@@ -77,7 +77,7 @@ test "Poseidon pipeline prepares one exact resident proof plan" {
         prepared.requirements().len,
     );
     try std.testing.expectEqual(
-        geometry.trace_rows,
+        geometry.commitment_rows,
         prepared.canonical.forwardTwiddleWords().len,
     );
 }

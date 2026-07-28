@@ -14,7 +14,7 @@ pub const Provider = struct {
         self: *const Provider,
         id: arena.SlotId,
     ) runtime_error.Error!column.DeviceSlice(u32) {
-        const placement = try self.prepared.arena_plan.placement(id);
+        const placement = try self.prepared.cuda_plan.arena_plan.placement(id);
         return .{
             .address = base_address +
                 placement.offset_words * @sizeOf(u32),

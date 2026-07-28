@@ -71,8 +71,10 @@ fn validatePrepared(
         return error.PreparedInputConsumed;
     if (preprocessed.len != geometry_mod.preprocessed_columns or
         main.len != geometry_mod.main_columns or
-        prepared.trace.committed_columns != geometry.traceColumnCount() or
-        prepared.trace.committed_cells != geometry.trace_elements)
+        prepared.trace.committed_columns !=
+            geometry_mod.preprocessed_columns + geometry_mod.main_columns or
+        prepared.trace.committed_cells !=
+            geometry.preprocessed_cells + geometry.main_cells)
     {
         return error.InvalidPreparedGeometry;
     }

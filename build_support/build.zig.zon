@@ -19,5 +19,6 @@
         .stwo_metal_session = .{ .path = "../src/tools/metal_session" },
         .stwo_proof_wire = .{ .path = "../src/interop/proof_wire" },
         .stwo_native_examples = .{ .path = "../src/examples" },
+        .stwo_native_cuda_integration = .{ .path = "../src/integrations/native_cuda" },
     },
 }

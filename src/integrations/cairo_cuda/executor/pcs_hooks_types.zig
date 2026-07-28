@@ -5,9 +5,7 @@ const quotient_abi = @import("stwo_cuda_backend").abi.stages.quotient;
 const column = @import("stwo_cuda_backend").runtime.column;
 const common = @import("stwo_cuda_backend").runtime.stages.common;
 const quotient_stage = @import("stwo_cuda_backend").runtime.stages.quotient;
-const shared_views = @import(
-    "../../native_cuda/common/resident_views.zig",
-);
+const shared_views = @import("stwo_native_cuda_integration").common.resident_views;
 
 const Words = column.DeviceSlice(u32);
 

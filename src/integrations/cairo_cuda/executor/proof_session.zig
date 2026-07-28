@@ -12,9 +12,7 @@ const relation_stage = @import("stwo_cuda_backend").runtime.stages.relation;
 const runtime_stages = @import("stwo_cuda_backend").runtime.stages;
 const common = @import("stwo_cuda_backend").runtime.stages.common;
 const proof_transaction = @import("stwo_cuda_backend").runtime.proof_transaction;
-const proof_capture = @import(
-    "../../native_cuda/common/proof_assembly.zig",
-);
+const proof_capture = @import("stwo_native_cuda_integration").common.proof_assembly;
 const request_compiler = @import("../request_compiler.zig");
 const resident_plan = @import("resident_plan.zig");
 const trace_writer = @import("trace_writer_controller.zig");

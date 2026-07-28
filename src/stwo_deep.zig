@@ -1,23 +1,15 @@
 const std = @import("std");
 const stwo = @import("stwo.zig");
-const native_cuda_poseidon_geometry =
-    @import("integrations/native_cuda/poseidon/geometry.zig");
-const native_cuda_poseidon_layout =
-    @import("integrations/native_cuda/poseidon/layout.zig");
-const native_cuda_poseidon_topology =
-    @import("integrations/native_cuda/poseidon/topology.zig");
-const native_cuda_poseidon_oods =
-    @import("integrations/native_cuda/poseidon/oods.zig");
-const native_cuda_poseidon_ingress =
-    @import("integrations/native_cuda/poseidon/canonical_ingress.zig");
-const native_cuda_poseidon_program =
-    @import("integrations/native_cuda/poseidon/program.zig");
-const native_cuda_poseidon_proof_bundle =
-    @import("integrations/native_cuda/poseidon/proof_bundle.zig");
-const native_cuda_poseidon_terminal_bundle =
-    @import("integrations/native_cuda/poseidon/terminal_bundle.zig");
-const native_cuda_poseidon_transcript =
-    @import("integrations/native_cuda/poseidon/transcript_schedule.zig");
+const native_cuda_poseidon = @import("stwo_native_cuda_integration").poseidon;
+const native_cuda_poseidon_geometry = native_cuda_poseidon.geometry;
+const native_cuda_poseidon_layout = native_cuda_poseidon.layout;
+const native_cuda_poseidon_topology = native_cuda_poseidon.topology;
+const native_cuda_poseidon_oods = native_cuda_poseidon.oods;
+const native_cuda_poseidon_ingress = native_cuda_poseidon.canonical_ingress;
+const native_cuda_poseidon_program = native_cuda_poseidon.program;
+const native_cuda_poseidon_proof_bundle = native_cuda_poseidon.proof_bundle;
+const native_cuda_poseidon_terminal_bundle = native_cuda_poseidon.terminal_bundle;
+const native_cuda_poseidon_transcript = native_cuda_poseidon.transcript_schedule;
 
 test {
     _ = @import("stwo_metal_backend").telemetry;

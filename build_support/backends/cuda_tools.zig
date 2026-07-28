@@ -200,7 +200,7 @@ pub fn addProducts(
         optimize,
         stwo,
     );
-    _ = graph.addNativeExamplesImport(
+    const native_examples = graph.addNativeExamplesImport(
         b,
         protocol,
         tool_product,
@@ -219,12 +219,23 @@ pub fn addProducts(
         cpu_backend,
         stwo,
     );
-    _ = graph.addCudaBackendImport(
+    const cuda_backend = graph.addCudaBackendImport(
         b,
         protocol,
         tool_product,
         target,
         optimize,
+        stwo,
+    );
+    _ = integration_graph.addNativeCudaImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        cuda_backend,
+        native_examples,
+        proof_wire,
         stwo,
     );
     const riscv_frontend = graph.addRiscVFrontendImport(

@@ -7,9 +7,7 @@ const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
 const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
 const fixed_table = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
 const semantic_authority = @import("stwo_cairo_frontend").proof_plan.semantic_authority;
-const shared_views = @import(
-    "../../native_cuda/common/resident_views.zig",
-);
+const shared_views = @import("stwo_native_cuda_integration").common.resident_views;
 const pcs_types = @import("pcs_hooks_types.zig");
 const fixture = @import("resident_plan_test.zig");
 const quotient_topology = @import("quotient/topology.zig");

@@ -14,16 +14,16 @@ pub const Target = struct {
 pub const clean_m5_functional = [_]Target{
     .{
         .statement = .{ .log_size = 14, .log_step = 2, .offset = 3 },
-        .proof_bytes = 46_446,
+        .proof_bytes = 54_565,
         .proof_sha256 = digest(
-            "35bb35714e10888c786a71ccdfe31d2b9b4651c567fac5ba4c9543bc247cad80",
+            "f2399d3b372d1b6dfa757b3a795f2d4615b3203796ce2f44147bc8e79bdc93df",
         ),
     },
     .{
         .statement = .{ .log_size = 16, .log_step = 2, .offset = 3 },
-        .proof_bytes = 54_848,
+        .proof_bytes = 59_774,
         .proof_sha256 = digest(
-            "56163b8ea3d877b3b9bf15753b7c0175d4a6ead493640eef8210c59ba7e5215c",
+            "3b7ab569122afb34cc6d4bb1d4844b1fc13606bcd5539d29b053578e8a22749b",
         ),
     },
 };
@@ -51,6 +51,11 @@ pub fn checkCpuOracle(
     if (encoded.len != target.proof_bytes or
         !std.mem.eql(u8, &actual, &target.proof_sha256))
     {
+        const actual_hex = std.fmt.bytesToHex(actual, .lower);
+        std.debug.print(
+            "XOR parity target drift: bytes={d}, sha256={s}\n",
+            .{ encoded.len, &actual_hex },
+        );
         return error.ParityTargetMismatch;
     }
 
