@@ -1113,3 +1113,297 @@ Increments 5, 6 and 2.3 have between them closed the entire "make the
 interpreter cheaper" family with three measurements. The composition stage's
 remaining cost is the field arithmetic, and the next attack on it has to be
 arithmetic.
+
+---
+
+## Increment 2.4: Karatsuba QM31 multiplication
+
+**Outcome: undecided-borderline. The increment's stated hypothesis — that
+Karatsuba on both extension levels pays because it cuts the packed QM31
+product from 16 vector multiplies to 9 — is falsified standalone: Karatsuba
+alone is a `0.920x` *regression*. What the S1 measurement located instead is
+that the binding cost in this multiply is not the multiplies but the
+`subVec4` reduction, and once `subVec4` is reduced to `addVec4`'s
+unsigned-minimum form the two changes together measure `1.157x` cycles on the
+isolated kernel — real, mechanism-confirmed, byte-exact, and below the
+increment's `1.2x` S1 gate.**
+
+Implementation model: Claude Opus 4.5. Orchestration: Claude Fable 5.
+Transcript: `transcripts/session-04.md`. Predecessor: pristine `zig-out` tree
+built from `15b2fecb` in a detached worktree (`/private/tmp/inc24-pred`).
+Host: Apple M5 Max, 12 performance + 6 efficiency cores. **Host-load caveat,
+stated up front:** an unrelated `stwo-native-metal` build owned by another
+session was resident for part of this session's measurement window and drove
+the load average to `10.05` at one point. Whole-prover blocks were taken at
+`6.51-6.72`, below the campaign's `10` ceiling, but this was not a quiet host
+and the whole-prover limb is reported accordingly.
+
+### First finding, before any measurement: the scalar path was already done
+
+The brief scoped "replace the packed QM31 multiply *and* scalar QM31 mul +
+CM31 muls". Reading `src/core/fields/qm31.zig:157-184` and
+`src/core/fields/cm31.zig:97-112` shows that both scalar multiplies are
+**already Karatsuba** — `QM31.mul` is three `CM31.mul`s over
+`u^2 = 2 + i`, and `CM31.mul` is three `M31.mul`s over `i^2 = -1`, so the
+scalar product is already 9 base multiplies and carries its own
+`mulReference` schoolbook oracle in-file. There was nothing to do there. The
+entire increment therefore reduces to the one site that is still schoolbook:
+`PackedQm31.mul` in
+`src/frontends/cairo/proving/air/simd_evaluator.zig`, the 16-`mulVec4` body
+increment 2.3 measured at 161 instructions and 72.3% of the composition
+loop's instruction budget.
+
+### The range proof, and why it is short
+
+The brief anticipated the hard part being intermediate-range overflow:
+Karatsuba forms `(a0 + a1) * (b0 + b1)` whose operands reach `2p - 2`, and
+the bounded reducer assumes canonical operands with `a*b < p^2 < 2^62`. That
+danger is real for a *lazy* formulation and absent from this one, for one
+reason: **every primitive this multiply is built from already returns a
+canonical value.**
+
+- `mulVec4` → `mulVec4Aarch64` (`m31.zig:201-214`) ends in
+  `@min(folded, folded -% P_VEC)`, so its result is in `[0, p)`.
+- `addVec4` (`m31.zig:231-242`) ends in the same unsigned minimum, result in
+  `[0, p)`.
+- `subVec4` (`m31.zig:245-...`) returns `a - b` or `a + p - b`, both in
+  `[0, p)`.
+
+So the Karatsuba sums are formed with `addVec4` and are canonical *before*
+they reach `mulVec4`. `mulVec4Aarch64`'s precondition is precisely
+"canonical positive 31-bit operands" — SQDMULH's signed doubling cannot
+saturate below `(p-1)^2` — and it is satisfied at all nine multiply sites
+with no pre-reduction, no `+2p` offset, and no generic `u64` reducer. There
+is no place in the body where a value can exceed `p - 1`, so there is no
+bound arithmetic to get wrong and 2.2's `@min`-narrowing trap has no
+purchase (both `@min` operands are `Vec4u32`).
+
+Exactness then follows from ring algebra rather than from range reasoning.
+Karatsuba over `CM31[u]/(u^2 - (2+i))` and `M31[i]/(i^2+1)` is an identity
+between exact field elements; since every intermediate is the canonical
+representative of the exact field value, the four output M31 coordinates are
+bit-for-bit the schoolbook coordinates. This is asserted, not assumed: a new
+test in `simd_evaluator.zig` runs 20,000 trials with **per-lane distinct**
+random operands (so a lane-crossing error cannot hide), compares all four
+coordinates of `mul` against `mulSchoolbook` in every lane, additionally
+checks each lane against the scalar `QM31.mul` ground truth, and then sweeps
+boundary operands drawn from `{0, 1, 2, p-2, p-1}`.
+
+The paper cost estimate was the honest part of the design, and it predicted
+the failure. Karatsuba replaces 7 `mulVec4` with 13 extra
+`addVec4`/`subVec4`. With `mulVec4` at 6 AArch64 instructions
+(`mul`, `sqdmulh`, `bic`, `add`, `sub`, `umin`), `addVec4` at 3
+(`add`, `sub`, `umin`) and the **then-current** `subVec4` at 5
+(`cmhi`, `bic`, `add`, `sub`, select), the trade is `-42` against `+49`.
+The design was written up as expected-to-lose and taken to S1 anyway,
+because that is what the gate is for.
+
+### S1 gate: the mechanism lands exactly and the mechanism does not pay
+
+`stwo-prof zig` harnesses `i24-school` / `i24-karatsuba`, both importing the
+**live** cairo module graph (`cairo` → `src/stwo_cairo_cpu.zig`, plus
+`stwo_core`, `stwo_prover_impl`, `stwo_backend_contracts`, cross-wired so the
+real graph resolves), so both arms execute working-tree source and the
+multiply bodies are the repo's own, not copies. One op is one
+`PackedQm31` multiply. 8 independent accumulator chains × 128 serial
+multiplies per chain = 1,024 multiplies per call, operands folded from the
+runtime seed; 40 iterations. The 8 chains exist so the kernel is
+throughput-limited rather than latency-limited, matching the compiled AIR
+body's shape, which increment 2.3 showed issues 139 independent multiplies
+per four-row group.
+
+| arm | multiply | `subVec4` | instructions/op | cycles/op | IPC | ns/op |
+| --- | --- | --- | ---: | ---: | ---: | ---: |
+| **1 (predecessor)** | schoolbook | compare+select | 173.0 | **38.96** | 4.439 | 8.965 |
+| 2 | **Karatsuba** | compare+select | 179.0 | **42.34** | 4.227 | 9.662 |
+| 3 | schoolbook | **umin** | 170.3 | 40.64 | 4.190 | 9.674 |
+| **4 (candidate)** | **Karatsuba** | **umin** | 139.2 | **33.68** | 4.135 | 7.671 |
+
+Arm 2 / arm 1 — the increment's hypothesis in isolation — is
+**`0.920x` on cycles: a regression.** Arm 4 / arm 1 is `1.243x` on
+instructions and **`1.157x` on cycles**, against the increment's `1.2x`
+gate. `stwo-prof zig compare` on arms 4 vs 3 (isolating the multiply change
+with `subVec4` held equal) reports wall `1.1315x` with
+CI95 `[1.11994, 1.140758]`, instructions `1.2125x`, cycles `1.1297x` — the
+CI excludes 1.0, so the multiply change is a real effect of that size.
+
+**The gate's second condition is met exactly, which is what makes the first
+condition's failure informative.** `objdump` on the out-of-line multiply
+symbol in each harness binary:
+
+| arm | multiply body | instructions | `mul` | `sqdmulh` | `umin` | `sub` | `cmhi` | `bic` |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | `PackedQm31.mul` (schoolbook) | **161** | 16 | 16 | 27 | 5 | 5 | 21 |
+| 2 | `PackedQm31.mulKaratsuba` | **167** | **9** | **9** | 24 | 14 | 14 | 23 |
+| 3 | `PackedQm31.mulSchoolbook` | **157** | 16 | 16 | 32 | 5 | 0 | 16 |
+| 4 | `PackedQm31.mul` (Karatsuba) | — | — | — | — | — | — | — |
+
+Arm 1's body is **161 instructions, the same number increment 2.3 measured
+by a different route on a different binary** — the harness reproduces the
+real codegen, which is the provenance this table needs. The vector-multiply
+count drops `16 → 9` exactly as designed, and total instructions
+nevertheless rise `161 → 167`. The cause is in the same row:
+`cmhi` goes `5 → 14` and `sub` goes `5 → 14`, one per additional `subVec4`.
+Arm 4's body has no separate symbol because the smaller Karatsuba body was
+fully inlined into the caller; its cost is reported by counters only.
+
+Arms 1 and 3 also settle the per-primitive accounting. Holding the multiply
+fixed and changing only `subVec4`, `cmhi` goes `5 → 0`, `bic` goes
+`21 → 16` (exactly one per `mulVec4`, none per `subVec4`) and `umin` goes
+`27 → 32` (exactly one per `mulVec4` plus one per `addVec4`, then plus one
+per `subVec4`). So the old `subVec4` was `cmhi + bic + add + sub + select`
+and the new one is `sub + add + umin`. That is the whole finding in one
+line: **on this host a canonical subtraction cost more than it should, and
+because Karatsuba pays for fewer multiplies in additional subtractions, the
+multiply-count optimization was invisible until the subtraction was fixed.**
+
+### The `subVec4` reduction, and its proof
+
+```zig
+const d = a -% b;
+return @min(d, d +% P_VEC);
+```
+
+Precondition: `a, b` canonical, i.e. in `[0, p)` — identical to the
+precondition of the `@select` form it replaces, which needs `a +% P_VEC` not
+to wrap.
+
+- If `a >= b`: `d = a - b` in `[0, p)`. Then `d + p` is in `[p, 2p)`, and
+  `2p = 4294967294 < 2^32`, so `d +% p` does not wrap and is strictly
+  greater than `d`. `@min` returns `d`. Correct.
+- If `a < b`: `d = a - b + 2^32`, and since `a - b` is in `[-(p-1), -1]`,
+  `d >= 2^32 - p + 1 = 2147483650 > p`. Then
+  `d +% p = 2^32 + (a - b + p) mod 2^32 = a - b + p`, which is in
+  `[1, p-1]` and therefore strictly less than `d`. `@min` returns
+  `a - b + p`. Correct and canonical.
+
+Both branches yield the canonical difference, so the change is an exact
+identity on the whole precondition domain and cannot move any digest. It is
+gated on `builtin.cpu.arch == .aarch64`, mirroring `addVec4`, and the
+portable `@select` form remains for other targets.
+
+`subVec4` lives in `src/core/fields/m31.zig`, which is shared with the
+native and RISC-V provers and with the Metal host path, so the blast radius
+is the whole prover rather than the Cairo composition loop. That is the
+reason the verification below runs the full product test set rather than the
+Cairo subset. Metal's device shaders carry their own `m31.metal` and are
+untouched.
+
+### Digests and verification
+
+Byte-exactness was confirmed **before** any timing, on all three campaign
+workloads, with `--verify`:
+
+| Workload | SHA-256 | campaign value | `--verify` |
+| --- | --- | --- | --- |
+| arithmetic-2m | `25e5719f4c578eb7ef10d76d6033e65f0a4a9d981c2414c3f7ac1950966deea6` | matches | true |
+| memory-7m | `e3317e55a5db5a4251e04827b3d4f2ccaeb801feb6a9d2848e71ef23daced994` | matches | true |
+| all-opcodes | `79ae76e1ac0c48b1e3b06810ddb1fed8aabe5dfb10d028e879105b79716cb310` | matches | true |
+
+### Whole-prover paired measurement
+
+The S1 gate had already failed at `1.157x` against `1.2x`, so this is a
+confirmatory measurement under the standing acceptance policy rather than a
+gate pass. A-B-B-A cold processes, three blocks, one untimed warmup process
+per arm, uninstrumented binaries both sides, `STWO_CAIRO_PREPROCESSED_CACHE=0`
+on both arms, cwd the worktree root, predecessor the pristine `zig-out` from
+`15b2fecb`. Host load `6.51 / 9.65 / 9.18` at the three block opens — all
+below the `10` ceiling, but see the host caveat above. **Only arithmetic-2m
+was measured whole-prover**; the 75-minute budget expired before memory-7m
+and all-opcodes blocks, which are reported as not-run rather than estimated.
+
+Prove wall (ns), per block A-mean vs B-mean:
+
+| block | prove pred | prove cand | ratio |
+| --- | ---: | ---: | ---: |
+| 1 | 2,658,934,646 | 2,605,522,417 | 1.0205x |
+| 2 | 2,667,634,438 | 2,664,219,583 | 1.0013x |
+| 3 | 2,657,861,563 | 2,642,368,458 | 1.0059x |
+| **geomean** | | | **1.0092x** |
+
+Per-sample ranges: pred `[2,627,340,541, 2,692,902,750]`, cand
+`[2,596,893,000, 2,686,715,291]` — **overlapping**.
+
+Stage spans (ms), from `--stage-profile-out` on every timed run:
+
+| stage | b1 | b2 | b3 | geomean | pred range | cand range |
+| --- | ---: | ---: | ---: | ---: | --- | --- |
+| **`composition_evaluation`** | 1.0689x | 1.0370x | 1.0119x | **1.0390x** | `[392.268, 415.118]` | `[372.062, 395.186]` |
+| `composition_interpolate_and_split` | 0.9872x | 1.0480x | 1.0059x | 1.0134x | `[15.660, 17.738]` | `[15.812, 16.811]` |
+| `composition_commit` | 1.0274x | 0.9645x | 1.0299x | 1.0068x | `[80.577, 95.467]` | `[83.263, 93.230]` |
+| `sampled_value_evaluation` | 0.9892x | 1.0140x | 0.9840x | **0.9957x** | `[95.511, 103.469]` | `[95.958, 102.378]` |
+| `fri_quotient_build_and_commit` | 0.9898x | 1.0087x | 1.0001x | 0.9995x | `[277.475, 310.736]` | `[279.722, 297.923]` |
+| `sampled_value_channel_mix` | 0.9701x | 0.9577x | 1.0286x | 0.9850x | `[0.032, 0.037]` | `[0.033, 0.036]` |
+
+`composition_evaluation` — the stage the change targets — moves in the
+candidate's favour in **3 of 3 blocks** at `1.0390x` geomean, but its
+per-sample ranges overlap (`392.268` vs `395.186`), so the `>= 1.10x`
+disjoint-x3 limb is not met and neither is the `>= 1.02x` prove limb.
+**Verdict: undecided-borderline.** The sign is consistent on both
+observables in 3 of 3 blocks, so the effect is real and small.
+
+**One number that closes, and it closes increment 2.3's open discrepancy.**
+2.3 could not reconcile its compiled arm's `1.242x` S1 result with a
+`1.0553x` composition stage, and back-solved a **27%** time share for the
+multiply against the 71-72% *instruction* share its census implied. This
+increment is an independent test of that back-solved number, because it moves
+the multiply by a known factor and reads the stage. A `1.157x` multiply
+occupying a fraction `f` of the stage predicts a stage ratio of
+`1 / (1 - f + f/1.157)`. At `f = 0.27` that is **`1.038x`**; the measurement
+is **`1.0390x`**. Two increments, two different mechanisms, the same 27%
+share. The share is now corroborated rather than back-solved, and the
+practical consequence is that **the composition stage cannot be moved much
+more than 1.04x by making the QM31 multiply faster, however much faster it
+is made** — even a free multiply caps the stage at `1/0.73 = 1.37x` and the
+prove at roughly `1.06x`.
+
+`sampled_value_evaluation` is flat at `0.9957x`, which is the expected
+result and worth stating: that path runs *scalar* `QM31.mul`, which was
+already Karatsuba before this increment, so only the `subVec4` change could
+have reached it and it does not use the vector primitives on its hot path.
+`fri_quotient_build_and_commit` at `0.9995x` and the commit stages inside
+noise confirm the change is confined despite `m31.zig`'s wide blast radius.
+
+### Verification
+
+- **Digests**: all 12 timed candidate proofs plus both warmups carried
+  `25e5719f…` on arithmetic-2m; the pre-timing spot proofs carried the
+  campaign values on all three workloads (table above), `--verify` true.
+- `zig build test-cairo-cpu-product test-cairo-frontend test-stwo-prover
+  -Doptimize=ReleaseFast` — **exit 0**. `stwo-prover closure: PASS` over 188
+  transitive Zig sources; `stwo-cairo-cpu closure: PASS` over 334; prover
+  library markers PASS. `test-stwo-prover` was required this time because
+  `m31.zig` is shared with `src/prover/**`, unlike increment 2.3. The new
+  20,000-trial exactness test and the field unit tests are inside
+  `test-cairo-frontend`. The repo's pre-commit gate (source conformance,
+  21 tests) also passed on both commits.
+- **Not run, budget-expired, and required before promotion**: the official
+  verifier on a candidate JSON proof; Metal arithmetic-2m byte-identity with
+  `cpu_fallbacks 0`; `STWO_ZIG_WORKERS=1` digest; whole-prover blocks on
+  memory-7m and all-opcodes. `m31.zig` is host-shared, so the Metal and
+  single-worker checks are load-bearing for this change specifically and
+  their absence is the main gap in this increment's evidence.
+- Pre-existing, noted and not chased: merkle-worker-stress `blake_deep`
+  `InvalidNRounds`; stale `vectors/` and `reports/` artifacts; corpus
+  `pedersen.json` `SegmentPointerOverflow`.
+
+### What this leaves for the arithmetic family
+
+The family is **not** closed, but it is now bounded. The 27% share means
+further QM31-multiply work has at most `1.06x` of prove available to it and
+this increment already took `1.009x` of that. The located items, in the order
+the evidence ranks them: (1) the same unsigned-minimum treatment for the
+remaining compare-and-select reductions in `m31.zig` — `subVec4` was the one
+on this multiply's path, and `reduceVec4`'s two-`@select` tail and the
+`PackedM31` (`PACK_WIDTH`) variants of add/sub have not been audited;
+(2) `PackedQm31.neg`, which is `subVec4(0, x)` per coordinate and could be a
+single conditional instead; (3) CM31-only sites — `mulByR` is 4 operations
+where `(2+i)` multiplication could fold into the caller's final additions,
+and `PackedQm31.mulBase`/`add`/`sub` are already minimal; (4) the fold
+structure, `acc = add(acc, mul(root, coeff))` over 32 roots, where a
+multiply-accumulate that defers canonicalization across the accumulation
+would remove one reduction per root — this is the same delayed-reduction idea
+that regressed in sampled-value evaluation, so it needs its own S1 and its
+own range proof. The larger lesson for the campaign is the one this increment
+paid for twice: **on this host, reduction placement dominates multiply count,
+and a change that reduces multiplies while adding reductions will lose.**
