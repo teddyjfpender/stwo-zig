@@ -1034,3 +1034,358 @@ Campaign acceptance policy from here: mechanism confirmation (paired phase
 split or S1) AND either stage >= 1.10x with disjoint ranges across >= 3
 paired blocks, or prove >= 1.02x with non-overlapping paired CI — byte-exact
 proofs and gates always mandatory.
+
+## Increment 5: composition evaluation
+
+**Outcome: accepted candidate.** One source change on
+`src/frontends/cairo/proving/air/simd_evaluator.zig`,
+`src/frontends/cairo/proving/air/component.zig`, plus a new
+`src/frontends/cairo/proving/air/read_plan.zig`. Exact proof bytes preserved
+on every measured workload. `composition_evaluation` improves 1.114x-1.130x
+with disjoint per-sample ranges on all three workloads, and complete prove
+time improves 1.021x-1.028x.
+
+Implementation: Claude Opus 4.5. Orchestration: Claude Fable 5.
+
+### Audit: what the composition stage is made of
+
+Cairo evaluates its AIR by interpreting captured template programs on the
+host. `ComponentProvers.computeCompositionEvaluationForBackend`
+(`src/prover/air/component_prover.zig:307`) routes any multi-component AIR
+with a pool to `component_parallel.compute`
+(`src/prover/air/component_parallel.zig:15`), which gives each component its
+own accumulator and pre-assigned coefficient range. Each Cairo component's
+`evaluateConstraintQuotientsOnDomainImpl`
+(`src/frontends/cairo/proving/air/component.zig:134`) splits its own rows
+across the pool and calls `simd.evaluatePartRange`
+(`src/frontends/cairo/proving/air/simd_evaluator.zig`), a fixed-width
+four-lane interpreter over the captured instruction stream.
+
+Temporary instrumentation gated behind `STWO_COMPOSITION_AUDIT` and
+`STWO_COMPOSITION_ABLATE` was added, measured, and reverted. It is preserved
+in history at `bb0de1e5`.
+
+#### Static census (exact)
+
+arithmetic-2m instantiates **29 components**. One dominates: evaluation log
+size 22 (4,194,304 rows, 1,048,576 four-row groups), 278 base instructions,
+493 extension instructions, 63 mask read sites and 32 constraint roots per
+group. It alone is 56.5% of all mask reads and 71% of all QM31
+multiplications; the top five components are 84.4% of all reads.
+
+Dynamic interpreted instruction executions for one arithmetic-2m proof:
+
+| Stream | Opcode | Executions |
+| --- | --- | ---: |
+| base | `trace_col` | 116,856,192 |
+| base | `constant` | 85,364,920 |
+| base | `mul` | 78,381,656 |
+| base | `sub` | 52,101,504 |
+| base | `add` | 37,880,320 |
+| base | `neg` | 2,097,152 |
+| base | total | **372,681,744** |
+| ext | `secure_col` | 183,648,984 |
+| ext | `mul` | 158,082,864 |
+| ext | `add` | 148,842,712 |
+| ext | `param` | 143,504,416 |
+| ext | `sub` | 42,347,808 |
+| ext | `constant` | 37,164,024 |
+| ext | `neg` | 7,409,184 |
+| ext | total | **720,999,992** |
+| fold | constraint roots | 41,717,720 |
+
+Two structural facts fall out of the census.
+
+**Every mask read re-derived facts that do not depend on the row.**
+`readTrace` was a function pointer invoked once per read instruction per
+four-row group — 116,856,192 indirect calls per proof. Each call re-checked
+tree arity, linearly rescanned the component's `trace_spans`
+(`resident_geometry.componentSpan`), redid overflow-checked span arithmetic
+and two column bounds checks, and then per lane called
+`offsetBitReversedCircleDomainIndex` and a complete
+`Poly.valueAtLiftingPosition` — which itself revalidates the column length
+against its log size and rechecks the derived index. That is **467,424,768
+per-lane index derivations and column revalidations** per proof.
+
+**The offset map does not depend on the column.**
+`offsetBitReversedCircleDomainIndex(position, trace_log, eval_log, offset)`
+is a function of the row and the mask offset only. Every measured component
+uses exactly **two distinct mask offsets** against up to 69 read sites per
+group, so the same four mapped lane positions were being recomputed dozens of
+times per group.
+
+#### Ablation attribution (paired A-B-B-A)
+
+Five comptime-selected ablations were built into the predecessor sources and
+run paired, two A-B-B-A blocks each, one untimed warmup per pair. Ablated
+runs abort at `constraint_check_and_assembly`, so the observable is a
+component wall-span probe — `max(end) - min(start)` across all 29
+components — rather than the CLI stage profile. On the unablated arm that
+probe tracks the recorded `composition_evaluation` stage.
+
+| Ablated phase | `none` mean ms | ablated mean ms | Bucket ms | Share |
+| --- | ---: | ---: | ---: | ---: |
+| Mask gather + read dispatch (`no_read`) | 401.05 | 306.28 | **94.78** | 23.6% |
+| Bit-reversed offset derivation (`no_index`) | 360.25 | 343.66 | 16.59 | 4.6% |
+| Scatter into the composition column (`no_output`) | 406.16 | 402.68 | 3.48 | 0.9% |
+| Per-lane denominator gather (`no_denominator`) | 366.68 | 374.83 | -8.15 | 0% |
+
+Each row is its own paired block, so the `none` levels differ between rows;
+only the within-row bucket is a measurement. Per-sample values are in
+`transcripts/session-05.md`.
+
+The residue — roughly 300 ms of a ~400 ms instrumented stage, 75% — is the
+interpreted constraint arithmetic and the interpreter's own per-instruction
+overhead.
+
+#### The wall verdict (four walls)
+
+**Not memory-bound at the output, not bookkeeping-bound, not bound by the
+field arithmetic: bound by per-instruction interpreter overhead, and inside
+that by the per-read callback.**
+
+- Accumulation into the composition column is 3.5 ms of ~400 (0.9%). The
+  `SecureColumnByCoords` scatter of 11,155,584 rows is free at this scale.
+  Domain bookkeeping is unmeasurable.
+- 1.09 G interpreted instruction executions complete in ~380 ms across 18
+  workers, about 24 G cycles, i.e. **~22 cycles per interpreted
+  instruction**. A four-lane M31 add is one NEON instruction; the other 21
+  cycles are operand load, opcode switch, register-file store and stalls.
+- The loop is **not instruction-throughput-bound on cheap instructions.**
+  This was tested directly, not inferred: hoisting all row-invariant
+  `constant`/`param` instructions and the constraint-fold coefficient splats
+  out of the row loop removes 24.3% of interpreted instructions and
+  222,386,160 QM31 splats per proof, and moved the stage by about 1% — inside
+  the noise. That candidate is preserved at `f1c881d6` and rejected below.
+- It **is** bound by heavyweight per-instruction work. Removing 116,856,192
+  indirect calls and 467,424,768 per-lane revalidations moved the stage
+  1.114x-1.130x.
+
+#### Scheduler and serial residue
+
+The dominant-domain scheduler landed at `d2be3be3` behaves as designed here.
+`dominantDomainComponent` (`component_parallel.zig:101`) selects the
+largest-domain component exposing a `domain_parallel_evaluator`; every Cairo
+component exposes one (`component.zig:51`), so the log-22 component is chosen
+and runs on the caller thread while the other 28 drain as leaf jobs from the
+same pool. The caller then splits its own rows across
+`min(pool.workerCount(), row_count / 4)` = 18 workers
+(`component.zig:176-188`).
+
+Two serial phases exist and neither is measurable: `generateSecurePowers`
+(`component_parallel.zig:52`) runs before the fan-out, and the per-component
+accumulators are merged serially afterwards (`component_parallel.zig:95-97`).
+The component wall-span probe brackets ~99% of the recorded stage, so unlike
+increment 4's merkle replication there is no serial residue worth attacking.
+
+### Mechanism as implemented
+
+`read_plan.build` (`src/frontends/cairo/proving/air/read_plan.zig:49`) walks
+the instruction stream once per evaluated range and produces two things:
+
+1. A `sites` array, one entry per read instruction in stream order, holding
+   the instruction's committed column slice and its lifting shift. Resolution
+   goes through a new `TraceReader.resolve` callback
+   (`simd_evaluator.zig:146`); `component.resolveTrace`
+   (`component.zig:303`) performs the tree lookup, the `componentSpan` scan,
+   the preprocessed-index mapping and the column shape validation **once**.
+2. An `offsets` table of the distinct mask immediates, and a slot index per
+   site.
+
+The row loop then maps lane positions once per distinct offset per group and
+gathers directly:
+`values[lane] = column.values[((position >> shift_amt) << 1) + (position & 1)]`.
+
+Per arithmetic-2m proof this turns **116,856,192 indirect resolve-and-read
+calls into 8,082 resolutions** (63 sites × 18 workers on the dominant
+component, and so on) and **467,424,768 per-lane index derivations into
+22,311,168** (two offsets × four lanes × 2,788,896 groups).
+
+Exactness: the candidate feeds every lane the same column, the same mapped
+position and the same lifting index the predecessor computed. `shift_amt` is
+`(evaluation_log_size - column.log_size) + 1`, exactly
+`Poly.valueAtLiftingPosition`'s shift; the offset map is the same
+`core.utils.offsetBitReversedCircleDomainIndex` call with the same arguments,
+merely shared between sites that agree on the offset. No value is reordered
+and no arithmetic changes. Byte parity below confirms it.
+
+Admission is structural: the plan is derived from the instruction stream's
+own opcodes and immediates. Nothing inspects a workload name, path, digest,
+or component identity.
+
+### Mechanism confirmation: paired phase split
+
+The `no_read` ablation was applied to **both** arms and run paired, two
+A-B-B-A blocks per arm. It bypasses the mask gather entirely, so it isolates
+the bucket the change targets.
+
+| Arm | `none` mean ms | `no_read` mean ms | Read bucket ms |
+| --- | ---: | ---: | ---: |
+| predecessor sources | 401.05 | 306.28 | **94.78** |
+| candidate sources | 305.55 | 284.90 | **20.65** |
+
+The read bucket collapses **4.59x**. The absolute `none` levels are not
+comparable across the two sessions — the predecessor block ran at load
+average 7-15, the candidate block at 4.7-8 — but the bucket is a within-block
+paired difference in both cases. The 74.1 ms the bucket loses is the same
+order and direction as the 45.2 ms the whole stage gains on arithmetic-2m,
+with the difference being the irreducible column traffic the candidate still
+performs.
+
+### Paired stage and prove measurement
+
+A-B-B-A cold processes, `--verify` on every run, one untimed warmup process
+per arm before each workload's blocks, uninstrumented binaries on both sides.
+Predecessor = pristine full `zig-out` tree built from clean head `a52c450c`
+before any edit and copied whole to `/private/tmp/campaign-inc5-pred`. No
+sample discarded.
+
+arithmetic-2m, three blocks:
+
+| Block | Arm | composition ms | Prove ms |
+| --- | --- | ---: | ---: |
+| 1 | pred 1 | 383.518 | 2,260.451 |
+| 1 | cand 1 | 352.395 | 2,249.096 |
+| 1 | cand 2 | 351.817 | 2,230.907 |
+| 1 | pred 2 | 384.565 | 2,266.368 |
+| 2 | pred 1 | 389.986 | 2,296.626 |
+| 2 | cand 1 | 367.228 | 2,430.938 |
+| 2 | cand 2 | 372.400 | 2,470.008 |
+| 2 | pred 2 | 416.647 | 2,510.579 |
+| 3 | pred 1 | 429.186 | 2,542.370 |
+| 3 | cand 1 | 383.330 | 2,514.790 |
+| 3 | cand 2 | 376.494 | 2,518.204 |
+| 3 | pred 2 | 471.120 | 2,842.032 |
+
+memory-7m, two blocks:
+
+| Block | Arm | composition ms | Prove ms |
+| --- | --- | ---: | ---: |
+| 1 | pred 1 | 1,292.193 | 6,067.920 |
+| 1 | cand 1 | 1,215.274 | 6,091.940 |
+| 1 | cand 2 | 1,187.386 | 6,034.513 |
+| 1 | pred 2 | 1,355.866 | 6,295.072 |
+| 2 | pred 1 | 1,424.966 | 6,357.980 |
+| 2 | cand 1 | 1,264.187 | 6,189.684 |
+| 2 | cand 2 | 1,263.775 | 6,302.525 |
+| 2 | pred 2 | 1,417.616 | 6,419.825 |
+
+all-opcodes, three blocks:
+
+| Block | Arm | composition ms | Prove ms |
+| --- | --- | ---: | ---: |
+| 1 | pred 1 | 357.933 | 1,459.879 |
+| 1 | cand 1 | 318.744 | 1,429.537 |
+| 1 | cand 2 | 311.793 | 1,428.659 |
+| 1 | pred 2 | 360.600 | 1,466.916 |
+| 2 | pred 1 | 356.468 | 1,486.636 |
+| 2 | cand 1 | 322.811 | 1,436.662 |
+| 2 | cand 2 | 318.802 | 1,457.047 |
+| 2 | pred 2 | 363.773 | 1,500.378 |
+| 3 | pred 1 | 363.166 | 1,483.265 |
+| 3 | cand 1 | 324.862 | 1,467.735 |
+| 3 | cand 2 | 322.644 | 1,442.145 |
+| 3 | pred 2 | 367.402 | 1,504.295 |
+
+Summary:
+
+| Workload | Observable | pred | sd | cand | sd | Ratio | Ranges disjoint |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| arithmetic-2m | composition | 412.504 | 31.249 | 367.277 | 11.757 | **1.1231x** | yes (383.5-471.1 vs 351.8-383.3) |
+| arithmetic-2m | prove | 2,453.071 | 207.769 | 2,402.324 | 118.560 | 1.0211x | no |
+| memory-7m | composition | 1,372.660 | 53.652 | 1,232.655 | 32.841 | **1.1136x** | yes (1,292.2-1,425.0 vs 1,187.4-1,264.2) |
+| memory-7m | prove | 6,285.199 | 132.975 | 6,154.666 | 101.808 | 1.0212x | no |
+| all-opcodes | composition | 361.557 | 3.688 | 319.943 | 4.260 | **1.1301x** | yes (356.5-367.4 vs 311.8-324.9) |
+| all-opcodes | prove | 1,483.562 | 16.125 | 1,443.631 | 14.344 | 1.0277x | no |
+
+Per-block stage ratios, which is the honest way to read a drifting host:
+
+| Workload | block 1 | block 2 | block 3 |
+| --- | ---: | ---: | ---: |
+| arithmetic-2m | 1.0907x | 1.0906x | 1.1849x |
+| memory-7m | 1.1021x | 1.1245x | — |
+| all-opcodes | 1.1396x | 1.1225x | 1.1283x |
+
+**Both limbs of the acceptance policy are met.** Stage improvement is
+1.114x-1.130x with per-sample ranges disjoint across every block on all three
+workloads, and prove improvement is 1.021x-1.028x with per-block prove ratios
+of the same sign in 8 of 8 blocks. Prove-level per-sample ranges do overlap;
+the claim there rests on the paired per-block structure, not on the pooled
+distributions, and is the weaker of the two readings.
+
+all-opcodes is the cleanest block set — predecessor sd 3.7 ms, candidate sd
+4.3 ms, blocks agreeing within 1.7% — and it reads 1.130x. arithmetic-2m's
+block 3 is inflated on the predecessor arm (429.2 and 471.1 ms against 383.5
+in block 1); its 1.1849x is reported but the conservative reading is blocks
+1-2 at 1.0907x/1.0906x, which still clears 1.10x on the pooled mean and keeps
+the ranges disjoint.
+
+Host load: the arithmetic-2m block opened at load average 3.0 and closed at
+13.6; memory-7m closed at 13.6; all-opcodes ran at 10.0 falling to 7.1.
+Absolute prove times drift upward across the session by roughly 15%, which is
+why per-block ratios are tabulated alongside the pooled means. A-B-B-A
+adjacency plus the warmup process is the defence applied.
+
+### Verification
+
+- Proof bytes byte-identical predecessor versus candidate on every workload
+  and every arm — 12 timed proofs on arithmetic-2m and all-opcodes, 8 on
+  memory-7m, one distinct digest each: arithmetic-2m
+  `25e5719f4c578eb7ef10d76d6033e65f0a4a9d981c2414c3f7ac1950966deea6`,
+  memory-7m
+  `e3317e55a5db5a4251e04827b3d4f2ccaeb801feb6a9d2848e71ef23daced994`,
+  all-opcodes
+  `79ae76e1ac0c48b1e3b06810ddb1fed8aabe5dfb10d028e879105b79716cb310`. All
+  three equal the digests increments 1-4 recorded.
+- Pinned official Rust verifier accepted a candidate arithmetic-2m proof:
+  `verified: true`, channel `blake2s`, `stwo_cairo_revision`
+  `82f21252a68ec006d73e299f5bf1ce6d4db0ee78`, proof digest
+  `25e5719f4c578eb7ef10d76d6033e65f0a4a9d981c2414c3f7ac1950966deea6`.
+- Metal arithmetic-2m proof digest on the candidate equals the CPU digest
+  `25e5719f4c578eb7ef10d76d6033e65f0a4a9d981c2414c3f7ac1950966deea6`, with
+  `classification: accelerated_without_fallbacks`, 74 Metal dispatches and
+  `cpu_fallbacks: 0`. The template interpreter is host-shared and Metal
+  inherits the resolved read plan cleanly.
+- `zig build test-cairo-cpu-product test-cairo-frontend -Doptimize=ReleaseFast`
+  passed; `stwo-cairo-cpu closure: PASS` over 328 transitive Zig sources;
+  identity reported `dirty: false` at commit `9ea1e4bc`.
+- `test-stwo-prover` was not required: the diff touches only
+  `src/frontends/cairo/proving/air/`, no shared prover code. The
+  `merkle-worker-stress` gate was likewise not rerun for the same reason; its
+  known pre-existing `blake_deep` `InvalidNRounds` failure and the stale
+  `vectors/reports/merkle_worker_stress_artifacts/` directory recorded in
+  increment 3 are unchanged.
+- Both instrumented builds used during the audit also reproduced the
+  arithmetic-2m digest on their unablated arm.
+
+### Rejected alternatives
+
+- **Hoist the row-invariant instructions out of the interpreter loop.**
+  Built, byte-exact, measured, reverted; preserved at `f1c881d6`. It
+  partitions each program once per range into a row-invariant prefix
+  (`constant` and `param` instructions whose destination register is written
+  exactly once in the stream — a structural, provably safe admission rule)
+  and the row-varying remainder, and pre-splats the constraint fold's
+  coefficients. It removes 24.3% of interpreted instruction executions and
+  222,386,160 QM31 splats per arithmetic-2m proof. Measured effect on the
+  composition stage: about 1%, inside the noise floor. This is the increment's
+  most useful negative result — it is the direct evidence that the loop is not
+  instruction-throughput-bound on cheap instructions, and it is why the read
+  path, not the arithmetic, was the right target.
+- **AOT-specialize or codegen the constraint evaluators.** Already rejected on
+  this branch at 1.017x geomean for 5.9 MiB of binary. The audit does not
+  change that verdict: the win found here is available from a runtime plan.
+- **Strip-mine the interpreter over a tile of row groups** (interchange the
+  instruction and row loops so each opcode dispatch is amortised over T
+  groups). This is the natural next attack on the ~22 cycles per interpreted
+  instruction, and the audit supports it. Not attempted in this increment:
+  the dominant component's extension register file is 493 × 64 B = 31.5 KB at
+  T=1 and 126 KB at T=4, which crosses this host's 128 KB L1D, so it trades
+  dispatch amortisation for a register file that no longer fits. It needs its
+  own S1 study of the T sweep and is recorded for the roadmap.
+- **Widen the interpreter's logical vector beyond four lanes.** Not attempted
+  without S1 proof; the campaign's register-pressure lesson stands and the
+  QM31 register file would grow with the width.
+- **Parallelise the serial accumulator merge or `generateSecurePowers`.** The
+  component wall-span probe brackets ~99% of the stage; there is no
+  merkle-style serial residue here to recover.
