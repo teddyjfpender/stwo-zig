@@ -2328,8 +2328,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 714,
-       "seconds": 368274
+       "commits": 880,
+       "seconds": 585749
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -2652,8 +2652,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 714,
-       "seconds": 368274
+       "commits": 880,
+       "seconds": 585749
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -2840,8 +2840,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 714,
-       "seconds": 368274
+       "commits": 880,
+       "seconds": 585749
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3058,8 +3058,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 714,
-       "seconds": 368274
+       "commits": 880,
+       "seconds": 585749
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3453,8 +3453,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 714,
-       "seconds": 368274
+       "commits": 880,
+       "seconds": 585749
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3650,8 +3650,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 714,
-       "seconds": 368274
+       "commits": 880,
+       "seconds": 585749
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3691,8 +3691,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 714,
-       "seconds": 368274
+       "commits": 880,
+       "seconds": 585749
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3732,8 +3732,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 714,
-       "seconds": 368274
+       "commits": 880,
+       "seconds": 585749
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3773,8 +3773,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 714,
-       "seconds": 368274
+       "commits": 880,
+       "seconds": 585749
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3814,8 +3814,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 714,
-       "seconds": 368274
+       "commits": 880,
+       "seconds": 585749
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -6290,8 +6290,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 714,
-       "seconds": 368274
+       "commits": 880,
+       "seconds": 585749
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -6753,8 +6753,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 714,
-       "seconds": 368274
+       "commits": 880,
+       "seconds": 585749
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -6873,8 +6873,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 714,
-       "seconds": 368274
+       "commits": 880,
+       "seconds": 585749
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -7159,8 +7159,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 714,
-       "seconds": 368274
+       "commits": 880,
+       "seconds": 585749
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -7694,8 +7694,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 714,
-       "seconds": 368274
+       "commits": 880,
+       "seconds": 585749
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8330,8 +8330,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 714,
-       "seconds": 368274
+       "commits": 880,
+       "seconds": 585749
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8521,8 +8521,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 714,
-       "seconds": 368274
+       "commits": 880,
+       "seconds": 585749
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8637,8 +8637,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 714,
-       "seconds": 368274
+       "commits": 880,
+       "seconds": 585749
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -10093,7 +10093,7 @@
   "determinism": "pure function of the named inputs; a committed feed names the commit it was generated FROM (one-commit lag by construction) \u2014 verify via inputs_sha256, not commit equality",
   "dirty_inputs": [],
   "inputs_sha256": {
-   "autoresearch/MANIFEST.json": "f71d509c3b4ab0bc00bcd586c4b9849a9015f510b8611f494cd5c5687a67846e",
+   "autoresearch/MANIFEST.json": "6f4ec3341956ac9bd2484de229e99a69d986e2e82af8286c99584475c6582bda",
    "autoresearch/ledger/epochs.json": "60162d440a812415d2943b1c1a2317b70be5fda727fae7eaa5c75ff408c4f7f5",
    "autoresearch/ledger/promotions.tsv": "65ebaae10a028ea4dc7267a9cc8dc68b0c5bfc713218103047cb99054d64d676",
    "autoresearch/reference/metal-calibration-epoch-2.json": "e1a733f19dfe552389e25ff71d487cb889a3117b7fd71ea47c28cbc9000147df",
@@ -10249,8 +10249,8 @@
    "vectors/reports/benchmark_history/index.json": "2df531dbefbd60f078b4c4a0b1c10c00a577832cd35520e065b430c61e6903f0",
    "vectors/reports/benchmark_history/runs/2026-07-23-110359-matrix-v6-e58b4d1e/report.json": "e772acbf9f58ff3916f2ffe91016ebc28bc6aadc75c6e68d5fd43ef3023d7be3"
   },
-  "repo_commit": "185456cc47cd",
-  "repo_commit_time": "2026-07-26T00:05:21+01:00"
+  "repo_commit": "22ff811600ef",
+  "repo_commit_time": "2026-07-28T12:29:56+01:00"
  },
  "references": {
   "metal_calibration_epoch_2": {
