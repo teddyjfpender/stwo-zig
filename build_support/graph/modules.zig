@@ -1,6 +1,7 @@
 //! Typed product declarations and focused Zig module construction.
 
 const std = @import("std");
+const package_ownership = @import("package_ownership.zig");
 
 pub const Frontend = enum { none, native, riscv, cairo, aggregate };
 pub const Backend = enum { none, contracts, cpu, metal, cuda };
@@ -83,19 +84,6 @@ pub fn addPublic(b: *std.Build, name: []const u8, spec: ModuleSpec) *std.Build.M
     });
 }
 
-const OwnedPackage = enum {
-    core,
-    backend_contracts,
-    prover,
-    cairo_frontend,
-    cpu_backend,
-    cuda_backend,
-    metal_backend,
-    riscv_frontend,
-    riscv_cpu_integration,
-    cairo_cpu_integration,
-};
-
 /// Resolves canonical ownership roots through their package manifests. Other
 /// product-local roots remain relative to the repository aggregate package.
 fn ownedRootSource(b: *std.Build, spec: ModuleSpec) std.Build.LazyPath {
@@ -113,52 +101,14 @@ pub fn source(
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
 ) std.Build.LazyPath {
-    const owned = ownedSource(root_source_file) orelse
+    const owned = package_ownership.resolve(root_source_file) orelse
         return b.path(root_source_file);
     const dependency_options = .{
         .target = target,
         .optimize = optimize,
     };
-    const dependency_name = switch (owned.package) {
-        .core => "stwo_core",
-        .backend_contracts => "stwo_backend_contracts",
-        .prover => "stwo_prover_impl",
-        .cairo_frontend => "stwo_cairo_frontend",
-        .cpu_backend => "stwo_cpu_backend",
-        .cuda_backend => "stwo_cuda_backend",
-        .metal_backend => "stwo_metal_backend",
-        .riscv_frontend => "stwo_riscv_frontend",
-        .riscv_cpu_integration => "stwo_riscv_cpu_integration",
-        .cairo_cpu_integration => "stwo_cairo_cpu_integration",
-    };
+    const dependency_name = package_ownership.dependencyName(owned.package);
     return b.dependency(dependency_name, dependency_options).path(owned.sub_path);
-}
-
-const OwnedSource = struct {
-    package: OwnedPackage,
-    sub_path: []const u8,
-};
-
-fn ownedSource(root_source_file: []const u8) ?OwnedSource {
-    const prefixes = .{
-        .{ "src/core/", OwnedPackage.core },
-        .{ "src/backend/", OwnedPackage.backend_contracts },
-        .{ "src/prover/", OwnedPackage.prover },
-        .{ "src/frontends/cairo/", OwnedPackage.cairo_frontend },
-        .{ "src/backends/cpu_scalar/", OwnedPackage.cpu_backend },
-        .{ "src/backends/cuda/", OwnedPackage.cuda_backend },
-        .{ "src/backends/metal/", OwnedPackage.metal_backend },
-        .{ "src/frontends/riscv/", OwnedPackage.riscv_frontend },
-        .{ "src/integrations/riscv_cpu/", OwnedPackage.riscv_cpu_integration },
-        .{ "src/integrations/cairo_cpu/", OwnedPackage.cairo_cpu_integration },
-    };
-    inline for (prefixes) |entry| {
-        if (std.mem.startsWith(u8, root_source_file, entry[0])) return .{
-            .package = entry[1],
-            .sub_path = root_source_file[entry[0].len..],
-        };
-    }
-    return null;
 }
 
 pub fn createProtocolModules(
@@ -418,52 +368,4 @@ pub fn proverProduct(role: Role) Product {
         .role = role,
         .protocol_features = "generic-prover+backend-contracts-v1",
     };
-}
-
-test "canonical owner roots resolve to package dependencies" {
-    try std.testing.expectEqual(
-        OwnedPackage.core,
-        ownedSource("src/core/mod.zig").?.package,
-    );
-    try std.testing.expectEqual(
-        OwnedPackage.backend_contracts,
-        ownedSource("src/backend/mod.zig").?.package,
-    );
-    try std.testing.expectEqual(
-        OwnedPackage.prover,
-        ownedSource("src/prover/mod.zig").?.package,
-    );
-    try std.testing.expectEqualStrings(
-        "native/runner.zig",
-        ownedSource("src/prover/native/runner.zig").?.sub_path,
-    );
-    try std.testing.expectEqual(
-        OwnedPackage.cairo_frontend,
-        ownedSource("src/frontends/cairo/mod.zig").?.package,
-    );
-    try std.testing.expectEqual(
-        OwnedPackage.cpu_backend,
-        ownedSource("src/backends/cpu_scalar/mod.zig").?.package,
-    );
-    try std.testing.expectEqual(
-        OwnedPackage.cuda_backend,
-        ownedSource("src/backends/cuda/mod.zig").?.package,
-    );
-    try std.testing.expectEqual(
-        OwnedPackage.metal_backend,
-        ownedSource("src/backends/metal/mod.zig").?.package,
-    );
-    try std.testing.expectEqual(
-        OwnedPackage.riscv_frontend,
-        ownedSource("src/frontends/riscv/mod.zig").?.package,
-    );
-    try std.testing.expectEqual(
-        OwnedPackage.riscv_cpu_integration,
-        ownedSource("src/integrations/riscv_cpu/mod.zig").?.package,
-    );
-    try std.testing.expectEqual(
-        OwnedPackage.cairo_cpu_integration,
-        ownedSource("src/integrations/cairo_cpu/mod.zig").?.package,
-    );
-    try std.testing.expect(ownedSource("src/products/prover/root.zig") == null);
 }

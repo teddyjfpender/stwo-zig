@@ -9,6 +9,7 @@ const matrix = @import("products/matrix.zig");
 
 test {
     _ = @import("graph/modules_product_test.zig");
+    _ = @import("graph/package_ownership.zig");
 }
 
 test "deferred compositions are named, reasoned, and non-installable" {
