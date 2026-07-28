@@ -1629,3 +1629,157 @@ fixed: this increment's fallback scope is audit-only.
 - **Fixing the single-worker composition path.** Out of scope for an
   audit-only fallback, and it is a correctness bug on a non-default
   configuration rather than a throughput lever. Handed to the campaign.
+
+## Increment 7: intra-component witness row parallelism
+
+**Outcome: main fix rejected on measurement (preserved and reverted). One
+correctness fix lands. Two attribution corrections.**
+
+Implementation model: Claude Opus 4.5. Orchestration: Claude Fable 5.
+Transcript: `transcripts/session-07.md`. Host: Apple M5 Max, 12 performance +
+6 efficiency cores, load average 3.55 rising to 10.56 across the session.
+
+### The R2a premise was already implemented
+
+`src/frontends/cairo/witness/component_executor.zig:148-234` already splits a
+component's rows across the work pool: one private register file and one
+private deduction-argument file per worker, `divCeil(row_count, worker_count)`
+equal ranges, `program_mod.executeAllRange(start, end, ...)` per range. Row
+independence is structural — every witness write is indexed by `row`
+(`program.zig:493` lookup words, `program.zig:498` sub-words, `col_write` into
+`output_columns[imm][row]`) — and multiplicity tables, the one accumulating
+output, are rejected for partial ranges at `program.zig:349` and excluded
+outright at `component_executor.zig:62`.
+
+Increment 6's 52-64% parallel efficiency is therefore not a missing split.
+
+### Mechanism tested: static ranges on a heterogeneous pool
+
+Hypothesis: one static equal range per worker is only balanced on a
+homogeneous machine, and six efficiency-core ranges were setting the span of
+`add_opcode_small` (67.6% of program execution on memory-7m, 95.9% on
+arithmetic-2m).
+
+`scheduleChunkRows` (`component_executor.zig`) cut the range into ~16 chunks
+per worker, floored at `parallelRowsPerWorker` (32 rows with a `deduce_call`,
+4096 otherwise) and capped at the previous even static split, with workers
+claiming chunks from one `std.atomic.Value(usize)` cursor. Contiguous disjoint
+ranges, so claim order cannot affect outputs; `worker_count == 1` (null pool,
+test builds) keeps one whole-component range. Admission is `row_count`,
+`worker_count` and the program's opcode census only.
+
+Byte-exact on first run: arithmetic-2m `25e5719f…` at 1/3/18 workers,
+memory-7m `e3317e55…`, all-opcodes `79ae76e1…`.
+
+### Why it did nothing
+
+Temporary probe, memory-7m, `add_opcode_small`, 4,194,304 rows, 288 chunks,
+18 workers — chunks claimed and busy milliseconds per worker:
+
+```
+17/357 16/358 18/367 15/372 17/367 16/365 16/363 16/360 17/369
+15/357 16/368 16/373 16/370 15/367 16/359 15/369 16/373 15/363
+```
+
+15-18 chunks each, 357-373 ms busy each — a 4.5% spread. Six of those threads
+run on efficiency cores and retire rows at the same rate as the performance-core
+threads. The static split was **already balanced**; there was no straggler.
+
+A loop on which a half-speed core keeps pace with a full-speed core is not
+core-throughput-bound. `add_opcode_small` streams millions of rows through
+input columns, output columns and lookup words in canonical column-major
+layout; witness program execution is memory-bandwidth-bound, and sub-linear
+worker scaling is falling per-core throughput, not scheduling loss. This
+reinterprets increment 6's efficiency number.
+
+### Measurement
+
+A-B-B-A, three blocks per workload, one untimed warmup per arm,
+uninstrumented, predecessor = pristine `zig-out` from `2f77af64`. Per-sample
+raws in the transcript. Block ratios (pred/cand, arm-averaged in block):
+
+| Quantity | b1 | b2 | b3 | pooled |
+| --- | ---: | ---: | ---: | ---: |
+| arithmetic-2m `base_trace_build` | 1.0026 | 1.0284 | 1.0309 | 1.0207 |
+| arithmetic-2m `add_opcode_small` execute | 1.0123 | 1.0430 | 1.0564 | 1.0374 |
+| arithmetic-2m all `witness_program_execute` | 1.0052 | 1.0320 | 1.0364 | 1.0246 |
+| arithmetic-2m prove | 1.0014 | 0.9447 | 1.0008 | 0.9814 |
+| memory-7m `base_trace_build` | 1.0013 | 1.0225 | 1.0188 | 1.0142 |
+| memory-7m `add_opcode_small` execute | 0.9769 | 1.0081 | 1.0088 | 0.9978 |
+| memory-7m all `witness_program_execute` | 1.0112 | 1.0283 | 1.0300 | 1.0231 |
+| memory-7m prove | 0.9998 | 1.0016 | 1.0042 | 1.0019 |
+
+Bars were `base_trace_build` >= 1.10x or prove >= 1.02x with non-overlapping
+paired CI. Both fail. The residual ~1.02x is not the dominant component
+(memory-7m `add_opcode_small` is 0.998x); it comes from the small components,
+where 18 static ranges over a few hundred thousand rows do leave a tail, and
+is worth ~15 ms on an 878 ms stage. Host load rose monotonically across
+blocks, which is the direction the block-to-block spread moves.
+
+Preserved at `39a3c449`, reverted at `2aba09b6`.
+
+### Audit rider: the "dark" 94 ms is not dark
+
+Increment 6's pool-invariant ~94 ms on memory-7m "outside `base_witness_graph`
+that no probe attributes at all" is `base_fixed_multiplicities` (41.3 ms) plus
+`base_memory_tables` (48.2 ms), both already top-level probes; the claim came
+from summing only the graph subtree. `base_trace_build`'s own dark residue is
+4.5 ms. Temporary nested probes split the interior (memory-7m, ms):
+
+| Probe | W=4 | W=18 |
+| --- | ---: | ---: |
+| `base_memory_tables` / `cpu_memory.collectTopology` | 27.815 | 29.793 |
+| `base_memory_tables` / `implicit.memoryAddress` + capture | 11.022 | 12.005 |
+| `base_memory_tables` / `implicit.memoryBig` + capture | 0.021 | 0.034 |
+| `base_memory_tables` / `implicit.memorySmall` + capture | 9.103 | 9.677 |
+| `verify_instruction` / `compact_inputs.materializeDerived` | 37.963 | 43.320 |
+
+The genuinely unattributed node was inside the graph, not outside it:
+`verify_instruction`'s stage is 34.8-43.4 ms of which its child probes account
+for 0.07 ms, and 99.8% of it is `compact_inputs.materializeDerived` deriving
+the compact consumer's unique tuple set. Fully serial, pool-invariant.
+
+Pool-invariant serial floor inside `base_trace_build` on memory-7m: ~139 ms
+(44 fixed multiplicities + 52 memory tables + 43 compact tuple derivation),
+14% of the stage. Probes reverted.
+
+### Correctness fix that lands: the serial composition path
+
+`src/frontends/cairo/proving/air/component.zig` had two serial exits from
+`evaluateConstraintQuotientsOnDomainImpl` — the null-pool path and the
+`row_count < parallel_row_threshold or workerCount() <= 1` path — both calling
+`evaluation.evaluateRange(0, row_count, false)` and neither updating
+`column.next_fresh_index`. The parallel path derives `direct_store` from that
+index, passes `additive = !direct_store`, and publishes it back, so a
+composition column shared by two components had its first contribution
+overwritten whenever the serial path ran. `STWO_ZIG_WORKERS=1` failed with
+`ConstraintsNotSatisfied` on arithmetic-2m and memory-7m.
+
+Both exits now route through `evaluateSerial`, which applies the same
+protocol. Predecessor at `STWO_ZIG_WORKERS=1` exits 1 with
+`ConstraintsNotSatisfied`; the fixed tree proves and self-verifies at
+`25e5719f…` at 1, 2 and default workers, byte-identical to the predecessor at
+default workers. Committed at `6d752592`.
+
+### Verification (final tree `2aba09b6`)
+
+- arithmetic-2m `25e5719f…` (default and `STWO_ZIG_WORKERS=1`), memory-7m
+  `e3317e55…`, all-opcodes `79ae76e1…`; all self-verify.
+- `zig build test-cairo-cpu-product test-cairo-frontend -Doptimize=ReleaseFast`
+  passes; closure PASS, 328 transitive Zig sources.
+- Metal arithmetic-2m with the pinned AOT bundle: `25e5719f…`,
+  `cpu_fallbacks` 0.
+- Official Rust verifier, arithmetic-2m: `"verified":true`, `proof_sha256`
+  `25e5719f…`.
+- Pre-existing and unchanged: `merkle-worker-stress` `blake_deep`
+  `InvalidNRounds`, stale untracked
+  `vectors/reports/merkle_worker_stress_artifacts/`, corpus `pedersen.json`
+  `SegmentPointerOverflow` in the adapter.
+
+### Rejected alternatives
+
+- **Chunk-cursor row scheduling in the witness executor.** Built, byte-exact,
+  measured 1.021x and 1.014x on `base_trace_build` against a 1.10x bar, and
+  0.998x on the dominant component it was aimed at. Reverted; preserved at
+  `39a3c449`. The per-worker claim census is the durable output: the row split
+  was already balanced, and witness program execution is bandwidth-bound.
