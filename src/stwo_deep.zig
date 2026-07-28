@@ -13,7 +13,7 @@ const native_cuda_poseidon_transcript = native_cuda_poseidon.transcript_schedule
 
 test {
     _ = @import("stwo_metal_backend").telemetry;
-    _ = @import("integrations/cairo_cuda/mod.zig");
+    _ = @import("stwo_cairo_cuda_integration");
     _ = @import("stwo_cairo_metal_integration").oods;
     _ = @import("stwo_cairo_metal_integration").quotient_inputs;
     _ = @import("stwo_cairo_metal_integration").quotient_reference;

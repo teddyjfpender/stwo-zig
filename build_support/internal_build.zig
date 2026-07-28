@@ -277,7 +277,7 @@ fn addMetalTools(
         optimize,
         stwo,
     );
-    _ = integration_graph.addNativeCudaImport(
+    const native_cuda = integration_graph.addNativeCudaImport(
         b,
         protocol,
         tool_product,
@@ -312,6 +312,17 @@ fn addMetalTools(
         tool_product,
         target,
         optimize,
+        stwo,
+    );
+    _ = integration_graph.addCairoCudaImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        cuda_backend,
+        cairo_frontend,
+        native_cuda,
         stwo,
     );
     _ = integration_graph.addCairoCpuImport(

@@ -85,11 +85,11 @@ fn writeCase(
     for (output_columns, 0..) |*column, index| {
         column.* = outputs[index * row_count ..][0..row_count];
     }
-    const lookup_row_major = try allocator.alloc(
+    const lookup_word_major = try allocator.alloc(
         u32,
         program.n_lookup_words * row_count,
     );
-    defer allocator.free(lookup_row_major);
+    defer allocator.free(lookup_word_major);
     const sub_row_major = try allocator.alloc(
         u32,
         program.n_sub_words * row_count,
@@ -104,7 +104,7 @@ fn writeCase(
         input_columns,
         output_columns,
         .{
-            .lookup_words = lookup_row_major,
+            .lookup_words = lookup_word_major,
             .sub_words = sub_row_major,
             .multiplicity_tables = &.{},
         },
@@ -113,12 +113,6 @@ fn writeCase(
         .zero(),
         oracle.context(),
     );
-    const lookup_word_major = try transposeAuxiliary(
-        allocator,
-        program.n_lookup_words,
-        lookup_row_major,
-    );
-    defer allocator.free(lookup_word_major);
     const sub_word_major = try transposeAuxiliary(
         allocator,
         program.n_sub_words,

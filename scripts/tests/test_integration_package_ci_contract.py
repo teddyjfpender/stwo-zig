@@ -134,6 +134,18 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
             },
         )
 
+    def test_cairo_cuda_integration_has_an_independent_package_lane(self) -> None:
+        self.assert_package_lane(
+            path="src/integrations/cairo_cuda/program.zig",
+            lane="cairo_cuda_integration",
+            build_file="src/integrations/cairo_cuda/build.zig",
+            consumers={"native_cuda_static"},
+        )
+        self.assertEqual(
+            "linux",
+            self.policy["lanes"]["cairo_cuda_integration"]["host"],
+        )
+
     def test_submission_diff_selects_only_the_link_reach(self) -> None:
         # Submission metadata is externally validated; only the prover edits
         # should expand this diff beyond the always-on lane.
@@ -153,7 +165,8 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
             sorted(lanes),
             [
                 "aggregate_cpu", "aggregate_metal", "cairo_cpu",
-                "cairo_cpu_integration", "cairo_frontend", "cairo_metal",
+                "cairo_cpu_integration", "cairo_cuda_integration",
+                "cairo_frontend", "cairo_metal",
                 "cairo_metal_integration", "cpu_backend", "metal_backend", "native_cpu",
                 "native_cuda_device", "native_cuda_integration", "native_cuda_static",
                 "native_examples", "native_metal",

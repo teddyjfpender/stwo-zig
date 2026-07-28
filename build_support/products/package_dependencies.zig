@@ -66,6 +66,10 @@ pub const native_cuda_integration_package_roots = &.{
     "dependency:../src/integrations/native_cuda:mod.zig",
 };
 
+pub const cairo_cuda_integration_package_roots = &.{
+    "dependency:../src/integrations/cairo_cuda:mod.zig",
+};
+
 pub const metal_backend_package_roots = &.{
     "dependency:../src/backends/metal:mod.zig",
 };
@@ -91,6 +95,7 @@ pub const cairo_cuda_protocol_package_roots = &.{
     "dependency:../src/core:mod.zig",
     "dependency:../src/examples:mod.zig",
     "dependency:../src/frontends/cairo:mod.zig",
+    "dependency:../src/integrations/cairo_cuda:mod.zig",
     "dependency:../src/integrations/native_cuda:mod.zig",
     "dependency:../src/interop/proof_wire:mod.zig",
     "dependency:../src/prover:mod.zig",
@@ -165,6 +170,7 @@ pub const frontend_cuda_metal_cpu_protocol_package_roots = &.{
     "dependency:../src/frontends/cairo:mod.zig",
     "dependency:../src/frontends/riscv:mod.zig",
     "dependency:../src/integrations/cairo_cpu:mod.zig",
+    "dependency:../src/integrations/cairo_cuda:mod.zig",
     "dependency:../src/integrations/cairo_metal:mod.zig",
     "dependency:../src/integrations/native_cuda:mod.zig",
     "dependency:../src/integrations/riscv_cpu:mod.zig",
@@ -184,6 +190,7 @@ pub const metal_tools_package_roots = &.{
     "dependency:../src/frontends/cairo:mod.zig",
     "dependency:../src/frontends/riscv:mod.zig",
     "dependency:../src/integrations/cairo_cpu:mod.zig",
+    "dependency:../src/integrations/cairo_cuda:mod.zig",
     "dependency:../src/integrations/cairo_metal:mod.zig",
     "dependency:../src/integrations/native_cuda:mod.zig",
     "dependency:../src/integrations/riscv_cpu:mod.zig",
@@ -271,6 +278,7 @@ pub const compatibility_package_roots = &.{
     "dependency:../src/frontends/cairo:witness/composition_bundle.zig",
     "dependency:../src/frontends/riscv:mod.zig",
     "dependency:../src/integrations/cairo_cpu:mod.zig",
+    "dependency:../src/integrations/cairo_cuda:mod.zig",
     "dependency:../src/integrations/cairo_metal:mod.zig",
     "dependency:../src/integrations/native_cuda:mod.zig",
     "dependency:../src/integrations/riscv_cpu:mod.zig",

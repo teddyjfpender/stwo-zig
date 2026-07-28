@@ -175,6 +175,17 @@ const FakeSession = struct {
         if (self.context.active_stage != stage)
             return error.StageOrderViolation;
     }
+
+    pub fn zeroResidentSlice(
+        self: *FakeSession,
+        comptime F: type,
+        stage: telemetry.Stage,
+        destination: column.DeviceSlice(F),
+    ) !void {
+        try self.require(stage);
+        if (destination.address == 0 or destination.len == 0)
+            return error.InvalidResidentSlice;
+    }
 };
 
 const FakeTranscript = struct {

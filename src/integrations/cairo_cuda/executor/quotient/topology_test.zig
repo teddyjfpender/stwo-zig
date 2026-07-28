@@ -11,7 +11,6 @@ const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
 const fixed_table = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
 const semantic_authority = @import("stwo_cairo_frontend").proof_plan.semantic_authority;
 const quotient_geometry = @import("stwo_cairo_frontend").witness.quotient_geometry;
-const cairo_identity = @import("../../identity.zig");
 const fixture = @import("../resident_plan_test.zig");
 const subject = @import("topology.zig");
 
@@ -36,18 +35,11 @@ test "SN2 quotient topology authenticates 6110 samples into 19 groups" {
         bundle,
         preprocessed_logs.len,
     );
-    var seed = try fixture.sn2Program(
+    var program = try fixture.sn2Program(
         allocator,
         bundle,
         protocol,
         preprocessed_logs,
-    );
-    defer seed.deinit(allocator);
-    var program = try withProtocolIdentity(
-        allocator,
-        seed,
-        bundle,
-        protocol,
     );
     defer program.deinit(allocator);
 
@@ -422,48 +414,9 @@ test "quotient topology fails closed on protocol identity drift" {
         logs,
     );
     defer program.deinit(allocator);
+    program.identity.protocol[0] ^= 1;
     try std.testing.expectError(
         subject.Error.InvalidProtocolIdentity,
         subject.derive(allocator, bundle, program, protocol),
     );
-}
-
-fn withProtocolIdentity(
-    allocator: std.mem.Allocator,
-    source: proof_ir.ProofProgram,
-    bundle: composition.Bundle,
-    protocol: compact.CompactProtocolV1,
-) !proof_ir.ProofProgram {
-    var identity = source.identity;
-    identity.protocol = try cairo_identity.protocolDigest(protocol);
-    const constraints = try allocator.alloc(
-        proof_ir.ConstraintProgram,
-        bundle.components.len,
-    );
-    defer allocator.free(constraints);
-    for (bundle.components, constraints, 0..) |component, *constraint, index| {
-        constraint.* = .{
-            .id = @intCast(index),
-            .component = @intCast(index),
-            .expression = cairo_identity.componentProgramDigest(
-                identity.air,
-                component,
-            ),
-            .constraint_count = component.n_constraints,
-            .max_degree_log = component.evaluation_log_size - component.trace_log_size,
-        };
-    }
-    return proof_ir.ProofProgram.init(allocator, .{
-        .identity = identity,
-        .native_air_contract = source.native_air_contract,
-        .trace_columns = source.trace_columns,
-        .constraints = constraints,
-        .commitments = source.commitments,
-        .transcript = source.transcript,
-        .quotient = source.quotient,
-        .fri_layers = source.fri_layers,
-        .buffers = source.buffers,
-        .nodes = source.nodes,
-        .dependency_ids = source.dependency_ids,
-    });
 }

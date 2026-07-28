@@ -199,3 +199,54 @@ pub fn addNativeCudaImport(
     consumer.addImport("stwo_native_cuda_integration", integration);
     return integration;
 }
+
+/// Constructs the Cairo frontend to CUDA backend composition against the
+/// package-owned Native CUDA primitives selected by the enclosing product.
+pub fn createCairoCuda(
+    b: *std.Build,
+    protocol: graph.ProtocolModules,
+    product: graph.Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    cuda_backend: *std.Build.Module,
+    cairo_frontend: *std.Build.Module,
+    native_cuda: *std.Build.Module,
+) *std.Build.Module {
+    const integration = graph.create(b, .{
+        .product = product,
+        .root_source_file = "src/integrations/cairo_cuda/mod.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    protocol.addImports(integration);
+    integration.addImport("stwo_cuda_backend", cuda_backend);
+    integration.addImport("stwo_cairo_frontend", cairo_frontend);
+    integration.addImport("stwo_native_cuda_integration", native_cuda);
+    return integration;
+}
+
+/// Declares a consumer's dependency on the package-owned Cairo CUDA API.
+pub fn addCairoCudaImport(
+    b: *std.Build,
+    protocol: graph.ProtocolModules,
+    product: graph.Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    cuda_backend: *std.Build.Module,
+    cairo_frontend: *std.Build.Module,
+    native_cuda: *std.Build.Module,
+    consumer: *std.Build.Module,
+) *std.Build.Module {
+    const integration = createCairoCuda(
+        b,
+        protocol,
+        product,
+        target,
+        optimize,
+        cuda_backend,
+        cairo_frontend,
+        native_cuda,
+    );
+    consumer.addImport("stwo_cairo_cuda_integration", integration);
+    return integration;
+}

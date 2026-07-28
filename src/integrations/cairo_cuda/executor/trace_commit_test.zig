@@ -382,6 +382,16 @@ const FakeCommitment = struct {
         tail_calls = 0;
     }
 
+    pub fn contiguousLeaves(
+        _: anytype,
+        _: telemetry.Stage,
+        _: u32,
+        _: common.WordMatrix,
+        _: common.Hashes,
+    ) runtime_error.Error!void {
+        return error.InvalidKernelDescriptor;
+    }
+
     pub fn progressiveInit(
         _: anytype,
         stage: telemetry.Stage,

@@ -227,7 +227,7 @@ pub fn addProducts(
         optimize,
         stwo,
     );
-    _ = integration_graph.addNativeCudaImport(
+    const native_cuda = integration_graph.addNativeCudaImport(
         b,
         protocol,
         tool_product,
@@ -264,6 +264,17 @@ pub fn addProducts(
         optimize,
         stwo,
     );
+    const cairo_cuda = integration_graph.addCairoCudaImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        cuda_backend,
+        cairo_frontend,
+        native_cuda,
+        stwo,
+    );
     _ = integration_graph.addCairoCpuImport(
         b,
         protocol,
@@ -292,8 +303,8 @@ pub fn addProducts(
         .target = target,
         .optimize = .ReleaseFast,
     });
-    ec_oracle_root.addImport("stwo_under_test", stwo);
     ec_oracle_root.addImport("stwo_cairo_frontend", cairo_frontend);
+    ec_oracle_root.addImport("stwo_cairo_cuda_integration", cairo_cuda);
     const ec_oracle = b.addExecutable(.{
         .name = "cuda-native-ec-composite-oracle",
         .root_module = ec_oracle_root,

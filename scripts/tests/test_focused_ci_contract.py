@@ -295,6 +295,7 @@ class PlannerContractTests(unittest.TestCase):
                 "static",
                 "cuda_backend",
                 "native_cuda_integration",
+                "cairo_cuda_integration",
                 "package",
                 "native_cuda_static",
                 "native_cuda_device",
@@ -332,6 +333,7 @@ class PlannerContractTests(unittest.TestCase):
                 "static",
                 "cuda_backend",
                 "native_cuda_integration",
+                "cairo_cuda_integration",
                 "package",
                 "native_cuda_static",
                 "native_cuda_device",
@@ -360,7 +362,12 @@ class PlannerContractTests(unittest.TestCase):
 
     def test_cairo_cuda_scope_has_a_host_only_contract_lane(self) -> None:
         self.assertEqual(
-            {"static", "native_cuda_static"},
+            {
+                "static",
+                "cairo_cuda_integration",
+                "package",
+                "native_cuda_static",
+            },
             self.lanes_for("src/integrations/cairo_cuda/executor/mod.zig"),
         )
 

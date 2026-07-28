@@ -77,7 +77,7 @@ pub fn addProducts(context: Context) void {
         context.optimize,
         stwo,
     );
-    _ = integration_graph.addNativeCudaImport(
+    const native_cuda = integration_graph.addNativeCudaImport(
         b,
         protocol,
         compatibility_product,
@@ -112,6 +112,17 @@ pub fn addProducts(context: Context) void {
         compatibility_product,
         context.target,
         context.optimize,
+        stwo,
+    );
+    _ = integration_graph.addCairoCudaImport(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        cuda_backend,
+        cairo_frontend,
+        native_cuda,
         stwo,
     );
     _ = integration_graph.addCairoCpuImport(

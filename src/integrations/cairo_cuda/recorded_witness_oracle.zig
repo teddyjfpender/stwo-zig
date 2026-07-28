@@ -488,13 +488,18 @@ fn deduceBlakeSigma(inputs: []const u32, outputs: []u32) !void {
 test "recorded CUDA oracle pins key authority and basic deductions" {
     var oracle = try Oracle.init();
     var sigma: [16]u32 = undefined;
-    try oracle.context().call(1, &.{1}, &sigma);
+    try oracle.context().call(1, &.{1}, &sigma, program.TableContext.zero());
     try std.testing.expectEqualSlices(
         u32,
         blake_sigma[16..32],
         &sigma,
     );
     var cube: [10]u32 = undefined;
-    try oracle.context().call(9, &([_]u32{0} ** 10), &cube);
+    try oracle.context().call(
+        9,
+        &([_]u32{0} ** 10),
+        &cube,
+        program.TableContext.zero(),
+    );
     try std.testing.expect(std.mem.allEqual(u32, &cube, 0));
 }

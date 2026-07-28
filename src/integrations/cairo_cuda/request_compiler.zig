@@ -740,6 +740,7 @@ test "Cairo CUDA compiles the complete authenticated SN2 structure and only repo
         &proof,
         witnesses,
         fixed_tables,
+        feeds,
         bundle,
         relations,
         &input,

@@ -99,7 +99,7 @@ pub fn addPublicModules(context: Context) Result {
         context.optimize,
         stwo,
     );
-    _ = integration_graph.addNativeCudaImport(
+    const native_cuda = integration_graph.addNativeCudaImport(
         context.b,
         protocol,
         sdkProduct(),
@@ -134,6 +134,17 @@ pub fn addPublicModules(context: Context) Result {
         sdkProduct(),
         context.target,
         context.optimize,
+        stwo,
+    );
+    _ = integration_graph.addCairoCudaImport(
+        context.b,
+        protocol,
+        sdkProduct(),
+        context.target,
+        context.optimize,
+        cuda_backend,
+        cairo_frontend,
+        native_cuda,
         stwo,
     );
     _ = integration_graph.addCairoCpuImport(
@@ -234,7 +245,7 @@ pub fn addProducts(context: Context) Result {
         context.optimize,
         stwo,
     );
-    _ = integration_graph.addNativeCudaImport(
+    const native_cuda = integration_graph.addNativeCudaImport(
         context.b,
         prover.protocol,
         sdkProduct(),
@@ -269,6 +280,17 @@ pub fn addProducts(context: Context) Result {
         sdkProduct(),
         context.target,
         context.optimize,
+        stwo,
+    );
+    _ = integration_graph.addCairoCudaImport(
+        context.b,
+        prover.protocol,
+        sdkProduct(),
+        context.target,
+        context.optimize,
+        cuda_backend,
+        cairo_frontend,
+        native_cuda,
         stwo,
     );
     _ = integration_graph.addCairoCpuImport(

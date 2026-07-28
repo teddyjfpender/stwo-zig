@@ -19,6 +19,7 @@ pub const Package = enum {
     proof_wire,
     native_examples,
     native_cuda_integration,
+    cairo_cuda_integration,
 };
 
 pub const Source = struct {
@@ -49,6 +50,7 @@ const owners = [_]Owner{
     .{ .prefix = "src/interop/proof_wire/", .package = .proof_wire, .dependency_name = "stwo_proof_wire" },
     .{ .prefix = "src/examples/", .package = .native_examples, .dependency_name = "stwo_native_examples" },
     .{ .prefix = "src/integrations/native_cuda/", .package = .native_cuda_integration, .dependency_name = "stwo_native_cuda_integration" },
+    .{ .prefix = "src/integrations/cairo_cuda/", .package = .cairo_cuda_integration, .dependency_name = "stwo_cairo_cuda_integration" },
 };
 
 pub fn resolve(root_source_file: []const u8) ?Source {
@@ -133,6 +135,10 @@ test "canonical owner roots resolve to package dependencies" {
     try std.testing.expectEqual(
         Package.native_cuda_integration,
         resolve("src/integrations/native_cuda/mod.zig").?.package,
+    );
+    try std.testing.expectEqual(
+        Package.cairo_cuda_integration,
+        resolve("src/integrations/cairo_cuda/mod.zig").?.package,
     );
     try std.testing.expect(resolve("src/products/prover/root.zig") == null);
 }

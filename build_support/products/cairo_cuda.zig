@@ -26,6 +26,7 @@ const source_closure = policy.SourceClosure{
         .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
         .{ .name = "stwo_cairo_frontend", .source = "src/frontends/cairo/mod.zig" },
+        .{ .name = "stwo_cairo_cuda_integration", .source = "src/integrations/cairo_cuda/mod.zig" },
         .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
         .{ .name = "stwo_cuda_backend", .source = "src/backends/cuda/mod.zig" },
         .{ .name = "stwo_native_cuda_integration", .source = "src/integrations/native_cuda/mod.zig" },
@@ -197,7 +198,7 @@ fn createStwoModule(
         cpu_backend,
         proof_wire,
     );
-    _ = integration_graph.addNativeCudaImport(
+    const native_cuda = integration_graph.addNativeCudaImport(
         context.b,
         context.protocol,
         product(role),
@@ -208,12 +209,23 @@ fn createStwoModule(
         proof_wire,
         module,
     );
-    _ = graph.addCairoFrontendImport(
+    const cairo_frontend = graph.addCairoFrontendImport(
         context.b,
         context.protocol,
         product(role),
         context.target,
         context.optimize,
+        module,
+    );
+    _ = integration_graph.addCairoCudaImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        cuda_backend,
+        cairo_frontend,
+        native_cuda,
         module,
     );
     return module;
