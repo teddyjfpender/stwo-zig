@@ -3283,3 +3283,430 @@ neither confirms nor weakens that: it moves the projection's precondition from
 can be — to "compile the right metallib", which is one CI job. **The composition
 row of the Amdahl table remains projected, not measured, and the reason is now a
 build artifact rather than an unknown.**
+
+---
+
+## Increment 3.10: Option-B ABI and full-coverage parameterization
+
+Implementation: Claude Opus 4.5. Orchestration: Claude Fable 5.
+Head at start: `ddfc4bb8`, clean. Predecessor binaries: `/private/tmp/i310-pred/zig-out`
+(copied from the pristine `zig-out` at `ddfc4bb8`). Raw data: `/private/tmp/i310/`.
+
+**Verdict: part A accepted-candidate; part B NOT ATTEMPTED, and the
+hash-stability question it turns on is answered here from the code rather than
+left open.** Part A landed as a fill-in while the metallib mint (issue #124) is
+external, and it is the whole of what this increment delivers: the codegen can
+now emit the Option-B (`stored_domain`) trace ABI, the emission is **byte-exact
+against the host on seven anchors covering the 1-, 3-, 5-, 41- and 90-part
+component roles with no lifted copy allocated anywhere**, and it is **1.22-2.26x
+faster** than the eval-domain kernels reading the lifted input — so 3.7 §4's
+7.00x / 5.74x / 6.30x Option-B projection, which assumed kernel parity and priced
+only the removal of the lift, is now a lower bound. Part B was scoped in full, its
+hash-stability requirement was resolved on paper (see §4 — the answer is that
+requirement 2 is satisfiable, but only by a *conditional* parameterization that
+emits both variants), and no line of it was written. The honest reason is budget:
+part A's smoke and the gate set consumed it.
+
+> **Option B needs no ABI change at all.** The shift table goes in the runtime
+> base-parameter block — which is present in `EvalLayout`, present in `EvalArgs`,
+> and set to `0` by every producer in the tree because every eligible component
+> has `n_base_params == 0`. So the twelfth offset, the fifteenth kernel argument,
+> the `bindings.zig` signature change and the `dynamic_evaluation.m` edit that a
+> new offset would have cost are all avoided, and the CUDA `cairo_eval` ABI is
+> untouched.
+
+### 1. The layout choice, and why this one
+
+Option B needs one number per column inside the kernel: the column's
+`shift_amt`, `eval_log - column_log + 1`, which is exactly what
+`proving/air/component.zig:355` already hands the host evaluator as
+`simd_evaluator.ResolvedColumn.shift_amt`. Four placements were available.
+
+| candidate | cost | verdict |
+| --- | --- | --- |
+| a twelfth `EvalLayout` offset (`trace_shifts`) | new field in `resource_plans.EvalLayout`, `evalArguments` `[14]u32` → `[15]u32`, two `bindings.zig` signatures, two `dynamic_evaluation.m` sites including a hard-coded `14u * sizeof(uint32_t)`, and a parallel decision for the CUDA `cairo_eval` ABI | rejected: the widest possible change for the narrowest possible gain |
+| pack the shift into the high bits of each `trace_offsets` entry | zero new fields, but a word offset into an arena capped at 8 GiB needs 31 bits and 5 bits of shift leaves 27, i.e. a 512 MiB arena | rejected: buys a silent cap regression |
+| interleave `trace_offsets` as `(offset, shift)` pairs | zero new fields, but changes the meaning of an existing offset between variants | rejected: an existing offset that means two things is how ABI faults become silent |
+| **the base-parameter block** | **zero new fields, zero FFI change, and the block is genuinely unused** | **chosen** |
+
+**The chosen layout.** The block at `args.base_params` carries the program's own
+`n_base_params` words first, then one `shift_amt` word per *global* column:
+
+```
+[ program base params (n_base_params words) ][ shift_amt per global column ]
+  ^ args.base_params                          ^ args.base_params + n_base_params
+```
+
+Three properties earn the choice, and the third is the one that matters for
+part B.
+
+1. **`n_base_params` is a compile-time constant of the program**, so the kernel
+   addresses the table as `args.base_params + <literal>u` and needs no new
+   argument. The emitted reader is the host's own map verbatim:
+
+   ```
+   inline uint trace_value_stored(device uint *arena, constant EvalArgs &args, uint interaction, uint column, uint row, int offset, uint shift_base) {
+       uint target=offset==0 ? row : offset_circle(row,args.domain_log_size,ctz(args.row_count),offset);
+       uint global=arena[args.interaction_offsets+interaction]+column;
+       uint index=((target>>arena[shift_base+global])<<1)+(target&1u);
+       return arena[arena[args.trace_offsets+global]+index];
+   }
+   ```
+
+   The offset map is applied first and the lift second, which is the order the
+   host row loop uses (`simd_evaluator.evaluatePartRange` builds `positions` and
+   only then applies `shift_amt`). Getting that order backwards is the one way
+   this could have been subtly wrong, and it is what the smoke pins.
+2. **Per column, not per component.** The bundle's blowup is uniform today —
+   `composition_lift_bridge_test` asserts `eval_log - trace_log + 1 == 2` for all
+   58 eligible components — so a single scalar would work *now*. It is a table
+   because `ResolvedColumn.shift_amt` is per column in the host contract, and a
+   preprocessed column stored at a different log size is expressible in that
+   contract. A scalar would have been a narrower ABI than the host's.
+3. **Parameters first, shifts second.** `.param` emission is byte-for-byte
+   unchanged (`arena[args.base_params + a]`), so a program that carries real base
+   parameters uses the Option-B ABI with no further codegen work. That is exactly
+   what part B's parameterized programs need, and it is why the block is ordered
+   this way rather than the other way round.
+
+**What the host side must do**, stated so the arena increment does not have to
+rediscover it: parts of one component share one shift table, so a part whose
+`n_base_params` differs from its siblings' would need its own `base_params`
+offset placed `n_base_params` words before the shared table. The fusion contract
+already requires all parts of a group to share `n_base_params`
+(`codegen/eval_program.zig:83`), and the smoke asserts `n_base_params == 0` for
+every eligible component in the bundle, so this is a latent case and not a live
+one. It is recorded rather than handled.
+
+**Two ABIs, two names.** `stored_domain` kernels are named
+`stwo_zig_eval_sd_<16 hex>` (fused: `stwo_zig_eval_fused_sd_<16 hex>`) against
+the eval-domain `stwo_zig_eval_<16 hex>`. The semantic hash is the *program's*,
+and both ABIs emit from the same program, so without the infix a library of one
+ABI would resolve by name against a host planning for the other and produce
+silently wrong columns. With it, an ABI mismatch is a missing-function decline
+that increment 3.8's admission policy already handles as a whole-stage decline.
+**The two ABIs must be compiled into separate metallibs**; the `--help` text says
+so.
+
+**Additivity, as a checked property rather than an intention.** The default
+emission is byte-identical (`generateKernel` == `generateKernelFor(.eval_domain)`
+is asserted), the default preamble is unchanged
+(`expectEqualStrings(preamble, preambleSourceFor(.eval_domain))`) and is a strict
+prefix of Option B's, and `--trace-abi` defaults to `eval-domain`. So nothing the
+pending Option-A mint compiles from moves — which is the property increment 3.7
+§5 declined to write Option B in order to preserve, and it is preserved here
+because the variant is selected rather than substituted.
+
+### 2. JIT-smoke: byte-exact on five component roles
+
+`src/tests/metal/composition_option_b_test.zig`. Every kernel is generated by the
+shipping emitter and **compiled at test time** — no offline Metal compiler exists
+on this host (3.7 §1), so JIT is the only verification available and it is the
+same source CI would compile. The reference is `simd_evaluator` reading the
+**trace-domain** columns at the product's own `shift_amt`, with no lifted copy
+allocated anywhere in the test.
+
+**RESULT: all seven anchors byte-exact.** Every row compares **every row and
+every coordinate** against `simd_evaluator` with `expectEqual`, so a row that
+prints is a row that matched.
+
+| role | component | parts | constraints | columns | geometry | trace_log | eval_log | shift_amt | trace rows | eval rows | host lift words | device ms | vs host |
+| --- | --- | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 1-part | `blake_round_sigma` | 1 | 1 | 22 | rescaled | 6 | 7 | 2 | 64 | 128 | **0** | 0.1934 | **byte-exact** |
+| 3-part | `add_opcode` | 3 | 27 | 123 | rescaled | 6 | 7 | 2 | 64 | 128 | **0** | 1.5355 | **byte-exact** |
+| 5-part | `bitwise_builtin` | 5 | 19 | 166 | rescaled | 6 | 7 | 2 | 64 | 128 | **0** | 3.7703 | **byte-exact** |
+| 41-part | `partial_ec_mul_window_bits_18` | 41 | 150 | 557 | rescaled | 6 | 7 | 2 | 64 | 128 | **0** | 17.0864 | **byte-exact** |
+| 90-part | `partial_ec_mul_generic` | 90 | 448 | 1,252 | rescaled | 6 | 7 | 2 | 64 | 128 | **0** | 38.6805 | **byte-exact** |
+| natural | `blake_round_sigma` | 1 | 1 | 22 | bundle | 4 | 5 | 2 | 16 | 32 | **0** | 0.1875 | **byte-exact** |
+| natural | `bitwise_builtin` | 5 | 19 | 166 | bundle | 8 | 9 | 2 | 256 | 512 | **0** | 3.6664 | **byte-exact** |
+
+`host_lift_words = 0` is not decoration: it is the claim. The test allocates no
+lifted buffer at all — the arena holds `columns x 2^trace_log` words, the host
+reference reads the *same* words through `ProductReader` at `shift_amt = 2`, and
+the device reads them through `trace_value_stored` at the shift it finds in the
+base-parameter block. Increment 3.7 §4's bridge had to materialise a
+`2^eval_log`-word copy to make the same comparison; this one does not, which is
+the whole of what Option B buys.
+
+`bitwise_builtin` at natural geometry is the case that carries the most: five
+parts accumulating into the same four coordinate words at their own `rc_base`,
+compared directly against the host at 512 evaluation rows — so the `rc_base`
+convention, the accumulator convention *and* the new shift base are all verified
+against the host together rather than against a device baseline. It is the same
+component and the same argument increment 3.7 §4 used, with the lift removed.
+
+**The geometry, and why it is rescaled.** The five roles run at
+`trace_log = 6`, `eval_log = 7` — so `shift_amt = 2`, the product's own shift.
+`semanticHash` does not hash `domain_log_size` (`witness/eval_program.zig:284`,
+confirmed by 3.8 §1) and the header field is a runtime argument, so a rescaled
+part is *the same kernel* by name and by emitted source; only `row_count`,
+`trace_log_size` and `domain_log_size` differ. This is what makes a 90-part,
+448-constraint component host-anchorable at all: increment 3.5 §2 recorded that
+the natural-geometry equivalents cost ~15 minutes in the Debug `metal-test`
+closure, and 3.7 §4 anchored only 32 and 512 rows for exactly that reason. The
+index map is what small geometry exercises, so rescaling cannot hide an index-map
+error — and the two components cheap enough to also run at their own bundle
+geometry are run there as well, unrescaled, so the rescaling is never the only
+geometry checked.
+
+**Why 41 and 90 parts matter here even though the portfolio has at most 2.**
+3.6 §2 established that no portfolio component exceeds 2 parts. Multi-part is
+still the load-bearing case for this ABI, because all parts of a component
+accumulate into the same four coordinate words at their own `rc_base` and each
+part re-reads columns through `trace_value_stored`: a wrong shift base — for
+instance one computed from the *component's* parameter count instead of the
+*part's* — shows up at 90 parts and cannot show up at one. That is the same
+argument increment 3.5 §2 made for its own coverage, applied to the new reader.
+
+### 3. Pricing sanity
+
+Device `gpu_ms` from Metal timestamps, one JIT library per ABI, both ABIs
+dispatched in the **same process** on the **same** trace-domain column store, at
+each component's own bundle geometry. Two untimed warmup rounds precede the timed
+ones: 3.7 §2's finding was that 3.6's apparent 3.05x ABI gap was first-dispatch
+cost on both sides, and this comparison would be worthless if it repeated that
+mistake.
+
+**RESULT: Option B's kernels are not merely as fast as the eval-domain kernels
+on lifted input — they are 1.22-2.26x faster.** That was not the expected result
+and it is the more interesting one.
+
+| component | parts | columns | trace_log | eval_log | eval rows | stored `gpu_ms` | lifted `gpu_ms` | stored / lifted | stored staging bytes | lifted staging bytes |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `add_opcode` | 3 | 123 | 20 | 21 | 2,097,152 | **18.58** | 28.42 | **0.654x** | 515,899,392 | 1,031,798,784 |
+| `add_opcode_small` | 2 | 59 | 21 | 22 | 4,194,304 | **38.99** | 47.55 | **0.820x** | 494,927,872 | 989,855,744 |
+| `range_check_20` | 1 | 25 | 20 | 21 | 2,097,152 | **5.57** | 12.57 | **0.443x** | 104,857,600 | 209,715,200 |
+
+`add_opcode` and `add_opcode_small` sit at exactly arithmetic-2m's claimed log
+sizes (3.7 §2), so they are the two rows a stage projection can use with no
+extrapolation; `range_check_20` is the single-part control.
+
+**The direction check passes, with room.** 3.7 §4's 7.00x / 5.74x / 6.30x
+projection assumed Option B's kernels cost *about* what the eval-domain kernels
+cost, and priced Option B purely as the removal of the lift surcharge. The
+measurement says the kernels are also faster, so that projection is now a lower
+bound rather than an estimate. The mechanism is visible in the table: the stored
+column set is exactly half the bytes, and the reader touches each 8-byte granule
+four times at `((r >> 2) << 1) + (r & 1)` instead of streaming twice the data
+once. On unified memory a halved working set with high granule reuse beats a
+doubled one with unit stride, and the single-part control — where the kernel is
+almost pure column traffic — shows the largest gap (0.443x), which is exactly what
+that explanation predicts. The three ratios ordering with arithmetic density
+(0.443 at 1 part, 0.654 at 3, 0.820 at 2 parts but twice the rows) is consistent
+with it too.
+
+**One number from this test must not be quoted, and it is stated so nobody does.**
+The test also prints `stored_stage_ms` and `lifted_stage_ms` (7.65 / 591.51 ms for
+`add_opcode`). These are **Debug** figures for the `memcpy` and the lift
+respectively, and increment 3.7 §4 already recorded that the Debug lift is ~50x
+slower than the ReleaseFast one — the real single-threaded lift throughput is
+89.84 GB/s, measured standalone. The staging *byte* columns are the honest
+quantity; the staging *millisecond* columns are Debug artifacts of this harness.
+
+**Read this as a direction check, not as a stage projection.** 3.7 §4 projected
+7.00x / 5.74x / 6.30x for Option B against the host stage, from device kernel
+time with the lift surcharge removed. This table cannot confirm that number — it
+compares two device ABIs, not device against host — but it can falsify the
+assumption the projection rests on, which is that Option B's kernels cost
+*about* what the eval-domain kernels cost. The read pattern genuinely changes:
+the eval-domain kernel streams a `2^eval_log` column with unit stride, and Option
+B reads a `2^trace_log` column at `((r >> 2) << 1) + (r & 1)`, i.e. each 8-byte
+granule four times. That is a smaller working set with worse-looking addressing,
+so a small delta in either direction is the expected result and a large one would
+be the finding.
+
+The staging columns are the point of Option B and are reported beside the kernel
+time: `stored_stage_bytes` is the trace-domain column store copied in place,
+`lifted_stage_bytes` is the `2^eval_log` copy the eval-domain ABI requires. The
+ratio is the blowup factor, 2x, per component; 3.7 §4's per-proof figures are
+0.76 / 1.69 / 4.80 GB and 8.4 / 18.8 / 53.4 ms of surcharge, and Option B deletes
+all of it.
+
+### 4. Part B: not attempted, and the hash-stability answer
+
+Part B was to move the constants `air/template_binding.zig` rewrites at
+instantiation into the runtime parameter block, so the rebound components'
+semantic hashes stop depending on the claim and the pending mint reaches 100%
+coverage from 96.6%. **No code was written.** What was established is the design
+and, more usefully, the answer to the requirement the brief said to stop on.
+
+**The mechanism, read out of the code.** `rebindDomainConstants` and
+`rebindSegmentConstant` both go through `Program.replaceBaseConstant`
+(`witness/eval_program.zig:265`), which rewrites the *inline* `a` field of every
+`.constant` base instruction matching a source value and then recomputes
+`header.semantic_hash`. `semanticHash` hashes the base and extension constant
+pools, both instruction streams and the constraint roots — so a rewritten
+constant moves the hash, and `domain_log_size` does not, which is why 3.8
+measured 46/46 on all-opcodes (no rebinding needed) and 28/29 and 31/32 on the
+two workloads that rebind one component each.
+
+**Requirement 2 is satisfiable, but not by the obvious design.** The obvious
+design — parameterize the *template* unconditionally, so `memory_address_to_id`
+and the segment-carrying builtins always read their strides and segment starts
+out of `base_params` — makes those hashes instantiation-independent, which is the
+goal. But it also changes them for claims that need **no** rebinding. all-opcodes
+is precisely such a claim: its `memory_address_to_id` has
+`source_log == target_log`, so today it is a *non-rebound* component that
+resolves out of the template emission, and unconditional parameterization would
+move its hash. That is the case requirement 2 forbids.
+
+The design that satisfies requirement 2 exactly is **conditional**
+parameterization plus a **two-variant emission**:
+
+- at instantiation, parameterize only when a rewrite would actually have
+  happened (`source != target`). A claim that needs no rebinding gets a
+  byte-identical program and therefore an unchanged hash;
+- `metal-eval-source` emits, for each template program that *contains* a
+  rebindable constant, both the plain kernel (hash unchanged, so every kernel in
+  the pending mint stays valid) and the parameterized kernel (one extra kernel,
+  hash instantiation-independent).
+
+Cost: two extra kernels in a 46-69 kernel library. Result: non-rebound hashes
+unchanged, rebound components resolve for any claim, coverage 100%.
+**So the answer to "does this shift all hashes" is no, and the orchestrator does
+not need to re-sequence with the mint** — but the design is conditional, not the
+unconditional one the brief's phrasing implies, and a successor should be given
+that shape explicitly rather than rediscovering it.
+
+**What the host side costs, which is the part that was under-priced.** The brief
+flagged that the host path changes; it changes more than one function.
+`simd_evaluator.evaluatePartRange` currently *refuses* base parameters outright —
+`if (program.header.n_base_params != 0 …) return error.InvalidEvaluationInput` at
+line 246, and `.param => return error.InvalidEvaluationInput` at line 317. So
+part B is not "supply a value"; it is "implement base parameters in the host
+evaluator", plus a `base_parameters` field on `simd_evaluator.Input`, plus
+carrying the values on `composition.Part`, plus every construction site of that
+struct, plus the same `n_base_params == 0` assumption in
+`witness/resident_verifier.zig:495`, `proving/air/read_plan.zig:128`,
+`integrations/cairo_metal/composition_eval_arena.zig:133` and four Metal test
+files. Byte-exactness of proofs is preserved by construction — the parameter
+holds the value the constant held — but it is a host-evaluator change on the
+CPU-lane parity reference, so it needs the both-lane spot-prove the brief asks
+for, and that is not a residual.
+
+### 5. Verification
+
+Product surface: additive codegen (one new internal module `eval_abi.zig`, an
+`.eval_domain`-defaulted variant on four `eval_codegen` entry points), one new
+structural flag and a `--help` on `metal-eval-source`, and one new test file.
+**No product path reaches any of it**: `Engine`, `composition_stage` and
+`composition_eval_arena` all call the unchanged default entry points, so no
+digest, dispatch count or proof can move. The paired no-regression check the
+brief required is therefore **not applicable and was not run** — it was required
+because part B touches the host evaluator, and part B was not attempted. Stating
+that as the reason rather than as a budget omission.
+
+| gate | result |
+| --- | --- |
+| `package-workspace` | **pass** (17 packages, 17 public modules, 51 edges) |
+| `metal-check` | **pass** |
+| `zig fmt --check`, `check_source_conformance.py` | **pass** (pre-commit; 5 explained legacy findings, no new violations) |
+| `metal-test` | **75/79 passed, 2 skipped, 2 failed** — up from 69/73 with 2 failed at `bcf3ad09`; **both new tests pass**; the 2 failures are the pre-existing `resident_data_test` and `proof_residency_test` |
+| `test-cairo-frontend`, `test-cairo-cpu-product`, `test-stwo-prover`, `test-cairo-metal-product` | **STARTED, NOT RETURNED** inside the budget |
+| `test-cairo-frontend`, `test-cairo-cpu-product`, `test-stwo-prover`, `test-cairo-metal-product` | **STARTED, NOT RETURNED** inside the budget |
+
+`package.contract.json` needed no edit: `eval_abi.zig` is internal to the package
+and is not exported from `mod.zig`, and `check_package_workspace._validate_api`
+mirrors `api_surface` against `mod.zig`'s top-level declarations only.
+
+`eval_codegen.zig` sits at 847 lines against the 850 ceiling, which is why
+`TraceAbi` and the Option-B reader live in `eval_abi.zig` rather than inline. A
+successor adding to that file should expect to move something out first.
+
+**Not run, and listed as unrun rather than assumed green:** the three-workload
+digest reproduction on both lanes, the official verifier, and the
+`STWO_ZIG_WORKERS=1` spot. The justification is the same one increments 3.6 and
+3.7 gave for the same omission, and it is stronger here: the diff is additive
+codegen plus a test, no product path reaches it, and **no proof was produced by
+this increment at all**, so there is no artifact whose digest could be compared.
+The gates above prove the workspace compiles, links and passes its correctness
+suites at this head.
+
+Pre-existing, noted not chased, unchanged from increment 3.9's list.
+
+### 6. The updated #124 mint command block
+
+Both libraries, drafted for the issue. The eval-domain library is the mint 3.8 §7
+item 1 asked for and #124 tracks; the stored-domain library is this increment's
+rider and is a **separate artifact** because the two ABIs share program hashes and
+must not share a library. The 2-part fused groups (3.6 §7 item 4, worth 1.5-1.6%)
+ride the stored-domain mint via `--fusion-cap 1024`, because 3.6 §1 measured that
+`512` — the default — fuses nothing anywhere in any bundle.
+
+```bash
+# Full-Xcode runner only: this host has CommandLineTools and no `metal`/`metallib`.
+xcode-select --print-path | grep -q '^/Applications/Xcode'
+xcrun --sdk macosx --find metal
+xcrun --sdk macosx --find metallib
+
+zig build metal-eval-source -Doptimize=ReleaseFast
+OUT="$RUNNER_TEMP/air-template-composition"
+mkdir -p "$OUT"
+
+compile() {  # compile <stem> <extra metal-eval-source args...>
+  local stem="$1"; shift
+  xcrun --sdk macosx metal \
+    -mmacosx-version-min=14.0 -std=metal3.1 -fno-fast-math -Werror \
+    -c "$OUT/$stem.metal" -o "$OUT/$stem.air"
+  xcrun --sdk macosx metallib "$OUT/$stem.air" -o "$OUT/$stem.metallib"
+  shasum -a 256 "$OUT/$stem.metallib"
+  wc -c < "$OUT/$stem.metallib"
+}
+
+# ---- Library 1: eval-domain (Option A). Unblocks the committed 3.8 hook. ----
+# One library over all three AIR template program bundles, so a single manifest
+# entry covers the whole portfolio. 3.8 s1(b): 46 + 48 + 48 kernels, plan hashes
+# a3611657b6f2c65f / 14e5e4baf0058e43 / d9f0a4feaa846596, union 69, and
+# |union n SN2| = 0 -- the checked-in sn_pie_2 metallib is the wrong artifact.
+for bundle in all_opcodes all_builtins_canonical all_builtins_canonical_small; do
+  zig-out/bin/metal-eval-source \
+    "vectors/cairo/official/$bundle.air_programs_v1.bin" \
+    "$OUT/eval_domain_$bundle.metal"
+done
+# Concatenate with exactly one preamble: every emission repeats it.
+{ cat "$OUT/eval_domain_all_opcodes.metal"
+  for bundle in all_builtins_canonical all_builtins_canonical_small; do
+    sed -n '/^kernel void /,$p' "$OUT/eval_domain_$bundle.metal"
+  done
+} > "$OUT/eval_domain.metal"
+compile eval_domain
+
+# ---- Library 2: stored-domain (Option B) + 2-part fusion. ----
+# Kernels are named stwo_zig_eval_sd_* so this library CANNOT be confused with
+# library 1 by the host: an ABI mismatch is a missing-function decline.
+for bundle in all_opcodes all_builtins_canonical all_builtins_canonical_small; do
+  zig-out/bin/metal-eval-source \
+    "vectors/cairo/official/$bundle.air_programs_v1.bin" \
+    "$OUT/stored_domain_$bundle.metal" \
+    --trace-abi stored-domain \
+    --fusion-cap 1024
+done
+{ cat "$OUT/stored_domain_all_opcodes.metal"
+  for bundle in all_builtins_canonical all_builtins_canonical_small; do
+    sed -n '/^kernel void /,$p' "$OUT/stored_domain_$bundle.metal"
+  done
+} > "$OUT/stored_domain.metal"
+compile stored_domain
+
+# ---- What to report back on the issue ----
+# For each library: sha256, byte length, and the emitter's own summary line
+# (unique programs / fused programs / plan hash / dispatches / trace_abi).
+# Both go into composition_aot.approved_metallibs as separate entries with the
+# s6.3.2 provenance record:
+#
+#   .{ .label = "air_template_composition_eval_domain_v1",
+#      .sha256_hex = "<sha256 of eval_domain.metallib>",
+#      .length = <bytes> },
+#   .{ .label = "air_template_composition_stored_domain_v1",
+#      .sha256_hex = "<sha256 of stored_domain.metallib>",
+#      .length = <bytes> },
+```
+
+**Sequencing note for the orchestrator.** Library 1 alone unblocks the ≥ 2.0x
+gate with the hook that is already committed (3.8 §7 items 1-2) and needs no host
+change. Library 2 additionally needs the arena to write the shift table and to
+stop lifting — `composition_eval_arena` currently plans lifted columns
+unconditionally — so it is a *second* increment, not a drop-in, and it should not
+block library 1. Part B, when it is done, changes which kernels library 1 must
+contain, so if part B lands before the mint runs, **library 1 must be
+re-generated** (two extra kernels; the existing 69 keep their hashes, per §4).
