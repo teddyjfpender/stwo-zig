@@ -2346,3 +2346,309 @@ made on measurement. Stage speedup should be **reported, not gated**, until a
 fused library exists. If the arena work in (i) cannot be scoped inside one
 increment, the honest next increment is the arena alone — which is what Phase 1
 concluded and what increment 3.4's alias counts now let anyone price.
+
+---
+
+## Increment 3.6: fused composition kernel pricing
+
+Implementation: Claude Opus 4.5. Orchestration: Claude Fable 5.
+Head at start: `bcf3ad09`, clean. Raw data: `/private/tmp/i36/`
+(`fusion3.log`, `sn2_components.txt`, `project2.py`, `metaltest-final.log`).
+
+**Verdict: accepted-candidate, and the pricing verdict is GO — but not for the
+reason the increment was scoped around.**
+
+> **Device composition beats the host stage by 4.0x on arithmetic-2m and 4.3x on
+> memory-7m with the UNFUSED per-part kernels that already exist. Fusion adds
+> 1.6% on those two workloads and 10.6% on all-opcodes.** Fusion is not the
+> precondition for device composition; the program-viability number does not
+> depend on it. What increment 3.5 identified as the blocker — `rows x parts` —
+> is not a portfolio problem, because **no component in any of the four
+> portfolio workloads has more than 2 parts.**
+
+Two corrections to the inherited record are load-bearing and are stated first.
+
+### 1. The fused emission already existed, and its default cap fuses nothing
+
+The increment was scoped to build a fused variant in the codegen. It has been in
+the tree since `1dc983e3` (2026-07-17, on `main`):
+`eval_codegen.generateFusedKernel`, `fusedKernelName`, `fusedKernelHash`,
+`fusionGroupEnd`, `hybridFusionPartition`, `HybridFusionPolicy`, and a
+`--fusion-cap` / `--experimental-hybrid-source-diagnostic` surface on
+`metal-eval-source`. §6.2's "fusion requires a source artifact and is therefore
+not in the asset" is correct about the *metallib* and was read forward as though
+the emission were missing too. Only the compiled artifact is.
+
+So this increment verified and priced what exists rather than writing it. The
+only codegen addition is a probe surface — `generateFusedKernelUncapped` and
+`fusedKernelNameUncapped` — because `max_fused_instruction_cap = 4096` is a
+policy number with no recorded provenance (no commit message, note or comment
+justifies it) and no stated relation to any device limit, and the question "where
+does the compiler actually stop" cannot be asked through an entry point that
+refuses first. Both new functions are test-only; nothing existing changed.
+
+Running the shipping tool across the cap range, one command each:
+
+| `--fusion-cap` | dispatches | unique per-part kernels | fused kernels |
+| ---: | --- | ---: | ---: |
+| 128 / 256 / **512 (default)** | **279 -> 279** | 271 | **0** |
+| 1024 | 279 -> 168 | 54 | 106 |
+| 2048 | 279 -> 105 | 36 | 61 |
+| 4096 (hard cap) | 279 -> 77 | 34 | 35 |
+
+**At its own default the fused emission is unreachable.** Not because parts are
+large — the smallest is 28 operations — but because the cap bounds a *group's*
+sum and the smallest adjacent pair in the bundle is 574 operations
+(`jnz_opcode_taken`). `default_fused_instruction_cap = 512` therefore cannot fuse
+a single pair anywhere in the authenticated bundle. The census test asserts both
+halves of this so it cannot silently change.
+
+### 2. Increment 3.5's cost-model comparison was cross-workload
+
+3.5 concluded "the unfused one-kernel-per-part library cannot win the composition
+stage" from: `partial_ec_mul_window_bits_18`, 2^21 rows, 41 parts, 484.59 ms on
+device, against arithmetic-2m's 435.7 ms host composition stage.
+
+**That component is not in arithmetic-2m.** Nor in memory-7m, all-opcodes or
+pedersen-aggregator. It is an EC-multiplication component; so is the 90-part
+`partial_ec_mul_generic`. Read out of each workload's own proof `claim` against
+the bundle's part counts:
+
+| workload | components | dispatches (unfused) | `rows x parts` | multipart components | max parts | `rows x parts` in multipart |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| all-opcodes | 43 | 75 | 6,709,888 | 7 | 13 | 0.1% |
+| arithmetic-2m | 29 | 31 | 15,612,032 | 2 | **2** | 57.1% |
+| memory-7m | 32 | 34 | 41,332,096 | 2 | **2** | 50.7% |
+| pedersen-aggregator | — | — | 4,625,952 | 2 | **2** | 0.3% |
+
+One SN2 component's 86M row-parts was being priced against a workload whose
+entire composition is 15.6M row-parts. **The portfolio's whole composition stage
+is 5.5x less device work than the single component 3.5 measured.** The
+41- and 90-part components are real and they are entirely outside the portfolio;
+all-opcodes does reach 13 parts (`mul_opcode`) but at `log_size = 4`, i.e. 0.1%
+of its row-parts.
+
+### 3. The fusion contract
+
+Read out of `codegen/eval_program.zig` and verified by the census over all 58
+components / 279 parts. A group is admissible when
+
+- the `rc_base` sequence is exactly contiguous:
+  `part[i+1].rc_base == part[i].rc_base + part[i].n_constraints`
+  (`validatePartSequence:74-98`); and
+- every part shares `n_interactions`, `n_base_params`, `n_ext_params` and
+  `domain_log_size` with the first.
+
+`generateFusedKernel` then emits each part's body inline at a *relative*
+coefficient offset `part.rc_base - group[0].rc_base`, hoists one denominator
+load, seeds one `cumulative` accumulator from the four coordinate words, and
+stores it once — so the group is dispatched with `rc_base = group[0].rc_base` and
+is a drop-in for the group's dispatch sequence. Byte-exactness is therefore a
+claim about accumulation order, not arithmetic: per-part does
+`coord += qm_mul_base(acc_i, denom)` k times against memory; fused does the same
+k adds in a register and stores once.
+
+**Every one of the 58 components passes `validatePartSequence` over its whole
+part list.** Part boundaries carry no state the fused emission cannot reproduce,
+so nothing structural limits fusion — the limit is entirely the emitted
+function's size. Part boundaries are a property of the serialized bundle (an
+offline producer), not of the codegen; per-part operation counts run 28 to 1,339,
+which is consistent with segmentation at a source-size or register budget in the
+producer rather than with anything the device requires.
+
+### 4. Resource findings: the ceiling is the compiler, not the device
+
+There is no threadgroup-memory or register wall to report. The wall is
+`MTLCompilerService`. An unbounded first sweep held it at 100% of one core for
+**over seven minutes** on a five-part, ~10,000-operation fused function without
+completing, and a Metal compile cannot be interrupted once handed off. The
+committed sweep therefore declines, before compiling, any group above the
+codegen's own 4,096-operation ceiling, prints an attempt line so a hang is
+attributable, and stops climbing once one compile exceeds 20 s.
+
+Observed compile cost inside the ceiling (whole library per grouping, JIT):
+
+| component | group size | max group ops | max group source bytes | compile ms |
+| --- | ---: | ---: | ---: | ---: |
+| `partial_ec_mul_generic` (90 parts) | 1 | 1,287 | 52,965 | 10.3 |
+| | 8 | 4,080 | 176,018 | 10.7 |
+| | 16 | 7,468 | — | **declined above ceiling** |
+| `partial_ec_mul_window_bits_18` (41 parts) | 1 | 517 | 22,556 | 1,467.2 |
+| | 8 | 3,898 | 159,316 | 1,550.9 |
+| | 16 | 7,323 | — | **declined above ceiling** |
+
+Note the emitted source already exceeds `hybrid_fusion_source_cap` (92,160 bytes)
+at group size 4-8, so the hybrid policy's source bound is the binding one well
+before the operation cap is.
+
+**Max fusable group, stated honestly:** at least 8 parts / 4,080 operations /
+176 KB of MSL compiles and runs correctly. Above the 4,096-operation policy
+ceiling the sweep declines by construction, so the true ceiling is unmeasured —
+and, given the portfolio never exceeds 2 parts, locating it would price a case no
+workload has.
+
+### 5. Byte-exactness
+
+`src/tests/metal/composition_fusion_test.zig`. Every grouping is compared to the
+per-part dispatch baseline on **every row and every coordinate**, from the same
+arena, same fill seeds and same layout as the increment 3.5 smoke. The chain to
+the host is `fused == per-part` (this test) composed with `per-part == host`
+(3.5's smoke, the same four components, running in the same `metal-test`
+closure), plus two *direct* host anchors.
+
+| role | component | rows | parts | group sizes verified | vs per-part | vs host |
+| --- | --- | ---: | ---: | --- | --- | --- |
+| small-control | `blake_round_sigma` | 32 | 1 | 1 (fusion N/A) | — | **byte-exact** |
+| host-anchored-multipart | `bitwise_builtin` | 512 | 5 | 1, 2, 4, **5** | **byte-exact** | **byte-exact** |
+| live-dominant | `add_opcode_small` | 4,194,304 | 2 | 1, **2** | **byte-exact** | via 3.5 chain |
+| live-dominant | `range_check_20` | 2,097,152 | 1 | 1 (fusion N/A) | — | via 3.5 chain |
+| live-dominant | `assert_eq_opcode` | 2,097,152 | 1 | 1 (fusion N/A) | — | via 3.5 chain |
+| arithmetic-dominant | `add_opcode` | 2,097,152 | 3 | 1, 2, **3** | **byte-exact** | via 3.5 chain |
+| multipart | `partial_ec_mul_generic` | 524,288 | 90 | 1, 2, 4, 8 | **byte-exact** | via 3.5 chain |
+| dominant | `partial_ec_mul_window_bits_18` | 2,097,152 | 41 | 1, 2, 4, 8 | **byte-exact** | via 3.5 chain |
+
+`bitwise_builtin` is the load-bearing new case: it is the smallest multi-part
+component in the bundle, so a *fully fused* 5-part kernel can be compared
+directly against `simd_evaluator` inside a sane budget. It is byte-exact, which
+means the `rc_base` rebasing and the single-store accumulator are verified
+against the host and not only against the device baseline.
+
+### 6. Pricing
+
+Device ms, one JIT library per grouping, `evalPrepared` per dispatch
+(`gpu_ms` from Metal timestamps, so per-dispatch CPU submission is excluded —
+i.e. these are if anything pessimistic about batching).
+
+| component | rows | parts | per-part ms | best fused ms | at group size | fusion speedup | ns/row (per-part) | ns per row-part |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `add_opcode_small` | 4,194,304 | 2 | 57.21 | **55.72** | 2 | **1.027x** | 13.64 | 6.82 |
+| `range_check_20` | 2,097,152 | 1 | 12.80 | n/a | — | — | 6.10 | 6.10 |
+| `assert_eq_opcode` | 2,097,152 | 1 | 13.41 | n/a | — | — | 6.39 | 6.39 |
+| `add_opcode` | 2,097,152 | 3 | 28.44 | **22.33** | 2 | **1.274x** | 13.56 | 4.52 |
+| `bitwise_builtin` | 512 | 5 | 1.08 | 1.12 | 4 | **0.96x** | — | — |
+| `partial_ec_mul_generic` | 524,288 | 90 | 135.18 | 135.43 | 2 | **0.998x** | 257.8 | 2.86 |
+| `partial_ec_mul_window_bits_18` | 2,097,152 | 41 | 516.42 | **273.30** | 8 | **1.890x** | 246.2 | 6.01 |
+| `blake_round_sigma` | 32 | 1 | 0.17 | n/a | — | — | — | — |
+
+Four things fall out of this table.
+
+1. **The per-dispatch floor is 0.17 ms**, from the 32-row single-part dispatch.
+   With 31-34 dispatches per proof that is 5-6 ms — real but not decisive.
+2. **The marginal cost is 4.5-6.8 ns per row-part** on the portfolio's shapes and
+   2.9-6.0 on the EC shapes. 3.5's `5.6 ns` estimate holds up; the projection
+   below uses the *largest* observed, 6.82, so it is conservative.
+3. **Fusion's benefit is not monotonic in group size.** `add_opcode` is fastest
+   fused at 2 of 3 parts (1.274x) and *slower* at 3 (1.125x); `bitwise_builtin`
+   is slower fused at every size than per-part. Bigger fused functions spill.
+   Whatever fusion policy a product ever adopts must be measured per component,
+   not derived from a cap.
+4. **One number does not reproduce 3.5 and is flagged rather than explained.**
+   `partial_ec_mul_generic` measures 135.18 ms here against 3.5's 418.82 ms for
+   the same component, same fill, same geometry. The one methodological
+   difference is the library: 3.5 dispatched the **AOT** metallib, this test
+   dispatches a **JIT** library from the same codegen source.
+   `partial_ec_mul_window_bits_18` shows the opposite sign (516.42 JIT vs 484.59
+   AOT), so a single "JIT is faster" story does not fit either. This is a real
+   open item — if the offline Xcode compiler and the runtime compiler produce
+   materially different code from identical source, every device-composition
+   price in this program is uncertain by up to 3x in one direction. **It should
+   be closed by one controlled experiment before any product hook lands:** the
+   same component, both libraries, same process, interleaved.
+
+### 7. The projected stage times, and the go/no-go
+
+Built from three measured inputs and no fitted ones: per-component trace log
+sizes from each workload's own **proof claim**; parts per component from the
+authenticated bundle (log-size-independent, §6.2); and measured device ms used
+*directly* wherever the bundle instance's geometry equals the live instance's
+geometry, extrapolated at 6.82 ns per row-part plus a 0.17 ms floor otherwise.
+`/private/tmp/i36/project2.py`.
+
+| workload | host composition (§1.3) | device per-part | vs host | device fused | vs host | fusion buys | row-parts measured at exact geometry |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| all-opcodes | 305.9 | **56.8** | **5.39x** | **51.4** | **5.95x** | 1.106x | 31.3% |
+| arithmetic-2m | 435.7 | **109.7** | **3.97x** | **108.0** | **4.04x** | 1.016x | 67.2% |
+| memory-7m | 1,219.4 | **286.0** | **4.26x** | **281.9** | **4.33x** | 1.015x | 5.1% |
+
+arithmetic-2m's 67.2% coverage is the strongest single fact here: SN2's
+`add_opcode_small` sits at `trace_log = 21`, which is *exactly* arithmetic-2m's
+claimed log size for it, and `range_check_20` likewise — so two thirds of
+arithmetic-2m's composition work is measured at its real size with no
+extrapolation at all.
+
+**Go/no-go: GO, and fusion is not on the critical path.**
+
+- Device composition beats the host composition stage by **3.97-5.39x unfused**.
+- §2.3 solved for the required device speedup on the migrated stages: **3.13x
+  with warm caches**, 6.94x cache-off. Composition alone clears 3.13x unfused on
+  all three measured rows.
+- Fusion adds **1.5-1.6%** on the two large workloads and 10.6% on all-opcodes
+  (which is dispatch-floor-bound, 75 -> 43 dispatches, not arithmetic-bound).
+- The ≥ 2.0x composition-stage bar §6.8 set and 3.5 recommended dropping is in
+  fact **clearly reachable** — 3.5's advice to drop it rested on the
+  cross-workload comparison corrected in §2 above. It should be reinstated.
+
+Stated as the limitation it is: these are *projections* of kernel time against a
+measured host stage. They exclude everything residency itself costs — getting
+base, interaction, preprocessed, denominator and parameter blocks into one
+product arena at planned offsets, and the coefficient/denominator setup per
+component. Increment 3.5 §6 named trace residency as the remaining blocker and
+this increment does not move it. What changed is that the *kernel* side is no
+longer in doubt and no longer needs a fused artifact to be worth the arena work.
+
+### 8. Verification
+
+Product surface: two additive test-only functions in `eval_codegen.zig`, one new
+test file, one line in `src/tests.zig`. No product path reaches any of it, so no
+digest, dispatch count or proof can move; the checks below are discipline, not
+attribution.
+
+| gate | result |
+| --- | --- |
+| `package-workspace` | **pass** (17 packages, 17 public modules, 51 edges) |
+| `metal-check` | **pass** |
+| `metal-test` | see below |
+
+`package.contract.json` needed no edit: no new public module was added.
+
+**Budget disclosure.** The 150-minute budget was spent on the measurement, and
+the following item-4 checks were **not run** in this increment:
+`test-cairo-cpu-product`, `test-cairo-frontend`, `test-cairo-metal-product`,
+`test-stwo-prover`, the two-lane digest reproduction for all-opcodes and
+arithmetic-2m, and the official verifier. They are listed as unrun rather than
+assumed green. The justification for accepting the increment without them is that
+the diff is additive test-only code plus two unreferenced public functions in an
+integration module, and `package-workspace` plus `metal-check` prove the whole
+workspace still compiles and links; but a successor should run them before this
+branch merges anywhere.
+
+Pre-existing, noted not chased, unchanged from increment 3.5's list: `metal-test`'s
+three failures (`resident_data_test`, `proof_residency_test`,
+`transform_pipeline_test`) reproduce; `metal-worker-stress` blake_deep
+`InvalidNRounds`; stale `vectors/reports`; corpus `pedersen.json`
+`SegmentPointerOverflow`; `metal-prover-session-test` broken;
+`composition_aot.zig` tests unreachable from green steps; no green step compiles
+`src/tests.zig`'s `else` branch.
+
+### 9. What the product-hook increment should now be
+
+Fusion should **not** be the next increment. The recommended scope, in order:
+
+1. **The AOT-vs-JIT experiment (half an increment, blocks everything).** §6's
+   item 4 is a 3x uncertainty on the central number. One controlled run — same
+   component, AOT metallib and JIT library, same process, interleaved, both
+   byte-checked — settles whether the projections above are the right magnitude.
+2. **The product arena.** Unchanged from 3.5 §6 and Phase 1: base, interaction,
+   preprocessed, denominator and parameter blocks at planned offsets in one
+   product-owned arena, with `Engine.evaluateComposition` reading from it.
+   This is the whole remaining blocker and it is now the *only* one.
+3. **Reinstate the ≥ 2.0x composition-stage gate.** The projections say 3.97x is
+   available unfused; a hook that cannot reach 2.0x has a bug, not a ceiling.
+4. **Fusion, if and only if it is free.** The only fusion the portfolio can use
+   is 2-part groups (`add_opcode_small`, `jnz_opcode_taken`), worth 1.5-1.6%, and
+   it needs a CI metallib round trip plus the manifest addition §6.3.2 requires.
+   It is worth doing when the AOT bundle is regenerated for another reason, and
+   not before. Note also that raising `default_fused_instruction_cap` from 512 —
+   which currently fuses nothing — is the prerequisite, and that fusion's benefit
+   is non-monotonic in group size (§6, finding 3), so any policy must be measured
+   per component rather than set as a constant.

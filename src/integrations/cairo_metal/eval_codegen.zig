@@ -58,6 +58,14 @@ pub fn fusedKernelHash(parts: []const FusedPart) !u64 {
     return fusedGroupHash(parts);
 }
 
+/// Names a fused group without applying the `max_fused_instruction_cap`
+/// *policy* ceiling. See `generateFusedKernelUncapped` for why that ceiling is
+/// separable from the group's structural admissibility.
+pub fn fusedKernelNameUncapped(allocator: std.mem.Allocator, parts: []const FusedPart) ![]u8 {
+    try validateUncappedFusionGroup(parts);
+    return std.fmt.allocPrint(allocator, "stwo_zig_eval_fused_{x:0>16}", .{fusedGroupHash(parts)});
+}
+
 pub fn fusionSliceKernelName(
     allocator: std.mem.Allocator,
     parts: []const FusedPart,
@@ -371,11 +379,39 @@ pub fn generateFusedKernel(
     include_preamble: bool,
 ) ![]u8 {
     try validateFusionGroup(parts);
+    return emitFusedKernel(allocator, parts, include_preamble);
+}
+
+/// Emits a fused kernel for a structurally admissible group whose operation
+/// count may exceed `max_fused_instruction_cap`.
+///
+/// That constant is a codegen *policy* ceiling: it entered the tree with the
+/// bounded hybrid fusion policy and has no recorded provenance and no stated
+/// relation to any Metal resource limit. Pricing fusion means finding out where
+/// the Metal compiler and the device themselves stop, and that question cannot
+/// be asked through the capped entry point. Structural admissibility —
+/// contiguous `rc_base`, matching interaction/parameter/domain shape — is still
+/// enforced, because it is what makes the emission correct rather than merely
+/// large.
+pub fn generateFusedKernelUncapped(
+    allocator: std.mem.Allocator,
+    parts: []const FusedPart,
+    include_preamble: bool,
+) ![]u8 {
+    try validateUncappedFusionGroup(parts);
+    return emitFusedKernel(allocator, parts, include_preamble);
+}
+
+fn emitFusedKernel(
+    allocator: std.mem.Allocator,
+    parts: []const FusedPart,
+    include_preamble: bool,
+) ![]u8 {
     var source = std.ArrayList(u8).empty;
     errdefer source.deinit(allocator);
     const writer = source.writer(allocator);
     if (include_preamble) try writer.writeAll(preamble);
-    const name = try fusedKernelName(allocator, parts);
+    const name = try fusedKernelNameUncapped(allocator, parts);
     defer allocator.free(name);
     try writer.print(
         \\kernel void {s}(
@@ -476,6 +512,11 @@ fn MetalProgramEmitter(comptime Writer: type) type {
 
 fn validateFusionGroup(parts: []const FusedPart) !void {
     return shared.validateFusionGroup(parts, max_fused_instruction_cap);
+}
+
+fn validateUncappedFusionGroup(parts: []const FusedPart) !void {
+    if (parts.len < 2) return error.InvalidFusionGroup;
+    return shared.validatePartSequence(parts);
 }
 
 fn validatePartSequence(parts: []const FusedPart) !void {

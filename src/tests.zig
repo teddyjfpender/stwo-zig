@@ -12,6 +12,7 @@ test {
         // is the one step that both owns `stwo_cairo_metal_integration` and
         // filters on the `metal:` prefix this test's name carries.
         _ = @import("tests/metal/composition_binding_test.zig");
+        _ = @import("tests/metal/composition_fusion_test.zig");
     } else if (test_options.riscv_only) {
         if (test_options.riscv_exhaustive) {
             _ = @import("tests/riscv/trace_test.zig");
