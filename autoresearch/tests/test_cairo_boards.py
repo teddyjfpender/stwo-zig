@@ -12,6 +12,7 @@ import stat
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "cli"))
@@ -53,6 +54,54 @@ print(json.dumps(REPORT))
 '''
 
 
+FAKE_ORACLE = '''#!/usr/bin/env python3
+import hashlib
+import json
+import sys
+
+IDENTITY = json.loads(IDENTITY_JSON)
+IDENTITY_OVERRIDES = json.loads(IDENTITY_OVERRIDES_JSON)
+VERDICT_OVERRIDES = json.loads(VERDICT_OVERRIDES_JSON)
+REJECT = REJECT_FLAG
+
+
+def digest(path):
+    with open(path, "rb") as handle:
+        return hashlib.sha256(handle.read()).hexdigest()
+
+
+args = sys.argv[1:]
+if args and args[0] == "identity":
+    IDENTITY["executable_sha256"] = digest(sys.argv[0])
+    IDENTITY.update(IDENTITY_OVERRIDES)
+    print(json.dumps(IDENTITY))
+    sys.exit(0)
+if not args or args[0] != "verify":
+    sys.exit(2)
+proof = args[args.index("--proof") + 1]
+channel = args[args.index("--channel") + 1]
+proof_format = args[args.index("--proof-format") + 1]
+result = args[args.index("--result") + 1]
+verdict = {
+    "schema_version": 1,
+    "adapter_version": "stwo-cairo-official-verifier/1",
+    "stwo_cairo_revision": STWO_CAIRO_REV,
+    "stwo_revision": STWO_REV,
+    "proof_sha256": digest(proof),
+    "channel": channel,
+    "proof_format": proof_format,
+    "verified": not REJECT,
+    "wall_time_ns": 1234,
+    "error": "proof rejected by verify_cairo" if REJECT else None,
+}
+verdict.update(VERDICT_OVERRIDES)
+# The real adapter publishes immutably and refuses an existing result path.
+with open(result, "x") as handle:
+    json.dump(verdict, handle)
+sys.exit(3 if REJECT else 0)
+'''
+
+
 def load_report() -> dict:
     return json.loads((FIXTURES / "cairo_product_report_v2.json").read_text())
 
@@ -77,7 +126,10 @@ def cairo_group_spec(**overrides) -> dict:
             "stwo_repository": "https://github.com/starkware-libs/stwo",
             "stwo_commit": PINNED_STWO,
             "adapter": "tools/stwo-cairo-official-verifier-rs",
-            "build_command": "cargo build --locked --release",
+            "build_command": (
+                "cargo build --locked --release --manifest-path "
+                "tools/stwo-cairo-official-verifier-rs/Cargo.toml"
+            ),
             "final_validator": True,
         },
         "gates_policy": {
@@ -701,6 +753,438 @@ class CairoBenchOnceTest(unittest.TestCase):
             runner.bench_once(
                 self.root, self.manifest, self.workload, 1, 1, self.out_dir, "a1",
             )
+
+
+class CairoOfficialVerifierOracleTest(unittest.TestCase):
+    """The judged path independently verifies the scored proof, or it fails.
+
+    TRACKS §8 wave 1: the official-verifier oracle the Cairo build gates run is
+    wired into the harness. Every negative below must fail closed — there is no
+    configuration in which a judged Cairo run silently skips its final
+    validator.
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        self.out_dir = self.root / "runs"
+        self.raw = raw_manifest()
+        manifest_mod._validate(self.raw)
+        self.manifest = Manifest(root=self.root, raw=self.raw)
+        self.group = self.manifest.group("cairo_cpu")
+        self.workload = self.manifest.workloads(board="cairo_cpu")[0]
+        self._install_product()
+        self._install_oracle()
+        self._measure()
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    # -- fixtures ---------------------------------------------------------
+
+    def _install_product(self, payload: bytes = b"proof-bytes"):
+        binary = self.root / "bin" / "stwo-cairo-cpu"
+        binary.parent.mkdir(parents=True, exist_ok=True)
+        binary.write_text(
+            FAKE_PRODUCT
+            .replace("REPORT_JSON", repr(json.dumps(load_report())))
+            .replace("PROFILE_JSON", repr(json.dumps(load_profile())))
+            .replace("PROOF_PAYLOAD", repr(payload))
+            .replace("MUTATE", "pass")
+        )
+        binary.chmod(binary.stat().st_mode | stat.S_IEXEC)
+
+    def _adapter_dir(self) -> Path:
+        return self.root / "tools" / "stwo-cairo-official-verifier-rs"
+
+    def _install_oracle(self, *, identity_overrides=None, verdict_overrides=None,
+                        reject=False, install=True) -> Path:
+        adapter = self._adapter_dir()
+        (adapter / "target" / "release").mkdir(parents=True, exist_ok=True)
+        lock = adapter / "Cargo.lock"
+        if not lock.exists():
+            lock.write_bytes(b"# pinned official verifier lockfile fixture\n")
+        binary = adapter / "target" / "release" / "stwo-cairo-official-verifier"
+        if not install:
+            binary.unlink(missing_ok=True)
+            return binary
+        identity = {
+            "schema_version": 1,
+            "adapter_version": "stwo-cairo-official-verifier/1",
+            "stwo_cairo": {
+                "repository": "https://github.com/starkware-libs/stwo-cairo",
+                "revision": PINNED_STWO_CAIRO,
+            },
+            "stwo": {
+                "repository": "https://github.com/starkware-libs/stwo",
+                "revision": PINNED_STWO,
+            },
+            "cargo_lock_sha256": hashlib.sha256(lock.read_bytes()).hexdigest(),
+            "executable_sha256": None,
+            "channels": ["blake2s", "blake2s_m31", "poseidon252"],
+            "proof_formats": ["json", "binary", "extended_binary"],
+            "max_proof_bytes": 2 << 30,
+            "prover_input_schema": "stwo_cairo_adapter::ProverInput@1.2.2",
+            "claim_summary_schema": "stwo_cairo_official_claim_summary_v1",
+            "max_input_bytes": 1 << 30,
+        }
+        source = (
+            FAKE_ORACLE
+            .replace("IDENTITY_JSON", repr(json.dumps(identity)))
+            .replace("IDENTITY_OVERRIDES_JSON",
+                     repr(json.dumps(identity_overrides or {})))
+            .replace("VERDICT_OVERRIDES_JSON",
+                     repr(json.dumps(verdict_overrides or {})))
+            .replace("REJECT_FLAG", repr(bool(reject)))
+            .replace("STWO_CAIRO_REV", repr(PINNED_STWO_CAIRO))
+            .replace("STWO_REV", repr(PINNED_STWO))
+        )
+        binary.write_text(source)
+        binary.chmod(binary.stat().st_mode | stat.S_IEXEC)
+        return binary
+
+    def _measure(self, tag: str = "b1"):
+        """Produce a retained candidate-arm envelope + proof, as a round would."""
+        return runner.bench_once(
+            self.root, self.manifest, self.workload, 1, 1, self.out_dir, tag,
+        )
+
+    def _check(self):
+        return runner.rust_oracle_check(
+            self.root, self.manifest, self.workload, self.out_dir,
+        )
+
+    def _reload(self):
+        manifest_mod._validate(self.raw)
+        self.manifest = Manifest(root=self.root, raw=self.raw)
+        self.group = self.manifest.group("cairo_cpu")
+
+    def _oracle_block(self) -> dict:
+        return self.raw["workload_registry"]["groups"]["cairo_cpu"][
+            "correctness_oracle"]
+
+    # -- retained artifact selection ---------------------------------------
+
+    def test_latest_candidate_artifact_is_the_last_scored_sample(self):
+        self._measure(tag="b2")
+        envelope, proof = runner._latest_cairo_candidate_artifact(
+            self.out_dir, self.workload,
+        )
+        self.assertEqual(envelope.name, "cairo_all_opcodes.b2.json")
+        self.assertEqual(proof.name, "cairo_all_opcodes.b2.i1.proof")
+
+    def test_no_retained_candidate_artifact_fails_closed(self):
+        for path in self.out_dir.iterdir():
+            path.unlink()
+        with self.assertRaisesRegex(
+            runner.RunError, "invalid retained Cairo candidate proof",
+        ):
+            self._check()
+
+    # -- happy path --------------------------------------------------------
+
+    def test_oracle_dispatch_verifies_the_scored_proof(self):
+        receipt = self._check()
+        self.assertIs(receipt["verified"], True)
+        self.assertEqual(receipt["oracle"], "official-stwo-cairo-verifier")
+        self.assertEqual(receipt["oracle_commit"], PINNED_STWO_CAIRO)
+        self.assertEqual(receipt["oracle_stwo_commit"], PINNED_STWO)
+        self.assertEqual(receipt["channel"], "blake2s")
+        self.assertEqual(receipt["proof_format"], "json")
+        self.assertEqual(receipt["workload"], "cairo_all_opcodes")
+        expected = hashlib.sha256(b"proof-bytes").hexdigest()
+        self.assertEqual(receipt["proof_sha256"], expected)
+        self.assertEqual(receipt["proof_bytes"], len(b"proof-bytes"))
+        lock = (self._adapter_dir() / "Cargo.lock").read_bytes()
+        self.assertEqual(
+            receipt["oracle_cargo_lock_sha256"],
+            hashlib.sha256(lock).hexdigest(),
+        )
+        verdict = json.loads(Path(receipt["verdict_path"]).read_text())
+        self.assertIs(verdict["verified"], True)
+        self.assertEqual(verdict["proof_sha256"], expected)
+
+    def test_verdict_path_is_republished_on_a_second_judged_pass(self):
+        first = self._check()
+        second = self._check()
+        self.assertEqual(first["verdict_path"], second["verdict_path"])
+        self.assertIs(second["verified"], True)
+
+    # -- fail-closed: the adapter itself -----------------------------------
+
+    def test_absent_adapter_that_cannot_build_fails_closed(self):
+        self._install_oracle(install=False)
+        self._oracle_block()["build_command"] = (
+            "true --locked --release --manifest-path "
+            "tools/stwo-cairo-official-verifier-rs/Cargo.toml"
+        )
+        self._reload()
+        with self.assertRaisesRegex(runner.RunError, "was not produced"):
+            self._check()
+
+    def test_failing_adapter_build_fails_closed(self):
+        self._install_oracle(install=False)
+        self._oracle_block()["build_command"] = (
+            "false --locked --release --manifest-path "
+            "tools/stwo-cairo-official-verifier-rs/Cargo.toml"
+        )
+        self._reload()
+        with self.assertRaisesRegex(runner.RunError, "failed to build"):
+            self._check()
+
+    def test_missing_lockfile_fails_closed(self):
+        (self._adapter_dir() / "Cargo.lock").unlink()
+        with self.assertRaisesRegex(runner.RunError, "lockfile is missing"):
+            self._check()
+
+    def test_unlocked_or_debug_build_command_is_refused(self):
+        for command in (
+            "cargo build --release --manifest-path "
+            "tools/stwo-cairo-official-verifier-rs/Cargo.toml",
+            "cargo build --locked --manifest-path "
+            "tools/stwo-cairo-official-verifier-rs/Cargo.toml",
+            "cargo build --locked --release --manifest-path other/Cargo.toml",
+        ):
+            self._oracle_block()["build_command"] = command
+            self._reload()
+            with self.assertRaisesRegex(runner.RunError, "locked release build"):
+                self._check()
+
+    def test_unpinned_oracle_block_is_refused(self):
+        for mutation in (
+            {"authority": "pinned-rust-stwo"},
+            {"adapter": "tools/stwo-interop-rs"},
+            {"final_validator": False},
+            {"commit": "82f21252"},
+            {"stwo_commit": "7b211edd"},
+        ):
+            raw = raw_manifest()
+            raw["workload_registry"]["groups"]["cairo_cpu"][
+                "correctness_oracle"].update(mutation)
+            group = Manifest(self.root, raw).group("cairo_cpu")
+            with self.assertRaisesRegex(runner.RunError, "final validator"):
+                runner._cairo_official_verifier_check(
+                    self.root, group, self.workload, self.out_dir,
+                )
+
+    # -- fail-closed: adapter identity -------------------------------------
+
+    def test_identity_must_bind_the_committed_lockfile(self):
+        self._install_oracle(identity_overrides={"cargo_lock_sha256": "a" * 64})
+        with self.assertRaisesRegex(runner.RunError, "committed lockfile"):
+            self._check()
+
+    def test_identity_must_bind_the_executed_binary(self):
+        self._install_oracle(identity_overrides={"executable_sha256": "b" * 64})
+        with self.assertRaisesRegex(runner.RunError, "bind the executed binary"):
+            self._check()
+
+    def test_identity_must_carry_the_manifest_pins(self):
+        self._install_oracle(identity_overrides={
+            "stwo_cairo": {
+                "repository": "https://github.com/starkware-libs/stwo-cairo",
+                "revision": "c" * 40,
+            },
+        })
+        with self.assertRaisesRegex(runner.RunError, "manifest-pinned commit"):
+            self._check()
+        self._install_oracle(identity_overrides={
+            "stwo": {
+                "repository": "https://github.com/example/fork",
+                "revision": PINNED_STWO,
+            },
+        })
+        with self.assertRaisesRegex(runner.RunError, "manifest-pinned repository"):
+            self._check()
+
+    def test_identity_schema_and_adapter_version_are_pinned(self):
+        self._install_oracle(identity_overrides={"schema_version": 2})
+        with self.assertRaisesRegex(runner.RunError, "identity schema is unsupported"):
+            self._check()
+        self._install_oracle(
+            identity_overrides={"adapter_version": "stwo-cairo-official-verifier/2"},
+        )
+        with self.assertRaisesRegex(runner.RunError, "adapter version is unsupported"):
+            self._check()
+
+    def test_identity_without_the_scored_channel_is_refused(self):
+        self._install_oracle(identity_overrides={"channels": ["poseidon252"]})
+        with self.assertRaisesRegex(runner.RunError, "blake2s channel"):
+            self._check()
+
+    # -- fail-closed: the proof bytes --------------------------------------
+
+    def test_tampered_retained_proof_is_refused(self):
+        _envelope, proof = runner._latest_cairo_candidate_artifact(
+            self.out_dir, self.workload,
+        )
+        proof.write_bytes(b"tampered!!!")
+        with self.assertRaisesRegex(runner.RunError, "differ from the scored proof"):
+            self._check()
+
+    def test_truncated_retained_proof_is_refused(self):
+        _envelope, proof = runner._latest_cairo_candidate_artifact(
+            self.out_dir, self.workload,
+        )
+        proof.write_bytes(b"short")
+        with self.assertRaisesRegex(runner.RunError, "length differs"):
+            self._check()
+
+    def test_cairo_serde_transport_has_no_rust_verifier(self):
+        envelope_path, _proof = runner._latest_cairo_candidate_artifact(
+            self.out_dir, self.workload,
+        )
+        envelope = json.loads(envelope_path.read_text())
+        envelope["mechanism"]["proof_format"] = "cairo-serde"
+        envelope_path.write_text(json.dumps(envelope))
+        with self.assertRaisesRegex(runner.RunError, "targets the Cairo"):
+            self._check()
+
+    def test_foreign_envelope_is_refused(self):
+        envelope_path, _proof = runner._latest_cairo_candidate_artifact(
+            self.out_dir, self.workload,
+        )
+        envelope = json.loads(envelope_path.read_text())
+        envelope["schema"] = "riscv_proof_v2"
+        envelope_path.write_text(json.dumps(envelope))
+        with self.assertRaisesRegex(runner.RunError, "not a cairo_proof_v1 envelope"):
+            self._check()
+
+    # -- fail-closed: the verdict ------------------------------------------
+
+    def test_rejected_proof_fails_the_run(self):
+        self._install_oracle(reject=True)
+        with self.assertRaises(runner.RunError):
+            self._check()
+
+    def test_verdict_claiming_success_for_other_bytes_is_refused(self):
+        self._install_oracle(verdict_overrides={"proof_sha256": "d" * 64})
+        with self.assertRaisesRegex(runner.RunError, "verdict proof_sha256 differs"):
+            self._check()
+
+    def test_verdict_from_an_unpinned_revision_is_refused(self):
+        self._install_oracle(verdict_overrides={"stwo_cairo_revision": "e" * 40})
+        with self.assertRaisesRegex(
+            runner.RunError, "verdict stwo_cairo_revision differs",
+        ):
+            self._check()
+
+    def test_verdict_with_an_error_is_refused(self):
+        self._install_oracle(verdict_overrides={"error": "soft failure"})
+        with self.assertRaisesRegex(runner.RunError, "verdict error differs"):
+            self._check()
+
+    def test_verdict_field_set_is_exact(self):
+        self._install_oracle(verdict_overrides={"extra": 1})
+        with self.assertRaisesRegex(runner.RunError, "invalid official Cairo verdict"):
+            self._check()
+
+
+class CairoMechanismDriftTest(unittest.TestCase):
+    """A/B pairs with diverging Cairo mechanisms fail closed, like RISC-V."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        self.out_dir = self.root / "runs"
+        raw = raw_manifest()
+        manifest_mod._validate(raw)
+        self.manifest = Manifest(root=self.root, raw=raw)
+        self.workload = self.manifest.workloads(board="cairo_cpu")[0]
+        self.policy = self.manifest.gates_for_workload("cairo_cpu", "small")
+        self.out_dir.mkdir(parents=True, exist_ok=True)
+        self.a_report = self.out_dir / "a.json"
+        self.b_report = self.out_dir / "b.json"
+        self.a_report.write_text('{"arm": "a"}')
+        self.b_report.write_text('{"arm": "b"}')
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    @staticmethod
+    def _mechanism(**overrides) -> dict:
+        stable = {
+            "profile": "official-live-cairo-canonical-small",
+            "input_sha256": "1" * 64,
+            "proof_format": "json",
+            "proof_bytes": 4096,
+            "proof_sha256": "2" * 64,
+            "stwo_cairo_revision": PINNED_STWO_CAIRO,
+            "stwo_revision": PINNED_STWO,
+        }
+        stable.update(overrides)
+        return stable
+
+    def _arms(self, a_mechanism, b_mechanism):
+        a = runner.ArmResult(
+            1.0, 1, True, None, str(self.a_report), proof_digest="3" * 64,
+            proof_bytes=4096, request_ms=2.0, mechanism=a_mechanism,
+        )
+        b = runner.ArmResult(
+            1.0, 1, True, None, str(self.b_report), proof_digest="3" * 64,
+            proof_bytes=4096, request_ms=2.0, mechanism=b_mechanism,
+        )
+        return a, b
+
+    def _run_pair(self, a, b):
+        with mock.patch.object(runner, "bench_once", side_effect=[a, b] * 8):
+            return runner.paired_rounds(
+                self.root, self.root, self.manifest, self.workload,
+                self.policy, self.out_dir,
+            )
+
+    def test_cairo_is_bound_to_a_stable_mechanism_contract(self):
+        label, fields = runner.STABLE_MECHANISM_FIELDS_BY_SCHEMA["cairo_proof_v1"]
+        self.assertEqual(label, "Cairo")
+        self.assertEqual(fields, manifest_mod.CAIRO_STABLE_MECHANISM_FIELDS)
+
+    def test_matching_mechanisms_verify(self):
+        a, b = self._arms(self._mechanism(), self._mechanism())
+        score = self._run_pair(a, b)
+        self.assertIs(score.mechanism_verified, True)
+
+    def test_diverging_statement_identity_fails_closed(self):
+        a, b = self._arms(
+            self._mechanism(), self._mechanism(input_sha256="9" * 64),
+        )
+        with self.assertRaisesRegex(
+            runner.RunError, "semantic mechanism telemetry differs",
+        ):
+            self._run_pair(a, b)
+
+    def test_diverging_proof_identity_fails_closed(self):
+        a, b = self._arms(
+            self._mechanism(), self._mechanism(proof_sha256="9" * 64),
+        )
+        with self.assertRaisesRegex(
+            runner.RunError, "semantic mechanism telemetry differs",
+        ):
+            self._run_pair(a, b)
+
+    def test_diverging_upstream_revision_fails_closed(self):
+        a, b = self._arms(
+            self._mechanism(), self._mechanism(stwo_revision="a" * 40),
+        )
+        with self.assertRaisesRegex(
+            runner.RunError, "semantic mechanism telemetry differs",
+        ):
+            self._run_pair(a, b)
+
+    def test_absent_mechanism_fails_closed(self):
+        a, b = self._arms(None, None)
+        with self.assertRaisesRegex(
+            runner.RunError, "Cairo mechanism telemetry is absent",
+        ):
+            self._run_pair(a, b)
+
+    def test_incomplete_mechanism_fails_closed(self):
+        partial = self._mechanism()
+        partial.pop("proof_sha256")
+        a, b = self._arms(partial, dict(partial))
+        with self.assertRaisesRegex(
+            runner.RunError, "omits stable field\\(s\\): proof_sha256",
+        ):
+            self._run_pair(a, b)
 
 
 if __name__ == "__main__":

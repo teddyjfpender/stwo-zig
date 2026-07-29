@@ -284,6 +284,95 @@ Those revisions are the ones declared by
 scalar, SIMD, Metal, trace-oracle, or Zig-verifier agreement never overrides an
 official-verifier rejection.
 
+### How the judged path runs it
+
+`runner.rust_oracle_check` dispatches `cairo_proof_v1` to
+`_cairo_official_verifier_check`, which is the same authority the Cairo build
+gates run (`build_support/products/cairo_cpu/oracle_gate.zig`) — the harness
+just runs the release profile instead of the gate's debug one.
+
+It verifies the **retained candidate proof**, not a freshly minted one:
+`_latest_cairo_candidate_artifact` picks the last measured sample of the last
+candidate round (`<workload>.b<round>.i<index>.proof`) and requires its bytes to
+hash to the `proof_sha256` and match the `proof_bytes` recorded in that round's
+`cairo_proof_v1` envelope. The bytes the official verifier accepts are exactly
+the bytes that were scored.
+
+```sh
+# 1. only if the release binary is absent — the manifest owns the flags, and
+#    the harness refuses a build_command that is not a locked release build of
+#    the pinned adapter manifest.
+cargo build --locked --release \
+  --manifest-path tools/stwo-cairo-official-verifier-rs/Cargo.toml
+
+# 2. bind the built adapter to the pins and the committed lockfile
+tools/stwo-cairo-official-verifier-rs/target/release/stwo-cairo-official-verifier identity
+
+# 3. verify the retained scored proof
+tools/stwo-cairo-official-verifier-rs/target/release/stwo-cairo-official-verifier verify \
+  --proof   <out_dir>/<workload>.b<round>.i<index>.proof \
+  --channel  blake2s \
+  --proof-format json \
+  --result  <out_dir>/<workload>.cairo-oracle-verdict.json
+```
+
+The `identity` response must be `schema_version: 1`, `adapter_version:
+stwo-cairo-official-verifier/1`, carry `stwo_cairo` / `stwo` repository and
+revision equal to the manifest pins, a `cargo_lock_sha256` equal to the
+committed `Cargo.lock` (proving the adapter was built from the pinned
+dependency graph), an `executable_sha256` equal to the binary the harness just
+ran, and the `blake2s` channel among its supported channels.
+
+The verdict is validated field-for-field against an exact key set:
+`verified: true`, `error: null`, `schema_version: 1`, both revisions equal to
+the manifest pins, `channel` and `proof_format` equal to what was requested, and
+`proof_sha256` equal to the scored proof digest. The adapter binary is re-hashed
+afterwards and the retained proof is re-read, so neither can change during
+validation.
+
+**Judge-host provisioning.** The adapter package pins no toolchain of its own,
+so the manifest's `build_command` runs under the host's *default* toolchain and
+that default must be able to compile the pinned upstream. Measured on
+2026-07-29: `stable` fails (`stwo-cairo-common` uses the unstable `lazy_get`
+feature) and `nightly-2025-07-14` — the toolchain the Native/CUDA oracle pins —
+fails on a `ruint` const-fn that is too new for it; `nightly-2026-01-29` builds
+it. The judged path treats a build failure as a hard failure with the command in
+the message, never as a skip. The same constraint already applies to the
+`test-cairo-cpu-oracle` build gate, which invokes plain `cargo build --locked`.
+
+Adapter exit codes are load-bearing: `0` accepted, `3` rejected, `2` adapter or
+invocation failure. `_run` raises on any non-zero status, so a rejection and an
+adapter failure both fail the judged run. **There is no skip**: an absent
+adapter, a build that produces no binary, a missing lockfile, an unpinned oracle
+block, or an unverifiable transport all raise instead of returning a pass.
+
+Transport mapping: `json` → `json`, `binary` → `binary`. The `cairo-serde` proof
+format has no Rust-verifier transport — the felt array targets the Cairo
+verifier and this adapter deliberately rejects it — so a `cairo-serde` workload
+fails closed rather than going unverified.
+
+### Cross-arm mechanism drift
+
+`paired_rounds` compares `manifest.CAIRO_STABLE_MECHANISM_FIELDS` between the A
+and B arms of every round and against the first round's values:
+
+| field | what it pins |
+|---|---|
+| `input_sha256` | the statement — both arms proved the same prover input |
+| `proof_sha256`, `proof_bytes`, `proof_format` | the proof identity and transport |
+| `stwo_cairo_revision`, `stwo_revision` | both arms are the same pinned official lane |
+| `profile` | the same proving-profile manifest and preprocessed variant |
+
+Backend identity does not need a separate stable field: `_parse_cairo_report`
+already requires `report.backend == product.backend` and `product.name ==
+basename(group.binary)` per sample, so an arm cannot silently be a different
+product. Counters that a legitimate optimization may move — `metal_dispatches`
+— are reported but deliberately not stable-compared; `cpu_fallbacks` is pinned
+to zero at parse time.
+
+An absent mechanism, a mechanism missing any stable field, an A/B divergence, or
+a between-round change all raise `RunError`, exactly as on the RISC-V track.
+
 ## Promotion
 
 Neither Cairo board is promotion eligible. `cairo_cpu` runs and records
