@@ -81,6 +81,110 @@ _NATIVE_RESOURCE_KEYS = {
 }
 
 
+# --- Cairo (cairo_proof_v1) ------------------------------------------------
+#
+# `cairo_proof_v1` is the harness envelope, not the product's own report
+# version: the focused Cairo CLIs emit a `schema_version: 2` proving report on
+# stdout and an optional `schema_version: 1` stage profile. See
+# autoresearch/schema/cairo-proof-v1.md.
+CAIRO_PRODUCT_REPORT_SCHEMA_VERSION = 2
+CAIRO_STAGE_PROFILE_SCHEMA_VERSION = 1
+CAIRO_PROOF_FORMATS = frozenset({"json", "binary", "cairo-serde"})
+CAIRO_IMPLEMENTATION_REPOSITORY = "https://github.com/teddyjfpender/stwo-zig"
+CAIRO_COMMANDS = frozenset({"prove", "run-and-prove"})
+
+_CAIRO_REPORT_KEYS = {
+    "schema_version", "product", "frontend", "backend", "backend_evidence",
+    "preprocessed_cache", "profile", "execution", "input", "proof", "timing",
+    "verification",
+}
+_CAIRO_PRODUCT_KEYS = {
+    "schema_version", "name", "frontend", "backend", "role",
+    "protocol_features", "protocol_manifest_sha256", "identity_sha256",
+    "source", "zig_version", "target", "optimize", "runtime", "upstream",
+}
+_CAIRO_SOURCE_KEYS = {
+    "repository", "commit", "tree", "dirty", "dirty_content_sha256",
+}
+_CAIRO_TARGET_KEYS = {"arch", "os", "abi", "cpu_model", "cpu_features_sha256"}
+_CAIRO_RUNTIME_KEYS = {"manifest", "sdk", "aot"}
+_CAIRO_UPSTREAM_KEYS = {
+    "stwo_cairo_revision", "stwo_revision", "cairo_language_version",
+    "cairo_vm_version",
+}
+_CAIRO_BACKEND_EVIDENCE_KEYS = {
+    "execution", "classification", "metal_dispatches", "cpu_fallbacks",
+    "runtime_initializations", "runtime_shutdowns",
+    "commit_source_arena_aliases", "commit_source_arena_memcpys",
+    "commit_source_uploads",
+}
+_CAIRO_PREPROCESSED_CACHE_KEYS = {
+    "enabled", "budget_bytes", "hits", "misses", "stores", "evictions",
+    "loaded_bytes", "stored_bytes", "evicted_bytes", "directory_bytes",
+    "eviction_ns",
+}
+_CAIRO_EXECUTION_KEYS = {
+    "program_type", "program_sha256", "arguments_sha256", "adapter_sha256",
+    "wall_ns",
+}
+
+# TRACKS §3.2 named cutpoints -> the stage-profile ROOT ids that compose them.
+# `execute` and `verify` come from the report's own timing block; `serialize`
+# is a documented instrumentation gap (the CLI writes and hashes the proof
+# outside the recorder). Unknown roots fail closed so a product change forces a
+# harness update instead of silently dropping proving time.
+CAIRO_PHASE_STAGES: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
+    "witness": (
+        (
+            "preprocessed_plan",
+            "preprocessed_table_build",
+            "base_trace_build",
+            "air_template_instantiation",
+        ),
+        (),
+    ),
+    "commit": (
+        ("preprocessed_materialize_and_commit", "main_trace_commit"),
+        (),
+    ),
+    "interaction": (
+        ("interaction_trace_build", "interaction_trace_commit"),
+        (),
+    ),
+    "composition": (
+        (
+            "draw_random_coeff",
+            "composition_trace_extract",
+            "composition_evaluation",
+            "composition_interpolate_and_split",
+            "composition_commit",
+        ),
+        (
+            # Metal-lane device-composition admission markers.
+            "composition_device_admission",
+            "composition_device_declined",
+            "composition_device_components",
+            "composition_device_host_components",
+            "composition_device_fallbacks",
+        ),
+    ),
+    "fri": (
+        (
+            "oods_point_and_mask_points",
+            "sampled_value_evaluation",
+            "sampled_value_channel_mix",
+            "fri_quotient_build_and_commit",
+            "proof_of_work",
+            "fri_decommit",
+            "trace_decommit",
+            "constraint_check_and_assembly",
+        ),
+        (),
+    ),
+}
+CAIRO_UNINSTRUMENTED_PHASES = ("serialize",)
+
+
 def _workload_resource_profile(workload: Workload) -> str:
     tokens = shlex.split(workload.args)
     positions = [index for index, token in enumerate(tokens) if token == "--resource-profile"]
@@ -441,6 +545,25 @@ def bench_once(
             f"build it first ({group.build_step}); refusing to fabricate measurements"
         )
     out_dir.mkdir(parents=True, exist_ok=True)
+    if group.report_schema == "cairo_proof_v1":
+        # The Cairo CLIs prove one statement per process, so the harness owns
+        # the warmup/sample loop and reads a cold-process boundary per sample.
+        cairo_timeout = (
+            timeout_seconds
+            if timeout_seconds is not None
+            else manifest.workload_class(workload.workload_class).command_timeout_seconds
+        )
+        if cairo_timeout <= 0:
+            raise RunError(f"{workload.workload_id}: no command time budget remains")
+        try:
+            return _bench_cairo(
+                arm_root, group, workload, warmups, samples, out_dir,
+                tag, float(cairo_timeout), deadline_monotonic,
+            )
+        except (OSError, KeyError, TypeError, ValueError) as exc:
+            raise RunError(
+                f"{workload.workload_id}: malformed {group.report_schema} report: {exc}"
+            ) from exc
     proof_path = None
     product_report_path = None
     if group.report_schema == "riscv_proof_v2":
@@ -1031,6 +1154,481 @@ def _parse_riscv_resources(
         "instructions": delta["instructions"],
         "cycles": delta["cycles"],
     }
+
+
+def _exact_object(value: object, keys: set[str], label: str) -> dict:
+    if not isinstance(value, dict) or set(value) != keys:
+        missing = sorted(keys - set(value)) if isinstance(value, dict) else sorted(keys)
+        unknown = sorted(set(value) - keys) if isinstance(value, dict) else []
+        raise ValueError(
+            f"{label} fields differ: missing={missing} unknown={unknown}"
+        )
+    return value
+
+
+def _nonempty_text(value: object, field_name: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{field_name} must be a non-empty string")
+    return value
+
+
+def _cairo_command(workload: Workload) -> tuple[str, str, bool]:
+    """(command, requested proof format, verification requested) from args."""
+    tokens = shlex.split(workload.args)
+    if not tokens or tokens[0] not in CAIRO_COMMANDS:
+        raise ValueError(
+            "Cairo workload args must start with prove or run-and-prove"
+        )
+    proof_format = "json"
+    positions = [i for i, token in enumerate(tokens) if token == "--proof-format"]
+    if positions:
+        if len(positions) != 1 or positions[0] + 1 >= len(tokens):
+            raise ValueError("Cairo workload has a malformed --proof-format")
+        proof_format = tokens[positions[0] + 1]
+    if proof_format not in CAIRO_PROOF_FORMATS:
+        raise ValueError(f"unsupported Cairo proof format {proof_format!r}")
+    for reserved in ("--proof", "--stage-profile-out", "--report-out"):
+        if reserved in tokens:
+            raise ValueError(
+                f"Cairo workload args must not carry {reserved}; the runner owns "
+                "the output paths"
+            )
+    return tokens[0], proof_format, "--verify" in tokens
+
+
+def _parse_cairo_report(
+    report: dict,
+    group: WorkloadGroup,
+    workload: Workload,
+    proof_path: Path,
+) -> dict:
+    """Fail-closed validation of ONE Cairo product proving report.
+
+    Everything the report claims is either checked against the manifest (the
+    pinned official oracle revisions, the declared binary, the requested proof
+    format) or against the retained artifact on disk. Nothing is inferred and
+    nothing missing is defaulted.
+    """
+    command, requested_format, verify_requested = _cairo_command(workload)
+    if not verify_requested:
+        raise ValueError(
+            "a scored Cairo workload must request --verify; unverified proofs "
+            "never enter a boundary measurement"
+        )
+    _exact_object(report, _CAIRO_REPORT_KEYS, "report")
+    actual = report["schema_version"]
+    if type(actual) is not int or actual != CAIRO_PRODUCT_REPORT_SCHEMA_VERSION:
+        raise RunError(
+            f"{workload.workload_id}: group {group.group_id} expected "
+            f"{group.report_schema} (product schema_version="
+            f"{CAIRO_PRODUCT_REPORT_SCHEMA_VERSION}), got schema_version={actual!r}"
+        )
+    if report["frontend"] != "cairo":
+        raise ValueError("report.frontend must equal 'cairo'")
+    backend = _nonempty_text(report["backend"], "report.backend")
+
+    product = _exact_object(report["product"], _CAIRO_PRODUCT_KEYS, "report.product")
+    if product["schema_version"] != CAIRO_PRODUCT_REPORT_SCHEMA_VERSION:
+        raise ValueError("report.product.schema_version is not the pinned version")
+    expected_name = Path(group.binary).name
+    if product["name"] != expected_name:
+        raise ValueError(
+            f"report.product.name {product['name']!r} is not the group's declared "
+            f"binary {expected_name!r}"
+        )
+    if product["frontend"] != "cairo" or product["backend"] != backend:
+        raise ValueError("report.product frontend/backend disagree with the report")
+    if product["role"] != "cli":
+        raise ValueError("report.product.role must equal 'cli'")
+    if product["optimize"] != "ReleaseFast":
+        raise ValueError("a measured Cairo product must be built ReleaseFast")
+    _nonempty_text(product["protocol_features"], "report.product.protocol_features")
+    _nonempty_text(product["zig_version"], "report.product.zig_version")
+    protocol_manifest_sha256 = _sha256_hex(
+        product["protocol_manifest_sha256"], "report.product.protocol_manifest_sha256",
+    )
+    identity_sha256 = _sha256_hex(
+        product["identity_sha256"], "report.product.identity_sha256",
+    )
+    source = _exact_object(
+        product["source"], _CAIRO_SOURCE_KEYS, "report.product.source",
+    )
+    if source["repository"] != CAIRO_IMPLEMENTATION_REPOSITORY:
+        raise ValueError("report.product.source.repository is not this implementation")
+    _commit_hex(source["commit"], "report.product.source.commit")
+    _commit_hex(source["tree"], "report.product.source.tree")
+    if type(source["dirty"]) is not bool:
+        raise ValueError("report.product.source.dirty must be a boolean")
+    if source["dirty"]:
+        _sha256_hex(
+            source["dirty_content_sha256"],
+            "report.product.source.dirty_content_sha256",
+        )
+    elif source["dirty_content_sha256"] is not None:
+        raise ValueError("a clean Cairo source must have null dirty_content_sha256")
+    target = _exact_object(
+        product["target"], _CAIRO_TARGET_KEYS, "report.product.target",
+    )
+    for key in ("arch", "os", "abi", "cpu_model"):
+        _nonempty_text(target[key], f"report.product.target.{key}")
+    _sha256_hex(target["cpu_features_sha256"], "report.product.target.cpu_features_sha256")
+    runtime = _exact_object(
+        product["runtime"], _CAIRO_RUNTIME_KEYS, "report.product.runtime",
+    )
+    for key in sorted(_CAIRO_RUNTIME_KEYS):
+        _nonempty_text(runtime[key], f"report.product.runtime.{key}")
+    upstream = _exact_object(
+        product["upstream"], _CAIRO_UPSTREAM_KEYS, "report.product.upstream",
+    )
+    oracle = group.correctness_oracle
+    if oracle.get("final_validator") is not True:
+        raise RunError(
+            f"{workload.workload_id}: group {group.group_id} has no final-validator "
+            "Cairo correctness oracle"
+        )
+    if upstream["stwo_cairo_revision"] != oracle.get("commit"):
+        raise ValueError(
+            "report.product.upstream.stwo_cairo_revision is not the manifest-pinned "
+            "official stwo-cairo commit"
+        )
+    if upstream["stwo_revision"] != oracle.get("stwo_commit"):
+        raise ValueError(
+            "report.product.upstream.stwo_revision is not the manifest-pinned "
+            "official stwo commit"
+        )
+    for key in ("cairo_language_version", "cairo_vm_version"):
+        _nonempty_text(upstream[key], f"report.product.upstream.{key}")
+
+    evidence = _exact_object(
+        report["backend_evidence"], _CAIRO_BACKEND_EVIDENCE_KEYS,
+        "report.backend_evidence",
+    )
+    _nonempty_text(evidence["execution"], "report.backend_evidence.execution")
+    _nonempty_text(evidence["classification"], "report.backend_evidence.classification")
+    for key in sorted(_CAIRO_BACKEND_EVIDENCE_KEYS - {"execution", "classification"}):
+        _nonnegative_integer(evidence[key], f"report.backend_evidence.{key}")
+    if evidence["cpu_fallbacks"] != 0:
+        raise ValueError(
+            "report.backend_evidence.cpu_fallbacks must be zero; a lane that fell "
+            "back is not the declared product"
+        )
+
+    cache = _exact_object(
+        report["preprocessed_cache"], _CAIRO_PREPROCESSED_CACHE_KEYS,
+        "report.preprocessed_cache",
+    )
+    if type(cache["enabled"]) is not bool:
+        raise ValueError("report.preprocessed_cache.enabled must be a boolean")
+    for key in sorted(_CAIRO_PREPROCESSED_CACHE_KEYS - {"enabled"}):
+        _nonnegative_integer(cache[key], f"report.preprocessed_cache.{key}")
+
+    profile = _nonempty_text(report["profile"], "report.profile")
+    input_sha256 = _sha256_hex(
+        _exact_object(report["input"], {"sha256"}, "report.input")["sha256"],
+        "report.input.sha256",
+    )
+    proof = _exact_object(
+        report["proof"], {"format", "bytes", "sha256"}, "report.proof",
+    )
+    if proof["format"] != requested_format:
+        raise ValueError(
+            f"report.proof.format {proof['format']!r} is not the requested "
+            f"{requested_format!r}"
+        )
+    proof_bytes = _nonnegative_integer(proof["bytes"], "report.proof.bytes", positive=True)
+    proof_sha256 = _sha256_hex(proof["sha256"], "report.proof.sha256")
+
+    timing = _exact_object(
+        report["timing"], {"execute_ns", "prove_ns", "verify_ns"}, "report.timing",
+    )
+    execute_ns = _nonnegative_integer(timing["execute_ns"], "report.timing.execute_ns")
+    prove_ns = _nonnegative_integer(
+        timing["prove_ns"], "report.timing.prove_ns", positive=True,
+    )
+    verify_ns = _nonnegative_integer(
+        timing["verify_ns"], "report.timing.verify_ns", positive=True,
+    )
+    verification = _exact_object(
+        report["verification"], {"requested", "zig"}, "report.verification",
+    )
+    if verification["requested"] is not True or verification["zig"] is not True:
+        raise ValueError(
+            "report.verification must record a requested and completed in-process "
+            "verification"
+        )
+
+    execution = report["execution"]
+    if command == "prove":
+        if execution is not None:
+            raise ValueError("a prove report must have null execution")
+        if execute_ns != 0:
+            raise ValueError("a prove report must have zero execute_ns")
+    else:
+        execution = _exact_object(
+            execution, _CAIRO_EXECUTION_KEYS, "report.execution",
+        )
+        _nonempty_text(execution["program_type"], "report.execution.program_type")
+        _sha256_hex(execution["program_sha256"], "report.execution.program_sha256")
+        if execution["arguments_sha256"] is not None:
+            _sha256_hex(
+                execution["arguments_sha256"], "report.execution.arguments_sha256",
+            )
+        _sha256_hex(execution["adapter_sha256"], "report.execution.adapter_sha256")
+        wall_ns = _nonnegative_integer(
+            execution["wall_ns"], "report.execution.wall_ns", positive=True,
+        )
+        if wall_ns != execute_ns:
+            raise ValueError("report.execution.wall_ns disagrees with timing.execute_ns")
+
+    if not proof_path.is_file():
+        raise ValueError("the Cairo product did not retain the requested proof")
+    artifact = proof_path.read_bytes()
+    if len(artifact) != proof_bytes:
+        raise ValueError("report.proof.bytes does not match the retained proof")
+    if hashlib.sha256(artifact).hexdigest() != proof_sha256:
+        raise ValueError("report.proof.sha256 does not match the retained proof")
+
+    return {
+        "product_identity_sha256": identity_sha256,
+        "protocol_manifest_sha256": protocol_manifest_sha256,
+        "profile": profile,
+        "input_sha256": input_sha256,
+        "proof_format": proof["format"],
+        "proof_bytes": proof_bytes,
+        "proof_sha256": proof_sha256,
+        "stwo_cairo_revision": upstream["stwo_cairo_revision"],
+        "stwo_revision": upstream["stwo_revision"],
+        "metal_dispatches": evidence["metal_dispatches"],
+        "cpu_fallbacks": evidence["cpu_fallbacks"],
+        "execute_seconds": execute_ns / 1_000_000_000.0,
+        "prove_seconds": prove_ns / 1_000_000_000.0,
+        "verify_seconds": verify_ns / 1_000_000_000.0,
+        "implementation_commit": source["commit"],
+    }
+
+
+def _parse_cairo_stage_profile(profile: dict, workload: Workload) -> dict:
+    """TRACKS §3.2 named cutpoints from one `--stage-profile-out` snapshot."""
+    _exact_object(
+        profile, {"schema_version", "runtime", "example", "stages"},
+        "stage profile",
+    )
+    if profile["schema_version"] != CAIRO_STAGE_PROFILE_SCHEMA_VERSION:
+        raise ValueError(
+            "stage profile schema_version is not "
+            f"{CAIRO_STAGE_PROFILE_SCHEMA_VERSION}"
+        )
+    if profile["example"] != "cairo":
+        raise ValueError("stage profile is not a Cairo profile")
+    _nonempty_text(profile["runtime"], "stage profile runtime")
+    stages = profile["stages"]
+    if not isinstance(stages, list) or not stages:
+        raise ValueError("stage profile has no stages")
+
+    owner = {}
+    for phase, (required, optional) in CAIRO_PHASE_STAGES.items():
+        for stage_id in required + optional:
+            owner[stage_id] = phase
+    seconds = {phase: 0.0 for phase in CAIRO_PHASE_STAGES}
+    observed: set[str] = set()
+    for index, node in enumerate(stages):
+        if not isinstance(node, dict) or not {"id", "label", "seconds"} <= set(node):
+            raise ValueError(f"stage profile root {index} is not a stage node")
+        if set(node) - {"id", "label", "seconds", "children"}:
+            raise ValueError(f"stage profile root {index} has unknown fields")
+        stage_id = _nonempty_text(node["id"], f"stage profile root {index} id")
+        phase = owner.get(stage_id)
+        if phase is None:
+            raise ValueError(
+                f"{workload.workload_id}: unclassified Cairo stage root "
+                f"{stage_id!r}; the phase cutpoint table must be updated before "
+                "this product can be measured"
+            )
+        seconds[phase] += _finite_number(node["seconds"], f"stage {stage_id} seconds")
+        observed.add(stage_id)
+    for phase, (required, _optional) in CAIRO_PHASE_STAGES.items():
+        missing = sorted(set(required) - observed)
+        if missing:
+            raise ValueError(
+                f"{workload.workload_id}: Cairo phase {phase} is missing mandatory "
+                "cutpoint stage(s): " + ", ".join(missing)
+            )
+    return seconds
+
+
+def _bench_cairo(
+    arm_root: Path,
+    group: WorkloadGroup,
+    workload: Workload,
+    warmups: int,
+    samples: int,
+    out_dir: Path,
+    tag: str,
+    timeout: float,
+    deadline_monotonic: float | None,
+) -> ArmResult:
+    """One arm of one Cairo round: warmups + samples cold CLI processes.
+
+    The focused Cairo CLIs prove exactly one statement per process, so the
+    harness owns the warmup/sample loop and one sample is one cold process. The
+    mandatory phase profile is recorded on the FIRST discarded warmup so scored
+    samples run uninstrumented.
+    """
+    if warmups < 1:
+        raise RunError(
+            f"{workload.workload_id}: Cairo measurement needs at least one warmup; "
+            "the mandatory phase profile is recorded on a discarded warmup"
+        )
+    if samples < 1:
+        raise RunError(f"{workload.workload_id}: Cairo measurement needs a sample")
+    binary = arm_root / group.binary
+    args = _format_workload_args(arm_root, group, workload, warmups, samples)
+    run_kwargs = (
+        {"deadline_monotonic": deadline_monotonic}
+        if deadline_monotonic is not None else {}
+    )
+    stage_seconds: dict | None = None
+    measured: list[dict] = []
+    reports: list[dict] = []
+    for index in range(warmups + samples):
+        scored = index >= warmups
+        proof_path = (
+            out_dir / f"{workload.workload_id}.{tag}.i{index}.proof"
+        ).resolve()
+        proof_path.unlink(missing_ok=True)
+        extra = f" --proof {shlex.quote(str(proof_path))}"
+        stage_path = None
+        if index == warmups - 1:
+            stage_path = (
+                out_dir / f"{workload.workload_id}.{tag}.stages.json"
+            ).resolve()
+            stage_path.unlink(missing_ok=True)
+            extra += f" --stage-profile-out {shlex.quote(str(stage_path))}"
+        started = time.monotonic()
+        stdout = _run(
+            f"{binary} {args}{extra}", arm_root, timeout=float(timeout), **run_kwargs,
+        )
+        cold_seconds = time.monotonic() - started
+        try:
+            report = _load_json_object(stdout, "Cairo product report")
+        except (json.JSONDecodeError, ValueError) as exc:
+            raise RunError(
+                f"{workload.workload_id}: Cairo product emitted non-JSON output "
+                f"(first 200 chars: {stdout[:200]!r})"
+            ) from exc
+        parsed = _parse_cairo_report(report, group, workload, proof_path)
+        if stage_path is not None:
+            stage_seconds = _parse_cairo_stage_profile(
+                _load_json_object(
+                    stage_path.read_text(encoding="utf-8"), "Cairo stage profile",
+                ),
+                workload,
+            )
+        if scored:
+            parsed["cold_process_seconds"] = cold_seconds
+            measured.append(parsed)
+            reports.append(report)
+        else:
+            proof_path.unlink(missing_ok=True)
+    if stage_seconds is None:
+        raise RunError(
+            f"{workload.workload_id}: no Cairo phase profile was recorded"
+        )
+
+    for field_name in (
+        "profile", "input_sha256", "proof_format", "proof_bytes", "proof_sha256",
+        "stwo_cairo_revision", "stwo_revision", "product_identity_sha256",
+        "protocol_manifest_sha256",
+    ):
+        values = {sample[field_name] for sample in measured}
+        if len(values) != 1:
+            raise RunError(
+                f"{workload.workload_id}: {field_name} changed between measured "
+                f"Cairo samples ({sorted(values)})"
+            )
+    phase_seconds = {
+        "execute": statistics.mean(s["execute_seconds"] for s in measured),
+        "witness": stage_seconds["witness"],
+        "commit": stage_seconds["commit"],
+        "interaction": stage_seconds["interaction"],
+        "composition": stage_seconds["composition"],
+        "fri": stage_seconds["fri"],
+        # Documented gap: proof encode/write/hash is outside the recorder.
+        "serialize": None,
+        "verify": statistics.mean(s["verify_seconds"] for s in measured),
+    }
+    available = {
+        "product_identity_sha256": measured[0]["product_identity_sha256"],
+        "protocol_manifest_sha256": measured[0]["protocol_manifest_sha256"],
+        "profile": measured[0]["profile"],
+        "input_sha256": measured[0]["input_sha256"],
+        "proof_format": measured[0]["proof_format"],
+        "proof_bytes": measured[0]["proof_bytes"],
+        "proof_sha256": measured[0]["proof_sha256"],
+        "stwo_cairo_revision": measured[0]["stwo_cairo_revision"],
+        "stwo_revision": measured[0]["stwo_revision"],
+        "metal_dispatches": measured[0]["metal_dispatches"],
+        "cpu_fallbacks": measured[0]["cpu_fallbacks"],
+        "mean_execute_seconds": phase_seconds["execute"],
+        "mean_prove_seconds": statistics.mean(s["prove_seconds"] for s in measured),
+        "mean_verify_seconds": phase_seconds["verify"],
+        "mean_cold_process_seconds": statistics.mean(
+            s["cold_process_seconds"] for s in measured
+        ),
+        "phase_seconds": phase_seconds,
+    }
+    required_fields = group.mechanism_telemetry.get("required_fields", [])
+    if group.mechanism_telemetry.get("fail_closed") is not True or not required_fields:
+        raise RunError(
+            f"{workload.workload_id}: group {group.group_id} declares no "
+            "fail-closed Cairo mechanism telemetry"
+        )
+    missing = sorted(set(required_fields) - set(available))
+    if missing:
+        raise RunError(
+            f"{workload.workload_id}: Cairo mechanism telemetry cannot supply "
+            + ", ".join(missing)
+        )
+    mechanism = {name: available[name] for name in required_fields}
+
+    out_path = out_dir / f"{workload.workload_id}.{tag}.json"
+    out_path.write_text(json.dumps({
+        "schema": group.report_schema,
+        "workload": workload.workload_id,
+        "group": group.group_id,
+        "board": group.board,
+        "warmups": warmups,
+        "samples": samples,
+        "measurement_boundary": "cold_process",
+        "phase_profile_source": {
+            "invocation_index": warmups - 1,
+            "scored": False,
+            "note": "The stage profile is recorded on the last discarded warmup "
+                    "so scored samples run uninstrumented; phase seconds are "
+                    "diagnostic telemetry and are never scored (TRACKS §3.2).",
+        },
+        "phase_seconds": phase_seconds,
+        "mechanism": mechanism,
+        "measured_samples": measured,
+        "product_reports": reports,
+    }, indent=1))
+    return ArmResult(
+        # prove_ms is diagnostic telemetry on a v3 track (TRACKS §3.1).
+        prove_ms=statistics.median(s["prove_seconds"] for s in measured) * 1000.0,
+        proof_verified=len(measured),
+        byte_identical=len({s["proof_sha256"] for s in measured}) == 1,
+        peak_rss_mib=None,
+        report_path=str(out_path),
+        proof_digest=measured[0]["proof_sha256"],
+        proof_bytes=measured[0]["proof_bytes"],
+        # The scored boundary: before process creation -> after exit, with
+        # independent in-process verification inside it (TRACKS §3.1).
+        request_ms=statistics.median(
+            s["cold_process_seconds"] for s in measured
+        ) * 1000.0,
+        mechanism=mechanism,
+        resources_complete=False,
+    )
 
 
 def paired_rounds(

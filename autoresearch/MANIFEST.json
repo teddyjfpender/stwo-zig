@@ -644,6 +644,172 @@
           }
         }
       },
+      "cairo_cpu": {
+        "enabled": true,
+        "promotion_eligible": false,
+        "promotion_blocked_reason": "TRACKS §7: cairo_cpu records evidence but cannot promote until per-(board, class) A/A dispersion and anchors are measured on the designated Apple M5 Max judge host and frozen into harness.anchor_* plus a cairo calibration freeze for board cairo_cpu. No Cairo calibration exists yet, so promotion fails closed; the gate opens only after that M5 calibration is committed.",
+        "board": "cairo_cpu",
+        "build_step": "zig build stwo-cairo-cpu -Doptimize=ReleaseFast",
+        "binary": "zig-out/bin/stwo-cairo-cpu",
+        "report_schema": "cairo_proof_v1",
+        "correctness_oracle": {
+          "authority": "official-stwo-cairo-verifier",
+          "repository": "https://github.com/starkware-libs/stwo-cairo",
+          "commit": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+          "stwo_repository": "https://github.com/starkware-libs/stwo",
+          "stwo_commit": "7b211edde786775016ef3eecb837a6240d8fe792",
+          "adapter": "tools/stwo-cairo-official-verifier-rs",
+          "build_command": "cargo build --locked --release --manifest-path tools/stwo-cairo-official-verifier-rs/Cargo.toml",
+          "final_validator": true
+        },
+        "acceptance_corpus": {
+          "note": "TRACKS §3.3 acceptance corpus: the pinned zksecurity/zkvm-benchmarks program matrix with expected cycle rules. Acceptance only — never a scored basket.",
+          "path": "vectors/cairo/cairo_program_matrix.json",
+          "sha256": "4a639d0b3254be24bdc106d22dc07fa76afdb9e9251ae319d60060b8300e876a"
+        },
+        "gates_policy": {
+          "warmups": 1,
+          "samples_per_round": 1,
+          "min_rounds": 3,
+          "max_rounds": 5,
+          "wall_clock_cap_seconds": {
+            "small": 900,
+            "wide": 3600
+          },
+          "note": "The Cairo product CLI proves exactly one statement per process, so one sample is one cold process; the runner owns the warmup/sample loop. Warmups must stay at or above one because the mandatory phase profile is recorded on a discarded warmup so scored samples run uninstrumented."
+        },
+        "mechanism_telemetry": {
+          "fail_closed": true,
+          "required_fields": [
+            "product_identity_sha256",
+            "protocol_manifest_sha256",
+            "profile",
+            "input_sha256",
+            "proof_format",
+            "proof_bytes",
+            "proof_sha256",
+            "stwo_cairo_revision",
+            "stwo_revision",
+            "mean_execute_seconds",
+            "mean_prove_seconds",
+            "mean_verify_seconds",
+            "mean_cold_process_seconds",
+            "phase_seconds"
+          ]
+        },
+        "workload_provisioning": {
+          "note": "TRACKS §3.3 campaign portfolio entries whose prover inputs are host-local and far above the repository fixture budget. They are declared here so the basket's incompleteness is loud, never silent; generation commands live in autoresearch/schema/cairo-proof-v1.md. Entries here are not runnable workloads and are never scored.",
+          "documentation": "autoresearch/schema/cairo-proof-v1.md",
+          "pending": {
+            "cairo_poseidon_aggregator": {
+              "vm_steps": 6892,
+              "committed_cells": 48299328,
+              "reason": "prover input is host-local; regeneration needs the pinned Cairo VM adapter and the campaign aggregator program, neither of which is committed"
+            },
+            "cairo_pedersen_aggregator": {
+              "vm_steps": 5872,
+              "committed_cells": 48037024,
+              "reason": "prover input is host-local; regeneration needs the pinned Cairo VM adapter and the campaign aggregator program, neither of which is committed"
+            },
+            "cairo_fibonacci_100k": {
+              "vm_steps": 700022,
+              "committed_cells": 112959872,
+              "reason": "prover input is host-local; 700k VM steps exceed the repository fixture budget"
+            },
+            "cairo_factorial_100k": {
+              "vm_steps": 600015,
+              "committed_cells": 123184848,
+              "reason": "prover input is host-local; 600k VM steps exceed the repository fixture budget"
+            },
+            "cairo_arithmetic_2m": {
+              "vm_steps": 2200019,
+              "committed_cells": 216639776,
+              "reason": "prover input is host-local; 2.2M VM steps exceed the repository fixture budget"
+            },
+            "cairo_memory_7m": {
+              "vm_steps": 7367979,
+              "committed_cells": 604162096,
+              "reason": "prover input is host-local; 7.37M VM steps exceed the repository fixture budget and the workload needs roughly 17-18 GiB resident memory"
+            }
+          }
+        },
+        "workloads": {
+          "cairo_all_opcodes": {
+            "class": "small",
+            "args": "prove --prover-input vectors/cairo/official/all_opcodes.prover_input.json --params vectors/cairo/official/all_opcodes.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "cairo_all_builtins": {
+            "class": "wide",
+            "args": "prove --prover-input vectors/cairo/official/all_builtins.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          }
+        }
+      },
+      "cairo_metal": {
+        "enabled": false,
+        "promotion_eligible": false,
+        "disabled_reason": "cairo_metal is staged only: TRACKS §2 records the Cairo + Metal product as parity_gated, not released. The product descriptor in build_support/products/cairo_metal.zig still carries state .parity_gated behind its test-cairo-metal-product and test-cairo-metal-oracle release gates, no Metal-lane Cairo calibration exists on the designated judge host, and the generalized per-board Metal calibration (TRACKS §7) is not yet built. The group stays dark and fails closed.",
+        "promotion_blocked_reason": "TRACKS §7: no cairo_metal calibration exists on the designated Apple M5 Max judge host, and the product is parity_gated rather than released.",
+        "board": "cairo_metal",
+        "build_step": "zig build stwo-cairo-metal -Doptimize=ReleaseFast",
+        "binary": "zig-out/bin/stwo-cairo-metal",
+        "report_schema": "cairo_proof_v1",
+        "correctness_oracle": {
+          "authority": "official-stwo-cairo-verifier",
+          "repository": "https://github.com/starkware-libs/stwo-cairo",
+          "commit": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+          "stwo_repository": "https://github.com/starkware-libs/stwo",
+          "stwo_commit": "7b211edde786775016ef3eecb837a6240d8fe792",
+          "adapter": "tools/stwo-cairo-official-verifier-rs",
+          "build_command": "cargo build --locked --release --manifest-path tools/stwo-cairo-official-verifier-rs/Cargo.toml",
+          "final_validator": true
+        },
+        "gates_policy": {
+          "warmups": 1,
+          "samples_per_round": 1,
+          "min_rounds": 3,
+          "max_rounds": 5,
+          "wall_clock_cap_seconds": {
+            "small": 900,
+            "wide": 3600
+          },
+          "note": "Mirrors cairo_cpu: one proof per cold process, phase profile recorded on a discarded warmup."
+        },
+        "mechanism_telemetry": {
+          "fail_closed": true,
+          "required_fields": [
+            "product_identity_sha256",
+            "protocol_manifest_sha256",
+            "profile",
+            "input_sha256",
+            "proof_format",
+            "proof_bytes",
+            "proof_sha256",
+            "stwo_cairo_revision",
+            "stwo_revision",
+            "mean_execute_seconds",
+            "mean_prove_seconds",
+            "mean_verify_seconds",
+            "mean_cold_process_seconds",
+            "phase_seconds",
+            "metal_dispatches",
+            "cpu_fallbacks"
+          ]
+        },
+        "workloads": {
+          "mcairo_all_opcodes": {
+            "class": "small",
+            "args": "prove --prover-input vectors/cairo/official/all_opcodes.prover_input.json --params vectors/cairo/official/all_opcodes.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "mcairo_all_builtins": {
+            "class": "wide",
+            "args": "prove --prover-input vectors/cairo/official/all_builtins.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          }
+        }
+      },
       "pr6_supremacy": {
         "enabled": false,
         "promotion_eligible": false,
