@@ -269,12 +269,140 @@ def check_theorems() -> str:
     return f"team B certificates: {len(declared)} named theorems all present"
 
 
+PROFILE_PATH = REPOSITORY_ROOT / "conformance/riscv/rv32im-sail-profile.json"
+OVERRIDE_PATH = REPOSITORY_ROOT / "conformance/riscv/sail-rv32im-override.json"
+CONTRACT_PATH = (
+    REPOSITORY_ROOT / "soundness/TEAM_B_SAIL_REFINEMENT_CONTRACT.md"
+)
+
+FENCE_I_WORD = 0x0000100F
+
+#: Claims the Team B contract makes about the profile, restated as machine
+#: checks. Section 4 of the contract erases Sail state on the strength of these
+#: settings, so if one silently flips, the erasure argument is void.
+PROFILE_CLAIMS: tuple[tuple[str, Any], ...] = (
+    ("isa.xlen", 32),
+    ("isa.extensions", ["I", "M"]),
+    ("isa.instruction_alignment_bytes", 4),
+    ("isa.misaligned_load_store", "reject_before_retirement"),
+    ("isa.traps", "successful_retirements_only"),
+    ("environment.memory", "sparse_little_endian_32_bit"),
+)
+
+OVERRIDE_CLAIMS: tuple[tuple[str, Any, str], ...] = (
+    ("base.xlen", 32, "the proof profile is RV32"),
+    ("base.writable_misa", False, "the extension set cannot change at runtime"),
+    ("base.E", False, "the reduced register file is not in the profile"),
+    ("extensions.M.supported", True, "Team B proves MUL and DIV"),
+    ("extensions.A.supported", False, "erasing the reservation set needs this"),
+    ("extensions.F.supported", False, "no floating-point state to erase"),
+    ("extensions.D.supported", False, "no floating-point state to erase"),
+    ("extensions.B.supported", False, "no bit-manipulation state to erase"),
+    ("extensions.S.supported", False, "erasing supervisor state needs this"),
+    ("extensions.U.supported", False, "erasing user-mode state needs this"),
+    ("extensions.V.support_level", "Disabled", "no vector state to erase"),
+    ("extensions.Zicsr.supported", False, "erasing CSR state needs this"),
+    (
+        "extensions.Zifencei.supported",
+        False,
+        "the FENCE.I decode narrowing exists because of this",
+    ),
+    ("memory.pmp.count", 0, "erasing PMP configuration needs this"),
+    ("memory.pmp.usable_count", 0, "erasing PMP configuration needs this"),
+)
+
+
+def _resolve(payload: dict[str, Any], dotted: str) -> Any:
+    node: Any = payload
+    for part in dotted.split("."):
+        if not isinstance(node, dict) or part not in node:
+            raise TeamBError(f"profile path {dotted!r} is absent")
+        node = node[part]
+    return node
+
+
+def check_profile(
+    profile: dict[str, Any] | None = None,
+    override: dict[str, Any] | None = None,
+) -> str:
+    """Check the committed profile still supports the contract's claims."""
+    if profile is None:
+        profile = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
+    if override is None:
+        override = json.loads(OVERRIDE_PATH.read_text(encoding="utf-8"))
+
+    for dotted, expected in PROFILE_CLAIMS:
+        actual = _resolve(profile, dotted)
+        if actual != expected:
+            raise TeamBError(
+                f"profile {dotted} is {actual!r}, contract requires {expected!r}"
+            )
+
+    for dotted, expected, why in OVERRIDE_CLAIMS:
+        actual = _resolve(override, dotted)
+        if actual != expected:
+            raise TeamBError(
+                f"override {dotted} is {actual!r}, contract requires "
+                f"{expected!r} because {why}"
+            )
+
+    exclusions = _resolve(profile, "isa.decode_exclusions")
+    if not isinstance(exclusions, list) or len(exclusions) != 1:
+        raise TeamBError(
+            "the profile must narrow decode by exactly one instruction; "
+            f"it names {len(exclusions) if isinstance(exclusions, list) else '?'}"
+        )
+    exclusion = exclusions[0]
+    if exclusion.get("instruction") != "FENCE.I":
+        raise TeamBError(
+            f"the decode narrowing names {exclusion.get('instruction')!r}, "
+            "not FENCE.I"
+        )
+    if exclusion.get("word") != FENCE_I_WORD:
+        raise TeamBError(
+            f"the FENCE.I narrowing names word {exclusion.get('word')!r}, "
+            f"expected {FENCE_I_WORD} ({FENCE_I_WORD:#010x})"
+        )
+    # The narrowing is only honest while it records that the pinned model
+    # *does* retire the instruction. Dropping that field would turn a
+    # documented divergence into a silent one.
+    disposition = exclusion.get("pinned_sail_disposition")
+    if not isinstance(disposition, str) or "retires" not in disposition:
+        raise TeamBError(
+            "the FENCE.I narrowing no longer records that the pinned Sail "
+            "model retires the instruction"
+        )
+    return (
+        f"team B profile: {len(PROFILE_CLAIMS) + len(OVERRIDE_CLAIMS)} contract "
+        "claims hold and decode narrows only FENCE.I"
+    )
+
+
+def check_contract_binding() -> str:
+    """The contract prose and the profile must not drift apart."""
+    if not CONTRACT_PATH.is_file():
+        raise TeamBError(f"Team B contract is absent at {CONTRACT_PATH}")
+    text = CONTRACT_PATH.read_text(encoding="utf-8")
+    required = (
+        f"{FENCE_I_WORD:#010x}".upper().replace("0X", "0x"),
+        "rv32im",
+        "Zifencei",
+    )
+    missing = [needle for needle in required if needle not in text]
+    if missing:
+        raise TeamBError(
+            "the Team B contract no longer states: " + ", ".join(missing)
+        )
+    return "team B contract: prose still names the pinned profile facts"
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     subparsers.add_parser("coverage", help="check the 22-opcode certificate index")
     subparsers.add_parser("theorems", help="check every named theorem exists")
+    subparsers.add_parser("profile", help="check the pinned profile supports the contract")
 
     digests = subparsers.add_parser(
         "ir-digests", help="check family capsules against a fresh AIR export"
@@ -293,9 +421,14 @@ def main(argv: list[str] | None = None) -> int:
             print(check_theorems())
         elif args.command == "ir-digests":
             print(check_ir_digests(args.air_ir_dir))
+        elif args.command == "profile":
+            print(check_profile())
+            print(check_contract_binding())
         else:
             print(check_coverage())
             print(check_theorems())
+            print(check_profile())
+            print(check_contract_binding())
             print(check_ir_digests(args.air_ir_dir))
     except TeamBError as error:
         print(f"team B gate failed: {error}", file=sys.stderr)

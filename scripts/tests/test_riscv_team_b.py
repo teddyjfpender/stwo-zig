@@ -129,6 +129,121 @@ class TeamBCoverageTest(unittest.TestCase):
                 team_b.check_theorems()
 
 
+class TeamBProfileMutationTest(unittest.TestCase):
+    """Stage B5 requires Sail/profile mutations. These are them.
+
+    Section 4 of the Team B contract erases Sail state -- reservations, CSRs,
+    privileged modes, PMP configuration, vector and floating-point state -- on
+    the strength of specific profile settings. If one silently flips, the
+    erasure argument is void, so every claim is restated here as a check and
+    every check has a mutation proving it fires.
+    """
+
+    def _profile(self) -> dict:
+        return json.loads(team_b.PROFILE_PATH.read_text(encoding="utf-8"))
+
+    def _override(self) -> dict:
+        return json.loads(team_b.OVERRIDE_PATH.read_text(encoding="utf-8"))
+
+    def _set(self, payload: dict, dotted: str, value) -> dict:
+        node = payload
+        parts = dotted.split(".")
+        for part in parts[:-1]:
+            node = node[part]
+        node[parts[-1]] = value
+        return payload
+
+    def test_the_committed_profile_supports_every_contract_claim(self):
+        self.assertIn("21 contract claims hold", team_b.check_profile())
+
+    def test_the_contract_prose_still_names_the_profile_facts(self):
+        self.assertIn("prose still names", team_b.check_contract_binding())
+
+    def test_every_profile_claim_has_a_live_mutation(self):
+        for dotted, expected in team_b.PROFILE_CLAIMS:
+            mutated = self._set(
+                self._profile(),
+                dotted,
+                "mutated" if not isinstance(expected, bool) else not expected,
+            )
+            with self.subTest(claim=dotted):
+                with self.assertRaisesRegex(team_b.TeamBError, "contract requires"):
+                    team_b.check_profile(profile=mutated)
+
+    def test_every_override_claim_has_a_live_mutation(self):
+        for dotted, expected, _ in team_b.OVERRIDE_CLAIMS:
+            if isinstance(expected, bool):
+                replacement = not expected
+            elif isinstance(expected, int):
+                replacement = expected + 1
+            else:
+                replacement = "mutated"
+            mutated = self._set(self._override(), dotted, replacement)
+            with self.subTest(claim=dotted):
+                with self.assertRaisesRegex(team_b.TeamBError, "contract requires"):
+                    team_b.check_profile(override=mutated)
+
+    def test_enabling_an_erased_extension_is_caught(self):
+        # Turning the A extension back on would reintroduce the reservation
+        # set that contract section 4 erases.
+        mutated = self._set(self._override(), "extensions.A.supported", True)
+        with self.assertRaisesRegex(team_b.TeamBError, "reservation set"):
+            team_b.check_profile(override=mutated)
+
+    def test_enabling_csrs_is_caught(self):
+        mutated = self._set(self._override(), "extensions.Zicsr.supported", True)
+        with self.assertRaisesRegex(team_b.TeamBError, "CSR state"):
+            team_b.check_profile(override=mutated)
+
+    def test_dropping_the_decode_narrowing_is_caught(self):
+        mutated = self._profile()
+        mutated["isa"]["decode_exclusions"] = []
+        with self.assertRaisesRegex(team_b.TeamBError, "exactly one instruction"):
+            team_b.check_profile(profile=mutated)
+
+    def test_widening_the_decode_narrowing_is_caught(self):
+        mutated = self._profile()
+        mutated["isa"]["decode_exclusions"].append(
+            {"instruction": "MUL", "word": 0x02000033, "reason": "no"}
+        )
+        with self.assertRaisesRegex(team_b.TeamBError, "exactly one instruction"):
+            team_b.check_profile(profile=mutated)
+
+    def test_relabelling_the_excluded_instruction_is_caught(self):
+        mutated = self._profile()
+        mutated["isa"]["decode_exclusions"][0]["instruction"] = "FENCE"
+        with self.assertRaisesRegex(team_b.TeamBError, "not FENCE.I"):
+            team_b.check_profile(profile=mutated)
+
+    def test_changing_the_excluded_word_is_caught(self):
+        mutated = self._profile()
+        mutated["isa"]["decode_exclusions"][0]["word"] = 0x0000000F
+        with self.assertRaisesRegex(team_b.TeamBError, "names word"):
+            team_b.check_profile(profile=mutated)
+
+    def test_hiding_the_pinned_sail_divergence_is_caught(self):
+        # Dropping the disposition would turn a documented divergence -- the
+        # pinned model retires FENCE.I, the zkVM rejects it -- into a silent
+        # one.
+        mutated = self._profile()
+        del mutated["isa"]["decode_exclusions"][0]["pinned_sail_disposition"]
+        with self.assertRaisesRegex(team_b.TeamBError, "no longer records"):
+            team_b.check_profile(profile=mutated)
+
+    def test_a_trap_policy_change_is_caught(self):
+        # "successful_retirements_only" is what makes Outcome.rejected mean
+        # "outside the admitted language" rather than "the model trapped".
+        mutated = self._set(self._profile(), "isa.traps", "traps_modelled")
+        with self.assertRaisesRegex(team_b.TeamBError, "contract requires"):
+            team_b.check_profile(profile=mutated)
+
+    def test_a_missing_profile_path_fails_closed(self):
+        mutated = self._profile()
+        del mutated["isa"]["xlen"]
+        with self.assertRaisesRegex(team_b.TeamBError, "is absent"):
+            team_b.check_profile(profile=mutated)
+
+
 class TeamBAirBindingTest(unittest.TestCase):
     def _workspace(self):
         directory = tempfile.TemporaryDirectory()
