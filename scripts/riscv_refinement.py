@@ -76,6 +76,21 @@ NEGATIVE_CONTROLS = (
     "lui-free-low-limb",
     "addi-free-high-carry",
 )
+LIVE_SAIL_OPTIONS = (
+    "sail_riscv_dir",
+    "sail_bin",
+    "sail_generated_file",
+)
+AUDIT_COMMAND = ("lake", "env", "lean", "RiscvRefinement/AxiomAudit.lean")
+AUDITED_THEOREMS_BLOCK = re.compile(
+    r"^AUDITED_THEOREMS = \(\n(?:    \"[^\"\\\n]+\",\n)+\)$",
+    re.MULTILINE,
+)
+AUDITED_THEOREMS_REFRESH = (
+    "refresh the pin with "
+    "'python3 scripts/riscv_refinement.py audited-theorems --write' "
+    "and review the diff"
+)
 
 
 def common_arguments(parser: argparse.ArgumentParser) -> None:
@@ -92,9 +107,33 @@ def common_arguments(parser: argparse.ArgumentParser) -> None:
         type=Path,
         help="exact AIR directory supplied by an upstream exporter",
     )
+    parser.add_argument(
+        "--reuse-committed-sail-evidence",
+        action="store_true",
+        help=(
+            "rebuild the Sail evidence from the committed manifest provenance "
+            "instead of a live Sail toolchain; refuses unless every Sail input "
+            "is byte-identical and the Sail artifacts are reproduced exactly"
+        ),
+    )
+
+
+def reuses_committed_sail_evidence(args: argparse.Namespace) -> bool:
+    return bool(getattr(args, "reuse_committed_sail_evidence", False))
 
 
 def evidence(args: argparse.Namespace, paths: Paths) -> sail.SailEvidence:
+    if reuses_committed_sail_evidence(args):
+        supplied = sorted(
+            option for option in LIVE_SAIL_OPTIONS if getattr(args, option, None)
+        )
+        if supplied:
+            raise RefinementError(
+                "--reuse-committed-sail-evidence consumes no live Sail "
+                "toolchain; drop "
+                + ", ".join(f"--{option.replace('_', '-')}" for option in supplied)
+            )
+        return sail.carried_evidence(paths)
     return sail.collect_evidence(
         paths.root,
         args.sail_riscv_dir,
@@ -258,7 +297,8 @@ def _scan_forbidden_proof_terms(paths: Paths) -> None:
         )
 
 
-def _audit_axioms(output: str) -> dict[str, list[str]]:
+def _parse_audit_records(output: str) -> dict[str, list[str]]:
+    """Read the Lean audit transcript without deciding which theorems belong."""
     theorem_pattern = re.compile(
         r"^REFINEMENT_THEOREM (?P<theorem>RiscvRefinement\.[^\s]+)$"
     )
@@ -301,6 +341,11 @@ def _audit_axioms(output: str) -> dict[str, list[str]]:
             raise RefinementError(
                 f"axiom audit emitted a malformed axiom record: {stripped}"
             )
+    return report
+
+
+def _audit_axioms(output: str) -> dict[str, list[str]]:
+    report = _parse_audit_records(output)
     missing = sorted(set(AUDITED_THEOREMS) - set(report))
     extra = sorted(set(report) - set(AUDITED_THEOREMS))
     if missing or extra:
@@ -310,7 +355,9 @@ def _audit_axioms(output: str) -> dict[str, list[str]]:
         if extra:
             details.append("unexpected " + ", ".join(extra))
         raise RefinementError(
-            "axiom audit declaration coverage drifted: " + "; ".join(details)
+            "axiom audit declaration coverage drifted: "
+            + "; ".join(details)
+            + f"; {AUDITED_THEOREMS_REFRESH}"
         )
     unexpected = {
         axiom
@@ -327,6 +374,87 @@ def _audit_axioms(output: str) -> dict[str, list[str]]:
         theorem: sorted(report[theorem])
         for theorem in sorted(report)
     }
+
+
+def _render_audited_theorems(theorems: tuple[str, ...]) -> str:
+    if not theorems:
+        raise RefinementError("the axiom audit reported no refinement theorems")
+    unquotable = sorted(
+        theorem
+        for theorem in theorems
+        if not theorem or set(theorem) & set('"\\\n')
+    )
+    if unquotable:
+        raise RefinementError(
+            "audited theorem name cannot be pinned as a source literal: "
+            + ", ".join(unquotable)
+        )
+    body = "".join(f'    "{theorem}",\n' for theorem in theorems)
+    return f"AUDITED_THEOREMS = (\n{body})"
+
+
+def _rewrite_audited_theorems(
+    source: Path,
+    theorems: tuple[str, ...],
+) -> None:
+    """Repin the audited theorem list in source, keeping it a reviewable diff."""
+    text = source.read_text(encoding="utf-8")
+    replacement = _render_audited_theorems(theorems)
+    updated, count = AUDITED_THEOREMS_BLOCK.subn(
+        lambda _: replacement,
+        text,
+        count=1,
+    )
+    if count != 1:
+        raise RefinementError(
+            f"{source}: the AUDITED_THEOREMS pin is not in its expected shape"
+        )
+    codec.atomic_write(source, updated.encode("utf-8"))
+
+
+def _live_audited_theorems(
+    args: argparse.Namespace,
+    paths: Paths,
+) -> tuple[str, ...]:
+    if args.audit_output is not None:
+        try:
+            output = args.audit_output.read_text(encoding="utf-8")
+        except (OSError, UnicodeError) as exc:
+            raise RefinementError(
+                f"{args.audit_output}: unreadable axiom audit transcript"
+            ) from exc
+    else:
+        _run(["lake", "build"], paths.formal)
+        output = _run(list(AUDIT_COMMAND), paths.formal)
+    return tuple(sorted(_parse_audit_records(output)))
+
+
+def audited_theorems(args: argparse.Namespace, paths: Paths) -> None:
+    """Refresh or check the pinned theorem set; never relax the equality gate."""
+    live = _live_audited_theorems(args, paths)
+    pinned = tuple(AUDITED_THEOREMS)
+    missing = sorted(set(pinned) - set(live))
+    extra = sorted(set(live) - set(pinned))
+    if not args.write:
+        if not missing and not extra:
+            print(f"audited theorems pinned exactly: {len(live)} theorems")
+            return
+        details: list[str] = []
+        if extra:
+            details.append("unpinned " + ", ".join(extra))
+        if missing:
+            details.append("retired " + ", ".join(missing))
+        raise RefinementError(
+            "pinned audited theorem set differs from the live Lean environment: "
+            + "; ".join(details)
+            + f"; {AUDITED_THEOREMS_REFRESH}"
+        )
+    source = args.pin_file or (paths.root / "scripts" / "riscv_refinement.py")
+    _rewrite_audited_theorems(source, live)
+    print(
+        f"repinned {len(live)} audited theorems in "
+        f"{source} (+{len(extra)}, -{len(missing)}); review the diff"
+    )
 
 
 @dataclass(frozen=True)
@@ -349,16 +477,7 @@ def verify(args: argparse.Namespace, paths: Paths) -> Verification:
         paths.root,
     )
     _run(["lake", "build"], paths.formal)
-    audit_output = _run(
-        [
-            "lake",
-            "env",
-            "lean",
-            "RiscvRefinement/AxiomAudit.lean",
-        ],
-        paths.formal,
-    )
-    axiom_report = _audit_axioms(audit_output)
+    axiom_report = _audit_axioms(_run(list(AUDIT_COMMAND), paths.formal))
     print(
         "refinement pilot verified: fresh artifacts, 2/46 coverage, "
         "negative controls, unit tests, Lean build, and axiom audit"
@@ -426,6 +545,11 @@ def receipt(args: argparse.Namespace, paths: Paths) -> None:
         raise RefinementError(
             "release receipts require a fresh production AIR export; "
             "--no-export-air is forbidden"
+        )
+    if reuses_committed_sail_evidence(args):
+        raise RefinementError(
+            "release receipts require live Sail toolchain evidence; "
+            "--reuse-committed-sail-evidence is forbidden"
         )
     verification = verify(args, paths)
     sail_evidence = evidence(args, paths)
@@ -555,6 +679,11 @@ def verify_receipt(args: argparse.Namespace, paths: Paths) -> None:
             "receipt verification requires a fresh production AIR export; "
             "--no-export-air is forbidden"
         )
+    if reuses_committed_sail_evidence(args):
+        raise RefinementError(
+            "receipt verification requires live Sail toolchain evidence; "
+            "--reuse-committed-sail-evidence is forbidden"
+        )
     payload = codec.load_json(paths.receipt)
     required = {
         "approved_lean_axioms",
@@ -651,6 +780,22 @@ def parser() -> argparse.ArgumentParser:
     prepare_parser.add_argument("--force", action="store_true")
     coverage_parser = commands.add_parser("coverage")
     coverage_parser.add_argument("--require-full", action="store_true")
+    audited_parser = commands.add_parser("audited-theorems")
+    audited_parser.add_argument(
+        "--write",
+        action="store_true",
+        help="repin AUDITED_THEOREMS from the live Lean environment",
+    )
+    audited_parser.add_argument(
+        "--audit-output",
+        type=Path,
+        help="replay a captured axiom-audit transcript instead of running Lean",
+    )
+    audited_parser.add_argument(
+        "--pin-file",
+        type=Path,
+        help="source file holding the AUDITED_THEOREMS pin",
+    )
     commands.add_parser("negative-controls")
     verify_receipt_parser = commands.add_parser("verify-receipt")
     common_arguments(verify_receipt_parser)
@@ -671,6 +816,8 @@ def main(argv: list[str] | None = None) -> int:
             check_generated(args, paths)
         elif args.command == "coverage":
             coverage(paths, args.require_full)
+        elif args.command == "audited-theorems":
+            audited_theorems(args, paths)
         elif args.command == "negative-controls":
             negative_controls(paths)
         elif args.command == "prepare-sail":

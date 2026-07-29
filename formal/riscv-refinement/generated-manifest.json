@@ -6,21 +6,21 @@
     "generated/air/lui.json": "1c3b9b6febfa876c6dc9a05fe234fc1eeca4be7cc426bce365deeafdc0e32723",
     "generated/sail/rv32im-zkvm-v1.json": "5c31e516a205d693386564242d623dbaf4dc1566573f9ecfdcb026611c8fc2c1"
   },
-  "canonical_digest": "5595ccf4ee6a9d2fa23c1881bea94ca4b8c0c56f99f886329579ee43c8b6a27a",
+  "canonical_digest": "dc4f37f2bf1976d7c132c204b99474d4b7ee91ddd8746f956027324f8173d316",
   "claim_boundary": {
     "kernel_checked_normalized_refinement": true,
     "lean_generated_sail_monad_normalization": false,
     "lean_serialized_m31_air_interpreter": false
   },
   "generators": {
-    "scripts/riscv_refinement.py": "c6c01c480e69a09e53d1663a374111f075b1d1ac6ce6e9877f3014f2adc77f24",
+    "scripts/riscv_refinement.py": "2aae121fc490b05d3fc895975b07a84335e207c5cf18d10c2fcca7aaee6147fc",
     "scripts/riscv_refinement_lib/air.py": "02e16bbec81d87912fc1a2d767075887b94d86520527bedb615a4e5dc02fa3e3",
     "scripts/riscv_refinement_lib/codec.py": "0ae4eaf37dfa9eaec08d26c0a042a1b1e4e8b4b9418e834e28d479e6e3b0b86b",
     "scripts/riscv_refinement_lib/model.py": "ccf52a1d91b30fdea2f618080cdaaa9b9495005518e5c1033a35cf26cb3071bf",
     "scripts/riscv_refinement_lib/negative.py": "350ecd86a9694ee4bace43c74d7fe7518652554d927e8b7b999229c354e93cce",
     "scripts/riscv_refinement_lib/render.py": "40840b00cedddc9900e170326b96d8ad41e96fa4663a55549c43e375957d1c1e",
-    "scripts/riscv_refinement_lib/sail.py": "1cefcbb2b38bb99f0547140522e876fb71f056da1068bae9c0c0a46258ee4b11",
-    "scripts/tests/test_riscv_refinement.py": "f0830c0794f6283d1e2a82c14be624b00331ffeda9ffcc30fb2dc0af28334a80"
+    "scripts/riscv_refinement_lib/sail.py": "9c9e01d72cbd8d183d150d7c8c3d4c1444e7dacaab2530ef30472dbdccc7d696",
+    "scripts/tests/test_riscv_refinement.py": "c30d5c1907c391c66624b4771a0bd1380bfbefa027ff270ae318cd897375bdc2"
   },
   "kind": "stwo-riscv-refinement-generated-manifest",
   "lean_toolchain": "leanprover/lean4:v4.29.0",
@@ -240,10 +240,10 @@
   },
   "proof_sources": {
     "formal/riscv-refinement/README.md": "f23625311957fbafe679730eb5fa80886a9bfe5c0dabba83658cf310655e8558",
-    "formal/riscv-refinement/RiscvRefinement.lean": "e20039c16dacb14b6006ec77a7b8404e051c3069c568a02d2ea9ba830d71210e",
+    "formal/riscv-refinement/RiscvRefinement.lean": "189b10d4b275482616299425ce8c55ede7ddaf7653b6c1028ee4703430327614",
     "formal/riscv-refinement/RiscvRefinement/AxiomAudit.lean": "88829e83f5991b7e531165a016d7811ff55ac1f8fdfb93edaa9edfa12512869e",
     "formal/riscv-refinement/RiscvRefinement/Bridge/Decode.lean": "5234c89b6c2f4fbf3810c8064674f1bd3c7e713ade216cf7b6925802facf0e55",
-    "formal/riscv-refinement/RiscvRefinement/Common.lean": "16ae5e3d8d610c4f34489e4d71a3b828d293b3e9cb1881af1310099d3f8c057c",
+    "formal/riscv-refinement/RiscvRefinement/Common.lean": "4082f1bf6a7f32d31f32022ea605f3c43afe5d04841a31d1649381150ce91e3c",
     "formal/riscv-refinement/RiscvRefinement/Coverage.lean": "aa18962693f94998f3036681125dbdef5bcb892c49c9a311832422aec7e052b0",
     "formal/riscv-refinement/RiscvRefinement/NonVacuity.lean": "818e579c95a46e8eaf5d6f5d0b85418aaba04c82e57922fc29f46add878513ae",
     "formal/riscv-refinement/RiscvRefinement/Opcodes/Addi.lean": "82e4f25cd872f91b3125f21b451e727797b59cc4b89c11446254c26888efebd9",
@@ -259,6 +259,7 @@
     "base_configuration_sha256": "3f7f9ef13b6caf2e42765a1723275c718e1df1c7722276173b5ce3f2d7ec8431",
     "checkout_state": "rvfi-transport-patch-only",
     "compiler_version": "0.20.2",
+    "evidence_source": "carried-committed-sail-evidence",
     "exact_configuration": "build/riscv-refinement/rv32im-zkvm-v1.json",
     "exact_configuration_sha256": "5c31e516a205d693386564242d623dbaf4dc1566573f9ecfdcb026611c8fc2c1",
     "generated_backend_file": "build/riscv-refinement/Lean_RV32IM/LeanRV32IM/InstsEnd.lean",
