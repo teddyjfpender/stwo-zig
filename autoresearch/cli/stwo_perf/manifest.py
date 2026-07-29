@@ -9,6 +9,9 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+_UTC_TIMESTAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+_SHA256_ID_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
+
 RUNGS = ("s1", "s2", "s3", "s4", "s5")
 ACCEPTANCE_FLOOR = "s3"
 REPORT_SCHEMA_VERSIONS = {
@@ -37,6 +40,22 @@ SEARCH_HEALTH_POLICY_KEYS = frozenset({
 })
 MAX_GROUP_WALL_CLOCK_SECONDS = 7200
 MAX_COMMAND_TIMEOUT_SECONDS = 7200
+
+# TRACKS §6 retire-and-complete. A retired group flips to
+# `promotion_eligible: false`, keeps every name in `ledger.BOARDS`, and carries
+# exactly this block. `closing_audit` stays null until the M5 judge host runs
+# the final closing audit that stamps the board's last audited score.
+RETIREMENT_KEYS = frozenset({"retired_at_utc", "reason", "closing_audit"})
+CLOSING_AUDIT_KEYS = frozenset({"completed_utc", "bundle_sha256", "row_ids"})
+
+# TRACKS §3.1: the scored boundary a workload group's board reports. The whole
+# harness scores `prove_ms` today; `request_ms` is the verified-request
+# boundary the RISC-V board adopts at its NEXT era, and declaring it is gated
+# on that era carrying its own recalibration (see ledger.SCORED_DIMENSIONS and
+# schema/scoring.md). Nothing in this repository declares it yet — the runner
+# refuses to score a board whose era declares a boundary it cannot measure.
+SCORED_DIMENSIONS = ("prove_ms", "request_ms")
+DEFAULT_SCORED_DIMENSION = "prove_ms"
 RESOURCE_PROFILES = frozenset(("standard", "large", "extreme"))
 METAL_CALIBRATION_SCHEMA = "stwo_perf_metal_calibration_freeze_v2"
 METAL_CALIBRATION_FIELDS = frozenset({
@@ -244,6 +263,11 @@ class WorkloadGroup:
     promotion_blocked_reason: str | None = None
     acceptance_corpus: dict = field(default_factory=dict)
     workload_provisioning: dict = field(default_factory=dict)
+    # TRACKS §6: a retired-and-completed track. Present only on retired groups.
+    retirement: dict = field(default_factory=dict)
+    # TRACKS §3.1: the boundary this group's board scores. Defaults to today's
+    # behaviour everywhere; see SCORED_DIMENSIONS.
+    scored_dimension: str = DEFAULT_SCORED_DIMENSION
 
 
 @dataclass(frozen=True)
@@ -419,6 +443,10 @@ class Manifest:
                 promotion_blocked_reason=spec.get("promotion_blocked_reason"),
                 acceptance_corpus=dict(spec.get("acceptance_corpus", {})),
                 workload_provisioning=dict(spec.get("workload_provisioning", {})),
+                retirement=dict(spec.get("retirement", {})),
+                scored_dimension=str(
+                    spec.get("scored_dimension", DEFAULT_SCORED_DIMENSION)
+                ),
             ))
         return out
 
@@ -678,6 +706,8 @@ def _validate(raw: dict) -> None:
         _validate_group_resource_telemetry(
             gid, report_schema, spec.get("resource_telemetry", {})
         )
+        _validate_group_retirement(gid, spec)
+        _validate_group_scored_dimension(gid, spec)
         _validate_group_acceptance_corpus(gid, spec.get("acceptance_corpus", {}))
         _validate_group_workload_provisioning(
             gid, spec.get("workload_provisioning", {}), spec.get("workloads", {})
@@ -827,6 +857,76 @@ def _validate_cairo_mechanism_telemetry(gid: str, telemetry: object) -> None:
         raise ManifestError(
             f"workload group {gid}: Cairo mechanism telemetry must require "
             "phase_seconds; TRACKS §3.2 makes the named phase cutpoints mandatory"
+        )
+
+
+def _validate_group_retirement(gid: str, spec: dict) -> None:
+    """TRACKS §6: retirement is explicit, dated, reasoned, and unpromotable."""
+    retirement = spec.get("retirement")
+    if retirement is None:
+        return
+    if not isinstance(retirement, dict) or set(retirement) != RETIREMENT_KEYS:
+        raise ManifestError(
+            f"workload group {gid}: 'retirement' must contain exactly "
+            + ", ".join(sorted(RETIREMENT_KEYS))
+        )
+    retired_at = retirement["retired_at_utc"]
+    if not isinstance(retired_at, str) or not _UTC_TIMESTAMP_RE.fullmatch(retired_at):
+        raise ManifestError(
+            f"workload group {gid}: retirement.retired_at_utc must be ISO-8601 UTC"
+        )
+    if not str(retirement["reason"] or "").strip():
+        raise ManifestError(
+            f"workload group {gid}: retirement.reason must be a non-empty string"
+        )
+    if spec.get("promotion_eligible"):
+        raise ManifestError(
+            f"workload group {gid}: a retired group cannot be promotion eligible; "
+            "TRACKS §6 retires by refusing new promotions while history stays served"
+        )
+    if not str(spec.get("promotion_blocked_reason") or "").strip():
+        raise ManifestError(
+            f"workload group {gid}: a retired group must state a "
+            "promotion_blocked_reason so its refusal is legible"
+        )
+    closing = retirement["closing_audit"]
+    if closing is None:
+        return
+    if not isinstance(closing, dict) or set(closing) != CLOSING_AUDIT_KEYS:
+        raise ManifestError(
+            f"workload group {gid}: retirement.closing_audit must be null or "
+            "contain exactly " + ", ".join(sorted(CLOSING_AUDIT_KEYS))
+        )
+    if not _UTC_TIMESTAMP_RE.fullmatch(str(closing["completed_utc"])):
+        raise ManifestError(
+            f"workload group {gid}: closing_audit.completed_utc must be ISO-8601 UTC"
+        )
+    if not _SHA256_ID_RE.fullmatch(str(closing["bundle_sha256"])):
+        raise ManifestError(
+            f"workload group {gid}: closing_audit.bundle_sha256 must be sha256:<hex>"
+        )
+    row_ids = closing["row_ids"]
+    if (
+        not isinstance(row_ids, list)
+        or not row_ids
+        or any(not _SHA256_ID_RE.fullmatch(str(value)) for value in row_ids)
+        or len(row_ids) != len(set(row_ids))
+    ):
+        raise ManifestError(
+            f"workload group {gid}: closing_audit.row_ids must be a unique "
+            "non-empty list of sha256:<hex> ledger row IDs"
+        )
+
+
+def _validate_group_scored_dimension(gid: str, spec: dict) -> None:
+    """TRACKS §3.1: the scored boundary is declared, never inferred."""
+    if "scored_dimension" not in spec:
+        return
+    dimension = spec["scored_dimension"]
+    if dimension not in SCORED_DIMENSIONS:
+        raise ManifestError(
+            f"workload group {gid}: 'scored_dimension' must be one of "
+            f"{SCORED_DIMENSIONS}"
         )
 
 

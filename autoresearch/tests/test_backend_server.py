@@ -11,6 +11,7 @@ sys.path.insert(0, str(ROOT / "autoresearch" / "cli"))
 
 import server  # noqa: E402
 from store import Store  # noqa: E402
+from stwo_perf import feed as feed_mod  # noqa: E402
 
 
 IDENTITY = {
@@ -129,7 +130,7 @@ class BackendServerTest(unittest.TestCase):
             (ROOT / "autoresearch" / "site" / "feed.json").read_text()
         )
         self.assertEqual(feed, committed)
-        self.assertEqual(feed["feed_schema_version"], 3)
+        self.assertEqual(feed["feed_schema_version"], feed_mod.FEED_SCHEMA_VERSION)
         self.assertIn("promotion_scope", feed)
         self.assertIn("inputs_sha256", feed["provenance"])
 

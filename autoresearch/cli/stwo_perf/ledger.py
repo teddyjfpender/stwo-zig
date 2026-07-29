@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import hashlib
 import math
@@ -453,27 +454,320 @@ def known_epochs(repo_root: Path) -> dict[int, dict]:
     return {int(e["epoch"]): e for e in data["epochs"]}
 
 
-def current_epoch(repo_root: Path) -> dict:
+# --- TRACKS §7 per-board eras -------------------------------------------------
+#
+# Global epochs stay authoritative and unchanged; a board may additionally own
+# an era sequence in ``board_eras.boards``. Every resolver below falls back to
+# the newest global epoch when a board declares no eras, so absent per-board
+# data reproduces the pre-era behaviour exactly.
+
+ERA_STATUSES = ("open", "banked")
+
+# The scored boundary a board's era declares. ``prove_ms`` is today's behaviour
+# everywhere; ``request_ms`` is the TRACKS §3.1 verified-request boundary that
+# the RISC-V board adopts at its next era. Declaring it is gated on that era
+# carrying its own recalibrated A/A dispersion (see ``_validate_era``).
+SCORED_DIMENSIONS = ("prove_ms", "request_ms")
+DEFAULT_SCORED_DIMENSION = "prove_ms"
+
+RESOURCE_BUDGET_DIMENSIONS = ("peak_rss_mib", "energy_j", "proof_bytes")
+
+_ERA_REQUIRED_KEYS = ("era", "epoch_ref", "opened_utc", "reason")
+_ERA_KNOWN_KEYS = {
+    *_ERA_REQUIRED_KEYS,
+    "status", "closed_utc", "audit_anchor_commit", "aa_dispersion",
+    "resource_budgets", "scored_dimension", "note",
+}
+_UTC_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+_COMMIT40_RE = re.compile(r"^[0-9a-f]{40}$")
+
+
+def _epochs_document(repo_root: Path) -> dict:
+    document = json.loads(epochs_path(repo_root).read_text())
+    if not isinstance(document, dict) or not isinstance(document.get("epochs"), list):
+        raise LedgerError("epochs.json must declare a list of global epochs")
+    return document
+
+
+def _era_block(document: dict) -> dict[str, list]:
+    """Return the validated ``board -> era list`` map (``{}`` when absent)."""
+    block = document.get("board_eras")
+    if block is None:
+        return {}
+    if not isinstance(block, dict) or not set(block) <= {"note", "boards"}:
+        raise LedgerError(
+            "epochs.json board_eras must be an object with only 'note' and 'boards'"
+        )
+    if "note" in block and not isinstance(block["note"], str):
+        raise LedgerError("epochs.json board_eras.note must be a string")
+    boards = block.get("boards")
+    if boards is None:
+        return {}
+    if not isinstance(boards, dict):
+        raise LedgerError("epochs.json board_eras.boards must be an object")
+    return boards
+
+
+def _positive_finite(value: object) -> bool:
+    return (
+        not isinstance(value, bool)
+        and isinstance(value, (int, float))
+        and math.isfinite(float(value))
+        and float(value) > 0
+    )
+
+
+def _validate_era(board: str, era: dict, epochs: dict[int, dict]) -> dict:
+    """Fail closed on one era record; never invent a missing field."""
+    where = f"board era {board}/{era.get('era')!r}"
+    if not isinstance(era, dict):
+        raise LedgerError(f"board eras for {board} must be objects")
+    unknown = sorted(set(era) - _ERA_KNOWN_KEYS)
+    if unknown:
+        raise LedgerError(f"{where}: unknown key(s) {unknown}")
+    for key in _ERA_REQUIRED_KEYS:
+        if key not in era:
+            raise LedgerError(f"{where}: missing required key {key}")
+    if type(era["era"]) is not int or era["era"] < 1:
+        raise LedgerError(f"{where}: 'era' must be a positive integer")
+    if type(era["epoch_ref"]) is not int or era["epoch_ref"] not in epochs:
+        raise LedgerError(
+            f"{where}: 'epoch_ref' must name a global epoch declared in epochs.json"
+        )
+    for key in ("opened_utc", "closed_utc"):
+        value = era.get(key)
+        if key == "closed_utc" and value is None:
+            continue
+        if not isinstance(value, str) or not _UTC_RE.fullmatch(value):
+            raise LedgerError(f"{where}: '{key}' must be ISO-8601 UTC (…T…Z)")
+    if era["opened_utc"] < str(epochs[era["epoch_ref"]].get("opened_utc") or ""):
+        raise LedgerError(
+            f"{where}: 'opened_utc' precedes the global epoch it inherits"
+        )
+    if not str(era.get("reason") or "").strip():
+        raise LedgerError(f"{where}: 'reason' must be a non-empty string")
+    status = era.get("status", "open")
+    if status not in ERA_STATUSES:
+        raise LedgerError(f"{where}: 'status' must be one of {ERA_STATUSES}")
+    if status == "banked" and era.get("closed_utc") is None:
+        raise LedgerError(f"{where}: a banked era must record 'closed_utc'")
+    if status == "open" and era.get("closed_utc") is not None:
+        raise LedgerError(f"{where}: an open era must not record 'closed_utc'")
+    if era.get("closed_utc") is not None and era["closed_utc"] < era["opened_utc"]:
+        raise LedgerError(f"{where}: 'closed_utc' precedes 'opened_utc'")
+    anchor = era.get("audit_anchor_commit")
+    if anchor is not None and (
+        not isinstance(anchor, str) or not _COMMIT40_RE.fullmatch(anchor)
+    ):
+        raise LedgerError(
+            f"{where}: 'audit_anchor_commit' must be a 40-hex commit"
+        )
+    dispersion = era.get("aa_dispersion")
+    if dispersion is not None:
+        if not isinstance(dispersion, dict) or not dispersion:
+            raise LedgerError(f"{where}: 'aa_dispersion' must be a non-empty object")
+        for name, value in dispersion.items():
+            if value is not None and not _positive_finite(value):
+                raise LedgerError(
+                    f"{where}: aa_dispersion/{name} must be positive and finite, or null"
+                )
+    budgets = era.get("resource_budgets")
+    if budgets is not None:
+        if not isinstance(budgets, dict) or not budgets:
+            raise LedgerError(
+                f"{where}: 'resource_budgets' must be a non-empty object"
+            )
+        for name, vector in budgets.items():
+            if not isinstance(vector, dict) or set(vector) != set(
+                RESOURCE_BUDGET_DIMENSIONS
+            ):
+                raise LedgerError(
+                    f"{where}: resource_budgets/{name} must contain exactly "
+                    f"{sorted(RESOURCE_BUDGET_DIMENSIONS)}"
+                )
+            for dimension, value in vector.items():
+                if not _positive_finite(value):
+                    raise LedgerError(
+                        f"{where}: resource_budgets/{name}/{dimension} must be "
+                        "positive and finite"
+                    )
+    dimension = era.get("scored_dimension", DEFAULT_SCORED_DIMENSION)
+    if dimension not in SCORED_DIMENSIONS:
+        raise LedgerError(
+            f"{where}: 'scored_dimension' must be one of {SCORED_DIMENSIONS}"
+        )
+    if dimension != DEFAULT_SCORED_DIMENSION and era.get("aa_dispersion") is None:
+        # TRACKS §3.1/§7: a boundary switch invalidates the inherited A/A
+        # dispersion, so the era that switches must carry its own measured
+        # recalibration. Nothing may be inherited across a boundary change.
+        raise LedgerError(
+            f"{where}: an era that scores {dimension} must declare its own measured "
+            "aa_dispersion; boundary switches never inherit calibration"
+        )
+    return era
+
+
+def board_eras(repo_root: Path, board: str) -> tuple[dict, ...]:
+    """Return one board's validated era sequence; empty when it declares none."""
+    boards = _era_block(_epochs_document(repo_root))
+    raw = boards.get(board)
+    if raw is None:
+        return ()
+    if not isinstance(raw, list) or not raw:
+        raise LedgerError(f"board eras for {board} must be a non-empty list")
+    if board not in BOARDS:
+        raise LedgerError(
+            f"board eras name {board}, which is not a registered scoring board"
+        )
     epochs = known_epochs(repo_root)
-    return epochs[max(epochs)]
+    eras = [_validate_era(board, era, epochs) for era in raw]
+    if [era["era"] for era in eras] != list(range(1, len(eras) + 1)):
+        raise LedgerError(
+            f"board eras for {board} must be numbered 1..n in ascending order"
+        )
+    for previous, era in zip(eras, eras[1:]):
+        if era["epoch_ref"] < previous["epoch_ref"]:
+            raise LedgerError(
+                f"board eras for {board}: epoch_ref must never decrease"
+            )
+        if era["opened_utc"] <= previous["opened_utc"]:
+            raise LedgerError(
+                f"board eras for {board}: opened_utc must strictly increase"
+            )
+        if previous.get("status", "open") != "banked":
+            raise LedgerError(
+                f"board eras for {board}: only the newest era may stay open"
+            )
+        if previous["closed_utc"] > era["opened_utc"]:
+            raise LedgerError(
+                f"board eras for {board}: era {previous['era']} closes after "
+                f"era {era['era']} opens"
+            )
+    return tuple(eras)
+
+
+def current_era(repo_root: Path, board: str) -> dict | None:
+    """The board's newest era as a normalized view, banked or open.
+
+    ``None`` when the board declares no era sequence. The view fills declared
+    defaults (``status``, ``scored_dimension``) and always carries every key,
+    so consumers never have to distinguish "absent" from "defaulted"; the raw
+    override blocks stay available through :func:`board_eras`.
+    """
+    eras = board_eras(repo_root, board)
+    return _era_view(eras[-1], board) if eras else None
+
+
+def _era_view(era: dict, board: str) -> dict:
+    return {
+        "board": board,
+        "era": int(era["era"]),
+        "epoch_ref": int(era["epoch_ref"]),
+        "opened_utc": era["opened_utc"],
+        "reason": era["reason"],
+        "status": era.get("status", "open"),
+        "closed_utc": era.get("closed_utc"),
+        "scored_dimension": era.get("scored_dimension", DEFAULT_SCORED_DIMENSION),
+        "note": era.get("note"),
+    }
+
+
+def _apply_era(epochs: dict[int, dict], era: dict, board: str) -> dict:
+    """Resolve one era into a complete, board-effective epoch specification."""
+    reference = int(era["epoch_ref"])
+    spec = copy.deepcopy(epochs[reference])
+    anchor = era.get("audit_anchor_commit")
+    overrides_metrics = anchor is not None or era.get("resource_budgets") is not None
+    metrics_v2 = spec.get("metrics_v2")
+    if overrides_metrics and not isinstance(metrics_v2, dict):
+        raise LedgerError(
+            f"board era {board}/{era['era']} overrides Metrics v2 policy but epoch "
+            f"{reference} declares none"
+        )
+    if anchor is not None:
+        metrics_v2["audit_anchor_commit"] = anchor
+    budgets = era.get("resource_budgets")
+    if budgets is not None:
+        by_class = dict(metrics_v2.get("resource_budgets") or {})
+        for name, vector in budgets.items():
+            by_class[name] = dict(vector)
+        metrics_v2["resource_budgets"] = by_class
+    dispersion = era.get("aa_dispersion")
+    if dispersion is not None:
+        by_board = spec.setdefault("aa_dispersion", {})
+        merged = dict(by_board.get(board) or {})
+        merged.update(dispersion)
+        by_board[board] = merged
+    spec["scored_dimension"] = era.get("scored_dimension", DEFAULT_SCORED_DIMENSION)
+    spec["era"] = _era_view(era, board)
+    return spec
+
+
+def epoch_for_board(
+    repo_root: Path, epoch: int, board: str | None = None,
+) -> dict:
+    """The board-effective specification of one named global epoch.
+
+    ``board=None``, or a board with no era covering ``epoch``, returns the
+    global epoch record unchanged.
+    """
+    epochs = known_epochs(repo_root)
+    if int(epoch) not in epochs:
+        raise LedgerError(f"unknown epoch {epoch}")
+    if board is None:
+        return epochs[int(epoch)]
+    covering = [
+        era for era in board_eras(repo_root, board)
+        if int(era["epoch_ref"]) == int(epoch)
+    ]
+    if not covering:
+        return epochs[int(epoch)]
+    return _apply_era(epochs, covering[-1], board)
+
+
+def current_epoch(repo_root: Path, board: str | None = None) -> dict:
+    """The newest global epoch, or one board's current era resolved against it.
+
+    A board whose newest era is banked stays pinned to that era's epoch even
+    after later global epochs open — that is what retiring a board means
+    (TRACKS §6): its history keeps being served and its scoring never drifts.
+    """
+    epochs = known_epochs(repo_root)
+    if board is None:
+        return epochs[max(epochs)]
+    eras = board_eras(repo_root, board)
+    if not eras:
+        return epochs[max(epochs)]
+    return _apply_era(epochs, eras[-1], board)
+
+
+def scored_dimension(repo_root: Path, board: str | None = None) -> str:
+    """The boundary a board's current era scores; ``prove_ms`` by default."""
+    return str(
+        current_epoch(repo_root, board=board).get(
+            "scored_dimension", DEFAULT_SCORED_DIMENSION
+        )
+    )
 
 
 def aa_dispersion(repo_root: Path, board: str, workload_class: str) -> float | None:
-    by_board = current_epoch(repo_root).get("aa_dispersion", {})
+    by_board = current_epoch(repo_root, board=board).get("aa_dispersion", {})
     value = by_board.get(board, {}).get(workload_class)
     return float(value) if value is not None else None
 
 
 def resource_budgets(
-    repo_root: Path, workload_class: str,
+    repo_root: Path, workload_class: str, board: str | None = None,
 ) -> dict[str, float] | None:
     """Return the current epoch's complete resource budget vector.
 
     Legacy epochs predate Metrics v2 and return ``None``. Once Metrics v2 is
     declared, every class used by an evaluation must have an exact, positive,
-    finite three-dimensional budget.
+    finite three-dimensional budget. TRACKS §8 keys budgets by (board, class):
+    a board era may pin its own class vectors, and anything it does not pin
+    falls back to the epoch's class-only vector.
     """
-    metrics = current_epoch(repo_root).get("metrics_v2")
+    metrics = current_epoch(repo_root, board=board).get("metrics_v2")
     if metrics is None:
         return None
     if not isinstance(metrics, dict):

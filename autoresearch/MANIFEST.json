@@ -278,7 +278,13 @@
     "groups": {
       "native": {
         "enabled": true,
-        "promotion_eligible": true,
+        "promotion_eligible": false,
+        "promotion_blocked_reason": "TRACKS §6 retire-and-complete: the native CPU era is banked. New promotions refuse; the board stays enabled so its history, final scores, guard workloads, and PR6-supremacy cells keep running.",
+        "retirement": {
+          "retired_at_utc": "2026-07-29T00:00:00Z",
+          "reason": "TRACKS §6 retire-and-complete: the native era is banked; history stays served; the native AIRs continue as PR6-supremacy cells and guard workloads",
+          "closing_audit": null
+        },
         "board": "core_cpu",
         "build_step": "zig build native-proof-bench-cpu -Doptimize=ReleaseFast",
         "binary": "zig-out/bin/native-proof-bench-cpu",
@@ -513,7 +519,13 @@
       },
       "metal": {
         "enabled": true,
-        "promotion_eligible": true,
+        "promotion_eligible": false,
+        "promotion_blocked_reason": "TRACKS §6 retire-and-complete: the native Metal era is banked. New promotions refuse; the board stays enabled so its history, final scores, guard workloads, and PR6-supremacy cells keep running.",
+        "retirement": {
+          "retired_at_utc": "2026-07-29T00:00:00Z",
+          "reason": "TRACKS §6 retire-and-complete: the native era is banked; history stays served; the native AIRs continue as PR6-supremacy cells and guard workloads",
+          "closing_audit": null
+        },
         "board": "core_metal",
         "build_step": "zig build native-proof-bench-metal -Doptimize=ReleaseFast",
         "binary": "zig-out/bin/native-proof-bench-metal",
