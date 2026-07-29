@@ -408,10 +408,16 @@ class BoardAutoRoutingTest(unittest.TestCase):
         self.assertEqual(
             self._route(["src/integrations/cairo_metal/a.zig"]), "cairo_metal",
         )
-        # And RISC-V on Metal has no board today, so it fails closed rather
-        # than falling back to the CPU board.
+        # RISC-V on Metal is the same shape and now HAS a board: the wave-2
+        # riscv_metal group landed, and routing resolved it by convention the
+        # moment it did. It must never fall back to the CPU board.
+        self.assertEqual(
+            self._route(["src/integrations/riscv_metal/a.zig"]), "riscv_metal",
+        )
+        # The fail-closed path still has a live case: Cairo on CUDA is a real
+        # integration lane with no board, so it refuses rather than guessing.
         with self.assertRaisesRegex(ManifestError, "declares no board"):
-            self._route(["src/integrations/riscv_metal/a.zig"])
+            self._route(["src/integrations/cairo_cuda/a.zig"])
 
     def test_native_defaults_are_unchanged(self):
         self.assertEqual(self._route(["src/prover/fri.zig"]), "core_cpu")
@@ -429,12 +435,24 @@ class BoardAutoRoutingTest(unittest.TestCase):
             ])
 
     def test_a_track_with_no_board_fails_closed(self):
-        # RISC-V on Metal has no board in the manifest today.
+        # Cairo on CUDA has no board in the manifest today. (RISC-V on Metal
+        # used to be this case; the wave-2 riscv_metal group gave it a board,
+        # and the frontend+backend coordinates now resolve it — see
+        # test_riscv_frontend_with_metal_routes_to_riscv_metal.)
         with self.assertRaisesRegex(ManifestError, "declares no board"):
+            self._route([
+                "src/frontends/cairo/vm/mod.zig",
+                "src/backends/cuda/rt.zig",
+            ])
+
+    def test_riscv_frontend_with_metal_routes_to_riscv_metal(self):
+        self.assertEqual(
             self._route([
                 "src/frontends/riscv/decode.zig",
                 "src/backends/metal/fft.metal",
-            ])
+            ]),
+            "riscv_metal",
+        )
 
     def test_explicit_board_bypasses_routing_entirely(self):
         args = SimpleNamespace(board="cairo_metal")

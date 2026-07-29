@@ -17,6 +17,7 @@ Read the brief for the track you are working on. Each is generated from `autores
 | `cairo_cpu` | epoch 2 | `prove_ms` | blocked | [TASK.cairo_cpu.md](tasks/TASK.cairo_cpu.md) |
 | `cairo_metal` | epoch 2 | `prove_ms` | staged | [TASK.cairo_metal.md](tasks/TASK.cairo_metal.md) |
 | `pr6_supremacy` | epoch 2 | `prove_ms` | staged | [TASK.pr6_supremacy.md](tasks/TASK.pr6_supremacy.md) |
+| `riscv_metal` | epoch 2 | `prove_ms` | staged | [TASK.riscv_metal.md](tasks/TASK.riscv_metal.md) |
 
 ## What every track shares
 

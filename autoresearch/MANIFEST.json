@@ -825,7 +825,23 @@
             "args": "--elf vectors/riscv_elfs/fib_iter.elf --pow-bits 26 --n-queries 70",
             "native_unit": "executed instructions"
           }
-        }
+        },
+        "guard_registry": null,
+        "guard_registry_absent_reason": "TRACKS §8: guards must run on the track's OWN product binary, and this track has no binary that can run one. The riscv registry's guards are `bench --elf ... --protocol functional {admission} ...` commands against the RISC-V CPU product CLI; the installed riscv-metal-bench accepts no `bench` subcommand, no `--protocol`, and no admission token, and emits no parseable report (see this group's report_adapter). Binding the riscv portfolio here would re-measure the CPU lane's statements on a binary that cannot run them — exactly the flat-portfolio nonsense per-group registries removed. A riscv_metal registry arrives with the report adapter, and its first candidates are the killer rows staged in workload_registry.groups.riscv.era_staged_basket.",
+        "editable_paths": [
+          {
+            "glob": "src/frontends/riscv/**",
+            "min_rung": "s3"
+          },
+          {
+            "glob": "src/integrations/riscv_cpu/**",
+            "min_rung": "s3"
+          },
+          {
+            "glob": "src/integrations/riscv_metal/**",
+            "min_rung": "s3"
+          }
+        ]
       },
       "metal": {
         "enabled": true,
