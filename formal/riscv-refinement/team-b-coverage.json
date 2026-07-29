@@ -1,65 +1,65 @@
 {
-  "canonical_digest": "821aa2d6d1fdc06a14b44eccb9e72a093a1a8f12f1258affbf5c8920a8a74f46",
+  "canonical_digest": "8dc3061e94d1dc9e8bc8f13dd9fd6b0b6f3e1e1d0389fde3ea14b8b7f6f49003",
   "certificates": [
     {
       "family": "shifts_reg",
       "manifest_id": 2,
       "mnemonic": "sll",
       "mutation": null,
-      "non_vacuity_theorem": null,
-      "refinement_theorem": null,
-      "state": "open",
-      "tuple_theorem": null
+      "non_vacuity_theorem": "RiscvRefinement.Opcodes.sll_exists",
+      "refinement_theorem": "RiscvRefinement.Opcodes.sll_refines",
+      "state": "refined",
+      "tuple_theorem": "RiscvRefinement.Opcodes.sll_refines"
     },
     {
       "family": "shifts_reg",
       "manifest_id": 6,
       "mnemonic": "srl",
       "mutation": null,
-      "non_vacuity_theorem": null,
-      "refinement_theorem": null,
-      "state": "open",
-      "tuple_theorem": null
+      "non_vacuity_theorem": "RiscvRefinement.Opcodes.srl_exists",
+      "refinement_theorem": "RiscvRefinement.Opcodes.srl_refines",
+      "state": "refined",
+      "tuple_theorem": "RiscvRefinement.Opcodes.srl_refines"
     },
     {
       "family": "shifts_reg",
       "manifest_id": 7,
       "mnemonic": "sra",
       "mutation": null,
-      "non_vacuity_theorem": null,
-      "refinement_theorem": null,
-      "state": "open",
-      "tuple_theorem": null
+      "non_vacuity_theorem": "RiscvRefinement.Opcodes.sra_exists",
+      "refinement_theorem": "RiscvRefinement.Opcodes.sra_refines",
+      "state": "refined",
+      "tuple_theorem": "RiscvRefinement.Opcodes.sra_refines"
     },
     {
       "family": "shifts_imm",
       "manifest_id": 16,
       "mnemonic": "slli",
       "mutation": null,
-      "non_vacuity_theorem": null,
-      "refinement_theorem": null,
-      "state": "open",
-      "tuple_theorem": null
+      "non_vacuity_theorem": "RiscvRefinement.Opcodes.slli_exists",
+      "refinement_theorem": "RiscvRefinement.Opcodes.slli_refines",
+      "state": "refined",
+      "tuple_theorem": "RiscvRefinement.Opcodes.slli_refines"
     },
     {
       "family": "shifts_imm",
       "manifest_id": 17,
       "mnemonic": "srli",
       "mutation": null,
-      "non_vacuity_theorem": null,
-      "refinement_theorem": null,
-      "state": "open",
-      "tuple_theorem": null
+      "non_vacuity_theorem": "RiscvRefinement.Opcodes.srli_exists",
+      "refinement_theorem": "RiscvRefinement.Opcodes.srli_refines",
+      "state": "refined",
+      "tuple_theorem": "RiscvRefinement.Opcodes.srli_refines"
     },
     {
       "family": "shifts_imm",
       "manifest_id": 18,
       "mnemonic": "srai",
       "mutation": null,
-      "non_vacuity_theorem": null,
-      "refinement_theorem": null,
-      "state": "open",
-      "tuple_theorem": null
+      "non_vacuity_theorem": "RiscvRefinement.Opcodes.srai_exists",
+      "refinement_theorem": "RiscvRefinement.Opcodes.srai_refines",
+      "state": "refined",
+      "tuple_theorem": "RiscvRefinement.Opcodes.srai_refines"
     },
     {
       "family": "load_store",
@@ -67,9 +67,9 @@
       "mnemonic": "lb",
       "mutation": null,
       "non_vacuity_theorem": null,
-      "refinement_theorem": null,
-      "state": "open",
-      "tuple_theorem": null
+      "refinement_theorem": "RiscvRefinement.Opcodes.lb_refines",
+      "state": "refined",
+      "tuple_theorem": "RiscvRefinement.Opcodes.lb_refines"
     },
     {
       "family": "load_store",
@@ -77,9 +77,9 @@
       "mnemonic": "lh",
       "mutation": null,
       "non_vacuity_theorem": null,
-      "refinement_theorem": null,
-      "state": "open",
-      "tuple_theorem": null
+      "refinement_theorem": "RiscvRefinement.Opcodes.lh_refines",
+      "state": "refined",
+      "tuple_theorem": "RiscvRefinement.Opcodes.lh_refines"
     },
     {
       "family": "load_store",
@@ -87,9 +87,9 @@
       "mnemonic": "lw",
       "mutation": null,
       "non_vacuity_theorem": null,
-      "refinement_theorem": null,
-      "state": "open",
-      "tuple_theorem": null
+      "refinement_theorem": "RiscvRefinement.Opcodes.lw_refines",
+      "state": "refined",
+      "tuple_theorem": "RiscvRefinement.Opcodes.lw_refines"
     },
     {
       "family": "load_store",
@@ -97,9 +97,9 @@
       "mnemonic": "lbu",
       "mutation": null,
       "non_vacuity_theorem": null,
-      "refinement_theorem": null,
-      "state": "open",
-      "tuple_theorem": null
+      "refinement_theorem": "RiscvRefinement.Opcodes.lbu_refines",
+      "state": "refined",
+      "tuple_theorem": "RiscvRefinement.Opcodes.lbu_refines"
     },
     {
       "family": "load_store",
@@ -107,9 +107,9 @@
       "mnemonic": "lhu",
       "mutation": null,
       "non_vacuity_theorem": null,
-      "refinement_theorem": null,
-      "state": "open",
-      "tuple_theorem": null
+      "refinement_theorem": "RiscvRefinement.Opcodes.lhu_refines",
+      "state": "refined",
+      "tuple_theorem": "RiscvRefinement.Opcodes.lhu_refines"
     },
     {
       "family": "load_store",

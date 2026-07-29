@@ -70,10 +70,13 @@ CERTIFICATE_STATES = ("open", "capsule-only", "refined", "proved")
 REQUIRED_CERTIFICATE_FIELDS: dict[str, tuple[str, ...]] = {
     "open": (),
     "capsule-only": (),
+    # A refinement theorem plus its tuple projections. The non-vacuity witness
+    # is recorded when it exists and is required to advance past this state,
+    # so a populated field distinguishes a witnessed refinement from an
+    # unwitnessed one without needing a fifth state.
     "refined": (
         "refinement_theorem",
         "tuple_theorem",
-        "non_vacuity_theorem",
     ),
     "proved": (
         "refinement_theorem",

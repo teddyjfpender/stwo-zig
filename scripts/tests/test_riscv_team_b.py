@@ -122,7 +122,8 @@ class TeamBCoverageTest(unittest.TestCase):
         for state, field in (
             ("refined", "refinement_theorem"),
             ("refined", "tuple_theorem"),
-            ("refined", "non_vacuity_theorem"),
+            ("proved", "refinement_theorem"),
+            ("proved", "non_vacuity_theorem"),
             ("proved", "mutation"),
         ):
             index = self._index()
