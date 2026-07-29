@@ -125,6 +125,7 @@ class TeamBCoverageTest(unittest.TestCase):
             ("proved", "refinement_theorem"),
             ("proved", "non_vacuity_theorem"),
             ("proved", "mutation"),
+            ("proved", "mutation_theorem"),
         ):
             index = self._index()
             target = index["certificates"][0]
@@ -153,6 +154,68 @@ class TeamBCoverageTest(unittest.TestCase):
         with self._with_index(index):
             self.assertIn("0/22 proved", team_b.check_coverage())
 
+    def test_an_unrecognised_sail_binding_fails_closed(self):
+        index = self._index()
+        index["certificates"][0]["sail_binding"] = "vibes"
+        index["canonical_digest"] = team_b.canonical_digest(index)
+        with self._with_index(index):
+            with self.assertRaisesRegex(
+                team_b.TeamBError, "unrecognised sail_binding"
+            ):
+                team_b.check_coverage()
+
+    def test_a_generated_binding_without_a_receipt_fails_closed(self):
+        # This is the gate that lets the coverage number survive the
+        # acceptance bar moving: an entry may not claim the generated-Sail
+        # binding on the strength of nothing.
+        index = self._index()
+        index["certificates"][0]["sail_binding"] = "generated"
+        index["canonical_digest"] = team_b.canonical_digest(index)
+        with self._with_index(index):
+            with self.assertRaisesRegex(
+                team_b.TeamBError, "records no\\s+sail_receipt"
+            ):
+                team_b.check_coverage()
+
+    def test_an_empty_receipt_does_not_support_a_generated_binding(self):
+        index = self._index()
+        index["certificates"][0]["sail_binding"] = "generated"
+        index["certificates"][0]["sail_receipt"] = ""
+        index["canonical_digest"] = team_b.canonical_digest(index)
+        with self._with_index(index):
+            with self.assertRaisesRegex(
+                team_b.TeamBError, "records no\\s+sail_receipt"
+            ):
+                team_b.check_coverage()
+
+    def test_a_generated_binding_with_a_receipt_is_accepted(self):
+        index = self._index()
+        index["certificates"][0]["sail_binding"] = "generated"
+        index["certificates"][0]["sail_receipt"] = (
+            "formal/riscv-refinement/generated-manifest.json"
+        )
+        index["canonical_digest"] = team_b.canonical_digest(index)
+        with self._with_index(index):
+            self.assertIn("team B coverage", team_b.check_coverage())
+
+    def test_a_missing_sail_binding_defaults_to_reviewed_capsule(self):
+        # Certificates written before the field existed keep validating; the
+        # default is the weaker claim, so nothing is overstated.
+        index = self._index()
+        for certificate in index["certificates"]:
+            certificate.pop("sail_binding", None)
+        index["canonical_digest"] = team_b.canonical_digest(index)
+        with self._with_index(index):
+            self.assertIn("team B coverage", team_b.check_coverage())
+
+    def test_every_committed_certificate_states_its_sail_binding(self):
+        for certificate in self._index()["certificates"]:
+            self.assertIn(
+                certificate.get("sail_binding"),
+                team_b.SAIL_BINDINGS,
+                certificate["mnemonic"],
+            )
+
     def test_named_theorem_that_does_not_exist_fails_closed(self):
         index = self._index()
         index["certificates"][0]["refinement_theorem"] = (
@@ -162,6 +225,283 @@ class TeamBCoverageTest(unittest.TestCase):
         with self._with_index(index):
             with self.assertRaisesRegex(team_b.TeamBError, "do not exist"):
                 team_b.check_theorems()
+
+    def _with_certificate(self, mnemonic: str, **fields):
+        index = self._index()
+        target = next(
+            entry
+            for entry in index["certificates"]
+            if entry["mnemonic"] == mnemonic
+        )
+        for field, value in fields.items():
+            if value is None:
+                target.pop(field, None)
+            else:
+                target[field] = value
+        index["canonical_digest"] = team_b.canonical_digest(index)
+        return self._with_index(index)
+
+    def test_proved_without_a_mutation_theorem_is_refused(self):
+        # Reproduces the audited attack: srl claims "proved" carrying only a
+        # junk free-form mutation label and no mutation_theorem. Before the
+        # fix, check_coverage and check_theorems both passed and the headline
+        # number inflated to 3/22.
+        with self._with_certificate(
+            "srl",
+            state="proved",
+            mutation="srl-claimed-but-unnamed-mutation",
+            mutation_theorem=None,
+        ):
+            with self.assertRaisesRegex(
+                team_b.TeamBError, "mutation_theorem is\\s+absent"
+            ):
+                team_b.check_coverage()
+
+    def test_a_junk_mutation_theorem_name_is_refused_by_the_theorem_gate(self):
+        # Second stage of the same attack: naming a mutation_theorem that is
+        # not a real, correctly-attributed Lean theorem satisfies the field
+        # requirement but is refused by check_theorems.
+        with self._with_certificate(
+            "srl",
+            state="proved",
+            mutation="srl-claimed-but-unnamed-mutation",
+            mutation_theorem="RiscvRefinement.Opcodes.srl_junk_mutation",
+        ):
+            self.assertIn("team B coverage", team_b.check_coverage())
+            with self.assertRaisesRegex(team_b.TeamBError, "do not exist"):
+                team_b.check_theorems()
+
+    def test_a_bogus_namespace_is_refused(self):
+        # Reproduces the audited attack: the trailing name exists in the Lean
+        # sources, the namespace it is attributed to does not.
+        with self._with_certificate(
+            "srl",
+            refinement_theorem="Totally.Bogus.Namespace.srl_refines",
+        ):
+            with self.assertRaisesRegex(
+                team_b.TeamBError, "Totally.Bogus.Namespace.srl_refines"
+            ):
+                team_b.check_theorems()
+
+    def test_a_real_theorem_attributed_to_the_wrong_namespace_is_refused(self):
+        # RiscvRefinement.Sail.Reviewed is a real namespace and sll_refines a
+        # real theorem -- but it lives in RiscvRefinement.Opcodes, so the
+        # attribution is a lie and must be refused.
+        with self._with_certificate(
+            "sll",
+            refinement_theorem="RiscvRefinement.Sail.Reviewed.sll_refines",
+        ):
+            with self.assertRaisesRegex(team_b.TeamBError, "do not exist"):
+                team_b.check_theorems()
+
+    def test_an_attribution_coarser_than_the_file_namespace_is_refused(self):
+        # Opcodes/Shifts.lean opens `namespace RiscvRefinement.Opcodes` in one
+        # declaration; attributing its theorems to bare RiscvRefinement elides
+        # part of that declaration and must be refused.
+        with self._with_certificate(
+            "srl", refinement_theorem="RiscvRefinement.srl_refines"
+        ):
+            with self.assertRaisesRegex(team_b.TeamBError, "do not exist"):
+                team_b.check_theorems()
+
+    def test_a_bare_theorem_name_is_refused(self):
+        with self._with_certificate("srl", refinement_theorem="srl_refines"):
+            with self.assertRaisesRegex(team_b.TeamBError, "do not exist"):
+                team_b.check_theorems()
+
+    def test_the_exact_nested_namespace_attribution_is_accepted(self):
+        # lb_exists is declared inside the organizational NonVacuity
+        # sub-namespace of Opcodes/LoadStore.lean. Its exact fully-qualified
+        # name must be accepted alongside the enclosing-namespace attribution
+        # the committed index uses.
+        with self._with_certificate(
+            "lb",
+            non_vacuity_theorem="RiscvRefinement.Opcodes.NonVacuity.lb_exists",
+        ):
+            self.assertIn("team B certificates", team_b.check_theorems())
+
+    def test_the_committed_index_resolves_in_its_attributed_namespaces(self):
+        self.assertIn(
+            "named theorems present in", team_b.check_theorems()
+        )
+
+
+class TeamBLeanNamespaceParserTest(unittest.TestCase):
+    """The namespace resolution that closes the theorem-attribution hole."""
+
+    def _claimable(self, text: str) -> set:
+        return team_b.lean_claimable_theorems(text, "Scratch.lean")
+
+    def test_nested_namespaces_allow_enclosing_attribution_only(self):
+        text = (
+            "namespace A.B\n"
+            "namespace C\n"
+            "theorem inner : True := trivial\n"
+            "end C\n"
+            "theorem outer : True := trivial\n"
+            "end A.B\n"
+        )
+        self.assertEqual(
+            self._claimable(text),
+            {"A.B.C.inner", "A.B.inner", "A.B.outer"},
+        )
+
+    def test_a_dotted_namespace_declaration_never_splits(self):
+        # `namespace A.B` is one declaration; `A.t` would attribute t more
+        # coarsely than the outermost declaration and is not claimable.
+        text = "namespace A.B\ntheorem t : True := trivial\nend A.B\n"
+        self.assertEqual(self._claimable(text), {"A.B.t"})
+
+    def test_segment_wise_ends_are_followed(self):
+        # Lean lets `end B` close the inner segment of `namespace A.B`.
+        text = (
+            "namespace A.B\n"
+            "end B\n"
+            "theorem t : True := trivial\n"
+            "end A\n"
+        )
+        self.assertEqual(self._claimable(text), {"A.t"})
+
+    def test_dotted_theorem_names_are_kept_whole(self):
+        text = (
+            "namespace A\n"
+            "theorem Row.holds : True := trivial\n"
+            "end A\n"
+        )
+        self.assertEqual(self._claimable(text), {"A.Row.holds"})
+
+    def test_sections_and_attributes_are_transparent(self):
+        text = (
+            "namespace A\n"
+            "section\n"
+            "@[simp] theorem t : True := trivial\n"
+            "end\n"
+            "end A\n"
+        )
+        self.assertEqual(self._claimable(text), {"A.t"})
+
+    def test_comments_do_not_open_or_close_scopes(self):
+        text = (
+            "namespace A\n"
+            "/-! end A\nnamespace Bogus -/\n"
+            "-- end A\n"
+            "theorem t : True := trivial\n"
+            "end A\n"
+        )
+        self.assertEqual(self._claimable(text), {"A.t"})
+
+    def test_an_unbalanced_end_fails_closed(self):
+        with self.assertRaisesRegex(team_b.TeamBError, "cannot parse"):
+            self._claimable("end A\n")
+
+    def test_a_mismatched_end_fails_closed(self):
+        with self.assertRaisesRegex(team_b.TeamBError, "cannot parse"):
+            self._claimable("namespace A\nend B\n")
+
+    def test_a_dangling_scope_fails_closed(self):
+        with self.assertRaisesRegex(team_b.TeamBError, "cannot parse"):
+            self._claimable("namespace A\ntheorem t : True := trivial\n")
+
+    def test_every_lean_source_parses(self):
+        # The gate refuses files it cannot follow, so every committed source
+        # must stay within the scope grammar the parser models.
+        for path in sorted(team_b.LEAN_ROOT.rglob("*.lean")):
+            with self.subTest(path=str(path.relative_to(team_b.LEAN_ROOT))):
+                team_b.lean_claimable_theorems(
+                    path.read_text(encoding="utf-8"), path.name
+                )
+
+
+class TeamBInventoryTest(unittest.TestCase):
+    def _index(self) -> dict:
+        return json.loads(
+            team_b.CERTIFICATE_INDEX.read_text(encoding="utf-8")
+        )
+
+    def _with_index(self, index: dict):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        path = Path(directory.name) / "team-b-coverage.json"
+        path.write_text(json.dumps(index, indent=2, sort_keys=True) + "\n")
+        return mock.patch.object(team_b, "CERTIFICATE_INDEX", path)
+
+    def _rows(self, table: str) -> dict[str, list[str]]:
+        lines = table.splitlines()
+        return {
+            line.split()[0]: line.split()
+            for line in lines[1:-1]  # strip the header and the summary
+        }
+
+    def test_inventory_lists_every_team_b_opcode_once(self):
+        rows = self._rows(team_b.inventory())
+        self.assertEqual(set(rows), EXPECTED_TEAM_B_OPCODES)
+
+    def test_inventory_reports_the_four_theorem_slots(self):
+        table = team_b.inventory()
+        header = table.splitlines()[0].split()
+        self.assertEqual(
+            header,
+            [
+                "mnemonic", "family", "id", "state",
+                "refine", "tuple", "witness", "mutation",
+                "sail-binding",
+            ],
+        )
+        rows = self._rows(table)
+        # lh is proved: every slot populated, including the mutation control.
+        self.assertEqual(
+            rows["lh"],
+            ["lh", "load_store", "20", "proved", "x", "x", "x", "x",
+             "reviewed-capsule"],
+        )
+        # Every row must agree with the certificate index rather than with a
+        # hardcoded snapshot. Snapshotting a state here made this test fail on
+        # every legitimate promotion, which trains people to edit the test
+        # instead of reading it.
+        index = json.loads(
+            team_b.CERTIFICATE_INDEX.read_text(encoding="utf-8")
+        )
+        certificates = {c["mnemonic"]: c for c in index["certificates"]}
+        for mnemonic, row in rows.items():
+            certificate = certificates[mnemonic]
+            with self.subTest(opcode=mnemonic):
+                self.assertEqual(row[1], certificate["family"])
+                self.assertEqual(row[2], str(certificate["manifest_id"]))
+                self.assertEqual(row[3], certificate["state"])
+                # Slots 4-7 are refinement / tuple / non-vacuity / mutation:
+                # "x" exactly when the corresponding field is populated.
+                for offset, field in enumerate(
+                    (
+                        "refinement_theorem",
+                        "tuple_theorem",
+                        "non_vacuity_theorem",
+                        "mutation_theorem",
+                    )
+                ):
+                    expected = "x" if certificate.get(field) else "-"
+                    self.assertEqual(row[4 + offset], expected)
+
+    def test_inventory_summarises_state_counts(self):
+        summary = team_b.inventory().splitlines()[-1]
+        self.assertIn("team B inventory: 22 opcodes", summary)
+        self.assertIn("proved", summary)
+
+    def test_inventory_fails_closed_on_a_tampered_index(self):
+        index = self._index()
+        index["canonical_digest"] = "0" * 64
+        with self._with_index(index):
+            with self.assertRaisesRegex(team_b.TeamBError, "digest mismatch"):
+                team_b.inventory()
+
+    def test_inventory_is_a_cli_subcommand(self):
+        import contextlib
+        import io
+
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout):
+            status = team_b.main(["inventory"])
+        self.assertEqual(status, 0)
+        self.assertIn("team B inventory: 22 opcodes", stdout.getvalue())
 
 
 class TeamBProfileMutationTest(unittest.TestCase):

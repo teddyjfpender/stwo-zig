@@ -2,33 +2,63 @@
 --
 -- The generated pinned-Sail theorem backend is unavailable in this
 -- environment (no Sail compiler is installed), so the architectural side of
--- the RV32M multiply refinements is a hand-reviewed normalized capsule of the
--- `MUL` clause of `riscv_insts_mext.sail`, in exactly the same status as
--- RiscvRefinement/Sail/Generated/Pilot.lean. Replacing this file with a
--- generated-Sail definition slice is the open obligation; until that happens
--- no claim in this development is publication-level for the architectural
--- side.
+-- the RV32M multiply refinements is a hand-written normalized capsule of the
+-- pinned model's `MUL` execute clause. It is the same epistemic *class* as
+-- RiscvRefinement/Sail/Generated/Pilot.lean -- a reviewed capsule, explicitly
+-- not a generated-Sail theorem -- but not the same status: Pilot.lean is
+-- generator output pinned to SHA-256 digests of real generated Sail text,
+-- while this file is hand-written, with no generator, no digest, and no
+-- derivation from any Sail artifact. Replacing it with a generated-Sail
+-- definition slice is the open obligation; until that happens no claim in
+-- this development is publication-level for the architectural side.
 --
--- Reviewed source clause (RV32, `xlen = 32`):
+-- Reviewed source, at the pinned sail-riscv revision
+-- 8c7f2da58de0ba5e4457e4de07e0046f0439f35f (the layout `sail.py` pins via
+-- `model/riscv.sail_project`; the path `riscv_insts_mext.sail` cited by an
+-- earlier revision of this header does not exist in that layout):
 --
---   function clause execute (MUL(rs2, rs1, rd, high, signed1, signed2)) = {
---     let rs1_val = X(rs1);
---     let rs2_val = X(rs2);
---     let rs1_int : int = if signed1 then signed(rs1_val) else unsigned(rs1_val);
---     let rs2_int : int = if signed2 then signed(rs2_val) else unsigned(rs2_val);
---     let result_wide = to_bits(2 * sizeof(xlen), rs1_int * rs2_int);
---     let result = if high
---                  then result_wide[(2 * sizeof(xlen) - 1) .. sizeof(xlen)]
---                  else result_wide[(sizeof(xlen) - 1) .. 0];
---     X(rd) = result
---   }
+--   `model/extensions/M/mext_insts.sail`, the execute clause:
 --
--- `to_bits(64, n)` is the two's-complement 64-bit encoding of `n`, i.e. `n`
--- reduced modulo `2 ^ 64`; that is exactly `BitVec 64` multiplication of the
--- extended operands, which is how the four selectors below are normalized.
--- `(high, signed1, signed2)` is `(false, true, true)` for `MUL`,
--- `(true, true, true)` for `MULH`, `(true, true, false)` for `MULHSU` and
--- `(true, false, false)` for `MULHU`.
+--     function clause execute MUL(rs2, rs1, rd, mul_op) = {
+--       let rs1_bits = X(rs1);
+--       let rs2_bits = X(rs2);
+--       X(rd) = mult_to_bits_half(xlen, mul_op.signed_rs1, mul_op.signed_rs2,
+--                                 rs1_bits, rs2_bits, mul_op.result_part);
+--       RETIRE_SUCCESS
+--     }
+--
+--   `model/core/arithmetic.sail`, the helper it calls:
+--
+--     function mult_to_bits_half(l, sign1, sign2, rs1_bits, rs2_bits, result_part) = {
+--       let rs1_int : int = match sign1 {
+--         Signed   => signed(rs1_bits),
+--         Unsigned => unsigned(rs1_bits),
+--       };
+--       let rs2_int : int = match sign2 {
+--         Signed   => signed(rs2_bits),
+--         Unsigned => unsigned(rs2_bits),
+--       };
+--       let result_wide = to_bits_truncate(2 * l, rs1_int * rs2_int);
+--       match result_part {
+--         High => result_wide[(2 * l - 1) .. l],
+--         Low  => result_wide[(l - 1) .. 0],
+--       }
+--     }
+--
+--   `model/extensions/M/mext_types.sail` defines the `mul_op` struct
+--   (`result_part`, `signed_rs1`, `signed_rs2`), and the `encdec_mul_op`
+--   mapping in `mext_insts.sail` fixes the four selectors:
+--   `mul = {Low, Signed, Signed}`, `mulh = {High, Signed, Signed}`,
+--   `mulhsu = {High, Signed, Unsigned}`, `mulhu = {High, Unsigned, Unsigned}`.
+--
+-- The quotations above are themselves a hand transcription from the pinned
+-- revision, checked by eye and not by digest: unlike Pilot.lean, nothing pins
+-- them mechanically.
+--
+-- Normalization: with `xlen = 32`, `to_bits_truncate(64, n)` is the
+-- two's-complement 64-bit encoding of `n`, i.e. `n` reduced modulo `2 ^ 64`;
+-- that is exactly `BitVec 64` multiplication of the extended operands, which
+-- is how the four selectors below are normalized.
 
 import RiscvRefinement.Common
 

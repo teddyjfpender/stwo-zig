@@ -2,8 +2,12 @@
 --
 -- The pinned Sail theorem backend is not available in this environment (no
 -- Sail compiler is installed here), so the architectural side of the DIV
--- family below is a hand-reviewed normalized capsule, exactly like
--- RiscvRefinement/Sail/Generated/Pilot.lean. Replacing this capsule with a
+-- family below is a hand-written normalized capsule. It is the same epistemic
+-- *class* as RiscvRefinement/Sail/Generated/Pilot.lean -- a reviewed capsule,
+-- not a generated-Sail theorem -- but not the same status: Pilot.lean is
+-- generator output pinned to SHA-256 digests of real generated Sail text,
+-- while this file is hand-written, with no generator, no digest, and no
+-- derivation from any Sail artifact. Replacing this capsule with a
 -- generated definition slice extracted from the pinned Sail model, together
 -- with its translation receipt, is the open obligation for this family.
 --

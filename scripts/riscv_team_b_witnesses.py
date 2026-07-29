@@ -15,17 +15,44 @@ agree at least at that point.
 
 It is a cross-check, not a substitute for either. It cannot prove the capsule is
 a faithful transcription; it can only refute a witness that is not reachable.
+
+The gate runs two batteries. The witness battery proves reachability: every
+honest row (LH, the SB/SH/SW stores, the DIV family, multiply, and both the
+immediate and register shifts) must satisfy every production constraint root and
+range lookup. The mutation battery proves the opposite direction: each
+deliberately tampered row — a clobbered unselected store byte, a byte written at
+the wrong offset, an unmasked register-shift amount, a flipped sign, a relabelled
+selector — must be REFUSED by the production AIR. A witness gate that only
+proved reachability would accept an AIR that lost a constraint.
 """
 
 from __future__ import annotations
 
 import argparse
+import difflib
+import hashlib
 import json
 import sys
 from pathlib import Path
 from typing import Any
 
 M31 = 2147483647
+
+#: Repository root, derived from this file's location so the freshness guard
+#: works no matter which directory the gate is invoked from.
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+
+#: Every Zig source that can change the exported production AIR lives under
+#: this tree (the AIR components, their lookups, and the IR export tool). The
+#: provenance check compares its newest mtime against the export's oldest.
+AIR_SOURCE_ROOT = REPOSITORY_ROOT / "src" / "frontends" / "riscv"
+
+#: The exact command that regenerates the exported production AIR this gate
+#: reads. Failure messages quote it so a digest or shape drift tells the reader
+#: what to run next instead of only what went wrong.
+EXPORT_COMMAND = (
+    "zig build riscv-refinement-ir -Driscv-refinement-ir-dir=zig-out/team-b-ir"
+)
 
 #: Range-check domains and the bit width of each tuple coordinate.
 #: ``range_check_m31`` additionally rejects the maximal tuple, matching
@@ -37,6 +64,26 @@ RANGE_DOMAINS: dict[str, tuple[int, ...]] = {
     "range_check_8_8_4": (8, 8, 4),
     "range_check_m31": (8, 7),
 }
+
+#: Lookup domains this gate deliberately does not check, with the reason. They
+#: are multiset (bus) relations balanced across the whole trace — memory,
+#: program and register consistency, and the preprocessed bitwise table — so a
+#: single-row evaluation cannot decide them; the Lean side models them as
+#: `unmodelled_bus_requests`. Every domain a family uses must appear either
+#: here or in ``RANGE_DOMAINS``: an unknown domain is an ERROR, never a silent
+#: skip, because a new production range table that this gate ignored would
+#: quietly widen what a "reachable" witness is allowed to claim.
+SKIPPED_DOMAINS: dict[str, str] = {
+    "bitwise": "preprocessed AND/OR/XOR table; a trace-global lookup argument",
+    "memory_access": "trace-global memory-consistency bus, not a range table",
+    "program_access": "trace-global program-ROM consistency bus, not a range table",
+    "registers_state": "trace-global register-file bus, not a range table",
+}
+
+#: Node operations the evaluator implements. ``audit_exported_families`` holds
+#: every exported family to this set, and the test suite holds ``evaluate`` to
+#: it, so the constant cannot drift from the dispatch below.
+SUPPORTED_OPERATIONS = frozenset({"const", "col", "neg", "add", "sub", "mul"})
 
 
 class WitnessError(RuntimeError):
@@ -54,20 +101,63 @@ def load_family(air_ir_dir: Path, family: str) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _column_drift_message(declared: set[str], assigned: set[str]) -> str:
+    """Explain a witness/AIR column mismatch as new vs renamed vs removed.
+
+    The witness builders in this file encode the column set the AIR had when
+    they were written; ``declared`` is what the export has now. Diffing the two
+    turns "unassigned columns" from a wall of names into a statement about what
+    actually moved, which is exactly what a reader needs when Team A's AIR IR
+    work or an opcode fix reshapes the exported production AIR.
+    """
+    missing = sorted(declared - assigned)  # in the AIR, not in the witness
+    unknown = sorted(assigned - declared)  # in the witness, not in the AIR
+    renamed: list[tuple[str, str]] = []
+    unmatched_missing = list(missing)
+    for old in unknown:
+        candidates = difflib.get_close_matches(old, unmatched_missing, n=1)
+        if candidates:
+            renamed.append((old, candidates[0]))
+            unmatched_missing.remove(candidates[0])
+    renamed_old = {old for old, _ in renamed}
+    added = unmatched_missing
+    removed = [name for name in unknown if name not in renamed_old]
+
+    lines = ["witness and exported AIR disagree on the column set:"]
+    if missing:
+        lines.append(
+            "  witness leaves AIR columns unassigned: " + ", ".join(missing)
+        )
+    if unknown:
+        lines.append(
+            "  witness assigns columns the AIR does not declare: "
+            + ", ".join(unknown)
+        )
+    if added:
+        lines.append("  likely NEW in the AIR: " + ", ".join(added))
+    if renamed:
+        lines.append(
+            "  likely RENAMED: "
+            + ", ".join(f"{old} -> {new}" for old, new in renamed)
+        )
+    if removed:
+        lines.append("  likely REMOVED from the AIR: " + ", ".join(removed))
+    lines.append(
+        "  likely cause: the exported production AIR changed shape (for "
+        "example Team A's AIR IR v2 work or an opcode fix) while the witness "
+        "builders in scripts/riscv_team_b_witnesses.py still describe the old "
+        f"layout. Re-derive the export with `{EXPORT_COMMAND}`, then update "
+        "the witness builders (and the Lean capsule transcription) to the new "
+        "column set."
+    )
+    return "\n".join(lines)
+
+
 def evaluate(payload: dict[str, Any], assignment: dict[str, int]) -> list[int]:
     """Evaluate the flat AIR DAG over M31 under ``assignment``."""
     declared = {column["name"] for column in payload["columns"]}
-    unknown = set(assignment) - declared
-    if unknown:
-        raise WitnessError(
-            "witness assigns columns the AIR does not declare: "
-            + ", ".join(sorted(unknown))
-        )
-    missing = declared - set(assignment)
-    if missing:
-        raise WitnessError(
-            "witness leaves AIR columns unassigned: " + ", ".join(sorted(missing))
-        )
+    if declared != set(assignment):
+        raise WitnessError(_column_drift_message(declared, set(assignment)))
 
     values: list[int] = []
     for node in payload["nodes"]:
@@ -103,13 +193,34 @@ def check_constraints(payload: dict[str, Any], values: list[int]) -> None:
         )
 
 
+def _unknown_domain_error(family: str, domain: str) -> WitnessError:
+    return WitnessError(
+        f"family {family!r} uses lookup domain {domain!r}, which this gate "
+        "does not know. It is neither a range-check domain "
+        f"({', '.join(sorted(RANGE_DOMAINS))}) nor a deliberately skipped bus "
+        f"domain ({', '.join(sorted(SKIPPED_DOMAINS))}). A new production "
+        "lookup domain must be classified explicitly in RANGE_DOMAINS or "
+        "SKIPPED_DOMAINS in scripts/riscv_team_b_witnesses.py — skipping it "
+        "silently could hide an unchecked range table. If the domain is new, "
+        f"re-derive the export with `{EXPORT_COMMAND}` and read "
+        "src/frontends/riscv/air/lookups/ for what the domain provides."
+    )
+
+
 def check_range_lookups(payload: dict[str, Any], values: list[int]) -> int:
-    """Every requested range-check tuple must exist in its production table."""
+    """Every requested range-check tuple must exist in its production table.
+
+    Domains are classified before activity is considered: an unknown domain is
+    an error even on a row where the request is inactive, because
+    classification is a property of the AIR's shape, not of one witness.
+    """
     checked = 0
     for index, lookup in enumerate(payload["lookups"]):
         domain = lookup["domain"]
         widths = RANGE_DOMAINS.get(domain)
         if widths is None:
+            if domain not in SKIPPED_DOMAINS:
+                raise _unknown_domain_error(payload.get("family", "?"), domain)
             continue
         if values[lookup["numerator"]] == 0:
             # An inactive request asserts nothing, exactly as in production.
@@ -138,9 +249,18 @@ def check_witness(
     air_ir_dir: Path, family: str, assignment: dict[str, int]
 ) -> str:
     payload = load_family(air_ir_dir, family)
-    values = evaluate(payload, assignment)
-    check_constraints(payload, values)
-    checked = check_range_lookups(payload, values)
+    try:
+        values = evaluate(payload, assignment)
+        check_constraints(payload, values)
+        checked = check_range_lookups(payload, values)
+    except WitnessError as error:
+        raise WitnessError(
+            f"family {family!r} rejected the witness: {error}\n"
+            "  If this appeared after the production AIR moved (Team A AIR IR "
+            "work, an opcode fix), the witness builders here lag the export. "
+            f"Re-derive it with `{EXPORT_COMMAND}` and diff "
+            f"zig-out/team-b-ir/{family}.json against the previous export."
+        ) from error
     return (
         f"{family}: {len(payload['constraints'])} constraints satisfied, "
         f"{checked} active range requests inside their production tables"
@@ -631,20 +751,19 @@ def check_multiply_witnesses(air_ir_dir: Path) -> str:
 
 
 # --------------------------------------------------------------------------
-# Shift witnesses — SLLI, SRLI, SRAI
+# Shift witnesses — SLLI, SRLI, SRAI and the register forms SLL, SRL, SRA
 # --------------------------------------------------------------------------
 
 
-def shift_immediate_row(
-    selector: str,
-    source: int,
-    amount: int,
-    rd: int = 7,
-    *,
-    clock: int = 1,
-    pc: int = 0x1000,
-) -> tuple[dict[str, int], int]:
-    """Build an admitted SLLI/SRLI/SRAI row and the shifted word."""
+def _shift_core(
+    selector: str, source: int, amount: int
+) -> tuple[int, list[int], int, int, int, int]:
+    """The shift semantics both the immediate and register rows share.
+
+    Returns ``(shifted, carries, multiplier, bit_shift, limb_shift, sign)``
+    for the 5-bit shift ``amount & 31`` — the same masking the architecture
+    applies to both the immediate field and the rs2 register value.
+    """
     if selector not in ("sll", "srl", "sra"):
         raise WitnessError(f"unknown shift selector {selector!r}")
     amount &= 31
@@ -670,6 +789,24 @@ def shift_immediate_row(
             (source_limbs[index] & (multiplier - 1)) if bit_shift else 0
             for index in range(4)
         ]
+    return shifted, carries, multiplier, bit_shift, limb_shift, sign
+
+
+def shift_immediate_row(
+    selector: str,
+    source: int,
+    amount: int,
+    rd: int = 7,
+    *,
+    clock: int = 1,
+    pc: int = 0x1000,
+) -> tuple[dict[str, int], int]:
+    """Build an admitted SLLI/SRLI/SRAI row and the shifted word."""
+    shifted, carries, multiplier, bit_shift, limb_shift, sign = _shift_core(
+        selector, source, amount
+    )
+    amount &= 31
+    source_limbs = _limbs(source)
 
     result = _limbs(shifted)
     nonzero = 1 if rd else 0
@@ -752,6 +889,330 @@ def check_shift_witnesses(air_ir_dir: Path) -> str:
     return (
         f"shift non-vacuity: {len(SHIFT_WITNESSES) + 2} witnesses reachable in "
         "the exported production AIR"
+    )
+
+
+def shift_register_row(
+    selector: str,
+    source: int,
+    rs2_value: int,
+    rd: int = 7,
+    *,
+    clock: int = 1,
+    pc: int = 0x1000,
+) -> tuple[dict[str, int], int]:
+    """Build an admitted SLL/SRL/SRA (register form) row and the shifted word.
+
+    The shift amount is the low five bits of the rs2 *register value*, not of
+    the instruction word. The production AIR binds the marker-encoded amount to
+    ``rs2_next_0`` through a ``range_check_20`` request on
+    ``7 - (rs2_next_0 - amount) * 2**26``: over M31 that quotient is exactly
+    ``rs2_next_0 >> 5``, so the request is satisfiable precisely when the
+    encoded amount equals ``rs2_next_0 mod 32``. Only the low byte of rs2
+    enters that binding — the three high limbs are architecturally ignored, and
+    the masked witnesses below exercise exactly that.
+    """
+    rs2_value &= 0xFFFFFFFF
+    amount = rs2_value & 31
+    shifted, carries, multiplier, bit_shift, limb_shift, sign = _shift_core(
+        selector, source, amount
+    )
+    source_limbs = _limbs(source)
+    rs2_limbs = _limbs(rs2_value)
+    result = _limbs(shifted)
+    nonzero = 1 if rd else 0
+
+    assignment = {
+        "clk": clock,
+        "pc": pc,
+        "semantic_rs1_addr": 5,
+        "semantic_rs1_previous_clock": 0,
+        "rs2_addr": 6,
+        "rs2_previous_clock": 0,
+        "semantic_rd_addr": rd,
+        "semantic_rd_previous_clock": 0,
+        "semantic_rs1_sign": sign,
+        "semantic_is_sll": 0,
+        "semantic_is_srl": 0,
+        "semantic_is_sra": 0,
+        "semantic_bit_multiplier_left": multiplier if selector == "sll" else 0,
+        "semantic_bit_multiplier_right": multiplier if selector != "sll" else 0,
+        "semantic_destination_nonzero": nonzero,
+        "semantic_destination_inverse": modular_inverse(rd) if rd else 0,
+        "bus_value_60": {"sll": 2, "srl": 6, "sra": 7}[selector],
+        "bus_value_61": pc + 4,
+        "bus_value_62": clock + 1,
+        "bus_value_63": (clock - 1) * 4 + 1,
+        "bus_value_64": (clock - 1) * 4 + 2,
+        "bus_value_65": (clock - 1) * 4 + 3,
+    }
+    assignment[f"semantic_is_{selector}"] = 1
+    for index in range(8):
+        assignment[f"semantic_bit_markers_{index}"] = 1 if index == bit_shift else 0
+    for index in range(4):
+        assignment[f"semantic_limb_markers_{index}"] = (
+            1 if index == limb_shift else 0
+        )
+        assignment[f"semantic_rs1_previous_{index}"] = source_limbs[index]
+        assignment[f"semantic_rs1_next_{index}"] = source_limbs[index]
+        assignment[f"rs2_previous_{index}"] = rs2_limbs[index]
+        assignment[f"rs2_next_{index}"] = rs2_limbs[index]
+        assignment[f"semantic_rd_previous_{index}"] = 0
+        assignment[f"semantic_rd_next_{index}"] = result[index] if nonzero else 0
+        assignment[f"semantic_result_{index}"] = result[index]
+        assignment[f"semantic_carries_{index}"] = carries[index]
+    return assignment, shifted
+
+
+#: (name, selector, source, full rs2 register value, expected result).
+#:
+#: The rs2 value is deliberately NOT pre-masked: several cases carry high bits
+#: (or whole high limbs) beyond bit 4, so a production AIR that shifted by the
+#: raw register value instead of its low five bits would refuse the row.
+SHIFT_REG_WITNESSES: tuple[tuple[str, str, int, int, int], ...] = (
+    ("sll-reg-amount-zero", "sll", 0x12345678, 0, 0x12345678),
+    ("sll-reg-amount-thirtyone", "sll", 1, 31, INT_MIN),
+    ("srl-reg-amount-thirtyone", "srl", INT_MIN, 31, 1),
+    # 33 & 31 == 1: the row is a shift by one, not by thirty-three.
+    ("sll-reg-masked-low-bits", "sll", 0x12345678, 33, 0x2468ACF0),
+    # Only the low byte of rs2 binds the amount; the high limbs are ignored.
+    ("srl-reg-masked-high-limbs", "srl", 0x12345678, 0xFFFFFF04, 0x01234567),
+    # 0x44 & 31 == 4, with a negative operand so the sign fill is exercised.
+    ("sra-reg-negative-masked", "sra", INT_MIN, 0x44, 0xF8000000),
+    # 0x5F & 31 == 31: a masked amount at the top of the range.
+    ("sra-reg-negative-saturates", "sra", 0xFFFFFFFF, 0x5F, 0xFFFFFFFF),
+)
+
+
+def check_register_shift_witnesses(air_ir_dir: Path) -> str:
+    masked = [
+        name
+        for name, _, _, rs2_value, _ in SHIFT_REG_WITNESSES
+        if (rs2_value & 0xFFFFFFFF) != (rs2_value & 31)
+    ]
+    if len(masked) < 3:
+        raise WitnessError(
+            "the register-shift witness table no longer exercises rs2 "
+            "masking; it needs amounts whose low five bits differ from the "
+            "full register value"
+        )
+    for name, selector, source, rs2_value, expected in SHIFT_REG_WITNESSES:
+        assignment, shifted = shift_register_row(selector, source, rs2_value)
+        if shifted != expected:
+            raise WitnessError(
+                f"register-shift witness {name} computes {shifted:#010x}, "
+                f"expected {expected:#010x}"
+            )
+        try:
+            check_witness(air_ir_dir, "shifts_reg", assignment)
+        except WitnessError as error:
+            raise WitnessError(
+                f"register-shift witness {name}: {error}"
+            ) from error
+
+    for name, assignment in (
+        ("destination-x0", shift_register_row("sra", INT_MIN, 0x44, rd=0)[0]),
+        (
+            "destination-aliases-shift-source",
+            shift_register_row("sll", 3, 2, rd=5)[0],
+        ),
+    ):
+        try:
+            check_witness(air_ir_dir, "shifts_reg", assignment)
+        except WitnessError as error:
+            raise WitnessError(
+                f"register-shift witness {name}: {error}"
+            ) from error
+
+    return (
+        f"register-shift non-vacuity: {len(SHIFT_REG_WITNESSES) + 2} witnesses "
+        "reachable in the exported production AIR, including masked rs2 amounts"
+    )
+
+
+# --------------------------------------------------------------------------
+# Store witnesses — SB, SH, SW, with unselected-byte preservation
+# --------------------------------------------------------------------------
+
+
+def store_row(
+    selector: str,
+    base: int,
+    displacement: int,
+    memory_word: int,
+    stored: int,
+    r2: int = 6,
+    *,
+    clock: int = 1,
+    pc: int = 0x1000,
+    rs1_addr: int = 5,
+) -> tuple[dict[str, int], int]:
+    """Build a complete admitted SB/SH/SW row and the memory word it leaves.
+
+    In the production `load_store` family a store swaps the roles of the two
+    access blocks: `src` reads the *stored register* (`r2_idx`, register
+    space), and `dst` is the *memory word* (RAM space) — the mirror image of a
+    load. The unselected bytes of the memory word are carried through
+    ``dst_previous -> dst_next`` unchanged; that preservation is exactly what
+    constraints C54–C57 of the exported AIR demand, and what the mutation
+    battery clobbers to prove they still exist.
+    """
+    if selector not in ("sb", "sh", "sw"):
+        raise WitnessError(f"unknown store selector {selector!r}")
+    effective = base + displacement
+    offset = effective & 3
+    if selector == "sh" and offset not in (0, 2):
+        raise WitnessError(
+            f"effective address {effective:#x} is not halfword aligned; a "
+            "misaligned SH is outside the admitted language"
+        )
+    if selector == "sw" and offset != 0:
+        raise WitnessError(
+            f"effective address {effective:#x} is not word aligned; a "
+            "misaligned SW is outside the admitted language"
+        )
+    aligned = effective - offset
+
+    old = _limbs(memory_word)
+    value = _limbs(stored)
+    new = list(old)
+    markers = [0, 0, 0, 0]
+    if selector == "sb":
+        new[offset] = value[0]
+        markers[offset] = 1
+    elif selector == "sh":
+        new[offset] = value[0]
+        new[offset + 1] = value[1]
+        markers[offset] = 1
+        markers[offset + 1] = 1
+    else:
+        new = list(value)
+    new_word = sum(limb << (8 * index) for index, limb in enumerate(new))
+
+    source = _limbs(base)
+    nonzero = 1 if r2 else 0
+    assignment = {
+        "clk": clock,
+        "pc": pc,
+        "rs1_addr": rs1_addr,
+        "rs1_previous_clock": 0,
+        # For a store, `src` is the stored register's file entry ...
+        "src_addr": r2,
+        "src_previous_clock": 0,
+        # ... and `dst` is the memory word being written.
+        "dst_addr": aligned,
+        "dst_previous_clock": 0,
+        "r2_idx": r2,
+        "imm_felt": displacement % M31,
+        "src_msb": 0,
+        "shift_amount": offset,
+        "src_addr_selector": r2,
+        "dst_addr_selector": aligned,
+        "markers_0": markers[0],
+        "markers_1": markers[1],
+        "markers_2": markers[2],
+        "markers_3": markers[3],
+        "is_lb": 0,
+        "is_lh": 0,
+        "is_lbu": 0,
+        "is_lhu": 0,
+        "is_lw": 0,
+        "is_sb": 1 if selector == "sb" else 0,
+        "is_sh": 1 if selector == "sh" else 0,
+        "is_sw": 1 if selector == "sw" else 0,
+        "destination_nonzero": nonzero,
+        "destination_inverse": modular_inverse(r2) if r2 else 0,
+        "bus_value_56": {"sb": 24, "sh": 25, "sw": 26}[selector],
+        "bus_value_57": pc + 4,
+        "bus_value_58": clock + 1,
+        "bus_value_59": (clock - 1) * 4 + 1,
+        "bus_value_60": 0,
+        "bus_value_61": (clock - 1) * 4 + 2,
+        "bus_value_62": 1,
+        "bus_value_63": (clock - 1) * 4 + 3,
+    }
+    for index in range(4):
+        assignment[f"rs1_previous_{index}"] = source[index]
+        assignment[f"rs1_next_{index}"] = source[index]
+        assignment[f"src_previous_{index}"] = value[index]
+        assignment[f"src_next_{index}"] = value[index]
+        assignment[f"dst_previous_{index}"] = old[index]
+        assignment[f"dst_next_{index}"] = new[index]
+        # A store writes no destination register, and the production AIR pins
+        # every `result` limb to zero on store rows (C65–C68).
+        assignment[f"result_{index}"] = 0
+    return assignment, new_word
+
+
+#: (name, selector, base, displacement, old memory word, stored register
+#: value, expected memory word afterwards). A byte store at each of the four
+#: offsets, a half store at both offsets, and a word store; the shared old
+#: word 0xDDCCBBAA makes any clobbered unselected byte visible by eye.
+STORE_WITNESSES: tuple[tuple[str, str, int, int, int, int, int], ...] = (
+    ("sb-offset-zero", "sb", 0x2000, 0, 0xDDCCBBAA, 0x11223344, 0xDDCCBB44),
+    ("sb-offset-one", "sb", 0x2000, 1, 0xDDCCBBAA, 0x11223344, 0xDDCC44AA),
+    ("sb-offset-two", "sb", 0x2000, 2, 0xDDCCBBAA, 0x11223344, 0xDD44BBAA),
+    ("sb-offset-three", "sb", 0x2000, 3, 0xDDCCBBAA, 0x11223344, 0x44CCBBAA),
+    ("sh-offset-zero", "sh", 0x2000, 0, 0xDDCCBBAA, 0x11223344, 0xDDCC3344),
+    ("sh-offset-two", "sh", 0x2000, 2, 0xDDCCBBAA, 0x11223344, 0x3344BBAA),
+    ("sw-whole-word", "sw", 0x2000, 0, 0xDDCCBBAA, 0x11223344, 0x11223344),
+    # effective = 0x2010 - 15 = 0x2001: a byte store through a negative
+    # displacement still lands at offset one of the aligned word.
+    ("sb-negative-displacement", "sb", 0x2010, -15, 0xDDCCBBAA, 0x11223344, 0xDDCC44AA),
+    # Only the LOW half of the stored register reaches memory, even when its
+    # high half is all ones.
+    ("sh-high-half-ignored", "sh", 0x2000, 2, 0x00000000, 0xFFFF8ABC, 0x8ABC0000),
+)
+
+#: Which byte lanes each store witness writes; the complement must survive.
+_STORE_LANES = {"sb": 1, "sh": 2, "sw": 4}
+
+
+def check_store_witnesses(air_ir_dir: Path) -> str:
+    for name, selector, base, displacement, memory_word, stored, expected in (
+        STORE_WITNESSES
+    ):
+        assignment, new_word = store_row(
+            selector, base, displacement, memory_word, stored
+        )
+        if new_word != expected:
+            raise WitnessError(
+                f"store witness {name} computes {new_word:#010x}, "
+                f"expected {expected:#010x}"
+            )
+        # Assert unselected-byte preservation explicitly: every byte lane the
+        # store does not write must reach the expected word unchanged. This
+        # guards the witness table itself; the production AIR's own C54–C57
+        # are exercised by the row passing (and by the mutation battery).
+        offset = (base + displacement) & 3
+        written = set(range(offset, offset + _STORE_LANES[selector]))
+        for lane in set(range(4)) - written:
+            before = (memory_word >> (8 * lane)) & 0xFF
+            after = (expected >> (8 * lane)) & 0xFF
+            if before != after:
+                raise WitnessError(
+                    f"store witness {name} expects unselected byte {lane} to "
+                    f"change from {before:#04x} to {after:#04x}; the table "
+                    "no longer states preservation"
+                )
+        try:
+            check_witness(air_ir_dir, "load_store", assignment)
+        except WitnessError as error:
+            raise WitnessError(f"store witness {name}: {error}") from error
+
+    # The stored register may alias the base-address register.
+    aliased, _ = store_row("sb", 0x2000, 1, 0xDDCCBBAA, 0x2000, r2=5, rs1_addr=5)
+    try:
+        check_witness(air_ir_dir, "load_store", aliased)
+    except WitnessError as error:
+        raise WitnessError(
+            f"store witness stored-register-aliases-base: {error}"
+        ) from error
+
+    return (
+        f"store non-vacuity: {len(STORE_WITNESSES) + 1} witnesses reachable in "
+        "the exported production AIR, unselected bytes preserved at every "
+        "byte and half offset"
     )
 
 
@@ -869,11 +1330,306 @@ def report_address_aliasing(air_ir_dir: Path) -> str:
     )
 
 
+# --------------------------------------------------------------------------
+# Family-agnostic schema audit of the whole export
+# --------------------------------------------------------------------------
+
+
+def audit_exported_families(air_ir_dir: Path) -> str:
+    """Audit every exported family JSON against what this gate can evaluate.
+
+    Family-agnostic on purpose: it reads whatever families the export
+    contains, so a brand-new family, node operation, or lookup domain arriving
+    in production fails here by name instead of being silently outside the
+    witness gate's vocabulary. Three properties are enforced:
+
+    * every node operation present is one the evaluator implements;
+    * every lookup domain present is classified — range-checked via
+      ``RANGE_DOMAINS`` or deliberately skipped via ``SKIPPED_DOMAINS``;
+    * no lookup domain is silently ignored (the unknown-domain path raises).
+    """
+    paths = sorted(air_ir_dir.glob("*.json"))
+    if not paths:
+        raise WitnessError(
+            f"no exported AIR families found in {air_ir_dir}; "
+            f"re-derive the export with `{EXPORT_COMMAND}`"
+        )
+    range_checked: set[str] = set()
+    skipped: set[str] = set()
+    for path in paths:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        family = payload.get("family", path.stem)
+        operations = {node["op"] for node in payload["nodes"]}
+        unsupported = operations - SUPPORTED_OPERATIONS
+        if unsupported:
+            raise WitnessError(
+                f"family {family!r} uses node operations the evaluator does "
+                f"not implement: {', '.join(sorted(unsupported))} (supported: "
+                f"{', '.join(sorted(SUPPORTED_OPERATIONS))}). The evaluator "
+                "in scripts/riscv_team_b_witnesses.py must learn them before "
+                "any witness verdict on this family can be trusted."
+            )
+        for lookup in payload["lookups"]:
+            domain = lookup["domain"]
+            if domain in RANGE_DOMAINS:
+                range_checked.add(domain)
+            elif domain in SKIPPED_DOMAINS:
+                skipped.add(domain)
+            else:
+                raise _unknown_domain_error(family, domain)
+    return (
+        f"schema audit: {len(paths)} exported families use only supported "
+        f"node operations; {len(range_checked)} lookup domains range-checked, "
+        f"{len(skipped)} deliberately skipped bus domains, none ignored"
+    )
+
+
+# --------------------------------------------------------------------------
+# Export provenance: what exactly is this gate evaluating, and is it fresh?
+# --------------------------------------------------------------------------
+
+
+def export_digest(air_ir_dir: Path) -> str:
+    """A single digest over every exported family, in name order."""
+    paths = sorted(air_ir_dir.glob("*.json"))
+    if not paths:
+        raise WitnessError(
+            f"no exported AIR families found in {air_ir_dir}; "
+            f"re-derive the export with `{EXPORT_COMMAND}`"
+        )
+    digest = hashlib.sha256()
+    for path in paths:
+        digest.update(path.name.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+    return digest.hexdigest()
+
+
+def check_export_provenance(
+    air_ir_dir: Path, source_root: Path | None = None
+) -> str:
+    """Digest the export being evaluated and refuse a stale one.
+
+    Every verdict this gate emits is a statement about the bytes in
+    ``air_ir_dir``, not about the Zig source tree — so a stale local export
+    would let every check pass against an AIR that no longer ships. Two
+    defenses: the report always carries the export's digest (so a human can
+    tie a log line to exact bytes), and any AIR source file newer than the
+    export fails the gate with the re-derivation command.
+    """
+    digest = export_digest(air_ir_dir)
+    paths = sorted(air_ir_dir.glob("*.json"))
+    export_oldest = min(path.stat().st_mtime_ns for path in paths)
+
+    root = AIR_SOURCE_ROOT if source_root is None else source_root
+    if not root.is_dir():
+        raise WitnessError(
+            f"cannot establish export freshness: the AIR source tree is "
+            f"absent at {root}. Run this gate from a checkout that contains "
+            "the production AIR sources, or fix AIR_SOURCE_ROOT."
+        )
+    sources = list(root.rglob("*.zig"))
+    if not sources:
+        raise WitnessError(
+            f"cannot establish export freshness: no Zig sources under {root}"
+        )
+    newest = max(sources, key=lambda path: path.stat().st_mtime_ns)
+    if newest.stat().st_mtime_ns > export_oldest:
+        raise WitnessError(
+            f"the export in {air_ir_dir} is STALE: "
+            f"{newest.relative_to(root)} is newer than the oldest exported "
+            "family, so this gate would evaluate an AIR that may no longer "
+            f"ship. Re-derive the export with `{EXPORT_COMMAND}`."
+        )
+    return (
+        f"export provenance: {len(paths)} families, sha256 {digest[:16]}; "
+        "no production AIR source is newer than the export"
+    )
+
+
+# --------------------------------------------------------------------------
+# Mutation battery: rows the production AIR must REFUSE
+# --------------------------------------------------------------------------
+
+
+def mutation_counter_cases() -> tuple[tuple[str, str, dict[str, int]], ...]:
+    """Deliberately tampered rows, each of which production must refuse.
+
+    Every case starts from an honest witness this file already proves
+    reachable, then re-introduces one classic prover cheat: a deleted
+    preservation, a value at the wrong offset, an amount decoupled from its
+    register, a flipped or free sign, a relabelled selector. If any of these
+    rows is ever ACCEPTED, the production AIR lost the constraint that used to
+    refuse it — precisely the regression the coverage ledger's
+    `air_level_counterexample_gate` promises to catch.
+    """
+    cases: list[tuple[str, str, dict[str, int]]] = []
+
+    def case(name: str, family: str, assignment: dict[str, int]) -> None:
+        cases.append((name, family, assignment))
+
+    # --- loads -----------------------------------------------------------
+    tampered, _ = load_halfword_row(0x2000, 2, 0x8ABC1234, 7)
+    tampered["result_0"] = (tampered["result_0"] + 1) % 256
+    case("lh-tampered-result-limb", "load_store", tampered)
+
+    flipped, _ = load_halfword_row(0x2000, 2, 0x8ABC1234, 7)
+    flipped["src_msb"] = 0
+    case("lh-flipped-sign-witness", "load_store", flipped)
+
+    swapped, _ = load_halfword_row(0x2000, 2, 0x8ABC1234, 7)
+    swapped["src_next_2"], swapped["src_next_3"] = (
+        swapped["src_next_3"],
+        swapped["src_next_2"],
+    )
+    case("lh-swapped-endian-bytes", "load_store", swapped)
+
+    unpreserved, _ = load_halfword_row(0x2000, 2, 0x8ABC1234, 7)
+    unpreserved["src_next_0"] = (unpreserved["src_next_0"] + 1) % 256
+    case("lh-clobbered-memory-word", "load_store", unpreserved)
+
+    # --- stores ----------------------------------------------------------
+    clobbered, _ = store_row("sb", 0x2000, 1, 0xDDCCBBAA, 0x11223344)
+    clobbered["dst_next_3"] = (clobbered["dst_next_3"] + 1) % 256
+    case("sb-clobbered-unselected-byte", "load_store", clobbered)
+
+    misplaced, _ = store_row("sb", 0x2000, 1, 0xDDCCBBAA, 0x11223344)
+    # The stored byte lands one lane too high; the selected lane keeps its
+    # old value. Both the write constraint and the preservation must object.
+    misplaced["dst_next_1"] = misplaced["dst_previous_1"]
+    misplaced["dst_next_2"] = 0x44
+    case("sb-byte-at-wrong-offset", "load_store", misplaced)
+
+    halfway, _ = store_row("sh", 0x2000, 0, 0xDDCCBBAA, 0x11223344)
+    halfway["dst_next_0"] = halfway["dst_previous_0"]
+    halfway["dst_next_1"] = halfway["dst_previous_1"]
+    halfway["dst_next_2"] = 0x44
+    halfway["dst_next_3"] = 0x33
+    case("sh-half-at-wrong-offset", "load_store", halfway)
+
+    truncated, _ = store_row("sw", 0x2000, 0, 0xDDCCBBAA, 0x11223344)
+    truncated["dst_next_2"] = truncated["dst_previous_2"]
+    truncated["dst_next_3"] = truncated["dst_previous_3"]
+    case("sw-truncated-word-write", "load_store", truncated)
+
+    drifted, _ = store_row("sb", 0x2000, 1, 0xDDCCBBAA, 0x11223344)
+    # The marker moves to another lane while shift_amount (and therefore the
+    # store address) stays put.
+    drifted["markers_1"] = 0
+    drifted["markers_2"] = 1
+    case("sb-marker-shift-mismatch", "load_store", drifted)
+
+    # --- DIV family ------------------------------------------------------
+    free_sign, _ = division_row("div", 0xFFFFFF9C, 7)
+    free_sign["q_sign"] ^= 1
+    case("div-free-quotient-sign", "div", free_sign)
+
+    convention, _ = division_row("divu", 42, 0)
+    convention["q_0"] = 0
+    case("divu-deleted-zero-divisor-convention", "div", convention)
+
+    wrong_sign, _ = division_row("rem", 0xFFFFFF9C, 7)
+    wrong_sign["r_0"] = 2  # +2 instead of the architectural -2
+    case("rem-wrong-remainder-sign", "div", wrong_sign)
+
+    released, _ = division_row("divu", 100, 7)
+    for index in range(4):
+        released[f"lt_markers_{index}"] = 0
+    case("divu-released-comparison-witness", "div", released)
+
+    relabelled, _ = division_row("divu", 100, 7)
+    relabelled["is_divu"] = 0
+    relabelled["is_remu"] = 1
+    case("divu-relabelled-as-remu", "div", relabelled)
+
+    # --- multiply --------------------------------------------------------
+    high_limb, _ = multiply_high_row("mulhu", 0xFFFFFFFF, 0xFFFFFFFF)
+    high_limb["result_0"] = (high_limb["result_0"] + 1) % 256
+    case("mulhu-tampered-high-word", "mulh", high_limb)
+
+    unbound, _ = multiply_high_row("mulh", 0xFFFFFFFF, 0xFFFFFFFF)
+    unbound["rs1_sign"] = 0
+    case("mulh-unbound-operand-sign", "mulh", unbound)
+
+    claimed, _ = multiply_high_row("mulhu", 0xFFFFFFFF, 0xFFFFFFFF)
+    claimed["rs1_sign"] = 1
+    case("mulhu-claimed-signed-operand", "mulh", claimed)
+
+    # --- immediate shifts ------------------------------------------------
+    released_sra, _ = shift_immediate_row("sra", INT_MIN, 4)
+    released_sra["semantic_rs1_sign"] = 0
+    case("srai-released-sign-witness", "shifts_imm", released_sra)
+
+    claimed_srl, _ = shift_immediate_row("srl", INT_MIN, 4)
+    claimed_srl["semantic_rs1_sign"] = 1
+    case("srli-claimed-sign", "shifts_imm", claimed_srl)
+
+    mismatched, _ = shift_immediate_row("sll", 0x12345678, 8)
+    mismatched["imm_truncated"] = 9
+    case("slli-mismatched-amount", "shifts_imm", mismatched)
+
+    # --- register shifts -------------------------------------------------
+    # The row shifts by 3 while rs2 actually holds 33 (low five bits 1): a
+    # shift amount decoupled from — unmasked against — the register value.
+    # The internal shift semantics stay consistent, so only the production
+    # rs2-binding range request can refuse it.
+    unmasked, _ = shift_register_row("sll", 0x12345678, 3)
+    for index, limb in enumerate(_limbs(33)):
+        unmasked[f"rs2_previous_{index}"] = limb
+        unmasked[f"rs2_next_{index}"] = limb
+    case("sll-reg-unmasked-shift-amount", "shifts_reg", unmasked)
+
+    reg_released, _ = shift_register_row("sra", INT_MIN, 0x44)
+    reg_released["semantic_rs1_sign"] = 0
+    case("sra-reg-released-sign-witness", "shifts_reg", reg_released)
+
+    reg_claimed, _ = shift_register_row("srl", INT_MIN, 4)
+    reg_claimed["semantic_rs1_sign"] = 1
+    case("srl-reg-claimed-sign", "shifts_reg", reg_claimed)
+
+    return tuple(cases)
+
+
+def check_mutation_refusals(air_ir_dir: Path) -> str:
+    """Every tampered row must be refused; an accepted one fails the gate."""
+    cases = mutation_counter_cases()
+    families: set[str] = set()
+    for name, family, assignment in cases:
+        families.add(family)
+        try:
+            check_witness(air_ir_dir, family, assignment)
+        except WitnessError as error:
+            if "column set" in str(error):
+                raise WitnessError(
+                    f"mutation {name} failed for the wrong reason — the "
+                    "mutated row no longer matches the exported column "
+                    "layout, so nothing was actually tested: "
+                    f"{error}"
+                ) from error
+            continue
+        raise WitnessError(
+            f"mutation {name} was ACCEPTED by the production AIR. A row this "
+            "gate requires to be impossible is reachable: either the AIR "
+            "lost the refusing constraint, or the mutation no longer tampers "
+            "with anything. Diff the export against the previous one with "
+            f"`{EXPORT_COMMAND}` before trusting any proof."
+        )
+    return (
+        f"mutation counter-check: {len(cases)} tampered rows across "
+        f"{len(families)} families all refused by the production AIR"
+    )
+
+
 CHECKS = (
+    check_export_provenance,
+    audit_exported_families,
     check_lh_witnesses,
     check_div_witnesses,
     check_multiply_witnesses,
     check_shift_witnesses,
+    check_register_shift_witnesses,
+    check_store_witnesses,
+    check_mutation_refusals,
     report_address_aliasing,
 )
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import tempfile
 import unittest
@@ -15,9 +16,18 @@ EXPORT_DIRECTORY = REPOSITORY_ROOT / "zig-out/team-b-ir"
 
 
 def export_air() -> Path:
-    """Export the production symbolic AIR, or reuse a fresh existing export."""
+    """Export the production symbolic AIR, or reuse a fresh existing export.
+
+    Reuse is gated on the provenance check: an existing export is only
+    trusted if no production AIR source is newer than it. A stale export is
+    re-derived instead of silently evaluated.
+    """
     if (EXPORT_DIRECTORY / "load_store.json").is_file():
-        return EXPORT_DIRECTORY
+        try:
+            witnesses.check_export_provenance(EXPORT_DIRECTORY)
+            return EXPORT_DIRECTORY
+        except witnesses.WitnessError:
+            pass  # Stale or unverifiable: fall through and re-export.
     subprocess.run(
         [
             "zig",
@@ -395,9 +405,457 @@ class EvaluatorTest(unittest.TestCase):
         with self.assertRaisesRegex(witnesses.WitnessError, "outside the 20-bit"):
             witnesses.check_witness(root, "toy", {"a": 1})
 
+    def test_an_unknown_domain_is_an_error_even_when_inactive(self):
+        # Classification is a property of the AIR's shape, not of one row: a
+        # numerator of zero must not turn an unknown domain into a silent skip.
+        payload = self._payload()
+        payload["nodes"].append({"op": "const", "value": 0})
+        payload["lookups"] = [
+            {
+                "label": "request",
+                "domain": "range_check_13",
+                "numerator": 3,
+                "tuple": [0],
+            }
+        ]
+        root = self._directory(payload)
+        with self.assertRaisesRegex(witnesses.WitnessError, "does not know"):
+            witnesses.check_witness(root, "toy", {"a": 1})
 
-if __name__ == "__main__":
-    unittest.main()
+    def test_column_drift_reports_new_renamed_and_removed(self):
+        payload = self._payload()
+        payload["columns"] = [
+            {"name": "alpha", "role": "witness"},
+            {"name": "beta_v2", "role": "witness"},
+            {"name": "delta", "role": "witness"},
+        ]
+        with self.assertRaises(witnesses.WitnessError) as caught:
+            witnesses.evaluate(payload, {"alpha": 1, "beta_v1": 2, "gamma": 3})
+        message = str(caught.exception)
+        self.assertIn("likely NEW in the AIR: delta", message)
+        self.assertIn("likely RENAMED: beta_v1 -> beta_v2", message)
+        self.assertIn("likely REMOVED from the AIR: gamma", message)
+        # The message must also carry the exact re-derivation command.
+        self.assertIn("zig build riscv-refinement-ir", message)
+
+    def test_column_drift_still_names_both_raw_column_sets(self):
+        # The heuristic classification is advice; the raw diff is the record.
+        payload = self._payload()
+        with self.assertRaises(witnesses.WitnessError) as caught:
+            witnesses.evaluate(payload, {"b": 1})
+        message = str(caught.exception)
+        self.assertIn("unassigned: a", message)
+        self.assertIn("does not declare: b", message)
+
+    def test_every_supported_operation_actually_evaluates(self):
+        # Guards SUPPORTED_OPERATIONS against drifting from the dispatch: each
+        # advertised operation must evaluate, and this test must exercise the
+        # whole advertised set.
+        payload = {
+            "family": "toy",
+            "columns": [{"name": "a", "role": "witness"}],
+            "nodes": [
+                {"op": "const", "value": 5},
+                {"op": "col", "name": "a"},
+                {"op": "neg", "args": [0]},
+                {"op": "add", "args": [0, 1]},
+                {"op": "sub", "args": [0, 1]},
+                {"op": "mul", "args": [0, 1]},
+            ],
+            "constraints": [],
+            "lookups": [],
+        }
+        exercised = {node["op"] for node in payload["nodes"]}
+        self.assertEqual(exercised, set(witnesses.SUPPORTED_OPERATIONS))
+        values = witnesses.evaluate(payload, {"a": 3})
+        self.assertEqual(values, [5, 3, witnesses.M31 - 5, 8, 2, 15])
+
+
+class SchemaAuditTest(unittest.TestCase):
+    """The family-agnostic audit of whatever the export happens to contain."""
+
+    def _directory(self, payload: dict) -> Path:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        root = Path(directory.name)
+        (root / f"{payload['family']}.json").write_text(json.dumps(payload))
+        return root
+
+    def _payload(self) -> dict:
+        return {
+            "family": "toy",
+            "columns": [{"name": "a", "role": "witness"}],
+            "nodes": [
+                {"op": "col", "name": "a"},
+                {"op": "const", "value": 0},
+            ],
+            "constraints": [],
+            "lookups": [],
+        }
+
+    def test_the_full_production_export_passes_the_audit(self):
+        try:
+            air_ir_dir = export_air()
+        except (OSError, subprocess.SubprocessError) as error:
+            self.skipTest(f"production AIR export unavailable: {error}")
+        report = witnesses.audit_exported_families(air_ir_dir)
+        self.assertIn("only supported node operations", report)
+        self.assertIn("none ignored", report)
+
+    def test_the_witness_gate_actually_runs_the_audit(self):
+        # The audit only closes the new-domain gap if the CI entry point runs
+        # it before the per-family witness checks; provenance runs first of
+        # all so every later verdict is about a digested, fresh export.
+        order = list(witnesses.CHECKS)
+        self.assertIs(order[0], witnesses.check_export_provenance)
+        audit_at = order.index(witnesses.audit_exported_families)
+        for family_check in (
+            witnesses.check_lh_witnesses,
+            witnesses.check_div_witnesses,
+            witnesses.check_multiply_witnesses,
+            witnesses.check_shift_witnesses,
+            witnesses.check_register_shift_witnesses,
+            witnesses.check_store_witnesses,
+            witnesses.check_mutation_refusals,
+        ):
+            self.assertLess(audit_at, order.index(family_check))
+
+    def test_an_unknown_lookup_domain_is_an_error(self):
+        payload = self._payload()
+        payload["lookups"] = [
+            {
+                "label": "request",
+                "domain": "range_check_640k",
+                "numerator": 1,
+                "tuple": [0],
+            }
+        ]
+        with self.assertRaises(witnesses.WitnessError) as caught:
+            witnesses.audit_exported_families(self._directory(payload))
+        message = str(caught.exception)
+        self.assertIn("range_check_640k", message)
+        self.assertIn("RANGE_DOMAINS or", message)
+        self.assertIn("SKIPPED_DOMAINS", message)
+
+    def test_a_known_bus_domain_is_deliberately_skipped_not_ignored(self):
+        payload = self._payload()
+        payload["lookups"] = [
+            {
+                "label": "request",
+                "domain": "memory_access",
+                "numerator": 1,
+                "tuple": [0],
+            }
+        ]
+        report = witnesses.audit_exported_families(self._directory(payload))
+        self.assertIn("1 deliberately skipped bus domains", report)
+
+    def test_an_unsupported_node_operation_is_an_error(self):
+        payload = self._payload()
+        payload["nodes"].append({"op": "pow", "args": [0, 1]})
+        with self.assertRaisesRegex(witnesses.WitnessError, "does not implement"):
+            witnesses.audit_exported_families(self._directory(payload))
+
+    def test_an_empty_export_directory_is_an_error(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        with self.assertRaisesRegex(witnesses.WitnessError, "no exported AIR"):
+            witnesses.audit_exported_families(Path(directory.name))
+
+    def test_range_and_skipped_domains_are_disjoint(self):
+        # A domain in both sets would make "range-checked" ambiguous.
+        overlap = set(witnesses.RANGE_DOMAINS) & set(witnesses.SKIPPED_DOMAINS)
+        self.assertEqual(overlap, set())
+
+
+class RegisterShiftWitnessTest(unittest.TestCase):
+    """SLL/SRL/SRA with the amount taken from rs2, masked to five bits."""
+
+    @classmethod
+    def setUpClass(cls):
+        try:
+            cls.air_ir_dir = export_air()
+        except (OSError, subprocess.SubprocessError) as error:
+            raise unittest.SkipTest(f"production AIR export unavailable: {error}")
+
+    def test_register_shift_witnesses_are_reachable_in_production(self):
+        self.assertIn(
+            "9 witnesses reachable",
+            witnesses.check_register_shift_witnesses(self.air_ir_dir),
+        )
+
+    def test_the_masking_path_is_actually_exercised(self):
+        # A table where every rs2 value already fits five bits would leave
+        # the mask untested; require values whose low five bits differ from
+        # the full register, including one with nonzero high limbs.
+        masked = [
+            (name, rs2)
+            for name, _, _, rs2, _ in witnesses.SHIFT_REG_WITNESSES
+            if (rs2 & 0xFFFFFFFF) != (rs2 & 31)
+        ]
+        self.assertGreaterEqual(len(masked), 3)
+        self.assertTrue(any(rs2 > 0xFF for _, rs2 in masked))
+
+    def test_amount_extremes_are_covered(self):
+        amounts = {
+            rs2 & 31 for _, _, _, rs2, _ in witnesses.SHIFT_REG_WITNESSES
+        }
+        self.assertIn(0, amounts)
+        self.assertIn(31, amounts)
+
+    def test_a_negative_sra_source_is_covered(self):
+        self.assertTrue(
+            any(
+                selector == "sra" and source & witnesses.INT_MIN
+                for _, selector, source, _, _ in witnesses.SHIFT_REG_WITNESSES
+            )
+        )
+
+    def test_the_semantics_mask_to_five_bits(self):
+        # A shift by rs2 = 33 is a shift by one, and only the low byte of
+        # rs2 participates at all.
+        _, by_33 = witnesses.shift_register_row("sll", 0x12345678, 33)
+        _, by_1 = witnesses.shift_register_row("sll", 0x12345678, 1)
+        self.assertEqual(by_33, by_1)
+        _, high_limbs = witnesses.shift_register_row("srl", 0x12345678, 0xFFFFFF04)
+        _, plain = witnesses.shift_register_row("srl", 0x12345678, 4)
+        self.assertEqual(high_limbs, plain)
+
+    def test_an_unmasked_shift_amount_is_refused(self):
+        # Internally consistent shift-by-3 columns, but rs2 holds 33: only
+        # the production rs2-binding range request can catch the mismatch.
+        assignment, _ = witnesses.shift_register_row("sll", 0x12345678, 3)
+        for index, limb in enumerate(witnesses._limbs(33)):
+            assignment[f"rs2_previous_{index}"] = limb
+            assignment[f"rs2_next_{index}"] = limb
+        with self.assertRaisesRegex(
+            witnesses.WitnessError, "outside the 20-bit production table"
+        ):
+            witnesses.check_witness(self.air_ir_dir, "shifts_reg", assignment)
+
+    def test_a_released_register_shift_sign_is_refused(self):
+        assignment, _ = witnesses.shift_register_row("sra", witnesses.INT_MIN, 0x44)
+        assignment["semantic_rs1_sign"] = 0
+        with self.assertRaises(witnesses.WitnessError):
+            witnesses.check_witness(self.air_ir_dir, "shifts_reg", assignment)
+
+    def test_a_logical_register_shift_may_not_claim_a_sign(self):
+        assignment, _ = witnesses.shift_register_row("srl", witnesses.INT_MIN, 4)
+        assignment["semantic_rs1_sign"] = 1
+        with self.assertRaisesRegex(witnesses.WitnessError, "constraint roots"):
+            witnesses.check_witness(self.air_ir_dir, "shifts_reg", assignment)
+
+    def test_unknown_selector_fails_closed(self):
+        with self.assertRaisesRegex(witnesses.WitnessError, "unknown shift"):
+            witnesses.shift_register_row("ror", 1, 1)
+
+
+class StoreWitnessTest(unittest.TestCase):
+    """SB/SH/SW at every admitted offset, with unselected bytes preserved."""
+
+    @classmethod
+    def setUpClass(cls):
+        try:
+            cls.air_ir_dir = export_air()
+        except (OSError, subprocess.SubprocessError) as error:
+            raise unittest.SkipTest(f"production AIR export unavailable: {error}")
+
+    def test_store_witnesses_are_reachable_in_production(self):
+        report = witnesses.check_store_witnesses(self.air_ir_dir)
+        self.assertIn("10 witnesses reachable", report)
+        self.assertIn("unselected bytes preserved", report)
+
+    def test_every_byte_offset_and_both_half_offsets_are_covered(self):
+        offsets = {"sb": set(), "sh": set(), "sw": set()}
+        for _, selector, base, displacement, _, _, _ in witnesses.STORE_WITNESSES:
+            offsets[selector].add((base + displacement) & 3)
+        self.assertEqual(offsets["sb"], {0, 1, 2, 3})
+        self.assertEqual(offsets["sh"], {0, 2})
+        self.assertEqual(offsets["sw"], {0})
+
+    def test_the_builder_preserves_unselected_bytes(self):
+        assignment, new_word = witnesses.store_row(
+            "sb", 0x2000, 1, 0xDDCCBBAA, 0x11223344
+        )
+        for lane in (0, 2, 3):
+            self.assertEqual(
+                assignment[f"dst_next_{lane}"], assignment[f"dst_previous_{lane}"]
+            )
+        self.assertEqual(new_word, 0xDDCC44AA)
+
+    def test_a_clobbered_unselected_byte_is_refused(self):
+        assignment, _ = witnesses.store_row("sb", 0x2000, 1, 0xDDCCBBAA, 0x11223344)
+        assignment["dst_next_3"] = (assignment["dst_next_3"] + 1) % 256
+        with self.assertRaisesRegex(witnesses.WitnessError, "constraint roots"):
+            witnesses.check_witness(self.air_ir_dir, "load_store", assignment)
+
+    def test_a_byte_written_at_the_wrong_offset_is_refused(self):
+        assignment, _ = witnesses.store_row("sb", 0x2000, 1, 0xDDCCBBAA, 0x11223344)
+        assignment["dst_next_1"] = assignment["dst_previous_1"]
+        assignment["dst_next_2"] = 0x44
+        with self.assertRaisesRegex(witnesses.WitnessError, "constraint roots"):
+            witnesses.check_witness(self.air_ir_dir, "load_store", assignment)
+
+    def test_a_half_written_at_the_wrong_offset_is_refused(self):
+        assignment, _ = witnesses.store_row("sh", 0x2000, 0, 0xDDCCBBAA, 0x11223344)
+        assignment["dst_next_0"] = assignment["dst_previous_0"]
+        assignment["dst_next_1"] = assignment["dst_previous_1"]
+        assignment["dst_next_2"] = 0x44
+        assignment["dst_next_3"] = 0x33
+        with self.assertRaisesRegex(witnesses.WitnessError, "constraint roots"):
+            witnesses.check_witness(self.air_ir_dir, "load_store", assignment)
+
+    def test_a_truncated_word_write_is_refused(self):
+        assignment, _ = witnesses.store_row("sw", 0x2000, 0, 0xDDCCBBAA, 0x11223344)
+        assignment["dst_next_2"] = assignment["dst_previous_2"]
+        assignment["dst_next_3"] = assignment["dst_previous_3"]
+        with self.assertRaisesRegex(witnesses.WitnessError, "constraint roots"):
+            witnesses.check_witness(self.air_ir_dir, "load_store", assignment)
+
+    def test_only_the_low_half_of_the_stored_register_reaches_memory(self):
+        _, new_word = witnesses.store_row("sh", 0x2000, 2, 0, 0xFFFF8ABC)
+        self.assertEqual(new_word, 0x8ABC0000)
+
+    def test_misaligned_stores_are_outside_the_admitted_language(self):
+        with self.assertRaisesRegex(witnesses.WitnessError, "not halfword aligned"):
+            witnesses.store_row("sh", 0x2000, 1, 0, 0)
+        with self.assertRaisesRegex(witnesses.WitnessError, "not word aligned"):
+            witnesses.store_row("sw", 0x2000, 2, 0, 0)
+        with self.assertRaisesRegex(witnesses.WitnessError, "unknown store"):
+            witnesses.store_row("sd", 0x2000, 0, 0, 0)
+
+
+class MutationBatteryTest(unittest.TestCase):
+    """The CLI-invocable battery of rows production must refuse."""
+
+    @classmethod
+    def setUpClass(cls):
+        try:
+            cls.air_ir_dir = export_air()
+        except (OSError, subprocess.SubprocessError) as error:
+            raise unittest.SkipTest(f"production AIR export unavailable: {error}")
+
+    def test_every_mutation_is_refused_by_production(self):
+        report = witnesses.check_mutation_refusals(self.air_ir_dir)
+        self.assertIn("all refused", report)
+
+    def test_the_battery_is_wired_into_the_cli_gate(self):
+        # The coverage ledger says this script checks "witnesses and their
+        # mutations"; that wording is only true if the CLI entry point runs
+        # the mutation battery, not just the unittest module.
+        self.assertIn(witnesses.check_mutation_refusals, witnesses.CHECKS)
+
+    def test_every_witnessed_family_has_a_mutation_counter_check(self):
+        families = {family for _, family, _ in witnesses.mutation_counter_cases()}
+        self.assertEqual(
+            families, {"load_store", "div", "mulh", "shifts_imm", "shifts_reg"}
+        )
+
+    def test_the_required_counter_checks_are_present_by_name(self):
+        names = {name for name, _, _ in witnesses.mutation_counter_cases()}
+        self.assertIn("sb-clobbered-unselected-byte", names)
+        self.assertIn("sb-byte-at-wrong-offset", names)
+        self.assertIn("sll-reg-unmasked-shift-amount", names)
+
+    def test_mutation_names_are_unique(self):
+        names = [name for name, _, _ in witnesses.mutation_counter_cases()]
+        self.assertEqual(len(names), len(set(names)))
+
+    def test_an_accepted_mutation_fails_the_gate(self):
+        # Feed the battery a family whose constraints accept anything; the
+        # gate must fail loudly rather than count it as refused.
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        root = Path(directory.name)
+        for family in ("load_store", "div", "mulh", "shifts_imm", "shifts_reg"):
+            sample = next(
+                assignment
+                for _, fam, assignment in witnesses.mutation_counter_cases()
+                if fam == family
+            )
+            (root / f"{family}.json").write_text(
+                json.dumps(
+                    {
+                        "family": family,
+                        "columns": [{"name": name} for name in sample],
+                        "nodes": [{"op": "const", "value": 0}],
+                        "constraints": [],
+                        "lookups": [],
+                    }
+                )
+            )
+        with self.assertRaisesRegex(witnesses.WitnessError, "ACCEPTED"):
+            witnesses.check_mutation_refusals(root)
+
+
+class ExportProvenanceTest(unittest.TestCase):
+    """The gate digests what it evaluates and refuses a stale export."""
+
+    def _export(self) -> Path:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        root = Path(directory.name)
+        export = root / "export"
+        export.mkdir()
+        (export / "toy.json").write_text(
+            json.dumps(
+                {
+                    "family": "toy",
+                    "columns": [{"name": "a"}],
+                    "nodes": [{"op": "col", "name": "a"}],
+                    "constraints": [],
+                    "lookups": [],
+                }
+            )
+        )
+        return root
+
+    def test_a_fresh_export_reports_its_digest(self):
+        root = self._export()
+        source = root / "src"
+        source.mkdir()
+        (source / "air.zig").write_text("// air")
+        # Make the source strictly older than the export.
+        old = (root / "export" / "toy.json").stat().st_mtime_ns - 10**9
+        os.utime(source / "air.zig", ns=(old, old))
+        report = witnesses.check_export_provenance(
+            root / "export", source_root=source
+        )
+        self.assertIn("sha256", report)
+        self.assertIn("no production AIR source is newer", report)
+
+    def test_a_stale_export_is_refused_with_the_re_derivation_command(self):
+        root = self._export()
+        source = root / "src"
+        source.mkdir()
+        (source / "air.zig").write_text("// air")
+        new = (root / "export" / "toy.json").stat().st_mtime_ns + 10**9
+        os.utime(source / "air.zig", ns=(new, new))
+        with self.assertRaisesRegex(witnesses.WitnessError, "STALE") as caught:
+            witnesses.check_export_provenance(root / "export", source_root=source)
+        self.assertIn("zig build riscv-refinement-ir", str(caught.exception))
+
+    def test_an_absent_source_tree_fails_closed(self):
+        root = self._export()
+        with self.assertRaisesRegex(witnesses.WitnessError, "freshness"):
+            witnesses.check_export_provenance(
+                root / "export", source_root=root / "nonexistent"
+            )
+
+    def test_the_digest_is_stable_and_content_sensitive(self):
+        root = self._export()
+        first = witnesses.export_digest(root / "export")
+        self.assertEqual(first, witnesses.export_digest(root / "export"))
+        (root / "export" / "toy.json").write_text("{}")
+        self.assertNotEqual(first, witnesses.export_digest(root / "export"))
+
+    def test_the_real_export_passes_provenance(self):
+        try:
+            air_ir_dir = export_air()
+        except (OSError, subprocess.SubprocessError) as error:
+            self.skipTest(f"production AIR export unavailable: {error}")
+        report = witnesses.check_export_provenance(air_ir_dir)
+        self.assertIn("sha256", report)
 
 
 class TrackedAirGapTest(unittest.TestCase):
@@ -444,3 +902,7 @@ class TrackedAirGapTest(unittest.TestCase):
         base = witnesses.M31 - 4097
         _, architectural, field_address = witnesses.address_aliasing_row(base=base)
         self.assertEqual(architectural, field_address)
+
+
+if __name__ == "__main__":
+    unittest.main()

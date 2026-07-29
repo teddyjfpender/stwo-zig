@@ -3,7 +3,7 @@
 
 Team B (issue #137) owns 22 of the 46 admitted RV32IM opcodes, across the
 ``shifts_reg``, ``shifts_imm``, ``load_store``, ``mul``, ``mulh``, and ``div``
-AIR families. This gate answers three questions, and fails closed on each:
+AIR families. This gate answers four questions, and fails closed on each:
 
 1. Is the Team B opcode set exactly the 22 opcodes the production manifest
    assigns to those six families, with no duplicate and no missing entry?
@@ -11,7 +11,20 @@ AIR families. This gate answers three questions, and fails closed on each:
    transcribed from? Each capsule records the SHA-256 of its exported family IR;
    this gate recomputes that digest from a fresh export and requires equality.
 3. Does every theorem named in the certificate index actually exist in the Lean
-   source it is attributed to?
+   source it is attributed to? Certificate names are resolved against the
+   namespace structure of the Lean sources: a name is accepted only if it is
+   the theorem's fully-qualified name, or attributes the theorem to an
+   enclosing namespace no coarser than its file's outermost ``namespace``
+   declaration (the committed index attributes the load/store non-vacuity
+   witnesses, declared inside the organizational ``NonVacuity`` sub-namespace,
+   to ``RiscvRefinement.Opcodes``). A bare trailing name, or a namespace the
+   theorem does not live under, is refused.
+4. Does every certificate state which Sail artifact its architectural side is
+   bound to? ``sail_binding`` is ``"reviewed-capsule"`` (the default) until a
+   generated-Sail translation lands; a certificate may claim ``"generated"``
+   only if it also carries a ``sail_receipt``. This keeps the coverage number
+   meaningful when the acceptance bar moves: reviewed-capsule entries survive
+   as reviewed-capsule entries instead of silently resetting.
 
 It deliberately does not import the Level-1 pilot generator. The pilot's
 committed manifest is a separate, Sail-bound artifact; this gate is additive and
@@ -78,20 +91,53 @@ REQUIRED_CERTIFICATE_FIELDS: dict[str, tuple[str, ...]] = {
         "refinement_theorem",
         "tuple_theorem",
     ),
+    # "Proved" needs the named Lean mutation control, not just the free-form
+    # ``mutation`` label: a label without a ``mutation_theorem`` was the
+    # audited hole that let every opcode claim proved on the strength of a
+    # junk string. ``mutation_theorem`` is deliberately last so a certificate
+    # that carries the label but not the theorem is refused by name.
     "proved": (
         "refinement_theorem",
         "tuple_theorem",
         "non_vacuity_theorem",
         "mutation",
+        "mutation_theorem",
     ),
 }
+
+#: Recognised Sail bindings for a certificate's architectural side. The
+#: default, ``reviewed-capsule``, is the claim boundary every current entry
+#: lives under: the architectural semantics were transcribed and reviewed by
+#: hand. ``generated`` is the stronger claim -- the semantics were produced by
+#: the pinned Sail toolchain -- and may only be made alongside a
+#: ``sail_receipt`` recording the checked translation it came from.
+SAIL_BINDINGS = ("reviewed-capsule", "generated")
+DEFAULT_SAIL_BINDING = "reviewed-capsule"
+
+#: certificate field -> short column label, in reporting order. These are the
+#: four theorem slots a certificate can populate on its way to ``proved``.
+THEOREM_SLOTS: tuple[tuple[str, str], ...] = (
+    ("refinement_theorem", "refine"),
+    ("tuple_theorem", "tuple"),
+    ("non_vacuity_theorem", "witness"),
+    ("mutation_theorem", "mutation"),
+)
 
 MANIFEST_ENTRY = re.compile(r"proof\(\.[^,]+,\s*\"([^\"]+)\",\s*\.([a-z_0-9]+)")
 LEAN_DIGEST = re.compile(
     r"^def\s+([A-Za-z0-9]+)IrDigest\s*:\s*String\s*:=\s*\"([0-9a-f]{64})\"$",
     re.MULTILINE,
 )
-LEAN_THEOREM = re.compile(r"^\s*theorem\s+([A-Za-z0-9_']+)", re.MULTILINE)
+#: The scope-relevant declaration forms, matched against comment-stripped,
+#: whitespace-stripped lines. ``theorem`` names may themselves be dotted
+#: (``theorem MutationControl.strictly_weaker``); the dotted part is part of
+#: the declared name and is never elidable.
+LEAN_NAMESPACE = re.compile(r"^namespace\s+([A-Za-z_][A-Za-z0-9_'.]*)\s*$")
+LEAN_SECTION = re.compile(
+    r"^(?:noncomputable\s+)?section(?:\s+([A-Za-z_][A-Za-z0-9_'.]*))?\s*$"
+)
+LEAN_SCOPE_END = re.compile(r"^end(?:\s+([A-Za-z_][A-Za-z0-9_'.]*))?\s*$")
+LEAN_THEOREM = re.compile(r"^(?:@\[[^\]]*\]\s*)?theorem\s+([A-Za-z0-9_'.]+)")
 
 
 class TeamBError(RuntimeError):
@@ -214,6 +260,18 @@ def check_coverage() -> str:
                     f"{mnemonic} claims state {state!r} but its {field} is "
                     "absent; a state may not overstate what exists"
                 )
+        binding = certificate.get("sail_binding", DEFAULT_SAIL_BINDING)
+        if binding not in SAIL_BINDINGS:
+            raise TeamBError(
+                f"{mnemonic} certificate has unrecognised sail_binding "
+                f"{binding!r}; expected one of {SAIL_BINDINGS}"
+            )
+        if binding == "generated" and not certificate.get("sail_receipt"):
+            raise TeamBError(
+                f"{mnemonic} claims sail_binding 'generated' but records no "
+                "sail_receipt; the generated claim requires a checked "
+                "translation receipt"
+            )
 
     proved = sorted(
         mnemonic
@@ -224,6 +282,67 @@ def check_coverage() -> str:
         f"team B coverage: {len(proved)}/{TEAM_B_OPCODE_COUNT} proved "
         f"of {FULL_OPCODE_COUNT} admitted opcodes"
     )
+
+
+def inventory() -> str:
+    """Render the certificate index as a per-opcode table.
+
+    The table is derived from the same validated view ``check_coverage`` uses,
+    so a corrupted index fails closed instead of printing a plausible table.
+    Rows are in production protocol order; each of the four theorem slots is
+    marked ``x`` when populated and ``-`` when not.
+    """
+    check_coverage()
+    opcodes = team_b_opcodes()
+    index = load_certificates()
+    by_mnemonic = {
+        certificate["mnemonic"]: certificate
+        for certificate in index["certificates"]
+    }
+
+    header = (
+        "mnemonic",
+        "family",
+        "id",
+        "state",
+        *(label for _, label in THEOREM_SLOTS),
+        "sail-binding",
+    )
+    rows = [header]
+    state_counts: dict[str, int] = {}
+    for mnemonic, family, protocol_id in opcodes:
+        certificate = by_mnemonic[mnemonic]
+        state = certificate["state"]
+        state_counts[state] = state_counts.get(state, 0) + 1
+        rows.append(
+            (
+                mnemonic,
+                family,
+                str(protocol_id),
+                state,
+                *(
+                    "x" if certificate.get(field) else "-"
+                    for field, _ in THEOREM_SLOTS
+                ),
+                certificate.get("sail_binding", DEFAULT_SAIL_BINDING),
+            )
+        )
+
+    widths = [
+        max(len(row[column]) for row in rows)
+        for column in range(len(header))
+    ]
+    lines = [
+        "  ".join(cell.ljust(width) for cell, width in zip(row, widths)).rstrip()
+        for row in rows
+    ]
+    summary = ", ".join(
+        f"{state_counts[state]} {state}"
+        for state in reversed(CERTIFICATE_STATES)
+        if state in state_counts
+    )
+    lines.append(f"team B inventory: {len(opcodes)} opcodes ({summary})")
+    return "\n".join(lines)
 
 
 def check_ir_digests(air_ir_dir: Path) -> str:
@@ -272,6 +391,128 @@ def check_ir_digests(air_ir_dir: Path) -> str:
     return f"team B AIR bindings: {checked} family digests match a fresh export"
 
 
+def _strip_lean_comments(text: str) -> str:
+    """Remove ``--`` line comments and (nested) ``/- ... -/`` block comments.
+
+    Line structure is preserved so scope tracking stays per-line. String
+    literals are not modelled; no tracked declaration form can occur inside
+    one, and no RiscvRefinement string literal contains a comment opener.
+    """
+    out: list[str] = []
+    depth = 0
+    i = 0
+    length = len(text)
+    while i < length:
+        pair = text[i : i + 2]
+        if depth == 0 and pair == "--":
+            while i < length and text[i] != "\n":
+                i += 1
+            continue
+        if pair == "/-":
+            depth += 1
+            i += 2
+            continue
+        if depth and pair == "-/":
+            depth -= 1
+            i += 2
+            continue
+        if depth == 0:
+            out.append(text[i])
+        elif text[i] == "\n":
+            out.append("\n")
+        i += 1
+    return "".join(out)
+
+
+def lean_claimable_theorems(text: str, source: str) -> set[str]:
+    """The fully-qualified names under which a certificate may claim a theorem.
+
+    Scopes are tracked through ``namespace``, ``section``, ``mutual``, and
+    ``end``. A theorem declared under the namespace declarations
+    ``D1 ... Dk`` is claimable as ``D1.….Dj.<name>`` for every ``j`` in
+    ``1..k``: its exact fully-qualified name, or an attribution to an
+    enclosing namespace, but never coarser than the file's outermost
+    ``namespace`` declaration and never a bare name. The elision exists
+    because the committed index attributes theorems declared inside
+    organizational sub-namespaces (``NonVacuity`` in ``Opcodes/LoadStore``)
+    to the file's namespace; a namespace the theorem does not live under
+    never matches. A file whose scope structure this parser cannot follow
+    fails closed rather than qualifying anything wrongly.
+    """
+    def refuse(reason: str) -> TeamBError:
+        return TeamBError(
+            f"{source} {reason}; refusing to attribute theorems from a file "
+            "this gate cannot parse"
+        )
+
+    claimable: set[str] = set()
+    # One entry per scope *segment*: ``namespace A.B`` pushes two namespace
+    # segments sharing one declaration id, because Lean lets ``end B``/``end
+    # A`` close them separately, and ``end A.B`` close both at once.
+    stack: list[tuple[str, str | None, int]] = []
+    declaration = 0
+    for raw in _strip_lean_comments(text).splitlines():
+        line = raw.strip()
+        opened = LEAN_NAMESPACE.match(line)
+        if opened:
+            declaration += 1
+            for segment in opened.group(1).split("."):
+                stack.append(("namespace", segment, declaration))
+            continue
+        opened = LEAN_SECTION.match(line)
+        if opened:
+            declaration += 1
+            stack.append(("section", opened.group(1), declaration))
+            continue
+        if line == "mutual":
+            declaration += 1
+            stack.append(("mutual", None, declaration))
+            continue
+        ended = LEAN_SCOPE_END.match(line)
+        if ended:
+            segments = ended.group(1).split(".") if ended.group(1) else [None]
+            for segment in reversed(segments):
+                if not stack:
+                    raise refuse("closes a scope that was never opened")
+                kind, open_name, _ = stack.pop()
+                if segment != open_name and not (
+                    segment is None and kind == "mutual"
+                ):
+                    raise refuse(
+                        f"ends {segment or 'an anonymous scope'} while the "
+                        f"innermost open scope is {kind} {open_name}"
+                    )
+            continue
+        declared = LEAN_THEOREM.match(line)
+        if declared:
+            name = declared.group(1)
+            spaces = [
+                (segment, decl)
+                for kind, segment, decl in stack
+                if kind == "namespace"
+            ]
+            if not spaces:
+                claimable.add(name)
+            # Elision cuts fall only on declaration boundaries: the segments
+            # a single ``namespace A.B`` opened are never split, so the
+            # coarsest claimable attribution is the file's outermost
+            # namespace declaration, in full.
+            for prefix in range(1, len(spaces) + 1):
+                if (
+                    prefix < len(spaces)
+                    and spaces[prefix][1] == spaces[prefix - 1][1]
+                ):
+                    continue
+                claimable.add(
+                    ".".join(segment for segment, _ in spaces[:prefix])
+                    + "."
+                    + name
+                )
+    if stack:
+        raise refuse(f"leaves a {stack[-1][0]} open at end of file")
+    return claimable
+
+
 def check_theorems() -> str:
     index = load_certificates()
     declared: set[str] = set()
@@ -291,19 +532,23 @@ def check_theorems() -> str:
                 )
             declared.add(name)
 
-    present: set[str] = set()
+    claimable: set[str] = set()
     for path in sorted(LEAN_ROOT.rglob("*.lean")):
-        for name in LEAN_THEOREM.findall(path.read_text(encoding="utf-8")):
-            present.add(name)
+        claimable |= lean_claimable_theorems(
+            path.read_text(encoding="utf-8"),
+            str(path.relative_to(LEAN_ROOT)),
+        )
 
-    missing = sorted(name.rsplit(".", 1)[-1] for name in declared)
-    absent = [name for name in missing if name not in present]
+    absent = sorted(name for name in declared if name not in claimable)
     if absent:
         raise TeamBError(
             "certificate index names theorems that do not exist in the Lean "
-            "sources: " + ", ".join(sorted(absent))
+            "namespace they are attributed to: " + ", ".join(absent)
         )
-    return f"team B certificates: {len(declared)} named theorems all present"
+    return (
+        f"team B certificates: {len(declared)} named theorems present in "
+        "their attributed namespaces"
+    )
 
 
 PROFILE_PATH = REPOSITORY_ROOT / "conformance/riscv/rv32im-sail-profile.json"
@@ -438,8 +683,14 @@ def main(argv: list[str] | None = None) -> int:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     subparsers.add_parser("coverage", help="check the 22-opcode certificate index")
-    subparsers.add_parser("theorems", help="check every named theorem exists")
+    subparsers.add_parser(
+        "theorems",
+        help="check every named theorem exists in its attributed namespace",
+    )
     subparsers.add_parser("profile", help="check the pinned profile supports the contract")
+    subparsers.add_parser(
+        "inventory", help="print the per-opcode certificate table"
+    )
 
     digests = subparsers.add_parser(
         "ir-digests", help="check family capsules against a fresh AIR export"
@@ -456,6 +707,8 @@ def main(argv: list[str] | None = None) -> int:
             print(check_coverage())
         elif args.command == "theorems":
             print(check_theorems())
+        elif args.command == "inventory":
+            print(inventory())
         elif args.command == "ir-digests":
             print(check_ir_digests(args.air_ir_dir))
         elif args.command == "profile":

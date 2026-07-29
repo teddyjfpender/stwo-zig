@@ -1,0 +1,227 @@
+# Sail-present refinement gate: run the pinned Sail 0.20.2 toolchain in
+# hosted CI so the "reviewed capsule" claim boundary stops depending on any
+# developer laptop having a working Sail installation.
+#
+# What this workflow does that riscv-team-b-refinement.yml deliberately does
+# not: it provisions the pinned Sail compiler (the same hash-pinned upstream
+# release binary riscv-sail-differential.yml installs), builds the pinned
+# sail-riscv workspace, regenerates the exact-profile RV32IM Sail Lean
+# theorem backend, runs the full Sail-bound Level-1 pilot gate
+# (`zig build riscv-refinement-pilot`), and mints the live-evidence
+# refinement receipt. Command-to-claim mapping and the macOS story:
+# soundness/SAIL_PROVISIONING.md.
+#
+# Trigger policy: schedule + workflow_dispatch + push to main ONLY, never on
+# every pull request. A cold run builds the Sail simulator, Spike, the Sail
+# Lean backend, the Lean proof tree, and the Zig pilot -- far too slow for a
+# per-PR required check, and a slow required check only teaches contributors
+# to ignore it. The fast PR-scoped formal leg stays in
+# riscv-team-b-refinement.yml; this job is the capability that makes the
+# Sail-present run hosted instead of a laptop prerequisite.
+#
+# Fail-closed contract: there is no skip path anywhere in this workflow. A
+# Sail release that cannot be downloaded or fails its sha256 check, an
+# unbuildable workspace, a Lean toolchain that cannot be provisioned, digest
+# drift between the committed artifacts and the freshly generated Sail
+# backend, and a receipt that cannot be minted from live evidence are all
+# RED. Nothing here degrades to "skipped because Sail was unavailable".
+
+name: RISC-V Sail formal provisioning
+
+on:
+  push:
+    branches: ["main"]
+  schedule:
+    # Daily, offset from the 04:37 Sail differential and the 05:23 Team B
+    # clean-room so the three heavy formal jobs do not contend.
+    - cron: "41 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Serialize runs so two provisioning jobs never race the workspace cache
+# save. Queued, not cancelled: a long cold provisioning run must finish.
+concurrency:
+  group: riscv-sail-formal
+  cancel-in-progress: false
+
+jobs:
+  sail-present-refinement:
+    name: Sail-present Level-1 refinement gate
+    runs-on: ubuntu-latest
+    # Cold path: Sail simulator cmake build + Spike build (~30 min), Sail
+    # --lean backend generation (bounded at 30 min inside prepare-sail),
+    # full Lean proof build, Zig pilot, then the receipt's repeat
+    # verification pass. Warm-cache runs are far shorter; the budget covers
+    # the fully cold rebuild.
+    timeout-minutes: 180
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+
+      - name: Setup Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
+        with:
+          python-version: "3.13"
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29  # v2
+        with:
+          version: 0.15.2
+
+      - name: Setup Lean at the pinned toolchain
+        uses: leanprover/lean-action@38fbc41a8c28c4cbaec22d7f7de508ec2e7c0dd9  # v1.5.0
+        with:
+          lake-package-directory: formal/riscv-refinement
+          build: false
+          test: false
+          lint: false
+
+      # Provisioning is verified explicitly rather than inferred from a later
+      # step's success, so a silently missing toolchain fails here with a
+      # clear message instead of turning a formal leg into a no-op.
+      - name: Verify the Lean toolchain is actually present
+        run: |
+          set -euo pipefail
+          cd formal/riscv-refinement
+          expected="$(tr -d '[:space:]' < lean-toolchain)"
+          actual="$(lake env lean --version)"
+          echo "pinned toolchain: ${expected}"
+          echo "resolved lean:    ${actual}"
+          case "${expected}" in
+            leanprover/lean4:v*) ;;
+            *) echo "unrecognised pinned toolchain '${expected}'" >&2; exit 1 ;;
+          esac
+          version="${expected#leanprover/lean4:v}"
+          if ! printf '%s' "${actual}" | grep -qF "${version}"; then
+            echo "resolved Lean does not match the pinned toolchain" >&2
+            exit 1
+          fi
+
+      # Keyed on every input that determines toolchain content, exactly as
+      # riscv-sail-differential.yml keys its workspace: the formal profile
+      # (source revisions, compiler version), the transport patch, and the
+      # Sail configuration overrides. This workflow uses its own key epoch
+      # because its cached workspace additionally holds the generated Sail
+      # Lean backend; the differential's exact key is a restore fallback so
+      # a warm differential toolchain seeds the first run here. Restoring
+      # the differential cache is safe precisely because both keys hash the
+      # same pin set: a restored workspace always matches the current pins,
+      # and riscv_formal_tools.py re-verifies every identity regardless.
+      - name: Restore pinned formal toolchain workspace
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
+        with:
+          path: ${{ runner.tool_cache }}/stwo-zig/riscv-formal
+          key: riscv-formal-refinement-v1-${{ runner.os }}-${{ hashFiles('conformance/riscv/rv32im-sail-profile.json', 'conformance/riscv/sail-rvfi-zkvm-entry.patch', 'conformance/riscv/sail-rv32im-override.json', 'conformance/riscv/sail-rv32im-tagged-options.json') }}
+          restore-keys: |
+            riscv-formal-v1-${{ runner.os }}-${{ hashFiles('conformance/riscv/rv32im-sail-profile.json', 'conformance/riscv/sail-rvfi-zkvm-entry.patch', 'conformance/riscv/sail-rv32im-override.json', 'conformance/riscv/sail-rv32im-tagged-options.json') }}
+
+      - name: Install device-tree compiler for the pinned Spike build
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends device-tree-compiler
+
+      # The pinned Sail compiler ships as a hash-pinned upstream release
+      # binary, so no opam bootstrap runs in CI. This is byte-identical to
+      # the mechanism in riscv-sail-differential.yml. A profile compiler
+      # bump deliberately breaks this step (both refinement scripts reject
+      # the old version) until the URL and digest here are updated in the
+      # same change -- that is the fail-closed direction. There is no
+      # fallback and no skip: a failed download or digest mismatch is RED.
+      - name: Install the pinned Sail compiler release binary
+        run: |
+          test "$(uname -m)" = x86_64
+          curl -fsSL -o "$RUNNER_TEMP/sail.tar.gz" \
+            https://github.com/rems-project/sail/releases/download/0.20.2-binary/sail-Linux-x86_64.tar.gz
+          echo "26b59bcab2d66e9f220d317dfe45f8b09170ed70e59a824553d6f525134d1ff6  $RUNNER_TEMP/sail.tar.gz" \
+            | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/sail.tar.gz" -C "$RUNNER_TEMP"
+          "$RUNNER_TEMP/sail/bin/sail" --version
+
+      # Checks out sail-riscv, Spike, and riscv-arch-test at the profile
+      # revisions, applies the hash-pinned RVFI transport patch, builds the
+      # simulator from clean source, and verifies every identity
+      # (--build-info must report the pinned model tag and compiler). The
+      # verified provisioning receipt on stdout is kept as evidence.
+      - name: Provision the pinned formal workspace
+        run: |
+          set -euo pipefail
+          python3 scripts/riscv_formal_tools.py prepare \
+            --workspace "$RUNNER_TOOL_CACHE/stwo-zig/riscv-formal" \
+            --sail-compiler "$RUNNER_TEMP/sail/bin/sail" \
+            | tee "$RUNNER_TEMP/riscv-formal-tools-receipt.json"
+
+      # Merges the repository's normative RV32IM overrides into the
+      # generated base configuration, validates it with the freshly built
+      # pinned simulator (ISA string must be rv32im), and generates the Sail
+      # Lean theorem backend from that exact configuration.
+      - name: Generate the exact RV32IM Sail theorem backend
+        run: |
+          set -euo pipefail
+          python3 scripts/riscv_refinement.py prepare-sail \
+            --sail-riscv-dir "$RUNNER_TOOL_CACHE/stwo-zig/riscv-formal/source/sail-riscv" \
+            --sail-bin "$RUNNER_TEMP/sail/bin/sail"
+
+      # Warm the Lean build as its own step. The pilot and receipt gates
+      # below re-run `lake build` through scripts/riscv_refinement.py, which
+      # caps each subprocess at 600 s -- fine for the incremental no-op this
+      # step guarantees, fatal for a cold build of the whole proof tree.
+      - name: Build every Lean theorem
+        run: |
+          set -euo pipefail
+          cd formal/riscv-refinement
+          lake build
+
+      # The full Sail-bound Level-1 pilot gate, previously a laptop-only
+      # command: fresh symbolic AIR export, byte-identical generated
+      # artifacts under LIVE Sail evidence (the digest pins are re-derived
+      # from the backend generated above, not re-asserted from committed
+      # hashes), coverage, negative controls, Python unit tests, Lean
+      # build, proof-escape scan, and the axiom audit.
+      - name: Run the Sail-present refinement pilot gate
+        env:
+          STWO_SAIL_RISCV_DIR: ${{ runner.tool_cache }}/stwo-zig/riscv-formal/source/sail-riscv
+          SAIL: ${{ runner.temp }}/sail/bin/sail
+        run: zig build riscv-refinement-pilot
+
+      # Live-toolchain receipts are the whole point of this workflow: the
+      # receipt command refuses --reuse-committed-sail-evidence and records
+      # the pinned compiler and simulator binary digests. The committed
+      # receipt is deleted first so the artifact uploaded below can only
+      # ever be one minted by THIS run, never the stale committed copy
+      # (scripts/riscv_refinement.py excludes the receipt path from its
+      # clean-repository check, so the deletion does not trip it).
+      - name: Mint the live-evidence refinement receipt
+        run: |
+          set -euo pipefail
+          rm -f formal/riscv-refinement/refinement-receipt.json
+          python3 scripts/riscv_refinement.py receipt \
+            --sail-riscv-dir "$RUNNER_TOOL_CACHE/stwo-zig/riscv-formal/source/sail-riscv" \
+            --sail-bin "$RUNNER_TEMP/sail/bin/sail"
+          cp formal/riscv-refinement/refinement-receipt.json \
+            "$RUNNER_TEMP/refinement-receipt.json"
+
+      # Save even after a red run: a drift investigation needs the warm
+      # toolchain far more than a green run does.
+      - name: Save pinned formal toolchain workspace
+        if: always()
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
+        with:
+          path: ${{ runner.tool_cache }}/stwo-zig/riscv-formal
+          key: riscv-formal-refinement-v1-${{ runner.os }}-${{ hashFiles('conformance/riscv/rv32im-sail-profile.json', 'conformance/riscv/sail-rvfi-zkvm-entry.patch', 'conformance/riscv/sail-rv32im-override.json', 'conformance/riscv/sail-rv32im-tagged-options.json') }}
+
+      # The refinement receipt exists only when this run minted it; the
+      # provisioning receipt exists whenever the workspace was verified.
+      # `warn` (not `error`) keeps a red job's failure attributed to the
+      # step that actually failed rather than to an absent artifact.
+      - name: Retain the provisioning and refinement receipts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: riscv-sail-refinement-receipt-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/refinement-receipt.json
+            ${{ runner.temp }}/riscv-formal-tools-receipt.json
+          if-no-files-found: warn
+          retention-days: 90

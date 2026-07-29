@@ -1,8 +1,12 @@
 -- REVIEWED NORMALIZED CAPSULE. NOT A GENERATED-SAIL THEOREM.
 --
 -- This file states the architectural half of the RV32I load/store contract as a
--- hand-written, human-reviewed normalized capsule, in exactly the same status as
--- RiscvRefinement/Sail/Generated/Pilot.lean. The generated pinned-Sail theorem
+-- hand-written, human-reviewed normalized capsule. It is the same epistemic
+-- *class* as RiscvRefinement/Sail/Generated/Pilot.lean -- a reviewed capsule,
+-- not a generated-Sail theorem -- but not the same status: Pilot.lean is
+-- generator output pinned to SHA-256 digests of real generated Sail text,
+-- while this file is hand-written, with no generator, no digest, and no
+-- derivation from any Sail artifact. The generated pinned-Sail theorem
 -- backend is not available in this environment (no Sail compiler), so nothing
 -- here is machine-derived from the Sail model.
 --

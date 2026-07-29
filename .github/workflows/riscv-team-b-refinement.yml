@@ -30,10 +30,21 @@ on:
   pull_request:
     paths:
       - "formal/riscv-refinement/**"
+      # riscv_team_b*.py covers both the coverage gate (riscv_team_b.py) and
+      # the witness gate (riscv_team_b_witnesses.py); the test globs mirror
+      # every suite the "Python gates" step below actually runs, so editing a
+      # gate or its tests always runs this workflow. Every file the job
+      # executes is ALSO listed explicitly, so a glob/filename drift cannot
+      # silently stop the workflow from triggering on a gate edit.
+      - "scripts/riscv_team_b*.py"
       - "scripts/riscv_team_b.py"
+      - "scripts/riscv_team_b_witnesses.py"
       - "scripts/riscv_refinement*.py"
       - "scripts/riscv_refinement_lib/**"
+      - "scripts/tests/test_riscv_team_b*.py"
       - "scripts/tests/test_riscv_team_b.py"
+      - "scripts/tests/test_riscv_team_b_witnesses.py"
+      - "scripts/tests/test_riscv_refinement.py"
       - "scripts/tests/test_sail_translation.py"
       - "src/frontends/riscv/**"
       - "soundness/TEAM_B_SAIL_REFINEMENT_CONTRACT.md"
@@ -48,8 +59,12 @@ on:
 permissions:
   contents: read
 
+# The event name is part of the group so a push to main cannot cancel the
+# scheduled clean-room run mid-flight: both would otherwise share the
+# refs/heads/main group and cancel-in-progress would kill whichever started
+# first. Superseded pull-request runs still cancel each other as before.
 concurrency:
-  group: riscv-team-b-${{ github.ref }}
+  group: riscv-team-b-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -59,15 +74,21 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Setup Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.13"
 
+      # The version pin matches ci.yml exactly: build.zig.zon carries no
+      # minimum_zig_version, so an unpinned setup-zig resolves to latest and
+      # drifts away from what every other workflow in this repository builds
+      # with.
       - name: Setup Zig
         uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
+        with:
+          version: 0.15.2
 
       - name: Setup Lean at the pinned toolchain
         uses: leanprover/lean-action@38fbc41a8c28c4cbaec22d7f7de508ec2e7c0dd9 # v1.5.0
@@ -122,14 +143,100 @@ jobs:
       - name: Scan for proof escapes
         run: |
           set -euo pipefail
-          # Line comments are stripped first so the banned words may still be
-          # discussed in prose; anything surviving is a real escape.
-          if find formal/riscv-refinement/RiscvRefinement -name '*.lean' -print0 \
-              | xargs -0 sed 's/--.*$//' \
-              | grep -nE '\b(sorry|admit|axiom|unsafe|native_decide)\b'; then
-            echo "forbidden proof escape present in the Lean sources" >&2
-            exit 1
-          fi
+          # Comments are stripped first so the banned words may still be
+          # discussed in prose; anything surviving is a real escape. Lean has
+          # `--` line comments and `/- ... -/` block comments (including the
+          # `/-!` and `/--` doc variants), and block comments nest, which is
+          # beyond a line-oriented sed -- hence the small Python scanner.
+          # String literals are copied through verbatim so a quoted `/-`
+          # cannot open a phantom comment that swallows real code. The step
+          # fails closed: a renamed or missing source tree reads as an
+          # implausibly small scan, not as a clean one -- the same defensive
+          # shape as the axiom-audit step below.
+          python3 - <<'PY'
+          import pathlib
+          import re
+          import sys
+
+          root = pathlib.Path("formal/riscv-refinement/RiscvRefinement")
+          banned = re.compile(r"\b(sorry|admit|axiom|unsafe|native_decide)\b")
+
+          def strip_comments(text):
+              out = []
+              depth = 0          # block-comment nesting depth
+              in_line = False    # inside a `--` line comment
+              in_string = False  # inside a "..." literal outside comments
+              i = 0
+              n = len(text)
+              while i < n:
+                  ch = text[i]
+                  pair = text[i : i + 2]
+                  if in_line:
+                      if ch == "\n":
+                          in_line = False
+                          out.append(ch)
+                      i += 1
+                  elif depth > 0:
+                      if pair == "/-":
+                          depth += 1
+                          i += 2
+                      elif pair == "-/":
+                          depth -= 1
+                          i += 2
+                      else:
+                          if ch == "\n":
+                              out.append(ch)  # keep line numbers stable
+                          i += 1
+                  elif in_string:
+                      out.append(ch)
+                      if ch == "\\" and i + 1 < n:
+                          out.append(text[i + 1])
+                          i += 2
+                      else:
+                          if ch == '"':
+                              in_string = False
+                          i += 1
+                  elif pair == "/-":
+                      depth += 1
+                      i += 2
+                  elif pair == "--":
+                      in_line = True
+                      i += 2
+                  else:
+                      if ch == '"':
+                          in_string = True
+                      out.append(ch)
+                      i += 1
+              return "".join(out)
+
+          files = sorted(root.rglob("*.lean"))
+          # The tree holds 32 Lean files today; seeing fewer than 25 means
+          # the scan did not reach the sources it exists to police.
+          if len(files) < 25:
+              print(
+                  f"proof-escape scan saw only {len(files)} Lean files under "
+                  f"{root}; refusing to treat an implausibly small scan as "
+                  "clean",
+                  file=sys.stderr,
+              )
+              sys.exit(1)
+
+          hits = []
+          for path in files:
+              stripped = strip_comments(path.read_text(encoding="utf-8"))
+              for lineno, line in enumerate(stripped.splitlines(), 1):
+                  for match in banned.finditer(line):
+                      hits.append(f"{path}:{lineno}: {match.group(0)}")
+
+          if hits:
+              print(
+                  "forbidden proof escape present in the Lean sources:",
+                  file=sys.stderr,
+              )
+              print("\n".join(hits), file=sys.stderr)
+              sys.exit(1)
+          print(f"scanned {len(files)} Lean files; no proof escapes")
+          PY
 
       - name: Audit the axioms of every exported theorem
         run: |
@@ -171,7 +278,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Checkout
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Setup Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
@@ -183,6 +290,7 @@ jobs:
       - name: Setup Zig without a restored cache
         uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
         with:
+          version: 0.15.2
           use-cache: false
 
       - name: Empty every derived cache

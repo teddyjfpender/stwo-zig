@@ -20,6 +20,11 @@ SCRIPTS = ROOT / "scripts"
 # Operator tools invoked by humans, not gates. Each entry must carry a
 # purpose; remove the entry in the same commit that deletes the tool.
 OPERATOR_TOOLS: dict[str, str] = {
+    # Owner: soundness. Reports, per Team B opcode, which mutation
+    # controls exist and whether each load-bearing corollary is
+    # unconditional -- the evidence a promoter needs before moving a
+    # certificate to "proved". Read-only; it never writes the index.
+    "riscv_team_b_inventory.py": "soundness",
     # Owner: soundness. Per-row witness-uniqueness checking of an AIR family
     # via z3, from a serialisable constraint IR. Deliberately un-gated: it
     # needs z3, which hosted CI does not install, and no family's IR is

@@ -1,3 +1,11 @@
+-- REVIEWED-CAPSULE BOUNDARY. Hand-written file; not generated, and not a
+-- generated-Sail theorem. The architectural conclusion this mutation control
+-- certifies -- LH's high-half selection -- is stated against the reviewed
+-- normalized capsule RiscvRefinement/Sail/Reviewed/LoadStore.lean, which is
+-- hand-written with no generator, no digest, and no derivation from any Sail
+-- artifact (see its header). Nothing in this file is publication-level for
+-- the architectural side.
+
 import RiscvRefinement.Air.Family.LoadStore
 import RiscvRefinement.Mutation
 import RiscvRefinement.Opcodes.LoadStore

@@ -16,6 +16,10 @@ import RiscvRefinement.Air.Family.LoadStore
 import RiscvRefinement.Air.Family.Shifts
 import RiscvRefinement.Air.Family.Multiply
 import RiscvRefinement.Air.Family.Div
+import RiscvRefinement.Air.Bridge.MulProgram
+import RiscvRefinement.Air.Bridge.MulBridge
+import RiscvRefinement.Air.Bridge.MulhProgram
+import RiscvRefinement.Air.Bridge.MulhBridge
 import RiscvRefinement.Sail.Generated.Pilot
 import RiscvRefinement.Sail.Reviewed.LoadStore
 import RiscvRefinement.Sail.Reviewed.Shifts
@@ -29,5 +33,12 @@ import RiscvRefinement.Opcodes.Multiply
 import RiscvRefinement.Opcodes.MultiplyMutation
 import RiscvRefinement.Opcodes.Div
 import RiscvRefinement.Opcodes.LoadStoreMutation
+import RiscvRefinement.Opcodes.LoadStoreMutationExtra
+import RiscvRefinement.Opcodes.ShiftsMutation
+import RiscvRefinement.Opcodes.ShiftsRegMutation
+import RiscvRefinement.Opcodes.DivMutation
+import RiscvRefinement.Opcodes.MultiplyMutationExtra
+import RiscvRefinement.Opcodes.SelectorNonVacuity
+import RiscvRefinement.Opcodes.StoreMutation
 import RiscvRefinement.NonVacuity
 import RiscvRefinement.Coverage
