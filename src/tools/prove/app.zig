@@ -176,6 +176,7 @@ fn verifyArtifact(allocator: std.mem.Allocator, request: cli.Verify) !void {
                 return error.MissingExpectedStatementDigest;
             const elf_path = request.elf_path orelse return error.MissingElf;
             return riscv_adapter.verifyArtifact(
+                RiscVEngine,
                 allocator,
                 parsed.value,
                 riscvProtocol(request.protocol),
@@ -227,6 +228,8 @@ test "RISC-V adapter: CPU path is live while unavailable device backends fail cl
     // Prove mode reaches real execution: a missing ELF surfaces as a file
     // error, proving the staged path is wired rather than gated.
     try std.testing.expectError(error.FileNotFound, riscv_adapter.run(
+        RiscVEngine,
+        riscv_backend,
         std.testing.allocator,
         "definitely-missing-guest.elf",
         null,
@@ -241,6 +244,8 @@ test "RISC-V adapter: CPU path is live while unavailable device backends fail cl
     ));
     // Device backends remain gated until a device-native RISC-V engine lands.
     try std.testing.expectError(error.AdapterNotReleaseGated, riscv_adapter.run(
+        RiscVEngine,
+        riscv_backend,
         std.testing.allocator,
         "guest.elf",
         null,
