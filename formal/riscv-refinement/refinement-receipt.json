@@ -4,18 +4,28 @@
     "Quot.sound",
     "propext"
   ],
-  "canonical_digest": "8170978e6088bacf4f05e4ed75f2c8fc58bb63a5e898172d24d1a479fddc1007",
-  "claim_boundary": "kernel-checked normalized LUI/ADDI predicate refinement plus lookup-complete production LUI AIR-to-normalized composition; ADDI AIR composition and generated-Sail monad normalization remain open",
+  "canonical_digest": "c57f051a0f3fee97dc1b09c7e8d29458630d0a4507f0b0e5b3c3c8a64959164c",
+  "claim_boundary": "kernel-checked normalized LUI/ADDI predicate refinement plus lookup-complete production LUI/ADDI AIR-to-normalized composition and Lean-checked Stage A2 mutation controls; generated-Sail monad normalization remains open",
   "coverage": {
     "production_opcodes": 46,
     "proved_normalized_opcodes": 2
   },
-  "generated_manifest_digest": "a679e2db22e4c115054b00862d65c41824438265aeb2fae898e9850335d34faf",
+  "generated_manifest_digest": "74c3688082274fc7f5e0da2d1ba370a7db7c7269409a14ed778d2f52fc52c5b7",
   "kind": "stwo-riscv-refinement-receipt",
   "lean_build": "passed",
+  "mutation_theorems": {
+    "addi-free-high-carry": "RiscvRefinement.Air.Bridge.Mutations.addiCarry_strictly_weaker",
+    "addi-immediate-range-request": "RiscvRefinement.Air.Bridge.Mutations.immediateRange_strictly_weaker",
+    "addi-lookup-event-reorder": "RiscvRefinement.Air.Bridge.Mutations.reordered_strictly_weaker",
+    "addi-selector-relabel-xori": "RiscvRefinement.Air.Bridge.Mutations.selectorRelabel_strictly_weaker",
+    "lui-free-low-limb": "RiscvRefinement.Air.Bridge.Mutations.luiLowLimb_strictly_weaker"
+  },
   "negative_controls": [
     "lui-free-low-limb",
-    "addi-free-high-carry"
+    "addi-free-high-carry",
+    "addi-immediate-range-request",
+    "addi-selector-relabel-xori",
+    "addi-lookup-event-reorder"
   ],
   "opcodes": [
     "lui",
@@ -24,7 +34,7 @@
   "proof_escape_scan": "passed",
   "repository_dirty": false,
   "repository_dirty_paths": [],
-  "repository_revision": "5c5e13b2a1be23a67de3d4274dfac637c662fe80",
+  "repository_revision": "fee9b3e595b8ae7adad6b88e2fcd7dc2bdfbb25b",
   "schema_version": 1,
   "semantic_toolchain": {
     "compiler": {
@@ -36,6 +46,107 @@
     }
   },
   "theorem_axioms": {
+    "RiscvRefinement.Air.Bridge.Addi.acceptance_nonvacuous": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Addi.bitwiseLookup0_projection_for_columns": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Addi.carryRecurrence_of_constraints": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Addi.constraintsHoldExceptHighCarry_eq": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Addi.constraintsHoldExceptHighCarry_iff": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Addi.constraintsHold_eq": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Addi.constraintsHold_iff": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Addi.destinationClockGapBound_of_fixedLookups": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Addi.destinationClockRequestHolds": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Addi.destinationClockRequestHolds_iff": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Addi.destinationClock_of_air": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Addi.destinationFlag_of_constraints": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Addi.destinationLimbs_of_constraints": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Addi.exampleAcceptance": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Addi.exampleAdmission": [],
+    "RiscvRefinement.Air.Bridge.Addi.fixedLookupsHold_eq": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Addi.immediateLookup_projection_for_columns": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Addi.lookup_projection": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Addi.selectorAccepted": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Addi.selector_projection_for_columns": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Addi.sound": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Addi.sourceClockGapBound_of_fixedLookups": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Addi.sourceClockRequestHolds": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Addi.sourceClockRequestHolds_iff": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Addi.sourceClock_of_air": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Addi.sourceLimbs_of_constraints": [
+      "Quot.sound",
+      "propext"
+    ],
     "RiscvRefinement.Air.Bridge.Lui.acceptance_nonvacuous": [
       "Quot.sound",
       "propext"
@@ -60,6 +171,14 @@
       "propext"
     ],
     "RiscvRefinement.Air.Bridge.Lui.clockRequestHolds_iff": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Lui.constraintsHoldExceptLowLimb_eq": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Lui.constraintsHoldExceptLowLimb_iff": [
       "Quot.sound",
       "propext"
     ],
@@ -101,6 +220,74 @@
       "propext"
     ],
     "RiscvRefinement.Air.Bridge.Lui.sound": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Mutations.addiCarry_refutes": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Mutations.addiCarry_satisfies": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Mutations.addiCarry_strictly_weaker": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Mutations.addiOriginal_sound": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Mutations.immediateRange_refutes": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Mutations.immediateRange_satisfies": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Mutations.immediateRange_strictly_weaker": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Mutations.luiLowLimb_refutes": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Mutations.luiLowLimb_satisfies": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Mutations.luiLowLimb_strictly_weaker": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Mutations.luiOriginal_sound": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Mutations.reordered_refutes": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Mutations.reordered_satisfies": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Mutations.reordered_strictly_weaker": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Mutations.selectorRelabel_refutes": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Mutations.selectorRelabel_satisfies": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Mutations.selectorRelabel_strictly_weaker": [
       "Quot.sound",
       "propext"
     ],
@@ -625,6 +812,9 @@
       "Quot.sound",
       "propext"
     ],
+    "RiscvRefinement.Mutation.MutationControl.strictly_weaker": [],
+    "RiscvRefinement.Mutation.MutationControl.witness_not_sound": [],
+    "RiscvRefinement.Mutation.strictly_weaker_of_not_original": [],
     "RiscvRefinement.NonVacuity.addi_exists": [
       "Classical.choice",
       "Quot.sound",
