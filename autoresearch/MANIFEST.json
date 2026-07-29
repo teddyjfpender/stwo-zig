@@ -1139,7 +1139,48 @@
       "auto_boost_rounds": 5,
       "maximum_rounds": 25
     },
-    "neutral_band_note": "Promotion requires the declared-objective CI entirely below 1 - theta, where theta = max(theta_floor, dispersion_multiplier x per-class A/A dispersion recorded in the ledger epoch)."
+    "neutral_band_note": "Promotion requires the declared-objective CI entirely below 1 - theta, where theta = max(theta_floor, dispersion_multiplier x per-class A/A dispersion recorded in the ledger epoch).",
+    "confirmation_ladder": {
+      "schema": "stwo_perf_confirmation_ladder_v1",
+      "sequential_stop": {
+        "enabled": false,
+        "rule": "pocock_constant_boundary_bonferroni_v1",
+        "alpha": 0.05,
+        "stop_on_decisive_miss": true
+      },
+      "tiers": {
+        "T0": {
+          "cost_target_seconds": 30,
+          "warmups": 1,
+          "samples": 1,
+          "min_phase_move": 0.02,
+          "note": "correctness smoke plus ONE stage-profiled sample on the proxy fixture; the claimed phase must move here before T1 is scheduled. One warmup is the floor, not a nicety: the Cairo arm records its mandatory phase profile on a discarded warmup, so warmups=0 would leave that track with no phase evidence at all."
+        },
+        "T1": {
+          "cost_target_seconds": 300,
+          "note": "paired ABBA on proxy fixtures with sequential early stopping and the PoW-excluded boundary; never ranks."
+        },
+        "T2": {
+          "cost_target_seconds": 2700,
+          "note": "full dual-boundary paired run on the contributor host, real classes, guards impact-mapped; the claimed verdict."
+        },
+        "T3": {
+          "cost_target_seconds": null,
+          "note": "judge-scheduled re-run plus audits on the designated host; the scored row. No cost target — the judge never trades honesty for time."
+        }
+      },
+      "proxy_validity": {
+        "receipt_schema": "stwo_perf_proxy_validity_receipt_v1",
+        "receipt_dir": "autoresearch/reference/proxy_validity",
+        "min_correlation": 0.8,
+        "min_observations": 5
+      },
+      "cost_telemetry": {
+        "statistic": "median",
+        "window": 5
+      },
+      "note": "TRACKS §3.5/§3.6. sequential_stop.enabled arms the pre-registered spending rule on scored paired runs; the T1 iterate path arms it explicitly because T1 never ranks. Absent this block the runner keeps pre-ladder fixed min/max-round behavior. Tier cost targets are CI-checked per track by scripts/check_tier_cost_targets.py."
+    }
   },
   "qualification_policy": {
     "schema_version": 1,

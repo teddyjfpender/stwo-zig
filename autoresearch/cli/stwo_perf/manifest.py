@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import fnmatch
 import json
+import math
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -130,6 +132,62 @@ PR6_MECHANISM_TELEMETRY = {
         "metal_cpu_fallbacks",
     ],
 }
+# --- Confirmation ladder (TRACKS §3.5/§3.6) -------------------------------
+#
+# Everything here is OPTIONAL in the manifest: a manifest without a
+# gates_policy.confirmation_ladder block keeps exactly the pre-ladder runner
+# behavior. Presence of the block is what pre-registers the tier cost targets
+# and the sequential spending rule.
+CONFIRMATION_LADDER_SCHEMA = "stwo_perf_confirmation_ladder_v1"
+PROXY_VALIDITY_RECEIPT_SCHEMA = "stwo_perf_proxy_validity_receipt_v1"
+PROXY_VALIDITY_METHOD = "paired_ln_ratio_pearson_v1"
+# The one registered spending rule. A constant (Pocock-style) boundary with the
+# family-wise error split evenly across the planned looks: at look k of K the
+# decision uses a bootstrap CI at level 1 - alpha/K. Because alpha/K < alpha,
+# the boundary is strictly stricter than the fixed-sample gate, so an early
+# stop can never admit a run the full-power gate would have rejected.
+SEQUENTIAL_STOP_RULE = "pocock_constant_boundary_bonferroni_v1"
+LADDER_TIERS = ("T0", "T1", "T2", "T3")
+LADDER_TIER_KEYS = frozenset({"cost_target_seconds", "note"})
+LADDER_T0_EXTRA_KEYS = frozenset({"warmups", "samples", "min_phase_move"})
+SEQUENTIAL_STOP_KEYS = frozenset({
+    "enabled", "rule", "alpha", "stop_on_decisive_miss",
+})
+PROXY_VALIDITY_POLICY_KEYS = frozenset({
+    "receipt_schema", "receipt_dir", "min_correlation", "min_observations",
+})
+COST_TELEMETRY_KEYS = frozenset({"statistic", "window"})
+COST_TELEMETRY_STATISTICS = frozenset({"median", "max"})
+PROXY_FIXTURE_KEYS = frozenset({
+    "proxy_id", "args", "native_unit", "official_params",
+    "target_workload_ids", "note",
+})
+# A proxy is a SCALED SHAPE at official parameters (TRACKS §3.3). Restating any
+# security parameter in a proxy's args is how "fast confirmation" quietly
+# becomes "weakened confirmation", so the tokens are refused outright.
+PROXY_FORBIDDEN_ARG_TOKENS = (
+    "--pow-bits", "--n-queries", "--protocol", "--security", "--functional",
+)
+PROXY_VALIDITY_RECEIPT_KEYS = frozenset({
+    "schema", "board", "era", "workload_class", "proxy", "target",
+    "measured_at_utc", "host", "harness_commit", "measurement",
+    "artifact_sha256",
+})
+PROXY_RECEIPT_PROXY_KEYS = frozenset({
+    "proxy_id", "args", "native_unit", "official_params",
+})
+PROXY_RECEIPT_HOST_KEYS = frozenset({
+    "identity_sha256", "chip", "logical_cpu_count",
+})
+PROXY_RECEIPT_MEASUREMENT_KEYS = frozenset({
+    "method", "observations", "observation_count", "correlation",
+    "min_correlation", "min_observations", "valid",
+})
+PROXY_RECEIPT_OBSERVATION_KEYS = frozenset({
+    "proxy_ln_ratio", "class_ln_ratio", "proxy_evidence_sha256",
+    "class_evidence_sha256",
+})
+
 PR6_RESOURCE_TELEMETRY = {
     "fail_closed": True,
     "scope": "each_verified_sample",
@@ -253,6 +311,88 @@ class Manifest:
     @property
     def anchor_commit(self) -> str | None:
         return self.raw["harness"].get("anchor_commit")
+
+    @property
+    def confirmation_ladder(self) -> dict:
+        """Pre-registered ladder config, or {} when the manifest predates it."""
+        ladder = self.raw["gates_policy"].get("confirmation_ladder")
+        return dict(ladder) if isinstance(ladder, dict) else {}
+
+    def tier_cost_target_seconds(self, tier: str) -> int | None:
+        """Cost target for one ladder tier; None when judge-scheduled/absent."""
+        tiers = self.confirmation_ladder.get("tiers") or {}
+        spec = tiers.get(tier)
+        if not isinstance(spec, dict):
+            return None
+        target = spec.get("cost_target_seconds")
+        return target if isinstance(target, int) and not isinstance(target, bool) else None
+
+    def proxy_fixture(self, workload_class: str) -> dict | None:
+        """The class's declared proxy fixture (TRACKS §3.3), if any."""
+        self.workload_class(workload_class)
+        spec = self.raw["workload_registry"]["classes"][workload_class]
+        fixture = spec.get("proxy_fixture")
+        return dict(fixture) if isinstance(fixture, dict) else None
+
+    def proxy_validity_state(
+        self, board: str, workload_class: str, era: int,
+    ) -> dict:
+        """Resolve the era validity receipt for one (board, class) proxy.
+
+        Absence is never fatal and never fabricated: it downgrades T0/T1
+        results with a loud ``proxy unvalidated`` marker (TRACKS §3.5).
+        """
+        state = {
+            "validated": False,
+            "reason": "class declares no proxy fixture",
+            "receipt": None,
+            "correlation": None,
+            "era": era,
+        }
+        fixture = self.proxy_fixture(workload_class)
+        if fixture is None:
+            return state
+        policy = self.confirmation_ladder.get("proxy_validity") or {}
+        receipt_dir = policy.get("receipt_dir")
+        if not isinstance(receipt_dir, str) or not receipt_dir:
+            state["reason"] = (
+                "gates_policy.confirmation_ladder.proxy_validity.receipt_dir "
+                "is not registered"
+            )
+            return state
+        path = self.root / receipt_dir / proxy_receipt_filename(
+            board, workload_class, era,
+        )
+        state["receipt"] = str(path)
+        if not path.is_file():
+            state["reason"] = "proxy unvalidated: no era validity receipt at " + str(path)
+            return state
+        try:
+            document = json.loads(path.read_text(encoding="utf-8"))
+            receipt = validate_proxy_validity_receipt(
+                document,
+                board=board,
+                workload_class=workload_class,
+                era=era,
+                policy=policy,
+                proxy_fixture=fixture,
+            )
+        except (OSError, json.JSONDecodeError, ManifestError) as exc:
+            state["reason"] = f"proxy unvalidated: invalid era receipt ({exc})"
+            return state
+        measurement = receipt["measurement"]
+        state["correlation"] = measurement["correlation"]
+        state["validated"] = bool(measurement["valid"])
+        state["reason"] = (
+            "era receipt valid"
+            if state["validated"]
+            else (
+                "proxy unvalidated: measured correlation "
+                f"{measurement['correlation']} is below the registered floor "
+                f"{measurement['min_correlation']} — rotate the proxy"
+            )
+        )
+        return state
 
     def groups(self) -> list[WorkloadGroup]:
         """Workload groups in manifest order (registry v2)."""
@@ -480,6 +620,7 @@ def _validate(raw: dict) -> None:
     ):
         _validate_metal_calibration(raw["harness"], registry["classes"])
     _validate_search_health_policy(raw["gates_policy"], registry["classes"])
+    _validate_confirmation_ladder(raw["gates_policy"])
     if not registry["groups"]:
         raise ManifestError("workload_registry.groups is empty")
     seen_boards: set[str] = set()
@@ -874,10 +1015,17 @@ def _validate_classes(classes: object) -> None:
     for name, spec in classes.items():
         if not isinstance(name, str) or not name or not name.replace("_", "").isalnum():
             raise ManifestError(f"invalid workload class name: {name!r}")
-        if not isinstance(spec, dict) or set(spec) != {"scored", "resource", "sampling"}:
+        required = {"scored", "resource", "sampling"}
+        if not isinstance(spec, dict) or not required <= set(spec):
             raise ManifestError(
                 f"workload class {name} requires exactly scored, resource, and sampling"
             )
+        unknown = sorted(set(spec) - required - {"proxy_fixture"})
+        if unknown:
+            raise ManifestError(
+                f"workload class {name} has unsupported key(s): " + ", ".join(unknown)
+            )
+        _validate_class_proxy_fixture(name, spec.get("proxy_fixture"))
         if not isinstance(spec["scored"], bool):
             raise ManifestError(f"workload class {name}.scored must be a boolean")
         resource = spec["resource"]
@@ -920,6 +1068,426 @@ def _validate_classes(classes: object) -> None:
             raise ManifestError(
                 f"workload class {name}.sampling min_rounds exceeds max_rounds"
             )
+
+
+def _positive_number(value: object) -> bool:
+    return (
+        not isinstance(value, bool)
+        and isinstance(value, (int, float))
+        and math.isfinite(float(value))
+        and float(value) > 0
+    )
+
+
+def _validate_confirmation_ladder(gates_policy: object) -> None:
+    """Validate the optional pre-registered confirmation ladder (TRACKS §3.5).
+
+    Absent block = pre-ladder manifest = pre-ladder behavior. Present block
+    must be complete: half-registered spending rules are not pre-registered.
+    """
+    if not isinstance(gates_policy, dict):
+        raise ManifestError("gates_policy must be an object")
+    ladder = gates_policy.get("confirmation_ladder")
+    if ladder is None:
+        return
+    if not isinstance(ladder, dict) or set(ladder) != {
+        "schema", "sequential_stop", "tiers", "proxy_validity",
+        "cost_telemetry", "note",
+    }:
+        raise ManifestError(
+            "gates_policy.confirmation_ladder requires exactly schema, "
+            "sequential_stop, tiers, proxy_validity, cost_telemetry, and note"
+        )
+    if ladder["schema"] != CONFIRMATION_LADDER_SCHEMA:
+        raise ManifestError(
+            "gates_policy.confirmation_ladder.schema must be "
+            + CONFIRMATION_LADDER_SCHEMA
+        )
+    if not isinstance(ladder["note"], str) or not ladder["note"].strip():
+        raise ManifestError("gates_policy.confirmation_ladder.note must be non-empty")
+
+    stop = ladder["sequential_stop"]
+    if not isinstance(stop, dict) or set(stop) != SEQUENTIAL_STOP_KEYS:
+        raise ManifestError(
+            "gates_policy.confirmation_ladder.sequential_stop requires exactly "
+            + ", ".join(sorted(SEQUENTIAL_STOP_KEYS))
+        )
+    if not isinstance(stop["enabled"], bool):
+        raise ManifestError("confirmation_ladder.sequential_stop.enabled must be a boolean")
+    if not isinstance(stop["stop_on_decisive_miss"], bool):
+        raise ManifestError(
+            "confirmation_ladder.sequential_stop.stop_on_decisive_miss must be a boolean"
+        )
+    if stop["rule"] != SEQUENTIAL_STOP_RULE:
+        raise ManifestError(
+            "confirmation_ladder.sequential_stop.rule must be "
+            + SEQUENTIAL_STOP_RULE
+            + " (the only pre-registered spending rule)"
+        )
+    alpha = stop["alpha"]
+    if not _positive_number(alpha) or float(alpha) > 0.5:
+        raise ManifestError(
+            "confirmation_ladder.sequential_stop.alpha must be in (0, 0.5]"
+        )
+
+    tiers = ladder["tiers"]
+    if not isinstance(tiers, dict) or tuple(tiers) != LADDER_TIERS:
+        raise ManifestError(
+            "confirmation_ladder.tiers must declare exactly "
+            + ", ".join(LADDER_TIERS)
+            + " in ladder order"
+        )
+    for tier, spec in tiers.items():
+        allowed = LADDER_TIER_KEYS | (
+            LADDER_T0_EXTRA_KEYS if tier == "T0" else frozenset()
+        )
+        if not isinstance(spec, dict) or not LADDER_TIER_KEYS <= set(spec):
+            raise ManifestError(
+                f"confirmation_ladder.tiers.{tier} requires cost_target_seconds and note"
+            )
+        unknown = sorted(set(spec) - allowed)
+        if unknown:
+            raise ManifestError(
+                f"confirmation_ladder.tiers.{tier} has unsupported key(s): "
+                + ", ".join(unknown)
+            )
+        target = spec["cost_target_seconds"]
+        if target is not None and (
+            type(target) is not int or not 1 <= target <= MAX_GROUP_WALL_CLOCK_SECONDS
+        ):
+            raise ManifestError(
+                f"confirmation_ladder.tiers.{tier}.cost_target_seconds must be null "
+                f"(judge-scheduled) or an integer in [1, {MAX_GROUP_WALL_CLOCK_SECONDS}]"
+            )
+        if not isinstance(spec["note"], str) or not spec["note"].strip():
+            raise ManifestError(
+                f"confirmation_ladder.tiers.{tier}.note must be non-empty"
+            )
+        if tier == "T0":
+            if type(spec.get("warmups")) is not int or not 0 <= spec["warmups"] <= 100:
+                raise ManifestError(
+                    "confirmation_ladder.tiers.T0.warmups must be an integer in [0, 100]"
+                )
+            if type(spec.get("samples")) is not int or not 1 <= spec["samples"] <= 32:
+                raise ManifestError(
+                    "confirmation_ladder.tiers.T0.samples must be an integer in [1, 32]"
+                )
+            move = spec.get("min_phase_move")
+            if not _positive_number(move) or float(move) >= 1.0:
+                raise ManifestError(
+                    "confirmation_ladder.tiers.T0.min_phase_move must be in (0, 1)"
+                )
+    ordered = [
+        tiers[tier]["cost_target_seconds"] for tier in LADDER_TIERS
+        if tiers[tier]["cost_target_seconds"] is not None
+    ]
+    if ordered != sorted(ordered) or len(set(ordered)) != len(ordered):
+        raise ManifestError(
+            "confirmation_ladder tier cost targets must increase strictly down the ladder"
+        )
+
+    proxy = ladder["proxy_validity"]
+    if not isinstance(proxy, dict) or set(proxy) != PROXY_VALIDITY_POLICY_KEYS:
+        raise ManifestError(
+            "confirmation_ladder.proxy_validity requires exactly "
+            + ", ".join(sorted(PROXY_VALIDITY_POLICY_KEYS))
+        )
+    if proxy["receipt_schema"] != PROXY_VALIDITY_RECEIPT_SCHEMA:
+        raise ManifestError(
+            "confirmation_ladder.proxy_validity.receipt_schema must be "
+            + PROXY_VALIDITY_RECEIPT_SCHEMA
+        )
+    receipt_dir = proxy["receipt_dir"]
+    if (
+        not isinstance(receipt_dir, str)
+        or not receipt_dir.startswith("autoresearch/")
+        or Path(receipt_dir).is_absolute()
+        or ".." in Path(receipt_dir).parts
+    ):
+        raise ManifestError(
+            "confirmation_ladder.proxy_validity.receipt_dir must be a repository "
+            "path under autoresearch/"
+        )
+    correlation = proxy["min_correlation"]
+    if not _positive_number(correlation) or float(correlation) > 1.0:
+        raise ManifestError(
+            "confirmation_ladder.proxy_validity.min_correlation must be in (0, 1]"
+        )
+    observations = proxy["min_observations"]
+    if type(observations) is not int or observations < 3:
+        raise ManifestError(
+            "confirmation_ladder.proxy_validity.min_observations must be an "
+            "integer >= 3 (a correlation from two points is not evidence)"
+        )
+
+    telemetry = ladder["cost_telemetry"]
+    if not isinstance(telemetry, dict) or set(telemetry) != COST_TELEMETRY_KEYS:
+        raise ManifestError(
+            "confirmation_ladder.cost_telemetry requires exactly "
+            + ", ".join(sorted(COST_TELEMETRY_KEYS))
+        )
+    if telemetry["statistic"] not in COST_TELEMETRY_STATISTICS:
+        raise ManifestError(
+            "confirmation_ladder.cost_telemetry.statistic must be "
+            + " or ".join(sorted(COST_TELEMETRY_STATISTICS))
+        )
+    if type(telemetry["window"]) is not int or not 1 <= telemetry["window"] <= 100:
+        raise ManifestError(
+            "confirmation_ladder.cost_telemetry.window must be an integer in [1, 100]"
+        )
+
+
+def _validate_class_proxy_fixture(name: str, fixture: object) -> None:
+    """Per-class proxy fixture: small shape, OFFICIAL params (TRACKS §3.3)."""
+    if fixture is None:
+        return
+    if not isinstance(fixture, dict) or set(fixture) != PROXY_FIXTURE_KEYS:
+        raise ManifestError(
+            f"workload class {name}.proxy_fixture requires exactly "
+            + ", ".join(sorted(PROXY_FIXTURE_KEYS))
+        )
+    proxy_id = fixture["proxy_id"]
+    if not isinstance(proxy_id, str) or not re.fullmatch(r"[a-z0-9_]{3,64}", proxy_id):
+        raise ManifestError(
+            f"workload class {name}.proxy_fixture.proxy_id must be lowercase "
+            "snake_case (3-64 chars)"
+        )
+    for key in ("args", "native_unit", "note"):
+        value = fixture[key]
+        if not isinstance(value, str) or not value.strip():
+            raise ManifestError(
+                f"workload class {name}.proxy_fixture.{key} must be a non-empty string"
+            )
+    if fixture["official_params"] is not True:
+        raise ManifestError(
+            f"workload class {name}.proxy_fixture.official_params must be true — "
+            "fast confirmation uses scaled shapes at official parameters, never "
+            "weakened parameters at full shapes"
+        )
+    lowered = fixture["args"].lower()
+    offending = sorted(
+        token for token in PROXY_FORBIDDEN_ARG_TOKENS if token in lowered
+    )
+    if offending:
+        raise ManifestError(
+            f"workload class {name}.proxy_fixture.args restates security "
+            "parameter(s) " + ", ".join(offending)
+            + "; a proxy scales geometry only"
+        )
+    targets = fixture["target_workload_ids"]
+    if (
+        not isinstance(targets, list)
+        or not targets
+        or any(not isinstance(item, str) or not item.strip() for item in targets)
+        or len(targets) != len(set(targets))
+    ):
+        raise ManifestError(
+            f"workload class {name}.proxy_fixture.target_workload_ids must be a "
+            "unique non-empty list of workload IDs"
+        )
+
+
+def proxy_receipt_filename(board: str, workload_class: str, era: int) -> str:
+    """Deterministic era-frozen receipt name (TRACKS §3.6)."""
+    return f"{board}-{workload_class}-era{int(era)}.json"
+
+
+def pearson_correlation(xs: list[float], ys: list[float]) -> float:
+    """Pearson r over paired ln-ratios; stdlib only, deterministic."""
+    if len(xs) != len(ys) or len(xs) < 3:
+        raise ManifestError("a correlation needs at least three paired observations")
+    n = float(len(xs))
+    mean_x = sum(xs) / n
+    mean_y = sum(ys) / n
+    dx = [x - mean_x for x in xs]
+    dy = [y - mean_y for y in ys]
+    numerator = sum(a * b for a, b in zip(dx, dy))
+    denominator = math.sqrt(sum(a * a for a in dx)) * math.sqrt(sum(b * b for b in dy))
+    if denominator <= 0.0:
+        raise ManifestError(
+            "a degenerate observation series (zero variance) has no correlation"
+        )
+    return numerator / denominator
+
+
+def validate_proxy_validity_receipt(
+    document: object,
+    *,
+    board: str | None = None,
+    workload_class: str | None = None,
+    era: int | None = None,
+    policy: dict | None = None,
+    proxy_fixture: dict | None = None,
+) -> dict:
+    """Validate a ``stwo_perf_proxy_validity_receipt_v1`` document.
+
+    The correlation is RECOMPUTED from the receipt's own paired observations:
+    a receipt cannot assert a validity number its evidence does not support.
+    """
+    if not isinstance(document, dict) or set(document) != PROXY_VALIDITY_RECEIPT_KEYS:
+        raise ManifestError(
+            "proxy validity receipt requires exactly "
+            + ", ".join(sorted(PROXY_VALIDITY_RECEIPT_KEYS))
+        )
+    if document["schema"] != PROXY_VALIDITY_RECEIPT_SCHEMA:
+        raise ManifestError(
+            "proxy validity receipt schema must be " + PROXY_VALIDITY_RECEIPT_SCHEMA
+        )
+    for key in ("board", "workload_class"):
+        value = document[key]
+        if not isinstance(value, str) or not value.strip():
+            raise ManifestError(f"proxy validity receipt {key} must be a non-empty string")
+    if type(document["era"]) is not int or document["era"] <= 0:
+        raise ManifestError("proxy validity receipt era must be a positive integer")
+    if board is not None and document["board"] != board:
+        raise ManifestError("proxy validity receipt is bound to another board")
+    if workload_class is not None and document["workload_class"] != workload_class:
+        raise ManifestError("proxy validity receipt is bound to another workload class")
+    if era is not None and document["era"] != era:
+        raise ManifestError("proxy validity receipt is bound to another era")
+
+    proxy = document["proxy"]
+    if not isinstance(proxy, dict) or set(proxy) != PROXY_RECEIPT_PROXY_KEYS:
+        raise ManifestError(
+            "proxy validity receipt proxy requires exactly "
+            + ", ".join(sorted(PROXY_RECEIPT_PROXY_KEYS))
+        )
+    if proxy["official_params"] is not True:
+        raise ManifestError("a receipt may only certify an official-parameter proxy")
+    if proxy_fixture is not None:
+        for key in ("proxy_id", "args", "native_unit"):
+            if proxy.get(key) != proxy_fixture.get(key):
+                raise ManifestError(
+                    f"proxy validity receipt {key} differs from the manifest proxy fixture"
+                )
+    target = document["target"]
+    if (
+        not isinstance(target, dict)
+        or set(target) != {"workload_ids"}
+        or not isinstance(target["workload_ids"], list)
+        or not target["workload_ids"]
+        or any(not isinstance(item, str) or not item.strip()
+               for item in target["workload_ids"])
+    ):
+        raise ManifestError(
+            "proxy validity receipt target must name the class workload IDs it predicts"
+        )
+    measured_at = document["measured_at_utc"]
+    if not isinstance(measured_at, str) or not re.fullmatch(
+        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", measured_at,
+    ):
+        raise ManifestError(
+            "proxy validity receipt measured_at_utc must be YYYY-MM-DDTHH:MM:SSZ"
+        )
+    host = document["host"]
+    if not isinstance(host, dict) or set(host) != PROXY_RECEIPT_HOST_KEYS:
+        raise ManifestError(
+            "proxy validity receipt host requires exactly "
+            + ", ".join(sorted(PROXY_RECEIPT_HOST_KEYS))
+        )
+    if not isinstance(host["identity_sha256"], str) or not re.fullmatch(
+        r"[0-9a-f]{64}", host["identity_sha256"],
+    ):
+        raise ManifestError("proxy validity receipt host.identity_sha256 must be sha256 hex")
+    if not isinstance(host["chip"], str) or not host["chip"].strip():
+        raise ManifestError("proxy validity receipt host.chip must be non-empty")
+    if type(host["logical_cpu_count"]) is not int or host["logical_cpu_count"] <= 0:
+        raise ManifestError(
+            "proxy validity receipt host.logical_cpu_count must be a positive integer"
+        )
+    if not isinstance(document["harness_commit"], str) or not re.fullmatch(
+        r"[0-9a-f]{12,40}", document["harness_commit"],
+    ):
+        raise ManifestError(
+            "proxy validity receipt harness_commit must be lowercase hex (12-40 chars)"
+        )
+    if not isinstance(document["artifact_sha256"], str) or not re.fullmatch(
+        r"[0-9a-f]{64}", document["artifact_sha256"],
+    ):
+        raise ManifestError("proxy validity receipt artifact_sha256 must be sha256 hex")
+
+    measurement = document["measurement"]
+    if (
+        not isinstance(measurement, dict)
+        or set(measurement) != PROXY_RECEIPT_MEASUREMENT_KEYS
+    ):
+        raise ManifestError(
+            "proxy validity receipt measurement requires exactly "
+            + ", ".join(sorted(PROXY_RECEIPT_MEASUREMENT_KEYS))
+        )
+    if measurement["method"] != PROXY_VALIDITY_METHOD:
+        raise ManifestError(
+            "proxy validity receipt method must be " + PROXY_VALIDITY_METHOD
+        )
+    observations = measurement["observations"]
+    if not isinstance(observations, list) or len(observations) < 3:
+        raise ManifestError(
+            "proxy validity receipt needs at least three paired observations"
+        )
+    xs: list[float] = []
+    ys: list[float] = []
+    for index, item in enumerate(observations):
+        if not isinstance(item, dict) or set(item) != PROXY_RECEIPT_OBSERVATION_KEYS:
+            raise ManifestError(
+                f"proxy validity observation {index} requires exactly "
+                + ", ".join(sorted(PROXY_RECEIPT_OBSERVATION_KEYS))
+            )
+        for key in ("proxy_ln_ratio", "class_ln_ratio"):
+            value = item[key]
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not math.isfinite(float(value))
+            ):
+                raise ManifestError(
+                    f"proxy validity observation {index}.{key} must be a finite number"
+                )
+        for key in ("proxy_evidence_sha256", "class_evidence_sha256"):
+            value = item[key]
+            if not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value):
+                raise ManifestError(
+                    f"proxy validity observation {index}.{key} must be sha256 hex"
+                )
+        xs.append(float(item["proxy_ln_ratio"]))
+        ys.append(float(item["class_ln_ratio"]))
+    if measurement["observation_count"] != len(observations):
+        raise ManifestError(
+            "proxy validity receipt observation_count disagrees with its observations"
+        )
+    recomputed = pearson_correlation(xs, ys)
+    correlation = measurement["correlation"]
+    if (
+        isinstance(correlation, bool)
+        or not isinstance(correlation, (int, float))
+        or not math.isclose(float(correlation), recomputed, rel_tol=0, abs_tol=1e-9)
+    ):
+        raise ManifestError(
+            "proxy validity receipt correlation is not the Pearson correlation of "
+            f"its own observations (recomputed {recomputed:.12f})"
+        )
+    floor = measurement["min_correlation"]
+    minimum = measurement["min_observations"]
+    if not _positive_number(floor) or float(floor) > 1.0:
+        raise ManifestError("proxy validity receipt min_correlation must be in (0, 1]")
+    if type(minimum) is not int or minimum < 3:
+        raise ManifestError("proxy validity receipt min_observations must be >= 3")
+    if policy is not None:
+        if float(floor) < float(policy["min_correlation"]):
+            raise ManifestError(
+                "proxy validity receipt weakens the registered correlation floor"
+            )
+        if minimum < int(policy["min_observations"]):
+            raise ManifestError(
+                "proxy validity receipt weakens the registered observation minimum"
+            )
+    expected_valid = (
+        float(correlation) >= float(floor) and len(observations) >= minimum
+    )
+    if measurement["valid"] is not expected_valid:
+        raise ManifestError(
+            "proxy validity receipt validity flag disagrees with its own thresholds"
+        )
+    return document
 
 
 def _validate_group_resource_telemetry(

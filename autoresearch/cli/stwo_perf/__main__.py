@@ -91,6 +91,13 @@ def _resolve_board(args, m) -> str:
 
 def cmd_run(args) -> int:
     from . import runner
+    if getattr(args, "fast_boundary", False):
+        return _fail(
+            "--fast-boundary is a T1 iterate flag: `stwo-perf run` produces the "
+            "claimed (T2) verdict and T2/T3 keep the full dual boundary — the "
+            "ranked number never excludes anything (TRACKS §3.5). Use "
+            "`stwo-perf ladder t1 --fast-boundary` for the inner loop."
+        )
     m = manifest_mod.load()
     out_dir = m.root / "autoresearch" / ".runs" / "latest"
     board = _resolve_board(args, m)
@@ -169,6 +176,106 @@ def cmd_run(args) -> int:
     print(render.verdict(verdict))
     print()
     print(ansi.style(f"  verdict written to {out}", "dim"))
+    return 0
+
+
+def cmd_ladder(args) -> int:
+    """Confirmation-ladder tiers below the ranked path (TRACKS §3.5)."""
+    from . import runner
+    m = manifest_mod.load()
+    out_dir = m.root / "autoresearch" / ".runs" / "ladder"
+    try:
+        if args.ladder_cmd == "t0":
+            result = runner.phase_prefilter(
+                Path(args.predecessor).resolve(), m.root, m,
+                args.workload_class, out_dir,
+                board=args.board, phase=args.phase, era=args.era,
+            )
+        elif args.ladder_cmd == "t1":
+            result = runner.iterate_estimate(
+                m.root, Path(args.predecessor).resolve(), m,
+                args.workload_class, out_dir,
+                board=args.board, fast_boundary=args.fast_boundary,
+                era=args.era,
+            )
+        else:
+            observations = []
+            for spec in args.observation:
+                proxy_run, separator, class_run = spec.rpartition(":")
+                if not separator or not proxy_run or not class_run:
+                    return _fail(
+                        "--observation takes PROXY_RUN.json:CLASS_RUN.json"
+                    )
+                observations.append((Path(proxy_run), Path(class_run)))
+            result = runner.build_proxy_validity_receipt(
+                m.root, m, board=args.board,
+                workload_class=args.workload_class, era=args.era,
+                observations=observations,
+            )
+    except runner.RunError as exc:
+        return _fail(str(exc))
+
+    out = Path(args.out) if args.out else out_dir / f"{args.ladder_cmd}.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+
+    if args.ladder_cmd == "proxy-receipt":
+        measurement = result["measurement"]
+        print(ansi.kv_panel("proxy validity receipt", [
+            ("board", result["board"]),
+            ("class", result["workload_class"]),
+            ("era", str(result["era"])),
+            ("proxy", result["proxy"]["proxy_id"]),
+            ("observations", str(measurement["observation_count"])),
+            ("correlation", f"{measurement['correlation']:.6f}"),
+            ("floor", str(measurement["min_correlation"])),
+            ("valid", str(measurement["valid"])),
+        ]))
+        print(ansi.style(f"  receipt written to {out}", "dim"))
+        if not measurement["valid"]:
+            return _fail(
+                "proxy validity is below the registered floor — rotate the "
+                "proxy at the era boundary (TRACKS §3.5)"
+            )
+        print("  commit it under the registered receipt directory via a reviewed PR")
+        return 0
+
+    for marker in result["markers"]:
+        print(ansi.style(f"  ⚠ {marker}", "yellow"))
+    if args.ladder_cmd == "t0":
+        print(ansi.kv_panel("T0 phase prefilter", [
+            ("board", result["board"]),
+            ("class", result["workload_class"]),
+            ("workload", result["workload"]),
+            ("claimed phase", result["claimed_phase"]),
+            ("resolved phase", result["resolved_phase"]),
+            ("relative move", f"{result['relative_move']:.6f}"),
+            ("required move", str(result["min_phase_move"])),
+            ("correctness smoke", str(result["correctness_smoke"]["pass"])),
+            ("seconds", f"{result['measurement_seconds']:.2f}"),
+            ("pass", ansi.style(str(result["pass"]), "bold")),
+        ]))
+    else:
+        print(ansi.kv_panel("T1 iterate estimate", [
+            ("board", result["board"]),
+            ("class", result["workload_class"]),
+            ("boundary", result["boundary"]),
+            ("r geomean", f"{result['r_geomean']:.6f}"),
+            ("CI", f"[{result['ci'][0]:.6f}, {result['ci'][1]:.6f}]"),
+            ("theta", f"{result['theta']:.6f}"),
+            ("seconds", f"{result['measurement_seconds']:.2f}"),
+        ]))
+    print(ansi.style(f"  {result['note']}", "dim"))
+    print(ansi.style(f"  written to {out}", "dim"))
+    if not result.get("within_cost_target", True):
+        print(ansi.style(
+            f"  ⚠ tier exceeded its {result['cost_target_seconds']}s cost target — "
+            "shrink the proxy, not the honesty (TRACKS §3.6)", "yellow"))
+    if args.ladder_cmd == "t0" and not result["pass"]:
+        return _fail(
+            "T0 prefilter failed: the claimed phase did not move (or the "
+            "correctness smoke failed) — T1 is not scheduled"
+        )
     return 0
 
 
@@ -637,6 +744,58 @@ def build_parser() -> argparse.ArgumentParser:
         help="permit RISC-V A/A calibration before board activation; requires --aa",
     )
     p.add_argument("--out", help="verdict output path")
+    p.add_argument(
+        "--fast-boundary", action="store_true",
+        help="refused here by design: the claimed (T2) and ranked (T3) numbers "
+             "keep the full dual boundary; the PoW-excluded boundary belongs to "
+             "`stwo-perf ladder t1` (TRACKS §3.5)",
+    )
+
+    p = sub.add_parser(
+        "ladder",
+        help="confirmation-ladder tiers below the ranked path: T0 phase "
+             "prefilter, T1 iterate estimate, proxy validity receipts",
+    )
+    ladder = p.add_subparsers(dest="ladder_cmd", required=True)
+    t0 = ladder.add_parser(
+        "t0", help="one stage-profiled sample per arm; the claimed phase must move",
+    )
+    t0.add_argument("--phase", required=True,
+                    help="the §3.2 phase the submission claims to move")
+    t1 = ladder.add_parser(
+        "t1", help="paired ABBA on proxy fixtures with sequential early stopping",
+    )
+    t1.add_argument(
+        "--fast-boundary", action="store_true",
+        help="measure the PoW-excluded request boundary (pow 26 is ~constant "
+             "work and pure noise for paired deltas); refuses fail-closed when "
+             "the group's report schema exposes no measured PoW phase",
+    )
+    receipt = ladder.add_parser(
+        "proxy-receipt",
+        help="assemble an era proxy-validity receipt from measured runs "
+             "(judge host only; measures nothing itself)",
+    )
+    receipt.add_argument(
+        "--observation", action="append", default=[], required=True,
+        metavar="PROXY_RUN.json:CLASS_RUN.json",
+        help="one measured proxy/class pair; repeat until the registered "
+             "minimum observation count is met",
+    )
+    for tier_parser in (t0, t1, receipt):
+        tier_parser.add_argument("--board", required=True,
+                                 help="track board (validated against the manifest)")
+        tier_parser.add_argument(
+            "--class", dest="workload_class", required=True,
+            help="manifest-declared workload class",
+        )
+        tier_parser.add_argument("--era", type=int, default=None,
+                                 help="board era (default: current ledger epoch)")
+        tier_parser.add_argument("--out", help="output document path")
+    for tier_parser in (t0, t1):
+        tier_parser.add_argument(
+            "--predecessor", required=True, help="worktree of the paired A arm",
+        )
 
     p = sub.add_parser(
         "calibrate-metal",
@@ -801,6 +960,7 @@ HANDLERS = {
     "install-workflows": cmd_install_workflows, "feed": cmd_feed,
     "update": cmd_update,
     "calibrate-metal": cmd_calibrate_metal,
+    "ladder": cmd_ladder,
 }
 
 

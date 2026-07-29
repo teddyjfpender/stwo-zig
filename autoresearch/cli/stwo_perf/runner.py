@@ -44,17 +44,69 @@ from scripts.native_cuda_diagnostic_lib.model import (
 
 from . import dimensions, ledger, search_health, stats
 from .manifest import (
+    CAIRO_PHASE_NAMES,
+    PROXY_VALIDITY_METHOD,
+    PROXY_VALIDITY_RECEIPT_SCHEMA,
     REPORT_SCHEMA_VERSIONS,
     RISCV_STABLE_MECHANISM_FIELDS,
+    SEQUENTIAL_STOP_RULE,
     Manifest,
     ManifestError,
     Workload,
     WorkloadGroup,
+    pearson_correlation,
+    validate_proxy_validity_receipt,
 )
 
 
 class RunError(RuntimeError):
     pass
+
+
+# --- Confirmation ladder (TRACKS §3.5) ------------------------------------
+LADDER_T0_SCHEMA = "stwo_perf_ladder_t0_prefilter_v1"
+LADDER_T1_SCHEMA = "stwo_perf_ladder_t1_estimate_v1"
+#: Boundary label recorded on every WorkloadScore. The default is today's
+#: paired quantity; the ladder's fast boundary is the opt-in alternative.
+FULL_BOUNDARY = "prove_ms"
+FAST_BOUNDARY = "verified_request_minus_pow_ms"
+
+#: report_schema -> path (in the group's report) to the proof-of-work phase in
+#: SECONDS. Deliberately empty: no shipped product emits a PoW cutpoint yet,
+#: even though §3.2 names it as a phase. ``--fast-boundary`` therefore fails
+#: closed on every schema until its product reports the number — the harness
+#: subtracts only measured PoW time, never a modeled or assumed one.
+POW_PHASE_SECONDS_FIELDS: dict[str, tuple[str, ...]] = {}
+
+#: report_schema -> phase name -> path to that phase's seconds. Phase names
+#: follow the §3.2 cutpoint vocabulary. Groups whose reports carry stage
+#: profiles contribute their stage tree on top of this map, so T0 attribution
+#: is generic over whatever phase evidence a schema actually provides.
+PHASE_SECONDS_FIELDS: dict[str, dict[str, tuple[str, ...]]] = {
+    "native_proof_v7": {
+        "input": ("timing", "input_seconds", "median"),
+        "prove": ("timing", "prove_seconds", "median"),
+        "serialize": ("timing", "proof_encode_seconds", "median"),
+        "verify": ("timing", "verify_seconds", "median"),
+        "request": ("timing", "request_seconds", "median"),
+    },
+    "riscv_proof_v2": {
+        "execute": ("mean_execution_seconds",),
+        "witness": ("mean_witness_seconds",),
+        "prove": ("mean_proving_seconds",),
+        "verify": ("mean_verification_seconds",),
+        "request": ("median_seconds",),
+    },
+    # The Cairo envelope publishes the §3.2 cutpoints directly, so the row is
+    # DERIVED from the canonical name tuple rather than restated: a schema that
+    # gains or renames a cutpoint cannot leave T0 quietly reading a stale set.
+    # ``serialize`` is always null (proof encode/write/hash is outside the
+    # recorder), so it drops out of the measured phase set and a claim on it
+    # fails T0 closed — the honest answer for an uninstrumented cutpoint.
+    "cairo_proof_v1": {
+        phase: ("phase_seconds", phase) for phase in CAIRO_PHASE_NAMES
+    },
+}
 
 
 _RESOURCE_ADMISSION_KEYS = {
@@ -315,6 +367,9 @@ class ArmResult:
     instructions: int | None = None
     cycles: int | None = None
     resources_complete: bool | None = None
+    #: Measured proof-of-work milliseconds, when the group's report schema
+    #: exposes the cutpoint. None means "not measured" — never "zero".
+    pow_ms: float | None = None
 
 
 @dataclass
@@ -336,6 +391,12 @@ class WorkloadScore:
     proof_bytes: int = 0
     measurement_seconds: float = 0.0
     resources_complete: bool | None = None
+    #: Which paired quantity ``ratios`` measures (FULL_BOUNDARY by default).
+    boundary: str = FULL_BOUNDARY
+    #: Pre-registered sequential-stop evidence, present only when armed.
+    sequential_stop: dict | None = None
+    #: Median PoW-excluded request ratio, present only under the fast boundary.
+    fast_request_ratio: float | None = None
 
 
 def portfolio_summary(scores: list[WorkloadScore], ci_level: float) -> dict:
@@ -556,10 +617,21 @@ def bench_once(
         if cairo_timeout <= 0:
             raise RunError(f"{workload.workload_id}: no command time budget remains")
         try:
-            return _bench_cairo(
+            cairo_result = _bench_cairo(
                 arm_root, group, workload, warmups, samples, out_dir,
                 tag, float(cairo_timeout), deadline_monotonic,
             )
+            # Ladder telemetry (TRACKS §3.5), read from the envelope the Cairo
+            # arm just wrote — only when a PoW cutpoint is actually registered.
+            if group.report_schema in POW_PHASE_SECONDS_FIELDS:
+                cairo_result.pow_ms = _pow_ms(
+                    _load_json_object(
+                        Path(cairo_result.report_path).read_text(encoding="utf-8"),
+                        "Cairo bench envelope",
+                    ),
+                    group,
+                )
+            return cairo_result
         except (OSError, KeyError, TypeError, ValueError) as exc:
             raise RunError(
                 f"{workload.workload_id}: malformed {group.report_schema} report: {exc}"
@@ -644,6 +716,9 @@ def bench_once(
         raise RunError(
             f"{workload.workload_id}: malformed {group.report_schema} report: {exc}"
         ) from exc
+    # Ladder telemetry (TRACKS §3.5): carried on every run so the PoW-excluded
+    # boundary is a projection of measured evidence, never a separate run.
+    result.pow_ms = _pow_ms(report, group)
     out_path.write_text(json.dumps(report, indent=1))
     return result
 
@@ -1631,6 +1706,179 @@ def _bench_cairo(
     )
 
 
+@dataclass(frozen=True)
+class SequentialStopPolicy:
+    """The pre-registered group-sequential spending rule (TRACKS §3.5).
+
+    Constant (Pocock-style) boundary: the family-wise error ``alpha`` is spent
+    evenly over the ``K`` planned looks, so look ``k`` decides on a bootstrap CI
+    at level ``1 - alpha/K``. Two consequences make it honest:
+
+    * the boundary is strictly stricter than the fixed-sample gate
+      (``alpha/K < alpha``), so a decisive clear at any look would also have
+      cleared the full-power gate — early stopping can never admit a run that
+      the fixed design would have rejected;
+    * the looks, their count, and alpha come from the manifest, never from the
+      run, so the design is pre-registered rather than chosen after seeing data.
+    """
+
+    rule: str
+    alpha: float
+    stop_on_decisive_miss: bool
+
+    def adjusted_level(self, looks: int) -> float:
+        if looks < 1:
+            raise RunError("a sequential design needs at least one planned look")
+        return 1.0 - (self.alpha / float(looks))
+
+
+def sequential_stop_policy(
+    policy: dict, *, armed: bool | None = None,
+) -> SequentialStopPolicy | None:
+    """Resolve the spending rule; ``None`` keeps pre-ladder round behavior.
+
+    ``armed=True`` is how a tier that never ranks (T1) turns the rule on even
+    when the manifest leaves it off for scored runs; it still refuses to invent
+    parameters when the manifest has not pre-registered them.
+    """
+    ladder = policy.get("confirmation_ladder")
+    spec = ladder.get("sequential_stop") if isinstance(ladder, dict) else None
+    if not isinstance(spec, dict):
+        if armed:
+            raise RunError(
+                "sequential early stopping requires a pre-registered "
+                "gates_policy.confirmation_ladder.sequential_stop block"
+            )
+        return None
+    enabled = bool(spec.get("enabled")) if armed is None else bool(armed)
+    if not enabled:
+        return None
+    if spec.get("rule") != SEQUENTIAL_STOP_RULE:
+        raise RunError(
+            f"unsupported sequential stop rule {spec.get('rule')!r}: only "
+            f"{SEQUENTIAL_STOP_RULE} is pre-registered"
+        )
+    alpha = spec.get("alpha")
+    if isinstance(alpha, bool) or not isinstance(alpha, (int, float)):
+        raise RunError("sequential stop alpha must be a number")
+    alpha = float(alpha)
+    if not 0.0 < alpha <= 0.5:
+        raise RunError("sequential stop alpha must be in (0, 0.5]")
+    return SequentialStopPolicy(
+        rule=SEQUENTIAL_STOP_RULE,
+        alpha=alpha,
+        stop_on_decisive_miss=bool(spec.get("stop_on_decisive_miss", True)),
+    )
+
+
+def _dig(report: object, path: tuple[str, ...]) -> object:
+    node: object = report
+    for key in path:
+        if not isinstance(node, dict) or key not in node:
+            return None
+        node = node[key]
+    return node
+
+
+def _finite_or_none(value: object) -> float | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    number = float(value)
+    return number if math.isfinite(number) else None
+
+
+def _flatten_stage_nodes(nodes: object, prefix: str, out: dict[str, float]) -> None:
+    if not isinstance(nodes, list):
+        return
+    for node in nodes:
+        if not isinstance(node, dict):
+            continue
+        node_id = node.get("id")
+        if not isinstance(node_id, str) or not node_id:
+            continue
+        name = f"{prefix}{node_id}"
+        seconds = _finite_or_none(node.get("seconds"))
+        if seconds is not None:
+            out[f"stage:{name}"] = seconds
+        _flatten_stage_nodes(node.get("children"), f"{name}.", out)
+
+
+def report_phases(report: dict, group: WorkloadGroup) -> dict[str, float]:
+    """Named phase seconds from whatever the group's report schema provides.
+
+    Combines the schema's declared §3.2 cutpoints with any stage-profile tree
+    the report carries (``--stage-profile-out`` shape), flattened to dotted
+    ``stage:<parent>.<child>`` names. Never scored — phase telemetry gates
+    scheduling and G3 only.
+    """
+    phases: dict[str, float] = {}
+    for name, path in PHASE_SECONDS_FIELDS.get(group.report_schema, {}).items():
+        seconds = _finite_or_none(_dig(report, path))
+        if seconds is not None:
+            phases[name] = seconds
+    timing = report.get("timing")
+    if isinstance(timing, dict):
+        profiles = timing.get("stage_profiles")
+        if isinstance(profiles, list):
+            for profile in profiles:
+                if isinstance(profile, dict):
+                    _flatten_stage_nodes(profile.get("stages"), "", phases)
+    single = report.get("stage_profile")
+    if isinstance(single, dict):
+        _flatten_stage_nodes(single.get("stages"), "", phases)
+    _flatten_stage_nodes(report.get("stages"), "", phases)
+    return phases
+
+
+def resolve_phase(phases: dict[str, float], phase: str) -> str:
+    """Map a submission's claimed phase name onto a measured phase key."""
+    if phase in phases:
+        return phase
+    stage_key = f"stage:{phase}"
+    if stage_key in phases:
+        return stage_key
+    suffixes = sorted(
+        key for key in phases
+        if key.split(":")[-1].split(".")[-1] == phase
+    )
+    if len(suffixes) == 1:
+        return suffixes[0]
+    if len(suffixes) > 1:
+        raise RunError(
+            f"claimed phase {phase!r} is ambiguous across measured phases: "
+            + ", ".join(suffixes[:6])
+        )
+    raise RunError(
+        f"claimed phase {phase!r} is not reported by this group; measured "
+        "phases: " + (", ".join(sorted(phases)[:12]) or "none")
+    )
+
+
+def _pow_ms(report: dict, group: WorkloadGroup) -> float | None:
+    path = POW_PHASE_SECONDS_FIELDS.get(group.report_schema)
+    if path is None:
+        return None
+    seconds = _finite_or_none(_dig(report, path))
+    if seconds is None or seconds < 0.0:
+        raise RunError(
+            f"group {group.group_id}: report declares a proof-of-work cutpoint "
+            "but did not report a finite non-negative value"
+        )
+    return seconds * 1000.0
+
+
+def require_pow_boundary(group: WorkloadGroup) -> None:
+    """Fail closed when a group cannot honestly exclude PoW from its boundary."""
+    if group.report_schema not in POW_PHASE_SECONDS_FIELDS:
+        raise RunError(
+            f"group {group.group_id}: report schema {group.report_schema!r} "
+            "exposes no proof-of-work cutpoint, so the PoW-excluded fast "
+            "boundary cannot be measured. The product must report the PoW "
+            "phase (§3.2) before --fast-boundary can subtract it; the harness "
+            "never subtracts an unmeasured cost."
+        )
+
+
 def paired_rounds(
     a_root: Path,
     b_root: Path,
@@ -1642,6 +1890,8 @@ def paired_rounds(
     round_budget: int | None = None,
     minimum_rounds_override: int | None = None,
     deadline_monotonic: float | None = None,
+    sequential_stop: bool | None = None,
+    fast_boundary: bool = False,
 ) -> WorkloadScore:
     """ABBA round pairs until the CI half-width is under theta/2 or a cap hits."""
     warmups = int(policy["warmups"])
@@ -1670,12 +1920,20 @@ def paired_rounds(
     proof_sizes_b: list[int] = []
     request_ratios: list[float] = []
     requests_b: list[float] = []
+    fast_ratios: list[float] = []
+    fast_requests_b: list[float] = []
     cross_digest: str | None = None
     cross_proof_bytes: int | None = None
     mechanism_reference: dict | None = None
     mechanism_verified: bool | None = None
     resources_complete: bool | None = None
     group = manifest.group(workload.group_id)
+    stop_policy = sequential_stop_policy(policy, armed=sequential_stop)
+    stop_evidence: dict | None = None
+    boundary = FULL_BOUNDARY
+    if fast_boundary:
+        require_pow_boundary(group)
+        boundary = FAST_BOUNDARY
 
     round_no = 0
     while round_no < max_rounds:
@@ -1776,9 +2034,20 @@ def paired_rounds(
         if a.request_ms and b.request_ms:
             request_ratios.append(b.request_ms / a.request_ms)
             requests_b.append(b.request_ms)
-        ratios.append(b.prove_ms / a.prove_ms)
-        a_meds.append(a.prove_ms)
-        b_meds.append(b.prove_ms)
+        if fast_boundary:
+            # BOTH numbers are reported: the full verified-request boundary
+            # above, and the PoW-excluded one that T0/T1 actually pair on.
+            fast_a = _fast_boundary_ms(a, workload)
+            fast_b_ms = _fast_boundary_ms(b, workload)
+            fast_ratios.append(fast_b_ms / fast_a)
+            fast_requests_b.append(fast_b_ms)
+            ratios.append(fast_b_ms / fast_a)
+            a_meds.append(fast_a)
+            b_meds.append(fast_b_ms)
+        else:
+            ratios.append(b.prove_ms / a.prove_ms)
+            a_meds.append(a.prove_ms)
+            b_meds.append(b.prove_ms)
         reports.extend([a.report_path, b.report_path])
         for dimension, a_value, b_value, a_values, b_values in (
             ("peak_rss_mib", a.peak_rss_mib, b.peak_rss_mib, rss_a, rss_b),
@@ -1799,6 +2068,13 @@ def paired_rounds(
             ci = stats.bootstrap_ci(ratios, seed=_seed(workload.workload_id, 0))
             if (ci[1] - ci[0]) / 2.0 <= stop_theta / 2.0:
                 break
+            if stop_policy is not None:
+                stop_evidence = _sequential_stop_look(
+                    stop_policy, ratios, workload, stop_theta,
+                    round_no, min_rounds, max_rounds,
+                )
+                if stop_evidence["decision"] != "continue":
+                    break
             if elapsed > cap:
                 break
         elif elapsed > cap and round_no >= 3:
@@ -1840,6 +2116,7 @@ def paired_rounds(
         ("peak_rss_mib", rss_b),
         ("energy_j", energy_b),
         ("proof_bytes", proof_sizes_b),
+        ("fast_request_ms", fast_requests_b),
     ):
         if values:
             ordered_values = sorted(float(value) for value in values)
@@ -1847,6 +2124,16 @@ def paired_rounds(
     request_ratio = (
         sorted(request_ratios)[len(request_ratios) // 2] if request_ratios else None
     )
+    fast_request_ratio = (
+        sorted(fast_ratios)[len(fast_ratios) // 2] if fast_ratios else None
+    )
+    if stop_policy is not None and (
+        stop_evidence is None or stop_evidence["decision"] == "continue"
+    ):
+        stop_evidence = _sequential_stop_look(
+            stop_policy, ratios, workload, stop_theta,
+            len(ratios), min_rounds, max_rounds, exhausted=True,
+        )
     return WorkloadScore(
         workload=workload,
         ratios=ratios,
@@ -1867,7 +2154,66 @@ def paired_rounds(
         proof_bytes=cross_proof_bytes or 0,
         measurement_seconds=elapsed,
         resources_complete=resources_complete,
+        boundary=boundary,
+        sequential_stop=stop_evidence,
+        fast_request_ratio=fast_request_ratio,
     )
+
+
+def _fast_boundary_ms(arm: ArmResult, workload: Workload) -> float:
+    """Verified-request milliseconds minus the MEASURED proof-of-work phase."""
+    if arm.request_ms is None or arm.pow_ms is None:
+        raise RunError(
+            f"{workload.workload_id}: the PoW-excluded boundary needs both a "
+            "verified-request time and a measured proof-of-work phase"
+        )
+    remainder = arm.request_ms - arm.pow_ms
+    if not math.isfinite(remainder) or remainder <= 0.0:
+        raise RunError(
+            f"{workload.workload_id}: measured proof-of-work time is not "
+            "smaller than the verified request time"
+        )
+    return remainder
+
+
+def _sequential_stop_look(
+    stop_policy: SequentialStopPolicy,
+    ratios: list[float],
+    workload: Workload,
+    stop_theta: float,
+    round_no: int,
+    min_rounds: int,
+    max_rounds: int,
+    *,
+    exhausted: bool = False,
+) -> dict:
+    """One pre-registered look at the theta bar; deterministic by construction."""
+    looks = max(max_rounds - min_rounds + 1, 1)
+    level = stop_policy.adjusted_level(looks)
+    adjusted = stats.bootstrap_ci(
+        ratios, level=level, seed=_seed(workload.workload_id, 0),
+    )
+    bar = 1.0 - stop_theta
+    if adjusted[1] < bar:
+        decision = "decisive_clear"
+    elif stop_policy.stop_on_decisive_miss and adjusted[0] > bar:
+        decision = "decisive_miss"
+    else:
+        decision = "budget_exhausted" if exhausted else "continue"
+    return {
+        "rule": stop_policy.rule,
+        "alpha": stop_policy.alpha,
+        "planned_looks": looks,
+        "look": max(round_no - min_rounds + 1, 1),
+        "min_rounds": min_rounds,
+        "max_rounds": max_rounds,
+        "rounds": len(ratios),
+        "adjusted_ci_level": level,
+        "adjusted_ci": [adjusted[0], adjusted[1]],
+        "theta_bar": bar,
+        "decision": decision,
+        "stop_on_decisive_miss": stop_policy.stop_on_decisive_miss,
+    }
 
 
 def _seed(workload_id: str, round_no: int) -> int:
@@ -2123,6 +2469,418 @@ def _rounded_candidate_geomean(
     if not values or any(value is None for value in values):
         return None
     return round(stats.geometric_mean([float(value) for value in values]), 6)
+
+
+def _current_era(repo_root: Path, era: int | None) -> int:
+    if era is not None:
+        return int(era)
+    try:
+        return int(ledger.current_epoch(repo_root)["epoch"])
+    except (ledger.LedgerError, KeyError, OSError, ValueError) as exc:
+        raise RunError(f"cannot resolve the current era: {exc}") from exc
+
+
+def proxy_selection(
+    manifest: Manifest, board: str, workload_class: str, era: int,
+) -> tuple[list[Workload], dict | None, dict, list[str]]:
+    """Resolve the class's proxy fixture and its era validity state.
+
+    Returns ``(workloads, fixture, validity, markers)``. A class without a
+    declared proxy falls back to its real workloads and says so loudly: the
+    ladder degrades to "slow but honest", never to "fast but unlabelled".
+    """
+    group = manifest.group_for_board(board)
+    fixture = manifest.proxy_fixture(workload_class)
+    validity = manifest.proxy_validity_state(board, workload_class, era)
+    markers: list[str] = []
+    if fixture is None:
+        markers.append(
+            f"no proxy fixture declared for class {workload_class}; iterating "
+            "on the full class basket"
+        )
+        return (
+            _board_workloads(manifest, board, workload_class),
+            None,
+            validity,
+            markers,
+        )
+    if not validity["validated"]:
+        markers.append("proxy unvalidated: " + str(validity["reason"]))
+    workload = Workload(
+        fixture["proxy_id"],
+        workload_class,
+        fixture["args"],
+        fixture["native_unit"],
+        group.group_id,
+    )
+    return [workload], fixture, validity, markers
+
+
+def phase_prefilter(
+    predecessor_root: Path,
+    repo_root: Path,
+    manifest: Manifest,
+    workload_class: str,
+    out_dir: Path,
+    *,
+    board: str,
+    phase: str,
+    era: int | None = None,
+) -> dict:
+    """T0: one stage-profiled sample per arm; the claimed phase must move.
+
+    A claimed FRI win that only moves witness time dies here in seconds
+    instead of surviving to a 45-minute T2 run (TRACKS §3.5). T0 never ranks.
+    """
+    era = _current_era(repo_root, era)
+    ladder = manifest.confirmation_ladder
+    tier = (ladder.get("tiers") or {}).get("T0")
+    if not isinstance(tier, dict):
+        raise RunError(
+            "T0 requires a pre-registered gates_policy.confirmation_ladder.tiers.T0"
+        )
+    warmups = int(tier["warmups"])
+    samples = int(tier["samples"])
+    min_move = float(tier["min_phase_move"])
+    workloads, fixture, validity, markers = proxy_selection(
+        manifest, board, workload_class, era,
+    )
+    if not workloads:
+        raise RunError(
+            f"no enabled workloads registered for board {board}, class {workload_class}"
+        )
+    workload = workloads[0]
+    group = manifest.group(workload.group_id)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    build_arm(predecessor_root, manifest, groups=[group])
+    build_arm(repo_root, manifest, groups=[group])
+    started = time.monotonic()
+    arms: dict[str, ArmResult] = {}
+    reports: dict[str, dict] = {}
+    for arm, root in (("a", predecessor_root), ("b", repo_root)):
+        arms[arm] = bench_once(
+            root, manifest, workload, warmups, samples, out_dir, f"t0{arm}",
+        )
+        reports[arm] = _load_json_object(
+            Path(arms[arm].report_path).read_text(encoding="utf-8"),
+            "T0 bench report",
+        )
+    elapsed = time.monotonic() - started
+    a, b = arms["a"], arms["b"]
+    # Correctness smoke: the cross-arm proof identity that G1 demands, checked
+    # before any timing claim is believed.
+    smoke_ok = bool(a.proof_digest and b.proof_digest and a.proof_digest == b.proof_digest)
+    phases_a = report_phases(reports["a"], group)
+    phases_b = report_phases(reports["b"], group)
+    if not phases_a or not phases_b:
+        raise RunError(
+            f"group {group.group_id}: report schema {group.report_schema!r} "
+            "exposes no phase cutpoints (§3.2); T0 phase attribution is "
+            "impossible for this group"
+        )
+    key = resolve_phase(phases_a, phase)
+    if key not in phases_b:
+        raise RunError(f"candidate arm does not report the claimed phase {phase!r}")
+    before, after = phases_a[key], phases_b[key]
+    if before <= 0.0:
+        raise RunError(f"predecessor phase {key} is not a positive duration")
+    relative_move = (before - after) / before
+    moved = relative_move >= min_move
+    target = manifest.tier_cost_target_seconds("T0")
+    return {
+        "schema": LADDER_T0_SCHEMA,
+        "tier": "T0",
+        "ranks": False,
+        "board": board,
+        "workload_class": workload_class,
+        "workload": workload.workload_id,
+        "era": era,
+        "claimed_phase": phase,
+        "resolved_phase": key,
+        "phase_seconds": {"predecessor": before, "candidate": after},
+        "relative_move": relative_move,
+        "min_phase_move": min_move,
+        "phase_moved": moved,
+        "correctness_smoke": {
+            "pass": smoke_ok,
+            "predecessor_proof_digest": a.proof_digest,
+            "candidate_proof_digest": b.proof_digest,
+        },
+        "pass": bool(moved and smoke_ok),
+        "measured_phases": {
+            "predecessor": phases_a,
+            "candidate": phases_b,
+        },
+        "proxy": fixture,
+        "proxy_validity": validity,
+        "markers": markers,
+        "measurement_seconds": elapsed,
+        "cost_target_seconds": target,
+        "within_cost_target": target is None or elapsed <= float(target),
+        "reports": [a.report_path, b.report_path],
+        "note": (
+            "T0 gates scheduling only: it never ranks and never writes a "
+            "scored row (TRACKS §3.5)."
+        ),
+    }
+
+
+def iterate_estimate(
+    repo_root: Path,
+    predecessor_root: Path,
+    manifest: Manifest,
+    workload_class: str,
+    out_dir: Path,
+    *,
+    board: str,
+    fast_boundary: bool = False,
+    era: int | None = None,
+    round_budget: int | None = None,
+) -> dict:
+    """T1: paired ABBA on proxy fixtures with sequential early stopping.
+
+    The agent's inner loop. It produces an ESTIMATE document, never a verdict:
+    T1 output can never be promoted, submitted, or ranked (TRACKS §3.5b's
+    local-iterate vs ranked separation).
+    """
+    era = _current_era(repo_root, era)
+    workloads, fixture, validity, markers = proxy_selection(
+        manifest, board, workload_class, era,
+    )
+    if not workloads:
+        raise RunError(
+            f"no enabled workloads registered for board {board}, class {workload_class}"
+        )
+    group_ids = {workload.group_id for workload in workloads}
+    if len(group_ids) != 1:
+        raise RunError(f"board {board} selected workloads from multiple groups")
+    group = manifest.group(next(iter(group_ids)))
+    policy = manifest.gates_for_workload(group.group_id, workload_class)
+    if fast_boundary:
+        require_pow_boundary(group)
+    dispersion = ledger.aa_dispersion(repo_root, board, workload_class)
+    theta = stats.theta(
+        dispersion,
+        float(policy["theta_floor"]),
+        float(policy["dispersion_multiplier"]),
+    )
+    out_dir.mkdir(parents=True, exist_ok=True)
+    build_arm(predecessor_root, manifest, groups=[group])
+    build_arm(repo_root, manifest, groups=[group])
+    started = time.monotonic()
+    scores = [
+        paired_rounds(
+            predecessor_root, repo_root, manifest, workload, policy, out_dir,
+            stop_theta=theta,
+            round_budget=round_budget,
+            sequential_stop=True,
+            fast_boundary=fast_boundary,
+        )
+        for workload in workloads
+    ]
+    elapsed = time.monotonic() - started
+    portfolio = portfolio_summary(scores, float(policy["ci_level"]))
+    target = manifest.tier_cost_target_seconds("T1")
+    return {
+        "schema": LADDER_T1_SCHEMA,
+        "tier": "T1",
+        "ranks": False,
+        "board": board,
+        "workload_class": workload_class,
+        "era": era,
+        "boundary": FAST_BOUNDARY if fast_boundary else FULL_BOUNDARY,
+        "theta": theta,
+        "aa_dispersion": dispersion,
+        "r_geomean": portfolio["r"],
+        "ci": [portfolio["ci"][0], portfolio["ci"][1]],
+        "ci_level": portfolio["ci_level"],
+        "per_workload": {
+            score.workload.workload_id: {
+                "r": score.r,
+                "ci": [score.ci[0], score.ci[1]],
+                "rounds": len(score.ratios),
+                "boundary": score.boundary,
+                "a_median_ms": score.a_median_ms,
+                "b_median_ms": score.b_median_ms,
+                "request_ratio": score.request_ratio,
+                "fast_request_ratio": score.fast_request_ratio,
+                "sequential_stop": score.sequential_stop,
+                "measurement_seconds": score.measurement_seconds,
+            }
+            for score in scores
+        },
+        "proxy": fixture,
+        "proxy_validity": validity,
+        "markers": markers,
+        "measurement_seconds": elapsed,
+        "cost_target_seconds": target,
+        "within_cost_target": target is None or elapsed <= float(target),
+        "note": (
+            "T1 is a CI-bearing LOCAL estimate on proxy fixtures. It never "
+            "ranks; ranked rows come only from the judge path (TRACKS §3.5)."
+        ),
+    }
+
+
+def _proxy_observation_ln_ratio(document: dict, label: str) -> float:
+    """Extract a measured ln-ratio from a T1 estimate or a claimed/judged verdict."""
+    if document.get("schema") == LADDER_T1_SCHEMA:
+        ratio = document.get("r_geomean")
+    elif document.get("schema_version") == 1 and "score" in document:
+        score = document.get("score")
+        ratio = score.get("R_geomean") if isinstance(score, dict) else None
+    else:
+        raise RunError(
+            f"{label}: not a T1 estimate or a stwo-perf verdict; refusing to "
+            "read a ratio from an unknown document"
+        )
+    if (
+        isinstance(ratio, bool)
+        or not isinstance(ratio, (int, float))
+        or not math.isfinite(float(ratio))
+        or float(ratio) <= 0.0
+    ):
+        raise RunError(f"{label}: measured ratio is missing or not positive")
+    return math.log(float(ratio))
+
+
+def _proxy_document_board_class(document: dict) -> tuple[str | None, str | None]:
+    if document.get("schema") == LADDER_T1_SCHEMA:
+        return document.get("board"), document.get("workload_class")
+    objective = document.get("declared_objective")
+    if isinstance(objective, dict):
+        return objective.get("board"), objective.get("workload_class")
+    return None, None
+
+
+def _host_chip() -> str:
+    if platform.system() == "Darwin":
+        try:
+            chip = subprocess.run(
+                ["sysctl", "-n", "machdep.cpu.brand_string"],
+                capture_output=True, text=True, timeout=30,
+            )
+            if chip.returncode == 0 and chip.stdout.strip():
+                return chip.stdout.strip()
+        except (OSError, subprocess.SubprocessError):
+            pass
+    return platform.processor() or platform.machine() or "unknown"
+
+
+def build_proxy_validity_receipt(
+    repo_root: Path,
+    manifest: Manifest,
+    *,
+    board: str,
+    workload_class: str,
+    era: int,
+    observations: list[tuple[Path, Path]],
+    measured_at_utc: str | None = None,
+) -> dict:
+    """Assemble a ``stwo_perf_proxy_validity_receipt_v1`` from measured runs.
+
+    Every number in the receipt is read from measurement documents that already
+    exist on disk: this function measures nothing and invents nothing. It runs
+    on the designated judge host, once per era, per (board, class).
+    """
+    fixture = manifest.proxy_fixture(workload_class)
+    if fixture is None:
+        raise RunError(
+            f"class {workload_class} declares no proxy_fixture; there is "
+            "nothing to certify"
+        )
+    policy = manifest.confirmation_ladder.get("proxy_validity")
+    if not isinstance(policy, dict):
+        raise RunError(
+            "gates_policy.confirmation_ladder.proxy_validity is not registered"
+        )
+    minimum = int(policy["min_observations"])
+    if len(observations) < minimum:
+        raise RunError(
+            f"refusing to certify a proxy from {len(observations)} observation(s): "
+            f"the registered minimum is {minimum}"
+        )
+    records: list[dict] = []
+    xs: list[float] = []
+    ys: list[float] = []
+    for proxy_path, class_path in observations:
+        pairs = []
+        for path, label in ((proxy_path, "proxy run"), (class_path, "class run")):
+            try:
+                raw = Path(path).read_bytes()
+                document = _load_json_object(raw.decode("utf-8"), label)
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+                raise RunError(f"{label} {path}: unreadable ({exc})") from exc
+            observed_board, observed_class = _proxy_document_board_class(document)
+            if observed_board != board or observed_class != workload_class:
+                raise RunError(
+                    f"{label} {path}: measured {observed_board}/{observed_class}, "
+                    f"expected {board}/{workload_class}"
+                )
+            pairs.append((
+                _proxy_observation_ln_ratio(document, f"{label} {path}"),
+                hashlib.sha256(raw).hexdigest(),
+            ))
+        (proxy_ln, proxy_sha), (class_ln, class_sha) = pairs
+        xs.append(proxy_ln)
+        ys.append(class_ln)
+        records.append({
+            "proxy_ln_ratio": proxy_ln,
+            "class_ln_ratio": class_ln,
+            "proxy_evidence_sha256": proxy_sha,
+            "class_evidence_sha256": class_sha,
+        })
+    try:
+        correlation = pearson_correlation(xs, ys)
+    except ManifestError as exc:
+        raise RunError(str(exc)) from exc
+    floor = float(policy["min_correlation"])
+    document = {
+        "schema": PROXY_VALIDITY_RECEIPT_SCHEMA,
+        "board": board,
+        "era": int(era),
+        "workload_class": workload_class,
+        "proxy": {
+            "proxy_id": fixture["proxy_id"],
+            "args": fixture["args"],
+            "native_unit": fixture["native_unit"],
+            "official_params": True,
+        },
+        "target": {"workload_ids": list(fixture["target_workload_ids"])},
+        "measured_at_utc": measured_at_utc or time.strftime(
+            "%Y-%m-%dT%H:%M:%SZ", time.gmtime(),
+        ),
+        "host": {
+            "identity_sha256": hashlib.sha256(platform.node().encode()).hexdigest(),
+            "chip": _host_chip(),
+            "logical_cpu_count": os.cpu_count() or 1,
+        },
+        "harness_commit": _harness_commit(repo_root),
+        "measurement": {
+            "method": PROXY_VALIDITY_METHOD,
+            "observations": records,
+            "observation_count": len(records),
+            "correlation": correlation,
+            "min_correlation": floor,
+            "min_observations": minimum,
+            "valid": correlation >= floor and len(records) >= minimum,
+        },
+        "artifact_sha256": hashlib.sha256(
+            json.dumps(records, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest(),
+    }
+    try:
+        validate_proxy_validity_receipt(
+            document,
+            board=board,
+            workload_class=workload_class,
+            era=int(era),
+            policy=policy,
+            proxy_fixture=fixture,
+        )
+    except ManifestError as exc:
+        raise RunError(f"assembled receipt failed its own schema: {exc}") from exc
+    return document
 
 
 RUST_ORACLE_RELPATH = "tools/stwo-interop-rs/target/release/stwo-interop-rs"
@@ -2630,13 +3388,25 @@ def evaluate(
     guards_mode: str = "auto",
     audit_mode: bool = False,
     require_quiet_host: bool = False,
+    fast_boundary: bool = False,
 ) -> dict:
     """Run the full paired evaluation and assemble a verdict dict.
 
     `judged=True` is reachable only from the judge bot; the public CLI always
     evaluates claimed. The judged trust boundary is the HMAC signature applied
     by the judge (signing.py), never this flag alone.
+
+    ``fast_boundary`` exists only to be refused: T2 and T3 keep the full dual
+    boundary, so the parameter fails closed here rather than silently producing
+    a verdict whose number excluded work (TRACKS §3.5).
     """
+    if fast_boundary:
+        raise RunError(
+            "the PoW-excluded fast boundary is refused on judged/ranked "
+            "evaluation: T2 and T3 keep the full dual boundary — the ranked "
+            "number never excludes anything (TRACKS §3.5). Iterate with the "
+            "T1 path instead (stwo-perf ladder t1 --fast-boundary)."
+        )
     if judged and board == "core_metal":
         from .metal_calibration import CalibrationError, require_frozen
 
@@ -2914,6 +3684,12 @@ def evaluate(
                     "report_sha256s": s.report_sha256s,
                     "mechanism_verified": s.mechanism_verified,
                     "resources_complete": s.resources_complete,
+                    # Only present when the pre-registered sequential design was
+                    # armed, so pre-ladder verdicts keep their exact shape.
+                    **(
+                        {"sequential_stop": s.sequential_stop}
+                        if s.sequential_stop is not None else {}
+                    ),
                 }
                 for s in scores
             },
