@@ -126,6 +126,99 @@ class LoadHalfwordWitnessTest(unittest.TestCase):
         self.assertIn("constraints satisfied", report)
 
 
+class DivisionWitnessTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        try:
+            cls.air_ir_dir = export_air()
+        except (OSError, subprocess.SubprocessError) as error:
+            raise unittest.SkipTest(f"production AIR export unavailable: {error}")
+
+    def test_every_required_div_witness_is_reachable_in_production(self):
+        report = witnesses.check_div_witnesses(self.air_ir_dir)
+        self.assertIn("15 witnesses reachable", report)
+
+    def test_quotient_truncates_toward_zero_not_toward_negative_infinity(self):
+        # Python's // floors, which would give -15 and remainder 5. RISC-V
+        # truncates, giving -14 and remainder -2.
+        quotient, remainder = witnesses.quotient_and_remainder(
+            "div", 0xFFFFFF9C, 7
+        )
+        self.assertEqual(witnesses._signed(quotient), -14)
+        quotient, remainder = witnesses.quotient_and_remainder(
+            "rem", 0xFFFFFF9C, 7
+        )
+        self.assertEqual(witnesses._signed(remainder), -2)
+
+    def test_remainder_takes_the_sign_of_the_dividend(self):
+        _, remainder = witnesses.quotient_and_remainder("rem", 100, 0xFFFFFFF9)
+        self.assertEqual(witnesses._signed(remainder), 2)
+        _, remainder = witnesses.quotient_and_remainder("rem", 0xFFFFFF9C, 7)
+        self.assertEqual(witnesses._signed(remainder), -2)
+
+    def test_every_divisor_zero_convention(self):
+        self.assertEqual(witnesses.quotient_and_remainder("div", 42, 0)[0], 0xFFFFFFFF)
+        self.assertEqual(witnesses.quotient_and_remainder("divu", 42, 0)[0], 0xFFFFFFFF)
+        self.assertEqual(witnesses.quotient_and_remainder("rem", 42, 0)[1], 42)
+        self.assertEqual(witnesses.quotient_and_remainder("remu", 42, 0)[1], 42)
+
+    def test_signed_overflow_convention(self):
+        quotient, remainder = witnesses.quotient_and_remainder(
+            "div", witnesses.INT_MIN, 0xFFFFFFFF
+        )
+        self.assertEqual(quotient, witnesses.INT_MIN)
+        self.assertEqual(remainder, 0)
+
+    def test_high_bit_unsigned_division(self):
+        quotient, _ = witnesses.quotient_and_remainder("divu", 0x8ABCDEF1, 1)
+        self.assertEqual(quotient, 0x8ABCDEF1)
+
+    def test_a_free_quotient_sign_is_caught(self):
+        assignment, _ = witnesses.division_row("div", 0xFFFFFF9C, 7)
+        assignment["q_sign"] ^= 1
+        with self.assertRaises(witnesses.WitnessError):
+            witnesses.check_witness(self.air_ir_dir, "div", assignment)
+
+    def test_a_deleted_zero_divisor_convention_is_caught(self):
+        assignment, _ = witnesses.division_row("divu", 42, 0)
+        assignment["q_0"] = 0
+        with self.assertRaisesRegex(witnesses.WitnessError, "constraint roots"):
+            witnesses.check_witness(self.air_ir_dir, "div", assignment)
+
+    def test_a_wrong_remainder_sign_is_caught(self):
+        assignment, _ = witnesses.division_row("rem", 0xFFFFFF9C, 7)
+        assignment["r_0"] = 2  # +2 instead of the architectural -2
+        with self.assertRaises(witnesses.WitnessError):
+            witnesses.check_witness(self.air_ir_dir, "div", assignment)
+
+    def test_a_released_comparison_witness_is_caught(self):
+        assignment, _ = witnesses.division_row("divu", 100, 7)
+        for index in range(4):
+            assignment[f"lt_markers_{index}"] = 0
+        with self.assertRaisesRegex(witnesses.WitnessError, "constraint roots"):
+            witnesses.check_witness(self.air_ir_dir, "div", assignment)
+
+    def test_selector_relabelling_is_caught(self):
+        # A DIVU row relabelled REMU keeps the quotient in rd, which no longer
+        # matches the remainder the selector demands.
+        assignment, _ = witnesses.division_row("divu", 100, 7)
+        assignment["is_divu"] = 0
+        assignment["is_remu"] = 1
+        with self.assertRaises(witnesses.WitnessError):
+            witnesses.check_witness(self.air_ir_dir, "div", assignment)
+
+    def test_a_non_byte_divisor_limb_is_caught(self):
+        assignment, _ = witnesses.division_row("divu", 100, 7)
+        assignment["rs2_next_0"] = 300
+        assignment["rs2_previous_0"] = 300
+        with self.assertRaises(witnesses.WitnessError):
+            witnesses.check_witness(self.air_ir_dir, "div", assignment)
+
+    def test_unknown_selector_fails_closed(self):
+        with self.assertRaisesRegex(witnesses.WitnessError, "unknown DIV-family"):
+            witnesses.quotient_and_remainder("mulh", 1, 1)
+
+
 class EvaluatorTest(unittest.TestCase):
     def _payload(self) -> dict:
         return {
