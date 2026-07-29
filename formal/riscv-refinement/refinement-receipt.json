@@ -4,13 +4,13 @@
     "Quot.sound",
     "propext"
   ],
-  "canonical_digest": "d2a6920b2c15f432292a6bb872f935663bd3824407ed696333220b58c15c874b",
-  "claim_boundary": "kernel-checked normalized LUI/ADDI AIR predicate to reviewed Sail expression capsule; serialized-M31 and generated-monad normalization theorems remain open",
+  "canonical_digest": "a0a34727a943d67fe8316f03478b07fab9971f658a280cb2f93a800398cfb53f",
+  "claim_boundary": "kernel-checked normalized LUI/ADDI predicate refinement plus strict production LUI AIR IR v2 decode/evaluation; AIR-to-normalized composition and generated-Sail monad normalization remain open",
   "coverage": {
     "production_opcodes": 46,
     "proved_normalized_opcodes": 2
   },
-  "generated_manifest_digest": "5595ccf4ee6a9d2fa23c1881bea94ca4b8c0c56f99f886329579ee43c8b6a27a",
+  "generated_manifest_digest": "455d62be0aaa6cd30c4e63d3eedd92fead3e5ef17d985999c70b4c567de9740e",
   "kind": "stwo-riscv-refinement-receipt",
   "lean_build": "passed",
   "negative_controls": [
@@ -24,7 +24,7 @@
   "proof_escape_scan": "passed",
   "repository_dirty": false,
   "repository_dirty_paths": [],
-  "repository_revision": "7902e6d84775c14c6d3ec8d40cdb6bfdaa2aa09a",
+  "repository_revision": "3b911aab90aaeb4bf8495368877d0427885c3b56",
   "schema_version": 1,
   "semantic_toolchain": {
     "compiler": {
@@ -36,6 +36,9 @@
     }
   },
   "theorem_axioms": {
+    "RiscvRefinement.Air.FixedTableId.contains_eq_true_iff": [
+      "propext"
+    ],
     "RiscvRefinement.Coverage.pilot_coverage_exact": [],
     "RiscvRefinement.Decode.encode_addi_is_canonical": [
       "Quot.sound",
@@ -45,6 +48,21 @@
       "Quot.sound",
       "propext"
     ],
+    "RiscvRefinement.M31.ofInt?_toInt": [
+      "propext"
+    ],
+    "RiscvRefinement.M31.ofNat?_isSome_iff": [
+      "propext"
+    ],
+    "RiscvRefinement.M31.ofNat?_toNat": [
+      "propext"
+    ],
+    "RiscvRefinement.M31.one_val": [],
+    "RiscvRefinement.M31.reduce_val": [],
+    "RiscvRefinement.M31.toNatBounded?_eq_some": [
+      "propext"
+    ],
+    "RiscvRefinement.M31.zero_val": [],
     "RiscvRefinement.NonVacuity.addi_exists": [
       "Classical.choice",
       "Quot.sound",
