@@ -15,6 +15,9 @@ open RiscvRefinement
 def miscMemOpcode : BitVec 7 := BitVec.ofNat 7 0x0f
 def funct3Fence : BitVec 3 := BitVec.ofNat 3 0
 def jalOpcode : BitVec 7 := BitVec.ofNat 7 0x6f
+def auipcOpcode : BitVec 7 := BitVec.ofNat 7 0x17
+def jalrOpcode : BitVec 7 := BitVec.ofNat 7 0x67
+def funct3Jalr : BitVec 3 := BitVec.ofNat 3 0
 
 def encodeFence
     (imm : BitVec 12)
@@ -51,6 +54,29 @@ def decodeJImmediate (word : InstructionWord) : BitVec 21 :=
 def isJal (word : InstructionWord) : Bool :=
   decodeOpcodeField word == jalOpcode
 
+def auipcImmediate (encoded : BitVec 20) : Word :=
+  encoded.append (BitVec.ofNat 12 0)
+
+def encodeAuipc
+    (encoded : BitVec 20)
+    (rd : RegisterIndex) :
+    InstructionWord :=
+  encoded.append (rd.append auipcOpcode)
+
+def isAuipc (word : InstructionWord) : Bool :=
+  decodeOpcodeField word == auipcOpcode
+
+def encodeJalr
+    (immediate : BitVec 12)
+    (rs1 rd : RegisterIndex) :
+    InstructionWord :=
+  immediate.append
+    (rs1.append (funct3Jalr.append (rd.append jalrOpcode)))
+
+def isJalr (word : InstructionWord) : Bool :=
+  decodeOpcodeField word == jalrOpcode &&
+    decodeFunct3 word == funct3Jalr
+
 theorem encode_fence_is_canonical
     (imm : BitVec 12)
     (rs1 rd : RegisterIndex) :
@@ -86,6 +112,42 @@ theorem encode_jal_is_canonical
     decodeRd,
     jalImmediate,
     jalOpcode,
+  ]
+  bv_decide
+
+theorem encode_auipc_is_canonical
+    (encoded : BitVec 20)
+    (rd : RegisterIndex) :
+    isAuipc (encodeAuipc encoded rd) = true ∧
+      decodeLuiImmediate (encodeAuipc encoded rd) = encoded ∧
+      decodeRd (encodeAuipc encoded rd) = rd := by
+  simp only [
+    isAuipc,
+    encodeAuipc,
+    decodeOpcodeField,
+    decodeLuiImmediate,
+    decodeRd,
+    auipcOpcode,
+  ]
+  bv_decide
+
+theorem encode_jalr_is_canonical
+    (immediate : BitVec 12)
+    (rs1 rd : RegisterIndex) :
+    isJalr (encodeJalr immediate rs1 rd) = true ∧
+      decodeIImmediate (encodeJalr immediate rs1 rd) = immediate ∧
+      decodeRs1 (encodeJalr immediate rs1 rd) = rs1 ∧
+      decodeRd (encodeJalr immediate rs1 rd) = rd := by
+  simp only [
+    isJalr,
+    encodeJalr,
+    decodeOpcodeField,
+    decodeFunct3,
+    decodeIImmediate,
+    decodeRs1,
+    decodeRd,
+    jalrOpcode,
+    funct3Jalr,
   ]
   bv_decide
 

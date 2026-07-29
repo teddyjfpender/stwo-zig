@@ -1015,7 +1015,7 @@ private theorem encodedDifferenceField_eq
     ]
     omega
 
-private theorem carryFieldClassified
+theorem carryFieldClassified
     (source immediate carryIn result : Nat)
     (field : M31)
     (sourceBound : source < 256)
