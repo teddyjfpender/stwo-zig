@@ -197,7 +197,17 @@ def _source_program(mnemonic: str, payload: Mapping[str, Any]) -> list[str]:
         "",
         "set_option maxRecDepth 20000 in",
         f"theorem {mnemonic}SymbolicCertificate : {mnemonic}.SymbolicCertificate := by",
-        "  constructor <;> rfl",
+        "  refine {",
+        "    localization := by rfl",
+        "    valid := by rfl",
+        "    nodeCount := by rfl",
+        "    activeRow := by decide",
+        "    selector := by decide",
+        f"    events := by simp [{mnemonic}, {mnemonic}Source, "
+        "LocalProgram.eventReferencesBelow]",
+        f"    projection := by simp [{mnemonic}, {mnemonic}Source, "
+        "LocalProgram.projectionReferencesBelow]",
+        "  }",
         "",
     ]
 

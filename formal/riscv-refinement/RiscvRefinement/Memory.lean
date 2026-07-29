@@ -57,9 +57,10 @@ theorem busAddress_of_wordAligned
     (address : Word)
     (aligned : isWordAligned address) :
     busAddress address = address := by
-  revert aligned
-  simp only [isWordAligned, busAddress, byteOffset]
-  bv_decide
+  change address.extractLsb' 0 2 = 0#2 at aligned
+  change address.extractLsb' 2 30 ++ 0#2 = address
+  rw [← aligned]
+  exact BitVec.extractLsb'_append_extractLsb'
 
 /-- A halfword-aligned address has byte offset `0` or `2`, so its selector bit
 determines the offset completely. -/
@@ -68,9 +69,14 @@ theorem halfAligned_byteOffset
     (aligned : isHalfAligned address) :
     byteOffset address =
       (halfSelector address).append (BitVec.ofNat 1 0) := by
-  revert aligned
-  simp only [isHalfAligned, byteOffset, halfSelector]
-  bv_decide
+  change address.extractLsb' 0 1 = 0#1 at aligned
+  change
+    address.extractLsb' 0 2 =
+      address.extractLsb' 1 1 ++ 0#1
+  rw [← aligned]
+  exact
+    (BitVec.extractLsb'_append_extractLsb'_eq_extractLsb'
+      (show 1 = 0 + 1 by rfl)).symm
 
 /-- Effective-address computation is exactly 32-bit modular addition of the
 base register and the sign-extended 12-bit displacement. -/
@@ -112,8 +118,18 @@ theorem lowHalf_extract (bytes : WordBytes) :
 theorem highHalf_extract (bytes : WordBytes) :
     bytes.highHalf = BitVec.extractLsb 31 16 bytes.word := by
   rw [WordBytes.word_append]
-  simp only [WordBytes.highHalf]
-  bv_decide
+  simp only [WordBytes.highHalf, BitVec.append_eq]
+  change
+    bytes.limb3 ++ bytes.limb2 =
+      (bytes.limb3 ++
+        (bytes.limb2 ++ (bytes.limb1 ++ bytes.limb0))).extractLsb' 16 16
+  rw [
+    @BitVec.extractLsb'_append_eq_ite
+      8 24 bytes.limb3
+      (bytes.limb2 ++ (bytes.limb1 ++ bytes.limb0)) 16 16,
+  ]
+  simp
+  rw [BitVec.extractLsb'_append_eq_left]
 
 /-! ## Width extension -/
 
@@ -130,9 +146,14 @@ theorem signExtendHalf_negative
     (value : BitVec 16)
     (negative : value.getLsbD 15 = true) :
     BitVec.extractLsb 31 16 (signExtendHalf value) = BitVec.ofNat 16 0xffff := by
-  revert negative
-  simp only [signExtendHalf]
-  bv_decide
+  change value.msb = true at negative
+  rw [
+    signExtendHalf,
+    BitVec.signExtend_eq_append_of_le (by decide),
+  ]
+  simp [negative]
+  change ((65535#16 ++ value).extractLsb' 16 16) = 65535#16
+  rw [BitVec.extractLsb'_append_eq_left]
 
 /-- A nonnegative halfword sign-extends with a zero fill in bits 31:16, so it
 agrees with the unsigned extension. -/
@@ -140,9 +161,15 @@ theorem signExtendHalf_nonnegative
     (value : BitVec 16)
     (nonnegative : value.getLsbD 15 = false) :
     signExtendHalf value = zeroExtendHalf value := by
-  revert nonnegative
-  simp only [signExtendHalf, zeroExtendHalf]
-  bv_decide
+  change value.msb = false at nonnegative
+  rw [
+    signExtendHalf,
+    BitVec.signExtend_eq_append_of_le (by decide),
+    zeroExtendHalf,
+    BitVec.zeroExtend_eq_setWidth,
+    BitVec.setWidth_eq_append (by decide),
+  ]
+  simp [nonnegative]
 
 theorem signExtendHalf_low (value : BitVec 16) :
     BitVec.extractLsb 15 0 (signExtendHalf value) = value := by
@@ -154,17 +181,28 @@ theorem signExtendByte_negative
     (negative : value.getLsbD 7 = true) :
     BitVec.extractLsb 31 8 (signExtendByte value) =
       BitVec.ofNat 24 0xffffff := by
-  revert negative
-  simp only [signExtendByte]
-  bv_decide
+  change value.msb = true at negative
+  rw [
+    signExtendByte,
+    BitVec.signExtend_eq_append_of_le (by decide),
+  ]
+  simp [negative]
+  change ((16777215#24 ++ value).extractLsb' 8 24) = 16777215#24
+  rw [BitVec.extractLsb'_append_eq_left]
 
 theorem signExtendByte_nonnegative
     (value : Byte)
     (nonnegative : value.getLsbD 7 = false) :
     signExtendByte value = zeroExtendByte value := by
-  revert nonnegative
-  simp only [signExtendByte, zeroExtendByte]
-  bv_decide
+  change value.msb = false at nonnegative
+  rw [
+    signExtendByte,
+    BitVec.signExtend_eq_append_of_le (by decide),
+    zeroExtendByte,
+    BitVec.zeroExtend_eq_setWidth,
+    BitVec.setWidth_eq_append (by decide),
+  ]
+  simp [nonnegative]
 
 /-! ## Byte masks and masked stores -/
 

@@ -490,39 +490,45 @@ theorem shapes_are_disjoint (word : InstructionWord) :
       ¬(isSlli word = true ∧ isLb word = true) ∧
       ¬(isSlli word = true ∧ isSb word = true) ∧
       ¬(isLb word = true ∧ isSb word = true) := by
-  simp only [
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+    intro conflict <;>
+    rcases conflict with ⟨left, right⟩ <;>
+    simp_all [
     isSll, isSlli, isLb, isSb,
     isRType, isShiftImm, isLoad, isStore,
     decodeOpcodeField,
     opOpcode, opImmOpcode, loadOpcode, storeOpcode,
   ]
-  bv_decide
 
 theorem shift_selectors_are_disjoint (word : InstructionWord) :
     ¬(isSrli word = true ∧ isSrai word = true) ∧
       ¬(isSlli word = true ∧ isSrli word = true) ∧
       ¬(isSlli word = true ∧ isSrai word = true) := by
-  simp only [
+  refine ⟨?_, ?_, ?_⟩ <;>
+    intro conflict <;>
+    rcases conflict with ⟨left, right⟩ <;>
+    simp_all [
     isSlli, isSrli, isSrai,
     isShiftImm,
     decodeFunct3, decodeFunct7,
     funct3Sll, funct3Srl, funct3Sra,
     funct7Base, funct7Alt,
   ]
-  bv_decide
 
 theorem load_selectors_are_disjoint (word : InstructionWord) :
     ¬(isLb word = true ∧ isLh word = true) ∧
       ¬(isLb word = true ∧ isLw word = true) ∧
       ¬(isLh word = true ∧ isLhu word = true) ∧
       ¬(isLbu word = true ∧ isLhu word = true) := by
-  simp only [
+  refine ⟨?_, ?_, ?_, ?_⟩ <;>
+    intro conflict <;>
+    rcases conflict with ⟨left, right⟩ <;>
+    simp_all [
     isLb, isLh, isLw, isLbu, isLhu,
     isLoad,
     decodeFunct3,
     funct3Lb, funct3Lh, funct3Lw, funct3Lbu, funct3Lhu,
   ]
-  bv_decide
 
 theorem multiply_and_divide_selectors_are_disjoint (word : InstructionWord) :
     ¬(isMul word = true ∧ isMulh word = true) ∧
@@ -530,14 +536,16 @@ theorem multiply_and_divide_selectors_are_disjoint (word : InstructionWord) :
       ¬(isDiv word = true ∧ isDivu word = true) ∧
       ¬(isRem word = true ∧ isRemu word = true) ∧
       ¬(isMul word = true ∧ isDiv word = true) := by
-  simp only [
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩ <;>
+    intro conflict <;>
+    rcases conflict with ⟨left, right⟩ <;>
+    simp_all [
     isMul, isMulh, isMulhsu, isMulhu, isDiv, isDivu, isRem, isRemu,
     isRType,
     decodeFunct3,
     funct3Mul, funct3Mulh, funct3Mulhsu, funct3Mulhu,
     funct3Div, funct3Divu, funct3Rem, funct3Remu,
   ]
-  bv_decide
 
 /-- `SLL` and `MUL` share the register-register shape and are separated only by
 `funct7`, so the M-extension discriminator is load-bearing. -/
@@ -545,13 +553,15 @@ theorem base_and_m_extension_are_disjoint (word : InstructionWord) :
     ¬(isSll word = true ∧ isMulh word = true) ∧
       ¬(isSrl word = true ∧ isDivu word = true) ∧
       ¬(isSra word = true ∧ isDivu word = true) := by
-  simp only [
+  refine ⟨?_, ?_, ?_⟩ <;>
+    intro conflict <;>
+    rcases conflict with ⟨left, right⟩ <;>
+    simp_all [
     isSll, isSrl, isSra, isMulh, isDivu,
     isRType,
     decodeFunct7,
     funct7Base, funct7Alt, funct7MulDiv,
   ]
-  bv_decide
 
 /-- `FENCE.I` is outside every Team B admission predicate. The pinned model
 retires it despite `Zifencei` being unsupported; the zkVM rejects it, and this
