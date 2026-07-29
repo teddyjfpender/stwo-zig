@@ -41,9 +41,17 @@ EVIDENCE_KINDS = ("promotion", "span_audit", "direct_audit")
 OUTCOMES = ("promoted", "neutral", "rejected")
 
 # Scoring boards (schema/scoring.md). Kernel results never enter the ledger.
+#
+# APPEND ONLY. Removing a name silently drops its history from the site feed
+# (TRACKS §6), so retired boards keep their entry forever. Campaign v3 (TRACKS
+# §2, §3.4, §8) appends the wave-1 Cairo tracks plus the pr6_supremacy
+# objective board, which must be registered here before it can ever write a
+# row — objective boards that are absent from BOARDS are the current gap
+# TRACKS §3.4 names explicitly.
 BOARDS = (
     "core_cpu", "core_hybrid", "core_metal", "core_cuda",
     "heavy_native", "heavy_cairo", "stream", "riscv",
+    "cairo_cpu", "cairo_metal", "pr6_supremacy",
 )
 
 _FLOAT_COLS = {"judged_r", "ci_low", "ci_high", "prove_ms", "native_mhz", "peak_rss_mib"}

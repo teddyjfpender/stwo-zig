@@ -14,6 +14,11 @@ REPORT_SCHEMA_VERSIONS = {
     "native_cuda_product_v6": 6,
     "pr6_supremacy_v1": 1,
     "riscv_proof_v2": 2,
+    # Harness envelope version for the Cairo frontend products. It is NOT the
+    # product report's own schema_version (that is pinned separately in
+    # runner.CAIRO_PRODUCT_REPORT_SCHEMA_VERSION); see
+    # autoresearch/schema/cairo-proof-v1.md.
+    "cairo_proof_v1": 1,
 }
 
 GROUP_GATES_POLICY_LIMITS = {
@@ -66,6 +71,47 @@ RISCV_RESOURCE_TELEMETRY = {
         "cycles",
     ],
 }
+CAIRO_MECHANISM_FIELDS = frozenset({
+    "product_identity_sha256",
+    "protocol_manifest_sha256",
+    "profile",
+    "input_sha256",
+    "proof_format",
+    "proof_bytes",
+    "proof_sha256",
+    "stwo_cairo_revision",
+    "stwo_revision",
+    "mean_execute_seconds",
+    "mean_prove_seconds",
+    "mean_verify_seconds",
+    "mean_cold_process_seconds",
+    "phase_seconds",
+    "metal_dispatches",
+    "cpu_fallbacks",
+})
+# Semantics, not implementation: these must be byte-identical across the A and
+# B arms of a paired Cairo round and across rounds. Identity and protocol
+# digests are deliberately excluded because they bind the arm's own source.
+CAIRO_STABLE_MECHANISM_FIELDS = frozenset({
+    "profile",
+    "input_sha256",
+    "proof_format",
+    "proof_bytes",
+    "proof_sha256",
+    "stwo_cairo_revision",
+    "stwo_revision",
+})
+# TRACKS §3.2: the named phase cutpoints every Cairo track must publish.
+CAIRO_PHASE_NAMES = (
+    "execute",
+    "witness",
+    "commit",
+    "interaction",
+    "composition",
+    "fri",
+    "serialize",
+    "verify",
+)
 PR6_MECHANISM_TELEMETRY = {
     "fail_closed": True,
     "required_fields": [
@@ -137,6 +183,9 @@ class WorkloadGroup:
     correctness_oracle: dict = field(default_factory=dict)
     mechanism_telemetry: dict = field(default_factory=dict)
     resource_telemetry: dict = field(default_factory=dict)
+    promotion_blocked_reason: str | None = None
+    acceptance_corpus: dict = field(default_factory=dict)
+    workload_provisioning: dict = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -227,6 +276,9 @@ class Manifest:
                 correctness_oracle=dict(spec.get("correctness_oracle", {})),
                 mechanism_telemetry=dict(spec.get("mechanism_telemetry", {})),
                 resource_telemetry=dict(spec.get("resource_telemetry", {})),
+                promotion_blocked_reason=spec.get("promotion_blocked_reason"),
+                acceptance_corpus=dict(spec.get("acceptance_corpus", {})),
+                workload_provisioning=dict(spec.get("workload_provisioning", {})),
             ))
         return out
 
@@ -385,6 +437,7 @@ def load(root: Path | None = None) -> Manifest:
     except json.JSONDecodeError as exc:
         raise ManifestError(f"invalid MANIFEST.json: {exc}") from exc
     _validate(raw)
+    _validate_acceptance_corpora(repo, raw)
     groups = raw["workload_registry"]["groups"]
     if "cuda" in groups:
         try:
@@ -484,6 +537,12 @@ def _validate(raw: dict) -> None:
         _validate_group_resource_telemetry(
             gid, report_schema, spec.get("resource_telemetry", {})
         )
+        _validate_group_acceptance_corpus(gid, spec.get("acceptance_corpus", {}))
+        _validate_group_workload_provisioning(
+            gid, spec.get("workload_provisioning", {}), spec.get("workloads", {})
+        )
+        if report_schema == "cairo_proof_v1":
+            _validate_cairo_group(gid, spec)
         if not isinstance(spec["workloads"], dict) or not spec["workloads"]:
             raise ManifestError(f"workload group {gid}: workloads must be a non-empty object")
         for wid, w in spec["workloads"].items():
@@ -556,6 +615,9 @@ def _validate_group_mechanism_telemetry(
                 "Metal dispatch/synchronization/fallback counters"
             )
         return
+    if report_schema == "cairo_proof_v1":
+        _validate_cairo_mechanism_telemetry(gid, telemetry)
+        return
     if report_schema != "riscv_proof_v2":
         return
     if set(telemetry) != {"fail_closed", "required_fields"}:
@@ -585,6 +647,225 @@ def _validate_group_mechanism_telemetry(
             f"workload group {gid}: mechanism telemetry omits stable field(s): "
             + ", ".join(missing)
         )
+
+
+def _validate_cairo_mechanism_telemetry(gid: str, telemetry: object) -> None:
+    """TRACKS §3.2: Cairo phase and identity telemetry is mandatory, fail-closed."""
+    if not isinstance(telemetry, dict) or set(telemetry) != {
+        "fail_closed", "required_fields",
+    }:
+        raise ManifestError(
+            f"workload group {gid}: Cairo mechanism_telemetry requires exactly "
+            "fail_closed and required_fields"
+        )
+    if telemetry["fail_closed"] is not True:
+        raise ManifestError(
+            f"workload group {gid}: Cairo mechanism telemetry must fail closed"
+        )
+    fields = telemetry["required_fields"]
+    if (not isinstance(fields, list) or not fields or
+            any(not isinstance(name, str) for name in fields) or
+            len(fields) != len(set(fields))):
+        raise ManifestError(
+            f"workload group {gid}: mechanism required_fields must be a unique "
+            "non-empty list"
+        )
+    unknown = sorted(set(fields) - CAIRO_MECHANISM_FIELDS)
+    if unknown:
+        raise ManifestError(
+            f"workload group {gid}: unsupported mechanism field(s): "
+            + ", ".join(unknown)
+        )
+    missing = sorted(CAIRO_STABLE_MECHANISM_FIELDS - set(fields))
+    if missing:
+        raise ManifestError(
+            f"workload group {gid}: mechanism telemetry omits stable field(s): "
+            + ", ".join(missing)
+        )
+    if "phase_seconds" not in fields:
+        raise ManifestError(
+            f"workload group {gid}: Cairo mechanism telemetry must require "
+            "phase_seconds; TRACKS §3.2 makes the named phase cutpoints mandatory"
+        )
+
+
+def _validate_cairo_group(gid: str, spec: dict) -> None:
+    """Cairo tracks are oracle-pinned and never promotion eligible in wave 1."""
+    if spec.get("promotion_eligible"):
+        raise ManifestError(
+            f"workload group {gid}: no Cairo board may be promotion eligible "
+            "before its judge-host calibration is frozen (TRACKS §7)"
+        )
+    if not str(spec.get("promotion_blocked_reason") or "").strip():
+        raise ManifestError(
+            f"workload group {gid} cannot promote and states no "
+            "promotion_blocked_reason; a silently unpromotable Cairo board is "
+            "not allowed"
+        )
+    oracle = spec.get("correctness_oracle")
+    required = (
+        "authority", "repository", "commit", "stwo_repository", "stwo_commit",
+        "adapter", "build_command", "final_validator",
+    )
+    if not isinstance(oracle, dict) or any(key not in oracle for key in required):
+        raise ManifestError(
+            f"workload group {gid}: Cairo correctness_oracle must pin "
+            + ", ".join(required)
+        )
+    if oracle["authority"] != "official-stwo-cairo-verifier":
+        raise ManifestError(
+            f"workload group {gid}: the only admissible Cairo authority is the "
+            "official stwo-cairo verifier"
+        )
+    if oracle["final_validator"] is not True:
+        raise ManifestError(
+            f"workload group {gid}: the Cairo oracle must be the final validator"
+        )
+    for key, repository in (
+        ("repository", "https://github.com/starkware-libs/stwo-cairo"),
+        ("stwo_repository", "https://github.com/starkware-libs/stwo"),
+    ):
+        if oracle[key] != repository:
+            raise ManifestError(
+                f"workload group {gid}: Cairo oracle {key} must be {repository}"
+            )
+    for key in ("commit", "stwo_commit"):
+        value = oracle[key]
+        if (not isinstance(value, str) or len(value) != 40
+                or any(char not in "0123456789abcdef" for char in value)):
+            raise ManifestError(
+                f"workload group {gid}: Cairo oracle {key} must be a full "
+                "lowercase Git commit"
+            )
+    adapter = oracle["adapter"]
+    if (not isinstance(adapter, str)
+            or adapter != "tools/stwo-cairo-official-verifier-rs"):
+        raise ManifestError(
+            f"workload group {gid}: the Cairo oracle adapter must be the pinned "
+            "in-repository official verifier package"
+        )
+
+
+def _validate_group_acceptance_corpus(gid: str, corpus: object) -> None:
+    if not isinstance(corpus, dict):
+        raise ManifestError(f"workload group {gid}: acceptance_corpus must be an object")
+    if not corpus:
+        return
+    allowed = {"path", "sha256", "note"}
+    if set(corpus) - allowed or not {"path", "sha256"} <= set(corpus):
+        raise ManifestError(
+            f"workload group {gid}: acceptance_corpus requires path and sha256 "
+            "(note optional)"
+        )
+    path = corpus["path"]
+    if (
+        not isinstance(path, str) or not path.startswith("vectors/")
+        or Path(path).is_absolute() or ".." in Path(path).parts
+    ):
+        raise ManifestError(
+            f"workload group {gid}: acceptance_corpus.path must be a repository "
+            "vectors path"
+        )
+    digest = corpus["sha256"]
+    if (
+        not isinstance(digest, str) or len(digest) != 64
+        or any(char not in "0123456789abcdef" for char in digest)
+    ):
+        raise ManifestError(
+            f"workload group {gid}: acceptance_corpus.sha256 must be canonical "
+            "lowercase SHA-256 hex"
+        )
+    if "note" in corpus and (
+        not isinstance(corpus["note"], str) or not corpus["note"].strip()
+    ):
+        raise ManifestError(
+            f"workload group {gid}: acceptance_corpus.note must be non-empty"
+        )
+
+
+def _validate_group_workload_provisioning(
+    gid: str, provisioning: object, workloads: object,
+) -> None:
+    """Declared-but-unprovisioned basket entries stay loud and never runnable."""
+    if not isinstance(provisioning, dict):
+        raise ManifestError(
+            f"workload group {gid}: workload_provisioning must be an object"
+        )
+    if not provisioning:
+        return
+    if set(provisioning) != {"note", "documentation", "pending"}:
+        raise ManifestError(
+            f"workload group {gid}: workload_provisioning requires exactly note, "
+            "documentation, and pending"
+        )
+    for key in ("note", "documentation"):
+        if not isinstance(provisioning[key], str) or not provisioning[key].strip():
+            raise ManifestError(
+                f"workload group {gid}: workload_provisioning.{key} must be non-empty"
+            )
+    pending = provisioning["pending"]
+    if not isinstance(pending, dict) or not pending:
+        raise ManifestError(
+            f"workload group {gid}: workload_provisioning.pending must be a "
+            "non-empty object"
+        )
+    declared = set(workloads) if isinstance(workloads, dict) else set()
+    for wid, entry in pending.items():
+        if wid in declared:
+            raise ManifestError(
+                f"workload group {gid}: {wid} is both a runnable workload and a "
+                "pending provisioning entry"
+            )
+        if not isinstance(entry, dict) or set(entry) != {
+            "vm_steps", "committed_cells", "reason",
+        }:
+            raise ManifestError(
+                f"workload group {gid}: pending workload {wid} requires exactly "
+                "vm_steps, committed_cells, and reason"
+            )
+        for key in ("vm_steps", "committed_cells"):
+            value = entry[key]
+            if type(value) is not int or value <= 0:
+                raise ManifestError(
+                    f"workload group {gid}: pending workload {wid}.{key} must be "
+                    "a positive integer"
+                )
+        if not isinstance(entry["reason"], str) or not entry["reason"].strip():
+            raise ManifestError(
+                f"workload group {gid}: pending workload {wid} has no reason"
+            )
+
+
+def _validate_acceptance_corpora(repo: Path, raw: dict) -> None:
+    """Bind every declared acceptance corpus to its committed bytes.
+
+    Harness-only fixture trees (the synthetic `autoresearch/`-only repositories
+    several tests and tools build) carry no `vectors/`; there is nothing to
+    bind and nothing to drift. Whenever the vectors tree IS present the binding
+    is mandatory: a missing or altered corpus fails the load.
+    """
+    import hashlib
+
+    if not (repo / "vectors").is_dir():
+        return
+    for gid, spec in raw["workload_registry"]["groups"].items():
+        corpus = spec.get("acceptance_corpus") or {}
+        if not corpus:
+            continue
+        path = repo / corpus["path"]
+        try:
+            payload = path.read_bytes()
+        except OSError as exc:
+            raise ManifestError(
+                f"workload group {gid}: acceptance corpus {corpus['path']} is "
+                f"not readable: {exc}"
+            ) from exc
+        actual = hashlib.sha256(payload).hexdigest()
+        if actual != corpus["sha256"]:
+            raise ManifestError(
+                f"workload group {gid}: acceptance corpus {corpus['path']} digest "
+                f"drifted (manifest {corpus['sha256']}, file {actual})"
+            )
 
 
 def _validate_classes(classes: object) -> None:
