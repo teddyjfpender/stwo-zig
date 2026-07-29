@@ -200,9 +200,9 @@ APPROVED_LEAN_AXIOMS = frozenset(
     }
 )
 CLAIM_BOUNDARY = (
-    "kernel-checked normalized LUI/ADDI predicate refinement plus strict "
-    "production LUI AIR IR v2 decode/evaluation; AIR-to-normalized "
-    "composition and generated-Sail monad normalization remain open"
+    "kernel-checked normalized LUI/ADDI predicate refinement plus "
+    "lookup-complete production LUI AIR-to-normalized composition; "
+    "ADDI AIR composition and generated-Sail monad normalization remain open"
 )
 NEGATIVE_CONTROLS = (
     "lui-free-low-limb",

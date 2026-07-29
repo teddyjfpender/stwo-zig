@@ -54,15 +54,17 @@
     "generated/air/xori.air-ir-v2.json": "52e89299674a14442eaf2cbdda970946e64548e169bd17e92d040bf3ed0c1a75",
     "generated/sail/rv32im-zkvm-v1.json": "5c31e516a205d693386564242d623dbaf4dc1566573f9ecfdcb026611c8fc2c1"
   },
-  "canonical_digest": "3a4b05434608ca8d27dd1d225dd7ddd71a7a5de38ba63f02c16ad2e6333a046b",
+  "canonical_digest": "a679e2db22e4c115054b00862d65c41824438265aeb2fae898e9850335d34faf",
   "claim_boundary": {
+    "addi_air_to_normalized_composition": false,
     "kernel_checked_normalized_refinement": true,
     "lean_generated_sail_monad_normalization": false,
     "lean_serialized_m31_air_interpreter": true,
-    "lui_air_ir_v2_roundtrip": true
+    "lui_air_ir_v2_roundtrip": true,
+    "lui_air_to_normalized_composition": true
   },
   "generators": {
-    "scripts/riscv_refinement.py": "76af7538d09c331e08d8cfa93cb05859a9223237956136efe85b9490f503b53d",
+    "scripts/riscv_refinement.py": "4b76d0a8bdbe66755cd440205f079631636f0f772b28c48788974eb03d9dee97",
     "scripts/riscv_refinement_lib/air.py": "02e16bbec81d87912fc1a2d767075887b94d86520527bedb615a4e5dc02fa3e3",
     "scripts/riscv_refinement_lib/air_program.py": "fa65bd0939d68848a4730c6844415fd40a6670f0bee277da4f96d8bc7005f8f3",
     "scripts/riscv_refinement_lib/air_program_contract.py": "6ce5a75dfcb19f26d933f74d2cb9acc1f12cccdc9395385560da89ba2276f269",
@@ -71,7 +73,7 @@
     "scripts/riscv_refinement_lib/codec.py": "0ae4eaf37dfa9eaec08d26c0a042a1b1e4e8b4b9418e834e28d479e6e3b0b86b",
     "scripts/riscv_refinement_lib/model.py": "15d54672a04982109af2c4322a0986addaa054227150ae67fc10d238e46d4258",
     "scripts/riscv_refinement_lib/negative.py": "350ecd86a9694ee4bace43c74d7fe7518652554d927e8b7b999229c354e93cce",
-    "scripts/riscv_refinement_lib/render.py": "b8326bbe4cfdb93d8830c5cbd1dc82dd275ec2728bdd5361314f27a0c2f10cde",
+    "scripts/riscv_refinement_lib/render.py": "6e87503f9487f4a270982b0824ec0818b2e4421945c730570adf19edeb70b53b",
     "scripts/riscv_refinement_lib/sail.py": "1cefcbb2b38bb99f0547140522e876fb71f056da1068bae9c0c0a46258ee4b11",
     "scripts/tests/test_riscv_refinement.py": "597efa3827a4b58848134a9c95adaf68fee3f69c998d6ae3106bb0098f1b2308"
   },

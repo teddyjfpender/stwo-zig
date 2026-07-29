@@ -718,6 +718,8 @@ def artifacts(paths: Paths, evidence: sail.SailEvidence) -> dict[Path, bytes]:
         "claim_boundary": {
             "lui_air_ir_v2_roundtrip": True,
             "lean_serialized_m31_air_interpreter": True,
+            "lui_air_to_normalized_composition": True,
+            "addi_air_to_normalized_composition": False,
             "lean_generated_sail_monad_normalization": False,
             "kernel_checked_normalized_refinement": True,
         },
@@ -813,6 +815,8 @@ def validate_committed_manifest(
         != {
             "lui_air_ir_v2_roundtrip": True,
             "lean_serialized_m31_air_interpreter": True,
+            "lui_air_to_normalized_composition": True,
+            "addi_air_to_normalized_composition": False,
             "lean_generated_sail_monad_normalization": False,
             "kernel_checked_normalized_refinement": True,
         }
