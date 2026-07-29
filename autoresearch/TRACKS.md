@@ -74,7 +74,9 @@ memory-7m 604M cells) with fixtures COMMITTED (currently host-local), plus
 the orphan `vectors/cairo/cairo_program_matrix.json` corpus (pinned
 zksecurity/zkvm-benchmarks with expected cycles) as the acceptance corpus.
 Official security parameters only (pow 26 / 70 queries) — no functional-mode
-scoring on Cairo.
+scoring on Cairo. Fast confirmation uses SCALED SHAPES at official params
+(never weakened params at full shapes): each class declares a proxy fixture
+whose predictive validity is measured and receipted per era (§3.6).
 
 **3.4 Per-track peers and supremacy gates.** Each track gets an optional
 `<track>_supremacy` objective board on the PR6 pattern: pinned peer commit +
@@ -89,7 +91,47 @@ activation or explicitly never write rows (fixing the current pr6 gap).
 cross-track blended number (MLPerf's no-aggregation position; per-board
 suite scores remain the per-track headline).
 
-**3.5 Anti-gaming set** (mlxfast + SPEC lessons):
+**3.5 The confirmation ladder — fast and cheap by construction.** Ranked
+truth is expensive (dual boundary, official params, one judge host); the
+ladder makes every step BEFORE ranked as cheap as honesty allows, so agents
+iterate in seconds and the judge only ever confirms already-evidenced wins.
+
+| tier | cost target | what runs | what it buys |
+|---|---|---|---|
+| T0 smoke | < 30 s | correctness smoke + ONE stage-profiled sample on the proxy fixture | direction + phase attribution: the claimed phase must move here before anything else is scheduled |
+| T1 iterate | < 5 min | paired ABBA on proxy fixtures, sequential early-stop, PoW-excluded boundary | a CI-bearing local estimate; the agent's inner loop |
+| T2 claimed | < 45 min | full dual-boundary paired run on the contributor host, real classes, guards impact-mapped | the submission's claimed verdict |
+| T3 ranked | judge-scheduled | judged re-run + audits on the designated host | the scored row |
+
+Devices that make the ladder honest AND cheap:
+- **Sequential early stopping** (formalizing min/max rounds): a paired run
+  stops the moment the CI decisively clears or decisively misses the θ bar
+  (group-sequential spending, pre-registered). Large effects — the common
+  case under the gain cap, which forces wins to arrive chunked — confirm in
+  3 rounds; only borderline effects pay full power.
+- **Proxy fixtures with validity receipts**: each class pins a small proxy
+  shape (official params, scaled geometry). Per era, the harness measures
+  proxy→class predictive correlation on the judge host and commits it as a
+  receipt; a proxy whose validity decays below threshold is rotated. T0/T1
+  never rank — they gate scheduling.
+- **PoW-excluded fast boundary**: pow 26 is ~constant work and pure noise
+  for paired deltas; T0/T1 measure request-minus-PoW. T2/T3 keep the full
+  boundary — the ranked number never excludes anything.
+- **Phase-attribution prefilter**: a submission must name its phase (§3.2)
+  and show that phase moving at T0 before T1 runs; a claimed FRI win that
+  moves only witness time dies in 30 seconds, not 45 minutes.
+- **Warm artifact caches shared across arms**: prebuilt fixtures, cached
+  twiddles, authenticated AOT metallibs — builds must never dominate the
+  iterate loop; both arms share identical caches so cache state cancels.
+- **Judge economy**: T3 admits only T2-verdicts whose CI cleared with
+  margin; audits batch per cadence; the M5 spends zero cycles on
+  exploration.
+
+**3.6 acceptance:** every tier's cost target is CI-checked per track (a
+track whose T1 exceeds 5 minutes must shrink its proxy, not its honesty);
+proxy validity receipts are era-frozen like anchors.
+
+**3.5b Anti-gaming set** (mlxfast + SPEC lessons):
 - **Per-submission gain cap** per track/class (mlxfast's ~5% acceptance band):
   oversized single-shot wins are distrusted structurally — chunk them.
   Interacts with shrinkage credit: cap the credited ln-ratio, not the record.
@@ -185,6 +227,9 @@ its own host-local calibration) as the scaling lever. The metal_calibration
 module generalizes from its hardwired `BOARD = "core_metal"` to per-board
 blocks — required by riscv_metal and cairo_metal.
 
+The ladder (§3.5) is the judge-capacity multiplier: exploration cost lives
+on contributor hosts at T0-T2; the M5 confirms, never explores.
+
 **Cross-track agent allocation**: extend `gates_policy.search_health` from
 within-board round control to session allocation — reward = CI-cleared
 ln-improvement per judge-hour (normalize: huge-class runs cost more), sliding
@@ -211,7 +256,11 @@ native 12-guard portfolio binds to the objective group's binary — nonsense
 for cairo/riscv objectives); frontend-aware board auto-routing; per-track
 editable paths; report-schema registry entries; per-board era bookkeeping;
 resource budgets keyed (board, class); generalized metal calibration;
-objective-board BOARDS registration; per-track TASK.md generation.
+objective-board BOARDS registration; per-track TASK.md generation; the confirmation ladder: sequential
+early-stop in the runner, per-class proxy fixtures + era validity receipts,
+PoW-excluded fast boundary flag, T0 phase-prefilter mode in the product
+CLIs (`--stage-profile-out` exists on Cairo already), tier cost-target CI
+checks.
 
 ## 9. Website partition
 
