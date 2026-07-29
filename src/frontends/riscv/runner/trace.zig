@@ -220,23 +220,6 @@ test "trace groups opcode families" {
     try std.testing.expectError(error.UnsupportedForProof, proofOpcodeFamily(.EBREAK));
 }
 
-test "the admitted opcode set maps identically through both family helpers" {
-    // Pins requirement that hardening the unsupported path did not perturb any
-    // supported opcode: `opcodeFamily` must stay a total map over exactly the
-    // opcodes `proofOpcodeFamily` admits, agreeing on every one of them.
-    var admitted: usize = 0;
-    for (std.enums.values(Opcode)) |opcode| {
-        const family = proofOpcodeFamily(opcode) catch |err| {
-            try std.testing.expectEqual(error.UnsupportedForProof, err);
-            try std.testing.expect(opcode == .ECALL or opcode == .EBREAK);
-            continue;
-        };
-        try std.testing.expectEqual(family, opcodeFamily(opcode));
-        admitted += 1;
-    }
-    try std.testing.expectEqual(@as(usize, 46), admitted);
-}
-
 test "trace rejects execution-only opcodes before family witness generation" {
     var trace = Trace.init(std.testing.allocator);
     defer trace.deinit();

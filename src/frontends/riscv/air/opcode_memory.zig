@@ -174,18 +174,7 @@ pub fn deriveRegisterBoundary(rows: []const trace_mod.TraceRow) RegisterBoundary
     var result = RegisterBoundary{};
     var seen = [_]bool{false} ** 32;
     for (rows) |row| {
-        // Zig error values carry no payload, so name the offending instruction
-        // here; without it the caller only learns that *some* opcode was
-        // unsupported and has to bisect the trace to find which.
-        const family = trace_mod.proofOpcodeFamily(row.opcode) catch |err| {
-            std.log.err(
-                "riscv register boundary: trace step clk={d} pc=0x{x:0>8} is {s}, " ++
-                    "an execution-only opcode with no proof family; it must not " ++
-                    "reach the prover",
-                .{ row.clk, row.pc, @tagName(row.opcode) },
-            );
-            return err;
-        };
+        const family = try trace_mod.proofOpcodeFamily(row.opcode);
         switch (family) {
             .base_alu_reg, .shifts_reg, .lt_reg, .mul, .mulh, .div => {
                 try observe(&result, &seen, rs1Trace(row, .first));
@@ -497,47 +486,6 @@ test "opcode memory: committed load/store selectors choose address spaces" {
     try std.testing.expect(dst.addr.eql(base(4)));
     try std.testing.expect(source.addr_space.eql(QM31.one()));
     try std.testing.expect(source.addr.eql(base(0x1000)));
-}
-
-fn boundaryTestRow(opcode: decode.Opcode) trace_mod.TraceRow {
-    return .{
-        .clk = 1,
-        .pc = 0x1000,
-        .opcode = opcode,
-        .rd = 1,
-        .rs1 = 2,
-        .rs2 = 3,
-        .imm = 7,
-        .rs1_val = 0,
-        .rs2_val = 0,
-        .rd_val = 7,
-        .mem_addr = 0,
-        .mem_val = 0,
-        .is_load = false,
-        .is_store = false,
-        .branch_taken = false,
-        .next_pc = 0x1004,
-    };
-}
-
-test "opcode memory: register boundary fails closed on execution-only opcodes" {
-    const supported = boundaryTestRow(.ADDI);
-    const boundary = try deriveRegisterBoundary(&.{supported});
-    try std.testing.expectEqual(@as(u32, 7), boundary.final[1]);
-
-    // ECALL and EBREAK have no proof family. This lookup used to be
-    // `catch unreachable`, which is undefined behaviour in ReleaseFast: it
-    // yielded a garbage family and the corrupted access chain surfaced as
-    // `InvalidRegisterAccessChain` -- a different condition entirely, and the
-    // reason this defect was expensive to diagnose.
-    try std.testing.expectError(
-        error.UnsupportedForProof,
-        deriveRegisterBoundary(&.{ supported, boundaryTestRow(.ECALL) }),
-    );
-    try std.testing.expectError(
-        error.UnsupportedForProof,
-        deriveRegisterBoundary(&.{boundaryTestRow(.EBREAK)}),
-    );
 }
 
 test "opcode memory: absent family slots are disabled" {

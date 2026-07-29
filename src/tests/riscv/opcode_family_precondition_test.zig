@@ -243,6 +243,34 @@ test "opcode family precondition: the family filter rejects an execution-only ro
     }
 }
 
+test "opcode family precondition: the pre-filter caller is declared fallible on unsupported opcodes" {
+    // A log-free structural guard against the exact regression, worth having
+    // beside the behavioural test below because it costs nothing and fires at
+    // compile time.
+    //
+    // `deriveRegisterBoundary` reaches the family map before any filter has
+    // run. While it resolved families through the *total* map, its error set
+    // was `error{InvalidRegisterAccessChain}` alone -- there was no way for it
+    // to report an inadmissible opcode, which is the same statement as "it
+    // consumed one via `catch unreachable`". Resolving them fallibly is what
+    // puts `UnsupportedForProof` into the signature, so the signature is a
+    // faithful witness for the fix and a revert cannot restore the old
+    // behaviour without also shrinking this set.
+    const signature = @typeInfo(@TypeOf(opcode_memory.deriveRegisterBoundary)).@"fn";
+    const returns = @typeInfo(signature.return_type.?).error_union;
+    const members = @typeInfo(returns.error_set).error_set orelse return; // anyerror admits it
+
+    for (members) |member| {
+        if (std.mem.eql(u8, member.name, "UnsupportedForProof")) return;
+    }
+    std.debug.print(
+        "deriveRegisterBoundary cannot report an inadmissible opcode; its error set is:\n",
+        .{},
+    );
+    for (members) |member| std.debug.print("    error.{s}\n", .{member.name});
+    return error.PreFilterCallerNotFallible;
+}
+
 test "opcode family precondition: register boundary derivation fails closed on an ECALL row" {
     // The exact pre-filter caller that carried the defect. `deriveRegisterBoundary`
     // walks raw trace rows at the top of the prove entrypoint, before any filter
