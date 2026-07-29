@@ -4,13 +4,13 @@
     "Quot.sound",
     "propext"
   ],
-  "canonical_digest": "dd41866a8b5a3fe2cdd6ebac26f78e95a748aeece1ff1e9d7154ebcc99c1c375",
+  "canonical_digest": "66d567eb46074641b4f5eae72975bddeba50463bb2aedc982b959db2b201dfa1",
   "claim_boundary": "kernel-checked normalized LUI/ADDI predicate refinement plus strict production LUI AIR IR v2 decode/evaluation; AIR-to-normalized composition and generated-Sail monad normalization remain open",
   "coverage": {
     "production_opcodes": 46,
     "proved_normalized_opcodes": 2
   },
-  "generated_manifest_digest": "a23136edf6d165ab079aed771bdca17bb2660234e6b0f49ae6908b359669085a",
+  "generated_manifest_digest": "12281243961a026b083099e314d7eb3df09598e0b8b0fa73e626fd73ee095d42",
   "kind": "stwo-riscv-refinement-receipt",
   "lean_build": "passed",
   "negative_controls": [
@@ -24,7 +24,7 @@
   "proof_escape_scan": "passed",
   "repository_dirty": false,
   "repository_dirty_paths": [],
-  "repository_revision": "c65febe2e5c53a8288c17387f647e2fd15d7b28d",
+  "repository_revision": "1d9b3051e8f452f1892451f56821d8c79700fa39",
   "schema_version": 1,
   "semantic_toolchain": {
     "compiler": {
