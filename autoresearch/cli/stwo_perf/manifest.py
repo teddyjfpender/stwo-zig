@@ -1590,10 +1590,12 @@ def _validate_acceptance_corpora(repo: Path, raw: dict) -> None:
         # staged rows are only as honest as the corpus that pins their guests,
         # inputs, and exact retirement counts.
         staged = spec.get("era_staged_basket") or {}
-        if staged:
+        if isinstance(staged, dict) and isinstance(staged.get("admission"), dict):
             bindings.append(("era-staged admission corpus", staged["admission"]))
         for label, corpus in bindings:
-            if not corpus:
+            # Shape is _validate's job; this pass only binds bytes to digests,
+            # and must not crash when called on a manifest that failed it.
+            if not isinstance(corpus, dict) or not {"path", "sha256"} <= set(corpus):
                 continue
             path = repo / corpus["path"]
             try:
