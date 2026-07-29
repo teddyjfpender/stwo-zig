@@ -219,6 +219,99 @@ class DivisionWitnessTest(unittest.TestCase):
             witnesses.quotient_and_remainder("mulh", 1, 1)
 
 
+class MultiplyAndShiftWitnessTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        try:
+            cls.air_ir_dir = export_air()
+        except (OSError, subprocess.SubprocessError) as error:
+            raise unittest.SkipTest(f"production AIR export unavailable: {error}")
+
+    def test_multiply_witnesses_are_reachable_in_production(self):
+        self.assertIn(
+            "12 witnesses reachable",
+            witnesses.check_multiply_witnesses(self.air_ir_dir),
+        )
+
+    def test_shift_witnesses_are_reachable_in_production(self):
+        self.assertIn(
+            "13 witnesses reachable",
+            witnesses.check_shift_witnesses(self.air_ir_dir),
+        )
+
+    def test_signedness_combination_is_actually_distinguished(self):
+        # The same operand pair must give three different high words under the
+        # three selectors, otherwise the sign witnesses are not load-bearing.
+        _, unsigned = witnesses.multiply_high_row("mulhu", 0xFFFFFFFF, 0xFFFFFFFF)
+        _, signed = witnesses.multiply_high_row("mulh", 0xFFFFFFFF, 0xFFFFFFFF)
+        _, mixed = witnesses.multiply_high_row("mulhsu", 0xFFFFFFFF, 0xFFFFFFFF)
+        self.assertEqual(unsigned, 0xFFFFFFFE)
+        self.assertEqual(signed, 0x00000000)
+        self.assertEqual(mixed, 0xFFFFFFFF)
+
+    def test_a_free_high_word_limb_is_caught(self):
+        assignment, _ = witnesses.multiply_high_row("mulhu", 0xFFFFFFFF, 0xFFFFFFFF)
+        assignment["result_0"] = (assignment["result_0"] + 1) % 256
+        with self.assertRaises(witnesses.WitnessError):
+            witnesses.check_witness(self.air_ir_dir, "mulh", assignment)
+
+    def test_an_unbound_operand_sign_is_caught(self):
+        assignment, _ = witnesses.multiply_high_row("mulh", 0xFFFFFFFF, 0xFFFFFFFF)
+        assignment["rs1_sign"] = 0
+        with self.assertRaises(witnesses.WitnessError):
+            witnesses.check_witness(self.air_ir_dir, "mulh", assignment)
+
+    def test_mulhu_may_not_claim_a_signed_operand(self):
+        assignment, _ = witnesses.multiply_high_row("mulhu", 0xFFFFFFFF, 0xFFFFFFFF)
+        assignment["rs1_sign"] = 1
+        with self.assertRaisesRegex(witnesses.WitnessError, "constraint roots"):
+            witnesses.check_witness(self.air_ir_dir, "mulh", assignment)
+
+    def test_the_arithmetic_sign_fill_path_is_exercised(self):
+        # A shift witness set with no negative SRAI source would leave the
+        # sign-fill path untested.
+        sign_filled = [
+            name
+            for name, selector, source, _, _ in witnesses.SHIFT_WITNESSES
+            if selector == "sra" and source & witnesses.INT_MIN
+        ]
+        self.assertGreaterEqual(len(sign_filled), 3)
+
+    def test_srai_and_srli_agree_on_nonnegative_sources(self):
+        _, arithmetic = witnesses.shift_immediate_row("sra", 0x12345678, 4)
+        _, logical = witnesses.shift_immediate_row("srl", 0x12345678, 4)
+        self.assertEqual(arithmetic, logical)
+
+    def test_srai_and_srli_differ_on_negative_sources(self):
+        _, arithmetic = witnesses.shift_immediate_row("sra", witnesses.INT_MIN, 4)
+        _, logical = witnesses.shift_immediate_row("srl", witnesses.INT_MIN, 4)
+        self.assertNotEqual(arithmetic, logical)
+
+    def test_a_released_sign_witness_is_caught(self):
+        assignment, _ = witnesses.shift_immediate_row("sra", witnesses.INT_MIN, 4)
+        assignment["semantic_rs1_sign"] = 0
+        with self.assertRaises(witnesses.WitnessError):
+            witnesses.check_witness(self.air_ir_dir, "shifts_imm", assignment)
+
+    def test_a_logical_shift_may_not_claim_a_sign(self):
+        assignment, _ = witnesses.shift_immediate_row("srl", witnesses.INT_MIN, 4)
+        assignment["semantic_rs1_sign"] = 1
+        with self.assertRaisesRegex(witnesses.WitnessError, "constraint roots"):
+            witnesses.check_witness(self.air_ir_dir, "shifts_imm", assignment)
+
+    def test_a_mismatched_shift_amount_is_caught(self):
+        assignment, _ = witnesses.shift_immediate_row("sll", 0x12345678, 8)
+        assignment["imm_truncated"] = 9
+        with self.assertRaisesRegex(witnesses.WitnessError, "constraint roots"):
+            witnesses.check_witness(self.air_ir_dir, "shifts_imm", assignment)
+
+    def test_unknown_selectors_fail_closed(self):
+        with self.assertRaisesRegex(witnesses.WitnessError, "unknown shift"):
+            witnesses.shift_immediate_row("rol", 1, 1)
+        with self.assertRaisesRegex(witnesses.WitnessError, "unknown multiply-high"):
+            witnesses.multiply_high_row("mul", 1, 1)
+
+
 class EvaluatorTest(unittest.TestCase):
     def _payload(self) -> dict:
         return {
