@@ -325,6 +325,236 @@
   "run_id": "2026-07-17-064520-matrix-v3-370f8ef8"
  },
  "boards": {
+  "cairo_cpu": {
+   "entries": [],
+   "frontier_by_class": {
+    "small": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 1035,
+       "seconds": 689281
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    },
+    "wide": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 1035,
+       "seconds": 689281
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    }
+   },
+   "scored_classes": [
+    "small",
+    "wide"
+   ],
+   "suite_score": {
+    "active_credit_events": {
+     "small": 0,
+     "wide": 0
+    },
+    "audited_class_ratios": {
+     "small": 1.0,
+     "wide": 1.0
+    },
+    "audited_ratio_geomean": 1.0,
+    "class_ratios": {
+     "small": 1.0,
+     "wide": 1.0
+    },
+    "classes": [
+     "small",
+     "wide"
+    ],
+    "epoch": 2,
+    "index": 100.0,
+    "method": "metrics_v2_scored_class_geomean_v2",
+    "ratio_geomean": 1.0,
+    "speedup": 1.0
+   }
+  },
+  "cairo_metal": {
+   "entries": [],
+   "frontier_by_class": {
+    "small": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 1035,
+       "seconds": 689281
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    },
+    "wide": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 1035,
+       "seconds": 689281
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    }
+   },
+   "scored_classes": [
+    "small",
+    "wide"
+   ],
+   "suite_score": {
+    "active_credit_events": {
+     "small": 0,
+     "wide": 0
+    },
+    "audited_class_ratios": {
+     "small": 1.0,
+     "wide": 1.0
+    },
+    "audited_ratio_geomean": 1.0,
+    "class_ratios": {
+     "small": 1.0,
+     "wide": 1.0
+    },
+    "classes": [
+     "small",
+     "wide"
+    ],
+    "epoch": 2,
+    "index": 100.0,
+    "method": "metrics_v2_scored_class_geomean_v2",
+    "ratio_geomean": 1.0,
+    "speedup": 1.0
+   }
+  },
   "core_cpu": {
    "entries": [
     {
@@ -2328,8 +2558,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1035,
+       "seconds": 689281
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -2652,8 +2882,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1035,
+       "seconds": 689281
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -2840,8 +3070,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1035,
+       "seconds": 689281
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3058,8 +3288,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1035,
+       "seconds": 689281
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3453,8 +3683,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1035,
+       "seconds": 689281
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3650,8 +3880,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1035,
+       "seconds": 689281
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3691,8 +3921,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1035,
+       "seconds": 689281
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3732,8 +3962,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1035,
+       "seconds": 689281
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3773,8 +4003,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1035,
+       "seconds": 689281
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3814,8 +4044,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1035,
+       "seconds": 689281
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -6290,8 +6520,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1035,
+       "seconds": 689281
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -6753,8 +6983,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1035,
+       "seconds": 689281
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -6873,8 +7103,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1035,
+       "seconds": 689281
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -7159,8 +7389,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1035,
+       "seconds": 689281
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -7694,8 +7924,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1035,
+       "seconds": 689281
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -7901,6 +8131,259 @@
    "frontier_by_class": {},
    "scored_classes": [],
    "suite_score": null
+  },
+  "pr6_supremacy": {
+   "entries": [],
+   "frontier_by_class": {
+    "deep": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 1035,
+       "seconds": 689281
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    },
+    "huge": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 1035,
+       "seconds": 689281
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    },
+    "small": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 1035,
+       "seconds": 689281
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    },
+    "wide": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 1035,
+       "seconds": 689281
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    },
+    "xlarge": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 1035,
+       "seconds": 689281
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    }
+   },
+   "scored_classes": [
+    "small",
+    "wide",
+    "deep",
+    "xlarge",
+    "huge"
+   ],
+   "suite_score": {
+    "active_credit_events": {
+     "deep": 0,
+     "huge": 0,
+     "small": 0,
+     "wide": 0,
+     "xlarge": 0
+    },
+    "audited_class_ratios": {
+     "deep": 1.0,
+     "huge": 1.0,
+     "small": 1.0,
+     "wide": 1.0,
+     "xlarge": 1.0
+    },
+    "audited_ratio_geomean": 1.0,
+    "class_ratios": {
+     "deep": 1.0,
+     "huge": 1.0,
+     "small": 1.0,
+     "wide": 1.0,
+     "xlarge": 1.0
+    },
+    "classes": [
+     "small",
+     "wide",
+     "deep",
+     "xlarge",
+     "huge"
+    ],
+    "epoch": 2,
+    "index": 100.0,
+    "method": "metrics_v2_scored_class_geomean_v2",
+    "ratio_geomean": 1.0,
+    "speedup": 1.0
+   }
   },
   "riscv": {
    "entries": [
@@ -8330,8 +8813,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1035,
+       "seconds": 689281
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8521,8 +9004,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1035,
+       "seconds": 689281
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8637,8 +9120,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1035,
+       "seconds": 689281
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -9794,13 +10277,50 @@
    }
   },
   "future_boards": [
+   "cairo_cpu",
+   "cairo_metal",
    "core_cuda",
    "core_hybrid",
    "heavy_cairo",
    "heavy_native",
+   "pr6_supremacy",
    "stream"
   ],
   "groups": {
+   "cairo_cpu": {
+    "board": "cairo_cpu",
+    "disabled_reason": null,
+    "enabled": true,
+    "promotion_eligible": false,
+    "report_schema": "cairo_proof_v1",
+    "workloads": {
+     "cairo_all_builtins": {
+      "class": "wide",
+      "native_unit": "committed cells"
+     },
+     "cairo_all_opcodes": {
+      "class": "small",
+      "native_unit": "committed cells"
+     }
+    }
+   },
+   "cairo_metal": {
+    "board": "cairo_metal",
+    "disabled_reason": "cairo_metal is staged only: TRACKS \u00a72 records the Cairo + Metal product as parity_gated, not released. The product descriptor in build_support/products/cairo_metal.zig still carries state .parity_gated behind its test-cairo-metal-product and test-cairo-metal-oracle release gates, no Metal-lane Cairo calibration exists on the designated judge host, and the generalized per-board Metal calibration (TRACKS \u00a77) is not yet built. The group stays dark and fails closed.",
+    "enabled": false,
+    "promotion_eligible": false,
+    "report_schema": "cairo_proof_v1",
+    "workloads": {
+     "mcairo_all_builtins": {
+      "class": "wide",
+      "native_unit": "committed cells"
+     },
+     "mcairo_all_opcodes": {
+      "class": "small",
+      "native_unit": "committed cells"
+     }
+    }
+   },
    "cuda": {
     "board": "core_cuda",
     "disabled_reason": "core_cuda is staged only: all six Native AIR families are required, but only wide Fibonacci is exact and release-ready; exact family semantics, the stwo-perf CUDA report adapter, locked-host A/A calibration, pinned Rust verification, and complete structural coverage are not yet release-gated.",
@@ -10085,6 +10605,8 @@
    "riscv"
   ],
   "staged_boards": [
+   "cairo_cpu",
+   "cairo_metal",
    "core_cuda",
    "pr6_supremacy"
   ]
@@ -10093,7 +10615,7 @@
   "determinism": "pure function of the named inputs; a committed feed names the commit it was generated FROM (one-commit lag by construction) \u2014 verify via inputs_sha256, not commit equality",
   "dirty_inputs": [],
   "inputs_sha256": {
-   "autoresearch/MANIFEST.json": "6f4ec3341956ac9bd2484de229e99a69d986e2e82af8286c99584475c6582bda",
+   "autoresearch/MANIFEST.json": "b2744dd72674a6ef11bdbafc41c5910f0409924d5bb3deb90dc080569c3b88e7",
    "autoresearch/ledger/epochs.json": "60162d440a812415d2943b1c1a2317b70be5fda727fae7eaa5c75ff408c4f7f5",
    "autoresearch/ledger/promotions.tsv": "65ebaae10a028ea4dc7267a9cc8dc68b0c5bfc713218103047cb99054d64d676",
    "autoresearch/reference/metal-calibration-epoch-2.json": "e1a733f19dfe552389e25ff71d487cb889a3117b7fd71ea47c28cbc9000147df",
@@ -10249,8 +10771,8 @@
    "vectors/reports/benchmark_history/index.json": "2df531dbefbd60f078b4c4a0b1c10c00a577832cd35520e065b430c61e6903f0",
    "vectors/reports/benchmark_history/runs/2026-07-23-110359-matrix-v6-e58b4d1e/report.json": "e772acbf9f58ff3916f2ffe91016ebc28bc6aadc75c6e68d5fd43ef3023d7be3"
   },
-  "repo_commit": "22ff811600ef",
-  "repo_commit_time": "2026-07-28T12:29:56+01:00"
+  "repo_commit": "f76acf4acba4",
+  "repo_commit_time": "2026-07-29T17:15:28+01:00"
  },
  "references": {
   "metal_calibration_epoch_2": {
@@ -16889,6 +17411,78 @@
  },
  "search_health": {
   "boards": {
+   "cairo_cpu": {
+    "classes": {
+     "small": {
+      "available": false,
+      "available_points": 0,
+      "decay": [],
+      "latest": null,
+      "time_series": [],
+      "trailing": {
+       "credited_ln_improvement": null,
+       "credited_ln_improvement_per_measurement_hour": null,
+       "measurement_wall_hours": null,
+       "median_gradient_snr": null,
+       "points": 0
+      },
+      "trailing_window": 8,
+      "unavailable_points": 0
+     },
+     "wide": {
+      "available": false,
+      "available_points": 0,
+      "decay": [],
+      "latest": null,
+      "time_series": [],
+      "trailing": {
+       "credited_ln_improvement": null,
+       "credited_ln_improvement_per_measurement_hour": null,
+       "measurement_wall_hours": null,
+       "median_gradient_snr": null,
+       "points": 0
+      },
+      "trailing_window": 8,
+      "unavailable_points": 0
+     }
+    }
+   },
+   "cairo_metal": {
+    "classes": {
+     "small": {
+      "available": false,
+      "available_points": 0,
+      "decay": [],
+      "latest": null,
+      "time_series": [],
+      "trailing": {
+       "credited_ln_improvement": null,
+       "credited_ln_improvement_per_measurement_hour": null,
+       "measurement_wall_hours": null,
+       "median_gradient_snr": null,
+       "points": 0
+      },
+      "trailing_window": 8,
+      "unavailable_points": 0
+     },
+     "wide": {
+      "available": false,
+      "available_points": 0,
+      "decay": [],
+      "latest": null,
+      "time_series": [],
+      "trailing": {
+       "credited_ln_improvement": null,
+       "credited_ln_improvement_per_measurement_hour": null,
+       "measurement_wall_hours": null,
+       "median_gradient_snr": null,
+       "points": 0
+      },
+      "trailing_window": 8,
+      "unavailable_points": 0
+     }
+    }
+   },
    "core_cpu": {
     "classes": {
      "deep": {
