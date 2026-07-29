@@ -1,0 +1,237 @@
+{
+  "canonical_digest": "426040cf7a5e7d518eaa135c52ed4534ba760424a3456a0dcd80b2ee3226dfb3",
+  "certificates": [
+    {
+      "family": "shifts_reg",
+      "manifest_id": 2,
+      "mnemonic": "sll",
+      "mutation": null,
+      "non_vacuity_theorem": null,
+      "refinement_theorem": null,
+      "state": "open",
+      "tuple_theorem": null
+    },
+    {
+      "family": "shifts_reg",
+      "manifest_id": 6,
+      "mnemonic": "srl",
+      "mutation": null,
+      "non_vacuity_theorem": null,
+      "refinement_theorem": null,
+      "state": "open",
+      "tuple_theorem": null
+    },
+    {
+      "family": "shifts_reg",
+      "manifest_id": 7,
+      "mnemonic": "sra",
+      "mutation": null,
+      "non_vacuity_theorem": null,
+      "refinement_theorem": null,
+      "state": "open",
+      "tuple_theorem": null
+    },
+    {
+      "family": "shifts_imm",
+      "manifest_id": 16,
+      "mnemonic": "slli",
+      "mutation": null,
+      "non_vacuity_theorem": null,
+      "refinement_theorem": null,
+      "state": "open",
+      "tuple_theorem": null
+    },
+    {
+      "family": "shifts_imm",
+      "manifest_id": 17,
+      "mnemonic": "srli",
+      "mutation": null,
+      "non_vacuity_theorem": null,
+      "refinement_theorem": null,
+      "state": "open",
+      "tuple_theorem": null
+    },
+    {
+      "family": "shifts_imm",
+      "manifest_id": 18,
+      "mnemonic": "srai",
+      "mutation": null,
+      "non_vacuity_theorem": null,
+      "refinement_theorem": null,
+      "state": "open",
+      "tuple_theorem": null
+    },
+    {
+      "family": "load_store",
+      "manifest_id": 19,
+      "mnemonic": "lb",
+      "mutation": null,
+      "non_vacuity_theorem": null,
+      "refinement_theorem": null,
+      "state": "open",
+      "tuple_theorem": null
+    },
+    {
+      "family": "load_store",
+      "manifest_id": 20,
+      "mnemonic": "lh",
+      "mutation": null,
+      "non_vacuity_theorem": null,
+      "refinement_theorem": null,
+      "state": "open",
+      "tuple_theorem": null
+    },
+    {
+      "family": "load_store",
+      "manifest_id": 21,
+      "mnemonic": "lw",
+      "mutation": null,
+      "non_vacuity_theorem": null,
+      "refinement_theorem": null,
+      "state": "open",
+      "tuple_theorem": null
+    },
+    {
+      "family": "load_store",
+      "manifest_id": 22,
+      "mnemonic": "lbu",
+      "mutation": null,
+      "non_vacuity_theorem": null,
+      "refinement_theorem": null,
+      "state": "open",
+      "tuple_theorem": null
+    },
+    {
+      "family": "load_store",
+      "manifest_id": 23,
+      "mnemonic": "lhu",
+      "mutation": null,
+      "non_vacuity_theorem": null,
+      "refinement_theorem": null,
+      "state": "open",
+      "tuple_theorem": null
+    },
+    {
+      "family": "load_store",
+      "manifest_id": 24,
+      "mnemonic": "sb",
+      "mutation": null,
+      "non_vacuity_theorem": null,
+      "refinement_theorem": null,
+      "state": "open",
+      "tuple_theorem": null
+    },
+    {
+      "family": "load_store",
+      "manifest_id": 25,
+      "mnemonic": "sh",
+      "mutation": null,
+      "non_vacuity_theorem": null,
+      "refinement_theorem": null,
+      "state": "open",
+      "tuple_theorem": null
+    },
+    {
+      "family": "load_store",
+      "manifest_id": 26,
+      "mnemonic": "sw",
+      "mutation": null,
+      "non_vacuity_theorem": null,
+      "refinement_theorem": null,
+      "state": "open",
+      "tuple_theorem": null
+    },
+    {
+      "family": "mul",
+      "manifest_id": 37,
+      "mnemonic": "mul",
+      "mutation": null,
+      "non_vacuity_theorem": null,
+      "refinement_theorem": null,
+      "state": "open",
+      "tuple_theorem": null
+    },
+    {
+      "family": "mulh",
+      "manifest_id": 38,
+      "mnemonic": "mulh",
+      "mutation": null,
+      "non_vacuity_theorem": null,
+      "refinement_theorem": null,
+      "state": "open",
+      "tuple_theorem": null
+    },
+    {
+      "family": "mulh",
+      "manifest_id": 39,
+      "mnemonic": "mulhsu",
+      "mutation": null,
+      "non_vacuity_theorem": null,
+      "refinement_theorem": null,
+      "state": "open",
+      "tuple_theorem": null
+    },
+    {
+      "family": "mulh",
+      "manifest_id": 40,
+      "mnemonic": "mulhu",
+      "mutation": null,
+      "non_vacuity_theorem": null,
+      "refinement_theorem": null,
+      "state": "open",
+      "tuple_theorem": null
+    },
+    {
+      "family": "div",
+      "manifest_id": 41,
+      "mnemonic": "div",
+      "mutation": null,
+      "non_vacuity_theorem": null,
+      "refinement_theorem": null,
+      "state": "open",
+      "tuple_theorem": null
+    },
+    {
+      "family": "div",
+      "manifest_id": 42,
+      "mnemonic": "divu",
+      "mutation": null,
+      "non_vacuity_theorem": null,
+      "refinement_theorem": null,
+      "state": "open",
+      "tuple_theorem": null
+    },
+    {
+      "family": "div",
+      "manifest_id": 43,
+      "mnemonic": "rem",
+      "mutation": null,
+      "non_vacuity_theorem": null,
+      "refinement_theorem": null,
+      "state": "open",
+      "tuple_theorem": null
+    },
+    {
+      "family": "div",
+      "manifest_id": 44,
+      "mnemonic": "remu",
+      "mutation": null,
+      "non_vacuity_theorem": null,
+      "refinement_theorem": null,
+      "state": "open",
+      "tuple_theorem": null
+    }
+  ],
+  "claim_boundary": "Reviewed normalized capsules bound to the exported production AIR. The generated pinned-Sail monad normalization theorem is open, so no entry here is publication-level.",
+  "families": [
+    "shifts_reg",
+    "shifts_imm",
+    "load_store",
+    "mul",
+    "mulh",
+    "div"
+  ],
+  "issue": 137,
+  "kind": "stwo-riscv-team-b-coverage",
+  "schema_version": 1
+}
