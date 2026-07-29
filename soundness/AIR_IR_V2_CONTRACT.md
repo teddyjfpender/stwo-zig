@@ -276,6 +276,13 @@ not use the range of an inactive tuple. An event whose numerator directly
 references the canonical `const 0` node is statically dead and MUST be
 rejected; dynamically inactive requests are expected and remain serialized.
 
+Direct constraints and live fixed-table requests are jointly load-bearing.
+No bridge theorem may replace program satisfaction with
+`constraintsHold` alone or defer lookup membership as optional evidence. This
+is essential for the M-extension families: in `mul`, and analogously in
+`mulh` and `div`, range-request tuple expressions carry arithmetic identities
+that do not appear as separate direct-constraint roots.
+
 `access_ordinal` is source metadata, never inferred later from tuple adjacency.
 For each logical architectural register or RW-memory access, production assigns
 one-based contiguous ordinals `1..k` in first-occurrence order. Its
