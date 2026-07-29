@@ -244,11 +244,18 @@ with deliberate periodic technique migration between tracks (island model).
 official-verifier oracle from build gates into the harness; calibrate on M5;
 guard portfolio from the campaign regression rows) · riscv re-scored to the
 request boundary at its next era · native boards retired-and-completed ·
-website partition (§9). **Wave 2:** riscv_metal (parity-gated product →
+**website refresh, part 1**: track-explorer shell (one page per track from
+feed boards), campaign overview with tracks-at-supremacy headline + score
+vector, the native era rendered as the frozen completed contract (final
+audited scores, full ledger, banked banner), per-track participate blocks,
+phase-telemetry panels, era metadata display. **Wave 2:** riscv_metal (parity-gated product →
 scored track) · frontend-only tracks with the weight-vector machinery ·
 per-track supremacy boards for cairo (pin upstream stwo-cairo). **Wave 3:**
-formal_refinement blueprint + scoring · CUDA tracks when hardware lands ·
-additional judge hosts.
+formal_refinement blueprint + scoring · **website refresh, part 2**: the
+formal track's blueprint progress graph + TCB statement, supremacy-gate
+state panels, confirmation-ladder status per track (proxy validity
+receipts, tier cost health) · CUDA tracks when hardware lands · additional
+judge hosts.
 
 Mechanical work items (from the harness survey): extend `ledger.BOARDS`
 (never remove); per-group guard registries + per-track impact maps (the flat
