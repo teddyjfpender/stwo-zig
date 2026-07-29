@@ -35,6 +35,7 @@ const source_closure = product_policy.SourceClosure{
         .{ .name = "stwo_riscv_cpu_integration", .source = "src/integrations/riscv_cpu/mod.zig" },
         .{ .name = "riscv_adapter", .source = "src/integrations/riscv_cpu/proof_adapter.zig" },
         .{ .name = "riscv_cpu_capabilities", .source = "src/products/riscv_cpu/capabilities.zig" },
+        .{ .name = "riscv_shared_app", .source = "src/products/riscv_shared/app.zig" },
         .{ .name = "output_transaction", .source = "src/interop/output_transaction.zig" },
     },
     .generated_imports = &.{"aggregate_capabilities"},
@@ -58,6 +59,7 @@ const source_closure = product_policy.SourceClosure{
         "src/frontends/riscv",
         "src/integrations/riscv_cpu",
         "src/products/riscv_cpu",
+        "src/products/riscv_shared",
         "src/interop/postcard",
         "src/interop/riscv_artifact",
         "src/tools/riscv/trace",
@@ -254,6 +256,12 @@ fn addExecutable(
     root.addImport("stwo_riscv_cpu", stwo);
     root.addImport("riscv_adapter", adapter);
     root.addImport("riscv_cpu_capabilities", capabilities);
+    root.addImport("riscv_shared_app", createSharedModule(
+        context,
+        "src/products/riscv_shared/app.zig",
+        target,
+        optimize,
+    ));
     root.addImport("output_transaction", createOutputTransaction(context, target, optimize));
     root.addOptions("build_identity", graph_identity.buildOptions(b, context.identity));
     root.addOptions(
@@ -300,6 +308,12 @@ fn addTests(context: Context) *std.Build.Step.Compile {
     root.addImport("stwo_riscv_cpu", stwo);
     root.addImport("riscv_adapter", adapter);
     root.addImport("riscv_cpu_capabilities", capabilities);
+    root.addImport("riscv_shared_app", createSharedModule(
+        context,
+        "src/products/riscv_shared/app.zig",
+        context.target,
+        context.optimize,
+    ));
     root.addImport(
         "output_transaction",
         createOutputTransaction(context, context.target, context.optimize),
@@ -480,6 +494,26 @@ fn createCapabilitiesModule(
     return graph.create(context.b, .{
         .product = product,
         .root_source_file = "src/products/riscv_cpu/capabilities.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+}
+
+/// A shared focused-product shell module (`src/products/riscv_shared/*.zig`).
+/// The shell files import only `std`, so they need no protocol or facade
+/// imports: every product-specific module reaches them through the binding.
+/// Zig 0.15 forbids a relative `@import` that leaves the importing module's root
+/// directory, so each shared file the CPU root module names must be injected
+/// under its own module name rather than reached as `../riscv_shared/*.zig`.
+fn createSharedModule(
+    context: Context,
+    root_source_file: []const u8,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) *std.Build.Module {
+    return graph.create(context.b, .{
+        .product = product,
+        .root_source_file = root_source_file,
         .target = target,
         .optimize = optimize,
     });
