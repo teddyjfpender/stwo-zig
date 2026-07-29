@@ -528,3 +528,58 @@ step**:
 Sequencing: (3) is landed with this document. (2) should not start until the
 #139/#141 merge settles — it adds a second Lean toolchain to the repository and
 that is not a change to make while two large formal PRs are converging.
+
+## 8. Measured impact of #143 (Team A rollout head a1d3e277) — 2026-07-29
+
+Full report: `/tmp/f2-pr143-impact.md`. Method: detached worktrees of #141
+(9d86a203), #142 (2188336d) and #143 (a1d3e277), `zig build
+riscv-refinement-ir` in each, byte-diff of all 17 family JSONs against
+`zig-out/team-b-ir` on #139 (whose bytes were first re-verified against all six
+`*IrDigest` pins). Nothing below is inferred from diffs.
+
+### 8.1 Results
+
+- **#143 vs #139 baseline: 16/17 families byte-identical.** Only `load_store`
+  differs, and the difference is exactly the issue #140 fix: one inserted
+  constraint `enabler * rs1_next_3 = 0` (new node 280 `mul(63,21)`, constraint
+  index 69, 78→79 constraints, uniform +1 renumber of node ids ≥ 280). Columns,
+  lookup order/labels/domains/tuples, and `unmodelled_bus_requests` unchanged.
+- **#143's `load_store.zig` is byte-identical to #142's**, and a #142-worktree
+  export is byte-identical to the #143 export for all 17 families. New
+  `load_store` digest under either:
+  `cadb1b662ec30864615aa84541c1bcd863e921f306446ea1c7a328c650180b20`.
+- **#141 head as-is renumbers FOUR families, not two**: `lt_imm`, `lt_reg`,
+  `shifts_imm`, `shifts_reg` (the section-4 assessment undercounted).
+  Renumbering-only: constraint and lookup expression trees are equal in order
+  for all four. #143 commit c65febe2 carries the `constructFamily` reorder
+  (direct constraints before `active_row`) and restores byte identity for all
+  four; #141's head does not have it.
+- `expectedArity` unchanged; the new `EventRole`/`access_ordinal` fields in
+  `lookups/entry.zig` are construction metadata that never reach the
+  team-b-ir JSON; the 46 `*.air-ir-v2.json` artifacts are a parallel format,
+  not a change to the family export.
+
+### 8.2 Digest and proof cost to Team B
+
+Exactly one of the six pins breaks: `loadStoreIrDigest` → `cadb1b66...`, plus a
+one-constraint extension of the LoadStore transcription (cited indices ≥ C69
+shift by one). That bill belongs to #140/#142 and is paid once; #143 adds zero
+cost on top. `divIrDigest`, `mulIrDigest`, `mulhIrDigest`, `shiftsImmIrDigest`,
+`shiftsRegIrDigest` survive byte-identical.
+
+### 8.3 Merge order (supersedes section 6 where they disagree)
+
+**#139 → #142 → (#141 + #143 as one unit).** #139 touches no `src/`, so zero
+re-derivation. #142 triggers the single owed load_store re-pin. The A stack
+then lands measured-export-neutral. **#141 must never sit merged alone** — it
+breaks both shift pins and silently renumbers `lt_imm`/`lt_reg`.
+
+Conflict caution: #143 vendors STALE Team B snapshots — `DecodeTeamB.lean`
+from #139 commit a3622076 (31 commits behind), `Memory.lean`/`Common.lean` from
+3bbd3eab. #139's versions are strict name-supersets (adds `isRType_fields`,
+`isShiftImm_fields`, `isLoad_fields`, `isStore_fields`, `address_split`,
+`byteOffset_split`, `signExtendByte_fill`, `signExtendHalf_fill`,
+`WordBytes.word_halves`). On every conflict in those three files, **take
+#139's version**; regenerate (never hand-merge) `generated-manifest.json`,
+`refinement-receipt.json` and `Generated/Pilot.lean`; root imports in
+`RiscvRefinement.lean` are merged centrally by the integration monitor.

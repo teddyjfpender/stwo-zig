@@ -17,13 +17,19 @@ It is a cross-check, not a substitute for either. It cannot prove the capsule is
 a faithful transcription; it can only refute a witness that is not reachable.
 
 The gate runs two batteries. The witness battery proves reachability: every
-honest row (LH, the SB/SH/SW stores, the DIV family, multiply, and both the
-immediate and register shifts) must satisfy every production constraint root and
-range lookup. The mutation battery proves the opposite direction: each
-deliberately tampered row — a clobbered unselected store byte, a byte written at
-the wrong offset, an unmasked register-shift amount, a flipped sign, a relabelled
-selector — must be REFUSED by the production AIR. A witness gate that only
-proved reachability would accept an AIR that lost a constraint.
+honest row (each of the five load selectors LB/LH/LW/LBU/LHU, the SB/SH/SW
+stores, the full DIV/DIVU/REM/REMU family, multiply, and both the immediate and
+register shifts) must satisfy every production constraint root and range lookup.
+The load and remainder batteries are additionally DISCRIMINATING: LB versus LBU
+and LH versus LHU on the same negative datum must retire different words, and
+the remainder witnesses pin the RISC-V conventions (dividend-signed remainder,
+divisor-zero yields the dividend, signed overflow yields zero). The mutation
+battery proves the opposite direction: each deliberately tampered row — a
+clobbered unselected store byte, a byte written at the wrong offset, an unmasked
+register-shift amount, a flipped or claimed sign, a relabelled selector, a REM
+retiring its quotient, a remainder not below its divisor — must be REFUSED by
+the production AIR. A witness gate that only proved reachability would accept an
+AIR that lost a constraint.
 """
 
 from __future__ import annotations
@@ -268,11 +274,23 @@ def check_witness(
 
 
 # --------------------------------------------------------------------------
-# LH witnesses — the Stage B2 memory stress gate
+# Load witnesses — LH (the Stage B2 memory stress gate) and the per-opcode
+# LB/LBU/LHU/LW selectors
 # --------------------------------------------------------------------------
 
+#: Program-ROM opcode identifiers per load selector, pinned by
+#: ``programLookup`` in src/frontends/riscv/air/semantics/load_store.zig.
+LOAD_OPCODE_IDS: dict[str, int] = {
+    "lb": 19,
+    "lh": 20,
+    "lw": 21,
+    "lbu": 22,
+    "lhu": 23,
+}
 
-def load_halfword_row(
+
+def load_row(
+    selector: str,
     base: int,
     displacement: int,
     memory_word: int,
@@ -282,26 +300,56 @@ def load_halfword_row(
     pc: int = 0x1000,
     rs1_addr: int = 5,
 ) -> tuple[dict[str, int], int]:
-    """Build a complete admitted `LH` row and the architectural result.
+    """Build a complete admitted load row and the architectural result.
 
     ``displacement`` is the signed 12-bit immediate. The caller supplies a
-    halfword-aligned effective address; a misaligned one raises, because a
-    misaligned LH is outside the admitted language rather than a row with a
-    different meaning.
+    suitably aligned effective address; a misaligned one raises, because a
+    misaligned load is outside the admitted language rather than a row with a
+    different meaning. The architectural result is what retires to ``rd``:
+    sign-extended for LB/LH, zero-extended for LBU/LHU, and the memory word
+    itself for LW.
     """
+    if selector not in LOAD_OPCODE_IDS:
+        raise WitnessError(f"unknown load selector {selector!r}")
     effective = base + displacement
     offset = effective & 3
-    if offset not in (0, 2):
+    if selector in ("lh", "lhu") and offset not in (0, 2):
         raise WitnessError(
             f"effective address {effective:#x} is not halfword aligned; a "
-            "misaligned LH is outside the admitted language"
+            f"misaligned {selector.upper()} is outside the admitted language"
+        )
+    if selector == "lw" and offset != 0:
+        raise WitnessError(
+            f"effective address {effective:#x} is not word aligned; a "
+            "misaligned LW is outside the admitted language"
         )
     aligned = effective - offset
 
     memory = [(memory_word >> (8 * index)) & 0xFF for index in range(4)]
-    half = (memory_word >> (16 if offset == 2 else 0)) & 0xFFFF
-    negative = (half >> 15) & 1
-    result_word = half | (0xFFFF0000 if negative else 0)
+    if selector in ("lb", "lbu"):
+        loaded = memory[offset]
+        negative = (loaded >> 7) & 1 if selector == "lb" else 0
+        result_word = loaded | (0xFFFFFF00 if negative else 0)
+        # A byte access marks exactly its own lane (marker_sum = 1).
+        markers = [1 if index == offset else 0 for index in range(4)]
+    elif selector in ("lh", "lhu"):
+        loaded = (memory_word >> (8 * offset)) & 0xFFFF
+        negative = (loaded >> 15) & 1 if selector == "lh" else 0
+        result_word = loaded | (0xFFFF0000 if negative else 0)
+        # A halfword access marks both lanes of its half (marker_sum = 2,
+        # shift_id 1 for the low half and 5 for the high half).
+        markers = [
+            1 if offset == 0 else 0,
+            1 if offset == 0 else 0,
+            1 if offset == 2 else 0,
+            1 if offset == 2 else 0,
+        ]
+    else:
+        negative = 0
+        result_word = memory_word
+        # The markers are free bits on a word access; production leaves them
+        # unconstrained there and the honest witness writes zero.
+        markers = [0, 0, 0, 0]
     result = [(result_word >> (8 * index)) & 0xFF for index in range(4)]
     source = [(base >> (8 * index)) & 0xFF for index in range(4)]
     nonzero = 1 if rd != 0 else 0
@@ -322,12 +370,12 @@ def load_halfword_row(
         "shift_amount": offset,
         "src_addr_selector": aligned,
         "dst_addr_selector": rd,
-        "markers_0": 1 if offset == 0 else 0,
-        "markers_1": 1 if offset == 0 else 0,
-        "markers_2": 1 if offset == 2 else 0,
-        "markers_3": 1 if offset == 2 else 0,
+        "markers_0": markers[0],
+        "markers_1": markers[1],
+        "markers_2": markers[2],
+        "markers_3": markers[3],
         "is_lb": 0,
-        "is_lh": 1,
+        "is_lh": 0,
         "is_lbu": 0,
         "is_lhu": 0,
         "is_lw": 0,
@@ -338,7 +386,7 @@ def load_halfword_row(
         "destination_inverse": modular_inverse(rd) if rd else 0,
         # Synthesized lookup-argument aliases, each pinned by its own
         # defining constraint in the exported AIR.
-        "bus_value_56": 20,
+        "bus_value_56": LOAD_OPCODE_IDS[selector],
         "bus_value_57": pc + 4,
         "bus_value_58": clock + 1,
         "bus_value_59": (clock - 1) * 4 + 1,
@@ -347,6 +395,7 @@ def load_halfword_row(
         "bus_value_62": 0,
         "bus_value_63": (clock - 1) * 4 + 2,
     }
+    assignment[f"is_{selector}"] = 1
     for index in range(4):
         assignment[f"rs1_previous_{index}"] = source[index]
         assignment[f"rs1_next_{index}"] = source[index]
@@ -356,6 +405,29 @@ def load_halfword_row(
         assignment[f"dst_next_{index}"] = destination[index]
         assignment[f"result_{index}"] = result[index]
     return assignment, result_word
+
+
+def load_halfword_row(
+    base: int,
+    displacement: int,
+    memory_word: int,
+    rd: int,
+    *,
+    clock: int = 1,
+    pc: int = 0x1000,
+    rs1_addr: int = 5,
+) -> tuple[dict[str, int], int]:
+    """Build a complete admitted `LH` row and the architectural result."""
+    return load_row(
+        "lh",
+        base,
+        displacement,
+        memory_word,
+        rd,
+        clock=clock,
+        pc=pc,
+        rs1_addr=rs1_addr,
+    )
 
 
 #: (name, base, displacement, memory word, rd, expected architectural result).
@@ -402,6 +474,114 @@ def check_lh_witnesses(air_ir_dir: Path) -> str:
     return (
         f"LH non-vacuity: {len(LH_WITNESSES)} witnesses reachable in the "
         "exported production AIR"
+    )
+
+
+#: (name, selector, base, displacement, memory word, rd, expected result).
+#:
+#: The point of this table is DISCRIMINATION, not mere reachability: LB and
+#: LBU read the same negative byte at the same offset, LH's negative-high-half
+#: witness and LHU read the same negative halfword, and LW must retire the
+#: memory word verbatim at four distinct aligned addresses. If the paired
+#: results did not differ, the opcodes would be indistinguishable at this
+#: level; ``check_load_witnesses`` asserts the architectural results
+#: explicitly rather than settling for constraint satisfaction.
+LOAD_WITNESSES: tuple[tuple[str, str, int, int, int, int, int], ...] = (
+    # LB vs LBU on the SAME negative byte 0x9C at the same offset: sign-
+    # versus zero-extension is the entire difference between the opcodes.
+    ("lb-negative-byte", "lb", 0x2000, 1, 0xDDCC9CAA, 7, 0xFFFFFF9C),
+    ("lbu-same-negative-byte", "lbu", 0x2000, 1, 0xDDCC9CAA, 7, 0x0000009C),
+    ("lb-positive-byte-offset-zero", "lb", 0x2000, 0, 0xDDCC9C7F, 7, 0x0000007F),
+    ("lb-negative-byte-offset-two", "lb", 0x2000, 2, 0xDD80BBAA, 7, 0xFFFFFF80),
+    ("lb-negative-byte-offset-three", "lb", 0x2000, 3, 0x81CCBBAA, 7, 0xFFFFFF81),
+    ("lbu-high-bit-offset-three", "lbu", 0x2000, 3, 0x81CCBBAA, 7, 0x00000081),
+    # effective = 0x2010 - 15 = 0x2001: offset one through a negative
+    # displacement.
+    ("lbu-negative-displacement", "lbu", 0x2010, -15, 0xDDCC9CAA, 7, 0x0000009C),
+    # LHU vs LH on the SAME negative halfword as LH_WITNESSES
+    # negative-high-half (0x8ABC): zero- versus sign-extended.
+    ("lhu-negative-high-half", "lhu", 0x2000, 2, 0x8ABC1234, 7, 0x00008ABC),
+    ("lhu-negative-low-half", "lhu", 0x2000, 0, 0x1234FEDC, 7, 0x0000FEDC),
+    # LW at four distinct aligned addresses, identity with the memory word.
+    ("lw-aligned-word-zero", "lw", 0x2000, 0, 0x8ABC1234, 7, 0x8ABC1234),
+    ("lw-aligned-word-one", "lw", 0x2000, 4, 0xDEADBEEF, 7, 0xDEADBEEF),
+    ("lw-aligned-word-two", "lw", 0x2000, 8, 0x00000000, 7, 0x00000000),
+    ("lw-aligned-word-three", "lw", 0x2000, 12, 0xFFFFFFFF, 7, 0xFFFFFFFF),
+    ("lb-destination-x0", "lb", 0x2000, 1, 0xDDCC9CAA, 0, 0xFFFFFF9C),
+    ("lw-destination-aliases-base", "lw", 0x2000, 4, 0xDEADBEEF, 5, 0xDEADBEEF),
+)
+
+#: The discriminating pairs the table must keep: same datum, same offset,
+#: different selector, and the retired words MUST differ.
+_DISCRIMINATING_LOAD_PAIRS: tuple[tuple[str, str, int, int, int, int], ...] = (
+    # (signed selector, unsigned selector, base, displacement, word, mask)
+    ("lb", "lbu", 0x2000, 1, 0xDDCC9CAA, 0xFF),
+    ("lh", "lhu", 0x2000, 2, 0x8ABC1234, 0xFFFF),
+)
+
+
+def check_load_witnesses(air_ir_dir: Path) -> str:
+    for name, selector, base, displacement, memory_word, rd, expected in (
+        LOAD_WITNESSES
+    ):
+        assignment, result = load_row(selector, base, displacement, memory_word, rd)
+        if result != expected:
+            raise WitnessError(
+                f"load witness {name} computes {result:#010x}, "
+                f"expected {expected:#010x}"
+            )
+        if selector == "lw" and result != memory_word:
+            raise WitnessError(
+                f"load witness {name}: LW must retire the memory word "
+                f"{memory_word:#010x} verbatim, got {result:#010x}"
+            )
+        try:
+            check_witness(air_ir_dir, "load_store", assignment)
+        except WitnessError as error:
+            raise WitnessError(f"load witness {name}: {error}") from error
+
+    # The architectural discrimination, asserted explicitly: on the same
+    # negative datum the signed and unsigned selectors MUST retire different
+    # words — the unsigned one is the raw datum, the signed one carries an
+    # all-ones extension. Equal results would mean LB/LBU (or LH/LHU) are
+    # indistinguishable at this level and the witness pair proves nothing.
+    for signed_sel, unsigned_sel, base, displacement, word, mask in (
+        _DISCRIMINATING_LOAD_PAIRS
+    ):
+        _, signed_result = load_row(signed_sel, base, displacement, word, 7)
+        _, unsigned_result = load_row(unsigned_sel, base, displacement, word, 7)
+        if signed_result == unsigned_result:
+            raise WitnessError(
+                f"{signed_sel.upper()} and {unsigned_sel.upper()} agree "
+                f"({signed_result:#010x}) on the same negative datum; the "
+                "pair no longer discriminates sign- from zero-extension"
+            )
+        if unsigned_result > mask:
+            raise WitnessError(
+                f"{unsigned_sel.upper()} retired {unsigned_result:#010x}, "
+                "which is not zero-extended"
+            )
+        if signed_result != (unsigned_result | (0xFFFFFFFF & ~mask)):
+            raise WitnessError(
+                f"{signed_sel.upper()} retired {signed_result:#010x}, which "
+                f"is not the sign-extension of {unsigned_result:#010x}"
+            )
+
+    covered = {
+        (base + displacement) & 3
+        for _, selector, base, displacement, _, _, _ in LOAD_WITNESSES
+        if selector in ("lb", "lbu")
+    }
+    if covered != {0, 1, 2, 3}:
+        raise WitnessError(
+            f"byte-load witnesses cover offsets {sorted(covered)}, not all four"
+        )
+
+    return (
+        f"per-opcode load non-vacuity: {len(LOAD_WITNESSES)} LB/LBU/LHU/LW "
+        "witnesses reachable in the exported production AIR; sign- and "
+        "zero-extension discriminated on the same negative datum, LW equals "
+        "the memory word at four aligned addresses"
     )
 
 
@@ -596,6 +776,86 @@ def check_div_witnesses(air_ir_dir: Path) -> str:
     return (
         f"DIV non-vacuity: {len(DIV_WITNESSES) + 3} witnesses reachable in the "
         "exported production AIR, covering every exceptional case"
+    )
+
+
+#: (name, selector, dividend, divisor, expected result).
+#:
+#: The remainder selectors get their own battery because their conventions
+#: are exactly where a wrong-but-satisfiable transcription would hide:
+#: * the remainder takes the SIGN OF THE DIVIDEND — rem(-100, 7) is -2, not
+#:   the +5 that floor-mod (Python's ``%``) would give;
+#: * REM/REMU by zero yield the DIVIDEND, unlike DIV/DIVU's all-ones;
+#: * the signed-overflow class rem(INT_MIN, -1) yields zero.
+REM_WITNESSES: tuple[tuple[str, str, int, int, int], ...] = (
+    ("rem-negative-dividend", "rem", 0xFFFFFF9C, 7, 0xFFFFFFFE),
+    ("rem-positive-dividend-negative-divisor", "rem", 100, 0xFFFFFFF9, 0x00000002),
+    ("rem-both-negative", "rem", 0xFFFFFF9C, 0xFFFFFFF9, 0xFFFFFFFE),
+    ("rem-zero-divisor-yields-dividend", "rem", 0x2A, 0, 0x0000002A),
+    ("rem-zero-divisor-negative-dividend", "rem", 0xDEADBEEF, 0, 0xDEADBEEF),
+    ("remu-zero-divisor-yields-dividend", "remu", 0xDEADBEEF, 0, 0xDEADBEEF),
+    ("rem-signed-overflow", "rem", INT_MIN, 0xFFFFFFFF, 0x00000000),
+    ("remu-plain", "remu", 100, 7, 0x00000002),
+    ("remu-high-bit-dividend", "remu", 0x8ABCDEF1, 0x10000, 0x0000DEF1),
+    ("remu-exact-division", "remu", 105, 7, 0x00000000),
+)
+
+
+def check_rem_witnesses(air_ir_dir: Path) -> str:
+    # The convention checks, asserted architecturally before any AIR run so a
+    # wrong table cannot pass by matching a wrong builder.
+    _, remainder = quotient_and_remainder("rem", 0xFFFFFF9C, 7)
+    if _signed(remainder) != -2:
+        raise WitnessError(
+            f"rem(-100, 7) must be -2 (the dividend's sign under truncated "
+            f"division), got {_signed(remainder)}; +5 would be the floor-mod "
+            "convention RISC-V does not use"
+        )
+    for selector in ("rem", "remu"):
+        _, by_zero = quotient_and_remainder(selector, 0xDEADBEEF, 0)
+        if by_zero != 0xDEADBEEF:
+            raise WitnessError(
+                f"{selector}(x, 0) must yield the dividend, got {by_zero:#010x}"
+            )
+        quotient, _ = quotient_and_remainder(selector, 0xDEADBEEF, 0)
+        if quotient != 0xFFFFFFFF:
+            raise WitnessError(
+                "the zero-divisor quotient convention moved; the DIV and REM "
+                "conventions are no longer the documented pair"
+            )
+    _, overflow = quotient_and_remainder("rem", INT_MIN, 0xFFFFFFFF)
+    if overflow != 0:
+        raise WitnessError(
+            f"rem(INT_MIN, -1) must be 0 (signed overflow), got {overflow:#x}"
+        )
+
+    for name, selector, lhs, rhs, expected in REM_WITNESSES:
+        assignment, result = division_row(selector, lhs, rhs)
+        if result != expected:
+            raise WitnessError(
+                f"REM witness {name} computes {result:#010x}, "
+                f"expected {expected:#010x}"
+            )
+        try:
+            check_witness(air_ir_dir, "div", assignment)
+        except WitnessError as error:
+            raise WitnessError(f"REM witness {name}: {error}") from error
+
+    # x0 destination and operand aliasing on the remainder selectors.
+    for name, assignment in (
+        ("destination-x0", division_row("rem", 100, 7, rd=0)[0]),
+        ("destination-aliases-dividend", division_row("rem", 0xFFFFFF9C, 7, rd=5)[0]),
+        ("destination-aliases-divisor", division_row("remu", 100, 7, rd=6)[0]),
+    ):
+        try:
+            check_witness(air_ir_dir, "div", assignment)
+        except WitnessError as error:
+            raise WitnessError(f"REM witness {name}: {error}") from error
+
+    return (
+        f"REM/REMU non-vacuity: {len(REM_WITNESSES) + 3} witnesses reachable "
+        "in the exported production AIR; the remainder takes the dividend's "
+        "sign, divisor zero yields the dividend, signed overflow yields zero"
     )
 
 
@@ -1488,6 +1748,38 @@ def mutation_counter_cases() -> tuple[tuple[str, str, dict[str, int]], ...]:
     unpreserved["src_next_0"] = (unpreserved["src_next_0"] + 1) % 256
     case("lh-clobbered-memory-word", "load_store", unpreserved)
 
+    # --- per-opcode loads ------------------------------------------------
+    lb_flipped, _ = load_row("lb", 0x2000, 1, 0xDDCC9CAA, 7)
+    # The sign witness is released while the retired word stays sign-extended:
+    # the extension constraints must object.
+    lb_flipped["src_msb"] = 0
+    case("lb-flipped-sign-witness", "load_store", lb_flipped)
+
+    lb_unsigned, _ = load_row("lb", 0x2000, 1, 0xDDCC9CAA, 7)
+    # LBU semantics claimed on an LB row: zero-extend the negative byte and
+    # release the sign together, so every polynomial constraint still holds.
+    # Only the is_lb-gated sign-binding range_check_m31 request — the tuple
+    # (0, result_0 - 128*src_msb) with a seven-bit second coordinate — can
+    # refuse this internally consistent row.
+    lb_unsigned["src_msb"] = 0
+    for index, limb in enumerate(_limbs(0x0000009C)):
+        lb_unsigned[f"result_{index}"] = limb
+        lb_unsigned[f"dst_next_{index}"] = limb
+    case("lb-zero-extended-negative-byte", "load_store", lb_unsigned)
+
+    lhu_signed, _ = load_row("lhu", 0x2000, 2, 0x8ABC1234, 7)
+    # A zero-extending LHU claiming a sign: src_msb has no meaning outside
+    # signed loads and the retired word may not carry an extension.
+    lhu_signed["src_msb"] = 1
+    for index, limb in enumerate(_limbs(0xFFFF8ABC)):
+        lhu_signed[f"result_{index}"] = limb
+        lhu_signed[f"dst_next_{index}"] = limb
+    case("lhu-claimed-sign-extension", "load_store", lhu_signed)
+
+    lw_tampered, _ = load_row("lw", 0x2000, 4, 0xDEADBEEF, 7)
+    lw_tampered["result_2"] = (lw_tampered["result_2"] + 1) % 256
+    case("lw-tampered-result-limb", "load_store", lw_tampered)
+
     # --- stores ----------------------------------------------------------
     clobbered, _ = store_row("sb", 0x2000, 1, 0xDDCCBBAA, 0x11223344)
     clobbered["dst_next_3"] = (clobbered["dst_next_3"] + 1) % 256
@@ -1541,6 +1833,30 @@ def mutation_counter_cases() -> tuple[tuple[str, str, dict[str, int]], ...]:
     relabelled["is_divu"] = 0
     relabelled["is_remu"] = 1
     case("divu-relabelled-as-remu", "div", relabelled)
+
+    # --- REM family ------------------------------------------------------
+    retired_quotient, _ = division_row("rem", 100, 7)
+    # A REM row retiring the quotient (14) instead of the remainder (2):
+    # the selector-driven result mux must object.
+    for index, limb in enumerate(_limbs(14)):
+        retired_quotient[f"rd_next_{index}"] = limb
+    case("rem-retired-the-quotient", "div", retired_quotient)
+
+    oversize, _ = division_row("remu", 100, 7)
+    # An internally consistent 100 = 7*13 + 9 whose remainder is NOT smaller
+    # than its divisor. The eight-limb product identity holds, so only the
+    # positive_remainder_diff range_check_20 request on lt_diff - 1 can
+    # refuse the negative comparison difference 7 - 9.
+    for index, limb in enumerate(_limbs(13)):
+        oversize[f"q_{index}"] = limb
+    for index, limb in enumerate(_limbs(9)):
+        oversize[f"r_{index}"] = limb
+        oversize[f"r_abs_{index}"] = limb
+        oversize[f"rd_next_{index}"] = limb
+        oversize[f"r_inv_{index}"] = modular_inverse(limb - 256)
+    oversize["r_sum_inv"] = modular_inverse(9)
+    oversize["lt_diff"] = (7 - 9) % M31
+    case("remu-remainder-not-below-divisor", "div", oversize)
 
     # --- multiply --------------------------------------------------------
     high_limb, _ = multiply_high_row("mulhu", 0xFFFFFFFF, 0xFFFFFFFF)
@@ -1624,7 +1940,9 @@ CHECKS = (
     check_export_provenance,
     audit_exported_families,
     check_lh_witnesses,
+    check_load_witnesses,
     check_div_witnesses,
+    check_rem_witnesses,
     check_multiply_witnesses,
     check_shift_witnesses,
     check_register_shift_witnesses,

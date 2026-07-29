@@ -36,10 +36,16 @@ Consequently:
   that directory has carried the boundary header inconsistently: a 2026-07-29
   audit found four such files with no header — the mutation-control files
   `Opcodes/{MultiplyMutation,ShiftsMutation,DivMutation,LoadStoreMutation}.lean`,
-  annotated since — and new hand-written files keep being added. **Nothing
-  enforces the header claim mechanically.** It is kept true by review alone
-  (§11.1, Team B DRI item 4), which is exactly the kind of claim that quietly
-  becomes false. The proposed mechanical check is a total classification: fail
+  annotated since — and the prediction that review-only enforcement rots has
+  already come true: as of the same date, four *newer* hand-written
+  mutation-control files —
+  `Opcodes/{StoreMutation,ShiftsRegMutation,LoadStoreMutationExtra,MultiplyMutationExtra}.lean`
+  — carry no boundary marker at all (their prose references the reviewed
+  capsules, but nothing states the file's own epistemic class). **Nothing
+  enforces the header claim mechanically.** Review alone (§11.1, Team B DRI
+  item 4) was supposed to keep it true — which is exactly the kind of claim
+  that quietly becomes false, and for those four files already has. The
+  proposed mechanical check is a total classification: fail
   `riscv_team_b.py check` unless every `.lean` under `RiscvRefinement/`
   carries, in its first comment block, one of the markers `GENERATED FILE`,
   `REVIEWED NORMALIZED CAPSULE`, `REVIEWED TRANSCRIPTION`,
@@ -56,9 +62,13 @@ Consequently:
 
   A total check cannot rot the way a "files that state architectural
   semantics" filter can, because a new file fails it until its author declares
-  an epistemic class. Adopting it requires adding the one-line infrastructure
-  disclaimer to the files that today carry no marker; until it lands, "every
-  file carries a header" is a reviewed statement, not an enforced one.
+  an epistemic class. The check has **not** landed in `riscv_team_b.py check`;
+  adopting it requires adding the one-line infrastructure disclaimer to the
+  files that today carry no marker and boundary headers to the four newer
+  mutation-control files above. Until then, "every file carries a header" is
+  not merely unenforced — for those four files it is currently **false**, and
+  only the class-wide boundary stated here and in each capsule's own header
+  keeps the claim honest.
 
 ## 1. Frozen identity of the pinned Sail side
 
@@ -178,9 +188,13 @@ whitelist: in value position only the readers `rX_bits`, `get_arch_pc`,
 `mem_read` and a fixed list of pure combinators; in statement position only
 `wX_bits`, `set_next_pc`, `mem_write_value`, and a terminal
 `pure RETIRE_SUCCESS`/`RETIRE_FAIL`. Nothing has been run against real
-generated slices yet — the pinned Sail toolchain is not provisioned here — so
-everything below is conditional on a verified receipt derived on a
-Sail-provisioned host. Per erased-state category of section 4:
+generated slices yet. Hosted Sail provisioning now exists —
+`.github/workflows/riscv-sail-formal.yml`, normative in
+[`SAIL_PROVISIONING.md`](SAIL_PROVISIONING.md) — but that workflow
+regenerates the backend and mints the *pilot* refinement receipt; it does not
+derive translation receipts for the Team B slices. So everything below
+remains conditional on a verified receipt derived on a Sail-provisioned host.
+Per erased-state category of section 4:
 
 **Mechanically dischargeable by a verified receipt** (the refusal-on-unknown
 rule is the mechanism: any read or write of the category would surface as a
@@ -317,6 +331,37 @@ constraints in a private Lean predicate. The shared shapes are:
   Sail digest, refinement theorem, tuple theorem, non-vacuity theorem, mutation
   identity, axioms, and proof time.
 
+### 8.1 Mutation-control obligations
+
+A certificate may claim `proved` only with a named Lean mutation control in
+the `MutationControl` form of `RiscvRefinement/Mutation.lean`: the family row
+predicate with exactly **one** constraint field deleted, a proof that the
+deletion is a real weakening, a concrete row satisfying what is left, and a
+refutation of an architectural conclusion on that row. The conclusion must
+be:
+
+- **row-parameterised** — a literal-constant conclusion is false of
+  essentially every honest row, so the soundness hypothesis is false and the
+  corollary vacuous;
+- **guarded on the opcode's selector** — an unguarded conclusion is refuted
+  by an honest row of another opcode or width;
+- **not a restatement of the deleted constraint** — a restated conclusion
+  makes the control circular.
+
+The `strictly_weaker` corollary must be **unconditional**: its soundness
+hypothesis `∀ row, Holds row → Conclusion row` is proved in the same file,
+never assumed. Where the architectural claim and the deleted constraint
+coincide, the only honest form is `Mutation.strictly_weaker_of_not_original`
+— strictness without an architectural conclusion — and the control must say
+in a comment that it establishes non-redundancy, not load-bearing-ness.
+
+These are not stylistic preferences: three corollaries, and earlier the
+first LH control, were once vacuous for exactly these reasons and were
+caught by audit. The repair history and a step-by-step recipe are recorded
+in [`formal/riscv-refinement/TEAM_B.md`](../formal/riscv-refinement/TEAM_B.md)
+(section "The mutation-control discipline"); reference implementations are
+`Opcodes/DivMutation.lean` and `Opcodes/StoreMutation.lean`.
+
 ## 9. Sail-side trusted computing base
 
 Trusted:
@@ -411,9 +456,11 @@ from a clean checkout. A signer who cannot check an item does not sign.
    predicate; every AIR-side fact is used through the transcribed family
    capsules in `RiscvRefinement/Air/Family/`.
 4. Issue #140 (base-field address aliasing in `load_store`) is acknowledged
-   with an owner and a chosen fix direction, and the `baseInFieldRange`
-   premise in the load theorems is accepted as the interim exclusion, with the
-   coverage limitation stated in `formal/riscv-refinement/TEAM_B.md`.
+   with an owner and a chosen fix direction — PR #142 proposes bounding the
+   base's high limb to zero on active rows — and the `baseInFieldRange`
+   premise in the load theorems is accepted as the interim exclusion until
+   that fix merges, with the coverage limitation stated in
+   `formal/riscv-refinement/TEAM_B.md`.
 
 **LH representative.**
 
@@ -423,8 +470,9 @@ from a clean checkout. A signer who cannot check an item does not sign.
    `Classical.choice`, `Quot.sound`.
 2. `lh_refines` hypothesises only the transcribed AIR (`LoadStoreHolds`), the
    decoding environment, and the `LH` selector. Halfword alignment is
-   *derived* from the AIR's equality constraints — C19/C20 with C15's
-   halfword branch — via `lh_shift` and `half_access_aligned`; the only
+   *derived* from the AIR's equality constraints — C20 (`halfShiftId`) with
+   C15's halfword branch (`halfShiftAmount`) — via `lh_shift` and
+   `half_access_aligned`; the only
    machine premise is the environment's `baseInFieldRange` field, carried
    because of issue #140 (see the §7 production-AIR note).
 3. Sign extension is proved on both branches (`signExtendHalf_negative`,

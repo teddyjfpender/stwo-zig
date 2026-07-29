@@ -136,6 +136,197 @@ class LoadHalfwordWitnessTest(unittest.TestCase):
         self.assertIn("constraints satisfied", report)
 
 
+class PerOpcodeLoadWitnessTest(unittest.TestCase):
+    """LB, LBU, LHU and LW as distinct selectors, discriminated, not just
+    reachable: the paired sign-/zero-extension results must differ on the
+    same negative datum, and LW must retire the memory word verbatim."""
+
+    @classmethod
+    def setUpClass(cls):
+        try:
+            cls.air_ir_dir = export_air()
+        except (OSError, subprocess.SubprocessError) as error:
+            raise unittest.SkipTest(f"production AIR export unavailable: {error}")
+
+    def test_every_per_opcode_load_witness_is_reachable_in_production(self):
+        report = witnesses.check_load_witnesses(self.air_ir_dir)
+        self.assertIn("15 LB/LBU/LHU/LW witnesses reachable", report)
+        self.assertIn("discriminated", report)
+
+    def test_lb_and_lbu_disagree_on_the_same_negative_byte(self):
+        # Same word, same offset, same byte 0x9C; only the selector differs.
+        _, signed = witnesses.load_row("lb", 0x2000, 1, 0xDDCC9CAA, 7)
+        _, unsigned = witnesses.load_row("lbu", 0x2000, 1, 0xDDCC9CAA, 7)
+        self.assertEqual(signed, 0xFFFFFF9C)
+        self.assertEqual(unsigned, 0x0000009C)
+        self.assertNotEqual(signed, unsigned)
+
+    def test_lh_and_lhu_disagree_on_the_same_negative_halfword(self):
+        _, signed = witnesses.load_row("lh", 0x2000, 2, 0x8ABC1234, 7)
+        _, unsigned = witnesses.load_row("lhu", 0x2000, 2, 0x8ABC1234, 7)
+        self.assertEqual(signed, 0xFFFF8ABC)
+        self.assertEqual(unsigned, 0x00008ABC)
+        self.assertNotEqual(signed, unsigned)
+
+    def test_lb_and_lbu_agree_on_a_positive_byte(self):
+        # The discrimination is the sign bit, nothing else.
+        _, signed = witnesses.load_row("lb", 0x2000, 0, 0xDDCC9C7F, 7)
+        _, unsigned = witnesses.load_row("lbu", 0x2000, 0, 0xDDCC9C7F, 7)
+        self.assertEqual(signed, unsigned)
+
+    def test_lw_retires_the_memory_word_verbatim(self):
+        for word in (0x8ABC1234, 0xDEADBEEF, 0x00000000, 0xFFFFFFFF):
+            _, result = witnesses.load_row("lw", 0x2000, 4, word, 7)
+            self.assertEqual(result, word)
+
+    def test_lw_witnesses_cover_four_distinct_aligned_addresses(self):
+        addresses = {
+            base + displacement
+            for _, selector, base, displacement, _, _, _ in witnesses.LOAD_WITNESSES
+            if selector == "lw"
+        }
+        self.assertEqual(len(addresses), 4)
+        for address in addresses:
+            self.assertEqual(address % 4, 0)
+
+    def test_byte_load_witnesses_cover_every_offset(self):
+        offsets = {
+            (base + displacement) & 3
+            for _, selector, base, displacement, _, _, _ in witnesses.LOAD_WITNESSES
+            if selector in ("lb", "lbu")
+        }
+        self.assertEqual(offsets, {0, 1, 2, 3})
+
+    def test_the_lh_builder_still_delegates_to_the_general_one(self):
+        via_wrapper, wrapped = witnesses.load_halfword_row(0x2000, 2, 0x8ABC1234, 7)
+        via_general, general = witnesses.load_row("lh", 0x2000, 2, 0x8ABC1234, 7)
+        self.assertEqual(via_wrapper, via_general)
+        self.assertEqual(wrapped, general)
+
+    def test_misaligned_loads_are_outside_the_admitted_language(self):
+        with self.assertRaisesRegex(witnesses.WitnessError, "not halfword aligned"):
+            witnesses.load_row("lhu", 0x2000, 1, 0, 7)
+        with self.assertRaisesRegex(witnesses.WitnessError, "not word aligned"):
+            witnesses.load_row("lw", 0x2000, 2, 0, 7)
+        with self.assertRaisesRegex(witnesses.WitnessError, "unknown load"):
+            witnesses.load_row("ld", 0x2000, 0, 0, 7)
+
+    def test_a_byte_load_at_any_offset_is_admitted(self):
+        for offset in range(4):
+            assignment, _ = witnesses.load_row("lb", 0x2000, offset, 0x81808180, 7)
+            report = witnesses.check_witness(
+                self.air_ir_dir, "load_store", assignment
+            )
+            self.assertIn("constraints satisfied", report)
+
+    def test_an_lb_row_zero_extending_a_negative_byte_is_refused(self):
+        # Every polynomial constraint holds on this row; only the is_lb-gated
+        # sign-binding range_check_m31 request can refuse it. This is the
+        # production fact that makes LB/LBU distinguishable.
+        assignment, _ = witnesses.load_row("lb", 0x2000, 1, 0xDDCC9CAA, 7)
+        assignment["src_msb"] = 0
+        for index, limb in enumerate(witnesses._limbs(0x0000009C)):
+            assignment[f"result_{index}"] = limb
+            assignment[f"dst_next_{index}"] = limb
+        with self.assertRaisesRegex(
+            witnesses.WitnessError, "outside the 7-bit production table"
+        ):
+            witnesses.check_witness(self.air_ir_dir, "load_store", assignment)
+
+    def test_an_lhu_row_claiming_a_sign_extension_is_refused(self):
+        assignment, _ = witnesses.load_row("lhu", 0x2000, 2, 0x8ABC1234, 7)
+        assignment["src_msb"] = 1
+        for index, limb in enumerate(witnesses._limbs(0xFFFF8ABC)):
+            assignment[f"result_{index}"] = limb
+            assignment[f"dst_next_{index}"] = limb
+        with self.assertRaisesRegex(witnesses.WitnessError, "constraint roots"):
+            witnesses.check_witness(self.air_ir_dir, "load_store", assignment)
+
+    def test_a_flipped_lb_sign_witness_is_refused(self):
+        assignment, _ = witnesses.load_row("lb", 0x2000, 1, 0xDDCC9CAA, 7)
+        assignment["src_msb"] = 0
+        with self.assertRaisesRegex(witnesses.WitnessError, "constraint roots"):
+            witnesses.check_witness(self.air_ir_dir, "load_store", assignment)
+
+    def test_a_tampered_lw_result_limb_is_refused(self):
+        assignment, _ = witnesses.load_row("lw", 0x2000, 4, 0xDEADBEEF, 7)
+        assignment["result_2"] = (assignment["result_2"] + 1) % 256
+        with self.assertRaisesRegex(witnesses.WitnessError, "constraint roots"):
+            witnesses.check_witness(self.air_ir_dir, "load_store", assignment)
+
+
+class RemainderWitnessTest(unittest.TestCase):
+    """REM/REMU as distinct selectors, pinned to the RISC-V conventions."""
+
+    @classmethod
+    def setUpClass(cls):
+        try:
+            cls.air_ir_dir = export_air()
+        except (OSError, subprocess.SubprocessError) as error:
+            raise unittest.SkipTest(f"production AIR export unavailable: {error}")
+
+    def test_every_remainder_witness_is_reachable_in_production(self):
+        report = witnesses.check_rem_witnesses(self.air_ir_dir)
+        self.assertIn("13 witnesses reachable", report)
+        self.assertIn("dividend's sign", report)
+
+    def test_rem_of_minus_100_by_7_is_minus_2_not_plus_5(self):
+        # RISC-V truncated division: the remainder takes the dividend's sign.
+        # Python's floor-mod would answer +5, which is exactly the wrong
+        # transcription this battery exists to catch.
+        _, remainder = witnesses.quotient_and_remainder("rem", 0xFFFFFF9C, 7)
+        self.assertEqual(witnesses._signed(remainder), -2)
+        self.assertNotEqual(witnesses._signed(remainder), (-100) % 7)
+
+    def test_rem_by_zero_yields_the_dividend_not_all_ones(self):
+        # The REM convention differs from DIV's all-ones on the same operands.
+        for selector in ("rem", "remu"):
+            _, remainder = witnesses.quotient_and_remainder(selector, 0xDEADBEEF, 0)
+            self.assertEqual(remainder, 0xDEADBEEF)
+        quotient, _ = witnesses.quotient_and_remainder("div", 0xDEADBEEF, 0)
+        self.assertEqual(quotient, 0xFFFFFFFF)
+
+    def test_rem_signed_overflow_yields_zero(self):
+        _, remainder = witnesses.quotient_and_remainder(
+            "rem", witnesses.INT_MIN, 0xFFFFFFFF
+        )
+        self.assertEqual(remainder, 0)
+
+    def test_the_battery_includes_an_aliased_operand(self):
+        # check_rem_witnesses runs rd = rs1 and rd = rs2 aliases in-function;
+        # this asserts those rows really are admitted by production.
+        for rd in (5, 6):
+            assignment, _ = witnesses.division_row("rem", 0xFFFFFF9C, 7, rd=rd)
+            report = witnesses.check_witness(self.air_ir_dir, "div", assignment)
+            self.assertIn("constraints satisfied", report)
+
+    def test_a_rem_row_retiring_the_quotient_is_refused(self):
+        assignment, _ = witnesses.division_row("rem", 100, 7)
+        for index, limb in enumerate(witnesses._limbs(14)):
+            assignment[f"rd_next_{index}"] = limb
+        with self.assertRaisesRegex(witnesses.WitnessError, "constraint roots"):
+            witnesses.check_witness(self.air_ir_dir, "div", assignment)
+
+    def test_a_remainder_not_below_its_divisor_is_refused(self):
+        # 100 = 7*13 + 9 satisfies the eight-limb product identity, so only
+        # the positive_remainder_diff range request on lt_diff - 1 can refuse
+        # the claim: 7 - 9 is negative, hence outside the 20-bit table.
+        assignment, _ = witnesses.division_row("remu", 100, 7)
+        for index, limb in enumerate(witnesses._limbs(13)):
+            assignment[f"q_{index}"] = limb
+        for index, limb in enumerate(witnesses._limbs(9)):
+            assignment[f"r_{index}"] = limb
+            assignment[f"r_abs_{index}"] = limb
+            assignment[f"rd_next_{index}"] = limb
+            assignment[f"r_inv_{index}"] = witnesses.modular_inverse(limb - 256)
+        assignment["r_sum_inv"] = witnesses.modular_inverse(9)
+        assignment["lt_diff"] = (7 - 9) % witnesses.M31
+        with self.assertRaisesRegex(
+            witnesses.WitnessError, "outside the 20-bit production table"
+        ):
+            witnesses.check_witness(self.air_ir_dir, "div", assignment)
+
+
 class DivisionWitnessTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -511,7 +702,9 @@ class SchemaAuditTest(unittest.TestCase):
         audit_at = order.index(witnesses.audit_exported_families)
         for family_check in (
             witnesses.check_lh_witnesses,
+            witnesses.check_load_witnesses,
             witnesses.check_div_witnesses,
+            witnesses.check_rem_witnesses,
             witnesses.check_multiply_witnesses,
             witnesses.check_shift_witnesses,
             witnesses.check_register_shift_witnesses,
@@ -756,6 +949,14 @@ class MutationBatteryTest(unittest.TestCase):
         self.assertIn("sb-clobbered-unselected-byte", names)
         self.assertIn("sb-byte-at-wrong-offset", names)
         self.assertIn("sll-reg-unmasked-shift-amount", names)
+        # The per-opcode load and remainder counter-checks (issue #137 F4):
+        # a flipped LB sign, a zero-extending LHU claiming a sign, a REM row
+        # retiring the quotient, a remainder not below its divisor.
+        self.assertIn("lb-flipped-sign-witness", names)
+        self.assertIn("lb-zero-extended-negative-byte", names)
+        self.assertIn("lhu-claimed-sign-extension", names)
+        self.assertIn("rem-retired-the-quotient", names)
+        self.assertIn("remu-remainder-not-below-divisor", names)
 
     def test_mutation_names_are_unique(self):
         names = [name for name, _, _ in witnesses.mutation_counter_cases()]

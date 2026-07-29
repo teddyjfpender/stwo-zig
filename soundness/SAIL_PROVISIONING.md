@@ -87,16 +87,49 @@ Be precise here, because "the Sail toolchain ran in CI" is easy to over-read.
 - `team-b-coverage.json`'s claim boundary ("no entry here is
   publication-level") is unchanged.
 
-## 4. Known first-run state: the job starts RED, and that is correct
+## 4. Known first-run state: RED -- and the design flaw behind it
 
-The committed `formal/riscv-refinement/generated-manifest.json` currently
-records `"evidence_source": "carried-committed-sail-evidence"` -- it was last
-regenerated *without* a live Sail toolchain -- and the committed
-`refinement-receipt.json` no longer binds the committed manifest's digest. A
-live-toolchain run renders `"evidence_source": "live-toolchain"` into the
-manifest bytes, so the pilot gate's byte-identical artifact check will report
-`generated artifact drifted: generated-manifest.json` until a maintainer
-regenerates the artifacts with the live toolchain and commits them:
+The first hosted run fails at the pilot gate with
+`generated artifact drifted: generated-manifest.json`. The immediate cause:
+the committed `formal/riscv-refinement/generated-manifest.json` records
+`"evidence_source": "carried-committed-sail-evidence"` -- it was last
+regenerated *without* a live Sail toolchain -- while a live-toolchain run
+renders `"evidence_source": "live-toolchain"` into the manifest bytes.
+
+Do not read this as one stale committed file. The evidence grade participates
+in the manifest's identity twice: as the visible `sail.evidence_source` field,
+and inside `canonical_digest`, which `render.artifacts` computes over the
+whole manifest including that field. Every verification path
+(`riscv_refinement.py verify` / `check-generated` -> `render.check_artifacts`)
+re-renders the manifest with *this run's* evidence grade and demands byte
+identity with the committed file. The consequence is that the two grades are
+mutually incompatible states rather than an ordered pair where live strictly
+upgrades carried:
+
+- A live-toolchain run (this workflow) can never verify a carried-grade
+  committed manifest, even when every Sail input, output digest, and artifact
+  byte agrees. That is this workflow's first-run RED.
+- Symmetrically, once live-grade artifacts are committed, every
+  carried-evidence run -- `--reuse-committed-sail-evidence`, which is what
+  `scripts/riscv_team_b_refresh.py` passes and what every no-Sail machine
+  must use -- fails the same byte check in the other direction.
+- `verify-receipt` has the same defect at a third site: it compares the
+  committed manifest's `sail` block against `sail.provenance(<this run's
+  evidence>)` including the grade, so a live receipt can never be verified
+  against a carried-grade manifest.
+- Worse, `generate --reuse-committed-sail-evidence` after a live-grade commit
+  would rewrite the manifest back to the carried grade *with zero content
+  change* -- silently downgrading the evidence record, moving
+  `canonical_digest`, and thereby invalidating the freshly minted live
+  receipt's `generated_manifest_digest` binding.
+
+So the committed tree can be green for exactly one of the two evidence modes
+at a time, and each mode's regeneration step revokes the other's green. The
+durable fix -- excluding the grade marker from byte identity while keeping it
+visible in the artifact -- is specified precisely in section 7. It belongs in
+`scripts/riscv_refinement_lib/`, which this document's owners do not edit.
+
+Until that fix lands, the interim procedure is unchanged:
 
 ```sh
 python3 scripts/riscv_refinement.py generate \
@@ -106,10 +139,12 @@ python3 scripts/riscv_refinement.py generate \
 # evidence for the follow-up commit.
 ```
 
-This is fail-closed behavior working as designed. The job being RED says "the
-committed evidence was not minted by a live toolchain run", which is exactly
-the condition this workflow exists to detect. Do not add a skip or a
-tolerance; fix the evidence.
+-- with eyes open: that commit makes THIS workflow green and turns the
+carried-evidence leg red until section 7 lands. The RED itself is fail-closed
+behavior ("the committed evidence was not minted by a live toolchain run" is a
+true statement); the flaw is that the grades cannot hand over to each other.
+Do not add a skip or a tolerance to either leg; fix the identity (section 7),
+not the gate.
 
 ## 5. The macOS story
 
@@ -168,3 +203,79 @@ that counts is the hosted workflow's.
   whenever the exact configuration changed. A poisoned cache is discarded by
   bumping the key epoch; a stale one fails identity checks and the job goes
   RED rather than building from unpinned state.
+
+## 7. Specified fix: grade-blind manifest identity
+
+This section is the precise change list for the owners of
+`scripts/riscv_refinement_lib/` (`render.py`, plus one site in
+`scripts/riscv_refinement.py`). It resolves the section 4 flaw. Target
+invariant: **two rendered manifests whose only difference is
+`sail.evidence_source` have equal `canonical_digest` and verify against each
+other's bytes; any other byte difference stays RED.** The grade stays in the
+artifact -- visible and auditable -- but stops being load-bearing for
+identity. Receipts continue to refuse carried evidence, unchanged.
+
+1. **`render.artifacts`** -- compute `canonical_digest` with the grade
+   excluded:
+
+   ```python
+   unsigned = copy.deepcopy(manifest)
+   del unsigned["sail"]["evidence_source"]   # KeyError here is a real bug
+   manifest["canonical_digest"] = codec.content_digest(unsigned)
+   ```
+
+   `codec.content_digest` itself is unchanged (it still strips only
+   `canonical_digest`). After this, a carried-grade and a live-grade manifest
+   with identical content differ in exactly one visible JSON line.
+
+2. **`render.validate_committed_manifest`** -- recompute the digest the same
+   grade-stripped way, and additionally require
+   `manifest["sail"]["evidence_source"] in (sail.LIVE_EVIDENCE,
+   sail.CARRIED_EVIDENCE)`. An unknown grade is RED, never normalized.
+
+3. **`render.check_artifacts`** -- byte-compare every artifact exactly as
+   today EXCEPT `generated-manifest.json`, which is compared modulo that one
+   field: parse the committed bytes with `codec.load_json` (duplicate keys
+   stay fatal); reject any grade outside the two pinned constants; substitute
+   the committed grade into the freshly rendered manifest dict; require
+   `codec.pretty_bytes(substituted) == committed bytes`. Because of (1),
+   `canonical_digest` needs no substitution -- it already agrees whenever
+   everything else agrees. Every other divergence (an artifact hash, a
+   proof-source digest, formatting) still fails, byte for byte.
+
+4. **`render.write_artifacts`** (the `generate` path) -- the grade is sticky
+   upward: if the destination manifest differs from the new bytes ONLY per
+   rule (3) and the committed grade is `live-toolchain` while the render is
+   carried, keep the committed file. A carried run re-verifies; it does not
+   re-mint. A live render always writes `live-toolchain`; a carried render
+   that changed any *other* byte writes the carried grade, because those bytes
+   were not produced under live evidence.
+
+5. **`riscv_refinement.py` `verify_receipt`** -- the comparison
+   `manifest.get("sail") != sail.provenance(evidence(args, paths))` must
+   exclude `evidence_source` from both sides, mirroring the round-trip check
+   `sail.carried_evidence` already performs (it pops `evidence_source` before
+   comparing). `generated_manifest_digest` binds the stored -- now
+   grade-blind -- `canonical_digest` on both sides and needs no further
+   change.
+
+6. **Unchanged, deliberately:** `sail.carried_evidence`'s pinned-constant and
+   round-trip checks; `sail._refuse_minting_sail_artifacts` (carried evidence
+   still cannot mint or alter one byte of Sail output); `sail.toolchain`'s
+   refusal of carried evidence, so release receipts still require the live
+   toolchain.
+
+7. **Tests** (`scripts/tests/test_riscv_refinement.py`): a live-grade render
+   passes `check_artifacts` against a carried-grade committed manifest with
+   identical content and vice versa; `canonical_digest` is equal across the
+   two grades and unequal under any other mutation; a mutated non-grade byte
+   still fails; an unknown `evidence_source` in the committed manifest is
+   RED; `generate` under carried evidence does not rewrite a live-grade
+   manifest when nothing else changed.
+
+8. **Sequencing:** land this fix BEFORE any live-toolchain regeneration
+   commit. Then the first green run of `riscv-sail-formal.yml` requires no
+   commit at all: it verifies the committed carried-grade manifest under live
+   evidence and uploads a live receipt that binds it. The committed grade
+   flips to `live-toolchain` naturally the next time content actually changes
+   and is regenerated with the live toolchain.

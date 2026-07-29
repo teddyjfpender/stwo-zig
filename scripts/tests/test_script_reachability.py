@@ -62,6 +62,14 @@ OPERATOR_TOOLS: dict[str, str] = {
     # in scripts/tests/test_riscv_state_chain_recurrence.py.
     "riscv_state_chain_recurrence.py":
         "state-chain and clock-window recurrence certificate",
+    # Owner: soundness. Runs the repin-and-regenerate cycle in its only
+    # correct order -- lake build, audited-theorems --write, generate,
+    # check-generated, then both Team B gates -- refusing on staged Git
+    # changes and defaulting to a dry-run drift report. The integration
+    # monitor invokes it by hand at the end of a proof wave; its contracts
+    # run in scripts/tests/test_riscv_team_b_refresh.py.
+    "riscv_team_b_refresh.py":
+        "one-command repin-and-regenerate cycle for the refinement wave",
 }
 
 ENTRY_POINT_GLOBS = (

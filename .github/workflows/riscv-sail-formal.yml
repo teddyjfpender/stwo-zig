@@ -179,6 +179,14 @@ jobs:
       # from the backend generated above, not re-asserted from committed
       # hashes), coverage, negative controls, Python unit tests, Lean
       # build, proof-escape scan, and the axiom audit.
+      #
+      # KNOWN RED until the committed manifest carries live-grade evidence
+      # or the grade-blind identity fix lands: the committed
+      # generated-manifest.json records evidence_source
+      # carried-committed-sail-evidence, this run renders live-toolchain,
+      # and the byte-identity check counts that one field as drift.
+      # Diagnosis and the specified fix: soundness/SAIL_PROVISIONING.md
+      # sections 4 and 7. Do not add a skip or a tolerance here.
       - name: Run the Sail-present refinement pilot gate
         env:
           STWO_SAIL_RISCV_DIR: ${{ runner.tool_cache }}/stwo-zig/riscv-formal/source/sail-riscv
