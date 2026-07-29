@@ -499,6 +499,47 @@ test "opcode memory: committed load/store selectors choose address spaces" {
     try std.testing.expect(source.addr.eql(base(0x1000)));
 }
 
+fn boundaryTestRow(opcode: decode.Opcode) trace_mod.TraceRow {
+    return .{
+        .clk = 1,
+        .pc = 0x1000,
+        .opcode = opcode,
+        .rd = 1,
+        .rs1 = 2,
+        .rs2 = 3,
+        .imm = 7,
+        .rs1_val = 0,
+        .rs2_val = 0,
+        .rd_val = 7,
+        .mem_addr = 0,
+        .mem_val = 0,
+        .is_load = false,
+        .is_store = false,
+        .branch_taken = false,
+        .next_pc = 0x1004,
+    };
+}
+
+test "opcode memory: register boundary fails closed on execution-only opcodes" {
+    const supported = boundaryTestRow(.ADDI);
+    const boundary = try deriveRegisterBoundary(&.{supported});
+    try std.testing.expectEqual(@as(u32, 7), boundary.final[1]);
+
+    // ECALL and EBREAK have no proof family. This lookup used to be
+    // `catch unreachable`, which is undefined behaviour in ReleaseFast: it
+    // yielded a garbage family and the corrupted access chain surfaced as
+    // `InvalidRegisterAccessChain` -- a different condition entirely, and the
+    // reason this defect was expensive to diagnose.
+    try std.testing.expectError(
+        error.UnsupportedForProof,
+        deriveRegisterBoundary(&.{ supported, boundaryTestRow(.ECALL) }),
+    );
+    try std.testing.expectError(
+        error.UnsupportedForProof,
+        deriveRegisterBoundary(&.{boundaryTestRow(.EBREAK)}),
+    );
+}
+
 test "opcode memory: absent family slots are disabled" {
     var main = [_]QM31{QM31.zero()} ** trace_mod.MAX_FAMILY_COLUMNS;
     const absent = try accessFromMain(.lui, &main, 1, QM31.one());
