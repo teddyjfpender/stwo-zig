@@ -104,10 +104,12 @@ jobs:
           path: ${{ runner.tool_cache }}/stwo-zig/riscv-formal
           key: riscv-formal-v1-${{ runner.os }}-${{ hashFiles('conformance/riscv/rv32im-sail-profile.json', 'conformance/riscv/sail-rvfi-zkvm-entry.patch', 'conformance/riscv/sail-rv32im-override.json', 'conformance/riscv/sail-rv32im-tagged-options.json') }}
 
-      - name: Install device-tree compiler for the pinned Spike build
+      - name: Install pinned-backend build and SMT dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends device-tree-compiler
+          sudo apt-get install -y --no-install-recommends \
+            device-tree-compiler \
+            z3
 
       # The pinned Sail compiler ships as a hash-pinned upstream release
       # binary, so no opam bootstrap runs in CI. A profile compiler bump

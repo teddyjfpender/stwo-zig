@@ -97,6 +97,102 @@ theorem encode_fence_is_canonical
   ]
   bv_decide
 
+private theorem encodeJalSlice31
+    (encoded : BitVec 20)
+    (rd : RegisterIndex) :
+    (encodeJal encoded rd).extractLsb' 31 1 =
+      (jalImmediate encoded).extractLsb' 20 1 := by
+  simp only [encodeJal, BitVec.extractLsb, BitVec.append_eq]
+  rw [BitVec.extractLsb'_append_eq_of_le
+    (start := 31) (len := 1) (by decide)]
+  simp
+
+private theorem encodeJalSlice12
+    (encoded : BitVec 20)
+    (rd : RegisterIndex) :
+    (encodeJal encoded rd).extractLsb' 12 8 =
+      (jalImmediate encoded).extractLsb' 12 8 := by
+  simp only [encodeJal, BitVec.extractLsb, BitVec.append_eq]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 12) (len := 8) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 12) (len := 8) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 12) (len := 8) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_le
+    (start := 12) (len := 8) (by decide)]
+  simp
+
+private theorem encodeJalSlice20
+    (encoded : BitVec 20)
+    (rd : RegisterIndex) :
+    (encodeJal encoded rd).extractLsb' 20 1 =
+      (jalImmediate encoded).extractLsb' 11 1 := by
+  simp only [encodeJal, BitVec.extractLsb, BitVec.append_eq]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 20) (len := 1) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 20) (len := 1) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_le
+    (start := 20) (len := 1) (by decide)]
+  simp
+
+private theorem encodeJalSlice21
+    (encoded : BitVec 20)
+    (rd : RegisterIndex) :
+    (encodeJal encoded rd).extractLsb' 21 10 =
+      (jalImmediate encoded).extractLsb' 1 10 := by
+  simp only [encodeJal, BitVec.extractLsb, BitVec.append_eq]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 21) (len := 10) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_le
+    (start := 21) (len := 10) (by decide)]
+  simp
+
+private theorem jalImmediateReassemble (immediate : BitVec 21) :
+    immediate.extractLsb' 20 1 ++
+        (immediate.extractLsb' 12 8 ++
+          (immediate.extractLsb' 11 1 ++
+            (immediate.extractLsb' 1 10 ++
+              immediate.extractLsb' 0 1))) =
+      immediate := by
+  rw [BitVec.extractLsb'_append_extractLsb'_eq_extractLsb'
+    (start₁ := 0) (len₁ := 1)
+    (start₂ := 1) (len₂ := 10) (by decide)]
+  rw [BitVec.extractLsb'_append_extractLsb'_eq_extractLsb'
+    (start₁ := 0) (len₁ := 11)
+    (start₂ := 11) (len₂ := 1) (by decide)]
+  rw [BitVec.extractLsb'_append_extractLsb'_eq_extractLsb'
+    (start₁ := 0) (len₁ := 12)
+    (start₂ := 12) (len₂ := 8) (by decide)]
+  rw [BitVec.extractLsb'_append_extractLsb'_eq_extractLsb'
+    (start₁ := 0) (len₁ := 20)
+    (start₂ := 20) (len₂ := 1) (by decide)]
+  exact BitVec.extractLsb'_eq_self
+
+private theorem decodeJImmediate_encodeJal
+    (encoded : BitVec 20)
+    (rd : RegisterIndex) :
+    decodeJImmediate (encodeJal encoded rd) =
+      jalImmediate encoded := by
+  simp [
+    decodeJImmediate,
+    BitVec.extractLsb,
+    BitVec.append_eq,
+  ]
+  rw [
+    encodeJalSlice31,
+    encodeJalSlice12,
+    encodeJalSlice20,
+    encodeJalSlice21,
+  ]
+  have low :
+      (jalImmediate encoded).extractLsb' 0 1 = 0#1 := by
+    simp only [jalImmediate, BitVec.append_eq]
+    exact BitVec.extractLsb'_append_eq_right
+  rw [← low]
+  exact jalImmediateReassemble (jalImmediate encoded)
+
 theorem encode_jal_is_canonical
     (encoded : BitVec 20)
     (rd : RegisterIndex) :
@@ -104,16 +200,23 @@ theorem encode_jal_is_canonical
       decodeJImmediate (encodeJal encoded rd) =
         jalImmediate encoded ∧
       decodeRd (encodeJal encoded rd) = rd := by
-  simp only [
-    isJal,
-    encodeJal,
-    decodeJImmediate,
-    decodeOpcodeField,
-    decodeRd,
-    jalImmediate,
-    jalOpcode,
-  ]
-  bv_decide
+  constructor
+  · simp only [
+      isJal,
+      encodeJal,
+      decodeOpcodeField,
+      jalImmediate,
+      jalOpcode,
+    ]
+    bv_decide
+  constructor
+  · exact decodeJImmediate_encodeJal encoded rd
+  · simp only [
+      encodeJal,
+      decodeRd,
+      jalImmediate,
+    ]
+    bv_decide
 
 theorem encode_auipc_is_canonical
     (encoded : BitVec 20)
