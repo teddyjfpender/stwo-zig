@@ -209,6 +209,7 @@ pub fn addProduct(context: Context) void {
     );
     test_step.dependOn(&context.b.addRunArtifact(integration_tests).step);
     test_step.dependOn(&context.b.addRunArtifact(proof_tests).step);
+    test_step.dependOn(&context.b.addRunArtifact(addShellTests(context)).step);
 
     const closure_check = closure_gate.addCheck(.{
         .b = context.b,
@@ -218,17 +219,34 @@ pub fn addProduct(context: Context) void {
     test_step.dependOn(&closure_check.step);
 }
 
+/// The product shell's own tests: `src/products/riscv_metal/{app,cli,registry}`
+/// and the capability file. They assert the Metal-only command vocabulary and
+/// the single-key `backend_availability`, and they live in modules that are not
+/// the root of any other test binary, so without this step they would never
+/// run. `riscv_cpu.zig:287` wires the CPU product's equivalent the same way.
+fn addShellTests(context: Context) *std.Build.Step.Compile {
+    const tests = context.b.addTest(.{
+        .root_module = rootModule(context, moduleProduct(.@"test")),
+    });
+    metal.linkRuntime(context.b, tests);
+    return tests;
+}
+
 /// The production CLI's root module. Mirrors `riscv_cpu.zig`'s `addExecutable`
 /// binding one-for-one so the shared shell (`src/products/riscv_shared/*.zig`)
 /// and the engine-generic adapter see exactly the same injected module names in
 /// both products.
 fn productionRootModule(context: Context) *std.Build.Module {
+    return rootModule(context, product);
+}
+
+fn rootModule(context: Context, identity_product: graph.Product) *std.Build.Module {
     const b = context.b;
     const stwo = createFacadeModule(context, moduleProduct(.library));
     const capabilities = createLeafModule(context, "src/products/riscv_metal/capabilities.zig");
     const adapter = createAdapterModule(context, stwo, capabilities);
     const root = graph.create(b, .{
-        .product = product,
+        .product = identity_product,
         .root_source_file = "src/products/riscv_metal/main.zig",
         .target = context.target,
         .optimize = context.optimize,
@@ -258,7 +276,13 @@ fn productionRootModule(context: Context) *std.Build.Module {
     root.addOptions("build_identity", graph_identity.buildOptions(b, context.identity));
     root.addOptions(
         "product_identity",
-        graph_identity.productOptions(b, context.identity, product, context.target, context.optimize),
+        graph_identity.productOptions(
+            b,
+            context.identity,
+            identity_product,
+            context.target,
+            context.optimize,
+        ),
     );
     return root;
 }
@@ -338,12 +362,24 @@ fn createFacadeModule(
 /// three files relatively because its module root is `src/`; this product's
 /// facade root is two directories deeper, and Zig 0.15 rejects a relative
 /// `@import` that escapes the module root, so each file becomes its own named
-/// module. `postcard` is the only one with dependencies of its own.
+/// module.
+///
+/// `src/interop/riscv_artifact.zig` writes `@import("atomic_file.zig")`, which
+/// as a relative path would pull that file into the `interop_riscv_artifact`
+/// module as well — and a Zig file may belong to exactly one module ("file
+/// exists in modules ... files must belong to only one module"). A module
+/// dependency whose *name* is the literal import string takes precedence over
+/// the sibling path, so `atomic_file.zig` is injected here as a named
+/// dependency of the artifact module. `src/interop/atomic_file.zig` therefore
+/// stays the root of exactly one module, and both the facade and the artifact
+/// wire observe the same instance of it.
 fn addInteropImports(
     context: Context,
     logical_product: graph.Product,
     facade: *std.Build.Module,
 ) void {
+    const atomic_file = createLeafModule(context, "src/interop/atomic_file.zig");
+
     const postcard = createLeafModule(context, "src/interop/postcard.zig");
     postcard.addImport("stwo_core", context.protocol.core);
     postcard.addImport("stwo_proof_wire", graph.createProofWire(
@@ -353,15 +389,13 @@ fn addInteropImports(
         context.target,
         context.optimize,
     ));
-    facade.addImport("interop_atomic_file", createLeafModule(
-        context,
-        "src/interop/atomic_file.zig",
-    ));
+
+    const riscv_artifact = createLeafModule(context, "src/interop/riscv_artifact.zig");
+    riscv_artifact.addImport("atomic_file.zig", atomic_file);
+
+    facade.addImport("interop_atomic_file", atomic_file);
     facade.addImport("interop_postcard", postcard);
-    facade.addImport("interop_riscv_artifact", createLeafModule(
-        context,
-        "src/interop/riscv_artifact.zig",
-    ));
+    facade.addImport("interop_riscv_artifact", riscv_artifact);
 }
 
 const Dependencies = struct {

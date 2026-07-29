@@ -7,12 +7,17 @@
 //! postcard proof encoding and the atomic publication helpers through the
 //! product facade it is handed as `stwo`.
 //!
-//! Unlike the CPU facade, the three interop files arrive as named modules
-//! (`interop_atomic_file`, `interop_postcard`, `interop_riscv_artifact`, wired in
-//! `build_support/products/riscv_metal.zig`). `src/stwo_riscv_cpu.zig` can write
+//! Unlike the CPU facade, the interop files arrive as named modules wired in
+//! `build_support/products/riscv_metal.zig`. `src/stwo_riscv_cpu.zig` can write
 //! `@import("interop/atomic_file.zig")` because its module root is `src/`; this
 //! facade's root is two directories deeper and Zig rejects a relative `@import`
 //! that escapes the importing module's root directory.
+//!
+//! Only two modules are needed, not three: `src/interop/riscv_artifact.zig`
+//! imports `atomic_file.zig` relatively, so that file already belongs to the
+//! artifact module and cannot also be the root of an `interop_atomic_file`
+//! module — a Zig file belongs to exactly one module. The facade therefore takes
+//! `atomic_file` as the artifact module's own re-export.
 
 pub const core = @import("stwo_core");
 pub const prover = @import("stwo_prover_engine");
@@ -26,9 +31,9 @@ pub const integrations = struct {
 };
 
 pub const interop = struct {
-    pub const atomic_file = @import("interop_atomic_file");
     pub const postcard = @import("interop_postcard");
     pub const riscv_artifact = @import("interop_riscv_artifact");
+    pub const atomic_file = riscv_artifact.atomic_file;
 };
 
 test {
