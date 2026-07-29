@@ -4,13 +4,13 @@
     "Quot.sound",
     "propext"
   ],
-  "canonical_digest": "66d567eb46074641b4f5eae72975bddeba50463bb2aedc982b959db2b201dfa1",
-  "claim_boundary": "kernel-checked normalized LUI/ADDI predicate refinement plus strict production LUI AIR IR v2 decode/evaluation; AIR-to-normalized composition and generated-Sail monad normalization remain open",
+  "canonical_digest": "8170978e6088bacf4f05e4ed75f2c8fc58bb63a5e898172d24d1a479fddc1007",
+  "claim_boundary": "kernel-checked normalized LUI/ADDI predicate refinement plus lookup-complete production LUI AIR-to-normalized composition; ADDI AIR composition and generated-Sail monad normalization remain open",
   "coverage": {
     "production_opcodes": 46,
     "proved_normalized_opcodes": 2
   },
-  "generated_manifest_digest": "12281243961a026b083099e314d7eb3df09598e0b8b0fa73e626fd73ee095d42",
+  "generated_manifest_digest": "a679e2db22e4c115054b00862d65c41824438265aeb2fae898e9850335d34faf",
   "kind": "stwo-riscv-refinement-receipt",
   "lean_build": "passed",
   "negative_controls": [
@@ -24,7 +24,7 @@
   "proof_escape_scan": "passed",
   "repository_dirty": false,
   "repository_dirty_paths": [],
-  "repository_revision": "1d9b3051e8f452f1892451f56821d8c79700fa39",
+  "repository_revision": "5c5e13b2a1be23a67de3d4274dfac637c662fe80",
   "schema_version": 1,
   "semantic_toolchain": {
     "compiler": {
@@ -36,16 +36,449 @@
     }
   },
   "theorem_axioms": {
+    "RiscvRefinement.Air.Bridge.Lui.acceptance_nonvacuous": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Lui.accessClockField_val": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Lui.bitVecM31_val": [
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Lui.clockGapBound_of_fixedLookups": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Lui.clockLookup_projection": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Lui.clockRequestHolds": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Lui.clockRequestHolds_iff": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Lui.constraintsHold_eq": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Lui.constraintsHold_iff": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Lui.destinationClock_of_air": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Lui.destinationFlag_of_constraints": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Lui.destinationLimbs_of_constraints": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Lui.exampleAcceptance": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Lui.exampleAdmission": [],
+    "RiscvRefinement.Air.Bridge.Lui.fixedLookupsHold_eq": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Lui.lookup_projection": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Lui.selectorAccepted": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Bridge.Lui.sound": [
+      "Quot.sound",
+      "propext"
+    ],
     "RiscvRefinement.Air.FixedTableId.contains_eq_true_iff": [
       "propext"
     ],
+    "RiscvRefinement.Air.Generated.Programs.addSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.addiSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.andSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.andiSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.auipcSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.beqSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.bgeSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.bgeuSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.bltSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.bltuSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.bneSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.divSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.divuSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.fenceSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.jalSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.jalrSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.lbSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.lbuSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.lhSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.lhuSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.luiSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.lwSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.mulSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.mulhSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.mulhsuSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.mulhuSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.orSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.oriSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.remSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.remuSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.sbSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.shSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.sllSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.slliSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.sltSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.sltiSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.sltiuSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.sltuSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.sraSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.sraiSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.srlSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.srliSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.subSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.swSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.xorSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.Generated.Programs.xoriSymbolicCertificate": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.LocalExprNode.evalAll_eq_symbolic": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.LocalExprNode.eval_eq_symbolic": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.LocalProgram.evalNodes_eq_symbolic": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.LocalProgram.lookup?_evalSymbolic_of_event": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.LocalValues.get_eq_symbolic": [
+      "propext"
+    ],
+    "RiscvRefinement.Air.SymbolicEvaluation.fixedRequestHolds_of_lookup": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Air.newestValue_eq_symbolic": [
+      "propext"
+    ],
     "RiscvRefinement.Coverage.pilot_coverage_exact": [],
+    "RiscvRefinement.Decode.base_and_m_extension_are_disjoint": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
     "RiscvRefinement.Decode.encode_addi_is_canonical": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.encode_div_is_canonical": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.encode_divu_is_canonical": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.encode_lb_is_canonical": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.encode_lbu_is_canonical": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.encode_lh_is_canonical": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.encode_lhu_is_canonical": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.encode_load_is_canonical": [
       "Quot.sound",
       "propext"
     ],
     "RiscvRefinement.Decode.encode_lui_is_canonical": [
       "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.encode_lw_is_canonical": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.encode_mul_is_canonical": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.encode_mulh_is_canonical": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.encode_mulhsu_is_canonical": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.encode_mulhu_is_canonical": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.encode_rem_is_canonical": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.encode_remu_is_canonical": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.encode_rtype_is_canonical": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.encode_sb_is_canonical": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.encode_sh_is_canonical": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.encode_shift_imm_is_canonical": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.encode_sll_is_canonical": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.encode_slli_is_canonical": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.encode_sra_is_canonical": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.encode_srai_is_canonical": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.encode_srl_is_canonical": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.encode_srli_is_canonical": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.encode_store_is_canonical": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.encode_sw_is_canonical": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.fence_i_is_not_admitted": [],
+    "RiscvRefinement.Decode.load_selectors_are_disjoint": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.multiply_and_divide_selectors_are_disjoint": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.shapes_are_disjoint": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.shift_selectors_are_disjoint": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.M31.add_toNat_of_lt": [
+      "propext"
+    ],
+    "RiscvRefinement.M31.add_val_of_lt": [
+      "propext"
+    ],
+    "RiscvRefinement.M31.add_zero": [
+      "propext"
+    ],
+    "RiscvRefinement.M31.ext": [
+      "propext"
+    ],
+    "RiscvRefinement.M31.modulus_eq": [],
+    "RiscvRefinement.M31.mul_one": [
+      "propext"
+    ],
+    "RiscvRefinement.M31.mul_toNat_of_lt": [
+      "propext"
+    ],
+    "RiscvRefinement.M31.mul_val_of_lt": [
+      "propext"
+    ],
+    "RiscvRefinement.M31.mul_zero": [
       "propext"
     ],
     "RiscvRefinement.M31.ofInt?_toInt": [
@@ -57,12 +490,141 @@
     "RiscvRefinement.M31.ofNat?_toNat": [
       "propext"
     ],
+    "RiscvRefinement.M31.one_mul": [
+      "propext"
+    ],
     "RiscvRefinement.M31.one_val": [],
+    "RiscvRefinement.M31.reduce_eq_one_of_lt": [
+      "propext"
+    ],
+    "RiscvRefinement.M31.reduce_eq_zero_of_lt": [
+      "propext"
+    ],
+    "RiscvRefinement.M31.reduce_injective_of_lt": [
+      "propext"
+    ],
+    "RiscvRefinement.M31.reduce_one": [],
+    "RiscvRefinement.M31.reduce_toNat": [
+      "propext"
+    ],
     "RiscvRefinement.M31.reduce_val": [],
+    "RiscvRefinement.M31.reduce_val_of_lt": [
+      "propext"
+    ],
+    "RiscvRefinement.M31.reduce_zero": [],
+    "RiscvRefinement.M31.sub_eq_zero_iff": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.M31.sub_self": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.M31.sub_val_of_le": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.M31.sub_val_of_lt": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.M31.sub_zero": [
+      "propext"
+    ],
     "RiscvRefinement.M31.toNatBounded?_eq_some": [
       "propext"
     ],
+    "RiscvRefinement.M31.toNat_injective": [
+      "propext"
+    ],
+    "RiscvRefinement.M31.toNat_one": [],
+    "RiscvRefinement.M31.toNat_zero": [],
+    "RiscvRefinement.M31.zero_add": [
+      "propext"
+    ],
+    "RiscvRefinement.M31.zero_mul": [
+      "propext"
+    ],
     "RiscvRefinement.M31.zero_val": [],
+    "RiscvRefinement.Memory.applyMask_byte_single": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Memory.applyMask_half_preserves_other": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Memory.applyMask_limb0_preserved": [
+      "propext"
+    ],
+    "RiscvRefinement.Memory.applyMask_limb1_preserved": [
+      "propext"
+    ],
+    "RiscvRefinement.Memory.applyMask_limb2_preserved": [
+      "propext"
+    ],
+    "RiscvRefinement.Memory.applyMask_limb3_preserved": [
+      "propext"
+    ],
+    "RiscvRefinement.Memory.applyMask_word": [
+      "propext"
+    ],
+    "RiscvRefinement.Memory.busAddress_isWordAligned": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Memory.busAddress_of_wordAligned": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Memory.effectiveAddress_toNat": [
+      "propext"
+    ],
+    "RiscvRefinement.Memory.halfAligned_byteOffset": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Memory.highHalf_extract": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Memory.lowHalf_extract": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Memory.selectHalf_high": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Memory.selectHalf_low": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Memory.signExtendByte_negative": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Memory.signExtendByte_nonnegative": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Memory.signExtendHalf_low": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Memory.signExtendHalf_negative": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Memory.signExtendHalf_nonnegative": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
     "RiscvRefinement.NonVacuity.addi_exists": [
       "Classical.choice",
       "Quot.sound",
@@ -128,10 +690,16 @@
       "Quot.sound",
       "propext"
     ],
+    "RiscvRefinement.Outcome.retirement?_rejected": [],
+    "RiscvRefinement.Outcome.retirement?_retired": [],
     "RiscvRefinement.WordBytes.eq_of_limbs": [
       "propext"
     ],
     "RiscvRefinement.WordBytes.value_lt": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.WordBytes.word_append": [
       "Quot.sound",
       "propext"
     ],
