@@ -34,12 +34,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 0.41064023384036435,
       "peak_rss_mib": null,
       "prove_ms": 2.493667,
       "request_ms": 2.686417
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 13,
       "metal_dispatches_per_proof": 15,
       "native_mhz": 0.1439870636622491,
@@ -63,12 +67,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 1.3797537142988516,
       "peak_rss_mib": null,
       "prove_ms": 11.874583,
       "request_ms": 12.82375
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 16,
       "metal_dispatches_per_proof": 20,
       "native_mhz": 1.1198013118160706,
@@ -92,12 +100,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 0.38840607855512943,
       "peak_rss_mib": null,
       "prove_ms": 2.636416,
       "request_ms": 2.819417
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 13,
       "metal_dispatches_per_proof": 17,
       "native_mhz": 0.16360440965010387,
@@ -122,12 +134,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 1.5327310678151174,
       "peak_rss_mib": null,
       "prove_ms": 10.689416,
       "request_ms": 10.957958
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 16,
       "metal_dispatches_per_proof": 22,
       "native_mhz": 1.1344394533447582,
@@ -152,12 +168,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 0.37956980359116027,
       "peak_rss_mib": null,
       "prove_ms": 2.697791,
       "request_ms": 2.910584
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 13,
       "metal_dispatches_per_proof": 17,
       "native_mhz": 0.14603882522033465,
@@ -180,12 +200,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 1.4718591384808875,
       "peak_rss_mib": null,
       "prove_ms": 11.1315,
       "request_ms": 11.451083
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 16,
       "metal_dispatches_per_proof": 22,
       "native_mhz": 1.0764517957014856,
@@ -208,12 +232,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 0.4141975932854687,
       "peak_rss_mib": null,
       "prove_ms": 2.47225,
       "request_ms": 2.676834
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 13,
       "metal_dispatches_per_proof": 17,
       "native_mhz": 0.17557293529485796,
@@ -238,12 +266,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 1.5681282526769156,
       "peak_rss_mib": null,
       "prove_ms": 10.448125,
       "request_ms": 10.704042
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 16,
       "metal_dispatches_per_proof": 22,
       "native_mhz": 1.1085218837673125,
@@ -268,12 +300,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 0.22190919926319214,
       "peak_rss_mib": null,
       "prove_ms": 2.30725,
       "request_ms": 2.581792
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 11,
       "metal_dispatches_per_proof": 13,
       "native_mhz": 0.08967771021979096,
@@ -297,12 +333,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 0.43092731686977764,
       "peak_rss_mib": null,
       "prove_ms": 23.762708,
       "request_ms": 27.437042
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 13,
       "metal_dispatches_per_proof": 15,
       "native_mhz": 0.5146256716392708,
@@ -327,13 +367,25 @@
  "boards": {
   "cairo_cpu": {
    "entries": [],
+   "era": {
+    "banked": false,
+    "closed_utc": null,
+    "epoch": 2,
+    "note": null,
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the epoch boundary prevents pre-xlarge history from diluting the new geomean",
+    "scored_dimension": "prove_ms",
+    "source": "global_epoch",
+    "status": "open"
+   },
    "frontier_by_class": {
     "small": {
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1038,
-       "seconds": 690034
+       "commits": 1042,
+       "seconds": 691032
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -373,8 +425,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1038,
-       "seconds": 690034
+       "commits": 1042,
+       "seconds": 691032
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -411,6 +463,8 @@
      "head": null
     }
    },
+   "phase_telemetry": null,
+   "retirement": null,
    "scored_classes": [
     "small",
     "wide"
@@ -442,13 +496,25 @@
   },
   "cairo_metal": {
    "entries": [],
+   "era": {
+    "banked": false,
+    "closed_utc": null,
+    "epoch": 2,
+    "note": null,
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the epoch boundary prevents pre-xlarge history from diluting the new geomean",
+    "scored_dimension": "prove_ms",
+    "source": "global_epoch",
+    "status": "open"
+   },
    "frontier_by_class": {
     "small": {
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1038,
-       "seconds": 690034
+       "commits": 1042,
+       "seconds": 691032
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -488,8 +554,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1038,
-       "seconds": 690034
+       "commits": 1042,
+       "seconds": 691032
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -526,6 +592,8 @@
      "head": null
     }
    },
+   "phase_telemetry": null,
+   "retirement": null,
    "scored_classes": [
     "small",
     "wide"
@@ -2553,13 +2621,25 @@
      "workload_class": "wide"
     }
    ],
+   "era": {
+    "banked": true,
+    "closed_utc": "2026-07-29T00:00:00Z",
+    "epoch": 2,
+    "note": "TRACKS \u00a76 retire-and-complete: the native CPU era is banked. New promotions refuse, the full ledger and final scores stay served, and the closing audit stamps the last audited score on the M5 judge host.",
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe",
+    "scored_dimension": "prove_ms",
+    "source": "board_era",
+    "status": "banked"
+   },
    "frontier_by_class": {
     "deep": {
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1038,
-       "seconds": 690034
+       "commits": 1042,
+       "seconds": 691032
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -2882,8 +2962,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1038,
-       "seconds": 690034
+       "commits": 1042,
+       "seconds": 691032
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3070,8 +3150,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1038,
-       "seconds": 690034
+       "commits": 1042,
+       "seconds": 691032
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3288,8 +3368,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1038,
-       "seconds": 690034
+       "commits": 1042,
+       "seconds": 691032
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3683,8 +3763,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1038,
-       "seconds": 690034
+       "commits": 1042,
+       "seconds": 691032
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3829,6 +3909,12 @@
      }
     }
    },
+   "phase_telemetry": null,
+   "retirement": {
+    "closing_audit": null,
+    "reason": "TRACKS \u00a76 retire-and-complete: the native era is banked; history stays served; the native AIRs continue as PR6-supremacy cells and guard workloads",
+    "retired_at_utc": "2026-07-29T00:00:00Z"
+   },
    "scored_classes": [
     "small",
     "wide",
@@ -3875,13 +3961,25 @@
   },
   "core_cuda": {
    "entries": [],
+   "era": {
+    "banked": false,
+    "closed_utc": null,
+    "epoch": 2,
+    "note": null,
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the epoch boundary prevents pre-xlarge history from diluting the new geomean",
+    "scored_dimension": "prove_ms",
+    "source": "global_epoch",
+    "status": "open"
+   },
    "frontier_by_class": {
     "deep": {
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1038,
-       "seconds": 690034
+       "commits": 1042,
+       "seconds": 691032
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3921,8 +4019,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1038,
-       "seconds": 690034
+       "commits": 1042,
+       "seconds": 691032
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3962,8 +4060,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1038,
-       "seconds": 690034
+       "commits": 1042,
+       "seconds": 691032
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -4003,8 +4101,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1038,
-       "seconds": 690034
+       "commits": 1042,
+       "seconds": 691032
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -4044,8 +4142,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1038,
-       "seconds": 690034
+       "commits": 1042,
+       "seconds": 691032
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -4082,6 +4180,8 @@
      "head": null
     }
    },
+   "phase_telemetry": null,
+   "retirement": null,
    "scored_classes": [
     "small",
     "wide",
@@ -4128,7 +4228,21 @@
   },
   "core_hybrid": {
    "entries": [],
+   "era": {
+    "banked": false,
+    "closed_utc": null,
+    "epoch": 2,
+    "note": null,
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the epoch boundary prevents pre-xlarge history from diluting the new geomean",
+    "scored_dimension": "prove_ms",
+    "source": "global_epoch",
+    "status": "open"
+   },
    "frontier_by_class": {},
+   "phase_telemetry": null,
+   "retirement": null,
    "scored_classes": [],
    "suite_score": null
   },
@@ -6515,13 +6629,25 @@
      "workload_class": "deep"
     }
    ],
+   "era": {
+    "banked": true,
+    "closed_utc": "2026-07-29T00:00:00Z",
+    "epoch": 2,
+    "note": "TRACKS \u00a76 retire-and-complete: the native Metal era is banked. New promotions refuse, the full ledger and final scores stay served, and the closing audit stamps the last audited score on the M5 judge host.",
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the Metal calibration freeze for this era is pinned in epoch 2's metal_calibration block",
+    "scored_dimension": "prove_ms",
+    "source": "board_era",
+    "status": "banked"
+   },
    "frontier_by_class": {
     "deep": {
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1038,
-       "seconds": 690034
+       "commits": 1042,
+       "seconds": 691032
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -6983,8 +7109,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1038,
-       "seconds": 690034
+       "commits": 1042,
+       "seconds": 691032
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -7103,8 +7229,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1038,
-       "seconds": 690034
+       "commits": 1042,
+       "seconds": 691032
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -7389,8 +7515,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1038,
-       "seconds": 690034
+       "commits": 1042,
+       "seconds": 691032
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -7924,8 +8050,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1038,
-       "seconds": 690034
+       "commits": 1042,
+       "seconds": 691032
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8076,6 +8202,12 @@
      }
     }
    },
+   "phase_telemetry": null,
+   "retirement": {
+    "closing_audit": null,
+    "reason": "TRACKS \u00a76 retire-and-complete: the native era is banked; history stays served; the native AIRs continue as PR6-supremacy cells and guard workloads",
+    "retired_at_utc": "2026-07-29T00:00:00Z"
+   },
    "scored_classes": [
     "small",
     "wide",
@@ -8122,25 +8254,65 @@
   },
   "heavy_cairo": {
    "entries": [],
+   "era": {
+    "banked": false,
+    "closed_utc": null,
+    "epoch": 2,
+    "note": null,
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the epoch boundary prevents pre-xlarge history from diluting the new geomean",
+    "scored_dimension": "prove_ms",
+    "source": "global_epoch",
+    "status": "open"
+   },
    "frontier_by_class": {},
+   "phase_telemetry": null,
+   "retirement": null,
    "scored_classes": [],
    "suite_score": null
   },
   "heavy_native": {
    "entries": [],
+   "era": {
+    "banked": false,
+    "closed_utc": null,
+    "epoch": 2,
+    "note": null,
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the epoch boundary prevents pre-xlarge history from diluting the new geomean",
+    "scored_dimension": "prove_ms",
+    "source": "global_epoch",
+    "status": "open"
+   },
    "frontier_by_class": {},
+   "phase_telemetry": null,
+   "retirement": null,
    "scored_classes": [],
    "suite_score": null
   },
   "pr6_supremacy": {
    "entries": [],
+   "era": {
+    "banked": false,
+    "closed_utc": null,
+    "epoch": 2,
+    "note": null,
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the epoch boundary prevents pre-xlarge history from diluting the new geomean",
+    "scored_dimension": "prove_ms",
+    "source": "global_epoch",
+    "status": "open"
+   },
    "frontier_by_class": {
     "deep": {
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1038,
-       "seconds": 690034
+       "commits": 1042,
+       "seconds": 691032
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8180,8 +8352,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1038,
-       "seconds": 690034
+       "commits": 1042,
+       "seconds": 691032
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8221,8 +8393,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1038,
-       "seconds": 690034
+       "commits": 1042,
+       "seconds": 691032
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8262,8 +8434,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1038,
-       "seconds": 690034
+       "commits": 1042,
+       "seconds": 691032
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8303,8 +8475,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1038,
-       "seconds": 690034
+       "commits": 1042,
+       "seconds": 691032
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8341,6 +8513,8 @@
      "head": null
     }
    },
+   "phase_telemetry": null,
+   "retirement": null,
    "scored_classes": [
     "small",
     "wide",
@@ -8808,13 +8982,25 @@
      "workload_class": "wide"
     }
    ],
+   "era": {
+    "banked": false,
+    "closed_utc": null,
+    "epoch": 2,
+    "note": "TRACKS \u00a73.1 re-scores this board to the verified-request boundary at its NEXT era. Era 3 stays unopened until the M5 judge host recalibrates at that boundary; schema/scoring.md carries the exact era-3 record template and the operator commands.",
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring; the RISC-V board's frozen same-host M5 A/A dispersion enters with it",
+    "scored_dimension": "prove_ms",
+    "source": "board_era",
+    "status": "open"
+   },
    "frontier_by_class": {
     "deep": {
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1038,
-       "seconds": 690034
+       "commits": 1042,
+       "seconds": 691032
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -9004,8 +9190,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1038,
-       "seconds": 690034
+       "commits": 1042,
+       "seconds": 691032
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -9120,8 +9306,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1038,
-       "seconds": 690034
+       "commits": 1042,
+       "seconds": 691032
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -9234,6 +9420,8 @@
      }
     }
    },
+   "phase_telemetry": null,
+   "retirement": null,
    "scored_classes": [
     "small",
     "wide",
@@ -9270,7 +9458,21 @@
   },
   "stream": {
    "entries": [],
+   "era": {
+    "banked": false,
+    "closed_utc": null,
+    "epoch": 2,
+    "note": null,
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the epoch boundary prevents pre-xlarge history from diluting the new geomean",
+    "scored_dimension": "prove_ms",
+    "source": "global_epoch",
+    "status": "open"
+   },
    "frontier_by_class": {},
+   "phase_telemetry": null,
+   "retirement": null,
    "scored_classes": [],
    "suite_score": null
   }
@@ -9298,9 +9500,11 @@
     "wide": 0.014801
    }
   },
-  "number": 2
+  "number": 2,
+  "opened_utc": "2026-07-21T16:00:00Z",
+  "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the epoch boundary prevents pre-xlarge history from diluting the new geomean"
  },
- "feed_schema_version": 3,
+ "feed_schema_version": 4,
  "history": {
   "comparisons": 34,
   "runs": [
@@ -9472,6 +9676,8 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 0.9651272384542884,
       "peak_rss_mib": 13.88,
       "prove_ms": 1.061,
@@ -9491,6 +9697,8 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 18,
       "native_mhz": 0.4123973738664106,
@@ -9527,6 +9735,8 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 3.2930459127057423,
       "peak_rss_mib": 34.36,
       "prove_ms": 4.975333,
@@ -9546,6 +9756,8 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 22,
       "native_mhz": 3.546896141148455,
@@ -9582,6 +9794,8 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 3.904486871210558,
       "peak_rss_mib": 113.45,
       "prove_ms": 16.784792,
@@ -9601,6 +9815,8 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 25,
       "native_mhz": 4.764262217618087,
@@ -9637,6 +9853,8 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 3.8839987265111593,
       "peak_rss_mib": 42.2,
       "prove_ms": 4.218333,
@@ -9656,6 +9874,8 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 24,
       "native_mhz": 4.306337681111805,
@@ -9693,6 +9913,8 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 5.718257502028212,
       "peak_rss_mib": 73.16,
       "prove_ms": 11.460834,
@@ -9712,6 +9934,8 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 26,
       "native_mhz": 10.283315251962877,
@@ -9749,6 +9973,8 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 3.778016619675894,
       "peak_rss_mib": 31.03,
       "prove_ms": 4.336667,
@@ -9768,6 +9994,8 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 24,
       "native_mhz": 4.070516531256071,
@@ -9803,6 +10031,8 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 5.638455061936453,
       "peak_rss_mib": 94.48,
       "prove_ms": 11.623042,
@@ -9822,6 +10052,8 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 26,
       "native_mhz": 9.596836511558129,
@@ -9857,6 +10089,8 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 3.8597513730222133,
       "peak_rss_mib": 28.48,
       "prove_ms": 4.244833,
@@ -9876,6 +10110,8 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 24,
       "native_mhz": 4.3786998062403955,
@@ -9913,6 +10149,8 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 5.582322260029606,
       "peak_rss_mib": 81.41,
       "prove_ms": 11.739917,
@@ -9932,6 +10170,8 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 26,
       "native_mhz": 10.20485384555255,
@@ -9969,6 +10209,8 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 1.0508087584499544,
       "peak_rss_mib": 39.11,
       "prove_ms": 9.744875,
@@ -9988,6 +10230,8 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 18,
       "native_mhz": 1.4067141753241177,
@@ -10024,6 +10268,8 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 4.235404363947749,
       "peak_rss_mib": 275.5,
       "prove_ms": 15.473375,
@@ -10043,6 +10289,8 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 20,
       "native_mhz": 2.328544082573493,
@@ -10079,6 +10327,8 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 0.35223294705808095,
       "peak_rss_mib": 31.92,
       "prove_ms": 2.907167,
@@ -10098,6 +10348,8 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 15,
       "native_mhz": 0.21451576209028847,
@@ -10133,6 +10385,8 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 0.6418239332478038,
       "peak_rss_mib": 40.81,
       "prove_ms": 12.763625,
@@ -10152,6 +10406,8 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 18,
       "native_mhz": 0.9287981859410431,
@@ -10291,8 +10547,10 @@
     "board": "cairo_cpu",
     "disabled_reason": null,
     "enabled": true,
+    "promotion_blocked_reason": "TRACKS \u00a77: cairo_cpu records evidence but cannot promote until per-(board, class) A/A dispersion and anchors are measured on the designated Apple M5 Max judge host and frozen into harness.anchor_* plus a cairo calibration freeze for board cairo_cpu. No Cairo calibration exists yet, so promotion fails closed; the gate opens only after that M5 calibration is committed.",
     "promotion_eligible": false,
     "report_schema": "cairo_proof_v1",
+    "retirement": null,
     "workloads": {
      "cairo_all_builtins": {
       "class": "wide",
@@ -10308,8 +10566,10 @@
     "board": "cairo_metal",
     "disabled_reason": "cairo_metal is staged only: TRACKS \u00a72 records the Cairo + Metal product as parity_gated, not released. The product descriptor in build_support/products/cairo_metal.zig still carries state .parity_gated behind its test-cairo-metal-product and test-cairo-metal-oracle release gates, no Metal-lane Cairo calibration exists on the designated judge host, and the generalized per-board Metal calibration (TRACKS \u00a77) is not yet built. The group stays dark and fails closed.",
     "enabled": false,
+    "promotion_blocked_reason": "TRACKS \u00a77: no cairo_metal calibration exists on the designated Apple M5 Max judge host, and the product is parity_gated rather than released.",
     "promotion_eligible": false,
     "report_schema": "cairo_proof_v1",
+    "retirement": null,
     "workloads": {
      "mcairo_all_builtins": {
       "class": "wide",
@@ -10325,8 +10585,10 @@
     "board": "core_cuda",
     "disabled_reason": "core_cuda is staged only: all six Native AIR families are required, but only wide Fibonacci is exact and release-ready; exact family semantics, the stwo-perf CUDA report adapter, locked-host A/A calibration, pinned Rust verification, and complete structural coverage are not yet release-gated.",
     "enabled": false,
+    "promotion_blocked_reason": null,
     "promotion_eligible": false,
     "report_schema": "native_cuda_product_v6",
+    "retirement": null,
     "workloads": {
      "cuda_poseidon_log10": {
       "class": "small",
@@ -10374,8 +10636,14 @@
     "board": "core_metal",
     "disabled_reason": null,
     "enabled": true,
-    "promotion_eligible": true,
+    "promotion_blocked_reason": "TRACKS \u00a76 retire-and-complete: the native Metal era is banked. New promotions refuse; the board stays enabled so its history, final scores, guard workloads, and PR6-supremacy cells keep running.",
+    "promotion_eligible": false,
     "report_schema": "native_proof_v7",
+    "retirement": {
+     "closing_audit": null,
+     "reason": "TRACKS \u00a76 retire-and-complete: the native era is banked; history stays served; the native AIRs continue as PR6-supremacy cells and guard workloads",
+     "retired_at_utc": "2026-07-29T00:00:00Z"
+    },
     "workloads": {
      "mplonk_log14": {
       "class": "deep",
@@ -10403,8 +10671,14 @@
     "board": "core_cpu",
     "disabled_reason": null,
     "enabled": true,
-    "promotion_eligible": true,
+    "promotion_blocked_reason": "TRACKS \u00a76 retire-and-complete: the native CPU era is banked. New promotions refuse; the board stays enabled so its history, final scores, guard workloads, and PR6-supremacy cells keep running.",
+    "promotion_eligible": false,
     "report_schema": "native_proof_v7",
+    "retirement": {
+     "closing_audit": null,
+     "reason": "TRACKS \u00a76 retire-and-complete: the native era is banked; history stays served; the native AIRs continue as PR6-supremacy cells and guard workloads",
+     "retired_at_utc": "2026-07-29T00:00:00Z"
+    },
     "workloads": {
      "plonk_log14": {
       "class": "deep",
@@ -10432,8 +10706,10 @@
     "board": "pr6_supremacy",
     "disabled_reason": "PR6 Supremacy remains disabled until every exact workload port, log22 oracle vector, both timing boundaries, locked-M5 statistical gate, and authenticated judged verdict are complete.",
     "enabled": false,
+    "promotion_blocked_reason": null,
     "promotion_eligible": false,
     "report_schema": "pr6_supremacy_v1",
+    "retirement": null,
     "workloads": {
      "pr6_blake_log10": {
       "class": "deep",
@@ -10513,8 +10789,10 @@
     "board": "riscv",
     "disabled_reason": null,
     "enabled": true,
+    "promotion_blocked_reason": null,
     "promotion_eligible": true,
     "report_schema": "riscv_proof_v2",
+    "retirement": null,
     "workloads": {
      "riscv_alu_test": {
       "class": "small",
@@ -10600,14 +10878,18 @@
    }
   },
   "owned_boards": [
-   "core_cpu",
-   "core_metal",
    "riscv"
+  ],
+  "retired_boards": [
+   "core_cpu",
+   "core_metal"
   ],
   "staged_boards": [
    "cairo_cpu",
    "cairo_metal",
+   "core_cpu",
    "core_cuda",
+   "core_metal",
    "pr6_supremacy"
   ]
  },
@@ -10615,8 +10897,8 @@
   "determinism": "pure function of the named inputs; a committed feed names the commit it was generated FROM (one-commit lag by construction) \u2014 verify via inputs_sha256, not commit equality",
   "dirty_inputs": [],
   "inputs_sha256": {
-   "autoresearch/MANIFEST.json": "0fc90f339f5e8f41e87f0072e950d4312984fcf785663453852d56e16ca05f6b",
-   "autoresearch/ledger/epochs.json": "60162d440a812415d2943b1c1a2317b70be5fda727fae7eaa5c75ff408c4f7f5",
+   "autoresearch/MANIFEST.json": "7482fad7bfe07535b2acbbc4a7487b78275f61178ea494c6722c7b96b76d1fa5",
+   "autoresearch/ledger/epochs.json": "788378df0d2c39c52f905b9241e120d1b2b030bbf36e4e81dbc8c7e6b8c1a2f4",
    "autoresearch/ledger/promotions.tsv": "65ebaae10a028ea4dc7267a9cc8dc68b0c5bfc713218103047cb99054d64d676",
    "autoresearch/reference/metal-calibration-epoch-2.json": "e1a733f19dfe552389e25ff71d487cb889a3117b7fd71ea47c28cbc9000147df",
    "autoresearch/reference/peer-relative-series.json": "b85b4f079b69db227b120c16c965667070f40a67d1b37590a490b3ab514a3b2a",
@@ -10771,8 +11053,8 @@
    "vectors/reports/benchmark_history/index.json": "2df531dbefbd60f078b4c4a0b1c10c00a577832cd35520e065b430c61e6903f0",
    "vectors/reports/benchmark_history/runs/2026-07-23-110359-matrix-v6-e58b4d1e/report.json": "e772acbf9f58ff3916f2ffe91016ebc28bc6aadc75c6e68d5fd43ef3023d7be3"
   },
-  "repo_commit": "33a1a745a057",
-  "repo_commit_time": "2026-07-29T17:28:01+01:00"
+  "repo_commit": "08dc3f964e82",
+  "repo_commit_time": "2026-07-29T17:44:39+01:00"
  },
  "references": {
   "metal_calibration_epoch_2": {
