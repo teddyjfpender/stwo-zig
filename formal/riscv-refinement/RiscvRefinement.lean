@@ -1,5 +1,6 @@
 import RiscvRefinement.Coverage
 import RiscvRefinement.Air.Tests
+import RiscvRefinement.Air.Bridge.Addi
 import RiscvRefinement.Air.Bridge.Lui
 import RiscvRefinement.Air.Generated.LuiProgram
 import RiscvRefinement.Air.Generated.Programs

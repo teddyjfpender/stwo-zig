@@ -6,14 +6,14 @@ ADDI row predicates against a reviewed normalized capsule of the pinned Sail
 definitions. All 17 production families and all 46 opcode selectors now
 round-trip through the shared production `ConstraintProgram`.
 
-The LUI AIR bridge now interprets the generated production program directly,
-derives its constraints and ordered relation lookups from the evaluated
-events, enforces both fixed-table requests, rules out M31 clock wraparound,
-and proves the resulting typed row satisfies `LuiHolds`. A witness passes
-through that same interpreter. ADDI does not yet have the corresponding AIR
-bridge, and the full generated Sail monad does not yet reduce to the reviewed
-capsule. Accordingly, the repository still reports `2/46` as normalized pilot
-coverage and does not count LUI as a publication-level opcode.
+The LUI and ADDI AIR bridges now interpret their generated production programs
+directly, derive constraints and ordered relation lookups from evaluated
+events, enforce every live fixed-table request, rule out M31 clock wraparound,
+and prove the resulting typed rows satisfy `LuiHolds` and `AddiHolds`.
+Concrete witnesses pass through those same interpreters. The full generated
+Sail monad does not yet reduce to the reviewed capsule. Accordingly, the
+repository still reports `2/46` as normalized pilot coverage and does not
+count either pilot as a publication-level opcode.
 
 ## Theorems
 
@@ -22,6 +22,9 @@ coverage and does not count LUI as a publication-level opcode.
 - `RiscvRefinement.Air.Bridge.Lui.sound`
 - `RiscvRefinement.Air.Bridge.Lui.lookup_projection`
 - `RiscvRefinement.Air.Bridge.Lui.acceptance_nonvacuous`
+- `RiscvRefinement.Air.Bridge.Addi.sound`
+- `RiscvRefinement.Air.Bridge.Addi.lookup_projection`
+- `RiscvRefinement.Air.Bridge.Addi.acceptance_nonvacuous`
 - `RiscvRefinement.NonVacuity.lui_exists`
 - `RiscvRefinement.NonVacuity.addi_exists`
 
