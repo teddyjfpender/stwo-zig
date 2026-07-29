@@ -213,7 +213,6 @@ theorem sourceAccessClock_load (row : LoadStoreRow) (direction : row.isStore = f
     sourceAccessClock row = accessClock row.clock 3 := by
   simp only [sourceAccessClock, LoadStoreRow.isLoad, direction, Bool.not_false,
     bitValue_true, accessClock]
-  omega
 
 /-- On a store the `src` block is the `rs2` register, so it sits at ordinal
 two. -/
@@ -234,7 +233,6 @@ theorem destinationAccessClock_store (row : LoadStoreRow)
     (direction : row.isStore = true) :
     destinationAccessClock row = accessClock row.clock 3 := by
   simp only [destinationAccessClock, direction, bitValue_true, accessClock]
-  omega
 
 /-! ## The column assignment
 
@@ -732,6 +730,7 @@ private theorem halfOfStoreHalf {row : LoadStoreRow} (store : row.isSh = true) :
 private theorem lowHalfOne {row : LoadStoreRow} (shift : row.shiftId = 1) :
     (M31.reduce 5 - M31.reduce row.shiftId) * M31.reduce 536870912 = M31.reduce 1 := by
   rw [shift, M31.reduce_sub _ _ (by omega), M31.reduce_mul]
+  rfl
 
 private theorem lowHalfNil {row : LoadStoreRow} (shift : row.shiftId = 5) :
     (M31.reduce 5 - M31.reduce row.shiftId) * M31.reduce 536870912 = 0 := by
@@ -741,6 +740,7 @@ private theorem lowHalfNil {row : LoadStoreRow} (shift : row.shiftId = 5) :
 private theorem highHalfOne {row : LoadStoreRow} (shift : row.shiftId = 5) :
     (M31.reduce row.shiftId - M31.reduce 1) * M31.reduce 536870912 = M31.reduce 1 := by
   rw [shift, M31.reduce_sub _ _ (by omega), M31.reduce_mul]
+  rfl
 
 private theorem highHalfNil {row : LoadStoreRow} (shift : row.shiftId = 1) :
     (M31.reduce row.shiftId - M31.reduce 1) * M31.reduce 536870912 = 0 := by
@@ -887,18 +887,24 @@ theorem loadStoreConstraintValues (row : LoadStoreRow) (holds : LoadStoreHolds r
   · rw [byteLoadImage row holds, signedImage row holds, signMaskImage row]
     cases load : row.isByteLoad with
     | false => exact mulLeftZero bitFalse
-    | true => exact mulRightZero
-        (by rw [(holds.byteLoadExtension load).1]; exact M31.sub_self _)
+    | true =>
+        refine mulRightZero ?_
+        rw [(holds.byteLoadExtension load).1]
+        exact M31.sub_self _
   · rw [byteLoadImage row holds, signedImage row holds, signMaskImage row]
     cases load : row.isByteLoad with
     | false => exact mulLeftZero bitFalse
-    | true => exact mulRightZero
-        (by rw [(holds.byteLoadExtension load).2.1]; exact M31.sub_self _)
+    | true =>
+        refine mulRightZero ?_
+        rw [(holds.byteLoadExtension load).2.1]
+        exact M31.sub_self _
   · rw [byteLoadImage row holds, signedImage row holds, signMaskImage row]
     cases load : row.isByteLoad with
     | false => exact mulLeftZero bitFalse
-    | true => exact mulRightZero
-        (by rw [(holds.byteLoadExtension load).2.2]; exact M31.sub_self _)
+    | true =>
+        refine mulRightZero ?_
+        rw [(holds.byteLoadExtension load).2.2]
+        exact M31.sub_self _
   -- C24-C31: the byte-selection ladder, interleaved load / store
   · rw [byteLoadImage row holds]
     refine markerGated ?_
@@ -964,13 +970,17 @@ theorem loadStoreConstraintValues (row : LoadStoreRow) (holds : LoadStoreHolds r
   · rw [halfLoadImage row holds, signedImage row holds, signMaskImage row]
     cases load : row.isHalfLoad with
     | false => exact mulLeftZero bitFalse
-    | true => exact mulRightZero
-        (by rw [(holds.halfLoadExtension load).1]; exact M31.sub_self _)
+    | true =>
+        refine mulRightZero ?_
+        rw [(holds.halfLoadExtension load).1]
+        exact M31.sub_self _
   · rw [halfLoadImage row holds, signedImage row holds, signMaskImage row]
     cases load : row.isHalfLoad with
     | false => exact mulLeftZero bitFalse
-    | true => exact mulRightZero
-        (by rw [(holds.halfLoadExtension load).2]; exact M31.sub_self _)
+    | true =>
+        refine mulRightZero ?_
+        rw [(holds.halfLoadExtension load).2]
+        exact M31.sub_self _
   -- C34-C37: half-word load placement
   · rw [halfLoadImage row holds, shiftIdImage row]
     cases load : row.isHalfLoad with
@@ -1144,28 +1154,28 @@ theorem loadStoreConstraintValues (row : LoadStoreRow) (holds : LoadStoreHolds r
     | true =>
         refine mulRightZero (loadDestinationVanishes ?_)
         cases nonzero : row.destinationNonzero <;>
-          simp [holds.loadDestination direction, nonzero]
+          simp [holds.loadDestination direction, nonzero, WordBytes.zero]
   · rw [activeImage row holds, storeImage row holds, loadImage row]
     cases direction : row.isLoad with
     | false => exact mulLeftZero bitFalse
     | true =>
         refine mulRightZero (loadDestinationVanishes ?_)
         cases nonzero : row.destinationNonzero <;>
-          simp [holds.loadDestination direction, nonzero]
+          simp [holds.loadDestination direction, nonzero, WordBytes.zero]
   · rw [activeImage row holds, storeImage row holds, loadImage row]
     cases direction : row.isLoad with
     | false => exact mulLeftZero bitFalse
     | true =>
         refine mulRightZero (loadDestinationVanishes ?_)
         cases nonzero : row.destinationNonzero <;>
-          simp [holds.loadDestination direction, nonzero]
+          simp [holds.loadDestination direction, nonzero, WordBytes.zero]
   · rw [activeImage row holds, storeImage row holds, loadImage row]
     cases direction : row.isLoad with
     | false => exact mulLeftZero bitFalse
     | true =>
         refine mulRightZero (loadDestinationVanishes ?_)
         cases nonzero : row.destinationNonzero <;>
-          simp [holds.loadDestination direction, nonzero]
+          simp [holds.loadDestination direction, nonzero, WordBytes.zero]
   -- C65-C68: a store writes no architectural result
   · rw [activeImage row holds, storeImage row holds, loadImage row]
     cases direction : row.isLoad with

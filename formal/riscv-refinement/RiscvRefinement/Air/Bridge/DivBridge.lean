@@ -941,6 +941,193 @@ theorem divConstraintValues (row : DivRow) (holds : DivHolds row) (fits : DivRow
     exact M31.sub_self _
 
 
+
+/-! ## The product chain
+
+The eight `range_check_8_11` requests are where the division actually lives: the
+`div` AIR has no constraint root for `divisor * quotient + remainder = dividend`
+at all, it pins the eight-limb convolution by asking the preprocessed table to
+certify that each `(byte, carry)` pair is (8, 11)-bit. The AIR spells the carry
+as `(accumulated - dividendLimb) * 8388608`, and `8388608` is the inverse of
+`256` in `M31`, so the content of the eight lemmas below is that the transcribed
+`Nat` carry chain of `DivHolds.productRecurrence` really is that field
+expression. -/
+
+private theorem productCarryImage (accumulated dividendLimb carry : Nat)
+    (equation : accumulated = dividendLimb + 256 * carry) :
+    (M31.reduce accumulated - M31.reduce dividendLimb) * M31.reduce 8388608 =
+      M31.reduce carry := by
+  rw [M31.reduce_sub _ _ (by omega),
+    show accumulated - dividendLimb = 256 * carry from by omega, M31.reduce_mul]
+  exact M31.reduce_shift _
+
+private theorem quotientHighImage (row : DivRow) :
+    M31.reduce (flagValue row.qSign) * M31.reduce 255 = M31.reduce (divQuotientHigh row) := by
+  rw [M31.reduce_mul, flagValue_eq_toNat, divQuotientHigh,
+    show row.qSign.toNat * 255 = 255 * row.qSign.toNat from Nat.mul_comm _ _]
+
+private theorem divisorHighImage (row : DivRow) :
+    M31.reduce (flagValue row.cSign) * M31.reduce 255 = M31.reduce (divDivisorHigh row) := by
+  rw [M31.reduce_mul, flagValue_eq_toNat, divDivisorHigh,
+    show row.cSign.toNat * 255 = 255 * row.cSign.toNat from Nat.mul_comm _ _]
+
+private theorem dividendHighImage (row : DivRow) :
+    M31.reduce (flagValue row.bSign) * M31.reduce 255 = M31.reduce (divDividendHigh row) := by
+  rw [M31.reduce_mul, flagValue_eq_toNat, divDividendHigh,
+    show row.bSign.toNat * 255 = 255 * row.bSign.toNat from Nat.mul_comm _ _]
+
+private theorem remainderHighImage (row : DivRow) :
+    M31.reduce (flagValue row.bSign) * (M31.reduce 1 - M31.reduce (flagValue row.rZero)) *
+      M31.reduce 255 = M31.reduce (divRemainderHigh row) := by
+  simp only [divRemainderHigh]
+  cases hb : row.bSign <;> cases hr : row.rZero <;> decide
+
+private theorem productCarry0 (row : DivRow) (k0 : Nat)
+    (equation : divConv0 row = row.rs1Next.limb0.toNat + 256 * k0) :
+    ((((M31.reduce row.rs2Next.limb0.toNat * M31.reduce row.quotient.limb0.toNat) + M31.reduce
+      row.remainder.limb0.toNat) - M31.reduce row.rs1Next.limb0.toNat) * M31.reduce 8388608) =
+      M31.reduce k0 := by
+  simp only [M31.reduce_mul, M31.reduce_add]
+  refine productCarryImage _ _ _ ?_
+  simp only [divConv0, divQuotientHigh, divDivisorHigh, divRemainderHigh,
+    divDividendHigh] at equation ⊢
+  omega
+
+private theorem productCarry1 (row : DivRow) (k0 k1 : Nat)
+    (equation : k0 + divConv1 row = row.rs1Next.limb1.toNat + 256 * k1) :
+    (((((M31.reduce k0 + (M31.reduce row.rs2Next.limb0.toNat * M31.reduce
+      row.quotient.limb1.toNat)) + (M31.reduce row.rs2Next.limb1.toNat * M31.reduce
+      row.quotient.limb0.toNat)) + M31.reduce row.remainder.limb1.toNat) - M31.reduce
+      row.rs1Next.limb1.toNat) * M31.reduce 8388608) =
+      M31.reduce k1 := by
+  simp only [M31.reduce_mul, M31.reduce_add]
+  refine productCarryImage _ _ _ ?_
+  simp only [divConv1, divQuotientHigh, divDivisorHigh, divRemainderHigh,
+    divDividendHigh] at equation ⊢
+  omega
+
+private theorem productCarry2 (row : DivRow) (k1 k2 : Nat)
+    (equation : k1 + divConv2 row = row.rs1Next.limb2.toNat + 256 * k2) :
+    ((((((M31.reduce k1 + (M31.reduce row.rs2Next.limb0.toNat * M31.reduce
+      row.quotient.limb2.toNat)) + (M31.reduce row.rs2Next.limb1.toNat * M31.reduce
+      row.quotient.limb1.toNat)) + (M31.reduce row.rs2Next.limb2.toNat * M31.reduce
+      row.quotient.limb0.toNat)) + M31.reduce row.remainder.limb2.toNat) - M31.reduce
+      row.rs1Next.limb2.toNat) * M31.reduce 8388608) =
+      M31.reduce k2 := by
+  simp only [M31.reduce_mul, M31.reduce_add]
+  refine productCarryImage _ _ _ ?_
+  simp only [divConv2, divQuotientHigh, divDivisorHigh, divRemainderHigh,
+    divDividendHigh] at equation ⊢
+  omega
+
+private theorem productCarry3 (row : DivRow) (k2 k3 : Nat)
+    (equation : k2 + divConv3 row = row.rs1Next.limb3.toNat + 256 * k3) :
+    (((((((M31.reduce k2 + (M31.reduce row.rs2Next.limb0.toNat * M31.reduce
+      row.quotient.limb3.toNat)) + (M31.reduce row.rs2Next.limb1.toNat * M31.reduce
+      row.quotient.limb2.toNat)) + (M31.reduce row.rs2Next.limb2.toNat * M31.reduce
+      row.quotient.limb1.toNat)) + (M31.reduce row.rs2Next.limb3.toNat * M31.reduce
+      row.quotient.limb0.toNat)) + M31.reduce row.remainder.limb3.toNat) - M31.reduce
+      row.rs1Next.limb3.toNat) * M31.reduce 8388608) =
+      M31.reduce k3 := by
+  simp only [M31.reduce_mul, M31.reduce_add]
+  refine productCarryImage _ _ _ ?_
+  simp only [divConv3, divQuotientHigh, divDivisorHigh, divRemainderHigh,
+    divDividendHigh] at equation ⊢
+  omega
+
+private theorem productCarry4 (row : DivRow) (k3 k4 : Nat)
+    (equation : k3 + divConv4 row = divDividendHigh row + 256 * k4) :
+    ((((((((M31.reduce k3 + (M31.reduce row.rs2Next.limb0.toNat * (M31.reduce (flagValue
+      row.qSign) * M31.reduce 255))) + (M31.reduce row.rs2Next.limb1.toNat * M31.reduce
+      row.quotient.limb3.toNat)) + (M31.reduce row.rs2Next.limb2.toNat * M31.reduce
+      row.quotient.limb2.toNat)) + (M31.reduce row.rs2Next.limb3.toNat * M31.reduce
+      row.quotient.limb1.toNat)) + ((M31.reduce (flagValue row.cSign) * M31.reduce 255) *
+      M31.reduce row.quotient.limb0.toNat)) + ((M31.reduce (flagValue row.bSign) * (M31.reduce 1
+      - M31.reduce (flagValue row.rZero))) * M31.reduce 255)) - (M31.reduce (flagValue
+      row.bSign) * M31.reduce 255)) * M31.reduce 8388608) =
+      M31.reduce k4 := by
+  rw [quotientHighImage, divisorHighImage, remainderHighImage, dividendHighImage]
+  simp only [M31.reduce_mul, M31.reduce_add]
+  refine productCarryImage _ _ _ ?_
+  simp only [divConv4, divQuotientHigh, divDivisorHigh, divRemainderHigh,
+    divDividendHigh] at equation ⊢
+  omega
+
+private theorem productCarry5 (row : DivRow) (k4 k5 : Nat)
+    (equation : k4 + divConv5 row = divDividendHigh row + 256 * k5) :
+    (((((((M31.reduce k4 + ((M31.reduce row.rs2Next.limb0.toNat + M31.reduce
+      row.rs2Next.limb1.toNat) * (M31.reduce (flagValue row.qSign) * M31.reduce 255))) +
+      (M31.reduce row.rs2Next.limb2.toNat * M31.reduce row.quotient.limb3.toNat)) + (M31.reduce
+      row.rs2Next.limb3.toNat * M31.reduce row.quotient.limb2.toNat)) + ((M31.reduce (flagValue
+      row.cSign) * M31.reduce 255) * (M31.reduce row.quotient.limb0.toNat + M31.reduce
+      row.quotient.limb1.toNat))) + ((M31.reduce (flagValue row.bSign) * (M31.reduce 1 -
+      M31.reduce (flagValue row.rZero))) * M31.reduce 255)) - (M31.reduce (flagValue row.bSign)
+      * M31.reduce 255)) * M31.reduce 8388608) =
+      M31.reduce k5 := by
+  rw [quotientHighImage, divisorHighImage, remainderHighImage, dividendHighImage]
+  simp only [M31.reduce_mul, M31.reduce_add]
+  refine productCarryImage _ _ _ ?_
+  simp only [divConv5, divQuotientHigh, divDivisorHigh, divRemainderHigh,
+    divDividendHigh] at equation ⊢
+  omega
+
+private theorem productCarry6 (row : DivRow) (k5 k6 : Nat)
+    (equation : k5 + divConv6 row = divDividendHigh row + 256 * k6) :
+    ((((((M31.reduce k5 + (((((M31.reduce row.rs2Next.limb0.toNat + M31.reduce
+      row.rs2Next.limb1.toNat) + M31.reduce row.rs2Next.limb2.toNat) + M31.reduce
+      row.rs2Next.limb3.toNat) - M31.reduce row.rs2Next.limb3.toNat) * (M31.reduce (flagValue
+      row.qSign) * M31.reduce 255))) + (M31.reduce row.rs2Next.limb3.toNat * M31.reduce
+      row.quotient.limb3.toNat)) + ((M31.reduce (flagValue row.cSign) * M31.reduce 255) *
+      ((((M31.reduce row.quotient.limb0.toNat + M31.reduce row.quotient.limb1.toNat) +
+      M31.reduce row.quotient.limb2.toNat) + M31.reduce row.quotient.limb3.toNat) - M31.reduce
+      row.quotient.limb3.toNat))) + ((M31.reduce (flagValue row.bSign) * (M31.reduce 1 -
+      M31.reduce (flagValue row.rZero))) * M31.reduce 255)) - (M31.reduce (flagValue row.bSign)
+      * M31.reduce 255)) * M31.reduce 8388608) =
+      M31.reduce k6 := by
+  rw [quotientHighImage, divisorHighImage, remainderHighImage, dividendHighImage]
+  simp only [M31.reduce_mul, M31.reduce_add]
+  rw [M31.reduce_sub _ _ (by omega), M31.reduce_sub _ _ (by omega)]
+  simp only [M31.reduce_mul, M31.reduce_add]
+  refine productCarryImage _ _ _ ?_
+  simp only [divConv6, divQuotientHigh, divDivisorHigh, divRemainderHigh,
+    divDividendHigh] at equation ⊢
+  omega
+
+private theorem productCarry7 (row : DivRow) (k6 k7 : Nat)
+    (equation : k6 + divConv7 row = divDividendHigh row + 256 * k7) :
+    (((((M31.reduce k6 + ((((M31.reduce row.rs2Next.limb0.toNat + M31.reduce
+      row.rs2Next.limb1.toNat) + M31.reduce row.rs2Next.limb2.toNat) + M31.reduce
+      row.rs2Next.limb3.toNat) * (M31.reduce (flagValue row.qSign) * M31.reduce 255))) +
+      ((M31.reduce (flagValue row.cSign) * M31.reduce 255) * (((M31.reduce
+      row.quotient.limb0.toNat + M31.reduce row.quotient.limb1.toNat) + M31.reduce
+      row.quotient.limb2.toNat) + M31.reduce row.quotient.limb3.toNat))) + ((M31.reduce
+      (flagValue row.bSign) * (M31.reduce 1 - M31.reduce (flagValue row.rZero))) * M31.reduce
+      255)) - (M31.reduce (flagValue row.bSign) * M31.reduce 255)) * M31.reduce 8388608) =
+      M31.reduce k7 := by
+  rw [quotientHighImage, divisorHighImage, remainderHighImage, dividendHighImage]
+  simp only [M31.reduce_mul, M31.reduce_add]
+  refine productCarryImage _ _ _ ?_
+  simp only [divConv7, divQuotientHigh, divDivisorHigh, divRemainderHigh,
+    divDividendHigh] at equation ⊢
+  omega
+
+
+
+set_option maxRecDepth 200000 in
+theorem divFixedRequestsHoldProbe (row : DivRow) (holds : DivHolds row) :
+    divProgramCompiled.fixedRequestsHold (divColumns row) = true := by
+  obtain ⟨k0, k1, k2, k3, k4, k5, k6, k7, b0, b1, b2, b3, b4, b5, b6, b7,
+    e0, e1, e2, e3, e4, e5, e6, e7⟩ := holds.productRecurrence
+  simp only [DivCircuit.fixedRequestsHold, DivCircuit.fixedRequestHolds,
+    DivCircuit.lookupTuple, DivCircuit.lookupNumerator, DivCircuit.values,
+    DivCircuit.value, DivCircuit.nodeValuesRev, divProgramCompiled, divProgram,
+    evalLoop, Node.evalLocal, nth, List.map_cons, List.map_nil, List.all_cons,
+    List.all_nil, divColumns, rangeCheck20Contains, rangeCheck811Contains,
+    rangeCheck88Contains, rangeCheckM31Contains]
+  rw [productCarry0 row k0 e0, productCarry1 row k0 k1 e1, productCarry2 row k1 k2 e2,
+    productCarry3 row k2 k3 e3, productCarry4 row k3 k4 e4, productCarry5 row k4 k5 e5,
+    productCarry6 row k5 k6 e6, productCarry7 row k6 k7 e7]
+
 /-! ## The encoding is the export, and the evaluator is A's
 
 `DivProgram.lean` carries the verbatim export and its localisation. The three
