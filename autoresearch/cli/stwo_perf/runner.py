@@ -45,6 +45,7 @@ from scripts.native_cuda_diagnostic_lib.model import (
 from . import dimensions, ledger, search_health, stats
 from .manifest import (
     CAIRO_PHASE_NAMES,
+    CAIRO_STABLE_MECHANISM_FIELDS,
     PROXY_VALIDITY_METHOD,
     PROXY_VALIDITY_RECEIPT_SCHEMA,
     REPORT_SCHEMA_VERSIONS,
@@ -235,6 +236,43 @@ CAIRO_PHASE_STAGES: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
     ),
 }
 CAIRO_UNINSTRUMENTED_PHASES = ("serialize",)
+
+# The pinned official Stwo-Cairo verifier, the same authority the build gates
+# use (build_support/products/cairo_cpu/oracle_gate.zig). The harness builds it
+# from the manifest's declared `build_command` — the manifest owns flag drift —
+# and runs the release profile so a judged run is not paying debug verification.
+CAIRO_ORACLE_AUTHORITY = "official-stwo-cairo-verifier"
+CAIRO_ORACLE_ADAPTER = "tools/stwo-cairo-official-verifier-rs"
+CAIRO_ORACLE_EXECUTABLE = "stwo-cairo-official-verifier"
+CAIRO_ORACLE_ADAPTER_VERSION = "stwo-cairo-official-verifier/1"
+CAIRO_ORACLE_IDENTITY_SCHEMA_VERSION = 1
+CAIRO_ORACLE_VERDICT_SCHEMA_VERSION = 1
+CAIRO_ORACLE_CHANNEL = "blake2s"
+CAIRO_ORACLE_BUILD_TIMEOUT = 3600
+CAIRO_ORACLE_VERIFY_TIMEOUT = 1800
+# Product proof-format spelling -> official Rust adapter transport. The
+# Cairo-serde felt array deliberately targets the Cairo verifier and is
+# rejected by this Rust adapter, so it can never be a scored transport.
+CAIRO_ORACLE_TRANSPORTS = {"json": "json", "binary": "binary"}
+_CAIRO_ORACLE_IDENTITY_KEYS = {
+    "schema_version", "adapter_version", "stwo_cairo", "stwo",
+    "cargo_lock_sha256", "executable_sha256", "channels", "proof_formats",
+    "max_proof_bytes", "prover_input_schema", "claim_summary_schema",
+    "max_input_bytes",
+}
+_CAIRO_ORACLE_VERDICT_KEYS = {
+    "schema_version", "adapter_version", "stwo_cairo_revision",
+    "stwo_revision", "proof_sha256", "channel", "proof_format", "verified",
+    "wall_time_ns", "error",
+}
+
+# Per-schema semantic (never implementation) mechanism telemetry: the fields a
+# paired round requires to be identical across the A and B arms and across
+# rounds. A schema absent here has no cross-arm mechanism contract.
+STABLE_MECHANISM_FIELDS_BY_SCHEMA: dict[str, tuple[str, frozenset]] = {
+    "riscv_proof_v2": ("RISC-V", RISCV_STABLE_MECHANISM_FIELDS),
+    "cairo_proof_v1": ("Cairo", CAIRO_STABLE_MECHANISM_FIELDS),
+}
 
 
 def _workload_resource_profile(workload: Workload) -> str:
@@ -882,6 +920,11 @@ def _commit_hex(value: object, field_name: str) -> str:
     if not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{40}", value):
         raise ValueError(f"{field_name} must be a full lowercase Git commit")
     return value
+
+
+def _commit_like(value: object) -> bool:
+    """Predicate form of `_commit_hex`, for policy shape checks."""
+    return isinstance(value, str) and bool(re.fullmatch(r"[0-9a-f]{40}", value))
 
 
 def _parse_native_report(
@@ -1999,17 +2042,24 @@ def paired_rounds(
             raise RunError(
                 f"{workload.workload_id}: proof byte length changed between rounds"
             )
-        if group.report_schema == "riscv_proof_v2":
+        stable_binding = STABLE_MECHANISM_FIELDS_BY_SCHEMA.get(group.report_schema)
+        if stable_binding is not None:
+            label, stable_fields = stable_binding
             if a.mechanism is None or b.mechanism is None:
                 raise RunError(
-                    f"{workload.workload_id}: RISC-V mechanism telemetry is absent"
+                    f"{workload.workload_id}: {label} mechanism telemetry is absent"
                 )
-            stable_a = {
-                key: a.mechanism.get(key) for key in RISCV_STABLE_MECHANISM_FIELDS
-            }
-            stable_b = {
-                key: b.mechanism.get(key) for key in RISCV_STABLE_MECHANISM_FIELDS
-            }
+            missing = sorted(
+                key for key in stable_fields
+                if key not in a.mechanism or key not in b.mechanism
+            )
+            if missing:
+                raise RunError(
+                    f"{workload.workload_id}: {label} mechanism telemetry omits "
+                    "stable field(s): " + ", ".join(missing)
+                )
+            stable_a = {key: a.mechanism.get(key) for key in stable_fields}
+            stable_b = {key: b.mechanism.get(key) for key in stable_fields}
             if stable_a != stable_b:
                 raise RunError(
                     f"{workload.workload_id}: semantic mechanism telemetry differs "
@@ -2022,6 +2072,7 @@ def paired_rounds(
                 )
             mechanism_reference = stable_b
             mechanism_verified = True
+        if group.report_schema == "riscv_proof_v2":
             if a.resources_complete is not b.resources_complete:
                 raise RunError(
                     f"{workload.workload_id}: RISC-V resource availability differs "
@@ -2903,6 +2954,10 @@ def rust_oracle_check(candidate_root: Path, manifest: Manifest,
         return _cuda_rust_oracle_check(
             candidate_root, group, workload, out_dir,
         )
+    if group.report_schema == "cairo_proof_v1":
+        return _cairo_official_verifier_check(
+            candidate_root, group, workload, out_dir,
+        )
     raise RunError(
         f"{workload.workload_id}: no correctness oracle for "
         f"{group.report_schema!r}"
@@ -3248,6 +3303,309 @@ def _validate_riscv_verify_receipt(
         if receipt.get(field_name) != value or type(receipt.get(field_name)) is not type(value):
             raise ValueError(f"verification receipt {field_name} differs")
     return receipt
+
+
+def _latest_cairo_candidate_artifact(
+    out_dir: Path, workload: Workload,
+) -> tuple[Path, Path]:
+    """The last candidate-arm envelope and the proof bytes it scored.
+
+    `_bench_cairo` writes `<workload>.b<round>.json` plus one retained
+    `<workload>.b<round>.i<index>.proof` per measured sample. The oracle
+    verifies the LAST measured sample of the LAST candidate round, so the bytes
+    the official verifier accepts are bytes that were actually scored.
+    """
+    pattern = re.compile(rf"^{re.escape(workload.workload_id)}\.b([1-9][0-9]*)\.json$")
+    envelopes = []
+    if out_dir.is_dir():
+        for path in out_dir.iterdir():
+            match = pattern.fullmatch(path.name)
+            if match and path.is_file():
+                envelopes.append((int(match.group(1)), path.resolve()))
+    if not envelopes:
+        raise ValueError("no retained candidate Cairo measurement envelope")
+    round_no, envelope_path = max(envelopes)
+    proof_pattern = re.compile(
+        rf"^{re.escape(workload.workload_id)}\.b{round_no}\.i([0-9]+)\.proof$"
+    )
+    proofs = []
+    for path in out_dir.iterdir():
+        match = proof_pattern.fullmatch(path.name)
+        if match and path.is_file():
+            proofs.append((int(match.group(1)), path.resolve()))
+    if not proofs:
+        raise ValueError(
+            f"no retained candidate Cairo proof for round {round_no}"
+        )
+    _index, proof_path = max(proofs)
+    return envelope_path, proof_path
+
+
+def _cairo_oracle_binary(candidate_root: Path, adapter: str) -> Path:
+    return (
+        candidate_root / adapter / "target" / "release" / CAIRO_ORACLE_EXECUTABLE
+    )
+
+
+def _validate_cairo_oracle_identity(
+    raw: str, oracle_policy: dict, binary: Path, adapter_lock: Path,
+) -> dict:
+    """Bind the built adapter to the manifest pins and the committed lockfile."""
+    identity = _load_json_object(raw, "official Cairo verifier identity")
+    _exact_object(
+        identity, _CAIRO_ORACLE_IDENTITY_KEYS, "official Cairo verifier identity",
+    )
+    if identity["schema_version"] != CAIRO_ORACLE_IDENTITY_SCHEMA_VERSION:
+        raise ValueError("official Cairo verifier identity schema is unsupported")
+    if identity["adapter_version"] != CAIRO_ORACLE_ADAPTER_VERSION:
+        raise ValueError("official Cairo verifier adapter version is unsupported")
+    for key, repository_key, commit_key in (
+        ("stwo_cairo", "repository", "commit"),
+        ("stwo", "stwo_repository", "stwo_commit"),
+    ):
+        source = _exact_object(
+            identity[key], {"repository", "revision"},
+            f"official Cairo verifier identity.{key}",
+        )
+        if source["repository"] != oracle_policy.get(repository_key):
+            raise ValueError(
+                f"official Cairo verifier {key} repository is not the "
+                "manifest-pinned repository"
+            )
+        if source["revision"] != oracle_policy.get(commit_key):
+            raise ValueError(
+                f"official Cairo verifier {key} revision is not the "
+                "manifest-pinned commit"
+            )
+    expected_lock = hashlib.sha256(adapter_lock.read_bytes()).hexdigest()
+    if _sha256_hex(
+        identity["cargo_lock_sha256"], "identity.cargo_lock_sha256",
+    ) != expected_lock:
+        raise ValueError(
+            "official Cairo verifier was not built from the committed lockfile"
+        )
+    expected_binary = hashlib.sha256(binary.read_bytes()).hexdigest()
+    if _sha256_hex(
+        identity["executable_sha256"], "identity.executable_sha256",
+    ) != expected_binary:
+        raise ValueError(
+            "official Cairo verifier identity does not bind the executed binary"
+        )
+    if CAIRO_ORACLE_CHANNEL not in identity["channels"]:
+        raise ValueError(
+            f"official Cairo verifier does not support the {CAIRO_ORACLE_CHANNEL} channel"
+        )
+    return identity
+
+
+def _validate_cairo_verdict(
+    raw: str,
+    oracle_policy: dict,
+    transport: str,
+    proof_sha256: str,
+) -> dict:
+    verdict = _load_json_object(raw, "official Cairo verifier verdict")
+    _exact_object(
+        verdict, _CAIRO_ORACLE_VERDICT_KEYS, "official Cairo verifier verdict",
+    )
+    expected = {
+        "schema_version": CAIRO_ORACLE_VERDICT_SCHEMA_VERSION,
+        "adapter_version": CAIRO_ORACLE_ADAPTER_VERSION,
+        "stwo_cairo_revision": oracle_policy.get("commit"),
+        "stwo_revision": oracle_policy.get("stwo_commit"),
+        "proof_sha256": proof_sha256,
+        "channel": CAIRO_ORACLE_CHANNEL,
+        "proof_format": transport,
+        "verified": True,
+        "error": None,
+    }
+    for field_name, value in expected.items():
+        actual = verdict.get(field_name)
+        if actual != value or type(actual) is not type(value):
+            raise ValueError(
+                f"official Cairo verifier verdict {field_name} differs "
+                f"(expected {value!r}, got {actual!r})"
+            )
+    _nonnegative_integer(verdict["wall_time_ns"], "verdict.wall_time_ns")
+    return verdict
+
+
+def _cairo_official_verifier_check(
+    candidate_root: Path,
+    group: WorkloadGroup,
+    workload: Workload,
+    out_dir: Path,
+) -> dict:
+    """Independently verify the scored Cairo proof with the pinned oracle.
+
+    TRACKS §8 wave 1: the official-verifier oracle the build gates already run
+    is wired into the judged harness path. Every step fails closed — a missing
+    adapter, a build that does not produce the binary, an identity that is not
+    bound to the manifest pins and the committed lockfile, a retained proof
+    whose bytes do not match what was scored, a rejected proof (adapter exit
+    3), or an adapter failure (exit 2). There is no skip.
+    """
+    oracle_policy = group.correctness_oracle
+    adapter = oracle_policy.get("adapter")
+    if (
+        oracle_policy.get("authority") != CAIRO_ORACLE_AUTHORITY
+        or adapter != CAIRO_ORACLE_ADAPTER
+        or oracle_policy.get("final_validator") is not True
+        or not _commit_like(oracle_policy.get("commit"))
+        or not _commit_like(oracle_policy.get("stwo_commit"))
+    ):
+        raise RunError(
+            f"{workload.workload_id}: Cairo group is not bound to the pinned "
+            "official Stwo-Cairo verifier as final validator"
+        )
+    build_command = oracle_policy.get("build_command")
+    adapter_manifest = f"{adapter}/Cargo.toml"
+    if (
+        not isinstance(build_command, str)
+        or "--locked" not in build_command
+        or "--release" not in build_command
+        or adapter_manifest not in build_command
+    ):
+        raise RunError(
+            f"{workload.workload_id}: the Cairo oracle build_command must be a "
+            f"locked release build of {adapter_manifest}"
+        )
+    adapter_lock = candidate_root / adapter / "Cargo.lock"
+    if not adapter_lock.is_file():
+        raise RunError(
+            f"{workload.workload_id}: the pinned Cairo verifier lockfile is "
+            f"missing at {adapter_lock}"
+        )
+    binary = _cairo_oracle_binary(candidate_root, adapter)
+    if not binary.is_file():
+        try:
+            _run(build_command, candidate_root, timeout=CAIRO_ORACLE_BUILD_TIMEOUT)
+        except RunError as exc:
+            # A judged Cairo run that cannot build its final validator fails —
+            # it never degrades to an unverified pass. The adapter compiles the
+            # pinned upstream, which needs the Rust toolchain that upstream
+            # requires; provision the judge host's default toolchain for it.
+            raise RunError(
+                f"{workload.workload_id}: the pinned official Cairo verifier "
+                f"failed to build ({build_command}): {exc}"
+            ) from exc
+    if not binary.is_file():
+        raise RunError(
+            f"{workload.workload_id}: the pinned official Cairo verifier was "
+            f"not produced at {binary}; a judged Cairo run never proceeds "
+            "without its final validator"
+        )
+    binary_sha256 = hashlib.sha256(binary.read_bytes()).hexdigest()
+
+    try:
+        envelope_path, proof_path = _latest_cairo_candidate_artifact(out_dir, workload)
+        envelope = _load_json_object(
+            envelope_path.read_text(encoding="utf-8"),
+            "candidate Cairo measurement envelope",
+        )
+        if envelope.get("schema") != group.report_schema:
+            raise ValueError("candidate envelope is not a cairo_proof_v1 envelope")
+        if envelope.get("workload") != workload.workload_id:
+            raise ValueError("candidate envelope names a different workload")
+        mechanism = envelope.get("mechanism")
+        if not isinstance(mechanism, dict):
+            raise ValueError("candidate envelope carries no mechanism telemetry")
+        scored_digest = _sha256_hex(
+            mechanism.get("proof_sha256"), "envelope mechanism proof_sha256",
+        )
+        scored_bytes = _nonnegative_integer(
+            mechanism.get("proof_bytes"), "envelope mechanism proof_bytes",
+            positive=True,
+        )
+        proof_format = mechanism.get("proof_format")
+        transport = CAIRO_ORACLE_TRANSPORTS.get(proof_format)
+        if transport is None:
+            raise ValueError(
+                f"proof format {proof_format!r} has no official Rust verifier "
+                "transport; the Cairo-serde felt array targets the Cairo "
+                "verifier and is rejected by this adapter"
+            )
+        artifact_bytes = proof_path.read_bytes()
+        if len(artifact_bytes) != scored_bytes:
+            raise ValueError(
+                "retained candidate proof length differs from the scored proof"
+            )
+        if hashlib.sha256(artifact_bytes).hexdigest() != scored_digest:
+            raise ValueError(
+                "retained candidate proof bytes differ from the scored proof"
+            )
+    except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+        raise RunError(
+            f"{workload.workload_id}: invalid retained Cairo candidate proof: {exc}"
+        ) from exc
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    identity_raw = _run(
+        shlex.join([str(binary), "identity"]),
+        candidate_root,
+        timeout=CAIRO_ORACLE_VERIFY_TIMEOUT,
+    )
+    try:
+        identity = _validate_cairo_oracle_identity(
+            identity_raw, oracle_policy, binary, adapter_lock,
+        )
+    except (json.JSONDecodeError, TypeError, ValueError) as exc:
+        raise RunError(
+            f"{workload.workload_id}: unpinned official Cairo verifier: {exc}"
+        ) from exc
+
+    verdict_path = (
+        out_dir / f"{workload.workload_id}.cairo-oracle-verdict.json"
+    ).resolve()
+    # The adapter publishes its verdict immutably and refuses an existing path.
+    verdict_path.unlink(missing_ok=True)
+    _run(
+        shlex.join([
+            str(binary), "verify",
+            "--proof", str(proof_path),
+            "--channel", CAIRO_ORACLE_CHANNEL,
+            "--proof-format", transport,
+            "--result", str(verdict_path),
+        ]),
+        candidate_root,
+        timeout=CAIRO_ORACLE_VERIFY_TIMEOUT,
+    )
+    try:
+        verdict = _validate_cairo_verdict(
+            verdict_path.read_text(encoding="utf-8"),
+            oracle_policy,
+            transport,
+            scored_digest,
+        )
+    except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
+        raise RunError(
+            f"{workload.workload_id}: invalid official Cairo verdict: {exc}"
+        ) from exc
+    if hashlib.sha256(binary.read_bytes()).hexdigest() != binary_sha256:
+        raise RunError(
+            f"{workload.workload_id}: the official Cairo verifier changed "
+            "during validation"
+        )
+    if proof_path.read_bytes() != artifact_bytes:
+        raise RunError(
+            f"{workload.workload_id}: the retained Cairo proof changed during "
+            "validation"
+        )
+    return {
+        "workload": workload.workload_id,
+        "verified": True,
+        "oracle": CAIRO_ORACLE_AUTHORITY,
+        "oracle_commit": oracle_policy["commit"],
+        "oracle_stwo_commit": oracle_policy["stwo_commit"],
+        "oracle_binary_sha256": binary_sha256,
+        "oracle_cargo_lock_sha256": identity["cargo_lock_sha256"],
+        "channel": CAIRO_ORACLE_CHANNEL,
+        "proof_format": transport,
+        "proof_sha256": scored_digest,
+        "proof_bytes": scored_bytes,
+        "verdict_path": str(verdict_path),
+        "verdict_wall_time_ns": verdict["wall_time_ns"],
+    }
 
 
 def guard_registry(manifest: Manifest) -> dict:
