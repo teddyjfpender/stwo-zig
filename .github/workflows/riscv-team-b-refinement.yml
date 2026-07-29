@@ -106,6 +106,10 @@ jobs:
       - name: Team B coverage, certificate, and AIR-binding gate
         run: python3 scripts/riscv_team_b.py check --air-ir-dir zig-out/team-b-ir
 
+      - name: Non-vacuity witnesses are reachable in the shipped AIR
+        run: |
+          python3 scripts/riscv_team_b_witnesses.py --air-ir-dir zig-out/team-b-ir
+
       - name: Build every Lean theorem
         run: |
           set -euo pipefail
@@ -141,4 +145,6 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m unittest scripts.tests.test_riscv_team_b -v
+          python3 -m unittest scripts.tests.test_riscv_team_b_witnesses -v
+          python3 -m unittest scripts.tests.test_sail_translation -v
           python3 -m unittest scripts.tests.test_riscv_refinement -v
