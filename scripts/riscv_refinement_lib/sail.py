@@ -11,7 +11,7 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import codec, sail_translation
+from . import codec, sail_lean_bridge, sail_translation
 from .model import (
     SAIL_REPOSITORY,
     SAIL_REVISION,
@@ -73,6 +73,7 @@ COMMITTED_DEFINITIONS = {
 COMMITTED_TRANSLATION_RECEIPT = Path(
     "generated/sail/translation-receipt-v1.json"
 )
+COMMITTED_MONAD_BRIDGE_RECEIPT = sail_lean_bridge.COMMITTED_RECEIPT
 
 
 @dataclass(frozen=True)
@@ -96,6 +97,7 @@ class SailEvidence:
     definition_slices: dict[str, str]
     source_slice_hashes: dict[str, str]
     translation_receipt: dict[str, object]
+    monad_bridge_receipt: dict[str, object]
     evidence_source: str = LIVE_EVIDENCE
 
 
@@ -728,13 +730,19 @@ def collect_evidence(
     _validate_semantic_shapes(definitions)
     translation_receipt = _translation_receipt(definitions)
     profile_files = (PROFILE_PATH, *OVERRIDE_PATHS, PATCH_PATH)
+    generated_file_sha256 = codec.sha256_file(generated)
+    monad_bridge_receipt = sail_lean_bridge.verify(
+        Paths(repository_root),
+        generated,
+        generated_file_sha256,
+    )
     return SailEvidence(
         source_root=root,
         compiler=sail_bin,
         compiler_sha256=codec.sha256_file(sail_bin),
         simulator_sha256=simulator_sha256,
         generated_file=generated,
-        generated_file_sha256=codec.sha256_file(generated),
+        generated_file_sha256=generated_file_sha256,
         source_file_sha256=codec.sha256_file(source),
         model_entry_sha256=codec.sha256_file(root / MODEL_ENTRY),
         base_configuration_sha256=codec.sha256_file(root / BASE_CONFIGURATION),
@@ -749,6 +757,7 @@ def collect_evidence(
         definition_slices=definitions,
         source_slice_hashes=slice_hashes,
         translation_receipt=translation_receipt,
+        monad_bridge_receipt=monad_bridge_receipt,
         evidence_source=LIVE_EVIDENCE,
     )
 
@@ -803,7 +812,8 @@ def _carried_pins(carried: dict[str, object]) -> None:
     _carried_base_pins(carried)
     pinned: dict[str, object] = {
         "normalization": NORMALIZATION,
-        "generated_monad_normalization_theorem": False,
+        "generated_monad_normalization_theorem": True,
+        "generated_step_loop_framing_theorem": False,
     }
     for key, expected in pinned.items():
         if carried.get(key) != expected:
@@ -825,6 +835,18 @@ def _carried_pins(carried: dict[str, object]) -> None:
         raise RefinementError(
             "committed Sail provenance translation receipt does not match "
             "the pinned artifact/schema/parser"
+        )
+    bridge = carried.get("generated_monad_bridge_receipt")
+    if (
+        not isinstance(bridge, dict)
+        or bridge.get("artifact")
+        != COMMITTED_MONAD_BRIDGE_RECEIPT.as_posix()
+        or bridge.get("schema_version")
+        != sail_lean_bridge.SCHEMA_VERSION
+    ):
+        raise RefinementError(
+            "committed Sail provenance monad bridge receipt does not match "
+            "the pinned artifact/schema"
         )
 
 
@@ -940,6 +962,42 @@ def _carried_translation(
     return definitions, _verify_translation_receipt(receipt, definitions)
 
 
+def _carried_monad_bridge(
+    paths: Paths,
+    manifest: dict[str, object],
+    generated_backend_sha256: str,
+) -> dict[str, object]:
+    """Validate the committed cross-project Lean proof receipt."""
+    artifacts = manifest.get("artifacts")
+    if not isinstance(artifacts, dict):
+        raise RefinementError(
+            "committed manifest has no generated artifact digest map"
+        )
+    receipt_path = paths.formal / COMMITTED_MONAD_BRIDGE_RECEIPT
+    if receipt_path.is_symlink() or not receipt_path.is_file():
+        raise RefinementError(
+            f"{COMMITTED_MONAD_BRIDGE_RECEIPT.as_posix()}: committed "
+            "generated Sail monad bridge receipt is absent"
+        )
+    receipt = codec.load_json(receipt_path)
+    if receipt_path.read_bytes() != codec.pretty_bytes(receipt):
+        raise RefinementError(
+            f"{COMMITTED_MONAD_BRIDGE_RECEIPT.as_posix()}: committed "
+            "generated Sail monad bridge receipt is not canonical pretty JSON"
+        )
+    digest = codec.sha256_file(receipt_path)
+    if artifacts.get(COMMITTED_MONAD_BRIDGE_RECEIPT.as_posix()) != digest:
+        raise RefinementError(
+            f"{COMMITTED_MONAD_BRIDGE_RECEIPT.as_posix()}: monad bridge "
+            "receipt digest does not match the committed manifest"
+        )
+    return sail_lean_bridge.validate_carried(
+        paths,
+        receipt,
+        generated_backend_sha256,
+    )
+
+
 def _render_capsule(evidence: SailEvidence) -> bytes:
     from . import render  # deferred: render imports this module at load time
 
@@ -976,6 +1034,8 @@ def _refuse_minting_sail_artifacts(paths: Paths, evidence: SailEvidence) -> None
         COMMITTED_CAPSULE: _render_capsule(evidence),
         COMMITTED_TRANSLATION_RECEIPT:
             codec.pretty_bytes(evidence.translation_receipt),
+        COMMITTED_MONAD_BRIDGE_RECEIPT:
+            codec.pretty_bytes(evidence.monad_bridge_receipt),
         **{
             relative: evidence.definition_slices[name].encode("utf-8")
             for name, relative in COMMITTED_DEFINITIONS.items()
@@ -1027,7 +1087,10 @@ def capture_pinned_generated_evidence(
             LEGACY_NORMALIZATION,
             NORMALIZATION,
         }
-        or carried.get("generated_monad_normalization_theorem") is not False
+        or not isinstance(
+            carried.get("generated_monad_normalization_theorem"),
+            bool,
+        )
     ):
         raise RefinementError(
             "committed Sail normalization boundary is not eligible for "
@@ -1072,6 +1135,11 @@ def capture_pinned_generated_evidence(
         )
     _validate_semantic_shapes(definitions)
     translation_receipt = _translation_receipt(definitions)
+    monad_bridge_receipt = sail_lean_bridge.verify(
+        paths,
+        generated,
+        actual_backend_digest,
+    )
     return SailEvidence(
         source_root=None,
         compiler=None,
@@ -1093,6 +1161,7 @@ def capture_pinned_generated_evidence(
         definition_slices=definitions,
         source_slice_hashes=dict(SOURCE_SLICE_HASHES),
         translation_receipt=translation_receipt,
+        monad_bridge_receipt=monad_bridge_receipt,
         evidence_source=CARRIED_EVIDENCE,
     )
 
@@ -1126,16 +1195,22 @@ def carried_evidence(paths: Paths) -> SailEvidence:
     _profile(paths.root)
     configuration = _carried_configuration(paths, manifest, carried)
     definitions, translation_receipt = _carried_translation(paths, manifest)
+    generated_backend_sha256 = _carried_digest(
+        carried,
+        "generated_backend_file_sha256",
+    )
+    monad_bridge_receipt = _carried_monad_bridge(
+        paths,
+        manifest,
+        generated_backend_sha256,
+    )
     evidence = SailEvidence(
         source_root=None,
         compiler=None,
         compiler_sha256=None,
         simulator_sha256=None,
         generated_file=None,
-        generated_file_sha256=_carried_digest(
-            carried,
-            "generated_backend_file_sha256",
-        ),
+        generated_file_sha256=generated_backend_sha256,
         source_file_sha256=_carried_digest(carried, "source_file_sha256"),
         model_entry_sha256=_carried_digest(carried, "model_entry_sha256"),
         base_configuration_sha256=_carried_digest(
@@ -1150,6 +1225,7 @@ def carried_evidence(paths: Paths) -> SailEvidence:
         definition_slices=definitions,
         source_slice_hashes=dict(SOURCE_SLICE_HASHES),
         translation_receipt=translation_receipt,
+        monad_bridge_receipt=monad_bridge_receipt,
         evidence_source=CARRIED_EVIDENCE,
     )
     reconstructed = provenance(evidence)
@@ -1200,7 +1276,17 @@ def provenance(evidence: SailEvidence) -> dict[str, object]:
                 for name in sorted(GENERATED_DEFINITION_HASHES)
             },
         },
-        "generated_monad_normalization_theorem": False,
+        "generated_monad_bridge_receipt": {
+            "artifact": COMMITTED_MONAD_BRIDGE_RECEIPT.as_posix(),
+            "schema_version": sail_lean_bridge.SCHEMA_VERSION,
+            "canonical_digest":
+                evidence.monad_bridge_receipt["canonical_digest"],
+            "theorems": evidence.monad_bridge_receipt["theorems"],
+            "claim_boundary":
+                evidence.monad_bridge_receipt["claim_boundary"],
+        },
+        "generated_monad_normalization_theorem": True,
+        "generated_step_loop_framing_theorem": False,
         "evidence_source": evidence.evidence_source,
     }
 

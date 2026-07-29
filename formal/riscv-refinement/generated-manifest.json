@@ -54,21 +54,23 @@
     "generated/air/xori.air-ir-v2.json": "52e89299674a14442eaf2cbdda970946e64548e169bd17e92d040bf3ed0c1a75",
     "generated/sail/definitions/execute_ITYPE.lean": "1d014d14c56ab01dc511fc36c8c6ee4dea56a63708257b8a5df451e7c6f6b17d",
     "generated/sail/definitions/execute_UTYPE.lean": "f746995b8c903140529bb742379c295bee8d95a02de2d730990dc77fe1cacf1c",
+    "generated/sail/generated-monad-bridge-receipt-v1.json": "69c3c94bac572ca05d464f0e270296de6ab591482704a978e46f66e7da1fcffc",
     "generated/sail/rv32im-zkvm-v1.json": "5c31e516a205d693386564242d623dbaf4dc1566573f9ecfdcb026611c8fc2c1",
     "generated/sail/translation-receipt-v1.json": "447d8a5b11bc841864114218a7f852a2ee461b722ffbad2b13524c59a3803191"
   },
-  "canonical_digest": "22cbbbe899d61b0ce4f51a38f1641e0170e018bd8daf004eb9d747ebee9644e5",
+  "canonical_digest": "d7756f8568a6879f4a93797f13afaa6d5f278e484b99dbe5aedb2aef846a107e",
   "claim_boundary": {
     "addi_air_to_normalized_composition": true,
     "generated_sail_ast_translation_receipt": true,
     "kernel_checked_normalized_refinement": true,
-    "lean_generated_sail_monad_normalization": false,
+    "lean_generated_sail_monad_normalization": true,
+    "lean_generated_sail_step_loop_framing": false,
     "lean_serialized_m31_air_interpreter": true,
     "lui_air_ir_v2_roundtrip": true,
     "lui_air_to_normalized_composition": true
   },
   "generators": {
-    "scripts/riscv_refinement.py": "75f9ae3f4c729d8e3e3cc0826bad056a9df7be363b33c40aef67565d42af6815",
+    "scripts/riscv_refinement.py": "f2bee056f27ea45ba9dc769092ff8e9f2af568ce152f9106d6c22786d5a477da",
     "scripts/riscv_refinement_lib/air.py": "02e16bbec81d87912fc1a2d767075887b94d86520527bedb615a4e5dc02fa3e3",
     "scripts/riscv_refinement_lib/air_program.py": "fa65bd0939d68848a4730c6844415fd40a6670f0bee277da4f96d8bc7005f8f3",
     "scripts/riscv_refinement_lib/air_program_contract.py": "6ce5a75dfcb19f26d933f74d2cb9acc1f12cccdc9395385560da89ba2276f269",
@@ -77,10 +79,11 @@
     "scripts/riscv_refinement_lib/codec.py": "0ae4eaf37dfa9eaec08d26c0a042a1b1e4e8b4b9418e834e28d479e6e3b0b86b",
     "scripts/riscv_refinement_lib/model.py": "15d54672a04982109af2c4322a0986addaa054227150ae67fc10d238e46d4258",
     "scripts/riscv_refinement_lib/negative.py": "350ecd86a9694ee4bace43c74d7fe7518652554d927e8b7b999229c354e93cce",
-    "scripts/riscv_refinement_lib/render.py": "55ef9d38fcb98ebc9d2a6b986867a74e256cecdc6f5ca370836231546f4ec940",
-    "scripts/riscv_refinement_lib/sail.py": "e19025d88d179129726ed01746231f42b228739eb97d2d9f6f4fff7d58f07517",
+    "scripts/riscv_refinement_lib/render.py": "c876653ae6fb237de5a9a69a4b6a883dcb2df253d6b55b843520f6dc0828cfaf",
+    "scripts/riscv_refinement_lib/sail.py": "f2a33f5e48f0221f19df60f4abdca712104f44c07ba10496ddf9282ce5139b7a",
+    "scripts/riscv_refinement_lib/sail_lean_bridge.py": "ae2d6aafdf879b02cfa041091611cbeddf291f318649f74fbbf0c4d37a850dbb",
     "scripts/riscv_refinement_lib/sail_translation.py": "95a24bb3b2ed57e98a9965fb360e3758fa86fd6b4f394ee445e019ddc42530c4",
-    "scripts/tests/test_riscv_refinement.py": "9235fbd7fcec6647a00cd330084948ded9f814d9dcae01f5b33f6a50f2f07054",
+    "scripts/tests/test_riscv_refinement.py": "ecf922891c484eadfc74d53d892d41d7f20faf892695ec741e2ae80a7bb2c59a",
     "scripts/tests/test_sail_air_composition_contract.py": "6a24de22875e9d1e05398bee3acf50b7ba7104222b83bd5fdc67ec2eb46bf173",
     "scripts/tests/test_sail_translation.py": "1a482a2c27d7d087ec4a9e81eb29b6df0392dcda3187d655dd6a4a078266c1c8"
   },
@@ -305,7 +308,8 @@
     "src/frontends/riscv/witness_layout.zig": "05988a58da86de7286760cb24864ed736845723b8ece87119c93e4a9de41944d"
   },
   "proof_sources": {
-    "formal/riscv-refinement/README.md": "2260b88f87738d5220f7e720cbddb93dac96e939afa751d0ff62c4f6d2a79cc0",
+    "conformance/riscv/sail-lean-riscv-extras.patch": "ceb85e86b94a9f254502373f821198f9dfd3019105b77dc7987818b2a4388070",
+    "formal/riscv-refinement/README.md": "7b6590515d45a2a655af95bd2eb9608ddf0b1f240b6dda764af9f5ac409d5691",
     "formal/riscv-refinement/RiscvRefinement.lean": "eeebdb37275e5f3aabe516ff5fd774d31ec7365966bfe15d1fb300b66dad4412",
     "formal/riscv-refinement/RiscvRefinement/Air.lean": "b73c7ae5dd64f2e54256360cdf4e541827ec312a5b2a1bcf2896eb94cc2b59d8",
     "formal/riscv-refinement/RiscvRefinement/Air/Bridge/Addi.lean": "64418244090699834014752b1b2242c4b9e8a70b73698943cf338d893cc1d246",
@@ -330,11 +334,12 @@
     "formal/riscv-refinement/RiscvRefinement/Opcodes/Lui.lean": "45e9ab347a306a8677cd378ca08b0ad60d6d6f42e595a41c1287c7b490a8c0a2",
     "formal/riscv-refinement/RiscvRefinement/Tables.lean": "837fdbfa6691c472ccec70783e79743c7a437e9f683496b6e1816bde4e92b324",
     "formal/riscv-refinement/RiscvRefinement/Tables/Fixed.lean": "03cb67f4c069274218c467aed2f6d846146fa3be4620c2bc19081ecee972ec86",
+    "formal/riscv-refinement/generated-sail-bridge/Pilot.lean": "99a926701c9cef25e0d04299168c9663a69804241f18e3ba399e7881844a609e",
     "formal/riscv-refinement/lake-manifest.json": "a03b6dc2bc959d611317d4b22dfad3f37b00905071893c660893c3b5f944c56b",
     "formal/riscv-refinement/lakefile.toml": "4a3f35024216c048d4c7c76fcd518de9701f7e1fa0c9f6ee6771b3d537fd1a36",
     "formal/riscv-refinement/lean-toolchain": "651c8accb402b0c071cd336e9d3dc0a55516b1bfb434ddc4801f14936785b1d2",
     "soundness/AIR_IR_V2_CONTRACT.md": "f57d8154185145bb29838927fcb676e2ccbf50c5813186ca2143d7673c843ee1",
-    "soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md": "51f0b5c15a4ac2decee06b72df2731de3c53973f33369da42bfd5a23d8460059",
+    "soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md": "e2caeaa8ad266d19608e8465d3c2d64906cc9df55f29b27d9641b9d3184d368e",
     "soundness/air-ir-v2.schema.json": "8f2585c486a3eac979c971e8c1a974f756d40c13844680d50aa6020cc6c8ac0f"
   },
   "sail": {
@@ -362,7 +367,24 @@
       "execute_ITYPE": "1d014d14c56ab01dc511fc36c8c6ee4dea56a63708257b8a5df451e7c6f6b17d",
       "execute_UTYPE": "f746995b8c903140529bb742379c295bee8d95a02de2d730990dc77fe1cacf1c"
     },
-    "generated_monad_normalization_theorem": false,
+    "generated_monad_bridge_receipt": {
+      "artifact": "generated/sail/generated-monad-bridge-receipt-v1.json",
+      "canonical_digest": "b3c8e40ce124d7a85b40dbc8b128a84a014adcdaf8f7c4900f76815e18f6b32f",
+      "claim_boundary": {
+        "fetch_interrupt_trap_and_step_loop_framing": false,
+        "generated_execute_clause_monad_normalization": true,
+        "sequential_next_pc_and_tick_fragment": true
+      },
+      "schema_version": "stwo-generated-sail-monad-bridge-v1",
+      "theorems": [
+        "LeanRV32IM.Functions.execute_LUI_normalizes_write",
+        "LeanRV32IM.Functions.execute_ADDI_normalizes_write",
+        "LeanRV32IM.Functions.complete_LUI_normalizes",
+        "LeanRV32IM.Functions.complete_ADDI_normalizes"
+      ]
+    },
+    "generated_monad_normalization_theorem": true,
+    "generated_step_loop_framing_theorem": false,
     "model_entry": "model/riscv.sail_project",
     "model_entry_sha256": "d74dc5479c7b24453b278c9836fe5b15020ff2819e8548ac63fd431e67e3c01b",
     "normalization": "checked generated-definition AST translation receipt for LUI and ADDI",

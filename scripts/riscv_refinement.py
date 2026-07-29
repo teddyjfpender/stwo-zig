@@ -2907,8 +2907,9 @@ CLAIM_BOUNDARY = (
     "kernel-checked normalized LUI/ADDI predicate refinement plus "
     "lookup-complete production LUI/ADDI AIR-to-normalized composition and "
     "Lean-checked Stage A2 mutation controls, bound to a checked AST "
-    "translation receipt over the pinned generated execute clauses; "
-    "generated-Sail step-monad composition remains open"
+    "translation receipt and direct generated-Lean execute-clause monad "
+    "normalization with sequential PC/tick; fetch, interrupt, trap, counter, "
+    "and wider generated step-loop framing remain open"
 )
 MUTATION_THEOREMS = {
     "lui-free-low-limb": (
@@ -3026,7 +3027,7 @@ def capture_sail_translation(
     args: argparse.Namespace,
     paths: Paths,
 ) -> None:
-    """Bootstrap checked slices from an already manifest-bound backend."""
+    """Bootstrap checked slices and Lean bridge from a manifest-bound backend."""
     if args.reuse_committed_sail_evidence:
         raise RefinementError(
             "capture-sail-translation does not accept "
@@ -3052,8 +3053,9 @@ def capture_sail_translation(
     outputs = render.artifacts(paths, evidence)
     render.write_artifacts(paths, outputs)
     print(
-        "captured pinned generated-Sail translation receipt: "
-        f"{evidence.translation_receipt['canonical_digest']}"
+        "captured pinned generated-Sail translation/monad receipts: "
+        f"{evidence.translation_receipt['canonical_digest']} / "
+        f"{evidence.monad_bridge_receipt['canonical_digest']}"
     )
 
 

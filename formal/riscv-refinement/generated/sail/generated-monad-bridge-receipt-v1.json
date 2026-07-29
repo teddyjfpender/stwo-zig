@@ -1,0 +1,59 @@
+{
+  "bridge_source": "formal/riscv-refinement/generated-sail-bridge/Pilot.lean",
+  "bridge_source_sha256": "99a926701c9cef25e0d04299168c9663a69804241f18e3ba399e7881844a609e",
+  "canonical_digest": "b3c8e40ce124d7a85b40dbc8b128a84a014adcdaf8f7c4900f76815e18f6b32f",
+  "claim_boundary": {
+    "fetch_interrupt_trap_and_step_loop_framing": false,
+    "generated_execute_clause_monad_normalization": true,
+    "sequential_next_pc_and_tick_fragment": true
+  },
+  "evidence_source": "exact-pinned-generated-backend",
+  "generated_backend_sha256": "074d61135954f165c3490630aec286f28638ba99f1c64c92056bd3c29c05c21a",
+  "generated_module_sha256": {
+    "LeanRV32IM/Callbacks.lean": "08dbceb93ab1e5711e51f28127c6999b9d15331a13ac6317a4a096bc22d6e194",
+    "LeanRV32IM/Defs.lean": "48049c73d2445dc9e84526b797ea31217082a54239d7a9f59e680dd303170b09",
+    "LeanRV32IM/InstsBegin.lean": "e7dfdc19a7be526cffdd27e4eb63289a5b8640135f30164a98fd56a127e8d7d8",
+    "LeanRV32IM/InstsEnd.lean": "074d61135954f165c3490630aec286f28638ba99f1c64c92056bd3c29c05c21a",
+    "LeanRV32IM/PcAccess.lean": "5664b05b4d12ec41a9928adaf5767ebfe34b8e4bd103ed2d64764294812c727d",
+    "LeanRV32IM/Regs.lean": "0ef72eb67e9628999a3e738394cbdd7915381006cb807ab16121fe0695230af5",
+    "LeanRV32IM/RiscvExtras.lean": "7d774a62134bd79b6a0bebd85ce2f215a2a3ce3552e74d4e3c9ac4c9ed24e95c"
+  },
+  "generated_source_closure_sha256": "a4327780fa2adf4405e1f3912c8d16c56c54d89f03e6f962e907eac878d9be19",
+  "generated_source_count": 159,
+  "kind": "stwo-generated-sail-monad-bridge",
+  "lean_sail_revision": "79b4d08505af29d88b3918f32d29840fae1fa191",
+  "lean_toolchain": "leanprover/lean4:v4.29.0",
+  "normalized_capsule": "RiscvRefinement/Sail/Generated/Pilot.lean",
+  "normalized_capsule_sha256": "942a2e82406bffa4c50c3b101a3529777b2f2ad6bcf4fb77f51c5478cbc9c0ac",
+  "schema_version": "stwo-generated-sail-monad-bridge-v1",
+  "support_patch": "conformance/riscv/sail-lean-riscv-extras.patch",
+  "support_patch_sha256": "ceb85e86b94a9f254502373f821198f9dfd3019105b77dc7987818b2a4388070",
+  "theorem_axioms": {
+    "LeanRV32IM.Functions.complete_ADDI_normalizes": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "LeanRV32IM.Functions.complete_LUI_normalizes": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "LeanRV32IM.Functions.execute_ADDI_normalizes_write": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "LeanRV32IM.Functions.execute_LUI_normalizes_write": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ]
+  },
+  "theorems": [
+    "LeanRV32IM.Functions.execute_LUI_normalizes_write",
+    "LeanRV32IM.Functions.execute_ADDI_normalizes_write",
+    "LeanRV32IM.Functions.complete_LUI_normalizes",
+    "LeanRV32IM.Functions.complete_ADDI_normalizes"
+  ]
+}

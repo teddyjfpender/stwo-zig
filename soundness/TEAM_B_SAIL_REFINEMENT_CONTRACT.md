@@ -14,23 +14,23 @@ Read this section before quoting any other section.
 
 The repository pins Sail 0.20.2 and the `rv32im-zkvm-v1` profile, generates the
 Sail Lean theorem backend from that exact configuration, and kernel-checks LUI
-and ADDI against a **reviewed normalized capsule** of the generated definitions.
-It does **not** yet prove that the capsule is the observable result of the
-generated Sail monad. That is the second open translation obligation and it is
-still open after this document.
+and ADDI against a normalized capsule of the generated definitions. A direct
+cross-project Lean bridge now proves that the exact generated LUI/ADDI execute
+clauses, followed by the shared sequential next-PC write and `tick_pc`, equal
+the normalized executions. It does **not** yet prove the surrounding fetch,
+interrupt, trap, counter, or later-step framing of the full generated Sail
+loop.
 
 Consequently:
 
 - Nothing in this document licenses reporting any opcode as publication-level.
 - The architectural capsules Team B adds for the load/store, shift, multiply
-  and division families are the same epistemic **class** as the existing
-  LUI/ADDI capsule — a reviewed normalized capsule, explicitly **not** a
-  generated-Sail theorem — but they are **not** the same status. The LUI/ADDI
-  capsule (`RiscvRefinement/Sail/Generated/Pilot.lean`) is generator output
-  pinned to SHA-256 digests of real generated Sail text; the Team B capsules
-  are hand-written, with no generator, no digest, and no derivation from any
-  Sail artifact. Wherever this repository compares the two, "same class,
-  weaker provenance" is the correct reading.
+  and division families remain reviewed normalized capsules, explicitly
+  **not** generated-Sail theorems. They are no longer the same epistemic class
+  as the LUI/ADDI pilot: that capsule is generator output pinned to exact
+  generated Sail text and now has a kernel-checked generated-clause monad
+  bridge. The Team B capsules are hand-written, with no generated-definition
+  receipt or derivation from a Sail artifact.
 - Each of the four capsule files under `RiscvRefinement/Sail/Reviewed/`
   carries a header saying so. Hand-written architectural content **outside**
   that directory has carried the boundary header inconsistently: a 2026-07-29
@@ -174,8 +174,9 @@ For each erased field `f` the bridge must discharge, for every admitted opcode:
 
 The composition of these two facts is the "no erased raw-Sail field changes a
 later observable transition" obligation in Stage B1. It is currently **open**:
-it can only be discharged against the generated monad, which is the open
-translation obligation from section 0.
+the pilot bridge now reaches the generated execute clauses and sequential
+PC/tick fragment, but does not yet frame fetch, interrupts, traps, counters, or
+later admitted transitions.
 
 ### 5.1 What the translation receipt can discharge mechanically, and what stays hand proof
 
@@ -197,6 +198,15 @@ verification re-hashes both slices, re-parses them, re-derives the receipt, and
 requires byte-identical reproduction. This mechanically binds the normalized
 LUI and ADDI execute-clause effects to actual generated output. It remains
 carried evidence on hosts without Sail and cannot mint a release receipt.
+
+The direct bridge in
+`formal/riscv-refinement/generated-sail-bridge/Pilot.lean` goes beyond that
+receipt: it imports the exact generated Lean project and proves the clause
+monads and sequential PC/tick fragment equal the normalized LUI/ADDI
+executions. Its separate canonical receipt records the four theorem names,
+complete generated-source closure, and approved axiom inventory. It
+deliberately records full fetch/interrupt/trap/counter and later-step framing
+as false.
 
 Hosted Sail provisioning exists —
 `.github/workflows/riscv-sail-formal.yml`, normative in
@@ -402,7 +412,9 @@ approval recorded in this document. The receipt *machinery* now exists
 (`scripts/riscv_refinement_lib/sail_translation.py`, section 5.1), and an exact
 generated-output receipt is committed for the LUI/ADDI pilot. That pilot
 receipt is not independent approval, no approval is recorded here, and it does
-not cover the remaining Team B execute families or the generated step monad.
+not cover the remaining Team B execute families. The separate direct bridge
+covers only the pilot execute-clause monads and sequential PC/tick fragment,
+not the full generated step loop.
 
 Hand-transcribing instruction functions and validating them only with test
 vectors is never acceptable as the final theorem. The reviewed capsules that

@@ -16,13 +16,12 @@
 #     export, the job is RED.
 #   * The proof-escape scan and the axiom audit are RED on any hit.
 #
-# What this workflow does NOT do: it does not provision Sail. The generated
-# pinned-Sail normalization theorem is still open (see
-# soundness/TEAM_B_SAIL_REFINEMENT_CONTRACT.md section 0), and the Sail-bound
-# Level-1 pilot gate remains the separate, locally-run
-# `zig build riscv-refinement-pilot`. When the generated-Sail binding lands,
-# the Sail provisioning steps from riscv-sail-differential.yml move in here and
-# this comment is deleted, not softened.
+# What this workflow does NOT do: it does not provision Sail. It checks the
+# committed generated-clause bridge receipt through the carried-evidence gate;
+# fresh Sail regeneration and the cross-project Lean build run in the separate
+# hosted `riscv-sail-formal.yml` workflow. Full fetch/interrupt/trap/counter and
+# later-step framing remains open (see
+# soundness/TEAM_B_SAIL_REFINEMENT_CONTRACT.md section 0).
 
 name: RISC-V Team B refinement
 
@@ -46,6 +45,7 @@ on:
       - "scripts/tests/test_riscv_team_b_witnesses.py"
       - "scripts/tests/test_riscv_refinement.py"
       - "scripts/tests/test_sail_translation.py"
+      - "conformance/riscv/sail-lean-riscv-extras.patch"
       - "src/frontends/riscv/**"
       - "soundness/TEAM_B_SAIL_REFINEMENT_CONTRACT.md"
       - ".github/workflows/riscv-team-b-refinement.yml"

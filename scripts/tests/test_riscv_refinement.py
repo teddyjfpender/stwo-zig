@@ -22,6 +22,7 @@ from scripts.riscv_refinement_lib import (
     negative,
     render,
     sail,
+    sail_lean_bridge,
 )
 from scripts.riscv_refinement_lib.model import Paths, RefinementError
 
@@ -41,12 +42,20 @@ def carried_fixture(root: Path) -> Paths:
         MANIFEST,
         sail.COMMITTED_CONFIGURATION,
         sail.COMMITTED_CAPSULE,
+        sail.COMMITTED_MONAD_BRIDGE_RECEIPT,
         sail.COMMITTED_TRANSLATION_RECEIPT,
         *sail.COMMITTED_DEFINITIONS.values(),
     ):
         destination = paths.formal / relative
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(Paths(ROOT).formal / relative, destination)
+    for relative in (
+        sail_lean_bridge.BRIDGE_SOURCE,
+        sail_lean_bridge.SUPPORT_PATCH,
+    ):
+        destination = root / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT / relative, destination)
     return paths
 
 
@@ -785,7 +794,10 @@ class RefinementAirTest(unittest.TestCase):
             paths = carried_fixture(Path(raw))
             capsule = paths.formal / sail.COMMITTED_CAPSULE
             capsule.write_bytes(capsule.read_bytes() + b"-- drift\n")
-            with self.assertRaisesRegex(RefinementError, "would rewrite"):
+            with self.assertRaisesRegex(
+                RefinementError,
+                "normalized_capsule_sha256 drifted",
+            ):
                 sail.carried_evidence(paths)
 
         with tempfile.TemporaryDirectory() as raw:
@@ -805,6 +817,26 @@ class RefinementAirTest(unittest.TestCase):
             with self.assertRaisesRegex(
                 RefinementError,
                 "not canonical pretty JSON",
+            ):
+                sail.carried_evidence(paths)
+
+        with tempfile.TemporaryDirectory() as raw:
+            paths = carried_fixture(Path(raw))
+            receipt = paths.formal / sail.COMMITTED_MONAD_BRIDGE_RECEIPT
+            receipt.write_bytes(receipt.read_bytes() + b"\n")
+            with self.assertRaisesRegex(
+                RefinementError,
+                "monad bridge receipt is not canonical pretty JSON",
+            ):
+                sail.carried_evidence(paths)
+
+        with tempfile.TemporaryDirectory() as raw:
+            paths = carried_fixture(Path(raw))
+            bridge = paths.root / sail_lean_bridge.BRIDGE_SOURCE
+            bridge.write_bytes(bridge.read_bytes() + b"-- drift\n")
+            with self.assertRaisesRegex(
+                RefinementError,
+                "bridge field bridge_source_sha256 drifted",
             ):
                 sail.carried_evidence(paths)
 
@@ -839,6 +871,36 @@ class RefinementAirTest(unittest.TestCase):
             with self.assertRaisesRegex(
                 RefinementError,
                 "unknown checkout state",
+            ):
+                sail.carried_evidence(paths)
+
+    def test_carried_monad_bridge_rejects_a_resigned_axiom_escape(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            paths = carried_fixture(Path(raw))
+            receipt_path = (
+                paths.formal / sail.COMMITTED_MONAD_BRIDGE_RECEIPT
+            )
+            receipt = codec.load_json(receipt_path)
+            theorem = sail_lean_bridge.THEOREMS[0]
+            receipt["theorem_axioms"][theorem].append("trustMe")
+            receipt["canonical_digest"] = codec.content_digest(receipt)
+            codec.atomic_write(receipt_path, codec.pretty_bytes(receipt))
+
+            manifest = codec.load_json(paths.manifest)
+            manifest["artifacts"][
+                sail.COMMITTED_MONAD_BRIDGE_RECEIPT.as_posix()
+            ] = codec.sha256_file(receipt_path)
+            manifest["sail"]["generated_monad_bridge_receipt"][
+                "canonical_digest"
+            ] = receipt["canonical_digest"]
+            manifest["canonical_digest"] = codec.content_digest(manifest)
+            codec.atomic_write(paths.manifest, codec.pretty_bytes(manifest))
+
+            with self.assertRaisesRegex(
+                RefinementError,
+                "proof inventory is invalid",
             ):
                 sail.carried_evidence(paths)
 

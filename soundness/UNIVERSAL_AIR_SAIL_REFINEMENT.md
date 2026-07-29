@@ -2,10 +2,12 @@
 
 **Status:** production AIR-to-normalized composition is complete for LUI and
 ADDI, and a checked AST receipt binds their normalized execute clauses to exact
-pinned generated-Sail slices. Generated Sail step-monad composition, Team A's
-remaining 22 opcode proofs, and the aggregate 46-opcode gate remain open. Team
-B's 22 opcode proofs are complete at reviewed-capsule grade, not publication
-grade.
+pinned generated-Sail slices. A direct cross-project Lean bridge now proves
+generated Sail step-monad composition for the LUI/ADDI execute clauses and
+their sequential next-PC/tick fragment. Full fetch/interrupt/trap/counter and
+later-step framing, Team A's remaining 22 opcode proofs, and the aggregate
+46-opcode gate remain open. Team B's 22 opcode proofs are complete at
+reviewed-capsule grade, not publication grade.
 
 **Primary result:** machine-check, for every input admitted by each of the 46
 proof opcodes, that satisfaction of the shipped row AIR and its exact local
@@ -66,12 +68,14 @@ backend under that configuration, and pins the complete generated file. Exact
 and a canonical receipt records their normalized LUI/ADDI effects.
 
 This remains deliberately called a **2/46 normalized pilot**, not “2 of 46
-publication opcodes proved.” The remaining composition obligation is from
-generated Sail step-monad execution to the receipt-bound normalized capsule
-(or the contract's independently approved fallback). The AIR half of the
-joint pilot gate is complete, but SA-1 premise 5 remains open. The generated
-manifest records both the positive AST-receipt claim and the negative
-step-monad claim, and fails closed if stale AIR or Sail artifacts are requested.
+publication opcodes proved.” The exact generated LUI/ADDI execute-clause
+monads now normalize to the receipt-bound capsule, and the common sequential
+next-PC/tick fragment composes with them. The remaining generated Sail
+step-monad composition obligation is the wider fetch, interrupt, trap,
+counter, and later-step framing (or the contract's independently approved
+fallback). SA-1 premise 5 therefore remains open. The generated manifest
+records the positive clause-monad claim and the negative full-step-loop claim,
+and fails closed if stale AIR or Sail artifacts are requested.
 
 ## 1. Objective and claim boundary
 
@@ -476,9 +480,13 @@ The LUI/ADDI pilot now carries that checked translation artifact: exact
 generated `execute_UTYPE` and `execute_ITYPE` slices, their typed AST digests,
 and a fail-closed canonical receipt for every selector in those definitions.
 Carried-evidence runs re-derive it byte for byte; only a live pinned-toolchain
-run can mint release evidence. This closes the execute-clause translation
-boundary, not the generated step-monad composition or the independent fallback
-approval required by the Team B contract.
+run can mint release evidence. The cross-project proof at
+`formal/riscv-refinement/generated-sail-bridge/Pilot.lean` additionally imports
+the exact generated Lean project and proves that the LUI/ADDI clause monads
+plus sequential next-PC/tick fragment equal the normalized executions. Its
+receipt explicitly leaves fetch, interrupt, trap, counter, and later-step
+framing false; it does not constitute the independent fallback approval
+required by the Team B contract.
 
 ### 7.3 Decode narrowing
 
@@ -494,10 +502,10 @@ The Level-2 publication milestone is complete only when both opcodes are
 universally proved and non-vacuous from generated AIR and generated Sail
 definitions. The current pilot proves source-bound, interpreted production AIR
 programs imply the normalized LUI/ADDI predicates, and the normalized capsule
-is bound to actual generated execute clauses by the checked AST receipt. The
-remaining publication gap is generated Sail step-monad composition (or the
-contract's independently approved fallback), not AIR interpretation or
-execute-clause transcription.
+is bound to actual generated execute clauses by the checked AST receipt and a
+kernel-checked clause-monad equality. The remaining publication gap is full
+generated Sail step-loop framing (or the contract's independently approved
+fallback), not AIR interpretation or execute-clause transcription.
 
 ### 8.1 LUI
 
@@ -856,8 +864,9 @@ ADDI high carry, deleted immediate-range request, selector relabel, and event
 reorder, and prove each weakened system strictly loses the stated
 architectural or binding fact. They reach the kernel proof and no longer rely
 only on the Python normalizer. They are still stated against the normalized
-capsule; the open generated-Sail step boundary prevents treating them as
-end-to-end Sail publication controls.
+capsule; the open generated-Sail fetch/interrupt/trap/counter and later-step
+framing boundary prevents treating them as end-to-end Sail publication
+controls.
 
 ## 15. Work packages and gates
 
@@ -866,8 +875,9 @@ end-to-end Sail publication controls.
 Status: **AIR-side pilot freeze delivered**. The theorem signatures, toolchain,
 closed pilot schemas, all-selector AIR IR v2 contract, LUI/ADDI serialized-AIR
 interpreters and composition, digest closure, axiom policy, generated execute
-translation receipt, and claim boundary are implemented. Generated-Sail
-step-monad composition and the required sign-off remain open for publication.
+translation receipt, direct generated execute-clause monad bridge, and claim
+boundary are implemented. Full generated-Sail step-loop framing and the
+required sign-off remain open for publication.
 
 Deliver:
 
@@ -886,8 +896,9 @@ Status: **production AIR-to-normalized slice delivered**. The typed
 word/byte/M31 foundations, exact LUI shape gate, universal normalized theorem,
 non-vacuity witness, source-bound production program, strict Lean evaluator,
 composition with `LuiHolds`, and a Lean-checked mutation are present. The
-execute clause is receipt-bound to generated Sail; clean publication remains
-open only across the generated step-monad/sign-off boundary.
+execute clause and sequential PC/tick fragment are kernel-bound to generated
+Sail; clean publication remains open across the full step-loop/sign-off
+boundary.
 
 Deliver:
 
@@ -905,8 +916,8 @@ Exit gate: clean kernel proof from pinned generated inputs.
 Status: **production AIR-to-normalized slice delivered**. Sign extension, byte
 carries, modular addition, source preservation, alias/x0 behavior, interpreted
 production-program composition, non-vacuity, and the Stage A2 mutation bundle
-are kernel checked. The execute clause is receipt-bound to generated Sail; the
-generated step-monad/sign-off boundary remains.
+are kernel checked. The execute clause and sequential PC/tick fragment are
+kernel-bound to generated Sail; the full step-loop/sign-off boundary remains.
 
 Deliver:
 
@@ -917,9 +928,9 @@ Deliver:
 - ADDI non-vacuity; and
 - mutation controls.
 
-Level-2 exit gate: the entire kernel-bound production-to-Sail vertical path
-works for a nontrivial arithmetic row. Only its generated Sail step/sign-off
-side remains open.
+Level-2 exit gate: the production-to-generated-clause path works for a
+nontrivial arithmetic row. Its full generated Sail step-loop/sign-off side
+remains open.
 
 ### UR-03 — memory stress
 

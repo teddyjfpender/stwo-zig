@@ -63,6 +63,11 @@ Be precise here, because "the Sail toolchain ran in CI" is easy to over-read.
   pilot gate remains the separate, locally-run `zig build
   riscv-refinement-pilot`") is retired in substance: the Sail-present run is a
   hosted capability.
+- The pilot's generated-clause proof. The gate builds the exact generated Lean
+  project, applies only the digest-pinned `RiscvExtras.lean` namespace fix, and
+  kernel-checks the LUI/ADDI execute-clause plus sequential PC/tick bridge.
+  The committed receipt records the complete generated-source closure and the
+  approved axiom inventory.
 
 **NOT upgraded -- no wording changes anywhere:**
 
@@ -76,16 +81,12 @@ Be precise here, because "the Sail toolchain ran in CI" is easy to over-read.
   and re-proving every `*_refines` theorem against the generated definitions
   unchanged. None of that work has happened, and none of it falls out of
   provisioning.
-- **The generated-monad normalization theorem stays open**, including for the
-  pilot's LUI/ADDI. The generator now derives a fail-closed AST translation
-  receipt from the exact generated `execute_UTYPE`/`execute_ITYPE` slices, and
-  a green live-toolchain run reproduces that receipt. It still does not prove
-  the capsule is the observable result of the generated Sail step monad. That
-  is Lean work
-  (`TEAM_B_SAIL_REFINEMENT_CONTRACT.md` sections 0 and 5), not provisioning
-  work, and the `claim_boundary` recorded in every manifest and receipt
-  (`lean_generated_sail_monad_normalization: false`) is unchanged.
-- The serialized-M31 AIR interpreter theorem stays open, unchanged.
+- **Full generated-step framing stays open.** The LUI/ADDI execute clauses and
+  sequential PC/tick fragment now have a direct generated-Lean monad theorem.
+  The receipt deliberately records
+  `fetch_interrupt_trap_and_step_loop_framing: false`: fetch, interrupt, trap,
+  counter, and later-step non-interference still require Lean work under
+  `TEAM_B_SAIL_REFINEMENT_CONTRACT.md` sections 0 and 5.
 - `team-b-coverage.json`'s claim boundary ("no entry here is
   publication-level") is unchanged.
 

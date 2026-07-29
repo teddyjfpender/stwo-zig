@@ -54,6 +54,7 @@ GENERATOR_PATHS = (
     "scripts/riscv_refinement_lib/air_program_lean.py",
     "scripts/riscv_refinement_lib/air_program_registry_lean.py",
     "scripts/riscv_refinement_lib/sail.py",
+    "scripts/riscv_refinement_lib/sail_lean_bridge.py",
     "scripts/riscv_refinement_lib/sail_translation.py",
     "scripts/riscv_refinement_lib/negative.py",
     "scripts/riscv_refinement_lib/render.py",
@@ -91,6 +92,8 @@ PROOF_PATHS = (
     "formal/riscv-refinement/RiscvRefinement/AxiomAudit.lean",
     "formal/riscv-refinement/RiscvRefinement/Tables.lean",
     "formal/riscv-refinement/RiscvRefinement/Tables/Fixed.lean",
+    "formal/riscv-refinement/generated-sail-bridge/Pilot.lean",
+    "conformance/riscv/sail-lean-riscv-extras.patch",
     "soundness/AIR_IR_V2_CONTRACT.md",
     "soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md",
     "soundness/air-ir-v2.schema.json",
@@ -128,6 +131,7 @@ MANIFEST_ARTIFACTS = frozenset(
         "generated/sail/rv32im-zkvm-v1.json",
         "generated/sail/definitions/execute_ITYPE.lean",
         "generated/sail/definitions/execute_UTYPE.lean",
+        "generated/sail/generated-monad-bridge-receipt-v1.json",
         "generated/sail/translation-receipt-v1.json",
         *(
             f"generated/air/{mnemonic}.air-ir-v2.json"
@@ -719,6 +723,8 @@ def artifacts(paths: Paths, evidence: sail.SailEvidence) -> dict[Path, bytes]:
         },
         sail.COMMITTED_TRANSLATION_RECEIPT:
             codec.pretty_bytes(evidence.translation_receipt),
+        sail.COMMITTED_MONAD_BRIDGE_RECEIPT:
+            codec.pretty_bytes(evidence.monad_bridge_receipt),
         Path("RiscvRefinement/Air/Generated/Pilot.lean"): air_lean,
         Path("RiscvRefinement/Air/Generated/LuiProgram.lean"):
             air_program_lean,
@@ -736,7 +742,8 @@ def artifacts(paths: Paths, evidence: sail.SailEvidence) -> dict[Path, bytes]:
             "lui_air_to_normalized_composition": True,
             "addi_air_to_normalized_composition": True,
             "generated_sail_ast_translation_receipt": True,
-            "lean_generated_sail_monad_normalization": False,
+            "lean_generated_sail_monad_normalization": True,
+            "lean_generated_sail_step_loop_framing": False,
             "kernel_checked_normalized_refinement": True,
         },
         "lean_toolchain": LEAN_TOOLCHAIN,
@@ -834,7 +841,8 @@ def validate_committed_manifest(
             "lui_air_to_normalized_composition": True,
             "addi_air_to_normalized_composition": True,
             "generated_sail_ast_translation_receipt": True,
-            "lean_generated_sail_monad_normalization": False,
+            "lean_generated_sail_monad_normalization": True,
+            "lean_generated_sail_step_loop_framing": False,
             "kernel_checked_normalized_refinement": True,
         }
         or manifest.get("canonical_digest") != codec.content_digest(manifest)
