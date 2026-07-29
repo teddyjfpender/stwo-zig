@@ -1,6 +1,6 @@
 {
   "air_level_counterexample_gate": "scripts/riscv_team_b_witnesses.py: 66 non-vacuity witnesses (LH, SB/SH/SW stores, the DIV family, multiply, and both immediate and register shifts) and 23 mutation counter-checks evaluated against the exported production AIR by the CLI gate itself, which also digests the export and refuses a stale one. Lean mutation controls, which are stronger, exist only where a certificate names one.",
-  "canonical_digest": "a3882d03f72d87789f224ee3db61a49ad4e9e54f7cecf923f3f385947fe64829",
+  "canonical_digest": "682f936ce6f0d0f71f7ad9a810dc040cf6a3fbc8a8f1c7ab5da12fb6df63464a",
   "certificates": [
     {
       "family": "shifts_reg",
@@ -78,11 +78,12 @@
       "family": "load_store",
       "manifest_id": 19,
       "mnemonic": "lb",
-      "mutation": null,
+      "mutation": "lb-zero-extended-negative-byte",
+      "mutation_theorem": "RiscvRefinement.Opcodes.ByteLoadMutation.lb_byte_sign_witness_is_load_bearing",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.lb_exists",
       "refinement_theorem": "RiscvRefinement.Opcodes.lb_refines",
       "sail_binding": "reviewed-capsule",
-      "state": "refined",
+      "state": "proved",
       "tuple_theorem": "RiscvRefinement.Opcodes.lb_refines"
     },
     {
@@ -101,33 +102,36 @@
       "family": "load_store",
       "manifest_id": 21,
       "mnemonic": "lw",
-      "mutation": null,
+      "mutation": "lw-identity-broken",
+      "mutation_theorem": "RiscvRefinement.Opcodes.LoadMutationWord.lw_identity_is_load_bearing",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.lw_exists",
       "refinement_theorem": "RiscvRefinement.Opcodes.lw_refines",
       "sail_binding": "reviewed-capsule",
-      "state": "refined",
+      "state": "proved",
       "tuple_theorem": "RiscvRefinement.Opcodes.lw_refines"
     },
     {
       "family": "load_store",
       "manifest_id": 22,
       "mnemonic": "lbu",
-      "mutation": null,
+      "mutation": "lbu-sign-filled-byte",
+      "mutation_theorem": "RiscvRefinement.Opcodes.ByteLoadMutation.lbu_byte_load_extension_is_load_bearing",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.lbu_exists",
       "refinement_theorem": "RiscvRefinement.Opcodes.lbu_refines",
       "sail_binding": "reviewed-capsule",
-      "state": "refined",
+      "state": "proved",
       "tuple_theorem": "RiscvRefinement.Opcodes.lbu_refines"
     },
     {
       "family": "load_store",
       "manifest_id": 23,
       "mnemonic": "lhu",
-      "mutation": null,
+      "mutation": "lhu-zero-fill-broken",
+      "mutation_theorem": "RiscvRefinement.Opcodes.LoadMutationWord.lhu_zero_fill_is_load_bearing",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.lhu_exists",
       "refinement_theorem": "RiscvRefinement.Opcodes.lhu_refines",
       "sail_binding": "reviewed-capsule",
-      "state": "refined",
+      "state": "proved",
       "tuple_theorem": "RiscvRefinement.Opcodes.lhu_refines"
     },
     {
@@ -242,22 +246,24 @@
       "family": "div",
       "manifest_id": 43,
       "mnemonic": "rem",
-      "mutation": null,
+      "mutation": "rem-wrong-remainder-sign",
+      "mutation_theorem": "RiscvRefinement.Opcodes.rem_dividend_sign_bit_is_load_bearing",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.divWitnessNegativeRemainder_holds",
       "refinement_theorem": "RiscvRefinement.Opcodes.rem_refines",
       "sail_binding": "reviewed-capsule",
-      "state": "refined",
+      "state": "proved",
       "tuple_theorem": "RiscvRefinement.Opcodes.rem_refines"
     },
     {
       "family": "div",
       "manifest_id": 44,
       "mnemonic": "remu",
-      "mutation": null,
+      "mutation": "remu-released-remainder-bound",
+      "mutation_theorem": "RiscvRefinement.Opcodes.remu_scan_total_is_load_bearing",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.divWitnessZeroDivisor_holds",
       "refinement_theorem": "RiscvRefinement.Opcodes.remu_refines",
       "sail_binding": "reviewed-capsule",
-      "state": "refined",
+      "state": "proved",
       "tuple_theorem": "RiscvRefinement.Opcodes.remu_refines"
     }
   ],

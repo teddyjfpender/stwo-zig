@@ -6,14 +6,14 @@
     "generated/air/lui.json": "1c3b9b6febfa876c6dc9a05fe234fc1eeca4be7cc426bce365deeafdc0e32723",
     "generated/sail/rv32im-zkvm-v1.json": "5c31e516a205d693386564242d623dbaf4dc1566573f9ecfdcb026611c8fc2c1"
   },
-  "canonical_digest": "450658b2465276fa6385a043a5fbf93bda17f1fc5069971ef69e66aa68cb58d8",
+  "canonical_digest": "ef82511093e10f7c6cb8b3707099e6ca555efc4b4c164a614d9f7aa876490177",
   "claim_boundary": {
     "kernel_checked_normalized_refinement": true,
     "lean_generated_sail_monad_normalization": false,
     "lean_serialized_m31_air_interpreter": false
   },
   "generators": {
-    "scripts/riscv_refinement.py": "e802d89d8e49afa5e0e47e6aad71394b3c3fa5713ffa22e90581f94184f19985",
+    "scripts/riscv_refinement.py": "0aa3def7c03d9be7487cb3df5398add9281e84d5cecc7cc305ef26643dd987e6",
     "scripts/riscv_refinement_lib/air.py": "02e16bbec81d87912fc1a2d767075887b94d86520527bedb615a4e5dc02fa3e3",
     "scripts/riscv_refinement_lib/codec.py": "0ae4eaf37dfa9eaec08d26c0a042a1b1e4e8b4b9418e834e28d479e6e3b0b86b",
     "scripts/riscv_refinement_lib/model.py": "ccf52a1d91b30fdea2f618080cdaaa9b9495005518e5c1033a35cf26cb3071bf",
@@ -240,7 +240,7 @@
   },
   "proof_sources": {
     "formal/riscv-refinement/README.md": "f23625311957fbafe679730eb5fa80886a9bfe5c0dabba83658cf310655e8558",
-    "formal/riscv-refinement/RiscvRefinement.lean": "3fdc2ab6681427fe21810ce2b8f20ec3e2257445519fcf5ff748c4aa1755daaf",
+    "formal/riscv-refinement/RiscvRefinement.lean": "aa34bdbf5b799840e083aa99431095221646e1ef9ed51967b759c77f98ead515",
     "formal/riscv-refinement/RiscvRefinement/AxiomAudit.lean": "33c431cb1bbf076c4b0ad4670f3deae4265bd456a8a3e34f0c001fd2ab236ad1",
     "formal/riscv-refinement/RiscvRefinement/Bridge/Decode.lean": "5234c89b6c2f4fbf3810c8064674f1bd3c7e713ade216cf7b6925802facf0e55",
     "formal/riscv-refinement/RiscvRefinement/Common.lean": "8582d044ddd0202657d1e3f6ad4fffd13e6543e89f7cf1d0d1e9d8e385baa442",

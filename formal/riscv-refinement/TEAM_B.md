@@ -9,16 +9,14 @@ Machine-readable status: [`team-b-coverage.json`](team-b-coverage.json).
 
 ## What is claimed
 
-**Coverage is 16/22 proved** — DIV, DIVU, LH, MUL, MULH, MULHSU, MULHU, SB, SH, SLL, SLLI, SRA, SRAI, SRL, SRLI, SW.
-Each carries a refinement theorem, tuple projections, a non-vacuity
-witness, and a load-bearing mutation control whose soundness hypothesis is
-**discharged in-file**, so every `*_is_load_bearing` corollary is
-unconditional. The remaining 6 are `refined`, each for a stated reason that
-must survive any future change to the numbers: REM and REMU have **no
-mutation control at all**; LB, LW, LBU and LHU have controls only at
-**family granularity** — no control exhibits a witness row carrying their own
-selector, so per-opcode `proved` credit was refused rather than inherited
-from the family.
+**Coverage is 22/22 proved** — all of DIV, DIVU, LB, LBU, LH, LHU, LW, MUL, MULH, MULHSU, MULHU, REM, REMU, SB, SH, SLL, SLLI, SRA, SRAI, SRL, SRLI, SW.
+
+Each carries a refinement theorem, tuple projections, a non-vacuity witness,
+and a load-bearing mutation control whose soundness hypothesis is discharged
+in-file, so every `*_is_load_bearing` corollary in the repository is
+unconditional. Each control's conclusion is guarded on the opcode's own
+selector, so a refutation forces the witness row to carry that selector —
+family-level credit was refused throughout.
 
 **No entry is publication-level.** The architectural side of every Team B
 theorem is a *reviewed normalized capsule*, not a generated-Sail theorem,
