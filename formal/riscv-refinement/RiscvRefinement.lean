@@ -28,5 +28,6 @@ import RiscvRefinement.Opcodes.Shifts
 import RiscvRefinement.Opcodes.Multiply
 import RiscvRefinement.Opcodes.MultiplyMutation
 import RiscvRefinement.Opcodes.Div
+import RiscvRefinement.Opcodes.LoadStoreMutation
 import RiscvRefinement.NonVacuity
 import RiscvRefinement.Coverage

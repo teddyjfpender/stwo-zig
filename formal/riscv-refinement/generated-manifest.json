@@ -6,14 +6,14 @@
     "generated/air/lui.json": "1c3b9b6febfa876c6dc9a05fe234fc1eeca4be7cc426bce365deeafdc0e32723",
     "generated/sail/rv32im-zkvm-v1.json": "5c31e516a205d693386564242d623dbaf4dc1566573f9ecfdcb026611c8fc2c1"
   },
-  "canonical_digest": "3860bc9aeddfb340e5f2dd1bc6550407067fc1df24fb6483185c338cf15a0b9b",
+  "canonical_digest": "450658b2465276fa6385a043a5fbf93bda17f1fc5069971ef69e66aa68cb58d8",
   "claim_boundary": {
     "kernel_checked_normalized_refinement": true,
     "lean_generated_sail_monad_normalization": false,
     "lean_serialized_m31_air_interpreter": false
   },
   "generators": {
-    "scripts/riscv_refinement.py": "14663a956a1b557e9bfe985c464fa37ebcb08c1c4622842ceb655e95fbb9138c",
+    "scripts/riscv_refinement.py": "e802d89d8e49afa5e0e47e6aad71394b3c3fa5713ffa22e90581f94184f19985",
     "scripts/riscv_refinement_lib/air.py": "02e16bbec81d87912fc1a2d767075887b94d86520527bedb615a4e5dc02fa3e3",
     "scripts/riscv_refinement_lib/codec.py": "0ae4eaf37dfa9eaec08d26c0a042a1b1e4e8b4b9418e834e28d479e6e3b0b86b",
     "scripts/riscv_refinement_lib/model.py": "ccf52a1d91b30fdea2f618080cdaaa9b9495005518e5c1033a35cf26cb3071bf",
@@ -240,7 +240,7 @@
   },
   "proof_sources": {
     "formal/riscv-refinement/README.md": "f23625311957fbafe679730eb5fa80886a9bfe5c0dabba83658cf310655e8558",
-    "formal/riscv-refinement/RiscvRefinement.lean": "bf6fedfb82b84b506e692046b8ea9a2e931aafca88f754838c58105550ee2e66",
+    "formal/riscv-refinement/RiscvRefinement.lean": "3fdc2ab6681427fe21810ce2b8f20ec3e2257445519fcf5ff748c4aa1755daaf",
     "formal/riscv-refinement/RiscvRefinement/AxiomAudit.lean": "33c431cb1bbf076c4b0ad4670f3deae4265bd456a8a3e34f0c001fd2ab236ad1",
     "formal/riscv-refinement/RiscvRefinement/Bridge/Decode.lean": "5234c89b6c2f4fbf3810c8064674f1bd3c7e713ade216cf7b6925802facf0e55",
     "formal/riscv-refinement/RiscvRefinement/Common.lean": "8582d044ddd0202657d1e3f6ad4fffd13e6543e89f7cf1d0d1e9d8e385baa442",
@@ -249,7 +249,7 @@
     "formal/riscv-refinement/RiscvRefinement/Opcodes/Addi.lean": "82e4f25cd872f91b3125f21b451e727797b59cc4b89c11446254c26888efebd9",
     "formal/riscv-refinement/RiscvRefinement/Opcodes/Lui.lean": "45e9ab347a306a8677cd378ca08b0ad60d6d6f42e595a41c1287c7b490a8c0a2",
     "formal/riscv-refinement/lake-manifest.json": "a03b6dc2bc959d611317d4b22dfad3f37b00905071893c660893c3b5f944c56b",
-    "formal/riscv-refinement/lakefile.toml": "d159799952bfab27d4514f61dd3763a18cad27d3554adaf43e7bafee12542580",
+    "formal/riscv-refinement/lakefile.toml": "4a3f35024216c048d4c7c76fcd518de9701f7e1fa0c9f6ee6771b3d537fd1a36",
     "formal/riscv-refinement/lean-toolchain": "651c8accb402b0c071cd336e9d3dc0a55516b1bfb434ddc4801f14936785b1d2",
     "soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md": "d6e7155eb09dac065eed272e77019a795a39f50ff05d9b5f0a37173fbf6251f0"
   },

@@ -142,7 +142,7 @@ jobs:
           theorems="$(grep -cE '^REFINEMENT_THEOREM ' /tmp/team-b-axioms.txt || true)"
           axioms="$(grep -cE '^REFINEMENT_AXIOM ' /tmp/team-b-axioms.txt || true)"
           echo "audited ${theorems} theorems over ${axioms} axiom records"
-          if [ "${theorems}" -lt 90 ] || [ "${axioms}" -lt 90 ]; then
+          if [ "${theorems}" -lt 800 ] || [ "${axioms}" -lt 800 ]; then
             echo "axiom audit reported implausibly little; treating as failure" >&2
             exit 1
           fi

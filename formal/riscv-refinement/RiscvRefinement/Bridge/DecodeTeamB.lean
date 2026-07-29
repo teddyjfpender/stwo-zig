@@ -481,8 +481,45 @@ theorem encode_sw_is_canonical
 
 The shapes are pairwise disjoint, and within a shape the discriminators separate
 the selectors. Together with the exclusion of `FENCE.I` this is what makes the
-zkVM language a conservative subset rather than a reinterpretation. -/
+zkVM language a conservative subset rather than a reinterpretation.
 
+Each disjointness result is a contradiction between two *concrete* field
+constants, so it is settled by `decide` on a pair of small bit vectors. Asking a
+bit-blasting decision procedure to refute the conjunction directly would work
+too, but it would attach a solver certificate as a per-theorem axiom, and this
+development admits only `propext`, `Classical.choice` and `Quot.sound`. -/
+
+theorem isRType_fields
+    {funct7 : BitVec 7} {funct3 : BitVec 3} {word : InstructionWord}
+    (admitted : isRType funct7 funct3 word = true) :
+    decodeOpcodeField word = opOpcode ∧
+      decodeFunct3 word = funct3 ∧ decodeFunct7 word = funct7 := by
+  simp only [isRType, Bool.and_eq_true, beq_iff_eq] at admitted
+  exact ⟨admitted.1.1, admitted.1.2, admitted.2⟩
+
+theorem isShiftImm_fields
+    {funct7 : BitVec 7} {funct3 : BitVec 3} {word : InstructionWord}
+    (admitted : isShiftImm funct7 funct3 word = true) :
+    decodeOpcodeField word = opImmOpcode ∧
+      decodeFunct3 word = funct3 ∧ decodeFunct7 word = funct7 := by
+  simp only [isShiftImm, Bool.and_eq_true, beq_iff_eq] at admitted
+  exact ⟨admitted.1.1, admitted.1.2, admitted.2⟩
+
+theorem isLoad_fields
+    {funct3 : BitVec 3} {word : InstructionWord}
+    (admitted : isLoad funct3 word = true) :
+    decodeOpcodeField word = loadOpcode ∧ decodeFunct3 word = funct3 := by
+  simp only [isLoad, Bool.and_eq_true, beq_iff_eq] at admitted
+  exact admitted
+
+theorem isStore_fields
+    {funct3 : BitVec 3} {word : InstructionWord}
+    (admitted : isStore funct3 word = true) :
+    decodeOpcodeField word = storeOpcode ∧ decodeFunct3 word = funct3 := by
+  simp only [isStore, Bool.and_eq_true, beq_iff_eq] at admitted
+  exact admitted
+
+/-- The four instruction shapes carry four different base opcodes. -/
 theorem shapes_are_disjoint (word : InstructionWord) :
     ¬(isSll word = true ∧ isSlli word = true) ∧
       ¬(isSll word = true ∧ isLb word = true) ∧
@@ -490,39 +527,42 @@ theorem shapes_are_disjoint (word : InstructionWord) :
       ¬(isSlli word = true ∧ isLb word = true) ∧
       ¬(isSlli word = true ∧ isSb word = true) ∧
       ¬(isLb word = true ∧ isSb word = true) := by
-  simp only [
-    isSll, isSlli, isLb, isSb,
-    isRType, isShiftImm, isLoad, isStore,
-    decodeOpcodeField,
-    opOpcode, opImmOpcode, loadOpcode, storeOpcode,
-  ]
-  bv_decide
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩ <;> rintro ⟨left, right⟩
+  · exact absurd (((isRType_fields left).1).symm.trans
+      (isShiftImm_fields right).1) (by decide)
+  · exact absurd (((isRType_fields left).1).symm.trans
+      (isLoad_fields right).1) (by decide)
+  · exact absurd (((isRType_fields left).1).symm.trans
+      (isStore_fields right).1) (by decide)
+  · exact absurd (((isShiftImm_fields left).1).symm.trans
+      (isLoad_fields right).1) (by decide)
+  · exact absurd (((isShiftImm_fields left).1).symm.trans
+      (isStore_fields right).1) (by decide)
+  · exact absurd (((isLoad_fields left).1).symm.trans
+      (isStore_fields right).1) (by decide)
 
+/-- Within the shift-immediate shape the selectors differ in `funct3` or, for
+`SRLI` against `SRAI`, only in `funct7`. -/
 theorem shift_selectors_are_disjoint (word : InstructionWord) :
     ¬(isSrli word = true ∧ isSrai word = true) ∧
       ¬(isSlli word = true ∧ isSrli word = true) ∧
       ¬(isSlli word = true ∧ isSrai word = true) := by
-  simp only [
-    isSlli, isSrli, isSrai,
-    isShiftImm,
-    decodeFunct3, decodeFunct7,
-    funct3Sll, funct3Srl, funct3Sra,
-    funct7Base, funct7Alt,
-  ]
-  bv_decide
+  refine ⟨?_, ?_, ?_⟩ <;> rintro ⟨left, right⟩
+  · exact absurd (((isShiftImm_fields left).2.2).symm.trans
+      (isShiftImm_fields right).2.2) (by decide)
+  · exact absurd (((isShiftImm_fields left).2.1).symm.trans
+      (isShiftImm_fields right).2.1) (by decide)
+  · exact absurd (((isShiftImm_fields left).2.1).symm.trans
+      (isShiftImm_fields right).2.1) (by decide)
 
 theorem load_selectors_are_disjoint (word : InstructionWord) :
     ¬(isLb word = true ∧ isLh word = true) ∧
       ¬(isLb word = true ∧ isLw word = true) ∧
       ¬(isLh word = true ∧ isLhu word = true) ∧
       ¬(isLbu word = true ∧ isLhu word = true) := by
-  simp only [
-    isLb, isLh, isLw, isLbu, isLhu,
-    isLoad,
-    decodeFunct3,
-    funct3Lb, funct3Lh, funct3Lw, funct3Lbu, funct3Lhu,
-  ]
-  bv_decide
+  refine ⟨?_, ?_, ?_, ?_⟩ <;> rintro ⟨left, right⟩ <;>
+    exact absurd (((isLoad_fields left).2).symm.trans
+      (isLoad_fields right).2) (by decide)
 
 theorem multiply_and_divide_selectors_are_disjoint (word : InstructionWord) :
     ¬(isMul word = true ∧ isMulh word = true) ∧
@@ -530,14 +570,9 @@ theorem multiply_and_divide_selectors_are_disjoint (word : InstructionWord) :
       ¬(isDiv word = true ∧ isDivu word = true) ∧
       ¬(isRem word = true ∧ isRemu word = true) ∧
       ¬(isMul word = true ∧ isDiv word = true) := by
-  simp only [
-    isMul, isMulh, isMulhsu, isMulhu, isDiv, isDivu, isRem, isRemu,
-    isRType,
-    decodeFunct3,
-    funct3Mul, funct3Mulh, funct3Mulhsu, funct3Mulhu,
-    funct3Div, funct3Divu, funct3Rem, funct3Remu,
-  ]
-  bv_decide
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩ <;> rintro ⟨left, right⟩ <;>
+    exact absurd (((isRType_fields left).2.1).symm.trans
+      (isRType_fields right).2.1) (by decide)
 
 /-- `SLL` and `MUL` share the register-register shape and are separated only by
 `funct7`, so the M-extension discriminator is load-bearing. -/
@@ -545,13 +580,9 @@ theorem base_and_m_extension_are_disjoint (word : InstructionWord) :
     ¬(isSll word = true ∧ isMulh word = true) ∧
       ¬(isSrl word = true ∧ isDivu word = true) ∧
       ¬(isSra word = true ∧ isDivu word = true) := by
-  simp only [
-    isSll, isSrl, isSra, isMulh, isDivu,
-    isRType,
-    decodeFunct7,
-    funct7Base, funct7Alt, funct7MulDiv,
-  ]
-  bv_decide
+  refine ⟨?_, ?_, ?_⟩ <;> rintro ⟨left, right⟩ <;>
+    exact absurd (((isRType_fields left).2.2).symm.trans
+      (isRType_fields right).2.2) (by decide)
 
 /-- `FENCE.I` is outside every Team B admission predicate. The pinned model
 retires it despite `Zifencei` being unsupported; the zkVM rejects it, and this

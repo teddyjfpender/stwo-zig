@@ -1,6 +1,6 @@
 {
   "air_level_counterexample_gate": "scripts/riscv_team_b_witnesses.py: 47 non-vacuity witnesses and their mutations checked against the exported production AIR. Lean mutation controls, which are stronger, exist only where a certificate names one.",
-  "canonical_digest": "f05374600877ac08008d486d25f3764576f92be88e1e78affefd835f80d77376",
+  "canonical_digest": "92241194e4293b9fc907fc61c3cf4b912e7faac045ea82330f0b8ba051cc1220",
   "certificates": [
     {
       "family": "shifts_reg",
@@ -76,10 +76,11 @@
       "family": "load_store",
       "manifest_id": 20,
       "mnemonic": "lh",
-      "mutation": null,
+      "mutation": "lh-wrong-high-half",
+      "mutation_theorem": "RiscvRefinement.Opcodes.lh_high_half_selection_is_load_bearing",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.lh_high_negative_exists",
       "refinement_theorem": "RiscvRefinement.Opcodes.lh_refines",
-      "state": "refined",
+      "state": "proved",
       "tuple_theorem": "RiscvRefinement.Opcodes.lh_refines"
     },
     {

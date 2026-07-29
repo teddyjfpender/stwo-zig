@@ -1,0 +1,239 @@
+import RiscvRefinement.Air.Family.LoadStore
+import RiscvRefinement.Mutation
+import RiscvRefinement.Opcodes.LoadStore
+
+/-!
+# Load-bearing mutation control for `LH`
+
+Issue #137 names "wrong high-half selection" as a required publication mutation
+for the memory stress gate. This file is that control.
+
+`LoadStoreHoldsWithoutHalfLoadHigh` is `LoadStoreHolds` with exactly one field
+deleted: `halfLoadHigh`, the constraint pinning the loaded halfword to the high
+half of the aligned word when `shift_id = 5`. Everything else is copied
+verbatim, so the counterexample is unambiguous about which deletion admits it.
+
+The witness is the negative-high-half row with its result replaced by the
+sign-extension of the *low* half. Every surviving constraint still holds --
+`halfLoadLow` is gated on `shift_id = 1` and is vacuous here, the sign mask and
+the sign witness are consistent with the low half's clear top bit, and the
+destination still mirrors `result` -- so the row is admitted by the weakened
+system while retiring the wrong halfword.
+-/
+
+namespace RiscvRefinement.Opcodes
+
+open RiscvRefinement
+open RiscvRefinement.Air.Family
+open RiscvRefinement.Mutation
+open RiscvRefinement.Opcodes.NonVacuity
+
+structure LoadStoreHoldsWithoutHalfLoadHigh (row : LoadStoreRow) : Prop where
+  /-- The instruction clock of a placed row. -/
+  clockPositive : 0 < row.clock
+  /-- C00 and C69: `active * (active - 1) = 0` together with the placement
+  residual `active - 1 = 0`, so exactly one opcode flag is set. -/
+  selectorSum : row.selectorSum = 1
+  /-- C10: `(1 - is_signed) * src_msb = 0`. -/
+  signWitnessCanonical : row.isSigned = false → row.srcMsb = false
+  /-- C18: `opcode_b * (1 - marker_sum) = 0`. -/
+  byteMarkerSum : row.isByte = true → row.markerSum = 1
+  /-- C19: `opcode_h * (2 - marker_sum) = 0`. -/
+  halfMarkerSum : row.isHalf = true → row.markerSum = 2
+  /-- C20: `opcode_h * (1 - shift_id) * (5 - shift_id) = 0`. -/
+  halfShiftId : row.isHalf = true → row.shiftId = 1 ∨ row.shiftId = 5
+  /-- C15, byte branch: `shift_amount = opcode_b * shift_id`. -/
+  byteShiftAmount : row.isByte = true → row.shiftAmount = row.shiftId
+  /-- C15, halfword branch: `shift_amount = opcode_h * (shift_id - 1) / 2`.
+  C20 pins `shift_id ∈ {1, 5}`, so over the canonical representatives this is
+  exactly `2 * shift_amount + 1 = shift_id`. -/
+  halfShiftAmount : row.isHalf = true → 2 * row.shiftAmount + 1 = row.shiftId
+  /-- C15, word branch: neither `opcode_b` nor `opcode_h` fires. -/
+  wordShiftAmount : row.isWord = true → row.shiftAmount = 0
+  /-- L06: the aligned word address divided by four is a 20-bit value, so the
+  modelled address space is the aligned 4 MiB region `[0, 2^22)`. -/
+  alignedQuarterRange : row.alignedQuarter < 2 ^ 20
+  /-- C16 and C17 jointly: whichever of the two address selectors carries the
+  memory address equals `compose(rs1_next) + imm_felt - shift_amount` in the
+  base field, and L06 pins that selector to `4 * aligned_quarter`. The right
+  hand side is below `2^22 + 4`, hence already canonical. -/
+  memoryAddress :
+    (row.rs1Next.value + row.immFelt) % m31Modulus =
+      row.alignedAddress + row.shiftAmount
+  /-- `imm_felt` is a base-field element. -/
+  immFeltRange : row.immFelt < m31Modulus
+  /-- L07, first component: `rs1_next_0` is a byte (typing) and, second
+  component, `rs1_next_3` is a seven-bit value. -/
+  baseHighLimbRange : row.rs1Next.limb3.toNat < 128
+  /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`, which is
+  exactly what keeps `compose(rs1_next)` below the modulus. -/
+  baseLimbsCanonical :
+    row.rs1Next.limb0.toNat ≠ 255 ∨ row.rs1Next.limb3.toNat ≠ 127
+  /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
+  byteLoadExtension :
+    row.isByteLoad = true →
+      row.result.limb1 = row.signMask ∧
+        row.result.limb2 = row.signMask ∧
+        row.result.limb3 = row.signMask
+  /-- C24, C26, C28, C30: `load_b * (result_0 - src_next_i) * markers_i = 0`. -/
+  byteLoadSelect :
+    row.isByteLoad = true →
+      (row.marker0 = true → row.result.limb0 = row.srcNext.limb0) ∧
+        (row.marker1 = true → row.result.limb0 = row.srcNext.limb1) ∧
+        (row.marker2 = true → row.result.limb0 = row.srcNext.limb2) ∧
+        (row.marker3 = true → row.result.limb0 = row.srcNext.limb3)
+  /-- C25, C27, C29, C31: `is_sb * (dst_next_i - src_next_0) * markers_i = 0`. -/
+  byteStoreSelect :
+    row.isSb = true →
+      (row.marker0 = true → row.dstNext.limb0 = row.srcNext.limb0) ∧
+        (row.marker1 = true → row.dstNext.limb1 = row.srcNext.limb0) ∧
+        (row.marker2 = true → row.dstNext.limb2 = row.srcNext.limb0) ∧
+        (row.marker3 = true → row.dstNext.limb3 = row.srcNext.limb0)
+  /-- C32-C33: `load_h * (signed_mask - result_i) = 0` for `i ∈ {2,3}`. -/
+  halfLoadExtension :
+    row.isHalfLoad = true →
+      row.result.limb2 = row.signMask ∧ row.result.limb3 = row.signMask
+  /-- C34-C35: `load_h * ((5 - shift_id) / 4) * (result_i - src_next_i) = 0`.
+  The gate is `1` exactly when `shift_id = 1`. -/
+  halfLoadLow :
+    row.isHalfLoad = true → row.shiftId = 1 →
+      row.result.limb0 = row.srcNext.limb0 ∧
+        row.result.limb1 = row.srcNext.limb1
+  -- halfLoadHigh is deliberately absent: this is the mutation.
+  halfStoreLow :
+    row.isSh = true → row.shiftId = 1 →
+      row.dstNext.limb0 = row.srcNext.limb0 ∧
+        row.dstNext.limb1 = row.srcNext.limb1
+  /-- C40-C41. -/
+  halfStoreHigh :
+    row.isSh = true → row.shiftId = 5 →
+      row.dstNext.limb2 = row.srcNext.limb0 ∧
+        row.dstNext.limb3 = row.srcNext.limb1
+  /-- C42-C45, load half: `is_lw * (result_i - src_next_i) = 0`. -/
+  wordLoad : row.isLw = true → row.result = row.srcNext
+  /-- C42-C45, store half: `is_sw * (dst_next_i - src_next_i) = 0`. -/
+  wordStore : row.isSw = true → row.dstNext = row.srcNext
+  /-- C46-C49: the base register access is read-only. -/
+  baseReadOnly : row.rs1Next = row.rs1Previous
+  /-- C50-C53: the source access is read-only in both directions. For a load
+  this is the memory-preservation constraint; for a store it is `rs2`. -/
+  sourceReadOnly : row.srcNext = row.srcPrevious
+  /-- C54-C57: `(is_sb + is_sh) * (1 - markers_i) * (dst_next_i - dst_previous_i)`
+  — an unmarked byte of a partial store survives unchanged. -/
+  partialStorePreserve :
+    row.isSb = true ∨ row.isSh = true →
+      (row.marker0 = false → row.dstNext.limb0 = row.dstPrevious.limb0) ∧
+        (row.marker1 = false → row.dstNext.limb1 = row.dstPrevious.limb1) ∧
+        (row.marker2 = false → row.dstNext.limb2 = row.dstPrevious.limb2) ∧
+        (row.marker3 = false → row.dstNext.limb3 = row.dstPrevious.limb3)
+  /-- C58-C60: `nonzero * (nonzero - 1) = 0`, `r2_idx * (1 - nonzero) = 0` and
+  `r2_idx * inverse - nonzero = 0` jointly say exactly this. -/
+  destinationFlag :
+    row.destinationNonzero = decide (row.r2Idx ≠ zeroRegister)
+  /-- C61-C64: `is_load * (dst_next_i - nonzero * result_i) = 0`. -/
+  loadDestination :
+    row.isLoad = true →
+      row.dstNext = if row.destinationNonzero then row.result else WordBytes.zero
+  /-- C65-C68: `(1 - is_load) * result_i = 0`. -/
+  storeResultZero : row.isStore = true → row.result = WordBytes.zero
+  /-- L14: `range_check_m31` on `(0, result_0 - 128 * src_msb)` forces the
+  residual into seven bits, so `src_msb` is bit 7 of the selected byte. -/
+  byteSignWitness : row.isLb = true → row.srcMsb = row.result.limb0.getLsbD 7
+  /-- L15: `range_check_m31` on `(0, result_1 - 128 * src_msb)` forces the
+  residual into seven bits, so `src_msb` is bit 15 of the selected halfword. -/
+  halfSignWitness : row.isLh = true → row.srcMsb = row.result.limb1.getLsbD 7
+  /-- L05: the base register access advances the register clock. -/
+  baseClock : validPreviousClock row.rs1PreviousClock (accessClock row.clock 1)
+  /-- L10 for a store and L13 for a load: the `r2_idx` register access sits at
+  ordinal two. -/
+  operandClock :
+    validPreviousClock row.operandPreviousClock (accessClock row.clock 2)
+  /-- L13 for a store and L10 for a load: the memory access sits at ordinal
+  three. -/
+  memoryClock :
+    validPreviousClock row.memoryPreviousClock (accessClock row.clock 3)
+  /-- C71: `bus_value_57 = pc + 4`. -/
+  nextPcResult : row.claimedNextPc = nextPc row.pc
+
+/-- Deleting the constraint really is a deletion: every honest row still
+satisfies the weakened predicate, so the control is not about a predicate
+nothing satisfies. -/
+theorem loadStoreHolds_weakens
+    (row : LoadStoreRow)
+    (holds : LoadStoreHolds row) :
+    LoadStoreHoldsWithoutHalfLoadHigh row where
+  clockPositive := holds.clockPositive
+  selectorSum := holds.selectorSum
+  signWitnessCanonical := holds.signWitnessCanonical
+  byteMarkerSum := holds.byteMarkerSum
+  halfMarkerSum := holds.halfMarkerSum
+  halfShiftId := holds.halfShiftId
+  byteShiftAmount := holds.byteShiftAmount
+  halfShiftAmount := holds.halfShiftAmount
+  wordShiftAmount := holds.wordShiftAmount
+  alignedQuarterRange := holds.alignedQuarterRange
+  memoryAddress := holds.memoryAddress
+  immFeltRange := holds.immFeltRange
+  baseHighLimbRange := holds.baseHighLimbRange
+  baseLimbsCanonical := holds.baseLimbsCanonical
+  byteLoadExtension := holds.byteLoadExtension
+  byteLoadSelect := holds.byteLoadSelect
+  byteStoreSelect := holds.byteStoreSelect
+  halfLoadExtension := holds.halfLoadExtension
+  halfLoadLow := holds.halfLoadLow
+  halfStoreLow := holds.halfStoreLow
+  halfStoreHigh := holds.halfStoreHigh
+  wordLoad := holds.wordLoad
+  wordStore := holds.wordStore
+  baseReadOnly := holds.baseReadOnly
+  sourceReadOnly := holds.sourceReadOnly
+  partialStorePreserve := holds.partialStorePreserve
+  destinationFlag := holds.destinationFlag
+  loadDestination := holds.loadDestination
+  storeResultZero := holds.storeResultZero
+  byteSignWitness := holds.byteSignWitness
+  halfSignWitness := holds.halfSignWitness
+  baseClock := holds.baseClock
+  operandClock := holds.operandClock
+  memoryClock := holds.memoryClock
+  nextPcResult := holds.nextPcResult
+
+/-- The negative-high-half row, but claiming the low halfword `0x2211`
+sign-extended (which is nonnegative, so zero-extended) instead of the high
+halfword `0x8000`. -/
+def lhWrongHalfRow : LoadStoreRow :=
+  { lhHighRow with
+    srcMsb := false
+    result := limbs 0x11 0x22 0x00 0x00
+    dstNext := limbs 0x11 0x22 0x00 0x00 }
+
+theorem lhWrongHalfRow_satisfies :
+    LoadStoreHoldsWithoutHalfLoadHigh lhWrongHalfRow := by
+  constructor <;> first | decide | (unfold validPreviousClock; decide)
+
+/-- The architectural claim `lh_refines` reaches for this row: the destination
+word is the sign-extended high halfword of the aligned memory word. Stated in
+terms of the memory word rather than the AIR, so the control is not circular. -/
+def LhSelectsHighHalf (row : LoadStoreRow) : Prop :=
+  row.result = limbs 0x00 0x80 0xff 0xff
+
+theorem lhWrongHalfRow_refutes : ¬ LhSelectsHighHalf lhWrongHalfRow := by
+  unfold LhSelectsHighHalf
+  decide
+
+/-- The published control. -/
+def lhWrongHighHalf :
+    MutationControl LoadStoreHoldsWithoutHalfLoadHigh LhSelectsHighHalf where
+  name := "lh-wrong-high-half"
+  witness := lhWrongHalfRow
+  satisfies := lhWrongHalfRow_satisfies
+  refutes := lhWrongHalfRow_refutes
+
+/-- The deletion is not free: the high-half selection cannot be recovered from
+the remaining constraints. -/
+theorem lh_high_half_selection_is_load_bearing
+    (sound : ∀ row, LoadStoreHolds row → LhSelectsHighHalf row) :
+    ¬ (∀ row, LoadStoreHoldsWithoutHalfLoadHigh row → LoadStoreHolds row) :=
+  lhWrongHighHalf.strictly_weaker LoadStoreHolds sound
+
+end RiscvRefinement.Opcodes
