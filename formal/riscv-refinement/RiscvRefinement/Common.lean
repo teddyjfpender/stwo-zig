@@ -53,6 +53,14 @@ theorem WordBytes.zero_word :
     WordBytes.zero.word = zeroWord := by
   rfl
 
+/-- Little-endian low halfword of an aligned memory word. -/
+def WordBytes.lowHalf (bytes : WordBytes) : BitVec 16 :=
+  bytes.limb1.append bytes.limb0
+
+/-- Little-endian high halfword of an aligned memory word. -/
+def WordBytes.highHalf (bytes : WordBytes) : BitVec 16 :=
+  bytes.limb3.append bytes.limb2
+
 theorem WordBytes.eq_of_limbs
     (left right : WordBytes)
     (limb0 : left.limb0 = right.limb0)
@@ -77,6 +85,27 @@ theorem toNat_append_arith
   ]
   simp [Nat.mul_comm]
 
+/-- The little-endian limb decomposition of a word is exactly its bit-vector
+concatenation, most significant limb first. This is the bridge between the AIR's
+`Nat`-valued byte equations and bit-level reasoning. -/
+theorem WordBytes.word_append (bytes : WordBytes) :
+    bytes.word =
+      bytes.limb3.append (bytes.limb2.append (bytes.limb1.append bytes.limb0)) := by
+  apply BitVec.eq_of_toNat_eq
+  have h0 := bytes.limb0.isLt
+  have h1 := bytes.limb1.isLt
+  have h2 := bytes.limb2.isLt
+  have h3 := bytes.limb3.isLt
+  simp only [Nat.reducePow] at h0 h1 h2 h3
+  simp only [
+    WordBytes.word_toNat,
+    WordBytes.value,
+    BitVec.append_eq,
+    toNat_append_arith,
+    Nat.reducePow,
+  ]
+  omega
+
 def nextPc (pc : Word) : Word := pc + BitVec.ofNat 32 4
 
 def accessClock (clock ordinal : Nat) : Nat :=
@@ -97,10 +126,71 @@ def architecturalWrite (rd : RegisterIndex) (value : Word) :
 def architecturalValue (rd : RegisterIndex) (value : Word) : Word :=
   if rd = zeroRegister then zeroWord else value
 
+/-! ## Complete normalized architectural retirement
+
+The zkVM observes exactly four things about a successful transition: the next
+program counter, at most one architectural register write, at most one memory
+read observation, and at most one masked memory write. `Retirement` is the
+frozen Team A / Team B interface for that observation; no other externally
+visible state change may be claimed by any refinement theorem.
+
+Memory is addressed as a little-endian array of aligned 32-bit words. A memory
+observation and a memory write both name the *aligned word bus address*, so a
+sub-word access is expressed as an aligned word plus a byte-enable mask rather
+than as a narrow bus transaction. -/
+
+/-- Byte-enable mask over an aligned 32-bit memory word, bit `i` selecting
+little-endian byte `i`. -/
+abbrev ByteMask := BitVec 4
+
+/-- The observation a load places on the memory bus: the aligned word address
+that was read and the complete word value observed there. -/
+structure MemoryRead where
+  address : Word
+  value : Word
+deriving DecidableEq, Repr
+
+/-- The masked word a store commits: the aligned word address, the byte-enable
+mask, and the complete post-state word. Bytes outside `mask` are required by
+the store theorems to equal their pre-state values. -/
+structure MemoryWrite where
+  address : Word
+  mask : ByteMask
+  value : Word
+deriving DecidableEq, Repr
+
+/-- Complete normalized architectural retirement.
+
+`read` and `store` default to `none`, which is the literal claim "this
+transition has no memory effect". Register-only families therefore keep their
+existing two-field syntax, and a memory family that forgets to populate the
+field cannot prove its refinement theorem, because the theorem states the
+field's value. -/
 structure Retirement where
   nextPc : Word
   write : Option RegisterWrite
+  read : Option MemoryRead := none
+  store : Option MemoryWrite := none
 deriving DecidableEq, Repr
+
+/-- Classification of a normalized transition. The pinned Sail model may also
+trap or diverge; the zkVM language admits only `retired`. -/
+inductive Outcome where
+  | retired (retirement : Retirement)
+  | rejected
+deriving DecidableEq, Repr
+
+def Outcome.retirement? : Outcome → Option Retirement
+  | .retired retirement => some retirement
+  | .rejected => none
+
+@[simp]
+theorem Outcome.retirement?_retired (retirement : Retirement) :
+    (Outcome.retired retirement).retirement? = some retirement := rfl
+
+@[simp]
+theorem Outcome.retirement?_rejected :
+    Outcome.rejected.retirement? = none := rfl
 
 structure ProgramTuple where
   pc : Word
@@ -117,6 +207,14 @@ deriving DecidableEq, Repr
 
 structure RegisterTuple where
   addr : RegisterIndex
+  clock : Nat
+  value : Word
+deriving DecidableEq, Repr
+
+/-- Relation tuple for one memory access. `addr` is the aligned word bus
+address, matching the production memory lookup argument. -/
+structure MemoryTuple where
+  addr : Word
   clock : Nat
   value : Word
 deriving DecidableEq, Repr
