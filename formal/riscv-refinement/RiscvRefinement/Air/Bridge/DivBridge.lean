@@ -421,7 +421,6 @@ private theorem scanMarkerVanishes (row : DivRow) (marker : Bool)
           simp only [divCompareDiff, hc, Bool.false_eq_true, if_false] at relation
           have order : absLimb.toNat ≤ divisorLimb.toNat := by omega
           have gap : row.ltDiff = divisorLimb.toNat - absLimb.toNat := by omega
-          rw [hc]
           simp only [flagValue, M31.reduce_zero, M31.zero_mul, M31.sub_zero]
           rw [M31.reduce_sub _ _ order, ← gap, M31.reduce_mul, Nat.one_mul, M31.sub_self,
             M31.mul_zero]
@@ -431,7 +430,6 @@ private theorem scanMarkerVanishes (row : DivRow) (marker : Bool)
           have gap : row.ltDiff = absLimb.toNat - divisorLimb.toNat := by omega
           have small : row.ltDiff < M31.modulus := by
             simp only [M31.modulus, m31Modulus]; omega
-          rw [hc]
           simp only [flagValue]
           rw [show M31.reduce 1 - M31.reduce 1 * M31.reduce 2 = M31.reduce (M31.modulus - 1) from
             by decide]
@@ -796,11 +794,11 @@ theorem divConstraintValues (row : DivRow) (holds : DivHolds row) (fits : DivRow
     simp only [flagValue_eq_toNat, M31.reduce_add]
     refine guardRootVanishes _ _ (by omega) ?_
     intro allClear
-        have h1 : row.zeroDivisor = false := bool_of_toNat_zero (by omega)
-        have h2 : row.rZero = false := bool_of_toNat_zero (by omega)
-        have h3 : row.ltMarker3 = false := bool_of_toNat_zero (by omega)
-        have raw : divCompareDiff row row.rs2Next.limb3 row.remainderAbs.limb3 = 0 :=
-          holds.scanEqual3 h1 h2 h3
+    have h1 : row.zeroDivisor = false := bool_of_toNat_zero (by omega)
+    have h2 : row.rZero = false := bool_of_toNat_zero (by omega)
+    have h3 : row.ltMarker3 = false := bool_of_toNat_zero (by omega)
+    have raw : divCompareDiff row row.rs2Next.limb3 row.remainderAbs.limb3 = 0 :=
+      holds.scanEqual3 h1 h2 h3
     rw [compareDiff_zero raw, M31.sub_self, M31.mul_zero]
   -- 55 lt_markers_3 * (lt_diff - diffs_3)
   · exact scanMarkerVanishes row row.ltMarker3 row.rs2Next.limb3 row.remainderAbs.limb3
@@ -810,12 +808,12 @@ theorem divConstraintValues (row : DivRow) (holds : DivHolds row) (fits : DivRow
     simp only [flagValue_eq_toNat, M31.reduce_add]
     refine guardRootVanishes _ _ (by omega) ?_
     intro allClear
-        have h1 : row.zeroDivisor = false := bool_of_toNat_zero (by omega)
-        have h2 : row.rZero = false := bool_of_toNat_zero (by omega)
-        have h3 : row.ltMarker3 = false := bool_of_toNat_zero (by omega)
-        have h4 : row.ltMarker2 = false := bool_of_toNat_zero (by omega)
-        have raw : divCompareDiff row row.rs2Next.limb2 row.remainderAbs.limb2 = 0 :=
-          holds.scanEqual2 h1 h2 h3 h4
+    have h1 : row.zeroDivisor = false := bool_of_toNat_zero (by omega)
+    have h2 : row.rZero = false := bool_of_toNat_zero (by omega)
+    have h3 : row.ltMarker3 = false := bool_of_toNat_zero (by omega)
+    have h4 : row.ltMarker2 = false := bool_of_toNat_zero (by omega)
+    have raw : divCompareDiff row row.rs2Next.limb2 row.remainderAbs.limb2 = 0 :=
+      holds.scanEqual2 h1 h2 h3 h4
     rw [compareDiff_zero raw, M31.sub_self, M31.mul_zero]
   -- 57 lt_markers_2 * (lt_diff - diffs_2)
   · exact scanMarkerVanishes row row.ltMarker2 row.rs2Next.limb2 row.remainderAbs.limb2
@@ -825,13 +823,13 @@ theorem divConstraintValues (row : DivRow) (holds : DivHolds row) (fits : DivRow
     simp only [flagValue_eq_toNat, M31.reduce_add]
     refine guardRootVanishes _ _ (by omega) ?_
     intro allClear
-        have h1 : row.zeroDivisor = false := bool_of_toNat_zero (by omega)
-        have h2 : row.rZero = false := bool_of_toNat_zero (by omega)
-        have h3 : row.ltMarker3 = false := bool_of_toNat_zero (by omega)
-        have h4 : row.ltMarker2 = false := bool_of_toNat_zero (by omega)
-        have h5 : row.ltMarker1 = false := bool_of_toNat_zero (by omega)
-        have raw : divCompareDiff row row.rs2Next.limb1 row.remainderAbs.limb1 = 0 :=
-          holds.scanEqual1 h1 h2 h3 h4 h5
+    have h1 : row.zeroDivisor = false := bool_of_toNat_zero (by omega)
+    have h2 : row.rZero = false := bool_of_toNat_zero (by omega)
+    have h3 : row.ltMarker3 = false := bool_of_toNat_zero (by omega)
+    have h4 : row.ltMarker2 = false := bool_of_toNat_zero (by omega)
+    have h5 : row.ltMarker1 = false := bool_of_toNat_zero (by omega)
+    have raw : divCompareDiff row row.rs2Next.limb1 row.remainderAbs.limb1 = 0 :=
+      holds.scanEqual1 h1 h2 h3 h4 h5
     rw [compareDiff_zero raw, M31.sub_self, M31.mul_zero]
   -- 59 lt_markers_1 * (lt_diff - diffs_1)
   · exact scanMarkerVanishes row row.ltMarker1 row.rs2Next.limb1 row.remainderAbs.limb1
@@ -841,14 +839,14 @@ theorem divConstraintValues (row : DivRow) (holds : DivHolds row) (fits : DivRow
     simp only [flagValue_eq_toNat, M31.reduce_add]
     refine guardRootVanishes _ _ (by omega) ?_
     intro allClear
-        have h1 : row.zeroDivisor = false := bool_of_toNat_zero (by omega)
-        have h2 : row.rZero = false := bool_of_toNat_zero (by omega)
-        have h3 : row.ltMarker3 = false := bool_of_toNat_zero (by omega)
-        have h4 : row.ltMarker2 = false := bool_of_toNat_zero (by omega)
-        have h5 : row.ltMarker1 = false := bool_of_toNat_zero (by omega)
-        have h6 : row.ltMarker0 = false := bool_of_toNat_zero (by omega)
-        have raw : divCompareDiff row row.rs2Next.limb0 row.remainderAbs.limb0 = 0 :=
-          holds.scanEqual0 h1 h2 h3 h4 h5 h6
+    have h1 : row.zeroDivisor = false := bool_of_toNat_zero (by omega)
+    have h2 : row.rZero = false := bool_of_toNat_zero (by omega)
+    have h3 : row.ltMarker3 = false := bool_of_toNat_zero (by omega)
+    have h4 : row.ltMarker2 = false := bool_of_toNat_zero (by omega)
+    have h5 : row.ltMarker1 = false := bool_of_toNat_zero (by omega)
+    have h6 : row.ltMarker0 = false := bool_of_toNat_zero (by omega)
+    have raw : divCompareDiff row row.rs2Next.limb0 row.remainderAbs.limb0 = 0 :=
+      holds.scanEqual0 h1 h2 h3 h4 h5 h6
     rw [compareDiff_zero raw, M31.sub_self, M31.mul_zero]
   -- 61 lt_markers_0 * (lt_diff - diffs_0)
   · exact scanMarkerVanishes row row.ltMarker0 row.rs2Next.limb0 row.remainderAbs.limb0
@@ -941,5 +939,126 @@ theorem divConstraintValues (row : DivRow) (holds : DivHolds row) (fits : DivRow
   -- 84 bus_value_72 = (clock - 1) * 4 + 3
   · rw [M31.reduce_sub _ _ holds.clockPositive, M31.reduce_mul, M31.reduce_add]
     exact M31.sub_self _
+
+
+/-! ## The encoding is the export, and the evaluator is A's
+
+`DivProgram.lean` carries the verbatim export and its localisation. The three
+facts below turn the link between them, and the link to Team A's evaluator, into
+theorems rather than `#guard`s: `EvaluatorSpec.localValue_eq_evalNodes` supplies
+the generic half and the two `decide`s supply the family-specific half. -/
+
+set_option maxRecDepth 1000000 in
+theorem divProgramCompiled_eq_localise : divProgramCompiled = divProgram.localise := by
+  decide
+
+set_option maxRecDepth 1000000 in
+theorem divProgram_wellFormed : divProgram.wellFormed = true := by decide
+
+theorem DivCircuit.nodesWellFormed_of_wellFormed (circuit : DivCircuit)
+    (valid : circuit.wellFormed = true) :
+    nodesWellFormed circuit.columns.length 0 circuit.nodes = true := by
+  simp only [DivCircuit.wellFormed, Bool.and_eq_true] at valid
+  exact valid.1.1.2
+
+theorem DivCircuit.nodeCount_of_wellFormed (circuit : DivCircuit)
+    (valid : circuit.wellFormed = true) :
+    circuit.nodeCount = circuit.nodes.length := by
+  simp only [DivCircuit.wellFormed, Bool.and_eq_true, decide_eq_true_eq] at valid
+  exact valid.1.1.1.2
+
+/-- The `div` bridge reads the localised table; that read is Team A's node-order
+read of A's memo table on the verbatim table, at every node index. -/
+theorem DivCircuit.localise_value_eq_evalNodes (circuit : DivCircuit) (columns : List M31)
+    (index : Nat) (valid : circuit.wellFormed = true)
+    (covered : index < circuit.nodes.length) :
+    (circuit.localise).value columns index =
+      nth (evalNodes columns circuit.nodes) index := by
+  have nodes := DivCircuit.nodesWellFormed_of_wellFormed circuit valid
+  have count := DivCircuit.nodeCount_of_wellFormed circuit valid
+  simp only [DivCircuit.value, DivCircuit.nodeValuesRev, DivCircuit.localise, count]
+  exact localValue_eq_evalNodes columns circuit.columns.length circuit.nodes index
+    nodes covered
+
+theorem divProgramCompiled_value_eq_evalNodes (columns : List M31) (index : Nat)
+    (covered : index < divProgram.nodes.length) :
+    divProgramCompiled.value columns index =
+      nth (evalNodes columns divProgram.nodes) index := by
+  rw [divProgramCompiled_eq_localise]
+  exact DivCircuit.localise_value_eq_evalNodes divProgram columns index
+    divProgram_wellFormed covered
+
+-- The encoded table and the hand transcription are pinned to the same export
+-- bytes mechanically, not by comment.
+#guard divProgramIrDigest == Air.Family.divIrDigest
+#guard divProgram.columns.length == Air.Family.divIrColumns
+#guard divProgram.constraints.length == Air.Family.divIrConstraints
+
+/-! ## Non-vacuity, and a check on the column assignment itself
+
+`divColumns` is hand-written, so it is exactly the kind of transcription this
+work exists to remove. It is checked here against `divWitnessColumns`, which the
+generator computed independently from `div.json` (and which the generated file
+already checks satisfies every constraint, every table request and every lookup
+tuple). If a column were mis-ordered or mis-populated -- including any of the
+eleven synthesised ones -- this `#guard` fails. -/
+
+/-- `7 / 2 = 3` remainder `1`, as a `DIVU` row. -/
+def divWitnessRow : DivRow where
+  pc := 100#32
+  clock := 5
+  rd := 7#5
+  rdPreviousClock := 3
+  rdPrevious := { limb0 := 0#8, limb1 := 0#8, limb2 := 0#8, limb3 := 0#8 }
+  rdNext := { limb0 := 3#8, limb1 := 0#8, limb2 := 0#8, limb3 := 0#8 }
+  rs1 := 1#5
+  rs1PreviousClock := 3
+  rs1Previous := { limb0 := 7#8, limb1 := 0#8, limb2 := 0#8, limb3 := 0#8 }
+  rs1Next := { limb0 := 7#8, limb1 := 0#8, limb2 := 0#8, limb3 := 0#8 }
+  rs2 := 2#5
+  rs2PreviousClock := 3
+  rs2Previous := { limb0 := 2#8, limb1 := 0#8, limb2 := 0#8, limb3 := 0#8 }
+  rs2Next := { limb0 := 2#8, limb1 := 0#8, limb2 := 0#8, limb3 := 0#8 }
+  zeroDivisor := false
+  rZero := false
+  quotient := { limb0 := 3#8, limb1 := 0#8, limb2 := 0#8, limb3 := 0#8 }
+  remainder := { limb0 := 1#8, limb1 := 0#8, limb2 := 0#8, limb3 := 0#8 }
+  bSign := false
+  cSign := false
+  qSign := false
+  signXor := false
+  remainderAbs := { limb0 := 1#8, limb1 := 0#8, limb2 := 0#8, limb3 := 0#8 }
+  ltMarker0 := true
+  ltMarker1 := false
+  ltMarker2 := false
+  ltMarker3 := false
+  ltDiff := 1
+  isDiv := false
+  isDivu := true
+  isRem := false
+  isRemu := false
+  destinationNonzero := true
+  claimedNextPc := 104#32
+
+set_option maxRecDepth 40000 in
+#guard divColumns divWitnessRow == divWitnessColumns
+
+theorem divWitnessHolds : DivHolds divWitnessRow := by
+  constructor <;> first
+    | decide
+    | exact ⟨0, 0, 0, 0, 0, 0, 0, 0, by decide⟩
+    | exact ⟨by decide, by decide⟩
+    | (intro absurdity; exact absurd absurdity (by decide))
+
+theorem divWitnessFits : DivRowFits divWitnessRow := by
+  constructor
+  decide
+
+-- The bridge is therefore not vacuous: this row satisfies every hypothesis.
+set_option maxRecDepth 100000 in
+theorem divWitnessConstraintValues :
+    divProgramCompiled.constraintValues (divColumns divWitnessRow) =
+      List.replicate 85 0 :=
+  divConstraintValues divWitnessRow divWitnessHolds divWitnessFits
 
 end RiscvRefinement.Air.Bridge

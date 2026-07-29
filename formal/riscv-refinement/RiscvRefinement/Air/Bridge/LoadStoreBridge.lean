@@ -200,15 +200,41 @@ clocks as `4*(clk-1) + 2 + is_load` and `4*(clk-1) + 2 + is_store`, which is
 ordinal three for whichever block is memory and ordinal two for whichever is a
 register. -/
 
-/-- The access clock the `src` block emits: ordinal three on a load (it is
-memory), ordinal two on a store (it is `rs2`). -/
+/-- The access clock the `src` block emits, exactly as the AIR spells it. -/
 def sourceAccessClock (row : LoadStoreRow) : Nat :=
-  accessClock row.clock (if row.isStore then 2 else 3)
+  accessClock row.clock 2 + bitValue row.isLoad
 
-/-- The access clock the `dst` block emits: ordinal two on a load (it is the
-`rd` register), ordinal three on a store (it is memory). -/
+/-- The access clock the `dst` block emits, exactly as the AIR spells it. -/
 def destinationAccessClock (row : LoadStoreRow) : Nat :=
-  accessClock row.clock (if row.isStore then 3 else 2)
+  accessClock row.clock 2 + bitValue row.isStore
+
+/-- On a load the `src` block is memory, so it sits at ordinal three. -/
+theorem sourceAccessClock_load (row : LoadStoreRow) (direction : row.isStore = false) :
+    sourceAccessClock row = accessClock row.clock 3 := by
+  simp only [sourceAccessClock, LoadStoreRow.isLoad, direction, Bool.not_false,
+    bitValue_true, accessClock]
+  omega
+
+/-- On a store the `src` block is the `rs2` register, so it sits at ordinal
+two. -/
+theorem sourceAccessClock_store (row : LoadStoreRow) (direction : row.isStore = true) :
+    sourceAccessClock row = accessClock row.clock 2 := by
+  simp only [sourceAccessClock, LoadStoreRow.isLoad, direction, Bool.not_true,
+    bitValue_false, Nat.add_zero]
+
+/-- On a load the `dst` block is the `rd` register, so it sits at ordinal
+two. -/
+theorem destinationAccessClock_load (row : LoadStoreRow)
+    (direction : row.isStore = false) :
+    destinationAccessClock row = accessClock row.clock 2 := by
+  simp only [destinationAccessClock, direction, bitValue_false, Nat.add_zero]
+
+/-- On a store the `dst` block is memory, so it sits at ordinal three. -/
+theorem destinationAccessClock_store (row : LoadStoreRow)
+    (direction : row.isStore = true) :
+    destinationAccessClock row = accessClock row.clock 3 := by
+  simp only [destinationAccessClock, direction, bitValue_true, accessClock]
+  omega
 
 /-! ## The column assignment
 
@@ -574,6 +600,621 @@ private theorem effectiveAddressImage (row : LoadStoreRow) (holds : LoadStoreHol
     M31.reduce_sub _ _ (Nat.le_add_left row.shiftAmount row.alignedAddress)]
   congr 1
   omega
+
+/-- C16: the AIR routes the aligned address to `src_addr_selector` on a load
+and `r2_idx` on a store. -/
+private theorem sourceSelectorImage (row : LoadStoreRow) :
+    M31.reduce (bitValue row.isLoad) * M31.reduce row.alignedAddress +
+        M31.reduce (bitValue row.isStore) * M31.reduce row.r2Idx.toNat =
+      M31.reduce row.sourceSelector := by
+  simp only [LoadStoreRow.sourceSelector, LoadStoreRow.isLoad]
+  cases row.isStore with
+  | false =>
+      show M31.reduce (bitValue true) * M31.reduce row.alignedAddress +
+          M31.reduce (bitValue false) * M31.reduce row.r2Idx.toNat =
+        M31.reduce row.alignedAddress
+      simp only [bitValue_true, bitValue_false, M31.reduce_zero, M31.zero_mul,
+        M31.one_mul, M31.add_zero]
+  | true =>
+      show M31.reduce (bitValue false) * M31.reduce row.alignedAddress +
+          M31.reduce (bitValue true) * M31.reduce row.r2Idx.toNat =
+        M31.reduce row.r2Idx.toNat
+      simp only [bitValue_true, bitValue_false, M31.reduce_zero, M31.zero_mul,
+        M31.one_mul, M31.zero_add]
+
+/-- C17: the mirror image of `sourceSelectorImage`. -/
+private theorem destinationSelectorImage (row : LoadStoreRow) :
+    M31.reduce (bitValue row.isLoad) * M31.reduce row.r2Idx.toNat +
+        M31.reduce (bitValue row.isStore) * M31.reduce row.alignedAddress =
+      M31.reduce row.destinationSelector := by
+  simp only [LoadStoreRow.destinationSelector, LoadStoreRow.isLoad]
+  cases row.isStore with
+  | false =>
+      show M31.reduce (bitValue true) * M31.reduce row.r2Idx.toNat +
+          M31.reduce (bitValue false) * M31.reduce row.alignedAddress =
+        M31.reduce row.r2Idx.toNat
+      simp only [bitValue_true, bitValue_false, M31.reduce_zero, M31.zero_mul,
+        M31.one_mul, M31.add_zero]
+  | true =>
+      show M31.reduce (bitValue false) * M31.reduce row.r2Idx.toNat +
+          M31.reduce (bitValue true) * M31.reduce row.alignedAddress =
+        M31.reduce row.alignedAddress
+      simp only [bitValue_true, bitValue_false, M31.reduce_zero, M31.zero_mul,
+        M31.one_mul, M31.zero_add]
+
+/-- L06, the alignment request. `src_addr_selector + dst_addr_selector - r2_idx`
+is the aligned word address whichever direction the row runs in, and the AIR
+multiplies it by `4⁻¹`. -/
+private theorem alignedQuarterImage (row : LoadStoreRow) :
+    (M31.reduce row.sourceSelector + M31.reduce row.destinationSelector -
+          M31.reduce row.r2Idx.toNat) * M31.reduce 536870912 =
+      M31.reduce row.alignedQuarter := by
+  have selectors : row.sourceSelector + row.destinationSelector =
+      row.alignedAddress + row.r2Idx.toNat := by
+    simp only [LoadStoreRow.sourceSelector, LoadStoreRow.destinationSelector]
+    cases row.isStore with
+    | false => show row.alignedAddress + row.r2Idx.toNat = _; rfl
+    | true => show row.r2Idx.toNat + row.alignedAddress = _; omega
+  rw [M31.reduce_add, selectors,
+    M31.reduce_sub _ _ (Nat.le_add_left row.r2Idx.toNat row.alignedAddress),
+    show row.alignedAddress + row.r2Idx.toNat - row.r2Idx.toNat =
+      row.alignedAddress from by omega,
+    LoadStoreRow.alignedAddress, M31.reduce_mul]
+  exact M31.reduce_quarter row.alignedQuarter
+
+/-! ## Small shape lemmas the root proofs consume -/
+
+private theorem bitFalse : M31.reduce (bitValue false) = 0 := rfl
+
+private theorem bitFalseSum :
+    M31.reduce (bitValue false) + M31.reduce (bitValue false) = 0 := rfl
+
+private theorem oneSubBitTrue : M31.reduce 1 - M31.reduce (bitValue true) = 0 :=
+  M31.sub_self 1
+
+private theorem limbSub {left right : Byte} (equal : left = right) :
+    M31.reduce left.toNat - M31.reduce right.toNat = 0 := by
+  rw [equal]
+  exact M31.sub_self _
+
+/-- Roots 24-31: `gate * (x - y) * marker`. -/
+private theorem markerGated {gate marker left right : M31}
+    (reason : marker = 0 ∨ gate = 0 ∨ left = right) :
+    gate * (left - right) * marker = 0 := by
+  rcases reason with reason | reason | reason
+  · exact mulRightZero reason
+  · exact mulLeftZero (mulLeftZero reason)
+  · exact mulLeftZero (mulRightZero (subZero reason))
+
+/-- Roots 61-64: `dst_next_i - destination_nonzero * result_i`. -/
+private theorem loadDestinationVanishes {flagBit : Bool} {nextValue resultValue : Nat}
+    (equation : nextValue = if flagBit then resultValue else 0) :
+    M31.reduce nextValue -
+        M31.reduce (bitValue flagBit) * M31.reduce resultValue = 0 := by
+  cases flagBit with
+  | false =>
+      simp only [Bool.false_eq_true, if_false] at equation
+      rw [equation]
+      simp only [bitValue_false, M31.reduce_zero, M31.zero_mul]
+      exact M31.sub_cancel 0
+  | true =>
+      simp only [if_true] at equation
+      rw [equation, bitValue_true, M31.reduce_mul, Nat.one_mul]
+      exact M31.sub_self _
+
+private theorem storeOfNotLoad {row : LoadStoreRow} (direction : row.isLoad = false) :
+    row.isStore = true := by
+  simp only [LoadStoreRow.isLoad] at direction
+  cases store : row.isStore with
+  | false => rw [store] at direction; exact absurd direction (by decide)
+  | true => rfl
+
+private theorem halfOfHalfLoad {row : LoadStoreRow} (load : row.isHalfLoad = true) :
+    row.isHalf = true := by
+  revert load
+  simp only [LoadStoreRow.isHalf, LoadStoreRow.isHalfLoad]
+  cases row.isLh <;> cases row.isLhu <;> cases row.isSh <;> intro load <;>
+    first
+      | decide
+      | exact absurd load (by decide)
+
+private theorem halfOfStoreHalf {row : LoadStoreRow} (store : row.isSh = true) :
+    row.isHalf = true := by
+  revert store
+  simp only [LoadStoreRow.isHalf]
+  cases row.isLh <;> cases row.isLhu <;> cases row.isSh <;> intro store <;>
+    first
+      | decide
+      | exact absurd store (by decide)
+
+/-- The half-word placement gates. C20 pins `shift_id` to `1` or `5`, and
+`(5 - shift_id) / 4` and `(shift_id - 1) / 4` are then the two indicators. -/
+private theorem lowHalfOne {row : LoadStoreRow} (shift : row.shiftId = 1) :
+    (M31.reduce 5 - M31.reduce row.shiftId) * M31.reduce 536870912 = M31.reduce 1 := by
+  rw [shift, M31.reduce_sub _ _ (by omega), M31.reduce_mul]
+
+private theorem lowHalfNil {row : LoadStoreRow} (shift : row.shiftId = 5) :
+    (M31.reduce 5 - M31.reduce row.shiftId) * M31.reduce 536870912 = 0 := by
+  rw [shift]
+  exact mulLeftZero (M31.sub_self 5)
+
+private theorem highHalfOne {row : LoadStoreRow} (shift : row.shiftId = 5) :
+    (M31.reduce row.shiftId - M31.reduce 1) * M31.reduce 536870912 = M31.reduce 1 := by
+  rw [shift, M31.reduce_sub _ _ (by omega), M31.reduce_mul]
+
+private theorem highHalfNil {row : LoadStoreRow} (shift : row.shiftId = 1) :
+    (M31.reduce row.shiftId - M31.reduce 1) * M31.reduce 536870912 = 0 := by
+  rw [shift]
+  exact mulLeftZero (M31.sub_self 1)
+
+private theorem r2NonzeroImage (row : LoadStoreRow) (holds : LoadStoreHolds row) :
+    row.destinationNonzero = decide (row.r2Idx.toNat ≠ 0) := by
+  have index : (row.r2Idx = zeroRegister) ↔ (row.r2Idx.toNat = 0) := by
+    constructor
+    · intro equal
+      rw [equal]
+      rfl
+    · intro equal
+      apply BitVec.eq_of_toNat_eq
+      rw [equal]
+      rfl
+  rw [holds.destinationFlag]
+  simp only [ne_eq, index]
+
+private theorem bitValue_eq_flagValue (flag : Bool) : bitValue flag = flagValue flag := by
+  cases flag <;> rfl
+
+private theorem nextPcImage (row : LoadStoreRow) (holds : LoadStoreHolds row)
+    (fits : LoadStoreRowFits row) :
+    row.claimedNextPc.toNat = row.pc.toNat + 4 := by
+  have wrap := fits.programCounter
+  simp only [holds.nextPcResult, RiscvRefinement.nextPc, BitVec.toNat_add,
+    BitVec.toNat_ofNat, Nat.reducePow]
+  omega
+
+private theorem accessClockImage (row : LoadStoreRow) (holds : LoadStoreHolds row)
+    (ordinal : Nat) :
+    (M31.reduce row.clock - M31.reduce 1) * M31.reduce 4 + M31.reduce ordinal =
+      M31.reduce (accessClock row.clock ordinal) := by
+  have positive := holds.clockPositive
+  rw [M31.reduce_sub _ _ positive, M31.reduce_mul, M31.reduce_add]
+  congr 1
+
+/-- The three `range_check_20` clock requests carry `current - previous - 1`. -/
+private theorem gapImage (current previous : Nat) (order : previous < current) :
+    M31.reduce current - M31.reduce previous - M31.reduce 1 =
+      M31.reduce (current - previous - 1) := by
+  rw [M31.reduce_sub _ _ (Nat.le_of_lt order), M31.reduce_sub _ _ (by omega)]
+
+/-! ## The bridge for the constraint roots
+
+The proof has one shape: unfold the encoded node table under the column
+assignment — this *is* the evaluation of the production AIR — and discharge the
+78 resulting `M31` identities from `LoadStoreHolds`. -/
+
+/-- Every constraint root of the encoded production `load_store` AIR evaluates
+to zero under `loadStoreColumns row`, for every row the transcription accepts. -/
+theorem loadStoreConstraintValues (row : LoadStoreRow) (holds : LoadStoreHolds row)
+    (fits : LoadStoreRowFits row) :
+    loadStoreCircuitCompiled.constraintValues (loadStoreColumns row) =
+      List.replicate 78 0 := by
+  simp only [MulhCircuit.constraintValues, MulhCircuit.values, MulhCircuit.value,
+    MulhCircuit.nodeValuesRev, loadStoreCircuitCompiled, loadStoreCircuit, evalLoop,
+    Node.evalLocal, nth, List.map_cons, List.map_nil, loadStoreColumns, List.replicate,
+    List.cons.injEq, and_true]
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
+    ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
+    ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
+    ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
+    ?_, ?_, ?_, ?_⟩
+  -- C00: booleanity of the eight-way selector sum
+  · rw [activeImage row holds]
+    exact mulRightZero (M31.sub_self 1)
+  -- C01-C08: booleanity of each of the eight opcode flags
+  · exact bitBooleanVanishes row.isLb
+  · exact bitBooleanVanishes row.isLh
+  · exact bitBooleanVanishes row.isLbu
+  · exact bitBooleanVanishes row.isLhu
+  · exact bitBooleanVanishes row.isLw
+  · exact bitBooleanVanishes row.isSb
+  · exact bitBooleanVanishes row.isSh
+  · exact bitBooleanVanishes row.isSw
+  -- C09: booleanity of the sign witness
+  · exact bitBooleanVanishes row.srcMsb
+  -- C10: (1 - is_signed) * src_msb
+  · rw [signedImage row holds]
+    cases msb : row.srcMsb with
+    | false => exact mulRightZero bitFalse
+    | true =>
+        have signed : row.isSigned = true := by
+          cases sign : row.isSigned with
+          | false =>
+              rw [holds.signWitnessCanonical sign] at msb
+              exact absurd msb (by decide)
+          | true => rfl
+        rw [signed]
+        exact mulLeftZero oneSubBitTrue
+  -- C11-C14: booleanity of the four markers
+  · exact bitBooleanVanishes row.marker0
+  · exact bitBooleanVanishes row.marker1
+  · exact bitBooleanVanishes row.marker2
+  · exact bitBooleanVanishes row.marker3
+  -- C15: shift_amount = opcode_b * shift_id + opcode_h * (shift_id - 1) / 2
+  · rw [byteImage row holds, halfImage row holds, shiftIdImage row]
+    rcases widthCases row holds with ⟨b, h, _⟩ | ⟨b, h, _⟩ | ⟨b, h, w⟩
+    · rw [b, h, holds.byteShiftAmount b]
+      simp only [bitValue_true, bitValue_false, M31.reduce_zero, M31.zero_mul,
+        M31.one_mul, M31.add_zero]
+      exact M31.sub_self _
+    · rw [b, h]
+      simp only [bitValue_true, bitValue_false, M31.reduce_zero, M31.zero_mul,
+        M31.one_mul, M31.zero_add]
+      have amount := holds.halfShiftAmount h
+      rw [← amount, M31.reduce_sub _ _ (by omega),
+        show 2 * row.shiftAmount + 1 - 1 = 2 * row.shiftAmount from by omega,
+        M31.reduce_mul, M31.reduce_half]
+      exact M31.sub_self _
+    · rw [b, h, holds.wordShiftAmount w]
+      simp only [bitValue_false, M31.reduce_zero, M31.zero_mul, M31.add_zero]
+      exact M31.sub_cancel 0
+  -- C16: src_addr_selector
+  · rw [activeImage row holds, storeImage row holds, loadImage row,
+      effectiveAddressImage row holds, sourceSelectorImage row]
+    exact M31.sub_self _
+  -- C17: dst_addr_selector
+  · rw [activeImage row holds, storeImage row holds, loadImage row,
+      effectiveAddressImage row holds, destinationSelectorImage row]
+    exact M31.sub_self _
+  -- C18: opcode_b * (1 - marker_sum)
+  · rw [byteImage row holds, markerSumImage row]
+    cases width : row.isByte with
+    | false => exact mulLeftZero bitFalse
+    | true => exact mulRightZero (by rw [holds.byteMarkerSum width]; exact M31.sub_self 1)
+  -- C19: opcode_h * (2 - marker_sum)
+  · rw [halfImage row holds, markerSumImage row]
+    cases width : row.isHalf with
+    | false => exact mulLeftZero bitFalse
+    | true => exact mulRightZero (by rw [holds.halfMarkerSum width]; exact M31.sub_self 2)
+  -- C20: opcode_h * (1 - shift_id) * (5 - shift_id)
+  · rw [halfImage row holds, shiftIdImage row]
+    cases width : row.isHalf with
+    | false => exact mulLeftZero (mulLeftZero bitFalse)
+    | true =>
+        rcases holds.halfShiftId width with shift | shift
+        · exact mulLeftZero (mulRightZero (by rw [shift]; exact M31.sub_self 1))
+        · exact mulRightZero (by rw [shift]; exact M31.sub_self 5)
+  -- C21-C23: load_b * (signed_mask - result_i), i = 1, 2, 3
+  · rw [byteLoadImage row holds, signedImage row holds, signMaskImage row]
+    cases load : row.isByteLoad with
+    | false => exact mulLeftZero bitFalse
+    | true => exact mulRightZero
+        (by rw [(holds.byteLoadExtension load).1]; exact M31.sub_self _)
+  · rw [byteLoadImage row holds, signedImage row holds, signMaskImage row]
+    cases load : row.isByteLoad with
+    | false => exact mulLeftZero bitFalse
+    | true => exact mulRightZero
+        (by rw [(holds.byteLoadExtension load).2.1]; exact M31.sub_self _)
+  · rw [byteLoadImage row holds, signedImage row holds, signMaskImage row]
+    cases load : row.isByteLoad with
+    | false => exact mulLeftZero bitFalse
+    | true => exact mulRightZero
+        (by rw [(holds.byteLoadExtension load).2.2]; exact M31.sub_self _)
+  -- C24-C31: the byte-selection ladder, interleaved load / store
+  · rw [byteLoadImage row holds]
+    refine markerGated ?_
+    cases mark : row.marker0 with
+    | false => exact Or.inl bitFalse
+    | true =>
+        cases load : row.isByteLoad with
+        | false => exact Or.inr (Or.inl bitFalse)
+        | true => exact Or.inr (Or.inr (by rw [(holds.byteLoadSelect load).1 mark]))
+  · refine markerGated ?_
+    cases mark : row.marker0 with
+    | false => exact Or.inl bitFalse
+    | true =>
+        cases store : row.isSb with
+        | false => exact Or.inr (Or.inl bitFalse)
+        | true => exact Or.inr (Or.inr (by rw [(holds.byteStoreSelect store).1 mark]))
+  · rw [byteLoadImage row holds]
+    refine markerGated ?_
+    cases mark : row.marker1 with
+    | false => exact Or.inl bitFalse
+    | true =>
+        cases load : row.isByteLoad with
+        | false => exact Or.inr (Or.inl bitFalse)
+        | true => exact Or.inr (Or.inr (by rw [(holds.byteLoadSelect load).2.1 mark]))
+  · refine markerGated ?_
+    cases mark : row.marker1 with
+    | false => exact Or.inl bitFalse
+    | true =>
+        cases store : row.isSb with
+        | false => exact Or.inr (Or.inl bitFalse)
+        | true => exact Or.inr (Or.inr (by rw [(holds.byteStoreSelect store).2.1 mark]))
+  · rw [byteLoadImage row holds]
+    refine markerGated ?_
+    cases mark : row.marker2 with
+    | false => exact Or.inl bitFalse
+    | true =>
+        cases load : row.isByteLoad with
+        | false => exact Or.inr (Or.inl bitFalse)
+        | true => exact Or.inr (Or.inr (by rw [(holds.byteLoadSelect load).2.2.1 mark]))
+  · refine markerGated ?_
+    cases mark : row.marker2 with
+    | false => exact Or.inl bitFalse
+    | true =>
+        cases store : row.isSb with
+        | false => exact Or.inr (Or.inl bitFalse)
+        | true => exact Or.inr (Or.inr (by rw [(holds.byteStoreSelect store).2.2.1 mark]))
+  · rw [byteLoadImage row holds]
+    refine markerGated ?_
+    cases mark : row.marker3 with
+    | false => exact Or.inl bitFalse
+    | true =>
+        cases load : row.isByteLoad with
+        | false => exact Or.inr (Or.inl bitFalse)
+        | true => exact Or.inr (Or.inr (by rw [(holds.byteLoadSelect load).2.2.2 mark]))
+  · refine markerGated ?_
+    cases mark : row.marker3 with
+    | false => exact Or.inl bitFalse
+    | true =>
+        cases store : row.isSb with
+        | false => exact Or.inr (Or.inl bitFalse)
+        | true => exact Or.inr (Or.inr (by rw [(holds.byteStoreSelect store).2.2.2 mark]))
+  -- C32-C33: load_h * (signed_mask - result_i), i = 2, 3
+  · rw [halfLoadImage row holds, signedImage row holds, signMaskImage row]
+    cases load : row.isHalfLoad with
+    | false => exact mulLeftZero bitFalse
+    | true => exact mulRightZero
+        (by rw [(holds.halfLoadExtension load).1]; exact M31.sub_self _)
+  · rw [halfLoadImage row holds, signedImage row holds, signMaskImage row]
+    cases load : row.isHalfLoad with
+    | false => exact mulLeftZero bitFalse
+    | true => exact mulRightZero
+        (by rw [(holds.halfLoadExtension load).2]; exact M31.sub_self _)
+  -- C34-C37: half-word load placement
+  · rw [halfLoadImage row holds, shiftIdImage row]
+    cases load : row.isHalfLoad with
+    | false => exact mulLeftZero (mulLeftZero bitFalse)
+    | true =>
+        rcases holds.halfShiftId (halfOfHalfLoad load) with shift | shift
+        · exact mulRightZero (limbSub (holds.halfLoadLow load shift).1)
+        · exact mulLeftZero (mulRightZero (lowHalfNil shift))
+  · rw [halfLoadImage row holds, shiftIdImage row]
+    cases load : row.isHalfLoad with
+    | false => exact mulLeftZero (mulLeftZero bitFalse)
+    | true =>
+        rcases holds.halfShiftId (halfOfHalfLoad load) with shift | shift
+        · exact mulRightZero (limbSub (holds.halfLoadLow load shift).2)
+        · exact mulLeftZero (mulRightZero (lowHalfNil shift))
+  · rw [halfLoadImage row holds, shiftIdImage row]
+    cases load : row.isHalfLoad with
+    | false => exact mulLeftZero (mulLeftZero bitFalse)
+    | true =>
+        rcases holds.halfShiftId (halfOfHalfLoad load) with shift | shift
+        · exact mulLeftZero (mulRightZero (highHalfNil shift))
+        · exact mulRightZero (limbSub (holds.halfLoadHigh load shift).1)
+  · rw [halfLoadImage row holds, shiftIdImage row]
+    cases load : row.isHalfLoad with
+    | false => exact mulLeftZero (mulLeftZero bitFalse)
+    | true =>
+        rcases holds.halfShiftId (halfOfHalfLoad load) with shift | shift
+        · exact mulLeftZero (mulRightZero (highHalfNil shift))
+        · exact mulRightZero (limbSub (holds.halfLoadHigh load shift).2)
+  -- C38-C41: half-word store placement
+  · rw [shiftIdImage row]
+    cases store : row.isSh with
+    | false => exact mulLeftZero (mulLeftZero bitFalse)
+    | true =>
+        rcases holds.halfShiftId (halfOfStoreHalf store) with shift | shift
+        · exact mulRightZero (limbSub (holds.halfStoreLow store shift).1)
+        · exact mulLeftZero (mulRightZero (lowHalfNil shift))
+  · rw [shiftIdImage row]
+    cases store : row.isSh with
+    | false => exact mulLeftZero (mulLeftZero bitFalse)
+    | true =>
+        rcases holds.halfShiftId (halfOfStoreHalf store) with shift | shift
+        · exact mulRightZero (limbSub (holds.halfStoreLow store shift).2)
+        · exact mulLeftZero (mulRightZero (lowHalfNil shift))
+  · rw [shiftIdImage row]
+    cases store : row.isSh with
+    | false => exact mulLeftZero (mulLeftZero bitFalse)
+    | true =>
+        rcases holds.halfShiftId (halfOfStoreHalf store) with shift | shift
+        · exact mulLeftZero (mulRightZero (highHalfNil shift))
+        · exact mulRightZero (limbSub (holds.halfStoreHigh store shift).1)
+  · rw [shiftIdImage row]
+    cases store : row.isSh with
+    | false => exact mulLeftZero (mulLeftZero bitFalse)
+    | true =>
+        rcases holds.halfShiftId (halfOfStoreHalf store) with shift | shift
+        · exact mulLeftZero (mulRightZero (highHalfNil shift))
+        · exact mulRightZero (limbSub (holds.halfStoreHigh store shift).2)
+  -- C42-C45: the word-width branch, load and store in one root
+  · rcases wordCases row holds with ⟨lw, sw⟩ | ⟨lw, sw⟩ | ⟨lw, sw⟩
+    · exact addZeros (by rw [lw]; exact mulLeftZero bitFalse)
+        (by rw [sw]; exact mulLeftZero bitFalse)
+    · exact addZeros (by rw [holds.wordLoad lw]; exact mulRightZero (M31.sub_self _))
+        (by rw [sw]; exact mulLeftZero bitFalse)
+    · exact addZeros (by rw [lw]; exact mulLeftZero bitFalse)
+        (by rw [holds.wordStore sw]; exact mulRightZero (M31.sub_self _))
+  · rcases wordCases row holds with ⟨lw, sw⟩ | ⟨lw, sw⟩ | ⟨lw, sw⟩
+    · exact addZeros (by rw [lw]; exact mulLeftZero bitFalse)
+        (by rw [sw]; exact mulLeftZero bitFalse)
+    · exact addZeros (by rw [holds.wordLoad lw]; exact mulRightZero (M31.sub_self _))
+        (by rw [sw]; exact mulLeftZero bitFalse)
+    · exact addZeros (by rw [lw]; exact mulLeftZero bitFalse)
+        (by rw [holds.wordStore sw]; exact mulRightZero (M31.sub_self _))
+  · rcases wordCases row holds with ⟨lw, sw⟩ | ⟨lw, sw⟩ | ⟨lw, sw⟩
+    · exact addZeros (by rw [lw]; exact mulLeftZero bitFalse)
+        (by rw [sw]; exact mulLeftZero bitFalse)
+    · exact addZeros (by rw [holds.wordLoad lw]; exact mulRightZero (M31.sub_self _))
+        (by rw [sw]; exact mulLeftZero bitFalse)
+    · exact addZeros (by rw [lw]; exact mulLeftZero bitFalse)
+        (by rw [holds.wordStore sw]; exact mulRightZero (M31.sub_self _))
+  · rcases wordCases row holds with ⟨lw, sw⟩ | ⟨lw, sw⟩ | ⟨lw, sw⟩
+    · exact addZeros (by rw [lw]; exact mulLeftZero bitFalse)
+        (by rw [sw]; exact mulLeftZero bitFalse)
+    · exact addZeros (by rw [holds.wordLoad lw]; exact mulRightZero (M31.sub_self _))
+        (by rw [sw]; exact mulLeftZero bitFalse)
+    · exact addZeros (by rw [lw]; exact mulLeftZero bitFalse)
+        (by rw [holds.wordStore sw]; exact mulRightZero (M31.sub_self _))
+  -- C46-C49: the base register access is read-only
+  · rw [activeImage row holds]
+    exact mulRightZero (limbSub (by rw [holds.baseReadOnly]))
+  · rw [activeImage row holds]
+    exact mulRightZero (limbSub (by rw [holds.baseReadOnly]))
+  · rw [activeImage row holds]
+    exact mulRightZero (limbSub (by rw [holds.baseReadOnly]))
+  · rw [activeImage row holds]
+    exact mulRightZero (limbSub (by rw [holds.baseReadOnly]))
+  -- C50-C53: the source access is read-only
+  · rw [activeImage row holds]
+    exact mulRightZero (limbSub (by rw [holds.sourceReadOnly]))
+  · rw [activeImage row holds]
+    exact mulRightZero (limbSub (by rw [holds.sourceReadOnly]))
+  · rw [activeImage row holds]
+    exact mulRightZero (limbSub (by rw [holds.sourceReadOnly]))
+  · rw [activeImage row holds]
+    exact mulRightZero (limbSub (by rw [holds.sourceReadOnly]))
+  -- C54-C57: an unmarked byte of a partial store survives
+  · cases mark : row.marker0 with
+    | true => exact mulLeftZero (mulRightZero oneSubBitTrue)
+    | false =>
+        cases sb : row.isSb with
+        | true => exact mulRightZero (limbSub
+            ((holds.partialStorePreserve (Or.inl sb)).1 mark))
+        | false =>
+            cases sh : row.isSh with
+            | true => exact mulRightZero (limbSub
+                ((holds.partialStorePreserve (Or.inr sh)).1 mark))
+            | false => exact mulLeftZero (mulLeftZero bitFalseSum)
+  · cases mark : row.marker1 with
+    | true => exact mulLeftZero (mulRightZero oneSubBitTrue)
+    | false =>
+        cases sb : row.isSb with
+        | true => exact mulRightZero (limbSub
+            ((holds.partialStorePreserve (Or.inl sb)).2.1 mark))
+        | false =>
+            cases sh : row.isSh with
+            | true => exact mulRightZero (limbSub
+                ((holds.partialStorePreserve (Or.inr sh)).2.1 mark))
+            | false => exact mulLeftZero (mulLeftZero bitFalseSum)
+  · cases mark : row.marker2 with
+    | true => exact mulLeftZero (mulRightZero oneSubBitTrue)
+    | false =>
+        cases sb : row.isSb with
+        | true => exact mulRightZero (limbSub
+            ((holds.partialStorePreserve (Or.inl sb)).2.2.1 mark))
+        | false =>
+            cases sh : row.isSh with
+            | true => exact mulRightZero (limbSub
+                ((holds.partialStorePreserve (Or.inr sh)).2.2.1 mark))
+            | false => exact mulLeftZero (mulLeftZero bitFalseSum)
+  · cases mark : row.marker3 with
+    | true => exact mulLeftZero (mulRightZero oneSubBitTrue)
+    | false =>
+        cases sb : row.isSb with
+        | true => exact mulRightZero (limbSub
+            ((holds.partialStorePreserve (Or.inl sb)).2.2.2 mark))
+        | false =>
+            cases sh : row.isSh with
+            | true => exact mulRightZero (limbSub
+                ((holds.partialStorePreserve (Or.inr sh)).2.2.2 mark))
+            | false => exact mulLeftZero (mulLeftZero bitFalseSum)
+  -- C58: booleanity of the destination witness
+  · exact bitBooleanVanishes row.destinationNonzero
+  -- C59: r2_idx * (1 - destination_nonzero)
+  · cases nonzero : row.destinationNonzero with
+    | true => exact mulRightZero oneSubBitTrue
+    | false =>
+        have image := r2NonzeroImage row holds
+        rw [nonzero] at image
+        have zero : row.r2Idx.toNat = 0 := by simpa using image.symm
+        rw [zero]
+        exact mulLeftZero rfl
+  -- C60: r2_idx * destination_inverse - destination_nonzero
+  · have bound : row.r2Idx.toNat < 32 := by simpa using row.r2Idx.isLt
+    rw [registerInverse, M31.reduce_mul, r2NonzeroImage row holds,
+      bitValue_eq_flagValue]
+    exact M31.reduce_sub_eq_zero _ _ (registerInverseTable_spec row.r2Idx.toNat bound)
+  -- C61-C64: is_load * (dst_next_i - destination_nonzero * result_i)
+  · rw [activeImage row holds, storeImage row holds, loadImage row]
+    cases direction : row.isLoad with
+    | false => exact mulLeftZero bitFalse
+    | true =>
+        refine mulRightZero (loadDestinationVanishes ?_)
+        cases nonzero : row.destinationNonzero <;>
+          simp [holds.loadDestination direction, nonzero]
+  · rw [activeImage row holds, storeImage row holds, loadImage row]
+    cases direction : row.isLoad with
+    | false => exact mulLeftZero bitFalse
+    | true =>
+        refine mulRightZero (loadDestinationVanishes ?_)
+        cases nonzero : row.destinationNonzero <;>
+          simp [holds.loadDestination direction, nonzero]
+  · rw [activeImage row holds, storeImage row holds, loadImage row]
+    cases direction : row.isLoad with
+    | false => exact mulLeftZero bitFalse
+    | true =>
+        refine mulRightZero (loadDestinationVanishes ?_)
+        cases nonzero : row.destinationNonzero <;>
+          simp [holds.loadDestination direction, nonzero]
+  · rw [activeImage row holds, storeImage row holds, loadImage row]
+    cases direction : row.isLoad with
+    | false => exact mulLeftZero bitFalse
+    | true =>
+        refine mulRightZero (loadDestinationVanishes ?_)
+        cases nonzero : row.destinationNonzero <;>
+          simp [holds.loadDestination direction, nonzero]
+  -- C65-C68: a store writes no architectural result
+  · rw [activeImage row holds, storeImage row holds, loadImage row]
+    cases direction : row.isLoad with
+    | true => exact mulLeftZero oneSubBitTrue
+    | false => rw [holds.storeResultZero (storeOfNotLoad direction)]
+               exact mulRightZero rfl
+  · rw [activeImage row holds, storeImage row holds, loadImage row]
+    cases direction : row.isLoad with
+    | true => exact mulLeftZero oneSubBitTrue
+    | false => rw [holds.storeResultZero (storeOfNotLoad direction)]
+               exact mulRightZero rfl
+  · rw [activeImage row holds, storeImage row holds, loadImage row]
+    cases direction : row.isLoad with
+    | true => exact mulLeftZero oneSubBitTrue
+    | false => rw [holds.storeResultZero (storeOfNotLoad direction)]
+               exact mulRightZero rfl
+  · rw [activeImage row holds, storeImage row holds, loadImage row]
+    cases direction : row.isLoad with
+    | true => exact mulLeftZero oneSubBitTrue
+    | false => rw [holds.storeResultZero (storeOfNotLoad direction)]
+               exact mulRightZero rfl
+  -- C69: the placement residual, which pins the selector sum to one
+  · rw [activeImage row holds]
+    exact M31.sub_self 1
+  -- C70: the materialised opcode identifier
+  · rw [opcodeImage row holds]
+    exact M31.sub_self _
+  -- C71: bus_value_57 = pc + 4
+  · rw [nextPcImage row holds fits, M31.reduce_add]
+    exact M31.sub_self _
+  -- C72: bus_value_58 = clk + 1
+  · rw [M31.reduce_add]
+    exact M31.sub_self _
+  -- C73: bus_value_59 = accessClock(clk, 1)
+  · rw [accessClockImage row holds 1]
+    exact M31.sub_self _
+  -- C74: bus_value_60 = is_load
+  · rw [activeImage row holds, storeImage row holds, loadImage row]
+    exact M31.sub_self _
+  -- C75: bus_value_61 = accessClock(clk, 2) + is_load
+  · rw [activeImage row holds, storeImage row holds, loadImage row,
+      accessClockImage row holds 2, M31.reduce_add]
+    exact M31.sub_self _
+  -- C76: bus_value_62 = is_store
+  · rw [storeImage row holds]
+    exact M31.sub_self _
+  -- C77: bus_value_63 = accessClock(clk, 2) + is_store
+  · rw [storeImage row holds, accessClockImage row holds 2, M31.reduce_add]
+    exact M31.sub_self _
 
 /-! ## Non-vacuity, and a check on the column assignment itself
 
