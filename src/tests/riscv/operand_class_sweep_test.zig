@@ -224,6 +224,31 @@ fn runCase(allocator: std.mem.Allocator, case: *const Case) !void {
     }
 }
 
+// Runtime: microseconds. No guest runs, no proving -- this is a precondition
+// check over the corpus table itself.
+test "operand class sweep: every corpus case names a proof-admitted opcode" {
+    // `underTestRowVerdict` and the two `std.debug.print` arms below resolve a
+    // case's family through the *total* `trace_mod.opcodeFamily`, whose
+    // precondition is that the opcode has a proof family at all. Nothing in the
+    // corpus format enforces that: `Case.op` is data, and a case naming ECALL
+    // or EBREAK would satisfy every structural self-check and only fail deep
+    // inside the sweep -- historically as undefined behaviour, and now as a
+    // process-aborting panic that reports no case name.
+    //
+    // Checking it here converts that into a named failure before any guest is
+    // built, and keeps the total map's remaining test-side call sites honest.
+    for (operand_classes.all) |case| {
+        _ = trace_mod.proofOpcodeFamily(case.op) catch |err| {
+            std.debug.print(
+                "{s}: case opcode {s} has no proof family ({s}), so the sweep's " ++
+                    "total-map family lookups have no defined answer for it\n",
+                .{ case.name, @tagName(case.op), @errorName(err) },
+            );
+            return error.CorpusCaseNotProofAdmitted;
+        };
+    }
+}
+
 // Runtime: about four seconds for all 292 cases; the realised figure and
 // per-family case counts are printed so a slowdown or a shrunken corpus is
 // visible in the log rather than silent.

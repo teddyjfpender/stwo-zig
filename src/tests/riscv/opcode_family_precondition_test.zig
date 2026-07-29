@@ -366,10 +366,15 @@ test "opcode family precondition: the public-data prove entrypoint rejects the r
         const failure: anyerror = err;
         try expectNotMisderived(failure);
         // Whichever gate inside `derive` fires first, the rejection must name
-        // the opcode's admissibility and not some downstream artefact. The
-        // program-commitment decoder (`air/program/decode.zig`) sees the ECALL
-        // word before the family filter does and reports it as an unsupported
-        // instruction class.
+        // the opcode's admissibility and not some downstream artefact.
+        //
+        // As of this writing it is `error.UnsupportedInstructionClass`, raised
+        // by the program-commitment decoder (`air/program/decode.zig` ->
+        // `isa/decode.zig` `proofOpcode`): `CommitmentWitness.build` decodes
+        // every fetched word, and it runs before `statement_geometry.build`
+        // reaches `groupByOpcodeFamily`. Both spellings are accepted because
+        // which of the two gates fires first is an implementation detail; that
+        // *some* gate inside `derive` fires is the property.
         switch (failure) {
             error.UnsupportedForProof, error.UnsupportedInstructionClass => {},
             else => {
