@@ -25,8 +25,9 @@ why `read` and `store` keep their `none` defaults.
   field itself, with no masking step.
 * `SLL`/`SRL`/`SRA` shift `X(rs1)` by `X(rs2)[4..0]`, i.e. by the register value
   masked to five bits. `registerShiftAmount` is that mask.
-* The right shifts differ only in fill: `SRL`/`SRLI` zero-fill (`BitVec.ushiftRight`),
-  `SRA`/`SRAI` replicate bit 31 (`BitVec.sshiftRight`).
+* The right shifts differ only in fill: `SRL`/`SRLI` zero-fill
+  (`BitVec.ushiftRight`), `SRA`/`SRAI` replicate bit 31
+  (`BitVec.sshiftRight`).
 * All six advance the program counter by four and touch no memory.
 -/
 

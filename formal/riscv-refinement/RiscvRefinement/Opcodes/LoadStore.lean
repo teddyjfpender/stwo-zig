@@ -333,11 +333,12 @@ theorem signExtend_toNat_nonneg
     (imm : BitVec 12)
     (sign : imm.getLsbD 11 = false) :
     (BitVec.signExtend 32 imm).toNat = imm.toNat := by
-  have expand : BitVec.signExtend 32 imm = (BitVec.ofNat 20 0).append imm := by
-    bv_decide
-  rw [expand]
-  simp only [BitVec.append_eq, toNat_append_arith, BitVec.toNat_ofNat]
-  simp
+  have msb : imm.msb = false := by
+    rw [BitVec.msb_eq_getLsbD_last]; exact sign
+  rw [BitVec.signExtend_eq_setWidth_of_msb_false msb, BitVec.toNat_setWidth]
+  have bound := imm.isLt
+  simp only [Nat.reducePow] at bound ⊢
+  omega
 
 /-- The sign extension of a negative 12-bit displacement. -/
 theorem signExtend_toNat_neg
@@ -631,16 +632,6 @@ theorem word_of_negative_half
   simp only [Memory.signExtendHalf]
   bv_decide
 
-theorem word_of_nonnegative_half
-    (bytes : WordBytes)
-    (nonnegative : bytes.limb1.getLsbD 7 = false)
-    (high : bytes.limb2 = BitVec.ofNat 8 0)
-    (top : bytes.limb3 = BitVec.ofNat 8 0) :
-    bytes.word = Memory.signExtendHalf (bytes.limb1.append bytes.limb0) := by
-  rw [WordBytes.word_append, high, top]
-  simp only [Memory.signExtendHalf]
-  bv_decide
-
 theorem word_of_zero_extended_half
     (bytes : WordBytes)
     (high : bytes.limb2 = BitVec.ofNat 8 0)
@@ -650,23 +641,27 @@ theorem word_of_zero_extended_half
   simp only [Memory.zeroExtendHalf]
   bv_decide
 
+/-- Bit 15 of a little-endian halfword is bit 7 of its high byte. -/
+theorem half_sign_bit (high low : Byte) :
+    (high.append low).getLsbD 15 = high.getLsbD 7 := by
+  bv_decide
+
+theorem word_of_nonnegative_half
+    (bytes : WordBytes)
+    (nonnegative : bytes.limb1.getLsbD 7 = false)
+    (high : bytes.limb2 = BitVec.ofNat 8 0)
+    (top : bytes.limb3 = BitVec.ofNat 8 0) :
+    bytes.word = Memory.signExtendHalf (bytes.limb1.append bytes.limb0) := by
+  rw [Memory.signExtendHalf_nonnegative _
+    (by rw [half_sign_bit]; exact nonnegative)]
+  exact word_of_zero_extended_half bytes high top
+
 theorem word_of_negative_byte
     (bytes : WordBytes)
     (negative : bytes.limb0.getLsbD 7 = true)
     (one : bytes.limb1 = BitVec.ofNat 8 255)
     (high : bytes.limb2 = BitVec.ofNat 8 255)
     (top : bytes.limb3 = BitVec.ofNat 8 255) :
-    bytes.word = Memory.signExtendByte bytes.limb0 := by
-  rw [WordBytes.word_append, one, high, top]
-  simp only [Memory.signExtendByte]
-  bv_decide
-
-theorem word_of_nonnegative_byte
-    (bytes : WordBytes)
-    (nonnegative : bytes.limb0.getLsbD 7 = false)
-    (one : bytes.limb1 = BitVec.ofNat 8 0)
-    (high : bytes.limb2 = BitVec.ofNat 8 0)
-    (top : bytes.limb3 = BitVec.ofNat 8 0) :
     bytes.word = Memory.signExtendByte bytes.limb0 := by
   rw [WordBytes.word_append, one, high, top]
   simp only [Memory.signExtendByte]
@@ -681,6 +676,16 @@ theorem word_of_zero_extended_byte
   rw [WordBytes.word_append, one, high, top]
   simp only [Memory.zeroExtendByte]
   bv_decide
+
+theorem word_of_nonnegative_byte
+    (bytes : WordBytes)
+    (nonnegative : bytes.limb0.getLsbD 7 = false)
+    (one : bytes.limb1 = BitVec.ofNat 8 0)
+    (high : bytes.limb2 = BitVec.ofNat 8 0)
+    (top : bytes.limb3 = BitVec.ofNat 8 0) :
+    bytes.word = Memory.signExtendByte bytes.limb0 := by
+  rw [Memory.signExtendByte_nonnegative _ nonnegative]
+  exact word_of_zero_extended_byte bytes one high top
 
 /-! ## Per-opcode flag extraction -/
 
@@ -1504,7 +1509,7 @@ theorem sh_memory_after
   rcases half_marker_cases row.marker0 row.marker1 row.marker2 row.marker3 sum
       identifiers with ⟨m0, m1, m2, m3⟩ | ⟨m0, m1, m2, m3⟩
   · have sid : row.shiftId = 1 := by
-      simp [LoadStoreRow.shiftId, m0, m1, m2, m3]
+      simp [LoadStoreRow.shiftId, m1, m2, m3]
     obtain ⟨d0, d1⟩ := holds.halfStoreLow selector sid
     have offset : row.shiftAmount = 0 := by omega
     simp only [LoadStoreRow.halfSelector, offset, Nat.reduceDiv]
@@ -1512,7 +1517,7 @@ theorem sh_memory_after
       simp [Memory.applyMask, Memory.halfMask, storeHalfPayload, extract_limb0,
         extract_limb1, d0, d1, p2 m2, p3 m3]
   · have sid : row.shiftId = 5 := by
-      simp [LoadStoreRow.shiftId, m0, m1, m2, m3]
+      simp [LoadStoreRow.shiftId, m1, m2, m3]
     obtain ⟨d2, d3⟩ := holds.halfStoreHigh selector sid
     have offset : row.shiftAmount = 2 := by omega
     simp only [LoadStoreRow.halfSelector, offset, Nat.reduceDiv]
@@ -1770,11 +1775,551 @@ theorem sw_refines
   have isStore : row.isStore = true := by simp [LoadStoreRow.isStore, selector]
   refine store_refines row env holds isStore ?_ ?_ rfl
     (sw_memory_after row env holds selector) ?_
-  · simp [LoadStoreDecode.encoding, selector, isLb, isLh, isLbu, isLhu, isLw,
-      isSb, isSh]
+  · simp [LoadStoreDecode.encoding, isLb, isLh, isLbu, isLhu, isLw, isSb, isSh]
   · simp [LoadStoreRow.opcodeId, selector, isLb, isLh, isLbu, isLhu, isLw, isSb,
       isSh, bitValue]
   · simp only [executeSw, executeStore, LoadStoreEnvironment.effectiveAddress_eq,
       LoadStoreEnvironment.busAddress_eq, ← mask_sw row isSb isSh]
+
+/-! ## `x0` and aliasing corollaries -/
+
+/-- A load whose destination is `x0` claims no architectural register write. -/
+theorem load_to_x0_discards
+    (row : LoadStoreRow)
+    (isStore : row.isStore = false)
+    (isZero : row.r2Idx = zeroRegister) :
+    (loadStoreRetirement row).write = none := by
+  rw [loadStoreRetirement_load row isStore]
+  simp [architecturalWrite, isZero]
+
+/-- The `LH` write value is computed from the **pre-state** base register, so
+the `rd = rs1` alias writes the loaded halfword and never a value derived from
+the register the same instruction overwrites. No distinctness hypothesis
+appears, which is exactly the alias claim. -/
+theorem lh_write_value
+    (row : LoadStoreRow)
+    (env : LoadStoreEnvironment row)
+    (holds : LoadStoreHolds row)
+    (selector : row.isLh = true)
+    (nonzero : row.r2Idx ≠ zeroRegister) :
+    (loadStoreRetirement row).write =
+      some {
+        rd := row.r2Idx
+        value := loadHalfSignedValue env.baseValue env.imm env.memoryWord
+      } := by
+  rw [(lh_refines row env holds selector).retirement]
+  simp [executeLh, executeLoad, architecturalWrite, nonzero]
+
+/-- A store claims no architectural register write, whatever `rs2` is. -/
+theorem store_no_write
+    (row : LoadStoreRow)
+    (isStore : row.isStore = true) :
+    (loadStoreRetirement row).write = none := by
+  rw [loadStoreRetirement_store row isStore]
+
+/-! ## Non-vacuity
+
+Honest concrete rows. For `LH` the witnesses cover a non-negative low-half load,
+a **negative** high-half load (the sign path), a negative displacement whose
+base-field address sum wraps the modulus (the wrap path), the `rd = rs1` alias
+and the `rd = x0` discard. Every other opcode of the family gets one witness. -/
+
+namespace NonVacuity
+
+/-- A little-endian word from four byte literals. -/
+def limbs (limb0 limb1 limb2 limb3 : Nat) : WordBytes where
+  limb0 := BitVec.ofNat 8 limb0
+  limb1 := BitVec.ofNat 8 limb1
+  limb2 := BitVec.ofNat 8 limb2
+  limb3 := BitVec.ofNat 8 limb3
+
+/-- A pre-state whose `x5` holds the base address and whose `x7` holds the
+second operand. -/
+def witnessPre (base operand : Word) : PreState where
+  pc := BitVec.ofNat 32 0x1000
+  registers := fun index =>
+    if index = BitVec.ofNat 5 5 then base
+    else if index = BitVec.ofNat 5 7 then operand
+    else zeroWord
+  x0IsZero := by simp [zeroRegister]
+
+/-- A memory holding one nonzero aligned word. -/
+def witnessMemory (address : Word) (value : WordBytes) : Word → WordBytes :=
+  fun index => if index = address then value else WordBytes.zero
+
+/-- `LH x7, 4(x5)` with `x5 = 0x100`, reading the non-negative low halfword
+`0x1234` of the aligned word at `0x104`. -/
+def lhLowRow : LoadStoreRow where
+  clock := 1
+  pc := BitVec.ofNat 32 0x1000
+  dstPrevious := WordBytes.zero
+  dstPreviousClock := 0
+  dstNext := limbs 0x34 0x12 0x00 0x00
+  rs1Addr := BitVec.ofNat 5 5
+  rs1Previous := limbs 0x00 0x01 0x00 0x00
+  rs1PreviousClock := 0
+  rs1Next := limbs 0x00 0x01 0x00 0x00
+  srcPrevious := limbs 0x34 0x12 0xff 0xee
+  srcPreviousClock := 0
+  srcNext := limbs 0x34 0x12 0xff 0xee
+  r2Idx := BitVec.ofNat 5 7
+  immFelt := 4
+  srcMsb := false
+  shiftAmount := 0
+  alignedQuarter := 65
+  marker0 := true
+  marker1 := true
+  marker2 := false
+  marker3 := false
+  isLb := false
+  isLh := true
+  isLbu := false
+  isLhu := false
+  isLw := false
+  isSb := false
+  isSh := false
+  isSw := false
+  result := limbs 0x34 0x12 0x00 0x00
+  destinationNonzero := true
+  claimedNextPc := nextPc (BitVec.ofNat 32 0x1000)
+
+theorem lhLow_holds : LoadStoreHolds lhLowRow := by
+  constructor <;> first | decide | (unfold validPreviousClock; decide)
+
+def lhLowEnvironment : LoadStoreEnvironment lhLowRow where
+  pre := witnessPre (BitVec.ofNat 32 0x100) zeroWord
+  memory := witnessMemory (BitVec.ofNat 32 260) (limbs 0x34 0x12 0xff 0xee)
+  imm := BitVec.ofNat 12 4
+  word := LoadStoreDecode.encoding lhLowRow (BitVec.ofNat 12 4)
+  pcBinds := rfl
+  wordBinds := rfl
+  immBinds := by decide
+  baseBinds := by decide
+  operandBinds := by decide
+  memoryBinds := by decide
+  baseInFieldRange := by decide
+
+theorem lh_low_exists :
+    ∃ (row : LoadStoreRow) (env : LoadStoreEnvironment row),
+      LoadStoreHolds row ∧ row.isLh = true ∧ LhRefinement row env :=
+  ⟨lhLowRow, lhLowEnvironment, lhLow_holds, rfl,
+    lh_refines lhLowRow lhLowEnvironment lhLow_holds rfl⟩
+
+/-- `LH x7, 2(x5)` with `x5 = 0x200`, reading the **negative** high halfword
+`0x8000` of the aligned word at `0x200`. This is the sign path. -/
+def lhHighRow : LoadStoreRow :=
+  { lhLowRow with
+    dstNext := limbs 0x00 0x80 0xff 0xff
+    rs1Previous := limbs 0x00 0x02 0x00 0x00
+    rs1Next := limbs 0x00 0x02 0x00 0x00
+    srcPrevious := limbs 0x11 0x22 0x00 0x80
+    srcNext := limbs 0x11 0x22 0x00 0x80
+    immFelt := 2
+    srcMsb := true
+    shiftAmount := 2
+    alignedQuarter := 128
+    marker0 := false
+    marker1 := false
+    marker2 := true
+    marker3 := true
+    result := limbs 0x00 0x80 0xff 0xff }
+
+theorem lhHigh_holds : LoadStoreHolds lhHighRow := by
+  constructor <;> first | decide | (unfold validPreviousClock; decide)
+
+def lhHighEnvironment : LoadStoreEnvironment lhHighRow where
+  pre := witnessPre (BitVec.ofNat 32 0x200) zeroWord
+  memory := witnessMemory (BitVec.ofNat 32 512) (limbs 0x11 0x22 0x00 0x80)
+  imm := BitVec.ofNat 12 2
+  word := LoadStoreDecode.encoding lhHighRow (BitVec.ofNat 12 2)
+  pcBinds := rfl
+  wordBinds := rfl
+  immBinds := by decide
+  baseBinds := by decide
+  operandBinds := by decide
+  memoryBinds := by decide
+  baseInFieldRange := by decide
+
+theorem lh_high_negative_exists :
+    ∃ (row : LoadStoreRow) (env : LoadStoreEnvironment row),
+      LoadStoreHolds row ∧ row.isLh = true ∧ row.srcMsb = true ∧
+        LhRefinement row env :=
+  ⟨lhHighRow, lhHighEnvironment, lhHigh_holds, rfl, rfl,
+    lh_refines lhHighRow lhHighEnvironment lhHigh_holds rfl⟩
+
+/-- `LH x7, -4(x5)` with `x5 = 0x1000`. The displacement is negative, so the
+production base-field address sum wraps the modulus while the architectural
+32-bit address does not. This is the address-wrap boundary case. The selected
+low halfword `0xab78` is negative. -/
+def lhWrapRow : LoadStoreRow :=
+  { lhLowRow with
+    dstNext := limbs 0x78 0xab 0xff 0xff
+    rs1Previous := limbs 0x00 0x10 0x00 0x00
+    rs1Next := limbs 0x00 0x10 0x00 0x00
+    srcPrevious := limbs 0x78 0xab 0x00 0x00
+    srcNext := limbs 0x78 0xab 0x00 0x00
+    immFelt := 2147483643
+    srcMsb := true
+    alignedQuarter := 1023
+    result := limbs 0x78 0xab 0xff 0xff }
+
+theorem lhWrap_holds : LoadStoreHolds lhWrapRow := by
+  constructor <;> first | decide | (unfold validPreviousClock; decide)
+
+def lhWrapEnvironment : LoadStoreEnvironment lhWrapRow where
+  pre := witnessPre (BitVec.ofNat 32 0x1000) zeroWord
+  memory := witnessMemory (BitVec.ofNat 32 4092) (limbs 0x78 0xab 0x00 0x00)
+  imm := BitVec.ofNat 12 4092
+  word := LoadStoreDecode.encoding lhWrapRow (BitVec.ofNat 12 4092)
+  pcBinds := rfl
+  wordBinds := rfl
+  immBinds := by decide
+  baseBinds := by decide
+  operandBinds := by decide
+  memoryBinds := by decide
+  baseInFieldRange := by decide
+
+theorem lh_wrap_exists :
+    ∃ (row : LoadStoreRow) (env : LoadStoreEnvironment row),
+      LoadStoreHolds row ∧ row.isLh = true ∧
+        env.imm.getLsbD 11 = true ∧ LhRefinement row env :=
+  ⟨lhWrapRow, lhWrapEnvironment, lhWrap_holds, rfl, by decide,
+    lh_refines lhWrapRow lhWrapEnvironment lhWrap_holds rfl⟩
+
+/-- `LH x5, 4(x5)`: destination and base are the same register. -/
+def lhAliasRow : LoadStoreRow :=
+  { lhLowRow with
+    r2Idx := BitVec.ofNat 5 5
+    dstPrevious := limbs 0x00 0x01 0x00 0x00 }
+
+theorem lhAlias_holds : LoadStoreHolds lhAliasRow := by
+  constructor <;> first | decide | (unfold validPreviousClock; decide)
+
+def lhAliasEnvironment : LoadStoreEnvironment lhAliasRow where
+  pre := witnessPre (BitVec.ofNat 32 0x100) zeroWord
+  memory := witnessMemory (BitVec.ofNat 32 260) (limbs 0x34 0x12 0xff 0xee)
+  imm := BitVec.ofNat 12 4
+  word := LoadStoreDecode.encoding lhAliasRow (BitVec.ofNat 12 4)
+  pcBinds := rfl
+  wordBinds := rfl
+  immBinds := by decide
+  baseBinds := by decide
+  operandBinds := by decide
+  memoryBinds := by decide
+  baseInFieldRange := by decide
+
+theorem lh_alias_exists :
+    ∃ (row : LoadStoreRow) (env : LoadStoreEnvironment row),
+      LoadStoreHolds row ∧ row.isLh = true ∧ row.r2Idx = row.rs1Addr ∧
+        LhRefinement row env :=
+  ⟨lhAliasRow, lhAliasEnvironment, lhAlias_holds, rfl, rfl,
+    lh_refines lhAliasRow lhAliasEnvironment lhAlias_holds rfl⟩
+
+/-- `LH x0, 4(x5)`: the load still constrains memory but discards its result. -/
+def lhZeroRow : LoadStoreRow :=
+  { lhLowRow with
+    r2Idx := BitVec.ofNat 5 0
+    destinationNonzero := false
+    dstNext := WordBytes.zero }
+
+theorem lhZero_holds : LoadStoreHolds lhZeroRow := by
+  constructor <;> first | decide | (unfold validPreviousClock; decide)
+
+def lhZeroEnvironment : LoadStoreEnvironment lhZeroRow where
+  pre := witnessPre (BitVec.ofNat 32 0x100) zeroWord
+  memory := witnessMemory (BitVec.ofNat 32 260) (limbs 0x34 0x12 0xff 0xee)
+  imm := BitVec.ofNat 12 4
+  word := LoadStoreDecode.encoding lhZeroRow (BitVec.ofNat 12 4)
+  pcBinds := rfl
+  wordBinds := rfl
+  immBinds := by decide
+  baseBinds := by decide
+  operandBinds := by decide
+  memoryBinds := by decide
+  baseInFieldRange := by decide
+
+theorem lh_zero_destination_exists :
+    ∃ (row : LoadStoreRow) (env : LoadStoreEnvironment row),
+      LoadStoreHolds row ∧ row.isLh = true ∧
+        (loadStoreRetirement row).write = none ∧ LhRefinement row env :=
+  ⟨lhZeroRow, lhZeroEnvironment, lhZero_holds, rfl, by decide,
+    lh_refines lhZeroRow lhZeroEnvironment lhZero_holds rfl⟩
+
+/-- `LB x7, 5(x5)`: a negative byte at offset one. -/
+def lbRow : LoadStoreRow :=
+  { lhLowRow with
+    isLh := false
+    isLb := true
+    dstNext := limbs 0x9c 0xff 0xff 0xff
+    srcPrevious := limbs 0x34 0x9c 0x11 0x22
+    srcNext := limbs 0x34 0x9c 0x11 0x22
+    immFelt := 5
+    srcMsb := true
+    shiftAmount := 1
+    marker0 := false
+    marker1 := true
+    result := limbs 0x9c 0xff 0xff 0xff }
+
+theorem lb_holds : LoadStoreHolds lbRow := by
+  constructor <;> first | decide | (unfold validPreviousClock; decide)
+
+def lbEnvironment : LoadStoreEnvironment lbRow where
+  pre := witnessPre (BitVec.ofNat 32 0x100) zeroWord
+  memory := witnessMemory (BitVec.ofNat 32 260) (limbs 0x34 0x9c 0x11 0x22)
+  imm := BitVec.ofNat 12 5
+  word := LoadStoreDecode.encoding lbRow (BitVec.ofNat 12 5)
+  pcBinds := rfl
+  wordBinds := rfl
+  immBinds := by decide
+  baseBinds := by decide
+  operandBinds := by decide
+  memoryBinds := by decide
+  baseInFieldRange := by decide
+
+theorem lb_exists :
+    ∃ (row : LoadStoreRow) (env : LoadStoreEnvironment row),
+      LoadStoreHolds row ∧ row.isLb = true ∧
+        LoadRefinement row env LoadStoreDecode.funct3Lb 19
+          (executeLb env.pre.pc env.baseValue env.imm row.r2Idx env.memoryWord)
+          (loadByteSignedValue env.baseValue env.imm env.memoryWord) :=
+  ⟨lbRow, lbEnvironment, lb_holds, rfl,
+    lb_refines lbRow lbEnvironment lb_holds rfl⟩
+
+/-- `LBU x7, 5(x5)`: the same byte, zero-extended. -/
+def lbuRow : LoadStoreRow :=
+  { lbRow with
+    isLb := false
+    isLbu := true
+    srcMsb := false
+    dstNext := limbs 0x9c 0x00 0x00 0x00
+    result := limbs 0x9c 0x00 0x00 0x00 }
+
+theorem lbu_holds : LoadStoreHolds lbuRow := by
+  constructor <;> first | decide | (unfold validPreviousClock; decide)
+
+def lbuEnvironment : LoadStoreEnvironment lbuRow where
+  pre := witnessPre (BitVec.ofNat 32 0x100) zeroWord
+  memory := witnessMemory (BitVec.ofNat 32 260) (limbs 0x34 0x9c 0x11 0x22)
+  imm := BitVec.ofNat 12 5
+  word := LoadStoreDecode.encoding lbuRow (BitVec.ofNat 12 5)
+  pcBinds := rfl
+  wordBinds := rfl
+  immBinds := by decide
+  baseBinds := by decide
+  operandBinds := by decide
+  memoryBinds := by decide
+  baseInFieldRange := by decide
+
+theorem lbu_exists :
+    ∃ (row : LoadStoreRow) (env : LoadStoreEnvironment row),
+      LoadStoreHolds row ∧ row.isLbu = true ∧
+        LoadRefinement row env LoadStoreDecode.funct3Lbu 22
+          (executeLbu env.pre.pc env.baseValue env.imm row.r2Idx env.memoryWord)
+          (loadByteUnsignedValue env.baseValue env.imm env.memoryWord) :=
+  ⟨lbuRow, lbuEnvironment, lbu_holds, rfl,
+    lbu_refines lbuRow lbuEnvironment lbu_holds rfl⟩
+
+/-- `LHU x7, 2(x5)`: the high halfword `0x8000`, zero-extended. -/
+def lhuRow : LoadStoreRow :=
+  { lhHighRow with
+    isLh := false
+    isLhu := true
+    srcMsb := false
+    dstNext := limbs 0x00 0x80 0x00 0x00
+    result := limbs 0x00 0x80 0x00 0x00 }
+
+theorem lhu_holds : LoadStoreHolds lhuRow := by
+  constructor <;> first | decide | (unfold validPreviousClock; decide)
+
+def lhuEnvironment : LoadStoreEnvironment lhuRow where
+  pre := witnessPre (BitVec.ofNat 32 0x200) zeroWord
+  memory := witnessMemory (BitVec.ofNat 32 512) (limbs 0x11 0x22 0x00 0x80)
+  imm := BitVec.ofNat 12 2
+  word := LoadStoreDecode.encoding lhuRow (BitVec.ofNat 12 2)
+  pcBinds := rfl
+  wordBinds := rfl
+  immBinds := by decide
+  baseBinds := by decide
+  operandBinds := by decide
+  memoryBinds := by decide
+  baseInFieldRange := by decide
+
+theorem lhu_exists :
+    ∃ (row : LoadStoreRow) (env : LoadStoreEnvironment row),
+      LoadStoreHolds row ∧ row.isLhu = true ∧
+        LoadRefinement row env LoadStoreDecode.funct3Lhu 23
+          (executeLhu env.pre.pc env.baseValue env.imm row.r2Idx env.memoryWord)
+          (loadHalfUnsignedValue env.baseValue env.imm env.memoryWord) :=
+  ⟨lhuRow, lhuEnvironment, lhu_holds, rfl,
+    lhu_refines lhuRow lhuEnvironment lhu_holds rfl⟩
+
+/-- `LW x7, 4(x5)`: the whole aligned word. -/
+def lwRow : LoadStoreRow :=
+  { lhLowRow with
+    isLh := false
+    isLw := true
+    marker0 := false
+    marker1 := false
+    dstNext := limbs 0x34 0x12 0xff 0xee
+    result := limbs 0x34 0x12 0xff 0xee }
+
+theorem lw_holds : LoadStoreHolds lwRow := by
+  constructor <;> first | decide | (unfold validPreviousClock; decide)
+
+def lwEnvironment : LoadStoreEnvironment lwRow where
+  pre := witnessPre (BitVec.ofNat 32 0x100) zeroWord
+  memory := witnessMemory (BitVec.ofNat 32 260) (limbs 0x34 0x12 0xff 0xee)
+  imm := BitVec.ofNat 12 4
+  word := LoadStoreDecode.encoding lwRow (BitVec.ofNat 12 4)
+  pcBinds := rfl
+  wordBinds := rfl
+  immBinds := by decide
+  baseBinds := by decide
+  operandBinds := by decide
+  memoryBinds := by decide
+  baseInFieldRange := by decide
+
+theorem lw_exists :
+    ∃ (row : LoadStoreRow) (env : LoadStoreEnvironment row),
+      LoadStoreHolds row ∧ row.isLw = true ∧
+        LoadRefinement row env LoadStoreDecode.funct3Lw 21
+          (executeLw env.pre.pc env.baseValue env.imm row.r2Idx env.memoryWord)
+          (loadWordValue env.memoryWord) :=
+  ⟨lwRow, lwEnvironment, lw_holds, rfl,
+    lw_refines lwRow lwEnvironment lw_holds rfl⟩
+
+/-- `SB x7, 5(x5)`: one byte written into the middle of a live word. -/
+def sbRow : LoadStoreRow :=
+  { lhLowRow with
+    isLh := false
+    isSb := true
+    dstPrevious := limbs 0x01 0x02 0x03 0x04
+    dstNext := limbs 0x01 0xab 0x03 0x04
+    srcPrevious := limbs 0xab 0x00 0x00 0x00
+    srcNext := limbs 0xab 0x00 0x00 0x00
+    immFelt := 5
+    shiftAmount := 1
+    marker0 := false
+    marker1 := true
+    result := WordBytes.zero }
+
+theorem sb_holds : LoadStoreHolds sbRow := by
+  constructor <;> first | decide | (unfold validPreviousClock; decide)
+
+def sbEnvironment : LoadStoreEnvironment sbRow where
+  pre := witnessPre (BitVec.ofNat 32 0x100) (BitVec.ofNat 32 0xab)
+  memory := witnessMemory (BitVec.ofNat 32 260) (limbs 0x01 0x02 0x03 0x04)
+  imm := BitVec.ofNat 12 5
+  word := LoadStoreDecode.encoding sbRow (BitVec.ofNat 12 5)
+  pcBinds := rfl
+  wordBinds := rfl
+  immBinds := by decide
+  baseBinds := by decide
+  operandBinds := by decide
+  memoryBinds := by decide
+  baseInFieldRange := by decide
+
+theorem sb_exists :
+    ∃ (row : LoadStoreRow) (env : LoadStoreEnvironment row),
+      LoadStoreHolds row ∧ row.isSb = true ∧
+        (loadStoreRetirement row).write = none ∧
+        StoreRefinement row env LoadStoreDecode.funct3Sb 24
+          (executeSb env.pre.pc env.baseValue env.imm env.operandValue
+            env.memoryWord)
+          (Memory.applyMask env.memoryWord
+            (storeBytePayload env.operandValue) row.mask) :=
+  ⟨sbRow, sbEnvironment, sb_holds, rfl, by decide,
+    sb_refines sbRow sbEnvironment sb_holds rfl⟩
+
+/-- `SH x7, 2(x5)`: the high halfword of a live word. -/
+def shRow : LoadStoreRow :=
+  { lhLowRow with
+    isLh := false
+    isSh := true
+    rs1Previous := limbs 0x00 0x02 0x00 0x00
+    rs1Next := limbs 0x00 0x02 0x00 0x00
+    dstPrevious := limbs 0x11 0x22 0x33 0x44
+    dstNext := limbs 0x11 0x22 0x34 0x12
+    srcPrevious := limbs 0x34 0x12 0x00 0x00
+    srcNext := limbs 0x34 0x12 0x00 0x00
+    immFelt := 2
+    shiftAmount := 2
+    alignedQuarter := 128
+    marker0 := false
+    marker1 := false
+    marker2 := true
+    marker3 := true
+    result := WordBytes.zero }
+
+theorem sh_holds : LoadStoreHolds shRow := by
+  constructor <;> first | decide | (unfold validPreviousClock; decide)
+
+def shEnvironment : LoadStoreEnvironment shRow where
+  pre := witnessPre (BitVec.ofNat 32 0x200) (BitVec.ofNat 32 0x1234)
+  memory := witnessMemory (BitVec.ofNat 32 512) (limbs 0x11 0x22 0x33 0x44)
+  imm := BitVec.ofNat 12 2
+  word := LoadStoreDecode.encoding shRow (BitVec.ofNat 12 2)
+  pcBinds := rfl
+  wordBinds := rfl
+  immBinds := by decide
+  baseBinds := by decide
+  operandBinds := by decide
+  memoryBinds := by decide
+  baseInFieldRange := by decide
+
+theorem sh_exists :
+    ∃ (row : LoadStoreRow) (env : LoadStoreEnvironment row),
+      LoadStoreHolds row ∧ row.isSh = true ∧
+        (loadStoreRetirement row).write = none ∧
+        StoreRefinement row env LoadStoreDecode.funct3Sh 25
+          (executeSh env.pre.pc env.baseValue env.imm env.operandValue
+            env.memoryWord)
+          (Memory.applyMask env.memoryWord
+            (storeHalfPayload env.operandValue) row.mask) :=
+  ⟨shRow, shEnvironment, sh_holds, rfl, by decide,
+    sh_refines shRow shEnvironment sh_holds rfl⟩
+
+/-- `SW x7, 4(x5)`: a full-word overwrite. -/
+def swRow : LoadStoreRow :=
+  { lhLowRow with
+    isLh := false
+    isSw := true
+    dstPrevious := WordBytes.zero
+    dstNext := limbs 0xef 0xcd 0xab 0x89
+    srcPrevious := limbs 0xef 0xcd 0xab 0x89
+    srcNext := limbs 0xef 0xcd 0xab 0x89
+    marker0 := false
+    marker1 := false
+    result := WordBytes.zero }
+
+theorem sw_holds : LoadStoreHolds swRow := by
+  constructor <;> first | decide | (unfold validPreviousClock; decide)
+
+def swEnvironment : LoadStoreEnvironment swRow where
+  pre := witnessPre (BitVec.ofNat 32 0x100) (BitVec.ofNat 32 0x89abcdef)
+  memory := witnessMemory (BitVec.ofNat 32 260) WordBytes.zero
+  imm := BitVec.ofNat 12 4
+  word := LoadStoreDecode.encoding swRow (BitVec.ofNat 12 4)
+  pcBinds := rfl
+  wordBinds := rfl
+  immBinds := by decide
+  baseBinds := by decide
+  operandBinds := by decide
+  memoryBinds := by decide
+  baseInFieldRange := by decide
+
+theorem sw_exists :
+    ∃ (row : LoadStoreRow) (env : LoadStoreEnvironment row),
+      LoadStoreHolds row ∧ row.isSw = true ∧
+        (loadStoreRetirement row).write = none ∧
+        StoreRefinement row env LoadStoreDecode.funct3Sw 26
+          (executeSw env.pre.pc env.baseValue env.imm env.operandValue
+            env.memoryWord)
+          (Memory.applyMask env.memoryWord
+            (storeWordPayload env.operandValue) row.mask) :=
+  ⟨swRow, swEnvironment, sw_holds, rfl, by decide,
+    sw_refines swRow swEnvironment sw_holds rfl⟩
+
+end NonVacuity
 
 end RiscvRefinement.Opcodes

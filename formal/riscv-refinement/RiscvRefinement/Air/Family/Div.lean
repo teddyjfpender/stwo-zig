@@ -689,51 +689,51 @@ theorem div_scan_facts (row : DivRow) (holds : DivHolds row)
           divCompareDiff0 row = 0) := by
   refine ⟨?_, ?_, ?_, ?_⟩
   · cases h3 : row.ltMarker3 with
-    | false => exact Or.inl ⟨by simp [h3], holds.scanEqual3 hzd hrz h3⟩
-    | true => exact Or.inr ⟨by simp [h3], holds.scanMarker3 h3⟩
+    | false => exact Or.inl ⟨by simp, holds.scanEqual3 hzd hrz h3⟩
+    | true => exact Or.inr ⟨by simp, holds.scanMarker3 h3⟩
   · cases h2 : row.ltMarker2 with
-    | true => exact Or.inl ⟨by simp [h2], holds.scanMarker2 h2⟩
+    | true => exact Or.inl ⟨by simp, holds.scanMarker2 h2⟩
     | false =>
       cases h3 : row.ltMarker3 with
-      | true => exact Or.inr (Or.inl ⟨by simp [h2], by simp [h3]⟩)
+      | true => exact Or.inr (Or.inl ⟨by simp, by simp⟩)
       | false =>
         exact Or.inr (Or.inr
-          ⟨by simp [h2], by simp [h3], holds.scanEqual2 hzd hrz h3 h2⟩)
+          ⟨by simp, by simp, holds.scanEqual2 hzd hrz h3 h2⟩)
   · cases h1 : row.ltMarker1 with
-    | true => exact Or.inl ⟨by simp [h1], holds.scanMarker1 h1⟩
+    | true => exact Or.inl ⟨by simp, holds.scanMarker1 h1⟩
     | false =>
       cases h3 : row.ltMarker3 with
       | true =>
         exact Or.inr (Or.inl
-          ⟨by simp [h1], by simp only [h3, Bool.toNat_true]; omega⟩)
+          ⟨by simp, by simp only [Bool.toNat_true]; omega⟩)
       | false =>
         cases h2 : row.ltMarker2 with
         | true =>
           exact Or.inr (Or.inl
-            ⟨by simp [h1], by simp only [h2, Bool.toNat_true]; omega⟩)
+            ⟨by simp, by simp only [Bool.toNat_true]; omega⟩)
         | false =>
-          exact Or.inr (Or.inr ⟨by simp [h1], by simp [h3], by simp [h2],
+          exact Or.inr (Or.inr ⟨by simp, by simp, by simp,
             holds.scanEqual1 hzd hrz h3 h2 h1⟩)
   · cases h0 : row.ltMarker0 with
-    | true => exact Or.inl ⟨by simp [h0], holds.scanMarker0 h0⟩
+    | true => exact Or.inl ⟨by simp, holds.scanMarker0 h0⟩
     | false =>
       cases h3 : row.ltMarker3 with
       | true =>
         exact Or.inr (Or.inl
-          ⟨by simp [h0], by simp only [h3, Bool.toNat_true]; omega⟩)
+          ⟨by simp, by simp only [Bool.toNat_true]; omega⟩)
       | false =>
         cases h2 : row.ltMarker2 with
         | true =>
           exact Or.inr (Or.inl
-            ⟨by simp [h0], by simp only [h2, Bool.toNat_true]; omega⟩)
+            ⟨by simp, by simp only [Bool.toNat_true]; omega⟩)
         | false =>
           cases h1 : row.ltMarker1 with
           | true =>
             exact Or.inr (Or.inl
-              ⟨by simp [h0], by simp only [h1, Bool.toNat_true]; omega⟩)
+              ⟨by simp, by simp only [Bool.toNat_true]; omega⟩)
           | false =>
-            exact Or.inr (Or.inr ⟨by simp [h0], by simp [h3], by simp [h2],
-              by simp [h1], holds.scanEqual0 hzd hrz h3 h2 h1 h0⟩)
+            exact Or.inr (Or.inr ⟨by simp, by simp, by simp,
+              by simp, holds.scanEqual0 hzd hrz h3 h2 h1 h0⟩)
 
 /-- Off both special branches the scan proves a strict unsigned comparison in
 the direction selected by the divisor sign. -/
@@ -971,7 +971,7 @@ theorem div_opcode_id_remu (row : DivRow) (holds : DivHolds row)
     ⟨a, b, c, d⟩ | ⟨a, b, c, d⟩ | ⟨a, b, c, d⟩ | ⟨a, b, c, d⟩ <;>
     simp_all [divOpcodeId]
 
-theorem div_flags_div (row : DivRow) (holds : DivHolds row)
+theorem div_flags_div (row : DivRow) (_holds : DivHolds row)
     (selector : row.isDiv = true) :
     row.isSigned = true ∧ row.isDivision = true := by
   constructor <;> simp [DivRow.isSigned, DivRow.isDivision, selector]
@@ -1107,12 +1107,12 @@ theorem div_signed_remainder_bound (row : DivRow) (holds : DivHolds row)
     cases hc : row.cSign with
     | false =>
       have := cLow hc
-      simp only [divSignedInt, hrz, hc, Bool.not_true, Bool.and_false,
+      simp only [divSignedInt, Bool.not_true, Bool.and_false,
         Bool.toNat_false, hRzero]
       omega
     | true =>
       have := cHigh hc
-      simp only [divSignedInt, hrz, hc, Bool.not_true, Bool.and_false,
+      simp only [divSignedInt, Bool.not_true, Bool.and_false,
         Bool.toNat_false, Bool.toNat_true, hRzero]
       omega
   | false =>
@@ -1127,7 +1127,7 @@ theorem div_signed_remainder_bound (row : DivRow) (holds : DivHolds row)
           simp [WordBytes.value, holds.absSameLimb0 hx, holds.absSameLimb1 hx,
             holds.absSameLimb2 hx, holds.absSameLimb3 hx]
         have compare := div_compare_positive row holds hzd hrz hc
-        simp only [divSignedInt, hb, hc, Bool.false_and, Bool.toNat_false]
+        simp only [divSignedInt, Bool.false_and, Bool.toNat_false]
         omega
       | true =>
         have hx : row.signXor = true := by
@@ -1135,7 +1135,7 @@ theorem div_signed_remainder_bound (row : DivRow) (holds : DivHolds row)
         obtain ⟨top, htop, hsum, hiff⟩ := div_abs_negated row holds hx
         have compare := div_compare_negative row holds hzd hrz hc
         have := cHigh hc
-        simp only [divSignedInt, hb, hc, Bool.false_and, Bool.toNat_false,
+        simp only [divSignedInt, Bool.false_and, Bool.toNat_false,
           Bool.toNat_true]
         omega
     | true =>
@@ -1146,7 +1146,7 @@ theorem div_signed_remainder_bound (row : DivRow) (holds : DivHolds row)
         obtain ⟨top, htop, hsum, hiff⟩ := div_abs_negated row holds hx
         have compare := div_compare_positive row holds hzd hrz hc
         have := cLow hc
-        simp only [divSignedInt, hb, hc, hrz, Bool.not_false, Bool.and_true,
+        simp only [divSignedInt, Bool.not_false, Bool.and_true,
           Bool.toNat_true, Bool.toNat_false]
         omega
       | true =>
@@ -1157,7 +1157,7 @@ theorem div_signed_remainder_bound (row : DivRow) (holds : DivHolds row)
             holds.absSameLimb2 hx, holds.absSameLimb3 hx]
         have compare := div_compare_negative row holds hzd hrz hc
         have := cHigh hc
-        simp only [divSignedInt, hb, hc, hrz, Bool.not_false, Bool.and_true,
+        simp only [divSignedInt, Bool.not_false, Bool.and_true,
           Bool.toNat_true]
         omega
 
@@ -1187,7 +1187,7 @@ theorem div_signed_result (row : DivRow) (holds : DivHolds row)
     | false =>
       have hR := row.remainder.value_lt
       simp only [Nat.reducePow] at hR
-      simp only [divSignedInt, hb, Bool.false_and, Bool.toNat_false]
+      simp only [divSignedInt, Bool.false_and, Bool.toNat_false]
       omega
     | true =>
       exfalso
@@ -1207,11 +1207,11 @@ theorem div_signed_result (row : DivRow) (holds : DivHolds row)
           simp [WordBytes.value, holds.remainderZeroLimb0 hrz,
             holds.remainderZeroLimb1 hrz, holds.remainderZeroLimb2 hrz,
             holds.remainderZeroLimb3 hrz]
-        simp only [divSignedInt, hb, hrz, Bool.not_true, Bool.and_false,
+        simp only [divSignedInt, Bool.not_true, Bool.and_false,
           Bool.toNat_false, hRzero]
         omega
       | false =>
-        simp only [divSignedInt, hb, hrz, Bool.not_false, Bool.and_true,
+        simp only [divSignedInt, Bool.not_false, Bool.and_true,
           Bool.toNat_true]
         omega
     | false =>

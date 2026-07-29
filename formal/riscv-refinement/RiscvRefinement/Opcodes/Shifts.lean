@@ -23,7 +23,7 @@ open RiscvRefinement.Sail.Reviewed
 
 /-! ## Shift-immediate family: SLLI / SRLI / SRAI -/
 
-/-- The `imm_truncated` column read as the five-bit `shamt` instruction field. -/
+/-- The `imm_truncated` column read as the five-bit `shamt` field. -/
 def shiftsImmShamt (row : ShiftsImmRow) : BitVec 5 :=
   BitVec.ofNat 5 row.immTruncated
 

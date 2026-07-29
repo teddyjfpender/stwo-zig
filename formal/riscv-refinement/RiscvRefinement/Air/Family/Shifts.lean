@@ -87,7 +87,8 @@ theorem bit_markers_hot
       bitIndex < 8 ∧
         m0 + 2 * m1 + 4 * m2 + 8 * m3 + 16 * m4 + 32 * m5 + 64 * m6 +
             128 * m7 = 2 ^ bitIndex ∧
-        m1 + 2 * m2 + 3 * m3 + 4 * m4 + 5 * m5 + 6 * m6 + 7 * m7 = bitIndex := by
+        m1 + 2 * m2 + 3 * m3 + 4 * m4 + 5 * m5 + 6 * m6 + 7 * m7 =
+          bitIndex := by
   refine ⟨m1 + 2 * m2 + 3 * m3 + 4 * m4 + 5 * m5 + 6 * m6 + 7 * m7,
     by omega, ?_, rfl⟩
   have choice :
@@ -174,7 +175,8 @@ def ShiftRow.multiplier (row : ShiftRow) : Nat := 2 ^ row.bitIndex
 def ShiftRow.signNat (row : ShiftRow) : Nat := if row.rs1Sign then 1 else 0
 
 /-- The derived `shift_amount` column, `8 * limb_shift + bit_shift`. -/
-def ShiftRow.shiftAmount (row : ShiftRow) : Nat := 8 * row.limbIndex + row.bitIndex
+def ShiftRow.shiftAmount (row : ShiftRow) : Nat :=
+  8 * row.limbIndex + row.bitIndex
 
 /-- Left-shift byte/carry movement, constraints 22-37 specialized to the hot
 limb marker. `mult` is `bit_multiplier_left = is_sll * bit_multiplier`. -/
@@ -255,7 +257,8 @@ structure ShiftHolds (row : ShiftRow) : Prop where
   signLowerBound :
     row.kind = ShiftKind.sra → 128 * row.signNat ≤ row.rs1Next.limb3.toNat
   signUpperBound :
-    row.kind = ShiftKind.sra → row.rs1Next.limb3.toNat < 128 * row.signNat + 128
+    row.kind = ShiftKind.sra →
+      row.rs1Next.limb3.toNat < 128 * row.signNat + 128
   /-- `carryRangePairs`: `range_check_8_8 (carry_k, bit_multiplier - carry_k -
   1)` makes both components bytes, which on an active row is exactly
   `carry_k < bit_multiplier`. -/
@@ -506,7 +509,8 @@ theorem shift_right_signed_value
     simp only [Nat.reduceMul, Nat.reducePow] at hs
     simp only [shiftRightEquations] at hright
     obtain ⟨e0, e1, e2, e3⟩ := hright
-    have p3 : row.multiplier * row.result.limb3.toNat = 255 * row.multiplier := by
+    have p3 : row.multiplier * row.result.limb3.toNat =
+        255 * row.multiplier := by
       rw [e3]; omega
     refine ⟨256 * row.carry1 + row.rs1Next.limb0.toNat, ?_, ?_⟩
     · rw [hs]; omega
@@ -517,9 +521,11 @@ theorem shift_right_signed_value
     simp only [Nat.reduceMul, Nat.reducePow] at hs
     simp only [shiftRightEquations] at hright
     obtain ⟨e0, e1, e2, e3⟩ := hright
-    have p2 : row.multiplier * row.result.limb2.toNat = 255 * row.multiplier := by
+    have p2 : row.multiplier * row.result.limb2.toNat =
+        255 * row.multiplier := by
       rw [e2]; omega
-    have p3 : row.multiplier * row.result.limb3.toNat = 255 * row.multiplier := by
+    have p3 : row.multiplier * row.result.limb3.toNat =
+        255 * row.multiplier := by
       rw [e3]; omega
     refine ⟨65536 * row.carry2 + 256 * row.rs1Next.limb1.toNat +
       row.rs1Next.limb0.toNat, ?_, ?_⟩
@@ -531,11 +537,14 @@ theorem shift_right_signed_value
     simp only [Nat.reduceMul, Nat.reducePow] at hs
     simp only [shiftRightEquations] at hright
     obtain ⟨e0, e1, e2, e3⟩ := hright
-    have p1 : row.multiplier * row.result.limb1.toNat = 255 * row.multiplier := by
+    have p1 : row.multiplier * row.result.limb1.toNat =
+        255 * row.multiplier := by
       rw [e1]; omega
-    have p2 : row.multiplier * row.result.limb2.toNat = 255 * row.multiplier := by
+    have p2 : row.multiplier * row.result.limb2.toNat =
+        255 * row.multiplier := by
       rw [e2]; omega
-    have p3 : row.multiplier * row.result.limb3.toNat = 255 * row.multiplier := by
+    have p3 : row.multiplier * row.result.limb3.toNat =
+        255 * row.multiplier := by
       rw [e3]; omega
     refine ⟨16777216 * row.carry3 + 65536 * row.rs1Next.limb2.toNat +
       256 * row.rs1Next.limb1.toNat + row.rs1Next.limb0.toNat, ?_, ?_⟩
@@ -566,7 +575,8 @@ theorem shift_right_logical_word
     (kind : row.kind ≠ ShiftKind.sll)
     (sign : row.rs1Sign = false) :
     row.result.word = row.rs1Next.word >>> row.shiftAmount := by
-  obtain ⟨remainder, hlt, heq⟩ := shift_right_logical_value row holds kind sign
+  obtain ⟨remainder, hlt, heq⟩ :=
+    shift_right_logical_value row holds kind sign
   apply BitVec.eq_of_toNat_eq
   rw [BitVec.toNat_ushiftRight]
   simp only [WordBytes.word_toNat, Nat.shiftRight_eq_div_pow]
@@ -594,7 +604,7 @@ theorem shift_source_msb_false
   omega
 
 /-- `rs1_sign = 1` on an `SRA` row forces the top limb to at least 128, i.e. the
-operand is architecturally negative and the sign-fill path is the correct one. -/
+operand is architecturally negative, so the sign-fill path is correct. -/
 theorem shift_source_msb_true
     (row : ShiftRow)
     (holds : ShiftHolds row)
@@ -802,7 +812,8 @@ structure ShiftsRegHolds (row : ShiftsRegRow) : Prop where
     validPreviousClock row.rdPreviousClock (accessClock row.clock 3)
   /-- Constraints 65-68, `readOnlyAccessConstraints(rs2, enabler)`. -/
   secondSourceReadOnly : row.rs2Next = row.rs2Previous
-  /-- Lookup 9, `range_check_20 (7 - (rs2_next_0 - shift_amount) * 32⁻¹)`: the
+  /-- Lookup 9, `range_check_20 (7 - (rs2_next_0 - shift_amount) * 32⁻¹)`:
+  the
   requested value is a non-negative integer only when `rs2_next_0` exceeds
   `shift_amount` by a multiple of 32, and the `range_check_20` domain caps the
   quotient at 7 because `rs2_next_0` is a byte. That is exactly the RISC-V
