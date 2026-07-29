@@ -136,13 +136,22 @@ jobs:
           set -euo pipefail
           cd formal/riscv-refinement
           lake env lean RiscvRefinement/AxiomAudit.lean > /tmp/team-b-axioms.txt
+          # An audit that reports nothing looks identical to an audit that
+          # found nothing wrong, so require it to have actually reported. If
+          # the output format ever changes, this fails instead of passing.
+          theorems="$(grep -cE '^REFINEMENT_THEOREM ' /tmp/team-b-axioms.txt || true)"
+          axioms="$(grep -cE '^REFINEMENT_AXIOM ' /tmp/team-b-axioms.txt || true)"
+          echo "audited ${theorems} theorems over ${axioms} axiom records"
+          if [ "${theorems}" -lt 90 ] || [ "${axioms}" -lt 90 ]; then
+            echo "axiom audit reported implausibly little; treating as failure" >&2
+            exit 1
+          fi
           # Only propext, Classical.choice and Quot.sound are approved.
           if grep -E '^REFINEMENT_AXIOM ' /tmp/team-b-axioms.txt \
               | grep -vE ' (propext|Classical\.choice|Quot\.sound)$'; then
             echo "unapproved axiom in a refinement theorem" >&2
             exit 1
           fi
-          grep -c '^REFINEMENT_THEOREM ' /tmp/team-b-axioms.txt
 
       - name: Python gates
         run: |
