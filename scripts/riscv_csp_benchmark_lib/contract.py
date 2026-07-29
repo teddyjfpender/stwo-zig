@@ -17,6 +17,50 @@ DEFAULT_REPORT = ROOT / "vectors" / "reports" / "riscv_csp_benchmark_report.json
 DEFAULT_CLI = ROOT / "zig-out" / "bin" / "stwo-zig-riscv-cpu"
 DEFAULT_TRACE_CLI = ROOT / "zig-out" / "bin" / "riscv-trace-dump"
 
+
+@dataclass(frozen=True)
+class BackendSpec:
+    """Single source of truth for one selectable prover backend.
+
+    ``cli_value`` is the token passed to the product CLI's ``bench
+    --backend``; ``artifact_backend`` is the value required verbatim in the
+    schema-v4 proof artifact's ``backend`` field; ``registry_product`` is the
+    focused-registry product name the admission probe must authenticate.
+    ``requires_gpu`` makes GPU identity capture mandatory (fail-closed)
+    because a GPU-dependent measurement without GPU identity is not
+    reproducible.
+    """
+
+    cli_value: str
+    artifact_backend: str
+    default_cli: Path
+    default_report: Path
+    registry_product: str
+    requires_gpu: bool
+
+
+BACKENDS: dict[str, BackendSpec] = {
+    "cpu": BackendSpec(
+        cli_value="cpu",
+        artifact_backend="cpu",
+        default_cli=DEFAULT_CLI,
+        default_report=DEFAULT_REPORT,
+        registry_product="stwo-riscv-cpu",
+        requires_gpu=False,
+    ),
+    "metal": BackendSpec(
+        cli_value="metal",
+        artifact_backend="metal",
+        default_cli=ROOT / "zig-out" / "bin" / "stwo-zig-riscv-metal",
+        default_report=ROOT
+        / "vectors"
+        / "reports"
+        / "riscv_csp_benchmark_report.metal.json",
+        registry_product="stwo-riscv-metal",
+        requires_gpu=True,
+    ),
+}
+
 TARGET_ORDER = ("sha256", "keccak", "poseidon2_m31", "ecdsa_secp256k1")
 BYTE_INPUT_SIZES = (128, 256, 512, 1024, 2048)
 FIELD_ELEMENT_SIZES = (2, 4, 8, 12, 16)
