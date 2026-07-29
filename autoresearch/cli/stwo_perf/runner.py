@@ -3626,11 +3626,26 @@ def evaluate(
         raise RunError(f"board {board} selected workloads from multiple groups")
     policy = manifest.gates_for_workload(next(iter(group_ids)), workload_class)
     try:
-        epoch_resource_budgets = ledger.resource_budgets(repo_root, workload_class)
+        # TRACKS §8: resource budgets are keyed (board, class); a board era
+        # that pins none falls back to the epoch's class-only vector.
+        epoch_resource_budgets = ledger.resource_budgets(
+            repo_root, workload_class, board=board,
+        )
+        era_scored_dimension = ledger.scored_dimension(repo_root, board)
     except ledger.LedgerError as exc:
         raise RunError(f"invalid epoch resource budgets: {exc}") from exc
     if epoch_resource_budgets is not None:
         policy["resource_budgets"] = epoch_resource_budgets
+    if era_scored_dimension != ledger.DEFAULT_SCORED_DIMENSION:
+        # TRACKS §3.1 fail-closed gate: a board whose era declares the
+        # verified-request boundary must not be scored by a harness that still
+        # measures the prove boundary. Opening such an era therefore cannot
+        # silently produce prove-boundary rows labelled as request-boundary.
+        raise RunError(
+            f"board {board} scores {era_scored_dimension} in its current era, but this "
+            f"harness measures {ledger.DEFAULT_SCORED_DIMENSION}; the TRACKS §3.1 "
+            "boundary re-scoring must land in the runner before that era opens"
+        )
 
     dispersion = ledger.aa_dispersion(repo_root, board, workload_class)
     th = stats.theta(dispersion, float(policy["theta_floor"]), float(policy["dispersion_multiplier"]))

@@ -18,7 +18,7 @@ from pathlib import Path
 from . import frontier, ledger, metrics, search_health
 from .manifest import Manifest
 
-FEED_SCHEMA_VERSION = 3
+FEED_SCHEMA_VERSION = 4
 
 REQUEST_RESOURCE_KEYS = {
     "measurement_scope",
@@ -33,6 +33,29 @@ REQUEST_RESOURCE_KEYS = {
     "complete",
     "unavailable_reason",
 }
+
+# Reserved measurement-lane identities and the scoring board each one belongs
+# to, per schema/scoring.md Boards 3/4/5. This is the repository's own
+# normative lane contract, not an inference: `cpu_native` is Board 3,
+# `metal_resident` (zero fallback, AOT-admitted) is Board 4, and today's
+# best-effort `metal_hybrid` lane is Board 5. A lane whose backend identity is
+# not in this table gets a null board rather than a guess.
+LANE_BACKEND_BOARDS = {
+    "cpu_native": "core_cpu",
+    "metal_resident": "core_metal",
+    "metal_hybrid": "core_hybrid",
+}
+
+# TRACKS §3.2 phase telemetry. A phase-bearing artifact is COMMITTED evidence
+# with the named cutpoints already measured; the feed passes it through and
+# never derives, interpolates, or zero-fills one. Drop point and required
+# shape are documented in schema/site-feed.md.
+PHASE_TELEMETRY_DIR = ("autoresearch", "reference", "phase-telemetry")
+PHASE_TELEMETRY_REQUIRED = (
+    "board", "report_schema", "measurement_boundary", "phase_profile_source",
+    "phase_seconds",
+)
+PHASE_TELEMETRY_OPTIONAL = ("run_id", "workload", "workload_class", "mechanism")
 
 # Input roots whose uncommitted changes make a feed provenance-dishonest.
 INPUT_ROOTS = (
@@ -158,11 +181,20 @@ def _lane_summary(lane: dict) -> dict:
     prove_s = _median(metrics.get("prove_seconds"))
     request_s = _median(metrics.get("request_seconds"))
     rss_kib = _median(metrics.get("peak_rss_kib"))
+    backend = lane.get("backend")
     out = {
         "prove_ms": round(prove_s * 1000.0, 6) if prove_s is not None else None,
         "native_mhz": _median(metrics.get("native_mhz")),
         "request_ms": round(request_s * 1000.0, 6) if request_s is not None else None,
         "peak_rss_mib": round(rss_kib / 1024.0, 2) if rss_kib is not None else None,
+        # Backend identity verbatim from the committed report, plus the board
+        # the repository's own scoring contract assigns to it. Consumers must
+        # stop inferring tracks from lane KEY names ("cpu"/"metal"): the metal
+        # lane reports `metal_hybrid`, which is Board 5 (core_hybrid), NOT the
+        # zero-fallback Board 4 (core_metal). An unrecognised backend publishes
+        # a null board — never a guess.
+        "backend": backend if isinstance(backend, str) else None,
+        "board": LANE_BACKEND_BOARDS.get(backend) if isinstance(backend, str) else None,
     }
     fallbacks = _sample_counter(telemetry, "cpu_fallbacks")
     if fallbacks is not None:
@@ -267,7 +299,9 @@ def _promotion_scope(manifest: Manifest) -> dict:
             "enabled": group.enabled,
             "promotion_eligible": group.promotion_eligible,
             "disabled_reason": group.disabled_reason,
+            "promotion_blocked_reason": group.promotion_blocked_reason,
             "report_schema": group.report_schema,
+            "retirement": dict(group.retirement) or None,
             "workloads": {
                 w.workload_id: {"class": w.workload_class, "native_unit": w.native_unit}
                 for w in group.workloads
@@ -275,6 +309,11 @@ def _promotion_scope(manifest: Manifest) -> dict:
         }
     owned = sorted({g.board for g in manifest.groups() if g.promotion_eligible})
     staged = sorted({g.board for g in manifest.groups() if not g.promotion_eligible})
+    # TRACKS §6: a retired board is completed, not future. It must never fall
+    # into `future_boards`, whose contract is "out of scope, never live" — that
+    # would erase the banked native era exactly the way removing it from
+    # ledger.BOARDS would.
+    retired = sorted({g.board for g in manifest.groups() if g.retirement})
     return {
         "class_registry": {
             cls.name: {
@@ -289,7 +328,8 @@ def _promotion_scope(manifest: Manifest) -> dict:
         "groups": groups,
         "owned_boards": owned,
         "staged_boards": staged,
-        "future_boards": sorted(set(ledger.BOARDS) - set(owned)),
+        "retired_boards": retired,
+        "future_boards": sorted(set(ledger.BOARDS) - set(owned) - set(retired)),
         "baselines": {
             "riscv": "vectors/reports/riscv_baselines/",
             "core_cpu": "vectors/reports/benchmark_history/",
@@ -372,17 +412,131 @@ def _audit_state(
     }
 
 
+def _phase_telemetry_files(repo: Path) -> list[Path]:
+    directory = repo.joinpath(*PHASE_TELEMETRY_DIR)
+    return sorted(directory.glob("*.json")) if directory.is_dir() else []
+
+
+def _phase_telemetry(repo: Path) -> dict[str, dict]:
+    """Board-keyed phase-cutpoint telemetry from committed artifacts only.
+
+    TRACKS §3.2 makes the named cutpoints mandatory telemetry and forbids
+    scoring them. The feed therefore publishes them verbatim from committed,
+    digest-bound artifacts and publishes NOTHING for a board that has none —
+    an absent board is an honest "not yet measured", never a zero-filled
+    decomposition. Every field is validated before publication, so a malformed
+    artifact fails the feed rather than reaching a consumer.
+    """
+    out: dict[str, dict] = {}
+    for path in _phase_telemetry_files(repo):
+        try:
+            document = json.loads(path.read_text())
+        except json.JSONDecodeError as exc:
+            raise FeedError(f"phase telemetry {path.name} is not valid JSON: {exc}")
+        if not isinstance(document, dict):
+            raise FeedError(f"phase telemetry {path.name} must be an object")
+        missing = [key for key in PHASE_TELEMETRY_REQUIRED if key not in document]
+        if missing:
+            raise FeedError(
+                f"phase telemetry {path.name} is missing {sorted(missing)}"
+            )
+        board = document["board"]
+        if board not in ledger.BOARDS:
+            raise FeedError(
+                f"phase telemetry {path.name} names an unregistered board: {board!r}"
+            )
+        if board in out:
+            raise FeedError(f"phase telemetry for board {board} is declared twice")
+        phases = document["phase_seconds"]
+        if not isinstance(phases, dict) or not phases:
+            raise FeedError(
+                f"phase telemetry {path.name} phase_seconds must be a non-empty object"
+            )
+        for name, value in phases.items():
+            if value is None:
+                continue  # a documented, explicitly unmeasured cutpoint
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or value < 0
+            ):
+                raise FeedError(
+                    f"phase telemetry {path.name} phase {name} is not a "
+                    "nonnegative number or null"
+                )
+        if not isinstance(document["phase_profile_source"], dict):
+            raise FeedError(
+                f"phase telemetry {path.name} phase_profile_source must be an object"
+            )
+        out[board] = {
+            "report_schema": document["report_schema"],
+            "run_id": document.get("run_id"),
+            "workload": document.get("workload"),
+            "workload_class": document.get("workload_class"),
+            "measurement_boundary": document["measurement_boundary"],
+            "phase_profile_source": document["phase_profile_source"],
+            "mechanism": document.get("mechanism"),
+            "stages": {"phase_seconds": phases},
+        }
+    return out
+
+
+def _era(board_spec: dict) -> dict:
+    """TRACKS §9 per-board era metadata.
+
+    Sourced from `epochs.json`: either the board's own era sequence or, when it
+    declares none, the global epoch it falls back to — which the site used to
+    have to infer from the suite-score epoch. `banked` is the retired/frozen
+    flag: a banked era's scores are final and are never compared with a live
+    track's. Nothing here is invented; a missing field is published as null.
+    """
+    era = board_spec.get("era")
+    if era is None:
+        return {
+            "number": int(board_spec["epoch"]),
+            "epoch": int(board_spec["epoch"]),
+            "opened_utc": board_spec.get("opened_utc"),
+            "reason": board_spec.get("reason"),
+            "status": "open",
+            "banked": False,
+            "closed_utc": None,
+            "scored_dimension": board_spec.get(
+                "scored_dimension", ledger.DEFAULT_SCORED_DIMENSION
+            ),
+            "note": None,
+            "source": "global_epoch",
+        }
+    return {
+        "number": int(era["era"]),
+        "epoch": int(era["epoch_ref"]),
+        "opened_utc": era["opened_utc"],
+        "reason": era["reason"],
+        "status": era["status"],
+        "banked": era["status"] == "banked",
+        "closed_utc": era["closed_utc"],
+        "scored_dimension": era["scored_dimension"],
+        "note": era.get("note"),
+        "source": "board_era",
+    }
+
+
 def _boards(
     repo: Path,
     manifest: Manifest,
     rows: list[ledger.Row],
     epoch_spec: dict,
 ) -> dict:
-    epoch = int(epoch_spec["epoch"])
-    metrics_policy = metrics.policy_from_epoch(epoch_spec)
     boards: dict = {}
-    owned_boards = {group.board for group in manifest.groups()}
+    groups_by_board = {group.board: group for group in manifest.groups()}
+    phase_telemetry = _phase_telemetry(repo)
     for board in ledger.BOARDS:
+        # TRACKS §7: every board is scored under ITS OWN current era. Boards
+        # without an era sequence resolve to the newest global epoch, which is
+        # byte-for-byte the pre-era behaviour.
+        board_spec = ledger.current_epoch(repo, board=board)
+        epoch = int(board_spec["epoch"])
+        metrics_policy = metrics.policy_from_epoch(board_spec)
+        group = groups_by_board.get(board)
         board_rows = [r for r in rows if r.values.get("board") == board]
         entries = [r.values for r in board_rows]
         board_frontier = {}
@@ -390,7 +544,7 @@ def _boards(
             manifest.class_names(
                 board=board, scored_only=True, include_disabled=True,
             )
-            if board in owned_boards else []
+            if group is not None else []
         )
         for cls in classes:
             view = frontier.view(board_rows, board, cls)
@@ -398,12 +552,17 @@ def _boards(
                 "head": view.head.values if view.head else None,
                 "frontier": [r.values for r in view.frontier],
                 "audit": _audit_state(
-                    repo, rows, epoch_spec, board, cls,
+                    repo, rows, board_spec, board, cls,
                 ),
             }
         boards[board] = {
             "entries": entries,
             "scored_classes": classes,
+            "era": _era(board_spec),
+            "retirement": (
+                dict(group.retirement) or None if group is not None else None
+            ),
+            "phase_telemetry": phase_telemetry.get(board),
             "suite_score": (
                 metrics.board_suite_score(
                     rows, epoch, board, classes, policy=metrics_policy,
@@ -621,6 +780,7 @@ def _reference_input_files(repo: Path) -> list[Path]:
         return []
     paths = sorted(ref_dir.glob("*.json"))
     paths.extend(sorted((ref_dir / "peer-series" / "runs").glob("*.json")))
+    paths.extend(_phase_telemetry_files(repo))
     return paths
 
 
@@ -733,6 +893,8 @@ def build_feed(manifest: Manifest, allow_dirty: bool = False) -> dict:
         },
         "epoch": {
             "number": epoch["epoch"],
+            "opened_utc": epoch.get("opened_utc"),
+            "reason": epoch.get("reason"),
             "aa_dispersion": epoch.get("aa_dispersion"),
         },
         "promotion_scope": _promotion_scope(manifest),

@@ -72,12 +72,18 @@ class FeedTest(unittest.TestCase):
 
     def test_v3_promotion_scope_partitions_the_board_universe(self):
         from stwo_perf import ledger
-        self.assertEqual(self.feed["feed_schema_version"], 3)
+        self.assertEqual(self.feed["feed_schema_version"], 4)
         scope = self.feed["promotion_scope"]
         owned = set(scope["owned_boards"])
         future = set(scope["future_boards"])
-        self.assertEqual(owned | future, set(ledger.BOARDS))
+        # TRACKS §6: retired boards are completed, not future. They leave
+        # `owned_boards` with the retirement flip but must never be rendered
+        # out-of-scope, so they partition out separately.
+        retired = set(scope["retired_boards"])
+        self.assertEqual(owned | future | retired, set(ledger.BOARDS))
         self.assertEqual(owned & future, set())
+        self.assertEqual(retired & future, set())
+        self.assertEqual(retired & owned, set())
         # Promotion-ineligible dark boards are staged, not smuggled into the
         # live ledger universe.
         self.assertEqual(
