@@ -8,7 +8,9 @@ for the `load_store` family (`LB`, `LH`, `LW`, `LBU`, `LHU`, `SB`, `SH`, `SW`),
 taken from `src/frontends/riscv/air/semantics/load_store.zig` through the
 symbolic collector export. The export this file was checked against is recorded
 as `loadStoreIrDigest`; if the production AIR changes, the digest changes and
-this transcription must be re-derived.
+this transcription must be re-derived. This file is reviewed hand transcription,
+**not** generator output; producing it mechanically from the export is an open
+obligation.
 
 Modelling conventions, stated once:
 
@@ -426,7 +428,15 @@ deriving DecidableEq, Repr
 
 /-- L00-L04, L08-L09 and L11-L12 at their exact access-clock ordinals: the base
 register at ordinal one, the `r2_idx` register at ordinal two, and the memory
-word at ordinal three. -/
+word at ordinal three.
+
+The production `memory_access` relation carries an address-space component,
+`0` for the register file and `1` for memory (`L08`/`L09` use `is_load` and
+`L11`/`L12` use `is_store`, which is why a load's `src` block is memory and a
+store's `src` block is a register). Here that component is carried by the type:
+register accesses are `RegisterTuple`s and memory accesses are `MemoryTuple`s,
+and `operandBefore`/`memoryBefore` route the two committed access blocks to the
+right side for each direction. -/
 def loadStoreRelations (row : LoadStoreRow) : LoadStoreRelations where
   program := loadStoreProgramTuple row
   stateConsume := { pc := row.pc, clock := row.clock }

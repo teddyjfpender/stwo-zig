@@ -6,14 +6,14 @@
     "generated/air/lui.json": "1c3b9b6febfa876c6dc9a05fe234fc1eeca4be7cc426bce365deeafdc0e32723",
     "generated/sail/rv32im-zkvm-v1.json": "5c31e516a205d693386564242d623dbaf4dc1566573f9ecfdcb026611c8fc2c1"
   },
-  "canonical_digest": "47a69938bf1cd891d05bab7e438e2d526d5d74a73069edc56a98364f17a9bb45",
+  "canonical_digest": "3860bc9aeddfb340e5f2dd1bc6550407067fc1df24fb6483185c338cf15a0b9b",
   "claim_boundary": {
     "kernel_checked_normalized_refinement": true,
     "lean_generated_sail_monad_normalization": false,
     "lean_serialized_m31_air_interpreter": false
   },
   "generators": {
-    "scripts/riscv_refinement.py": "2aae121fc490b05d3fc895975b07a84335e207c5cf18d10c2fcca7aaee6147fc",
+    "scripts/riscv_refinement.py": "14663a956a1b557e9bfe985c464fa37ebcb08c1c4622842ceb655e95fbb9138c",
     "scripts/riscv_refinement_lib/air.py": "02e16bbec81d87912fc1a2d767075887b94d86520527bedb615a4e5dc02fa3e3",
     "scripts/riscv_refinement_lib/codec.py": "0ae4eaf37dfa9eaec08d26c0a042a1b1e4e8b4b9418e834e28d479e6e3b0b86b",
     "scripts/riscv_refinement_lib/model.py": "ccf52a1d91b30fdea2f618080cdaaa9b9495005518e5c1033a35cf26cb3071bf",
@@ -240,8 +240,8 @@
   },
   "proof_sources": {
     "formal/riscv-refinement/README.md": "f23625311957fbafe679730eb5fa80886a9bfe5c0dabba83658cf310655e8558",
-    "formal/riscv-refinement/RiscvRefinement.lean": "189b10d4b275482616299425ce8c55ede7ddaf7653b6c1028ee4703430327614",
-    "formal/riscv-refinement/RiscvRefinement/AxiomAudit.lean": "88829e83f5991b7e531165a016d7811ff55ac1f8fdfb93edaa9edfa12512869e",
+    "formal/riscv-refinement/RiscvRefinement.lean": "bf6fedfb82b84b506e692046b8ea9a2e931aafca88f754838c58105550ee2e66",
+    "formal/riscv-refinement/RiscvRefinement/AxiomAudit.lean": "33c431cb1bbf076c4b0ad4670f3deae4265bd456a8a3e34f0c001fd2ab236ad1",
     "formal/riscv-refinement/RiscvRefinement/Bridge/Decode.lean": "5234c89b6c2f4fbf3810c8064674f1bd3c7e713ade216cf7b6925802facf0e55",
     "formal/riscv-refinement/RiscvRefinement/Common.lean": "8582d044ddd0202657d1e3f6ad4fffd13e6543e89f7cf1d0d1e9d8e385baa442",
     "formal/riscv-refinement/RiscvRefinement/Coverage.lean": "aa18962693f94998f3036681125dbdef5bcb892c49c9a311832422aec7e052b0",
