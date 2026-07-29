@@ -209,7 +209,7 @@ pub fn addProduct(context: Context) void {
     );
     test_step.dependOn(&context.b.addRunArtifact(integration_tests).step);
     test_step.dependOn(&context.b.addRunArtifact(proof_tests).step);
-    test_step.dependOn(&context.b.addRunArtifact(addShellTests(context)).step);
+    addShellTests(context, test_step);
 
     const closure_check = closure_gate.addCheck(.{
         .b = context.b,
@@ -219,17 +219,53 @@ pub fn addProduct(context: Context) void {
     test_step.dependOn(&closure_check.step);
 }
 
-/// The product shell's own tests: `src/products/riscv_metal/{app,cli,registry}`
-/// and the capability file. They assert the Metal-only command vocabulary and
-/// the single-key `backend_availability`, and they live in modules that are not
-/// the root of any other test binary, so without this step they would never
-/// run. `riscv_cpu.zig:287` wires the CPU product's equivalent the same way.
-fn addShellTests(context: Context) *std.Build.Step.Compile {
-    const tests = context.b.addTest(.{
-        .root_module = rootModule(context, moduleProduct(.@"test")),
-    });
-    metal.linkRuntime(context.b, tests);
-    return tests;
+/// The product shell's own tests. These are the isolation assertions that keep
+/// this CLI from ever advertising the CPU lane — `cli.zig` requires that the
+/// usage text names no other backend, `registry.zig` requires a single-key
+/// `backend_availability` and no quoted `cpu` token, `app.zig` pins the engine
+/// and backend tag, `capabilities.zig` pins the admission path — so they must
+/// actually execute.
+///
+/// Each file gets its own test root because Zig collects `test` declarations
+/// only from a test binary's root source file: a test rooted at `main.zig`
+/// resolves `@import("app.zig")` inside `main`'s body, which is never analysed
+/// in test mode, and reports "All 0 tests passed". Rooting per file also keeps
+/// each binary's module graph to what that file actually imports, so only the
+/// `app.zig` root pays for the facade and the Metal runtime.
+fn addShellTests(context: Context, test_step: *std.Build.Step) void {
+    const b = context.b;
+    const identity_product = moduleProduct(.@"test");
+
+    const app = rootModule(context, identity_product, "src/products/riscv_metal/app.zig");
+    const app_tests = b.addTest(.{ .root_module = app });
+    metal.linkRuntime(b, app_tests);
+    test_step.dependOn(&b.addRunArtifact(app_tests).step);
+
+    const cli = createLeafModule(context, "src/products/riscv_metal/cli.zig");
+    cli.addImport("riscv_shared_cli", createLeafModule(
+        context,
+        "src/products/riscv_shared/cli.zig",
+    ));
+    test_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = cli })).step);
+
+    const registry = createLeafModule(context, "src/products/riscv_metal/registry.zig");
+    registry.addImport("riscv_capabilities", capabilitiesModule(context));
+    registry.addImport("riscv_shared_registry", createLeafModule(
+        context,
+        "src/products/riscv_shared/registry.zig",
+    ));
+    registry.addOptions("product_identity", graph_identity.productOptions(
+        b,
+        context.identity,
+        identity_product,
+        context.target,
+        context.optimize,
+    ));
+    test_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = registry })).step);
+
+    test_step.dependOn(&b.addRunArtifact(b.addTest(.{
+        .root_module = capabilitiesModule(context),
+    })).step);
 }
 
 /// The production CLI's root module. Mirrors `riscv_cpu.zig`'s `addExecutable`
@@ -237,17 +273,21 @@ fn addShellTests(context: Context) *std.Build.Step.Compile {
 /// and the engine-generic adapter see exactly the same injected module names in
 /// both products.
 fn productionRootModule(context: Context) *std.Build.Module {
-    return rootModule(context, product);
+    return rootModule(context, product, "src/products/riscv_metal/main.zig");
 }
 
-fn rootModule(context: Context, identity_product: graph.Product) *std.Build.Module {
+fn rootModule(
+    context: Context,
+    identity_product: graph.Product,
+    root_source_file: []const u8,
+) *std.Build.Module {
     const b = context.b;
     const stwo = createFacadeModule(context, moduleProduct(.library));
-    const capabilities = createLeafModule(context, "src/products/riscv_metal/capabilities.zig");
+    const capabilities = capabilitiesModule(context);
     const adapter = createAdapterModule(context, stwo, capabilities);
     const root = graph.create(b, .{
         .product = identity_product,
-        .root_source_file = "src/products/riscv_metal/main.zig",
+        .root_source_file = root_source_file,
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -307,6 +347,15 @@ fn createAdapterModule(
     module.addImport("riscv_cpu_capabilities", capabilities);
     module.addOptions("build_identity", graph_identity.buildOptions(context.b, context.identity));
     return module;
+}
+
+/// This product's capability surface. It is one module reached under two names:
+/// `riscv_capabilities` by this product's own shell files, and
+/// `riscv_cpu_capabilities` by the shared adapter, which hard-codes that
+/// historical name. Both must resolve to *this* file — the one that reports
+/// `backend = "metal"`.
+fn capabilitiesModule(context: Context) *std.Build.Module {
+    return createLeafModule(context, "src/products/riscv_metal/capabilities.zig");
 }
 
 /// A product-local module whose source imports nothing but `std` and its own
