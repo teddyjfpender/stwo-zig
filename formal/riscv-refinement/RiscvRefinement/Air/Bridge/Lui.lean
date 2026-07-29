@@ -520,6 +520,64 @@ theorem constraintsHold_iff
       boolM31,
     ]
 
+private theorem constraintsHoldExceptLowLimbEvents
+    (nodes : LocalValues) :
+    (Programs.luiSource.events.map (Event.evalSymbolic nodes)).all
+        (fun
+          | .constraint event =>
+              if event.ordinal == 4 then true else event.value == 0
+          | .lookup _ => true) =
+      #[20, 22, 24, 26, 33, 35, 37, 19].all
+        (fun root => nodes.getSymbolic root == 0) := by
+  simp [Programs.luiSource, Event.evalSymbolic]
+
+theorem constraintsHoldExceptLowLimb_eq
+    (row : LuiRow)
+    (witness : Witness row) :
+    (evaluation row witness).constraintsHoldExcept 4 =
+      #[20, 22, 24, 26, 33, 35, 37, 19].all
+        (fun root =>
+          (evaluation row witness).nodes.getSymbolic root == 0) := by
+  exact
+    constraintsHoldExceptLowLimbEvents
+      (evaluation row witness).nodes
+
+def ConstraintEquationsWithoutLowLimb
+    (row : LuiRow)
+    (witness : Witness row) :
+    Prop :=
+  bitVecM31 row.rd * (1 - boolM31 row.rdNonzero) = 0 ∧
+  bitVecM31 row.rd * witness.destinationInverse -
+      boolM31 row.rdNonzero = 0 ∧
+  bitVecM31 row.rdNext.limb1 -
+      boolM31 row.rdNonzero *
+        (bitVecM31 row.imm0 * M31.reduce 16) = 0 ∧
+  bitVecM31 row.rdNext.limb2 -
+      boolM31 row.rdNonzero * bitVecM31 row.imm1 = 0 ∧
+  bitVecM31 row.rdNext.limb3 -
+      boolM31 row.rdNonzero * bitVecM31 row.imm2 = 0
+
+theorem constraintsHoldExceptLowLimb_iff
+    (row : LuiRow)
+    (witness : Witness row) :
+    (evaluation row witness).constraintsHoldExcept 4 = true ↔
+      ConstraintEquationsWithoutLowLimb row witness := by
+  rw [constraintsHoldExceptLowLimb_eq]
+  cases flag : row.rdNonzero <;>
+    simp [
+      flag,
+      ConstraintEquationsWithoutLowLimb,
+      node20,
+      node22,
+      node24,
+      node26,
+      node33,
+      node35,
+      node37,
+      node19,
+      boolM31,
+    ]
+
 private theorem negOneLive :
     ((-(1 : M31)) != 0) = true := by
   decide

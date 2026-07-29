@@ -98,6 +98,8 @@ AUDITED_THEOREMS = (
     "RiscvRefinement.Air.Bridge.Lui.selectorAccepted",
     "RiscvRefinement.Air.Bridge.Lui.constraintsHold_eq",
     "RiscvRefinement.Air.Bridge.Lui.constraintsHold_iff",
+    "RiscvRefinement.Air.Bridge.Lui.constraintsHoldExceptLowLimb_eq",
+    "RiscvRefinement.Air.Bridge.Lui.constraintsHoldExceptLowLimb_iff",
     "RiscvRefinement.Air.Bridge.Lui.clockRequestHolds",
     "RiscvRefinement.Air.Bridge.Lui.clockRequestHolds_iff",
     "RiscvRefinement.Air.Bridge.Lui.clockGapBound_of_fixedLookups",
@@ -111,9 +113,14 @@ AUDITED_THEOREMS = (
     "RiscvRefinement.Air.Bridge.Lui.exampleAcceptance",
     "RiscvRefinement.Air.Bridge.Lui.acceptance_nonvacuous",
     "RiscvRefinement.Air.Bridge.Addi.lookup_projection",
+    "RiscvRefinement.Air.Bridge.Addi.immediateLookup_projection_for_columns",
+    "RiscvRefinement.Air.Bridge.Addi.bitwiseLookup0_projection_for_columns",
+    "RiscvRefinement.Air.Bridge.Addi.selector_projection_for_columns",
     "RiscvRefinement.Air.Bridge.Addi.selectorAccepted",
     "RiscvRefinement.Air.Bridge.Addi.constraintsHold_eq",
     "RiscvRefinement.Air.Bridge.Addi.constraintsHold_iff",
+    "RiscvRefinement.Air.Bridge.Addi.constraintsHoldExceptHighCarry_eq",
+    "RiscvRefinement.Air.Bridge.Addi.constraintsHoldExceptHighCarry_iff",
     "RiscvRefinement.Air.Bridge.Addi.carryRecurrence_of_constraints",
     "RiscvRefinement.Air.Bridge.Addi.sourceClockRequestHolds",
     "RiscvRefinement.Air.Bridge.Addi.destinationClockRequestHolds",
@@ -131,6 +138,26 @@ AUDITED_THEOREMS = (
     "RiscvRefinement.Air.Bridge.Addi.exampleAdmission",
     "RiscvRefinement.Air.Bridge.Addi.exampleAcceptance",
     "RiscvRefinement.Air.Bridge.Addi.acceptance_nonvacuous",
+    "RiscvRefinement.Mutation.MutationControl.witness_not_sound",
+    "RiscvRefinement.Mutation.MutationControl.strictly_weaker",
+    "RiscvRefinement.Mutation.strictly_weaker_of_not_original",
+    "RiscvRefinement.Air.Bridge.Mutations.luiOriginal_sound",
+    "RiscvRefinement.Air.Bridge.Mutations.luiLowLimb_satisfies",
+    "RiscvRefinement.Air.Bridge.Mutations.luiLowLimb_refutes",
+    "RiscvRefinement.Air.Bridge.Mutations.luiLowLimb_strictly_weaker",
+    "RiscvRefinement.Air.Bridge.Mutations.addiOriginal_sound",
+    "RiscvRefinement.Air.Bridge.Mutations.addiCarry_satisfies",
+    "RiscvRefinement.Air.Bridge.Mutations.addiCarry_refutes",
+    "RiscvRefinement.Air.Bridge.Mutations.addiCarry_strictly_weaker",
+    "RiscvRefinement.Air.Bridge.Mutations.immediateRange_satisfies",
+    "RiscvRefinement.Air.Bridge.Mutations.immediateRange_refutes",
+    "RiscvRefinement.Air.Bridge.Mutations.immediateRange_strictly_weaker",
+    "RiscvRefinement.Air.Bridge.Mutations.selectorRelabel_satisfies",
+    "RiscvRefinement.Air.Bridge.Mutations.selectorRelabel_refutes",
+    "RiscvRefinement.Air.Bridge.Mutations.selectorRelabel_strictly_weaker",
+    "RiscvRefinement.Air.Bridge.Mutations.reordered_satisfies",
+    "RiscvRefinement.Air.Bridge.Mutations.reordered_refutes",
+    "RiscvRefinement.Air.Bridge.Mutations.reordered_strictly_weaker",
     "RiscvRefinement.WordBytes.value_lt",
     "RiscvRefinement.WordBytes.word_toNat",
     "RiscvRefinement.WordBytes.zero_word",
@@ -222,13 +249,33 @@ APPROVED_LEAN_AXIOMS = frozenset(
 )
 CLAIM_BOUNDARY = (
     "kernel-checked normalized LUI/ADDI predicate refinement plus "
-    "lookup-complete production LUI AIR-to-normalized composition; "
-    "ADDI AIR composition and generated-Sail monad normalization remain open"
+    "lookup-complete production LUI/ADDI AIR-to-normalized composition and "
+    "Lean-checked Stage A2 mutation controls; generated-Sail monad "
+    "normalization remains open"
 )
-NEGATIVE_CONTROLS = (
-    "lui-free-low-limb",
-    "addi-free-high-carry",
-)
+MUTATION_THEOREMS = {
+    "lui-free-low-limb": (
+        "RiscvRefinement.Air.Bridge.Mutations."
+        "luiLowLimb_strictly_weaker"
+    ),
+    "addi-free-high-carry": (
+        "RiscvRefinement.Air.Bridge.Mutations."
+        "addiCarry_strictly_weaker"
+    ),
+    "addi-immediate-range-request": (
+        "RiscvRefinement.Air.Bridge.Mutations."
+        "immediateRange_strictly_weaker"
+    ),
+    "addi-selector-relabel-xori": (
+        "RiscvRefinement.Air.Bridge.Mutations."
+        "selectorRelabel_strictly_weaker"
+    ),
+    "addi-lookup-event-reorder": (
+        "RiscvRefinement.Air.Bridge.Mutations."
+        "reordered_strictly_weaker"
+    ),
+}
+NEGATIVE_CONTROLS = tuple(MUTATION_THEOREMS)
 
 
 def common_arguments(parser: argparse.ArgumentParser) -> None:
@@ -518,6 +565,14 @@ def verify(args: argparse.Namespace, paths: Paths) -> Verification:
         paths.formal,
     )
     axiom_report = _audit_axioms(audit_output)
+    missing_mutations = sorted(
+        set(MUTATION_THEOREMS.values()) - set(axiom_report)
+    )
+    if missing_mutations:
+        raise RefinementError(
+            "Lean mutation theorem coverage is incomplete: "
+            + ", ".join(missing_mutations)
+        )
     print(
         "refinement pilot verified: fresh artifacts, 2/46 coverage, "
         "negative controls, unit tests, Lean build, and axiom audit"
@@ -611,6 +666,7 @@ def receipt(args: argparse.Namespace, paths: Paths) -> None:
             "production_opcodes": FULL_OPCODE_COUNT,
         },
         "negative_controls": list(NEGATIVE_CONTROLS),
+        "mutation_theorems": MUTATION_THEOREMS,
         "approved_lean_axioms": sorted(APPROVED_LEAN_AXIOMS),
         "theorem_axioms": verification.theorem_axioms,
         "proof_escape_scan": "passed",
@@ -724,6 +780,7 @@ def verify_receipt(args: argparse.Namespace, paths: Paths) -> None:
         "kind",
         "lean_build",
         "negative_controls",
+        "mutation_theorems",
         "opcodes",
         "proof_escape_scan",
         "repository_dirty",
@@ -747,6 +804,7 @@ def verify_receipt(args: argparse.Namespace, paths: Paths) -> None:
         or payload["canonical_digest"] != codec.content_digest(payload)
         or payload["opcodes"] != list(PILOT_OPCODES)
         or payload["negative_controls"] != list(NEGATIVE_CONTROLS)
+        or payload["mutation_theorems"] != MUTATION_THEOREMS
         or payload["lean_build"] != "passed"
         or payload["proof_escape_scan"] != "passed"
         or payload["repository_dirty"] is not False

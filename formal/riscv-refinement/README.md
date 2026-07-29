@@ -25,6 +25,11 @@ count either pilot as a publication-level opcode.
 - `RiscvRefinement.Air.Bridge.Addi.sound`
 - `RiscvRefinement.Air.Bridge.Addi.lookup_projection`
 - `RiscvRefinement.Air.Bridge.Addi.acceptance_nonvacuous`
+- `RiscvRefinement.Air.Bridge.Mutations.luiLowLimb_strictly_weaker`
+- `RiscvRefinement.Air.Bridge.Mutations.addiCarry_strictly_weaker`
+- `RiscvRefinement.Air.Bridge.Mutations.immediateRange_strictly_weaker`
+- `RiscvRefinement.Air.Bridge.Mutations.selectorRelabel_strictly_weaker`
+- `RiscvRefinement.Air.Bridge.Mutations.reordered_strictly_weaker`
 - `RiscvRefinement.NonVacuity.lui_exists`
 - `RiscvRefinement.NonVacuity.addi_exists`
 
@@ -70,9 +75,11 @@ infrastructure tests, builds Lean (including strict LUI decode and active/
 inactive evaluation guards), scans for proof escapes, and audits every
 exported theorem's axioms.
 
-The current mutations check weakened-row counterexamples and exact-shape
-validator sensitivity. They do not yet invoke pinned Sail on the counterexample
-or feed a mutated predicate through Lean; those are explicit Level-2 gates.
+The Stage A2 mutation bundle is checked in Lean against the interpreted
+production programs. It proves architectural counterexamples for the free LUI
+low limb, deleted ADDI high carry, and ADDI/XORI selector relabel. It also
+proves strict loss of the raw immediate-range request and exact event-order
+projection. The generated-Sail side of the joint Level-2 gate remains open.
 
 After committing all inputs and generated artifacts, create the evidence
 receipt:

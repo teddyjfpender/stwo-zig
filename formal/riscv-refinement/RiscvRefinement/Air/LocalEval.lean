@@ -430,6 +430,17 @@ def constraintsHold (evaluation : SymbolicEvaluation) : Bool :=
     | .constraint event => event.value == 0
     | .lookup _ => true
 
+/-- Mutation-audit variant of `constraintsHold` that disables exactly one
+event ordinal while continuing to evaluate every other production event. -/
+def constraintsHoldExcept
+    (evaluation : SymbolicEvaluation)
+    (omittedOrdinal : EventOrdinal) :
+    Bool :=
+  evaluation.events.all fun
+    | .constraint event =>
+        if event.ordinal == omittedOrdinal then true else event.value == 0
+    | .lookup _ => true
+
 def liveLookups (evaluation : SymbolicEvaluation) : Array EvaluatedLookup :=
   if evaluation.activeSelectorsAccepted then
     evaluation.events.filterMap fun
@@ -442,6 +453,19 @@ def fixedLookupsHold (evaluation : SymbolicEvaluation) : Bool :=
   evaluation.events.all fun
     | .constraint _ => true
     | .lookup event => event.fixedRequestHolds
+
+/-- Mutation-audit variant of `fixedLookupsHold` that disables exactly one
+lookup ordinal while preserving every other fixed-table check. -/
+def fixedLookupsHoldExcept
+    (evaluation : SymbolicEvaluation)
+    (omittedOrdinal : EventOrdinal) :
+    Bool :=
+  evaluation.events.all fun
+    | .constraint _ => true
+    | .lookup event =>
+        if event.ordinal == omittedOrdinal
+        then true
+        else event.fixedRequestHolds
 
 def lookup? (evaluation : SymbolicEvaluation) (ordinal : EventOrdinal) :
     Option EvaluatedLookup :=

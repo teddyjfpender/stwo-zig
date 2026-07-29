@@ -91,6 +91,19 @@ def evaluation
     SymbolicEvaluation :=
   Programs.addi.evalSymbolic (columns row witness)
 
+def activeRowForColumns
+    (rawColumns : Nat → M31) :
+    M31 :=
+  ((rawColumns 25 + rawColumns 26) + rawColumns 27) + rawColumns 28
+
+def opcodeSelectorForColumns
+    (rawColumns : Nat → M31) :
+    M31 :=
+  ((rawColumns 25 * M31.reduce 10 +
+      rawColumns 26 * M31.reduce 13) +
+      rawColumns 27 * M31.reduce 14) +
+    rawColumns 28 * M31.reduce 15
+
 structure Admission (row : AddiRow) : Prop where
   clockPositive : 0 < row.clock
   clockBound : row.clock ≤ 2 ^ 24
@@ -136,6 +149,24 @@ def immediateLookup (row : AddiRow) : EvaluatedLookup where
   tuple := #[
     bitVecM31 row.imm0,
     bitVecM31 row.imm1 * M31.reduce 256
+  ]
+  role := .request
+  tableId := some .rangeCheck811
+  accessOrdinal := none
+
+/-- The production ADDI immediate request projected for an arbitrary raw
+column assignment.  Mutation controls use this before typed `BitVec` bounds
+are available. -/
+def immediateLookupForColumns
+    (rawColumns : Nat → M31) :
+    EvaluatedLookup where
+  ordinal := 23
+  domain := .rangeCheck811
+  numerator :=
+    -(((rawColumns 25 + rawColumns 26) + rawColumns 27) + rawColumns 28)
+  tuple := #[
+    rawColumns 22,
+    rawColumns 23 * M31.reduce 256
   ]
   role := .request
   tableId := some .rangeCheck811
@@ -213,6 +244,25 @@ def bitwiseLookup
   domain := .bitwise
   numerator := 0
   tuple := #[source, immediate, result, 0]
+  role := .request
+  tableId := some .bitwise
+  accessOrdinal := none
+
+/-- The first bitwise request projected for an arbitrary selector assignment.
+This is live for XORI/ORI/ANDI and dead for ADDI. -/
+def bitwiseLookup0ForColumns
+    (rawColumns : Nat → M31) :
+    EvaluatedLookup where
+  ordinal := 29
+  domain := .bitwise
+  numerator :=
+    -((rawColumns 26 + rawColumns 27) + rawColumns 28)
+  tuple := #[
+    rawColumns 18,
+    rawColumns 22,
+    rawColumns 29,
+    rawColumns 26 * M31.reduce 2 + rawColumns 27
+  ]
   role := .request
   tableId := some .bitwise
   accessOrdinal := none
@@ -675,6 +725,101 @@ theorem lookup_projection
         Programs.addi (columns row witness) 37 _ selected,
     ]
     reduce_addi_lookup
+
+set_option maxRecDepth 30000 in
+theorem immediateLookup_projection_for_columns
+    (rawColumns : Nat → M31) :
+    (Programs.addi.evalSymbolic rawColumns).lookup? 23 =
+      some (immediateLookupForColumns rawColumns) := by
+  have selected :
+      Programs.addi.source.events[23]? =
+        some (.lookup {
+          ordinal := 23
+          domain := .rangeCheck811
+          numerator := 118
+          tuple := #[22, 131]
+          role := .request
+          tableId := some .rangeCheck811
+          liveness := .nonzeroNumerator
+          accessOrdinal := none
+        }) := by decide
+  rw [
+    LocalProgram.lookup?_evalSymbolic_of_event
+      Programs.addi rawColumns 23 _ selected,
+  ]
+  simp only [
+    Programs.addi,
+    Programs.addiSource,
+    LocalProgram.evalNodesSymbolic,
+    LocalExprNode.evalAllSymbolic,
+    LocalExprNode.evalSymbolic,
+    LocalValues.getSymbolic,
+    newestValueSymbolic,
+    List.length_cons,
+    List.length_nil,
+    List.map,
+    List.map_toArray,
+    immediateLookupForColumns,
+  ]
+
+set_option maxRecDepth 30000 in
+theorem bitwiseLookup0_projection_for_columns
+    (rawColumns : Nat → M31) :
+    (Programs.addi.evalSymbolic rawColumns).lookup? 29 =
+      some (bitwiseLookup0ForColumns rawColumns) := by
+  have selected :
+      Programs.addi.source.events[29]? =
+        some (.lookup {
+          ordinal := 29
+          domain := .bitwise
+          numerator := 142
+          tuple := #[18, 22, 29, 141]
+          role := .request
+          tableId := some .bitwise
+          liveness := .nonzeroNumerator
+          accessOrdinal := none
+        }) := by decide
+  rw [
+    LocalProgram.lookup?_evalSymbolic_of_event
+      Programs.addi rawColumns 29 _ selected,
+  ]
+  simp only [
+    Programs.addi,
+    Programs.addiSource,
+    LocalProgram.evalNodesSymbolic,
+    LocalExprNode.evalAllSymbolic,
+    LocalExprNode.evalSymbolic,
+    LocalValues.getSymbolic,
+    newestValueSymbolic,
+    List.length_cons,
+    List.length_nil,
+    List.map,
+    List.map_toArray,
+    bitwiseLookup0ForColumns,
+  ]
+
+set_option maxRecDepth 30000 in
+theorem selector_projection_for_columns
+    (rawColumns : Nat → M31) :
+    let evaluation := Programs.addi.evalSymbolic rawColumns
+    evaluation.activeRow = activeRowForColumns rawColumns ∧
+    evaluation.manifestId = 10 ∧
+    evaluation.opcodeSelector = opcodeSelectorForColumns rawColumns := by
+  simp only [
+    LocalProgram.evalSymbolic,
+    Programs.addi,
+    Programs.addiSource,
+    LocalProgram.evalNodesSymbolic,
+    LocalExprNode.evalAllSymbolic,
+    LocalExprNode.evalSymbolic,
+    LocalValues.getSymbolic,
+    newestValueSymbolic,
+    List.length_cons,
+    List.length_nil,
+    activeRowForColumns,
+    opcodeSelectorForColumns,
+  ]
+  simp
 
 set_option maxRecDepth 30000 in
 theorem selectorAccepted
@@ -1287,6 +1432,93 @@ theorem constraintsHold_iff
       node71,
       node78,
       node85,
+      node87,
+      node89,
+      node91,
+      node93,
+      node95,
+      node97,
+      node99,
+      node101,
+      node103,
+      node105,
+      node107,
+      node39,
+      boolM31,
+      Lui.boolM31,
+      bitVecOneBoolean,
+    ]
+
+private theorem constraintsHoldExceptHighCarryEvents
+    (nodes : LocalValues) :
+    (Programs.addiSource.events.map (Event.evalSymbolic nodes)).all
+        (fun
+          | .constraint event =>
+              if event.ordinal == 9 then true else event.value == 0
+          | .lookup _ => true) =
+      #[40, 42, 44, 46, 48, 50, 64, 71, 78, 87, 89, 91, 93,
+        95, 97, 99, 101, 103, 105, 107, 39].all
+        (fun root => nodes.getSymbolic root == 0) := by
+  simp [Programs.addiSource, Event.evalSymbolic]
+
+theorem constraintsHoldExceptHighCarry_eq
+    (row : AddiRow)
+    (witness : Witness row) :
+    (evaluation row witness).constraintsHoldExcept 9 =
+      #[40, 42, 44, 46, 48, 50, 64, 71, 78, 87, 89, 91, 93,
+        95, 97, 99, 101, 103, 105, 107, 39].all
+        (fun root =>
+          (evaluation row witness).nodes.getSymbolic root == 0) := by
+  exact
+    constraintsHoldExceptHighCarryEvents
+      (evaluation row witness).nodes
+
+def ConstraintEquationsWithoutHighCarry
+    (row : AddiRow)
+    (witness : Witness row) :
+    Prop :=
+  carry1Field row * (carry1Field row - 1) = 0 ∧
+  carry2Field row * (carry2Field row - 1) = 0 ∧
+  carry3Field row * (carry3Field row - 1) = 0 ∧
+  bitVecM31 row.rd * (1 - boolM31 row.rdNonzero) = 0 ∧
+  bitVecM31 row.rd * witness.destinationInverse -
+      boolM31 row.rdNonzero = 0 ∧
+  bitVecM31 row.rdNext.limb0 -
+      boolM31 row.rdNonzero * bitVecM31 row.result.limb0 = 0 ∧
+  bitVecM31 row.rdNext.limb1 -
+      boolM31 row.rdNonzero * bitVecM31 row.result.limb1 = 0 ∧
+  bitVecM31 row.rdNext.limb2 -
+      boolM31 row.rdNonzero * bitVecM31 row.result.limb2 = 0 ∧
+  bitVecM31 row.rdNext.limb3 -
+      boolM31 row.rdNonzero * bitVecM31 row.result.limb3 = 0 ∧
+  bitVecM31 row.rs1Next.limb0 -
+      bitVecM31 row.rs1Previous.limb0 = 0 ∧
+  bitVecM31 row.rs1Next.limb1 -
+      bitVecM31 row.rs1Previous.limb1 = 0 ∧
+  bitVecM31 row.rs1Next.limb2 -
+      bitVecM31 row.rs1Previous.limb2 = 0 ∧
+  bitVecM31 row.rs1Next.limb3 -
+      bitVecM31 row.rs1Previous.limb3 = 0
+
+theorem constraintsHoldExceptHighCarry_iff
+    (row : AddiRow)
+    (witness : Witness row) :
+    (evaluation row witness).constraintsHoldExcept 9 = true ↔
+      ConstraintEquationsWithoutHighCarry row witness := by
+  rw [constraintsHoldExceptHighCarry_eq]
+  cases flag : row.rdNonzero <;>
+    simp [
+      flag,
+      ConstraintEquationsWithoutHighCarry,
+      node40,
+      node42,
+      node44,
+      node46,
+      node48,
+      node50,
+      node64,
+      node71,
+      node78,
       node87,
       node89,
       node91,
