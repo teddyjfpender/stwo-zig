@@ -1188,9 +1188,9 @@ theorem divFixedRequestsHold (row : DivRow) (holds : DivHolds row) :
     gapImage row holds 3 row.rdPreviousClock destination.1]
   simp only [Bool.or_true, Bool.true_and, Bool.and_true, Bool.and_eq_true]
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
+  · simp only [Bool.or_eq_true, decide_eq_true_eq]
     exact Or.inr (reduceToNat_lt sourceOne.2)
-  · simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
+  · simp only [Bool.or_eq_true, decide_eq_true_eq]
     exact Or.inr (reduceToNat_lt sourceTwo.2)
   · simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
     exact Or.inr ⟨reduceToNat_lt (by simpa using row.rs2Next.limb0.isLt),
@@ -1240,7 +1240,7 @@ theorem divFixedRequestsHold (row : DivRow) (holds : DivHolds row) :
             have divisorSign : row.cSign = false := by
               simp [holds.divisorSignBit hs, holds.zeroDivisorLimb3 hzd]
             rw [activeOne row holds, divisorSign]
-            simp only [flagValue, M31.reduce_zero, M31.sub_self, M31.mul_zero, M31.zero_mul,
+            simp only [flagValue, M31.reduce_zero, M31.sub_self, M31.mul_zero,
               M31.sub_zero]
             decide
         | false =>
@@ -1263,8 +1263,10 @@ theorem divFixedRequestsHold (row : DivRow) (holds : DivHolds row) :
                   rw [signOff]
                   simp only [flagValue, M31.reduce_zero, M31.zero_mul, M31.sub_zero]
                   exact reduceToNat_lt (by omega)
-              · have low : decide ((M31.reduce 0).toNat = 255) = false := by decide
-                simp [low]
+              · -- the reserved last row of `range_check_m31` is `(255, 127)`;
+                -- this request's first component is `0`.
+                have low : decide ((M31.reduce 0).toNat = 255) = false := by decide
+                simp only [low, Bool.false_and, Bool.not_false]
   · -- 20 `sign_range`: the two top bytes with their sign bits removed, doubled.
     simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
     rw [signedSum row holds]
@@ -1272,7 +1274,7 @@ theorem divFixedRequestsHold (row : DivRow) (holds : DivHolds row) :
         holds.dividendSignBit,
       signRangeBound row.isSigned row.cSign row.rs2Next.limb3 holds.divisorSignBit⟩
   · -- 21 `positive_remainder_diff`: dead on both special-case branches.
-    simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
+    simp only [Bool.or_eq_true, decide_eq_true_eq]
     cases hzd : row.zeroDivisor with
     | true =>
         refine Or.inl ?_
@@ -1290,8 +1292,141 @@ theorem divFixedRequestsHold (row : DivRow) (holds : DivHolds row) :
             have upper := holds.ltDiffUpper hzd hrz
             rw [M31.reduce_sub _ _ lower]
             exact reduceToNat_lt (by omega)
-  · simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
+  · simp only [Bool.or_eq_true, decide_eq_true_eq]
     exact Or.inr (reduceToNat_lt destination.2)
+
+
+/-! ## The bridge for the relation arguments
+
+The 25 lookup tuples the shipped AIR emits, evaluated under the same column
+assignment. This is the statement that the relation arguments Team B writes down
+in `divRelations` -- the program tuple, the two state tuples, the six
+register-file memory tuples -- are the tuples the production AIR actually puts on
+the bus, rather than a parallel description of them, and that the eight
+`range_check_8_11` requests carry exactly the carries of
+`DivHolds.productRecurrence`.
+
+Two tuples are stated in raw column form because their value genuinely depends on
+the sign witnesses and there is no shorter reading: lookup 19 (`q_3 - 128 *
+q_sign`) and lookup 20 (the doubled sign-stripped top bytes). What those two mean
+is proved in `divFixedRequestsHold`, where they are shown to land in their
+tables. -/
+
+private theorem opcodeImage (row : DivRow) (holds : DivHolds row) :
+    M31.reduce (flagValue row.isDiv) * M31.reduce 41 +
+          M31.reduce (flagValue row.isDivu) * M31.reduce 42 +
+        M31.reduce (flagValue row.isRem) * M31.reduce 43 +
+      M31.reduce (flagValue row.isRemu) * M31.reduce 44 =
+    M31.reduce (divOpcodeId row) := by
+  rcases div_selector_cases row holds with
+    ⟨a, b, c, d⟩ | ⟨a, b, c, d⟩ | ⟨a, b, c, d⟩ | ⟨a, b, c, d⟩
+  · rw [div_opcode_id_div row holds a, a, b, c, d]; decide
+  · rw [div_opcode_id_divu row holds b, a, b, c, d]; decide
+  · rw [div_opcode_id_rem row holds c, a, b, c, d]; decide
+  · rw [div_opcode_id_remu row holds d, a, b, c, d]; decide
+
+private theorem accessClockImage (row : DivRow) (holds : DivHolds row) (ordinal : Nat) :
+    (M31.reduce row.clock - M31.reduce 1) * M31.reduce 4 + M31.reduce ordinal =
+      M31.reduce (accessClock row.clock ordinal) := by
+  have positive := holds.clockPositive
+  rw [M31.reduce_sub _ _ positive, M31.reduce_mul, M31.reduce_add]
+  congr 1
+
+set_option maxHeartbeats 2000000 in
+set_option maxRecDepth 200000 in
+/-- Every lookup tuple of the encoded production `div` AIR, evaluated under
+`divColumns row`. -/
+theorem divLookupTuples (row : DivRow) (holds : DivHolds row) (fits : DivRowFits row) :
+    ∃ k0 k1 k2 k3 k4 k5 k6 k7 : Nat,
+      divProgramCompiled.lookups.map (divProgramCompiled.lookupTuple (divColumns row)) =
+      [
+        -- 0  program_access request
+        [M31.reduce row.pc.toNat, M31.reduce (divOpcodeId row), M31.reduce row.rd.toNat,
+          M31.reduce row.rs1.toNat, M31.reduce row.rs2.toNat],
+        -- 1  registers_state consume
+        [M31.reduce row.pc.toNat, M31.reduce row.clock],
+        -- 2  registers_state emit
+        [M31.reduce row.claimedNextPc.toNat, M31.reduce (row.clock + 1)],
+        -- 3  rs1 memory consume
+        [M31.reduce 0, M31.reduce row.rs1.toNat, M31.reduce row.rs1PreviousClock, M31.reduce
+          row.rs1Previous.limb0.toNat, M31.reduce row.rs1Previous.limb1.toNat, M31.reduce
+          row.rs1Previous.limb2.toNat, M31.reduce row.rs1Previous.limb3.toNat],
+        -- 4  rs1 memory emit
+        [M31.reduce 0, M31.reduce row.rs1.toNat, M31.reduce (accessClock row.clock 1),
+          M31.reduce row.rs1Next.limb0.toNat, M31.reduce row.rs1Next.limb1.toNat, M31.reduce
+          row.rs1Next.limb2.toNat, M31.reduce row.rs1Next.limb3.toNat],
+        -- 5  rs1 access-clock gap
+        [M31.reduce (accessClock row.clock 1 - row.rs1PreviousClock - 1)],
+        -- 6  rs2 memory consume
+        [M31.reduce 0, M31.reduce row.rs2.toNat, M31.reduce row.rs2PreviousClock, M31.reduce
+          row.rs2Previous.limb0.toNat, M31.reduce row.rs2Previous.limb1.toNat, M31.reduce
+          row.rs2Previous.limb2.toNat, M31.reduce row.rs2Previous.limb3.toNat],
+        -- 7  rs2 memory emit
+        [M31.reduce 0, M31.reduce row.rs2.toNat, M31.reduce (accessClock row.clock 2),
+          M31.reduce row.rs2Next.limb0.toNat, M31.reduce row.rs2Next.limb1.toNat, M31.reduce
+          row.rs2Next.limb2.toNat, M31.reduce row.rs2Next.limb3.toNat],
+        -- 8  rs2 access-clock gap
+        [M31.reduce (accessClock row.clock 2 - row.rs2PreviousClock - 1)],
+        -- 9  divisor bytes 0,1
+        [M31.reduce row.rs2Next.limb0.toNat, M31.reduce row.rs2Next.limb1.toNat],
+        -- 10 divisor bytes 2,3
+        [M31.reduce row.rs2Next.limb2.toNat, M31.reduce row.rs2Next.limb3.toNat],
+        -- 11 product carry 0
+        [M31.reduce row.quotient.limb0.toNat, M31.reduce k0],
+        -- 12 product carry 1
+        [M31.reduce row.quotient.limb1.toNat, M31.reduce k1],
+        -- 13 product carry 2
+        [M31.reduce row.quotient.limb2.toNat, M31.reduce k2],
+        -- 14 product carry 3
+        [M31.reduce row.quotient.limb3.toNat, M31.reduce k3],
+        -- 15 product carry 4
+        [M31.reduce row.remainder.limb0.toNat, M31.reduce k4],
+        -- 16 product carry 5
+        [M31.reduce row.remainder.limb1.toNat, M31.reduce k5],
+        -- 17 product carry 6
+        [M31.reduce row.remainder.limb2.toNat, M31.reduce k6],
+        -- 18 product carry 7
+        [M31.reduce row.remainder.limb3.toNat, M31.reduce k7],
+        -- 19 quotient sign range
+        [M31.reduce 0, (M31.reduce row.quotient.limb3.toNat - (M31.reduce (flagValue row.qSign)
+          * M31.reduce 128))],
+        -- 20 sign range
+        [(((M31.reduce (flagValue row.isDiv) + M31.reduce (flagValue row.isRem)) * (M31.reduce
+          row.rs1Next.limb3.toNat - (M31.reduce (flagValue row.bSign) * M31.reduce 128))) *
+          M31.reduce 2), (((M31.reduce (flagValue row.isDiv) + M31.reduce (flagValue row.isRem))
+          * (M31.reduce row.rs2Next.limb3.toNat - (M31.reduce (flagValue row.cSign) * M31.reduce
+          128))) * M31.reduce 2)],
+        -- 21 positive remainder diff
+        [(M31.reduce row.ltDiff - M31.reduce 1)],
+        -- 22 rd memory consume
+        [M31.reduce 0, M31.reduce row.rd.toNat, M31.reduce row.rdPreviousClock, M31.reduce
+          row.rdPrevious.limb0.toNat, M31.reduce row.rdPrevious.limb1.toNat, M31.reduce
+          row.rdPrevious.limb2.toNat, M31.reduce row.rdPrevious.limb3.toNat],
+        -- 23 rd memory emit
+        [M31.reduce 0, M31.reduce row.rd.toNat, M31.reduce (accessClock row.clock 3), M31.reduce
+          row.rdNext.limb0.toNat, M31.reduce row.rdNext.limb1.toNat, M31.reduce
+          row.rdNext.limb2.toNat, M31.reduce row.rdNext.limb3.toNat],
+        -- 24 rd access-clock gap
+        [M31.reduce (accessClock row.clock 3 - row.rdPreviousClock - 1)]
+      ] := by
+  obtain ⟨k0, k1, k2, k3, k4, k5, k6, k7, b0, b1, b2, b3, b4, b5, b6, b7,
+    e0, e1, e2, e3, e4, e5, e6, e7⟩ := holds.productRecurrence
+  have sourceOne := holds.sourceOneClock
+  have sourceTwo := holds.sourceTwoClock
+  have destination := holds.destinationClock
+  refine ⟨k0, k1, k2, k3, k4, k5, k6, k7, ?_⟩
+  simp only [DivCircuit.lookupTuple, DivCircuit.values, DivCircuit.value,
+    DivCircuit.nodeValuesRev, divProgramCompiled, divProgram, evalLoop,
+    Node.evalLocal, nth, List.map_cons, List.map_nil, divColumns]
+  rw [productCarry0 row k0 e0, productCarry1 row k0 k1 e1, productCarry2 row k1 k2 e2,
+    productCarry3 row k2 k3 e3, productCarry4 row k3 k4 e4, productCarry5 row k4 k5 e5,
+    productCarry6 row k5 k6 e6, productCarry7 row k6 k7 e7,
+    gapImage row holds 1 row.rs1PreviousClock sourceOne.1,
+    gapImage row holds 2 row.rs2PreviousClock sourceTwo.1,
+    gapImage row holds 3 row.rdPreviousClock destination.1,
+    accessClockImage row holds 1, accessClockImage row holds 2,
+    accessClockImage row holds 3, opcodeImage row holds]
+  simp only [M31.reduce_add, nextPcImage row holds fits]
 
 /-! ## The encoding is the export, and the evaluator is A's
 
@@ -1406,11 +1541,18 @@ theorem divWitnessFits : DivRowFits divWitnessRow := by
   constructor
   decide
 
--- The bridge is therefore not vacuous: this row satisfies every hypothesis.
+-- The bridge is therefore not vacuous: this row satisfies every hypothesis of
+-- both theorems.
 set_option maxRecDepth 100000 in
 theorem divWitnessConstraintValues :
     divProgramCompiled.constraintValues (divColumns divWitnessRow) =
       List.replicate 85 0 :=
   divConstraintValues divWitnessRow divWitnessHolds divWitnessFits
+
+set_option maxHeartbeats 2000000 in
+set_option maxRecDepth 200000 in
+theorem divWitnessFixedRequestsHold :
+    divProgramCompiled.fixedRequestsHold (divColumns divWitnessRow) = true :=
+  divFixedRequestsHold divWitnessRow divWitnessHolds
 
 end RiscvRefinement.Air.Bridge

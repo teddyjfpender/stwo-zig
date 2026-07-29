@@ -114,8 +114,6 @@ theorem reduce_half (value : Nat) :
     omega
   rw [expand, Nat.add_mul_mod_self_left]
 
-theorem reduce_one : M31.reduce 1 = 1 := rfl
-
 /-- `x - x = 0` for an arbitrary field element, not only for an image of
 `reduce`. Several `load_store` roots subtract two *derived* expressions. -/
 theorem sub_cancel (value : M31) : value - value = 0 := by
@@ -185,18 +183,6 @@ private theorem bitBooleanVanishes (flag : Bool) :
   cases flag with
   | false => exact mulLeftZero rfl
   | true => exact mulRightZero (M31.sub_self 1)
-
-/-- `1 - b` vanishes when the bit is set. -/
-private theorem oneSubBit_of_true {flag : Bool} (set : flag = true) :
-    M31.reduce 1 - M31.reduce (bitValue flag) = 0 := by
-  rw [set]
-  exact M31.sub_self 1
-
-/-- The image of a clear bit is zero. -/
-private theorem bitZero {flag : Bool} (clear : flag = false) :
-    M31.reduce (bitValue flag) = 0 := by
-  rw [clear]
-  rfl
 
 /-! ## The access clocks of the two swapping blocks
 
@@ -752,6 +738,21 @@ private theorem highHalfNil {row : LoadStoreRow} (shift : row.shiftId = 1) :
     (M31.reduce row.shiftId - M31.reduce 1) * M31.reduce 536870912 = 0 := by
   rw [shift]
   exact mulLeftZero (M31.sub_self 1)
+
+/-- The two half-word placement gates are complementary, and in particular
+neither is identically zero. Without this the C34-C41 proofs below would be
+equally consistent with both gates being dead, which would make those eight
+roots vacuous — the proofs only ever need one of the two to vanish. -/
+theorem halfPlacementGates (row : LoadStoreRow)
+    (shift : row.shiftId = 1 ∨ row.shiftId = 5) :
+    ((M31.reduce 5 - M31.reduce row.shiftId) * M31.reduce 536870912 = M31.reduce 1 ∧
+        (M31.reduce row.shiftId - M31.reduce 1) * M31.reduce 536870912 = 0) ∨
+      ((M31.reduce 5 - M31.reduce row.shiftId) * M31.reduce 536870912 = 0 ∧
+        (M31.reduce row.shiftId - M31.reduce 1) * M31.reduce 536870912 =
+          M31.reduce 1) := by
+  rcases shift with shift | shift
+  · exact Or.inl ⟨lowHalfOne shift, highHalfNil shift⟩
+  · exact Or.inr ⟨lowHalfNil shift, highHalfOne shift⟩
 
 private theorem r2NonzeroImage (row : LoadStoreRow) (holds : LoadStoreHolds row) :
     row.destinationNonzero = decide (row.r2Idx.toNat ≠ 0) := by
@@ -1658,6 +1659,23 @@ def loadStoreStoreWitnessRow : LoadStoreRow where
 #guard loadStoreColumns loadStoreLoadWitnessRow == loadStoreLoadWitnessColumns
 
 #guard loadStoreColumns loadStoreStoreWitnessRow == loadStoreStoreWitnessColumns
+
+-- Columns 2 (`dst_addr`) and 22 (`src_addr`) are assigned zero above on the
+-- grounds that the shipped AIR never reads them. That is checked, not asserted:
+-- perturbing exactly those two entries of a satisfying column vector changes
+-- neither the 78 constraint values nor any of the 16 lookup tuples. If a future
+-- export started reading either column, these two `#guard`s would fail before
+-- the zero assignment could quietly weaken anything.
+def loadStoreDeadColumnsPerturbed : List M31 :=
+  (loadStoreLoadWitnessColumns.set 2 (M31.reduce 1234567)).set 22 (M31.reduce 7654321)
+
+#guard loadStoreCircuitCompiled.constraintValues loadStoreDeadColumnsPerturbed ==
+  loadStoreCircuitCompiled.constraintValues loadStoreLoadWitnessColumns
+
+#guard (loadStoreCircuitCompiled.lookups.map
+      (loadStoreCircuitCompiled.lookupTuple loadStoreDeadColumnsPerturbed)) ==
+  (loadStoreCircuitCompiled.lookups.map
+      (loadStoreCircuitCompiled.lookupTuple loadStoreLoadWitnessColumns))
 
 theorem loadStoreLoadWitnessHolds : LoadStoreHolds loadStoreLoadWitnessRow := by
   constructor <;> first
