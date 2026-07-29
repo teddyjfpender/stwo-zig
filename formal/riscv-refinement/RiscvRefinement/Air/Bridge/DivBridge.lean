@@ -1116,6 +1116,15 @@ private theorem productCarry7 (row : DivRow) (k6 k7 : Nat)
 
 
 
+/-! ## The bridge for the fixed-table requests
+
+`div` requests four preprocessed tables. Two of its 25 lookups carry a numerator
+that vanishes on some rows -- lookup 19 on unsigned rows, on the zero-divisor
+branch and on the both-operands-negative class, lookup 21 on both special-case
+branches -- and on exactly those rows the tuple is genuinely out of range, so
+the statement is the gated one: every request with a non-zero numerator lands
+inside its table. -/
+
 private theorem gapImage (row : DivRow) (holds : DivHolds row)
     (ordinal previous : Nat) (order : previous < accessClock row.clock ordinal) :
     (M31.reduce row.clock - M31.reduce 1) * M31.reduce 4 + M31.reduce ordinal -
@@ -1126,9 +1135,39 @@ private theorem gapImage (row : DivRow) (holds : DivHolds row)
   rw [show (row.clock - 1) * 4 + ordinal = accessClock row.clock ordinal from rfl]
   rw [M31.reduce_sub _ _ (by omega), M31.reduce_sub _ _ (by omega)]
 
+/-- `2 * is_signed * (limb - 128 * sign)` is a byte: on an unsigned row the
+selector kills it, and on a signed row `sign` is the limb's top bit, so the
+difference is seven bits. -/
+private theorem signRangeBound (signed sign : Bool) (limb : Byte)
+    (msb : signed = true → sign = decide (128 ≤ limb.toNat)) :
+    (M31.reduce (flagValue signed) *
+      (M31.reduce limb.toNat - M31.reduce (flagValue sign) * M31.reduce 128) *
+      M31.reduce 2).toNat < 256 := by
+  have bound : limb.toNat < 256 := by simpa using limb.isLt
+  cases hs : signed with
+  | false =>
+      simp only [flagValue, M31.reduce_zero, M31.zero_mul]
+      decide
+  | true =>
+      have pin := msb hs
+      by_cases high : 128 ≤ limb.toNat
+      · have signOn : sign = true := by rw [pin]; simp [high]
+        rw [signOn]
+        simp only [flagValue]
+        rw [M31.reduce_mul, Nat.one_mul, M31.reduce_sub _ _ high, M31.reduce_mul,
+          Nat.one_mul, M31.reduce_mul]
+        exact reduceToNat_lt (by omega)
+      · have signOff : sign = false := by rw [pin]; simp [high]
+        rw [signOff]
+        simp only [flagValue, M31.reduce_zero, M31.zero_mul, M31.sub_zero, M31.reduce_mul,
+          Nat.one_mul]
+        exact reduceToNat_lt (by omega)
+
 set_option maxHeartbeats 2000000 in
 set_option maxRecDepth 200000 in
-theorem divFixedRequestsHoldProbe (row : DivRow) (holds : DivHolds row) :
+/-- Every live fixed-table request the shipped `div` AIR makes lands inside its
+table, for every row the transcription accepts. -/
+theorem divFixedRequestsHold (row : DivRow) (holds : DivHolds row) :
     divProgramCompiled.fixedRequestsHold (divColumns row) = true := by
   obtain ⟨k0, k1, k2, k3, k4, k5, k6, k7, b0, b1, b2, b3, b4, b5, b6, b7,
     e0, e1, e2, e3, e4, e5, e6, e7⟩ := holds.productRecurrence
@@ -1147,6 +1186,112 @@ theorem divFixedRequestsHoldProbe (row : DivRow) (holds : DivHolds row) :
     gapImage row holds 1 row.rs1PreviousClock sourceOne.1,
     gapImage row holds 2 row.rs2PreviousClock sourceTwo.1,
     gapImage row holds 3 row.rdPreviousClock destination.1]
+  simp only [Bool.or_true, Bool.true_and, Bool.and_true, Bool.and_eq_true]
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
+    exact Or.inr (reduceToNat_lt sourceOne.2)
+  · simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
+    exact Or.inr (reduceToNat_lt sourceTwo.2)
+  · simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
+    exact Or.inr ⟨reduceToNat_lt (by simpa using row.rs2Next.limb0.isLt),
+      reduceToNat_lt (by simpa using row.rs2Next.limb1.isLt)⟩
+  · simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
+    exact Or.inr ⟨reduceToNat_lt (by simpa using row.rs2Next.limb2.isLt),
+      reduceToNat_lt (by simpa using row.rs2Next.limb3.isLt)⟩
+  · simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
+    exact Or.inr ⟨reduceToNat_lt row.quotient.limb0.isLt,
+      reduceToNat_lt (by omega : k0 < 2 ^ 11)⟩
+  · simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
+    exact Or.inr ⟨reduceToNat_lt row.quotient.limb1.isLt,
+      reduceToNat_lt (by omega : k1 < 2 ^ 11)⟩
+  · simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
+    exact Or.inr ⟨reduceToNat_lt row.quotient.limb2.isLt,
+      reduceToNat_lt (by omega : k2 < 2 ^ 11)⟩
+  · simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
+    exact Or.inr ⟨reduceToNat_lt row.quotient.limb3.isLt,
+      reduceToNat_lt (by omega : k3 < 2 ^ 11)⟩
+  · simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
+    exact Or.inr ⟨reduceToNat_lt row.remainder.limb0.isLt,
+      reduceToNat_lt (by omega : k4 < 2 ^ 11)⟩
+  · simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
+    exact Or.inr ⟨reduceToNat_lt row.remainder.limb1.isLt,
+      reduceToNat_lt (by omega : k5 < 2 ^ 11)⟩
+  · simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
+    exact Or.inr ⟨reduceToNat_lt row.remainder.limb2.isLt,
+      reduceToNat_lt (by omega : k6 < 2 ^ 11)⟩
+  · simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
+    exact Or.inr ⟨reduceToNat_lt row.remainder.limb3.isLt,
+      reduceToNat_lt (by omega : k7 < 2 ^ 11)⟩
+  · -- 19 `quotient_sign_range`: dead on unsigned rows, on the zero-divisor
+    -- branch and on the both-operands-negative class; a genuine request
+    -- otherwise, where `quotientSignBit` pins `q_sign` to the quotient's top bit.
+    simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
+    cases hs : row.isSigned with
+    | false =>
+        refine Or.inl ?_
+        rw [signedSum row holds, hs, holds.unsignedDividendSign hs,
+          holds.unsignedDivisorSign hs]
+        simp only [flagValue, M31.reduce_zero, M31.zero_mul, M31.sub_zero]
+        decide
+    | true =>
+        cases hzd : row.zeroDivisor with
+        | true =>
+            refine Or.inl ?_
+            have divisorSign : row.cSign = false := by
+              simp [holds.divisorSignBit hs, holds.zeroDivisorLimb3 hzd]
+            rw [activeOne row holds, divisorSign]
+            simp only [flagValue, M31.reduce_zero, M31.sub_self, M31.mul_zero, M31.zero_mul,
+              M31.sub_zero]
+            decide
+        | false =>
+            by_cases hboth : row.bSign = true ∧ row.cSign = true
+            · refine Or.inl ?_
+              rw [activeOne row holds, signedSum row holds, hs, hboth.1, hboth.2]
+              simp only [flagValue]
+              decide
+            · refine Or.inr ⟨⟨by decide, ?_⟩, ?_⟩
+              · have pin := holds.quotientSignBit hs hzd hboth
+                have bound : row.quotient.limb3.toNat < 256 := by
+                  simpa using row.quotient.limb3.isLt
+                by_cases high : 128 ≤ row.quotient.limb3.toNat
+                · have signOn : row.qSign = true := by rw [pin]; simp [high]
+                  rw [signOn]
+                  simp only [flagValue]
+                  rw [M31.reduce_mul, Nat.one_mul, M31.reduce_sub _ _ high]
+                  exact reduceToNat_lt (by omega)
+                · have signOff : row.qSign = false := by rw [pin]; simp [high]
+                  rw [signOff]
+                  simp only [flagValue, M31.reduce_zero, M31.zero_mul, M31.sub_zero]
+                  exact reduceToNat_lt (by omega)
+              · have low : decide ((M31.reduce 0).toNat = 255) = false := by decide
+                simp [low]
+  · -- 20 `sign_range`: the two top bytes with their sign bits removed, doubled.
+    simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
+    rw [signedSum row holds]
+    exact Or.inr ⟨signRangeBound row.isSigned row.bSign row.rs1Next.limb3
+        holds.dividendSignBit,
+      signRangeBound row.isSigned row.cSign row.rs2Next.limb3 holds.divisorSignBit⟩
+  · -- 21 `positive_remainder_diff`: dead on both special-case branches.
+    simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
+    cases hzd : row.zeroDivisor with
+    | true =>
+        refine Or.inl ?_
+        rw [activeOne row holds, holds.specialExclusive hzd]
+        decide
+    | false =>
+        cases hrz : row.rZero with
+        | true =>
+            refine Or.inl ?_
+            rw [activeOne row holds]
+            decide
+        | false =>
+            refine Or.inr ?_
+            have lower := holds.ltDiffLower hzd hrz
+            have upper := holds.ltDiffUpper hzd hrz
+            rw [M31.reduce_sub _ _ lower]
+            exact reduceToNat_lt (by omega)
+  · simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
+    exact Or.inr (reduceToNat_lt destination.2)
 
 /-! ## The encoding is the export, and the evaluator is A's
 

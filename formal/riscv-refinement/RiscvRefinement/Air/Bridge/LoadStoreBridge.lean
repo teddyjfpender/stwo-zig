@@ -1377,6 +1377,198 @@ theorem loadStoreFixedRequestsHold (row : LoadStoreRow) (holds : LoadStoreHolds 
     baseGapImage row holds, sourceGapImage row holds, destinationGapImage row holds,
     alignedQuarterImage row]
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  -- L05: the base register access-clock gap
+  · exact Or.inr (reduceToNat_lt baseClock.2)
+  -- L06: the aligned address divided by four, which is what forces alignment
+  · exact Or.inr (reduceToNat_lt holds.alignedQuarterRange)
+  -- L07: the base address stays canonical
+  · refine Or.inr ⟨⟨reduceToNat_lt ?_, reduceToNat_lt holds.baseHighLimbRange⟩, ?_⟩
+    · simpa using row.rs1Next.limb0.isLt
+    · have canonical0 : (M31.reduce row.rs1Next.limb0.toNat).toNat =
+          row.rs1Next.limb0.toNat := by
+        refine M31.toNat_reduce_of_lt ?_
+        have bound := row.rs1Next.limb0.isLt
+        simp only [Nat.reducePow] at bound
+        simp only [M31.modulus, RiscvRefinement.Air.Bridge.m31Modulus]
+        omega
+      have canonical3 : (M31.reduce row.rs1Next.limb3.toNat).toNat =
+          row.rs1Next.limb3.toNat := by
+        refine M31.toNat_reduce_of_lt ?_
+        have bound := row.rs1Next.limb3.isLt
+        simp only [Nat.reducePow] at bound
+        simp only [M31.modulus, RiscvRefinement.Air.Bridge.m31Modulus]
+        omega
+      rw [canonical0, canonical3]
+      rcases holds.baseLimbsCanonical with low | high
+      · rw [decide_eq_false low, Bool.false_and]
+      · rw [decide_eq_false high, Bool.and_false]
+  -- L10: the source access-clock gap
+  · exact Or.inr (reduceToNat_lt sourceClock.2)
+  -- L13: the destination access-clock gap
+  · exact Or.inr (reduceToNat_lt destinationClock.2)
+  -- L14: the byte sign witness, live only on an `LB` row
+  · cases byteLoad : row.isLb with
+    | false => exact Or.inl rfl
+    | true =>
+        refine Or.inr ⟨⟨by decide, ?_⟩, zeroNotReserved _⟩
+        rw [(msbResidue row.result.limb0 row.srcMsb (holds.byteSignWitness byteLoad)).1]
+        exact reduceToNat_lt
+          (msbResidue row.result.limb0 row.srcMsb (holds.byteSignWitness byteLoad)).2
+  -- L15: the half-word sign witness, live only on an `LH` row
+  · cases halfLoad : row.isLh with
+    | false => exact Or.inl rfl
+    | true =>
+        refine Or.inr ⟨⟨by decide, ?_⟩, zeroNotReserved _⟩
+        rw [(msbResidue row.result.limb1 row.srcMsb (holds.halfSignWitness halfLoad)).1]
+        exact reduceToNat_lt
+          (msbResidue row.result.limb1 row.srcMsb (holds.halfSignWitness halfLoad)).2
+
+/-! ## The bridge for the relation arguments
+
+The sixteen lookup tuples the shipped AIR emits, evaluated under the same
+column assignment. This is the statement that the relation arguments Team B
+writes down in `loadStoreRelations` — the program tuple, the two state tuples,
+the six `memory_access` tuples — are the tuples the production AIR actually puts
+on the bus, rather than a parallel description of them.
+
+The two `memory_access` blocks are the interesting part and are stated exactly
+as the AIR spells them: the address space of the `src` block is `is_load` and
+of the `dst` block is `is_store`, so on a load the `src` triple is a data-memory
+access and the `dst` triple a register access, and on a store the two swap.
+`loadStoreLoadMemoryAccess` and `loadStoreStoreMemoryAccess` below read that
+back off in the transcription's vocabulary. -/
+
+theorem loadStoreLookupTuples (row : LoadStoreRow) (holds : LoadStoreHolds row)
+    (fits : LoadStoreRowFits row) :
+    loadStoreCircuitCompiled.lookups.map
+        (loadStoreCircuitCompiled.lookupTuple (loadStoreColumns row)) =
+      [ -- 0  program_access request
+        [M31.reduce row.pc.toNat, M31.reduce row.opcodeId,
+          M31.reduce row.rs1Addr.toNat, M31.reduce row.r2Idx.toNat,
+          M31.reduce row.immFelt],
+        -- 1  registers_state consume
+        [M31.reduce row.pc.toNat, M31.reduce row.clock],
+        -- 2  registers_state emit
+        [M31.reduce row.claimedNextPc.toNat, M31.reduce (row.clock + 1)],
+        -- 3  rs1 register consume, address space 0
+        [M31.reduce 0, M31.reduce row.rs1Addr.toNat,
+          M31.reduce row.rs1PreviousClock,
+          M31.reduce row.rs1Previous.limb0.toNat,
+          M31.reduce row.rs1Previous.limb1.toNat,
+          M31.reduce row.rs1Previous.limb2.toNat,
+          M31.reduce row.rs1Previous.limb3.toNat],
+        -- 4  rs1 register emit, address space 0, ordinal one
+        [M31.reduce 0, M31.reduce row.rs1Addr.toNat,
+          M31.reduce (accessClock row.clock 1),
+          M31.reduce row.rs1Next.limb0.toNat,
+          M31.reduce row.rs1Next.limb1.toNat,
+          M31.reduce row.rs1Next.limb2.toNat,
+          M31.reduce row.rs1Next.limb3.toNat],
+        -- 5  rs1 access-clock gap
+        [M31.reduce (accessClock row.clock 1 - row.rs1PreviousClock - 1)],
+        -- 6  the aligned word address divided by four
+        [M31.reduce row.alignedQuarter],
+        -- 7  the base address canonicity request
+        [M31.reduce row.rs1Next.limb0.toNat, M31.reduce row.rs1Next.limb3.toNat],
+        -- 8  src block consume, address space `is_load`
+        [M31.reduce (bitValue row.isLoad), M31.reduce row.sourceSelector,
+          M31.reduce row.srcPreviousClock,
+          M31.reduce row.srcPrevious.limb0.toNat,
+          M31.reduce row.srcPrevious.limb1.toNat,
+          M31.reduce row.srcPrevious.limb2.toNat,
+          M31.reduce row.srcPrevious.limb3.toNat],
+        -- 9  src block emit
+        [M31.reduce (bitValue row.isLoad), M31.reduce row.sourceSelector,
+          M31.reduce (sourceAccessClock row),
+          M31.reduce row.srcNext.limb0.toNat,
+          M31.reduce row.srcNext.limb1.toNat,
+          M31.reduce row.srcNext.limb2.toNat,
+          M31.reduce row.srcNext.limb3.toNat],
+        -- 10 src access-clock gap
+        [M31.reduce (sourceAccessClock row - row.srcPreviousClock - 1)],
+        -- 11 dst block consume, address space `is_store`
+        [M31.reduce (bitValue row.isStore), M31.reduce row.destinationSelector,
+          M31.reduce row.dstPreviousClock,
+          M31.reduce row.dstPrevious.limb0.toNat,
+          M31.reduce row.dstPrevious.limb1.toNat,
+          M31.reduce row.dstPrevious.limb2.toNat,
+          M31.reduce row.dstPrevious.limb3.toNat],
+        -- 12 dst block emit
+        [M31.reduce (bitValue row.isStore), M31.reduce row.destinationSelector,
+          M31.reduce (destinationAccessClock row),
+          M31.reduce row.dstNext.limb0.toNat,
+          M31.reduce row.dstNext.limb1.toNat,
+          M31.reduce row.dstNext.limb2.toNat,
+          M31.reduce row.dstNext.limb3.toNat],
+        -- 13 dst access-clock gap
+        [M31.reduce (destinationAccessClock row - row.dstPreviousClock - 1)],
+        -- 14 the byte sign witness residue
+        [M31.reduce 0,
+          M31.reduce row.result.limb0.toNat -
+            M31.reduce (bitValue row.srcMsb) * M31.reduce 128],
+        -- 15 the half-word sign witness residue
+        [M31.reduce 0,
+          M31.reduce row.result.limb1.toNat -
+            M31.reduce (bitValue row.srcMsb) * M31.reduce 128] ] := by
+  simp only [MulhCircuit.lookupTuple, MulhCircuit.values, MulhCircuit.value,
+    MulhCircuit.nodeValuesRev, loadStoreCircuitCompiled, loadStoreCircuit, evalLoop,
+    Node.evalLocal, nth, List.map_cons, List.map_nil, loadStoreColumns]
+  rw [activeImage row holds, storeImage row holds, loadImage row,
+    opcodeImage row holds, baseGapImage row holds, sourceGapImage row holds,
+    destinationGapImage row holds, accessClockImage row holds 1,
+    sourceAccessClockImage row holds, destinationAccessClockImage row holds,
+    alignedQuarterImage row, nextPcImage row holds fits, M31.reduce_add,
+    M31.reduce_add]
+
+/-! ## Reading the address-space swap back in the transcription's vocabulary
+
+`loadStoreLookupTuples` states the two swapping access blocks exactly as the AIR
+does — space `is_load` for `src` and `is_store` for `dst`. These two corollaries
+say what that means: on a load the AIR's `src` triple is the *data memory*
+access of `loadStoreRelations` at ordinal three and its `dst` triple is the
+`r2_idx` *register* access at ordinal two, and on a store the two swap. Without
+them "the AIR's tuples are `loadStoreRelations`'s tuples" would be an eyeball
+claim about which committed block is which. -/
+
+theorem loadStoreLoadMemoryAccess (row : LoadStoreRow) (holds : LoadStoreHolds row)
+    (direction : row.isStore = false) :
+    bitValue row.isLoad = 1 ∧ bitValue row.isStore = 0 ∧
+      row.sourceSelector = (loadStoreRelations row).memoryConsume.addr.toNat ∧
+      sourceAccessClock row = (loadStoreRelations row).memoryEmit.clock ∧
+      row.destinationSelector = (loadStoreRelations row).operandEmit.addr.toNat ∧
+      destinationAccessClock row = (loadStoreRelations row).operandEmit.clock := by
+  have aligned := alignedAddressSmall row holds
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+  · simp [LoadStoreRow.isLoad, direction]
+  · simp [direction]
+  · simp [LoadStoreRow.sourceSelector, direction, loadStoreRelations,
+      LoadStoreRow.busAddress]
+    omega
+  · rw [sourceAccessClock_load row direction]
+    simp [loadStoreRelations]
+  · simp [LoadStoreRow.destinationSelector, direction, loadStoreRelations]
+  · rw [destinationAccessClock_load row direction]
+    simp [loadStoreRelations]
+
+theorem loadStoreStoreMemoryAccess (row : LoadStoreRow) (holds : LoadStoreHolds row)
+    (direction : row.isStore = true) :
+    bitValue row.isLoad = 0 ∧ bitValue row.isStore = 1 ∧
+      row.destinationSelector = (loadStoreRelations row).memoryConsume.addr.toNat ∧
+      destinationAccessClock row = (loadStoreRelations row).memoryEmit.clock ∧
+      row.sourceSelector = (loadStoreRelations row).operandEmit.addr.toNat ∧
+      sourceAccessClock row = (loadStoreRelations row).operandEmit.clock := by
+  have aligned := alignedAddressSmall row holds
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+  · simp [LoadStoreRow.isLoad, direction]
+  · simp [direction]
+  · simp [LoadStoreRow.destinationSelector, direction, loadStoreRelations,
+      LoadStoreRow.busAddress]
+    omega
+  · rw [destinationAccessClock_store row direction]
+    simp [loadStoreRelations]
+  · simp [LoadStoreRow.sourceSelector, direction, loadStoreRelations]
+  · rw [sourceAccessClock_store row direction]
+    simp [loadStoreRelations]
 
 /-! ## Non-vacuity, and a check on the column assignment itself
 
@@ -1466,5 +1658,54 @@ def loadStoreStoreWitnessRow : LoadStoreRow where
 #guard loadStoreColumns loadStoreLoadWitnessRow == loadStoreLoadWitnessColumns
 
 #guard loadStoreColumns loadStoreStoreWitnessRow == loadStoreStoreWitnessColumns
+
+theorem loadStoreLoadWitnessHolds : LoadStoreHolds loadStoreLoadWitnessRow := by
+  constructor <;> first
+    | decide
+    | exact ⟨by decide, by decide⟩
+
+theorem loadStoreLoadWitnessFits : LoadStoreRowFits loadStoreLoadWitnessRow := by
+  constructor
+  decide
+
+theorem loadStoreStoreWitnessHolds : LoadStoreHolds loadStoreStoreWitnessRow := by
+  constructor <;> first
+    | decide
+    | exact ⟨by decide, by decide⟩
+
+theorem loadStoreStoreWitnessFits : LoadStoreRowFits loadStoreStoreWitnessRow := by
+  constructor
+  decide
+
+-- The bridge is therefore not vacuous in either direction: both rows satisfy
+-- every hypothesis of all three theorems.
+theorem loadStoreLoadWitnessConstraintValues :
+    loadStoreCircuitCompiled.constraintValues (loadStoreColumns loadStoreLoadWitnessRow) =
+      List.replicate 78 0 :=
+  loadStoreConstraintValues loadStoreLoadWitnessRow loadStoreLoadWitnessHolds
+    loadStoreLoadWitnessFits
+
+theorem loadStoreStoreWitnessConstraintValues :
+    loadStoreCircuitCompiled.constraintValues (loadStoreColumns loadStoreStoreWitnessRow) =
+      List.replicate 78 0 :=
+  loadStoreConstraintValues loadStoreStoreWitnessRow loadStoreStoreWitnessHolds
+    loadStoreStoreWitnessFits
+
+theorem loadStoreLoadWitnessFixedRequestsHold :
+    loadStoreCircuitCompiled.fixedRequestsHold (loadStoreColumns loadStoreLoadWitnessRow) =
+      true :=
+  loadStoreFixedRequestsHold loadStoreLoadWitnessRow loadStoreLoadWitnessHolds
+
+theorem loadStoreStoreWitnessFixedRequestsHold :
+    loadStoreCircuitCompiled.fixedRequestsHold (loadStoreColumns loadStoreStoreWitnessRow) =
+      true :=
+  loadStoreFixedRequestsHold loadStoreStoreWitnessRow loadStoreStoreWitnessHolds
+
+-- The gate on `loadStoreFixedRequestsHold` is load-bearing. On the `LW`
+-- witness the *ungated* reading is false -- lookup 14's tuple is `(0, 145)` and
+-- `145` is not a seven-bit value -- so the theorem above cannot be strengthened
+-- to it. Deleting the gate would require deleting this `#guard` first.
+#guard !loadStoreCircuitCompiled.fixedRequestsHoldUnconditional
+    (loadStoreColumns loadStoreLoadWitnessRow)
 
 end RiscvRefinement.Air.Bridge
