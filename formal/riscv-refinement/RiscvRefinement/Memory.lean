@@ -53,24 +53,38 @@ theorem busAddress_isWordAligned (address : Word) :
   simp only [isWordAligned, busAddress, byteOffset]
   bv_decide
 
+/-- An address is its aligned prefix concatenated with its byte offset. Stated
+unconditionally, so the aligned case below is a rewrite rather than a second
+decision-procedure call. -/
+theorem address_split (address : Word) :
+    (BitVec.extractLsb 31 2 address).append (byteOffset address) = address := by
+  simp only [byteOffset]
+  bv_decide
+
 theorem busAddress_of_wordAligned
     (address : Word)
     (aligned : isWordAligned address) :
     busAddress address = address := by
-  revert aligned
-  simp only [isWordAligned, busAddress, byteOffset]
+  show (BitVec.extractLsb 31 2 address).append (BitVec.ofNat 2 0) = address
+  rw [← show byteOffset address = BitVec.ofNat 2 0 from aligned]
+  exact address_split address
+
+/-- The byte offset is the halfword selector above the low address bit. A
+halfword-aligned address therefore has its offset determined entirely by the
+selector. -/
+theorem byteOffset_split (address : Word) :
+    byteOffset address =
+      (halfSelector address).append (BitVec.extractLsb 0 0 address) := by
+  simp only [byteOffset, halfSelector]
   bv_decide
 
-/-- A halfword-aligned address has byte offset `0` or `2`, so its selector bit
-determines the offset completely. -/
 theorem halfAligned_byteOffset
     (address : Word)
     (aligned : isHalfAligned address) :
     byteOffset address =
       (halfSelector address).append (BitVec.ofNat 1 0) := by
-  revert aligned
-  simp only [isHalfAligned, byteOffset, halfSelector]
-  bv_decide
+  rw [byteOffset_split, show BitVec.extractLsb 0 0 address = BitVec.ofNat 1 0
+    from aligned]
 
 /-- Effective-address computation is exactly 32-bit modular addition of the
 base register and the sign-extended 12-bit displacement. -/
@@ -104,14 +118,14 @@ theorem selectHalf_high (bytes : WordBytes) :
 byte order of `WordBytes` agrees with the bit order of `Word`. -/
 theorem lowHalf_extract (bytes : WordBytes) :
     bytes.lowHalf = BitVec.extractLsb 15 0 bytes.word := by
-  rw [WordBytes.word_append]
+  rw [WordBytes.word_halves]
   simp only [WordBytes.lowHalf]
   bv_decide
 
 /-- The high half of an aligned word is bits 31:16 of that word. -/
 theorem highHalf_extract (bytes : WordBytes) :
     bytes.highHalf = BitVec.extractLsb 31 16 bytes.word := by
-  rw [WordBytes.word_append]
+  rw [WordBytes.word_halves]
   simp only [WordBytes.highHalf]
   bv_decide
 
@@ -125,13 +139,22 @@ def signExtendHalf (value : BitVec 16) : Word := BitVec.signExtend 32 value
 
 def zeroExtendHalf (value : BitVec 16) : Word := BitVec.zeroExtend 32 value
 
+/-- Sign extension is the sign-bit fill concatenated with the value. Stated
+unconditionally; both branch lemmas below are rewrites of it. -/
+theorem signExtendHalf_fill (value : BitVec 16) :
+    signExtendHalf value =
+      (if value.getLsbD 15 then BitVec.ofNat 16 0xffff
+        else BitVec.ofNat 16 0).append value := by
+  simp only [signExtendHalf]
+  bv_decide
+
 /-- A negative halfword sign-extends with a one fill in bits 31:16. -/
 theorem signExtendHalf_negative
     (value : BitVec 16)
     (negative : value.getLsbD 15 = true) :
     BitVec.extractLsb 31 16 (signExtendHalf value) = BitVec.ofNat 16 0xffff := by
-  revert negative
-  simp only [signExtendHalf]
+  rw [signExtendHalf_fill, negative]
+  simp only [if_true]
   bv_decide
 
 /-- A nonnegative halfword sign-extends with a zero fill in bits 31:16, so it
@@ -140,8 +163,8 @@ theorem signExtendHalf_nonnegative
     (value : BitVec 16)
     (nonnegative : value.getLsbD 15 = false) :
     signExtendHalf value = zeroExtendHalf value := by
-  revert nonnegative
-  simp only [signExtendHalf, zeroExtendHalf]
+  rw [signExtendHalf_fill, nonnegative]
+  simp only [Bool.false_eq_true, if_false, zeroExtendHalf]
   bv_decide
 
 theorem signExtendHalf_low (value : BitVec 16) :
@@ -149,21 +172,28 @@ theorem signExtendHalf_low (value : BitVec 16) :
   simp only [signExtendHalf]
   bv_decide
 
+theorem signExtendByte_fill (value : Byte) :
+    signExtendByte value =
+      (if value.getLsbD 7 then BitVec.ofNat 24 0xffffff
+        else BitVec.ofNat 24 0).append value := by
+  simp only [signExtendByte]
+  bv_decide
+
 theorem signExtendByte_negative
     (value : Byte)
     (negative : value.getLsbD 7 = true) :
     BitVec.extractLsb 31 8 (signExtendByte value) =
       BitVec.ofNat 24 0xffffff := by
-  revert negative
-  simp only [signExtendByte]
+  rw [signExtendByte_fill, negative]
+  simp only [if_true]
   bv_decide
 
 theorem signExtendByte_nonnegative
     (value : Byte)
     (nonnegative : value.getLsbD 7 = false) :
     signExtendByte value = zeroExtendByte value := by
-  revert nonnegative
-  simp only [signExtendByte, zeroExtendByte]
+  rw [signExtendByte_fill, nonnegative]
+  simp only [Bool.false_eq_true, if_false, zeroExtendByte]
   bv_decide
 
 /-! ## Byte masks and masked stores -/

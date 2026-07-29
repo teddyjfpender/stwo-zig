@@ -6,7 +6,7 @@
     "generated/air/lui.json": "1c3b9b6febfa876c6dc9a05fe234fc1eeca4be7cc426bce365deeafdc0e32723",
     "generated/sail/rv32im-zkvm-v1.json": "5c31e516a205d693386564242d623dbaf4dc1566573f9ecfdcb026611c8fc2c1"
   },
-  "canonical_digest": "bda1876ed46d74b44db70935e2462c599e648ba1208e610612c8566c97217027",
+  "canonical_digest": "47a69938bf1cd891d05bab7e438e2d526d5d74a73069edc56a98364f17a9bb45",
   "claim_boundary": {
     "kernel_checked_normalized_refinement": true,
     "lean_generated_sail_monad_normalization": false,
@@ -243,13 +243,13 @@
     "formal/riscv-refinement/RiscvRefinement.lean": "189b10d4b275482616299425ce8c55ede7ddaf7653b6c1028ee4703430327614",
     "formal/riscv-refinement/RiscvRefinement/AxiomAudit.lean": "88829e83f5991b7e531165a016d7811ff55ac1f8fdfb93edaa9edfa12512869e",
     "formal/riscv-refinement/RiscvRefinement/Bridge/Decode.lean": "5234c89b6c2f4fbf3810c8064674f1bd3c7e713ade216cf7b6925802facf0e55",
-    "formal/riscv-refinement/RiscvRefinement/Common.lean": "4082f1bf6a7f32d31f32022ea605f3c43afe5d04841a31d1649381150ce91e3c",
+    "formal/riscv-refinement/RiscvRefinement/Common.lean": "8582d044ddd0202657d1e3f6ad4fffd13e6543e89f7cf1d0d1e9d8e385baa442",
     "formal/riscv-refinement/RiscvRefinement/Coverage.lean": "aa18962693f94998f3036681125dbdef5bcb892c49c9a311832422aec7e052b0",
     "formal/riscv-refinement/RiscvRefinement/NonVacuity.lean": "818e579c95a46e8eaf5d6f5d0b85418aaba04c82e57922fc29f46add878513ae",
     "formal/riscv-refinement/RiscvRefinement/Opcodes/Addi.lean": "82e4f25cd872f91b3125f21b451e727797b59cc4b89c11446254c26888efebd9",
     "formal/riscv-refinement/RiscvRefinement/Opcodes/Lui.lean": "45e9ab347a306a8677cd378ca08b0ad60d6d6f42e595a41c1287c7b490a8c0a2",
     "formal/riscv-refinement/lake-manifest.json": "a03b6dc2bc959d611317d4b22dfad3f37b00905071893c660893c3b5f944c56b",
-    "formal/riscv-refinement/lakefile.toml": "7fb21f3c7aa7bd611ea6cfe96cc2938cdd9e60b56fbb27c7b39deb5fff4cebff",
+    "formal/riscv-refinement/lakefile.toml": "d159799952bfab27d4514f61dd3763a18cad27d3554adaf43e7bafee12542580",
     "formal/riscv-refinement/lean-toolchain": "651c8accb402b0c071cd336e9d3dc0a55516b1bfb434ddc4801f14936785b1d2",
     "soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md": "d6e7155eb09dac065eed272e77019a795a39f50ff05d9b5f0a37173fbf6251f0"
   },

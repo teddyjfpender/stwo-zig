@@ -106,6 +106,30 @@ theorem WordBytes.word_append (bytes : WordBytes) :
   ]
   omega
 
+/-- The same decomposition split evenly into halfwords.
+
+Stating it this way, rather than only as the four-limb concatenation above, is
+what lets the halfword projections be settled structurally: `extractLsb 31 16`
+of a balanced `a ++ b` is literally `a`. -/
+theorem WordBytes.word_halves (bytes : WordBytes) :
+    bytes.word =
+      (bytes.limb3.append bytes.limb2).append
+        (bytes.limb1.append bytes.limb0) := by
+  apply BitVec.eq_of_toNat_eq
+  have h0 := bytes.limb0.isLt
+  have h1 := bytes.limb1.isLt
+  have h2 := bytes.limb2.isLt
+  have h3 := bytes.limb3.isLt
+  simp only [Nat.reducePow] at h0 h1 h2 h3
+  simp only [
+    WordBytes.word_toNat,
+    WordBytes.value,
+    BitVec.append_eq,
+    toNat_append_arith,
+    Nat.reducePow,
+  ]
+  omega
+
 def nextPc (pc : Word) : Word := pc + BitVec.ofNat 32 4
 
 def accessClock (clock ordinal : Nat) : Nat :=

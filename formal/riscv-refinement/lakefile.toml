@@ -4,3 +4,8 @@ defaultTargets = ["RiscvRefinement"]
 
 [[lean_lib]]
 name = "RiscvRefinement"
+# Build every module under RiscvRefinement/, not just the root's import
+# closure. Without this a new theorem file that nothing imports is silently
+# never compiled, which would let an unchecked proof file sit in the tree while
+# the gate reports green.
+globs = ["RiscvRefinement.+"]
