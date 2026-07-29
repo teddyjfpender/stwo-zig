@@ -6,7 +6,7 @@
     "generated/air/lui.json": "1c3b9b6febfa876c6dc9a05fe234fc1eeca4be7cc426bce365deeafdc0e32723",
     "generated/sail/rv32im-zkvm-v1.json": "5c31e516a205d693386564242d623dbaf4dc1566573f9ecfdcb026611c8fc2c1"
   },
-  "canonical_digest": "dc4f37f2bf1976d7c132c204b99474d4b7ee91ddd8746f956027324f8173d316",
+  "canonical_digest": "bda1876ed46d74b44db70935e2462c599e648ba1208e610612c8566c97217027",
   "claim_boundary": {
     "kernel_checked_normalized_refinement": true,
     "lean_generated_sail_monad_normalization": false,
@@ -20,7 +20,7 @@
     "scripts/riscv_refinement_lib/negative.py": "350ecd86a9694ee4bace43c74d7fe7518652554d927e8b7b999229c354e93cce",
     "scripts/riscv_refinement_lib/render.py": "40840b00cedddc9900e170326b96d8ad41e96fa4663a55549c43e375957d1c1e",
     "scripts/riscv_refinement_lib/sail.py": "9c9e01d72cbd8d183d150d7c8c3d4c1444e7dacaab2530ef30472dbdccc7d696",
-    "scripts/tests/test_riscv_refinement.py": "c30d5c1907c391c66624b4771a0bd1380bfbefa027ff270ae318cd897375bdc2"
+    "scripts/tests/test_riscv_refinement.py": "13d28168459b9838c3f409fe9862d6e7a275500da0a4d4f96bba7ce9d6e806e2"
   },
   "kind": "stwo-riscv-refinement-generated-manifest",
   "lean_toolchain": "leanprover/lean4:v4.29.0",

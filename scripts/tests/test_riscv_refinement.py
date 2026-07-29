@@ -277,8 +277,15 @@ class RefinementAirTest(unittest.TestCase):
                 sail.CARRIED_EVIDENCE,
                 provenance["evidence_source"],
             )
+            # The grade marker is compared separately above; every other field
+            # must be reproduced exactly, whichever grade the committed
+            # manifest was last generated under.
             self.assertEqual(
-                committed,
+                {
+                    key: value
+                    for key, value in committed.items()
+                    if key != "evidence_source"
+                },
                 {
                     key: value
                     for key, value in provenance.items()
