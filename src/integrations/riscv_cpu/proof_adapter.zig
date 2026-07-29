@@ -5,6 +5,16 @@
 //! `error.AdapterNotReleaseGated` until the RV32IM AIR and public I/O binding
 //! pass the release gate. Wiring the real prover is a one-function change
 //! here; the focused capability authority flips only at that moment.
+//!
+//! The adapter is engine-parameterised: `runWithEngine` and
+//! `verifyArtifactWithEngine` take the prover engine and the backend tag as
+//! comptime parameters, mirroring `tools/riscv/bench/runner.mainWithEngine`,
+//! so one implementation of the atomic publication path, the determinism
+//! checks and the transcript-digest cross-check serves every backend. There is
+//! deliberately no second copy of this file per backend: two adapters that must
+//! not drift is precisely the failure mode this seam exists to prevent.
+//! `run`/`verifyArtifact` remain as the facade-default bindings so the existing
+//! focused and aggregate CPU call sites are untouched.
 
 const std = @import("std");
 const stwo = @import("stwo");
@@ -30,7 +40,7 @@ pub const Benchmark = struct {
     profiled: bool,
 };
 
-pub const Backend = enum { cpu, unavailable_device };
+pub const Backend = enum { cpu, metal, unavailable_device };
 pub const Protocol = enum { secure, functional, smoke };
 
 pub const Mode = union(enum) {

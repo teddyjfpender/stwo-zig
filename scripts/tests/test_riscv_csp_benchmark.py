@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import copy
 import json
 import tempfile
@@ -7,6 +8,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from scripts import riscv_cli_admission
 from scripts import riscv_csp_benchmark as csp
 from scripts.riscv_csp_benchmark_lib import contract as csp_contract
 
@@ -228,6 +230,7 @@ class HostEvidenceTests(unittest.TestCase):
             {
                 "architecture",
                 "cpu",
+                "gpu",
                 "kernel",
                 "logical_cpu_count",
                 "memory_bytes",
@@ -236,6 +239,13 @@ class HostEvidenceTests(unittest.TestCase):
                 "python",
             },
             set(host),
+        )
+
+    def test_gpu_evidence_has_one_schema_across_backends(self) -> None:
+        host = csp.collect_host()
+        self.assertEqual(
+            {"name", "core_count", "metal_support", "unified_memory"},
+            set(host["gpu"]),
         )
 
 
@@ -281,6 +291,10 @@ class RetainedReportTests(unittest.TestCase):
         self.assertEqual(1, report["run"]["warmups"])
         self.assertEqual(10, report["run"]["samples"])
         self.assertTrue(report["run"]["complete_matrix"])
+        # Transitional: the committed report predates the backend dimension.
+        # Make this strict (report["run"]["backend"]) once the committed CPU
+        # evidence is regenerated with the full secure-profile matrix.
+        self.assertEqual("cpu", report["run"].get("backend", "cpu"))
 
         measurements = report["measurements"]
         self.assertEqual(
@@ -296,6 +310,8 @@ class RetainedReportTests(unittest.TestCase):
             strict=True,
         ):
             with self.subTest(target=target, size=case["input_size"]):
+                # Transitional, as with run.backend above.
+                self.assertEqual("cpu", row.get("backend", "cpu"))
                 self.assertEqual(case["expected_cycles"], row["cycles"])
                 self.assertEqual(guest["bytes"], row["preprocessing_size"])
                 self.assertFalse(row["uses_precompile"])
