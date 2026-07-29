@@ -9,15 +9,15 @@
 //! `capabilities.zig` is reached through an injected module name rather than as
 //! a sibling file because it is also the root of the capabilities module handed
 //! to the shared proof adapter, and a Zig file may belong to exactly one module.
-//! The build graph must therefore create ONE module from
-//! `src/products/riscv_metal/capabilities.zig` and add it to this product's root
-//! module as `riscv_metal_capabilities` and to the adapter module under the name
-//! the adapter imports (`riscv_cpu_capabilities` today). Pointing either name at
-//! the CPU product's capabilities file fails this file's test and the Metal
-//! product's source-closure gate.
+//! `build_support/products/riscv_metal.zig` therefore creates ONE module from
+//! `src/products/riscv_metal/capabilities.zig` and adds it to this product's root
+//! module as `riscv_capabilities` (used here) and to the adapter module as
+//! `riscv_cpu_capabilities`, the name the shared adapter hard-codes. Pointing
+//! either name at the CPU product's capability file fails this file's test as
+//! well as the Metal product's source-closure gate.
 
 const std = @import("std");
-const capabilities = @import("riscv_metal_capabilities");
+const capabilities = @import("riscv_capabilities");
 const identity = @import("product_identity");
 const shared_registry = @import("riscv_shared_registry");
 
