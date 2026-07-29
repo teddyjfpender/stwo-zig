@@ -42,9 +42,10 @@ def air_ir_v2_fixture() -> dict[str, object]:
     ]
     files = [
         {
-            "path": "src/frontends/riscv/air/constraint_program.zig",
+            "path": path,
             "sha256": "1" * 64,
         }
+        for path in air_program.LUI_SOURCE_PATHS
     ]
     payload: dict[str, object] = {
         "schema_version": air_program.AIR_IR_SCHEMA_VERSION,
@@ -81,9 +82,12 @@ def air_ir_v2_fixture() -> dict[str, object]:
         },
         "fixed_tables": fixed_tables,
         "events": [
-            {"ordinal": 0, "kind": "constraint", "root": 4},
+            *[
+                {"ordinal": ordinal, "kind": "constraint", "root": 4}
+                for ordinal in range(9)
+            ],
             {
-                "ordinal": 1,
+                "ordinal": 9,
                 "kind": "lookup",
                 "role": "request",
                 "domain": "program_access",
@@ -94,7 +98,7 @@ def air_ir_v2_fixture() -> dict[str, object]:
                 "access_ordinal": None,
             },
             {
-                "ordinal": 2,
+                "ordinal": 10,
                 "kind": "lookup",
                 "role": "consume",
                 "domain": "registers_state",
@@ -105,7 +109,7 @@ def air_ir_v2_fixture() -> dict[str, object]:
                 "access_ordinal": None,
             },
             {
-                "ordinal": 3,
+                "ordinal": 11,
                 "kind": "lookup",
                 "role": "emit",
                 "domain": "registers_state",
@@ -116,18 +120,18 @@ def air_ir_v2_fixture() -> dict[str, object]:
                 "access_ordinal": None,
             },
             {
-                "ordinal": 4,
+                "ordinal": 12,
                 "kind": "lookup",
                 "role": "request",
-                "domain": "range_check_20",
+                "domain": "range_check_8_8_4",
                 "numerator": 5,
-                "tuple": [0],
-                "table_id": "range_check_20",
+                "tuple": [0, 0, 0],
+                "table_id": "range_check_8_8_4",
                 "liveness": "nonzero_numerator",
                 "access_ordinal": None,
             },
             {
-                "ordinal": 5,
+                "ordinal": 13,
                 "kind": "lookup",
                 "role": "consume",
                 "domain": "memory_access",
@@ -138,7 +142,7 @@ def air_ir_v2_fixture() -> dict[str, object]:
                 "access_ordinal": 1,
             },
             {
-                "ordinal": 6,
+                "ordinal": 14,
                 "kind": "lookup",
                 "role": "emit",
                 "domain": "memory_access",
@@ -149,7 +153,7 @@ def air_ir_v2_fixture() -> dict[str, object]:
                 "access_ordinal": 1,
             },
             {
-                "ordinal": 7,
+                "ordinal": 15,
                 "kind": "lookup",
                 "role": "request",
                 "domain": "range_check_20",
@@ -161,10 +165,10 @@ def air_ir_v2_fixture() -> dict[str, object]:
             },
         ],
         "projection": {
-            "program_event": 1,
-            "state_events": [2, 3],
+            "program_event": 9,
+            "state_events": [10, 11],
             "source_events": [],
-            "destination_events": [5, 6],
+            "destination_events": [13, 14],
             "next_pc": 2,
         },
         "source_identity": {
@@ -288,6 +292,71 @@ class RefinementAirTest(unittest.TestCase):
         payload = air_ir_v2_fixture()
         air_program.validate(payload)
 
+    def test_committed_lui_air_ir_v2_is_source_bound_production_program(
+        self,
+    ) -> None:
+        path = GENERATED_AIR / "lui.air-ir-v2.json"
+        payload = air_program.load_canonical(path)
+        air_program.verify_source_files(payload, ROOT)
+        self.assertEqual("lui", payload["family"])
+        self.assertEqual(18, len(payload["columns"]))
+        self.assertEqual(53, len(payload["nodes"]))
+        self.assertEqual(16, len(payload["events"]))
+        self.assertEqual(
+            9,
+            sum(event["kind"] == "constraint" for event in payload["events"]),
+        )
+        self.assertEqual(
+            7,
+            sum(event["kind"] == "lookup" for event in payload["events"]),
+        )
+        self.assertFalse(
+            any(
+                column["name"].startswith("bus_value_")
+                for column in payload["columns"]
+            )
+        )
+
+        reordered = copy.deepcopy(payload)
+        reordered["events"][13], reordered["events"][14] = (
+            reordered["events"][14],
+            reordered["events"][13],
+        )
+        reordered["events"][13]["ordinal"] = 13
+        reordered["events"][14]["ordinal"] = 14
+        resign_air_ir_v2(reordered)
+        with self.assertRaises(RefinementError):
+            air_program.validate(reordered)
+
+        stale_source = copy.deepcopy(payload)
+        stale_source["source_identity"]["files"][0]["sha256"] = "0" * 64
+        stale_source["source_identity"]["source_closure_sha256"] = (
+            codec.sha256_bytes(
+                codec.canonical_bytes(stale_source["source_identity"]["files"])
+            )
+        )
+        resign_air_ir_v2(stale_source)
+        air_program.validate(stale_source)
+        with self.assertRaisesRegex(RefinementError, "source digest drifted"):
+            air_program.verify_source_files(stale_source, ROOT)
+
+        semantic_mutation = copy.deepcopy(payload)
+        semantic_mutation["events"][9]["tuple"][0] = 51
+        resign_air_ir_v2(semantic_mutation)
+        air_program.validate(semantic_mutation)
+        air_program.verify_source_files(semantic_mutation, ROOT)
+        unsigned = {
+            key: value
+            for key, value in payload.items()
+            if key in air_program.UNSIGNED_TOP_LEVEL_KEYS
+        }
+        with self.assertRaisesRegex(RefinementError, "fresh production"):
+            air_program.verify_production_binding(
+                semantic_mutation,
+                unsigned,
+                ROOT,
+            )
+
     def test_air_ir_v2_decoder_fails_closed_on_nodes_and_events(self) -> None:
         base = air_ir_v2_fixture()
         mutations = []
@@ -312,34 +381,53 @@ class RefinementAirTest(unittest.TestCase):
         boolean_constant["nodes"][1]["value"] = True
         mutations.append(boolean_constant)
 
+        zero_active = copy.deepcopy(base)
+        zero_active["active_row"] = 7
+        mutations.append(zero_active)
+
+        wrong_manifest_family = copy.deepcopy(base)
+        wrong_manifest_family["family"] = "auipc"
+        mutations.append(wrong_manifest_family)
+
         invalid_arity = copy.deepcopy(base)
-        invalid_arity["events"][4]["tuple"].append(1)
+        invalid_arity["events"][12]["tuple"].append(1)
         mutations.append(invalid_arity)
 
         dead_lookup = copy.deepcopy(base)
-        dead_lookup["events"][4]["numerator"] = 7
+        dead_lookup["events"][12]["numerator"] = 7
         mutations.append(dead_lookup)
 
         reordered = copy.deepcopy(base)
-        reordered["events"][4]["ordinal"] = 3
+        reordered["events"][12]["ordinal"] = 11
         mutations.append(reordered)
 
         wrong_table = copy.deepcopy(base)
-        wrong_table["events"][4]["table_id"] = "range_check_8_8"
+        wrong_table["events"][12]["table_id"] = "range_check_8_8"
         mutations.append(wrong_table)
 
         gapped_access = copy.deepcopy(base)
-        for event in gapped_access["events"][5:8]:
+        for event in gapped_access["events"][13:16]:
             event["access_ordinal"] = 2
         mutations.append(gapped_access)
 
         missing_access_gap = copy.deepcopy(base)
-        missing_access_gap["events"][7]["access_ordinal"] = None
+        missing_access_gap["events"][15]["access_ordinal"] = None
         mutations.append(missing_access_gap)
 
         misplaced_access = copy.deepcopy(base)
-        misplaced_access["events"][1]["access_ordinal"] = 1
+        misplaced_access["events"][9]["access_ordinal"] = 1
         mutations.append(misplaced_access)
+
+        relabelled_projection = copy.deepcopy(base)
+        relabelled_projection["projection"]["source_events"] = [13, 14]
+        relabelled_projection["projection"]["destination_events"] = []
+        mutations.append(relabelled_projection)
+
+        wrong_builder = copy.deepcopy(base)
+        wrong_builder["source_identity"]["builder"] = (
+            "src/frontends/riscv/air/semantic_eval.zig"
+        )
+        mutations.append(wrong_builder)
 
         dead_node = copy.deepcopy(base)
         dead_node["nodes"].append({"op": "const", "value": 7})

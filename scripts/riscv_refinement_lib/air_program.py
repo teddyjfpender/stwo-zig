@@ -35,6 +35,44 @@ FAMILIES = frozenset(
         "shifts_reg",
     }
 )
+FAMILY_OPCODES = {
+    "base_alu_reg": frozenset(
+        {(0, "add"), (1, "sub"), (5, "xor"), (8, "or"), (9, "and")}
+    ),
+    "base_alu_imm": frozenset(
+        {(10, "addi"), (13, "xori"), (14, "ori"), (15, "andi")}
+    ),
+    "shifts_reg": frozenset({(2, "sll"), (6, "srl"), (7, "sra")}),
+    "shifts_imm": frozenset({(16, "slli"), (17, "srli"), (18, "srai")}),
+    "lt_reg": frozenset({(3, "slt"), (4, "sltu")}),
+    "lt_imm": frozenset({(11, "slti"), (12, "sltiu")}),
+    "branch_eq": frozenset({(27, "beq"), (28, "bne")}),
+    "branch_lt": frozenset(
+        {(29, "blt"), (30, "bge"), (31, "bltu"), (32, "bgeu")}
+    ),
+    "lui": frozenset({(35, "lui")}),
+    "auipc": frozenset({(36, "auipc")}),
+    "jalr": frozenset({(34, "jalr")}),
+    "jal": frozenset({(33, "jal")}),
+    "load_store": frozenset(
+        {
+            (19, "lb"),
+            (20, "lh"),
+            (21, "lw"),
+            (22, "lbu"),
+            (23, "lhu"),
+            (24, "sb"),
+            (25, "sh"),
+            (26, "sw"),
+        }
+    ),
+    "mul": frozenset({(37, "mul")}),
+    "mulh": frozenset({(38, "mulh"), (39, "mulhsu"), (40, "mulhu")}),
+    "div": frozenset(
+        {(41, "div"), (42, "divu"), (43, "rem"), (44, "remu")}
+    ),
+    "fence": frozenset({(45, "fence")}),
+}
 
 BUS_ARITIES = {
     "registers_state": 2,
@@ -76,7 +114,10 @@ UNSIGNED_TOP_LEVEL_KEYS = TOP_LEVEL_KEYS - {"content_digest", "source_identity"}
 
 SOURCE_IDENTITY_BUILDER = "src/frontends/riscv/air/constraint_program.zig"
 LUI_SOURCE_PATHS = (
+    "src/core/fields/cm31.zig",
     "src/core/fields/m31.zig",
+    "src/core/fields/qm31.zig",
+    "src/frontends/riscv/access_clock.zig",
     "src/frontends/riscv/air/constraint_program.zig",
     "src/frontends/riscv/air/extract/model.zig",
     "src/frontends/riscv/air/extract/program.zig",
@@ -90,6 +131,7 @@ LUI_SOURCE_PATHS = (
     "src/frontends/riscv/air/semantics/common.zig",
     "src/frontends/riscv/air/semantics/control_common.zig",
     "src/frontends/riscv/air/semantics/lui.zig",
+    "src/frontends/riscv/air/semantics/mod.zig",
     "src/frontends/riscv/opcode_manifest.zig",
     "src/frontends/riscv/runner/trace.zig",
 )
@@ -154,10 +196,8 @@ def content_digest(payload: dict[str, Any]) -> str:
     return codec.sha256_bytes(codec.canonical_bytes(unsigned))
 
 
-def source_identity(
-    root: Path,
-    source_paths: tuple[str, ...] = LUI_SOURCE_PATHS,
-) -> dict[str, Any]:
+def source_identity(root: Path) -> dict[str, Any]:
+    source_paths = LUI_SOURCE_PATHS
     if source_paths != tuple(sorted(source_paths)) or len(source_paths) != len(
         set(source_paths)
     ):
@@ -183,16 +223,32 @@ def source_identity(
 def package_unsigned(
     payload: dict[str, Any],
     root: Path,
-    source_paths: tuple[str, ...] = LUI_SOURCE_PATHS,
 ) -> dict[str, Any]:
     """Bind a production-emitted semantic object to its exact source closure."""
 
     _expect_keys(payload, UNSIGNED_TOP_LEVEL_KEYS, "unsigned AIR IR v2")
+    if payload.get("family") != "lui":
+        raise RefinementError("AIR IR v2 packaging currently supports only LUI")
     packaged = dict(payload)
-    packaged["source_identity"] = source_identity(root, source_paths)
+    packaged["source_identity"] = source_identity(root)
     packaged["content_digest"] = content_digest(packaged)
     validate(packaged)
     return packaged
+
+
+def verify_production_binding(
+    payload: dict[str, Any],
+    unsigned_payload: dict[str, Any],
+    root: Path,
+) -> None:
+    """Require exact equality with a fresh source-bound production export."""
+
+    expected = package_unsigned(unsigned_payload, root)
+    if payload != expected:
+        raise RefinementError(
+            "AIR IR v2 artifact differs from fresh production serialization"
+        )
+    verify_source_files(payload, root)
 
 
 def verify_source_files(payload: dict[str, Any], root: Path) -> None:
@@ -308,6 +364,30 @@ def _node_ref(value: Any, node_count: int, context: str) -> int:
     return value
 
 
+def _static_node_values(nodes: list[dict[str, Any]]) -> list[int | None]:
+    values: list[int | None] = []
+    for node in nodes:
+        operation = node["op"]
+        if operation == "const":
+            value: int | None = node["value"]
+        elif operation == "col":
+            value = None
+        else:
+            arguments = [values[index] for index in node["args"]]
+            if any(argument is None for argument in arguments):
+                value = None
+            elif operation == "neg":
+                value = (-arguments[0]) % M31_MODULUS
+            elif operation == "add":
+                value = (arguments[0] + arguments[1]) % M31_MODULUS
+            elif operation == "sub":
+                value = (arguments[0] - arguments[1]) % M31_MODULUS
+            else:
+                value = (arguments[0] * arguments[1]) % M31_MODULUS
+        values.append(value)
+    return values
+
+
 def _validate_fixed_tables(payload: dict[str, Any]) -> None:
     raw_tables = payload["fixed_tables"]
     if not isinstance(raw_tables, list) or len(raw_tables) != len(FIXED_TABLES):
@@ -333,6 +413,7 @@ def _validate_fixed_tables(payload: dict[str, Any]) -> None:
 def _validate_events(
     payload: dict[str, Any],
     nodes: list[dict[str, Any]],
+    static_values: list[int | None],
 ) -> tuple[list[dict[str, Any]], set[int]]:
     raw_events = payload["events"]
     if not isinstance(raw_events, list) or not raw_events:
@@ -384,7 +465,7 @@ def _validate_events(
         numerator = _node_ref(
             event["numerator"], len(nodes), f"events[{index}].numerator"
         )
-        if nodes[numerator].get("op") == "const" and nodes[numerator].get("value") == 0:
+        if static_values[numerator] == 0:
             raise RefinementError(f"events[{index}]: statically dead lookup")
         tuple_nodes = event["tuple"]
         if (
@@ -404,6 +485,18 @@ def _validate_events(
                 )
         elif event["table_id"] is not None:
             raise RefinementError(f"events[{index}]: bus lookup names a fixed table")
+        if domain == "program_access" and event["role"] != "request":
+            raise RefinementError(
+                f"events[{index}]: program lookup must have request role"
+            )
+        if domain == "registers_state" and event["role"] == "request":
+            raise RefinementError(
+                f"events[{index}]: state lookup must consume or emit"
+            )
+        if domain == "memory_access" and event["role"] == "request":
+            raise RefinementError(
+                f"events[{index}]: memory lookup must consume or emit"
+            )
         access = event["access_ordinal"]
         if access is not None and (not _is_nat(access) or access == 0):
             raise RefinementError(f"events[{index}]: invalid access ordinal")
@@ -440,6 +533,10 @@ def _validate_projection(
     for name, values in event_groups:
         if not isinstance(values, list) or any(not _is_nat(value) for value in values):
             raise RefinementError(f"projection.{name}: invalid event array")
+        if values != sorted(values) or len(values) != len(set(values)):
+            raise RefinementError(
+                f"projection.{name}: events are not unique and ordered"
+            )
         for ordinal in values:
             if ordinal >= len(events) or events[ordinal].get("kind") != "lookup":
                 raise RefinementError(
@@ -461,6 +558,10 @@ def _validate_projection(
         if len(ordinals) % 2 != 0:
             raise RefinementError(f"projection.{name}: unpaired event array")
         for offset in range(0, len(ordinals), 2):
+            if ordinals[offset + 1] != ordinals[offset] + 1:
+                raise RefinementError(
+                    f"projection.{name}: consume/emit pair is not adjacent"
+                )
             consume = events[ordinals[offset]]
             emit = events[ordinals[offset + 1]]
             if (
@@ -472,6 +573,13 @@ def _validate_projection(
                 raise RefinementError(
                     f"projection.{name}: expected ordered consume/emit pairs"
                 )
+            if domain == "memory_access" and (
+                consume["access_ordinal"] is None
+                or consume["access_ordinal"] != emit["access_ordinal"]
+            ):
+                raise RefinementError(
+                    f"projection.{name}: access ordinal pair drifted"
+                )
     all_projection_events = [
         projection["program_event"],
         *projection["state_events"],
@@ -482,6 +590,36 @@ def _validate_projection(
         raise RefinementError("projection: event groups overlap")
     if len(projection["state_events"]) != 2:
         raise RefinementError("projection.state_events: expected one state pair")
+    program_events = [
+        event["ordinal"]
+        for event in events
+        if event.get("kind") == "lookup"
+        and event.get("domain") == "program_access"
+    ]
+    if program_events != [projection["program_event"]]:
+        raise RefinementError("projection.program_event: not the unique program event")
+    state_events = [
+        event["ordinal"]
+        for event in events
+        if event.get("kind") == "lookup"
+        and event.get("domain") == "registers_state"
+    ]
+    if state_events != projection["state_events"]:
+        raise RefinementError("projection.state_events: does not cover the state events")
+    memory_events = [
+        event["ordinal"]
+        for event in events
+        if event.get("kind") == "lookup"
+        and event.get("domain") == "memory_access"
+    ]
+    projected_memory = [
+        *projection["source_events"],
+        *projection["destination_events"],
+    ]
+    if sorted(projected_memory) != memory_events:
+        raise RefinementError(
+            "projection source/destination events do not cover memory events"
+        )
     state_emit = events[projection["state_events"][1]]
     next_pc = _node_ref(projection["next_pc"], node_count, "projection.next_pc")
     if state_emit["tuple"][0] != next_pc:
@@ -493,6 +631,34 @@ def _validate_projection(
     }
 
 
+def _validate_lui_shape(
+    payload: dict[str, Any],
+    lookup_events: list[dict[str, Any]],
+) -> None:
+    constraint_count = len(payload["events"]) - len(lookup_events)
+    expected_lookups = [
+        ("program_access", "request", None),
+        ("registers_state", "consume", None),
+        ("registers_state", "emit", None),
+        ("range_check_8_8_4", "request", None),
+        ("memory_access", "consume", 1),
+        ("memory_access", "emit", 1),
+        ("range_check_20", "request", 1),
+    ]
+    actual_lookups = [
+        (event["domain"], event["role"], event["access_ordinal"])
+        for event in lookup_events
+    ]
+    if constraint_count != 9 or actual_lookups != expected_lookups:
+        raise RefinementError("LUI direct/lookup production event shape drifted")
+    projection = payload["projection"]
+    if (
+        projection["source_events"] != []
+        or len(projection["destination_events"]) != 2
+    ):
+        raise RefinementError("LUI source/destination projection drifted")
+
+
 def _validate_source_identity(payload: dict[str, Any]) -> None:
     identity = _expect_keys(
         payload["source_identity"],
@@ -501,6 +667,8 @@ def _validate_source_identity(payload: dict[str, Any]) -> None:
     )
     if not isinstance(identity["builder"], str) or not identity["builder"]:
         raise RefinementError("source_identity.builder: expected source path")
+    if identity["builder"] != SOURCE_IDENTITY_BUILDER:
+        raise RefinementError("source_identity.builder: production builder drifted")
     _expect_sha256(
         identity["source_closure_sha256"],
         "source_identity.source_closure_sha256",
@@ -525,6 +693,8 @@ def _validate_source_identity(payload: dict[str, Any]) -> None:
         paths.append(path)
     if paths != sorted(paths) or len(paths) != len(set(paths)):
         raise RefinementError("source_identity.files: paths are not sorted and unique")
+    if payload["family"] == "lui" and tuple(paths) != LUI_SOURCE_PATHS:
+        raise RefinementError("source_identity.files: LUI source closure drifted")
     if identity["source_closure_sha256"] != codec.sha256_bytes(
         codec.canonical_bytes(files)
     ):
@@ -562,7 +732,13 @@ def validate(payload: dict[str, Any]) -> None:
 
     columns = _validate_columns(payload)
     nodes = _validate_nodes(payload, len(columns))
+    static_values = _static_node_values(nodes)
     active_row = _node_ref(payload["active_row"], len(nodes), "active_row")
+    if (
+        static_values[active_row] is not None
+        and static_values[active_row] != 1
+    ):
+        raise RefinementError("active_row is statically not one")
     selector = _expect_keys(
         payload["opcode_selector"],
         {"expression", "manifest_id", "mnemonic"},
@@ -575,17 +751,30 @@ def validate(payload: dict[str, Any]) -> None:
         or not selector["mnemonic"]
     ):
         raise RefinementError("opcode_selector identity is invalid")
-    if payload["family"] == "lui" and (
-        selector["manifest_id"] != 35 or selector["mnemonic"] != "lui"
-    ):
-        raise RefinementError("opcode_selector LUI manifest identity drifted")
+    if (
+        selector["manifest_id"],
+        selector["mnemonic"],
+    ) not in FAMILY_OPCODES[payload["family"]]:
+        raise RefinementError("opcode_selector manifest/family identity drifted")
     selector_expression = _node_ref(
         selector["expression"], len(nodes), "opcode_selector.expression"
     )
+    static_selector = static_values[selector_expression]
+    if static_selector == 0 or (
+        static_selector is not None
+        and static_selector != selector["manifest_id"]
+    ):
+        raise RefinementError("opcode_selector expression is statically invalid")
 
     _validate_fixed_tables(payload)
-    lookup_events, event_references = _validate_events(payload, nodes)
+    lookup_events, event_references = _validate_events(
+        payload,
+        nodes,
+        static_values,
+    )
     projection_references = _validate_projection(payload, payload["events"], len(nodes))
+    if payload["family"] == "lui":
+        _validate_lui_shape(payload, lookup_events)
     program_event = payload["events"][payload["projection"]["program_event"]]
     if program_event["tuple"][1] != selector_expression:
         raise RefinementError(

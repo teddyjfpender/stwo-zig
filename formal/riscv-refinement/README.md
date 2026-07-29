@@ -1,16 +1,18 @@
 # RISC-V LUI/ADDI refinement pilot
 
-This Lean project is the Level-1 vertical pilot for universal RISC-V
-AIR-to-Sail refinement. It kernel-checks the normalized LUI and ADDI row
-predicates against a reviewed normalized capsule of the pinned Sail
-definitions.
+This Lean project contains the Level-1 LUI/ADDI refinement pilot and the first
+Team A Level-2 AIR-side binding for LUI. It kernel-checks the normalized LUI
+and ADDI row predicates against a reviewed normalized capsule of the pinned
+Sail definitions. Separately, LUI's production `ConstraintProgram` now
+round-trips through canonical AIR IR v2 and a strict Lean M31,
+event/projection, and fixed-table interpreter.
 
-It does not yet prove that the serialized production M31 constraint DAG and
-live lookup set imply those predicates, or that the full generated Sail monad
-reduces to the capsule. Those two bindings are the Level-2 promotion gate.
-Accordingly, the repository reports `2/46` as normalized pilot coverage and
-does not claim that two production opcodes are publication-level
-machine-proved.
+The AIR-side round trip does not yet prove that the interpreted production
+program implies the normalized `LuiHolds` predicate, and the full generated
+Sail monad does not yet reduce to the reviewed capsule. Those composition and
+Team B bindings remain Level-2 promotion gates. Accordingly, the repository
+still reports `2/46` as normalized pilot coverage and does not count LUI as a
+publication-level opcode.
 
 ## Theorems
 
@@ -52,12 +54,14 @@ STWO_SAIL_RISCV_DIR=/tmp/stwo-riscv-formal/source/sail-riscv \
   zig build riscv-refinement-pilot
 ```
 
-The gate freshly exports all 17 production symbolic-AIR families, rejects
-schema or expression drift, and differentially checks the frontend-owned
-symbolic recorder against the QM31 production evaluator. It then compares
-every generated file byte-for-byte, runs coverage and negative controls, runs
-the Python infrastructure tests, builds Lean, scans for proof escapes, and
-audits every exported theorem's axioms.
+The gate freshly exports all 17 production symbolic-AIR families plus the
+source-bound LUI AIR IR v2 program. It rejects schema, source, event, or
+expression drift and differentially checks the shared symbolic program
+against the QM31 production evaluator. It then compares every generated file
+byte-for-byte, runs coverage and negative controls, runs the Python
+infrastructure tests, builds Lean (including strict LUI decode and active/
+inactive evaluation guards), scans for proof escapes, and audits every
+exported theorem's axioms.
 
 The current mutations check weakened-row counterexamples and exact-shape
 validator sensitivity. They do not yet invoke pinned Sail on the counterexample
@@ -82,11 +86,15 @@ claim boundary.
 Do not edit these by hand:
 
 - `generated/air/{lui,addi}.json`
+- `generated/air/lui.air-ir-v2.json`
 - `generated/sail/rv32im-zkvm-v1.json`
 - `RiscvRefinement/Air/Generated/Pilot.lean`
+- `RiscvRefinement/Air/Generated/LuiProgram.lean`
 - `RiscvRefinement/Sail/Generated/Pilot.lean`
 - `generated-manifest.json`
 
 The detailed theorem contract, trusted-base analysis, rollout order, and
 publication definition of done are in
 [`soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md`](../../soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md).
+The exact production AIR wire and interpretation contract is
+[`soundness/AIR_IR_V2_CONTRACT.md`](../../soundness/AIR_IR_V2_CONTRACT.md).

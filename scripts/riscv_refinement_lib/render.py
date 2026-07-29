@@ -9,7 +9,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from . import air, codec, sail
+from . import air, air_program, codec, sail
 from .model import LEAN_TOOLCHAIN, PILOT_OPCODES, SCHEMA_VERSION, Paths, RefinementError
 
 SOURCE_PATHS = (
@@ -29,6 +29,7 @@ SOURCE_PATHS = (
     "src/core/build.zig.zon",
     "src/core/mod.zig",
     "src/frontends/riscv/refinement_ir_export_test.zig",
+    "src/frontends/riscv/refinement_program_export_test.zig",
 )
 SOURCE_TREES = (
     "build_support/graph",
@@ -41,6 +42,7 @@ GENERATOR_PATHS = (
     "scripts/riscv_refinement_lib/model.py",
     "scripts/riscv_refinement_lib/codec.py",
     "scripts/riscv_refinement_lib/air.py",
+    "scripts/riscv_refinement_lib/air_program.py",
     "scripts/riscv_refinement_lib/sail.py",
     "scripts/riscv_refinement_lib/negative.py",
     "scripts/riscv_refinement_lib/render.py",
@@ -54,13 +56,24 @@ PROOF_PATHS = (
     "formal/riscv-refinement/lakefile.toml",
     "formal/riscv-refinement/RiscvRefinement.lean",
     "formal/riscv-refinement/RiscvRefinement/Common.lean",
+    "formal/riscv-refinement/RiscvRefinement/Air.lean",
+    "formal/riscv-refinement/RiscvRefinement/Air/Decode.lean",
+    "formal/riscv-refinement/RiscvRefinement/Air/Eval.lean",
+    "formal/riscv-refinement/RiscvRefinement/Air/IR.lean",
+    "formal/riscv-refinement/RiscvRefinement/Air/Tests.lean",
     "formal/riscv-refinement/RiscvRefinement/Bridge/Decode.lean",
+    "formal/riscv-refinement/RiscvRefinement/Field.lean",
+    "formal/riscv-refinement/RiscvRefinement/Field/M31.lean",
     "formal/riscv-refinement/RiscvRefinement/Opcodes/Lui.lean",
     "formal/riscv-refinement/RiscvRefinement/Opcodes/Addi.lean",
     "formal/riscv-refinement/RiscvRefinement/NonVacuity.lean",
     "formal/riscv-refinement/RiscvRefinement/Coverage.lean",
     "formal/riscv-refinement/RiscvRefinement/AxiomAudit.lean",
+    "formal/riscv-refinement/RiscvRefinement/Tables.lean",
+    "formal/riscv-refinement/RiscvRefinement/Tables/Fixed.lean",
+    "soundness/AIR_IR_V2_CONTRACT.md",
     "soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md",
+    "soundness/air-ir-v2.schema.json",
 )
 
 EXPORTED_FAMILIES = frozenset(
@@ -87,8 +100,10 @@ EXPORTED_FAMILIES = frozenset(
 MANIFEST_ARTIFACTS = frozenset(
     {
         "RiscvRefinement/Air/Generated/Pilot.lean",
+        "RiscvRefinement/Air/Generated/LuiProgram.lean",
         "RiscvRefinement/Sail/Generated/Pilot.lean",
         "generated/air/addi.json",
+        "generated/air/lui.air-ir-v2.json",
         "generated/air/lui.json",
         "generated/sail/rv32im-zkvm-v1.json",
     }
@@ -99,7 +114,7 @@ AIR_LEAN_TEMPLATE = """\
 -- Generator: scripts/riscv_refinement.py
 -- Regenerate: python3 scripts/riscv_refinement.py generate
 -- Production binding: symbolic collector plus exact structural validation.
--- Boundary: normalized predicate; no Lean serialized-M31 interpreter yet.
+-- Boundary: normalized predicate; LUI AIR IR v2 is bound in LuiProgram.lean.
 
 import RiscvRefinement.Common
 
@@ -356,6 +371,77 @@ def addiRelations (row : AddiRow) : AddiRelations where
 end RiscvRefinement.Air.Generated
 """
 
+AIR_PROGRAM_LEAN_TEMPLATE = """\
+-- GENERATED FILE. DO NOT EDIT.
+-- Generator: scripts/riscv_refinement.py
+-- Regenerate: python3 scripts/riscv_refinement.py generate
+-- Binding: exact canonical production AIR IR v2 for LUI.
+
+import RiscvRefinement.Air
+
+namespace RiscvRefinement.Air.Generated
+
+open RiscvRefinement
+
+def luiProgramJson : String :=
+  __LUI_PROGRAM_JSON__
+
+def luiProgramDecodes : Bool :=
+  match ConstraintProgram.decodeCanonical luiProgramJson with
+  | .ok _ => true
+  | .error _ => false
+
+#guard luiProgramDecodes
+
+private def m31 (value : Nat) : M31 :=
+  M31.reduce value
+
+def luiInactiveRow : Array M31 :=
+  Array.replicate 18 0
+
+def luiActiveRow : Array M31 :=
+  #[
+    m31 1, m31 8, m31 4096,
+    m31 7, m31 0, m31 0, m31 0, m31 0, m31 0,
+    m31 0, m31 192, m31 171, m31 222,
+    m31 12, m31 171, m31 222,
+    m31 1, m31 1840700269
+  ]
+
+def luiInactiveRowIsRejected : Bool :=
+  match ConstraintProgram.decodeCanonical luiProgramJson with
+  | .error _ => false
+  | .ok program =>
+    match program.eval luiInactiveRow with
+    | .error _ => false
+    | .ok evaluation =>
+          !evaluation.rowActive &&
+          !evaluation.constraintsHold &&
+          evaluation.fixedLookupsHold &&
+          evaluation.liveLookups.isEmpty
+
+#guard luiInactiveRowIsRejected
+
+def luiActiveRowEvaluates : Bool :=
+  match ConstraintProgram.decodeCanonical luiProgramJson with
+  | .error _ => false
+  | .ok program =>
+    match program.eval luiActiveRow with
+    | .error _ => false
+    | .ok evaluation =>
+          evaluation.activeSelectorsAccepted &&
+          evaluation.constraintsHold &&
+          evaluation.fixedLookupsHold &&
+          evaluation.liveLookups.size == 7 &&
+          evaluation.projection.nextPc.toNat == 4100 &&
+          evaluation.projection.programEvent.tuple.map M31.toNat ==
+            #[4096, 35, 7, 912060, 0]
+
+#guard luiActiveRowEvaluates
+
+end RiscvRefinement.Air.Generated
+"""
+
 SAIL_LEAN_TEMPLATE = """\
 -- GENERATED FILE. DO NOT EDIT.
 -- Generator: scripts/riscv_refinement.py
@@ -498,12 +584,47 @@ def validate_air_export(directory: Path) -> None:
             )
 
 
+def validate_air_program_export(directory: Path) -> dict[str, Any]:
+    if directory.is_symlink() or not directory.is_dir():
+        raise RefinementError(
+            f"production AIR IR v2 export is not a directory: {directory}"
+        )
+    entries = list(directory.iterdir())
+    if (
+        len(entries) != 1
+        or entries[0].is_symlink()
+        or not entries[0].is_file()
+        or entries[0].name != "lui.unsigned.json"
+    ):
+        raise RefinementError(
+            "production AIR IR v2 export must contain exactly "
+            "lui.unsigned.json"
+        )
+    artifact = entries[0]
+    payload = codec.load_json(artifact)
+    if set(payload) != air_program.UNSIGNED_TOP_LEVEL_KEYS:
+        raise RefinementError(
+            "production AIR IR v2 unsigned semantic schema drifted"
+        )
+    if artifact.read_bytes() != codec.canonical_bytes(payload):
+        raise RefinementError(
+            "production AIR IR v2 unsigned semantic JSON is not canonical"
+        )
+    return payload
+
+
 def export_air(paths: Paths) -> None:
     output_parent = paths.root / "zig-out"
     output_parent.mkdir(parents=True, exist_ok=True)
     staging = Path(
         tempfile.mkdtemp(
             prefix="riscv-refinement-ir.",
+            dir=output_parent,
+        )
+    )
+    program_staging = Path(
+        tempfile.mkdtemp(
+            prefix="riscv-air-program-ir.",
             dir=output_parent,
         )
     )
@@ -514,29 +635,58 @@ def export_air(paths: Paths) -> None:
                 "build",
                 "riscv-refinement-ir",
                 f"-Driscv-refinement-ir-dir={staging}",
+                f"-Driscv-air-program-ir-dir={program_staging}",
             ],
             cwd=paths.root,
             check=True,
             timeout=600,
         )
         validate_air_export(staging)
+        validate_air_program_export(program_staging)
         target = paths.uniqueness_ir
+        program_target = paths.air_program_ir
+        if target.resolve() == program_target.resolve():
+            raise RefinementError("symbolic and AIR IR v2 targets must differ")
         if target.is_symlink():
             raise RefinementError(f"refusing symbolic-link AIR target {target}")
         if target.exists():
             if not target.is_dir():
                 raise RefinementError(f"AIR target is not a directory: {target}")
             shutil.rmtree(target)
+        if program_target.is_symlink():
+            raise RefinementError(
+                f"refusing symbolic-link AIR IR v2 target {program_target}"
+            )
+        if program_target.exists():
+            if not program_target.is_dir():
+                raise RefinementError(
+                    f"AIR IR v2 target is not a directory: {program_target}"
+                )
+            shutil.rmtree(program_target)
         staging.replace(target)
+        program_staging.replace(program_target)
     except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
         raise RefinementError("production AIR export failed") from exc
     finally:
         if staging.exists():
             shutil.rmtree(staging)
+        if program_staging.exists():
+            shutil.rmtree(program_staging)
 
 
 def artifacts(paths: Paths, evidence: sail.SailEvidence) -> dict[Path, bytes]:
     source_digests = _source_digests(paths)
+    unsigned_lui_air_program = validate_air_program_export(paths.air_program_ir)
+    lui_air_program = air_program.package_unsigned(
+        unsigned_lui_air_program,
+        paths.root,
+    )
+    air_program.verify_production_binding(
+        lui_air_program,
+        unsigned_lui_air_program,
+        paths.root,
+    )
+    lui_air_program_bytes = codec.canonical_bytes(lui_air_program)
     packaged = {
         opcode: air.package_air(
             paths.uniqueness_ir
@@ -557,6 +707,12 @@ def artifacts(paths: Paths, evidence: sail.SailEvidence) -> dict[Path, bytes]:
         .replace("__ADDI_DIGEST__", packaged["addi"]["canonical_digest"])
         .encode("utf-8")
     )
+    air_program_lean = AIR_PROGRAM_LEAN_TEMPLATE.replace(
+        "__LUI_PROGRAM_JSON__",
+        codec.canonical_bytes(lui_air_program_bytes.decode("ascii")).decode(
+            "ascii"
+        ),
+    ).encode("utf-8")
     sail_lean = (
         SAIL_LEAN_TEMPLATE.replace(
             "__UTYPE_DIGEST__",
@@ -570,9 +726,13 @@ def artifacts(paths: Paths, evidence: sail.SailEvidence) -> dict[Path, bytes]:
     )
     outputs: dict[Path, bytes] = {
         **air_outputs,
+        Path("generated/air/lui.air-ir-v2.json"):
+            lui_air_program_bytes,
         Path("generated/sail/rv32im-zkvm-v1.json"):
             evidence.exact_configuration,
         Path("RiscvRefinement/Air/Generated/Pilot.lean"): air_lean,
+        Path("RiscvRefinement/Air/Generated/LuiProgram.lean"):
+            air_program_lean,
         Path("RiscvRefinement/Sail/Generated/Pilot.lean"): sail_lean,
     }
     manifest: dict[str, Any] = {
@@ -580,7 +740,8 @@ def artifacts(paths: Paths, evidence: sail.SailEvidence) -> dict[Path, bytes]:
         "kind": "stwo-riscv-refinement-generated-manifest",
         "tier": "level-1-normalized-pilot",
         "claim_boundary": {
-            "lean_serialized_m31_air_interpreter": False,
+            "lui_air_ir_v2_roundtrip": True,
+            "lean_serialized_m31_air_interpreter": True,
             "lean_generated_sail_monad_normalization": False,
             "kernel_checked_normalized_refinement": True,
         },
@@ -674,7 +835,8 @@ def validate_committed_manifest(
         or manifest.get("lean_toolchain") != LEAN_TOOLCHAIN
         or manifest.get("claim_boundary")
         != {
-            "lean_serialized_m31_air_interpreter": False,
+            "lui_air_ir_v2_roundtrip": True,
+            "lean_serialized_m31_air_interpreter": True,
             "lean_generated_sail_monad_normalization": False,
             "kernel_checked_normalized_refinement": True,
         }

@@ -104,6 +104,33 @@ private def strictlySortedFiles : List SourceFileIdentity → Bool
   | first :: second :: rest =>
       decide (first.path < second.path) && strictlySortedFiles (second :: rest)
 
+def productionBuilder : String :=
+  "src/frontends/riscv/air/constraint_program.zig"
+
+def luiSourcePaths : Array String :=
+  #[
+    "src/core/fields/cm31.zig",
+    "src/core/fields/m31.zig",
+    "src/core/fields/qm31.zig",
+    "src/frontends/riscv/access_clock.zig",
+    "src/frontends/riscv/air/constraint_program.zig",
+    "src/frontends/riscv/air/extract/model.zig",
+    "src/frontends/riscv/air/extract/program.zig",
+    "src/frontends/riscv/air/extract/program_json.zig",
+    "src/frontends/riscv/air/extract/symbolic.zig",
+    "src/frontends/riscv/air/lookups/entry.zig",
+    "src/frontends/riscv/air/lookups/opcode_entries.zig",
+    "src/frontends/riscv/air/lookups/tables/schema.zig",
+    "src/frontends/riscv/air/program/opcode.zig",
+    "src/frontends/riscv/air/semantic_eval.zig",
+    "src/frontends/riscv/air/semantics/common.zig",
+    "src/frontends/riscv/air/semantics/control_common.zig",
+    "src/frontends/riscv/air/semantics/lui.zig",
+    "src/frontends/riscv/air/semantics/mod.zig",
+    "src/frontends/riscv/opcode_manifest.zig",
+    "src/frontends/riscv/runner/trace.zig"
+  ]
+
 private def decodeColumn (index : Nat) (json : Json) : Except String Column := do
   let context := s!"columns[{index}]"
   let object ← exactObject context ["index", "name", "role", "type", "width"] json
@@ -487,6 +514,8 @@ private def decodeSourceIdentity (json : Json) : Except String SourceIdentity :=
   let builder ← jsonString (context ++ ".builder") (← member context object "builder")
   if !isNormalizedRelativePath builder then
     decodeFailure context "builder must be a normalized relative ASCII POSIX path"
+  if builder != productionBuilder then
+    decodeFailure context "builder is not the production constraint-program source"
   let sourceClosureSha256 ← jsonString (context ++ ".source_closure_sha256")
     (← member context object "source_closure_sha256")
   if !isSha256 sourceClosureSha256 then
@@ -665,15 +694,22 @@ def ConstraintProgram.fromJson? (json : Json) : Except String ConstraintProgram 
   let staticValues := staticNodeValues nodes
 
   let activeRow ← nodeReference "active_row" nodes.size (← member context object "active_row")
-  if staticValues[activeRow]? = some (some 0) then
-    decodeFailure context "active_row must not be statically zero"
+  match staticValues[activeRow]? with
+  | some (some value) =>
+      if value != 1 then
+        decodeFailure context "active_row must not be statically different from one"
+  | _ => pure ()
   let opcodeSelector ← decodeOpcodeSelector nodes.size
     (← member context object "opcode_selector")
-  if staticValues[opcodeSelector.expression]? = some (some 0) then
-    decodeFailure context "opcode selector must not be statically zero"
   if !family.validOpcode opcodeSelector.manifestId opcodeSelector.mnemonic then
     decodeFailure context
       "opcode_selector manifest_id/mnemonic does not belong to the declared family"
+  match staticValues[opcodeSelector.expression]? with
+  | some (some value) =>
+      if value != M31.reduce opcodeSelector.manifestId then
+        decodeFailure context
+          "static opcode selector does not equal the canonical manifest ID"
+  | _ => pure ()
 
   let fixedTables ← decodeArray "fixed_tables" decodeFixedTable
     (← member context object "fixed_tables")
@@ -706,6 +742,10 @@ def ConstraintProgram.fromJson? (json : Json) : Except String ConstraintProgram 
     | none =>
         decodeFailure "projection.program_event" "program tuple has no opcode ID slot"
   let sourceIdentity ← decodeSourceIdentity (← member context object "source_identity")
+  if family == .lui &&
+      sourceIdentity.files.map (·.path) != luiSourcePaths then
+    decodeFailure "source_identity.files"
+      "LUI source closure does not match the frozen production path set"
   let contentDigest ← jsonString "content_digest" (← member context object "content_digest")
   if !isSha256 contentDigest then
     decodeFailure context "content_digest must be 64 lowercase hexadecimal characters"
@@ -895,7 +935,7 @@ def ConstraintProgram.canonicalDecodes (input : String) : Bool :=
 Extract the typed program from a kernel-checked successful-decode certificate.
 
 A caller that can supply the Boolean premise receives the decoded value with
-no panic, unsafe escape, default program, or unchecked fallback.
+no panic, trust escape, default program, or unchecked fallback.
 -/
 def ConstraintProgram.ofCanonicalJson
     (input : String)

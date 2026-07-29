@@ -79,12 +79,9 @@ def exampleProgram : ConstraintProgram where
     nextPc := 4
   }
   sourceIdentity := {
-    builder := "src/frontends/riscv/air/program.zig"
+    builder := productionBuilder
     sourceClosureSha256 := zeroDigest
-    files := #[{
-      path := "src/frontends/riscv/air/program.zig"
-      sha256 := zeroDigest
-    }]
+    files := luiSourcePaths.map fun path => { path, sha256 := zeroDigest }
   }
   contentDigest := zeroDigest
 
@@ -150,6 +147,14 @@ private def duplicateNodeProgram : ConstraintProgram :=
   { exampleProgram with nodes := exampleProgram.nodes.push (.const 1) }
 
 #guard rejected (ConstraintProgram.decodeCanonical duplicateNodeProgram.canonicalJson)
+
+private def staticNonBooleanActiveProgram : ConstraintProgram :=
+  { exampleProgram with
+    nodes := exampleProgram.nodes.push (.const (M31.reduce 2))
+    activeRow := 8 }
+
+#guard rejected
+  (ConstraintProgram.decodeCanonical staticNonBooleanActiveProgram.canonicalJson)
 
 private def unreachableNodeProgram : ConstraintProgram :=
   { exampleProgram with nodes := exampleProgram.nodes.push (.const (M31.reduce 2)) }
@@ -242,6 +247,16 @@ private def unsafeSourcePathProgram : ConstraintProgram :=
     } }
 
 #guard rejected (ConstraintProgram.decodeCanonical unsafeSourcePathProgram.canonicalJson)
+
+private def incompleteSourceClosureProgram : ConstraintProgram :=
+  { exampleProgram with
+    sourceIdentity := {
+      exampleProgram.sourceIdentity with
+      files := exampleProgram.sourceIdentity.files.pop
+    } }
+
+#guard rejected
+  (ConstraintProgram.decodeCanonical incompleteSourceClosureProgram.canonicalJson)
 
 private def accessOrdinalStartsAtTwoJson : String :=
   Generated.luiProgramJson.replace

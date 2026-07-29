@@ -33,6 +33,14 @@ except ModuleNotFoundError:
 )
 
 AUDITED_THEOREMS = (
+    "RiscvRefinement.M31.zero_val",
+    "RiscvRefinement.M31.one_val",
+    "RiscvRefinement.M31.reduce_val",
+    "RiscvRefinement.M31.ofNat?_isSome_iff",
+    "RiscvRefinement.M31.ofNat?_toNat",
+    "RiscvRefinement.M31.ofInt?_toInt",
+    "RiscvRefinement.M31.toNatBounded?_eq_some",
+    "RiscvRefinement.Air.FixedTableId.contains_eq_true_iff",
     "RiscvRefinement.WordBytes.value_lt",
     "RiscvRefinement.WordBytes.word_toNat",
     "RiscvRefinement.WordBytes.zero_word",
@@ -68,9 +76,9 @@ APPROVED_LEAN_AXIOMS = frozenset(
     }
 )
 CLAIM_BOUNDARY = (
-    "kernel-checked normalized LUI/ADDI AIR predicate to reviewed "
-    "Sail expression capsule; serialized-M31 and generated-monad "
-    "normalization theorems remain open"
+    "kernel-checked normalized LUI/ADDI predicate refinement plus strict "
+    "production LUI AIR IR v2 decode/evaluation; AIR-to-normalized "
+    "composition and generated-Sail monad normalization remain open"
 )
 NEGATIVE_CONTROLS = (
     "lui-free-low-limb",
@@ -92,6 +100,11 @@ def common_arguments(parser: argparse.ArgumentParser) -> None:
         type=Path,
         help="exact AIR directory supplied by an upstream exporter",
     )
+    parser.add_argument(
+        "--air-program-ir-dir",
+        type=Path,
+        help="exact production AIR IR v2 directory supplied by an upstream exporter",
+    )
 
 
 def evidence(args: argparse.Namespace, paths: Paths) -> sail.SailEvidence:
@@ -111,6 +124,7 @@ def prepared_outputs(
         render.export_air(paths)
     else:
         render.validate_air_export(paths.uniqueness_ir)
+        render.validate_air_program_export(paths.air_program_ir)
     return render.artifacts(paths, evidence(args, paths))
 
 
@@ -661,10 +675,15 @@ def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     root = repository_root()
     air_ir_dir = getattr(args, "air_ir_dir", None)
-    paths = Paths(root, air_ir_dir)
+    air_program_ir_dir = getattr(args, "air_program_ir_dir", None)
+    paths = Paths(root, air_ir_dir, air_program_ir_dir)
     try:
-        if air_ir_dir is not None and not getattr(args, "no_export_air", False):
-            raise RefinementError("--air-ir-dir requires --no-export-air")
+        if (
+            air_ir_dir is not None or air_program_ir_dir is not None
+        ) and not getattr(args, "no_export_air", False):
+            raise RefinementError(
+                "--air-ir-dir and --air-program-ir-dir require --no-export-air"
+            )
         if args.command == "generate":
             generate(args, paths)
         elif args.command == "check-generated":

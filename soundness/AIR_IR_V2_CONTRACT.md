@@ -94,10 +94,12 @@ top-level `family`. The v2 mapping is:
 | `div` | `41 div`, `42 divu`, `43 rem`, `44 remu` |
 | `fence` | `45 fence` |
 
-`expression` is the selector polynomial produced by the same program builder.
-For a row claimed for this opcode, Lean requires its value to be M31 one.
-`active_row` similarly evaluates to one for an active family row. A value
-other than zero or one cannot be silently coerced to a Boolean.
+`expression` is the opcode-identity expression produced by the same program
+builder and placed in slot 1 of the program-access tuple. For a row claimed
+for this opcode, Lean requires its canonical M31 value to equal
+`manifest_id` (`35` for LUI). `active_row` separately evaluates to M31 one for
+an active family row; a nonzero value other than one cannot be silently
+coerced to an active Boolean.
 
 The program-access event identified by `projection.program_event` MUST carry
 `opcode_selector.expression` in the production selector slot. This check
@@ -351,7 +353,10 @@ The v2 production builder is exactly
 source-path closure is exactly:
 
 ```text
+src/core/fields/cm31.zig
 src/core/fields/m31.zig
+src/core/fields/qm31.zig
+src/frontends/riscv/access_clock.zig
 src/frontends/riscv/air/constraint_program.zig
 src/frontends/riscv/air/extract/model.zig
 src/frontends/riscv/air/extract/program.zig
@@ -365,6 +370,7 @@ src/frontends/riscv/air/semantic_eval.zig
 src/frontends/riscv/air/semantics/common.zig
 src/frontends/riscv/air/semantics/control_common.zig
 src/frontends/riscv/air/semantics/lui.zig
+src/frontends/riscv/air/semantics/mod.zig
 src/frontends/riscv/opcode_manifest.zig
 src/frontends/riscv/runner/trace.zig
 ```
@@ -476,7 +482,8 @@ For a row vector `r`, production and Lean use the following common
 interpretation:
 
 1. evaluate every node in topological order over M31;
-2. require `active_row = 1` and `opcode_selector.expression = 1` for the
+2. require `active_row = 1` and require `opcode_selector.expression` to equal
+   the canonical M31 embedding of `opcode_selector.manifest_id` for the
    selector-specific active-row theorem;
 3. require every constraint-event root to equal zero;
 4. preserve every lookup event's exact numerator, role, domain, tuple,
