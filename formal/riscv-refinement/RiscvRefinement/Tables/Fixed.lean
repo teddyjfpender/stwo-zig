@@ -132,6 +132,44 @@ theorem bitwise_contains_xor_iff (lhs rhs result : M31) :
   simp [contains, bitwiseResult, Bool.and_eq_true, decide_eq_true_eq,
     operation_eq, and_assoc]
 
+/-- The 20-bit range table contains exactly the canonical values below `2^20`. -/
+theorem rangeCheck20_contains_iff (value : M31) :
+    FixedTableId.rangeCheck20.contains [value] = true ↔
+      value.toNat < 2 ^ 20 := by
+  simp [contains, decide_eq_true_eq]
+
+/-- The `8_11` range table bounds its two limbs independently. -/
+theorem rangeCheck811_contains_iff (low high : M31) :
+    FixedTableId.rangeCheck811.contains [low, high] = true ↔
+      low.toNat < 2 ^ 8 ∧ high.toNat < 2 ^ 11 := by
+  simp [contains, Bool.and_eq_true, decide_eq_true_eq]
+
+/-- The `8_8_4` range table bounds its three limbs independently. -/
+theorem rangeCheck884_contains_iff (low middle high : M31) :
+    FixedTableId.rangeCheck884.contains [low, middle, high] = true ↔
+      low.toNat < 2 ^ 8 ∧
+      middle.toNat < 2 ^ 8 ∧
+      high.toNat < 2 ^ 4 := by
+  simp [contains, Bool.and_eq_true, decide_eq_true_eq, and_assoc]
+
+/-- The `8_8` range table contains exactly pairs of bytes. -/
+theorem rangeCheck88_contains_iff (low high : M31) :
+    FixedTableId.rangeCheck88.contains [low, high] = true ↔
+      low.toNat < 2 ^ 8 ∧ high.toNat < 2 ^ 8 := by
+  simp [contains, Bool.and_eq_true, decide_eq_true_eq]
+
+/--
+The M31 limb table contains exactly the non-terminal 15-bit decompositions
+used by production. The strict final inequality records the missing
+`(255, 127)` physical row.
+-/
+theorem rangeCheckM31_contains_iff (low high : M31) :
+    FixedTableId.rangeCheckM31.contains [low, high] = true ↔
+      low.toNat < 2 ^ 8 ∧
+      high.toNat < 2 ^ 7 ∧
+      low.toNat + 2 ^ 8 * high.toNat < 2 ^ 15 - 1 := by
+  simp [contains, Bool.and_eq_true, decide_eq_true_eq, and_assoc]
+
 end FixedTableId
 
 end RiscvRefinement.Air
