@@ -1,5 +1,5 @@
 {
-  "canonical_digest": "8dc3061e94d1dc9e8bc8f13dd9fd6b0b6f3e1e1d0389fde3ea14b8b7f6f49003",
+  "canonical_digest": "712c741764099630969aa0a41b50bc02f5e8b5c94050d22304869eacbd6d8f0b",
   "certificates": [
     {
       "family": "shifts_reg",
@@ -145,10 +145,11 @@
       "family": "mul",
       "manifest_id": 37,
       "mnemonic": "mul",
-      "mutation": null,
+      "mutation": "mul-free-low-limb",
+      "mutation_theorem": "RiscvRefinement.Opcodes.mul_product_limb0_is_load_bearing",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.mul_exists",
       "refinement_theorem": "RiscvRefinement.Opcodes.mul_refines",
-      "state": "refined",
+      "state": "proved",
       "tuple_theorem": "RiscvRefinement.Opcodes.mul_refines"
     },
     {

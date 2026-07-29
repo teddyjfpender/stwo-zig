@@ -276,7 +276,12 @@ def check_theorems() -> str:
     index = load_certificates()
     declared: set[str] = set()
     for certificate in index.get("certificates", []):
-        for field in ("refinement_theorem", "tuple_theorem", "non_vacuity_theorem"):
+        for field in (
+            "refinement_theorem",
+            "tuple_theorem",
+            "non_vacuity_theorem",
+            "mutation_theorem",
+        ):
             name = certificate.get(field)
             if name is None:
                 continue
