@@ -9,7 +9,14 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from . import air, air_program, air_program_lean as air_program_lean_source, codec, sail
+from . import (
+    air,
+    air_program,
+    air_program_lean as air_program_lean_source,
+    air_program_registry_lean,
+    codec,
+    sail,
+)
 from .model import LEAN_TOOLCHAIN, PILOT_OPCODES, SCHEMA_VERSION, Paths, RefinementError
 
 SOURCE_PATHS = (
@@ -45,6 +52,7 @@ GENERATOR_PATHS = (
     "scripts/riscv_refinement_lib/air_program.py",
     "scripts/riscv_refinement_lib/air_program_contract.py",
     "scripts/riscv_refinement_lib/air_program_lean.py",
+    "scripts/riscv_refinement_lib/air_program_registry_lean.py",
     "scripts/riscv_refinement_lib/sail.py",
     "scripts/riscv_refinement_lib/negative.py",
     "scripts/riscv_refinement_lib/render.py",
@@ -62,6 +70,7 @@ PROOF_PATHS = (
     "formal/riscv-refinement/RiscvRefinement/Air/Decode.lean",
     "formal/riscv-refinement/RiscvRefinement/Air/Eval.lean",
     "formal/riscv-refinement/RiscvRefinement/Air/IR.lean",
+    "formal/riscv-refinement/RiscvRefinement/Air/LocalEval.lean",
     "formal/riscv-refinement/RiscvRefinement/Air/Tests.lean",
     "formal/riscv-refinement/RiscvRefinement/Bridge/Decode.lean",
     "formal/riscv-refinement/RiscvRefinement/Field.lean",
@@ -103,6 +112,7 @@ MANIFEST_ARTIFACTS = frozenset(
     {
         "RiscvRefinement/Air/Generated/Pilot.lean",
         "RiscvRefinement/Air/Generated/LuiProgram.lean",
+        "RiscvRefinement/Air/Generated/Programs.lean",
         "RiscvRefinement/Sail/Generated/Pilot.lean",
         "generated/air/addi.json",
         "generated/air/lui.json",
@@ -668,6 +678,10 @@ def artifacts(paths: Paths, evidence: sail.SailEvidence) -> dict[Path, bytes]:
             "ascii"
         ),
     ).encode("utf-8")
+    air_program_registry = air_program_registry_lean.render(
+        air_program_bytes,
+        air_program.OPCODES,
+    )
     sail_lean = (
         SAIL_LEAN_TEMPLATE.replace(
             "__UTYPE_DIGEST__",
@@ -690,6 +704,8 @@ def artifacts(paths: Paths, evidence: sail.SailEvidence) -> dict[Path, bytes]:
         Path("RiscvRefinement/Air/Generated/Pilot.lean"): air_lean,
         Path("RiscvRefinement/Air/Generated/LuiProgram.lean"):
             air_program_lean,
+        Path("RiscvRefinement/Air/Generated/Programs.lean"):
+            air_program_registry,
         Path("RiscvRefinement/Sail/Generated/Pilot.lean"): sail_lean,
     }
     manifest: dict[str, Any] = {

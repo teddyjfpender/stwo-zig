@@ -285,6 +285,33 @@ private def evaluationAccepted : Bool :=
 
 #guard evaluationAccepted
 
+private def sameEvaluation :
+    Except EvalError EvaluatedProgram →
+    Except EvalError EvaluatedProgram →
+    Bool
+  | .ok left, .ok right => decide (left = right)
+  | .error left, .error right => decide (left = right)
+  | _, _ => false
+
+private def localEvaluationMatches : Bool :=
+  sameEvaluation (exampleProgram.eval #[0, 0]) (exampleProgram.evalLocal #[0, 0])
+
+#guard localEvaluationMatches
+
+private def forwardLocalProgram : ConstraintProgram :=
+  { exampleProgram with
+    nodes := #[.add 0 0] }
+
+#guard rejected (forwardLocalProgram.evalLocalNodes #[0, 0])
+
+private def generatedLuiLocalEvaluationMatches (row : Array M31) : Bool :=
+  match ConstraintProgram.decodeCanonical Generated.luiProgramJson with
+  | .error _ => false
+  | .ok program => sameEvaluation (program.eval row) (program.evalLocal row)
+
+#guard generatedLuiLocalEvaluationMatches Generated.luiInactiveRow
+#guard generatedLuiLocalEvaluationMatches Generated.luiActiveRow
+
 private def m31 (value : Nat) : M31 :=
   M31.reduce value
 
