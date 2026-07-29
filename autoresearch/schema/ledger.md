@@ -93,6 +93,85 @@ corrected history.
 The Pareto frontier and anchor-drift budgets are computed from this file by
 `stwo-perf frontier`; nothing else is authoritative.
 
+## Per-board eras (TRACKS §7)
+
+Global epochs are the wrong shape at 6+ tracks: one track's class change resets
+score compounding for all of them. `ledger/epochs.json` therefore carries an
+optional `board_eras` block beside the global `epochs` list.
+
+```json
+"board_eras": {
+  "note": "…why this block exists…",
+  "boards": {
+    "<board>": [
+      {
+        "era": 1,
+        "epoch_ref": 2,
+        "opened_utc": "2026-07-21T16:00:00Z",
+        "reason": "…why this era opened…",
+        "status": "open" | "banked",
+        "closed_utc": "2026-07-29T00:00:00Z",
+        "audit_anchor_commit": "<40-hex>",
+        "aa_dispersion": {"<class>": 0.0123, "<class>": null},
+        "resource_budgets": {
+          "<class>": {"peak_rss_mib": 1.05, "energy_j": 1.05, "proof_bytes": 1.0}
+        },
+        "scored_dimension": "prove_ms" | "request_ms",
+        "note": "…free-form operator note…"
+      }
+    ]
+  }
+}
+```
+
+`era`, `epoch_ref`, `opened_utc`, and `reason` are required; everything else is
+optional and defaults to inheritance. **The global epochs remain the fallback
+and are never rewritten**: a board absent from `boards` resolves to the newest
+global epoch exactly as it did before eras existed, and every ledger row
+referencing epoch 1 or 2 keeps parsing, scoring, and rendering unchanged. The
+`epoch` ledger column still names a **global** epoch — an era is a per-board
+*view* of one, never a competing numbering.
+
+Resolution API (`stwo_perf.ledger`):
+
+| function | behaviour |
+| --- | --- |
+| `board_eras(root, board)` | validated raw era sequence, `()` when none |
+| `current_era(root, board)` | newest era as a normalized view, or `None` |
+| `epoch_for_board(root, epoch, board)` | one named epoch resolved for a board |
+| `current_epoch(root, board=None)` | `board=None` is byte-for-byte the old behaviour |
+| `aa_dispersion(root, board, class)` | board-scoped, era override merged per class |
+| `resource_budgets(root, class, board=None)` | TRACKS §8 (board, class) key with class-only fallback |
+| `scored_dimension(root, board)` | the era's scored boundary; `prove_ms` by default |
+
+Invariants, all fail-closed:
+
+- A board named in `boards` must be in `ledger.BOARDS`; an unregistered name is
+  an error, never a silently ignored entry.
+- Eras are numbered `1..n` contiguously; `opened_utc` strictly increases;
+  `epoch_ref` never decreases and must name a declared global epoch.
+- An era may not open before the global epoch it inherits.
+- At most one era is `open`, and it must be the newest. Every other era is
+  `banked` with a `closed_utc` that does not fall after the next era opens.
+- **A banked newest era pins its board.** When a later global epoch opens, a
+  board whose newest era is banked stays on its own era — that is precisely
+  what retiring a board means (TRACKS §6): history keeps being served and the
+  frozen score never drifts onto a universe it was not measured in.
+- Overrides are merged, not substituted: a class the era does not pin inherits
+  the epoch's dispersion or budget. `audit_anchor_commit` is per board with the
+  epoch's anchor as fallback, so `metrics.policy_from_epoch` on a
+  board-effective specification yields that board's anchor and carries the
+  `board`/`era` identity as provenance.
+- An era declaring a `scored_dimension` other than `prove_ms` MUST declare its
+  own measured `aa_dispersion`: a boundary switch invalidates inherited
+  calibration and may never reuse it (TRACKS §3.1/§7). The runner additionally
+  refuses to evaluate any board whose era declares a boundary the harness does
+  not yet measure, so a declared-but-unimplemented boundary cannot produce a
+  mislabelled score.
+
+Scores are never compared across eras, exactly as they are never compared
+across epochs.
+
 ## Audit production protocol
 
 `python3 -m stwo_perf.audits plan` is the deterministic W2/W3 controller. It

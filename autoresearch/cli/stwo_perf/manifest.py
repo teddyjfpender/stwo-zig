@@ -9,6 +9,9 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+_UTC_TIMESTAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+_SHA256_ID_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
+
 RUNGS = ("s1", "s2", "s3", "s4", "s5")
 ACCEPTANCE_FLOOR = "s3"
 REPORT_SCHEMA_VERSIONS = {
@@ -37,6 +40,22 @@ SEARCH_HEALTH_POLICY_KEYS = frozenset({
 })
 MAX_GROUP_WALL_CLOCK_SECONDS = 7200
 MAX_COMMAND_TIMEOUT_SECONDS = 7200
+
+# TRACKS §6 retire-and-complete. A retired group flips to
+# `promotion_eligible: false`, keeps every name in `ledger.BOARDS`, and carries
+# exactly this block. `closing_audit` stays null until the M5 judge host runs
+# the final closing audit that stamps the board's last audited score.
+RETIREMENT_KEYS = frozenset({"retired_at_utc", "reason", "closing_audit"})
+CLOSING_AUDIT_KEYS = frozenset({"completed_utc", "bundle_sha256", "row_ids"})
+
+# TRACKS §3.1: the scored boundary a workload group's board reports. The whole
+# harness scores `prove_ms` today; `request_ms` is the verified-request
+# boundary the RISC-V board adopts at its NEXT era, and declaring it is gated
+# on that era carrying its own recalibration (see ledger.SCORED_DIMENSIONS and
+# schema/scoring.md). Nothing in this repository declares it yet — the runner
+# refuses to score a board whose era declares a boundary it cannot measure.
+SCORED_DIMENSIONS = ("prove_ms", "request_ms")
+DEFAULT_SCORED_DIMENSION = "prove_ms"
 RESOURCE_PROFILES = frozenset(("standard", "large", "extreme"))
 METAL_CALIBRATION_SCHEMA = "stwo_perf_metal_calibration_freeze_v2"
 METAL_CALIBRATION_FIELDS = frozenset({
@@ -244,6 +263,21 @@ class WorkloadGroup:
     promotion_blocked_reason: str | None = None
     acceptance_corpus: dict = field(default_factory=dict)
     workload_provisioning: dict = field(default_factory=dict)
+    # TRACKS §6: a retired-and-completed track. Present only on retired groups.
+    retirement: dict = field(default_factory=dict)
+    # TRACKS §3.1: the boundary this group's board scores. Defaults to today's
+    # behaviour everywhere; see SCORED_DIMENSIONS.
+    scored_dimension: str = DEFAULT_SCORED_DIMENSION
+    # TRACKS §8: the guard portfolio bound to this group, by name in
+    # workload_registry.guards.registries. None means the track declares no
+    # regression surface (and must say why in guard_registry_absent_reason).
+    guard_registry: str | None = None
+    guard_registry_absent_reason: str | None = None
+    # TRACKS §8: per-track editable paths. Extends the global editable set for
+    # THIS track only, so a frontend's sources are editable by its own track
+    # and are strays everywhere else. A glob that repeats a global entry
+    # overrides that entry's min_rung for this track.
+    editable_paths: list[dict] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -419,6 +453,15 @@ class Manifest:
                 promotion_blocked_reason=spec.get("promotion_blocked_reason"),
                 acceptance_corpus=dict(spec.get("acceptance_corpus", {})),
                 workload_provisioning=dict(spec.get("workload_provisioning", {})),
+                retirement=dict(spec.get("retirement", {})),
+                scored_dimension=str(
+                    spec.get("scored_dimension", DEFAULT_SCORED_DIMENSION)
+                ),
+                guard_registry=spec.get("guard_registry"),
+                guard_registry_absent_reason=spec.get(
+                    "guard_registry_absent_reason"
+                ),
+                editable_paths=[dict(e) for e in spec.get("editable_paths", [])],
             ))
         return out
 
@@ -519,38 +562,129 @@ class Manifest:
             out = [w for w in out if w.workload_class == workload_class]
         return out
 
+    def guard_registry(self, group_id: str | None = None) -> dict:
+        """TRACKS §8: the guard portfolio bound to one objective group.
+
+        Returns the resolved registry — ``workloads``, the impact map, and the
+        global guard policy with that registry's overrides applied. A group
+        that declares ``guard_registry: null`` resolves to an empty portfolio
+        (its reason is in ``guard_registry_absent_reason``); a manifest that
+        predates the per-group registries resolves to its flat block unchanged.
+        """
+        return resolve_guard_registry(self.raw, group_id)
+
+    def editable_for_board(self, board: str | None = None) -> list[dict]:
+        """Editable-path entries in force for one track.
+
+        The global list plus the board's group-level additions. A group entry
+        whose glob repeats a global glob overrides that entry's ``min_rung``
+        for this track only. ``board=None`` is the global set — every
+        pre-TRACKS-§8 caller's behaviour, unchanged.
+        """
+        entries = [dict(e) for e in self.editable]
+        if board is None:
+            return entries
+        try:
+            group = self.group_for_board(board)
+        except ManifestError:
+            return entries
+        by_glob = {e["glob"]: i for i, e in enumerate(entries)}
+        for extra in group.editable_paths:
+            index = by_glob.get(extra["glob"])
+            if index is None:
+                by_glob[extra["glob"]] = len(entries)
+                entries.append(dict(extra))
+            else:
+                entries[index] = dict(extra)
+        return entries
+
     def is_locked(self, path: str) -> bool:
         return any(_match(path, glob) for glob in self.locked)
 
-    def is_editable(self, path: str) -> bool:
-        return any(_match(path, e["glob"]) for e in self.editable)
+    def is_editable(self, path: str, board: str | None = None) -> bool:
+        return any(
+            _match(path, e["glob"]) for e in self.editable_for_board(board)
+        )
 
-    def path_rung(self, path: str) -> str | None:
+    def path_rung(self, path: str, board: str | None = None) -> str | None:
         """Minimum acceptance rung for one path; None if not editable."""
         best: str | None = None
-        for entry in self.editable:
+        for entry in self.editable_for_board(board):
             if _match(path, entry["glob"]):
                 rung = entry["min_rung"]
                 if best is None or RUNGS.index(rung) > RUNGS.index(best):
                     best = rung
         return best
 
-    def judged_rung(self, declared: str, touched_paths: list[str]) -> str:
+    def judged_rung(
+        self, declared: str, touched_paths: list[str], board: str | None = None,
+    ) -> str:
         """max(declared, highest rung mapped to any touched path); floor s3."""
         idx = max(RUNGS.index(declared), RUNGS.index(ACCEPTANCE_FLOOR))
+        editable = self.editable_for_board(board)
         for path in touched_paths:
-            rung = self.path_rung(path)
-            if rung is not None:
-                idx = max(idx, RUNGS.index(rung))
+            for entry in editable:
+                if _match(path, entry["glob"]):
+                    idx = max(idx, RUNGS.index(entry["min_rung"]))
         return RUNGS[idx]
 
-    def classify_touched(self, touched_paths: list[str]) -> tuple[list[str], list[str]]:
-        """Split touched paths into (locked violations, non-editable strays)."""
+    def classify_touched(
+        self, touched_paths: list[str], board: str | None = None,
+    ) -> tuple[list[str], list[str]]:
+        """Split touched paths into (locked violations, non-editable strays).
+
+        With a board, the editable set is that track's (TRACKS §8): a Cairo
+        submission may edit ``src/frontends/cairo/**``, and the same path is a
+        stray on a native or RISC-V submission.
+        """
+        editable = self.editable_for_board(board)
         violations = [p for p in touched_paths if self.is_locked(p)]
         strays = [
-            p for p in touched_paths if not self.is_locked(p) and not self.is_editable(p)
+            p for p in touched_paths
+            if not self.is_locked(p)
+            and not any(_match(p, e["glob"]) for e in editable)
         ]
         return violations, strays
+
+
+def resolve_guard_registry(raw: dict, group_id: str | None = None) -> dict:
+    """TRACKS §8: resolve the guard registry bound to one workload group.
+
+    Takes the raw manifest document (not a ``Manifest``) so callers that only
+    hold ``manifest.raw`` — the runner's guard seam, its test doubles — resolve
+    identically. Three shapes are handled:
+
+    * a manifest with no ``registries`` key is a pre-TRACKS-§8 flat portfolio
+      and is returned unchanged, whatever the group: exactly today's behaviour;
+    * a group bound to a named registry gets that registry with the global
+      guard policy merged underneath its own overrides;
+    * a group that declares no registry gets an empty portfolio, so its runs
+      select nothing rather than binding a foreign product's args to its
+      binary.
+    """
+    guards = raw.get("workload_registry", {}).get("guards", {}) or {}
+    registries = guards.get("registries")
+    if not isinstance(registries, dict):
+        return guards
+    global_policy = dict(guards.get("policy", {}) or {})
+    empty = {
+        "note": guards.get("note"),
+        "workloads": {},
+        "policy": global_policy,
+        "impact_map": {"rules": []},
+    }
+    if group_id is None:
+        return empty
+    spec = raw.get("workload_registry", {}).get("groups", {}).get(group_id)
+    if not isinstance(spec, dict):
+        return empty
+    registry = registries.get(spec.get("guard_registry"))
+    if not isinstance(registry, dict):
+        return empty
+    resolved = dict(registry)
+    resolved["policy"] = {**global_policy, **(registry.get("policy") or {})}
+    resolved.setdefault("impact_map", {"rules": []})
+    return resolved
 
 
 def _match(path: str, glob: str) -> bool:
@@ -597,9 +731,7 @@ def _validate(raw: dict) -> None:
                 "workload_registry", "gates_policy", "qualification_policy"):
         if key not in raw:
             raise ManifestError(f"MANIFEST.json missing required key: {key}")
-    for entry in raw["editable_paths"]:
-        if entry.get("min_rung") not in RUNGS:
-            raise ManifestError(f"editable path {entry.get('glob')} has invalid min_rung")
+    _validate_editable_entries(raw["editable_paths"], "editable_paths")
     qualification = raw["qualification_policy"]
     required_checks = qualification.get("required_checks")
     if not isinstance(required_checks, list) or not required_checks:
@@ -678,6 +810,8 @@ def _validate(raw: dict) -> None:
         _validate_group_resource_telemetry(
             gid, report_schema, spec.get("resource_telemetry", {})
         )
+        _validate_group_retirement(gid, spec)
+        _validate_group_scored_dimension(gid, spec)
         _validate_group_acceptance_corpus(gid, spec.get("acceptance_corpus", {}))
         _validate_group_workload_provisioning(
             gid, spec.get("workload_provisioning", {}), spec.get("workloads", {})
@@ -708,6 +842,167 @@ def _validate(raw: dict) -> None:
         _validate_group_holdout_generator(
             gid, spec.get("holdout_generator", {}), spec["workloads"]
         )
+        _validate_editable_entries(
+            spec.get("editable_paths", []),
+            f"workload group {gid} editable_paths",
+            locked=raw["locked_paths"],
+        )
+    _validate_guards(registry)
+
+
+def _validate_editable_entries(
+    entries: object, label: str, locked: list[str] | None = None,
+) -> None:
+    """Shape-check one editable-path list (global or TRACKS §8 per-track)."""
+    if not isinstance(entries, list):
+        raise ManifestError(f"{label} must be a list")
+    seen: set[str] = set()
+    for entry in entries:
+        if not isinstance(entry, dict):
+            raise ManifestError(f"{label} entries must be objects")
+        glob = entry.get("glob")
+        if not isinstance(glob, str) or not glob.strip():
+            raise ManifestError(f"{label} entry has no glob")
+        if entry.get("min_rung") not in RUNGS:
+            raise ManifestError(f"editable path {glob} has invalid min_rung")
+        if glob in seen:
+            raise ManifestError(f"{label} declares {glob} twice")
+        seen.add(glob)
+        # A per-track carve-out must never re-open a locked path: the locked
+        # set is the contract's floor and outranks every editable declaration.
+        for locked_glob in locked or []:
+            if _match(glob.removesuffix("/**"), locked_glob) or glob == locked_glob:
+                raise ManifestError(
+                    f"{label} declares {glob}, which is locked by "
+                    f"{locked_glob}; per-track editable paths cannot re-open "
+                    "locked paths"
+                )
+
+
+def _validate_guards(registry: dict) -> None:
+    """TRACKS §8 per-group guard registries + per-track impact maps.
+
+    Enforces that every guard portfolio is a real, non-empty set of workloads,
+    that every impact-map rule names guards that exist IN THAT registry and
+    boards that exist, and — the point of the restructure — that every
+    workload group either names a registry that exists or says out loud why it
+    has no regression surface.
+    """
+    guards = registry.get("guards")
+    if guards is None:
+        # A registry that declares no guards has no regression contract at all
+        # (fixture manifests, single-group test registries). Unchanged.
+        return
+    if not isinstance(guards, dict):
+        raise ManifestError("workload_registry.guards must be an object")
+    registries = guards.get("registries")
+    if registries is None:
+        # Pre-TRACKS-§8 flat portfolio: one registry for every group.
+        _validate_guard_registry("guards", guards, registry["groups"])
+        return
+    if not isinstance(registries, dict) or not registries:
+        raise ManifestError(
+            "workload_registry.guards.registries must be a non-empty object"
+        )
+    if "workloads" in guards:
+        raise ManifestError(
+            "workload_registry.guards declares both 'registries' and a flat "
+            "'workloads' portfolio; the flat block is the pre-TRACKS-§8 shape "
+            "and must be moved into a named registry"
+        )
+    if not isinstance(guards.get("policy", {}), dict):
+        raise ManifestError("workload_registry.guards.policy must be an object")
+    for name, spec in registries.items():
+        if not isinstance(spec, dict):
+            raise ManifestError(f"guard registry {name} must be an object")
+        _validate_guard_registry(
+            f"guard registry {name}", spec, registry["groups"],
+        )
+    bound: set[str] = set()
+    for gid, spec in registry["groups"].items():
+        if "guard_registry" not in spec:
+            raise ManifestError(
+                f"workload group {gid} declares no guard_registry: every group "
+                "must name the guard portfolio bound to its binary, or declare "
+                "null with a guard_registry_absent_reason (TRACKS §8)"
+            )
+        name = spec["guard_registry"]
+        if name is None:
+            if not str(spec.get("guard_registry_absent_reason") or "").strip():
+                raise ManifestError(
+                    f"workload group {gid} declares no guard registry without a "
+                    "guard_registry_absent_reason; silently unguarded tracks "
+                    "are not allowed"
+                )
+            continue
+        if name not in registries:
+            raise ManifestError(
+                f"workload group {gid} references unknown guard registry: {name!r}"
+            )
+        bound.add(name)
+    orphans = sorted(set(registries) - bound)
+    if orphans:
+        raise ManifestError(
+            f"guard registries bound to no workload group: {orphans}"
+        )
+
+
+def _validate_guard_registry(label: str, spec: dict, groups: dict) -> None:
+    workloads = spec.get("workloads")
+    if not isinstance(workloads, dict) or not workloads:
+        raise ManifestError(f"{label}: workloads must be a non-empty object")
+    for wid, workload in workloads.items():
+        if not isinstance(workload, dict):
+            raise ManifestError(f"{label}: guard {wid} must be an object")
+        if not str(workload.get("args") or "").strip():
+            raise ManifestError(f"{label}: guard {wid} has no args")
+    policy = spec.get("policy", {})
+    if not isinstance(policy, dict):
+        raise ManifestError(f"{label}: policy must be an object")
+    for key in (
+        "warmups", "samples_per_round", "min_rounds", "max_rounds",
+        "budget_upper", "inconclusive_extra_rounds", "wall_clock_cap_seconds",
+        "command_timeout_seconds",
+    ):
+        if key in policy and not _positive_number(policy[key]):
+            raise ManifestError(f"{label}: policy.{key} must be a positive number")
+    impact_map = spec.get("impact_map", {})
+    if not isinstance(impact_map, dict):
+        raise ManifestError(f"{label}: impact_map must be an object")
+    rules = impact_map.get("rules", [])
+    if not isinstance(rules, list):
+        raise ManifestError(f"{label}: impact_map.rules must be a list")
+    boards = {g.get("board") for g in groups.values() if isinstance(g, dict)}
+    for rule in rules:
+        if not isinstance(rule, dict):
+            raise ManifestError(f"{label}: impact_map rules must be objects")
+        prefixes = rule.get("prefixes")
+        if not isinstance(prefixes, list) or not prefixes:
+            raise ManifestError(
+                f"{label}: an impact_map rule has no prefixes"
+            )
+        if not all(isinstance(p, str) and p.strip() for p in prefixes):
+            raise ManifestError(
+                f"{label}: impact_map prefixes must be non-empty strings"
+            )
+        board = rule.get("board")
+        if board is not None and board not in boards:
+            raise ManifestError(
+                f"{label}: impact_map rule scopes to unknown board {board!r}"
+            )
+        selected = rule.get("guards")
+        if selected == "all":
+            continue
+        if not isinstance(selected, list):
+            raise ManifestError(
+                f"{label}: impact_map rule guards must be \"all\" or a list"
+            )
+        unknown = sorted(set(selected) - set(workloads))
+        if unknown:
+            raise ManifestError(
+                f"{label}: impact_map rule selects guards absent from this "
+                f"registry: {unknown}"
+            )
 
 
 def _validate_search_health_policy(gates_policy: object, classes: dict) -> None:
@@ -827,6 +1122,76 @@ def _validate_cairo_mechanism_telemetry(gid: str, telemetry: object) -> None:
         raise ManifestError(
             f"workload group {gid}: Cairo mechanism telemetry must require "
             "phase_seconds; TRACKS §3.2 makes the named phase cutpoints mandatory"
+        )
+
+
+def _validate_group_retirement(gid: str, spec: dict) -> None:
+    """TRACKS §6: retirement is explicit, dated, reasoned, and unpromotable."""
+    retirement = spec.get("retirement")
+    if retirement is None:
+        return
+    if not isinstance(retirement, dict) or set(retirement) != RETIREMENT_KEYS:
+        raise ManifestError(
+            f"workload group {gid}: 'retirement' must contain exactly "
+            + ", ".join(sorted(RETIREMENT_KEYS))
+        )
+    retired_at = retirement["retired_at_utc"]
+    if not isinstance(retired_at, str) or not _UTC_TIMESTAMP_RE.fullmatch(retired_at):
+        raise ManifestError(
+            f"workload group {gid}: retirement.retired_at_utc must be ISO-8601 UTC"
+        )
+    if not str(retirement["reason"] or "").strip():
+        raise ManifestError(
+            f"workload group {gid}: retirement.reason must be a non-empty string"
+        )
+    if spec.get("promotion_eligible"):
+        raise ManifestError(
+            f"workload group {gid}: a retired group cannot be promotion eligible; "
+            "TRACKS §6 retires by refusing new promotions while history stays served"
+        )
+    if not str(spec.get("promotion_blocked_reason") or "").strip():
+        raise ManifestError(
+            f"workload group {gid}: a retired group must state a "
+            "promotion_blocked_reason so its refusal is legible"
+        )
+    closing = retirement["closing_audit"]
+    if closing is None:
+        return
+    if not isinstance(closing, dict) or set(closing) != CLOSING_AUDIT_KEYS:
+        raise ManifestError(
+            f"workload group {gid}: retirement.closing_audit must be null or "
+            "contain exactly " + ", ".join(sorted(CLOSING_AUDIT_KEYS))
+        )
+    if not _UTC_TIMESTAMP_RE.fullmatch(str(closing["completed_utc"])):
+        raise ManifestError(
+            f"workload group {gid}: closing_audit.completed_utc must be ISO-8601 UTC"
+        )
+    if not _SHA256_ID_RE.fullmatch(str(closing["bundle_sha256"])):
+        raise ManifestError(
+            f"workload group {gid}: closing_audit.bundle_sha256 must be sha256:<hex>"
+        )
+    row_ids = closing["row_ids"]
+    if (
+        not isinstance(row_ids, list)
+        or not row_ids
+        or any(not _SHA256_ID_RE.fullmatch(str(value)) for value in row_ids)
+        or len(row_ids) != len(set(row_ids))
+    ):
+        raise ManifestError(
+            f"workload group {gid}: closing_audit.row_ids must be a unique "
+            "non-empty list of sha256:<hex> ledger row IDs"
+        )
+
+
+def _validate_group_scored_dimension(gid: str, spec: dict) -> None:
+    """TRACKS §3.1: the scored boundary is declared, never inferred."""
+    if "scored_dimension" not in spec:
+        return
+    dimension = spec["scored_dimension"]
+    if dimension not in SCORED_DIMENSIONS:
+        raise ManifestError(
+            f"workload group {gid}: 'scored_dimension' must be one of "
+            f"{SCORED_DIMENSIONS}"
         )
 
 

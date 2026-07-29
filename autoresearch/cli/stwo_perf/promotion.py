@@ -39,6 +39,16 @@ def require_board_promotion_eligible(
     group_spec = manifest.raw["workload_registry"]["groups"].get(group.group_id, {})
     if group_spec.get("enabled") is not True:
         raise PromotionError(f"board workload group is disabled: {board}")
+    retirement = group_spec.get("retirement")
+    if isinstance(retirement, dict) and group_spec.get("promotion_eligible") is not True:
+        # TRACKS §6 retire-and-complete: a retired board is not "not yet live",
+        # it is finished. Say so, so nobody re-opens it by flipping a flag.
+        raise PromotionError(
+            f"board is retired and is not promotion eligible: {board} "
+            f"(retired {retirement.get('retired_at_utc')}: {retirement.get('reason')}); "
+            "its era is banked and its history stays served — new promotions "
+            "belong on a live track (TRACKS §6)"
+        )
     if group_spec.get("promotion_eligible") is not True:
         raise PromotionError(f"board is not promotion eligible: {board}")
 
