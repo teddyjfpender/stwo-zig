@@ -265,19 +265,8 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
 
     if (input_buf != null and hosted) return error.IncompatibleInputModes;
     const step_limit = if (elf_path != null) max_steps else fib_n * 6;
-    // An external ELF declares the zkVM I/O ABI, so it goes through the same
-    // release-ABI runner the production adapter uses — with an empty input when
-    // none was supplied. `runWithInput` stops on the guest's declared halt flag
-    // and requires every published output word to have actually been accessed;
-    // `runWithHost` relaxes both and silently omits unaccessed output words, so
-    // the statement it yields cannot describe the memory image the proof
-    // commits (that mismatch surfaced as `LogupSumNonZero`). `runWithHost`
-    // therefore stays reserved for the synthetic guest and for `--hosted` runs,
-    // neither of which declares that ABI.
     var run_result = if (input_buf) |input|
         try runner.runWithInput(allocator, elf_bytes, input, step_limit)
-    else if (elf_path != null and !hosted)
-        try runner.runWithInput(allocator, elf_bytes, &.{}, step_limit)
     else
         try runner.runWithHost(allocator, elf_bytes, step_limit, host_iface);
     defer run_result.deinit();
@@ -331,6 +320,28 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
             , .{@tagName(reason)});
             return error.UnprovableCompletion;
         },
+    }
+
+    // Fail closed on the other statement the bench can otherwise build but not
+    // prove: the guest read its linker-declared public-input region, yet no
+    // `--input` was supplied. The committed memory image then carries
+    // public-input words the statement's `input_len = 0` never publishes, so
+    // the public-I/O bus cannot cancel. Detect it from the run's own committed
+    // words rather than guessing from the declared region, which a guest is
+    // free to leave untouched.
+    if (run_result.input.len == 0) {
+        for (run_result.rw_memory.words) |word| {
+            if (!word.role.is_public_input or word.final_clock == 0) continue;
+            std.debug.print(
+                \\
+                \\ERROR: the guest read its public-input region at 0x{x:0>8} but no
+                \\       --input was supplied, so the statement would publish zero
+                \\       input words for memory the proof commits as public input.
+                \\       Pass --input PATH (or --input-u32 N) for this guest.
+                \\
+            , .{word.addr});
+            return error.MissingGuestInput;
+        }
     }
 
     // Stage 3: Prove
