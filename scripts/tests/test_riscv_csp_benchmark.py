@@ -376,6 +376,204 @@ class RetainedReportTests(unittest.TestCase):
         )
 
 
+class ArtifactBackendTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.case = csp.validate_manifest()[1][0]
+        cls.admission = riscv_cli_admission.Admission(
+            "promoted", "release_gated", False
+        )
+
+    @staticmethod
+    def artifact(backend: str) -> dict:
+        return {
+            "schema_version": 4,
+            "artifact_kind": "stwo_riscv_proof",
+            "exchange_mode": "riscv_proof_json_wire_v4",
+            "protocol": "secure",
+            "release_status": "release_gated",
+            "backend": backend,
+            "pcs_config": copy.deepcopy(csp.SECURE_PCS_CONFIG),
+            "proof_bytes_hex": "0a0b",
+        }
+
+    def validate(self, artifact: dict, expected_backend: str) -> tuple[bytes, str]:
+        return csp._validate_artifact(
+            artifact,
+            self.case,
+            admission=self.admission,
+            expected_backend=expected_backend,
+        )
+
+    def test_each_backend_accepts_only_its_own_artifact(self) -> None:
+        for backend, spec in csp.BACKENDS.items():
+            with self.subTest(backend=backend):
+                proof_bytes, proof_sha256 = self.validate(
+                    self.artifact(spec.artifact_backend),
+                    spec.artifact_backend,
+                )
+                self.assertEqual(b"\x0a\x0b", proof_bytes)
+                self.assertEqual(csp.sha256_bytes(proof_bytes), proof_sha256)
+
+    def test_cpu_artifact_is_rejected_by_a_metal_run(self) -> None:
+        with self.assertRaisesRegex(csp.BenchmarkError, "proof artifact drifted"):
+            self.validate(self.artifact("cpu"), "metal")
+
+    def test_metal_artifact_is_rejected_by_a_cpu_run(self) -> None:
+        with self.assertRaisesRegex(csp.BenchmarkError, "proof artifact drifted"):
+            self.validate(self.artifact("metal"), "cpu")
+
+    def test_matching_backend_cannot_relax_the_secure_pcs_config(self) -> None:
+        artifact = self.artifact("metal")
+        artifact["pcs_config"]["pow_bits"] = 20
+        with self.assertRaisesRegex(csp.BenchmarkError, "proof artifact drifted"):
+            self.validate(artifact, "metal")
+
+
+class BackendResolutionTests(unittest.TestCase):
+    @staticmethod
+    def arguments(
+        backend: str,
+        cli: Path | None = None,
+        report_out: Path | None = None,
+    ) -> argparse.Namespace:
+        return argparse.Namespace(backend=backend, cli=cli, report_out=report_out)
+
+    def test_cpu_defaults_are_the_committed_evidence_paths(self) -> None:
+        cli, report_out = csp._resolve_backend_paths(self.arguments("cpu"))
+        self.assertEqual(csp.DEFAULT_CLI.resolve(), cli)
+        self.assertEqual(csp.DEFAULT_REPORT.resolve(), report_out)
+
+    def test_metal_defaults_never_clobber_cpu_evidence(self) -> None:
+        cli, report_out = csp._resolve_backend_paths(self.arguments("metal"))
+        self.assertEqual(
+            (csp.ROOT / "zig-out" / "bin" / "stwo-zig-riscv-metal").resolve(),
+            cli,
+        )
+        self.assertEqual(
+            (
+                csp.ROOT
+                / "vectors"
+                / "reports"
+                / "riscv_csp_benchmark_report.metal.json"
+            ).resolve(),
+            report_out,
+        )
+        self.assertNotEqual(csp.DEFAULT_REPORT.resolve(), report_out)
+
+    def test_explicit_paths_win_for_every_backend(self) -> None:
+        explicit_cli = Path("/opt/example/prover")
+        explicit_report = Path("/opt/example/report.json")
+        for backend in csp.BACKENDS:
+            with self.subTest(backend=backend):
+                cli, report_out = csp._resolve_backend_paths(
+                    self.arguments(backend, explicit_cli, explicit_report)
+                )
+                self.assertEqual(explicit_cli, cli)
+                self.assertEqual(explicit_report, report_out)
+
+
+class MetalHostMatchTests(unittest.TestCase):
+    @staticmethod
+    def official_host(**overrides: object) -> dict:
+        host: dict = {
+            "cpu": "Apple M1",
+            "logical_cpu_count": 8,
+            "memory_bytes": 16 * 1024 * 1024 * 1024,
+            "gpu": {
+                "name": "Apple M1",
+                "core_count": 8,
+                "metal_support": "spdisplays_metal3",
+                "unified_memory": True,
+            },
+        }
+        host.update(overrides)
+        return host
+
+    @staticmethod
+    def empty_gpu() -> dict:
+        return {
+            "name": None,
+            "core_count": None,
+            "metal_support": None,
+            "unified_memory": None,
+        }
+
+    def test_official_host_passes_the_metal_gate(self) -> None:
+        self.assertEqual(
+            (True, []),
+            csp.official_host_match(self.official_host(), backend="metal"),
+        )
+
+    def test_missing_gpu_identity_adds_gpu_reasons(self) -> None:
+        without_gpu = self.official_host()
+        del without_gpu["gpu"]
+        for label, host in (
+            ("all-none gpu", self.official_host(gpu=self.empty_gpu())),
+            ("absent gpu", without_gpu),
+        ):
+            with self.subTest(host=label):
+                matches, reasons = csp.official_host_match(host, backend="metal")
+                self.assertFalse(matches)
+                self.assertEqual(
+                    [
+                        "CSP publication host requires an Apple M1 GPU",
+                        "CSP publication host requires 8 GPU cores",
+                        "CSP publication host requires Metal support evidence",
+                    ],
+                    reasons,
+                )
+
+    def test_wrong_gpu_identity_is_a_reason(self) -> None:
+        gpu = dict(
+            self.official_host()["gpu"],
+            name="Apple M4 Max",
+            core_count=32,
+        )
+        matches, reasons = csp.official_host_match(
+            self.official_host(gpu=gpu),
+            backend="metal",
+        )
+        self.assertFalse(matches)
+        self.assertIn("CSP publication host requires an Apple M1 GPU", reasons)
+        self.assertIn("CSP publication host requires 8 GPU cores", reasons)
+
+    def test_cpu_backend_ignores_gpu_identity_entirely(self) -> None:
+        host = self.official_host(gpu=self.empty_gpu())
+        self.assertEqual((True, []), csp.official_host_match(host))
+        self.assertEqual((True, []), csp.official_host_match(host, backend="cpu"))
+
+
+class AdmissionPassthroughTests(unittest.TestCase):
+    def test_backend_is_forwarded_once_admission_supports_it(self) -> None:
+        recorded: dict = {}
+
+        def resolve(cli, *, cwd=None, timeout_seconds=30, backend="cpu"):
+            recorded["backend"] = backend
+            return riscv_cli_admission.Admission(
+                "promoted", "release_gated", False
+            )
+
+        with mock.patch.object(csp.riscv_cli_admission, "resolve", resolve):
+            csp._resolve_admission(Path("/opt/example/prover"), "metal")
+        self.assertEqual("metal", recorded["backend"])
+
+    def test_metal_fails_closed_until_admission_learns_backends(self) -> None:
+        def resolve(cli, *, cwd=None, timeout_seconds=30):
+            return riscv_cli_admission.Admission(
+                "promoted", "release_gated", False
+            )
+
+        with mock.patch.object(csp.riscv_cli_admission, "resolve", resolve):
+            admission = csp._resolve_admission(Path("/opt/example/prover"), "cpu")
+            self.assertEqual("release_gated", admission.release_status)
+            with self.assertRaisesRegex(
+                csp.BenchmarkError,
+                "cannot authenticate a metal",
+            ):
+                csp._resolve_admission(Path("/opt/example/prover"), "metal")
+
+
 class BuildRegistrationTests(unittest.TestCase):
     def test_standard_build_step_is_registered_once(self) -> None:
         product = (
