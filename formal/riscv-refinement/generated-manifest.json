@@ -58,7 +58,7 @@
     "generated/sail/rv32im-zkvm-v1.json": "5c31e516a205d693386564242d623dbaf4dc1566573f9ecfdcb026611c8fc2c1",
     "generated/sail/translation-receipt-v1.json": "447d8a5b11bc841864114218a7f852a2ee461b722ffbad2b13524c59a3803191"
   },
-  "canonical_digest": "d7756f8568a6879f4a93797f13afaa6d5f278e484b99dbe5aedb2aef846a107e",
+  "canonical_digest": "89a1d7016bcff1527e10d5f4170c7fccd4378566d1d2999d5c9d33fb47bf7664",
   "claim_boundary": {
     "addi_air_to_normalized_composition": true,
     "generated_sail_ast_translation_receipt": true,
@@ -70,7 +70,7 @@
     "lui_air_to_normalized_composition": true
   },
   "generators": {
-    "scripts/riscv_refinement.py": "f2bee056f27ea45ba9dc769092ff8e9f2af568ce152f9106d6c22786d5a477da",
+    "scripts/riscv_refinement.py": "a4c2e239f84fd176410714c9c1c4c0eb9c8886991ef7139d97135849c30cf6d2",
     "scripts/riscv_refinement_lib/air.py": "02e16bbec81d87912fc1a2d767075887b94d86520527bedb615a4e5dc02fa3e3",
     "scripts/riscv_refinement_lib/air_program.py": "fa65bd0939d68848a4730c6844415fd40a6670f0bee277da4f96d8bc7005f8f3",
     "scripts/riscv_refinement_lib/air_program_contract.py": "6ce5a75dfcb19f26d933f74d2cb9acc1f12cccdc9395385560da89ba2276f269",
@@ -79,7 +79,7 @@
     "scripts/riscv_refinement_lib/codec.py": "0ae4eaf37dfa9eaec08d26c0a042a1b1e4e8b4b9418e834e28d479e6e3b0b86b",
     "scripts/riscv_refinement_lib/model.py": "15d54672a04982109af2c4322a0986addaa054227150ae67fc10d238e46d4258",
     "scripts/riscv_refinement_lib/negative.py": "350ecd86a9694ee4bace43c74d7fe7518652554d927e8b7b999229c354e93cce",
-    "scripts/riscv_refinement_lib/render.py": "c876653ae6fb237de5a9a69a4b6a883dcb2df253d6b55b843520f6dc0828cfaf",
+    "scripts/riscv_refinement_lib/render.py": "0e7f4eac1f42f40d2eb8918e71b8a48fc027cb0828253c8b09e3c7c8ee2a9282",
     "scripts/riscv_refinement_lib/sail.py": "f2a33f5e48f0221f19df60f4abdca712104f44c07ba10496ddf9282ce5139b7a",
     "scripts/riscv_refinement_lib/sail_lean_bridge.py": "ae2d6aafdf879b02cfa041091611cbeddf291f318649f74fbbf0c4d37a850dbb",
     "scripts/riscv_refinement_lib/sail_translation.py": "95a24bb3b2ed57e98a9965fb360e3758fa86fd6b4f394ee445e019ddc42530c4",
@@ -310,9 +310,10 @@
   "proof_sources": {
     "conformance/riscv/sail-lean-riscv-extras.patch": "ceb85e86b94a9f254502373f821198f9dfd3019105b77dc7987818b2a4388070",
     "formal/riscv-refinement/README.md": "7b6590515d45a2a655af95bd2eb9608ddf0b1f240b6dda764af9f5ac409d5691",
-    "formal/riscv-refinement/RiscvRefinement.lean": "eeebdb37275e5f3aabe516ff5fd774d31ec7365966bfe15d1fb300b66dad4412",
+    "formal/riscv-refinement/RiscvRefinement.lean": "1b229706c6baefcfc261270e8ac80cf0be0608a2163a431109d83c9c2d9f8ea7",
     "formal/riscv-refinement/RiscvRefinement/Air.lean": "b73c7ae5dd64f2e54256360cdf4e541827ec312a5b2a1bcf2896eb94cc2b59d8",
     "formal/riscv-refinement/RiscvRefinement/Air/Bridge/Addi.lean": "64418244090699834014752b1b2242c4b9e8a70b73698943cf338d893cc1d246",
+    "formal/riscv-refinement/RiscvRefinement/Air/Bridge/Fence.lean": "0bfc957121c23f41d3525bc068c7f6b2354e2d0b04014bbfc591bf8e0f76dc91",
     "formal/riscv-refinement/RiscvRefinement/Air/Bridge/Lui.lean": "acb50118810c038097bf46fce86280f7f2b88a691515a5574ecaed9aaef0f581",
     "formal/riscv-refinement/RiscvRefinement/Air/Bridge/Mutations.lean": "1ad75f370e3714a89f33fffb3118b5c10f833ece8d64389912fd6787ca5a0a91",
     "formal/riscv-refinement/RiscvRefinement/Air/Decode.lean": "22387bae2bf13a77dbfa56a91f4a661fa6508406e84572effde61b4095742d9a",
@@ -322,6 +323,7 @@
     "formal/riscv-refinement/RiscvRefinement/Air/Tests.lean": "8e639d1f4b35afd9d05f95c6d9fc2e40f7c60ecc431b1d6cb13780347002f7c1",
     "formal/riscv-refinement/RiscvRefinement/AxiomAudit.lean": "33c431cb1bbf076c4b0ad4670f3deae4265bd456a8a3e34f0c001fd2ab236ad1",
     "formal/riscv-refinement/RiscvRefinement/Bridge/Decode.lean": "5234c89b6c2f4fbf3810c8064674f1bd3c7e713ade216cf7b6925802facf0e55",
+    "formal/riscv-refinement/RiscvRefinement/Bridge/DecodeTeamA.lean": "63b47ab4c3b9f872ed1045fc649d4a44425de8067444011f561d1bfa617fcc09",
     "formal/riscv-refinement/RiscvRefinement/Bridge/DecodeTeamB.lean": "d34708add78f36370fb3f2816fb35af43dbdfe4dc7f61ef96ed0776bb3c9e80b",
     "formal/riscv-refinement/RiscvRefinement/Common.lean": "8582d044ddd0202657d1e3f6ad4fffd13e6543e89f7cf1d0d1e9d8e385baa442",
     "formal/riscv-refinement/RiscvRefinement/Coverage.lean": "aa18962693f94998f3036681125dbdef5bcb892c49c9a311832422aec7e052b0",
@@ -331,6 +333,8 @@
     "formal/riscv-refinement/RiscvRefinement/Mutation.lean": "43cd144f210955e1855d9cb45e046688cd687af8414db70e648df263e756c6ab",
     "formal/riscv-refinement/RiscvRefinement/NonVacuity.lean": "818e579c95a46e8eaf5d6f5d0b85418aaba04c82e57922fc29f46add878513ae",
     "formal/riscv-refinement/RiscvRefinement/Opcodes/Addi.lean": "82e4f25cd872f91b3125f21b451e727797b59cc4b89c11446254c26888efebd9",
+    "formal/riscv-refinement/RiscvRefinement/Opcodes/Fence.lean": "56af08ce6a0872735d90fb2f9c37ffa9e413d0ab07a8b926e64822d54f72f27a",
+    "formal/riscv-refinement/RiscvRefinement/Opcodes/FenceMutation.lean": "838c16918fb08c09a7b7c44a6178bb3fcf34baf57195c05ae136aedf073617e6",
     "formal/riscv-refinement/RiscvRefinement/Opcodes/Lui.lean": "45e9ab347a306a8677cd378ca08b0ad60d6d6f42e595a41c1287c7b490a8c0a2",
     "formal/riscv-refinement/RiscvRefinement/Tables.lean": "837fdbfa6691c472ccec70783e79743c7a437e9f683496b6e1816bde4e92b324",
     "formal/riscv-refinement/RiscvRefinement/Tables/Fixed.lean": "03cb67f4c069274218c467aed2f6d846146fa3be4620c2bc19081ecee972ec86",

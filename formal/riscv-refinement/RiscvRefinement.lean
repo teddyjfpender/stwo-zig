@@ -10,6 +10,7 @@ import RiscvRefinement.Memory
 import RiscvRefinement.Mutation
 import RiscvRefinement.Arith.Division
 import RiscvRefinement.Bridge.Decode
+import RiscvRefinement.Bridge.DecodeTeamA
 import RiscvRefinement.Bridge.DecodeTeamB
 import RiscvRefinement.Air.Generated.Pilot
 import RiscvRefinement.Air.Family.LoadStore
@@ -25,6 +26,7 @@ import RiscvRefinement.Air.Bridge.LoadStoreProgram
 import RiscvRefinement.Air.Bridge.LoadStoreBridge
 import RiscvRefinement.Air.Bridge.DivProgram
 import RiscvRefinement.Air.Bridge.DivBridge
+import RiscvRefinement.Air.Bridge.Fence
 import RiscvRefinement.Sail.Generated.Pilot
 import RiscvRefinement.Sail.Reviewed.LoadStore
 import RiscvRefinement.Sail.Reviewed.Shifts
@@ -32,6 +34,8 @@ import RiscvRefinement.Sail.Reviewed.Multiply
 import RiscvRefinement.Sail.Reviewed.Div
 import RiscvRefinement.Opcodes.Lui
 import RiscvRefinement.Opcodes.Addi
+import RiscvRefinement.Opcodes.Fence
+import RiscvRefinement.Opcodes.FenceMutation
 import RiscvRefinement.Opcodes.LoadStore
 import RiscvRefinement.Opcodes.Shifts
 import RiscvRefinement.Opcodes.Multiply
