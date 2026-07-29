@@ -398,3 +398,49 @@ class EvaluatorTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TrackedAirGapTest(unittest.TestCase):
+    """The production `load_store` AIR admits an address-aliasing row.
+
+    This is a property of the shipped AIR, not of anything Team B controls, so
+    it is tracked rather than treated as a Team B failure. The Lean load
+    theorems carry `baseInFieldRange` precisely to exclude it, which means they
+    do not cover every AIR-admitted row — and that limitation is only honest if
+    it is written down and checked.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        try:
+            cls.air_ir_dir = export_air()
+        except (OSError, subprocess.SubprocessError) as error:
+            raise unittest.SkipTest(f"production AIR export unavailable: {error}")
+
+    def test_the_aliasing_row_is_still_admitted_and_still_diverges(self):
+        report = witnesses.report_address_aliasing(self.air_ir_dir)
+        self.assertIn("TRACKED GAP", report)
+
+    def test_the_base_passes_the_production_range_check(self):
+        # The only bound on the base is the range_check_m31 forcing its high
+        # limb below 128. 0x7FFFFFFB has high limb 0x7F, so it is admitted.
+        self.assertLess((witnesses.ALIASING_BASE >> 24) & 0xFF, 128)
+
+    def test_the_two_addresses_really_differ(self):
+        _, architectural, field_address = witnesses.address_aliasing_row()
+        self.assertEqual(architectural, 0x80000003)
+        self.assertEqual(field_address, 0x00000004)
+        self.assertNotEqual(architectural, field_address)
+
+    def test_the_architectural_address_is_not_even_word_aligned(self):
+        # So the architectural access would trap, while the AIR admits an
+        # aligned read somewhere else entirely.
+        _, architectural, _ = witnesses.address_aliasing_row()
+        self.assertNotEqual(architectural % 4, 0)
+
+    def test_a_base_inside_the_lean_premise_does_not_alias(self):
+        # The Lean premise is base + 4096 < M31. Any base satisfying it has
+        # field and architectural addresses that agree.
+        base = witnesses.M31 - 4097
+        _, architectural, field_address = witnesses.address_aliasing_row(base=base)
+        self.assertEqual(architectural, field_address)

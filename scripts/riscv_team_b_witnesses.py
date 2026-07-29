@@ -755,11 +755,126 @@ def check_shift_witnesses(air_ir_dir: Path) -> str:
     )
 
 
+# --------------------------------------------------------------------------
+# A tracked gap in the production load_store AIR
+# --------------------------------------------------------------------------
+
+#: Base register value whose field-arithmetic address diverges from its
+#: architectural address while every production constraint still holds.
+ALIASING_BASE = 0x7FFFFFFB
+ALIASING_DISPLACEMENT = 8
+
+
+def address_aliasing_row(
+    base: int = ALIASING_BASE,
+    displacement: int = ALIASING_DISPLACEMENT,
+    memory_word: int = 0xDEADBEEF,
+    rd: int = 7,
+    *,
+    clock: int = 1,
+    pc: int = 0x1000,
+) -> tuple[dict[str, int], int, int]:
+    """An `LW` row built from the AIR's own field arithmetic.
+
+    Returns the row, the architectural effective address, and the address the
+    AIR's base-field sum actually names. The production AIR computes
+    ``mem_addr = composeU32(rs1.next) + imm_felt`` in the M31 base field, not
+    modulo 2^32, and the only bound on the base is the ``range_check_m31`` that
+    forces its high limb below 128 — which still permits a base just under the
+    field modulus. A base there plus a small displacement wraps the *field* and
+    lands on a small address that satisfies the aligned-address range check,
+    while the architectural 32-bit address is somewhere else entirely.
+    """
+    field_address = (base + displacement) % M31
+    architectural = (base + displacement) & 0xFFFFFFFF
+    memory = _limbs(memory_word)
+    source = _limbs(base)
+
+    assignment = {
+        "clk": clock,
+        "pc": pc,
+        "rs1_addr": 5,
+        "rs1_previous_clock": 0,
+        "src_addr": field_address,
+        "src_previous_clock": 0,
+        "dst_addr": rd,
+        "dst_previous_clock": 0,
+        "r2_idx": rd,
+        "imm_felt": displacement % M31,
+        "src_msb": 0,
+        "shift_amount": 0,
+        "src_addr_selector": field_address,
+        "dst_addr_selector": rd,
+        # The markers are free bits on a word access; production leaves them
+        # unconstrained there and the honest witness writes zero.
+        "markers_0": 0,
+        "markers_1": 0,
+        "markers_2": 0,
+        "markers_3": 0,
+        "is_lb": 0,
+        "is_lh": 0,
+        "is_lbu": 0,
+        "is_lhu": 0,
+        "is_lw": 1,
+        "is_sb": 0,
+        "is_sh": 0,
+        "is_sw": 0,
+        "destination_nonzero": 1,
+        "destination_inverse": modular_inverse(rd),
+        "bus_value_56": 21,
+        "bus_value_57": pc + 4,
+        "bus_value_58": clock + 1,
+        "bus_value_59": (clock - 1) * 4 + 1,
+        "bus_value_60": 1,
+        "bus_value_61": (clock - 1) * 4 + 3,
+        "bus_value_62": 0,
+        "bus_value_63": (clock - 1) * 4 + 2,
+    }
+    for index in range(4):
+        assignment[f"rs1_previous_{index}"] = source[index]
+        assignment[f"rs1_next_{index}"] = source[index]
+        assignment[f"src_previous_{index}"] = memory[index]
+        assignment[f"src_next_{index}"] = memory[index]
+        assignment[f"dst_previous_{index}"] = 0
+        assignment[f"dst_next_{index}"] = memory[index]
+        assignment[f"result_{index}"] = memory[index]
+    return assignment, architectural, field_address
+
+
+def report_address_aliasing(air_ir_dir: Path) -> str:
+    """Report the tracked gap, and fail if it has silently changed shape.
+
+    This deliberately reports rather than raises when the gap is present: it is
+    a property of the production AIR, not of anything Team B controls. It does
+    raise if the row stops being admitted, because that means the AIR changed
+    and the Lean `baseInFieldRange` premise, and this note, need revisiting.
+    """
+    assignment, architectural, field_address = address_aliasing_row()
+    try:
+        check_witness(air_ir_dir, "load_store", assignment)
+    except WitnessError as error:
+        raise WitnessError(
+            "the tracked load_store address-aliasing row is no longer admitted "
+            f"by the production AIR ({error}). That is good news, but the Lean "
+            "baseInFieldRange premise and the note in TEAM_B.md now overstate "
+            "the gap and must be updated."
+        ) from error
+    if architectural == field_address:
+        raise WitnessError("the aliasing row no longer diverges; update this check")
+    return (
+        "load_store address aliasing (TRACKED GAP): base "
+        f"{ALIASING_BASE:#010x} + {ALIASING_DISPLACEMENT} is architecturally "
+        f"{architectural:#010x} but the AIR admits a read of "
+        f"{field_address:#010x}; every constraint and range check passes"
+    )
+
+
 CHECKS = (
     check_lh_witnesses,
     check_div_witnesses,
     check_multiply_witnesses,
     check_shift_witnesses,
+    report_address_aliasing,
 )
 
 

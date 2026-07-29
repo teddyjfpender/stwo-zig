@@ -52,7 +52,7 @@ from a fresh `zig build riscv-refinement-ir` export and fails closed on any
 difference, so a production AIR change invalidates the transcription rather than
 silently diverging from it.
 
-## Two things the stress gates surfaced
+## Three things the stress gates surfaced
 
 **Address wrap is not reachable in an admitted row.** The production
 `load_store` AIR bounds addresses twice: the base-address `range_check_m31`
@@ -62,6 +62,26 @@ forces the high limb of `rs1` below 128, and the aligned-address
 Architectural wrap is real and the Sail side defines it; the AIR narrows it
 away. An LH theorem must carry that range premise explicitly rather than claim
 the AIR derives wrap behaviour.
+
+**The production AIR admits an address-aliasing row.** The effective address is
+computed as `composeU32(rs1.next) + imm_felt` in the M31 *base field*, not modulo
+`2^32`, and the only bound on the base is the `range_check_m31` forcing its high
+limb below 128. So a base just under the field modulus plus a small displacement
+wraps the field and lands on a small address that satisfies the aligned-address
+range check, while the architectural address is elsewhere. Concretely, base
+`0x7FFFFFFB` with displacement `+8` is architecturally `0x80000003` — not even
+word-aligned, so the architectural access would trap — yet the AIR admits a
+clean aligned read of `0x00000004`, satisfying every constraint and every range
+check.
+
+This is a property of the shipped AIR, not of anything Team B controls. The Lean
+load theorems carry an explicit `baseInFieldRange` premise to exclude it, which
+means **they do not cover every AIR-admitted row**, and that limitation is stated
+here rather than buried. `scripts/riscv_team_b_witnesses.py` tracks the row: it
+reports the gap while it exists and *fails* if the row stops being admitted, so
+fixing the AIR forces this note and the Lean premise to be revisited rather than
+left stale. The AIR owners should decide whether to bound the base below
+`M31 - 4096` or to do the address arithmetic modulo `2^32`.
 
 **Alignment is enforced by a range check, not an equation.** For LH, LHU, SH,
 LW and SW the only thing forcing natural alignment is that same
