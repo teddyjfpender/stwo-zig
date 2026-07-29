@@ -651,9 +651,32 @@ pub fn verifyArtifact(
     try std.fs.File.stdout().writeAll("\n");
 }
 
+/// The engine this module's own tests exercise, resolved from whichever product
+/// facade compiled them. The tests must not name a concrete integration package:
+/// this file is a shared seam, and when it is compiled as a test root inside the
+/// Metal product `stwo.integrations.riscv_cpu` does not exist to be resolved.
+///
+/// Each focused facade declares exactly one RISC-V integration --
+/// `src/stwo_riscv_cpu.zig` declares only `riscv_cpu` and
+/// `src/products/riscv_metal/root.zig` declares only `riscv_metal` -- so
+/// `@hasDecl` is a total discriminator here rather than a feature probe. The
+/// condition is comptime-known, so only the branch that resolves is analysed and
+/// the absent facade member is never named in the compiled product. The
+/// aggregate `src/stwo.zig` facade routes through `integrations/mod.zig`, which
+/// declares `riscv_cpu`, and so takes the same branch as the CPU product.
+const TestEngine = if (@hasDecl(stwo.integrations, "riscv_cpu"))
+    stwo.integrations.riscv_cpu.CpuProverEngine
+else
+    stwo.integrations.riscv_metal.MetalProverEngine;
+
+/// The backend tag `TestEngine` commits to. `run` rejects an `Options.backend`
+/// that disagrees with its comptime `backend` parameter, so the two must be
+/// selected together.
+const test_backend: Backend = if (@hasDecl(stwo.integrations, "riscv_cpu")) .cpu else .metal;
+
 test "adapter preserves the complete sampled benchmark contract" {
     const options = Options{
-        .backend = .cpu,
+        .backend = test_backend,
         .protocol = .functional,
         .mode = .{ .bench = .{ .warmups = 3, .samples = 7, .profiled = true } },
         .experimental = !capabilities.adapter_release_gated,
@@ -665,7 +688,7 @@ test "adapter preserves the complete sampled benchmark contract" {
     try std.testing.expect(options.mode.bench.profiled);
     try std.testing.expectError(
         error.FileNotFound,
-        run(std.testing.allocator, "guest.elf", "input.bin", options),
+        run(TestEngine, test_backend, std.testing.allocator, "guest.elf", "input.bin", options),
     );
 }
 
