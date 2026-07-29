@@ -1,0 +1,1062 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "stwo-zig RISC-V production AIR constraint program v2",
+  "description": "Structural companion to AIR_IR_V2_CONTRACT.md. Canonical bytes, duplicate-key rejection, graph/order/reference invariants, manifest consistency, source closure, and digests require the normative strict decoder.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "field",
+    "family",
+    "columns",
+    "nodes",
+    "active_row",
+    "opcode_selector",
+    "fixed_tables",
+    "events",
+    "projection",
+    "source_identity",
+    "content_digest"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 2
+    },
+    "kind": {
+      "const": "stwo-riscv-air-constraint-program"
+    },
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "modulus"
+      ],
+      "properties": {
+        "name": {
+          "const": "M31"
+        },
+        "modulus": {
+          "const": 2147483647
+        }
+      }
+    },
+    "family": {
+      "enum": [
+        "base_alu_reg",
+        "base_alu_imm",
+        "shifts_reg",
+        "shifts_imm",
+        "lt_reg",
+        "lt_imm",
+        "branch_eq",
+        "branch_lt",
+        "lui",
+        "auipc",
+        "jalr",
+        "jal",
+        "load_store",
+        "mul",
+        "mulh",
+        "div",
+        "fence"
+      ]
+    },
+    "columns": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/column"
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/node"
+      }
+    },
+    "active_row": {
+      "$ref": "#/$defs/nat"
+    },
+    "opcode_selector": {
+      "$ref": "#/$defs/opcodeSelector"
+    },
+    "fixed_tables": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/tableBitwise"
+        },
+        {
+          "$ref": "#/$defs/tableRange20"
+        },
+        {
+          "$ref": "#/$defs/tableRange811"
+        },
+        {
+          "$ref": "#/$defs/tableRange884"
+        },
+        {
+          "$ref": "#/$defs/tableRange88"
+        },
+        {
+          "$ref": "#/$defs/tableRangeM31"
+        }
+      ],
+      "items": false
+    },
+    "events": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/$defs/constraintEvent"
+          },
+          {
+            "$ref": "#/$defs/lookupEvent"
+          }
+        ]
+      },
+      "allOf": [
+        {
+          "contains": {
+            "$ref": "#/$defs/constraintEvent"
+          },
+          "minContains": 1
+        },
+        {
+          "contains": {
+            "$ref": "#/$defs/lookupEvent"
+          },
+          "minContains": 1
+        }
+      ]
+    },
+    "projection": {
+      "$ref": "#/$defs/projection"
+    },
+    "source_identity": {
+      "$ref": "#/$defs/sourceIdentity"
+    },
+    "content_digest": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "nat": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "positiveNat": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "sourcePath": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-][A-Za-z0-9_.-]*(/[A-Za-z0-9_-][A-Za-z0-9_.-]*)*$"
+    },
+    "column": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "index",
+        "name",
+        "role",
+        "type",
+        "width"
+      ],
+      "properties": {
+        "index": {
+          "$ref": "#/$defs/nat"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+        },
+        "role": {
+          "enum": [
+            "input",
+            "output",
+            "witness"
+          ]
+        },
+        "type": {
+          "const": "m31"
+        },
+        "width": {
+          "const": 1
+        }
+      }
+    },
+    "constNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "value"
+      ],
+      "properties": {
+        "op": {
+          "const": "const"
+        },
+        "value": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483646
+        }
+      }
+    },
+    "columnNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "column"
+      ],
+      "properties": {
+        "op": {
+          "const": "col"
+        },
+        "column": {
+          "$ref": "#/$defs/nat"
+        }
+      }
+    },
+    "negNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "args"
+      ],
+      "properties": {
+        "op": {
+          "const": "neg"
+        },
+        "args": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": {
+            "$ref": "#/$defs/nat"
+          }
+        }
+      }
+    },
+    "binaryNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "args"
+      ],
+      "properties": {
+        "op": {
+          "enum": [
+            "add",
+            "sub",
+            "mul"
+          ]
+        },
+        "args": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/$defs/nat"
+          }
+        }
+      }
+    },
+    "node": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/constNode"
+        },
+        {
+          "$ref": "#/$defs/columnNode"
+        },
+        {
+          "$ref": "#/$defs/negNode"
+        },
+        {
+          "$ref": "#/$defs/binaryNode"
+        }
+      ]
+    },
+    "opcodeSelector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifest_id",
+        "mnemonic",
+        "expression"
+      ],
+      "properties": {
+        "manifest_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 45
+        },
+        "mnemonic": {
+          "enum": [
+            "add",
+            "sub",
+            "sll",
+            "slt",
+            "sltu",
+            "xor",
+            "srl",
+            "sra",
+            "or",
+            "and",
+            "addi",
+            "slti",
+            "sltiu",
+            "xori",
+            "ori",
+            "andi",
+            "slli",
+            "srli",
+            "srai",
+            "lb",
+            "lh",
+            "lw",
+            "lbu",
+            "lhu",
+            "sb",
+            "sh",
+            "sw",
+            "beq",
+            "bne",
+            "blt",
+            "bge",
+            "bltu",
+            "bgeu",
+            "jal",
+            "jalr",
+            "lui",
+            "auipc",
+            "mul",
+            "mulh",
+            "mulhsu",
+            "mulhu",
+            "div",
+            "divu",
+            "rem",
+            "remu",
+            "fence"
+          ]
+        },
+        "expression": {
+          "$ref": "#/$defs/nat"
+        }
+      }
+    },
+    "tableBitwise": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "domain",
+        "arity",
+        "log_size",
+        "schema_sha256"
+      ],
+      "properties": {
+        "id": {
+          "const": "bitwise"
+        },
+        "domain": {
+          "const": "bitwise"
+        },
+        "arity": {
+          "const": 4
+        },
+        "log_size": {
+          "const": 18
+        },
+        "schema_sha256": {
+          "const": "7de3a5c8de009b1f2d9da74ce88f02b3705c26da488d0005d0c67b07b9a6daab"
+        }
+      }
+    },
+    "tableRange20": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "domain",
+        "arity",
+        "log_size",
+        "schema_sha256"
+      ],
+      "properties": {
+        "id": {
+          "const": "range_check_20"
+        },
+        "domain": {
+          "const": "range_check_20"
+        },
+        "arity": {
+          "const": 1
+        },
+        "log_size": {
+          "const": 20
+        },
+        "schema_sha256": {
+          "const": "618f993093152e26cd08fc37b4ddc942a7a7e998444ee2e34d433d42667613e0"
+        }
+      }
+    },
+    "tableRange811": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "domain",
+        "arity",
+        "log_size",
+        "schema_sha256"
+      ],
+      "properties": {
+        "id": {
+          "const": "range_check_8_11"
+        },
+        "domain": {
+          "const": "range_check_8_11"
+        },
+        "arity": {
+          "const": 2
+        },
+        "log_size": {
+          "const": 19
+        },
+        "schema_sha256": {
+          "const": "1fa99606e17949d62271f75ad3ecfdb68bc016dadaa1995579d8831417ab8976"
+        }
+      }
+    },
+    "tableRange884": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "domain",
+        "arity",
+        "log_size",
+        "schema_sha256"
+      ],
+      "properties": {
+        "id": {
+          "const": "range_check_8_8_4"
+        },
+        "domain": {
+          "const": "range_check_8_8_4"
+        },
+        "arity": {
+          "const": 3
+        },
+        "log_size": {
+          "const": 20
+        },
+        "schema_sha256": {
+          "const": "c5894ccdf667ad77987691500806fbdb7f93b91fa40672785465e41fb393e1df"
+        }
+      }
+    },
+    "tableRange88": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "domain",
+        "arity",
+        "log_size",
+        "schema_sha256"
+      ],
+      "properties": {
+        "id": {
+          "const": "range_check_8_8"
+        },
+        "domain": {
+          "const": "range_check_8_8"
+        },
+        "arity": {
+          "const": 2
+        },
+        "log_size": {
+          "const": 16
+        },
+        "schema_sha256": {
+          "const": "74691adaef966cf81ce717e97fc298c8272958c614327b87aee9dafea79c5102"
+        }
+      }
+    },
+    "tableRangeM31": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "domain",
+        "arity",
+        "log_size",
+        "schema_sha256"
+      ],
+      "properties": {
+        "id": {
+          "const": "range_check_m31"
+        },
+        "domain": {
+          "const": "range_check_m31"
+        },
+        "arity": {
+          "const": 2
+        },
+        "log_size": {
+          "const": 15
+        },
+        "schema_sha256": {
+          "const": "bf4f031af4d434f3d9ad028c3b8976822499b3f3cdfe81be0933e45baafd674d"
+        }
+      }
+    },
+    "constraintEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ordinal",
+        "kind",
+        "root"
+      ],
+      "properties": {
+        "ordinal": {
+          "$ref": "#/$defs/nat"
+        },
+        "kind": {
+          "const": "constraint"
+        },
+        "root": {
+          "$ref": "#/$defs/nat"
+        }
+      }
+    },
+    "lookupEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ordinal",
+        "kind",
+        "domain",
+        "numerator",
+        "tuple",
+        "role",
+        "table_id",
+        "liveness",
+        "access_ordinal"
+      ],
+      "properties": {
+        "ordinal": {
+          "$ref": "#/$defs/nat"
+        },
+        "kind": {
+          "const": "lookup"
+        },
+        "domain": {
+          "enum": [
+            "registers_state",
+            "memory_access",
+            "program_access",
+            "merkle",
+            "poseidon2",
+            "poseidon2_io",
+            "bitwise",
+            "range_check_20",
+            "range_check_8_11",
+            "range_check_8_8_4",
+            "range_check_8_8",
+            "range_check_m31"
+          ]
+        },
+        "numerator": {
+          "$ref": "#/$defs/nat"
+        },
+        "tuple": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/nat"
+          }
+        },
+        "role": {
+          "enum": [
+            "request",
+            "consume",
+            "emit"
+          ]
+        },
+        "table_id": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "enum": [
+                "bitwise",
+                "range_check_20",
+                "range_check_8_11",
+                "range_check_8_8_4",
+                "range_check_8_8",
+                "range_check_m31"
+              ]
+            }
+          ]
+        },
+        "liveness": {
+          "const": "nonzero_numerator"
+        },
+        "access_ordinal": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/positiveNat"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "domain": {
+                "const": "registers_state"
+              }
+            },
+            "required": [
+              "domain"
+            ]
+          },
+          "then": {
+            "properties": {
+              "tuple": {
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "table_id": {
+                "type": "null"
+              },
+              "access_ordinal": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "domain": {
+                "const": "memory_access"
+              }
+            },
+            "required": [
+              "domain"
+            ]
+          },
+          "then": {
+            "properties": {
+              "tuple": {
+                "minItems": 7,
+                "maxItems": 7
+              },
+              "role": {
+                "enum": [
+                  "consume",
+                  "emit"
+                ]
+              },
+              "table_id": {
+                "type": "null"
+              },
+              "access_ordinal": {
+                "$ref": "#/$defs/positiveNat"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "domain": {
+                "const": "program_access"
+              }
+            },
+            "required": [
+              "domain"
+            ]
+          },
+          "then": {
+            "properties": {
+              "tuple": {
+                "minItems": 5,
+                "maxItems": 5
+              },
+              "table_id": {
+                "type": "null"
+              },
+              "access_ordinal": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "domain": {
+                "const": "merkle"
+              }
+            },
+            "required": [
+              "domain"
+            ]
+          },
+          "then": {
+            "properties": {
+              "tuple": {
+                "minItems": 4,
+                "maxItems": 4
+              },
+              "table_id": {
+                "type": "null"
+              },
+              "access_ordinal": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "domain": {
+                "const": "poseidon2"
+              }
+            },
+            "required": [
+              "domain"
+            ]
+          },
+          "then": {
+            "properties": {
+              "tuple": {
+                "minItems": 16,
+                "maxItems": 16
+              },
+              "table_id": {
+                "type": "null"
+              },
+              "access_ordinal": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "domain": {
+                "const": "poseidon2_io"
+              }
+            },
+            "required": [
+              "domain"
+            ]
+          },
+          "then": {
+            "properties": {
+              "tuple": {
+                "minItems": 32,
+                "maxItems": 32
+              },
+              "table_id": {
+                "type": "null"
+              },
+              "access_ordinal": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "domain": {
+                "const": "bitwise"
+              }
+            },
+            "required": [
+              "domain"
+            ]
+          },
+          "then": {
+            "properties": {
+              "tuple": {
+                "minItems": 4,
+                "maxItems": 4
+              },
+              "role": {
+                "const": "request"
+              },
+              "table_id": {
+                "const": "bitwise"
+              },
+              "access_ordinal": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "domain": {
+                "const": "range_check_20"
+              }
+            },
+            "required": [
+              "domain"
+            ]
+          },
+          "then": {
+            "properties": {
+              "tuple": {
+                "minItems": 1,
+                "maxItems": 1
+              },
+              "role": {
+                "const": "request"
+              },
+              "table_id": {
+                "const": "range_check_20"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "domain": {
+                "const": "range_check_8_11"
+              }
+            },
+            "required": [
+              "domain"
+            ]
+          },
+          "then": {
+            "properties": {
+              "tuple": {
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "role": {
+                "const": "request"
+              },
+              "table_id": {
+                "const": "range_check_8_11"
+              },
+              "access_ordinal": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "domain": {
+                "const": "range_check_8_8_4"
+              }
+            },
+            "required": [
+              "domain"
+            ]
+          },
+          "then": {
+            "properties": {
+              "tuple": {
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "role": {
+                "const": "request"
+              },
+              "table_id": {
+                "const": "range_check_8_8_4"
+              },
+              "access_ordinal": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "domain": {
+                "const": "range_check_8_8"
+              }
+            },
+            "required": [
+              "domain"
+            ]
+          },
+          "then": {
+            "properties": {
+              "tuple": {
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "role": {
+                "const": "request"
+              },
+              "table_id": {
+                "const": "range_check_8_8"
+              },
+              "access_ordinal": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "domain": {
+                "const": "range_check_m31"
+              }
+            },
+            "required": [
+              "domain"
+            ]
+          },
+          "then": {
+            "properties": {
+              "tuple": {
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "role": {
+                "const": "request"
+              },
+              "table_id": {
+                "const": "range_check_m31"
+              },
+              "access_ordinal": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "eventOrdinalArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/nat"
+      }
+    },
+    "projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "program_event",
+        "state_events",
+        "source_events",
+        "destination_events",
+        "next_pc"
+      ],
+      "properties": {
+        "program_event": {
+          "$ref": "#/$defs/nat"
+        },
+        "state_events": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/eventOrdinalArray"
+            },
+            {
+              "minItems": 2,
+              "maxItems": 2
+            }
+          ]
+        },
+        "source_events": {
+          "$ref": "#/$defs/eventOrdinalArray"
+        },
+        "destination_events": {
+          "$ref": "#/$defs/eventOrdinalArray"
+        },
+        "next_pc": {
+          "$ref": "#/$defs/nat"
+        }
+      }
+    },
+    "sourceFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/sourcePath"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "sourceIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "builder",
+        "source_closure_sha256",
+        "files"
+      ],
+      "properties": {
+        "builder": {
+          "const": "src/frontends/riscv/air/constraint_program.zig"
+        },
+        "source_closure_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/sourceFile"
+          }
+        }
+      }
+    }
+  }
+}

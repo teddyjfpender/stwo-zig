@@ -10,11 +10,178 @@ from argparse import Namespace
 from pathlib import Path
 
 from scripts import riscv_refinement
-from scripts.riscv_refinement_lib import air, codec, negative, render, sail
+from scripts.riscv_refinement_lib import (
+    air,
+    air_program,
+    codec,
+    negative,
+    render,
+    sail,
+)
 from scripts.riscv_refinement_lib.model import Paths, RefinementError
 
 ROOT = Path(__file__).resolve().parents[2]
 GENERATED_AIR = ROOT / "formal" / "riscv-refinement" / "generated" / "air"
+
+
+def air_ir_v2_fixture() -> dict[str, object]:
+    fixed_tables = [
+        {
+            "id": table_id,
+            "domain": table_id,
+            "arity": arity,
+            "log_size": log_size,
+            "schema_sha256": air_program.table_schema_digest(
+                table_id,
+                table_id,
+                arity,
+                log_size,
+            ),
+        }
+        for table_id, arity, log_size in air_program.FIXED_TABLES
+    ]
+    files = [
+        {
+            "path": "src/frontends/riscv/air/constraint_program.zig",
+            "sha256": "1" * 64,
+        }
+    ]
+    payload: dict[str, object] = {
+        "schema_version": air_program.AIR_IR_SCHEMA_VERSION,
+        "kind": air_program.AIR_IR_KIND,
+        "field": {
+            "name": "M31",
+            "modulus": air_program.M31_MODULUS,
+        },
+        "family": "lui",
+        "columns": [
+            {
+                "index": 0,
+                "name": "enabler",
+                "role": "input",
+                "type": "m31",
+                "width": 1,
+            }
+        ],
+        "nodes": [
+            {"op": "col", "column": 0},
+            {"op": "const", "value": 1},
+            {"op": "add", "args": [0, 1]},
+            {"op": "sub", "args": [2, 1]},
+            {"op": "mul", "args": [3, 1]},
+            {"op": "neg", "args": [0]},
+            {"op": "const", "value": 35},
+            {"op": "const", "value": 0},
+        ],
+        "active_row": 0,
+        "opcode_selector": {
+            "manifest_id": 35,
+            "mnemonic": "lui",
+            "expression": 6,
+        },
+        "fixed_tables": fixed_tables,
+        "events": [
+            {"ordinal": 0, "kind": "constraint", "root": 4},
+            {
+                "ordinal": 1,
+                "kind": "lookup",
+                "role": "request",
+                "domain": "program_access",
+                "numerator": 5,
+                "tuple": [0, 6, 7, 7, 7],
+                "table_id": None,
+                "liveness": "nonzero_numerator",
+                "access_ordinal": None,
+            },
+            {
+                "ordinal": 2,
+                "kind": "lookup",
+                "role": "consume",
+                "domain": "registers_state",
+                "numerator": 5,
+                "tuple": [0, 1],
+                "table_id": None,
+                "liveness": "nonzero_numerator",
+                "access_ordinal": None,
+            },
+            {
+                "ordinal": 3,
+                "kind": "lookup",
+                "role": "emit",
+                "domain": "registers_state",
+                "numerator": 0,
+                "tuple": [2, 1],
+                "table_id": None,
+                "liveness": "nonzero_numerator",
+                "access_ordinal": None,
+            },
+            {
+                "ordinal": 4,
+                "kind": "lookup",
+                "role": "request",
+                "domain": "range_check_20",
+                "numerator": 5,
+                "tuple": [0],
+                "table_id": "range_check_20",
+                "liveness": "nonzero_numerator",
+                "access_ordinal": None,
+            },
+            {
+                "ordinal": 5,
+                "kind": "lookup",
+                "role": "consume",
+                "domain": "memory_access",
+                "numerator": 5,
+                "tuple": [0, 1, 7, 7, 7, 7, 7],
+                "table_id": None,
+                "liveness": "nonzero_numerator",
+                "access_ordinal": 1,
+            },
+            {
+                "ordinal": 6,
+                "kind": "lookup",
+                "role": "emit",
+                "domain": "memory_access",
+                "numerator": 0,
+                "tuple": [0, 1, 2, 7, 7, 7, 7],
+                "table_id": None,
+                "liveness": "nonzero_numerator",
+                "access_ordinal": 1,
+            },
+            {
+                "ordinal": 7,
+                "kind": "lookup",
+                "role": "request",
+                "domain": "range_check_20",
+                "numerator": 5,
+                "tuple": [0],
+                "table_id": "range_check_20",
+                "liveness": "nonzero_numerator",
+                "access_ordinal": 1,
+            },
+        ],
+        "projection": {
+            "program_event": 1,
+            "state_events": [2, 3],
+            "source_events": [],
+            "destination_events": [5, 6],
+            "next_pc": 2,
+        },
+        "source_identity": {
+            "builder": "src/frontends/riscv/air/constraint_program.zig",
+            "files": files,
+            "source_closure_sha256": codec.sha256_bytes(
+                codec.canonical_bytes(files)
+            ),
+        },
+        "content_digest": "",
+    }
+    payload["content_digest"] = air_program.content_digest(payload)
+    return payload
+
+
+def resign_air_ir_v2(payload: dict[str, object]) -> None:
+    payload["content_digest"] = air_program.content_digest(payload)
 
 
 class RefinementAirTest(unittest.TestCase):
@@ -116,6 +283,101 @@ class RefinementAirTest(unittest.TestCase):
         unused["canonical_digest"] = codec.content_digest(unused)
         with self.assertRaises(RefinementError):
             air.validate_family(unused, "lui")
+
+    def test_air_ir_v2_contract_accepts_canonical_typed_program(self) -> None:
+        payload = air_ir_v2_fixture()
+        air_program.validate(payload)
+
+    def test_air_ir_v2_decoder_fails_closed_on_nodes_and_events(self) -> None:
+        base = air_ir_v2_fixture()
+        mutations = []
+
+        unknown_operation = copy.deepcopy(base)
+        unknown_operation["nodes"][4]["op"] = "div"
+        mutations.append(unknown_operation)
+
+        forward_reference = copy.deepcopy(base)
+        forward_reference["nodes"][4]["args"][0] = 4
+        mutations.append(forward_reference)
+
+        invalid_constant = copy.deepcopy(base)
+        invalid_constant["nodes"][1]["value"] = air_program.M31_MODULUS
+        mutations.append(invalid_constant)
+
+        floating_schema = copy.deepcopy(base)
+        floating_schema["schema_version"] = 2.0
+        mutations.append(floating_schema)
+
+        boolean_constant = copy.deepcopy(base)
+        boolean_constant["nodes"][1]["value"] = True
+        mutations.append(boolean_constant)
+
+        invalid_arity = copy.deepcopy(base)
+        invalid_arity["events"][4]["tuple"].append(1)
+        mutations.append(invalid_arity)
+
+        dead_lookup = copy.deepcopy(base)
+        dead_lookup["events"][4]["numerator"] = 7
+        mutations.append(dead_lookup)
+
+        reordered = copy.deepcopy(base)
+        reordered["events"][4]["ordinal"] = 3
+        mutations.append(reordered)
+
+        wrong_table = copy.deepcopy(base)
+        wrong_table["events"][4]["table_id"] = "range_check_8_8"
+        mutations.append(wrong_table)
+
+        gapped_access = copy.deepcopy(base)
+        for event in gapped_access["events"][5:8]:
+            event["access_ordinal"] = 2
+        mutations.append(gapped_access)
+
+        missing_access_gap = copy.deepcopy(base)
+        missing_access_gap["events"][7]["access_ordinal"] = None
+        mutations.append(missing_access_gap)
+
+        misplaced_access = copy.deepcopy(base)
+        misplaced_access["events"][1]["access_ordinal"] = 1
+        mutations.append(misplaced_access)
+
+        dead_node = copy.deepcopy(base)
+        dead_node["nodes"].append({"op": "const", "value": 7})
+        mutations.append(dead_node)
+
+        duplicate_node = copy.deepcopy(base)
+        duplicate_node["nodes"].append({"op": "sub", "args": [2, 1]})
+        duplicate_node["events"][0]["root"] = len(duplicate_node["nodes"]) - 1
+        mutations.append(duplicate_node)
+
+        for payload in mutations:
+            resign_air_ir_v2(payload)
+            with self.subTest(payload=payload):
+                with self.assertRaises(RefinementError):
+                    air_program.validate(payload)
+
+    def test_air_ir_v2_canonical_loader_rejects_duplicates_and_pretty_json(
+        self,
+    ) -> None:
+        payload = air_ir_v2_fixture()
+        with tempfile.TemporaryDirectory() as raw:
+            directory = Path(raw)
+            canonical = directory / "canonical.json"
+            canonical.write_bytes(codec.canonical_bytes(payload))
+            self.assertEqual(payload, air_program.load_canonical(canonical))
+
+            pretty = directory / "pretty.json"
+            pretty.write_bytes(codec.pretty_bytes(payload))
+            with self.assertRaisesRegex(RefinementError, "not compact canonical"):
+                air_program.load_canonical(pretty)
+
+            duplicate = directory / "duplicate.json"
+            duplicate.write_text(
+                '{"kind":"first","kind":"second"}',
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(RefinementError, "duplicate JSON key"):
+                air_program.load_canonical(duplicate)
 
     def test_axiom_audit_allows_only_declared_foundations(self) -> None:
         lines = "\n".join(
