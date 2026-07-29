@@ -989,8 +989,7 @@ private theorem productCarry0 (row : DivRow) (k0 : Nat)
       M31.reduce k0 := by
   simp only [M31.reduce_mul, M31.reduce_add]
   refine productCarryImage _ _ _ ?_
-  simp only [divConv0, divQuotientHigh, divDivisorHigh, divRemainderHigh,
-    divDividendHigh] at equation ⊢
+  simp only [divConv0] at equation ⊢
   omega
 
 private theorem productCarry1 (row : DivRow) (k0 k1 : Nat)
@@ -1002,8 +1001,7 @@ private theorem productCarry1 (row : DivRow) (k0 k1 : Nat)
       M31.reduce k1 := by
   simp only [M31.reduce_mul, M31.reduce_add]
   refine productCarryImage _ _ _ ?_
-  simp only [divConv1, divQuotientHigh, divDivisorHigh, divRemainderHigh,
-    divDividendHigh] at equation ⊢
+  simp only [divConv1] at equation ⊢
   omega
 
 private theorem productCarry2 (row : DivRow) (k1 k2 : Nat)
@@ -1016,8 +1014,7 @@ private theorem productCarry2 (row : DivRow) (k1 k2 : Nat)
       M31.reduce k2 := by
   simp only [M31.reduce_mul, M31.reduce_add]
   refine productCarryImage _ _ _ ?_
-  simp only [divConv2, divQuotientHigh, divDivisorHigh, divRemainderHigh,
-    divDividendHigh] at equation ⊢
+  simp only [divConv2] at equation ⊢
   omega
 
 private theorem productCarry3 (row : DivRow) (k2 k3 : Nat)
@@ -1031,8 +1028,7 @@ private theorem productCarry3 (row : DivRow) (k2 k3 : Nat)
       M31.reduce k3 := by
   simp only [M31.reduce_mul, M31.reduce_add]
   refine productCarryImage _ _ _ ?_
-  simp only [divConv3, divQuotientHigh, divDivisorHigh, divRemainderHigh,
-    divDividendHigh] at equation ⊢
+  simp only [divConv3] at equation ⊢
   omega
 
 private theorem productCarry4 (row : DivRow) (k3 k4 : Nat)
@@ -1069,6 +1065,8 @@ private theorem productCarry5 (row : DivRow) (k4 k5 : Nat)
   refine productCarryImage _ _ _ ?_
   simp only [divConv5, divQuotientHigh, divDivisorHigh, divRemainderHigh,
     divDividendHigh] at equation ⊢
+  try simp only [Nat.add_mul, Nat.mul_add] at equation
+  try simp only [Nat.add_mul, Nat.mul_add]
   omega
 
 private theorem productCarry6 (row : DivRow) (k5 k6 : Nat)
@@ -1091,6 +1089,9 @@ private theorem productCarry6 (row : DivRow) (k5 k6 : Nat)
   refine productCarryImage _ _ _ ?_
   simp only [divConv6, divQuotientHigh, divDivisorHigh, divRemainderHigh,
     divDividendHigh] at equation ⊢
+  simp only [Nat.add_sub_cancel]
+  try simp only [Nat.add_mul, Nat.mul_add] at equation
+  try simp only [Nat.add_mul, Nat.mul_add]
   omega
 
 private theorem productCarry7 (row : DivRow) (k6 k7 : Nat)
@@ -1109,15 +1110,31 @@ private theorem productCarry7 (row : DivRow) (k6 k7 : Nat)
   refine productCarryImage _ _ _ ?_
   simp only [divConv7, divQuotientHigh, divDivisorHigh, divRemainderHigh,
     divDividendHigh] at equation ⊢
+  try simp only [Nat.add_mul, Nat.mul_add] at equation
+  try simp only [Nat.add_mul, Nat.mul_add]
   omega
 
 
 
+private theorem gapImage (row : DivRow) (holds : DivHolds row)
+    (ordinal previous : Nat) (order : previous < accessClock row.clock ordinal) :
+    (M31.reduce row.clock - M31.reduce 1) * M31.reduce 4 + M31.reduce ordinal -
+          M31.reduce previous - M31.reduce 1 =
+      M31.reduce (accessClock row.clock ordinal - previous - 1) := by
+  have positive := holds.clockPositive
+  rw [M31.reduce_sub _ _ positive, M31.reduce_mul, M31.reduce_add]
+  rw [show (row.clock - 1) * 4 + ordinal = accessClock row.clock ordinal from rfl]
+  rw [M31.reduce_sub _ _ (by omega), M31.reduce_sub _ _ (by omega)]
+
+set_option maxHeartbeats 2000000 in
 set_option maxRecDepth 200000 in
 theorem divFixedRequestsHoldProbe (row : DivRow) (holds : DivHolds row) :
     divProgramCompiled.fixedRequestsHold (divColumns row) = true := by
   obtain ⟨k0, k1, k2, k3, k4, k5, k6, k7, b0, b1, b2, b3, b4, b5, b6, b7,
     e0, e1, e2, e3, e4, e5, e6, e7⟩ := holds.productRecurrence
+  have sourceOne := holds.sourceOneClock
+  have sourceTwo := holds.sourceTwoClock
+  have destination := holds.destinationClock
   simp only [DivCircuit.fixedRequestsHold, DivCircuit.fixedRequestHolds,
     DivCircuit.lookupTuple, DivCircuit.lookupNumerator, DivCircuit.values,
     DivCircuit.value, DivCircuit.nodeValuesRev, divProgramCompiled, divProgram,
@@ -1126,7 +1143,10 @@ theorem divFixedRequestsHoldProbe (row : DivRow) (holds : DivHolds row) :
     rangeCheck88Contains, rangeCheckM31Contains]
   rw [productCarry0 row k0 e0, productCarry1 row k0 k1 e1, productCarry2 row k1 k2 e2,
     productCarry3 row k2 k3 e3, productCarry4 row k3 k4 e4, productCarry5 row k4 k5 e5,
-    productCarry6 row k5 k6 e6, productCarry7 row k6 k7 e7]
+    productCarry6 row k5 k6 e6, productCarry7 row k6 k7 e7,
+    gapImage row holds 1 row.rs1PreviousClock sourceOne.1,
+    gapImage row holds 2 row.rs2PreviousClock sourceTwo.1,
+    gapImage row holds 3 row.rdPreviousClock destination.1]
 
 /-! ## The encoding is the export, and the evaluator is A's
 

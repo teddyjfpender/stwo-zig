@@ -133,6 +133,12 @@ theorem zero_add (value : M31) : 0 + value = value := by
   simp only [val_add, val_zero, Nat.zero_add]
   exact Nat.mod_eq_of_lt value.isLt
 
+theorem sub_zero (value : M31) : value - 0 = value := by
+  apply eq_of_val
+  simp only [val_sub, val_zero, Nat.sub_zero]
+  rw [Nat.add_mod_right]
+  exact Nat.mod_eq_of_lt value.isLt
+
 theorem one_mul (value : M31) : M31.reduce 1 * value = value := by
   apply eq_of_val
   simp only [val_mul, val_reduce]
@@ -786,6 +792,115 @@ private theorem gapImage (current previous : Nat) (order : previous < current) :
       M31.reduce (current - previous - 1) := by
   rw [M31.reduce_sub _ _ (Nat.le_of_lt order), M31.reduce_sub _ _ (by omega)]
 
+/-! ## Routing the two swapping access blocks to their clock obligations
+
+`LoadStoreHolds` states the clock obligations by *role* — `operandClock` at
+ordinal two, `memoryClock` at ordinal three — while the AIR states them by
+*block*, `src` and `dst`. These two lemmas are the routing, and they are where
+the address-space swap actually shows up. -/
+
+private theorem sourceClockValid (row : LoadStoreRow) (holds : LoadStoreHolds row) :
+    validPreviousClock row.srcPreviousClock (sourceAccessClock row) := by
+  cases direction : row.isStore with
+  | false =>
+      rw [sourceAccessClock_load row direction]
+      have valid := holds.memoryClock
+      simp only [LoadStoreRow.memoryPreviousClock] at valid
+      rw [direction] at valid
+      exact valid
+  | true =>
+      rw [sourceAccessClock_store row direction]
+      have valid := holds.operandClock
+      simp only [LoadStoreRow.operandPreviousClock] at valid
+      rw [direction] at valid
+      exact valid
+
+private theorem destinationClockValid (row : LoadStoreRow) (holds : LoadStoreHolds row) :
+    validPreviousClock row.dstPreviousClock (destinationAccessClock row) := by
+  cases direction : row.isStore with
+  | false =>
+      rw [destinationAccessClock_load row direction]
+      have valid := holds.operandClock
+      simp only [LoadStoreRow.operandPreviousClock] at valid
+      rw [direction] at valid
+      exact valid
+  | true =>
+      rw [destinationAccessClock_store row direction]
+      have valid := holds.memoryClock
+      simp only [LoadStoreRow.memoryPreviousClock] at valid
+      rw [direction] at valid
+      exact valid
+
+private theorem baseGapImage (row : LoadStoreRow) (holds : LoadStoreHolds row) :
+    (M31.reduce row.clock - M31.reduce 1) * M31.reduce 4 + M31.reduce 1 -
+          M31.reduce row.rs1PreviousClock - M31.reduce 1 =
+      M31.reduce (accessClock row.clock 1 - row.rs1PreviousClock - 1) := by
+  rw [accessClockImage row holds 1]
+  exact gapImage _ _ holds.baseClock.1
+
+private theorem sourceGapImage (row : LoadStoreRow) (holds : LoadStoreHolds row) :
+    (M31.reduce row.clock - M31.reduce 1) * M31.reduce 4 + M31.reduce 2 +
+          M31.reduce (bitValue row.isLoad) - M31.reduce row.srcPreviousClock -
+          M31.reduce 1 =
+      M31.reduce (sourceAccessClock row - row.srcPreviousClock - 1) := by
+  rw [accessClockImage row holds 2, M31.reduce_add]
+  exact gapImage _ _ (sourceClockValid row holds).1
+
+private theorem destinationGapImage (row : LoadStoreRow) (holds : LoadStoreHolds row) :
+    (M31.reduce row.clock - M31.reduce 1) * M31.reduce 4 + M31.reduce 2 +
+          M31.reduce (bitValue row.isStore) - M31.reduce row.dstPreviousClock -
+          M31.reduce 1 =
+      M31.reduce (destinationAccessClock row - row.dstPreviousClock - 1) := by
+  rw [accessClockImage row holds 2, M31.reduce_add]
+  exact gapImage _ _ (destinationClockValid row holds).1
+
+private theorem sourceAccessClockImage (row : LoadStoreRow) (holds : LoadStoreHolds row) :
+    (M31.reduce row.clock - M31.reduce 1) * M31.reduce 4 + M31.reduce 2 +
+        M31.reduce (bitValue row.isLoad) =
+      M31.reduce (sourceAccessClock row) := by
+  rw [accessClockImage row holds 2, M31.reduce_add]
+  rfl
+
+private theorem destinationAccessClockImage (row : LoadStoreRow)
+    (holds : LoadStoreHolds row) :
+    (M31.reduce row.clock - M31.reduce 1) * M31.reduce 4 + M31.reduce 2 +
+        M31.reduce (bitValue row.isStore) =
+      M31.reduce (destinationAccessClock row) := by
+  rw [accessClockImage row holds 2, M31.reduce_add]
+  rfl
+
+/-- The reserved last row of `range_check_m31` is `(255, 127)`; the two sign
+requests have first coordinate `0`, so the exclusion never bites. -/
+private theorem zeroNotReserved (value : M31) :
+    (decide ((M31.reduce 0).toNat = 255) && decide (value.toNat = 127)) = false := by
+  rw [show (decide ((M31.reduce 0).toNat = 255)) = false from by decide, Bool.false_and]
+
+/-- L14 / L15: `result_i - 128 * src_msb` is a seven-bit residue exactly because
+`src_msb` is bit seven of `result_i`. This is the only place the sign witness
+is spent, and it is a lookup, not a constraint root. -/
+private theorem msbResidue (byte : Byte) (msb : Bool)
+    (witness : msb = byte.getLsbD 7) :
+    M31.reduce byte.toNat - M31.reduce (bitValue msb) * M31.reduce 128 =
+        M31.reduce (byte.toNat - 128 * bitValue msb) ∧
+      byte.toNat - 128 * bitValue msb < 128 := by
+  have bound := byte.isLt
+  simp only [Nat.reducePow] at bound
+  have bit : byte.getLsbD 7 = decide (byte.toNat / 2 ^ 7 % 2 = 1) := by
+    simp only [BitVec.getLsbD, Nat.testBit_eq_decide_div_mod_eq]
+  rw [bit] at witness
+  cases msb with
+  | false =>
+      have clear : ¬ (byte.toNat / 2 ^ 7 % 2 = 1) := by simpa using witness.symm
+      simp only [Nat.reducePow] at clear
+      simp only [bitValue_false, M31.reduce_zero, M31.zero_mul, Nat.mul_zero,
+        Nat.sub_zero]
+      exact ⟨M31.sub_zero _, by omega⟩
+  | true =>
+      have set : byte.toNat / 2 ^ 7 % 2 = 1 := by simpa using witness.symm
+      simp only [Nat.reducePow] at set
+      simp only [bitValue_true, M31.reduce_mul, Nat.one_mul, Nat.mul_one]
+      exact ⟨M31.reduce_sub _ _ (by omega), by omega⟩
+
 /-! ## The bridge for the constraint roots
 
 The proof has one shape: unfold the encoded node table under the column
@@ -1225,6 +1340,43 @@ theorem loadStoreConstraintValues (row : LoadStoreRow) (holds : LoadStoreHolds r
   -- C77: bus_value_63 = accessClock(clk, 2) + is_store
   · rw [storeImage row holds, accessClockImage row holds 2, M31.reduce_add]
     exact M31.sub_self _
+
+/-! ## The bridge for the fixed-table requests
+
+This is the theorem that carries the alignment discipline. Nothing in the 78
+constraint roots forces the effective address to be word-aligned; the only
+thing that does is lookup 6, the `range_check_20` request on
+`(src_addr_selector + dst_addr_selector - r2_idx) * 4⁻¹`. A request that lands
+in the table certifies both that the aligned address is divisible by four and
+that it is below `2 ^ 22`. A bridge stated over constraint roots alone would
+certify a `load_store` AIR with no alignment discipline at all. -/
+
+/-- Every live fixed-table request the shipped `load_store` AIR makes lands
+inside its table, for every row the transcription accepts.
+
+"Live" means non-zero numerator, which is the LogUp reading: a term with a zero
+numerator contributes nothing to the bus sum and is therefore not a request.
+Only lookups 14 and 15 are ever dead, and only on rows that are neither `LB` nor
+`LH`. See the counterexample `#guard` in `LoadStoreProgram.lean` — a satisfying
+`LW` row whose lookup-14 tuple is `(0, 145)` — for why this cannot be
+strengthened to the ungated reading. -/
+theorem loadStoreFixedRequestsHold (row : LoadStoreRow) (holds : LoadStoreHolds row) :
+    loadStoreCircuitCompiled.fixedRequestsHold (loadStoreColumns row) = true := by
+  have baseClock := holds.baseClock
+  have sourceClock := sourceClockValid row holds
+  have destinationClock := destinationClockValid row holds
+  simp only [MulhCircuit.fixedRequestsHold, MulhCircuit.fixedRequestHolds,
+    MulhCircuit.lookupTuple, MulhCircuit.lookupNumerator, MulhCircuit.values,
+    MulhCircuit.value, MulhCircuit.nodeValuesRev, loadStoreCircuitCompiled,
+    loadStoreCircuit, evalLoop, Node.evalLocal, nth, List.map_cons, List.map_nil,
+    List.all_cons, List.all_nil, loadStoreColumns, rangeCheck20Contains,
+    rangeCheckM31Contains, Bool.or_true, Bool.and_true]
+  simp only [Bool.and_eq_true, Bool.or_eq_true, Bool.true_and,
+    Bool.not_eq_eq_eq_not, Bool.not_true, decide_eq_true_eq]
+  rw [activeImage row holds, storeImage row holds, loadImage row,
+    baseGapImage row holds, sourceGapImage row holds, destinationGapImage row holds,
+    alignedQuarterImage row]
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
 
 /-! ## Non-vacuity, and a check on the column assignment itself
 
