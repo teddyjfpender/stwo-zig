@@ -58,13 +58,7 @@ fn runElf(
     defer if (proof_temporary) |path| allocator.free(path);
     defer if (proof_temporary) |path| std.fs.cwd().deleteFile(path) catch {};
 
-    const report = adapter.run(
-        stwo.integrations.riscv_cpu.CpuProverEngine,
-        .cpu,
-        allocator,
-        run.elf_path,
-        run.input_path,
-        .{
+    const report = adapter.run(stwo.integrations.riscv_cpu.CpuProverEngine, .cpu, allocator, run.elf_path, run.input_path, .{
         .backend = .cpu,
         .protocol = protocol(run.protocol),
         .mode = mode,
@@ -109,6 +103,7 @@ fn verifyArtifact(allocator: std.mem.Allocator, request: cli.Verify) !void {
             const expected = request.expected_statement_digest orelse
                 return error.MissingExpectedStatementDigest;
             return adapter.verifyArtifact(
+                stwo.integrations.riscv_cpu.CpuProverEngine,
                 allocator,
                 parsed.value,
                 protocol(request.protocol),
