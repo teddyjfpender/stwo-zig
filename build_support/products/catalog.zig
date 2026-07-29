@@ -202,7 +202,6 @@ pub const configure = [_]Configure{
         .runtime_probes = &.{ "Metal.framework", "Foundation.framework", "libobjc" },
         .allowed_module_files = &.{
             "src/backends/metal/runtime.m",
-            "src/interop/atomic_file.zig",
             "src/interop/output_transaction.zig",
             "src/interop/postcard.zig",
             "src/interop/riscv_artifact.zig",

@@ -28,16 +28,19 @@
 //!   |                          | adapter hard-codes                            |
 //!   | `riscv_shared_{app,cli,registry}` | `src/products/riscv_shared/*.zig`    |
 //!   | `output_transaction`     | `src/interop/output_transaction.zig`          |
-//!   | `interop_atomic_file`    | `src/interop/atomic_file.zig`                 |
 //!   | `interop_postcard`       | `src/interop/postcard.zig`                    |
 //!   | `interop_riscv_artifact` | `src/interop/riscv_artifact.zig`              |
 //!
-//! The three `interop_*` names exist because the CPU facade
+//! The two `interop_*` names exist because the CPU facade
 //! (`src/stwo_riscv_cpu.zig`) reaches those files with relative imports from
 //! `src/`, while this product's facade root is
 //! `src/products/riscv_metal/root.zig`: Zig 0.15 rejects a relative `@import`
 //! that leaves the importing module's root directory ("import of file outside
 //! module path"), so the facade must receive them as named modules instead.
+//! There is no third module for `src/interop/atomic_file.zig`: the artifact
+//! writer imports it relatively, so it already belongs to the artifact module
+//! and a Zig file belongs to exactly one module. The facade re-exports it from
+//! there.
 
 const std = @import("std");
 const metal = @import("../backends/metal.zig");
@@ -82,7 +85,6 @@ const source_closure = product_policy.SourceClosure{
         .{ .name = "riscv_shared_cli", .source = "src/products/riscv_shared/cli.zig" },
         .{ .name = "riscv_shared_registry", .source = "src/products/riscv_shared/registry.zig" },
         .{ .name = "output_transaction", .source = "src/interop/output_transaction.zig" },
-        .{ .name = "interop_atomic_file", .source = "src/interop/atomic_file.zig" },
         .{ .name = "interop_postcard", .source = "src/interop/postcard.zig" },
         .{ .name = "interop_riscv_artifact", .source = "src/interop/riscv_artifact.zig" },
     },
@@ -408,27 +410,20 @@ fn createFacadeModule(
 }
 
 /// The facade's `interop` namespace. `src/stwo_riscv_cpu.zig` reaches these
-/// three files relatively because its module root is `src/`; this product's
-/// facade root is two directories deeper, and Zig 0.15 rejects a relative
-/// `@import` that escapes the module root, so each file becomes its own named
-/// module.
+/// files relatively because its module root is `src/`; this product's facade
+/// root is two directories deeper, and Zig 0.15 rejects a relative `@import`
+/// that escapes the module root, so they arrive as named modules.
 ///
-/// `src/interop/riscv_artifact.zig` writes `@import("atomic_file.zig")`, which
-/// as a relative path would pull that file into the `interop_riscv_artifact`
-/// module as well — and a Zig file may belong to exactly one module ("file
-/// exists in modules ... files must belong to only one module"). A module
-/// dependency whose *name* is the literal import string takes precedence over
-/// the sibling path, so `atomic_file.zig` is injected here as a named
-/// dependency of the artifact module. `src/interop/atomic_file.zig` therefore
-/// stays the root of exactly one module, and both the facade and the artifact
-/// wire observe the same instance of it.
+/// Two modules, not three: `src/interop/riscv_artifact.zig` imports
+/// `atomic_file.zig` relatively, so that file already belongs to the artifact
+/// module, and a Zig file belongs to exactly one module ("file exists in
+/// modules ... files must belong to only one module"). The facade takes
+/// `atomic_file` as the artifact module's own re-export instead.
 fn addInteropImports(
     context: Context,
     logical_product: graph.Product,
     facade: *std.Build.Module,
 ) void {
-    const atomic_file = createLeafModule(context, "src/interop/atomic_file.zig");
-
     const postcard = createLeafModule(context, "src/interop/postcard.zig");
     postcard.addImport("stwo_core", context.protocol.core);
     postcard.addImport("stwo_proof_wire", graph.createProofWire(
@@ -439,12 +434,11 @@ fn addInteropImports(
         context.optimize,
     ));
 
-    const riscv_artifact = createLeafModule(context, "src/interop/riscv_artifact.zig");
-    riscv_artifact.addImport("atomic_file.zig", atomic_file);
-
-    facade.addImport("interop_atomic_file", atomic_file);
     facade.addImport("interop_postcard", postcard);
-    facade.addImport("interop_riscv_artifact", riscv_artifact);
+    facade.addImport("interop_riscv_artifact", createLeafModule(
+        context,
+        "src/interop/riscv_artifact.zig",
+    ));
 }
 
 const Dependencies = struct {
