@@ -20,6 +20,11 @@ import RiscvRefinement.Air.Bridge.MulProgram
 import RiscvRefinement.Air.Bridge.MulBridge
 import RiscvRefinement.Air.Bridge.MulhProgram
 import RiscvRefinement.Air.Bridge.MulhBridge
+import RiscvRefinement.Air.Bridge.EvaluatorSpec
+import RiscvRefinement.Air.Bridge.LoadStoreProgram
+import RiscvRefinement.Air.Bridge.LoadStoreBridge
+import RiscvRefinement.Air.Bridge.DivProgram
+import RiscvRefinement.Air.Bridge.DivBridge
 import RiscvRefinement.Sail.Generated.Pilot
 import RiscvRefinement.Sail.Reviewed.LoadStore
 import RiscvRefinement.Sail.Reviewed.Shifts
@@ -37,6 +42,9 @@ import RiscvRefinement.Opcodes.LoadStoreMutationExtra
 import RiscvRefinement.Opcodes.ShiftsMutation
 import RiscvRefinement.Opcodes.ShiftsRegMutation
 import RiscvRefinement.Opcodes.DivMutation
+import RiscvRefinement.Opcodes.DivMutationExtra
+import RiscvRefinement.Opcodes.LoadMutationByte
+import RiscvRefinement.Opcodes.LoadMutationWord
 import RiscvRefinement.Opcodes.MultiplyMutationExtra
 import RiscvRefinement.Opcodes.SelectorNonVacuity
 import RiscvRefinement.Opcodes.StoreMutation
