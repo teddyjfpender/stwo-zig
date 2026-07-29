@@ -42,7 +42,9 @@ from scripts.native_cuda_diagnostic_lib.model import (
     XorShape,
 )
 
-from . import dimensions, ledger, search_health, stats
+from . import dimensions, ledger
+from . import manifest as manifest_mod
+from . import search_health, stats
 from .manifest import (
     CAIRO_PHASE_NAMES,
     CAIRO_STABLE_MECHANISM_FIELDS,
@@ -3807,16 +3809,30 @@ def _cairo_official_verifier_check(
     }
 
 
-def guard_registry(manifest: Manifest) -> dict:
-    return manifest.raw.get("workload_registry", {}).get("guards", {}) or {}
+def guard_registry(
+    manifest: Manifest, objective_group: WorkloadGroup | None = None,
+) -> dict:
+    """TRACKS §8: the guard portfolio bound to one objective group.
+
+    A track's guards run on ITS OWN product binary, so the portfolio is chosen
+    by the group, not shared globally: the native AIR `--example` statements
+    are meaningless to the Cairo and RISC-V product CLIs. A manifest that
+    predates the per-group registries resolves to its flat block for every
+    group, which is byte-for-byte the pre-TRACKS-§8 behaviour.
+    """
+    return manifest_mod.resolve_guard_registry(
+        manifest.raw,
+        objective_group.group_id if objective_group is not None else None,
+    )
 
 
 def select_guards(manifest: Manifest, touched: list[str],
                   objective_group: WorkloadGroup) -> list[Workload]:
-    """Impact-mapped guard selection: generic prover/PCS/FFT/accumulation
-    paths exercise every native AIR; an unmatched editable source path fails
-    closed to every guard."""
-    registry = guard_registry(manifest)
+    """Impact-mapped guard selection within the objective group's registry:
+    generic prover/PCS/FFT/accumulation paths exercise that track's whole
+    portfolio; an unmatched editable source path fails closed to every guard
+    in it."""
+    registry = guard_registry(manifest, objective_group)
     workloads = registry.get("workloads", {})
     if not workloads:
         return []
@@ -3849,11 +3865,17 @@ def select_guards(manifest: Manifest, touched: list[str],
 
 
 def run_guards(a_root: Path, b_root: Path, manifest: Manifest,
-               guards: list[Workload], out_dir: Path) -> dict:
+               guards: list[Workload], out_dir: Path,
+               objective_group: WorkloadGroup | None = None) -> dict:
     """Paired ABBA regression guards: pass = upper CI bound <= budget; a guard
     straddling its budget after the base rounds resamples with extra rounds,
-    then fails closed."""
-    registry = guard_registry(manifest)
+    then fails closed.
+
+    The sampling and budget policy comes from the objective group's registry
+    (TRACKS §8) layered over the global guard policy: a Cairo guard proves one
+    statement per cold process and cannot share the native 300 s wall budget.
+    """
+    registry = guard_registry(manifest, objective_group)
     policy = registry.get("policy", {})
     budget = float(policy.get("budget_upper", 1.05))
     guard_policy = {
@@ -3862,8 +3884,12 @@ def run_guards(a_root: Path, b_root: Path, manifest: Manifest,
         "min_rounds": int(policy.get("min_rounds", 3)),
         "max_rounds": int(policy.get("max_rounds", 8)),
         "theta_floor": max(budget - 1.0, 0.01),
-        "wall_clock_cap_seconds": {"guard": 300},
-        "command_timeout_seconds": 300,
+        "wall_clock_cap_seconds": {
+            "guard": float(policy.get("wall_clock_cap_seconds", 300)),
+        },
+        "command_timeout_seconds": float(
+            policy.get("command_timeout_seconds", 300)
+        ),
         "ci_level": float(manifest.gates["ci_level"]),
     }
     extra = int(policy.get("inconclusive_extra_rounds", 4))
@@ -4059,7 +4085,9 @@ def evaluate(
     if guards_mode != "none":
         objective_group = manifest.group(workloads[0].group_id)
         if guards_mode == "all":
-            registry = guard_registry(manifest).get("workloads", {})
+            # "all" is this TRACK's whole portfolio (TRACKS §8) — never another
+            # product's, whose args this group's binary cannot even parse.
+            registry = guard_registry(manifest, objective_group).get("workloads", {})
             selected = [
                 Workload(gid, "guard", spec["args"], spec.get("native_unit", ""),
                          objective_group.group_id)
@@ -4071,7 +4099,15 @@ def evaluate(
             print(f"running {len(selected)} regression guard(s): "
                   + ", ".join(g.workload_id for g in selected))
             guard_results = run_guards(predecessor_root, repo_root, manifest,
-                                       selected, out_dir)
+                                       selected, out_dir,
+                                       objective_group=objective_group)
+        elif objective_group.guard_registry is None:
+            # Never silent: a track with no regression surface says why.
+            print(
+                f"  no guard registry is bound to group "
+                f"{objective_group.group_id}: "
+                + str(objective_group.guard_registry_absent_reason or "")
+            )
 
     oracle_results: list[dict] = []
     if bool(policy.get("require_rust_oracle", False)):
@@ -4298,7 +4334,10 @@ def _gates(repo_root, manifest, scores, policy, judged, dispersion,
         and not p.startswith("autoresearch/notes/")
         and not p.startswith("autoresearch/.runs/")
     ]
-    violations, strays = manifest.classify_touched(touched)
+    # TRACKS §8: the editable set is the SCORED BOARD's, not a global one — a
+    # Cairo submission may edit src/frontends/cairo/**, and that same path is
+    # out of scope on a native or RISC-V submission.
+    violations, strays = manifest.classify_touched(touched, board=board)
     g2_ok = not violations and not strays
     if g2_ok:
         g2_detail = "no locked or out-of-scope path touched"
@@ -4309,16 +4348,31 @@ def _gates(repo_root, manifest, scores, policy, judged, dispersion,
     if strays:
         g2_detail += f"; outside editable set: {strays[:5]}"
 
-    riscv_scores = [
-        score for score in scores
-        if manifest.group(score.workload.group_id).report_schema == "riscv_proof_v2"
-    ]
-    if riscv_scores:
-        g3_ok = all(score.mechanism_verified is True for score in riscv_scores)
+    # G3 gates EVERY schema that declares a cross-arm mechanism contract, not
+    # just RISC-V: paired_rounds computes `mechanism_verified` from
+    # STABLE_MECHANISM_FIELDS_BY_SCHEMA, so a schema that is in that table but
+    # not here would have its telemetry checked and its verdict ungated. Cairo
+    # (cairo_proof_v1) cannot promote yet, which is exactly why the gate must
+    # land before eligibility ever flips.
+    mechanism_scores = []
+    mechanism_labels: list[str] = []
+    for score in scores:
+        schema = manifest.group(score.workload.group_id).report_schema
+        binding = STABLE_MECHANISM_FIELDS_BY_SCHEMA.get(schema)
+        if binding is None:
+            continue
+        mechanism_scores.append(score)
+        if binding[0] not in mechanism_labels:
+            mechanism_labels.append(binding[0])
+    if mechanism_scores:
+        g3_ok = all(
+            score.mechanism_verified is True for score in mechanism_scores
+        )
         g3_detail = (
-            "RISC-V mechanism telemetry present, canonical, and semantically stable "
-            f"for {sum(score.mechanism_verified is True for score in riscv_scores)}/"
-            f"{len(riscv_scores)} workloads"
+            f"{'/'.join(mechanism_labels)} mechanism telemetry present, "
+            "canonical, and semantically stable for "
+            f"{sum(score.mechanism_verified is True for score in mechanism_scores)}/"
+            f"{len(mechanism_scores)} workloads"
         )
     else:
         g3_ok = True

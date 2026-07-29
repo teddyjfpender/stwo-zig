@@ -26,6 +26,44 @@ def cmd_benchmark(_args) -> int:
     return 0
 
 
+def cmd_task(args) -> int:
+    """TRACKS §8: the per-track agent brief, generated from the contract.
+
+    Printing is the default because the brief is meant to be handed to a
+    coding agent verbatim; --write regenerates the committed copies and
+    --check proves they have not drifted from the manifest.
+    """
+    from . import track_task
+    m = manifest_mod.load()
+    if args.check:
+        stale = track_task.stale(m)
+        if stale:
+            return _fail(
+                "generated task briefs are stale: " + ", ".join(stale)
+                + " — regenerate with `stwo-perf task --write`"
+            )
+        print(f"{ansi.OK} every generated task brief matches the manifest")
+        return 0
+    if args.write:
+        changed = track_task.write(m)
+        if not changed:
+            print(f"{ansi.OK} generated task briefs already current")
+        else:
+            print(f"{ansi.OK} regenerated: " + ", ".join(changed))
+        return 0
+    if args.board is None:
+        print(track_task.render_index(m), end="")
+        return 0
+    if args.board not in track_task.track_boards(m):
+        return _fail(
+            f"board {args.board} owns no workload group, so it has no track "
+            "brief; registered tracks: "
+            + ", ".join(track_task.track_boards(m))
+        )
+    print(track_task.render_brief(m, args.board), end="")
+    return 0
+
+
 def cmd_frontier(_args) -> int:
     m = manifest_mod.load()
     rows = ledger.load(m.root)
@@ -66,27 +104,133 @@ def cmd_setup(args) -> int:
     return 0
 
 
+# TRACKS §8 frontend-aware board auto-routing. A track is a (frontend,
+# backend) pair, so the diff picks each coordinate independently: the frontend
+# sources and product integrations name the frontend, the backend kernels name
+# the lane. src/integrations/native_cuda/ is deliberately in both — it is the
+# native frontend's CUDA integration.
+FRONTEND_PREFIXES: dict[str, tuple[str, ...]] = {
+    "cairo": (
+        "src/frontends/cairo/",
+        "src/integrations/cairo_cpu/",
+        "src/integrations/cairo_metal/",
+        "src/integrations/cairo_cuda/",
+    ),
+    "riscv": (
+        "src/frontends/riscv/",
+        "src/integrations/riscv_cpu/",
+        "src/integrations/riscv_metal/",
+    ),
+    "native": (
+        "src/integrations/native/",
+        "src/integrations/native_cuda/",
+    ),
+}
+# Ordered: the first backend the diff touches wins, preserving the pre-TRACKS-§8
+# CUDA-over-Metal precedence exactly. A product integration names BOTH
+# coordinates — src/integrations/cairo_metal/ is the Cairo frontend on the
+# Metal lane — so those prefixes appear here as well as above.
+BACKEND_PREFIXES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("cuda", (
+        "src/backends/cuda/",
+        "src/integrations/native_cuda/",
+        "src/integrations/cairo_cuda/",
+    )),
+    ("metal", (
+        "src/backends/metal/",
+        "src/integrations/cairo_metal/",
+        "src/integrations/riscv_metal/",
+    )),
+)
+FRONTEND_BOARD_PREFIX = {"core": "native", "cairo": "cairo", "riscv": "riscv"}
+BACKEND_BOARD_SUFFIX = {"cpu": "cpu", "metal": "metal", "cuda": "cuda"}
+FRONTEND_LABEL = {"native": "Native", "cairo": "Cairo", "riscv": "RISC-V"}
+BACKEND_LABEL = {"cpu": "CPU", "metal": "Metal", "cuda": "CUDA"}
+
+
+def _track_of_board(board: str) -> tuple[str, str] | None:
+    """Decompose a board name into its (frontend, backend) track.
+
+    Boards are named `<frontend>[_<backend>]` (`core_metal`, `cairo_cpu`,
+    `riscv`), so the manifest's own group list — not a second hand-maintained
+    table — is the routing authority: a board added to the manifest is
+    routable the moment it lands. Names outside the convention (objective
+    boards like `pr6_supremacy`) are not auto-routable and return None.
+    """
+    head, _, tail = board.partition("_")
+    frontend = FRONTEND_BOARD_PREFIX.get(head)
+    if frontend is None:
+        return None
+    backend = BACKEND_BOARD_SUFFIX.get(tail) if tail else "cpu"
+    if backend is None:
+        return None
+    return frontend, backend
+
+
+def routed_board(m, paths: list[str]) -> tuple[str, str] | None:
+    """The board a diff routes to, plus the reason, or None for the default.
+
+    Fails closed on ambiguity: a diff spanning two frontends belongs to no
+    single track, and guessing one would score a change on a board that cannot
+    show its effect. Same for a (frontend, backend) pair the manifest declares
+    no board for. Both raise rather than silently pick.
+    """
+    frontends = sorted(
+        name for name, prefixes in FRONTEND_PREFIXES.items()
+        if any(p.startswith(prefixes) for p in paths)
+    )
+    if len(frontends) > 1:
+        raise manifest_mod.ManifestError(
+            "the diff spans more than one frontend ("
+            + ", ".join(FRONTEND_LABEL[f] for f in frontends)
+            + "): a submission is scored on exactly one track, and no board "
+            "can show a cross-frontend change. Split the diff, or name the "
+            "board explicitly with --board"
+        )
+    backend = next(
+        (
+            name for name, prefixes in BACKEND_PREFIXES
+            if any(p.startswith(prefixes) for p in paths)
+        ),
+        None,
+    )
+    if not frontends and backend is None:
+        return None
+    frontend = frontends[0] if frontends else "native"
+    backend = backend or "cpu"
+    boards_by_track = {}
+    for group in m.groups():
+        track = _track_of_board(group.board)
+        if track is not None:
+            boards_by_track[track] = group.board
+    board = boards_by_track.get((frontend, backend))
+    if board is None:
+        raise manifest_mod.ManifestError(
+            f"the diff routes to the {FRONTEND_LABEL[frontend]} frontend on the "
+            f"{BACKEND_LABEL[backend]} backend, but the manifest declares no "
+            "board for that track; name an existing board with --board"
+        )
+    return board, (
+        f"diff touches {FRONTEND_LABEL[frontend]} on {BACKEND_LABEL[backend]}"
+    )
+
+
 def _resolve_board(args, m) -> str:
     """Explicit --board wins; otherwise route by the diff — a change that
-    touches one backend can only show its effect on that backend's board."""
+    touches one frontend or backend can only show its effect on that track's
+    board (TRACKS §8)."""
     if args.board:
         return args.board
     from . import runner
-    paths = runner.changed_paths(m.root)
-    if any(
-        p.startswith(("src/backends/cuda/", "src/integrations/native_cuda/"))
-        for p in paths
-    ):
-        print(ansi.style(
-            "  board auto-selected: core_cuda (diff touches Native CUDA; "
-            "the staged board fails closed until activation)", "dim"))
-        return "core_cuda"
-    if any(p.startswith("src/backends/metal/") for p in paths):
-        print(ansi.style(
-            "  board auto-selected: core_metal (diff touches src/backends/metal/; "
-            "pass --board to override)", "dim"))
-        return "core_metal"
-    return "core_cpu"
+    routed = routed_board(m, runner.changed_paths(m.root))
+    if routed is None:
+        return "core_cpu"
+    board, reason = routed
+    print(ansi.style(
+        f"  board auto-selected: {board} ({reason}; pass --board to override)",
+        "dim",
+    ))
+    return board
 
 
 def cmd_run(args) -> int:
@@ -702,6 +846,19 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("benchmark", help="show the fixed suite, gates, and ledger state")
     sub.add_parser("frontier", help="print the promotions ledger and Pareto frontier")
 
+    p = sub.add_parser(
+        "task",
+        help="print the per-track agent brief, generated from the manifest "
+             "and epochs (TRACKS §8); no --board prints the track index",
+    )
+    p.add_argument("--board", default=None, choices=list(ledger.BOARDS),
+                   help="the track to brief; omit for the index")
+    p.add_argument("--write", action="store_true",
+                   help="regenerate the committed index and per-track briefs")
+    p.add_argument("--check", action="store_true",
+                   help="fail if any committed brief has drifted from the "
+                        "manifest or epochs")
+
     p = sub.add_parser("clone", help="create a searcher workspace (git worktree)")
     p.add_argument("dest")
 
@@ -709,8 +866,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--board",
         default=None,
-        choices=["core_cpu", "core_hybrid", "core_metal", "core_cuda",
-                 "heavy_native", "heavy_cairo", "stream", "riscv"],
+        # ledger.BOARDS is the single source of truth for board names: a
+        # hardcoded list silently rejects every board added since it was
+        # written (TRACKS §8 wave-1 added the Cairo tracks and pr6_supremacy).
+        choices=list(ledger.BOARDS),
         help="build only the workload group owned by this board",
     )
 
@@ -734,11 +893,10 @@ def build_parser() -> argparse.ArgumentParser:
              "submissions still face the judged guard matrix)",
     )
     p.add_argument("--board", default=None,
-                   choices=["core_cpu", "core_hybrid", "core_metal", "core_cuda",
-                            "heavy_native", "heavy_cairo", "stream", "riscv"],
+                   choices=list(ledger.BOARDS),
                    help="scoring board (schema/scoring.md); kernels are never "
-                        "boards. Default: auto — CUDA or Metal when the diff "
-                        "touches that backend, else core_cpu")
+                        "boards. Default: auto — routed from the diff's "
+                        "frontend and backend (TRACKS §8), else core_cpu")
     p.add_argument("--predecessor", help="worktree of the paired A arm (required)")
     p.add_argument("--aa", action="store_true",
                    help="A/A dispersion measurement (both arms = this tree)")
@@ -964,6 +1122,7 @@ HANDLERS = {
     "update": cmd_update,
     "calibrate-metal": cmd_calibrate_metal,
     "ladder": cmd_ladder,
+    "task": cmd_task,
 }
 
 

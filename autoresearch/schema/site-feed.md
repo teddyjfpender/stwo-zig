@@ -40,7 +40,7 @@ Top-level keys:
 | `anchor` | frozen flag, anchor commit, per-class anchor prove-ms |
 | `epoch` | current global measurement epoch: `number`, `opened_utc`, `reason`, and A/A dispersion (theta inputs). v4 adds `opened_utc`/`reason` |
 | `promotion_scope` | v2: the decided benchmark set — manifest class registry (scored, resource, timeout, and sampling policy), workload groups (board, enabled, disabled_reason, `promotion_blocked_reason`, `retirement`, per-workload class + native unit), `owned_boards`, `staged_boards`, `retired_boards`, `future_boards`, and committed baseline directories. A board in `future_boards` exists only as scoring universe; consumers render it as out-of-scope, never as empty-but-live. **A retired board is never in `future_boards`** — see `retired_boards` below |
-| `boards` | per scoring board (schema/scoring.md): ledger entries, manifest-owned `scored_classes`, that board's **own current era** (`era`), `retirement`, `phase_telemetry`, canonical Metrics-v2 `suite_score` for its era's epoch, and per-class frontier. `suite_score` exposes effective and audited class ratios, their board geomeans, active credit-event counts, index, and speedup; it is aggregated after shrinkage and audit replacement, never from raw `judged_r`. Each live class also exposes its Metrics-v2 `audit` projection: effective/audited score, `audited_through`, deterministic commit/time age, unaudited tail, due/overdue state, span coverage, and claimed-versus-judged evidence share |
+| `boards` | per scoring board (schema/scoring.md): ledger entries, manifest-owned `scored_classes`, that board's **own current era** (`era`), `retirement`, `phase_telemetry`, objective `supremacy` pins, the per-track `task` brief, canonical Metrics-v2 `suite_score` for its era's epoch, and per-class frontier. `suite_score` exposes effective and audited class ratios, their board geomeans, active credit-event counts, index, and speedup; it is aggregated after shrinkage and audit replacement, never from raw `judged_r`. Each live class also exposes its Metrics-v2 `audit` projection: effective/audited score, `audited_through`, deterministic commit/time age, unaudited tail, due/overdue state, span coverage, and claimed-versus-judged evidence share |
 | `search_health` | v3: manifest policy plus per board/class availability, trailing summary, latest configured/actual rounds and boost decision, complete-wall measurement hours, credited log-improvement/hour, immutable time series, and trailing decay series; classes come from the manifest and historical rows, not a fixed feed list |
 | `metal_resident_progress` | Board-4 progress metrics while the board is empty (fallbacks/proof, zero-fallback row count) |
 | `latest_matrix` | the newest benchmark-history matrix run: per-row workload identity, headline eligibility, proof parity, and per-lane medians (prove ms, native MHz with its unit, request ms, peak RSS, fallback/dispatch counts). v4 adds per-lane `backend` (verbatim backend identity from the committed report) and `board` (the scoring board that identity belongs to). New matrix lanes also retain the optional `request_resources` governed measurement vector verbatim; historical lanes omit it rather than fabricating zeros |
@@ -128,6 +128,49 @@ A `phase_seconds` cutpoint may be `null` — a documented, explicitly unmeasured
 phase (e.g. Cairo's `serialize`, which happens outside the stage recorder). No
 board publishes phase telemetry at the time this schema version lands: the
 export machinery and its source contract are live, and the drop point is empty.
+
+## v4: supremacy pins and the per-track brief (TRACKS §3.4, §8, §9)
+
+`boards.<board>.supremacy` publishes an **objective board's** pins, or `null`.
+Only a board whose manifest correctness oracle declares a
+`performance_peer_repository` is a supremacy objective — every other board
+publishes `null` rather than an empty shell that would render as an unclaimed
+objective. Today exactly one board qualifies: `pr6_supremacy`.
+
+| field | meaning |
+| --- | --- |
+| `state` | `achieved` only when the manifest both enables the board and admits promotion; otherwise `not_achieved` |
+| `board` | the board name, so the object stands alone when lifted out of the map |
+| `peer_repository` | the performance peer's repository |
+| `peer_commit` | the pinned peer commit |
+| `toolchain` | the toolchain the peer is built with, or null |
+| `activated_utc` | when the objective was activated; null while unachieved |
+| `activation_state_path` | the committed activation-state document, or null when the board declares none |
+| `reason` | why the board is disabled or promotion-blocked, or null |
+
+Every value is copied from `MANIFEST.json`; a pin the manifest does not carry
+is published as `null` and is **never** reconstructed from prose. `toolchain`
+travels with `peer_commit` deliberately: a peer commit without the toolchain it
+was built with is not a reproducible comparison (TRACKS §3.4), so a consumer
+must be able to see that absence rather than infer a default.
+
+`boards.<board>.task` publishes the board's **per-track brief**, or `null` for
+a board that owns no workload group (there is no track to brief, and a
+placeholder would render as a track that does not exist).
+
+| field | meaning |
+| --- | --- |
+| `path` | the committed brief, `autoresearch/tasks/TASK.<board>.md` |
+| `title` | the brief's title |
+| `objective` | the one-line track objective |
+| `editable_paths` | the entries in force for THIS track: `[{glob, min_rung}]`, the global editable set plus the track's own additions (TRACKS §8) |
+| `markdown` | the brief, verbatim |
+
+`markdown` is generated in-process from `MANIFEST.json` and
+`ledger/epochs.json` — the same projection `stwo-perf task --board <board>`
+prints and `stwo-perf task --write` commits — so the site's participate block,
+the committed file, and the CLI can never disagree. It is deterministic: no
+timestamps, no host state.
 
 Audit age is computed from committed Git timestamps and ancestry, never the feed
 producer's wall clock. A fork or generic consumer missing the audit commit
