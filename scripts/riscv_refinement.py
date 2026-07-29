@@ -11,9 +11,9 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-try:
-    from riscv_refinement_lib import codec, negative, render, sail
-    from riscv_refinement_lib.model import (
+if __package__:
+    from .riscv_refinement_lib import codec, negative, render, sail
+    from .riscv_refinement_lib.model import (
         FULL_OPCODE_COUNT,
         PILOT_OPCODES,
         SCHEMA_VERSION,
@@ -21,9 +21,9 @@ try:
         RefinementError,
         repository_root,
     )
-except ModuleNotFoundError:
-    from scripts.riscv_refinement_lib import codec, negative, render, sail
-    from scripts.riscv_refinement_lib.model import (
+else:
+    from riscv_refinement_lib import codec, negative, render, sail
+    from riscv_refinement_lib.model import (
         FULL_OPCODE_COUNT,
         PILOT_OPCODES,
         SCHEMA_VERSION,

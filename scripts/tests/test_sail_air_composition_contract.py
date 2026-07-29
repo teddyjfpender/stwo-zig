@@ -120,14 +120,16 @@ class SailAirCompositionContractTest(unittest.TestCase):
 
     def test_universal_refinement_plan_preserves_scope_and_binding_gates(self) -> None:
         required = (
-            "**Status:** engineering design; implementation not started.",
+            "first Team A LUI production-AIR",
+            "AIR IR v2 is delivered for LUI",
+            "no theorem yet connects evaluation of that source-bound LUI program",
             "The completed result closes SA-1 premise 5.",
             "does **not** by itself prove",
             "**Publication binding:**",
             "must not claim a universal theorem about the shipped AIR until level 2 is",
             "The final CI result is a Lean kernel check.",
             "Hand-transcribing 46 instruction functions",
-            "commands are planned interfaces, not commands available",
+            "# Complete public pilot gate:",
             "Every opcode needs a machine-checked existence theorem",
             "independent proof-system validation",
         )

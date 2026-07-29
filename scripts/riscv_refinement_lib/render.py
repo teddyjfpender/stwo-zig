@@ -9,7 +9,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from . import air, air_program, codec, sail
+from . import air, air_program, air_program_lean as air_program_lean_source, codec, sail
 from .model import LEAN_TOOLCHAIN, PILOT_OPCODES, SCHEMA_VERSION, Paths, RefinementError
 
 SOURCE_PATHS = (
@@ -43,6 +43,8 @@ GENERATOR_PATHS = (
     "scripts/riscv_refinement_lib/codec.py",
     "scripts/riscv_refinement_lib/air.py",
     "scripts/riscv_refinement_lib/air_program.py",
+    "scripts/riscv_refinement_lib/air_program_contract.py",
+    "scripts/riscv_refinement_lib/air_program_lean.py",
     "scripts/riscv_refinement_lib/sail.py",
     "scripts/riscv_refinement_lib/negative.py",
     "scripts/riscv_refinement_lib/render.py",
@@ -371,77 +373,6 @@ def addiRelations (row : AddiRow) : AddiRelations where
 end RiscvRefinement.Air.Generated
 """
 
-AIR_PROGRAM_LEAN_TEMPLATE = """\
--- GENERATED FILE. DO NOT EDIT.
--- Generator: scripts/riscv_refinement.py
--- Regenerate: python3 scripts/riscv_refinement.py generate
--- Binding: exact canonical production AIR IR v2 for LUI.
-
-import RiscvRefinement.Air
-
-namespace RiscvRefinement.Air.Generated
-
-open RiscvRefinement
-
-def luiProgramJson : String :=
-  __LUI_PROGRAM_JSON__
-
-def luiProgramDecodes : Bool :=
-  match ConstraintProgram.decodeCanonical luiProgramJson with
-  | .ok _ => true
-  | .error _ => false
-
-#guard luiProgramDecodes
-
-private def m31 (value : Nat) : M31 :=
-  M31.reduce value
-
-def luiInactiveRow : Array M31 :=
-  Array.replicate 18 0
-
-def luiActiveRow : Array M31 :=
-  #[
-    m31 1, m31 8, m31 4096,
-    m31 7, m31 0, m31 0, m31 0, m31 0, m31 0,
-    m31 0, m31 192, m31 171, m31 222,
-    m31 12, m31 171, m31 222,
-    m31 1, m31 1840700269
-  ]
-
-def luiInactiveRowIsRejected : Bool :=
-  match ConstraintProgram.decodeCanonical luiProgramJson with
-  | .error _ => false
-  | .ok program =>
-    match program.eval luiInactiveRow with
-    | .error _ => false
-    | .ok evaluation =>
-          !evaluation.rowActive &&
-          !evaluation.constraintsHold &&
-          evaluation.fixedLookupsHold &&
-          evaluation.liveLookups.isEmpty
-
-#guard luiInactiveRowIsRejected
-
-def luiActiveRowEvaluates : Bool :=
-  match ConstraintProgram.decodeCanonical luiProgramJson with
-  | .error _ => false
-  | .ok program =>
-    match program.eval luiActiveRow with
-    | .error _ => false
-    | .ok evaluation =>
-          evaluation.activeSelectorsAccepted &&
-          evaluation.constraintsHold &&
-          evaluation.fixedLookupsHold &&
-          evaluation.liveLookups.size == 7 &&
-          evaluation.projection.nextPc.toNat == 4100 &&
-          evaluation.projection.programEvent.tuple.map M31.toNat ==
-            #[4096, 35, 7, 912060, 0]
-
-#guard luiActiveRowEvaluates
-
-end RiscvRefinement.Air.Generated
-"""
-
 SAIL_LEAN_TEMPLATE = """\
 -- GENERATED FILE. DO NOT EDIT.
 -- Generator: scripts/riscv_refinement.py
@@ -707,7 +638,7 @@ def artifacts(paths: Paths, evidence: sail.SailEvidence) -> dict[Path, bytes]:
         .replace("__ADDI_DIGEST__", packaged["addi"]["canonical_digest"])
         .encode("utf-8")
     )
-    air_program_lean = AIR_PROGRAM_LEAN_TEMPLATE.replace(
+    air_program_lean = air_program_lean_source.AIR_PROGRAM_LEAN_TEMPLATE.replace(
         "__LUI_PROGRAM_JSON__",
         codec.canonical_bytes(lui_air_program_bytes.decode("ascii")).decode(
             "ascii"

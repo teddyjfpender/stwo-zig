@@ -1,7 +1,8 @@
 # Universal AIR → Sail refinement engineering plan
 
-**Status:** Level-1 LUI/ADDI pilot delivered; publication-level production
-binding and the remaining 44 opcodes are open.
+**Status:** Level-1 LUI/ADDI pilot and the first Team A LUI production-AIR
+binding delivered; AIR-to-normalized composition, generated-Sail binding, and
+the remaining 44 opcodes are open.
 
 **Primary result:** machine-check, for every input admitted by each of the 46
 proof opcodes, that satisfaction of the shipped row AIR and its exact local
@@ -48,25 +49,30 @@ escapes and audited with `#print axioms`; only `propext`,
 The generator freshly exports all 17 production symbolic-AIR families, accepts
 only the exact closed LUI and base-ALU-immediate schemas, packages LUI/ADDI,
 and binds every RISC-V frontend source plus the generator and proof closure by
-SHA-256. The Sail side uses the pinned repository and compiler, constructs the
-exact `rv32im-zkvm-v1` configuration from the normative overrides, validates
-that it reports `rv32im`, generates the theorem backend under that
+SHA-256. LUI additionally uses one typed production `ConstraintProgram` for
+direct evaluation, lookup lowering, and canonical AIR IR v2 serialization.
+The exact source-bound serialization is strictly decoded and evaluated over
+M31 in Lean, including fixed-table membership and architectural-event
+projection. The Sail side uses the pinned repository and compiler, constructs
+the exact `rv32im-zkvm-v1` configuration from the normative overrides,
+validates that it reports `rv32im`, generates the theorem backend under that
 configuration, and pins the complete generated file and reviewed
 `execute_UTYPE`/`execute_ITYPE` slices.
 
-This is deliberately called a **Level-1 normalized pilot**, not “2 of 46
-production opcodes proved.” Two translation obligations remain outside the
-Lean kernel:
+This is deliberately called a **Level-1 normalized pilot with a LUI AIR-side
+Level-2 slice**, not “2 of 46 production opcodes proved.” The LUI serialized
+M31 expression DAG, lookup liveness, fixed tables, and projections now have a
+strict Lean interpreter. Two composition obligations still prevent
+publication:
 
-- the Python exact-shape normalizer is not yet replaced by a Lean interpreter
-  of the serialized M31 expression DAG, lookup liveness, and fixed tables; and
+- no theorem yet connects evaluation of that source-bound LUI program to the
+  normalized `LuiHolds` predicate; and
 - the reviewed Sail expression capsule is not yet related by theorem to the
   generated Sail monadic execution definition.
 
-Those are the Level-2/publication gates. The pilot therefore validates the
-proof architecture and its arithmetic, reproducibility, coverage, and audit
-machinery without closing SA-1 premise 5. The receipt records this boundary in
-machine-readable form and fails closed if stale AIR is requested.
+The AIR IR v2 round trip therefore reduces the Team A trusted base without
+closing SA-1 premise 5. The receipt records this boundary in machine-readable
+form and fails closed if stale AIR is requested.
 
 ## 1. Objective and claim boundary
 
@@ -373,8 +379,9 @@ proof.
 
 ### 6.2 Canonical refinement IR
 
-The pilot will extend the existing format rather than invent a second AIR
-export. The canonical refinement IR must add:
+AIR IR v2 is delivered for LUI as a distinct, versioned production-program
+wire while the original all-family symbolic export remains the Level-1
+normalizer input. The canonical production IR contains:
 
 - schema version;
 - opcode selector and exact manifest entry;
@@ -393,6 +400,9 @@ export. The canonical refinement IR must add:
 
 Generated files are deterministic and duplicate JSON fields are rejected.
 Column, constraint, lookup, or table-order drift changes the digest.
+Strict Python and Lean decoders reject noncanonical JSON, malformed or dead
+DAGs, reordered event/projection structure, incorrect table metadata, invalid
+selector placement, and source-closure drift.
 
 ### 6.3 Binding gates
 
@@ -411,11 +421,13 @@ Level 1 is sufficient to develop LUI, ADDI, load, and DIV proofs. The project
 must not claim a universal theorem about the shipped AIR until level 2 is
 complete. Random testing, however extensive, cannot substitute for it.
 
-The preferred level-2 design is a single typed `ConstraintProgram` builder:
-production interprets it over concrete field expressions; export serializes the
-same program; Lean interprets the serialization. This minimizes semantic code
-duplication and makes a changed constraint invalidate both the production hash
-and the proof build.
+The preferred level-2 design is now instantiated for LUI: a single typed
+`ConstraintProgram` builder is interpreted by production over concrete field
+expressions and lookup views, serialized by the exporter, and interpreted by
+Lean. A fresh-export equality gate prevents a shape-preserving replacement
+artifact from relying on self-authentication alone. This construction still
+needs the theorem composing its evaluated projection with `LuiHolds` before
+LUI reaches publication binding.
 
 ## 7. Binding the proof to pinned Sail
 
@@ -472,7 +484,9 @@ semantics of an admitted instruction.
 The Level-2 publication milestone is complete only when both opcodes are
 universally proved and non-vacuous from generated AIR and generated Sail
 definitions. The current Level-1 pilot proves the reviewed normalized AIR
-predicates against reviewed Sail expression capsules.
+predicates against reviewed Sail expression capsules. LUI also has the
+source-bound AIR IR v2 decode/evaluation slice, but the theorem composing that
+evaluation with the normalized predicate remains open.
 
 ### 8.1 LUI
 
@@ -839,10 +853,11 @@ kernel proof.
 
 ### UR-00 — theorem and trusted-base freeze
 
-Status: **partially delivered for Level 1**. The theorem signatures, toolchain,
-closed pilot schemas, digest closure, axiom policy, and claim boundary are
-implemented. The serialized-AIR interpreter and generated-Sail normalization
-theorem remain the trusted-base reduction required for Level 2.
+Status: **partially delivered through the LUI AIR-side Level-2 slice**. The
+theorem signatures, toolchain, closed pilot schemas, AIR IR v2 contract, LUI
+serialized-AIR interpreter, digest closure, axiom policy, and claim boundary
+are implemented. AIR-to-normalized composition and the generated-Sail
+normalization theorem remain required for publication.
 
 Deliver:
 
@@ -857,12 +872,14 @@ Exit gate: reviewers agree what a green theorem does and does not mean.
 
 ### UR-01 — formal foundations and LUI
 
-Status: **Level-1 pilot delivered**. The typed word/byte foundations, exact
-LUI shape gate, normalized universal theorem, non-vacuity witness, and
-validator-sensitivity mutation control are present. “Clean kernel proof from
-pinned generated inputs” remains open in its publication sense until UR-06
-removes the Python normalization from the semantic trusted base and the
-publication-grade mutation reaches Lean or pinned Sail.
+Status: **Level-1 theorem and LUI AIR-side Level-2 slice delivered**. The typed
+word/byte/M31 foundations, exact LUI shape gate, normalized universal theorem,
+non-vacuity witness, source-bound production program, strict Lean evaluator,
+and active/inactive evaluation guards are present. “Clean kernel proof from
+pinned generated inputs” remains open in its publication sense until the
+production-program evaluation is composed with `LuiHolds`, the generated Sail
+bridge is proved, and a publication-grade mutation reaches Lean or pinned
+Sail.
 
 Deliver:
 
@@ -935,6 +952,12 @@ Deliver:
 Exit gate: coverage matches the opcode manifest exactly.
 
 ### UR-06 — production source binding
+
+Status: **partially delivered for the LUI AIR side**. Direct evaluation,
+lookup lowering, and AIR IR v2 serialization share one typed production
+program; canonical generation, strict source closure, fresh-export equality,
+and Lean decode/evaluation are checked. The implication into the normalized
+LUI theorem and rollout beyond LUI remain open.
 
 Deliver:
 

@@ -1,14 +1,14 @@
 {
   "artifacts": {
     "RiscvRefinement/Air/Generated/LuiProgram.lean": "11d41de99b7d1687abc3b0f0e6b98aa3905492f9aa1fc79dd857d89031a67b35",
-    "RiscvRefinement/Air/Generated/Pilot.lean": "79fa7b9e75c114264895bb4c6a92abb4c7a7f89ffa4bd139120004234e5622d0",
+    "RiscvRefinement/Air/Generated/Pilot.lean": "6fe4e4b8f5925ed859cbc444685a6f4f3060a7cc1eca05b52e7b55f9d987cf79",
     "RiscvRefinement/Sail/Generated/Pilot.lean": "a407f40e35eb85f1f592f89a2ec2b6d15e3cfa724bbb513e08d17d4aacf8906f",
-    "generated/air/addi.json": "c0323893a0a3dfccfc478d2b6d4eed3a1926ad67184eb476955dd53caf1e83d8",
+    "generated/air/addi.json": "ea2bfe9bd2a5e3deae2415ed06da87c24cf9b0e39c7545a6f1cfb17739b33152",
     "generated/air/lui.air-ir-v2.json": "bd6345b2025b6831cabea64fb6fa9403f457bcc56dcf199a4965ce50d4880669",
-    "generated/air/lui.json": "aa1672b34b0b0a238647375edbe0671db2e2ea4b5293b4c4bf100b9570a7ca1b",
+    "generated/air/lui.json": "3cffcb02de3b6249227607993830d5d9dd9471878a837916d4d8af10c1dd15c0",
     "generated/sail/rv32im-zkvm-v1.json": "5c31e516a205d693386564242d623dbaf4dc1566573f9ecfdcb026611c8fc2c1"
   },
-  "canonical_digest": "455d62be0aaa6cd30c4e63d3eedd92fead3e5ef17d985999c70b4c567de9740e",
+  "canonical_digest": "14f3778a51367a481f0556355f06a8e9f345e68311ce7b3f10d574f428b0b642",
   "claim_boundary": {
     "kernel_checked_normalized_refinement": true,
     "lean_generated_sail_monad_normalization": false,
@@ -16,13 +16,15 @@
     "lui_air_ir_v2_roundtrip": true
   },
   "generators": {
-    "scripts/riscv_refinement.py": "4c4a1226695728a9edd7442ba171e7bc444f8d13208e4832e2e0f6b8987e32e8",
+    "scripts/riscv_refinement.py": "88a27bf0461e6f0a43b0efea5bd579baf6319b82bebc4881f21d3291e98ffbc9",
     "scripts/riscv_refinement_lib/air.py": "02e16bbec81d87912fc1a2d767075887b94d86520527bedb615a4e5dc02fa3e3",
-    "scripts/riscv_refinement_lib/air_program.py": "c9f583859f71ffe3d827d5a504d52b7b4ddc586bb014f2d233991c98e04628dc",
+    "scripts/riscv_refinement_lib/air_program.py": "cd7214bfe906463f7bade3011f804fc208b1ef7d5b46f099ff0bfc69dd624dd6",
+    "scripts/riscv_refinement_lib/air_program_contract.py": "c2bf5286cdf45ca8031c260c81380681abd57d7c7403c09abd1d6b9d47aa6072",
+    "scripts/riscv_refinement_lib/air_program_lean.py": "d9f9202a05c40b4f92792339483336120cd6e840b5c5e459450943779fd6fd3b",
     "scripts/riscv_refinement_lib/codec.py": "0ae4eaf37dfa9eaec08d26c0a042a1b1e4e8b4b9418e834e28d479e6e3b0b86b",
     "scripts/riscv_refinement_lib/model.py": "15d54672a04982109af2c4322a0986addaa054227150ae67fc10d238e46d4258",
     "scripts/riscv_refinement_lib/negative.py": "350ecd86a9694ee4bace43c74d7fe7518652554d927e8b7b999229c354e93cce",
-    "scripts/riscv_refinement_lib/render.py": "187001a99cddd81046d4355a5f61d83166a81f18da0ac63401cb256d522d43a1",
+    "scripts/riscv_refinement_lib/render.py": "21f4bb7428fa99a11eb614a9dd68887d21ef7380153d6702338c39a9d391ae85",
     "scripts/riscv_refinement_lib/sail.py": "1cefcbb2b38bb99f0547140522e876fb71f056da1068bae9c0c0a46258ee4b11",
     "scripts/tests/test_riscv_refinement.py": "326f368a9ec63745b7de50c13bbfe859805659e73dd1cb21b242018ec6edb29a"
   },
@@ -30,7 +32,7 @@
   "lean_toolchain": "leanprover/lean4:v4.29.0",
   "opcodes": [
     {
-      "air_digest": "c778c9524acedffed0923d10a8711079f58a0dfffb573727b3f15dab18a4872f",
+      "air_digest": "01a2221a7c461373b22b406c10fac0a5ad0cabf299c25d706199770df73858a1",
       "coverage_kind": "normalized-predicate",
       "id": 35,
       "mnemonic": "lui",
@@ -38,7 +40,7 @@
       "refinement_theorem": "RiscvRefinement.Opcodes.lui_refines"
     },
     {
-      "air_digest": "293e593132f8bccf0d39dc70c6a3255b91b667a2385ee57f1a72a30b167428e2",
+      "air_digest": "3d770c99a338275f4c45e18cc4351f9c962c0edf58e9d989cff73929e13191e6",
       "coverage_kind": "normalized-predicate",
       "id": 10,
       "mnemonic": "addi",
@@ -67,9 +69,9 @@
     "build_support/internal_build.zig": "4b384fad830553d70cb9c7439fda3497ff2525d0986a0d67ab39263c581c067f",
     "build_support/products/catalog.zig": "128ecf1883ae731c24344d0faf03c4ec4c1c5e512d497c850123ca7a57449d8d",
     "build_support/products/matrix.zig": "ef4f7bd7fd79e450cf75a96507250603d041e4f78ee94bfc32f06c3e192be1f6",
-    "build_support/products/package_dependencies.zig": "c35109c9209739c54bceb267f762e37d91d910990f3c4ebc63d875dbcc40feb8",
+    "build_support/products/package_dependencies.zig": "047eb48de92ade1146ef240ced10a7d3175b3b062af489d9e4519b9fa0e4b34c",
     "build_support/products/product_specs.zig": "383906d151de99d39d7d5187a660af3ed485ce8ef7a41557570094aaa1f97671",
-    "build_support/products/riscv_cpu.zig": "0b08576cd3523e9037208e05ea4358d166f7ea14c35b32cd5e97bf72ef49e116",
+    "build_support/products/riscv_cpu.zig": "b8ff326ab172f77866d3e909b961bc4fdc4c7f070b70cb3e64bfc7a9e02a0689",
     "build_support/products/riscv_refinement.zig": "476aa4e9f63bbba7ee75ce071672adec4edccb6c8969222ac43b4ef2bdd2bceb",
     "build_support/products/riscv_test_filter.zig": "04eb79170d0954fd3b06cc6bcb50b7399eab76e06917a0858235c8e2a0c3783b",
     "src/core/build.zig": "f36357d012657d4fded7fd245e5debfff623d76acdd1d68715bfc9dd5343dd92",
@@ -269,7 +271,7 @@
     "formal/riscv-refinement/lakefile.toml": "7fb21f3c7aa7bd611ea6cfe96cc2938cdd9e60b56fbb27c7b39deb5fff4cebff",
     "formal/riscv-refinement/lean-toolchain": "651c8accb402b0c071cd336e9d3dc0a55516b1bfb434ddc4801f14936785b1d2",
     "soundness/AIR_IR_V2_CONTRACT.md": "04dd18b8e1d01a1db88630890856d2e90256fd70e6d2a173da424c2cba6a1bb5",
-    "soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md": "d6e7155eb09dac065eed272e77019a795a39f50ff05d9b5f0a37173fbf6251f0",
+    "soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md": "334dd35020a451634861f630df11b806333fffbc10d67657f273038089aa42a9",
     "soundness/air-ir-v2.schema.json": "8f2585c486a3eac979c971e8c1a974f756d40c13844680d50aa6020cc6c8ac0f"
   },
   "sail": {
