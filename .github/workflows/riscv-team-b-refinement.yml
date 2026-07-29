@@ -1,0 +1,144 @@
+# Team B formal refinement leg (issue #137).
+#
+# Team B owns 22 of the 46 admitted RV32IM opcodes and the generated-Sail
+# normalization obligation. This workflow is the hosted half of that gate.
+#
+# Fail-closed contract. There is no skip path in this workflow. Specifically:
+#
+#   * If the Lean toolchain cannot be provisioned, the job is RED. It is not
+#     skipped, and it is not allowed to pass with the Lean leg absent. That is
+#     the whole point of the "absence cannot silently skip a required formal
+#     leg" deliverable in Stage B5.
+#   * If the production symbolic AIR export fails, the job is RED. The Lean
+#     family capsules bind exported AIR digests, so an unexportable AIR means
+#     the binding is unverifiable, not that it is fine.
+#   * If a Lean family capsule records a digest that no longer matches a fresh
+#     export, the job is RED.
+#   * The proof-escape scan and the axiom audit are RED on any hit.
+#
+# What this workflow does NOT do: it does not provision Sail. The generated
+# pinned-Sail normalization theorem is still open (see
+# soundness/TEAM_B_SAIL_REFINEMENT_CONTRACT.md section 0), and the Sail-bound
+# Level-1 pilot gate remains the separate, locally-run
+# `zig build riscv-refinement-pilot`. When the generated-Sail binding lands,
+# the Sail provisioning steps from riscv-sail-differential.yml move in here and
+# this comment is deleted, not softened.
+
+name: RISC-V Team B refinement
+
+on:
+  pull_request:
+    paths:
+      - "formal/riscv-refinement/**"
+      - "scripts/riscv_team_b.py"
+      - "scripts/riscv_refinement*.py"
+      - "scripts/riscv_refinement_lib/**"
+      - "scripts/tests/test_riscv_team_b.py"
+      - "scripts/tests/test_sail_translation.py"
+      - "src/frontends/riscv/**"
+      - "soundness/TEAM_B_SAIL_REFINEMENT_CONTRACT.md"
+      - ".github/workflows/riscv-team-b-refinement.yml"
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: riscv-team-b-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  team-b-formal:
+    name: Team B formal refinement gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - name: Setup Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
+
+      - name: Setup Lean at the pinned toolchain
+        uses: leanprover/lean-action@38fbc41a8c28c4cbaec22d7f7de508ec2e7c0dd9 # v1.5.0
+        with:
+          lake-package-directory: formal/riscv-refinement
+          build: false
+          test: false
+          lint: false
+
+      # Provisioning is verified explicitly rather than inferred from a later
+      # step's success, so a silently missing toolchain fails here with a clear
+      # message instead of turning a formal leg into a no-op.
+      - name: Verify the formal toolchain is actually present
+        run: |
+          set -euo pipefail
+          cd formal/riscv-refinement
+          expected="$(tr -d '[:space:]' < lean-toolchain)"
+          actual="$(lake env lean --version)"
+          echo "pinned toolchain: ${expected}"
+          echo "resolved lean:    ${actual}"
+          case "${expected}" in
+            leanprover/lean4:v*) ;;
+            *) echo "unrecognised pinned toolchain '${expected}'" >&2; exit 1 ;;
+          esac
+          version="${expected#leanprover/lean4:v}"
+          if ! printf '%s' "${actual}" | grep -qF "${version}"; then
+            echo "resolved Lean does not match the pinned toolchain" >&2
+            exit 1
+          fi
+
+      - name: Export the production symbolic AIR
+        run: |
+          set -euo pipefail
+          rm -rf zig-out/team-b-ir
+          zig build riscv-refinement-ir -Driscv-refinement-ir-dir=zig-out/team-b-ir
+          test -s zig-out/team-b-ir/load_store.json
+          test -s zig-out/team-b-ir/div.json
+
+      - name: Team B coverage, certificate, and AIR-binding gate
+        run: python3 scripts/riscv_team_b.py check --air-ir-dir zig-out/team-b-ir
+
+      - name: Build every Lean theorem
+        run: |
+          set -euo pipefail
+          cd formal/riscv-refinement
+          lake build
+
+      - name: Scan for proof escapes
+        run: |
+          set -euo pipefail
+          # Line comments are stripped first so the banned words may still be
+          # discussed in prose; anything surviving is a real escape.
+          if find formal/riscv-refinement/RiscvRefinement -name '*.lean' -print0 \
+              | xargs -0 sed 's/--.*$//' \
+              | grep -nE '\b(sorry|admit|axiom|unsafe|native_decide)\b'; then
+            echo "forbidden proof escape present in the Lean sources" >&2
+            exit 1
+          fi
+
+      - name: Audit the axioms of every exported theorem
+        run: |
+          set -euo pipefail
+          cd formal/riscv-refinement
+          lake env lean RiscvRefinement/AxiomAudit.lean > /tmp/team-b-axioms.txt
+          # Only propext, Classical.choice and Quot.sound are approved.
+          if grep -E '^REFINEMENT_AXIOM ' /tmp/team-b-axioms.txt \
+              | grep -vE ' (propext|Classical\.choice|Quot\.sound)$'; then
+            echo "unapproved axiom in a refinement theorem" >&2
+            exit 1
+          fi
+          grep -c '^REFINEMENT_THEOREM ' /tmp/team-b-axioms.txt
+
+      - name: Python gates
+        run: |
+          set -euo pipefail
+          python3 -m unittest scripts.tests.test_riscv_team_b -v
+          python3 -m unittest scripts.tests.test_riscv_refinement -v
