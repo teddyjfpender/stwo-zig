@@ -6,12 +6,18 @@
 //! object, so the backend set below is the only backend this registry can ever
 //! report — this CLI cannot advertise the CPU product's lane.
 //!
-//! `capabilities.zig` is reached as a sibling file rather than through an
-//! injected module name so that this binding does not depend on which name the
-//! build graph chooses for the capabilities module it hands the shared adapter.
+//! `capabilities.zig` is reached through an injected module name rather than as
+//! a sibling file because it is also the root of the capabilities module handed
+//! to the shared proof adapter, and a Zig file may belong to exactly one module.
+//! The build graph must therefore create ONE module from
+//! `src/products/riscv_metal/capabilities.zig` and add it to this product's root
+//! module as `riscv_metal_capabilities` and to the adapter module under the name
+//! the adapter imports (`riscv_cpu_capabilities` today). Pointing either name at
+//! the CPU product's capabilities file fails this file's test and the Metal
+//! product's source-closure gate.
 
 const std = @import("std");
-const capabilities = @import("capabilities.zig");
+const capabilities = @import("riscv_metal_capabilities");
 const identity = @import("product_identity");
 const shared_registry = @import("riscv_shared_registry");
 
