@@ -68,16 +68,78 @@ class RunError(RuntimeError):
 LADDER_T0_SCHEMA = "stwo_perf_ladder_t0_prefilter_v1"
 LADDER_T1_SCHEMA = "stwo_perf_ladder_t1_estimate_v1"
 #: Boundary label recorded on every WorkloadScore. The default is today's
-#: paired quantity; the ladder's fast boundary is the opt-in alternative.
+#: paired quantity; the ladder's fast boundary is the opt-in alternative. The
+#: estimated label is a DIFFERENT string on purpose: a cross-invocation
+#: subtraction must never be readable as a same-invocation measurement.
 FULL_BOUNDARY = "prove_ms"
 FAST_BOUNDARY = "verified_request_minus_pow_ms"
+FAST_BOUNDARY_ESTIMATED = "verified_request_minus_pow_ms_cross_invocation_estimate"
+#: The only tier allowed to pair on a cross-invocation PoW estimate.
+CROSS_INVOCATION_POW_TIER = "T1"
 
-#: report_schema -> path (in the group's report) to the proof-of-work phase in
-#: SECONDS. Deliberately empty: no shipped product emits a PoW cutpoint yet,
-#: even though §3.2 names it as a phase. ``--fast-boundary`` therefore fails
-#: closed on every schema until its product reports the number — the harness
+
+@dataclass(frozen=True)
+class PowBoundarySource:
+    """Where a report schema's MEASURED proof-of-work seconds come from.
+
+    ``invocation`` is the honesty-critical field. ``scored_sample`` means the
+    PoW time was measured on the very invocation being timed, so subtracting it
+    yields a measurement. ``discarded_warmup`` means it was measured on another
+    invocation of the same arm in the same round, so subtracting it yields an
+    ESTIMATE — admissible only on a tier that never ranks (TRACKS §3.5).
+    """
+
+    kind: str
+    invocation: str
+    note: str
+    field_path: tuple[str, ...] = ()
+    stage_ids: tuple[str, ...] = ()
+
+    @property
+    def cross_invocation(self) -> bool:
+        return self.invocation != "scored_sample"
+
+    @property
+    def boundary_label(self) -> str:
+        return FAST_BOUNDARY_ESTIMATED if self.cross_invocation else FAST_BOUNDARY
+
+    def describe(self, report_schema: str) -> dict:
+        return {
+            "report_schema": report_schema,
+            "kind": self.kind,
+            "invocation": self.invocation,
+            "stage_ids": list(self.stage_ids),
+            "field_path": list(self.field_path),
+            "cross_invocation": self.cross_invocation,
+            "estimate": self.cross_invocation,
+            "note": self.note,
+        }
+
+
+#: report_schema -> where its measured proof-of-work seconds live. A schema
+#: absent from this registry cannot use ``--fast-boundary`` at all: the harness
 #: subtracts only measured PoW time, never a modeled or assumed one.
-POW_PHASE_SECONDS_FIELDS: dict[str, tuple[str, ...]] = {}
+POW_PHASE_SECONDS_FIELDS: dict[str, PowBoundarySource] = {
+    # Cairo records `proof_of_work` in its stage profile, which the runner
+    # writes as a sidecar next to the bench envelope. That profile comes from
+    # the discarded warmup (scored samples run uninstrumented), so this is a
+    # cross-invocation ESTIMATE and is restricted to T1 accordingly.
+    "cairo_proof_v1": PowBoundarySource(
+        kind="stage_profile_sidecar",
+        invocation="discarded_warmup",
+        stage_ids=("proof_of_work",),
+        note=(
+            "Cairo scored samples run uninstrumented, so the PoW seconds come "
+            "from the same arm's discarded warmup in the same round. pow 26 is "
+            "~constant work (TRACKS §3.5), so this is a sound estimate for a "
+            "paired delta — but it is an estimate, it is labelled as one, and "
+            "only T1 (which never ranks) may pair on it. The long-term fix is "
+            "per-sample PoW seconds in the cairo_proof_v1 envelope."
+        ),
+    ),
+}
+#: Suffix of the stage-profile sidecar the Cairo arm writes beside its envelope.
+STAGE_PROFILE_SIDECAR_SUFFIX = ".stages.json"
 
 #: report_schema -> phase name -> path to that phase's seconds. Phase names
 #: follow the §3.2 cutpoint vocabulary. Groups whose reports carry stage
@@ -435,6 +497,9 @@ class WorkloadScore:
     sequential_stop: dict | None = None
     #: Median PoW-excluded request ratio, present only under the fast boundary.
     fast_request_ratio: float | None = None
+    #: What the fast boundary subtracted and how it was measured, present only
+    #: under ``fast_boundary``. Carries the cross-invocation estimate label.
+    boundary_evidence: dict | None = None
 
 
 def portfolio_summary(scores: list[WorkloadScore], ci_level: float) -> dict:
@@ -659,8 +724,9 @@ def bench_once(
                 arm_root, group, workload, warmups, samples, out_dir,
                 tag, float(cairo_timeout), deadline_monotonic,
             )
-            # Ladder telemetry (TRACKS §3.5), read from the envelope the Cairo
-            # arm just wrote — only when a PoW cutpoint is actually registered.
+            # Ladder telemetry (TRACKS §3.5): Cairo's PoW seconds live in the
+            # stage-profile sidecar this call just wrote, so the envelope is
+            # only read when a PoW cutpoint is actually registered.
             if group.report_schema in POW_PHASE_SECONDS_FIELDS:
                 cairo_result.pow_ms = _pow_ms(
                     _load_json_object(
@@ -668,6 +734,7 @@ def bench_once(
                         "Cairo bench envelope",
                     ),
                     group,
+                    cairo_result.report_path,
                 )
             return cairo_result
         except (OSError, KeyError, TypeError, ValueError) as exc:
@@ -756,7 +823,7 @@ def bench_once(
         ) from exc
     # Ladder telemetry (TRACKS §3.5): carried on every run so the PoW-excluded
     # boundary is a projection of measured evidence, never a separate run.
-    result.pow_ms = _pow_ms(report, group)
+    result.pow_ms = _pow_ms(report, group, out_path)
     out_path.write_text(json.dumps(report, indent=1))
     return result
 
@@ -1897,11 +1964,56 @@ def resolve_phase(phases: dict[str, float], phase: str) -> str:
     )
 
 
-def _pow_ms(report: dict, group: WorkloadGroup) -> float | None:
-    path = POW_PHASE_SECONDS_FIELDS.get(group.report_schema)
-    if path is None:
+def _stage_profile_sidecar(report_path: str | Path) -> Path:
+    """The stage-profile document written beside a bench envelope."""
+    path = Path(report_path)
+    return path.with_suffix(STAGE_PROFILE_SIDECAR_SUFFIX)
+
+
+def _pow_ms(
+    report: dict, group: WorkloadGroup, report_path: str | Path,
+) -> float | None:
+    """Measured proof-of-work milliseconds, or None when the schema has none."""
+    source = POW_PHASE_SECONDS_FIELDS.get(group.report_schema)
+    if source is None:
         return None
-    seconds = _finite_or_none(_dig(report, path))
+    if source.kind == "report_field":
+        seconds = _finite_or_none(_dig(report, source.field_path))
+    elif source.kind == "stage_profile_sidecar":
+        sidecar = _stage_profile_sidecar(report_path)
+        if not sidecar.is_file():
+            raise RunError(
+                f"group {group.group_id}: the proof-of-work stage profile is "
+                f"missing at {sidecar}; the PoW-excluded boundary refuses to "
+                "guess a duration that was not recorded"
+            )
+        try:
+            profile = _load_json_object(
+                sidecar.read_text(encoding="utf-8"), "stage profile",
+            )
+        except (OSError, json.JSONDecodeError, ValueError) as exc:
+            raise RunError(
+                f"group {group.group_id}: unreadable proof-of-work stage "
+                f"profile at {sidecar}: {exc}"
+            ) from exc
+        stages: dict[str, float] = {}
+        _flatten_stage_nodes(profile.get("stages"), "", stages)
+        missing = [
+            stage_id for stage_id in source.stage_ids
+            if f"stage:{stage_id}" not in stages
+        ]
+        if missing:
+            raise RunError(
+                f"group {group.group_id}: the stage profile does not record "
+                + ", ".join(missing)
+                + "; the PoW-excluded boundary cannot subtract an unrecorded stage"
+            )
+        seconds = sum(stages[f"stage:{stage_id}"] for stage_id in source.stage_ids)
+    else:  # The registry is code; an unknown kind is a programming error.
+        raise RunError(
+            f"group {group.group_id}: unsupported proof-of-work source kind "
+            f"{source.kind!r}"
+        )
     if seconds is None or seconds < 0.0:
         raise RunError(
             f"group {group.group_id}: report declares a proof-of-work cutpoint "
@@ -1910,9 +2022,17 @@ def _pow_ms(report: dict, group: WorkloadGroup) -> float | None:
     return seconds * 1000.0
 
 
-def require_pow_boundary(group: WorkloadGroup) -> None:
-    """Fail closed when a group cannot honestly exclude PoW from its boundary."""
-    if group.report_schema not in POW_PHASE_SECONDS_FIELDS:
+def require_pow_boundary(
+    group: WorkloadGroup, tier: str | None = None,
+) -> PowBoundarySource:
+    """Resolve a group's PoW source, failing closed on both honesty rules.
+
+    Rule one: a schema with no measured PoW cutpoint cannot exclude one.
+    Rule two: a CROSS-INVOCATION source is an estimate, so only the tier that
+    never ranks may pair on it.
+    """
+    source = POW_PHASE_SECONDS_FIELDS.get(group.report_schema)
+    if source is None:
         raise RunError(
             f"group {group.group_id}: report schema {group.report_schema!r} "
             "exposes no proof-of-work cutpoint, so the PoW-excluded fast "
@@ -1920,6 +2040,15 @@ def require_pow_boundary(group: WorkloadGroup) -> None:
             "phase (§3.2) before --fast-boundary can subtract it; the harness "
             "never subtracts an unmeasured cost."
         )
+    if source.cross_invocation and tier != CROSS_INVOCATION_POW_TIER:
+        raise RunError(
+            f"group {group.group_id}: its proof-of-work seconds are measured on "
+            f"the {source.invocation} rather than the scored sample, so "
+            "subtracting them yields a cross-invocation ESTIMATE. That is "
+            f"admissible only at {CROSS_INVOCATION_POW_TIER}, which never ranks "
+            f"(TRACKS §3.5); this call declared tier={tier!r}."
+        )
+    return source
 
 
 def paired_rounds(
@@ -1935,8 +2064,13 @@ def paired_rounds(
     deadline_monotonic: float | None = None,
     sequential_stop: bool | None = None,
     fast_boundary: bool = False,
+    tier: str | None = None,
 ) -> WorkloadScore:
-    """ABBA round pairs until the CI half-width is under theta/2 or a cap hits."""
+    """ABBA round pairs until the CI half-width is under theta/2 or a cap hits.
+
+    ``tier`` is declared by ladder callers only; it gates the cross-invocation
+    PoW estimate to the tier that never ranks (see ``require_pow_boundary``).
+    """
     warmups = int(policy["warmups"])
     samples = int(policy["samples_per_round"])
     min_rounds = (
@@ -1974,9 +2108,12 @@ def paired_rounds(
     stop_policy = sequential_stop_policy(policy, armed=sequential_stop)
     stop_evidence: dict | None = None
     boundary = FULL_BOUNDARY
+    pow_source: PowBoundarySource | None = None
+    pow_ms_a: list[float] = []
+    pow_ms_b: list[float] = []
     if fast_boundary:
-        require_pow_boundary(group)
-        boundary = FAST_BOUNDARY
+        pow_source = require_pow_boundary(group, tier)
+        boundary = pow_source.boundary_label
 
     round_no = 0
     while round_no < max_rounds:
@@ -2095,6 +2232,10 @@ def paired_rounds(
             ratios.append(fast_b_ms / fast_a)
             a_meds.append(fast_a)
             b_meds.append(fast_b_ms)
+            # The subtracted quantity is itself evidence: record it per arm so
+            # a reader can see what was removed, not just the remainder.
+            pow_ms_a.append(float(a.pow_ms or 0.0))
+            pow_ms_b.append(float(b.pow_ms or 0.0))
         else:
             ratios.append(b.prove_ms / a.prove_ms)
             a_meds.append(a.prove_ms)
@@ -2208,6 +2349,10 @@ def paired_rounds(
         boundary=boundary,
         sequential_stop=stop_evidence,
         fast_request_ratio=fast_request_ratio,
+        boundary_evidence=_boundary_evidence(
+            pow_source, tier, pow_ms_a, pow_ms_b,
+            group.report_schema, fast_ratios, request_ratios,
+        ),
     )
 
 
@@ -2225,6 +2370,53 @@ def _fast_boundary_ms(arm: ArmResult, workload: Workload) -> float:
             "smaller than the verified request time"
         )
     return remainder
+
+
+def _median(values: list[float]) -> float | None:
+    return sorted(values)[len(values) // 2] if values else None
+
+
+def _boundary_evidence(
+    pow_source: PowBoundarySource | None,
+    tier: str | None,
+    pow_ms_a: list[float],
+    pow_ms_b: list[float],
+    report_schema: str,
+    fast_ratios: list[float],
+    request_ratios: list[float],
+) -> dict | None:
+    """Label what the fast boundary removed, and how well it knew it.
+
+    An estimate that reads like a measurement is the failure mode this block
+    exists to prevent, so the label is spelled out in words next to the numbers.
+    """
+    if pow_source is None:
+        return None
+    estimate = pow_source.cross_invocation
+    label = (
+        "cross-invocation estimate: the subtracted proof-of-work seconds were "
+        f"measured on the {pow_source.invocation} of the same arm in the same "
+        "round, not on the scored sample. pow 26 is ~constant work, so this is "
+        "sound for a paired delta on a tier that never ranks — it is not a "
+        "measurement of the scored invocation and must never be reported as one."
+        if estimate else
+        "measurement: the subtracted proof-of-work seconds were measured on the "
+        "scored sample itself."
+    )
+    return {
+        "boundary": pow_source.boundary_label,
+        "full_boundary": "verified_request_ms",
+        "estimate": estimate,
+        "label": label,
+        "tier": tier,
+        "pow_source": pow_source.describe(report_schema),
+        "pow_ms": {
+            "predecessor_median": _median(pow_ms_a),
+            "candidate_median": _median(pow_ms_b),
+        },
+        "rounds": len(fast_ratios),
+        "full_request_rounds": len(request_ratios),
+    }
 
 
 def _sequential_stop_look(
@@ -2708,7 +2900,9 @@ def iterate_estimate(
     group = manifest.group(next(iter(group_ids)))
     policy = manifest.gates_for_workload(group.group_id, workload_class)
     if fast_boundary:
-        require_pow_boundary(group)
+        # Resolve before building anything: a group that cannot honestly
+        # exclude PoW should cost the agent zero seconds to find out.
+        require_pow_boundary(group, CROSS_INVOCATION_POW_TIER)
     dispersion = ledger.aa_dispersion(repo_root, board, workload_class)
     theta = stats.theta(
         dispersion,
@@ -2726,6 +2920,7 @@ def iterate_estimate(
             round_budget=round_budget,
             sequential_stop=True,
             fast_boundary=fast_boundary,
+            tier=CROSS_INVOCATION_POW_TIER,
         )
         for workload in workloads
     ]
@@ -2739,7 +2934,10 @@ def iterate_estimate(
         "board": board,
         "workload_class": workload_class,
         "era": era,
-        "boundary": FAST_BOUNDARY if fast_boundary else FULL_BOUNDARY,
+        # The label comes from the scores, not from the request: a fast run on
+        # a cross-invocation source says "estimate" in the boundary name itself.
+        "boundary": scores[0].boundary,
+        "boundary_evidence": scores[0].boundary_evidence,
         "theta": theta,
         "aa_dispersion": dispersion,
         "r_geomean": portfolio["r"],
@@ -2755,6 +2953,7 @@ def iterate_estimate(
                 "b_median_ms": score.b_median_ms,
                 "request_ratio": score.request_ratio,
                 "fast_request_ratio": score.fast_request_ratio,
+                "boundary_evidence": score.boundary_evidence,
                 "sequential_stop": score.sequential_stop,
                 "measurement_seconds": score.measurement_seconds,
             }

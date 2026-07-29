@@ -265,6 +265,9 @@ def cmd_ladder(args) -> int:
             ("theta", f"{result['theta']:.6f}"),
             ("seconds", f"{result['measurement_seconds']:.2f}"),
         ]))
+        evidence = result.get("boundary_evidence")
+        if evidence and evidence.get("estimate"):
+            print(ansi.style(f"  ⚠ {evidence['label']}", "yellow"))
     print(ansi.style(f"  {result['note']}", "dim"))
     print(ansi.style(f"  written to {out}", "dim"))
     if not result.get("within_cost_target", True):
