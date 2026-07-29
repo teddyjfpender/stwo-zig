@@ -1,8 +1,11 @@
 # Reconstructed generated-Sail definition fixtures
 
-**These files are NOT captured generated output.** No Sail compiler is installed
-in the environment where they were written, and this repository does not commit
-a copy of the pinned theorem-backend file
+**These files are NOT captured generated output.** They predate the exact
+generated slices now committed under
+`formal/riscv-refinement/generated/sail/definitions/` and remain only as
+independent parser-shape probes. When these fixtures were written, no Sail
+compiler was installed and the repository did not commit a copy of the pinned
+theorem-backend file
 
 `build/riscv-refinement/Lean_RV32IM/LeanRV32IM/InstsEnd.lean`
 
@@ -41,11 +44,10 @@ parser, the normalization pass, and the receipt are total on this syntax, that
 they extract the right observable effects, and above all that they **fail
 closed** on drift. They are evidence about the receipt machinery.
 
-They are **not** evidence about the pinned Sail model. The receipt only becomes
-evidence about Sail when it is re-derived from the real generated
-`InstsEnd.lean` slices on a host that has the pinned Sail 0.20.2 compiler. Until
-then the open obligation stands exactly as issue #137 states it, and no comment,
-receipt field, or test name in this directory may be read as closing it.
+They are **not** evidence about the pinned Sail model. That evidence comes from
+the separately committed exact slices and receipt. No comment, receipt field,
+or test name in this fixture directory may be read as upgrading these
+reconstructions.
 
 If the real generated syntax turns out to differ, the correct response is to
 extend the parser and regenerate the receipt — never to relax the parser into

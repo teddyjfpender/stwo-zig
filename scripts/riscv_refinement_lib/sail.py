@@ -11,7 +11,7 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import codec
+from . import codec, sail_translation
 from .model import (
     SAIL_REPOSITORY,
     SAIL_REVISION,
@@ -31,7 +31,10 @@ from .model import (
 # The grade is written into the manifest and receipts refuse the carried one.
 LIVE_EVIDENCE = "live-toolchain"
 CARRIED_EVIDENCE = "carried-committed-sail-evidence"
-NORMALIZATION = "reviewed exact-hash LUI and ADDI expression capsule"
+NORMALIZATION = (
+    "checked generated-definition AST translation receipt for LUI and ADDI"
+)
+LEGACY_NORMALIZATION = "reviewed exact-hash LUI and ADDI expression capsule"
 
 GENERATED_DEFINITION_HASHES = {
     "execute_UTYPE": "f746995b8c903140529bb742379c295bee8d95a02de2d730990dc77fe1cacf1c",
@@ -63,6 +66,13 @@ CARRIED_INPUTS = (PROFILE_PATH, *OVERRIDE_PATHS, PATCH_PATH)
 # Sail artifacts a reused-evidence run may only ever reproduce byte for byte.
 COMMITTED_CONFIGURATION = Path("generated/sail/rv32im-zkvm-v1.json")
 COMMITTED_CAPSULE = Path("RiscvRefinement/Sail/Generated/Pilot.lean")
+COMMITTED_DEFINITIONS = {
+    name: Path("generated/sail/definitions") / f"{name}.lean"
+    for name in GENERATED_DEFINITION_HASHES
+}
+COMMITTED_TRANSLATION_RECEIPT = Path(
+    "generated/sail/translation-receipt-v1.json"
+)
 
 
 @dataclass(frozen=True)
@@ -83,7 +93,9 @@ class SailEvidence:
     profile_file_sha256: dict[str, str]
     checkout_state: str
     definition_hashes: dict[str, str]
+    definition_slices: dict[str, str]
     source_slice_hashes: dict[str, str]
+    translation_receipt: dict[str, object]
     evidence_source: str = LIVE_EVIDENCE
 
 
@@ -359,6 +371,111 @@ def _validate_semantic_shapes(definitions: dict[str, str]) -> None:
             raise RefinementError(f"generated execute_ITYPE lost {phrase!r}")
 
 
+def _translation_receipt(definitions: dict[str, str]) -> dict[str, object]:
+    """Derive and validate the fail-closed pilot translation contract."""
+    if set(definitions) != set(GENERATED_DEFINITION_HASHES):
+        raise RefinementError(
+            "generated Sail translation definition set drifted"
+        )
+    try:
+        receipt = sail_translation.build_receipt(definitions)
+    except sail_translation.SailTranslationError as exc:
+        raise RefinementError(
+            f"generated Sail definition translation failed: {exc}"
+        ) from exc
+    entries = receipt.get("definitions")
+    if not isinstance(entries, dict):
+        raise RefinementError("generated Sail translation receipt is malformed")
+    for name, expected_digest in GENERATED_DEFINITION_HASHES.items():
+        entry = entries.get(name)
+        if (
+            not isinstance(entry, dict)
+            or entry.get("source_sha256") != expected_digest
+            or entry.get("result_type") != "(SailM ExecutionResult)"
+            or entry.get("selector_binder") != "op"
+        ):
+            raise RefinementError(
+                f"generated Sail translation identity drifted for {name}"
+            )
+    if set(entries["execute_UTYPE"].get("selectors", {})) != {
+        "AUIPC",
+        "LUI",
+    }:
+        raise RefinementError(
+            "generated execute_UTYPE selector coverage drifted"
+        )
+    if set(entries["execute_ITYPE"].get("selectors", {})) != {
+        "ADDI",
+        "ANDI",
+        "ORI",
+        "SLTI",
+        "SLTIU",
+        "XORI",
+    }:
+        raise RefinementError(
+            "generated execute_ITYPE selector coverage drifted"
+        )
+    expected_lui = {
+        "memory_read": None,
+        "memory_write": None,
+        "next_pc": sail_translation.SEQUENTIAL_NEXT_PC,
+        "reads_program_counter": False,
+        "register_reads": [],
+        "register_write": {
+            "target": "rd",
+            "value": (
+                "(sign_extend (m := 32) "
+                "(imm +++ 0x000#12))"
+            ),
+        },
+        "retirement": "RETIRE_SUCCESS",
+    }
+    expected_addi = {
+        "memory_read": None,
+        "memory_write": None,
+        "next_pc": sail_translation.SEQUENTIAL_NEXT_PC,
+        "reads_program_counter": False,
+        "register_reads": ["rs1"],
+        "register_write": {
+            "target": "rd",
+            "value": (
+                "((← (rX_bits rs1)) + "
+                "(sign_extend (m := 32) imm))"
+            ),
+        },
+        "retirement": "RETIRE_SUCCESS",
+    }
+    if entries["execute_UTYPE"]["selectors"].get("LUI") != expected_lui:
+        raise RefinementError(
+            "generated execute_UTYPE LUI normalization drifted"
+        )
+    if entries["execute_ITYPE"]["selectors"].get("ADDI") != expected_addi:
+        raise RefinementError(
+            "generated execute_ITYPE ADDI normalization drifted"
+        )
+    return receipt
+
+
+def _verify_translation_receipt(
+    receipt: dict[str, object],
+    definitions: dict[str, str],
+) -> dict[str, object]:
+    """Re-derive a carried receipt, then enforce the same pilot contract."""
+    try:
+        rederived = sail_translation.verify_receipt(receipt, definitions)
+    except sail_translation.SailTranslationError as exc:
+        raise RefinementError(
+            f"committed Sail translation receipt is invalid: {exc}"
+        ) from exc
+    expected = _translation_receipt(definitions)
+    if rederived != expected:
+        raise RefinementError(
+            "committed Sail translation receipt does not reproduce the "
+            "pinned pilot translation"
+        )
+    return rederived
+
+
 def discover_source(explicit: Path | None, repository_root: Path) -> Path:
     candidates: list[Path] = []
     if explicit is not None:
@@ -609,6 +726,7 @@ def collect_evidence(
             "pinned Sail source slices drifted; review before updating the bridge"
         )
     _validate_semantic_shapes(definitions)
+    translation_receipt = _translation_receipt(definitions)
     profile_files = (PROFILE_PATH, *OVERRIDE_PATHS, PATCH_PATH)
     return SailEvidence(
         source_root=root,
@@ -628,7 +746,9 @@ def collect_evidence(
         },
         checkout_state=checkout_state,
         definition_hashes=definition_hashes,
+        definition_slices=definitions,
         source_slice_hashes=slice_hashes,
+        translation_receipt=translation_receipt,
         evidence_source=LIVE_EVIDENCE,
     )
 
@@ -642,8 +762,8 @@ def _carried_digest(carried: dict[str, object], key: str) -> str:
     return value
 
 
-def _carried_pins(carried: dict[str, object]) -> None:
-    """Every reusable field is pinned in this module, not read from JSON."""
+def _carried_base_pins(carried: dict[str, object]) -> None:
+    """Check immutable provenance shared by normal reuse and capture."""
     pinned: dict[str, object] = {
         "repository": SAIL_REPOSITORY,
         "revision": SAIL_REVISION,
@@ -657,8 +777,6 @@ def _carried_pins(carried: dict[str, object]) -> None:
         "generated_backend_file": GENERATED_FILE.as_posix(),
         "generated_definition_sha256": GENERATED_DEFINITION_HASHES,
         "source_slice_sha256": SOURCE_SLICE_HASHES,
-        "normalization": NORMALIZATION,
-        "generated_monad_normalization_theorem": False,
     }
     for key, expected in pinned.items():
         if carried.get(key) != expected:
@@ -677,6 +795,36 @@ def _carried_pins(carried: dict[str, object]) -> None:
     ):
         raise RefinementError(
             "committed Sail provenance names an unknown evidence source"
+        )
+
+
+def _carried_pins(carried: dict[str, object]) -> None:
+    """Every reusable field is pinned or re-derived, never trusted from JSON."""
+    _carried_base_pins(carried)
+    pinned: dict[str, object] = {
+        "normalization": NORMALIZATION,
+        "generated_monad_normalization_theorem": False,
+    }
+    for key, expected in pinned.items():
+        if carried.get(key) != expected:
+            raise RefinementError(
+                f"committed Sail provenance {key} does not match the pin in "
+                f"scripts/riscv_refinement_lib/sail.py: "
+                f"{carried.get(key)!r} != {expected!r}"
+            )
+    translation = carried.get("generated_ast_translation_receipt")
+    if (
+        not isinstance(translation, dict)
+        or translation.get("artifact")
+        != COMMITTED_TRANSLATION_RECEIPT.as_posix()
+        or translation.get("schema_version")
+        != sail_translation.SCHEMA_VERSION
+        or translation.get("parser_version")
+        != sail_translation.PARSER_VERSION
+    ):
+        raise RefinementError(
+            "committed Sail provenance translation receipt does not match "
+            "the pinned artifact/schema/parser"
         )
 
 
@@ -738,11 +886,65 @@ def _carried_configuration(
     return configuration
 
 
-def _refuse_minting_sail_artifacts(paths: Paths, evidence: SailEvidence) -> None:
-    """Reused evidence may reproduce the Sail artifacts and nothing else."""
+def _carried_translation(
+    paths: Paths,
+    manifest: dict[str, object],
+) -> tuple[dict[str, str], dict[str, object]]:
+    """Re-hash definition slices and re-derive their checked receipt."""
+    artifacts = manifest.get("artifacts")
+    if not isinstance(artifacts, dict):
+        raise RefinementError(
+            "committed manifest has no generated artifact digest map"
+        )
+    definitions: dict[str, str] = {}
+    for name, relative in COMMITTED_DEFINITIONS.items():
+        path = paths.formal / relative
+        if path.is_symlink() or not path.is_file():
+            raise RefinementError(
+                f"{relative.as_posix()}: committed generated Sail definition "
+                "slice is absent; reused evidence cannot be checked"
+            )
+        try:
+            definitions[name] = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeError) as exc:
+            raise RefinementError(
+                f"{relative.as_posix()}: generated Sail definition is unreadable"
+            ) from exc
+        digest = codec.sha256_bytes(definitions[name].encode("utf-8"))
+        if (
+            digest != GENERATED_DEFINITION_HASHES[name]
+            or artifacts.get(relative.as_posix()) != digest
+        ):
+            raise RefinementError(
+                f"{relative.as_posix()}: generated Sail definition digest "
+                "does not match the pinned backend and manifest"
+            )
+    receipt_path = paths.formal / COMMITTED_TRANSLATION_RECEIPT
+    if receipt_path.is_symlink() or not receipt_path.is_file():
+        raise RefinementError(
+            f"{COMMITTED_TRANSLATION_RECEIPT.as_posix()}: committed Sail "
+            "translation receipt is absent; reused evidence cannot be checked"
+        )
+    receipt = codec.load_json(receipt_path)
+    if receipt_path.read_bytes() != codec.pretty_bytes(receipt):
+        raise RefinementError(
+            f"{COMMITTED_TRANSLATION_RECEIPT.as_posix()}: committed Sail "
+            "translation receipt is not canonical pretty JSON"
+        )
+    digest = codec.sha256_file(receipt_path)
+    if artifacts.get(COMMITTED_TRANSLATION_RECEIPT.as_posix()) != digest:
+        raise RefinementError(
+            f"{COMMITTED_TRANSLATION_RECEIPT.as_posix()}: translation receipt "
+            "digest does not match the committed manifest"
+        )
+    return definitions, _verify_translation_receipt(receipt, definitions)
+
+
+def _render_capsule(evidence: SailEvidence) -> bytes:
     from . import render  # deferred: render imports this module at load time
 
-    capsule = (
+    definitions = evidence.translation_receipt["definitions"]
+    return (
         render.SAIL_LEAN_TEMPLATE.replace(
             "__UTYPE_DIGEST__",
             evidence.definition_hashes["execute_UTYPE"],
@@ -751,12 +953,35 @@ def _refuse_minting_sail_artifacts(paths: Paths, evidence: SailEvidence) -> None
             "__ITYPE_DIGEST__",
             evidence.definition_hashes["execute_ITYPE"],
         )
+        .replace(
+            "__TRANSLATION_RECEIPT_DIGEST__",
+            str(evidence.translation_receipt["canonical_digest"]),
+        )
+        .replace(
+            "__UTYPE_AST_DIGEST__",
+            str(definitions["execute_UTYPE"]["ast_sha256"]),
+        )
+        .replace(
+            "__ITYPE_AST_DIGEST__",
+            str(definitions["execute_ITYPE"]["ast_sha256"]),
+        )
         .encode("utf-8")
     )
-    for relative, rendered in (
-        (COMMITTED_CONFIGURATION, evidence.exact_configuration),
-        (COMMITTED_CAPSULE, capsule),
-    ):
+
+
+def _refuse_minting_sail_artifacts(paths: Paths, evidence: SailEvidence) -> None:
+    """Reused evidence may reproduce the Sail artifacts and nothing else."""
+    rendered_artifacts = {
+        COMMITTED_CONFIGURATION: evidence.exact_configuration,
+        COMMITTED_CAPSULE: _render_capsule(evidence),
+        COMMITTED_TRANSLATION_RECEIPT:
+            codec.pretty_bytes(evidence.translation_receipt),
+        **{
+            relative: evidence.definition_slices[name].encode("utf-8")
+            for name, relative in COMMITTED_DEFINITIONS.items()
+        },
+    }
+    for relative, rendered in rendered_artifacts.items():
         path = paths.formal / relative
         if path.is_symlink() or not path.is_file():
             raise RefinementError(
@@ -771,13 +996,114 @@ def _refuse_minting_sail_artifacts(paths: Paths, evidence: SailEvidence) -> None
             )
 
 
+def capture_pinned_generated_evidence(
+    paths: Paths,
+    generated_file: Path,
+) -> SailEvidence:
+    """Capture slices from the exact backend already bound by the manifest.
+
+    This is a narrow bootstrap for adding translation artifacts to an older
+    committed manifest. It does not run Sail and therefore remains carried
+    evidence: the supplied backend must be byte-identical to the backend digest
+    previously minted by a live pinned-toolchain run.
+    """
+    manifest = codec.load_json(paths.manifest)
+    if (
+        manifest.get("kind") != "stwo-riscv-refinement-generated-manifest"
+        or manifest.get("canonical_digest") != codec.content_digest(manifest)
+    ):
+        raise RefinementError(
+            "committed refinement manifest identity is invalid; exact backend "
+            "slices cannot be captured"
+        )
+    carried = manifest.get("sail")
+    if not isinstance(carried, dict):
+        raise RefinementError(
+            "committed refinement manifest has no Sail provenance block"
+        )
+    _carried_base_pins(carried)
+    if (
+        carried.get("normalization") not in {
+            LEGACY_NORMALIZATION,
+            NORMALIZATION,
+        }
+        or carried.get("generated_monad_normalization_theorem") is not False
+    ):
+        raise RefinementError(
+            "committed Sail normalization boundary is not eligible for "
+            "translation-artifact capture"
+        )
+    profile_file_sha256 = _carried_inputs(paths, carried)
+    _profile(paths.root)
+    configuration = _carried_configuration(paths, manifest, carried)
+    generated = generated_file.resolve()
+    if generated_file.is_symlink() or not generated.is_file():
+        raise RefinementError(
+            "translation capture requires a regular generated backend file"
+        )
+    expected_backend_digest = _carried_digest(
+        carried,
+        "generated_backend_file_sha256",
+    )
+    actual_backend_digest = codec.sha256_file(generated)
+    if actual_backend_digest != expected_backend_digest:
+        raise RefinementError(
+            "supplied generated Sail backend does not match the backend "
+            f"already bound by the committed manifest "
+            f"({actual_backend_digest} != {expected_backend_digest})"
+        )
+    try:
+        generated_text = generated.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as exc:
+        raise RefinementError(
+            "supplied generated Sail backend is unreadable"
+        ) from exc
+    definitions = {
+        name: _extract_definition(generated_text, name)
+        for name in GENERATED_DEFINITION_HASHES
+    }
+    definition_hashes = {
+        name: codec.sha256_bytes(text.encode("utf-8"))
+        for name, text in definitions.items()
+    }
+    if definition_hashes != GENERATED_DEFINITION_HASHES:
+        raise RefinementError(
+            "supplied backend definitions do not match the pinned hashes"
+        )
+    _validate_semantic_shapes(definitions)
+    translation_receipt = _translation_receipt(definitions)
+    return SailEvidence(
+        source_root=None,
+        compiler=None,
+        compiler_sha256=None,
+        simulator_sha256=None,
+        generated_file=generated,
+        generated_file_sha256=actual_backend_digest,
+        source_file_sha256=_carried_digest(carried, "source_file_sha256"),
+        model_entry_sha256=_carried_digest(carried, "model_entry_sha256"),
+        base_configuration_sha256=_carried_digest(
+            carried,
+            "base_configuration_sha256",
+        ),
+        exact_configuration=configuration,
+        exact_configuration_sha256=codec.sha256_bytes(configuration),
+        profile_file_sha256=profile_file_sha256,
+        checkout_state=str(carried["checkout_state"]),
+        definition_hashes=definition_hashes,
+        definition_slices=definitions,
+        source_slice_hashes=dict(SOURCE_SLICE_HASHES),
+        translation_receipt=translation_receipt,
+        evidence_source=CARRIED_EVIDENCE,
+    )
+
+
 def carried_evidence(paths: Paths) -> SailEvidence:
     """Rebuild the Sail evidence from committed provenance, never from a tool.
 
     Nothing here can invent Sail output. Every field is either pinned in this
     module, re-hashed from a file in this repository, or copied verbatim out of
-    the committed manifest and then required to round-trip back to it; and the
-    two Sail artifacts must already exist with exactly the reproduced bytes.
+    the committed manifest and then required to round-trip back to it; and
+    every Sail artifact must already exist with exactly the reproduced bytes.
     The result is labelled `carried-committed-sail-evidence` in the manifest and
     is refused by `toolchain`, so no release receipt can rest on it.
     """
@@ -799,6 +1125,7 @@ def carried_evidence(paths: Paths) -> SailEvidence:
     profile_file_sha256 = _carried_inputs(paths, carried)
     _profile(paths.root)
     configuration = _carried_configuration(paths, manifest, carried)
+    definitions, translation_receipt = _carried_translation(paths, manifest)
     evidence = SailEvidence(
         source_root=None,
         compiler=None,
@@ -820,7 +1147,9 @@ def carried_evidence(paths: Paths) -> SailEvidence:
         profile_file_sha256=profile_file_sha256,
         checkout_state=str(carried["checkout_state"]),
         definition_hashes=dict(GENERATED_DEFINITION_HASHES),
+        definition_slices=definitions,
         source_slice_hashes=dict(SOURCE_SLICE_HASHES),
+        translation_receipt=translation_receipt,
         evidence_source=CARRIED_EVIDENCE,
     )
     reconstructed = provenance(evidence)
@@ -858,6 +1187,19 @@ def provenance(evidence: SailEvidence) -> dict[str, object]:
         "generated_definition_sha256": evidence.definition_hashes,
         "source_slice_sha256": evidence.source_slice_hashes,
         "normalization": NORMALIZATION,
+        "generated_ast_translation_receipt": {
+            "artifact": COMMITTED_TRANSLATION_RECEIPT.as_posix(),
+            "schema_version": sail_translation.SCHEMA_VERSION,
+            "parser_version": sail_translation.PARSER_VERSION,
+            "canonical_digest":
+                evidence.translation_receipt["canonical_digest"],
+            "definition_ast_sha256": {
+                name: evidence.translation_receipt["definitions"][name][
+                    "ast_sha256"
+                ]
+                for name in sorted(GENERATED_DEFINITION_HASHES)
+            },
+        },
         "generated_monad_normalization_theorem": False,
         "evidence_source": evidence.evidence_source,
     }

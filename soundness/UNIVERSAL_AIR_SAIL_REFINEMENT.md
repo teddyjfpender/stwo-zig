@@ -1,8 +1,11 @@
 # Universal AIR → Sail refinement engineering plan
 
-**Status:** Level-1 LUI/ADDI pilot and the first Team A LUI production-AIR
-binding delivered; AIR-to-normalized composition, generated-Sail binding, and
-the remaining 44 opcodes are open.
+**Status:** production AIR-to-normalized composition is complete for LUI and
+ADDI, and a checked AST receipt binds their normalized execute clauses to exact
+pinned generated-Sail slices. Generated Sail step-monad composition, Team A's
+remaining 22 opcode proofs, and the aggregate 46-opcode gate remain open. Team
+B's 22 opcode proofs are complete at reviewed-capsule grade, not publication
+grade.
 
 **Primary result:** machine-check, for every input admitted by each of the 46
 proof opcodes, that satisfaction of the shipped row AIR and its exact local
@@ -30,12 +33,12 @@ The repository now contains a kernel-checked vertical prototype for LUI and
 ADDI under `formal/riscv-refinement/`. Its proved implication is:
 
 ```text
-generated normalized LUI/ADDI row predicate
+source-bound production LUI/ADDI AIR and lookups
                   +
 explicit local program/register environment
                   |
                   v
-reviewed normalized Sail retirement capsule
+generated normalized Sail retirement capsule
 ```
 
 The Lean proof derives LUI's four destination bytes and ADDI's source
@@ -52,28 +55,23 @@ LUI/ADDI, and binds every RISC-V frontend source plus the generator and proof
 closure by SHA-256. Independently of that Level-1 normalizer, every production
 family now uses one typed `ConstraintProgram` for direct evaluation, lookup
 lowering, and canonical AIR IR v2 serialization, producing exactly 46
-source-bound selector artifacts. LUI's exact serialization is strictly decoded
-and evaluated over M31 in Lean, including fixed-table membership and
-architectural-event projection. The Sail side uses the pinned repository and
+source-bound selector artifacts. LUI and ADDI are strictly decoded and
+evaluated over M31 in Lean, including fixed-table membership, ordered relation
+events, and architectural projection; their evaluated programs compose with
+`LuiHolds` and `AddiHolds`. The Sail side uses the pinned repository and
 compiler, constructs the exact `rv32im-zkvm-v1` configuration from the
 normative overrides, validates that it reports `rv32im`, generates the theorem
-backend under that configuration, and pins the complete generated file and
-reviewed `execute_UTYPE`/`execute_ITYPE` slices.
+backend under that configuration, and pins the complete generated file. Exact
+`execute_UTYPE`/`execute_ITYPE` slices are parsed fail-closed into a typed AST
+and a canonical receipt records their normalized LUI/ADDI effects.
 
-This is deliberately called a **Level-1 normalized pilot with a LUI AIR-side
-Level-2 slice**, not “2 of 46 production opcodes proved.” The LUI serialized
-M31 expression DAG, lookup liveness, fixed tables, and projections now have a
-strict Lean interpreter. Two composition obligations still prevent
-publication:
-
-- no theorem yet connects evaluation of that source-bound LUI program to the
-  normalized `LuiHolds` predicate; and
-- the reviewed Sail expression capsule is not yet related by theorem to the
-  generated Sail monadic execution definition.
-
-The AIR IR v2 round trip therefore reduces the Team A trusted base without
-closing SA-1 premise 5. The receipt records this boundary in machine-readable
-form and fails closed if stale AIR is requested.
+This remains deliberately called a **2/46 normalized pilot**, not “2 of 46
+publication opcodes proved.” The remaining composition obligation is from
+generated Sail step-monad execution to the receipt-bound normalized capsule
+(or the contract's independently approved fallback). The AIR half of the
+joint pilot gate is complete, but SA-1 premise 5 remains open. The generated
+manifest records both the positive AST-receipt claim and the negative
+step-monad claim, and fails closed if stale AIR or Sail artifacts are requested.
 
 ## 1. Objective and claim boundary
 
@@ -423,13 +421,14 @@ Level 1 is sufficient to develop LUI, ADDI, load, and DIV proofs. The project
 must not claim a universal theorem about the shipped AIR until level 2 is
 complete. Random testing, however extensive, cannot substitute for it.
 
-The preferred level-2 design is now instantiated for LUI: a single typed
-`ConstraintProgram` builder is interpreted by production over concrete field
-expressions and lookup views, serialized by the exporter, and interpreted by
-Lean. A fresh-export equality gate prevents a shape-preserving replacement
-artifact from relying on self-authentication alone. This construction still
-needs the theorem composing its evaluated projection with `LuiHolds` before
-LUI reaches publication binding.
+The preferred level-2 design is now instantiated across all 46 selector
+programs: a single typed `ConstraintProgram` builder is interpreted by
+production over concrete field expressions and lookup views, serialized by the
+exporter, and interpreted by Lean. A fresh-export equality gate prevents a
+shape-preserving replacement artifact from relying on self-authentication
+alone. LUI and ADDI additionally have the per-opcode theorems composing their
+evaluated projections with `LuiHolds` and `AddiHolds`; the remaining Team A
+opcodes still need that proof layer.
 
 ## 7. Binding the proof to pinned Sail
 
@@ -473,6 +472,14 @@ fallback is a generated normalized semantics capsule plus a checked translation
 receipt from the Sail AST. Hand-transcribing 46 instruction functions and
 validating them only with test vectors is not an acceptable fallback.
 
+The LUI/ADDI pilot now carries that checked translation artifact: exact
+generated `execute_UTYPE` and `execute_ITYPE` slices, their typed AST digests,
+and a fail-closed canonical receipt for every selector in those definitions.
+Carried-evidence runs re-derive it byte for byte; only a live pinned-toolchain
+run can mint release evidence. This closes the execute-clause translation
+boundary, not the generated step-monad composition or the independent fallback
+approval required by the Team B contract.
+
 ### 7.3 Decode narrowing
 
 The Sail bridge owns one explicit difference: the zkVM rejects `FENCE.I` while
@@ -485,11 +492,12 @@ semantics of an admitted instruction.
 
 The Level-2 publication milestone is complete only when both opcodes are
 universally proved and non-vacuous from generated AIR and generated Sail
-definitions. The current Level-1 pilot proves the reviewed normalized AIR
-predicates against reviewed Sail expression capsules. All selectors have
-source-bound AIR IR v2 inputs and LUI also has the strict Lean
-decode/evaluation slice, but the theorems composing interpreted LUI and ADDI
-evaluation with their normalized predicates remain open.
+definitions. The current pilot proves source-bound, interpreted production AIR
+programs imply the normalized LUI/ADDI predicates, and the normalized capsule
+is bound to actual generated execute clauses by the checked AST receipt. The
+remaining publication gap is generated Sail step-monad composition (or the
+contract's independently approved fallback), not AIR interpretation or
+execute-clause transcription.
 
 ### 8.1 LUI
 
@@ -842,25 +850,24 @@ Mandatory pilot/stress mutations include:
 These controls do not strengthen the theorem; they establish that the pipeline
 is connected to the obligations it claims to prove.
 
-The current Level-1 LUI/ADDI controls are deliberately narrower: they construct
-concrete assignments satisfying the weakened M31 direct constraints and range
-requests, demonstrate a result different from the reviewed Sail capsule, and
-require the exact-shape normalizer to reject the mutation. The Sail result is
-not obtained by invoking the pinned Sail backend, and the mutated predicate is
-not fed through Lean. These are validator-sensitivity controls, not yet the
-publication controls specified above. Level 2 must replace them with a
-counterexample checked by pinned Sail or a mutation that reaches and breaks the
-kernel proof.
+The current LUI/ADDI Stage A2 controls are Lean-checked against the interpreted
+production programs. They construct witnesses for a free LUI low limb, deleted
+ADDI high carry, deleted immediate-range request, selector relabel, and event
+reorder, and prove each weakened system strictly loses the stated
+architectural or binding fact. They reach the kernel proof and no longer rely
+only on the Python normalizer. They are still stated against the normalized
+capsule; the open generated-Sail step boundary prevents treating them as
+end-to-end Sail publication controls.
 
 ## 15. Work packages and gates
 
 ### UR-00 — theorem and trusted-base freeze
 
-Status: **partially delivered through the LUI AIR-side Level-2 slice**. The
-theorem signatures, toolchain, closed pilot schemas, AIR IR v2 contract, LUI
-serialized-AIR interpreter, digest closure, axiom policy, and claim boundary
-are implemented. AIR-to-normalized composition and the generated-Sail
-normalization theorem remain required for publication.
+Status: **AIR-side pilot freeze delivered**. The theorem signatures, toolchain,
+closed pilot schemas, all-selector AIR IR v2 contract, LUI/ADDI serialized-AIR
+interpreters and composition, digest closure, axiom policy, generated execute
+translation receipt, and claim boundary are implemented. Generated-Sail
+step-monad composition and the required sign-off remain open for publication.
 
 Deliver:
 
@@ -875,14 +882,12 @@ Exit gate: reviewers agree what a green theorem does and does not mean.
 
 ### UR-01 — formal foundations and LUI
 
-Status: **Level-1 theorem and LUI AIR-side Level-2 slice delivered**. The typed
-word/byte/M31 foundations, exact LUI shape gate, normalized universal theorem,
+Status: **production AIR-to-normalized slice delivered**. The typed
+word/byte/M31 foundations, exact LUI shape gate, universal normalized theorem,
 non-vacuity witness, source-bound production program, strict Lean evaluator,
-and active/inactive evaluation guards are present. “Clean kernel proof from
-pinned generated inputs” remains open in its publication sense until the
-production-program evaluation is composed with `LuiHolds`, the generated Sail
-bridge is proved, and a publication-grade mutation reaches Lean or pinned
-Sail.
+composition with `LuiHolds`, and a Lean-checked mutation are present. The
+execute clause is receipt-bound to generated Sail; clean publication remains
+open only across the generated step-monad/sign-off boundary.
 
 Deliver:
 
@@ -897,10 +902,11 @@ Exit gate: clean kernel proof from pinned generated inputs.
 
 ### UR-02 — ADDI vertical slice
 
-Status: **Level-1 pilot delivered**. Sign extension, byte carries, modular
-addition, source preservation, alias/x0 behavior, and non-vacuity are kernel
-checked; the mutation is a validator-sensitivity control. The same Level-2 AIR
-and Sail bindings and publication-grade mutation remain.
+Status: **production AIR-to-normalized slice delivered**. Sign extension, byte
+carries, modular addition, source preservation, alias/x0 behavior, interpreted
+production-program composition, non-vacuity, and the Stage A2 mutation bundle
+are kernel checked. The execute clause is receipt-bound to generated Sail; the
+generated step-monad/sign-off boundary remains.
 
 Deliver:
 
@@ -912,10 +918,16 @@ Deliver:
 - mutation controls.
 
 Level-2 exit gate: the entire kernel-bound production-to-Sail vertical path
-works for a nontrivial arithmetic row. This remains open after the Level-1
-normalized pilot.
+works for a nontrivial arithmetic row. Only its generated Sail step/sign-off
+side remains open.
 
 ### UR-03 — memory stress
+
+Status: **reviewed-capsule stress mechanization delivered by Team B**. All
+eight load/store selectors have normalized refinements, non-vacuity, and
+load-bearing mutation controls, including signed high-half LH and the closed
+high-address alias regression. Generated-Sail slices/receipts and step
+composition remain open, so this is not publication coverage.
 
 Deliver:
 
@@ -931,6 +943,12 @@ load/store selectors.
 
 ### UR-04 — DIV stress
 
+Status: **reviewed-capsule stress mechanization delivered by Team B**. DIV,
+DIVU, REM, and REMU cover the named exceptional cases with normalized
+refinements, non-vacuity, and mutation controls. Generated-Sail
+slices/receipts and step composition remain open, so this is not publication
+coverage.
+
 Deliver:
 
 - checked quotient/remainder library;
@@ -944,6 +962,10 @@ without treating solver output as an axiom.
 
 ### UR-05 — complete 46-opcode rollout
 
+Status: **22/22 Team B reviewed-capsule proofs delivered; Team A production
+rollout remains 2/24**. Exact publication coverage is still 0/46 because the
+shared generated-Sail boundary and aggregate gate remain open.
+
 Deliver:
 
 - all remaining family lemmas;
@@ -956,11 +978,11 @@ Exit gate: coverage matches the opcode manifest exactly.
 
 ### UR-06 — production source binding
 
-Status: **partially delivered for the LUI AIR side**. Direct evaluation,
-lookup lowering, and AIR IR v2 serialization share one typed production
-program; canonical generation, strict source closure, fresh-export equality,
-and Lean decode/evaluation are checked. The implication into the normalized
-LUI theorem and rollout beyond LUI remain open.
+Status: **shared 46-program source binding delivered; LUI/ADDI composition
+delivered**. Direct evaluation, lookup lowering, and AIR IR v2 serialization
+share one typed production program; canonical generation, strict source
+closure, fresh-export equality, and Lean decode/evaluation are checked. The
+remaining Team A selector compositions and aggregate theorem remain open.
 
 Deliver:
 

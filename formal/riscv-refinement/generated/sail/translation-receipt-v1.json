@@ -1,0 +1,209 @@
+{
+  "canonical_digest": "708ed95872d6b32a6b80806af94fd8e4210cdb280150453688a2f9315b2f22e2",
+  "claim": "binds each generated Sail definition text to its parsed AST and to the normalized observable effect of every instruction selector; it is evidence about the translation only, it is not a proof about the pinned Sail model, and it must be re-derived from the generated InstsEnd.lean on a host carrying the pinned Sail compiler before it counts as Sail evidence",
+  "definitions": {
+    "execute_ITYPE": {
+      "applied_rules": [
+        "collapse-single-statement-do",
+        "inline-pure-let-bindings",
+        "monadic-bind-is-observation",
+        "next-pc-sequential-unless-set",
+        "register-write-via-wX_bits",
+        "retirement-from-terminal-pure",
+        "selector-match-feeds-effect",
+        "selector-match-is-total"
+      ],
+      "ast_sha256": "1d44a5fef2e5a4cb65dc4f66da1f6b08d37b1f4fd9d043205b91e28e8fca7fe6",
+      "binders": [
+        {
+          "names": [
+            "imm"
+          ],
+          "type": "(BitVec 12)"
+        },
+        {
+          "names": [
+            "rs1"
+          ],
+          "type": "regidx"
+        },
+        {
+          "names": [
+            "rd"
+          ],
+          "type": "regidx"
+        },
+        {
+          "names": [
+            "op"
+          ],
+          "type": "iop"
+        }
+      ],
+      "result_type": "(SailM ExecutionResult)",
+      "selector_binder": "op",
+      "selectors": {
+        "ADDI": {
+          "memory_read": null,
+          "memory_write": null,
+          "next_pc": "sequential-pc-plus-4",
+          "reads_program_counter": false,
+          "register_reads": [
+            "rs1"
+          ],
+          "register_write": {
+            "target": "rd",
+            "value": "((\u2190 (rX_bits rs1)) + (sign_extend (m := 32) imm))"
+          },
+          "retirement": "RETIRE_SUCCESS"
+        },
+        "ANDI": {
+          "memory_read": null,
+          "memory_write": null,
+          "next_pc": "sequential-pc-plus-4",
+          "reads_program_counter": false,
+          "register_reads": [
+            "rs1"
+          ],
+          "register_write": {
+            "target": "rd",
+            "value": "((\u2190 (rX_bits rs1)) &&& (sign_extend (m := 32) imm))"
+          },
+          "retirement": "RETIRE_SUCCESS"
+        },
+        "ORI": {
+          "memory_read": null,
+          "memory_write": null,
+          "next_pc": "sequential-pc-plus-4",
+          "reads_program_counter": false,
+          "register_reads": [
+            "rs1"
+          ],
+          "register_write": {
+            "target": "rd",
+            "value": "((\u2190 (rX_bits rs1)) ||| (sign_extend (m := 32) imm))"
+          },
+          "retirement": "RETIRE_SUCCESS"
+        },
+        "SLTI": {
+          "memory_read": null,
+          "memory_write": null,
+          "next_pc": "sequential-pc-plus-4",
+          "reads_program_counter": false,
+          "register_reads": [
+            "rs1"
+          ],
+          "register_write": {
+            "target": "rd",
+            "value": "(zero_extend (m := 32) (bool_to_bit (zopz0zI_s (\u2190 (rX_bits rs1)) (sign_extend (m := 32) imm))))"
+          },
+          "retirement": "RETIRE_SUCCESS"
+        },
+        "SLTIU": {
+          "memory_read": null,
+          "memory_write": null,
+          "next_pc": "sequential-pc-plus-4",
+          "reads_program_counter": false,
+          "register_reads": [
+            "rs1"
+          ],
+          "register_write": {
+            "target": "rd",
+            "value": "(zero_extend (m := 32) (bool_to_bit (zopz0zI_u (\u2190 (rX_bits rs1)) (sign_extend (m := 32) imm))))"
+          },
+          "retirement": "RETIRE_SUCCESS"
+        },
+        "XORI": {
+          "memory_read": null,
+          "memory_write": null,
+          "next_pc": "sequential-pc-plus-4",
+          "reads_program_counter": false,
+          "register_reads": [
+            "rs1"
+          ],
+          "register_write": {
+            "target": "rd",
+            "value": "((\u2190 (rX_bits rs1)) ^^^ (sign_extend (m := 32) imm))"
+          },
+          "retirement": "RETIRE_SUCCESS"
+        }
+      },
+      "source_sha256": "1d014d14c56ab01dc511fc36c8c6ee4dea56a63708257b8a5df451e7c6f6b17d"
+    },
+    "execute_UTYPE": {
+      "applied_rules": [
+        "collapse-single-statement-do",
+        "inline-pure-let-bindings",
+        "monadic-bind-is-observation",
+        "next-pc-sequential-unless-set",
+        "register-write-via-wX_bits",
+        "retirement-from-terminal-pure",
+        "selector-match-feeds-effect",
+        "selector-match-is-total"
+      ],
+      "ast_sha256": "3b5919cc27dc576d206d41137efd031cb23979f46557d94282cfb05f83b095dc",
+      "binders": [
+        {
+          "names": [
+            "imm"
+          ],
+          "type": "(BitVec 20)"
+        },
+        {
+          "names": [
+            "rd"
+          ],
+          "type": "regidx"
+        },
+        {
+          "names": [
+            "op"
+          ],
+          "type": "uop"
+        }
+      ],
+      "result_type": "(SailM ExecutionResult)",
+      "selector_binder": "op",
+      "selectors": {
+        "AUIPC": {
+          "memory_read": null,
+          "memory_write": null,
+          "next_pc": "sequential-pc-plus-4",
+          "reads_program_counter": true,
+          "register_reads": [],
+          "register_write": {
+            "target": "rd",
+            "value": "((\u2190 (get_arch_pc ())) + (sign_extend (m := 32) (imm +++ 0x000#12)))"
+          },
+          "retirement": "RETIRE_SUCCESS"
+        },
+        "LUI": {
+          "memory_read": null,
+          "memory_write": null,
+          "next_pc": "sequential-pc-plus-4",
+          "reads_program_counter": false,
+          "register_reads": [],
+          "register_write": {
+            "target": "rd",
+            "value": "(sign_extend (m := 32) (imm +++ 0x000#12))"
+          },
+          "retirement": "RETIRE_SUCCESS"
+        }
+      },
+      "source_sha256": "f746995b8c903140529bb742379c295bee8d95a02de2d730990dc77fe1cacf1c"
+    }
+  },
+  "normalization_rules": {
+    "collapse-single-statement-do": "a do-block holding exactly one expression statement denotes that expression",
+    "inline-pure-let-bindings": "let-bound expression names are inlined into the expressions that use them",
+    "monadic-bind-is-observation": "a monadic bind of a whitelisted reader denotes an observation of pre-state, never a state change",
+    "next-pc-sequential-unless-set": "absence of a next-pc effect denotes the sequential pc + 4 retirement",
+    "register-write-via-wX_bits": "wX_bits target value denotes the single architectural register write",
+    "retirement-from-terminal-pure": "the terminal pure expression carries the retirement classification",
+    "selector-match-feeds-effect": "a generated effect whose value is selected by an inline monadic match is normalized by feeding each alternative directly to that effect",
+    "selector-match-is-total": "the single match on the instruction selector supplies one alternative per selector and no wildcard"
+  },
+  "parser_version": "sail-lean-subset-parser-v1",
+  "schema_version": "stwo-sail-translation-receipt-v1",
+  "sequential_next_pc": "sequential-pc-plus-4"
+}

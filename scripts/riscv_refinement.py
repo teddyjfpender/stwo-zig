@@ -2906,8 +2906,9 @@ APPROVED_LEAN_AXIOMS = frozenset(
 CLAIM_BOUNDARY = (
     "kernel-checked normalized LUI/ADDI predicate refinement plus "
     "lookup-complete production LUI/ADDI AIR-to-normalized composition and "
-    "Lean-checked Stage A2 mutation controls; generated-Sail monad "
-    "normalization remains open"
+    "Lean-checked Stage A2 mutation controls, bound to a checked AST "
+    "translation receipt over the pinned generated execute clauses; "
+    "generated-Sail step-monad composition remains open"
 )
 MUTATION_THEOREMS = {
     "lui-free-low-limb": (
@@ -3019,6 +3020,41 @@ def generate(args: argparse.Namespace, paths: Paths) -> None:
     outputs = prepared_outputs(args, paths)
     render.write_artifacts(paths, outputs)
     print(f"generated {len(outputs)} refinement artifacts")
+
+
+def capture_sail_translation(
+    args: argparse.Namespace,
+    paths: Paths,
+) -> None:
+    """Bootstrap checked slices from an already manifest-bound backend."""
+    if args.reuse_committed_sail_evidence:
+        raise RefinementError(
+            "capture-sail-translation does not accept "
+            "--reuse-committed-sail-evidence"
+        )
+    if args.sail_riscv_dir is not None or args.sail_bin is not None:
+        raise RefinementError(
+            "capture-sail-translation consumes only --sail-generated-file"
+        )
+    if args.sail_generated_file is None:
+        raise RefinementError(
+            "capture-sail-translation requires --sail-generated-file"
+        )
+    if not args.no_export_air:
+        render.export_air(paths)
+    else:
+        render.validate_air_export(paths.uniqueness_ir)
+        render.validate_air_program_export(paths.air_program_ir)
+    evidence = sail.capture_pinned_generated_evidence(
+        paths,
+        args.sail_generated_file,
+    )
+    outputs = render.artifacts(paths, evidence)
+    render.write_artifacts(paths, outputs)
+    print(
+        "captured pinned generated-Sail translation receipt: "
+        f"{evidence.translation_receipt['canonical_digest']}"
+    )
 
 
 def check_generated(args: argparse.Namespace, paths: Paths) -> None:
@@ -3647,6 +3683,8 @@ def parser() -> argparse.ArgumentParser:
     for name in ("generate", "check-generated", "verify", "receipt"):
         command = commands.add_parser(name)
         common_arguments(command)
+    capture_parser = commands.add_parser("capture-sail-translation")
+    common_arguments(capture_parser)
     prepare_parser = commands.add_parser("prepare-sail")
     prepare_parser.add_argument("--sail-riscv-dir", type=Path)
     prepare_parser.add_argument("--sail-bin", type=Path)
@@ -3690,6 +3728,8 @@ def main(argv: list[str] | None = None) -> int:
             )
         if args.command == "generate":
             generate(args, paths)
+        elif args.command == "capture-sail-translation":
+            capture_sail_translation(args, paths)
         elif args.command == "check-generated":
             check_generated(args, paths)
         elif args.command == "coverage":

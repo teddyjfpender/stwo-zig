@@ -41,6 +41,8 @@ def carried_fixture(root: Path) -> Paths:
         MANIFEST,
         sail.COMMITTED_CONFIGURATION,
         sail.COMMITTED_CAPSULE,
+        sail.COMMITTED_TRANSLATION_RECEIPT,
+        *sail.COMMITTED_DEFINITIONS.values(),
     ):
         destination = paths.formal / relative
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -793,6 +795,29 @@ class RefinementAirTest(unittest.TestCase):
             with self.assertRaisesRegex(
                 RefinementError,
                 "does not match the committed provenance digest",
+            ):
+                sail.carried_evidence(paths)
+
+        with tempfile.TemporaryDirectory() as raw:
+            paths = carried_fixture(Path(raw))
+            receipt = paths.formal / sail.COMMITTED_TRANSLATION_RECEIPT
+            receipt.write_bytes(receipt.read_bytes() + b"\n")
+            with self.assertRaisesRegex(
+                RefinementError,
+                "not canonical pretty JSON",
+            ):
+                sail.carried_evidence(paths)
+
+        with tempfile.TemporaryDirectory() as raw:
+            paths = carried_fixture(Path(raw))
+            definition = (
+                paths.formal
+                / sail.COMMITTED_DEFINITIONS["execute_UTYPE"]
+            )
+            definition.write_bytes(definition.read_bytes() + b"-- drift\n")
+            with self.assertRaisesRegex(
+                RefinementError,
+                "does not match the pinned backend",
             ):
                 sail.carried_evidence(paths)
 

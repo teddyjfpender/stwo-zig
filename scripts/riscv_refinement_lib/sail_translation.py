@@ -1,12 +1,11 @@
 """Checked translation receipts for generated Sail theorem-backend Lean.
 
-`sail.py` currently binds the pinned Sail model to Lean by slicing a definition
-out of the generated theorem-backend file, hashing the slice, and grepping it
-for a handful of expected substrings.  Issue #137 states plainly that this is
-not sufficient evidence for the translation obligation.  Section 7.2 of
-`soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md` sanctions exactly one fallback: a
-generated normalized semantics capsule plus a *checked translation receipt from
-the Sail AST*.
+`sail.py` binds the pinned Sail model to Lean by slicing definitions out of the
+generated theorem-backend file. Issue #137 states plainly that hashes and
+substring checks alone are not sufficient evidence for the translation
+obligation. Section 7.2 of `soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md`
+sanctions exactly one fallback: a generated normalized semantics capsule plus a
+*checked translation receipt from the Sail AST*.
 
 This module is that receipt machinery.  It parses the subset of generated-Sail
 Lean syntax the backend emits into a typed AST, normalizes the AST into the
@@ -15,10 +14,10 @@ receipt binding source digest, AST digest, normalized effects, and the identity
 of the normalization rules applied.  Every construct it does not understand is
 an error; nothing is ever skipped silently.
 
-The module is deliberately standalone: it imports nothing from its siblings so
-that a later integration step can wire it into `sail.py` without a cycle.  The
-canonical digest is computed exactly the way `codec.content_digest` computes
-it, reimplemented locally for that reason.
+The module is deliberately standalone: it imports nothing from its siblings,
+so `sail.py` can use it without an import cycle. The canonical digest is
+computed exactly the way `codec.content_digest` computes it, reimplemented
+locally for that reason.
 """
 
 from __future__ import annotations
@@ -47,6 +46,11 @@ NORMALIZATION_RULES: dict[str, str] = {
     "selector-match-is-total": (
         "the single match on the instruction selector supplies one alternative "
         "per selector and no wildcard"
+    ),
+    "selector-match-feeds-effect": (
+        "a generated effect whose value is selected by an inline monadic "
+        "match is normalized by feeding each alternative directly to that "
+        "effect"
     ),
     "monadic-bind-is-observation": (
         "a monadic bind of a whitelisted reader denotes an observation of "
@@ -88,6 +92,9 @@ _PURE_FUNCTIONS = frozenset(
         "zero_extend",
         "truncate",
         "bool_to_bits",
+        "bool_to_bit",
+        "zopz0zI_s",
+        "zopz0zI_u",
         "BitVec.slt",
         "BitVec.sle",
         "BitVec.ult",
@@ -193,6 +200,15 @@ class Let:
 @dataclass(frozen=True)
 class ExprStmt:
     value: Any
+
+
+@dataclass(frozen=True)
+class MatchedEffect:
+    """An effect whose final value is supplied by an inline monadic match."""
+
+    head: Ident
+    args: tuple
+    match: Match
 
 
 @dataclass(frozen=True)
@@ -581,6 +597,108 @@ def _parse_match(items: Sequence[_Item], index: int) -> tuple[Match, int]:
     return Match(scrutinee, tuple(alternatives)), index
 
 
+def _paren_balance(tokens: Sequence[_Token]) -> int:
+    return sum(
+        1 if token.kind == "LPAREN" else -1 if token.kind == "RPAREN" else 0
+        for token in tokens
+    )
+
+
+def _parse_matched_effect(item: _Item) -> MatchedEffect:
+    """Parse the exact nested shape emitted by Sail 0.20.2.
+
+    The theorem backend emits `wX_bits rd (← do match op with ...)` as one
+    multiline statement rather than first binding the selected value. Only
+    that fully-accounted shape is accepted here: two opening wrapper
+    parentheses, one selector match, and exactly two closing wrapper
+    parentheses on the final alternative.
+    """
+    line = item.line.number
+    head = _tokenize(item.line.text, line)
+    if (
+        len(head) != 3
+        or head[0].kind != "LPAREN"
+        or head[1].kind != "IDENT"
+        or head[1].text not in _EFFECT_FUNCTIONS
+    ):
+        raise SailTranslationError(
+            f"line {line}: unsupported multiline effect head"
+        )
+    argument = _parse_expression_tokens(head[2:], line)
+    if len(item.children) != 1:
+        raise SailTranslationError(
+            f"line {line}: multiline effect needs one inline monadic value"
+        )
+    wrapper = item.children[0]
+    wrapper_tokens = _tokenize(wrapper.line.text, wrapper.line.number)
+    if (
+        len(wrapper_tokens) != 3
+        or wrapper_tokens[0].kind != "LPAREN"
+        or wrapper_tokens[1].kind != "BIND"
+        or not _is_word(wrapper_tokens[2], "do")
+    ):
+        raise SailTranslationError(
+            f"line {wrapper.line.number}: expected '(← do' effect value"
+        )
+    nested = list(wrapper.children)
+    if len(nested) < 2:
+        raise SailTranslationError(
+            f"line {wrapper.line.number}: inline monadic value has no match"
+        )
+    match_item = nested[0]
+    match_tokens = _tokenize(match_item.line.text, match_item.line.number)
+    if (
+        match_item.children
+        or len(match_tokens) < 3
+        or not _is_word(match_tokens[0], "match")
+        or not _is_word(match_tokens[-1], "with")
+    ):
+        raise SailTranslationError(
+            f"line {match_item.line.number}: inline effect value must be a match"
+        )
+    scrutinee = _parse_expression_tokens(
+        match_tokens[1:-1], match_item.line.number
+    )
+    alternatives = nested[1:]
+    for alternative in alternatives[:-1]:
+        tokens = _tokenize(alternative.line.text, alternative.line.number)
+        if _paren_balance(tokens) != 0:
+            raise SailTranslationError(
+                f"line {alternative.line.number}: non-final match alternative "
+                "has unbalanced parentheses"
+            )
+    final = alternatives[-1]
+    if final.children or not final.line.text.endswith("))"):
+        raise SailTranslationError(
+            f"line {final.line.number}: final alternative must close exactly "
+            "the inline monad and effect wrappers"
+        )
+    stripped_line = _Line(
+        final.line.number,
+        final.line.indent,
+        final.line.text[:-2],
+    )
+    stripped = _Item(stripped_line, ())
+    if _paren_balance(_tokenize(stripped.line.text, stripped.line.number)) != 0:
+        raise SailTranslationError(
+            f"line {final.line.number}: wrapper closure is not exact"
+        )
+    parsed = [
+        _parse_alternative(alternative) for alternative in alternatives[:-1]
+    ]
+    parsed.append(_parse_alternative(stripped))
+    constructors = [alternative.ctor for alternative in parsed]
+    if len(set(constructors)) != len(constructors):
+        raise SailTranslationError(
+            f"line {match_item.line.number}: duplicate match alternative"
+        )
+    return MatchedEffect(
+        Ident(head[1].text),
+        (argument,),
+        Match(scrutinee, tuple(parsed)),
+    )
+
+
 def _parse_block(items: Sequence[_Item]) -> tuple:
     statements: list[Any] = []
     index = 0
@@ -608,12 +726,11 @@ def _parse_block(items: Sequence[_Item]) -> tuple:
             statements.append(ExprStmt(node))
         else:
             if item.children:
-                raise SailTranslationError(
-                    f"line {item.line.number}: unsupported continuation lines"
+                statements.append(_parse_matched_effect(item))
+            else:
+                statements.append(
+                    ExprStmt(_parse_expression_tokens(tokens, item.line.number))
                 )
-            statements.append(
-                ExprStmt(_parse_expression_tokens(tokens, item.line.number))
-            )
             index += 1
     return tuple(statements)
 
@@ -872,7 +989,8 @@ def normalize_definition(definition: Definition) -> dict:
     applied: set[str] = set()
     names = {name for binder in definition.binders for name in binder.names}
     env: dict[str, Any] = {}
-    selector: tuple[str, Match] | None = None
+    selector: tuple[str | None, Match] | None = None
+    matched_effect: MatchedEffect | None = None
     tail: list[Any] = []
     for statement in definition.body:
         if selector is not None:
@@ -889,6 +1007,11 @@ def normalize_definition(definition: Definition) -> dict:
             applied.add("inline-pure-let-bindings")
             if statement.monadic:
                 applied.add("monadic-bind-is-observation")
+            continue
+        if isinstance(statement, MatchedEffect):
+            selector = (None, statement.match)
+            matched_effect = statement
+            applied.add("selector-match-feeds-effect")
             continue
         raise SailTranslationError(
             "the selector match must precede every observable effect"
@@ -920,9 +1043,23 @@ def normalize_definition(definition: Definition) -> dict:
             )
         value = _substitute(body.args[0], env)
         _classify_value(value, known, {})
+        effect_tail = tail
+        effect_env = dict(env)
+        if matched_effect is not None:
+            effect_tail = [
+                ExprStmt(
+                    App(
+                        matched_effect.head,
+                        (*matched_effect.args, value),
+                    )
+                ),
+                *tail,
+            ]
+        elif binding is not None:
+            effect_env[binding] = value
         selectors[alternative.ctor] = _effects(
-            tail,
-            {**env, binding: value},
+            effect_tail,
+            effect_env,
             known,
             applied,
         )

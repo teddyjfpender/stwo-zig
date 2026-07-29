@@ -77,9 +77,11 @@ Be precise here, because "the Sail toolchain ran in CI" is easy to over-read.
   unchanged. None of that work has happened, and none of it falls out of
   provisioning.
 - **The generated-monad normalization theorem stays open**, including for the
-  pilot's LUI/ADDI. A green run proves the capsule's digests match generated
-  output; it does not prove the capsule is the observable result of the
-  generated Sail monad. That is Lean work
+  pilot's LUI/ADDI. The generator now derives a fail-closed AST translation
+  receipt from the exact generated `execute_UTYPE`/`execute_ITYPE` slices, and
+  a green live-toolchain run reproduces that receipt. It still does not prove
+  the capsule is the observable result of the generated Sail step monad. That
+  is Lean work
   (`TEAM_B_SAIL_REFINEMENT_CONTRACT.md` sections 0 and 5), not provisioning
   work, and the `claim_boundary` recorded in every manifest and receipt
   (`lean_generated_sail_monad_normalization: false`) is unchanged.

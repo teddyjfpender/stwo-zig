@@ -120,9 +120,11 @@ class SailAirCompositionContractTest(unittest.TestCase):
 
     def test_universal_refinement_plan_preserves_scope_and_binding_gates(self) -> None:
         required = (
-            "first Team A LUI production-AIR",
-            "AIR IR v2 is delivered for LUI",
-            "no theorem yet connects evaluation of that source-bound LUI program",
+            "production AIR-to-normalized composition is complete for LUI and",
+            "AIR IR v2 is delivered for all 17 families and 46 selectors",
+            "generated Sail step-monad composition",
+            "checked AST receipt binds their normalized execute clauses",
+            "22/22 Team B reviewed-capsule proofs delivered",
             "The completed result closes SA-1 premise 5.",
             "does **not** by itself prove",
             "**Publication binding:**",

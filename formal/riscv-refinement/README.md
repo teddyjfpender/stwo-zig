@@ -2,18 +2,20 @@
 
 This Lean project contains the Level-1 LUI/ADDI refinement pilot and Team A's
 production AIR IR v2 source binding. It kernel-checks the normalized LUI and
-ADDI row predicates against a reviewed normalized capsule of the pinned Sail
-definitions. All 17 production families and all 46 opcode selectors now
-round-trip through the shared production `ConstraintProgram`.
+ADDI row predicates against a generated normalized capsule bound to the exact
+pinned Sail `execute_UTYPE`/`execute_ITYPE` slices by a checked, fail-closed AST
+translation receipt. All 17 production families and all 46 opcode selectors
+now round-trip through the shared production `ConstraintProgram`.
 
 The LUI and ADDI AIR bridges now interpret their generated production programs
 directly, derive constraints and ordered relation lookups from evaluated
 events, enforce every live fixed-table request, rule out M31 clock wraparound,
 and prove the resulting typed rows satisfy `LuiHolds` and `AddiHolds`.
-Concrete witnesses pass through those same interpreters. The full generated
-Sail monad does not yet reduce to the reviewed capsule. Accordingly, the
-repository still reports `2/46` as normalized pilot coverage and does not
-count either pilot as a publication-level opcode.
+Concrete witnesses pass through those same interpreters. The receipt proves
+the execute-clause translation boundary, but the full generated Sail step
+monad does not yet reduce to the generated capsule. Accordingly, the repository
+still reports `2/46` as normalized pilot coverage and does not count either
+pilot as a publication-level opcode.
 
 ## Theorems
 
@@ -102,6 +104,8 @@ Do not edit these by hand:
 - `generated/air/{lui,addi}.json`
 - `generated/air/{all 46 manifest mnemonics}.air-ir-v2.json`
 - `generated/sail/rv32im-zkvm-v1.json`
+- `generated/sail/definitions/{execute_UTYPE,execute_ITYPE}.lean`
+- `generated/sail/translation-receipt-v1.json`
 - `RiscvRefinement/Air/Generated/Pilot.lean`
 - `RiscvRefinement/Air/Generated/LuiProgram.lean`
 - `RiscvRefinement/Sail/Generated/Pilot.lean`

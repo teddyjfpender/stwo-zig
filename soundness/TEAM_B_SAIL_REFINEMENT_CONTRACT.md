@@ -187,13 +187,24 @@ it to per-selector observable effects, refusing every construct outside its
 whitelist: in value position only the readers `rX_bits`, `get_arch_pc`,
 `mem_read` and a fixed list of pure combinators; in statement position only
 `wX_bits`, `set_next_pc`, `mem_write_value`, and a terminal
-`pure RETIRE_SUCCESS`/`RETIRE_FAIL`. Nothing has been run against real
-generated slices yet. Hosted Sail provisioning now exists —
+`pure RETIRE_SUCCESS`/`RETIRE_FAIL`.
+
+The pilot receipt is now derived from the exact generated
+`execute_UTYPE`/`execute_ITYPE` slices whose enclosing `InstsEnd.lean` digest is
+already bound by the committed manifest. The slices and canonical receipt are
+committed under `formal/riscv-refinement/generated/sail/`; carried-evidence
+verification re-hashes both slices, re-parses them, re-derives the receipt, and
+requires byte-identical reproduction. This mechanically binds the normalized
+LUI and ADDI execute-clause effects to actual generated output. It remains
+carried evidence on hosts without Sail and cannot mint a release receipt.
+
+Hosted Sail provisioning exists —
 `.github/workflows/riscv-sail-formal.yml`, normative in
 [`SAIL_PROVISIONING.md`](SAIL_PROVISIONING.md) — but that workflow
-regenerates the backend and mints the *pilot* refinement receipt; it does not
-derive translation receipts for the Team B slices. So everything below
-remains conditional on a verified receipt derived on a Sail-provisioned host.
+must still regenerate the backend and re-derive this receipt with the live
+pinned toolchain. Translation receipts for the remaining Team B execute
+families have not been captured, so the category analysis below remains
+conditional for those opcodes.
 Per erased-state category of section 4:
 
 **Mechanically dischargeable by a verified receipt** (the refusal-on-unknown
@@ -388,9 +399,10 @@ authority. If the pinned Sail revision cannot be compiled into usable Lean, the
 only sanctioned fallback is a generated normalized capsule plus a **checked
 translation receipt from the Sail AST**, and that fallback requires independent
 approval recorded in this document. The receipt *machinery* now exists
-(`scripts/riscv_refinement_lib/sail_translation.py`, section 5.1); its
-existence is not that approval, no approval is recorded here, and no receipt
-has yet been derived from actual generated Sail output.
+(`scripts/riscv_refinement_lib/sail_translation.py`, section 5.1), and an exact
+generated-output receipt is committed for the LUI/ADDI pilot. That pilot
+receipt is not independent approval, no approval is recorded here, and it does
+not cover the remaining Team B execute families or the generated step monad.
 
 Hand-transcribing instruction functions and validating them only with test
 vectors is never acceptable as the final theorem. The reviewed capsules that

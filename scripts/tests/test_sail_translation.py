@@ -1,9 +1,8 @@
 """Checked Sail-AST translation receipts, and the drift they must refuse.
 
-The fixtures under `fixtures/sail_translation/` are reconstructions, not
-captured generated Sail output; see the README in that directory. These tests
-are therefore evidence about the receipt machinery, not about the pinned Sail
-model.
+The legacy fixtures under `fixtures/sail_translation/` remain parser probes.
+The authoritative integration cases read exact definition slices captured from
+the manifest-bound generated backend under `formal/riscv-refinement/generated`.
 """
 
 from __future__ import annotations
@@ -11,11 +10,36 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
+from scripts.riscv_refinement_lib import codec, sail
 from scripts.riscv_refinement_lib import sail_translation as translation
 from scripts.riscv_refinement_lib.sail_translation import SailTranslationError
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "sail_translation"
+ROOT = Path(__file__).resolve().parents[2]
+CAPTURED = (
+    ROOT
+    / "formal"
+    / "riscv-refinement"
+    / "generated"
+    / "sail"
+    / "definitions"
+)
+CAPTURED_RECEIPT = (
+    ROOT
+    / "formal"
+    / "riscv-refinement"
+    / sail.COMMITTED_TRANSLATION_RECEIPT
+)
 NAMES = ("execute_UTYPE", "execute_ITYPE")
+PINNED_RECEIPT_DIGEST = (
+    "708ed95872d6b32a6b80806af94fd8e4210cdb280150453688a2f9315b2f22e2"
+)
+PINNED_AST_DIGESTS = {
+    "execute_ITYPE":
+        "1d44a5fef2e5a4cb65dc4f66da1f6b08d37b1f4fd9d043205b91e28e8fca7fe6",
+    "execute_UTYPE":
+        "3b5919cc27dc576d206d41137efd031cb23979f46557d94282cfb05f83b095dc",
+}
 
 # Copied verbatim from sail.py::_validate_semantic_shapes. Duplicated rather
 # than imported so that this test pins the fixtures independently of that
@@ -40,6 +64,10 @@ def definitions() -> dict[str, str]:
     return translation.load_definitions(FIXTURES, NAMES)
 
 
+def captured_definitions() -> dict[str, str]:
+    return translation.load_definitions(CAPTURED, NAMES)
+
+
 def mutate(text: str, old: str, new: str) -> str:
     if text.count(old) != 1:
         raise AssertionError(f"mutation anchor {old!r} is not unique")
@@ -56,6 +84,77 @@ class FixtureShapeTest(unittest.TestCase):
     def test_fixture_directory_declares_its_provenance(self) -> None:
         readme = (FIXTURES / "README.md").read_text(encoding="utf-8")
         self.assertIn("NOT captured generated output", readme)
+
+
+class CapturedGeneratedTranslationTest(unittest.TestCase):
+    def test_captured_slices_are_the_exact_pinned_backend_definitions(self) -> None:
+        sources = captured_definitions()
+        self.assertEqual(
+            {
+                name: codec.sha256_bytes(text.encode("utf-8"))
+                for name, text in sources.items()
+            },
+            sail.GENERATED_DEFINITION_HASHES,
+        )
+
+    def test_committed_receipt_rederives_from_captured_slices(self) -> None:
+        receipt = codec.load_json(CAPTURED_RECEIPT)
+        self.assertEqual(
+            receipt,
+            translation.verify_receipt(receipt, captured_definitions()),
+        )
+        self.assertEqual(
+            receipt["canonical_digest"],
+            PINNED_RECEIPT_DIGEST,
+        )
+        self.assertEqual(
+            {
+                name: entry["ast_sha256"]
+                for name, entry in receipt["definitions"].items()
+            },
+            PINNED_AST_DIGESTS,
+        )
+
+    def test_actual_generated_lui_and_addi_effects_are_exact(self) -> None:
+        receipt = translation.build_receipt(captured_definitions())
+        lui = receipt["definitions"]["execute_UTYPE"]["selectors"]["LUI"]
+        addi = receipt["definitions"]["execute_ITYPE"]["selectors"]["ADDI"]
+        self.assertEqual(
+            lui["register_write"],
+            {
+                "target": "rd",
+                "value":
+                    "(sign_extend (m := 32) (imm +++ 0x000#12))",
+            },
+        )
+        self.assertEqual(
+            addi["register_write"],
+            {
+                "target": "rd",
+                "value":
+                    "((← (rX_bits rs1)) + "
+                    "(sign_extend (m := 32) imm))",
+            },
+        )
+        self.assertEqual(lui["register_reads"], [])
+        self.assertEqual(addi["register_reads"], ["rs1"])
+        for effect in (lui, addi):
+            self.assertEqual(
+                effect["next_pc"],
+                translation.SEQUENTIAL_NEXT_PC,
+            )
+            self.assertIsNone(effect["memory_read"])
+            self.assertIsNone(effect["memory_write"])
+            self.assertEqual(effect["retirement"], "RETIRE_SUCCESS")
+
+    def test_actual_nested_match_wrapper_is_fail_closed(self) -> None:
+        source = mutate(
+            captured_definitions()["execute_UTYPE"],
+            "    (← do\n",
+            "    (do\n",
+        )
+        with self.assertRaises(SailTranslationError):
+            translation.translate("execute_UTYPE", source)
 
 
 class TranslationTest(unittest.TestCase):

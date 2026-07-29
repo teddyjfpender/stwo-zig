@@ -54,9 +54,12 @@ GENERATOR_PATHS = (
     "scripts/riscv_refinement_lib/air_program_lean.py",
     "scripts/riscv_refinement_lib/air_program_registry_lean.py",
     "scripts/riscv_refinement_lib/sail.py",
+    "scripts/riscv_refinement_lib/sail_translation.py",
     "scripts/riscv_refinement_lib/negative.py",
     "scripts/riscv_refinement_lib/render.py",
     "scripts/tests/test_riscv_refinement.py",
+    "scripts/tests/test_sail_air_composition_contract.py",
+    "scripts/tests/test_sail_translation.py",
 )
 
 PROOF_PATHS = (
@@ -123,6 +126,9 @@ MANIFEST_ARTIFACTS = frozenset(
         "generated/air/addi.json",
         "generated/air/lui.json",
         "generated/sail/rv32im-zkvm-v1.json",
+        "generated/sail/definitions/execute_ITYPE.lean",
+        "generated/sail/definitions/execute_UTYPE.lean",
+        "generated/sail/translation-receipt-v1.json",
         *(
             f"generated/air/{mnemonic}.air-ir-v2.json"
             for _, mnemonic, _ in air_program.OPCODES
@@ -397,7 +403,8 @@ SAIL_LEAN_TEMPLATE = """\
 -- Generator: scripts/riscv_refinement.py
 -- Regenerate: python3 scripts/riscv_refinement.py generate
 -- Source: exact-profile Sail 0.20.2 theorem-backend definition slices.
--- Boundary: reviewed normalized capsule; no generated-monad theorem yet.
+-- Binding: fail-closed generated-definition AST translation receipt.
+-- Boundary: checked execute-clause normalization; no step-monad theorem yet.
 
 import RiscvRefinement.Common
 
@@ -410,6 +417,15 @@ def executeUtypeDefinitionDigest : String :=
 
 def executeItypeDefinitionDigest : String :=
   "__ITYPE_DIGEST__"
+
+def translationReceiptDigest : String :=
+  "__TRANSLATION_RECEIPT_DIGEST__"
+
+def executeUtypeAstDigest : String :=
+  "__UTYPE_AST_DIGEST__"
+
+def executeItypeAstDigest : String :=
+  "__ITYPE_AST_DIGEST__"
 
 def executeLuiValue (imm : BitVec 20) : Word :=
   BitVec.signExtend 32 (imm.append (BitVec.ofNat 12 0))
@@ -688,17 +704,7 @@ def artifacts(paths: Paths, evidence: sail.SailEvidence) -> dict[Path, bytes]:
         air_program_bytes,
         air_program.OPCODES,
     )
-    sail_lean = (
-        SAIL_LEAN_TEMPLATE.replace(
-            "__UTYPE_DIGEST__",
-            evidence.definition_hashes["execute_UTYPE"],
-        )
-        .replace(
-            "__ITYPE_DIGEST__",
-            evidence.definition_hashes["execute_ITYPE"],
-        )
-        .encode("utf-8")
-    )
+    sail_lean = sail._render_capsule(evidence)
     outputs: dict[Path, bytes] = {
         **air_outputs,
         **{
@@ -707,6 +713,12 @@ def artifacts(paths: Paths, evidence: sail.SailEvidence) -> dict[Path, bytes]:
         },
         Path("generated/sail/rv32im-zkvm-v1.json"):
             evidence.exact_configuration,
+        **{
+            relative: evidence.definition_slices[name].encode("utf-8")
+            for name, relative in sail.COMMITTED_DEFINITIONS.items()
+        },
+        sail.COMMITTED_TRANSLATION_RECEIPT:
+            codec.pretty_bytes(evidence.translation_receipt),
         Path("RiscvRefinement/Air/Generated/Pilot.lean"): air_lean,
         Path("RiscvRefinement/Air/Generated/LuiProgram.lean"):
             air_program_lean,
@@ -723,6 +735,7 @@ def artifacts(paths: Paths, evidence: sail.SailEvidence) -> dict[Path, bytes]:
             "lean_serialized_m31_air_interpreter": True,
             "lui_air_to_normalized_composition": True,
             "addi_air_to_normalized_composition": True,
+            "generated_sail_ast_translation_receipt": True,
             "lean_generated_sail_monad_normalization": False,
             "kernel_checked_normalized_refinement": True,
         },
@@ -820,6 +833,7 @@ def validate_committed_manifest(
             "lean_serialized_m31_air_interpreter": True,
             "lui_air_to_normalized_composition": True,
             "addi_air_to_normalized_composition": True,
+            "generated_sail_ast_translation_receipt": True,
             "lean_generated_sail_monad_normalization": False,
             "kernel_checked_normalized_refinement": True,
         }

@@ -24,14 +24,14 @@ because the pinned Sail toolchain is not provisioned in the environment these
 proofs were developed in. Each capsule under `RiscvRefinement/Sail/Reviewed/`
 says so in its header; no mechanical check enforces that headers exist or stay
 accurate (see contract §0 for the enforcement gap and the proposed check). The
-Team B capsules are the same epistemic *class* as the existing LUI/ADDI
-capsule (`RiscvRefinement/Sail/Generated/Pilot.lean`) but not the same status:
-Pilot.lean is generator output pinned to SHA-256 digests of real generated
-Sail text, while the Team B capsules are hand-written, with no generator, no
-digest, and no derivation from any Sail artifact. Replacing them with
-generated Sail definitions, together with a checked translation receipt, is
-the open obligation; for the LUI/ADDI capsule the narrower remaining gap is
-the generated-monad theorem.
+Team B capsules are not in the same evidence state as the existing LUI/ADDI
+capsule (`RiscvRefinement/Sail/Generated/Pilot.lean`). The pilot is now bound
+to exact generated `execute_UTYPE`/`execute_ITYPE` slices by a fail-closed AST
+translation receipt; the Team B capsules remain hand-written, with no
+generator, no digest, and no derivation from a Sail artifact. Replacing them
+with generated Sail definitions and checked translation receipts is the open
+Team B obligation. For the LUI/ADDI pilot, the narrower remaining gap is
+composition with generated Sail step-monad execution.
 
 Hosted Sail provisioning now exists —
 `.github/workflows/riscv-sail-formal.yml`, normative in
@@ -39,8 +39,9 @@ Hosted Sail provisioning now exists —
 so "no Sail compiler is available" is a retired excuse, not a standing one.
 It upgrades nothing here: per that document, no file stops saying "reviewed
 capsule" because the provisioning job is green. The capsules stay reviewed
-until the generated slices are extracted, digest-pinned, and every
-`*_refines` theorem is re-proved against them unchanged.
+until their generated slices are extracted, digest-pinned, translated with
+checked receipts, and every `*_refines` theorem is re-proved against them
+unchanged.
 
 ## Certificate states
 
