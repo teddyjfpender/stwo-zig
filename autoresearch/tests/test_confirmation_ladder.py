@@ -59,6 +59,15 @@ LADDER = {
     "note": "test ladder",
 }
 
+# A hypothetical schema that publishes PoW on the scored sample itself: the
+# same-invocation case the registry is designed to admit without a tier gate.
+SAMPLE_POW_SOURCE = runner.PowBoundarySource(
+    kind="report_field",
+    invocation="scored_sample",
+    note="test schema publishing per-sample proof-of-work seconds",
+    field_path=("timing", "pow_seconds", "median"),
+)
+
 PROXY_FIXTURE = {
     "proxy_id": "small_proxy",
     "args": "--warmups {warmups} --samples {samples} --log-n-rows 12",
@@ -354,42 +363,53 @@ class FastBoundaryTest(LadderTestCase):
         self.assertIn("no proof-of-work cutpoint", str(caught.exception))
         self.assertEqual([], calls)  # refused before a single measurement
 
-    def test_registered_schema_reports_both_boundaries(self):
+    def test_same_invocation_source_reports_both_boundaries(self):
         bench, _ = self.fake_bench(
             lambda round_no: 0.90 if round_no % 2 else 0.94,
             pow_ms=40.0, request_scale=1.5,
         )
         with mock.patch.dict(
-            runner.POW_PHASE_SECONDS_FIELDS,
-            {"native_proof_v7": ("timing", "pow_seconds", "median")},
+            runner.POW_PHASE_SECONDS_FIELDS, {"native_proof_v7": SAMPLE_POW_SOURCE},
             clear=False,
         ):
             score = self.run_rounds(
                 bench, base_policy(), fast_boundary=True, sequential_stop=None,
             )
+        # A same-invocation source is a measurement, so it keeps the plain label
+        # and needs no tier declaration.
         self.assertEqual(runner.FAST_BOUNDARY, score.boundary)
         # Full boundary: request scales with prove, so the ratio is the raw one.
         self.assertAlmostEqual(0.90, score.request_ratio, places=6)
         # PoW-excluded: (0.9*150 - 40) / (150 - 40) = 95/110.
         self.assertAlmostEqual(95.0 / 110.0, score.fast_request_ratio, places=6)
         self.assertIn("fast_request_ms", score.candidate_resources)
+        evidence = score.boundary_evidence
+        self.assertFalse(evidence["estimate"])
+        self.assertIn("measured on the scored sample itself", evidence["label"])
+        self.assertAlmostEqual(40.0, evidence["pow_ms"]["candidate_median"])
 
     def test_pow_extraction_reads_only_measured_seconds(self):
         group = self.manifest(ladder=LADDER).group("native")
         report = {"timing": {"pow_seconds": {"median": 0.25}}}
-        self.assertIsNone(runner._pow_ms(report, group))
+        path = self.root / "report.json"
+        self.assertIsNone(runner._pow_ms(report, group, path))
         with mock.patch.dict(
-            runner.POW_PHASE_SECONDS_FIELDS,
-            {"native_proof_v7": ("timing", "pow_seconds", "median")},
+            runner.POW_PHASE_SECONDS_FIELDS, {"native_proof_v7": SAMPLE_POW_SOURCE},
             clear=False,
         ):
-            self.assertAlmostEqual(250.0, runner._pow_ms(report, group))
+            self.assertAlmostEqual(250.0, runner._pow_ms(report, group, path))
             with self.assertRaises(runner.RunError):
-                runner._pow_ms({"timing": {}}, group)
+                runner._pow_ms({"timing": {}}, group, path)
 
-    def test_shipped_registry_is_empty_so_the_flag_is_universally_refused(self):
-        # No product emits a PoW cutpoint yet; the harness must not pretend.
-        self.assertEqual({}, runner.POW_PHASE_SECONDS_FIELDS)
+    def test_shipped_registry_admits_only_a_labelled_cairo_estimate(self):
+        # Every registered source must be honest about which invocation it was
+        # measured on; cairo is the only one, and it is an estimate.
+        self.assertEqual({"cairo_proof_v1"}, set(runner.POW_PHASE_SECONDS_FIELDS))
+        source = runner.POW_PHASE_SECONDS_FIELDS["cairo_proof_v1"]
+        self.assertEqual("discarded_warmup", source.invocation)
+        self.assertTrue(source.cross_invocation)
+        self.assertEqual(("proof_of_work",), source.stage_ids)
+        self.assertEqual(runner.FAST_BOUNDARY_ESTIMATED, source.boundary_label)
 
 
 class PhaseAttributionTest(LadderTestCase):
@@ -501,8 +521,12 @@ class PhaseAttributionTest(LadderTestCase):
         )
 
 
-class CairoPhaseAttributionTest(unittest.TestCase):
-    """T0 on the wave-1 Cairo track, over a real cairo_proof_v1 envelope."""
+#: The PoW stage recorded in W1's committed Cairo stage-profile fixture.
+CAIRO_FIXTURE_POW_SECONDS = 0.086572
+
+
+class CairoLadderTestCase(unittest.TestCase):
+    """A temp Cairo track backed by W1's committed product fixtures."""
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -514,24 +538,32 @@ class CairoPhaseAttributionTest(unittest.TestCase):
         manifest_mod._validate(raw)
         self.manifest = Manifest(root=self.root, raw=raw)
         self.workload = self.manifest.workloads(board="cairo_cpu")[0]
-        binary = self.root / "bin" / "stwo-cairo-cpu"
+        self.install_product(self.root)
+
+    def install_product(self, root: Path, profile: dict | None = None) -> Path:
+        binary = root / "bin" / "stwo-cairo-cpu"
         binary.parent.mkdir(parents=True, exist_ok=True)
         binary.write_text(
             FAKE_PRODUCT
             .replace("REPORT_JSON", repr(json.dumps(load_report())))
-            .replace("PROFILE_JSON", repr(json.dumps(load_profile())))
+            .replace("PROFILE_JSON", repr(json.dumps(profile or load_profile())))
             .replace("PROOF_PAYLOAD", repr(b"proof-bytes"))
             .replace("MUTATE", "pass")
         )
         binary.chmod(binary.stat().st_mode | stat.S_IEXEC)
+        return binary
+
+
+class CairoPhaseAttributionTest(CairoLadderTestCase):
+    """T0 on the wave-1 Cairo track, over a real cairo_proof_v1 envelope."""
 
     def envelope(self) -> dict:
         result = runner.bench_once(
             self.root, self.manifest, self.workload, 1, 1, self.out_dir, "a1",
         )
         # The Cairo arm returns early from bench_once; ladder telemetry must
-        # still ride along (None here: no schema registers a PoW cutpoint).
-        self.assertIsNone(result.pow_ms)
+        # still ride along, reading the stage-profile sidecar it just wrote.
+        self.assertAlmostEqual(CAIRO_FIXTURE_POW_SECONDS * 1000.0, result.pow_ms)
         return json.loads(Path(result.report_path).read_text(encoding="utf-8"))
 
     def test_named_cutpoints_are_readable_for_t0(self):
@@ -568,7 +600,6 @@ class CairoPhaseAttributionTest(unittest.TestCase):
         )
 
     def test_t0_prefilter_runs_end_to_end_on_cairo(self):
-        moved = json.loads(json.dumps(load_report()))
         # A candidate whose FRI phase halved: every stage that composes the
         # phase moves, and nothing else does.
         fri_stages = set(runner.CAIRO_PHASE_STAGES["fri"][0])
@@ -577,16 +608,7 @@ class CairoPhaseAttributionTest(unittest.TestCase):
             if node["id"] in fri_stages:
                 node["seconds"] = node["seconds"] / 2.0
         candidate = self.root / "candidate"
-        (candidate / "bin").mkdir(parents=True)
-        binary = candidate / "bin" / "stwo-cairo-cpu"
-        binary.write_text(
-            FAKE_PRODUCT
-            .replace("REPORT_JSON", repr(json.dumps(moved)))
-            .replace("PROFILE_JSON", repr(json.dumps(profile)))
-            .replace("PROOF_PAYLOAD", repr(b"proof-bytes"))
-            .replace("MUTATE", "pass")
-        )
-        binary.chmod(binary.stat().st_mode | stat.S_IEXEC)
+        self.install_product(candidate, profile)
         with mock.patch.object(runner, "build_arm", lambda *a, **k: None):
             result = runner.phase_prefilter(
                 self.root, candidate, self.manifest, "small", self.out_dir,
@@ -606,6 +628,131 @@ class CairoPhaseAttributionTest(unittest.TestCase):
             )
         self.assertFalse(result["pass"])
         self.assertFalse(result["phase_moved"])
+
+
+class CairoFastBoundaryTest(CairoLadderTestCase):
+    """T1 pairs on Cairo's PoW-excluded boundary — labelled as an estimate."""
+
+    # The fake product returns in milliseconds where a real Cairo proof takes
+    # seconds, so the fixture's 86 ms PoW stage would exceed the whole cold
+    # process. Scale the recorded stage to keep the arithmetic realistic; the
+    # fixture value itself is asserted in CairoPhaseAttributionTest.
+    POW_SECONDS = 0.0005
+
+    def setUp(self):
+        super().setUp()
+        profile = json.loads(json.dumps(load_profile()))
+        for node in profile["stages"]:
+            if node["id"] == "proof_of_work":
+                node["seconds"] = self.POW_SECONDS
+        self.install_product(self.root, profile)
+
+    def _estimate(self, **kwargs):
+        with mock.patch.object(runner, "build_arm", lambda *a, **k: None), \
+                mock.patch.object(runner.ledger, "aa_dispersion", lambda *a: None):
+            return runner.iterate_estimate(
+                self.root, self.root, self.manifest, "small",
+                self.out_dir, board="cairo_cpu", era=3, **kwargs,
+            )
+
+    def test_t1_reports_both_boundaries_and_labels_the_estimate(self):
+        result = self._estimate(fast_boundary=True)
+        self.assertEqual(runner.FAST_BOUNDARY_ESTIMATED, result["boundary"])
+        evidence = result["boundary_evidence"]
+        self.assertTrue(evidence["estimate"])
+        self.assertEqual("T1", evidence["tier"])
+        self.assertIn("cross-invocation estimate", evidence["label"])
+        self.assertIn("must never be reported as one", evidence["label"])
+        source = evidence["pow_source"]
+        self.assertEqual("cairo_proof_v1", source["report_schema"])
+        self.assertEqual("discarded_warmup", source["invocation"])
+        self.assertEqual(["proof_of_work"], source["stage_ids"])
+        self.assertTrue(source["cross_invocation"])
+        # The subtracted quantity is recorded, not merely applied.
+        for arm in ("predecessor_median", "candidate_median"):
+            self.assertAlmostEqual(
+                self.POW_SECONDS * 1000.0, evidence["pow_ms"][arm],
+            )
+        entry = result["per_workload"][self.workload.workload_id]
+        # BOTH numbers survive: the full boundary and the PoW-excluded one.
+        self.assertIsNotNone(entry["request_ratio"])
+        self.assertIsNotNone(entry["fast_request_ratio"])
+        self.assertEqual(runner.FAST_BOUNDARY_ESTIMATED, entry["boundary"])
+
+    def test_the_fast_boundary_removes_exactly_the_measured_pow_time(self):
+        policy = self.manifest.gates_for_workload("cairo_cpu", "small")
+        score = runner.paired_rounds(
+            self.root, self.root, self.manifest, self.workload, policy,
+            self.out_dir, fast_boundary=True, tier="T1",
+        )
+        # Both candidate medians come from the SAME rounds, and the subtracted
+        # PoW estimate is one constant, so the gap is exactly that constant.
+        self.assertAlmostEqual(
+            self.POW_SECONDS * 1000.0,
+            score.candidate_resources["request_ms"]
+            - score.candidate_resources["fast_request_ms"],
+            places=9,
+        )
+        self.assertGreater(score.candidate_resources["fast_request_ms"], 0.0)
+        self.assertEqual(runner.FAST_BOUNDARY_ESTIMATED, score.boundary)
+
+    def test_a_pow_stage_larger_than_the_request_fails_closed(self):
+        # The unscaled fixture's PoW exceeds the fake product's whole cold
+        # process: subtracting it would invent a negative boundary.
+        self.install_product(self.root)
+        policy = self.manifest.gates_for_workload("cairo_cpu", "small")
+        with self.assertRaises(runner.RunError) as caught:
+            runner.paired_rounds(
+                self.root, self.root, self.manifest, self.workload, policy,
+                self.out_dir, fast_boundary=True, tier="T1",
+            )
+        self.assertIn("not smaller than the verified request", str(caught.exception))
+
+    def test_cross_invocation_estimate_is_refused_outside_t1(self):
+        policy = self.manifest.gates_for_workload("cairo_cpu", "small")
+        with self.assertRaises(runner.RunError) as caught:
+            runner.paired_rounds(
+                self.root, self.root, self.manifest, self.workload, policy,
+                self.out_dir, fast_boundary=True,
+            )
+        message = str(caught.exception)
+        self.assertIn("cross-invocation ESTIMATE", message)
+        self.assertIn("admissible only at T1", message)
+
+    def test_a_declared_ranked_tier_is_refused(self):
+        policy = self.manifest.gates_for_workload("cairo_cpu", "small")
+        for tier in ("T2", "T3"):
+            with self.assertRaises(runner.RunError):
+                runner.paired_rounds(
+                    self.root, self.root, self.manifest, self.workload, policy,
+                    self.out_dir, fast_boundary=True, tier=tier,
+                )
+
+    def test_ranked_evaluation_still_refuses_even_with_a_registered_source(self):
+        with self.assertRaises(runner.RunError) as caught:
+            runner.evaluate(
+                self.root, self.root, self.manifest, "small", "time", "s3",
+                False, self.out_dir, board="cairo_cpu", fast_boundary=True,
+            )
+        self.assertIn("never excludes anything", str(caught.exception))
+
+    def test_a_missing_stage_profile_sidecar_fails_closed(self):
+        group = self.manifest.group("cairo_cpu")
+        with self.assertRaises(runner.RunError) as caught:
+            runner._pow_ms({}, group, self.root / "absent.json")
+        self.assertIn("refuses to guess", str(caught.exception))
+
+    def test_a_profile_without_the_pow_stage_fails_closed(self):
+        group = self.manifest.group("cairo_cpu")
+        profile = json.loads(json.dumps(load_profile()))
+        profile["stages"] = [
+            node for node in profile["stages"] if node["id"] != "proof_of_work"
+        ]
+        report_path = self.root / "envelope.json"
+        runner._stage_profile_sidecar(report_path).write_text(json.dumps(profile))
+        with self.assertRaises(runner.RunError) as caught:
+            runner._pow_ms({}, group, report_path)
+        self.assertIn("does not record proof_of_work", str(caught.exception))
 
 
 class ProxyFixtureManifestTest(LadderTestCase):

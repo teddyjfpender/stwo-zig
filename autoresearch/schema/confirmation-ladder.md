@@ -91,33 +91,80 @@ Arming:
 
 ## 3. PoW-excluded fast boundary
 
-`pow 26` is ~constant work and pure noise for paired deltas, so T0/T1 measure
+`pow 26` is ~constant work and pure noise for paired deltas, so T1 pairs on
 `verified_request_minus_pow_ms` while T2/T3 keep the full boundary. Both
-numbers are reported at T1: `request_ratio` (full) and `fast_request_ratio`
+numbers are always reported: `request_ratio` (full) and `fast_request_ratio`
 (PoW-excluded).
 
-Fail-closed in three places:
+### Where the subtracted number comes from
 
-1. `runner.POW_PHASE_SECONDS_FIELDS` maps a `report_schema` to the report path
-   carrying the **measured** PoW seconds. It is deliberately **empty**: no
-   shipped product emits a PoW cutpoint yet, so `--fast-boundary` refuses on
-   every group today. The harness never subtracts a cost it did not measure.
-   *Product handoff:* emit the PoW phase (§3.2 names it) and register the field
-   path here; nothing else changes.
+`runner.POW_PHASE_SECONDS_FIELDS` maps a `report_schema` to a
+`PowBoundarySource` describing **measured** PoW seconds. A schema absent from
+the registry cannot use `--fast-boundary` at all: the harness subtracts only
+measured PoW time, never a modeled or assumed one.
 
-   Known near-miss on Cairo: the Cairo stage profile already records a
-   `proof_of_work` stage with real seconds, but the phase mapping folds it into
-   the `fri` phase, and the profile is recorded on a **discarded warmup** while
-   the scored request time comes from the uninstrumented samples. Registering
-   that number would subtract a duration measured on a *different invocation*
-   than the one being timed. That is a decision about measurement scope, not a
-   wiring detail, so it is left to a reviewed change: either publish per-sample
-   PoW seconds in the `cairo_proof_v1` envelope, or accept the cross-invocation
-   subtraction explicitly for T1 (which never ranks).
-2. `runner.evaluate(..., fast_boundary=True)` always raises — the ranked and
-   claimed paths cannot express a PoW-excluded number even by accident.
-3. `stwo-perf run --fast-boundary` is rejected by the CLI with a pointer to
+The honesty-critical field is `invocation`:
+
+| `invocation` | meaning | boundary label | admissible at |
+|---|---|---|---|
+| `scored_sample` | measured on the very invocation being timed | `verified_request_minus_pow_ms` | any tier that may use the fast boundary |
+| `discarded_warmup` | measured on another invocation of the same arm, same round | `verified_request_minus_pow_ms_cross_invocation_estimate` | **T1 only** |
+
+Registered today — one entry:
+
+```python
+"cairo_proof_v1": PowBoundarySource(
+    kind="stage_profile_sidecar",
+    invocation="discarded_warmup",
+    stage_ids=("proof_of_work",),
+)
+```
+
+Cairo's stage profile records a real `proof_of_work` stage, but scored samples
+run uninstrumented, so the profile comes from the round's discarded warmup.
+Subtracting it therefore yields an **estimate**, not a measurement of the
+scored invocation. That is accepted deliberately and narrowly:
+
+- `pow 26` is ~constant work and pure noise for paired deltas — TRACKS §3.5's
+  own justification for excluding it;
+- the seconds are real measurements of the same arm, in the same round, on the
+  same host;
+- **T1 never ranks**, and the tier gate is enforced in code rather than by
+  convention.
+
+What keeps it from being laundered into a measurement:
+
+- a **different boundary string** (`..._cross_invocation_estimate`), so every
+  consumer of `boundary` sees the distinction without knowing this section
+  exists;
+- a `boundary_evidence` block on the score and in the T1 document recording the
+  source (`kind`, `invocation`, `stage_ids`, `cross_invocation`, `estimate`),
+  the subtracted PoW milliseconds per arm, and a sentence spelling out that the
+  number is not a measurement of the scored invocation;
+- the CLI prints that sentence as a warning on every estimated T1 run;
+- both numbers are always reported — `request_ratio` (full) alongside
+  `fast_request_ratio` (PoW-excluded).
+
+*Zig-side follow-up (the correct long-term fix):* publish **per-sample** PoW
+seconds in the `cairo_proof_v1` envelope. The source then becomes
+`invocation="scored_sample"`, the estimate label and the T1 gate drop away on
+their own, and no ladder code changes. This sits with the same product-CLI work
+item as "no product emits a PoW cutpoint at all" for native/riscv.
+
+### Fail-closed surfaces
+
+1. A schema with no registered PoW source refuses `--fast-boundary` outright.
+2. A **cross-invocation** source refuses any tier but `T1` —
+   `paired_rounds(..., fast_boundary=True)` without `tier="T1"` raises, so a
+   future caller cannot reach the estimate by omission.
+3. `runner.evaluate(..., fast_boundary=True)` always raises, registered source
+   or not — the ranked and claimed paths cannot express a PoW-excluded number
+   even by accident.
+4. `stwo-perf run --fast-boundary` is rejected by the CLI with a pointer to
    `stwo-perf ladder t1 --fast-boundary`.
+5. A missing stage-profile sidecar, a profile without the named stage, or a PoW
+   duration that is not smaller than the request all raise rather than produce
+   a boundary.
 
 ## 4. Proxy fixtures (`workload_registry.classes.<class>.proxy_fixture`)
 
