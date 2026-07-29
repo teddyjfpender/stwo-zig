@@ -4,7 +4,7 @@
 //! that fixes the CPU product's vocabulary and re-exports the resulting surface.
 
 const std = @import("std");
-const shared = @import("riscv_product").cli;
+const shared = @import("riscv_shared_cli");
 
 pub const spec = shared.Spec{
     .executable = "stwo-zig-riscv-cpu",

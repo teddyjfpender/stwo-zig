@@ -13,6 +13,7 @@ OWNED = (
     ROOT / "src/stwo_riscv_cpu.zig",
     ROOT / "src/riscv_trace_cli.zig",
     *(ROOT / "src/products/riscv_cpu").glob("*.zig"),
+    *(ROOT / "src/products/riscv_shared").glob("*.zig"),
 )
 FORBIDDEN = (
     '@import("stwo.zig")',

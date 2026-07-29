@@ -74,7 +74,7 @@ pub fn App(comptime Deps: type) type {
             }
         }
 
-        pub fn runElf(
+        fn runElf(
             allocator: std.mem.Allocator,
             run: cli.Run,
             mode: adapter.Mode,

@@ -36,6 +36,7 @@ const source_closure = product_policy.SourceClosure{
         .{ .name = "riscv_adapter", .source = "src/integrations/riscv_cpu/proof_adapter.zig" },
         .{ .name = "riscv_cpu_capabilities", .source = "src/products/riscv_cpu/capabilities.zig" },
         .{ .name = "riscv_shared_app", .source = "src/products/riscv_shared/app.zig" },
+        .{ .name = "riscv_shared_registry", .source = "src/products/riscv_shared/registry.zig" },
         .{ .name = "output_transaction", .source = "src/interop/output_transaction.zig" },
     },
     .generated_imports = &.{"aggregate_capabilities"},
@@ -262,6 +263,12 @@ fn addExecutable(
         target,
         optimize,
     ));
+    root.addImport("riscv_shared_registry", createSharedModule(
+        context,
+        "src/products/riscv_shared/registry.zig",
+        target,
+        optimize,
+    ));
     root.addImport("output_transaction", createOutputTransaction(context, target, optimize));
     root.addOptions("build_identity", graph_identity.buildOptions(b, context.identity));
     root.addOptions(
@@ -311,6 +318,12 @@ fn addTests(context: Context) *std.Build.Step.Compile {
     root.addImport("riscv_shared_app", createSharedModule(
         context,
         "src/products/riscv_shared/app.zig",
+        context.target,
+        context.optimize,
+    ));
+    root.addImport("riscv_shared_registry", createSharedModule(
+        context,
+        "src/products/riscv_shared/registry.zig",
         context.target,
         context.optimize,
     ));
