@@ -166,6 +166,33 @@ geometry.
 proof binding. The production coefficient bound does not turn one sampled
 LogUp equality into exact tuple-wise equality.
 
+**External formal evidence for that reduction.** It is open *in this
+repository*, but it is not unproved in general.
+[`starkware-libs/formal-proofs`](https://github.com/starkware-libs/formal-proofs)
+(Apache-2.0) contains a Lean 4 proof:
+`Stwo/Verification/Lookups/Logup.lean`, `equal_count_of_multiplicity_one''`,
+derives multiplicity-wise (`Multiset.count`) equality between the yield and use
+sides from the LogUp cumulative-sum constraint `cumulativeC`.
+
+Two caveats that must travel with any citation of it:
+
+- It is **conditional on the randomness assumption, not a removal of it**. The
+  hypothesis `z ∉ exceptionalSet f m pr` *is* the assumption that the sampled
+  challenge avoids an exceptional set; the result makes that set explicit and
+  quantifies it. It also requires both side cardinalities below `ringChar F`.
+- It is stated over a general `[Fintype F] [Field F]`. Instantiating it at this
+  repository's field and lookup encoding is real work.
+
+This matters most for the M-extension families: the `mul` AIR has no constraint
+root for the multiplication at all, so the product identity is carried entirely
+by its `range_check_8_11` requests. Lookup soundness is load-bearing there in a
+way it is not for a family whose result is directly constrained.
+
+Adoption is planned as a separate Lean component behind a narrow interface,
+rather than a Mathlib dependency in `formal/riscv-refinement` (which is
+deliberately dependency-free and offline-buildable). See
+[`TEAM_AB_INTERFACE.md`](TEAM_AB_INTERFACE.md) §7.
+
 ### CR-2 — monotone access clocks and \(2^{20}\)-window bridging
 
 Let

@@ -16,8 +16,22 @@ from .model import (
     SAIL_REPOSITORY,
     SAIL_REVISION,
     SAIL_VERSION,
+    Paths,
     RefinementError,
 )
+
+# Two evidence grades, and only one of them can mint Sail output.
+#   live-toolchain                  `collect_evidence`: pinned checkout, Sail
+#                                   0.20.2, built simulator, generated backend.
+#   carried-committed-sail-evidence `carried_evidence`: the committed manifest's
+#                                   own provenance, re-checked against pinned
+#                                   constants and re-hashed repository inputs,
+#                                   and only ever able to reproduce the Sail
+#                                   artifacts that are already committed.
+# The grade is written into the manifest and receipts refuse the carried one.
+LIVE_EVIDENCE = "live-toolchain"
+CARRIED_EVIDENCE = "carried-committed-sail-evidence"
+NORMALIZATION = "reviewed exact-hash LUI and ADDI expression capsule"
 
 GENERATED_DEFINITION_HASHES = {
     "execute_UTYPE": "f746995b8c903140529bb742379c295bee8d95a02de2d730990dc77fe1cacf1c",
@@ -43,14 +57,23 @@ GENERATED_FILE = Path(
 )
 SIMULATOR = Path("build/c_emulator/sail_riscv_sim")
 
+# Sail-side inputs that live in this repository, so a reused-evidence run can
+# re-hash every one of them instead of trusting the committed manifest.
+CARRIED_INPUTS = (PROFILE_PATH, *OVERRIDE_PATHS, PATCH_PATH)
+# Sail artifacts a reused-evidence run may only ever reproduce byte for byte.
+COMMITTED_CONFIGURATION = Path("generated/sail/rv32im-zkvm-v1.json")
+COMMITTED_CAPSULE = Path("RiscvRefinement/Sail/Generated/Pilot.lean")
+
 
 @dataclass(frozen=True)
 class SailEvidence:
-    source_root: Path
-    compiler: Path
-    compiler_sha256: str
-    simulator_sha256: str
-    generated_file: Path
+    # The live toolchain fields are None under carried evidence, which is why
+    # `toolchain` (the receipt input) refuses anything but live evidence.
+    source_root: Path | None
+    compiler: Path | None
+    compiler_sha256: str | None
+    simulator_sha256: str | None
+    generated_file: Path | None
     generated_file_sha256: str
     source_file_sha256: str
     model_entry_sha256: str
@@ -61,6 +84,7 @@ class SailEvidence:
     checkout_state: str
     definition_hashes: dict[str, str]
     source_slice_hashes: dict[str, str]
+    evidence_source: str = LIVE_EVIDENCE
 
 
 def _run(
@@ -605,7 +629,211 @@ def collect_evidence(
         checkout_state=checkout_state,
         definition_hashes=definition_hashes,
         source_slice_hashes=slice_hashes,
+        evidence_source=LIVE_EVIDENCE,
     )
+
+
+def _carried_digest(carried: dict[str, object], key: str) -> str:
+    value = carried.get(key)
+    if not isinstance(value, str) or re.fullmatch(r"[0-9a-f]{64}", value) is None:
+        raise RefinementError(
+            f"committed Sail provenance {key} is not a sha256 digest"
+        )
+    return value
+
+
+def _carried_pins(carried: dict[str, object]) -> None:
+    """Every reusable field is pinned in this module, not read from JSON."""
+    pinned: dict[str, object] = {
+        "repository": SAIL_REPOSITORY,
+        "revision": SAIL_REVISION,
+        "compiler_version": SAIL_VERSION,
+        "architectural_profile": "rv32im-zkvm-v1",
+        "validated_isa_string": "rv32im",
+        "model_entry": MODEL_ENTRY.as_posix(),
+        "base_configuration": BASE_CONFIGURATION.as_posix(),
+        "exact_configuration": EXACT_CONFIGURATION.as_posix(),
+        "source_file": SOURCE_FILE.as_posix(),
+        "generated_backend_file": GENERATED_FILE.as_posix(),
+        "generated_definition_sha256": GENERATED_DEFINITION_HASHES,
+        "source_slice_sha256": SOURCE_SLICE_HASHES,
+        "normalization": NORMALIZATION,
+        "generated_monad_normalization_theorem": False,
+    }
+    for key, expected in pinned.items():
+        if carried.get(key) != expected:
+            raise RefinementError(
+                f"committed Sail provenance {key} does not match the pin in "
+                f"scripts/riscv_refinement_lib/sail.py: "
+                f"{carried.get(key)!r} != {expected!r}"
+            )
+    if carried.get("checkout_state") not in ("clean", "rvfi-transport-patch-only"):
+        raise RefinementError(
+            "committed Sail provenance names an unknown checkout state"
+        )
+    if carried.get("evidence_source", LIVE_EVIDENCE) not in (
+        LIVE_EVIDENCE,
+        CARRIED_EVIDENCE,
+    ):
+        raise RefinementError(
+            "committed Sail provenance names an unknown evidence source"
+        )
+
+
+def _carried_inputs(paths: Paths, carried: dict[str, object]) -> dict[str, str]:
+    """Re-hash every Sail input the committed provenance names in this repo."""
+    digests = carried.get("profile_file_sha256")
+    expected = {relative.as_posix() for relative in CARRIED_INPUTS}
+    if not isinstance(digests, dict) or set(digests) != expected:
+        raise RefinementError(
+            "committed Sail provenance names an unexpected profile input set"
+        )
+    rehashed: dict[str, str] = {}
+    for relative in CARRIED_INPUTS:
+        path = paths.root / relative
+        if path.is_symlink() or not path.is_file():
+            raise RefinementError(
+                f"{relative.as_posix()}: Sail input named by the committed "
+                "provenance is absent; reused evidence cannot be checked"
+            )
+        actual = codec.sha256_file(path)
+        if actual != digests[relative.as_posix()]:
+            raise RefinementError(
+                f"{relative.as_posix()}: Sail input changed since the committed "
+                f"provenance ({actual} != {digests[relative.as_posix()]}); "
+                "re-derive the evidence with the live Sail toolchain"
+            )
+        rehashed[relative.as_posix()] = actual
+    return rehashed
+
+
+def _carried_configuration(
+    paths: Paths,
+    manifest: dict[str, object],
+    carried: dict[str, object],
+) -> bytes:
+    """The reused exact configuration is the committed artifact, byte for byte."""
+    path = paths.formal / COMMITTED_CONFIGURATION
+    if path.is_symlink() or not path.is_file():
+        raise RefinementError(
+            f"{COMMITTED_CONFIGURATION.as_posix()}: committed exact Sail "
+            "configuration is absent; reused evidence cannot be checked"
+        )
+    configuration = path.read_bytes()
+    digest = codec.sha256_bytes(configuration)
+    if digest != _carried_digest(carried, "exact_configuration_sha256"):
+        raise RefinementError(
+            f"{COMMITTED_CONFIGURATION.as_posix()}: committed exact Sail "
+            "configuration does not match the committed provenance digest"
+        )
+    artifacts = manifest.get("artifacts")
+    if (
+        not isinstance(artifacts, dict)
+        or artifacts.get(COMMITTED_CONFIGURATION.as_posix()) != digest
+    ):
+        raise RefinementError(
+            f"{COMMITTED_CONFIGURATION.as_posix()}: committed manifest artifact "
+            "digest does not match the committed exact Sail configuration"
+        )
+    return configuration
+
+
+def _refuse_minting_sail_artifacts(paths: Paths, evidence: SailEvidence) -> None:
+    """Reused evidence may reproduce the Sail artifacts and nothing else."""
+    from . import render  # deferred: render imports this module at load time
+
+    capsule = (
+        render.SAIL_LEAN_TEMPLATE.replace(
+            "__UTYPE_DIGEST__",
+            evidence.definition_hashes["execute_UTYPE"],
+        )
+        .replace(
+            "__ITYPE_DIGEST__",
+            evidence.definition_hashes["execute_ITYPE"],
+        )
+        .encode("utf-8")
+    )
+    for relative, rendered in (
+        (COMMITTED_CONFIGURATION, evidence.exact_configuration),
+        (COMMITTED_CAPSULE, capsule),
+    ):
+        path = paths.formal / relative
+        if path.is_symlink() or not path.is_file():
+            raise RefinementError(
+                f"{relative.as_posix()}: committed Sail artifact is absent; "
+                "reused evidence can only reproduce existing Sail output"
+            )
+        if path.read_bytes() != rendered:
+            raise RefinementError(
+                f"{relative.as_posix()}: reusing the committed Sail evidence "
+                "would rewrite this artifact; only the live Sail toolchain may "
+                "mint new Sail output"
+            )
+
+
+def carried_evidence(paths: Paths) -> SailEvidence:
+    """Rebuild the Sail evidence from committed provenance, never from a tool.
+
+    Nothing here can invent Sail output. Every field is either pinned in this
+    module, re-hashed from a file in this repository, or copied verbatim out of
+    the committed manifest and then required to round-trip back to it; and the
+    two Sail artifacts must already exist with exactly the reproduced bytes.
+    The result is labelled `carried-committed-sail-evidence` in the manifest and
+    is refused by `toolchain`, so no release receipt can rest on it.
+    """
+    manifest = codec.load_json(paths.manifest)
+    if (
+        manifest.get("kind") != "stwo-riscv-refinement-generated-manifest"
+        or manifest.get("canonical_digest") != codec.content_digest(manifest)
+    ):
+        raise RefinementError(
+            "committed refinement manifest identity is invalid; its Sail "
+            "provenance cannot be reused"
+        )
+    carried = manifest.get("sail")
+    if not isinstance(carried, dict):
+        raise RefinementError(
+            "committed refinement manifest has no Sail provenance block"
+        )
+    _carried_pins(carried)
+    profile_file_sha256 = _carried_inputs(paths, carried)
+    _profile(paths.root)
+    configuration = _carried_configuration(paths, manifest, carried)
+    evidence = SailEvidence(
+        source_root=None,
+        compiler=None,
+        compiler_sha256=None,
+        simulator_sha256=None,
+        generated_file=None,
+        generated_file_sha256=_carried_digest(
+            carried,
+            "generated_backend_file_sha256",
+        ),
+        source_file_sha256=_carried_digest(carried, "source_file_sha256"),
+        model_entry_sha256=_carried_digest(carried, "model_entry_sha256"),
+        base_configuration_sha256=_carried_digest(
+            carried,
+            "base_configuration_sha256",
+        ),
+        exact_configuration=configuration,
+        exact_configuration_sha256=codec.sha256_bytes(configuration),
+        profile_file_sha256=profile_file_sha256,
+        checkout_state=str(carried["checkout_state"]),
+        definition_hashes=dict(GENERATED_DEFINITION_HASHES),
+        source_slice_hashes=dict(SOURCE_SLICE_HASHES),
+        evidence_source=CARRIED_EVIDENCE,
+    )
+    reconstructed = provenance(evidence)
+    reconstructed.pop("evidence_source")
+    if reconstructed != {
+        key: value for key, value in carried.items() if key != "evidence_source"
+    }:
+        raise RefinementError(
+            "reused Sail evidence does not reproduce the committed provenance "
+            "block; re-derive it with the live Sail toolchain"
+        )
+    _refuse_minting_sail_artifacts(paths, evidence)
+    return evidence
 
 
 def provenance(evidence: SailEvidence) -> dict[str, object]:
@@ -629,13 +857,19 @@ def provenance(evidence: SailEvidence) -> dict[str, object]:
         "generated_backend_file_sha256": evidence.generated_file_sha256,
         "generated_definition_sha256": evidence.definition_hashes,
         "source_slice_sha256": evidence.source_slice_hashes,
-        "normalization": "reviewed exact-hash LUI and ADDI expression capsule",
+        "normalization": NORMALIZATION,
         "generated_monad_normalization_theorem": False,
+        "evidence_source": evidence.evidence_source,
     }
 
 
 def toolchain(evidence: SailEvidence) -> dict[str, object]:
     """Platform-local binaries recorded in the receipt, not portable inputs."""
+    if evidence.evidence_source != LIVE_EVIDENCE:
+        raise RefinementError(
+            "the semantic toolchain record requires live Sail evidence; "
+            f"{evidence.evidence_source} carries no compiler or simulator digest"
+        )
     return {
         "compiler": {
             "version": SAIL_VERSION,
