@@ -211,29 +211,76 @@ theorem lhWrongHalfRow_satisfies :
     LoadStoreHoldsWithoutHalfLoadHigh lhWrongHalfRow := by
   constructor <;> first | decide | (unfold validPreviousClock; decide)
 
-/-- The architectural claim `lh_refines` reaches for this row: the destination
-word is the sign-extended high halfword of the aligned memory word. Stated in
-terms of the memory word rather than the AIR, so the control is not circular. -/
-def LhSelectsHighHalf (row : LoadStoreRow) : Prop :=
-  row.result = limbs 0x00 0x80 0xff 0xff
+/-- The architectural content of an `LH` on the high half: the retired word is
+the sign extension of the high halfword of the memory word.
 
-theorem lhWrongHalfRow_refutes : ¬ LhSelectsHighHalf lhWrongHalfRow := by
-  unfold LhSelectsHighHalf
+Row-parameterised and stated with the architectural `signExtendHalf`, so it is
+neither of the two ways a mutation control goes wrong. It is not a constant --
+that would make the soundness hypothesis false and the control vacuous. And it
+is not a restatement of the deleted byte-level constraint `halfLoadHigh`, which
+says nothing about sign extension. -/
+def LhRetiresHighHalf (row : LoadStoreRow) : Prop :=
+  row.isLh = true → row.shiftId = 5 →
+    row.result.word = Memory.signExtendHalf row.srcNext.highHalf
+
+/-- The sign witness really does pin bit 15 of the selected halfword. -/
+theorem highHalf_signBit (bytes : WordBytes) :
+    bytes.highHalf.getLsbD 15 = bytes.limb3.getLsbD 7 := by
+  simp only [WordBytes.highHalf]
+  bv_decide
+
+/-- The claim is what the unweakened row predicate delivers.
+
+Proving this rather than assuming it is what makes the control unconditional:
+the soundness hypothesis is discharged here, so the load-bearing theorem does
+not rest on an assumption that might be false. -/
+theorem loadStoreHolds_retires_high_half
+    (row : LoadStoreRow)
+    (holds : LoadStoreHolds row) :
+    LhRetiresHighHalf row := by
+  intro isLh high
+  have half : row.isHalfLoad = true := by
+    simp [LoadStoreRow.isHalfLoad, isLh]
+  have signed : row.isSigned = true := by
+    simp [LoadStoreRow.isSigned, isLh]
+  have select := holds.halfLoadHigh half high
+  have extension := holds.halfLoadExtension half
+  have witness := holds.halfSignWitness isLh
+  have mask :
+      row.signMask =
+        if row.srcMsb then BitVec.ofNat 8 255 else BitVec.ofNat 8 0 := by
+    simp [LoadStoreRow.signMask, signed]
+  -- bit 15 of the selected halfword is bit 7 of `result.limb1`, which the AIR
+  -- sign witness pins to `src_msb`.
+  have bit : row.srcNext.highHalf.getLsbD 15 = row.srcMsb := by
+    rw [highHalf_signBit, ← select.2, ← witness]
+  rw [WordBytes.word_halves, Memory.signExtendHalf_fill, bit,
+    select.1, select.2, extension.1, extension.2, mask]
+  cases row.srcMsb <;>
+    simp only [Bool.false_eq_true, if_false, if_true, WordBytes.highHalf] <;>
+    bv_decide
+
+theorem lhWrongHalfRow_refutes : ¬ LhRetiresHighHalf lhWrongHalfRow := by
+  intro claim
+  have := claim rfl (by decide)
+  revert this
   decide
 
-/-- The published control. -/
+/-- The published control: deleting the halfword-selection constraint admits a
+row that retires the low halfword where the architecture requires the sign
+extension of the high one. -/
 def lhWrongHighHalf :
-    MutationControl LoadStoreHoldsWithoutHalfLoadHigh LhSelectsHighHalf where
+    MutationControl LoadStoreHoldsWithoutHalfLoadHigh LhRetiresHighHalf where
   name := "lh-wrong-high-half"
   witness := lhWrongHalfRow
   satisfies := lhWrongHalfRow_satisfies
   refutes := lhWrongHalfRow_refutes
 
-/-- The deletion is not free: the high-half selection cannot be recovered from
-the remaining constraints. -/
-theorem lh_high_half_selection_is_load_bearing
-    (sound : ∀ row, LoadStoreHolds row → LhSelectsHighHalf row) :
+/-- The deletion is not free. Unconditional: the soundness hypothesis is
+discharged by `loadStoreHolds_retires_high_half` rather than assumed. -/
+theorem lh_high_half_selection_is_load_bearing :
     ¬ (∀ row, LoadStoreHoldsWithoutHalfLoadHigh row → LoadStoreHolds row) :=
-  lhWrongHighHalf.strictly_weaker LoadStoreHolds sound
+  lhWrongHighHalf.strictly_weaker LoadStoreHolds
+    loadStoreHolds_retires_high_half
 
 end RiscvRefinement.Opcodes
