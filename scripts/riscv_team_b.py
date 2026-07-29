@@ -56,9 +56,32 @@ CAPSULE_FAMILIES = {
     "Air/Family/Div.lean": ("div",),
 }
 
-#: Recognised certificate states. ``proved`` is the only one that counts toward
+#: Recognised certificate states, weakest first. Only ``proved`` counts toward
 #: coverage; every other value is an explicit, reviewable admission of a gap.
-CERTIFICATE_STATES = ("proved", "capsule-only", "open")
+#:
+#: A state cannot overstate what exists, because each one names the fields it
+#: requires and the gate refuses a certificate that claims a state without
+#: them. "Proved" here still means proved against the reviewed architectural
+#: capsule -- the generated-Sail obligation is open for every entry, which is
+#: why the index carries a claim boundary of its own.
+CERTIFICATE_STATES = ("open", "capsule-only", "refined", "proved")
+
+#: state -> fields that must be present (non-null) for that state to be claimed.
+REQUIRED_CERTIFICATE_FIELDS: dict[str, tuple[str, ...]] = {
+    "open": (),
+    "capsule-only": (),
+    "refined": (
+        "refinement_theorem",
+        "tuple_theorem",
+        "non_vacuity_theorem",
+    ),
+    "proved": (
+        "refinement_theorem",
+        "tuple_theorem",
+        "non_vacuity_theorem",
+        "mutation",
+    ),
+}
 
 MANIFEST_ENTRY = re.compile(r"proof\(\.[^,]+,\s*\"([^\"]+)\",\s*\.([a-z_0-9]+)")
 LEAN_DIGEST = re.compile(
@@ -182,6 +205,12 @@ def check_coverage() -> str:
                 f"{mnemonic} certificate has unrecognised state {state!r}; "
                 f"expected one of {CERTIFICATE_STATES}"
             )
+        for field in REQUIRED_CERTIFICATE_FIELDS[state]:
+            if not certificate.get(field):
+                raise TeamBError(
+                    f"{mnemonic} claims state {state!r} but its {field} is "
+                    "absent; a state may not overstate what exists"
+                )
 
     proved = sorted(
         mnemonic

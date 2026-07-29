@@ -1,5 +1,5 @@
 {
-  "canonical_digest": "426040cf7a5e7d518eaa135c52ed4534ba760424a3456a0dcd80b2ee3226dfb3",
+  "canonical_digest": "821aa2d6d1fdc06a14b44eccb9e72a093a1a8f12f1258affbf5c8920a8a74f46",
   "certificates": [
     {
       "family": "shifts_reg",
@@ -146,40 +146,40 @@
       "manifest_id": 37,
       "mnemonic": "mul",
       "mutation": null,
-      "non_vacuity_theorem": null,
-      "refinement_theorem": null,
-      "state": "open",
-      "tuple_theorem": null
+      "non_vacuity_theorem": "RiscvRefinement.Opcodes.mul_exists",
+      "refinement_theorem": "RiscvRefinement.Opcodes.mul_refines",
+      "state": "refined",
+      "tuple_theorem": "RiscvRefinement.Opcodes.mul_refines"
     },
     {
       "family": "mulh",
       "manifest_id": 38,
       "mnemonic": "mulh",
       "mutation": null,
-      "non_vacuity_theorem": null,
-      "refinement_theorem": null,
-      "state": "open",
-      "tuple_theorem": null
+      "non_vacuity_theorem": "RiscvRefinement.Opcodes.mulh_exists",
+      "refinement_theorem": "RiscvRefinement.Opcodes.mulh_refines",
+      "state": "refined",
+      "tuple_theorem": "RiscvRefinement.Opcodes.mulh_refines"
     },
     {
       "family": "mulh",
       "manifest_id": 39,
       "mnemonic": "mulhsu",
       "mutation": null,
-      "non_vacuity_theorem": null,
-      "refinement_theorem": null,
-      "state": "open",
-      "tuple_theorem": null
+      "non_vacuity_theorem": "RiscvRefinement.Opcodes.mulhsu_exists",
+      "refinement_theorem": "RiscvRefinement.Opcodes.mulhsu_refines",
+      "state": "refined",
+      "tuple_theorem": "RiscvRefinement.Opcodes.mulhsu_refines"
     },
     {
       "family": "mulh",
       "manifest_id": 40,
       "mnemonic": "mulhu",
       "mutation": null,
-      "non_vacuity_theorem": null,
-      "refinement_theorem": null,
-      "state": "open",
-      "tuple_theorem": null
+      "non_vacuity_theorem": "RiscvRefinement.Opcodes.mulhu_exists",
+      "refinement_theorem": "RiscvRefinement.Opcodes.mulhu_refines",
+      "state": "refined",
+      "tuple_theorem": "RiscvRefinement.Opcodes.mulhu_refines"
     },
     {
       "family": "div",

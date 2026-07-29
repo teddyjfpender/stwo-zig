@@ -118,6 +118,40 @@ class TeamBCoverageTest(unittest.TestCase):
             with self.assertRaisesRegex(team_b.TeamBError, "records family"):
                 team_b.check_coverage()
 
+    def test_a_state_may_not_overstate_what_exists(self):
+        for state, field in (
+            ("refined", "refinement_theorem"),
+            ("refined", "tuple_theorem"),
+            ("refined", "non_vacuity_theorem"),
+            ("proved", "mutation"),
+        ):
+            index = self._index()
+            target = index["certificates"][0]
+            target["state"] = state
+            for present in team_b.REQUIRED_CERTIFICATE_FIELDS[state]:
+                target[present] = f"RiscvRefinement.Opcodes.{present}"
+            target[field] = None
+            index["canonical_digest"] = team_b.canonical_digest(index)
+            with self.subTest(state=state, missing=field):
+                with self._with_index(index):
+                    with self.assertRaisesRegex(
+                        team_b.TeamBError, "may not overstate"
+                    ):
+                        team_b.check_coverage()
+
+    def test_only_proved_entries_count_toward_coverage(self):
+        index = self._index()
+        # Every entry fully populated but still only "refined" must report zero
+        # proved: a refinement without a load-bearing mutation is not coverage.
+        for certificate in index["certificates"]:
+            certificate["state"] = "refined"
+            certificate["refinement_theorem"] = "RiscvRefinement.Opcodes.mul_refines"
+            certificate["tuple_theorem"] = "RiscvRefinement.Opcodes.mul_refines"
+            certificate["non_vacuity_theorem"] = "RiscvRefinement.Opcodes.mul_exists"
+        index["canonical_digest"] = team_b.canonical_digest(index)
+        with self._with_index(index):
+            self.assertIn("0/22 proved", team_b.check_coverage())
+
     def test_named_theorem_that_does_not_exist_fails_closed(self):
         index = self._index()
         index["certificates"][0]["refinement_theorem"] = (
