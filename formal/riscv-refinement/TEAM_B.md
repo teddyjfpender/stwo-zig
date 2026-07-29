@@ -9,9 +9,9 @@ Machine-readable status: [`team-b-coverage.json`](team-b-coverage.json).
 
 ## What is claimed
 
-**Coverage is 1/22 proved.** Every other entry is `refined`: it has a
-refinement theorem and tuple projections, and usually a non-vacuity witness, but
-no Lean mutation control, so it does not count.
+**Coverage is 2/22 proved** — MUL and LH. Every other entry is `refined`: it has
+a refinement theorem, tuple projections and a non-vacuity witness, but no Lean
+mutation control, so it does not count.
 
 **No entry is publication-level.** The architectural side of every Team B
 theorem is a *reviewed normalized capsule*, not a generated-Sail theorem,
@@ -41,8 +41,8 @@ sources.
 | --- | --- | --- | --- |
 | `shifts_reg` | SLL, SRL, SRA | `Air/Family/Shifts.lean` | shares the `shift_common` layer with the immediate family |
 | `shifts_imm` | SLLI, SRLI, SRAI | `Air/Family/Shifts.lean` | |
-| `load_store` | LB, LH, LW, LBU, LHU, SB, SH, SW | `Air/Family/LoadStore.lean` | LH is the Stage B2 stress gate |
-| `mul` | MUL | `Air/Family/Multiply.lean` | the one `proved` entry |
+| `load_store` | LB, LH, LW, LBU, LHU, SB, SH, SW | `Air/Family/LoadStore.lean` | LH is the Stage B2 stress gate; `proved`, mutation `lh-wrong-high-half` |
+| `mul` | MUL | `Air/Family/Multiply.lean` | `proved`; mutation `mul-free-low-limb` |
 | `mulh` | MULH, MULHSU, MULHU | `Air/Family/Multiply.lean` | |
 | `div` | DIV, DIVU, REM, REMU | `Air/Family/Div.lean` | the Stage B3 stress gate |
 
