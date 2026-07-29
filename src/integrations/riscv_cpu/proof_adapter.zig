@@ -66,18 +66,35 @@ const ProcessIdentity = artifact_validation.ProcessIdentity;
 /// Keeping publication outside the adapter gives Native and RISC-V workloads
 /// identical exclusive-output and rollback behavior when the release gate is
 /// eventually opened.
+/// Drive one proving transaction on `Engine`.
+///
+/// `Engine` and `backend` are comptime so a product binds exactly one engine and
+/// links exactly one commitment backend -- the CPU product must not acquire a
+/// Metal link edge, which its own closure gate forbids. `@tagName(.cpu) == "cpu"`,
+/// so a CPU artifact produced through this generic path is byte-identical to one
+/// produced before the parameterisation.
 pub fn run(
+    comptime Engine: type,
+    comptime backend: Backend,
     allocator: std.mem.Allocator,
     elf_path: []const u8,
     input_path: ?[]const u8,
     options: Options,
 ) ![]u8 {
+    comptime stwo.frontends.riscv.prover_mod.assertProverEngine(Engine);
+    comptime std.debug.assert(backend != .unavailable_device);
     try capabilities.requireAdmission(options.experimental);
-    if (options.backend != .cpu) return error.AdapterNotReleaseGated;
+    if (options.backend != backend) return error.AdapterNotReleaseGated;
+    // Build pipelines and libraries before the first timed sample. This does not
+    // distort `resources`: the footprint is an absolute process-lifetime peak
+    // read from the *after* snapshot.
+    if (comptime @hasDecl(Engine, "warmup")) try Engine.warmup();
     const process_identity = try artifact_validation.measureProcessIdentity(allocator);
     return switch (options.mode) {
-        .prove => runProve(allocator, elf_path, input_path, options, process_identity),
+        .prove => runProve(Engine, backend, allocator, elf_path, input_path, options, process_identity),
         .bench => |benchmark| runBenchmark(
+            Engine,
+            backend,
             allocator,
             elf_path,
             input_path,
@@ -89,6 +106,8 @@ pub fn run(
 }
 
 fn runProve(
+    comptime Engine: type,
+    comptime backend: Backend,
     allocator: std.mem.Allocator,
     elf_path: []const u8,
     input_path: ?[]const u8,
@@ -100,7 +119,6 @@ fn runProve(
 
     const runner = stwo.frontends.riscv.runner;
     const prover = stwo.frontends.riscv.prover_mod;
-    const riscv_cpu = stwo.integrations.riscv_cpu;
     const artifact_mod = stwo.interop.riscv_artifact;
 
     const elf_bytes = try std.fs.cwd().readFileAlloc(allocator, elf_path, 64 * 1024 * 1024);
@@ -146,9 +164,9 @@ fn runProve(
     );
     defer recorder.deinit();
     var proving_timer = try std.time.Timer.start();
-    var prove_channel = riscv_cpu.CpuProverEngine.Channel{};
+    var prove_channel = Engine.Channel{};
     var output = try prover.proveRiscVWithEngineAndPublicDataUsingChannel(
-        riscv_cpu.CpuProverEngine,
+        Engine,
         allocator,
         config,
         &run_result.execution_trace,
@@ -204,9 +222,9 @@ fn runProve(
     // The verifier consumes the proof on both success and failure.
     var verification_timer = try std.time.Timer.start();
     proof_owned = false;
-    var verify_channel = riscv_cpu.CpuProverEngine.Channel{};
+    var verify_channel = Engine.Channel{};
     try prover.verifyRiscVWithEngineUsingChannel(
-        riscv_cpu.CpuProverEngine,
+        Engine,
         allocator,
         config,
         output.statement,
@@ -269,7 +287,7 @@ fn runProve(
         .release_status = artifact_mod.RELEASE_STATUS,
         .generator = artifact_mod.GENERATOR,
         .air = artifact_mod.AIR,
-        .backend = "cpu",
+        .backend = @tagName(backend),
         .protocol = @tagName(options.protocol),
         .source = source,
         .provenance = .{
@@ -349,6 +367,8 @@ const ProveReport = struct {
 };
 
 fn runBenchmark(
+    comptime Engine: type,
+    comptime backend: Backend,
     allocator: std.mem.Allocator,
     elf_path: []const u8,
     input_path: ?[]const u8,
@@ -388,7 +408,7 @@ fn runBenchmark(
         defer if (!keep_artifact) std.fs.cwd().deleteFile(path) catch {};
 
         var timer = try std.time.Timer.start();
-        const report_raw = try runProve(allocator, elf_path, input_path, .{
+        const report_raw = try runProve(Engine, backend, allocator, elf_path, input_path, .{
             .backend = options.backend,
             .protocol = options.protocol,
             .mode = .prove,
@@ -535,6 +555,7 @@ fn stagedPcsConfig(protocol: Protocol) stwo.core.pcs.PcsConfig {
 /// with the artifact's own release status so staged verification can never
 /// be mistaken for promotion.
 pub fn verifyArtifact(
+    comptime Engine: type,
     allocator: std.mem.Allocator,
     artifact: stwo.interop.riscv_artifact.Artifact,
     requested_policy: Protocol,
@@ -543,7 +564,6 @@ pub fn verifyArtifact(
 ) !void {
     const artifact_mod = stwo.interop.riscv_artifact;
     const prover = stwo.frontends.riscv.prover_mod;
-    const riscv_cpu = stwo.integrations.riscv_cpu;
 
     try artifact_mod.validateForPolicy(artifact, switch (requested_policy) {
         .secure => .secure,
@@ -596,9 +616,9 @@ pub fn verifyArtifact(
         proof.deinit(allocator);
         return error.ProofConfigMismatch;
     }
-    var verify_channel = riscv_cpu.CpuProverEngine.Channel{};
+    var verify_channel = Engine.Channel{};
     try prover.verifyRiscVWithEngineUsingChannel(
-        riscv_cpu.CpuProverEngine,
+        Engine,
         allocator,
         config,
         reconstructed.statement,

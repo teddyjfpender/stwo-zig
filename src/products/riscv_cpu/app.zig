@@ -58,7 +58,13 @@ fn runElf(
     defer if (proof_temporary) |path| allocator.free(path);
     defer if (proof_temporary) |path| std.fs.cwd().deleteFile(path) catch {};
 
-    const report = adapter.run(allocator, run.elf_path, run.input_path, .{
+    const report = adapter.run(
+        stwo.integrations.riscv_cpu.CpuProverEngine,
+        .cpu,
+        allocator,
+        run.elf_path,
+        run.input_path,
+        .{
         .backend = .cpu,
         .protocol = protocol(run.protocol),
         .mode = mode,
