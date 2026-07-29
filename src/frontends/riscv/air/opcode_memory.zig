@@ -11,6 +11,7 @@ const QM31 = @import("stwo_core").fields.qm31.QM31;
 const memory_logup = @import("memory_logup.zig");
 const relation_challenges = @import("relation_challenges.zig");
 const trace_mod = @import("../runner/trace.zig");
+const decode = @import("../isa/decode.zig");
 const access_clock = @import("../access_clock.zig");
 
 pub const N_ACCESSES: usize = 3;
@@ -142,14 +143,49 @@ pub fn constraints(
     return result;
 }
 
+/// Failure modes of `deriveRegisterBoundary`.
+///
+/// The two are deliberately distinct conditions and must never be conflated.
+/// `UnsupportedForProof` means the trace contains an instruction the proof
+/// system cannot represent at all, so no register boundary exists to derive;
+/// `InvalidRegisterAccessChain` means a fully representable trace's
+/// source-before-destination chain does not close. Reporting the former as the
+/// latter points the reader at witness generation for a defect that lives in
+/// the caller's opcode admission instead.
+///
+/// `UnsupportedForProof` is the canonical, codebase-wide name for "this opcode
+/// has no proof encoding" (`decode.proofOpcode`, `Trace.groupByOpcodeFamily`),
+/// and is reused here on purpose: one root cause deserves one name, and the
+/// remedy -- keep execution-only opcodes out of the proven trace -- is the same
+/// wherever it is raised.
+pub const RegisterBoundaryError = decode.ProofOpcodeError || error{InvalidRegisterAccessChain};
+
 /// Derive the register boundary used by the convenience trace-only proving
 /// API while validating the exact source-before-destination access chain.
 /// Production ELF proving supplies the runner's full initial/final state.
-pub fn deriveRegisterBoundary(rows: []const trace_mod.TraceRow) !RegisterBoundary {
+///
+/// This runs at the very top of `prover.proveRiscVWithEngineUsingChannel`,
+/// which is *before* `prover/statement_geometry.build` invokes
+/// `Trace.groupByOpcodeFamily`. It therefore cannot assume the execution-only
+/// opcodes have already been filtered out and must fail closed itself, which is
+/// why it resolves families through the fallible `proofOpcodeFamily` rather
+/// than the post-filter `opcodeFamily` helper.
+pub fn deriveRegisterBoundary(rows: []const trace_mod.TraceRow) RegisterBoundaryError!RegisterBoundary {
     var result = RegisterBoundary{};
     var seen = [_]bool{false} ** 32;
     for (rows) |row| {
-        const family = trace_mod.opcodeFamily(row.opcode);
+        // Zig error values carry no payload, so name the offending instruction
+        // here; without it the caller only learns that *some* opcode was
+        // unsupported and has to bisect the trace to find which.
+        const family = trace_mod.proofOpcodeFamily(row.opcode) catch |err| {
+            std.log.err(
+                "riscv register boundary: trace step clk={d} pc=0x{x:0>8} is {s}, " ++
+                    "an execution-only opcode with no proof family; it must not " ++
+                    "reach the prover",
+                .{ row.clk, row.pc, @tagName(row.opcode) },
+            );
+            return err;
+        };
         switch (family) {
             .base_alu_reg, .shifts_reg, .lt_reg, .mul, .mulh, .div => {
                 try observe(&result, &seen, rs1Trace(row, .first));

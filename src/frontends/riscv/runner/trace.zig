@@ -167,10 +167,28 @@ pub fn proofOpcodeFamily(opcode: Opcode) decode.ProofOpcodeError!OpcodeFamily {
     return opcode_manifest.family(try decode.proofOpcode(opcode));
 }
 
-/// Compatibility for prover internals that run only after `groupByOpcodeFamily`
-/// has rejected unsupported execution opcodes.
+/// Total-map convenience for prover internals that provably run *after*
+/// `groupByOpcodeFamily` has rejected every execution-only opcode.
+///
+/// The precondition is enforced rather than assumed. This used to be
+/// `catch unreachable`, and `unreachable` in ReleaseFast is undefined
+/// behaviour: an ECALL-terminated trace reaching a caller that runs before the
+/// filter silently yielded a garbage family instead of stopping, and the
+/// corruption only surfaced much later as an unrelated-looking access-chain
+/// error. `std.debug.assert` would be no improvement -- it is likewise elided
+/// in ReleaseFast. `std.debug.panic` is active in every optimization mode and
+/// matches what the rest of this codebase uses for release-active invariants,
+/// so a precondition violation now traps deterministically and names the
+/// offending opcode.
+///
+/// A caller that can run *before* the filter must not use this function: call
+/// `proofOpcodeFamily` and propagate `error.UnsupportedForProof` instead.
 pub fn opcodeFamily(opcode: Opcode) OpcodeFamily {
-    return proofOpcodeFamily(opcode) catch unreachable;
+    return proofOpcodeFamily(opcode) catch std.debug.panic(
+        "riscv trace: opcode {s} has no proof family; opcodeFamily requires " ++
+            "groupByOpcodeFamily to have already rejected execution-only opcodes",
+        .{@tagName(opcode)},
+    );
 }
 
 pub const OpcodeFamilyCounts = struct {
@@ -199,6 +217,24 @@ test "trace groups opcode families" {
     try std.testing.expectEqual(OpcodeFamily.div, try proofOpcodeFamily(.REMU));
     try std.testing.expectEqual(OpcodeFamily.fence, try proofOpcodeFamily(.FENCE));
     try std.testing.expectError(error.UnsupportedForProof, proofOpcodeFamily(.ECALL));
+    try std.testing.expectError(error.UnsupportedForProof, proofOpcodeFamily(.EBREAK));
+}
+
+test "the admitted opcode set maps identically through both family helpers" {
+    // Pins requirement that hardening the unsupported path did not perturb any
+    // supported opcode: `opcodeFamily` must stay a total map over exactly the
+    // opcodes `proofOpcodeFamily` admits, agreeing on every one of them.
+    var admitted: usize = 0;
+    for (std.enums.values(Opcode)) |opcode| {
+        const family = proofOpcodeFamily(opcode) catch |err| {
+            try std.testing.expectEqual(error.UnsupportedForProof, err);
+            try std.testing.expect(opcode == .ECALL or opcode == .EBREAK);
+            continue;
+        };
+        try std.testing.expectEqual(family, opcodeFamily(opcode));
+        admitted += 1;
+    }
+    try std.testing.expectEqual(@as(usize, 46), admitted);
 }
 
 test "trace rejects execution-only opcodes before family witness generation" {

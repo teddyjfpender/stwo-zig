@@ -57,8 +57,18 @@ fn makeFibElf(allocator: std.mem.Allocator, n: u32) ![]u8 {
         (1 << 20) | (3 << 15) | (0b000 << 12) | (3 << 7) | 0x13,
         // BNE x3, x4, -16   (if i != N, loop back 4 instructions)
         encodeBne(3, 4, @as(i13, -16)),
-        // ECALL
-        0x00000073,
+        // jal x0, 0 — the canonical zkVM completion sentinel.
+        //
+        // This is deliberately NOT `ecall` (0x00000073). ECALL is
+        // `UnsupportedForProof`, so an ECALL-terminated trace has no
+        // proof-bearing completion and the benchmark could only ever measure
+        // execution, never the prove/verify pipeline it exists to measure.
+        // The sentinel is an environment event: the runner observes it and
+        // stops *without* retiring it, so the only difference to the measured
+        // workload is that the terminator itself is no longer one retired
+        // cycle. Everything the benchmark reports on — the fib loop — is
+        // unchanged.
+        0x0000006F,
     };
 
     const code_size = instructions.len * 4;
@@ -288,11 +298,55 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
         return;
     }
 
+    // Fail closed on any run whose termination the statement cannot bind,
+    // matching the production adapter's gate in
+    // `src/integrations/riscv_cpu/proof_adapter.zig`. Only `.halt_flag` and
+    // `.self_loop` carry a proof-bearing completion; anything else (ECALL,
+    // EBREAK, a host halt, a step-limit cutoff, an undecodable word) would
+    // otherwise be handed to the prover and fail far downstream with a
+    // diagnostic that names neither the guest nor the reason.
+    switch (run_result.completion_reason) {
+        .halt_flag, .self_loop => {},
+        else => |reason| {
+            std.debug.print(
+                \\
+                \\ERROR: the guest ended with completion_reason={s}, which carries no
+                \\       proof-bearing completion, so this run cannot be proved.
+                \\       A provable guest must either write its linker-declared
+                \\       __halt_flag or end on the canonical `jal x0, 0` sentinel.
+                \\       Use --run-only to measure execution alone.
+                \\
+            , .{@tagName(reason)});
+            return error.UnprovableCompletion;
+        },
+    }
+
     // Stage 3: Prove
+    //
+    // The trace-only convenience entrypoint (`proveRiscVWithEngine`) synthesizes
+    // a statement with an empty I/O region, so the public-I/O LogUp bus cannot
+    // balance for any guest that actually reads input or writes output. Build the
+    // same real public data the production adapter builds instead; the runner's
+    // own initial/final register state is authoritative, which is why the derived
+    // trace-only boundary is not used here either.
+    const public_data_mod = frontend.air.public_data;
+    const input_words = try public_data_mod.packInputWords(allocator, run_result.input);
+    defer allocator.free(input_words);
+    const output_words = try allocator.alloc(
+        public_data_mod.OutputWord,
+        run_result.output_words.len,
+    );
+    defer allocator.free(output_words);
+    for (run_result.output_words, 0..) |word, word_index| output_words[word_index] = .{
+        .addr = word.addr,
+        .value = word.value,
+        .clock = word.clock,
+    };
+
     const t_prove = Timer.begin();
     var recorder = stage_profile.Recorder.init(allocator, "zig", "riscv");
     defer recorder.deinit();
-    const output = try riscv_prover.proveRiscVWithEngine(
+    const output = try riscv_prover.proveRiscVWithEngineAndPublicData(
         Engine,
         allocator,
         config,
@@ -300,6 +354,27 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
         &run_result.state_chain_tracker,
         &run_result.rw_memory,
         if (profile_enabled) &recorder else null,
+        .{
+            .initial_pc = run_result.initial_pc,
+            .final_pc = run_result.final_pc,
+            .clock = @intCast(run_result.step_count),
+            .initial_regs = run_result.initial_regs,
+            .final_regs = run_result.final_regs,
+            .reg_last_clock = run_result.state_chain_tracker.reg_last_clk,
+            .program_root = null,
+            .initial_rw_root = null,
+            .final_rw_root = null,
+            .completion = try public_data_mod.completionFromRun(run_result),
+            .io_entries = .{
+                .input_start = run_result.input_start,
+                .input_len = @intCast(run_result.input.len),
+                .input_words = input_words,
+                .output_len = run_result.output_len,
+                .output_len_addr = run_result.output_len_addr,
+                .output_data_addr = run_result.output_data_addr,
+                .output_words = output_words,
+            },
+        },
     );
     defer output.deinitAfterProofMoved(allocator);
     const prove_ms = t_prove.elapsedMs();
