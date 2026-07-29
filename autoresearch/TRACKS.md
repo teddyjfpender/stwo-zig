@@ -30,7 +30,7 @@ mechanism IS the track mechanism; no schema change).
 | `native_cpu` (today `core_cpu`) | Native AIRs | CPU/SIMD | released | **retire-and-complete** (§6) |
 | `native_metal` (today `core_metal`) | Native AIRs | Metal | released | **retire-and-complete** (§6) |
 | `riscv_cpu` (today `riscv`) | RISC-V | CPU | released | re-score to request boundary, continue |
-| `riscv_metal` | RISC-V | Metal | parity_gated | **new track** |
+| `riscv_metal` | RISC-V | Metal | parity_gated | **new track** — wave-2, now **registered-staged** (dark manifest group + `ledger.BOARDS` entry; no report adapter, no M5 calibration) |
 | `cairo_cpu` | Cairo | CPU | released | **new track** |
 | `cairo_metal` | Cairo | Metal | parity_gated | **new track** |
 | `cairo_frontend` | Cairo | backend-independent | — | **new frontend-only track** (§4) |
@@ -68,7 +68,33 @@ parallelism wins and efficiency wins are distinguishable on cpu-vs-metal lanes.
 class machinery) + at least two adversarial "killer" workloads
 (memory-hole-heavy and builtin-saturating for Cairo; paging-hostile and
 Keccak-heavy for RISC-V — the ethproofs killer-block discipline) + the
-jittered holdout generator extended from riscv to ALL groups. Cairo's initial
+jittered holdout generator extended from riscv to ALL groups.
+
+RISC-V's basket today is the 20 hand-assembled and vendored-crypto rows of
+`workload_registry.groups.riscv.workloads`, scored at functional parameters in
+era 2. Its extension is **staged, not live**: the sixteen-row EthProofs
+client-side-proving matrix (`vectors/riscv_csp/manifest-v2.json` — SHA-256 and
+Keccak-256 at five sizes each, Poseidon2-M31 at five widths, one secp256k1
+ECDSA row) is wired into the group's own
+`era_staged_basket`, which lives OUTSIDE `workloads` precisely so no era-2
+scoring, holdout, or guard path can reach it (§7). Seven rows are
+scored candidates for era 3; the other nine are the track's killer set, with
+`killer_family` naming the coverage: `keccak_heavy` (the multi-block Keccak
+sweep), `paging_hostile` (the 5.4M-retirement ECDSA row), and
+`field_native_saturating` (the Poseidon2-M31 width sweep). Class assignment is
+by measured RV32IM retirement count against the era-2 class bands, not by
+guesswork. Every staged row is oracle-admitted before it may score: its guest
+ELF and input bytes are digest-pinned and its `expected_cycles` is the exact
+retirement count, reproducible offline with `zig build riscv-trace-dump`. The
+staged rows are measured at official secure parameters (pow 26 / 70 queries)
+while era 2 scores functional — so era 3 must re-score the incumbent rows at
+the secure protocol before any mixed geomean exists. The RISC-V acceptance
+corpus is the pinned zksecurity/zkvm-benchmarks RV32IM guest matrix
+(`vectors/riscv_guests/riscv_program_matrix.json`), the counterpart of Cairo's
+at the same upstream commit; it ships source only, so it is acceptance and
+provisioning bookkeeping and never a scored basket.
+
+Cairo's initial
 basket: the 7-workload campaign portfolio (all-opcodes 97.4M cells →
 memory-7m 604M cells) with fixtures COMMITTED (currently host-local), plus
 the orphan `vectors/cairo/cairo_program_matrix.json` corpus (pinned

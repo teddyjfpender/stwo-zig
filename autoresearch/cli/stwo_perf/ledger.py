@@ -48,11 +48,14 @@ OUTCOMES = ("promoted", "neutral", "rejected")
 # §2, §3.4, §8) appends the wave-1 Cairo tracks plus the pr6_supremacy
 # objective board, which must be registered here before it can ever write a
 # row — objective boards that are absent from BOARDS are the current gap
-# TRACKS §3.4 names explicitly.
+# TRACKS §3.4 names explicitly. Wave 2 (TRACKS §8) appends riscv_metal, the
+# RISC-V frontend on the parity-gated Metal backend; it is registered staged
+# and dark, exactly like cairo_metal, so the feed can discover the track
+# before the product can ever write a row.
 BOARDS = (
     "core_cpu", "core_hybrid", "core_metal", "core_cuda",
     "heavy_native", "heavy_cairo", "stream", "riscv",
-    "cairo_cpu", "cairo_metal", "pr6_supremacy",
+    "cairo_cpu", "cairo_metal", "pr6_supremacy", "riscv_metal",
 )
 
 _FLOAT_COLS = {"judged_r", "ci_low", "ci_high", "prove_ms", "native_mhz", "peak_rss_mib"}
