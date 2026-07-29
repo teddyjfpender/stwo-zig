@@ -15,7 +15,7 @@ import json
 import subprocess
 from pathlib import Path
 
-from . import frontier, ledger, metrics, search_health
+from . import frontier, ledger, metrics, search_health, track_task
 from .manifest import Manifest
 
 FEED_SCHEMA_VERSION = 4
@@ -520,6 +520,44 @@ def _era(board_spec: dict) -> dict:
     }
 
 
+def _supremacy(group) -> dict | None:
+    """TRACKS §3.4/§9 objective-board pins, or null.
+
+    Only a board whose manifest oracle declares a **performance peer** is a
+    supremacy objective; every other board publishes null rather than an empty
+    shell that renders as an unclaimed objective. Every field is copied from
+    the manifest — a pin the manifest does not carry is published as null and
+    is never reconstructed from prose.
+
+    `toolchain` travels with `peer_commit` on purpose: a peer commit without
+    the toolchain it was built with is not a reproducible comparison
+    (TRACKS §3.4), so the consumer must be able to see the absence.
+    """
+    if group is None:
+        return None
+    oracle = group.correctness_oracle or {}
+    peer_repository = oracle.get("performance_peer_repository")
+    if not peer_repository:
+        return None
+    activation = group.correctness_oracle.get("activation_contract") or {}
+    return {
+        # No objective board has ever passed its gate; `achieved` is reachable
+        # only when the manifest both enables the board and admits promotion.
+        "state": (
+            "achieved"
+            if group.enabled and group.promotion_eligible
+            else "not_achieved"
+        ),
+        "board": group.board,
+        "peer_repository": peer_repository,
+        "peer_commit": oracle.get("performance_peer_commit"),
+        "toolchain": oracle.get("rust_toolchain"),
+        "activated_utc": None,
+        "activation_state_path": activation.get("state_path"),
+        "reason": group.disabled_reason or group.promotion_blocked_reason,
+    }
+
+
 def _boards(
     repo: Path,
     manifest: Manifest,
@@ -563,6 +601,12 @@ def _boards(
                 dict(group.retirement) or None if group is not None else None
             ),
             "phase_telemetry": phase_telemetry.get(board),
+            # TRACKS §9: the objective/supremacy pins, and the per-track brief
+            # verbatim — the site's participate block is generated from the
+            # same document `stwo-perf task --board <board>` prints, so the
+            # page and the CLI can never disagree.
+            "supremacy": _supremacy(group),
+            "task": track_task.feed_export(manifest, board),
             "suite_score": (
                 metrics.board_suite_score(
                     rows, epoch, board, classes, policy=metrics_policy,

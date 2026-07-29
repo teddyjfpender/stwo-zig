@@ -1,8 +1,11 @@
 # stwo-perf: the autoresearch harness
 
-**Start here: [TASK.md](TASK.md)** — the immediate optimization objective, the
-editable surface, the loop, and what winning means, written to be handed to a
-coding agent verbatim.
+**Start here: [TASK.md](TASK.md)** — the campaign index, one row per track.
+Then open your track's brief in [tasks/](tasks/): its objective, era, scored
+basket, editable surface, guards, ladder, and loop, written to be handed to a
+coding agent verbatim. Briefs are generated from `MANIFEST.json` and
+`ledger/epochs.json` (`stwo-perf task --board <board>`), so they cannot drift
+from the contract the runner gates on (TRACKS §8).
 
 Implementation of the harness contract in
 the performance-extraction playbook (Part F; archived in `stwo-zig-og-docs`),
