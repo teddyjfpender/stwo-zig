@@ -87,4 +87,27 @@ theorem MutationControl.strictly_weaker
   control.witness_not_sound original sound
     (implies control.witness control.satisfies)
 
+/-! ## The fallback device
+
+`MutationControl.strictly_weaker` takes a soundness hypothesis, and a control is
+only worth as much as that hypothesis is true: if `sound` is false the corollary
+is vacuous and certifies nothing. The discipline is therefore to *prove* the
+hypothesis, as `Opcodes/LoadStoreMutation.lean` does for `LhRetiresHighHalf`.
+
+For some deletions no such proof exists, and for an honest reason: the
+architectural claim and the deleted constraint coincide, so any conclusion
+strong enough to be refuted by the witness is a restatement of the constraint,
+which the device's own contract forbids. The theorem below is the honest
+fallback for that case. -/
+
+/-- A deletion is strict as soon as some row satisfies the weakened predicate
+and fails the original. This needs no architectural conclusion, so it cannot
+be vacuous -- but it is weaker: it shows the constraint is not redundant,
+not that it is load-bearing for a specific architectural fact. -/
+theorem strictly_weaker_of_not_original
+    {Row : Type} {weakened original : Row → Prop}
+    (witness : Row) (satisfies : weakened witness) (refutes : ¬ original witness) :
+    ¬ (∀ row, weakened row → original row) :=
+  fun implies => refutes (implies witness satisfies)
+
 end RiscvRefinement.Mutation

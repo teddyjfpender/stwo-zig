@@ -1,5 +1,6 @@
 import RiscvRefinement.Air.Family.Multiply
 import RiscvRefinement.Mutation
+import RiscvRefinement.Opcodes.Multiply
 import RiscvRefinement.Sail.Reviewed.Multiply
 
 /-!
@@ -190,12 +191,26 @@ def mulFreeLowLimb :
   satisfies := freeLowLimbRow_satisfies
   refutes := freeLowLimbRow_refutes
 
+/-- The architectural claim really is what the unweakened row predicate
+delivers, so the corollary below needs no hypothesis.
+
+Proving this rather than assuming it is the standard the rest of the
+development holds to: a corollary conditional on a soundness hypothesis is only
+worth as much as that hypothesis is true, and three such corollaries elsewhere
+in this development were found to be vacuous before being repaired. -/
+theorem mulHolds_computes_product
+    (row : MulRow)
+    (holds : MulHolds row) :
+    MulComputesProduct row := by
+  unfold MulComputesProduct mulRetirement executeMul
+  rw [holds.nextPcResult, mulDestinationValue row holds,
+    architecturalWrite_value, mulValueRefines row holds]
+
 /-- The deletion is not free: no strengthening of the weakened predicate back to
 `MulHolds` is possible, because `MulHolds` implies the architectural claim and
-the witness does not satisfy it. -/
-theorem mul_product_limb0_is_load_bearing
-    (sound : ∀ row, MulHolds row → MulComputesProduct row) :
+the witness does not satisfy it. Unconditional. -/
+theorem mul_product_limb0_is_load_bearing :
     ¬ (∀ row, MulHoldsWithoutProductLimb0 row → MulHolds row) :=
-  mulFreeLowLimb.strictly_weaker MulHolds sound
+  mulFreeLowLimb.strictly_weaker MulHolds mulHolds_computes_product
 
 end RiscvRefinement.Opcodes
