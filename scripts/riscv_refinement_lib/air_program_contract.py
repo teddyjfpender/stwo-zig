@@ -108,7 +108,7 @@ TOP_LEVEL_KEYS = {
 UNSIGNED_TOP_LEVEL_KEYS = TOP_LEVEL_KEYS - {"content_digest", "source_identity"}
 
 SOURCE_IDENTITY_BUILDER = "src/frontends/riscv/air/constraint_program.zig"
-LUI_SOURCE_PATHS = (
+COMMON_SOURCE_PATHS = (
     "src/core/fields/cm31.zig",
     "src/core/fields/m31.zig",
     "src/core/fields/qm31.zig",
@@ -124,9 +124,86 @@ LUI_SOURCE_PATHS = (
     "src/frontends/riscv/air/program/opcode.zig",
     "src/frontends/riscv/air/semantic_eval.zig",
     "src/frontends/riscv/air/semantics/common.zig",
-    "src/frontends/riscv/air/semantics/control_common.zig",
-    "src/frontends/riscv/air/semantics/lui.zig",
     "src/frontends/riscv/air/semantics/mod.zig",
     "src/frontends/riscv/opcode_manifest.zig",
     "src/frontends/riscv/runner/trace.zig",
 )
+
+FAMILY_SEMANTIC_PATHS = {
+    "base_alu_reg": ("src/frontends/riscv/air/semantics/base_alu_reg.zig",),
+    "base_alu_imm": ("src/frontends/riscv/air/semantics/base_alu_imm.zig",),
+    "shifts_reg": (
+        "src/frontends/riscv/air/semantics/shift_common.zig",
+        "src/frontends/riscv/air/semantics/shifts_reg.zig",
+    ),
+    "shifts_imm": (
+        "src/frontends/riscv/air/semantics/shift_common.zig",
+        "src/frontends/riscv/air/semantics/shifts_imm.zig",
+    ),
+    "lt_reg": ("src/frontends/riscv/air/semantics/lt_reg.zig",),
+    "lt_imm": ("src/frontends/riscv/air/semantics/lt_imm.zig",),
+    "branch_eq": (
+        "src/frontends/riscv/air/semantics/branch_eq.zig",
+        "src/frontends/riscv/air/semantics/control_common.zig",
+    ),
+    "branch_lt": (
+        "src/frontends/riscv/air/semantics/branch_lt.zig",
+        "src/frontends/riscv/air/semantics/control_common.zig",
+    ),
+    "lui": (
+        "src/frontends/riscv/air/semantics/control_common.zig",
+        "src/frontends/riscv/air/semantics/lui.zig",
+    ),
+    "auipc": (
+        "src/frontends/riscv/air/semantics/auipc.zig",
+        "src/frontends/riscv/air/semantics/control_common.zig",
+    ),
+    "jalr": (
+        "src/frontends/riscv/air/semantics/control_common.zig",
+        "src/frontends/riscv/air/semantics/jalr.zig",
+    ),
+    "jal": (
+        "src/frontends/riscv/air/semantics/control_common.zig",
+        "src/frontends/riscv/air/semantics/jal.zig",
+    ),
+    "load_store": ("src/frontends/riscv/air/semantics/load_store.zig",),
+    "mul": (
+        "src/frontends/riscv/air/semantics/control_common.zig",
+        "src/frontends/riscv/air/semantics/mul.zig",
+    ),
+    "mulh": (
+        "src/frontends/riscv/air/semantics/control_common.zig",
+        "src/frontends/riscv/air/semantics/mulh.zig",
+    ),
+    "div": (
+        "src/frontends/riscv/air/semantics/control_common.zig",
+        "src/frontends/riscv/air/semantics/div.zig",
+    ),
+    "fence": (
+        "src/frontends/riscv/air/semantics/control_common.zig",
+        "src/frontends/riscv/air/semantics/fence.zig",
+    ),
+}
+
+FAMILY_SOURCE_PATHS = {
+    family: tuple(sorted((*COMMON_SOURCE_PATHS, *FAMILY_SEMANTIC_PATHS[family])))
+    for family in FAMILIES
+}
+
+# Backward-compatible name used by the LUI decoder tests and frozen contract.
+LUI_SOURCE_PATHS = FAMILY_SOURCE_PATHS["lui"]
+
+OPCODES = tuple(
+    sorted(
+        (
+            manifest_id,
+            mnemonic,
+            family,
+        )
+        for family, members in FAMILY_OPCODES.items()
+        for manifest_id, mnemonic in members
+    )
+)
+OPCODE_FAMILY = {
+    mnemonic: family for _, mnemonic, family in OPCODES
+}

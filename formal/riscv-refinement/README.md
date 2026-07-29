@@ -1,11 +1,12 @@
 # RISC-V LUI/ADDI refinement pilot
 
-This Lean project contains the Level-1 LUI/ADDI refinement pilot and the first
-Team A Level-2 AIR-side binding for LUI. It kernel-checks the normalized LUI
-and ADDI row predicates against a reviewed normalized capsule of the pinned
-Sail definitions. Separately, LUI's production `ConstraintProgram` now
-round-trips through canonical AIR IR v2 and a strict Lean M31,
-event/projection, and fixed-table interpreter.
+This Lean project contains the Level-1 LUI/ADDI refinement pilot and Team A's
+production AIR IR v2 source binding. It kernel-checks the normalized LUI and
+ADDI row predicates against a reviewed normalized capsule of the pinned Sail
+definitions. All 17 production families and all 46 opcode selectors now
+round-trip through the shared production `ConstraintProgram`; the strict Lean
+M31, event/projection, and fixed-table evaluation integration remains focused
+on LUI.
 
 The AIR-side round trip does not yet prove that the interpreted production
 program implies the normalized `LuiHolds` predicate, and the full generated
@@ -54,9 +55,9 @@ STWO_SAIL_RISCV_DIR=/tmp/stwo-riscv-formal/source/sail-riscv \
   zig build riscv-refinement-pilot
 ```
 
-The gate freshly exports all 17 production symbolic-AIR families plus the
-source-bound LUI AIR IR v2 program. It rejects schema, source, event, or
-expression drift and differentially checks the shared symbolic program
+The gate freshly exports all 17 production symbolic-AIR families plus exactly
+46 source-bound AIR IR v2 programs. It rejects manifest, schema, source, event,
+or expression drift and differentially checks the shared symbolic program
 against the QM31 production evaluator. It then compares every generated file
 byte-for-byte, runs coverage and negative controls, runs the Python
 infrastructure tests, builds Lean (including strict LUI decode and active/
@@ -86,7 +87,7 @@ claim boundary.
 Do not edit these by hand:
 
 - `generated/air/{lui,addi}.json`
-- `generated/air/lui.air-ir-v2.json`
+- `generated/air/{all 46 manifest mnemonics}.air-ir-v2.json`
 - `generated/sail/rv32im-zkvm-v1.json`
 - `RiscvRefinement/Air/Generated/Pilot.lean`
 - `RiscvRefinement/Air/Generated/LuiProgram.lean`

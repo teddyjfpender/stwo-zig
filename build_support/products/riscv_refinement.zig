@@ -58,7 +58,7 @@ pub fn addPilot(
     protocol.addImports(program_root);
     const program_ir_exports = b.addTest(.{
         .root_module = program_root,
-        .filters = &.{"refinement AIR IR v2 export: emit unsigned LUI production program"},
+        .filters = &.{"refinement AIR IR v2 export: emit every unsigned production program"},
     });
     const program_export_run = b.addRunArtifact(program_ir_exports);
     program_export_run.setEnvironmentVariable(

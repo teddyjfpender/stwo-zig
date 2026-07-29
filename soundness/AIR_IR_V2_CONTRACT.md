@@ -7,12 +7,13 @@ Level-2 AIR-binding PR in
 **Machine-readable companion:**
 [`air-ir-v2.schema.json`](air-ir-v2.schema.json).
 
-**Claim boundary:** this contract specifies how one production RISC-V
-constraint program is represented and interpreted. Satisfying it can bind the
-AIR side of the LUI translation path. It does not by itself prove LUI
-refinement to generated Sail, count LUI toward publication coverage, or imply
-that an accepted PCS/FRI proof satisfies this AIR. Those remain separate
-obligations in
+**Claim boundary:** this contract specifies how every production RISC-V
+constraint program is represented and interpreted. All 17 families and all 46
+manifest selectors now have deterministic, source-bound artifacts; the strict
+Lean decode/evaluation integration remains focused on LUI. Satisfying this
+wire contract does not by itself prove an opcode's AIR-to-architecture
+theorem, refinement to generated Sail, publication coverage, or that an
+accepted PCS/FRI proof satisfies this AIR. Those remain separate obligations in
 [`UNIVERSAL_AIR_SAIL_REFINEMENT.md`](UNIVERSAL_AIR_SAIL_REFINEMENT.md).
 
 The words **MUST**, **MUST NOT**, **SHOULD**, and **MAY** are normative.
@@ -349,31 +350,12 @@ empty, `.`, or `..` segment. `builder` MUST name an entry in `files`.
 of that file's raw bytes; text newline conversion is forbidden.
 
 The v2 production builder is exactly
-`src/frontends/riscv/air/constraint_program.zig`. The first LUI slice's
-source-path closure is exactly:
-
-```text
-src/core/fields/cm31.zig
-src/core/fields/m31.zig
-src/core/fields/qm31.zig
-src/frontends/riscv/access_clock.zig
-src/frontends/riscv/air/constraint_program.zig
-src/frontends/riscv/air/extract/model.zig
-src/frontends/riscv/air/extract/program.zig
-src/frontends/riscv/air/extract/program_json.zig
-src/frontends/riscv/air/extract/symbolic.zig
-src/frontends/riscv/air/lookups/entry.zig
-src/frontends/riscv/air/lookups/opcode_entries.zig
-src/frontends/riscv/air/lookups/tables/schema.zig
-src/frontends/riscv/air/program/opcode.zig
-src/frontends/riscv/air/semantic_eval.zig
-src/frontends/riscv/air/semantics/common.zig
-src/frontends/riscv/air/semantics/control_common.zig
-src/frontends/riscv/air/semantics/lui.zig
-src/frontends/riscv/air/semantics/mod.zig
-src/frontends/riscv/opcode_manifest.zig
-src/frontends/riscv/runner/trace.zig
-```
+`src/frontends/riscv/air/constraint_program.zig`. The normative common closure
+and per-family semantic additions are enumerated in
+`scripts/riscv_refinement_lib/air_program_contract.py`. Each opcode artifact
+MUST carry exactly the closure selected by its family; a same-family selector
+therefore has the same source closure, while its content digest still binds
+the selector's distinct manifest ID and mnemonic.
 
 The artifact records the raw digest beside every one of these paths. The
 digests are intentionally not copied into this prose: they are derived from
@@ -386,16 +368,13 @@ descriptive metadata. The generation gate also resolves every listed path
 inside the repository, rehashes the current raw bytes, and rejects a missing,
 extra, stale, symlink-escaped, or duplicate entry.
 
-The closure is semantic, not merely a convenient build-file list. For the
-first LUI slice it includes the transitive LUI constraint-program, program
-lookup, fixed-table, opcode-manifest, typed builder/interpreter, and serializer
-sources. A mutation of a constraint, selector, column order, lookup tuple,
-table schema, access ordinal, or event append order MUST invalidate at least
-one source digest and the rebuilt content digest.
-
-This first slice does not claim the complete all-family source closure.
-Deterministic export and source closure for all 17 production families remain
-a Stage A1 follow-up of issue #136.
+The closure is semantic, not merely a convenient build-file list. It includes
+the field implementation, constraint-program construction, program lookup,
+fixed-table schemas, opcode manifest, typed builder/interpreter, serializer,
+shared semantic sources, and the selected family's semantic sources. A
+mutation of a constraint, selector, column order, lookup tuple, table schema,
+access ordinal, or event append order MUST invalidate at least one source
+digest or the rebuilt content digest.
 
 ## 10. Canonical JSON and digests
 
@@ -538,7 +517,9 @@ Likewise, this file records no fictional approval. Signed review by the Team A
 AIR DRI, Team B Sail/profile DRI, LH representative, DIV representative, and
 independent formal reviewer remains a joint #136/#137 exit requirement.
 
-## 14. First-PR LUI acceptance
+## 14. Implemented rollout gates
+
+The first-PR LUI acceptance gate remains:
 
 The first AIR IR v2 PR is accepted when focused checks demonstrate:
 
@@ -564,6 +545,22 @@ That result may be described as:
 
 > LUI's production AIR constraint program round-trips through AIR IR v2 and
 > the strict Lean M31/event/table interpreter.
+
+The subsequent Stage A1 rollout additionally requires:
+
+1. all 17 production families are built through the same typed
+   `ConstraintProgram` path;
+2. exactly one artifact exists for each of the 46 manifest selectors;
+3. each artifact carries the correct family, selector expression, manifest ID,
+   mnemonic, relation-event projection, and per-family source closure;
+4. strict validation and production-binding checks pass for all 46;
+5. two clean exports are byte-identical; and
+6. the shift-family construction order remains compatible with the reviewed
+   Team B family digests.
+
+Passing that gate may be described as deterministic, source-bound AIR IR v2
+coverage for 17/17 families and 46/46 selectors. It is input coverage, not
+opcode refinement coverage.
 
 It MUST NOT be described as “LUI publication-proved,” “1/46,” or “2/46
 publication-level opcodes.” Publication coverage additionally requires the

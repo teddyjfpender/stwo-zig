@@ -654,8 +654,11 @@ private def validateReachability
     program.events.toList.flatMap Event.nodeRoots
   let references := internalReferences ++ roots
   for node in Array.range program.nodes.size do
-    if !references.contains node then
-      decodeFailure s!"nodes[{node}]" "node is not reachable from a semantic root"
+    match program.nodes[node]? with
+    | some (.column _) => pure ()
+    | _ =>
+        if !references.contains node then
+          decodeFailure s!"nodes[{node}]" "node is not reachable from a semantic root"
 
 /-- Decode a parsed JSON value and enforce every semantic invariant of AIR IR v2. -/
 def ConstraintProgram.fromJson? (json : Json) : Except String ConstraintProgram := do

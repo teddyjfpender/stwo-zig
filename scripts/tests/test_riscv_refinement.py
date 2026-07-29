@@ -13,6 +13,7 @@ from scripts import riscv_refinement
 from scripts.riscv_refinement_lib import (
     air,
     air_program,
+    air_program_contract,
     codec,
     negative,
     render,
@@ -356,6 +357,77 @@ class RefinementAirTest(unittest.TestCase):
                 unsigned,
                 ROOT,
             )
+
+    def test_committed_air_ir_v2_exactly_covers_the_opcode_manifest(
+        self,
+    ) -> None:
+        expected = {
+            f"{mnemonic}.air-ir-v2.json"
+            for _, mnemonic, _ in air_program.OPCODES
+        }
+        actual = {
+            path.name for path in GENERATED_AIR.glob("*.air-ir-v2.json")
+        }
+        self.assertEqual(expected, actual)
+        self.assertEqual(46, len(actual))
+
+        for manifest_id, mnemonic, family in air_program.OPCODES:
+            with self.subTest(mnemonic=mnemonic):
+                payload = air_program.load_canonical(
+                    GENERATED_AIR / f"{mnemonic}.air-ir-v2.json"
+                )
+                air_program.verify_source_files(payload, ROOT)
+                self.assertEqual(family, payload["family"])
+                self.assertEqual(
+                    {
+                        "expression": payload["opcode_selector"]["expression"],
+                        "manifest_id": manifest_id,
+                        "mnemonic": mnemonic,
+                    },
+                    payload["opcode_selector"],
+                )
+                self.assertEqual(
+                    air_program.FAMILY_SOURCE_PATHS[family],
+                    tuple(
+                        item["path"]
+                        for item in payload["source_identity"]["files"]
+                    ),
+                )
+
+    def test_each_family_source_closure_includes_its_semantics(self) -> None:
+        self.assertEqual(
+            set(air_program_contract.FAMILIES),
+            set(air_program.FAMILY_SOURCE_PATHS),
+        )
+        for (
+            family,
+            semantic_paths,
+        ) in air_program_contract.FAMILY_SEMANTIC_PATHS.items():
+            with self.subTest(family=family):
+                closure = set(air_program.FAMILY_SOURCE_PATHS[family])
+                self.assertTrue(
+                    set(air_program_contract.COMMON_SOURCE_PATHS) <= closure
+                )
+                self.assertTrue(set(semantic_paths) <= closure)
+
+    def test_same_family_artifacts_share_one_production_program(self) -> None:
+        canonical_by_family: dict[str, bytes] = {}
+        for _, mnemonic, family in air_program.OPCODES:
+            payload = air_program.load_canonical(
+                GENERATED_AIR / f"{mnemonic}.air-ir-v2.json"
+            )
+            semantic = copy.deepcopy(payload)
+            semantic.pop("content_digest")
+            semantic["opcode_selector"] = {
+                "expression": semantic["opcode_selector"]["expression"]
+            }
+            canonical = codec.canonical_bytes(semantic)
+            with self.subTest(mnemonic=mnemonic, family=family):
+                if family in canonical_by_family:
+                    self.assertEqual(canonical_by_family[family], canonical)
+                else:
+                    canonical_by_family[family] = canonical
+        self.assertEqual(17, len(canonical_by_family))
 
     def test_air_ir_v2_decoder_fails_closed_on_nodes_and_events(self) -> None:
         base = air_ir_v2_fixture()

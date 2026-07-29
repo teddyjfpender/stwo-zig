@@ -105,9 +105,12 @@ MANIFEST_ARTIFACTS = frozenset(
         "RiscvRefinement/Air/Generated/LuiProgram.lean",
         "RiscvRefinement/Sail/Generated/Pilot.lean",
         "generated/air/addi.json",
-        "generated/air/lui.air-ir-v2.json",
         "generated/air/lui.json",
         "generated/sail/rv32im-zkvm-v1.json",
+        *(
+            f"generated/air/{mnemonic}.air-ir-v2.json"
+            for _, mnemonic, _ in air_program.OPCODES
+        ),
     }
 )
 
@@ -515,33 +518,50 @@ def validate_air_export(directory: Path) -> None:
             )
 
 
-def validate_air_program_export(directory: Path) -> dict[str, Any]:
+def validate_air_program_export(directory: Path) -> dict[str, dict[str, Any]]:
     if directory.is_symlink() or not directory.is_dir():
         raise RefinementError(
             f"production AIR IR v2 export is not a directory: {directory}"
         )
     entries = list(directory.iterdir())
-    if (
-        len(entries) != 1
-        or entries[0].is_symlink()
-        or not entries[0].is_file()
-        or entries[0].name != "lui.unsigned.json"
+    expected_names = {
+        f"{mnemonic}.unsigned.json"
+        for _, mnemonic, _ in air_program.OPCODES
+    }
+    actual_names = {entry.name for entry in entries}
+    if actual_names != expected_names or any(
+        entry.is_symlink() or not entry.is_file() for entry in entries
     ):
         raise RefinementError(
-            "production AIR IR v2 export must contain exactly "
-            "lui.unsigned.json"
+            "production AIR IR v2 export coverage drifted: "
+            f"missing={sorted(expected_names - actual_names)}, "
+            f"extra={sorted(actual_names - expected_names)}"
         )
-    artifact = entries[0]
-    payload = codec.load_json(artifact)
-    if set(payload) != air_program.UNSIGNED_TOP_LEVEL_KEYS:
-        raise RefinementError(
-            "production AIR IR v2 unsigned semantic schema drifted"
-        )
-    if artifact.read_bytes() != codec.canonical_bytes(payload):
-        raise RefinementError(
-            "production AIR IR v2 unsigned semantic JSON is not canonical"
-        )
-    return payload
+    result: dict[str, dict[str, Any]] = {}
+    for manifest_id, mnemonic, family in air_program.OPCODES:
+        artifact = directory / f"{mnemonic}.unsigned.json"
+        payload = codec.load_json(artifact)
+        if set(payload) != air_program.UNSIGNED_TOP_LEVEL_KEYS:
+            raise RefinementError(
+                f"{artifact.name}: unsigned semantic schema drifted"
+            )
+        if artifact.read_bytes() != codec.canonical_bytes(payload):
+            raise RefinementError(
+                f"{artifact.name}: unsigned semantic JSON is not canonical"
+            )
+        selector = payload.get("opcode_selector")
+        if (
+            payload.get("family") != family
+            or not isinstance(selector, dict)
+            or set(selector) != {"expression", "manifest_id", "mnemonic"}
+            or selector.get("manifest_id") != manifest_id
+            or selector.get("mnemonic") != mnemonic
+        ):
+            raise RefinementError(
+                f"{artifact.name}: manifest/family selector drifted"
+            )
+        result[mnemonic] = payload
+    return result
 
 
 def export_air(paths: Paths) -> None:
@@ -607,17 +627,21 @@ def export_air(paths: Paths) -> None:
 
 def artifacts(paths: Paths, evidence: sail.SailEvidence) -> dict[Path, bytes]:
     source_digests = _source_digests(paths)
-    unsigned_lui_air_program = validate_air_program_export(paths.air_program_ir)
-    lui_air_program = air_program.package_unsigned(
-        unsigned_lui_air_program,
-        paths.root,
-    )
-    air_program.verify_production_binding(
-        lui_air_program,
-        unsigned_lui_air_program,
-        paths.root,
-    )
-    lui_air_program_bytes = codec.canonical_bytes(lui_air_program)
+    unsigned_air_programs = validate_air_program_export(paths.air_program_ir)
+    air_programs = {
+        mnemonic: air_program.package_unsigned(payload, paths.root)
+        for mnemonic, payload in unsigned_air_programs.items()
+    }
+    for mnemonic, payload in air_programs.items():
+        air_program.verify_production_binding(
+            payload,
+            unsigned_air_programs[mnemonic],
+            paths.root,
+        )
+    air_program_bytes = {
+        mnemonic: codec.canonical_bytes(payload)
+        for mnemonic, payload in air_programs.items()
+    }
     packaged = {
         opcode: air.package_air(
             paths.uniqueness_ir
@@ -640,7 +664,7 @@ def artifacts(paths: Paths, evidence: sail.SailEvidence) -> dict[Path, bytes]:
     )
     air_program_lean = air_program_lean_source.AIR_PROGRAM_LEAN_TEMPLATE.replace(
         "__LUI_PROGRAM_JSON__",
-        codec.canonical_bytes(lui_air_program_bytes.decode("ascii")).decode(
+        codec.canonical_bytes(air_program_bytes["lui"].decode("ascii")).decode(
             "ascii"
         ),
     ).encode("utf-8")
@@ -657,8 +681,10 @@ def artifacts(paths: Paths, evidence: sail.SailEvidence) -> dict[Path, bytes]:
     )
     outputs: dict[Path, bytes] = {
         **air_outputs,
-        Path("generated/air/lui.air-ir-v2.json"):
-            lui_air_program_bytes,
+        **{
+            Path("generated/air") / f"{mnemonic}.air-ir-v2.json": data
+            for mnemonic, data in air_program_bytes.items()
+        },
         Path("generated/sail/rv32im-zkvm-v1.json"):
             evidence.exact_configuration,
         Path("RiscvRefinement/Air/Generated/Pilot.lean"): air_lean,

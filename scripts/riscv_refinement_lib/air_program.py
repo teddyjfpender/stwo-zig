@@ -17,9 +17,12 @@ from .air_program_contract import (
     HEX_SHA256,
     IDENTIFIER,
     LOOKUP_LIVENESS,
+    FAMILY_SOURCE_PATHS,
     LUI_SOURCE_PATHS,
     M31_NAME,
     M31_TYPE,
+    OPCODE_FAMILY,
+    OPCODES,
     SOURCE_IDENTITY_BUILDER,
     TOP_LEVEL_KEYS,
     UNSIGNED_TOP_LEVEL_KEYS,
@@ -85,8 +88,13 @@ def content_digest(payload: dict[str, Any]) -> str:
     return codec.sha256_bytes(codec.canonical_bytes(unsigned))
 
 
-def source_identity(root: Path) -> dict[str, Any]:
-    source_paths = LUI_SOURCE_PATHS
+def source_identity(root: Path, family: str) -> dict[str, Any]:
+    try:
+        source_paths = FAMILY_SOURCE_PATHS[family]
+    except KeyError as exc:
+        raise RefinementError(
+            f"AIR IR v2 source identity has unknown family {family}"
+        ) from exc
     if source_paths != tuple(sorted(source_paths)) or len(source_paths) != len(
         set(source_paths)
     ):
@@ -116,10 +124,11 @@ def package_unsigned(
     """Bind a production-emitted semantic object to its exact source closure."""
 
     _expect_keys(payload, UNSIGNED_TOP_LEVEL_KEYS, "unsigned AIR IR v2")
-    if payload.get("family") != "lui":
-        raise RefinementError("AIR IR v2 packaging currently supports only LUI")
+    family = payload.get("family")
+    if family not in FAMILY_SOURCE_PATHS:
+        raise RefinementError("AIR IR v2 packaging has unknown production family")
     packaged = dict(payload)
-    packaged["source_identity"] = source_identity(root)
+    packaged["source_identity"] = source_identity(root, family)
     packaged["content_digest"] = content_digest(packaged)
     validate(packaged)
     return packaged
@@ -148,8 +157,11 @@ def verify_source_files(payload: dict[str, Any], root: Path) -> None:
     if identity["builder"] != SOURCE_IDENTITY_BUILDER:
         raise RefinementError("source_identity.builder: production builder drifted")
     actual_paths = tuple(item["path"] for item in identity["files"])
-    if payload["family"] == "lui" and actual_paths != LUI_SOURCE_PATHS:
-        raise RefinementError("source_identity.files: LUI source closure drifted")
+    expected_paths = FAMILY_SOURCE_PATHS[payload["family"]]
+    if actual_paths != expected_paths:
+        raise RefinementError(
+            f"source_identity.files: {payload['family']} source closure drifted"
+        )
     resolved_root = root.resolve()
     for item in identity["files"]:
         path = root / item["path"]
@@ -582,8 +594,10 @@ def _validate_source_identity(payload: dict[str, Any]) -> None:
         paths.append(path)
     if paths != sorted(paths) or len(paths) != len(set(paths)):
         raise RefinementError("source_identity.files: paths are not sorted and unique")
-    if payload["family"] == "lui" and tuple(paths) != LUI_SOURCE_PATHS:
-        raise RefinementError("source_identity.files: LUI source closure drifted")
+    if tuple(paths) != FAMILY_SOURCE_PATHS[payload["family"]]:
+        raise RefinementError(
+            f"source_identity.files: {payload['family']} source closure drifted"
+        )
     if identity["source_closure_sha256"] != codec.sha256_bytes(
         codec.canonical_bytes(files)
     ):
@@ -679,7 +693,10 @@ def validate(payload: dict[str, Any]) -> None:
         | projection_references
         | {active_row, selector_expression}
     )
-    if _reachable_nodes(nodes, roots) != set(range(len(nodes))):
+    declared_columns = {
+        index for index, node in enumerate(nodes) if node["op"] == "col"
+    }
+    if _reachable_nodes(nodes, roots) | declared_columns != set(range(len(nodes))):
         raise RefinementError("AIR IR v2 contains dead/unreferenced expression nodes")
 
     # Access ordinals are source metadata, not adjacency inference. Every

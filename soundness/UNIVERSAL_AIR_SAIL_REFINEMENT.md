@@ -47,17 +47,18 @@ escapes and audited with `#print axioms`; only `propext`,
 `Classical.choice`, and `Quot.sound` are permitted.
 
 The generator freshly exports all 17 production symbolic-AIR families, accepts
-only the exact closed LUI and base-ALU-immediate schemas, packages LUI/ADDI,
-and binds every RISC-V frontend source plus the generator and proof closure by
-SHA-256. LUI additionally uses one typed production `ConstraintProgram` for
-direct evaluation, lookup lowering, and canonical AIR IR v2 serialization.
-The exact source-bound serialization is strictly decoded and evaluated over
-M31 in Lean, including fixed-table membership and architectural-event
-projection. The Sail side uses the pinned repository and compiler, constructs
-the exact `rv32im-zkvm-v1` configuration from the normative overrides,
-validates that it reports `rv32im`, generates the theorem backend under that
-configuration, and pins the complete generated file and reviewed
-`execute_UTYPE`/`execute_ITYPE` slices.
+only the exact closed LUI and base-ALU-immediate normalized schemas, packages
+LUI/ADDI, and binds every RISC-V frontend source plus the generator and proof
+closure by SHA-256. Independently of that Level-1 normalizer, every production
+family now uses one typed `ConstraintProgram` for direct evaluation, lookup
+lowering, and canonical AIR IR v2 serialization, producing exactly 46
+source-bound selector artifacts. LUI's exact serialization is strictly decoded
+and evaluated over M31 in Lean, including fixed-table membership and
+architectural-event projection. The Sail side uses the pinned repository and
+compiler, constructs the exact `rv32im-zkvm-v1` configuration from the
+normative overrides, validates that it reports `rv32im`, generates the theorem
+backend under that configuration, and pins the complete generated file and
+reviewed `execute_UTYPE`/`execute_ITYPE` slices.
 
 This is deliberately called a **Level-1 normalized pilot with a LUI AIR-side
 Level-2 slice**, not “2 of 46 production opcodes proved.” The LUI serialized
@@ -379,9 +380,10 @@ proof.
 
 ### 6.2 Canonical refinement IR
 
-AIR IR v2 is delivered for LUI as a distinct, versioned production-program
-wire while the original all-family symbolic export remains the Level-1
-normalizer input. The canonical production IR contains:
+AIR IR v2 is delivered for all 17 families and 46 selectors as a distinct,
+versioned production-program wire while the original all-family symbolic
+export remains the Level-1 normalizer input for LUI/ADDI. The canonical
+production IR contains:
 
 - schema version;
 - opcode selector and exact manifest entry;
@@ -484,9 +486,10 @@ semantics of an admitted instruction.
 The Level-2 publication milestone is complete only when both opcodes are
 universally proved and non-vacuous from generated AIR and generated Sail
 definitions. The current Level-1 pilot proves the reviewed normalized AIR
-predicates against reviewed Sail expression capsules. LUI also has the
-source-bound AIR IR v2 decode/evaluation slice, but the theorem composing that
-evaluation with the normalized predicate remains open.
+predicates against reviewed Sail expression capsules. All selectors have
+source-bound AIR IR v2 inputs and LUI also has the strict Lean
+decode/evaluation slice, but the theorems composing interpreted LUI and ADDI
+evaluation with their normalized predicates remain open.
 
 ### 8.1 LUI
 

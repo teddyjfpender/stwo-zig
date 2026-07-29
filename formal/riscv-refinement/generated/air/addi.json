@@ -1,5 +1,5 @@
 {
-  "canonical_digest": "3d770c99a338275f4c45e18cc4351f9c962c0edf58e9d989cff73929e13191e6",
+  "canonical_digest": "d3b9162046f360d347f8a753c2c3177e48e7e5588c24802b344439e2fc2209a5",
   "columns": [
     {
       "name": "clk",
@@ -1313,7 +1313,7 @@
     "differential_trials_per_family": 8,
     "extractor": "src/frontends/riscv/air/extract/mod.zig",
     "level": "level-1-exact-shape-normalizer",
-    "source_closure_sha256": "818329f69ff9167a21cdad8994d1bd45264b9b701c9f63f55fba287c6bf546ac",
+    "source_closure_sha256": "545907d5a1ce2fefc364debe3edcc5563db693c86c7efbe9966cf250f0517425",
     "source_ir_sha256": "231d6e6b72209d5f983b7334074a1be4f8378f84ded01c8f0494c06439dcbb11"
   },
   "projection": {

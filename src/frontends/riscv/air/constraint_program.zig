@@ -216,8 +216,8 @@ pub fn Builder(comptime S: type) type {
                     .lookup_entries = lookupEntries(family, row),
                 },
                 .full => .{
-                    .active_row = activeExpression(Module, row),
                     .direct_constraints = directConstraints(Module, row, is_active),
+                    .active_row = activeExpression(Module, row),
                     .lookup_entries = lookupEntries(family, row),
                 },
             };
