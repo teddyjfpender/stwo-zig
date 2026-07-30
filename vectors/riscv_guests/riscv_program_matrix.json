@@ -1,0 +1,504 @@
+{
+  "schema_version": 1,
+  "kind": "riscv_acceptance_corpus",
+  "note": "TRACKS \u00a73.3 acceptance corpus for the RISC-V tracks: the pinned zksecurity/zkvm-benchmarks RV32IM guest corpus. Acceptance and provisioning bookkeeping only \u2014 never a scored basket, and no row here is a workload. The corpus ships SOURCE ONLY: it contains no prebuilt ELF for any program, so nothing here can be admitted as a committed fixture without the porting and oracle work recorded in `provisioning`. The Cairo tracks pin the same upstream commit at vectors/cairo/cairo_program_matrix.json; this file is its RISC-V counterpart and uses the same pinning discipline.",
+  "source_repository": {
+    "url": "https://github.com/zksecurity/zkvm-benchmarks.git",
+    "commit": "6d9d1e5e5a8086e6b3a52b03017421159f65ee6e",
+    "program_root": "sp1",
+    "program_root_rationale": "the sp1 root is the corpus's RV32IM guest set; the risc0, jolt, and openvm roots are the same programs behind different zkVM ABIs and are not pinned twice",
+    "prebuilt_artifacts": "none"
+  },
+  "guest_target": "riscv32im-unknown-none-elf",
+  "upstream_toolchain": {
+    "path": "sp1/rust-toolchain",
+    "sha256": "4415f5bcc3f634c4164975633d66c64b1788847d79917109878278f9ff8dd1a2",
+    "channel": "stable",
+    "note": "the upstream toolchain file pins a floating `stable` channel, so upstream guest builds are not byte-reproducible on their own; a committed stwo-zig fixture must pin an exact rustc version the way vectors/riscv_elfs/crypto/provenance.json already does"
+  },
+  "workspace_files": [
+    {
+      "path": "sp1/Cargo.toml",
+      "sha256": "b9286387088f01d61764cb5e0c26504feb380603448aba971100071d6d04257f",
+      "bytes": 267
+    },
+    {
+      "path": "sp1/Cargo.lock",
+      "sha256": "6b3e346256a4d66cbfba42151fd736913506a5a9133e3242a625f93b0614acf4",
+      "bytes": 169714
+    },
+    {
+      "path": "sp1/build.rs",
+      "sha256": "28f969e660017a5a4347a0597c1fcd690933116b7e36270649563e9408188868",
+      "bytes": 938
+    },
+    {
+      "path": "sp1/rust-toolchain",
+      "sha256": "4415f5bcc3f634c4164975633d66c64b1788847d79917109878278f9ff8dd1a2",
+      "bytes": 71
+    },
+    {
+      "path": "sp1/src/main.rs",
+      "sha256": "23cb8ee7df83b8b86eb49789e6e649b5884b561989861510381aeef7cd8b481d",
+      "bytes": 6919
+    }
+  ],
+  "programs": [
+    {
+      "slug": "fib",
+      "display_name": "Fibonacci",
+      "workload_kind": "general",
+      "size_unit": "iterations",
+      "size_semantics": "wrapping u32 Fibonacci iterations",
+      "primary_stress": "control flow and integer ALU pressure with a near-empty memory image",
+      "uses_precompile": false,
+      "in_rv32im_zkvm_v1_profile": true,
+      "source_files": [
+        {
+          "path": "sp1/fib/src/main.rs",
+          "sha256": "bb94b155659514979aa4ec8e5f4c55fcd06092d446d10b87a9eebde765147459",
+          "bytes": 293
+        },
+        {
+          "path": "sp1/fib/Cargo.toml",
+          "sha256": "ff0747057af67d135e54ac160d5d6adcabeacb1ce88d473f335e7ced862721f9",
+          "bytes": 105
+        },
+        {
+          "path": "sp1/fib/Cargo.lock",
+          "sha256": "e8d5e059a38a1109ef72832c5a8052ff22187f17aaa58ccc1c4c705cdc7b8b44",
+          "bytes": 15186
+        }
+      ]
+    },
+    {
+      "slug": "mat-mul",
+      "display_name": "Matrix multiply",
+      "workload_kind": "general",
+      "size_unit": "matrix_dimension",
+      "size_semantics": "side length n of an n x n wrapping-u32 matrix product",
+      "primary_stress": "integer multiply and dense heap-resident memory traffic",
+      "uses_precompile": false,
+      "in_rv32im_zkvm_v1_profile": true,
+      "source_files": [
+        {
+          "path": "sp1/mat-mul/src/main.rs",
+          "sha256": "20e62c5145010581eb5d9d80b169aef5bd70dd99a2db33026e4ce2dc2bfaec22",
+          "bytes": 783
+        },
+        {
+          "path": "sp1/mat-mul/Cargo.toml",
+          "sha256": "7ffc9f18f9c7ac67b2d1108a22c8263f78646f5486fbcdfbc8e0772261274bf0",
+          "bytes": 109
+        },
+        {
+          "path": "sp1/mat-mul/Cargo.lock",
+          "sha256": "a934ca27a0f5b32bf606ef2c9380baa35fe7e0e90d5ffc116ccb8ea8b6c92162",
+          "bytes": 15190
+        }
+      ]
+    },
+    {
+      "slug": "ec",
+      "display_name": "secp256k1 point addition",
+      "workload_kind": "general",
+      "size_unit": "additions",
+      "size_semantics": "repeated projective additions of the secp256k1 generator",
+      "primary_stress": "256-bit field arithmetic implemented in pure software",
+      "uses_precompile": false,
+      "in_rv32im_zkvm_v1_profile": true,
+      "source_files": [
+        {
+          "path": "sp1/ec/src/main.rs",
+          "sha256": "937518146c61a023221c5336ad429ac4062a4aaf761d51ada093f69befa8febf",
+          "bytes": 460
+        },
+        {
+          "path": "sp1/ec/Cargo.toml",
+          "sha256": "24632cecc5378d75f25f893eda04fc24a4e899de8f544de13f8063c5ccf38800",
+          "bytes": 187
+        },
+        {
+          "path": "sp1/ec/Cargo.lock",
+          "sha256": "a97f3ccd60bcb99cf1ce5ec6f6e4c360ae15707c550d8eab4d06079d690f80cc",
+          "bytes": 17785
+        }
+      ]
+    },
+    {
+      "slug": "ec-precompile",
+      "display_name": "secp256k1 point addition (precompile)",
+      "workload_kind": "crypto",
+      "size_unit": "additions",
+      "size_semantics": "repeated projective additions of the secp256k1 generator",
+      "primary_stress": "SP1 secp256k1 syscall precompile dispatch",
+      "uses_precompile": true,
+      "in_rv32im_zkvm_v1_profile": false,
+      "source_files": [
+        {
+          "path": "sp1/ec-precompile/src/main.rs",
+          "sha256": "b410efaecb56493145fb0ebc1883e94ab21ce2f528ab0c7c8d8ce50312e67ecc",
+          "bytes": 462
+        },
+        {
+          "path": "sp1/ec-precompile/Cargo.toml",
+          "sha256": "6ac51eed17d16357da115f95e81917d325f9b0584d2d948f5813f45623d294b5",
+          "bytes": 319
+        },
+        {
+          "path": "sp1/ec-precompile/Cargo.lock",
+          "sha256": "c994e870eea88c53aac6a768f4013819ae1b37bf03c9c62ca7a981ee725a7ee4",
+          "bytes": 18086
+        }
+      ]
+    },
+    {
+      "slug": "sha2",
+      "display_name": "SHA-256",
+      "workload_kind": "crypto",
+      "size_unit": "input_bytes",
+      "size_semantics": "bytes hashed by one SHA-256 invocation",
+      "primary_stress": "bitwise and rotate work over a heap-resident message",
+      "uses_precompile": false,
+      "in_rv32im_zkvm_v1_profile": true,
+      "source_files": [
+        {
+          "path": "sp1/sha2/src/main.rs",
+          "sha256": "9e8d3f59a0995ca84d129e85ea87d3b80ac05b292934f18b8c8de95bf50b5ab7",
+          "bytes": 350
+        },
+        {
+          "path": "sp1/sha2/Cargo.toml",
+          "sha256": "fb15a5ec56d075feb195fa17248e83bf3ea0bbc1e3790bce89a5048a719cddf2",
+          "bytes": 162
+        },
+        {
+          "path": "sp1/sha2/Cargo.lock",
+          "sha256": "3d587eb3daf102925e70509cf494a441c5dd99fe12d762d6a4fac9269c1f1c4f",
+          "bytes": 15217
+        }
+      ]
+    },
+    {
+      "slug": "sha2-precompile",
+      "display_name": "SHA-256 (precompile)",
+      "workload_kind": "crypto",
+      "size_unit": "input_bytes",
+      "size_semantics": "bytes hashed by one SHA-256 invocation",
+      "primary_stress": "SP1 SHA-256 syscall precompile dispatch",
+      "uses_precompile": true,
+      "in_rv32im_zkvm_v1_profile": false,
+      "source_files": [
+        {
+          "path": "sp1/sha2-precompile/src/main.rs",
+          "sha256": "944c5352be452f4549b3503cfae7c7e393793f3690828e002fa30fea25365846",
+          "bytes": 350
+        },
+        {
+          "path": "sp1/sha2-precompile/Cargo.toml",
+          "sha256": "49f23152df820da5476528fc83116e647fb08cef81150a47294ad8c4fb867af6",
+          "bytes": 323
+        },
+        {
+          "path": "sp1/sha2-precompile/Cargo.lock",
+          "sha256": "0e61526bd85a210955da179d85b74de5c26cc4250cc066b2c5a8f505f0c1384a",
+          "bytes": 15201
+        }
+      ]
+    },
+    {
+      "slug": "sha2-chain",
+      "display_name": "SHA-256 chain",
+      "workload_kind": "crypto",
+      "size_unit": "hashes",
+      "size_semantics": "chained SHA-256 invocations over a 32-byte state",
+      "primary_stress": "repeated SHA-256 compression with a fixed working set",
+      "uses_precompile": false,
+      "in_rv32im_zkvm_v1_profile": true,
+      "source_files": [
+        {
+          "path": "sp1/sha2-chain/src/main.rs",
+          "sha256": "7043086be2291a8ccc493b6bb893a702fd4d739fedf0172531cbadd7297a6035",
+          "bytes": 490
+        },
+        {
+          "path": "sp1/sha2-chain/Cargo.toml",
+          "sha256": "a1bc1a9a8dfa808decbac2c269c87b79f2c5e25c580fb12e638757b07769e9ef",
+          "bytes": 168
+        },
+        {
+          "path": "sp1/sha2-chain/Cargo.lock",
+          "sha256": "3598436cbdc749928989e84fa0acc8b3985d2b2b02190601bd3e905f13af433f",
+          "bytes": 15202
+        }
+      ]
+    },
+    {
+      "slug": "sha2-chain-precompile",
+      "display_name": "SHA-256 chain (precompile)",
+      "workload_kind": "crypto",
+      "size_unit": "hashes",
+      "size_semantics": "chained SHA-256 invocations over a 32-byte state",
+      "primary_stress": "SP1 SHA-256 syscall precompile dispatch under chaining",
+      "uses_precompile": true,
+      "in_rv32im_zkvm_v1_profile": false,
+      "source_files": [
+        {
+          "path": "sp1/sha2-chain-precompile/src/main.rs",
+          "sha256": "7043086be2291a8ccc493b6bb893a702fd4d739fedf0172531cbadd7297a6035",
+          "bytes": 490
+        },
+        {
+          "path": "sp1/sha2-chain-precompile/Cargo.toml",
+          "sha256": "6a882fdf1174cef53fa4b23b92e5d36af81da458a8aa3c1d50afd0e1161cb1d3",
+          "bytes": 329
+        },
+        {
+          "path": "sp1/sha2-chain-precompile/Cargo.lock",
+          "sha256": "e1190c3f616cbc617c27128cd9bed2edb7c4936b4e7a2f05b34b6d32e9f200e2",
+          "bytes": 15207
+        }
+      ]
+    },
+    {
+      "slug": "sha3",
+      "display_name": "Keccak-256",
+      "workload_kind": "crypto",
+      "size_unit": "input_bytes",
+      "size_semantics": "bytes hashed by one Keccak-256 invocation",
+      "primary_stress": "Keccak permutation and memory traffic",
+      "uses_precompile": false,
+      "in_rv32im_zkvm_v1_profile": true,
+      "source_files": [
+        {
+          "path": "sp1/sha3/src/main.rs",
+          "sha256": "a53bf7043ddc6248ddbe2123aa190ead4993627efbc6d7442f0669cdb9c635ec",
+          "bytes": 356
+        },
+        {
+          "path": "sp1/sha3/Cargo.toml",
+          "sha256": "a959d50ae88e6df99b45a3d95e8235dcde0cbf6db4aef666fa91009ee15c83e3",
+          "bytes": 162
+        },
+        {
+          "path": "sp1/sha3/Cargo.lock",
+          "sha256": "0fb79977af39946dadc29aef25d3398ebeded93520bb01fbda183e8f4b2a125c",
+          "bytes": 15658
+        }
+      ]
+    },
+    {
+      "slug": "sha3-precompile",
+      "display_name": "Keccak-256 (precompile)",
+      "workload_kind": "crypto",
+      "size_unit": "input_bytes",
+      "size_semantics": "bytes hashed by one Keccak-256 invocation",
+      "primary_stress": "SP1 Keccak syscall precompile dispatch",
+      "uses_precompile": true,
+      "in_rv32im_zkvm_v1_profile": false,
+      "source_files": [
+        {
+          "path": "sp1/sha3-precompile/src/main.rs",
+          "sha256": "54e849a53b0669293651d5b573830006fc0f9e417727b4d6f510a6e75937a175",
+          "bytes": 357
+        },
+        {
+          "path": "sp1/sha3-precompile/Cargo.toml",
+          "sha256": "7ca0e322f11b2ba03c46a789ac57e73b7dde54a6e8f4327b0a34873dddbd6e93",
+          "bytes": 323
+        },
+        {
+          "path": "sp1/sha3-precompile/Cargo.lock",
+          "sha256": "6a8ad6fa9e64d5d1591305eb058c9120e4f5fc78697b47784e9a2ff5dd377494",
+          "bytes": 15656
+        }
+      ]
+    },
+    {
+      "slug": "sha3-chain",
+      "display_name": "Keccak-256 chain",
+      "workload_kind": "crypto",
+      "size_unit": "hashes",
+      "size_semantics": "chained Keccak-256 invocations over a 32-byte state",
+      "primary_stress": "repeated Keccak permutation with a fixed working set",
+      "uses_precompile": false,
+      "in_rv32im_zkvm_v1_profile": true,
+      "source_files": [
+        {
+          "path": "sp1/sha3-chain/src/main.rs",
+          "sha256": "728cb5e2f8f0357889454718985364e0f88f9229bad24d9df9d8336782a1accf",
+          "bytes": 496
+        },
+        {
+          "path": "sp1/sha3-chain/Cargo.toml",
+          "sha256": "90671381b93311c4980c849359420ac09c122f7e9f8713672fd089634203bff1",
+          "bytes": 168
+        },
+        {
+          "path": "sp1/sha3-chain/Cargo.lock",
+          "sha256": "073735db9cf61582b322ece305ce98841e20f568f0e74deed91e83d481e55907",
+          "bytes": 15657
+        }
+      ]
+    },
+    {
+      "slug": "sha3-chain-precompile",
+      "display_name": "Keccak-256 chain (precompile)",
+      "workload_kind": "crypto",
+      "size_unit": "hashes",
+      "size_semantics": "chained Keccak-256 invocations over a 32-byte state",
+      "primary_stress": "SP1 Keccak syscall precompile dispatch under chaining",
+      "uses_precompile": true,
+      "in_rv32im_zkvm_v1_profile": false,
+      "source_files": [
+        {
+          "path": "sp1/sha3-chain-precompile/src/main.rs",
+          "sha256": "728cb5e2f8f0357889454718985364e0f88f9229bad24d9df9d8336782a1accf",
+          "bytes": 496
+        },
+        {
+          "path": "sp1/sha3-chain-precompile/Cargo.toml",
+          "sha256": "02eb26d04cbd9a254523885afd117376eeddc87ab8293c00a3aadae5c3c74543",
+          "bytes": 329
+        },
+        {
+          "path": "sp1/sha3-chain-precompile/Cargo.lock",
+          "sha256": "1388d466f5e581605f1b48cbc6d1fa1ad5f91c2688f9b1505befc8f2f2644f5e",
+          "bytes": 15662
+        }
+      ]
+    },
+    {
+      "slug": "blake",
+      "display_name": "BLAKE2s-256",
+      "workload_kind": "crypto",
+      "size_unit": "input_bytes",
+      "size_semantics": "bytes hashed by one BLAKE2s-256 invocation",
+      "primary_stress": "BLAKE2s compression over a heap-resident message",
+      "uses_precompile": false,
+      "in_rv32im_zkvm_v1_profile": true,
+      "source_files": [
+        {
+          "path": "sp1/blake/src/main.rs",
+          "sha256": "d6e0c6bd05a49d8dc53daa5feec4968226e1246f5fc165dc90dffa52ea939291",
+          "bytes": 360
+        },
+        {
+          "path": "sp1/blake/Cargo.toml",
+          "sha256": "5318f8db84f06d6a0fdd34e0fc98d1830b730dfeba325282bce4da0a95d1764f",
+          "bytes": 165
+        },
+        {
+          "path": "sp1/blake/Cargo.lock",
+          "sha256": "7eb0e9c4663a78300fbf8029387ef510271971f1794f481cccfa55f0af030a22",
+          "bytes": 15415
+        }
+      ]
+    },
+    {
+      "slug": "blake-chain",
+      "display_name": "BLAKE2s-256 chain",
+      "workload_kind": "crypto",
+      "size_unit": "hashes",
+      "size_semantics": "chained BLAKE2s-256 invocations over a 32-byte state",
+      "primary_stress": "repeated BLAKE2s compression with a fixed working set",
+      "uses_precompile": false,
+      "in_rv32im_zkvm_v1_profile": true,
+      "source_files": [
+        {
+          "path": "sp1/blake-chain/src/main.rs",
+          "sha256": "24774c6a48d6e26a1629f73de8822e2b399885cae7d390aa72f7265c4c789263",
+          "bytes": 520
+        },
+        {
+          "path": "sp1/blake-chain/Cargo.toml",
+          "sha256": "50a5eaa1ccfa61f2b8a330da7c0ac001213123461d36b6af6849652bd9b6b904",
+          "bytes": 170
+        },
+        {
+          "path": "sp1/blake-chain/Cargo.lock",
+          "sha256": "ec4db1889b4678b579dbc94719c9cd2e206d14a75520d506940edc5db738b0f8",
+          "bytes": 15421
+        }
+      ]
+    }
+  ],
+  "provisioning": {
+    "status": "pending",
+    "note": "What stands between this corpus and committed, scored RISC-V workloads. Nothing below is estimated: each item is work that has not been done, listed so the basket's incompleteness is loud rather than silent (the workload_registry.groups.cairo_cpu.workload_provisioning pattern).",
+    "blockers": [
+      {
+        "id": "guest_abi_port",
+        "applies_to": [
+          "fib",
+          "mat-mul",
+          "ec",
+          "sha2",
+          "sha2-chain",
+          "sha3",
+          "sha3-chain",
+          "blake",
+          "blake-chain"
+        ],
+        "reason": "guest entry and I/O use the SP1 zkVM ABI (sp1_zkvm::entrypoint!, sp1_zkvm::io::read/commit); the rv32im-zkvm-v1 profile this repository proves is bare-metal with a linker-defined input region, __halt_flag termination, and OUTPUT_LEN/OUTPUT_DATA public framing (see vectors/riscv_guests/*/linker.ld). Porting rewrites the entry and I/O shim; the computational body is unchanged."
+      },
+      {
+        "id": "precompile_out_of_profile",
+        "applies_to": [
+          "ec-precompile",
+          "sha2-precompile",
+          "sha2-chain-precompile",
+          "sha3-precompile",
+          "sha3-chain-precompile"
+        ],
+        "reason": "the guest additionally dispatches SP1 syscall precompiles, which rv32im-zkvm-v1 does not implement and does not intend to; this program is out of profile rather than merely unprovisioned."
+      },
+      {
+        "id": "deterministic_toolchain_pin",
+        "applies_to": [
+          "fib",
+          "mat-mul",
+          "ec",
+          "ec-precompile",
+          "sha2",
+          "sha2-precompile",
+          "sha2-chain",
+          "sha2-chain-precompile",
+          "sha3",
+          "sha3-precompile",
+          "sha3-chain",
+          "sha3-chain-precompile",
+          "blake",
+          "blake-chain"
+        ],
+        "reason": "a committed ELF needs an exact pinned rustc (the upstream file pins a floating `stable` channel). Compiled RISC-V guests in this repository are vendored with their exact toolchain string because they are not byte-reproducible across compiler versions \u2014 see vectors/riscv_elfs/crypto/provenance.json."
+      },
+      {
+        "id": "sail_differential_admission",
+        "applies_to": [
+          "fib",
+          "mat-mul",
+          "ec",
+          "ec-precompile",
+          "sha2",
+          "sha2-precompile",
+          "sha2-chain",
+          "sha2-chain-precompile",
+          "sha3",
+          "sha3-precompile",
+          "sha3-chain",
+          "sha3-chain-precompile",
+          "blake",
+          "blake-chain"
+        ],
+        "reason": "adding any program to the release corpus (vectors/riscv_elfs/trace_vectors.json) invalidates the committed Sail/Spike attestation at conformance/riscv/formal-corpus-evidence.json: that file binds the program count and a comparison_digest over the exact per-program trace digests, and scripts/riscv_sail_gate.py bind fails closed on any change without regenerated LIVE evidence. Regeneration needs the pinned Sail emulator (scripts/riscv_formal_tools.py); a corpus addition without it is not admissible."
+      }
+    ],
+    "regeneration_commands": [
+      "python3 scripts/riscv_formal_tools.py --workspace /tmp/stwo-riscv-formal",
+      "python3 scripts/riscv_trace_vectors.py --update",
+      "python3 scripts/riscv_trace_vectors.py --sail-bin <sail_riscv_sim> --spike-bin <spike>",
+      "python3 scripts/riscv_sail_gate.py run --workspace /tmp/stwo-riscv-formal"
+    ]
+  }
+}

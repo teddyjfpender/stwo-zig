@@ -57,6 +57,42 @@ CLOSING_AUDIT_KEYS = frozenset({"completed_utc", "bundle_sha256", "row_ids"})
 SCORED_DIMENSIONS = ("prove_ms", "request_ms")
 DEFAULT_SCORED_DIMENSION = "prove_ms"
 RESOURCE_PROFILES = frozenset(("standard", "large", "extreme"))
+
+# A group's `report_schema` names the envelope its rows MUST carry. It is not
+# by itself a claim that the group's product can already produce one: a
+# parity-gated product may install a benchmark binary that prints only
+# human-readable output. `report_adapter` states which of the two is true, and
+# a group whose adapter is absent can never be enabled or promotion eligible —
+# there is nothing to parse, so any run would have to fabricate. Absent the
+# block entirely, a group is assumed to have a working adapter (every group
+# that predates this field does).
+REPORT_ADAPTER_KEYS = frozenset({"status", "emits", "note"})
+REPORT_ADAPTER_STATUSES = ("present", "absent")
+
+# TRACKS §7: a basket/class-universe change on a scored board is a new era, so
+# new rows must be stageable without touching the era's scoring universe. Rows
+# live OUTSIDE `workloads`, which is what makes the staging fail closed: no
+# execution, scoring, holdout, or guard path can reach them, because every one
+# of those paths reads `workloads`. Opening the era moves the rows in as part
+# of the recalibration event.
+ERA_STAGED_BASKET_KEYS = frozenset({
+    "note", "activates_in_era", "reason", "admission", "rows",
+})
+ERA_STAGED_ADMISSION_KEYS = frozenset({
+    "path", "sha256", "authority", "driver", "build_step", "note",
+})
+ERA_STAGED_ROW_REQUIRED_KEYS = frozenset({
+    "class", "args", "native_unit", "role", "admission",
+})
+ERA_STAGED_ROW_KEYS = ERA_STAGED_ROW_REQUIRED_KEYS | {"killer_family"}
+ERA_STAGED_ROW_ADMISSION_KEYS = frozenset({
+    "target", "input_size", "expected_cycles",
+})
+ERA_STAGED_ROLES = ("scored_candidate", "killer")
+# TRACKS §3.3 requires at least two adversarial killer workloads per track, so
+# a staged basket that declares none is a basket extension pretending to be a
+# killer set.
+ERA_STAGED_MIN_KILLERS = 2
 METAL_CALIBRATION_SCHEMA = "stwo_perf_metal_calibration_freeze_v2"
 METAL_CALIBRATION_FIELDS = frozenset({
     "schema", "status", "board", "epoch", "artifact", "artifact_sha256",
@@ -263,6 +299,11 @@ class WorkloadGroup:
     promotion_blocked_reason: str | None = None
     acceptance_corpus: dict = field(default_factory=dict)
     workload_provisioning: dict = field(default_factory=dict)
+    # Whether the group's product can emit its declared report_schema today.
+    report_adapter: dict = field(default_factory=dict)
+    # TRACKS §7: rows admitted for this board but held out of the scoring
+    # universe until a named future era opens. Never runnable, never scored.
+    era_staged_basket: dict = field(default_factory=dict)
     # TRACKS §6: a retired-and-completed track. Present only on retired groups.
     retirement: dict = field(default_factory=dict)
     # TRACKS §3.1: the boundary this group's board scores. Defaults to today's
@@ -453,6 +494,8 @@ class Manifest:
                 promotion_blocked_reason=spec.get("promotion_blocked_reason"),
                 acceptance_corpus=dict(spec.get("acceptance_corpus", {})),
                 workload_provisioning=dict(spec.get("workload_provisioning", {})),
+                report_adapter=dict(spec.get("report_adapter", {})),
+                era_staged_basket=dict(spec.get("era_staged_basket", {})),
                 retirement=dict(spec.get("retirement", {})),
                 scored_dimension=str(
                     spec.get("scored_dimension", DEFAULT_SCORED_DIMENSION)
@@ -812,9 +855,16 @@ def _validate(raw: dict) -> None:
         )
         _validate_group_retirement(gid, spec)
         _validate_group_scored_dimension(gid, spec)
+        _validate_group_report_adapter(gid, spec)
         _validate_group_acceptance_corpus(gid, spec.get("acceptance_corpus", {}))
         _validate_group_workload_provisioning(
             gid, spec.get("workload_provisioning", {}), spec.get("workloads", {})
+        )
+        _validate_group_era_staged_basket(
+            gid,
+            spec.get("era_staged_basket"),
+            spec.get("workloads", {}),
+            registry["classes"],
         )
         if report_schema == "cairo_proof_v1":
             _validate_cairo_group(gid, spec)
@@ -1195,6 +1245,186 @@ def _validate_group_scored_dimension(gid: str, spec: dict) -> None:
         )
 
 
+def _validate_group_report_adapter(gid: str, spec: dict) -> None:
+    """A group with no report adapter cannot run, so it cannot be live.
+
+    `report_schema` declares the envelope a board's rows must carry. For a
+    parity-gated product that installs only a human-readable benchmark, the
+    schema is a target rather than a capability, and saying so is the whole
+    point of this block: the alternative is a group that looks runnable and
+    fabricates the moment anyone enables it.
+    """
+    adapter = spec.get("report_adapter")
+    if adapter is None:
+        return
+    if not isinstance(adapter, dict) or set(adapter) != REPORT_ADAPTER_KEYS:
+        raise ManifestError(
+            f"workload group {gid}: report_adapter requires exactly "
+            + ", ".join(sorted(REPORT_ADAPTER_KEYS))
+        )
+    if adapter["status"] not in REPORT_ADAPTER_STATUSES:
+        raise ManifestError(
+            f"workload group {gid}: report_adapter.status must be one of "
+            f"{REPORT_ADAPTER_STATUSES}"
+        )
+    for key in ("emits", "note"):
+        if not isinstance(adapter[key], str) or not adapter[key].strip():
+            raise ManifestError(
+                f"workload group {gid}: report_adapter.{key} must be non-empty"
+            )
+    if adapter["status"] != "absent":
+        return
+    if spec.get("enabled") or spec.get("promotion_eligible"):
+        raise ManifestError(
+            f"workload group {gid}: report_adapter.status is 'absent', so the "
+            "product emits nothing the harness can parse; such a group can be "
+            "neither enabled nor promotion eligible"
+        )
+
+
+def _validate_group_era_staged_basket(
+    gid: str, basket: object, workloads: object, classes: dict,
+) -> None:
+    """TRACKS §7: era-gated basket rows are admitted but out of the universe.
+
+    The staging is structural. Rows live outside `workloads`, so no runner,
+    scorer, holdout draw, or guard mapping can reach them; the only way one
+    scores is for the named era to open and the row to be moved in, which is a
+    reviewed recalibration event rather than a silent basket edit.
+    """
+    if basket is None:
+        return
+    if not isinstance(basket, dict) or set(basket) != ERA_STAGED_BASKET_KEYS:
+        raise ManifestError(
+            f"workload group {gid}: era_staged_basket requires exactly "
+            + ", ".join(sorted(ERA_STAGED_BASKET_KEYS))
+        )
+    for key in ("note", "reason"):
+        if not isinstance(basket[key], str) or not basket[key].strip():
+            raise ManifestError(
+                f"workload group {gid}: era_staged_basket.{key} must be non-empty"
+            )
+    era = basket["activates_in_era"]
+    if type(era) is not int or era < 2:
+        raise ManifestError(
+            f"workload group {gid}: era_staged_basket.activates_in_era must be "
+            "an integer era of 2 or later; era 1 is history and cannot be staged into"
+        )
+    admission = basket["admission"]
+    if (
+        not isinstance(admission, dict)
+        or set(admission) != ERA_STAGED_ADMISSION_KEYS
+    ):
+        raise ManifestError(
+            f"workload group {gid}: era_staged_basket.admission requires exactly "
+            + ", ".join(sorted(ERA_STAGED_ADMISSION_KEYS))
+        )
+    path = admission["path"]
+    if (
+        not isinstance(path, str) or not path.startswith("vectors/")
+        or Path(path).is_absolute() or ".." in Path(path).parts
+    ):
+        raise ManifestError(
+            f"workload group {gid}: era_staged_basket.admission.path must be a "
+            "repository vectors path"
+        )
+    digest = admission["sha256"]
+    if (
+        not isinstance(digest, str) or len(digest) != 64
+        or any(char not in "0123456789abcdef" for char in digest)
+    ):
+        raise ManifestError(
+            f"workload group {gid}: era_staged_basket.admission.sha256 must be "
+            "canonical lowercase SHA-256 hex"
+        )
+    for key in ("authority", "driver", "build_step", "note"):
+        if not isinstance(admission[key], str) or not admission[key].strip():
+            raise ManifestError(
+                f"workload group {gid}: era_staged_basket.admission.{key} must "
+                "be non-empty"
+            )
+    rows = basket["rows"]
+    if not isinstance(rows, dict) or not rows:
+        raise ManifestError(
+            f"workload group {gid}: era_staged_basket.rows must be a non-empty object"
+        )
+    declared = set(workloads) if isinstance(workloads, dict) else set()
+    killers = 0
+    for rid, row in rows.items():
+        if rid in declared:
+            raise ManifestError(
+                f"workload group {gid}: {rid} is both a runnable workload and an "
+                "era-staged row; a staged row must be outside the scoring universe"
+            )
+        if not isinstance(row, dict):
+            raise ManifestError(f"workload group {gid}: staged row {rid} must be an object")
+        unknown = sorted(set(row) - ERA_STAGED_ROW_KEYS)
+        missing = sorted(ERA_STAGED_ROW_REQUIRED_KEYS - set(row))
+        if unknown or missing:
+            raise ManifestError(
+                f"workload group {gid}: staged row {rid} has unsupported key(s) "
+                f"{unknown} and omits {missing}"
+            )
+        if row["class"] not in classes:
+            raise ManifestError(
+                f"workload group {gid}: staged row {rid} references an unknown "
+                f"class: {row['class']!r}"
+            )
+        for key in ("args", "native_unit"):
+            if not isinstance(row[key], str) or not row[key].strip():
+                raise ManifestError(
+                    f"workload group {gid}: staged row {rid}.{key} must be non-empty"
+                )
+        role = row["role"]
+        if role not in ERA_STAGED_ROLES:
+            raise ManifestError(
+                f"workload group {gid}: staged row {rid} has unsupported role "
+                f"{role!r}; expected one of {ERA_STAGED_ROLES}"
+            )
+        family = row.get("killer_family")
+        if role == "killer":
+            killers += 1
+            if not isinstance(family, str) or not family.strip():
+                raise ManifestError(
+                    f"workload group {gid}: staged killer {rid} must name its "
+                    "killer_family so the adversarial coverage is legible"
+                )
+        elif family is not None:
+            raise ManifestError(
+                f"workload group {gid}: staged row {rid} is not a killer but "
+                "declares a killer_family"
+            )
+        row_admission = row["admission"]
+        if (
+            not isinstance(row_admission, dict)
+            or set(row_admission) != ERA_STAGED_ROW_ADMISSION_KEYS
+        ):
+            raise ManifestError(
+                f"workload group {gid}: staged row {rid}.admission requires "
+                "exactly " + ", ".join(sorted(ERA_STAGED_ROW_ADMISSION_KEYS))
+            )
+        if (
+            not isinstance(row_admission["target"], str)
+            or not row_admission["target"].strip()
+        ):
+            raise ManifestError(
+                f"workload group {gid}: staged row {rid}.admission.target must "
+                "name the corpus target"
+            )
+        for key in ("input_size", "expected_cycles"):
+            value = row_admission[key]
+            if type(value) is not int or value <= 0:
+                raise ManifestError(
+                    f"workload group {gid}: staged row {rid}.admission.{key} "
+                    "must be a positive integer"
+                )
+    if killers < ERA_STAGED_MIN_KILLERS:
+        raise ManifestError(
+            f"workload group {gid}: era_staged_basket declares {killers} killer "
+            f"row(s); TRACKS §3.3 requires at least {ERA_STAGED_MIN_KILLERS}"
+        )
+
+
 def _validate_cairo_group(gid: str, spec: dict) -> None:
     """Cairo tracks are oracle-pinned and never promotion eligible in wave 1."""
     if spec.get("promotion_eligible"):
@@ -1355,23 +1585,32 @@ def _validate_acceptance_corpora(repo: Path, raw: dict) -> None:
     if not (repo / "vectors").is_dir():
         return
     for gid, spec in raw["workload_registry"]["groups"].items():
-        corpus = spec.get("acceptance_corpus") or {}
-        if not corpus:
-            continue
-        path = repo / corpus["path"]
-        try:
-            payload = path.read_bytes()
-        except OSError as exc:
-            raise ManifestError(
-                f"workload group {gid}: acceptance corpus {corpus['path']} is "
-                f"not readable: {exc}"
-            ) from exc
-        actual = hashlib.sha256(payload).hexdigest()
-        if actual != corpus["sha256"]:
-            raise ManifestError(
-                f"workload group {gid}: acceptance corpus {corpus['path']} digest "
-                f"drifted (manifest {corpus['sha256']}, file {actual})"
-            )
+        bindings = [("acceptance corpus", spec.get("acceptance_corpus") or {})]
+        # An era-staged basket's admission evidence is bound the same way: the
+        # staged rows are only as honest as the corpus that pins their guests,
+        # inputs, and exact retirement counts.
+        staged = spec.get("era_staged_basket") or {}
+        if isinstance(staged, dict) and isinstance(staged.get("admission"), dict):
+            bindings.append(("era-staged admission corpus", staged["admission"]))
+        for label, corpus in bindings:
+            # Shape is _validate's job; this pass only binds bytes to digests,
+            # and must not crash when called on a manifest that failed it.
+            if not isinstance(corpus, dict) or not {"path", "sha256"} <= set(corpus):
+                continue
+            path = repo / corpus["path"]
+            try:
+                payload = path.read_bytes()
+            except OSError as exc:
+                raise ManifestError(
+                    f"workload group {gid}: {label} {corpus['path']} is "
+                    f"not readable: {exc}"
+                ) from exc
+            actual = hashlib.sha256(payload).hexdigest()
+            if actual != corpus["sha256"]:
+                raise ManifestError(
+                    f"workload group {gid}: {label} {corpus['path']} digest "
+                    f"drifted (manifest {corpus['sha256']}, file {actual})"
+                )
 
 
 def _validate_classes(classes: object) -> None:
