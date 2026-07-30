@@ -144,6 +144,12 @@ jobs:
         if: matrix.lane == 'native_oracle' || matrix.lane == 'native_cuda_static'
         run: rustup toolchain install nightly-2025-07-14 --profile minimal
 
+      - name: Fetch pinned Cairo adapter dependencies
+        if: matrix.lane == 'cairo_cpu'
+        run: >-
+          cargo fetch --locked
+          --manifest-path tools/stwo-cairo-vm-adapter-rs/Cargo.toml
+
       - name: Restore product-scoped compiler cache
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
         with:

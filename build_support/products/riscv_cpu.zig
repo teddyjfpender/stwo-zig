@@ -22,6 +22,7 @@ const source_closure = product_policy.SourceClosure{
         "src/stwo_riscv_cpu.zig",
         "src/riscv_trace_cli.zig",
         "src/frontends/riscv/refinement_ir_export_test.zig",
+        "src/frontends/riscv/refinement_program_export_test.zig",
     },
     .named_imports = &([_]product_policy.NamedImport{
         .{ .name = "stwo", .source = "src/stwo_riscv_cpu.zig" },

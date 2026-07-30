@@ -1,21 +1,43 @@
-# RISC-V LUI/ADDI refinement pilot
+# RISC-V graded AIR-to-Sail refinement
 
-This Lean project is the Level-1 vertical pilot for universal RISC-V
-AIR-to-Sail refinement. It kernel-checks the normalized LUI and ADDI row
-predicates against a reviewed normalized capsule of the pinned Sail
-definitions.
+This Lean project contains the issue #136 A5 graded integration and retains
+the Level-1 LUI/ADDI normalized pilot within it. Team A's production AIR IR v2
+source binding kernel-checks the normalized LUI and ADDI row predicates
+against a generated normalized capsule bound to the exact
+pinned Sail `execute_UTYPE`/`execute_ITYPE` slices by a checked, fail-closed AST
+translation receipt. A separate cross-project Lean check imports the exact
+generated backend and proves input equations for all 24 Team A selectors,
+including BTYPE, JAL, JALR, and FENCE. Only LUI/ADDI are normalized to the
+repository retirement capsule and composed with the shared sequential next-PC
+write and `tick_pc` fragment. All 17 production families and all 46 opcode
+selectors now round-trip through the shared production `ConstraintProgram`.
 
-It does not yet prove that the serialized production M31 constraint DAG and
-live lookup set imply those predicates, or that the full generated Sail monad
-reduces to the capsule. Those two bindings are the Level-2 promotion gate.
-Accordingly, the repository reports `2/46` as normalized pilot coverage and
-does not claim that two production opcodes are publication-level
-machine-proved.
+The LUI and ADDI AIR bridges now interpret their generated production programs
+directly, derive constraints and ordered relation lookups from evaluated
+events, enforce every live fixed-table request, rule out M31 clock wraparound,
+and prove the resulting typed rows satisfy `LuiHolds` and `AddiHolds`.
+Concrete witnesses pass through those same interpreters. The direct bridge
+binds the Team A generated execute-clause inputs, but the control-flow
+equations are not retirement-normalization theorems. The bridge does not cover
+fetch, interrupt, trap, counter, or later-step framing in the full generated
+Sail step loop. Accordingly, the repository still reports `2/46` as normalized
+pilot coverage and does not count either pilot as a publication-level opcode.
 
 ## Theorems
 
 - `RiscvRefinement.Opcodes.lui_refines`
 - `RiscvRefinement.Opcodes.addi_refines`
+- `RiscvRefinement.Air.Bridge.Lui.sound`
+- `RiscvRefinement.Air.Bridge.Lui.lookup_projection`
+- `RiscvRefinement.Air.Bridge.Lui.acceptance_nonvacuous`
+- `RiscvRefinement.Air.Bridge.Addi.sound`
+- `RiscvRefinement.Air.Bridge.Addi.lookup_projection`
+- `RiscvRefinement.Air.Bridge.Addi.acceptance_nonvacuous`
+- `RiscvRefinement.Air.Bridge.Mutations.luiLowLimb_strictly_weaker`
+- `RiscvRefinement.Air.Bridge.Mutations.addiCarry_strictly_weaker`
+- `RiscvRefinement.Air.Bridge.Mutations.immediateRange_strictly_weaker`
+- `RiscvRefinement.Air.Bridge.Mutations.selectorRelabel_strictly_weaker`
+- `RiscvRefinement.Air.Bridge.Mutations.reordered_strictly_weaker`
 - `RiscvRefinement.NonVacuity.lui_exists`
 - `RiscvRefinement.NonVacuity.addi_exists`
 
@@ -52,16 +74,24 @@ STWO_SAIL_RISCV_DIR=/tmp/stwo-riscv-formal/source/sail-riscv \
   zig build riscv-refinement-pilot
 ```
 
-The gate freshly exports all 17 production symbolic-AIR families, rejects
-schema or expression drift, and differentially checks the frontend-owned
-symbolic recorder against the QM31 production evaluator. It then compares
-every generated file byte-for-byte, runs coverage and negative controls, runs
-the Python infrastructure tests, builds Lean, scans for proof escapes, and
-audits every exported theorem's axioms.
+The gate freshly exports all 17 production symbolic-AIR families plus exactly
+46 source-bound AIR IR v2 programs. It rejects manifest, schema, source, event,
+or expression drift and differentially checks the shared symbolic program
+against the QM31 production evaluator. It then compares every generated file
+byte-for-byte, runs coverage and negative controls, runs the Python
+infrastructure tests, builds Lean (including strict LUI decode and active/
+inactive evaluation guards), scans for proof escapes, and audits every
+exported theorem's axioms.
 
-The current mutations check weakened-row counterexamples and exact-shape
-validator sensitivity. They do not yet invoke pinned Sail on the counterexample
-or feed a mutated predicate through Lean; those are explicit Level-2 gates.
+The Stage A2 mutation bundle is checked in Lean against the interpreted
+production programs. It proves architectural counterexamples for the free LUI
+low limb, deleted ADDI high carry, and ADDI/XORI selector relabel. It also
+proves strict loss of the raw immediate-range request and exact event-order
+projection. The generated-Sail side of the joint Level-2 gate remains open.
+Every Team A execute-clause input is now kernel-bound. The normalized
+execute-clause monad and sequential PC/tick theorem remains LUI/ADDI-only; the
+open portion includes normalized retirement composition for the other
+selectors and the wider generated step-loop framing.
 
 After committing all inputs and generated artifacts, create the evidence
 receipt:
@@ -82,11 +112,18 @@ claim boundary.
 Do not edit these by hand:
 
 - `generated/air/{lui,addi}.json`
+- `generated/air/{all 46 manifest mnemonics}.air-ir-v2.json`
 - `generated/sail/rv32im-zkvm-v1.json`
+- `generated/sail/definitions/{execute_UTYPE,execute_ITYPE}.lean`
+- `generated/sail/translation-receipt-v1.json`
+- `generated/sail/generated-monad-bridge-receipt-v1.json`
 - `RiscvRefinement/Air/Generated/Pilot.lean`
+- `RiscvRefinement/Air/Generated/LuiProgram.lean`
 - `RiscvRefinement/Sail/Generated/Pilot.lean`
 - `generated-manifest.json`
 
 The detailed theorem contract, trusted-base analysis, rollout order, and
 publication definition of done are in
 [`soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md`](../../soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md).
+The exact production AIR wire and interpretation contract is
+[`soundness/AIR_IR_V2_CONTRACT.md`](../../soundness/AIR_IR_V2_CONTRACT.md).
