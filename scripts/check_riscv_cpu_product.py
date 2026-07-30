@@ -9,6 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 OWNED = (
     ROOT / "build_support/products/riscv_cpu.zig",
+    ROOT / "build_support/products/riscv_sail_oracle_tests.zig",
     # The CPU owner's build-graph wiring is shared with the other focused RV32IM
     # owners from here, so it is subject to the same marker checks. Without this
     # entry, moving a line out of riscv_cpu.zig into the shared sibling would

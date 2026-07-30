@@ -308,6 +308,20 @@ class PlannerContractTests(unittest.TestCase):
         self.assertIn("--artifact-dir", proof_commands[0])
         self.assertIn("--report-out", proof_commands[0])
 
+    def test_riscv_sail_oracle_build_owner_selects_only_cpu_consumers(self) -> None:
+        self.assertEqual(
+            {
+                "static",
+                "build_graph",
+                "riscv_cpu",
+                "aggregate_cpu",
+                "aggregate_metal",
+            },
+            self.lanes_for(
+                "build_support/products/riscv_sail_oracle_tests.zig"
+            ),
+        )
+
     def test_leaf_native_cpu_change_does_not_select_unrelated_products(self) -> None:
         self.assertEqual(
             {"static", "native_cpu"},
