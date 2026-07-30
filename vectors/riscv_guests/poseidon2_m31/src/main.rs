@@ -8,11 +8,11 @@
 //! the prover cost of the permutation's arithmetic shape, not the guest hash's
 //! cryptographic security, and this keeps the port a byte-faithful mirror.
 //!
-//! Field arithmetic is written to emit ONLY the RV32IM `MUL` low-word multiply
-//! — never MULH/MULHU/MULHSU. Stark-V has a known signed-mul-high limitation
-//! that the Zig port fails closed on (it is what stops multi-block Keccak), so
-//! M31 multiplication here uses 16-bit limbs whose partial products fit in 32
-//! bits, and the internal diagonal uses 31-bit rotations instead of multiplies.
+//! Field arithmetic emits only the RV32IM `MUL` low-word multiply, never
+//! MULH/MULHU/MULHSU. M31 multiplication uses 16-bit limbs whose partial
+//! products fit in 32 bits, and the internal diagonal uses 31-bit rotations
+//! instead of multiplies. This keeps the workload on the portable RV32IM
+//! instruction path without relying on a cryptographic precompile.
 //!
 //! Input : [n: u32 LE][n field elements: u32 LE], each reduced mod p on read.
 //! Hash  : rate-1 sponge — absorb one element into state[0], permute, repeat;

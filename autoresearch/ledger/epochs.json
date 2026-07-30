@@ -147,5 +147,66 @@
         }
       }
     }
-  ]
+  ],
+  "board_eras": {
+    "note": "TRACKS §7 per-board eras. Global epochs above stay the fallback and are never rewritten: a board absent from `boards` resolves to the newest global epoch exactly as before, so every epoch-1/2 consumer and every ledger row referencing epoch 1 or 2 keeps working byte-for-byte. An era names the global epoch it inherits via `epoch_ref` and may override, for that board only, `aa_dispersion`, `resource_budgets` (the TRACKS §8 (board, class) key, falling back to the epoch's class-only vector), `audit_anchor_commit`, and `scored_dimension`. A board's newest era is its current era even when banked — a banked era freezes that board's scoring, which is how a retired board keeps serving history without drifting onto later global epochs. Scores are never compared across eras.",
+    "boards": {
+      "core_cpu": [
+        {
+          "era": 1,
+          "epoch_ref": 1,
+          "opened_utc": "2026-07-18T00:00:00Z",
+          "reason": "initial harness installation",
+          "status": "banked",
+          "closed_utc": "2026-07-21T16:00:00Z"
+        },
+        {
+          "era": 2,
+          "epoch_ref": 2,
+          "opened_utc": "2026-07-21T16:00:00Z",
+          "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe",
+          "status": "banked",
+          "closed_utc": "2026-07-29T00:00:00Z",
+          "note": "TRACKS §6 retire-and-complete: the native CPU era is banked. New promotions refuse, the full ledger and final scores stay served, and the closing audit stamps the last audited score on the M5 judge host."
+        }
+      ],
+      "core_metal": [
+        {
+          "era": 1,
+          "epoch_ref": 1,
+          "opened_utc": "2026-07-18T00:00:00Z",
+          "reason": "initial harness installation",
+          "status": "banked",
+          "closed_utc": "2026-07-21T16:00:00Z"
+        },
+        {
+          "era": 2,
+          "epoch_ref": 2,
+          "opened_utc": "2026-07-21T16:00:00Z",
+          "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the Metal calibration freeze for this era is pinned in epoch 2's metal_calibration block",
+          "status": "banked",
+          "closed_utc": "2026-07-29T00:00:00Z",
+          "note": "TRACKS §6 retire-and-complete: the native Metal era is banked. New promotions refuse, the full ledger and final scores stay served, and the closing audit stamps the last audited score on the M5 judge host."
+        }
+      ],
+      "riscv": [
+        {
+          "era": 1,
+          "epoch_ref": 1,
+          "opened_utc": "2026-07-18T00:00:00Z",
+          "reason": "initial harness installation; the RISC-V board carried no measured A/A dispersion in this era",
+          "status": "banked",
+          "closed_utc": "2026-07-21T16:00:00Z"
+        },
+        {
+          "era": 2,
+          "epoch_ref": 2,
+          "opened_utc": "2026-07-21T16:00:00Z",
+          "reason": "Metrics v2 opens audit-anchored scoring; the RISC-V board's frozen same-host M5 A/A dispersion enters with it",
+          "status": "open",
+          "note": "TRACKS §3.1 re-scores this board to the verified-request boundary at its NEXT era. Era 3 stays unopened until the M5 judge host recalibrates at that boundary; schema/scoring.md carries the exact era-3 record template and the operator commands."
+        }
+      ]
+    }
+  }
 }

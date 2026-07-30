@@ -10,10 +10,10 @@ const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const canonic = @import("stwo_core").poly.circle.canonic;
 const utils = @import("stwo_core").utils;
-const prover_air_accumulation = @import("stwo_prover_impl").air.accumulation;
-const prover_component = @import("stwo_prover_impl").air.component_prover;
-const prover_circle = @import("stwo_prover_impl").poly.circle;
-const prover_twiddles = @import("stwo_prover_impl").poly.twiddles;
+const prover_air_accumulation = @import("stwo_prover_engine").air.accumulation;
+const prover_component = @import("stwo_prover_engine").air.component_prover;
+const prover_circle = @import("stwo_prover_engine").poly.circle;
+const prover_twiddles = @import("stwo_prover_engine").poly.twiddles;
 const input = @import("input.zig");
 const interaction = @import("interaction.zig");
 
@@ -654,7 +654,7 @@ test "exact Poseidon witness satisfies transitions and LogUp row constraints" {
 }
 
 fn secureAtPrepared(
-    columns: []const @import("stwo_prover_impl").pcs.ColumnEvaluation,
+    columns: []const @import("stwo_prover_engine").pcs.ColumnEvaluation,
     secure_index: usize,
     row: usize,
 ) QM31 {

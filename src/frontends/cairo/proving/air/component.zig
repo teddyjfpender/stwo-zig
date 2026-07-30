@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const core = @import("stwo_core");
-const prover = @import("stwo_prover_impl");
+const prover = @import("stwo_prover_engine");
 const composition = @import("../../witness/composition_bundle.zig");
 const geometry = @import("../../witness/resident_geometry.zig");
 const verifier_runtime = @import("../../witness/resident_verifier.zig");
@@ -167,11 +167,17 @@ pub const Component = struct {
             .column = column,
         };
         const row_count = try checkedPow2(captured.evaluation_log_size);
-        const pool = maybe_pool orelse
-            return evaluation.evaluateRange(0, row_count, false);
-        if (row_count < parallel_row_threshold or pool.workerCount() <= 1) {
-            return evaluation.evaluateRange(0, row_count, false);
+        // A composition column can be shared by several components. The first
+        // writer stores directly and publishes `next_fresh_index`; every later
+        // writer must accumulate. The serial path has to honour the same
+        // protocol as the parallel one below, or a second component silently
+        // clobbers the first.
+        const serial_pool = maybe_pool orelse
+            return evaluateSerial(&evaluation, column, row_count);
+        if (row_count < parallel_row_threshold or serial_pool.workerCount() <= 1) {
+            return evaluateSerial(&evaluation, column, row_count);
         }
+        const pool = serial_pool;
 
         const worker_count = @min(pool.workerCount(), row_count / simd.lane_count);
         const workers = try accumulator.allocator.alloc(RangeWorker, worker_count);
@@ -201,6 +207,19 @@ pub const Component = struct {
 };
 
 const parallel_row_threshold: usize = 4096;
+
+/// Serial mirror of the parallel path's fresh-column protocol: derive
+/// `additive` from whether the column already carries a written prefix, then
+/// publish the same `next_fresh_index` the parallel path would have published.
+fn evaluateSerial(
+    evaluation: *const EvaluationContext,
+    column: *prover.air.accumulation.ColumnAccumulator,
+    row_count: usize,
+) !void {
+    const direct_store = column.next_fresh_index == 0;
+    try evaluation.evaluateRange(0, row_count, !direct_store);
+    column.next_fresh_index = if (direct_store) row_count else null;
+}
 
 fn evaluateDomainParallelAdapter(
     raw_context: *const anyopaque,
@@ -241,7 +260,7 @@ const EvaluationContext = struct {
                 .{
                     .evaluation_log_size = self.captured.evaluation_log_size,
                     .trace_log_size = self.captured.trace_log_size,
-                    .trace = .{ .context = self.trace, .read = readTrace },
+                    .trace = .{ .context = self.trace, .resolve = resolveTrace },
                     .extension_parameters = self.parameters,
                     .random_coefficients = self.coefficients,
                     .constraint_base = part.rc_base,
@@ -286,19 +305,30 @@ const RangeWorker = struct {
     }
 };
 
-const TraceContext = struct {
+/// The mask-resolution context the row loop reads through. Public because the
+/// device composition stage (`device_stage.zig`) has to hand the *same*
+/// resolver to the device path that the host path uses, or the two evaluators
+/// would not be comparing the same columns.
+pub const TraceContext = struct {
     trace: *const Trace,
     captured: *const composition.Component,
     evaluation_log_size: u32,
 };
 
-fn readTrace(
+/// Re-export of the resolver interface so callers outside this file can build a
+/// reader without naming `simd_evaluator` themselves.
+pub const TraceReader = simd.TraceReader;
+
+/// Resolves one mask read site to its committed column and lifting shift.
+/// Called once per read instruction per evaluated range; every check it
+/// performs — tree arity, preprocessed index bounds, component span
+/// arithmetic, column length against its log size, and the lifting shift
+/// range — used to be repeated on every four-row group.
+pub fn resolveTrace(
     raw_context: *const anyopaque,
     interaction: u8,
     local_column: u32,
-    row: usize,
-    offset: i32,
-) !simd.PackedM31 {
+) !simd.ResolvedColumn {
     const context: *const TraceContext = @ptrCast(@alignCast(raw_context));
     if (context.trace.polys.items.len < 3) return error.InvalidTraceShape;
     const column = switch (interaction) {
@@ -327,28 +357,20 @@ fn readTrace(
         else => return error.InvalidTraceShape,
     };
 
-    var values: simd.PackedM31 = undefined;
-    inline for (0..simd.lane_count) |lane| {
-        const position = row + lane;
-        const shifted = if (offset == 0)
-            position
-        else
-            core.utils.offsetBitReversedCircleDomainIndex(
-                position,
-                context.captured.trace_log_size,
-                context.evaluation_log_size,
-                offset,
-            );
-        const value: M31 = try column.valueAtLiftingPosition(
-            context.evaluation_log_size,
-            shifted,
-        );
-        values[lane] = value.toU32();
-    }
-    return values;
+    try column.validate();
+    if (column.log_size > context.evaluation_log_size)
+        return error.InvalidTraceShape;
+    const shift = context.evaluation_log_size - column.log_size;
+    if (shift + 1 >= @bitSizeOf(usize)) return error.InvalidTraceShape;
+    return .{
+        .values = column.values,
+        .shift_amt = @intCast(shift + 1),
+    };
 }
 
-fn orderedCoefficients(
+/// Reverses the accumulator's power vector into the orientation
+/// `simd_evaluator` and the compiled kernels both index at `rc_base`.
+pub fn orderedCoefficients(
     allocator: std.mem.Allocator,
     powers: []const QM31,
 ) ![]QM31 {

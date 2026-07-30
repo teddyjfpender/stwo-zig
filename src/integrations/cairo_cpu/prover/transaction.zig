@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const core = @import("stwo_core");
-const prover = @import("stwo_prover_impl");
+const prover = @import("stwo_prover_engine");
 const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 const adapter = @import("stwo_cairo_frontend").adapter;
 const generic = @import("stwo_cairo_frontend").proving.transaction;
@@ -25,7 +25,7 @@ pub const Result = generic.Result(Engine);
 pub const official_pcs_config = generic.official_pcs_config;
 
 comptime {
-    prover.engine.assertProverEngine(Engine);
+    @import("stwo_prover_api").assertProverEngine(Engine);
 }
 
 pub fn proveFixture(

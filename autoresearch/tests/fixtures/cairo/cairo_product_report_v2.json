@@ -1,0 +1,85 @@
+{
+ "schema_version": 2,
+ "product": {
+  "schema_version": 2,
+  "name": "stwo-cairo-cpu",
+  "frontend": "cairo",
+  "backend": "cpu",
+  "role": "cli",
+  "protocol_features": "stwo-cairo-v1.2.2+cairo-executable-v1+cairo-lang-2.20.0+cairo-vm-3.2.0+official-vm-adapter-v2+official-json-v1+cairo-serde-v1+bincode-v1+bzip2-1.0.8+live-geometry-v1+air-template-library-v1+lifted-pcs-v2+blake2s+authenticated-witness-cpu-aot-v1",
+  "protocol_manifest_sha256": "120493a3b6a8b328224badb949a836ad821e76494a4e80f6fe281db34b2965fc",
+  "identity_sha256": "dad506603b5ce6500d74d28212959b3882c6cbf6696faf50a2f6061a262863cf",
+  "source": {
+   "repository": "https://github.com/teddyjfpender/stwo-zig",
+   "commit": "07ac6885263e9ce0109047d65565bc8587131d89",
+   "tree": "344f95ffbd1d0298380209a0fe615c7386048188",
+   "dirty": false,
+   "dirty_content_sha256": null
+  },
+  "zig_version": "0.15.2",
+  "target": {
+   "arch": "aarch64",
+   "os": "macos",
+   "abi": "none",
+   "cpu_model": "apple_m4",
+   "cpu_features_sha256": "859c5cadfcabd95e14b648a6c1dad1e42a0e8c6657abe2d935c19c104848975b"
+  },
+  "optimize": "ReleaseFast",
+  "runtime": {
+   "manifest": "none",
+   "sdk": "none",
+   "aot": "none"
+  },
+  "upstream": {
+   "stwo_cairo_revision": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+   "stwo_revision": "7b211edde786775016ef3eecb837a6240d8fe792",
+   "cairo_language_version": "2.20.0",
+   "cairo_vm_version": "3.2.0"
+  }
+ },
+ "frontend": "cairo",
+ "backend": "cpu",
+ "backend_evidence": {
+  "execution": "cpu-simd",
+  "classification": "host-only",
+  "metal_dispatches": 0,
+  "cpu_fallbacks": 0,
+  "runtime_initializations": 0,
+  "runtime_shutdowns": 0,
+  "commit_source_arena_aliases": 0,
+  "commit_source_arena_memcpys": 0,
+  "commit_source_uploads": 0
+ },
+ "preprocessed_cache": {
+  "enabled": true,
+  "budget_bytes": 2147483648,
+  "hits": 0,
+  "misses": 2,
+  "stores": 2,
+  "evictions": 0,
+  "loaded_bytes": 0,
+  "stored_bytes": 136315104,
+  "evicted_bytes": 0,
+  "directory_bytes": 136315104,
+  "eviction_ns": 44333
+ },
+ "profile": "official-live-cairo-canonical-small",
+ "execution": null,
+ "input": {
+  "sha256": "7f94bd5dcf32e7dd69a8a47f42d41830b4fdd3b75846ef9f7694f3164117fcd6"
+ },
+ "proof": {
+  "format": "json",
+  "bytes": 3006412,
+  "sha256": "79ae76e1ac0c48b1e3b06810ddb1fed8aabe5dfb10d028e879105b79716cb310"
+ },
+ "timing": {
+  "execute_ns": 0,
+  "prove_ns": 1758413875,
+  "verify_ns": 7667334
+ },
+ "verification": {
+  "requested": true,
+  "zig": true
+ }
+}

@@ -15,10 +15,10 @@ const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const canonic = @import("stwo_core").poly.circle.canonic;
 const utils = @import("stwo_core").utils;
-const prover_air_accumulation = @import("stwo_prover_impl").air.accumulation;
-const prover_component = @import("stwo_prover_impl").air.component_prover;
-const prover_poly = @import("stwo_prover_impl").poly.circle.poly;
-const prover_twiddles = @import("stwo_prover_impl").poly.twiddles;
+const prover_air_accumulation = @import("stwo_prover_engine").air.accumulation;
+const prover_component = @import("stwo_prover_engine").air.component_prover;
+const prover_poly = @import("stwo_prover_engine").poly.circle.poly;
+const prover_twiddles = @import("stwo_prover_engine").poly.twiddles;
 const semantic_eval = @import("semantic_eval.zig");
 const trace = @import("../runner/trace.zig");
 

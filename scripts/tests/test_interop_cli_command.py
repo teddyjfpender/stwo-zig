@@ -45,7 +45,7 @@ class InteropCliCommandTests(unittest.TestCase):
             command,
         )
         self.assertIn("-Mstwo_backend_contracts=src/backend/mod.zig", command)
-        self.assertIn("-Mstwo_prover_impl=src/prover/mod.zig", command)
+        self.assertIn("-Mstwo_prover_engine=src/prover/mod.zig", command)
         self.assertIn(
             "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
             command,

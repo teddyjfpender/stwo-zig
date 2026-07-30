@@ -7,9 +7,13 @@ pub fn build(b: *std.Build) void {
 
     const core = b.dependency("stwo_core", dependency_options).module("stwo_core");
     const prover = b.dependency(
-        "stwo_prover_impl",
+        "stwo_prover_engine",
         dependency_options,
-    ).module("stwo_prover_impl");
+    ).module("stwo_prover_engine");
+    const prover_api = b.dependency(
+        "stwo_prover_api",
+        dependency_options,
+    ).module("stwo_prover_api");
     const metal_package = b.dependency("stwo_metal_backend", dependency_options);
     const metal_backend = metal_package.module("stwo_metal_backend");
     const frontend = b.dependency(
@@ -22,7 +26,8 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     integration.addImport("stwo_core", core);
-    integration.addImport("stwo_prover_impl", prover);
+    integration.addImport("stwo_prover_api", prover_api);
+    integration.addImport("stwo_prover_engine", prover);
     integration.addImport("stwo_metal_backend", metal_backend);
     integration.addImport("stwo_riscv_frontend", frontend);
 

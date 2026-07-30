@@ -4,7 +4,7 @@ const std = @import("std");
 const core = @import("stwo_core");
 const columns = @import("columns.zig");
 const pedersen_table = @import("pedersen_table.zig");
-const prover = @import("stwo_prover_impl");
+const prover = @import("stwo_prover_engine");
 const work_pool = prover.work_pool;
 
 const M31 = core.fields.m31.M31;

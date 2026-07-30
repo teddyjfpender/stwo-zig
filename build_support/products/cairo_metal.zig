@@ -34,10 +34,10 @@ const source_closure = policy.SourceClosure{
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
         .{ .name = "stwo_cairo_frontend", .source = "src/frontends/cairo/mod.zig" },
         .{ .name = "stwo_cairo_metal_integration", .source = "src/integrations/cairo_metal/mod.zig" },
-        .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
         .{ .name = "stwo_metal_backend", .source = "src/backends/metal/mod.zig" },
         .{ .name = "stwo_metal_session", .source = "src/tools/metal_session/mod.zig" },
-        .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
+        .{ .name = "stwo_prover_api", .source = "src/prover_api/mod.zig" },
+        .{ .name = "stwo_prover_engine", .source = "src/prover/mod.zig" },
     },
     .generated_imports = &.{
         "cairo_witness_cpu_aot",
@@ -52,7 +52,6 @@ const source_closure = policy.SourceClosure{
     },
     .allowed_prefixes = &.{
         "src/backend",
-        "src/backends/cpu_scalar",
         "src/backends/metal",
         "src/core",
         "src/frontends/cairo",
@@ -60,6 +59,7 @@ const source_closure = policy.SourceClosure{
         "src/products/cairo",
         "src/products/cairo_metal",
         "src/prover",
+        "src/prover_api",
         "src/tools/metal_session",
     },
     .required_dynamic_dependencies = &.{
@@ -299,21 +299,12 @@ fn createStwoModule(
         .optimize = context.optimize,
     });
     context.protocol.addImports(module);
-    const cpu_backend = graph.addCpuBackendImport(
-        context.b,
-        context.protocol,
-        product(role),
-        context.target,
-        context.optimize,
-        module,
-    );
     const metal_backend = graph.addMetalBackendImport(
         context.b,
         context.protocol,
         product(role),
         context.target,
         context.optimize,
-        cpu_backend,
         module,
     );
     const cairo_frontend = graph.addCairoFrontendImport(

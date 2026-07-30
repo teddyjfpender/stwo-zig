@@ -17,6 +17,7 @@ const program = @import("program.zig");
 const verify_inputs = @import("verify_instruction_inputs.zig");
 const witness_bundle = @import("bundle.zig");
 const producer_output = @import("producer_output.zig");
+const pool_split = @import("pool_split.zig");
 
 const none = std.math.maxInt(u32);
 
@@ -115,6 +116,11 @@ pub fn collectTopology(
     @memset(counts.small, 0);
     try addPublicMemory(input, &counts);
 
+    // Validate the whole graph before any counting so the parallel pass below
+    // only has to do arithmetic. Every rejection here is one the serial form
+    // also reached, just possibly after some counts had already landed.
+    var widest_rows: usize = 0;
+    var feeds_present = false;
     for (producers) |producer| {
         const component = topology.find(producer.label) orelse
             return error.MissingProducerTopology;
@@ -123,25 +129,197 @@ pub fn collectTopology(
             producer.words.len != @as(usize, producer.row_count) * producer.words_per_row)
             return error.InvalidDescriptor;
         for (component.feeds) |feed| {
-            const is_address = std.mem.eql(u8, feed.target, "memory_address_to_id");
-            const is_value = std.mem.eql(u8, feed.target, "memory_id_to_big");
-            if (!is_address and !is_value) continue;
+            if (!isMemoryFeed(feed.target)) continue;
             if (feed.relation != 0 or feed.words_per_instance != 1)
                 return error.UnsupportedMemoryFeed;
-            for (0..producer.active_rows) |row| {
-                const source_index = @as(usize, row) * producer.words_per_row + feed.word_base;
-                const value = producer.words[source_index];
-                if (is_address) {
-                    if (value == 0 or value > counts.address.len) continue;
-                    try increment(&counts.address[value - 1]);
-                } else {
-                    try addEncodedId(value, &counts);
+            if (producer.active_rows == 0) continue;
+            feeds_present = true;
+            widest_rows = @max(widest_rows, @as(usize, producer.active_rows));
+        }
+    }
+    if (!feeds_present) return counts;
+
+    try accumulateTopology(allocator, topology, producers, &counts, widest_rows);
+    return counts;
+}
+
+fn isMemoryFeed(target: []const u8) bool {
+    return std.mem.eql(u8, target, "memory_address_to_id") or
+        std.mem.eql(u8, target, "memory_id_to_big");
+}
+
+/// Smallest producer-row span worth a private count table of its own.
+const min_rows_per_worker: usize = 1 << 14;
+
+/// Ceiling on the live private count tables. The scatter is bandwidth-bound,
+/// not core-bound: measured on memory-7m against a 27.8 MB table set it takes
+/// 13.0 ms at three workers and 13.2 ms at seven, while the private copies keep
+/// costing zeroing, first-touch faults and merge traffic. The budget is sized
+/// so a table set that large gets three workers and a smaller one — where each
+/// increment carries less bandwidth — gets more.
+const max_private_bytes: usize = 96 << 20;
+
+/// Splits the producer-graph memory scatter across the work pool.
+///
+/// Counting is an additive `u32` histogram over `(producer, feed, row)`, so
+/// disjoint row spans with private count tables merge exactly and the merged
+/// tables are independent of the decomposition and of completion order. The
+/// checked add on the merged total fails exactly when the serial running count
+/// would have, because counts only ever increase.
+///
+/// Worker 0 accumulates straight into the live tables, which already carry the
+/// public-memory seed, so only `worker_count - 1` private copies exist. With no
+/// pool that degenerates to the original serial scatter with no extra
+/// allocation, zeroing or merge.
+fn accumulateTopology(
+    allocator: std.mem.Allocator,
+    topology: feed_topology.Loaded,
+    producers: []const producer_output.ProducerOutput,
+    counts: *Counts,
+    widest_rows: usize,
+) !void {
+    const stride = counts.address.len + counts.big.len + counts.small.len;
+    const worker_count = pool_split.workerCount(.{
+        .rows = widest_rows,
+        .min_rows_per_worker = min_rows_per_worker,
+        .private_bytes_per_worker = std.math.mul(usize, stride, @sizeOf(u32)) catch
+            return Error.AllocationSizeOverflow,
+        .max_private_bytes = max_private_bytes,
+    });
+    const private = try allocator.alloc(
+        u32,
+        std.math.mul(usize, stride, worker_count - 1) catch
+            return Error.AllocationSizeOverflow,
+    );
+    defer allocator.free(private);
+
+    var scatter: [pool_split.work_pool.MAX_WORKERS]Scatter = undefined;
+    for (scatter[0..worker_count], 0..) |*slot, index| slot.* = .{
+        .topology = topology,
+        .producers = producers,
+        .counts = if (index == 0) counts.* else privateCounts(
+            private[(index - 1) * stride ..][0..stride],
+            counts,
+        ),
+        .zero_first = index != 0,
+        .index = index,
+        .worker_count = worker_count,
+        .failure = null,
+    };
+    try pool_split.dispatch(Scatter, scatter[0..worker_count]);
+    if (worker_count == 1) return;
+
+    var merge: [pool_split.work_pool.MAX_WORKERS]Merge = undefined;
+    for (merge[0..worker_count], 0..) |*slot, index| slot.* = .{
+        .destination = counts,
+        .private = private,
+        .stride = stride,
+        .source_count = worker_count - 1,
+        .index = index,
+        .worker_count = worker_count,
+        .failure = null,
+    };
+    try pool_split.dispatch(Merge, merge[0..worker_count]);
+}
+
+fn privateCounts(storage: []u32, shape: *const Counts) Counts {
+    return .{
+        .allocator = undefined,
+        .address = storage[0..shape.address.len],
+        .big = storage[shape.address.len..][0..shape.big.len],
+        .small = storage[shape.address.len + shape.big.len ..][0..shape.small.len],
+    };
+}
+
+/// Counts one disjoint producer-row span into one set of count tables.
+const Scatter = struct {
+    topology: feed_topology.Loaded,
+    producers: []const producer_output.ProducerOutput,
+    counts: Counts,
+    zero_first: bool,
+    index: usize,
+    worker_count: usize,
+    failure: ?anyerror,
+
+    pub fn run(self: *Scatter) void {
+        self.accumulate() catch |err| {
+            self.failure = err;
+        };
+    }
+
+    fn accumulate(self: *Scatter) !void {
+        if (self.zero_first) {
+            @memset(self.counts.address, 0);
+            @memset(self.counts.big, 0);
+            @memset(self.counts.small, 0);
+        }
+        for (self.producers) |producer| {
+            const component = self.topology.find(producer.label) orelse
+                return error.MissingProducerTopology;
+            const rows = pool_split.span(
+                producer.active_rows,
+                self.index,
+                self.worker_count,
+            );
+            if (rows.isEmpty()) continue;
+            const words_per_row: usize = producer.words_per_row;
+            for (component.feeds) |feed| {
+                if (!isMemoryFeed(feed.target)) continue;
+                const is_address = std.mem.eql(u8, feed.target, "memory_address_to_id");
+                for (rows.start..rows.end) |row| {
+                    const value = producer.words[row * words_per_row + feed.word_base];
+                    if (is_address) {
+                        if (value == 0 or value > self.counts.address.len) continue;
+                        try increment(&self.counts.address[value - 1]);
+                    } else {
+                        try addEncodedId(value, &self.counts);
+                    }
                 }
             }
         }
     }
-    return counts;
-}
+};
+
+/// Folds every private table into the live tables over a disjoint slice of the
+/// flattened `address | big | small` output.
+const Merge = struct {
+    destination: *Counts,
+    private: []const u32,
+    stride: usize,
+    source_count: usize,
+    index: usize,
+    worker_count: usize,
+    failure: ?anyerror,
+
+    pub fn run(self: *Merge) void {
+        self.fold() catch |err| {
+            self.failure = err;
+        };
+    }
+
+    fn fold(self: *Merge) !void {
+        const words = pool_split.span(self.stride, self.index, self.worker_count);
+        const address_len = self.destination.address.len;
+        const big_len = self.destination.big.len;
+        for (words.start..words.end) |word| {
+            const slot = if (word < address_len)
+                &self.destination.address[word]
+            else if (word < address_len + big_len)
+                &self.destination.big[word - address_len]
+            else
+                &self.destination.small[word - address_len - big_len];
+            var total = slot.*;
+            for (0..self.source_count) |source| {
+                total = std.math.add(
+                    u32,
+                    total,
+                    self.private[source * self.stride + word],
+                ) catch return Error.CountOverflow;
+            }
+            slot.* = total;
+        }
+    }
+};
 
 /// `create_cairo_claim_generator` yields public memory before any component
 /// writer runs. These uses are intentionally outside the generated feed files.

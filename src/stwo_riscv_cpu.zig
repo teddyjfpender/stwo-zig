@@ -5,7 +5,7 @@
 //! convenience re-export.
 
 pub const core = @import("stwo_core");
-pub const prover = @import("stwo_prover_impl");
+pub const prover = @import("stwo_prover_engine");
 
 pub const frontends = struct {
     pub const riscv = @import("stwo_riscv_frontend");

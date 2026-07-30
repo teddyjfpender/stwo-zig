@@ -36,3 +36,13 @@ pub const backend_support = struct {
         pub const interaction = @import("xor/interaction.zig");
     };
 };
+
+test "api signature: Native example modules expose proving entry points" {
+    comptime {
+        for (.{ blake, plonk, plonk_logup, poseidon, state_machine, wide_fibonacci, xor }) |example| {
+            if (!@hasDecl(example, "prove")) {
+                @compileError("Native example module is missing its prove entry point");
+            }
+        }
+    }
+}

@@ -56,7 +56,8 @@ pub fn addRiscVCpuImport(
         .optimize = optimize,
     });
     integration.addImport("stwo_core", protocol.core);
-    integration.addImport("stwo_prover_impl", protocol.prover);
+    integration.addImport("stwo_prover_api", protocol.prover_api);
+    integration.addImport("stwo_prover_engine", protocol.prover);
     integration.addImport("stwo_cpu_backend", cpu_backend);
     integration.addImport("stwo_riscv_frontend", riscv_frontend);
     consumer.addImport("stwo_riscv_cpu_integration", integration);
@@ -116,7 +117,8 @@ pub fn addCairoCpuImport(
         .optimize = optimize,
     });
     integration.addImport("stwo_core", protocol.core);
-    integration.addImport("stwo_prover_impl", protocol.prover);
+    integration.addImport("stwo_prover_api", protocol.prover_api);
+    integration.addImport("stwo_prover_engine", protocol.prover);
     integration.addImport("stwo_cpu_backend", cpu_backend);
     integration.addImport("stwo_cairo_frontend", cairo_frontend);
     consumer.addImport("stwo_cairo_cpu_integration", integration);

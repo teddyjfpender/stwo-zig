@@ -27,3 +27,7 @@ pub const MetalMerkleTree = merkle_tree.MetalMerkleTree;
 pub const MetalCommitBackend = commit_backend.MetalCommitBackend;
 pub const MetalProverEngine = prover_engine.MetalProverEngine;
 pub const PlainMetalProverEngine = prover_engine.PlainMetalProverEngine;
+
+test "api signature: Metal backend satisfies the declared capability contract" {
+    comptime @import("stwo_backend_contracts").assertBackend(MetalCommitBackend);
+}

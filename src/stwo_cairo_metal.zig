@@ -3,7 +3,7 @@
 const std = @import("std");
 
 pub const core = @import("stwo_core");
-pub const prover = @import("stwo_prover_impl");
+pub const prover = @import("stwo_prover_engine");
 
 pub const backends = struct {
     pub const metal = @import("stwo_metal_backend");

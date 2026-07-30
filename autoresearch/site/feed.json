@@ -34,12 +34,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 0.41064023384036435,
       "peak_rss_mib": null,
       "prove_ms": 2.493667,
       "request_ms": 2.686417
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 13,
       "metal_dispatches_per_proof": 15,
       "native_mhz": 0.1439870636622491,
@@ -63,12 +67,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 1.3797537142988516,
       "peak_rss_mib": null,
       "prove_ms": 11.874583,
       "request_ms": 12.82375
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 16,
       "metal_dispatches_per_proof": 20,
       "native_mhz": 1.1198013118160706,
@@ -92,12 +100,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 0.38840607855512943,
       "peak_rss_mib": null,
       "prove_ms": 2.636416,
       "request_ms": 2.819417
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 13,
       "metal_dispatches_per_proof": 17,
       "native_mhz": 0.16360440965010387,
@@ -122,12 +134,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 1.5327310678151174,
       "peak_rss_mib": null,
       "prove_ms": 10.689416,
       "request_ms": 10.957958
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 16,
       "metal_dispatches_per_proof": 22,
       "native_mhz": 1.1344394533447582,
@@ -152,12 +168,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 0.37956980359116027,
       "peak_rss_mib": null,
       "prove_ms": 2.697791,
       "request_ms": 2.910584
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 13,
       "metal_dispatches_per_proof": 17,
       "native_mhz": 0.14603882522033465,
@@ -180,12 +200,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 1.4718591384808875,
       "peak_rss_mib": null,
       "prove_ms": 11.1315,
       "request_ms": 11.451083
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 16,
       "metal_dispatches_per_proof": 22,
       "native_mhz": 1.0764517957014856,
@@ -208,12 +232,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 0.4141975932854687,
       "peak_rss_mib": null,
       "prove_ms": 2.47225,
       "request_ms": 2.676834
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 13,
       "metal_dispatches_per_proof": 17,
       "native_mhz": 0.17557293529485796,
@@ -238,12 +266,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 1.5681282526769156,
       "peak_rss_mib": null,
       "prove_ms": 10.448125,
       "request_ms": 10.704042
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 16,
       "metal_dispatches_per_proof": 22,
       "native_mhz": 1.1085218837673125,
@@ -268,12 +300,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 0.22190919926319214,
       "peak_rss_mib": null,
       "prove_ms": 2.30725,
       "request_ms": 2.581792
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 11,
       "metal_dispatches_per_proof": 13,
       "native_mhz": 0.08967771021979096,
@@ -297,12 +333,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 0.43092731686977764,
       "peak_rss_mib": null,
       "prove_ms": 23.762708,
       "request_ms": 27.437042
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 13,
       "metal_dispatches_per_proof": 15,
       "native_mhz": 0.5146256716392708,
@@ -325,6 +365,442 @@
   "run_id": "2026-07-17-064520-matrix-v3-370f8ef8"
  },
  "boards": {
+  "cairo_cpu": {
+   "entries": [],
+   "era": {
+    "banked": false,
+    "closed_utc": null,
+    "epoch": 2,
+    "note": null,
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the epoch boundary prevents pre-xlarge history from diluting the new geomean",
+    "scored_dimension": "prove_ms",
+    "source": "global_epoch",
+    "status": "open"
+   },
+   "frontier_by_class": {
+    "small": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 1191,
+       "seconds": 769087
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    },
+    "wide": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 1191,
+       "seconds": 769087
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    }
+   },
+   "phase_telemetry": null,
+   "retirement": null,
+   "scored_classes": [
+    "small",
+    "wide"
+   ],
+   "suite_score": {
+    "active_credit_events": {
+     "small": 0,
+     "wide": 0
+    },
+    "audited_class_ratios": {
+     "small": 1.0,
+     "wide": 1.0
+    },
+    "audited_ratio_geomean": 1.0,
+    "class_ratios": {
+     "small": 1.0,
+     "wide": 1.0
+    },
+    "classes": [
+     "small",
+     "wide"
+    ],
+    "epoch": 2,
+    "index": 100.0,
+    "method": "metrics_v2_scored_class_geomean_v2",
+    "ratio_geomean": 1.0,
+    "speedup": 1.0
+   },
+   "supremacy": null,
+   "task": {
+    "editable_paths": [
+     {
+      "glob": "src/backends/cpu_scalar/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/backend/proof_program.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/backends/cuda/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/integrations/native_cuda/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/backends/metal/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/fields/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/crypto/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/fri/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/pcs/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/poly/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/pcs/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/vcs_lifted/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/air/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/fri.zig",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/session.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/work_pool.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/fft_pool.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/resident_storage.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/frontends/cairo/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/integrations/cairo_cpu/**",
+      "min_rung": "s3"
+     }
+    ],
+    "markdown": "<!-- GENERATED by `stwo-perf task --write` from autoresearch/MANIFEST.json and autoresearch/ledger/epochs.json. Do not edit by hand: edit the manifest, then regenerate. -->\n\n# TASK \u2014 the `cairo_cpu` track\n\nMake the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.\n\nThis brief is generated from `autoresearch/MANIFEST.json` and `autoresearch/ledger/epochs.json`. Those documents are the contract; this file is a view of them. Regenerate with `stwo-perf task --board cairo_cpu`.\n\n## Track state\n\n- **Board**: `cairo_cpu` \u00b7 **group**: `cairo_cpu` \u00b7 **report schema**: `cairo_proof_v1`\n- **Enabled**: yes \u00b7 **promotion eligible**: no\n- **Build**: `zig build stwo-cairo-cpu -Doptimize=ReleaseFast` \u2192 `zig-out/bin/stwo-cairo-cpu`\n- **Promotion blocked because**: TRACKS \u00a77: cairo_cpu records evidence but cannot promote until per-(board, class) A/A dispersion and anchors are measured on the designated Apple M5 Max judge host and frozen into harness.anchor_* plus a cairo calibration freeze for board cairo_cpu. No Cairo calibration exists yet, so promotion fails closed; the gate opens only after that M5 calibration is committed.\n- **Era**: none declared; the board falls back to global epoch `2`.\n- **Scored boundary**: `prove_ms`\n\n## Scored basket\n\n| class | workload | unit |\n| --- | --- | --- |\n| `small` | `cairo_all_opcodes` | committed cells |\n| `wide` | `cairo_all_builtins` | committed cells |\n\nScores are compared only inside one era on one board. A number from another track, another era, or another boundary is not a comparison (TRACKS \u00a73, \u00a77).\n\n## Editable paths for THIS track\n\n| path | minimum acceptance rung |\n| --- | --- |\n| `src/backend/proof_program.zig` | `s4` |\n| `src/backends/cpu_scalar/**` | `s3` |\n| `src/backends/cuda/**` | `s3` |\n| `src/backends/metal/**` | `s3` |\n| `src/core/crypto/**` | `s3` |\n| `src/core/fields/**` | `s3` |\n| `src/core/fri/**` | `s3` |\n| `src/core/pcs/**` | `s3` |\n| `src/frontends/cairo/**` | `s3` |\n| `src/integrations/cairo_cpu/**` | `s3` |\n| `src/integrations/native_cuda/**` | `s3` |\n| `src/prover/air/**` | `s3` |\n| `src/prover/fft_pool.zig` | `s4` |\n| `src/prover/fri.zig` | `s3` |\n| `src/prover/pcs/**` | `s3` |\n| `src/prover/poly/**` | `s3` |\n| `src/prover/resident_storage.zig` | `s4` |\n| `src/prover/session.zig` | `s4` |\n| `src/prover/vcs_lifted/**` | `s3` |\n| `src/prover/work_pool.zig` | `s4` |\n\nEverything else is out of scope for this track. Frontend sources are editable **only** by their own track: a Cairo submission may edit `src/frontends/cairo/**`, and the same edit is an out-of-scope stray on a native or RISC-V submission (G2 fails).\n\nLocked paths (never editable by any track): `autoresearch/**`, `scripts/**`, `vectors/**`, `conformance/**`, `build.zig`, `build.zig.zon`, `build/**`, `src/bench/**`, `src/tests/**`, `src/interop/**`, `.github/**`\n\n## Regression guards\n\nRegistry `cairo` \u2014 2 guard(s), run on this track's own binary (`zig-out/bin/stwo-cairo-cpu`). A guard passes when its paired upper CI bound stays at or below `1.05`.\n\n- `guard_cairo_all_builtins`\n- `guard_cairo_all_opcodes`\n\nImpact map (which edits select which guards):\n\n| editable path prefix | guards |\n| --- | --- |\n| `src/frontends/cairo/` | all |\n| `src/integrations/cairo_cpu/` | all |\n| `src/integrations/cairo_metal/` | all |\n| `src/integrations/cairo_cuda/` | all |\n| `src/prover/` | all |\n| `src/core/fri/` | all |\n| `src/core/pcs/` | all |\n| `src/core/fields/` | all |\n| `src/core/crypto/` | all |\n| `src/backends/cpu_scalar/` | all |\n| `src/backends/metal/` | none |\n\nAn editable path that matches no rule selects **every** guard in the registry (fail closed).\n\n## Correctness oracle\n\n- **Authority**: `official-stwo-cairo-verifier`\n- **Repository**: https://github.com/starkware-libs/stwo-cairo @ `82f21252a68ec006d73e299f5bf1ce6d4db0ee78`\n- The oracle is the **final correctness authority**: a proof it refuses is not a proof, whatever the harness measured.\n\n## Confirmation ladder\n\n| tier | cost target | what it buys |\n| --- | --- | --- |\n| `T0` | 30 s | correctness smoke plus ONE stage-profiled sample on the proxy fixture; the claimed phase must move here before T1 is scheduled. One warmup is the floor, not a nicety: the Cairo arm records its mandatory phase profile on a discarded warmup, so warmups=0 would leave that track with no phase evidence at all. |\n| `T1` | 300 s | paired ABBA on proxy fixtures with sequential early stopping and the PoW-excluded boundary; never ranks. |\n| `T2` | 2700 s | full dual-boundary paired run on the contributor host, real classes, guards impact-mapped; the claimed verdict. |\n| `T3` | judge-scheduled | judge-scheduled re-run plus audits on the designated host; the scored row. No cost target \u2014 the judge never trades honesty for time. |\n\nT0 and T1 never rank; they gate scheduling. The claimed (T2) and ranked (T3) numbers always keep the full dual boundary \u2014 the ranked number never excludes anything (TRACKS \u00a73.5).\n\n## Participate\n\n```sh\nstwo-perf clone ../work && cd ../work\nstwo-perf setup --board cairo_cpu\nstwo-perf ladder t0 --board cairo_cpu --class small --phase <phase> --predecessor <tree>\nstwo-perf ladder t1 --board cairo_cpu --class small --predecessor <tree> --fast-boundary\nstwo-perf run --board cairo_cpu --class small --predecessor <tree>\nstwo-perf submit\n```\n\n`--board cairo_cpu` is explicit above because auto-routing only fires when the diff names a frontend or backend (TRACKS \u00a78); a diff that spans two frontends is refused rather than routed.\n\n**This track cannot promote today.** Runs still record evidence, and the ledger still serves history; no new row is scored until the manifest says otherwise.\n",
+    "objective": "Make the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.",
+    "path": "autoresearch/tasks/TASK.cairo_cpu.md",
+    "title": "TASK \u2014 the `cairo_cpu` track"
+   }
+  },
+  "cairo_metal": {
+   "entries": [],
+   "era": {
+    "banked": false,
+    "closed_utc": null,
+    "epoch": 2,
+    "note": null,
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the epoch boundary prevents pre-xlarge history from diluting the new geomean",
+    "scored_dimension": "prove_ms",
+    "source": "global_epoch",
+    "status": "open"
+   },
+   "frontier_by_class": {
+    "small": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 1191,
+       "seconds": 769087
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    },
+    "wide": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 1191,
+       "seconds": 769087
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    }
+   },
+   "phase_telemetry": null,
+   "retirement": null,
+   "scored_classes": [
+    "small",
+    "wide"
+   ],
+   "suite_score": {
+    "active_credit_events": {
+     "small": 0,
+     "wide": 0
+    },
+    "audited_class_ratios": {
+     "small": 1.0,
+     "wide": 1.0
+    },
+    "audited_ratio_geomean": 1.0,
+    "class_ratios": {
+     "small": 1.0,
+     "wide": 1.0
+    },
+    "classes": [
+     "small",
+     "wide"
+    ],
+    "epoch": 2,
+    "index": 100.0,
+    "method": "metrics_v2_scored_class_geomean_v2",
+    "ratio_geomean": 1.0,
+    "speedup": 1.0
+   },
+   "supremacy": null,
+   "task": {
+    "editable_paths": [
+     {
+      "glob": "src/backends/cpu_scalar/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/backend/proof_program.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/backends/cuda/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/integrations/native_cuda/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/backends/metal/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/fields/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/crypto/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/fri/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/pcs/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/poly/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/pcs/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/vcs_lifted/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/air/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/fri.zig",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/session.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/work_pool.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/fft_pool.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/resident_storage.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/frontends/cairo/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/integrations/cairo_metal/**",
+      "min_rung": "s3"
+     }
+    ],
+    "markdown": "<!-- GENERATED by `stwo-perf task --write` from autoresearch/MANIFEST.json and autoresearch/ledger/epochs.json. Do not edit by hand: edit the manifest, then regenerate. -->\n\n# TASK \u2014 the `cairo_metal` track\n\nMake the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.\n\nThis brief is generated from `autoresearch/MANIFEST.json` and `autoresearch/ledger/epochs.json`. Those documents are the contract; this file is a view of them. Regenerate with `stwo-perf task --board cairo_metal`.\n\n## Track state\n\n- **Board**: `cairo_metal` \u00b7 **group**: `cairo_metal` \u00b7 **report schema**: `cairo_proof_v1`\n- **Enabled**: no \u00b7 **promotion eligible**: no\n- **Build**: `zig build stwo-cairo-metal -Doptimize=ReleaseFast` \u2192 `zig-out/bin/stwo-cairo-metal`\n- **Disabled because**: cairo_metal is staged only: TRACKS \u00a72 records the Cairo + Metal product as parity_gated, not released. The product descriptor in build_support/products/cairo_metal.zig still carries state .parity_gated behind its test-cairo-metal-product and test-cairo-metal-oracle release gates, no Metal-lane Cairo calibration exists on the designated judge host, and the generalized per-board Metal calibration (TRACKS \u00a77) is not yet built. The group stays dark and fails closed.\n- **Promotion blocked because**: TRACKS \u00a77: no cairo_metal calibration exists on the designated Apple M5 Max judge host, and the product is parity_gated rather than released.\n- **Era**: none declared; the board falls back to global epoch `2`.\n- **Scored boundary**: `prove_ms`\n\n## Scored basket\n\n| class | workload | unit |\n| --- | --- | --- |\n| `small` | `mcairo_all_opcodes` | committed cells |\n| `wide` | `mcairo_all_builtins` | committed cells |\n\nScores are compared only inside one era on one board. A number from another track, another era, or another boundary is not a comparison (TRACKS \u00a73, \u00a77).\n\n## Editable paths for THIS track\n\n| path | minimum acceptance rung |\n| --- | --- |\n| `src/backend/proof_program.zig` | `s4` |\n| `src/backends/cpu_scalar/**` | `s3` |\n| `src/backends/cuda/**` | `s3` |\n| `src/backends/metal/**` | `s3` |\n| `src/core/crypto/**` | `s3` |\n| `src/core/fields/**` | `s3` |\n| `src/core/fri/**` | `s3` |\n| `src/core/pcs/**` | `s3` |\n| `src/frontends/cairo/**` | `s3` |\n| `src/integrations/cairo_metal/**` | `s3` |\n| `src/integrations/native_cuda/**` | `s3` |\n| `src/prover/air/**` | `s3` |\n| `src/prover/fft_pool.zig` | `s4` |\n| `src/prover/fri.zig` | `s3` |\n| `src/prover/pcs/**` | `s3` |\n| `src/prover/poly/**` | `s3` |\n| `src/prover/resident_storage.zig` | `s4` |\n| `src/prover/session.zig` | `s4` |\n| `src/prover/vcs_lifted/**` | `s3` |\n| `src/prover/work_pool.zig` | `s4` |\n\nEverything else is out of scope for this track. Frontend sources are editable **only** by their own track: a Cairo submission may edit `src/frontends/cairo/**`, and the same edit is an out-of-scope stray on a native or RISC-V submission (G2 fails).\n\nLocked paths (never editable by any track): `autoresearch/**`, `scripts/**`, `vectors/**`, `conformance/**`, `build.zig`, `build.zig.zon`, `build/**`, `src/bench/**`, `src/tests/**`, `src/interop/**`, `.github/**`\n\n## Regression guards\n\nRegistry `cairo` \u2014 2 guard(s), run on this track's own binary (`zig-out/bin/stwo-cairo-metal`). A guard passes when its paired upper CI bound stays at or below `1.05`.\n\n- `guard_cairo_all_builtins`\n- `guard_cairo_all_opcodes`\n\nImpact map (which edits select which guards):\n\n| editable path prefix | guards |\n| --- | --- |\n| `src/frontends/cairo/` | all |\n| `src/integrations/cairo_cpu/` | all |\n| `src/integrations/cairo_metal/` | all |\n| `src/integrations/cairo_cuda/` | all |\n| `src/prover/` | all |\n| `src/core/fri/` | all |\n| `src/core/pcs/` | all |\n| `src/core/fields/` | all |\n| `src/core/crypto/` | all |\n| `src/backends/cpu_scalar/` | all |\n| `src/backends/metal/` | all |\n\nAn editable path that matches no rule selects **every** guard in the registry (fail closed).\n\n## Correctness oracle\n\n- **Authority**: `official-stwo-cairo-verifier`\n- **Repository**: https://github.com/starkware-libs/stwo-cairo @ `82f21252a68ec006d73e299f5bf1ce6d4db0ee78`\n- The oracle is the **final correctness authority**: a proof it refuses is not a proof, whatever the harness measured.\n\n## Confirmation ladder\n\n| tier | cost target | what it buys |\n| --- | --- | --- |\n| `T0` | 30 s | correctness smoke plus ONE stage-profiled sample on the proxy fixture; the claimed phase must move here before T1 is scheduled. One warmup is the floor, not a nicety: the Cairo arm records its mandatory phase profile on a discarded warmup, so warmups=0 would leave that track with no phase evidence at all. |\n| `T1` | 300 s | paired ABBA on proxy fixtures with sequential early stopping and the PoW-excluded boundary; never ranks. |\n| `T2` | 2700 s | full dual-boundary paired run on the contributor host, real classes, guards impact-mapped; the claimed verdict. |\n| `T3` | judge-scheduled | judge-scheduled re-run plus audits on the designated host; the scored row. No cost target \u2014 the judge never trades honesty for time. |\n\nT0 and T1 never rank; they gate scheduling. The claimed (T2) and ranked (T3) numbers always keep the full dual boundary \u2014 the ranked number never excludes anything (TRACKS \u00a73.5).\n\n## Participate\n\n```sh\nstwo-perf clone ../work && cd ../work\nstwo-perf setup --board cairo_metal\nstwo-perf ladder t0 --board cairo_metal --class small --phase <phase> --predecessor <tree>\nstwo-perf ladder t1 --board cairo_metal --class small --predecessor <tree> --fast-boundary\nstwo-perf run --board cairo_metal --class small --predecessor <tree>\nstwo-perf submit\n```\n\n`--board cairo_metal` is explicit above because auto-routing only fires when the diff names a frontend or backend (TRACKS \u00a78); a diff that spans two frontends is refused rather than routed.\n\n**This track cannot promote today.** Runs still record evidence, and the ledger still serves history; no new row is scored until the manifest says otherwise.\n",
+    "objective": "Make the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.",
+    "path": "autoresearch/tasks/TASK.cairo_metal.md",
+    "title": "TASK \u2014 the `cairo_metal` track"
+   }
+  },
   "core_cpu": {
    "entries": [
     {
@@ -2323,13 +2799,25 @@
      "workload_class": "wide"
     }
    ],
+   "era": {
+    "banked": true,
+    "closed_utc": "2026-07-29T00:00:00Z",
+    "epoch": 2,
+    "note": "TRACKS \u00a76 retire-and-complete: the native CPU era is banked. New promotions refuse, the full ledger and final scores stay served, and the closing audit stamps the last audited score on the M5 judge host.",
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe",
+    "scored_dimension": "prove_ms",
+    "source": "board_era",
+    "status": "banked"
+   },
    "frontier_by_class": {
     "deep": {
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -2652,8 +3140,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -2840,8 +3328,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3058,8 +3546,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3453,8 +3941,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3599,6 +4087,12 @@
      }
     }
    },
+   "phase_telemetry": null,
+   "retirement": {
+    "closing_audit": null,
+    "reason": "TRACKS \u00a76 retire-and-complete: the native era is banked; history stays served; the native AIRs continue as PR6-supremacy cells and guard workloads",
+    "retired_at_utc": "2026-07-29T00:00:00Z"
+   },
    "scored_classes": [
     "small",
     "wide",
@@ -3641,17 +4135,114 @@
     "method": "metrics_v2_scored_class_geomean_v2",
     "ratio_geomean": 0.7142431428904034,
     "speedup": 1.400083444908122
+   },
+   "supremacy": null,
+   "task": {
+    "editable_paths": [
+     {
+      "glob": "src/backends/cpu_scalar/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/backend/proof_program.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/backends/cuda/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/integrations/native_cuda/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/backends/metal/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/fields/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/crypto/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/fri/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/pcs/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/poly/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/pcs/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/vcs_lifted/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/air/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/fri.zig",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/session.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/work_pool.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/fft_pool.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/resident_storage.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/integrations/native/**",
+      "min_rung": "s3"
+     }
+    ],
+    "markdown": "<!-- GENERATED by `stwo-perf task --write` from autoresearch/MANIFEST.json and autoresearch/ledger/epochs.json. Do not edit by hand: edit the manifest, then regenerate. -->\n\n# TASK \u2014 the `core_cpu` track\n\nMake the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.\n\nThis brief is generated from `autoresearch/MANIFEST.json` and `autoresearch/ledger/epochs.json`. Those documents are the contract; this file is a view of them. Regenerate with `stwo-perf task --board core_cpu`.\n\n## Track state\n\n- **Board**: `core_cpu` \u00b7 **group**: `native` \u00b7 **report schema**: `native_proof_v7`\n- **Enabled**: yes \u00b7 **promotion eligible**: no\n- **Build**: `zig build native-proof-bench-cpu -Doptimize=ReleaseFast` \u2192 `zig-out/bin/native-proof-bench-cpu`\n- **Promotion blocked because**: TRACKS \u00a76 retire-and-complete: the native CPU era is banked. New promotions refuse; the board stays enabled so its history, final scores, guard workloads, and PR6-supremacy cells keep running.\n- **Retired** 2026-07-29T00:00:00Z: TRACKS \u00a76 retire-and-complete: the native era is banked; history stays served; the native AIRs continue as PR6-supremacy cells and guard workloads\n- **Era**: 2 (epoch `2`), status `banked`, opened 2026-07-21T16:00:00Z\n- **Era opened because**: Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe\n- **Scored boundary**: `prove_ms`\n- **Banked**: this era closed 2026-07-29T00:00:00Z. Its scores are final and are never compared with a live track's (TRACKS \u00a76).\n- **Era note**: TRACKS \u00a76 retire-and-complete: the native CPU era is banked. New promotions refuse, the full ledger and final scores stay served, and the closing audit stamps the last audited score on the M5 judge host.\n\n## Scored basket\n\n| class | workload | unit |\n| --- | --- | --- |\n| `small` | `wf_log10x8` | trace rows |\n| `wide` | `wf_log14x32` | trace rows |\n| `deep` | `plonk_log14` | gates |\n| `xlarge` | `wf_log18x100` | trace rows |\n| `huge` | `wf_log20x100` | trace rows |\n\nScores are compared only inside one era on one board. A number from another track, another era, or another boundary is not a comparison (TRACKS \u00a73, \u00a77).\n\n## Editable paths for THIS track\n\n| path | minimum acceptance rung |\n| --- | --- |\n| `src/backend/proof_program.zig` | `s4` |\n| `src/backends/cpu_scalar/**` | `s3` |\n| `src/backends/cuda/**` | `s3` |\n| `src/backends/metal/**` | `s3` |\n| `src/core/crypto/**` | `s3` |\n| `src/core/fields/**` | `s3` |\n| `src/core/fri/**` | `s3` |\n| `src/core/pcs/**` | `s3` |\n| `src/integrations/native/**` | `s3` |\n| `src/integrations/native_cuda/**` | `s3` |\n| `src/prover/air/**` | `s3` |\n| `src/prover/fft_pool.zig` | `s4` |\n| `src/prover/fri.zig` | `s3` |\n| `src/prover/pcs/**` | `s3` |\n| `src/prover/poly/**` | `s3` |\n| `src/prover/resident_storage.zig` | `s4` |\n| `src/prover/session.zig` | `s4` |\n| `src/prover/vcs_lifted/**` | `s3` |\n| `src/prover/work_pool.zig` | `s4` |\n\nEverything else is out of scope for this track. Frontend sources are editable **only** by their own track: a Cairo submission may edit `src/frontends/cairo/**`, and the same edit is an out-of-scope stray on a native or RISC-V submission (G2 fails).\n\nLocked paths (never editable by any track): `autoresearch/**`, `scripts/**`, `vectors/**`, `conformance/**`, `build.zig`, `build.zig.zon`, `build/**`, `src/bench/**`, `src/tests/**`, `src/interop/**`, `.github/**`\n\n## Regression guards\n\nRegistry `native` \u2014 12 guard(s), run on this track's own binary (`zig-out/bin/native-proof-bench-cpu`). A guard passes when its paired upper CI bound stays at or below `1.05`.\n\n- `guard_blake_10x10`\n- `guard_plonk_14`\n- `guard_plonk_16`\n- `guard_poseidon_10`\n- `guard_poseidon_13`\n- `guard_sm_v2_14`\n- `guard_sm_v2_16`\n- `guard_wf_10x8`\n- `guard_wf_14x32`\n- `guard_wf_16x64`\n- `guard_xor_14`\n- `guard_xor_16`\n\nImpact map (which edits select which guards):\n\n| editable path prefix | guards |\n| --- | --- |\n| `src/prover/` | all |\n| `src/core/fri/` | all |\n| `src/core/pcs/` | all |\n| `src/core/fields/` | all |\n| `src/backends/cpu_scalar/` | all |\n| `src/core/crypto/` | `guard_blake_10x10`, `guard_plonk_14`, `guard_poseidon_10`, `guard_poseidon_13`, `guard_wf_10x8`, `guard_wf_14x32` |\n| `src/backends/metal/` | none |\n\nAn editable path that matches no rule selects **every** guard in the registry (fail closed).\n\n## Correctness oracle\n\nThis track declares no pinned correctness oracle in the manifest.\n\n## Confirmation ladder\n\n| tier | cost target | what it buys |\n| --- | --- | --- |\n| `T0` | 30 s | correctness smoke plus ONE stage-profiled sample on the proxy fixture; the claimed phase must move here before T1 is scheduled. One warmup is the floor, not a nicety: the Cairo arm records its mandatory phase profile on a discarded warmup, so warmups=0 would leave that track with no phase evidence at all. |\n| `T1` | 300 s | paired ABBA on proxy fixtures with sequential early stopping and the PoW-excluded boundary; never ranks. |\n| `T2` | 2700 s | full dual-boundary paired run on the contributor host, real classes, guards impact-mapped; the claimed verdict. |\n| `T3` | judge-scheduled | judge-scheduled re-run plus audits on the designated host; the scored row. No cost target \u2014 the judge never trades honesty for time. |\n\nT0 and T1 never rank; they gate scheduling. The claimed (T2) and ranked (T3) numbers always keep the full dual boundary \u2014 the ranked number never excludes anything (TRACKS \u00a73.5).\n\n## Participate\n\n```sh\nstwo-perf clone ../work && cd ../work\nstwo-perf setup --board core_cpu\nstwo-perf ladder t0 --board core_cpu --class small --phase <phase> --predecessor <tree>\nstwo-perf ladder t1 --board core_cpu --class small --predecessor <tree> --fast-boundary\nstwo-perf run --board core_cpu --class small --predecessor <tree>\nstwo-perf submit\n```\n\n`--board core_cpu` is explicit above because auto-routing only fires when the diff names a frontend or backend (TRACKS \u00a78); a diff that spans two frontends is refused rather than routed.\n\n**This track cannot promote today.** Runs still record evidence, and the ledger still serves history; no new row is scored until the manifest says otherwise.\n",
+    "objective": "Make the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.",
+    "path": "autoresearch/tasks/TASK.core_cpu.md",
+    "title": "TASK \u2014 the `core_cpu` track"
    }
   },
   "core_cuda": {
    "entries": [],
+   "era": {
+    "banked": false,
+    "closed_utc": null,
+    "epoch": 2,
+    "note": null,
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the epoch boundary prevents pre-xlarge history from diluting the new geomean",
+    "scored_dimension": "prove_ms",
+    "source": "global_epoch",
+    "status": "open"
+   },
    "frontier_by_class": {
     "deep": {
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3691,8 +4282,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3732,8 +4323,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3773,8 +4364,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3814,8 +4405,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3852,6 +4443,8 @@
      "head": null
     }
    },
+   "phase_telemetry": null,
+   "retirement": null,
    "scored_classes": [
     "small",
     "wide",
@@ -3894,13 +4487,114 @@
     "method": "metrics_v2_scored_class_geomean_v2",
     "ratio_geomean": 1.0,
     "speedup": 1.0
+   },
+   "supremacy": null,
+   "task": {
+    "editable_paths": [
+     {
+      "glob": "src/backends/cpu_scalar/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/backend/proof_program.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/backends/cuda/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/integrations/native_cuda/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/backends/metal/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/fields/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/crypto/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/fri/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/pcs/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/poly/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/pcs/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/vcs_lifted/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/air/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/fri.zig",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/session.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/work_pool.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/fft_pool.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/resident_storage.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/integrations/native/**",
+      "min_rung": "s3"
+     }
+    ],
+    "markdown": "<!-- GENERATED by `stwo-perf task --write` from autoresearch/MANIFEST.json and autoresearch/ledger/epochs.json. Do not edit by hand: edit the manifest, then regenerate. -->\n\n# TASK \u2014 the `core_cuda` track\n\nMake the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.\n\nThis brief is generated from `autoresearch/MANIFEST.json` and `autoresearch/ledger/epochs.json`. Those documents are the contract; this file is a view of them. Regenerate with `stwo-perf task --board core_cuda`.\n\n## Track state\n\n- **Board**: `core_cuda` \u00b7 **group**: `cuda` \u00b7 **report schema**: `native_cuda_product_v6`\n- **Enabled**: no \u00b7 **promotion eligible**: no\n- **Build**: `zig build stwo-native-cuda -Doptimize=ReleaseFast` \u2192 `zig-out/bin/stwo-zig-native-cuda`\n- **Disabled because**: core_cuda is staged only: all six Native AIR families are required, but only wide Fibonacci is exact and release-ready; exact family semantics, the stwo-perf CUDA report adapter, locked-host A/A calibration, pinned Rust verification, and complete structural coverage are not yet release-gated.\n- **Era**: none declared; the board falls back to global epoch `2`.\n- **Scored boundary**: `prove_ms`\n\n## Scored basket\n\n| class | workload | unit |\n| --- | --- | --- |\n| `small` | `cuda_wf_log14x32` | committed cells |\n| `deep` | `cuda_wf_log22x3` | committed cells |\n| `wide` | `cuda_wf_log18x37` | committed cells |\n| `wide` | `cuda_wf_log18x73` | committed cells |\n| `wide` | `cuda_wf_log18x128` | committed cells |\n| `xlarge` | `cuda_wf_log18x100` | committed cells |\n| `huge` | `cuda_wf_log20x100` | committed cells |\n| `small` | `cuda_poseidon_log10` | committed cells |\n| `wide` | `cuda_poseidon_log13` | committed cells |\n\nScores are compared only inside one era on one board. A number from another track, another era, or another boundary is not a comparison (TRACKS \u00a73, \u00a77).\n\n## Editable paths for THIS track\n\n| path | minimum acceptance rung |\n| --- | --- |\n| `src/backend/proof_program.zig` | `s4` |\n| `src/backends/cpu_scalar/**` | `s3` |\n| `src/backends/cuda/**` | `s3` |\n| `src/backends/metal/**` | `s3` |\n| `src/core/crypto/**` | `s3` |\n| `src/core/fields/**` | `s3` |\n| `src/core/fri/**` | `s3` |\n| `src/core/pcs/**` | `s3` |\n| `src/integrations/native/**` | `s3` |\n| `src/integrations/native_cuda/**` | `s3` |\n| `src/prover/air/**` | `s3` |\n| `src/prover/fft_pool.zig` | `s4` |\n| `src/prover/fri.zig` | `s3` |\n| `src/prover/pcs/**` | `s3` |\n| `src/prover/poly/**` | `s3` |\n| `src/prover/resident_storage.zig` | `s4` |\n| `src/prover/session.zig` | `s4` |\n| `src/prover/vcs_lifted/**` | `s3` |\n| `src/prover/work_pool.zig` | `s4` |\n\nEverything else is out of scope for this track. Frontend sources are editable **only** by their own track: a Cairo submission may edit `src/frontends/cairo/**`, and the same edit is an out-of-scope stray on a native or RISC-V submission (G2 fails).\n\nLocked paths (never editable by any track): `autoresearch/**`, `scripts/**`, `vectors/**`, `conformance/**`, `build.zig`, `build.zig.zon`, `build/**`, `src/bench/**`, `src/tests/**`, `src/interop/**`, `.github/**`\n\n## Regression guards\n\nThis track binds **no guard registry**: TRACKS \u00a78: core_cuda is staged and only wide Fibonacci is exact and release-ready, so no committed CUDA regression portfolio exists. Binding the native `--example` portfolio to the CUDA product binary would fabricate a guard set; CUDA guards arrive with the activation contract's required_families coverage.\n\n## Correctness oracle\n\n- **Authority**: `pinned-rust-stwo`\n- **Repository**: https://github.com/starkware-libs/stwo @ `a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2`\n- The oracle is the **final correctness authority**: a proof it refuses is not a proof, whatever the harness measured.\n\n## Confirmation ladder\n\n| tier | cost target | what it buys |\n| --- | --- | --- |\n| `T0` | 30 s | correctness smoke plus ONE stage-profiled sample on the proxy fixture; the claimed phase must move here before T1 is scheduled. One warmup is the floor, not a nicety: the Cairo arm records its mandatory phase profile on a discarded warmup, so warmups=0 would leave that track with no phase evidence at all. |\n| `T1` | 300 s | paired ABBA on proxy fixtures with sequential early stopping and the PoW-excluded boundary; never ranks. |\n| `T2` | 2700 s | full dual-boundary paired run on the contributor host, real classes, guards impact-mapped; the claimed verdict. |\n| `T3` | judge-scheduled | judge-scheduled re-run plus audits on the designated host; the scored row. No cost target \u2014 the judge never trades honesty for time. |\n\nT0 and T1 never rank; they gate scheduling. The claimed (T2) and ranked (T3) numbers always keep the full dual boundary \u2014 the ranked number never excludes anything (TRACKS \u00a73.5).\n\n## Participate\n\n```sh\nstwo-perf clone ../work && cd ../work\nstwo-perf setup --board core_cuda\nstwo-perf ladder t0 --board core_cuda --class small --phase <phase> --predecessor <tree>\nstwo-perf ladder t1 --board core_cuda --class small --predecessor <tree> --fast-boundary\nstwo-perf run --board core_cuda --class small --predecessor <tree>\nstwo-perf submit\n```\n\n`--board core_cuda` is explicit above because auto-routing only fires when the diff names a frontend or backend (TRACKS \u00a78); a diff that spans two frontends is refused rather than routed.\n\n**This track cannot promote today.** Runs still record evidence, and the ledger still serves history; no new row is scored until the manifest says otherwise.\n",
+    "objective": "Make the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.",
+    "path": "autoresearch/tasks/TASK.core_cuda.md",
+    "title": "TASK \u2014 the `core_cuda` track"
    }
   },
   "core_hybrid": {
    "entries": [],
+   "era": {
+    "banked": false,
+    "closed_utc": null,
+    "epoch": 2,
+    "note": null,
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the epoch boundary prevents pre-xlarge history from diluting the new geomean",
+    "scored_dimension": "prove_ms",
+    "source": "global_epoch",
+    "status": "open"
+   },
    "frontier_by_class": {},
+   "phase_telemetry": null,
+   "retirement": null,
    "scored_classes": [],
-   "suite_score": null
+   "suite_score": null,
+   "supremacy": null,
+   "task": null
   },
   "core_metal": {
    "entries": [
@@ -6285,13 +6979,25 @@
      "workload_class": "deep"
     }
    ],
+   "era": {
+    "banked": true,
+    "closed_utc": "2026-07-29T00:00:00Z",
+    "epoch": 2,
+    "note": "TRACKS \u00a76 retire-and-complete: the native Metal era is banked. New promotions refuse, the full ledger and final scores stay served, and the closing audit stamps the last audited score on the M5 judge host.",
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the Metal calibration freeze for this era is pinned in epoch 2's metal_calibration block",
+    "scored_dimension": "prove_ms",
+    "source": "board_era",
+    "status": "banked"
+   },
    "frontier_by_class": {
     "deep": {
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -6753,8 +7459,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -6873,8 +7579,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -7159,8 +7865,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -7694,8 +8400,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -7846,6 +8552,12 @@
      }
     }
    },
+   "phase_telemetry": null,
+   "retirement": {
+    "closing_audit": null,
+    "reason": "TRACKS \u00a76 retire-and-complete: the native era is banked; history stays served; the native AIRs continue as PR6-supremacy cells and guard workloads",
+    "retired_at_utc": "2026-07-29T00:00:00Z"
+   },
    "scored_classes": [
     "small",
     "wide",
@@ -7888,19 +8600,497 @@
     "method": "metrics_v2_scored_class_geomean_v2",
     "ratio_geomean": 0.3606809693944199,
     "speedup": 2.7725333046514513
+   },
+   "supremacy": null,
+   "task": {
+    "editable_paths": [
+     {
+      "glob": "src/backends/cpu_scalar/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/backend/proof_program.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/backends/cuda/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/integrations/native_cuda/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/backends/metal/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/fields/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/crypto/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/fri/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/pcs/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/poly/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/pcs/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/vcs_lifted/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/air/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/fri.zig",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/session.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/work_pool.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/fft_pool.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/resident_storage.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/integrations/native/**",
+      "min_rung": "s3"
+     }
+    ],
+    "markdown": "<!-- GENERATED by `stwo-perf task --write` from autoresearch/MANIFEST.json and autoresearch/ledger/epochs.json. Do not edit by hand: edit the manifest, then regenerate. -->\n\n# TASK \u2014 the `core_metal` track\n\nMake the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.\n\nThis brief is generated from `autoresearch/MANIFEST.json` and `autoresearch/ledger/epochs.json`. Those documents are the contract; this file is a view of them. Regenerate with `stwo-perf task --board core_metal`.\n\n## Track state\n\n- **Board**: `core_metal` \u00b7 **group**: `metal` \u00b7 **report schema**: `native_proof_v7`\n- **Enabled**: yes \u00b7 **promotion eligible**: no\n- **Build**: `zig build native-proof-bench-metal -Doptimize=ReleaseFast` \u2192 `zig-out/bin/native-proof-bench-metal`\n- **Promotion blocked because**: TRACKS \u00a76 retire-and-complete: the native Metal era is banked. New promotions refuse; the board stays enabled so its history, final scores, guard workloads, and PR6-supremacy cells keep running.\n- **Retired** 2026-07-29T00:00:00Z: TRACKS \u00a76 retire-and-complete: the native era is banked; history stays served; the native AIRs continue as PR6-supremacy cells and guard workloads\n- **Era**: 2 (epoch `2`), status `banked`, opened 2026-07-21T16:00:00Z\n- **Era opened because**: Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the Metal calibration freeze for this era is pinned in epoch 2's metal_calibration block\n- **Scored boundary**: `prove_ms`\n- **Banked**: this era closed 2026-07-29T00:00:00Z. Its scores are final and are never compared with a live track's (TRACKS \u00a76).\n- **Era note**: TRACKS \u00a76 retire-and-complete: the native Metal era is banked. New promotions refuse, the full ledger and final scores stay served, and the closing audit stamps the last audited score on the M5 judge host.\n\n## Scored basket\n\n| class | workload | unit |\n| --- | --- | --- |\n| `small` | `mwf_log10x8` | trace rows |\n| `wide` | `mwf_log14x32` | trace rows |\n| `deep` | `mplonk_log14` | gates |\n| `xlarge` | `mwf_log18x100` | trace rows |\n| `huge` | `mwf_log20x100` | trace rows |\n\nScores are compared only inside one era on one board. A number from another track, another era, or another boundary is not a comparison (TRACKS \u00a73, \u00a77).\n\n## Editable paths for THIS track\n\n| path | minimum acceptance rung |\n| --- | --- |\n| `src/backend/proof_program.zig` | `s4` |\n| `src/backends/cpu_scalar/**` | `s3` |\n| `src/backends/cuda/**` | `s3` |\n| `src/backends/metal/**` | `s3` |\n| `src/core/crypto/**` | `s3` |\n| `src/core/fields/**` | `s3` |\n| `src/core/fri/**` | `s3` |\n| `src/core/pcs/**` | `s3` |\n| `src/integrations/native/**` | `s3` |\n| `src/integrations/native_cuda/**` | `s3` |\n| `src/prover/air/**` | `s3` |\n| `src/prover/fft_pool.zig` | `s4` |\n| `src/prover/fri.zig` | `s3` |\n| `src/prover/pcs/**` | `s3` |\n| `src/prover/poly/**` | `s3` |\n| `src/prover/resident_storage.zig` | `s4` |\n| `src/prover/session.zig` | `s4` |\n| `src/prover/vcs_lifted/**` | `s3` |\n| `src/prover/work_pool.zig` | `s4` |\n\nEverything else is out of scope for this track. Frontend sources are editable **only** by their own track: a Cairo submission may edit `src/frontends/cairo/**`, and the same edit is an out-of-scope stray on a native or RISC-V submission (G2 fails).\n\nLocked paths (never editable by any track): `autoresearch/**`, `scripts/**`, `vectors/**`, `conformance/**`, `build.zig`, `build.zig.zon`, `build/**`, `src/bench/**`, `src/tests/**`, `src/interop/**`, `.github/**`\n\n## Regression guards\n\nRegistry `native` \u2014 12 guard(s), run on this track's own binary (`zig-out/bin/native-proof-bench-metal`). A guard passes when its paired upper CI bound stays at or below `1.05`.\n\n- `guard_blake_10x10`\n- `guard_plonk_14`\n- `guard_plonk_16`\n- `guard_poseidon_10`\n- `guard_poseidon_13`\n- `guard_sm_v2_14`\n- `guard_sm_v2_16`\n- `guard_wf_10x8`\n- `guard_wf_14x32`\n- `guard_wf_16x64`\n- `guard_xor_14`\n- `guard_xor_16`\n\nImpact map (which edits select which guards):\n\n| editable path prefix | guards |\n| --- | --- |\n| `src/backends/metal/` | all |\n| `src/prover/` | all |\n| `src/core/fri/` | all |\n| `src/core/pcs/` | all |\n| `src/core/fields/` | all |\n| `src/backends/cpu_scalar/` | all |\n| `src/core/crypto/` | `guard_blake_10x10`, `guard_plonk_14`, `guard_poseidon_10`, `guard_poseidon_13`, `guard_wf_10x8`, `guard_wf_14x32` |\n\nAn editable path that matches no rule selects **every** guard in the registry (fail closed).\n\n## Correctness oracle\n\nThis track declares no pinned correctness oracle in the manifest.\n\n## Confirmation ladder\n\n| tier | cost target | what it buys |\n| --- | --- | --- |\n| `T0` | 30 s | correctness smoke plus ONE stage-profiled sample on the proxy fixture; the claimed phase must move here before T1 is scheduled. One warmup is the floor, not a nicety: the Cairo arm records its mandatory phase profile on a discarded warmup, so warmups=0 would leave that track with no phase evidence at all. |\n| `T1` | 300 s | paired ABBA on proxy fixtures with sequential early stopping and the PoW-excluded boundary; never ranks. |\n| `T2` | 2700 s | full dual-boundary paired run on the contributor host, real classes, guards impact-mapped; the claimed verdict. |\n| `T3` | judge-scheduled | judge-scheduled re-run plus audits on the designated host; the scored row. No cost target \u2014 the judge never trades honesty for time. |\n\nT0 and T1 never rank; they gate scheduling. The claimed (T2) and ranked (T3) numbers always keep the full dual boundary \u2014 the ranked number never excludes anything (TRACKS \u00a73.5).\n\n## Participate\n\n```sh\nstwo-perf clone ../work && cd ../work\nstwo-perf setup --board core_metal\nstwo-perf ladder t0 --board core_metal --class small --phase <phase> --predecessor <tree>\nstwo-perf ladder t1 --board core_metal --class small --predecessor <tree> --fast-boundary\nstwo-perf run --board core_metal --class small --predecessor <tree>\nstwo-perf submit\n```\n\n`--board core_metal` is explicit above because auto-routing only fires when the diff names a frontend or backend (TRACKS \u00a78); a diff that spans two frontends is refused rather than routed.\n\n**This track cannot promote today.** Runs still record evidence, and the ledger still serves history; no new row is scored until the manifest says otherwise.\n",
+    "objective": "Make the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.",
+    "path": "autoresearch/tasks/TASK.core_metal.md",
+    "title": "TASK \u2014 the `core_metal` track"
    }
   },
   "heavy_cairo": {
    "entries": [],
+   "era": {
+    "banked": false,
+    "closed_utc": null,
+    "epoch": 2,
+    "note": null,
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the epoch boundary prevents pre-xlarge history from diluting the new geomean",
+    "scored_dimension": "prove_ms",
+    "source": "global_epoch",
+    "status": "open"
+   },
    "frontier_by_class": {},
+   "phase_telemetry": null,
+   "retirement": null,
    "scored_classes": [],
-   "suite_score": null
+   "suite_score": null,
+   "supremacy": null,
+   "task": null
   },
   "heavy_native": {
    "entries": [],
+   "era": {
+    "banked": false,
+    "closed_utc": null,
+    "epoch": 2,
+    "note": null,
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the epoch boundary prevents pre-xlarge history from diluting the new geomean",
+    "scored_dimension": "prove_ms",
+    "source": "global_epoch",
+    "status": "open"
+   },
    "frontier_by_class": {},
+   "phase_telemetry": null,
+   "retirement": null,
    "scored_classes": [],
-   "suite_score": null
+   "suite_score": null,
+   "supremacy": null,
+   "task": null
+  },
+  "pr6_supremacy": {
+   "entries": [],
+   "era": {
+    "banked": false,
+    "closed_utc": null,
+    "epoch": 2,
+    "note": null,
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the epoch boundary prevents pre-xlarge history from diluting the new geomean",
+    "scored_dimension": "prove_ms",
+    "source": "global_epoch",
+    "status": "open"
+   },
+   "frontier_by_class": {
+    "deep": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 1191,
+       "seconds": 769087
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    },
+    "huge": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 1191,
+       "seconds": 769087
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    },
+    "small": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 1191,
+       "seconds": 769087
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    },
+    "wide": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 1191,
+       "seconds": 769087
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    },
+    "xlarge": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 1191,
+       "seconds": 769087
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    }
+   },
+   "phase_telemetry": null,
+   "retirement": null,
+   "scored_classes": [
+    "small",
+    "wide",
+    "deep",
+    "xlarge",
+    "huge"
+   ],
+   "suite_score": {
+    "active_credit_events": {
+     "deep": 0,
+     "huge": 0,
+     "small": 0,
+     "wide": 0,
+     "xlarge": 0
+    },
+    "audited_class_ratios": {
+     "deep": 1.0,
+     "huge": 1.0,
+     "small": 1.0,
+     "wide": 1.0,
+     "xlarge": 1.0
+    },
+    "audited_ratio_geomean": 1.0,
+    "class_ratios": {
+     "deep": 1.0,
+     "huge": 1.0,
+     "small": 1.0,
+     "wide": 1.0,
+     "xlarge": 1.0
+    },
+    "classes": [
+     "small",
+     "wide",
+     "deep",
+     "xlarge",
+     "huge"
+    ],
+    "epoch": 2,
+    "index": 100.0,
+    "method": "metrics_v2_scored_class_geomean_v2",
+    "ratio_geomean": 1.0,
+    "speedup": 1.0
+   },
+   "supremacy": {
+    "activated_utc": null,
+    "activation_state_path": null,
+    "board": "pr6_supremacy",
+    "peer_commit": "07ea1ccca13351028da94e66babf79e7ce91437f",
+    "peer_repository": "https://github.com/ClementWalter/stwo",
+    "reason": "PR6 Supremacy remains disabled until every exact workload port, log22 oracle vector, both timing boundaries, locked-M5 statistical gate, and authenticated judged verdict are complete.",
+    "state": "not_achieved",
+    "toolchain": "nightly-2025-07-14"
+   },
+   "task": {
+    "editable_paths": [
+     {
+      "glob": "src/backends/cpu_scalar/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/backend/proof_program.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/backends/cuda/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/integrations/native_cuda/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/backends/metal/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/fields/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/crypto/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/fri/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/pcs/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/poly/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/pcs/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/vcs_lifted/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/air/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/fri.zig",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/session.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/work_pool.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/fft_pool.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/resident_storage.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/integrations/native/**",
+      "min_rung": "s3"
+     }
+    ],
+    "markdown": "<!-- GENERATED by `stwo-perf task --write` from autoresearch/MANIFEST.json and autoresearch/ledger/epochs.json. Do not edit by hand: edit the manifest, then regenerate. -->\n\n# TASK \u2014 the `pr6_supremacy` track\n\nMake the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.\n\nThis brief is generated from `autoresearch/MANIFEST.json` and `autoresearch/ledger/epochs.json`. Those documents are the contract; this file is a view of them. Regenerate with `stwo-perf task --board pr6_supremacy`.\n\n## Track state\n\n- **Board**: `pr6_supremacy` \u00b7 **group**: `pr6_supremacy` \u00b7 **report schema**: `pr6_supremacy_v1`\n- **Enabled**: no \u00b7 **promotion eligible**: no\n- **Build**: `zig build benchmark-native-cpu native-proof-bench-metal -Doptimize=ReleaseFast` \u2192 `autoresearch/reference/measure_peer_series.py`\n- **Disabled because**: PR6 Supremacy remains disabled until every exact workload port, log22 oracle vector, both timing boundaries, locked-M5 statistical gate, and authenticated judged verdict are complete.\n- **Era**: none declared; the board falls back to global epoch `2`.\n- **Scored boundary**: `prove_ms`\n\n## Scored basket\n\n| class | workload | unit |\n| --- | --- | --- |\n| `wide` | `pr6_wide_fibonacci_log14` | committed cells |\n| `wide` | `pr6_wide_fibonacci_log16` | committed cells |\n| `xlarge` | `pr6_wide_fibonacci_log18` | committed cells |\n| `huge` | `pr6_wide_fibonacci_log20` | committed cells |\n| `deep` | `pr6_blake_log10` | Blake scheduler rows |\n| `deep` | `pr6_blake_log12` | Blake scheduler rows |\n| `deep` | `pr6_blake_log14` | Blake scheduler rows |\n| `deep` | `pr6_blake_log16` | Blake scheduler rows |\n| `deep` | `pr6_plonk_log12` | Plonk gates |\n| `deep` | `pr6_plonk_log14` | Plonk gates |\n| `deep` | `pr6_plonk_log16` | Plonk gates |\n| `small` | `pr6_fixed_wide_fibonacci_log4` | committed cells |\n| `small` | `pr6_fixed_wide_fibonacci_log5` | committed cells |\n| `small` | `pr6_fixed_wide_fibonacci_log6` | committed cells |\n| `small` | `pr6_fixed_wide_fibonacci_log7` | committed cells |\n| `small` | `pr6_fixed_wide_fibonacci_log8` | committed cells |\n| `small` | `pr6_state_machine_log8` | state-machine rows |\n\nScores are compared only inside one era on one board. A number from another track, another era, or another boundary is not a comparison (TRACKS \u00a73, \u00a77).\n\n## Editable paths for THIS track\n\n| path | minimum acceptance rung |\n| --- | --- |\n| `src/backend/proof_program.zig` | `s4` |\n| `src/backends/cpu_scalar/**` | `s3` |\n| `src/backends/cuda/**` | `s3` |\n| `src/backends/metal/**` | `s3` |\n| `src/core/crypto/**` | `s3` |\n| `src/core/fields/**` | `s3` |\n| `src/core/fri/**` | `s3` |\n| `src/core/pcs/**` | `s3` |\n| `src/integrations/native/**` | `s3` |\n| `src/integrations/native_cuda/**` | `s3` |\n| `src/prover/air/**` | `s3` |\n| `src/prover/fft_pool.zig` | `s4` |\n| `src/prover/fri.zig` | `s3` |\n| `src/prover/pcs/**` | `s3` |\n| `src/prover/poly/**` | `s3` |\n| `src/prover/resident_storage.zig` | `s4` |\n| `src/prover/session.zig` | `s4` |\n| `src/prover/vcs_lifted/**` | `s3` |\n| `src/prover/work_pool.zig` | `s4` |\n\nEverything else is out of scope for this track. Frontend sources are editable **only** by their own track: a Cairo submission may edit `src/frontends/cairo/**`, and the same edit is an out-of-scope stray on a native or RISC-V submission (G2 fails).\n\nLocked paths (never editable by any track): `autoresearch/**`, `scripts/**`, `vectors/**`, `conformance/**`, `build.zig`, `build.zig.zon`, `build/**`, `src/bench/**`, `src/tests/**`, `src/interop/**`, `.github/**`\n\n## Regression guards\n\nThis track binds **no guard registry**: TRACKS \u00a73.4/\u00a78: the supremacy board's driver is a peer-measurement script, not a bench binary that accepts guard args, and its 18 mandatory cells ARE the regression surface \u2014 every cell must win in both boundaries, so a separate guard portfolio would only re-measure the same statements.\n\n## Correctness oracle\n\n- **Authority**: `pinned-rust-stwo`\n- **Repository**: https://github.com/starkware-libs/stwo @ `a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2`\n- **Performance peer**: https://github.com/ClementWalter/stwo @ `07ea1ccca13351028da94e66babf79e7ce91437f`\n- **Peer toolchain**: `nightly-2025-07-14`\n- The oracle is the **final correctness authority**: a proof it refuses is not a proof, whatever the harness measured.\n\n## Confirmation ladder\n\n| tier | cost target | what it buys |\n| --- | --- | --- |\n| `T0` | 30 s | correctness smoke plus ONE stage-profiled sample on the proxy fixture; the claimed phase must move here before T1 is scheduled. One warmup is the floor, not a nicety: the Cairo arm records its mandatory phase profile on a discarded warmup, so warmups=0 would leave that track with no phase evidence at all. |\n| `T1` | 300 s | paired ABBA on proxy fixtures with sequential early stopping and the PoW-excluded boundary; never ranks. |\n| `T2` | 2700 s | full dual-boundary paired run on the contributor host, real classes, guards impact-mapped; the claimed verdict. |\n| `T3` | judge-scheduled | judge-scheduled re-run plus audits on the designated host; the scored row. No cost target \u2014 the judge never trades honesty for time. |\n\nT0 and T1 never rank; they gate scheduling. The claimed (T2) and ranked (T3) numbers always keep the full dual boundary \u2014 the ranked number never excludes anything (TRACKS \u00a73.5).\n\n## Participate\n\n```sh\nstwo-perf clone ../work && cd ../work\nstwo-perf setup --board pr6_supremacy\nstwo-perf ladder t0 --board pr6_supremacy --class small --phase <phase> --predecessor <tree>\nstwo-perf ladder t1 --board pr6_supremacy --class small --predecessor <tree> --fast-boundary\nstwo-perf run --board pr6_supremacy --class small --predecessor <tree>\nstwo-perf submit\n```\n\n`--board pr6_supremacy` is explicit above because auto-routing only fires when the diff names a frontend or backend (TRACKS \u00a78); a diff that spans two frontends is refused rather than routed.\n\n**This track cannot promote today.** Runs still record evidence, and the ledger still serves history; no new row is scored until the manifest says otherwise.\n",
+    "objective": "Make the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.",
+    "path": "autoresearch/tasks/TASK.pr6_supremacy.md",
+    "title": "TASK \u2014 the `pr6_supremacy` track"
+   }
   },
   "riscv": {
    "entries": [
@@ -8325,13 +9515,25 @@
      "workload_class": "wide"
     }
    ],
+   "era": {
+    "banked": false,
+    "closed_utc": null,
+    "epoch": 2,
+    "note": "TRACKS \u00a73.1 re-scores this board to the verified-request boundary at its NEXT era. Era 3 stays unopened until the M5 judge host recalibrates at that boundary; schema/scoring.md carries the exact era-3 record template and the operator commands.",
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring; the RISC-V board's frozen same-host M5 A/A dispersion enters with it",
+    "scored_dimension": "prove_ms",
+    "source": "board_era",
+    "status": "open"
+   },
    "frontier_by_class": {
     "deep": {
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8521,8 +9723,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8637,8 +9839,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8751,6 +9953,8 @@
      }
     }
    },
+   "phase_telemetry": null,
+   "retirement": null,
    "scored_classes": [
     "small",
     "wide",
@@ -8783,13 +9987,122 @@
     "method": "metrics_v2_scored_class_geomean_v2",
     "ratio_geomean": 0.7106999888195409,
     "speedup": 1.4070634806973628
+   },
+   "supremacy": null,
+   "task": {
+    "editable_paths": [
+     {
+      "glob": "src/backends/cpu_scalar/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/backend/proof_program.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/backends/cuda/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/integrations/native_cuda/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/backends/metal/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/fields/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/crypto/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/fri/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/pcs/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/poly/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/pcs/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/vcs_lifted/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/air/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/fri.zig",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/session.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/work_pool.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/fft_pool.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/resident_storage.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/frontends/riscv/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/integrations/riscv_cpu/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/integrations/riscv_metal/**",
+      "min_rung": "s3"
+     }
+    ],
+    "markdown": "<!-- GENERATED by `stwo-perf task --write` from autoresearch/MANIFEST.json and autoresearch/ledger/epochs.json. Do not edit by hand: edit the manifest, then regenerate. -->\n\n# TASK \u2014 the `riscv` track\n\nMake the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.\n\nThis brief is generated from `autoresearch/MANIFEST.json` and `autoresearch/ledger/epochs.json`. Those documents are the contract; this file is a view of them. Regenerate with `stwo-perf task --board riscv`.\n\n## Track state\n\n- **Board**: `riscv` \u00b7 **group**: `riscv` \u00b7 **report schema**: `riscv_proof_v2`\n- **Enabled**: yes \u00b7 **promotion eligible**: yes\n- **Build**: `zig build stwo-zig -Doptimize=ReleaseFast` \u2192 `zig-out/bin/stwo-zig`\n- **Era**: 2 (epoch `2`), status `open`, opened 2026-07-21T16:00:00Z\n- **Era opened because**: Metrics v2 opens audit-anchored scoring; the RISC-V board's frozen same-host M5 A/A dispersion enters with it\n- **Scored boundary**: `prove_ms`\n- **Era note**: TRACKS \u00a73.1 re-scores this board to the verified-request boundary at its NEXT era. Era 3 stays unopened until the M5 judge host recalibrates at that boundary; schema/scoring.md carries the exact era-3 record template and the operator commands.\n\n## Scored basket\n\n| class | workload | unit |\n| --- | --- | --- |\n| `small` | `riscv_alu_test` | executed instructions |\n| `small` | `riscv_branch_fib` | executed instructions |\n| `small` | `riscv_declared_region` | executed instructions |\n| `small` | `riscv_jal_jalr` | executed instructions |\n| `small` | `riscv_mem_ls` | executed instructions |\n| `small` | `riscv_shift_logic` | executed instructions |\n| `wide` | `riscv_memcpy_loop` | executed instructions |\n| `wide` | `riscv_sieve_primes` | executed instructions |\n| `wide` | `riscv_bubble_sort` | executed instructions |\n| `wide` | `riscv_collatz` | executed instructions |\n| `wide` | `riscv_keccak_128b` | executed instructions |\n| `wide` | `riscv_sha2_128b` | executed instructions |\n| `wide` | `riscv_sha2_256b` | executed instructions |\n| `deep` | `riscv_xorshift_prng` | executed instructions |\n| `deep` | `riscv_fib_iter` | executed instructions |\n| `deep` | `riscv_gcd_euclid` | executed instructions |\n| `deep` | `riscv_multi_shard_addi` | executed instructions |\n| `deep` | `riscv_sha2_512b` | executed instructions |\n| `deep` | `riscv_sha2_1024b` | executed instructions |\n| `deep` | `riscv_sha2_2048b` | executed instructions |\n\nScores are compared only inside one era on one board. A number from another track, another era, or another boundary is not a comparison (TRACKS \u00a73, \u00a77).\n\n## Editable paths for THIS track\n\n| path | minimum acceptance rung |\n| --- | --- |\n| `src/backend/proof_program.zig` | `s4` |\n| `src/backends/cpu_scalar/**` | `s3` |\n| `src/backends/cuda/**` | `s3` |\n| `src/backends/metal/**` | `s3` |\n| `src/core/crypto/**` | `s3` |\n| `src/core/fields/**` | `s3` |\n| `src/core/fri/**` | `s3` |\n| `src/core/pcs/**` | `s3` |\n| `src/frontends/riscv/**` | `s3` |\n| `src/integrations/native_cuda/**` | `s3` |\n| `src/integrations/riscv_cpu/**` | `s3` |\n| `src/integrations/riscv_metal/**` | `s3` |\n| `src/prover/air/**` | `s3` |\n| `src/prover/fft_pool.zig` | `s4` |\n| `src/prover/fri.zig` | `s3` |\n| `src/prover/pcs/**` | `s3` |\n| `src/prover/poly/**` | `s3` |\n| `src/prover/resident_storage.zig` | `s4` |\n| `src/prover/session.zig` | `s4` |\n| `src/prover/vcs_lifted/**` | `s3` |\n| `src/prover/work_pool.zig` | `s4` |\n\nEverything else is out of scope for this track. Frontend sources are editable **only** by their own track: a Cairo submission may edit `src/frontends/cairo/**`, and the same edit is an out-of-scope stray on a native or RISC-V submission (G2 fails).\n\nLocked paths (never editable by any track): `autoresearch/**`, `scripts/**`, `vectors/**`, `conformance/**`, `build.zig`, `build.zig.zon`, `build/**`, `src/bench/**`, `src/tests/**`, `src/interop/**`, `.github/**`\n\n## Regression guards\n\nRegistry `riscv` \u2014 6 guard(s), run on this track's own binary (`zig-out/bin/stwo-zig`). A guard passes when its paired upper CI bound stays at or below `1.05`.\n\n- `guard_riscv_alu_test`\n- `guard_riscv_branch_fib`\n- `guard_riscv_declared_region`\n- `guard_riscv_jal_jalr`\n- `guard_riscv_mem_ls`\n- `guard_riscv_shift_logic`\n\nImpact map (which edits select which guards):\n\n| editable path prefix | guards |\n| --- | --- |\n| `src/frontends/riscv/` | all |\n| `src/integrations/riscv_cpu/` | all |\n| `src/integrations/riscv_metal/` | all |\n| `src/prover/` | all |\n| `src/core/fri/` | all |\n| `src/core/pcs/` | all |\n| `src/core/fields/` | all |\n| `src/core/crypto/` | all |\n| `src/backends/cpu_scalar/` | all |\n| `src/backends/metal/` | none |\n\nAn editable path that matches no rule selects **every** guard in the registry (fail closed).\n\n## Correctness oracle\n\n- **Authority**: `sail-riscv`\n- **Repository**: https://github.com/riscv/sail-riscv @ `8c7f2da58de0ba5e4457e4de07e0046f0439f35f`\n- The oracle is the **final correctness authority**: a proof it refuses is not a proof, whatever the harness measured.\n\n## Confirmation ladder\n\n| tier | cost target | what it buys |\n| --- | --- | --- |\n| `T0` | 30 s | correctness smoke plus ONE stage-profiled sample on the proxy fixture; the claimed phase must move here before T1 is scheduled. One warmup is the floor, not a nicety: the Cairo arm records its mandatory phase profile on a discarded warmup, so warmups=0 would leave that track with no phase evidence at all. |\n| `T1` | 300 s | paired ABBA on proxy fixtures with sequential early stopping and the PoW-excluded boundary; never ranks. |\n| `T2` | 2700 s | full dual-boundary paired run on the contributor host, real classes, guards impact-mapped; the claimed verdict. |\n| `T3` | judge-scheduled | judge-scheduled re-run plus audits on the designated host; the scored row. No cost target \u2014 the judge never trades honesty for time. |\n\nT0 and T1 never rank; they gate scheduling. The claimed (T2) and ranked (T3) numbers always keep the full dual boundary \u2014 the ranked number never excludes anything (TRACKS \u00a73.5).\n\n## Participate\n\n```sh\nstwo-perf clone ../work && cd ../work\nstwo-perf setup --board riscv\nstwo-perf ladder t0 --board riscv --class small --phase <phase> --predecessor <tree>\nstwo-perf ladder t1 --board riscv --class small --predecessor <tree> --fast-boundary\nstwo-perf run --board riscv --class small --predecessor <tree>\nstwo-perf submit\n```\n\n`--board riscv` is explicit above because auto-routing only fires when the diff names a frontend or backend (TRACKS \u00a78); a diff that spans two frontends is refused rather than routed.\n",
+    "objective": "Make the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.",
+    "path": "autoresearch/tasks/TASK.riscv.md",
+    "title": "TASK \u2014 the `riscv` track"
    }
   },
   "stream": {
    "entries": [],
+   "era": {
+    "banked": false,
+    "closed_utc": null,
+    "epoch": 2,
+    "note": null,
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the epoch boundary prevents pre-xlarge history from diluting the new geomean",
+    "scored_dimension": "prove_ms",
+    "source": "global_epoch",
+    "status": "open"
+   },
    "frontier_by_class": {},
+   "phase_telemetry": null,
+   "retirement": null,
    "scored_classes": [],
-   "suite_score": null
+   "suite_score": null,
+   "supremacy": null,
+   "task": null
   }
  },
  "epoch": {
@@ -8815,11 +10128,13 @@
     "wide": 0.014801
    }
   },
-  "number": 2
+  "number": 2,
+  "opened_utc": "2026-07-21T16:00:00Z",
+  "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the epoch boundary prevents pre-xlarge history from diluting the new geomean"
  },
- "feed_schema_version": 3,
+ "feed_schema_version": 4,
  "history": {
-  "comparisons": 34,
+  "comparisons": 35,
   "runs": [
    {
     "bundle": false,
@@ -8976,30 +10291,38 @@
     "kind": "native_proof_cross_backend_matrix_v6",
     "report_sha256": "e772acbf9f58ff3916f2ffe91016ebc28bc6aadc75c6e68d5fd43ef3023d7be3",
     "run_id": "2026-07-23-110359-matrix-v6-e58b4d1e"
+   },
+   {
+    "bundle": true,
+    "kind": "native_proof_cross_backend_matrix_v6",
+    "report_sha256": "51cedc323c0a9fa12c17ad96ac34375013f276b2565778c6e61d8ef401837730",
+    "run_id": "2026-07-23-190948-matrix-v6-467edbc9"
    }
   ]
  },
  "latest_matrix": {
-  "generated_at": "2026-07-23T11:03:59.096697+00:00",
+  "generated_at": "2026-07-23T19:09:48.802811+00:00",
   "protocol": "native_proof_cross_backend_matrix_v6",
-  "repo_commit": "e58b4d1eccaefb1f593d81490136b9decc886df8",
+  "repo_commit": "467edbc9988ad2ef2fc76e4dda3ca90fa0f344d5",
   "rows": [
    {
     "committed_trace_cells": 8192,
-    "headline_eligible": true,
+    "headline_eligible": false,
     "lanes": {
      "cpu": {
-      "native_mhz": 0.9651272384542884,
-      "peak_rss_mib": 13.88,
-      "prove_ms": 1.061,
-      "request_ms": 1.220292,
+      "backend": "cpu_native",
+      "board": "core_cpu",
+      "native_mhz": 0.9192785458880689,
+      "peak_rss_mib": 13.86,
+      "prove_ms": 1.113917,
+      "request_ms": 1.295833,
       "request_resources": {
        "canonical_proof_bytes": 24965,
        "complete": true,
-       "cycles": 580821952,
-       "energy_nj": 484792988,
-       "instructions": 1243288540,
-       "lifetime_peak_physical_footprint_bytes": 13779784,
+       "cycles": 573399926,
+       "energy_nj": 304642334,
+       "instructions": 1255042464,
+       "lifetime_peak_physical_footprint_bytes": 13747040,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -9008,19 +10331,21 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 18,
-      "native_mhz": 0.4123973738664106,
-      "peak_rss_mib": 33.45,
-      "prove_ms": 2.483042,
-      "request_ms": 2.632125,
+      "native_mhz": 0.416528366232566,
+      "peak_rss_mib": 33.5,
+      "prove_ms": 2.458416,
+      "request_ms": 2.609291,
       "request_resources": {
        "canonical_proof_bytes": 24965,
        "complete": true,
-       "cycles": 661203698,
-       "energy_nj": 420887214,
-       "instructions": 1047937538,
-       "lifetime_peak_physical_footprint_bytes": 157533264,
+       "cycles": 608656493,
+       "energy_nj": 317567968,
+       "instructions": 1060007109,
+       "lifetime_peak_physical_footprint_bytes": 157484112,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -9044,17 +10369,19 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
-      "native_mhz": 3.2930459127057423,
-      "peak_rss_mib": 34.36,
-      "prove_ms": 4.975333,
-      "request_ms": 5.4305,
+      "backend": "cpu_native",
+      "board": "core_cpu",
+      "native_mhz": 3.5374193722505596,
+      "peak_rss_mib": 34.33,
+      "prove_ms": 4.631625,
+      "request_ms": 5.083167,
       "request_resources": {
        "canonical_proof_bytes": 41840,
        "complete": true,
-       "cycles": 5452538305,
-       "energy_nj": 4949458506,
-       "instructions": 13452296177,
-       "lifetime_peak_physical_footprint_bytes": 35603848,
+       "cycles": 5085251107,
+       "energy_nj": 4861116121,
+       "instructions": 13771333275,
+       "lifetime_peak_physical_footprint_bytes": 35669432,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -9063,19 +10390,21 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 22,
-      "native_mhz": 3.546896141148455,
-      "peak_rss_mib": 41.34,
-      "prove_ms": 4.61925,
-      "request_ms": 5.061458,
+      "native_mhz": 3.9438729872623295,
+      "peak_rss_mib": 40.81,
+      "prove_ms": 4.154292,
+      "request_ms": 4.592292,
       "request_resources": {
        "canonical_proof_bytes": 41840,
        "complete": true,
-       "cycles": 1088800611,
-       "energy_nj": 910016553,
-       "instructions": 2137132394,
-       "lifetime_peak_physical_footprint_bytes": 172852376,
+       "cycles": 1059967863,
+       "energy_nj": 889235850,
+       "instructions": 2117813800,
+       "lifetime_peak_physical_footprint_bytes": 174048576,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -9099,17 +10428,19 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
-      "native_mhz": 3.904486871210558,
-      "peak_rss_mib": 113.45,
-      "prove_ms": 16.784792,
-      "request_ms": 17.750208,
+      "backend": "cpu_native",
+      "board": "core_cpu",
+      "native_mhz": 4.126172637411068,
+      "peak_rss_mib": 113.38,
+      "prove_ms": 15.883,
+      "request_ms": 16.893417,
       "request_resources": {
        "canonical_proof_bytes": 60249,
        "complete": true,
-       "cycles": 30557009049,
-       "energy_nj": 25014834681,
-       "instructions": 75442011545,
-       "lifetime_peak_physical_footprint_bytes": 119278064,
+       "cycles": 29021735242,
+       "energy_nj": 24876666257,
+       "instructions": 76908664942,
+       "lifetime_peak_physical_footprint_bytes": 119327312,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -9118,19 +10449,21 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 25,
-      "native_mhz": 4.764262217618087,
-      "peak_rss_mib": 134.67,
-      "prove_ms": 13.75575,
-      "request_ms": 14.696459,
+      "native_mhz": 7.806784001905953,
+      "peak_rss_mib": 64.38,
+      "prove_ms": 8.39475,
+      "request_ms": 9.315333,
       "request_resources": {
        "canonical_proof_bytes": 60249,
        "complete": true,
-       "cycles": 2724861534,
-       "energy_nj": 2606003465,
-       "instructions": 6075671026,
-       "lifetime_peak_physical_footprint_bytes": 292669048,
+       "cycles": 1783505895,
+       "energy_nj": 1587338744,
+       "instructions": 3931242000,
+       "lifetime_peak_physical_footprint_bytes": 229574192,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -9154,17 +10487,19 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
-      "native_mhz": 3.8839987265111593,
-      "peak_rss_mib": 42.2,
-      "prove_ms": 4.218333,
-      "request_ms": 4.496708,
+      "backend": "cpu_native",
+      "board": "core_cpu",
+      "native_mhz": 4.237241014030947,
+      "peak_rss_mib": 41.45,
+      "prove_ms": 3.866667,
+      "request_ms": 4.146042,
       "request_resources": {
        "canonical_proof_bytes": 46446,
        "complete": true,
-       "cycles": 3858173883,
-       "energy_nj": 3439672583,
-       "instructions": 9067286269,
-       "lifetime_peak_physical_footprint_bytes": 43828568,
+       "cycles": 3419528712,
+       "energy_nj": 3208016723,
+       "instructions": 9274251773,
+       "lifetime_peak_physical_footprint_bytes": 43042136,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -9173,19 +10508,21 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 24,
-      "native_mhz": 4.306337681111805,
-      "peak_rss_mib": 30.22,
-      "prove_ms": 3.804625,
-      "request_ms": 4.079625,
+      "native_mhz": 4.996899811609801,
+      "peak_rss_mib": 31.91,
+      "prove_ms": 3.278833,
+      "request_ms": 3.552041,
       "request_resources": {
        "canonical_proof_bytes": 46446,
        "complete": true,
-       "cycles": 848456577,
-       "energy_nj": 706171618,
-       "instructions": 1707541920,
-       "lifetime_peak_physical_footprint_bytes": 164316192,
+       "cycles": 809371494,
+       "energy_nj": 625996074,
+       "instructions": 1678828395,
+       "lifetime_peak_physical_footprint_bytes": 166069280,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -9210,17 +10547,19 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
-      "native_mhz": 5.718257502028212,
-      "peak_rss_mib": 73.16,
-      "prove_ms": 11.460834,
-      "request_ms": 11.981833,
+      "backend": "cpu_native",
+      "board": "core_cpu",
+      "native_mhz": 6.130637509218968,
+      "peak_rss_mib": 73.39,
+      "prove_ms": 10.689916,
+      "request_ms": 11.209333,
       "request_resources": {
        "canonical_proof_bytes": 54848,
        "complete": true,
-       "cycles": 13672991918,
-       "energy_nj": 11700928050,
-       "instructions": 33708509097,
-       "lifetime_peak_physical_footprint_bytes": 76268888,
+       "cycles": 12048702680,
+       "energy_nj": 11500376815,
+       "instructions": 34510115377,
+       "lifetime_peak_physical_footprint_bytes": 76432608,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -9229,19 +10568,21 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 26,
-      "native_mhz": 10.283315251962877,
-      "peak_rss_mib": 43.62,
-      "prove_ms": 6.373042,
-      "request_ms": 6.892208,
+      "native_mhz": 11.293955452156306,
+      "peak_rss_mib": 43.33,
+      "prove_ms": 5.80275,
+      "request_ms": 6.3145,
       "request_resources": {
        "canonical_proof_bytes": 54848,
        "complete": true,
-       "cycles": 1450999279,
-       "energy_nj": 1372653264,
-       "instructions": 3301232091,
-       "lifetime_peak_physical_footprint_bytes": 209978544,
+       "cycles": 1428103739,
+       "energy_nj": 1324675098,
+       "instructions": 3259077210,
+       "lifetime_peak_physical_footprint_bytes": 214582448,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -9266,17 +10607,19 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
-      "native_mhz": 3.778016619675894,
-      "peak_rss_mib": 31.03,
-      "prove_ms": 4.336667,
-      "request_ms": 4.663833,
+      "backend": "cpu_native",
+      "board": "core_cpu",
+      "native_mhz": 4.106222440766287,
+      "peak_rss_mib": 29.66,
+      "prove_ms": 3.990042,
+      "request_ms": 4.336208,
       "request_resources": {
        "canonical_proof_bytes": 45200,
        "complete": true,
-       "cycles": 4110977622,
-       "energy_nj": 3746819184,
-       "instructions": 9720965806,
-       "lifetime_peak_physical_footprint_bytes": 31966408,
+       "cycles": 3733852749,
+       "energy_nj": 3525071495,
+       "instructions": 10043204247,
+       "lifetime_peak_physical_footprint_bytes": 30557408,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -9285,19 +10628,21 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 24,
-      "native_mhz": 4.070516531256071,
-      "peak_rss_mib": 31.8,
-      "prove_ms": 4.025042,
-      "request_ms": 4.369167,
+      "native_mhz": 4.6538843914216725,
+      "peak_rss_mib": 33.7,
+      "prove_ms": 3.5205,
+      "request_ms": 3.834958,
       "request_resources": {
        "canonical_proof_bytes": 45200,
        "complete": true,
-       "cycles": 1029118837,
-       "energy_nj": 853084809,
-       "instructions": 2049040849,
-       "lifetime_peak_physical_footprint_bytes": 165561376,
+       "cycles": 1067086174,
+       "energy_nj": 860316696,
+       "instructions": 2035620249,
+       "lifetime_peak_physical_footprint_bytes": 168117280,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -9320,17 +10665,19 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
-      "native_mhz": 5.638455061936453,
-      "peak_rss_mib": 94.48,
-      "prove_ms": 11.623042,
-      "request_ms": 12.190417,
+      "backend": "cpu_native",
+      "board": "core_cpu",
+      "native_mhz": 5.982700778236757,
+      "peak_rss_mib": 82.95,
+      "prove_ms": 10.95425,
+      "request_ms": 11.510834,
       "request_resources": {
        "canonical_proof_bytes": 55401,
        "complete": true,
-       "cycles": 14230637361,
-       "energy_nj": 12286619369,
-       "instructions": 35540058026,
-       "lifetime_peak_physical_footprint_bytes": 99010456,
+       "cycles": 12700122833,
+       "energy_nj": 12112664117,
+       "instructions": 36855549266,
+       "lifetime_peak_physical_footprint_bytes": 86984648,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -9339,19 +10686,21 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 26,
-      "native_mhz": 9.596836511558129,
-      "peak_rss_mib": 50.69,
-      "prove_ms": 6.828917,
-      "request_ms": 7.3905,
+      "native_mhz": 11.599975715382872,
+      "peak_rss_mib": 36.88,
+      "prove_ms": 5.649667,
+      "request_ms": 6.207,
       "request_resources": {
        "canonical_proof_bytes": 55401,
        "complete": true,
-       "cycles": 1577320248,
-       "energy_nj": 1552918943,
-       "instructions": 3709400829,
-       "lifetime_peak_physical_footprint_bytes": 213517656,
+       "cycles": 1423966585,
+       "energy_nj": 1344945678,
+       "instructions": 3295679198,
+       "lifetime_peak_physical_footprint_bytes": 209487072,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -9374,17 +10723,19 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
-      "native_mhz": 3.8597513730222133,
-      "peak_rss_mib": 28.48,
-      "prove_ms": 4.244833,
-      "request_ms": 4.508792,
+      "backend": "cpu_native",
+      "board": "core_cpu",
+      "native_mhz": 4.229856997064865,
+      "peak_rss_mib": 39.52,
+      "prove_ms": 3.873417,
+      "request_ms": 4.1245,
       "request_resources": {
        "canonical_proof_bytes": 40082,
        "complete": true,
-       "cycles": 3753888173,
-       "energy_nj": 3312516092,
-       "instructions": 8958641336,
-       "lifetime_peak_physical_footprint_bytes": 29476184,
+       "cycles": 3356471823,
+       "energy_nj": 3198553346,
+       "instructions": 9235970488,
+       "lifetime_peak_physical_footprint_bytes": 40994136,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -9393,19 +10744,21 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 24,
-      "native_mhz": 4.3786998062403955,
-      "peak_rss_mib": 29.22,
-      "prove_ms": 3.74175,
-      "request_ms": 3.995291,
+      "native_mhz": 5.140346132535843,
+      "peak_rss_mib": 30.81,
+      "prove_ms": 3.187334,
+      "request_ms": 3.451625,
       "request_resources": {
        "canonical_proof_bytes": 40082,
        "complete": true,
-       "cycles": 718817889,
-       "energy_nj": 675512446,
-       "instructions": 1589189876,
-       "lifetime_peak_physical_footprint_bytes": 163464200,
+       "cycles": 694135722,
+       "energy_nj": 598900990,
+       "instructions": 1573858564,
+       "lifetime_peak_physical_footprint_bytes": 165594072,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -9430,17 +10783,19 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
-      "native_mhz": 5.582322260029606,
-      "peak_rss_mib": 81.41,
-      "prove_ms": 11.739917,
-      "request_ms": 12.37575,
+      "backend": "cpu_native",
+      "board": "core_cpu",
+      "native_mhz": 6.16405745771381,
+      "peak_rss_mib": 81.98,
+      "prove_ms": 10.631958,
+      "request_ms": 11.279833,
       "request_resources": {
        "canonical_proof_bytes": 60502,
        "complete": true,
-       "cycles": 13693392920,
-       "energy_nj": 11748489762,
-       "instructions": 33751606134,
-       "lifetime_peak_physical_footprint_bytes": 85100152,
+       "cycles": 12105634934,
+       "energy_nj": 11588066474,
+       "instructions": 34810833495,
+       "lifetime_peak_physical_footprint_bytes": 85821216,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -9449,19 +10804,21 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 26,
-      "native_mhz": 10.20485384555255,
-      "peak_rss_mib": 42.94,
-      "prove_ms": 6.422042,
-      "request_ms": 7.047583,
+      "native_mhz": 11.248322474795714,
+      "peak_rss_mib": 45.22,
+      "prove_ms": 5.826291,
+      "request_ms": 6.45675,
       "request_resources": {
        "canonical_proof_bytes": 60502,
        "complete": true,
-       "cycles": 1446230981,
-       "energy_nj": 1435378972,
-       "instructions": 3341703860,
-       "lifetime_peak_physical_footprint_bytes": 209356144,
+       "cycles": 1418401464,
+       "energy_nj": 1375989077,
+       "instructions": 3304696155,
+       "lifetime_peak_physical_footprint_bytes": 215762072,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -9486,17 +10843,19 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
-      "native_mhz": 1.0508087584499544,
+      "backend": "cpu_native",
+      "board": "core_cpu",
+      "native_mhz": 1.099671118867038,
       "peak_rss_mib": 39.11,
-      "prove_ms": 9.744875,
-      "request_ms": 13.347209,
+      "prove_ms": 9.311875,
+      "request_ms": 12.915375,
       "request_resources": {
        "canonical_proof_bytes": 97973,
        "complete": true,
-       "cycles": 4329189979,
-       "energy_nj": 5285536180,
-       "instructions": 14489994384,
-       "lifetime_peak_physical_footprint_bytes": 40207296,
+       "cycles": 4307200706,
+       "energy_nj": 5477014972,
+       "instructions": 14535974739,
+       "lifetime_peak_physical_footprint_bytes": 40256448,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -9505,19 +10864,21 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 18,
-      "native_mhz": 1.4067141753241177,
-      "peak_rss_mib": 70.7,
-      "prove_ms": 7.279375,
-      "request_ms": 10.916167,
+      "native_mhz": 1.436495601644058,
+      "peak_rss_mib": 70.61,
+      "prove_ms": 7.128459,
+      "request_ms": 10.808792,
       "request_resources": {
        "canonical_proof_bytes": 97973,
        "complete": true,
-       "cycles": 2162030147,
-       "energy_nj": 2088229935,
-       "instructions": 4308270998,
-       "lifetime_peak_physical_footprint_bytes": 196904136,
+       "cycles": 2203838607,
+       "energy_nj": 2066046827,
+       "instructions": 4336821848,
+       "lifetime_peak_physical_footprint_bytes": 196756704,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -9541,17 +10902,19 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
-      "native_mhz": 4.235404363947749,
-      "peak_rss_mib": 275.5,
-      "prove_ms": 15.473375,
-      "request_ms": 44.163875,
+      "backend": "cpu_native",
+      "board": "core_cpu",
+      "native_mhz": 4.315541864035408,
+      "peak_rss_mib": 275.48,
+      "prove_ms": 15.186042,
+      "request_ms": 43.66425,
       "request_resources": {
        "canonical_proof_bytes": 152455,
        "complete": true,
-       "cycles": 27913573840,
-       "energy_nj": 25352439292,
-       "instructions": 60996292251,
-       "lifetime_peak_physical_footprint_bytes": 288720648,
+       "cycles": 27776848744,
+       "energy_nj": 25019895916,
+       "instructions": 61124712766,
+       "lifetime_peak_physical_footprint_bytes": 288704264,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -9560,19 +10923,21 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 20,
-      "native_mhz": 2.328544082573493,
-      "peak_rss_mib": 214.23,
-      "prove_ms": 28.144625,
-      "request_ms": 57.122833,
+      "native_mhz": 1.71950135615122,
+      "peak_rss_mib": 144.88,
+      "prove_ms": 38.113375,
+      "request_ms": 66.734416,
       "request_resources": {
        "canonical_proof_bytes": 152455,
        "complete": true,
-       "cycles": 10983813194,
-       "energy_nj": 9952002194,
-       "instructions": 16284826007,
-       "lifetime_peak_physical_footprint_bytes": 349111856,
+       "cycles": 13146458376,
+       "energy_nj": 12513285436,
+       "instructions": 23408615840,
+       "lifetime_peak_physical_footprint_bytes": 276202960,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -9593,20 +10958,22 @@
    },
    {
     "committed_trace_cells": 161792,
-    "headline_eligible": true,
+    "headline_eligible": false,
     "lanes": {
      "cpu": {
-      "native_mhz": 0.35223294705808095,
-      "peak_rss_mib": 31.92,
-      "prove_ms": 2.907167,
-      "request_ms": 4.052417,
+      "backend": "cpu_native",
+      "board": "core_cpu",
+      "native_mhz": 0.35546816963052136,
+      "peak_rss_mib": 32.16,
+      "prove_ms": 2.880708,
+      "request_ms": 4.020333,
       "request_resources": {
        "canonical_proof_bytes": 112834,
        "complete": true,
-       "cycles": 1218738173,
-       "energy_nj": 1320161992,
-       "instructions": 3515749981,
-       "lifetime_peak_physical_footprint_bytes": 32604904,
+       "cycles": 1236136910,
+       "energy_nj": 1274403180,
+       "instructions": 3565815290,
+       "lifetime_peak_physical_footprint_bytes": 32850664,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -9615,19 +10982,21 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 15,
-      "native_mhz": 0.21451576209028847,
+      "native_mhz": 0.21598440693824594,
       "peak_rss_mib": 60.92,
-      "prove_ms": 4.773542,
-      "request_ms": 5.922708,
+      "prove_ms": 4.741083,
+      "request_ms": 5.858042,
       "request_resources": {
        "canonical_proof_bytes": 112834,
        "complete": true,
-       "cycles": 1022655320,
-       "energy_nj": 1060257328,
-       "instructions": 2528278189,
-       "lifetime_peak_physical_footprint_bytes": 186205120,
+       "cycles": 1023436803,
+       "energy_nj": 1038560552,
+       "instructions": 2578031359,
+       "lifetime_peak_physical_footprint_bytes": 186155968,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -9650,17 +11019,19 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
-      "native_mhz": 0.6418239332478038,
+      "backend": "cpu_native",
+      "board": "core_cpu",
+      "native_mhz": 0.6673455256405034,
       "peak_rss_mib": 40.81,
-      "prove_ms": 12.763625,
-      "request_ms": 18.809417,
+      "prove_ms": 12.2755,
+      "request_ms": 18.228625,
       "request_resources": {
        "canonical_proof_bytes": 124194,
        "complete": true,
-       "cycles": 6048338350,
-       "energy_nj": 7531829513,
-       "instructions": 20968634094,
-       "lifetime_peak_physical_footprint_bytes": 42009512,
+       "cycles": 6014681097,
+       "energy_nj": 7785044044,
+       "instructions": 21008582752,
+       "lifetime_peak_physical_footprint_bytes": 41993104,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -9669,19 +11040,21 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 18,
-      "native_mhz": 0.9287981859410431,
-      "peak_rss_mib": 84.64,
-      "prove_ms": 8.82,
-      "request_ms": 14.732708,
+      "native_mhz": 0.40014816032713674,
+      "peak_rss_mib": 76.72,
+      "prove_ms": 20.472417,
+      "request_ms": 26.484792,
       "request_resources": {
        "canonical_proof_bytes": 124194,
        "complete": true,
-       "cycles": 3236997387,
-       "energy_nj": 3423174866,
-       "instructions": 7594361614,
-       "lifetime_peak_physical_footprint_bytes": 211682672,
+       "cycles": 5469302925,
+       "energy_nj": 5890323234,
+       "instructions": 14189195088,
+       "lifetime_peak_physical_footprint_bytes": 203523392,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -9700,7 +11073,7 @@
     "proof_parity": true
    }
   ],
-  "run_id": "2026-07-23-110359-matrix-v6-e58b4d1e"
+  "run_id": "2026-07-23-190948-matrix-v6-467edbc9"
  },
  "metal_resident_progress": {
   "cpu_fallbacks_per_proof_median": 0,
@@ -9794,19 +11167,62 @@
    }
   },
   "future_boards": [
+   "cairo_cpu",
+   "cairo_metal",
    "core_cuda",
    "core_hybrid",
    "heavy_cairo",
    "heavy_native",
+   "pr6_supremacy",
    "stream"
   ],
   "groups": {
+   "cairo_cpu": {
+    "board": "cairo_cpu",
+    "disabled_reason": null,
+    "enabled": true,
+    "promotion_blocked_reason": "TRACKS \u00a77: cairo_cpu records evidence but cannot promote until per-(board, class) A/A dispersion and anchors are measured on the designated Apple M5 Max judge host and frozen into harness.anchor_* plus a cairo calibration freeze for board cairo_cpu. No Cairo calibration exists yet, so promotion fails closed; the gate opens only after that M5 calibration is committed.",
+    "promotion_eligible": false,
+    "report_schema": "cairo_proof_v1",
+    "retirement": null,
+    "workloads": {
+     "cairo_all_builtins": {
+      "class": "wide",
+      "native_unit": "committed cells"
+     },
+     "cairo_all_opcodes": {
+      "class": "small",
+      "native_unit": "committed cells"
+     }
+    }
+   },
+   "cairo_metal": {
+    "board": "cairo_metal",
+    "disabled_reason": "cairo_metal is staged only: TRACKS \u00a72 records the Cairo + Metal product as parity_gated, not released. The product descriptor in build_support/products/cairo_metal.zig still carries state .parity_gated behind its test-cairo-metal-product and test-cairo-metal-oracle release gates, no Metal-lane Cairo calibration exists on the designated judge host, and the generalized per-board Metal calibration (TRACKS \u00a77) is not yet built. The group stays dark and fails closed.",
+    "enabled": false,
+    "promotion_blocked_reason": "TRACKS \u00a77: no cairo_metal calibration exists on the designated Apple M5 Max judge host, and the product is parity_gated rather than released.",
+    "promotion_eligible": false,
+    "report_schema": "cairo_proof_v1",
+    "retirement": null,
+    "workloads": {
+     "mcairo_all_builtins": {
+      "class": "wide",
+      "native_unit": "committed cells"
+     },
+     "mcairo_all_opcodes": {
+      "class": "small",
+      "native_unit": "committed cells"
+     }
+    }
+   },
    "cuda": {
     "board": "core_cuda",
     "disabled_reason": "core_cuda is staged only: all six Native AIR families are required, but only wide Fibonacci is exact and release-ready; exact family semantics, the stwo-perf CUDA report adapter, locked-host A/A calibration, pinned Rust verification, and complete structural coverage are not yet release-gated.",
     "enabled": false,
+    "promotion_blocked_reason": null,
     "promotion_eligible": false,
     "report_schema": "native_cuda_product_v6",
+    "retirement": null,
     "workloads": {
      "cuda_poseidon_log10": {
       "class": "small",
@@ -9854,8 +11270,14 @@
     "board": "core_metal",
     "disabled_reason": null,
     "enabled": true,
-    "promotion_eligible": true,
+    "promotion_blocked_reason": "TRACKS \u00a76 retire-and-complete: the native Metal era is banked. New promotions refuse; the board stays enabled so its history, final scores, guard workloads, and PR6-supremacy cells keep running.",
+    "promotion_eligible": false,
     "report_schema": "native_proof_v7",
+    "retirement": {
+     "closing_audit": null,
+     "reason": "TRACKS \u00a76 retire-and-complete: the native era is banked; history stays served; the native AIRs continue as PR6-supremacy cells and guard workloads",
+     "retired_at_utc": "2026-07-29T00:00:00Z"
+    },
     "workloads": {
      "mplonk_log14": {
       "class": "deep",
@@ -9883,8 +11305,14 @@
     "board": "core_cpu",
     "disabled_reason": null,
     "enabled": true,
-    "promotion_eligible": true,
+    "promotion_blocked_reason": "TRACKS \u00a76 retire-and-complete: the native CPU era is banked. New promotions refuse; the board stays enabled so its history, final scores, guard workloads, and PR6-supremacy cells keep running.",
+    "promotion_eligible": false,
     "report_schema": "native_proof_v7",
+    "retirement": {
+     "closing_audit": null,
+     "reason": "TRACKS \u00a76 retire-and-complete: the native era is banked; history stays served; the native AIRs continue as PR6-supremacy cells and guard workloads",
+     "retired_at_utc": "2026-07-29T00:00:00Z"
+    },
     "workloads": {
      "plonk_log14": {
       "class": "deep",
@@ -9912,8 +11340,10 @@
     "board": "pr6_supremacy",
     "disabled_reason": "PR6 Supremacy remains disabled until every exact workload port, log22 oracle vector, both timing boundaries, locked-M5 statistical gate, and authenticated judged verdict are complete.",
     "enabled": false,
+    "promotion_blocked_reason": null,
     "promotion_eligible": false,
     "report_schema": "pr6_supremacy_v1",
+    "retirement": null,
     "workloads": {
      "pr6_blake_log10": {
       "class": "deep",
@@ -9993,8 +11423,10 @@
     "board": "riscv",
     "disabled_reason": null,
     "enabled": true,
+    "promotion_blocked_reason": null,
     "promotion_eligible": true,
     "report_schema": "riscv_proof_v2",
+    "retirement": null,
     "workloads": {
      "riscv_alu_test": {
       "class": "small",
@@ -10080,12 +11512,18 @@
    }
   },
   "owned_boards": [
-   "core_cpu",
-   "core_metal",
    "riscv"
   ],
+  "retired_boards": [
+   "core_cpu",
+   "core_metal"
+  ],
   "staged_boards": [
+   "cairo_cpu",
+   "cairo_metal",
+   "core_cpu",
    "core_cuda",
+   "core_metal",
    "pr6_supremacy"
   ]
  },
@@ -10093,8 +11531,8 @@
   "determinism": "pure function of the named inputs; a committed feed names the commit it was generated FROM (one-commit lag by construction) \u2014 verify via inputs_sha256, not commit equality",
   "dirty_inputs": [],
   "inputs_sha256": {
-   "autoresearch/MANIFEST.json": "6f4ec3341956ac9bd2484de229e99a69d986e2e82af8286c99584475c6582bda",
-   "autoresearch/ledger/epochs.json": "60162d440a812415d2943b1c1a2317b70be5fda727fae7eaa5c75ff408c4f7f5",
+   "autoresearch/MANIFEST.json": "edc8b559a33a459d45612276bfec4a0a2f54fdba683e74442ba5ff5e5b04ebd5",
+   "autoresearch/ledger/epochs.json": "788378df0d2c39c52f905b9241e120d1b2b030bbf36e4e81dbc8c7e6b8c1a2f4",
    "autoresearch/ledger/promotions.tsv": "65ebaae10a028ea4dc7267a9cc8dc68b0c5bfc713218103047cb99054d64d676",
    "autoresearch/reference/metal-calibration-epoch-2.json": "e1a733f19dfe552389e25ff71d487cb889a3117b7fd71ea47c28cbc9000147df",
    "autoresearch/reference/peer-relative-series.json": "b85b4f079b69db227b120c16c965667070f40a67d1b37590a490b3ab514a3b2a",
@@ -10246,11 +11684,11 @@
    "autoresearch/submissions/2026-07-23-riscv-sparse-qm31-base/verdict-riscv-deep.json": "30f4d95f8f839643b149971ecbfc10ca918ab6fd97c356e2e2fb636f84ea4b83",
    "autoresearch/submissions/2026-07-23-riscv-sparse-qm31-base/verdict-riscv-wide.json": "d9aeb81da5805585e9872f96dabce731fd65fbba72216470bbe480ba2b7d6b2c",
    "autoresearch/submissions/2026-07-23-riscv-sparse-qm31-base/verdict.json": "370d873e346ae8ed851657a3a0cf9f923fc988296d303ffb1ba030026929b4ad",
-   "vectors/reports/benchmark_history/index.json": "2df531dbefbd60f078b4c4a0b1c10c00a577832cd35520e065b430c61e6903f0",
-   "vectors/reports/benchmark_history/runs/2026-07-23-110359-matrix-v6-e58b4d1e/report.json": "e772acbf9f58ff3916f2ffe91016ebc28bc6aadc75c6e68d5fd43ef3023d7be3"
+   "vectors/reports/benchmark_history/index.json": "f8ef3c4aff34a2bedc21899c017521695d28f2fbb327b5fb2d09fb1dc5acd7b2",
+   "vectors/reports/benchmark_history/runs/2026-07-23-190948-matrix-v6-467edbc9/report.json": "51cedc323c0a9fa12c17ad96ac34375013f276b2565778c6e61d8ef401837730"
   },
-  "repo_commit": "22ff811600ef",
-  "repo_commit_time": "2026-07-28T12:29:56+01:00"
+  "repo_commit": "9710a0ef5da4",
+  "repo_commit_time": "2026-07-30T15:25:34+01:00"
  },
  "references": {
   "metal_calibration_epoch_2": {
@@ -16889,6 +18327,78 @@
  },
  "search_health": {
   "boards": {
+   "cairo_cpu": {
+    "classes": {
+     "small": {
+      "available": false,
+      "available_points": 0,
+      "decay": [],
+      "latest": null,
+      "time_series": [],
+      "trailing": {
+       "credited_ln_improvement": null,
+       "credited_ln_improvement_per_measurement_hour": null,
+       "measurement_wall_hours": null,
+       "median_gradient_snr": null,
+       "points": 0
+      },
+      "trailing_window": 8,
+      "unavailable_points": 0
+     },
+     "wide": {
+      "available": false,
+      "available_points": 0,
+      "decay": [],
+      "latest": null,
+      "time_series": [],
+      "trailing": {
+       "credited_ln_improvement": null,
+       "credited_ln_improvement_per_measurement_hour": null,
+       "measurement_wall_hours": null,
+       "median_gradient_snr": null,
+       "points": 0
+      },
+      "trailing_window": 8,
+      "unavailable_points": 0
+     }
+    }
+   },
+   "cairo_metal": {
+    "classes": {
+     "small": {
+      "available": false,
+      "available_points": 0,
+      "decay": [],
+      "latest": null,
+      "time_series": [],
+      "trailing": {
+       "credited_ln_improvement": null,
+       "credited_ln_improvement_per_measurement_hour": null,
+       "measurement_wall_hours": null,
+       "median_gradient_snr": null,
+       "points": 0
+      },
+      "trailing_window": 8,
+      "unavailable_points": 0
+     },
+     "wide": {
+      "available": false,
+      "available_points": 0,
+      "decay": [],
+      "latest": null,
+      "time_series": [],
+      "trailing": {
+       "credited_ln_improvement": null,
+       "credited_ln_improvement_per_measurement_hour": null,
+       "measurement_wall_hours": null,
+       "median_gradient_snr": null,
+       "points": 0
+      },
+      "trailing_window": 8,
+      "unavailable_points": 0
+     }
+    }
+   },
    "core_cpu": {
     "classes": {
      "deep": {

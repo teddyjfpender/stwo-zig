@@ -9,7 +9,7 @@ const commit_tree = @import("../../common/commit_tree.zig");
 const M31 = @import("stwo_core").fields.m31.M31;
 const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle
     .Blake2sPrefixedMerkleHasher;
-const MerkleProver = @import("stwo_prover_impl").vcs_lifted.prover
+const MerkleProver = @import("stwo_prover_engine").vcs_lifted.prover
     .MerkleProverLifted(Hasher);
 const arena_plan = @import("arena_plan.zig");
 const geometry_mod = @import("geometry.zig");

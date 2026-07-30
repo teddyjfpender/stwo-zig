@@ -3,7 +3,7 @@
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const vcs_verifier = @import("stwo_core").vcs_lifted.verifier;
-const pcs_prover = @import("stwo_prover_impl").pcs;
+const pcs_prover = @import("stwo_prover_engine").pcs;
 
 const M31 = m31.M31;
 const ColumnEvaluation = pcs_prover.ColumnEvaluation;

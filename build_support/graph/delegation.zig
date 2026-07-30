@@ -7,6 +7,8 @@ pub const Options = struct {
     aggregate_metal: bool,
     riscv_release_phase: []const u8,
     riscv_evidence_dir: []const u8,
+    riscv_refinement_ir_dir: ?[]const u8,
+    riscv_air_program_ir_dir: ?[]const u8,
     cuda_nvcc: ?[]const u8,
     cuda_host_cxx: ?[]const u8,
     cuda_host_runtime: ?[]const u8,
@@ -18,6 +20,7 @@ pub const Options = struct {
     cuda_build_jobs: ?u16,
     metal_core_aot_bundle: ?[]const u8,
     cairo_test_filter: ?[]const u8,
+    riscv_test_filter: ?[]const u8,
     identity: ?build_identity.Identity,
 
     pub fn read(b: *std.Build) Options {
@@ -45,6 +48,16 @@ pub const Options = struct {
             .aggregate_metal = b.option(bool, "aggregate-metal", "Explicitly link Metal into aggregate test roots") orelse false,
             .riscv_release_phase = b.option([]const u8, "riscv-release-phase", "CP-13 phase: candidate or promoted") orelse "candidate",
             .riscv_evidence_dir = b.option([]const u8, "riscv-evidence-dir", "Fresh CP-13 evidence directory") orelse "zig-out/release-evidence/riscv",
+            .riscv_refinement_ir_dir = b.option(
+                []const u8,
+                "riscv-refinement-ir-dir",
+                "Fresh output directory for the RISC-V symbolic AIR extractor",
+            ),
+            .riscv_air_program_ir_dir = b.option(
+                []const u8,
+                "riscv-air-program-ir-dir",
+                "Fresh output directory for production AIR IR v2",
+            ),
             .cuda_nvcc = b.option([]const u8, "cuda-nvcc", "Explicit nvcc executable"),
             .cuda_host_cxx = b.option([]const u8, "cuda-host-cxx", "Explicit nvcc host C++ compiler"),
             .cuda_host_runtime = b.option([]const u8, "cuda-host-runtime", "Absolute GNU C++ runtime shared-library path"),
@@ -63,6 +76,11 @@ pub const Options = struct {
                 []const u8,
                 "cairo-test-filter",
                 "Compile and run Cairo tests whose names contain this text",
+            ),
+            .riscv_test_filter = b.option(
+                []const u8,
+                "riscv-test-filter",
+                "Run RISC-V tests whose names contain this text",
             ),
             .identity = resolveIdentity(b, .{
                 .commit = implementation_commit,
@@ -133,6 +151,16 @@ fn commandFor(
         command.addArg(b.fmt("-Driscv-release-phase={s}", .{options.riscv_release_phase}));
         command.addArg(b.fmt("-Driscv-evidence-dir={s}", .{options.riscv_evidence_dir}));
     }
+    if (std.mem.eql(u8, scope, "riscv_cpu")) {
+        if (options.riscv_refinement_ir_dir) |dir| command.addArg(b.fmt(
+            "-Driscv-refinement-ir-dir={s}",
+            .{dir},
+        ));
+        if (options.riscv_air_program_ir_dir) |dir| command.addArg(b.fmt(
+            "-Driscv-air-program-ir-dir={s}",
+            .{dir},
+        ));
+    }
     if (std.mem.eql(u8, scope, "cuda_tools") or
         std.mem.eql(u8, scope, "native_cuda") or
         std.mem.eql(u8, scope, "cairo_cuda"))
@@ -166,6 +194,12 @@ fn commandFor(
     if (std.mem.eql(u8, scope, "compatibility_tools")) {
         if (options.cairo_test_filter) |filter| command.addArg(b.fmt(
             "-Dcairo-test-filter={s}",
+            .{filter},
+        ));
+    }
+    if (std.mem.eql(u8, scope, "riscv_cpu") or std.mem.eql(u8, scope, "riscv_cpu_compat")) {
+        if (options.riscv_test_filter) |filter| command.addArg(b.fmt(
+            "-Driscv-test-filter={s}",
             .{filter},
         ));
     }

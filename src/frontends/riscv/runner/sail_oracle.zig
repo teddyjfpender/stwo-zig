@@ -6,11 +6,21 @@
 //! retirement field (pc, instruction, rd, rd_value, next_pc, memory effect).
 //!
 //! The verdict contract is the load-bearing part. `unavailable` means the
-//! pinned Sail binary cannot be consulted on this host and must surface as a
-//! *visible skip* naming what was not checked; `divergent` and
+//! pinned Sail binary cannot be consulted on this host and by default must
+//! surface as a *visible skip* naming what was not checked; `divergent` and
 //! `protocol_error` must fail the test. Conflating absence with disagreement
 //! is how a dead oracle starts to read as coverage, which is worse than no
 //! check at all.
+//!
+//! A gate may nonetheless refuse to accept absence. Setting
+//! `STWO_ZIG_REQUIRE_SAIL_ORACLE` makes every `unavailable` verdict return
+//! `error.SailOracleUnavailable` after printing the same not-checked report.
+//! Absence is still absence: that error names the missing oracle and stays
+//! distinct from `error.SailDisagreesWithRunner`, so a job that demands the
+//! oracle goes red for the provisioning failure it actually has and never
+//! borrows the language of a soundness signal. Unset, nothing changes, since
+//! on a host with no pinned Sail a hard failure would be noise rather than
+//! evidence.
 
 const std = @import("std");
 const trace_mod = @import("trace.zig");
@@ -49,6 +59,92 @@ pub const Verdict = enum {
     /// broken harness that skipped would be indistinguishable from coverage.
     protocol_error,
 };
+
+/// Opt-in gate switch: when set, an `unavailable` verdict is a failure.
+///
+/// An environment variable rather than a build option on purpose — every
+/// consumer of this module is a plain `zig test` binary, so a CI job that has
+/// provisioned the pinned oracle can require it without any build plumbing,
+/// and a job that has not provisioned it keeps today's behaviour by doing
+/// nothing.
+pub const REQUIRE_AVAILABLE_ENV = "STWO_ZIG_REQUIRE_SAIL_ORACLE";
+
+/// The two errors an `unavailable` verdict can produce. Neither is
+/// `error.SailDisagreesWithRunner`: absence never speaks as disagreement.
+pub const UnavailableError = error{ SkipZigTest, SailOracleUnavailable };
+
+/// What an `unavailable` verdict means to this process.
+pub const AbsencePolicy = enum {
+    /// Default. Absence is a visible skip naming what went unchecked.
+    skip,
+    /// A gate required the oracle, so absence is a named failure.
+    fail,
+
+    /// Read `REQUIRE_AVAILABLE_ENV` from a raw value, `null` when unset.
+    ///
+    /// Unset, empty, `0`, `false`, `no`, and `off` (any case, surrounding
+    /// whitespace ignored) keep the default skip. Every other value requires
+    /// the oracle: this is a gate switch, so a value we do not recognise must
+    /// fail closed rather than quietly disarm the gate a job asked for.
+    pub fn fromEnvValue(raw: ?[]const u8) AbsencePolicy {
+        const value = std.mem.trim(u8, raw orelse return .skip, " \t\r\n");
+        if (value.len == 0) return .skip;
+        for ([_][]const u8{ "0", "false", "no", "off" }) |disabled| {
+            if (std.ascii.eqlIgnoreCase(value, disabled)) return .skip;
+        }
+        return .fail;
+    }
+
+    /// The error a call site returns once it has printed its report.
+    pub fn err(self: AbsencePolicy) UnavailableError {
+        return switch (self) {
+            .skip => error.SkipZigTest,
+            .fail => error.SailOracleUnavailable,
+        };
+    }
+};
+
+/// `REQUIRE_AVAILABLE_ENV` as this process sees it.
+pub fn absencePolicy(allocator: std.mem.Allocator) AbsencePolicy {
+    const raw = std.process.getEnvVarOwned(allocator, REQUIRE_AVAILABLE_ENV) catch |err| switch (err) {
+        error.EnvironmentVariableNotFound => return .skip,
+        // Fail closed: an environment we could not read is not a reason to
+        // stop requiring an oracle a job explicitly asked for.
+        else => return .fail,
+    };
+    defer allocator.free(raw);
+    return AbsencePolicy.fromEnvValue(raw);
+}
+
+/// The single seam every `unavailable` verdict goes through.
+///
+/// `unchecked` names what did NOT happen ("the forged-trace rejection"), and
+/// is printed either way: a required run must say exactly as much about the
+/// gap as a skipping one, because the report is the only record of what the
+/// oracle would have covered. Always returns an error.
+pub fn reportUnavailable(
+    allocator: std.mem.Allocator,
+    unchecked: []const u8,
+    report: []const u8,
+) UnavailableError!void {
+    const policy = absencePolicy(allocator);
+    switch (policy) {
+        .skip => std.debug.print(
+            "SKIP: pinned Sail oracle unavailable; {s} was NOT checked.\n{s}\n",
+            .{ unchecked, report },
+        ),
+        // Name the error in the log too: the Zig test runner prints captured
+        // stderr rather than the error name, and a reader of a red CI job
+        // must be able to tell this apart from a Sail disagreement.
+        .fail => std.debug.print(
+            "FAIL (error.SailOracleUnavailable, NOT a disagreement): pinned Sail " ++
+                "oracle unavailable while " ++ REQUIRE_AVAILABLE_ENV ++
+                " requires it; {s} was NOT checked.\n{s}\n",
+            .{ unchecked, report },
+        ),
+    }
+    return policy.err();
+}
 
 pub const Outcome = struct {
     verdict: Verdict,
@@ -148,7 +244,9 @@ pub fn checkTraceJson(
 }
 
 /// The consumer-facing seam: pass on agreement, skip VISIBLY when the pinned
-/// oracle is absent, and fail loudly on disagreement or harness breakage.
+/// oracle is absent (or fail with `error.SailOracleUnavailable` when
+/// `REQUIRE_AVAILABLE_ENV` demands it), and fail loudly on disagreement or
+/// harness breakage.
 ///
 /// `guest_label` names the guest in every notice, because a skip that does
 /// not say *what* went unchecked reads as coverage from the summary line.
@@ -165,12 +263,13 @@ pub fn requireAgreement(
     switch (outcome.verdict) {
         .equivalent => {},
         .unavailable => {
-            std.debug.print(
-                "SKIP: pinned Sail oracle unavailable; runner-vs-Sail agreement " ++
-                    "was NOT checked for guest '{s}'.\n{s}\n",
-                .{ guest_label, outcome.report },
+            const unchecked = try std.fmt.allocPrint(
+                allocator,
+                "runner-vs-Sail agreement for guest '{s}'",
+                .{guest_label},
             );
-            return error.SkipZigTest;
+            defer allocator.free(unchecked);
+            return reportUnavailable(allocator, unchecked, outcome.report);
         },
         .divergent => {
             std.debug.print(
@@ -226,6 +325,38 @@ fn findOracleScript(allocator: std.mem.Allocator) ![]u8 {
 
 const runner = @import("mod.zig");
 
+// Where the two tests below run, and why it took a dedicated step.
+//
+// Until 2026-07-29 they ran in NO build step. `zig test` collects tests only
+// from the files of its ROOT module; every RISC-V step roots at
+// `src/tests.zig` and reaches this file through the `stwo_riscv_frontend`
+// module dependency, and dependency modules contribute no tests. Measured:
+// `zig build test-riscv-release-exhaustive
+// -Driscv-test-filter="runner agrees with pinned Sail"` failed
+// `EmptySelectionGuard` with "matched no test name". They are exactly the
+// self-check ("does the oracle answer at all?") and the disagreement check
+// ("is a forged trace really DIVERGENT?"), so the absence was this module's
+// own failure mode turned on itself: a check nobody runs reads as coverage,
+// and worse than a skip, because a skip at least prints.
+//
+// Two collections now name this file, both by root-module membership:
+//
+//  - `zig build test-riscv-sail-oracle` (also a dependency of
+//    `test-riscv-cpu-product`) roots a test artifact directly here — see
+//    `build_support/products/riscv_sail_oracle_tests.zig`. Renaming either
+//    test cannot empty it: the binary carries no pinned filter to drift.
+//    `.github/workflows/riscv-sail-differential.yml` runs that step with
+//    `STWO_ZIG_REQUIRE_SAIL_ORACLE=1`, which is the only place on earth
+//    these two tests meet a real oracle instead of skipping.
+//  - The package's own `zig build test` (`src/frontends/riscv/build.zig`)
+//    reaches them because `src/frontends/riscv/mod.zig` now names this file
+//    inside a `test` block. The file-scope `pub const sail_oracle =
+//    @import("sail_oracle.zig")` that `runner/mod.zig` has always had is not
+//    enough: nothing referenced it, so it was never analysed.
+//
+// The `AbsencePolicy` coverage additionally lives in
+// `src/tests/riscv/unit_test.zig`, which every exhaustive step collects.
+
 test "sail_oracle: runner agrees with pinned Sail on a small guest (skips visibly when Sail absent; ~0.3s when present)" {
     const alloc = std.testing.allocator;
     const elf = trace_dump.buildTestElf(4, .{
@@ -271,14 +402,11 @@ test "sail_oracle: a forged integer write is DIVERGENT, never a pass or a skip (
     defer outcome.deinit(alloc);
     switch (outcome.verdict) {
         .divergent => {},
-        .unavailable => {
-            std.debug.print(
-                "SKIP: pinned Sail oracle unavailable; the forged-trace rejection " ++
-                    "was NOT checked.\n{s}\n",
-                .{outcome.report},
-            );
-            return error.SkipZigTest;
-        },
+        .unavailable => return reportUnavailable(
+            alloc,
+            "the forged-trace rejection",
+            outcome.report,
+        ),
         else => {
             std.debug.print("expected DIVERGENT, got: {s}\n", .{outcome.report});
             return error.ForgedTraceNotRejected;

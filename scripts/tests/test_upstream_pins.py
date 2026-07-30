@@ -96,7 +96,7 @@ class UpstreamPinTests(unittest.TestCase):
 
         joined = "\n".join(errors)
         for carrier in (
-            "tools/stwo-cairo-verifier-rs/src/lib.rs",
+            "tools/stwo-cairo-verifier-rs/src/support.rs",
             "tools/stwo-cairo-verifier-rs/Cargo.toml",
             "tools/stwo-cairo-verifier-rs/Cargo.lock",
             ".github/workflows/ci.yml",
@@ -250,7 +250,7 @@ class UpstreamPinTests(unittest.TestCase):
             errors = validate_repository(ROOT, path)
 
         joined = "\n".join(errors)
-        self.assertIn("tools/stwo-cairo-verifier-rs/src/lib.rs", joined)
+        self.assertIn("tools/stwo-cairo-verifier-rs/src/support.rs", joined)
         self.assertIn("tools/stwo-cairo-verifier-rs/Cargo.toml", joined)
         self.assertIn("tools/stwo-cairo-verifier-rs/Cargo.lock", joined)
         self.assertIn(".github/workflows/ci.yml", joined)

@@ -177,6 +177,20 @@ def validate_actual_construction(
     # roots and no external tool invocations to observe. Constructors must
     # still match — the fail-closed registration is itself construction.
     fully_stubbed = not actual["module_roots"]
+    observed_probes = actual["runtime_probes"]
+    declared_probes = sorted(set(manifest["runtime_probes"]))
+    # A backend-tool scope may mix portable tools with host-only tools. On a
+    # host where none of the declared runtime probes exist, the portable
+    # construction remains observable while the host-only dependency graph is
+    # replaced by fail-closed step stubs. Accept only the non-empty declared
+    # subset in that partition; a capable host must still observe the exact
+    # dependency closure below.
+    dependency_partitioned = (
+        manifest.get("scope_role") == "backend_tools"
+        and bool(declared_probes)
+        and not observed_probes
+        and not fully_stubbed
+    )
     for field in (
         "constructors",
         "generated_module_roots",
@@ -191,6 +205,19 @@ def validate_actual_construction(
             and not observed
         ):
             continue
+        if field == "dependency_module_roots" and dependency_partitioned:
+            undeclared = sorted(set(observed) - set(declared))
+            if undeclared:
+                raise SystemExit(
+                    f"{scope} actual dependency_module_roots diverges from catalog: "
+                    f"undeclared={undeclared}"
+                )
+            if not observed:
+                raise SystemExit(
+                    f"{scope} actual dependency_module_roots diverges from catalog: "
+                    "partially constructed backend-tool scope observed no dependencies"
+                )
+            continue
         if observed != sorted(set(declared)):
             raise SystemExit(
                 f"{scope} actual {field} diverges from catalog: "
@@ -202,8 +229,6 @@ def validate_actual_construction(
     # nothing: a fully stubbed host observes none; any construction that
     # probes at all must observe exactly the declared set, and an undeclared
     # probe is fatal everywhere.
-    observed_probes = actual["runtime_probes"]
-    declared_probes = sorted(set(manifest["runtime_probes"]))
     undeclared_probes = sorted(set(observed_probes) - set(declared_probes))
     if undeclared_probes:
         raise SystemExit(

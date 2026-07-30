@@ -26,11 +26,11 @@ const pcs_verifier = @import("stwo_core").pcs.verifier;
 const core_proof = @import("stwo_core").proof;
 const core_verifier = @import("stwo_core").verifier;
 const blake2_merkle = @import("stwo_core").vcs_lifted.blake2_merkle;
-const prover_air_accumulation = @import("stwo_prover_impl").air.accumulation;
-const prover_component = @import("stwo_prover_impl").air.component_prover;
-const prover_pcs = @import("stwo_prover_impl").pcs;
-const prover_prove = @import("stwo_prover_impl").prove;
-const secure_column = @import("stwo_prover_impl").secure_column;
+const prover_air_accumulation = @import("stwo_prover_engine").air.accumulation;
+const prover_component = @import("stwo_prover_engine").air.component_prover;
+const prover_pcs = @import("stwo_prover_engine").pcs;
+const prover_prove = @import("stwo_prover_engine").prove;
+const secure_column = @import("stwo_prover_engine").secure_column;
 const utils = @import("stwo_core").utils;
 
 const trace_reader = @import("adapter/trace_reader.zig");

@@ -25,6 +25,17 @@ pub const CudaBackend = struct {
     pub const allows_cpu_fallback = false;
 };
 
+test "api signature: CUDA backend exposes only resident session types" {
+    comptime {
+        if (CudaBackend.Session != runtime.NativeSession) {
+            @compileError("CUDA session type drifted from the resident runtime");
+        }
+        if (CudaBackend.Context != runtime.NativeContext) {
+            @compileError("CUDA context type drifted from the resident runtime");
+        }
+    }
+}
+
 test "CUDA backend advertises only the resident fail-closed architecture" {
     const std = @import("std");
     try std.testing.expect(CudaBackend.resident);

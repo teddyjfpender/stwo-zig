@@ -11,9 +11,9 @@ pub fn build(b: *std.Build) void {
         dependency_options,
     ).module("stwo_backend_contracts");
     const prover = b.dependency(
-        "stwo_prover_impl",
+        "stwo_prover_engine",
         dependency_options,
-    ).module("stwo_prover_impl");
+    ).module("stwo_prover_engine");
     const backend = b.addModule("stwo_cpu_backend", .{
         .root_source_file = b.path("mod.zig"),
         .target = target,
@@ -21,7 +21,7 @@ pub fn build(b: *std.Build) void {
     });
     backend.addImport("stwo_core", core);
     backend.addImport("stwo_backend_contracts", backend_contracts);
-    backend.addImport("stwo_prover_impl", prover);
+    backend.addImport("stwo_prover_engine", prover);
 
     const tests = b.addRunArtifact(b.addTest(.{ .root_module = backend }));
     const test_step = b.step(

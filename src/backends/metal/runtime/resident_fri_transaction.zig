@@ -53,7 +53,7 @@ pub fn Ops(comptime B: type) type {
             var line_evaluation = try B.allocateLineEvaluation(line_domain);
             defer line_evaluation.deinit(allocator);
 
-            const SecureColumn = @import("stwo_prover_impl").secure_column.SecureColumnByCoords;
+            const SecureColumn = @import("stwo_prover_engine").secure_column.SecureColumnByCoords;
             const columns = try allocator.alloc(SecureColumn, layer_count);
             defer allocator.free(columns);
             var initialized_columns: usize = 0;
@@ -186,7 +186,7 @@ pub fn Ops(comptime B: type) type {
             comptime InnerLayerProver: type,
             comptime InnerCommitResult: type,
             allocator: std.mem.Allocator,
-            circle_column: @import("stwo_prover_impl").secure_column.SecureColumnByCoords,
+            circle_column: @import("stwo_prover_engine").secure_column.SecureColumnByCoords,
             circle_domain: @import("stwo_core").poly.circle.domain.CircleDomain,
             line_domain: @import("stwo_core").poly.line.LineDomain,
             channel: anytype,

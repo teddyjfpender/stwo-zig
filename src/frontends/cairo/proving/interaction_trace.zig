@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const core = @import("stwo_core");
-const prover = @import("stwo_prover_impl");
+const prover = @import("stwo_prover_engine");
 const adapter = @import("../adapter/mod.zig");
 const claim_generator = @import("../claim_generator.zig");
 const fixed_trace = @import("../conformance/fixed_trace.zig");
@@ -414,49 +414,67 @@ const Collector = struct {
     ) !void {
         if (self.components[component_index] != null)
             return error.DuplicateInteractionComponent;
-        var materialized = blk: {
+        const component = self.geometry.components[component_index];
+        const log_size = switch (component.log_size) {
+            .known => |value| value,
+            .deferred => return error.InvalidInteractionGeometry,
+        };
+        const row_count = @as(usize, 1) << @intCast(log_size);
+        if (source.rows() != row_count) return error.InvalidInteractionGeometry;
+
+        const allocated = try allocateCoordinateColumns(
+            self.allocator,
+            recorded_interaction.columnCount(descriptors) * 4,
+            row_count,
+            log_size,
+        );
+        errdefer deinitColumns(self.allocator, allocated.columns);
+
+        const claimed_sum = blk: {
             var stage = try prover.stage_profile.StageScope.begin(
                 self.recorder,
                 "interaction_fraction_materialize",
                 "Interaction fraction materialization",
             );
             defer stage.end();
-            break :blk if (self.executor) |executor|
-                try executor.execute(self.allocator, .{
-                    .descriptors = descriptors,
-                    .source = source,
-                    .z = lookup_z,
-                    .alpha_powers = alpha_powers,
-                })
-            else
-                try recorded_interaction.materializeTrace(
-                    self.allocator,
-                    descriptors,
-                    source,
-                    lookup_z,
-                    alpha_powers,
-                );
-        };
-        defer materialized.deinit();
-        const component = self.geometry.components[component_index];
-        const log_size = switch (component.log_size) {
-            .known => |value| value,
-            .deferred => return error.InvalidInteractionGeometry,
-        };
-        if (materialized.row_count != @as(usize, 1) << @intCast(log_size))
-            return error.InvalidInteractionGeometry;
-        const columns = blk: {
-            var stage = try prover.stage_profile.StageScope.begin(
-                self.recorder,
-                "interaction_coordinate_lower",
-                "Interaction coordinate lowering",
+            // Default path, and the configuration both products ship: the
+            // relation evaluator writes the committed base-field coordinate
+            // planes directly, so no secure column-major intermediate is ever
+            // materialized (campaign 1 increment 2).
+            const executor = self.executor orelse break :blk try recorded_interaction.materializeCoordinates(
+                self.allocator,
+                descriptors,
+                source,
+                lookup_z,
+                alpha_powers,
+                allocated.planes,
             );
-            defer stage.end();
-            break :blk try lowerCoordinates(self.allocator, materialized);
+            // Opt-in backend executor. Its ABI returns a secure column-major
+            // trace, so it is lowered into the same pre-allocated planes rather
+            // than into a second column allocation. `lowerLastColumn` is the
+            // generic secure-to-four-plane primitive, applied per column.
+            var materialized = try executor.execute(self.allocator, .{
+                .descriptors = descriptors,
+                .source = source,
+                .z = lookup_z,
+                .alpha_powers = alpha_powers,
+            });
+            defer materialized.deinit();
+            if (materialized.row_count != row_count or
+                materialized.column_count * 4 != allocated.planes.len)
+                return error.InvalidInteractionGeometry;
+            for (0..materialized.column_count) |column| {
+                interaction_trace.lowerLastColumn(
+                    allocated.planes[column * 4 ..][0..4],
+                    materialized.column(column),
+                );
+            }
+            break :blk materialized.claimed_sum;
         };
+        self.allocator.free(allocated.planes);
         self.components[component_index] = .{
-            .columns = columns,
-            .claimed_sum = materialized.claimed_sum,
+            .columns = allocated.columns,
+            .claimed_sum = claimed_sum,
         };
     }
 
@@ -495,36 +513,39 @@ const Collector = struct {
     }
 };
 
-fn lowerCoordinates(
+const AllocatedColumns = struct {
+    columns: []ColumnEvaluation,
+    /// Borrowed writable views of `columns`, in the order the relation
+    /// evaluator emits them. Freed once materialization returns.
+    planes: [][]M31,
+};
+
+/// Allocates the committed coordinate columns the relation evaluator writes
+/// into directly.
+///
+/// The evaluator covers every destination row of every plane, so the
+/// allocation is deliberately left uninitialized: zero-filling here would be a
+/// second full pass over the interaction trace that nothing can observe.
+fn allocateCoordinateColumns(
     allocator: std.mem.Allocator,
-    materialized: recorded_interaction.MaterializedTrace,
-) ![]ColumnEvaluation {
-    const column_count = std.math.mul(
-        usize,
-        materialized.column_count,
-        4,
-    ) catch return error.AllocationSizeOverflow;
-    const result = try allocator.alloc(ColumnEvaluation, column_count);
+    column_count: usize,
+    row_count: usize,
+    log_size: u32,
+) !AllocatedColumns {
+    const columns = try allocator.alloc(ColumnEvaluation, column_count);
     var initialized: usize = 0;
     errdefer {
-        for (result[0..initialized]) |column| allocator.free(column.values);
-        allocator.free(result);
+        for (columns[0..initialized]) |column| allocator.free(column.values);
+        allocator.free(columns);
     }
-    for (0..materialized.column_count) |secure_column| {
-        const source = materialized.column(secure_column);
-        for (0..4) |coordinate| {
-            const values = try allocator.alloc(M31, materialized.row_count);
-            errdefer allocator.free(values);
-            for (source, values) |value, *destination|
-                destination.* = value.toM31Array()[coordinate];
-            result[initialized] = .{
-                .log_size = @intCast(std.math.log2_int(usize, values.len)),
-                .values = values,
-            };
-            initialized += 1;
-        }
+    const planes = try allocator.alloc([]M31, column_count);
+    errdefer allocator.free(planes);
+    while (initialized < column_count) : (initialized += 1) {
+        const values = try allocator.alloc(M31, row_count);
+        columns[initialized] = .{ .log_size = @intCast(log_size), .values = values };
+        planes[initialized] = values;
     }
-    return result;
+    return .{ .columns = columns, .planes = planes };
 }
 
 fn deriveAlphaPowers(alpha: QM31) [lookup_power_count]QM31 {

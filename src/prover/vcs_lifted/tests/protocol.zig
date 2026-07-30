@@ -3,7 +3,7 @@
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const vcs_lifted_verifier = @import("stwo_core").vcs_lifted.verifier;
-const prover_mod = @import("stwo_prover_impl").vcs_lifted.prover;
+const prover_mod = @import("stwo_prover_engine").vcs_lifted.prover;
 
 const M31 = m31.M31;
 const MerkleProverLifted = prover_mod.MerkleProverLifted;
@@ -109,7 +109,7 @@ test "prover vcs_lifted: empty columns root matches mixed-degree prover" {
     const LiftedHasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MixedHasher = @import("stwo_core").vcs.blake2_merkle.Blake2sMerkleHasher;
     const LiftedProver = MerkleProverLifted(LiftedHasher);
-    const MixedProver = @import("stwo_prover_impl").vcs.prover.MerkleProver(MixedHasher);
+    const MixedProver = @import("stwo_prover_engine").vcs.prover.MerkleProver(MixedHasher);
     const alloc = std.testing.allocator;
 
     const no_columns = [_][]const M31{};

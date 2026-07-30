@@ -1,10 +1,14 @@
-//! Canonical source-owner to Zig-package resolution.
+//! Checked source-owner to Zig-package projection.
+//!
+//! `src/**/package.contract.json` is authoritative. The package-workspace gate
+//! rejects any prefix or dependency-name drift in this build-time projection.
 
 const std = @import("std");
 
 pub const Package = enum {
     core,
     backend_contracts,
+    prover_api,
     prover,
     cairo_frontend,
     cpu_backend,
@@ -36,7 +40,8 @@ const Owner = struct {
 const owners = [_]Owner{
     .{ .prefix = "src/core/", .package = .core, .dependency_name = "stwo_core" },
     .{ .prefix = "src/backend/", .package = .backend_contracts, .dependency_name = "stwo_backend_contracts" },
-    .{ .prefix = "src/prover/", .package = .prover, .dependency_name = "stwo_prover_impl" },
+    .{ .prefix = "src/prover_api/", .package = .prover_api, .dependency_name = "stwo_prover_api" },
+    .{ .prefix = "src/prover/", .package = .prover, .dependency_name = "stwo_prover_engine" },
     .{ .prefix = "src/frontends/cairo/", .package = .cairo_frontend, .dependency_name = "stwo_cairo_frontend" },
     .{ .prefix = "src/backends/cpu_scalar/", .package = .cpu_backend, .dependency_name = "stwo_cpu_backend" },
     .{ .prefix = "src/backends/cuda/", .package = .cuda_backend, .dependency_name = "stwo_cuda_backend" },
@@ -75,6 +80,10 @@ test "canonical owner roots resolve to package dependencies" {
     try std.testing.expectEqual(
         Package.backend_contracts,
         resolve("src/backend/mod.zig").?.package,
+    );
+    try std.testing.expectEqual(
+        Package.prover_api,
+        resolve("src/prover_api/mod.zig").?.package,
     );
     try std.testing.expectEqual(
         Package.prover,

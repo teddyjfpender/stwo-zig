@@ -4,6 +4,7 @@ zig-out/
 target/
 tools/stwo-vector-gen/target/
 tools/stwo-interop-rs/target/
+formal/**/.lake/
 
 # Python
 __pycache__/

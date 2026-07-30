@@ -10,13 +10,18 @@ pub fn build(b: *std.Build) void {
         "stwo_backend_contracts",
         dependency_options,
     ).module("stwo_backend_contracts");
-    const prover = b.addModule("stwo_prover_impl", .{
+    const prover_api = b.dependency(
+        "stwo_prover_api",
+        dependency_options,
+    ).module("stwo_prover_api");
+    const prover = b.addModule("stwo_prover_engine", .{
         .root_source_file = b.path("mod.zig"),
         .target = target,
         .optimize = optimize,
     });
     prover.addImport("stwo_core", core);
     prover.addImport("stwo_backend_contracts", backend_contracts);
+    prover.addImport("stwo_prover_api", prover_api);
 
     const tests = b.addTest(.{ .root_module = prover });
     const run_tests = b.addRunArtifact(tests);
@@ -26,11 +31,12 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     deep_tests.addImport("stwo_core", core);
-    deep_tests.addImport("stwo_prover_impl", prover);
+    deep_tests.addImport("stwo_prover_engine", prover);
+    deep_tests.addImport("stwo_prover_api", prover_api);
     const run_deep_tests = b.addRunArtifact(b.addTest(.{
         .root_module = deep_tests,
     }));
-    const test_step = b.step("test", "Compile and test the stwo_prover_impl package");
+    const test_step = b.step("test", "Compile and test the stwo_prover_engine package");
     test_step.dependOn(&run_tests.step);
     test_step.dependOn(&run_deep_tests.step);
 }

@@ -52,10 +52,12 @@ pub const Tables = struct {
         return null;
     }
 
-    pub fn increment(self: *Tables, label: []const u8, relation: u32, row: u32) !void {
+    /// Materializes a table's dense storage, charging the shared budget exactly
+    /// as the first `increment` would. Parallel accumulators call this once, in
+    /// serial order, at the point their first increment would have allocated —
+    /// the dense-word budget is the one order-sensitive part of this structure.
+    pub fn reserve(self: *Tables, label: []const u8) ![]u32 {
         const table = self.find(label) orelse return error.MissingFixedTable;
-        if (relation >= table.entry.multiplicity_columns or row >= table.entry.row_count)
-            return error.InvalidMultiplicityKey;
         if (table.dense == null) {
             const words = std.math.mul(
                 usize,
@@ -68,8 +70,17 @@ pub const Tables = struct {
             @memset(table.dense.?, 0);
             self.dense_words += words;
         }
-        const index = @as(usize, relation) * table.entry.row_count + row;
-        table.dense.?[index] = std.math.add(u32, table.dense.?[index], 1) catch
+        return table.dense.?;
+    }
+
+    pub fn increment(self: *Tables, label: []const u8, relation: u32, row: u32) !void {
+        const table = self.find(label) orelse return error.MissingFixedTable;
+        if (relation >= table.entry.multiplicity_columns or row >= table.entry.row_count)
+            return error.InvalidMultiplicityKey;
+        const row_count = table.entry.row_count;
+        const dense = try self.reserve(label);
+        const index = @as(usize, relation) * row_count + row;
+        dense[index] = std.math.add(u32, dense[index], 1) catch
             return error.MultiplicityOverflow;
     }
 

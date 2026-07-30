@@ -13,7 +13,7 @@ const public_data_mod = riscv.air.public_data;
 const trace_mod = riscv.runner.trace;
 const state_chain = riscv.runner.state_chain;
 const memory_state = riscv.runner.memory_state;
-const stage_profile = @import("stwo_prover_impl").stage_profile;
+const stage_profile = @import("stwo_prover_api").stage_profile;
 
 pub const MetalProverEngine = MetalProverEngineImpl;
 
@@ -113,4 +113,10 @@ pub fn proveAndVerifyElf(
 test "RISC-V Metal engine satisfies the shared prover transaction contract" {
     comptime prover_mod.assertProverEngine(MetalProverEngine);
     std.testing.refAllDecls(MetalProverEngine);
+}
+
+test "api invariant: RISC-V Metal integration cannot select the CPU backend" {
+    try std.testing.expect(
+        MetalProverEngine.Backend == @import("stwo_metal_backend").MetalCommitBackend,
+    );
 }

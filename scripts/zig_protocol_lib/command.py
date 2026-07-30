@@ -1,156 +1,108 @@
 #!/usr/bin/env python3
-"""Canonical direct Zig commands for the named Stwo protocol module graph."""
+"""Canonical direct Zig commands derived from package contracts."""
 
 from __future__ import annotations
 
+import json
+from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 
 
-def protocol_module_args(root_source: str) -> list[str]:
+ROOT = Path(__file__).resolve().parents[2]
+
+# Product composition remains explicit, while every selected package's source
+# and dependency edges come from its authoritative package contract.
+PROTOCOL_PACKAGES = (
+    "stwo_core",
+    "stwo_backend_contracts",
+    "stwo_prover_api",
+    "stwo_prover_engine",
+    "stwo_proof_wire",
+    "stwo_metal_session",
+    "stwo_cpu_backend",
+    "stwo_cuda_backend",
+    "stwo_metal_backend",
+    "stwo_riscv_frontend",
+    "stwo_cairo_frontend",
+    "stwo_native_examples",
+    "stwo_riscv_cpu_integration",
+    "stwo_cairo_cpu_integration",
+    "stwo_cairo_metal_integration",
+    "stwo_native_cuda_integration",
+    "stwo_cairo_cuda_integration",
+)
+
+
+@dataclass(frozen=True)
+class PackageModule:
+    name: str
+    source: str
+    dependencies: tuple[str, ...]
+    contract: Path
+
+
+@lru_cache(maxsize=1)
+def protocol_package_modules() -> tuple[PackageModule, ...]:
+    discovered: dict[str, PackageModule] = {}
+    for contract in sorted((ROOT / "src").rglob("package.contract.json")):
+        payload = json.loads(contract.read_text(encoding="utf-8"))
+        package = payload.get("package")
+        if package not in PROTOCOL_PACKAGES:
+            continue
+        public_modules = payload.get("public_modules")
+        dependencies = payload.get("dependencies")
+        if (
+            not isinstance(public_modules, dict)
+            or len(public_modules) != 1
+            or not isinstance(dependencies, dict)
+        ):
+            raise ValueError(f"{contract}: malformed public module contract")
+        module_name, relative_source = next(iter(public_modules.items()))
+        if module_name != package or not isinstance(relative_source, str):
+            raise ValueError(
+                f"{contract}: direct protocol commands require package/module identity"
+            )
+        source = (contract.parent / relative_source).relative_to(ROOT).as_posix()
+        discovered[package] = PackageModule(
+            name=module_name,
+            source=source,
+            dependencies=tuple(sorted(dependencies)),
+            contract=contract,
+        )
+
+    missing = set(PROTOCOL_PACKAGES) - set(discovered)
+    extra = set(discovered) - set(PROTOCOL_PACKAGES)
+    if missing or extra:
+        raise ValueError(
+            "protocol package selection differs from contracts: "
+            f"missing={sorted(missing)}, extra={sorted(extra)}"
+        )
+    return tuple(discovered[name] for name in PROTOCOL_PACKAGES)
+
+
+def _dependency_args(dependencies: tuple[str, ...]) -> list[str]:
     return [
-        "--dep",
-        "stwo_core",
-        "--dep",
-        "stwo_backend_contracts",
-        "--dep",
-        "stwo_prover_impl",
-        "--dep",
-        "stwo_cpu_backend",
-        "--dep",
-        "stwo_metal_backend",
-        "--dep",
-        "stwo_cuda_backend",
-        "--dep",
-        "stwo_riscv_frontend",
-        "--dep",
-        "stwo_cairo_frontend",
-        "--dep",
-        "stwo_riscv_cpu_integration",
-        "--dep",
-        "stwo_cairo_cpu_integration",
-        "--dep",
-        "stwo_cairo_metal_integration",
-        "--dep",
-        "stwo_metal_session",
-        "--dep",
-        "stwo_proof_wire",
-        "--dep",
-        "stwo_native_examples",
-        "--dep",
-        "stwo_native_cuda_integration",
-        "--dep",
-        "stwo_cairo_cuda_integration",
+        argument
+        for dependency in dependencies
+        for argument in ("--dep", dependency)
+    ]
+
+
+def _package_module_args() -> list[str]:
+    arguments: list[str] = []
+    for module in protocol_package_modules():
+        arguments.extend(_dependency_args(module.dependencies))
+        arguments.append(f"-M{module.name}={module.source}")
+    return arguments
+
+
+def protocol_module_args(root_source: str) -> list[str]:
+    root_dependencies = tuple(module.name for module in protocol_package_modules())
+    return [
+        *_dependency_args(root_dependencies),
         f"-Mroot={root_source}",
-        "-Mstwo_core=src/core/mod.zig",
-        "--dep",
-        "stwo_core",
-        "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig",
-        "--dep",
-        "stwo_core",
-        "-Mstwo_backend_contracts=src/backend/mod.zig",
-        "--dep",
-        "stwo_core",
-        "--dep",
-        "stwo_backend_contracts",
-        "-Mstwo_prover_impl=src/prover/mod.zig",
-        "--dep",
-        "stwo_core",
-        "--dep",
-        "stwo_backend_contracts",
-        "--dep",
-        "stwo_prover_impl",
-        "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
-        "--dep",
-        "stwo_core",
-        "--dep",
-        "stwo_prover_impl",
-        "--dep",
-        "stwo_cpu_backend",
-        "--dep",
-        "stwo_proof_wire",
-        "-Mstwo_native_examples=src/examples/mod.zig",
-        "--dep",
-        "stwo_backend_contracts",
-        "--dep",
-        "stwo_core",
-        "--dep",
-        "stwo_cuda_backend",
-        "--dep",
-        "stwo_native_examples",
-        "--dep",
-        "stwo_proof_wire",
-        "--dep",
-        "stwo_prover_impl",
-        "-Mstwo_native_cuda_integration=src/integrations/native_cuda/mod.zig",
-        "--dep",
-        "stwo_backend_contracts",
-        "--dep",
-        "stwo_core",
-        "--dep",
-        "stwo_cuda_backend",
-        "--dep",
-        "stwo_cairo_frontend",
-        "--dep",
-        "stwo_native_cuda_integration",
-        "--dep",
-        "stwo_prover_impl",
-        "-Mstwo_cairo_cuda_integration=src/integrations/cairo_cuda/mod.zig",
-        "--dep",
-        "stwo_core",
-        "--dep",
-        "stwo_backend_contracts",
-        "--dep",
-        "stwo_prover_impl",
-        "--dep",
-        "stwo_cpu_backend",
-        "-Mstwo_metal_backend=src/backends/metal/mod.zig",
-        "--dep",
-        "stwo_backend_contracts",
-        "-Mstwo_cuda_backend=src/backends/cuda/mod.zig",
-        "--dep",
-        "stwo_core",
-        "--dep",
-        "stwo_prover_impl",
-        "-Mstwo_riscv_frontend=src/frontends/riscv/mod.zig",
-        "--dep",
-        "stwo_core",
-        "--dep",
-        "stwo_backend_contracts",
-        "--dep",
-        "stwo_prover_impl",
-        "-Mstwo_cairo_frontend=src/frontends/cairo/mod.zig",
-        "--dep",
-        "stwo_core",
-        "--dep",
-        "stwo_prover_impl",
-        "--dep",
-        "stwo_cpu_backend",
-        "--dep",
-        "stwo_riscv_frontend",
-        "-Mstwo_riscv_cpu_integration=src/integrations/riscv_cpu/mod.zig",
-        "--dep",
-        "stwo_core",
-        "--dep",
-        "stwo_prover_impl",
-        "--dep",
-        "stwo_cpu_backend",
-        "--dep",
-        "stwo_cairo_frontend",
-        "-Mstwo_cairo_cpu_integration=src/integrations/cairo_cpu/mod.zig",
-        "-Mstwo_metal_session=src/tools/metal_session/mod.zig",
-        "--dep",
-        "stwo_core",
-        "--dep",
-        "stwo_backend_contracts",
-        "--dep",
-        "stwo_prover_impl",
-        "--dep",
-        "stwo_metal_backend",
-        "--dep",
-        "stwo_cairo_frontend",
-        "--dep",
-        "stwo_metal_session",
-        "-Mstwo_cairo_metal_integration=src/integrations/cairo_metal/mod.zig",
+        *_package_module_args(),
     ]
 
 
@@ -159,210 +111,26 @@ def test_command(root_source: str, *arguments: str) -> list[str]:
 
 
 def aggregate_run_command(root_source: str, *arguments: str) -> list[str]:
+    package_names = tuple(module.name for module in protocol_package_modules())
     return [
         "zig",
         "run",
         "-lc",
-        "--dep",
-        "stwo",
-        "--dep",
-        "stwo_core",
-        "--dep",
-        "stwo_backend_contracts",
-        "--dep",
-        "stwo_prover_impl",
-        "--dep",
-        "stwo_cpu_backend",
-        "--dep",
-        "stwo_metal_backend",
-        "--dep",
-        "stwo_cuda_backend",
-        "--dep",
-        "stwo_riscv_frontend",
-        "--dep",
-        "stwo_cairo_frontend",
-        "--dep",
-        "stwo_riscv_cpu_integration",
-        "--dep",
-        "stwo_cairo_cpu_integration",
-        "--dep",
-        "stwo_cairo_metal_integration",
-        "--dep",
-        "stwo_metal_session",
-        "--dep",
-        "stwo_proof_wire",
-        "--dep",
-        "stwo_native_examples",
-        "--dep",
-        "stwo_native_cuda_integration",
-        "--dep",
-        "stwo_cairo_cuda_integration",
+        *_dependency_args(("stwo", *package_names)),
         f"-Mroot={root_source}",
-        "--dep",
-        "stwo_core",
-        "--dep",
-        "stwo_backend_contracts",
-        "--dep",
-        "stwo_prover_impl",
-        "--dep",
-        "stwo_cpu_backend",
-        "--dep",
-        "stwo_metal_backend",
-        "--dep",
-        "stwo_cuda_backend",
-        "--dep",
-        "stwo_riscv_frontend",
-        "--dep",
-        "stwo_cairo_frontend",
-        "--dep",
-        "stwo_riscv_cpu_integration",
-        "--dep",
-        "stwo_cairo_cpu_integration",
-        "--dep",
-        "stwo_cairo_metal_integration",
-        "--dep",
-        "stwo_metal_session",
-        "--dep",
-        "stwo_proof_wire",
-        "--dep",
-        "stwo_native_examples",
-        "--dep",
-        "stwo_native_cuda_integration",
-        "--dep",
-        "stwo_cairo_cuda_integration",
+        *_dependency_args(package_names),
         "-Mstwo=src/stwo.zig",
-        "-Mstwo_core=src/core/mod.zig",
-        "--dep",
-        "stwo_core",
-        "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig",
-        "--dep",
-        "stwo_core",
-        "-Mstwo_backend_contracts=src/backend/mod.zig",
-        "--dep",
-        "stwo_core",
-        "--dep",
-        "stwo_backend_contracts",
-        "-Mstwo_prover_impl=src/prover/mod.zig",
-        "--dep",
-        "stwo_core",
-        "--dep",
-        "stwo_backend_contracts",
-        "--dep",
-        "stwo_prover_impl",
-        "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
-        "--dep",
-        "stwo_core",
-        "--dep",
-        "stwo_prover_impl",
-        "--dep",
-        "stwo_cpu_backend",
-        "--dep",
-        "stwo_proof_wire",
-        "-Mstwo_native_examples=src/examples/mod.zig",
-        "--dep",
-        "stwo_backend_contracts",
-        "--dep",
-        "stwo_core",
-        "--dep",
-        "stwo_cuda_backend",
-        "--dep",
-        "stwo_native_examples",
-        "--dep",
-        "stwo_proof_wire",
-        "--dep",
-        "stwo_prover_impl",
-        "-Mstwo_native_cuda_integration=src/integrations/native_cuda/mod.zig",
-        "--dep",
-        "stwo_backend_contracts",
-        "--dep",
-        "stwo_core",
-        "--dep",
-        "stwo_cuda_backend",
-        "--dep",
-        "stwo_cairo_frontend",
-        "--dep",
-        "stwo_native_cuda_integration",
-        "--dep",
-        "stwo_prover_impl",
-        "-Mstwo_cairo_cuda_integration=src/integrations/cairo_cuda/mod.zig",
-        "--dep",
-        "stwo_core",
-        "--dep",
-        "stwo_backend_contracts",
-        "--dep",
-        "stwo_prover_impl",
-        "--dep",
-        "stwo_cpu_backend",
-        "-Mstwo_metal_backend=src/backends/metal/mod.zig",
-        "--dep",
-        "stwo_backend_contracts",
-        "-Mstwo_cuda_backend=src/backends/cuda/mod.zig",
-        "--dep",
-        "stwo_core",
-        "--dep",
-        "stwo_prover_impl",
-        "-Mstwo_riscv_frontend=src/frontends/riscv/mod.zig",
-        "--dep",
-        "stwo_core",
-        "--dep",
-        "stwo_backend_contracts",
-        "--dep",
-        "stwo_prover_impl",
-        "-Mstwo_cairo_frontend=src/frontends/cairo/mod.zig",
-        "--dep",
-        "stwo_core",
-        "--dep",
-        "stwo_prover_impl",
-        "--dep",
-        "stwo_cpu_backend",
-        "--dep",
-        "stwo_riscv_frontend",
-        "-Mstwo_riscv_cpu_integration=src/integrations/riscv_cpu/mod.zig",
-        "--dep",
-        "stwo_core",
-        "--dep",
-        "stwo_prover_impl",
-        "--dep",
-        "stwo_cpu_backend",
-        "--dep",
-        "stwo_cairo_frontend",
-        "-Mstwo_cairo_cpu_integration=src/integrations/cairo_cpu/mod.zig",
-        "-Mstwo_metal_session=src/tools/metal_session/mod.zig",
-        "--dep",
-        "stwo_core",
-        "--dep",
-        "stwo_backend_contracts",
-        "--dep",
-        "stwo_prover_impl",
-        "--dep",
-        "stwo_metal_backend",
-        "--dep",
-        "stwo_cairo_frontend",
-        "--dep",
-        "stwo_metal_session",
-        "-Mstwo_cairo_metal_integration=src/integrations/cairo_metal/mod.zig",
+        *_package_module_args(),
         "--",
         *arguments,
     ]
 
 
 def source_contract() -> tuple[Path, ...]:
-    root = Path(__file__).resolve().parents[2]
+    modules = protocol_package_modules()
     return (
         Path(__file__).resolve(),
-        root / "src/core/mod.zig",
-        root / "src/interop/proof_wire/mod.zig",
-        root / "src/examples/mod.zig",
-        root / "src/integrations/native_cuda/mod.zig",
-        root / "src/backend/mod.zig",
-        root / "src/prover/mod.zig",
-        root / "src/backends/cpu_scalar/mod.zig",
-        root / "src/backends/metal/mod.zig",
-        root / "src/backends/cuda/mod.zig",
-        root / "src/frontends/riscv/mod.zig",
-        root / "src/frontends/cairo/mod.zig",
-        root / "src/integrations/riscv_cpu/mod.zig",
-        root / "src/integrations/cairo_cpu/mod.zig",
-        root / "src/integrations/cairo_metal/mod.zig",
-        root / "src/tools/metal_session/mod.zig",
+        ROOT / "src/stwo.zig",
+        *(module.contract for module in modules),
+        *(ROOT / module.source for module in modules),
     )

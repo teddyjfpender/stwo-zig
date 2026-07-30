@@ -1,4 +1,13 @@
 //! Exact pinned Stark-V byte/half/word load-store semantics and lookups.
+//!
+//! The effective address is a base-field sum, `composeU32(rs1.next) + imm_felt`,
+//! and the base field is not `2^32`. That is only the architectural address
+//! while the sum stays inside the canonical range of `M31 = 2^31 - 1`, so the
+//! base carries an explicit bound: its high limb is pinned to zero, which puts
+//! every admitted base below `2^24` and therefore more than a displacement away
+//! from the modulus. Without that bound a base within one displacement below
+//! the modulus wraps onto a small, word-aligned address and names a different
+//! memory word than the architecture does (issue #140).
 
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
@@ -9,7 +18,7 @@ pub fn Semantics(comptime S: type) type {
         const ops = common.Ops(S);
 
         pub const N_ORACLE_COLUMNS: usize = 56;
-        pub const N_CONSTRAINTS: usize = 69;
+        pub const N_CONSTRAINTS: usize = 70;
         pub const CURRENT_TRACE_COMPATIBLE = true;
 
         pub const Row = struct {
@@ -252,6 +261,23 @@ pub fn Semantics(comptime S: type) type {
                 out[n] = S.one().sub(d.is_load).mul(limb);
                 n += 1;
             }
+            // The address is a base-field sum, so it is the architectural address
+            // only while `base + imm` stays below `M31`. The aligned-address
+            // `range_check_20` confines every admitted address to `[0, 2^22)` and
+            // the displacement is a signed 12-bit field, so an honest base is
+            // always below `2^22 + 2^11`. Pinning the base's high limb to zero
+            // bounds it by `2^24`: above every address this AIR can admit, and
+            // more than a displacement below the modulus, so the sum cannot wrap.
+            // The bound reads the remaining limbs as bytes, which is the memory
+            // bus's job here as it is for every other family's operand
+            // arithmetic — each register write is byte-range-checked by the
+            // family that made it.
+            // Only rows whose field address already disagrees with their
+            // architectural address are lost — `LW x7, 8(x5)` with
+            // `x5 = 0x7ffffffb` is architecturally the misaligned `0x80000003`
+            // but the field sum is the clean `0x00000004` (issue #140).
+            out[n] = enabler.mul(row.rs1.next[3]);
+            n += 1;
             std.debug.assert(n == out.len);
             return .{ .values = out };
         }
@@ -368,6 +394,54 @@ pub fn Semantics(comptime S: type) type {
                 .destination = .{
                     .nonzero = S.one(),
                     .inverse = ops.q(2).inv() catch unreachable,
+                },
+            };
+        }
+
+        /// An `LW x7, imm(x5)` row that reads `0xdeadbeef` from `address`.
+        ///
+        /// The address is supplied rather than derived so the caller can build
+        /// both an honest row and the issue #140 row whose field address and
+        /// architectural address disagree.
+        fn wordLoad(base: u32, imm: u32, address: u32) Row {
+            var rs1 = zeroAccess();
+            rs1.addr = ops.q(5);
+            for (&rs1.next, 0..) |*limb, i| {
+                limb.* = ops.q((base >> @as(u5, @intCast(8 * i))) & 0xff);
+            }
+            rs1.previous = rs1.next;
+            var src = zeroAccess();
+            src.addr = ops.q(address);
+            src.next = .{ ops.q(0xef), ops.q(0xbe), ops.q(0xad), ops.q(0xde) };
+            src.previous = src.next;
+            var dst = zeroAccess();
+            dst.addr = ops.q(7);
+            dst.next = src.next;
+            return .{
+                .clk = S.one(),
+                .pc = ops.q(0x1000),
+                .dst = dst,
+                .rs1 = rs1,
+                .src = src,
+                .r2_idx = ops.q(7),
+                .imm_felt = ops.q(imm),
+                .src_msb = S.zero(),
+                .shift_amount = S.zero(),
+                .src_addr_selector = ops.q(address),
+                .dst_addr_selector = ops.q(7),
+                .markers = .{S.zero()} ** 4,
+                .is_lb = S.zero(),
+                .is_lh = S.zero(),
+                .is_lbu = S.zero(),
+                .is_lhu = S.zero(),
+                .is_lw = S.one(),
+                .is_sb = S.zero(),
+                .is_sh = S.zero(),
+                .is_sw = S.zero(),
+                .result = src.next,
+                .destination = .{
+                    .nonzero = S.one(),
+                    .inverse = ops.q(7).inv() catch unreachable,
                 },
             };
         }
@@ -498,6 +572,39 @@ pub fn Semantics(comptime S: type) type {
                     try std.testing.expect(accesses.src.next.addr_space.isZero());
                     try std.testing.expect(accesses.dst.next.addr_space.eql(S.one()));
                     try std.testing.expect(programLookup(row).opcode_id.eql(ops.q(26)));
+                }
+
+                test "load store: a base near the field modulus cannot alias an address" {
+                    // Issue #140. `LW x7, 8(x5)` with `x5 = 0x7ffffffb` is
+                    // architecturally a load from `0x80000003`, which is not even
+                    // word aligned, so the architecture traps. The base-field sum
+                    // wraps the modulus and lands on `0x00000004` instead. Every
+                    // other constraint in the family accepts that row, so the base
+                    // bound has to be the one that rejects it — the count below
+                    // fails if some unrelated edit starts carrying this witness.
+                    const aliased = wordLoad(0x7ffffffb, 8, 4);
+                    var fired: usize = 0;
+                    for (evaluate(aliased).values) |value| {
+                        if (!value.isZero()) fired += 1;
+                    }
+                    try std.testing.expectEqual(@as(usize, 1), fired);
+                    try std.testing.expect(
+                        !evaluate(aliased).values[N_CONSTRAINTS - 1].isZero(),
+                    );
+
+                    // Nothing an honest program can reach is lost: the aligned
+                    // address range check already bounds the address by `2^22`, and
+                    // both an ordinary base and the largest admitted address stay
+                    // accepted.
+                    try std.testing.expect(evaluate(wordLoad(0x2000, 8, 0x2008)).allZero());
+                    try std.testing.expect(
+                        evaluate(wordLoad(0x3ffffc, 0, 0x3ffffc)).allZero(),
+                    );
+                    // A negative displacement still reaches through the field wrap
+                    // it is encoded with.
+                    var negative = wordLoad(0x2010, 0, 0x2000);
+                    negative.imm_felt = S.zero().sub(ops.q(16));
+                    try std.testing.expect(evaluate(negative).allZero());
                 }
 
                 test "load store: adapter follows exact role and flag order" {

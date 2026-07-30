@@ -1,4 +1,4 @@
-const prover_pcs = @import("stwo_prover_impl").pcs;
+const prover_pcs = @import("stwo_prover_engine").pcs;
 const quadratic_trace = @import("quadratic_trace_backend.zig");
 
 pub fn materialize(

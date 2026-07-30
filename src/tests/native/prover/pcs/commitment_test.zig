@@ -6,9 +6,9 @@ const m31 = @import("stwo_core").fields.m31;
 const pcs_core = @import("stwo_core").pcs;
 const pcs_utils = @import("stwo_core").pcs.utils;
 const vcs_verifier = @import("stwo_core").vcs_lifted.verifier;
-const prover_circle = @import("stwo_prover_impl").poly.circle;
-const pcs_prover = @import("stwo_prover_impl").pcs;
-const stage_profile = @import("stwo_prover_impl").stage_profile;
+const prover_circle = @import("stwo_prover_engine").poly.circle;
+const pcs_prover = @import("stwo_prover_engine").pcs;
+const stage_profile = @import("stwo_prover_api").stage_profile;
 
 const M31 = m31.M31;
 const CirclePointQM31 = circle.CirclePointQM31;
@@ -255,8 +255,8 @@ test "prover pcs: borrowed twiddle tower initializer leaves tower ownership exte
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
-    const M31TwiddleTower = @import("stwo_prover_impl").poly.twiddle_tower.M31TwiddleTower;
-    const TwiddleSource = @import("stwo_prover_impl").poly.twiddle_source.TwiddleSource;
+    const M31TwiddleTower = @import("stwo_prover_engine").poly.twiddle_tower.M31TwiddleTower;
+    const TwiddleSource = @import("stwo_prover_engine").poly.twiddle_source.TwiddleSource;
     const Scheme = CommitmentSchemeProver(CpuBackend, Hasher, MerkleChannel);
     const alloc = std.testing.allocator;
 

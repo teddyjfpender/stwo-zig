@@ -6,7 +6,7 @@
 
 pub const core = @import("stwo_core");
 pub const backend = @import("stwo_backend_contracts");
-pub const prover = @import("stwo_prover_impl");
+pub const prover = @import("stwo_prover_engine");
 
 pub const backends = struct {
     pub const cpu = @import("stwo_cpu_backend");

@@ -5,7 +5,7 @@ const fields = @import("stwo_core").fields;
 const M31 = fields.m31.M31;
 const QM31 = fields.qm31.QM31;
 const utils = @import("stwo_core").utils;
-const prover_pcs = @import("stwo_prover_impl").pcs;
+const prover_pcs = @import("stwo_prover_engine").pcs;
 
 pub const Fraction = struct {
     numerator: QM31,

@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const core = @import("stwo_core");
-const prover = @import("stwo_prover_impl");
+const prover = @import("stwo_prover_engine");
 const secure_composition = @import("secure_composition.zig");
 
 pub fn computeCompositionEvaluation(

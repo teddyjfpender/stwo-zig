@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
-const prover_mod = @import("stwo_prover_impl").vcs_lifted.prover;
+const prover_mod = @import("stwo_prover_engine").vcs_lifted.prover;
 
 const M31 = m31.M31;
 const MerkleProverLifted = prover_mod.MerkleProverLifted;

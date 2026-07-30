@@ -1,5 +1,5 @@
 const std = @import("std");
-const prove_mod = @import("stwo_prover_impl").prove;
+const prove_mod = @import("stwo_prover_engine").prove;
 const circle = @import("stwo_core").circle;
 const core_verifier = @import("stwo_core").verifier;
 const core_air_accumulation = @import("stwo_core").air.accumulation;
@@ -8,10 +8,10 @@ const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
 const pcs_core = @import("stwo_core").pcs;
 const verifier_types = @import("stwo_core").verifier_types;
-const component_prover = @import("stwo_prover_impl").air.component_prover;
-const prover_air_accumulation = @import("stwo_prover_impl").air.accumulation;
-const pcs_prover = @import("stwo_prover_impl").pcs;
-const secure_column = @import("stwo_prover_impl").secure_column;
+const component_prover = @import("stwo_prover_engine").air.component_prover;
+const prover_air_accumulation = @import("stwo_prover_engine").air.accumulation;
+const pcs_prover = @import("stwo_prover_engine").pcs;
+const secure_column = @import("stwo_prover_engine").secure_column;
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;

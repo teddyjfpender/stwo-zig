@@ -5,6 +5,16 @@
 //! `error.AdapterNotReleaseGated` until the RV32IM AIR and public I/O binding
 //! pass the release gate. Wiring the real prover is a one-function change
 //! here; the focused capability authority flips only at that moment.
+//!
+//! The adapter is engine-parameterised: `runWithEngine` and
+//! `verifyArtifactWithEngine` take the prover engine and the backend tag as
+//! comptime parameters, mirroring `tools/riscv/bench/runner.mainWithEngine`,
+//! so one implementation of the atomic publication path, the determinism
+//! checks and the transcript-digest cross-check serves every backend. There is
+//! deliberately no second copy of this file per backend: two adapters that must
+//! not drift is precisely the failure mode this seam exists to prevent.
+//! `run`/`verifyArtifact` remain as the facade-default bindings so the existing
+//! focused and aggregate CPU call sites are untouched.
 
 const std = @import("std");
 const stwo = @import("stwo");
@@ -30,7 +40,7 @@ pub const Benchmark = struct {
     profiled: bool,
 };
 
-pub const Backend = enum { cpu, unavailable_device };
+pub const Backend = enum { cpu, metal, unavailable_device };
 pub const Protocol = enum { secure, functional, smoke };
 
 pub const Mode = union(enum) {
@@ -56,18 +66,35 @@ const ProcessIdentity = artifact_validation.ProcessIdentity;
 /// Keeping publication outside the adapter gives Native and RISC-V workloads
 /// identical exclusive-output and rollback behavior when the release gate is
 /// eventually opened.
+/// Drive one proving transaction on `Engine`.
+///
+/// `Engine` and `backend` are comptime so a product binds exactly one engine and
+/// links exactly one commitment backend -- the CPU product must not acquire a
+/// Metal link edge, which its own closure gate forbids. `@tagName(.cpu) == "cpu"`,
+/// so a CPU artifact produced through this generic path is byte-identical to one
+/// produced before the parameterisation.
 pub fn run(
+    comptime Engine: type,
+    comptime backend: Backend,
     allocator: std.mem.Allocator,
     elf_path: []const u8,
     input_path: ?[]const u8,
     options: Options,
 ) ![]u8 {
+    comptime stwo.frontends.riscv.prover_mod.assertProverEngine(Engine);
+    comptime std.debug.assert(backend != .unavailable_device);
     try capabilities.requireAdmission(options.experimental);
-    if (options.backend != .cpu) return error.AdapterNotReleaseGated;
+    if (options.backend != backend) return error.AdapterNotReleaseGated;
+    // Build pipelines and libraries before the first timed sample. This does not
+    // distort `resources`: the footprint is an absolute process-lifetime peak
+    // read from the *after* snapshot.
+    if (comptime @hasDecl(Engine, "warmup")) try Engine.warmup();
     const process_identity = try artifact_validation.measureProcessIdentity(allocator);
     return switch (options.mode) {
-        .prove => runProve(allocator, elf_path, input_path, options, process_identity),
+        .prove => runProve(Engine, backend, allocator, elf_path, input_path, options, process_identity),
         .bench => |benchmark| runBenchmark(
+            Engine,
+            backend,
             allocator,
             elf_path,
             input_path,
@@ -79,6 +106,8 @@ pub fn run(
 }
 
 fn runProve(
+    comptime Engine: type,
+    comptime backend: Backend,
     allocator: std.mem.Allocator,
     elf_path: []const u8,
     input_path: ?[]const u8,
@@ -90,7 +119,6 @@ fn runProve(
 
     const runner = stwo.frontends.riscv.runner;
     const prover = stwo.frontends.riscv.prover_mod;
-    const riscv_cpu = stwo.integrations.riscv_cpu;
     const artifact_mod = stwo.interop.riscv_artifact;
 
     const elf_bytes = try std.fs.cwd().readFileAlloc(allocator, elf_path, 64 * 1024 * 1024);
@@ -136,9 +164,9 @@ fn runProve(
     );
     defer recorder.deinit();
     var proving_timer = try std.time.Timer.start();
-    var prove_channel = riscv_cpu.CpuProverEngine.Channel{};
+    var prove_channel = Engine.Channel{};
     var output = try prover.proveRiscVWithEngineAndPublicDataUsingChannel(
-        riscv_cpu.CpuProverEngine,
+        Engine,
         allocator,
         config,
         &run_result.execution_trace,
@@ -194,9 +222,9 @@ fn runProve(
     // The verifier consumes the proof on both success and failure.
     var verification_timer = try std.time.Timer.start();
     proof_owned = false;
-    var verify_channel = riscv_cpu.CpuProverEngine.Channel{};
+    var verify_channel = Engine.Channel{};
     try prover.verifyRiscVWithEngineUsingChannel(
-        riscv_cpu.CpuProverEngine,
+        Engine,
         allocator,
         config,
         output.statement,
@@ -259,7 +287,7 @@ fn runProve(
         .release_status = artifact_mod.RELEASE_STATUS,
         .generator = artifact_mod.GENERATOR,
         .air = artifact_mod.AIR,
-        .backend = "cpu",
+        .backend = @tagName(backend),
         .protocol = @tagName(options.protocol),
         .source = source,
         .provenance = .{
@@ -339,6 +367,8 @@ const ProveReport = struct {
 };
 
 fn runBenchmark(
+    comptime Engine: type,
+    comptime backend: Backend,
     allocator: std.mem.Allocator,
     elf_path: []const u8,
     input_path: ?[]const u8,
@@ -378,7 +408,7 @@ fn runBenchmark(
         defer if (!keep_artifact) std.fs.cwd().deleteFile(path) catch {};
 
         var timer = try std.time.Timer.start();
-        const report_raw = try runProve(allocator, elf_path, input_path, .{
+        const report_raw = try runProve(Engine, backend, allocator, elf_path, input_path, .{
             .backend = options.backend,
             .protocol = options.protocol,
             .mode = .prove,
@@ -525,6 +555,7 @@ fn stagedPcsConfig(protocol: Protocol) stwo.core.pcs.PcsConfig {
 /// with the artifact's own release status so staged verification can never
 /// be mistaken for promotion.
 pub fn verifyArtifact(
+    comptime Engine: type,
     allocator: std.mem.Allocator,
     artifact: stwo.interop.riscv_artifact.Artifact,
     requested_policy: Protocol,
@@ -533,7 +564,6 @@ pub fn verifyArtifact(
 ) !void {
     const artifact_mod = stwo.interop.riscv_artifact;
     const prover = stwo.frontends.riscv.prover_mod;
-    const riscv_cpu = stwo.integrations.riscv_cpu;
 
     try artifact_mod.validateForPolicy(artifact, switch (requested_policy) {
         .secure => .secure,
@@ -586,9 +616,9 @@ pub fn verifyArtifact(
         proof.deinit(allocator);
         return error.ProofConfigMismatch;
     }
-    var verify_channel = riscv_cpu.CpuProverEngine.Channel{};
+    var verify_channel = Engine.Channel{};
     try prover.verifyRiscVWithEngineUsingChannel(
-        riscv_cpu.CpuProverEngine,
+        Engine,
         allocator,
         config,
         reconstructed.statement,
@@ -621,9 +651,32 @@ pub fn verifyArtifact(
     try std.fs.File.stdout().writeAll("\n");
 }
 
+/// The engine this module's own tests exercise, resolved from whichever product
+/// facade compiled them. The tests must not name a concrete integration package:
+/// this file is a shared seam, and when it is compiled as a test root inside the
+/// Metal product `stwo.integrations.riscv_cpu` does not exist to be resolved.
+///
+/// Each focused facade declares exactly one RISC-V integration --
+/// `src/stwo_riscv_cpu.zig` declares only `riscv_cpu` and
+/// `src/products/riscv_metal/root.zig` declares only `riscv_metal` -- so
+/// `@hasDecl` is a total discriminator here rather than a feature probe. The
+/// condition is comptime-known, so only the branch that resolves is analysed and
+/// the absent facade member is never named in the compiled product. The
+/// aggregate `src/stwo.zig` facade routes through `integrations/mod.zig`, which
+/// declares `riscv_cpu`, and so takes the same branch as the CPU product.
+const TestEngine = if (@hasDecl(stwo.integrations, "riscv_cpu"))
+    stwo.integrations.riscv_cpu.CpuProverEngine
+else
+    stwo.integrations.riscv_metal.MetalProverEngine;
+
+/// The backend tag `TestEngine` commits to. `run` rejects an `Options.backend`
+/// that disagrees with its comptime `backend` parameter, so the two must be
+/// selected together.
+const test_backend: Backend = if (@hasDecl(stwo.integrations, "riscv_cpu")) .cpu else .metal;
+
 test "adapter preserves the complete sampled benchmark contract" {
     const options = Options{
-        .backend = .cpu,
+        .backend = test_backend,
         .protocol = .functional,
         .mode = .{ .bench = .{ .warmups = 3, .samples = 7, .profiled = true } },
         .experimental = !capabilities.adapter_release_gated,
@@ -635,7 +688,7 @@ test "adapter preserves the complete sampled benchmark contract" {
     try std.testing.expect(options.mode.bench.profiled);
     try std.testing.expectError(
         error.FileNotFound,
-        run(std.testing.allocator, "guest.elf", "input.bin", options),
+        run(TestEngine, test_backend, std.testing.allocator, "guest.elf", "input.bin", options),
     );
 }
 

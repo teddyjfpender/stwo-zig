@@ -9,7 +9,7 @@
 
 const std = @import("std");
 const builtin = @import("builtin");
-const stage_profile = @import("stwo_prover_impl").stage_profile;
+const stage_profile = @import("stwo_prover_api").stage_profile;
 const pcs_core = @import("stwo_core").pcs;
 
 const Timer = struct {
@@ -57,8 +57,18 @@ fn makeFibElf(allocator: std.mem.Allocator, n: u32) ![]u8 {
         (1 << 20) | (3 << 15) | (0b000 << 12) | (3 << 7) | 0x13,
         // BNE x3, x4, -16   (if i != N, loop back 4 instructions)
         encodeBne(3, 4, @as(i13, -16)),
-        // ECALL
-        0x00000073,
+        // jal x0, 0 — the canonical zkVM completion sentinel.
+        //
+        // This is deliberately NOT `ecall` (0x00000073). ECALL is
+        // `UnsupportedForProof`, so an ECALL-terminated trace has no
+        // proof-bearing completion and the benchmark could only ever measure
+        // execution, never the prove/verify pipeline it exists to measure.
+        // The sentinel is an environment event: the runner observes it and
+        // stops *without* retiring it, so the only difference to the measured
+        // workload is that the terminator itself is no longer one retired
+        // cycle. Everything the benchmark reports on — the fib loop — is
+        // unchanged.
+        0x0000006F,
     };
 
     const code_size = instructions.len * 4;
@@ -254,10 +264,11 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
     }
 
     if (input_buf != null and hosted) return error.IncompatibleInputModes;
+    const step_limit = if (elf_path != null) max_steps else fib_n * 6;
     var run_result = if (input_buf) |input|
-        try runner.runWithInput(allocator, elf_bytes, input, if (elf_path != null) max_steps else fib_n * 6)
+        try runner.runWithInput(allocator, elf_bytes, input, step_limit)
     else
-        try runner.runWithHost(allocator, elf_bytes, if (elf_path != null) max_steps else fib_n * 6, host_iface);
+        try runner.runWithHost(allocator, elf_bytes, step_limit, host_iface);
     defer run_result.deinit();
     const exec_ms = t_exec.elapsedMs();
 
@@ -288,11 +299,77 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
         return;
     }
 
+    // Fail closed on any run whose termination the statement cannot bind,
+    // matching the production adapter's gate in
+    // `src/integrations/riscv_cpu/proof_adapter.zig`. Only `.halt_flag` and
+    // `.self_loop` carry a proof-bearing completion; anything else (ECALL,
+    // EBREAK, a host halt, a step-limit cutoff, an undecodable word) would
+    // otherwise be handed to the prover and fail far downstream with a
+    // diagnostic that names neither the guest nor the reason.
+    switch (run_result.completion_reason) {
+        .halt_flag, .self_loop => {},
+        else => |reason| {
+            std.debug.print(
+                \\
+                \\ERROR: the guest ended with completion_reason={s}, which carries no
+                \\       proof-bearing completion, so this run cannot be proved.
+                \\       A provable guest must either write its linker-declared
+                \\       __halt_flag or end on the canonical `jal x0, 0` sentinel.
+                \\       Use --run-only to measure execution alone.
+                \\
+            , .{@tagName(reason)});
+            return error.UnprovableCompletion;
+        },
+    }
+
+    // Fail closed on the other statement the bench can otherwise build but not
+    // prove: the guest read its linker-declared public-input region, yet no
+    // `--input` was supplied. The committed memory image then carries
+    // public-input words the statement's `input_len = 0` never publishes, so
+    // the public-I/O bus cannot cancel. Detect it from the run's own committed
+    // words rather than guessing from the declared region, which a guest is
+    // free to leave untouched.
+    if (run_result.input.len == 0) {
+        for (run_result.rw_memory.words) |word| {
+            if (!word.role.is_public_input or word.final_clock == 0) continue;
+            std.debug.print(
+                \\
+                \\ERROR: the guest read its public-input region at 0x{x:0>8} but no
+                \\       --input was supplied, so the statement would publish zero
+                \\       input words for memory the proof commits as public input.
+                \\       Pass --input PATH (or --input-u32 N) for this guest.
+                \\
+            , .{word.addr});
+            return error.MissingGuestInput;
+        }
+    }
+
     // Stage 3: Prove
+    //
+    // The trace-only convenience entrypoint (`proveRiscVWithEngine`) synthesizes
+    // a statement with an empty I/O region, so the public-I/O LogUp bus cannot
+    // balance for any guest that actually reads input or writes output. Build the
+    // same real public data the production adapter builds instead; the runner's
+    // own initial/final register state is authoritative, which is why the derived
+    // trace-only boundary is not used here either.
+    const public_data_mod = frontend.air.public_data;
+    const input_words = try public_data_mod.packInputWords(allocator, run_result.input);
+    defer allocator.free(input_words);
+    const output_words = try allocator.alloc(
+        public_data_mod.OutputWord,
+        run_result.output_words.len,
+    );
+    defer allocator.free(output_words);
+    for (run_result.output_words, 0..) |word, word_index| output_words[word_index] = .{
+        .addr = word.addr,
+        .value = word.value,
+        .clock = word.clock,
+    };
+
     const t_prove = Timer.begin();
     var recorder = stage_profile.Recorder.init(allocator, "zig", "riscv");
     defer recorder.deinit();
-    const output = try riscv_prover.proveRiscVWithEngine(
+    const output = try riscv_prover.proveRiscVWithEngineAndPublicData(
         Engine,
         allocator,
         config,
@@ -300,6 +377,27 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
         &run_result.state_chain_tracker,
         &run_result.rw_memory,
         if (profile_enabled) &recorder else null,
+        .{
+            .initial_pc = run_result.initial_pc,
+            .final_pc = run_result.final_pc,
+            .clock = @intCast(run_result.step_count),
+            .initial_regs = run_result.initial_regs,
+            .final_regs = run_result.final_regs,
+            .reg_last_clock = run_result.state_chain_tracker.reg_last_clk,
+            .program_root = null,
+            .initial_rw_root = null,
+            .final_rw_root = null,
+            .completion = try public_data_mod.completionFromRun(run_result),
+            .io_entries = .{
+                .input_start = run_result.input_start,
+                .input_len = @intCast(run_result.input.len),
+                .input_words = input_words,
+                .output_len = run_result.output_len,
+                .output_len_addr = run_result.output_len_addr,
+                .output_data_addr = run_result.output_data_addr,
+                .output_words = output_words,
+            },
+        },
     );
     defer output.deinitAfterProofMoved(allocator);
     const prove_ms = t_prove.elapsedMs();

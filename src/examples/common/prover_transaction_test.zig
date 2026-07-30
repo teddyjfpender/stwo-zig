@@ -5,10 +5,10 @@ const fri = @import("stwo_core").fri;
 const m31 = @import("stwo_core").fields.m31;
 const pcs_core = @import("stwo_core").pcs;
 const Blake2sChannel = @import("stwo_core").channel.blake2s.Blake2sChannel;
-const prover_component = @import("stwo_prover_impl").air.component_prover;
-const prover_engine = @import("stwo_prover_impl").engine;
-const prover_pcs = @import("stwo_prover_impl").pcs;
-const stage_profile = @import("stwo_prover_impl").stage_profile;
+const prover_component = @import("stwo_prover_engine").air.component_prover;
+const prover_engine = @import("stwo_prover_engine").engine;
+const prover_pcs = @import("stwo_prover_engine").pcs;
+const stage_profile = @import("stwo_prover_api").stage_profile;
 const subject = @import("prover_transaction.zig");
 
 const M31 = m31.M31;
@@ -18,6 +18,7 @@ const FakeStatement = u8;
 
 const FakeEngine = struct {
     pub const Channel = Blake2sChannel;
+    pub const Component = prover_component.ComponentProver;
     pub const ExtendedProof = struct { marker: u8 };
     pub const Scheme = struct { allocation: *u8 };
 

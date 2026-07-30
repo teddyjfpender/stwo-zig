@@ -32,9 +32,30 @@ pub const proveRiscVWithEngineAndPublicData = prover_mod.proveRiscVWithEngineAnd
 pub const verifyRiscVWithEngine = prover_mod.verifyRiscVWithEngine;
 pub const proveAndVerifyElfWithEngine = prover_mod.proveAndVerifyElfWithEngine;
 
+test "api signature: RISC-V facade preserves runner and prover entry points" {
+    comptime {
+        if (Opcode != runner.Opcode) @compileError("Opcode facade alias drifted");
+        switch (@typeInfo(@TypeOf(runWithInput))) {
+            .@"fn" => {},
+            else => @compileError("runWithInput must remain a function"),
+        }
+        switch (@typeInfo(@TypeOf(proveRiscVWithEngine))) {
+            .@"fn" => {},
+            else => @compileError("proveRiscVWithEngine must remain a function"),
+        }
+    }
+}
+
 test {
     @import("std").testing.refAllDeclsRecursive(infra_trace);
     _ = @import("opcode_coverage_test.zig");
     _ = @import("air/extract/mod.zig");
     _ = @import("air/semantic_eval.zig");
+    // The Sail bridge's own two self-checks. A file's tests are collected
+    // only when a `test` block names it; the file-scope `pub const
+    // sail_oracle = @import("sail_oracle.zig")` in `runner/mod.zig` is not
+    // enough, and until this line existed those two tests ran in no step at
+    // all. The main build reaches them through `test-riscv-sail-oracle`,
+    // which roots a test artifact at the file itself.
+    _ = @import("runner/sail_oracle.zig");
 }

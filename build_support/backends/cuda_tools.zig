@@ -216,7 +216,6 @@ pub fn addProducts(
         tool_product,
         target,
         optimize,
-        cpu_backend,
         stwo,
     );
     const cuda_backend = graph.addCudaBackendImport(

@@ -40,6 +40,11 @@
       "path": "runs/2026-07-17-204301-matrix-v4-756afa46/report.json",
       "run": "2026-07-17-204301-matrix-v4-756afa46"
     },
+    "51cedc323c0a9fa12c17ad96ac34375013f276b2565778c6e61d8ef401837730": {
+      "bytes": 2871284,
+      "path": "runs/2026-07-23-190948-matrix-v6-467edbc9/report.json",
+      "run": "2026-07-23-190948-matrix-v6-467edbc9"
+    },
     "53eee11540ad7976beb9c4e95773afd55a0da69676f7c58e469f670a26ac9466": {
       "bytes": 1176793,
       "path": "runs/2026-07-21-192812-matrix-v6-483bca66/report.json",
@@ -301,6 +306,15 @@
       "path": "runs/2026-07-21-085853-matrix-v6-6448467f/bundle",
       "report_sha256": "770830ab765311cf46afa7fd10d3dab3868001e40e9f60115f573e788bcaa4bc",
       "run": "2026-07-21-085853-matrix-v6-6448467f",
+      "schema": "native_proof_matrix_bundle_v1"
+    },
+    "deaa7e84793764c518698c759d015b89c287dfa6db1c9d5faff90affae6d7453": {
+      "artifact_bytes": 5616350,
+      "artifact_files": 78,
+      "bundle_sha256": "deaa7e84793764c518698c759d015b89c287dfa6db1c9d5faff90affae6d7453",
+      "path": "runs/2026-07-23-190948-matrix-v6-467edbc9/bundle",
+      "report_sha256": "51cedc323c0a9fa12c17ad96ac34375013f276b2565778c6e61d8ef401837730",
+      "run": "2026-07-23-190948-matrix-v6-467edbc9",
       "schema": "native_proof_matrix_bundle_v1"
     },
     "ef56faafa2b659af1744983de54f18088000469ac506806fdcf56b811e3c9760": {
@@ -764,6 +778,19 @@
       "id": "399237d254f45b7e7fda0513ec79f3f03ae226c9b820caf51239ee6d714dac19",
       "report_kind": "native_proof_cross_backend_matrix_v6",
       "status": "comparable"
+    },
+    {
+      "archived_at": "2026-07-23T19:10:00Z",
+      "baseline_run": "2026-07-23-110359-matrix-v6-e58b4d1e",
+      "baseline_sha256": "e772acbf9f58ff3916f2ffe91016ebc28bc6aadc75c6e68d5fd43ef3023d7be3",
+      "comparison_identity_sha256": "2553f7a1c04b310bc64447da940179e9bccdf544d56ea7044bb6a6aa1aaf4218",
+      "current_run": "2026-07-23-190948-matrix-v6-467edbc9",
+      "current_sha256": "51cedc323c0a9fa12c17ad96ac34375013f276b2565778c6e61d8ef401837730",
+      "delta_path": "runs/2026-07-23-190948-matrix-v6-467edbc9/delta-from-2026-07-23-110359-matrix-v6-e58b4d1e.json",
+      "delta_sha256": "b775b0de50141d7290bf300d6505ac0af377bb74089c4b3493537e4b1f405ca1",
+      "id": "78af8fd4b7b652bbf5cd59d3cd42206da483887c7ab8bc6154332614fc27e287",
+      "report_kind": "native_proof_cross_backend_matrix_v6",
+      "status": "comparable"
     }
   ],
   "deltas": {
@@ -886,6 +913,12 @@
       "bytes": 245479,
       "path": "runs/2026-07-23-110359-matrix-v6-e58b4d1e/delta-from-2026-07-23-104858-matrix-v6-9ed6df6b.json",
       "run": "2026-07-23-110359-matrix-v6-e58b4d1e"
+    },
+    "b775b0de50141d7290bf300d6505ac0af377bb74089c4b3493537e4b1f405ca1": {
+      "baseline_run": "2026-07-23-110359-matrix-v6-e58b4d1e",
+      "bytes": 244182,
+      "path": "runs/2026-07-23-190948-matrix-v6-467edbc9/delta-from-2026-07-23-110359-matrix-v6-e58b4d1e.json",
+      "run": "2026-07-23-190948-matrix-v6-467edbc9"
     },
     "bd2559786af0f67db2334281105d03e27ca708b4534c2cacd9a84f24ae7e0786": {
       "baseline_run": "2026-07-21-192812-matrix-v6-483bca66",
@@ -1463,6 +1496,26 @@
         "bytes": 2871560,
         "path": "runs/2026-07-23-110359-matrix-v6-e58b4d1e/report.json",
         "sha256": "e772acbf9f58ff3916f2ffe91016ebc28bc6aadc75c6e68d5fd43ef3023d7be3"
+      }
+    },
+    "2026-07-23-190948-matrix-v6-467edbc9": {
+      "bundle": {
+        "artifact_bytes": 5616350,
+        "artifact_files": 78,
+        "bundle_sha256": "deaa7e84793764c518698c759d015b89c287dfa6db1c9d5faff90affae6d7453",
+        "path": "runs/2026-07-23-190948-matrix-v6-467edbc9/bundle",
+        "report_sha256": "51cedc323c0a9fa12c17ad96ac34375013f276b2565778c6e61d8ef401837730",
+        "run": "2026-07-23-190948-matrix-v6-467edbc9",
+        "schema": "native_proof_matrix_bundle_v1"
+      },
+      "deltas": [
+        "runs/2026-07-23-190948-matrix-v6-467edbc9/delta-from-2026-07-23-110359-matrix-v6-e58b4d1e.json"
+      ],
+      "kind": "native_proof_cross_backend_matrix_v6",
+      "report": {
+        "bytes": 2871284,
+        "path": "runs/2026-07-23-190948-matrix-v6-467edbc9/report.json",
+        "sha256": "51cedc323c0a9fa12c17ad96ac34375013f276b2565778c6e61d8ef401837730"
       }
     }
   },

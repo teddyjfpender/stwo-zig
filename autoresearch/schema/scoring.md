@@ -138,6 +138,80 @@ therefore never compounds raw ledger `judged_r` values independently of the
 audit engine. The feed publishes the audited-only board geomean beside the
 effective headline for provenance.
 
+## Retired boards (TRACKS §6 retire-and-complete)
+
+`core_cpu` and `core_metal` are **retired and complete** as of
+2026-07-29. Retirement is expressed with existing machinery and means exactly
+three things:
+
+1. The manifest group flips to `promotion_eligible: false` and carries a
+   `retirement` block (`retired_at_utc`, `reason`, `closing_audit`). New
+   promotions refuse with a retirement-specific message naming the date and
+   reason — a retired board is finished, not "not yet live".
+2. **History stays fully served.** The board keeps its name in `ledger.BOARDS`
+   forever (removing it silently drops its history from the feed), stays
+   `enabled` so its workloads keep running as guards and as PR6-supremacy
+   objective cells, and keeps its scored classes, ledger rows, suite score, and
+   frontier in the feed. The feed publishes retired boards in
+   `promotion_scope.retired_boards` and deliberately keeps them OUT of
+   `future_boards`, whose contract is "out of scope, never live".
+3. The board's era is `banked` in `epochs.json`, freezing its scoring at the
+   era it was measured in even after later global epochs open.
+
+The **closing audit** is the one piece of retirement that is not yet recorded.
+It runs on the designated M5 judge host through the normal audit controller —
+promotion ineligibility does not block it, because auditing is not promoting —
+and stamps each retired board's last audited score. Until then
+`retirement.closing_audit` is `null`; when the signed bundle lands it becomes
+`{completed_utc, bundle_sha256, row_ids}` and the audit cells close.
+
+## Per-track eras and the staged RISC-V boundary switch (TRACKS §3.1, §7)
+
+Each board may own an era sequence in `epochs.json` (`board_eras`; schema and
+invariants in schema/ledger.md). An era declares the boundary it scores via
+`scored_dimension`:
+
+| value | meaning |
+| --- | --- |
+| `prove_ms` | today's boundary everywhere: the commitment→composition→FRI→PoW island |
+| `request_ms` | the TRACKS §3.1 verified-request boundary — before input/trace/statement construction, after independent verification |
+
+**RISC-V re-scores to the request boundary at its NEXT era.** Era 2 is
+unchanged and still scores `prove_ms`; era 3 is deliberately NOT open, because
+the switch invalidates the frozen A/A dispersion and needs a fresh judge-host
+recalibration at the new boundary. Two gates enforce this:
+
+- `ledger` refuses any era that declares `scored_dimension: "request_ms"`
+  without its own measured `aa_dispersion` — a boundary switch never inherits
+  calibration;
+- the runner refuses to evaluate a board whose era declares a boundary the
+  harness does not yet measure, so opening the era before the runner change
+  lands fails closed instead of producing prove-boundary rows labelled as
+  request-boundary numbers.
+
+The era-3 record template (fill the measured values; invent nothing):
+
+```json
+{
+  "era": 3,
+  "epoch_ref": <global epoch open at the time>,
+  "opened_utc": "<UTC of the era open>",
+  "reason": "TRACKS §3.1: the RISC-V track re-scores to the verified-request boundary; prove_ms is demoted to diagnostic telemetry",
+  "scored_dimension": "request_ms",
+  "aa_dispersion": {
+    "small": <measured>, "wide": <measured>, "deep": <measured>
+  },
+  "audit_anchor_commit": "<40-hex commit the first era-3 direct audit chains from>",
+  "resource_budgets": {
+    "<class>": {"peak_rss_mib": <x>, "energy_j": <x>, "proof_bytes": <x>}
+  }
+}
+```
+
+The manifest side of the switch is the group's optional `scored_dimension`
+field (same allowlist, defaulting to `prove_ms`); no group declares a
+non-default value today.
+
 ## What is deliberately not scored
 
 - No blended CPU+Metal index within one basket (breaks backend identity).

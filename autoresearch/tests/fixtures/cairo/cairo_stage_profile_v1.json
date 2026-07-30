@@ -1,0 +1,112 @@
+{
+ "schema_version": 1,
+ "runtime": "cpu",
+ "example": "cairo",
+ "stages": [
+  {
+   "id": "preprocessed_plan",
+   "label": "Preprocessed plan",
+   "seconds": 7e-05
+  },
+  {
+   "id": "preprocessed_table_build",
+   "label": "Preprocessed table build",
+   "seconds": 0.137283
+  },
+  {
+   "id": "base_trace_build",
+   "label": "Base trace build",
+   "seconds": 0.020883
+  },
+  {
+   "id": "air_template_instantiation",
+   "label": "AIR template instantiation",
+   "seconds": 0.000198
+  },
+  {
+   "id": "preprocessed_materialize_and_commit",
+   "label": "Preprocessed materialize and commit",
+   "seconds": 0.1992
+  },
+  {
+   "id": "main_trace_commit",
+   "label": "Main trace commit",
+   "seconds": 0.204005
+  },
+  {
+   "id": "interaction_trace_build",
+   "label": "Interaction trace build",
+   "seconds": 0.142084
+  },
+  {
+   "id": "interaction_trace_commit",
+   "label": "Interaction trace commit",
+   "seconds": 0.298161
+  },
+  {
+   "id": "draw_random_coeff",
+   "label": "Draw random coefficient",
+   "seconds": 0
+  },
+  {
+   "id": "composition_trace_extract",
+   "label": "Composition trace extract",
+   "seconds": 1.7e-05
+  },
+  {
+   "id": "composition_evaluation",
+   "label": "Composition evaluation",
+   "seconds": 0.291588
+  },
+  {
+   "id": "composition_interpolate_and_split",
+   "label": "Composition interpolate and split",
+   "seconds": 0.007813
+  },
+  {
+   "id": "composition_commit",
+   "label": "Composition commit",
+   "seconds": 0.067749
+  },
+  {
+   "id": "oods_point_and_mask_points",
+   "label": "OODS point and mask points",
+   "seconds": 0.000155
+  },
+  {
+   "id": "sampled_value_evaluation",
+   "label": "Sampled-value evaluation",
+   "seconds": 0.037828
+  },
+  {
+   "id": "sampled_value_channel_mix",
+   "label": "Sampled-value channel mix",
+   "seconds": 0.000105
+  },
+  {
+   "id": "fri_quotient_build_and_commit",
+   "label": "FRI quotient build + commit (lazy)",
+   "seconds": 0.18838
+  },
+  {
+   "id": "proof_of_work",
+   "label": "Proof of work",
+   "seconds": 0.086572
+  },
+  {
+   "id": "fri_decommit",
+   "label": "FRI decommit",
+   "seconds": 0.004704
+  },
+  {
+   "id": "trace_decommit",
+   "label": "Trace decommit",
+   "seconds": 0.001474
+  },
+  {
+   "id": "constraint_check_and_assembly",
+   "label": "Constraint check and assembly",
+   "seconds": 0.000707
+  }
+ ]
+}

@@ -665,6 +665,12 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "rust_path": "crates/stwo/src/lib.rs",
       "source": "src/stwo.zig"
     },
+    "stwo.prover_api": {
+      "kind": "const",
+      "rationale": "Zig package boundary for stable prover transaction types, signature-checked engine contracts, and stage telemetry; upstream Rust expresses these across traits and concrete prover modules rather than one exported namespace.",
+      "rust_path": "crates/stwo/src/prover/mod.rs",
+      "source": "src/stwo.zig"
+    },
     "stwo.prover.air": {
       "kind": "const",
       "rationale": null,

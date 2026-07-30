@@ -1,0 +1,1335 @@
+{
+  "canonical_digest": "f8620de33ba13513c2a0c8e8998d8af24944c4f09211b79797c8996289859667",
+  "columns": [
+    {
+      "name": "clk",
+      "role": "input"
+    },
+    {
+      "name": "pc",
+      "role": "input"
+    },
+    {
+      "name": "rd_addr",
+      "role": "input"
+    },
+    {
+      "name": "rd_previous_0",
+      "role": "input"
+    },
+    {
+      "name": "rd_previous_1",
+      "role": "input"
+    },
+    {
+      "name": "rd_previous_2",
+      "role": "input"
+    },
+    {
+      "name": "rd_previous_3",
+      "role": "input"
+    },
+    {
+      "name": "rd_previous_clock",
+      "role": "input"
+    },
+    {
+      "name": "rd_next_0",
+      "role": "output"
+    },
+    {
+      "name": "rd_next_1",
+      "role": "output"
+    },
+    {
+      "name": "rd_next_2",
+      "role": "output"
+    },
+    {
+      "name": "rd_next_3",
+      "role": "output"
+    },
+    {
+      "name": "rs1_addr",
+      "role": "input"
+    },
+    {
+      "name": "rs1_previous_0",
+      "role": "input"
+    },
+    {
+      "name": "rs1_previous_1",
+      "role": "input"
+    },
+    {
+      "name": "rs1_previous_2",
+      "role": "input"
+    },
+    {
+      "name": "rs1_previous_3",
+      "role": "input"
+    },
+    {
+      "name": "rs1_previous_clock",
+      "role": "input"
+    },
+    {
+      "name": "rs1_next_0",
+      "role": "output"
+    },
+    {
+      "name": "rs1_next_1",
+      "role": "output"
+    },
+    {
+      "name": "rs1_next_2",
+      "role": "output"
+    },
+    {
+      "name": "rs1_next_3",
+      "role": "output"
+    },
+    {
+      "name": "imm_0",
+      "role": "witness"
+    },
+    {
+      "name": "imm_1",
+      "role": "witness"
+    },
+    {
+      "name": "imm_msb",
+      "role": "witness"
+    },
+    {
+      "name": "is_addi",
+      "role": "witness"
+    },
+    {
+      "name": "is_xori",
+      "role": "witness"
+    },
+    {
+      "name": "is_ori",
+      "role": "witness"
+    },
+    {
+      "name": "is_andi",
+      "role": "witness"
+    },
+    {
+      "name": "result_0",
+      "role": "witness"
+    },
+    {
+      "name": "result_1",
+      "role": "witness"
+    },
+    {
+      "name": "result_2",
+      "role": "witness"
+    },
+    {
+      "name": "result_3",
+      "role": "witness"
+    },
+    {
+      "name": "destination_nonzero",
+      "role": "witness"
+    },
+    {
+      "name": "destination_inverse",
+      "role": "witness"
+    },
+    {
+      "name": "bus_value_35",
+      "role": "input"
+    },
+    {
+      "name": "bus_value_36",
+      "role": "input"
+    },
+    {
+      "name": "bus_value_37",
+      "role": "output"
+    },
+    {
+      "name": "bus_value_38",
+      "role": "output"
+    },
+    {
+      "name": "bus_value_39",
+      "role": "output"
+    },
+    {
+      "name": "bus_value_40",
+      "role": "output"
+    }
+  ],
+  "constraints": [
+    40,
+    42,
+    44,
+    46,
+    48,
+    50,
+    64,
+    71,
+    78,
+    85,
+    87,
+    89,
+    91,
+    93,
+    95,
+    97,
+    99,
+    101,
+    103,
+    105,
+    107,
+    39,
+    144,
+    146,
+    148,
+    150,
+    152,
+    154
+  ],
+  "family": "base_alu_imm",
+  "kind": "stwo-riscv-refinement-air",
+  "lookups": [
+    {
+      "domain": "program_access",
+      "label": "request",
+      "numerator": 118,
+      "tuple": [
+        1,
+        129,
+        2,
+        12,
+        135
+      ]
+    },
+    {
+      "domain": "range_check_8_11",
+      "label": "request",
+      "numerator": 118,
+      "tuple": [
+        22,
+        131
+      ]
+    },
+    {
+      "domain": "registers_state",
+      "label": "consumed",
+      "numerator": 118,
+      "tuple": [
+        1,
+        0
+      ]
+    },
+    {
+      "domain": "registers_state",
+      "label": "emitted",
+      "numerator": 38,
+      "tuple": [
+        136,
+        137
+      ]
+    },
+    {
+      "domain": "memory_access",
+      "label": "consumed",
+      "numerator": 118,
+      "tuple": [
+        56,
+        12,
+        17,
+        13,
+        14,
+        15,
+        16
+      ]
+    },
+    {
+      "domain": "memory_access",
+      "label": "emitted",
+      "numerator": 38,
+      "tuple": [
+        56,
+        12,
+        115,
+        18,
+        19,
+        20,
+        21
+      ]
+    },
+    {
+      "domain": "range_check_20",
+      "label": "request",
+      "numerator": 118,
+      "tuple": [
+        117
+      ]
+    },
+    {
+      "domain": "bitwise",
+      "label": "request",
+      "numerator": 142,
+      "tuple": [
+        18,
+        22,
+        29,
+        141
+      ]
+    },
+    {
+      "domain": "bitwise",
+      "label": "request",
+      "numerator": 142,
+      "tuple": [
+        19,
+        53,
+        30,
+        141
+      ]
+    },
+    {
+      "domain": "bitwise",
+      "label": "request",
+      "numerator": 142,
+      "tuple": [
+        20,
+        55,
+        31,
+        141
+      ]
+    },
+    {
+      "domain": "bitwise",
+      "label": "request",
+      "numerator": 142,
+      "tuple": [
+        21,
+        55,
+        32,
+        141
+      ]
+    },
+    {
+      "domain": "range_check_8_8",
+      "label": "request",
+      "numerator": 118,
+      "tuple": [
+        29,
+        30
+      ]
+    },
+    {
+      "domain": "range_check_8_8",
+      "label": "request",
+      "numerator": 118,
+      "tuple": [
+        31,
+        32
+      ]
+    },
+    {
+      "domain": "memory_access",
+      "label": "consumed",
+      "numerator": 118,
+      "tuple": [
+        56,
+        2,
+        7,
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "domain": "memory_access",
+      "label": "emitted",
+      "numerator": 38,
+      "tuple": [
+        56,
+        2,
+        112,
+        8,
+        9,
+        10,
+        11
+      ]
+    },
+    {
+      "domain": "range_check_20",
+      "label": "request",
+      "numerator": 118,
+      "tuple": [
+        114
+      ]
+    }
+  ],
+  "modulus": 2147483647,
+  "nodes": [
+    {
+      "name": "clk",
+      "op": "col"
+    },
+    {
+      "name": "pc",
+      "op": "col"
+    },
+    {
+      "name": "rd_addr",
+      "op": "col"
+    },
+    {
+      "name": "rd_previous_0",
+      "op": "col"
+    },
+    {
+      "name": "rd_previous_1",
+      "op": "col"
+    },
+    {
+      "name": "rd_previous_2",
+      "op": "col"
+    },
+    {
+      "name": "rd_previous_3",
+      "op": "col"
+    },
+    {
+      "name": "rd_previous_clock",
+      "op": "col"
+    },
+    {
+      "name": "rd_next_0",
+      "op": "col"
+    },
+    {
+      "name": "rd_next_1",
+      "op": "col"
+    },
+    {
+      "name": "rd_next_2",
+      "op": "col"
+    },
+    {
+      "name": "rd_next_3",
+      "op": "col"
+    },
+    {
+      "name": "rs1_addr",
+      "op": "col"
+    },
+    {
+      "name": "rs1_previous_0",
+      "op": "col"
+    },
+    {
+      "name": "rs1_previous_1",
+      "op": "col"
+    },
+    {
+      "name": "rs1_previous_2",
+      "op": "col"
+    },
+    {
+      "name": "rs1_previous_3",
+      "op": "col"
+    },
+    {
+      "name": "rs1_previous_clock",
+      "op": "col"
+    },
+    {
+      "name": "rs1_next_0",
+      "op": "col"
+    },
+    {
+      "name": "rs1_next_1",
+      "op": "col"
+    },
+    {
+      "name": "rs1_next_2",
+      "op": "col"
+    },
+    {
+      "name": "rs1_next_3",
+      "op": "col"
+    },
+    {
+      "name": "imm_0",
+      "op": "col"
+    },
+    {
+      "name": "imm_1",
+      "op": "col"
+    },
+    {
+      "name": "imm_msb",
+      "op": "col"
+    },
+    {
+      "name": "is_addi",
+      "op": "col"
+    },
+    {
+      "name": "is_xori",
+      "op": "col"
+    },
+    {
+      "name": "is_ori",
+      "op": "col"
+    },
+    {
+      "name": "is_andi",
+      "op": "col"
+    },
+    {
+      "name": "result_0",
+      "op": "col"
+    },
+    {
+      "name": "result_1",
+      "op": "col"
+    },
+    {
+      "name": "result_2",
+      "op": "col"
+    },
+    {
+      "name": "result_3",
+      "op": "col"
+    },
+    {
+      "name": "destination_nonzero",
+      "op": "col"
+    },
+    {
+      "name": "destination_inverse",
+      "op": "col"
+    },
+    {
+      "op": "const",
+      "value": 1
+    },
+    {
+      "args": [
+        25,
+        26
+      ],
+      "op": "add"
+    },
+    {
+      "args": [
+        36,
+        27
+      ],
+      "op": "add"
+    },
+    {
+      "args": [
+        37,
+        28
+      ],
+      "op": "add"
+    },
+    {
+      "args": [
+        38,
+        35
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        38,
+        39
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        25,
+        35
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        25,
+        41
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        26,
+        35
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        26,
+        43
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        27,
+        35
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        27,
+        45
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        28,
+        35
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        28,
+        47
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        24,
+        35
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        24,
+        49
+      ],
+      "op": "mul"
+    },
+    {
+      "op": "const",
+      "value": 248
+    },
+    {
+      "args": [
+        24,
+        51
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        23,
+        52
+      ],
+      "op": "add"
+    },
+    {
+      "op": "const",
+      "value": 255
+    },
+    {
+      "args": [
+        24,
+        54
+      ],
+      "op": "mul"
+    },
+    {
+      "op": "const",
+      "value": 0
+    },
+    {
+      "args": [
+        18,
+        22
+      ],
+      "op": "add"
+    },
+    {
+      "args": [
+        57,
+        56
+      ],
+      "op": "add"
+    },
+    {
+      "args": [
+        58,
+        29
+      ],
+      "op": "sub"
+    },
+    {
+      "op": "const",
+      "value": 8388608
+    },
+    {
+      "args": [
+        59,
+        60
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        61,
+        35
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        61,
+        62
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        25,
+        63
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        19,
+        53
+      ],
+      "op": "add"
+    },
+    {
+      "args": [
+        65,
+        61
+      ],
+      "op": "add"
+    },
+    {
+      "args": [
+        66,
+        30
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        67,
+        60
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        68,
+        35
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        68,
+        69
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        25,
+        70
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        20,
+        55
+      ],
+      "op": "add"
+    },
+    {
+      "args": [
+        72,
+        68
+      ],
+      "op": "add"
+    },
+    {
+      "args": [
+        73,
+        31
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        74,
+        60
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        75,
+        35
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        75,
+        76
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        25,
+        77
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        21,
+        55
+      ],
+      "op": "add"
+    },
+    {
+      "args": [
+        79,
+        75
+      ],
+      "op": "add"
+    },
+    {
+      "args": [
+        80,
+        32
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        81,
+        60
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        82,
+        35
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        82,
+        83
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        25,
+        84
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        33,
+        35
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        33,
+        86
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        35,
+        33
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        2,
+        88
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        2,
+        34
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        90,
+        33
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        33,
+        29
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        8,
+        92
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        33,
+        30
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        9,
+        94
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        33,
+        31
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        10,
+        96
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        33,
+        32
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        11,
+        98
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        18,
+        13
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        38,
+        100
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        19,
+        14
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        38,
+        102
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        20,
+        15
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        38,
+        104
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        21,
+        16
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        38,
+        106
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        0,
+        35
+      ],
+      "op": "sub"
+    },
+    {
+      "op": "const",
+      "value": 4
+    },
+    {
+      "args": [
+        108,
+        109
+      ],
+      "op": "mul"
+    },
+    {
+      "op": "const",
+      "value": 2
+    },
+    {
+      "args": [
+        110,
+        111
+      ],
+      "op": "add"
+    },
+    {
+      "args": [
+        112,
+        7
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        113,
+        35
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        110,
+        35
+      ],
+      "op": "add"
+    },
+    {
+      "args": [
+        115,
+        17
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        116,
+        35
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        38
+      ],
+      "op": "neg"
+    },
+    {
+      "op": "const",
+      "value": 10
+    },
+    {
+      "args": [
+        25,
+        119
+      ],
+      "op": "mul"
+    },
+    {
+      "op": "const",
+      "value": 13
+    },
+    {
+      "args": [
+        26,
+        121
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        120,
+        122
+      ],
+      "op": "add"
+    },
+    {
+      "op": "const",
+      "value": 14
+    },
+    {
+      "args": [
+        27,
+        124
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        123,
+        125
+      ],
+      "op": "add"
+    },
+    {
+      "op": "const",
+      "value": 15
+    },
+    {
+      "args": [
+        28,
+        127
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        126,
+        128
+      ],
+      "op": "add"
+    },
+    {
+      "op": "const",
+      "value": 256
+    },
+    {
+      "args": [
+        23,
+        130
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        22,
+        131
+      ],
+      "op": "add"
+    },
+    {
+      "op": "const",
+      "value": 2048
+    },
+    {
+      "args": [
+        24,
+        133
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        132,
+        134
+      ],
+      "op": "add"
+    },
+    {
+      "args": [
+        1,
+        109
+      ],
+      "op": "add"
+    },
+    {
+      "args": [
+        0,
+        35
+      ],
+      "op": "add"
+    },
+    {
+      "args": [
+        26,
+        27
+      ],
+      "op": "add"
+    },
+    {
+      "args": [
+        138,
+        28
+      ],
+      "op": "add"
+    },
+    {
+      "args": [
+        26,
+        111
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        140,
+        27
+      ],
+      "op": "add"
+    },
+    {
+      "args": [
+        139
+      ],
+      "op": "neg"
+    },
+    {
+      "name": "bus_value_35",
+      "op": "col"
+    },
+    {
+      "args": [
+        143,
+        129
+      ],
+      "op": "sub"
+    },
+    {
+      "name": "bus_value_36",
+      "op": "col"
+    },
+    {
+      "args": [
+        145,
+        135
+      ],
+      "op": "sub"
+    },
+    {
+      "name": "bus_value_37",
+      "op": "col"
+    },
+    {
+      "args": [
+        147,
+        136
+      ],
+      "op": "sub"
+    },
+    {
+      "name": "bus_value_38",
+      "op": "col"
+    },
+    {
+      "args": [
+        149,
+        137
+      ],
+      "op": "sub"
+    },
+    {
+      "name": "bus_value_39",
+      "op": "col"
+    },
+    {
+      "args": [
+        151,
+        115
+      ],
+      "op": "sub"
+    },
+    {
+      "name": "bus_value_40",
+      "op": "col"
+    },
+    {
+      "args": [
+        153,
+        112
+      ],
+      "op": "sub"
+    }
+  ],
+  "notes": "Extracted from the shipped AIR by instantiating air/semantics over a\nrecording scalar; the QM31 instantiation of the same source is what the\nprover evaluates, and a differential test pins the two together on random\nassignments.  Covered: per-row witness uniqueness of the emitted machine\nstate, given the fetched instruction and the consumed bus values, granting\nthat a live lookup numerator implies table membership.  NOT covered:\nanything cross-row or multiset -- the LogUp memory argument, clock\nmonotonicity, state-chain telescoping, program binding, public boundary\nclosure -- nor completeness, nor agreement with Sail.",
+  "opcode": {
+    "family": "base_alu_imm",
+    "id": 10,
+    "mnemonic": "addi",
+    "selector": {
+      "is_addi": 1,
+      "is_andi": 0,
+      "is_ori": 0,
+      "is_xori": 0
+    }
+  },
+  "production_binding": {
+    "differential_trials_per_family": 8,
+    "extractor": "src/frontends/riscv/air/extract/mod.zig",
+    "level": "level-1-exact-shape-normalizer",
+    "source_closure_sha256": "914010a36df5e85f926bc91afea30443dd0467792a57a4eb5035421bc1bebd38",
+    "source_ir_sha256": "231d6e6b72209d5f983b7334074a1be4f8378f84ded01c8f0494c06439dcbb11"
+  },
+  "projection": {
+    "destination_access_lookups": [
+      13,
+      14
+    ],
+    "next_pc_column": "bus_value_37",
+    "program_lookup": 0,
+    "source_access_lookups": [
+      4,
+      5
+    ],
+    "state_consume_lookup": 2,
+    "state_emit_lookup": 3
+  },
+  "schema_version": 2,
+  "unmodelled_bus_requests": 7
+}

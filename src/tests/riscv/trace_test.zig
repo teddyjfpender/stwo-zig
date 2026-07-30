@@ -29,6 +29,13 @@ test {
         _ = @import("load_sign_soundness_test.zig");
         _ = @import("malicious_witness_test.zig");
         _ = @import("main_witness_rejection_test.zig");
+        // The production-path malicious-prover suite: the shared transaction
+        // harness and its four attack classes (issue #131).
+        _ = @import("malicious_prover_harness.zig");
+        _ = @import("malicious_prover_completion_test.zig");
+        _ = @import("malicious_prover_forged_output_test.zig");
+        _ = @import("malicious_prover_skipped_test.zig");
+        _ = @import("malicious_prover_stale_read_test.zig");
         _ = @import("mulh_soundness_test.zig");
         _ = @import("opcode_family_committed_soundness_test.zig");
         _ = @import("partial_store_soundness_test.zig");

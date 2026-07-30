@@ -31,7 +31,8 @@ const source_closure = policy.SourceClosure{
         .{ .name = "stwo_cairo_frontend", .source = "src/frontends/cairo/mod.zig" },
         .{ .name = "stwo_cairo_cpu_integration", .source = "src/integrations/cairo_cpu/mod.zig" },
         .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
-        .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
+        .{ .name = "stwo_prover_api", .source = "src/prover_api/mod.zig" },
+        .{ .name = "stwo_prover_engine", .source = "src/prover/mod.zig" },
     },
     .generated_imports = &.{
         "cairo_witness_cpu_aot",
@@ -52,6 +53,7 @@ const source_closure = policy.SourceClosure{
         "src/products/cairo",
         "src/products/cairo_cpu",
         "src/prover",
+        "src/prover_api",
     },
     .forbidden_dynamic_dependencies = &.{
         "Metal.framework",

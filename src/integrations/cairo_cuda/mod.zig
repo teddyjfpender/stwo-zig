@@ -24,6 +24,18 @@ pub const relation_sn2_parity_fixture = @import(
 );
 pub const executor = @import("executor/mod.zig");
 
+test "api signature: Cairo CUDA keeps its emitter explicitly development-only" {
+    comptime {
+        if (program.production_ready) {
+            @compileError("development Cairo emitter cannot claim production readiness");
+        }
+        switch (@typeInfo(@TypeOf(program.emitDevelopmentOnly))) {
+            .@"fn" => {},
+            else => @compileError("emitDevelopmentOnly must remain a function"),
+        }
+    }
+}
+
 test {
     _ = @import("casm_input_test.zig");
     _ = base_writer_plan;
