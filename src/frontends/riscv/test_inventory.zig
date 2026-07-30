@@ -45,7 +45,6 @@ test {
     _ = @import("opcode_manifest.zig");
     _ = @import("owned_statement.zig");
     _ = @import("proof_transcript.zig");
-    _ = @import("refinement_program_export_test.zig");
     _ = @import("testing.zig");
     _ = @import("witness_layout.zig");
 

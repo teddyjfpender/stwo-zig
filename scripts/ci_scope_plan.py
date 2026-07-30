@@ -119,6 +119,27 @@ def validate_policy(policy: dict[str, Any]) -> None:
         raise PlanError(f"CI policy references unknown lanes: {sorted(unknown)}")
 
 
+def validate_rule_prefixes_exist(policy: dict[str, Any], root: Path) -> None:
+    """Reject rule triggers that cannot match any repository path.
+
+    Documentation and external-validation prefixes may intentionally point at
+    future trees. Rule prefixes are different: a missing trigger silently
+    removes every lane behind it because ``owns`` only accepts the exact path
+    or one of its descendants.
+    """
+    missing: list[str] = []
+    for rule in policy["rules"]:
+        for raw in rule["prefixes"]:
+            prefix = normalize_path(raw)
+            if not (root / PurePosixPath(prefix)).exists():
+                missing.append(prefix)
+    if missing:
+        raise PlanError(
+            "CI rule prefixes do not exist: "
+            + ", ".join(sorted(set(missing)))
+        )
+
+
 def validate_catalog(catalog: dict[str, Any], policy: dict[str, Any]) -> None:
     if catalog.get("schema") != "stwo-product-catalog-v2":
         raise PlanError("product catalog schema drifted")
@@ -350,6 +371,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         policy = strict_json(args.policy)
+        validate_policy(policy)
+        validate_rule_prefixes_exist(policy, args.root)
         catalog = strict_json(args.catalog)
         changed = args.changed_file or git_changed_paths(
             args.root, args.base or f"{args.head}^", args.head,

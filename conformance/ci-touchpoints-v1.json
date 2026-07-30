@@ -669,7 +669,8 @@
         "build.zig",
         "build.zig.zon",
         "build_support/graph",
-        "build_support/products/catalog",
+        "build_support/products/catalog.zig",
+        "build_support/products/catalog_manifest.zig",
         "build_support/products/matrix.zig",
         "build_support/products/product_specs.zig",
         "build_support/internal_build.zig",
@@ -795,7 +796,8 @@
       "prefixes": [
         "src/tools/metal_core_aot",
         "build_support/backends/metal_aot.zig",
-        "scripts/metal_core_aot_receipt"
+        "scripts/metal_core_aot_receipt.py",
+        "scripts/metal_core_aot_receipt_lib"
       ],
       "lanes": [
         "metal_aot"
@@ -1046,7 +1048,14 @@
         "build_support/backends/cuda.zig",
         "build_support/backends/cuda_tools.zig",
         "src/products/native_cuda",
-        "scripts/cuda_",
+        "scripts/cuda_activation.py",
+        "scripts/cuda_build.py",
+        "scripts/cuda_build_lib",
+        "scripts/cuda_device_smoke.py",
+        "scripts/cuda_product_closure.py",
+        "scripts/cuda_proof_parity_gate.py",
+        "scripts/cuda_recorded_witness_product.py",
+        "scripts/cuda_source_closure.py",
         "tests/cuda",
         "tools/stwo-cuda-adapter-rs"
       ],

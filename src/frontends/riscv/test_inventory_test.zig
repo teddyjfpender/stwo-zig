@@ -37,6 +37,11 @@ const excluded = [_]struct { path: []const u8, why: []const u8 }{
             "which is the only caller that sets it",
     },
     .{
+        .path = "refinement_program_export_test.zig",
+        .why = "demands RISCV_AIR_PROGRAM_IR_DIR; driven by the riscv-refinement-ir " ++
+            "step, which supplies a fresh output directory",
+    },
+    .{
         .path = "build.zig",
         .why = "this package's build script, not part of the module",
     },

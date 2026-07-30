@@ -257,8 +257,9 @@ jobs:
           STWO_ZIG_REQUIRE_SAIL_ORACLE: "1"
         run: zig build test-riscv-sail-oracle -Doptimize=ReleaseSafe
 
-      # Save even after a red differential: a divergence investigation needs
-      # the warm toolchain far more than a green run does.
+      # `always()` still saves after a red differential, but only when
+      # toolchain_state is `verified` or `rebuilt`; `unavailable`, or a
+      # preflight that never writes the state, must not populate the cache.
       - name: Save pinned formal toolchain workspace
         if: always() && (steps.differential.outputs.toolchain_state == 'verified' || steps.differential.outputs.toolchain_state == 'rebuilt')
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
