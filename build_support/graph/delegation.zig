@@ -8,6 +8,7 @@ pub const Options = struct {
     riscv_release_phase: []const u8,
     riscv_evidence_dir: []const u8,
     riscv_refinement_ir_dir: ?[]const u8,
+    riscv_air_program_ir_dir: ?[]const u8,
     cuda_nvcc: ?[]const u8,
     cuda_host_cxx: ?[]const u8,
     cuda_host_runtime: ?[]const u8,
@@ -51,6 +52,11 @@ pub const Options = struct {
                 []const u8,
                 "riscv-refinement-ir-dir",
                 "Fresh output directory for the RISC-V symbolic AIR extractor",
+            ),
+            .riscv_air_program_ir_dir = b.option(
+                []const u8,
+                "riscv-air-program-ir-dir",
+                "Fresh output directory for production AIR IR v2",
             ),
             .cuda_nvcc = b.option([]const u8, "cuda-nvcc", "Explicit nvcc executable"),
             .cuda_host_cxx = b.option([]const u8, "cuda-host-cxx", "Explicit nvcc host C++ compiler"),
@@ -145,11 +151,16 @@ fn commandFor(
         command.addArg(b.fmt("-Driscv-release-phase={s}", .{options.riscv_release_phase}));
         command.addArg(b.fmt("-Driscv-evidence-dir={s}", .{options.riscv_evidence_dir}));
     }
-    if (std.mem.eql(u8, scope, "riscv_cpu"))
+    if (std.mem.eql(u8, scope, "riscv_cpu")) {
         if (options.riscv_refinement_ir_dir) |dir| command.addArg(b.fmt(
             "-Driscv-refinement-ir-dir={s}",
             .{dir},
         ));
+        if (options.riscv_air_program_ir_dir) |dir| command.addArg(b.fmt(
+            "-Driscv-air-program-ir-dir={s}",
+            .{dir},
+        ));
+    }
     if (std.mem.eql(u8, scope, "cuda_tools") or
         std.mem.eql(u8, scope, "native_cuda") or
         std.mem.eql(u8, scope, "cairo_cuda"))

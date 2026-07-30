@@ -4,3 +4,12 @@ defaultTargets = ["RiscvRefinement"]
 
 [[lean_lib]]
 name = "RiscvRefinement"
+# Build every module under RiscvRefinement/, not just the root's import
+# closure. Without this a new theorem file that nothing imports is silently
+# never compiled, which would let an unchecked proof file sit in the tree while
+# the gate reports green.
+# "RiscvRefinement.+" is the submodules only -- it does NOT include the root
+# module, so listing the root separately is required. Without it the root
+# olean goes stale and the axiom audit, which imports it, silently audits an
+# older environment.
+globs = ["RiscvRefinement", "RiscvRefinement.+"]

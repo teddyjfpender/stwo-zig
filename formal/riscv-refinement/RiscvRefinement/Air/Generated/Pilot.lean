@@ -2,7 +2,7 @@
 -- Generator: scripts/riscv_refinement.py
 -- Regenerate: python3 scripts/riscv_refinement.py generate
 -- Production binding: symbolic collector plus exact structural validation.
--- Boundary: normalized predicate; no Lean serialized-M31 interpreter yet.
+-- Boundary: normalized predicate; LUI AIR IR v2 is bound in LuiProgram.lean.
 
 import RiscvRefinement.Common
 
@@ -10,9 +10,9 @@ namespace RiscvRefinement.Air.Generated
 
 open RiscvRefinement
 
-def luiAirDigest : String := "c3363eaffb9b9cc69e149298aa6d9010e7167d54c37f1ed29f0f479e3bb73e73"
+def luiAirDigest : String := "08dfd671ea4807b51245b7f1352d6ce00919da8441fc1d40c3375f52123bda4e"
 
-def addiAirDigest : String := "a6a35daa4d7b5433523ada6c4d6fe70d9f60ac3dd553b86566473bb21359c235"
+def addiAirDigest : String := "f8620de33ba13513c2a0c8e8998d8af24944c4f09211b79797c8996289859667"
 
 def luiImmediate
     (imm0 : BitVec 4)

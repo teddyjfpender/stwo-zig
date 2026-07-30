@@ -1,0 +1,10 @@
+diff --git a/LeanRV32IM/RiscvExtras.lean b/LeanRV32IM/RiscvExtras.lean
+--- a/LeanRV32IM/RiscvExtras.lean
++++ b/LeanRV32IM/RiscvExtras.lean
+@@ -12,6 +12,4 @@ open Sail
+ open ConcurrencyInterfaceV1
+-open LeanRV32IM.Defs
+-
+ def print_bits (_ : String) (_ : BitVec n) : Unit := ()
+ def print_string (_ : String) (_ : String) : Unit := ()
+ def prerr_string (_: String) : Unit := ()

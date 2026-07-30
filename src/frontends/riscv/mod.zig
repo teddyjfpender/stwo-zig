@@ -51,4 +51,11 @@ test {
     _ = @import("opcode_coverage_test.zig");
     _ = @import("air/extract/mod.zig");
     _ = @import("air/semantic_eval.zig");
+    // The Sail bridge's own two self-checks. A file's tests are collected
+    // only when a `test` block names it; the file-scope `pub const
+    // sail_oracle = @import("sail_oracle.zig")` in `runner/mod.zig` is not
+    // enough, and until this line existed those two tests ran in no step at
+    // all. The main build reaches them through `test-riscv-sail-oracle`,
+    // which roots a test artifact at the file itself.
+    _ = @import("runner/sail_oracle.zig");
 }

@@ -121,6 +121,30 @@ protocol differs, not because the math does.
   means no measurements and no promotions; it never means a silent skip or a
   fabricated score.
 
+## Board 8 — RISC-V × Metal (registered, staged, dark)
+
+TRACKS §2/§8 wave 2. The `riscv_metal` group is registered so the track is
+discoverable and so nothing can activate it by accident — not because it can
+run.
+
+- **Lane:** the RV32IM frontend on the Metal backend
+  (`rv32im-zkvm-v1+lifted-pcs-v1+metal-runtime-v1`), built by
+  `zig build riscv-metal-bench`.
+- **State:** `enabled: false`, `promotion_eligible: false`. The product is
+  `parity_gated`; the installed benchmark prints human-readable output and
+  emits no `riscv_proof_v2` report, which the group states in its
+  `report_adapter` block (`status: "absent"`). Manifest validation refuses to
+  let a group with an absent adapter be enabled or promotion eligible, so the
+  three failures — gated product, missing adapter, missing M5 calibration —
+  each independently keep the board dark.
+- **Board 4 rule applies unchanged.** Before a riscv_metal row can be called a
+  Metal result it must prove real device dispatch with zero proving-stage
+  `cpu_fallbacks`, which means the adapter must add those counters to the
+  RISC-V mechanism contract. Until then the board has no scored classes and
+  the feed renders it staged.
+- Its name is in `ledger.BOARDS` (append-only) so history can never be
+  silently dropped once it does start writing rows.
+
 ## Ledger mapping
 
 `promotions.tsv` carries a `board` column. A submission's declared objective
@@ -211,6 +235,82 @@ The era-3 record template (fill the measured values; invent nothing):
 The manifest side of the switch is the group's optional `scored_dimension`
 field (same allowlist, defaulting to `prove_ms`); no group declares a
 non-default value today.
+
+### Era 3 also carries the class universe (TRACKS §3.3, §7)
+
+Era 3 is now a **bundled** recalibration: the boundary switch above AND the
+RISC-V basket extension open together, so the board pays one A/A dispersion
+and one anchor re-measurement instead of two. The extension is staged in
+`workload_registry.groups.riscv.era_staged_basket` with
+`activates_in_era: 3`. Three properties make era 2 immutable while it sits
+there:
+
+1. **Structural.** Staged rows live outside `workloads`. Every execution,
+   scoring, holdout-draw, and guard path reads `workloads`, so a staged row is
+   unreachable by construction — not merely unselected.
+2. **Validated.** `manifest._validate_group_era_staged_basket` refuses any
+   staged row id that also exists in `workloads`, refuses a role outside
+   `{scored_candidate, killer}`, requires every killer to name its
+   `killer_family`, requires at least two killers, and binds the admission
+   corpus digest to its committed bytes on every manifest load.
+3. **Pinned.** `autoresearch/tests/test_riscv_tracks.py` pins the SHA-256 of
+   the riscv group's era-2 scoring universe. Any edit to those 20 rows fails
+   until era 3 is actually opened and the pin is moved in the same change.
+
+Nothing about era 2 is re-derived, re-scored, or re-labelled by this staging.
+
+**M5 handoff — the era-3 opening, in order.** Every value below is measured;
+none may be invented, and any step that cannot run fails the opening closed.
+
+```sh
+# 0. Judge host only, host-wide judge lock held. Build the products.
+zig build stwo-zig -Doptimize=ReleaseFast
+zig build riscv-trace-dump -Doptimize=ReleaseFast
+
+# 1. Re-verify the staged basket's admission before it can be scored:
+#    committed guest/input digests, exact retirement counts, the negative
+#    fixture, and a real secure-parameter proof + independent verify per row.
+#    A row that does not prove at pow 26 / 70 queries does NOT enter era 3.
+zig build riscv-csp-bench -Doptimize=ReleaseFast
+
+# 2. Re-verify the incumbent corpus is unmoved (byte-identical ELFs, trace
+#    digests, step counts, final PCs) before anything is re-scored.
+python3 scripts/riscv_trace_vectors.py
+python3 scripts/riscv_sail_gate.py bind
+
+# 3. Move the staged rows: for each `era_staged_basket.rows` entry whose role
+#    is `scored_candidate` and which passed step 1, move it verbatim into
+#    `groups.riscv.workloads` and delete it from `rows`. Killer rows stay
+#    staged until they are wired as guards (they are never scored). Set
+#    `groups.riscv.scored_dimension: "request_ms"` in the same commit, and
+#    re-declare the incumbent rows at `--protocol secure` so the class geomean
+#    is not a mix of two security levels.
+
+# 4. A/A dispersion per class on the NEW class universe at the NEW boundary.
+#    Both changes are in the tree before this runs; a dispersion measured on
+#    the old universe is not era-3 calibration.
+python3 -m stwo_perf run --aa --board riscv --class small
+python3 -m stwo_perf run --aa --board riscv --class wide
+python3 -m stwo_perf run --aa --board riscv --class deep
+
+# 5. Anchors per class at the request boundary, same host, same lock.
+python3 -m stwo_perf run --anchor --board riscv --class small
+python3 -m stwo_perf run --anchor --board riscv --class wide
+python3 -m stwo_perf run --anchor --board riscv --class deep
+
+# 6. Append the era-3 record to epochs.json board_eras.boards.riscv using the
+#    template above, filling `aa_dispersion` from step 4, `resource_budgets`
+#    from step 5, and `audit_anchor_commit` with the commit the first era-3
+#    direct audit chains from. `ledger` refuses a request_ms era that carries
+#    no measured dispersion of its own, so a copied era-2 value cannot land.
+
+# 7. Update the era-2 universe pin in autoresearch/tests/test_riscv_tracks.py
+#    in the SAME commit that opens era 3, and record in the era's `reason`
+#    that the basket and the boundary moved together.
+```
+
+Until step 6 lands, era 2 stays open, scores `prove_ms` over exactly its 20
+functional-parameter rows, and the staged rows score nothing.
 
 ## What is deliberately not scored
 

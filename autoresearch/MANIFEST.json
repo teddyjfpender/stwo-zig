@@ -351,6 +351,11 @@
             ]
           }
         },
+        "acceptance_corpus": {
+          "note": "TRACKS §3.3 acceptance corpus: the pinned zksecurity/zkvm-benchmarks RV32IM guest matrix, the RISC-V counterpart of the Cairo corpus at vectors/cairo/cairo_program_matrix.json and pinned at the same upstream commit. Upstream ships SOURCE ONLY — no prebuilt ELF for any program — so this is acceptance and provisioning bookkeeping, never a scored basket. The file records exactly what stands between the corpus and committed fixtures.",
+          "path": "vectors/riscv_guests/riscv_program_matrix.json",
+          "sha256": "1216a645ae84c29e0ec3235d1dc89b104d37c8e0f5370eb0ef002bdf51d64080"
+        },
         "gates_policy": {
           "warmups": 1,
           "samples_per_round": 1,
@@ -419,6 +424,206 @@
               "riscv_sha2_1024b",
               "riscv_sha2_2048b"
             ]
+          }
+        },
+        "era_staged_basket": {
+          "note": "TRACKS §3.3/§7. The EthProofs client-side-proving matrix wired into this group's own surface as era-3 candidates. Rows here are NOT workloads: nothing in the harness reads this block, so the era-2 scoring universe (`workloads` below) stays byte-identical and these rows cannot enter an era-2 geomean, holdout draw, or guard set. They are provisioned and admitted (every guest ELF and input is committed and digest-pinned, and every expected_cycles value is the guest's exact RV32IM retirement count, reproducible with `zig build riscv-trace-dump` + `riscv-trace-dump --public-values`), so they are deliberately NOT workload_provisioning.pending entries — the thing they are waiting on is a recalibration event, not a fixture.",
+          "activates_in_era": 3,
+          "reason": "TRACKS §7: adding rows to a scored board's basket changes the class universe and therefore requires a new era. TRACKS §3.1 already stages era 3 for this board's request_ms boundary switch (autoresearch/schema/scoring.md); the class-universe change is bundled into that SAME recalibration so the board pays one A/A dispersion and anchor re-measurement, not two. These rows are measured at official secure parameters (pow 26 / 70 queries) while era 2 scores at functional parameters, so the era-3 opening must also re-score the incumbent basket at the secure protocol before any mixed geomean exists; no row scores until its provability at official parameters is confirmed on the judge host.",
+          "admission": {
+            "path": "vectors/riscv_csp/manifest-v2.json",
+            "sha256": "efd864d8ea3022eb101fbe87e828c5b559a1672cb0a1c50af2582b7dce00a9af",
+            "authority": "ethproofs_client_side_proving",
+            "driver": "scripts/riscv_csp_benchmark.py",
+            "build_step": "zig build riscv-csp-bench -Doptimize=ReleaseFast",
+            "note": "The pinned manifest binds the upstream CSP commit, the input generators, every guest source file, the committed ELF bytes, the deterministic inputs, the expected output digests, and the exact retirement counts. The driver authenticates all of it before execution and additionally runs the negative fixture `ecdsa_secp256k1_bad_signature`, which must return the all-zero rejection value at its pinned retirement count."
+          },
+          "rows": {
+            "riscv_csp_sha256_128b": {
+              "class": "wide",
+              "args": "bench --elf vectors/riscv_csp/guests/sha256.elf --input vectors/riscv_csp/inputs/msg_128.bin --backend cpu --protocol secure {admission} --warmups {warmups} --samples {samples}",
+              "native_unit": "executed instructions",
+              "role": "scored_candidate",
+              "admission": {
+                "target": "sha256",
+                "input_size": 128,
+                "expected_cycles": 14056
+              }
+            },
+            "riscv_csp_sha256_256b": {
+              "class": "wide",
+              "args": "bench --elf vectors/riscv_csp/guests/sha256.elf --input vectors/riscv_csp/inputs/msg_256.bin --backend cpu --protocol secure {admission} --warmups {warmups} --samples {samples}",
+              "native_unit": "executed instructions",
+              "role": "scored_candidate",
+              "admission": {
+                "target": "sha256",
+                "input_size": 256,
+                "expected_cycles": 22832
+              }
+            },
+            "riscv_csp_sha256_512b": {
+              "class": "wide",
+              "args": "bench --elf vectors/riscv_csp/guests/sha256.elf --input vectors/riscv_csp/inputs/msg_512.bin --backend cpu --protocol secure {admission} --warmups {warmups} --samples {samples}",
+              "native_unit": "executed instructions",
+              "role": "scored_candidate",
+              "admission": {
+                "target": "sha256",
+                "input_size": 512,
+                "expected_cycles": 40384
+              }
+            },
+            "riscv_csp_sha256_1024b": {
+              "class": "deep",
+              "args": "bench --elf vectors/riscv_csp/guests/sha256.elf --input vectors/riscv_csp/inputs/msg_1024.bin --backend cpu --protocol secure {admission} --warmups {warmups} --samples {samples}",
+              "native_unit": "executed instructions",
+              "role": "scored_candidate",
+              "admission": {
+                "target": "sha256",
+                "input_size": 1024,
+                "expected_cycles": 75488
+              }
+            },
+            "riscv_csp_sha256_2048b": {
+              "class": "deep",
+              "args": "bench --elf vectors/riscv_csp/guests/sha256.elf --input vectors/riscv_csp/inputs/msg_2048.bin --backend cpu --protocol secure {admission} --warmups {warmups} --samples {samples}",
+              "native_unit": "executed instructions",
+              "role": "scored_candidate",
+              "admission": {
+                "target": "sha256",
+                "input_size": 2048,
+                "expected_cycles": 145696
+              }
+            },
+            "riscv_csp_keccak_128b": {
+              "class": "wide",
+              "args": "bench --elf vectors/riscv_csp/guests/keccak.elf --input vectors/riscv_csp/inputs/msg_128.bin --backend cpu --protocol secure {admission} --warmups {warmups} --samples {samples}",
+              "native_unit": "executed instructions",
+              "role": "scored_candidate",
+              "admission": {
+                "target": "keccak",
+                "input_size": 128,
+                "expected_cycles": 19114
+              }
+            },
+            "riscv_csp_poseidon2_m31_2fe": {
+              "class": "deep",
+              "args": "bench --elf vectors/riscv_csp/guests/poseidon2_m31.elf --input vectors/riscv_csp/inputs/field_m31_2.bin --backend cpu --protocol secure {admission} --warmups {warmups} --samples {samples}",
+              "native_unit": "executed instructions",
+              "role": "scored_candidate",
+              "admission": {
+                "target": "poseidon2_m31",
+                "input_size": 2,
+                "expected_cycles": 82297
+              }
+            },
+            "riscv_csp_keccak_256b": {
+              "class": "wide",
+              "args": "bench --elf vectors/riscv_csp/guests/keccak.elf --input vectors/riscv_csp/inputs/msg_256.bin --backend cpu --protocol secure {admission} --warmups {warmups} --samples {samples}",
+              "native_unit": "executed instructions",
+              "role": "killer",
+              "killer_family": "keccak_heavy",
+              "admission": {
+                "target": "keccak",
+                "input_size": 256,
+                "expected_cycles": 36904
+              }
+            },
+            "riscv_csp_keccak_512b": {
+              "class": "deep",
+              "args": "bench --elf vectors/riscv_csp/guests/keccak.elf --input vectors/riscv_csp/inputs/msg_512.bin --backend cpu --protocol secure {admission} --warmups {warmups} --samples {samples}",
+              "native_unit": "executed instructions",
+              "role": "killer",
+              "killer_family": "keccak_heavy",
+              "admission": {
+                "target": "keccak",
+                "input_size": 512,
+                "expected_cycles": 72408
+              }
+            },
+            "riscv_csp_keccak_1024b": {
+              "class": "deep",
+              "args": "bench --elf vectors/riscv_csp/guests/keccak.elf --input vectors/riscv_csp/inputs/msg_1024.bin --backend cpu --protocol secure {admission} --warmups {warmups} --samples {samples}",
+              "native_unit": "executed instructions",
+              "role": "killer",
+              "killer_family": "keccak_heavy",
+              "admission": {
+                "target": "keccak",
+                "input_size": 1024,
+                "expected_cycles": 143416
+              }
+            },
+            "riscv_csp_keccak_2048b": {
+              "class": "deep",
+              "args": "bench --elf vectors/riscv_csp/guests/keccak.elf --input vectors/riscv_csp/inputs/msg_2048.bin --backend cpu --protocol secure {admission} --warmups {warmups} --samples {samples}",
+              "native_unit": "executed instructions",
+              "role": "killer",
+              "killer_family": "keccak_heavy",
+              "admission": {
+                "target": "keccak",
+                "input_size": 2048,
+                "expected_cycles": 285456
+              }
+            },
+            "riscv_csp_poseidon2_m31_4fe": {
+              "class": "deep",
+              "args": "bench --elf vectors/riscv_csp/guests/poseidon2_m31.elf --input vectors/riscv_csp/inputs/field_m31_4.bin --backend cpu --protocol secure {admission} --warmups {warmups} --samples {samples}",
+              "native_unit": "executed instructions",
+              "role": "killer",
+              "killer_family": "field_native_saturating",
+              "admission": {
+                "target": "poseidon2_m31",
+                "input_size": 4,
+                "expected_cycles": 164403
+              }
+            },
+            "riscv_csp_poseidon2_m31_8fe": {
+              "class": "deep",
+              "args": "bench --elf vectors/riscv_csp/guests/poseidon2_m31.elf --input vectors/riscv_csp/inputs/field_m31_8.bin --backend cpu --protocol secure {admission} --warmups {warmups} --samples {samples}",
+              "native_unit": "executed instructions",
+              "role": "killer",
+              "killer_family": "field_native_saturating",
+              "admission": {
+                "target": "poseidon2_m31",
+                "input_size": 8,
+                "expected_cycles": 328615
+              }
+            },
+            "riscv_csp_poseidon2_m31_12fe": {
+              "class": "deep",
+              "args": "bench --elf vectors/riscv_csp/guests/poseidon2_m31.elf --input vectors/riscv_csp/inputs/field_m31_12.bin --backend cpu --protocol secure {admission} --warmups {warmups} --samples {samples}",
+              "native_unit": "executed instructions",
+              "role": "killer",
+              "killer_family": "field_native_saturating",
+              "admission": {
+                "target": "poseidon2_m31",
+                "input_size": 12,
+                "expected_cycles": 492827
+              }
+            },
+            "riscv_csp_poseidon2_m31_16fe": {
+              "class": "deep",
+              "args": "bench --elf vectors/riscv_csp/guests/poseidon2_m31.elf --input vectors/riscv_csp/inputs/field_m31_16.bin --backend cpu --protocol secure {admission} --warmups {warmups} --samples {samples}",
+              "native_unit": "executed instructions",
+              "role": "killer",
+              "killer_family": "field_native_saturating",
+              "admission": {
+                "target": "poseidon2_m31",
+                "input_size": 16,
+                "expected_cycles": 657039
+              }
+            },
+            "riscv_csp_ecdsa_secp256k1": {
+              "class": "deep",
+              "args": "bench --elf vectors/riscv_csp/guests/ecdsa_secp256k1.elf --input vectors/riscv_csp/inputs/ecdsa_secp256k1.bin --backend cpu --protocol secure {admission} --warmups {warmups} --samples {samples}",
+              "native_unit": "executed instructions",
+              "role": "killer",
+              "killer_family": "paging_hostile",
+              "admission": {
+                "target": "ecdsa_secp256k1",
+                "input_size": 32,
+                "expected_cycles": 5425005
+              }
+            }
           }
         },
         "workloads": {
@@ -524,6 +729,105 @@
           }
         },
         "guard_registry": "riscv",
+        "editable_paths": [
+          {
+            "glob": "src/frontends/riscv/**",
+            "min_rung": "s3"
+          },
+          {
+            "glob": "src/integrations/riscv_cpu/**",
+            "min_rung": "s3"
+          },
+          {
+            "glob": "src/integrations/riscv_metal/**",
+            "min_rung": "s3"
+          }
+        ]
+      },
+      "riscv_metal": {
+        "enabled": false,
+        "promotion_eligible": false,
+        "disabled_reason": "riscv_metal is staged only: TRACKS §2 records the RISC-V + Metal product as parity_gated, not released. Three independent things are missing and each of them alone keeps the group dark. (1) The product descriptor in build_support/products/riscv_metal.zig carries state .parity_gated behind its test-riscv-metal, metal-test, and riscv-release-gate release gates. (2) The installed riscv-metal-bench binary is the shared RISC-V bench runner (src/tools/riscv/bench/runner.zig): it prints a human-readable benchmark to stdout and emits no riscv_proof_v2 report, no retained proof artifact, and no resource telemetry, so there is nothing for the harness to parse — see this group's report_adapter block. (3) No RISC-V Metal-lane calibration exists on the designated Apple M5 Max judge host, and the generalized per-board Metal calibration TRACKS §7 requires is not built yet. The RISC-V proof adapter is additionally recorded as CPU-only in vectors/riscv_elfs/crypto/provenance.json (metal_backend: gated_riscv_adapter_is_cpu_only). The group fails closed.",
+        "promotion_blocked_reason": "TRACKS §7: no riscv_metal A/A dispersion or anchors exist on the designated Apple M5 Max judge host, the product is parity_gated rather than released, and no report adapter emits a scoreable row. Promotion fails closed; the gate opens only after the adapter lands and that M5 calibration is committed.",
+        "board": "riscv_metal",
+        "build_step": "zig build riscv-metal-bench -Doptimize=ReleaseFast",
+        "binary": "zig-out/bin/riscv-metal-bench",
+        "report_schema": "riscv_proof_v2",
+        "report_adapter": {
+          "status": "absent",
+          "emits": "human-readable stdout only (stage timings, cycle counts, and throughput printed by src/tools/riscv/bench/runner.zig)",
+          "note": "report_schema names the envelope this board's rows MUST carry before they can ever be scored; it is a target, not a claim about today's binary. The parity-gated product installs riscv-metal-bench and stwo-zig-riscv-metal from the same root module (src/riscv_metal_bench_cli.zig), and neither accepts a `bench` subcommand, `--protocol`, `--report-out`, or `--proof-out`. Building the adapter means routing the Metal engine through the riscv_proof_v2 emitter in src/integrations/riscv_cpu/proof_adapter.zig and extending the RISC-V mechanism contract with the Metal dispatch and cpu_fallback counters schema/scoring.md Board 4 eligibility requires. Until status flips to `present`, manifest validation refuses to let this group be enabled or promotion eligible."
+        },
+        "correctness_oracle": {
+          "authority": "sail-riscv",
+          "repository": "https://github.com/riscv/sail-riscv",
+          "commit": "8c7f2da58de0ba5e4457e4de07e0046f0439f35f",
+          "final_validator": true,
+          "evidence": {
+            "path": "conformance/riscv/formal-corpus-evidence.json",
+            "sha256": "dde4b06136b6e3b681225ce914c8f8b79504e946e04ce7a50273897bc0979e10"
+          },
+          "note": "ISA semantics are backend-independent: the Metal lane proves the same RV32IM retirements the pinned Sail model validates. The riscv group's stark-v benchmark_reference is deliberately NOT mirrored here — that adapter is CPU-only."
+        },
+        "gates_policy": {
+          "warmups": 1,
+          "samples_per_round": 1,
+          "min_rounds": 3,
+          "max_rounds": 5,
+          "wall_clock_cap_seconds": {
+            "small": 240,
+            "wide": 360,
+            "deep": 600
+          },
+          "note": "Mirrors the riscv group. The caps are the CPU lane's and are unmeasured for Metal; they are re-derived when the M5 calibration for this board is taken."
+        },
+        "mechanism_telemetry": {
+          "fail_closed": true,
+          "required_fields": [
+            "total_steps",
+            "n_components",
+            "mean_execution_seconds",
+            "mean_witness_seconds",
+            "mean_proving_seconds",
+            "mean_verification_seconds",
+            "statement_sha256",
+            "transcript_state_blake2s"
+          ]
+        },
+        "resource_telemetry": {
+          "fail_closed": true,
+          "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+          "scope": "self_process_lifetime",
+          "sampling_points": [
+            "before_warmups",
+            "after_verified_samples"
+          ],
+          "fields": [
+            "lifetime_max_phys_footprint_bytes",
+            "energy_nj",
+            "instructions",
+            "cycles"
+          ]
+        },
+        "workloads": {
+          "mriscv_alu_test": {
+            "class": "small",
+            "args": "--elf vectors/riscv_elfs/alu_test.elf --pow-bits 26 --n-queries 70",
+            "native_unit": "executed instructions"
+          },
+          "mriscv_memcpy_loop": {
+            "class": "wide",
+            "args": "--elf vectors/riscv_elfs/memcpy_loop.elf --pow-bits 26 --n-queries 70",
+            "native_unit": "executed instructions"
+          },
+          "mriscv_fib_iter": {
+            "class": "deep",
+            "args": "--elf vectors/riscv_elfs/fib_iter.elf --pow-bits 26 --n-queries 70",
+            "native_unit": "executed instructions"
+          }
+        },
+        "guard_registry": null,
+        "guard_registry_absent_reason": "TRACKS §8: guards must run on the track's OWN product binary, and this track has no binary that can run one. The riscv registry's guards are `bench --elf ... --protocol functional {admission} ...` commands against the RISC-V CPU product CLI; the installed riscv-metal-bench accepts no `bench` subcommand, no `--protocol`, and no admission token, and emits no parseable report (see this group's report_adapter). Binding the riscv portfolio here would re-measure the CPU lane's statements on a binary that cannot run them — exactly the flat-portfolio nonsense per-group registries removed. A riscv_metal registry arrives with the report adapter, and its first candidates are the killer rows staged in workload_registry.groups.riscv.era_staged_basket.",
         "editable_paths": [
           {
             "glob": "src/frontends/riscv/**",
