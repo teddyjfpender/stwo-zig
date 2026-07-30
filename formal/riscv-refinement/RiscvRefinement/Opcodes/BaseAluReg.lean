@@ -141,6 +141,43 @@ theorem and_exactProgramTuple (row : Row) :
     ] := by
   rfl
 
+/--
+The selector-specific exact lookup certificates below expose the complete
+generated projection, not only the five-field program tuple.  In particular,
+the returned production refinement contains the program, state, both source
+chains, four bitwise requests, result range checks, and destination chain at
+their exact generated ordinals.
+-/
+theorem add_exactLookupProjection
+    (row : Row) (witness : Witness row)
+    (admission : Admission row) (accepted : Acceptance .add row witness) :
+    Air.Bridge.BaseAluReg.ProductionRefinement .add row witness :=
+  Air.Bridge.BaseAluReg.sound .add row witness admission accepted
+
+theorem sub_exactLookupProjection
+    (row : Row) (witness : Witness row)
+    (admission : Admission row) (accepted : Acceptance .sub row witness) :
+    Air.Bridge.BaseAluReg.ProductionRefinement .sub row witness :=
+  Air.Bridge.BaseAluReg.sound .sub row witness admission accepted
+
+theorem xor_exactLookupProjection
+    (row : Row) (witness : Witness row)
+    (admission : Admission row) (accepted : Acceptance .xor row witness) :
+    Air.Bridge.BaseAluReg.ProductionRefinement .xor row witness :=
+  Air.Bridge.BaseAluReg.sound .xor row witness admission accepted
+
+theorem or_exactLookupProjection
+    (row : Row) (witness : Witness row)
+    (admission : Admission row) (accepted : Acceptance .or row witness) :
+    Air.Bridge.BaseAluReg.ProductionRefinement .or row witness :=
+  Air.Bridge.BaseAluReg.sound .or row witness admission accepted
+
+theorem and_exactLookupProjection
+    (row : Row) (witness : Witness row)
+    (admission : Admission row) (accepted : Acceptance .and row witness) :
+    Air.Bridge.BaseAluReg.ProductionRefinement .and row witness :=
+  Air.Bridge.BaseAluReg.sound .and row witness admission accepted
+
 structure Refinement
     (op : Op)
     (row : Row)
@@ -339,6 +376,93 @@ theorem source2AliasRefinementNonvacuous (op : Op) :
     refines op _ _ _ (Air.Bridge.BaseAluReg.zeroAdmission false rs1 rs2)
       (Air.Bridge.BaseAluReg.zeroAcceptance op false rs1 rs2),
     by rfl
+  ⟩
+
+theorem sameSourceRefinementNonvacuous (op : Op) :
+    ∃ (row : Row) (witness : Witness row) (environment : Environment row),
+      Admission row ∧ Acceptance op row witness ∧
+        Refinement op row witness environment ∧
+        row.rs1 = row.rs2 ∧ row.rd ≠ row.rs1 := by
+  let source : RegisterIndex := BitVec.ofNat 5 2
+  exact ⟨
+    Air.Bridge.BaseAluReg.zeroRow false source source,
+    Air.Bridge.BaseAluReg.zeroWitness false source source,
+    zeroEnvironment false source source,
+    Air.Bridge.BaseAluReg.zeroAdmission false source source,
+    Air.Bridge.BaseAluReg.zeroAcceptance op false source source,
+    refines op _ _ _ (Air.Bridge.BaseAluReg.zeroAdmission false source source)
+      (Air.Bridge.BaseAluReg.zeroAcceptance op false source source),
+    by rfl,
+    by decide
+  ⟩
+
+def addOverflowPreState : PreState where
+  pc := Air.Bridge.BaseAluReg.addOverflowRow.pc
+  registers := fun index =>
+    if index = BitVec.ofNat 5 2
+    then Air.Bridge.BaseAluReg.maxWordBytes.word
+    else if index = BitVec.ofNat 5 3
+    then Air.Bridge.BaseAluReg.oneWordBytes.word
+    else zeroWord
+  x0IsZero := by decide
+
+def addOverflowEnvironment :
+    Environment Air.Bridge.BaseAluReg.addOverflowRow where
+  pre := addOverflowPreState
+  pcBinds := rfl
+  source1Binds := by decide
+  source2Binds := by decide
+  destinationBinds := by decide
+
+theorem add_overflow_nonvacuous :
+    Admission Air.Bridge.BaseAluReg.addOverflowRow ∧
+      Acceptance .add Air.Bridge.BaseAluReg.addOverflowRow
+        Air.Bridge.BaseAluReg.addOverflowWitness ∧
+      Refinement .add Air.Bridge.BaseAluReg.addOverflowRow
+        Air.Bridge.BaseAluReg.addOverflowWitness addOverflowEnvironment ∧
+      Air.Bridge.BaseAluReg.addOverflowRow.rs1Previous.word +
+          Air.Bridge.BaseAluReg.addOverflowRow.rs2Previous.word = zeroWord := by
+  exact ⟨
+    Air.Bridge.BaseAluReg.addOverflowAdmission,
+    Air.Bridge.BaseAluReg.addOverflowAcceptance,
+    refines .add _ _ addOverflowEnvironment
+      Air.Bridge.BaseAluReg.addOverflowAdmission
+      Air.Bridge.BaseAluReg.addOverflowAcceptance,
+    by decide
+  ⟩
+
+def subBorrowPreState : PreState where
+  pc := Air.Bridge.BaseAluReg.subBorrowRow.pc
+  registers := fun index =>
+    if index = BitVec.ofNat 5 3
+    then Air.Bridge.BaseAluReg.oneWordBytes.word
+    else zeroWord
+  x0IsZero := by decide
+
+def subBorrowEnvironment :
+    Environment Air.Bridge.BaseAluReg.subBorrowRow where
+  pre := subBorrowPreState
+  pcBinds := rfl
+  source1Binds := by decide
+  source2Binds := by decide
+  destinationBinds := by decide
+
+theorem sub_borrow_nonvacuous :
+    Admission Air.Bridge.BaseAluReg.subBorrowRow ∧
+      Acceptance .sub Air.Bridge.BaseAluReg.subBorrowRow
+        Air.Bridge.BaseAluReg.subBorrowWitness ∧
+      Refinement .sub Air.Bridge.BaseAluReg.subBorrowRow
+        Air.Bridge.BaseAluReg.subBorrowWitness subBorrowEnvironment ∧
+      Air.Bridge.BaseAluReg.subBorrowRow.rs1Previous.word -
+          Air.Bridge.BaseAluReg.subBorrowRow.rs2Previous.word =
+        BitVec.ofNat 32 0xffffffff := by
+  exact ⟨
+    Air.Bridge.BaseAluReg.subBorrowAdmission,
+    Air.Bridge.BaseAluReg.subBorrowAcceptance,
+    refines .sub _ _ subBorrowEnvironment
+      Air.Bridge.BaseAluReg.subBorrowAdmission
+      Air.Bridge.BaseAluReg.subBorrowAcceptance,
+    by decide
   ⟩
 
 theorem add_nonvacuous :

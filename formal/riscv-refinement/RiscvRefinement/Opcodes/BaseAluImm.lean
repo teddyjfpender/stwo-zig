@@ -178,6 +178,30 @@ theorem andi_exactProgramTuple (row : Row) :
     ] := by
   rfl
 
+/--
+Selector-specific certificates for the complete generated lookup projection.
+The production refinement returned here contains the program and state events,
+the source and destination memory chains, all four bitwise-table requests, and
+both result range checks at their exact generated ordinals.
+-/
+theorem xori_exactLookupProjection
+    (row : Row) (witness : Witness row)
+    (admission : Admission row) (accepted : Acceptance .xori row witness) :
+    Air.Bridge.BaseAluImm.ProductionRefinement .xori row witness :=
+  Air.Bridge.BaseAluImm.sound .xori row witness admission accepted
+
+theorem ori_exactLookupProjection
+    (row : Row) (witness : Witness row)
+    (admission : Admission row) (accepted : Acceptance .ori row witness) :
+    Air.Bridge.BaseAluImm.ProductionRefinement .ori row witness :=
+  Air.Bridge.BaseAluImm.sound .ori row witness admission accepted
+
+theorem andi_exactLookupProjection
+    (row : Row) (witness : Witness row)
+    (admission : Admission row) (accepted : Acceptance .andi row witness) :
+    Air.Bridge.BaseAluImm.ProductionRefinement .andi row witness :=
+  Air.Bridge.BaseAluImm.sound .andi row witness admission accepted
+
 structure Refinement
     (op : Op)
     (row : Row)
