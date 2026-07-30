@@ -65,6 +65,12 @@ def make_raw(riscv_enabled: bool, native_binary: str = "bin/fakebench") -> dict:
         "build_step": "true",
         "binary": "bin/missing-riscv-bench",
         "report_schema": "riscv_proof_v2",
+        "correctness_oracle": {
+            "authority": "sail-riscv",
+            "repository": "https://github.com/riscv/sail-riscv",
+            "commit": "8c7f2da58de0ba5e4457e4de07e0046f0439f35f",
+            "final_validator": True,
+        },
         "mechanism_telemetry": {
             "fail_closed": True,
             "required_fields": [
@@ -213,17 +219,17 @@ class RunnerGroupTest(unittest.TestCase):
                         implementation_commit: str = "b" * 40) -> dict:
         return {
             "artifact_kind": "stwo_riscv_proof",
-            "schema_version": 3,
-            "exchange_mode": "riscv_proof_json_wire_v3",
+            "schema_version": 4,
+            "exchange_mode": "riscv_proof_json_wire_v4",
             "release_status": status,
             "generator": "zig",
-            "air": "stark_v_rv32im",
+            "air": "sail_rv32im_zkvm_v1",
             "backend": "cpu",
             "protocol": "functional",
             "source": {"elf_sha256": "1" * 64, "input_sha256": "2" * 64},
             "provenance": {
-                "oracle_repository": "https://github.com/ClementWalter/stark-v",
-                "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+                "oracle_repository": "https://github.com/riscv/sail-riscv",
+                "oracle_commit": "8c7f2da58de0ba5e4457e4de07e0046f0439f35f",
                 "implementation_repository": "https://github.com/teddyjfpender/stwo-zig",
                 "implementation_commit": implementation_commit,
                 "implementation_dirty": False,
@@ -237,7 +243,8 @@ class RunnerGroupTest(unittest.TestCase):
 
     def _riscv_run(self, status: str, experimental: bool,
                     proof_hex: str = "0102", mutate_report=None,
-                    implementation_commit: str = "b" * 40):
+                    implementation_commit: str = "b" * 40,
+                    mutate_artifact=None):
         commands = []
 
         def fake_run(command, _root, timeout):
@@ -248,6 +255,8 @@ class RunnerGroupTest(unittest.TestCase):
             artifact = self._riscv_artifact(
                 status, proof_hex, implementation_commit,
             )
+            if mutate_artifact:
+                mutate_artifact(artifact)
             encoded = json.dumps(artifact, separators=(",", ":")).encode()
             proof_path.write_bytes(encoded)
             report = {
@@ -583,6 +592,46 @@ class RunnerGroupTest(unittest.TestCase):
             )
         self.assertNotIn("--experimental", shlex.split(commands[0]))
 
+    def test_riscv_runner_artifact_contract_matches_source_schema(self):
+        schema = (
+            REPO_ROOT / "src/interop/riscv_artifact/schema.zig"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            f"pub const SCHEMA_VERSION: u32 = {runner.RISCV_ARTIFACT_SCHEMA_VERSION};",
+            schema,
+        )
+        self.assertIn(
+            f'pub const EXCHANGE_MODE = "{runner.RISCV_ARTIFACT_EXCHANGE_MODE}";',
+            schema,
+        )
+        self.assertIn(
+            f'pub const AIR = "{runner.RISCV_ARTIFACT_AIR}";',
+            schema,
+        )
+
+    def test_riscv_bench_rejects_legacy_v3_artifact(self):
+        self._set_riscv_phase(promoted=True)
+        manifest = self._riscv_manifest()
+        workload = manifest.workloads("wide", board="riscv")[0]
+
+        def legacy(artifact):
+            artifact["schema_version"] = 3
+            artifact["exchange_mode"] = "riscv_proof_json_wire_v3"
+
+        _commands, fake_run = self._riscv_run(
+            "release_gated",
+            False,
+            mutate_artifact=legacy,
+        )
+        with mock.patch.object(runner, "_run", side_effect=fake_run), \
+                self.assertRaisesRegex(
+                    runner.RunError,
+                    "retained artifact schema_version must equal 4",
+                ):
+            runner.bench_once(
+                self.root, manifest, workload, 0, 1, self.out_dir, "a1",
+            )
+
     def test_riscv_proof_digest_ignores_commit_bearing_artifact_fields(self):
         self._set_riscv_phase(promoted=True)
         manifest = self._riscv_manifest()
@@ -886,6 +935,10 @@ class RunnerGroupTest(unittest.TestCase):
     def test_riscv_oracle_rejects_unpinned_group_authority(self):
         manifest = self._riscv_manifest()
         group = manifest.group("riscv")
+        object.__setattr__(group, "correctness_oracle", {
+            **group.correctness_oracle,
+            "commit": "0" * 40,
+        })
         workload = manifest.workloads("wide", board="riscv")[0]
         with self.assertRaisesRegex(runner.RunError, "not bound to the pinned"):
             runner._riscv_sail_oracle_check(

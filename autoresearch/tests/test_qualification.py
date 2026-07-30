@@ -25,8 +25,10 @@ class QualificationTest(unittest.TestCase):
         git(self.repo, "config", "user.name", "Test")
         git(self.repo, "config", "user.email", "test@example.test")
         (self.repo / "src/core/fields").mkdir(parents=True)
+        (self.repo / "src/frontends/riscv").mkdir(parents=True)
         (self.repo / "autoresearch").mkdir()
         (self.repo / "src/core/fields/value.zig").write_text("const value = 1;\n")
+        (self.repo / "src/frontends/riscv/value.zig").write_text("const value = 1;\n")
         (self.repo / "autoresearch/policy.txt").write_text("locked\n")
         git(self.repo, "add", ".")
         git(self.repo, "commit", "-m", "frontier")
@@ -56,6 +58,17 @@ class QualificationTest(unittest.TestCase):
                         "binary": "bin/bench", "report_schema": "native_proof_v6",
                         "workloads": {
                             "wf": {"class": "small", "args": "--x", "native_unit": "rows"},
+                        },
+                    },
+                    "riscv": {
+                        "enabled": True, "promotion_eligible": True,
+                        "board": "riscv", "build_step": "true",
+                        "binary": "bin/riscv", "report_schema": "riscv_proof_v2",
+                        "editable_paths": [
+                            {"glob": "src/frontends/riscv/**", "min_rung": "s3"},
+                        ],
+                        "workloads": {
+                            "rv": {"class": "small", "args": "--x", "native_unit": "rows"},
                         },
                     },
                 },
@@ -106,6 +119,60 @@ class QualificationTest(unittest.TestCase):
         })
         with self.assertRaisesRegex(qualification.QualificationError, "patch is"):
             qualification.inspect_tree(self.repo, limited, self.frontier)
+
+    def test_board_scoped_frontend_is_allowed_only_for_its_board(self):
+        path = self.repo / "src/frontends/riscv/value.zig"
+        path.write_text("const value = 2;\n")
+        git(self.repo, "add", ".")
+        git(self.repo, "commit", "-m", "riscv candidate")
+
+        with self.assertRaisesRegex(qualification.QualificationError, "outside"):
+            qualification.inspect_tree(self.repo, self.manifest, self.frontier)
+        with self.assertRaisesRegex(qualification.QualificationError, "outside"):
+            qualification.inspect_tree(
+                self.repo,
+                self.manifest,
+                self.frontier,
+                board="core_cpu",
+            )
+        evidence = qualification.inspect_tree(
+            self.repo,
+            self.manifest,
+            self.frontier,
+            board="riscv",
+        )
+        self.assertEqual(evidence.changed_paths, ["src/frontends/riscv/value.zig"])
+
+        claim = {
+            "board": "riscv",
+            "workload_class": "small",
+            "dimension": "time",
+            "shipping_index": 0.9,
+        }
+        receipt = qualification.build_receipt(
+            self.repo,
+            self.manifest,
+            self.frontier,
+            "alice",
+            {name: True for name in qualification.REQUIRED_CHECKS},
+            claim,
+        )
+        verified = qualification.verify_receipt(self.repo, self.manifest, receipt)
+        self.assertEqual(verified.changed_paths, evidence.changed_paths)
+
+        with self.assertRaisesRegex(
+            qualification.QualificationError,
+            "source-policy board does not match",
+        ):
+            qualification.build_receipt(
+                self.repo,
+                self.manifest,
+                self.frontier,
+                "alice",
+                {name: True for name in qualification.REQUIRED_CHECKS},
+                claim,
+                board="core_cpu",
+            )
 
 
 if __name__ == "__main__":
