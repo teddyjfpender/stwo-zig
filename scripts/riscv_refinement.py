@@ -11,31 +11,33 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-# The repository-qualified package is tried first on purpose. Importing the same
-# library twice under two names would give ``RefinementError`` two identities, so
-# a caller that imported one spelling could not catch the exception raised by the
-# other. The bare spelling remains the fallback for direct script execution,
-# which puts ``scripts/`` rather than the repository root on ``sys.path``.
-try:
-    from scripts.riscv_refinement_lib import codec, negative, render, sail
-    from scripts.riscv_refinement_lib.model import (
-        FULL_OPCODE_COUNT,
-        PILOT_OPCODES,
-        SCHEMA_VERSION,
-        Paths,
-        RefinementError,
-        repository_root,
-    )
-except ModuleNotFoundError:
-    from riscv_refinement_lib import codec, negative, render, sail
-    from riscv_refinement_lib.model import (
-        FULL_OPCODE_COUNT,
-        PILOT_OPCODES,
-        SCHEMA_VERSION,
-        Paths,
-        RefinementError,
-        repository_root,
-    )
+# The library is named exactly once, so it has exactly one module identity.
+#
+# This used to be a two-spelling fallback: ``scripts.riscv_refinement_lib`` first,
+# bare ``riscv_refinement_lib`` second, with a comment explaining that the order
+# mattered. It did, and relying on it was the defect. Direct execution
+# (``python3 scripts/riscv_refinement.py``) puts ``scripts/`` on ``sys.path``
+# instead of the repository root, so the qualified import failed and the fallback
+# imported the same files again under a second name -- giving ``RefinementError``
+# two distinct classes. A test that catches one cannot catch the other, and
+# ``except RefinementError`` in this module would not catch what the library
+# raised: the failure is silent in the fail-open direction, since an
+# ``assertRaises`` that can never see its exception simply reports the *other*
+# escape path as untested rather than reporting anything at all.
+#
+# Repairing ``sys.path`` and importing the one spelling removes the second name
+# from the file, so no import order can reintroduce the second identity.
+if __package__ in (None, ""):  # direct execution; the repository root is absent
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from scripts.riscv_refinement_lib import codec, negative, render, sail
+from scripts.riscv_refinement_lib.model import (
+    FULL_OPCODE_COUNT,
+    PILOT_OPCODES,
+    SCHEMA_VERSION,
+    Paths,
+    RefinementError,
+    repository_root,
+)
 
 AUDITED_THEOREMS = (
     "RiscvRefinement.WordBytes.value_lt",
@@ -256,9 +258,24 @@ def _blank_span(rendered: list[str], text: str, start: int, end: int) -> int:
 def _skip_lean_string(text: str, start: int) -> int:
     """Return the index after the Lean string literal opened at ``start``.
 
+    The caller skips a literal without blanking it, so nothing inside a literal is
+    ever hidden from the scan. What skipping buys is that a ``--`` or ``/-`` inside
+    a literal opens no comment. Both branches below exist because of what happens
+    when the skip ends in the wrong place, and they fail in opposite directions.
+
     ``\\`` escapes the next character, which also carries a Lean string gap over a
-    newline. An unterminated literal recovers at the end of its line so a stray
-    quote cannot hide the rest of the file from the scan.
+    newline. Without it a ``\\"`` would end the literal early and drop the scanner
+    back into code mode *inside the literal's own text*, where a ``/-`` opens a
+    block comment that blanks real code up to the next ``-/`` -- so a forbidden
+    term after the literal is hidden and the scan reports a clean sweep. That is
+    the fail-open direction, and the only one this function has.
+
+    An unterminated literal recovers at the newline, which bounds a stray quote to
+    its own line and keeps comment stripping working on the lines after it.
+    Without that the skip would run to the next quote anywhere in the file, or to
+    end of file, leaving every ``--`` and ``/- -/`` in between unblanked; prose
+    naming a forbidden term would then be read as code. That direction fails
+    closed -- a false breach report, not a missed one.
     """
     index = start + 1
     while index < len(text):

@@ -51,7 +51,7 @@ from scripts.riscv_release_oracle_lib.public_values import (
     strict_object,
 )
 from scripts.riscv_staged_smoke_lib import contracts as staged_contracts
-from scripts.riscv_stark_v_benchmark import parse_phase_seconds
+from scripts.riscv_stark_v_benchmark import parse_phase_seconds, power_evidence_block
 
 
 def _sample(
@@ -418,6 +418,23 @@ def _candidate_diagnostic_public(
     workload: model.Workload,
     candidate: dict[str, Any],
 ) -> dict[str, Any]:
+    """Bind one ``riscv-trace-dump`` sample to the candidate that must have run it.
+
+    This is where this harness answers the trace-dumper provenance question, and
+    it is why it does not also call the CSP harness's
+    ``build_identity.read_trace_provenance``: `parse_public_values_diagnostic`
+    holds *every* sample -- not one preflight probe -- to the candidate commit,
+    the worktree's own dirty flag, the pinned Sail oracle commit, the witness
+    layout digest, and the digests of the exact ELF and input this row measures.
+    That is a strict superset of the CSP gate's commit-and-dirty check, applied
+    per sample rather than once, so adding the CSP gate here would add a weaker
+    second copy of a check that already runs (issue #152 item 6b).
+
+    The one difference is deliberate: the CSP gate hard-refuses a dirty build,
+    while this binds the dumper's dirty flag to the candidate identity, which is
+    what lets ``--allow-dirty`` local diagnostics run while still refusing a
+    binary that does not match the tree it claims.
+    """
     raw = capture.stdout.decode("utf-8")
     payload = json.loads(raw, object_pairs_hook=strict_object)
     provenance = payload.get("provenance") if isinstance(payload, dict) else None
@@ -721,6 +738,13 @@ def produce(
     trace_cli = trace_cli.resolve(strict=True)
     admission = riscv_cli_admission.resolve(candidate_cli, cwd=ROOT)
     candidate = candidate_identity(candidate_cli, trace_cli, allow_dirty=allow_dirty)
+    # Captured before the first sample so an operator sees a throttled host while
+    # the run is still worth aborting, not after 32 rows of it. The evidence rides
+    # in the shared host block, where `contract.validate_host_environment` admits
+    # it and re-derives the verdict from it (issue #152 item 6c).
+    power = power_evidence_block()
+    if not power["admissible"]:
+        print(f"[power] {'; '.join(power['reasons'])}", flush=True)
     store = EvidenceStore(artifact_dir)
     cp11, timing_binary, oracle = prepare_oracle(stark_v_source, cache_dir, store)
     started = time.monotonic_ns()
@@ -769,7 +793,9 @@ def produce(
         "fixtures": fixtures,
         "protocol": PROTOCOL,
         "metal": METAL,
-        "host_environment": collect_host_environment(stark_v_source.resolve()),
+        "host_environment": collect_host_environment(
+            stark_v_source.resolve(), power_conditions=power,
+        ),
         "timing_policy": {
             "clock": "time.monotonic_ns",
             "pairing": "alternating_candidate_and_stark_v_order_per_external_sample",

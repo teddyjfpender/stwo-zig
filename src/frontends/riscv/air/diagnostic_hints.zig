@@ -60,9 +60,10 @@ pub const AIR_SATISFACTION = "scripts/air_satisfaction.py";
 /// output path the tool would not accept -- a hint that does not run is worse
 /// than none, because it reads as authoritative.
 ///
-/// `diagnostic_hints_test.zig` re-derives the tool's flag and mode sets from
-/// that source file and checks every constant here against them, so a flag
-/// rename or a new mode fails a test rather than silently invalidating advice.
+/// `src/tests/riscv/diagnostic_hints_test.zig` re-derives the tool's flag and
+/// mode sets from that source file and checks every constant here against them,
+/// so a flag rename or a new mode fails a test rather than silently invalidating
+/// advice. It lives outside this package because the dumper does too.
 pub const DUMP_TRACE = TRACE_DUMP ++ " --elf <elf> --input <input>";
 pub const DUMP_SUMS = TRACE_DUMP ++ " --relation-sums <elf> --input <input>";
 pub const DUMP_TUPLES = TRACE_DUMP ++ " --relation-tuples <elf> --input <input>";
@@ -94,24 +95,20 @@ pub const Cause = enum {
 /// The remediation text for a cause. Every one names a runnable command.
 pub fn hint(cause: Cause) []const u8 {
     return switch (cause) {
-        .unsupported_opcode =>
-        "an execution-only opcode (ECALL/EBREAK) reached the prover: this is an admission " ++
+        .unsupported_opcode => "an execution-only opcode (ECALL/EBREAK) reached the prover: this is an admission " ++
             "failure in the caller, not a witness defect. A proven run must end on the halt " ++
             "flag or a self-loop. List what the run actually retired with `" ++
             DUMP_TRACE ++ "`.",
-        .register_access_chain =>
-        "a proof-representable trace's register source-before-destination chain does not " ++
+        .register_access_chain => "a proof-representable trace's register source-before-destination chain does not " ++
             "close, so the memory_access bus cannot balance. Isolate the offending tuples " ++
             "with `" ++ DUMP_TUPLES ++ "` and cross-check the committed rows with `" ++
             CHECK_AIR ++ "`.",
-        .logup_no_public_io =>
-        "IO relation unbalanced is the likely cause: the statement declares no public I/O, so " ++
+        .logup_no_public_io => "IO relation unbalanced is the likely cause: the statement declares no public I/O, so " ++
             "a guest that reads input or writes output emits memory-access tuples nothing " ++
             "consumes, and the bus cannot cancel for any witness. Prove through the entry " ++
             "point that takes public data derived from the run, then confirm the per-relation " ++
             "sums with `" ++ DUMP_SUMS ++ "`.",
-        .logup_unattributed =>
-        "one relation bus is unbalanced; the residual alone does not say which, because a " ++
+        .logup_unattributed => "one relation bus is unbalanced; the residual alone does not say which, because a " ++
             "component's claimed sum covers every relation it touches. Isolate the relation " ++
             "with `" ++ DUMP_SUMS ++ "`, list the offending tuples with `" ++ DUMP_TUPLES ++
             "`, and cross-check with `" ++ CHECK_AIR ++ "`.",
@@ -181,80 +178,8 @@ fn emit(comptime format: []const u8, args: anytype) void {
     std.debug.print(format, args);
 }
 
-// ---------------------------------------------------------------------------
-// Tests
-//
-// NOT RUN BY ANY GATE. `src/frontends/riscv/**` is its own Zig module
-// (`stwo_riscv_frontend`), so these are compiled only by
-// `src/frontends/riscv/build.zig`'s `test` step, which no product step, release
-// gate or workflow depends on. `-Driscv-test-filter` reports "selects no test"
-// for every test name defined in this tree.
-//
-// The pins that run live in `src/tests/riscv/diagnostic_hints_test.zig`, in the
-// root test module, and they are strictly stronger: they additionally check
-// every published invocation against the dumper's own argument parser, check
-// the installed artifact names against the build file, and check that both
-// raise sites still report. Treat what follows as documentation that compiles,
-// and add new obligations there rather than here.
-// ---------------------------------------------------------------------------
-
-test "diagnostic hints: every cause names a command a reader can run" {
-    // The property the module exists for. A hint that stops naming its tool is
-    // back to being an error name with extra words, so this fails the moment
-    // any command is dropped from any message.
-    for (std.enums.values(Cause)) |cause| {
-        const text = hint(cause);
-        try std.testing.expect(text.len != 0);
-        const names_dumper = std.mem.indexOf(u8, text, TRACE_DUMP) != null;
-        const names_checker = std.mem.indexOf(u8, text, AIR_SATISFACTION) != null;
-        if (!names_dumper and !names_checker) {
-            std.debug.print(
-                "hint for {s} names no diagnostic command: {s}\n",
-                .{ @tagName(cause), text },
-            );
-            return error.HintNamesNoDiagnostic;
-        }
-    }
-}
-
-test "diagnostic hints: LogUp causes name the per-relation dump specifically" {
-    // `--relation-sums` is the flag that answers "which relation", which is the
-    // exact question `LogupSumNonZero` refuses to answer on its own. Naming the
-    // dumper without naming that flag would not close the gap.
-    for ([_]Cause{ .logup_no_public_io, .logup_unattributed }) |cause| {
-        const text = hint(cause);
-        try std.testing.expect(std.mem.indexOf(u8, text, "--relation-sums") != null);
-        try std.testing.expect(std.mem.indexOf(u8, text, TRACE_DUMP) != null);
-    }
-}
-
-test "diagnostic hints: the two register-boundary causes stay distinct" {
-    try std.testing.expectEqual(
-        Cause.unsupported_opcode,
-        classifyRegisterBoundary(error.UnsupportedForProof),
-    );
-    try std.testing.expectEqual(
-        Cause.register_access_chain,
-        classifyRegisterBoundary(error.InvalidRegisterAccessChain),
-    );
-    // An admission failure must never be described as a witness failure.
-    const admission = hint(.unsupported_opcode);
-    try std.testing.expect(std.mem.indexOf(u8, admission, "ECALL") != null);
-    try std.testing.expect(std.mem.indexOf(u8, admission, "access chain") == null);
-}
-
-test "diagnostic hints: a statement with no public I/O gets its own message" {
-    try std.testing.expectEqual(Cause.logup_no_public_io, classifyLogup(false));
-    try std.testing.expectEqual(Cause.logup_unattributed, classifyLogup(true));
-    try std.testing.expect(
-        std.mem.indexOf(u8, hint(.logup_no_public_io), "declares no public I/O") != null,
-    );
-}
-
-test "diagnostic hints: the host and cross-target dumper names stay distinct" {
-    // Naming one binary in a message while the build installs another under the
-    // same path is how `Exec format error` got read as a harness fault. These
-    // must track `build_support/products/riscv_cpu.zig`.
-    try std.testing.expect(!std.mem.eql(u8, TRACE_DUMP, TRACE_DUMP_STATIC));
-    try std.testing.expect(std.mem.startsWith(u8, TRACE_DUMP_STATIC, TRACE_DUMP));
-}
+// The pins for this module live in `diagnostic_hints_test.zig`, beside it. They
+// used to live in `src/tests/riscv/`, reaching back across the package boundary
+// with `@embedFile`, because no gate compiled a `test` written in this package.
+// That is fixed: `test-riscv-cpu-product` and the `riscv_frontend` lane both run
+// this package's tests now, so a pin belongs next to what it pins.

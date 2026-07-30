@@ -150,8 +150,6 @@ pub fn addProduct(context: Context) void {
     static_step.dependOn(&install_static.step);
     static_step.dependOn(&install_static_trace.step);
 
-    const tests = addTests(context);
-    const integration_tests = addIntegrationTests(context);
     const core_prover_tests = addCoreProverTests(context);
     const exhaustive_tests = addExhaustiveTests(context);
     const air_satisfaction_exports = addAirSatisfactionExportTests(context);
@@ -160,8 +158,7 @@ pub fn addProduct(context: Context) void {
         "test-riscv-cpu-product",
         "Test the focused RISC-V CPU product shell and capability surface",
     );
-    test_step.dependOn(&context.b.addRunArtifact(tests).step);
-    test_step.dependOn(test_filter.addRun(context.b, integration_tests));
+    test_step.dependOn(test_filter.addSuites(context.b, addTests(context)));
     context.b.step(
         "test-riscv-release-exhaustive",
         "Run the exhaustive RISC-V proof and adversarial release suites",
@@ -284,7 +281,16 @@ fn addExecutable(
     );
     return b.addExecutable(.{ .name = name, .root_module = root });
 }
-fn addTests(context: Context) *std.Build.Step.Compile {
+/// Every test body `test-riscv-cpu-product` runs, under one filter.
+///
+/// Four suites, three of which the product only *linked* before now. Linking
+/// compiles the code and none of its tests, so a `test` written beside the code
+/// it covers was compiled by nothing: 458 named tests in the frontend package and
+/// 11 in the shared adapter, against 37 the step actually ran. They are returned
+/// together because they are built from one module set, and they are run by one
+/// guarded step because `-Driscv-test-filter` must be satisfied by a match in any
+/// of them.
+fn addTests(context: Context) []const test_filter.Suite {
     const b = context.b;
     const stwo = createStwoModule(b, context.protocol, context.target, context.optimize);
     const capabilities = createCapabilitiesModule(context, context.target, context.optimize);
@@ -330,7 +336,12 @@ fn addTests(context: Context) *std.Build.Step.Compile {
             context.optimize,
         ),
     );
-    return b.addTest(.{ .root_module = root });
+    const suites = b.allocator.alloc(test_filter.Suite, 4) catch @panic("out of memory");
+    suites[0] = .{ .tests = b.addTest(.{ .root_module = root }) };
+    suites[1] = .{ .tests = addTestRoot(context, .{}) };
+    suites[2] = hostBinding(context).frontendSuite(context.protocol);
+    suites[3] = hostBinding(context).moduleSuite(adapter, shared_shell.adapter_test_floor);
+    return suites;
 }
 /// Which suites a `src/tests.zig` binary compiles in, and which of its tests it
 /// runs. Named rather than positional: four booleans at a call site say nothing
@@ -345,10 +356,6 @@ const TestRoot = struct {
     rigidity_exhaustive: bool = false,
     filters: []const []const u8 = &.{},
 };
-fn addIntegrationTests(context: Context) *std.Build.Step.Compile {
-    return addTestRoot(context, .{});
-}
-
 fn addCoreProverTests(context: Context) *std.Build.Step.Compile {
     return addTestRoot(context, .{ .exhaustive = true });
 }

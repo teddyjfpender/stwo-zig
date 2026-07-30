@@ -460,24 +460,38 @@ class SourceConformanceTests(unittest.TestCase):
             oversized = repo / "src/core/legacy.zig"
             oversized.parent.mkdir(parents=True)
             oversized.write_text("\n" * 765, encoding="utf-8")
+            owner = repo / "src/tests/native/mod.zig"
+            owner.parent.mkdir(parents=True)
+            owner.write_text("\n" * 270, encoding="utf-8")
             evidence_root = repo / "scripts/benchmark_delta.py"
             evidence_root.parent.mkdir(parents=True)
             evidence_root.write_text("def main():\n" + "    pass\n" * 89, encoding="utf-8")
 
-            messages = {
-                notice.key: notice.message
-                for notice in measure(repo)
-                if is_headroom(notice)
-            }
+            measured = {n.key: n for n in measure(repo) if is_headroom(n)}
             self.assertIn(
                 "765 lines approaches the 850-line manual-source ceiling (85 line(s) of headroom)",
-                messages["headroom:file-size:core/legacy.zig"],
+                measured["headroom:file-size:core/legacy.zig"].message,
             )
             self.assertIn(
                 "90 lines approaches the 100-line entrypoint ceiling (10 line(s) of headroom)",
-                messages["headroom:thin-owner:scripts/benchmark_delta.py"],
+                measured["headroom:thin-owner:scripts/benchmark_delta.py"].message,
             )
+            # A `src` notice is the only one whose display path (relative to `src`)
+            # differs from what `git diff --name-only` prints, so it is the only
+            # one that can prove `Finding.path` carries git's spelling -- the whole
+            # reason `repo_path` is plumbed separately (issue #152 item 9). Both
+            # scanners: the size scan is handed the repository path, `scan_zig`
+            # builds its own. A scope spelling a notice the display way must match
+            # nothing, which is what fails when display is plumbed through.
+            for key, display in (("file-size", "core/legacy.zig"),
+                                 ("thin-owner", "tests/native/mod.zig")):
+                notice = measured[f"headroom:{key}:{display}"]
+                self.assertTrue(notice.message.startswith(f"{display}: "), notice.message)
+                self.assertEqual(f"src/{display}", notice.path)
+                self.assertFalse(ChangeScope(frozenset({display})).covers(notice.path))
+                self.assertTrue(ChangeScope(frozenset({f"src/{display}"})).covers(notice.path))
             self.assertEqual([], scan(repo))
+
 
     #: One near-ceiling file inside the change under test, one outside it.
     SCOPED_TREE = {"build_support/products.zig": 460, "build_support/graph.zig": 470}

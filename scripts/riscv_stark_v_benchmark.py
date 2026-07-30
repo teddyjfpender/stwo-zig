@@ -36,6 +36,7 @@ import statistics
 import subprocess
 import sys
 from pathlib import Path
+from typing import Mapping
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -85,18 +86,35 @@ def _tool_version(argv: list[str]) -> str | None:
     return out[0] if result.returncode == 0 and out else None
 
 
-def collect_host_environment(stark_v_source: Path | None = None) -> dict[str, object]:
+def collect_host_environment(
+    stark_v_source: Path | None = None,
+    *,
+    power_conditions: Mapping[str, object] | None = None,
+) -> dict[str, object]:
     """Portable machine context for a benchmark report: what ran it, where.
 
     No serial numbers or user data. Fields absent on non-macOS hosts are null,
     with the platform block always populated so every report is self-describing.
 
-    Power conditions are deliberately *not* here even though they belong to the
-    same evidence: this block's exact field set is pinned by
-    ``riscv_benchmark_matrix_contract`` for the two sibling harnesses that also
-    embed it, so the run-condition evidence rides in the report's own
-    ``power_conditions`` block (see ``main``) until that contract can move with
-    it. Both spellings come from the one shared implementation either way.
+    ## Power conditions ride here, in every harness that embeds this block
+
+    All three harnesses that publish prove/verify timings embed this block, and
+    only one of them used to record power state -- so the other two could publish
+    battery-throttled numbers with nothing in the report saying so, which is the
+    defect issue #152 item 6c exists to prevent. The evidence therefore lives
+    here rather than in one harness's own report body, and its schema is v2
+    because a consumer must be able to tell a report that carries the evidence
+    from one that could not.
+
+    ``power_conditions`` is the shared ``power_evidence_block`` -- one
+    implementation, in ``riscv_csp_benchmark_lib.host``. Callers that already
+    captured it (to warn an operator while the run is still worth aborting) pass
+    it in, so one run reports one capture rather than two that can disagree.
+
+    The field set is pinned on the consuming side by
+    ``riscv_benchmark_matrix_contract.HOST_ENVIRONMENT_FIELDS``; this function's
+    test asserts equality against that constant, so the producer and the contract
+    cannot drift apart silently in either direction.
     """
     import platform
 
@@ -107,7 +125,10 @@ def collect_host_environment(stark_v_source: Path | None = None) -> dict[str, ob
             ["git", "-C", str(stark_v_source), "rev-parse", "HEAD"]
         )
     return {
-        "schema": "riscv_benchmark_host_environment_v1",
+        "schema": "riscv_benchmark_host_environment_v2",
+        "power_conditions": (
+            power_evidence_block() if power_conditions is None else dict(power_conditions)
+        ),
         "platform": {
             "system": platform.system(),
             "release": platform.release(),
@@ -372,10 +393,17 @@ def main(argv: list[str] | None = None) -> int:
         },
         "metal_note": "RISC-V adapter is CPU-only; no RISC-V Metal prover on "
                       "either lane. Native CPU-vs-Metal is in the native proof matrix.",
-        "host_environment": collect_host_environment(args.stark_v_source.resolve()),
+        "host_environment": collect_host_environment(
+            args.stark_v_source.resolve(), power_conditions=power,
+        ),
         # Same evidence, same implementation, same verdict as the CSP harness:
         # a check that exists on one benchmark path and not its sibling is how
         # throttled numbers get published as clean ones.
+        #
+        # Retained at the root because this report's own v2 schema declared it
+        # there before the shared host block could carry it. It is the *same*
+        # capture the host block embeds -- `test_riscv_stark_v_benchmark` pins the
+        # two equal -- so a consumer reading either spelling reads one verdict.
         "power_conditions": power,
         "warmups": args.warmups,
         "samples": args.samples,

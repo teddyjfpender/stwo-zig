@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import copy
 import json
+import re
+import subprocess
+import sys
 import tempfile
+import textwrap
 import unittest
 from argparse import Namespace
 from pathlib import Path
@@ -293,6 +297,64 @@ class RefinementAirTest(unittest.TestCase):
                 with self.assertRaisesRegex(RefinementError, expected):
                     riscv_refinement._scan_forbidden_proof_terms(paths)
 
+    def test_an_escaped_quote_cannot_reopen_comment_scanning_inside_a_literal(
+        self,
+    ) -> None:
+        """The fail-open branch of ``_skip_lean_string``, exercised end to end.
+
+        ``"x \\" /- y"`` is one literal. Drop the backslash-escape branch and the
+        skip stops at the escaped quote, back in code mode but still inside the
+        literal, where the ``/-`` opens a block comment. Everything up to the next
+        ``-/`` is then blanked -- including the ``axiom`` on the following line --
+        and the scan reports a clean sweep over a file that declares an axiom.
+
+        This is the one direction in which the skipper can hide a proof escape, so
+        it is asserted on the scanner rather than on the stripper: the obligation
+        is that the term is *reported*, not merely that some characters survive.
+        """
+        text = (
+            'def s : String := "x \\" /- y"\n'
+            "axiom cheat : True\n"
+            "def t : Nat := 1 -/\n"
+        )
+        with tempfile.TemporaryDirectory() as raw:
+            paths = self._lean_tree(Path(raw), {"Escaped.lean": text})
+            with self.assertRaisesRegex(
+                RefinementError,
+                r"RiscvRefinement/Escaped\.lean:2",
+            ):
+                riscv_refinement._scan_forbidden_proof_terms(paths)
+        # And the mechanism, so a failure says which half broke: the literal's own
+        # text is skipped, not blanked, and the line after it is still code.
+        stripped = riscv_refinement._strip_lean_comments(text)
+        self.assertIn("/- y", stripped)
+        self.assertIn("axiom cheat", stripped)
+
+    def test_a_stray_quote_is_bounded_to_its_line_so_later_prose_stays_prose(
+        self,
+    ) -> None:
+        """The newline-recovery branch, which fails closed rather than open.
+
+        A literal is skipped, never blanked, so an unterminated one hides nothing.
+        What it can do is switch comment stripping off for everything up to the
+        next quote in the file. The comment two lines below would then be read as
+        code and its prose reported as a proof escape -- a breach report about a
+        sentence. Recovery at the newline is what keeps the stripper working.
+        """
+        text = (
+            'def a : String := "unterminated\n'
+            "-- prose about sorry, axiom and native_decide\n"
+            'def b : String := "closed"\n'
+        )
+        stripped = riscv_refinement._strip_lean_comments(text)
+        for term in ("sorry", "axiom", "native_decide"):
+            self.assertNotIn(term, stripped)
+        self.assertIn('def b : String := "closed"', stripped)
+        self.assertEqual(len(text), len(stripped))
+        with tempfile.TemporaryDirectory() as raw:
+            paths = self._lean_tree(Path(raw), {"Stray.lean": text})
+            riscv_refinement._scan_forbidden_proof_terms(paths)
+
     def test_proof_escape_scan_reports_the_line_the_term_is_on(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             paths = self._lean_tree(
@@ -309,6 +371,94 @@ class RefinementAirTest(unittest.TestCase):
                 r"RiscvRefinement/Late\.lean:4",
             ):
                 riscv_refinement._scan_forbidden_proof_terms(paths)
+
+    #: Reached under a bare top-level name, as direct execution reaches it.
+    _ONE_IDENTITY_PROGRAM = textwrap.dedent(
+        """
+        import importlib
+        import sys
+
+        root = sys.argv[1]
+        # Exactly what `python3 scripts/riscv_refinement.py` puts on sys.path:
+        # the scripts directory, and no repository root.
+        sys.path.insert(0, root + "/scripts")
+        module = importlib.import_module("riscv_refinement")
+
+        # Now reach the library the way every test and sibling script reaches it.
+        sys.path.insert(0, root)
+        from scripts.riscv_refinement_lib.model import RefinementError
+
+        assert module.RefinementError is RefinementError, (
+            "two identities: "
+            f"{module.RefinementError.__module__} vs {RefinementError.__module__}"
+        )
+        # The consequence, stated as the thing that actually broke: an
+        # `except`/`assertRaises` written against one class must catch what the
+        # library raises.
+        try:
+            raise module.RefinementError("boom")
+        except RefinementError:
+            pass
+        print("one identity")
+        """
+    )
+
+    def test_the_library_has_one_identity_however_the_script_is_reached(self) -> None:
+        """``RefinementError`` cannot become two classes, whatever is on sys.path.
+
+        Direct execution puts ``scripts/`` on ``sys.path`` rather than the
+        repository root, so a bare ``riscv_refinement_lib`` import would load the
+        same files under a second module name. ``assertRaises(RefinementError)``
+        against the qualified class then cannot see the bare class, and the
+        assertion passes vacuously -- four of them did.
+
+        Run in a subprocess from a neutral working directory: an in-process check
+        would find the repository root already importable through ``''`` and prove
+        nothing, and importing the module twice would leave both identities in this
+        interpreter's ``sys.modules`` for every later test.
+        """
+        with tempfile.TemporaryDirectory() as neutral:
+            completed = subprocess.run(
+                [sys.executable, "-c", self._ONE_IDENTITY_PROGRAM, str(ROOT)],
+                cwd=neutral,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+        self.assertEqual(
+            0,
+            completed.returncode,
+            f"{completed.stdout}\n{completed.stderr}",
+        )
+        self.assertIn("one identity", completed.stdout)
+
+    def test_direct_execution_still_works_without_a_second_spelling(self) -> None:
+        """The fallback's purpose is kept; only its second module name is gone.
+
+        The bare spelling existed so ``python3 scripts/riscv_refinement.py`` would
+        run at all. Removing it without this would trade a silent-vacuity bug for a
+        broken entry point, so both halves are asserted: the script runs from a
+        working directory that makes the repository root unimportable, and its
+        source names the library under one spelling only.
+        """
+        with tempfile.TemporaryDirectory() as neutral:
+            completed = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "riscv_refinement.py"), "--help"],
+                cwd=neutral,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+        self.assertEqual(0, completed.returncode, completed.stderr)
+        self.assertIn("usage: riscv_refinement.py", completed.stdout)
+
+        source = (ROOT / "scripts" / "riscv_refinement.py").read_text(encoding="utf-8")
+        bare = re.compile(r"^\s*(?:from|import)\s+riscv_refinement_lib\b", re.MULTILINE)
+        self.assertIsNone(
+            bare.search(source),
+            "the bare spelling is back; it gives the library a second identity",
+        )
+        self.assertIn("from scripts.riscv_refinement_lib import", source)
 
     @staticmethod
     def _lean_tree(root: Path, sources: dict[str, str]) -> Paths:

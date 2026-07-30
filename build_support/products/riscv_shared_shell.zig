@@ -15,6 +15,30 @@ const build_identity = @import("../build_identity.zig");
 const graph_identity = @import("../graph/identity.zig");
 const graph = @import("../graph/modules.zig");
 const product_policy = @import("../graph/product.zig");
+const test_filter = @import("riscv_test_filter.zig");
+
+/// Fewest tests the RISC-V frontend package's own test binary must contain.
+///
+/// Measured on this tree: 473 (459 named plus 14 anonymous aggregation blocks).
+/// The floor sits below that so ordinary work does not have to move it, and far
+/// enough above an empty shell that losing the package's test aggregation cannot
+/// pass. It is not decoration: before `src/frontends/riscv/test_inventory.zig`
+/// existed the same artifact held 319, and no gate compiled any of them.
+///
+/// Raise it deliberately when the suite grows; never lower it to make a build
+/// pass, because the thing it detects is exactly a build that passes.
+pub const frontend_test_floor = 440;
+
+/// Fewest tests the shared proof adapter's own test binary must contain.
+///
+/// `src/integrations/riscv_cpu/proof_adapter.zig` and its neighbours import
+/// `stwo` and `riscv_cpu_capabilities`, which only a product graph supplies, so
+/// the integration package's own `test` step cannot compile them and never did.
+/// A product step is the only possible home for them, and until now no product
+/// step had one -- which is how `test "adapter fail-closes through the shared
+/// run-admission gate"` came to be written against a step that would never
+/// compile it.
+pub const adapter_test_floor = 5;
 
 /// The shared focused-product shell (`src/products/riscv_shared/*.zig`) under
 /// the module names the shell files themselves import.
@@ -62,6 +86,44 @@ pub const Binding = struct {
         for (shell_named_imports) |shell| {
             module.addImport(shell.name, self.leafModule(shell.source));
         }
+    }
+
+    /// An already-bound module's own in-file tests, as a suite a product test
+    /// step can run.
+    ///
+    /// A `test` written next to the code it covers is compiled only by an
+    /// artifact rooted at that code's module. Every module below is one a product
+    /// *links*, which compiles the code and none of its tests, so without an
+    /// artifact like this one those tests exist and run nowhere -- which is why
+    /// `-Driscv-test-filter` reported "matched no test name" for names that
+    /// demonstrably existed in the frontend, and why a pin placed beside the code
+    /// it pinned did not run.
+    pub fn moduleSuite(
+        self: Binding,
+        module: *std.Build.Module,
+        minimum: usize,
+    ) test_filter.Suite {
+        return .{
+            .tests = self.b.addTest(.{
+                .root_module = module,
+                .filters = test_filter.apply(self.b, &.{}),
+            }),
+            .minimum = minimum,
+        };
+    }
+
+    /// The RISC-V frontend package's own tests: the largest test body in the
+    /// repository, compiled by no product step until now. A fresh module rather
+    /// than the product's own, so making it a test root cannot perturb the
+    /// graph the product ships.
+    pub fn frontendSuite(self: Binding, protocol: graph.ProtocolModules) test_filter.Suite {
+        return self.moduleSuite(graph.createRiscVFrontend(
+            self.b,
+            protocol,
+            roleProduct(self.product, .@"test"),
+            self.target,
+            self.optimize,
+        ), frontend_test_floor);
     }
 
     /// The engine-generic proof adapter. Every product binds it under the

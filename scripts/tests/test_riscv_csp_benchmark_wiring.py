@@ -344,8 +344,9 @@ class StarkVWiringTests(unittest.TestCase):
                 validate_stark_v=lambda source: STAND_IN_CLI,
                 run_zig_lane=lambda *_, **__: dict(self.ZIG_LANE),
                 run_rust_lane=lambda *_, **__: dict(self.RUST_LANE),
-                collect_host_environment=lambda source=None: {
-                    "schema": "riscv_benchmark_host_environment_v1"
+                collect_host_environment=lambda source=None, power_conditions=None: {
+                    "schema": "riscv_benchmark_host_environment_v2",
+                    "power_conditions": power_conditions,
                 },
             ):
                 with mock.patch.object(
@@ -382,6 +383,12 @@ class StarkVWiringTests(unittest.TestCase):
                 ],
             },
             report["power_conditions"],
+        )
+        # One run, one capture: the shared host block carries the same verdict the
+        # root field does, so a consumer reading either spelling reads one answer.
+        self.assertEqual(
+            report["power_conditions"],
+            report["host_environment"]["power_conditions"],
         )
 
     def test_report_declares_the_bumped_schema(self) -> None:

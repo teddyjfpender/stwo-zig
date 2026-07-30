@@ -38,12 +38,21 @@ const common_allowed_prefixes = [_][]const u8{
     "src/tracing",
 };
 
-// Metal ownership is enumerated leaf by leaf rather than granted with a
-// blanket `src/backends/metal` prefix. A blanket prefix stands above every
-// deferred subtree the backend may ever host, so it would hand the aggregate
-// compatibility CLI implementation trees this product must never carry.
+// Metal ownership is enumerated leaf by leaf rather than granted with any
+// directory prefix that stands above a deferred subtree. Such a prefix hands
+// the aggregate compatibility CLI implementation trees this product must never
+// carry, and the hazard is not confined to `src/backends/metal` itself:
+// `src/backends/metal/shaders` stands directly above the deferred
+// `src/backends/metal/shaders/cairo` shader tree, so it is enumerated leaf by
+// leaf too. Every entry below is measured against the real closure, not
+// guessed: `scripts/check_product_closure.py` run with a candidate grant
+// withheld reports exactly the files that grant must restore.
 const metal_allowed_files = common_allowed_files ++ .{
     metal_facade,
+    // Also the `stwo_metal_backend` named-import source, which the closure
+    // checker honours on its own. Listed anyway so this leaf enumeration
+    // answers "which Metal sources does the product carry?" completely,
+    // without a reader having to cross-reference the named-import table.
     "src/backends/metal/mod.zig",
     "src/backends/metal/arena_plan.zig",
     "src/backends/metal/command_epoch.zig",
@@ -57,6 +66,13 @@ const metal_allowed_files = common_allowed_files ++ .{
     "src/backends/metal/recovery.zig",
     "src/backends/metal/resident_arena.zig",
     "src/backends/metal/runtime.zig",
+    // The three shader-tree sources the closure actually reaches. The former
+    // `src/backends/metal/shaders` prefix additionally granted the deferred
+    // `cairo/` shader tree and `runtime_initialization_contract_test.zig`,
+    // which the closure does not reach.
+    "src/backends/metal/shaders/abi_contract.zig",
+    "src/backends/metal/shaders/build_contract.zig",
+    "src/backends/metal/shaders/manifest.zig",
     "src/backends/metal/shared_runtime.zig",
     "src/backends/metal/source_contract.zig",
     "src/backends/metal/telemetry.zig",
@@ -65,7 +81,6 @@ const metal_allowed_files = common_allowed_files ++ .{
 const metal_allowed_prefixes = common_allowed_prefixes ++ .{
     "src/backends/metal/recipes",
     "src/backends/metal/runtime",
-    "src/backends/metal/shaders",
 };
 
 const shared_named_imports = [_]policy.NamedImport{
@@ -164,12 +179,15 @@ pub fn descriptorFor(metal: bool) policy.Descriptor {
 }
 
 /// Implementation trees the aggregate compatibility CLI must never carry.
+/// These are prohibitions, not inventory: an entry naming a path that does not
+/// exist yet is the point, because it forbids the tree before someone adds it.
 const deferred_trees = [_][]const u8{
     "src/backends/cuda",
     "src/frontends/cairo",
     "src/integrations/cairo_cpu",
     "src/integrations/cairo_metal",
     "src/backends/metal/cairo",
+    "src/backends/metal/shaders/cairo",
 };
 
 test "aggregate product closures cannot own deferred implementation trees" {
@@ -188,6 +206,13 @@ fn rejectDeferredOwnership(closure: policy.SourceClosure) !void {
         }
         for (closure.allowed_files) |allowed| {
             if (owns(blocked, allowed)) return error.DeferredTreeOwnedByFile;
+        }
+        // A named import confers ownership too: the closure checker admits a
+        // named import's source whether or not any file or prefix names it, so
+        // a named import reaching into a deferred tree would carry that tree
+        // past a ratchet that only inspected files and prefixes.
+        for (closure.named_imports) |named| {
+            if (owns(blocked, named.source)) return error.DeferredTreeOwnedByNamedImport;
         }
     }
 }
@@ -208,6 +233,17 @@ test "every deferred ownership direction is load-bearing" {
         rejectDeferredOwnership(above),
     );
 
+    // The exact grant this ratchet was widened to catch: a shader-tree prefix
+    // one level below `src/backends/metal`, standing above a deferred Cairo
+    // shader tree. Replacing a blanket prefix with a narrower one does not by
+    // itself discharge the rule.
+    var shader_prefix = base;
+    shader_prefix.allowed_prefixes = &.{"src/backends/metal/shaders"};
+    try std.testing.expectError(
+        error.DeferredTreeOwnedByPrefix,
+        rejectDeferredOwnership(shader_prefix),
+    );
+
     // A prefix reaching down into a deferred tree.
     var inside = base;
     inside.allowed_prefixes = &.{"src/backends/metal/cairo/diagnostics"};
@@ -224,9 +260,23 @@ test "every deferred ownership direction is load-bearing" {
         rejectDeferredOwnership(by_file),
     );
 
+    // A named import reaching into a deferred tree, which the closure checker
+    // would admit without any file or prefix naming it.
+    var by_named_import = base;
+    by_named_import.named_imports = &.{
+        .{ .name = "cairo_metal_shaders", .source = "src/backends/metal/shaders/cairo/mod.zig" },
+    };
+    try std.testing.expectError(
+        error.DeferredTreeOwnedByNamedImport,
+        rejectDeferredOwnership(by_named_import),
+    );
+
     // Sibling paths that merely share a textual prefix stay admissible.
     var clean = base;
     clean.allowed_prefixes = &.{ "src/backend", "src/backends/cpu_scalar", "src/core" };
     clean.allowed_files = &.{cpu_facade};
+    clean.named_imports = &.{
+        .{ .name = "stwo_metal_backend", .source = "src/backends/metal/mod.zig" },
+    };
     try rejectDeferredOwnership(clean);
 }

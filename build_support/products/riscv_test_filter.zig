@@ -41,6 +41,17 @@
 //! `TestRoot.filters` stopped matching still reports green. Those literals are
 //! reviewed source, and guarding them would put a new failure mode in the
 //! unfiltered gate path.
+//!
+//! ## The same shape without a filter
+//!
+//! A test binary that compiled almost nothing exits 0 in milliseconds, exactly
+//! like the unmatched-filter case, and nothing about the build output tells them
+//! apart. That is not hypothetical here: every test under `src/frontends/riscv`
+//! -- the largest test body in the repository -- was absent from every product
+//! gate, and 142 of them were absent from the frontend package's own `test` step
+//! too, for as long as both existed. So a `Suite` may also declare the fewest
+//! tests its artifact must contain, and the same guard fails the build when the
+//! binary comes up short.
 
 const std = @import("std");
 
@@ -51,62 +62,120 @@ pub fn apply(b: *std.Build, pinned: []const []const u8) []const []const u8 {
     return b.allocator.dupe([]const u8, &.{requested}) catch @panic("out of memory");
 }
 
-/// Run one RISC-V test artifact and return the step to depend on. Unfiltered,
-/// that is the plain run, unchanged. Under `-Driscv-test-filter` it is a guard
-/// that fails the build when the filter selected no test.
+/// One test artifact a RISC-V step runs, plus what the step guarantees about it.
+pub const Suite = struct {
+    tests: *std.Build.Step.Compile,
+    /// Fewest named tests this artifact must contain in an unfiltered run; zero
+    /// declines the floor.
+    ///
+    /// A floor exists because a test binary that compiled almost nothing is
+    /// indistinguishable from one that ran everything: both exit 0 in
+    /// milliseconds. `src/frontends/riscv/**` spent its whole life in that
+    /// state, so the count is asserted rather than assumed.
+    minimum: usize = 0,
+};
+
+/// Run one RISC-V test artifact and return the step to depend on.
 pub fn addRun(b: *std.Build, tests: *std.Build.Step.Compile) *std.Build.Step {
-    const run = b.addRunArtifact(tests);
-    const requested = read(b) orelse return &run.step;
+    return addSuites(b, &.{.{ .tests = tests }});
+}
 
-    // The guard reads the run's test-name table, which only the invocation that
+/// Run every suite of one step and return the single step to depend on.
+///
+/// Guarding *per step* rather than per artifact is load-bearing once a step runs
+/// more than one: `-Driscv-test-filter` is satisfied by a match in any suite of
+/// the step, and demanding one per artifact would fail a correct focus run
+/// simply because the other artifact holds no test of that name.
+pub fn addSuites(b: *std.Build, suites: []const Suite) *std.Build.Step {
+    const runs = b.allocator.alloc(*std.Build.Step.Run, suites.len) catch
+        @panic("out of memory");
+    // Retained, not borrowed: callers pass an anonymous array literal, whose
+    // storage is the caller's frame and is gone by the time the guard runs. The
+    // first draft read that memory and demanded 12297829382473034410 tests.
+    const retained = b.allocator.dupe(Suite, suites) catch @panic("out of memory");
+    const filter = read(b);
+    var guarded = filter != null;
+    for (suites, runs) |suite, *run| {
+        run.* = b.addRunArtifact(suite.tests);
+        if (suite.minimum != 0) guarded = true;
+    }
+    // Both duties read the run's test-name table, which only the invocation that
     // actually executed the binary populates: a cache hit leaves it null and
-    // would fail closed on every repeat of a *correct* filter. Marking the run
-    // side-effecting keeps it out of the run cache so the table is always real.
-    // Re-executing is what a focus run wants anyway; gate runs never get here.
-    run.has_side_effects = true;
+    // would fail closed on every repeat of a *correct* run. Marking the runs
+    // side-effecting keeps them out of the run cache so the table is always
+    // real. Executing a suite that is already compiled costs its runtime only,
+    // and a step that asserts nothing keeps the run cache it had before.
+    if (guarded) {
+        for (runs) |run| run.has_side_effects = true;
+    }
 
-    const guard = b.allocator.create(EmptySelectionGuard) catch @panic("out of memory");
+    const guard = b.allocator.create(SelectionGuard) catch @panic("out of memory");
     guard.* = .{
         .step = std.Build.Step.init(.{
             .id = .custom,
-            .name = "riscv-test-filter selection guard",
+            .name = "riscv test suite guard",
             .owner = b,
-            .makeFn = EmptySelectionGuard.make,
+            .makeFn = SelectionGuard.make,
         }),
-        .run = run,
-        .filter = requested,
+        .suites = retained,
+        .runs = runs,
+        .filter = filter,
     };
-    guard.step.dependOn(&run.step);
+    for (runs) |run| guard.step.dependOn(&run.step);
     return &guard.step;
 }
 
-/// Turns "the filter matched nothing" from a zero exit into a named failure.
-const EmptySelectionGuard = struct {
+/// Turns "the filter matched nothing" and "the binary lost its tests" from a
+/// zero exit into named failures.
+const SelectionGuard = struct {
     step: std.Build.Step,
-    run: *std.Build.Step.Run,
-    filter: []const u8,
+    suites: []const Suite,
+    runs: []const *std.Build.Step.Run,
+    filter: ?[]const u8,
 
     fn make(step: *std.Build.Step, _: std.Build.Step.MakeOptions) anyerror!void {
-        const guard: *EmptySelectionGuard = @fieldParentPtr("step", step);
+        const guard: *SelectionGuard = @fieldParentPtr("step", step);
+        if (guard.filter) |filter| return guard.checkSelection(step, filter);
+        for (guard.suites, guard.runs) |suite, run| {
+            if (suite.minimum == 0) continue;
+            const metadata = run.cached_test_metadata orelse return step.fail(
+                "{s}: the run reported no test names, so its test count could not be verified",
+                .{run.producer.?.name},
+            );
+            if (metadata.names.len >= suite.minimum) continue;
+            return step.fail(
+                \\{s} compiled {d} tests; this step requires at least {d}.
+                \\  A test binary that compiled almost nothing still exits 0, so the count is
+                \\  the only thing that distinguishes "ran the suite" from "ran an empty shell".
+                \\  Either the module's test aggregation dropped files, or the floor in
+                \\  build_support/products/ is stale and should be moved deliberately.
+            , .{ run.producer.?.name, metadata.names.len, suite.minimum });
+        }
+    }
+
+    fn checkSelection(guard: *SelectionGuard, step: *std.Build.Step, filter: []const u8) !void {
+        var reported = false;
         // Same substring rule the compiler used to decide what to compile in,
         // over the same fully qualified names, so a match here means the filter
         // selected something and not just the always-present anonymous blocks.
-        if (guard.run.cached_test_metadata) |metadata| {
+        for (guard.runs) |run| {
+            const metadata = run.cached_test_metadata orelse continue;
+            reported = true;
             for (0..metadata.names.len) |index| {
                 const name = metadata.testName(@intCast(index));
-                if (std.mem.indexOf(u8, name, guard.filter) != null) return;
+                if (std.mem.indexOf(u8, name, filter) != null) return;
             }
-            return step.fail(
-                \\-Driscv-test-filter='{s}' matched no test name.
-                \\  The compiler dropped every named test, leaving only unnamed aggregation
-                \\  blocks, so the suite exits 0 without proving anything. Correct the filter
-                \\  text, or drop the flag to run the step's own pinned scope.
-            , .{guard.filter});
         }
-        return step.fail(
-            "-Driscv-test-filter='{s}': the run reported no test names, so the selection could not be verified",
-            .{guard.filter},
+        if (!reported) return step.fail(
+            "-Driscv-test-filter='{s}': no run reported test names, so the selection could not be verified",
+            .{filter},
         );
+        return step.fail(
+            \\-Driscv-test-filter='{s}' matched no test name in any suite of this step.
+            \\  The compiler dropped every named test, leaving only unnamed aggregation
+            \\  blocks, so the suite exits 0 without proving anything. Correct the filter
+            \\  text, or drop the flag to run the step's own pinned scope.
+        , .{filter});
     }
 };
 
