@@ -1,0 +1,507 @@
+{
+  "execution_provenance": {
+    "host_environment": {
+      "blockers": [],
+      "complete": true,
+      "hardware": {
+        "chip": "Apple M5 Max",
+        "logical_cpu_count": 18,
+        "machine_model": "Mac17,7",
+        "machine_name": "MacBook Pro",
+        "physical_memory": "64 GB"
+      },
+      "metal_device": {
+        "gpu_cores": "40",
+        "metal_family": "spdisplays_metal4",
+        "name": "Apple M5 Max"
+      },
+      "platform": {
+        "machine": "arm64",
+        "os_build_version": "25F84",
+        "os_product_version": "26.5.2",
+        "release": "25.5.0",
+        "system": "Darwin"
+      },
+      "randomness": {
+        "external_seed": null,
+        "input_policy": "canonical_workload_descriptor_and_fixed_statement",
+        "proof_policy": "deterministic_transcript_no_external_random_seed"
+      },
+      "schema": "native_matrix_host_environment_v1",
+      "toolchain": {
+        "developer_dir": "/Library/Developer/CommandLineTools",
+        "macos_sdk_version": "26.5",
+        "metal_compiler_path": null,
+        "metallib_linker_path": null,
+        "runtime_compiler": "Metal.framework_source_jit_bound_to_os_build",
+        "rust_toolchain": "nightly-2025-07-14",
+        "rust_version": "rustc 1.90.0-nightly (e9182f195 2025-07-13)",
+        "xcode_version": null,
+        "zig_version": "0.15.2"
+      }
+    },
+    "host_load": {
+      "end": {
+        "blockers": [],
+        "captured_at": "2026-07-23T19:09:48.801011+00:00",
+        "complete": true,
+        "load_average": {
+          "fifteen_minutes": 1.8291015625,
+          "five_minutes": 1.6201171875,
+          "one_minute": 1.29052734375,
+          "one_minute_per_logical_cpu": 0.07169596354166667
+        },
+        "power_source": "Battery Power",
+        "schema": "native_matrix_host_load_v1",
+        "thermal_status": [
+          "Note: No thermal warning level has been recorded",
+          "Note: No performance warning level has been recorded",
+          "Note: No CPU power status has been recorded"
+        ],
+        "timezone": "WEST"
+      },
+      "start": {
+        "blockers": [],
+        "captured_at": "2026-07-23T19:09:30.325609+00:00",
+        "complete": true,
+        "load_average": {
+          "fifteen_minutes": 1.8505859375,
+          "five_minutes": 1.66357421875,
+          "one_minute": 1.3994140625,
+          "one_minute_per_logical_cpu": 0.07774522569444445
+        },
+        "power_source": "Battery Power",
+        "schema": "native_matrix_host_load_v1",
+        "thermal_status": [
+          "Note: No thermal warning level has been recorded",
+          "Note: No performance warning level has been recorded",
+          "Note: No CPU power status has been recorded"
+        ],
+        "timezone": "WEST"
+      }
+    },
+    "runner": {
+      "blake2s_effective_backend": "simd",
+      "blake2s_requested_backend": "auto",
+      "blake2s_simd_supported": true,
+      "complete": true,
+      "cpu_count": 18,
+      "environment_overrides": [],
+      "git_commit": "467edbc9988ad2ef2fc76e4dda3ca90fa0f344d5",
+      "git_dirty": false,
+      "optimization": "ReleaseFast",
+      "simd_pack_width": 4,
+      "single_threaded": false,
+      "target_arch": "aarch64",
+      "target_os": "macos",
+      "thread_parallelism_enabled": true,
+      "zig_version": "0.15.2"
+    }
+  },
+  "files": [
+    {
+      "bytes": 50481,
+      "path": "row-000-wide_fibonacci-log_n_rows-10-sequence_len-8/cpu.proof-artifact.json",
+      "sha256": "6a2250b56d5e10b6385e3a0f617ef4cee001b5279fd3bbef404a5ccb58ccd7ce"
+    },
+    {
+      "bytes": 777,
+      "path": "row-000-wide_fibonacci-log_n_rows-10-sequence_len-8/cpu.stderr.txt",
+      "sha256": "b7ed932eb51138edcfba444250208061e8a4fe2b18503a06f2fffea23f33d38f"
+    },
+    {
+      "bytes": 14451,
+      "path": "row-000-wide_fibonacci-log_n_rows-10-sequence_len-8/cpu.stdout.json",
+      "sha256": "396a0aff5b00186d140465b817d2c0b95bf8af67190f6d6c0ec0eab75cf3d57b"
+    },
+    {
+      "bytes": 50481,
+      "path": "row-000-wide_fibonacci-log_n_rows-10-sequence_len-8/metal.proof-artifact.json",
+      "sha256": "6a2250b56d5e10b6385e3a0f617ef4cee001b5279fd3bbef404a5ccb58ccd7ce"
+    },
+    {
+      "bytes": 777,
+      "path": "row-000-wide_fibonacci-log_n_rows-10-sequence_len-8/metal.stderr.txt",
+      "sha256": "1421f4bd3b070d8a09f673d2b0e614af3699ffb6a7fe29ad647a66c91cfc57a0"
+    },
+    {
+      "bytes": 132813,
+      "path": "row-000-wide_fibonacci-log_n_rows-10-sequence_len-8/metal.stdout.json",
+      "sha256": "3c91c7e6630b060d9ac0509f0c89165e7699aabc09563f910ea847fff89c0bfe"
+    },
+    {
+      "bytes": 84232,
+      "path": "row-001-wide_fibonacci-log_n_rows-14-sequence_len-32/cpu.proof-artifact.json",
+      "sha256": "d32393fe3b1f9abbc4795d87c3b3316e06111f014ec30f0635f13ec0ff0587f9"
+    },
+    {
+      "bytes": 777,
+      "path": "row-001-wide_fibonacci-log_n_rows-14-sequence_len-32/cpu.stderr.txt",
+      "sha256": "a8b40e272663414b9206ba2bfbd06203b1e89513d8cb76fc0e93a4ee9a09025e"
+    },
+    {
+      "bytes": 14471,
+      "path": "row-001-wide_fibonacci-log_n_rows-14-sequence_len-32/cpu.stdout.json",
+      "sha256": "fd862f17a6f674ccdd489a20d00224285274f397c675276c5d57273a5f3a084f"
+    },
+    {
+      "bytes": 84232,
+      "path": "row-001-wide_fibonacci-log_n_rows-14-sequence_len-32/metal.proof-artifact.json",
+      "sha256": "d32393fe3b1f9abbc4795d87c3b3316e06111f014ec30f0635f13ec0ff0587f9"
+    },
+    {
+      "bytes": 777,
+      "path": "row-001-wide_fibonacci-log_n_rows-14-sequence_len-32/metal.stderr.txt",
+      "sha256": "76c17dd5b2e28ae07dd6da738e5a33df05e861c17d5d5aa3053f86204295e890"
+    },
+    {
+      "bytes": 132744,
+      "path": "row-001-wide_fibonacci-log_n_rows-14-sequence_len-32/metal.stdout.json",
+      "sha256": "399bffabc00077c3a8dda43bc23c8b19d4856cba1837eb6bf7c8890bcf20b5f1"
+    },
+    {
+      "bytes": 121050,
+      "path": "row-002-wide_fibonacci-log_n_rows-16-sequence_len-64/cpu.proof-artifact.json",
+      "sha256": "fc3252e30633cd912482a8c5eabeb41cc0f500a9ece899e94d90833bf4889a27"
+    },
+    {
+      "bytes": 777,
+      "path": "row-002-wide_fibonacci-log_n_rows-16-sequence_len-64/cpu.stderr.txt",
+      "sha256": "38e5b60b84c601d82837e37b4e4c1804a353f002747ee0c6d53c53fb9b83d575"
+    },
+    {
+      "bytes": 14414,
+      "path": "row-002-wide_fibonacci-log_n_rows-16-sequence_len-64/cpu.stdout.json",
+      "sha256": "fe1d2571f89ff32ded448722cb5cf35559339b890e575ba45789bbeec6a0936d"
+    },
+    {
+      "bytes": 121050,
+      "path": "row-002-wide_fibonacci-log_n_rows-16-sequence_len-64/metal.proof-artifact.json",
+      "sha256": "fc3252e30633cd912482a8c5eabeb41cc0f500a9ece899e94d90833bf4889a27"
+    },
+    {
+      "bytes": 777,
+      "path": "row-002-wide_fibonacci-log_n_rows-16-sequence_len-64/metal.stderr.txt",
+      "sha256": "d221ba97a3433e421fa42c11574df91d79559a384290f17412319136208a4988"
+    },
+    {
+      "bytes": 132645,
+      "path": "row-002-wide_fibonacci-log_n_rows-16-sequence_len-64/metal.stdout.json",
+      "sha256": "a7115bbec8620cc81932a1154678f413997f0047db3cd954e97f752389f5f518"
+    },
+    {
+      "bytes": 93437,
+      "path": "row-003-xor-log_size-14-log_step-2-offset-3/cpu.proof-artifact.json",
+      "sha256": "d695acf9b279c83a905865d00e9acc1e66de7039a2e762b26504e7b85c38c124"
+    },
+    {
+      "bytes": 777,
+      "path": "row-003-xor-log_size-14-log_step-2-offset-3/cpu.stderr.txt",
+      "sha256": "1b8a91b855de51d0dd4c77b62b6ada994fb232621289eeff876fc29b8d8dc723"
+    },
+    {
+      "bytes": 14373,
+      "path": "row-003-xor-log_size-14-log_step-2-offset-3/cpu.stdout.json",
+      "sha256": "899878286e95798fa5f4348a117c3372c5ad5fbeb91c8317e4a73c7e0aa70f98"
+    },
+    {
+      "bytes": 93437,
+      "path": "row-003-xor-log_size-14-log_step-2-offset-3/metal.proof-artifact.json",
+      "sha256": "d695acf9b279c83a905865d00e9acc1e66de7039a2e762b26504e7b85c38c124"
+    },
+    {
+      "bytes": 777,
+      "path": "row-003-xor-log_size-14-log_step-2-offset-3/metal.stderr.txt",
+      "sha256": "3f28d61b7170dff924e2ee7e9c27dab3f6451d50fd8ebea3a2471f58d4005192"
+    },
+    {
+      "bytes": 132668,
+      "path": "row-003-xor-log_size-14-log_step-2-offset-3/metal.stdout.json",
+      "sha256": "fd81885827a66128012b59029b9fbe3abc5dd1ed7cb2760a88b1c14765e8c3a3"
+    },
+    {
+      "bytes": 110241,
+      "path": "row-004-xor-log_size-16-log_step-2-offset-3/cpu.proof-artifact.json",
+      "sha256": "354049f3916634f6941310bea8b354fdf5427c4f64310395cd6a4da384c9e983"
+    },
+    {
+      "bytes": 777,
+      "path": "row-004-xor-log_size-16-log_step-2-offset-3/cpu.stderr.txt",
+      "sha256": "ce7c034c34494e81d2fa8bf5f40109d53dd3dc28e0c9da7b9988829062e9585d"
+    },
+    {
+      "bytes": 14386,
+      "path": "row-004-xor-log_size-16-log_step-2-offset-3/cpu.stdout.json",
+      "sha256": "99c660ab8f19e7b918f5f6c739c9deb54966f0e8f2ee9b9bd3e6d200b493fdf3"
+    },
+    {
+      "bytes": 110241,
+      "path": "row-004-xor-log_size-16-log_step-2-offset-3/metal.proof-artifact.json",
+      "sha256": "354049f3916634f6941310bea8b354fdf5427c4f64310395cd6a4da384c9e983"
+    },
+    {
+      "bytes": 777,
+      "path": "row-004-xor-log_size-16-log_step-2-offset-3/metal.stderr.txt",
+      "sha256": "51ee76cc72de0ddc44b2b817fd83d0da690d9501a957f14daf6412aaae34670d"
+    },
+    {
+      "bytes": 132703,
+      "path": "row-004-xor-log_size-16-log_step-2-offset-3/metal.stdout.json",
+      "sha256": "b8caeea837de580ac6e0a9285aac9a7c77739b65e43b80736f7dc16ff28a50fb"
+    },
+    {
+      "bytes": 90925,
+      "path": "row-005-plonk-log_n_rows-14/cpu.proof-artifact.json",
+      "sha256": "ed64ff803f2e7ec8c5eeb81f520ee3cb228c6811795a53137092a8632f9e5e68"
+    },
+    {
+      "bytes": 777,
+      "path": "row-005-plonk-log_n_rows-14/cpu.stderr.txt",
+      "sha256": "cf1208e64a9f750a24a0052cdb26de67c8a79d9f3219947e8fff0be13c59b911"
+    },
+    {
+      "bytes": 14365,
+      "path": "row-005-plonk-log_n_rows-14/cpu.stdout.json",
+      "sha256": "eaabd8f27fb561bda6d362bf386c6a8fd2c9cb87853c6da99d58a4381cca49d2"
+    },
+    {
+      "bytes": 90925,
+      "path": "row-005-plonk-log_n_rows-14/metal.proof-artifact.json",
+      "sha256": "ed64ff803f2e7ec8c5eeb81f520ee3cb228c6811795a53137092a8632f9e5e68"
+    },
+    {
+      "bytes": 777,
+      "path": "row-005-plonk-log_n_rows-14/metal.stderr.txt",
+      "sha256": "d6eaa931b3de7ea7c3d293295534ceeacd7de159771e36f5eba47b650a001d70"
+    },
+    {
+      "bytes": 132604,
+      "path": "row-005-plonk-log_n_rows-14/metal.stdout.json",
+      "sha256": "bb806b22f078d659d5633621321dec5aef603493d4657cbfab1e49b26b88b9f7"
+    },
+    {
+      "bytes": 111327,
+      "path": "row-006-plonk-log_n_rows-16/cpu.proof-artifact.json",
+      "sha256": "c58a48bda21b99f937fa63be59d448fd3e0264f82d49e40e332345a36fd3576f"
+    },
+    {
+      "bytes": 777,
+      "path": "row-006-plonk-log_n_rows-16/cpu.stderr.txt",
+      "sha256": "571f3099d82845423a8553b686155752ef90559f4613454357d2f9433510f10b"
+    },
+    {
+      "bytes": 14343,
+      "path": "row-006-plonk-log_n_rows-16/cpu.stdout.json",
+      "sha256": "4107fbb3aa6fa8badce84f2073c0d3b7d6092d0f728e5ec27607558817a91fcf"
+    },
+    {
+      "bytes": 111327,
+      "path": "row-006-plonk-log_n_rows-16/metal.proof-artifact.json",
+      "sha256": "c58a48bda21b99f937fa63be59d448fd3e0264f82d49e40e332345a36fd3576f"
+    },
+    {
+      "bytes": 777,
+      "path": "row-006-plonk-log_n_rows-16/metal.stderr.txt",
+      "sha256": "63b2610c23e0fffbd6a9bdc69ce3a1a333c7180abb54e9398c69454847b151ea"
+    },
+    {
+      "bytes": 132659,
+      "path": "row-006-plonk-log_n_rows-16/metal.stdout.json",
+      "sha256": "bf3863facfa35d744cfaaeba812a188f9760e1650f4586177f65cb188c1897ce"
+    },
+    {
+      "bytes": 80881,
+      "path": "row-007-state_machine-log_n_rows-14-initial_x-9-initial_y-3/cpu.proof-artifact.json",
+      "sha256": "e7e8630688fe219048e447ebaffedec76774be527dc68724ac5ee82c18f57c79"
+    },
+    {
+      "bytes": 777,
+      "path": "row-007-state_machine-log_n_rows-14-initial_x-9-initial_y-3/cpu.stderr.txt",
+      "sha256": "18f2c1d49a8c8b7f731553da32b8777aa6de53b9b0852dc65b4086039c3ee891"
+    },
+    {
+      "bytes": 14443,
+      "path": "row-007-state_machine-log_n_rows-14-initial_x-9-initial_y-3/cpu.stdout.json",
+      "sha256": "607bd00de869381746f3c68a58dd459806f0e3c0f08df2b051fc4d9b5bb45d75"
+    },
+    {
+      "bytes": 80881,
+      "path": "row-007-state_machine-log_n_rows-14-initial_x-9-initial_y-3/metal.proof-artifact.json",
+      "sha256": "e7e8630688fe219048e447ebaffedec76774be527dc68724ac5ee82c18f57c79"
+    },
+    {
+      "bytes": 777,
+      "path": "row-007-state_machine-log_n_rows-14-initial_x-9-initial_y-3/metal.stderr.txt",
+      "sha256": "8edf10384b0155b42bf2867a52b44ac263b49220f6c92b4ad2ad5c79a6ba28fd"
+    },
+    {
+      "bytes": 132701,
+      "path": "row-007-state_machine-log_n_rows-14-initial_x-9-initial_y-3/metal.stdout.json",
+      "sha256": "5889e509babd88edaded550cd59ee71d19a1f66802a1da376ecc6f1b7e353ec0"
+    },
+    {
+      "bytes": 121718,
+      "path": "row-008-state_machine-log_n_rows-16-initial_x-9-initial_y-3/cpu.proof-artifact.json",
+      "sha256": "dc52cb5ec618c46599b8acf020c687b26670b9836aed8d33c8f109b27edf72b4"
+    },
+    {
+      "bytes": 777,
+      "path": "row-008-state_machine-log_n_rows-16-initial_x-9-initial_y-3/cpu.stderr.txt",
+      "sha256": "52eeeee47138a1f1c06563f5eda7cb162c354cd13ddbf243f3fc05b6cf0fc279"
+    },
+    {
+      "bytes": 14424,
+      "path": "row-008-state_machine-log_n_rows-16-initial_x-9-initial_y-3/cpu.stdout.json",
+      "sha256": "400e7fd42d03ff1f37de604d3229b183a9d8a8e156b8280e2b3119ccd782a5ee"
+    },
+    {
+      "bytes": 121718,
+      "path": "row-008-state_machine-log_n_rows-16-initial_x-9-initial_y-3/metal.proof-artifact.json",
+      "sha256": "dc52cb5ec618c46599b8acf020c687b26670b9836aed8d33c8f109b27edf72b4"
+    },
+    {
+      "bytes": 777,
+      "path": "row-008-state_machine-log_n_rows-16-initial_x-9-initial_y-3/metal.stderr.txt",
+      "sha256": "e612bdeb1982b7941b3ed8febc7d0efa731aa1acd2ac2b083e8c8207099143bf"
+    },
+    {
+      "bytes": 132785,
+      "path": "row-008-state_machine-log_n_rows-16-initial_x-9-initial_y-3/metal.stdout.json",
+      "sha256": "e64f19df2b16162cd9a4be061c347d497e67409f1baec0452e144f392d7c133c"
+    },
+    {
+      "bytes": 196485,
+      "path": "row-009-blake-log_n_rows-10-n_rounds-10/cpu.proof-artifact.json",
+      "sha256": "f44a72fcb1bb6cb7fe8adafcabb016b36d0e0499d01a919252b21a4be898eb9b"
+    },
+    {
+      "bytes": 777,
+      "path": "row-009-blake-log_n_rows-10-n_rounds-10/cpu.stderr.txt",
+      "sha256": "9c56771a70cba823e4ffa2403f608f293db930894e4da8a38ad02c28f5c46466"
+    },
+    {
+      "bytes": 14532,
+      "path": "row-009-blake-log_n_rows-10-n_rounds-10/cpu.stdout.json",
+      "sha256": "13977d2bd109a97fde2654dfa1bde1de1b61e013493abe63990fcab5a723676c"
+    },
+    {
+      "bytes": 196485,
+      "path": "row-009-blake-log_n_rows-10-n_rounds-10/metal.proof-artifact.json",
+      "sha256": "f44a72fcb1bb6cb7fe8adafcabb016b36d0e0499d01a919252b21a4be898eb9b"
+    },
+    {
+      "bytes": 777,
+      "path": "row-009-blake-log_n_rows-10-n_rounds-10/metal.stderr.txt",
+      "sha256": "d86797bc28f16c7e8b7b4b068c3c143e10dd330146e9a352adeccd1fc1282a02"
+    },
+    {
+      "bytes": 132793,
+      "path": "row-009-blake-log_n_rows-10-n_rounds-10/metal.stdout.json",
+      "sha256": "1299867ef7fe8355c0cd98da5ac4b326fef4b86ce4bc7aa0a758c1965550d226"
+    },
+    {
+      "bytes": 305449,
+      "path": "row-010-blake-log_n_rows-12-n_rounds-16/cpu.proof-artifact.json",
+      "sha256": "6a286b74c46a1dcc47cd93604aa0c1860ca1d435de8652961015650a8a68edce"
+    },
+    {
+      "bytes": 777,
+      "path": "row-010-blake-log_n_rows-12-n_rounds-16/cpu.stderr.txt",
+      "sha256": "880c7f08e07128655900892df0b61f98ae782a29cd0825e5c615bea84728aa4b"
+    },
+    {
+      "bytes": 14512,
+      "path": "row-010-blake-log_n_rows-12-n_rounds-16/cpu.stdout.json",
+      "sha256": "b22b2ab0a99849179cefe2c3a262dc0083e66c3f1faf3d4952e96010a8f334a0"
+    },
+    {
+      "bytes": 305449,
+      "path": "row-010-blake-log_n_rows-12-n_rounds-16/metal.proof-artifact.json",
+      "sha256": "6a286b74c46a1dcc47cd93604aa0c1860ca1d435de8652961015650a8a68edce"
+    },
+    {
+      "bytes": 777,
+      "path": "row-010-blake-log_n_rows-12-n_rounds-16/metal.stderr.txt",
+      "sha256": "73133af5370d2e410a185cc3d2f58bf5ddcfd9209204a7c7bf424d6ea544a708"
+    },
+    {
+      "bytes": 132828,
+      "path": "row-010-blake-log_n_rows-12-n_rounds-16/metal.stdout.json",
+      "sha256": "0f84a924cdfd07e4452213dae59f8fb05247de1e8ba1bc1ec1c9ae62b5448036"
+    },
+    {
+      "bytes": 226201,
+      "path": "row-011-poseidon-log_n_instances-10/cpu.proof-artifact.json",
+      "sha256": "e54408249704726a4b04c3ac46772b175dbb344deea2f163345b9bc324c79a37"
+    },
+    {
+      "bytes": 777,
+      "path": "row-011-poseidon-log_n_instances-10/cpu.stderr.txt",
+      "sha256": "964328d04af6a1b077455b153316f3cb59c2777d4f14497d1de775b486ad4860"
+    },
+    {
+      "bytes": 14563,
+      "path": "row-011-poseidon-log_n_instances-10/cpu.stdout.json",
+      "sha256": "98364a49419b5acf9179725e5f9e656372885043df6cdb86cbae267becf2c74c"
+    },
+    {
+      "bytes": 226201,
+      "path": "row-011-poseidon-log_n_instances-10/metal.proof-artifact.json",
+      "sha256": "e54408249704726a4b04c3ac46772b175dbb344deea2f163345b9bc324c79a37"
+    },
+    {
+      "bytes": 777,
+      "path": "row-011-poseidon-log_n_instances-10/metal.stderr.txt",
+      "sha256": "fbbae92b83080407875bed3517200f0da8a7d8784cd5d8ad05fe8f5d4c135d0e"
+    },
+    {
+      "bytes": 132821,
+      "path": "row-011-poseidon-log_n_instances-10/metal.stdout.json",
+      "sha256": "cf4438ba99e2a59a23a9a3aebfa3abb8524e509624acd14e87a91556c7318270"
+    },
+    {
+      "bytes": 248921,
+      "path": "row-012-poseidon-log_n_instances-13/cpu.proof-artifact.json",
+      "sha256": "6bccb92b95c8012c9c8c3de885b9027c4b3ecd480428564201df1645af959d9b"
+    },
+    {
+      "bytes": 777,
+      "path": "row-012-poseidon-log_n_instances-13/cpu.stderr.txt",
+      "sha256": "21386256755e7165c5413ca056b1feb7d6f2e22d71ecabc274da39f00303471c"
+    },
+    {
+      "bytes": 14568,
+      "path": "row-012-poseidon-log_n_instances-13/cpu.stdout.json",
+      "sha256": "070beecdc634aaa871c67849ff90bcac843a37ad86a57d2d1e04ababbcc999f5"
+    },
+    {
+      "bytes": 248921,
+      "path": "row-012-poseidon-log_n_instances-13/metal.proof-artifact.json",
+      "sha256": "6bccb92b95c8012c9c8c3de885b9027c4b3ecd480428564201df1645af959d9b"
+    },
+    {
+      "bytes": 777,
+      "path": "row-012-poseidon-log_n_instances-13/metal.stderr.txt",
+      "sha256": "de3a0a439a080540f78505d3b1a22b8dff514ff12802f93ac09734eb9b2ab3b1"
+    },
+    {
+      "bytes": 132843,
+      "path": "row-012-poseidon-log_n_instances-13/metal.stdout.json",
+      "sha256": "f2e9d76cc6b40c140e4d0465a1124efc237e795bc18e1b4227805f248d757fa7"
+    }
+  ],
+  "limitations": [
+    "this bundle preserves evidence and does not reclassify diagnostic benchmark rows"
+  ],
+  "report": {
+    "bytes": 2871284,
+    "protocol": "native_proof_cross_backend_matrix_v6",
+    "schema_version": 6,
+    "sha256": "51cedc323c0a9fa12c17ad96ac34375013f276b2565778c6e61d8ef401837730"
+  },
+  "schema": "native_proof_matrix_bundle_v1",
+  "totals": {
+    "artifact_bytes": 5616350,
+    "artifact_files": 78
+  }
+}
