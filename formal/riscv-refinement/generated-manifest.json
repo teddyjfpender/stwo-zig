@@ -59,7 +59,7 @@
     "generated/sail/rv32im-zkvm-v1.json": "5c31e516a205d693386564242d623dbaf4dc1566573f9ecfdcb026611c8fc2c1",
     "generated/sail/translation-receipt-v1.json": "ae7ba363506f1f96d5cb4eeeb4b2b123f02db8efdf5e19f1a98682ea70c2fcef"
   },
-  "canonical_digest": "afb232c8744b36e103f176de46530182a26f0e41a810d8f24914938ce504c293",
+  "canonical_digest": "e6ec36a0a5baf4605cbdb6b4f3a22a5e8726b49befb9b25c9a2fd565ffc9100f",
   "claim_boundary": {
     "addi_air_to_normalized_composition": true,
     "generated_sail_ast_translation_receipt": true,
@@ -97,7 +97,7 @@
     "scripts/riscv_refinement_lib/sail_translation_normalization.py": "ff84ee2d76bfe732ffbf1ada9346b5f13247385ba4bf01edab22afce644f7282",
     "scripts/riscv_refinement_lib/sail_translation_parser.py": "765eeb71b4a1a579da4bcda3b4cf9cd257f5e98682119a49394467892bf30178",
     "scripts/riscv_refinement_lib/sail_translation_receipt.py": "6a302b83383a7b4bf25f50a5d164f49d3d094c8bcf84ff90206002c3e95ca4fe",
-    "scripts/riscv_refinement_receipt_build.py": "e320e6067291c89ac4ac41dd0cef0027acbea3489d286cfcbb1c5a393f4eff03",
+    "scripts/riscv_refinement_receipt_build.py": "4eaf6125dd3701423155a4334bdf84f6af6866241bf416a38823594458b3eb78",
     "scripts/riscv_refinement_receipt_constants.py": "09d077edf1ef193f87aac1847204fa3a327d25ff8a2ef310a9930e1175d15708",
     "scripts/riscv_refinement_receipt_identity.py": "ef14be1097a8fefdf6c481b10c769fd0659a7c3ac3c8a955d6ab41be2d04eaaa",
     "scripts/riscv_refinement_receipt_validate.py": "1c1dea753c64d318841ab7c834e38fe532575bc197942ae5ecabd0b6acf7efeb",
