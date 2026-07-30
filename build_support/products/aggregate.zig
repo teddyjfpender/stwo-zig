@@ -49,33 +49,23 @@ const common_allowed_prefixes = [_][]const u8{
 // withheld reports exactly the files that grant must restore.
 const metal_allowed_files = common_allowed_files ++ .{
     metal_facade,
-<<<<<<< HEAD
     // Also the `stwo_metal_backend` named-import source, which the closure
     // checker honours on its own. Listed anyway so this leaf enumeration
     // answers "which Metal sources does the product carry?" completely,
     // without a reader having to cross-reference the named-import table.
     "src/backends/metal/mod.zig",
     "src/backends/metal/arena_plan.zig",
-=======
-    "src/backends/metal/arena_plan.zig",
-    "src/backends/metal/cairo/diagnostics/transcript_fixture.zig",
->>>>>>> origin/main
     "src/backends/metal/command_epoch.zig",
     "src/backends/metal/commit_backend.zig",
     "src/backends/metal/commit_policy.zig",
     "src/backends/metal/core_aot.zig",
     "src/backends/metal/host_primitives.zig",
     "src/backends/metal/merkle_tree.zig",
-<<<<<<< HEAD
-=======
-    "src/backends/metal/mod.zig",
->>>>>>> origin/main
     "src/backends/metal/protocol_recipes.zig",
     "src/backends/metal/prover_engine.zig",
     "src/backends/metal/recovery.zig",
     "src/backends/metal/resident_arena.zig",
     "src/backends/metal/runtime.zig",
-<<<<<<< HEAD
     // The three shader-tree sources the closure actually reaches. The former
     // `src/backends/metal/shaders` prefix additionally granted the deferred
     // `cairo/` shader tree and `runtime_initialization_contract_test.zig`,
@@ -83,9 +73,6 @@ const metal_allowed_files = common_allowed_files ++ .{
     "src/backends/metal/shaders/abi_contract.zig",
     "src/backends/metal/shaders/build_contract.zig",
     "src/backends/metal/shaders/manifest.zig",
-=======
-    "src/backends/metal/shader_manifest.zig",
->>>>>>> origin/main
     "src/backends/metal/shared_runtime.zig",
     "src/backends/metal/source_contract.zig",
     "src/backends/metal/telemetry.zig",
@@ -94,11 +81,6 @@ const metal_allowed_files = common_allowed_files ++ .{
 const metal_allowed_prefixes = common_allowed_prefixes ++ .{
     "src/backends/metal/recipes",
     "src/backends/metal/runtime",
-<<<<<<< HEAD
-=======
-    "src/backends/metal/shaders",
-    "src/backends/metal/tests",
->>>>>>> origin/main
 };
 
 const shared_named_imports = [_]policy.NamedImport{

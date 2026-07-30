@@ -763,20 +763,8 @@
       ]
     },
     {
-<<<<<<< HEAD
-      "prefixes": [
-        "build_support/products/riscv_cpu.zig"
-      ],
-      "lanes": [
-        "build_graph",
-        "riscv_cpu",
-        "aggregate_cpu",
-        "aggregate_metal"
-      ]
-=======
       "prefixes": ["build_support/products/riscv_cpu.zig", "build_support/products/riscv_sail_oracle_tests.zig"],
       "lanes": ["build_graph", "riscv_cpu", "aggregate_cpu", "aggregate_metal"]
->>>>>>> origin/main
     },
     {
       "prefixes": [

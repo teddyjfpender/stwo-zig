@@ -45,6 +45,7 @@ test {
     _ = @import("opcode_manifest.zig");
     _ = @import("owned_statement.zig");
     _ = @import("proof_transcript.zig");
+    _ = @import("refinement_program_export_test.zig");
     _ = @import("testing.zig");
     _ = @import("witness_layout.zig");
 
@@ -189,4 +190,8 @@ test {
     _ = @import("prover/statement_validation.zig");
     _ = @import("prover/test_witness_hook.zig");
     _ = @import("prover/verifier_test.zig");
+    _ = @import("air/constraint_program.zig");
+    _ = @import("air/extract/program.zig");
+    _ = @import("air/extract/program_json.zig");
+    _ = @import("sail_oracle_test_root.zig");
 }
