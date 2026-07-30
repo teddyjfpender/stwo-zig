@@ -20,6 +20,7 @@ pub const process_backend = @import("process/backend.zig");
 pub const process_runner = @import("process/runner.zig");
 pub const recipe_requirements = @import("recipe_requirements.zig");
 pub const schedule_bindings = @import("schedule_bindings.zig");
+pub const transcript_fixture = @import("diagnostics/transcript_fixture.zig");
 
 test "api signature: Cairo Metal transaction satisfies the stable prover contract" {
     comptime @import("stwo_prover_engine").engine.assertProverEngine(

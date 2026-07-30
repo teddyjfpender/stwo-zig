@@ -1,7 +1,8 @@
 """Resolve static ``build.zig`` and ``build_support`` graph edges.
 
 Only literal ``@import("...zig")`` and ``b.path("...")`` expressions are
-resolved. Formatted/generated paths are validated by Zig's build graph and its
+resolved, and only outside comments: prose describing an import declares no
+build edge. Formatted/generated paths are validated by Zig's build graph and its
 focused tests rather than guessed here.
 """
 
@@ -10,6 +11,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from . import comments
 from .common import contained_path, cycle_nodes, is_deferred, iter_tree_sources
 from .model import Finding
 
@@ -31,7 +33,7 @@ def scan(repo: Path) -> list[Finding]:
     graph: dict[str, set[str]] = {}
     for source in build_sources(repo):
         display = source.relative_to(repo)
-        text = source.read_text(encoding="utf-8")
+        text = comments.strip_zig(source.read_text(encoding="utf-8"))
         node = display.as_posix()
         graph.setdefault(node, set())
         for imported in IMPORT_RE.findall(text):

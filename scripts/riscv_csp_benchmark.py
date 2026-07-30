@@ -11,6 +11,12 @@ The CSP-compatible proving duration is execution + witness construction + proof
 generation.  Verification is reported separately.  The production CLI still
 self-verifies every sample before publication; its internal stage timers keep
 that mandatory verification out of the proving-duration metric.
+
+A prover executable is admitted only when the build identity it publishes
+targets this host's hardware and was compiled at ReleaseFast, and the trace
+dumper behind every cycle count must publish the HEAD commit it was built
+from.  Every run records its power source: a throttled run is classed
+non-publishable rather than reported as a clean measurement.
 """
 
 from __future__ import annotations
@@ -33,6 +39,11 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts import riscv_cli_admission  # noqa: E402
+from scripts.riscv_csp_benchmark_lib.build_identity import (  # noqa: E402
+    read_build_identity,
+    read_trace_provenance,
+    validate_build_identity,
+)
 from scripts.riscv_csp_benchmark_lib.contract import (  # noqa: E402
     BACKENDS,
     BenchmarkError,
@@ -56,8 +67,10 @@ from scripts.riscv_csp_benchmark_lib.contract import (  # noqa: E402
     validate_manifest,
 )
 from scripts.riscv_csp_benchmark_lib.host import (  # noqa: E402
+    classify_result,
     collect_host,
     official_host_match,
+    power_conditions_admissible,
 )
 from scripts.riscv_csp_benchmark_lib.source_audit import (  # noqa: E402
     audit_csp_source,
@@ -69,7 +82,11 @@ from scripts.riscv_csp_benchmark_lib.validation import (  # noqa: E402
 )
 
 
-SCHEMA = "stwo_riscv_csp_benchmark_v2"
+SCHEMA = "stwo_riscv_csp_benchmark_v3"
+# v3 added the power-condition fields and class, host.host_architecture, and
+# the prover and trace identity blocks.  Retained v2 evidence keeps its own
+# name: a report is relabelled by regeneration, never by editing the label.
+SUPERSEDED_SCHEMAS = ("stwo_riscv_csp_benchmark_v2",)
 MAX_EXECUTION_STEPS = 10_000_000
 
 
@@ -599,6 +616,16 @@ def main(argv: Sequence[str] | None = None) -> int:
             raise BenchmarkError(
                 f"{label} executable is missing: {executable}{hint}"
             )
+    build_identity = read_build_identity(cli)
+    validate_build_identity(build_identity)
+    repository_head = _git_output("rev-parse", "HEAD")
+    trace_provenance = read_trace_provenance(
+        trace_cli,
+        min(selected, key=lambda case: case.expected_cycles),
+        repository_head=repository_head,
+        max_steps=MAX_EXECUTION_STEPS,
+        timeout=args.timeout,
+    )
     admission = _resolve_admission(cli, args.backend)
     source_audit = (
         audit_csp_source(manifest, args.audit_csp_source)
@@ -617,6 +644,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     host = collect_host()
     host_matches, host_mismatch = official_host_match(host, backend=args.backend)
+    power_admissible, power_reasons = power_conditions_admissible(host)
+    if not power_admissible:
+        print(f"[power] {'; '.join(power_reasons)}", flush=True)
     if spec.requires_gpu and not (host.get("gpu") or {}).get("name"):
         raise BenchmarkError(
             f"{args.backend} benchmark requires GPU identity capture "
@@ -658,22 +688,17 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             commits.add(commit)
             rows.append(row)
+            peak = row["peak_memory"]
+            memory = "unavailable" if peak is None else f"{peak / 1024**3:.2f}GiB"
             print(
                 f"  prove={row['proof_duration'] / 1e9:.3f}s "
                 f"verify={row['verify_duration'] / 1e9:.3f}s "
-                f"proof={row['proof_size'] / 1024:.1f}KiB "
-                f"rss={row['peak_memory'] / 1024**3:.2f}GiB"
-                if row["peak_memory"] is not None
-                else
-                f"  prove={row['proof_duration'] / 1e9:.3f}s "
-                f"verify={row['verify_duration'] / 1e9:.3f}s "
-                f"proof={row['proof_size'] / 1024:.1f}KiB rss=unavailable",
+                f"proof={row['proof_size'] / 1024:.1f}KiB rss={memory}",
                 flush=True,
             )
     if len(commits) != 1:
         raise BenchmarkError(f"rows used multiple implementation commits: {sorted(commits)}")
     measurement_commit = commits.pop()
-    repository_head = _git_output("rev-parse", "HEAD")
     if repository_head != measurement_commit:
         raise BenchmarkError(
             f"binary commit {measurement_commit} differs from repository HEAD {repository_head}"
@@ -685,7 +710,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         and len(rows) == sum(len(values) for values in TARGET_SIZES.values())
     )
     memory_available = all(row["peak_memory"] is not None for row in rows)
-    official_comparable = host_matches and complete_matrix and memory_available
     limitations = [
         "The secure profile's 96-bit total is heuristic pending the external "
         "PCS/FRI/Fiat-Shamir accounting review.",
@@ -699,6 +723,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             "This host differs from CSP's AWS mac2.metal Apple M1/8-core/16-GiB "
             "publication host, so timings are host-qualified and not directly "
             "rankable against published EthProofs rows."
+        )
+    if not power_admissible:
+        limitations.append(
+            "Power conditions were not certified for this run, so these "
+            "timings are not publishable: " + "; ".join(power_reasons) + "."
         )
     if args.backend != "cpu":
         limitations.append(
@@ -764,10 +793,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         "host": host,
         "host_matches_official_csp": host_matches,
         "host_mismatch_reasons": host_mismatch,
-        "result_class": (
-            "official-host-comparable"
-            if official_comparable
-            else "host-qualified-non-comparable"
+        "power_conditions_admissible": power_admissible,
+        "power_condition_reasons": power_reasons,
+        "result_class": classify_result(
+            host_matches=host_matches,
+            power_admissible=power_admissible,
+            complete_matrix=complete_matrix,
+            memory_available=memory_available,
         ),
         "run": {
             "backend": args.backend,
@@ -784,8 +816,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         "identities": {
             "prover_executable": str(cli.relative_to(ROOT)),
             "prover_executable_sha256": sha256_file(cli),
+            "prover_build_identity": build_identity,
             "trace_executable": str(trace_cli.relative_to(ROOT)),
             "trace_executable_sha256": sha256_file(trace_cli),
+            "trace_provenance": trace_provenance,
             "zig_version": _command_text(["zig", "version"]),
         },
         "coverage": {

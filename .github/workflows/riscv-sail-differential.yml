@@ -14,6 +14,17 @@
 # is no skip path in the differential job; "Sail differential gates" is the
 # required check and passes only when the live job succeeded or was
 # genuinely out of scope for the diff.
+#
+# Green must mean "the differential agreed", never "the toolchain cache was
+# warm". Three mechanisms make that structural rather than aspirational:
+# a preflight step that proves the pinned toolchain functional on the warm
+# path as well as the cold one; receipts -- toolchain_health,
+# differential_ran, sail_leg -- written by the steps that did the work and
+# required by the verdict job; and a cache that is written only from a run
+# whose toolchain_state receipt says the workspace was proven usable. A step
+# that never executes writes nothing, the verdict reads an unwritten receipt
+# as red, and a run that could not prove its toolchain leaves the cache to
+# the next one instead of poisoning it.
 
 name: RISC-V Sail differential
 
@@ -77,6 +88,15 @@ jobs:
     if: needs.scope.outputs.live_required == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    # Receipts, not job status. Each is written by the step that did the
+    # work, so an `if:`-skipped, edited-away, or never-reached step leaves it
+    # empty -- and the verdict job refuses an empty receipt on a run where
+    # the differential was selected.
+    outputs:
+      toolchain_health: ${{ steps.preflight.outputs.toolchain_health }}
+      cache_state: ${{ steps.preflight.outputs.cache_state }}
+      differential_ran: ${{ steps.differential.outputs.differential_ran }}
+      sail_leg: ${{ steps.sail_leg.outputs.sail_leg }}
     steps:
       - name: Checkout complete policy history
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
@@ -95,22 +115,26 @@ jobs:
 
       # Keyed on every input that determines toolchain content: the formal
       # profile (source revisions, compiler version), the transport patch,
-      # and the Sail configuration overrides. A poisoned cache is discarded
-      # by bumping the -v1- epoch; a merely stale one fails
-      # riscv_formal_tools.py verify and is rebuilt from pins in this job.
+      # the Sail configuration overrides, and the builder that turns them
+      # into binaries. A poisoned cache is discarded by bumping the -v2-
+      # epoch; a merely stale one fails riscv_formal_tools.py verify and is
+      # rebuilt from pins in this job. The key must stay byte-identical to
+      # the save step's below -- a drift between them silently disables the
+      # cache, which is slow rather than unsound but reads as neither.
       - name: Restore pinned formal toolchain workspace
+        id: restore
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
         with:
           path: ${{ runner.tool_cache }}/stwo-zig/riscv-formal
-          key: riscv-formal-v1-${{ runner.os }}-${{ hashFiles('conformance/riscv/rv32im-sail-profile.json', 'conformance/riscv/sail-rvfi-zkvm-entry.patch', 'conformance/riscv/sail-rv32im-override.json', 'conformance/riscv/sail-rv32im-tagged-options.json') }}
+          key: riscv-formal-v2-${{ runner.os }}-${{ hashFiles('conformance/riscv/rv32im-sail-profile.json', 'conformance/riscv/sail-rvfi-zkvm-entry.patch', 'conformance/riscv/sail-rv32im-override.json', 'conformance/riscv/sail-rv32im-tagged-options.json', 'scripts/riscv_formal_tools.py') }}
 
       # device-tree-compiler is Spike's build dependency. z3 is Sail's: the
-      # pinned 0.20.2 release binary shells out to an SMT solver, so without it
-      # even `sail --version` dies with "SMT solver returned unexpected status
-      # 127 / z3: not found" and every later step is skipped. That failure is
-      # invisible on a warm toolchain cache, because a cache hit never reaches
-      # this install path -- so the differential silently stops running rather
-      # than reporting a mismatch.
+      # pinned 0.20.2 release binary shells out to an SMT solver, so without
+      # it even `sail --version` dies with "SMT solver returned unexpected
+      # status 127 / z3: not found". These steps are deliberately
+      # unconditional: gating them on the cache would provision the toolchain
+      # only where it is rebuilt, and the preflight below -- which does run
+      # unconditionally -- is what keeps that mistake red instead of silent.
       - name: Install the pinned Spike and Sail system dependencies
         run: |
           sudo apt-get update
@@ -131,13 +155,33 @@ jobs:
           tar -xzf "$RUNNER_TEMP/sail.tar.gz" -C "$RUNNER_TEMP"
           "$RUNNER_TEMP/sail/bin/sail" --version
 
+      # The positive half of the fail-closed contract, and the only step here
+      # that a warm cache cannot make vacuous: it executes the pinned Sail
+      # compiler, the SMT solver it shells out to, and Spike's dtc on this
+      # runner, whatever the cache did. A broken provision is red HERE, named
+      # dependency by dependency, instead of surfacing as later steps that
+      # "did not run". A cold or corrupt workspace is not a failure -- the
+      # gate rebuilds it from pins and the differential still runs -- but it
+      # is reported, and the save step below refuses to publish a workspace
+      # the gate never proved usable.
+      - name: Assert the pinned toolchain is functional (cache hit or miss)
+        id: preflight
+        run: |
+          python3 scripts/riscv_sail_gate.py preflight \
+            --workspace "$RUNNER_TOOL_CACHE/stwo-zig/riscv-formal" \
+            --sail-compiler "$RUNNER_TEMP/sail/bin/sail" \
+            --cache-hit "${{ steps.restore.outputs.cache-hit }}" \
+            --github-output "$GITHUB_OUTPUT"
+
       - name: Run the fail-closed Sail/Spike differential gate
+        id: differential
         run: |
           python3 scripts/riscv_sail_gate.py run \
             --workspace "$RUNNER_TOOL_CACHE/stwo-zig/riscv-formal" \
             --sail-compiler "$RUNNER_TEMP/sail/bin/sail" \
             --prepare-on-miss \
-            --report-out "$RUNNER_TEMP/riscv-sail-differential-report.json"
+            --report-out "$RUNNER_TEMP/riscv-sail-differential-report.json" \
+            --github-output "$GITHUB_OUTPUT"
 
       # This is the only job in the repository with a verified pinned oracle,
       # so it is the only place the Sail leg of the malicious-prover harness
@@ -155,6 +199,7 @@ jobs:
       # src/tests/riscv/malicious_prover_*.zig anyway -- the guard reports a
       # drifted filter, it does not repair one.
       - name: Require the Sail leg of the malicious-prover harness
+        id: sail_leg
         env:
           STWO_RISCV_FORMAL_WORKSPACE: ${{ runner.tool_cache }}/stwo-zig/riscv-formal
           STWO_ZIG_REQUIRE_SAIL_ORACLE: "1"
@@ -164,6 +209,9 @@ jobs:
           python3 scripts/riscv_sail_oracle.py probe
           zig build test-riscv-release-exhaustive \
             -Driscv-test-filter="malicious prover" -Doptimize=ReleaseSafe
+          # Reached only when the required leg actually passed; the verdict
+          # job treats an absent receipt as a leg that never ran.
+          echo "sail_leg=required" >> "$GITHUB_OUTPUT"
 
       # sail_oracle.zig's own two self-checks -- "does the oracle answer at
       # all?" and "is a forged trace really DIVERGENT?" -- ran in NO build step
@@ -186,14 +234,35 @@ jobs:
           STWO_ZIG_REQUIRE_SAIL_ORACLE: "1"
         run: zig build test-riscv-sail-oracle -Doptimize=ReleaseSafe
 
-      # Save even after a red differential: a divergence investigation needs
-      # the warm toolchain far more than a green run does.
+      # This step was `if: always()` and is deliberately narrower now; both
+      # halves of the condition are load-bearing and neither is the other's
+      # qualifier.
+      #
+      # `always()` stays: a red run must still warm the next one. A Sail
+      # disagreement, stale committed evidence, or a failed malicious-prover
+      # leg say nothing about the workspace, and a divergence investigation
+      # needs the warm toolchain far more than a green run does.
+      #
+      # The toolchain_state condition is the change. A cache entry is
+      # immutable once written under its key, so a workspace this run never
+      # proved usable must not be published: every later run would restore the
+      # broken copy and be unable to replace it until the -v2- epoch is
+      # bumped. That is the same family of fault as the warm-cache bypass this
+      # gate exists to close -- a later run inheriting a toolchain nobody
+      # examined -- and it outlives the run that caused it. toolchain_state is
+      # written by riscv_sail_gate.py run: `verified` (the restored workspace
+      # passed riscv_formal_tools.py verify) or `rebuilt` (built from pins in
+      # this job). Two outcomes skip the save: the `unavailable` state, meaning
+      # the gate ran and the toolchain did not come up, and an unwritten
+      # receipt, meaning the preflight went red and the gate step never ran at
+      # all. Both leave the next run to rebuild the workspace from pins: slow
+      # and correct, rather than fast and wrong.
       - name: Save pinned formal toolchain workspace
-        if: always()
+        if: always() && (steps.differential.outputs.toolchain_state == 'verified' || steps.differential.outputs.toolchain_state == 'rebuilt')
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
         with:
           path: ${{ runner.tool_cache }}/stwo-zig/riscv-formal
-          key: riscv-formal-v1-${{ runner.os }}-${{ hashFiles('conformance/riscv/rv32im-sail-profile.json', 'conformance/riscv/sail-rvfi-zkvm-entry.patch', 'conformance/riscv/sail-rv32im-override.json', 'conformance/riscv/sail-rv32im-tagged-options.json') }}
+          key: riscv-formal-v2-${{ runner.os }}-${{ hashFiles('conformance/riscv/rv32im-sail-profile.json', 'conformance/riscv/sail-rvfi-zkvm-entry.patch', 'conformance/riscv/sail-rv32im-override.json', 'conformance/riscv/sail-rv32im-tagged-options.json', 'scripts/riscv_formal_tools.py') }}
 
       - name: Retain differential report
         if: always()
@@ -214,12 +283,52 @@ jobs:
       SCOPE_RESULT: ${{ needs.scope.result }}
       LIVE_REQUIRED: ${{ needs.scope.outputs.live_required }}
       DIFFERENTIAL_RESULT: ${{ needs.differential.result }}
+      TOOLCHAIN_HEALTH: ${{ needs.differential.outputs.toolchain_health }}
+      CACHE_STATE: ${{ needs.differential.outputs.cache_state }}
+      DIFFERENTIAL_RAN: ${{ needs.differential.outputs.differential_ran }}
+      SAIL_LEG: ${{ needs.differential.outputs.sail_leg }}
     steps:
       - name: Require the live differential wherever it was selected
         run: |
-          test "$SCOPE_RESULT" = success
+          # Every way this gate could report success without the differential
+          # having run, refused explicitly:
+          #   * the scope job did not decide                 -> SCOPE_RESULT
+          #   * it decided something other than true/false: an unset or
+          #     garbled output would otherwise fall through to the
+          #     not-selected arm, where a skipped job is expected, and pass
+          #                                                   -> LIVE_REQUIRED
+          #   * the live job reported success with its work skipped -- broken
+          #     provisioning, an edited-away step, a corrupt cache nobody
+          #     rebuilt. The receipts are written by the steps that did the
+          #     work, so absence is the signature of that case.
+          # A legitimately unselected run has the opposite shape: no job, and
+          # therefore no receipts at all.
+          require() {  # require <actual> <expected> <what it establishes>
+            if test "$1" != "$2"; then
+              echo "Sail differential gate: $3: expected '$2', got '$1'" >&2
+              exit 1
+            fi
+          }
+          require "$SCOPE_RESULT" success "the scope job must decide the scope"
+          case "$LIVE_REQUIRED" in
+            true|false) ;;
+            *)
+              echo "Sail differential gate: scope produced no live_required decision (got '$LIVE_REQUIRED'); an absent decision is not 'out of scope'" >&2
+              exit 1
+              ;;
+          esac
           if test "$LIVE_REQUIRED" = true; then
-            test "$DIFFERENTIAL_RESULT" = success
+            require "$DIFFERENTIAL_RESULT" success "the live differential job"
+            require "$TOOLCHAIN_HEALTH" functional \
+              "the pinned toolchain must be proven functional on the runner"
+            require "$DIFFERENTIAL_RAN" true \
+              "Sail must have been consulted on the full committed corpus"
+            require "$SAIL_LEG" required \
+              "the malicious-prover harness must have run its required Sail leg"
+            echo "Sail differential gates: the live differential ran against the pinned oracle (toolchain cache $CACHE_STATE)"
           else
-            test "$DIFFERENTIAL_RESULT" = skipped
+            require "$DIFFERENTIAL_RESULT" skipped \
+              "nothing in this diff can change what the attestation means"
+            require "$TOOLCHAIN_HEALTH$DIFFERENTIAL_RAN$SAIL_LEG" "" \
+              "an unselected differential must leave no receipts behind"
           fi

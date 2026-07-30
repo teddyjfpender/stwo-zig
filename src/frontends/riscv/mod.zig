@@ -27,7 +27,7 @@ pub const HostRuntime = host.HostRuntime;
 pub const runWithHost = runner.runWithHost;
 pub const runWithInput = runner.runWithInput;
 pub const RiscVClaim = air.claims.RiscVClaim;
-pub const proveRiscVWithEngine = prover_mod.proveRiscVWithEngine;
+pub const proveRiscVTraceOnlyNoPublicIo = prover_mod.proveRiscVTraceOnlyNoPublicIo;
 pub const proveRiscVWithEngineAndPublicData = prover_mod.proveRiscVWithEngineAndPublicData;
 pub const verifyRiscVWithEngine = prover_mod.verifyRiscVWithEngine;
 pub const proveAndVerifyElfWithEngine = prover_mod.proveAndVerifyElfWithEngine;
@@ -39,9 +39,13 @@ test "api signature: RISC-V facade preserves runner and prover entry points" {
             .@"fn" => {},
             else => @compileError("runWithInput must remain a function"),
         }
-        switch (@typeInfo(@TypeOf(proveRiscVWithEngine))) {
+        switch (@typeInfo(@TypeOf(proveRiscVWithEngineAndPublicData))) {
             .@"fn" => {},
-            else => @compileError("proveRiscVWithEngine must remain a function"),
+            else => @compileError("proveRiscVWithEngineAndPublicData must remain a function"),
+        }
+        switch (@typeInfo(@TypeOf(proveRiscVTraceOnlyNoPublicIo))) {
+            .@"fn" => {},
+            else => @compileError("proveRiscVTraceOnlyNoPublicIo must remain a function"),
         }
     }
 }

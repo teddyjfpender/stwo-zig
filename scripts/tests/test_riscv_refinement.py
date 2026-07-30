@@ -418,6 +418,114 @@ class RefinementAirTest(unittest.TestCase):
                     ),
                 )
 
+    def test_lean_comment_stripper_covers_lines_blocks_and_strings(self) -> None:
+        line = "theorem ok : True := trivial -- axiom lives in a comment\n"
+        self.assertNotIn("axiom", riscv_refinement._strip_lean_comments(line))
+
+        block = (
+            "/-! This module documents the axiom set it never uses. -/\n"
+            "/- sorry and native_decide appear only as prose -/\n"
+            "theorem ok : True := trivial\n"
+        )
+        stripped = riscv_refinement._strip_lean_comments(block)
+        for term in ("axiom", "sorry", "native_decide"):
+            self.assertNotIn(term, stripped)
+        self.assertIn("theorem ok : True := trivial", stripped)
+
+        nested = "/- outer /- inner axiom -/ still comment -/ theorem ok : True := trivial\n"
+        nested_stripped = riscv_refinement._strip_lean_comments(nested)
+        self.assertNotIn("axiom", nested_stripped)
+        self.assertIn("theorem ok : True := trivial", nested_stripped)
+
+        literal = 'def dashes : String := "-- not a comment"\naxiom cheat : True\n'
+        self.assertIn("axiom cheat", riscv_refinement._strip_lean_comments(literal))
+
+        same_line = 'def dashes : String := "a -- b"; axiom cheat : True\n'
+        self.assertIn("axiom cheat", riscv_refinement._strip_lean_comments(same_line))
+
+        for text in (line, block, nested, literal, same_line):
+            with self.subTest(text=text):
+                rewritten = riscv_refinement._strip_lean_comments(text)
+                self.assertEqual(len(text), len(rewritten))
+                self.assertEqual(
+                    len(text.splitlines()),
+                    len(rewritten.splitlines()),
+                )
+
+    def test_proof_escape_scan_sees_through_comments_and_string_literals(self) -> None:
+        cases = {
+            "Line.lean": "theorem ok : True := trivial -- axiom in a comment\n",
+            "Block.lean": "/-! An axiom-free development. -/\ntheorem ok : True := trivial\n",
+            "Nested.lean": "/- outer /- sorry -/ -/\ntheorem ok : True := trivial\n",
+        }
+        for name, text in cases.items():
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as raw:
+                paths = self._lean_tree(Path(raw), {name: text})
+                riscv_refinement._scan_forbidden_proof_terms(paths)
+
+        breaches = {
+            # Splitting on the first "--" would stop inside the literal and never
+            # reach the escape that follows it on the same line.
+            "Literal.lean": (
+                'def dashes : String := "a -- b"; axiom cheat : True\n',
+                "forbidden proof escape",
+            ),
+            "Bare.lean": (
+                "theorem broken : True := by sorry\n",
+                "forbidden proof escape",
+            ),
+            # An unterminated block comment would blank the rest of the file, so
+            # the scan must refuse it instead of reporting a clean sweep.
+            "Unterminated.lean": (
+                "/- opened and never closed\naxiom cheat : True\n",
+                r"Unterminated\.lean: unterminated Lean block comment",
+            ),
+        }
+        for name, (text, expected) in breaches.items():
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as raw:
+                paths = self._lean_tree(Path(raw), {name: text})
+                with self.assertRaisesRegex(RefinementError, expected):
+                    riscv_refinement._scan_forbidden_proof_terms(paths)
+
+    def test_proof_escape_scan_reports_the_line_the_term_is_on(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            paths = self._lean_tree(
+                Path(raw),
+                {
+                    "Late.lean": (
+                        "/- a block comment\n   spanning three lines\n   ends here -/\n"
+                        "theorem broken : True := by sorry\n"
+                    ),
+                },
+            )
+            with self.assertRaisesRegex(
+                RefinementError,
+                r"RiscvRefinement/Late\.lean:4",
+            ):
+                riscv_refinement._scan_forbidden_proof_terms(paths)
+
+    @staticmethod
+    def _lean_tree(root: Path, sources: dict[str, str]) -> Paths:
+        formal = root / "formal" / "riscv-refinement"
+        (formal / "RiscvRefinement").mkdir(parents=True)
+        (formal / "RiscvRefinement.lean").write_text(
+            "import RiscvRefinement.Common\n",
+            encoding="utf-8",
+        )
+        for name, text in sources.items():
+            (formal / "RiscvRefinement" / name).write_text(text, encoding="utf-8")
+        return Paths(root)
+
+    def test_sail_configuration_comment_parser_preserves_strings(self) -> None:
+        source = '{"repository":"https://example.test/x",// comment\n"value":32}'
+        self.assertEqual(
+            {
+                "repository": "https://example.test/x",
+                "value": 32,
+            },
+            json.loads(sail._strip_line_comments(source)),
+        )
+
     def test_each_family_source_closure_includes_its_semantics(self) -> None:
         self.assertEqual(
             set(air_program_contract.FAMILIES),

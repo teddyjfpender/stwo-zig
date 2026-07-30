@@ -1,5 +1,6 @@
 //! Stable descriptor for the opt-in aggregate compatibility CLI.
 
+const std = @import("std");
 const graph = @import("../graph/modules.zig");
 const policy = @import("../graph/product.zig");
 
@@ -37,17 +38,20 @@ const common_allowed_prefixes = [_][]const u8{
     "src/tracing",
 };
 
+// Metal ownership is enumerated leaf by leaf rather than granted with a
+// blanket `src/backends/metal` prefix. A blanket prefix stands above every
+// deferred subtree the backend may ever host, so it would hand the aggregate
+// compatibility CLI implementation trees this product must never carry.
 const metal_allowed_files = common_allowed_files ++ .{
     metal_facade,
     "src/backends/metal/arena_plan.zig",
-    "src/backends/metal/cairo/diagnostics/transcript_fixture.zig",
+    "src/backends/metal/mod.zig",
     "src/backends/metal/command_epoch.zig",
     "src/backends/metal/commit_backend.zig",
     "src/backends/metal/commit_policy.zig",
     "src/backends/metal/core_aot.zig",
     "src/backends/metal/host_primitives.zig",
     "src/backends/metal/merkle_tree.zig",
-    "src/backends/metal/mod.zig",
     "src/backends/metal/protocol_recipes.zig",
     "src/backends/metal/prover_engine.zig",
     "src/backends/metal/recovery.zig",
@@ -161,26 +165,70 @@ pub fn descriptorFor(metal: bool) policy.Descriptor {
     return result;
 }
 
+/// Implementation trees the aggregate compatibility CLI must never carry.
+const deferred_trees = [_][]const u8{
+    "src/backends/cuda",
+    "src/frontends/cairo",
+    "src/integrations/cairo_cpu",
+    "src/integrations/cairo_metal",
+    "src/backends/metal/cairo",
+};
+
 test "aggregate product closures cannot own deferred implementation trees" {
-    const std = @import("std");
-    const deferred = [_][]const u8{
-        "src/backends/cuda",
-        "src/frontends/cairo",
-        "src/integrations/cairo_cpu",
-        "src/integrations/cairo_metal",
-        "src/backends/metal/cairo",
-    };
     inline for (.{ cpu_source_closure, metal_source_closure }) |closure| {
+        try rejectDeferredOwnership(closure);
+    }
+}
+
+fn rejectDeferredOwnership(closure: policy.SourceClosure) !void {
+    for (deferred_trees) |blocked| {
         for (closure.allowed_prefixes) |allowed| {
-            for (deferred) |blocked| {
-                try std.testing.expect(!owns(allowed, blocked));
-            }
+            // A prefix above a deferred tree grants the entire tree; a prefix
+            // inside one grants part of it. Ownership runs in both directions.
+            if (owns(allowed, blocked)) return error.DeferredTreeOwnedByPrefix;
+            if (owns(blocked, allowed)) return error.DeferredSubtreeOwnedByPrefix;
+        }
+        for (closure.allowed_files) |allowed| {
+            if (owns(blocked, allowed)) return error.DeferredTreeOwnedByFile;
         }
     }
 }
 
-fn owns(allowed: []const u8, blocked: []const u8) bool {
-    const std = @import("std");
-    return std.mem.eql(u8, allowed, blocked) or
-        (std.mem.startsWith(u8, blocked, allowed) and blocked[allowed.len] == '/');
+fn owns(container: []const u8, member: []const u8) bool {
+    return std.mem.eql(u8, container, member) or
+        (std.mem.startsWith(u8, member, container) and member[container.len] == '/');
+}
+
+test "every deferred ownership direction is load-bearing" {
+    const base = policy.SourceClosure{ .entry_roots = &.{"src/tools/prove/main.zig"} };
+
+    // A prefix standing above a deferred tree.
+    var above = base;
+    above.allowed_prefixes = &.{"src/frontends"};
+    try std.testing.expectError(
+        error.DeferredTreeOwnedByPrefix,
+        rejectDeferredOwnership(above),
+    );
+
+    // A prefix reaching down into a deferred tree.
+    var inside = base;
+    inside.allowed_prefixes = &.{"src/backends/metal/cairo/diagnostics"};
+    try std.testing.expectError(
+        error.DeferredSubtreeOwnedByPrefix,
+        rejectDeferredOwnership(inside),
+    );
+
+    // A single file named out of a deferred tree.
+    var by_file = base;
+    by_file.allowed_files = &.{"src/backends/metal/cairo/diagnostics/transcript_fixture.zig"};
+    try std.testing.expectError(
+        error.DeferredTreeOwnedByFile,
+        rejectDeferredOwnership(by_file),
+    );
+
+    // Sibling paths that merely share a textual prefix stay admissible.
+    var clean = base;
+    clean.allowed_prefixes = &.{ "src/backend", "src/backends/cpu_scalar", "src/core" };
+    clean.allowed_files = &.{cpu_facade};
+    try rejectDeferredOwnership(clean);
 }

@@ -243,7 +243,7 @@ test "malicious prover: a structurally shortened trace loses on the access chain
     }
 
     // What refuses it instead, on the entry point that recomputes the statement
-    // from the trace (`prover.zig` `proveRiscVWithEngineUsingChannel`): the
+    // from the trace (`prover.zig` `proveRiscVTraceOnlyNoPublicIoUsingChannel`): the
     // register-access chain no longer closes, because the next reader of the
     // skipped instruction's destination names a previous clock and value that
     // no retirement produced. The honest rows are the control -- the same

@@ -12,6 +12,32 @@ const builtin = @import("builtin");
 const stage_profile = @import("stwo_prover_api").stage_profile;
 const pcs_core = @import("stwo_core").pcs;
 
+/// Which PCS profile the run measures. Flags are named after their parameters,
+/// or after the constant they resolve to, so no flag can connote authority it
+/// does not carry: `--production` used to sound authoritative while setting
+/// pow_bits=24, and the published secure profile is pow_bits=26 (issue #152
+/// item 7).
+const SecurityProfile = enum {
+    /// Whatever `--pow-bits` / `--n-queries` were given, defaults otherwise.
+    explicit,
+    /// The older stark-v comparison configuration. Named after its parameters
+    /// because that is all it is: it is not a security recommendation.
+    pow24_q70,
+    /// `prover.SECURE_PCS_CONFIG`, read from the constant rather than restated.
+    secure,
+};
+
+/// The stark-v comparison configuration, kept only so published historical
+/// throughput numbers remain reproducible.
+const POW24_Q70_PCS_CONFIG = pcs_core.PcsConfig{
+    .pow_bits = 24,
+    .fri_config = .{
+        .log_blowup_factor = 1,
+        .log_last_layer_degree_bound = 0,
+        .n_queries = 70,
+    },
+};
+
 const Timer = struct {
     start: i128,
     fn begin() Timer {
@@ -130,7 +156,7 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
     var fib_n: u32 = 10000;
     var pow_bits: u32 = 0;
     var n_queries: u64 = 3;
-    var production: bool = false;
+    var security_profile: SecurityProfile = .explicit;
     var elf_path: ?[]const u8 = null;
     var input_path: ?[]const u8 = null;
     var input_u32: ?u32 = null;
@@ -142,7 +168,7 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
     var i: usize = 1;
     while (i < args.len) : (i += 1) {
         if (std.mem.eql(u8, args[i], "--help") or std.mem.eql(u8, args[i], "-h")) {
-            printUsage();
+            printUsage(riscv_prover.SECURE_PCS_CONFIG);
             return;
         } else if (std.mem.eql(u8, args[i], "--fib-n") and i + 1 < args.len) {
             i += 1;
@@ -153,8 +179,23 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
         } else if (std.mem.eql(u8, args[i], "--n-queries") and i + 1 < args.len) {
             i += 1;
             n_queries = try std.fmt.parseInt(u64, args[i], 10);
+        } else if (std.mem.eql(u8, args[i], "--pow24-q70")) {
+            security_profile = .pow24_q70;
+        } else if (std.mem.eql(u8, args[i], "--secure")) {
+            security_profile = .secure;
         } else if (std.mem.eql(u8, args[i], "--production")) {
-            production = true;
+            // Removed rather than redefined: it set pow_bits=24 while the
+            // published secure profile is pow_bits=26, and benchmark numbers
+            // were reported from the wrong one (issue #152 item 7). Refuse
+            // instead of silently picking either meaning.
+            std.debug.print(
+                \\--production was removed: it named authority, not parameters, and
+                \\set pow_bits=24 while the published secure profile is pow_bits=26.
+                \\Use --secure for the published profile, or --pow24-q70 for the
+                \\older stark-v comparison configuration.
+                \\
+            , .{});
+            return error.InvalidArgument;
         } else if (std.mem.eql(u8, args[i], "--elf") and i + 1 < args.len) {
             i += 1;
             elf_path = args[i];
@@ -178,15 +219,23 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
             profile_enabled = true;
         } else {
             std.debug.print("unknown argument: {s}\n\n", .{args[i]});
-            printUsage();
+            printUsage(riscv_prover.SECURE_PCS_CONFIG);
             return error.InvalidArgument;
         }
     }
 
-    // --production matches stark-v's benchmark config: pow_bits=24, n_queries=70
-    if (production) {
-        pow_bits = 24;
-        n_queries = 70;
+    switch (security_profile) {
+        .explicit => {},
+        .pow24_q70 => {
+            pow_bits = POW24_Q70_PCS_CONFIG.pow_bits;
+            n_queries = POW24_Q70_PCS_CONFIG.fri_config.n_queries;
+        },
+        // Read from the shared constant rather than restated, so this flag cannot
+        // drift from the profile the production adapter and the CSP harness use.
+        .secure => {
+            pow_bits = riscv_prover.SECURE_PCS_CONFIG.pow_bits;
+            n_queries = riscv_prover.SECURE_PCS_CONFIG.fri_config.n_queries;
+        },
     }
 
     std.debug.print("RISC-V End-to-End Proving Benchmark\n", .{});
@@ -198,7 +247,11 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
     }
     const cpu_count = std.Thread.getCpuCount() catch 1;
     std.debug.print("Security: pow_bits={d}, n_queries={d}", .{ pow_bits, n_queries });
-    if (production) std.debug.print(" [PRODUCTION — matches stark-v]", .{});
+    switch (security_profile) {
+        .explicit => {},
+        .pow24_q70 => std.debug.print(" [--pow24-q70: older stark-v comparison config]", .{}),
+        .secure => std.debug.print(" [--secure: published SECURE_PCS_CONFIG]", .{}),
+    }
     std.debug.print("\nOptimization: {s}\n", .{@tagName(builtin.mode)});
     if (builtin.mode == .Debug) {
         std.debug.print("WARNING: Debug throughput is not comparable to release benchmarks.\n", .{});
@@ -299,17 +352,17 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
         return;
     }
 
-    // Fail closed on any run whose termination the statement cannot bind,
-    // matching the production adapter's gate in
-    // `src/integrations/riscv_cpu/proof_adapter.zig`. Only `.halt_flag` and
-    // `.self_loop` carry a proof-bearing completion; anything else (ECALL,
-    // EBREAK, a host halt, a step-limit cutoff, an undecodable word) would
-    // otherwise be handed to the prover and fail far downstream with a
-    // diagnostic that names neither the guest nor the reason.
-    switch (run_result.completion_reason) {
-        .halt_flag, .self_loop => {},
-        else => |reason| {
-            std.debug.print(
+    // Fail closed on any run this benchmark can build a statement for but not
+    // prove, through the *one* definition of that rule
+    // (`prover.admitRunForProving`). The production ELF adapter
+    // (`src/integrations/riscv_cpu/proof_adapter.zig`) calls the same function.
+    // This tool used to have no equivalent of the adapter's completion check at
+    // all, which is how an ECALL-terminated trace reached the prover and died
+    // far downstream with a diagnostic that named neither the guest nor the
+    // reason (issue #152 item 5).
+    if (riscv_prover.classifyRunAdmission(&run_result)) |rejection| {
+        switch (rejection) {
+            .unprovable_completion => |reason| std.debug.print(
                 \\
                 \\ERROR: the guest ended with completion_reason={s}, which carries no
                 \\       proof-bearing completion, so this run cannot be proved.
@@ -317,37 +370,23 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
                 \\       __halt_flag or end on the canonical `jal x0, 0` sentinel.
                 \\       Use --run-only to measure execution alone.
                 \\
-            , .{@tagName(reason)});
-            return error.UnprovableCompletion;
-        },
-    }
-
-    // Fail closed on the other statement the bench can otherwise build but not
-    // prove: the guest read its linker-declared public-input region, yet no
-    // `--input` was supplied. The committed memory image then carries
-    // public-input words the statement's `input_len = 0` never publishes, so
-    // the public-I/O bus cannot cancel. Detect it from the run's own committed
-    // words rather than guessing from the declared region, which a guest is
-    // free to leave untouched.
-    if (run_result.input.len == 0) {
-        for (run_result.rw_memory.words) |word| {
-            if (!word.role.is_public_input or word.final_clock == 0) continue;
-            std.debug.print(
+            , .{@tagName(reason)}),
+            .unpublished_public_io => |addr| std.debug.print(
                 \\
-                \\ERROR: the guest read its public-input region at 0x{x:0>8} but no
-                \\       --input was supplied, so the statement would publish zero
-                \\       input words for memory the proof commits as public input.
-                \\       Pass --input PATH (or --input-u32 N) for this guest.
+                \\ERROR: the guest committed a public-I/O word at 0x{x:0>8} that this
+                \\       statement would not publish. For a public-input word this
+                \\       means the guest read its linker-declared input region but no
+                \\       --input was supplied: pass --input PATH (or --input-u32 N).
                 \\
-            , .{word.addr});
-            return error.MissingGuestInput;
+            , .{addr}),
         }
+        return rejection.toError();
     }
 
     // Stage 3: Prove
     //
-    // The trace-only convenience entrypoint (`proveRiscVWithEngine`) synthesizes
-    // a statement with an empty I/O region, so the public-I/O LogUp bus cannot
+    // The trace-only entrypoint (`proveRiscVTraceOnlyNoPublicIo`) synthesizes a
+    // statement with an empty I/O region, so the public-I/O LogUp bus cannot
     // balance for any guest that actually reads input or writes output. Build the
     // same real public data the production adapter builds instead; the runner's
     // own initial/final register state is authoritative, which is why the derived
@@ -470,7 +509,9 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
     std.debug.print("Throughput (run+prove): {d:.1} kHz\n", .{run_prove_khz});
 }
 
-fn printUsage() void {
+/// The profile parameters are formatted from the constants themselves, so the
+/// help text cannot describe a profile the flags no longer select.
+fn printUsage(secure: pcs_core.PcsConfig) void {
     std.debug.print(
         \\Usage: riscv-bench [options]
         \\
@@ -483,12 +524,18 @@ fn printUsage() void {
         \\  --hint PATH       Host hint input
         \\  --pow-bits N      Proof-of-work bits (default: 0)
         \\  --n-queries N     FRI query count (default: 3)
-        \\  --production      Use pow_bits=24 and n_queries=70
+        \\  --pow24-q70       Older stark-v comparison config (pow_bits={d}, n_queries={d})
+        \\  --secure          The published SECURE_PCS_CONFIG (pow_bits={d}, n_queries={d})
         \\  --run-only        Execute the guest without proving
         \\  --profile         Print nested prover stage timings
         \\  -h, --help        Show this help
         \\
-    , .{});
+    , .{
+        POW24_Q70_PCS_CONFIG.pow_bits,
+        POW24_Q70_PCS_CONFIG.fri_config.n_queries,
+        secure.pow_bits,
+        secure.fri_config.n_queries,
+    });
 }
 
 fn printProfileNodes(nodes: []const stage_profile.StageNode, depth: usize) void {

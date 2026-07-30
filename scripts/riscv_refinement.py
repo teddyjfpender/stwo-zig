@@ -337,6 +337,75 @@ def negative_controls(paths: Paths) -> None:
 
 
 
+def _blank_span(rendered: list[str], text: str, start: int, end: int) -> int:
+    """Overwrite ``text[start:end]`` with spaces, preserving every whitespace char."""
+    for position in range(start, end):
+        if not text[position].isspace():
+            rendered[position] = " "
+    return end
+
+
+def _skip_lean_string(text: str, start: int) -> int:
+    """Return the index after the Lean string literal opened at ``start``.
+
+    ``\\`` escapes the next character, which also carries a Lean string gap over a
+    newline. An unterminated literal recovers at the end of its line so a stray
+    quote cannot hide the rest of the file from the scan.
+    """
+    index = start + 1
+    while index < len(text):
+        char = text[index]
+        if char == "\\":
+            index += 2
+        elif char == '"':
+            return index + 1
+        elif char == "\n":
+            return index
+        else:
+            index += 1
+    return len(text)
+
+
+def _strip_lean_comments(text: str) -> str:
+    """Return ``text`` with Lean ``--`` and nesting ``/- -/`` comments blanked.
+
+    Splitting on ``--`` alone is wrong in both directions. It leaves ``/-! -/``
+    block comments intact, so prose naming a forbidden term fails the scan, and
+    it truncates at a ``--`` inside a string literal, so real code after
+    ``"a--b"`` is never scanned at all. Comment characters become spaces rather
+    than disappearing, so line numbers and columns still address the source.
+
+    An unterminated block comment would blank the rest of the file, which is the
+    one way this function could hide a forbidden term, so it fails closed instead.
+    """
+    rendered = list(text)
+    index = 0
+    depth = 0
+    while index < len(text):
+        if depth:
+            if text.startswith("/-", index):
+                depth += 1
+                index = _blank_span(rendered, text, index, index + 2)
+            elif text.startswith("-/", index):
+                depth -= 1
+                index = _blank_span(rendered, text, index, index + 2)
+            else:
+                index = _blank_span(rendered, text, index, index + 1)
+        elif text[index] == '"':
+            index = _skip_lean_string(text, index)
+        elif text.startswith("/-", index):
+            depth = 1
+            index = _blank_span(rendered, text, index, index + 2)
+        elif text.startswith("--", index):
+            end = text.find("\n", index)
+            index = _blank_span(rendered, text, index, len(text) if end < 0 else end)
+        else:
+            index += 1
+    if depth:
+        raise RefinementError("unterminated Lean block comment")
+    return "".join(rendered)
+
+
 def _scan_forbidden_proof_terms(paths: Paths) -> None:
     forbidden = re.compile(r"\b(sorry|admit|axiom|unsafe|native_decide)\b")
     errors: list[str] = []
@@ -345,10 +414,14 @@ def _scan_forbidden_proof_terms(paths: Paths) -> None:
         *sorted((paths.formal / "RiscvRefinement").rglob("*.lean")),
     ]
     for source in sources:
-        for number, line in enumerate(source.read_text(encoding="utf-8").splitlines(), 1):
-            code = line.split("--", 1)[0]
-            if forbidden.search(code):
-                errors.append(f"{source.relative_to(paths.root)}:{number}")
+        relative = source.relative_to(paths.root)
+        try:
+            code = _strip_lean_comments(source.read_text(encoding="utf-8"))
+        except RefinementError as error:
+            raise RefinementError(f"{relative}: {error}") from error
+        for number, line in enumerate(code.splitlines(), 1):
+            if forbidden.search(line):
+                errors.append(f"{relative}:{number}")
     if errors:
         raise RefinementError(
             "forbidden proof escape appears at " + ", ".join(errors)

@@ -10,6 +10,8 @@ PYTHON_CONTROLLER_CEILING = 850
 ZIG_OWNER_CEILING = 300
 ZIG_ENTRYPOINT_CEILING = 200
 RUST_ENTRYPOINT_CEILING = 100
+# Every size ceiling warns, without failing, once a file has consumed this share of it.
+HEADROOM_PERCENT = 90
 ACTIVE_NATIVE_RUST_CRATES = frozenset({"stwo-interop-rs", "stwo-vector-gen"})
 ACTIVE_FORMAL_EVIDENCE_ROOTS = (
     "scripts/archive_native_matrix.py",

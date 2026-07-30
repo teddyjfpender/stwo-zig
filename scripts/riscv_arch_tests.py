@@ -322,7 +322,8 @@ def audit_arch_tests(
                 str(resolved_metal),
                 "--elf",
                 str(representative["elf"]),
-                "--production",
+                # Formerly `--production`; same parameters, honest name (#152/7).
+                "--pow24-q70",
                 "--profile",
             ],
             label="M-mulh-00 Metal proof",

@@ -106,7 +106,7 @@ pub fn addProduct(context: Context) void {
         "stwo-zig-riscv-cpu",
     );
     const install_host = context.b.addInstallArtifact(host, .{});
-    const host_trace = addTraceExecutable(context, context.target, context.optimize);
+    const host_trace = addTraceExecutable(context, context.target, context.optimize, "riscv-trace-dump");
     const install_host_trace = context.b.addInstallArtifact(host_trace, .{});
     const trace_step = context.b.step("riscv-trace-dump", "Build RISC-V trace dumper CLI");
     trace_step.dependOn(&install_host_trace.step);
@@ -130,9 +130,19 @@ pub fn addProduct(context: Context) void {
     );
     static.linkage = .static;
     const install_static = context.b.addInstallArtifact(static, .{});
-    const static_trace = addTraceExecutable(context, static_target, .ReleaseFast);
+    // Target-qualified so both dumpers coexist and host tooling resolves the host binary.
+    const static_trace = addTraceExecutable(context, static_target, .ReleaseFast, "riscv-trace-dump-x86_64-linux-musl");
     static_trace.linkage = .static;
     const install_static_trace = context.b.addInstallArtifact(static_trace, .{});
+    // Refuse cross-target names that would overwrite a host install artifact.
+    for ([_]*std.Build.Step.Compile{ static, static_trace }) |cross| {
+        for ([_]*std.Build.Step.Compile{ host, host_trace }) |native| {
+            if (std.mem.eql(u8, cross.name, native.name)) std.debug.panic(
+                "RISC-V CPU product installs cross-target {s} over the host binary",
+                .{cross.name},
+            );
+        }
+    }
     const static_step = context.b.step(
         "stwo-zig-riscv-cpu-static",
         "Build the static x86_64-linux-musl RISC-V CPU challenge executable",
@@ -224,6 +234,7 @@ fn addTraceExecutable(
     context: Context,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
+    name: []const u8,
 ) *std.Build.Step.Compile {
     const b = context.b;
     const protocol = if (target.result.cpu.arch == context.target.result.cpu.arch and
@@ -248,7 +259,7 @@ fn addTraceExecutable(
         root,
     );
     root.addOptions("build_identity", graph_identity.buildOptions(b, context.identity));
-    return b.addExecutable(.{ .name = "riscv-trace-dump", .root_module = root });
+    return b.addExecutable(.{ .name = name, .root_module = root });
 }
 fn addExecutable(
     context: Context,

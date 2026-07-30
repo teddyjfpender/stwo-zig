@@ -44,7 +44,7 @@ pub fn proveRiscVWithRecorder(
     opt_memory: ?*const memory_state.Snapshot,
     recorder: ?*stage_profile.Recorder,
 ) !prover_mod.ProveOutput {
-    return prover_mod.proveRiscVWithEngine(
+    return prover_mod.proveRiscVTraceOnlyNoPublicIo(
         CpuProverEngine,
         allocator,
         pcs_config,

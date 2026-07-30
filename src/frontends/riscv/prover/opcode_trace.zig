@@ -77,6 +77,18 @@ pub fn generate(
     exec_trace: *const trace.Trace,
     statement: statement_mod.RiscVStatement,
 ) !Columns {
+    // Run the filter once, up front, and carry its result.
+    //
+    // Both loops below classify every row, and both used to do it through a
+    // total map over raw `Opcode` whose "the filter already ran" precondition
+    // nothing checked. The worker body is a `void` function, so it had no way
+    // to report an inadmissible opcode even if it noticed one. Classifying here
+    // -- where an error can still be returned -- both discharges that and hands
+    // the workers `ProofOpcode` values, which is the only argument type the
+    // total map now accepts.
+    const proof_opcodes = try exec_trace.proofOpcodes(allocator);
+    defer allocator.free(proof_opcodes);
+
     var result: Columns = undefined;
     var log_sizes: [MAX_COMPONENTS]u32 = undefined;
     var domain_sizes: [MAX_COMPONENTS]usize = undefined;
@@ -142,6 +154,7 @@ pub fn generate(
 
     const FillWork = struct {
         rows: []const trace.TraceRow,
+        proof_opcodes: []const trace.ProofOpcode,
         family_offsets: [trace.N_FAMILIES]usize,
         result: *Columns,
         placements: *const [MAX_COMPONENTS]?infra.BitReversalTable,
@@ -151,8 +164,8 @@ pub fn generate(
 
         fn run(work: *@This()) void {
             var offsets = work.family_offsets;
-            for (work.rows) |row| {
-                const family = trace.opcodeFamily(row.opcode);
+            for (work.rows, work.proof_opcodes) |row, proof_opcode| {
+                const family = trace.opcodeFamily(proof_opcode);
                 const family_index = @intFromEnum(family);
                 const family_row = offsets[family_index];
                 offsets[family_index] += 1;
@@ -182,8 +195,8 @@ pub fn generate(
     for (0..worker_count) |worker| {
         const start = worker * chunk_len;
         const end = @min(exec_trace.rows.items.len, start + chunk_len);
-        for (exec_trace.rows.items[start..end]) |row| {
-            worker_family_counts[worker][@intFromEnum(trace.opcodeFamily(row.opcode))] += 1;
+        for (proof_opcodes[start..end]) |proof_opcode| {
+            worker_family_counts[worker][@intFromEnum(trace.opcodeFamily(proof_opcode))] += 1;
         }
     }
 
@@ -198,6 +211,7 @@ pub fn generate(
         const end = @min(exec_trace.rows.items.len, start + chunk_len);
         works[worker] = .{
             .rows = exec_trace.rows.items[start..end],
+            .proof_opcodes = proof_opcodes[start..end],
             .family_offsets = offsets,
             .result = &result,
             .placements = &placements,

@@ -1,5 +1,5 @@
 const std = @import("std");
-const transcript_fixture = @import("stwo_metal_backend").cairo.diagnostics.transcript_fixture;
+const transcript_fixture = @import("stwo_cairo_metal_integration").transcript_fixture;
 
 test {
     std.testing.refAllDecls(transcript_fixture);

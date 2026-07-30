@@ -153,6 +153,22 @@ pub const PublicData = struct {
     completion: ?Completion = null,
     io_entries: IoEntries,
 
+    /// Whether this statement claims the run touched the public I/O region.
+    ///
+    /// Read on the LogUp-imbalance diagnostic path. A statement declaring
+    /// neither input nor output words compensates no memory-access tuples for
+    /// them, so a run that in fact read input or wrote output cannot balance the
+    /// memory-access bus for *any* witness. That is a different failure from
+    /// "some relation is unbalanced" and deserves a different message, so the
+    /// distinction lives here beside the data it reads rather than inside the
+    /// verifier that consumes it.
+    ///
+    /// Structural -- lengths only. It answers what the statement declares, not
+    /// whether the declaration is true.
+    pub fn declaresPublicIo(self: *const PublicData) bool {
+        return self.io_entries.input_words.len != 0 or self.io_entries.output_words.len != 0;
+    }
+
     /// Validate the statement shape that is derivable from public data alone.
     ///
     /// The released CLI accepts one complete, unsegmented execution, so every
