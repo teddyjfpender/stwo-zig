@@ -248,6 +248,17 @@ class RiscvTeamBRefreshTests(unittest.TestCase):
             refresh.pinned_theorem_count(),
         )
 
+    def test_pin_path_and_artifact_watch_track_the_split_inventory(self) -> None:
+        relative = Path(
+            "scripts/riscv_refinement_lib/audited_inventory.py"
+        )
+        self.assertEqual(refresh.ROOT / relative, refresh.PIN_FILE)
+        self.assertIn(relative.as_posix(), refresh.WATCHED_ARTIFACTS)
+        self.assertNotIn(
+            "scripts/riscv_refinement.py",
+            refresh.WATCHED_ARTIFACTS,
+        )
+
     def test_pinned_theorem_count_refuses_a_malformed_pin(self) -> None:
         broken = self.air_ir_dir / "broken_pin.py"
         broken.write_text("AUDITED_THEOREMS = ()\n", encoding="utf-8")

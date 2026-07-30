@@ -39,14 +39,21 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import re
 import subprocess
 import sys
 from pathlib import Path
 
+if __package__:
+    from .riscv_refinement_lib import audited_inventory
+    from .riscv_refinement_lib.model import RefinementError
+else:
+    from riscv_refinement_lib import audited_inventory
+    from riscv_refinement_lib.model import RefinementError
+
 ROOT = Path(__file__).resolve().parents[1]
 FORMAL_DIR = ROOT / "formal" / "riscv-refinement"
-PIN_FILE = ROOT / "scripts" / "riscv_refinement.py"
+PIN_RELATIVE = Path("scripts/riscv_refinement_lib/audited_inventory.py")
+PIN_FILE = ROOT / PIN_RELATIVE
 COVERAGE_INDEX = FORMAL_DIR / "team-b-coverage.json"
 GENERATED_AIR_DIR = FORMAL_DIR / "generated" / "air"
 DEFAULT_AIR_IR_DIR = Path("zig-out") / "team-b-ir"
@@ -55,18 +62,11 @@ DEFAULT_AIR_IR_DIR = Path("zig-out") / "team-b-ir"
 # a regeneration leaves the receipt stale behind the new manifest, and that
 # staleness must be visible in the summary rather than silently carried.
 WATCHED_ARTIFACTS = (
-    "scripts/riscv_refinement.py",
+    PIN_RELATIVE.as_posix(),
     "formal/riscv-refinement/generated-manifest.json",
     "formal/riscv-refinement/refinement-receipt.json",
     "formal/riscv-refinement/RiscvRefinement/Air/Generated/Pilot.lean",
     "formal/riscv-refinement/RiscvRefinement/Sail/Generated/Pilot.lean",
-)
-
-# Mirrors AUDITED_THEOREMS_BLOCK in scripts/riscv_refinement.py so the
-# summary can count the pin before and after the repin step rewrites it.
-AUDITED_THEOREMS_BLOCK = re.compile(
-    r"^AUDITED_THEOREMS = \(\n((?:    \"[^\"\\\n]+\",\n)+)\)$",
-    re.MULTILINE,
 )
 
 
@@ -142,12 +142,13 @@ def pinned_theorem_count(pin_file: Path = PIN_FILE) -> int:
         text = pin_file.read_text(encoding="utf-8")
     except (OSError, UnicodeError) as error:
         raise RefreshError(f"{pin_file}: unreadable pin file: {error}") from error
-    match = AUDITED_THEOREMS_BLOCK.search(text)
-    if match is None:
+    try:
+        theorems = audited_inventory.parse_source(text)
+    except RefinementError as error:
         raise RefreshError(
             f"{pin_file}: the AUDITED_THEOREMS pin is not in its expected shape"
-        )
-    return match.group(1).count(",\n")
+        ) from error
+    return len(theorems)
 
 
 def _artifact_digests() -> dict[str, str | None]:

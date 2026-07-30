@@ -17,6 +17,7 @@ from scripts import ci_scope_plan, ci_scope_push, ci_scope_run
 ROOT = Path(__file__).resolve().parents[2]
 COMMIT = "1" * 40
 TREE = "2" * 40
+PROVER_PREFIXES = ("src/core", "src/backend", "src/prover", "src/prover_api")
 
 
 def product(scope: str, *prefixes: str, state: str = "released") -> dict[str, object]:
@@ -37,47 +38,29 @@ def catalog_fixture() -> dict[str, object]:
         "products": [
             product(
                 "aggregate",
-                "src/core",
-                "src/backend",
-                "src/prover",
-                "src/prover_api",
+                *PROVER_PREFIXES,
                 "src/backends/cpu_scalar",
                 "src/frontends/riscv",
                 "src/integrations/riscv_cpu",
             ),
             product("core", "src/core"),
-            product(
-                "prover",
-                "src/core",
-                "src/backend",
-                "src/prover",
-                "src/prover_api",
-            ),
+            product("prover", *PROVER_PREFIXES),
             product(
                 "native_cpu",
-                "src/core",
-                "src/backend",
-                "src/prover",
-                "src/prover_api",
+                *PROVER_PREFIXES,
                 "src/backends/cpu_scalar",
                 "src/products/native_cpu",
             ),
             product(
                 "riscv_cpu",
-                "src/core",
-                "src/backend",
-                "src/prover",
-                "src/prover_api",
+                *PROVER_PREFIXES,
                 "src/backends/cpu_scalar",
                 "src/frontends/riscv",
                 "src/integrations/riscv_cpu",
             ),
             product(
                 "cairo_cpu",
-                "src/core",
-                "src/backend",
-                "src/prover",
-                "src/prover_api",
+                *PROVER_PREFIXES,
                 "src/backends/cpu_scalar",
                 "src/frontends/cairo",
                 "src/integrations/cairo_cpu",
@@ -85,10 +68,7 @@ def catalog_fixture() -> dict[str, object]:
             ),
             product(
                 "cairo_metal",
-                "src/core",
-                "src/backend",
-                "src/prover",
-                "src/prover_api",
+                *PROVER_PREFIXES,
                 "src/backends/cpu_scalar",
                 "src/backends/metal",
                 "src/frontends/cairo",
@@ -97,19 +77,13 @@ def catalog_fixture() -> dict[str, object]:
             ),
             product(
                 "native_metal",
-                "src/core",
-                "src/backend",
-                "src/prover",
-                "src/prover_api",
+                *PROVER_PREFIXES,
                 "src/backends/cpu_scalar",
                 "src/backends/metal",
             ),
             product(
                 "riscv_metal",
-                "src/core",
-                "src/backend",
-                "src/prover",
-                "src/prover_api",
+                *PROVER_PREFIXES,
                 "src/backends/cpu_scalar",
                 "src/backends/metal",
                 "src/frontends/riscv",
@@ -118,10 +92,7 @@ def catalog_fixture() -> dict[str, object]:
             ),
             product(
                 "native_cuda",
-                "src/core",
-                "src/backend",
-                "src/prover",
-                "src/prover_api",
+                *PROVER_PREFIXES,
                 "src/backends/cuda",
                 "src/backends/cpu_scalar",
                 "src/backends/metal",

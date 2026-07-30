@@ -18,128 +18,19 @@ from . import (
     sail,
 )
 from .model import LEAN_TOOLCHAIN, PILOT_OPCODES, SCHEMA_VERSION, Paths, RefinementError
-
-SOURCE_PATHS = (
-    "build.zig",
-    "build.zig.zon",
-    "build_support/build.zig.zon",
-    "build_support/graph/delegation.zig",
-    "build_support/internal_build.zig",
-    "build_support/products/catalog.zig",
-    "build_support/products/matrix.zig",
-    "build_support/products/package_dependencies.zig",
-    "build_support/products/product_specs.zig",
-    "build_support/products/riscv_cpu.zig",
-    "build_support/products/riscv_refinement.zig",
-    "build_support/products/riscv_test_filter.zig",
-    "src/core/build.zig",
-    "src/core/build.zig.zon",
-    "src/core/mod.zig",
-    "src/frontends/riscv/refinement_ir_export_test.zig",
-    "src/frontends/riscv/refinement_program_export_test.zig",
+from .render_paths import (
+    EXPORTED_FAMILIES,
+    GENERATOR_GLOBS,
+    GENERATOR_PATHS,
+    MANIFEST_ARTIFACTS,
+    PROOF_GLOBS,
+    PROOF_PATHS,
+    PROOF_TREE_EXCLUDES,
+    PROOF_TREES,
+    SOURCE_PATHS,
+    SOURCE_TREES,
 )
-SOURCE_TREES = (
-    "build_support/graph",
-    "src/core/fields",
-    "src/frontends/riscv",
-)
-
-GENERATOR_PATHS = (
-    "scripts/riscv_refinement.py",
-    "scripts/riscv_opcode_coverage.py",
-    "scripts/riscv_team_a.py",
-    "scripts/riscv_team_b.py",
-    "scripts/riscv_team_b_inventory.py",
-    "scripts/riscv_team_b_refresh.py",
-    "scripts/riscv_team_b_witnesses.py",
-    "scripts/riscv_refinement_lib/model.py",
-    "scripts/riscv_refinement_lib/codec.py",
-    "scripts/riscv_refinement_lib/air.py",
-    "scripts/riscv_refinement_lib/air_program.py",
-    "scripts/riscv_refinement_lib/air_program_contract.py",
-    "scripts/riscv_refinement_lib/air_program_lean.py",
-    "scripts/riscv_refinement_lib/air_program_registry_lean.py",
-    "scripts/riscv_refinement_lib/sail.py",
-    "scripts/riscv_refinement_lib/sail_lean_bridge.py",
-    "scripts/riscv_refinement_lib/sail_translation.py",
-    "scripts/riscv_refinement_lib/negative.py",
-    "scripts/riscv_refinement_lib/render.py",
-    "scripts/tests/test_riscv_refinement.py",
-    "scripts/tests/test_sail_air_composition_contract.py",
-    "scripts/tests/test_sail_translation.py",
-    "scripts/tests/test_riscv_team_a.py",
-    "scripts/tests/test_riscv_team_b.py",
-    "scripts/tests/test_riscv_team_b_inventory.py",
-    "scripts/tests/test_riscv_team_b_refresh.py",
-    "scripts/tests/test_riscv_team_b_witnesses.py",
-)
-
-PROOF_PATHS = (
-    "formal/riscv-refinement/README.md",
-    "formal/riscv-refinement/TEAM_B.md",
-    "formal/riscv-refinement/lean-toolchain",
-    "formal/riscv-refinement/lake-manifest.json",
-    "formal/riscv-refinement/lakefile.toml",
-    "formal/riscv-refinement/RiscvRefinement.lean",
-    "conformance/riscv/sail-lean-riscv-extras.patch",
-    "soundness/AIR_IR_V2_CONTRACT.md",
-    "soundness/SAIL_AIR_COMPOSITION.md",
-    "soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md",
-    "soundness/air-ir-v2.schema.json",
-)
-PROOF_TREES = (
-    "formal/riscv-refinement/RiscvRefinement",
-    "formal/riscv-refinement/generated-sail-bridge",
-)
-PROOF_TREE_EXCLUDES = (
-    "formal/riscv-refinement/RiscvRefinement/Air/Generated",
-    "formal/riscv-refinement/RiscvRefinement/Sail/Generated",
-)
-PROOF_GLOBS = (
-    "formal/riscv-refinement/*-coverage.json",
-)
-
-EXPORTED_FAMILIES = frozenset(
-    {
-        "auipc",
-        "base_alu_imm",
-        "base_alu_reg",
-        "branch_eq",
-        "branch_lt",
-        "div",
-        "fence",
-        "jal",
-        "jalr",
-        "load_store",
-        "lt_imm",
-        "lt_reg",
-        "lui",
-        "mul",
-        "mulh",
-        "shifts_imm",
-        "shifts_reg",
-    }
-)
-MANIFEST_ARTIFACTS = frozenset(
-    {
-        "RiscvRefinement/Air/Generated/Pilot.lean",
-        "RiscvRefinement/Air/Generated/LuiProgram.lean",
-        "RiscvRefinement/Air/Generated/Programs.lean",
-        "RiscvRefinement/Sail/Generated/Pilot.lean",
-        "generated/air/addi.json",
-        "generated/air/lui.json",
-        "generated/sail/rv32im-zkvm-v1.json",
-        "generated/sail/definitions/execute_ITYPE.lean",
-        "generated/sail/definitions/execute_RTYPE.lean",
-        "generated/sail/definitions/execute_UTYPE.lean",
-        "generated/sail/generated-monad-bridge-receipt-v1.json",
-        "generated/sail/translation-receipt-v1.json",
-        *(
-            f"generated/air/{mnemonic}.air-ir-v2.json"
-            for _, mnemonic, _ in air_program.OPCODES
-        ),
-    }
-)
+from .render_validation import check_artifacts, validate_manifest, write_artifacts
 
 AIR_LEAN_TEMPLATE = """\
 -- GENERATED FILE. DO NOT EDIT.
@@ -529,9 +420,15 @@ def _source_digests(paths: Paths) -> dict[str, str]:
 
 def _generator_digests(paths: Paths) -> dict[str, str]:
     result: dict[str, str] = {}
-    for relative in GENERATOR_PATHS:
+    relatives = set(GENERATOR_PATHS)
+    for pattern in GENERATOR_GLOBS:
+        for path in paths.root.glob(pattern):
+            if path.is_symlink() or not path.is_file():
+                raise RefinementError(f"invalid generator source {path}")
+            relatives.add(path.relative_to(paths.root).as_posix())
+    for relative in sorted(relatives):
         path = paths.root / relative
-        if not path.is_file():
+        if path.is_symlink() or not path.is_file():
             raise RefinementError(f"missing generator source {relative}")
         result[relative] = codec.sha256_file(path)
     return result
@@ -826,101 +723,15 @@ def artifacts(paths: Paths, evidence: sail.SailEvidence) -> dict[Path, bytes]:
     return outputs
 
 
-def write_artifacts(paths: Paths, outputs: dict[Path, bytes]) -> None:
-    ordered = sorted(
-        outputs.items(),
-        key=lambda item: (
-            item[0] == Path("generated-manifest.json"),
-            item[0].as_posix(),
-        ),
-    )
-    for relative, data in ordered:
-        destination = paths.formal / relative
-        if destination.is_file() and destination.read_bytes() == data:
-            continue
-        codec.atomic_write(destination, data)
-
-
-def check_artifacts(paths: Paths, outputs: dict[Path, bytes]) -> None:
-    errors: list[str] = []
-    for relative, expected in outputs.items():
-        destination = paths.formal / relative
-        if not destination.is_file():
-            errors.append(f"missing generated artifact {relative}")
-        elif destination.read_bytes() != expected:
-            errors.append(f"generated artifact drifted: {relative}")
-    if errors:
-        raise RefinementError("; ".join(errors))
-
-
 def validate_committed_manifest(
     paths: Paths,
     manifest: dict[str, Any],
 ) -> None:
-    if set(manifest) != {
-        "artifacts",
-        "canonical_digest",
-        "claim_boundary",
-        "generators",
-        "kind",
-        "lean_toolchain",
-        "opcodes",
-        "production_sources",
-        "proof_sources",
-        "sail",
-        "schema_version",
-        "tier",
-    }:
-        raise RefinementError("generated refinement manifest schema drifted")
-    if (
-        manifest.get("schema_version") != SCHEMA_VERSION
-        or manifest.get("kind")
-        != "stwo-riscv-refinement-generated-manifest"
-        or manifest.get("tier") != "level-1-normalized-pilot"
-        or manifest.get("lean_toolchain") != LEAN_TOOLCHAIN
-        or manifest.get("claim_boundary")
-        != {
-            "lui_air_ir_v2_roundtrip": True,
-            "lean_serialized_m31_air_interpreter": True,
-            "lui_air_to_normalized_composition": True,
-            "addi_air_to_normalized_composition": True,
-            "generated_sail_ast_translation_receipt": True,
-            "lean_generated_sail_monad_normalization": True,
-            "lean_generated_sail_step_loop_framing": False,
-            "kernel_checked_normalized_refinement": True,
-        }
-        or manifest.get("canonical_digest") != codec.content_digest(manifest)
-    ):
-        raise RefinementError("generated refinement manifest identity is invalid")
-    if manifest.get("production_sources") != _source_digests(paths):
-        raise RefinementError(
-            "generated refinement manifest production-source closure drifted"
-        )
-    if manifest.get("generators") != _generator_digests(paths):
-        raise RefinementError(
-            "generated refinement manifest generator closure drifted"
-        )
-    if manifest.get("proof_sources") != _proof_digests(paths):
-        raise RefinementError(
-            "generated refinement manifest proof-source closure drifted"
-        )
-    artifacts = manifest.get("artifacts")
-    if not isinstance(artifacts, dict) or set(artifacts) != MANIFEST_ARTIFACTS:
-        raise RefinementError("generated refinement artifact closure drifted")
-    for relative, expected in artifacts.items():
-        if (
-            not isinstance(expected, str)
-            or not re.fullmatch(r"[0-9a-f]{64}", expected)
-        ):
-            raise RefinementError(
-                f"generated refinement artifact digest is invalid: {relative}"
-            )
-        path = paths.formal / relative
-        if path.is_symlink() or not path.is_file():
-            raise RefinementError(
-                f"generated refinement artifact is missing: {relative}"
-            )
-        if codec.sha256_file(path) != expected:
-            raise RefinementError(
-                f"generated refinement artifact digest drifted: {relative}"
-            )
+    validate_manifest(
+        paths,
+        manifest,
+        production_sources=_source_digests(paths),
+        generators=_generator_digests(paths),
+        proof_sources=_proof_digests(paths),
+        manifest_artifacts=MANIFEST_ARTIFACTS,
+    )
