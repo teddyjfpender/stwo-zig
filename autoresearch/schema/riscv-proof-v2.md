@@ -5,9 +5,16 @@
 interpret a v1 report as v2.
 
 The canonical proof remains the lowercase `proof_bytes_hex` value in the
-retained `stwo_riscv_proof` schema-v3 artifact. The v2 report does not change
-the artifact wire format, statement binding, transcript binding, independent
-verification receipt, pinned Stark-V oracle, or release-admission state.
+retained `stwo_riscv_proof` schema-v4 artifact. The retained artifact is bound
+to exchange mode `riscv_proof_json_wire_v4`, AIR
+`sail_rv32im_zkvm_v1`, and the pinned
+[`riscv/sail-riscv`](https://github.com/riscv/sail-riscv) semantic authority at
+commit `8c7f2da58de0ba5e4457e4de07e0046f0439f35f`. Schema-v3/Stark-V artifacts
+are historical and must fail closed rather than being interpreted as v2
+benchmark evidence.
+
+The v2 report does not otherwise change statement binding, transcript binding,
+the independent verification receipt, or release-admission state.
 
 ## Resource usage
 
