@@ -147,6 +147,78 @@ theorem sltu_refines
     Refinement row witness :=
   refines row witness admission accepted
 
+theorem slt_exactLookupTuples
+    (row : Row)
+    (witness : Witness row)
+    (kind : row.kind = .signed)
+    (admission : Admission row)
+    (accepted : Acceptance row witness) :
+    (Air.Bridge.LtReg.evaluation row witness).lookup? 36 =
+        some (Air.Bridge.LtReg.programLookup row) ∧
+    (Air.Bridge.LtReg.evaluation row witness).lookup? 37 =
+        some (Air.Bridge.LtReg.stateConsumeLookup row) ∧
+    (Air.Bridge.LtReg.evaluation row witness).lookup? 38 =
+        some (Air.Bridge.LtReg.stateEmitLookup row) ∧
+    (Air.Bridge.LtReg.evaluation row witness).lookup? 39 =
+        some (Air.Bridge.LtReg.sourceConsumeLookup row false) ∧
+    (Air.Bridge.LtReg.evaluation row witness).lookup? 40 =
+        some (Air.Bridge.LtReg.sourceEmitLookup row false) ∧
+    (Air.Bridge.LtReg.evaluation row witness).lookup? 41 =
+        some (Air.Bridge.LtReg.sourceClockLookup row false) ∧
+    (Air.Bridge.LtReg.evaluation row witness).lookup? 42 =
+        some (Air.Bridge.LtReg.sourceConsumeLookup row true) ∧
+    (Air.Bridge.LtReg.evaluation row witness).lookup? 43 =
+        some (Air.Bridge.LtReg.sourceEmitLookup row true) ∧
+    (Air.Bridge.LtReg.evaluation row witness).lookup? 44 =
+        some (Air.Bridge.LtReg.sourceClockLookup row true) ∧
+    (Air.Bridge.LtReg.evaluation row witness).lookup? 45 =
+        some (Air.Bridge.LtReg.mslRangeLookup row witness) ∧
+    (Air.Bridge.LtReg.evaluation row witness).lookup? 46 =
+        some (Air.Bridge.LtReg.positiveDifferenceLookup row witness) ∧
+    (Air.Bridge.LtReg.evaluation row witness).lookup? 47 =
+        some (Air.Bridge.LtReg.destinationConsumeLookup row) ∧
+    (Air.Bridge.LtReg.evaluation row witness).lookup? 48 =
+        some (Air.Bridge.LtReg.destinationEmitLookup row) ∧
+    (Air.Bridge.LtReg.evaluation row witness).lookup? 49 =
+        some (Air.Bridge.LtReg.destinationClockLookup row) :=
+  (slt_refines row witness kind admission accepted).production.exactLookups
+
+theorem sltu_exactLookupTuples
+    (row : Row)
+    (witness : Witness row)
+    (kind : row.kind = .unsigned)
+    (admission : Admission row)
+    (accepted : Acceptance row witness) :
+    (Air.Bridge.LtReg.evaluation row witness).lookup? 36 =
+        some (Air.Bridge.LtReg.programLookup row) ∧
+    (Air.Bridge.LtReg.evaluation row witness).lookup? 37 =
+        some (Air.Bridge.LtReg.stateConsumeLookup row) ∧
+    (Air.Bridge.LtReg.evaluation row witness).lookup? 38 =
+        some (Air.Bridge.LtReg.stateEmitLookup row) ∧
+    (Air.Bridge.LtReg.evaluation row witness).lookup? 39 =
+        some (Air.Bridge.LtReg.sourceConsumeLookup row false) ∧
+    (Air.Bridge.LtReg.evaluation row witness).lookup? 40 =
+        some (Air.Bridge.LtReg.sourceEmitLookup row false) ∧
+    (Air.Bridge.LtReg.evaluation row witness).lookup? 41 =
+        some (Air.Bridge.LtReg.sourceClockLookup row false) ∧
+    (Air.Bridge.LtReg.evaluation row witness).lookup? 42 =
+        some (Air.Bridge.LtReg.sourceConsumeLookup row true) ∧
+    (Air.Bridge.LtReg.evaluation row witness).lookup? 43 =
+        some (Air.Bridge.LtReg.sourceEmitLookup row true) ∧
+    (Air.Bridge.LtReg.evaluation row witness).lookup? 44 =
+        some (Air.Bridge.LtReg.sourceClockLookup row true) ∧
+    (Air.Bridge.LtReg.evaluation row witness).lookup? 45 =
+        some (Air.Bridge.LtReg.mslRangeLookup row witness) ∧
+    (Air.Bridge.LtReg.evaluation row witness).lookup? 46 =
+        some (Air.Bridge.LtReg.positiveDifferenceLookup row witness) ∧
+    (Air.Bridge.LtReg.evaluation row witness).lookup? 47 =
+        some (Air.Bridge.LtReg.destinationConsumeLookup row) ∧
+    (Air.Bridge.LtReg.evaluation row witness).lookup? 48 =
+        some (Air.Bridge.LtReg.destinationEmitLookup row) ∧
+    (Air.Bridge.LtReg.evaluation row witness).lookup? 49 =
+        some (Air.Bridge.LtReg.destinationClockLookup row) :=
+  (sltu_refines row witness kind admission accepted).production.exactLookups
+
 theorem slt_exactProgramTuple
     (row : Row)
     (kind : row.kind = .signed) :
@@ -229,7 +301,7 @@ def decodeSelector (kind : Kind) : InstructionWord → Bool
 def resultWord (row : Row) : Word :=
   (Air.Bridge.LtImm.resultBytes
     (Air.Bridge.LtImm.comparison
-      row.kind row.rs1Value row.immediate)).word
+      row.kind row.rs1Previous row.immediate)).word
 
 def execute (row : Row) : Retirement where
   nextPc := RiscvRefinement.nextPc row.pc
@@ -249,7 +321,7 @@ theorem canonicalDecode (row : Row) :
 theorem destinationBytesWord (row : Row) :
     (Air.Bridge.LtImm.destinationBytes row.rd
       (Air.Bridge.LtImm.comparison
-        row.kind row.rs1Value row.immediate)).word =
+        row.kind row.rs1Previous row.immediate)).word =
       architecturalValue row.rd (resultWord row) := by
   by_cases zero : row.rd = zeroRegister
   · simp [Air.Bridge.LtImm.destinationBytes,
@@ -282,10 +354,7 @@ structure Refinement (row : Row) (witness : Witness row) : Prop where
       Air.Bridge.LtImm.immediateField row
     ]
   exactDestination :
-    (Air.Bridge.LtImm.destinationBytes row.rd
-      (Air.Bridge.LtImm.comparison
-        row.kind row.rs1Value row.immediate)).word =
-      architecturalValue row.rd (resultWord row)
+    row.rdNext.word = architecturalValue row.rd (resultWord row)
   noMemoryEffect :
     (execute row).read = none ∧ (execute row).store = none
 
@@ -295,12 +364,17 @@ theorem refines
     (admission : Admission row)
     (accepted : Acceptance row witness) :
     Refinement row witness := by
+  have production :=
+    Air.Bridge.LtImm.sound row witness admission accepted
   exact {
-    production := Air.Bridge.LtImm.sound row witness admission accepted
+    production := production
     decode := canonicalDecode row
     retirement := rfl
     exactProgramTuple := rfl
-    exactDestination := destinationBytesWord row
+    exactDestination := by
+      rw [production.destinationIsArchitectural,
+        production.sourceReadOnly]
+      exact destinationBytesWord row
     noMemoryEffect := by simp [execute]
   }
 
@@ -335,6 +409,28 @@ theorem sltiu_refines
     (accepted : Acceptance row witness) :
     Refinement row witness :=
   refines row witness admission accepted
+
+theorem slti_exactLookupTuples
+    (row : Row)
+    (witness : Witness row)
+    (kind : row.kind = .signed)
+    (admission : Admission row)
+    (accepted : Acceptance row witness) :
+    ∀ ordinal, 33 ≤ ordinal → ordinal ≤ 43 →
+      (Air.Bridge.LtImm.evaluation row witness).lookup? ordinal =
+        Air.Bridge.LtImm.expectedLookup? row witness ordinal :=
+  (slti_refines row witness kind admission accepted).production.exactLookups
+
+theorem sltiu_exactLookupTuples
+    (row : Row)
+    (witness : Witness row)
+    (kind : row.kind = .unsigned)
+    (admission : Admission row)
+    (accepted : Acceptance row witness) :
+    ∀ ordinal, 33 ≤ ordinal → ordinal ≤ 43 →
+      (Air.Bridge.LtImm.evaluation row witness).lookup? ordinal =
+        Air.Bridge.LtImm.expectedLookup? row witness ordinal :=
+  (sltiu_refines row witness kind admission accepted).production.exactLookups
 
 theorem slti_exactProgramTuple
     (row : Row)
