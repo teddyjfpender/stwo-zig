@@ -17,6 +17,7 @@ from scripts import ci_scope_plan, ci_scope_push, ci_scope_run
 ROOT = Path(__file__).resolve().parents[2]
 COMMIT = "1" * 40
 TREE = "2" * 40
+PROVER_PREFIXES = ("src/core", "src/backend", "src/prover", "src/prover_api")
 
 
 def product(scope: str, *prefixes: str, state: str = "released") -> dict[str, object]:
@@ -37,37 +38,29 @@ def catalog_fixture() -> dict[str, object]:
         "products": [
             product(
                 "aggregate",
-                "src/core",
-                "src/backend",
-                "src/prover",
+                *PROVER_PREFIXES,
                 "src/backends/cpu_scalar",
                 "src/frontends/riscv",
                 "src/integrations/riscv_cpu",
             ),
             product("core", "src/core"),
-            product("prover", "src/core", "src/backend", "src/prover"),
+            product("prover", *PROVER_PREFIXES),
             product(
                 "native_cpu",
-                "src/core",
-                "src/backend",
-                "src/prover",
+                *PROVER_PREFIXES,
                 "src/backends/cpu_scalar",
                 "src/products/native_cpu",
             ),
             product(
                 "riscv_cpu",
-                "src/core",
-                "src/backend",
-                "src/prover",
+                *PROVER_PREFIXES,
                 "src/backends/cpu_scalar",
                 "src/frontends/riscv",
                 "src/integrations/riscv_cpu",
             ),
             product(
                 "cairo_cpu",
-                "src/core",
-                "src/backend",
-                "src/prover",
+                *PROVER_PREFIXES,
                 "src/backends/cpu_scalar",
                 "src/frontends/cairo",
                 "src/integrations/cairo_cpu",
@@ -75,9 +68,7 @@ def catalog_fixture() -> dict[str, object]:
             ),
             product(
                 "cairo_metal",
-                "src/core",
-                "src/backend",
-                "src/prover",
+                *PROVER_PREFIXES,
                 "src/backends/cpu_scalar",
                 "src/backends/metal",
                 "src/frontends/cairo",
@@ -86,17 +77,13 @@ def catalog_fixture() -> dict[str, object]:
             ),
             product(
                 "native_metal",
-                "src/core",
-                "src/backend",
-                "src/prover",
+                *PROVER_PREFIXES,
                 "src/backends/cpu_scalar",
                 "src/backends/metal",
             ),
             product(
                 "riscv_metal",
-                "src/core",
-                "src/backend",
-                "src/prover",
+                *PROVER_PREFIXES,
                 "src/backends/cpu_scalar",
                 "src/backends/metal",
                 "src/frontends/riscv",
@@ -105,9 +92,7 @@ def catalog_fixture() -> dict[str, object]:
             ),
             product(
                 "native_cuda",
-                "src/core",
-                "src/backend",
-                "src/prover",
+                *PROVER_PREFIXES,
                 "src/backends/cuda",
                 "src/backends/cpu_scalar",
                 "src/backends/metal",
@@ -120,6 +105,7 @@ def catalog_fixture() -> dict[str, object]:
             product(
                 "cairo_cuda",
                 "src/backends/cuda",
+                "src/prover_api",
                 "src/frontends/cairo",
                 "src/integrations/cairo_cuda",
                 "src/products/cairo_cuda",
@@ -255,7 +241,6 @@ class PlannerContractTests(unittest.TestCase):
                 "cpu_backend",
                 "riscv_cpu_integration",
                 "cairo_cpu_integration",
-                "metal_backend",
                 "package",
                 "native_cpu",
                 "riscv_cpu",
@@ -322,6 +307,22 @@ class PlannerContractTests(unittest.TestCase):
         self.assertEqual(1, len(proof_commands))
         self.assertIn("--artifact-dir", proof_commands[0])
         self.assertIn("--report-out", proof_commands[0])
+
+    def test_riscv_auxiliary_build_owners_select_only_cpu_consumers(self) -> None:
+        expected = {"static", "build_graph", "riscv_cpu", "aggregate_cpu", "aggregate_metal"}
+        paths = ("build_support/products/riscv_refinement.zig",
+                 "build_support/products/riscv_sail_oracle_tests.zig")
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertEqual(expected, self.lanes_for(path))
+
+    def test_riscv_product_and_release_gate_consume_formal_certificate_index(self) -> None:
+        for relative in ("build_support/products/riscv_cpu.zig",
+                         "build_support/gates/riscv.zig"):
+            with self.subTest(relative=relative):
+                source = (ROOT / relative).read_text(encoding="utf-8")
+                self.assertIn("scripts/riscv_opcode_coverage.py", source)
+                self.assertIn('"check"', source)
 
     def test_leaf_native_cpu_change_does_not_select_unrelated_products(self) -> None:
         self.assertEqual(

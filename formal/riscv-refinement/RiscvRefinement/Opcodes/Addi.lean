@@ -1,4 +1,5 @@
 import RiscvRefinement.Air.Generated.Pilot
+import RiscvRefinement.Air.Bridge.Addi
 import RiscvRefinement.Bridge.Decode
 import RiscvRefinement.Sail.Generated.Pilot
 
@@ -282,5 +283,146 @@ theorem addi_refines
       environment.sourceBinds,
       addi_value_refines,
     ]
+
+theorem addi_production_refines
+    (row : AddiRow)
+    (witness : Air.Bridge.Addi.Witness row)
+    (environment :
+      AddiEnvironment (Air.Bridge.Addi.interpretedRow row))
+    (admission : Air.Bridge.Addi.Admission row)
+    (accepted : Air.Bridge.Addi.Acceptance row witness) :
+    AddiRefinement (Air.Bridge.Addi.interpretedRow row) environment :=
+  addi_refines
+    (Air.Bridge.Addi.interpretedRow row)
+    environment
+    (Air.Bridge.Addi.sound row witness admission accepted)
+
+def productionAddiPreState : PreState where
+  pc := BitVec.ofNat 32 0x1000
+  registers := fun _ => zeroWord
+  x0IsZero := rfl
+
+def productionAddiEnvironment :
+    AddiEnvironment
+      (Air.Bridge.Addi.interpretedRow Air.Bridge.Addi.exampleRow) where
+  pre := productionAddiPreState
+  word :=
+    Decode.encodeAddi
+      (addiImmediate
+        Air.Bridge.Addi.exampleRow.imm0
+        Air.Bridge.Addi.exampleRow.imm1
+        Air.Bridge.Addi.exampleRow.immSign)
+      Air.Bridge.Addi.exampleRow.rs1
+      Air.Bridge.Addi.exampleRow.rd
+  pcBinds := rfl
+  wordBinds := rfl
+  sourceBinds := by
+    decide
+  destinationBinds := by
+    decide
+
+theorem addi_production_nonvacuous :
+    ∃ (row : AddiRow)
+      (witness : Air.Bridge.Addi.Witness row)
+      (environment :
+        AddiEnvironment (Air.Bridge.Addi.interpretedRow row)),
+      Air.Bridge.Addi.Admission row ∧
+        Air.Bridge.Addi.Acceptance row witness ∧
+        AddiRefinement (Air.Bridge.Addi.interpretedRow row) environment :=
+  ⟨
+    Air.Bridge.Addi.exampleRow,
+    Air.Bridge.Addi.exampleWitness,
+    productionAddiEnvironment,
+    Air.Bridge.Addi.exampleAdmission,
+    Air.Bridge.Addi.exampleAcceptance,
+    addi_production_refines
+      Air.Bridge.Addi.exampleRow
+      Air.Bridge.Addi.exampleWitness
+      productionAddiEnvironment
+      Air.Bridge.Addi.exampleAdmission
+      Air.Bridge.Addi.exampleAcceptance
+  ⟩
+
+def zeroProductionAddiEnvironment
+    (zeroDestination : Bool)
+    (source : RegisterIndex) :
+    AddiEnvironment
+      (Air.Bridge.Addi.interpretedRow
+        (Air.Bridge.Addi.zeroRow zeroDestination source)) where
+  pre := productionAddiPreState
+  word :=
+    Decode.encodeAddi
+      (addiImmediate
+        (Air.Bridge.Addi.zeroRow zeroDestination source).imm0
+        (Air.Bridge.Addi.zeroRow zeroDestination source).imm1
+        (Air.Bridge.Addi.zeroRow zeroDestination source).immSign)
+      source
+      (Air.Bridge.Addi.zeroRow zeroDestination source).rd
+  pcBinds := rfl
+  wordBinds := rfl
+  sourceBinds := by
+    simp [
+      Air.Bridge.Addi.interpretedRow,
+      Air.Bridge.Addi.zeroRow,
+      productionAddiPreState,
+      WordBytes.zero_word,
+    ]
+  destinationBinds := by
+    simp [
+      Air.Bridge.Addi.interpretedRow,
+      Air.Bridge.Addi.zeroRow,
+      productionAddiPreState,
+      WordBytes.zero_word,
+    ]
+
+theorem addi_zero_destination_production_nonvacuous :
+    ∃ (row : AddiRow)
+      (witness : Air.Bridge.Addi.Witness row)
+      (environment :
+        AddiEnvironment (Air.Bridge.Addi.interpretedRow row)),
+      Air.Bridge.Addi.Admission row ∧
+        Air.Bridge.Addi.Acceptance row witness ∧
+        AddiRefinement (Air.Bridge.Addi.interpretedRow row) environment ∧
+        row.rd = zeroRegister := by
+  let source : RegisterIndex := BitVec.ofNat 5 2
+  exact ⟨
+    Air.Bridge.Addi.zeroRow true source,
+    Air.Bridge.Addi.zeroWitness true source,
+    zeroProductionAddiEnvironment true source,
+    Air.Bridge.Addi.zeroAdmission true source,
+    Air.Bridge.Addi.zeroAcceptance true source,
+    addi_production_refines
+      (Air.Bridge.Addi.zeroRow true source)
+      (Air.Bridge.Addi.zeroWitness true source)
+      (zeroProductionAddiEnvironment true source)
+      (Air.Bridge.Addi.zeroAdmission true source)
+      (Air.Bridge.Addi.zeroAcceptance true source),
+    by rfl
+  ⟩
+
+theorem addi_source_alias_production_nonvacuous :
+    ∃ (row : AddiRow)
+      (witness : Air.Bridge.Addi.Witness row)
+      (environment :
+        AddiEnvironment (Air.Bridge.Addi.interpretedRow row)),
+      Air.Bridge.Addi.Admission row ∧
+        Air.Bridge.Addi.Acceptance row witness ∧
+        AddiRefinement (Air.Bridge.Addi.interpretedRow row) environment ∧
+        row.rd = row.rs1 := by
+  let source : RegisterIndex := BitVec.ofNat 5 1
+  exact ⟨
+    Air.Bridge.Addi.zeroRow false source,
+    Air.Bridge.Addi.zeroWitness false source,
+    zeroProductionAddiEnvironment false source,
+    Air.Bridge.Addi.zeroAdmission false source,
+    Air.Bridge.Addi.zeroAcceptance false source,
+    addi_production_refines
+      (Air.Bridge.Addi.zeroRow false source)
+      (Air.Bridge.Addi.zeroWitness false source)
+      (zeroProductionAddiEnvironment false source)
+      (Air.Bridge.Addi.zeroAdmission false source)
+      (Air.Bridge.Addi.zeroAcceptance false source),
+    by rfl
+  ⟩
 
 end RiscvRefinement.Opcodes

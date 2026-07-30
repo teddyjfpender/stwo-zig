@@ -34,6 +34,8 @@ class SailAirCompositionContractTest(unittest.TestCase):
             "remains open",
             "The Python checker is not a verifier",
             "Row-local uniqueness is not row-local correctness",
+            "accepted-production-AIR → generated-Sail",
+            "reviewed-predicate → AIR direction",
         )
         for marker in required:
             with self.subTest(marker=marker):
@@ -120,14 +122,18 @@ class SailAirCompositionContractTest(unittest.TestCase):
 
     def test_universal_refinement_plan_preserves_scope_and_binding_gates(self) -> None:
         required = (
-            "**Status:** engineering design; implementation not started.",
+            "issue #136 graded integration is complete at its declared",
+            "AIR IR v2 is delivered for all 17 families and 46 selectors",
+            "Sail execute-clause monad plus sequential next-PC/tick",
+            "typed AST and a canonical receipt records their normalized selector",
+            "22/22 Team B reviewed-capsule certificates",
             "The completed result closes SA-1 premise 5.",
             "does **not** by itself prove",
             "**Publication binding:**",
             "must not claim a universal theorem about the shipped AIR until level 2 is",
             "The final CI result is a Lean kernel check.",
             "Hand-transcribing 46 instruction functions",
-            "commands are planned interfaces, not commands available",
+            "# Complete public pilot gate:",
             "Every opcode needs a machine-checked existence theorem",
             "independent proof-system validation",
         )
@@ -139,6 +145,36 @@ class SailAirCompositionContractTest(unittest.TestCase):
             "[`UNIVERSAL_AIR_SAIL_REFINEMENT.md`](UNIVERSAL_AIR_SAIL_REFINEMENT.md)",
             self.document,
         )
+
+    def test_universal_refinement_closure_gates_are_normative_and_current(self) -> None:
+        gates = re.findall(
+            r"^#### (FV-[1-5]) — ",
+            self.refinement_document,
+            re.MULTILINE,
+        )
+        self.assertEqual([f"FV-{index}" for index in range(1, 6)], gates)
+
+        required = (
+            "revision-bound release receipt",
+            "24/24 Team A production-AIR refinements",
+            "22/22 Team B reviewed-capsule",
+            "exact 46/46 graded opcode index",
+            "2/46 normalized retirements",
+            "0/46",
+            "A theorem whose strongest chain is only “reviewed semantic predicate → AIR",
+            "`composeU32` is therefore non-injective",
+            "`ALIASING_BASE = 0x7FFFFFFB`",
+            "CR-1 through",
+            "`normalized_retirements.proved = 46`",
+            "`publication_level.proved = 46`",
+            "`full_generated_sail_step = true`",
+            "`whole_frontend_verified = true`",
+            "`proof_system_soundness` remains false",
+            "### 15.2 Operational adoption audit",
+        )
+        for marker in required:
+            with self.subTest(marker=marker):
+                self.assertIn(marker, self.refinement_document)
 
     def test_universal_refinement_plan_covers_exactly_46_opcodes(self) -> None:
         table_rows = re.findall(

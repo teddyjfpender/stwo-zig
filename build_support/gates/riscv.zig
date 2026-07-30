@@ -16,8 +16,12 @@ pub fn addGates(context: Context) void {
     const contract = b.addSystemCommand(&.{
         "python3", "scripts/check_riscv_release_contract.py", "--all", "--phase", context.release_phase,
     });
+    const refinement_contract = b.addSystemCommand(&.{
+        "python3", "scripts/riscv_opcode_coverage.py", "check",
+    });
+    refinement_contract.step.dependOn(&contract.step);
     const vectors = b.addSystemCommand(&.{ "python3", "scripts/riscv_trace_vectors.py" });
-    vectors.step.dependOn(&contract.step);
+    vectors.step.dependOn(&refinement_contract.step);
     const smoke = b.addSystemCommand(&.{
         "python3", "scripts/riscv_staged_smoke.py", "--phase", context.release_phase,
     });

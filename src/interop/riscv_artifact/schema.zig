@@ -10,6 +10,14 @@ pub const EXCHANGE_MODE_PREFIX = "riscv_proof_json_wire_v";
 
 pub const GENERATOR = "zig";
 pub const AIR = "sail_rv32im_zkvm_v1";
+
+/// Backends whose proofs this artifact schema admits. Every entry must produce
+/// byte-identical proof bytes for a given statement: the RISC-V frontend pins
+/// one hasher/channel triple, and `MetalProverEngine` and `CpuProverEngine`
+/// instantiate `ProverEngine` over the *same* Blake2s types, so the wire format
+/// does not vary by backend. Adding an entry here is a claim that the backend
+/// meets that bar.
+pub const BACKENDS = [_][]const u8{ "cpu", "metal" };
 pub const ORACLE_REPOSITORY = "https://github.com/riscv/sail-riscv";
 pub const ORACLE_COMMIT = "8c7f2da58de0ba5e4457e4de07e0046f0439f35f";
 pub const IMPLEMENTATION_REPOSITORY = "https://github.com/teddyjfpender/stwo-zig";

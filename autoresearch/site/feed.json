@@ -384,8 +384,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1051,
-       "seconds": 700340
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -425,8 +425,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1051,
-       "seconds": 700340
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -602,8 +602,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1051,
-       "seconds": 700340
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -643,8 +643,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1051,
-       "seconds": 700340
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -2816,8 +2816,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1051,
-       "seconds": 700340
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3140,8 +3140,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1051,
-       "seconds": 700340
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3328,8 +3328,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1051,
-       "seconds": 700340
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3546,8 +3546,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1051,
-       "seconds": 700340
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3941,8 +3941,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1051,
-       "seconds": 700340
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -4241,8 +4241,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1051,
-       "seconds": 700340
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -4282,8 +4282,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1051,
-       "seconds": 700340
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -4323,8 +4323,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1051,
-       "seconds": 700340
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -4364,8 +4364,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1051,
-       "seconds": 700340
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -4405,8 +4405,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1051,
-       "seconds": 700340
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -6996,8 +6996,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1051,
-       "seconds": 700340
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -7459,8 +7459,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1051,
-       "seconds": 700340
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -7579,8 +7579,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1051,
-       "seconds": 700340
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -7865,8 +7865,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1051,
-       "seconds": 700340
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8400,8 +8400,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1051,
-       "seconds": 700340
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8750,8 +8750,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1051,
-       "seconds": 700340
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8791,8 +8791,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1051,
-       "seconds": 700340
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8832,8 +8832,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1051,
-       "seconds": 700340
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8873,8 +8873,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1051,
-       "seconds": 700340
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8914,8 +8914,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1051,
-       "seconds": 700340
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -9532,8 +9532,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1051,
-       "seconds": 700340
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -9723,8 +9723,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1051,
-       "seconds": 700340
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -9839,8 +9839,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1051,
-       "seconds": 700340
+       "commits": 1191,
+       "seconds": 769087
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -10134,7 +10134,7 @@
  },
  "feed_schema_version": 4,
  "history": {
-  "comparisons": 34,
+  "comparisons": 35,
   "runs": [
    {
     "bundle": false,
@@ -10291,32 +10291,38 @@
     "kind": "native_proof_cross_backend_matrix_v6",
     "report_sha256": "e772acbf9f58ff3916f2ffe91016ebc28bc6aadc75c6e68d5fd43ef3023d7be3",
     "run_id": "2026-07-23-110359-matrix-v6-e58b4d1e"
+   },
+   {
+    "bundle": true,
+    "kind": "native_proof_cross_backend_matrix_v6",
+    "report_sha256": "51cedc323c0a9fa12c17ad96ac34375013f276b2565778c6e61d8ef401837730",
+    "run_id": "2026-07-23-190948-matrix-v6-467edbc9"
    }
   ]
  },
  "latest_matrix": {
-  "generated_at": "2026-07-23T11:03:59.096697+00:00",
+  "generated_at": "2026-07-23T19:09:48.802811+00:00",
   "protocol": "native_proof_cross_backend_matrix_v6",
-  "repo_commit": "e58b4d1eccaefb1f593d81490136b9decc886df8",
+  "repo_commit": "467edbc9988ad2ef2fc76e4dda3ca90fa0f344d5",
   "rows": [
    {
     "committed_trace_cells": 8192,
-    "headline_eligible": true,
+    "headline_eligible": false,
     "lanes": {
      "cpu": {
       "backend": "cpu_native",
       "board": "core_cpu",
-      "native_mhz": 0.9651272384542884,
-      "peak_rss_mib": 13.88,
-      "prove_ms": 1.061,
-      "request_ms": 1.220292,
+      "native_mhz": 0.9192785458880689,
+      "peak_rss_mib": 13.86,
+      "prove_ms": 1.113917,
+      "request_ms": 1.295833,
       "request_resources": {
        "canonical_proof_bytes": 24965,
        "complete": true,
-       "cycles": 580821952,
-       "energy_nj": 484792988,
-       "instructions": 1243288540,
-       "lifetime_peak_physical_footprint_bytes": 13779784,
+       "cycles": 573399926,
+       "energy_nj": 304642334,
+       "instructions": 1255042464,
+       "lifetime_peak_physical_footprint_bytes": 13747040,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -10329,17 +10335,17 @@
       "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 18,
-      "native_mhz": 0.4123973738664106,
-      "peak_rss_mib": 33.45,
-      "prove_ms": 2.483042,
-      "request_ms": 2.632125,
+      "native_mhz": 0.416528366232566,
+      "peak_rss_mib": 33.5,
+      "prove_ms": 2.458416,
+      "request_ms": 2.609291,
       "request_resources": {
        "canonical_proof_bytes": 24965,
        "complete": true,
-       "cycles": 661203698,
-       "energy_nj": 420887214,
-       "instructions": 1047937538,
-       "lifetime_peak_physical_footprint_bytes": 157533264,
+       "cycles": 608656493,
+       "energy_nj": 317567968,
+       "instructions": 1060007109,
+       "lifetime_peak_physical_footprint_bytes": 157484112,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -10365,17 +10371,17 @@
      "cpu": {
       "backend": "cpu_native",
       "board": "core_cpu",
-      "native_mhz": 3.2930459127057423,
-      "peak_rss_mib": 34.36,
-      "prove_ms": 4.975333,
-      "request_ms": 5.4305,
+      "native_mhz": 3.5374193722505596,
+      "peak_rss_mib": 34.33,
+      "prove_ms": 4.631625,
+      "request_ms": 5.083167,
       "request_resources": {
        "canonical_proof_bytes": 41840,
        "complete": true,
-       "cycles": 5452538305,
-       "energy_nj": 4949458506,
-       "instructions": 13452296177,
-       "lifetime_peak_physical_footprint_bytes": 35603848,
+       "cycles": 5085251107,
+       "energy_nj": 4861116121,
+       "instructions": 13771333275,
+       "lifetime_peak_physical_footprint_bytes": 35669432,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -10388,17 +10394,17 @@
       "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 22,
-      "native_mhz": 3.546896141148455,
-      "peak_rss_mib": 41.34,
-      "prove_ms": 4.61925,
-      "request_ms": 5.061458,
+      "native_mhz": 3.9438729872623295,
+      "peak_rss_mib": 40.81,
+      "prove_ms": 4.154292,
+      "request_ms": 4.592292,
       "request_resources": {
        "canonical_proof_bytes": 41840,
        "complete": true,
-       "cycles": 1088800611,
-       "energy_nj": 910016553,
-       "instructions": 2137132394,
-       "lifetime_peak_physical_footprint_bytes": 172852376,
+       "cycles": 1059967863,
+       "energy_nj": 889235850,
+       "instructions": 2117813800,
+       "lifetime_peak_physical_footprint_bytes": 174048576,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -10424,17 +10430,17 @@
      "cpu": {
       "backend": "cpu_native",
       "board": "core_cpu",
-      "native_mhz": 3.904486871210558,
-      "peak_rss_mib": 113.45,
-      "prove_ms": 16.784792,
-      "request_ms": 17.750208,
+      "native_mhz": 4.126172637411068,
+      "peak_rss_mib": 113.38,
+      "prove_ms": 15.883,
+      "request_ms": 16.893417,
       "request_resources": {
        "canonical_proof_bytes": 60249,
        "complete": true,
-       "cycles": 30557009049,
-       "energy_nj": 25014834681,
-       "instructions": 75442011545,
-       "lifetime_peak_physical_footprint_bytes": 119278064,
+       "cycles": 29021735242,
+       "energy_nj": 24876666257,
+       "instructions": 76908664942,
+       "lifetime_peak_physical_footprint_bytes": 119327312,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -10447,17 +10453,17 @@
       "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 25,
-      "native_mhz": 4.764262217618087,
-      "peak_rss_mib": 134.67,
-      "prove_ms": 13.75575,
-      "request_ms": 14.696459,
+      "native_mhz": 7.806784001905953,
+      "peak_rss_mib": 64.38,
+      "prove_ms": 8.39475,
+      "request_ms": 9.315333,
       "request_resources": {
        "canonical_proof_bytes": 60249,
        "complete": true,
-       "cycles": 2724861534,
-       "energy_nj": 2606003465,
-       "instructions": 6075671026,
-       "lifetime_peak_physical_footprint_bytes": 292669048,
+       "cycles": 1783505895,
+       "energy_nj": 1587338744,
+       "instructions": 3931242000,
+       "lifetime_peak_physical_footprint_bytes": 229574192,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -10483,17 +10489,17 @@
      "cpu": {
       "backend": "cpu_native",
       "board": "core_cpu",
-      "native_mhz": 3.8839987265111593,
-      "peak_rss_mib": 42.2,
-      "prove_ms": 4.218333,
-      "request_ms": 4.496708,
+      "native_mhz": 4.237241014030947,
+      "peak_rss_mib": 41.45,
+      "prove_ms": 3.866667,
+      "request_ms": 4.146042,
       "request_resources": {
        "canonical_proof_bytes": 46446,
        "complete": true,
-       "cycles": 3858173883,
-       "energy_nj": 3439672583,
-       "instructions": 9067286269,
-       "lifetime_peak_physical_footprint_bytes": 43828568,
+       "cycles": 3419528712,
+       "energy_nj": 3208016723,
+       "instructions": 9274251773,
+       "lifetime_peak_physical_footprint_bytes": 43042136,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -10506,17 +10512,17 @@
       "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 24,
-      "native_mhz": 4.306337681111805,
-      "peak_rss_mib": 30.22,
-      "prove_ms": 3.804625,
-      "request_ms": 4.079625,
+      "native_mhz": 4.996899811609801,
+      "peak_rss_mib": 31.91,
+      "prove_ms": 3.278833,
+      "request_ms": 3.552041,
       "request_resources": {
        "canonical_proof_bytes": 46446,
        "complete": true,
-       "cycles": 848456577,
-       "energy_nj": 706171618,
-       "instructions": 1707541920,
-       "lifetime_peak_physical_footprint_bytes": 164316192,
+       "cycles": 809371494,
+       "energy_nj": 625996074,
+       "instructions": 1678828395,
+       "lifetime_peak_physical_footprint_bytes": 166069280,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -10543,17 +10549,17 @@
      "cpu": {
       "backend": "cpu_native",
       "board": "core_cpu",
-      "native_mhz": 5.718257502028212,
-      "peak_rss_mib": 73.16,
-      "prove_ms": 11.460834,
-      "request_ms": 11.981833,
+      "native_mhz": 6.130637509218968,
+      "peak_rss_mib": 73.39,
+      "prove_ms": 10.689916,
+      "request_ms": 11.209333,
       "request_resources": {
        "canonical_proof_bytes": 54848,
        "complete": true,
-       "cycles": 13672991918,
-       "energy_nj": 11700928050,
-       "instructions": 33708509097,
-       "lifetime_peak_physical_footprint_bytes": 76268888,
+       "cycles": 12048702680,
+       "energy_nj": 11500376815,
+       "instructions": 34510115377,
+       "lifetime_peak_physical_footprint_bytes": 76432608,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -10566,17 +10572,17 @@
       "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 26,
-      "native_mhz": 10.283315251962877,
-      "peak_rss_mib": 43.62,
-      "prove_ms": 6.373042,
-      "request_ms": 6.892208,
+      "native_mhz": 11.293955452156306,
+      "peak_rss_mib": 43.33,
+      "prove_ms": 5.80275,
+      "request_ms": 6.3145,
       "request_resources": {
        "canonical_proof_bytes": 54848,
        "complete": true,
-       "cycles": 1450999279,
-       "energy_nj": 1372653264,
-       "instructions": 3301232091,
-       "lifetime_peak_physical_footprint_bytes": 209978544,
+       "cycles": 1428103739,
+       "energy_nj": 1324675098,
+       "instructions": 3259077210,
+       "lifetime_peak_physical_footprint_bytes": 214582448,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -10603,17 +10609,17 @@
      "cpu": {
       "backend": "cpu_native",
       "board": "core_cpu",
-      "native_mhz": 3.778016619675894,
-      "peak_rss_mib": 31.03,
-      "prove_ms": 4.336667,
-      "request_ms": 4.663833,
+      "native_mhz": 4.106222440766287,
+      "peak_rss_mib": 29.66,
+      "prove_ms": 3.990042,
+      "request_ms": 4.336208,
       "request_resources": {
        "canonical_proof_bytes": 45200,
        "complete": true,
-       "cycles": 4110977622,
-       "energy_nj": 3746819184,
-       "instructions": 9720965806,
-       "lifetime_peak_physical_footprint_bytes": 31966408,
+       "cycles": 3733852749,
+       "energy_nj": 3525071495,
+       "instructions": 10043204247,
+       "lifetime_peak_physical_footprint_bytes": 30557408,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -10626,17 +10632,17 @@
       "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 24,
-      "native_mhz": 4.070516531256071,
-      "peak_rss_mib": 31.8,
-      "prove_ms": 4.025042,
-      "request_ms": 4.369167,
+      "native_mhz": 4.6538843914216725,
+      "peak_rss_mib": 33.7,
+      "prove_ms": 3.5205,
+      "request_ms": 3.834958,
       "request_resources": {
        "canonical_proof_bytes": 45200,
        "complete": true,
-       "cycles": 1029118837,
-       "energy_nj": 853084809,
-       "instructions": 2049040849,
-       "lifetime_peak_physical_footprint_bytes": 165561376,
+       "cycles": 1067086174,
+       "energy_nj": 860316696,
+       "instructions": 2035620249,
+       "lifetime_peak_physical_footprint_bytes": 168117280,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -10661,17 +10667,17 @@
      "cpu": {
       "backend": "cpu_native",
       "board": "core_cpu",
-      "native_mhz": 5.638455061936453,
-      "peak_rss_mib": 94.48,
-      "prove_ms": 11.623042,
-      "request_ms": 12.190417,
+      "native_mhz": 5.982700778236757,
+      "peak_rss_mib": 82.95,
+      "prove_ms": 10.95425,
+      "request_ms": 11.510834,
       "request_resources": {
        "canonical_proof_bytes": 55401,
        "complete": true,
-       "cycles": 14230637361,
-       "energy_nj": 12286619369,
-       "instructions": 35540058026,
-       "lifetime_peak_physical_footprint_bytes": 99010456,
+       "cycles": 12700122833,
+       "energy_nj": 12112664117,
+       "instructions": 36855549266,
+       "lifetime_peak_physical_footprint_bytes": 86984648,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -10684,17 +10690,17 @@
       "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 26,
-      "native_mhz": 9.596836511558129,
-      "peak_rss_mib": 50.69,
-      "prove_ms": 6.828917,
-      "request_ms": 7.3905,
+      "native_mhz": 11.599975715382872,
+      "peak_rss_mib": 36.88,
+      "prove_ms": 5.649667,
+      "request_ms": 6.207,
       "request_resources": {
        "canonical_proof_bytes": 55401,
        "complete": true,
-       "cycles": 1577320248,
-       "energy_nj": 1552918943,
-       "instructions": 3709400829,
-       "lifetime_peak_physical_footprint_bytes": 213517656,
+       "cycles": 1423966585,
+       "energy_nj": 1344945678,
+       "instructions": 3295679198,
+       "lifetime_peak_physical_footprint_bytes": 209487072,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -10719,17 +10725,17 @@
      "cpu": {
       "backend": "cpu_native",
       "board": "core_cpu",
-      "native_mhz": 3.8597513730222133,
-      "peak_rss_mib": 28.48,
-      "prove_ms": 4.244833,
-      "request_ms": 4.508792,
+      "native_mhz": 4.229856997064865,
+      "peak_rss_mib": 39.52,
+      "prove_ms": 3.873417,
+      "request_ms": 4.1245,
       "request_resources": {
        "canonical_proof_bytes": 40082,
        "complete": true,
-       "cycles": 3753888173,
-       "energy_nj": 3312516092,
-       "instructions": 8958641336,
-       "lifetime_peak_physical_footprint_bytes": 29476184,
+       "cycles": 3356471823,
+       "energy_nj": 3198553346,
+       "instructions": 9235970488,
+       "lifetime_peak_physical_footprint_bytes": 40994136,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -10742,17 +10748,17 @@
       "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 24,
-      "native_mhz": 4.3786998062403955,
-      "peak_rss_mib": 29.22,
-      "prove_ms": 3.74175,
-      "request_ms": 3.995291,
+      "native_mhz": 5.140346132535843,
+      "peak_rss_mib": 30.81,
+      "prove_ms": 3.187334,
+      "request_ms": 3.451625,
       "request_resources": {
        "canonical_proof_bytes": 40082,
        "complete": true,
-       "cycles": 718817889,
-       "energy_nj": 675512446,
-       "instructions": 1589189876,
-       "lifetime_peak_physical_footprint_bytes": 163464200,
+       "cycles": 694135722,
+       "energy_nj": 598900990,
+       "instructions": 1573858564,
+       "lifetime_peak_physical_footprint_bytes": 165594072,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -10779,17 +10785,17 @@
      "cpu": {
       "backend": "cpu_native",
       "board": "core_cpu",
-      "native_mhz": 5.582322260029606,
-      "peak_rss_mib": 81.41,
-      "prove_ms": 11.739917,
-      "request_ms": 12.37575,
+      "native_mhz": 6.16405745771381,
+      "peak_rss_mib": 81.98,
+      "prove_ms": 10.631958,
+      "request_ms": 11.279833,
       "request_resources": {
        "canonical_proof_bytes": 60502,
        "complete": true,
-       "cycles": 13693392920,
-       "energy_nj": 11748489762,
-       "instructions": 33751606134,
-       "lifetime_peak_physical_footprint_bytes": 85100152,
+       "cycles": 12105634934,
+       "energy_nj": 11588066474,
+       "instructions": 34810833495,
+       "lifetime_peak_physical_footprint_bytes": 85821216,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -10802,17 +10808,17 @@
       "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 26,
-      "native_mhz": 10.20485384555255,
-      "peak_rss_mib": 42.94,
-      "prove_ms": 6.422042,
-      "request_ms": 7.047583,
+      "native_mhz": 11.248322474795714,
+      "peak_rss_mib": 45.22,
+      "prove_ms": 5.826291,
+      "request_ms": 6.45675,
       "request_resources": {
        "canonical_proof_bytes": 60502,
        "complete": true,
-       "cycles": 1446230981,
-       "energy_nj": 1435378972,
-       "instructions": 3341703860,
-       "lifetime_peak_physical_footprint_bytes": 209356144,
+       "cycles": 1418401464,
+       "energy_nj": 1375989077,
+       "instructions": 3304696155,
+       "lifetime_peak_physical_footprint_bytes": 215762072,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -10839,17 +10845,17 @@
      "cpu": {
       "backend": "cpu_native",
       "board": "core_cpu",
-      "native_mhz": 1.0508087584499544,
+      "native_mhz": 1.099671118867038,
       "peak_rss_mib": 39.11,
-      "prove_ms": 9.744875,
-      "request_ms": 13.347209,
+      "prove_ms": 9.311875,
+      "request_ms": 12.915375,
       "request_resources": {
        "canonical_proof_bytes": 97973,
        "complete": true,
-       "cycles": 4329189979,
-       "energy_nj": 5285536180,
-       "instructions": 14489994384,
-       "lifetime_peak_physical_footprint_bytes": 40207296,
+       "cycles": 4307200706,
+       "energy_nj": 5477014972,
+       "instructions": 14535974739,
+       "lifetime_peak_physical_footprint_bytes": 40256448,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -10862,17 +10868,17 @@
       "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 18,
-      "native_mhz": 1.4067141753241177,
-      "peak_rss_mib": 70.7,
-      "prove_ms": 7.279375,
-      "request_ms": 10.916167,
+      "native_mhz": 1.436495601644058,
+      "peak_rss_mib": 70.61,
+      "prove_ms": 7.128459,
+      "request_ms": 10.808792,
       "request_resources": {
        "canonical_proof_bytes": 97973,
        "complete": true,
-       "cycles": 2162030147,
-       "energy_nj": 2088229935,
-       "instructions": 4308270998,
-       "lifetime_peak_physical_footprint_bytes": 196904136,
+       "cycles": 2203838607,
+       "energy_nj": 2066046827,
+       "instructions": 4336821848,
+       "lifetime_peak_physical_footprint_bytes": 196756704,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -10898,17 +10904,17 @@
      "cpu": {
       "backend": "cpu_native",
       "board": "core_cpu",
-      "native_mhz": 4.235404363947749,
-      "peak_rss_mib": 275.5,
-      "prove_ms": 15.473375,
-      "request_ms": 44.163875,
+      "native_mhz": 4.315541864035408,
+      "peak_rss_mib": 275.48,
+      "prove_ms": 15.186042,
+      "request_ms": 43.66425,
       "request_resources": {
        "canonical_proof_bytes": 152455,
        "complete": true,
-       "cycles": 27913573840,
-       "energy_nj": 25352439292,
-       "instructions": 60996292251,
-       "lifetime_peak_physical_footprint_bytes": 288720648,
+       "cycles": 27776848744,
+       "energy_nj": 25019895916,
+       "instructions": 61124712766,
+       "lifetime_peak_physical_footprint_bytes": 288704264,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -10921,17 +10927,17 @@
       "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 20,
-      "native_mhz": 2.328544082573493,
-      "peak_rss_mib": 214.23,
-      "prove_ms": 28.144625,
-      "request_ms": 57.122833,
+      "native_mhz": 1.71950135615122,
+      "peak_rss_mib": 144.88,
+      "prove_ms": 38.113375,
+      "request_ms": 66.734416,
       "request_resources": {
        "canonical_proof_bytes": 152455,
        "complete": true,
-       "cycles": 10983813194,
-       "energy_nj": 9952002194,
-       "instructions": 16284826007,
-       "lifetime_peak_physical_footprint_bytes": 349111856,
+       "cycles": 13146458376,
+       "energy_nj": 12513285436,
+       "instructions": 23408615840,
+       "lifetime_peak_physical_footprint_bytes": 276202960,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -10952,22 +10958,22 @@
    },
    {
     "committed_trace_cells": 161792,
-    "headline_eligible": true,
+    "headline_eligible": false,
     "lanes": {
      "cpu": {
       "backend": "cpu_native",
       "board": "core_cpu",
-      "native_mhz": 0.35223294705808095,
-      "peak_rss_mib": 31.92,
-      "prove_ms": 2.907167,
-      "request_ms": 4.052417,
+      "native_mhz": 0.35546816963052136,
+      "peak_rss_mib": 32.16,
+      "prove_ms": 2.880708,
+      "request_ms": 4.020333,
       "request_resources": {
        "canonical_proof_bytes": 112834,
        "complete": true,
-       "cycles": 1218738173,
-       "energy_nj": 1320161992,
-       "instructions": 3515749981,
-       "lifetime_peak_physical_footprint_bytes": 32604904,
+       "cycles": 1236136910,
+       "energy_nj": 1274403180,
+       "instructions": 3565815290,
+       "lifetime_peak_physical_footprint_bytes": 32850664,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -10980,17 +10986,17 @@
       "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 15,
-      "native_mhz": 0.21451576209028847,
+      "native_mhz": 0.21598440693824594,
       "peak_rss_mib": 60.92,
-      "prove_ms": 4.773542,
-      "request_ms": 5.922708,
+      "prove_ms": 4.741083,
+      "request_ms": 5.858042,
       "request_resources": {
        "canonical_proof_bytes": 112834,
        "complete": true,
-       "cycles": 1022655320,
-       "energy_nj": 1060257328,
-       "instructions": 2528278189,
-       "lifetime_peak_physical_footprint_bytes": 186205120,
+       "cycles": 1023436803,
+       "energy_nj": 1038560552,
+       "instructions": 2578031359,
+       "lifetime_peak_physical_footprint_bytes": 186155968,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -11015,17 +11021,17 @@
      "cpu": {
       "backend": "cpu_native",
       "board": "core_cpu",
-      "native_mhz": 0.6418239332478038,
+      "native_mhz": 0.6673455256405034,
       "peak_rss_mib": 40.81,
-      "prove_ms": 12.763625,
-      "request_ms": 18.809417,
+      "prove_ms": 12.2755,
+      "request_ms": 18.228625,
       "request_resources": {
        "canonical_proof_bytes": 124194,
        "complete": true,
-       "cycles": 6048338350,
-       "energy_nj": 7531829513,
-       "instructions": 20968634094,
-       "lifetime_peak_physical_footprint_bytes": 42009512,
+       "cycles": 6014681097,
+       "energy_nj": 7785044044,
+       "instructions": 21008582752,
+       "lifetime_peak_physical_footprint_bytes": 41993104,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -11038,17 +11044,17 @@
       "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 18,
-      "native_mhz": 0.9287981859410431,
-      "peak_rss_mib": 84.64,
-      "prove_ms": 8.82,
-      "request_ms": 14.732708,
+      "native_mhz": 0.40014816032713674,
+      "peak_rss_mib": 76.72,
+      "prove_ms": 20.472417,
+      "request_ms": 26.484792,
       "request_resources": {
        "canonical_proof_bytes": 124194,
        "complete": true,
-       "cycles": 3236997387,
-       "energy_nj": 3423174866,
-       "instructions": 7594361614,
-       "lifetime_peak_physical_footprint_bytes": 211682672,
+       "cycles": 5469302925,
+       "energy_nj": 5890323234,
+       "instructions": 14189195088,
+       "lifetime_peak_physical_footprint_bytes": 203523392,
        "measured_samples": 21,
        "measured_warmups": 30,
        "measurement_scope": "verified_process_request_batch",
@@ -11067,7 +11073,7 @@
     "proof_parity": true
    }
   ],
-  "run_id": "2026-07-23-110359-matrix-v6-e58b4d1e"
+  "run_id": "2026-07-23-190948-matrix-v6-467edbc9"
  },
  "metal_resident_progress": {
   "cpu_fallbacks_per_proof_median": 0,
@@ -11678,11 +11684,11 @@
    "autoresearch/submissions/2026-07-23-riscv-sparse-qm31-base/verdict-riscv-deep.json": "30f4d95f8f839643b149971ecbfc10ca918ab6fd97c356e2e2fb636f84ea4b83",
    "autoresearch/submissions/2026-07-23-riscv-sparse-qm31-base/verdict-riscv-wide.json": "d9aeb81da5805585e9872f96dabce731fd65fbba72216470bbe480ba2b7d6b2c",
    "autoresearch/submissions/2026-07-23-riscv-sparse-qm31-base/verdict.json": "370d873e346ae8ed851657a3a0cf9f923fc988296d303ffb1ba030026929b4ad",
-   "vectors/reports/benchmark_history/index.json": "2df531dbefbd60f078b4c4a0b1c10c00a577832cd35520e065b430c61e6903f0",
-   "vectors/reports/benchmark_history/runs/2026-07-23-110359-matrix-v6-e58b4d1e/report.json": "e772acbf9f58ff3916f2ffe91016ebc28bc6aadc75c6e68d5fd43ef3023d7be3"
+   "vectors/reports/benchmark_history/index.json": "f8ef3c4aff34a2bedc21899c017521695d28f2fbb327b5fb2d09fb1dc5acd7b2",
+   "vectors/reports/benchmark_history/runs/2026-07-23-190948-matrix-v6-467edbc9/report.json": "51cedc323c0a9fa12c17ad96ac34375013f276b2565778c6e61d8ef401837730"
   },
-  "repo_commit": "4711d3d20aab",
-  "repo_commit_time": "2026-07-29T20:19:47+01:00"
+  "repo_commit": "9710a0ef5da4",
+  "repo_commit_time": "2026-07-30T15:25:34+01:00"
  },
  "references": {
   "metal_calibration_epoch_2": {

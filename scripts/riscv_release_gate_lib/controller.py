@@ -122,8 +122,15 @@ def command_plan(
             ]
         )
         if (platform.system() if host_system is None else host_system) == "Darwin":
+            # riscv_arch_tests.py runs this binary as
+            # `<bin> --elf X --production --profile`, which is the *benchmark*
+            # CLI's argv shape. `stwo-zig-riscv-metal` used to be that program;
+            # it is now the production proof CLI
+            # (`prove|bench|verify|applications`) and rejects that argv with
+            # UnknownCommand. `riscv-metal-bench` is the same benchmark program
+            # under its own name, so the audit must point at it.
             commands[-1].extend(
-                ["--metal-bin", "zig-out/bin/stwo-zig-riscv-metal"]
+                ["--metal-bin", "zig-out/bin/riscv-metal-bench"]
             )
     else:
         commands.append(["zig", "build", "release-gate", "-Doptimize=ReleaseFast"])

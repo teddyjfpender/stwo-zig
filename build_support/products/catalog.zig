@@ -103,10 +103,11 @@ pub const steps = [_]Step{
     .{ .name = "stwo-zig-riscv-cpu-static", .description = "Build the static x86_64-linux-musl RISC-V CPU challenge executable", .scope = .riscv_cpu },
     .{ .name = "test-riscv-prover-core", .description = "Run the RISC-V prover corpus without the separately retained committed-witness mutation suites", .scope = .riscv_cpu },
     .{ .name = "test-riscv-release-exhaustive", .description = "Run the exhaustive RISC-V proof and adversarial release suites", .scope = .riscv_cpu },
+    .{ .name = "test-riscv-sail-oracle", .description = "Run the sail_oracle self-check and forged-trace rejection against the pinned Sail oracle", .scope = .riscv_cpu },
     .{ .name = "test-riscv-rigidity", .description = "Run the full witness-rigidity sweep over every committed opcode column", .scope = .riscv_cpu },
     .{ .name = "test-riscv-air-satisfaction-export", .description = "Export committed traces for the independent AIR satisfaction checker", .scope = .riscv_cpu },
     .{ .name = "test-riscv-air-satisfaction", .description = "Export and independently check all RISC-V AIR main-trace components", .scope = .riscv_cpu },
-    .{ .name = "riscv-refinement-ir", .description = "Export production symbolic AIR for the LUI/ADDI Lean refinement pilot", .scope = .riscv_cpu },
+    .{ .name = "riscv-refinement-ir", .description = "Export symbolic AIR and production AIR IR v2 for Lean refinement", .scope = .riscv_cpu },
     .{ .name = "riscv-refinement-pilot", .description = "Verify the LUI/ADDI normalized AIR-to-Sail Lean pilot", .scope = .riscv_cpu },
     .{ .name = "riscv-csp-bench", .description = "Run the pinned EthProofs CSP benchmark matrix", .scope = .riscv_cpu },
     .{ .name = "metal-arena-plan", .description = "Build sparse Metal arena planner", .scope = .metal_tools },
@@ -172,17 +173,46 @@ pub const configure = [_]Configure{
         .role = .product,
         .product_ids = &.{"stwo-riscv-metal"},
         .module_roots = &.{
+            "src/products/riscv_metal/main.zig",
             "src/riscv_metal_bench_cli.zig",
             "src/products/riscv_metal/root.zig",
             "src/integrations/riscv_metal/mod.zig",
             "src/tests/riscv/metal_backend_test.zig",
             "src/frontends/riscv/mod.zig",
         },
-        .dependency_module_roots = package_dependencies.riscv_metal_protocol_package_roots,
+        // The production CLI carries `build_identity` and `product_identity`
+        // options modules, and reaches the shared engine-generic adapter and
+        // the proof-wire codec through their owning packages. Both are scope
+        // observations rather than declarations, so they must be listed here
+        // exactly: `check_build_configure_closure.py` compares the observed
+        // generated and dependency roots against this catalog for equality,
+        // not containment.
+        .generated_module_roots = &.{"generated:options:"},
+        .dependency_module_roots = &.{
+            "dependency:../src/backend:mod.zig",
+            "dependency:../src/backends/metal:mod.zig",
+            "dependency:../src/core:mod.zig",
+            "dependency:../src/frontends/riscv:mod.zig",
+            "dependency:../src/integrations/riscv_cpu:proof_adapter.zig",
+            "dependency:../src/integrations/riscv_metal:mod.zig",
+            "dependency:../src/interop/proof_wire:mod.zig",
+            "dependency:../src/prover:mod.zig",
+            "dependency:../src/prover_api:mod.zig",
+        },
         .external_tools = &.{"python3"},
         .runtime_probes = &.{ "Metal.framework", "Foundation.framework", "libobjc" },
         .allowed_module_files = &.{
             "src/backends/metal/runtime.m",
+            "src/interop/output_transaction.zig",
+            "src/interop/postcard.zig",
+            "src/interop/riscv_artifact.zig",
+            "src/products/riscv_metal/app.zig",
+            "src/products/riscv_metal/capabilities.zig",
+            "src/products/riscv_metal/cli.zig",
+            "src/products/riscv_metal/registry.zig",
+            "src/products/riscv_shared/app.zig",
+            "src/products/riscv_shared/cli.zig",
+            "src/products/riscv_shared/registry.zig",
         },
         .constructors = &.{"products/matrix.construct.riscv_metal"},
         .constructed_products = &.{.{

@@ -105,7 +105,7 @@ SOURCE_BINDINGS: dict[str, str] = {
     "src/frontends/riscv/air/lookups/tables/counter.zig":
         "c371e5a5146fa1cc6efeca71210b51f2b9635b2af48850352e256f28f79c6d19",
     "src/frontends/riscv/air/lookups/entry.zig":
-        "499e9cf1660243e85c0e1163ac078af29ddc75d4791f9719d4b930b2c10aaaf7",
+        "b1cc858ee10e0a9b49b19b265e50b338b1def97a59d6ffbb49808e172b26082d",
     "src/frontends/riscv/air/logup.zig":
         "83aff2399844afc6fb733cf50df483bc1a62306d51d77263d37b2f438098aec1",
     "src/frontends/riscv/air/relation_challenges.zig":

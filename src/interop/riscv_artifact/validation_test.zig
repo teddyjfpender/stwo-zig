@@ -420,3 +420,26 @@ test "schema v4 accepts strict access subclocks beyond the instruction clock" {
         validation.validate(artifact, RELEASE_STATUS),
     );
 }
+
+test "schema v4 admits every declared backend and rejects the rest" {
+    // The RISC-V frontend pins one hasher/channel triple, and both
+    // `CpuProverEngine` and `MetalProverEngine` instantiate `ProverEngine` over
+    // the same Blake2s types, so a proof's wire format does not vary by
+    // backend. The artifact therefore admits a *set* of backends rather than
+    // hard-coding "cpu" -- but only the declared set, so a backend that has not
+    // been shown to meet that bar still fails closed.
+    for (schema.BACKENDS) |admitted| {
+        var artifact = fixture();
+        artifact.backend = admitted;
+        try validation.validate(artifact, RELEASE_STATUS);
+    }
+
+    for ([_][]const u8{ "cuda", "CPU", "metal2", "", "cpu " }) |rejected| {
+        var artifact = fixture();
+        artifact.backend = rejected;
+        try std.testing.expectError(
+            error.UnsupportedBackend,
+            validation.validate(artifact, RELEASE_STATUS),
+        );
+    }
+}
