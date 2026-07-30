@@ -4,7 +4,7 @@
     "Quot.sound",
     "propext"
   ],
-  "canonical_digest": "6e624f3cb41ddfc23521ae4c5370141130423755367c949c65362f00c2a3af2b",
+  "canonical_digest": "539d634c4eead56d94671ab25acc7c55404bf838b915557e53261a8e44ca4422",
   "certificate_mappings": [
     {
       "air_binding": "exact-generated-local-program",
@@ -4644,7 +4644,7 @@
   "proof_escape_scan": "passed",
   "repository_dirty": false,
   "repository_dirty_paths": [],
-  "repository_revision": "2611e86c02ea32ce17c161efecabfe9a226d9c92",
+  "repository_revision": "cfae3e6c032a760b20e776b185512b6715ddc145",
   "sail_inputs": {
     "exact_configuration": {
       "artifact": "formal/riscv-refinement/generated/sail/rv32im-zkvm-v1.json",
