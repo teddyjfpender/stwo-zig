@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import inspect
 import json
 import os
 import struct
@@ -33,6 +34,7 @@ if str(ROOT) not in sys.path:
 
 from scripts import riscv_cli_admission  # noqa: E402
 from scripts.riscv_csp_benchmark_lib.contract import (  # noqa: E402
+    BACKENDS,
     BenchmarkError,
     CANONICAL_SIZES,
     Case,
@@ -59,6 +61,11 @@ from scripts.riscv_csp_benchmark_lib.host import (  # noqa: E402
 )
 from scripts.riscv_csp_benchmark_lib.source_audit import (  # noqa: E402
     audit_csp_source,
+)
+from scripts.riscv_csp_benchmark_lib.validation import (  # noqa: E402
+    validate_artifact,
+    validate_benchmark_report,
+    validate_verify_receipt,
 )
 
 
@@ -274,98 +281,12 @@ def _peak_memory(report: Mapping[str, Any]) -> tuple[int | None, str]:
     return value, str(resources.get("source") or "unknown")
 
 
-def _validate_benchmark_report(
-    report: Mapping[str, Any],
-    case: Case,
-    *,
-    warmups: int,
-    samples: int,
-    admission: riscv_cli_admission.Admission,
-) -> str:
-    if report.get("schema") != "riscv_proof_v2" or report.get("mode") != "bench":
-        raise BenchmarkError(f"{case.target}/{case.input_size}: report identity drifted")
-    if (
-        report.get("release_status") != admission.release_status
-        or report.get("experimental") is not admission.experimental
-        or report.get("warmups") != warmups
-        or report.get("samples") != samples
-        or report.get("verified_samples") != samples
-        or report.get("total_steps") != case.expected_cycles
-    ):
-        raise BenchmarkError(f"{case.target}/{case.input_size}: report contract drifted")
-    commit = report.get("implementation_commit")
-    if not isinstance(commit, str) or not HEX_40.fullmatch(commit):
-        raise BenchmarkError(f"{case.target}/{case.input_size}: implementation commit invalid")
-    if report.get("implementation_dirty") is not False:
-        raise BenchmarkError(f"{case.target}/{case.input_size}: executable identity is dirty")
-    statement = report.get("statement_sha256")
-    if not isinstance(statement, str) or not HEX_32.fullmatch(statement):
-        raise BenchmarkError(f"{case.target}/{case.input_size}: statement digest invalid")
-    return commit
-
-
-def _validate_artifact(
-    artifact: Mapping[str, Any],
-    case: Case,
-    *,
-    admission: riscv_cli_admission.Admission,
-) -> tuple[bytes, str]:
-    if (
-        artifact.get("schema_version") != 4
-        or artifact.get("artifact_kind") != "stwo_riscv_proof"
-        or artifact.get("exchange_mode") != "riscv_proof_json_wire_v4"
-        or artifact.get("protocol") != "secure"
-        or artifact.get("release_status") != admission.release_status
-        or artifact.get("backend") != "cpu"
-        or artifact.get("pcs_config") != SECURE_PCS_CONFIG
-    ):
-        raise BenchmarkError(f"{case.target}/{case.input_size}: proof artifact drifted")
-    proof_hex = artifact.get("proof_bytes_hex")
-    if (
-        not isinstance(proof_hex, str)
-        or len(proof_hex) % 2
-        or proof_hex.lower() != proof_hex
-    ):
-        raise BenchmarkError(f"{case.target}/{case.input_size}: proof bytes are not canonical")
-    try:
-        proof_bytes = bytes.fromhex(proof_hex)
-    except ValueError as error:
-        raise BenchmarkError(
-            f"{case.target}/{case.input_size}: proof bytes are not hexadecimal"
-        ) from error
-    if not proof_bytes:
-        raise BenchmarkError(f"{case.target}/{case.input_size}: proof is empty")
-    return proof_bytes, sha256_bytes(proof_bytes)
-
-
-def _validate_verify_receipt(
-    receipt: Mapping[str, Any],
-    case: Case,
-    *,
-    statement_digest: str,
-    proof_bytes: bytes,
-    proof_sha256: str,
-    implementation_commit: str,
-) -> None:
-    if (
-        receipt.get("schema") != "riscv_verify_v1"
-        or receipt.get("status") != "verified"
-        or receipt.get("statement_sha256") != statement_digest
-        or receipt.get("proof_bytes") != len(proof_bytes)
-        or receipt.get("proof_sha256") != proof_sha256
-        or receipt.get("implementation_commit") != implementation_commit
-        or receipt.get("implementation_dirty") is not False
-    ):
-        raise BenchmarkError(
-            f"{case.target}/{case.input_size}: retained-proof receipt drifted"
-        )
-
-
 def benchmark_case(
     case: Case,
     cli: Path,
     trace_cli: Path,
     *,
+    backend: str,
     warmups: int,
     samples: int,
     timeout: int,
@@ -385,7 +306,7 @@ def benchmark_case(
         "--input",
         case.input_path,
         "--backend",
-        "cpu",
+        BACKENDS[backend].cli_value,
         "--protocol",
         "secure",
         *admission.arguments,
@@ -404,7 +325,7 @@ def benchmark_case(
     report = load_json(bench_path)
     if not isinstance(report, dict):
         raise BenchmarkError(f"{case.target}/{case.input_size}: report is not an object")
-    implementation_commit = _validate_benchmark_report(
+    implementation_commit = validate_benchmark_report(
         report,
         case,
         warmups=warmups,
@@ -414,10 +335,11 @@ def benchmark_case(
     artifact = load_json(artifact_path)
     if not isinstance(artifact, dict):
         raise BenchmarkError(f"{case.target}/{case.input_size}: artifact is not an object")
-    proof_bytes, proof_sha256 = _validate_artifact(
+    proof_bytes, proof_sha256 = validate_artifact(
         artifact,
         case,
         admission=admission,
+        expected_backend=BACKENDS[backend].artifact_backend,
     )
     artifact_sha256 = sha256_file(artifact_path)
     if report.get("artifact_sha256") != artifact_sha256:
@@ -452,7 +374,7 @@ def benchmark_case(
         raise BenchmarkError(
             f"{case.target}/{case.input_size}: retained-proof receipt is not an object"
         )
-    _validate_verify_receipt(
+    validate_verify_receipt(
         receipt,
         case,
         statement_digest=statement_digest,
@@ -477,6 +399,7 @@ def benchmark_case(
         raise BenchmarkError(f"{case.target}/{case.input_size}: sample series drifted")
     row = {
         "system": "stwo-zig-riscv",
+        "backend": backend,
         "target": case.target,
         "input_size": case.input_size,
         "proof_duration": round(prove_seconds * 1_000_000_000),
@@ -589,12 +512,48 @@ def _summary(
     }
 
 
+def _resolve_backend_paths(args: argparse.Namespace) -> tuple[Path, Path]:
+    """Resolve the product CLI and report output for the selected backend.
+
+    Explicit ``--cli`` / ``--report-out`` always win; the defaults come from
+    the backend table so a Metal run can never silently overwrite the
+    committed CPU evidence file.
+    """
+    spec = BACKENDS[args.backend]
+    cli = args.cli if args.cli is not None else spec.default_cli
+    report_out = (
+        args.report_out if args.report_out is not None else spec.default_report
+    )
+    return cli.resolve(), report_out.resolve()
+
+
+def _resolve_admission(cli: Path, backend: str) -> riscv_cli_admission.Admission:
+    """Authenticate the product registry of the executable about to run.
+
+    ``riscv_cli_admission`` is a shared module owned by another change; until
+    it accepts a ``backend`` parameter, CPU admission is byte-for-byte the
+    historical call and any non-CPU backend fails closed rather than being
+    admitted through the CPU-only registry contract.
+    """
+    parameters = inspect.signature(riscv_cli_admission.resolve).parameters
+    if "backend" in parameters:
+        return riscv_cli_admission.resolve(cli, cwd=ROOT, backend=backend)
+    if backend == "cpu":
+        return riscv_cli_admission.resolve(cli, cwd=ROOT)
+    raise BenchmarkError(
+        f"riscv_cli_admission cannot authenticate a {backend} product "
+        "registry yet; refusing to admit a non-CPU backend through the "
+        "CPU-only registry contract"
+    )
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, default=MANIFEST)
-    parser.add_argument("--cli", type=Path, default=DEFAULT_CLI)
+    parser.add_argument("--backend", choices=tuple(BACKENDS), default="cpu")
+    parser.add_argument("--cli", type=Path, default=None)
     parser.add_argument("--trace-cli", type=Path, default=DEFAULT_TRACE_CLI)
-    parser.add_argument("--report-out", type=Path, default=DEFAULT_REPORT)
+    parser.add_argument("--report-out", type=Path, default=None)
     parser.add_argument("--targets", default=",".join(TARGET_ORDER))
     parser.add_argument("--sizes", default=",".join(str(v) for v in CANONICAL_SIZES))
     parser.add_argument("--warmups", type=int, default=1)
@@ -626,12 +585,21 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not selected:
         raise BenchmarkError("benchmark selection is empty")
 
-    cli = args.cli.resolve()
+    spec = BACKENDS[args.backend]
+    cli, report_out = _resolve_backend_paths(args)
     trace_cli = args.trace_cli.resolve()
     for label, executable in (("RISC-V product", cli), ("trace diagnostic", trace_cli)):
         if not executable.is_file() or not os.access(executable, os.X_OK):
-            raise BenchmarkError(f"{label} executable is missing: {executable}")
-    admission = riscv_cli_admission.resolve(cli, cwd=ROOT)
+            hint = (
+                " (the Metal product CLI must be built on a macOS host: "
+                "`zig build stwo-riscv-metal -Doptimize=ReleaseFast`)"
+                if executable == cli and args.backend == "metal"
+                else ""
+            )
+            raise BenchmarkError(
+                f"{label} executable is missing: {executable}{hint}"
+            )
+    admission = _resolve_admission(cli, args.backend)
     source_audit = (
         audit_csp_source(manifest, args.audit_csp_source)
         if args.audit_csp_source
@@ -648,7 +616,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
 
     host = collect_host()
-    host_matches, host_mismatch = official_host_match(host)
+    host_matches, host_mismatch = official_host_match(host, backend=args.backend)
+    if spec.requires_gpu and not (host.get("gpu") or {}).get("name"):
+        raise BenchmarkError(
+            f"{args.backend} benchmark requires GPU identity capture "
+            "(system_profiler SPDisplaysDataType); refusing to record "
+            "GPU-dependent timings without GPU identity"
+        )
     env = os.environ.copy()
     environment_overrides: dict[str, str] = {}
     if args.workers is not None:
@@ -674,6 +648,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 case,
                 cli,
                 trace_cli,
+                backend=args.backend,
                 warmups=args.warmups,
                 samples=args.samples,
                 timeout=args.timeout,
@@ -724,6 +699,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             "This host differs from CSP's AWS mac2.metal Apple M1/8-core/16-GiB "
             "publication host, so timings are host-qualified and not directly "
             "rankable against published EthProofs rows."
+        )
+    if args.backend != "cpu":
+        limitations.append(
+            f"Rows were produced with the {args.backend} backend; "
+            "GPU-dependent timings are qualified by host.gpu, and the "
+            "committed CPU report remains the canonical CSP evidence."
         )
 
     captured_at = dt.datetime.now(dt.timezone.utc).astimezone().isoformat()
@@ -777,6 +758,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "cpu": "Apple M1",
                 "logical_cpu_count": 8,
                 "memory_bytes": 16 * 1024 * 1024 * 1024,
+                "gpu": {"chip": "Apple M1", "core_count": 8},
             },
         },
         "host": host,
@@ -788,6 +770,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             else "host-qualified-non-comparable"
         ),
         "run": {
+            "backend": args.backend,
             "targets": list(targets),
             "sizes": list(sizes),
             "warmups": args.warmups,
@@ -814,8 +797,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         "summary": _summary(rows, negative_evidence),
         "measurements": rows,
     }
-    _atomic_write_json(args.report_out.resolve(), report)
-    print(f"report: {args.report_out.resolve()}", flush=True)
+    _atomic_write_json(report_out, report)
+    print(f"report: {report_out}", flush=True)
     return 0
 
 
