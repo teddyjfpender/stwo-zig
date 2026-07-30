@@ -70,4 +70,3 @@ def public_values(
 def admission_resolve(cli, *, cwd=None, timeout_seconds=30):
     """Stand in for the CLI admission probe without a built executable."""
     return riscv_cli_admission.Admission("promoted", "release_gated", False)
-

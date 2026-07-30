@@ -59,7 +59,7 @@
     "generated/sail/rv32im-zkvm-v1.json": "5c31e516a205d693386564242d623dbaf4dc1566573f9ecfdcb026611c8fc2c1",
     "generated/sail/translation-receipt-v1.json": "ae7ba363506f1f96d5cb4eeeb4b2b123f02db8efdf5e19f1a98682ea70c2fcef"
   },
-  "canonical_digest": "eed3a7681188aff672293e2cb48f7768da5c438d222ff963851fae249e7a48d1",
+  "canonical_digest": "9cca4ff1d3b417c97f0dc7bb431f63b2c2b747fc2a10062ae20c599450a11cd4",
   "claim_boundary": {
     "addi_air_to_normalized_composition": true,
     "generated_sail_ast_translation_receipt": true,
@@ -465,7 +465,7 @@
     "base_configuration_sha256": "3f7f9ef13b6caf2e42765a1723275c718e1df1c7722276173b5ce3f2d7ec8431",
     "checkout_state": "rvfi-transport-patch-only",
     "compiler_version": "0.20.2",
-    "evidence_source": "carried-committed-sail-evidence",
+    "evidence_source": "live-toolchain",
     "exact_configuration": "build/riscv-refinement/rv32im-zkvm-v1.json",
     "exact_configuration_sha256": "5c31e516a205d693386564242d623dbaf4dc1566573f9ecfdcb026611c8fc2c1",
     "generated_ast_translation_receipt": {

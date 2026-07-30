@@ -61,7 +61,7 @@ const DUMPER_SOURCE = @embedFile("../../tools/riscv/trace/main.zig");
 
 /// The two raise sites, exported by their owners for the wiring pins below.
 const OPCODE_MEMORY_SOURCE = opcode_memory.diagnostic_wiring_source;
-const VERIFIER_SOURCE = frontend.prover.verifier_diagnostic_wiring_source;
+const VERIFIER_SOURCE = frontend.prover_mod.verifier_diagnostic_wiring_source;
 
 /// The build file that installs the dumper, read at run time because it sits
 /// outside this module's directory. Tests run from the repository root.
