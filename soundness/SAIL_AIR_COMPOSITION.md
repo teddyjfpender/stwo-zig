@@ -79,6 +79,12 @@ The implementation and acceptance plan for premise 5 is
 It requires generated production AIR and pinned Sail definitions, Lean
 kernel-checked per-opcode theorems, non-vacuity, exact 46-opcode coverage, and a
 publication-level binding between the formal IR and the shipped evaluator.
+Its §15.1 closure gates are normative: premise 5 requires the
+accepted-production-AIR → generated-Sail direction, all 46 generated
+retirements and full-step framing, the M31/Word32 conversion and no-wrap
+invariants, whole-trace composition, and the recorded independent sign-offs.
+A graded certificate or a theorem in the reverse
+reviewed-predicate → AIR direction does not discharge this premise.
 
 Then the active rows of \(W\) form one contiguous execution from the public
 initial state to the public final state; every fetched decoded instruction is

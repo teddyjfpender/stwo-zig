@@ -308,19 +308,21 @@ class PlannerContractTests(unittest.TestCase):
         self.assertIn("--artifact-dir", proof_commands[0])
         self.assertIn("--report-out", proof_commands[0])
 
-    def test_riscv_sail_oracle_build_owner_selects_only_cpu_consumers(self) -> None:
-        self.assertEqual(
-            {
-                "static",
-                "build_graph",
-                "riscv_cpu",
-                "aggregate_cpu",
-                "aggregate_metal",
-            },
-            self.lanes_for(
-                "build_support/products/riscv_sail_oracle_tests.zig"
-            ),
-        )
+    def test_riscv_auxiliary_build_owners_select_only_cpu_consumers(self) -> None:
+        expected = {"static", "build_graph", "riscv_cpu", "aggregate_cpu", "aggregate_metal"}
+        paths = ("build_support/products/riscv_refinement.zig",
+                 "build_support/products/riscv_sail_oracle_tests.zig")
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertEqual(expected, self.lanes_for(path))
+
+    def test_riscv_product_and_release_gate_consume_formal_certificate_index(self) -> None:
+        for relative in ("build_support/products/riscv_cpu.zig",
+                         "build_support/gates/riscv.zig"):
+            with self.subTest(relative=relative):
+                source = (ROOT / relative).read_text(encoding="utf-8")
+                self.assertIn("scripts/riscv_opcode_coverage.py", source)
+                self.assertIn('"check"', source)
 
     def test_leaf_native_cpu_change_does_not_select_unrelated_products(self) -> None:
         self.assertEqual(

@@ -559,6 +559,7 @@ class TeamAGateTest(unittest.TestCase):
     def test_aggregate_index_is_exact_and_current(self):
         message = aggregate.check_index()
         self.assertIn("46/46", message)
+        self.assertIn("current production-source identities", message)
         payload = aggregate.build_index()
         self.assertEqual(
             [entry["manifest_id"] for entry in payload["certificates"]],
@@ -576,6 +577,18 @@ class TeamAGateTest(unittest.TestCase):
             + payload["claim_boundary"]["unbound_sail_selectors"],
             46,
         )
+
+    def test_aggregate_index_fails_when_a_production_source_identity_drifts(self):
+        with mock.patch.object(
+            aggregate.air_program,
+            "verify_source_files",
+            side_effect=aggregate.RefinementError("source digest drifted"),
+        ):
+            with self.assertRaisesRegex(
+                aggregate.CoverageError,
+                "not canonically bound to the current source tree",
+            ):
+                aggregate.build_index()
 
 
 if __name__ == "__main__":

@@ -117,10 +117,16 @@ jobs:
           restore-keys: |
             riscv-formal-v1-${{ runner.os }}-${{ hashFiles('conformance/riscv/rv32im-sail-profile.json', 'conformance/riscv/sail-rvfi-zkvm-entry.patch', 'conformance/riscv/sail-rv32im-override.json', 'conformance/riscv/sail-rv32im-tagged-options.json') }}
 
-      - name: Install device-tree compiler for the pinned Spike build
+      # Spike requires dtc. The pinned Sail release binary invokes z3 even for
+      # `sail --version`, so both dependencies must be present before the
+      # compiler preflight below. Keep this unconditional: a restored workspace
+      # does not prove that the fresh runner image still has either executable.
+      - name: Install pinned Spike and Sail system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends device-tree-compiler
+          sudo apt-get install -y --no-install-recommends device-tree-compiler z3
+          dtc --version
+          z3 --version
 
       # The pinned Sail compiler ships as a hash-pinned upstream release
       # binary, so no opam bootstrap runs in CI. This is byte-identical to
