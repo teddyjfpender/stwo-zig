@@ -29,6 +29,10 @@ AUDIT_WORKFLOWS = (
     ROOT / ".github/workflows/audit.yml",
     ROOT / "autoresearch/workflows/audit.yml",
 )
+QUALIFY_WORKFLOWS = (
+    ROOT / ".github/workflows/qualify-fork.yml",
+    ROOT / "autoresearch/workflows/qualify-fork.yml",
+)
 ACTION_RE = re.compile(r"uses:\s+[^@\s]+@([^\s]+)")
 
 
@@ -41,11 +45,32 @@ def git(repo: Path, *args: str) -> str:
 
 class WorkflowContractTest(unittest.TestCase):
     def test_all_third_party_actions_are_commit_pinned(self) -> None:
-        for path in (*WORKFLOWS, *AUDIT_WORKFLOWS):
+        for path in (*WORKFLOWS, *AUDIT_WORKFLOWS, *QUALIFY_WORKFLOWS):
             text = path.read_text(encoding="utf-8")
             pins = ACTION_RE.findall(text)
             self.assertTrue(pins, path)
             self.assertTrue(all(re.fullmatch(r"[0-9a-f]{40}", pin) for pin in pins), path)
+
+    def test_fork_qualification_is_board_scoped_and_uses_fixed_harness(self) -> None:
+        installed, source = QUALIFY_WORKFLOWS
+        self.assertEqual(installed.read_bytes(), source.read_bytes())
+        text = source.read_text(encoding="utf-8")
+        self.assertIn("candidate_commit:", text)
+        self.assertIn("Check out fixed qualification harness", text)
+        self.assertIn("Check out exact candidate", text)
+        self.assertIn("path: orchestration", text)
+        self.assertIn("path: candidate", text)
+        self.assertIn("ref: '${{ inputs.candidate_commit }}'", text)
+        self.assertIn("python3 ../orchestration/autoresearch/cli/stwo-perf setup", text)
+        self.assertGreaterEqual(text.count("--board '${{ inputs.board }}'"), 4)
+        self.assertIn("--guards none", text)
+        self.assertIn("path: candidate/qualification/", text)
+        self.assertIn("subject-path: candidate/qualification/receipt.json", text)
+        self.assertIn(
+            "locked central judge\n"
+            "        # independently reruns the mandatory regression-guard portfolio",
+            text,
+        )
 
     def test_audit_ingestion_is_exact_serialized_and_least_privilege(self) -> None:
         self.assertEqual(AUDIT_WORKFLOWS[0].read_bytes(), AUDIT_WORKFLOWS[1].read_bytes())

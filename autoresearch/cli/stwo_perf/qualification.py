@@ -79,8 +79,14 @@ def _locked_digest(repo: Path, manifest: Manifest, commit: str) -> str:
     return "sha256:" + hashlib.sha256(b"".join(entries)).hexdigest()
 
 
-def inspect_tree(repo: Path, manifest: Manifest, frontier_ref: str,
-                 candidate_ref: str = "HEAD") -> TreeEvidence:
+def inspect_tree(
+    repo: Path,
+    manifest: Manifest,
+    frontier_ref: str,
+    candidate_ref: str = "HEAD",
+    *,
+    board: str | None = None,
+) -> TreeEvidence:
     frontier = _commit(repo, frontier_ref)
     candidate = _commit(repo, candidate_ref)
     ancestor = subprocess.run(
@@ -110,7 +116,7 @@ def inspect_tree(repo: Path, manifest: Manifest, frontier_ref: str,
     ]
     if unsafe:
         raise QualificationError(f"candidate contains unsafe path names: {unsafe[:10]}")
-    violations, strays = manifest.classify_touched(paths)
+    violations, strays = manifest.classify_touched(paths, board=board)
     if violations:
         raise QualificationError(f"locked paths changed: {violations[:10]}")
     if strays:
@@ -148,15 +154,33 @@ def inspect_tree(repo: Path, manifest: Manifest, frontier_ref: str,
     )
 
 
-def build_receipt(repo: Path, manifest: Manifest, frontier_ref: str,
-                  submitter_login: str, checks: dict[str, bool],
-                  claim: dict, workflow: dict | None = None) -> dict:
+def build_receipt(
+    repo: Path,
+    manifest: Manifest,
+    frontier_ref: str,
+    submitter_login: str,
+    checks: dict[str, bool],
+    claim: dict,
+    workflow: dict | None = None,
+    *,
+    board: str | None = None,
+) -> dict:
     policy_checks = manifest.raw.get("qualification_policy", {}).get("required_checks")
     if policy_checks is not None and set(policy_checks) != set(REQUIRED_CHECKS):
         raise QualificationError(
             "manifest qualification checks disagree with the receipt implementation"
         )
-    evidence = inspect_tree(repo, manifest, frontier_ref)
+    claim_board = claim.get("board")
+    if board is not None and board != claim_board:
+        raise QualificationError(
+            "qualification source-policy board does not match the claimed board"
+        )
+    evidence = inspect_tree(
+        repo,
+        manifest,
+        frontier_ref,
+        board=board if board is not None else claim_board,
+    )
     missing = [name for name in REQUIRED_CHECKS if checks.get(name) is not True]
     if missing:
         raise QualificationError(f"qualification checks not proven green: {missing}")
@@ -229,8 +253,13 @@ def validate_receipt(receipt: dict, manifest: Manifest) -> None:
 def verify_receipt(repo: Path, manifest: Manifest, receipt: dict) -> TreeEvidence:
     """Recompute all git evidence; never trust a fork receipt's pass booleans."""
     validate_receipt(receipt, manifest)
-    evidence = inspect_tree(repo, manifest, receipt["frontier_commit"],
-                            receipt["candidate_commit"])
+    evidence = inspect_tree(
+        repo,
+        manifest,
+        receipt["frontier_commit"],
+        receipt["candidate_commit"],
+        board=receipt["claim"]["board"],
+    )
     comparisons = {
         "candidate_tree": evidence.candidate_tree,
         "changed_paths": evidence.changed_paths,

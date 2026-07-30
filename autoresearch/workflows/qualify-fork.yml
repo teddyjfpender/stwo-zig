@@ -6,6 +6,10 @@ name: autoresearch-qualify-fork
 on:
   workflow_dispatch:
     inputs:
+      candidate_commit:
+        description: Full commit SHA of the candidate in this fork
+        required: true
+        type: string
       frontier_commit:
         description: Full commit SHA of the current canonical frontier
         required: true
@@ -28,6 +32,9 @@ on:
         options: [time, rss, energy]
   workflow_call:
     inputs:
+      candidate_commit:
+        required: true
+        type: string
       frontier_commit:
         required: true
         type: string
@@ -54,48 +61,66 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
-      - name: Check out repository
+      - name: Check out fixed qualification harness
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
+          path: orchestration
+      - name: Check out exact candidate
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+          path: candidate
+          ref: '${{ inputs.candidate_commit }}'
       - name: Reject locked, stray, executable, and non-frontier changes
         run: >-
-          python3 autoresearch/bots/qualify_action.py
-          --frontier '${{ inputs.frontier_commit }}' --preflight
+          python3 ../orchestration/autoresearch/bots/qualify_action.py
+          --frontier '${{ inputs.frontier_commit }}'
+          --board '${{ inputs.board }}' --preflight
+        working-directory: candidate
       - name: Validate the locked harness
         run: python3 -m unittest discover -s autoresearch/tests -v
+        working-directory: orchestration
       - name: Install pinned Zig toolchain
         uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
         with:
           version: 0.15.2
       - name: Build release benchmark targets
         run: >-
-          python3 autoresearch/cli/stwo-perf setup
+          python3 ../orchestration/autoresearch/cli/stwo-perf setup
           --board '${{ inputs.board }}'
+        working-directory: candidate
       - name: Materialize the declared frontier
         run: git worktree add --detach "$RUNNER_TEMP/frontier" '${{ inputs.frontier_commit }}'
+        working-directory: candidate
       - name: Run the public paired qualification benchmark
+        # Fork CI is an objective-only public signal. The locked central judge
+        # independently reruns the mandatory regression-guard portfolio.
         run: >-
-          python3 autoresearch/cli/stwo-perf run --scope s3
+          python3 ../orchestration/autoresearch/cli/stwo-perf run --scope s3
           --board '${{ inputs.board }}'
           --class '${{ inputs.workload_class }}'
           --dimension '${{ inputs.dimension }}'
+          --guards none
           --predecessor "$RUNNER_TEMP/frontier"
           --out qualification/verdict.json
+        working-directory: candidate
       - name: Bind checks and source tree into a receipt
         run: >-
-          python3 autoresearch/bots/qualify_action.py
+          python3 ../orchestration/autoresearch/bots/qualify_action.py
           --frontier '${{ inputs.frontier_commit }}'
+          --board '${{ inputs.board }}'
           --login '${{ github.actor }}'
           --verdict qualification/verdict.json
           --out qualification/receipt.json
+        working-directory: candidate
       - name: Upload qualification artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: autoresearch-qualification
-          path: qualification/
+          path: candidate/qualification/
           if-no-files-found: error
       - name: Attest the qualification receipt
         uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4
         with:
-          subject-path: qualification/receipt.json
+          subject-path: candidate/qualification/receipt.json
