@@ -107,17 +107,12 @@ theorem encode_sltiu_is_canonical
 theorem comparison_selectors_pairwise_disjoint (word : InstructionWord) :
     ¬ (isSlt word = true ∧ isSltu word = true) ∧
       ¬ (isSlti word = true ∧ isSltiu word = true) := by
-  simp only [
-    isSlt,
-    isSltu,
-    isSlti,
-    isSltiu,
-    isRType,
-    funct3Slt,
-    funct3Sltu,
-    funct3Slti,
-    funct3Sltiu,
-  ]
-  bv_decide
+  constructor
+  · rintro ⟨left, right⟩
+    exact absurd (((isRType_fields left).2.1).symm.trans
+      (isRType_fields right).2.1) (by decide)
+  · rintro ⟨left, right⟩
+    simp only [isSlti, isSltiu, Bool.and_eq_true, beq_iff_eq] at left right
+    exact absurd (left.2.symm.trans right.2) (by decide)
 
 end RiscvRefinement.Decode
