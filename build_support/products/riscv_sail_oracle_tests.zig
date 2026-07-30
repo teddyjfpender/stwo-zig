@@ -67,19 +67,15 @@ const ROOT_SOURCE_FILE = "src/frontends/riscv/sail_oracle_test_root.zig";
 /// caller can also fold it into a broader product test step.
 pub fn add(
     b: *std.Build,
-    product: graph.Product,
+    test_product: graph.Product,
     protocol: graph.ProtocolModules,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
 ) *std.Build.Step {
     const root = graph.create(b, .{
-        .product = .{
-            .name = product.name,
-            .frontend = product.frontend,
-            .backend = product.backend,
-            .role = .@"test",
-            .protocol_features = product.protocol_features,
-        },
+        // The owner derives this through riscv_shared_shell.roleProduct, so
+        // every RISC-V CPU test artifact shares one identity construction.
+        .product = test_product,
         .root_source_file = ROOT_SOURCE_FILE,
         .target = target,
         .optimize = optimize,

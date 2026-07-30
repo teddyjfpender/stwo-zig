@@ -65,12 +65,19 @@ Live-trigger paths (`LIVE_TRIGGER_PREFIXES` in `scripts/riscv_sail_gate.py`
 is authoritative): the corpus fixtures, `conformance/riscv/`, the pin ledger,
 the equivalence comparator, the corpus/vector machinery, the toolchain
 builder, the gate itself, its workflow, the runner/ISA sources, and — added
-2026-07-29 — the harness files this job's required Sail legs actually
-execute:
+2026-07-29 — the direct local wiring and dependencies of the required Sail
+legs:
 
+- `build_support/products/riscv_{cpu,sail_oracle_tests,test_filter}.zig`, which
+  constructs, registers, and guards the two required test steps
+- `scripts/riscv_sail_oracle.py`, the bridge both required suites spawn
+- `src/tests.zig` and `src/tests/riscv/trace_test.zig`, the aggregation roots
+  whose exhaustive branch must keep the malicious-prover suite reachable
 - `src/tests/riscv/malicious_prover_{harness,completion_test,forged_output_test,skipped_test,stale_read_test}.zig`
 - `src/tests/riscv/committed_forgery_harness.zig`, which owns
   `requireSailAgreement`
+- `src/tests/riscv/{guest_elf_fixture,committed_row_layout,row_admissibility}.zig`,
+  the local fixture and row-contract dependencies of that harness
 - `src/frontends/riscv/sail_oracle_test_root.zig`, the test root that decides
   what `test-riscv-sail-oracle` executes
 

@@ -141,7 +141,16 @@ class ScopeTest(unittest.TestCase):
         # would leave that leg unproven for precisely the change most likely to
         # break it.
         for path in (
+            "build_support/products/riscv_cpu.zig",
+            "build_support/products/riscv_sail_oracle_tests.zig",
+            "build_support/products/riscv_test_filter.zig",
+            "scripts/riscv_sail_oracle.py",
+            "src/tests.zig",
+            "src/tests/riscv/trace_test.zig",
             "src/tests/riscv/committed_forgery_harness.zig",
+            "src/tests/riscv/committed_row_layout.zig",
+            "src/tests/riscv/guest_elf_fixture.zig",
+            "src/tests/riscv/row_admissibility.zig",
             "src/tests/riscv/malicious_prover_harness.zig",
             "src/tests/riscv/malicious_prover_completion_test.zig",
             "src/tests/riscv/malicious_prover_forged_output_test.zig",
@@ -159,7 +168,6 @@ class ScopeTest(unittest.TestCase):
                 "README.md",
                 "src/core/fields/m31.zig",
                 "src/frontends/riscv/air/component.zig",
-                "scripts/riscv_sail_oracle.py",
             ]
         )
         self.assertFalse(required)
@@ -185,6 +193,15 @@ class ScopeTest(unittest.TestCase):
         # tie the policy to the tree so renames must update it.
         for prefix in gate.LIVE_TRIGGER_PREFIXES:
             self.assertTrue((ROOT / prefix).exists(), prefix)
+
+    def test_sail_oracle_build_owner_is_inside_the_cpu_marker_gate(self) -> None:
+        marker_gate = (
+            ROOT / "scripts/check_riscv_cpu_product.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            'ROOT / "build_support/products/riscv_sail_oracle_tests.zig"',
+            marker_gate,
+        )
 
 
 class RunFailClosedTest(unittest.TestCase):

@@ -24,6 +24,7 @@ const source_closure = product_policy.SourceClosure{
         "src/riscv_trace_cli.zig",
         "src/frontends/riscv/refinement_ir_export_test.zig",
         "src/frontends/riscv/refinement_program_export_test.zig",
+        "src/frontends/riscv/sail_oracle_test_root.zig",
     },
     .named_imports = &([_]product_policy.NamedImport{
         .{ .name = "stwo", .source = "src/stwo_riscv_cpu.zig" },
@@ -151,7 +152,13 @@ pub fn addProduct(context: Context) void {
     );
     test_step.dependOn(&context.b.addRunArtifact(tests).step);
     test_step.dependOn(test_filter.addRun(context.b, integration_tests));
-    test_step.dependOn(sail_oracle_tests.add(context.b, product, context.protocol, context.target, context.optimize));
+    test_step.dependOn(sail_oracle_tests.add(
+        context.b,
+        moduleProduct(.@"test"),
+        context.protocol,
+        context.target,
+        context.optimize,
+    ));
     context.b.step(
         "test-riscv-release-exhaustive",
         "Run the exhaustive RISC-V proof and adversarial release suites",

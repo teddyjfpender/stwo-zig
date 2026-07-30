@@ -306,7 +306,7 @@
       "lanes": ["build_graph", "native_cpu"]
     },
     {
-      "prefixes": ["build_support/products/riscv_cpu.zig"],
+      "prefixes": ["build_support/products/riscv_cpu.zig", "build_support/products/riscv_sail_oracle_tests.zig"],
       "lanes": ["build_graph", "riscv_cpu", "aggregate_cpu", "aggregate_metal"]
     },
     {

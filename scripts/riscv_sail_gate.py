@@ -90,26 +90,29 @@ DEFAULT_WORKSPACE = Path("/tmp/stwo-riscv-formal")
 # anyway. Documentation-only paths never appear because every prefix below is
 # an executable or machine-read artifact.
 #
-# The src/tests/riscv entries are a different argument. The differential job
-# is the only job in the repository with a verified pinned Sail oracle, so it
-# is the only place the malicious-prover suite runs with
+# The build/test harness entries are a different argument. The differential
+# job is the only job in the repository with a verified pinned Sail oracle, so
+# it is the only place the malicious-prover suite runs with
 # STWO_ZIG_REQUIRE_SAIL_ORACLE=1 and the only place acceptance criterion 6 of
 # issue #131 can be proven. Everywhere else that leg reports a visible skip.
-# Until 2026-07-29 no test path appeared here at all, so editing the very
-# files that leg executes did not put the job in scope: the criterion was not
-# re-proven for exactly the changes most likely to break it. These are listed
-# as individual FILES, not as `src/tests/riscv`, because the directory holds
-# dozens of suites with no Sail relationship and this job costs a pinned
-# toolchain build plus a full corpus differential against a 60-minute budget.
-# Naming files also makes a rename fail loudly:
+# Until 2026-07-29 none of those paths appeared here, so editing the wiring,
+# oracle bridge, aggregation roots, or fixtures that the required legs execute
+# did not put the job in scope. The RISC-V test paths are individual FILES, not
+# the whole directory: it holds dozens of suites with no Sail relationship,
+# while this job costs a pinned toolchain build plus a full corpus differential
+# against a 60-minute budget. Naming files also makes a rename fail loudly:
 # scripts/tests/test_riscv_sail_gate.py asserts every prefix still exists.
 LIVE_TRIGGER_PREFIXES = (
     ".github/workflows/riscv-sail-differential.yml",
+    "build_support/products/riscv_cpu.zig",
+    "build_support/products/riscv_sail_oracle_tests.zig",
+    "build_support/products/riscv_test_filter.zig",
     "conformance/riscv",
     "conformance/upstream.md",
     "scripts/riscv_equivalence.py",
     "scripts/riscv_formal_tools.py",
     "scripts/riscv_sail_gate.py",
+    "scripts/riscv_sail_oracle.py",
     "scripts/riscv_trace_vectors.py",
     "scripts/riscv_trace_vectors_lib",
     "src/frontends/riscv/isa",
@@ -119,7 +122,12 @@ LIVE_TRIGGER_PREFIXES = (
     "src/frontends/riscv/sail_oracle_test_root.zig",
     # Owns `requireSailAgreement`, the seam every committed-forgery guest uses
     # to ask the pinned model whether the honest trace is honest.
+    "src/tests.zig",
+    "src/tests/riscv/trace_test.zig",
     "src/tests/riscv/committed_forgery_harness.zig",
+    "src/tests/riscv/committed_row_layout.zig",
+    "src/tests/riscv/guest_elf_fixture.zig",
+    "src/tests/riscv/row_admissibility.zig",
     # The malicious-prover suite the required leg selects with
     # -Driscv-test-filter="malicious prover": the shared transaction harness
     # and its four attack classes.
