@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate and check the LUI/ADDI Universal AIR-to-Sail Lean pilot."""
+"""Generate and check the graded RV32IM AIR-to-Sail refinement evidence."""
 
 from __future__ import annotations
 
@@ -3933,7 +3933,7 @@ RECEIPT_CLAIM_BOUNDARY = {
         "covered": 46,
         "total": 46,
     },
-    "generated_sail_input_bindings": {
+    "team_a_generated_sail_input_bindings": {
         "bound": 24,
         "total": 24,
     },

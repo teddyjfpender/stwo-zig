@@ -1,8 +1,9 @@
-# RISC-V LUI/ADDI refinement pilot
+# RISC-V graded AIR-to-Sail refinement
 
-This Lean project contains the Level-1 LUI/ADDI refinement pilot and Team A's
-production AIR IR v2 source binding. It kernel-checks the normalized LUI and
-ADDI row predicates against a generated normalized capsule bound to the exact
+This Lean project contains the issue #136 A5 graded integration and retains
+the Level-1 LUI/ADDI normalized pilot within it. Team A's production AIR IR v2
+source binding kernel-checks the normalized LUI and ADDI row predicates
+against a generated normalized capsule bound to the exact
 pinned Sail `execute_UTYPE`/`execute_ITYPE` slices by a checked, fail-closed AST
 translation receipt. A separate cross-project Lean check imports the exact
 generated backend and proves input equations for all 24 Team A selectors,

@@ -977,7 +977,7 @@ class RefinementAirTest(unittest.TestCase):
             {"covered": 46, "total": 46},
         )
         self.assertEqual(
-            boundary["generated_sail_input_bindings"],
+            boundary["team_a_generated_sail_input_bindings"],
             {"bound": 24, "total": 24},
         )
         self.assertEqual(

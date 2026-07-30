@@ -799,7 +799,7 @@ every PR. A nightly-only universal theorem is too weak for a release branch.
 
 ### 12.3 Receipt
 
-The Level-1 pilot receipt contains:
+The issue #136 A5 graded-integration receipt contains:
 
 - schema;
 - implementation commit and dirty state;
