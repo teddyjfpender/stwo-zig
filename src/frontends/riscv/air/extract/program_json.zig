@@ -468,6 +468,8 @@ test "AIR IR v2 serializes every manifest opcode from its production family" {
         defer symbolic.end();
 
         const program = try program_mod.build(&arena, opcode.family);
+        var remap = try NodeRemap.init(&arena, &program);
+        defer remap.deinit();
         var text = std.Io.Writer.Allocating.init(allocator);
         defer text.deinit();
         try writeProgram(&text.writer, &arena, &program, opcode);
@@ -494,7 +496,7 @@ test "AIR IR v2 serializes every manifest opcode from its production family" {
             selector.get("mnemonic").?.string,
         );
         try std.testing.expectEqual(
-            @as(i64, program.opcode_selector),
+            @as(i64, try remap.get(program.opcode_selector)),
             selector.get("expression").?.integer,
         );
     }
