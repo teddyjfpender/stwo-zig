@@ -9,6 +9,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 OWNED = (
     ROOT / "build_support/products/riscv_cpu.zig",
+    # The CPU owner's build-graph wiring is shared with the other focused RV32IM
+    # owners from here, so it is subject to the same marker checks. Without this
+    # entry, moving a line out of riscv_cpu.zig into the shared sibling would
+    # silently move it out of marker coverage.
+    ROOT / "build_support/products/riscv_shared_shell.zig",
     ROOT / "src/products/riscv_cpu/main.zig",
     ROOT / "src/stwo_riscv_cpu.zig",
     ROOT / "src/riscv_trace_cli.zig",

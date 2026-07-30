@@ -196,7 +196,7 @@ class VerificationReceiptContractTests(unittest.TestCase):
         }
 
     def validate(self, receipt: dict) -> None:
-        csp._validate_verify_receipt(
+        csp.validate_verify_receipt(
             receipt,
             self.case,
             statement_digest="a" * 64,
@@ -398,7 +398,7 @@ class ArtifactBackendTests(unittest.TestCase):
         }
 
     def validate(self, artifact: dict, expected_backend: str) -> tuple[bytes, str]:
-        return csp._validate_artifact(
+        return csp.validate_artifact(
             artifact,
             self.case,
             admission=self.admission,

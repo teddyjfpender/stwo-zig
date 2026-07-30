@@ -7,6 +7,7 @@ const graph = @import("../graph/modules.zig");
 const integration_graph = @import("../graph/integrations.zig");
 const product_policy = @import("../graph/product.zig");
 const riscv_refinement = @import("riscv_refinement.zig");
+const shared_shell = @import("riscv_shared_shell.zig");
 const test_filter = @import("riscv_test_filter.zig");
 const product = graph.Product{
     .name = "stwo-riscv-cpu",
@@ -22,7 +23,7 @@ const source_closure = product_policy.SourceClosure{
         "src/riscv_trace_cli.zig",
         "src/frontends/riscv/refinement_ir_export_test.zig",
     },
-    .named_imports = &.{
+    .named_imports = &([_]product_policy.NamedImport{
         .{ .name = "stwo", .source = "src/stwo_riscv_cpu.zig" },
         .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
@@ -35,11 +36,8 @@ const source_closure = product_policy.SourceClosure{
         .{ .name = "stwo_riscv_cpu_integration", .source = "src/integrations/riscv_cpu/mod.zig" },
         .{ .name = "riscv_adapter", .source = "src/integrations/riscv_cpu/proof_adapter.zig" },
         .{ .name = "riscv_cpu_capabilities", .source = "src/products/riscv_cpu/capabilities.zig" },
-        .{ .name = "riscv_shared_app", .source = "src/products/riscv_shared/app.zig" },
-        .{ .name = "riscv_shared_registry", .source = "src/products/riscv_shared/registry.zig" },
-        .{ .name = "riscv_shared_cli", .source = "src/products/riscv_shared/cli.zig" },
         .{ .name = "output_transaction", .source = "src/interop/output_transaction.zig" },
-    },
+    } ++ shared_shell.shell_named_imports),
     .generated_imports = &.{"aggregate_capabilities"},
     .allowed_files = &.{
         "src/products/riscv_cpu/main.zig",
@@ -246,7 +244,12 @@ fn addExecutable(
     const b = context.b;
     const stwo = createStwoModule(b, protocol, target, optimize);
     const capabilities = createCapabilitiesModule(context, target, optimize);
-    const adapter = createAdapterModule(context, protocol, stwo, capabilities, target, optimize);
+    const adapter = binding(context, target, optimize).adapterModule(.{
+        .protocol = protocol,
+        .identity = context.identity,
+        .stwo = stwo,
+        .capabilities = capabilities,
+    });
     const root = graph.create(b, .{
         .product = product,
         .root_source_file = "src/products/riscv_cpu/main.zig",
@@ -258,25 +261,8 @@ fn addExecutable(
     root.addImport("stwo_riscv_cpu", stwo);
     root.addImport("riscv_adapter", adapter);
     root.addImport("riscv_cpu_capabilities", capabilities);
-    root.addImport("riscv_shared_app", createSharedModule(
-        context,
-        "src/products/riscv_shared/app.zig",
-        target,
-        optimize,
-    ));
-    root.addImport("riscv_shared_registry", createSharedModule(
-        context,
-        "src/products/riscv_shared/registry.zig",
-        target,
-        optimize,
-    ));
-    root.addImport("riscv_shared_cli", createSharedModule(
-        context,
-        "src/products/riscv_shared/cli.zig",
-        target,
-        optimize,
-    ));
-    root.addImport("output_transaction", createOutputTransaction(context, target, optimize));
+    binding(context, target, optimize).addShellImports(root);
+    root.addImport("output_transaction", outputTransactionModule(context, target, optimize));
     root.addOptions("build_identity", graph_identity.buildOptions(b, context.identity));
     root.addOptions(
         "product_identity",
@@ -288,21 +274,13 @@ fn addTests(context: Context) *std.Build.Step.Compile {
     const b = context.b;
     const stwo = createStwoModule(b, context.protocol, context.target, context.optimize);
     const capabilities = createCapabilitiesModule(context, context.target, context.optimize);
-    const adapter = createAdapterModule(
-        context,
-        context.protocol,
-        stwo,
-        capabilities,
-        context.target,
-        context.optimize,
-    );
-    const test_product = graph.Product{
-        .name = product.name,
-        .frontend = product.frontend,
-        .backend = product.backend,
-        .role = .@"test",
-        .protocol_features = product.protocol_features,
-    };
+    const adapter = hostBinding(context).adapterModule(.{
+        .protocol = context.protocol,
+        .identity = context.identity,
+        .stwo = stwo,
+        .capabilities = capabilities,
+    });
+    const test_product = moduleProduct(.@"test");
     const root = graph.create(b, .{
         .product = test_product,
         .root_source_file = "src/products/riscv_cpu/main.zig",
@@ -322,27 +300,10 @@ fn addTests(context: Context) *std.Build.Step.Compile {
     root.addImport("stwo_riscv_cpu", stwo);
     root.addImport("riscv_adapter", adapter);
     root.addImport("riscv_cpu_capabilities", capabilities);
-    root.addImport("riscv_shared_app", createSharedModule(
-        context,
-        "src/products/riscv_shared/app.zig",
-        context.target,
-        context.optimize,
-    ));
-    root.addImport("riscv_shared_registry", createSharedModule(
-        context,
-        "src/products/riscv_shared/registry.zig",
-        context.target,
-        context.optimize,
-    ));
-    root.addImport("riscv_shared_cli", createSharedModule(
-        context,
-        "src/products/riscv_shared/cli.zig",
-        context.target,
-        context.optimize,
-    ));
+    hostBinding(context).addShellImports(root);
     root.addImport(
         "output_transaction",
-        createOutputTransaction(context, context.target, context.optimize),
+        outputTransactionModule(context, context.target, context.optimize),
     );
     root.addOptions("build_identity", graph_identity.buildOptions(b, context.identity));
     root.addOptions(
@@ -403,13 +364,7 @@ fn addAirSatisfactionExportTests(context: Context) *std.Build.Step.Compile {
 
 fn addTestRoot(context: Context, options: TestRoot) *std.Build.Step.Compile {
     const b = context.b;
-    const test_product = graph.Product{
-        .name = product.name,
-        .frontend = product.frontend,
-        .backend = product.backend,
-        .role = .@"test",
-        .protocol_features = product.protocol_features,
-    };
+    const test_product = moduleProduct(.@"test");
     const root = graph.create(b, .{
         .product = test_product,
         .root_source_file = "src/tests.zig",
@@ -450,13 +405,7 @@ fn createStwoModule(
     optimize: std.builtin.OptimizeMode,
 ) *std.Build.Module {
     const module = graph.create(b, .{
-        .product = .{
-            .name = product.name,
-            .frontend = product.frontend,
-            .backend = product.backend,
-            .role = .library,
-            .protocol_features = product.protocol_features,
-        },
+        .product = moduleProduct(.library),
         .root_source_file = "src/stwo_riscv_cpu.zig",
         .target = target,
         .optimize = optimize,
@@ -482,34 +431,29 @@ fn createStwoModule(
 }
 
 fn moduleProduct(role: graph.Role) graph.Product {
+    return shared_shell.roleProduct(product, role);
+}
+
+/// How this product creates its leaf modules, its shared shell modules and the
+/// engine-generic adapter. The target/optimize pair is per call site, not
+/// product-wide: this owner also binds a static cross-compiled root.
+fn binding(
+    context: Context,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) shared_shell.Binding {
     return .{
-        .name = product.name,
-        .frontend = product.frontend,
-        .backend = product.backend,
-        .role = role,
-        .protocol_features = product.protocol_features,
+        .b = context.b,
+        .product = product,
+        .target = target,
+        .optimize = optimize,
     };
 }
 
-fn createAdapterModule(
-    context: Context,
-    protocol: graph.ProtocolModules,
-    stwo: *std.Build.Module,
-    capabilities: *std.Build.Module,
-    target: std.Build.ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
-) *std.Build.Module {
-    const module = graph.create(context.b, .{
-        .product = product,
-        .root_source_file = "src/integrations/riscv_cpu/proof_adapter.zig",
-        .target = target,
-        .optimize = optimize,
-    });
-    protocol.addImports(module);
-    module.addImport("stwo", stwo);
-    module.addImport("riscv_cpu_capabilities", capabilities);
-    module.addOptions("build_identity", graph_identity.buildOptions(context.b, context.identity));
-    return module;
+/// The binding for the host target, which every module but the static
+/// challenge executable's is created against.
+fn hostBinding(context: Context) shared_shell.Binding {
+    return binding(context, context.target, context.optimize);
 }
 
 fn createCapabilitiesModule(
@@ -517,43 +461,13 @@ fn createCapabilitiesModule(
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
 ) *std.Build.Module {
-    return graph.create(context.b, .{
-        .product = product,
-        .root_source_file = "src/products/riscv_cpu/capabilities.zig",
-        .target = target,
-        .optimize = optimize,
-    });
+    return binding(context, target, optimize).leafModule("src/products/riscv_cpu/capabilities.zig");
 }
 
-/// A shared focused-product shell module (`src/products/riscv_shared/*.zig`).
-/// The shell files import only `std`, so they need no protocol or facade
-/// imports: every product-specific module reaches them through the binding.
-/// Zig 0.15 forbids a relative `@import` that leaves the importing module's root
-/// directory, so each shared file the CPU root module names must be injected
-/// under its own module name rather than reached as `../riscv_shared/*.zig`.
-fn createSharedModule(
-    context: Context,
-    root_source_file: []const u8,
-    target: std.Build.ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
-) *std.Build.Module {
-    return graph.create(context.b, .{
-        .product = product,
-        .root_source_file = root_source_file,
-        .target = target,
-        .optimize = optimize,
-    });
-}
-
-fn createOutputTransaction(
+fn outputTransactionModule(
     context: Context,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
 ) *std.Build.Module {
-    return graph.create(context.b, .{
-        .product = product,
-        .root_source_file = "src/interop/output_transaction.zig",
-        .target = target,
-        .optimize = optimize,
-    });
+    return binding(context, target, optimize).leafModule("src/interop/output_transaction.zig");
 }

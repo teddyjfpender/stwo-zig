@@ -31,16 +31,9 @@
 //!   | `interop_postcard`       | `src/interop/postcard.zig`                    |
 //!   | `interop_riscv_artifact` | `src/interop/riscv_artifact.zig`              |
 //!
-//! The two `interop_*` names exist because the CPU facade
-//! (`src/stwo_riscv_cpu.zig`) reaches those files with relative imports from
-//! `src/`, while this product's facade root is
-//! `src/products/riscv_metal/root.zig`: Zig 0.15 rejects a relative `@import`
-//! that leaves the importing module's root directory ("import of file outside
-//! module path"), so the facade must receive them as named modules instead.
-//! There is no third module for `src/interop/atomic_file.zig`: the artifact
-//! writer imports it relatively, so it already belongs to the artifact module
-//! and a Zig file belongs to exactly one module. The facade re-exports it from
-//! there.
+//! The two `interop_*` names, and the absence of a third for
+//! `src/interop/atomic_file.zig`, both follow from Zig 0.15's module rules;
+//! `addInteropImports` below carries that explanation in full.
 
 const std = @import("std");
 const metal = @import("../backends/metal.zig");
@@ -50,6 +43,7 @@ const graph_identity = @import("../graph/identity.zig");
 const graph_install = @import("../graph/install.zig");
 const graph = @import("../graph/modules.zig");
 const product_policy = @import("../graph/product.zig");
+const shared_shell = @import("riscv_shared_shell.zig");
 
 const product = graph.Product{
     .name = "stwo-riscv-metal",
@@ -67,7 +61,7 @@ const source_closure = product_policy.SourceClosure{
         "src/integrations/riscv_metal/mod.zig",
         "src/tests/riscv/metal_backend_test.zig",
     },
-    .named_imports = &.{
+    .named_imports = &([_]product_policy.NamedImport{
         .{ .name = "stwo", .source = "src/products/riscv_metal/root.zig" },
         .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
@@ -81,13 +75,10 @@ const source_closure = product_policy.SourceClosure{
         .{ .name = "riscv_adapter", .source = "src/integrations/riscv_cpu/proof_adapter.zig" },
         .{ .name = "riscv_capabilities", .source = "src/products/riscv_metal/capabilities.zig" },
         .{ .name = "riscv_cpu_capabilities", .source = "src/products/riscv_metal/capabilities.zig" },
-        .{ .name = "riscv_shared_app", .source = "src/products/riscv_shared/app.zig" },
-        .{ .name = "riscv_shared_cli", .source = "src/products/riscv_shared/cli.zig" },
-        .{ .name = "riscv_shared_registry", .source = "src/products/riscv_shared/registry.zig" },
         .{ .name = "output_transaction", .source = "src/interop/output_transaction.zig" },
         .{ .name = "interop_postcard", .source = "src/interop/postcard.zig" },
         .{ .name = "interop_riscv_artifact", .source = "src/interop/riscv_artifact.zig" },
-    },
+    } ++ shared_shell.shell_named_imports),
     .allowed_files = &.{
         "src/riscv_metal_bench_cli.zig",
         "src/products/riscv_metal/root.zig",
@@ -171,13 +162,7 @@ pub fn addProduct(context: Context) void {
     );
     metal.linkRuntime(context.b, installed.executable);
 
-    const benchmark_product = graph.Product{
-        .name = product.name,
-        .frontend = product.frontend,
-        .backend = product.backend,
-        .role = .benchmark,
-        .protocol_features = product.protocol_features,
-    };
+    const benchmark_product = moduleProduct(.benchmark);
     const benchmark = graph_install.executable(
         context.b,
         "riscv-metal-bench",
@@ -230,7 +215,7 @@ pub fn addProduct(context: Context) void {
 ///
 /// Each file gets its own test root because Zig collects `test` declarations
 /// only from a test binary's root source file: a test rooted at `main.zig`
-/// resolves `@import("app.zig")` inside `main`'s body, which is never analysed
+/// resolves the `app.zig` import inside `main`'s body, which is never analysed
 /// in test mode, and reports "All 0 tests passed". Rooting per file also keeps
 /// each binary's module graph to what that file actually imports, so only the
 /// `app.zig` root pays for the facade and the Metal runtime.
@@ -243,17 +228,15 @@ fn addShellTests(context: Context, test_step: *std.Build.Step) void {
     metal.linkRuntime(b, app_tests);
     test_step.dependOn(&b.addRunArtifact(app_tests).step);
 
-    const cli = createLeafModule(context, "src/products/riscv_metal/cli.zig");
-    cli.addImport("riscv_shared_cli", createLeafModule(
-        context,
+    const cli = binding(context).leafModule("src/products/riscv_metal/cli.zig");
+    cli.addImport("riscv_shared_cli", binding(context).leafModule(
         "src/products/riscv_shared/cli.zig",
     ));
     test_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = cli })).step);
 
-    const registry = createLeafModule(context, "src/products/riscv_metal/registry.zig");
+    const registry = binding(context).leafModule("src/products/riscv_metal/registry.zig");
     registry.addImport("riscv_capabilities", capabilitiesModule(context));
-    registry.addImport("riscv_shared_registry", createLeafModule(
-        context,
+    registry.addImport("riscv_shared_registry", binding(context).leafModule(
         "src/products/riscv_shared/registry.zig",
     ));
     registry.addOptions("product_identity", graph_identity.productOptions(
@@ -286,7 +269,15 @@ fn rootModule(
     const b = context.b;
     const stwo = createFacadeModule(context, moduleProduct(.library));
     const capabilities = capabilitiesModule(context);
-    const adapter = createAdapterModule(context, stwo, capabilities);
+    // The engine-generic adapter keeps the historical `riscv_cpu_capabilities`
+    // import name, bound here to *this* product's capability file — the one
+    // that reports `backend = "metal"`.
+    const adapter = binding(context).adapterModule(.{
+        .protocol = context.protocol,
+        .identity = context.identity,
+        .stwo = stwo,
+        .capabilities = capabilities,
+    });
     const root = graph.create(b, .{
         .product = identity_product,
         .root_source_file = root_source_file,
@@ -299,20 +290,8 @@ fn rootModule(
     root.addImport("riscv_adapter", adapter);
     root.addImport("riscv_capabilities", capabilities);
     root.addImport("riscv_cpu_capabilities", capabilities);
-    root.addImport("riscv_shared_app", createLeafModule(
-        context,
-        "src/products/riscv_shared/app.zig",
-    ));
-    root.addImport("riscv_shared_registry", createLeafModule(
-        context,
-        "src/products/riscv_shared/registry.zig",
-    ));
-    root.addImport("riscv_shared_cli", createLeafModule(
-        context,
-        "src/products/riscv_shared/cli.zig",
-    ));
-    root.addImport("output_transaction", createLeafModule(
-        context,
+    binding(context).addShellImports(root);
+    root.addImport("output_transaction", binding(context).leafModule(
         "src/interop/output_transaction.zig",
     ));
     root.addOptions("build_identity", graph_identity.buildOptions(b, context.identity));
@@ -329,47 +308,25 @@ fn rootModule(
     return root;
 }
 
-/// The engine-generic proof adapter. It is shared verbatim with the CPU
-/// product, so it keeps the historical `riscv_cpu_capabilities` import name —
-/// here bound to *this* product's capability file, which reports
-/// `backend = "metal"`.
-fn createAdapterModule(
-    context: Context,
-    stwo: *std.Build.Module,
-    capabilities: *std.Build.Module,
-) *std.Build.Module {
-    const module = graph.create(context.b, .{
-        .product = product,
-        .root_source_file = "src/integrations/riscv_cpu/proof_adapter.zig",
-        .target = context.target,
-        .optimize = context.optimize,
-    });
-    context.protocol.addImports(module);
-    module.addImport("stwo", stwo);
-    module.addImport("riscv_cpu_capabilities", capabilities);
-    module.addOptions("build_identity", graph_identity.buildOptions(context.b, context.identity));
-    return module;
-}
-
 /// This product's capability surface. It is one module reached under two names:
 /// `riscv_capabilities` by this product's own shell files, and
 /// `riscv_cpu_capabilities` by the shared adapter, which hard-codes that
 /// historical name. Both must resolve to *this* file — the one that reports
 /// `backend = "metal"`.
 fn capabilitiesModule(context: Context) *std.Build.Module {
-    return createLeafModule(context, "src/products/riscv_metal/capabilities.zig");
+    return binding(context).leafModule("src/products/riscv_metal/capabilities.zig");
 }
 
-/// A product-local module whose source imports nothing but `std` and its own
-/// directory. The shared shell files, the capability file and the interop
-/// wire files are all in this class.
-fn createLeafModule(context: Context, root_source_file: []const u8) *std.Build.Module {
-    return graph.create(context.b, .{
+/// How this product creates its own leaf modules, its shared shell modules and
+/// the engine-generic adapter: always against the CLI product identity and the
+/// host target/optimize pair.
+fn binding(context: Context) shared_shell.Binding {
+    return .{
+        .b = context.b,
         .product = product,
-        .root_source_file = root_source_file,
         .target = context.target,
         .optimize = context.optimize,
-    });
+    };
 }
 
 fn createModule(
@@ -424,7 +381,7 @@ fn addInteropImports(
     logical_product: graph.Product,
     facade: *std.Build.Module,
 ) void {
-    const postcard = createLeafModule(context, "src/interop/postcard.zig");
+    const postcard = binding(context).leafModule("src/interop/postcard.zig");
     postcard.addImport("stwo_core", context.protocol.core);
     postcard.addImport("stwo_proof_wire", graph.createProofWire(
         context.b,
@@ -435,8 +392,7 @@ fn addInteropImports(
     ));
 
     facade.addImport("interop_postcard", postcard);
-    facade.addImport("interop_riscv_artifact", createLeafModule(
-        context,
+    facade.addImport("interop_riscv_artifact", binding(context).leafModule(
         "src/interop/riscv_artifact.zig",
     ));
 }
@@ -484,13 +440,7 @@ fn createDependencies(
 }
 
 fn moduleProduct(role: graph.Role) graph.Product {
-    return .{
-        .name = product.name,
-        .frontend = product.frontend,
-        .backend = product.backend,
-        .role = role,
-        .protocol_features = product.protocol_features,
-    };
+    return shared_shell.roleProduct(product, role);
 }
 
 fn testProduct() graph.Product {
