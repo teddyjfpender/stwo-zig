@@ -11,8 +11,12 @@ Inventory scope:
 
 Generated, vendored, cache, and build-output directories are excluded. Repository-
 local Zig, Metal, Python, build, Cargo, and Rust module edges are resolved where
-their syntax is static. External package imports and dynamically constructed build
-paths remain outside this source-layout check.
+their syntax is static and outside comments. External package imports and
+dynamically constructed build paths remain outside this source-layout check.
+
+Every size ceiling also reports a non-failing warning once a file has consumed
+most of it, so the ceiling is visible to whoever spends the headroom rather than
+only to whoever next touches the file.
 """
 
 from __future__ import annotations
@@ -25,11 +29,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 try:
-    from scripts.source_conformance_lib import build_graph, owners, python_graph, rust_graph
-    from scripts.source_conformance_lib.model import Finding
+    from scripts.source_conformance_lib import build_graph, comments, owners, policy, python_graph, rust_graph
+    from scripts.source_conformance_lib.model import Finding, headroom, is_headroom
 except ModuleNotFoundError:  # Direct execution adds scripts/, not the repository root.
-    from source_conformance_lib import build_graph, owners, python_graph, rust_graph
-    from source_conformance_lib.model import Finding
+    from source_conformance_lib import build_graph, comments, owners, policy, python_graph, rust_graph
+    from source_conformance_lib.model import Finding, headroom, is_headroom
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -147,7 +151,8 @@ def is_generated(text: str) -> bool:
     )
 
 
-def scan(repo: Path) -> list[Finding]:
+def measure(repo: Path) -> list[Finding]:
+    """Return source-layout breaches together with non-failing headroom notices."""
     src_root = repo / "src"
     shader_include_root = src_root / "backends/metal/shaders/include"
     findings: list[Finding] = []
@@ -156,15 +161,24 @@ def scan(repo: Path) -> list[Finding]:
         relative = owned_source.display_path
         text = source.read_text(encoding="utf-8")
         line_count = len(text.splitlines())
-        if line_count > MANUAL_SOURCE_CEILING and not is_generated(text):
-            findings.append(Finding(
-                f"file-size:{relative.as_posix()}",
-                f"{relative}: {line_count} lines exceeds the {MANUAL_SOURCE_CEILING}-line manual-source ceiling",
-                line_count,
-            ))
+        if not is_generated(text):
+            if line_count > MANUAL_SOURCE_CEILING:
+                findings.append(Finding(
+                    f"file-size:{relative.as_posix()}",
+                    f"{relative}: {line_count} lines exceeds the {MANUAL_SOURCE_CEILING}-line manual-source ceiling",
+                    line_count,
+                ))
+            else:
+                findings.extend(headroom(
+                    f"file-size:{relative.as_posix()}",
+                    relative,
+                    line_count,
+                    MANUAL_SOURCE_CEILING,
+                    "manual-source ceiling",
+                ))
 
         if owned_source.category == "src" and source.suffix == ".metal":
-            for imported in MSL_INCLUDE_RE.findall(text):
+            for imported in MSL_INCLUDE_RE.findall(comments.strip_c(text)):
                 if not imported.startswith(MSL_INCLUDE_PREFIX):
                     findings.append(Finding(
                         f"shader-include:{relative.as_posix()}->{imported}",
@@ -204,7 +218,7 @@ def scan(repo: Path) -> list[Finding]:
         forbidden = FORBIDDEN_TARGETS.get(source_layer, frozenset())
         if not forbidden:
             continue
-        for imported in IMPORT_RE.findall(text):
+        for imported in IMPORT_RE.findall(comments.strip_zig(text)):
             target = relative_import(source, imported, src_root)
             if target is None or len(target.parts) < 2:
                 continue
@@ -219,6 +233,26 @@ def scan(repo: Path) -> list[Finding]:
     findings.extend(rust_graph.scan(repo))
     findings.extend(owners.scan(repo))
     return sorted(set(findings))
+
+
+def scan(repo: Path) -> list[Finding]:
+    """Return only the breaches the baseline ratchets; headroom notices never fail."""
+    return [finding for finding in measure(repo) if not is_headroom(finding)]
+
+
+def report_headroom(notices: list[Finding]) -> None:
+    """Warn about sizes nearing a ceiling, tightest first, without failing the run."""
+    def remaining(notice: Finding) -> tuple[int, str]:
+        return (notice.limit or 0) - (notice.line_count or 0), notice.key
+
+    for notice in sorted(notices, key=remaining):
+        print(f"warning: {notice.message}", file=sys.stderr)
+    if notices:
+        print(
+            f"warning: {len(notices)} measured size(s) have consumed at least "
+            f"{policy.HEADROOM_PERCENT}% of a ceiling",
+            file=sys.stderr,
+        )
 
 
 def load_baseline(path: Path) -> dict[str, dict[str, object]]:
@@ -336,7 +370,9 @@ def main(argv: list[str] | None = None) -> int:
 
     repo = args.repo.resolve()
     baseline_path = args.baseline if args.baseline.is_absolute() else repo / args.baseline
-    findings = scan(repo)
+    measured = measure(repo)
+    findings = [finding for finding in measured if not is_headroom(finding)]
+    report_headroom([finding for finding in measured if is_headroom(finding)])
     if args.update_baseline:
         write_baseline(baseline_path, findings)
         try:

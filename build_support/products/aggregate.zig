@@ -141,7 +141,12 @@ pub fn descriptorFor(metal: bool) policy.Descriptor {
 }
 
 test "aggregate product closures cannot own deferred implementation trees" {
-    const std = @import("std");
+    inline for (.{ cpu_source_closure, metal_source_closure }) |closure| {
+        try rejectDeferredOwnership(closure);
+    }
+}
+
+fn rejectDeferredOwnership(closure: policy.SourceClosure) !void {
     const deferred = [_][]const u8{
         "src/backends/cuda",
         "src/frontends/cairo",
@@ -149,17 +154,18 @@ test "aggregate product closures cannot own deferred implementation trees" {
         "src/integrations/cairo_metal",
         "src/backends/metal/cairo",
     };
-    inline for (.{ cpu_source_closure, metal_source_closure }) |closure| {
+    for (deferred) |blocked| {
         for (closure.allowed_prefixes) |allowed| {
-            for (deferred) |blocked| {
-                try std.testing.expect(!owns(allowed, blocked));
-            }
+            if (owns(allowed, blocked)) return error.DeferredTreeOwnedByPrefix;
+        }
+        for (closure.allowed_files) |allowed| {
+            if (owns(blocked, allowed)) return error.DeferredTreeOwnedByFile;
         }
     }
 }
 
-fn owns(allowed: []const u8, blocked: []const u8) bool {
+fn owns(container: []const u8, member: []const u8) bool {
     const std = @import("std");
-    return std.mem.eql(u8, allowed, blocked) or
-        (std.mem.startsWith(u8, blocked, allowed) and blocked[allowed.len] == '/');
+    return std.mem.eql(u8, container, member) or
+        (std.mem.startsWith(u8, member, container) and member[container.len] == '/');
 }

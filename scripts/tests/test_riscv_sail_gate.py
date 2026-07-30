@@ -6,6 +6,10 @@ PR, so corpus or pin movement without regenerated live evidence goes red even
 on hosts that have never built Sail. The live differential itself is
 exercised by the hosted riscv-sail-differential workflow and by
 `riscv_sail_gate.py run`; nothing here pretends to consult Sail.
+
+The workflow contracts at the bottom are the other half of the same idea:
+the hosted job must not be able to report success without having run, so the
+receipts the gate writes and the verdict job reads are asserted end to end.
 """
 
 from __future__ import annotations
@@ -13,14 +17,18 @@ from __future__ import annotations
 import contextlib
 import io
 import json
+import os
+import re
 import shutil
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from scripts import riscv_sail_gate as gate
 
 ROOT = Path(__file__).resolve().parents[2]
+WORKFLOW_PATH = Path(".github/workflows/riscv-sail-differential.yml")
 
 
 def _copy_binding_inputs(destination: Path) -> tuple[Path, Path]:
@@ -153,6 +161,114 @@ class ScopeTest(unittest.TestCase):
             self.assertTrue((ROOT / prefix).exists(), prefix)
 
 
+class PreflightTest(unittest.TestCase):
+    """The unconditional half: the pinned toolchain must work on this host.
+
+    A warm toolchain cache must not be able to stand in for a functional
+    toolchain, so these run against the real dependency resolution rather
+    than against a recorded verdict.
+    """
+
+    def test_absent_dependencies_are_all_named_and_leave_no_receipt(self) -> None:
+        # An empty PATH is every provisioning fault at once: no SMT solver,
+        # no Sail compiler, no dtc. Each must be named -- "the differential
+        # step did not run" is exactly the diagnosis this step exists to
+        # replace -- and nothing may be written that the workflow's verdict
+        # job could mistake for a functional toolchain.
+        with tempfile.TemporaryDirectory() as tmp:
+            receipts = Path(tmp) / "github-output"
+            stderr = io.StringIO()
+            with (
+                mock.patch.dict(os.environ, {"PATH": tmp}),
+                contextlib.redirect_stderr(stderr),
+            ):
+                returncode = gate.preflight(
+                    workspace=Path(tmp) / "never-prepared",
+                    sail_compiler=None,
+                    cache_hit=True,
+                    github_output=receipts,
+                )
+            self.assertEqual(returncode, gate.EXIT_TOOLCHAIN_UNAVAILABLE)
+            self.assertFalse(receipts.exists())
+        output = stderr.getvalue()
+        self.assertIn(gate.SMT_SOLVER, output)
+        self.assertIn("Sail compiler", output)
+        self.assertIn("dtc", output)
+        self.assertIn("NOT FUNCTIONAL", output)
+
+    def _functional_toolchain(
+        self, stack: contextlib.ExitStack, state: str
+    ) -> None:
+        """Every pinned dependency resolves; the workspace is in `state`."""
+        for patch in (
+            mock.patch.object(gate.shutil, "which", return_value="/usr/bin/z3"),
+            mock.patch.object(
+                gate.formal_tools,
+                "resolve_sail_compiler",
+                return_value=Path("/opt/sail/bin/sail"),
+            ),
+            mock.patch.object(
+                gate.formal_tools,
+                "require_device_tree_compiler",
+                return_value=Path("/usr/bin/dtc"),
+            ),
+            mock.patch.object(gate, "workspace_state", return_value=state),
+        ):
+            stack.enter_context(patch)
+
+    def test_a_functional_toolchain_writes_the_receipt_the_verdict_reads(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            receipts = Path(tmp) / "github-output"
+            with contextlib.ExitStack() as stack:
+                self._functional_toolchain(stack, "warm")
+                stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
+                returncode = gate.preflight(
+                    workspace=Path(tmp) / "workspace",
+                    sail_compiler=None,
+                    cache_hit=True,
+                    github_output=receipts,
+                )
+            self.assertEqual(returncode, gate.EXIT_PASS)
+            self.assertEqual(
+                "toolchain_health=functional\ncache_state=warm\n",
+                receipts.read_text(encoding="utf-8"),
+            )
+
+    def test_a_corrupt_restored_cache_is_reported_and_left_to_the_rebuild(self) -> None:
+        # Fail-closed here would mean fail-shut: `run --prepare-on-miss`
+        # rebuilds from pins and the differential still runs, which is the
+        # outcome this gate wants. Silence is what it cannot afford.
+        with tempfile.TemporaryDirectory() as tmp:
+            receipts = Path(tmp) / "github-output"
+            stderr = io.StringIO()
+            with contextlib.ExitStack() as stack:
+                self._functional_toolchain(stack, "corrupt")
+                stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
+                stack.enter_context(contextlib.redirect_stderr(stderr))
+                returncode = gate.preflight(
+                    workspace=Path(tmp) / "workspace",
+                    sail_compiler=None,
+                    cache_hit=True,
+                    github_output=receipts,
+                )
+            self.assertEqual(returncode, gate.EXIT_PASS)
+            self.assertIn("cache_state=corrupt", receipts.read_text(encoding="utf-8"))
+        self.assertIn("restored toolchain cache is corrupt", stderr.getvalue())
+
+    def test_workspace_state_separates_never_built_from_unusable(self) -> None:
+        profile = gate.formal_tools.load_profile()
+        compiler = Path("/opt/sail/bin/sail")
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            self.assertEqual("cold", gate.workspace_state(workspace, profile, compiler))
+            paths = gate.formal_tools.ToolPaths(workspace.resolve())
+            paths.sail_binary.parent.mkdir(parents=True)
+            paths.sail_binary.write_bytes(b"")
+            self.assertEqual(
+                "corrupt", gate.workspace_state(workspace, profile, compiler)
+            )
+
+
 class RunFailClosedTest(unittest.TestCase):
     def test_missing_workspace_is_red_and_names_what_was_not_checked(self) -> None:
         # Regardless of whether this host has the pinned Sail compiler, an
@@ -179,6 +295,132 @@ class RunFailClosedTest(unittest.TestCase):
             f"{committed['retirements']} retirements were NOT re-checked",
             output,
         )
+
+    def test_an_unavailable_toolchain_refuses_to_warm_the_next_run(self) -> None:
+        # The workflow's save step keys on this receipt. A cache entry is
+        # immutable once written under its key, so publishing the workspace
+        # of a run whose toolchain never came up would hand every later run a
+        # restore it cannot replace.
+        with tempfile.TemporaryDirectory() as tmp:
+            receipts = Path(tmp) / "github-output"
+            with contextlib.redirect_stderr(io.StringIO()):
+                returncode = gate.run_gate(
+                    workspace=Path(tmp) / "never-prepared",
+                    sail_compiler=None,
+                    prepare_on_miss=False,
+                    jobs=1,
+                    trace_dump_bin=None,
+                    report_out=None,
+                    github_output=receipts,
+                )
+            self.assertEqual(returncode, gate.EXIT_TOOLCHAIN_UNAVAILABLE)
+            self.assertEqual(
+                "differential_ran=false\ntoolchain_state=unavailable\n",
+                receipts.read_text(encoding="utf-8"),
+            )
+
+
+class WorkflowContractTest(unittest.TestCase):
+    """The hosted job must not be able to report success without running.
+
+    These read the workflow text because that text is what GitHub executes.
+    Each assertion pins one link of the chain: a receipt that no step writes,
+    a step that stops running unconditionally, or a verdict that stops
+    reading a receipt would each restore the failure this gate was built to
+    remove -- a green check that means "the cache was warm".
+    """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.workflow = (ROOT / WORKFLOW_PATH).read_text(encoding="utf-8")
+        cls.live_job = cls.workflow.split("  differential:", 1)[1].split(
+            "  verdict:", 1
+        )[0]
+        cls.verdict_job = cls.workflow.split("  verdict:", 1)[1]
+
+    def _step(self, job: str, name: str) -> str:
+        return job.split(f"- name: {name}", 1)[1].split("      - name:", 1)[0]
+
+    def test_provisioning_and_preflight_run_on_every_path(self) -> None:
+        # A cache hit must not be able to bypass either the install steps or
+        # the assertion that the pinned toolchain actually works, and the
+        # assertion has to come before the expensive gate so a provisioning
+        # fault reads as one.
+        for step in (
+            "Install the pinned Spike and Sail system dependencies",
+            "Install the pinned Sail compiler release binary",
+            "Assert the pinned toolchain is functional (cache hit or miss)",
+        ):
+            with self.subTest(step=step):
+                self.assertNotIn("if:", self._step(self.live_job, step))
+        self.assertLess(
+            self.live_job.index("riscv_sail_gate.py preflight"),
+            self.live_job.index("riscv_sail_gate.py run"),
+        )
+        for command in ("preflight", "run"):
+            self.assertIn(
+                f"riscv_sail_gate.py {command}",
+                self.live_job,
+            )
+        self.assertEqual(2, self.live_job.count('--github-output "$GITHUB_OUTPUT"'))
+
+    def test_every_receipt_is_written_exported_and_required(self) -> None:
+        for receipt, step_id in (
+            ("toolchain_health", "preflight"),
+            ("differential_ran", "differential"),
+            ("sail_leg", "sail_leg"),
+        ):
+            with self.subTest(receipt=receipt):
+                self.assertIn(f"id: {step_id}\n", self.live_job)
+                self.assertIn(
+                    f"{receipt}: ${{{{ steps.{step_id}.outputs.{receipt} }}}}",
+                    self.live_job,
+                )
+                self.assertIn(
+                    f"needs.differential.outputs.{receipt}", self.verdict_job
+                )
+        self.assertIn('echo "sail_leg=required" >> "$GITHUB_OUTPUT"', self.live_job)
+        for requirement in (
+            'require "$DIFFERENTIAL_RESULT" success',
+            'require "$TOOLCHAIN_HEALTH" functional',
+            'require "$DIFFERENTIAL_RAN" true',
+            'require "$SAIL_LEG" required',
+        ):
+            with self.subTest(requirement=requirement):
+                self.assertIn(requirement, self.verdict_job)
+
+    def test_a_scope_that_did_not_decide_is_not_read_as_out_of_scope(self) -> None:
+        # An unset or garbled live_required would otherwise fall into the
+        # not-selected arm, where a skipped job is the expected shape, and
+        # pass with nothing having run anywhere.
+        self.assertIn("true|false)", self.verdict_job)
+        self.assertIn("no live_required decision", self.verdict_job)
+        self.assertIn(
+            'require "$TOOLCHAIN_HEALTH$DIFFERENTIAL_RAN$SAIL_LEG" ""',
+            self.verdict_job,
+        )
+
+    def test_one_cache_key_covers_the_whole_toolchain_recipe(self) -> None:
+        keys = re.findall(r"^ +key: (riscv-formal-.+)$", self.workflow, re.MULTILINE)
+        self.assertEqual(2, len(keys))
+        self.assertEqual(keys[0], keys[1], "restore and save keys must match")
+        for ingredient in (
+            "conformance/riscv/rv32im-sail-profile.json",
+            "conformance/riscv/sail-rvfi-zkvm-entry.patch",
+            "conformance/riscv/sail-rv32im-override.json",
+            "conformance/riscv/sail-rv32im-tagged-options.json",
+            "scripts/riscv_formal_tools.py",
+        ):
+            with self.subTest(ingredient=ingredient):
+                self.assertIn(ingredient, keys[0])
+
+    def test_only_a_workspace_the_gate_proved_usable_is_cached(self) -> None:
+        save = self._step(self.live_job, "Save pinned formal toolchain workspace")
+        for state in ("verified", "rebuilt"):
+            with self.subTest(state=state):
+                self.assertIn(
+                    f"steps.differential.outputs.toolchain_state == '{state}'", save
+                )
 
 
 if __name__ == "__main__":

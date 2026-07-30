@@ -1,8 +1,9 @@
 """Mechanically enforce thin active build, command, test, and evidence roots.
 
 The rules apply to named architectural roots, not every implementation module.
-Python functions are measured from the AST; Zig ``main`` bodies use a conservative
-brace scan and therefore cover ordinary entry points, not generated syntax.
+Python functions are measured from the AST; Zig and Rust declarations are matched
+against comment-blanked text, and Zig ``main`` bodies use a conservative brace
+scan and therefore cover ordinary entry points, not generated syntax.
 """
 
 from __future__ import annotations
@@ -11,9 +12,9 @@ import ast
 import re
 from pathlib import Path
 
-from . import policy
+from . import comments, policy
 from .common import is_deferred, iter_tree_sources
-from .model import Finding
+from .model import Finding, headroom
 
 
 def zig_main_lines(text: str) -> int | None:
@@ -52,7 +53,8 @@ def is_zig_root(relative: Path, text: str) -> bool:
 
 
 def scan_zig(relative: Path, text: str) -> list[Finding]:
-    if not is_zig_root(relative, text):
+    code = comments.strip_zig(text)
+    if not is_zig_root(relative, code):
         return []
     line_count = len(text.splitlines())
     findings: list[Finding] = []
@@ -62,12 +64,30 @@ def scan_zig(relative: Path, text: str) -> list[Finding]:
             f"{relative}: active Zig command/test owner exceeds the {policy.ZIG_OWNER_CEILING}-line ceiling",
             line_count,
         ))
-    main_lines = zig_main_lines(text)
-    if main_lines is not None and main_lines > policy.ZIG_ENTRYPOINT_CEILING:
+    else:
+        findings.extend(headroom(
+            f"thin-owner:{relative.as_posix()}",
+            relative,
+            line_count,
+            policy.ZIG_OWNER_CEILING,
+            "active Zig command/test owner ceiling",
+        ))
+    main_lines = zig_main_lines(code)
+    if main_lines is None:
+        return findings
+    if main_lines > policy.ZIG_ENTRYPOINT_CEILING:
         findings.append(Finding(
             f"thin-owner:{relative.as_posix()}",
             f"{relative}: Zig entry point is {main_lines} lines; active command roots are capped at {policy.ZIG_ENTRYPOINT_CEILING}",
             main_lines,
+        ))
+    else:
+        findings.extend(headroom(
+            f"thin-owner:{relative.as_posix()}",
+            relative,
+            main_lines,
+            policy.ZIG_ENTRYPOINT_CEILING,
+            "Zig entry-point ceiling",
         ))
     return findings
 
@@ -83,14 +103,30 @@ def scan_build(repo: Path) -> list[Finding]:
                 f"build.zig: public build graph exceeds the {policy.BUILD_ROOT_CEILING}-line owner ceiling",
                 line_count,
             ))
+        else:
+            findings.extend(headroom(
+                "thin-owner:build.zig",
+                "build.zig",
+                line_count,
+                policy.BUILD_ROOT_CEILING,
+                "public build graph owner ceiling",
+            ))
     for source in iter_tree_sources(repo / "build_support", frozenset({".zig", ".py"})):
         line_count = len(source.read_text(encoding="utf-8").splitlines())
+        display = source.relative_to(repo)
         if line_count > policy.BUILD_SUPPORT_CEILING:
-            display = source.relative_to(repo)
             findings.append(Finding(
                 f"thin-owner:{display.as_posix()}",
                 f"{display}: build-support owner exceeds the {policy.BUILD_SUPPORT_CEILING}-line ceiling",
                 line_count,
+            ))
+        else:
+            findings.extend(headroom(
+                f"thin-owner:{display.as_posix()}",
+                display,
+                line_count,
+                policy.BUILD_SUPPORT_CEILING,
+                "build-support owner ceiling",
             ))
     return findings
 
@@ -108,6 +144,14 @@ def scan_python_roots(repo: Path) -> list[Finding]:
                 f"thin-owner:{relative}",
                 f"{relative}: active evidence root exceeds the {policy.PYTHON_ROOT_CEILING}-line owner ceiling",
                 line_count,
+            ))
+        else:
+            findings.extend(headroom(
+                f"thin-owner:{relative}",
+                relative,
+                line_count,
+                policy.PYTHON_ROOT_CEILING,
+                "active evidence root owner ceiling",
             ))
         try:
             tree = ast.parse(text, filename=relative)
@@ -144,6 +188,14 @@ def scan_python_roots(repo: Path) -> list[Finding]:
                 f"{relative}: main exceeds the {policy.PYTHON_ENTRYPOINT_CEILING}-line entrypoint ceiling",
                 main_lines,
             ))
+        else:
+            findings.extend(headroom(
+                f"thin-owner:{relative}",
+                relative,
+                main_lines,
+                policy.PYTHON_ENTRYPOINT_CEILING,
+                "entrypoint ceiling",
+            ))
     return findings
 
 
@@ -162,6 +214,14 @@ def scan_python_controllers(repo: Path) -> list[Finding]:
                 f"{display}: cohesive evidence controller exceeds the "
                 f"{policy.PYTHON_CONTROLLER_CEILING}-line soft ceiling",
                 line_count,
+            ))
+        else:
+            findings.extend(headroom(
+                f"deep-controller:{display.as_posix()}",
+                display,
+                line_count,
+                policy.PYTHON_CONTROLLER_CEILING,
+                "evidence controller soft ceiling",
             ))
         root_name = policy.PYTHON_CONTROLLER_ROOTS.get(
             source.parent.name,
@@ -184,13 +244,25 @@ def scan_rust(repo: Path) -> list[Finding]:
             continue
         text = root.read_text(encoding="utf-8")
         line_count = len(text.splitlines())
-        has_module = re.search(r"^\s*(?:pub\s+)?mod\s+\w+\s*;", text, re.MULTILINE)
+        has_module = re.search(
+            r"^\s*(?:pub\s+)?mod\s+\w+\s*;",
+            comments.strip_c(text),
+            re.MULTILINE,
+        )
+        display = root.relative_to(repo)
         if line_count > policy.RUST_ENTRYPOINT_CEILING or has_module is None:
-            display = root.relative_to(repo)
             findings.append(Finding(
                 f"thin-owner:{display.as_posix()}",
                 f"{display}: Native Rust root must delegate to modules and stay at or below {policy.RUST_ENTRYPOINT_CEILING} lines",
                 line_count,
+            ))
+        else:
+            findings.extend(headroom(
+                f"thin-owner:{display.as_posix()}",
+                display,
+                line_count,
+                policy.RUST_ENTRYPOINT_CEILING,
+                "Native Rust root ceiling",
             ))
     return findings
 

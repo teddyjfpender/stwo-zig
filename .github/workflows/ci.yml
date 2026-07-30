@@ -1030,7 +1030,7 @@ jobs:
             --run-id "$GITHUB_RUN_ID" \
             --run-attempt "$GITHUB_RUN_ATTEMPT" \
             --cli zig-out/bin/stwo-zig-riscv-cpu-x86_64-linux-musl \
-            --trace-cli zig-out/bin/riscv-trace-dump \
+            --trace-cli zig-out/bin/riscv-trace-dump-x86_64-linux-musl \
             --output "$RISCV_CHALLENGE_PATH"
 
       - name: Execute isolated secure challenge
@@ -1046,7 +1046,7 @@ jobs:
             --run-id "$GITHUB_RUN_ID" \
             --run-attempt "$GITHUB_RUN_ATTEMPT" \
             --cli zig-out/bin/stwo-zig-riscv-cpu-x86_64-linux-musl \
-            --trace-cli zig-out/bin/riscv-trace-dump \
+            --trace-cli zig-out/bin/riscv-trace-dump-x86_64-linux-musl \
             --challenge "$RISCV_CHALLENGE_PATH" \
             --evidence-dir "$RISCV_FAST_EVIDENCE_DIR" \
             --replay-ledger "$RISCV_REPLAY_LEDGER" \

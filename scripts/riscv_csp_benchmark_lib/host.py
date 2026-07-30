@@ -25,6 +25,46 @@ def _sysctl(name: str) -> str | None:
     return None
 
 
+def _pmset(*arguments: str) -> list[str]:
+    """Return ``pmset`` output lines, empty when the tool is unavailable."""
+    try:
+        completed = subprocess.run(
+            ["pmset", *arguments],
+            capture_output=True,
+            check=False,
+            timeout=5,
+            text=True,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return []
+    if completed.returncode != 0:
+        return []
+    return completed.stdout.splitlines()
+
+
+def _power_evidence() -> tuple[str | None, bool | None]:
+    """Capture power source and low-power state, fail-soft to ``None``.
+
+    Battery power throttles sustained multi-core CPU work on Apple Silicon
+    while leaving the GPU largely unaffected, so it inflates every CPU-vs-GPU
+    ratio.  Per-sample variance stays small under throttling, so a stable
+    looking run is not evidence of a valid one and this must be recorded.
+    Hosts without ``pmset`` degrade to unknown rather than failing.
+    """
+    source: str | None = None
+    for line in _pmset("-g", "batt"):
+        if line.startswith("Now drawing from '") and line.endswith("'"):
+            source = line.split("'")[1] or None
+            break
+    low_power_mode: bool | None = None
+    for line in _pmset("-g"):
+        fields = line.split()
+        if len(fields) == 2 and fields[0] == "powermode" and fields[1].isdigit():
+            low_power_mode = int(fields[1]) == 1
+            break
+    return source, low_power_mode
+
+
 def _gpu_evidence() -> dict[str, Any]:
     """Capture GPU identity, fail-soft to all-``None`` fields.
 
@@ -97,6 +137,7 @@ def collect_host() -> dict[str, Any]:
     cpu = _sysctl("machdep.cpu.brand_string") or platform.processor() or "unknown"
     memory_raw = _sysctl("hw.memsize")
     memory = int(memory_raw) if memory_raw and memory_raw.isdigit() else None
+    power_source, low_power_mode = _power_evidence()
     return {
         "os": platform.system(),
         "os_version": platform.mac_ver()[0] or platform.release(),
@@ -106,6 +147,8 @@ def collect_host() -> dict[str, Any]:
         "logical_cpu_count": os.cpu_count(),
         "memory_bytes": memory,
         "gpu": _gpu_evidence(),
+        "power_source": power_source,
+        "low_power_mode": low_power_mode,
         "python": platform.python_version(),
     }
 
@@ -135,3 +178,49 @@ def official_host_match(
                 "CSP publication host requires Metal support evidence"
             )
     return not reasons, reasons
+
+
+def power_conditions_admissible(
+    host: Mapping[str, Any],
+) -> tuple[bool, list[str]]:
+    """Decide whether the run's power conditions can carry published timings.
+
+    Kept separate from ``official_host_match`` because this is a property of
+    the run, not of the hardware: the official host on battery and a foreign
+    host on AC are different defects and must not collapse into one reason
+    list.  Both feed the report's single ``result_class`` notion.
+    """
+    reasons: list[str] = []
+    source = host.get("power_source")
+    if source != "AC Power":
+        reasons.append(
+            "CSP-comparable timings require AC power (observed: "
+            f"{source or 'no power-source evidence'})"
+        )
+    low_power_mode = host.get("low_power_mode")
+    if low_power_mode is not False:
+        reasons.append(
+            "CSP-comparable timings require low power mode disabled "
+            f"(observed: {'enabled' if low_power_mode else 'no evidence'})"
+        )
+    return not reasons, reasons
+
+
+def classify_result(
+    *,
+    host_matches: bool,
+    power_admissible: bool,
+    complete_matrix: bool,
+    memory_available: bool,
+) -> str:
+    """Classify a run for publication against the CSP publication host.
+
+    Throttled runs get their own class ahead of the host comparison: a
+    battery-captured run is not merely host-qualified, it is not a valid
+    measurement of anything and must never be read as one.
+    """
+    if not power_admissible:
+        return "power-condition-non-publishable"
+    if host_matches and complete_matrix and memory_available:
+        return "official-host-comparable"
+    return "host-qualified-non-comparable"

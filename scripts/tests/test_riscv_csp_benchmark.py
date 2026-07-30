@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -10,7 +11,9 @@ from unittest import mock
 
 from scripts import riscv_cli_admission
 from scripts import riscv_csp_benchmark as csp
+from scripts.riscv_csp_benchmark_lib import build_identity as csp_build_identity
 from scripts.riscv_csp_benchmark_lib import contract as csp_contract
+from scripts.riscv_csp_benchmark_lib import host as csp_host
 
 
 class ManifestContractTests(unittest.TestCase):
@@ -233,9 +236,11 @@ class HostEvidenceTests(unittest.TestCase):
                 "gpu",
                 "kernel",
                 "logical_cpu_count",
+                "low_power_mode",
                 "memory_bytes",
                 "os",
                 "os_version",
+                "power_source",
                 "python",
             },
             set(host),
@@ -247,6 +252,237 @@ class HostEvidenceTests(unittest.TestCase):
             {"name", "core_count", "metal_support", "unified_memory"},
             set(host["gpu"]),
         )
+
+    def test_power_evidence_is_captured_like_gpu_evidence(self) -> None:
+        host = csp.collect_host()
+        self.assertIn(type(host["power_source"]), (str, type(None)))
+        self.assertIn(type(host["low_power_mode"]), (bool, type(None)))
+
+
+class PowerEvidenceCaptureTests(unittest.TestCase):
+    BATTERY = "Now drawing from 'Battery Power'\n -InternalBattery-0 90%\n"
+    SETTINGS = "System-wide power settings:\nCurrently in use:\n powermode 1\n"
+
+    @staticmethod
+    def pmset(outputs: dict[tuple[str, ...], str]):
+        def run(command, **_: object):
+            key = tuple(command[1:])
+            if key not in outputs:
+                raise OSError("pmset is unavailable")
+            return subprocess.CompletedProcess(command, 0, outputs[key], "")
+
+        return run
+
+    def test_pmset_output_becomes_power_evidence(self) -> None:
+        run = self.pmset(
+            {
+                ("-g", "batt"): self.BATTERY,
+                ("-g",): self.SETTINGS,
+            }
+        )
+        with mock.patch.object(csp_host.subprocess, "run", run):
+            self.assertEqual(("Battery Power", True), csp_host._power_evidence())
+
+    def test_absent_pmset_degrades_to_unknown_instead_of_failing(self) -> None:
+        with mock.patch.object(csp_host.subprocess, "run", self.pmset({})):
+            self.assertEqual((None, None), csp_host._power_evidence())
+
+
+class PowerConditionTests(unittest.TestCase):
+    @staticmethod
+    def host(**overrides: object) -> dict:
+        host: dict = {"power_source": "AC Power", "low_power_mode": False}
+        host.update(overrides)
+        return host
+
+    def test_ac_power_without_low_power_mode_is_admissible(self) -> None:
+        self.assertEqual(
+            (True, []),
+            csp.power_conditions_admissible(self.host()),
+        )
+
+    def test_battery_power_is_refused(self) -> None:
+        admissible, reasons = csp.power_conditions_admissible(
+            self.host(power_source="Battery Power")
+        )
+        self.assertFalse(admissible)
+        self.assertEqual(
+            ["CSP-comparable timings require AC power (observed: Battery Power)"],
+            reasons,
+        )
+
+    def test_low_power_mode_on_ac_is_refused(self) -> None:
+        admissible, reasons = csp.power_conditions_admissible(
+            self.host(low_power_mode=True)
+        )
+        self.assertFalse(admissible)
+        self.assertEqual(
+            [
+                "CSP-comparable timings require low power mode disabled "
+                "(observed: enabled)"
+            ],
+            reasons,
+        )
+
+    def test_missing_power_evidence_fails_closed(self) -> None:
+        admissible, reasons = csp.power_conditions_admissible(
+            self.host(power_source=None, low_power_mode=None)
+        )
+        self.assertFalse(admissible)
+        self.assertEqual(2, len(reasons))
+        self.assertIn("no power-source evidence", reasons[0])
+        self.assertIn("no evidence", reasons[1])
+
+
+class ResultClassTests(unittest.TestCase):
+    @staticmethod
+    def classify(**overrides: bool) -> str:
+        arguments = {
+            "host_matches": True,
+            "power_admissible": True,
+            "complete_matrix": True,
+            "memory_available": True,
+        }
+        arguments.update(overrides)
+        return csp.classify_result(**arguments)
+
+    def test_clean_official_host_run_is_comparable(self) -> None:
+        self.assertEqual("official-host-comparable", self.classify())
+
+    def test_battery_run_is_never_reported_as_a_clean_measurement(self) -> None:
+        self.assertEqual(
+            "power-condition-non-publishable",
+            self.classify(power_admissible=False),
+        )
+
+    def test_power_condition_outranks_the_host_comparison(self) -> None:
+        # A throttled run on a non-official host must not be filed under the
+        # ordinary host qualification: it is not a valid measurement at all.
+        self.assertEqual(
+            "power-condition-non-publishable",
+            self.classify(host_matches=False, power_admissible=False),
+        )
+
+    def test_incomplete_evidence_stays_host_qualified(self) -> None:
+        for field in ("host_matches", "complete_matrix", "memory_available"):
+            with self.subTest(field=field):
+                self.assertEqual(
+                    "host-qualified-non-comparable",
+                    self.classify(**{field: False}),
+                )
+
+
+class BuildIdentityTests(unittest.TestCase):
+    @staticmethod
+    def registry(**overrides: object) -> bytes:
+        product = {
+            "schema_version": 2,
+            "name": "stwo-riscv-cpu",
+            "frontend": "sail-rv32im-zkvm",
+            "backend": "cpu",
+            "target": {
+                "arch": "aarch64",
+                "os": "macos",
+                "abi": "none",
+                "cpu_model": "apple_m1",
+                "cpu_features_sha256": "0" * 64,
+            },
+            "optimize": "ReleaseFast",
+        }
+        product["target"].update(overrides.pop("target", {}))
+        product.update(overrides)
+        return json.dumps({"schema_version": 1, "product": product}).encode()
+
+    def validate(self, raw: bytes) -> dict:
+        identity = csp_build_identity.parse_build_identity(raw)
+        csp_build_identity.validate_build_identity(
+            identity,
+            machine="arm64",
+            system="Darwin",
+        )
+        return identity
+
+    def test_optimize_mode_is_recoverable_from_the_admitted_identity(self) -> None:
+        # The check reads the same focused-product surface admission already
+        # authenticates, rather than a second provenance channel.
+        self.assertLessEqual(
+            {"target", "optimize"},
+            riscv_cli_admission.FOCUSED_PRODUCT_FIELDS,
+        )
+
+    def test_release_fast_host_binary_is_admitted(self) -> None:
+        self.assertEqual(
+            {
+                "arch": "aarch64",
+                "os": "macos",
+                "abi": "none",
+                "cpu_model": "apple_m1",
+                "optimize": "ReleaseFast",
+            },
+            self.validate(self.registry()),
+        )
+
+    def test_debug_binary_is_refused(self) -> None:
+        for mode in ("Debug", "ReleaseSafe", "ReleaseSmall"):
+            with self.subTest(optimize=mode):
+                with self.assertRaisesRegex(
+                    csp.BenchmarkError,
+                    "require -Doptimize=ReleaseFast",
+                ):
+                    self.validate(self.registry(optimize=mode))
+
+    def test_translated_foreign_architecture_binary_is_refused(self) -> None:
+        with self.assertRaisesRegex(csp.BenchmarkError, "targets x86_64-macos"):
+            self.validate(self.registry(target={"arch": "x86_64"}))
+
+    def test_foreign_operating_system_binary_is_refused(self) -> None:
+        with self.assertRaisesRegex(csp.BenchmarkError, "targets aarch64-linux"):
+            self.validate(self.registry(target={"os": "linux"}))
+
+    def test_unmappable_host_fails_closed(self) -> None:
+        identity = csp_build_identity.parse_build_identity(self.registry())
+        with self.assertRaisesRegex(csp.BenchmarkError, "cannot map host"):
+            csp_build_identity.validate_build_identity(
+                identity,
+                machine="riscv64",
+                system="Darwin",
+            )
+
+    def test_registry_without_a_build_identity_fails_closed(self) -> None:
+        aggregate = json.dumps(
+            {
+                "schema_version": 1,
+                "backend_availability": {"cpu": True, "metal-hybrid": False},
+                "product_matrix": {},
+            }
+        ).encode()
+        with self.assertRaisesRegex(
+            csp.BenchmarkError,
+            "publishes no build identity",
+        ):
+            csp_build_identity.parse_build_identity(aggregate)
+
+    def test_partial_build_identity_is_refused(self) -> None:
+        with self.assertRaisesRegex(csp.BenchmarkError, "identity is incomplete"):
+            csp_build_identity.parse_build_identity(
+                self.registry(target={"cpu_model": None})
+            )
+
+    def test_registry_rejects_duplicate_json_fields(self) -> None:
+        raw = b'{"schema_version":1,"product":{},"product":{}}'
+        with self.assertRaisesRegex(csp.BenchmarkError, "repeats field"):
+            csp_build_identity.parse_build_identity(raw)
+
+    def test_unexecutable_binary_names_the_architecture_hypothesis(self) -> None:
+        def run(command, **_: object):
+            raise OSError(8, "Exec format error")
+
+        with mock.patch.object(csp_build_identity.subprocess, "run", run):
+            with self.assertRaisesRegex(
+                csp.BenchmarkError,
+                "built for another architecture",
+            ):
+                csp_build_identity.read_build_identity(Path("/opt/example/prover"))
 
 
 class RetainedReportTests(unittest.TestCase):

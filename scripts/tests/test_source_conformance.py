@@ -14,11 +14,13 @@ from scripts.check_source_conformance import (
     inventory,
     load_baseline,
     main,
+    measure,
     scan,
     write_baseline,
 )
 from scripts.source_conformance_lib.policy import ACTIVE_FORMAL_EVIDENCE_ROOTS
-from scripts.source_conformance_lib import policy
+from scripts.source_conformance_lib import comments, policy
+from scripts.source_conformance_lib.model import is_headroom
 
 
 class SourceConformanceTests(unittest.TestCase):
@@ -260,6 +262,90 @@ class SourceConformanceTests(unittest.TestCase):
             self.assertIn("build-cycle:build_support/helper.zig", keys)
             self.assertIn("build-cycle:build_support/other.zig", keys)
 
+    def test_comments_describe_edges_without_declaring_them(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary)
+            (repo / "build_support").mkdir(parents=True)
+            (repo / "src/core").mkdir(parents=True)
+            (repo / "src/backends/metal").mkdir(parents=True)
+            (repo / "src/backends/metal/mod.zig").write_text("", encoding="utf-8")
+            (repo / "build_support/helper.zig").write_text("pub const marker = true;\n", encoding="utf-8")
+            (repo / "build.zig").write_text(
+                '/// Zig resolves `@import("src/core.zig")` against the importing file,\n'
+                '/// and `b.path("src/missing.zig")` against the build root.\n'
+                'const helper = @import("build_support/helper.zig");\n',
+                encoding="utf-8",
+            )
+            (repo / "src/core/documented.zig").write_text(
+                '//! Compare with `@import("../backends/metal/mod.zig")`, which this\n'
+                "//! layer must never do.\n"
+                "pub const marker = true;\n",
+                encoding="utf-8",
+            )
+            self.assertEqual([], scan(repo))
+
+            (repo / "build.zig").write_text(
+                'const core = @import("src/core.zig");\n'
+                'pub fn build(b: anytype) void { _ = b.path("src/missing.zig"); }\n',
+                encoding="utf-8",
+            )
+            (repo / "src/core/documented.zig").write_text(
+                'const metal = @import("../backends/metal/mod.zig");\n',
+                encoding="utf-8",
+            )
+            keys = {finding.key for finding in scan(repo)}
+            self.assertIn("build-dependency:build.zig->src/core.zig", keys)
+            self.assertIn("build-path:build.zig->src/missing.zig", keys)
+            self.assertIn("dependency:core/documented.zig->backends/metal/mod.zig", keys)
+
+    def test_double_slash_inside_a_string_literal_opens_no_comment(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary)
+            (repo / "src").mkdir(parents=True)
+            (repo / "src/core.zig").write_text("", encoding="utf-8")
+            (repo / "build.zig").write_text(
+                'const doc = "https://example.com/build.zig"; '
+                'const core = @import("src/core.zig");\n'
+                'pub fn build(b: anytype) void { const host = "https://example.com"; '
+                '_ = host; _ = b.path("src/missing.zig"); }\n',
+                encoding="utf-8",
+            )
+            keys = {finding.key for finding in scan(repo)}
+            self.assertIn("build-dependency:build.zig->src/core.zig", keys)
+            self.assertIn("build-path:build.zig->src/missing.zig", keys)
+
+    def test_comment_blanking_preserves_offsets_and_metal_includes(self) -> None:
+        source = 'const url = "https://example.com"; // @import("a.zig")\n'
+        self.assertEqual(
+            'const url = "https://example.com";' + " " * 20 + "\n",
+            comments.strip_zig(source),
+        )
+        block = '/* #include "hidden.metal"\n*/\n#include "stwo_zig/m31.metal"\n'
+        self.assertEqual(
+            " " * 26 + "\n" + " " * 2 + '\n#include "stwo_zig/m31.metal"\n',
+            comments.strip_c(block),
+        )
+        for text in (source, block, '\\\\ // multiline @import("b.zig")\n'):
+            with self.subTest(text=text):
+                self.assertEqual(
+                    len(text.splitlines()),
+                    len(comments.strip_zig(text).splitlines()),
+                )
+
+    def test_zig_entrypoint_measurement_ignores_braces_inside_comments(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary)
+            zig_root = repo / "src/bench/sample.zig"
+            zig_root.parent.mkdir(parents=True)
+            zig_root.write_text(
+                "pub fn main() void {\n"
+                '    // A closing } and a "{" inside prose end nothing.\n'
+                + "    _ = 1;\n" * 199
+                + "}\n",
+                encoding="utf-8",
+            )
+            self.assertIn("thin-owner:bench/sample.zig", {finding.key for finding in scan(repo)})
+
     def test_native_rust_edges_reject_cross_tool_paths_missing_modules_and_cycles(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             repo = Path(temporary)
@@ -320,6 +406,70 @@ class SourceConformanceTests(unittest.TestCase):
             self.assertIn("thin-owner:bench/sample.zig", keys)
             self.assertIn("thin-owner:tests/native/mod.zig", keys)
             self.assertIn("thin-owner:build_support/products.zig", keys)
+
+    def test_size_ceilings_warn_at_ninety_percent_without_failing(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary)
+            support = repo / "build_support/products.zig"
+            support.parent.mkdir(parents=True)
+            support.write_text("\n" * 449, encoding="utf-8")
+            self.assertEqual([], [finding for finding in measure(repo) if is_headroom(finding)])
+
+            support.write_text("\n" * 450, encoding="utf-8")
+            notices = [finding for finding in measure(repo) if is_headroom(finding)]
+            self.assertEqual(
+                ["headroom:thin-owner:build_support/products.zig"],
+                [notice.key for notice in notices],
+            )
+            self.assertIn(
+                "build_support/products.zig: 450 lines approaches the 500-line "
+                "build-support owner ceiling (50 line(s) of headroom)",
+                notices[0].message,
+            )
+            self.assertEqual([], scan(repo))
+
+            baseline = repo / "baseline.json"
+            write_baseline(baseline, scan(repo))
+            self.assertEqual({}, load_baseline(baseline))
+            errors = io.StringIO()
+            with redirect_stdout(io.StringIO()), redirect_stderr(errors):
+                self.assertEqual(0, main(["--repo", str(repo), "--baseline", str(baseline)]))
+            self.assertIn("warning: build_support/products.zig: 450 lines", errors.getvalue())
+            self.assertNotIn("error:", errors.getvalue())
+
+            support.write_text("\n" * 501, encoding="utf-8")
+            errors = io.StringIO()
+            with redirect_stderr(errors):
+                self.assertEqual(1, main(["--repo", str(repo), "--baseline", str(baseline)]))
+            self.assertIn(
+                "error: build_support/products.zig: build-support owner exceeds the 500-line ceiling",
+                errors.getvalue(),
+            )
+
+    def test_headroom_warnings_cover_manual_sources_and_python_entry_points(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary)
+            oversized = repo / "src/core/legacy.zig"
+            oversized.parent.mkdir(parents=True)
+            oversized.write_text("\n" * 765, encoding="utf-8")
+            evidence_root = repo / "scripts/benchmark_delta.py"
+            evidence_root.parent.mkdir(parents=True)
+            evidence_root.write_text("def main():\n" + "    pass\n" * 89, encoding="utf-8")
+
+            messages = {
+                notice.key: notice.message
+                for notice in measure(repo)
+                if is_headroom(notice)
+            }
+            self.assertIn(
+                "765 lines approaches the 850-line manual-source ceiling (85 line(s) of headroom)",
+                messages["headroom:file-size:core/legacy.zig"],
+            )
+            self.assertIn(
+                "90 lines approaches the 100-line entrypoint ceiling (10 line(s) of headroom)",
+                messages["headroom:thin-owner:scripts/benchmark_delta.py"],
+            )
+            self.assertEqual([], scan(repo))
 
     def test_formal_evidence_root_registry_is_explicit_and_checked_in(self) -> None:
         expected = {

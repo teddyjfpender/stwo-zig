@@ -23,6 +23,14 @@ Subcommands:
          gate document for why runner-only refactors are covered by the
          committed trace-digest parity instead).
 
+  preflight
+         Positive proof that the pinned toolchain is functional on THIS
+         host, warm cache or cold: the SMT solver the pinned Sail compiler
+         shells out to, the compiler itself at the pinned version, Spike's
+         device-tree compiler, and the state of the workspace. It exists
+         because provisioning faults otherwise surface as later steps that
+         "did not run", which reads like a skip rather than a broken gate.
+
   run    The live gate: verify (or, with --prepare-on-miss, build) the
          pinned Sail/Spike workspace via scripts/riscv_formal_tools.py, run
          the full corpus differential via scripts/riscv_trace_vectors.py,
@@ -35,8 +43,15 @@ Exit codes: 0 pass; 1 pin/binding/differential/staleness failure;
 Both nonzero codes are red in CI -- 3 exists so a local caller can
 distinguish "build the workspace" from "investigate a divergence".
 
+`preflight` and `run` write machine-readable receipts to --github-output
+(toolchain_health, cache_state, differential_ran, toolchain_state). The
+workflow's verdict job requires those receipts, so a live job cannot report
+success with its gate steps skipped: an unwritten receipt is empty and empty
+is red.
+
   python3 scripts/riscv_sail_gate.py bind
   python3 scripts/riscv_sail_gate.py scope --base <sha> --head <sha>
+  python3 scripts/riscv_sail_gate.py preflight --workspace /tmp/stwo-riscv-formal
   python3 scripts/riscv_sail_gate.py run --workspace /tmp/stwo-riscv-formal
 """
 
@@ -47,6 +62,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -80,6 +96,12 @@ EXIT_TOOLCHAIN_UNAVAILABLE = 3
 # workspace for every Sail consumer, overridable by one environment variable.
 ENV_WORKSPACE = "STWO_RISCV_FORMAL_WORKSPACE"
 DEFAULT_WORKSPACE = Path("/tmp/stwo-riscv-formal")
+
+# The pinned Sail compiler shells out to an SMT solver for its constraint
+# checks, so without one even `sail --version` dies with "SMT solver returned
+# unexpected status 127". Naming the dependency in the preflight is the
+# difference between a five-minute diagnosis and an afternoon inside Sail.
+SMT_SOLVER = "z3"
 
 # Changes here must re-run the live differential because they alter what the
 # committed attestation means: the corpus, the pins, the comparator, the
@@ -283,6 +305,117 @@ def _fail(errors: list[str], stage: str) -> int:
     return EXIT_FAIL
 
 
+def _write_receipts(github_output: Path | None, receipts: dict[str, str]) -> None:
+    """Append the step receipts the workflow requires before calling a run green."""
+    if github_output is None:
+        return
+    with github_output.open("a", encoding="utf-8") as stream:
+        for key, value in receipts.items():
+            stream.write(f"{key}={value}\n")
+
+
+def workspace_state(
+    workspace: Path,
+    profile: formal_tools.FormalProfile | None,
+    compiler: Path | None,
+) -> str:
+    """warm (verifies), cold (never built), corrupt (present, unusable)."""
+    if profile is None or compiler is None:
+        return "unknown"
+    paths = formal_tools.ToolPaths(workspace.expanduser().resolve())
+    if not paths.sail_binary.exists() and not paths.spike_binary.exists():
+        return "cold"
+    try:
+        formal_tools.verify(paths, profile, compiler)
+    except (formal_tools.FormalToolsError, OSError):
+        return "corrupt"
+    return "warm"
+
+
+def preflight(
+    workspace: Path,
+    sail_compiler: Path | None,
+    cache_hit: bool,
+    github_output: Path | None,
+) -> int:
+    """Assert the pinned toolchain is functional here, warm cache or cold.
+
+    `run` already refuses to pass without consulting Sail, but everything it
+    consults is provisioned by steps a warm cache can bypass, and a
+    provisioning fault that lands mid-job reads as "the differential step did
+    not run" -- indistinguishable, in a summary line, from a gate that was
+    legitimately not selected. This runs unconditionally and exercises the
+    pinned compiler itself, so a broken toolchain is red on the warm path
+    too, naming the dependency that is absent. A cold or corrupt workspace is
+    NOT a failure here: `run --prepare-on-miss` rebuilds it from pins and the
+    differential still runs, which is the outcome this gate wants.
+    """
+    errors: list[str] = []
+    proven: list[str] = []
+
+    solver = shutil.which(SMT_SOLVER)
+    if solver is None:
+        errors.append(
+            f"the pinned Sail compiler requires the {SMT_SOLVER} SMT solver; "
+            "without it even `sail --version` dies with 'SMT solver returned "
+            f"unexpected status 127 / {SMT_SOLVER}: not found'"
+        )
+    else:
+        proven.append(f"{SMT_SOLVER} at {solver}")
+
+    profile = None
+    compiler = None
+    try:
+        profile = formal_tools.load_profile()
+    except (formal_tools.FormalToolsError, OSError) as error:
+        errors.append(f"the pinned formal profile is unusable: {error}")
+    else:
+        try:
+            compiler = formal_tools.resolve_sail_compiler(
+                sail_compiler, profile.sail_compiler
+            )
+        except (formal_tools.FormalToolsError, OSError) as error:
+            errors.append(
+                f"the pinned Sail compiler {profile.sail_compiler} does not "
+                f"run on this host: {error}"
+            )
+        else:
+            proven.append(f"Sail {profile.sail_compiler} at {compiler}")
+
+    try:
+        proven.append(f"dtc at {formal_tools.require_device_tree_compiler()}")
+    except (formal_tools.FormalToolsError, OSError) as error:
+        errors.append(str(error))
+
+    if errors:
+        for error in errors:
+            print(f"riscv sail gate: toolchain preflight: {error}", file=sys.stderr)
+        print(
+            "riscv sail gate: PINNED TOOLCHAIN NOT FUNCTIONAL -- the "
+            "differential cannot run on this host; this is a provisioning "
+            "fault, not a Sail disagreement, and no receipt was written",
+            file=sys.stderr,
+        )
+        return EXIT_TOOLCHAIN_UNAVAILABLE
+
+    state = workspace_state(workspace, profile, compiler)
+    if cache_hit and state != "warm":
+        print(
+            f"riscv sail gate: the restored toolchain cache is {state}; the "
+            "gate rebuilds it from pins, and the run stays red if that "
+            "rebuild fails",
+            file=sys.stderr,
+        )
+    print(
+        f"riscv sail gate: toolchain preflight PASS -- {', '.join(proven)}; "
+        f"workspace {workspace} is {state}"
+    )
+    _write_receipts(
+        github_output, {"toolchain_health": "functional", "cache_state": state}
+    )
+    return EXIT_PASS
+
+
 def run_gate(
     workspace: Path,
     sail_compiler: Path | None,
@@ -290,6 +423,7 @@ def run_gate(
     jobs: int,
     trace_dump_bin: Path | None,
     report_out: Path | None,
+    github_output: Path | None = None,
 ) -> int:
     """Verified pinned toolchain, full live differential, evidence re-derived."""
     pin_errors = check_upstream_pins.validate_repository(ROOT)
@@ -308,6 +442,7 @@ def run_gate(
         paths = formal_tools.ToolPaths(workspace.expanduser().resolve())
         try:
             receipt = formal_tools.verify(paths, profile, compiler)
+            toolchain_state = "verified"
         except formal_tools.FormalToolsError as error:
             if not prepare_on_miss:
                 raise
@@ -319,9 +454,16 @@ def run_gate(
             receipt = formal_tools.prepare(
                 paths, profile, compiler, jobs, download_gmp=True
             )
+            toolchain_state = "rebuilt"
     except (formal_tools.FormalToolsError, OSError) as error:
         # The single worst outcome would be reading this as coverage: say
         # precisely what was NOT checked and exit with the unavailability code.
+        # The receipt says the same thing to the workflow, whose save step
+        # must not publish this half-built workspace into the toolchain cache.
+        _write_receipts(
+            github_output,
+            {"differential_ran": "false", "toolchain_state": "unavailable"},
+        )
         print(
             f"riscv sail gate: SAIL TOOLCHAIN UNAVAILABLE -- the differential "
             f"did NOT run; {committed['programs']} programs / "
@@ -336,6 +478,11 @@ def run_gate(
         )
         return EXIT_TOOLCHAIN_UNAVAILABLE
 
+    # The workspace is usable from here on, which is what the workflow's save
+    # step keys on: a red differential should still warm the next run's cache,
+    # a toolchain that never came up should not.
+    _write_receipts(github_output, {"toolchain_state": toolchain_state})
+
     with tempfile.TemporaryDirectory() as scratch:
         fresh_path = Path(scratch) / "fresh-evidence.json"
         returncode = trace_vectors.gate(
@@ -345,6 +492,11 @@ def run_gate(
             formal_report=fresh_path,
             trace_dump_bin=trace_dump_bin,
         )
+        # Sail was consulted on the full corpus. Record that before judging
+        # the outcome: a disagreement is a run that happened and said no,
+        # which is exactly the case the verdict must not confuse with a gate
+        # that never executed.
+        _write_receipts(github_output, {"differential_ran": "true"})
         if returncode != 0:
             print(
                 "riscv sail gate: live differential FAILED (see errors above)",
@@ -404,10 +556,22 @@ def _cmd_scope(args: argparse.Namespace) -> int:
             sort_keys=True,
         )
     )
-    if args.github_output is not None:
-        with args.github_output.open("a", encoding="utf-8") as stream:
-            stream.write(f"live_required={'true' if required else 'false'}\n")
+    _write_receipts(
+        args.github_output, {"live_required": "true" if required else "false"}
+    )
     return EXIT_PASS
+
+
+def _add_workspace_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--workspace",
+        type=Path,
+        default=Path(os.environ.get(ENV_WORKSPACE, "") or DEFAULT_WORKSPACE),
+        help="riscv_formal_tools.py workspace (default: "
+        f"${ENV_WORKSPACE} or {DEFAULT_WORKSPACE})",
+    )
+    parser.add_argument("--sail-compiler", type=Path)
+    parser.add_argument("--github-output", type=Path)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -420,15 +584,18 @@ def _parser() -> argparse.ArgumentParser:
     scope.add_argument("--changed-file", action="append", default=[])
     scope.add_argument("--force-live", action="store_true")
     scope.add_argument("--github-output", type=Path)
-    run = sub.add_parser("run", help="live pinned Sail/Spike differential")
-    run.add_argument(
-        "--workspace",
-        type=Path,
-        default=Path(os.environ.get(ENV_WORKSPACE, "") or DEFAULT_WORKSPACE),
-        help="riscv_formal_tools.py workspace (default: "
-        f"${ENV_WORKSPACE} or {DEFAULT_WORKSPACE})",
+    check = sub.add_parser(
+        "preflight", help="the pinned toolchain must be functional on this host"
     )
-    run.add_argument("--sail-compiler", type=Path)
+    _add_workspace_arguments(check)
+    check.add_argument(
+        "--cache-hit",
+        default="",
+        help="the runner's cache-hit output; 'true' means a restored "
+        "workspace that fails verification is a corrupt cache, not a cold one",
+    )
+    run = sub.add_parser("run", help="live pinned Sail/Spike differential")
+    _add_workspace_arguments(run)
     run.add_argument(
         "--prepare-on-miss",
         action="store_true",
@@ -458,6 +625,13 @@ def main(argv: list[str] | None = None) -> int:
             return EXIT_PASS
         if args.command == "scope":
             return _cmd_scope(args)
+        if args.command == "preflight":
+            return preflight(
+                args.workspace,
+                args.sail_compiler,
+                args.cache_hit == "true",
+                args.github_output,
+            )
         return run_gate(
             args.workspace,
             args.sail_compiler,
@@ -465,6 +639,7 @@ def main(argv: list[str] | None = None) -> int:
             args.jobs,
             args.trace_dump_bin,
             args.report_out,
+            args.github_output,
         )
     except (ci_scope_plan.PlanError, OSError, json.JSONDecodeError) as error:
         print(f"riscv sail gate: {error}", file=sys.stderr)
