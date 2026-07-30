@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import inspect
 import json
 import tempfile
 import unittest
@@ -159,6 +160,65 @@ class DirtyBindingTests(unittest.TestCase):
             proof_artifact(dirty=True), candidate_dirty=True, **kwargs,
         )
         self.assertEqual(public_data(), parsed)
+
+
+class TraceDumperProvenanceTests(unittest.TestCase):
+    """Every ``riscv-trace-dump`` sample is bound to the candidate that built it.
+
+    This is why this harness does not also call the CSP harness's
+    ``read_trace_provenance``: the binding below runs on *every* sample and holds
+    the dumper to the candidate commit, the worktree's dirty flag, the pinned
+    oracle commit, the witness layout digest, and the digests of the exact fixture
+    the row measures -- a strict superset of that gate's commit-and-dirty check.
+    A second, weaker copy of a check that already runs is the hazard, not the fix
+    (issue #152 item 6b).
+    """
+
+    @staticmethod
+    def capture(raw: str) -> mock.Mock:
+        return mock.Mock(stdout=raw.encode("utf-8"))
+
+    @staticmethod
+    def workload() -> mock.Mock:
+        return mock.Mock(
+            row_id="crypto:sha2_input:128B",
+            elf_sha256=ELF_DIGEST,
+            input_sha256=INPUT_DIGEST,
+        )
+
+    def parse(self, raw: str, *, dirty: bool = False) -> dict:
+        return controller._candidate_diagnostic_public(
+            self.capture(raw), self.workload(), {"commit": CANDIDATE, "dirty": dirty},
+        )
+
+    def test_a_dump_from_another_commit_is_refused(self) -> None:
+        foreign = public_diagnostic(dirty=False).replace(CANDIDATE, "b" * 40)
+        with self.assertRaisesRegex(ValueError, "implementation_commit differs"):
+            self.parse(foreign)
+
+    def test_a_dump_that_misreports_the_worktree_is_refused(self) -> None:
+        # `--allow-dirty` is served by binding the flag, not by dropping the
+        # check: a clean-claiming binary in a dirty tree is still refused, and so
+        # is the reverse.
+        with self.assertRaisesRegex(ValueError, "implementation_dirty differs"):
+            self.parse(public_diagnostic(dirty=True), dirty=False)
+        with self.assertRaisesRegex(ValueError, "implementation_dirty differs"):
+            self.parse(public_diagnostic(dirty=False), dirty=True)
+
+    def test_a_dump_with_no_provenance_block_is_refused(self) -> None:
+        payload = json.loads(public_diagnostic(dirty=False))
+        del payload["provenance"]
+        with self.assertRaisesRegex(
+            controller.MatrixRunError, "diagnostic provenance is missing",
+        ):
+            self.parse(json.dumps(payload))
+
+    def test_the_execution_sample_path_routes_through_the_binding(self) -> None:
+        # Behavioural coverage of the parser cannot show that the trace-dumper
+        # lane reaches it; only the call site can.
+        source = inspect.getsource(controller._run_candidate_execution_sample)
+        self.assertIn("--public-values", source)
+        self.assertIn("_candidate_diagnostic_public(capture, workload, candidate)", source)
 
 
 class CorrectnessBoundaryTests(unittest.TestCase):

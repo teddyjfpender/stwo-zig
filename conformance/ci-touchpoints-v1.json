@@ -1,17 +1,48 @@
 {
   "schema": "ci-touchpoints-v1",
-  "always_lanes": ["static"],
+  "always_lanes": [
+    "static"
+  ],
   "lanes": {
     "static": {
       "host": "linux",
       "description": "Formatting, policy, and Python contract tests",
       "commands": [
-        ["zig", "fmt", "--check", "build.zig", "build_support", "src", "tools"],
-        ["python3", "-m", "unittest", "discover", "-s", "scripts/tests", "-p", "test_*.py"],
-        ["python3", "scripts/check_build_monorepo_baseline.py"],
-        ["python3", "scripts/check_source_conformance.py"],
-        ["python3", "scripts/check_package_workspace.py"],
-        ["python3", "scripts/check_upstream_pins.py"]
+        [
+          "zig",
+          "fmt",
+          "--check",
+          "build.zig",
+          "build_support",
+          "src",
+          "tools"
+        ],
+        [
+          "python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "scripts/tests",
+          "-p",
+          "test_*.py"
+        ],
+        [
+          "python3",
+          "scripts/check_build_monorepo_baseline.py"
+        ],
+        [
+          "python3",
+          "scripts/check_source_conformance.py"
+        ],
+        [
+          "python3",
+          "scripts/check_package_workspace.py"
+        ],
+        [
+          "python3",
+          "scripts/check_upstream_pins.py"
+        ]
       ]
     },
     "build_graph": {
@@ -19,168 +50,383 @@
       "local": "hosted",
       "description": "Catalog construction and build-identity boundaries",
       "commands": [
-        ["python3", "scripts/check_build_configure_closure.py"],
-        ["zig", "test", "build_support/product_policy_test.zig", "-OReleaseFast"],
-        ["zig", "test", "build_support/identity_test.zig", "-OReleaseFast"]
+        [
+          "python3",
+          "scripts/check_build_configure_closure.py"
+        ],
+        [
+          "zig",
+          "test",
+          "build_support/product_policy_test.zig",
+          "-OReleaseFast"
+        ],
+        [
+          "zig",
+          "test",
+          "build_support/identity_test.zig",
+          "-OReleaseFast"
+        ]
       ]
     },
     "core": {
       "host": "linux",
       "description": "Focused Stwo core library",
       "commands": [
-        ["zig", "build", "test-stwo-core", "identity-stwo-core", "-Doptimize=ReleaseFast", "-j2"],
-        ["zig", "build", "test", "--build-file", "src/core/build.zig", "-Doptimize=ReleaseFast", "-j2"]
+        [
+          "zig",
+          "build",
+          "test-stwo-core",
+          "identity-stwo-core",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/core/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
       ]
     },
     "backend_contracts": {
       "host": "linux",
       "description": "Independent backend-contracts package",
       "commands": [
-        ["zig", "build", "test", "--build-file", "src/backend/build.zig", "-Doptimize=ReleaseFast", "-j2"]
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/backend/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
       ]
     },
     "prover": {
       "host": "linux",
       "description": "Focused backend-generic prover library",
       "commands": [
-        ["zig", "build", "test-stwo-prover", "identity-stwo-prover", "-Doptimize=ReleaseFast", "-j2"],
-        ["zig", "build", "test", "--build-file", "src/prover/build.zig", "-Doptimize=ReleaseFast", "-j2"]
+        [
+          "zig",
+          "build",
+          "test-stwo-prover",
+          "identity-stwo-prover",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/prover/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
       ]
     },
     "prover_api": {
       "host": "linux",
       "description": "Stable prover transaction API and observability contracts",
       "commands": [
-        ["zig", "build", "test", "--build-file", "src/prover_api/build.zig", "-Doptimize=ReleaseFast", "-j2"]
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/prover_api/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
       ]
     },
     "riscv_frontend": {
       "host": "linux",
       "description": "Independent Sail-authoritative RISC-V frontend package",
       "commands": [
-        ["zig", "build", "test", "--build-file", "src/frontends/riscv/build.zig", "-Doptimize=ReleaseFast", "-j2"]
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
       ]
     },
     "riscv_cpu_integration": {
       "host": "linux",
       "description": "Independent RISC-V frontend and CPU backend composition package",
       "commands": [
-        ["zig", "build", "test", "--build-file", "src/integrations/riscv_cpu/build.zig", "-Doptimize=ReleaseFast", "-j2"]
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/integrations/riscv_cpu/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
       ]
     },
     "cairo_cpu_integration": {
       "host": "linux",
       "description": "Independent Cairo frontend and CPU backend composition package",
       "commands": [
-        ["zig", "build", "test", "--build-file", "src/integrations/cairo_cpu/build.zig", "-Doptimize=ReleaseFast", "-j2"]
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/integrations/cairo_cpu/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
       ]
     },
     "cairo_frontend": {
       "host": "linux",
       "description": "Independent official Cairo frontend package",
       "commands": [
-        ["zig", "build", "test", "--build-file", "src/frontends/cairo/build.zig", "-Doptimize=ReleaseFast", "-j2"]
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/cairo/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
       ]
     },
     "cpu_backend": {
       "host": "linux",
       "description": "Independent CPU scalar/SIMD backend package",
       "commands": [
-        ["zig", "build", "test", "--build-file", "src/backends/cpu_scalar/build.zig", "-Doptimize=ReleaseFast", "-j2"]
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/backends/cpu_scalar/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
       ]
     },
     "cuda_backend": {
       "host": "linux",
       "description": "Independent host-only CUDA backend package",
       "commands": [
-        ["zig", "build", "test", "--build-file", "src/backends/cuda/build.zig", "-Doptimize=ReleaseFast", "-j2"]
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/backends/cuda/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
       ]
     },
     "metal_backend": {
       "host": "macos",
       "description": "Independent Metal backend package compile boundary",
       "commands": [
-        ["zig", "build", "test", "--build-file", "src/backends/metal/build.zig", "-Doptimize=ReleaseSafe", "-j2"]
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/backends/metal/build.zig",
+          "-Doptimize=ReleaseSafe",
+          "-j2"
+        ]
       ]
     },
     "riscv_metal_integration": {
       "host": "macos",
       "description": "Independent RISC-V frontend and Metal backend composition package",
       "commands": [
-        ["zig", "build", "test", "--build-file", "src/integrations/riscv_metal/build.zig", "-Doptimize=ReleaseSafe", "-j2"]
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/integrations/riscv_metal/build.zig",
+          "-Doptimize=ReleaseSafe",
+          "-j2"
+        ]
       ]
     },
     "cairo_metal_integration": {
       "host": "macos",
       "description": "Independent Cairo frontend and Metal backend composition package",
       "commands": [
-        ["zig", "build", "test", "--build-file", "src/integrations/cairo_metal/build.zig", "-Doptimize=ReleaseSafe", "-j2"]
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/integrations/cairo_metal/build.zig",
+          "-Doptimize=ReleaseSafe",
+          "-j2"
+        ]
       ]
     },
     "metal_session": {
       "host": "linux",
       "description": "Independent persistent Metal-session protocol and artifact package",
       "commands": [
-        ["zig", "build", "test", "--build-file", "src/tools/metal_session/build.zig", "-Doptimize=ReleaseFast", "-j2"]
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/tools/metal_session/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
       ]
     },
     "proof_wire": {
       "host": "linux",
       "description": "Independent proof interchange codec package",
       "commands": [
-        ["zig", "build", "test", "--build-file", "src/interop/proof_wire/build.zig", "-Doptimize=ReleaseFast", "-j2"]
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/interop/proof_wire/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
       ]
     },
     "native_examples": {
       "host": "linux",
       "description": "Independent Native example AIR and reusable-session package",
       "commands": [
-        ["zig", "build", "test", "--build-file", "src/examples/build.zig", "-Doptimize=ReleaseFast", "-j2"]
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/examples/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
       ]
     },
     "native_cuda_integration": {
       "host": "linux",
       "description": "Independent Native AIR and CUDA backend composition package",
       "commands": [
-        ["zig", "build", "test", "--build-file", "src/integrations/native_cuda/build.zig", "-Doptimize=ReleaseFast", "-j2"]
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/integrations/native_cuda/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
       ]
     },
     "cairo_cuda_integration": {
       "host": "linux",
       "description": "Independent Cairo frontend and CUDA backend composition package",
       "commands": [
-        ["zig", "build", "test", "--build-file", "src/integrations/cairo_cuda/build.zig", "-Doptimize=ReleaseFast", "-j2"]
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/integrations/cairo_cuda/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
       ]
     },
     "package": {
       "host": "linux",
       "description": "External package consumer compatibility",
       "commands": [
-        ["python3", "scripts/check_package_workspace.py"],
-        ["zig", "build", "test-downstream-modules", "-Doptimize=ReleaseFast", "-j2"]
+        [
+          "python3",
+          "scripts/check_package_workspace.py"
+        ],
+        [
+          "zig",
+          "build",
+          "test-downstream-modules",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
       ]
     },
     "native_cpu": {
       "host": "linux",
       "description": "Focused Native CPU/SIMD product",
       "commands": [
-        ["zig", "build", "test-native-cpu-product", "stwo-native-cpu", "-Doptimize=ReleaseFast", "-j2"]
+        [
+          "zig",
+          "build",
+          "test-native-cpu-product",
+          "stwo-native-cpu",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
       ]
     },
     "native_oracle": {
       "host": "linux",
       "description": "Pinned Rust Stwo interoperability authority",
       "commands": [
-        ["python3", "scripts/e2e_interop.py", "--report-out", "{output_dir}/native-oracle.json", "--artifact-dir", "{output_dir}/native-oracle-artifacts", "--archive-dir", "{output_dir}/native-oracle-history"]
+        [
+          "python3",
+          "scripts/e2e_interop.py",
+          "--report-out",
+          "{output_dir}/native-oracle.json",
+          "--artifact-dir",
+          "{output_dir}/native-oracle-artifacts",
+          "--archive-dir",
+          "{output_dir}/native-oracle-history"
+        ]
       ]
     },
     "riscv_cpu": {
       "host": "linux",
       "description": "Focused RISC-V CPU product, proof production, verification, and trace parity",
       "commands": [
-        ["zig", "build", "test-riscv-cpu-product", "stwo-zig-riscv-cpu", "-Doptimize=ReleaseFast", "-j2"],
-        ["python3", "scripts/riscv_pr_proof_smoke.py", "--cli", "zig-out/bin/stwo-zig-riscv-cpu", "--artifact-dir", "{output_dir}/riscv-pr-proof-smoke", "--report-out", "{output_dir}/riscv-pr-proof-smoke.json"],
-        ["python3", "scripts/riscv_trace_vectors.py"]
+        [
+          "zig",
+          "build",
+          "test-riscv-cpu-product",
+          "stwo-zig-riscv-cpu",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        [
+          "python3",
+          "scripts/riscv_pr_proof_smoke.py",
+          "--cli",
+          "zig-out/bin/stwo-zig-riscv-cpu",
+          "--artifact-dir",
+          "{output_dir}/riscv-pr-proof-smoke",
+          "--report-out",
+          "{output_dir}/riscv-pr-proof-smoke.json"
+        ],
+        [
+          "python3",
+          "scripts/riscv_trace_vectors.py"
+        ]
       ]
     },
     "cairo_cpu": {
@@ -188,9 +434,30 @@
       "local": "hosted",
       "description": "Official Cairo CPU/SIMD frontend, AIR, proof product, and pinned Rust oracle",
       "commands": [
-        ["zig", "build", "test-cairo-frontend", "test-cairo-cpu-air", "test-cairo-cpu-proof", "-Doptimize=ReleaseFast", "-j2"],
-        ["zig", "build", "test-cairo-cpu-product", "stwo-cairo-cpu", "-Doptimize=ReleaseFast", "-j2"],
-        ["zig", "build", "test-cairo-cpu-oracle", "-Doptimize=ReleaseFast", "-j2"]
+        [
+          "zig",
+          "build",
+          "test-cairo-frontend",
+          "test-cairo-cpu-air",
+          "test-cairo-cpu-proof",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-cairo-cpu-product",
+          "stwo-cairo-cpu",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-cairo-cpu-oracle",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
       ]
     },
     "cairo_metal": {
@@ -198,7 +465,11 @@
       "hosted": false,
       "description": "Official Cairo Metal product on a real Metal device with an authenticated external AOT bundle",
       "commands": [
-        ["bash", "-ceu", ": \"${STWO_METAL_CORE_AOT_BUNDLE:?explicit authenticated Metal AOT bundle is required}\"\ntest -d \"$STWO_METAL_CORE_AOT_BUNDLE\"\ntest -f \"$STWO_METAL_CORE_AOT_BUNDLE/stwo_zig_core.manifest.json\"\ntest -f \"$STWO_METAL_CORE_AOT_BUNDLE/stwo_zig_core.manifest.sha256\"\ntest -f \"$STWO_METAL_CORE_AOT_BUNDLE/stwo_zig_core.metallib\"\nzig build test-cairo-metal-product stwo-cairo-metal -Doptimize=ReleaseFast -j2 \"-Dmetal-core-aot-bundle=$STWO_METAL_CORE_AOT_BUNDLE\""]
+        [
+          "bash",
+          "-ceu",
+          ": \"${STWO_METAL_CORE_AOT_BUNDLE:?explicit authenticated Metal AOT bundle is required}\"\ntest -d \"$STWO_METAL_CORE_AOT_BUNDLE\"\ntest -f \"$STWO_METAL_CORE_AOT_BUNDLE/stwo_zig_core.manifest.json\"\ntest -f \"$STWO_METAL_CORE_AOT_BUNDLE/stwo_zig_core.manifest.sha256\"\ntest -f \"$STWO_METAL_CORE_AOT_BUNDLE/stwo_zig_core.metallib\"\nzig build test-cairo-metal-product stwo-cairo-metal -Doptimize=ReleaseFast -j2 \"-Dmetal-core-aot-bundle=$STWO_METAL_CORE_AOT_BUNDLE\""
+        ]
       ]
     },
     "aggregate_cpu": {
@@ -206,22 +477,48 @@
       "local": "hosted",
       "description": "CPU aggregate compatibility product",
       "commands": [
-        ["zig", "build", "test", "stwo-zig", "-Daggregate-metal=false", "-Doptimize=ReleaseFast", "-j2"],
-        ["python3", "scripts/check_registry_parity.py"]
+        [
+          "zig",
+          "build",
+          "test",
+          "stwo-zig",
+          "-Daggregate-metal=false",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        [
+          "python3",
+          "scripts/check_registry_parity.py"
+        ]
       ]
     },
     "deferred": {
       "host": "linux",
       "description": "Unavailable Cairo/CUDA product policy",
       "commands": [
-        ["zig", "test", "build_support/product_policy_test.zig", "-OReleaseFast"]
+        [
+          "zig",
+          "test",
+          "build_support/product_policy_test.zig",
+          "-OReleaseFast"
+        ]
       ]
     },
     "native_cuda_static": {
       "host": "linux",
       "description": "Native CUDA source, build-plan, runtime, and Rust-adapter contracts without a GPU",
       "commands": [
-        ["zig", "build", "cuda-source-closure", "cuda-build-plan", "test-cuda-build-plan", "test-cuda-runtime-contract", "test-cuda-adapter", "-Doptimize=ReleaseFast", "-j2"]
+        [
+          "zig",
+          "build",
+          "cuda-source-closure",
+          "cuda-build-plan",
+          "test-cuda-build-plan",
+          "test-cuda-runtime-contract",
+          "test-cuda-adapter",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
       ]
     },
     "native_cuda_device": {
@@ -230,7 +527,11 @@
       "hosted": false,
       "description": "Native CUDA archive differentials, product residency, CPU parity, and source/lock/toolchain-pinned Rust oracle gate",
       "commands": [
-        ["bash", "-ceu", ": \"${STWO_CUDA_NVCC:?explicit STWO_CUDA_NVCC is required}\"\n: \"${STWO_CUDA_HOST_CXX:?explicit STWO_CUDA_HOST_CXX is required}\"\n: \"${STWO_CUDA_HOST_RUNTIME:?explicit STWO_CUDA_HOST_RUNTIME is required}\"\n: \"${STWO_CUDA_HOST_UNWIND_RUNTIME:?explicit STWO_CUDA_HOST_UNWIND_RUNTIME is required}\"\n: \"${STWO_CUDA_AR:?explicit STWO_CUDA_AR is required}\"\n: \"${STWO_CUDA_HOME:?explicit STWO_CUDA_HOME is required}\"\n: \"${STWO_CUDA_LIBRARY_DIR:?explicit STWO_CUDA_LIBRARY_DIR is required}\"\n: \"${STWO_CUDA_ARCH:?explicit STWO_CUDA_ARCH is required}\"\ntest -x \"$STWO_CUDA_NVCC\"\ntest -x \"$STWO_CUDA_HOST_CXX\"\ntest -x \"$STWO_CUDA_AR\"\ntest -f \"$STWO_CUDA_HOST_RUNTIME\"\ntest -f \"$STWO_CUDA_HOST_UNWIND_RUNTIME\"\ntest -d \"$STWO_CUDA_HOME\"\ntest -d \"$STWO_CUDA_LIBRARY_DIR\"\ntest \"$(nvidia-smi --query-gpu=uuid --format=csv,noheader | sed '/^[[:space:]]*$/d' | wc -l | tr -d ' ')\" = 1\nnvidia-smi --query-gpu=name,uuid,compute_cap,driver_version --format=csv,noheader | tee /dev/stderr\nzig build stwo-native-cuda -Doptimize=ReleaseFast -j2 \"-Dcuda-nvcc=$STWO_CUDA_NVCC\" \"-Dcuda-host-cxx=$STWO_CUDA_HOST_CXX\" \"-Dcuda-host-runtime=$STWO_CUDA_HOST_RUNTIME\" \"-Dcuda-host-unwind-runtime=$STWO_CUDA_HOST_UNWIND_RUNTIME\" \"-Dcuda-ar=$STWO_CUDA_AR\" \"-Dcuda-home=$STWO_CUDA_HOME\" \"-Dcuda-library-dir=$STWO_CUDA_LIBRARY_DIR\" \"-Dcuda-arch=$STWO_CUDA_ARCH\"\npython3 scripts/cuda_device_smoke.py --archive zig-out/lib/libstwo_cuda_kernels.a --cuda-home \"$STWO_CUDA_HOME\" --compiler \"$STWO_CUDA_HOST_CXX\" --out-dir \"{output_dir}/native-cuda-device-smoke\"\npython3 -c 'import json,sys; receipt=json.load(open(sys.argv[1], encoding=\"utf-8\")); assert receipt[\"schema\"] == \"stwo-zig-cuda-device-smoke-v1\" and len(receipt[\"tests\"]) == 12' \"{output_dir}/native-cuda-device-smoke/cuda_device_smoke_receipt.json\"\nzig build stwo-native-cpu -Doptimize=ReleaseFast -j2\ncargo +nightly-2025-07-14 build --release --locked --manifest-path tools/stwo-interop-rs/Cargo.toml\nrust_target=\"${CARGO_TARGET_DIR:-tools/stwo-interop-rs/target}\"\nrust_verifier=\"$rust_target/release/stwo-interop-rs\"\ntest -x \"$rust_verifier\"\n# Source, Cargo.lock, and the named Rust toolchain are the oracle pin. This digest binds that built executable into the parity receipt.\nrust_sha256=\"$(sha256sum \"$rust_verifier\" | awk '{print $1}')\"\npython3 scripts/cuda_proof_parity_gate.py --cuda-product zig-out/bin/stwo-zig-native-cuda --native-cpu-product zig-out/bin/stwo-zig-native-cpu --rust-verifier \"$rust_verifier\" --rust-verifier-sha256 \"$rust_sha256\" --log-n-rows 5 --sequence-len 8 --repeat 3 --out-dir \"{output_dir}/native-cuda-parity\"\npython3 scripts/cuda_proof_parity_gate.py --cuda-product zig-out/bin/stwo-zig-native-cuda --native-cpu-product zig-out/bin/stwo-zig-native-cpu --rust-verifier \"$rust_verifier\" --rust-verifier-sha256 \"$rust_sha256\" --air poseidon --log-n-instances 10 --repeat 3 --execution-mode graphs --out-dir \"{output_dir}/native-cuda-poseidon-graphs\"\npython3 scripts/cuda_proof_parity_gate.py --cuda-product zig-out/bin/stwo-zig-native-cuda --native-cpu-product zig-out/bin/stwo-zig-native-cpu --rust-verifier \"$rust_verifier\" --rust-verifier-sha256 \"$rust_sha256\" --air poseidon --log-n-instances 10 --repeat 3 --execution-mode direct --out-dir \"{output_dir}/native-cuda-poseidon-direct\"\npython3 -c 'import json,sys; a=json.load(open(sys.argv[1], encoding=\"utf-8\")); b=json.load(open(sys.argv[2], encoding=\"utf-8\")); assert a[\"proofs\"][\"cuda\"][\"proof_sha256\"] == b[\"proofs\"][\"cuda\"][\"proof_sha256\"] and a[\"cuda_residency\"][\"aot_build_sha256\"] == b[\"cuda_residency\"][\"aot_build_sha256\"]' \"{output_dir}/native-cuda-poseidon-graphs/receipt.json\" \"{output_dir}/native-cuda-poseidon-direct/receipt.json\"\ntest -s \"{output_dir}/native-cuda-parity/receipt.json\"\ntest -s \"{output_dir}/native-cuda-poseidon-graphs/receipt.json\"\ntest -s \"{output_dir}/native-cuda-poseidon-direct/receipt.json\""]
+        [
+          "bash",
+          "-ceu",
+          ": \"${STWO_CUDA_NVCC:?explicit STWO_CUDA_NVCC is required}\"\n: \"${STWO_CUDA_HOST_CXX:?explicit STWO_CUDA_HOST_CXX is required}\"\n: \"${STWO_CUDA_HOST_RUNTIME:?explicit STWO_CUDA_HOST_RUNTIME is required}\"\n: \"${STWO_CUDA_HOST_UNWIND_RUNTIME:?explicit STWO_CUDA_HOST_UNWIND_RUNTIME is required}\"\n: \"${STWO_CUDA_AR:?explicit STWO_CUDA_AR is required}\"\n: \"${STWO_CUDA_HOME:?explicit STWO_CUDA_HOME is required}\"\n: \"${STWO_CUDA_LIBRARY_DIR:?explicit STWO_CUDA_LIBRARY_DIR is required}\"\n: \"${STWO_CUDA_ARCH:?explicit STWO_CUDA_ARCH is required}\"\ntest -x \"$STWO_CUDA_NVCC\"\ntest -x \"$STWO_CUDA_HOST_CXX\"\ntest -x \"$STWO_CUDA_AR\"\ntest -f \"$STWO_CUDA_HOST_RUNTIME\"\ntest -f \"$STWO_CUDA_HOST_UNWIND_RUNTIME\"\ntest -d \"$STWO_CUDA_HOME\"\ntest -d \"$STWO_CUDA_LIBRARY_DIR\"\ntest \"$(nvidia-smi --query-gpu=uuid --format=csv,noheader | sed '/^[[:space:]]*$/d' | wc -l | tr -d ' ')\" = 1\nnvidia-smi --query-gpu=name,uuid,compute_cap,driver_version --format=csv,noheader | tee /dev/stderr\nzig build stwo-native-cuda -Doptimize=ReleaseFast -j2 \"-Dcuda-nvcc=$STWO_CUDA_NVCC\" \"-Dcuda-host-cxx=$STWO_CUDA_HOST_CXX\" \"-Dcuda-host-runtime=$STWO_CUDA_HOST_RUNTIME\" \"-Dcuda-host-unwind-runtime=$STWO_CUDA_HOST_UNWIND_RUNTIME\" \"-Dcuda-ar=$STWO_CUDA_AR\" \"-Dcuda-home=$STWO_CUDA_HOME\" \"-Dcuda-library-dir=$STWO_CUDA_LIBRARY_DIR\" \"-Dcuda-arch=$STWO_CUDA_ARCH\"\npython3 scripts/cuda_device_smoke.py --archive zig-out/lib/libstwo_cuda_kernels.a --cuda-home \"$STWO_CUDA_HOME\" --compiler \"$STWO_CUDA_HOST_CXX\" --out-dir \"{output_dir}/native-cuda-device-smoke\"\npython3 -c 'import json,sys; receipt=json.load(open(sys.argv[1], encoding=\"utf-8\")); assert receipt[\"schema\"] == \"stwo-zig-cuda-device-smoke-v1\" and len(receipt[\"tests\"]) == 12' \"{output_dir}/native-cuda-device-smoke/cuda_device_smoke_receipt.json\"\nzig build stwo-native-cpu -Doptimize=ReleaseFast -j2\ncargo +nightly-2025-07-14 build --release --locked --manifest-path tools/stwo-interop-rs/Cargo.toml\nrust_target=\"${CARGO_TARGET_DIR:-tools/stwo-interop-rs/target}\"\nrust_verifier=\"$rust_target/release/stwo-interop-rs\"\ntest -x \"$rust_verifier\"\n# Source, Cargo.lock, and the named Rust toolchain are the oracle pin. This digest binds that built executable into the parity receipt.\nrust_sha256=\"$(sha256sum \"$rust_verifier\" | awk '{print $1}')\"\npython3 scripts/cuda_proof_parity_gate.py --cuda-product zig-out/bin/stwo-zig-native-cuda --native-cpu-product zig-out/bin/stwo-zig-native-cpu --rust-verifier \"$rust_verifier\" --rust-verifier-sha256 \"$rust_sha256\" --log-n-rows 5 --sequence-len 8 --repeat 3 --out-dir \"{output_dir}/native-cuda-parity\"\npython3 scripts/cuda_proof_parity_gate.py --cuda-product zig-out/bin/stwo-zig-native-cuda --native-cpu-product zig-out/bin/stwo-zig-native-cpu --rust-verifier \"$rust_verifier\" --rust-verifier-sha256 \"$rust_sha256\" --air poseidon --log-n-instances 10 --repeat 3 --execution-mode graphs --out-dir \"{output_dir}/native-cuda-poseidon-graphs\"\npython3 scripts/cuda_proof_parity_gate.py --cuda-product zig-out/bin/stwo-zig-native-cuda --native-cpu-product zig-out/bin/stwo-zig-native-cpu --rust-verifier \"$rust_verifier\" --rust-verifier-sha256 \"$rust_sha256\" --air poseidon --log-n-instances 10 --repeat 3 --execution-mode direct --out-dir \"{output_dir}/native-cuda-poseidon-direct\"\npython3 -c 'import json,sys; a=json.load(open(sys.argv[1], encoding=\"utf-8\")); b=json.load(open(sys.argv[2], encoding=\"utf-8\")); assert a[\"proofs\"][\"cuda\"][\"proof_sha256\"] == b[\"proofs\"][\"cuda\"][\"proof_sha256\"] and a[\"cuda_residency\"][\"aot_build_sha256\"] == b[\"cuda_residency\"][\"aot_build_sha256\"]' \"{output_dir}/native-cuda-poseidon-graphs/receipt.json\" \"{output_dir}/native-cuda-poseidon-direct/receipt.json\"\ntest -s \"{output_dir}/native-cuda-parity/receipt.json\"\ntest -s \"{output_dir}/native-cuda-poseidon-graphs/receipt.json\"\ntest -s \"{output_dir}/native-cuda-poseidon-direct/receipt.json\""
+        ]
       ]
     },
     "native_metal": {
@@ -238,7 +539,14 @@
       "hosted": false,
       "description": "Focused Native Metal product (real Metal GPU required; local/judge-host only)",
       "commands": [
-        ["zig", "build", "test-native-metal", "stwo-native-metal", "-Doptimize=ReleaseSafe", "-j2"]
+        [
+          "zig",
+          "build",
+          "test-native-metal",
+          "stwo-native-metal",
+          "-Doptimize=ReleaseSafe",
+          "-j2"
+        ]
       ]
     },
     "riscv_metal": {
@@ -246,7 +554,14 @@
       "hosted": false,
       "description": "Focused RISC-V Metal product (real Metal GPU required; local/judge-host only)",
       "commands": [
-        ["zig", "build", "test-riscv-metal", "stwo-riscv-metal", "-Doptimize=ReleaseSafe", "-j2"]
+        [
+          "zig",
+          "build",
+          "test-riscv-metal",
+          "stwo-riscv-metal",
+          "-Doptimize=ReleaseSafe",
+          "-j2"
+        ]
       ]
     },
     "aggregate_metal": {
@@ -254,14 +569,28 @@
       "local": "hosted",
       "description": "Metal-enabled aggregate compatibility product",
       "commands": [
-        ["zig", "build", "test", "stwo-zig", "-Daggregate-metal=true", "-Doptimize=ReleaseSafe", "-j2"]
+        [
+          "zig",
+          "build",
+          "test",
+          "stwo-zig",
+          "-Daggregate-metal=true",
+          "-Doptimize=ReleaseSafe",
+          "-j2"
+        ]
       ]
     },
     "metal_compile": {
       "host": "macos",
       "description": "Broader Metal compile boundary without proof workloads",
       "commands": [
-        ["zig", "build", "metal-check", "-Doptimize=ReleaseSafe", "-j2"]
+        [
+          "zig",
+          "build",
+          "metal-check",
+          "-Doptimize=ReleaseSafe",
+          "-j2"
+        ]
       ]
     },
     "metal_aot": {
@@ -269,171 +598,554 @@
       "local": "hosted",
       "description": "Metal shader and AOT tooling contract",
       "commands": [
-        ["zig", "build", "test-metal-core-aot", "test-metal-core-aot-probe", "metal-core-aot", "-Doptimize=ReleaseSafe", "-j2"],
-        ["python3", "scripts/metal_core_aot_receipt.py", "reproduce", "--builder", "zig-out/bin/metal-core-aot", "--output-dir", "{output_dir}/metal-aot"]
+        [
+          "zig",
+          "build",
+          "test-metal-core-aot",
+          "test-metal-core-aot-probe",
+          "metal-core-aot",
+          "-Doptimize=ReleaseSafe",
+          "-j2"
+        ],
+        [
+          "python3",
+          "scripts/metal_core_aot_receipt.py",
+          "reproduce",
+          "--builder",
+          "zig-out/bin/metal-core-aot",
+          "--output-dir",
+          "{output_dir}/metal-aot"
+        ]
       ]
     }
   },
   "product_scope_lanes": {
-    "aggregate": ["aggregate_cpu"],
-    "core": ["core", "package"],
-    "prover": ["prover", "package"],
-    "native_cpu": ["native_cpu"],
-    "riscv_cpu": ["riscv_frontend", "riscv_cpu"],
-    "cairo_cpu": ["cairo_cpu"],
-    "cairo_metal": ["cairo_metal"],
-    "native_cuda": ["native_cuda_static", "native_cuda_device"],
-    "cairo_cuda": ["cairo_cuda_integration", "native_cuda_static"],
-    "native_metal": ["native_metal", "aggregate_metal"],
-    "riscv_metal": ["riscv_metal"],
-    "deferred": ["deferred"]
+    "aggregate": [
+      "aggregate_cpu"
+    ],
+    "core": [
+      "core",
+      "package"
+    ],
+    "prover": [
+      "prover",
+      "package"
+    ],
+    "native_cpu": [
+      "native_cpu"
+    ],
+    "riscv_cpu": [
+      "riscv_frontend",
+      "riscv_cpu"
+    ],
+    "cairo_cpu": [
+      "cairo_cpu"
+    ],
+    "cairo_metal": [
+      "cairo_metal"
+    ],
+    "native_cuda": [
+      "native_cuda_static",
+      "native_cuda_device"
+    ],
+    "cairo_cuda": [
+      "cairo_cuda_integration",
+      "native_cuda_static"
+    ],
+    "native_metal": [
+      "native_metal",
+      "aggregate_metal"
+    ],
+    "riscv_metal": [
+      "riscv_metal"
+    ],
+    "deferred": [
+      "deferred"
+    ]
   },
   "rules": [
     {
-      "prefixes": ["build.zig", "build.zig.zon", "build_support/graph", "build_support/products/catalog", "build_support/products/matrix.zig", "build_support/products/product_specs.zig", "build_support/internal_build.zig", "build_support/root_dispatcher.zig"],
-      "lanes": ["build_graph", "core", "backend_contracts", "prover_api", "prover", "riscv_frontend", "riscv_cpu_integration", "cairo_frontend", "cairo_cpu_integration", "cpu_backend", "cuda_backend", "metal_backend", "riscv_metal_integration", "cairo_metal_integration", "metal_session", "proof_wire", "native_examples", "native_cuda_integration", "cairo_cuda_integration", "package", "native_cpu", "native_oracle", "riscv_cpu", "riscv_metal", "cairo_cpu", "cairo_metal", "aggregate_cpu", "native_metal", "aggregate_metal"]
+      "prefixes": [
+        "build.zig",
+        "build.zig.zon",
+        "build_support/graph",
+        "build_support/products/catalog",
+        "build_support/products/matrix.zig",
+        "build_support/products/product_specs.zig",
+        "build_support/internal_build.zig",
+        "build_support/root_dispatcher.zig"
+      ],
+      "lanes": [
+        "build_graph",
+        "core",
+        "backend_contracts",
+        "prover_api",
+        "prover",
+        "riscv_frontend",
+        "riscv_cpu_integration",
+        "cairo_frontend",
+        "cairo_cpu_integration",
+        "cpu_backend",
+        "cuda_backend",
+        "metal_backend",
+        "riscv_metal_integration",
+        "cairo_metal_integration",
+        "metal_session",
+        "proof_wire",
+        "native_examples",
+        "native_cuda_integration",
+        "cairo_cuda_integration",
+        "package",
+        "native_cpu",
+        "native_oracle",
+        "riscv_cpu",
+        "riscv_metal",
+        "cairo_cpu",
+        "cairo_metal",
+        "aggregate_cpu",
+        "native_metal",
+        "aggregate_metal"
+      ]
     },
     {
-      "prefixes": ["build_support/products/core.zig"],
-      "lanes": ["build_graph", "core", "prover_api", "prover", "riscv_cpu_integration", "cairo_cpu_integration", "metal_backend", "riscv_metal_integration", "package", "native_cpu", "native_oracle", "riscv_cpu", "cairo_cpu", "cairo_metal", "aggregate_cpu", "native_metal", "aggregate_metal"]
+      "prefixes": [
+        "build_support/products/core.zig"
+      ],
+      "lanes": [
+        "build_graph",
+        "core",
+        "prover_api",
+        "prover",
+        "riscv_cpu_integration",
+        "cairo_cpu_integration",
+        "metal_backend",
+        "riscv_metal_integration",
+        "package",
+        "native_cpu",
+        "native_oracle",
+        "riscv_cpu",
+        "cairo_cpu",
+        "cairo_metal",
+        "aggregate_cpu",
+        "native_metal",
+        "aggregate_metal"
+      ]
     },
     {
-      "prefixes": ["build_support/products/prover.zig"],
-      "lanes": ["build_graph", "prover", "riscv_cpu_integration", "cairo_cpu_integration", "metal_backend", "riscv_metal_integration", "package", "native_cpu", "native_oracle", "riscv_cpu", "cairo_cpu", "cairo_metal", "aggregate_cpu", "native_metal", "aggregate_metal"]
+      "prefixes": [
+        "build_support/products/prover.zig"
+      ],
+      "lanes": [
+        "build_graph",
+        "prover",
+        "riscv_cpu_integration",
+        "cairo_cpu_integration",
+        "metal_backend",
+        "riscv_metal_integration",
+        "package",
+        "native_cpu",
+        "native_oracle",
+        "riscv_cpu",
+        "cairo_cpu",
+        "cairo_metal",
+        "aggregate_cpu",
+        "native_metal",
+        "aggregate_metal"
+      ]
     },
     {
-      "prefixes": ["build_support/products/native_cpu.zig"],
-      "lanes": ["build_graph", "native_cpu"]
+      "prefixes": [
+        "build_support/products/native_cpu.zig"
+      ],
+      "lanes": [
+        "build_graph",
+        "native_cpu"
+      ]
     },
     {
       "prefixes": ["build_support/products/riscv_cpu.zig", "build_support/products/riscv_refinement.zig", "build_support/products/riscv_sail_oracle_tests.zig"],
       "lanes": ["build_graph", "riscv_cpu", "aggregate_cpu", "aggregate_metal"]
     },
     {
-      "prefixes": ["build_support/products/native_metal.zig", "build_support/backends/metal.zig", "build_support/benchmarks/metal.zig"],
-      "lanes": ["build_graph", "native_metal", "aggregate_metal", "metal_compile"]
+      "prefixes": [
+        "build_support/products/native_metal.zig",
+        "build_support/backends/metal.zig",
+        "build_support/benchmarks/metal.zig"
+      ],
+      "lanes": [
+        "build_graph",
+        "native_metal",
+        "aggregate_metal",
+        "metal_compile"
+      ]
     },
     {
-      "prefixes": ["src/backends/metal"],
-      "lanes": ["package", "native_metal", "riscv_metal", "aggregate_metal", "metal_compile"]
+      "prefixes": [
+        "src/backends/metal"
+      ],
+      "lanes": [
+        "package",
+        "native_metal",
+        "riscv_metal",
+        "aggregate_metal",
+        "metal_compile"
+      ]
     },
     {
-      "prefixes": ["src/tools/metal_core_aot", "build_support/backends/metal_aot.zig", "scripts/metal_core_aot_receipt"],
-      "lanes": ["metal_aot"]
+      "prefixes": [
+        "src/tools/metal_core_aot",
+        "build_support/backends/metal_aot.zig",
+        "scripts/metal_core_aot_receipt"
+      ],
+      "lanes": [
+        "metal_aot"
+      ]
     },
     {
-      "prefixes": ["src/backends/metal/shaders", "src/backends/metal/kernels.metal", "src/backends/metal/shader_manifest.zig"],
-      "lanes": ["metal_aot"]
+      "prefixes": [
+        "src/backends/metal/shaders",
+        "src/backends/metal/kernels.metal",
+        "src/backends/metal/shader_manifest.zig"
+      ],
+      "lanes": [
+        "metal_aot"
+      ]
     },
     {
-      "prefixes": ["tools/stwo-interop-rs"],
-      "lanes": ["native_oracle"]
+      "prefixes": [
+        "tools/stwo-interop-rs"
+      ],
+      "lanes": [
+        "native_oracle"
+      ]
     },
     {
-      "prefixes": ["src/core", "src/prover", "src/prover_api", "src/backend", "src/backends/cpu_scalar", "src/examples", "src/interop/proof_wire"],
-      "lanes": ["native_oracle"]
+      "prefixes": [
+        "src/core",
+        "src/prover",
+        "src/prover_api",
+        "src/backend",
+        "src/backends/cpu_scalar",
+        "src/examples",
+        "src/interop/proof_wire"
+      ],
+      "lanes": [
+        "native_oracle"
+      ]
     },
     {
-      "prefixes": ["src/core"],
-      "lanes": ["package", "aggregate_metal"]
+      "prefixes": [
+        "src/core"
+      ],
+      "lanes": [
+        "package",
+        "aggregate_metal"
+      ]
     },
     {
-      "prefixes": ["src/backend"],
-      "lanes": ["package", "aggregate_metal"]
+      "prefixes": [
+        "src/backend"
+      ],
+      "lanes": [
+        "package",
+        "aggregate_metal"
+      ]
     },
     {
-      "prefixes": ["src/prover"],
-      "lanes": ["package", "aggregate_metal"]
+      "prefixes": [
+        "src/prover"
+      ],
+      "lanes": [
+        "package",
+        "aggregate_metal"
+      ]
     },
     {
-      "prefixes": ["src/prover_api"],
-      "lanes": ["package", "aggregate_metal"]
+      "prefixes": [
+        "src/prover_api"
+      ],
+      "lanes": [
+        "package",
+        "aggregate_metal"
+      ]
     },
     {
-      "prefixes": ["src/backends/cpu_scalar"],
-      "lanes": ["package"]
+      "prefixes": [
+        "src/backends/cpu_scalar"
+      ],
+      "lanes": [
+        "package"
+      ]
     },
     {
-      "prefixes": ["src/frontends/riscv"],
-      "lanes": ["package", "riscv_cpu", "aggregate_cpu", "aggregate_metal"]
+      "prefixes": [
+        "src/frontends/riscv"
+      ],
+      "lanes": [
+        "package",
+        "riscv_cpu",
+        "aggregate_cpu",
+        "aggregate_metal"
+      ]
     },
     {
-      "prefixes": ["src/integrations/riscv_cpu"],
-      "lanes": ["package", "aggregate_metal"]
+      "prefixes": [
+        "src/integrations/riscv_cpu"
+      ],
+      "lanes": [
+        "package",
+        "aggregate_metal"
+      ]
     },
     {
-      "prefixes": ["src/frontends/cairo"],
-      "lanes": ["package", "cairo_cpu", "cairo_metal"]
+      "prefixes": [
+        "src/frontends/cairo"
+      ],
+      "lanes": [
+        "package",
+        "cairo_cpu",
+        "cairo_metal"
+      ]
     },
     {
-      "prefixes": ["src/integrations/cairo_cpu"],
-      "lanes": ["package"]
+      "prefixes": [
+        "src/integrations/cairo_cpu"
+      ],
+      "lanes": [
+        "package"
+      ]
     },
     {
-      "prefixes": ["src/products/cairo", "src/products/cairo_cpu", "src/stwo_cairo_cpu.zig", "build_support/products/cairo_cpu.zig", "build_support/products/cairo_cpu", "build_support/products/cairo_support.zig"],
-      "lanes": ["cairo_cpu", "cairo_metal"]
+      "prefixes": [
+        "src/products/cairo",
+        "src/products/cairo_cpu",
+        "src/stwo_cairo_cpu.zig",
+        "build_support/products/cairo_cpu.zig",
+        "build_support/products/cairo_cpu",
+        "build_support/products/cairo_support.zig"
+      ],
+      "lanes": [
+        "cairo_cpu",
+        "cairo_metal"
+      ]
     },
     {
-      "prefixes": ["src/integrations/cairo_cpu"],
-      "lanes": ["cairo_cpu", "cairo_metal"]
+      "prefixes": [
+        "src/integrations/cairo_cpu"
+      ],
+      "lanes": [
+        "cairo_cpu",
+        "cairo_metal"
+      ]
     },
     {
-      "prefixes": ["src/products/cairo_metal", "src/stwo_cairo_metal.zig", "build_support/products/cairo_metal.zig", "build_support/products/cairo_metal"],
-      "lanes": ["cairo_metal_integration", "package", "cairo_metal", "metal_compile"]
+      "prefixes": [
+        "src/products/cairo_metal",
+        "src/stwo_cairo_metal.zig",
+        "build_support/products/cairo_metal.zig",
+        "build_support/products/cairo_metal"
+      ],
+      "lanes": [
+        "cairo_metal_integration",
+        "package",
+        "cairo_metal",
+        "metal_compile"
+      ]
     },
     {
-      "prefixes": ["src/integrations/cairo_metal", "src/backends/metal/cairo"],
-      "lanes": ["package", "cairo_metal", "metal_compile"]
+      "prefixes": [
+        "src/integrations/cairo_metal"
+      ],
+      "lanes": [
+        "package",
+        "cairo_metal",
+        "metal_compile"
+      ]
     },
     {
-      "prefixes": ["build_support/products/riscv_cuda.zig"],
-      "lanes": ["deferred"]
+      "prefixes": [
+        "build_support/products/riscv_cuda.zig"
+      ],
+      "lanes": [
+        "deferred"
+      ]
     },
     {
-      "prefixes": ["build_support/products/riscv_metal.zig"],
-      "lanes": ["build_graph", "riscv_metal"]
+      "prefixes": [
+        "build_support/products/riscv_metal.zig"
+      ],
+      "lanes": [
+        "build_graph",
+        "riscv_metal"
+      ]
     },
     {
-      "prefixes": ["src/integrations/riscv_metal"],
-      "lanes": ["package"]
+      "prefixes": [
+        "src/integrations/riscv_metal"
+      ],
+      "lanes": [
+        "package"
+      ]
     },
     {
-      "prefixes": ["src/tools/metal_session"],
-      "lanes": ["package", "cairo_metal", "metal_compile"]
+      "prefixes": [
+        "src/tools/metal_session"
+      ],
+      "lanes": [
+        "package",
+        "cairo_metal",
+        "metal_compile"
+      ]
     },
     {
-      "prefixes": ["src/interop/proof_wire"],
-      "lanes": ["package", "native_cpu", "native_oracle", "riscv_cpu", "aggregate_cpu", "native_cuda_static", "native_cuda_device", "native_metal", "aggregate_metal", "metal_compile"]
+      "prefixes": [
+        "src/interop/proof_wire"
+      ],
+      "lanes": [
+        "package",
+        "native_cpu",
+        "native_oracle",
+        "riscv_cpu",
+        "aggregate_cpu",
+        "native_cuda_static",
+        "native_cuda_device",
+        "native_metal",
+        "aggregate_metal",
+        "metal_compile"
+      ]
     },
     {
-      "prefixes": ["src/examples"],
-      "lanes": ["package", "native_cpu", "native_oracle", "aggregate_cpu", "native_cuda_static", "native_cuda_device", "native_metal", "aggregate_metal", "metal_compile"]
+      "prefixes": [
+        "src/examples"
+      ],
+      "lanes": [
+        "package",
+        "native_cpu",
+        "native_oracle",
+        "aggregate_cpu",
+        "native_cuda_static",
+        "native_cuda_device",
+        "native_metal",
+        "aggregate_metal",
+        "metal_compile"
+      ]
     },
     {
-      "prefixes": ["src/backends/cuda"],
-      "lanes": ["package", "native_cuda_static", "native_cuda_device"]
+      "prefixes": [
+        "src/backends/cuda"
+      ],
+      "lanes": [
+        "package",
+        "native_cuda_static",
+        "native_cuda_device"
+      ]
     },
     {
-      "prefixes": ["build_support/products/native_cuda.zig", "build_support/backends/cuda.zig", "build_support/backends/cuda_tools.zig", "src/products/native_cuda", "scripts/cuda_", "tests/cuda", "tools/stwo-cuda-adapter-rs"],
-      "lanes": ["native_cuda_integration", "cairo_cuda_integration", "package", "native_cuda_static", "native_cuda_device"]
+      "prefixes": [
+        "build_support/products/native_cuda.zig",
+        "build_support/backends/cuda.zig",
+        "build_support/backends/cuda_tools.zig",
+        "src/products/native_cuda",
+        "scripts/cuda_",
+        "tests/cuda",
+        "tools/stwo-cuda-adapter-rs"
+      ],
+      "lanes": [
+        "native_cuda_integration",
+        "cairo_cuda_integration",
+        "package",
+        "native_cuda_static",
+        "native_cuda_device"
+      ]
     },
     {
-      "prefixes": ["src/integrations/native_cuda"],
-      "lanes": ["package", "native_cuda_static", "native_cuda_device"]
+      "prefixes": [
+        "src/integrations/native_cuda"
+      ],
+      "lanes": [
+        "package",
+        "native_cuda_static",
+        "native_cuda_device"
+      ]
     },
     {
-      "prefixes": ["build_support/products/cairo_cuda.zig", "src/cairo_cuda.zig", "src/products/cairo_cuda", "src/tools/cuda_native_ec_composite_oracle"],
-      "lanes": ["cairo_cuda_integration", "package", "native_cuda_static"]
+      "prefixes": [
+        "build_support/products/cairo_cuda.zig",
+        "src/cairo_cuda.zig",
+        "src/products/cairo_cuda",
+        "src/tools/cuda_native_ec_composite_oracle"
+      ],
+      "lanes": [
+        "cairo_cuda_integration",
+        "package",
+        "native_cuda_static"
+      ]
     },
     {
-      "prefixes": ["src/integrations/cairo_cuda"],
-      "lanes": ["package", "native_cuda_static"]
+      "prefixes": [
+        "src/integrations/cairo_cuda"
+      ],
+      "lanes": [
+        "package",
+        "native_cuda_static"
+      ]
     },
     {
-      "prefixes": [".github/workflows", ".githooks", "scripts/ci_scope_plan.py", "scripts/ci_scope_run.py", "scripts/ci_scope_push.py", "conformance/ci-touchpoints-v1.json"],
-      "lanes": ["build_graph", "core", "backend_contracts", "prover_api", "prover", "riscv_frontend", "riscv_cpu_integration", "cairo_frontend", "cairo_cpu_integration", "cpu_backend", "cuda_backend", "metal_backend", "riscv_metal_integration", "cairo_metal_integration", "metal_session", "proof_wire", "native_examples", "native_cuda_integration", "cairo_cuda_integration", "package", "native_cpu", "native_oracle", "riscv_cpu", "riscv_metal", "cairo_cpu", "cairo_metal", "aggregate_cpu", "deferred", "native_cuda_static", "native_cuda_device", "native_metal", "aggregate_metal", "metal_compile", "metal_aot"]
+      "prefixes": [
+        ".github/workflows",
+        ".githooks",
+        "scripts/ci_scope_plan.py",
+        "scripts/ci_scope_run.py",
+        "scripts/ci_scope_push.py",
+        "conformance/ci-touchpoints-v1.json"
+      ],
+      "lanes": [
+        "build_graph",
+        "core",
+        "backend_contracts",
+        "prover_api",
+        "prover",
+        "riscv_frontend",
+        "riscv_cpu_integration",
+        "cairo_frontend",
+        "cairo_cpu_integration",
+        "cpu_backend",
+        "cuda_backend",
+        "metal_backend",
+        "riscv_metal_integration",
+        "cairo_metal_integration",
+        "metal_session",
+        "proof_wire",
+        "native_examples",
+        "native_cuda_integration",
+        "cairo_cuda_integration",
+        "package",
+        "native_cpu",
+        "native_oracle",
+        "riscv_cpu",
+        "riscv_metal",
+        "cairo_cpu",
+        "cairo_metal",
+        "aggregate_cpu",
+        "deferred",
+        "native_cuda_static",
+        "native_cuda_device",
+        "native_metal",
+        "aggregate_metal",
+        "metal_compile",
+        "metal_aot"
+      ]
     }
   ],
-  "documentation_prefixes": ["README.md", "CONTRIBUTING.md", "LICENSE", "docs", "archive", "conformance"],
-  "externally_validated_prefixes": ["autoresearch"]
+  "documentation_prefixes": [
+    "README.md",
+    "CONTRIBUTING.md",
+    "LICENSE",
+    "docs",
+    "archive",
+    "conformance"
+  ],
+  "externally_validated_prefixes": [
+    "autoresearch"
+  ]
 }

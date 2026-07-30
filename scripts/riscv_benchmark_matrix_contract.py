@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from scripts.riscv_benchmark_matrix_model import FULL_COUNTS
+from scripts.riscv_csp_benchmark_lib.host import power_conditions_admissible
 
 
 SCHEMA = "riscv_benchmark_matrix_v2"
@@ -33,6 +34,28 @@ SEMANTIC_FIELDS = (
     "reg_last_clock", "program_root", "initial_rw_root", "final_rw_root",
     "io_entries",
 )
+# Schema and field set of the shared host block three harnesses embed
+# (``riscv_stark_v_benchmark.collect_host_environment``).
+#
+# Named rather than spelled inline at the ``exact_fields`` call because that
+# inline set is what made the block unextendable: adding the power evidence the
+# report needed broke two sibling harnesses here, at report-validation time,
+# rather than where the field was added. With the set named, the producer's own
+# test asserts equality against *this* constant, so the two sides move together
+# or the producer's test fails first.
+#
+# v2 added ``power_conditions``. Battery power and low power mode throttle
+# sustained multi-core CPU work on Apple Silicon while leaving the GPU largely
+# unaffected, and per-sample variance stays small under throttling -- so a report
+# without that evidence cannot say whether its numbers are measurements or
+# throttling artefacts, and a stable-looking run is not evidence of a valid one
+# (issue #152 item 6c).
+HOST_ENVIRONMENT_SCHEMA = "riscv_benchmark_host_environment_v2"
+HOST_ENVIRONMENT_FIELDS = {
+    "schema", "platform", "hardware", "toolchain", "stark_v_commit",
+    "power_conditions",
+}
+POWER_CONDITION_FIELDS = {"power_source", "low_power_mode", "admissible", "reasons"}
 METAL_GATE = {
     "status": "gated",
     "reason": "riscv_adapter_cpu_only_and_stark_v_has_no_riscv_metal_prover",
@@ -435,6 +458,47 @@ def validate_row(row: object, label: str = "row") -> None:
         raise MatrixContractError(f"{label}: execution row has proof/rejection evidence")
 
 
+def validate_host_environment(host_environment: object, label: str) -> Mapping[str, Any]:
+    """Admit the shared host block, including its power-condition evidence.
+
+    Named and separately callable so the producing harness's own test can hold
+    itself to this contract instead of restating the field set: an exact-field
+    check that only one side of a two-sided agreement can see is how the block
+    became unextendable in the first place.
+
+    The verdict is *re-derived* from the observed evidence rather than trusted:
+    a report that recorded battery power and then claimed ``admissible`` would
+    otherwise carry the same self-evident non-publishability the fields exist to
+    expose, in a form no consumer would notice.
+    """
+    host = exact_fields(host_environment, HOST_ENVIRONMENT_FIELDS, label)
+    if host["schema"] != HOST_ENVIRONMENT_SCHEMA:
+        raise MatrixContractError(f"{label} schema drifted")
+    if host["stark_v_commit"] != "d478f783055aa0d73a93768a433a3c6c31c91d1c":
+        raise MatrixContractError(f"{label} Stark-V identity drifted")
+    power = exact_fields(
+        host["power_conditions"], POWER_CONDITION_FIELDS, f"{label}.power_conditions",
+    )
+    if not isinstance(power["admissible"], bool):
+        raise MatrixContractError(
+            f"{label}.power_conditions.admissible: must be a boolean"
+        )
+    reasons = power["reasons"]
+    if not isinstance(reasons, list) or not all(
+        isinstance(reason, str) and reason for reason in reasons
+    ):
+        raise MatrixContractError(
+            f"{label}.power_conditions.reasons: must be a list of nonempty strings"
+        )
+    expected_admissible, expected_reasons = power_conditions_admissible(power)
+    if power["admissible"] is not expected_admissible or reasons != expected_reasons:
+        raise MatrixContractError(
+            f"{label}.power_conditions: recorded verdict does not follow from the "
+            "recorded power evidence"
+        )
+    return host
+
+
 def validate_report(
     report: object,
     *,
@@ -458,13 +522,7 @@ def validate_report(
         raise MatrixContractError("report.protocol: functional PCS contract drifted")
     if root["metal"] != METAL_GATE:
         raise MatrixContractError("report.metal: RISC-V Metal gate drifted")
-    host = exact_fields(root["host_environment"], {
-        "schema", "platform", "hardware", "toolchain", "stark_v_commit",
-    }, "report.host_environment")
-    if host["schema"] != "riscv_benchmark_host_environment_v1":
-        raise MatrixContractError("report.host_environment schema drifted")
-    if host["stark_v_commit"] != "d478f783055aa0d73a93768a433a3c6c31c91d1c":
-        raise MatrixContractError("report.host_environment Stark-V identity drifted")
+    validate_host_environment(root["host_environment"], "report.host_environment")
     policy = exact_fields(root["timing_policy"], {
         "clock", "pairing", "candidate_proof_sampling", "stark_v_phase_source",
         "warmups_excluded_from_summary", "rust_feature_required",

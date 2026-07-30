@@ -46,9 +46,18 @@ from scripts.riscv_stark_v_benchmark import (  # noqa: E402
     PINNED_COMMIT,
     collect_host_environment,
     parse_phase_seconds,
+    power_evidence_block,
 )
 from scripts import riscv_cli_admission  # noqa: E402
-SCHEMA = "riscv_crypto_benchmark_v1"
+from scripts.riscv_csp_benchmark_lib.build_identity import (  # noqa: E402
+    read_trace_provenance,
+)
+from scripts.riscv_csp_benchmark_lib.contract import BenchmarkError, Case  # noqa: E402
+# v2 carries `host_environment` schema v2, whose `power_conditions` block records
+# whether this run's numbers are measurements or throttling artefacts, and
+# `trace_provenance`, which binds the trace dumper that produced every cycle
+# count in the execution rows (issue #152 items 6b and 6c).
+SCHEMA = "riscv_crypto_benchmark_v2"
 CRYPTO_DIR = ROOT / "vectors/riscv_elfs/crypto"
 PROVENANCE = CRYPTO_DIR / "provenance.json"
 DEFAULT_REPORT = ROOT / "vectors/reports/latest_riscv_crypto_benchmark_report.json"
@@ -145,13 +154,18 @@ def zig_execute(elf: Path, input_path: Path | None, samples: int) -> dict:
     if input_path:
         cmd += ["--input", str(input_path)]
     trace = subprocess.run(cmd, capture_output=True, text=True, timeout=3600)
-    if trace.returncode == 0:
-        try:
-            steps.add(json.loads(trace.stdout)["total_steps"])
-        except (json.JSONDecodeError, KeyError):
-            pass
+    # Fail closed on the step count. An unreadable dump used to be swallowed
+    # here, and the row's only correctness check -- cycle parity against the Rust
+    # lane -- is skipped when either side's count is missing, so the row then
+    # reported `ok` on the strength of nothing at all.
+    if trace.returncode != 0:
+        return {"error": (trace.stderr or trace.stdout).strip()[-300:]}
+    try:
+        steps.add(json.loads(trace.stdout)["total_steps"])
+    except (json.JSONDecodeError, KeyError, TypeError) as error:
+        return {"error": f"trace dump published no total_steps: {error}"}
     return {
-        "steps": steps.pop() if len(steps) == 1 else None,
+        "steps": steps.pop(),
         "execute_seconds": statistics.median(times),
     }
 
@@ -190,6 +204,63 @@ def input_for(guest: str, spec: dict, provenance: dict) -> list[tuple[str, Path 
     return [("fixed", None)]
 
 
+def repository_head() -> str:
+    """The commit every measuring executable must have been built from."""
+    head = subprocess.run(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"],
+        capture_output=True, text=True, check=False, timeout=15,
+    )
+    if head.returncode != 0 or not head.stdout.strip():
+        raise SystemExit("cannot read the repository HEAD to validate build provenance")
+    return head.stdout.strip()
+
+
+def admit_trace_executable(provenance: dict) -> dict:
+    """Validate the trace dumper before it produces a single published cycle.
+
+    Every execution row's cycle count comes from ``riscv-trace-dump``, and this
+    harness took those counts on trust: nothing checked that the binary was built
+    from this commit, or from a clean worktree. The provenance gate that answers
+    exactly that already exists for the CSP harness, so this calls it rather than
+    growing a second one -- a parallel implementation is the hazard, not the fix
+    (issue #152 item 6b).
+
+    The probe fixture is the smallest authenticated byte-input case. Its digests
+    come from the committed provenance file, and ``read_trace_provenance`` refuses
+    a dump whose ``source`` digests differ, so this also authenticates the ELF and
+    input the harness is about to measure.
+    """
+    guest = provenance["guests"]["sha2_input"]
+    size = min(provenance["byte_input_sizes"])
+    input_name = f"msg_{size}.bin"
+    # `read_trace_provenance` reads four of these fields -- the two paths it runs
+    # and the two digests it holds the dump to. The rest belong to the CSP
+    # harness's own expectations and are inert here; they are spelled out rather
+    # than defaulted so a field gaining meaning cannot pass unnoticed.
+    case = Case(
+        target="sha2_input",
+        input_size=size,
+        input_path=CRYPTO_DIR / "inputs" / input_name,
+        input_sha256=provenance["input_sha256"][input_name],
+        expected_digest="",
+        expected_cycles=0,
+        guest_path=ROOT / guest["elf"],
+        guest_sha256=guest["elf_sha256"],
+        guest_bytes=0,
+        uses_precompile=False,
+    )
+    try:
+        return read_trace_provenance(
+            ZIG_TRACE,
+            case,
+            repository_head=repository_head(),
+            max_steps=ECDSA_MAX_STEPS,
+            timeout=3600,
+        )
+    except BenchmarkError as error:
+        raise SystemExit(f"trace dumper is not publishable: {error}") from error
+
+
 def is_proof_size(guest: str, spec: dict, label: str) -> bool:
     if spec["eval"] == "provable":
         return True
@@ -219,6 +290,12 @@ def main(argv: list[str] | None = None) -> int:
         admission = riscv_cli_admission.resolve(ZIG_BENCH, cwd=ROOT)
     except riscv_cli_admission.AdmissionError as error:
         raise SystemExit(f"invalid Zig applications registry: {error}") from error
+    trace_provenance = admit_trace_executable(provenance)
+    # Captured before the first sample so an operator sees a throttled host while
+    # the run is still worth aborting, not after it finishes.
+    power = power_evidence_block()
+    if not power["admissible"]:
+        print(f"[power] {'; '.join(power['reasons'])}", flush=True)
 
     rows, failures = [], 0
     for guest, spec in provenance["guests"].items():
@@ -239,7 +316,13 @@ def main(argv: list[str] | None = None) -> int:
                         for side, lane in (("zig", zig), ("rust", rust)) if "error" in lane]
             zsteps = zig.get("steps")
             rcycles = rust.get("cycles")
-            if not problems and zsteps is not None and rcycles is not None and zsteps != rcycles:
+            # Cycle parity is this row's only correctness evidence, so a missing
+            # count is a failure rather than a reason to skip the comparison. Read
+            # as `is not None` guards, an absent count on either lane silently
+            # turned the check off and still printed `ok`.
+            if not problems and (zsteps is None or rcycles is None):
+                problems.append(f"missing cycle evidence zig={zsteps} rust={rcycles}")
+            elif not problems and zsteps != rcycles:
                 problems.append(f"cycle mismatch zig={zsteps} rust={rcycles}")
             row["zig"], row["rust"] = zig, rust
             if problems:
@@ -266,7 +349,12 @@ def main(argv: list[str] | None = None) -> int:
         "metal_note": "RISC-V adapter is CPU-only (no RISC-V Metal prover on either "
                       "lane); native CPU-vs-Metal lives in the native proof matrix",
         "min_rust_cpu_wall_ratio": MIN_RUST_PARALLELISM,
-        "host_environment": collect_host_environment(args.stark_v_source.resolve()),
+        "host_environment": collect_host_environment(
+            args.stark_v_source.resolve(), power_conditions=power,
+        ),
+        # The executable behind every execution row's cycle count, validated
+        # against this commit before the first sample.
+        "trace_provenance": trace_provenance,
         "warmups": args.warmups,
         "samples": args.samples,
         "failure_count": failures,

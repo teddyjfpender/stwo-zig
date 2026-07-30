@@ -1,131 +1,50 @@
-//! Regression pins for issue #152 item 3: errors must name their *cause* and
-//! point at the diagnostic that answers them.
+//! Whether the RISC-V frontend's diagnostic hints name invocations the trace
+//! dumper actually accepts.
 //!
-//! Two failures each cost a full investigation:
+//! The hints themselves -- their text, their cause attribution, and the fact
+//! that both raise sites emit them -- are pinned inside the package that owns
+//! them, in `src/frontends/riscv/air/diagnostic_hints_test.zig`. Those pins used
+//! to live here, reaching into that package with
+//! `@embedFile("../../frontends/riscv/air/opcode_memory.zig")`, because no gate
+//! compiled a `test` written inside the frontend module (issue #152 item 11).
+//! The reasoning was sound -- a pin that does not run is not a pin -- but the
+//! embed crossed a package boundary and `scripts/check_package_workspace.py`
+//! rejected it. The frontend's tests now run under `test-riscv-cpu-product`, so
+//! those pins went home and this file kept only what it is uniquely placed to
+//! check.
 //!
-//!   - `InvalidRegisterAccessChain` raised for what was actually "an unsupported
-//!     opcode reached the prover" -- a witness name for an admission defect.
-//!   - `LogupSumNonZero`, raised ~1.2 s into proving, with no indication of
-//!     *which* relation was unbalanced, while `riscv-trace-dump --relation-sums`
-//!     and `scripts/air_satisfaction.py` sat installed beside the binary that
-//!     produced it.
+//! What is left is a *cross-package* agreement that neither side can verify
+//! alone: `air/diagnostic_hints.zig` publishes complete shell invocations, and
+//! `src/tools/riscv/trace/main.zig` decides which invocations exist. This module
+//! sees both, so it re-derives the dumper's flag and mode sets from the dumper's
+//! own source and checks every published invocation against them.
 //!
-//! `air/diagnostic_hints.zig` closes the second gap by emitting a remediation
-//! line at each raise site. This file is what keeps that closed, and it lives
-//! here rather than beside the module for a load-bearing reason:
-//! **`src/frontends/riscv/**` is a separate Zig module (`stwo_riscv_frontend`),
-//! so its in-file tests are compiled by no gate in this repository.** They are
-//! reachable only through `src/frontends/riscv/build.zig`'s own `test` step,
-//! which no product step, release gate or workflow depends on -- verified by
-//! `-Driscv-test-filter`, which reports "selects no test" for every test name
-//! defined under `src/frontends/riscv/`. A pin that does not run is not a pin,
-//! so every property this file cares about is asserted from the root test
-//! module, which `test-riscv-cpu-product` compiles and runs.
+//! This is not theoretical. The first draft of the hints advertised
+//! `--elf <elf> ... --relation-sums <out.json>`; the dumper rejects that with
+//! `error.ConflictingOptions`, because `--relation-sums` is itself a mode whose
+//! value is the ELF path. A hint that cannot be pasted into a shell is worse
+//! than silence, since it reads as authoritative.
 //!
-//! Three kinds of pin, in increasing order of strength:
-//!
-//! 1. **Content** -- every cause names a runnable command, and the LogUp causes
-//!    name the flag that answers "which relation".
-//! 2. **Grammar** -- every invocation a hint publishes is checked against the
-//!    dumper's own argument parser, re-derived from its source. This is not
-//!    theoretical: the first draft of the hints advertised
-//!    `--elf <elf> ... --relation-sums <out.json>`, and the dumper rejects that
-//!    with `error.ConflictingOptions`, because `--relation-sums` is itself a
-//!    mode whose value is the ELF path. A hint that cannot be pasted into a
-//!    shell is worse than silence, since it reads as authoritative.
-//! 3. **Wiring** -- the two raise sites still emit before they propagate.
-//!    Textual, because observing the emission would mean putting a mutable
-//!    redirect into production library code; a source pin costs nothing and
-//!    fails when the call is deleted, which is the regression that matters.
-//!
-//! Also pinned: the dumper's *installed* names, against the build file that
-//! installs them. Naming the wrong one sends a reader to a binary that cannot
-//! run -- the concrete cost of issue #152 item 6a, where a cross build replaced
-//! the host dumper and the next native run died with `Exec format error`.
+//! Also pinned here, for the same reason: the dumper's *installed* names,
+//! against the build file that installs them. Naming the wrong one sends a
+//! reader to a binary that cannot run -- the concrete cost of issue #152 item 6a,
+//! where a cross build replaced the host dumper and the next native run died
+//! with `Exec format error`.
 
 const std = @import("std");
 
 const frontend = @import("stwo_riscv_frontend");
 const hints = frontend.air.diagnostic_hints;
-const opcode_memory = frontend.air.opcode_memory;
-const public_data = frontend.air.public_data;
-const trace_mod = frontend.runner.trace;
-
-const Opcode = frontend.isa.decode.Opcode;
-const TraceRow = trace_mod.TraceRow;
 
 /// The trace dumper's own source. Embedded rather than read from disk so the
 /// grammar check has no working-directory premise, and so a flag rename lands
-/// here at compile time.
+/// here at compile time. `src/tools/riscv/trace` is owned by no package, so this
+/// embed stays inside the aggregate module that owns the root test suite.
 const DUMPER_SOURCE = @embedFile("../../tools/riscv/trace/main.zig");
-
-/// The two raise sites, exported by their owners for the wiring pins below.
-const OPCODE_MEMORY_SOURCE = opcode_memory.diagnostic_wiring_source;
-const VERIFIER_SOURCE = frontend.prover_mod.verifier_diagnostic_wiring_source;
 
 /// The build file that installs the dumper, read at run time because it sits
 /// outside this module's directory. Tests run from the repository root.
 const BUILD_FILE = "build_support/products/riscv_cpu.zig";
-
-// ---------------------------------------------------------------------------
-// 1. Content
-// ---------------------------------------------------------------------------
-
-test "diagnostic hints: every cause names a diagnostic a reader can run" {
-    // The property the module exists for. A hint that stops naming its tool is
-    // an error name with extra words, so this fails the moment any command is
-    // dropped from any message.
-    for (std.enums.values(hints.Cause)) |cause| {
-        const text = hints.hint(cause);
-        try std.testing.expect(text.len != 0);
-
-        var names_a_command = std.mem.indexOf(u8, text, hints.CHECK_AIR) != null;
-        for (hints.INVOCATIONS) |invocation| {
-            if (std.mem.indexOf(u8, text, invocation) != null) names_a_command = true;
-        }
-        if (!names_a_command) {
-            std.debug.print(
-                "hint for {s} names no runnable diagnostic:\n  {s}\n",
-                .{ @tagName(cause), text },
-            );
-            return error.HintNamesNoDiagnostic;
-        }
-    }
-}
-
-test "diagnostic hints: the LogUp causes name the per-relation sums dump" {
-    // `--relation-sums` is the flag that answers "which relation", which is the
-    // exact question `LogupSumNonZero` cannot answer on its own: a component's
-    // claimed sum is one field element covering every relation it touches, so
-    // the residual has no decomposition the verifier can compute. Naming the
-    // dumper without naming that mode would not close the gap.
-    for ([_]hints.Cause{ .logup_no_public_io, .logup_unattributed }) |cause| {
-        const text = hints.hint(cause);
-        try std.testing.expect(std.mem.indexOf(u8, text, hints.DUMP_SUMS) != null);
-        try std.testing.expect(std.mem.indexOf(u8, text, "--relation-sums") != null);
-    }
-}
-
-test "diagnostic hints: each cause gets its own message" {
-    // Four causes collapsing onto one text would reintroduce exactly the defect
-    // under a new name: a reader told the same thing for an admission failure
-    // and a witness failure learns nothing from being told.
-    const causes = std.enums.values(hints.Cause);
-    for (causes, 0..) |left, i| {
-        for (causes[i + 1 ..]) |right| {
-            if (!std.mem.eql(u8, hints.hint(left), hints.hint(right))) continue;
-            std.debug.print(
-                "causes {s} and {s} share one message\n",
-                .{ @tagName(left), @tagName(right) },
-            );
-            return error.CausesShareOneMessage;
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 2. Grammar
-// ---------------------------------------------------------------------------
 
 /// One `--flag` the dumper parses, and whether it is a *mode*.
 const Flag = struct {
@@ -353,197 +272,4 @@ test "diagnostic hints: the dumper names match the build that installs them" {
             std.mem.indexOf(u8, invocation, hints.TRACE_DUMP_STATIC) == null,
         );
     }
-}
-
-// ---------------------------------------------------------------------------
-// 3. Cause attribution
-// ---------------------------------------------------------------------------
-
-test "diagnostic hints: the two register-boundary causes stay distinct" {
-    // Behavioural, not just tabular: the real pre-filter caller is driven with
-    // one trace per cause, and each must classify to its own remedy.
-    //
-    // An ECALL row is an admission failure in the caller. A representable row
-    // whose access chain does not close is a witness failure. Reporting the
-    // first as the second is what cost a full investigation, so the mapping
-    // from raised error to remedy is asserted on errors the code actually
-    // raises rather than on hand-written error values.
-    const with_ecall = [_]TraceRow{ addiRow(1, 0x10000, 1, 42), ecallRow(2, 0x10004) };
-    const broken_chain = [_]TraceRow{danglingAddiRow(1, 0x10000)};
-
-    const admission = opcode_memory.deriveRegisterBoundary(&with_ecall);
-    try std.testing.expectError(error.UnsupportedForProof, admission);
-    const chain = opcode_memory.deriveRegisterBoundary(&broken_chain);
-    try std.testing.expectError(error.InvalidRegisterAccessChain, chain);
-
-    try std.testing.expectEqual(
-        hints.Cause.unsupported_opcode,
-        hints.classifyRegisterBoundary(@as(anyerror, error.UnsupportedForProof)),
-    );
-    try std.testing.expectEqual(
-        hints.Cause.register_access_chain,
-        hints.classifyRegisterBoundary(@as(anyerror, error.InvalidRegisterAccessChain)),
-    );
-
-    // And the admission message must not describe a witness defect.
-    const text = hints.hint(.unsupported_opcode);
-    try std.testing.expect(std.mem.indexOf(u8, text, "ECALL") != null);
-    try std.testing.expect(std.mem.indexOf(u8, text, "access chain") == null);
-}
-
-test "diagnostic hints: a statement declaring no public I/O gets its own message" {
-    // The one LogUp shape a verifier can recognise unaided. It holds only the
-    // statement, the proof and the interaction claim, so it cannot attribute a
-    // residual to a relation -- but it can see that the statement compensates
-    // no public-I/O tuples at all, which no witness can balance if the guest
-    // performed I/O.
-    try std.testing.expectEqual(hints.Cause.logup_no_public_io, hints.classifyLogup(false));
-    try std.testing.expectEqual(hints.Cause.logup_unattributed, hints.classifyLogup(true));
-    try std.testing.expect(
-        std.mem.indexOf(u8, hints.hint(.logup_no_public_io), "declares no public I/O") != null,
-    );
-
-    // The predicate the verifier reads, on the data it reads it from.
-    const input = [_]u32{7};
-    const output = [_]public_data.OutputWord{.{ .addr = 0x2000, .value = 1, .clock = 3 }};
-    try std.testing.expect(!statementWith(&.{}, &.{}).declaresPublicIo());
-    try std.testing.expect(statementWith(&input, &.{}).declaresPublicIo());
-    try std.testing.expect(statementWith(&.{}, &output).declaresPublicIo());
-    try std.testing.expect(statementWith(&input, &output).declaresPublicIo());
-}
-
-// ---------------------------------------------------------------------------
-// 4. Wiring
-// ---------------------------------------------------------------------------
-
-test "diagnostic hints: both raise sites still report before propagating" {
-    // The regression that matters is deletion: the classifier and its messages
-    // can be perfect and still tell nobody anything if the raise site stops
-    // calling them. Textual because the alternative is a mutable redirect in
-    // production library code, which is a worse trade for a check this cheap.
-    try expectCalls(
-        OPCODE_MEMORY_SOURCE,
-        "air/opcode_memory.zig",
-        "diagnostic_hints.reportRegisterBoundary(",
-    );
-    try expectCalls(
-        VERIFIER_SOURCE,
-        "prover/verifier.zig",
-        "diagnostic_hints.reportLogupImbalance(",
-    );
-
-    // The LogUp report must hang off the cancellation check itself. Emitting it
-    // anywhere else would either fire on success or miss the failure.
-    const check = std.mem.indexOf(u8, VERIFIER_SOURCE, "verifyGlobalCancellation(") orelse
-        return error.CancellationCheckMissing;
-    const report = std.mem.indexOf(u8, VERIFIER_SOURCE, "reportLogupImbalance(").?;
-    try std.testing.expect(check < report);
-    try std.testing.expect(std.mem.indexOf(u8, VERIFIER_SOURCE[check..report], "catch") != null);
-
-    // Same for the register boundary: the report sits on the error path of the
-    // derivation, not on its success path.
-    const derive = std.mem.indexOf(
-        u8,
-        OPCODE_MEMORY_SOURCE,
-        "deriveRegisterBoundaryUnreported(rows) catch",
-    ) orelse return error.RegisterBoundaryErrorPathMissing;
-    const boundary_report =
-        std.mem.indexOf(u8, OPCODE_MEMORY_SOURCE, "reportRegisterBoundary(").?;
-    try std.testing.expect(derive < boundary_report);
-}
-
-fn expectCalls(source: []const u8, owner: []const u8, call: []const u8) !void {
-    if (std.mem.indexOf(u8, source, call) != null) return;
-    std.debug.print("{s} no longer calls {s}\n", .{ owner, call });
-    return error.RaiseSiteStoppedReporting;
-}
-
-// ---------------------------------------------------------------------------
-// Fixtures
-// ---------------------------------------------------------------------------
-
-fn statementWith(
-    input_words: []const u32,
-    output_words: []const public_data.OutputWord,
-) public_data.PublicData {
-    return .{
-        .initial_pc = 0x10000,
-        .final_pc = 0x10004,
-        .clock = 1,
-        .initial_regs = .{0} ** 32,
-        .final_regs = .{0} ** 32,
-        .reg_last_clock = .{0} ** 32,
-        .program_root = null,
-        .initial_rw_root = null,
-        .final_rw_root = null,
-        .io_entries = .{
-            .input_start = 0x1000,
-            .input_len = @intCast(input_words.len * 4),
-            .input_words = input_words,
-            .output_len = if (output_words.len == 0) 0 else 4,
-            .output_len_addr = 0x1ffc,
-            .output_data_addr = 0x2000,
-            .output_words = output_words,
-        },
-    };
-}
-
-/// `addi xrd, x0, imm`: one x0 source read and one destination write, both at
-/// their first observation, so the access chain closes on its own.
-fn addiRow(clk: u32, pc: u32, rd: u5, value: u32) TraceRow {
-    return .{
-        .clk = clk,
-        .pc = pc,
-        .opcode = .ADDI,
-        .rd = rd,
-        .rs1 = 0,
-        .rs2 = 0,
-        .imm = @intCast(value),
-        .rs1_val = 0,
-        .rs2_val = 0,
-        .rd_val = value,
-        .mem_addr = 0,
-        .mem_val = 0,
-        .is_load = false,
-        .is_store = false,
-        .branch_taken = false,
-        .next_pc = pc + 4,
-        .inst_word = 0x02A00093,
-    };
-}
-
-/// The same shape, but claiming a prior write to `rs1` that the trace never
-/// shows. `observe` requires a first observation to carry `previous_clock == 0`,
-/// so this is a representable row whose chain does not close -- the witness
-/// failure, with no unsupported opcode anywhere in it.
-fn danglingAddiRow(clk: u32, pc: u32) TraceRow {
-    var row = addiRow(clk, pc, 2, 7);
-    row.rs1 = 5;
-    row.rs1_prev_clk = 9;
-    return row;
-}
-
-/// The row the runner appends for an ECALL: architectural register fields are
-/// populated, which is what let the mis-derived family observe rs1/rs2 that no
-/// proof row should have read.
-fn ecallRow(clk: u32, pc: u32) TraceRow {
-    return .{
-        .clk = clk,
-        .pc = pc,
-        .opcode = Opcode.ECALL,
-        .rd = 0,
-        .rs1 = 7,
-        .rs2 = 9,
-        .imm = 0,
-        .rs1_val = 0,
-        .rs2_val = 0,
-        .rd_val = 0,
-        .mem_addr = 0,
-        .mem_val = 0,
-        .is_load = false,
-        .is_store = false,
-        .branch_taken = false,
-        .next_pc = pc + 4,
-        .inst_word = 0x00000073,
-    };
 }

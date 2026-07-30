@@ -8,9 +8,11 @@
 //!      carries public I/O its synthesized statement never publishes, at the
 //!      entrypoint rather than ~1.2 s later inside the prover.
 //!   2. `admitRunForProving` is the one definition of "this run may be proved",
-//!      reached by both the production ELF adapter and the benchmark runner. Its
-//!      completion verdict is asserted over the *whole* `CompletionReason` enum,
-//!      so a new variant cannot be added without classifying it.
+//!      reached by all three callers that hand a real `RunResult` to the prover:
+//!      the production ELF adapter, the benchmark runner, and the hosted
+//!      block-proving pipeline (`host/prove_block.zig`). Its completion verdict
+//!      is asserted over the *whole* `CompletionReason` enum, so a new variant
+//!      cannot be added without classifying it.
 //!   3. `SECURE_PCS_CONFIG` is the single secure profile, and it is the one the
 //!      staged adapter's `.secure` protocol returns.
 //!
@@ -22,6 +24,7 @@ const std = @import("std");
 const riscv_cpu = @import("stwo_riscv_cpu_integration");
 const prover = @import("stwo_riscv_frontend").prover_mod;
 const runner = @import("stwo_riscv_frontend").runner;
+const host = @import("stwo_riscv_frontend").host;
 const memory_state = @import("stwo_riscv_frontend").runner.memory_state;
 const trace_mod = @import("stwo_riscv_frontend").runner.trace;
 const pcs = @import("stwo_core").pcs;
@@ -222,6 +225,79 @@ test "run admission refuses a real ECALL-terminated run" {
         error.UnprovableCompletion,
         prover.admitRunForProving(&run),
     );
+}
+
+/// The hosted ABI's own termination: `a7 = HALT(0)`, `a0 = 42`, `ECALL`. This is
+/// how an SP1-style guest ends, and the runner completes such a run as
+/// `.host_halt` -- a reason `air/public_data.completionFromRun` cannot bind.
+fn hostHaltElf() [84 + 3 * 4]u8 {
+    return runner.trace_dump.buildTestElf(3, .{
+        0x0000_0893, // ADDI x17, x0, 0  (a7 = HALT)
+        0x02a0_0513, // ADDI x10, x0, 42 (a0 = exit code)
+        0x0000_0073, // ECALL
+    });
+}
+
+test "hosted block proving fails closed through the shared run-admission gate" {
+    // The third caller that runs a real guest and hands the result to the
+    // prover. It had no equivalent of the adapter's completion check, so a
+    // hosted guest that terminated the only way the hosted ABI offers reached
+    // the prover and died there instead of at the entrypoint.
+    const allocator = std.testing.allocator;
+    const elf = hostHaltElf();
+
+    // Establish that this really is the reason the gate must classify, so the
+    // test cannot start passing for an unrelated reason.
+    var runtime = host.HostRuntime.init(allocator, &.{});
+    defer runtime.deinit();
+    var run = try runner.runWithHost(allocator, &elf, 1000, runtime.interface());
+    defer run.deinit();
+    try std.testing.expectEqual(runner.CompletionReason.host_halt, run.completion_reason);
+    try std.testing.expectEqual(
+        prover.RunAdmissionError.UnprovableCompletion,
+        prover.classifyRunAdmission(&run).?.toError(),
+    );
+
+    const block_input = host.BlockInput{ .serialized = &.{}, .allocator = allocator };
+    try std.testing.expectError(
+        error.UnprovableCompletion,
+        host.proveEthereumBlockWithEngine(
+            CpuProverEngine,
+            allocator,
+            &elf,
+            &block_input,
+            TEST_CONFIG,
+            1000,
+        ),
+    );
+}
+
+test "hosted block proving still serves the syscall-free guest it was correct for" {
+    // Over-reach check: the gate must refuse only what no statement can bind. A
+    // hosted run that ends on the canonical `jal x0, 0` sentinel completes as
+    // `.self_loop` and must still prove.
+    const allocator = std.testing.allocator;
+    const elf = ioFreeElf();
+
+    var runtime = host.HostRuntime.init(allocator, &.{});
+    defer runtime.deinit();
+    var run = try runner.runWithHost(allocator, &elf, 1000, runtime.interface());
+    defer run.deinit();
+    try std.testing.expectEqual(runner.CompletionReason.self_loop, run.completion_reason);
+
+    const block_input = host.BlockInput{ .serialized = &.{}, .allocator = allocator };
+    var result = try host.proveEthereumBlockWithEngine(
+        CpuProverEngine,
+        allocator,
+        &elf,
+        &block_input,
+        TEST_CONFIG,
+        1000,
+    );
+    defer result.deinit(allocator);
+    try std.testing.expect(result.prove_output.statement.n_components > 0);
+    try std.testing.expectEqual(run.step_count, result.cycles);
+    try std.testing.expectEqual(@as(?u32, null), result.exit_code);
 }
 
 test "the secure PCS profile has exactly one definition" {

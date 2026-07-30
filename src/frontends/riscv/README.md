@@ -85,6 +85,20 @@ Focused package tests:
 zig build test --build-file src/frontends/riscv/build.zig -Doptimize=ReleaseFast -j2
 ```
 
+The same tests also run under the product gate, so they can be focused by name:
+
+```sh
+zig build test-riscv-cpu-product -Driscv-test-filter="access clock"
+```
+
+**Adding a test to this package.** Name its file in
+[`test_inventory.zig`](test_inventory.zig). Zig collects a `test` only from a file
+the compiler was made to analyse, and neither a `pub const x = @import("x.zig")`
+nor `std.testing.refAllDecls` does that -- so a test in an unlisted file compiles
+nowhere and reports nothing. `test_inventory_test.zig` fails when a test-bearing
+file is missing from the list, and `test_floor` in `build.zig` fails when the
+binary's test count drops.
+
 Build and run the released CPU product:
 
 ```sh
@@ -139,9 +153,21 @@ guest ELF. Every sample is internally verified, and the retained proof is
 verified again in a separate process against the original ELF and expected
 statement digest.
 
-Results collected away from CSP's AWS `mac2.metal` Apple M1, 8-core, 16-GiB
-host are deliberately labelled `host-qualified-non-comparable`. The command
-never uploads a result.
+Every report carries one `result_class`, and the command never uploads a
+result:
+
+- `official-host-comparable` — captured on CSP's AWS `mac2.metal` Apple M1,
+  8-core, 16-GiB host, on admissible power, over the complete canonical matrix
+  with the required memory available. Only this class is CSP-comparable.
+- `power-condition-non-publishable` — the run's power conditions cannot carry
+  published timings: the host was not on AC power, or low power mode was not
+  positively observed to be disabled. This class is decided *before* the host
+  comparison and outranks it, because a throttled run is not a weaker
+  measurement of the workload but not a measurement of it at all — including on
+  the official host.
+- `host-qualified-non-comparable` — power was admissible, but something else
+  disqualifies the run from comparison: a host other than the publication host,
+  an incomplete matrix, or insufficient available memory.
 
 SHA-256, Keccak-256, and secp256k1 ECDSA are canonical CSP zkVM workloads.
 Poseidon2-M31 is an explicitly labelled field-native extension: it uses CSP's

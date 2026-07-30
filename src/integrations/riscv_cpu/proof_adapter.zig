@@ -710,11 +710,18 @@ test "adapter PCS profiles satisfy their advertised artifact policies" {
     }
     // The secure profile is the shared constant itself, not a copy of its
     // numbers: a second literal is how `--production` came to publish a
-    // different "secure" profile than the one upstream CSP does.
+    // different "secure" profile than the one upstream CSP does. This compares
+    // values, so it catches a copy that has *drifted*; that the arm is the
+    // constant rather than an equal-valued literal is pinned structurally in
+    // `proof_adapter/staged_pcs_profile_test.zig`.
     try std.testing.expectEqual(
         stwo.frontends.riscv.prover_mod.SECURE_PCS_CONFIG,
         stagedPcsConfig(.secure),
     );
+}
+
+test {
+    _ = @import("proof_adapter/staged_pcs_profile_test.zig");
 }
 
 test "adapter fail-closes through the shared run-admission gate" {
@@ -790,6 +797,10 @@ test "wire arena rolls back every partial allocation" {
                 .output_data_addr = 12,
                 .output_words = &output_words,
             },
+            // Required: without it `init` returns `InvalidCompletion` before the
+            // induced allocation failure, so the rollback property goes untested.
+            // Added when this test was first compiled by a build step.
+            .completion = .{ .kind = .halt_flag, .address = 8, .value = 1, .clock = 1 },
         },
         .n_infra = 1,
         .infra_descs = undefined,
