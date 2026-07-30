@@ -80,6 +80,205 @@ def isBranch (kind : BranchKind) (word : InstructionWord) : Bool :=
   decodeOpcodeField word == branchOpcode &&
     decodeFunct3 word == kind.funct3
 
+private theorem encodeBranchOpcode
+    (kind : BranchKind)
+    (encoded : BitVec 12)
+    (rs2 rs1 : RegisterIndex) :
+    decodeOpcodeField (encodeBranch kind encoded rs2 rs1) =
+      branchOpcode := by
+  simp only [
+    decodeOpcodeField,
+    encodeBranch,
+    BitVec.extractLsb,
+    BitVec.append_eq,
+  ]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 0) (len := 7) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 0) (len := 7) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 0) (len := 7) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 0) (len := 7) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 0) (len := 7) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 0) (len := 7) (by decide)]
+  exact BitVec.extractLsb'_append_eq_right
+
+private theorem encodeBranchFunct3
+    (kind : BranchKind)
+    (encoded : BitVec 12)
+    (rs2 rs1 : RegisterIndex) :
+    decodeFunct3 (encodeBranch kind encoded rs2 rs1) =
+      kind.funct3 := by
+  simp only [
+    decodeFunct3,
+    encodeBranch,
+    BitVec.extractLsb,
+    BitVec.append_eq,
+  ]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 12) (len := 3) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 12) (len := 3) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 12) (len := 3) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 12) (len := 3) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_le
+    (start := 12) (len := 3) (by decide)]
+  exact BitVec.extractLsb'_eq_self
+
+private theorem encodeBranchRs1
+    (kind : BranchKind)
+    (encoded : BitVec 12)
+    (rs2 rs1 : RegisterIndex) :
+    decodeRs1 (encodeBranch kind encoded rs2 rs1) = rs1 := by
+  simp only [
+    decodeRs1,
+    encodeBranch,
+    BitVec.extractLsb,
+    BitVec.append_eq,
+  ]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 15) (len := 5) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 15) (len := 5) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 15) (len := 5) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_le
+    (start := 15) (len := 5) (by decide)]
+  exact BitVec.extractLsb'_eq_self
+
+private theorem encodeBranchRs2
+    (kind : BranchKind)
+    (encoded : BitVec 12)
+    (rs2 rs1 : RegisterIndex) :
+    decodeRs2 (encodeBranch kind encoded rs2 rs1) = rs2 := by
+  simp only [
+    decodeRs2,
+    encodeBranch,
+    BitVec.extractLsb,
+    BitVec.append_eq,
+  ]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 20) (len := 5) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 20) (len := 5) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_le
+    (start := 20) (len := 5) (by decide)]
+  exact BitVec.extractLsb'_eq_self
+
+private theorem encodeBranchSlice31
+    (kind : BranchKind)
+    (encoded : BitVec 12)
+    (rs2 rs1 : RegisterIndex) :
+    (encodeBranch kind encoded rs2 rs1).extractLsb' 31 1 =
+      (branchImmediate encoded).extractLsb' 12 1 := by
+  simp only [encodeBranch, BitVec.extractLsb, BitVec.append_eq]
+  rw [BitVec.extractLsb'_append_eq_of_le
+    (start := 31) (len := 1) (by decide)]
+  simp
+
+private theorem encodeBranchSlice7
+    (kind : BranchKind)
+    (encoded : BitVec 12)
+    (rs2 rs1 : RegisterIndex) :
+    (encodeBranch kind encoded rs2 rs1).extractLsb' 7 1 =
+      (branchImmediate encoded).extractLsb' 11 1 := by
+  simp only [encodeBranch, BitVec.extractLsb, BitVec.append_eq]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 7) (len := 1) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 7) (len := 1) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 7) (len := 1) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 7) (len := 1) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 7) (len := 1) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 7) (len := 1) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_le
+    (start := 7) (len := 1) (by decide)]
+  exact BitVec.extractLsb'_eq_self
+
+private theorem encodeBranchSlice25
+    (kind : BranchKind)
+    (encoded : BitVec 12)
+    (rs2 rs1 : RegisterIndex) :
+    (encodeBranch kind encoded rs2 rs1).extractLsb' 25 6 =
+      (branchImmediate encoded).extractLsb' 5 6 := by
+  simp only [encodeBranch, BitVec.extractLsb, BitVec.append_eq]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 25) (len := 6) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_le
+    (start := 25) (len := 6) (by decide)]
+  exact BitVec.extractLsb'_eq_self
+
+private theorem encodeBranchSlice8
+    (kind : BranchKind)
+    (encoded : BitVec 12)
+    (rs2 rs1 : RegisterIndex) :
+    (encodeBranch kind encoded rs2 rs1).extractLsb' 8 4 =
+      (branchImmediate encoded).extractLsb' 1 4 := by
+  simp only [encodeBranch, BitVec.extractLsb, BitVec.append_eq]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 8) (len := 4) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 8) (len := 4) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 8) (len := 4) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 8) (len := 4) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_add_le
+    (start := 8) (len := 4) (by decide)]
+  rw [BitVec.extractLsb'_append_eq_of_le
+    (start := 8) (len := 4) (by decide)]
+  exact BitVec.extractLsb'_eq_self
+
+private theorem branchImmediateReassemble (immediate : BitVec 13) :
+    immediate.extractLsb' 12 1 ++
+        (immediate.extractLsb' 11 1 ++
+          (immediate.extractLsb' 5 6 ++
+            (immediate.extractLsb' 1 4 ++
+              immediate.extractLsb' 0 1))) =
+      immediate := by
+  rw [BitVec.extractLsb'_append_extractLsb'_eq_extractLsb'
+    (start₁ := 0) (len₁ := 1)
+    (start₂ := 1) (len₂ := 4) (by decide)]
+  rw [BitVec.extractLsb'_append_extractLsb'_eq_extractLsb'
+    (start₁ := 0) (len₁ := 5)
+    (start₂ := 5) (len₂ := 6) (by decide)]
+  rw [BitVec.extractLsb'_append_extractLsb'_eq_extractLsb'
+    (start₁ := 0) (len₁ := 11)
+    (start₂ := 11) (len₂ := 1) (by decide)]
+  rw [BitVec.extractLsb'_append_extractLsb'_eq_extractLsb'
+    (start₁ := 0) (len₁ := 12)
+    (start₂ := 12) (len₂ := 1) (by decide)]
+  exact BitVec.extractLsb'_eq_self
+
+private theorem decodeBImmediateEncodeBranch
+    (kind : BranchKind)
+    (encoded : BitVec 12)
+    (rs2 rs1 : RegisterIndex) :
+    decodeBImmediate (encodeBranch kind encoded rs2 rs1) =
+      branchImmediate encoded := by
+  simp only [decodeBImmediate, BitVec.extractLsb, BitVec.append_eq]
+  rw [
+    encodeBranchSlice31,
+    encodeBranchSlice7,
+    encodeBranchSlice25,
+    encodeBranchSlice8,
+  ]
+  have low :
+      (branchImmediate encoded).extractLsb' 0 1 = 0#1 := by
+    simp only [branchImmediate, BitVec.append_eq]
+    exact BitVec.extractLsb'_append_eq_right
+  rw [← low]
+  exact branchImmediateReassemble (branchImmediate encoded)
+
 theorem encode_branch_is_canonical
     (kind : BranchKind)
     (encoded : BitVec 12)
@@ -89,19 +288,14 @@ theorem encode_branch_is_canonical
         branchImmediate encoded ∧
       decodeRs2 (encodeBranch kind encoded rs2 rs1) = rs2 ∧
       decodeRs1 (encodeBranch kind encoded rs2 rs1) = rs1 := by
-  cases kind <;>
-    simp only [
+  constructor
+  · simp [
       isBranch,
-      encodeBranch,
-      decodeBImmediate,
-      decodeRs2,
-      decodeRs1,
-      decodeOpcodeField,
-      decodeFunct3,
-      branchImmediate,
-      branchOpcode,
-      BranchKind.funct3,
-    ] <;>
-    bv_decide
+      encodeBranchOpcode,
+      encodeBranchFunct3,
+    ]
+  exact ⟨decodeBImmediateEncodeBranch kind encoded rs2 rs1,
+    encodeBranchRs2 kind encoded rs2 rs1,
+    encodeBranchRs1 kind encoded rs2 rs1⟩
 
 end RiscvRefinement.Decode
