@@ -10,6 +10,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+try:
+    from scripts import ci_package_graph
+except ModuleNotFoundError:
+    import ci_package_graph  # type: ignore[no-redef]
+
 
 SCHEMA = "stwo-zig-package-contract-v2"
 CONTRACT_NAME = "package.contract.json"
@@ -581,6 +586,12 @@ def _validate_ci_contracts(
     if not isinstance(lanes, dict) or not isinstance(rules, list):
         failures.append("package workspace: focused CI policy lacks lanes or rules")
         return
+    try:
+        package_graph = ci_package_graph.load_packages(repository)
+        lane_bindings = ci_package_graph.lane_packages(policy, package_graph)
+    except ci_package_graph.GraphError as error:
+        failures.append(f"package workspace: cannot derive focused CI lanes: {error}")
+        return
     claimed_lanes: dict[str, str] = {}
     for contract in contracts:
         previous = claimed_lanes.get(contract.ci_lane)
@@ -611,7 +622,14 @@ def _validate_ci_contracts(
         changed_path = (
             contract.directory.relative_to(repository) / CONTRACT_NAME
         ).as_posix()
-        selected = {
+        selected = set(
+            ci_package_graph.selection(
+                [changed_path],
+                package_graph,
+                lane_bindings,
+            )[0]
+        )
+        selected.update({
             selected_lane
             for rule in rules
             if isinstance(rule, dict)
@@ -619,7 +637,7 @@ def _validate_ci_contracts(
             if isinstance(prefix, str) and _owns(changed_path, prefix)
             for selected_lane in rule.get("lanes", [])
             if isinstance(selected_lane, str)
-        }
+        })
         if contract.ci_lane not in selected:
             failures.append(
                 f"{contract.package}: package changes do not select declared CI "

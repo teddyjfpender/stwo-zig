@@ -42,6 +42,7 @@ const prover_api = @import("stwo_prover_api");
 const options = prover_api.ProveOptions{
     .include_all_preprocessed_columns = false,
     .recorder = null,
+    .composition_stage = null,
 };
 
 comptime prover_api.assertProverEngine(MyEngine);
@@ -50,12 +51,16 @@ comptime prover_api.assertProverEngine(MyEngine);
 | Area | Exports |
 | :--- | :--- |
 | Column transaction | `ColumnEvaluation`, `ColumnSource`, `QuotientOpsError`, `column` |
-| Engine contract | `ProveOptions`, `assertProverEngine`, `engine` |
+| Engine contract | `ProveOptions`, `DeviceCompositionStage`, `assertProverEngine`, `device_composition`, `engine` |
 | Observability | `stage_profile` |
 
 `ColumnEvaluation` is a borrowed view and validates both its declared log size
 and storage length. `ColumnSource` records whether a commitment column is
 materialized or produced by a recognized structural recipe.
+`DeviceCompositionStage` is a per-proof, fail-closed injection point. Its result
+storage is type-erased so this package does not import prover implementation
+types; only the engine and an integration that already owns those types adapt
+the callback.
 `assertProverEngine` checks the associated types and exact `init`, `deinit`,
 `commit`, and `prove` signatures at compile time.
 

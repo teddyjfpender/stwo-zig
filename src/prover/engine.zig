@@ -164,7 +164,7 @@ pub fn ProverEngine(
             scheme: Scheme,
             options: ProveOptions,
         ) !ExtendedProof {
-            return prove_mod.proveExWithRecorder(
+            return prove_mod.proveExWithStage(
                 B,
                 H,
                 MC,
@@ -174,6 +174,7 @@ pub fn ProverEngine(
                 scheme,
                 options.include_all_preprocessed_columns,
                 options.recorder,
+                options.composition_stage,
             );
         }
     };

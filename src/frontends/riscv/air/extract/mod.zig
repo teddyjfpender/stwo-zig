@@ -22,6 +22,8 @@ const opcode_entries = @import("../lookups/opcode_entries.zig");
 pub const symbolic = @import("symbolic.zig");
 pub const model = @import("model.zig");
 pub const json = @import("json.zig");
+pub const program = @import("program.zig");
+pub const program_json = @import("program_json.zig");
 
 /// Fixed so a failure is reproducible; the differential check is a regression
 /// guard, not a fuzzer, and a moving seed would make it flap.
@@ -65,8 +67,11 @@ test "extraction: emit models when RISCV_AIR_IR_DIR is set" {
     try emitAll(std.testing.allocator, dir);
 }
 
-test "extraction: symbolic and QM31 runs of the same AIR agree pointwise" {
-    const allocator = std.testing.allocator;
+/// Differentially replay every extracted family against the QM31 evaluator.
+///
+/// This is public so focused evidence gates can execute the source-binding
+/// check without relying on nested Zig test discovery.
+pub fn checkDifferential(allocator: std.mem.Allocator) !void {
     var prng = std.Random.DefaultPrng.init(DIFFERENTIAL_SEED);
     const random = prng.random();
 
@@ -119,6 +124,10 @@ test "extraction: symbolic and QM31 runs of the same AIR agree pointwise" {
             }
         }
     }
+}
+
+test "extraction: symbolic and QM31 runs of the same AIR agree pointwise" {
+    try checkDifferential(std.testing.allocator);
 }
 
 test "extraction: every family declares outputs and names its committed columns" {
@@ -186,4 +195,9 @@ test "extraction: emitted JSON parses as the flat IR the checker consumes" {
     try std.testing.expectEqual(system.columns.len, object.get("columns").?.array.items.len);
     try std.testing.expectEqual(arena.nodes.items.len, object.get("nodes").?.array.items.len);
     try std.testing.expectEqual(system.lookups.len, object.get("lookups").?.array.items.len);
+}
+
+test {
+    _ = @import("program.zig");
+    _ = @import("program_json.zig");
 }

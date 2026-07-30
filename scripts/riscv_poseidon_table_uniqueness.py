@@ -83,7 +83,7 @@ ROOT = Path(__file__).resolve().parents[1]
 # by the constructive proof.
 SOURCE_BINDINGS: dict[str, str] = {
     "src/core/fields/m31.zig":
-        "4fc330e004420a64dab38d35a04db0b3fc3ab0c4e53f8088ad5ff1fe13b42789",
+        "cb5122f72960fd8bc5fb21f5690e3de5038ab8bbeb47aa345160058e28af2e57",
     "src/core/fields/cm31.zig":
         "4b7a14c91fba7c467f92e924ce90c7230a22d08329591e3d5b8874d862b31288",
     "src/core/fields/qm31.zig":
@@ -105,7 +105,7 @@ SOURCE_BINDINGS: dict[str, str] = {
     "src/frontends/riscv/air/lookups/tables/counter.zig":
         "c371e5a5146fa1cc6efeca71210b51f2b9635b2af48850352e256f28f79c6d19",
     "src/frontends/riscv/air/lookups/entry.zig":
-        "499e9cf1660243e85c0e1163ac078af29ddc75d4791f9719d4b930b2c10aaaf7",
+        "b1cc858ee10e0a9b49b19b265e50b338b1def97a59d6ffbb49808e172b26082d",
     "src/frontends/riscv/air/logup.zig":
         "83aff2399844afc6fb733cf50df483bc1a62306d51d77263d37b2f438098aec1",
     "src/frontends/riscv/air/relation_challenges.zig":

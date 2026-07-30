@@ -14,10 +14,12 @@
   "api_surface": [
     "ColumnEvaluation",
     "ColumnSource",
+    "DeviceCompositionStage",
     "ProveOptions",
     "QuotientOpsError",
     "assertProverEngine",
     "column",
+    "device_composition",
     "engine",
     "stage_profile"
   ],

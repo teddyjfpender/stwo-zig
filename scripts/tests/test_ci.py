@@ -138,6 +138,60 @@ class CiTests(unittest.TestCase):
         with self.assertRaisesRegex(SystemExit, "dependency_module_roots.*diverges"):
             validate_actual_construction(manifest, matrix, "focused")
 
+    def test_backend_tools_allow_declared_dependency_subset_without_host_probes(self) -> None:
+        manifest, matrix = self.construction_fixture()
+        manifest["scope_role"] = "backend_tools"
+        manifest["constructed_products"] = []
+        manifest["actual"]["products"] = []  # type: ignore[index]
+        manifest["dependency_module_roots"] = [
+            "dependency:portable:root.zig",
+            "dependency:host_only:root.zig",
+        ]
+        manifest["actual"]["dependency_module_roots"] = [  # type: ignore[index]
+            "dependency:portable:root.zig"
+        ]
+        manifest["actual"]["runtime_probes"] = []  # type: ignore[index]
+        validate_actual_construction(manifest, matrix, "focused")  # must not raise
+
+    def test_backend_tools_reject_undeclared_partitioned_dependency(self) -> None:
+        manifest, matrix = self.construction_fixture()
+        manifest["scope_role"] = "backend_tools"
+        manifest["constructed_products"] = []
+        manifest["actual"]["products"] = []  # type: ignore[index]
+        manifest["dependency_module_roots"] = ["dependency:portable:root.zig"]
+        manifest["actual"]["dependency_module_roots"] = [  # type: ignore[index]
+            "dependency:hidden:root.zig"
+        ]
+        manifest["actual"]["runtime_probes"] = []  # type: ignore[index]
+        with self.assertRaisesRegex(SystemExit, "dependency_module_roots.*undeclared"):
+            validate_actual_construction(manifest, matrix, "focused")
+
+    def test_backend_tools_reject_empty_partitioned_dependencies(self) -> None:
+        manifest, matrix = self.construction_fixture()
+        manifest["scope_role"] = "backend_tools"
+        manifest["constructed_products"] = []
+        manifest["actual"]["products"] = []  # type: ignore[index]
+        manifest["dependency_module_roots"] = ["dependency:portable:root.zig"]
+        manifest["actual"]["dependency_module_roots"] = []  # type: ignore[index]
+        manifest["actual"]["runtime_probes"] = []  # type: ignore[index]
+        with self.assertRaisesRegex(SystemExit, "observed no dependencies"):
+            validate_actual_construction(manifest, matrix, "focused")
+
+    def test_backend_tools_require_exact_dependencies_with_host_probes(self) -> None:
+        manifest, matrix = self.construction_fixture()
+        manifest["scope_role"] = "backend_tools"
+        manifest["constructed_products"] = []
+        manifest["actual"]["products"] = []  # type: ignore[index]
+        manifest["dependency_module_roots"] = [
+            "dependency:portable:root.zig",
+            "dependency:host_only:root.zig",
+        ]
+        manifest["actual"]["dependency_module_roots"] = [  # type: ignore[index]
+            "dependency:portable:root.zig"
+        ]
+        with self.assertRaisesRegex(SystemExit, "dependency_module_roots.*diverges"):
+            validate_actual_construction(manifest, matrix, "focused")
+
     def test_standard_plan_runs_tooling_then_release_gate(self) -> None:
         plan = command_plan(False, "ReleaseFast")
         self.assertEqual(sys.executable, plan[0][0])
@@ -174,6 +228,21 @@ class CiTests(unittest.TestCase):
         self.assertIn("run: python3 scripts/ci.py\n", workflow)
         self.assertIn("run: python3 scripts/ci.py --strict\n", workflow)
         self.assertIn("inputs.gate == 'strict'", workflow)
+
+    def test_focused_cairo_cpu_primes_its_offline_cargo_build(self) -> None:
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        focused_linux = workflow.split("  focused-linux:", 1)[1].split(
+            "  focused-macos:", 1
+        )[0]
+        fetch = focused_linux.index("name: Fetch pinned Cairo adapter dependencies")
+        run = focused_linux.index("name: Run focused lane")
+        self.assertLess(fetch, run)
+        self.assertIn("if: matrix.lane == 'cairo_cpu'", focused_linux)
+        self.assertIn(
+            "cargo fetch --locked\n"
+            "          --manifest-path tools/stwo-cairo-vm-adapter-rs/Cargo.toml",
+            focused_linux,
+        )
 
     def test_hosted_ci_quarantines_the_pre_sail_riscv_evidence_lane(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")

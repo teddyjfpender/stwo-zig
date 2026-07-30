@@ -10,7 +10,12 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path, PurePosixPath
-from typing import Any, Iterable
+from typing import Any, Iterable, Mapping
+
+try:
+    from scripts import ci_package_graph
+except ModuleNotFoundError:  # Direct execution adds scripts/, not the repository root.
+    import ci_package_graph  # type: ignore[no-redef]
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -163,12 +168,56 @@ def is_externally_validated(path: str, policy: dict[str, Any]) -> bool:
     )
 
 
+def graph_lanes(
+    path: str,
+    packages: Mapping[str, ci_package_graph.Package],
+    bindings: Mapping[str, str],
+) -> set[str]:
+    """Focused package lanes selected by the package-contract dependency graph.
+
+    The changed path's owning package plus every package that transitively
+    depends on it. Derived from the contracts themselves, so the policy carries
+    no parallel hand-maintained path list for package-owned paths.
+    """
+    lanes, _ = ci_package_graph.selection([path], packages, bindings)
+    return set(lanes)
+
+
 def select_lanes(
-    changed_paths: Iterable[str], catalog: dict[str, Any], policy: dict[str, Any],
+    changed_paths: Iterable[str],
+    catalog: dict[str, Any],
+    policy: dict[str, Any],
+    packages: Mapping[str, ci_package_graph.Package] | None = None,
+    full_matrix: bool = False,
 ) -> tuple[list[str], dict[str, list[str]]]:
     validate_policy(policy)
     validate_catalog(catalog, policy)
+    if packages is None:
+        packages = ci_package_graph.load_packages(ROOT)
+    bindings = ci_package_graph.lane_packages(policy, packages)
     paths = sorted({normalize_path(path) for path in changed_paths})
+    if full_matrix:
+        # Post-merge safety net: pushes to main re-run every hosted lane
+        # regardless of the diff, so a HOSTED-lane selection mistake cannot
+        # reach main unnoticed and every hosted lane's compiler cache stays
+        # warm for the next PR. Lanes marked hosted=false run on scarce
+        # self-hosted hardware that must not be summoned by unrelated merges;
+        # they keep the diff-scoped selection on push, exactly as they had
+        # before the full-matrix expansion existed.
+        hosted = [
+            lane
+            for lane in sorted(policy["lanes"])
+            if policy["lanes"][lane].get("hosted", True)
+        ]
+        reasons = {lane: ["full-matrix"] for lane in hosted}
+        if paths:
+            scoped, scoped_reasons = select_lanes(
+                paths, catalog, policy, packages, False
+            )
+            for lane in scoped:
+                if not policy["lanes"][lane].get("hosted", True):
+                    reasons[lane] = scoped_reasons[lane]
+        return sorted(reasons), reasons
     if not paths:
         raise PlanError("CI diff contains no changed paths")
     selected = set(policy["always_lanes"])
@@ -176,6 +225,7 @@ def select_lanes(
     all_lanes = set(policy["lanes"])
     for path in paths:
         path_lanes = catalog_lanes(path, catalog, policy)
+        path_lanes.update(graph_lanes(path, packages, bindings))
         for rule in policy["rules"]:
             if any(owns(path, prefix) for prefix in rule["prefixes"]):
                 path_lanes.update(rule["lanes"])
@@ -261,6 +311,26 @@ def emit_github_output(path: Path, plan: dict[str, Any], policy: dict[str, Any])
         )
 
 
+def emit_github_summary(path: Path, plan: dict[str, Any], policy: dict[str, Any]) -> None:
+    """Record every lane and whether it was selected, so a skipped lane is a
+    visible, explained decision rather than a job that silently never appeared."""
+    selected = set(plan["lanes"])
+    with path.open("a", encoding="utf-8") as stream:
+        stream.write("### Focused CI lane selection\n\n")
+        stream.write(f"{len(selected)} of {len(policy['lanes'])} lanes selected.\n\n")
+        stream.write("| Lane | Host | Status | Reason |\n|---|---|---|---|\n")
+        for lane in sorted(policy["lanes"]):
+            host = policy["lanes"][lane]["host"]
+            if lane in selected:
+                triggers = plan["reasons"].get(lane, [])
+                head = triggers[0] if triggers else "selected"
+                extra = f" (+{len(triggers) - 1} more)" if len(triggers) > 1 else ""
+                stream.write(f"| `{lane}` | {host} | selected | `{head}`{extra} |\n")
+            else:
+                stream.write(f"| `{lane}` | {host} | skipped | no changed path reaches it |\n")
+        stream.write("\n")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=ROOT)
@@ -271,6 +341,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--changed-file", action="append", default=[])
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--github-output", type=Path)
+    parser.add_argument("--github-summary", type=Path)
+    parser.add_argument(
+        "--full-matrix",
+        action="store_true",
+        help="select every lane regardless of the diff (post-merge safety net)",
+    )
     args = parser.parse_args(argv)
     try:
         policy = strict_json(args.policy)
@@ -278,7 +354,8 @@ def main(argv: list[str] | None = None) -> int:
         changed = args.changed_file or git_changed_paths(
             args.root, args.base or f"{args.head}^", args.head,
         )
-        lanes, reasons = select_lanes(changed, catalog, policy)
+        packages = ci_package_graph.load_packages(args.root)
+        lanes, reasons = select_lanes(changed, catalog, policy, packages, args.full_matrix)
         head, tree = source_identity(args.root, args.head)
         plan = {
             "schema": "ci-scope-plan-v1",
@@ -292,7 +369,16 @@ def main(argv: list[str] | None = None) -> int:
         write_json(args.output, plan)
         if args.github_output is not None:
             emit_github_output(args.github_output, plan, policy)
-    except (OSError, UnicodeError, json.JSONDecodeError, subprocess.CalledProcessError, PlanError) as error:
+        if args.github_summary is not None:
+            emit_github_summary(args.github_summary, plan, policy)
+    except (
+        OSError,
+        UnicodeError,
+        json.JSONDecodeError,
+        subprocess.CalledProcessError,
+        PlanError,
+        ci_package_graph.GraphError,
+    ) as error:
         print(f"CI scope plan: FAIL: {error}", file=sys.stderr)
         return 2
     print(f"CI scope plan: {len(lanes)} lanes ({','.join(lanes)})")

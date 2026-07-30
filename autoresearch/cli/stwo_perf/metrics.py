@@ -27,6 +27,12 @@ class AuditPolicy:
     direct_every: int
     span_effect_theta: float
     audit_anchor_commit: str
+    # TRACKS §7 era provenance. Populated only when the policy was resolved
+    # from a board-effective epoch specification (``ledger.epoch_for_board`` /
+    # ``ledger.current_epoch(board=...)``); a global epoch leaves both None and
+    # behaves exactly as before.
+    board: str | None = None
+    era: int | None = None
 
 
 @dataclass(frozen=True)
@@ -106,9 +112,19 @@ def _validate_policy(policy: AuditPolicy) -> None:
 
 
 def policy_from_epoch(epoch: dict) -> AuditPolicy:
+    """Build the audit policy of one epoch, global or board-effective.
+
+    A board-effective specification carries an ``era`` view whose per-board
+    ``audit_anchor_commit`` override is already merged into ``metrics_v2``
+    (TRACKS §7: audit anchors are per board, the global epoch's anchor is the
+    fallback). The era's identity is retained here purely as provenance.
+    """
     spec = epoch.get("metrics_v2")
     if not isinstance(spec, dict) or spec.get("schema_version") != 2:
         raise MetricsError("epoch does not declare metrics_v2 schema 2")
+    era = epoch.get("era")
+    if era is not None and not isinstance(era, dict):
+        raise MetricsError("epoch era view must be an object")
     try:
         policy = AuditPolicy(
             shrinkage_lambda=float(spec["shrinkage_lambda"]),
@@ -116,6 +132,8 @@ def policy_from_epoch(epoch: dict) -> AuditPolicy:
             direct_every=int(spec["direct_audit_every_landed"]),
             span_effect_theta=float(spec["span_effect_theta"]),
             audit_anchor_commit=str(spec["audit_anchor_commit"]),
+            board=str(era["board"]) if era else None,
+            era=int(era["era"]) if era else None,
         )
     except (KeyError, TypeError, ValueError) as exc:
         raise MetricsError("epoch metrics_v2 policy is incomplete") from exc

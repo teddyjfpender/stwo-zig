@@ -150,6 +150,47 @@ unsupported ledger. All four implemented targets use ordinary RV32IM software,
 not precompiles. A one-byte-mutated k256 signature is retained as a negative
 fixture and must produce the all-zero rejection output.
 
+### Retained results and CSP rank — 2026-07-28
+
+The table below is the retained secure matrix captured on 2026-07-28 from
+commit `ed573380db2f7ee1bc364a091cf6c82a00500ec3`; the complete machine-readable
+data is in the
+[`riscv_csp_benchmark_report.json`](../../../vectors/reports/riscv_csp_benchmark_report.json)
+report. `Proof` is execution plus witness construction plus proof generation.
+Times are seconds.
+
+| CSP workload | Input | Proof | Verify | RV32IM cycles | CSP proof-time rank/status on 2026-07-28 | Base RV32IM software | Dedicated crypto opcode | Precompile |
+| :--- | ---: | ---: | ---: | ---: | :--- | :---: | :---: | :---: |
+| SHA-256 | 128 B | 1.985 | 0.164 | 14,056 | Unranked; published `stark-v` reference: **#12/16** (1.830 s) | Yes | No | No |
+| SHA-256 | 256 B | 2.572 | 0.176 | 22,832 | Unranked; published `stark-v` reference: **#12/16** (1.861 s) | Yes | No | No |
+| SHA-256 | 512 B | 2.696 | 0.182 | 40,384 | Unranked; published `stark-v` reference: **#11/16** (1.907 s) | Yes | No | No |
+| SHA-256 | 1,024 B | 3.017 | 0.182 | 75,488 | Unranked; published `stark-v` reference: **#9/16** (1.977 s) | Yes | No | No |
+| SHA-256 | 2,048 B | 3.754 | 0.178 | 145,696 | Unranked; published `stark-v` reference: **#7/16** (2.175 s) | Yes | No | No |
+| Keccak-256 | 128 B | 2.252 | 0.175 | 19,114 | Unranked; published `stark-v` reference: **#8/10** (1.828 s) | Yes | No | No |
+| Keccak-256 | 256 B | 2.287 | 0.176 | 36,904 | Unranked; published `stark-v` reference: **#8/10** (1.861 s) | Yes | No | No |
+| Keccak-256 | 512 B | 3.388 | 0.180 | 72,408 | Unranked; published `stark-v` reference: **#5/10** (1.927 s) | Yes | No | No |
+| Keccak-256 | 1,024 B | 3.540 | 0.181 | 143,416 | Unranked; published `stark-v` reference: **#4/10** (2.053 s) | Yes | No | No |
+| Keccak-256 | 2,048 B | 5.209 | 0.191 | 285,456 | Unranked; published `stark-v` reference: **#3/10** (2.329 s) | Yes | No | No |
+| Poseidon2-M31 | 2 elements | 2.670 | 0.179 | 82,297 | **N/A** — M31 extension; CSP `poseidon2` is BN254 | Yes | No | No |
+| Poseidon2-M31 | 4 elements | 3.607 | 0.185 | 164,403 | **N/A** — M31 extension; CSP `poseidon2` is BN254 | Yes | No | No |
+| Poseidon2-M31 | 8 elements | 6.490 | 0.209 | 328,615 | **N/A** — M31 extension; CSP `poseidon2` is BN254 | Yes | No | No |
+| Poseidon2-M31 | 12 elements | 6.829 | 0.232 | 492,827 | **N/A** — M31 extension; CSP `poseidon2` is BN254 | Yes | No | No |
+| Poseidon2-M31 | 16 elements | 8.906 | 0.240 | 657,039 | **N/A** — M31 extension; CSP `poseidon2` is BN254 | Yes | No | No |
+| secp256k1 ECDSA | 32 B digest | 55.745 | 0.232 | 5,425,005 | **Unranked** — exact CSP workload, not uploaded | Yes | No | No |
+
+Rank methodology: the [EthProofs CSP benchmark
+page](https://ethproofs.org/csp-benchmarks) was checked on 2026-07-28
+(Europe/Lisbon); its dataset reported a last update of 2026-06-30 08:32 UTC.
+The displayed reference ordinal is obtained by sorting all published systems
+for the same target and input size by proof duration, fastest first. It belongs
+to the historical published `stark-v` row, not to the current
+`stwo-zig-riscv` binary. The current report was collected on an Apple M5 Max,
+not CSP's AWS `mac2.metal` Apple M1/8-core/16-GiB host, and was not uploaded;
+therefore its timings are host-qualified and its official CSP rank is
+`Unranked`. Poseidon2-M31 has no ordinal because changing the field changes the
+workload. The upstream workload source is pinned to
+[`privacy-ethereum/csp-benchmarks@269c43c`](https://github.com/privacy-ethereum/csp-benchmarks/tree/269c43cc32d3127e3d9ce74d20652887d894cca3).
+
 An audit can additionally regenerate every input and expected digest from a
 clean checkout of the pinned upstream repository:
 

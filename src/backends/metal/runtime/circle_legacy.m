@@ -197,10 +197,12 @@ bool stwo_zig_metal_circle_lde(
     const uint32_t *inverse_twiddles,
     const uint32_t *forward_twiddles,
     uint32_t scale_factor,
+    uint32_t *source_binding,
     double *gpu_milliseconds,
     char *error_message,
     size_t error_message_len
 ) {
+    if (source_binding != NULL) *source_binding = 0u;
     if (runtime_ptr == NULL || source_columns == NULL || base_columns == NULL || extended_words == NULL ||
         inverse_twiddles == NULL || forward_twiddles == NULL || column_count == 0u ||
         base_log_size < 3u || extended_log_size <= base_log_size || extended_log_size >= 31u) return false;
@@ -228,6 +230,14 @@ bool stwo_zig_metal_circle_lde(
             source_is_base &= source_columns[column] == base_columns[column];
         bool direct_base = contiguous_base && ((uintptr_t)base_columns[0] % page_size) == 0u &&
             (base_bytes % page_size) == 0u;
+        // Attribution, reported from the branch that decides it: 1 = the source
+        // columns already are the page-aligned base arena, so `coefficients` is
+        // a no-copy alias of host memory and nothing is copied; 2 = the source
+        // is the base arena but the alias preconditions failed, so the commit
+        // pays exactly one memcpy per column below; 0 = the source is not the
+        // base arena at all and the fused-upload/blit encoder runs.
+        if (source_binding != NULL)
+            *source_binding = source_is_base ? (direct_base ? 1u : 2u) : 0u;
         id<MTLBuffer> coefficients = direct_base
             ? [runtime.device newBufferWithBytesNoCopy:base_columns[0]
                                                 length:base_bytes

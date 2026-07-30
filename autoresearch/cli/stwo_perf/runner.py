@@ -42,19 +42,136 @@ from scripts.native_cuda_diagnostic_lib.model import (
     XorShape,
 )
 
-from . import dimensions, ledger, search_health, stats
+from . import dimensions, ledger
+from . import manifest as manifest_mod
+from . import search_health, stats
 from .manifest import (
+    CAIRO_PHASE_NAMES,
+    CAIRO_STABLE_MECHANISM_FIELDS,
+    PROXY_VALIDITY_METHOD,
+    PROXY_VALIDITY_RECEIPT_SCHEMA,
     REPORT_SCHEMA_VERSIONS,
     RISCV_STABLE_MECHANISM_FIELDS,
+    SEQUENTIAL_STOP_RULE,
     Manifest,
     ManifestError,
     Workload,
     WorkloadGroup,
+    pearson_correlation,
+    validate_proxy_validity_receipt,
 )
 
 
 class RunError(RuntimeError):
     pass
+
+
+# --- Confirmation ladder (TRACKS §3.5) ------------------------------------
+LADDER_T0_SCHEMA = "stwo_perf_ladder_t0_prefilter_v1"
+LADDER_T1_SCHEMA = "stwo_perf_ladder_t1_estimate_v1"
+#: Boundary label recorded on every WorkloadScore. The default is today's
+#: paired quantity; the ladder's fast boundary is the opt-in alternative. The
+#: estimated label is a DIFFERENT string on purpose: a cross-invocation
+#: subtraction must never be readable as a same-invocation measurement.
+FULL_BOUNDARY = "prove_ms"
+FAST_BOUNDARY = "verified_request_minus_pow_ms"
+FAST_BOUNDARY_ESTIMATED = "verified_request_minus_pow_ms_cross_invocation_estimate"
+#: The only tier allowed to pair on a cross-invocation PoW estimate.
+CROSS_INVOCATION_POW_TIER = "T1"
+
+
+@dataclass(frozen=True)
+class PowBoundarySource:
+    """Where a report schema's MEASURED proof-of-work seconds come from.
+
+    ``invocation`` is the honesty-critical field. ``scored_sample`` means the
+    PoW time was measured on the very invocation being timed, so subtracting it
+    yields a measurement. ``discarded_warmup`` means it was measured on another
+    invocation of the same arm in the same round, so subtracting it yields an
+    ESTIMATE — admissible only on a tier that never ranks (TRACKS §3.5).
+    """
+
+    kind: str
+    invocation: str
+    note: str
+    field_path: tuple[str, ...] = ()
+    stage_ids: tuple[str, ...] = ()
+
+    @property
+    def cross_invocation(self) -> bool:
+        return self.invocation != "scored_sample"
+
+    @property
+    def boundary_label(self) -> str:
+        return FAST_BOUNDARY_ESTIMATED if self.cross_invocation else FAST_BOUNDARY
+
+    def describe(self, report_schema: str) -> dict:
+        return {
+            "report_schema": report_schema,
+            "kind": self.kind,
+            "invocation": self.invocation,
+            "stage_ids": list(self.stage_ids),
+            "field_path": list(self.field_path),
+            "cross_invocation": self.cross_invocation,
+            "estimate": self.cross_invocation,
+            "note": self.note,
+        }
+
+
+#: report_schema -> where its measured proof-of-work seconds live. A schema
+#: absent from this registry cannot use ``--fast-boundary`` at all: the harness
+#: subtracts only measured PoW time, never a modeled or assumed one.
+POW_PHASE_SECONDS_FIELDS: dict[str, PowBoundarySource] = {
+    # Cairo records `proof_of_work` in its stage profile, which the runner
+    # writes as a sidecar next to the bench envelope. That profile comes from
+    # the discarded warmup (scored samples run uninstrumented), so this is a
+    # cross-invocation ESTIMATE and is restricted to T1 accordingly.
+    "cairo_proof_v1": PowBoundarySource(
+        kind="stage_profile_sidecar",
+        invocation="discarded_warmup",
+        stage_ids=("proof_of_work",),
+        note=(
+            "Cairo scored samples run uninstrumented, so the PoW seconds come "
+            "from the same arm's discarded warmup in the same round. pow 26 is "
+            "~constant work (TRACKS §3.5), so this is a sound estimate for a "
+            "paired delta — but it is an estimate, it is labelled as one, and "
+            "only T1 (which never ranks) may pair on it. The long-term fix is "
+            "per-sample PoW seconds in the cairo_proof_v1 envelope."
+        ),
+    ),
+}
+#: Suffix of the stage-profile sidecar the Cairo arm writes beside its envelope.
+STAGE_PROFILE_SIDECAR_SUFFIX = ".stages.json"
+
+#: report_schema -> phase name -> path to that phase's seconds. Phase names
+#: follow the §3.2 cutpoint vocabulary. Groups whose reports carry stage
+#: profiles contribute their stage tree on top of this map, so T0 attribution
+#: is generic over whatever phase evidence a schema actually provides.
+PHASE_SECONDS_FIELDS: dict[str, dict[str, tuple[str, ...]]] = {
+    "native_proof_v7": {
+        "input": ("timing", "input_seconds", "median"),
+        "prove": ("timing", "prove_seconds", "median"),
+        "serialize": ("timing", "proof_encode_seconds", "median"),
+        "verify": ("timing", "verify_seconds", "median"),
+        "request": ("timing", "request_seconds", "median"),
+    },
+    "riscv_proof_v2": {
+        "execute": ("mean_execution_seconds",),
+        "witness": ("mean_witness_seconds",),
+        "prove": ("mean_proving_seconds",),
+        "verify": ("mean_verification_seconds",),
+        "request": ("median_seconds",),
+    },
+    # The Cairo envelope publishes the §3.2 cutpoints directly, so the row is
+    # DERIVED from the canonical name tuple rather than restated: a schema that
+    # gains or renames a cutpoint cannot leave T0 quietly reading a stale set.
+    # ``serialize`` is always null (proof encode/write/hash is outside the
+    # recorder), so it drops out of the measured phase set and a claim on it
+    # fails T0 closed — the honest answer for an uninstrumented cutpoint.
+    "cairo_proof_v1": {
+        phase: ("phase_seconds", phase) for phase in CAIRO_PHASE_NAMES
+    },
+}
 
 
 _RESOURCE_ADMISSION_KEYS = {
@@ -78,6 +195,147 @@ _NATIVE_RESOURCE_KEYS = {
     "canonical_proof_bytes",
     "complete",
     "unavailable_reason",
+}
+
+
+# --- Cairo (cairo_proof_v1) ------------------------------------------------
+#
+# `cairo_proof_v1` is the harness envelope, not the product's own report
+# version: the focused Cairo CLIs emit a `schema_version: 2` proving report on
+# stdout and an optional `schema_version: 1` stage profile. See
+# autoresearch/schema/cairo-proof-v1.md.
+CAIRO_PRODUCT_REPORT_SCHEMA_VERSION = 2
+CAIRO_STAGE_PROFILE_SCHEMA_VERSION = 1
+CAIRO_PROOF_FORMATS = frozenset({"json", "binary", "cairo-serde"})
+CAIRO_IMPLEMENTATION_REPOSITORY = "https://github.com/teddyjfpender/stwo-zig"
+CAIRO_COMMANDS = frozenset({"prove", "run-and-prove"})
+
+_CAIRO_REPORT_KEYS = {
+    "schema_version", "product", "frontend", "backend", "backend_evidence",
+    "preprocessed_cache", "profile", "execution", "input", "proof", "timing",
+    "verification",
+}
+_CAIRO_PRODUCT_KEYS = {
+    "schema_version", "name", "frontend", "backend", "role",
+    "protocol_features", "protocol_manifest_sha256", "identity_sha256",
+    "source", "zig_version", "target", "optimize", "runtime", "upstream",
+}
+_CAIRO_SOURCE_KEYS = {
+    "repository", "commit", "tree", "dirty", "dirty_content_sha256",
+}
+_CAIRO_TARGET_KEYS = {"arch", "os", "abi", "cpu_model", "cpu_features_sha256"}
+_CAIRO_RUNTIME_KEYS = {"manifest", "sdk", "aot"}
+_CAIRO_UPSTREAM_KEYS = {
+    "stwo_cairo_revision", "stwo_revision", "cairo_language_version",
+    "cairo_vm_version",
+}
+_CAIRO_BACKEND_EVIDENCE_KEYS = {
+    "execution", "classification", "metal_dispatches", "cpu_fallbacks",
+    "runtime_initializations", "runtime_shutdowns",
+    "commit_source_arena_aliases", "commit_source_arena_memcpys",
+    "commit_source_uploads",
+}
+_CAIRO_PREPROCESSED_CACHE_KEYS = {
+    "enabled", "budget_bytes", "hits", "misses", "stores", "evictions",
+    "loaded_bytes", "stored_bytes", "evicted_bytes", "directory_bytes",
+    "eviction_ns",
+}
+_CAIRO_EXECUTION_KEYS = {
+    "program_type", "program_sha256", "arguments_sha256", "adapter_sha256",
+    "wall_ns",
+}
+
+# TRACKS §3.2 named cutpoints -> the stage-profile ROOT ids that compose them.
+# `execute` and `verify` come from the report's own timing block; `serialize`
+# is a documented instrumentation gap (the CLI writes and hashes the proof
+# outside the recorder). Unknown roots fail closed so a product change forces a
+# harness update instead of silently dropping proving time.
+CAIRO_PHASE_STAGES: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
+    "witness": (
+        (
+            "preprocessed_plan",
+            "preprocessed_table_build",
+            "base_trace_build",
+            "air_template_instantiation",
+        ),
+        (),
+    ),
+    "commit": (
+        ("preprocessed_materialize_and_commit", "main_trace_commit"),
+        (),
+    ),
+    "interaction": (
+        ("interaction_trace_build", "interaction_trace_commit"),
+        (),
+    ),
+    "composition": (
+        (
+            "draw_random_coeff",
+            "composition_trace_extract",
+            "composition_evaluation",
+            "composition_interpolate_and_split",
+            "composition_commit",
+        ),
+        (
+            # Metal-lane device-composition admission markers.
+            "composition_device_admission",
+            "composition_device_declined",
+            "composition_device_components",
+            "composition_device_host_components",
+            "composition_device_fallbacks",
+        ),
+    ),
+    "fri": (
+        (
+            "oods_point_and_mask_points",
+            "sampled_value_evaluation",
+            "sampled_value_channel_mix",
+            "fri_quotient_build_and_commit",
+            "proof_of_work",
+            "fri_decommit",
+            "trace_decommit",
+            "constraint_check_and_assembly",
+        ),
+        (),
+    ),
+}
+CAIRO_UNINSTRUMENTED_PHASES = ("serialize",)
+
+# The pinned official Stwo-Cairo verifier, the same authority the build gates
+# use (build_support/products/cairo_cpu/oracle_gate.zig). The harness builds it
+# from the manifest's declared `build_command` — the manifest owns flag drift —
+# and runs the release profile so a judged run is not paying debug verification.
+CAIRO_ORACLE_AUTHORITY = "official-stwo-cairo-verifier"
+CAIRO_ORACLE_ADAPTER = "tools/stwo-cairo-official-verifier-rs"
+CAIRO_ORACLE_EXECUTABLE = "stwo-cairo-official-verifier"
+CAIRO_ORACLE_ADAPTER_VERSION = "stwo-cairo-official-verifier/1"
+CAIRO_ORACLE_IDENTITY_SCHEMA_VERSION = 1
+CAIRO_ORACLE_VERDICT_SCHEMA_VERSION = 1
+CAIRO_ORACLE_CHANNEL = "blake2s"
+CAIRO_ORACLE_BUILD_TIMEOUT = 3600
+CAIRO_ORACLE_VERIFY_TIMEOUT = 1800
+# Product proof-format spelling -> official Rust adapter transport. The
+# Cairo-serde felt array deliberately targets the Cairo verifier and is
+# rejected by this Rust adapter, so it can never be a scored transport.
+CAIRO_ORACLE_TRANSPORTS = {"json": "json", "binary": "binary"}
+_CAIRO_ORACLE_IDENTITY_KEYS = {
+    "schema_version", "adapter_version", "stwo_cairo", "stwo",
+    "cargo_lock_sha256", "executable_sha256", "channels", "proof_formats",
+    "max_proof_bytes", "prover_input_schema", "claim_summary_schema",
+    "max_input_bytes",
+}
+_CAIRO_ORACLE_VERDICT_KEYS = {
+    "schema_version", "adapter_version", "stwo_cairo_revision",
+    "stwo_revision", "proof_sha256", "channel", "proof_format", "verified",
+    "wall_time_ns", "error",
+}
+
+# Per-schema semantic (never implementation) mechanism telemetry: the fields a
+# paired round requires to be identical across the A and B arms and across
+# rounds. A schema absent here has no cross-arm mechanism contract.
+STABLE_MECHANISM_FIELDS_BY_SCHEMA: dict[str, tuple[str, frozenset]] = {
+    "riscv_proof_v2": ("RISC-V", RISCV_STABLE_MECHANISM_FIELDS),
+    "cairo_proof_v1": ("Cairo", CAIRO_STABLE_MECHANISM_FIELDS),
 }
 
 
@@ -211,6 +469,9 @@ class ArmResult:
     instructions: int | None = None
     cycles: int | None = None
     resources_complete: bool | None = None
+    #: Measured proof-of-work milliseconds, when the group's report schema
+    #: exposes the cutpoint. None means "not measured" — never "zero".
+    pow_ms: float | None = None
 
 
 @dataclass
@@ -232,6 +493,15 @@ class WorkloadScore:
     proof_bytes: int = 0
     measurement_seconds: float = 0.0
     resources_complete: bool | None = None
+    #: Which paired quantity ``ratios`` measures (FULL_BOUNDARY by default).
+    boundary: str = FULL_BOUNDARY
+    #: Pre-registered sequential-stop evidence, present only when armed.
+    sequential_stop: dict | None = None
+    #: Median PoW-excluded request ratio, present only under the fast boundary.
+    fast_request_ratio: float | None = None
+    #: What the fast boundary subtracted and how it was measured, present only
+    #: under ``fast_boundary``. Carries the cross-invocation estimate label.
+    boundary_evidence: dict | None = None
 
 
 def portfolio_summary(scores: list[WorkloadScore], ci_level: float) -> dict:
@@ -441,6 +711,38 @@ def bench_once(
             f"build it first ({group.build_step}); refusing to fabricate measurements"
         )
     out_dir.mkdir(parents=True, exist_ok=True)
+    if group.report_schema == "cairo_proof_v1":
+        # The Cairo CLIs prove one statement per process, so the harness owns
+        # the warmup/sample loop and reads a cold-process boundary per sample.
+        cairo_timeout = (
+            timeout_seconds
+            if timeout_seconds is not None
+            else manifest.workload_class(workload.workload_class).command_timeout_seconds
+        )
+        if cairo_timeout <= 0:
+            raise RunError(f"{workload.workload_id}: no command time budget remains")
+        try:
+            cairo_result = _bench_cairo(
+                arm_root, group, workload, warmups, samples, out_dir,
+                tag, float(cairo_timeout), deadline_monotonic,
+            )
+            # Ladder telemetry (TRACKS §3.5): Cairo's PoW seconds live in the
+            # stage-profile sidecar this call just wrote, so the envelope is
+            # only read when a PoW cutpoint is actually registered.
+            if group.report_schema in POW_PHASE_SECONDS_FIELDS:
+                cairo_result.pow_ms = _pow_ms(
+                    _load_json_object(
+                        Path(cairo_result.report_path).read_text(encoding="utf-8"),
+                        "Cairo bench envelope",
+                    ),
+                    group,
+                    cairo_result.report_path,
+                )
+            return cairo_result
+        except (OSError, KeyError, TypeError, ValueError) as exc:
+            raise RunError(
+                f"{workload.workload_id}: malformed {group.report_schema} report: {exc}"
+            ) from exc
     proof_path = None
     product_report_path = None
     if group.report_schema == "riscv_proof_v2":
@@ -521,6 +823,9 @@ def bench_once(
         raise RunError(
             f"{workload.workload_id}: malformed {group.report_schema} report: {exc}"
         ) from exc
+    # Ladder telemetry (TRACKS §3.5): carried on every run so the PoW-excluded
+    # boundary is a projection of measured evidence, never a separate run.
+    result.pow_ms = _pow_ms(report, group, out_path)
     out_path.write_text(json.dumps(report, indent=1))
     return result
 
@@ -684,6 +989,11 @@ def _commit_hex(value: object, field_name: str) -> str:
     if not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{40}", value):
         raise ValueError(f"{field_name} must be a full lowercase Git commit")
     return value
+
+
+def _commit_like(value: object) -> bool:
+    """Predicate form of `_commit_hex`, for policy shape checks."""
+    return isinstance(value, str) and bool(re.fullmatch(r"[0-9a-f]{40}", value))
 
 
 def _parse_native_report(
@@ -1033,6 +1343,716 @@ def _parse_riscv_resources(
     }
 
 
+def _exact_object(value: object, keys: set[str], label: str) -> dict:
+    if not isinstance(value, dict) or set(value) != keys:
+        missing = sorted(keys - set(value)) if isinstance(value, dict) else sorted(keys)
+        unknown = sorted(set(value) - keys) if isinstance(value, dict) else []
+        raise ValueError(
+            f"{label} fields differ: missing={missing} unknown={unknown}"
+        )
+    return value
+
+
+def _nonempty_text(value: object, field_name: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{field_name} must be a non-empty string")
+    return value
+
+
+def _cairo_command(workload: Workload) -> tuple[str, str, bool]:
+    """(command, requested proof format, verification requested) from args."""
+    tokens = shlex.split(workload.args)
+    if not tokens or tokens[0] not in CAIRO_COMMANDS:
+        raise ValueError(
+            "Cairo workload args must start with prove or run-and-prove"
+        )
+    proof_format = "json"
+    positions = [i for i, token in enumerate(tokens) if token == "--proof-format"]
+    if positions:
+        if len(positions) != 1 or positions[0] + 1 >= len(tokens):
+            raise ValueError("Cairo workload has a malformed --proof-format")
+        proof_format = tokens[positions[0] + 1]
+    if proof_format not in CAIRO_PROOF_FORMATS:
+        raise ValueError(f"unsupported Cairo proof format {proof_format!r}")
+    for reserved in ("--proof", "--stage-profile-out", "--report-out"):
+        if reserved in tokens:
+            raise ValueError(
+                f"Cairo workload args must not carry {reserved}; the runner owns "
+                "the output paths"
+            )
+    return tokens[0], proof_format, "--verify" in tokens
+
+
+def _parse_cairo_report(
+    report: dict,
+    group: WorkloadGroup,
+    workload: Workload,
+    proof_path: Path,
+) -> dict:
+    """Fail-closed validation of ONE Cairo product proving report.
+
+    Everything the report claims is either checked against the manifest (the
+    pinned official oracle revisions, the declared binary, the requested proof
+    format) or against the retained artifact on disk. Nothing is inferred and
+    nothing missing is defaulted.
+    """
+    command, requested_format, verify_requested = _cairo_command(workload)
+    if not verify_requested:
+        raise ValueError(
+            "a scored Cairo workload must request --verify; unverified proofs "
+            "never enter a boundary measurement"
+        )
+    _exact_object(report, _CAIRO_REPORT_KEYS, "report")
+    actual = report["schema_version"]
+    if type(actual) is not int or actual != CAIRO_PRODUCT_REPORT_SCHEMA_VERSION:
+        raise RunError(
+            f"{workload.workload_id}: group {group.group_id} expected "
+            f"{group.report_schema} (product schema_version="
+            f"{CAIRO_PRODUCT_REPORT_SCHEMA_VERSION}), got schema_version={actual!r}"
+        )
+    if report["frontend"] != "cairo":
+        raise ValueError("report.frontend must equal 'cairo'")
+    backend = _nonempty_text(report["backend"], "report.backend")
+
+    product = _exact_object(report["product"], _CAIRO_PRODUCT_KEYS, "report.product")
+    if product["schema_version"] != CAIRO_PRODUCT_REPORT_SCHEMA_VERSION:
+        raise ValueError("report.product.schema_version is not the pinned version")
+    expected_name = Path(group.binary).name
+    if product["name"] != expected_name:
+        raise ValueError(
+            f"report.product.name {product['name']!r} is not the group's declared "
+            f"binary {expected_name!r}"
+        )
+    if product["frontend"] != "cairo" or product["backend"] != backend:
+        raise ValueError("report.product frontend/backend disagree with the report")
+    if product["role"] != "cli":
+        raise ValueError("report.product.role must equal 'cli'")
+    if product["optimize"] != "ReleaseFast":
+        raise ValueError("a measured Cairo product must be built ReleaseFast")
+    _nonempty_text(product["protocol_features"], "report.product.protocol_features")
+    _nonempty_text(product["zig_version"], "report.product.zig_version")
+    protocol_manifest_sha256 = _sha256_hex(
+        product["protocol_manifest_sha256"], "report.product.protocol_manifest_sha256",
+    )
+    identity_sha256 = _sha256_hex(
+        product["identity_sha256"], "report.product.identity_sha256",
+    )
+    source = _exact_object(
+        product["source"], _CAIRO_SOURCE_KEYS, "report.product.source",
+    )
+    if source["repository"] != CAIRO_IMPLEMENTATION_REPOSITORY:
+        raise ValueError("report.product.source.repository is not this implementation")
+    _commit_hex(source["commit"], "report.product.source.commit")
+    _commit_hex(source["tree"], "report.product.source.tree")
+    if type(source["dirty"]) is not bool:
+        raise ValueError("report.product.source.dirty must be a boolean")
+    if source["dirty"]:
+        _sha256_hex(
+            source["dirty_content_sha256"],
+            "report.product.source.dirty_content_sha256",
+        )
+    elif source["dirty_content_sha256"] is not None:
+        raise ValueError("a clean Cairo source must have null dirty_content_sha256")
+    target = _exact_object(
+        product["target"], _CAIRO_TARGET_KEYS, "report.product.target",
+    )
+    for key in ("arch", "os", "abi", "cpu_model"):
+        _nonempty_text(target[key], f"report.product.target.{key}")
+    _sha256_hex(target["cpu_features_sha256"], "report.product.target.cpu_features_sha256")
+    runtime = _exact_object(
+        product["runtime"], _CAIRO_RUNTIME_KEYS, "report.product.runtime",
+    )
+    for key in sorted(_CAIRO_RUNTIME_KEYS):
+        _nonempty_text(runtime[key], f"report.product.runtime.{key}")
+    upstream = _exact_object(
+        product["upstream"], _CAIRO_UPSTREAM_KEYS, "report.product.upstream",
+    )
+    oracle = group.correctness_oracle
+    if oracle.get("final_validator") is not True:
+        raise RunError(
+            f"{workload.workload_id}: group {group.group_id} has no final-validator "
+            "Cairo correctness oracle"
+        )
+    if upstream["stwo_cairo_revision"] != oracle.get("commit"):
+        raise ValueError(
+            "report.product.upstream.stwo_cairo_revision is not the manifest-pinned "
+            "official stwo-cairo commit"
+        )
+    if upstream["stwo_revision"] != oracle.get("stwo_commit"):
+        raise ValueError(
+            "report.product.upstream.stwo_revision is not the manifest-pinned "
+            "official stwo commit"
+        )
+    for key in ("cairo_language_version", "cairo_vm_version"):
+        _nonempty_text(upstream[key], f"report.product.upstream.{key}")
+
+    evidence = _exact_object(
+        report["backend_evidence"], _CAIRO_BACKEND_EVIDENCE_KEYS,
+        "report.backend_evidence",
+    )
+    _nonempty_text(evidence["execution"], "report.backend_evidence.execution")
+    _nonempty_text(evidence["classification"], "report.backend_evidence.classification")
+    for key in sorted(_CAIRO_BACKEND_EVIDENCE_KEYS - {"execution", "classification"}):
+        _nonnegative_integer(evidence[key], f"report.backend_evidence.{key}")
+    if evidence["cpu_fallbacks"] != 0:
+        raise ValueError(
+            "report.backend_evidence.cpu_fallbacks must be zero; a lane that fell "
+            "back is not the declared product"
+        )
+
+    cache = _exact_object(
+        report["preprocessed_cache"], _CAIRO_PREPROCESSED_CACHE_KEYS,
+        "report.preprocessed_cache",
+    )
+    if type(cache["enabled"]) is not bool:
+        raise ValueError("report.preprocessed_cache.enabled must be a boolean")
+    for key in sorted(_CAIRO_PREPROCESSED_CACHE_KEYS - {"enabled"}):
+        _nonnegative_integer(cache[key], f"report.preprocessed_cache.{key}")
+
+    profile = _nonempty_text(report["profile"], "report.profile")
+    input_sha256 = _sha256_hex(
+        _exact_object(report["input"], {"sha256"}, "report.input")["sha256"],
+        "report.input.sha256",
+    )
+    proof = _exact_object(
+        report["proof"], {"format", "bytes", "sha256"}, "report.proof",
+    )
+    if proof["format"] != requested_format:
+        raise ValueError(
+            f"report.proof.format {proof['format']!r} is not the requested "
+            f"{requested_format!r}"
+        )
+    proof_bytes = _nonnegative_integer(proof["bytes"], "report.proof.bytes", positive=True)
+    proof_sha256 = _sha256_hex(proof["sha256"], "report.proof.sha256")
+
+    timing = _exact_object(
+        report["timing"], {"execute_ns", "prove_ns", "verify_ns"}, "report.timing",
+    )
+    execute_ns = _nonnegative_integer(timing["execute_ns"], "report.timing.execute_ns")
+    prove_ns = _nonnegative_integer(
+        timing["prove_ns"], "report.timing.prove_ns", positive=True,
+    )
+    verify_ns = _nonnegative_integer(
+        timing["verify_ns"], "report.timing.verify_ns", positive=True,
+    )
+    verification = _exact_object(
+        report["verification"], {"requested", "zig"}, "report.verification",
+    )
+    if verification["requested"] is not True or verification["zig"] is not True:
+        raise ValueError(
+            "report.verification must record a requested and completed in-process "
+            "verification"
+        )
+
+    execution = report["execution"]
+    if command == "prove":
+        if execution is not None:
+            raise ValueError("a prove report must have null execution")
+        if execute_ns != 0:
+            raise ValueError("a prove report must have zero execute_ns")
+    else:
+        execution = _exact_object(
+            execution, _CAIRO_EXECUTION_KEYS, "report.execution",
+        )
+        _nonempty_text(execution["program_type"], "report.execution.program_type")
+        _sha256_hex(execution["program_sha256"], "report.execution.program_sha256")
+        if execution["arguments_sha256"] is not None:
+            _sha256_hex(
+                execution["arguments_sha256"], "report.execution.arguments_sha256",
+            )
+        _sha256_hex(execution["adapter_sha256"], "report.execution.adapter_sha256")
+        wall_ns = _nonnegative_integer(
+            execution["wall_ns"], "report.execution.wall_ns", positive=True,
+        )
+        if wall_ns != execute_ns:
+            raise ValueError("report.execution.wall_ns disagrees with timing.execute_ns")
+
+    if not proof_path.is_file():
+        raise ValueError("the Cairo product did not retain the requested proof")
+    artifact = proof_path.read_bytes()
+    if len(artifact) != proof_bytes:
+        raise ValueError("report.proof.bytes does not match the retained proof")
+    if hashlib.sha256(artifact).hexdigest() != proof_sha256:
+        raise ValueError("report.proof.sha256 does not match the retained proof")
+
+    return {
+        "product_identity_sha256": identity_sha256,
+        "protocol_manifest_sha256": protocol_manifest_sha256,
+        "profile": profile,
+        "input_sha256": input_sha256,
+        "proof_format": proof["format"],
+        "proof_bytes": proof_bytes,
+        "proof_sha256": proof_sha256,
+        "stwo_cairo_revision": upstream["stwo_cairo_revision"],
+        "stwo_revision": upstream["stwo_revision"],
+        "metal_dispatches": evidence["metal_dispatches"],
+        "cpu_fallbacks": evidence["cpu_fallbacks"],
+        "execute_seconds": execute_ns / 1_000_000_000.0,
+        "prove_seconds": prove_ns / 1_000_000_000.0,
+        "verify_seconds": verify_ns / 1_000_000_000.0,
+        "implementation_commit": source["commit"],
+    }
+
+
+def _parse_cairo_stage_profile(profile: dict, workload: Workload) -> dict:
+    """TRACKS §3.2 named cutpoints from one `--stage-profile-out` snapshot."""
+    _exact_object(
+        profile, {"schema_version", "runtime", "example", "stages"},
+        "stage profile",
+    )
+    if profile["schema_version"] != CAIRO_STAGE_PROFILE_SCHEMA_VERSION:
+        raise ValueError(
+            "stage profile schema_version is not "
+            f"{CAIRO_STAGE_PROFILE_SCHEMA_VERSION}"
+        )
+    if profile["example"] != "cairo":
+        raise ValueError("stage profile is not a Cairo profile")
+    _nonempty_text(profile["runtime"], "stage profile runtime")
+    stages = profile["stages"]
+    if not isinstance(stages, list) or not stages:
+        raise ValueError("stage profile has no stages")
+
+    owner = {}
+    for phase, (required, optional) in CAIRO_PHASE_STAGES.items():
+        for stage_id in required + optional:
+            owner[stage_id] = phase
+    seconds = {phase: 0.0 for phase in CAIRO_PHASE_STAGES}
+    observed: set[str] = set()
+    for index, node in enumerate(stages):
+        if not isinstance(node, dict) or not {"id", "label", "seconds"} <= set(node):
+            raise ValueError(f"stage profile root {index} is not a stage node")
+        if set(node) - {"id", "label", "seconds", "children"}:
+            raise ValueError(f"stage profile root {index} has unknown fields")
+        stage_id = _nonempty_text(node["id"], f"stage profile root {index} id")
+        phase = owner.get(stage_id)
+        if phase is None:
+            raise ValueError(
+                f"{workload.workload_id}: unclassified Cairo stage root "
+                f"{stage_id!r}; the phase cutpoint table must be updated before "
+                "this product can be measured"
+            )
+        seconds[phase] += _finite_number(node["seconds"], f"stage {stage_id} seconds")
+        observed.add(stage_id)
+    for phase, (required, _optional) in CAIRO_PHASE_STAGES.items():
+        missing = sorted(set(required) - observed)
+        if missing:
+            raise ValueError(
+                f"{workload.workload_id}: Cairo phase {phase} is missing mandatory "
+                "cutpoint stage(s): " + ", ".join(missing)
+            )
+    return seconds
+
+
+def _bench_cairo(
+    arm_root: Path,
+    group: WorkloadGroup,
+    workload: Workload,
+    warmups: int,
+    samples: int,
+    out_dir: Path,
+    tag: str,
+    timeout: float,
+    deadline_monotonic: float | None,
+) -> ArmResult:
+    """One arm of one Cairo round: warmups + samples cold CLI processes.
+
+    The focused Cairo CLIs prove exactly one statement per process, so the
+    harness owns the warmup/sample loop and one sample is one cold process. The
+    mandatory phase profile is recorded on the FIRST discarded warmup so scored
+    samples run uninstrumented.
+    """
+    if warmups < 1:
+        raise RunError(
+            f"{workload.workload_id}: Cairo measurement needs at least one warmup; "
+            "the mandatory phase profile is recorded on a discarded warmup"
+        )
+    if samples < 1:
+        raise RunError(f"{workload.workload_id}: Cairo measurement needs a sample")
+    binary = arm_root / group.binary
+    args = _format_workload_args(arm_root, group, workload, warmups, samples)
+    run_kwargs = (
+        {"deadline_monotonic": deadline_monotonic}
+        if deadline_monotonic is not None else {}
+    )
+    stage_seconds: dict | None = None
+    measured: list[dict] = []
+    reports: list[dict] = []
+    for index in range(warmups + samples):
+        scored = index >= warmups
+        proof_path = (
+            out_dir / f"{workload.workload_id}.{tag}.i{index}.proof"
+        ).resolve()
+        proof_path.unlink(missing_ok=True)
+        extra = f" --proof {shlex.quote(str(proof_path))}"
+        stage_path = None
+        if index == warmups - 1:
+            stage_path = (
+                out_dir / f"{workload.workload_id}.{tag}.stages.json"
+            ).resolve()
+            stage_path.unlink(missing_ok=True)
+            extra += f" --stage-profile-out {shlex.quote(str(stage_path))}"
+        started = time.monotonic()
+        stdout = _run(
+            f"{binary} {args}{extra}", arm_root, timeout=float(timeout), **run_kwargs,
+        )
+        cold_seconds = time.monotonic() - started
+        try:
+            report = _load_json_object(stdout, "Cairo product report")
+        except (json.JSONDecodeError, ValueError) as exc:
+            raise RunError(
+                f"{workload.workload_id}: Cairo product emitted non-JSON output "
+                f"(first 200 chars: {stdout[:200]!r})"
+            ) from exc
+        parsed = _parse_cairo_report(report, group, workload, proof_path)
+        if stage_path is not None:
+            stage_seconds = _parse_cairo_stage_profile(
+                _load_json_object(
+                    stage_path.read_text(encoding="utf-8"), "Cairo stage profile",
+                ),
+                workload,
+            )
+        if scored:
+            parsed["cold_process_seconds"] = cold_seconds
+            measured.append(parsed)
+            reports.append(report)
+        else:
+            proof_path.unlink(missing_ok=True)
+    if stage_seconds is None:
+        raise RunError(
+            f"{workload.workload_id}: no Cairo phase profile was recorded"
+        )
+
+    for field_name in (
+        "profile", "input_sha256", "proof_format", "proof_bytes", "proof_sha256",
+        "stwo_cairo_revision", "stwo_revision", "product_identity_sha256",
+        "protocol_manifest_sha256",
+    ):
+        values = {sample[field_name] for sample in measured}
+        if len(values) != 1:
+            raise RunError(
+                f"{workload.workload_id}: {field_name} changed between measured "
+                f"Cairo samples ({sorted(values)})"
+            )
+    phase_seconds = {
+        "execute": statistics.mean(s["execute_seconds"] for s in measured),
+        "witness": stage_seconds["witness"],
+        "commit": stage_seconds["commit"],
+        "interaction": stage_seconds["interaction"],
+        "composition": stage_seconds["composition"],
+        "fri": stage_seconds["fri"],
+        # Documented gap: proof encode/write/hash is outside the recorder.
+        "serialize": None,
+        "verify": statistics.mean(s["verify_seconds"] for s in measured),
+    }
+    available = {
+        "product_identity_sha256": measured[0]["product_identity_sha256"],
+        "protocol_manifest_sha256": measured[0]["protocol_manifest_sha256"],
+        "profile": measured[0]["profile"],
+        "input_sha256": measured[0]["input_sha256"],
+        "proof_format": measured[0]["proof_format"],
+        "proof_bytes": measured[0]["proof_bytes"],
+        "proof_sha256": measured[0]["proof_sha256"],
+        "stwo_cairo_revision": measured[0]["stwo_cairo_revision"],
+        "stwo_revision": measured[0]["stwo_revision"],
+        "metal_dispatches": measured[0]["metal_dispatches"],
+        "cpu_fallbacks": measured[0]["cpu_fallbacks"],
+        "mean_execute_seconds": phase_seconds["execute"],
+        "mean_prove_seconds": statistics.mean(s["prove_seconds"] for s in measured),
+        "mean_verify_seconds": phase_seconds["verify"],
+        "mean_cold_process_seconds": statistics.mean(
+            s["cold_process_seconds"] for s in measured
+        ),
+        "phase_seconds": phase_seconds,
+    }
+    required_fields = group.mechanism_telemetry.get("required_fields", [])
+    if group.mechanism_telemetry.get("fail_closed") is not True or not required_fields:
+        raise RunError(
+            f"{workload.workload_id}: group {group.group_id} declares no "
+            "fail-closed Cairo mechanism telemetry"
+        )
+    missing = sorted(set(required_fields) - set(available))
+    if missing:
+        raise RunError(
+            f"{workload.workload_id}: Cairo mechanism telemetry cannot supply "
+            + ", ".join(missing)
+        )
+    mechanism = {name: available[name] for name in required_fields}
+
+    out_path = out_dir / f"{workload.workload_id}.{tag}.json"
+    out_path.write_text(json.dumps({
+        "schema": group.report_schema,
+        "workload": workload.workload_id,
+        "group": group.group_id,
+        "board": group.board,
+        "warmups": warmups,
+        "samples": samples,
+        "measurement_boundary": "cold_process",
+        "phase_profile_source": {
+            "invocation_index": warmups - 1,
+            "scored": False,
+            "note": "The stage profile is recorded on the last discarded warmup "
+                    "so scored samples run uninstrumented; phase seconds are "
+                    "diagnostic telemetry and are never scored (TRACKS §3.2).",
+        },
+        "phase_seconds": phase_seconds,
+        "mechanism": mechanism,
+        "measured_samples": measured,
+        "product_reports": reports,
+    }, indent=1))
+    return ArmResult(
+        # prove_ms is diagnostic telemetry on a v3 track (TRACKS §3.1).
+        prove_ms=statistics.median(s["prove_seconds"] for s in measured) * 1000.0,
+        proof_verified=len(measured),
+        byte_identical=len({s["proof_sha256"] for s in measured}) == 1,
+        peak_rss_mib=None,
+        report_path=str(out_path),
+        proof_digest=measured[0]["proof_sha256"],
+        proof_bytes=measured[0]["proof_bytes"],
+        # The scored boundary: before process creation -> after exit, with
+        # independent in-process verification inside it (TRACKS §3.1).
+        request_ms=statistics.median(
+            s["cold_process_seconds"] for s in measured
+        ) * 1000.0,
+        mechanism=mechanism,
+        resources_complete=False,
+    )
+
+
+@dataclass(frozen=True)
+class SequentialStopPolicy:
+    """The pre-registered group-sequential spending rule (TRACKS §3.5).
+
+    Constant (Pocock-style) boundary: the family-wise error ``alpha`` is spent
+    evenly over the ``K`` planned looks, so look ``k`` decides on a bootstrap CI
+    at level ``1 - alpha/K``. Two consequences make it honest:
+
+    * the boundary is strictly stricter than the fixed-sample gate
+      (``alpha/K < alpha``), so a decisive clear at any look would also have
+      cleared the full-power gate — early stopping can never admit a run that
+      the fixed design would have rejected;
+    * the looks, their count, and alpha come from the manifest, never from the
+      run, so the design is pre-registered rather than chosen after seeing data.
+    """
+
+    rule: str
+    alpha: float
+    stop_on_decisive_miss: bool
+
+    def adjusted_level(self, looks: int) -> float:
+        if looks < 1:
+            raise RunError("a sequential design needs at least one planned look")
+        return 1.0 - (self.alpha / float(looks))
+
+
+def sequential_stop_policy(
+    policy: dict, *, armed: bool | None = None,
+) -> SequentialStopPolicy | None:
+    """Resolve the spending rule; ``None`` keeps pre-ladder round behavior.
+
+    ``armed=True`` is how a tier that never ranks (T1) turns the rule on even
+    when the manifest leaves it off for scored runs; it still refuses to invent
+    parameters when the manifest has not pre-registered them.
+    """
+    ladder = policy.get("confirmation_ladder")
+    spec = ladder.get("sequential_stop") if isinstance(ladder, dict) else None
+    if not isinstance(spec, dict):
+        if armed:
+            raise RunError(
+                "sequential early stopping requires a pre-registered "
+                "gates_policy.confirmation_ladder.sequential_stop block"
+            )
+        return None
+    enabled = bool(spec.get("enabled")) if armed is None else bool(armed)
+    if not enabled:
+        return None
+    if spec.get("rule") != SEQUENTIAL_STOP_RULE:
+        raise RunError(
+            f"unsupported sequential stop rule {spec.get('rule')!r}: only "
+            f"{SEQUENTIAL_STOP_RULE} is pre-registered"
+        )
+    alpha = spec.get("alpha")
+    if isinstance(alpha, bool) or not isinstance(alpha, (int, float)):
+        raise RunError("sequential stop alpha must be a number")
+    alpha = float(alpha)
+    if not 0.0 < alpha <= 0.5:
+        raise RunError("sequential stop alpha must be in (0, 0.5]")
+    return SequentialStopPolicy(
+        rule=SEQUENTIAL_STOP_RULE,
+        alpha=alpha,
+        stop_on_decisive_miss=bool(spec.get("stop_on_decisive_miss", True)),
+    )
+
+
+def _dig(report: object, path: tuple[str, ...]) -> object:
+    node: object = report
+    for key in path:
+        if not isinstance(node, dict) or key not in node:
+            return None
+        node = node[key]
+    return node
+
+
+def _finite_or_none(value: object) -> float | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    number = float(value)
+    return number if math.isfinite(number) else None
+
+
+def _flatten_stage_nodes(nodes: object, prefix: str, out: dict[str, float]) -> None:
+    if not isinstance(nodes, list):
+        return
+    for node in nodes:
+        if not isinstance(node, dict):
+            continue
+        node_id = node.get("id")
+        if not isinstance(node_id, str) or not node_id:
+            continue
+        name = f"{prefix}{node_id}"
+        seconds = _finite_or_none(node.get("seconds"))
+        if seconds is not None:
+            out[f"stage:{name}"] = seconds
+        _flatten_stage_nodes(node.get("children"), f"{name}.", out)
+
+
+def report_phases(report: dict, group: WorkloadGroup) -> dict[str, float]:
+    """Named phase seconds from whatever the group's report schema provides.
+
+    Combines the schema's declared §3.2 cutpoints with any stage-profile tree
+    the report carries (``--stage-profile-out`` shape), flattened to dotted
+    ``stage:<parent>.<child>`` names. Never scored — phase telemetry gates
+    scheduling and G3 only.
+    """
+    phases: dict[str, float] = {}
+    for name, path in PHASE_SECONDS_FIELDS.get(group.report_schema, {}).items():
+        seconds = _finite_or_none(_dig(report, path))
+        if seconds is not None:
+            phases[name] = seconds
+    timing = report.get("timing")
+    if isinstance(timing, dict):
+        profiles = timing.get("stage_profiles")
+        if isinstance(profiles, list):
+            for profile in profiles:
+                if isinstance(profile, dict):
+                    _flatten_stage_nodes(profile.get("stages"), "", phases)
+    single = report.get("stage_profile")
+    if isinstance(single, dict):
+        _flatten_stage_nodes(single.get("stages"), "", phases)
+    _flatten_stage_nodes(report.get("stages"), "", phases)
+    return phases
+
+
+def resolve_phase(phases: dict[str, float], phase: str) -> str:
+    """Map a submission's claimed phase name onto a measured phase key."""
+    if phase in phases:
+        return phase
+    stage_key = f"stage:{phase}"
+    if stage_key in phases:
+        return stage_key
+    suffixes = sorted(
+        key for key in phases
+        if key.split(":")[-1].split(".")[-1] == phase
+    )
+    if len(suffixes) == 1:
+        return suffixes[0]
+    if len(suffixes) > 1:
+        raise RunError(
+            f"claimed phase {phase!r} is ambiguous across measured phases: "
+            + ", ".join(suffixes[:6])
+        )
+    raise RunError(
+        f"claimed phase {phase!r} is not reported by this group; measured "
+        "phases: " + (", ".join(sorted(phases)[:12]) or "none")
+    )
+
+
+def _stage_profile_sidecar(report_path: str | Path) -> Path:
+    """The stage-profile document written beside a bench envelope."""
+    path = Path(report_path)
+    return path.with_suffix(STAGE_PROFILE_SIDECAR_SUFFIX)
+
+
+def _pow_ms(
+    report: dict, group: WorkloadGroup, report_path: str | Path,
+) -> float | None:
+    """Measured proof-of-work milliseconds, or None when the schema has none."""
+    source = POW_PHASE_SECONDS_FIELDS.get(group.report_schema)
+    if source is None:
+        return None
+    if source.kind == "report_field":
+        seconds = _finite_or_none(_dig(report, source.field_path))
+    elif source.kind == "stage_profile_sidecar":
+        sidecar = _stage_profile_sidecar(report_path)
+        if not sidecar.is_file():
+            raise RunError(
+                f"group {group.group_id}: the proof-of-work stage profile is "
+                f"missing at {sidecar}; the PoW-excluded boundary refuses to "
+                "guess a duration that was not recorded"
+            )
+        try:
+            profile = _load_json_object(
+                sidecar.read_text(encoding="utf-8"), "stage profile",
+            )
+        except (OSError, json.JSONDecodeError, ValueError) as exc:
+            raise RunError(
+                f"group {group.group_id}: unreadable proof-of-work stage "
+                f"profile at {sidecar}: {exc}"
+            ) from exc
+        stages: dict[str, float] = {}
+        _flatten_stage_nodes(profile.get("stages"), "", stages)
+        missing = [
+            stage_id for stage_id in source.stage_ids
+            if f"stage:{stage_id}" not in stages
+        ]
+        if missing:
+            raise RunError(
+                f"group {group.group_id}: the stage profile does not record "
+                + ", ".join(missing)
+                + "; the PoW-excluded boundary cannot subtract an unrecorded stage"
+            )
+        seconds = sum(stages[f"stage:{stage_id}"] for stage_id in source.stage_ids)
+    else:  # The registry is code; an unknown kind is a programming error.
+        raise RunError(
+            f"group {group.group_id}: unsupported proof-of-work source kind "
+            f"{source.kind!r}"
+        )
+    if seconds is None or seconds < 0.0:
+        raise RunError(
+            f"group {group.group_id}: report declares a proof-of-work cutpoint "
+            "but did not report a finite non-negative value"
+        )
+    return seconds * 1000.0
+
+
+def require_pow_boundary(
+    group: WorkloadGroup, tier: str | None = None,
+) -> PowBoundarySource:
+    """Resolve a group's PoW source, failing closed on both honesty rules.
+
+    Rule one: a schema with no measured PoW cutpoint cannot exclude one.
+    Rule two: a CROSS-INVOCATION source is an estimate, so only the tier that
+    never ranks may pair on it.
+    """
+    source = POW_PHASE_SECONDS_FIELDS.get(group.report_schema)
+    if source is None:
+        raise RunError(
+            f"group {group.group_id}: report schema {group.report_schema!r} "
+            "exposes no proof-of-work cutpoint, so the PoW-excluded fast "
+            "boundary cannot be measured. The product must report the PoW "
+            "phase (§3.2) before --fast-boundary can subtract it; the harness "
+            "never subtracts an unmeasured cost."
+        )
+    if source.cross_invocation and tier != CROSS_INVOCATION_POW_TIER:
+        raise RunError(
+            f"group {group.group_id}: its proof-of-work seconds are measured on "
+            f"the {source.invocation} rather than the scored sample, so "
+            "subtracting them yields a cross-invocation ESTIMATE. That is "
+            f"admissible only at {CROSS_INVOCATION_POW_TIER}, which never ranks "
+            f"(TRACKS §3.5); this call declared tier={tier!r}."
+        )
+    return source
+
+
 def paired_rounds(
     a_root: Path,
     b_root: Path,
@@ -1044,8 +2064,15 @@ def paired_rounds(
     round_budget: int | None = None,
     minimum_rounds_override: int | None = None,
     deadline_monotonic: float | None = None,
+    sequential_stop: bool | None = None,
+    fast_boundary: bool = False,
+    tier: str | None = None,
 ) -> WorkloadScore:
-    """ABBA round pairs until the CI half-width is under theta/2 or a cap hits."""
+    """ABBA round pairs until the CI half-width is under theta/2 or a cap hits.
+
+    ``tier`` is declared by ladder callers only; it gates the cross-invocation
+    PoW estimate to the tier that never ranks (see ``require_pow_boundary``).
+    """
     warmups = int(policy["warmups"])
     samples = int(policy["samples_per_round"])
     min_rounds = (
@@ -1072,12 +2099,23 @@ def paired_rounds(
     proof_sizes_b: list[int] = []
     request_ratios: list[float] = []
     requests_b: list[float] = []
+    fast_ratios: list[float] = []
+    fast_requests_b: list[float] = []
     cross_digest: str | None = None
     cross_proof_bytes: int | None = None
     mechanism_reference: dict | None = None
     mechanism_verified: bool | None = None
     resources_complete: bool | None = None
     group = manifest.group(workload.group_id)
+    stop_policy = sequential_stop_policy(policy, armed=sequential_stop)
+    stop_evidence: dict | None = None
+    boundary = FULL_BOUNDARY
+    pow_source: PowBoundarySource | None = None
+    pow_ms_a: list[float] = []
+    pow_ms_b: list[float] = []
+    if fast_boundary:
+        pow_source = require_pow_boundary(group, tier)
+        boundary = pow_source.boundary_label
 
     round_no = 0
     while round_no < max_rounds:
@@ -1143,17 +2181,24 @@ def paired_rounds(
             raise RunError(
                 f"{workload.workload_id}: proof byte length changed between rounds"
             )
-        if group.report_schema == "riscv_proof_v2":
+        stable_binding = STABLE_MECHANISM_FIELDS_BY_SCHEMA.get(group.report_schema)
+        if stable_binding is not None:
+            label, stable_fields = stable_binding
             if a.mechanism is None or b.mechanism is None:
                 raise RunError(
-                    f"{workload.workload_id}: RISC-V mechanism telemetry is absent"
+                    f"{workload.workload_id}: {label} mechanism telemetry is absent"
                 )
-            stable_a = {
-                key: a.mechanism.get(key) for key in RISCV_STABLE_MECHANISM_FIELDS
-            }
-            stable_b = {
-                key: b.mechanism.get(key) for key in RISCV_STABLE_MECHANISM_FIELDS
-            }
+            missing = sorted(
+                key for key in stable_fields
+                if key not in a.mechanism or key not in b.mechanism
+            )
+            if missing:
+                raise RunError(
+                    f"{workload.workload_id}: {label} mechanism telemetry omits "
+                    "stable field(s): " + ", ".join(missing)
+                )
+            stable_a = {key: a.mechanism.get(key) for key in stable_fields}
+            stable_b = {key: b.mechanism.get(key) for key in stable_fields}
             if stable_a != stable_b:
                 raise RunError(
                     f"{workload.workload_id}: semantic mechanism telemetry differs "
@@ -1166,6 +2211,7 @@ def paired_rounds(
                 )
             mechanism_reference = stable_b
             mechanism_verified = True
+        if group.report_schema == "riscv_proof_v2":
             if a.resources_complete is not b.resources_complete:
                 raise RunError(
                     f"{workload.workload_id}: RISC-V resource availability differs "
@@ -1178,9 +2224,24 @@ def paired_rounds(
         if a.request_ms and b.request_ms:
             request_ratios.append(b.request_ms / a.request_ms)
             requests_b.append(b.request_ms)
-        ratios.append(b.prove_ms / a.prove_ms)
-        a_meds.append(a.prove_ms)
-        b_meds.append(b.prove_ms)
+        if fast_boundary:
+            # BOTH numbers are reported: the full verified-request boundary
+            # above, and the PoW-excluded one that T0/T1 actually pair on.
+            fast_a = _fast_boundary_ms(a, workload)
+            fast_b_ms = _fast_boundary_ms(b, workload)
+            fast_ratios.append(fast_b_ms / fast_a)
+            fast_requests_b.append(fast_b_ms)
+            ratios.append(fast_b_ms / fast_a)
+            a_meds.append(fast_a)
+            b_meds.append(fast_b_ms)
+            # The subtracted quantity is itself evidence: record it per arm so
+            # a reader can see what was removed, not just the remainder.
+            pow_ms_a.append(float(a.pow_ms or 0.0))
+            pow_ms_b.append(float(b.pow_ms or 0.0))
+        else:
+            ratios.append(b.prove_ms / a.prove_ms)
+            a_meds.append(a.prove_ms)
+            b_meds.append(b.prove_ms)
         reports.extend([a.report_path, b.report_path])
         for dimension, a_value, b_value, a_values, b_values in (
             ("peak_rss_mib", a.peak_rss_mib, b.peak_rss_mib, rss_a, rss_b),
@@ -1201,6 +2262,13 @@ def paired_rounds(
             ci = stats.bootstrap_ci(ratios, seed=_seed(workload.workload_id, 0))
             if (ci[1] - ci[0]) / 2.0 <= stop_theta / 2.0:
                 break
+            if stop_policy is not None:
+                stop_evidence = _sequential_stop_look(
+                    stop_policy, ratios, workload, stop_theta,
+                    round_no, min_rounds, max_rounds,
+                )
+                if stop_evidence["decision"] != "continue":
+                    break
             if elapsed > cap:
                 break
         elif elapsed > cap and round_no >= 3:
@@ -1242,6 +2310,7 @@ def paired_rounds(
         ("peak_rss_mib", rss_b),
         ("energy_j", energy_b),
         ("proof_bytes", proof_sizes_b),
+        ("fast_request_ms", fast_requests_b),
     ):
         if values:
             ordered_values = sorted(float(value) for value in values)
@@ -1249,6 +2318,16 @@ def paired_rounds(
     request_ratio = (
         sorted(request_ratios)[len(request_ratios) // 2] if request_ratios else None
     )
+    fast_request_ratio = (
+        sorted(fast_ratios)[len(fast_ratios) // 2] if fast_ratios else None
+    )
+    if stop_policy is not None and (
+        stop_evidence is None or stop_evidence["decision"] == "continue"
+    ):
+        stop_evidence = _sequential_stop_look(
+            stop_policy, ratios, workload, stop_theta,
+            len(ratios), min_rounds, max_rounds, exhausted=True,
+        )
     return WorkloadScore(
         workload=workload,
         ratios=ratios,
@@ -1269,7 +2348,117 @@ def paired_rounds(
         proof_bytes=cross_proof_bytes or 0,
         measurement_seconds=elapsed,
         resources_complete=resources_complete,
+        boundary=boundary,
+        sequential_stop=stop_evidence,
+        fast_request_ratio=fast_request_ratio,
+        boundary_evidence=_boundary_evidence(
+            pow_source, tier, pow_ms_a, pow_ms_b,
+            group.report_schema, fast_ratios, request_ratios,
+        ),
     )
+
+
+def _fast_boundary_ms(arm: ArmResult, workload: Workload) -> float:
+    """Verified-request milliseconds minus the MEASURED proof-of-work phase."""
+    if arm.request_ms is None or arm.pow_ms is None:
+        raise RunError(
+            f"{workload.workload_id}: the PoW-excluded boundary needs both a "
+            "verified-request time and a measured proof-of-work phase"
+        )
+    remainder = arm.request_ms - arm.pow_ms
+    if not math.isfinite(remainder) or remainder <= 0.0:
+        raise RunError(
+            f"{workload.workload_id}: measured proof-of-work time is not "
+            "smaller than the verified request time"
+        )
+    return remainder
+
+
+def _median(values: list[float]) -> float | None:
+    return sorted(values)[len(values) // 2] if values else None
+
+
+def _boundary_evidence(
+    pow_source: PowBoundarySource | None,
+    tier: str | None,
+    pow_ms_a: list[float],
+    pow_ms_b: list[float],
+    report_schema: str,
+    fast_ratios: list[float],
+    request_ratios: list[float],
+) -> dict | None:
+    """Label what the fast boundary removed, and how well it knew it.
+
+    An estimate that reads like a measurement is the failure mode this block
+    exists to prevent, so the label is spelled out in words next to the numbers.
+    """
+    if pow_source is None:
+        return None
+    estimate = pow_source.cross_invocation
+    label = (
+        "cross-invocation estimate: the subtracted proof-of-work seconds were "
+        f"measured on the {pow_source.invocation} of the same arm in the same "
+        "round, not on the scored sample. pow 26 is ~constant work, so this is "
+        "sound for a paired delta on a tier that never ranks — it is not a "
+        "measurement of the scored invocation and must never be reported as one."
+        if estimate else
+        "measurement: the subtracted proof-of-work seconds were measured on the "
+        "scored sample itself."
+    )
+    return {
+        "boundary": pow_source.boundary_label,
+        "full_boundary": "verified_request_ms",
+        "estimate": estimate,
+        "label": label,
+        "tier": tier,
+        "pow_source": pow_source.describe(report_schema),
+        "pow_ms": {
+            "predecessor_median": _median(pow_ms_a),
+            "candidate_median": _median(pow_ms_b),
+        },
+        "rounds": len(fast_ratios),
+        "full_request_rounds": len(request_ratios),
+    }
+
+
+def _sequential_stop_look(
+    stop_policy: SequentialStopPolicy,
+    ratios: list[float],
+    workload: Workload,
+    stop_theta: float,
+    round_no: int,
+    min_rounds: int,
+    max_rounds: int,
+    *,
+    exhausted: bool = False,
+) -> dict:
+    """One pre-registered look at the theta bar; deterministic by construction."""
+    looks = max(max_rounds - min_rounds + 1, 1)
+    level = stop_policy.adjusted_level(looks)
+    adjusted = stats.bootstrap_ci(
+        ratios, level=level, seed=_seed(workload.workload_id, 0),
+    )
+    bar = 1.0 - stop_theta
+    if adjusted[1] < bar:
+        decision = "decisive_clear"
+    elif stop_policy.stop_on_decisive_miss and adjusted[0] > bar:
+        decision = "decisive_miss"
+    else:
+        decision = "budget_exhausted" if exhausted else "continue"
+    return {
+        "rule": stop_policy.rule,
+        "alpha": stop_policy.alpha,
+        "planned_looks": looks,
+        "look": max(round_no - min_rounds + 1, 1),
+        "min_rounds": min_rounds,
+        "max_rounds": max_rounds,
+        "rounds": len(ratios),
+        "adjusted_ci_level": level,
+        "adjusted_ci": [adjusted[0], adjusted[1]],
+        "theta_bar": bar,
+        "decision": decision,
+        "stop_on_decisive_miss": stop_policy.stop_on_decisive_miss,
+    }
 
 
 def _seed(workload_id: str, round_no: int) -> int:
@@ -1527,6 +2716,425 @@ def _rounded_candidate_geomean(
     return round(stats.geometric_mean([float(value) for value in values]), 6)
 
 
+def _current_era(repo_root: Path, era: int | None) -> int:
+    if era is not None:
+        return int(era)
+    try:
+        return int(ledger.current_epoch(repo_root)["epoch"])
+    except (ledger.LedgerError, KeyError, OSError, ValueError) as exc:
+        raise RunError(f"cannot resolve the current era: {exc}") from exc
+
+
+def proxy_selection(
+    manifest: Manifest, board: str, workload_class: str, era: int,
+) -> tuple[list[Workload], dict | None, dict, list[str]]:
+    """Resolve the class's proxy fixture and its era validity state.
+
+    Returns ``(workloads, fixture, validity, markers)``. A class without a
+    declared proxy falls back to its real workloads and says so loudly: the
+    ladder degrades to "slow but honest", never to "fast but unlabelled".
+    """
+    group = manifest.group_for_board(board)
+    fixture = manifest.proxy_fixture(workload_class)
+    validity = manifest.proxy_validity_state(board, workload_class, era)
+    markers: list[str] = []
+    if fixture is None:
+        markers.append(
+            f"no proxy fixture declared for class {workload_class}; iterating "
+            "on the full class basket"
+        )
+        return (
+            _board_workloads(manifest, board, workload_class),
+            None,
+            validity,
+            markers,
+        )
+    if not validity["validated"]:
+        markers.append("proxy unvalidated: " + str(validity["reason"]))
+    workload = Workload(
+        fixture["proxy_id"],
+        workload_class,
+        fixture["args"],
+        fixture["native_unit"],
+        group.group_id,
+    )
+    return [workload], fixture, validity, markers
+
+
+def phase_prefilter(
+    predecessor_root: Path,
+    repo_root: Path,
+    manifest: Manifest,
+    workload_class: str,
+    out_dir: Path,
+    *,
+    board: str,
+    phase: str,
+    era: int | None = None,
+) -> dict:
+    """T0: one stage-profiled sample per arm; the claimed phase must move.
+
+    A claimed FRI win that only moves witness time dies here in seconds
+    instead of surviving to a 45-minute T2 run (TRACKS §3.5). T0 never ranks.
+    """
+    era = _current_era(repo_root, era)
+    ladder = manifest.confirmation_ladder
+    tier = (ladder.get("tiers") or {}).get("T0")
+    if not isinstance(tier, dict):
+        raise RunError(
+            "T0 requires a pre-registered gates_policy.confirmation_ladder.tiers.T0"
+        )
+    warmups = int(tier["warmups"])
+    samples = int(tier["samples"])
+    min_move = float(tier["min_phase_move"])
+    workloads, fixture, validity, markers = proxy_selection(
+        manifest, board, workload_class, era,
+    )
+    if not workloads:
+        raise RunError(
+            f"no enabled workloads registered for board {board}, class {workload_class}"
+        )
+    workload = workloads[0]
+    group = manifest.group(workload.group_id)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    build_arm(predecessor_root, manifest, groups=[group])
+    build_arm(repo_root, manifest, groups=[group])
+    started = time.monotonic()
+    arms: dict[str, ArmResult] = {}
+    reports: dict[str, dict] = {}
+    for arm, root in (("a", predecessor_root), ("b", repo_root)):
+        arms[arm] = bench_once(
+            root, manifest, workload, warmups, samples, out_dir, f"t0{arm}",
+        )
+        reports[arm] = _load_json_object(
+            Path(arms[arm].report_path).read_text(encoding="utf-8"),
+            "T0 bench report",
+        )
+    elapsed = time.monotonic() - started
+    a, b = arms["a"], arms["b"]
+    # Correctness smoke: the cross-arm proof identity that G1 demands, checked
+    # before any timing claim is believed.
+    smoke_ok = bool(a.proof_digest and b.proof_digest and a.proof_digest == b.proof_digest)
+    phases_a = report_phases(reports["a"], group)
+    phases_b = report_phases(reports["b"], group)
+    if not phases_a or not phases_b:
+        raise RunError(
+            f"group {group.group_id}: report schema {group.report_schema!r} "
+            "exposes no phase cutpoints (§3.2); T0 phase attribution is "
+            "impossible for this group"
+        )
+    key = resolve_phase(phases_a, phase)
+    if key not in phases_b:
+        raise RunError(f"candidate arm does not report the claimed phase {phase!r}")
+    before, after = phases_a[key], phases_b[key]
+    if before <= 0.0:
+        raise RunError(f"predecessor phase {key} is not a positive duration")
+    relative_move = (before - after) / before
+    moved = relative_move >= min_move
+    target = manifest.tier_cost_target_seconds("T0")
+    return {
+        "schema": LADDER_T0_SCHEMA,
+        "tier": "T0",
+        "ranks": False,
+        "board": board,
+        "workload_class": workload_class,
+        "workload": workload.workload_id,
+        "era": era,
+        "claimed_phase": phase,
+        "resolved_phase": key,
+        "phase_seconds": {"predecessor": before, "candidate": after},
+        "relative_move": relative_move,
+        "min_phase_move": min_move,
+        "phase_moved": moved,
+        "correctness_smoke": {
+            "pass": smoke_ok,
+            "predecessor_proof_digest": a.proof_digest,
+            "candidate_proof_digest": b.proof_digest,
+        },
+        "pass": bool(moved and smoke_ok),
+        "measured_phases": {
+            "predecessor": phases_a,
+            "candidate": phases_b,
+        },
+        "proxy": fixture,
+        "proxy_validity": validity,
+        "markers": markers,
+        "measurement_seconds": elapsed,
+        "cost_target_seconds": target,
+        "within_cost_target": target is None or elapsed <= float(target),
+        "reports": [a.report_path, b.report_path],
+        "note": (
+            "T0 gates scheduling only: it never ranks and never writes a "
+            "scored row (TRACKS §3.5)."
+        ),
+    }
+
+
+def iterate_estimate(
+    repo_root: Path,
+    predecessor_root: Path,
+    manifest: Manifest,
+    workload_class: str,
+    out_dir: Path,
+    *,
+    board: str,
+    fast_boundary: bool = False,
+    era: int | None = None,
+    round_budget: int | None = None,
+) -> dict:
+    """T1: paired ABBA on proxy fixtures with sequential early stopping.
+
+    The agent's inner loop. It produces an ESTIMATE document, never a verdict:
+    T1 output can never be promoted, submitted, or ranked (TRACKS §3.5b's
+    local-iterate vs ranked separation).
+    """
+    era = _current_era(repo_root, era)
+    workloads, fixture, validity, markers = proxy_selection(
+        manifest, board, workload_class, era,
+    )
+    if not workloads:
+        raise RunError(
+            f"no enabled workloads registered for board {board}, class {workload_class}"
+        )
+    group_ids = {workload.group_id for workload in workloads}
+    if len(group_ids) != 1:
+        raise RunError(f"board {board} selected workloads from multiple groups")
+    group = manifest.group(next(iter(group_ids)))
+    policy = manifest.gates_for_workload(group.group_id, workload_class)
+    if fast_boundary:
+        # Resolve before building anything: a group that cannot honestly
+        # exclude PoW should cost the agent zero seconds to find out.
+        require_pow_boundary(group, CROSS_INVOCATION_POW_TIER)
+    dispersion = ledger.aa_dispersion(repo_root, board, workload_class)
+    theta = stats.theta(
+        dispersion,
+        float(policy["theta_floor"]),
+        float(policy["dispersion_multiplier"]),
+    )
+    out_dir.mkdir(parents=True, exist_ok=True)
+    build_arm(predecessor_root, manifest, groups=[group])
+    build_arm(repo_root, manifest, groups=[group])
+    started = time.monotonic()
+    scores = [
+        paired_rounds(
+            predecessor_root, repo_root, manifest, workload, policy, out_dir,
+            stop_theta=theta,
+            round_budget=round_budget,
+            sequential_stop=True,
+            fast_boundary=fast_boundary,
+            tier=CROSS_INVOCATION_POW_TIER,
+        )
+        for workload in workloads
+    ]
+    elapsed = time.monotonic() - started
+    portfolio = portfolio_summary(scores, float(policy["ci_level"]))
+    target = manifest.tier_cost_target_seconds("T1")
+    return {
+        "schema": LADDER_T1_SCHEMA,
+        "tier": "T1",
+        "ranks": False,
+        "board": board,
+        "workload_class": workload_class,
+        "era": era,
+        # The label comes from the scores, not from the request: a fast run on
+        # a cross-invocation source says "estimate" in the boundary name itself.
+        "boundary": scores[0].boundary,
+        "boundary_evidence": scores[0].boundary_evidence,
+        "theta": theta,
+        "aa_dispersion": dispersion,
+        "r_geomean": portfolio["r"],
+        "ci": [portfolio["ci"][0], portfolio["ci"][1]],
+        "ci_level": portfolio["ci_level"],
+        "per_workload": {
+            score.workload.workload_id: {
+                "r": score.r,
+                "ci": [score.ci[0], score.ci[1]],
+                "rounds": len(score.ratios),
+                "boundary": score.boundary,
+                "a_median_ms": score.a_median_ms,
+                "b_median_ms": score.b_median_ms,
+                "request_ratio": score.request_ratio,
+                "fast_request_ratio": score.fast_request_ratio,
+                "boundary_evidence": score.boundary_evidence,
+                "sequential_stop": score.sequential_stop,
+                "measurement_seconds": score.measurement_seconds,
+            }
+            for score in scores
+        },
+        "proxy": fixture,
+        "proxy_validity": validity,
+        "markers": markers,
+        "measurement_seconds": elapsed,
+        "cost_target_seconds": target,
+        "within_cost_target": target is None or elapsed <= float(target),
+        "note": (
+            "T1 is a CI-bearing LOCAL estimate on proxy fixtures. It never "
+            "ranks; ranked rows come only from the judge path (TRACKS §3.5)."
+        ),
+    }
+
+
+def _proxy_observation_ln_ratio(document: dict, label: str) -> float:
+    """Extract a measured ln-ratio from a T1 estimate or a claimed/judged verdict."""
+    if document.get("schema") == LADDER_T1_SCHEMA:
+        ratio = document.get("r_geomean")
+    elif document.get("schema_version") == 1 and "score" in document:
+        score = document.get("score")
+        ratio = score.get("R_geomean") if isinstance(score, dict) else None
+    else:
+        raise RunError(
+            f"{label}: not a T1 estimate or a stwo-perf verdict; refusing to "
+            "read a ratio from an unknown document"
+        )
+    if (
+        isinstance(ratio, bool)
+        or not isinstance(ratio, (int, float))
+        or not math.isfinite(float(ratio))
+        or float(ratio) <= 0.0
+    ):
+        raise RunError(f"{label}: measured ratio is missing or not positive")
+    return math.log(float(ratio))
+
+
+def _proxy_document_board_class(document: dict) -> tuple[str | None, str | None]:
+    if document.get("schema") == LADDER_T1_SCHEMA:
+        return document.get("board"), document.get("workload_class")
+    objective = document.get("declared_objective")
+    if isinstance(objective, dict):
+        return objective.get("board"), objective.get("workload_class")
+    return None, None
+
+
+def _host_chip() -> str:
+    if platform.system() == "Darwin":
+        try:
+            chip = subprocess.run(
+                ["sysctl", "-n", "machdep.cpu.brand_string"],
+                capture_output=True, text=True, timeout=30,
+            )
+            if chip.returncode == 0 and chip.stdout.strip():
+                return chip.stdout.strip()
+        except (OSError, subprocess.SubprocessError):
+            pass
+    return platform.processor() or platform.machine() or "unknown"
+
+
+def build_proxy_validity_receipt(
+    repo_root: Path,
+    manifest: Manifest,
+    *,
+    board: str,
+    workload_class: str,
+    era: int,
+    observations: list[tuple[Path, Path]],
+    measured_at_utc: str | None = None,
+) -> dict:
+    """Assemble a ``stwo_perf_proxy_validity_receipt_v1`` from measured runs.
+
+    Every number in the receipt is read from measurement documents that already
+    exist on disk: this function measures nothing and invents nothing. It runs
+    on the designated judge host, once per era, per (board, class).
+    """
+    fixture = manifest.proxy_fixture(workload_class)
+    if fixture is None:
+        raise RunError(
+            f"class {workload_class} declares no proxy_fixture; there is "
+            "nothing to certify"
+        )
+    policy = manifest.confirmation_ladder.get("proxy_validity")
+    if not isinstance(policy, dict):
+        raise RunError(
+            "gates_policy.confirmation_ladder.proxy_validity is not registered"
+        )
+    minimum = int(policy["min_observations"])
+    if len(observations) < minimum:
+        raise RunError(
+            f"refusing to certify a proxy from {len(observations)} observation(s): "
+            f"the registered minimum is {minimum}"
+        )
+    records: list[dict] = []
+    xs: list[float] = []
+    ys: list[float] = []
+    for proxy_path, class_path in observations:
+        pairs = []
+        for path, label in ((proxy_path, "proxy run"), (class_path, "class run")):
+            try:
+                raw = Path(path).read_bytes()
+                document = _load_json_object(raw.decode("utf-8"), label)
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+                raise RunError(f"{label} {path}: unreadable ({exc})") from exc
+            observed_board, observed_class = _proxy_document_board_class(document)
+            if observed_board != board or observed_class != workload_class:
+                raise RunError(
+                    f"{label} {path}: measured {observed_board}/{observed_class}, "
+                    f"expected {board}/{workload_class}"
+                )
+            pairs.append((
+                _proxy_observation_ln_ratio(document, f"{label} {path}"),
+                hashlib.sha256(raw).hexdigest(),
+            ))
+        (proxy_ln, proxy_sha), (class_ln, class_sha) = pairs
+        xs.append(proxy_ln)
+        ys.append(class_ln)
+        records.append({
+            "proxy_ln_ratio": proxy_ln,
+            "class_ln_ratio": class_ln,
+            "proxy_evidence_sha256": proxy_sha,
+            "class_evidence_sha256": class_sha,
+        })
+    try:
+        correlation = pearson_correlation(xs, ys)
+    except ManifestError as exc:
+        raise RunError(str(exc)) from exc
+    floor = float(policy["min_correlation"])
+    document = {
+        "schema": PROXY_VALIDITY_RECEIPT_SCHEMA,
+        "board": board,
+        "era": int(era),
+        "workload_class": workload_class,
+        "proxy": {
+            "proxy_id": fixture["proxy_id"],
+            "args": fixture["args"],
+            "native_unit": fixture["native_unit"],
+            "official_params": True,
+        },
+        "target": {"workload_ids": list(fixture["target_workload_ids"])},
+        "measured_at_utc": measured_at_utc or time.strftime(
+            "%Y-%m-%dT%H:%M:%SZ", time.gmtime(),
+        ),
+        "host": {
+            "identity_sha256": hashlib.sha256(platform.node().encode()).hexdigest(),
+            "chip": _host_chip(),
+            "logical_cpu_count": os.cpu_count() or 1,
+        },
+        "harness_commit": _harness_commit(repo_root),
+        "measurement": {
+            "method": PROXY_VALIDITY_METHOD,
+            "observations": records,
+            "observation_count": len(records),
+            "correlation": correlation,
+            "min_correlation": floor,
+            "min_observations": minimum,
+            "valid": correlation >= floor and len(records) >= minimum,
+        },
+        "artifact_sha256": hashlib.sha256(
+            json.dumps(records, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest(),
+    }
+    try:
+        validate_proxy_validity_receipt(
+            document,
+            board=board,
+            workload_class=workload_class,
+            era=int(era),
+            policy=policy,
+            proxy_fixture=fixture,
+        )
+    except ManifestError as exc:
+        raise RunError(f"assembled receipt failed its own schema: {exc}") from exc
+    return document
+
+
 RUST_ORACLE_RELPATH = "tools/stwo-interop-rs/target/release/stwo-interop-rs"
 RUST_ORACLE_TOOLCHAIN = "nightly-2025-07-14"
 
@@ -1545,6 +3153,10 @@ def rust_oracle_check(candidate_root: Path, manifest: Manifest,
         )
     if group.report_schema == "native_cuda_product_v6":
         return _cuda_rust_oracle_check(
+            candidate_root, group, workload, out_dir,
+        )
+    if group.report_schema == "cairo_proof_v1":
+        return _cairo_official_verifier_check(
             candidate_root, group, workload, out_dir,
         )
     raise RunError(
@@ -1894,16 +3506,333 @@ def _validate_riscv_verify_receipt(
     return receipt
 
 
-def guard_registry(manifest: Manifest) -> dict:
-    return manifest.raw.get("workload_registry", {}).get("guards", {}) or {}
+def _latest_cairo_candidate_artifact(
+    out_dir: Path, workload: Workload,
+) -> tuple[Path, Path]:
+    """The last candidate-arm envelope and the proof bytes it scored.
+
+    `_bench_cairo` writes `<workload>.b<round>.json` plus one retained
+    `<workload>.b<round>.i<index>.proof` per measured sample. The oracle
+    verifies the LAST measured sample of the LAST candidate round, so the bytes
+    the official verifier accepts are bytes that were actually scored.
+    """
+    pattern = re.compile(rf"^{re.escape(workload.workload_id)}\.b([1-9][0-9]*)\.json$")
+    envelopes = []
+    if out_dir.is_dir():
+        for path in out_dir.iterdir():
+            match = pattern.fullmatch(path.name)
+            if match and path.is_file():
+                envelopes.append((int(match.group(1)), path.resolve()))
+    if not envelopes:
+        raise ValueError("no retained candidate Cairo measurement envelope")
+    round_no, envelope_path = max(envelopes)
+    proof_pattern = re.compile(
+        rf"^{re.escape(workload.workload_id)}\.b{round_no}\.i([0-9]+)\.proof$"
+    )
+    proofs = []
+    for path in out_dir.iterdir():
+        match = proof_pattern.fullmatch(path.name)
+        if match and path.is_file():
+            proofs.append((int(match.group(1)), path.resolve()))
+    if not proofs:
+        raise ValueError(
+            f"no retained candidate Cairo proof for round {round_no}"
+        )
+    _index, proof_path = max(proofs)
+    return envelope_path, proof_path
+
+
+def _cairo_oracle_binary(candidate_root: Path, adapter: str) -> Path:
+    return (
+        candidate_root / adapter / "target" / "release" / CAIRO_ORACLE_EXECUTABLE
+    )
+
+
+def _validate_cairo_oracle_identity(
+    raw: str, oracle_policy: dict, binary: Path, adapter_lock: Path,
+) -> dict:
+    """Bind the built adapter to the manifest pins and the committed lockfile."""
+    identity = _load_json_object(raw, "official Cairo verifier identity")
+    _exact_object(
+        identity, _CAIRO_ORACLE_IDENTITY_KEYS, "official Cairo verifier identity",
+    )
+    if identity["schema_version"] != CAIRO_ORACLE_IDENTITY_SCHEMA_VERSION:
+        raise ValueError("official Cairo verifier identity schema is unsupported")
+    if identity["adapter_version"] != CAIRO_ORACLE_ADAPTER_VERSION:
+        raise ValueError("official Cairo verifier adapter version is unsupported")
+    for key, repository_key, commit_key in (
+        ("stwo_cairo", "repository", "commit"),
+        ("stwo", "stwo_repository", "stwo_commit"),
+    ):
+        source = _exact_object(
+            identity[key], {"repository", "revision"},
+            f"official Cairo verifier identity.{key}",
+        )
+        if source["repository"] != oracle_policy.get(repository_key):
+            raise ValueError(
+                f"official Cairo verifier {key} repository is not the "
+                "manifest-pinned repository"
+            )
+        if source["revision"] != oracle_policy.get(commit_key):
+            raise ValueError(
+                f"official Cairo verifier {key} revision is not the "
+                "manifest-pinned commit"
+            )
+    expected_lock = hashlib.sha256(adapter_lock.read_bytes()).hexdigest()
+    if _sha256_hex(
+        identity["cargo_lock_sha256"], "identity.cargo_lock_sha256",
+    ) != expected_lock:
+        raise ValueError(
+            "official Cairo verifier was not built from the committed lockfile"
+        )
+    expected_binary = hashlib.sha256(binary.read_bytes()).hexdigest()
+    if _sha256_hex(
+        identity["executable_sha256"], "identity.executable_sha256",
+    ) != expected_binary:
+        raise ValueError(
+            "official Cairo verifier identity does not bind the executed binary"
+        )
+    if CAIRO_ORACLE_CHANNEL not in identity["channels"]:
+        raise ValueError(
+            f"official Cairo verifier does not support the {CAIRO_ORACLE_CHANNEL} channel"
+        )
+    return identity
+
+
+def _validate_cairo_verdict(
+    raw: str,
+    oracle_policy: dict,
+    transport: str,
+    proof_sha256: str,
+) -> dict:
+    verdict = _load_json_object(raw, "official Cairo verifier verdict")
+    _exact_object(
+        verdict, _CAIRO_ORACLE_VERDICT_KEYS, "official Cairo verifier verdict",
+    )
+    expected = {
+        "schema_version": CAIRO_ORACLE_VERDICT_SCHEMA_VERSION,
+        "adapter_version": CAIRO_ORACLE_ADAPTER_VERSION,
+        "stwo_cairo_revision": oracle_policy.get("commit"),
+        "stwo_revision": oracle_policy.get("stwo_commit"),
+        "proof_sha256": proof_sha256,
+        "channel": CAIRO_ORACLE_CHANNEL,
+        "proof_format": transport,
+        "verified": True,
+        "error": None,
+    }
+    for field_name, value in expected.items():
+        actual = verdict.get(field_name)
+        if actual != value or type(actual) is not type(value):
+            raise ValueError(
+                f"official Cairo verifier verdict {field_name} differs "
+                f"(expected {value!r}, got {actual!r})"
+            )
+    _nonnegative_integer(verdict["wall_time_ns"], "verdict.wall_time_ns")
+    return verdict
+
+
+def _cairo_official_verifier_check(
+    candidate_root: Path,
+    group: WorkloadGroup,
+    workload: Workload,
+    out_dir: Path,
+) -> dict:
+    """Independently verify the scored Cairo proof with the pinned oracle.
+
+    TRACKS §8 wave 1: the official-verifier oracle the build gates already run
+    is wired into the judged harness path. Every step fails closed — a missing
+    adapter, a build that does not produce the binary, an identity that is not
+    bound to the manifest pins and the committed lockfile, a retained proof
+    whose bytes do not match what was scored, a rejected proof (adapter exit
+    3), or an adapter failure (exit 2). There is no skip.
+    """
+    oracle_policy = group.correctness_oracle
+    adapter = oracle_policy.get("adapter")
+    if (
+        oracle_policy.get("authority") != CAIRO_ORACLE_AUTHORITY
+        or adapter != CAIRO_ORACLE_ADAPTER
+        or oracle_policy.get("final_validator") is not True
+        or not _commit_like(oracle_policy.get("commit"))
+        or not _commit_like(oracle_policy.get("stwo_commit"))
+    ):
+        raise RunError(
+            f"{workload.workload_id}: Cairo group is not bound to the pinned "
+            "official Stwo-Cairo verifier as final validator"
+        )
+    build_command = oracle_policy.get("build_command")
+    adapter_manifest = f"{adapter}/Cargo.toml"
+    if (
+        not isinstance(build_command, str)
+        or "--locked" not in build_command
+        or "--release" not in build_command
+        or adapter_manifest not in build_command
+    ):
+        raise RunError(
+            f"{workload.workload_id}: the Cairo oracle build_command must be a "
+            f"locked release build of {adapter_manifest}"
+        )
+    adapter_lock = candidate_root / adapter / "Cargo.lock"
+    if not adapter_lock.is_file():
+        raise RunError(
+            f"{workload.workload_id}: the pinned Cairo verifier lockfile is "
+            f"missing at {adapter_lock}"
+        )
+    binary = _cairo_oracle_binary(candidate_root, adapter)
+    if not binary.is_file():
+        try:
+            _run(build_command, candidate_root, timeout=CAIRO_ORACLE_BUILD_TIMEOUT)
+        except RunError as exc:
+            # A judged Cairo run that cannot build its final validator fails —
+            # it never degrades to an unverified pass. The adapter compiles the
+            # pinned upstream, which needs the Rust toolchain that upstream
+            # requires; provision the judge host's default toolchain for it.
+            raise RunError(
+                f"{workload.workload_id}: the pinned official Cairo verifier "
+                f"failed to build ({build_command}): {exc}"
+            ) from exc
+    if not binary.is_file():
+        raise RunError(
+            f"{workload.workload_id}: the pinned official Cairo verifier was "
+            f"not produced at {binary}; a judged Cairo run never proceeds "
+            "without its final validator"
+        )
+    binary_sha256 = hashlib.sha256(binary.read_bytes()).hexdigest()
+
+    try:
+        envelope_path, proof_path = _latest_cairo_candidate_artifact(out_dir, workload)
+        envelope = _load_json_object(
+            envelope_path.read_text(encoding="utf-8"),
+            "candidate Cairo measurement envelope",
+        )
+        if envelope.get("schema") != group.report_schema:
+            raise ValueError("candidate envelope is not a cairo_proof_v1 envelope")
+        if envelope.get("workload") != workload.workload_id:
+            raise ValueError("candidate envelope names a different workload")
+        mechanism = envelope.get("mechanism")
+        if not isinstance(mechanism, dict):
+            raise ValueError("candidate envelope carries no mechanism telemetry")
+        scored_digest = _sha256_hex(
+            mechanism.get("proof_sha256"), "envelope mechanism proof_sha256",
+        )
+        scored_bytes = _nonnegative_integer(
+            mechanism.get("proof_bytes"), "envelope mechanism proof_bytes",
+            positive=True,
+        )
+        proof_format = mechanism.get("proof_format")
+        transport = CAIRO_ORACLE_TRANSPORTS.get(proof_format)
+        if transport is None:
+            raise ValueError(
+                f"proof format {proof_format!r} has no official Rust verifier "
+                "transport; the Cairo-serde felt array targets the Cairo "
+                "verifier and is rejected by this adapter"
+            )
+        artifact_bytes = proof_path.read_bytes()
+        if len(artifact_bytes) != scored_bytes:
+            raise ValueError(
+                "retained candidate proof length differs from the scored proof"
+            )
+        if hashlib.sha256(artifact_bytes).hexdigest() != scored_digest:
+            raise ValueError(
+                "retained candidate proof bytes differ from the scored proof"
+            )
+    except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+        raise RunError(
+            f"{workload.workload_id}: invalid retained Cairo candidate proof: {exc}"
+        ) from exc
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    identity_raw = _run(
+        shlex.join([str(binary), "identity"]),
+        candidate_root,
+        timeout=CAIRO_ORACLE_VERIFY_TIMEOUT,
+    )
+    try:
+        identity = _validate_cairo_oracle_identity(
+            identity_raw, oracle_policy, binary, adapter_lock,
+        )
+    except (json.JSONDecodeError, TypeError, ValueError) as exc:
+        raise RunError(
+            f"{workload.workload_id}: unpinned official Cairo verifier: {exc}"
+        ) from exc
+
+    verdict_path = (
+        out_dir / f"{workload.workload_id}.cairo-oracle-verdict.json"
+    ).resolve()
+    # The adapter publishes its verdict immutably and refuses an existing path.
+    verdict_path.unlink(missing_ok=True)
+    _run(
+        shlex.join([
+            str(binary), "verify",
+            "--proof", str(proof_path),
+            "--channel", CAIRO_ORACLE_CHANNEL,
+            "--proof-format", transport,
+            "--result", str(verdict_path),
+        ]),
+        candidate_root,
+        timeout=CAIRO_ORACLE_VERIFY_TIMEOUT,
+    )
+    try:
+        verdict = _validate_cairo_verdict(
+            verdict_path.read_text(encoding="utf-8"),
+            oracle_policy,
+            transport,
+            scored_digest,
+        )
+    except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
+        raise RunError(
+            f"{workload.workload_id}: invalid official Cairo verdict: {exc}"
+        ) from exc
+    if hashlib.sha256(binary.read_bytes()).hexdigest() != binary_sha256:
+        raise RunError(
+            f"{workload.workload_id}: the official Cairo verifier changed "
+            "during validation"
+        )
+    if proof_path.read_bytes() != artifact_bytes:
+        raise RunError(
+            f"{workload.workload_id}: the retained Cairo proof changed during "
+            "validation"
+        )
+    return {
+        "workload": workload.workload_id,
+        "verified": True,
+        "oracle": CAIRO_ORACLE_AUTHORITY,
+        "oracle_commit": oracle_policy["commit"],
+        "oracle_stwo_commit": oracle_policy["stwo_commit"],
+        "oracle_binary_sha256": binary_sha256,
+        "oracle_cargo_lock_sha256": identity["cargo_lock_sha256"],
+        "channel": CAIRO_ORACLE_CHANNEL,
+        "proof_format": transport,
+        "proof_sha256": scored_digest,
+        "proof_bytes": scored_bytes,
+        "verdict_path": str(verdict_path),
+        "verdict_wall_time_ns": verdict["wall_time_ns"],
+    }
+
+
+def guard_registry(
+    manifest: Manifest, objective_group: WorkloadGroup | None = None,
+) -> dict:
+    """TRACKS §8: the guard portfolio bound to one objective group.
+
+    A track's guards run on ITS OWN product binary, so the portfolio is chosen
+    by the group, not shared globally: the native AIR `--example` statements
+    are meaningless to the Cairo and RISC-V product CLIs. A manifest that
+    predates the per-group registries resolves to its flat block for every
+    group, which is byte-for-byte the pre-TRACKS-§8 behaviour.
+    """
+    return manifest_mod.resolve_guard_registry(
+        manifest.raw,
+        objective_group.group_id if objective_group is not None else None,
+    )
 
 
 def select_guards(manifest: Manifest, touched: list[str],
                   objective_group: WorkloadGroup) -> list[Workload]:
-    """Impact-mapped guard selection: generic prover/PCS/FFT/accumulation
-    paths exercise every native AIR; an unmatched editable source path fails
-    closed to every guard."""
-    registry = guard_registry(manifest)
+    """Impact-mapped guard selection within the objective group's registry:
+    generic prover/PCS/FFT/accumulation paths exercise that track's whole
+    portfolio; an unmatched editable source path fails closed to every guard
+    in it."""
+    registry = guard_registry(manifest, objective_group)
     workloads = registry.get("workloads", {})
     if not workloads:
         return []
@@ -1936,11 +3865,17 @@ def select_guards(manifest: Manifest, touched: list[str],
 
 
 def run_guards(a_root: Path, b_root: Path, manifest: Manifest,
-               guards: list[Workload], out_dir: Path) -> dict:
+               guards: list[Workload], out_dir: Path,
+               objective_group: WorkloadGroup | None = None) -> dict:
     """Paired ABBA regression guards: pass = upper CI bound <= budget; a guard
     straddling its budget after the base rounds resamples with extra rounds,
-    then fails closed."""
-    registry = guard_registry(manifest)
+    then fails closed.
+
+    The sampling and budget policy comes from the objective group's registry
+    (TRACKS §8) layered over the global guard policy: a Cairo guard proves one
+    statement per cold process and cannot share the native 300 s wall budget.
+    """
+    registry = guard_registry(manifest, objective_group)
     policy = registry.get("policy", {})
     budget = float(policy.get("budget_upper", 1.05))
     guard_policy = {
@@ -1949,8 +3884,12 @@ def run_guards(a_root: Path, b_root: Path, manifest: Manifest,
         "min_rounds": int(policy.get("min_rounds", 3)),
         "max_rounds": int(policy.get("max_rounds", 8)),
         "theta_floor": max(budget - 1.0, 0.01),
-        "wall_clock_cap_seconds": {"guard": 300},
-        "command_timeout_seconds": 300,
+        "wall_clock_cap_seconds": {
+            "guard": float(policy.get("wall_clock_cap_seconds", 300)),
+        },
+        "command_timeout_seconds": float(
+            policy.get("command_timeout_seconds", 300)
+        ),
         "ci_level": float(manifest.gates["ci_level"]),
     }
     extra = int(policy.get("inconclusive_extra_rounds", 4))
@@ -2032,13 +3971,25 @@ def evaluate(
     guards_mode: str = "auto",
     audit_mode: bool = False,
     require_quiet_host: bool = False,
+    fast_boundary: bool = False,
 ) -> dict:
     """Run the full paired evaluation and assemble a verdict dict.
 
     `judged=True` is reachable only from the judge bot; the public CLI always
     evaluates claimed. The judged trust boundary is the HMAC signature applied
     by the judge (signing.py), never this flag alone.
+
+    ``fast_boundary`` exists only to be refused: T2 and T3 keep the full dual
+    boundary, so the parameter fails closed here rather than silently producing
+    a verdict whose number excluded work (TRACKS §3.5).
     """
+    if fast_boundary:
+        raise RunError(
+            "the PoW-excluded fast boundary is refused on judged/ranked "
+            "evaluation: T2 and T3 keep the full dual boundary — the ranked "
+            "number never excludes anything (TRACKS §3.5). Iterate with the "
+            "T1 path instead (stwo-perf ladder t1 --fast-boundary)."
+        )
     if judged and board == "core_metal":
         from .metal_calibration import CalibrationError, require_frozen
 
@@ -2059,11 +4010,26 @@ def evaluate(
         raise RunError(f"board {board} selected workloads from multiple groups")
     policy = manifest.gates_for_workload(next(iter(group_ids)), workload_class)
     try:
-        epoch_resource_budgets = ledger.resource_budgets(repo_root, workload_class)
+        # TRACKS §8: resource budgets are keyed (board, class); a board era
+        # that pins none falls back to the epoch's class-only vector.
+        epoch_resource_budgets = ledger.resource_budgets(
+            repo_root, workload_class, board=board,
+        )
+        era_scored_dimension = ledger.scored_dimension(repo_root, board)
     except ledger.LedgerError as exc:
         raise RunError(f"invalid epoch resource budgets: {exc}") from exc
     if epoch_resource_budgets is not None:
         policy["resource_budgets"] = epoch_resource_budgets
+    if era_scored_dimension != ledger.DEFAULT_SCORED_DIMENSION:
+        # TRACKS §3.1 fail-closed gate: a board whose era declares the
+        # verified-request boundary must not be scored by a harness that still
+        # measures the prove boundary. Opening such an era therefore cannot
+        # silently produce prove-boundary rows labelled as request-boundary.
+        raise RunError(
+            f"board {board} scores {era_scored_dimension} in its current era, but this "
+            f"harness measures {ledger.DEFAULT_SCORED_DIMENSION}; the TRACKS §3.1 "
+            "boundary re-scoring must land in the runner before that era opens"
+        )
 
     dispersion = ledger.aa_dispersion(repo_root, board, workload_class)
     th = stats.theta(dispersion, float(policy["theta_floor"]), float(policy["dispersion_multiplier"]))
@@ -2119,7 +4085,9 @@ def evaluate(
     if guards_mode != "none":
         objective_group = manifest.group(workloads[0].group_id)
         if guards_mode == "all":
-            registry = guard_registry(manifest).get("workloads", {})
+            # "all" is this TRACK's whole portfolio (TRACKS §8) — never another
+            # product's, whose args this group's binary cannot even parse.
+            registry = guard_registry(manifest, objective_group).get("workloads", {})
             selected = [
                 Workload(gid, "guard", spec["args"], spec.get("native_unit", ""),
                          objective_group.group_id)
@@ -2131,7 +4099,15 @@ def evaluate(
             print(f"running {len(selected)} regression guard(s): "
                   + ", ".join(g.workload_id for g in selected))
             guard_results = run_guards(predecessor_root, repo_root, manifest,
-                                       selected, out_dir)
+                                       selected, out_dir,
+                                       objective_group=objective_group)
+        elif objective_group.guard_registry is None:
+            # Never silent: a track with no regression surface says why.
+            print(
+                f"  no guard registry is bound to group "
+                f"{objective_group.group_id}: "
+                + str(objective_group.guard_registry_absent_reason or "")
+            )
 
     oracle_results: list[dict] = []
     if bool(policy.get("require_rust_oracle", False)):
@@ -2316,6 +4292,12 @@ def evaluate(
                     "report_sha256s": s.report_sha256s,
                     "mechanism_verified": s.mechanism_verified,
                     "resources_complete": s.resources_complete,
+                    # Only present when the pre-registered sequential design was
+                    # armed, so pre-ladder verdicts keep their exact shape.
+                    **(
+                        {"sequential_stop": s.sequential_stop}
+                        if s.sequential_stop is not None else {}
+                    ),
                 }
                 for s in scores
             },
@@ -2352,7 +4334,10 @@ def _gates(repo_root, manifest, scores, policy, judged, dispersion,
         and not p.startswith("autoresearch/notes/")
         and not p.startswith("autoresearch/.runs/")
     ]
-    violations, strays = manifest.classify_touched(touched)
+    # TRACKS §8: the editable set is the SCORED BOARD's, not a global one — a
+    # Cairo submission may edit src/frontends/cairo/**, and that same path is
+    # out of scope on a native or RISC-V submission.
+    violations, strays = manifest.classify_touched(touched, board=board)
     g2_ok = not violations and not strays
     if g2_ok:
         g2_detail = "no locked or out-of-scope path touched"
@@ -2363,16 +4348,31 @@ def _gates(repo_root, manifest, scores, policy, judged, dispersion,
     if strays:
         g2_detail += f"; outside editable set: {strays[:5]}"
 
-    riscv_scores = [
-        score for score in scores
-        if manifest.group(score.workload.group_id).report_schema == "riscv_proof_v2"
-    ]
-    if riscv_scores:
-        g3_ok = all(score.mechanism_verified is True for score in riscv_scores)
+    # G3 gates EVERY schema that declares a cross-arm mechanism contract, not
+    # just RISC-V: paired_rounds computes `mechanism_verified` from
+    # STABLE_MECHANISM_FIELDS_BY_SCHEMA, so a schema that is in that table but
+    # not here would have its telemetry checked and its verdict ungated. Cairo
+    # (cairo_proof_v1) cannot promote yet, which is exactly why the gate must
+    # land before eligibility ever flips.
+    mechanism_scores = []
+    mechanism_labels: list[str] = []
+    for score in scores:
+        schema = manifest.group(score.workload.group_id).report_schema
+        binding = STABLE_MECHANISM_FIELDS_BY_SCHEMA.get(schema)
+        if binding is None:
+            continue
+        mechanism_scores.append(score)
+        if binding[0] not in mechanism_labels:
+            mechanism_labels.append(binding[0])
+    if mechanism_scores:
+        g3_ok = all(
+            score.mechanism_verified is True for score in mechanism_scores
+        )
         g3_detail = (
-            "RISC-V mechanism telemetry present, canonical, and semantically stable "
-            f"for {sum(score.mechanism_verified is True for score in riscv_scores)}/"
-            f"{len(riscv_scores)} workloads"
+            f"{'/'.join(mechanism_labels)} mechanism telemetry present, "
+            "canonical, and semantically stable for "
+            f"{sum(score.mechanism_verified is True for score in mechanism_scores)}/"
+            f"{len(mechanism_scores)} workloads"
         )
     else:
         g3_ok = True

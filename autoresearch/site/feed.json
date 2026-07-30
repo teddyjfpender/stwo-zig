@@ -34,12 +34,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 0.41064023384036435,
       "peak_rss_mib": null,
       "prove_ms": 2.493667,
       "request_ms": 2.686417
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 13,
       "metal_dispatches_per_proof": 15,
       "native_mhz": 0.1439870636622491,
@@ -63,12 +67,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 1.3797537142988516,
       "peak_rss_mib": null,
       "prove_ms": 11.874583,
       "request_ms": 12.82375
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 16,
       "metal_dispatches_per_proof": 20,
       "native_mhz": 1.1198013118160706,
@@ -92,12 +100,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 0.38840607855512943,
       "peak_rss_mib": null,
       "prove_ms": 2.636416,
       "request_ms": 2.819417
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 13,
       "metal_dispatches_per_proof": 17,
       "native_mhz": 0.16360440965010387,
@@ -122,12 +134,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 1.5327310678151174,
       "peak_rss_mib": null,
       "prove_ms": 10.689416,
       "request_ms": 10.957958
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 16,
       "metal_dispatches_per_proof": 22,
       "native_mhz": 1.1344394533447582,
@@ -152,12 +168,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 0.37956980359116027,
       "peak_rss_mib": null,
       "prove_ms": 2.697791,
       "request_ms": 2.910584
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 13,
       "metal_dispatches_per_proof": 17,
       "native_mhz": 0.14603882522033465,
@@ -180,12 +200,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 1.4718591384808875,
       "peak_rss_mib": null,
       "prove_ms": 11.1315,
       "request_ms": 11.451083
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 16,
       "metal_dispatches_per_proof": 22,
       "native_mhz": 1.0764517957014856,
@@ -208,12 +232,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 0.4141975932854687,
       "peak_rss_mib": null,
       "prove_ms": 2.47225,
       "request_ms": 2.676834
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 13,
       "metal_dispatches_per_proof": 17,
       "native_mhz": 0.17557293529485796,
@@ -238,12 +266,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 1.5681282526769156,
       "peak_rss_mib": null,
       "prove_ms": 10.448125,
       "request_ms": 10.704042
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 16,
       "metal_dispatches_per_proof": 22,
       "native_mhz": 1.1085218837673125,
@@ -268,12 +300,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 0.22190919926319214,
       "peak_rss_mib": null,
       "prove_ms": 2.30725,
       "request_ms": 2.581792
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 11,
       "metal_dispatches_per_proof": 13,
       "native_mhz": 0.08967771021979096,
@@ -297,12 +333,16 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 0.43092731686977764,
       "peak_rss_mib": null,
       "prove_ms": 23.762708,
       "request_ms": 27.437042
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 13,
       "metal_dispatches_per_proof": 15,
       "native_mhz": 0.5146256716392708,
@@ -325,6 +365,442 @@
   "run_id": "2026-07-17-064520-matrix-v3-370f8ef8"
  },
  "boards": {
+  "cairo_cpu": {
+   "entries": [],
+   "era": {
+    "banked": false,
+    "closed_utc": null,
+    "epoch": 2,
+    "note": null,
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the epoch boundary prevents pre-xlarge history from diluting the new geomean",
+    "scored_dimension": "prove_ms",
+    "source": "global_epoch",
+    "status": "open"
+   },
+   "frontier_by_class": {
+    "small": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 1051,
+       "seconds": 700340
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    },
+    "wide": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 1051,
+       "seconds": 700340
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    }
+   },
+   "phase_telemetry": null,
+   "retirement": null,
+   "scored_classes": [
+    "small",
+    "wide"
+   ],
+   "suite_score": {
+    "active_credit_events": {
+     "small": 0,
+     "wide": 0
+    },
+    "audited_class_ratios": {
+     "small": 1.0,
+     "wide": 1.0
+    },
+    "audited_ratio_geomean": 1.0,
+    "class_ratios": {
+     "small": 1.0,
+     "wide": 1.0
+    },
+    "classes": [
+     "small",
+     "wide"
+    ],
+    "epoch": 2,
+    "index": 100.0,
+    "method": "metrics_v2_scored_class_geomean_v2",
+    "ratio_geomean": 1.0,
+    "speedup": 1.0
+   },
+   "supremacy": null,
+   "task": {
+    "editable_paths": [
+     {
+      "glob": "src/backends/cpu_scalar/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/backend/proof_program.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/backends/cuda/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/integrations/native_cuda/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/backends/metal/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/fields/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/crypto/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/fri/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/pcs/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/poly/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/pcs/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/vcs_lifted/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/air/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/fri.zig",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/session.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/work_pool.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/fft_pool.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/resident_storage.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/frontends/cairo/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/integrations/cairo_cpu/**",
+      "min_rung": "s3"
+     }
+    ],
+    "markdown": "<!-- GENERATED by `stwo-perf task --write` from autoresearch/MANIFEST.json and autoresearch/ledger/epochs.json. Do not edit by hand: edit the manifest, then regenerate. -->\n\n# TASK \u2014 the `cairo_cpu` track\n\nMake the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.\n\nThis brief is generated from `autoresearch/MANIFEST.json` and `autoresearch/ledger/epochs.json`. Those documents are the contract; this file is a view of them. Regenerate with `stwo-perf task --board cairo_cpu`.\n\n## Track state\n\n- **Board**: `cairo_cpu` \u00b7 **group**: `cairo_cpu` \u00b7 **report schema**: `cairo_proof_v1`\n- **Enabled**: yes \u00b7 **promotion eligible**: no\n- **Build**: `zig build stwo-cairo-cpu -Doptimize=ReleaseFast` \u2192 `zig-out/bin/stwo-cairo-cpu`\n- **Promotion blocked because**: TRACKS \u00a77: cairo_cpu records evidence but cannot promote until per-(board, class) A/A dispersion and anchors are measured on the designated Apple M5 Max judge host and frozen into harness.anchor_* plus a cairo calibration freeze for board cairo_cpu. No Cairo calibration exists yet, so promotion fails closed; the gate opens only after that M5 calibration is committed.\n- **Era**: none declared; the board falls back to global epoch `2`.\n- **Scored boundary**: `prove_ms`\n\n## Scored basket\n\n| class | workload | unit |\n| --- | --- | --- |\n| `small` | `cairo_all_opcodes` | committed cells |\n| `wide` | `cairo_all_builtins` | committed cells |\n\nScores are compared only inside one era on one board. A number from another track, another era, or another boundary is not a comparison (TRACKS \u00a73, \u00a77).\n\n## Editable paths for THIS track\n\n| path | minimum acceptance rung |\n| --- | --- |\n| `src/backend/proof_program.zig` | `s4` |\n| `src/backends/cpu_scalar/**` | `s3` |\n| `src/backends/cuda/**` | `s3` |\n| `src/backends/metal/**` | `s3` |\n| `src/core/crypto/**` | `s3` |\n| `src/core/fields/**` | `s3` |\n| `src/core/fri/**` | `s3` |\n| `src/core/pcs/**` | `s3` |\n| `src/frontends/cairo/**` | `s3` |\n| `src/integrations/cairo_cpu/**` | `s3` |\n| `src/integrations/native_cuda/**` | `s3` |\n| `src/prover/air/**` | `s3` |\n| `src/prover/fft_pool.zig` | `s4` |\n| `src/prover/fri.zig` | `s3` |\n| `src/prover/pcs/**` | `s3` |\n| `src/prover/poly/**` | `s3` |\n| `src/prover/resident_storage.zig` | `s4` |\n| `src/prover/session.zig` | `s4` |\n| `src/prover/vcs_lifted/**` | `s3` |\n| `src/prover/work_pool.zig` | `s4` |\n\nEverything else is out of scope for this track. Frontend sources are editable **only** by their own track: a Cairo submission may edit `src/frontends/cairo/**`, and the same edit is an out-of-scope stray on a native or RISC-V submission (G2 fails).\n\nLocked paths (never editable by any track): `autoresearch/**`, `scripts/**`, `vectors/**`, `conformance/**`, `build.zig`, `build.zig.zon`, `build/**`, `src/bench/**`, `src/tests/**`, `src/interop/**`, `.github/**`\n\n## Regression guards\n\nRegistry `cairo` \u2014 2 guard(s), run on this track's own binary (`zig-out/bin/stwo-cairo-cpu`). A guard passes when its paired upper CI bound stays at or below `1.05`.\n\n- `guard_cairo_all_builtins`\n- `guard_cairo_all_opcodes`\n\nImpact map (which edits select which guards):\n\n| editable path prefix | guards |\n| --- | --- |\n| `src/frontends/cairo/` | all |\n| `src/integrations/cairo_cpu/` | all |\n| `src/integrations/cairo_metal/` | all |\n| `src/integrations/cairo_cuda/` | all |\n| `src/prover/` | all |\n| `src/core/fri/` | all |\n| `src/core/pcs/` | all |\n| `src/core/fields/` | all |\n| `src/core/crypto/` | all |\n| `src/backends/cpu_scalar/` | all |\n| `src/backends/metal/` | none |\n\nAn editable path that matches no rule selects **every** guard in the registry (fail closed).\n\n## Correctness oracle\n\n- **Authority**: `official-stwo-cairo-verifier`\n- **Repository**: https://github.com/starkware-libs/stwo-cairo @ `82f21252a68ec006d73e299f5bf1ce6d4db0ee78`\n- The oracle is the **final correctness authority**: a proof it refuses is not a proof, whatever the harness measured.\n\n## Confirmation ladder\n\n| tier | cost target | what it buys |\n| --- | --- | --- |\n| `T0` | 30 s | correctness smoke plus ONE stage-profiled sample on the proxy fixture; the claimed phase must move here before T1 is scheduled. One warmup is the floor, not a nicety: the Cairo arm records its mandatory phase profile on a discarded warmup, so warmups=0 would leave that track with no phase evidence at all. |\n| `T1` | 300 s | paired ABBA on proxy fixtures with sequential early stopping and the PoW-excluded boundary; never ranks. |\n| `T2` | 2700 s | full dual-boundary paired run on the contributor host, real classes, guards impact-mapped; the claimed verdict. |\n| `T3` | judge-scheduled | judge-scheduled re-run plus audits on the designated host; the scored row. No cost target \u2014 the judge never trades honesty for time. |\n\nT0 and T1 never rank; they gate scheduling. The claimed (T2) and ranked (T3) numbers always keep the full dual boundary \u2014 the ranked number never excludes anything (TRACKS \u00a73.5).\n\n## Participate\n\n```sh\nstwo-perf clone ../work && cd ../work\nstwo-perf setup --board cairo_cpu\nstwo-perf ladder t0 --board cairo_cpu --class small --phase <phase> --predecessor <tree>\nstwo-perf ladder t1 --board cairo_cpu --class small --predecessor <tree> --fast-boundary\nstwo-perf run --board cairo_cpu --class small --predecessor <tree>\nstwo-perf submit\n```\n\n`--board cairo_cpu` is explicit above because auto-routing only fires when the diff names a frontend or backend (TRACKS \u00a78); a diff that spans two frontends is refused rather than routed.\n\n**This track cannot promote today.** Runs still record evidence, and the ledger still serves history; no new row is scored until the manifest says otherwise.\n",
+    "objective": "Make the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.",
+    "path": "autoresearch/tasks/TASK.cairo_cpu.md",
+    "title": "TASK \u2014 the `cairo_cpu` track"
+   }
+  },
+  "cairo_metal": {
+   "entries": [],
+   "era": {
+    "banked": false,
+    "closed_utc": null,
+    "epoch": 2,
+    "note": null,
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the epoch boundary prevents pre-xlarge history from diluting the new geomean",
+    "scored_dimension": "prove_ms",
+    "source": "global_epoch",
+    "status": "open"
+   },
+   "frontier_by_class": {
+    "small": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 1051,
+       "seconds": 700340
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    },
+    "wide": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 1051,
+       "seconds": 700340
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    }
+   },
+   "phase_telemetry": null,
+   "retirement": null,
+   "scored_classes": [
+    "small",
+    "wide"
+   ],
+   "suite_score": {
+    "active_credit_events": {
+     "small": 0,
+     "wide": 0
+    },
+    "audited_class_ratios": {
+     "small": 1.0,
+     "wide": 1.0
+    },
+    "audited_ratio_geomean": 1.0,
+    "class_ratios": {
+     "small": 1.0,
+     "wide": 1.0
+    },
+    "classes": [
+     "small",
+     "wide"
+    ],
+    "epoch": 2,
+    "index": 100.0,
+    "method": "metrics_v2_scored_class_geomean_v2",
+    "ratio_geomean": 1.0,
+    "speedup": 1.0
+   },
+   "supremacy": null,
+   "task": {
+    "editable_paths": [
+     {
+      "glob": "src/backends/cpu_scalar/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/backend/proof_program.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/backends/cuda/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/integrations/native_cuda/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/backends/metal/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/fields/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/crypto/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/fri/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/pcs/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/poly/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/pcs/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/vcs_lifted/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/air/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/fri.zig",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/session.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/work_pool.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/fft_pool.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/resident_storage.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/frontends/cairo/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/integrations/cairo_metal/**",
+      "min_rung": "s3"
+     }
+    ],
+    "markdown": "<!-- GENERATED by `stwo-perf task --write` from autoresearch/MANIFEST.json and autoresearch/ledger/epochs.json. Do not edit by hand: edit the manifest, then regenerate. -->\n\n# TASK \u2014 the `cairo_metal` track\n\nMake the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.\n\nThis brief is generated from `autoresearch/MANIFEST.json` and `autoresearch/ledger/epochs.json`. Those documents are the contract; this file is a view of them. Regenerate with `stwo-perf task --board cairo_metal`.\n\n## Track state\n\n- **Board**: `cairo_metal` \u00b7 **group**: `cairo_metal` \u00b7 **report schema**: `cairo_proof_v1`\n- **Enabled**: no \u00b7 **promotion eligible**: no\n- **Build**: `zig build stwo-cairo-metal -Doptimize=ReleaseFast` \u2192 `zig-out/bin/stwo-cairo-metal`\n- **Disabled because**: cairo_metal is staged only: TRACKS \u00a72 records the Cairo + Metal product as parity_gated, not released. The product descriptor in build_support/products/cairo_metal.zig still carries state .parity_gated behind its test-cairo-metal-product and test-cairo-metal-oracle release gates, no Metal-lane Cairo calibration exists on the designated judge host, and the generalized per-board Metal calibration (TRACKS \u00a77) is not yet built. The group stays dark and fails closed.\n- **Promotion blocked because**: TRACKS \u00a77: no cairo_metal calibration exists on the designated Apple M5 Max judge host, and the product is parity_gated rather than released.\n- **Era**: none declared; the board falls back to global epoch `2`.\n- **Scored boundary**: `prove_ms`\n\n## Scored basket\n\n| class | workload | unit |\n| --- | --- | --- |\n| `small` | `mcairo_all_opcodes` | committed cells |\n| `wide` | `mcairo_all_builtins` | committed cells |\n\nScores are compared only inside one era on one board. A number from another track, another era, or another boundary is not a comparison (TRACKS \u00a73, \u00a77).\n\n## Editable paths for THIS track\n\n| path | minimum acceptance rung |\n| --- | --- |\n| `src/backend/proof_program.zig` | `s4` |\n| `src/backends/cpu_scalar/**` | `s3` |\n| `src/backends/cuda/**` | `s3` |\n| `src/backends/metal/**` | `s3` |\n| `src/core/crypto/**` | `s3` |\n| `src/core/fields/**` | `s3` |\n| `src/core/fri/**` | `s3` |\n| `src/core/pcs/**` | `s3` |\n| `src/frontends/cairo/**` | `s3` |\n| `src/integrations/cairo_metal/**` | `s3` |\n| `src/integrations/native_cuda/**` | `s3` |\n| `src/prover/air/**` | `s3` |\n| `src/prover/fft_pool.zig` | `s4` |\n| `src/prover/fri.zig` | `s3` |\n| `src/prover/pcs/**` | `s3` |\n| `src/prover/poly/**` | `s3` |\n| `src/prover/resident_storage.zig` | `s4` |\n| `src/prover/session.zig` | `s4` |\n| `src/prover/vcs_lifted/**` | `s3` |\n| `src/prover/work_pool.zig` | `s4` |\n\nEverything else is out of scope for this track. Frontend sources are editable **only** by their own track: a Cairo submission may edit `src/frontends/cairo/**`, and the same edit is an out-of-scope stray on a native or RISC-V submission (G2 fails).\n\nLocked paths (never editable by any track): `autoresearch/**`, `scripts/**`, `vectors/**`, `conformance/**`, `build.zig`, `build.zig.zon`, `build/**`, `src/bench/**`, `src/tests/**`, `src/interop/**`, `.github/**`\n\n## Regression guards\n\nRegistry `cairo` \u2014 2 guard(s), run on this track's own binary (`zig-out/bin/stwo-cairo-metal`). A guard passes when its paired upper CI bound stays at or below `1.05`.\n\n- `guard_cairo_all_builtins`\n- `guard_cairo_all_opcodes`\n\nImpact map (which edits select which guards):\n\n| editable path prefix | guards |\n| --- | --- |\n| `src/frontends/cairo/` | all |\n| `src/integrations/cairo_cpu/` | all |\n| `src/integrations/cairo_metal/` | all |\n| `src/integrations/cairo_cuda/` | all |\n| `src/prover/` | all |\n| `src/core/fri/` | all |\n| `src/core/pcs/` | all |\n| `src/core/fields/` | all |\n| `src/core/crypto/` | all |\n| `src/backends/cpu_scalar/` | all |\n| `src/backends/metal/` | all |\n\nAn editable path that matches no rule selects **every** guard in the registry (fail closed).\n\n## Correctness oracle\n\n- **Authority**: `official-stwo-cairo-verifier`\n- **Repository**: https://github.com/starkware-libs/stwo-cairo @ `82f21252a68ec006d73e299f5bf1ce6d4db0ee78`\n- The oracle is the **final correctness authority**: a proof it refuses is not a proof, whatever the harness measured.\n\n## Confirmation ladder\n\n| tier | cost target | what it buys |\n| --- | --- | --- |\n| `T0` | 30 s | correctness smoke plus ONE stage-profiled sample on the proxy fixture; the claimed phase must move here before T1 is scheduled. One warmup is the floor, not a nicety: the Cairo arm records its mandatory phase profile on a discarded warmup, so warmups=0 would leave that track with no phase evidence at all. |\n| `T1` | 300 s | paired ABBA on proxy fixtures with sequential early stopping and the PoW-excluded boundary; never ranks. |\n| `T2` | 2700 s | full dual-boundary paired run on the contributor host, real classes, guards impact-mapped; the claimed verdict. |\n| `T3` | judge-scheduled | judge-scheduled re-run plus audits on the designated host; the scored row. No cost target \u2014 the judge never trades honesty for time. |\n\nT0 and T1 never rank; they gate scheduling. The claimed (T2) and ranked (T3) numbers always keep the full dual boundary \u2014 the ranked number never excludes anything (TRACKS \u00a73.5).\n\n## Participate\n\n```sh\nstwo-perf clone ../work && cd ../work\nstwo-perf setup --board cairo_metal\nstwo-perf ladder t0 --board cairo_metal --class small --phase <phase> --predecessor <tree>\nstwo-perf ladder t1 --board cairo_metal --class small --predecessor <tree> --fast-boundary\nstwo-perf run --board cairo_metal --class small --predecessor <tree>\nstwo-perf submit\n```\n\n`--board cairo_metal` is explicit above because auto-routing only fires when the diff names a frontend or backend (TRACKS \u00a78); a diff that spans two frontends is refused rather than routed.\n\n**This track cannot promote today.** Runs still record evidence, and the ledger still serves history; no new row is scored until the manifest says otherwise.\n",
+    "objective": "Make the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.",
+    "path": "autoresearch/tasks/TASK.cairo_metal.md",
+    "title": "TASK \u2014 the `cairo_metal` track"
+   }
+  },
   "core_cpu": {
    "entries": [
     {
@@ -2323,13 +2799,25 @@
      "workload_class": "wide"
     }
    ],
+   "era": {
+    "banked": true,
+    "closed_utc": "2026-07-29T00:00:00Z",
+    "epoch": 2,
+    "note": "TRACKS \u00a76 retire-and-complete: the native CPU era is banked. New promotions refuse, the full ledger and final scores stay served, and the closing audit stamps the last audited score on the M5 judge host.",
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe",
+    "scored_dimension": "prove_ms",
+    "source": "board_era",
+    "status": "banked"
+   },
    "frontier_by_class": {
     "deep": {
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1051,
+       "seconds": 700340
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -2652,8 +3140,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1051,
+       "seconds": 700340
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -2840,8 +3328,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1051,
+       "seconds": 700340
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3058,8 +3546,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1051,
+       "seconds": 700340
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3453,8 +3941,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1051,
+       "seconds": 700340
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3599,6 +4087,12 @@
      }
     }
    },
+   "phase_telemetry": null,
+   "retirement": {
+    "closing_audit": null,
+    "reason": "TRACKS \u00a76 retire-and-complete: the native era is banked; history stays served; the native AIRs continue as PR6-supremacy cells and guard workloads",
+    "retired_at_utc": "2026-07-29T00:00:00Z"
+   },
    "scored_classes": [
     "small",
     "wide",
@@ -3641,17 +4135,114 @@
     "method": "metrics_v2_scored_class_geomean_v2",
     "ratio_geomean": 0.7142431428904034,
     "speedup": 1.400083444908122
+   },
+   "supremacy": null,
+   "task": {
+    "editable_paths": [
+     {
+      "glob": "src/backends/cpu_scalar/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/backend/proof_program.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/backends/cuda/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/integrations/native_cuda/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/backends/metal/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/fields/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/crypto/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/fri/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/pcs/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/poly/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/pcs/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/vcs_lifted/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/air/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/fri.zig",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/session.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/work_pool.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/fft_pool.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/resident_storage.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/integrations/native/**",
+      "min_rung": "s3"
+     }
+    ],
+    "markdown": "<!-- GENERATED by `stwo-perf task --write` from autoresearch/MANIFEST.json and autoresearch/ledger/epochs.json. Do not edit by hand: edit the manifest, then regenerate. -->\n\n# TASK \u2014 the `core_cpu` track\n\nMake the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.\n\nThis brief is generated from `autoresearch/MANIFEST.json` and `autoresearch/ledger/epochs.json`. Those documents are the contract; this file is a view of them. Regenerate with `stwo-perf task --board core_cpu`.\n\n## Track state\n\n- **Board**: `core_cpu` \u00b7 **group**: `native` \u00b7 **report schema**: `native_proof_v7`\n- **Enabled**: yes \u00b7 **promotion eligible**: no\n- **Build**: `zig build native-proof-bench-cpu -Doptimize=ReleaseFast` \u2192 `zig-out/bin/native-proof-bench-cpu`\n- **Promotion blocked because**: TRACKS \u00a76 retire-and-complete: the native CPU era is banked. New promotions refuse; the board stays enabled so its history, final scores, guard workloads, and PR6-supremacy cells keep running.\n- **Retired** 2026-07-29T00:00:00Z: TRACKS \u00a76 retire-and-complete: the native era is banked; history stays served; the native AIRs continue as PR6-supremacy cells and guard workloads\n- **Era**: 2 (epoch `2`), status `banked`, opened 2026-07-21T16:00:00Z\n- **Era opened because**: Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe\n- **Scored boundary**: `prove_ms`\n- **Banked**: this era closed 2026-07-29T00:00:00Z. Its scores are final and are never compared with a live track's (TRACKS \u00a76).\n- **Era note**: TRACKS \u00a76 retire-and-complete: the native CPU era is banked. New promotions refuse, the full ledger and final scores stay served, and the closing audit stamps the last audited score on the M5 judge host.\n\n## Scored basket\n\n| class | workload | unit |\n| --- | --- | --- |\n| `small` | `wf_log10x8` | trace rows |\n| `wide` | `wf_log14x32` | trace rows |\n| `deep` | `plonk_log14` | gates |\n| `xlarge` | `wf_log18x100` | trace rows |\n| `huge` | `wf_log20x100` | trace rows |\n\nScores are compared only inside one era on one board. A number from another track, another era, or another boundary is not a comparison (TRACKS \u00a73, \u00a77).\n\n## Editable paths for THIS track\n\n| path | minimum acceptance rung |\n| --- | --- |\n| `src/backend/proof_program.zig` | `s4` |\n| `src/backends/cpu_scalar/**` | `s3` |\n| `src/backends/cuda/**` | `s3` |\n| `src/backends/metal/**` | `s3` |\n| `src/core/crypto/**` | `s3` |\n| `src/core/fields/**` | `s3` |\n| `src/core/fri/**` | `s3` |\n| `src/core/pcs/**` | `s3` |\n| `src/integrations/native/**` | `s3` |\n| `src/integrations/native_cuda/**` | `s3` |\n| `src/prover/air/**` | `s3` |\n| `src/prover/fft_pool.zig` | `s4` |\n| `src/prover/fri.zig` | `s3` |\n| `src/prover/pcs/**` | `s3` |\n| `src/prover/poly/**` | `s3` |\n| `src/prover/resident_storage.zig` | `s4` |\n| `src/prover/session.zig` | `s4` |\n| `src/prover/vcs_lifted/**` | `s3` |\n| `src/prover/work_pool.zig` | `s4` |\n\nEverything else is out of scope for this track. Frontend sources are editable **only** by their own track: a Cairo submission may edit `src/frontends/cairo/**`, and the same edit is an out-of-scope stray on a native or RISC-V submission (G2 fails).\n\nLocked paths (never editable by any track): `autoresearch/**`, `scripts/**`, `vectors/**`, `conformance/**`, `build.zig`, `build.zig.zon`, `build/**`, `src/bench/**`, `src/tests/**`, `src/interop/**`, `.github/**`\n\n## Regression guards\n\nRegistry `native` \u2014 12 guard(s), run on this track's own binary (`zig-out/bin/native-proof-bench-cpu`). A guard passes when its paired upper CI bound stays at or below `1.05`.\n\n- `guard_blake_10x10`\n- `guard_plonk_14`\n- `guard_plonk_16`\n- `guard_poseidon_10`\n- `guard_poseidon_13`\n- `guard_sm_v2_14`\n- `guard_sm_v2_16`\n- `guard_wf_10x8`\n- `guard_wf_14x32`\n- `guard_wf_16x64`\n- `guard_xor_14`\n- `guard_xor_16`\n\nImpact map (which edits select which guards):\n\n| editable path prefix | guards |\n| --- | --- |\n| `src/prover/` | all |\n| `src/core/fri/` | all |\n| `src/core/pcs/` | all |\n| `src/core/fields/` | all |\n| `src/backends/cpu_scalar/` | all |\n| `src/core/crypto/` | `guard_blake_10x10`, `guard_plonk_14`, `guard_poseidon_10`, `guard_poseidon_13`, `guard_wf_10x8`, `guard_wf_14x32` |\n| `src/backends/metal/` | none |\n\nAn editable path that matches no rule selects **every** guard in the registry (fail closed).\n\n## Correctness oracle\n\nThis track declares no pinned correctness oracle in the manifest.\n\n## Confirmation ladder\n\n| tier | cost target | what it buys |\n| --- | --- | --- |\n| `T0` | 30 s | correctness smoke plus ONE stage-profiled sample on the proxy fixture; the claimed phase must move here before T1 is scheduled. One warmup is the floor, not a nicety: the Cairo arm records its mandatory phase profile on a discarded warmup, so warmups=0 would leave that track with no phase evidence at all. |\n| `T1` | 300 s | paired ABBA on proxy fixtures with sequential early stopping and the PoW-excluded boundary; never ranks. |\n| `T2` | 2700 s | full dual-boundary paired run on the contributor host, real classes, guards impact-mapped; the claimed verdict. |\n| `T3` | judge-scheduled | judge-scheduled re-run plus audits on the designated host; the scored row. No cost target \u2014 the judge never trades honesty for time. |\n\nT0 and T1 never rank; they gate scheduling. The claimed (T2) and ranked (T3) numbers always keep the full dual boundary \u2014 the ranked number never excludes anything (TRACKS \u00a73.5).\n\n## Participate\n\n```sh\nstwo-perf clone ../work && cd ../work\nstwo-perf setup --board core_cpu\nstwo-perf ladder t0 --board core_cpu --class small --phase <phase> --predecessor <tree>\nstwo-perf ladder t1 --board core_cpu --class small --predecessor <tree> --fast-boundary\nstwo-perf run --board core_cpu --class small --predecessor <tree>\nstwo-perf submit\n```\n\n`--board core_cpu` is explicit above because auto-routing only fires when the diff names a frontend or backend (TRACKS \u00a78); a diff that spans two frontends is refused rather than routed.\n\n**This track cannot promote today.** Runs still record evidence, and the ledger still serves history; no new row is scored until the manifest says otherwise.\n",
+    "objective": "Make the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.",
+    "path": "autoresearch/tasks/TASK.core_cpu.md",
+    "title": "TASK \u2014 the `core_cpu` track"
    }
   },
   "core_cuda": {
    "entries": [],
+   "era": {
+    "banked": false,
+    "closed_utc": null,
+    "epoch": 2,
+    "note": null,
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the epoch boundary prevents pre-xlarge history from diluting the new geomean",
+    "scored_dimension": "prove_ms",
+    "source": "global_epoch",
+    "status": "open"
+   },
    "frontier_by_class": {
     "deep": {
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1051,
+       "seconds": 700340
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3691,8 +4282,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1051,
+       "seconds": 700340
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3732,8 +4323,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1051,
+       "seconds": 700340
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3773,8 +4364,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1051,
+       "seconds": 700340
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3814,8 +4405,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1051,
+       "seconds": 700340
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3852,6 +4443,8 @@
      "head": null
     }
    },
+   "phase_telemetry": null,
+   "retirement": null,
    "scored_classes": [
     "small",
     "wide",
@@ -3894,13 +4487,114 @@
     "method": "metrics_v2_scored_class_geomean_v2",
     "ratio_geomean": 1.0,
     "speedup": 1.0
+   },
+   "supremacy": null,
+   "task": {
+    "editable_paths": [
+     {
+      "glob": "src/backends/cpu_scalar/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/backend/proof_program.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/backends/cuda/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/integrations/native_cuda/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/backends/metal/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/fields/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/crypto/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/fri/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/pcs/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/poly/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/pcs/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/vcs_lifted/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/air/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/fri.zig",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/session.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/work_pool.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/fft_pool.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/resident_storage.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/integrations/native/**",
+      "min_rung": "s3"
+     }
+    ],
+    "markdown": "<!-- GENERATED by `stwo-perf task --write` from autoresearch/MANIFEST.json and autoresearch/ledger/epochs.json. Do not edit by hand: edit the manifest, then regenerate. -->\n\n# TASK \u2014 the `core_cuda` track\n\nMake the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.\n\nThis brief is generated from `autoresearch/MANIFEST.json` and `autoresearch/ledger/epochs.json`. Those documents are the contract; this file is a view of them. Regenerate with `stwo-perf task --board core_cuda`.\n\n## Track state\n\n- **Board**: `core_cuda` \u00b7 **group**: `cuda` \u00b7 **report schema**: `native_cuda_product_v6`\n- **Enabled**: no \u00b7 **promotion eligible**: no\n- **Build**: `zig build stwo-native-cuda -Doptimize=ReleaseFast` \u2192 `zig-out/bin/stwo-zig-native-cuda`\n- **Disabled because**: core_cuda is staged only: all six Native AIR families are required, but only wide Fibonacci is exact and release-ready; exact family semantics, the stwo-perf CUDA report adapter, locked-host A/A calibration, pinned Rust verification, and complete structural coverage are not yet release-gated.\n- **Era**: none declared; the board falls back to global epoch `2`.\n- **Scored boundary**: `prove_ms`\n\n## Scored basket\n\n| class | workload | unit |\n| --- | --- | --- |\n| `small` | `cuda_wf_log14x32` | committed cells |\n| `deep` | `cuda_wf_log22x3` | committed cells |\n| `wide` | `cuda_wf_log18x37` | committed cells |\n| `wide` | `cuda_wf_log18x73` | committed cells |\n| `wide` | `cuda_wf_log18x128` | committed cells |\n| `xlarge` | `cuda_wf_log18x100` | committed cells |\n| `huge` | `cuda_wf_log20x100` | committed cells |\n| `small` | `cuda_poseidon_log10` | committed cells |\n| `wide` | `cuda_poseidon_log13` | committed cells |\n\nScores are compared only inside one era on one board. A number from another track, another era, or another boundary is not a comparison (TRACKS \u00a73, \u00a77).\n\n## Editable paths for THIS track\n\n| path | minimum acceptance rung |\n| --- | --- |\n| `src/backend/proof_program.zig` | `s4` |\n| `src/backends/cpu_scalar/**` | `s3` |\n| `src/backends/cuda/**` | `s3` |\n| `src/backends/metal/**` | `s3` |\n| `src/core/crypto/**` | `s3` |\n| `src/core/fields/**` | `s3` |\n| `src/core/fri/**` | `s3` |\n| `src/core/pcs/**` | `s3` |\n| `src/integrations/native/**` | `s3` |\n| `src/integrations/native_cuda/**` | `s3` |\n| `src/prover/air/**` | `s3` |\n| `src/prover/fft_pool.zig` | `s4` |\n| `src/prover/fri.zig` | `s3` |\n| `src/prover/pcs/**` | `s3` |\n| `src/prover/poly/**` | `s3` |\n| `src/prover/resident_storage.zig` | `s4` |\n| `src/prover/session.zig` | `s4` |\n| `src/prover/vcs_lifted/**` | `s3` |\n| `src/prover/work_pool.zig` | `s4` |\n\nEverything else is out of scope for this track. Frontend sources are editable **only** by their own track: a Cairo submission may edit `src/frontends/cairo/**`, and the same edit is an out-of-scope stray on a native or RISC-V submission (G2 fails).\n\nLocked paths (never editable by any track): `autoresearch/**`, `scripts/**`, `vectors/**`, `conformance/**`, `build.zig`, `build.zig.zon`, `build/**`, `src/bench/**`, `src/tests/**`, `src/interop/**`, `.github/**`\n\n## Regression guards\n\nThis track binds **no guard registry**: TRACKS \u00a78: core_cuda is staged and only wide Fibonacci is exact and release-ready, so no committed CUDA regression portfolio exists. Binding the native `--example` portfolio to the CUDA product binary would fabricate a guard set; CUDA guards arrive with the activation contract's required_families coverage.\n\n## Correctness oracle\n\n- **Authority**: `pinned-rust-stwo`\n- **Repository**: https://github.com/starkware-libs/stwo @ `a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2`\n- The oracle is the **final correctness authority**: a proof it refuses is not a proof, whatever the harness measured.\n\n## Confirmation ladder\n\n| tier | cost target | what it buys |\n| --- | --- | --- |\n| `T0` | 30 s | correctness smoke plus ONE stage-profiled sample on the proxy fixture; the claimed phase must move here before T1 is scheduled. One warmup is the floor, not a nicety: the Cairo arm records its mandatory phase profile on a discarded warmup, so warmups=0 would leave that track with no phase evidence at all. |\n| `T1` | 300 s | paired ABBA on proxy fixtures with sequential early stopping and the PoW-excluded boundary; never ranks. |\n| `T2` | 2700 s | full dual-boundary paired run on the contributor host, real classes, guards impact-mapped; the claimed verdict. |\n| `T3` | judge-scheduled | judge-scheduled re-run plus audits on the designated host; the scored row. No cost target \u2014 the judge never trades honesty for time. |\n\nT0 and T1 never rank; they gate scheduling. The claimed (T2) and ranked (T3) numbers always keep the full dual boundary \u2014 the ranked number never excludes anything (TRACKS \u00a73.5).\n\n## Participate\n\n```sh\nstwo-perf clone ../work && cd ../work\nstwo-perf setup --board core_cuda\nstwo-perf ladder t0 --board core_cuda --class small --phase <phase> --predecessor <tree>\nstwo-perf ladder t1 --board core_cuda --class small --predecessor <tree> --fast-boundary\nstwo-perf run --board core_cuda --class small --predecessor <tree>\nstwo-perf submit\n```\n\n`--board core_cuda` is explicit above because auto-routing only fires when the diff names a frontend or backend (TRACKS \u00a78); a diff that spans two frontends is refused rather than routed.\n\n**This track cannot promote today.** Runs still record evidence, and the ledger still serves history; no new row is scored until the manifest says otherwise.\n",
+    "objective": "Make the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.",
+    "path": "autoresearch/tasks/TASK.core_cuda.md",
+    "title": "TASK \u2014 the `core_cuda` track"
    }
   },
   "core_hybrid": {
    "entries": [],
+   "era": {
+    "banked": false,
+    "closed_utc": null,
+    "epoch": 2,
+    "note": null,
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the epoch boundary prevents pre-xlarge history from diluting the new geomean",
+    "scored_dimension": "prove_ms",
+    "source": "global_epoch",
+    "status": "open"
+   },
    "frontier_by_class": {},
+   "phase_telemetry": null,
+   "retirement": null,
    "scored_classes": [],
-   "suite_score": null
+   "suite_score": null,
+   "supremacy": null,
+   "task": null
   },
   "core_metal": {
    "entries": [
@@ -6285,13 +6979,25 @@
      "workload_class": "deep"
     }
    ],
+   "era": {
+    "banked": true,
+    "closed_utc": "2026-07-29T00:00:00Z",
+    "epoch": 2,
+    "note": "TRACKS \u00a76 retire-and-complete: the native Metal era is banked. New promotions refuse, the full ledger and final scores stay served, and the closing audit stamps the last audited score on the M5 judge host.",
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the Metal calibration freeze for this era is pinned in epoch 2's metal_calibration block",
+    "scored_dimension": "prove_ms",
+    "source": "board_era",
+    "status": "banked"
+   },
    "frontier_by_class": {
     "deep": {
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1051,
+       "seconds": 700340
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -6753,8 +7459,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1051,
+       "seconds": 700340
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -6873,8 +7579,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1051,
+       "seconds": 700340
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -7159,8 +7865,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1051,
+       "seconds": 700340
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -7694,8 +8400,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1051,
+       "seconds": 700340
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -7846,6 +8552,12 @@
      }
     }
    },
+   "phase_telemetry": null,
+   "retirement": {
+    "closing_audit": null,
+    "reason": "TRACKS \u00a76 retire-and-complete: the native era is banked; history stays served; the native AIRs continue as PR6-supremacy cells and guard workloads",
+    "retired_at_utc": "2026-07-29T00:00:00Z"
+   },
    "scored_classes": [
     "small",
     "wide",
@@ -7888,19 +8600,497 @@
     "method": "metrics_v2_scored_class_geomean_v2",
     "ratio_geomean": 0.3606809693944199,
     "speedup": 2.7725333046514513
+   },
+   "supremacy": null,
+   "task": {
+    "editable_paths": [
+     {
+      "glob": "src/backends/cpu_scalar/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/backend/proof_program.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/backends/cuda/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/integrations/native_cuda/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/backends/metal/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/fields/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/crypto/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/fri/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/pcs/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/poly/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/pcs/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/vcs_lifted/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/air/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/fri.zig",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/session.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/work_pool.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/fft_pool.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/resident_storage.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/integrations/native/**",
+      "min_rung": "s3"
+     }
+    ],
+    "markdown": "<!-- GENERATED by `stwo-perf task --write` from autoresearch/MANIFEST.json and autoresearch/ledger/epochs.json. Do not edit by hand: edit the manifest, then regenerate. -->\n\n# TASK \u2014 the `core_metal` track\n\nMake the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.\n\nThis brief is generated from `autoresearch/MANIFEST.json` and `autoresearch/ledger/epochs.json`. Those documents are the contract; this file is a view of them. Regenerate with `stwo-perf task --board core_metal`.\n\n## Track state\n\n- **Board**: `core_metal` \u00b7 **group**: `metal` \u00b7 **report schema**: `native_proof_v7`\n- **Enabled**: yes \u00b7 **promotion eligible**: no\n- **Build**: `zig build native-proof-bench-metal -Doptimize=ReleaseFast` \u2192 `zig-out/bin/native-proof-bench-metal`\n- **Promotion blocked because**: TRACKS \u00a76 retire-and-complete: the native Metal era is banked. New promotions refuse; the board stays enabled so its history, final scores, guard workloads, and PR6-supremacy cells keep running.\n- **Retired** 2026-07-29T00:00:00Z: TRACKS \u00a76 retire-and-complete: the native era is banked; history stays served; the native AIRs continue as PR6-supremacy cells and guard workloads\n- **Era**: 2 (epoch `2`), status `banked`, opened 2026-07-21T16:00:00Z\n- **Era opened because**: Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the Metal calibration freeze for this era is pinned in epoch 2's metal_calibration block\n- **Scored boundary**: `prove_ms`\n- **Banked**: this era closed 2026-07-29T00:00:00Z. Its scores are final and are never compared with a live track's (TRACKS \u00a76).\n- **Era note**: TRACKS \u00a76 retire-and-complete: the native Metal era is banked. New promotions refuse, the full ledger and final scores stay served, and the closing audit stamps the last audited score on the M5 judge host.\n\n## Scored basket\n\n| class | workload | unit |\n| --- | --- | --- |\n| `small` | `mwf_log10x8` | trace rows |\n| `wide` | `mwf_log14x32` | trace rows |\n| `deep` | `mplonk_log14` | gates |\n| `xlarge` | `mwf_log18x100` | trace rows |\n| `huge` | `mwf_log20x100` | trace rows |\n\nScores are compared only inside one era on one board. A number from another track, another era, or another boundary is not a comparison (TRACKS \u00a73, \u00a77).\n\n## Editable paths for THIS track\n\n| path | minimum acceptance rung |\n| --- | --- |\n| `src/backend/proof_program.zig` | `s4` |\n| `src/backends/cpu_scalar/**` | `s3` |\n| `src/backends/cuda/**` | `s3` |\n| `src/backends/metal/**` | `s3` |\n| `src/core/crypto/**` | `s3` |\n| `src/core/fields/**` | `s3` |\n| `src/core/fri/**` | `s3` |\n| `src/core/pcs/**` | `s3` |\n| `src/integrations/native/**` | `s3` |\n| `src/integrations/native_cuda/**` | `s3` |\n| `src/prover/air/**` | `s3` |\n| `src/prover/fft_pool.zig` | `s4` |\n| `src/prover/fri.zig` | `s3` |\n| `src/prover/pcs/**` | `s3` |\n| `src/prover/poly/**` | `s3` |\n| `src/prover/resident_storage.zig` | `s4` |\n| `src/prover/session.zig` | `s4` |\n| `src/prover/vcs_lifted/**` | `s3` |\n| `src/prover/work_pool.zig` | `s4` |\n\nEverything else is out of scope for this track. Frontend sources are editable **only** by their own track: a Cairo submission may edit `src/frontends/cairo/**`, and the same edit is an out-of-scope stray on a native or RISC-V submission (G2 fails).\n\nLocked paths (never editable by any track): `autoresearch/**`, `scripts/**`, `vectors/**`, `conformance/**`, `build.zig`, `build.zig.zon`, `build/**`, `src/bench/**`, `src/tests/**`, `src/interop/**`, `.github/**`\n\n## Regression guards\n\nRegistry `native` \u2014 12 guard(s), run on this track's own binary (`zig-out/bin/native-proof-bench-metal`). A guard passes when its paired upper CI bound stays at or below `1.05`.\n\n- `guard_blake_10x10`\n- `guard_plonk_14`\n- `guard_plonk_16`\n- `guard_poseidon_10`\n- `guard_poseidon_13`\n- `guard_sm_v2_14`\n- `guard_sm_v2_16`\n- `guard_wf_10x8`\n- `guard_wf_14x32`\n- `guard_wf_16x64`\n- `guard_xor_14`\n- `guard_xor_16`\n\nImpact map (which edits select which guards):\n\n| editable path prefix | guards |\n| --- | --- |\n| `src/backends/metal/` | all |\n| `src/prover/` | all |\n| `src/core/fri/` | all |\n| `src/core/pcs/` | all |\n| `src/core/fields/` | all |\n| `src/backends/cpu_scalar/` | all |\n| `src/core/crypto/` | `guard_blake_10x10`, `guard_plonk_14`, `guard_poseidon_10`, `guard_poseidon_13`, `guard_wf_10x8`, `guard_wf_14x32` |\n\nAn editable path that matches no rule selects **every** guard in the registry (fail closed).\n\n## Correctness oracle\n\nThis track declares no pinned correctness oracle in the manifest.\n\n## Confirmation ladder\n\n| tier | cost target | what it buys |\n| --- | --- | --- |\n| `T0` | 30 s | correctness smoke plus ONE stage-profiled sample on the proxy fixture; the claimed phase must move here before T1 is scheduled. One warmup is the floor, not a nicety: the Cairo arm records its mandatory phase profile on a discarded warmup, so warmups=0 would leave that track with no phase evidence at all. |\n| `T1` | 300 s | paired ABBA on proxy fixtures with sequential early stopping and the PoW-excluded boundary; never ranks. |\n| `T2` | 2700 s | full dual-boundary paired run on the contributor host, real classes, guards impact-mapped; the claimed verdict. |\n| `T3` | judge-scheduled | judge-scheduled re-run plus audits on the designated host; the scored row. No cost target \u2014 the judge never trades honesty for time. |\n\nT0 and T1 never rank; they gate scheduling. The claimed (T2) and ranked (T3) numbers always keep the full dual boundary \u2014 the ranked number never excludes anything (TRACKS \u00a73.5).\n\n## Participate\n\n```sh\nstwo-perf clone ../work && cd ../work\nstwo-perf setup --board core_metal\nstwo-perf ladder t0 --board core_metal --class small --phase <phase> --predecessor <tree>\nstwo-perf ladder t1 --board core_metal --class small --predecessor <tree> --fast-boundary\nstwo-perf run --board core_metal --class small --predecessor <tree>\nstwo-perf submit\n```\n\n`--board core_metal` is explicit above because auto-routing only fires when the diff names a frontend or backend (TRACKS \u00a78); a diff that spans two frontends is refused rather than routed.\n\n**This track cannot promote today.** Runs still record evidence, and the ledger still serves history; no new row is scored until the manifest says otherwise.\n",
+    "objective": "Make the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.",
+    "path": "autoresearch/tasks/TASK.core_metal.md",
+    "title": "TASK \u2014 the `core_metal` track"
    }
   },
   "heavy_cairo": {
    "entries": [],
+   "era": {
+    "banked": false,
+    "closed_utc": null,
+    "epoch": 2,
+    "note": null,
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the epoch boundary prevents pre-xlarge history from diluting the new geomean",
+    "scored_dimension": "prove_ms",
+    "source": "global_epoch",
+    "status": "open"
+   },
    "frontier_by_class": {},
+   "phase_telemetry": null,
+   "retirement": null,
    "scored_classes": [],
-   "suite_score": null
+   "suite_score": null,
+   "supremacy": null,
+   "task": null
   },
   "heavy_native": {
    "entries": [],
+   "era": {
+    "banked": false,
+    "closed_utc": null,
+    "epoch": 2,
+    "note": null,
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the epoch boundary prevents pre-xlarge history from diluting the new geomean",
+    "scored_dimension": "prove_ms",
+    "source": "global_epoch",
+    "status": "open"
+   },
    "frontier_by_class": {},
+   "phase_telemetry": null,
+   "retirement": null,
    "scored_classes": [],
-   "suite_score": null
+   "suite_score": null,
+   "supremacy": null,
+   "task": null
+  },
+  "pr6_supremacy": {
+   "entries": [],
+   "era": {
+    "banked": false,
+    "closed_utc": null,
+    "epoch": 2,
+    "note": null,
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the epoch boundary prevents pre-xlarge history from diluting the new geomean",
+    "scored_dimension": "prove_ms",
+    "source": "global_epoch",
+    "status": "open"
+   },
+   "frontier_by_class": {
+    "deep": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 1051,
+       "seconds": 700340
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    },
+    "huge": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 1051,
+       "seconds": 700340
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    },
+    "small": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 1051,
+       "seconds": 700340
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    },
+    "wide": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 1051,
+       "seconds": 700340
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    },
+    "xlarge": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 1051,
+       "seconds": 700340
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    }
+   },
+   "phase_telemetry": null,
+   "retirement": null,
+   "scored_classes": [
+    "small",
+    "wide",
+    "deep",
+    "xlarge",
+    "huge"
+   ],
+   "suite_score": {
+    "active_credit_events": {
+     "deep": 0,
+     "huge": 0,
+     "small": 0,
+     "wide": 0,
+     "xlarge": 0
+    },
+    "audited_class_ratios": {
+     "deep": 1.0,
+     "huge": 1.0,
+     "small": 1.0,
+     "wide": 1.0,
+     "xlarge": 1.0
+    },
+    "audited_ratio_geomean": 1.0,
+    "class_ratios": {
+     "deep": 1.0,
+     "huge": 1.0,
+     "small": 1.0,
+     "wide": 1.0,
+     "xlarge": 1.0
+    },
+    "classes": [
+     "small",
+     "wide",
+     "deep",
+     "xlarge",
+     "huge"
+    ],
+    "epoch": 2,
+    "index": 100.0,
+    "method": "metrics_v2_scored_class_geomean_v2",
+    "ratio_geomean": 1.0,
+    "speedup": 1.0
+   },
+   "supremacy": {
+    "activated_utc": null,
+    "activation_state_path": null,
+    "board": "pr6_supremacy",
+    "peer_commit": "07ea1ccca13351028da94e66babf79e7ce91437f",
+    "peer_repository": "https://github.com/ClementWalter/stwo",
+    "reason": "PR6 Supremacy remains disabled until every exact workload port, log22 oracle vector, both timing boundaries, locked-M5 statistical gate, and authenticated judged verdict are complete.",
+    "state": "not_achieved",
+    "toolchain": "nightly-2025-07-14"
+   },
+   "task": {
+    "editable_paths": [
+     {
+      "glob": "src/backends/cpu_scalar/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/backend/proof_program.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/backends/cuda/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/integrations/native_cuda/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/backends/metal/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/fields/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/crypto/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/fri/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/pcs/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/poly/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/pcs/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/vcs_lifted/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/air/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/fri.zig",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/session.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/work_pool.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/fft_pool.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/resident_storage.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/integrations/native/**",
+      "min_rung": "s3"
+     }
+    ],
+    "markdown": "<!-- GENERATED by `stwo-perf task --write` from autoresearch/MANIFEST.json and autoresearch/ledger/epochs.json. Do not edit by hand: edit the manifest, then regenerate. -->\n\n# TASK \u2014 the `pr6_supremacy` track\n\nMake the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.\n\nThis brief is generated from `autoresearch/MANIFEST.json` and `autoresearch/ledger/epochs.json`. Those documents are the contract; this file is a view of them. Regenerate with `stwo-perf task --board pr6_supremacy`.\n\n## Track state\n\n- **Board**: `pr6_supremacy` \u00b7 **group**: `pr6_supremacy` \u00b7 **report schema**: `pr6_supremacy_v1`\n- **Enabled**: no \u00b7 **promotion eligible**: no\n- **Build**: `zig build benchmark-native-cpu native-proof-bench-metal -Doptimize=ReleaseFast` \u2192 `autoresearch/reference/measure_peer_series.py`\n- **Disabled because**: PR6 Supremacy remains disabled until every exact workload port, log22 oracle vector, both timing boundaries, locked-M5 statistical gate, and authenticated judged verdict are complete.\n- **Era**: none declared; the board falls back to global epoch `2`.\n- **Scored boundary**: `prove_ms`\n\n## Scored basket\n\n| class | workload | unit |\n| --- | --- | --- |\n| `wide` | `pr6_wide_fibonacci_log14` | committed cells |\n| `wide` | `pr6_wide_fibonacci_log16` | committed cells |\n| `xlarge` | `pr6_wide_fibonacci_log18` | committed cells |\n| `huge` | `pr6_wide_fibonacci_log20` | committed cells |\n| `deep` | `pr6_blake_log10` | Blake scheduler rows |\n| `deep` | `pr6_blake_log12` | Blake scheduler rows |\n| `deep` | `pr6_blake_log14` | Blake scheduler rows |\n| `deep` | `pr6_blake_log16` | Blake scheduler rows |\n| `deep` | `pr6_plonk_log12` | Plonk gates |\n| `deep` | `pr6_plonk_log14` | Plonk gates |\n| `deep` | `pr6_plonk_log16` | Plonk gates |\n| `small` | `pr6_fixed_wide_fibonacci_log4` | committed cells |\n| `small` | `pr6_fixed_wide_fibonacci_log5` | committed cells |\n| `small` | `pr6_fixed_wide_fibonacci_log6` | committed cells |\n| `small` | `pr6_fixed_wide_fibonacci_log7` | committed cells |\n| `small` | `pr6_fixed_wide_fibonacci_log8` | committed cells |\n| `small` | `pr6_state_machine_log8` | state-machine rows |\n\nScores are compared only inside one era on one board. A number from another track, another era, or another boundary is not a comparison (TRACKS \u00a73, \u00a77).\n\n## Editable paths for THIS track\n\n| path | minimum acceptance rung |\n| --- | --- |\n| `src/backend/proof_program.zig` | `s4` |\n| `src/backends/cpu_scalar/**` | `s3` |\n| `src/backends/cuda/**` | `s3` |\n| `src/backends/metal/**` | `s3` |\n| `src/core/crypto/**` | `s3` |\n| `src/core/fields/**` | `s3` |\n| `src/core/fri/**` | `s3` |\n| `src/core/pcs/**` | `s3` |\n| `src/integrations/native/**` | `s3` |\n| `src/integrations/native_cuda/**` | `s3` |\n| `src/prover/air/**` | `s3` |\n| `src/prover/fft_pool.zig` | `s4` |\n| `src/prover/fri.zig` | `s3` |\n| `src/prover/pcs/**` | `s3` |\n| `src/prover/poly/**` | `s3` |\n| `src/prover/resident_storage.zig` | `s4` |\n| `src/prover/session.zig` | `s4` |\n| `src/prover/vcs_lifted/**` | `s3` |\n| `src/prover/work_pool.zig` | `s4` |\n\nEverything else is out of scope for this track. Frontend sources are editable **only** by their own track: a Cairo submission may edit `src/frontends/cairo/**`, and the same edit is an out-of-scope stray on a native or RISC-V submission (G2 fails).\n\nLocked paths (never editable by any track): `autoresearch/**`, `scripts/**`, `vectors/**`, `conformance/**`, `build.zig`, `build.zig.zon`, `build/**`, `src/bench/**`, `src/tests/**`, `src/interop/**`, `.github/**`\n\n## Regression guards\n\nThis track binds **no guard registry**: TRACKS \u00a73.4/\u00a78: the supremacy board's driver is a peer-measurement script, not a bench binary that accepts guard args, and its 18 mandatory cells ARE the regression surface \u2014 every cell must win in both boundaries, so a separate guard portfolio would only re-measure the same statements.\n\n## Correctness oracle\n\n- **Authority**: `pinned-rust-stwo`\n- **Repository**: https://github.com/starkware-libs/stwo @ `a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2`\n- **Performance peer**: https://github.com/ClementWalter/stwo @ `07ea1ccca13351028da94e66babf79e7ce91437f`\n- **Peer toolchain**: `nightly-2025-07-14`\n- The oracle is the **final correctness authority**: a proof it refuses is not a proof, whatever the harness measured.\n\n## Confirmation ladder\n\n| tier | cost target | what it buys |\n| --- | --- | --- |\n| `T0` | 30 s | correctness smoke plus ONE stage-profiled sample on the proxy fixture; the claimed phase must move here before T1 is scheduled. One warmup is the floor, not a nicety: the Cairo arm records its mandatory phase profile on a discarded warmup, so warmups=0 would leave that track with no phase evidence at all. |\n| `T1` | 300 s | paired ABBA on proxy fixtures with sequential early stopping and the PoW-excluded boundary; never ranks. |\n| `T2` | 2700 s | full dual-boundary paired run on the contributor host, real classes, guards impact-mapped; the claimed verdict. |\n| `T3` | judge-scheduled | judge-scheduled re-run plus audits on the designated host; the scored row. No cost target \u2014 the judge never trades honesty for time. |\n\nT0 and T1 never rank; they gate scheduling. The claimed (T2) and ranked (T3) numbers always keep the full dual boundary \u2014 the ranked number never excludes anything (TRACKS \u00a73.5).\n\n## Participate\n\n```sh\nstwo-perf clone ../work && cd ../work\nstwo-perf setup --board pr6_supremacy\nstwo-perf ladder t0 --board pr6_supremacy --class small --phase <phase> --predecessor <tree>\nstwo-perf ladder t1 --board pr6_supremacy --class small --predecessor <tree> --fast-boundary\nstwo-perf run --board pr6_supremacy --class small --predecessor <tree>\nstwo-perf submit\n```\n\n`--board pr6_supremacy` is explicit above because auto-routing only fires when the diff names a frontend or backend (TRACKS \u00a78); a diff that spans two frontends is refused rather than routed.\n\n**This track cannot promote today.** Runs still record evidence, and the ledger still serves history; no new row is scored until the manifest says otherwise.\n",
+    "objective": "Make the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.",
+    "path": "autoresearch/tasks/TASK.pr6_supremacy.md",
+    "title": "TASK \u2014 the `pr6_supremacy` track"
+   }
   },
   "riscv": {
    "entries": [
@@ -8325,13 +9515,25 @@
      "workload_class": "wide"
     }
    ],
+   "era": {
+    "banked": false,
+    "closed_utc": null,
+    "epoch": 2,
+    "note": "TRACKS \u00a73.1 re-scores this board to the verified-request boundary at its NEXT era. Era 3 stays unopened until the M5 judge host recalibrates at that boundary; schema/scoring.md carries the exact era-3 record template and the operator commands.",
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring; the RISC-V board's frozen same-host M5 A/A dispersion enters with it",
+    "scored_dimension": "prove_ms",
+    "source": "board_era",
+    "status": "open"
+   },
    "frontier_by_class": {
     "deep": {
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1051,
+       "seconds": 700340
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8521,8 +9723,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1051,
+       "seconds": 700340
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8637,8 +9839,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 880,
-       "seconds": 585749
+       "commits": 1051,
+       "seconds": 700340
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8751,6 +9953,8 @@
      }
     }
    },
+   "phase_telemetry": null,
+   "retirement": null,
    "scored_classes": [
     "small",
     "wide",
@@ -8783,13 +9987,122 @@
     "method": "metrics_v2_scored_class_geomean_v2",
     "ratio_geomean": 0.7106999888195409,
     "speedup": 1.4070634806973628
+   },
+   "supremacy": null,
+   "task": {
+    "editable_paths": [
+     {
+      "glob": "src/backends/cpu_scalar/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/backend/proof_program.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/backends/cuda/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/integrations/native_cuda/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/backends/metal/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/fields/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/crypto/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/fri/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/core/pcs/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/poly/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/pcs/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/vcs_lifted/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/air/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/fri.zig",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/prover/session.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/work_pool.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/fft_pool.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/prover/resident_storage.zig",
+      "min_rung": "s4"
+     },
+     {
+      "glob": "src/frontends/riscv/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/integrations/riscv_cpu/**",
+      "min_rung": "s3"
+     },
+     {
+      "glob": "src/integrations/riscv_metal/**",
+      "min_rung": "s3"
+     }
+    ],
+    "markdown": "<!-- GENERATED by `stwo-perf task --write` from autoresearch/MANIFEST.json and autoresearch/ledger/epochs.json. Do not edit by hand: edit the manifest, then regenerate. -->\n\n# TASK \u2014 the `riscv` track\n\nMake the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.\n\nThis brief is generated from `autoresearch/MANIFEST.json` and `autoresearch/ledger/epochs.json`. Those documents are the contract; this file is a view of them. Regenerate with `stwo-perf task --board riscv`.\n\n## Track state\n\n- **Board**: `riscv` \u00b7 **group**: `riscv` \u00b7 **report schema**: `riscv_proof_v2`\n- **Enabled**: yes \u00b7 **promotion eligible**: yes\n- **Build**: `zig build stwo-zig -Doptimize=ReleaseFast` \u2192 `zig-out/bin/stwo-zig`\n- **Era**: 2 (epoch `2`), status `open`, opened 2026-07-21T16:00:00Z\n- **Era opened because**: Metrics v2 opens audit-anchored scoring; the RISC-V board's frozen same-host M5 A/A dispersion enters with it\n- **Scored boundary**: `prove_ms`\n- **Era note**: TRACKS \u00a73.1 re-scores this board to the verified-request boundary at its NEXT era. Era 3 stays unopened until the M5 judge host recalibrates at that boundary; schema/scoring.md carries the exact era-3 record template and the operator commands.\n\n## Scored basket\n\n| class | workload | unit |\n| --- | --- | --- |\n| `small` | `riscv_alu_test` | executed instructions |\n| `small` | `riscv_branch_fib` | executed instructions |\n| `small` | `riscv_declared_region` | executed instructions |\n| `small` | `riscv_jal_jalr` | executed instructions |\n| `small` | `riscv_mem_ls` | executed instructions |\n| `small` | `riscv_shift_logic` | executed instructions |\n| `wide` | `riscv_memcpy_loop` | executed instructions |\n| `wide` | `riscv_sieve_primes` | executed instructions |\n| `wide` | `riscv_bubble_sort` | executed instructions |\n| `wide` | `riscv_collatz` | executed instructions |\n| `wide` | `riscv_keccak_128b` | executed instructions |\n| `wide` | `riscv_sha2_128b` | executed instructions |\n| `wide` | `riscv_sha2_256b` | executed instructions |\n| `deep` | `riscv_xorshift_prng` | executed instructions |\n| `deep` | `riscv_fib_iter` | executed instructions |\n| `deep` | `riscv_gcd_euclid` | executed instructions |\n| `deep` | `riscv_multi_shard_addi` | executed instructions |\n| `deep` | `riscv_sha2_512b` | executed instructions |\n| `deep` | `riscv_sha2_1024b` | executed instructions |\n| `deep` | `riscv_sha2_2048b` | executed instructions |\n\nScores are compared only inside one era on one board. A number from another track, another era, or another boundary is not a comparison (TRACKS \u00a73, \u00a77).\n\n## Editable paths for THIS track\n\n| path | minimum acceptance rung |\n| --- | --- |\n| `src/backend/proof_program.zig` | `s4` |\n| `src/backends/cpu_scalar/**` | `s3` |\n| `src/backends/cuda/**` | `s3` |\n| `src/backends/metal/**` | `s3` |\n| `src/core/crypto/**` | `s3` |\n| `src/core/fields/**` | `s3` |\n| `src/core/fri/**` | `s3` |\n| `src/core/pcs/**` | `s3` |\n| `src/frontends/riscv/**` | `s3` |\n| `src/integrations/native_cuda/**` | `s3` |\n| `src/integrations/riscv_cpu/**` | `s3` |\n| `src/integrations/riscv_metal/**` | `s3` |\n| `src/prover/air/**` | `s3` |\n| `src/prover/fft_pool.zig` | `s4` |\n| `src/prover/fri.zig` | `s3` |\n| `src/prover/pcs/**` | `s3` |\n| `src/prover/poly/**` | `s3` |\n| `src/prover/resident_storage.zig` | `s4` |\n| `src/prover/session.zig` | `s4` |\n| `src/prover/vcs_lifted/**` | `s3` |\n| `src/prover/work_pool.zig` | `s4` |\n\nEverything else is out of scope for this track. Frontend sources are editable **only** by their own track: a Cairo submission may edit `src/frontends/cairo/**`, and the same edit is an out-of-scope stray on a native or RISC-V submission (G2 fails).\n\nLocked paths (never editable by any track): `autoresearch/**`, `scripts/**`, `vectors/**`, `conformance/**`, `build.zig`, `build.zig.zon`, `build/**`, `src/bench/**`, `src/tests/**`, `src/interop/**`, `.github/**`\n\n## Regression guards\n\nRegistry `riscv` \u2014 6 guard(s), run on this track's own binary (`zig-out/bin/stwo-zig`). A guard passes when its paired upper CI bound stays at or below `1.05`.\n\n- `guard_riscv_alu_test`\n- `guard_riscv_branch_fib`\n- `guard_riscv_declared_region`\n- `guard_riscv_jal_jalr`\n- `guard_riscv_mem_ls`\n- `guard_riscv_shift_logic`\n\nImpact map (which edits select which guards):\n\n| editable path prefix | guards |\n| --- | --- |\n| `src/frontends/riscv/` | all |\n| `src/integrations/riscv_cpu/` | all |\n| `src/integrations/riscv_metal/` | all |\n| `src/prover/` | all |\n| `src/core/fri/` | all |\n| `src/core/pcs/` | all |\n| `src/core/fields/` | all |\n| `src/core/crypto/` | all |\n| `src/backends/cpu_scalar/` | all |\n| `src/backends/metal/` | none |\n\nAn editable path that matches no rule selects **every** guard in the registry (fail closed).\n\n## Correctness oracle\n\n- **Authority**: `sail-riscv`\n- **Repository**: https://github.com/riscv/sail-riscv @ `8c7f2da58de0ba5e4457e4de07e0046f0439f35f`\n- The oracle is the **final correctness authority**: a proof it refuses is not a proof, whatever the harness measured.\n\n## Confirmation ladder\n\n| tier | cost target | what it buys |\n| --- | --- | --- |\n| `T0` | 30 s | correctness smoke plus ONE stage-profiled sample on the proxy fixture; the claimed phase must move here before T1 is scheduled. One warmup is the floor, not a nicety: the Cairo arm records its mandatory phase profile on a discarded warmup, so warmups=0 would leave that track with no phase evidence at all. |\n| `T1` | 300 s | paired ABBA on proxy fixtures with sequential early stopping and the PoW-excluded boundary; never ranks. |\n| `T2` | 2700 s | full dual-boundary paired run on the contributor host, real classes, guards impact-mapped; the claimed verdict. |\n| `T3` | judge-scheduled | judge-scheduled re-run plus audits on the designated host; the scored row. No cost target \u2014 the judge never trades honesty for time. |\n\nT0 and T1 never rank; they gate scheduling. The claimed (T2) and ranked (T3) numbers always keep the full dual boundary \u2014 the ranked number never excludes anything (TRACKS \u00a73.5).\n\n## Participate\n\n```sh\nstwo-perf clone ../work && cd ../work\nstwo-perf setup --board riscv\nstwo-perf ladder t0 --board riscv --class small --phase <phase> --predecessor <tree>\nstwo-perf ladder t1 --board riscv --class small --predecessor <tree> --fast-boundary\nstwo-perf run --board riscv --class small --predecessor <tree>\nstwo-perf submit\n```\n\n`--board riscv` is explicit above because auto-routing only fires when the diff names a frontend or backend (TRACKS \u00a78); a diff that spans two frontends is refused rather than routed.\n",
+    "objective": "Make the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.",
+    "path": "autoresearch/tasks/TASK.riscv.md",
+    "title": "TASK \u2014 the `riscv` track"
    }
   },
   "stream": {
    "entries": [],
+   "era": {
+    "banked": false,
+    "closed_utc": null,
+    "epoch": 2,
+    "note": null,
+    "number": 2,
+    "opened_utc": "2026-07-21T16:00:00Z",
+    "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the epoch boundary prevents pre-xlarge history from diluting the new geomean",
+    "scored_dimension": "prove_ms",
+    "source": "global_epoch",
+    "status": "open"
+   },
    "frontier_by_class": {},
+   "phase_telemetry": null,
+   "retirement": null,
    "scored_classes": [],
-   "suite_score": null
+   "suite_score": null,
+   "supremacy": null,
+   "task": null
   }
  },
  "epoch": {
@@ -8815,9 +10128,11 @@
     "wide": 0.014801
    }
   },
-  "number": 2
+  "number": 2,
+  "opened_utc": "2026-07-21T16:00:00Z",
+  "reason": "Metrics v2 opens audit-anchored scoring and the manifest-owned five-class native scoring universe; the epoch boundary prevents pre-xlarge history from diluting the new geomean"
  },
- "feed_schema_version": 3,
+ "feed_schema_version": 4,
  "history": {
   "comparisons": 34,
   "runs": [
@@ -8989,6 +10304,8 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 0.9651272384542884,
       "peak_rss_mib": 13.88,
       "prove_ms": 1.061,
@@ -9008,6 +10325,8 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 18,
       "native_mhz": 0.4123973738664106,
@@ -9044,6 +10363,8 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 3.2930459127057423,
       "peak_rss_mib": 34.36,
       "prove_ms": 4.975333,
@@ -9063,6 +10384,8 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 22,
       "native_mhz": 3.546896141148455,
@@ -9099,6 +10422,8 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 3.904486871210558,
       "peak_rss_mib": 113.45,
       "prove_ms": 16.784792,
@@ -9118,6 +10443,8 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 25,
       "native_mhz": 4.764262217618087,
@@ -9154,6 +10481,8 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 3.8839987265111593,
       "peak_rss_mib": 42.2,
       "prove_ms": 4.218333,
@@ -9173,6 +10502,8 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 24,
       "native_mhz": 4.306337681111805,
@@ -9210,6 +10541,8 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 5.718257502028212,
       "peak_rss_mib": 73.16,
       "prove_ms": 11.460834,
@@ -9229,6 +10562,8 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 26,
       "native_mhz": 10.283315251962877,
@@ -9266,6 +10601,8 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 3.778016619675894,
       "peak_rss_mib": 31.03,
       "prove_ms": 4.336667,
@@ -9285,6 +10622,8 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 24,
       "native_mhz": 4.070516531256071,
@@ -9320,6 +10659,8 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 5.638455061936453,
       "peak_rss_mib": 94.48,
       "prove_ms": 11.623042,
@@ -9339,6 +10680,8 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 26,
       "native_mhz": 9.596836511558129,
@@ -9374,6 +10717,8 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 3.8597513730222133,
       "peak_rss_mib": 28.48,
       "prove_ms": 4.244833,
@@ -9393,6 +10738,8 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 24,
       "native_mhz": 4.3786998062403955,
@@ -9430,6 +10777,8 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 5.582322260029606,
       "peak_rss_mib": 81.41,
       "prove_ms": 11.739917,
@@ -9449,6 +10798,8 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 26,
       "native_mhz": 10.20485384555255,
@@ -9486,6 +10837,8 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 1.0508087584499544,
       "peak_rss_mib": 39.11,
       "prove_ms": 9.744875,
@@ -9505,6 +10858,8 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 18,
       "native_mhz": 1.4067141753241177,
@@ -9541,6 +10896,8 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 4.235404363947749,
       "peak_rss_mib": 275.5,
       "prove_ms": 15.473375,
@@ -9560,6 +10917,8 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 20,
       "native_mhz": 2.328544082573493,
@@ -9596,6 +10955,8 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 0.35223294705808095,
       "peak_rss_mib": 31.92,
       "prove_ms": 2.907167,
@@ -9615,6 +10976,8 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 15,
       "native_mhz": 0.21451576209028847,
@@ -9650,6 +11013,8 @@
     "headline_eligible": true,
     "lanes": {
      "cpu": {
+      "backend": "cpu_native",
+      "board": "core_cpu",
       "native_mhz": 0.6418239332478038,
       "peak_rss_mib": 40.81,
       "prove_ms": 12.763625,
@@ -9669,6 +11034,8 @@
       }
      },
      "metal": {
+      "backend": "metal_hybrid",
+      "board": "core_hybrid",
       "cpu_fallbacks_per_proof": 0,
       "metal_dispatches_per_proof": 18,
       "native_mhz": 0.9287981859410431,
@@ -9794,19 +11161,62 @@
    }
   },
   "future_boards": [
+   "cairo_cpu",
+   "cairo_metal",
    "core_cuda",
    "core_hybrid",
    "heavy_cairo",
    "heavy_native",
+   "pr6_supremacy",
    "stream"
   ],
   "groups": {
+   "cairo_cpu": {
+    "board": "cairo_cpu",
+    "disabled_reason": null,
+    "enabled": true,
+    "promotion_blocked_reason": "TRACKS \u00a77: cairo_cpu records evidence but cannot promote until per-(board, class) A/A dispersion and anchors are measured on the designated Apple M5 Max judge host and frozen into harness.anchor_* plus a cairo calibration freeze for board cairo_cpu. No Cairo calibration exists yet, so promotion fails closed; the gate opens only after that M5 calibration is committed.",
+    "promotion_eligible": false,
+    "report_schema": "cairo_proof_v1",
+    "retirement": null,
+    "workloads": {
+     "cairo_all_builtins": {
+      "class": "wide",
+      "native_unit": "committed cells"
+     },
+     "cairo_all_opcodes": {
+      "class": "small",
+      "native_unit": "committed cells"
+     }
+    }
+   },
+   "cairo_metal": {
+    "board": "cairo_metal",
+    "disabled_reason": "cairo_metal is staged only: TRACKS \u00a72 records the Cairo + Metal product as parity_gated, not released. The product descriptor in build_support/products/cairo_metal.zig still carries state .parity_gated behind its test-cairo-metal-product and test-cairo-metal-oracle release gates, no Metal-lane Cairo calibration exists on the designated judge host, and the generalized per-board Metal calibration (TRACKS \u00a77) is not yet built. The group stays dark and fails closed.",
+    "enabled": false,
+    "promotion_blocked_reason": "TRACKS \u00a77: no cairo_metal calibration exists on the designated Apple M5 Max judge host, and the product is parity_gated rather than released.",
+    "promotion_eligible": false,
+    "report_schema": "cairo_proof_v1",
+    "retirement": null,
+    "workloads": {
+     "mcairo_all_builtins": {
+      "class": "wide",
+      "native_unit": "committed cells"
+     },
+     "mcairo_all_opcodes": {
+      "class": "small",
+      "native_unit": "committed cells"
+     }
+    }
+   },
    "cuda": {
     "board": "core_cuda",
     "disabled_reason": "core_cuda is staged only: all six Native AIR families are required, but only wide Fibonacci is exact and release-ready; exact family semantics, the stwo-perf CUDA report adapter, locked-host A/A calibration, pinned Rust verification, and complete structural coverage are not yet release-gated.",
     "enabled": false,
+    "promotion_blocked_reason": null,
     "promotion_eligible": false,
     "report_schema": "native_cuda_product_v6",
+    "retirement": null,
     "workloads": {
      "cuda_poseidon_log10": {
       "class": "small",
@@ -9854,8 +11264,14 @@
     "board": "core_metal",
     "disabled_reason": null,
     "enabled": true,
-    "promotion_eligible": true,
+    "promotion_blocked_reason": "TRACKS \u00a76 retire-and-complete: the native Metal era is banked. New promotions refuse; the board stays enabled so its history, final scores, guard workloads, and PR6-supremacy cells keep running.",
+    "promotion_eligible": false,
     "report_schema": "native_proof_v7",
+    "retirement": {
+     "closing_audit": null,
+     "reason": "TRACKS \u00a76 retire-and-complete: the native era is banked; history stays served; the native AIRs continue as PR6-supremacy cells and guard workloads",
+     "retired_at_utc": "2026-07-29T00:00:00Z"
+    },
     "workloads": {
      "mplonk_log14": {
       "class": "deep",
@@ -9883,8 +11299,14 @@
     "board": "core_cpu",
     "disabled_reason": null,
     "enabled": true,
-    "promotion_eligible": true,
+    "promotion_blocked_reason": "TRACKS \u00a76 retire-and-complete: the native CPU era is banked. New promotions refuse; the board stays enabled so its history, final scores, guard workloads, and PR6-supremacy cells keep running.",
+    "promotion_eligible": false,
     "report_schema": "native_proof_v7",
+    "retirement": {
+     "closing_audit": null,
+     "reason": "TRACKS \u00a76 retire-and-complete: the native era is banked; history stays served; the native AIRs continue as PR6-supremacy cells and guard workloads",
+     "retired_at_utc": "2026-07-29T00:00:00Z"
+    },
     "workloads": {
      "plonk_log14": {
       "class": "deep",
@@ -9912,8 +11334,10 @@
     "board": "pr6_supremacy",
     "disabled_reason": "PR6 Supremacy remains disabled until every exact workload port, log22 oracle vector, both timing boundaries, locked-M5 statistical gate, and authenticated judged verdict are complete.",
     "enabled": false,
+    "promotion_blocked_reason": null,
     "promotion_eligible": false,
     "report_schema": "pr6_supremacy_v1",
+    "retirement": null,
     "workloads": {
      "pr6_blake_log10": {
       "class": "deep",
@@ -9993,8 +11417,10 @@
     "board": "riscv",
     "disabled_reason": null,
     "enabled": true,
+    "promotion_blocked_reason": null,
     "promotion_eligible": true,
     "report_schema": "riscv_proof_v2",
+    "retirement": null,
     "workloads": {
      "riscv_alu_test": {
       "class": "small",
@@ -10080,12 +11506,18 @@
    }
   },
   "owned_boards": [
-   "core_cpu",
-   "core_metal",
    "riscv"
   ],
+  "retired_boards": [
+   "core_cpu",
+   "core_metal"
+  ],
   "staged_boards": [
+   "cairo_cpu",
+   "cairo_metal",
+   "core_cpu",
    "core_cuda",
+   "core_metal",
    "pr6_supremacy"
   ]
  },
@@ -10093,8 +11525,8 @@
   "determinism": "pure function of the named inputs; a committed feed names the commit it was generated FROM (one-commit lag by construction) \u2014 verify via inputs_sha256, not commit equality",
   "dirty_inputs": [],
   "inputs_sha256": {
-   "autoresearch/MANIFEST.json": "6f4ec3341956ac9bd2484de229e99a69d986e2e82af8286c99584475c6582bda",
-   "autoresearch/ledger/epochs.json": "60162d440a812415d2943b1c1a2317b70be5fda727fae7eaa5c75ff408c4f7f5",
+   "autoresearch/MANIFEST.json": "edc8b559a33a459d45612276bfec4a0a2f54fdba683e74442ba5ff5e5b04ebd5",
+   "autoresearch/ledger/epochs.json": "788378df0d2c39c52f905b9241e120d1b2b030bbf36e4e81dbc8c7e6b8c1a2f4",
    "autoresearch/ledger/promotions.tsv": "65ebaae10a028ea4dc7267a9cc8dc68b0c5bfc713218103047cb99054d64d676",
    "autoresearch/reference/metal-calibration-epoch-2.json": "e1a733f19dfe552389e25ff71d487cb889a3117b7fd71ea47c28cbc9000147df",
    "autoresearch/reference/peer-relative-series.json": "b85b4f079b69db227b120c16c965667070f40a67d1b37590a490b3ab514a3b2a",
@@ -10249,8 +11681,8 @@
    "vectors/reports/benchmark_history/index.json": "2df531dbefbd60f078b4c4a0b1c10c00a577832cd35520e065b430c61e6903f0",
    "vectors/reports/benchmark_history/runs/2026-07-23-110359-matrix-v6-e58b4d1e/report.json": "e772acbf9f58ff3916f2ffe91016ebc28bc6aadc75c6e68d5fd43ef3023d7be3"
   },
-  "repo_commit": "22ff811600ef",
-  "repo_commit_time": "2026-07-28T12:29:56+01:00"
+  "repo_commit": "4711d3d20aab",
+  "repo_commit_time": "2026-07-29T20:19:47+01:00"
  },
  "references": {
   "metal_calibration_epoch_2": {
@@ -16889,6 +18321,78 @@
  },
  "search_health": {
   "boards": {
+   "cairo_cpu": {
+    "classes": {
+     "small": {
+      "available": false,
+      "available_points": 0,
+      "decay": [],
+      "latest": null,
+      "time_series": [],
+      "trailing": {
+       "credited_ln_improvement": null,
+       "credited_ln_improvement_per_measurement_hour": null,
+       "measurement_wall_hours": null,
+       "median_gradient_snr": null,
+       "points": 0
+      },
+      "trailing_window": 8,
+      "unavailable_points": 0
+     },
+     "wide": {
+      "available": false,
+      "available_points": 0,
+      "decay": [],
+      "latest": null,
+      "time_series": [],
+      "trailing": {
+       "credited_ln_improvement": null,
+       "credited_ln_improvement_per_measurement_hour": null,
+       "measurement_wall_hours": null,
+       "median_gradient_snr": null,
+       "points": 0
+      },
+      "trailing_window": 8,
+      "unavailable_points": 0
+     }
+    }
+   },
+   "cairo_metal": {
+    "classes": {
+     "small": {
+      "available": false,
+      "available_points": 0,
+      "decay": [],
+      "latest": null,
+      "time_series": [],
+      "trailing": {
+       "credited_ln_improvement": null,
+       "credited_ln_improvement_per_measurement_hour": null,
+       "measurement_wall_hours": null,
+       "median_gradient_snr": null,
+       "points": 0
+      },
+      "trailing_window": 8,
+      "unavailable_points": 0
+     },
+     "wide": {
+      "available": false,
+      "available_points": 0,
+      "decay": [],
+      "latest": null,
+      "time_series": [],
+      "trailing": {
+       "credited_ln_improvement": null,
+       "credited_ln_improvement_per_measurement_hour": null,
+       "measurement_wall_hours": null,
+       "median_gradient_snr": null,
+       "points": 0
+      },
+      "trailing_window": 8,
+      "unavailable_points": 0
+     }
+    }
+   },
    "core_cpu": {
     "classes": {
      "deep": {

@@ -170,8 +170,12 @@ class ManifestTest(unittest.TestCase):
         self.assertIn("native", by_id)
         self.assertIn("riscv", by_id)
         native, riscv = by_id["native"], by_id["riscv"]
+        # TRACKS §6 retire-and-complete: the native board stays ENABLED — its
+        # history, guard workloads, and PR6-supremacy cells keep running — but
+        # it no longer accepts promotions.
         self.assertTrue(native.enabled)
-        self.assertTrue(native.promotion_eligible)
+        self.assertFalse(native.promotion_eligible)
+        self.assertTrue(native.retirement)
         self.assertEqual(native.board, "core_cpu")
         self.assertEqual(native.binary, "zig-out/bin/native-proof-bench-cpu")
         self.assertEqual(native.report_schema, "native_proof_v7")

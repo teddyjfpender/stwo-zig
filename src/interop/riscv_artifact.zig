@@ -4,7 +4,12 @@
 //! source ELF identity, and the exact security profile.
 
 const std = @import("std");
-const atomic_file = @import("atomic_file.zig");
+/// Public because a product facade whose module root is not `src/` cannot reach
+/// this file with a relative import and cannot be handed a second module rooted
+/// at it either (a file belongs to exactly one module). Such a facade re-exports
+/// the atomic publication primitive from here, which is where this artifact
+/// writer already publishes through.
+pub const atomic_file = @import("atomic_file.zig");
 const schema = @import("riscv_artifact/schema.zig");
 const validation = @import("riscv_artifact/validation.zig");
 const digest = @import("riscv_artifact/digest.zig");

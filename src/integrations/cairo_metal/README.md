@@ -50,9 +50,9 @@ const before = try Transaction.telemetrySnapshot();
 | Area | Exports |
 | :--- | :--- |
 | Transaction and interaction | `prover`, `interaction_executor`, `resident_lookup` |
-| Arena and scheduling | `arena_binding`, `schedule_bindings`, `recipe_requirements`, `composition_prewarm` |
+| Arena and scheduling | `arena_binding`, `schedule_bindings`, `recipe_requirements`, `composition_eval_arena`, `composition_prewarm`, `composition_stage` |
 | Cairo proof stages | `memory_trace`, `oods`, `quotient_inputs`, `quotient_reference`, `runtime_decommit_geometry` |
-| Generated programs | `eval_codegen`, `witness_codegen`, `witness_aot` |
+| Generated programs | `composition_aot`, `eval_codegen`, `witness_codegen`, `witness_aot` |
 | Persistent process | `process_backend`, `process_runner` |
 
 The transaction exposes runtime initialization, telemetry/lifecycle snapshots,

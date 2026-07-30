@@ -39,10 +39,31 @@ const common_allowed_prefixes = [_][]const u8{
 
 const metal_allowed_files = common_allowed_files ++ .{
     metal_facade,
+    "src/backends/metal/arena_plan.zig",
+    "src/backends/metal/cairo/diagnostics/transcript_fixture.zig",
+    "src/backends/metal/command_epoch.zig",
+    "src/backends/metal/commit_backend.zig",
+    "src/backends/metal/commit_policy.zig",
+    "src/backends/metal/core_aot.zig",
+    "src/backends/metal/host_primitives.zig",
+    "src/backends/metal/merkle_tree.zig",
+    "src/backends/metal/mod.zig",
+    "src/backends/metal/protocol_recipes.zig",
+    "src/backends/metal/prover_engine.zig",
+    "src/backends/metal/recovery.zig",
+    "src/backends/metal/resident_arena.zig",
+    "src/backends/metal/runtime.zig",
+    "src/backends/metal/shader_manifest.zig",
+    "src/backends/metal/shared_runtime.zig",
+    "src/backends/metal/source_contract.zig",
+    "src/backends/metal/telemetry.zig",
 };
 
 const metal_allowed_prefixes = common_allowed_prefixes ++ .{
-    "src/backends/metal",
+    "src/backends/metal/recipes",
+    "src/backends/metal/runtime",
+    "src/backends/metal/shaders",
+    "src/backends/metal/tests",
 };
 
 const shared_named_imports = [_]policy.NamedImport{
