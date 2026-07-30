@@ -1,13 +1,17 @@
 # Universal AIR → Sail refinement engineering plan
 
-**Status:** production AIR-to-normalized composition is complete for LUI and
-ADDI, and a checked AST receipt binds their normalized execute clauses to exact
-pinned generated-Sail slices. A direct cross-project Lean bridge now proves
-generated Sail step-monad composition for the LUI/ADDI execute clauses and
-their sequential next-PC/tick fragment. Full fetch/interrupt/trap/counter and
-later-step framing, Team A's remaining 22 opcode proofs, and the aggregate
-46-opcode gate remain open. Team B's 22 opcode proofs are complete at
-reviewed-capsule grade, not publication grade.
+**Status:** the issue #136 graded integration is complete at its declared
+boundary. The committed
+[revision-bound release receipt](../formal/riscv-refinement/refinement-receipt.json)
+records 24/24 Team A production-AIR refinements, 22/22 Team B reviewed-capsule
+refinements, an exact 46/46 graded opcode index, 24/24 Team A generated-Sail
+execute-clause input bindings, 2/46 normalized retirements, 0/46
+publication-level opcodes, `full_generated_sail_step = false`, and
+`whole_frontend_verified = false`. LUI and ADDI have the stronger generated
+Sail execute-clause monad plus sequential next-PC/tick composition. Full
+generated-Sail retirement normalization, accepted-AIR soundness, trace
+composition, the M31/Word32 boundary, and independent sign-off remain open
+under the normative closure gates in §15.1.
 
 **Primary result:** machine-check, for every input admitted by each of the 46
 proof opcodes, that satisfaction of the shipped row AIR and its exact local
@@ -57,13 +61,14 @@ LUI/ADDI, and binds every RISC-V frontend source plus the generator and proof
 closure by SHA-256. Independently of that Level-1 normalizer, every production
 family now uses one typed `ConstraintProgram` for direct evaluation, lookup
 lowering, and canonical AIR IR v2 serialization, producing exactly 46
-source-bound selector artifacts. LUI and ADDI are strictly decoded and
-evaluated over M31 in Lean, including fixed-table membership, ordered relation
-events, and architectural projection; their evaluated programs compose with
-`LuiHolds` and `AddiHolds`. The Sail side uses the pinned repository and
-compiler, constructs the exact `rv32im-zkvm-v1` configuration from the
-normative overrides, validates that it reports `rv32im`, generates the theorem
-backend under that configuration, and pins the complete generated file. Exact
+source-bound selector artifacts. All 24 Team A selectors are strictly decoded
+and evaluated over M31 in Lean, including fixed-table membership, ordered
+relation events, architectural projection, non-vacuity, and load-bearing
+mutations. Team B's 22 selectors retain their explicit reviewed-family-capsule
+grade. The Sail side uses the pinned repository and compiler, constructs the
+exact `rv32im-zkvm-v1` configuration from the normative overrides, validates
+that it reports `rv32im`, generates the theorem backend under that
+configuration, and pins the complete generated file. Exact
 `execute_UTYPE`/`execute_ITYPE`/`execute_RTYPE` slices are parsed fail-closed
 into a typed AST and a canonical receipt records their normalized selector
 effects. Direct generated-Lean equations additionally bind all 24 Team A
@@ -434,9 +439,13 @@ programs: a single typed `ConstraintProgram` builder is interpreted by
 production over concrete field expressions and lookup views, serialized by the
 exporter, and interpreted by Lean. A fresh-export equality gate prevents a
 shape-preserving replacement artifact from relying on self-authentication
-alone. LUI and ADDI additionally have the per-opcode theorems composing their
-evaluated projections with `LuiHolds` and `AddiHolds`; the remaining Team A
-opcodes still need that proof layer.
+alone. All 24 Team A selectors have per-opcode theorems over their exact
+generated local programs, tuple projections, non-vacuity witnesses, and
+mutations. The 22 Team B selectors remain bound to reviewed family capsules
+rather than exact generated local programs. Across both teams, only LUI and
+ADDI are normalized through generated Sail retirement; neither the remaining
+44 retirement normalizations nor the converse accepted-AIR soundness theorem
+is established.
 
 ## 7. Binding the proof to pinned Sail
 
@@ -623,7 +632,9 @@ only for straight-line ALU rows.
 
 The implementation scales by 17 AIR-family proof frameworks, but completion is
 tracked by opcode. A family theorem with an unproved selector case does not
-cover that opcode.
+cover that opcode. The graded rollout now covers exactly 46/46 selectors; the
+table remains the normative publication inventory, because a graded
+certificate is not automatically a generated-Sail retirement theorem.
 
 | AIR family | Opcodes | Count | Principal proof obligations | Risk |
 | --- | --- | ---: | --- | --- |
@@ -646,7 +657,7 @@ cover that opcode.
 | `fence` | FENCE | 1 | decode, PC+4, absence of effects | low |
 | **Total** |  | **46** |  |  |
 
-Recommended rollout order after the stress gate:
+Recommended promotion order from graded evidence to publication evidence:
 
 1. LUI, FENCE, JAL;
 2. base ALU register/immediate;
@@ -743,9 +754,9 @@ python3 scripts/riscv_refinement.py verify-receipt
 external theorem backend. The repository's existing
 `scripts/riscv_formal_tools.py` owns pinned checkout/compiler/simulator
 preparation. `riscv-refinement-pilot` first runs the dedicated production IR
-export and then checks byte-identical generation, 2/46 coverage, both negative
-controls, Python infrastructure tests, the pinned Lean build, and the complete
-axiom audit.
+export and then checks byte-identical generation, 2/46 normalized coverage,
+46/46 graded coverage, negative controls, Python infrastructure tests, the
+pinned Lean build, and the complete axiom audit.
 
 `--no-export-air` exists only so the root build step can consume the exporter
 it already depends on. Receipt generation rejects that switch and always
@@ -754,11 +765,20 @@ ignored `zig-out/uniqueness-ir` tree.
 
 ### 12.1 Required PR checks
 
-The public pilot gate is implemented. Making it a mandatory hosted CI check
-requires provisioning Sail 0.20.2 and the pinned external theorem backend on
-the runner; until that runner image exists it remains an explicit required
-review command rather than silently pretending to run in the generic release
-gate. Once provisioned, every PR touching the following surfaces triggers the
+The hosted gate is split by capability. On pull requests,
+`.github/workflows/riscv-team-b-refinement.yml` freshly exports all 17
+families and 46 selector programs, checks the grade-preserving certificate
+index, builds the complete Lean project, runs non-vacuity and mutation shards,
+scans for proof escapes, and audits axioms. It consumes the committed
+generated-Sail receipt and does not pretend to have regenerated Sail.
+`.github/workflows/riscv-sail-formal.yml` separately provisions Sail 0.20.2,
+regenerates the pinned theorem backend, runs the live pilot, and mints live
+evidence on pushes to `main`, schedules, and explicit dispatches. The focused
+RISC-V product and release gates also run the cheap aggregate certificate and
+current-source identity check; that check detects stale formal inputs but does
+not substitute for a Lean or live-Sail run.
+
+Every pull request touching the following surfaces triggers the fast
 refinement build:
 
 - `src/frontends/riscv/opcode_manifest.zig`;
@@ -788,14 +808,20 @@ The check fails on:
 
 ### 12.2 Tiering
 
-- **Pilot CI:** LUI and ADDI plus source-generation checks.
-- **Stress CI:** LH and the complete DIV family.
-- **Full CI:** all 46 opcode theorems and non-vacuity.
+- **Fast graded PR CI:** fresh production AIR, exact 46/46 grade-preserving
+  coverage, every current Lean theorem and non-vacuity witness, mutations,
+  proof-escape scan, and axiom audit.
+- **Live Sail CI:** regenerate the pinned generated-Sail backend, rebuild the
+  current 2/46 normalized pilot, and mint live evidence.
+- **Publication CI:** all 46 generated-Sail retirement theorems, the
+  accepted-AIR soundness direction, Word32/M31 boundary lemmas, and trace
+  composition. This tier is not yet implemented.
 - **Scheduled clean-room build:** regenerate pinned Sail and AIR definitions
   from empty caches, build every theorem, and publish a signed receipt.
 
-Once full coverage is practical, semantic changes must run the full check on
-every PR. A nightly-only universal theorem is too weak for a release branch.
+Semantic changes must keep the fast graded check on every PR. A nightly-only
+universal theorem is too weak for a release branch; when publication CI is
+implemented, its affordable source-bound portion must become PR-blocking.
 
 ### 12.3 Receipt
 
@@ -810,15 +836,22 @@ The issue #136 A5 graded-integration receipt contains:
 - platform-local Sail compiler and simulator binary identities in the receipt;
 - AIR IR schema and per-opcode digests;
 - generator digests;
-- two exact opcode/theorem and non-vacuity mappings;
+- 46 grade-preserving opcode/theorem, tuple, non-vacuity, mutation, AIR, and
+  Sail mappings: 24 exact generated local programs and 22 reviewed capsules;
 - theorem build result;
 - declared axioms for every exported theorem;
-- the Level-1 claim boundary and negative-control identities; and
+- the exact `24/24 AIR`, `46/46 graded`, `2/46 normalized`, `0/46
+  publication`, full-step, proof-system, whole-frontend, and external-signoff
+  claim boundary;
+- negative-control identities; and
 - final canonical receipt digest.
 
-The final 46-opcode research receipt must additionally carry every fixed-table
-schema, all opcode mappings, and clean-room timing diagnostics. Timing is
-diagnostic. Coverage, pins, hashes, and proof results are normative.
+The final publication receipt must additionally carry all 46 generated-Sail
+retirement theorem identities, the accepted-AIR soundness and trace-composition
+theorems, the complete M31/Word32 conversion inventory, the five closure-gate
+results from §15.1, and the required independent sign-offs. Timing is
+diagnostic. Coverage, pins, hashes, theorem results, and sign-offs are
+normative.
 
 ## 13. Proof-review discipline
 
@@ -977,9 +1010,11 @@ without treating solver output as an axiom.
 
 ### UR-05 — complete 46-opcode rollout
 
-Status: **22/22 Team B reviewed-capsule proofs delivered; Team A production
-rollout remains 2/24**. Exact publication coverage is still 0/46 because the
-shared generated-Sail boundary and aggregate gate remain open.
+Status: **graded rollout delivered: 24/24 Team A exact-production-AIR
+certificates plus 22/22 Team B reviewed-capsule certificates, partitioning the
+manifest exactly 46/46**. Exact publication coverage is still 0/46 because
+only two retirements are normalized from generated Sail and the closure gates
+in §15.1 remain open.
 
 Deliver:
 
@@ -993,11 +1028,13 @@ Exit gate: coverage matches the opcode manifest exactly.
 
 ### UR-06 — production source binding
 
-Status: **shared 46-program source binding delivered; LUI/ADDI composition
-delivered**. Direct evaluation, lookup lowering, and AIR IR v2 serialization
-share one typed production program; canonical generation, strict source
-closure, fresh-export equality, and Lean decode/evaluation are checked. The
-remaining Team A selector compositions and aggregate theorem remain open.
+Status: **shared 46-program source binding and all 24 Team A exact local
+compositions delivered**. Direct evaluation, lookup lowering, and AIR IR v2
+serialization share one typed production program; canonical generation,
+strict source closure, fresh-export equality, and Lean decode/evaluation are
+checked. Promoting the 22 Team B reviewed capsules to exact generated local
+programs, proving accepted-AIR soundness for both teams, and composing the
+aggregate theorem remain open.
 
 Deliver:
 
@@ -1024,6 +1061,141 @@ Deliver:
 Exit gate: a third party can regenerate the models and kernel-check every
 opcode theorem from the pinned inputs.
 
+### 15.1 Normative remaining closure gates
+
+The graded 46/46 index is an input to these gates, not evidence that they have
+already passed. “Universal AIR → Sail refinement,” “formally verified
+frontend,” and `whole_frontend_verified = true` are forbidden until **all
+five** gates below are satisfied by named kernel theorems and one
+machine-readable publication receipt.
+
+#### FV-1 — generated Sail retirement and full-step framing
+
+For every one of the 46 admitted selectors, normalize the exact pinned
+generated-Sail execute clause to the repository retirement projection and
+prove its composition with the generated fetch/decode/execute step. The proof
+must cover the profile's interrupt, trap, counter, next-PC/tick, and later-step
+framing, or use the independently approved fallback specified by the Team B
+contract. A generated-clause input equation and a reviewed capsule are not
+retirement normalization.
+
+Exit evidence:
+
+- `normalized_retirements.proved = 46`;
+- one generated-Sail retirement theorem and source digest per opcode;
+- `full_generated_sail_step = true`; and
+- no hand-written semantic function accepted as generated Sail without the
+  checked translation and independent fallback approvals.
+
+#### FV-2 — accepted production AIR implies the Sail transition
+
+The required direction is:
+
+```text
+active production row
+∧ production direct constraints hold
+∧ every live fixed-table and relation request holds
+∧ program/register/memory bindings hold
+∧ the zkVM profile admits the transition
+→ exact generated-Sail retirement
+```
+
+A theorem whose strongest chain is only “reviewed semantic predicate → AIR
+roots/lookups” does not satisfy this gate: it shows that a good execution can
+populate the AIR, not that every AIR-accepted execution is good. Each theorem
+must derive its semantic predicate from the accepted production row, include
+the exact ordered tuple projection, prove selector/admission uniqueness, and
+retain a non-vacuity witness and load-bearing mutation. The 22 Team B reviewed
+capsules must be promoted to exact generated local programs or receive an
+equivalent checked translation certificate.
+
+Exit evidence:
+
+- 46 theorem identities with the accepted-AIR implication above;
+- 46 exact production-program identities;
+- universal admission/decode and fixed-table interpretation theorems; and
+- `publication_level.proved = 46`.
+
+#### FV-3 — M31/Word32 representation and global invariant closure
+
+M31 arithmetic is modulo \(p = 2^{31}-1\); RV32 machine-word arithmetic is
+modulo \(2^{32}\). `composeU32` is therefore non-injective over arbitrary byte
+limbs. Every conversion from a machine-width limb value to one field element
+must name and discharge the premise that makes the conversion injective, and
+every field addition/subtraction used as integer arithmetic must separately
+prove that its complete integer range does not cross the field modulus.
+
+This gate includes all current production arithmetic/equality sites in
+`load_store`, `auipc`, `jalr`, and `jal`. A site is acceptable only when its
+bounding constraint or limb-keyed representation is cited in the theorem and
+is derived from the accepted AIR or a proved cross-row invariant. An external
+Lean premise, a producer-byte convention, an admission profile, or reviewer
+memory is not enough unless the final composition theorem proves that the AIR
+and buses establish it. Memory or state buses that depend on architectural
+distinctness must be keyed by limbs or prove that their single-field key is
+injective over the admitted domain.
+
+Exit evidence:
+
+- a complete, machine-checked inventory of machine-word-to-field conversions;
+- a mechanical gate that rejects any unregistered `composeU32` use or
+  equivalent implicit composition;
+- per-site bounded-lift and no-wrap theorem identities;
+- the concrete `ALIASING_BASE = 0x7FFFFFFB` negative witness at every affected
+  site, with the honest row accepted and the aliased row rejected; and
+- non-vacuous, mutation-pinned controls proving that each bound is
+  load-bearing.
+
+#### FV-4 — trace and cross-row composition
+
+Compose the 46 accepted-row theorems over a complete admitted execution, not
+only isolated rows. The theorem must connect program binding, register-state
+and memory buses, strict access clocks, state-chain telescoping, initial and
+final public boundaries, profile restrictions, and every emitted tuple to the
+corresponding sequence of pinned generated-Sail transitions. It must discharge
+or cite machine-checked forms of the five cross-row obligations CR-1 through
+CR-5 in
+[`SAIL_AIR_COMPOSITION.md`](SAIL_AIR_COMPOSITION.md).
+
+Exit evidence:
+
+- a named trace-refinement theorem quantified over every admitted trace length;
+- no row-local environment fact left as an unproved global premise;
+- the exact SA-1 premise-5 theorem and receipt identity; and
+- explicit separation from SA-1 premise 1: frontend trace refinement does not
+  establish PCS/FRI/Fiat–Shamir or randomized-LogUp soundness.
+
+#### FV-5 — independent review, reproduction, and claim promotion
+
+The publication receipt must record the five shared-interface roles
+(`team-a-integration-dri`, `team-b-sail-profile-dri`, `lh-representative`,
+`div-representative`, and `independent-formal-reviewer`) and the three
+non-author reviews required for each Team A family
+(`air-tuple-reviewer`, `team-b-sail-profile-reviewer`, and
+`lean-soundness-non-vacuity-reviewer`). A third party must reproduce the AIR
+and generated-Sail inputs from empty caches and kernel-check the exact theorem
+inventory.
+
+Only after FV-1 through FV-5 pass may the receipt set
+`whole_frontend_verified = true`. `proof_system_soundness` remains false until
+the independent SA-1 premise-1 reduction is complete; frontend verification
+must not silently promote the cryptographic proof-system claim.
+
+### 15.2 Operational adoption audit (2026-07-30)
+
+| Consumer | Current use of the formal work | Assessment |
+| --- | --- | --- |
+| Production direct constraints | All 17 families use `ConstraintProgram.buildDirect` | strong: production and formal export share construction |
+| Production relation lookups | All 17 families use `ConstraintProgram.buildLookups` | strong: tuple order is not maintained in a second semantic implementation |
+| AIR IR v2 export | The same builder emits 46 selector programs with source closure and fresh-export checks | strong |
+| Focused product and release gates | Run the aggregate 46/46 certificate and current-source identity check | useful cheap fail-closed consumption; not a Lean substitute |
+| Pull-request formal gate | Fresh AIR export, complete graded Lean build, mutations, proof-escape scan, and axiom audit | strong |
+| Live generated-Sail gate | Pinned Sail provisioning, backend regeneration, current 2/46 normalization, and receipt minting on `main`/schedule | correctly separated from carried-evidence PR CI |
+| Runtime frontend binary | Does not load Lean artifacts or proof receipts | correct: proofs constrain development and release, not runtime semantics |
+| Machine-word/field API | Raw `composeU32` remains available and six production sites rely on site/global reasoning | incomplete; FV-3 is not mechanized |
+| Generated-Sail publication | 2/46 normalized, 0/46 publication-level | incomplete; FV-1 and FV-2 dominate the remaining work |
+| Whole-trace theorem and sign-off | Not established | incomplete; FV-4 and FV-5 remain blocking |
+
 ## 16. Principal risks and mitigations
 
 | Risk | Failure mode | Mitigation |
@@ -1044,19 +1216,38 @@ opcode theorem from the pinned inputs.
 “Universal AIR → Sail refinement” is complete only when all of the following
 hold:
 
+- FV-1 through FV-5 in §15.1 each have named, kernel-checked exit evidence;
 - the pinned Sail semantics are generated and normalized under a reviewed
-  bridge;
+  bridge for all 46 admitted selectors and the full generated step;
 - the formal AIR is bound to the production evaluator at publication level;
+- every accepted production AIR row implies, rather than is merely implied by,
+  its exact generated-Sail retirement;
+- every M31/Word32 conversion and integer lift is mechanically inventoried and
+  proved injective/no-wrap over its admitted domain;
 - all six fixed-table meanings are proved;
 - admission/decode refinement is universal;
 - every one of the 46 opcode IDs maps to one checked theorem;
 - each theorem covers architectural output and emitted relation tuples;
 - every opcode has a non-vacuity theorem;
+- the opcode theorems compose across complete traces with the program,
+  register, memory, clock, and public-boundary invariants;
 - no exported theorem uses `sorry`, `admit`, or an undeclared axiom;
 - required mutations demonstrate pipeline sensitivity;
 - CI regenerates and kernel-checks everything from clean inputs;
 - SA-1 premise 5 is updated to cite the exact theorem receipt; and
-- an independent party reproduces the result.
+- the required non-author sign-offs are recorded and an independent party
+  reproduces the result.
+
+The completion receipt must fail closed unless it records all of:
+
+- `normalized_retirements.proved = 46`;
+- `publication_level.proved = 46`;
+- `full_generated_sail_step = true`;
+- `whole_frontend_verified = true`; and
+- every required `external_signoffs` role as established.
+
+It may still record `proof_system_soundness = false`; that field belongs to
+the separate accepted-proof reduction in SA-1 premise 1.
 
 Before that point, acceptable language is:
 

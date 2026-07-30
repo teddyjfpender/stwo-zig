@@ -122,6 +122,16 @@ class RefinementAirTest(unittest.TestCase):
             any("/.zig-cache/" in relative for relative in digests),
         )
 
+    def test_live_sail_workflow_provisions_its_runtime_solver(self) -> None:
+        workflow = (
+            ROOT / ".github/workflows/riscv-sail-formal.yml"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "device-tree-compiler z3",
+            workflow,
+        )
+        self.assertIn("z3 --version", workflow)
+
     def test_proof_closure_covers_all_handwritten_lean_and_certificates(
         self,
     ) -> None:
@@ -157,6 +167,8 @@ class RefinementAirTest(unittest.TestCase):
     def test_generator_closure_covers_team_gates(self) -> None:
         digests = render._generator_digests(Paths(ROOT))
         for relative in (
+            ".github/workflows/riscv-sail-formal.yml",
+            ".github/workflows/riscv-team-b-refinement.yml",
             "scripts/riscv_opcode_coverage.py",
             "scripts/riscv_team_a.py",
             "scripts/riscv_team_b.py",

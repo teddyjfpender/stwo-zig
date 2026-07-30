@@ -18,9 +18,13 @@ from typing import Any
 try:
     from . import riscv_team_a as team_a
     from . import riscv_team_b as team_b
+    from .riscv_refinement_lib import air_program
+    from .riscv_refinement_lib.model import RefinementError
 except ImportError:
     import riscv_team_a as team_a
     import riscv_team_b as team_b
+    from riscv_refinement_lib import air_program
+    from riscv_refinement_lib.model import RefinementError
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -40,10 +44,12 @@ class CoverageError(RuntimeError):
 def _air_digest(mnemonic: str) -> str:
     path = AIR_PROGRAM_ROOT / f"{mnemonic}.air-ir-v2.json"
     try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        payload = air_program.load_canonical(path)
+        air_program.verify_source_files(payload, REPOSITORY_ROOT)
+    except (OSError, UnicodeError, json.JSONDecodeError, RefinementError) as exc:
         raise CoverageError(
-            f"production AIR program for {mnemonic} is unreadable"
+            f"production AIR program for {mnemonic} is not canonically "
+            "bound to the current source tree"
         ) from exc
     digest = payload.get("content_digest")
     if not isinstance(digest, str):
@@ -208,7 +214,8 @@ def check_index() -> str:
             "`python3 scripts/riscv_opcode_coverage.py write`"
         )
     return (
-        "aggregate opcode coverage: exact 46/46 manifest partition; "
+        "aggregate opcode coverage: exact 46/46 manifest partition with "
+        "current production-source identities; "
         f"{expected['claim_boundary']['generated_sail_clause_bindings']}/46 "
         "generated-Sail clause bindings; "
         f"{expected['claim_boundary']['generated_sail_retirement_bindings']}"

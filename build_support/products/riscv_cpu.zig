@@ -189,6 +189,12 @@ pub fn addProduct(context: Context) void {
         "Export and independently check all RISC-V AIR main-trace components",
     ).dependOn(&air_satisfaction_check.step);
     riscv_refinement.addPilot(context.b, context.target, context.optimize, context.protocol);
+    const refinement_contract = context.b.addSystemCommand(&.{
+        "python3",
+        "scripts/riscv_opcode_coverage.py",
+        "check",
+    });
+    test_step.dependOn(&refinement_contract.step);
 
     const csp_benchmark = context.b.addSystemCommand(&.{
         "python3",

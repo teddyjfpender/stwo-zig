@@ -30,6 +30,8 @@ SOURCE_TREES = (
 )
 
 GENERATOR_PATHS = (
+    ".github/workflows/riscv-sail-formal.yml",
+    ".github/workflows/riscv-team-b-refinement.yml",
     "scripts/riscv_refinement.py",
     "scripts/riscv_opcode_coverage.py",
     "scripts/riscv_team_a.py",
