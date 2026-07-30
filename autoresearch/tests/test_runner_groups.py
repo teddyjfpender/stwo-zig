@@ -213,17 +213,17 @@ class RunnerGroupTest(unittest.TestCase):
                         implementation_commit: str = "b" * 40) -> dict:
         return {
             "artifact_kind": "stwo_riscv_proof",
-            "schema_version": 3,
-            "exchange_mode": "riscv_proof_json_wire_v3",
+            "schema_version": 4,
+            "exchange_mode": "riscv_proof_json_wire_v4",
             "release_status": status,
             "generator": "zig",
-            "air": "stark_v_rv32im",
+            "air": "sail_rv32im_zkvm_v1",
             "backend": "cpu",
             "protocol": "functional",
             "source": {"elf_sha256": "1" * 64, "input_sha256": "2" * 64},
             "provenance": {
-                "oracle_repository": "https://github.com/ClementWalter/stark-v",
-                "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+                "oracle_repository": "https://github.com/riscv/sail-riscv",
+                "oracle_commit": "8c7f2da58de0ba5e4457e4de07e0046f0439f35f",
                 "implementation_repository": "https://github.com/teddyjfpender/stwo-zig",
                 "implementation_commit": implementation_commit,
                 "implementation_dirty": False,
@@ -237,7 +237,8 @@ class RunnerGroupTest(unittest.TestCase):
 
     def _riscv_run(self, status: str, experimental: bool,
                     proof_hex: str = "0102", mutate_report=None,
-                    implementation_commit: str = "b" * 40):
+                    implementation_commit: str = "b" * 40,
+                    mutate_artifact=None):
         commands = []
 
         def fake_run(command, _root, timeout):
@@ -248,6 +249,8 @@ class RunnerGroupTest(unittest.TestCase):
             artifact = self._riscv_artifact(
                 status, proof_hex, implementation_commit,
             )
+            if mutate_artifact:
+                mutate_artifact(artifact)
             encoded = json.dumps(artifact, separators=(",", ":")).encode()
             proof_path.write_bytes(encoded)
             report = {
@@ -582,6 +585,77 @@ class RunnerGroupTest(unittest.TestCase):
                 self.root, manifest, workload, 0, 1, self.out_dir, "a1",
             )
         self.assertNotIn("--experimental", shlex.split(commands[0]))
+
+    def test_riscv_bench_rejects_legacy_v3_artifact(self):
+        self._set_riscv_phase(promoted=True)
+        manifest = self._riscv_manifest()
+        workload = manifest.workloads("wide", board="riscv")[0]
+
+        def legacy_v3(artifact):
+            artifact.update({
+                "schema_version": 3,
+                "exchange_mode": "riscv_proof_json_wire_v3",
+                "air": "stark_v_rv32im",
+            })
+            artifact["provenance"].update({
+                "oracle_repository": "https://github.com/ClementWalter/stark-v",
+                "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+            })
+
+        _commands, fake_run = self._riscv_run(
+            "release_gated", False, mutate_artifact=legacy_v3,
+        )
+        with mock.patch.object(runner, "_run", side_effect=fake_run), \
+                self.assertRaisesRegex(runner.RunError, "schema_version.*equal 4"):
+            runner.bench_once(
+                self.root, manifest, workload, 0, 1, self.out_dir, "legacy-v3",
+            )
+
+    def test_riscv_bench_rejects_non_sail_artifact_authority(self):
+        self._set_riscv_phase(promoted=True)
+        manifest = self._riscv_manifest()
+        workload = manifest.workloads("wide", board="riscv")[0]
+        mutations = {
+            "repository": lambda artifact: artifact["provenance"].update(
+                oracle_repository="https://github.com/ClementWalter/stark-v"
+            ),
+            "commit": lambda artifact: artifact["provenance"].update(
+                oracle_commit="d478f783055aa0d73a93768a433a3c6c31c91d1c"
+            ),
+        }
+        for name, mutate in mutations.items():
+            _commands, fake_run = self._riscv_run(
+                "release_gated", False, mutate_artifact=mutate,
+            )
+            with self.subTest(name=name), \
+                    mock.patch.object(runner, "_run", side_effect=fake_run), \
+                    self.assertRaisesRegex(
+                        runner.RunError, "provenance does not bind the report",
+                    ):
+                runner.bench_once(
+                    self.root, manifest, workload, 0, 1, self.out_dir,
+                    f"non-sail-{name}",
+                )
+
+    def test_riscv_bench_rejects_malformed_artifact_provenance(self):
+        self._set_riscv_phase(promoted=True)
+        manifest = self._riscv_manifest()
+        workload = manifest.workloads("wide", board="riscv")[0]
+        _commands, fake_run = self._riscv_run(
+            "release_gated",
+            False,
+            mutate_artifact=lambda artifact: artifact["provenance"].pop(
+                "witness_layout_sha256"
+            ),
+        )
+        with mock.patch.object(runner, "_run", side_effect=fake_run), \
+                self.assertRaisesRegex(
+                    runner.RunError, "provenance is not canonical",
+                ):
+            runner.bench_once(
+                self.root, manifest, workload, 0, 1, self.out_dir,
+                "malformed-provenance",
+            )
 
     def test_riscv_proof_digest_ignores_commit_bearing_artifact_fields(self):
         self._set_riscv_phase(promoted=True)

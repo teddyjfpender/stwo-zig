@@ -1173,11 +1173,11 @@ def _parse_riscv_report(
         )
     required = {
         "artifact_kind": "stwo_riscv_proof",
-        "schema_version": 3,
-        "exchange_mode": "riscv_proof_json_wire_v3",
+        "schema_version": 4,
+        "exchange_mode": "riscv_proof_json_wire_v4",
         "release_status": expected_status,
         "generator": "zig",
-        "air": "stark_v_rv32im",
+        "air": "sail_rv32im_zkvm_v1",
         "backend": "cpu",
     }
     for field_name, expected in required.items():
@@ -1200,8 +1200,8 @@ def _parse_riscv_report(
     if not isinstance(provenance, dict) or set(provenance) != provenance_fields:
         raise ValueError("retained artifact provenance is not canonical")
     if (
-        provenance.get("oracle_repository") != "https://github.com/ClementWalter/stark-v"
-        or provenance.get("oracle_commit") != "d478f783055aa0d73a93768a433a3c6c31c91d1c"
+        provenance.get("oracle_repository") != "https://github.com/riscv/sail-riscv"
+        or provenance.get("oracle_commit") != "8c7f2da58de0ba5e4457e4de07e0046f0439f35f"
         or provenance.get("implementation_repository")
         != "https://github.com/teddyjfpender/stwo-zig"
         or provenance.get("implementation_commit") != report["implementation_commit"]
