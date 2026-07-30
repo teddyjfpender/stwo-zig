@@ -1,12 +1,12 @@
 {
   "artifacts": {
     "RiscvRefinement/Air/Generated/LuiProgram.lean": "e64a0bafd4ab868a8dadc697773290d596c16acbd8f716e10c01c807857e3452",
-    "RiscvRefinement/Air/Generated/Pilot.lean": "8b75778061d0163604aa1dd6f5403485160b04de2a14f57b05a1b27132356236",
+    "RiscvRefinement/Air/Generated/Pilot.lean": "24bf95eb986d84bb931ba387d02405afe722636d9c1d832e05f59674a38daa43",
     "RiscvRefinement/Air/Generated/Programs.lean": "5906287c7abfd25db4b84dc0a5ee3723c47a8d5bff93f32ec5fdec98c3591cc3",
     "RiscvRefinement/Sail/Generated/Pilot.lean": "85acf31a99bc6579551eca6ca4c616f7730d32e0108ee003171a08261548aad8",
     "generated/air/add.air-ir-v2.json": "a2281aa0accfa41ad4303498dd9543dc4e8fc17badbe496e571a08b28c35f3f4",
     "generated/air/addi.air-ir-v2.json": "d7e9c8d696519e471fe976ba0dc133c153622e6121ea5d450317afae56aba0d2",
-    "generated/air/addi.json": "9da545acaa0487408025a3453455eb6112de54787aa02aa96bd9cd430ca87187",
+    "generated/air/addi.json": "a1182b8c3a3b4557666e4209126476e4c81fca6828bf47c34e10c485c62b5d0a",
     "generated/air/and.air-ir-v2.json": "18aae1841cb1c166f583679770beb945a70f61cc26c5bcc1ecadf1ae28e84d0f",
     "generated/air/andi.air-ir-v2.json": "b2ce1c8e4d7d98cbf222a03be3e4a8eb25123dfafa6458a0aa9cf8bcd44ec607",
     "generated/air/auipc.air-ir-v2.json": "4250951c164753d0bd3e0792d99503e587b8b8fc448fb94363c45f9515a466fc",
@@ -26,7 +26,7 @@
     "generated/air/lh.air-ir-v2.json": "8623b8084f2a2bf47914c4bc96fe2077a11d934ff37f5d5bc7dbdfbc336e7580",
     "generated/air/lhu.air-ir-v2.json": "61e2c1ebf8cf116e655df5c67317e18b2c6decc3fab5c522a18d33f6e0d2116c",
     "generated/air/lui.air-ir-v2.json": "b3eab4a13572e7154d53bf928d8a783a0f301011d9ad8362e07789abe577bb8e",
-    "generated/air/lui.json": "91ee4e6b0b245a053361acd7cbb1a33b79432f3c77b33d7762bdb275ff76cecb",
+    "generated/air/lui.json": "6b41a5bc211d53bf3d2f25839308c1cc845557c478b6eaba418b0671f8df4717",
     "generated/air/lw.air-ir-v2.json": "9f6ba05b40ae769f01e7ce08c656f8a8278514718d0322f9aab7e24fd393ab9c",
     "generated/air/mul.air-ir-v2.json": "fd8c33351b3544fc1c237ddd6f808ba124084f6a93bfdb24c7801c98892fee0a",
     "generated/air/mulh.air-ir-v2.json": "581a460c9d0c0ab8e0fd795eeda366b2cf27f66f218833e65e263e81a5ea63fd",
@@ -59,7 +59,7 @@
     "generated/sail/rv32im-zkvm-v1.json": "5c31e516a205d693386564242d623dbaf4dc1566573f9ecfdcb026611c8fc2c1",
     "generated/sail/translation-receipt-v1.json": "ae7ba363506f1f96d5cb4eeeb4b2b123f02db8efdf5e19f1a98682ea70c2fcef"
   },
-  "canonical_digest": "9c89ed46b6de7cd48d3f546f627fb145d973c0506bfd3d9c2a23c9eb999af9e8",
+  "canonical_digest": "624ee26b1258d41c4a04645c63ca893e18009d944127d0fe65e6e89721b69ba6",
   "claim_boundary": {
     "addi_air_to_normalized_composition": true,
     "generated_sail_ast_translation_receipt": true,
@@ -137,7 +137,7 @@
   "lean_toolchain": "leanprover/lean4:v4.29.0",
   "opcodes": [
     {
-      "air_digest": "44460e8bc5c417202907321cbc6b17e701325ea2c820605be42635a24447aca9",
+      "air_digest": "6c56d61da782f1516eae70965c44f312655ed393c398baacfe1ba8f22a4b741c",
       "coverage_kind": "normalized-predicate",
       "id": 35,
       "mnemonic": "lui",
@@ -145,7 +145,7 @@
       "refinement_theorem": "RiscvRefinement.Opcodes.lui_refines"
     },
     {
-      "air_digest": "eb4caba2aa7782446940d7e32acbf3d8ee17922553acccd060908ba21b7ce880",
+      "air_digest": "cfc95c810371fcef35123987b46fa99b6b2f5b72a33b4a23f98cd9538019cbb6",
       "coverage_kind": "normalized-predicate",
       "id": 10,
       "mnemonic": "addi",
@@ -176,7 +176,7 @@
     "build_support/products/matrix.zig": "ef4f7bd7fd79e450cf75a96507250603d041e4f78ee94bfc32f06c3e192be1f6",
     "build_support/products/package_dependencies.zig": "b5ba9bd68a1d04b69f47633016427665d117d6bc909d53341a883fcadf56a410",
     "build_support/products/product_specs.zig": "383906d151de99d39d7d5187a660af3ed485ce8ef7a41557570094aaa1f97671",
-    "build_support/products/riscv_cpu.zig": "facebc463c3deda7ea3b643e5a3e90a7f37e4c08f31110698914abc9130fa669",
+    "build_support/products/riscv_cpu.zig": "f5c2d856a72d6af3e0969981ddc46edcc3fcbe6eadd5a09e9e9c9020197e25ff",
     "build_support/products/riscv_refinement.zig": "900808ec3bc37188cd73f014e152ff386fe2a0c25718ae0cfb0313130a813ce7",
     "build_support/products/riscv_test_filter.zig": "30cdef8661d18483eaebda9a8a5298ac111cdf257e0df8002cad14a6a3630cde",
     "src/core/build.zig": "f36357d012657d4fded7fd245e5debfff623d76acdd1d68715bfc9dd5343dd92",
