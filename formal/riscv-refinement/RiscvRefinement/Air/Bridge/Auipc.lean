@@ -433,7 +433,7 @@ theorem allLookupProjection
 
 theorem exactProgramIdentity :
     Programs.auipc.source.contentDigest =
-        "f39f05e0549d5aec6e814c5cf48797044718597ce6bf54b58baff8568873e4d7" ∧
+        "6c3355e45d003861edcf01aa6a9c8b01f1ec24c11a6abcd5b76888089bc1881e" ∧
       Programs.auipc.source.family = .auipc ∧
       Programs.auipc.source.nodes.size = 106 ∧
       Programs.auipc.source.events.size = 29 ∧
@@ -2652,7 +2652,7 @@ structure ProductionRefinement
         some (destinationClockLookup row)
   programIdentity :
     Programs.auipc.source.contentDigest =
-      "f39f05e0549d5aec6e814c5cf48797044718597ce6bf54b58baff8568873e4d7"
+      "6c3355e45d003861edcf01aa6a9c8b01f1ec24c11a6abcd5b76888089bc1881e"
   exactProgramTuple :
     (programLookup row).tuple = #[
       bitVecM31 row.pc,

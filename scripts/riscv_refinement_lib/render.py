@@ -46,6 +46,12 @@ SOURCE_TREES = (
 
 GENERATOR_PATHS = (
     "scripts/riscv_refinement.py",
+    "scripts/riscv_opcode_coverage.py",
+    "scripts/riscv_team_a.py",
+    "scripts/riscv_team_b.py",
+    "scripts/riscv_team_b_inventory.py",
+    "scripts/riscv_team_b_refresh.py",
+    "scripts/riscv_team_b_witnesses.py",
     "scripts/riscv_refinement_lib/model.py",
     "scripts/riscv_refinement_lib/codec.py",
     "scripts/riscv_refinement_lib/air.py",
@@ -61,46 +67,36 @@ GENERATOR_PATHS = (
     "scripts/tests/test_riscv_refinement.py",
     "scripts/tests/test_sail_air_composition_contract.py",
     "scripts/tests/test_sail_translation.py",
+    "scripts/tests/test_riscv_team_a.py",
+    "scripts/tests/test_riscv_team_b.py",
+    "scripts/tests/test_riscv_team_b_inventory.py",
+    "scripts/tests/test_riscv_team_b_refresh.py",
+    "scripts/tests/test_riscv_team_b_witnesses.py",
 )
 
 PROOF_PATHS = (
     "formal/riscv-refinement/README.md",
+    "formal/riscv-refinement/TEAM_B.md",
     "formal/riscv-refinement/lean-toolchain",
     "formal/riscv-refinement/lake-manifest.json",
     "formal/riscv-refinement/lakefile.toml",
     "formal/riscv-refinement/RiscvRefinement.lean",
-    "formal/riscv-refinement/RiscvRefinement/Common.lean",
-    "formal/riscv-refinement/RiscvRefinement/Air.lean",
-    "formal/riscv-refinement/RiscvRefinement/Air/Decode.lean",
-    "formal/riscv-refinement/RiscvRefinement/Air/Eval.lean",
-    "formal/riscv-refinement/RiscvRefinement/Air/IR.lean",
-    "formal/riscv-refinement/RiscvRefinement/Air/LocalEval.lean",
-    "formal/riscv-refinement/RiscvRefinement/Air/Tests.lean",
-    "formal/riscv-refinement/RiscvRefinement/Air/Bridge/Addi.lean",
-    "formal/riscv-refinement/RiscvRefinement/Air/Bridge/Fence.lean",
-    "formal/riscv-refinement/RiscvRefinement/Air/Bridge/Lui.lean",
-    "formal/riscv-refinement/RiscvRefinement/Air/Bridge/Mutations.lean",
-    "formal/riscv-refinement/RiscvRefinement/Bridge/Decode.lean",
-    "formal/riscv-refinement/RiscvRefinement/Bridge/DecodeTeamA.lean",
-    "formal/riscv-refinement/RiscvRefinement/Bridge/DecodeTeamB.lean",
-    "formal/riscv-refinement/RiscvRefinement/Field.lean",
-    "formal/riscv-refinement/RiscvRefinement/Field/M31.lean",
-    "formal/riscv-refinement/RiscvRefinement/Memory.lean",
-    "formal/riscv-refinement/RiscvRefinement/Mutation.lean",
-    "formal/riscv-refinement/RiscvRefinement/Opcodes/Lui.lean",
-    "formal/riscv-refinement/RiscvRefinement/Opcodes/Addi.lean",
-    "formal/riscv-refinement/RiscvRefinement/Opcodes/Fence.lean",
-    "formal/riscv-refinement/RiscvRefinement/Opcodes/FenceMutation.lean",
-    "formal/riscv-refinement/RiscvRefinement/NonVacuity.lean",
-    "formal/riscv-refinement/RiscvRefinement/Coverage.lean",
-    "formal/riscv-refinement/RiscvRefinement/AxiomAudit.lean",
-    "formal/riscv-refinement/RiscvRefinement/Tables.lean",
-    "formal/riscv-refinement/RiscvRefinement/Tables/Fixed.lean",
-    "formal/riscv-refinement/generated-sail-bridge/Pilot.lean",
     "conformance/riscv/sail-lean-riscv-extras.patch",
     "soundness/AIR_IR_V2_CONTRACT.md",
+    "soundness/SAIL_AIR_COMPOSITION.md",
     "soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md",
     "soundness/air-ir-v2.schema.json",
+)
+PROOF_TREES = (
+    "formal/riscv-refinement/RiscvRefinement",
+    "formal/riscv-refinement/generated-sail-bridge",
+)
+PROOF_TREE_EXCLUDES = (
+    "formal/riscv-refinement/RiscvRefinement/Air/Generated",
+    "formal/riscv-refinement/RiscvRefinement/Sail/Generated",
+)
+PROOF_GLOBS = (
+    "formal/riscv-refinement/*-coverage.json",
 )
 
 EXPORTED_FAMILIES = frozenset(
@@ -134,6 +130,7 @@ MANIFEST_ARTIFACTS = frozenset(
         "generated/air/lui.json",
         "generated/sail/rv32im-zkvm-v1.json",
         "generated/sail/definitions/execute_ITYPE.lean",
+        "generated/sail/definitions/execute_RTYPE.lean",
         "generated/sail/definitions/execute_UTYPE.lean",
         "generated/sail/generated-monad-bridge-receipt-v1.json",
         "generated/sail/translation-receipt-v1.json",
@@ -412,7 +409,9 @@ SAIL_LEAN_TEMPLATE = """\
 -- Regenerate: python3 scripts/riscv_refinement.py generate
 -- Source: exact-profile Sail 0.20.2 theorem-backend definition slices.
 -- Binding: fail-closed generated-definition AST translation receipt.
--- Boundary: checked execute-clause normalization; no step-monad theorem yet.
+-- Boundary: checked execute-clause translation/input binding. Normalized
+-- retirement composition remains LUI/ADDI-only; no full-step theorem or
+-- publication binding is claimed.
 
 import RiscvRefinement.Common
 
@@ -426,6 +425,9 @@ def executeUtypeDefinitionDigest : String :=
 def executeItypeDefinitionDigest : String :=
   "__ITYPE_DIGEST__"
 
+def executeRtypeDefinitionDigest : String :=
+  "__RTYPE_DIGEST__"
+
 def translationReceiptDigest : String :=
   "__TRANSLATION_RECEIPT_DIGEST__"
 
@@ -434,6 +436,23 @@ def executeUtypeAstDigest : String :=
 
 def executeItypeAstDigest : String :=
   "__ITYPE_AST_DIGEST__"
+
+def executeRtypeAstDigest : String :=
+  "__RTYPE_AST_DIGEST__"
+
+def inputBoundTeamASelectors : List String := [
+  "LUI", "AUIPC",
+  "ADDI", "XORI", "ORI", "ANDI", "SLTI", "SLTIU",
+  "ADD", "SUB", "XOR", "OR", "AND", "SLT", "SLTU",
+  "BEQ", "BNE", "BLT", "BGE", "BLTU", "BGEU",
+  "JAL", "JALR", "FENCE"
+]
+
+def normalizedRetirementSelectors : List String := ["LUI", "ADDI"]
+
+def generatedFullStepFramingEstablished : Bool := false
+
+def publicationBindingEstablished : Bool := false
 
 def executeLuiValue (imm : BitVec 20) : Word :=
   BitVec.signExtend 32 (imm.append (BitVec.ofNat 12 0))
@@ -520,9 +539,30 @@ def _generator_digests(paths: Paths) -> dict[str, str]:
 
 def _proof_digests(paths: Paths) -> dict[str, str]:
     result: dict[str, str] = {}
-    for relative in PROOF_PATHS:
+    relatives = set(PROOF_PATHS)
+    for tree in PROOF_TREES:
+        root = paths.root / tree
+        if root.is_symlink() or not root.is_dir():
+            raise RefinementError(f"missing proof source tree {tree}")
+        for path in root.rglob("*.lean"):
+            relative = path.relative_to(paths.root).as_posix()
+            if any(
+                relative == excluded or relative.startswith(f"{excluded}/")
+                for excluded in PROOF_TREE_EXCLUDES
+            ):
+                continue
+            if path.is_symlink() or not path.is_file():
+                raise RefinementError(f"invalid proof source {relative}")
+            relatives.add(relative)
+    for pattern in PROOF_GLOBS:
+        for path in paths.root.glob(pattern):
+            relative = path.relative_to(paths.root).as_posix()
+            if path.is_symlink() or not path.is_file():
+                raise RefinementError(f"invalid proof source {relative}")
+            relatives.add(relative)
+    for relative in sorted(relatives):
         path = paths.root / relative
-        if not path.is_file():
+        if path.is_symlink() or not path.is_file():
             raise RefinementError(f"missing proof source {relative}")
         result[relative] = codec.sha256_file(path)
     return result

@@ -241,7 +241,185 @@ def resign_air_ir_v2(payload: dict[str, object]) -> None:
     payload["content_digest"] = air_program.content_digest(payload)
 
 
+def receipt_mapping_fixture() -> tuple[
+    list[dict[str, object]],
+    dict[str, dict[str, object]],
+]:
+    """Build exact aggregate/source certificate projections for receipt tests."""
+    team_a = riscv_refinement.riscv_team_a
+    team_b = riscv_refinement.riscv_team_b
+    team_a_families = set(team_a.TEAM_A_FAMILIES)
+    mappings: list[dict[str, object]] = []
+    team_a_sources: list[dict[str, object]] = []
+    team_b_sources: list[dict[str, object]] = []
+    for manifest_id, mnemonic, family in air_program_contract.OPCODES:
+        is_team_a = family in team_a_families
+        common = {
+            "family": family,
+            "manifest_id": manifest_id,
+            "mnemonic": mnemonic,
+            "mutation": f"{mnemonic}-mutation",
+            "mutation_theorem": f"RiscvRefinement.{mnemonic}.mutation",
+            "non_vacuity_theorem":
+                f"RiscvRefinement.{mnemonic}.exists",
+            "refinement_theorem":
+                f"RiscvRefinement.{mnemonic}.refines",
+            "tuple_theorem": f"RiscvRefinement.{mnemonic}.tuple",
+        }
+        if is_team_a:
+            sail_binding = (
+                "generated-retirement"
+                if mnemonic in team_a.GENERATED_SAIL_RETIREMENT_THEOREMS
+                else "generated-clause-input"
+            )
+            sail_theorem = (
+                team_a.GENERATED_SAIL_RETIREMENT_THEOREMS[mnemonic]
+                if sail_binding == "generated-retirement"
+                else team_a.GENERATED_SAIL_INPUT_THEOREMS[mnemonic]
+            )
+            source = {
+                **common,
+                "air_digest": "a" * 64,
+                "axioms": [],
+                "proof_target": f"RiscvRefinement.{mnemonic}.Proof",
+                "proof_time_ms": manifest_id + 1,
+                "sail_binding": sail_binding,
+                "sail_digest": "b" * 64,
+                "sail_receipt":
+                    "formal/riscv-refinement/generated/sail/"
+                    "generated-monad-bridge-receipt-v1.json",
+                "sail_theorem": sail_theorem,
+                "selector_theorem":
+                    f"RiscvRefinement.{mnemonic}.selector",
+                "state": "air-proved",
+            }
+            team_a_sources.append(source)
+            mapping = {
+                key: value
+                for key, value in source.items()
+                if key != "proof_target"
+            }
+            mapping.update({
+                "air_binding": "exact-generated-local-program",
+                "team": "A",
+            })
+        else:
+            source = {
+                **common,
+                "sail_binding": team_b.DEFAULT_SAIL_BINDING,
+                "state": "proved",
+            }
+            team_b_sources.append(source)
+            mapping = {
+                **source,
+                "air_binding": "reviewed-family-capsule",
+                "air_digest": "a" * 64,
+                "axioms": None,
+                "proof_time_ms": None,
+                "selector_theorem": None,
+                "team": "B",
+            }
+        mappings.append(mapping)
+    return mappings, {
+        "team_a": {"payload": {"certificates": team_a_sources}},
+        "team_b": {"payload": {"certificates": team_b_sources}},
+    }
+
+
 class RefinementAirTest(unittest.TestCase):
+    def test_generated_sail_team_a_input_boundary_is_explicit(self) -> None:
+        self.assertEqual(
+            sail_lean_bridge.CLAIM_BOUNDARY[
+                "input_bound_team_a_selectors"
+            ],
+            [
+                "LUI", "AUIPC",
+                "ADDI", "XORI", "ORI", "ANDI", "SLTI", "SLTIU",
+                "ADD", "SUB", "XOR", "OR", "AND", "SLT", "SLTU",
+                "BEQ", "BNE", "BLT", "BGE", "BLTU", "BGEU",
+                "JAL", "JALR", "FENCE",
+            ],
+        )
+        self.assertEqual(
+            sail_lean_bridge.CLAIM_BOUNDARY[
+                "normalized_retirement_selectors"
+            ],
+            ["LUI", "ADDI"],
+        )
+        self.assertFalse(
+            sail_lean_bridge.CLAIM_BOUNDARY[
+                "team_a_normalized_retirement_composition"
+            ],
+        )
+        self.assertFalse(
+            sail_lean_bridge.CLAIM_BOUNDARY[
+                "fetch_interrupt_trap_and_step_loop_framing"
+            ],
+        )
+        self.assertEqual(
+            sail_lean_bridge.CLAIM_BOUNDARY[
+                "pinned_generated_model_axioms"
+            ],
+            ["sys_enable_experimental_extensions"],
+        )
+
+    def test_generated_sail_control_flow_axioms_are_scoped(self) -> None:
+        jump_theorems = {
+            theorem
+            for theorem in sail_lean_bridge.THEOREMS
+            if (
+                "execute_BTYPE_" in theorem
+                or theorem.endswith("execute_JAL_eq")
+                or theorem.endswith("execute_JALR_eq")
+            )
+        }
+        self.assertEqual(
+            jump_theorems,
+            sail_lean_bridge._JUMP_INPUT_THEOREMS,
+        )
+        for theorem in sail_lean_bridge.THEOREMS:
+            expected = set(sail_lean_bridge.KERNEL_AXIOMS)
+            if theorem in jump_theorems:
+                expected |= set(
+                    sail_lean_bridge.PINNED_GENERATED_MODEL_AXIOMS
+                )
+            self.assertEqual(
+                set(sail_lean_bridge.EXPECTED_THEOREM_AXIOMS[theorem]),
+                expected,
+            )
+
+    def test_generated_sail_axiom_parser_enforces_each_scope(self) -> None:
+        def output(
+            inventories: dict[str, list[str]],
+        ) -> str:
+            return "\n".join(
+                f"'{theorem}' depends on axioms: "
+                f"[{', '.join(inventories[theorem])}]"
+                for theorem in sail_lean_bridge.THEOREMS
+            )
+
+        expected = copy.deepcopy(
+            sail_lean_bridge.EXPECTED_THEOREM_AXIOMS
+        )
+        self.assertEqual(
+            sail_lean_bridge._proof_axioms(output(expected)),
+            expected,
+        )
+        missing_model_input = copy.deepcopy(expected)
+        jump_theorem = next(
+            iter(sail_lean_bridge._JUMP_INPUT_THEOREMS)
+        )
+        missing_model_input[jump_theorem].remove(
+            "sys_enable_experimental_extensions"
+        )
+        with self.assertRaisesRegex(
+            RefinementError,
+            "per-theorem contract",
+        ):
+            sail_lean_bridge._proof_axioms(
+                output(missing_model_input)
+            )
+
     def test_source_closure_is_version_controlled_and_cache_free(self) -> None:
         digests = render._source_digests(Paths(ROOT))
         self.assertIn("src/core/fields/m31.zig", digests)
@@ -249,6 +427,94 @@ class RefinementAirTest(unittest.TestCase):
         self.assertFalse(
             any("/.zig-cache/" in relative for relative in digests),
         )
+
+    def test_proof_closure_covers_all_handwritten_lean_and_certificates(
+        self,
+    ) -> None:
+        digests = render._proof_digests(Paths(ROOT))
+        self.assertIn(
+            "formal/riscv-refinement/RiscvRefinement/Air/Bridge/"
+            "BaseAluReg.lean",
+            digests,
+        )
+        self.assertIn(
+            "formal/riscv-refinement/RiscvRefinement/Opcodes/Branches.lean",
+            digests,
+        )
+        self.assertIn(
+            "formal/riscv-refinement/generated-sail-bridge/Pilot.lean",
+            digests,
+        )
+        self.assertIn(
+            "formal/riscv-refinement/team-b-coverage.json",
+            digests,
+        )
+        self.assertNotIn(
+            "formal/riscv-refinement/RiscvRefinement/Air/Generated/"
+            "Programs.lean",
+            digests,
+        )
+        self.assertNotIn(
+            "formal/riscv-refinement/RiscvRefinement/Sail/Generated/"
+            "Pilot.lean",
+            digests,
+        )
+
+    def test_generator_closure_covers_team_gates(self) -> None:
+        digests = render._generator_digests(Paths(ROOT))
+        for relative in (
+            "scripts/riscv_opcode_coverage.py",
+            "scripts/riscv_team_a.py",
+            "scripts/riscv_team_b.py",
+            "scripts/riscv_team_b_inventory.py",
+            "scripts/riscv_team_b_refresh.py",
+            "scripts/riscv_team_b_witnesses.py",
+        ):
+            self.assertIn(relative, digests)
+
+    def test_empty_generated_lake_manifest_resolves_pinned_sail_once(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            project = Path(raw)
+            manifest = project / "lake-manifest.json"
+            manifest.write_text('{"packages":[]}\n', encoding="utf-8")
+
+            def lake_update(
+                argv: list[str],
+                cwd: Path,
+                **_: object,
+            ) -> str:
+                self.assertEqual(argv, ["lake", "update"])
+                self.assertEqual(cwd, project)
+                manifest.write_text(
+                    json.dumps(
+                        {
+                            "packages": [
+                                {
+                                    "name": "Sail",
+                                    "rev":
+                                        sail_lean_bridge.LEAN_SAIL_REVISION,
+                                }
+                            ]
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+                return ""
+
+            with mock.patch.object(
+                sail_lean_bridge,
+                "_run",
+                side_effect=lake_update,
+            ) as run:
+                revision = sail_lean_bridge._lean_sail_revision(project)
+
+            self.assertEqual(
+                revision,
+                sail_lean_bridge.LEAN_SAIL_REVISION,
+            )
+            run.assert_called_once()
 
     def test_existing_air_export_requires_the_exact_nonempty_family_set(
         self,
@@ -673,16 +939,16 @@ class RefinementAirTest(unittest.TestCase):
         self,
     ) -> None:
         valid = {
-            "schema_version": 1,
-            "coverage": {
-                "proved_normalized_opcodes": 2,
-                "production_opcodes": 46,
-            },
+            "schema_version": riscv_refinement.RECEIPT_SCHEMA_VERSION,
+            "claim_boundary": copy.deepcopy(
+                riscv_refinement.RECEIPT_CLAIM_BOUNDARY
+            ),
         }
         riscv_refinement._validate_receipt_numeric_identity(valid)
         for field, replacement in (
+            ("schema_version", 1),
             ("schema_version", True),
-            ("schema_version", 1.0),
+            ("schema_version", 2.0),
         ):
             malformed = copy.deepcopy(valid)
             malformed[field] = replacement
@@ -690,13 +956,464 @@ class RefinementAirTest(unittest.TestCase):
                 riscv_refinement._validate_receipt_numeric_identity(
                     malformed,
                 )
-        for replacement in (True, 2.0):
+        for replacement in (True, 24.0):
             malformed = copy.deepcopy(valid)
-            malformed["coverage"]["proved_normalized_opcodes"] = replacement
+            malformed["claim_boundary"]["team_a_production_air"][
+                "proved"
+            ] = replacement
             with self.assertRaisesRegex(RefinementError, "numeric identity"):
                 riscv_refinement._validate_receipt_numeric_identity(
                     malformed,
                 )
+
+    def test_receipt_v2_boundary_is_explicitly_non_publication(self) -> None:
+        boundary = riscv_refinement.RECEIPT_CLAIM_BOUNDARY
+        self.assertEqual(
+            boundary["team_a_production_air"],
+            {"proved": 24, "total": 24},
+        )
+        self.assertEqual(
+            boundary["graded_opcode_index"],
+            {"covered": 46, "total": 46},
+        )
+        self.assertEqual(
+            boundary["generated_sail_input_bindings"],
+            {"bound": 24, "total": 24},
+        )
+        self.assertEqual(
+            boundary["normalized_retirements"]["proved"],
+            2,
+        )
+        self.assertEqual(boundary["publication_level"]["proved"], 0)
+        self.assertFalse(boundary["full_generated_sail_step"])
+        self.assertFalse(boundary["proof_system_soundness"])
+        self.assertEqual(
+            boundary["external_signoffs"]["status"],
+            "not-established",
+        )
+        signoffs = boundary["external_signoffs"]
+        shared = signoffs["shared_interface_signoff"]
+        self.assertEqual(shared["status"], "not-established")
+        self.assertEqual(shared["required_signoffs"], 5)
+        self.assertEqual(len(shared["required_roles"]), 5)
+        self.assertEqual(shared["established"], [])
+        family_reviews = signoffs["team_a_family_non_author_signoffs"]
+        self.assertEqual(family_reviews["status"], "not-established")
+        self.assertEqual(family_reviews["required_per_family"], 3)
+        self.assertEqual(
+            family_reviews["required_roles"],
+            [
+                "air-tuple-reviewer",
+                "team-b-sail-profile-reviewer",
+                "lean-soundness-non-vacuity-reviewer",
+            ],
+        )
+        self.assertEqual(
+            family_reviews["families"],
+            list(riscv_refinement.riscv_team_a.TEAM_A_FAMILIES),
+        )
+        self.assertEqual(
+            family_reviews["established"],
+            {
+                family: []
+                for family
+                in riscv_refinement.riscv_team_a.TEAM_A_FAMILIES
+            },
+        )
+        joint = signoffs["joint_issue_137_gate"]
+        self.assertEqual(
+            joint,
+            {
+                "status": "not-established",
+                "issue": 137,
+                "established": False,
+            },
+        )
+
+    def test_receipt_binds_all_six_fixed_table_schemas(self) -> None:
+        schemas = riscv_refinement._fixed_table_schemas()
+        self.assertEqual(
+            [
+                (entry["id"], entry["arity"], entry["log_size"])
+                for entry in schemas
+            ],
+            list(air_program_contract.FIXED_TABLES),
+        )
+        for entry in schemas:
+            self.assertRegex(entry["schema_sha256"], r"^[0-9a-f]{64}$")
+            self.assertEqual(entry["domain"], entry["id"])
+
+    def test_receipt_full_payload_identity_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            paths = Paths(Path(raw))
+            relative = Path(
+                "formal/riscv-refinement/team-a-coverage.json"
+            )
+            artifact = paths.root / relative
+            artifact.parent.mkdir(parents=True)
+            payload = {
+                "schema_version": 1,
+                "kind": "stwo-riscv-team-a-coverage",
+                "certificates": [],
+            }
+            payload["canonical_digest"] = codec.content_digest(payload)
+            artifact.write_bytes(codec.pretty_bytes(payload))
+            identity = riscv_refinement._payload_identity(
+                paths,
+                relative,
+                expected_kind="stwo-riscv-team-a-coverage",
+                expected_schema=1,
+            )
+            riscv_refinement._validate_payload_identity(
+                identity,
+                "fixture",
+            )
+
+            resigned = copy.deepcopy(identity)
+            resigned["payload"]["certificates"].append({"mnemonic": "lui"})
+            resigned["payload"]["canonical_digest"] = codec.content_digest(
+                resigned["payload"]
+            )
+            resigned["canonical_digest"] = resigned["payload"][
+                "canonical_digest"
+            ]
+            with self.assertRaisesRegex(
+                RefinementError,
+                "full payload identity",
+            ):
+                riscv_refinement._validate_payload_identity(
+                    resigned,
+                    "fixture",
+                )
+
+    def test_receipt_coverage_payloads_cross_bind_source_indexes(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            paths = Paths(Path(raw))
+            team_a = {
+                "schema_version": 1,
+                "kind": "stwo-riscv-team-a-coverage",
+                "issue": 136,
+                "families": [],
+                "claim_boundary": {},
+                "certificates": [
+                    {"mnemonic": f"a{index}"} for index in range(24)
+                ],
+            }
+            team_b = {
+                "schema_version": 1,
+                "kind": "stwo-riscv-team-b-coverage",
+                "issue": 137,
+                "families": [],
+                "claim_boundary": "",
+                "air_level_counterexample_gate": "",
+                "certificates": [
+                    {"mnemonic": f"b{index}"} for index in range(22)
+                ],
+            }
+            for relative, payload in (
+                (riscv_refinement.TEAM_A_INDEX_RELATIVE, team_a),
+                (riscv_refinement.TEAM_B_INDEX_RELATIVE, team_b),
+            ):
+                payload["canonical_digest"] = codec.content_digest(payload)
+                path = paths.root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(codec.pretty_bytes(payload))
+            aggregate = {
+                "schema_version": 1,
+                "kind": "stwo-riscv-opcode-coverage",
+                "claim_boundary": {},
+                "source_indexes": {
+                    "team_a": team_a["canonical_digest"],
+                    "team_b": team_b["canonical_digest"],
+                },
+                "certificates": [
+                    {"mnemonic": f"op{index}"} for index in range(46)
+                ],
+            }
+            aggregate["canonical_digest"] = codec.content_digest(aggregate)
+            aggregate_path = (
+                paths.root / riscv_refinement.OPCODE_INDEX_RELATIVE
+            )
+            aggregate_path.parent.mkdir(parents=True, exist_ok=True)
+            aggregate_path.write_bytes(codec.pretty_bytes(aggregate))
+
+            identities = (
+                riscv_refinement._certificate_index_identities(paths)
+            )
+            self.assertEqual(set(identities), {"team_a", "team_b", "aggregate"})
+            self.assertEqual(
+                identities["aggregate"]["payload"]["source_indexes"],
+                {
+                    "team_a": identities["team_a"]["canonical_digest"],
+                    "team_b": identities["team_b"]["canonical_digest"],
+                },
+            )
+
+            aggregate["source_indexes"]["team_a"] = "0" * 64
+            aggregate["canonical_digest"] = codec.content_digest(aggregate)
+            aggregate_path.write_bytes(codec.pretty_bytes(aggregate))
+            with self.assertRaisesRegex(
+                RefinementError,
+                "does not bind both source indexes",
+            ):
+                riscv_refinement._certificate_index_identities(paths)
+
+    def test_receipt_theorem_axiom_index_binds_every_entry(self) -> None:
+        report = {
+            theorem: []
+            for theorem in riscv_refinement.AUDITED_THEOREMS
+        }
+        index = riscv_refinement._theorem_axiom_index(report)
+        riscv_refinement._validate_theorem_axiom_index(index)
+        malformed = copy.deepcopy(index)
+        malformed["theorem_count"] = True
+        with self.assertRaisesRegex(
+            RefinementError,
+            "index identity",
+        ):
+            riscv_refinement._validate_theorem_axiom_index(malformed)
+
+    def test_receipt_exact_mappings_bind_mutations_and_diagnostics(
+        self,
+    ) -> None:
+        mappings, indexes = receipt_mapping_fixture()
+        validated = riscv_refinement._validate_certificate_mappings(
+            mappings,
+            indexes,
+        )
+        self.assertEqual(
+            len(riscv_refinement._opcode_mutations(validated)),
+            46,
+        )
+        diagnostics = (
+            riscv_refinement._team_a_proof_time_diagnostics(validated)
+        )
+        self.assertEqual(len(diagnostics["measurements"]), 24)
+        self.assertTrue(diagnostics["diagnostic_only"])
+        self.assertFalse(diagnostics["semantic_evidence"])
+
+        duplicate = copy.deepcopy(mappings)
+        duplicate[1]["mutation"] = duplicate[0]["mutation"]
+        with self.assertRaisesRegex(RefinementError, "reuses opcode mutation"):
+            riscv_refinement._validate_certificate_mappings(
+                duplicate,
+                indexes,
+            )
+
+        reordered = copy.deepcopy(mappings)
+        reordered[0], reordered[1] = reordered[1], reordered[0]
+        with self.assertRaisesRegex(
+            RefinementError,
+            "mapping drifted",
+        ):
+            riscv_refinement._validate_certificate_mappings(
+                reordered,
+                indexes,
+            )
+
+    def test_receipt_mapping_rejects_theorem_substitution(self) -> None:
+        mappings, indexes = receipt_mapping_fixture()
+        mappings[0]["refinement_theorem"] = mappings[1][
+            "refinement_theorem"
+        ]
+        with self.assertRaisesRegex(
+            RefinementError,
+            "differs from its embedded source certificate",
+        ):
+            riscv_refinement._validate_certificate_mappings(
+                mappings,
+                indexes,
+            )
+
+    def test_receipt_mapping_rejects_unapproved_source_axioms(self) -> None:
+        mappings, indexes = receipt_mapping_fixture()
+        source = indexes["team_a"]["payload"]["certificates"][0]
+        source["axioms"] = ["trustMe"]
+        mappings[0]["axioms"] = ["trustMe"]
+        with self.assertRaisesRegex(
+            RefinementError,
+            "Team A receipt axioms drifted",
+        ):
+            riscv_refinement._validate_certificate_mappings(
+                mappings,
+                indexes,
+            )
+
+    def test_receipt_mapping_rejects_sail_grade_and_metadata_drift(
+        self,
+    ) -> None:
+        mappings, indexes = receipt_mapping_fixture()
+        team_a_index = next(
+            index
+            for index, mapping in enumerate(mappings)
+            if (
+                mapping["team"] == "A"
+                and mapping["sail_binding"] == "generated-clause-input"
+            )
+        )
+        team_b_index = next(
+            index
+            for index, mapping in enumerate(mappings)
+            if mapping["team"] == "B"
+        )
+
+        swapped = copy.deepcopy(mappings)
+        swapped[team_a_index]["sail_binding"], swapped[team_b_index][
+            "sail_binding"
+        ] = (
+            swapped[team_b_index]["sail_binding"],
+            swapped[team_a_index]["sail_binding"],
+        )
+        with self.assertRaisesRegex(
+            RefinementError,
+            "differs from its embedded source certificate",
+        ):
+            riscv_refinement._validate_certificate_mappings(
+                swapped,
+                indexes,
+            )
+
+        missing_metadata = copy.deepcopy(mappings)
+        del missing_metadata[team_a_index]["sail_theorem"]
+        with self.assertRaisesRegex(
+            RefinementError,
+            "differs from its embedded source certificate",
+        ):
+            riscv_refinement._validate_certificate_mappings(
+                missing_metadata,
+                indexes,
+            )
+
+    def test_receipt_production_digests_cross_bind_certificates(
+        self,
+    ) -> None:
+        mappings, _ = receipt_mapping_fixture()
+        production_inputs = {
+            "opcode_air_programs": [
+                {
+                    "manifest_id": mapping["manifest_id"],
+                    "mnemonic": mapping["mnemonic"],
+                    "family": mapping["family"],
+                    "content_digest": mapping["air_digest"],
+                }
+                for mapping in mappings
+            ]
+        }
+        riscv_refinement._validate_production_certificate_bindings(
+            production_inputs,
+            mappings,
+        )
+        production_inputs["opcode_air_programs"][0][
+            "content_digest"
+        ] = "f" * 64
+        with self.assertRaisesRegex(
+            RefinementError,
+            "production AIR digest differs",
+        ):
+            riscv_refinement._validate_production_certificate_bindings(
+                production_inputs,
+                mappings,
+            )
+
+    def test_receipt_sail_metadata_cross_binds_monad_bridge(self) -> None:
+        mappings, _ = receipt_mapping_fixture()
+        paths = Paths(ROOT)
+        monad = riscv_refinement._payload_identity(
+            paths,
+            (
+                paths.formal / sail.COMMITTED_MONAD_BRIDGE_RECEIPT
+            ).relative_to(paths.root),
+        )
+        for mapping in mappings:
+            if mapping["team"] == "A":
+                mapping["sail_digest"] = monad["canonical_digest"]
+        sail_inputs = {"monad_bridge_receipt": monad}
+        riscv_refinement._validate_certificate_sail_bindings(
+            sail_inputs,
+            mappings,
+        )
+        mappings[0]["sail_digest"] = "f" * 64
+        with self.assertRaisesRegex(
+            RefinementError,
+            "generated Sail metadata differs",
+        ):
+            riscv_refinement._validate_certificate_sail_bindings(
+                sail_inputs,
+                mappings,
+            )
+
+    def test_receipt_sail_definition_hashes_cross_bind_provenance(
+        self,
+    ) -> None:
+        paths = Paths(ROOT)
+        translation = riscv_refinement._payload_identity(
+            paths,
+            (
+                paths.formal / sail.COMMITTED_TRANSLATION_RECEIPT
+            ).relative_to(paths.root),
+        )
+        monad = riscv_refinement._payload_identity(
+            paths,
+            (
+                paths.formal / sail.COMMITTED_MONAD_BRIDGE_RECEIPT
+            ).relative_to(paths.root),
+        )
+        definition_hashes = {
+            name: chr(ord("a") + index) * 64
+            for index, name in enumerate(
+                sorted(sail.COMMITTED_DEFINITIONS)
+            )
+        }
+        provenance = {
+            "evidence_source": sail.LIVE_EVIDENCE,
+            "generated_backend_file_sha256": "d" * 64,
+            "exact_configuration_sha256": "e" * 64,
+            "generated_definition_sha256": definition_hashes,
+            "generated_ast_translation_receipt": {
+                "canonical_digest": translation["canonical_digest"],
+            },
+            "generated_monad_bridge_receipt": {
+                "canonical_digest": monad["canonical_digest"],
+            },
+        }
+        value = {
+            "provenance": provenance,
+            "provenance_digest": codec.sha256_bytes(
+                codec.canonical_bytes(provenance)
+            ),
+            "generated_backend": {
+                "artifact": sail.GENERATED_FILE.as_posix(),
+                "sha256": "d" * 64,
+                "size_bytes": 1,
+            },
+            "exact_configuration": {
+                "artifact": (
+                    "formal/riscv-refinement/"
+                    + sail.COMMITTED_CONFIGURATION.as_posix()
+                ),
+                "sha256": "e" * 64,
+            },
+            "generated_definitions": [
+                {
+                    "name": name,
+                    "artifact": (
+                        "formal/riscv-refinement/"
+                        + sail.COMMITTED_DEFINITIONS[name].as_posix()
+                    ),
+                    "sha256": definition_hashes[name],
+                }
+                for name in sorted(sail.COMMITTED_DEFINITIONS)
+            ],
+            "translation_receipt": translation,
+            "monad_bridge_receipt": monad,
+        }
+        riscv_refinement._validate_sail_inputs(value)
+        value["generated_definitions"][0]["sha256"] = "f" * 64
+        with self.assertRaisesRegex(
+            RefinementError,
+            "definitions do not cross-bind to provenance",
+        ):
+            riscv_refinement._validate_sail_inputs(value)
 
     def test_carried_sail_evidence_reproduces_the_committed_provenance(
         self,

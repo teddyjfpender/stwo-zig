@@ -32,17 +32,20 @@ from .model import (
 LIVE_EVIDENCE = "live-toolchain"
 CARRIED_EVIDENCE = "carried-committed-sail-evidence"
 NORMALIZATION = (
-    "checked generated-definition AST translation receipt for LUI and ADDI"
+    "checked generated-definition AST translation receipt for Team A "
+    "UTYPE, ITYPE, and RTYPE selectors"
 )
 LEGACY_NORMALIZATION = "reviewed exact-hash LUI and ADDI expression capsule"
 
 GENERATED_DEFINITION_HASHES = {
     "execute_UTYPE": "f746995b8c903140529bb742379c295bee8d95a02de2d730990dc77fe1cacf1c",
     "execute_ITYPE": "1d014d14c56ab01dc511fc36c8c6ee4dea56a63708257b8a5df451e7c6f6b17d",
+    "execute_RTYPE": "01359d58d0543ce431b7315caf9961ea80329de2f017f2ea6cb205a7149cd628",
 }
 SOURCE_SLICE_HASHES = {
     "UTYPE": "a994f93a7ea421755ae439539d20b62fac52ab9c6517f18e9159d37b9481432d",
     "ITYPE": "d543047dde089e1175bce44a64d745d68e1c8cc37f61f442f86feea0fd0ffaa6",
+    "RTYPE": "597df425d34ca5619049a2d5d5d6970cad7fa7ad6f22887c37fd19428be4b2e2",
 }
 PROFILE_PATH = Path("conformance/riscv/rv32im-sail-profile.json")
 OVERRIDE_PATHS = (
@@ -338,6 +341,10 @@ def _extract_source_slices(text: str) -> dict[str, str]:
             "union clause instruction = ITYPE",
             "// *****************************************************************\nunion clause instruction = SHIFTIOP",
         ),
+        "RTYPE": (
+            "union clause instruction = RTYPE",
+            "// *****************************************************************\nunion clause instruction = LOAD",
+        ),
     }
     result: dict[str, str] = {}
     for name, (start_marker, end_marker) in markers.items():
@@ -353,15 +360,33 @@ def _extract_source_slices(text: str) -> dict[str, str]:
 def _validate_semantic_shapes(definitions: dict[str, str]) -> None:
     utype = definitions["execute_UTYPE"]
     itype = definitions["execute_ITYPE"]
+    rtype = definitions["execute_RTYPE"]
     required_utype = (
         "sign_extend (m := 32) (imm +++ 0x000#12)",
         "| .LUI => (pure off)",
+        "| .AUIPC => (pure ((← (get_arch_pc ())) + off))",
         "(wX_bits rd",
         "(pure RETIRE_SUCCESS)",
     )
     required_itype = (
         "sign_extend (m := 32) imm",
         "| .ADDI => (pure ((← (rX_bits rs1)) + immext))",
+        "| .SLTI => (pure (zero_extend (m := 32) (bool_to_bit (zopz0zI_s",
+        "| .SLTIU =>",
+        "| .ANDI => (pure ((← (rX_bits rs1)) &&& immext))",
+        "| .ORI => (pure ((← (rX_bits rs1)) ||| immext))",
+        "| .XORI => (pure ((← (rX_bits rs1)) ^^^ immext))",
+        "(wX_bits rd",
+        "(pure RETIRE_SUCCESS)",
+    )
+    required_rtype = (
+        "| .ADD => (pure ((← (rX_bits rs1)) + (← (rX_bits rs2))))",
+        "| .SLT =>",
+        "| .SLTU =>",
+        "| .AND => (pure ((← (rX_bits rs1)) &&& (← (rX_bits rs2))))",
+        "| .OR => (pure ((← (rX_bits rs1)) ||| (← (rX_bits rs2))))",
+        "| .XOR => (pure ((← (rX_bits rs1)) ^^^ (← (rX_bits rs2))))",
+        "| .SUB => (pure ((← (rX_bits rs1)) - (← (rX_bits rs2))))",
         "(wX_bits rd",
         "(pure RETIRE_SUCCESS)",
     )
@@ -371,6 +396,9 @@ def _validate_semantic_shapes(definitions: dict[str, str]) -> None:
     for phrase in required_itype:
         if phrase not in itype:
             raise RefinementError(f"generated execute_ITYPE lost {phrase!r}")
+    for phrase in required_rtype:
+        if phrase not in rtype:
+            raise RefinementError(f"generated execute_RTYPE lost {phrase!r}")
 
 
 def _translation_receipt(definitions: dict[str, str]) -> dict[str, object]:
@@ -417,44 +445,120 @@ def _translation_receipt(definitions: dict[str, str]) -> dict[str, object]:
         raise RefinementError(
             "generated execute_ITYPE selector coverage drifted"
         )
-    expected_lui = {
-        "memory_read": None,
-        "memory_write": None,
-        "next_pc": sail_translation.SEQUENTIAL_NEXT_PC,
-        "reads_program_counter": False,
-        "register_reads": [],
-        "register_write": {
-            "target": "rd",
-            "value": (
-                "(sign_extend (m := 32) "
-                "(imm +++ 0x000#12))"
+    if set(entries["execute_RTYPE"].get("selectors", {})) != {
+        "ADD",
+        "AND",
+        "OR",
+        "SLL",
+        "SLT",
+        "SLTU",
+        "SRA",
+        "SRL",
+        "SUB",
+        "XOR",
+    }:
+        raise RefinementError(
+            "generated execute_RTYPE selector coverage drifted"
+        )
+
+    def expected_effect(
+        value: str,
+        reads: list[str],
+        *,
+        reads_program_counter: bool = False,
+    ) -> dict[str, object]:
+        return {
+            "memory_read": None,
+            "memory_write": None,
+            "next_pc": sail_translation.SEQUENTIAL_NEXT_PC,
+            "reads_program_counter": reads_program_counter,
+            "register_reads": reads,
+            "register_write": {"target": "rd", "value": value},
+            "retirement": "RETIRE_SUCCESS",
+        }
+
+    expected = {
+        "execute_UTYPE": {
+            "LUI": expected_effect(
+                "(sign_extend (m := 32) (imm +++ 0x000#12))",
+                [],
+            ),
+            "AUIPC": expected_effect(
+                "((← (get_arch_pc ())) + "
+                "(sign_extend (m := 32) (imm +++ 0x000#12)))",
+                [],
+                reads_program_counter=True,
             ),
         },
-        "retirement": "RETIRE_SUCCESS",
-    }
-    expected_addi = {
-        "memory_read": None,
-        "memory_write": None,
-        "next_pc": sail_translation.SEQUENTIAL_NEXT_PC,
-        "reads_program_counter": False,
-        "register_reads": ["rs1"],
-        "register_write": {
-            "target": "rd",
-            "value": (
-                "((← (rX_bits rs1)) + "
-                "(sign_extend (m := 32) imm))"
+        "execute_ITYPE": {
+            "ADDI": expected_effect(
+                "((← (rX_bits rs1)) + (sign_extend (m := 32) imm))",
+                ["rs1"],
+            ),
+            "SLTI": expected_effect(
+                "(zero_extend (m := 32) (bool_to_bit "
+                "(zopz0zI_s (← (rX_bits rs1)) "
+                "(sign_extend (m := 32) imm))))",
+                ["rs1"],
+            ),
+            "SLTIU": expected_effect(
+                "(zero_extend (m := 32) (bool_to_bit "
+                "(zopz0zI_u (← (rX_bits rs1)) "
+                "(sign_extend (m := 32) imm))))",
+                ["rs1"],
+            ),
+            "ANDI": expected_effect(
+                "((← (rX_bits rs1)) &&& (sign_extend (m := 32) imm))",
+                ["rs1"],
+            ),
+            "ORI": expected_effect(
+                "((← (rX_bits rs1)) ||| (sign_extend (m := 32) imm))",
+                ["rs1"],
+            ),
+            "XORI": expected_effect(
+                "((← (rX_bits rs1)) ^^^ (sign_extend (m := 32) imm))",
+                ["rs1"],
             ),
         },
-        "retirement": "RETIRE_SUCCESS",
+        "execute_RTYPE": {
+            "ADD": expected_effect(
+                "((← (rX_bits rs1)) + (← (rX_bits rs2)))",
+                ["rs1", "rs2"],
+            ),
+            "SUB": expected_effect(
+                "((← (rX_bits rs1)) - (← (rX_bits rs2)))",
+                ["rs1", "rs2"],
+            ),
+            "XOR": expected_effect(
+                "((← (rX_bits rs1)) ^^^ (← (rX_bits rs2)))",
+                ["rs1", "rs2"],
+            ),
+            "OR": expected_effect(
+                "((← (rX_bits rs1)) ||| (← (rX_bits rs2)))",
+                ["rs1", "rs2"],
+            ),
+            "AND": expected_effect(
+                "((← (rX_bits rs1)) &&& (← (rX_bits rs2)))",
+                ["rs1", "rs2"],
+            ),
+            "SLT": expected_effect(
+                "(zero_extend (m := 32) (bool_to_bit "
+                "(zopz0zI_s (← (rX_bits rs1)) (← (rX_bits rs2)))))",
+                ["rs1", "rs2"],
+            ),
+            "SLTU": expected_effect(
+                "(zero_extend (m := 32) (bool_to_bit "
+                "(zopz0zI_u (← (rX_bits rs1)) (← (rX_bits rs2)))))",
+                ["rs1", "rs2"],
+            ),
+        },
     }
-    if entries["execute_UTYPE"]["selectors"].get("LUI") != expected_lui:
-        raise RefinementError(
-            "generated execute_UTYPE LUI normalization drifted"
-        )
-    if entries["execute_ITYPE"]["selectors"].get("ADDI") != expected_addi:
-        raise RefinementError(
-            "generated execute_ITYPE ADDI normalization drifted"
-        )
+    for definition, selectors in expected.items():
+        for selector, effect in selectors.items():
+            if entries[definition]["selectors"].get(selector) != effect:
+                raise RefinementError(
+                    f"generated {definition} {selector} normalization drifted"
+                )
     return receipt
 
 
@@ -1012,6 +1116,10 @@ def _render_capsule(evidence: SailEvidence) -> bytes:
             evidence.definition_hashes["execute_ITYPE"],
         )
         .replace(
+            "__RTYPE_DIGEST__",
+            evidence.definition_hashes["execute_RTYPE"],
+        )
+        .replace(
             "__TRANSLATION_RECEIPT_DIGEST__",
             str(evidence.translation_receipt["canonical_digest"]),
         )
@@ -1022,6 +1130,10 @@ def _render_capsule(evidence: SailEvidence) -> bytes:
         .replace(
             "__ITYPE_AST_DIGEST__",
             str(definitions["execute_ITYPE"]["ast_sha256"]),
+        )
+        .replace(
+            "__RTYPE_AST_DIGEST__",
+            str(definitions["execute_RTYPE"]["ast_sha256"]),
         )
         .encode("utf-8")
     )

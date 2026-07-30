@@ -109,6 +109,6 @@ pub fn addPilot(
     verify.step.dependOn(&pilot_program_export_run.step);
     b.step(
         "riscv-refinement-pilot",
-        "Verify the LUI/ADDI normalized AIR-to-Sail Lean pilot",
+        "Verify the retained pilot and exact graded 46-opcode certificates",
     ).dependOn(&verify.step);
 }

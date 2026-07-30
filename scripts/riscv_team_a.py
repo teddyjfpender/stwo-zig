@@ -33,11 +33,11 @@ from typing import Any
 
 try:
     from . import riscv_team_b as shared
-    from .riscv_refinement_lib import air_program
+    from .riscv_refinement_lib import air_program, render
     from .riscv_refinement_lib.model import RefinementError
 except ImportError:
     import riscv_team_b as shared
-    from riscv_refinement_lib import air_program
+    from riscv_refinement_lib import air_program, render
     from riscv_refinement_lib.model import RefinementError
 
 
@@ -986,7 +986,21 @@ def check_coverage() -> str:
     )
 
 
-def check_air_programs() -> str:
+def check_air_programs(
+    air_program_ir_dir: Path | None = None,
+) -> str:
+    fresh_unsigned: dict[str, dict[str, Any]] | None = None
+    if air_program_ir_dir is not None:
+        try:
+            fresh_unsigned = render.validate_air_program_export(
+                air_program_ir_dir
+            )
+        except (OSError, RefinementError) as exc:
+            raise TeamAError(
+                "fresh unsigned AIR IR v2 export is invalid: "
+                f"{exc}"
+            ) from exc
+
     certificates = _certificates_by_mnemonic()
     for mnemonic, family, manifest_id in team_a_opcodes():
         path = AIR_PROGRAM_ROOT / f"{mnemonic}.air-ir-v2.json"
@@ -1016,9 +1030,26 @@ def check_air_programs() -> str:
                 f"{mnemonic} certificate does not bind its exact "
                 "production AIR program"
             )
+        if fresh_unsigned is not None:
+            try:
+                air_program.verify_production_binding(
+                    program,
+                    fresh_unsigned[mnemonic],
+                    REPOSITORY_ROOT,
+                )
+            except (KeyError, OSError, RefinementError) as exc:
+                raise TeamAError(
+                    f"{mnemonic} packaged production AIR program does not "
+                    "match the fresh unsigned AIR IR v2 export"
+                ) from exc
+    fresh_suffix = (
+        "; all 24 match the exact fresh 46-program unsigned export"
+        if fresh_unsigned is not None
+        else ""
+    )
     return (
         f"team A AIR bindings: {TEAM_A_OPCODE_COUNT} exact selector programs "
-        "match their certificates"
+        f"match their certificates{fresh_suffix}"
     )
 
 
@@ -1438,8 +1469,23 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         help="Lean AxiomAudit transcript, required by the axioms command",
     )
+    parser.add_argument(
+        "--air-program-ir-dir",
+        type=Path,
+        help=(
+            "exact fresh 46-file unsigned production AIR IR v2 export, "
+            "consumed by air-programs or check"
+        ),
+    )
     args = parser.parse_args(argv)
     try:
+        if (
+            args.air_program_ir_dir is not None
+            and args.command not in ("air-programs", "check")
+        ):
+            raise TeamAError(
+                "--air-program-ir-dir is only valid with air-programs or check"
+            )
         if args.command == "write":
             if args.audit_output is None:
                 raise TeamAError("write requires --audit-output")
@@ -1447,7 +1493,7 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "coverage":
             print(check_coverage())
         elif args.command == "air-programs":
-            print(check_air_programs())
+            print(check_air_programs(args.air_program_ir_dir))
         elif args.command == "theorems":
             print(check_theorems())
         elif args.command == "axioms":
@@ -1460,7 +1506,7 @@ def main(argv: list[str] | None = None) -> int:
             print(inventory())
         else:
             print(check_coverage())
-            print(check_air_programs())
+            print(check_air_programs(args.air_program_ir_dir))
             print(check_theorems())
             print(check_raw_column_models())
     except TeamAError as exc:

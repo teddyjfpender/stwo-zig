@@ -11,6 +11,7 @@ from unittest import mock
 
 from scripts import riscv_opcode_coverage as aggregate
 from scripts import riscv_team_a as team_a
+from scripts.riscv_refinement_lib import codec
 
 
 EXPECTED_TEAM_A = {
@@ -53,6 +54,23 @@ class TeamAGateTest(unittest.TestCase):
         path = Path(directory.name) / "team-a-coverage.json"
         path.write_text(json.dumps(index, indent=2, sort_keys=True) + "\n")
         return mock.patch.object(team_a, "CERTIFICATE_INDEX", path)
+
+    def _fresh_unsigned_export(self) -> Path:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        root = Path(directory.name)
+        for packaged_path in sorted(
+            team_a.AIR_PROGRAM_ROOT.glob("*.air-ir-v2.json")
+        ):
+            packaged = team_a.air_program.load_canonical(packaged_path)
+            unsigned = dict(packaged)
+            unsigned.pop("content_digest")
+            unsigned.pop("source_identity")
+            mnemonic = packaged["opcode_selector"]["mnemonic"]
+            (root / f"{mnemonic}.unsigned.json").write_bytes(
+                codec.canonical_bytes(unsigned)
+            )
+        return root
 
     def _generated_sail_fixture(
         self,
@@ -350,6 +368,99 @@ class TeamAGateTest(unittest.TestCase):
                 "does not bind its exact",
             ):
                 team_a.check_air_programs()
+
+    def test_fresh_unsigned_export_binds_all_team_a_programs(self):
+        export = self._fresh_unsigned_export()
+        with mock.patch.object(
+            team_a.air_program,
+            "verify_production_binding",
+            wraps=team_a.air_program.verify_production_binding,
+        ) as verify:
+            self.assertIn(
+                "fresh 46-program unsigned export",
+                team_a.check_air_programs(export),
+            )
+        self.assertEqual(verify.call_count, team_a.TEAM_A_OPCODE_COUNT)
+        with mock.patch("builtins.print"):
+            self.assertEqual(
+                team_a.main(
+                    [
+                        "check",
+                        "--air-program-ir-dir",
+                        str(export),
+                    ]
+                ),
+                0,
+            )
+
+    def test_fresh_unsigned_export_rejects_missing_and_extra_files(self):
+        export = self._fresh_unsigned_export()
+        (export / "mul.unsigned.json").unlink()
+        with self.assertRaisesRegex(
+            team_a.TeamAError,
+            "coverage drifted",
+        ):
+            team_a.check_air_programs(export)
+
+        export = self._fresh_unsigned_export()
+        (export / "unexpected.unsigned.json").write_bytes(b"{}")
+        with self.assertRaisesRegex(
+            team_a.TeamAError,
+            "coverage drifted",
+        ):
+            team_a.check_air_programs(export)
+
+    def test_fresh_unsigned_export_rejects_wrong_selector_payload(self):
+        export = self._fresh_unsigned_export()
+        (export / "sub.unsigned.json").write_bytes(
+            (export / "add.unsigned.json").read_bytes()
+        )
+        with self.assertRaisesRegex(
+            team_a.TeamAError,
+            "manifest/family selector drifted",
+        ):
+            team_a.check_air_programs(export)
+
+    def test_fresh_unsigned_export_rejects_semantic_mutation(self):
+        export = self._fresh_unsigned_export()
+        path = export / "lui.unsigned.json"
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        constant = next(
+            node
+            for node in payload["nodes"]
+            if node == {"op": "const", "value": 4096}
+        )
+        constant["value"] = 8192
+        path.write_bytes(codec.canonical_bytes(payload))
+        with self.assertRaisesRegex(
+            team_a.TeamAError,
+            "does not match the fresh unsigned",
+        ):
+            team_a.check_air_programs(export)
+
+    def test_fresh_unsigned_export_rejects_stale_source_payload(self):
+        export = self._fresh_unsigned_export()
+        source_directory = tempfile.TemporaryDirectory()
+        self.addCleanup(source_directory.cleanup)
+        source_root = Path(source_directory.name)
+        source_paths = team_a.air_program.FAMILY_SOURCE_PATHS[
+            "base_alu_reg"
+        ]
+        for relative in source_paths:
+            source = team_a.REPOSITORY_ROOT / relative
+            destination = source_root / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(source.read_bytes())
+        stale_source = source_root / source_paths[0]
+        stale_source.write_bytes(stale_source.read_bytes() + b"\n")
+        with (
+            mock.patch.object(team_a, "REPOSITORY_ROOT", source_root),
+            self.assertRaisesRegex(
+                team_a.TeamAError,
+                "does not match the fresh unsigned",
+            ),
+        ):
+            team_a.check_air_programs(export)
 
     def test_axiom_inventory_and_proof_time_fail_closed(self):
         mutations = (

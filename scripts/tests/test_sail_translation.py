@@ -30,13 +30,16 @@ CAPTURED_RECEIPT = (
     / "riscv-refinement"
     / sail.COMMITTED_TRANSLATION_RECEIPT
 )
-NAMES = ("execute_UTYPE", "execute_ITYPE")
+FIXTURE_NAMES = ("execute_UTYPE", "execute_ITYPE")
+CAPTURED_NAMES = ("execute_UTYPE", "execute_ITYPE", "execute_RTYPE")
 PINNED_RECEIPT_DIGEST = (
-    "708ed95872d6b32a6b80806af94fd8e4210cdb280150453688a2f9315b2f22e2"
+    "008459d979422ef9e471897bfc0436e33b1fd7c7c5af77c2211be74a2280fa25"
 )
 PINNED_AST_DIGESTS = {
     "execute_ITYPE":
-        "1d44a5fef2e5a4cb65dc4f66da1f6b08d37b1f4fd9d043205b91e28e8fca7fe6",
+        "048f9d35651afaff301d78af5f6f7ccfb94ac9bf7d16d42af644411556c6e0e5",
+    "execute_RTYPE":
+        "f170c513e07496f203d74207e9b70c4f0587805feacdd49d9fdd17a1b5381d92",
     "execute_UTYPE":
         "3b5919cc27dc576d206d41137efd031cb23979f46557d94282cfb05f83b095dc",
 }
@@ -61,11 +64,11 @@ PINNED_PHRASES = {
 
 
 def definitions() -> dict[str, str]:
-    return translation.load_definitions(FIXTURES, NAMES)
+    return translation.load_definitions(FIXTURES, FIXTURE_NAMES)
 
 
 def captured_definitions() -> dict[str, str]:
-    return translation.load_definitions(CAPTURED, NAMES)
+    return translation.load_definitions(CAPTURED, CAPTURED_NAMES)
 
 
 def mutate(text: str, old: str, new: str) -> str:
@@ -115,30 +118,57 @@ class CapturedGeneratedTranslationTest(unittest.TestCase):
             PINNED_AST_DIGESTS,
         )
 
-    def test_actual_generated_lui_and_addi_effects_are_exact(self) -> None:
+    def test_actual_generated_team_a_effects_are_exact(self) -> None:
         receipt = translation.build_receipt(captured_definitions())
-        lui = receipt["definitions"]["execute_UTYPE"]["selectors"]["LUI"]
-        addi = receipt["definitions"]["execute_ITYPE"]["selectors"]["ADDI"]
-        self.assertEqual(
-            lui["register_write"],
-            {
-                "target": "rd",
-                "value":
-                    "(sign_extend (m := 32) (imm +++ 0x000#12))",
-            },
-        )
-        self.assertEqual(
-            addi["register_write"],
-            {
-                "target": "rd",
-                "value":
-                    "((← (rX_bits rs1)) + "
-                    "(sign_extend (m := 32) imm))",
-            },
-        )
-        self.assertEqual(lui["register_reads"], [])
-        self.assertEqual(addi["register_reads"], ["rs1"])
-        for effect in (lui, addi):
+        selectors = {
+            definition: entry["selectors"]
+            for definition, entry in receipt["definitions"].items()
+        }
+        expected_values = {
+            ("execute_UTYPE", "LUI"):
+                "(sign_extend (m := 32) (imm +++ 0x000#12))",
+            ("execute_UTYPE", "AUIPC"):
+                "((← (get_arch_pc ())) + "
+                "(sign_extend (m := 32) (imm +++ 0x000#12)))",
+            ("execute_ITYPE", "ADDI"):
+                "((← (rX_bits rs1)) + (sign_extend (m := 32) imm))",
+            ("execute_ITYPE", "SLTI"):
+                "(zero_extend (m := 32) (bool_to_bit "
+                "(zopz0zI_s (← (rX_bits rs1)) "
+                "(sign_extend (m := 32) imm))))",
+            ("execute_ITYPE", "SLTIU"):
+                "(zero_extend (m := 32) (bool_to_bit "
+                "(zopz0zI_u (← (rX_bits rs1)) "
+                "(sign_extend (m := 32) imm))))",
+            ("execute_ITYPE", "ANDI"):
+                "((← (rX_bits rs1)) &&& (sign_extend (m := 32) imm))",
+            ("execute_ITYPE", "ORI"):
+                "((← (rX_bits rs1)) ||| (sign_extend (m := 32) imm))",
+            ("execute_ITYPE", "XORI"):
+                "((← (rX_bits rs1)) ^^^ (sign_extend (m := 32) imm))",
+            ("execute_RTYPE", "ADD"):
+                "((← (rX_bits rs1)) + (← (rX_bits rs2)))",
+            ("execute_RTYPE", "SUB"):
+                "((← (rX_bits rs1)) - (← (rX_bits rs2)))",
+            ("execute_RTYPE", "XOR"):
+                "((← (rX_bits rs1)) ^^^ (← (rX_bits rs2)))",
+            ("execute_RTYPE", "OR"):
+                "((← (rX_bits rs1)) ||| (← (rX_bits rs2)))",
+            ("execute_RTYPE", "AND"):
+                "((← (rX_bits rs1)) &&& (← (rX_bits rs2)))",
+            ("execute_RTYPE", "SLT"):
+                "(zero_extend (m := 32) (bool_to_bit "
+                "(zopz0zI_s (← (rX_bits rs1)) (← (rX_bits rs2)))))",
+            ("execute_RTYPE", "SLTU"):
+                "(zero_extend (m := 32) (bool_to_bit "
+                "(zopz0zI_u (← (rX_bits rs1)) (← (rX_bits rs2)))))",
+        }
+        for (definition, selector), value in expected_values.items():
+            effect = selectors[definition][selector]
+            self.assertEqual(
+                effect["register_write"],
+                {"target": "rd", "value": value},
+            )
             self.assertEqual(
                 effect["next_pc"],
                 translation.SEQUENTIAL_NEXT_PC,
@@ -146,6 +176,33 @@ class CapturedGeneratedTranslationTest(unittest.TestCase):
             self.assertIsNone(effect["memory_read"])
             self.assertIsNone(effect["memory_write"])
             self.assertEqual(effect["retirement"], "RETIRE_SUCCESS")
+            if definition == "execute_RTYPE":
+                self.assertEqual(effect["register_reads"], ["rs1", "rs2"])
+            elif definition == "execute_ITYPE":
+                self.assertEqual(effect["register_reads"], ["rs1"])
+            else:
+                self.assertEqual(effect["register_reads"], [])
+        self.assertTrue(selectors["execute_UTYPE"]["AUIPC"][
+            "reads_program_counter"
+        ])
+        self.assertFalse(selectors["execute_UTYPE"]["LUI"][
+            "reads_program_counter"
+        ])
+
+    def test_actual_generated_rtype_multiline_alternatives_are_total(self) -> None:
+        entry = translation.translate(
+            "execute_RTYPE",
+            captured_definitions()["execute_RTYPE"],
+        )
+        self.assertEqual(
+            sorted(entry["selectors"]),
+            ["ADD", "AND", "OR", "SLL", "SLT", "SLTU",
+             "SRA", "SRL", "SUB", "XOR"],
+        )
+        self.assertIn(
+            "shift_bits_right_arith",
+            entry["selectors"]["SRA"]["register_write"]["value"],
+        )
 
     def test_actual_nested_match_wrapper_is_fail_closed(self) -> None:
         source = mutate(
@@ -236,7 +293,7 @@ class ReceiptTest(unittest.TestCase):
             translation.content_digest(first),
         )
         self.assertEqual(first["schema_version"], translation.SCHEMA_VERSION)
-        self.assertEqual(sorted(first["definitions"]), sorted(NAMES))
+        self.assertEqual(sorted(first["definitions"]), sorted(FIXTURE_NAMES))
 
     def test_receipt_carries_its_own_claim_boundary(self) -> None:
         receipt = translation.build_receipt(definitions())

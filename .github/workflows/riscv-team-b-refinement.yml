@@ -38,16 +38,33 @@ on:
       - "scripts/riscv_team_b*.py"
       - "scripts/riscv_team_b.py"
       - "scripts/riscv_team_b_witnesses.py"
+      - "scripts/riscv_team_a.py"
+      - "scripts/riscv_opcode_coverage.py"
       - "scripts/riscv_refinement*.py"
       - "scripts/riscv_refinement_lib/**"
       - "scripts/tests/test_riscv_team_b*.py"
       - "scripts/tests/test_riscv_team_b.py"
       - "scripts/tests/test_riscv_team_b_witnesses.py"
+      - "scripts/tests/test_riscv_team_a.py"
       - "scripts/tests/test_riscv_refinement.py"
       - "scripts/tests/test_sail_translation.py"
+      - "scripts/tests/test_sail_air_composition_contract.py"
+      - "scripts/tests/fixtures/sail_translation/**"
+      - "conformance/riscv/rv32im-sail-profile.json"
       - "conformance/riscv/sail-lean-riscv-extras.patch"
+      - "conformance/riscv/sail-rv32im-override.json"
+      - "conformance/riscv/sail-rv32im-tagged-options.json"
+      - "conformance/riscv/sail-rvfi-zkvm-entry.patch"
+      - "build.zig"
+      - "build.zig.zon"
+      - "build_support/**"
+      - "src/core/**"
       - "src/frontends/riscv/**"
+      - "soundness/AIR_IR_V2_CONTRACT.md"
+      - "soundness/SAIL_AIR_COMPOSITION.md"
       - "soundness/TEAM_B_SAIL_REFINEMENT_CONTRACT.md"
+      - "soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md"
+      - "soundness/air-ir-v2.schema.json"
       - ".github/workflows/riscv-team-b-refinement.yml"
   push:
     branches: ["main"]
@@ -68,8 +85,44 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  air-export:
+    name: Fresh production AIR export
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
+        with:
+          version: 0.15.2
+
+      # Export once, then make every semantic shard consume these exact bytes.
+      # This prevents 23 matrix legs from each recompiling the production
+      # frontend while still making the aggregate gate bind fresh AIR.
+      - name: Export every family and unsigned opcode program
+        run: |
+          set -euo pipefail
+          zig build riscv-refinement-ir \
+            -Driscv-refinement-ir-dir=zig-out/fresh-family-air \
+            -Driscv-air-program-ir-dir=zig-out/fresh-opcode-air
+          test "$(find zig-out/fresh-family-air -maxdepth 1 -type f -name '*.json' | wc -l | tr -d ' ')" = 17
+          test "$(find zig-out/fresh-opcode-air -maxdepth 1 -type f -name '*.unsigned.json' | wc -l | tr -d ' ')" = 46
+
+      - name: Upload the immutable AIR export
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: riscv-refinement-fresh-air-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            zig-out/fresh-family-air
+            zig-out/fresh-opcode-air
+          if-no-files-found: error
+          retention-days: 1
+
   team-b-formal:
     name: Team B formal refinement gate
+    needs: air-export
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -80,15 +133,6 @@ jobs:
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.13"
-
-      # The version pin matches ci.yml exactly: build.zig.zon carries no
-      # minimum_zig_version, so an unpinned setup-zig resolves to latest and
-      # drifts away from what every other workflow in this repository builds
-      # with.
-      - name: Setup Zig
-        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
-        with:
-          version: 0.15.2
 
       - name: Setup Lean at the pinned toolchain
         uses: leanprover/lean-action@38fbc41a8c28c4cbaec22d7f7de508ec2e7c0dd9 # v1.5.0
@@ -119,26 +163,45 @@ jobs:
             exit 1
           fi
 
-      - name: Export the production symbolic AIR
+      - name: Download the fresh production AIR
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: riscv-refinement-fresh-air-${{ github.sha }}-${{ github.run_attempt }}
+          path: zig-out
+
+      - name: Require the complete Team B family export
         run: |
           set -euo pipefail
-          rm -rf zig-out/team-b-ir
-          zig build riscv-refinement-ir -Driscv-refinement-ir-dir=zig-out/team-b-ir
-          test -s zig-out/team-b-ir/load_store.json
-          test -s zig-out/team-b-ir/div.json
+          test -s zig-out/fresh-family-air/load_store.json
+          test -s zig-out/fresh-family-air/div.json
 
       - name: Team B coverage, certificate, and AIR-binding gate
-        run: python3 scripts/riscv_team_b.py check --air-ir-dir zig-out/team-b-ir
+        run: python3 scripts/riscv_team_b.py check --air-ir-dir zig-out/fresh-family-air
 
       - name: Non-vacuity witnesses are reachable in the shipped AIR
         run: |
-          python3 scripts/riscv_team_b_witnesses.py --air-ir-dir zig-out/team-b-ir
+          python3 scripts/riscv_team_b_witnesses.py --air-ir-dir zig-out/fresh-family-air
 
-      - name: Build every Lean theorem
+      - name: Build the concrete Team B theorem families
         run: |
           set -euo pipefail
           cd formal/riscv-refinement
-          lake build
+          lake build \
+            RiscvRefinement.Opcodes.LoadStore \
+            RiscvRefinement.Opcodes.LoadStoreMutation \
+            RiscvRefinement.Opcodes.LoadStoreMutationExtra \
+            RiscvRefinement.Opcodes.LoadMutationByte \
+            RiscvRefinement.Opcodes.LoadMutationWord \
+            RiscvRefinement.Opcodes.StoreMutation \
+            RiscvRefinement.Opcodes.Shifts \
+            RiscvRefinement.Opcodes.ShiftsMutation \
+            RiscvRefinement.Opcodes.ShiftsRegMutation \
+            RiscvRefinement.Opcodes.Multiply \
+            RiscvRefinement.Opcodes.MultiplyMutation \
+            RiscvRefinement.Opcodes.MultiplyMutationExtra \
+            RiscvRefinement.Opcodes.Div \
+            RiscvRefinement.Opcodes.DivMutation \
+            RiscvRefinement.Opcodes.DivMutationExtra
 
       - name: Scan for proof escapes
         run: |
@@ -210,9 +273,10 @@ jobs:
               return "".join(out)
 
           files = sorted(root.rglob("*.lean"))
-          # The tree holds 32 Lean files today; seeing fewer than 25 means
+          # The tree holds more than 80 Lean files today; seeing fewer than 80
+          # means
           # the scan did not reach the sources it exists to police.
-          if len(files) < 25:
+          if len(files) < 80:
               print(
                   f"proof-escape scan saw only {len(files)} Lean files under "
                   f"{root}; refusing to treat an implausibly small scan as "
@@ -238,34 +302,245 @@ jobs:
           print(f"scanned {len(files)} Lean files; no proof escapes")
           PY
 
-      - name: Audit the axioms of every exported theorem
-        run: |
-          set -euo pipefail
-          cd formal/riscv-refinement
-          lake env lean RiscvRefinement/AxiomAudit.lean > /tmp/team-b-axioms.txt
-          # An audit that reports nothing looks identical to an audit that
-          # found nothing wrong, so require it to have actually reported. If
-          # the output format ever changes, this fails instead of passing.
-          theorems="$(grep -cE '^REFINEMENT_THEOREM ' /tmp/team-b-axioms.txt || true)"
-          axioms="$(grep -cE '^REFINEMENT_AXIOM ' /tmp/team-b-axioms.txt || true)"
-          echo "audited ${theorems} theorems over ${axioms} axiom records"
-          if [ "${theorems}" -lt 800 ] || [ "${axioms}" -lt 800 ]; then
-            echo "axiom audit reported implausibly little; treating as failure" >&2
-            exit 1
-          fi
-          # Only propext, Classical.choice and Quot.sound are approved.
-          if grep -E '^REFINEMENT_AXIOM ' /tmp/team-b-axioms.txt \
-              | grep -vE ' (propext|Classical\.choice|Quot\.sound)$'; then
-            echo "unapproved axiom in a refinement theorem" >&2
-            exit 1
-          fi
-
-      - name: Python gates
+      - name: Team B Python gates
         run: |
           set -euo pipefail
           python3 -m unittest scripts.tests.test_riscv_team_b -v
           python3 -m unittest scripts.tests.test_riscv_team_b_witnesses -v
           python3 -m unittest scripts.tests.test_sail_translation -v
+          python3 -m unittest scripts.tests.test_sail_air_composition_contract -v
+
+  team-a-shards:
+    name: Team A5 shard / ${{ matrix.shard }}
+    needs: air-export
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The 17 rows below are the exact production family set emitted by
+          # refinement_program_export_test.zig. Every family builds its concrete
+          # refinement and mutation capsules; shared targets are intentionally
+          # repeated only where one Lean module covers two extractor families.
+          - shard: family-auipc
+            targets: "RiscvRefinement.Opcodes.Auipc RiscvRefinement.Opcodes.AuipcMutation"
+            python: false
+            fresh_air: false
+          - shard: family-base_alu_imm
+            targets: "RiscvRefinement.Opcodes.BaseAluImm RiscvRefinement.Opcodes.BaseAluMutation"
+            python: false
+            fresh_air: false
+          - shard: family-base_alu_reg
+            targets: "RiscvRefinement.Opcodes.BaseAluReg RiscvRefinement.Opcodes.BaseAluMutation"
+            python: false
+            fresh_air: false
+          - shard: family-branch_eq
+            targets: "RiscvRefinement.Opcodes.Branches RiscvRefinement.Opcodes.BranchesMutation"
+            python: false
+            fresh_air: false
+          - shard: family-branch_lt
+            targets: "RiscvRefinement.Opcodes.Branches RiscvRefinement.Opcodes.BranchesMutation"
+            python: false
+            fresh_air: false
+          - shard: family-div
+            targets: "RiscvRefinement.Opcodes.Div RiscvRefinement.Opcodes.DivMutation RiscvRefinement.Opcodes.DivMutationExtra"
+            python: false
+            fresh_air: false
+          - shard: family-fence
+            targets: "RiscvRefinement.Opcodes.Fence RiscvRefinement.Opcodes.FenceMutation"
+            python: false
+            fresh_air: false
+          - shard: family-jal
+            targets: "RiscvRefinement.Opcodes.Jal RiscvRefinement.Opcodes.JalMutation"
+            python: false
+            fresh_air: false
+          - shard: family-jalr
+            targets: "RiscvRefinement.Opcodes.Jalr RiscvRefinement.Opcodes.JalrMutation"
+            python: false
+            fresh_air: false
+          - shard: family-load_store
+            targets: "RiscvRefinement.Opcodes.LoadStore RiscvRefinement.Opcodes.LoadStoreMutation RiscvRefinement.Opcodes.LoadStoreMutationExtra RiscvRefinement.Opcodes.LoadMutationByte RiscvRefinement.Opcodes.LoadMutationWord RiscvRefinement.Opcodes.StoreMutation"
+            python: false
+            fresh_air: false
+          - shard: family-lt_imm
+            targets: "RiscvRefinement.Air.Bridge.LtImm RiscvRefinement.Opcodes.Lt RiscvRefinement.Opcodes.LtMutation"
+            python: false
+            fresh_air: false
+          - shard: family-lt_reg
+            targets: "RiscvRefinement.Air.Bridge.LtReg RiscvRefinement.Opcodes.Lt RiscvRefinement.Opcodes.LtMutation"
+            python: false
+            fresh_air: false
+          - shard: family-lui
+            targets: "RiscvRefinement.Opcodes.Lui RiscvRefinement.Air.Bridge.Mutations"
+            python: false
+            fresh_air: false
+          - shard: family-mul
+            targets: "RiscvRefinement.Opcodes.Multiply RiscvRefinement.Opcodes.MultiplyMutation RiscvRefinement.Opcodes.MultiplyMutationExtra"
+            python: false
+            fresh_air: false
+          - shard: family-mulh
+            targets: "RiscvRefinement.Air.Bridge.MulhBridge RiscvRefinement.Opcodes.Multiply RiscvRefinement.Opcodes.MultiplyMutation RiscvRefinement.Opcodes.MultiplyMutationExtra"
+            python: false
+            fresh_air: false
+          - shard: family-shifts_imm
+            targets: "RiscvRefinement.Opcodes.Shifts RiscvRefinement.Opcodes.ShiftsMutation"
+            python: false
+            fresh_air: false
+          - shard: family-shifts_reg
+            targets: "RiscvRefinement.Opcodes.Shifts RiscvRefinement.Opcodes.ShiftsRegMutation"
+            python: false
+            fresh_air: false
+
+          # Cross-cutting obligations cannot be assigned honestly to one AIR
+          # family. Keeping them explicit prevents a green family matrix from
+          # hiding a missing source, witness, mutation, coverage, or audit leg.
+          - shard: source-binding
+            targets: "RiscvRefinement.Air.Generated.Programs"
+            python: true
+            fresh_air: true
+          - shard: shared-semantics
+            targets: "RiscvRefinement.Common RiscvRefinement.Memory RiscvRefinement.Mutation RiscvRefinement.Air RiscvRefinement.Bridge.DecodeTeamA"
+            python: false
+            fresh_air: false
+          - shard: non-vacuity
+            targets: "RiscvRefinement.NonVacuity RiscvRefinement.Opcodes.SelectorNonVacuity"
+            python: false
+            fresh_air: false
+          - shard: mutations
+            targets: "RiscvRefinement.Mutation RiscvRefinement.Air.Bridge.Mutations"
+            python: false
+            fresh_air: false
+          - shard: coverage
+            targets: "RiscvRefinement.Coverage"
+            python: true
+            fresh_air: false
+          - shard: axiom-closure
+            targets: "RiscvRefinement"
+            python: true
+            fresh_air: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Setup Python
+        if: matrix.python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      - name: Setup Lean at the pinned toolchain
+        uses: leanprover/lean-action@38fbc41a8c28c4cbaec22d7f7de508ec2e7c0dd9 # v1.5.0
+        with:
+          lake-package-directory: formal/riscv-refinement
+          build: false
+          test: false
+          lint: false
+
+      - name: Build this shard's concrete Lean targets
+        working-directory: formal/riscv-refinement
+        run: lake build ${{ matrix.targets }}
+
+      - name: Download fresh AIR for the source-binding shard
+        if: matrix.fresh_air
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: riscv-refinement-fresh-air-${{ github.sha }}-${{ github.run_attempt }}
+          path: zig-out
+
+      - name: Bind all Team A programs to the fresh unsigned export
+        if: matrix.shard == 'source-binding'
+        run: |
+          set -euo pipefail
+          python3 scripts/riscv_team_a.py check \
+            --air-program-ir-dir zig-out/fresh-opcode-air
+
+      - name: Check exact certificate coverage
+        if: matrix.shard == 'coverage'
+        run: |
+          set -euo pipefail
+          python3 scripts/riscv_team_a.py coverage
+          python3 scripts/riscv_opcode_coverage.py check
+
+      - name: Audit the complete imported theorem closure
+        if: matrix.shard == 'axiom-closure'
+        run: |
+          set -euo pipefail
+          (
+            cd formal/riscv-refinement
+            lake env lean RiscvRefinement/AxiomAudit.lean > /tmp/a5-axioms.txt
+          )
+          theorems="$(grep -cE '^REFINEMENT_THEOREM ' /tmp/a5-axioms.txt || true)"
+          axioms="$(grep -cE '^REFINEMENT_AXIOM ' /tmp/a5-axioms.txt || true)"
+          echo "audited ${theorems} theorems over ${axioms} axiom records"
+          if [ "${theorems}" -lt 800 ] || [ "${axioms}" -lt 800 ]; then
+            echo "axiom audit reported implausibly little; treating as failure" >&2
+            exit 1
+          fi
+          if grep -E '^REFINEMENT_AXIOM ' /tmp/a5-axioms.txt \
+              | grep -vE ' (propext|Classical\.choice|Quot\.sound)$'; then
+            echo "unapproved axiom in a refinement theorem" >&2
+            exit 1
+          fi
+          python3 scripts/riscv_team_a.py axioms \
+            --audit-output /tmp/a5-axioms.txt
+
+  aggregate:
+    name: Team A5 aggregate refinement gate
+    needs:
+      - air-export
+      - team-b-formal
+      - team-a-shards
+    # A default `needs` fan-in is skipped when an upstream job fails. Run this
+    # job regardless and turn every non-success result into an explicit RED
+    # aggregate status, so branch protection has one stable required check.
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Require every upstream shard to be green
+        env:
+          AIR_EXPORT_RESULT: ${{ needs.air-export.result }}
+          TEAM_B_RESULT: ${{ needs.team-b-formal.result }}
+          TEAM_A_SHARDS_RESULT: ${{ needs.team-a-shards.result }}
+        run: |
+          set -euo pipefail
+          test "${AIR_EXPORT_RESULT}" = success
+          test "${TEAM_B_RESULT}" = success
+          test "${TEAM_A_SHARDS_RESULT}" = success
+
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Setup Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      - name: Download the exact AIR bytes checked by the shards
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: riscv-refinement-fresh-air-${{ github.sha }}-${{ github.run_attempt }}
+          path: zig-out
+
+      # This is the required fan-in. It cannot pass unless all 17 family
+      # shards, all six cross-cutting shards, and the Team B leg are green.
+      - name: Bind the exact 46-opcode aggregate to fresh production AIR
+        run: |
+          set -euo pipefail
+          python3 scripts/riscv_team_b.py check \
+            --air-ir-dir zig-out/fresh-family-air
+          python3 scripts/riscv_team_b_witnesses.py \
+            --air-ir-dir zig-out/fresh-family-air
+          python3 scripts/riscv_team_a.py check \
+            --air-program-ir-dir zig-out/fresh-opcode-air
+          python3 scripts/riscv_opcode_coverage.py check
+
+      - name: Aggregate Python regression gates
+        run: |
+          set -euo pipefail
+          python3 -m unittest scripts.tests.test_riscv_team_a -v
           python3 -m unittest scripts.tests.test_riscv_refinement -v
 
   clean-room:
@@ -316,14 +591,32 @@ jobs:
       - name: Regenerate the production symbolic AIR from empty caches
         run: |
           set -euo pipefail
-          zig build riscv-refinement-ir -Driscv-refinement-ir-dir=zig-out/team-b-ir
+          zig build riscv-refinement-ir \
+            -Driscv-refinement-ir-dir=zig-out/team-b-ir \
+            -Driscv-air-program-ir-dir=zig-out/team-a-air-program-ir
           test -s zig-out/team-b-ir/div.json
+          test "$(find zig-out/team-a-air-program-ir -maxdepth 1 -type f -name '*.unsigned.json' | wc -l | tr -d ' ')" = 46
 
       - name: Team B gates on the clean-room inputs
         run: |
           set -euo pipefail
           python3 scripts/riscv_team_b.py check --air-ir-dir zig-out/team-b-ir
           python3 scripts/riscv_team_b_witnesses.py --air-ir-dir zig-out/team-b-ir
+          python3 scripts/riscv_team_a.py check \
+            --air-program-ir-dir zig-out/team-a-air-program-ir
+          python3 scripts/riscv_opcode_coverage.py check
+          (
+            cd formal/riscv-refinement
+            lake env lean RiscvRefinement/AxiomAudit.lean \
+              > /tmp/clean-room-axioms.txt
+          )
+          if grep -E '^REFINEMENT_AXIOM ' /tmp/clean-room-axioms.txt \
+              | grep -vE ' (propext|Classical\.choice|Quot\.sound)$'; then
+            echo "unapproved axiom in clean-room theorem build" >&2
+            exit 1
+          fi
+          python3 scripts/riscv_team_a.py axioms \
+            --audit-output /tmp/clean-room-axioms.txt
 
       # The receipt binds what a clean room actually reproduced. It is not
       # signed with Sail evidence, because this job does not provision Sail;
@@ -350,8 +643,22 @@ jobs:
               "air_families": {
                   path.name: digest(path) for path in sorted(export.glob("*.json"))
               },
+              "unsigned_opcode_air": {
+                  path.name: digest(path)
+                  for path in sorted(
+                      pathlib.Path("zig-out/team-a-air-program-ir").glob(
+                          "*.unsigned.json"
+                      )
+                  )
+              },
               "team_b_coverage": digest(
                   "formal/riscv-refinement/team-b-coverage.json"
+              ),
+              "team_a_coverage": digest(
+                  "formal/riscv-refinement/team-a-coverage.json"
+              ),
+              "aggregate_opcode_coverage": digest(
+                  "formal/riscv-refinement/opcode-coverage.json"
               ),
               "generated_manifest": digest(
                   "formal/riscv-refinement/generated-manifest.json"

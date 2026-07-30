@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping, NoReturn, Sequence
 
 SCHEMA_VERSION = "stwo-sail-translation-receipt-v1"
-PARSER_VERSION = "sail-lean-subset-parser-v1"
+PARSER_VERSION = "sail-lean-subset-parser-v2"
 
 #: Normalization rules the pass may apply.  The catalogue is part of the
 #: receipt payload, so editing a description changes the canonical digest.
@@ -101,8 +101,15 @@ _PURE_FUNCTIONS = frozenset(
         "BitVec.ule",
         "BitVec.append",
         "BitVec.extractLsb",
+        "Sail.BitVec.extractLsb",
+        "shift_bits_left",
+        "shift_bits_right",
+        "shift_bits_right_arith",
     }
 )
+# Generated shift alternatives refer to this pinned architectural constant.
+# It is accepted as a value atom, not as an unconstrained local.
+_PURE_CONSTANTS = frozenset({"log2_xlen"})
 #: Functions allowed in statement position, each with its effect slot.
 _EFFECT_FUNCTIONS = {
     "wX_bits": "register_write",
@@ -296,7 +303,7 @@ _TOKEN_RE = re.compile(
             ("BIND", r"←|<-"),
             (
                 "OP",
-                r"\+\+\+|&&&|\|\|\||\^\^\^|<<<|>>>|\+|-|\*",
+                r"\+\+\+|&&&|\|\|\||\^\^\^|<<<|>>>|[+\-*]i|\+|-|\*",
             ),
             ("LPAREN", r"\("),
             ("RPAREN", r"\)"),
@@ -518,17 +525,56 @@ def _is_word(token: _Token, word: str) -> bool:
 
 
 def _parse_body(rest: Sequence[_Token], item: _Item) -> Any:
-    if not rest or (len(rest) == 1 and _is_word(rest[0], "do")):
+    if len(rest) == 1 and _is_word(rest[0], "do"):
         if not item.children:
             raise SailTranslationError(
                 f"line {item.line.number}: expected an indented do-block"
             )
         return Do(_parse_block(item.children))
-    if item.children:
+    continuation = [
+        token
+        for child in item.children
+        for token in _flatten_item_tokens(child)
+    ]
+    expression = [*rest, *continuation]
+    if not expression:
         raise SailTranslationError(
-            f"line {item.line.number}: unsupported continuation lines"
+            f"line {item.line.number}: expected an expression"
         )
-    return _parse_expression_tokens(rest, item.line.number)
+    return _parse_expression_tokens(expression, item.line.number)
+
+
+def _flatten_item_tokens(item: _Item) -> list[_Token]:
+    """Flatten one generated expression continuation in source order."""
+    return [
+        *_tokenize(item.line.text, item.line.number),
+        *(
+            token
+            for child in item.children
+            for token in _flatten_item_tokens(child)
+        ),
+    ]
+
+
+def _strip_final_suffix(item: _Item, suffix: str) -> _Item:
+    """Remove a wrapper suffix from the final continuation leaf exactly."""
+    if item.children:
+        children = list(item.children)
+        children[-1] = _strip_final_suffix(children[-1], suffix)
+        return _Item(item.line, tuple(children))
+    if not item.line.text.endswith(suffix):
+        raise SailTranslationError(
+            f"line {item.line.number}: final alternative must close exactly "
+            "the inline monad and effect wrappers"
+        )
+    return _Item(
+        _Line(
+            item.line.number,
+            item.line.indent,
+            item.line.text[: -len(suffix)],
+        ),
+        (),
+    )
 
 
 def _parse_let(item: _Item, tokens: Sequence[_Token]) -> Let:
@@ -661,25 +707,15 @@ def _parse_matched_effect(item: _Item) -> MatchedEffect:
     )
     alternatives = nested[1:]
     for alternative in alternatives[:-1]:
-        tokens = _tokenize(alternative.line.text, alternative.line.number)
+        tokens = _flatten_item_tokens(alternative)
         if _paren_balance(tokens) != 0:
             raise SailTranslationError(
                 f"line {alternative.line.number}: non-final match alternative "
                 "has unbalanced parentheses"
             )
     final = alternatives[-1]
-    if final.children or not final.line.text.endswith("))"):
-        raise SailTranslationError(
-            f"line {final.line.number}: final alternative must close exactly "
-            "the inline monad and effect wrappers"
-        )
-    stripped_line = _Line(
-        final.line.number,
-        final.line.indent,
-        final.line.text[:-2],
-    )
-    stripped = _Item(stripped_line, ())
-    if _paren_balance(_tokenize(stripped.line.text, stripped.line.number)) != 0:
+    stripped = _strip_final_suffix(final, "))")
+    if _paren_balance(_flatten_item_tokens(stripped)) != 0:
         raise SailTranslationError(
             f"line {final.line.number}: wrapper closure is not exact"
         )
@@ -855,7 +891,7 @@ def _unwrap(node: Any) -> Any:
 
 def _classify_value(node: Any, names: frozenset, observations: dict) -> None:
     if isinstance(node, Ident):
-        if node.name not in names:
+        if node.name not in names and node.name not in _PURE_CONSTANTS:
             raise SailTranslationError(f"unbound identifier {node.name!r}")
         return
     if isinstance(node, (Ctor, HexLit, NumLit, UnitLit)):

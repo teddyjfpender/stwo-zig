@@ -10,9 +10,12 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 if __package__:
+    from . import riscv_opcode_coverage, riscv_team_a, riscv_team_b
     from .riscv_refinement_lib import (
+        air_program,
         air_program_contract,
         codec,
         negative,
@@ -28,7 +31,11 @@ if __package__:
         repository_root,
     )
 else:
+    import riscv_opcode_coverage
+    import riscv_team_a
+    import riscv_team_b
     from riscv_refinement_lib import (
+        air_program,
         air_program_contract,
         codec,
         negative,
@@ -54,6 +61,7 @@ AUDITED_THEOREMS = (
     "RiscvRefinement.Air.Bridge.Addi.Admission.sourcePreviousBound",
     "RiscvRefinement.Air.Bridge.Addi.acceptance_nonvacuous",
     "RiscvRefinement.Air.Bridge.Addi.bitwiseLookup0_projection_for_columns",
+    "RiscvRefinement.Air.Bridge.Addi.carryFieldClassified",
     "RiscvRefinement.Air.Bridge.Addi.carryRecurrence_of_constraints",
     "RiscvRefinement.Air.Bridge.Addi.constraintsHoldExceptHighCarry_eq",
     "RiscvRefinement.Air.Bridge.Addi.constraintsHoldExceptHighCarry_iff",
@@ -78,6 +86,304 @@ AUDITED_THEOREMS = (
     "RiscvRefinement.Air.Bridge.Addi.sourceClockRequestHolds_iff",
     "RiscvRefinement.Air.Bridge.Addi.sourceClock_of_air",
     "RiscvRefinement.Air.Bridge.Addi.sourceLimbs_of_constraints",
+    "RiscvRefinement.Air.Bridge.Addi.zeroAcceptance",
+    "RiscvRefinement.Air.Bridge.Addi.zeroAdmission",
+    "RiscvRefinement.Air.Bridge.Auipc.Acceptance.constraints",
+    "RiscvRefinement.Air.Bridge.Auipc.Acceptance.fixedLookups",
+    "RiscvRefinement.Air.Bridge.Auipc.Acceptance.selectors",
+    "RiscvRefinement.Air.Bridge.Auipc.Admission.clockBound",
+    "RiscvRefinement.Air.Bridge.Auipc.Admission.clockPositive",
+    "RiscvRefinement.Air.Bridge.Auipc.Admission.destinationPreviousBound",
+    "RiscvRefinement.Air.Bridge.Auipc.Admission.immediateFieldBinds",
+    "RiscvRefinement.Air.Bridge.Auipc.Admission.pcProfileBound",
+    "RiscvRefinement.Air.Bridge.Auipc.ProductionRefinement.constraints",
+    "RiscvRefinement.Air.Bridge.Auipc.ProductionRefinement.destination",
+    "RiscvRefinement.Air.Bridge.Auipc.ProductionRefinement.destinationClock",
+    "RiscvRefinement.Air.Bridge.Auipc.ProductionRefinement.exactLookups",
+    "RiscvRefinement.Air.Bridge.Auipc.ProductionRefinement.exactProgramTuple",
+    "RiscvRefinement.Air.Bridge.Auipc.ProductionRefinement.fixedLookups",
+    "RiscvRefinement.Air.Bridge.Auipc.ProductionRefinement.immediateDecomposition",
+    "RiscvRefinement.Air.Bridge.Auipc.ProductionRefinement.immediateFixed",
+    "RiscvRefinement.Air.Bridge.Auipc.ProductionRefinement.immediateSign",
+    "RiscvRefinement.Air.Bridge.Auipc.ProductionRefinement.noSourceProjection",
+    "RiscvRefinement.Air.Bridge.Auipc.ProductionRefinement.pcDecomposition",
+    "RiscvRefinement.Air.Bridge.Auipc.ProductionRefinement.programIdentity",
+    "RiscvRefinement.Air.Bridge.Auipc.ProductionRefinement.result",
+    "RiscvRefinement.Air.Bridge.Auipc.ProductionRefinement.selectors",
+    "RiscvRefinement.Air.Bridge.Auipc.ProductionRefinement.stateEmission",
+    "RiscvRefinement.Air.Bridge.Auipc.acceptanceNonvacuous",
+    "RiscvRefinement.Air.Bridge.Auipc.allLookupProjection",
+    "RiscvRefinement.Air.Bridge.Auipc.carryRecurrence_of_constraints",
+    "RiscvRefinement.Air.Bridge.Auipc.constraintsHold_eq",
+    "RiscvRefinement.Air.Bridge.Auipc.constraintsHold_iff",
+    "RiscvRefinement.Air.Bridge.Auipc.destinationBytes",
+    "RiscvRefinement.Air.Bridge.Auipc.destinationClockGapBound_of_fixedLookups",
+    "RiscvRefinement.Air.Bridge.Auipc.destinationClockRequestHolds",
+    "RiscvRefinement.Air.Bridge.Auipc.destinationClock_of_air",
+    "RiscvRefinement.Air.Bridge.Auipc.destinationFlag",
+    "RiscvRefinement.Air.Bridge.Auipc.destinationWord",
+    "RiscvRefinement.Air.Bridge.Auipc.exactProgramIdentity",
+    "RiscvRefinement.Air.Bridge.Auipc.exampleAcceptance",
+    "RiscvRefinement.Air.Bridge.Auipc.exampleAdmission",
+    "RiscvRefinement.Air.Bridge.Auipc.fixedLookupsHold_eq",
+    "RiscvRefinement.Air.Bridge.Auipc.immediateHighAdjustedBound_of_request",
+    "RiscvRefinement.Air.Bridge.Auipc.immediateM31RequestHolds",
+    "RiscvRefinement.Air.Bridge.Auipc.immediateTrueImpliesHighLimb",
+    "RiscvRefinement.Air.Bridge.Auipc.immediateWordAndSign",
+    "RiscvRefinement.Air.Bridge.Auipc.immediateWordToNat",
+    "RiscvRefinement.Air.Bridge.Auipc.lookupProjection",
+    "RiscvRefinement.Air.Bridge.Auipc.pcLimbsValueBound_of_fixedLookups",
+    "RiscvRefinement.Air.Bridge.Auipc.pcLimbsWord",
+    "RiscvRefinement.Air.Bridge.Auipc.pcM31RequestHolds",
+    "RiscvRefinement.Air.Bridge.Auipc.pcM31RequestHolds_iff",
+    "RiscvRefinement.Air.Bridge.Auipc.resultWord",
+    "RiscvRefinement.Air.Bridge.Auipc.resultWord_of_constraints",
+    "RiscvRefinement.Air.Bridge.Auipc.selectorAccepted",
+    "RiscvRefinement.Air.Bridge.Auipc.sound",
+    "RiscvRefinement.Air.Bridge.Auipc.stateEmitFields",
+    "RiscvRefinement.Air.Bridge.Auipc.wordBytes_word",
+    "RiscvRefinement.Air.Bridge.Auipc.x0AcceptanceNonvacuous",
+    "RiscvRefinement.Air.Bridge.Auipc.x0ExampleAcceptance",
+    "RiscvRefinement.Air.Bridge.Auipc.x0ExampleAdmission",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.Acceptance.constraints",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.Acceptance.fixedLookups",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.Acceptance.selectors",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.Admission.clockBound",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.Admission.clockPositive",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.Admission.destinationPreviousBound",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.Admission.pcBound",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.Admission.sourcePreviousBound",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.ProductionRefinement.bitwise0",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.ProductionRefinement.bitwise1",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.ProductionRefinement.bitwise2",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.ProductionRefinement.bitwise3",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.ProductionRefinement.constraints",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.ProductionRefinement.destinationClock",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.ProductionRefinement.destinationClockLookup",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.ProductionRefinement.destinationConsume",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.ProductionRefinement.destinationEmit",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.ProductionRefinement.destinationValue",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.ProductionRefinement.fixedLookups",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.ProductionRefinement.immediateRange",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.ProductionRefinement.nextClock",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.ProductionRefinement.nextPc",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.ProductionRefinement.program",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.ProductionRefinement.resultHigh",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.ProductionRefinement.resultLow",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.ProductionRefinement.resultValue",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.ProductionRefinement.selectors",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.ProductionRefinement.sourceClock",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.ProductionRefinement.sourceClockLookup",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.ProductionRefinement.sourceConsume",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.ProductionRefinement.sourceEmit",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.ProductionRefinement.sourceValue",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.ProductionRefinement.stateConsume",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.ProductionRefinement.stateEmit",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.acceptanceNonvacuous",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.bitwiseRequestsHold",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.constraintsHold_eq",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.constraintsHold_iff",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.destinationBytes",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.destinationClock",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.destinationClockGapBound",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.destinationFlag",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.destinationWord",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.exampleAcceptance",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.exampleAdmission",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.fixedLookupsHold_eq",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.lookupProjection",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.projectionOrdinals",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.resultBytes_of_fixed",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.selectorAccepted",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.sound",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.sourceAliasNonvacuous",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.sourceClock",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.sourceClockGapBound",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.sourcePreserved",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.zeroAcceptance",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.zeroAdmission",
+    "RiscvRefinement.Air.Bridge.BaseAluImm.zeroDestinationNonvacuous",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.Acceptance.constraints",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.Acceptance.fixedLookups",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.Acceptance.selectors",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.Admission.clockBound",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.Admission.clockPositive",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.Admission.destinationPreviousBound",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.Admission.pcBound",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.Admission.source1PreviousBound",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.Admission.source2PreviousBound",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.bitwise0",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.bitwise1",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.bitwise2",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.bitwise3",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.constraints",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.destinationClock",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.destinationClockLookup",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.destinationConsume",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.destinationEmit",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.destinationValue",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.fixedLookups",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.nextClock",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.nextPc",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.program",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.resultHigh",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.resultLow",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.resultValue",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.selectors",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.source1Clock",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.source1ClockLookup",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.source1Consume",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.source1Emit",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.source1Value",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.source2Clock",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.source2ClockLookup",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.source2Consume",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.source2Emit",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.source2Value",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.stateConsume",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.ProductionRefinement.stateEmit",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.acceptanceNonvacuous",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.addCarryRecurrence",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.addOverflowAcceptance",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.addOverflowAdmission",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.addOverflowNonvacuous",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.addResultWord",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.bitwiseBytesWord",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.bitwiseRequestsHold",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.bitwiseResultBytes",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.constraintsHold_eq",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.constraintsHold_iff",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.destinationBytes",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.destinationClock",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.destinationClockGapBound",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.destinationFlag",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.destinationWord",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.fixedLookupsHold_eq",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.lookupProjection",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.projectionOrdinals",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.resultWord",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.selectorAccepted",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.sound",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.source1AliasNonvacuous",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.source1Clock",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.source1ClockGapBound",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.source2AliasNonvacuous",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.source2Clock",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.source2ClockGapBound",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.sourcesPreserved",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.subBorrowAcceptance",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.subBorrowAdmission",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.subBorrowNonvacuous",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.subCarryRecurrence",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.subResultWord",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.zeroAcceptance",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.zeroAdmission",
+    "RiscvRefinement.Air.Bridge.BaseAluReg.zeroDestinationNonvacuous",
+    "RiscvRefinement.Air.Bridge.Branches.Admission.clockBound",
+    "RiscvRefinement.Air.Bridge.Branches.Admission.clockPositive",
+    "RiscvRefinement.Air.Bridge.Branches.Admission.fallthroughBound",
+    "RiscvRefinement.Air.Bridge.Branches.Admission.rs1PreviousBound",
+    "RiscvRefinement.Air.Bridge.Branches.Admission.rs2PreviousBound",
+    "RiscvRefinement.Air.Bridge.Branches.Admission.targetAligned",
+    "RiscvRefinement.Air.Bridge.Branches.Admission.targetNoWrap",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.Acceptance.constraints",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.Acceptance.fixedLookups",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.ProductionRefinement.constraints",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.ProductionRefinement.fixedLookups",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.ProductionRefinement.lookups",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.ProductionRefinement.nextClock",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.ProductionRefinement.nextPc",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.ProductionRefinement.programIdentity",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.ProductionRefinement.projection",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.ProductionRefinement.selectors",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.ProductionRefinement.sourceReadOnly",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.RawAcceptance.constraints",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.RawAcceptance.fixedLookups",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.RawAdmission.control",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.RawAdmission.immediateFieldBinds",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.RawProductionRefinement.constraints",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.RawProductionRefinement.decision",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.RawProductionRefinement.fixedLookups",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.RawProductionRefinement.immediate",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.RawProductionRefinement.lookups",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.RawProductionRefinement.nextClock",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.RawProductionRefinement.nextPc",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.RawProductionRefinement.programIdentity",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.RawProductionRefinement.projection",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.RawProductionRefinement.selectors",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.RawProductionRefinement.sourceReadOnly",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.exactProgramIdentity",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.exactProjectionMetadata",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.exampleAcceptance",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.exampleAdmission",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.exampleTaken",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.lookupProjection",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.rawConstraintRootZero",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.rawConstraintsHold_eq",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.rawDecisionCorrect",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.rawLookupProjection",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.rawSelectorAccepted",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.rawSound",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.rawSourceReadOnly",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.selectorAccepted",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.sound",
+    "RiscvRefinement.Air.Bridge.Branches.Eq.takenAndFallthroughNonvacuous",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.Acceptance.constraints",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.Acceptance.fixedLookups",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.ProductionRefinement.constraints",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.ProductionRefinement.fixedLookups",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.ProductionRefinement.lookups",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.ProductionRefinement.nextClock",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.ProductionRefinement.nextPc",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.ProductionRefinement.programIdentity",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.ProductionRefinement.projection",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.ProductionRefinement.selectors",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.ProductionRefinement.sourceReadOnly",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.RawAcceptance.constraints",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.RawAcceptance.fixedLookups",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.RawAdmission.control",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.RawAdmission.immediateFieldBinds",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.RawProductionRefinement.comparison",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.RawProductionRefinement.constraints",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.RawProductionRefinement.decision",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.RawProductionRefinement.fixedLookups",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.RawProductionRefinement.immediate",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.RawProductionRefinement.lookups",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.RawProductionRefinement.nextClock",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.RawProductionRefinement.nextPc",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.RawProductionRefinement.programIdentity",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.RawProductionRefinement.projection",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.RawProductionRefinement.selectors",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.RawProductionRefinement.sourceReadOnly",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.exactProgramIdentity",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.exactProjectionMetadata",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.exampleAcceptance",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.exampleAdmission",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.exampleTaken",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.lookupProjection",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.rawComparisonCorrect",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.rawConstraintRootZero",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.rawConstraintsHold_eq",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.rawDecisionFromComparison",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.rawDifferenceBound",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.rawDifferenceGapBound",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.rawDifferencePositive",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.rawLessEqArchitectural",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.rawLookupProjection",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.rawMslRangeBounds",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.rawNormalizedKeys",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.rawSelectedPc",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.rawSelectorAccepted",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.rawSound",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.rawSourceReadOnly",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.rawTopField_val",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.rawTopKeyBound",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.selectorAccepted",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.sound",
+    "RiscvRefinement.Air.Bridge.Branches.Lt.takenAndFallthroughNonvacuous",
+    "RiscvRefinement.Air.Bridge.Branches.branchTargetField",
+    "RiscvRefinement.Air.Bridge.Branches.immediateFieldValue_lt",
+    "RiscvRefinement.Air.Bridge.Branches.selectedPcField",
     "RiscvRefinement.Air.Bridge.DivCircuit.localise_value_eq_evalNodes",
     "RiscvRefinement.Air.Bridge.DivCircuit.nodeCount_of_wellFormed",
     "RiscvRefinement.Air.Bridge.DivCircuit.nodesWellFormed_of_wellFormed",
@@ -104,7 +410,322 @@ AUDITED_THEOREMS = (
     "RiscvRefinement.Air.Bridge.Fence.selectorAccepted",
     "RiscvRefinement.Air.Bridge.Fence.sound",
     "RiscvRefinement.Air.Bridge.Fence.sourceAndDestinationProjectionEmpty",
+    "RiscvRefinement.Air.Bridge.Jal.Acceptance.constraints",
+    "RiscvRefinement.Air.Bridge.Jal.Acceptance.fixedLookups",
+    "RiscvRefinement.Air.Bridge.Jal.Acceptance.selectors",
+    "RiscvRefinement.Air.Bridge.Jal.Admission.clockBound",
+    "RiscvRefinement.Air.Bridge.Jal.Admission.clockPositive",
+    "RiscvRefinement.Air.Bridge.Jal.Admission.destinationPreviousBound",
+    "RiscvRefinement.Air.Bridge.Jal.Admission.linkBound",
+    "RiscvRefinement.Air.Bridge.Jal.Admission.targetAligned",
+    "RiscvRefinement.Air.Bridge.Jal.Admission.targetNoWrap",
+    "RiscvRefinement.Air.Bridge.Jal.ProductionRefinement.constraints",
+    "RiscvRefinement.Air.Bridge.Jal.ProductionRefinement.destination",
+    "RiscvRefinement.Air.Bridge.Jal.ProductionRefinement.destinationClock",
+    "RiscvRefinement.Air.Bridge.Jal.ProductionRefinement.exactLookups",
+    "RiscvRefinement.Air.Bridge.Jal.ProductionRefinement.fixedLookups",
+    "RiscvRefinement.Air.Bridge.Jal.ProductionRefinement.link",
+    "RiscvRefinement.Air.Bridge.Jal.ProductionRefinement.noSourceProjection",
+    "RiscvRefinement.Air.Bridge.Jal.ProductionRefinement.selectors",
+    "RiscvRefinement.Air.Bridge.Jal.ProductionRefinement.stateEmission",
+    "RiscvRefinement.Air.Bridge.Jal.acceptanceNonvacuous",
+    "RiscvRefinement.Air.Bridge.Jal.constraintsHold_eq",
+    "RiscvRefinement.Air.Bridge.Jal.constraintsHold_iff",
+    "RiscvRefinement.Air.Bridge.Jal.destinationBytes",
+    "RiscvRefinement.Air.Bridge.Jal.destinationClockGapBound_of_fixedLookups",
+    "RiscvRefinement.Air.Bridge.Jal.destinationClockRequestHolds",
+    "RiscvRefinement.Air.Bridge.Jal.destinationClock_of_air",
+    "RiscvRefinement.Air.Bridge.Jal.destinationFlag",
+    "RiscvRefinement.Air.Bridge.Jal.destinationWord",
+    "RiscvRefinement.Air.Bridge.Jal.exampleAcceptance",
+    "RiscvRefinement.Air.Bridge.Jal.exampleAdmission",
+    "RiscvRefinement.Air.Bridge.Jal.exampleRefines",
+    "RiscvRefinement.Air.Bridge.Jal.fixedLookupsHold_eq",
+    "RiscvRefinement.Air.Bridge.Jal.immediateFieldVal",
+    "RiscvRefinement.Air.Bridge.Jal.immediateFieldValueBound",
+    "RiscvRefinement.Air.Bridge.Jal.immediateToNatBound",
+    "RiscvRefinement.Air.Bridge.Jal.jumpTargetToNat",
+    "RiscvRefinement.Air.Bridge.Jal.lookupProjection",
+    "RiscvRefinement.Air.Bridge.Jal.noSourceProjection",
+    "RiscvRefinement.Air.Bridge.Jal.resultIsLink",
+    "RiscvRefinement.Air.Bridge.Jal.resultM31RequestHolds",
+    "RiscvRefinement.Air.Bridge.Jal.resultM31RequestHolds_iff",
+    "RiscvRefinement.Air.Bridge.Jal.resultValueBound_of_fixedLookups",
+    "RiscvRefinement.Air.Bridge.Jal.selectorAccepted",
+    "RiscvRefinement.Air.Bridge.Jal.sound",
+    "RiscvRefinement.Air.Bridge.Jal.stateEmitFields",
+    "RiscvRefinement.Air.Bridge.Jal.targetField",
+    "RiscvRefinement.Air.Bridge.Jal.x0AcceptanceNonvacuous",
+    "RiscvRefinement.Air.Bridge.Jal.x0ExampleAcceptance",
+    "RiscvRefinement.Air.Bridge.Jal.x0ExampleAdmission",
+    "RiscvRefinement.Air.Bridge.Jalr.Acceptance.constraints",
+    "RiscvRefinement.Air.Bridge.Jalr.Acceptance.fixedLookups",
+    "RiscvRefinement.Air.Bridge.Jalr.Acceptance.selectors",
+    "RiscvRefinement.Air.Bridge.Jalr.Admission.clockBound",
+    "RiscvRefinement.Air.Bridge.Jalr.Admission.clockPositive",
+    "RiscvRefinement.Air.Bridge.Jalr.Admission.destinationPreviousBound",
+    "RiscvRefinement.Air.Bridge.Jalr.Admission.pcProfileBound",
+    "RiscvRefinement.Air.Bridge.Jalr.Admission.sourcePreviousBound",
+    "RiscvRefinement.Air.Bridge.Jalr.AirEquations.carry1",
+    "RiscvRefinement.Air.Bridge.Jalr.AirEquations.carry2",
+    "RiscvRefinement.Air.Bridge.Jalr.AirEquations.carry3",
+    "RiscvRefinement.Air.Bridge.Jalr.AirEquations.carry4",
+    "RiscvRefinement.Air.Bridge.Jalr.AirEquations.destination0",
+    "RiscvRefinement.Air.Bridge.Jalr.AirEquations.destination1",
+    "RiscvRefinement.Air.Bridge.Jalr.AirEquations.destination2",
+    "RiscvRefinement.Air.Bridge.Jalr.AirEquations.destination3",
+    "RiscvRefinement.Air.Bridge.Jalr.AirEquations.destinationInverse",
+    "RiscvRefinement.Air.Bridge.Jalr.AirEquations.destinationZero",
+    "RiscvRefinement.Air.Bridge.Jalr.AirEquations.enablerOne",
+    "RiscvRefinement.Air.Bridge.Jalr.AirEquations.immediate",
+    "RiscvRefinement.Air.Bridge.Jalr.AirEquations.result",
+    "RiscvRefinement.Air.Bridge.Jalr.AirEquations.source0",
+    "RiscvRefinement.Air.Bridge.Jalr.AirEquations.source1",
+    "RiscvRefinement.Air.Bridge.Jalr.AirEquations.source2",
+    "RiscvRefinement.Air.Bridge.Jalr.AirEquations.source3",
+    "RiscvRefinement.Air.Bridge.Jalr.AirEquations.targetDecomposition",
+    "RiscvRefinement.Air.Bridge.Jalr.AirEquations.targetOverTwo",
+    "RiscvRefinement.Air.Bridge.Jalr.ExactLookups.destinationClock",
+    "RiscvRefinement.Air.Bridge.Jalr.ExactLookups.destinationConsume",
+    "RiscvRefinement.Air.Bridge.Jalr.ExactLookups.destinationEmit",
+    "RiscvRefinement.Air.Bridge.Jalr.ExactLookups.immediateRange",
+    "RiscvRefinement.Air.Bridge.Jalr.ExactLookups.program",
+    "RiscvRefinement.Air.Bridge.Jalr.ExactLookups.resultM31",
+    "RiscvRefinement.Air.Bridge.Jalr.ExactLookups.resultMiddle",
+    "RiscvRefinement.Air.Bridge.Jalr.ExactLookups.sourceClock",
+    "RiscvRefinement.Air.Bridge.Jalr.ExactLookups.sourceConsume",
+    "RiscvRefinement.Air.Bridge.Jalr.ExactLookups.sourceEmit",
+    "RiscvRefinement.Air.Bridge.Jalr.ExactLookups.sourceMiddle",
+    "RiscvRefinement.Air.Bridge.Jalr.ExactLookups.sourceOuter",
+    "RiscvRefinement.Air.Bridge.Jalr.ExactLookups.stateConsume",
+    "RiscvRefinement.Air.Bridge.Jalr.ExactLookups.stateEmit",
+    "RiscvRefinement.Air.Bridge.Jalr.ExactLookups.targetHigh8",
+    "RiscvRefinement.Air.Bridge.Jalr.ExactLookups.targetLow20",
+    "RiscvRefinement.Air.Bridge.Jalr.ExactLookups.targetM31",
+    "RiscvRefinement.Air.Bridge.Jalr.ExactLookups.targetMiddle",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.constraints",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.destination",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.destinationClock",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.destinationClockLookup",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.destinationConsume",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.destinationEmit",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.fixedLookups",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.immediateRange",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.link",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.program",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.programIdentity",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.resultM31",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.resultMiddle",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.selectors",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.signedImmediate",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.sourceClock",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.sourceClockLookup",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.sourceConsume",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.sourceEmit",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.sourceMiddle",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.sourceOuter",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.sourceValue",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.stateConsume",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.stateEmission",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.stateEmit",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.target",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.targetAligned",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.targetBound",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.targetHigh8",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.targetLow20",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.targetM31",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.targetMiddle",
+    "RiscvRefinement.Air.Bridge.Jalr.ProductionRefinement.wrappedAddition",
+    "RiscvRefinement.Air.Bridge.Jalr.acceptanceNonvacuous",
+    "RiscvRefinement.Air.Bridge.Jalr.additionRecurrenceValue",
+    "RiscvRefinement.Air.Bridge.Jalr.airEquations",
+    "RiscvRefinement.Air.Bridge.Jalr.carryRecurrence",
+    "RiscvRefinement.Air.Bridge.Jalr.constraintsHold_eq",
+    "RiscvRefinement.Air.Bridge.Jalr.constraintsHold_iff",
+    "RiscvRefinement.Air.Bridge.Jalr.destinationBytes",
+    "RiscvRefinement.Air.Bridge.Jalr.destinationClock",
+    "RiscvRefinement.Air.Bridge.Jalr.destinationClockRequest",
+    "RiscvRefinement.Air.Bridge.Jalr.destinationFlag",
+    "RiscvRefinement.Air.Bridge.Jalr.destinationWord",
+    "RiscvRefinement.Air.Bridge.Jalr.exactLookups",
+    "RiscvRefinement.Air.Bridge.Jalr.exactProgramIdentity",
+    "RiscvRefinement.Air.Bridge.Jalr.exampleAcceptance",
+    "RiscvRefinement.Air.Bridge.Jalr.exampleAdmission",
+    "RiscvRefinement.Air.Bridge.Jalr.exampleRefines",
+    "RiscvRefinement.Air.Bridge.Jalr.immediateBytesWord",
+    "RiscvRefinement.Air.Bridge.Jalr.immediateComponents",
+    "RiscvRefinement.Air.Bridge.Jalr.immediateCompositionField_eq",
+    "RiscvRefinement.Air.Bridge.Jalr.immediateRangeRequest",
+    "RiscvRefinement.Air.Bridge.Jalr.lookupProjection",
+    "RiscvRefinement.Air.Bridge.Jalr.resultIsLink",
+    "RiscvRefinement.Air.Bridge.Jalr.resultM31Request",
+    "RiscvRefinement.Air.Bridge.Jalr.resultValueBound",
+    "RiscvRefinement.Air.Bridge.Jalr.selectorAccepted",
+    "RiscvRefinement.Air.Bridge.Jalr.sound",
+    "RiscvRefinement.Air.Bridge.Jalr.sourceAliasAcceptance",
+    "RiscvRefinement.Air.Bridge.Jalr.sourceAliasAdmission",
+    "RiscvRefinement.Air.Bridge.Jalr.sourceAliasReadBeforeWrite",
+    "RiscvRefinement.Air.Bridge.Jalr.sourceAliasRefines",
+    "RiscvRefinement.Air.Bridge.Jalr.sourceBytes",
+    "RiscvRefinement.Air.Bridge.Jalr.sourceClock",
+    "RiscvRefinement.Air.Bridge.Jalr.sourceClockRequest",
+    "RiscvRefinement.Air.Bridge.Jalr.stateEmitFields",
+    "RiscvRefinement.Air.Bridge.Jalr.targetAligned",
+    "RiscvRefinement.Air.Bridge.Jalr.targetDecomposition",
+    "RiscvRefinement.Air.Bridge.Jalr.targetHigh8Bound",
+    "RiscvRefinement.Air.Bridge.Jalr.targetHigh8Request",
+    "RiscvRefinement.Air.Bridge.Jalr.targetIsJumpTarget",
+    "RiscvRefinement.Air.Bridge.Jalr.targetLow20Bound",
+    "RiscvRefinement.Air.Bridge.Jalr.targetLow20Request",
+    "RiscvRefinement.Air.Bridge.Jalr.targetM31Request",
+    "RiscvRefinement.Air.Bridge.Jalr.targetOverTwo",
+    "RiscvRefinement.Air.Bridge.Jalr.targetValueBound",
+    "RiscvRefinement.Air.Bridge.Jalr.u32Addition",
+    "RiscvRefinement.Air.Bridge.Jalr.unalignedTargetValue",
+    "RiscvRefinement.Air.Bridge.Jalr.wordBytes_word",
+    "RiscvRefinement.Air.Bridge.Jalr.zeroDestinationAcceptance",
+    "RiscvRefinement.Air.Bridge.Jalr.zeroDestinationAdmission",
+    "RiscvRefinement.Air.Bridge.Jalr.zeroDestinationRefines",
     "RiscvRefinement.Air.Bridge.LoadStoreRowFits.programCounter",
+    "RiscvRefinement.Air.Bridge.LtComparator.ComparatorContract.differenceBound",
+    "RiscvRefinement.Air.Bridge.LtComparator.ComparatorContract.differencePositive",
+    "RiscvRefinement.Air.Bridge.LtComparator.ComparatorContract.left0Bound",
+    "RiscvRefinement.Air.Bridge.LtComparator.ComparatorContract.left1Bound",
+    "RiscvRefinement.Air.Bridge.LtComparator.ComparatorContract.left2Bound",
+    "RiscvRefinement.Air.Bridge.LtComparator.ComparatorContract.leftTopBound",
+    "RiscvRefinement.Air.Bridge.LtComparator.ComparatorContract.limb0Equal",
+    "RiscvRefinement.Air.Bridge.LtComparator.ComparatorContract.limb0Selected",
+    "RiscvRefinement.Air.Bridge.LtComparator.ComparatorContract.limb1Equal",
+    "RiscvRefinement.Air.Bridge.LtComparator.ComparatorContract.limb1Selected",
+    "RiscvRefinement.Air.Bridge.LtComparator.ComparatorContract.limb2Equal",
+    "RiscvRefinement.Air.Bridge.LtComparator.ComparatorContract.limb2Selected",
+    "RiscvRefinement.Air.Bridge.LtComparator.ComparatorContract.noMarkerResult",
+    "RiscvRefinement.Air.Bridge.LtComparator.ComparatorContract.right0Bound",
+    "RiscvRefinement.Air.Bridge.LtComparator.ComparatorContract.right1Bound",
+    "RiscvRefinement.Air.Bridge.LtComparator.ComparatorContract.right2Bound",
+    "RiscvRefinement.Air.Bridge.LtComparator.ComparatorContract.rightTopBound",
+    "RiscvRefinement.Air.Bridge.LtComparator.ComparatorContract.topEqual",
+    "RiscvRefinement.Air.Bridge.LtComparator.ComparatorContract.topSelected",
+    "RiscvRefinement.Air.Bridge.LtComparator.comparisonCorrectOfContract",
+    "RiscvRefinement.Air.Bridge.LtComparator.keyPolynomialUnique",
+    "RiscvRefinement.Air.Bridge.LtComparator.normalizedKey",
+    "RiscvRefinement.Air.Bridge.LtComparator.orientedPositiveField",
+    "RiscvRefinement.Air.Bridge.LtComparator.orientedZero",
+    "RiscvRefinement.Air.Bridge.LtComparator.translatedSub",
+    "RiscvRefinement.Air.Bridge.LtImm.Acceptance.constraints",
+    "RiscvRefinement.Air.Bridge.LtImm.Acceptance.fixedLookups",
+    "RiscvRefinement.Air.Bridge.LtImm.Acceptance.selectors",
+    "RiscvRefinement.Air.Bridge.LtImm.Admission.clockBound",
+    "RiscvRefinement.Air.Bridge.LtImm.Admission.clockPositive",
+    "RiscvRefinement.Air.Bridge.LtImm.Admission.destinationPreviousBound",
+    "RiscvRefinement.Air.Bridge.LtImm.Admission.pcBound",
+    "RiscvRefinement.Air.Bridge.LtImm.Admission.sourcePreviousBound",
+    "RiscvRefinement.Air.Bridge.LtImm.ProductionRefinement.comparisonIsArchitectural",
+    "RiscvRefinement.Air.Bridge.LtImm.ProductionRefinement.constraints",
+    "RiscvRefinement.Air.Bridge.LtImm.ProductionRefinement.destinationIsArchitectural",
+    "RiscvRefinement.Air.Bridge.LtImm.ProductionRefinement.eventOrder",
+    "RiscvRefinement.Air.Bridge.LtImm.ProductionRefinement.exactLookups",
+    "RiscvRefinement.Air.Bridge.LtImm.ProductionRefinement.fixedLookups",
+    "RiscvRefinement.Air.Bridge.LtImm.ProductionRefinement.nextClock",
+    "RiscvRefinement.Air.Bridge.LtImm.ProductionRefinement.nextPc",
+    "RiscvRefinement.Air.Bridge.LtImm.ProductionRefinement.projection",
+    "RiscvRefinement.Air.Bridge.LtImm.ProductionRefinement.selectors",
+    "RiscvRefinement.Air.Bridge.LtImm.ProductionRefinement.sourceDigest",
+    "RiscvRefinement.Air.Bridge.LtImm.ProductionRefinement.sourceReadOnly",
+    "RiscvRefinement.Air.Bridge.LtImm.acceptanceNonvacuous",
+    "RiscvRefinement.Air.Bridge.LtImm.byteKey_eq",
+    "RiscvRefinement.Air.Bridge.LtImm.comparisonCorrect",
+    "RiscvRefinement.Air.Bridge.LtImm.constraintRootZero",
+    "RiscvRefinement.Air.Bridge.LtImm.constraintsHold_eq",
+    "RiscvRefinement.Air.Bridge.LtImm.destinationResult",
+    "RiscvRefinement.Air.Bridge.LtImm.differencePositive",
+    "RiscvRefinement.Air.Bridge.LtImm.exampleAcceptance",
+    "RiscvRefinement.Air.Bridge.LtImm.exampleAdmission",
+    "RiscvRefinement.Air.Bridge.LtImm.expectedImmediateKey",
+    "RiscvRefinement.Air.Bridge.LtImm.fixedLookupsHold_eq",
+    "RiscvRefinement.Air.Bridge.LtImm.generatedEventOrder",
+    "RiscvRefinement.Air.Bridge.LtImm.highBitAcceptance",
+    "RiscvRefinement.Air.Bridge.LtImm.highBitAdmission",
+    "RiscvRefinement.Air.Bridge.LtImm.immediateKeyCorrect",
+    "RiscvRefinement.Air.Bridge.LtImm.immediateLimbFields",
+    "RiscvRefinement.Air.Bridge.LtImm.lookupProjection",
+    "RiscvRefinement.Air.Bridge.LtImm.programContentDigest",
+    "RiscvRefinement.Air.Bridge.LtImm.projectionMetadata",
+    "RiscvRefinement.Air.Bridge.LtImm.selectorAccepted",
+    "RiscvRefinement.Air.Bridge.LtImm.signedAliasNonvacuous",
+    "RiscvRefinement.Air.Bridge.LtImm.signedHighBitResult",
+    "RiscvRefinement.Air.Bridge.LtImm.sound",
+    "RiscvRefinement.Air.Bridge.LtImm.sourceKeyBound",
+    "RiscvRefinement.Air.Bridge.LtImm.sourceKeyCorrect",
+    "RiscvRefinement.Air.Bridge.LtImm.sourceReadOnly",
+    "RiscvRefinement.Air.Bridge.LtImm.unsignedHighBitResult",
+    "RiscvRefinement.Air.Bridge.LtImm.unsignedX0Nonvacuous",
+    "RiscvRefinement.Air.Bridge.LtReg.Acceptance.constraints",
+    "RiscvRefinement.Air.Bridge.LtReg.Acceptance.fixedLookups",
+    "RiscvRefinement.Air.Bridge.LtReg.Acceptance.selectors",
+    "RiscvRefinement.Air.Bridge.LtReg.Admission.clockBound",
+    "RiscvRefinement.Air.Bridge.LtReg.Admission.clockPositive",
+    "RiscvRefinement.Air.Bridge.LtReg.Admission.destinationPreviousBound",
+    "RiscvRefinement.Air.Bridge.LtReg.Admission.pcBound",
+    "RiscvRefinement.Air.Bridge.LtReg.Admission.sourceOnePreviousBound",
+    "RiscvRefinement.Air.Bridge.LtReg.Admission.sourceTwoPreviousBound",
+    "RiscvRefinement.Air.Bridge.LtReg.ComparatorContract.differenceBound",
+    "RiscvRefinement.Air.Bridge.LtReg.ComparatorContract.differencePositive",
+    "RiscvRefinement.Air.Bridge.LtReg.ComparatorContract.left0Bound",
+    "RiscvRefinement.Air.Bridge.LtReg.ComparatorContract.left1Bound",
+    "RiscvRefinement.Air.Bridge.LtReg.ComparatorContract.left2Bound",
+    "RiscvRefinement.Air.Bridge.LtReg.ComparatorContract.leftTopBound",
+    "RiscvRefinement.Air.Bridge.LtReg.ComparatorContract.limb0Equal",
+    "RiscvRefinement.Air.Bridge.LtReg.ComparatorContract.limb0Selected",
+    "RiscvRefinement.Air.Bridge.LtReg.ComparatorContract.limb1Equal",
+    "RiscvRefinement.Air.Bridge.LtReg.ComparatorContract.limb1Selected",
+    "RiscvRefinement.Air.Bridge.LtReg.ComparatorContract.limb2Equal",
+    "RiscvRefinement.Air.Bridge.LtReg.ComparatorContract.limb2Selected",
+    "RiscvRefinement.Air.Bridge.LtReg.ComparatorContract.noMarkerResult",
+    "RiscvRefinement.Air.Bridge.LtReg.ComparatorContract.right0Bound",
+    "RiscvRefinement.Air.Bridge.LtReg.ComparatorContract.right1Bound",
+    "RiscvRefinement.Air.Bridge.LtReg.ComparatorContract.right2Bound",
+    "RiscvRefinement.Air.Bridge.LtReg.ComparatorContract.rightTopBound",
+    "RiscvRefinement.Air.Bridge.LtReg.ComparatorContract.topEqual",
+    "RiscvRefinement.Air.Bridge.LtReg.ComparatorContract.topSelected",
+    "RiscvRefinement.Air.Bridge.LtReg.ProductionRefinement.comparison",
+    "RiscvRefinement.Air.Bridge.LtReg.ProductionRefinement.constraints",
+    "RiscvRefinement.Air.Bridge.LtReg.ProductionRefinement.destination",
+    "RiscvRefinement.Air.Bridge.LtReg.ProductionRefinement.exactLookups",
+    "RiscvRefinement.Air.Bridge.LtReg.ProductionRefinement.fixedLookups",
+    "RiscvRefinement.Air.Bridge.LtReg.ProductionRefinement.nextClock",
+    "RiscvRefinement.Air.Bridge.LtReg.ProductionRefinement.nextPc",
+    "RiscvRefinement.Air.Bridge.LtReg.ProductionRefinement.projection",
+    "RiscvRefinement.Air.Bridge.LtReg.ProductionRefinement.selectors",
+    "RiscvRefinement.Air.Bridge.LtReg.ProductionRefinement.sourceDigest",
+    "RiscvRefinement.Air.Bridge.LtReg.ProductionRefinement.sourcesReadOnly",
+    "RiscvRefinement.Air.Bridge.LtReg.acceptanceNonvacuous",
+    "RiscvRefinement.Air.Bridge.LtReg.comparisonBytes_limb0_field",
+    "RiscvRefinement.Air.Bridge.LtReg.comparisonBytes_upper_fields",
+    "RiscvRefinement.Air.Bridge.LtReg.comparisonCorrect",
+    "RiscvRefinement.Air.Bridge.LtReg.comparisonCorrectOfContract",
+    "RiscvRefinement.Air.Bridge.LtReg.constraintRootZero",
+    "RiscvRefinement.Air.Bridge.LtReg.constraintsHold_eq",
+    "RiscvRefinement.Air.Bridge.LtReg.destinationResult",
+    "RiscvRefinement.Air.Bridge.LtReg.differencePositive",
+    "RiscvRefinement.Air.Bridge.LtReg.exampleAcceptance",
+    "RiscvRefinement.Air.Bridge.LtReg.exampleAdmission",
+    "RiscvRefinement.Air.Bridge.LtReg.highBitAcceptance",
+    "RiscvRefinement.Air.Bridge.LtReg.highBitAdmission",
+    "RiscvRefinement.Air.Bridge.LtReg.lookupProjection",
+    "RiscvRefinement.Air.Bridge.LtReg.mslRangeBounds",
+    "RiscvRefinement.Air.Bridge.LtReg.normalizedKeys",
+    "RiscvRefinement.Air.Bridge.LtReg.orientedPositiveField",
+    "RiscvRefinement.Air.Bridge.LtReg.orientedZero",
+    "RiscvRefinement.Air.Bridge.LtReg.programContentDigest",
+    "RiscvRefinement.Air.Bridge.LtReg.selectorAccepted",
+    "RiscvRefinement.Air.Bridge.LtReg.signedAliasNonvacuous",
+    "RiscvRefinement.Air.Bridge.LtReg.signedHighBitResult",
+    "RiscvRefinement.Air.Bridge.LtReg.sound",
+    "RiscvRefinement.Air.Bridge.LtReg.sourceReadOnly",
+    "RiscvRefinement.Air.Bridge.LtReg.topKey_eq_byteKey",
+    "RiscvRefinement.Air.Bridge.LtReg.unsignedHighBitResult",
+    "RiscvRefinement.Air.Bridge.LtReg.unsignedX0Nonvacuous",
     "RiscvRefinement.Air.Bridge.Lui.Acceptance.constraints",
     "RiscvRefinement.Air.Bridge.Lui.Acceptance.fixedLookups",
     "RiscvRefinement.Air.Bridge.Lui.Acceptance.selectors",
@@ -131,6 +752,8 @@ AUDITED_THEOREMS = (
     "RiscvRefinement.Air.Bridge.Lui.lookup_projection",
     "RiscvRefinement.Air.Bridge.Lui.selectorAccepted",
     "RiscvRefinement.Air.Bridge.Lui.sound",
+    "RiscvRefinement.Air.Bridge.Lui.zeroAcceptance",
+    "RiscvRefinement.Air.Bridge.Lui.zeroAdmission",
     "RiscvRefinement.Air.Bridge.M31.add_zero",
     "RiscvRefinement.Air.Bridge.M31.carryStep",
     "RiscvRefinement.Air.Bridge.M31.eq_of_val",
@@ -190,6 +813,19 @@ AUDITED_THEOREMS = (
     "RiscvRefinement.Air.Bridge.Program.nodeCount_of_wellFormed",
     "RiscvRefinement.Air.Bridge.Program.nodesWellFormed_of_wellFormed",
     "RiscvRefinement.Air.Bridge.Program.value_eq_nodeValues",
+    "RiscvRefinement.Air.Bridge.TeamACommon.accessClockField_val",
+    "RiscvRefinement.Air.Bridge.TeamACommon.bitVecM31_injective_of_bounds",
+    "RiscvRefinement.Air.Bridge.TeamACommon.destinationBytes_of_equations",
+    "RiscvRefinement.Air.Bridge.TeamACommon.destinationFlag_of_equations",
+    "RiscvRefinement.Air.Bridge.TeamACommon.nextClockField",
+    "RiscvRefinement.Air.Bridge.TeamACommon.nextPcField",
+    "RiscvRefinement.Air.Bridge.TeamACommon.nextPcToNat",
+    "RiscvRefinement.Air.Bridge.TeamACommon.rangeCheck20RequestHolds_iff",
+    "RiscvRefinement.Air.Bridge.TeamACommon.reduceAdd",
+    "RiscvRefinement.Air.Bridge.TeamACommon.reduceMul",
+    "RiscvRefinement.Air.Bridge.TeamACommon.validPreviousClock_of_gap",
+    "RiscvRefinement.Air.Bridge.TeamACommon.wordBytesField_eq_reduce",
+    "RiscvRefinement.Air.Bridge.TeamACommon.wordBytesField_val",
     "RiscvRefinement.Air.Bridge.absInverseTable_length",
     "RiscvRefinement.Air.Bridge.absInverseTable_ok",
     "RiscvRefinement.Air.Bridge.absLimbInverse_spec",
@@ -527,7 +1163,15 @@ AUDITED_THEOREMS = (
     "RiscvRefinement.Air.Family.shift_source_msb_false",
     "RiscvRefinement.Air.Family.shift_source_msb_true",
     "RiscvRefinement.Air.Family.shifts_reg_amount_is_masked",
+    "RiscvRefinement.Air.FixedTableId.bitwise_contains_and_iff",
+    "RiscvRefinement.Air.FixedTableId.bitwise_contains_or_iff",
+    "RiscvRefinement.Air.FixedTableId.bitwise_contains_xor_iff",
     "RiscvRefinement.Air.FixedTableId.contains_eq_true_iff",
+    "RiscvRefinement.Air.FixedTableId.rangeCheck20_contains_iff",
+    "RiscvRefinement.Air.FixedTableId.rangeCheck811_contains_iff",
+    "RiscvRefinement.Air.FixedTableId.rangeCheck884_contains_iff",
+    "RiscvRefinement.Air.FixedTableId.rangeCheck88_contains_iff",
+    "RiscvRefinement.Air.FixedTableId.rangeCheckM31_contains_iff",
     "RiscvRefinement.Air.Generated.AddiHolds.carryRecurrence",
     "RiscvRefinement.Air.Generated.AddiHolds.clockPositive",
     "RiscvRefinement.Air.Generated.AddiHolds.destinationClock",
@@ -640,12 +1284,22 @@ AUDITED_THEOREMS = (
     "RiscvRefinement.Arith.unsignedValue_lt",
     "RiscvRefinement.Arith.wrapSigned_ofNat",
     "RiscvRefinement.Arith.wrapSigned_sub",
+    "RiscvRefinement.Coverage.aggregate_coverage_exact",
     "RiscvRefinement.Coverage.pilot_coverage_exact",
+    "RiscvRefinement.Coverage.team_a_coverage_exact",
+    "RiscvRefinement.Coverage.team_b_coverage_exact",
     "RiscvRefinement.Decode.base_and_m_extension_are_disjoint",
+    "RiscvRefinement.Decode.comparison_selectors_pairwise_disjoint",
     "RiscvRefinement.Decode.encode_addi_is_canonical",
+    "RiscvRefinement.Decode.encode_auipc_is_canonical",
+    "RiscvRefinement.Decode.encode_base_alu_imm_is_canonical",
+    "RiscvRefinement.Decode.encode_base_alu_reg_is_canonical",
+    "RiscvRefinement.Decode.encode_branch_is_canonical",
     "RiscvRefinement.Decode.encode_div_is_canonical",
     "RiscvRefinement.Decode.encode_divu_is_canonical",
     "RiscvRefinement.Decode.encode_fence_is_canonical",
+    "RiscvRefinement.Decode.encode_jal_is_canonical",
+    "RiscvRefinement.Decode.encode_jalr_is_canonical",
     "RiscvRefinement.Decode.encode_lb_is_canonical",
     "RiscvRefinement.Decode.encode_lbu_is_canonical",
     "RiscvRefinement.Decode.encode_lh_is_canonical",
@@ -665,6 +1319,10 @@ AUDITED_THEOREMS = (
     "RiscvRefinement.Decode.encode_shift_imm_is_canonical",
     "RiscvRefinement.Decode.encode_sll_is_canonical",
     "RiscvRefinement.Decode.encode_slli_is_canonical",
+    "RiscvRefinement.Decode.encode_slt_is_canonical",
+    "RiscvRefinement.Decode.encode_slti_is_canonical",
+    "RiscvRefinement.Decode.encode_sltiu_is_canonical",
+    "RiscvRefinement.Decode.encode_sltu_is_canonical",
     "RiscvRefinement.Decode.encode_sra_is_canonical",
     "RiscvRefinement.Decode.encode_srai_is_canonical",
     "RiscvRefinement.Decode.encode_srl_is_canonical",
@@ -745,7 +1403,10 @@ AUDITED_THEOREMS = (
     "RiscvRefinement.Mutation.MutationControl.witness_not_sound",
     "RiscvRefinement.Mutation.strictly_weaker_of_not_original",
     "RiscvRefinement.NonVacuity.addi_exists",
+    "RiscvRefinement.NonVacuity.addi_production_overflow_exists",
     "RiscvRefinement.NonVacuity.honest_addi_holds",
+    "RiscvRefinement.NonVacuity.honest_addi_production_acceptance",
+    "RiscvRefinement.NonVacuity.honest_addi_production_admission",
     "RiscvRefinement.NonVacuity.honest_lui_holds",
     "RiscvRefinement.NonVacuity.lui_exists",
     "RiscvRefinement.Opcodes.AddiEnvironment.destinationBinds",
@@ -761,6 +1422,212 @@ AUDITED_THEOREMS = (
     "RiscvRefinement.Opcodes.AddiRefinement.sourceEmit",
     "RiscvRefinement.Opcodes.AddiRefinement.stateConsume",
     "RiscvRefinement.Opcodes.AddiRefinement.stateEmit",
+    "RiscvRefinement.Opcodes.Auipc.Refinement.decode",
+    "RiscvRefinement.Opcodes.Auipc.Refinement.destinationConsume",
+    "RiscvRefinement.Opcodes.Auipc.Refinement.destinationEmit",
+    "RiscvRefinement.Opcodes.Auipc.Refinement.immediateDecomposition",
+    "RiscvRefinement.Opcodes.Auipc.Refinement.immediateSign",
+    "RiscvRefinement.Opcodes.Auipc.Refinement.noMemoryEffect",
+    "RiscvRefinement.Opcodes.Auipc.Refinement.production",
+    "RiscvRefinement.Opcodes.Auipc.Refinement.program",
+    "RiscvRefinement.Opcodes.Auipc.Refinement.programLookup",
+    "RiscvRefinement.Opcodes.Auipc.Refinement.retirement",
+    "RiscvRefinement.Opcodes.Auipc.Refinement.stateConsume",
+    "RiscvRefinement.Opcodes.Auipc.Refinement.stateEmit",
+    "RiscvRefinement.Opcodes.Auipc.Refinement.zeroRegister",
+    "RiscvRefinement.Opcodes.Auipc.auipcExists",
+    "RiscvRefinement.Opcodes.Auipc.auipcX0Exists",
+    "RiscvRefinement.Opcodes.Auipc.refines",
+    "RiscvRefinement.Opcodes.AuipcMutation.auipcDestinationProjectionLoadBearing",
+    "RiscvRefinement.Opcodes.AuipcMutation.originalSound",
+    "RiscvRefinement.Opcodes.AuipcMutation.wrongDestination_refutes",
+    "RiscvRefinement.Opcodes.AuipcMutation.wrongDestination_satisfies",
+    "RiscvRefinement.Opcodes.AuipcMutation.wrongDestination_strictly_weaker",
+    "RiscvRefinement.Opcodes.BaseAluImm.Environment.destinationBinds",
+    "RiscvRefinement.Opcodes.BaseAluImm.Environment.pcBinds",
+    "RiscvRefinement.Opcodes.BaseAluImm.Environment.sourceBinds",
+    "RiscvRefinement.Opcodes.BaseAluImm.Refinement.decode",
+    "RiscvRefinement.Opcodes.BaseAluImm.Refinement.destination",
+    "RiscvRefinement.Opcodes.BaseAluImm.Refinement.exactProgramLookup",
+    "RiscvRefinement.Opcodes.BaseAluImm.Refinement.noMemoryEffect",
+    "RiscvRefinement.Opcodes.BaseAluImm.Refinement.production",
+    "RiscvRefinement.Opcodes.BaseAluImm.Refinement.program",
+    "RiscvRefinement.Opcodes.BaseAluImm.Refinement.retirement",
+    "RiscvRefinement.Opcodes.BaseAluImm.Refinement.source",
+    "RiscvRefinement.Opcodes.BaseAluImm.Refinement.zeroRegister",
+    "RiscvRefinement.Opcodes.BaseAluImm.andi_exactLookupProjection",
+    "RiscvRefinement.Opcodes.BaseAluImm.andi_exactProgramTuple",
+    "RiscvRefinement.Opcodes.BaseAluImm.andi_nonvacuous",
+    "RiscvRefinement.Opcodes.BaseAluImm.andi_refines",
+    "RiscvRefinement.Opcodes.BaseAluImm.andi_selectorAccepted",
+    "RiscvRefinement.Opcodes.BaseAluImm.bitwiseBytesWord",
+    "RiscvRefinement.Opcodes.BaseAluImm.exactProgramTuple",
+    "RiscvRefinement.Opcodes.BaseAluImm.immediateWord",
+    "RiscvRefinement.Opcodes.BaseAluImm.ori_exactLookupProjection",
+    "RiscvRefinement.Opcodes.BaseAluImm.ori_exactProgramTuple",
+    "RiscvRefinement.Opcodes.BaseAluImm.ori_nonvacuous",
+    "RiscvRefinement.Opcodes.BaseAluImm.ori_refines",
+    "RiscvRefinement.Opcodes.BaseAluImm.ori_selectorAccepted",
+    "RiscvRefinement.Opcodes.BaseAluImm.refinementNonvacuous",
+    "RiscvRefinement.Opcodes.BaseAluImm.refines",
+    "RiscvRefinement.Opcodes.BaseAluImm.resultIsArchitectural",
+    "RiscvRefinement.Opcodes.BaseAluImm.sourceAliasRefinementNonvacuous",
+    "RiscvRefinement.Opcodes.BaseAluImm.xori_exactLookupProjection",
+    "RiscvRefinement.Opcodes.BaseAluImm.xori_exactProgramTuple",
+    "RiscvRefinement.Opcodes.BaseAluImm.xori_nonvacuous",
+    "RiscvRefinement.Opcodes.BaseAluImm.xori_refines",
+    "RiscvRefinement.Opcodes.BaseAluImm.xori_selectorAccepted",
+    "RiscvRefinement.Opcodes.BaseAluImm.zeroDestinationRefinementNonvacuous",
+    "RiscvRefinement.Opcodes.BaseAluMutation.Imm.andi_mutation",
+    "RiscvRefinement.Opcodes.BaseAluMutation.Imm.mutationCertificate",
+    "RiscvRefinement.Opcodes.BaseAluMutation.Imm.ori_mutation",
+    "RiscvRefinement.Opcodes.BaseAluMutation.Imm.original_sound",
+    "RiscvRefinement.Opcodes.BaseAluMutation.Imm.wrongStateEmit_refutes",
+    "RiscvRefinement.Opcodes.BaseAluMutation.Imm.wrongStateEmit_satisfies",
+    "RiscvRefinement.Opcodes.BaseAluMutation.Imm.xori_mutation",
+    "RiscvRefinement.Opcodes.BaseAluMutation.Reg.add_mutation",
+    "RiscvRefinement.Opcodes.BaseAluMutation.Reg.and_mutation",
+    "RiscvRefinement.Opcodes.BaseAluMutation.Reg.mutationCertificate",
+    "RiscvRefinement.Opcodes.BaseAluMutation.Reg.or_mutation",
+    "RiscvRefinement.Opcodes.BaseAluMutation.Reg.original_sound",
+    "RiscvRefinement.Opcodes.BaseAluMutation.Reg.sub_mutation",
+    "RiscvRefinement.Opcodes.BaseAluMutation.Reg.wrongStateEmit_refutes",
+    "RiscvRefinement.Opcodes.BaseAluMutation.Reg.wrongStateEmit_satisfies",
+    "RiscvRefinement.Opcodes.BaseAluMutation.Reg.xor_mutation",
+    "RiscvRefinement.Opcodes.BaseAluReg.Environment.destinationBinds",
+    "RiscvRefinement.Opcodes.BaseAluReg.Environment.pcBinds",
+    "RiscvRefinement.Opcodes.BaseAluReg.Environment.source1Binds",
+    "RiscvRefinement.Opcodes.BaseAluReg.Environment.source2Binds",
+    "RiscvRefinement.Opcodes.BaseAluReg.Refinement.decode",
+    "RiscvRefinement.Opcodes.BaseAluReg.Refinement.destination",
+    "RiscvRefinement.Opcodes.BaseAluReg.Refinement.exactProgramLookup",
+    "RiscvRefinement.Opcodes.BaseAluReg.Refinement.noMemoryEffect",
+    "RiscvRefinement.Opcodes.BaseAluReg.Refinement.production",
+    "RiscvRefinement.Opcodes.BaseAluReg.Refinement.program",
+    "RiscvRefinement.Opcodes.BaseAluReg.Refinement.retirement",
+    "RiscvRefinement.Opcodes.BaseAluReg.Refinement.source1",
+    "RiscvRefinement.Opcodes.BaseAluReg.Refinement.source2",
+    "RiscvRefinement.Opcodes.BaseAluReg.Refinement.zeroRegister",
+    "RiscvRefinement.Opcodes.BaseAluReg.add_exactLookupProjection",
+    "RiscvRefinement.Opcodes.BaseAluReg.add_exactProgramTuple",
+    "RiscvRefinement.Opcodes.BaseAluReg.add_nonvacuous",
+    "RiscvRefinement.Opcodes.BaseAluReg.add_overflow_nonvacuous",
+    "RiscvRefinement.Opcodes.BaseAluReg.add_refines",
+    "RiscvRefinement.Opcodes.BaseAluReg.add_selectorAccepted",
+    "RiscvRefinement.Opcodes.BaseAluReg.and_exactLookupProjection",
+    "RiscvRefinement.Opcodes.BaseAluReg.and_exactProgramTuple",
+    "RiscvRefinement.Opcodes.BaseAluReg.and_nonvacuous",
+    "RiscvRefinement.Opcodes.BaseAluReg.and_refines",
+    "RiscvRefinement.Opcodes.BaseAluReg.and_selectorAccepted",
+    "RiscvRefinement.Opcodes.BaseAluReg.exactProgramTuple",
+    "RiscvRefinement.Opcodes.BaseAluReg.or_exactLookupProjection",
+    "RiscvRefinement.Opcodes.BaseAluReg.or_exactProgramTuple",
+    "RiscvRefinement.Opcodes.BaseAluReg.or_nonvacuous",
+    "RiscvRefinement.Opcodes.BaseAluReg.or_refines",
+    "RiscvRefinement.Opcodes.BaseAluReg.or_selectorAccepted",
+    "RiscvRefinement.Opcodes.BaseAluReg.refinementNonvacuous",
+    "RiscvRefinement.Opcodes.BaseAluReg.refines",
+    "RiscvRefinement.Opcodes.BaseAluReg.sameSourceRefinementNonvacuous",
+    "RiscvRefinement.Opcodes.BaseAluReg.source1AliasRefinementNonvacuous",
+    "RiscvRefinement.Opcodes.BaseAluReg.source2AliasRefinementNonvacuous",
+    "RiscvRefinement.Opcodes.BaseAluReg.sub_borrow_nonvacuous",
+    "RiscvRefinement.Opcodes.BaseAluReg.sub_exactLookupProjection",
+    "RiscvRefinement.Opcodes.BaseAluReg.sub_exactProgramTuple",
+    "RiscvRefinement.Opcodes.BaseAluReg.sub_nonvacuous",
+    "RiscvRefinement.Opcodes.BaseAluReg.sub_refines",
+    "RiscvRefinement.Opcodes.BaseAluReg.sub_selectorAccepted",
+    "RiscvRefinement.Opcodes.BaseAluReg.xor_exactLookupProjection",
+    "RiscvRefinement.Opcodes.BaseAluReg.xor_exactProgramTuple",
+    "RiscvRefinement.Opcodes.BaseAluReg.xor_nonvacuous",
+    "RiscvRefinement.Opcodes.BaseAluReg.xor_refines",
+    "RiscvRefinement.Opcodes.BaseAluReg.xor_selectorAccepted",
+    "RiscvRefinement.Opcodes.BaseAluReg.zeroDestinationRefinementNonvacuous",
+    "RiscvRefinement.Opcodes.Branches.Eq.RawRefinement.decision",
+    "RiscvRefinement.Opcodes.Branches.Eq.RawRefinement.decode",
+    "RiscvRefinement.Opcodes.Branches.Eq.RawRefinement.exactProgramTuple",
+    "RiscvRefinement.Opcodes.Branches.Eq.RawRefinement.noRegisterOrMemoryEffect",
+    "RiscvRefinement.Opcodes.Branches.Eq.RawRefinement.production",
+    "RiscvRefinement.Opcodes.Branches.Eq.RawRefinement.retirementPc",
+    "RiscvRefinement.Opcodes.Branches.Eq.RawRefinement.sourcesReadOnly",
+    "RiscvRefinement.Opcodes.Branches.Eq.RawRefinement.targetAligned",
+    "RiscvRefinement.Opcodes.Branches.Eq.RawRefinement.targetNoWrap",
+    "RiscvRefinement.Opcodes.Branches.Eq.Refinement.decision",
+    "RiscvRefinement.Opcodes.Branches.Eq.Refinement.decode",
+    "RiscvRefinement.Opcodes.Branches.Eq.Refinement.exactProgramTuple",
+    "RiscvRefinement.Opcodes.Branches.Eq.Refinement.noRegisterOrMemoryEffect",
+    "RiscvRefinement.Opcodes.Branches.Eq.Refinement.production",
+    "RiscvRefinement.Opcodes.Branches.Eq.Refinement.retirement",
+    "RiscvRefinement.Opcodes.Branches.Eq.beq_bne_complement_theorem",
+    "RiscvRefinement.Opcodes.Branches.Eq.beq_nonvacuity_theorem",
+    "RiscvRefinement.Opcodes.Branches.Eq.beq_refinement_theorem",
+    "RiscvRefinement.Opcodes.Branches.Eq.beq_selector_theorem",
+    "RiscvRefinement.Opcodes.Branches.Eq.beq_tuple_theorem",
+    "RiscvRefinement.Opcodes.Branches.Eq.bne_nonvacuity_theorem",
+    "RiscvRefinement.Opcodes.Branches.Eq.bne_refinement_theorem",
+    "RiscvRefinement.Opcodes.Branches.Eq.bne_selector_theorem",
+    "RiscvRefinement.Opcodes.Branches.Eq.bne_tuple_theorem",
+    "RiscvRefinement.Opcodes.Branches.Eq.decisionIsArchitectural",
+    "RiscvRefinement.Opcodes.Branches.Eq.rawRefines",
+    "RiscvRefinement.Opcodes.Branches.Eq.rawTakenIsArchitectural",
+    "RiscvRefinement.Opcodes.Branches.Eq.refines",
+    "RiscvRefinement.Opcodes.Branches.Eq.takenAndFallthroughRefine",
+    "RiscvRefinement.Opcodes.Branches.Lt.RawRefinement.comparison",
+    "RiscvRefinement.Opcodes.Branches.Lt.RawRefinement.decision",
+    "RiscvRefinement.Opcodes.Branches.Lt.RawRefinement.decode",
+    "RiscvRefinement.Opcodes.Branches.Lt.RawRefinement.exactProgramTuple",
+    "RiscvRefinement.Opcodes.Branches.Lt.RawRefinement.noRegisterOrMemoryEffect",
+    "RiscvRefinement.Opcodes.Branches.Lt.RawRefinement.production",
+    "RiscvRefinement.Opcodes.Branches.Lt.RawRefinement.retirementPc",
+    "RiscvRefinement.Opcodes.Branches.Lt.RawRefinement.sourcesReadOnly",
+    "RiscvRefinement.Opcodes.Branches.Lt.RawRefinement.targetAligned",
+    "RiscvRefinement.Opcodes.Branches.Lt.RawRefinement.targetNoWrap",
+    "RiscvRefinement.Opcodes.Branches.Lt.Refinement.comparison",
+    "RiscvRefinement.Opcodes.Branches.Lt.Refinement.decision",
+    "RiscvRefinement.Opcodes.Branches.Lt.Refinement.decode",
+    "RiscvRefinement.Opcodes.Branches.Lt.Refinement.exactProgramTuple",
+    "RiscvRefinement.Opcodes.Branches.Lt.Refinement.noRegisterOrMemoryEffect",
+    "RiscvRefinement.Opcodes.Branches.Lt.Refinement.production",
+    "RiscvRefinement.Opcodes.Branches.Lt.Refinement.retirement",
+    "RiscvRefinement.Opcodes.Branches.Lt.bge_nonvacuity_theorem",
+    "RiscvRefinement.Opcodes.Branches.Lt.bge_refinement_theorem",
+    "RiscvRefinement.Opcodes.Branches.Lt.bge_selector_theorem",
+    "RiscvRefinement.Opcodes.Branches.Lt.bge_tuple_theorem",
+    "RiscvRefinement.Opcodes.Branches.Lt.bgeu_nonvacuity_theorem",
+    "RiscvRefinement.Opcodes.Branches.Lt.bgeu_refinement_theorem",
+    "RiscvRefinement.Opcodes.Branches.Lt.bgeu_selector_theorem",
+    "RiscvRefinement.Opcodes.Branches.Lt.bgeu_tuple_theorem",
+    "RiscvRefinement.Opcodes.Branches.Lt.blt_nonvacuity_theorem",
+    "RiscvRefinement.Opcodes.Branches.Lt.blt_refinement_theorem",
+    "RiscvRefinement.Opcodes.Branches.Lt.blt_selector_theorem",
+    "RiscvRefinement.Opcodes.Branches.Lt.blt_tuple_theorem",
+    "RiscvRefinement.Opcodes.Branches.Lt.bltu_nonvacuity_theorem",
+    "RiscvRefinement.Opcodes.Branches.Lt.bltu_refinement_theorem",
+    "RiscvRefinement.Opcodes.Branches.Lt.bltu_selector_theorem",
+    "RiscvRefinement.Opcodes.Branches.Lt.bltu_tuple_theorem",
+    "RiscvRefinement.Opcodes.Branches.Lt.comparisonIsArchitectural",
+    "RiscvRefinement.Opcodes.Branches.Lt.decisionIsArchitectural",
+    "RiscvRefinement.Opcodes.Branches.Lt.ordered_signedness_theorem",
+    "RiscvRefinement.Opcodes.Branches.Lt.rawComparisonIsArchitectural",
+    "RiscvRefinement.Opcodes.Branches.Lt.rawDecisionIsArchitectural",
+    "RiscvRefinement.Opcodes.Branches.Lt.rawRefines",
+    "RiscvRefinement.Opcodes.Branches.Lt.refines",
+    "RiscvRefinement.Opcodes.Branches.Lt.takenAndFallthroughRefine",
+    "RiscvRefinement.Opcodes.BranchesMutation.beqStateProjection_mutation_theorem",
+    "RiscvRefinement.Opcodes.BranchesMutation.bgeStateProjection_mutation_theorem",
+    "RiscvRefinement.Opcodes.BranchesMutation.bgeuStateProjection_mutation_theorem",
+    "RiscvRefinement.Opcodes.BranchesMutation.bltStateProjection_mutation_theorem",
+    "RiscvRefinement.Opcodes.BranchesMutation.bltuStateProjection_mutation_theorem",
+    "RiscvRefinement.Opcodes.BranchesMutation.bneStateProjection_mutation_theorem",
+    "RiscvRefinement.Opcodes.BranchesMutation.eqOriginal_sound",
+    "RiscvRefinement.Opcodes.BranchesMutation.eqWrongStateEmit_refutes",
+    "RiscvRefinement.Opcodes.BranchesMutation.eqWrongStateEmit_satisfies",
+    "RiscvRefinement.Opcodes.BranchesMutation.ltOriginal_sound",
+    "RiscvRefinement.Opcodes.BranchesMutation.ltWrongStateEmit_refutes",
+    "RiscvRefinement.Opcodes.BranchesMutation.ltWrongStateEmit_satisfies",
+    "RiscvRefinement.Opcodes.BranchesMutation.original_sound",
+    "RiscvRefinement.Opcodes.BranchesMutation.wrongStateEmit_refutes",
+    "RiscvRefinement.Opcodes.BranchesMutation.wrongStateEmit_satisfies",
+    "RiscvRefinement.Opcodes.BranchesMutation.wrongStateEmit_strictly_weaker",
     "RiscvRefinement.Opcodes.ByteLoadMutation.ByteLoadHoldsWithoutByteLoadExtension.alignedQuarterRange",
     "RiscvRefinement.Opcodes.ByteLoadMutation.ByteLoadHoldsWithoutByteLoadExtension.baseClock",
     "RiscvRefinement.Opcodes.ByteLoadMutation.ByteLoadHoldsWithoutByteLoadExtension.baseHighLimbRange",
@@ -1404,6 +2271,57 @@ AUDITED_THEOREMS = (
     "RiscvRefinement.Opcodes.FenceMutation.wrongStateEmit_refutes",
     "RiscvRefinement.Opcodes.FenceMutation.wrongStateEmit_satisfies",
     "RiscvRefinement.Opcodes.FenceMutation.wrongStateEmit_strictly_weaker",
+    "RiscvRefinement.Opcodes.Jal.Refinement.decode",
+    "RiscvRefinement.Opcodes.Jal.Refinement.destinationConsume",
+    "RiscvRefinement.Opcodes.Jal.Refinement.destinationEmit",
+    "RiscvRefinement.Opcodes.Jal.Refinement.noMemoryEffect",
+    "RiscvRefinement.Opcodes.Jal.Refinement.production",
+    "RiscvRefinement.Opcodes.Jal.Refinement.program",
+    "RiscvRefinement.Opcodes.Jal.Refinement.programLookup",
+    "RiscvRefinement.Opcodes.Jal.Refinement.retirement",
+    "RiscvRefinement.Opcodes.Jal.Refinement.stateConsume",
+    "RiscvRefinement.Opcodes.Jal.Refinement.stateEmit",
+    "RiscvRefinement.Opcodes.Jal.Refinement.zeroRegister",
+    "RiscvRefinement.Opcodes.Jal.jalExists",
+    "RiscvRefinement.Opcodes.Jal.jalX0Exists",
+    "RiscvRefinement.Opcodes.Jal.refines",
+    "RiscvRefinement.Opcodes.JalMutation.originalSound",
+    "RiscvRefinement.Opcodes.JalMutation.wrongStateEmit_refutes",
+    "RiscvRefinement.Opcodes.JalMutation.wrongStateEmit_satisfies",
+    "RiscvRefinement.Opcodes.JalMutation.wrongStateEmit_strictly_weaker",
+    "RiscvRefinement.Opcodes.Jalr.Environment.destinationBinds",
+    "RiscvRefinement.Opcodes.Jalr.Environment.pcBinds",
+    "RiscvRefinement.Opcodes.Jalr.Environment.sourceBinds",
+    "RiscvRefinement.Opcodes.Jalr.Refinement.aliasReadBeforeWrite",
+    "RiscvRefinement.Opcodes.Jalr.Refinement.bitZeroCleared",
+    "RiscvRefinement.Opcodes.Jalr.Refinement.decode",
+    "RiscvRefinement.Opcodes.Jalr.Refinement.destination",
+    "RiscvRefinement.Opcodes.Jalr.Refinement.exactProgramLookup",
+    "RiscvRefinement.Opcodes.Jalr.Refinement.noMemoryEffect",
+    "RiscvRefinement.Opcodes.Jalr.Refinement.production",
+    "RiscvRefinement.Opcodes.Jalr.Refinement.program",
+    "RiscvRefinement.Opcodes.Jalr.Refinement.retirement",
+    "RiscvRefinement.Opcodes.Jalr.Refinement.signedImmediate",
+    "RiscvRefinement.Opcodes.Jalr.Refinement.sourceBeforeDestination",
+    "RiscvRefinement.Opcodes.Jalr.Refinement.successfulAlignment",
+    "RiscvRefinement.Opcodes.Jalr.Refinement.target",
+    "RiscvRefinement.Opcodes.Jalr.Refinement.wrappedAddition",
+    "RiscvRefinement.Opcodes.Jalr.Refinement.zeroRegister",
+    "RiscvRefinement.Opcodes.Jalr.exactProgramTuple",
+    "RiscvRefinement.Opcodes.Jalr.jalr_exactLookupProjection",
+    "RiscvRefinement.Opcodes.Jalr.jalr_exactProgramTuple",
+    "RiscvRefinement.Opcodes.Jalr.jalr_nonvacuous",
+    "RiscvRefinement.Opcodes.Jalr.jalr_refines",
+    "RiscvRefinement.Opcodes.Jalr.jalr_selectorAccepted",
+    "RiscvRefinement.Opcodes.Jalr.jalr_source_alias_nonvacuous",
+    "RiscvRefinement.Opcodes.Jalr.jalr_zero_destination_nonvacuous",
+    "RiscvRefinement.Opcodes.Jalr.refines",
+    "RiscvRefinement.Opcodes.JalrMutation.jalr_state_target_mutation_certificate",
+    "RiscvRefinement.Opcodes.JalrMutation.mutationCertificate",
+    "RiscvRefinement.Opcodes.JalrMutation.original_sound",
+    "RiscvRefinement.Opcodes.JalrMutation.wrongStateEmit_refutes",
+    "RiscvRefinement.Opcodes.JalrMutation.wrongStateEmit_satisfies",
+    "RiscvRefinement.Opcodes.JalrMutation.wrongStateEmit_strictly_weaker",
     "RiscvRefinement.Opcodes.LhRefinement.aligned",
     "RiscvRefinement.Opcodes.LhRefinement.baseConsume",
     "RiscvRefinement.Opcodes.LhRefinement.baseEmit",
@@ -1831,6 +2749,66 @@ AUDITED_THEOREMS = (
     "RiscvRefinement.Opcodes.LoadStoreHoldsWithoutWordLoad.storeResultZero",
     "RiscvRefinement.Opcodes.LoadStoreHoldsWithoutWordLoad.wordShiftAmount",
     "RiscvRefinement.Opcodes.LoadStoreHoldsWithoutWordLoad.wordStore",
+    "RiscvRefinement.Opcodes.Lt.Imm.Refinement.decode",
+    "RiscvRefinement.Opcodes.Lt.Imm.Refinement.exactDestination",
+    "RiscvRefinement.Opcodes.Lt.Imm.Refinement.exactProgramTuple",
+    "RiscvRefinement.Opcodes.Lt.Imm.Refinement.noMemoryEffect",
+    "RiscvRefinement.Opcodes.Lt.Imm.Refinement.production",
+    "RiscvRefinement.Opcodes.Lt.Imm.Refinement.retirement",
+    "RiscvRefinement.Opcodes.Lt.Imm.canonicalDecode",
+    "RiscvRefinement.Opcodes.Lt.Imm.destinationBytesWord",
+    "RiscvRefinement.Opcodes.Lt.Imm.refines",
+    "RiscvRefinement.Opcodes.Lt.Imm.signedUnsignedHighBitDistinction",
+    "RiscvRefinement.Opcodes.Lt.Imm.slti_exactLookupTuples",
+    "RiscvRefinement.Opcodes.Lt.Imm.slti_exactProgramTuple",
+    "RiscvRefinement.Opcodes.Lt.Imm.slti_nonvacuous",
+    "RiscvRefinement.Opcodes.Lt.Imm.slti_refines",
+    "RiscvRefinement.Opcodes.Lt.Imm.slti_selectorAccepted",
+    "RiscvRefinement.Opcodes.Lt.Imm.sltiu_exactLookupTuples",
+    "RiscvRefinement.Opcodes.Lt.Imm.sltiu_exactProgramTuple",
+    "RiscvRefinement.Opcodes.Lt.Imm.sltiu_nonvacuous",
+    "RiscvRefinement.Opcodes.Lt.Imm.sltiu_refines",
+    "RiscvRefinement.Opcodes.Lt.Imm.sltiu_selectorAccepted",
+    "RiscvRefinement.Opcodes.Lt.Reg.Refinement.decode",
+    "RiscvRefinement.Opcodes.Lt.Reg.Refinement.exactDestination",
+    "RiscvRefinement.Opcodes.Lt.Reg.Refinement.exactProgramTuple",
+    "RiscvRefinement.Opcodes.Lt.Reg.Refinement.noMemoryEffect",
+    "RiscvRefinement.Opcodes.Lt.Reg.Refinement.production",
+    "RiscvRefinement.Opcodes.Lt.Reg.Refinement.retirement",
+    "RiscvRefinement.Opcodes.Lt.Reg.canonicalDecode",
+    "RiscvRefinement.Opcodes.Lt.Reg.destinationWord",
+    "RiscvRefinement.Opcodes.Lt.Reg.refines",
+    "RiscvRefinement.Opcodes.Lt.Reg.signedUnsignedHighBitDistinction",
+    "RiscvRefinement.Opcodes.Lt.Reg.slt_exactLookupTuples",
+    "RiscvRefinement.Opcodes.Lt.Reg.slt_exactProgramTuple",
+    "RiscvRefinement.Opcodes.Lt.Reg.slt_nonvacuous",
+    "RiscvRefinement.Opcodes.Lt.Reg.slt_refines",
+    "RiscvRefinement.Opcodes.Lt.Reg.slt_selectorAccepted",
+    "RiscvRefinement.Opcodes.Lt.Reg.sltu_exactLookupTuples",
+    "RiscvRefinement.Opcodes.Lt.Reg.sltu_exactProgramTuple",
+    "RiscvRefinement.Opcodes.Lt.Reg.sltu_nonvacuous",
+    "RiscvRefinement.Opcodes.Lt.Reg.sltu_refines",
+    "RiscvRefinement.Opcodes.Lt.Reg.sltu_selectorAccepted",
+    "RiscvRefinement.Opcodes.LtMutation.Imm.original_sound",
+    "RiscvRefinement.Opcodes.LtMutation.Imm.slti_wrongManifest_refutes",
+    "RiscvRefinement.Opcodes.LtMutation.Imm.slti_wrongManifest_satisfies",
+    "RiscvRefinement.Opcodes.LtMutation.Imm.slti_wrongManifest_strictly_weaker",
+    "RiscvRefinement.Opcodes.LtMutation.Imm.sltiu_wrongManifest_refutes",
+    "RiscvRefinement.Opcodes.LtMutation.Imm.sltiu_wrongManifest_satisfies",
+    "RiscvRefinement.Opcodes.LtMutation.Imm.sltiu_wrongManifest_strictly_weaker",
+    "RiscvRefinement.Opcodes.LtMutation.Imm.wrongProgram_refutes",
+    "RiscvRefinement.Opcodes.LtMutation.Imm.wrongProgram_satisfies",
+    "RiscvRefinement.Opcodes.LtMutation.Imm.wrongProgram_strictly_weaker",
+    "RiscvRefinement.Opcodes.LtMutation.Reg.original_sound",
+    "RiscvRefinement.Opcodes.LtMutation.Reg.slt_wrongManifest_refutes",
+    "RiscvRefinement.Opcodes.LtMutation.Reg.slt_wrongManifest_satisfies",
+    "RiscvRefinement.Opcodes.LtMutation.Reg.slt_wrongManifest_strictly_weaker",
+    "RiscvRefinement.Opcodes.LtMutation.Reg.sltu_wrongManifest_refutes",
+    "RiscvRefinement.Opcodes.LtMutation.Reg.sltu_wrongManifest_satisfies",
+    "RiscvRefinement.Opcodes.LtMutation.Reg.sltu_wrongManifest_strictly_weaker",
+    "RiscvRefinement.Opcodes.LtMutation.Reg.wrongProgram_refutes",
+    "RiscvRefinement.Opcodes.LtMutation.Reg.wrongProgram_satisfies",
+    "RiscvRefinement.Opcodes.LtMutation.Reg.wrongProgram_strictly_weaker",
     "RiscvRefinement.Opcodes.LuiEnvironment.destinationBinds",
     "RiscvRefinement.Opcodes.LuiEnvironment.pcBinds",
     "RiscvRefinement.Opcodes.LuiEnvironment.wordBinds",
@@ -2503,9 +3481,13 @@ AUDITED_THEOREMS = (
     "RiscvRefinement.Opcodes.addi_destination_from_constraints",
     "RiscvRefinement.Opcodes.addi_immediate_refines",
     "RiscvRefinement.Opcodes.addi_immediate_value_lt",
+    "RiscvRefinement.Opcodes.addi_production_nonvacuous",
+    "RiscvRefinement.Opcodes.addi_production_refines",
     "RiscvRefinement.Opcodes.addi_refines",
+    "RiscvRefinement.Opcodes.addi_source_alias_production_nonvacuous",
     "RiscvRefinement.Opcodes.addi_source_from_constraints",
     "RiscvRefinement.Opcodes.addi_value_refines",
+    "RiscvRefinement.Opcodes.addi_zero_destination_production_nonvacuous",
     "RiscvRefinement.Opcodes.aliasedMulRow_holds",
     "RiscvRefinement.Opcodes.aliasedMulhuRow_holds",
     "RiscvRefinement.Opcodes.base_add_4096_lt_modulus",
@@ -2639,9 +3621,12 @@ AUDITED_THEOREMS = (
     "RiscvRefinement.Opcodes.load_write_value",
     "RiscvRefinement.Opcodes.lowBit_toNat",
     "RiscvRefinement.Opcodes.lui_destination_from_constraints",
+    "RiscvRefinement.Opcodes.lui_production_nonvacuous",
+    "RiscvRefinement.Opcodes.lui_production_refines",
     "RiscvRefinement.Opcodes.lui_refines",
     "RiscvRefinement.Opcodes.lui_result_bytes_refine",
     "RiscvRefinement.Opcodes.lui_value_refines",
+    "RiscvRefinement.Opcodes.lui_zero_destination_production_nonvacuous",
     "RiscvRefinement.Opcodes.lwSwappedBytesRow_refutes",
     "RiscvRefinement.Opcodes.lwSwappedBytesRow_satisfies",
     "RiscvRefinement.Opcodes.lw_flags",
@@ -2937,13 +3922,75 @@ APPROVED_LEAN_AXIOMS = frozenset(
         "Quot.sound",
     }
 )
-CLAIM_BOUNDARY = (
-    "kernel-checked normalized LUI/ADDI predicate refinement plus "
-    "lookup-complete production LUI/ADDI AIR-to-normalized composition and "
-    "Lean-checked Stage A2 mutation controls, bound to a checked AST "
-    "translation receipt and direct generated-Lean execute-clause monad "
-    "normalization with sequential PC/tick; fetch, interrupt, trap, counter, "
-    "and wider generated step-loop framing remain open"
+RECEIPT_SCHEMA_VERSION = 2
+RECEIPT_TIER = "issue-136-a5-graded-integration"
+RECEIPT_CLAIM_BOUNDARY = {
+    "team_a_production_air": {
+        "proved": 24,
+        "total": 24,
+    },
+    "graded_opcode_index": {
+        "covered": 46,
+        "total": 46,
+    },
+    "generated_sail_input_bindings": {
+        "bound": 24,
+        "total": 24,
+    },
+    "normalized_retirements": {
+        "proved": 2,
+        "total": 46,
+    },
+    "publication_level": {
+        "proved": 0,
+        "total": 46,
+    },
+    "full_generated_sail_step": False,
+    "proof_system_soundness": False,
+    "whole_frontend_verified": False,
+    "external_signoffs": {
+        "status": "not-established",
+        "shared_interface_signoff": {
+            "status": "not-established",
+            "required_signoffs": 5,
+            "required_roles": [
+                "team-a-integration-dri",
+                "team-b-sail-profile-dri",
+                "lh-representative",
+                "div-representative",
+                "independent-formal-reviewer",
+            ],
+            "established": [],
+        },
+        "team_a_family_non_author_signoffs": {
+            "status": "not-established",
+            "required_per_family": 3,
+            "required_roles": [
+                "air-tuple-reviewer",
+                "team-b-sail-profile-reviewer",
+                "lean-soundness-non-vacuity-reviewer",
+            ],
+            "families": list(riscv_team_a.TEAM_A_FAMILIES),
+            "established": {
+                family: []
+                for family in riscv_team_a.TEAM_A_FAMILIES
+            },
+        },
+        "joint_issue_137_gate": {
+            "status": "not-established",
+            "issue": 137,
+            "established": False,
+        },
+    },
+}
+TEAM_A_INDEX_RELATIVE = riscv_team_a.CERTIFICATE_INDEX.relative_to(
+    riscv_team_a.REPOSITORY_ROOT
+)
+TEAM_B_INDEX_RELATIVE = riscv_team_b.CERTIFICATE_INDEX.relative_to(
+    riscv_team_b.REPOSITORY_ROOT
+)
+OPCODE_INDEX_RELATIVE = riscv_opcode_coverage.INDEX_PATH.relative_to(
+    riscv_opcode_coverage.REPOSITORY_ROOT
 )
 MUTATION_THEOREMS = {
     "lui-free-low-limb": (
@@ -3404,14 +4451,51 @@ def verify(args: argparse.Namespace, paths: Paths) -> Verification:
     _run(
         [
             sys.executable,
+            "scripts/riscv_team_b.py",
+            "check",
+            "--air-ir-dir",
+            str(paths.uniqueness_ir),
+        ],
+        paths.root,
+    )
+    _run(
+        [
+            sys.executable,
+            "scripts/riscv_team_b_witnesses.py",
+            "--air-ir-dir",
+            str(paths.uniqueness_ir),
+        ],
+        paths.root,
+    )
+    _run(
+        [sys.executable, "scripts/riscv_team_a.py", "check"],
+        paths.root,
+    )
+    _run(
+        [sys.executable, "scripts/riscv_opcode_coverage.py", "check"],
+        paths.root,
+    )
+    _run(
+        [
+            sys.executable,
             "-m",
             "unittest",
             "scripts.tests.test_riscv_refinement",
+            "scripts.tests.test_riscv_team_b",
+            "scripts.tests.test_riscv_team_b_witnesses",
+            "scripts.tests.test_riscv_team_a",
+            "scripts.tests.test_sail_translation",
+            "scripts.tests.test_sail_air_composition_contract",
         ],
         paths.root,
     )
     _run(["lake", "build"], paths.formal)
-    axiom_report = _audit_axioms(_run(list(AUDIT_COMMAND), paths.formal))
+    audit_output = _run(list(AUDIT_COMMAND), paths.formal)
+    axiom_report = _audit_axioms(audit_output)
+    try:
+        print(riscv_team_a.check_axiom_bindings(axiom_report))
+    except riscv_team_a.TeamAError as exc:
+        raise RefinementError(str(exc)) from exc
     missing_mutations = sorted(
         set(MUTATION_THEOREMS.values()) - set(axiom_report)
     )
@@ -3421,7 +4505,8 @@ def verify(args: argparse.Namespace, paths: Paths) -> Verification:
             + ", ".join(missing_mutations)
         )
     print(
-        "refinement pilot verified: fresh artifacts, 2/46 coverage, "
+        "refinement verified: fresh artifacts, retained 2/46 normalized "
+        "pilot, exact 24/24 Team A and 46/46 graded certificate coverage, "
         "negative controls, unit tests, Lean build, and axiom audit"
     )
     return Verification(theorem_axioms=axiom_report)
@@ -3482,6 +4567,861 @@ def _repository_state(paths: Paths) -> tuple[str, list[str]]:
     return revision, dirty_paths
 
 
+def _strict_identity(value: object, expected: object) -> bool:
+    """Compare JSON values without Python's bool/int numeric coercions."""
+    if type(value) is not type(expected):
+        return False
+    if isinstance(expected, dict):
+        return (
+            set(value) == set(expected)
+            and all(
+                _strict_identity(value[key], expected[key])
+                for key in expected
+            )
+        )
+    if isinstance(expected, list):
+        return (
+            len(value) == len(expected)
+            and all(
+                _strict_identity(item, expected_item)
+                for item, expected_item in zip(value, expected)
+            )
+        )
+    return value == expected
+
+
+def _sha256_identity(value: object, label: str) -> str:
+    if (
+        not isinstance(value, str)
+        or air_program_contract.HEX_SHA256.fullmatch(value) is None
+    ):
+        raise RefinementError(f"{label} is not a sha256 digest")
+    return value
+
+
+def _payload_identity(
+    paths: Paths,
+    relative: Path,
+    *,
+    expected_kind: str | None = None,
+    expected_schema: object | None = None,
+    expected_payload: dict[str, Any] | None = None,
+) -> dict[str, object]:
+    """Bind both the canonical JSON value and its exact committed bytes."""
+    path = paths.root / relative
+    if path.is_symlink() or not path.is_file():
+        raise RefinementError(
+            f"receipt input is absent or not a regular file: {relative}"
+        )
+    payload = codec.load_json(path)
+    if path.read_bytes() != codec.pretty_bytes(payload):
+        raise RefinementError(
+            f"receipt input is not canonical pretty JSON: {relative}"
+        )
+    canonical_digest = _sha256_identity(
+        payload.get("canonical_digest"),
+        f"{relative} canonical_digest",
+    )
+    if canonical_digest != codec.content_digest(payload):
+        raise RefinementError(
+            f"receipt input canonical digest is invalid: {relative}"
+        )
+    if expected_kind is not None and payload.get("kind") != expected_kind:
+        raise RefinementError(f"receipt input kind drifted: {relative}")
+    if (
+        expected_schema is not None
+        and not _strict_identity(
+            payload.get("schema_version"),
+            expected_schema,
+        )
+    ):
+        raise RefinementError(f"receipt input schema drifted: {relative}")
+    if expected_payload is not None and payload != expected_payload:
+        raise RefinementError(
+            f"receipt input payload differs from live evidence: {relative}"
+        )
+    return {
+        "artifact": relative.as_posix(),
+        "sha256": codec.sha256_file(path),
+        "payload_sha256": codec.sha256_bytes(codec.canonical_bytes(payload)),
+        "canonical_digest": canonical_digest,
+        "payload": payload,
+    }
+
+
+def _validate_payload_identity(value: object, label: str) -> None:
+    required = {
+        "artifact",
+        "canonical_digest",
+        "payload",
+        "payload_sha256",
+        "sha256",
+    }
+    if not isinstance(value, dict) or set(value) != required:
+        raise RefinementError(f"{label} payload identity schema is invalid")
+    artifact = value["artifact"]
+    if (
+        not isinstance(artifact, str)
+        or not artifact
+        or Path(artifact).is_absolute()
+        or ".." in Path(artifact).parts
+    ):
+        raise RefinementError(f"{label} artifact identity is invalid")
+    for field in ("canonical_digest", "payload_sha256", "sha256"):
+        _sha256_identity(value[field], f"{label} {field}")
+    payload = value["payload"]
+    if (
+        not isinstance(payload, dict)
+        or payload.get("canonical_digest") != value["canonical_digest"]
+        or value["canonical_digest"] != codec.content_digest(payload)
+        or value["payload_sha256"]
+        != codec.sha256_bytes(codec.canonical_bytes(payload))
+        or value["sha256"]
+        != codec.sha256_bytes(codec.pretty_bytes(payload))
+    ):
+        raise RefinementError(f"{label} full payload identity is invalid")
+
+
+def _certificate_index_identities(
+    paths: Paths,
+) -> dict[str, dict[str, object]]:
+    specs = {
+        "team_a": (
+            TEAM_A_INDEX_RELATIVE,
+            "stwo-riscv-team-a-coverage",
+            1,
+            136,
+            24,
+            {
+                "canonical_digest",
+                "certificates",
+                "claim_boundary",
+                "families",
+                "issue",
+                "kind",
+                "schema_version",
+            },
+        ),
+        "team_b": (
+            TEAM_B_INDEX_RELATIVE,
+            "stwo-riscv-team-b-coverage",
+            1,
+            137,
+            22,
+            {
+                "air_level_counterexample_gate",
+                "canonical_digest",
+                "certificates",
+                "claim_boundary",
+                "families",
+                "issue",
+                "kind",
+                "schema_version",
+            },
+        ),
+        "aggregate": (
+            OPCODE_INDEX_RELATIVE,
+            "stwo-riscv-opcode-coverage",
+            1,
+            None,
+            FULL_OPCODE_COUNT,
+            {
+                "canonical_digest",
+                "certificates",
+                "claim_boundary",
+                "kind",
+                "schema_version",
+                "source_indexes",
+            },
+        ),
+    }
+    identities: dict[str, dict[str, object]] = {}
+    for name, (
+        relative,
+        kind,
+        schema,
+        issue,
+        count,
+        fields,
+    ) in specs.items():
+        identity = _payload_identity(
+            paths,
+            relative,
+            expected_kind=kind,
+            expected_schema=schema,
+        )
+        payload = identity["payload"]
+        certificates = payload.get("certificates")
+        if (
+            set(payload) != fields
+            or (
+                issue is not None
+                and (
+                    type(payload.get("issue")) is not int
+                    or payload["issue"] != issue
+                )
+            )
+            or not isinstance(certificates, list)
+            or len(certificates) != count
+        ):
+            raise RefinementError(
+                f"receipt {name} certificate index identity drifted"
+            )
+        identities[name] = identity
+    aggregate = identities["aggregate"]["payload"]
+    source_indexes = aggregate.get("source_indexes")
+    if (
+        not isinstance(source_indexes, dict)
+        or set(source_indexes) != {"team_a", "team_b"}
+        or source_indexes["team_a"]
+        != identities["team_a"]["canonical_digest"]
+        or source_indexes["team_b"]
+        != identities["team_b"]["canonical_digest"]
+    ):
+        raise RefinementError(
+            "aggregate certificate index does not bind both source indexes"
+        )
+    return identities
+
+
+def _validate_certificate_mappings(
+    mappings: object,
+    indexes: dict[str, dict[str, object]],
+) -> list[dict[str, object]]:
+    if not isinstance(mappings, list) or len(mappings) != FULL_OPCODE_COUNT:
+        raise RefinementError(
+            "receipt must bind exactly 46 opcode certificate mappings"
+        )
+    team_a_payload = indexes["team_a"]["payload"]
+    team_b_payload = indexes["team_b"]["payload"]
+
+    def certificates_by_mnemonic(
+        payload: object,
+        label: str,
+    ) -> dict[str, dict[str, object]]:
+        if not isinstance(payload, dict):
+            raise RefinementError(
+                f"receipt {label} certificate payload is invalid"
+            )
+        certificates = payload.get("certificates")
+        if not isinstance(certificates, list):
+            raise RefinementError(
+                f"receipt {label} certificate inventory is invalid"
+            )
+        result: dict[str, dict[str, object]] = {}
+        for certificate in certificates:
+            if not isinstance(certificate, dict):
+                raise RefinementError(
+                    f"receipt {label} certificate is not an object"
+                )
+            mnemonic = certificate.get("mnemonic")
+            if (
+                not isinstance(mnemonic, str)
+                or not mnemonic
+                or mnemonic in result
+            ):
+                raise RefinementError(
+                    f"receipt {label} certificate mnemonic is invalid"
+                )
+            result[mnemonic] = certificate
+        return result
+
+    team_a_certificates = certificates_by_mnemonic(
+        team_a_payload,
+        "Team A",
+    )
+    team_b_certificates = certificates_by_mnemonic(
+        team_b_payload,
+        "Team B",
+    )
+    team_a_names = set(team_a_certificates)
+    team_b_names = set(team_b_certificates)
+    expected_team_a = {
+        mnemonic
+        for _, mnemonic, family in air_program_contract.OPCODES
+        if family in riscv_team_a.TEAM_A_FAMILIES
+    }
+    if (
+        team_a_names != expected_team_a
+        or len(team_a_names) != 24
+        or len(team_b_names) != 22
+        or team_a_names & team_b_names
+        or team_a_names | team_b_names
+        != {
+            mnemonic
+            for _, mnemonic, _ in air_program_contract.OPCODES
+        }
+    ):
+        raise RefinementError(
+            "Team A and Team B certificate payloads do not partition 46"
+        )
+    team_a_sail_fields = {
+        "sail_digest",
+        "sail_receipt",
+        "sail_theorem",
+    }
+    team_b_source_fields = {
+        "family",
+        "manifest_id",
+        "mnemonic",
+        "mutation",
+        "mutation_theorem",
+        "non_vacuity_theorem",
+        "refinement_theorem",
+        "sail_binding",
+        "state",
+        "tuple_theorem",
+    }
+    theorem_fields = (
+        "refinement_theorem",
+        "tuple_theorem",
+        "non_vacuity_theorem",
+        "mutation_theorem",
+    )
+    theorem_names = {
+        field: set()
+        for field in (*theorem_fields, "selector_theorem")
+    }
+    mutation_names: set[str] = set()
+    generated_sail_inputs = 0
+    normalized_retirements = 0
+    reviewed_sail_capsules = 0
+    for expected, mapping in zip(
+        air_program_contract.OPCODES,
+        mappings,
+    ):
+        manifest_id, mnemonic, family = expected
+        if (
+            not isinstance(mapping, dict)
+            or type(mapping.get("manifest_id")) is not int
+            or mapping["manifest_id"] != manifest_id
+            or mapping.get("mnemonic") != mnemonic
+            or mapping.get("family") != family
+            or not isinstance(mapping.get("mutation"), str)
+            or not mapping["mutation"]
+        ):
+            raise RefinementError(
+                f"receipt certificate mapping drifted for {mnemonic}"
+            )
+        _sha256_identity(
+            mapping.get("air_digest"),
+            f"{mnemonic} AIR digest",
+        )
+        if mapping["mutation"] in mutation_names:
+            raise RefinementError(
+                f"receipt reuses opcode mutation {mapping['mutation']}"
+            )
+        mutation_names.add(mapping["mutation"])
+        is_team_a = mnemonic in team_a_names
+        source = (
+            team_a_certificates[mnemonic]
+            if is_team_a
+            else team_b_certificates[mnemonic]
+        )
+        if (
+            type(source.get("manifest_id")) is not int
+            or source["manifest_id"] != manifest_id
+            or source.get("mnemonic") != mnemonic
+            or source.get("family") != family
+            or not isinstance(source.get("mutation"), str)
+            or not source["mutation"]
+            or any(
+                not isinstance(source.get(field), str)
+                or not source[field]
+                for field in theorem_fields
+            )
+        ):
+            raise RefinementError(
+                f"embedded source certificate drifted for {mnemonic}"
+            )
+        for field in theorem_fields:
+            theorem = source[field]
+            if theorem in theorem_names[field]:
+                raise RefinementError(
+                    f"embedded certificates reuse {field}: {theorem}"
+                )
+            theorem_names[field].add(theorem)
+
+        if is_team_a:
+            expected_source_fields = (
+                riscv_team_a.CERTIFICATE_FIELDS
+                | team_a_sail_fields
+            )
+            axioms = source.get("axioms")
+            proof_time = source.get("proof_time_ms")
+            selector_theorem = source.get("selector_theorem")
+            expected_sail_binding = (
+                "generated-retirement"
+                if mnemonic
+                in riscv_team_a.GENERATED_SAIL_RETIREMENT_THEOREMS
+                else "generated-clause-input"
+            )
+            expected_sail_theorem = (
+                riscv_team_a.GENERATED_SAIL_RETIREMENT_THEOREMS[mnemonic]
+                if expected_sail_binding == "generated-retirement"
+                else riscv_team_a.GENERATED_SAIL_INPUT_THEOREMS[mnemonic]
+            )
+            sail_receipt = source.get("sail_receipt")
+            if (
+                not isinstance(axioms, list)
+                or any(not isinstance(axiom, str) for axiom in axioms)
+                or axioms != sorted(set(axioms))
+                or not set(axioms) <= APPROVED_LEAN_AXIOMS
+            ):
+                raise RefinementError(
+                    f"Team A receipt axioms drifted for {mnemonic}"
+                )
+            if (
+                set(source) != expected_source_fields
+                or source.get("state") != "air-proved"
+                or not isinstance(selector_theorem, str)
+                or not selector_theorem
+                or not isinstance(source.get("proof_target"), str)
+                or not source["proof_target"]
+                or type(proof_time) is not int
+                or proof_time <= 0
+                or proof_time > riscv_team_a.MAX_PROOF_TIME_MS
+                or source.get("sail_binding") != expected_sail_binding
+                or source.get("sail_theorem") != expected_sail_theorem
+                or not isinstance(sail_receipt, str)
+                or not sail_receipt
+                or Path(sail_receipt).is_absolute()
+                or ".." in Path(sail_receipt).parts
+            ):
+                raise RefinementError(
+                    f"Team A receipt evidence drifted for {mnemonic}"
+                )
+            _sha256_identity(
+                source.get("air_digest"),
+                f"{mnemonic} source AIR digest",
+            )
+            _sha256_identity(
+                source.get("sail_digest"),
+                f"{mnemonic} generated Sail digest",
+            )
+            if selector_theorem in theorem_names["selector_theorem"]:
+                raise RefinementError(
+                    "embedded certificates reuse selector_theorem: "
+                    f"{selector_theorem}"
+                )
+            theorem_names["selector_theorem"].add(selector_theorem)
+            expected_mapping = {
+                "air_binding": "exact-generated-local-program",
+                "air_digest": source["air_digest"],
+                "axioms": axioms,
+                "family": family,
+                "manifest_id": manifest_id,
+                "mnemonic": mnemonic,
+                "mutation": source["mutation"],
+                "mutation_theorem": source["mutation_theorem"],
+                "non_vacuity_theorem":
+                    source["non_vacuity_theorem"],
+                "proof_time_ms": proof_time,
+                "refinement_theorem": source["refinement_theorem"],
+                "sail_binding": expected_sail_binding,
+                "sail_digest": source["sail_digest"],
+                "sail_receipt": sail_receipt,
+                "sail_theorem": expected_sail_theorem,
+                "selector_theorem": selector_theorem,
+                "state": "air-proved",
+                "team": "A",
+                "tuple_theorem": source["tuple_theorem"],
+            }
+        else:
+            if (
+                set(source) != team_b_source_fields
+                or source.get("state") != "proved"
+                or source.get("sail_binding")
+                != riscv_team_b.DEFAULT_SAIL_BINDING
+            ):
+                raise RefinementError(
+                    f"Team B receipt evidence drifted for {mnemonic}"
+                )
+            expected_mapping = {
+                "air_binding": "reviewed-family-capsule",
+                "air_digest": mapping["air_digest"],
+                "axioms": None,
+                "family": family,
+                "manifest_id": manifest_id,
+                "mnemonic": mnemonic,
+                "mutation": source["mutation"],
+                "mutation_theorem": source["mutation_theorem"],
+                "non_vacuity_theorem":
+                    source["non_vacuity_theorem"],
+                "proof_time_ms": None,
+                "refinement_theorem": source["refinement_theorem"],
+                "sail_binding": riscv_team_b.DEFAULT_SAIL_BINDING,
+                "selector_theorem": None,
+                "state": "proved",
+                "team": "B",
+                "tuple_theorem": source["tuple_theorem"],
+            }
+        if not _strict_identity(mapping, expected_mapping):
+            raise RefinementError(
+                "receipt certificate mapping differs from its embedded "
+                f"source certificate for {mnemonic}"
+            )
+        binding = mapping.get("sail_binding")
+        if binding in ("generated-clause-input", "generated-retirement"):
+            generated_sail_inputs += 1
+        if binding == "generated-retirement":
+            normalized_retirements += 1
+        if binding == "reviewed-capsule":
+            reviewed_sail_capsules += 1
+    if (
+        generated_sail_inputs != 24
+        or normalized_retirements != 2
+        or reviewed_sail_capsules != 22
+    ):
+        raise RefinementError(
+            "receipt Sail evidence grades do not match the A5 boundary"
+        )
+    return mappings
+
+
+def _fixed_table_schemas() -> list[dict[str, object]]:
+    return [
+        {
+            "id": table_id,
+            "domain": table_id,
+            "arity": arity,
+            "log_size": log_size,
+            "schema_sha256": air_program.table_schema_digest(
+                table_id,
+                table_id,
+                arity,
+                log_size,
+            ),
+        }
+        for table_id, arity, log_size in air_program_contract.FIXED_TABLES
+    ]
+
+
+def _opcode_mutations(
+    mappings: list[dict[str, object]],
+) -> list[dict[str, object]]:
+    return [
+        {
+            "manifest_id": mapping["manifest_id"],
+            "mnemonic": mapping["mnemonic"],
+            "mutation": mapping["mutation"],
+            "mutation_theorem": mapping["mutation_theorem"],
+        }
+        for mapping in mappings
+    ]
+
+
+def _team_a_proof_time_diagnostics(
+    mappings: list[dict[str, object]],
+) -> dict[str, object]:
+    measurements = [
+        {
+            "manifest_id": mapping["manifest_id"],
+            "mnemonic": mapping["mnemonic"],
+            "proof_time_ms": mapping["proof_time_ms"],
+        }
+        for mapping in mappings
+        if mapping["team"] == "A"
+    ]
+    if len(measurements) != 24:
+        raise RefinementError(
+            "receipt has incomplete Team A proof-time diagnostics"
+        )
+    return {
+        "unit": "milliseconds",
+        "diagnostic_only": True,
+        "semantic_evidence": False,
+        "maximum_allowed_ms": riscv_team_a.MAX_PROOF_TIME_MS,
+        "measurements": measurements,
+    }
+
+
+def _generated_manifest_identity(paths: Paths) -> dict[str, object]:
+    relative = paths.manifest.relative_to(paths.root)
+    identity = _payload_identity(
+        paths,
+        relative,
+        expected_kind="stwo-riscv-refinement-generated-manifest",
+        expected_schema=SCHEMA_VERSION,
+    )
+    render.validate_committed_manifest(paths, identity["payload"])
+    return identity
+
+
+def _production_inputs(
+    paths: Paths,
+    mappings: list[dict[str, object]],
+    manifest: dict[str, object],
+) -> dict[str, object]:
+    render.validate_air_export(paths.uniqueness_ir)
+    unsigned_programs = render.validate_air_program_export(
+        paths.air_program_ir
+    )
+    family_exports = []
+    for family in sorted(air_program_contract.FAMILIES):
+        artifact = paths.uniqueness_ir / f"{family}.json"
+        family_exports.append(
+            {
+                "family": family,
+                "artifact": f"fresh-family-air/{family}.json",
+                "sha256": codec.sha256_file(artifact),
+            }
+        )
+    programs = []
+    by_mnemonic = {
+        mapping["mnemonic"]: mapping for mapping in mappings
+    }
+    for manifest_id, mnemonic, family in air_program_contract.OPCODES:
+        unsigned = unsigned_programs[mnemonic]
+        packaged_path = (
+            paths.generated_air / f"{mnemonic}.air-ir-v2.json"
+        )
+        packaged = air_program.load_canonical(packaged_path)
+        air_program.verify_production_binding(
+            packaged,
+            unsigned,
+            paths.root,
+        )
+        source_identity = packaged.get("source_identity")
+        if (
+            packaged.get("content_digest")
+            != by_mnemonic[mnemonic]["air_digest"]
+            or not isinstance(source_identity, dict)
+        ):
+            raise RefinementError(
+                f"receipt AIR program binding drifted for {mnemonic}"
+            )
+        source_closure = _sha256_identity(
+            source_identity.get("source_closure_sha256"),
+            f"{mnemonic} AIR source closure",
+        )
+        programs.append(
+            {
+                "manifest_id": manifest_id,
+                "mnemonic": mnemonic,
+                "family": family,
+                "content_digest": packaged["content_digest"],
+                "source_closure_sha256": source_closure,
+                "unsigned_sha256": codec.sha256_file(
+                    paths.air_program_ir
+                    / f"{mnemonic}.unsigned.json"
+                ),
+                "packaged_artifact": packaged_path.relative_to(
+                    paths.root
+                ).as_posix(),
+                "packaged_sha256": codec.sha256_file(packaged_path),
+            }
+        )
+    production_sources = manifest.get("production_sources")
+    if (
+        not isinstance(production_sources, dict)
+        or not production_sources
+        or any(
+            not isinstance(relative, str)
+            or not isinstance(digest, str)
+            or air_program_contract.HEX_SHA256.fullmatch(digest) is None
+            for relative, digest in production_sources.items()
+        )
+    ):
+        raise RefinementError(
+            "generated manifest production source closure is invalid"
+        )
+    opcode_manifest_path = (
+        paths.root / "src/frontends/riscv/opcode_manifest.zig"
+    )
+    return {
+        "opcode_manifest": {
+            "artifact": "src/frontends/riscv/opcode_manifest.zig",
+            "sha256": codec.sha256_file(opcode_manifest_path),
+        },
+        "source_closure": {
+            "canonical_digest": codec.sha256_bytes(
+                codec.canonical_bytes(production_sources)
+            ),
+            "files": production_sources,
+        },
+        "family_air_exports": family_exports,
+        "opcode_air_programs": programs,
+    }
+
+
+def _sail_inputs(
+    paths: Paths,
+    sail_evidence: sail.SailEvidence,
+) -> dict[str, object]:
+    provenance = sail.provenance(sail_evidence)
+    if sail_evidence.evidence_source != sail.LIVE_EVIDENCE:
+        raise RefinementError(
+            "release receipt Sail inputs require live-toolchain evidence"
+        )
+    generated = sail_evidence.generated_file
+    if (
+        generated is None
+        or generated.is_symlink()
+        or not generated.is_file()
+        or codec.sha256_file(generated)
+        != sail_evidence.generated_file_sha256
+    ):
+        raise RefinementError(
+            "live generated Sail backend identity is invalid"
+        )
+    exact_configuration_path = (
+        paths.formal / sail.COMMITTED_CONFIGURATION
+    )
+    if (
+        exact_configuration_path.is_symlink()
+        or not exact_configuration_path.is_file()
+        or exact_configuration_path.read_bytes()
+        != sail_evidence.exact_configuration
+    ):
+        raise RefinementError(
+            "committed exact Sail configuration differs from live evidence"
+        )
+    definitions = []
+    for name, relative in sorted(sail.COMMITTED_DEFINITIONS.items()):
+        artifact = paths.formal / relative
+        digest = _sha256_identity(
+            sail_evidence.definition_hashes.get(name),
+            f"{name} generated definition",
+        )
+        if (
+            artifact.is_symlink()
+            or not artifact.is_file()
+            or codec.sha256_file(artifact) != digest
+        ):
+            raise RefinementError(
+                f"generated Sail definition identity drifted: {name}"
+            )
+        definitions.append(
+            {
+                "name": name,
+                "artifact": artifact.relative_to(paths.root).as_posix(),
+                "sha256": digest,
+            }
+        )
+    translation = _payload_identity(
+        paths,
+        (
+            paths.formal / sail.COMMITTED_TRANSLATION_RECEIPT
+        ).relative_to(paths.root),
+        expected_schema="stwo-sail-translation-receipt-v1",
+        expected_payload=sail_evidence.translation_receipt,
+    )
+    monad_bridge = _payload_identity(
+        paths,
+        (
+            paths.formal / sail.COMMITTED_MONAD_BRIDGE_RECEIPT
+        ).relative_to(paths.root),
+        expected_kind="stwo-generated-sail-monad-bridge",
+        expected_schema="stwo-generated-sail-monad-bridge-v1",
+        expected_payload=sail_evidence.monad_bridge_receipt,
+    )
+    return {
+        "provenance": provenance,
+        "provenance_digest": codec.sha256_bytes(
+            codec.canonical_bytes(provenance)
+        ),
+        "generated_backend": {
+            "artifact": sail.GENERATED_FILE.as_posix(),
+            "sha256": sail_evidence.generated_file_sha256,
+            "size_bytes": generated.stat().st_size,
+        },
+        "exact_configuration": {
+            "artifact": exact_configuration_path.relative_to(
+                paths.root
+            ).as_posix(),
+            "sha256": sail_evidence.exact_configuration_sha256,
+        },
+        "generated_definitions": definitions,
+        "translation_receipt": translation,
+        "monad_bridge_receipt": monad_bridge,
+    }
+
+
+def _theorem_axiom_index(
+    theorem_axioms: dict[str, list[str]],
+) -> dict[str, object]:
+    _validate_receipt_theorem_axioms(theorem_axioms)
+    return {
+        "canonical_digest": codec.sha256_bytes(
+            codec.canonical_bytes(theorem_axioms)
+        ),
+        "theorem_count": len(theorem_axioms),
+        "axiom_occurrence_count": sum(
+            len(axioms) for axioms in theorem_axioms.values()
+        ),
+        "entries": theorem_axioms,
+    }
+
+
+def _build_receipt_payload(
+    paths: Paths,
+    verification: Verification,
+    sail_evidence: sail.SailEvidence,
+    repository_revision: str,
+) -> dict[str, object]:
+    generated_manifest = _generated_manifest_identity(paths)
+    coverage_indexes = _certificate_index_identities(paths)
+    aggregate_payload = coverage_indexes["aggregate"]["payload"]
+    mappings = _validate_certificate_mappings(
+        aggregate_payload["certificates"],
+        coverage_indexes,
+    )
+    if aggregate_payload.get("claim_boundary") != {
+        "exact_manifest_partition": True,
+        "production_air_programs": FULL_OPCODE_COUNT,
+        "team_a_exact_air_refinements": 24,
+        "team_a_axiom_bound_certificates": 24,
+        "team_a_timed_certificates": 24,
+        "team_b_reviewed_capsule_refinements": 22,
+        "generated_sail_clause_bindings": 24,
+        "generated_sail_retirement_bindings": 2,
+        "generated_sail_input_only_bindings": 22,
+        "reviewed_sail_capsule_bindings": 22,
+        "unbound_sail_selectors": 0,
+        "publication_level_opcodes": 0,
+        "whole_frontend_verified": False,
+    }:
+        raise RefinementError(
+            "aggregate coverage claim boundary is not the A5 boundary"
+        )
+    payload: dict[str, object] = {
+        "schema_version": RECEIPT_SCHEMA_VERSION,
+        "kind": "stwo-riscv-refinement-receipt",
+        "tier": RECEIPT_TIER,
+        "claim_boundary": RECEIPT_CLAIM_BOUNDARY,
+        "repository_revision": repository_revision,
+        "repository_dirty": False,
+        "repository_dirty_paths": [],
+        "generated_manifest": generated_manifest,
+        "coverage_indexes": coverage_indexes,
+        "certificate_mappings": mappings,
+        "fixed_table_schemas": _fixed_table_schemas(),
+        "production_inputs": _production_inputs(
+            paths,
+            mappings,
+            generated_manifest["payload"],
+        ),
+        "sail_inputs": _sail_inputs(paths, sail_evidence),
+        "opcode_mutations": _opcode_mutations(mappings),
+        "team_a_proof_time_diagnostics":
+            _team_a_proof_time_diagnostics(mappings),
+        "negative_controls": list(NEGATIVE_CONTROLS),
+        "pilot_mutation_theorems": MUTATION_THEOREMS,
+        "approved_lean_axioms": sorted(APPROVED_LEAN_AXIOMS),
+        "theorem_axiom_index": _theorem_axiom_index(
+            verification.theorem_axioms
+        ),
+        "lean_build": "passed",
+        "proof_escape_scan": "passed",
+        "toolchain": _toolchain(paths),
+        "semantic_toolchain": sail.toolchain(sail_evidence),
+    }
+    payload["canonical_digest"] = codec.content_digest(payload)
+    _validate_receipt_structure(payload)
+    return payload
+
+
 def receipt(args: argparse.Namespace, paths: Paths) -> None:
     if args.no_export_air:
         raise RefinementError(
@@ -3495,42 +5435,23 @@ def receipt(args: argparse.Namespace, paths: Paths) -> None:
         )
     verification = verify(args, paths)
     sail_evidence = evidence(args, paths)
-    manifest = codec.load_json(paths.manifest)
     revision, dirty_paths = _repository_state(paths)
     if dirty_paths:
         raise RefinementError(
             "release receipt requires a clean repository; dirty paths: "
             + ", ".join(dirty_paths)
         )
-    payload = {
-        "schema_version": 1,
-        "kind": "stwo-riscv-refinement-receipt",
-        "tier": "level-1-normalized-pilot",
-        "claim_boundary": CLAIM_BOUNDARY,
-        "repository_revision": revision,
-        "repository_dirty": bool(dirty_paths),
-        "repository_dirty_paths": dirty_paths,
-        "generated_manifest_digest": manifest["canonical_digest"],
-        "opcodes": list(PILOT_OPCODES),
-        "lean_build": "passed",
-        "coverage": {
-            "proved_normalized_opcodes": len(PILOT_OPCODES),
-            "production_opcodes": FULL_OPCODE_COUNT,
-        },
-        "negative_controls": list(NEGATIVE_CONTROLS),
-        "mutation_theorems": MUTATION_THEOREMS,
-        "approved_lean_axioms": sorted(APPROVED_LEAN_AXIOMS),
-        "theorem_axioms": verification.theorem_axioms,
-        "proof_escape_scan": "passed",
-        "toolchain": _toolchain(paths),
-        "semantic_toolchain": sail.toolchain(sail_evidence),
-    }
-    payload["canonical_digest"] = codec.content_digest(payload)
+    payload = _build_receipt_payload(
+        paths,
+        verification,
+        sail_evidence,
+        revision,
+    )
     codec.atomic_write(paths.receipt, codec.pretty_bytes(payload))
     print(
         "refinement receipt: "
         f"{payload['canonical_digest']} "
-        "(Level-1 LUI/ADDI, no unapproved axioms)"
+        "(A5 24/24 AIR, 46/46 graded, 2 normalized, 0 publication)"
     )
 
 
@@ -3588,6 +5509,8 @@ def _validate_receipt_theorem_axioms(value: object) -> None:
             not isinstance(theorem, str)
             or not isinstance(axioms, list)
             or any(not isinstance(axiom, str) for axiom in axioms)
+            or axioms != sorted(set(axioms))
+            or not set(axioms) <= APPROVED_LEAN_AXIOMS
         ):
             raise RefinementError(
                 "refinement receipt theorem-axiom schema is invalid"
@@ -3595,25 +5518,544 @@ def _validate_receipt_theorem_axioms(value: object) -> None:
 
 
 def _validate_receipt_numeric_identity(payload: dict[str, object]) -> None:
-    coverage_value = payload.get("coverage")
-    expected_coverage = {
-        "proved_normalized_opcodes": len(PILOT_OPCODES),
-        "production_opcodes": FULL_OPCODE_COUNT,
-    }
     if (
         type(payload.get("schema_version")) is not int
-        or payload["schema_version"] != 1
-        or not isinstance(coverage_value, dict)
-        or set(coverage_value) != set(expected_coverage)
-        or any(
-            type(coverage_value[key]) is not int
-            or coverage_value[key] != expected
-            for key, expected in expected_coverage.items()
+        or payload["schema_version"] != RECEIPT_SCHEMA_VERSION
+        or not _strict_identity(
+            payload.get("claim_boundary"),
+            RECEIPT_CLAIM_BOUNDARY,
         )
     ):
         raise RefinementError(
             "refinement receipt numeric identity is invalid"
         )
+
+
+def _validate_theorem_axiom_index(value: object) -> None:
+    if (
+        not isinstance(value, dict)
+        or set(value)
+        != {
+            "axiom_occurrence_count",
+            "canonical_digest",
+            "entries",
+            "theorem_count",
+        }
+    ):
+        raise RefinementError(
+            "refinement receipt theorem/axiom index schema is invalid"
+        )
+    entries = value["entries"]
+    _validate_receipt_theorem_axioms(entries)
+    if (
+        type(value["theorem_count"]) is not int
+        or value["theorem_count"] != len(entries)
+        or type(value["axiom_occurrence_count"]) is not int
+        or value["axiom_occurrence_count"]
+        != sum(len(axioms) for axioms in entries.values())
+        or value["canonical_digest"]
+        != codec.sha256_bytes(codec.canonical_bytes(entries))
+    ):
+        raise RefinementError(
+            "refinement receipt theorem/axiom index identity is invalid"
+        )
+
+
+def _validate_production_inputs(value: object) -> None:
+    if (
+        not isinstance(value, dict)
+        or set(value)
+        != {
+            "family_air_exports",
+            "opcode_air_programs",
+            "opcode_manifest",
+            "source_closure",
+        }
+    ):
+        raise RefinementError(
+            "refinement receipt production input schema is invalid"
+        )
+    opcode_manifest_value = value["opcode_manifest"]
+    if (
+        not isinstance(opcode_manifest_value, dict)
+        or set(opcode_manifest_value) != {"artifact", "sha256"}
+        or opcode_manifest_value["artifact"]
+        != "src/frontends/riscv/opcode_manifest.zig"
+    ):
+        raise RefinementError(
+            "refinement receipt opcode manifest identity is invalid"
+        )
+    _sha256_identity(
+        opcode_manifest_value.get("sha256"),
+        "receipt opcode manifest",
+    )
+    source_closure = value["source_closure"]
+    if (
+        not isinstance(source_closure, dict)
+        or set(source_closure) != {"canonical_digest", "files"}
+        or not isinstance(source_closure["files"], dict)
+        or not source_closure["files"]
+        or source_closure["canonical_digest"]
+        != codec.sha256_bytes(
+            codec.canonical_bytes(source_closure["files"])
+        )
+    ):
+        raise RefinementError(
+            "refinement receipt production source closure is invalid"
+        )
+    for relative, digest in source_closure["files"].items():
+        if not isinstance(relative, str) or not relative:
+            raise RefinementError(
+                "refinement receipt production source path is invalid"
+            )
+        _sha256_identity(digest, f"production source {relative}")
+    family_exports = value["family_air_exports"]
+    expected_families = sorted(air_program_contract.FAMILIES)
+    if (
+        not isinstance(family_exports, list)
+        or len(family_exports) != len(expected_families)
+    ):
+        raise RefinementError(
+            "refinement receipt family AIR inventory is incomplete"
+        )
+    for family, identity in zip(expected_families, family_exports):
+        if (
+            not isinstance(identity, dict)
+            or set(identity) != {"artifact", "family", "sha256"}
+            or identity.get("family") != family
+            or identity.get("artifact")
+            != f"fresh-family-air/{family}.json"
+        ):
+            raise RefinementError(
+                f"refinement receipt family AIR identity drifted: {family}"
+            )
+        _sha256_identity(identity.get("sha256"), f"{family} AIR export")
+    programs = value["opcode_air_programs"]
+    if not isinstance(programs, list) or len(programs) != FULL_OPCODE_COUNT:
+        raise RefinementError(
+            "refinement receipt opcode AIR inventory is incomplete"
+        )
+    required = {
+        "content_digest",
+        "family",
+        "manifest_id",
+        "mnemonic",
+        "packaged_artifact",
+        "packaged_sha256",
+        "source_closure_sha256",
+        "unsigned_sha256",
+    }
+    for expected, identity in zip(
+        air_program_contract.OPCODES,
+        programs,
+    ):
+        manifest_id, mnemonic, family = expected
+        if (
+            not isinstance(identity, dict)
+            or set(identity) != required
+            or type(identity.get("manifest_id")) is not int
+            or identity["manifest_id"] != manifest_id
+            or identity.get("mnemonic") != mnemonic
+            or identity.get("family") != family
+            or identity.get("packaged_artifact")
+            != (
+                "formal/riscv-refinement/generated/air/"
+                f"{mnemonic}.air-ir-v2.json"
+            )
+        ):
+            raise RefinementError(
+                f"refinement receipt opcode AIR identity drifted: {mnemonic}"
+            )
+        for field in (
+            "content_digest",
+            "packaged_sha256",
+            "source_closure_sha256",
+            "unsigned_sha256",
+        ):
+            _sha256_identity(
+                identity.get(field),
+                f"{mnemonic} {field}",
+            )
+
+
+def _validate_production_certificate_bindings(
+    production_inputs: object,
+    mappings: list[dict[str, object]],
+) -> None:
+    if not isinstance(production_inputs, dict):
+        raise RefinementError(
+            "refinement receipt production inputs cannot bind certificates"
+        )
+    programs = production_inputs.get("opcode_air_programs")
+    if (
+        not isinstance(programs, list)
+        or len(programs) != len(mappings)
+    ):
+        raise RefinementError(
+            "refinement receipt production/certificate inventory drifted"
+        )
+    for mapping, program in zip(mappings, programs):
+        mnemonic = mapping["mnemonic"]
+        if (
+            not isinstance(program, dict)
+            or program.get("manifest_id") != mapping["manifest_id"]
+            or program.get("mnemonic") != mnemonic
+            or program.get("family") != mapping["family"]
+            or program.get("content_digest") != mapping["air_digest"]
+        ):
+            raise RefinementError(
+                "refinement receipt production AIR digest differs from "
+                f"certificate mapping for {mnemonic}"
+            )
+
+
+def _validate_sail_inputs(value: object) -> None:
+    if (
+        not isinstance(value, dict)
+        or set(value)
+        != {
+            "exact_configuration",
+            "generated_backend",
+            "generated_definitions",
+            "monad_bridge_receipt",
+            "provenance",
+            "provenance_digest",
+            "translation_receipt",
+        }
+    ):
+        raise RefinementError(
+            "refinement receipt Sail input schema is invalid"
+        )
+    provenance = value["provenance"]
+    if (
+        not isinstance(provenance, dict)
+        or provenance.get("evidence_source") != sail.LIVE_EVIDENCE
+        or value["provenance_digest"]
+        != codec.sha256_bytes(codec.canonical_bytes(provenance))
+    ):
+        raise RefinementError(
+            "refinement receipt Sail provenance identity is invalid"
+        )
+    backend = value["generated_backend"]
+    if (
+        not isinstance(backend, dict)
+        or set(backend) != {"artifact", "sha256", "size_bytes"}
+        or backend.get("artifact") != sail.GENERATED_FILE.as_posix()
+        or type(backend.get("size_bytes")) is not int
+        or backend["size_bytes"] <= 0
+    ):
+        raise RefinementError(
+            "refinement receipt generated Sail backend identity is invalid"
+        )
+    _sha256_identity(backend.get("sha256"), "generated Sail backend")
+    configuration = value["exact_configuration"]
+    if (
+        not isinstance(configuration, dict)
+        or set(configuration) != {"artifact", "sha256"}
+        or configuration.get("artifact")
+        != (
+            "formal/riscv-refinement/"
+            + sail.COMMITTED_CONFIGURATION.as_posix()
+        )
+    ):
+        raise RefinementError(
+            "refinement receipt exact Sail configuration is invalid"
+        )
+    _sha256_identity(
+        configuration.get("sha256"),
+        "exact Sail configuration",
+    )
+    definitions = value["generated_definitions"]
+    expected_definitions = sorted(sail.COMMITTED_DEFINITIONS)
+    if (
+        not isinstance(definitions, list)
+        or len(definitions) != len(expected_definitions)
+    ):
+        raise RefinementError(
+            "refinement receipt generated Sail definitions are incomplete"
+        )
+    for name, identity in zip(expected_definitions, definitions):
+        relative = sail.COMMITTED_DEFINITIONS[name]
+        if (
+            not isinstance(identity, dict)
+            or set(identity) != {"artifact", "name", "sha256"}
+            or identity.get("name") != name
+            or identity.get("artifact")
+            != f"formal/riscv-refinement/{relative.as_posix()}"
+        ):
+            raise RefinementError(
+                f"refinement receipt generated Sail definition drifted: {name}"
+            )
+        _sha256_identity(identity.get("sha256"), f"{name} definition")
+    definition_hashes = {
+        identity["name"]: identity["sha256"]
+        for identity in definitions
+    }
+    if not _strict_identity(
+        provenance.get("generated_definition_sha256"),
+        definition_hashes,
+    ):
+        raise RefinementError(
+            "refinement receipt generated Sail definitions do not "
+            "cross-bind to provenance"
+        )
+    _validate_payload_identity(
+        value["translation_receipt"],
+        "Sail translation receipt",
+    )
+    _validate_payload_identity(
+        value["monad_bridge_receipt"],
+        "Sail monad bridge receipt",
+    )
+    translation = value["translation_receipt"]
+    monad = value["monad_bridge_receipt"]
+    translation_provenance = provenance.get(
+        "generated_ast_translation_receipt"
+    )
+    monad_provenance = provenance.get(
+        "generated_monad_bridge_receipt"
+    )
+    if (
+        translation["payload"].get("schema_version")
+        != "stwo-sail-translation-receipt-v1"
+        or translation.get("artifact")
+        != (
+            "formal/riscv-refinement/"
+            + sail.COMMITTED_TRANSLATION_RECEIPT.as_posix()
+        )
+        or monad["payload"].get("schema_version")
+        != "stwo-generated-sail-monad-bridge-v1"
+        or monad["payload"].get("kind")
+        != "stwo-generated-sail-monad-bridge"
+        or monad.get("artifact")
+        != (
+            "formal/riscv-refinement/"
+            + sail.COMMITTED_MONAD_BRIDGE_RECEIPT.as_posix()
+        )
+        or provenance.get("generated_backend_file_sha256")
+        != backend["sha256"]
+        or provenance.get("exact_configuration_sha256")
+        != configuration["sha256"]
+        or not isinstance(translation_provenance, dict)
+        or translation_provenance.get("canonical_digest")
+        != translation["canonical_digest"]
+        or not isinstance(monad_provenance, dict)
+        or monad_provenance.get("canonical_digest")
+        != monad["canonical_digest"]
+    ):
+        raise RefinementError(
+            "refinement receipt Sail inputs do not cross-bind"
+        )
+
+
+def _validate_certificate_sail_bindings(
+    sail_inputs: object,
+    mappings: list[dict[str, object]],
+) -> None:
+    if not isinstance(sail_inputs, dict):
+        raise RefinementError(
+            "refinement receipt Sail inputs cannot bind certificates"
+        )
+    monad = sail_inputs.get("monad_bridge_receipt")
+    if not isinstance(monad, dict):
+        raise RefinementError(
+            "refinement receipt has no monad bridge certificate binding"
+        )
+    payload = monad.get("payload")
+    theorems = payload.get("theorems") if isinstance(payload, dict) else None
+    if (
+        not isinstance(theorems, list)
+        or any(not isinstance(theorem, str) for theorem in theorems)
+    ):
+        raise RefinementError(
+            "refinement receipt monad bridge theorem inventory is invalid"
+        )
+    for mapping in mappings:
+        if mapping["team"] != "A":
+            continue
+        mnemonic = mapping["mnemonic"]
+        if (
+            mapping.get("sail_receipt") != monad.get("artifact")
+            or mapping.get("sail_digest") != monad.get("canonical_digest")
+            or mapping.get("sail_theorem") not in theorems
+        ):
+            raise RefinementError(
+                "refinement receipt generated Sail metadata differs from "
+                f"the monad bridge for {mnemonic}"
+            )
+
+
+def _validate_receipt_structure(payload: dict[str, object]) -> None:
+    required = {
+        "approved_lean_axioms",
+        "canonical_digest",
+        "certificate_mappings",
+        "claim_boundary",
+        "coverage_indexes",
+        "fixed_table_schemas",
+        "generated_manifest",
+        "kind",
+        "lean_build",
+        "negative_controls",
+        "opcode_mutations",
+        "pilot_mutation_theorems",
+        "production_inputs",
+        "proof_escape_scan",
+        "repository_dirty",
+        "repository_dirty_paths",
+        "repository_revision",
+        "sail_inputs",
+        "schema_version",
+        "semantic_toolchain",
+        "team_a_proof_time_diagnostics",
+        "theorem_axiom_index",
+        "tier",
+        "toolchain",
+    }
+    if set(payload) != required:
+        raise RefinementError("refinement receipt schema drifted")
+    _validate_receipt_numeric_identity(payload)
+    if (
+        payload.get("kind") != "stwo-riscv-refinement-receipt"
+        or payload.get("tier") != RECEIPT_TIER
+        or payload.get("canonical_digest") != codec.content_digest(payload)
+        or payload.get("negative_controls") != list(NEGATIVE_CONTROLS)
+        or payload.get("pilot_mutation_theorems") != MUTATION_THEOREMS
+        or payload.get("lean_build") != "passed"
+        or payload.get("proof_escape_scan") != "passed"
+        or payload.get("repository_dirty") is not False
+        or payload.get("repository_dirty_paths") != []
+        or payload.get("approved_lean_axioms")
+        != sorted(APPROVED_LEAN_AXIOMS)
+        or not isinstance(payload.get("toolchain"), dict)
+        or not isinstance(payload.get("semantic_toolchain"), dict)
+    ):
+        raise RefinementError(
+            "refinement receipt fixed identity is invalid"
+        )
+    revision = payload.get("repository_revision")
+    if (
+        not isinstance(revision, str)
+        or re.fullmatch(r"[0-9a-f]{40}", revision) is None
+    ):
+        raise RefinementError(
+            "refinement receipt repository revision is invalid"
+        )
+    _validate_payload_identity(
+        payload["generated_manifest"],
+        "generated manifest",
+    )
+    if payload["generated_manifest"].get("artifact") != (
+        "formal/riscv-refinement/generated-manifest.json"
+    ):
+        raise RefinementError(
+            "refinement receipt generated manifest path drifted"
+        )
+    manifest_payload = payload["generated_manifest"]["payload"]
+    if (
+        manifest_payload.get("schema_version") != SCHEMA_VERSION
+        or manifest_payload.get("kind")
+        != "stwo-riscv-refinement-generated-manifest"
+    ):
+        raise RefinementError(
+            "refinement receipt generated manifest identity drifted"
+        )
+    indexes = payload.get("coverage_indexes")
+    if (
+        not isinstance(indexes, dict)
+        or set(indexes) != {"aggregate", "team_a", "team_b"}
+    ):
+        raise RefinementError(
+            "refinement receipt coverage index schema is invalid"
+        )
+    expected_indexes = {
+        "team_a": (
+            "stwo-riscv-team-a-coverage",
+            24,
+            TEAM_A_INDEX_RELATIVE.as_posix(),
+        ),
+        "team_b": (
+            "stwo-riscv-team-b-coverage",
+            22,
+            TEAM_B_INDEX_RELATIVE.as_posix(),
+        ),
+        "aggregate": (
+            "stwo-riscv-opcode-coverage",
+            46,
+            OPCODE_INDEX_RELATIVE.as_posix(),
+        ),
+    }
+    for name, (kind, count, artifact) in expected_indexes.items():
+        _validate_payload_identity(indexes[name], f"{name} coverage index")
+        index_payload = indexes[name]["payload"]
+        if (
+            indexes[name].get("artifact") != artifact
+            or index_payload.get("schema_version") != 1
+            or index_payload.get("kind") != kind
+            or not isinstance(index_payload.get("certificates"), list)
+            or len(index_payload["certificates"]) != count
+        ):
+            raise RefinementError(
+                f"refinement receipt {name} coverage identity drifted"
+            )
+    source_indexes = indexes["aggregate"]["payload"].get("source_indexes")
+    if (
+        source_indexes
+        != {
+            "team_a": indexes["team_a"]["canonical_digest"],
+            "team_b": indexes["team_b"]["canonical_digest"],
+        }
+    ):
+        raise RefinementError(
+            "refinement receipt aggregate source identities drifted"
+        )
+    mappings = _validate_certificate_mappings(
+        payload.get("certificate_mappings"),
+        indexes,
+    )
+    if not _strict_identity(
+        mappings,
+        indexes["aggregate"]["payload"]["certificates"],
+    ):
+        raise RefinementError(
+            "refinement receipt mappings differ from the aggregate payload"
+        )
+    if not _strict_identity(
+        payload.get("fixed_table_schemas"),
+        _fixed_table_schemas(),
+    ):
+        raise RefinementError(
+            "refinement receipt fixed-table schemas drifted"
+        )
+    expected_mutations = _opcode_mutations(mappings)
+    if not _strict_identity(
+        payload.get("opcode_mutations"),
+        expected_mutations,
+    ):
+        raise RefinementError(
+            "refinement receipt opcode mutation inventory drifted"
+        )
+    expected_diagnostics = _team_a_proof_time_diagnostics(mappings)
+    if not _strict_identity(
+        payload.get("team_a_proof_time_diagnostics"),
+        expected_diagnostics,
+    ):
+        raise RefinementError(
+            "refinement receipt Team A timing diagnostics drifted"
+        )
+    _validate_theorem_axiom_index(payload.get("theorem_axiom_index"))
+    production_inputs = payload.get("production_inputs")
+    _validate_production_inputs(production_inputs)
+    _validate_production_certificate_bindings(
+        production_inputs,
+        mappings,
+    )
+    sail_inputs = payload.get("sail_inputs")
+    _validate_sail_inputs(sail_inputs)
+    _validate_certificate_sail_bindings(
+        sail_inputs,
+        mappings,
+    )
 
 
 def verify_receipt(args: argparse.Namespace, paths: Paths) -> None:
@@ -3628,68 +6070,23 @@ def verify_receipt(args: argparse.Namespace, paths: Paths) -> None:
             "--reuse-committed-sail-evidence is forbidden"
         )
     payload = codec.load_json(paths.receipt)
-    required = {
-        "approved_lean_axioms",
-        "canonical_digest",
-        "claim_boundary",
-        "coverage",
-        "generated_manifest_digest",
-        "kind",
-        "lean_build",
-        "negative_controls",
-        "mutation_theorems",
-        "opcodes",
-        "proof_escape_scan",
-        "repository_dirty",
-        "repository_dirty_paths",
-        "repository_revision",
-        "schema_version",
-        "semantic_toolchain",
-        "theorem_axioms",
-        "tier",
-        "toolchain",
-    }
-    if set(payload) != required:
-        raise RefinementError("refinement receipt schema drifted")
-    _validate_receipt_numeric_identity(payload)
-    _validate_receipt_theorem_axioms(payload["theorem_axioms"])
-    verification = verify(args, paths)
-    if (
-        payload["kind"] != "stwo-riscv-refinement-receipt"
-        or payload["tier"] != "level-1-normalized-pilot"
-        or payload["claim_boundary"] != CLAIM_BOUNDARY
-        or payload["canonical_digest"] != codec.content_digest(payload)
-        or payload["opcodes"] != list(PILOT_OPCODES)
-        or payload["negative_controls"] != list(NEGATIVE_CONTROLS)
-        or payload["mutation_theorems"] != MUTATION_THEOREMS
-        or payload["lean_build"] != "passed"
-        or payload["proof_escape_scan"] != "passed"
-        or payload["repository_dirty"] is not False
-        or payload["repository_dirty_paths"] != []
-        or payload["approved_lean_axioms"] != sorted(APPROVED_LEAN_AXIOMS)
-        or payload["theorem_axioms"] != verification.theorem_axioms
-    ):
-        raise RefinementError("refinement receipt identity or theorem set is invalid")
-    manifest = codec.load_json(paths.manifest)
-    render.validate_committed_manifest(paths, manifest)
-    coverage(paths)
-    if (
-        payload["generated_manifest_digest"] != manifest["canonical_digest"]
-        or manifest.get("sail") != sail.provenance(evidence(args, paths))
-    ):
-        raise RefinementError("refinement receipt does not bind the current manifest")
-    if payload["toolchain"] != _toolchain(paths):
-        raise RefinementError(
-            "refinement receipt does not bind the current proof toolchain"
-        )
-    if payload["semantic_toolchain"] != sail.toolchain(evidence(args, paths)):
-        raise RefinementError(
-            "refinement receipt does not bind the current Sail toolchain"
-        )
+    _validate_receipt_structure(payload)
     _receipt_revision_matches(paths, payload["repository_revision"])
+    verification = verify(args, paths)
+    sail_evidence = evidence(args, paths)
+    expected = _build_receipt_payload(
+        paths,
+        verification,
+        sail_evidence,
+        payload["repository_revision"],
+    )
+    if payload != expected:
+        raise RefinementError(
+            "refinement receipt does not bind the current A5 evidence"
+        )
     unexpected = {
         axiom
-        for axioms in payload["theorem_axioms"].values()
+        for axioms in payload["theorem_axiom_index"]["entries"].values()
         for axiom in axioms
         if axiom not in APPROVED_LEAN_AXIOMS
     }

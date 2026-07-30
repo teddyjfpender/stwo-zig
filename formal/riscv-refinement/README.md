@@ -5,19 +5,21 @@ production AIR IR v2 source binding. It kernel-checks the normalized LUI and
 ADDI row predicates against a generated normalized capsule bound to the exact
 pinned Sail `execute_UTYPE`/`execute_ITYPE` slices by a checked, fail-closed AST
 translation receipt. A separate cross-project Lean check imports the exact
-generated backend and proves that its LUI/ADDI execute-clause monads normalize
-to that capsule, including the shared sequential next-PC write and `tick_pc`
-fragment. All 17 production families and all 46 opcode selectors now
-round-trip through the shared production `ConstraintProgram`.
+generated backend and proves input equations for all 24 Team A selectors,
+including BTYPE, JAL, JALR, and FENCE. Only LUI/ADDI are normalized to the
+repository retirement capsule and composed with the shared sequential next-PC
+write and `tick_pc` fragment. All 17 production families and all 46 opcode
+selectors now round-trip through the shared production `ConstraintProgram`.
 
 The LUI and ADDI AIR bridges now interpret their generated production programs
 directly, derive constraints and ordered relation lookups from evaluated
 events, enforce every live fixed-table request, rule out M31 clock wraparound,
 and prove the resulting typed rows satisfy `LuiHolds` and `AddiHolds`.
 Concrete witnesses pass through those same interpreters. The direct bridge
-closes the generated execute-clause boundary, but does not yet cover fetch,
-interrupt, trap, counter, or later-step framing in the full generated Sail
-step loop. Accordingly, the repository still reports `2/46` as normalized
+binds the Team A generated execute-clause inputs, but the control-flow
+equations are not retirement-normalization theorems. The bridge does not cover
+fetch, interrupt, trap, counter, or later-step framing in the full generated
+Sail step loop. Accordingly, the repository still reports `2/46` as normalized
 pilot coverage and does not count either pilot as a publication-level opcode.
 
 ## Theorems
@@ -85,8 +87,10 @@ production programs. It proves architectural counterexamples for the free LUI
 low limb, deleted ADDI high carry, and ADDI/XORI selector relabel. It also
 proves strict loss of the raw immediate-range request and exact event-order
 projection. The generated-Sail side of the joint Level-2 gate remains open.
-The execute-clause monad and sequential PC/tick fragment are now kernel
-checked; the open portion is the wider generated step-loop framing.
+Every Team A execute-clause input is now kernel-bound. The normalized
+execute-clause monad and sequential PC/tick theorem remains LUI/ADDI-only; the
+open portion includes normalized retirement composition for the other
+selectors and the wider generated step-loop framing.
 
 After committing all inputs and generated artifacts, create the evidence
 receipt:

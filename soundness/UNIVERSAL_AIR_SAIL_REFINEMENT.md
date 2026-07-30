@@ -64,18 +64,22 @@ events, and architectural projection; their evaluated programs compose with
 compiler, constructs the exact `rv32im-zkvm-v1` configuration from the
 normative overrides, validates that it reports `rv32im`, generates the theorem
 backend under that configuration, and pins the complete generated file. Exact
-`execute_UTYPE`/`execute_ITYPE` slices are parsed fail-closed into a typed AST
-and a canonical receipt records their normalized LUI/ADDI effects.
+`execute_UTYPE`/`execute_ITYPE`/`execute_RTYPE` slices are parsed fail-closed
+into a typed AST and a canonical receipt records their normalized selector
+effects. Direct generated-Lean equations additionally bind all 24 Team A
+execute-clause inputs, including BTYPE, JAL, JALR, and FENCE.
 
 This remains deliberately called a **2/46 normalized pilot**, not “2 of 46
 publication opcodes proved.” The exact generated LUI/ADDI execute-clause
 monads now normalize to the receipt-bound capsule, and the common sequential
-next-PC/tick fragment composes with them. The remaining generated Sail
-step-monad composition obligation is the wider fetch, interrupt, trap,
-counter, and later-step framing (or the contract's independently approved
-fallback). SA-1 premise 5 therefore remains open. The generated manifest
-records the positive clause-monad claim and the negative full-step-loop claim,
-and fails closed if stale AIR or Sail artifacts are requested.
+next-PC/tick fragment composes with them. The other Team A equations are
+input-binding only: they do not normalize control-flow or barrier retirement.
+The remaining generated Sail obligations include those normalized-retirement
+proofs and the wider fetch, interrupt, trap, counter, and later-step framing
+(or the contract's independently approved fallback). SA-1 premise 5 therefore
+remains open. The generated manifest records the narrow positive claims and
+the negative full-step-loop claim, and fails closed if stale AIR or Sail
+artifacts are requested.
 
 ## 1. Objective and claim boundary
 

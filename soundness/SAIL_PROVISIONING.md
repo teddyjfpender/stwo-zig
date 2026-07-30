@@ -65,9 +65,10 @@ Be precise here, because "the Sail toolchain ran in CI" is easy to over-read.
   hosted capability.
 - The pilot's generated-clause proof. The gate builds the exact generated Lean
   project, applies only the digest-pinned `RiscvExtras.lean` namespace fix, and
-  kernel-checks the LUI/ADDI execute-clause plus sequential PC/tick bridge.
-  The committed receipt records the complete generated-source closure and the
-  approved axiom inventory.
+  kernel-checks input equations for all 24 Team A selectors. LUI/ADDI alone
+  additionally have normalized-retirement and sequential PC/tick theorems.
+  The committed receipt records that boundary, the complete generated-source
+  closure, and the exact per-theorem axiom inventory.
 
 **NOT upgraded -- no wording changes anywhere:**
 

@@ -1,4 +1,4 @@
-"""Kernel-check the pilot bridge against the exact generated Sail project."""
+"""Kernel-check Team A execute-clause bindings against generated Sail Lean."""
 
 from __future__ import annotations
 
@@ -47,18 +47,109 @@ THEOREMS = (
     "LeanRV32IM.Functions.execute_ADDI_normalizes_write",
     "LeanRV32IM.Functions.complete_LUI_normalizes",
     "LeanRV32IM.Functions.complete_ADDI_normalizes",
+    "LeanRV32IM.Functions.execute_UTYPE_LUI_eq",
+    "LeanRV32IM.Functions.execute_UTYPE_AUIPC_eq",
+    "LeanRV32IM.Functions.execute_ITYPE_ADDI_eq",
+    "LeanRV32IM.Functions.execute_ITYPE_SLTI_eq",
+    "LeanRV32IM.Functions.execute_ITYPE_SLTIU_eq",
+    "LeanRV32IM.Functions.execute_ITYPE_ANDI_eq",
+    "LeanRV32IM.Functions.execute_ITYPE_ORI_eq",
+    "LeanRV32IM.Functions.execute_ITYPE_XORI_eq",
+    "LeanRV32IM.Functions.execute_RTYPE_ADD_eq",
+    "LeanRV32IM.Functions.execute_RTYPE_SUB_eq",
+    "LeanRV32IM.Functions.execute_RTYPE_XOR_eq",
+    "LeanRV32IM.Functions.execute_RTYPE_OR_eq",
+    "LeanRV32IM.Functions.execute_RTYPE_AND_eq",
+    "LeanRV32IM.Functions.execute_RTYPE_SLT_eq",
+    "LeanRV32IM.Functions.execute_RTYPE_SLTU_eq",
+    "LeanRV32IM.Functions.execute_BTYPE_BEQ_eq",
+    "LeanRV32IM.Functions.execute_BTYPE_BNE_eq",
+    "LeanRV32IM.Functions.execute_BTYPE_BLT_eq",
+    "LeanRV32IM.Functions.execute_BTYPE_BGE_eq",
+    "LeanRV32IM.Functions.execute_BTYPE_BLTU_eq",
+    "LeanRV32IM.Functions.execute_BTYPE_BGEU_eq",
+    "LeanRV32IM.Functions.execute_JAL_eq",
+    "LeanRV32IM.Functions.execute_JALR_eq",
+    "LeanRV32IM.Functions.execute_FENCE_eq",
 )
-APPROVED_AXIOMS = frozenset(
+KERNEL_AXIOMS = frozenset(
     {
         "propext",
         "Classical.choice",
         "Quot.sound",
     }
 )
+PINNED_GENERATED_MODEL_AXIOMS = frozenset(
+    {
+        # `jump_to` consults the generated model's extension configuration.
+        # This callback is an explicit axiom in the pinned generated support
+        # module, whose digest is part of the bridge source closure. It is a
+        # Sail model input, not a proof escape or a repository-level semantic
+        # assumption.
+        "sys_enable_experimental_extensions",
+    }
+)
+APPROVED_AXIOMS = KERNEL_AXIOMS | PINNED_GENERATED_MODEL_AXIOMS
+_JUMP_INPUT_THEOREMS = frozenset(
+    {
+        "LeanRV32IM.Functions.execute_BTYPE_BEQ_eq",
+        "LeanRV32IM.Functions.execute_BTYPE_BNE_eq",
+        "LeanRV32IM.Functions.execute_BTYPE_BLT_eq",
+        "LeanRV32IM.Functions.execute_BTYPE_BGE_eq",
+        "LeanRV32IM.Functions.execute_BTYPE_BLTU_eq",
+        "LeanRV32IM.Functions.execute_BTYPE_BGEU_eq",
+        "LeanRV32IM.Functions.execute_JAL_eq",
+        "LeanRV32IM.Functions.execute_JALR_eq",
+    }
+)
+EXPECTED_THEOREM_AXIOMS = {
+    theorem: sorted(
+        KERNEL_AXIOMS
+        | (
+            PINNED_GENERATED_MODEL_AXIOMS
+            if theorem in _JUMP_INPUT_THEOREMS
+            else frozenset()
+        )
+    )
+    for theorem in THEOREMS
+}
 CLAIM_BOUNDARY = {
     "generated_execute_clause_monad_normalization": True,
+    "team_a_execute_clause_input_binding": True,
+    "input_bound_team_a_selectors": [
+        "LUI",
+        "AUIPC",
+        "ADDI",
+        "XORI",
+        "ORI",
+        "ANDI",
+        "SLTI",
+        "SLTIU",
+        "ADD",
+        "SUB",
+        "XOR",
+        "OR",
+        "AND",
+        "SLT",
+        "SLTU",
+        "BEQ",
+        "BNE",
+        "BLT",
+        "BGE",
+        "BLTU",
+        "BGEU",
+        "JAL",
+        "JALR",
+        "FENCE",
+    ],
+    "normalized_retirement_selectors": ["LUI", "ADDI"],
+    "team_a_normalized_retirement_composition": False,
+    "pinned_generated_model_axioms": sorted(
+        PINNED_GENERATED_MODEL_AXIOMS
+    ),
     "sequential_next_pc_and_tick_fragment": True,
     "fetch_interrupt_trap_and_step_loop_framing": False,
+    "publication_binding": False,
 }
 _UNPATCHED_OPEN = b"open LeanRV32IM.Defs\n\n"
 _AXIOM_LINE = re.compile(
@@ -147,18 +238,41 @@ def _patch_support(paths: Paths, project: Path) -> None:
 
 def _lean_sail_revision(project: Path) -> str:
     manifest = project / "lake-manifest.json"
+    def read_matches() -> list[dict[str, object]]:
+        try:
+            payload = json.loads(manifest.read_text(encoding="utf-8"))
+            packages = payload["packages"]
+            if not isinstance(packages, list):
+                raise TypeError("packages is not a list")
+            return [
+                package
+                for package in packages
+                if isinstance(package, dict)
+                and package.get("name") == "Sail"
+            ]
+        except (
+            OSError,
+            UnicodeError,
+            json.JSONDecodeError,
+            KeyError,
+            TypeError,
+        ) as exc:
+            raise RefinementError(
+                "generated Sail project dependency manifest is malformed"
+            ) from exc
+
     if not manifest.is_file():
         _run(["lake", "update"], project, timeout=600)
+    matches = read_matches()
+    # Sail 0.20.2 may emit a syntactically valid bootstrap manifest with an
+    # empty package list. Resolve the lakefile's exact `lean-sail` pin once,
+    # then re-read and enforce the same singleton/revision checks below.
+    if not matches:
+        _run(["lake", "update"], project, timeout=600)
+        matches = read_matches()
     try:
-        payload = json.loads(manifest.read_text(encoding="utf-8"))
-        packages = payload["packages"]
-        matches = [
-            package
-            for package in packages
-            if package.get("name") == "Sail"
-        ]
         revision = matches[0]["rev"]
-    except (OSError, UnicodeError, json.JSONDecodeError, KeyError, TypeError, IndexError) as exc:
+    except (KeyError, IndexError) as exc:
         raise RefinementError(
             "generated Sail project dependency manifest is malformed"
         ) from exc
@@ -219,7 +333,13 @@ def _proof_axioms(output: str) -> dict[str, list[str]]:
             "generated Sail bridge uses unapproved axioms: "
             + ", ".join(sorted(unexpected))
         )
-    return {theorem: found[theorem] for theorem in THEOREMS}
+    ordered = {theorem: found[theorem] for theorem in THEOREMS}
+    if ordered != EXPECTED_THEOREM_AXIOMS:
+        raise RefinementError(
+            "generated Sail bridge axiom inventory drifted from the exact "
+            "per-theorem contract"
+        )
+    return ordered
 
 
 def _static_identity(
@@ -363,7 +483,7 @@ def validate_carried(
         )
         is None
         or receipt.get("theorem_axioms")
-        != {theorem: sorted(APPROVED_AXIOMS) for theorem in THEOREMS}
+        != EXPECTED_THEOREM_AXIOMS
     ):
         raise RefinementError(
             "committed generated Sail bridge proof inventory is invalid"

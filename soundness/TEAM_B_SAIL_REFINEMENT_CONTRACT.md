@@ -182,7 +182,7 @@ later admitted transitions.
 
 The receipt machinery now exists:
 `scripts/riscv_refinement_lib/sail_translation.py` (schema
-`stwo-sail-translation-receipt-v1`, parser `sail-lean-subset-parser-v1`). It
+`stwo-sail-translation-receipt-v1`, parser `sail-lean-subset-parser-v2`). It
 parses a generated `execute_*` definition slice into a typed AST and normalizes
 it to per-selector observable effects, refusing every construct outside its
 whitelist: in value position only the readers `rX_bits`, `get_arch_pc`,
@@ -191,22 +191,27 @@ whitelist: in value position only the readers `rX_bits`, `get_arch_pc`,
 `pure RETIRE_SUCCESS`/`RETIRE_FAIL`.
 
 The pilot receipt is now derived from the exact generated
-`execute_UTYPE`/`execute_ITYPE` slices whose enclosing `InstsEnd.lean` digest is
-already bound by the committed manifest. The slices and canonical receipt are
-committed under `formal/riscv-refinement/generated/sail/`; carried-evidence
-verification re-hashes both slices, re-parses them, re-derives the receipt, and
+`execute_UTYPE`/`execute_ITYPE`/`execute_RTYPE` slices whose enclosing
+`InstsEnd.lean` digest is already bound by the committed manifest. The slices
+and canonical receipt are committed under
+`formal/riscv-refinement/generated/sail/`; carried-evidence verification
+re-hashes the slices, re-parses their ASTs, re-derives the receipt, and
 requires byte-identical reproduction. This mechanically binds the normalized
-LUI and ADDI execute-clause effects to actual generated output. It remains
-carried evidence on hosts without Sail and cannot mint a release receipt.
+U/I/R selector effects to actual generated output. It remains carried evidence
+on hosts without Sail and cannot mint a release receipt.
 
 The direct bridge in
 `formal/riscv-refinement/generated-sail-bridge/Pilot.lean` goes beyond that
-receipt: it imports the exact generated Lean project and proves the clause
-monads and sequential PC/tick fragment equal the normalized LUI/ADDI
-executions. Its separate canonical receipt records the four theorem names,
-complete generated-source closure, and approved axiom inventory. It
-deliberately records full fetch/interrupt/trap/counter and later-step framing
-as false.
+receipt: it imports the exact generated Lean project and proves input equations
+for every Team A UTYPE/ITYPE/RTYPE/BTYPE/JAL/JALR/FENCE selector. Its separate
+canonical receipt records those equations, the four LUI/ADDI normalization
+theorems, the complete generated-source closure, and the exact per-theorem
+axiom inventory. Branch and jump equations explicitly inherit the pinned
+generated model's `sys_enable_experimental_extensions` callback through
+`jump_to`; this is recorded as a model input, not hidden as a proof axiom.
+Only LUI/ADDI are normalized to repository retirements and composed with
+sequential PC/tick. Full fetch/interrupt/trap/counter and later-step framing
+remain false.
 
 Hosted Sail provisioning exists —
 `.github/workflows/riscv-sail-formal.yml`, normative in
