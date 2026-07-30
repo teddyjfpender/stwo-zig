@@ -296,13 +296,9 @@ fn addExecutable(
 }
 /// Every test body `test-riscv-cpu-product` runs, under one filter.
 ///
-/// Four suites, three of which the product only *linked* before now. Linking
-/// compiles the code and none of its tests, so a `test` written beside the code
-/// it covers was compiled by nothing: 458 named tests in the frontend package and
-/// 11 in the shared adapter, against 37 the step actually ran. They are returned
-/// together because they are built from one module set, and they are run by one
-/// guarded step because `-Driscv-test-filter` must be satisfied by a match in any
-/// of them.
+/// Four suites, three only *linked* before: linking compiles the code and none
+/// of its tests, so 458 frontend and 11 adapter tests ran nowhere against the 37
+/// this step ran. One guarded step, so `-Driscv-test-filter` may match any suite.
 fn addTests(context: Context) []const test_filter.Suite {
     const b = context.b;
     const stwo = createStwoModule(b, context.protocol, context.target, context.optimize);
