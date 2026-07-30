@@ -60,6 +60,7 @@ def collect_provenance(
     upstream_commit: str,
     zig_optimize: str,
     zig_binary: Path,
+    native_cpu_binary: Path,
     rust_binary: Path,
     gate_sources: Iterable[Path],
 ) -> dict[str, Any]:
@@ -103,6 +104,7 @@ def collect_provenance(
             "optimize": zig_optimize,
             "compiler": _file_identity(zig_executable, root=root),
             "interop_binary": _file_identity(zig_binary, root=root),
+            "native_cpu_binary": _file_identity(native_cpu_binary, root=root),
         },
         "rust_oracle": {
             "toolchain": rust_toolchain,

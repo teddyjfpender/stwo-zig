@@ -8,8 +8,8 @@ class PhaseContractTests(unittest.TestCase):
     def capability(*, promoted: bool = False, reason: str = "soundness gates pending") -> str:
         return (
             f"pub const adapter_release_gated = {str(promoted).lower()}; "
-            'pub const adapter = "stark-v-rv32im-elf"; '
-            'pub const air = "stark_v_rv32im"; '
+            'pub const adapter = "sail-rv32im-zkvm-elf"; '
+            'pub const air = "sail_rv32im_zkvm_v1"; '
             'pub const isa = "rv32im"; '
             'pub const backend = "cpu"; '
             f'pub const deferred_reason = "{reason}"; '

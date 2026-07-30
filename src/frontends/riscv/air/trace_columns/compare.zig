@@ -45,6 +45,8 @@ pub const LtRegColumns = struct {
     diff_marker_2: M31,
     diff_marker_3: M31,
     diff_val: M31,
+    rd_nonzero: M31,
+    rd_inv: M31,
     pub const N_COLUMNS = @typeInfo(@This()).@"struct".fields.len;
 };
 
@@ -83,6 +85,9 @@ pub const LtImmColumns = struct {
     diff_marker_2: M31,
     diff_marker_3: M31,
     diff_val: M31,
+    rd_nonzero: M31,
+    rd_inv: M31,
+    imm_msl_felt: M31,
     pub const N_COLUMNS = @typeInfo(@This()).@"struct".fields.len;
 };
 

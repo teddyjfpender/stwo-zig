@@ -41,6 +41,7 @@ pub const WorkloadParameters = union(enum) {
     wide_fibonacci: config.WideFibonacciParameters,
     xor: config.XorParameters,
     plonk: config.PlonkParameters,
+    plonk_logup: config.PlonkLogupParameters,
     state_machine: config.StateMachineParameters,
     blake: config.BlakeParameters,
     poseidon: config.PoseidonParameters,
@@ -50,6 +51,7 @@ pub const WorkloadParameters = union(enum) {
             .wide_fibonacci => |parameters| try writer.write(parameters),
             .xor => |parameters| try writer.write(parameters),
             .plonk => |parameters| try writer.write(parameters),
+            .plonk_logup => |parameters| try writer.write(parameters),
             .state_machine => |parameters| try writer.write(parameters),
             .blake => |parameters| try writer.write(parameters),
             .poseidon => |parameters| try writer.write(parameters),
@@ -147,6 +149,7 @@ pub const BackendCounterDelta = struct {
     metal_fri_line_fold_dispatches: u64 = 0,
     metal_fri_fold_commit_epochs: u64 = 0,
     metal_qm31_coordinate_dispatches: u64 = 0,
+    metal_relation_epochs: u64 = 0,
     metal_trace_generation_dispatches: u64 = 0,
     metal_trace_generation_synchronizations: u64 = 0,
     metal_trace_generation_copybacks: u64 = 0,
@@ -156,6 +159,9 @@ pub const BackendCounterDelta = struct {
     cpu_small_circle_interpolations: u64 = 0,
     cpu_small_circle_evaluations: u64 = 0,
     cpu_small_circle_ldes: u64 = 0,
+    metal_commit_source_arena_aliases: u64 = 0,
+    metal_commit_source_arena_memcpys: u64 = 0,
+    metal_commit_source_uploads: u64 = 0,
 };
 
 pub const PipelineCacheDelta = struct {

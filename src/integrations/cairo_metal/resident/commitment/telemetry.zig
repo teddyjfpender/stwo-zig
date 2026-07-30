@@ -1,7 +1,7 @@
 //! Opt-in commitment diagnostics over resident arena bindings.
 
 const std = @import("std");
-const arena_plan = @import("../../../../backends/metal/arena_plan.zig");
+const arena_plan = @import("stwo_metal_backend").arena_plan;
 
 pub fn logCommitSourceDigests(
     resident_arena: *arena_plan.ResidentArena,

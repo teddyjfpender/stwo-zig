@@ -19,12 +19,17 @@ pub const Scope = catalog.Scope;
 
 pub const Constructor = enum {
     aggregate,
+    cairo_cpu,
+    cairo_cuda,
+    cairo_metal,
     core,
     prover,
     native_cpu,
+    native_cuda,
     riscv_cpu,
     native_metal,
     unavailable,
+    riscv_metal,
 };
 
 pub const Spec = struct {
@@ -41,11 +46,11 @@ pub const Spec = struct {
 };
 
 pub const products = [_]Spec{
-    .{ .descriptor = aggregate.descriptor, .scope = .aggregate, .constructor = .aggregate, .identity_step = "identity-stwo-zig", .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .configure_allowed_files = &.{"build_support/graph/identity/emitter.zig"} },
-    .{ .descriptor = core.descriptor, .scope = .core, .constructor = .core, .identity_step = "identity-stwo-core", .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .configure_allowed_files = &.{"build_support/graph/identity/emitter.zig"} },
-    .{ .descriptor = prover.descriptor, .scope = .prover, .constructor = .prover, .identity_step = "identity-stwo-prover", .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .configure_allowed_files = &.{ "build_support/graph/identity/emitter.zig", "src/products/core/surface.zig" } },
-    .{ .descriptor = native_cpu.descriptor(.cli), .scope = .native_cpu, .constructor = .native_cpu, .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"} },
-    .{ .descriptor = riscv_cpu.descriptor, .scope = .riscv_cpu, .constructor = .riscv_cpu, .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .configure_allowed_files = &.{"src/tests.zig"} },
+    .{ .descriptor = aggregate.descriptor, .scope = .aggregate, .constructor = .aggregate, .identity_step = "identity-stwo-zig", .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = catalog.package_dependencies.native_riscv_cpu_protocol_package_roots, .configure_allowed_files = &.{"build_support/graph/identity/emitter.zig"} },
+    .{ .descriptor = core.descriptor, .scope = .core, .constructor = .core, .identity_step = "identity-stwo-core", .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = catalog.package_dependencies.core_package_roots, .configure_allowed_files = &.{"build_support/graph/identity/emitter.zig"} },
+    .{ .descriptor = prover.descriptor, .scope = .prover, .constructor = .prover, .identity_step = "identity-stwo-prover", .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = catalog.package_dependencies.protocol_package_roots, .configure_allowed_files = &.{ "build_support/graph/identity/emitter.zig", "src/products/core/surface.zig" } },
+    .{ .descriptor = native_cpu.descriptor(.cli), .scope = .native_cpu, .constructor = .native_cpu, .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = catalog.package_dependencies.native_cpu_protocol_package_roots },
+    .{ .descriptor = riscv_cpu.descriptor, .scope = .riscv_cpu, .constructor = .riscv_cpu, .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = catalog.package_dependencies.riscv_cpu_protocol_package_roots, .configure_allowed_files = &.{"src/tests.zig"} },
     .{
         .descriptor = native_metal.descriptor(.cli),
         .scope = .native_metal,
@@ -53,14 +58,87 @@ pub const products = [_]Spec{
         .configure_tools = &.{ "python3", "xcrun" },
         .runtime_probes = &.{ "Metal.framework", "Foundation.framework", "libobjc" },
         .generated_module_roots = &.{"generated:options:"},
+        .dependency_module_roots = catalog.package_dependencies.native_metal_cpu_protocol_package_roots,
         .configure_allowed_files = &.{"build_support/product_policy_test.zig"},
     },
-    .{ .descriptor = cairo_cpu.descriptor, .scope = .deferred, .constructor = .unavailable },
-    .{ .descriptor = cairo_metal.descriptor, .scope = .deferred, .constructor = .unavailable },
-    .{ .descriptor = riscv_metal.descriptor, .scope = .deferred, .constructor = .unavailable },
-    .{ .descriptor = native_cuda.descriptor, .scope = .deferred, .constructor = .unavailable },
-    .{ .descriptor = cairo_cuda.descriptor, .scope = .deferred, .constructor = .unavailable },
-    .{ .descriptor = riscv_cuda.descriptor, .scope = .deferred, .constructor = .unavailable },
+    .{
+        .descriptor = cairo_cpu.descriptor,
+        .scope = .cairo_cpu,
+        .constructor = .cairo_cpu,
+        .configure_tools = &.{
+            "cargo",
+            "cmp",
+            "python3",
+            "stwo-cairo-official-verifier",
+        },
+        .generated_module_roots = &.{
+            "generated:options:",
+            "generated:cairo-witness-cpu-aot:",
+        },
+        .dependency_module_roots = catalog.package_dependencies.cairo_cpu_protocol_package_roots,
+        .configure_allowed_files = &.{
+            "build_support/products/cairo_witness_cpu_aot.zig",
+        },
+        .configure_allowed_prefixes = &.{
+            "src/tools/cairo_witness_cpu_codegen",
+            "third_party/bzip2",
+        },
+    },
+    .{
+        .descriptor = cairo_metal.descriptor,
+        .scope = .cairo_metal,
+        .constructor = .cairo_metal,
+        .configure_tools = &.{
+            "cargo",
+            "cmp",
+            "python3",
+            "stwo-cairo-official-verifier",
+            "xcrun",
+        },
+        .runtime_probes = &.{
+            "Metal.framework",
+            "Foundation.framework",
+            "libobjc",
+        },
+        .generated_module_roots = &.{
+            "generated:options:",
+            "generated:cairo-witness-cpu-aot:",
+        },
+        .dependency_module_roots = catalog.package_dependencies.cairo_metal_cpu_protocol_package_roots,
+        .configure_allowed_files = &.{
+            "build_support/products/cairo_witness_cpu_aot.zig",
+        },
+        .configure_allowed_prefixes = &.{
+            "src/tools/cairo_witness_cpu_codegen",
+            "third_party/bzip2",
+        },
+    },
+    .{
+        .descriptor = riscv_metal.descriptor,
+        .scope = .riscv_metal,
+        .constructor = .riscv_metal,
+        .configure_tools = &.{"python3"},
+        .runtime_probes = &.{ "Metal.framework", "Foundation.framework", "libobjc" },
+        .dependency_module_roots = catalog.package_dependencies.riscv_metal_protocol_package_roots,
+    },
+    .{
+        .descriptor = native_cuda.descriptor,
+        .scope = .native_cuda,
+        .constructor = .native_cuda,
+        .configure_tools = &.{"python3"},
+        .runtime_probes = &.{ "cuda", "cudart", "stwo_cuda_kernels" },
+        .dependency_module_roots = catalog.package_dependencies.frontend_cuda_metal_cpu_protocol_package_roots,
+    },
+    .{
+        .descriptor = cairo_cuda.descriptor,
+        .scope = .cairo_cuda,
+        .constructor = .cairo_cuda,
+        .configure_tools = &.{"python3"},
+        .runtime_probes = &.{ "cuda", "cudart", "stwo_cuda_kernels" },
+        .generated_module_roots = &.{"generated:options:"},
+        .dependency_module_roots = catalog.package_dependencies.cairo_cuda_protocol_package_roots,
+    },
+    .{ .descriptor = riscv_cuda.descriptor, .scope = .deferred, .constructor = .unavailable, .dependency_module_roots = catalog.package_dependencies.protocol_package_roots },
 };
 
 pub const descriptors = blk: {

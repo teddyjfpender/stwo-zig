@@ -1,16 +1,22 @@
-//! RISC-V RV32IM zkVM frontend (stark-v port).
+//! Sail-authoritative RISC-V RV32IM zkVM frontend.
 //!
 //! Provides an execution runner for RISC-V RV32IM programs (ELF loading,
 //! decode, execute) and AIR constraints for STARK proving of execution traces.
 
 pub const runner = @import("runner/mod.zig");
 pub const air = @import("air/mod.zig");
+pub const access_clock = @import("access_clock.zig");
+pub const diagnostics = @import("diagnostics/mod.zig");
+pub const isa = @import("isa/mod.zig");
 pub const opcode_manifest = @import("opcode_manifest.zig");
 pub const witness_layout = @import("witness_layout.zig");
 pub const prover_mod = @import("prover.zig");
 pub const owned_statement = @import("owned_statement.zig");
 pub const infra_trace = @import("infra_trace.zig");
 pub const host = @import("host/mod.zig");
+/// Explicitly unstable helpers used by the repository's adversarial corpus.
+/// Downstream production code must stay on the package surface above.
+pub const testing = @import("testing.zig");
 
 // Convenience re-exports.
 pub const Cpu = runner.Cpu;
@@ -26,7 +32,30 @@ pub const proveRiscVWithEngineAndPublicData = prover_mod.proveRiscVWithEngineAnd
 pub const verifyRiscVWithEngine = prover_mod.verifyRiscVWithEngine;
 pub const proveAndVerifyElfWithEngine = prover_mod.proveAndVerifyElfWithEngine;
 
+test "api signature: RISC-V facade preserves runner and prover entry points" {
+    comptime {
+        if (Opcode != runner.Opcode) @compileError("Opcode facade alias drifted");
+        switch (@typeInfo(@TypeOf(runWithInput))) {
+            .@"fn" => {},
+            else => @compileError("runWithInput must remain a function"),
+        }
+        switch (@typeInfo(@TypeOf(proveRiscVWithEngine))) {
+            .@"fn" => {},
+            else => @compileError("proveRiscVWithEngine must remain a function"),
+        }
+    }
+}
+
 test {
     @import("std").testing.refAllDeclsRecursive(infra_trace);
     _ = @import("opcode_coverage_test.zig");
+    _ = @import("air/extract/mod.zig");
+    _ = @import("air/semantic_eval.zig");
+    // The Sail bridge's own two self-checks. A file's tests are collected
+    // only when a `test` block names it; the file-scope `pub const
+    // sail_oracle = @import("sail_oracle.zig")` in `runner/mod.zig` is not
+    // enough, and until this line existed those two tests ran in no step at
+    // all. The main build reaches them through `test-riscv-sail-oracle`,
+    // which roots a test artifact at the file itself.
+    _ = @import("runner/sail_oracle.zig");
 }

@@ -5,6 +5,7 @@ const metal = @import("../backends/metal.zig");
 const graph_identity = @import("../graph/identity.zig");
 const identity_receipt = @import("../graph/identity/receipt.zig");
 const graph = @import("../graph/modules.zig");
+const integration_graph = @import("../graph/integrations.zig");
 const closure_gate = @import("../gates/product_closure.zig");
 const prove_cli = @import("../prove_cli.zig");
 const aggregate = @import("aggregate.zig");
@@ -38,8 +39,68 @@ pub fn addProduct(b: *std.Build, metal_enabled: bool) void {
         .optimize = optimize,
     });
     protocol.addImports(stwo);
+    const proof_wire = graph.addProofWireImport(
+        b,
+        protocol,
+        aggregate.product(metal_enabled),
+        target,
+        optimize,
+        stwo,
+    );
+    const cpu_backend = graph.addCpuBackendImport(
+        b,
+        protocol,
+        aggregate.product(metal_enabled),
+        target,
+        optimize,
+        stwo,
+    );
+    _ = graph.addNativeExamplesImport(
+        b,
+        protocol,
+        aggregate.product(metal_enabled),
+        target,
+        optimize,
+        cpu_backend,
+        proof_wire,
+        stwo,
+    );
+    const metal_backend = if (metal_enabled)
+        graph.addMetalBackendImport(
+            b,
+            protocol,
+            aggregate.product(true),
+            target,
+            optimize,
+            stwo,
+        )
+    else
+        null;
+    const riscv_frontend = graph.addRiscVFrontendImport(
+        b,
+        protocol,
+        aggregate.product(metal_enabled),
+        target,
+        optimize,
+        stwo,
+    );
+    _ = integration_graph.addRiscVCpuImport(
+        b,
+        protocol,
+        aggregate.product(metal_enabled),
+        target,
+        optimize,
+        cpu_backend,
+        riscv_frontend,
+        stwo,
+    );
     const runner = libraries.consumer(b, protocol, .{
-        .root_source_file = b.path("src/prover/native/runner.zig"),
+        .root_source_file = graph.source(
+            b,
+            "src/prover/native/runner.zig",
+            target,
+            optimize,
+        ),
         .target = target,
         .optimize = optimize,
     });
@@ -54,6 +115,45 @@ pub fn addProduct(b: *std.Build, metal_enabled: bool) void {
         .target = target,
         .optimize = optimize,
     });
+    const test_proof_wire = graph.addProofWireImport(
+        b,
+        protocol,
+        aggregate.product(metal_enabled),
+        target,
+        optimize,
+        aggregate_tests,
+    );
+    _ = graph.addNativeExamplesImport(
+        b,
+        protocol,
+        aggregate.product(metal_enabled),
+        target,
+        optimize,
+        cpu_backend,
+        test_proof_wire,
+        aggregate_tests,
+    );
+    const test_riscv_frontend = graph.addRiscVFrontendImport(
+        b,
+        protocol,
+        aggregate.product(metal_enabled),
+        target,
+        optimize,
+        aggregate_tests,
+    );
+    aggregate_tests.addImport("stwo_cpu_backend", cpu_backend);
+    _ = integration_graph.addRiscVCpuImport(
+        b,
+        protocol,
+        aggregate.product(metal_enabled),
+        target,
+        optimize,
+        cpu_backend,
+        test_riscv_frontend,
+        aggregate_tests,
+    );
+    if (metal_backend) |backend|
+        aggregate_tests.addImport("stwo_metal_backend", backend);
     const tests = b.addTest(.{ .root_module = aggregate_tests });
     if (metal_enabled) metal.linkRuntime(b, tests);
     const test_step = b.step("test", "Run aggregate compatibility tests");
@@ -61,7 +161,12 @@ pub fn addProduct(b: *std.Build, metal_enabled: bool) void {
 
     const runner_tests = b.addTest(.{
         .root_module = libraries.consumer(b, protocol, .{
-            .root_source_file = b.path("src/prover/native/runner.zig"),
+            .root_source_file = graph.source(
+                b,
+                "src/prover/native/runner.zig",
+                target,
+                optimize,
+            ),
             .target = target,
             .optimize = optimize,
         }),

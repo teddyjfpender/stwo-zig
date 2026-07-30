@@ -2,6 +2,14 @@
 
 const std = @import("std");
 const graph = @import("../graph/modules.zig");
+const integration_graph = @import("../graph/integrations.zig");
+
+const compatibility_product = graph.Product{
+    .name = "stwo-compatibility-tools",
+    .frontend = .aggregate,
+    .backend = .cpu,
+    .role = .@"test",
+};
 
 pub const Context = struct {
     b: *std.Build,
@@ -13,17 +21,130 @@ pub fn addProducts(context: Context) void {
     const b = context.b;
     const protocol = graph.createPrivateProtocolModules(b, context.target, context.optimize);
     const stwo = graph.create(b, .{
-        .product = .{
-            .name = "stwo-compatibility-tools",
-            .frontend = .aggregate,
-            .backend = .cpu,
-            .role = .@"test",
-        },
+        .product = compatibility_product,
         .root_source_file = "src/stwo.zig",
         .target = context.target,
         .optimize = context.optimize,
     });
     protocol.addImports(stwo);
+    const proof_wire = graph.addProofWireImport(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        stwo,
+    );
+    const metal_session = graph.addMetalSessionImport(
+        b,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        stwo,
+    );
+    const cpu_backend = graph.addCpuBackendImport(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        stwo,
+    );
+    const native_examples = graph.addNativeExamplesImport(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        cpu_backend,
+        proof_wire,
+        stwo,
+    );
+    const metal_backend = graph.addMetalBackendImport(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        stwo,
+    );
+    const cuda_backend = graph.addCudaBackendImport(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        stwo,
+    );
+    const native_cuda = integration_graph.addNativeCudaImport(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        cuda_backend,
+        native_examples,
+        proof_wire,
+        stwo,
+    );
+    const riscv_frontend = graph.addRiscVFrontendImport(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        stwo,
+    );
+    _ = integration_graph.addRiscVCpuImport(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        cpu_backend,
+        riscv_frontend,
+        stwo,
+    );
+    const cairo_frontend = graph.addCairoFrontendImport(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        stwo,
+    );
+    _ = integration_graph.addCairoCudaImport(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        cuda_backend,
+        cairo_frontend,
+        native_cuda,
+        stwo,
+    );
+    _ = integration_graph.addCairoCpuImport(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        cpu_backend,
+        cairo_frontend,
+        stwo,
+    );
+    _ = integration_graph.addCairoMetalImport(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        metal_backend,
+        cairo_frontend,
+        metal_session,
+        stwo,
+    );
     const runner = consumer(context, protocol, "src/prover/native/runner.zig");
     runner.addImport("stwo", stwo);
     runner.addImport("native_resource_admission", consumer(
@@ -40,6 +161,73 @@ pub fn addProducts(context: Context) void {
     cairo_input.addImport("stwo", stwo);
     addExecutable(context, cairo_input, "cairo-input", "cairo-input", "Build adapted Cairo input inspector", false);
 
+    const cairo_composition = consumer(
+        context,
+        protocol,
+        "src/frontends/cairo/witness/composition_bundle.zig",
+    );
+    const cairo_air_bundle =
+        consumer(context, protocol, "src/tools/cairo/air_bundle_inspector.zig");
+    cairo_air_bundle.addImport("cairo_composition_bundle", cairo_composition);
+    addExecutable(
+        context,
+        cairo_air_bundle,
+        "cairo-air-bundle-inspector",
+        "cairo-air-bundle-inspector",
+        "Build official Cairo AIR bundle inspector",
+        false,
+    );
+
+    const cairo_test_root = consumer(context, protocol, "src/frontends/cairo/tests/mod.zig");
+    cairo_test_root.addImport("cairo_frontend", cairo_frontend);
+    const cairo_filters: []const []const u8 = if (b.option(
+        []const u8,
+        "cairo-test-filter",
+        "Compile and run Cairo tests whose names contain this text",
+    )) |filter|
+        b.allocator.dupe([]const u8, &.{filter}) catch @panic("out of memory")
+    else
+        &.{};
+    const cairo_tests = context.b.addTest(.{
+        .root_module = cairo_test_root,
+        .filters = cairo_filters,
+    });
+    const run_cairo_tests = context.b.addRunArtifact(cairo_tests);
+    context.b.step(
+        "test-cairo-frontend",
+        "Run focused backend-neutral Cairo conformance tests",
+    ).dependOn(&run_cairo_tests.step);
+
+    const cairo_cpu_air_test_root = consumer(
+        context,
+        protocol,
+        "src/tests/cairo/cpu_air_test.zig",
+    );
+    cairo_cpu_air_test_root.addImport("stwo", stwo);
+    const cairo_cpu_air_tests = context.b.addTest(.{
+        .root_module = cairo_cpu_air_test_root,
+    });
+    const run_cairo_cpu_air_tests = context.b.addRunArtifact(cairo_cpu_air_tests);
+    context.b.step(
+        "test-cairo-cpu-air",
+        "Run Cairo CPU AIR integration tests",
+    ).dependOn(&run_cairo_cpu_air_tests.step);
+
+    const cairo_cpu_proof_test_root = consumer(
+        context,
+        protocol,
+        "src/tests/cairo/cpu_proof_test.zig",
+    );
+    cairo_cpu_proof_test_root.addImport("stwo", stwo);
+    const cairo_cpu_proof_tests = context.b.addTest(.{
+        .root_module = cairo_cpu_proof_test_root,
+    });
+    const run_cairo_cpu_proof_tests = context.b.addRunArtifact(cairo_cpu_proof_tests);
+    context.b.step(
+        "test-cairo-cpu-proof",
+        "Run the complete official Cairo CPU proof gate",
+    ).dependOn(&run_cairo_cpu_proof_tests.step);
+
     const opcode = consumer(context, protocol, "src/tools/riscv_opcode_manifest/main.zig");
     opcode.addImport("stwo", stwo);
     const opcode_cli = b.addExecutable(.{ .name = "riscv-opcode-manifest", .root_module = opcode });
@@ -47,16 +235,35 @@ pub fn addProducts(context: Context) void {
     dump.addArg("dump");
     b.step(
         "riscv-opcode-manifest",
-        "Dump the canonical Stark-V opcode and proof-family policy as JSON",
+        "Dump the Sail-authoritative opcode and proof-family policy as JSON",
     ).dependOn(&dump.step);
     const check = b.addRunArtifact(opcode_cli);
     check.addArg("check");
     b.step(
         "riscv-opcode-manifest-check",
-        "Validate exact Stark-V opcode IDs and execution-only classifications",
+        "Validate stable RV32IM protocol IDs and proof classifications",
     ).dependOn(&check.step);
 
     const riscv_bench = consumer(context, protocol, "src/riscv_bench_cli.zig");
+    riscv_bench.addImport("stwo_cpu_backend", cpu_backend);
+    const bench_riscv_frontend = graph.addRiscVFrontendImport(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        riscv_bench,
+    );
+    _ = integration_graph.addRiscVCpuImport(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        cpu_backend,
+        bench_riscv_frontend,
+        riscv_bench,
+    );
     addExecutable(context, riscv_bench, "riscv-bench", "riscv-bench", "Build RISC-V benchmark CLI", false);
 
     const native_bench = consumer(context, protocol, "src/tools/native_proof_bench/cpu.zig");
@@ -78,7 +285,12 @@ fn consumer(
     source: []const u8,
 ) *std.Build.Module {
     const module = context.b.createModule(.{
-        .root_source_file = context.b.path(source),
+        .root_source_file = graph.source(
+            context.b,
+            source,
+            context.target,
+            context.optimize,
+        ),
         .target = context.target,
         .optimize = context.optimize,
     });

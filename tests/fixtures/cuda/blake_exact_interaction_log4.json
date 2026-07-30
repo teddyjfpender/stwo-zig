@@ -1,0 +1,195 @@
+{
+  "schema_version": 1,
+  "oracle": {
+    "implementation": "stwo-zig Native CPU exact Blake",
+    "interaction_source_commit": "f76dc820e056f1de9deedf70e9d4ea8a47677c9f",
+    "statement_source_commit": "74eaa5f0ed753744d002b0837df86a2d5e571342",
+    "upstream_rust_commit": "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2",
+    "protocol": {
+      "name": "smoke",
+      "pow_bits": 0,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "n_queries": 3,
+      "fold_step": 1
+    },
+    "canonical_proof_sha256": "fb45e312d48f33d70e6798af370ba7ade1e88c3a4712d0fd81ae132ff723e1a9"
+  },
+  "statement": {
+    "log_n_rows": 4,
+    "n_rounds": 10
+  },
+  "relations": [
+    {
+      "name": "blake",
+      "z": [947361643, 1603315059, 1467348368, 936890950],
+      "alpha": [387591564, 1219894290, 1383631337, 1091622967]
+    },
+    {
+      "name": "round",
+      "z": [420351510, 666396308, 199090669, 1857193856],
+      "alpha": [812509864, 1169169791, 926738808, 341875029]
+    },
+    {
+      "name": "xor_12",
+      "z": [225638163, 811842647, 1390904198, 730211505],
+      "alpha": [1965818016, 248752093, 681258335, 481876655]
+    },
+    {
+      "name": "xor_9",
+      "z": [130711077, 1583313002, 636416370, 1094118030],
+      "alpha": [1323676023, 1412899603, 1461847192, 1849541871]
+    },
+    {
+      "name": "xor_8",
+      "z": [1461197385, 86799400, 636738199, 1840234023],
+      "alpha": [11743939, 648828394, 1056331370, 1765073654]
+    },
+    {
+      "name": "xor_7",
+      "z": [506635301, 2146516575, 856376061, 2060772769],
+      "alpha": [1557638499, 1491527467, 229627928, 1259233689]
+    },
+    {
+      "name": "xor_4",
+      "z": [1723714602, 1879138817, 1803823168, 2036025498],
+      "alpha": [1531196252, 538861782, 1596795258, 1208869535]
+    }
+  ],
+  "components": [
+    {
+      "name": "scheduler",
+      "log_rows": 4,
+      "secure_columns": 6,
+      "base_columns": 24,
+      "trace_sha256": "e184a163665d688bc98655a6160f76b014252e26a96470335e96a1d4f6988a14",
+      "claim": [1379298722, 610605922, 702793911, 1546228115]
+    },
+    {
+      "name": "round_split_3",
+      "log_rows": 7,
+      "secure_columns": 65,
+      "base_columns": 260,
+      "trace_sha256": "50566caefb97e8e6f54de03f3a87373cf9aa215abf8a5aa068c50c5368bf3db9",
+      "claim": [772622206, 1915781646, 1028423020, 740645882]
+    },
+    {
+      "name": "round_split_1",
+      "log_rows": 5,
+      "secure_columns": 65,
+      "base_columns": 260,
+      "trace_sha256": "0df620ce76594449dd11790a2ee2f40d7aab7a059420eb7334ee9ffca184d13e",
+      "claim": [2058644696, 458469923, 8556666, 57300972]
+    },
+    {
+      "name": "xor_12",
+      "log_rows": 16,
+      "secure_columns": 128,
+      "base_columns": 512,
+      "trace_sha256": "39c5b5d927798a476c8e97ee9c5514cdaa61e488c3420c511f18387c7b680280",
+      "claim": [2116635193, 1076066180, 1978428184, 1237784984]
+    },
+    {
+      "name": "xor_9",
+      "log_rows": 14,
+      "secure_columns": 8,
+      "base_columns": 32,
+      "trace_sha256": "01c2c9c64fe596b035d063c8578bb54e46ebd3c4cdcacb95142415901c5c3b1e",
+      "claim": [646584014, 979391086, 1867373871, 418920256]
+    },
+    {
+      "name": "xor_8",
+      "log_rows": 12,
+      "secure_columns": 8,
+      "base_columns": 32,
+      "trace_sha256": "b8a18d4b4e50b4f50805f3250c45e2599e0446f74fd6d443499156455eb435c2",
+      "claim": [1990345679, 242512552, 2034263600, 1378709946]
+    },
+    {
+      "name": "xor_7",
+      "log_rows": 10,
+      "secure_columns": 8,
+      "base_columns": 32,
+      "trace_sha256": "a10f9d0bdc0b940d86a593b9ca7c91942b403a065c2a516ac8fdea17de4690c7",
+      "claim": [272811593, 118292426, 1006520320, 375878078]
+    },
+    {
+      "name": "xor_4",
+      "log_rows": 8,
+      "secure_columns": 1,
+      "base_columns": 4,
+      "trace_sha256": "456f1b6b6b20d8db8eae28c88ef654b169006380786867b246e6a47ee12b8b19",
+      "claim": [1500476132, 1041331206, 2111058663, 686982708]
+    }
+  ],
+  "statement1": {
+    "public_order_from_component": [0, 3, 4, 5, 6, 7, 1, 2],
+    "component_order_from_public": [0, 6, 7, 1, 2, 3, 4, 5]
+  },
+  "synthetic_builder": [
+    {
+      "name": "scheduler",
+      "log_rows": 3,
+      "secure_columns": 6,
+      "seed": 4096,
+      "trace_sha256": "a087825246648ab553bd62360a12cff2e8ac96598125e58ce4d7113700a993bb",
+      "claim": [1578082647, 1866160203, 428668787, 555237685]
+    },
+    {
+      "name": "round_split_3",
+      "log_rows": 4,
+      "secure_columns": 65,
+      "seed": 69632,
+      "trace_sha256": "12fe04799ee2e6c7a3b79831a3b20eba47f50b23a4d8bc1120d22a0d92cce6f6",
+      "claim": [1079323484, 526213696, 860746278, 330347776]
+    },
+    {
+      "name": "round_split_1",
+      "log_rows": 3,
+      "secure_columns": 65,
+      "seed": 135168,
+      "trace_sha256": "6a61f2961ede81b51d22c7e2bc0c364bb57333051610a6223cefed6c89b42189",
+      "claim": [1346729517, 481026205, 1322103319, 592693273]
+    },
+    {
+      "name": "xor_12",
+      "log_rows": 5,
+      "secure_columns": 128,
+      "seed": 200704,
+      "trace_sha256": "5a6c2feedc8af1d1900d4f6a9c8f9634eaf216849582197db714a00b6885dbc7",
+      "claim": [522437203, 631065871, 1961627510, 2136588089]
+    },
+    {
+      "name": "xor_9",
+      "log_rows": 4,
+      "secure_columns": 8,
+      "seed": 266240,
+      "trace_sha256": "0f42b49f6978798e4ecacf35dd734642695d776e51fa1e4c75178a5773ac2c5a",
+      "claim": [2130380412, 1301926477, 2004342623, 1269021843]
+    },
+    {
+      "name": "xor_8",
+      "log_rows": 3,
+      "secure_columns": 8,
+      "seed": 331776,
+      "trace_sha256": "300305b0677fe001e6e00681e11cbf66ab34ab091d49a79acc84c26bfd2850c6",
+      "claim": [154130544, 420580654, 792697245, 1772376380]
+    },
+    {
+      "name": "xor_7",
+      "log_rows": 2,
+      "secure_columns": 8,
+      "seed": 397312,
+      "trace_sha256": "4d6521d84330013cbcec5e15cc15665bb71ed337d1725043f99729e9469021e3",
+      "claim": [1153068370, 295046885, 882931442, 1661032481]
+    },
+    {
+      "name": "xor_4",
+      "log_rows": 3,
+      "secure_columns": 1,
+      "seed": 462848,
+      "trace_sha256": "1b572c9a48554746629abc0495e56cc570e00cd4149df64f78903fceefdfb32f",
+      "claim": [1810619669, 1009949812, 1136777175, 751952190]
+    }
+  ]
+}

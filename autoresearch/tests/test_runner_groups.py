@@ -8,6 +8,7 @@ import os
 import shlex
 import sys
 import tempfile
+import textwrap
 import unittest
 from unittest import mock
 from pathlib import Path
@@ -15,6 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "cli"))
 from stwo_perf import manifest as manifest_mod, runner
 from stwo_perf.manifest import Manifest
+from scripts.tests.test_native_cuda_diagnostic import FAKE_PRODUCT
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -153,6 +155,36 @@ class RunnerGroupTest(unittest.TestCase):
         raw = make_raw(**kwargs)
         manifest_mod._validate(raw)  # fixture must be a valid v2 manifest
         return Manifest(root=self.root, raw=raw)
+
+    def _cuda_manifest(self) -> Manifest:
+        raw = make_raw(riscv_enabled=False)
+        raw["workload_registry"]["groups"]["native_cuda"] = {
+            "enabled": True,
+            "promotion_eligible": False,
+            "board": "core_cuda",
+            "build_step": "true",
+            "binary": "bin/cudabench",
+            "report_schema": "native_cuda_product_v6",
+            "correctness_oracle": {
+                "authority": "pinned-rust-stwo",
+                "repository": "https://github.com/starkware-libs/stwo",
+                "commit": "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2",
+                "final_validator": True,
+            },
+            "workloads": {
+                "cuda_wf": {
+                    "class": "wide",
+                    "args": (
+                        "prove --air wide_fibonacci --backend cuda "
+                        "--protocol raw-stwo-wide-v1 --log-n-rows 5 "
+                        "--sequence-len 8 --repeat {samples}"
+                    ),
+                    "native_unit": "committed cells",
+                },
+            },
+        }
+        manifest_mod._validate(raw)
+        return Manifest(self.root, raw)
 
     def _set_riscv_phase(self, promoted: bool) -> None:
         capability = self.root / "src/products/riscv_cpu/capabilities.zig"
@@ -370,6 +402,54 @@ class RunnerGroupTest(unittest.TestCase):
         with self.assertRaisesRegex(runner.RunError, "non-JSON output"):
             runner.bench_once(
                 self.root, manifest, workload, 0, 1, self.out_dir, "a1",
+            )
+
+    def test_cuda_bench_parses_retained_product_v6_fail_closed(self):
+        binary = self.root / "bin" / "cudabench"
+        binary.write_text(textwrap.dedent(FAKE_PRODUCT).lstrip())
+        binary.chmod(0o755)
+        manifest = self._cuda_manifest()
+        workload = manifest.workloads("wide", board="core_cuda")[0]
+
+        result = runner.bench_once(
+            self.root,
+            manifest,
+            workload,
+            1,
+            2,
+            self.out_dir,
+            "a1",
+        )
+
+        self.assertEqual(2, result.proof_verified)
+        self.assertTrue(result.byte_identical)
+        self.assertGreater(result.prove_ms, 0)
+        self.assertGreater(result.request_ms, result.prove_ms)
+        self.assertIsNotNone(result.mechanism["residency"])
+        self.assertTrue(
+            (self.out_dir / "cuda_wf.a1.proof.json").is_file()
+        )
+        report = json.loads(
+            (self.out_dir / "cuda_wf.a1.product.json").read_text()
+        )
+        self.assertEqual(4, report["process_repetition"]["count"])
+
+    def test_cuda_bench_rejects_fallback_report(self):
+        binary = self.root / "bin" / "cudabench"
+        binary.write_text(textwrap.dedent(FAKE_PRODUCT).lstrip())
+        binary.chmod(0o755)
+        manifest = self._cuda_manifest()
+        workload = manifest.workloads("wide", board="core_cuda")[0]
+        with mock.patch.dict(os.environ, {"FAKE_CUDA_MODE": "fallback"}), \
+                self.assertRaisesRegex(runner.RunError, "fallback"):
+            runner.bench_once(
+                self.root,
+                manifest,
+                workload,
+                0,
+                1,
+                self.out_dir,
+                "a1",
             )
 
     def test_native_report_resource_admission_fails_closed(self):
@@ -636,7 +716,7 @@ class RunnerGroupTest(unittest.TestCase):
         with mock.patch.object(
             runner, "_native_rust_oracle_check", return_value={"oracle": "native"},
         ) as native_check, mock.patch.object(
-            runner, "_riscv_stark_v_oracle_check", return_value={"oracle": "riscv"},
+            runner, "_riscv_sail_oracle_check", return_value={"oracle": "riscv"},
         ) as riscv_check:
             self.assertEqual(
                 "native",
@@ -652,7 +732,7 @@ class RunnerGroupTest(unittest.TestCase):
         with mock.patch.object(
             runner, "_native_rust_oracle_check", return_value={"oracle": "native"},
         ) as native_check, mock.patch.object(
-            runner, "_riscv_stark_v_oracle_check", return_value={"oracle": "riscv"},
+            runner, "_riscv_sail_oracle_check", return_value={"oracle": "riscv"},
         ) as riscv_check:
             self.assertEqual(
                 "riscv",
@@ -663,16 +743,61 @@ class RunnerGroupTest(unittest.TestCase):
             riscv_check.assert_called_once()
             native_check.assert_not_called()
 
-    def test_riscv_oracle_validates_anchor_and_retained_artifact_without_rebuild(self):
+        cuda = self._cuda_manifest()
+        cuda_workload = cuda.workloads("wide", board="core_cuda")[0]
+        with mock.patch.object(
+            runner, "_cuda_rust_oracle_check", return_value={"oracle": "cuda"},
+        ) as cuda_check:
+            self.assertEqual(
+                "cuda",
+                runner.rust_oracle_check(
+                    self.root, cuda, cuda_workload, self.out_dir,
+                )["oracle"],
+            )
+            cuda_check.assert_called_once()
+
+    def test_cuda_oracle_emits_artifact_bound_rust_receipt(self):
+        binary = self.root / "bin" / "cudabench"
+        binary.write_text(textwrap.dedent(FAKE_PRODUCT).lstrip())
+        binary.chmod(0o755)
+        oracle = (
+            self.root
+            / "tools/stwo-interop-rs/target/release/stwo-interop-rs"
+        )
+        oracle.parent.mkdir(parents=True)
+        oracle.write_text("#!/bin/sh\nexit 0\n")
+        oracle.chmod(0o755)
+        manifest = self._cuda_manifest()
+        group = manifest.group("native_cuda")
+        workload = manifest.workloads("wide", board="core_cuda")[0]
+
+        receipt = runner._cuda_rust_oracle_check(
+            self.root,
+            group,
+            workload,
+            self.out_dir,
+        )
+
+        self.assertTrue(receipt["verified"])
+        self.assertEqual("pinned-rust-stwo", receipt["oracle"])
+        self.assertEqual(
+            hashlib.sha256(oracle.read_bytes()).hexdigest(),
+            receipt["oracle_binary_sha256"],
+        )
+        self.assertRegex(receipt["canonical_proof_sha256"], r"^[0-9a-f]{64}$")
+
+    def test_riscv_oracle_validates_sail_evidence_and_retained_artifact(self):
         self._set_riscv_phase(promoted=True)
-        script = self.root / "scripts/riscv_release_evidence.py"
+        script = self.root / "scripts/riscv_sail_gate.py"
         script.parent.mkdir(parents=True)
         script.write_text("# fixture\n")
         manifest = self._riscv_manifest()
         group = manifest.group("riscv")
         object.__setattr__(group, "correctness_oracle", {
-            "authority": "stark-v",
-            "commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+            "authority": "sail-riscv",
+            "repository": "https://github.com/riscv/sail-riscv",
+            "commit": "8c7f2da58de0ba5e4457e4de07e0046f0439f35f",
+            "final_validator": True,
         })
         workload = manifest.workloads("wide", board="riscv")[0]
         _bench_commands, bench_run = self._riscv_run("release_gated", False)
@@ -680,21 +805,23 @@ class RunnerGroupTest(unittest.TestCase):
             runner.bench_once(
                 self.root, manifest, workload, 0, 1, self.out_dir, "b1",
             )
-        anchor = self.root / "release-anchor.json"
-        anchor.write_text(json.dumps({
-            "schema": "riscv-oracle-receipt-v2",
-            "candidate_commit": "a" * 40,
-            "verdict": "PASS",
-            "oracle": {
-                "commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+        evidence = self.root / "sail-evidence.json"
+        evidence.write_text(json.dumps({
+            "schema": "stwo-riscv-formal-corpus-evidence-v1",
+            "result": "equivalent",
+            "semantic_authority": "Sail",
+            "independent_cross_check": "Spike",
+            "programs": 17,
+            "retirements": 472827,
+            "sail": {
+                "repository_revision": "8c7f2da58de0ba5e4457e4de07e0046f0439f35f",
             },
         }))
         object.__setattr__(group, "correctness_oracle", {
             **group.correctness_oracle,
-            "release_anchor": {
-                "receipt": "release-anchor.json",
-                "sha256": hashlib.sha256(anchor.read_bytes()).hexdigest(),
-                "candidate_commit": "a" * 40,
+            "evidence": {
+                "path": "sail-evidence.json",
+                "sha256": hashlib.sha256(evidence.read_bytes()).hexdigest(),
             },
         })
         report = json.loads((self.out_dir / "riscv_alu.b1.json").read_text())
@@ -712,27 +839,31 @@ class RunnerGroupTest(unittest.TestCase):
 
         with mock.patch.dict(os.environ, {}, clear=True), \
                 mock.patch.object(runner, "_run", side_effect=fake_run):
-            result = runner._riscv_stark_v_oracle_check(
+            result = runner._riscv_sail_oracle_check(
                 self.root, group, workload, self.out_dir,
             )
-        self.assertEqual(result["oracle"], "pinned-stark-v-release-anchor")
-        self.assertTrue(any("riscv_release_evidence.py" in command and
-                            "--at-receipt-time" in command for command in commands))
+        self.assertEqual(result["oracle"], "pinned-sail-corpus-evidence")
+        self.assertTrue(any(
+            "riscv_sail_gate.py" in command and command.endswith(" bind")
+            for command in commands
+        ))
         self.assertTrue(any(" verify " in f" {command} " for command in commands))
         self.assertFalse(any("build-and-compare" in command for command in commands))
         self.assertFalse(any("stwo-interop-rs" in command for command in commands))
 
-    def test_riscv_oracle_requires_precomputed_release_anchor(self):
+    def test_riscv_oracle_requires_precomputed_sail_evidence(self):
         manifest = self._riscv_manifest()
         group = manifest.group("riscv")
         object.__setattr__(group, "correctness_oracle", {
-            "authority": "stark-v",
-            "commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+            "authority": "sail-riscv",
+            "repository": "https://github.com/riscv/sail-riscv",
+            "commit": "8c7f2da58de0ba5e4457e4de07e0046f0439f35f",
+            "final_validator": True,
         })
         workload = manifest.workloads("wide", board="riscv")[0]
         with mock.patch.dict(os.environ, {}, clear=True), \
-                self.assertRaisesRegex(runner.RunError, "RELEASE_ANCHOR_RECEIPT"):
-            runner._riscv_stark_v_oracle_check(
+                self.assertRaisesRegex(runner.RunError, "RISCV_SAIL_EVIDENCE"):
+            runner._riscv_sail_oracle_check(
                 self.root, group, workload, self.out_dir,
             )
 
@@ -757,7 +888,7 @@ class RunnerGroupTest(unittest.TestCase):
         group = manifest.group("riscv")
         workload = manifest.workloads("wide", board="riscv")[0]
         with self.assertRaisesRegex(runner.RunError, "not bound to the pinned"):
-            runner._riscv_stark_v_oracle_check(
+            runner._riscv_sail_oracle_check(
                 self.root, group, workload, self.out_dir,
             )
 

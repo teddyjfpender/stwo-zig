@@ -6,7 +6,7 @@
 
 const std = @import("std");
 const claim_generator = @import("../claim_generator.zig");
-const claim_registry = @import("../claim_registry.zig");
+const claim_registry = @import("../air/official_claim_registry.zig");
 const witness_bundle = @import("../witness/bundle.zig");
 
 pub const Error = error{

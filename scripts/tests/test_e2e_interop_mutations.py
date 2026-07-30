@@ -12,9 +12,12 @@ from typing import Any
 from scripts.e2e_interop_lib.mutations import (
     ACTIVE_MUTATIONS,
     M31_MODULUS,
+    PLONK_LOGUP_ORACLE_MUTATIONS,
     SUPPORTED_EXAMPLES,
     coverage_manifest,
     mutate_artifact,
+    plonk_logup_oracle_coverage_manifest,
+    mutations_for_example,
 )
 
 
@@ -31,7 +34,7 @@ def proof_wire() -> dict[str, Any]:
             },
             "lifting_log_size": None,
         },
-        "commitments": [digest],
+        "commitments": [digest, digest, digest, digest],
         "sampled_values": [[[[1, 2, 3, 4]]]],
         "decommitments": [{"hash_witness": [digest]}],
         "queried_values": [[[1]]],
@@ -52,14 +55,29 @@ def artifact(example: str) -> dict[str, Any]:
     statements = {
         "blake_statement": None,
         "plonk_statement": None,
+        "plonk_logup_statement": None,
         "poseidon_statement": None,
         "state_machine_statement": None,
         "wide_fibonacci_statement": None,
         "xor_statement": None,
     }
     values = {
-        "blake": ("blake_statement", {"log_n_rows": 8, "n_rounds": 1}),
+        "blake": (
+            "blake_statement",
+            {
+                "stmt0": {"log_size": 8},
+                "stmt1": {
+                    "scheduler_claimed_sum": [1, 2, 3, 4],
+                    "round_claimed_sums": [[1, 2, 3, 4], [5, 6, 7, 8]],
+                    "xor_claimed_sums": [[1, 2, 3, 4]] * 5,
+                },
+            },
+        ),
         "plonk": ("plonk_statement", {"log_n_rows": 8}),
+        "plonk_logup": (
+            "plonk_logup_statement",
+            {"log_n_rows": 8, "claimed_sum": [1, 2, 3, 4]},
+        ),
         "poseidon": ("poseidon_statement", {"log_n_instances": 8}),
         "state_machine": (
             "state_machine_statement",
@@ -76,7 +94,15 @@ def artifact(example: str) -> dict[str, Any]:
             "wide_fibonacci_statement",
             {"log_n_rows": 8, "sequence_len": 16},
         ),
-        "xor": ("xor_statement", {"log_size": 8, "log_step": 2, "offset": 1}),
+        "xor": (
+            "xor_statement",
+            {
+                "log_size": 8,
+                "log_step": 2,
+                "offset": 1,
+                "claimed_sum": [0, 0, 0, 0],
+            },
+        ),
     }
     statement_name, statement = values[example]
     statements[statement_name] = statement
@@ -139,7 +165,8 @@ class InteropMutationTests(unittest.TestCase):
                 original = artifact(example)
                 source.write_text(json.dumps(original), encoding="utf-8")
                 digests: set[str] = set()
-                for spec in ACTIVE_MUTATIONS:
+                applicable = mutations_for_example(example)
+                for spec in applicable:
                     with self.subTest(example=example, mutation=spec.mutation_id):
                         destination = root / f"{example}-{spec.mutation_id}.json"
                         mutate_artifact(source, destination, spec, example=example)
@@ -149,8 +176,24 @@ class InteropMutationTests(unittest.TestCase):
                         )
                         self.assertEqual(len(differences), 1, differences)
                         digests.add(destination.read_bytes().hex())
-                self.assertEqual(len(digests), len(ACTIVE_MUTATIONS))
+                self.assertEqual(len(digests), len(applicable))
                 self.assertEqual(json.loads(source.read_text(encoding="utf-8")), original)
+
+    def test_plonk_logup_oracle_mutations_are_independent(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "plonk_logup.json"
+            original = artifact("plonk_logup")
+            source.write_text(json.dumps(original), encoding="utf-8")
+            for spec in PLONK_LOGUP_ORACLE_MUTATIONS:
+                with self.subTest(mutation=spec.mutation_id):
+                    destination = root / f"{spec.mutation_id}.json"
+                    mutate_artifact(source, destination, spec, example="plonk_logup")
+                    mutated = json.loads(destination.read_text(encoding="utf-8"))
+                    differences = differing_leaves(
+                        semantic_artifact(original), semantic_artifact(mutated)
+                    )
+                    self.assertEqual(len(differences), 1, differences)
 
     def test_mutations_remain_canonical_field_values(self) -> None:
         self.assertGreater(M31_MODULUS, 0)
@@ -161,12 +204,23 @@ class InteropMutationTests(unittest.TestCase):
         self.assertIn("outer_fold_step", ids)
         self.assertIn("outer_lifting_log_size", ids)
         self.assertIn("transcript_bound_sampled_value", ids)
+        self.assertIn("xor_commitment_count_missing", ids)
+        self.assertIn("xor_commitment_count_extra", ids)
+        self.assertIn("state_machine_stmt0_n", ids)
+        self.assertIn("state_machine_stmt0_m", ids)
+        self.assertIn("state_machine_x_axis_claimed_sum", ids)
+        self.assertIn("state_machine_y_axis_claimed_sum", ids)
+        self.assertIn("state_machine_commitment_count_missing", ids)
+        self.assertIn("state_machine_commitment_count_extra", ids)
 
     def test_coverage_names_all_required_and_not_applicable_surfaces(self) -> None:
         coverage = coverage_manifest(list(SUPPORTED_EXAMPLES))
         self.assertEqual(
             coverage["required_cases"],
-            len(SUPPORTED_EXAMPLES) * 2 * len(ACTIVE_MUTATIONS),
+            sum(
+                len(mutations_for_example(example)) * 2
+                for example in SUPPORTED_EXAMPLES
+            ),
         )
         self.assertEqual(
             {entry["mutation_id"] for entry in coverage["applicable"]},
@@ -176,6 +230,15 @@ class InteropMutationTests(unittest.TestCase):
         self.assertEqual(len(not_applicable), 1)
         self.assertEqual(not_applicable[0]["mutation_id"], "serialized_transcript_challenge")
         self.assertIn("no Fiat-Shamir transcript state", not_applicable[0]["reason"])
+
+        exact = plonk_logup_oracle_coverage_manifest()
+        self.assertEqual(
+            exact["required_cases"], len(PLONK_LOGUP_ORACLE_MUTATIONS)
+        )
+        self.assertEqual(
+            {entry["mutation_id"] for entry in exact["applicable"]},
+            {spec.mutation_id for spec in PLONK_LOGUP_ORACLE_MUTATIONS},
+        )
 
 
 if __name__ == "__main__":

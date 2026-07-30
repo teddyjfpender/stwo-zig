@@ -2,13 +2,13 @@ const std = @import("std");
 const fri = @import("stwo_core").fri;
 const m31 = @import("stwo_core").fields.m31;
 const pcs = @import("stwo_core").pcs;
-const host_merkle = @import("stwo_prover_impl").vcs_lifted.prover;
-const proof_wire = @import("../../../interop/proof_wire.zig");
-const wide_fibonacci = @import("../../../examples/wide_fibonacci.zig");
-const CpuBackend = @import("../../../backends/cpu_scalar/mod.zig").CpuBackend;
-const MetalBackend = @import("../../../backends/metal/commit_backend.zig").MetalCommitBackend;
-const MetalTree = @import("../../../backends/metal/merkle_tree.zig").MetalMerkleTree(wide_fibonacci.Hasher);
-const shared_runtime = @import("../../../backends/metal/shared_runtime.zig");
+const host_merkle = @import("stwo_prover_engine").vcs_lifted.prover;
+const proof_wire = @import("stwo_proof_wire");
+const wide_fibonacci = @import("stwo_native_examples").wide_fibonacci;
+const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
+const MetalBackend = @import("stwo_metal_backend").commit_backend.MetalCommitBackend;
+const MetalTree = @import("stwo_metal_backend").merkle_tree.MetalMerkleTree(wide_fibonacci.Hasher);
+const shared_runtime = @import("stwo_metal_backend").shared_runtime;
 
 const M31 = m31.M31;
 
@@ -182,13 +182,14 @@ test "metal: failure after combined commitment ownership transfer releases the a
 }
 
 test "metal: quotient residency has no runtime-wide discovery surface" {
-    const runtime_source = @embedFile("../../../backends/metal/runtime.m");
-    const quotient_source = @embedFile("../../../backends/metal/runtime/quotients.m");
+    const source_contract = @import("stwo_metal_backend").source_contract;
+    const runtime_source = source_contract.runtime;
+    const quotient_source = source_contract.quotients;
     try std.testing.expect(std.mem.indexOf(u8, runtime_source, "residentTraceTrees") == null);
     try std.testing.expect(std.mem.indexOf(u8, runtime_source, "compositionTraceBuffer") == null);
     try std.testing.expect(std.mem.indexOf(u8, quotient_source, "resident_tree_handles") != null);
     try std.testing.expect(std.mem.indexOf(u8, quotient_source, "runtimeOwner != runtime") != null);
-    const composition_source = @embedFile("../../../backends/metal/runtime/composition.m");
+    const composition_source = source_contract.composition;
     try std.testing.expect(std.mem.indexOf(u8, composition_source, "resident_tree_handle") != null);
     try std.testing.expect(std.mem.indexOf(u8, composition_source, "runtimeOwner != runtime") != null);
 }

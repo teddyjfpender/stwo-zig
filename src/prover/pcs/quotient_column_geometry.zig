@@ -1,54 +1,17 @@
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const pcs_utils = @import("stwo_core").pcs.utils;
+const prover_api = @import("stwo_prover_api");
 
 const M31 = m31.M31;
 const TreeVec = pcs_utils.TreeVec;
 
-pub const QuotientOpsError = error{
-    ShapeMismatch,
-    InvalidColumnLogSize,
-    InvalidColumnLength,
-};
-
-/// Borrowed evaluations of one circle-domain column.
-///
-/// Lifting preserves Stwo's circle-domain storage order: each source pair is
-/// repeated across the corresponding pair-aligned block in the larger domain.
-pub const ColumnEvaluation = struct {
-    log_size: u32,
-    values: []const M31,
-
-    pub fn validate(self: ColumnEvaluation) QuotientOpsError!void {
-        const expected_len = try checkedPow2(self.log_size);
-        if (self.values.len != expected_len) return QuotientOpsError.InvalidColumnLength;
-    }
-
-    pub fn valueAtLiftingPosition(
-        self: ColumnEvaluation,
-        lifting_log_size: u32,
-        position: usize,
-    ) QuotientOpsError!M31 {
-        try self.validate();
-        if (self.log_size > lifting_log_size) return QuotientOpsError.InvalidColumnLogSize;
-
-        const lifting_domain_size = try checkedPow2(lifting_log_size);
-        if (position >= lifting_domain_size) return QuotientOpsError.ShapeMismatch;
-
-        const log_shift = lifting_log_size - self.log_size;
-        if (log_shift >= @bitSizeOf(usize)) return QuotientOpsError.InvalidColumnLogSize;
-        const shift_amt: std.math.Log2Int(usize) = @intCast(log_shift + 1);
-
-        const index = ((position >> shift_amt) << 1) + (position & 1);
-        if (index >= self.values.len) return QuotientOpsError.InvalidColumnLength;
-        return self.values[index];
-    }
-};
+pub const QuotientOpsError = prover_api.QuotientOpsError;
+pub const ColumnEvaluation = prover_api.ColumnEvaluation;
 
 /// Returns the exact domain size for a representable binary log size.
 pub fn checkedPow2(log_size: u32) QuotientOpsError!usize {
-    if (log_size >= @bitSizeOf(usize)) return QuotientOpsError.InvalidColumnLogSize;
-    return @as(usize, 1) << @intCast(log_size);
+    return prover_api.column.checkedPow2(log_size);
 }
 
 /// Flattens tree-major columns without taking ownership of their evaluations.

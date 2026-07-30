@@ -28,6 +28,10 @@ pub fn ComponentAdapter(
                 .vtable = &.{
                     .nConstraints = nConstraints,
                     .maxConstraintLogDegreeBound = maxConstraintLogDegreeBound,
+                    .compositionLogSplit = if (@hasDecl(Impl, "compositionLogSplit"))
+                        compositionLogSplit
+                    else
+                        null,
                     .traceLogDegreeBounds = traceLogDegreeBounds,
                     .maskPoints = maskPoints,
                     .preprocessedColumnIndices = preprocessedColumnIndices,
@@ -42,6 +46,10 @@ pub fn ComponentAdapter(
                 .vtable = &.{
                     .nConstraints = nConstraints,
                     .maxConstraintLogDegreeBound = maxConstraintLogDegreeBound,
+                    .compositionLogSplit = if (@hasDecl(Impl, "compositionLogSplit"))
+                        compositionLogSplit
+                    else
+                        null,
                     .traceLogDegreeBounds = traceLogDegreeBounds,
                     .maskPoints = maskPoints,
                     .preprocessedColumnIndices = preprocessedColumnIndices,
@@ -61,6 +69,10 @@ pub fn ComponentAdapter(
 
         fn maxConstraintLogDegreeBound(ctx: *const anyopaque) u32 {
             return cast(ctx).maxConstraintLogDegreeBound();
+        }
+
+        fn compositionLogSplit(ctx: *const anyopaque) u32 {
+            return cast(ctx).compositionLogSplit();
         }
 
         fn traceLogDegreeBounds(

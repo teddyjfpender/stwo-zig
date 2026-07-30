@@ -6,6 +6,7 @@ const w = @import("writer.zig");
 const Comparison = struct {
     lhs_msb: M31,
     rhs_msb: M31,
+    less: bool,
     markers: [4]u32,
     difference: M31,
 };
@@ -22,6 +23,7 @@ fn compare(lhs: u32, rhs: u32, signed: bool) Comparison {
     var result = Comparison{
         .lhs_msb = lhs_msb,
         .rhs_msb = rhs_msb,
+        .less = less,
         .markers = .{0} ** 4,
         .difference = M31.zero(),
     };
@@ -51,12 +53,13 @@ pub fn reg(columns: anytype, index: usize, row: anytype) void {
     w.rd(columns, index, 2, row);
     w.rs1(columns, index, 12, row);
     w.rs2(columns, index, 22, row);
-    w.set(columns, index, 32, w.bit(row.rd_val == 1));
+    w.set(columns, index, 32, w.bit(result.less));
     writeComparison(columns, index, 33, result);
     w.set(columns, index, 35, w.bit(signed));
     w.set(columns, index, 36, w.bit(!signed));
     for (result.markers, 0..) |marker, i| w.set(columns, index, 37 + i, w.u(marker));
     w.set(columns, index, 41, result.difference);
+    w.destination(columns, index, 42, row.rd);
 }
 
 pub fn immediate(columns: anytype, index: usize, row: anytype) void {
@@ -67,7 +70,7 @@ pub fn immediate(columns: anytype, index: usize, row: anytype) void {
     w.common(columns, index, 0, row);
     w.rd(columns, index, 2, row);
     w.rs1(columns, index, 12, row);
-    w.set(columns, index, 22, w.bit(row.rd_val == 1));
+    w.set(columns, index, 22, w.bit(result.less));
     w.set(columns, index, 23, result.lhs_msb);
     w.set(columns, index, 24, w.u(bits & 0xff));
     w.set(columns, index, 25, w.u((bits >> 8) & 0x7));
@@ -76,6 +79,8 @@ pub fn immediate(columns: anytype, index: usize, row: anytype) void {
     w.set(columns, index, 28, w.bit(!signed));
     for (result.markers, 0..) |marker, i| w.set(columns, index, 29 + i, w.u(marker));
     w.set(columns, index, 33, result.difference);
+    w.destination(columns, index, 34, row.rd);
+    w.set(columns, index, 36, result.rhs_msb);
 }
 
 pub fn branchEqual(columns: anytype, index: usize, row: anytype) void {

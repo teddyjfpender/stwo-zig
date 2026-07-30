@@ -1,0 +1,60 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_metal_backend",
+  "version": "0.1.0",
+  "layer": "backend",
+  "owner": "metal-backend",
+  "public_modules": {
+    "stwo_metal_backend": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_backend_contracts": "../../backend",
+    "stwo_core": "../../core",
+    "stwo_prover_api": "../../prover_api",
+    "stwo_prover_engine": "../../prover"
+  },
+  "injected_modules": [],
+  "api_surface": [
+    "MetalCommitBackend",
+    "MetalMerkleTree",
+    "MetalProverEngine",
+    "PlainMetalProverEngine",
+    "Runtime",
+    "Tree",
+    "arena_plan",
+    "cairo",
+    "commit_backend",
+    "commit_policy",
+    "merkle_tree",
+    "protocol_recipes",
+    "prover_engine",
+    "recipes",
+    "recovery",
+    "runtime",
+    "shaders",
+    "shared_runtime",
+    "source_contract",
+    "telemetry"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::api signature: Metal backend satisfies the declared capability contract"
+    ],
+    "invariant_tests": [
+      "commit_backend.zig::Metal commit backend exposes telemetry without constructing a runtime"
+    ]
+  },
+  "ci": {
+    "lane": "metal_backend",
+    "host": "macos",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/backends/metal/build.zig",
+      "-Doptimize=ReleaseSafe",
+      "-j2"
+    ]
+  }
+}

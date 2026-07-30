@@ -53,5 +53,11 @@ pub const LoadStoreColumns = struct {
     opcode_sb_flag: M31,
     opcode_sh_flag: M31,
     opcode_sw_flag: M31,
+    result_0: M31,
+    result_1: M31,
+    result_2: M31,
+    result_3: M31,
+    rd_nonzero: M31,
+    rd_inv: M31,
     pub const N_COLUMNS = @typeInfo(@This()).@"struct".fields.len;
 };

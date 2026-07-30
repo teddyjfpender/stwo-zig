@@ -56,11 +56,8 @@ def execute(
     authority_root: Path | None = None,
     output_dir: Path, candidate: str,
     timeout: float, run_id: str, run_attempt: str, repository: str,
-    repository_id: str, workflow_sha: str, riscv_bundle: Path,
-    native_oracle_bundle: Path,
+    repository_id: str, workflow_sha: str, native_oracle_bundle: Path,
     native_oracle_trust: Path,
-    riscv_trust_context: Path, riscv_policy_context: Path,
-    riscv_phase: str,
     executor: Callable[[list[str], Path, float], tuple[int, bytes, bytes, int]] = capture.run,
 ) -> tuple[Path, dict[str, Any]]:
     root = root.resolve()
@@ -85,12 +82,8 @@ def execute(
         "evidence_dir": output_dir.relative_to(root.resolve()).as_posix(),
         "repository": repository,
         "repository_id": repository_id,
-        "riscv_bundle": str(riscv_bundle.resolve()),
         "native_oracle_bundle": str(native_oracle_bundle.resolve()),
         "native_oracle_trust": str(native_oracle_trust.resolve()),
-        "riscv_policy_context": str(riscv_policy_context.resolve()),
-        "riscv_phase": riscv_phase,
-        "riscv_trust_context": str(riscv_trust_context.resolve()),
         "run_attempt": run_attempt,
         "run_id": run_id,
         "tree": tree,
@@ -328,15 +321,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--repository", required=True)
     parser.add_argument("--repository-id", required=True)
     parser.add_argument("--workflow-sha", required=True)
-    parser.add_argument("--riscv-bundle", type=Path, default=ROOT.parent / "riscv-bundle")
     parser.add_argument(
         "--native-oracle-bundle", type=Path,
         default=ROOT.parent / "native-oracle-bundle",
     )
     parser.add_argument("--native-oracle-trust", type=Path, required=True)
-    parser.add_argument("--riscv-trust-context", type=Path, required=True)
-    parser.add_argument("--riscv-policy-context", type=Path, required=True)
-    parser.add_argument("--riscv-phase", choices=("candidate", "promoted"), required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--plan", type=Path, default=DEFAULT_PLAN)
     parser.add_argument("--protocol", type=Path, default=DEFAULT_PROTOCOL)
@@ -350,12 +339,9 @@ def main(argv: list[str] | None = None) -> int:
             timeout=args.command_timeout_seconds,
             run_id=args.run_id, run_attempt=args.run_attempt,
             repository=args.repository, repository_id=args.repository_id,
-            workflow_sha=args.workflow_sha, riscv_bundle=args.riscv_bundle,
+            workflow_sha=args.workflow_sha,
             native_oracle_bundle=args.native_oracle_bundle,
             native_oracle_trust=args.native_oracle_trust,
-            riscv_trust_context=args.riscv_trust_context,
-            riscv_policy_context=args.riscv_policy_context,
-            riscv_phase=args.riscv_phase,
         )
     except (OSError, UnicodeError, json.JSONDecodeError, ReceiptError) as error:
         print(f"architecture host gate: FAIL: {error}", file=sys.stderr)

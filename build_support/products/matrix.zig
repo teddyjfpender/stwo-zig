@@ -9,11 +9,16 @@ const product_policy = @import("../graph/product.zig");
 const aggregate = @import("aggregate.zig");
 const aggregate_cli = @import("aggregate_cli.zig");
 const catalog_manifest = @import("catalog_manifest.zig");
+const cairo_cpu = @import("cairo_cpu.zig");
+const cairo_cuda = @import("cairo_cuda.zig");
+const cairo_metal = @import("cairo_metal.zig");
 const core = @import("core.zig");
 const native_cpu = @import("native_cpu.zig");
+const native_cuda = @import("native_cuda.zig");
 const native_metal = @import("native_metal.zig");
 const prover = @import("prover.zig");
 const riscv_cpu = @import("riscv_cpu.zig");
+const riscv_metal = @import("riscv_metal.zig");
 const specs = @import("product_specs.zig");
 
 pub const Scope = specs.Scope;
@@ -45,6 +50,27 @@ pub fn construct(context: ConstructionContext, scope: Scope) bool {
         if (spec.scope != scope or spec.constructor == .unavailable) continue;
         switch (spec.constructor) {
             .aggregate => unreachable,
+            .cairo_cpu => cairo_cpu.addProduct(.{
+                .b = context.b,
+                .target = context.target,
+                .optimize = context.optimize,
+                .identity = context.identity,
+                .protocol = graph.createPrivateProtocolModules(context.b, context.target, context.optimize),
+            }),
+            .cairo_metal => cairo_metal.addProduct(.{
+                .b = context.b,
+                .target = context.target,
+                .optimize = context.optimize,
+                .identity = context.identity,
+                .protocol = graph.createPrivateProtocolModules(context.b, context.target, context.optimize),
+            }),
+            .cairo_cuda => cairo_cuda.addProduct(.{
+                .b = context.b,
+                .target = context.target,
+                .optimize = context.optimize,
+                .identity = context.identity,
+                .protocol = graph.createPrivateProtocolModules(context.b, context.target, context.optimize),
+            }),
             .core => _ = core.addProduct(.{
                 .b = context.b,
                 .target = context.target,
@@ -73,6 +99,13 @@ pub fn construct(context: ConstructionContext, scope: Scope) bool {
                 .identity = context.identity,
                 .protocol = graph.createPrivateProtocolModules(context.b, context.target, context.optimize),
             }),
+            .native_cuda => native_cuda.addProduct(.{
+                .b = context.b,
+                .target = context.target,
+                .optimize = context.optimize,
+                .identity = context.identity,
+                .protocol = graph.createPrivateProtocolModules(context.b, context.target, context.optimize),
+            }),
             .native_metal => native_metal.addProduct(.{
                 .b = context.b,
                 .target = context.target,
@@ -81,6 +114,13 @@ pub fn construct(context: ConstructionContext, scope: Scope) bool {
                 .protocol = graph.createPrivateProtocolModules(context.b, context.target, context.optimize),
             }),
             .riscv_cpu => riscv_cpu.addProduct(.{
+                .b = context.b,
+                .target = context.target,
+                .optimize = context.optimize,
+                .identity = context.identity,
+                .protocol = graph.createPrivateProtocolModules(context.b, context.target, context.optimize),
+            }),
+            .riscv_metal => riscv_metal.addProduct(.{
                 .b = context.b,
                 .target = context.target,
                 .optimize = context.optimize,

@@ -49,7 +49,7 @@ pub fn runGenerate(allocator: std.mem.Allocator, cli: Cli) !void {
 
     switch (example) {
         .blake => {
-            const statement: blake.Statement = .{
+            const statement: blake.Request = .{
                 .log_n_rows = cli.blake_log_n_rows,
                 .n_rounds = cli.blake_n_rounds,
             };

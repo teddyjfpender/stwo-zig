@@ -52,6 +52,7 @@ def _profile_command(
         settings.samples,
         settings.protocol,
         proof_path,
+        resource_profile="large",
         blake2_backend=settings.blake2_backend,
         metal_runtime=settings.metal_runtime if metal else None,
         metal_aot_bundle=settings.metal_aot_bundle,

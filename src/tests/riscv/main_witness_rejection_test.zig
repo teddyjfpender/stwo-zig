@@ -2,14 +2,15 @@
 
 const std = @import("std");
 const pcs = @import("stwo_core").pcs;
-const riscv_cpu = @import("../../integrations/riscv_cpu/mod.zig");
-const orchestration = @import("../../frontends/riscv/prover/orchestration.zig");
-const witness_hook = @import("../../frontends/riscv/prover/test_witness_hook.zig");
-const public_data_mod = @import("../../frontends/riscv/air/public_data.zig");
-const memory_poseidon = @import("../../frontends/riscv/air/memory_commitment/poseidon2.zig");
-const runner = @import("../../frontends/riscv/runner/mod.zig");
-const trace_mod = @import("../../frontends/riscv/runner/trace.zig");
+const riscv_cpu = @import("stwo_riscv_cpu_integration");
+const orchestration = @import("stwo_riscv_frontend").testing.prover_orchestration;
+const witness_hook = @import("stwo_riscv_frontend").testing.witness_hook;
+const public_data_mod = @import("stwo_riscv_frontend").air.public_data;
+const memory_poseidon = @import("stwo_riscv_frontend").air.memory_commitment.poseidon2;
+const runner = @import("stwo_riscv_frontend").runner;
+const trace_mod = @import("stwo_riscv_frontend").runner.trace;
 const release_elf_fixture = @import("release_elf_fixture.zig");
+const strict_clock_fixture = @import("strict_clock_fixture.zig");
 
 const Mutation = orchestration.TestWitnessMutation;
 
@@ -72,6 +73,7 @@ const ReleaseFixture = struct {
             .program_root = null,
             .initial_rw_root = null,
             .final_rw_root = null,
+            .completion = public_data_mod.completionFromRun(self.run) catch unreachable,
             .io_entries = .{
                 .input_start = self.run.input_start,
                 .input_len = @intCast(self.run.input.len),
@@ -99,10 +101,12 @@ fn expectCommittedMutationRejected(fixture: *const ReleaseFixture, mutation: Mut
         fixture.publicData(),
         &channel,
         mutation,
+        null,
     ) catch |err| {
         try std.testing.expectEqual(error.ConstraintsNotSatisfied, err);
         return;
     };
+    defer output.deinitAfterProofMoved(fixture.allocator);
     try std.testing.expect(std.meta.isError(riscv_cpu.verifyRiscV(
         fixture.allocator,
         TEST_PCS_CONFIG,
@@ -155,6 +159,7 @@ test "riscv verifier distinguishes absent RW root from present default root" {
     var trace = try testAddiTrace(std.testing.allocator, 4);
     defer trace.deinit();
     const output = try riscv_cpu.proveRiscV(std.testing.allocator, TEST_PCS_CONFIG, &trace, null, null);
+    defer output.deinitAfterProofMoved(std.testing.allocator);
     try std.testing.expect(output.statement.public_data.initial_rw_root == null);
 
     var statement = output.statement;
@@ -194,6 +199,7 @@ fn testAddiTrace(allocator: std.mem.Allocator, n: usize) !trace_mod.Trace {
         .next_pc = @intCast(0x1000 + (i + 1) * 4),
         .inst_word = 0x00100093,
     });
+    strict_clock_fixture.assignRegisterClocks(trace.rows.items);
     trace.final_pc = @intCast(0x1000 + n * 4);
     return trace;
 }

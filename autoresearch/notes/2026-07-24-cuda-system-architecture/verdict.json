@@ -1,0 +1,112 @@
+{
+  "schema": "native_cuda_structural_verdict_v1",
+  "status": "qualified_checkpoint_not_promotion",
+  "generated_at_utc": "2026-07-24T12:36:57.365497+00:00",
+  "candidate": {
+    "commit": "a49a389de5cf9c40305b521b9f18747bdb999887",
+    "binary_sha256": "b7115a64c116c21f70b8f48e4d038ed658441b56babed3819c24b5e27f222d51"
+  },
+  "predecessor": {
+    "commit": "f66f7d82ec4128770ad78770a92d754729fbb92b",
+    "binary_sha256": "c7ebcdcdf6692cd21edf8411c1c253c7341e67550f37f267cbda61e09bb35e73"
+  },
+  "raw_report_sha256": "e796fa27e01d636c06bc2c0f1e43cbba5bffac9b32872ac1bba90549a61e5ebd",
+  "host": {
+    "gpu": "NVIDIA GeForce RTX 4090",
+    "compute_capability": "8.9",
+    "driver": "580.126.09",
+    "machine": "x86_64",
+    "system": "Linux"
+  },
+  "measurement": {
+    "profile": "judge",
+    "schedule": "paired_counterbalanced_ABBA",
+    "rounds": 7,
+    "warmups_per_process": 10,
+    "verified_samples_per_process": 5,
+    "cold_process_samples": 2,
+    "regression_ceiling": 1.05
+  },
+  "portfolio": {
+    "weighting": "equal_weight_structural_class_geometric_mean",
+    "ratio": 0.43331044655779494,
+    "speedup": 2.3078141963665306,
+    "confidence_interval_95": {
+      "low": 0.43262018888448905,
+      "high": 0.4339540983671221
+    },
+    "passes_1_3x_target": true,
+    "passes_2x_target": true,
+    "worst_workload_ratio": 0.839725033340635
+  },
+  "workloads": [
+    {
+      "id": "latency_wf_log14x32",
+      "class": "latency",
+      "predecessor_verified_ms": 2.6085585,
+      "candidate_verified_ms": 2.18994,
+      "ratio": 0.839725033340635,
+      "ci95": [0.8382019272283002, 0.8408747971577799],
+      "proof_sha256": "57a7d291eb8a103d0e4395c23fd7dc9ab7e9ed2d0f95558835cc6482630f3374"
+    },
+    {
+      "id": "narrow_deep_wf_log22x3",
+      "class": "narrow_deep",
+      "predecessor_verified_ms": 59.157243,
+      "candidate_verified_ms": 22.374173,
+      "ratio": 0.3781672732338549,
+      "ci95": [0.377864880611136, 0.3782282923495945],
+      "proof_sha256": "f7afc599abfc1a20d95899caf0d7439ccd26104eb223648e85a1509ee4be934a"
+    },
+    {
+      "id": "wide_wf_log18x37",
+      "class": "wide",
+      "predecessor_verified_ms": 8.5329315,
+      "candidate_verified_ms": 5.0282715,
+      "ratio": 0.5887182786451468,
+      "ci95": [0.5787507726763126, 0.5986218042457426],
+      "proof_sha256": "1d751d4a65d044f91686d65db6d5858bad78afd60da54bfa64317f42a07fddbb"
+    },
+    {
+      "id": "wide_wf_log18x73",
+      "class": "wide",
+      "predecessor_verified_ms": 14.69421,
+      "candidate_verified_ms": 6.3309075,
+      "ratio": 0.4309325479057312,
+      "ci95": [0.43067525870202694, 0.4312274186189873],
+      "proof_sha256": "5185a08a40f14b20e0e5e16ccfb9ca388949df97968bae85cafe3ecbbaeb1bf2"
+    },
+    {
+      "id": "wide_wf_log18x128",
+      "class": "wide",
+      "predecessor_verified_ms": 23.528281,
+      "candidate_verified_ms": 8.504097,
+      "ratio": 0.36137231413188464,
+      "ci95": [0.36118642380537436, 0.36163038617048227],
+      "proof_sha256": "d8903758e7792df8fbe272cb25346c60abfe333f4324c0f08d42b6bf58c5c96d"
+    },
+    {
+      "id": "extreme_wf_log22x100",
+      "class": "extreme",
+      "predecessor_verified_ms": 322.910759,
+      "candidate_verified_ms": 79.473593,
+      "ratio": 0.24619828916953493,
+      "ci95": [0.24598529320259613, 0.24641280487312717],
+      "proof_sha256": "2c0ca9f7a73ea80f4cc32f2e27785f9ccf6b11dc460a133ebc8f5cc441e76205"
+    }
+  ],
+  "correctness": {
+    "all_arms_byte_identical": true,
+    "zig_verified": true,
+    "rust_oracle_verified": true,
+    "zero_cpu_fallbacks": true,
+    "one_terminal_d2h": true,
+    "graph_direct_parity": true,
+    "device_smoke_tests": 12
+  },
+  "coverage": {
+    "activation_ready": false,
+    "covered_classes": ["latency", "narrow_deep", "wide", "extreme"],
+    "missing_classes": ["hash_heavy", "lookup_heavy", "irregular", "vm", "sustained"]
+  }
+}

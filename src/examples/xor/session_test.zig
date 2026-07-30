@@ -3,7 +3,7 @@
 const std = @import("std");
 const fri = @import("stwo_core").fri;
 const pcs = @import("stwo_core").pcs;
-const proof_wire = @import("../../interop/proof_wire.zig");
+const proof_wire = @import("stwo_proof_wire");
 const subject = @import("../xor.zig");
 
 fn testConfig() !pcs.PcsConfig {
@@ -78,15 +78,15 @@ test "XOR session: compatibility, prepared, and sequential proofs match exactly"
     try std.testing.expectEqualSlices(u8, expected, prepared_bytes);
     try std.testing.expectEqualSlices(u8, expected, first_bytes);
     try std.testing.expectEqualSlices(u8, expected, second_bytes);
-    try std.testing.expectEqual(@as(usize, 7796), expected.len);
+    try std.testing.expectEqual(@as(usize, 11_132), expected.len);
 
     var digest: [std.crypto.hash.sha2.Sha256.digest_length]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(expected, &digest, .{});
     try std.testing.expectEqualSlices(u8, &[_]u8{
-        0x0b, 0x5c, 0xa7, 0xfb, 0x7c, 0xee, 0xb1, 0x10,
-        0xf9, 0x96, 0xde, 0xc5, 0x08, 0xb9, 0x39, 0xac,
-        0x5e, 0xb4, 0x23, 0x95, 0x26, 0xa5, 0xf2, 0x44,
-        0xde, 0x21, 0xa2, 0x5e, 0x93, 0x18, 0x05, 0x04,
+        0x71, 0xe1, 0x97, 0xa4, 0x58, 0xf1, 0x29, 0x84,
+        0x2e, 0xb3, 0x20, 0x6b, 0xc1, 0x39, 0x04, 0xbe,
+        0x0a, 0x10, 0xe4, 0xf3, 0xc0, 0x16, 0xf9, 0x50,
+        0x7e, 0x7f, 0x69, 0x59, 0x92, 0xd5, 0xfd, 0x6e,
     }, &digest);
     try std.testing.expectEqual(@as(u64, 1), session.constructionTelemetry().tower_build_count);
 }
@@ -141,8 +141,8 @@ fn prepareAndDeinit(allocator: std.mem.Allocator) !void {
     var prepared = try subject.prepareInput(allocator, testStatement());
     defer prepared.deinit(allocator);
     try std.testing.expectEqual(@as(u32, 5), prepared.trace.max_column_log);
-    try std.testing.expectEqual(@as(u64, 3), prepared.trace.committed_columns);
-    try std.testing.expectEqual(@as(u64, 96), prepared.trace.committed_cells);
+    try std.testing.expectEqual(@as(u64, 11), prepared.trace.committed_columns);
+    try std.testing.expectEqual(@as(u64, 352), prepared.trace.committed_cells);
 }
 
 test "XOR input: preparation cleans up every allocation failure" {

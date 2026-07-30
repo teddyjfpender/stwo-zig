@@ -8,14 +8,14 @@ const pcs_verifier = @import("stwo_core").pcs.verifier;
 const core_proof = @import("stwo_core").proof;
 const core_verifier = @import("stwo_core").verifier;
 const blake2_merkle = @import("stwo_core").vcs_lifted.blake2_merkle;
-const prover_component = @import("stwo_prover_impl").air.component_prover;
-const prover_engine = @import("stwo_prover_impl").engine;
-const prover_pcs = @import("stwo_prover_impl").pcs;
-const stage_profile = @import("stwo_prover_impl").stage_profile;
+const prover_component = @import("stwo_prover_engine").air.component_prover;
+const prover_engine = @import("stwo_prover_engine").engine;
+const prover_pcs = @import("stwo_prover_engine").pcs;
+const stage_profile = @import("stwo_prover_api").stage_profile;
 const prover_transaction = @import("common/prover_transaction.zig");
 const component_mod = @import("wide_fibonacci/component.zig");
 const trace_input = @import("wide_fibonacci/trace.zig");
-const CpuBackend = @import("../backends/cpu_scalar/mod.zig").CpuBackend;
+const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 
 const M31 = m31.M31;
 const WideFibonacciComponent = component_mod.Component;
@@ -37,7 +37,7 @@ pub fn ProverEngineForBackend(comptime Backend: type) type {
 }
 
 comptime {
-    prover_engine.assertProverEngine(CpuProverEngine);
+    @import("stwo_prover_api").assertProverEngine(CpuProverEngine);
 }
 
 pub const Statement = trace_input.Statement;
@@ -531,6 +531,7 @@ test "examples wide_fibonacci: generic CPU engine owns the proving transaction" 
     const CountingEngine = struct {
         pub const Scheme = CpuProverEngine.Scheme;
         pub const Channel = CpuProverEngine.Channel;
+        pub const Component = prover_component.ComponentProver;
         pub const ExtendedProof = CpuProverEngine.ExtendedProof;
         var init_calls: usize = 0;
         var commit_calls: usize = 0;
@@ -671,7 +672,7 @@ test "examples wide_fibonacci: corrupted recurrence trace is rejected" {
         try std.testing.expect(false);
     } else |err| {
         try std.testing.expectEqual(
-            @import("stwo_prover_impl").prove.ProvingError.ConstraintsNotSatisfied,
+            @import("stwo_prover_engine").prove.ProvingError.ConstraintsNotSatisfied,
             err,
         );
     }
@@ -696,7 +697,7 @@ test "examples wide_fibonacci: prove/verify wrapper roundtrip" {
     defer output_prove_ex.proof.aux.deinit(alloc);
     defer output_prove_ex.proof.proof.deinit(alloc);
 
-    const proof_wire = @import("../interop/proof_wire.zig");
+    const proof_wire = @import("stwo_proof_wire");
     const prove_bytes = try proof_wire.encodeProofBytes(alloc, output_prove.proof);
     defer alloc.free(prove_bytes);
     const prove_ex_bytes = try proof_wire.encodeProofBytes(alloc, output_prove_ex.proof.proof);

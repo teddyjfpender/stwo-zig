@@ -1,11 +1,7 @@
-use crate::model::{
-    BlakeStatement, PoseidonStatement, BLAKE_ROUND_INPUT_FELTS, POSEIDON_COLUMNS,
-    POSEIDON_HALF_FULL_ROUNDS, POSEIDON_INSTANCES_PER_ROW, POSEIDON_LOG_INSTANCES_PER_ROW,
-    POSEIDON_PARTIAL_ROUNDS, POSEIDON_STATE,
-};
-use anyhow::{anyhow, bail, Result};
+use crate::model::{PoseidonStatement, XorStatement, POSEIDON_LOG_INSTANCES_PER_ROW};
+use anyhow::{bail, Result};
 use num_traits::{One, Zero};
-use stwo::core::fields::m31::{M31, P};
+use stwo::core::fields::m31::M31;
 use stwo::core::fields::FieldExpOps;
 use stwo::core::poly::circle::CanonicCoset;
 use stwo::core::utils::{bit_reverse_index, coset_index_to_circle_domain_index};
@@ -35,31 +31,6 @@ pub(crate) fn gen_is_first(log_size: u32) -> Result<Vec<M31>> {
     let mut values = vec![M31::zero(); n];
     values[0] = M31::one();
     Ok(values)
-}
-
-pub(crate) fn gen_trace(
-    log_size: u32,
-    initial_state: [M31; 2],
-    inc_index: usize,
-) -> Result<[Vec<M31>; 2]> {
-    if inc_index >= 2 {
-        bail!("invalid inc_index {inc_index}");
-    }
-    let n = checked_pow2(log_size)?;
-
-    let mut col0 = vec![M31::zero(); n];
-    let mut col1 = vec![M31::zero(); n];
-
-    let mut curr_state = initial_state;
-    for i in 0..n {
-        let bit_rev_index =
-            bit_reverse_index(coset_index_to_circle_domain_index(i, log_size), log_size);
-        col0[bit_rev_index] = curr_state[0];
-        col1[bit_rev_index] = curr_state[1];
-        curr_state[inc_index] += M31::one();
-    }
-
-    Ok([col0, col1])
 }
 
 pub(crate) fn gen_wide_fibonacci_trace(
@@ -120,19 +91,53 @@ pub(crate) fn gen_is_step_with_offset(
     Ok(values)
 }
 
-pub(crate) fn gen_xor_main(log_size: u32) -> Result<Vec<M31>> {
-    let n = checked_pow2(log_size)?;
-    let mut values = vec![M31::zero(); n];
-    for i in 0..n {
-        let circle_domain_index = coset_index_to_circle_domain_index(i, log_size);
-        let bit_rev_index = bit_reverse_index(circle_domain_index, log_size);
-        values[bit_rev_index] = if (i & 1) == 0 {
-            M31::one()
-        } else {
-            M31::zero()
-        };
+pub(crate) fn gen_xor_lookup_trace(
+    statement: XorStatement,
+) -> Result<(Vec<Vec<M31>>, Vec<Vec<M31>>)> {
+    if statement.log_size < 2 || statement.log_step > statement.log_size {
+        bail!("invalid xor statement");
     }
-    Ok(values)
+    let n = checked_pow2(statement.log_size)?;
+    let is_first = gen_is_first(statement.log_size)?;
+    let is_step =
+        gen_is_step_with_offset(statement.log_size, statement.log_step, statement.offset)?;
+    let mut preprocessed = vec![vec![M31::zero(); n]; 7];
+    preprocessed[0] = is_first;
+    preprocessed[1] = is_step;
+
+    for row in 0..n {
+        let storage = xor_storage_index(row, statement.log_size);
+        preprocessed[2][storage] = M31::from(((row >> 1) & 1) as u32);
+    }
+    for table_row in 0..4 {
+        let storage = xor_storage_index(table_row, statement.log_size);
+        let a = ((table_row >> 1) & 1) as u32;
+        let b = (table_row & 1) as u32;
+        preprocessed[3][storage] = M31::one();
+        preprocessed[4][storage] = M31::from(a);
+        preprocessed[5][storage] = M31::from(b);
+        preprocessed[6][storage] = M31::from(a ^ b);
+    }
+
+    let mut main = vec![vec![M31::zero(); n]; 4];
+    let mut counts = [0usize; 4];
+    for storage in 0..n {
+        let a = preprocessed[2][storage];
+        let b = preprocessed[1][storage];
+        let c = M31::from(a.0 ^ b.0);
+        main[0][storage] = a;
+        main[1][storage] = b;
+        main[2][storage] = c;
+        counts[((a.0 as usize) << 1) | b.0 as usize] += 1;
+    }
+    for (table_row, count) in counts.into_iter().enumerate() {
+        main[3][xor_storage_index(table_row, statement.log_size)] = M31::from(count);
+    }
+    Ok((preprocessed, main))
+}
+
+pub(crate) fn xor_storage_index(row: usize, log_size: u32) -> usize {
+    bit_reverse_index(coset_index_to_circle_domain_index(row, log_size), log_size)
 }
 
 pub(crate) fn gen_plonk_trace(log_n_rows: u32) -> Result<([Vec<M31>; 4], [Vec<M31>; 4])> {
@@ -180,175 +185,4 @@ pub(crate) fn poseidon_log_n_rows(statement: PoseidonStatement) -> Result<u32> {
         bail!("invalid poseidon log_n_rows");
     }
     Ok(log_n_rows)
-}
-
-pub(crate) fn poseidon_external_round_const(round: usize, state_i: usize) -> M31 {
-    M31::from(((1234u64 + (round as u64 * 37) + state_i as u64) % P as u64) as u32)
-}
-
-pub(crate) fn poseidon_internal_round_const(round: usize) -> M31 {
-    M31::from(((9876u64 + (round as u64 * 17)) % P as u64) as u32)
-}
-
-pub(crate) fn poseidon_pow5(x: M31) -> M31 {
-    let x2 = x.square();
-    let x4 = x2.square();
-    x4 * x
-}
-
-pub(crate) fn poseidon_apply_m4(x: [M31; 4]) -> [M31; 4] {
-    let t0 = x[0] + x[1];
-    let t02 = t0 + t0;
-    let t1 = x[2] + x[3];
-    let t12 = t1 + t1;
-    let t2 = x[1] + x[1] + t1;
-    let t3 = x[3] + x[3] + t0;
-    let t4 = t12 + t12 + t3;
-    let t5 = t02 + t02 + t2;
-    let t6 = t3 + t5;
-    let t7 = t2 + t4;
-    [t6, t5, t7, t4]
-}
-
-pub(crate) fn poseidon_apply_external_round_matrix(state: &mut [M31; POSEIDON_STATE]) {
-    for i in 0..4 {
-        let offset = i * 4;
-        let mixed = poseidon_apply_m4([
-            state[offset],
-            state[offset + 1],
-            state[offset + 2],
-            state[offset + 3],
-        ]);
-        state[offset] = mixed[0];
-        state[offset + 1] = mixed[1];
-        state[offset + 2] = mixed[2];
-        state[offset + 3] = mixed[3];
-    }
-
-    for j in 0..4 {
-        let s = state[j] + state[j + 4] + state[j + 8] + state[j + 12];
-        for i in 0..4 {
-            let idx = i * 4 + j;
-            state[idx] += s;
-        }
-    }
-}
-
-pub(crate) fn poseidon_apply_internal_round_matrix(state: &mut [M31; POSEIDON_STATE]) {
-    let sum = state
-        .iter()
-        .copied()
-        .fold(M31::zero(), |acc, item| acc + item);
-    for (i, value) in state.iter_mut().enumerate() {
-        let coeff = M31::from_u32_unchecked(1u32 << ((i + 1) as u32));
-        *value = *value * coeff + sum;
-    }
-}
-
-pub(crate) fn gen_poseidon_trace(log_n_rows: u32) -> Result<Vec<Vec<M31>>> {
-    if log_n_rows >= 31 {
-        bail!("invalid poseidon log_n_rows");
-    }
-    let n = checked_pow2(log_n_rows)?;
-    let mut trace = vec![vec![M31::zero(); n]; POSEIDON_COLUMNS];
-
-    for row in 0..n {
-        let mut col_index = 0usize;
-        for rep_i in 0..POSEIDON_INSTANCES_PER_ROW {
-            let mut state = std::array::from_fn(|state_i| {
-                M31::from(((row * POSEIDON_STATE + state_i + rep_i) % P as usize) as u32)
-            });
-
-            for value in state {
-                trace[col_index][row] = value;
-                col_index += 1;
-            }
-
-            for round in 0..POSEIDON_HALF_FULL_ROUNDS {
-                for (state_i, value) in state.iter_mut().enumerate() {
-                    *value += poseidon_external_round_const(round, state_i);
-                }
-                poseidon_apply_external_round_matrix(&mut state);
-                for value in state.iter_mut() {
-                    *value = poseidon_pow5(*value);
-                    trace[col_index][row] = *value;
-                    col_index += 1;
-                }
-            }
-
-            for round in 0..POSEIDON_PARTIAL_ROUNDS {
-                state[0] += poseidon_internal_round_const(round);
-                poseidon_apply_internal_round_matrix(&mut state);
-                state[0] = poseidon_pow5(state[0]);
-                trace[col_index][row] = state[0];
-                col_index += 1;
-            }
-
-            for half_round in 0..POSEIDON_HALF_FULL_ROUNDS {
-                let round = half_round + POSEIDON_HALF_FULL_ROUNDS;
-                for (state_i, value) in state.iter_mut().enumerate() {
-                    *value += poseidon_external_round_const(round, state_i);
-                }
-                poseidon_apply_external_round_matrix(&mut state);
-                for value in state.iter_mut() {
-                    *value = poseidon_pow5(*value);
-                    trace[col_index][row] = *value;
-                    col_index += 1;
-                }
-            }
-        }
-        debug_assert_eq!(col_index, POSEIDON_COLUMNS);
-    }
-
-    Ok(trace)
-}
-
-pub(crate) fn blake_validate_statement(statement: BlakeStatement) -> Result<()> {
-    if statement.log_n_rows == 0 || statement.log_n_rows >= 31 {
-        bail!("invalid blake log_n_rows");
-    }
-    if statement.n_rounds == 0 {
-        bail!("invalid blake n_rounds");
-    }
-    let _ = blake_n_columns(statement)?;
-    Ok(())
-}
-
-pub(crate) fn blake_n_columns(statement: BlakeStatement) -> Result<usize> {
-    (statement.n_rounds as usize)
-        .checked_mul(BLAKE_ROUND_INPUT_FELTS)
-        .ok_or_else(|| anyhow!("blake column count overflow"))
-}
-
-pub(crate) fn blake_next_seed(seed: u64) -> u64 {
-    let mut x = seed;
-    x ^= x << 13;
-    x ^= x >> 7;
-    x ^= x << 17;
-    x
-}
-
-pub(crate) fn gen_blake_trace(statement: BlakeStatement) -> Result<Vec<Vec<M31>>> {
-    blake_validate_statement(statement)?;
-    let n = checked_pow2(statement.log_n_rows)?;
-    let n_columns = blake_n_columns(statement)?;
-    let mut trace = vec![vec![M31::zero(); n]; n_columns];
-
-    for row in 0..n {
-        let mut col_index = 0usize;
-        let mut seed = row as u64 + 1;
-        for round in 0..statement.n_rounds as usize {
-            for cell in 0..BLAKE_ROUND_INPUT_FELTS {
-                seed = blake_next_seed(seed);
-                let mixed = seed
-                    ^ ((round as u64).wrapping_mul(0x9e37_79b9_7f4a_7c15))
-                    ^ (((cell + 1) as u64).wrapping_mul(0x517c_c1b7_2722_0a95));
-                trace[col_index][row] = M31::from((mixed % P as u64) as u32);
-                col_index += 1;
-            }
-        }
-        debug_assert_eq!(col_index, n_columns);
-    }
-
-    Ok(trace)
 }

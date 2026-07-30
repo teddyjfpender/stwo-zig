@@ -182,6 +182,18 @@ class NativeProofMatrixFormalTests(unittest.TestCase):
                 "native_proof_matrix_lib.controller.run_lane",
                 side_effect=fake_lane,
             ), mock.patch(
+                "native_proof_matrix_lib.controller.preflight_rust_oracle_adapter",
+                return_value={
+                    "schema_version": 1,
+                    "protocol": "stwo_interop_capabilities_v1",
+                    "upstream_commit": UPSTREAM_COMMIT,
+                    "exact_air_protocols": {
+                        "poseidon": "raw-stwo-poseidon-logup-split2-v1",
+                        "state_machine": "raw-stwo-state-machine-v2",
+                        "xor": "raw-stwo-xor-lookup-v2",
+                    },
+                },
+            ) as oracle_preflight, mock.patch(
                 "native_proof_matrix_lib.controller.run_rust_oracle",
                 side_effect=oracle_evidence,
             ) as oracle, mock.patch(
@@ -206,6 +218,7 @@ class NativeProofMatrixFormalTests(unittest.TestCase):
                 },
             ):
                 document = MODULE.run_matrix(matrix_args)
+            oracle_preflight.assert_called_once_with(binaries["oracle"].resolve(), 2.0)
             self.assertEqual(oracle.call_count, 6)
             self.assertTrue(document["summary"]["all_rust_oracles_verified"])
             self.assertEqual(

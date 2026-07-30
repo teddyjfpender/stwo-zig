@@ -6,7 +6,7 @@ fn OpaqueColumns(comptime n: usize) type {
     };
 }
 
-pub const ProgramColumns = OpaqueColumns(8);
+pub const ProgramColumns = OpaqueColumns(10);
 pub const MemoryCheckColumns = OpaqueColumns(9);
 pub const MemClockUpdateColumns = OpaqueColumns(7);
 pub const RegClockUpdateColumns = OpaqueColumns(7);

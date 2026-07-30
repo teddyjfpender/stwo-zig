@@ -1,0 +1,56 @@
+{
+  "family": "toy_window_carry_multiplier",
+  "modulus": 2147483647,
+  "notes": "One byte-limb of MUL, spelt the way the multiplier families spell it:\nthe carry out of the product is the expression (a * b - low) * inv(256), and it\nis pinned by nothing except an enabler-gated range_check_8_11 whose (low, carry)\ntuple the placement constraint forces live. No `bit()` touches the carry, so the\nvalue-set renormalisation never fires; the window derived from the live request\nis the only thing standing between the interval analysis and a 2^23-wide blowup,\nand `low + 256*carry` spans [0, 2^19) < p so the decomposition of the shared\nproduct is unique. The write-back gate reuses the AIR's inverse-marker idiom\n(`addr * inv = nonzero`), whose `inv` is read by exactly one constraint and is\nexactly the shape the projection rewrite eliminates. Expected verdict: unsat.",
+  "columns": [
+    {"name": "enabler", "role": "input"},
+    {"name": "addr", "role": "input"},
+    {"name": "a", "role": "input"},
+    {"name": "b", "role": "input"},
+    {"name": "low", "role": "output"},
+    {"name": "written", "role": "output"},
+    {"name": "nonzero", "role": "witness"},
+    {"name": "inv", "role": "witness"}
+  ],
+  "exprs": {
+    "one": ["const", 1],
+    "placement": ["sub", ["col", "enabler"], "one"],
+    "carry": [
+      "mul",
+      ["sub", ["mul", ["col", "a"], ["col", "b"]], ["col", "low"]],
+      ["const", 8388608]
+    ],
+    "nonzero_bit": ["bit", ["col", "nonzero"]],
+    "dead_or_flagged": [
+      "mul",
+      ["col", "addr"],
+      ["sub", "one", ["col", "nonzero"]]
+    ],
+    "inverse_marker": [
+      "sub",
+      ["mul", ["col", "addr"], ["col", "inv"]],
+      ["col", "nonzero"]
+    ],
+    "write_back": [
+      "sub",
+      ["col", "written"],
+      ["mul", ["col", "nonzero"], ["col", "low"]]
+    ],
+    "request": ["neg", ["col", "enabler"]]
+  },
+  "constraints": [
+    "placement",
+    "nonzero_bit",
+    "dead_or_flagged",
+    "inverse_marker",
+    "write_back"
+  ],
+  "lookups": [
+    {
+      "label": "low byte and product carry",
+      "domain": "range_check_8_11",
+      "numerator": "request",
+      "tuple": [["col", "low"], "carry"]
+    }
+  ]
+}

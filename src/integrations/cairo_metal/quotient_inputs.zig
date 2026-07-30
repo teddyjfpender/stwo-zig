@@ -1,12 +1,12 @@
 //! Metal orchestration for Cairo quotient-input accumulation.
 
 const std = @import("std");
-const arena_plan = @import("../../backends/metal/arena_plan.zig");
-const metal_runtime = @import("../../backends/metal/runtime.zig");
-const composition_bundle = @import("../../frontends/cairo/witness/composition_bundle.zig");
-const geometry = @import("../../frontends/cairo/witness/quotient_geometry.zig");
+const arena_plan = @import("stwo_metal_backend").arena_plan;
+const metal_runtime = @import("stwo_metal_backend").runtime;
+const composition_bundle = @import("stwo_cairo_frontend").witness.composition_bundle;
+const geometry = @import("stwo_cairo_frontend").witness.quotient_geometry;
 const quotients = @import("stwo_core").pcs.quotients;
-const twiddles = @import("stwo_prover_impl").poly.twiddles;
+const twiddles = @import("stwo_prover_engine").poly.twiddles;
 const circle = @import("stwo_core").circle;
 const canonic = @import("stwo_core").poly.circle.canonic;
 const M31 = @import("stwo_core").fields.m31.M31;

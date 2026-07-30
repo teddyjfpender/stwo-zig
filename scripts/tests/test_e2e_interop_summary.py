@@ -45,7 +45,10 @@ class ComputeSummaryTests(unittest.TestCase):
         self.assertEqual(summary["cases_executed"], 4)
         self.assertEqual(summary["cases_passed"], 4)
         self.assertEqual(summary["cases_failed"], 0)
-        self.assertEqual(summary["tamper_cases_total"], 4 * len(self.mod.ACTIVE_MUTATIONS))
+        self.assertEqual(
+            summary["tamper_cases_total"],
+            sum(len(self.mod.mutations_for_example(example)) * 2 for example in examples),
+        )
         self.assertEqual(summary["tamper_cases_executed"], 2)
         self.assertEqual(summary["tamper_cases_passed"], 2)
         self.assertEqual(summary["tamper_cases_failed"], 0)
@@ -81,7 +84,10 @@ class ComputeSummaryTests(unittest.TestCase):
         self.assertEqual(summary["cases_executed"], 2)
         self.assertEqual(summary["cases_passed"], 1)
         self.assertEqual(summary["cases_failed"], 1)
-        self.assertEqual(summary["tamper_cases_total"], 4 * len(self.mod.ACTIVE_MUTATIONS))
+        self.assertEqual(
+            summary["tamper_cases_total"],
+            sum(len(self.mod.mutations_for_example(example)) * 2 for example in examples),
+        )
         self.assertEqual(summary["tamper_cases_executed"], 2)
         self.assertEqual(summary["tamper_cases_passed"], 1)
         self.assertEqual(summary["tamper_cases_failed"], 1)
@@ -110,6 +116,72 @@ class ComputeSummaryTests(unittest.TestCase):
             return_code=1,
         )
         self.assertEqual(rejection, self.mod.REJECTION_CLASS_VERIFIER)
+        zig_claim = self.mod.classify_rejection(
+            "",
+            "error: InvalidClaimedSum",
+            return_code=1,
+        )
+        rust_claim = self.mod.classify_rejection(
+            "",
+            "Error: invalid xor claimed_sum",
+            return_code=1,
+        )
+        self.assertEqual(zig_claim, self.mod.REJECTION_CLASS_VERIFIER)
+        self.assertEqual(rust_claim, self.mod.REJECTION_CLASS_VERIFIER)
+        claimed_sum_mismatch = self.mod.classify_rejection(
+            "",
+            "error: ClaimedSumMismatch",
+            return_code=1,
+        )
+        self.assertEqual(
+            claimed_sum_mismatch,
+            self.mod.REJECTION_CLASS_VERIFIER,
+        )
+        proof_of_work = self.mod.classify_rejection(
+            "",
+            "error: ProofOfWork",
+            return_code=1,
+        )
+        self.assertEqual(proof_of_work, self.mod.REJECTION_CLASS_VERIFIER)
+        root_mismatch = self.mod.classify_rejection(
+            "",
+            "Error: Root mismatch.",
+            return_code=1,
+        )
+        self.assertEqual(root_mismatch, self.mod.REJECTION_CLASS_VERIFIER)
+        fri_query = self.mod.classify_rejection(
+            "",
+            "Error: queries do not resolve to their commitment in the first layer",
+            return_code=1,
+        )
+        self.assertEqual(fri_query, self.mod.REJECTION_CLASS_VERIFIER)
+        invalid_log_size = self.mod.classify_rejection(
+            "",
+            "error: InvalidLogSize",
+            return_code=1,
+        )
+        self.assertEqual(
+            invalid_log_size,
+            self.mod.REJECTION_CLASS_VERIFIER,
+        )
+        rust_state_statement = self.mod.classify_rejection(
+            "",
+            "Error: invalid state_machine statement m",
+            return_code=1,
+        )
+        self.assertEqual(
+            rust_state_statement,
+            self.mod.REJECTION_CLASS_VERIFIER,
+        )
+        rust_poseidon_oods = self.mod.classify_rejection(
+            "",
+            "Error: exact Poseidon split-depth-2 OODS evaluation does not match",
+            return_code=1,
+        )
+        self.assertEqual(
+            rust_poseidon_oods,
+            self.mod.REJECTION_CLASS_VERIFIER,
+        )
 
     def test_run_step_refuses_to_accept_a_verifier_panic(self) -> None:
         steps = []

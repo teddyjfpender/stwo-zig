@@ -5,6 +5,7 @@ const qm31 = @import("fields/qm31.zig");
 const fri = @import("fri.zig");
 const pcs = @import("pcs/mod.zig");
 const vcs_verifier = @import("vcs_lifted/verifier.zig");
+const verifier_types = @import("verifier_types.zig");
 
 const CirclePointQM31 = circle.CirclePointQM31;
 const M31 = m31.M31;
@@ -39,33 +40,58 @@ pub fn StarkProof(comptime H: type) type {
             oods_point: CirclePointQM31,
             composition_log_size: u32,
         ) ?QM31 {
-            if (composition_log_size < 2) return null;
+            return self.extractCompositionOodsEvalWithSplit(
+                oods_point,
+                composition_log_size,
+                1,
+            );
+        }
+
+        pub fn extractCompositionOodsEvalWithSplit(
+            self: Self,
+            oods_point: CirclePointQM31,
+            composition_log_size: u32,
+            split_depth: u32,
+        ) ?QM31 {
+            if (split_depth == 0 or
+                split_depth > verifier_types.MAX_COMPOSITION_LOG_SPLIT or
+                composition_log_size <= split_depth)
+            {
+                return null;
+            }
             if (self.commitment_scheme_proof.sampled_values.items.len == 0) return null;
 
             const masks = self.commitment_scheme_proof.sampled_values.items[
                 self.commitment_scheme_proof.sampled_values.items.len - 1
             ];
-            const expected_cols = 2 * qm31.SECURE_EXTENSION_DEGREE;
+            const chunk_count = verifier_types.compositionChunkCount(split_depth) orelse
+                return null;
+            const expected_cols = verifier_types.compositionColumnCount(
+                split_depth,
+                qm31.SECURE_EXTENSION_DEGREE,
+            ) orelse return null;
             if (masks.len != expected_cols) return null;
 
-            var left_coords: [qm31.SECURE_EXTENSION_DEGREE]QM31 = undefined;
-            var right_coords: [qm31.SECURE_EXTENSION_DEGREE]QM31 = undefined;
-
-            var i: usize = 0;
-            while (i < expected_cols) : (i += 1) {
-                const col = masks[i];
-                if (col.len != 1) return null;
-                if (i < qm31.SECURE_EXTENSION_DEGREE) {
-                    left_coords[i] = col[0];
-                } else {
-                    right_coords[i - qm31.SECURE_EXTENSION_DEGREE] = col[0];
+            var chunk_evals: [@as(usize, 1) << verifier_types.MAX_COMPOSITION_LOG_SPLIT]QM31 =
+                undefined;
+            for (chunk_evals[0..chunk_count], 0..) |*chunk_eval, chunk_index| {
+                var coordinates: [qm31.SECURE_EXTENSION_DEGREE]QM31 = undefined;
+                for (&coordinates, 0..) |*coordinate, coordinate_index| {
+                    const column = masks[
+                        chunk_index * qm31.SECURE_EXTENSION_DEGREE + coordinate_index
+                    ];
+                    if (column.len != 1) return null;
+                    coordinate.* = column[0];
                 }
+                chunk_eval.* = QM31.fromPartialEvals(coordinates);
             }
 
-            const left_eval = QM31.fromPartialEvals(left_coords);
-            const right_eval = QM31.fromPartialEvals(right_coords);
-            const x = oods_point.repeatedDouble(composition_log_size - 2).x;
-            return left_eval.add(x.mul(right_eval));
+            return reconstructCompositionChunkEvals(
+                chunk_evals[0..chunk_count],
+                oods_point,
+                composition_log_size,
+                split_depth,
+            );
         }
 
         pub fn sizeEstimate(self: Self) usize {
@@ -103,6 +129,42 @@ pub fn StarkProof(comptime H: type) type {
             };
         }
     };
+}
+
+/// Reconstructs one secure composition evaluation from recursively ordered
+/// coefficient-chunk evaluations.
+pub fn reconstructCompositionChunkEvals(
+    chunk_evals_in: []const QM31,
+    point: CirclePointQM31,
+    composition_log_size: u32,
+    split_depth: u32,
+) ?QM31 {
+    const chunk_count = verifier_types.compositionChunkCount(split_depth) orelse
+        return null;
+    if (composition_log_size <= split_depth or chunk_evals_in.len != chunk_count) {
+        return null;
+    }
+
+    var chunk_evals: [@as(usize, 1) << verifier_types.MAX_COMPOSITION_LOG_SPLIT]QM31 =
+        undefined;
+    @memcpy(chunk_evals[0..chunk_count], chunk_evals_in);
+
+    var active = chunk_count;
+    var parent_log = composition_log_size - split_depth + 1;
+    while (active > 1) {
+        const factor = point.repeatedDouble(parent_log - 2).x;
+        var out_index: usize = 0;
+        var input_index: usize = 0;
+        while (input_index < active) : (input_index += 2) {
+            chunk_evals[out_index] = chunk_evals[input_index].add(
+                factor.mul(chunk_evals[input_index + 1]),
+            );
+            out_index += 1;
+        }
+        active /= 2;
+        parent_log += 1;
+    }
+    return chunk_evals[0];
 }
 
 pub fn ExtendedStarkProof(comptime H: type) type {

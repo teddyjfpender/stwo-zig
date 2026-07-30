@@ -46,7 +46,11 @@ LONG_WORKLOADS: list[dict[str, Any]] = [
     {
         "name": "blake_deep",
         "example": "blake",
-        "args": ["--blake-log-n-rows", "11", "--blake-n-rounds", "16"],
+        "args": [
+            "--blake-log-n-rows", "11",
+            "--blake-n-rounds", "10",
+            "--pow-bits", "10",
+        ],
     },
     {
         "name": "wide_fibonacci_fib2000",

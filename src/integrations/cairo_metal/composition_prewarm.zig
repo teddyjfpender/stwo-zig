@@ -1,15 +1,19 @@
 const std = @import("std");
 
-const metal = @import("../../backends/metal/runtime.zig");
-const metal_telemetry = @import("../../backends/metal/telemetry.zig");
-const composition = @import("../../frontends/cairo/witness/composition_bundle.zig");
+const metal = @import("stwo_metal_backend").runtime;
+const metal_telemetry = @import("stwo_metal_backend").telemetry;
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
 const codegen = @import("eval_codegen.zig");
+const composition_aot = @import("composition_aot.zig");
 
 pub const Inputs = struct {
     allocator: std.mem.Allocator,
     runtime: *metal.Runtime,
     bundle: *const composition.Bundle,
     metallib_path: []const u8,
+    /// Integrity admission for `metallib_path`. Defaults to the gating policy
+    /// so that a caller that forgets to think about it gets the safe one.
+    policy: composition_aot.Policy = .approved_manifest,
 };
 
 pub const Evidence = struct {
@@ -17,6 +21,10 @@ pub const Evidence = struct {
     resolved_plan_count: u64,
     plan_preparation_ns: u64,
     cache_delta: metal_telemetry.PipelineCacheDelta,
+    /// The measured identity of the library that was actually loaded.
+    metallib_sha256: [32]u8,
+    metallib_length: u64,
+    metallib_label: ?[]const u8,
 };
 
 pub const AdmissionError = error{
@@ -36,6 +44,9 @@ pub const AdmissionError = error{
 /// admission, all pipeline resolutions, and archive serialization.
 pub fn prewarm(inputs: Inputs) !Evidence {
     const expected_plan_count = try expectedPlanCount(inputs.bundle);
+    // Integrity before load. A failure here is terminal for this path: the
+    // caller must not retry with a weaker policy.
+    const admission = try composition_aot.authenticate(inputs.metallib_path, inputs.policy);
     const before = inputs.runtime.pipelineCacheStats();
     var library = try inputs.runtime.loadEvalLibrary(inputs.metallib_path);
     defer library.deinit();
@@ -70,6 +81,9 @@ pub fn prewarm(inputs: Inputs) !Evidence {
             inputs.runtime.pipelineCacheStats(),
             before,
         ),
+        .metallib_sha256 = admission.measurement.sha256,
+        .metallib_length = admission.measurement.length,
+        .metallib_label = admission.label,
     };
 }
 
@@ -134,6 +148,9 @@ fn warmEvidence() Evidence {
             .pipeline_preparation_seconds = 0.25,
             .library_preparation_seconds = 0.125,
         },
+        .metallib_sha256 = [_]u8{0xab} ** 32,
+        .metallib_length = 5_933_764,
+        .metallib_label = "air_template_composition_eval_domain_v1",
     };
 }
 

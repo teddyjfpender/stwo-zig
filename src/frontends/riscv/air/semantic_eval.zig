@@ -1,27 +1,50 @@
-//! Uniform direct-constraint evaluation for committed opcode-family rows.
+//! Uniform direct-constraint view of the canonical opcode-family program.
 //!
-//! Relation requests remain in the family semantic modules and are placed by
-//! the interaction layer. This module owns only direct constraints plus the
-//! exact component-placement equality used identically on-domain and OODS.
+//! `constraint_program.Builder` owns construction of the active-row
+//! expression, direct constraints, and lookup events.  This compatibility
+//! facade requests only its direct section so the shipped per-row evaluator
+//! does not construct lookup arrays it will not consume.
 
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
+const constraint_program = @import("constraint_program.zig");
 const semantics = @import("semantics/mod.zig");
 const trace = @import("../runner/trace.zig");
 
-pub const MAX_CONSTRAINTS: usize = semantics.div.N_CONSTRAINTS + 1;
+pub fn Eval(comptime S: type) type {
+    return struct {
+        const Self = @This();
+        const program = constraint_program.Builder(S);
 
-pub const Evaluation = struct {
-    values: [MAX_CONSTRAINTS]QM31 = .{QM31.zero()} ** MAX_CONSTRAINTS,
-    len: usize = 0,
+        pub const MAX_CONSTRAINTS: usize = program.MAX_DIRECT_CONSTRAINTS;
+        pub const Evaluation = program.DirectConstraints;
 
-    pub fn allZero(self: Evaluation) bool {
-        for (self.values[0..self.len]) |value| {
-            if (!value.isZero()) return false;
+        pub fn mainColumnCount(family: trace.OpcodeFamily) usize {
+            return program.mainColumnCount(family);
         }
-        return true;
-    }
-};
+
+        pub fn constraintCount(family: trace.OpcodeFamily) usize {
+            return program.constraintCount(family);
+        }
+
+        pub fn evaluate(
+            family: trace.OpcodeFamily,
+            columns: []const S,
+            is_active: S,
+        ) !Self.Evaluation {
+            if (!isTraceCompatible(family)) return error.IncompatibleCommittedTrace;
+            return (try program.buildDirect(family, columns, is_active)).direct_constraints;
+        }
+    };
+}
+
+const shipped = Eval(QM31);
+
+pub const MAX_CONSTRAINTS = shipped.MAX_CONSTRAINTS;
+pub const Evaluation = shipped.Evaluation;
+pub const mainColumnCount = shipped.mainColumnCount;
+pub const constraintCount = shipped.constraintCount;
+pub const evaluate = shipped.evaluate;
 
 pub fn isTraceCompatible(family: trace.OpcodeFamily) bool {
     return switch (family) {
@@ -33,6 +56,7 @@ pub fn isTraceCompatible(family: trace.OpcodeFamily) bool {
         .auipc,
         .jalr,
         .jal,
+        .fence,
         => true,
         .shifts_reg => semantics.shifts_reg.CURRENT_TRACE_COMPATIBLE,
         .shifts_imm => semantics.shifts_imm.CURRENT_TRACE_COMPATIBLE,
@@ -45,30 +69,9 @@ pub fn isTraceCompatible(family: trace.OpcodeFamily) bool {
     };
 }
 
-pub fn mainColumnCount(family: trace.OpcodeFamily) usize {
-    return switch (family) {
-        .base_alu_reg => moduleColumnCount(semantics.base_alu_reg),
-        .base_alu_imm => moduleColumnCount(semantics.base_alu_imm),
-        .shifts_reg => moduleColumnCount(semantics.shifts_reg),
-        .shifts_imm => moduleColumnCount(semantics.shifts_imm),
-        .lt_reg => moduleColumnCount(semantics.lt_reg),
-        .lt_imm => moduleColumnCount(semantics.lt_imm),
-        .branch_eq => moduleColumnCount(semantics.branch_eq),
-        .branch_lt => moduleColumnCount(semantics.branch_lt),
-        .lui => moduleColumnCount(semantics.lui),
-        .auipc => moduleColumnCount(semantics.auipc),
-        .jalr => moduleColumnCount(semantics.jalr),
-        .jal => moduleColumnCount(semantics.jal),
-        .load_store => moduleColumnCount(semantics.load_store),
-        .mul => moduleColumnCount(semantics.mul),
-        .mulh => moduleColumnCount(semantics.mulh),
-        .div => moduleColumnCount(semantics.div),
-    };
-}
-
 pub fn clockColumn(family: trace.OpcodeFamily) usize {
     return switch (family) {
-        .lui, .auipc, .jalr, .jal, .mul => 1,
+        .lui, .auipc, .jalr, .jal, .mul, .fence => 1,
         else => 0,
     };
 }
@@ -77,87 +80,15 @@ pub fn pcColumn(family: trace.OpcodeFamily) usize {
     return clockColumn(family) + 1;
 }
 
-pub fn constraintCount(family: trace.OpcodeFamily) usize {
-    return switch (family) {
-        .base_alu_reg => moduleConstraintCount(semantics.base_alu_reg),
-        .base_alu_imm => moduleConstraintCount(semantics.base_alu_imm),
-        .shifts_reg => moduleConstraintCount(semantics.shifts_reg),
-        .shifts_imm => moduleConstraintCount(semantics.shifts_imm),
-        .lt_reg => moduleConstraintCount(semantics.lt_reg),
-        .lt_imm => moduleConstraintCount(semantics.lt_imm),
-        .branch_eq => moduleConstraintCount(semantics.branch_eq),
-        .branch_lt => moduleConstraintCount(semantics.branch_lt),
-        .lui => moduleConstraintCount(semantics.lui),
-        .auipc => moduleConstraintCount(semantics.auipc),
-        .jalr => moduleConstraintCount(semantics.jalr),
-        .jal => moduleConstraintCount(semantics.jal),
-        .load_store => moduleConstraintCount(semantics.load_store),
-        .mul => moduleConstraintCount(semantics.mul),
-        .mulh => moduleConstraintCount(semantics.mulh),
-        .div => moduleConstraintCount(semantics.div),
-    };
-}
-
-pub fn evaluate(
+/// Every direct constraint remains degree three or lower.  In particular,
+/// x0 writes use committed boolean write-enables and address inverses rather
+/// than multiplying an already-cubic semantic equation by `rd`.
+pub fn constraintLogDegreeBound(
     family: trace.OpcodeFamily,
-    columns: []const QM31,
-    is_active: QM31,
-) !Evaluation {
-    if (!isTraceCompatible(family)) return error.IncompatibleCommittedTrace;
-    return switch (family) {
-        .base_alu_reg => evaluateModule(semantics.base_alu_reg, columns, is_active),
-        .base_alu_imm => evaluateModule(semantics.base_alu_imm, columns, is_active),
-        .shifts_reg => evaluateModule(semantics.shifts_reg, columns, is_active),
-        .shifts_imm => evaluateModule(semantics.shifts_imm, columns, is_active),
-        .lt_reg => evaluateModule(semantics.lt_reg, columns, is_active),
-        .lt_imm => evaluateModule(semantics.lt_imm, columns, is_active),
-        .branch_eq => evaluateModule(semantics.branch_eq, columns, is_active),
-        .branch_lt => evaluateModule(semantics.branch_lt, columns, is_active),
-        .lui => evaluateModule(semantics.lui, columns, is_active),
-        .auipc => evaluateModule(semantics.auipc, columns, is_active),
-        .jalr => evaluateModule(semantics.jalr, columns, is_active),
-        .jal => evaluateModule(semantics.jal, columns, is_active),
-        .load_store => evaluateModule(semantics.load_store, columns, is_active),
-        .mul => evaluateModule(semantics.mul, columns, is_active),
-        .mulh => evaluateModule(semantics.mulh, columns, is_active),
-        .div => evaluateModule(semantics.div, columns, is_active),
-    };
-}
-
-fn moduleColumnCount(comptime Module: type) usize {
-    return if (@hasDecl(Module, "N_ORACLE_COLUMNS"))
-        Module.N_ORACLE_COLUMNS
-    else
-        Module.N_MAIN_COLUMNS;
-}
-
-fn moduleConstraintCount(comptime Module: type) usize {
-    return Module.N_CONSTRAINTS + 1;
-}
-
-fn evaluateModule(
-    comptime Module: type,
-    columns: []const QM31,
-    is_active: QM31,
-) !Evaluation {
-    const n_columns = comptime moduleColumnCount(Module);
-    if (columns.len != n_columns) return error.InvalidMainTraceShape;
-    var sampled: [n_columns]QM31 = undefined;
-    @memcpy(&sampled, columns);
-    const row = if (@hasDecl(Module.Row, "fromOracleColumns"))
-        try Module.Row.fromOracleColumns(&sampled)
-    else
-        try Module.Row.fromMainColumns(&sampled);
-    const constraints = Module.evaluate(row);
-    var result = Evaluation{};
-    for (constraints.values) |constraint| {
-        result.values[result.len] = constraint;
-        result.len += 1;
-    }
-    result.values[result.len] = Module.placementConstraint(row, is_active);
-    result.len += 1;
-    std.debug.assert(result.len == moduleConstraintCount(Module));
-    return result;
+    trace_log_size: u32,
+) u32 {
+    _ = family;
+    return trace_log_size + 1;
 }
 
 test "semantic evaluator covers every family without exceeding its bound" {
@@ -206,4 +137,11 @@ test "semantic evaluator rejects active placement for a padding row" {
         );
         try std.testing.expect(!result.allZero());
     }
+}
+
+test {
+    // Keep the canonical builder's contract tests in the frontend test root;
+    // Zig does not recursively collect tests from an implementation import.
+    _ = @import("constraint_program.zig");
+    _ = @import("lookups/opcode_entries.zig");
 }

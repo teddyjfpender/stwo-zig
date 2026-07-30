@@ -5,22 +5,10 @@ use stwo::core::fields::qm31::SecureField;
 pub(crate) const SCHEMA_VERSION: u32 = 1;
 pub(crate) const EXCHANGE_MODE: &str = "proof_exchange_json_wire_v1";
 pub(crate) const POSEIDON_LOG_INSTANCES_PER_ROW: u32 = 3;
-pub(crate) const POSEIDON_INSTANCES_PER_ROW: usize = 1 << POSEIDON_LOG_INSTANCES_PER_ROW;
-pub(crate) const POSEIDON_STATE: usize = 16;
-pub(crate) const POSEIDON_PARTIAL_ROUNDS: usize = 14;
-pub(crate) const POSEIDON_HALF_FULL_ROUNDS: usize = 4;
-pub(crate) const POSEIDON_FULL_ROUNDS: usize = POSEIDON_HALF_FULL_ROUNDS * 2;
-pub(crate) const POSEIDON_COLUMNS_PER_REP: usize =
-    POSEIDON_STATE * (1 + POSEIDON_FULL_ROUNDS) + POSEIDON_PARTIAL_ROUNDS;
-pub(crate) const POSEIDON_COLUMNS: usize = POSEIDON_COLUMNS_PER_REP * POSEIDON_INSTANCES_PER_ROW;
-pub(crate) const BLAKE_STATE: usize = 16;
-pub(crate) const BLAKE_MESSAGE_WORDS: usize = 16;
-pub(crate) const BLAKE_FELTS_IN_U32: usize = 2;
-pub(crate) const BLAKE_ROUND_INPUT_FELTS: usize =
-    (BLAKE_STATE + BLAKE_STATE + BLAKE_MESSAGE_WORDS) * BLAKE_FELTS_IN_U32;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Mode {
+    Capabilities,
     Generate,
     Verify,
     Bench,
@@ -179,6 +167,8 @@ pub(crate) struct XorStatementWire {
     pub(crate) log_size: u32,
     pub(crate) log_step: u32,
     pub(crate) offset: u64,
+    #[serde(default)]
+    pub(crate) claimed_sum: Qm31Wire,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -187,14 +177,34 @@ pub(crate) struct PlonkStatementWire {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct PlonkLogupStatementWire {
+    pub(crate) log_n_rows: u32,
+    pub(crate) claimed_sum: Qm31Wire,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct PoseidonStatementWire {
     pub(crate) log_n_instances: u32,
+    #[serde(default)]
+    pub(crate) claimed_sum: Qm31Wire,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct BlakeStatementWire {
-    pub(crate) log_n_rows: u32,
-    pub(crate) n_rounds: u32,
+    pub(crate) stmt0: BlakeStatement0Wire,
+    pub(crate) stmt1: BlakeStatement1Wire,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct BlakeStatement0Wire {
+    pub(crate) log_size: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct BlakeStatement1Wire {
+    pub(crate) scheduler_claimed_sum: Qm31Wire,
+    pub(crate) round_claimed_sums: [Qm31Wire; 2],
+    pub(crate) xor_claimed_sums: [Qm31Wire; 5],
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -214,6 +224,8 @@ pub(crate) struct InteropArtifact {
     pub(crate) pcs_config: PcsConfigWire,
     pub(crate) blake_statement: Option<BlakeStatementWire>,
     pub(crate) plonk_statement: Option<PlonkStatementWire>,
+    #[serde(default)]
+    pub(crate) plonk_logup_statement: Option<PlonkLogupStatementWire>,
     pub(crate) poseidon_statement: Option<PoseidonStatementWire>,
     pub(crate) state_machine_statement: Option<StateMachineStatementWire>,
     pub(crate) wide_fibonacci_statement: Option<WideFibonacciStatementWire>,
@@ -248,12 +260,25 @@ pub(crate) struct BenchReport {
     pub(crate) runtime: String,
     pub(crate) backend: String,
     pub(crate) backend_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) execution_profile: Option<BenchExecutionProfile>,
     pub(crate) example: String,
     pub(crate) prove_mode: String,
     pub(crate) include_all_preprocessed_columns: bool,
     pub(crate) prove: BenchTiming,
     pub(crate) verify: BenchTiming,
     pub(crate) proof_metrics: BenchProofMetrics,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct BenchExecutionProfile {
+    pub(crate) proof_backend_type: String,
+    pub(crate) witness_generation_backend_type: String,
+    pub(crate) interaction_generation_backend_type: String,
+    pub(crate) backend_homogeneous: bool,
+    pub(crate) pure_backend_promotion_eligible: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) promotion_ineligibility_reason: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -284,12 +309,6 @@ pub(crate) enum ExampleStatement {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct StateMachineElements {
-    pub(crate) z: SecureField,
-    pub(crate) alpha: SecureField,
-}
-
-#[derive(Debug, Clone, Copy)]
 pub(crate) struct StateMachineStatement {
     pub(crate) public_input: [[M31; 2]; 2],
     pub(crate) stmt0_n: u32,
@@ -303,6 +322,7 @@ pub(crate) struct XorStatement {
     pub(crate) log_size: u32,
     pub(crate) log_step: u32,
     pub(crate) offset: usize,
+    pub(crate) claimed_sum: SecureField,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -319,23 +339,27 @@ pub(crate) struct PlonkStatement {
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct PoseidonStatement {
     pub(crate) log_n_instances: u32,
+    pub(crate) claimed_sum: SecureField,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct BlakeStatement {
-    pub(crate) log_n_rows: u32,
-    pub(crate) n_rounds: u32,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub(crate) struct StateMachineComponent {
-    pub(crate) trace_log_size: u32,
-    pub(crate) composition_eval: SecureField,
+    pub(crate) log_size: u32,
+    pub(crate) scheduler_claimed_sum: SecureField,
+    pub(crate) round_claimed_sums: [SecureField; 2],
+    pub(crate) xor_claimed_sums: [SecureField; 5],
 }
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct XorComponent {
     pub(crate) statement: XorStatement,
+    pub(crate) lookup_elements: XorLookupElements,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct XorLookupElements {
+    pub(crate) z: SecureField,
+    pub(crate) alpha: SecureField,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -346,14 +370,4 @@ pub(crate) struct WideFibonacciComponent {
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct PlonkComponent {
     pub(crate) statement: PlonkStatement,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub(crate) struct PoseidonComponent {
-    pub(crate) statement: PoseidonStatement,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub(crate) struct BlakeComponent {
-    pub(crate) statement: BlakeStatement,
 }

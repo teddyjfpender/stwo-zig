@@ -4,6 +4,7 @@
 //! Supports optional host syscall interface for guest↔host communication.
 
 const std = @import("std");
+const isa_profile = @import("../isa/profile.zig");
 pub const cpu = @import("cpu.zig");
 pub const decode = @import("decode.zig");
 pub const memory = @import("memory.zig");
@@ -11,10 +12,13 @@ pub const execute_mod = @import("execute.zig");
 pub const elf_loader = @import("elf_loader.zig");
 pub const trace = @import("trace.zig");
 pub const trace_dump = @import("trace_dump.zig");
+/// Test-only bridge to the pinned Sail oracle; see `sail_oracle.zig`.
+pub const sail_oracle = @import("sail_oracle.zig");
 pub const state_chain = @import("state_chain.zig");
 pub const memory_state = @import("memory_state.zig");
 pub const result_mod = @import("result.zig");
 const access_witness = @import("access_witness.zig");
+const access_clock = @import("../access_clock.zig");
 pub const host_mod = @import("../host/mod.zig");
 
 pub const Cpu = cpu.Cpu;
@@ -35,8 +39,7 @@ pub fn run(allocator: std.mem.Allocator, elf_bytes: []const u8, max_steps: usize
     return runWithHost(allocator, elf_bytes, max_steps, null);
 }
 
-/// Run an ELF using its linker-defined input buffer and halt flag.
-/// This is compatible with stark-v guest binaries.
+/// Run an ELF using its linker-defined input buffer and halt flag (legacy-ABI compatible).
 pub fn runWithInput(
     allocator: std.mem.Allocator,
     elf_bytes: []const u8,
@@ -104,21 +107,16 @@ fn runConfigured(
             break;
         }
         const pc_before = rv_cpu.pc;
+        isa_profile.requireInstructionAligned(pc_before) catch
+            return error.InstructionAddressMisaligned;
         const inst_word = mem.readU32(rv_cpu.pc);
         if (strict_completion and (inst_word == 0x00000073 or inst_word == 0x00100073))
             return error.InvalidInstruction;
-        // ECALL/EBREAK are runtime affordances (hosted syscalls and halts),
-        // not part of the pinned decode contract - synthesize them here.
-        const inst = if (inst_word == 0x00000073)
-            DecodedInst{ .opcode = .ECALL, .rd = 0, .rs1 = 0, .rs2 = 0, .imm = 0 }
-        else if (inst_word == 0x00100073)
-            DecodedInst{ .opcode = .EBREAK, .rd = 0, .rs1 = 0, .rs2 = 0, .imm = 0 }
-        else
-            DecodedInst.decode(inst_word) catch {
-                if (strict_completion) return error.InvalidInstruction;
-                completion_reason = .invalid_instruction;
-                break;
-            };
+        const inst = DecodedInst.decode(inst_word) catch {
+            if (strict_completion) return error.InvalidInstruction;
+            completion_reason = .invalid_instruction;
+            break;
+        };
 
         // Capture pre-execution register values.
         const rs1_val = rv_cpu.readReg(inst.rs1);
@@ -126,9 +124,10 @@ fn runConfigured(
         const rd_prev_val = rv_cpu.readReg(inst.rd);
         const access_clk: u32 = @intCast(steps + 1);
         const access = access_witness.capture(&chain_tracker, inst, access_clk);
+        const memory_access_clock = access_clock.encode(access_clk, .third);
 
-        // Halt on the Stark-V self-loop sentinel without tracing it, exactly
-        // like the pinned oracle: `jal x0, 0`, or `jalr x0` targeting itself.
+        // The zkVM completion sentinel is an environment event, not a retired
+        // instruction: `jal x0, 0`, or `jalr x0` targeting itself.
         const is_self_loop = switch (inst.opcode) {
             .JAL => inst.rd == 0 and inst.imm == 0,
             .JALR => inst.rd == 0 and
@@ -146,14 +145,8 @@ fn runConfigured(
         var mem_val: u32 = 0;
         var mem_prev_word: u32 = 0;
         var mem_prev_clk: u32 = 0;
-        const is_load = switch (inst.opcode) {
-            .LB, .LBU, .LH, .LHU, .LW => true,
-            else => false,
-        };
-        const is_store = switch (inst.opcode) {
-            .SB, .SH, .SW => true,
-            else => false,
-        };
+        const is_load = decode.isLoad(inst.opcode);
+        const is_store = decode.isStore(inst.opcode);
 
         if (is_load or is_store) {
             mem_addr = rs1_val +% @as(u32, @bitCast(inst.imm));
@@ -161,7 +154,7 @@ fn runConfigured(
             mem_prev_word = mem.readU32(aligned_addr);
             mem_prev_clk = state_chain.StateChainTracker.effectivePreviousClock(
                 chain_tracker.mem_last_clk.get(aligned_addr) orelse 0,
-                access_clk,
+                memory_access_clock,
             );
             if (is_load) {
                 mem_val = switch (inst.opcode) {
@@ -188,7 +181,7 @@ fn runConfigured(
                     for (h.lastMemoryWrites()) |mw| {
                         try chain_tracker.recordMemTransition(
                             mw.addr,
-                            access_clk,
+                            memory_access_clock,
                             mw.previous_value,
                             mw.value,
                         );
@@ -219,6 +212,7 @@ fn runConfigured(
                 halted = true;
             },
             error.MisalignedMemoryAccess => return error.MisalignedMemoryAccess,
+            error.InstructionAddressMisaligned => return error.InstructionAddressMisaligned,
         };
 
         const rd_val = rv_cpu.readReg(inst.rd);
@@ -254,13 +248,12 @@ fn runConfigured(
             .inst_word = inst_word,
         });
 
-        // Record state chain accesses.
-        // Pinned Stark-V places every operand access for an instruction at
-        // the same one-based execution clock, in source-then-destination order.
+        // Record state-chain accesses at strict protocol subclocks derived
+        // from the one-based instruction clock, in source-then-destination
+        // order. This intentionally diverges from Stark-V's shared clock.
         try access.recordRegisters(
             &chain_tracker,
             inst,
-            access_clk,
             rs1_val,
             rs2_val,
             rd_prev_val,
@@ -270,7 +263,7 @@ fn runConfigured(
             const aligned_addr = mem_addr & ~@as(u32, 3);
             try chain_tracker.recordMemTransition(
                 aligned_addr,
-                access_clk,
+                memory_access_clock,
                 mem_prev_word,
                 mem.readU32(aligned_addr),
             );
@@ -280,8 +273,7 @@ fn runConfigured(
 
         if (halted) break;
 
-        // Backup infinite-loop halt matching the pinned oracle: the traced
-        // instruction left the PC unchanged.
+        // Backup infinite-loop halt: the retired instruction left PC unchanged.
         if (rv_cpu.pc == pc_before) {
             completion_reason = .stalled_pc;
             break;
@@ -303,6 +295,20 @@ fn runConfigured(
         if (captured_output.bytes) |output| allocator.free(output);
         allocator.free(captured_output.words);
     }
+    const completion_address: u32 = switch (completion_reason) {
+        .halt_flag => elf_info.halt_flag,
+        .self_loop => rv_cpu.pc,
+        else => 0,
+    };
+    const completion_value: u32 = switch (completion_reason) {
+        .halt_flag => mem.readU32(elf_info.halt_flag),
+        .self_loop => mem.readU32(rv_cpu.pc),
+        else => 0,
+    };
+    const completion_clock: u32 = switch (completion_reason) {
+        .halt_flag => chain_tracker.mem_last_clk.get(elf_info.halt_flag & ~@as(u32, 3)) orelse 0,
+        else => 0,
+    };
     const rw_memory = try memory_state.capture(
         allocator,
         &mem,
@@ -310,6 +316,10 @@ fn runConfigured(
         elf_info.memory_layout,
         memory_state.SegmentRole.single(),
         captured_output.len,
+        if (completion_reason == .halt_flag)
+            elf_info.halt_flag & ~@as(u32, 3)
+        else
+            null,
     );
     chain_tracker.releaseMemoryBaselines();
     errdefer {
@@ -325,6 +335,9 @@ fn runConfigured(
         .final_regs = snapshotRegisters(rv_cpu),
         .step_count = steps,
         .completion_reason = completion_reason,
+        .completion_address = completion_address,
+        .completion_value = completion_value,
+        .completion_clock = completion_clock,
         .input = owned_input,
         .input_start = elf_info.input_start,
         .input_end = elf_info.input_end,
@@ -529,12 +542,12 @@ test "runner: runWithInput captures Stark-V public IO with access clocks" {
     try std.testing.expectEqual(OutputWord{
         .addr = elf_loader.DEFAULT_OUTPUT_LEN,
         .value = 4,
-        .clock = 3,
+        .clock = 11,
     }, result.output_words[0]);
     try std.testing.expectEqual(OutputWord{
         .addr = elf_loader.DEFAULT_OUTPUT_DATA,
         .value = 42,
-        .clock = 5,
+        .clock = 19,
     }, result.output_words[1]);
     try std.testing.expect(result.rw_memory.segment_role.is_first);
     try std.testing.expect(result.rw_memory.segment_role.is_last);
@@ -669,7 +682,7 @@ test "runner: mem_addr and mem_val captured for load/store" {
     try std.testing.expectEqual(@as(u32, 0x55), rows[3].mem_val);
     try std.testing.expectEqual(@as(u32, 0x55), rows[3].mem_prev_word);
     try std.testing.expectEqual(@as(u32, 0x55), rows[3].mem_next_word);
-    try std.testing.expectEqual(@as(u32, 3), rows[3].mem_prev_clk);
+    try std.testing.expectEqual(@as(u32, 11), rows[3].mem_prev_clk);
 
     // Verify final register state
     try std.testing.expectEqual(@as(u32, 0x55), result.cpu_final.readReg(3));

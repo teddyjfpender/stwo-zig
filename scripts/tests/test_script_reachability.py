@@ -20,8 +20,43 @@ SCRIPTS = ROOT / "scripts"
 # Operator tools invoked by humans, not gates. Each entry must carry a
 # purpose; remove the entry in the same commit that deletes the tool.
 OPERATOR_TOOLS: dict[str, str] = {
-    # Currently empty: every script is gate-reachable. Add entries only for
-    # genuinely human-invoked tools, with an owner and purpose.
+    # Owner: soundness. Per-row witness-uniqueness checking of an AIR family
+    # via z3, from a serialisable constraint IR. Deliberately un-gated: it
+    # needs z3, which hosted CI does not install, and no family's IR is
+    # emitted from the real modules yet. Its own contracts do run, through
+    # scripts/tests/test_air_uniqueness.py in the discovered suite.
+    "air_uniqueness.py": "SMT witness-uniqueness checker for AIR families",
+    # Owner: soundness. Schedules `air_uniqueness.py` across every emitted
+    # family and folds the shard verdicts into one board. Un-gated for the same
+    # two reasons as the checker it drives, plus a third: a board is a budgeted
+    # measurement, and a gate that fails on a solver timeout would be a gate on
+    # the machine it ran on. Its contracts run through
+    # scripts/tests/test_air_uniqueness_board.py in the discovered suite.
+    "air_uniqueness_board.py": "witness-uniqueness board over every AIR family",
+    # Owner: soundness. Constructively proves active-narrow Poseidon2 main-row
+    # rigidity and the exact deterministic/conditional-functional relations of
+    # all six fixed lookup-table components. It is an operator certificate,
+    # not a proof-wire verifier; its exhaustive and mutation contracts run in
+    # scripts/tests/test_riscv_poseidon_table_uniqueness.py.
+    "riscv_poseidon_table_uniqueness.py":
+        "Poseidon2 and fixed-table row-local rigidity certificate",
+    # Owner: soundness. Separates row-local infrastructure functionality from
+    # the exact LogUp-closure premises needed by program, offline-memory,
+    # Merkle, and clock recurrences. Its exhaustive small models, concrete
+    # overclaim counterexamples, and production-source mutation contracts run
+    # in scripts/tests/test_riscv_infrastructure_uniqueness.py.
+    "riscv_infrastructure_uniqueness.py":
+        "conditional AIR-infrastructure uniqueness and recurrence certificate",
+    # Owner: soundness. Checks the all-path Merkle index/parity induction and
+    # the field-depth cycle bound, pinned to the shipped relation and statement
+    # guard. Contracts run in scripts/tests/test_riscv_merkle_recurrence.py.
+    "riscv_merkle_recurrence.py":
+        "sparse-Merkle index and detached-cycle recurrence certificate",
+    # Owner: soundness. Checks state-clock cycle order, bounded synthetic clock
+    # updates, and the historical wrapped-cycle counterexample. Contracts run
+    # in scripts/tests/test_riscv_state_chain_recurrence.py.
+    "riscv_state_chain_recurrence.py":
+        "state-chain and clock-window recurrence certificate",
 }
 
 ENTRY_POINT_GLOBS = (

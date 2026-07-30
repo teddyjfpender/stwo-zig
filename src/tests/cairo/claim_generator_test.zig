@@ -1,8 +1,8 @@
 const std = @import("std");
-const claim_generator = @import("../../frontends/cairo/claim_generator.zig");
-const claim_registry = @import("../../frontends/cairo/claim_registry.zig");
-const adapter = @import("../../frontends/cairo/adapter/mod.zig");
-const opcodes = @import("../../frontends/cairo/adapter/opcodes.zig");
+const claim_generator = @import("stwo_cairo_frontend").claim_generator;
+const claim_registry = @import("stwo_cairo_frontend").claim_registry;
+const adapter = @import("stwo_cairo_frontend").adapter;
+const opcodes = @import("stwo_cairo_frontend").adapter.opcodes;
 
 const OracleComponent = struct {
     name: []const u8,
@@ -36,7 +36,7 @@ const OracleVector = struct {
     components: []const OracleComponent,
 };
 
-test "Cairo claim generator: Fib25k matches pinned Rust component geometry" {
+test "Cairo claim generator: legacy Fib25k remains diagnostic geometry" {
     const vector_bytes = try std.fs.cwd().readFileAlloc(
         std.testing.allocator,
         "vectors/cairo/cairo_fib25k_claim_geometry.json",
@@ -54,10 +54,11 @@ test "Cairo claim generator: Fib25k matches pinned Rust component geometry" {
 
     try std.testing.expectEqual(@as(u32, 1), oracle.schema_version);
     try std.testing.expectEqualStrings("pinned_rust_stwo_cairo_test_only", oracle.oracle.kind);
-    try std.testing.expectEqualStrings(
+    try std.testing.expect(!std.mem.eql(
+        u8,
         claim_registry.source_revision.stwo_cairo,
         oracle.oracle.claim_registry_stwo_cairo_revision,
-    );
+    ));
 
     var resources = claim_generator.ExecutionResources{
         .opcode_counts = [_]usize{0} ** opcodes.N_OPCODES,

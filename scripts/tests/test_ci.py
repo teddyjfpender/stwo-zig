@@ -138,6 +138,60 @@ class CiTests(unittest.TestCase):
         with self.assertRaisesRegex(SystemExit, "dependency_module_roots.*diverges"):
             validate_actual_construction(manifest, matrix, "focused")
 
+    def test_backend_tools_allow_declared_dependency_subset_without_host_probes(self) -> None:
+        manifest, matrix = self.construction_fixture()
+        manifest["scope_role"] = "backend_tools"
+        manifest["constructed_products"] = []
+        manifest["actual"]["products"] = []  # type: ignore[index]
+        manifest["dependency_module_roots"] = [
+            "dependency:portable:root.zig",
+            "dependency:host_only:root.zig",
+        ]
+        manifest["actual"]["dependency_module_roots"] = [  # type: ignore[index]
+            "dependency:portable:root.zig"
+        ]
+        manifest["actual"]["runtime_probes"] = []  # type: ignore[index]
+        validate_actual_construction(manifest, matrix, "focused")  # must not raise
+
+    def test_backend_tools_reject_undeclared_partitioned_dependency(self) -> None:
+        manifest, matrix = self.construction_fixture()
+        manifest["scope_role"] = "backend_tools"
+        manifest["constructed_products"] = []
+        manifest["actual"]["products"] = []  # type: ignore[index]
+        manifest["dependency_module_roots"] = ["dependency:portable:root.zig"]
+        manifest["actual"]["dependency_module_roots"] = [  # type: ignore[index]
+            "dependency:hidden:root.zig"
+        ]
+        manifest["actual"]["runtime_probes"] = []  # type: ignore[index]
+        with self.assertRaisesRegex(SystemExit, "dependency_module_roots.*undeclared"):
+            validate_actual_construction(manifest, matrix, "focused")
+
+    def test_backend_tools_reject_empty_partitioned_dependencies(self) -> None:
+        manifest, matrix = self.construction_fixture()
+        manifest["scope_role"] = "backend_tools"
+        manifest["constructed_products"] = []
+        manifest["actual"]["products"] = []  # type: ignore[index]
+        manifest["dependency_module_roots"] = ["dependency:portable:root.zig"]
+        manifest["actual"]["dependency_module_roots"] = []  # type: ignore[index]
+        manifest["actual"]["runtime_probes"] = []  # type: ignore[index]
+        with self.assertRaisesRegex(SystemExit, "observed no dependencies"):
+            validate_actual_construction(manifest, matrix, "focused")
+
+    def test_backend_tools_require_exact_dependencies_with_host_probes(self) -> None:
+        manifest, matrix = self.construction_fixture()
+        manifest["scope_role"] = "backend_tools"
+        manifest["constructed_products"] = []
+        manifest["actual"]["products"] = []  # type: ignore[index]
+        manifest["dependency_module_roots"] = [
+            "dependency:portable:root.zig",
+            "dependency:host_only:root.zig",
+        ]
+        manifest["actual"]["dependency_module_roots"] = [  # type: ignore[index]
+            "dependency:portable:root.zig"
+        ]
+        with self.assertRaisesRegex(SystemExit, "dependency_module_roots.*diverges"):
+            validate_actual_construction(manifest, matrix, "focused")
+
     def test_standard_plan_runs_tooling_then_release_gate(self) -> None:
         plan = command_plan(False, "ReleaseFast")
         self.assertEqual(sys.executable, plan[0][0])
@@ -175,21 +229,46 @@ class CiTests(unittest.TestCase):
         self.assertIn("run: python3 scripts/ci.py --strict\n", workflow)
         self.assertIn("inputs.gate == 'strict'", workflow)
 
-    def test_hosted_ci_exposes_fail_closed_riscv_candidate_evidence_lane(self) -> None:
+    def test_focused_cairo_cpu_primes_its_offline_cargo_build(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
-        self.assertIn("- riscv-candidate", workflow)
-        self.assertIn("- riscv-promoted", workflow)
-        self.assertIn("- riscv-produce-candidate", workflow)
-        self.assertIn("- riscv-produce-promoted", workflow)
-        self.assertIn("candidate_sha:", workflow)
-        self.assertIn("candidate_ref:", workflow)
-        self.assertIn("producer_run_id:", workflow)
-        self.assertIn("name: RISC-V exhaustive release evidence", workflow)
-        self.assertIn("name: RISC-V fast release gate", workflow)
+        focused_linux = workflow.split("  focused-linux:", 1)[1].split(
+            "  focused-macos:", 1
+        )[0]
+        fetch = focused_linux.index("name: Fetch pinned Cairo adapter dependencies")
+        run = focused_linux.index("name: Run focused lane")
+        self.assertLess(fetch, run)
+        self.assertIn("if: matrix.lane == 'cairo_cpu'", focused_linux)
         self.assertIn(
-            "github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'",
-            workflow,
+            "cargo fetch --locked\n"
+            "          --manifest-path tools/stwo-cairo-vm-adapter-rs/Cargo.toml",
+            focused_linux,
         )
+
+    def test_hosted_ci_quarantines_the_pre_sail_riscv_evidence_lane(self) -> None:
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        dispatch = workflow.split("permissions:", 1)[0]
+        self.assertNotIn("- riscv-candidate", dispatch)
+        self.assertNotIn("- riscv-promoted", dispatch)
+        self.assertNotIn("- riscv-produce-candidate", dispatch)
+        self.assertNotIn("- riscv-produce-promoted", dispatch)
+        self.assertNotIn("candidate_sha:", dispatch)
+        self.assertNotIn("candidate_ref:", dispatch)
+        self.assertNotIn("producer_run_id:", dispatch)
+        self.assertIn(
+            "name: Archived RISC-V Stark-V layout evidence (disabled)", workflow
+        )
+        self.assertIn(
+            "name: Archived RISC-V Stark-V replay gate (disabled)", workflow
+        )
+        producer = workflow.split("  riscv-release-evidence:", 1)[1].split(
+            "  riscv-fast-release-gate:", 1
+        )[0]
+        fast = workflow.split("  riscv-fast-release-gate:", 1)[1].split(
+            "  architecture-diagnostic:", 1
+        )[0]
+        self.assertIn("if: ${{ false }}", producer)
+        self.assertIn("if: ${{ false }}", fast)
+        self.assertIn("inputs.gate == 'architecture'", workflow)
         tag_or_dispatch_only = (
             "(github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) ||\n"
             "      (github.event_name == 'workflow_dispatch' &&\n"
@@ -200,12 +279,13 @@ class CiTests(unittest.TestCase):
         self.assertIn("focused-plan:", workflow)
         self.assertIn("focused-linux:", workflow)
         self.assertIn("focused-macos:", workflow)
+        self.assertIn("focused-cuda:", workflow)
         self.assertIn("focused-verdict:", workflow)
         self.assertIn("python3 scripts/ci_scope_plan.py", workflow)
         self.assertIn("python3 scripts/ci_scope_run.py", workflow)
         self.assertIn("github.event.before", workflow)
         focused = workflow.split("  focused-plan:", 1)[1].split("  release-gate:", 1)[0]
-        self.assertEqual(4, focused.count("github.ref == 'refs/heads/main'"))
+        self.assertEqual(5, focused.count("github.ref == 'refs/heads/main'"))
         self.assertIn("inputs.gate == 'riscv-candidate' && 'candidate' || 'promoted'", workflow)
         self.assertIn("id: riscv-release-state", workflow)
         self.assertEqual(2, workflow.count("src/products/riscv_cpu/capabilities.zig"))
@@ -273,6 +353,36 @@ class CiTests(unittest.TestCase):
             fast.index("name: Verify reusable exhaustive anchor"),
         )
         self.assertIn("if-no-files-found: error", workflow)
+
+    def test_hosted_ci_requires_fail_closed_cuda_device_and_oracle_evidence(self) -> None:
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        cuda = workflow.split("  focused-cuda:", 1)[1].split(
+            "  focused-verdict:", 1
+        )[0]
+        self.assertIn("runs-on: [self-hosted, linux, x64, cuda]", cuda)
+        self.assertIn(
+            "needs.focused-plan.outputs.cuda_required == 'true'",
+            cuda,
+        )
+        self.assertIn("Require the CUDA-labelled runner contract", cuda)
+        self.assertIn("test -n \"$STWO_CUDA_NVCC\"", cuda)
+        self.assertIn("nvidia-smi --query-gpu=", cuda)
+        self.assertIn("--lane native_cuda_device", cuda)
+        self.assertIn("if-no-files-found: error", cuda)
+        self.assertIn(
+            "repository Rust source + Cargo.lock + nightly-2025-07-14",
+            workflow,
+        )
+
+        focused = workflow.split("  focused-plan:", 1)[1].split(
+            "  release-gate:", 1
+        )[0]
+        self.assertIn(
+            "needs: [focused-plan, focused-linux, focused-macos, focused-cuda]",
+            focused,
+        )
+        self.assertIn('test "$CUDA_RESULT" = success', focused)
+        self.assertIn('test "$CUDA_RESULT" = skipped', focused)
 
     def test_fast_riscv_gate_cannot_cancel_or_confuse_anchor_and_candidate(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
@@ -389,9 +499,11 @@ class CiTests(unittest.TestCase):
         linux = jobs["architecture-authority-linux"]
         macos = jobs["architecture-authority-macos"]
         verifier = jobs["architecture-authority-verify"]
-        self.assertIn("verify-anchor", (
+        architecture_plan = (
             ROOT / "conformance/build-architecture-ci-plan-v1.json"
-        ).read_text(encoding="utf-8"))
+        ).read_text(encoding="utf-8")
+        self.assertNotIn("riscv_release_bundle.py", architecture_plan)
+        self.assertNotIn("riscv_release_challenge.py", architecture_plan)
         self.assertNotIn("build-and-compare", linux)
         self.assertIn(
             "artifact_name=build-architecture-linux-$CANDIDATE_SHA-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT",

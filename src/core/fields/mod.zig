@@ -22,6 +22,11 @@ pub fn batchInverseInPlace(comptime F: type, column: []const F, dst: []F) !void 
         if (n >= 16 and (n & 15) == 0) return batchInverseCM31Packed(column, dst, 16);
         if (n >= 8 and (n & 7) == 0) return batchInverseCM31Packed(column, dst, 8);
     }
+    if (comptime F == qm31.QM31 and builtin.cpu.arch == .aarch64 and builtin.zig_backend != .stage2_c) {
+        if (n >= 32 and (n & 31) == 0) return batchInverseQM31Packed(column, dst, 32);
+        if (n >= 16 and (n & 15) == 0) return batchInverseQM31Packed(column, dst, 16);
+        if (n >= 8 and (n & 7) == 0) return batchInverseQM31Packed(column, dst, 8);
+    }
     if (n > 8 and (n & 7) == 0) return batchInverseStriped(F, column, dst, 8);
     if (n > 4 and (n & 3) == 0) return batchInverseStriped(F, column, dst, 4);
     return batchInverseClassic(F, column, dst);
@@ -161,6 +166,137 @@ fn batchInverseCM31Packed(
     }
 }
 
+const PackedQM31x4 = struct {
+    c0a: m31.Vec4u32,
+    c0b: m31.Vec4u32,
+    c1a: m31.Vec4u32,
+    c1b: m31.Vec4u32,
+};
+
+inline fn loadPackedQM31x4(ptr: [*]const qm31.QM31) PackedQM31x4 {
+    var result: PackedQM31x4 = undefined;
+    inline for (0..4) |lane| {
+        result.c0a[lane] = ptr[lane].c0.a.v;
+        result.c0b[lane] = ptr[lane].c0.b.v;
+        result.c1a[lane] = ptr[lane].c1.a.v;
+        result.c1b[lane] = ptr[lane].c1.b.v;
+    }
+    return result;
+}
+
+inline fn storePackedQM31x4(ptr: [*]qm31.QM31, value: PackedQM31x4) void {
+    inline for (0..4) |lane| {
+        ptr[lane] = qm31.QM31.fromU32Unchecked(
+            value.c0a[lane],
+            value.c0b[lane],
+            value.c1a[lane],
+            value.c1b[lane],
+        );
+    }
+}
+
+inline fn mulPackedQM31x4(lhs: PackedQM31x4, rhs: PackedQM31x4) PackedQM31x4 {
+    const lhs_c0 = PackedCM31x4{ .a = lhs.c0a, .b = lhs.c0b };
+    const lhs_c1 = PackedCM31x4{ .a = lhs.c1a, .b = lhs.c1b };
+    const rhs_c0 = PackedCM31x4{ .a = rhs.c0a, .b = rhs.c0b };
+    const rhs_c1 = PackedCM31x4{ .a = rhs.c1a, .b = rhs.c1b };
+    const ac = mulPackedCM31x4(lhs_c0, rhs_c0);
+    const bd = mulPackedCM31x4(lhs_c1, rhs_c1);
+    const cross = mulPackedCM31x4(
+        .{
+            .a = m31.addVec4(lhs.c0a, lhs.c1a),
+            .b = m31.addVec4(lhs.c0b, lhs.c1b),
+        },
+        .{
+            .a = m31.addVec4(rhs.c0a, rhs.c1a),
+            .b = m31.addVec4(rhs.c0b, rhs.c1b),
+        },
+    );
+    const cross_minus_products = PackedCM31x4{
+        .a = m31.subVec4(m31.subVec4(cross.a, ac.a), bd.a),
+        .b = m31.subVec4(m31.subVec4(cross.b, ac.b), bd.b),
+    };
+    const rbd = PackedCM31x4{
+        .a = m31.subVec4(m31.addVec4(bd.a, bd.a), bd.b),
+        .b = m31.addVec4(bd.a, m31.addVec4(bd.b, bd.b)),
+    };
+    return .{
+        .c0a = m31.addVec4(ac.a, rbd.a),
+        .c0b = m31.addVec4(ac.b, rbd.b),
+        .c1a = cross_minus_products.a,
+        .c1b = cross_minus_products.b,
+    };
+}
+
+/// Montgomery inversion with four independent QM31 products in each AdvSIMD
+/// operation. The chain schedule is identical to the packed CM31 path above.
+fn batchInverseQM31Packed(
+    column: []const qm31.QM31,
+    dst: []qm31.QM31,
+    comptime width: usize,
+) !void {
+    @setEvalBranchQuota(16_000);
+    comptime std.debug.assert(width == 8 or width == 16 or width == 32);
+    std.debug.assert(dst.len >= column.len and column.len >= width and (column.len & (width - 1)) == 0);
+    const groups = width / 4;
+    const one = PackedQM31x4{
+        .c0a = @splat(1),
+        .c0b = @splat(0),
+        .c1a = @splat(0),
+        .c1b = @splat(0),
+    };
+    var cumulative = [_]PackedQM31x4{one} ** groups;
+    var base: usize = 0;
+    while (base < column.len) : (base += width) {
+        inline for (0..groups) |group| {
+            cumulative[group] = mulPackedQM31x4(
+                cumulative[group],
+                loadPackedQM31x4(column.ptr + base + 4 * group),
+            );
+            storePackedQM31x4(
+                dst.ptr + base + 4 * group,
+                cumulative[group],
+            );
+        }
+    }
+
+    const tail_products: [width]qm31.QM31 =
+        dst[column.len - width ..][0..width].*;
+    var tail_inverses: [width]qm31.QM31 = undefined;
+    try batchInverseClassic(qm31.QM31, &tail_products, &tail_inverses);
+    var inverse: [groups]PackedQM31x4 = undefined;
+    inline for (0..groups) |group| {
+        inverse[group] = loadPackedQM31x4(
+            (&tail_inverses).ptr + 4 * group,
+        );
+    }
+
+    var block = column.len;
+    while (block > width) {
+        block -= width;
+        inline for (0..groups) |group| {
+            storePackedQM31x4(
+                dst.ptr + block + 4 * group,
+                mulPackedQM31x4(
+                    loadPackedQM31x4(
+                        dst.ptr + block - width + 4 * group,
+                    ),
+                    inverse[group],
+                ),
+            );
+        }
+        inline for (0..groups) |group| {
+            inverse[group] = mulPackedQM31x4(
+                inverse[group],
+                loadPackedQM31x4(column.ptr + block + 4 * group),
+            );
+        }
+    }
+    inline for (0..groups) |group| {
+        storePackedQM31x4(dst.ptr + 4 * group, inverse[group]);
+    }
+}
+
 pub fn batchInverse(comptime F: type, allocator: std.mem.Allocator, column: []const F) ![]F {
     const out = try allocator.alloc(F, column.len);
     errdefer allocator.free(out);
@@ -212,6 +348,18 @@ fn randNonZeroM31(rng: std.Random) m31.M31 {
     }
 }
 
+fn randNonZeroQM31(rng: std.Random) qm31.QM31 {
+    while (true) {
+        const value = qm31.QM31.fromU32Unchecked(
+            rng.intRangeLessThan(u32, 0, m31.Modulus),
+            rng.intRangeLessThan(u32, 0, m31.Modulus),
+            rng.intRangeLessThan(u32, 0, m31.Modulus),
+            rng.intRangeLessThan(u32, 0, m31.Modulus),
+        );
+        if (!value.isZero()) return value;
+    }
+}
+
 test "fields: batch inverse matches scalar inverse (m31)" {
     var prng = std.Random.DefaultPrng.init(0x91f1_7244_6800_5c3a);
     const rng = prng.random();
@@ -242,5 +390,19 @@ test "fields: batch inverse chunked matches batch inverse (m31)" {
 
     for (expected, 0..) |e, i| {
         try std.testing.expect(actual[i].eql(e));
+    }
+}
+
+test "fields: packed QM31 batch inverse matches scalar inverse" {
+    var prng = std.Random.DefaultPrng.init(0xa44f_977e_7f3d_d21c);
+    const rng = prng.random();
+
+    var elements: [64]qm31.QM31 = undefined;
+    for (&elements) |*element| element.* = randNonZeroQM31(rng);
+
+    var actual: [64]qm31.QM31 = undefined;
+    try batchInverseInPlace(qm31.QM31, &elements, &actual);
+    for (elements, actual) |element, inverse| {
+        try std.testing.expect(inverse.eql(try element.inv()));
     }
 }

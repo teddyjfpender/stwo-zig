@@ -1,7 +1,7 @@
 //! Resident Metal recipes required by an active Cairo witness closure.
 
 const std = @import("std");
-const witness_bundle = @import("../../frontends/cairo/witness/bundle.zig");
+const witness_bundle = @import("stwo_cairo_frontend").witness.bundle;
 
 pub const Requirements = struct {
     verify_instruction: bool = false,

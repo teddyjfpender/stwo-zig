@@ -1,0 +1,190 @@
+{
+  "schema": "stwo-zig-cuda-structural-screen-receipt-v1",
+  "evidence_class": "diagnostic_source_bound_unpaired_structural_screen",
+  "headline_eligible": false,
+  "activation_eligible": false,
+  "generated_at_utc": "2026-07-24T10:39:33.444249+00:00",
+  "controller": {
+    "commit": "3e453695e6416bbe0ae04558fa6f2cd867cd4ad4",
+    "dirty": false,
+    "report": "structural-screen.json",
+    "report_sha256": "4301dfb4ab72ab21f3437b19fd66c199ca3183b4e738d46870af6e2c0020f8e7"
+  },
+  "product": {
+    "commit": "5111126a57d035dcaf11628be0d9e7d85123be27",
+    "tree": "905cdee69c4b372cfc921715bded950f18ba8091",
+    "dirty": false,
+    "identity_sha256": "9efd4f7782066e096adb3b076c448ffbf9d8514fe6f92160128f1aca8e41ce49",
+    "binary_sha256": "5b8f2e7b7c46cd56d1a1cadb801d4cdf0b576a8a9e5f3e71a04d2aeb1dccffc7",
+    "optimize": "ReleaseFast",
+    "aot_only": true
+  },
+  "device": {
+    "name": "NVIDIA GeForce RTX 4090",
+    "uuid": "GPU-3dabce32-b71d-9cdf-6392-026267492cb6",
+    "sm": 89,
+    "multiprocessors": 128,
+    "global_memory_bytes": 25250627584,
+    "driver_version_reported": 13000,
+    "driver_version_nvidia_smi": "580.126.09",
+    "runtime_version": 12080,
+    "toolkit_version": 12080,
+    "power_limit_watts": 450.0
+  },
+  "measurement": {
+    "profile": "screen",
+    "cold_processes_per_workload": 1,
+    "first_requests_per_session": 1,
+    "warmups_per_session": 3,
+    "steady_verified_samples_per_session": 5,
+    "rounds": 1,
+    "paired_predecessor": false,
+    "portfolio_verdict": false
+  },
+  "oracle": {
+    "authority": "pinned-rust-stwo",
+    "upstream_commit": "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2",
+    "verifier_sha256": "a14c130ce59379fb2ede7f45c132aa864cef4a22119504ec4014a6f3e4d1e04a",
+    "artifacts_checked": 6,
+    "artifacts_accepted": 6,
+    "all_accepted": true
+  },
+  "invariants": {
+    "all_proofs_zig_verified": true,
+    "all_proofs_repeat_identical": true,
+    "all_proofs_rust_oracle_accepted": true,
+    "all_rows_resident": true,
+    "all_rows_strict_aot": true,
+    "all_rows_zero_cpu_fallback": true,
+    "terminal_d2h_operations_per_proof": 1,
+    "graph_launches": 0,
+    "synchronizations_per_proof": 1
+  },
+  "coverage": {
+    "covered": [
+      "latency",
+      "narrow_deep",
+      "wide",
+      "extreme"
+    ],
+    "blocked": [
+      "hash_heavy",
+      "lookup_heavy",
+      "irregular",
+      "vm",
+      "sustained"
+    ],
+    "activation_ready": false
+  },
+  "workloads": [
+    {
+      "id": "latency_wf_log14x32",
+      "rows": 16384,
+      "columns": 32,
+      "cold_process_ms": 346.991328,
+      "first_verified_ms": 16.482502,
+      "steady_verified_ms": 2.653269,
+      "steady_resident_ms": 2.112941,
+      "steady_device_ms": 2.062784,
+      "resident_row_mhz": 7.754121,
+      "resident_committed_mcells_per_second": 248.131869,
+      "kernel_launches": 344,
+      "peak_device_bytes": 18059332,
+      "proof_bytes": 41840,
+      "proof_sha256": "57a7d291eb8a103d0e4395c23fd7dc9ab7e9ed2d0f95558835cc6482630f3374",
+      "artifact_sha256": "d32393fe3b1f9abbc4795d87c3b3316e06111f014ec30f0635f13ec0ff0587f9"
+    },
+    {
+      "id": "narrow_deep_wf_log22x3",
+      "rows": 4194304,
+      "columns": 3,
+      "cold_process_ms": 496.379341,
+      "first_verified_ms": 81.153015,
+      "steady_verified_ms": 59.134836,
+      "steady_resident_ms": 58.102479,
+      "steady_device_ms": 57.982977,
+      "resident_row_mhz": 72.188039,
+      "resident_committed_mcells_per_second": 216.564116,
+      "kernel_launches": 598,
+      "peak_device_bytes": 2818785536,
+      "proof_bytes": 84643,
+      "proof_sha256": "f7afc599abfc1a20d95899caf0d7439ccd26104eb223648e85a1509ee4be934a",
+      "artifact_sha256": "70be93376ecb365385f9f2261d7f14536af95a0d655d871590e03af34c9325cc"
+    },
+    {
+      "id": "wide_wf_log18x37",
+      "rows": 262144,
+      "columns": 37,
+      "cold_process_ms": 305.699958,
+      "first_verified_ms": 22.00386,
+      "steady_verified_ms": 8.393996,
+      "steady_resident_ms": 7.557809,
+      "steady_device_ms": 7.504704,
+      "resident_row_mhz": 34.685185,
+      "resident_committed_mcells_per_second": 1283.351829,
+      "kernel_launches": 462,
+      "peak_device_bytes": 308436748,
+      "proof_bytes": 71248,
+      "proof_sha256": "1d751d4a65d044f91686d65db6d5858bad78afd60da54bfa64317f42a07fddbb",
+      "artifact_sha256": "21ac8f935304c485e9025892515b0430c4f311db9937c65afdd8bc98b5413e77"
+    },
+    {
+      "id": "wide_wf_log18x73",
+      "rows": 262144,
+      "columns": 73,
+      "cold_process_ms": 317.138761,
+      "first_verified_ms": 28.89892,
+      "steady_verified_ms": 15.017968,
+      "steady_resident_ms": 14.216372,
+      "steady_device_ms": 14.16128,
+      "resident_row_mhz": 18.439585,
+      "resident_committed_mcells_per_second": 1346.089706,
+      "kernel_launches": 462,
+      "peak_device_bytes": 459436012,
+      "proof_bytes": 69759,
+      "proof_sha256": "5185a08a40f14b20e0e5e16ccfb9ca388949df97968bae85cafe3ecbbaeb1bf2",
+      "artifact_sha256": "3954215d2827bc2c1dfd4b49735c9326dc7aeaeb35495f3340f22dfbb221f63d"
+    },
+    {
+      "id": "wide_wf_log18x128",
+      "rows": 262144,
+      "columns": 128,
+      "cold_process_ms": 329.47418,
+      "first_verified_ms": 37.908174,
+      "steady_verified_ms": 23.441514,
+      "steady_resident_ms": 22.588037,
+      "steady_device_ms": 22.534752,
+      "resident_row_mhz": 11.605435,
+      "resident_committed_mcells_per_second": 1485.495707,
+      "kernel_launches": 462,
+      "peak_device_bytes": 690129332,
+      "proof_bytes": 76406,
+      "proof_sha256": "d8903758e7792df8fbe272cb25346c60abfe333f4324c0f08d42b6bf58c5c96d",
+      "artifact_sha256": "e76c33aad4664e2b7abb482569b08a639c3ed6dc6aed9895603160b9056e5865"
+    },
+    {
+      "id": "extreme_wf_log22x100",
+      "rows": 4194304,
+      "columns": 100,
+      "cold_process_ms": 876.790121,
+      "first_verified_ms": 357.713204,
+      "steady_verified_ms": 322.759138,
+      "steady_resident_ms": 321.477823,
+      "steady_device_ms": 321.355,
+      "resident_row_mhz": 13.046947,
+      "resident_committed_mcells_per_second": 1304.694663,
+      "kernel_launches": 598,
+      "peak_device_bytes": 9160586244,
+      "proof_bytes": 106436,
+      "proof_sha256": "2c0ca9f7a73ea80f4cc32f2e27785f9ccf6b11dc460a133ebc8f5cc441e76205",
+      "artifact_sha256": "9dbcd823026d0e838d0f31d3599a58b5d4c237e5889db7588ec1f7c31b56efa4"
+    }
+  ],
+  "verdict": "pass_diagnostic_only",
+  "blockers": [
+    "No paired predecessor ABBA or confidence interval was measured.",
+    "Hash-heavy, lookup-heavy, irregular, VM, and sustained classes are unavailable.",
+    "Nsight Systems and Nsight Compute captures are not retained in this receipt.",
+    "core_cuda remains disabled and promotion-ineligible."
+  ]
+}

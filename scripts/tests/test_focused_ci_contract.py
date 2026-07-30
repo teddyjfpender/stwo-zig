@@ -17,6 +17,7 @@ from scripts import ci_scope_plan, ci_scope_push, ci_scope_run
 ROOT = Path(__file__).resolve().parents[2]
 COMMIT = "1" * 40
 TREE = "2" * 40
+PROVER_PREFIXES = ("src/core", "src/backend", "src/prover", "src/prover_api")
 
 
 def product(scope: str, *prefixes: str, state: str = "released") -> dict[str, object]:
@@ -37,34 +38,78 @@ def catalog_fixture() -> dict[str, object]:
         "products": [
             product(
                 "aggregate",
-                "src/core",
-                "src/backend",
-                "src/prover",
+                *PROVER_PREFIXES,
+                "src/backends/cpu_scalar",
                 "src/frontends/riscv",
+                "src/integrations/riscv_cpu",
             ),
             product("core", "src/core"),
-            product("prover", "src/core", "src/backend", "src/prover"),
+            product("prover", *PROVER_PREFIXES),
             product(
                 "native_cpu",
-                "src/core",
-                "src/backend",
-                "src/prover",
+                *PROVER_PREFIXES,
                 "src/backends/cpu_scalar",
                 "src/products/native_cpu",
             ),
             product(
                 "riscv_cpu",
-                "src/core",
-                "src/backend",
-                "src/prover",
+                *PROVER_PREFIXES,
+                "src/backends/cpu_scalar",
                 "src/frontends/riscv",
+                "src/integrations/riscv_cpu",
+            ),
+            product(
+                "cairo_cpu",
+                *PROVER_PREFIXES,
+                "src/backends/cpu_scalar",
+                "src/frontends/cairo",
+                "src/integrations/cairo_cpu",
+                "src/products/cairo_cpu",
+            ),
+            product(
+                "cairo_metal",
+                *PROVER_PREFIXES,
+                "src/backends/cpu_scalar",
+                "src/backends/metal",
+                "src/frontends/cairo",
+                "src/integrations/cairo_metal",
+                "src/products/cairo_metal",
             ),
             product(
                 "native_metal",
-                "src/core",
-                "src/backend",
-                "src/prover",
+                *PROVER_PREFIXES,
+                "src/backends/cpu_scalar",
                 "src/backends/metal",
+            ),
+            product(
+                "riscv_metal",
+                *PROVER_PREFIXES,
+                "src/backends/cpu_scalar",
+                "src/backends/metal",
+                "src/frontends/riscv",
+                "src/integrations/riscv_metal",
+                "src/products/riscv_metal",
+            ),
+            product(
+                "native_cuda",
+                *PROVER_PREFIXES,
+                "src/backends/cuda",
+                "src/backends/cpu_scalar",
+                "src/backends/metal",
+                "src/frontends/cairo",
+                "src/frontends/riscv",
+                "src/integrations/native_cuda",
+                "src/products/native_cuda",
+                state="staged",
+            ),
+            product(
+                "cairo_cuda",
+                "src/backends/cuda",
+                "src/prover_api",
+                "src/frontends/cairo",
+                "src/integrations/cairo_cuda",
+                "src/products/cairo_cuda",
+                state="staged",
             ),
         ],
     }
@@ -106,17 +151,151 @@ class PlannerContractTests(unittest.TestCase):
             {
                 "static",
                 "core",
+                "backend_contracts",
                 "prover",
+                "riscv_frontend",
+                "riscv_cpu_integration",
+                "riscv_metal_integration",
+                "cairo_frontend",
+                "cairo_cpu_integration",
+                "cpu_backend",
+                "metal_backend",
                 "package",
                 "native_cpu",
                 "native_oracle",
                 "riscv_cpu",
                 "aggregate_cpu",
+                "native_cuda_static",
+                "native_cuda_device",
                 "native_metal",
+                "riscv_metal",
                 "aggregate_metal",
             }.issubset(selected)
         )
         self.assertNotIn("metal_aot", selected)
+
+    def test_backend_contract_change_runs_its_package_and_dependents(self) -> None:
+        selected = self.lanes_for("src/backend/merkle_ops.zig")
+        self.assertTrue(
+            {
+                "static",
+                "backend_contracts",
+                "prover",
+                "riscv_frontend",
+                "cairo_frontend",
+                "cpu_backend",
+                "cuda_backend",
+                "metal_backend",
+                "package",
+            }.issubset(selected)
+        )
+        self.assertNotIn("core", selected)
+
+    def test_riscv_frontend_has_an_independent_package_lane(self) -> None:
+        selected = self.lanes_for("src/frontends/riscv/air/semantic_eval.zig")
+        self.assertTrue(
+            {
+                "static",
+                "riscv_frontend",
+                "riscv_cpu_integration",
+                "riscv_metal_integration",
+                "package",
+                "riscv_cpu",
+                "riscv_metal",
+                "aggregate_cpu",
+                "aggregate_metal",
+            }.issubset(selected)
+        )
+        commands = self.policy["lanes"]["riscv_frontend"]["commands"]
+        self.assertEqual(1, len(commands))
+        self.assertIn("src/frontends/riscv/build.zig", commands[0])
+
+    def test_cairo_frontend_has_an_independent_package_lane(self) -> None:
+        selected = self.lanes_for("src/frontends/cairo/air/components/add_ap.zig")
+        self.assertTrue(
+            {
+                "static",
+                "cairo_frontend",
+                "cairo_cpu_integration",
+                "package",
+                "cairo_cpu",
+                "cairo_metal",
+                "native_cuda_static",
+                "native_cuda_device",
+            }.issubset(selected)
+        )
+        commands = self.policy["lanes"]["cairo_frontend"]["commands"]
+        self.assertEqual(1, len(commands))
+        self.assertIn("src/frontends/cairo/build.zig", commands[0])
+
+    def test_cairo_frontend_package_tests_bind_the_repository_vector_root(self) -> None:
+        build = (ROOT / "src/frontends/cairo/build.zig").read_text(encoding="utf-8")
+        self.assertIn('b.pathFromRoot("../../..")', build)
+        self.assertEqual(2, build.count("setCwd(repository_root)"))
+
+    def test_cpu_backend_has_an_independent_package_lane(self) -> None:
+        selected = self.lanes_for("src/backends/cpu_scalar/mod.zig")
+        self.assertTrue(
+            {
+                "static",
+                "cpu_backend",
+                "riscv_cpu_integration",
+                "cairo_cpu_integration",
+                "package",
+                "native_cpu",
+                "riscv_cpu",
+                "cairo_cpu",
+                "native_cuda_static",
+                "native_cuda_device",
+                "native_metal",
+                "riscv_metal",
+                "aggregate_cpu",
+                "aggregate_metal",
+            }.issubset(selected)
+        )
+        commands = self.policy["lanes"]["cpu_backend"]["commands"]
+        self.assertEqual(1, len(commands))
+        self.assertIn("src/backends/cpu_scalar/build.zig", commands[0])
+
+    def test_metal_backend_has_an_independent_package_lane(self) -> None:
+        selected = self.lanes_for("src/backends/metal/mod.zig")
+        self.assertTrue(
+            {
+                "static",
+                "metal_backend",
+                "riscv_metal_integration",
+                "package",
+                "native_metal",
+                "riscv_metal",
+                "aggregate_metal",
+                "metal_compile",
+            }.issubset(selected)
+        )
+        lane = self.policy["lanes"]["metal_backend"]
+        self.assertEqual("macos", lane["host"])
+        self.assertNotIn("hosted", lane)
+        commands = lane["commands"]
+        self.assertEqual(1, len(commands))
+        self.assertIn("src/backends/metal/build.zig", commands[0])
+
+    def test_cuda_backend_has_an_independent_package_lane(self) -> None:
+        selected = self.lanes_for("src/backends/cuda/runtime/session.zig")
+        self.assertTrue(
+            {
+                "static",
+                "cuda_backend",
+                "native_cuda_integration",
+                "cairo_cuda_integration",
+                "package",
+                "native_cuda_static",
+                "native_cuda_device",
+            }.issubset(selected)
+        )
+        lane = self.policy["lanes"]["cuda_backend"]
+        self.assertEqual("linux", lane["host"])
+        commands = lane["commands"]
+        self.assertEqual(1, len(commands))
+        self.assertIn("src/backends/cuda/build.zig", commands[0])
 
     def test_riscv_lane_produces_and_independently_verifies_real_proofs(self) -> None:
         commands = self.policy["lanes"]["riscv_cpu"]["commands"]
@@ -129,11 +308,114 @@ class PlannerContractTests(unittest.TestCase):
         self.assertIn("--artifact-dir", proof_commands[0])
         self.assertIn("--report-out", proof_commands[0])
 
+    def test_riscv_auxiliary_build_owners_select_only_cpu_consumers(self) -> None:
+        expected = {"static", "build_graph", "riscv_cpu", "aggregate_cpu", "aggregate_metal"}
+        paths = ("build_support/products/riscv_refinement.zig",
+                 "build_support/products/riscv_sail_oracle_tests.zig")
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertEqual(expected, self.lanes_for(path))
+
+    def test_riscv_product_and_release_gate_consume_formal_certificate_index(self) -> None:
+        for relative in ("build_support/products/riscv_cpu.zig",
+                         "build_support/gates/riscv.zig"):
+            with self.subTest(relative=relative):
+                source = (ROOT / relative).read_text(encoding="utf-8")
+                self.assertIn("scripts/riscv_opcode_coverage.py", source)
+                self.assertIn('"check"', source)
+
     def test_leaf_native_cpu_change_does_not_select_unrelated_products(self) -> None:
         self.assertEqual(
             {"static", "native_cpu"},
             self.lanes_for("src/products/native_cpu/cli.zig"),
         )
+
+    def test_cuda_change_requires_static_and_explicit_device_lanes(self) -> None:
+        selected = self.lanes_for(
+            "src/backends/cuda/native/commitment/progressive.cu"
+        )
+        self.assertEqual(
+            {
+                "static",
+                "cuda_backend",
+                "native_cuda_integration",
+                "cairo_cuda_integration",
+                "package",
+                "native_cuda_static",
+                "native_cuda_device",
+            },
+            selected,
+        )
+        device = self.policy["lanes"]["native_cuda_device"]
+        self.assertFalse(device["hosted"])
+        self.assertEqual("hosted", device["local"])
+        command = "\n".join(device["commands"][0])
+        self.assertIn("STWO_CUDA_NVCC", command)
+        self.assertIn("zig build stwo-native-cuda", command)
+        self.assertIn("scripts/cuda_device_smoke.py", command)
+        self.assertIn("cuda_device_smoke_receipt.json", command)
+        self.assertIn('len(receipt["tests"]) == 12', command)
+        self.assertIn("zig build stwo-native-cpu", command)
+        self.assertIn("scripts/cuda_proof_parity_gate.py", command)
+        self.assertIn("--rust-verifier-sha256", command)
+        self.assertIn("--repeat 3", command)
+        self.assertIn("--air poseidon", command)
+        self.assertIn("--execution-mode graphs", command)
+        self.assertIn("--execution-mode direct", command)
+        self.assertIn("native-cuda-poseidon-graphs/receipt.json", command)
+        self.assertIn("native-cuda-poseidon-direct/receipt.json", command)
+        self.assertIn("nvidia-smi", command)
+
+    def test_cairo_cuda_scope_has_a_host_only_contract_lane(self) -> None:
+        self.assertEqual(
+            {
+                "static",
+                "cairo_cuda_integration",
+                "package",
+                "native_cuda_static",
+            },
+            self.lanes_for("src/integrations/cairo_cuda/executor/mod.zig"),
+        )
+
+    def test_cairo_cpu_runs_official_product_and_oracle_gates(self) -> None:
+        selected = self.lanes_for("src/integrations/cairo_cpu/prover/transaction.zig")
+        self.assertEqual(
+            {
+                "static", "cairo_cpu_integration", "package",
+                "cairo_cpu", "cairo_metal",
+            },
+            selected,
+        )
+        lane = self.policy["lanes"]["cairo_cpu"]
+        self.assertEqual("linux", lane["host"])
+        self.assertEqual("hosted", lane["local"])
+        commands = [" ".join(command) for command in lane["commands"]]
+        self.assertTrue(any("test-cairo-cpu-proof" in command for command in commands))
+        self.assertTrue(any("test-cairo-cpu-product" in command for command in commands))
+        self.assertTrue(any("test-cairo-cpu-oracle" in command for command in commands))
+
+    def test_cairo_metal_requires_real_device_and_authenticated_aot(self) -> None:
+        selected = self.lanes_for(
+            "src/integrations/cairo_metal/prover/transaction.zig"
+        )
+        self.assertEqual(
+            {
+                "static",
+                "cairo_metal_integration",
+                "package",
+                "cairo_metal",
+                "metal_compile",
+            },
+            selected,
+        )
+        lane = self.policy["lanes"]["cairo_metal"]
+        self.assertEqual("macos", lane["host"])
+        self.assertFalse(lane["hosted"])
+        command = "\n".join(lane["commands"][0])
+        self.assertIn("STWO_METAL_CORE_AOT_BUNDLE", command)
+        self.assertIn("stwo_zig_core.manifest.sha256", command)
+        self.assertIn("test-cairo-metal-product", command)
+        self.assertNotIn("test-cairo-metal-oracle", command)
 
     def test_metal_shader_selects_aot_but_runtime_does_not(self) -> None:
         shader = self.lanes_for(
@@ -142,13 +424,19 @@ class PlannerContractTests(unittest.TestCase):
         runtime = self.lanes_for("src/backends/metal/runtime.m")
         self.assertIn("metal_aot", shader)
         self.assertIn("metal_compile", shader)
+        self.assertIn("metal_backend", shader)
+        self.assertIn("package", shader)
         self.assertIn("native_metal", shader)
+        self.assertIn("riscv_metal", shader)
         self.assertNotIn("native_cpu", shader)
         self.assertNotIn("riscv_cpu", shader)
         self.assertNotIn("metal_aot", runtime)
         self.assertNotIn("build_graph", runtime)
         self.assertIn("metal_compile", runtime)
+        self.assertIn("metal_backend", runtime)
+        self.assertIn("package", runtime)
         self.assertIn("native_metal", runtime)
+        self.assertIn("riscv_metal", runtime)
 
     def test_multiple_paths_take_the_conservative_union(self) -> None:
         selected = self.lanes_for(
@@ -157,7 +445,14 @@ class PlannerContractTests(unittest.TestCase):
             "src/backends/metal/runtime.m",
         )
         self.assertTrue(
-            {"static", "native_cpu", "native_metal", "metal_compile"}.issubset(
+            {
+                "static",
+                "native_cpu",
+                "metal_backend",
+                "native_metal",
+                "riscv_metal",
+                "metal_compile",
+            }.issubset(
                 selected
             )
         )
@@ -226,39 +521,34 @@ class PlannerContractTests(unittest.TestCase):
                 "linux_count=2",
                 'macos_matrix={"lane":[]}',
                 "macos_count=0",
+                "cuda_required=false",
             ],
             lines,
         )
 
-    def test_hosted_capable_macos_lane_still_emitted(self) -> None:
-        plan = {"lanes": ["native_metal", "aggregate_metal"]}
+    def test_cuda_device_lane_is_not_emitted_to_generic_linux(self) -> None:
+        plan = {"lanes": ["native_cuda_static", "native_cuda_device"]}
         with tempfile.TemporaryDirectory() as raw:
             output = Path(raw) / "github-output"
             ci_scope_plan.emit_github_output(output, plan, self.policy)
             lines = output.read_text(encoding="utf-8").splitlines()
-        self.assertIn('macos_matrix={"lane":["aggregate_metal"]}', lines)
-        self.assertIn("macos_count=1", lines)
-
-    def test_submission_diff_selects_only_the_link_reach(self) -> None:
-        # A submission PR's own files: the submission directory is validated
-        # by the autoresearch workflow (externally_validated_prefixes) and
-        # must not trip the conservative unknown-path fallback; the two
-        # prover files select exactly the lanes that link the prover.
-        changed = [
-            "autoresearch/submissions/2026-07-20-x/delta.json",
-            "autoresearch/submissions/2026-07-20-x/note.md",
-            "autoresearch/submissions/2026-07-20-x/verdict.json",
-            "src/prover/pcs/quotient_tile_executor.zig",
-            "src/prover/vcs_lifted/prover.zig",
-        ]
-        lanes, _ = ci_scope_plan.select_lanes(changed, self.catalog, self.policy)
-        self.assertEqual(
-            sorted(lanes),
-            [
-                "aggregate_cpu", "aggregate_metal", "native_cpu", "native_metal",
-                "native_oracle", "package", "prover", "riscv_cpu", "static",
-            ],
+        self.assertIn(
+            'linux_matrix={"lane":["native_cuda_static"]}',
+            lines,
         )
+        self.assertIn("cuda_required=true", lines)
+
+    def test_hosted_capable_macos_lane_still_emitted(self) -> None:
+        plan = {"lanes": ["native_metal", "riscv_metal", "aggregate_metal", "metal_backend"]}
+        with tempfile.TemporaryDirectory() as raw:
+            output = Path(raw) / "github-output"
+            ci_scope_plan.emit_github_output(output, plan, self.policy)
+            lines = output.read_text(encoding="utf-8").splitlines()
+        self.assertIn(
+            'macos_matrix={"lane":["aggregate_metal","metal_backend"]}',
+            lines,
+        )
+        self.assertIn("macos_count=2", lines)
 
     def test_submission_only_diff_selects_always_lanes_only(self) -> None:
         changed = [

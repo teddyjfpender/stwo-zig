@@ -3,13 +3,14 @@ const fri = @import("stwo_core").fri;
 const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
 const pcs = @import("stwo_core").pcs;
-const blake = @import("../examples/blake.zig");
-const poseidon = @import("../examples/poseidon.zig");
-const plonk = @import("../examples/plonk.zig");
-const state_machine = @import("../examples/state_machine.zig");
-const wide_fibonacci = @import("../examples/wide_fibonacci.zig");
-const xor = @import("../examples/xor.zig");
-const proof_wire = @import("proof_wire.zig");
+const blake = @import("stwo_native_examples").blake;
+const poseidon = @import("stwo_native_examples").poseidon;
+const plonk = @import("stwo_native_examples").plonk;
+const plonk_logup = @import("stwo_native_examples").plonk_logup;
+const state_machine = @import("stwo_native_examples").state_machine;
+const wide_fibonacci = @import("stwo_native_examples").wide_fibonacci;
+const xor = @import("stwo_native_examples").xor;
+const proof_wire = @import("stwo_proof_wire");
 const atomic_file = @import("atomic_file.zig");
 
 const M31 = m31.M31;
@@ -40,6 +41,7 @@ pub const XorStatementWire = struct {
     log_size: u32,
     log_step: u32,
     offset: u64,
+    claimed_sum: Qm31Wire = .{0} ** 4,
 };
 
 pub const WideFibonacciStatementWire = struct {
@@ -51,13 +53,29 @@ pub const PlonkStatementWire = struct {
     log_n_rows: u32,
 };
 
+pub const PlonkLogupStatementWire = struct {
+    log_n_rows: u32,
+    claimed_sum: Qm31Wire,
+};
+
 pub const PoseidonStatementWire = struct {
     log_n_instances: u32,
+    claimed_sum: Qm31Wire = .{0} ** 4,
+};
+
+pub const BlakeStatement0Wire = struct {
+    log_size: u32,
+};
+
+pub const BlakeStatement1Wire = struct {
+    scheduler_claimed_sum: Qm31Wire,
+    round_claimed_sums: [2]Qm31Wire,
+    xor_claimed_sums: [5]Qm31Wire,
 };
 
 pub const BlakeStatementWire = struct {
-    log_n_rows: u32,
-    n_rounds: u32,
+    stmt0: BlakeStatement0Wire,
+    stmt1: BlakeStatement1Wire,
 };
 
 pub const InteropArtifact = struct {
@@ -70,6 +88,7 @@ pub const InteropArtifact = struct {
     pcs_config: PcsConfigWire,
     blake_statement: ?BlakeStatementWire = null,
     plonk_statement: ?PlonkStatementWire = null,
+    plonk_logup_statement: ?PlonkLogupStatementWire = null,
     poseidon_statement: ?PoseidonStatementWire = null,
     state_machine_statement: ?StateMachineStatementWire = null,
     wide_fibonacci_statement: ?WideFibonacciStatementWire = null,
@@ -80,6 +99,7 @@ pub const InteropArtifact = struct {
 pub const NativeStatement = union(enum) {
     blake: blake.Statement,
     plonk: plonk.Statement,
+    plonk_logup: plonk_logup.Statement,
     poseidon: poseidon.Statement,
     state_machine: state_machine.PreparedStatement,
     wide_fibonacci: wide_fibonacci.Statement,
@@ -137,6 +157,10 @@ pub fn writeNativeProofArtifact(
         .plonk => |value| {
             artifact.example = "plonk";
             artifact.plonk_statement = plonkStatementToWire(value);
+        },
+        .plonk_logup => |value| {
+            artifact.example = "plonk_logup";
+            artifact.plonk_logup_statement = plonkLogupStatementToWire(value);
         },
         .poseidon => |value| {
             artifact.example = "poseidon";
@@ -286,6 +310,7 @@ pub fn xorStatementToWire(statement: xor.Statement) XorStatementWire {
         .log_size = statement.log_size,
         .log_step = statement.log_step,
         .offset = statement.offset,
+        .claimed_sum = qm31ToWire(statement.claimed_sum),
     };
 }
 
@@ -295,6 +320,7 @@ pub fn xorStatementFromWire(wire: XorStatementWire) ArtifactError!xor.Statement 
         .log_size = wire.log_size,
         .log_step = wire.log_step,
         .offset = @intCast(wire.offset),
+        .claimed_sum = try qm31FromWire(wire.claimed_sum),
     };
 }
 
@@ -324,29 +350,79 @@ pub fn plonkStatementFromWire(wire: PlonkStatementWire) ArtifactError!plonk.Stat
     };
 }
 
+pub fn plonkLogupStatementToWire(
+    statement: plonk_logup.Statement,
+) PlonkLogupStatementWire {
+    return .{
+        .log_n_rows = statement.log_n_rows,
+        .claimed_sum = qm31ToWire(statement.claimed_sum),
+    };
+}
+
+pub fn plonkLogupStatementFromWire(
+    wire: PlonkLogupStatementWire,
+) ArtifactError!plonk_logup.Statement {
+    return .{
+        .log_n_rows = wire.log_n_rows,
+        .claimed_sum = try qm31FromWire(wire.claimed_sum),
+    };
+}
+
 pub fn poseidonStatementToWire(statement: poseidon.Statement) PoseidonStatementWire {
     return .{
         .log_n_instances = statement.log_n_instances,
+        .claimed_sum = qm31ToWire(statement.claimed_sum),
     };
 }
 
 pub fn poseidonStatementFromWire(wire: PoseidonStatementWire) ArtifactError!poseidon.Statement {
     return .{
         .log_n_instances = wire.log_n_instances,
+        .claimed_sum = try qm31FromWire(wire.claimed_sum),
     };
 }
 
 pub fn blakeStatementToWire(statement: blake.Statement) BlakeStatementWire {
     return .{
-        .log_n_rows = statement.log_n_rows,
-        .n_rounds = statement.n_rounds,
+        .stmt0 = .{ .log_size = statement.stmt0.log_size },
+        .stmt1 = .{
+            .scheduler_claimed_sum = qm31ToWire(
+                statement.stmt1.scheduler_claimed_sum,
+            ),
+            .round_claimed_sums = .{
+                qm31ToWire(statement.stmt1.round_claimed_sums[0]),
+                qm31ToWire(statement.stmt1.round_claimed_sums[1]),
+            },
+            .xor_claimed_sums = .{
+                qm31ToWire(statement.stmt1.xor_claimed_sums[0]),
+                qm31ToWire(statement.stmt1.xor_claimed_sums[1]),
+                qm31ToWire(statement.stmt1.xor_claimed_sums[2]),
+                qm31ToWire(statement.stmt1.xor_claimed_sums[3]),
+                qm31ToWire(statement.stmt1.xor_claimed_sums[4]),
+            },
+        },
     };
 }
 
 pub fn blakeStatementFromWire(wire: BlakeStatementWire) ArtifactError!blake.Statement {
     return .{
-        .log_n_rows = wire.log_n_rows,
-        .n_rounds = wire.n_rounds,
+        .stmt0 = .{ .log_size = wire.stmt0.log_size },
+        .stmt1 = .{
+            .scheduler_claimed_sum = try qm31FromWire(
+                wire.stmt1.scheduler_claimed_sum,
+            ),
+            .round_claimed_sums = .{
+                try qm31FromWire(wire.stmt1.round_claimed_sums[0]),
+                try qm31FromWire(wire.stmt1.round_claimed_sums[1]),
+            },
+            .xor_claimed_sums = .{
+                try qm31FromWire(wire.stmt1.xor_claimed_sums[0]),
+                try qm31FromWire(wire.stmt1.xor_claimed_sums[1]),
+                try qm31FromWire(wire.stmt1.xor_claimed_sums[2]),
+                try qm31FromWire(wire.stmt1.xor_claimed_sums[3]),
+                try qm31FromWire(wire.stmt1.xor_claimed_sums[4]),
+            },
+        },
     };
 }
 
@@ -355,7 +431,7 @@ fn m31FromU32(value: u32) ArtifactError!M31 {
     return M31.fromCanonical(value);
 }
 
-fn qm31FromWire(value: Qm31Wire) ArtifactError!QM31 {
+pub fn qm31FromWire(value: Qm31Wire) ArtifactError!QM31 {
     return QM31.fromM31Array(.{
         try m31FromU32(value[0]),
         try m31FromU32(value[1]),
@@ -482,11 +558,23 @@ test "interop artifact: poseidon statement wire roundtrip" {
 
 test "interop artifact: blake statement wire roundtrip" {
     const statement: blake.Statement = .{
-        .log_n_rows = 5,
-        .n_rounds = 10,
+        .stmt0 = .{ .log_size = 5 },
+        .stmt1 = .{
+            .scheduler_claimed_sum = QM31.fromU32Unchecked(1, 2, 3, 4),
+            .round_claimed_sums = .{
+                QM31.fromU32Unchecked(5, 6, 7, 8),
+                QM31.fromU32Unchecked(9, 10, 11, 12),
+            },
+            .xor_claimed_sums = .{
+                QM31.fromU32Unchecked(13, 14, 15, 16),
+                QM31.fromU32Unchecked(17, 18, 19, 20),
+                QM31.fromU32Unchecked(21, 22, 23, 24),
+                QM31.fromU32Unchecked(25, 26, 27, 28),
+                QM31.fromU32Unchecked(29, 30, 31, 32),
+            },
+        },
     };
     const wire = blakeStatementToWire(statement);
     const decoded = try blakeStatementFromWire(wire);
-    try std.testing.expectEqual(statement.log_n_rows, decoded.log_n_rows);
-    try std.testing.expectEqual(statement.n_rounds, decoded.n_rounds);
+    try std.testing.expect(std.meta.eql(statement, decoded));
 }

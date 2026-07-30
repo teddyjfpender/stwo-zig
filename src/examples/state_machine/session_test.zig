@@ -4,7 +4,7 @@ const std = @import("std");
 const fri = @import("stwo_core").fri;
 const m31 = @import("stwo_core").fields.m31;
 const pcs = @import("stwo_core").pcs;
-const proof_wire = @import("../../interop/proof_wire.zig");
+const proof_wire = @import("stwo_proof_wire");
 const subject = @import("../state_machine.zig");
 
 const M31 = m31.M31;
@@ -104,15 +104,15 @@ test "State Machine session: compatibility, prepared, and sequential proofs matc
     try std.testing.expectEqualSlices(u8, expected, first_bytes);
     try std.testing.expectEqualSlices(u8, expected, second_bytes);
     try std.testing.expectEqualSlices(u8, expected, extended_bytes);
-    try std.testing.expectEqual(@as(usize, 9823), expected.len);
+    try std.testing.expectEqual(@as(usize, 8880), expected.len);
 
     var digest: [std.crypto.hash.sha2.Sha256.digest_length]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(expected, &digest, .{});
     try std.testing.expectEqualSlices(u8, &[_]u8{
-        0x9e, 0xfe, 0xdc, 0x26, 0x6c, 0x07, 0x3b, 0x8e,
-        0x59, 0x01, 0x44, 0x26, 0x83, 0xa3, 0xbb, 0x29,
-        0x0d, 0xb8, 0xd7, 0x29, 0x75, 0x97, 0x3e, 0x3d,
-        0x68, 0x39, 0xec, 0x57, 0xb5, 0xb5, 0xfe, 0xb0,
+        0xe4, 0x42, 0x95, 0xb0, 0x8b, 0xe6, 0x0f, 0xcb,
+        0x27, 0xdd, 0x33, 0x1d, 0x84, 0xf2, 0x1d, 0xe8,
+        0x0d, 0x9a, 0x83, 0x36, 0x77, 0xe0, 0xae, 0x23,
+        0x51, 0xaa, 0x5a, 0x53, 0x9f, 0x16, 0x9f, 0x56,
     }, &digest);
     try std.testing.expectEqual(@as(u64, 1), session.constructionTelemetry().tower_build_count);
 }
@@ -167,7 +167,7 @@ fn prepareAndDeinit(allocator: std.mem.Allocator) !void {
     var prepared = try subject.prepareInput(allocator, testRequest());
     defer prepared.deinit(allocator);
     try std.testing.expectEqual(@as(u32, 5), prepared.trace.max_column_log);
-    try std.testing.expectEqual(@as(u64, 3), prepared.trace.committed_columns);
+    try std.testing.expectEqual(@as(u64, 4), prepared.trace.committed_columns);
     try std.testing.expectEqual(@as(u64, 96), prepared.trace.committed_cells);
 }
 

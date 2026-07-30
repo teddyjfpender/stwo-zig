@@ -1,6 +1,8 @@
 //! Typed product declarations and focused Zig module construction.
 
 const std = @import("std");
+const package_ownership = @import("package_ownership.zig");
+const protocol_modules = @import("protocol_modules.zig");
 
 pub const Frontend = enum { none, native, riscv, cairo, aggregate };
 pub const Backend = enum { none, contracts, cpu, metal, cuda };
@@ -29,7 +31,7 @@ pub const Product = struct {
         return switch (self.frontend) {
             .none => "none",
             .native => "native-examples",
-            .riscv => "stark-v-rv32im",
+            .riscv => "sail-rv32im-zkvm",
             .cairo => "cairo",
             .aggregate => "aggregate",
         };
@@ -47,17 +49,7 @@ pub const ModuleSpec = struct {
     optimize: std.builtin.OptimizeMode,
 };
 
-pub const ProtocolModules = struct {
-    core: *std.Build.Module,
-    backend_contracts: *std.Build.Module,
-    prover: *std.Build.Module,
-
-    pub fn addImports(self: ProtocolModules, module: *std.Build.Module) void {
-        module.addImport("stwo_core", self.core);
-        module.addImport("stwo_backend_contracts", self.backend_contracts);
-        module.addImport("stwo_prover_impl", self.prover);
-    }
-};
+pub const ProtocolModules = protocol_modules.ProtocolModules;
 
 pub fn create(b: *std.Build, spec: ModuleSpec) *std.Build.Module {
     spec.product.validate() catch |err| std.debug.panic(
@@ -65,7 +57,7 @@ pub fn create(b: *std.Build, spec: ModuleSpec) *std.Build.Module {
         .{ spec.product.name, @errorName(err) },
     );
     return b.createModule(.{
-        .root_source_file = b.path(spec.root_source_file),
+        .root_source_file = ownedRootSource(b, spec),
         .target = spec.target,
         .optimize = spec.optimize,
     });
@@ -77,10 +69,37 @@ pub fn addPublic(b: *std.Build, name: []const u8, spec: ModuleSpec) *std.Build.M
         .{ spec.product.name, @errorName(err) },
     );
     return b.addModule(name, .{
-        .root_source_file = b.path(spec.root_source_file),
+        .root_source_file = ownedRootSource(b, spec),
         .target = spec.target,
         .optimize = spec.optimize,
     });
+}
+
+/// Resolves canonical ownership roots through their package manifests. Other
+/// product-local roots remain relative to the repository aggregate package.
+fn ownedRootSource(b: *std.Build, spec: ModuleSpec) std.Build.LazyPath {
+    return source(
+        b,
+        spec.root_source_file,
+        spec.target,
+        spec.optimize,
+    );
+}
+
+pub fn source(
+    b: *std.Build,
+    root_source_file: []const u8,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) std.Build.LazyPath {
+    const owned = package_ownership.resolve(root_source_file) orelse
+        return b.path(root_source_file);
+    const dependency_options = .{
+        .target = target,
+        .optimize = optimize,
+    };
+    const dependency_name = package_ownership.dependencyName(owned.package);
+    return b.dependency(dependency_name, dependency_options).path(owned.sub_path);
 }
 
 pub fn createProtocolModules(
@@ -97,6 +116,14 @@ pub fn createProtocolModules(
     });
     backend_contracts.addImport("stwo_core", core);
 
+    const prover_api = create(b, .{
+        .product = proverProduct(.library),
+        .root_source_file = "src/prover_api/mod.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    prover_api.addImport("stwo_core", core);
+
     const prover = create(b, .{
         .product = proverProduct(.library),
         .root_source_file = "src/prover/mod.zig",
@@ -105,10 +132,12 @@ pub fn createProtocolModules(
     });
     prover.addImport("stwo_core", core);
     prover.addImport("stwo_backend_contracts", backend_contracts);
+    prover.addImport("stwo_prover_api", prover_api);
 
     return .{
         .core = core,
         .backend_contracts = backend_contracts,
+        .prover_api = prover_api,
         .prover = prover,
     };
 }
@@ -125,6 +154,320 @@ pub fn createPrivateProtocolModules(
         .optimize = optimize,
     });
     return createProtocolModules(b, core, target, optimize);
+}
+
+/// Constructs the canonical RISC-V frontend module against an already selected
+/// protocol module set. Product roots must opt into this dependency explicitly.
+pub fn createRiscVFrontend(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) *std.Build.Module {
+    const frontend = create(b, .{
+        .product = product,
+        .root_source_file = "src/frontends/riscv/mod.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    protocol.addImports(frontend);
+    return frontend;
+}
+
+/// Declares a consumer's dependency on the package-owned RISC-V API.
+pub fn addRiscVFrontendImport(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    consumer: *std.Build.Module,
+) *std.Build.Module {
+    const frontend = createRiscVFrontend(
+        b,
+        protocol,
+        product,
+        target,
+        optimize,
+    );
+    consumer.addImport("stwo_riscv_frontend", frontend);
+    return frontend;
+}
+
+/// Constructs the canonical Cairo frontend against a selected protocol set.
+pub fn createCairoFrontend(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) *std.Build.Module {
+    const frontend = create(b, .{
+        .product = product,
+        .root_source_file = "src/frontends/cairo/mod.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    protocol.addImports(frontend);
+    return frontend;
+}
+
+/// Declares a consumer's dependency on the package-owned Cairo API.
+pub fn addCairoFrontendImport(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    consumer: *std.Build.Module,
+) *std.Build.Module {
+    const frontend = createCairoFrontend(
+        b,
+        protocol,
+        product,
+        target,
+        optimize,
+    );
+    consumer.addImport("stwo_cairo_frontend", frontend);
+    return frontend;
+}
+
+/// Constructs the canonical CPU backend against a selected protocol set.
+pub fn createCpuBackend(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) *std.Build.Module {
+    const backend = create(b, .{
+        .product = product,
+        .root_source_file = "src/backends/cpu_scalar/mod.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    protocol.addImports(backend);
+    return backend;
+}
+
+/// Declares a consumer's dependency on the package-owned CPU backend API.
+pub fn addCpuBackendImport(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    consumer: *std.Build.Module,
+) *std.Build.Module {
+    const backend = createCpuBackend(
+        b,
+        protocol,
+        product,
+        target,
+        optimize,
+    );
+    consumer.addImport("stwo_cpu_backend", backend);
+    return backend;
+}
+
+/// Constructs the canonical host-independent CUDA backend contract module.
+pub fn createCudaBackend(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) *std.Build.Module {
+    const backend = create(b, .{
+        .product = product,
+        .root_source_file = "src/backends/cuda/mod.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    backend.addImport("stwo_backend_contracts", protocol.backend_contracts);
+    return backend;
+}
+
+/// Declares a consumer's dependency on the package-owned CUDA backend API.
+pub fn addCudaBackendImport(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    consumer: *std.Build.Module,
+) *std.Build.Module {
+    const backend = createCudaBackend(
+        b,
+        protocol,
+        product,
+        target,
+        optimize,
+    );
+    consumer.addImport("stwo_cuda_backend", backend);
+    return backend;
+}
+
+/// Constructs the canonical Metal backend against protocol-owned primitives.
+pub fn createMetalBackend(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) *std.Build.Module {
+    const backend = create(b, .{
+        .product = product,
+        .root_source_file = "src/backends/metal/mod.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    protocol.addImports(backend);
+    return backend;
+}
+
+/// Declares a consumer's dependency on the package-owned Metal backend API.
+pub fn addMetalBackendImport(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    consumer: *std.Build.Module,
+) *std.Build.Module {
+    const backend = createMetalBackend(
+        b,
+        protocol,
+        product,
+        target,
+        optimize,
+    );
+    consumer.addImport("stwo_metal_backend", backend);
+    return backend;
+}
+
+/// Constructs the package-owned persistent Metal-session protocol and artifact
+/// service module. It is host-independent despite being consumed by Metal
+/// products.
+pub fn createMetalSession(
+    b: *std.Build,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) *std.Build.Module {
+    return create(b, .{
+        .product = product,
+        .root_source_file = "src/tools/metal_session/mod.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+}
+
+/// Declares a consumer's dependency on the package-owned Metal-session API.
+pub fn addMetalSessionImport(
+    b: *std.Build,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    consumer: *std.Build.Module,
+) *std.Build.Module {
+    const metal_session = createMetalSession(
+        b,
+        product,
+        target,
+        optimize,
+    );
+    consumer.addImport("stwo_metal_session", metal_session);
+    return metal_session;
+}
+
+/// Constructs the package-owned proof interchange codec against the selected
+/// protocol core.
+pub fn createProofWire(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) *std.Build.Module {
+    const proof_wire = create(b, .{
+        .product = product,
+        .root_source_file = "src/interop/proof_wire/mod.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    proof_wire.addImport("stwo_core", protocol.core);
+    return proof_wire;
+}
+
+/// Declares a consumer's dependency on the package-owned proof-wire API.
+pub fn addProofWireImport(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    consumer: *std.Build.Module,
+) *std.Build.Module {
+    const proof_wire = createProofWire(
+        b,
+        protocol,
+        product,
+        target,
+        optimize,
+    );
+    consumer.addImport("stwo_proof_wire", proof_wire);
+    return proof_wire;
+}
+
+/// Constructs the package-owned Native example AIR suite against its explicit
+/// protocol, CPU-backend, and proof-codec dependencies.
+pub fn createNativeExamples(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    cpu_backend: *std.Build.Module,
+    proof_wire: *std.Build.Module,
+) *std.Build.Module {
+    const examples = create(b, .{
+        .product = product,
+        .root_source_file = "src/examples/mod.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    examples.addImport("stwo_core", protocol.core);
+    examples.addImport("stwo_prover_api", protocol.prover_api);
+    examples.addImport("stwo_prover_engine", protocol.prover);
+    examples.addImport("stwo_cpu_backend", cpu_backend);
+    examples.addImport("stwo_proof_wire", proof_wire);
+    return examples;
+}
+
+/// Declares a consumer's dependency on the package-owned Native example API.
+pub fn addNativeExamplesImport(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    cpu_backend: *std.Build.Module,
+    proof_wire: *std.Build.Module,
+    consumer: *std.Build.Module,
+) *std.Build.Module {
+    const examples = createNativeExamples(
+        b,
+        protocol,
+        product,
+        target,
+        optimize,
+        cpu_backend,
+        proof_wire,
+    );
+    consumer.addImport("stwo_native_examples", examples);
+    return examples;
 }
 
 pub fn coreProduct(role: Role) Product {
@@ -145,47 +488,4 @@ pub fn proverProduct(role: Role) Product {
         .role = role,
         .protocol_features = "generic-prover+backend-contracts-v1",
     };
-}
-
-test "executable products require explicit capabilities" {
-    try std.testing.expectError(error.IncompleteProductCapabilities, (Product{
-        .name = "invalid",
-        .frontend = .native,
-        .backend = .none,
-        .role = .cli,
-    }).validate());
-    try (Product{
-        .name = "stwo-native-cpu",
-        .frontend = .native,
-        .backend = .cpu,
-        .role = .cli,
-    }).validate();
-}
-
-test "capability manifests have stable public names" {
-    const riscv = Product{
-        .name = "stwo-riscv-cpu",
-        .frontend = .riscv,
-        .backend = .cpu,
-        .role = .gate,
-    };
-    try std.testing.expectEqualStrings("stark-v-rv32im", riscv.frontendManifest());
-    try std.testing.expectEqualStrings("cpu", riscv.backendManifest());
-}
-
-test "generic prover identifies backend contracts without a concrete backend" {
-    const prover = proverProduct(.library);
-    try prover.validate();
-    try std.testing.expectEqualStrings("contracts", prover.backendManifest());
-}
-
-test "aggregate SDK facade has an explicit library identity" {
-    const facade = Product{
-        .name = "stwo",
-        .frontend = .aggregate,
-        .backend = .contracts,
-        .role = .library,
-        .protocol_features = "aggregate-sdk-v1",
-    };
-    try facade.validate();
 }

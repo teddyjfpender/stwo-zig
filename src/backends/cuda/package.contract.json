@@ -1,0 +1,43 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_cuda_backend",
+  "version": "0.1.0",
+  "layer": "backend",
+  "owner": "cuda-backend",
+  "public_modules": {
+    "stwo_cuda_backend": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_backend_contracts": "../../backend"
+  },
+  "injected_modules": [],
+  "api_surface": [
+    "CudaBackend",
+    "abi",
+    "aot",
+    "product_aot",
+    "runtime",
+    "upstream_sources"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::api signature: CUDA backend exposes only resident session types"
+    ],
+    "invariant_tests": [
+      "mod.zig::CUDA backend advertises only the resident fail-closed architecture"
+    ]
+  },
+  "ci": {
+    "lane": "cuda_backend",
+    "host": "linux",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/backends/cuda/build.zig",
+      "-Doptimize=ReleaseFast",
+      "-j2"
+    ]
+  }
+}

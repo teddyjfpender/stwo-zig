@@ -20,7 +20,6 @@ from scripts.metal_core_aot_receipt_lib import artifacts as aot_artifacts
 from scripts.metal_core_aot_receipt_lib import controller as aot_controller
 from scripts.metal_core_aot_receipt_lib.model import BUILD_SCHEMA
 from scripts.product_identity_lib import validate_canonical_identity
-from scripts.riscv_release_challenge_lib import model as challenge_model
 
 
 EXECUTABLE_COMMANDS = {
@@ -57,8 +56,7 @@ KNOWN_OUTPUT_COMMANDS = (
     | set(LINK_COMMANDS)
     | set(PROVE_COMMANDS)
     | {
-        "product-matrix", "riscv-fast-challenge-issue",
-        "riscv-fast-challenge-execute", "aggregate-parity-compare",
+        "product-matrix", "aggregate-parity-compare",
         "configure-closure", "native-rust-oracle", "metal-aot-receipt",
         "native-metal-correctness", "native-metal-formal-matrix",
         "formal-performance-evidence", "performance-readiness",
@@ -123,8 +121,7 @@ def preimage_dependencies(command_id: str, outputs: list[Path], *, root: Path) -
 
     directories: list[Path] = []
     if command_id in {
-        "metal-aot-receipt",
-        "native-metal-formal-matrix", "riscv-fast-challenge-execute",
+        "metal-aot-receipt", "native-metal-formal-matrix",
     }:
         directories.extend(path.parent for path in outputs)
     elif command_id == "native-rust-oracle":
@@ -485,11 +482,6 @@ def validate_outputs(
             logical_static_binary=Path(static_binary) if static_binary is not None else None,
             reinspect_binary=reinspect_link_binaries,
         )
-    elif command_id == "riscv-fast-challenge-issue":
-        challenge_model.validate_challenge(_strict_json(outputs[0]))
-    elif command_id == "riscv-fast-challenge-execute":
-        challenge = _strict_json(next(path for path in inputs if path.name == "riscv-challenge.json"))
-        challenge_model.validate_result(_strict_json(outputs[0]), challenge, outputs[0].parent)
     elif command_id in PROVE_COMMANDS:
         _prove(outputs, PROVE_COMMANDS[command_id])
     elif command_id == "aggregate-parity-compare":

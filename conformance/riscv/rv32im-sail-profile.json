@@ -1,0 +1,79 @@
+{
+  "schema": "stwo-riscv-formal-profile-v1",
+  "name": "rv32im-zkvm-v1",
+  "isa": {
+    "xlen": 32,
+    "extensions": [
+      "I",
+      "M"
+    ],
+    "instruction_alignment_bytes": 4,
+    "misaligned_load_store": "reject_before_retirement",
+    "traps": "successful_retirements_only",
+    "decode_exclusions": [
+      {
+        "instruction": "FENCE.I",
+        "word": 4111,
+        "reason": "Zifencei is outside the proof profile",
+        "pinned_sail_disposition": "retires despite extensions.Zifencei.supported=false"
+      }
+    ]
+  },
+  "environment": {
+    "system_instructions": "host_control_not_retired",
+    "completion": "halt_flag_or_unretired_sentinel",
+    "memory": "sparse_little_endian_32_bit",
+    "program_commitment": {
+      "addressing": "byte",
+      "address_bits": 30,
+      "instruction_word_alignment_bytes": 4,
+      "maximum_word_address": 1073741820
+    },
+    "initial_registers": "elf_sp_gp_then_zero_with_x0_hardwired"
+  },
+  "authorities": {
+    "sail": {
+      "repository": "https://github.com/riscv/sail-riscv",
+      "revision": "8c7f2da58de0ba5e4457e4de07e0046f0439f35f",
+      "tag": "2026-07-20-8c7f2da",
+      "compiler": "0.20.2",
+      "base_configuration": "rv32",
+      "configuration_overrides_in_order": [
+        "conformance/riscv/sail-rv32im-override.json",
+        "conformance/riscv/sail-rv32im-tagged-options.json"
+      ],
+      "validated_isa_string": "rv32im"
+    },
+    "spike": {
+      "repository": "https://github.com/riscv-software-src/riscv-isa-sim",
+      "revision": "520a5f185083ac3c97b751501dfac02a6c1f5970"
+    },
+    "riscv_arch_test": {
+      "repository": "https://github.com/riscv-non-isa/riscv-arch-test",
+      "revision": "426e1598ebc3688eaf9aba7b4a1b8a81dae9807f"
+    }
+  },
+  "rvfi_transport": {
+    "protocol": "RVFI-DII v1",
+    "entry_point": 65536,
+    "upstream_entry_point": 2147483648,
+    "patch": {
+      "path": "conformance/riscv/sail-rvfi-zkvm-entry.patch",
+      "sha256": "1309655496ea8c8aae3cade751b1ba695dd19b2048f6118d28371be693dbb734"
+    },
+    "scope": "c_emulator harness entry only; Sail ISA model sources are unchanged"
+  },
+  "legacy_protocol_layout": {
+    "repository": "https://github.com/ClementWalter/stark-v",
+    "revision": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+    "semantic_authority": false
+  },
+  "proof_backends": [
+    "cpu_simd",
+    "metal"
+  ],
+  "forbidden_backends": [
+    "cuda",
+    "silent_fallback"
+  ]
+}

@@ -2,11 +2,12 @@ const std = @import("std");
 const core_air_accumulation = @import("stwo_core").air.accumulation;
 const core_air_components = @import("stwo_core").air.components;
 const circle = @import("stwo_core").circle;
-const M31 = @import("stwo_core").fields.m31.M31;
+const m31 = @import("stwo_core").fields.m31;
+const M31 = m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const pcs = @import("stwo_core").pcs;
-const prover_air_accumulation = @import("stwo_prover_impl").air.accumulation;
-const prover_component = @import("stwo_prover_impl").air.component_prover;
+const prover_air_accumulation = @import("stwo_prover_engine").air.accumulation;
+const prover_component = @import("stwo_prover_engine").air.component_prover;
 const ClockUpdateComponent = @import("clock_update_component.zig").ClockUpdateComponent;
 const interaction = @import("clock_update_interaction.zig");
 const infra = @import("../infra_trace.zig");
@@ -38,7 +39,7 @@ fn testMain(allocator: std.mem.Allocator, log_size: u32) !TestMain {
     const placement = try infra.BitReversalTable.init(allocator, log_size);
     defer placement.deinit(allocator);
     const row = placement.map(0);
-    const values = [_]u32{ 1, 1, 0x1000, 7, 0x11, 0x22, 0x33, 0x44 };
+    const values = [_]u32{ 1, 1, 0x1000, 7, 0x11, 0x22, 0x33, 0x44, 7, 0 };
     for (&result.columns, values) |column, value| column[row] = M31.fromU64(value);
     return result;
 }
@@ -59,6 +60,8 @@ fn rowForClockUpdate(update: state_chain.ClockUpdate) interaction.Row {
             QM31.fromBase(update.value_limbs[2]),
             QM31.fromBase(update.value_limbs[3]),
         },
+        .clock_prev_low20 = q(update.clk_prev & ((@as(u32, 1) << 20) - 1)),
+        .clock_prev_high6 = q(update.clk_prev >> 20),
     };
 }
 
@@ -97,34 +100,143 @@ fn secureAt(columns: []const []const M31, row: usize) QM31 {
     return QM31.fromM31(columns[0][row], columns[1][row], columns[2][row], columns[3][row]);
 }
 
-test "clock update exposes the exact memory pair and no range20 source" {
+test "clock update exposes the exact memory pair and bounds its predecessor clock" {
     const row = try interaction.Row.fromMain(&.{
         QM31.one(), q(1), q(0x1000), q(7), q(0x11), q(0x22), q(0x33), q(0x44),
+        q(7),       q(0),
     });
     const entries = interaction.orderedEntries(row);
-    try std.testing.expectEqual(@as(usize, 2), entries.len);
-    try std.testing.expectEqual(@as(usize, 1), entries.batchCount());
-    try std.testing.expectEqual(interaction.RANGE_CHECK_20_ENTRIES_PER_ROW, @as(usize, 0));
-    for (entries.entries[0..entries.len]) |relation_entry| {
-        try std.testing.expectEqual(@import("lookups/entry.zig").Domain.memory_access, relation_entry.domain);
-    }
+    try std.testing.expectEqual(@as(usize, 4), entries.len);
+    try std.testing.expectEqual(@as(usize, 2), entries.batchCount());
+    try std.testing.expectEqual(@as(usize, 1), interaction.RANGE_CHECK_20_ENTRIES_PER_ROW);
+    try std.testing.expectEqual(@as(usize, 1), interaction.RANGE_CHECK_8_8_ENTRIES_PER_ROW);
+    try std.testing.expectEqual(@import("lookups/entry.zig").Domain.memory_access, entries.entries[0].domain);
+    try std.testing.expectEqual(@import("lookups/entry.zig").Domain.memory_access, entries.entries[1].domain);
+    try std.testing.expectEqual(@import("lookups/entry.zig").Domain.range_check_20, entries.entries[2].domain);
+    try std.testing.expectEqual(@import("lookups/entry.zig").Domain.range_check_8_8, entries.entries[3].domain);
     try std.testing.expect(entries.entries[0].numerator.eql(QM31.one().neg()));
     try std.testing.expect(entries.entries[1].numerator.eql(QM31.one()));
+    try std.testing.expect(entries.entries[2].numerator.eql(QM31.one().neg()));
+    try std.testing.expect(entries.entries[3].numerator.eql(QM31.one().neg()));
     try std.testing.expect(entries.entries[0].values[2].eql(q(7)));
     try std.testing.expect(entries.entries[1].values[2].eql(
         q(7 + state_chain.MAX_CLOCK_DIFF),
     ));
+    try std.testing.expect(entries.entries[2].values[0].eql(q(7)));
+    try std.testing.expect(entries.entries[3].values[0].eql(q(0)));
+    try std.testing.expect(entries.entries[3].values[1].eql(q(0)));
 
     const allocator = std.testing.allocator;
-    var range20 = try counter.Counter.init(allocator, .range_check_20);
-    defer range20.deinit(allocator);
-    try interaction.registerRangeCheck20Counter(&range20);
-    try std.testing.expect(range20.signedTotal().eql(M31.zero()));
-    var wrong = try counter.Counter.init(allocator, .range_check_8_8);
-    defer wrong.deinit(allocator);
+    var counters = try counter.Set.init(allocator);
+    defer counters.deinit(allocator);
+    try counters.registerList(entries);
+    try std.testing.expect(counters.get(.range_check_20).signedTotal().eql(M31.one().neg()));
+    try std.testing.expect(counters.get(.range_check_8_8).signedTotal().eql(M31.one().neg()));
+}
+
+test "clock update predecessor bound cuts the shortest wrapped M31 clock cycle" {
+    const modulus: u64 = m31.Modulus;
+    const gap: u64 = state_chain.MAX_CLOCK_DIFF;
+    const start: u64 = 1;
+    const update_count: usize = 2048;
+
+    // Before the bound, 2,048 synthetic +MAX edges and one otherwise-valid
+    // opcode access of gap 2,047 form a detached memory-bus cycle:
+    //
+    //   1 --(+MAX)^2048--> p - 2046 --(+2047 mod p)--> 1.
+    //
+    // Count the endpoints directly; values/address are held identical, so
+    // equality of the clock coordinate is equality of the complete tuple.
+    var multiplicity = std.AutoHashMap(u32, i32).init(std.testing.allocator);
+    defer multiplicity.deinit();
+    for (0..update_count) |index| {
+        const previous = start + @as(u64, index) * gap;
+        const next = previous + gap;
+        try std.testing.expect(next < modulus);
+        const previous_entry = try multiplicity.getOrPut(@intCast(previous));
+        if (!previous_entry.found_existing) previous_entry.value_ptr.* = 0;
+        previous_entry.value_ptr.* -= 1;
+        const next_entry = try multiplicity.getOrPut(@intCast(next));
+        if (!next_entry.found_existing) next_entry.value_ptr.* = 0;
+        next_entry.value_ptr.* += 1;
+    }
+    const wrapped_previous = start + @as(u64, update_count) * gap;
+    try std.testing.expectEqual(modulus - 2046, wrapped_previous);
+    try std.testing.expectEqual(
+        @as(u64, 2047),
+        (start + modulus - wrapped_previous) % modulus,
+    );
+    const tail = try multiplicity.getOrPut(@intCast(wrapped_previous));
+    if (!tail.found_existing) tail.value_ptr.* = 0;
+    tail.value_ptr.* -= 1;
+    const head = try multiplicity.getOrPut(@intCast(start));
+    if (!head.found_existing) head.value_ptr.* = 0;
+    head.value_ptr.* += 1;
+    var values = multiplicity.valueIterator();
+    while (values.next()) |value| try std.testing.expectEqual(@as(i32, 0), value.*);
+
+    // Recomposition can represent that late predecessor only with a high limb
+    // outside the six-bit protocol window. The exact source-counter path therefore
+    // rejects the row before it can enter a proof.
+    const dangerous_update_prev = start + @as(u64, update_count - 1) * gap;
+    const low20: u32 = @intCast(dangerous_update_prev & ((1 << 20) - 1));
+    const high: u32 = @intCast(dangerous_update_prev >> 20);
+    try std.testing.expect(high >= 64);
+    const forged = interaction.Row{
+        .enabler = QM31.one(),
+        .addr_space = QM31.zero(),
+        .addr = q(1),
+        .clock_prev = q(@intCast(dangerous_update_prev)),
+        .value = .{QM31.zero()} ** 4,
+        .clock_prev_low20 = q(low20),
+        .clock_prev_high6 = q(high),
+    };
+    var counters = try counter.Set.init(std.testing.allocator);
+    defer counters.deinit(std.testing.allocator);
     try std.testing.expectError(
-        error.InvalidRelationDomain,
-        interaction.registerRangeCheck20Counter(&wrong),
+        error.ValueOutOfRange,
+        counters.registerList(interaction.orderedEntries(forged)),
+    );
+}
+
+test "clock predecessor range sources come from the exact committed columns" {
+    const allocator = std.testing.allocator;
+    var main = try testMain(allocator, 4);
+    defer main.deinit(allocator);
+    var views: [interaction.N_MAIN_COLUMNS][]const M31 = undefined;
+    for (&views, &main.columns) |*view, column| view.* = column;
+
+    var counters = try counter.Set.init(allocator);
+    defer counters.deinit(allocator);
+    try interaction.registerRangeCheckCounters(&counters, &views);
+    try std.testing.expect(
+        counters.get(.range_check_20).signedTotal().eql(M31.one().neg()),
+    );
+    try std.testing.expect(
+        counters.get(.range_check_8_8).signedTotal().eql(M31.one().neg()),
+    );
+
+    // The largest admitted predecessor has high limb 63 and is accepted.
+    const placement = try infra.BitReversalTable.init(allocator, 4);
+    defer placement.deinit(allocator);
+    const active_row = placement.map(0);
+    main.columns[3][active_row] = M31.fromCanonical(state_chain.CLOCK_PREV_BOUND - 1);
+    main.columns[8][active_row] =
+        M31.fromCanonical((@as(u32, 1) << state_chain.CLOCK_PREV_LOW_BITS) - 1);
+    main.columns[9][active_row] =
+        M31.fromCanonical((@as(u32, 1) << state_chain.CLOCK_PREV_HIGH_BITS) - 1);
+    var max_counters = try counter.Set.init(allocator);
+    defer max_counters.deinit(allocator);
+    try interaction.registerRangeCheckCounters(&max_counters, &views);
+
+    // A forged high limb is rejected by the same exact-buffer ingestion path.
+    main.columns[9][active_row] =
+        M31.fromCanonical(@as(u32, 1) << state_chain.CLOCK_PREV_HIGH_BITS);
+    var forged_counters = try counter.Set.init(allocator);
+    defer forged_counters.deinit(allocator);
+    try std.testing.expectError(
+        error.ValueOutOfRange,
+        interaction.registerRangeCheckCounters(&forged_counters, &views),
     );
 }
 
@@ -137,7 +249,7 @@ test "long register gaps compose clock rows into opcode access witnesses" {
     const destination_reg: u5 = 1;
     const source_raw_clock: u32 = 3;
     const destination_raw_clock: u32 = 5;
-    const clock: u32 = 2 * state_chain.MAX_CLOCK_DIFF + 10;
+    const instruction_clock: u32 = state_chain.MAX_CLOCK_DIFF / 2 + 4;
     const source_value: u32 = 0x1122_3344;
     const destination_previous: u32 = 0x5566_7788;
     const destination_next: u32 = 0x99aa_bbcc;
@@ -145,7 +257,7 @@ test "long register gaps compose clock rows into opcode access witnesses" {
     tracker.reg_last_clk[destination_reg] = destination_raw_clock;
 
     const inst = try DecodedInst.decode(0x0011_0093); // ADDI x1, x2, 1
-    const witness = access_witness.capture(&tracker, inst, clock);
+    const witness = access_witness.capture(&tracker, inst, instruction_clock);
     const expected_source_previous = source_raw_clock + 2 * state_chain.MAX_CLOCK_DIFF;
     const expected_destination_previous = destination_raw_clock + 2 * state_chain.MAX_CLOCK_DIFF;
     try std.testing.expectEqual(expected_source_previous, witness.rs1_prev_clock);
@@ -154,7 +266,6 @@ test "long register gaps compose clock rows into opcode access witnesses" {
     try witness.recordRegisters(
         &tracker,
         inst,
-        clock,
         source_value,
         0,
         destination_previous,
@@ -174,6 +285,7 @@ test "long register gaps compose clock rows into opcode access witnesses" {
         expected_source_previous,
         expected_destination_previous,
     };
+    const expected_access_clocks = [_]u32{ witness.rs1_clock, witness.rd_clock };
     const previous_values = [_][4]M31{ source_limbs, destination_previous_limbs };
 
     for (0..2) |chain_index| {
@@ -213,9 +325,12 @@ test "long register gaps compose clock rows into opcode access witnesses" {
         const access = tracker.accesses.items[chain_index];
         try std.testing.expectEqual(@as(u1, 0), access.addr_space);
         try std.testing.expectEqual(@as(u32, expected_regs[chain_index]), access.addr);
-        try std.testing.expectEqual(clock, access.clk);
+        try std.testing.expectEqual(expected_access_clocks[chain_index], access.clk);
         try std.testing.expectEqual(expected_previous_clocks[chain_index], access.clk_prev);
-        try std.testing.expect(clock - access.clk_prev <= state_chain.MAX_CLOCK_DIFF);
+        try std.testing.expect(
+            expected_access_clocks[chain_index] - access.clk_prev <=
+                state_chain.MAX_CLOCK_DIFF,
+        );
         const final_update_entries = interaction.orderedEntries(rowForClockUpdate(
             tracker.clock_updates_reg.items[chain_index * 2 + 1],
         ));
@@ -235,8 +350,16 @@ test "long register gaps compose clock rows into opcode access witnesses" {
 test "clock update component owns exact bounds and aliases both selectors" {
     const allocator = std.testing.allocator;
     const relations = relations_mod.Relations.dummy();
-    const component = ClockUpdateComponent.initVerifier(4, 7, 11, 13, 17, &relations, QM31.zero());
-    try std.testing.expectEqual(@as(usize, 3), component.nConstraints());
+    const component = ClockUpdateComponent.initVerifier(
+        4,
+        7,
+        11,
+        13,
+        17,
+        &relations,
+        .{QM31.zero()} ** interaction.N_SUMS,
+    );
+    try std.testing.expectEqual(@as(usize, interaction.N_SUMS + 3), component.nConstraints());
     _ = component.asVerifierComponent();
     var bounds = try component.traceLogDegreeBounds(allocator);
     defer bounds.deinitDeep(allocator);
@@ -264,7 +387,7 @@ test "clock update generated interaction satisfies row semantics and rejects mut
         0,
         0,
         &relations,
-        generated.claim,
+        generated.claims,
         generated.previous,
     );
     _ = component.asProverComponent();
@@ -273,8 +396,12 @@ test "clock update generated interaction satisfies row semantics and rejects mut
     const committed_row = placement.map(0);
     var sampled: [interaction.N_MAIN_COLUMNS]QM31 = undefined;
     for (&sampled, &main.columns) |*value, column| value.* = QM31.fromBase(column[committed_row]);
-    const current = secureAt(&generated.columns, committed_row);
-    const previous = secureAt(&generated.previous, committed_row);
+    var current: [interaction.N_SUMS]QM31 = undefined;
+    var previous: [interaction.N_SUMS]QM31 = undefined;
+    for (0..interaction.N_SUMS) |index| {
+        current[index] = secureAt(generated.columns[index * 4 ..][0..4], committed_row);
+        previous[index] = secureAt(generated.previous[index * 4 ..][0..4], committed_row);
+    }
     try std.testing.expect((try component.evaluateRow(
         &sampled,
         current,
@@ -282,6 +409,16 @@ test "clock update generated interaction satisfies row semantics and rejects mut
         QM31.one(),
         QM31.one(),
     )).allZero());
+    sampled[8] = q(8);
+    const bad_recomposition = try component.evaluateRow(
+        &sampled,
+        current,
+        previous,
+        QM31.one(),
+        QM31.one(),
+    );
+    try std.testing.expect(!bad_recomposition.values[interaction.N_SUMS + 2].isZero());
+    sampled[8] = q(7);
     sampled[0] = q(2);
     try std.testing.expect(!(try component.evaluateRow(
         &sampled,
@@ -310,7 +447,7 @@ test "clock update OODS uses exact global offsets" {
         main_offset,
         secure_offset,
         &relations,
-        generated.claim,
+        generated.claims,
     );
     const placement = try infra.BitReversalTable.init(allocator, 4);
     defer placement.deinit(allocator);
@@ -329,11 +466,17 @@ test "clock update OODS uses exact global offsets" {
     for (&main, &main_storage) |*column, *values| column.* = values;
     var secure_storage = [_][2]QM31{.{ q(29), q(31) }} **
         (secure_offset + interaction.N_INTERACTION_COLUMNS + 2);
-    const current = generated.claim.toM31Array();
-    const previous = secureAt(&generated.previous, committed_row).toM31Array();
-    for (0..interaction.N_INTERACTION_COLUMNS) |index| {
-        secure_storage[secure_offset + index][0] = QM31.fromBase(current[index]);
-        secure_storage[secure_offset + index][1] = QM31.fromBase(previous[index]);
+    for (0..interaction.N_SUMS) |sum_index| {
+        const current = generated.claims[sum_index].toM31Array();
+        const previous = secureAt(
+            generated.previous[sum_index * 4 ..][0..4],
+            committed_row,
+        ).toM31Array();
+        for (0..4) |coordinate| {
+            const index = sum_index * 4 + coordinate;
+            secure_storage[secure_offset + index][0] = QM31.fromBase(current[coordinate]);
+            secure_storage[secure_offset + index][1] = QM31.fromBase(previous[coordinate]);
+        }
     }
     var secure: [secure_storage.len][]QM31 = undefined;
     for (&secure, &secure_storage) |*column, *values| column.* = values;
@@ -388,7 +531,7 @@ test "clock update on-domain path enforces inactive padding" {
         0,
         0,
         &relations,
-        QM31.zero(),
+        .{QM31.zero()} ** interaction.N_SUMS,
         previous,
     );
     var accumulator = try prover_air_accumulation.DomainEvaluationAccumulator.init(
@@ -473,7 +616,15 @@ fn allocateMetadata(allocator: std.mem.Allocator, component: *const ClockUpdateC
 
 test "clock update metadata allocations roll back completely" {
     const relations = relations_mod.Relations.dummy();
-    const component = ClockUpdateComponent.initVerifier(4, 0, 1, 0, 0, &relations, QM31.zero());
+    const component = ClockUpdateComponent.initVerifier(
+        4,
+        0,
+        1,
+        0,
+        0,
+        &relations,
+        .{QM31.zero()} ** interaction.N_SUMS,
+    );
     try std.testing.checkAllAllocationFailures(
         std.testing.allocator,
         allocateMetadata,

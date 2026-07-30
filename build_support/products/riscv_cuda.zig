@@ -1,4 +1,4 @@
-//! Explicit unavailable Stark-V RV32IM + CUDA composition descriptor.
+//! Explicit unavailable Sail RV32IM + CUDA composition descriptor.
 
 const policy = @import("../graph/product.zig");
 
@@ -8,7 +8,7 @@ pub const descriptor = policy.Descriptor{
         .frontend = .riscv,
         .backend = .cuda,
         .role = .cli,
-        .protocol_features = "stark-v-rv32im+cuda-composition-deferred",
+        .protocol_features = "rv32im-zkvm-v1+cuda-unavailable",
     },
     .state = .unavailable,
     .target_support = .any,

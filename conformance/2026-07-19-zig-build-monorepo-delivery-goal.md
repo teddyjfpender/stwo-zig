@@ -2,6 +2,12 @@
 
 **Status:** REPOSITORY COMPLETE; PROTECTED RELEASE ACTIVATION DEFERRED
 
+**RISC-V authority notice (2026-07-26):** The pre-Sail Stark-V oracle,
+receipt, bundle, and challenge portions below are historical. They are
+superseded by
+[`2026-07-26-riscv-sail-contract.md`](2026-07-26-riscv-sail-contract.md) and
+cannot authorize a current release.
+
 **Created:** 2026-07-19
 
 **Authority:** This is the operative delivery contract for implementing

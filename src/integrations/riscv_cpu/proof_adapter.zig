@@ -1,15 +1,26 @@
-//! Stark-V RV32IM ELF adapter seam behind the production proof CLI.
+//! Sail-authoritative RV32IM ELF adapter seam behind the production proof CLI.
 //!
 //! The adapter is deliberately fail-closed: `proveElf` is the one call site
 //! the CLI routes `--elf` runs through, and it returns
 //! `error.AdapterNotReleaseGated` until the RV32IM AIR and public I/O binding
 //! pass the release gate. Wiring the real prover is a one-function change
 //! here; the focused capability authority flips only at that moment.
+//!
+//! The adapter is engine-parameterised: `runWithEngine` and
+//! `verifyArtifactWithEngine` take the prover engine and the backend tag as
+//! comptime parameters, mirroring `tools/riscv/bench/runner.mainWithEngine`,
+//! so one implementation of the atomic publication path, the determinism
+//! checks and the transcript-digest cross-check serves every backend. There is
+//! deliberately no second copy of this file per backend: two adapters that must
+//! not drift is precisely the failure mode this seam exists to prevent.
+//! `run`/`verifyArtifact` remain as the facade-default bindings so the existing
+//! focused and aggregate CPU call sites are untouched.
 
 const std = @import("std");
 const stwo = @import("stwo");
 const capabilities = @import("riscv_cpu_capabilities");
 const build_identity = @import("build_identity");
+const artifact_validation = @import("proof_adapter/artifact_validation.zig");
 const transcript_state = @import("proof_adapter/transcript_state.zig");
 const verify_receipt = @import("proof_adapter/verify_receipt.zig");
 const wire_arena = @import("proof_adapter/wire_arena.zig");
@@ -21,11 +32,7 @@ const WireArena = wire_arena.WireArena;
 pub const AdapterError = error{AdapterNotReleaseGated};
 
 pub const PENDING_DIAGNOSTIC =
-    "stark-v adapter: staged only; the RISC-V release contract is not yet fully satisfied";
-pub const UNSUPPORTED_PROOF_FAMILY_DIAGNOSTIC =
-    "stark-v adapter: error=UnsupportedProofFamily " ++
-    "stage=statement_validation_before_first_commitment " ++
-    "limitation=stark-v-signed-mulh";
+    "RISC-V adapter: staged only; the formal release contract is not yet fully satisfied";
 
 pub const Benchmark = struct {
     warmups: usize,
@@ -33,7 +40,7 @@ pub const Benchmark = struct {
     profiled: bool,
 };
 
-pub const Backend = enum { cpu, unavailable_device };
+pub const Backend = enum { cpu, metal, unavailable_device };
 pub const Protocol = enum { secure, functional, smoke };
 
 pub const Mode = union(enum) {
@@ -52,27 +59,42 @@ pub const Options = struct {
     proof_report_path: ?[]const u8,
 };
 
-const ProcessIdentity = struct {
-    executable_sha256: [32]u8,
-};
+const ProcessIdentity = artifact_validation.ProcessIdentity;
 
 /// Runs the staged ELF adapter and returns an owned machine-readable report.
 ///
 /// Keeping publication outside the adapter gives Native and RISC-V workloads
 /// identical exclusive-output and rollback behavior when the release gate is
 /// eventually opened.
+/// Drive one proving transaction on `Engine`.
+///
+/// `Engine` and `backend` are comptime so a product binds exactly one engine and
+/// links exactly one commitment backend -- the CPU product must not acquire a
+/// Metal link edge, which its own closure gate forbids. `@tagName(.cpu) == "cpu"`,
+/// so a CPU artifact produced through this generic path is byte-identical to one
+/// produced before the parameterisation.
 pub fn run(
+    comptime Engine: type,
+    comptime backend: Backend,
     allocator: std.mem.Allocator,
     elf_path: []const u8,
     input_path: ?[]const u8,
     options: Options,
 ) ![]u8 {
+    comptime stwo.frontends.riscv.prover_mod.assertProverEngine(Engine);
+    comptime std.debug.assert(backend != .unavailable_device);
     try capabilities.requireAdmission(options.experimental);
-    if (options.backend != .cpu) return error.AdapterNotReleaseGated;
-    const process_identity = try measureProcessIdentity(allocator);
+    if (options.backend != backend) return error.AdapterNotReleaseGated;
+    // Build pipelines and libraries before the first timed sample. This does not
+    // distort `resources`: the footprint is an absolute process-lifetime peak
+    // read from the *after* snapshot.
+    if (comptime @hasDecl(Engine, "warmup")) try Engine.warmup();
+    const process_identity = try artifact_validation.measureProcessIdentity(allocator);
     return switch (options.mode) {
-        .prove => runProve(allocator, elf_path, input_path, options, process_identity),
+        .prove => runProve(Engine, backend, allocator, elf_path, input_path, options, process_identity),
         .bench => |benchmark| runBenchmark(
+            Engine,
+            backend,
             allocator,
             elf_path,
             input_path,
@@ -84,6 +106,8 @@ pub fn run(
 }
 
 fn runProve(
+    comptime Engine: type,
+    comptime backend: Backend,
     allocator: std.mem.Allocator,
     elf_path: []const u8,
     input_path: ?[]const u8,
@@ -95,7 +119,6 @@ fn runProve(
 
     const runner = stwo.frontends.riscv.runner;
     const prover = stwo.frontends.riscv.prover_mod;
-    const riscv_cpu = stwo.integrations.riscv_cpu;
     const artifact_mod = stwo.interop.riscv_artifact;
 
     const elf_bytes = try std.fs.cwd().readFileAlloc(allocator, elf_path, 64 * 1024 * 1024);
@@ -113,12 +136,13 @@ fn runProve(
     std.crypto.hash.sha2.Sha256.hash(input_bytes, &input_digest, .{});
 
     var execution_timer = try std.time.Timer.start();
-    // The production CLI always enforces the symbol-bearing Stark-V ABI. The
+    // The production CLI always enforces the symbol-bearing zkVM ABI. The
     // compatibility runner deliberately accepts older, undeclared programs and
     // must never become an empty-input bypass around this boundary.
     var run_result = try runner.runWithInput(allocator, elf_bytes, input_bytes, 10_000_000);
     defer run_result.deinit();
-    if (run_result.completion_reason != .halt_flag)
+    if (run_result.completion_reason != .halt_flag and
+        run_result.completion_reason != .self_loop)
         return error.InvalidReleaseCompletion;
     const execution_seconds = seconds(execution_timer.read());
 
@@ -136,13 +160,13 @@ fn runProve(
     var recorder = stwo.prover.stage_profile.Recorder.init(
         allocator,
         @tagName(@import("builtin").mode),
-        "stark_v_rv32im",
+        "sail_rv32im_zkvm_v1",
     );
     defer recorder.deinit();
     var proving_timer = try std.time.Timer.start();
-    var prove_channel = riscv_cpu.CpuProverEngine.Channel{};
+    var prove_channel = Engine.Channel{};
     var output = try prover.proveRiscVWithEngineAndPublicDataUsingChannel(
-        riscv_cpu.CpuProverEngine,
+        Engine,
         allocator,
         config,
         &run_result.execution_trace,
@@ -159,6 +183,7 @@ fn runProve(
             .program_root = null,
             .initial_rw_root = null,
             .final_rw_root = null,
+            .completion = try pd_mod.completionFromRun(run_result),
             .io_entries = .{
                 .input_start = run_result.input_start,
                 .input_len = @intCast(run_result.input.len),
@@ -171,6 +196,7 @@ fn runProve(
         },
         &prove_channel,
     );
+    defer output.deinitAfterProofMoved(allocator);
     const transcript_state_digest = transcript_state.receiptDigest(
         prove_channel.digestBytes(),
         prove_channel.n_draws,
@@ -196,9 +222,9 @@ fn runProve(
     // The verifier consumes the proof on both success and failure.
     var verification_timer = try std.time.Timer.start();
     proof_owned = false;
-    var verify_channel = riscv_cpu.CpuProverEngine.Channel{};
+    var verify_channel = Engine.Channel{};
     try prover.verifyRiscVWithEngineUsingChannel(
-        riscv_cpu.CpuProverEngine,
+        Engine,
         allocator,
         config,
         output.statement,
@@ -227,11 +253,26 @@ fn runProve(
         .elf_sha256 = &elf_digest_hex,
         .input_sha256 = &input_digest_hex,
     };
+    const pcs_wire = artifact_mod.PcsConfigWire{
+        .pow_bits = config.pow_bits,
+        .fri_config = .{
+            .log_blowup_factor = config.fri_config.log_blowup_factor,
+            .log_last_layer_degree_bound = config.fri_config.log_last_layer_degree_bound,
+            .n_queries = config.fri_config.n_queries,
+            .fold_step = config.fri_config.fold_step,
+        },
+        .lifting_log_size = config.lifting_log_size,
+    };
     const layout_digest_hex = std.fmt.bytesToHex(
         stwo.frontends.riscv.witness_layout.digest(),
         .lower,
     );
-    const statement_digest = artifact_mod.statementDigest(source, wires.statement);
+    const statement_digest = artifact_mod.statementDigest(
+        @tagName(options.protocol),
+        pcs_wire,
+        source,
+        wires.statement,
+    );
     const statement_digest_hex = std.fmt.bytesToHex(statement_digest, .lower);
     const transcript_state_digest_hex = std.fmt.bytesToHex(transcript_state_digest, .lower);
     const executable_digest_hex = std.fmt.bytesToHex(
@@ -246,7 +287,7 @@ fn runProve(
         .release_status = artifact_mod.RELEASE_STATUS,
         .generator = artifact_mod.GENERATOR,
         .air = artifact_mod.AIR,
-        .backend = "cpu",
+        .backend = @tagName(backend),
         .protocol = @tagName(options.protocol),
         .source = source,
         .provenance = .{
@@ -257,14 +298,7 @@ fn runProve(
             .implementation_dirty = build_identity.implementation_dirty,
             .witness_layout_sha256 = &layout_digest_hex,
         },
-        .pcs_config = .{
-            .pow_bits = config.pow_bits,
-            .fri_config = .{
-                .log_blowup_factor = config.fri_config.log_blowup_factor,
-                .log_last_layer_degree_bound = config.fri_config.log_last_layer_degree_bound,
-                .n_queries = config.fri_config.n_queries,
-            },
-        },
+        .pcs_config = pcs_wire,
         .statement = wires.statement,
         .interaction_claim = wires.claim,
         .proof_bytes_hex = proof_hex,
@@ -333,6 +367,8 @@ const ProveReport = struct {
 };
 
 fn runBenchmark(
+    comptime Engine: type,
+    comptime backend: Backend,
     allocator: std.mem.Allocator,
     elf_path: []const u8,
     input_path: ?[]const u8,
@@ -372,7 +408,7 @@ fn runBenchmark(
         defer if (!keep_artifact) std.fs.cwd().deleteFile(path) catch {};
 
         var timer = try std.time.Timer.start();
-        const report_raw = try runProve(allocator, elf_path, input_path, .{
+        const report_raw = try runProve(Engine, backend, allocator, elf_path, input_path, .{
             .backend = options.backend,
             .protocol = options.protocol,
             .mode = .prove,
@@ -519,22 +555,29 @@ fn stagedPcsConfig(protocol: Protocol) stwo.core.pcs.PcsConfig {
 /// with the artifact's own release status so staged verification can never
 /// be mistaken for promotion.
 pub fn verifyArtifact(
+    comptime Engine: type,
     allocator: std.mem.Allocator,
     artifact: stwo.interop.riscv_artifact.Artifact,
     requested_policy: Protocol,
     expected_statement_digest: [32]u8,
+    elf_path: []const u8,
 ) !void {
     const artifact_mod = stwo.interop.riscv_artifact;
     const prover = stwo.frontends.riscv.prover_mod;
-    const riscv_cpu = stwo.integrations.riscv_cpu;
 
     try artifact_mod.validateForPolicy(artifact, switch (requested_policy) {
         .secure => .secure,
         .functional => .functional,
         .smoke => .smoke,
     });
-    try validateLocalProvenance(artifact.provenance);
-    const actual_statement_digest = artifact_mod.statementDigest(artifact.source, artifact.statement);
+    try artifact_validation.validateLocalProvenance(artifact.provenance);
+    try artifact_validation.validateElfBinding(allocator, artifact, elf_path);
+    const actual_statement_digest = artifact_mod.statementDigest(
+        artifact.protocol,
+        artifact.pcs_config,
+        artifact.source,
+        artifact.statement,
+    );
     if (!std.mem.eql(u8, &expected_statement_digest, &actual_statement_digest))
         return error.StatementDigestMismatch;
 
@@ -548,7 +591,7 @@ pub fn verifyArtifact(
         return error.InvalidArtifact;
     try stwo.interop.postcard.proof_preflight.validate(
         proof_raw,
-        try proofPreflightShape(artifact),
+        try artifact_validation.proofPreflightShape(artifact),
     );
     var stream = std.io.fixedBufferStream(proof_raw);
     var proof = try stwo.interop.postcard.deserializeProof(
@@ -569,24 +612,24 @@ pub fn verifyArtifact(
             .n_queries = artifact.pcs_config.fri_config.n_queries,
         },
     };
-    if (!pcsConfigsEqual(config, proof.commitment_scheme_proof.config)) {
+    if (!artifact_validation.pcsConfigsEqual(config, proof.commitment_scheme_proof.config)) {
         proof.deinit(allocator);
         return error.ProofConfigMismatch;
     }
-    var verify_channel = riscv_cpu.CpuProverEngine.Channel{};
+    var verify_channel = Engine.Channel{};
     try prover.verifyRiscVWithEngineUsingChannel(
-        riscv_cpu.CpuProverEngine,
+        Engine,
         allocator,
         config,
         reconstructed.statement,
         proof,
-        reconstructed.claim,
+        &reconstructed.claim,
         &verify_channel,
     );
 
     var proof_digest: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(proof_raw, &proof_digest, .{});
-    const process_identity = try measureProcessIdentity(allocator);
+    const process_identity = try artifact_validation.measureProcessIdentity(allocator);
     const receipt = try verify_receipt.encode(allocator, .{
         .artifact_kind = artifact.artifact_kind,
         .artifact_schema_version = artifact.schema_version,
@@ -608,119 +651,32 @@ pub fn verifyArtifact(
     try std.fs.File.stdout().writeAll("\n");
 }
 
-fn measureProcessIdentity(allocator: std.mem.Allocator) !ProcessIdentity {
-    const executable_path = try std.fs.selfExePathAlloc(allocator);
-    defer allocator.free(executable_path);
-    const file = try std.fs.openFileAbsolute(executable_path, .{});
-    defer file.close();
-    const before = try file.stat();
-    if (before.kind != .file or before.size == 0) return error.InvalidExecutable;
+/// The engine this module's own tests exercise, resolved from whichever product
+/// facade compiled them. The tests must not name a concrete integration package:
+/// this file is a shared seam, and when it is compiled as a test root inside the
+/// Metal product `stwo.integrations.riscv_cpu` does not exist to be resolved.
+///
+/// Each focused facade declares exactly one RISC-V integration --
+/// `src/stwo_riscv_cpu.zig` declares only `riscv_cpu` and
+/// `src/products/riscv_metal/root.zig` declares only `riscv_metal` -- so
+/// `@hasDecl` is a total discriminator here rather than a feature probe. The
+/// condition is comptime-known, so only the branch that resolves is analysed and
+/// the absent facade member is never named in the compiled product. The
+/// aggregate `src/stwo.zig` facade routes through `integrations/mod.zig`, which
+/// declares `riscv_cpu`, and so takes the same branch as the CPU product.
+const TestEngine = if (@hasDecl(stwo.integrations, "riscv_cpu"))
+    stwo.integrations.riscv_cpu.CpuProverEngine
+else
+    stwo.integrations.riscv_metal.MetalProverEngine;
 
-    var hasher = std.crypto.hash.sha2.Sha256.init(.{});
-    var buffer: [256 * 1024]u8 = undefined;
-    var measured_bytes: u64 = 0;
-    while (true) {
-        const count = try file.read(&buffer);
-        if (count == 0) break;
-        hasher.update(buffer[0..count]);
-        measured_bytes = std.math.add(u64, measured_bytes, count) catch
-            return error.InvalidExecutable;
-    }
-    const after = try file.stat();
-    if (measured_bytes != before.size or before.size != after.size or
-        before.inode != after.inode or before.mtime != after.mtime)
-        return error.ExecutableChangedDuringMeasurement;
-    return .{ .executable_sha256 = hasher.finalResult() };
-}
-
-fn proofPreflightShape(
-    artifact: stwo.interop.riscv_artifact.Artifact,
-) !stwo.interop.postcard.proof_preflight.Shape {
-    const protocol = stwo.interop.riscv_artifact.wire_protocol;
-    const prover = stwo.frontends.riscv.prover_mod;
-
-    var preprocessed_columns: u64 = std.math.mul(
-        u64,
-        artifact.statement.components.len,
-        2,
-    ) catch return error.InvalidArtifact;
-    var main_columns: u64 = 0;
-    var interaction_columns: u64 = 0;
-    var max_log_size: u32 = 0;
-    for (artifact.statement.components) |component| {
-        main_columns = std.math.add(u64, main_columns, component.n_columns) catch
-            return error.InvalidArtifact;
-        const interaction = std.math.mul(
-            u64,
-            component.interaction_batch_count,
-            4,
-        ) catch return error.InvalidArtifact;
-        interaction_columns = std.math.add(u64, interaction_columns, interaction) catch
-            return error.InvalidArtifact;
-        max_log_size = @max(max_log_size, component.log_size);
-    }
-    for (artifact.statement.infrastructure) |component| {
-        const kind = std.meta.intToEnum(protocol.InfraKind, component.kind) catch
-            return error.InvalidArtifact;
-        preprocessed_columns = std.math.add(
-            u64,
-            preprocessed_columns,
-            protocol.preprocessedColumns(kind),
-        ) catch return error.InvalidArtifact;
-        main_columns = std.math.add(u64, main_columns, component.n_columns) catch
-            return error.InvalidArtifact;
-        const interaction = std.math.mul(u64, component.claim_count, 4) catch
-            return error.InvalidArtifact;
-        interaction_columns = std.math.add(u64, interaction_columns, interaction) catch
-            return error.InvalidArtifact;
-        max_log_size = @max(max_log_size, component.log_size);
-    }
-
-    return .{
-        .config = .{
-            .pow_bits = artifact.pcs_config.pow_bits,
-            .log_blowup_factor = artifact.pcs_config.fri_config.log_blowup_factor,
-            .n_queries = artifact.pcs_config.fri_config.n_queries,
-            .log_last_layer_degree_bound = artifact.pcs_config.fri_config.log_last_layer_degree_bound,
-            .fold_step = artifact.pcs_config.fri_config.fold_step,
-            .lifting_log_size = artifact.pcs_config.lifting_log_size,
-        },
-        .tree_columns = .{
-            std.math.cast(u32, preprocessed_columns) orelse return error.InvalidArtifact,
-            std.math.cast(u32, main_columns) orelse return error.InvalidArtifact,
-            std.math.cast(u32, interaction_columns) orelse return error.InvalidArtifact,
-            2 * stwo.core.fields.qm31.SECURE_EXTENSION_DEGREE,
-        },
-        .max_column_log_size = max_log_size,
-        .hash_size = @sizeOf(prover.Hasher.Hash),
-        .max_wire_bytes = stwo.interop.riscv_artifact.MAX_PROOF_BYTES,
-    };
-}
-
-fn validateLocalProvenance(provenance: stwo.interop.riscv_artifact.ProvenanceWire) !void {
-    if (!std.mem.eql(u8, provenance.implementation_commit, build_identity.implementation_commit) or
-        provenance.implementation_dirty != build_identity.implementation_dirty)
-        return error.ImplementationIdentityMismatch;
-    const expected_layout = std.fmt.bytesToHex(
-        stwo.frontends.riscv.witness_layout.digest(),
-        .lower,
-    );
-    if (!std.mem.eql(u8, provenance.witness_layout_sha256, &expected_layout))
-        return error.WitnessLayoutMismatch;
-}
-
-fn pcsConfigsEqual(expected: anytype, actual: @TypeOf(expected)) bool {
-    return expected.pow_bits == actual.pow_bits and
-        expected.fri_config.log_blowup_factor == actual.fri_config.log_blowup_factor and
-        expected.fri_config.log_last_layer_degree_bound == actual.fri_config.log_last_layer_degree_bound and
-        expected.fri_config.n_queries == actual.fri_config.n_queries and
-        expected.fri_config.fold_step == actual.fri_config.fold_step and
-        expected.lifting_log_size == actual.lifting_log_size;
-}
+/// The backend tag `TestEngine` commits to. `run` rejects an `Options.backend`
+/// that disagrees with its comptime `backend` parameter, so the two must be
+/// selected together.
+const test_backend: Backend = if (@hasDecl(stwo.integrations, "riscv_cpu")) .cpu else .metal;
 
 test "adapter preserves the complete sampled benchmark contract" {
     const options = Options{
-        .backend = .cpu,
+        .backend = test_backend,
         .protocol = .functional,
         .mode = .{ .bench = .{ .warmups = 3, .samples = 7, .profiled = true } },
         .experimental = !capabilities.adapter_release_gated,
@@ -732,7 +688,7 @@ test "adapter preserves the complete sampled benchmark contract" {
     try std.testing.expect(options.mode.bench.profiled);
     try std.testing.expectError(
         error.FileNotFound,
-        run(std.testing.allocator, "guest.elf", "input.bin", options),
+        run(TestEngine, test_backend, std.testing.allocator, "guest.elf", "input.bin", options),
     );
 }
 
@@ -764,18 +720,18 @@ test "staged verifier binds build and witness-layout provenance" {
         .implementation_dirty = build_identity.implementation_dirty,
         .witness_layout_sha256 = &layout,
     };
-    try validateLocalProvenance(provenance);
+    try artifact_validation.validateLocalProvenance(provenance);
 
     provenance.implementation_commit = "00" ** 20;
     try std.testing.expectError(
         error.ImplementationIdentityMismatch,
-        validateLocalProvenance(provenance),
+        artifact_validation.validateLocalProvenance(provenance),
     );
     provenance.implementation_commit = build_identity.implementation_commit;
     provenance.witness_layout_sha256 = "00" ** 32;
     try std.testing.expectError(
         error.WitnessLayoutMismatch,
-        validateLocalProvenance(provenance),
+        artifact_validation.validateLocalProvenance(provenance),
     );
 }
 

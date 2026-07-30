@@ -39,7 +39,7 @@ def verify_receipt() -> dict[str, object]:
         "schema": "riscv_verify_v1",
         "status": "verified",
         "artifact_kind": "stwo_riscv_proof",
-        "artifact_schema_version": 3,
+        "artifact_schema_version": 4,
         "release_status": "not_release_gated",
         "security_policy": "functional",
         "statement_sha256": STATEMENT,

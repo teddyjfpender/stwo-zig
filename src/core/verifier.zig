@@ -49,7 +49,11 @@ pub fn verify(
         .n_preprocessed_columns = n_preprocessed_columns,
     };
     const composition_log_size = components.compositionLogDegreeBound();
-    if (composition_log_size <= COMPOSITION_LOG_SPLIT) return VerificationError.InvalidStructure;
+    const composition_log_split = components.compositionLogSplit() catch
+        return VerificationError.InvalidStructure;
+    if (composition_log_size <= composition_log_split) {
+        return VerificationError.InvalidStructure;
+    }
 
     const random_coeff = channel.drawSecureFelt();
 
@@ -62,20 +66,28 @@ pub fn verify(
             proof.commitment_scheme_proof.commitments.items.len - 1
         ];
 
-    var composition_commitment_log_sizes: [2 * qm31.SECURE_EXTENSION_DEGREE]u32 = undefined;
+    const composition_column_count = verifier_types.compositionColumnCount(
+        composition_log_split,
+        qm31.SECURE_EXTENSION_DEGREE,
+    ) orelse return VerificationError.InvalidStructure;
+    const composition_commitment_log_sizes = try allocator.alloc(
+        u32,
+        composition_column_count,
+    );
+    defer allocator.free(composition_commitment_log_sizes);
     @memset(
-        composition_commitment_log_sizes[0..],
-        composition_log_size - COMPOSITION_LOG_SPLIT,
+        composition_commitment_log_sizes,
+        composition_log_size - composition_log_split,
     );
     try commitment_scheme.commit(
         allocator,
         composition_commitment,
-        composition_commitment_log_sizes[0..],
+        composition_commitment_log_sizes,
         channel,
     );
 
     const oods_point = circle.randomSecureFieldPoint(channel);
-    const max_log_degree_bound = composition_log_size - COMPOSITION_LOG_SPLIT;
+    const max_log_degree_bound = composition_log_size - composition_log_split;
 
     var sample_points = try components.maskPoints(
         allocator,
@@ -86,11 +98,17 @@ pub fn verify(
     var sample_points_moved = false;
     defer if (!sample_points_moved) sample_points.deinitDeep(allocator);
 
-    try appendCompositionMaskTree(allocator, &sample_points, oods_point);
+    try appendCompositionMaskTree(
+        allocator,
+        &sample_points,
+        oods_point,
+        composition_log_split,
+    );
 
-    const composition_oods_eval = proof.extractCompositionOodsEval(
+    const composition_oods_eval = proof.extractCompositionOodsEvalWithSplit(
         oods_point,
         composition_log_size,
+        composition_log_split,
     ) orelse return VerificationError.InvalidStructure;
 
     if (!composition_oods_eval.eql(try components.evalCompositionPolynomialAtPoint(
@@ -112,8 +130,12 @@ fn appendCompositionMaskTree(
     allocator: std.mem.Allocator,
     sample_points: *MaskPoints,
     oods_point: CirclePointQM31,
+    split_depth: u32,
 ) !void {
-    const n_composition_cols = 2 * qm31.SECURE_EXTENSION_DEGREE;
+    const n_composition_cols = verifier_types.compositionColumnCount(
+        split_depth,
+        qm31.SECURE_EXTENSION_DEGREE,
+    ) orelse return VerificationError.InvalidStructure;
 
     const composition_tree = try allocator.alloc([]CirclePointQM31, n_composition_cols);
     var initialized: usize = 0;

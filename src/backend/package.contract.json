@@ -1,0 +1,52 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_backend_contracts",
+  "version": "0.1.0",
+  "layer": "contract",
+  "owner": "backend-contracts",
+  "public_modules": {
+    "stwo_backend_contracts": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_core": "../core"
+  },
+  "injected_modules": [],
+  "api_surface": [
+    "Capabilities",
+    "Column",
+    "arena_plan",
+    "assertBackend",
+    "assertBackendForChannel",
+    "capabilities",
+    "column",
+    "field_ops",
+    "fri_ops",
+    "line_evaluation",
+    "merkle_ops",
+    "proof_program",
+    "recovery",
+    "resident_storage",
+    "secure_column"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::api signature: backend accepts a truthful minimum capability set"
+    ],
+    "invariant_tests": [
+      "proof_program_native_air.zig::native AIR contract rejects unbound and inconsistent ingress"
+    ]
+  },
+  "ci": {
+    "lane": "backend_contracts",
+    "host": "linux",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/backend/build.zig",
+      "-Doptimize=ReleaseFast",
+      "-j2"
+    ]
+  }
+}

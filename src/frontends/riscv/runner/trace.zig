@@ -97,7 +97,7 @@ pub const Trace = struct {
     }
 };
 
-pub const MAX_FAMILY_COLUMNS: usize = 65;
+pub const MAX_FAMILY_COLUMNS: usize = 67;
 
 pub const TraceColumns = struct {
     columns: [MAX_FAMILY_COLUMNS][]M31,
@@ -128,6 +128,7 @@ pub fn nColumnsForFamily(family: OpcodeFamily) u32 {
         .mul => layouts.MulColumns.N_COLUMNS,
         .mulh => layouts.MulhColumns.N_COLUMNS,
         .div => layouts.DivColumns.N_COLUMNS,
+        .fence => layouts.FenceColumns.N_COLUMNS,
     };
 }
 
@@ -154,6 +155,7 @@ pub fn fillFamilyColumns(
         .mul => m_extension_witness.mul(columns, index, row),
         .mulh => m_extension_witness.mulh(columns, index, row),
         .div => m_extension_witness.div(columns, index, row),
+        .fence => control_witness.fence(columns, index, row),
     }
 }
 
@@ -165,10 +167,28 @@ pub fn proofOpcodeFamily(opcode: Opcode) decode.ProofOpcodeError!OpcodeFamily {
     return opcode_manifest.family(try decode.proofOpcode(opcode));
 }
 
-/// Compatibility for prover internals that run only after `groupByOpcodeFamily`
-/// has rejected unsupported execution opcodes.
+/// Total-map convenience for prover internals that provably run *after*
+/// `groupByOpcodeFamily` has rejected every execution-only opcode.
+///
+/// The precondition is enforced rather than assumed. This used to be
+/// `catch unreachable`, and `unreachable` in ReleaseFast is undefined
+/// behaviour: an ECALL-terminated trace reaching a caller that runs before the
+/// filter silently yielded a garbage family instead of stopping, and the
+/// corruption only surfaced much later as an unrelated-looking access-chain
+/// error. `std.debug.assert` would be no improvement -- it is likewise elided
+/// in ReleaseFast. `std.debug.panic` is active in every optimization mode and
+/// matches what the rest of this codebase uses for release-active invariants,
+/// so a precondition violation now traps deterministically and names the
+/// offending opcode.
+///
+/// A caller that can run *before* the filter must not use this function: call
+/// `proofOpcodeFamily` and propagate `error.UnsupportedForProof` instead.
 pub fn opcodeFamily(opcode: Opcode) OpcodeFamily {
-    return proofOpcodeFamily(opcode) catch unreachable;
+    return proofOpcodeFamily(opcode) catch std.debug.panic(
+        "riscv trace: opcode {s} has no proof family; opcodeFamily requires " ++
+            "groupByOpcodeFamily to have already rejected execution-only opcodes",
+        .{@tagName(opcode)},
+    );
 }
 
 pub const OpcodeFamilyCounts = struct {
@@ -195,9 +215,9 @@ test "trace groups opcode families" {
     try std.testing.expectEqual(OpcodeFamily.branch_lt, try proofOpcodeFamily(.BGEU));
     try std.testing.expectEqual(OpcodeFamily.load_store, try proofOpcodeFamily(.SW));
     try std.testing.expectEqual(OpcodeFamily.div, try proofOpcodeFamily(.REMU));
+    try std.testing.expectEqual(OpcodeFamily.fence, try proofOpcodeFamily(.FENCE));
     try std.testing.expectError(error.UnsupportedForProof, proofOpcodeFamily(.ECALL));
-    try std.testing.expectError(error.UnsupportedForProof, proofOpcodeFamily(.LR_W));
-    try std.testing.expectError(error.UnsupportedForProof, proofOpcodeFamily(.FENCE));
+    try std.testing.expectError(error.UnsupportedForProof, proofOpcodeFamily(.EBREAK));
 }
 
 test "trace rejects execution-only opcodes before family witness generation" {
@@ -314,14 +334,18 @@ test "witness rows satisfy comparison and branch semantic evaluators" {
 
 test "witness rows satisfy upper jump and memory semantic evaluators" {
     var row = testRow(.LUI);
+    row.imm = @bitCast(@as(u32, 0x12345000));
     row.rd_val = 0x12345000;
     var lui_columns = filledRow(semantics.lui.N_MAIN_COLUMNS, row, .lui);
     const lui = try semantics.lui.Row.fromMainColumns(&lui_columns);
     try std.testing.expect(semantics.lui.evaluate(lui).allZero());
 
     row = testRow(.AUIPC);
-    row.imm = 20;
-    row.rd_val = 120;
+    // U-type immediates are 4096-aligned; the decoder can never emit 20.
+    // The AIR now pins imm_limbs[0] == 0 (anti-aliasing), so the fixture must
+    // use an architecturally reachable immediate.
+    row.imm = @bitCast(@as(u32, 0x5000));
+    row.rd_val = 100 + 0x5000;
     var auipc_columns = filledRow(semantics.auipc.N_MAIN_COLUMNS, row, .auipc);
     const auipc = try semantics.auipc.Row.fromMainColumns(&auipc_columns);
     try std.testing.expect(semantics.auipc.evaluate(auipc).allZero());
@@ -335,10 +359,10 @@ test "witness rows satisfy upper jump and memory semantic evaluators" {
     try std.testing.expect(semantics.jal.evaluate(jal).allZero());
 
     row = testRow(.JALR);
-    row.imm = 3;
-    row.rs1_val = 100;
+    row.imm = 4;
+    row.rs1_val = 101;
     row.rd_val = 104;
-    row.next_pc = 102;
+    row.next_pc = 104;
     var jalr_columns = filledRow(semantics.jalr.N_MAIN_COLUMNS, row, .jalr);
     const jalr = try semantics.jalr.Row.fromMainColumns(&jalr_columns);
     try std.testing.expect(semantics.jalr.evaluate(jalr).allZero());

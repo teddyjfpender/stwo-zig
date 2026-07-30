@@ -177,6 +177,20 @@ def validate_actual_construction(
     # roots and no external tool invocations to observe. Constructors must
     # still match — the fail-closed registration is itself construction.
     fully_stubbed = not actual["module_roots"]
+    observed_probes = actual["runtime_probes"]
+    declared_probes = sorted(set(manifest["runtime_probes"]))
+    # A backend-tool scope may mix portable tools with host-only tools. On a
+    # host where none of the declared runtime probes exist, the portable
+    # construction remains observable while the host-only dependency graph is
+    # replaced by fail-closed step stubs. Accept only the non-empty declared
+    # subset in that partition; a capable host must still observe the exact
+    # dependency closure below.
+    dependency_partitioned = (
+        manifest.get("scope_role") == "backend_tools"
+        and bool(declared_probes)
+        and not observed_probes
+        and not fully_stubbed
+    )
     for field in (
         "constructors",
         "generated_module_roots",
@@ -191,6 +205,19 @@ def validate_actual_construction(
             and not observed
         ):
             continue
+        if field == "dependency_module_roots" and dependency_partitioned:
+            undeclared = sorted(set(observed) - set(declared))
+            if undeclared:
+                raise SystemExit(
+                    f"{scope} actual dependency_module_roots diverges from catalog: "
+                    f"undeclared={undeclared}"
+                )
+            if not observed:
+                raise SystemExit(
+                    f"{scope} actual dependency_module_roots diverges from catalog: "
+                    "partially constructed backend-tool scope observed no dependencies"
+                )
+            continue
         if observed != sorted(set(declared)):
             raise SystemExit(
                 f"{scope} actual {field} diverges from catalog: "
@@ -202,8 +229,6 @@ def validate_actual_construction(
     # nothing: a fully stubbed host observes none; any construction that
     # probes at all must observe exactly the declared set, and an undeclared
     # probe is fatal everywhere.
-    observed_probes = actual["runtime_probes"]
-    declared_probes = sorted(set(manifest["runtime_probes"]))
     undeclared_probes = sorted(set(observed_probes) - set(declared_probes))
     if undeclared_probes:
         raise SystemExit(
@@ -313,6 +338,25 @@ def inspect_linkage(binary: Path) -> str:
     return result.stdout.lower()
 
 
+def validate_application_backends(
+    registry: dict[str, Any],
+    *,
+    metal: bool,
+) -> None:
+    availability = registry["backend_availability"]["metal-hybrid"]
+    if availability is not metal:
+        raise SystemExit(
+            "aggregate registry capability does not match selected Metal product"
+        )
+    for application in registry["applications"]:
+        advertised = "metal-hybrid" in application.get("backends", [])
+        expected = metal and "adapter" not in application
+        if advertised is not expected:
+            raise SystemExit(
+                "aggregate application registry does not match selected products"
+            )
+
+
 def exercise_install(repository: Path, *, metal: bool) -> dict[str, Any]:
     with tempfile.TemporaryDirectory(prefix="stwo-install-closure-") as raw:
         prefix = Path(raw)
@@ -343,13 +387,7 @@ def exercise_install(repository: Path, *, metal: bool) -> dict[str, Any]:
         if registry_run.returncode != 0:
             raise SystemExit(f"aggregate registry failed:\n{registry_run.stderr}")
         registry = json.loads(registry_run.stdout)
-        availability = registry["backend_availability"]["metal-hybrid"]
-        if availability is not metal:
-            raise SystemExit("aggregate registry capability does not match selected Metal product")
-        for application in registry["applications"]:
-            advertised = "metal-hybrid" in application.get("backends", [])
-            if advertised is not metal:
-                raise SystemExit("aggregate application registry leaks an unselected backend")
+        validate_application_backends(registry, metal=metal)
         linkage = inspect_linkage(executable) if sys.platform == "darwin" else ""
         has_metal = "metal.framework" in linkage and "foundation.framework" in linkage
         if sys.platform == "darwin" and has_metal is not metal:

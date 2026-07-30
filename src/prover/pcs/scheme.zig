@@ -12,7 +12,7 @@ const vcs_verifier = @import("stwo_core").vcs_lifted.verifier;
 const canonic = @import("stwo_core").poly.circle.canonic;
 const prover_circle = @import("../poly/circle/mod.zig");
 const twiddle_source_mod = @import("../poly/twiddle_source.zig");
-const stage_profile = @import("../stage_profile.zig");
+const stage_profile = @import("stwo_prover_api").stage_profile;
 const prover_fri = @import("../fri.zig");
 const commitment_tree = @import("commitment_tree.zig");
 const commit_polys = @import("commit_polys.zig");
@@ -284,22 +284,20 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                 };
             }
 
-            // A shared arena cannot flow into generic code that frees each
-            // slice independently. Detach only after every adopting backend
-            // has declined without mutation.
+            // Offer a shared backing before detaching: generic code frees each
+            // column slice independently, an adopting backend keeps the arena.
+            var source_arena: ?[]M31 = null;
             if (backing_buffers) |buffers| {
-                const detached = backed_columns.detach(allocator, owned_columns) catch |err| {
-                    backed_columns.free(allocator, owned_columns, buffers);
-                    return err;
-                };
-                backed_columns.free(allocator, owned_columns, buffers);
-                owned_columns = detached;
+                const adopted = try backed_columns
+                    .adoptOrDetach(B, allocator, owned_columns, buffers);
+                owned_columns = adopted.columns;
+                source_arena = adopted.arena;
                 backing_buffers = null;
             }
-
-            if (deferred_commit.canDeferFirstTree(self, owned_columns) and
+            errdefer if (source_arena) |arena| allocator.free(arena);
+            if (source_arena == null and deferred_commit.canDeferFirstTree(self, owned_columns) and
                 deferred_commit.trySpawn(B, BackendCommitmentTree, self, allocator, owned_columns)) return;
-            errdefer column_storage.freeOwnedColumnEvaluations(allocator, owned_columns);
+            errdefer backed_columns.freeSource(allocator, owned_columns, source_arena);
             var prepared = try column_preparation.prepareColumnsForCommitOwnedForBackend(
                 B,
                 allocator,
@@ -308,6 +306,7 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                 self.coefficient_retention_policy,
                 &self.twiddle_source,
                 recorder,
+                source_arena,
             );
             errdefer prepared.deinit(allocator);
             var merkle_commit_stage = try stage_profile.StageScope.begin(
@@ -580,7 +579,7 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
             var owns_scheme = true;
             errdefer if (owns_scheme) scheme.deinit(allocator);
 
-            const lifting_log_size = try scheme.maxTreeLogSize();
+            const lifting_log_size = try scheme.proofLiftingLogSize();
             const sampled_values = blk: {
                 var sampled_value_eval_stage = try stage_profile.StageScope.begin(
                     recorder,
@@ -670,7 +669,7 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
 
             const random_coeff = channel.drawSecureFelt();
 
-            const lifting_log_size = try scheme.maxTreeLogSize();
+            const lifting_log_size = try scheme.proofLiftingLogSize();
             const domain = canonic.CanonicCoset.new(lifting_log_size).circleDomain();
 
             var fri_prover = blk: {
@@ -814,13 +813,13 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
             return max_size;
         }
 
-        fn maxTreeLogSize(self: Self) !u32 {
+        /// The final composition tree sets the proof domain. Earlier trees may
+        /// contain larger columns when those columns are left unsampled.
+        fn proofLiftingLogSize(self: Self) !u32 {
             if (self.trees.items.len == 0) return CommitmentSchemeError.ShapeMismatch;
-            var max_size: u32 = 0;
-            for (self.trees.items) |tree| {
-                max_size = @max(max_size, maxLogSize(tree.columns));
-            }
-            return max_size;
+            const final_tree = self.trees.items[self.trees.items.len - 1];
+            if (final_tree.columns.len == 0) return CommitmentSchemeError.ShapeMismatch;
+            return maxLogSize(final_tree.columns);
         }
 
         fn evaluateSampledValuesAndRelease(

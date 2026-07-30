@@ -1,10 +1,15 @@
-//! Versioned proof envelope for the release-gated Stark-V RV32IM adapter.
+//! Versioned proof envelope for the release-gated Sail RV32IM frontend.
 //!
-//! This is a publication contract, not a release claim. V3 stores the exact
-//! descriptor-indexed interaction claims consumed by the production verifier.
+//! This is a publication contract, not a release claim. V4 binds completion,
+//! source ELF identity, and the exact security profile.
 
 const std = @import("std");
-const atomic_file = @import("atomic_file.zig");
+/// Public because a product facade whose module root is not `src/` cannot reach
+/// this file with a relative import and cannot be handed a second module rooted
+/// at it either (a file belongs to exactly one module). Such a facade re-exports
+/// the atomic publication primitive from here, which is where this artifact
+/// writer already publishes through.
+pub const atomic_file = @import("atomic_file.zig");
 const schema = @import("riscv_artifact/schema.zig");
 const validation = @import("riscv_artifact/validation.zig");
 const digest = @import("riscv_artifact/digest.zig");
@@ -33,6 +38,8 @@ pub const PcsConfigWire = schema.PcsConfigWire;
 pub const SourceWire = schema.SourceWire;
 pub const ProvenanceWire = schema.ProvenanceWire;
 pub const OutputWordWire = schema.OutputWordWire;
+pub const CompletionKindWire = schema.CompletionKindWire;
+pub const CompletionWire = schema.CompletionWire;
 pub const PublicDataWire = schema.PublicDataWire;
 pub const ComponentWire = schema.ComponentWire;
 pub const InfraComponentWire = schema.InfraComponentWire;
@@ -105,8 +112,13 @@ pub fn validateForPolicy(artifact: Artifact, policy: SecurityPolicy) !void {
     return validation.validateForPolicy(artifact, policy, RELEASE_STATUS);
 }
 
-pub fn statementDigest(source: SourceWire, statement: StatementWire) [32]u8 {
-    return digest.statement(source, statement);
+pub fn statementDigest(
+    protocol: []const u8,
+    pcs_config: PcsConfigWire,
+    source: SourceWire,
+    statement: StatementWire,
+) [32]u8 {
+    return digest.statement(protocol, pcs_config, source, statement);
 }
 
 pub fn writeArtifact(
@@ -137,6 +149,12 @@ test "RISC-V artifact header rejects legacy and unknown schemas explicitly" {
         )).validateRiscV(),
     );
     try std.testing.expectError(
+        error.LegacySchemaVersion,
+        (try preflight.route(
+            "{\"schema_version\":3,\"exchange_mode\":\"riscv_proof_json_wire_v3\"}",
+        )).validateRiscV(),
+    );
+    try std.testing.expectError(
         error.UnsupportedSchemaVersion,
         (try preflight.route(
             "{\"artifact_kind\":\"stwo_riscv_proof\",\"schema_version\":99," ++
@@ -146,7 +164,7 @@ test "RISC-V artifact header rejects legacy and unknown schemas explicitly" {
     try std.testing.expectError(
         error.UnsupportedExchangeMode,
         (try preflight.route(
-            "{\"artifact_kind\":\"stwo_riscv_proof\",\"schema_version\":3," ++
+            "{\"artifact_kind\":\"stwo_riscv_proof\",\"schema_version\":4," ++
                 "\"exchange_mode\":\"unknown\"}",
         )).validateRiscV(),
     );

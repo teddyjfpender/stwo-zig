@@ -105,6 +105,18 @@
       "min_rung": "s3"
     },
     {
+      "glob": "src/backend/proof_program.zig",
+      "min_rung": "s4"
+    },
+    {
+      "glob": "src/backends/cuda/**",
+      "min_rung": "s3"
+    },
+    {
+      "glob": "src/integrations/native_cuda/**",
+      "min_rung": "s3"
+    },
+    {
       "glob": "src/backends/metal/**",
       "min_rung": "s3"
     },
@@ -266,7 +278,13 @@
     "groups": {
       "native": {
         "enabled": true,
-        "promotion_eligible": true,
+        "promotion_eligible": false,
+        "promotion_blocked_reason": "TRACKS §6 retire-and-complete: the native CPU era is banked. New promotions refuse; the board stays enabled so its history, final scores, guard workloads, and PR6-supremacy cells keep running.",
+        "retirement": {
+          "retired_at_utc": "2026-07-29T00:00:00Z",
+          "reason": "TRACKS §6 retire-and-complete: the native era is banked; history stays served; the native AIRs continue as PR6-supremacy cells and guard workloads",
+          "closing_audit": null
+        },
         "board": "core_cpu",
         "build_step": "zig build native-proof-bench-cpu -Doptimize=ReleaseFast",
         "binary": "zig-out/bin/native-proof-bench-cpu",
@@ -297,7 +315,14 @@
             "args": "--example wide_fibonacci --log-n-rows 20 --sequence-len 100 --resource-profile large --warmups {warmups} --samples {samples} --protocol functional",
             "native_unit": "trace rows"
           }
-        }
+        },
+        "guard_registry": "native",
+        "editable_paths": [
+          {
+            "glob": "src/integrations/native/**",
+            "min_rung": "s3"
+          }
+        ]
       },
       "riscv": {
         "enabled": true,
@@ -307,19 +332,23 @@
         "binary": "zig-out/bin/stwo-zig",
         "report_schema": "riscv_proof_v2",
         "correctness_oracle": {
-          "authority": "stark-v",
-          "repository": "https://github.com/ClementWalter/stark-v",
-          "commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
-          "binary": "target/release/stark-v-bench",
-          "build_command": "cargo build --locked --release -p bench-cli --features parallel",
-          "required_features": [
-            "parallel"
-          ],
+          "authority": "sail-riscv",
+          "repository": "https://github.com/riscv/sail-riscv",
+          "commit": "8c7f2da58de0ba5e4457e4de07e0046f0439f35f",
           "final_validator": true,
-          "release_anchor": {
-            "receipt": "conformance/evidence/riscv/release-anchor.json",
-            "sha256": "92a901106ff3f3236cf03e2d29469e9a6901ec50ce82a5dc2d473d85155a768a",
-            "candidate_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2"
+          "evidence": {
+            "path": "conformance/riscv/formal-corpus-evidence.json",
+            "sha256": "dde4b06136b6e3b681225ce914c8f8b79504e946e04ce7a50273897bc0979e10"
+          },
+          "benchmark_reference": {
+            "authority": "stark-v",
+            "repository": "https://github.com/ClementWalter/stark-v",
+            "commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+            "binary": "target/release/stark-v-bench",
+            "build_command": "cargo build --locked --release -p bench-cli --features parallel",
+            "required_features": [
+              "parallel"
+            ]
           }
         },
         "gates_policy": {
@@ -493,11 +522,32 @@
             "args": "bench --elf vectors/riscv_elfs/crypto/sha2_input.elf --input vectors/riscv_elfs/crypto/inputs/msg_2048.bin --backend cpu --protocol functional {admission} --warmups {warmups} --samples {samples}",
             "native_unit": "executed instructions"
           }
-        }
+        },
+        "guard_registry": "riscv",
+        "editable_paths": [
+          {
+            "glob": "src/frontends/riscv/**",
+            "min_rung": "s3"
+          },
+          {
+            "glob": "src/integrations/riscv_cpu/**",
+            "min_rung": "s3"
+          },
+          {
+            "glob": "src/integrations/riscv_metal/**",
+            "min_rung": "s3"
+          }
+        ]
       },
       "metal": {
         "enabled": true,
-        "promotion_eligible": true,
+        "promotion_eligible": false,
+        "promotion_blocked_reason": "TRACKS §6 retire-and-complete: the native Metal era is banked. New promotions refuse; the board stays enabled so its history, final scores, guard workloads, and PR6-supremacy cells keep running.",
+        "retirement": {
+          "retired_at_utc": "2026-07-29T00:00:00Z",
+          "reason": "TRACKS §6 retire-and-complete: the native era is banked; history stays served; the native AIRs continue as PR6-supremacy cells and guard workloads",
+          "closing_audit": null
+        },
         "board": "core_metal",
         "build_step": "zig build native-proof-bench-metal -Doptimize=ReleaseFast",
         "binary": "zig-out/bin/native-proof-bench-metal",
@@ -528,7 +578,308 @@
             "args": "--example wide_fibonacci --log-n-rows 20 --sequence-len 100 --resource-profile large --warmups {warmups} --samples {samples} --protocol functional",
             "native_unit": "trace rows"
           }
-        }
+        },
+        "guard_registry": "native",
+        "editable_paths": [
+          {
+            "glob": "src/integrations/native/**",
+            "min_rung": "s3"
+          }
+        ]
+      },
+      "cuda": {
+        "enabled": false,
+        "promotion_eligible": false,
+        "disabled_reason": "core_cuda is staged only: all six Native AIR families are required, but only wide Fibonacci is exact and release-ready; exact family semantics, the stwo-perf CUDA report adapter, locked-host A/A calibration, pinned Rust verification, and complete structural coverage are not yet release-gated.",
+        "board": "core_cuda",
+        "build_step": "zig build stwo-native-cuda -Doptimize=ReleaseFast",
+        "binary": "zig-out/bin/stwo-zig-native-cuda",
+        "report_schema": "native_cuda_product_v6",
+        "correctness_oracle": {
+          "authority": "pinned-rust-stwo",
+          "repository": "https://github.com/starkware-libs/stwo",
+          "commit": "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2",
+          "final_validator": true
+        },
+        "activation_contract": {
+          "schema": "stwo_zig_native_cuda_activation_state_v1",
+          "state_path": "conformance/cuda-native-activation-state-v1.json",
+          "state_sha256": "b3ae13156e62276281cc395281c460defbf63edead93b7838ff5cbc8d7114127",
+          "required_families": [
+            "wide_fibonacci",
+            "blake",
+            "poseidon",
+            "plonk_logup",
+            "state_machine",
+            "xor_lookup"
+          ],
+          "required_family_gates": [
+            "exact_trace_semantics",
+            "exact_constraint_semantics",
+            "exact_cpu_cuda_proof_bytes",
+            "pinned_rust_verification",
+            "zero_fallback",
+            "complete_stage_telemetry"
+          ],
+          "required_global_gates": [
+            "complete_structural_coverage",
+            "sustained_headline_calibrated",
+            "locked_cuda_judge_host",
+            "locked_host_aa_calibration",
+            "candidate_dry_run",
+            "predecessor_abba_rehearsal",
+            "mutation_and_anti_forgery",
+            "full_repository_gates"
+          ]
+        },
+        "workloads": {
+          "cuda_wf_log14x32": {
+            "class": "small",
+            "args": "prove --air wide_fibonacci --backend cuda --protocol raw-stwo-wide-v1 --log-n-rows 14 --sequence-len 32 --repeat {samples}",
+            "native_unit": "committed cells"
+          },
+          "cuda_wf_log22x3": {
+            "class": "deep",
+            "args": "prove --air wide_fibonacci --backend cuda --protocol raw-stwo-wide-v1 --log-n-rows 22 --sequence-len 3 --repeat {samples}",
+            "native_unit": "committed cells"
+          },
+          "cuda_wf_log18x37": {
+            "class": "wide",
+            "args": "prove --air wide_fibonacci --backend cuda --protocol raw-stwo-wide-v1 --log-n-rows 18 --sequence-len 37 --repeat {samples}",
+            "native_unit": "committed cells"
+          },
+          "cuda_wf_log18x73": {
+            "class": "wide",
+            "args": "prove --air wide_fibonacci --backend cuda --protocol raw-stwo-wide-v1 --log-n-rows 18 --sequence-len 73 --repeat {samples}",
+            "native_unit": "committed cells"
+          },
+          "cuda_wf_log18x128": {
+            "class": "wide",
+            "args": "prove --air wide_fibonacci --backend cuda --protocol raw-stwo-wide-v1 --log-n-rows 18 --sequence-len 128 --repeat {samples}",
+            "native_unit": "committed cells"
+          },
+          "cuda_wf_log18x100": {
+            "class": "xlarge",
+            "args": "prove --air wide_fibonacci --backend cuda --protocol raw-stwo-wide-v1 --log-n-rows 18 --sequence-len 100 --resource-profile large --repeat {samples}",
+            "native_unit": "committed cells"
+          },
+          "cuda_wf_log20x100": {
+            "class": "huge",
+            "args": "prove --air wide_fibonacci --backend cuda --protocol raw-stwo-wide-v1 --log-n-rows 20 --sequence-len 100 --resource-profile large --repeat {samples}",
+            "native_unit": "committed cells"
+          },
+          "cuda_wf_log22x100": {
+            "class": "extreme",
+            "args": "prove --air wide_fibonacci --backend cuda --protocol raw-stwo-wide-v1 --log-n-rows 22 --sequence-len 100 --resource-profile extreme --repeat {samples}",
+            "native_unit": "committed cells"
+          },
+          "cuda_poseidon_log10": {
+            "class": "small",
+            "args": "prove --air poseidon --backend cuda --protocol raw-stwo-poseidon-v1 --log-n-instances 10 --repeat {samples}",
+            "native_unit": "committed cells"
+          },
+          "cuda_poseidon_log13": {
+            "class": "wide",
+            "args": "prove --air poseidon --backend cuda --protocol raw-stwo-poseidon-v1 --log-n-instances 13 --repeat {samples}",
+            "native_unit": "committed cells"
+          }
+        },
+        "guard_registry": null,
+        "guard_registry_absent_reason": "TRACKS §8: core_cuda is staged and only wide Fibonacci is exact and release-ready, so no committed CUDA regression portfolio exists. Binding the native `--example` portfolio to the CUDA product binary would fabricate a guard set; CUDA guards arrive with the activation contract's required_families coverage.",
+        "editable_paths": [
+          {
+            "glob": "src/integrations/native/**",
+            "min_rung": "s3"
+          }
+        ]
+      },
+      "cairo_cpu": {
+        "enabled": true,
+        "promotion_eligible": false,
+        "promotion_blocked_reason": "TRACKS §7: cairo_cpu records evidence but cannot promote until per-(board, class) A/A dispersion and anchors are measured on the designated Apple M5 Max judge host and frozen into harness.anchor_* plus a cairo calibration freeze for board cairo_cpu. No Cairo calibration exists yet, so promotion fails closed; the gate opens only after that M5 calibration is committed.",
+        "board": "cairo_cpu",
+        "build_step": "zig build stwo-cairo-cpu -Doptimize=ReleaseFast",
+        "binary": "zig-out/bin/stwo-cairo-cpu",
+        "report_schema": "cairo_proof_v1",
+        "correctness_oracle": {
+          "authority": "official-stwo-cairo-verifier",
+          "repository": "https://github.com/starkware-libs/stwo-cairo",
+          "commit": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+          "stwo_repository": "https://github.com/starkware-libs/stwo",
+          "stwo_commit": "7b211edde786775016ef3eecb837a6240d8fe792",
+          "adapter": "tools/stwo-cairo-official-verifier-rs",
+          "build_command": "cargo build --locked --release --manifest-path tools/stwo-cairo-official-verifier-rs/Cargo.toml",
+          "final_validator": true
+        },
+        "acceptance_corpus": {
+          "note": "TRACKS §3.3 acceptance corpus: the pinned zksecurity/zkvm-benchmarks program matrix with expected cycle rules. Acceptance only — never a scored basket.",
+          "path": "vectors/cairo/cairo_program_matrix.json",
+          "sha256": "4a639d0b3254be24bdc106d22dc07fa76afdb9e9251ae319d60060b8300e876a"
+        },
+        "gates_policy": {
+          "warmups": 1,
+          "samples_per_round": 1,
+          "min_rounds": 3,
+          "max_rounds": 5,
+          "wall_clock_cap_seconds": {
+            "small": 900,
+            "wide": 3600
+          },
+          "note": "The Cairo product CLI proves exactly one statement per process, so one sample is one cold process; the runner owns the warmup/sample loop. Warmups must stay at or above one because the mandatory phase profile is recorded on a discarded warmup so scored samples run uninstrumented."
+        },
+        "mechanism_telemetry": {
+          "fail_closed": true,
+          "required_fields": [
+            "product_identity_sha256",
+            "protocol_manifest_sha256",
+            "profile",
+            "input_sha256",
+            "proof_format",
+            "proof_bytes",
+            "proof_sha256",
+            "stwo_cairo_revision",
+            "stwo_revision",
+            "mean_execute_seconds",
+            "mean_prove_seconds",
+            "mean_verify_seconds",
+            "mean_cold_process_seconds",
+            "phase_seconds"
+          ]
+        },
+        "workload_provisioning": {
+          "note": "TRACKS §3.3 campaign portfolio entries whose prover inputs are host-local and far above the repository fixture budget. They are declared here so the basket's incompleteness is loud, never silent; generation commands live in autoresearch/schema/cairo-proof-v1.md. Entries here are not runnable workloads and are never scored.",
+          "documentation": "autoresearch/schema/cairo-proof-v1.md",
+          "pending": {
+            "cairo_poseidon_aggregator": {
+              "vm_steps": 6892,
+              "committed_cells": 48299328,
+              "reason": "prover input is host-local; regeneration needs the pinned Cairo VM adapter and the campaign aggregator program, neither of which is committed"
+            },
+            "cairo_pedersen_aggregator": {
+              "vm_steps": 5872,
+              "committed_cells": 48037024,
+              "reason": "prover input is host-local; regeneration needs the pinned Cairo VM adapter and the campaign aggregator program, neither of which is committed"
+            },
+            "cairo_fibonacci_100k": {
+              "vm_steps": 700022,
+              "committed_cells": 112959872,
+              "reason": "prover input is host-local; 700k VM steps exceed the repository fixture budget"
+            },
+            "cairo_factorial_100k": {
+              "vm_steps": 600015,
+              "committed_cells": 123184848,
+              "reason": "prover input is host-local; 600k VM steps exceed the repository fixture budget"
+            },
+            "cairo_arithmetic_2m": {
+              "vm_steps": 2200019,
+              "committed_cells": 216639776,
+              "reason": "prover input is host-local; 2.2M VM steps exceed the repository fixture budget"
+            },
+            "cairo_memory_7m": {
+              "vm_steps": 7367979,
+              "committed_cells": 604162096,
+              "reason": "prover input is host-local; 7.37M VM steps exceed the repository fixture budget and the workload needs roughly 17-18 GiB resident memory"
+            }
+          }
+        },
+        "workloads": {
+          "cairo_all_opcodes": {
+            "class": "small",
+            "args": "prove --prover-input vectors/cairo/official/all_opcodes.prover_input.json --params vectors/cairo/official/all_opcodes.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "cairo_all_builtins": {
+            "class": "wide",
+            "args": "prove --prover-input vectors/cairo/official/all_builtins.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          }
+        },
+        "guard_registry": "cairo",
+        "editable_paths": [
+          {
+            "glob": "src/frontends/cairo/**",
+            "min_rung": "s3"
+          },
+          {
+            "glob": "src/integrations/cairo_cpu/**",
+            "min_rung": "s3"
+          }
+        ]
+      },
+      "cairo_metal": {
+        "enabled": false,
+        "promotion_eligible": false,
+        "disabled_reason": "cairo_metal is staged only: TRACKS §2 records the Cairo + Metal product as parity_gated, not released. The product descriptor in build_support/products/cairo_metal.zig still carries state .parity_gated behind its test-cairo-metal-product and test-cairo-metal-oracle release gates, no Metal-lane Cairo calibration exists on the designated judge host, and the generalized per-board Metal calibration (TRACKS §7) is not yet built. The group stays dark and fails closed.",
+        "promotion_blocked_reason": "TRACKS §7: no cairo_metal calibration exists on the designated Apple M5 Max judge host, and the product is parity_gated rather than released.",
+        "board": "cairo_metal",
+        "build_step": "zig build stwo-cairo-metal -Doptimize=ReleaseFast",
+        "binary": "zig-out/bin/stwo-cairo-metal",
+        "report_schema": "cairo_proof_v1",
+        "correctness_oracle": {
+          "authority": "official-stwo-cairo-verifier",
+          "repository": "https://github.com/starkware-libs/stwo-cairo",
+          "commit": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+          "stwo_repository": "https://github.com/starkware-libs/stwo",
+          "stwo_commit": "7b211edde786775016ef3eecb837a6240d8fe792",
+          "adapter": "tools/stwo-cairo-official-verifier-rs",
+          "build_command": "cargo build --locked --release --manifest-path tools/stwo-cairo-official-verifier-rs/Cargo.toml",
+          "final_validator": true
+        },
+        "gates_policy": {
+          "warmups": 1,
+          "samples_per_round": 1,
+          "min_rounds": 3,
+          "max_rounds": 5,
+          "wall_clock_cap_seconds": {
+            "small": 900,
+            "wide": 3600
+          },
+          "note": "Mirrors cairo_cpu: one proof per cold process, phase profile recorded on a discarded warmup."
+        },
+        "mechanism_telemetry": {
+          "fail_closed": true,
+          "required_fields": [
+            "product_identity_sha256",
+            "protocol_manifest_sha256",
+            "profile",
+            "input_sha256",
+            "proof_format",
+            "proof_bytes",
+            "proof_sha256",
+            "stwo_cairo_revision",
+            "stwo_revision",
+            "mean_execute_seconds",
+            "mean_prove_seconds",
+            "mean_verify_seconds",
+            "mean_cold_process_seconds",
+            "phase_seconds",
+            "metal_dispatches",
+            "cpu_fallbacks"
+          ]
+        },
+        "workloads": {
+          "mcairo_all_opcodes": {
+            "class": "small",
+            "args": "prove --prover-input vectors/cairo/official/all_opcodes.prover_input.json --params vectors/cairo/official/all_opcodes.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "mcairo_all_builtins": {
+            "class": "wide",
+            "args": "prove --prover-input vectors/cairo/official/all_builtins.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          }
+        },
+        "guard_registry": "cairo",
+        "editable_paths": [
+          {
+            "glob": "src/frontends/cairo/**",
+            "min_rung": "s3"
+          },
+          {
+            "glob": "src/integrations/cairo_metal/**",
+            "min_rung": "s3"
+          }
+        ]
       },
       "pr6_supremacy": {
         "enabled": false,
@@ -686,63 +1037,248 @@
             "args": "--workload state-machine --log-size 8 --peer-backends cpu --candidate-backends cpu,metal --resource-profile standard",
             "native_unit": "state-machine rows"
           }
-        }
+        },
+        "guard_registry": null,
+        "guard_registry_absent_reason": "TRACKS §3.4/§8: the supremacy board's driver is a peer-measurement script, not a bench binary that accepts guard args, and its 18 mandatory cells ARE the regression surface — every cell must win in both boundaries, so a separate guard portfolio would only re-measure the same statements.",
+        "editable_paths": [
+          {
+            "glob": "src/integrations/native/**",
+            "min_rung": "s3"
+          }
+        ]
       }
     },
     "guards": {
-      "note": "The full native AIR portfolio plus the small wide-Fibonacci latency canary as mandatory regression guards: one declared objective workload is scored, but every selected guard's paired upper confidence bound must stay below its regression budget. Guards use the objective group's binary; args are data.",
-      "workloads": {
-        "guard_wf_10x8": {
-          "args": "--example wide_fibonacci --log-n-rows 10 --sequence-len 8 --warmups {warmups} --samples {samples} --protocol functional",
-          "native_unit": "trace_rows"
+      "note": "TRACKS §8 per-group guard registries. A track's regression guards must run on ITS OWN product binary: the flat portfolio bound every guard to the objective group's binary, which is nonsense for a Cairo or RISC-V objective. `registries` holds one guard portfolio per product family; every workload group names the registry bound to it via `guard_registry`, or declares `guard_registry: null` together with `guard_registry_absent_reason`. Guards still use the objective group's binary; args are data. `policy` here is the global fallback that a registry may override key-by-key.",
+      "registries": {
+        "native": {
+          "note": "The full native AIR portfolio plus the small wide-Fibonacci latency canary. Binds to the native (core_cpu) and metal (core_metal) groups: both bench binaries accept these `--example` statements. Declares no policy of its own, so it inherits the global guard policy unchanged.",
+          "workloads": {
+            "guard_wf_10x8": {
+              "args": "--example wide_fibonacci --log-n-rows 10 --sequence-len 8 --warmups {warmups} --samples {samples} --protocol functional",
+              "native_unit": "trace_rows"
+            },
+            "guard_wf_14x32": {
+              "args": "--example wide_fibonacci --log-n-rows 14 --sequence-len 32 --warmups {warmups} --samples {samples} --protocol functional",
+              "native_unit": "trace_rows"
+            },
+            "guard_wf_16x64": {
+              "args": "--example wide_fibonacci --log-n-rows 16 --sequence-len 64 --warmups {warmups} --samples {samples} --protocol functional",
+              "native_unit": "trace_rows"
+            },
+            "guard_xor_14": {
+              "args": "--example xor --log-size 14 --log-step 2 --offset 3 --warmups {warmups} --samples {samples} --protocol functional",
+              "native_unit": "xor_rows"
+            },
+            "guard_xor_16": {
+              "args": "--example xor --log-size 16 --log-step 2 --offset 3 --warmups {warmups} --samples {samples} --protocol functional",
+              "native_unit": "xor_rows"
+            },
+            "guard_plonk_14": {
+              "args": "--example plonk --log-n-rows 14 --warmups {warmups} --samples {samples} --protocol functional",
+              "native_unit": "plonk_rows"
+            },
+            "guard_plonk_16": {
+              "args": "--example plonk --log-n-rows 16 --warmups {warmups} --samples {samples} --protocol functional",
+              "native_unit": "plonk_rows"
+            },
+            "guard_sm_v2_14": {
+              "args": "--example state_machine --initial-x 9 --initial-y 3 --log-n-rows 14 --warmups {warmups} --samples {samples} --protocol functional",
+              "native_unit": "state_transitions"
+            },
+            "guard_sm_v2_16": {
+              "args": "--example state_machine --initial-x 9 --initial-y 3 --log-n-rows 16 --warmups {warmups} --samples {samples} --protocol functional",
+              "native_unit": "state_transitions"
+            },
+            "guard_blake_10x10": {
+              "args": "--example blake --log-n-rows 10 --n-rounds 10 --warmups {warmups} --samples {samples} --protocol functional --resource-profile large",
+              "native_unit": "blake_round_instances"
+            },
+            "guard_poseidon_10": {
+              "args": "--example poseidon --log-n-instances 10 --warmups {warmups} --samples {samples} --protocol functional",
+              "native_unit": "poseidon_instances"
+            },
+            "guard_poseidon_13": {
+              "args": "--example poseidon --log-n-instances 13 --warmups {warmups} --samples {samples} --protocol functional",
+              "native_unit": "poseidon_instances"
+            }
+          },
+          "impact_map": {
+            "note": "Editable-path prefixes to the guard sets a diff must exercise; generic prover/PCS/FFT/accumulation code touches every native AIR. Unmatched editable paths select every guard (fail closed).",
+            "rules": [
+              {
+                "prefixes": [
+                  "src/backends/metal/"
+                ],
+                "board": "core_metal",
+                "guards": "all"
+              },
+              {
+                "prefixes": [
+                  "src/prover/",
+                  "src/core/fri/",
+                  "src/core/pcs/",
+                  "src/core/fields/",
+                  "src/backends/cpu_scalar/"
+                ],
+                "guards": "all"
+              },
+              {
+                "prefixes": [
+                  "src/core/crypto/"
+                ],
+                "guards": [
+                  "guard_blake_10x10",
+                  "guard_poseidon_10",
+                  "guard_poseidon_13",
+                  "guard_wf_10x8",
+                  "guard_wf_14x32",
+                  "guard_plonk_14"
+                ]
+              },
+              {
+                "prefixes": [
+                  "src/backends/metal/"
+                ],
+                "guards": [],
+                "board": "core_cpu"
+              }
+            ]
+          }
         },
-        "guard_wf_14x32": {
-          "args": "--example wide_fibonacci --log-n-rows 14 --sequence-len 32 --warmups {warmups} --samples {samples} --protocol functional",
-          "native_unit": "trace_rows"
+        "cairo": {
+          "note": "TRACKS §8 + §3.3: the Cairo regression surface is the campaign portfolio rows that are actually committed — the two official all_opcodes/all_builtins statements — replayed on the objective group's own Cairo product CLI. The rest of the campaign portfolio is host-local (see the groups' workload_provisioning block) and therefore cannot be a guard; nothing is invented to fill that gap.",
+          "policy": {
+            "warmups": 1,
+            "samples_per_round": 1,
+            "min_rounds": 3,
+            "max_rounds": 5,
+            "budget_upper": 1.05,
+            "inconclusive_extra_rounds": 2,
+            "wall_clock_cap_seconds": 3600,
+            "command_timeout_seconds": 3600,
+            "note": "Mirrors the Cairo groups' own gates_policy: the product CLI proves exactly one statement per process, so the harness owns the warmup/sample loop and the guard wall budget is that group's `wide` cap rather than the native 300 s."
+          },
+          "workloads": {
+            "guard_cairo_all_opcodes": {
+              "args": "prove --prover-input vectors/cairo/official/all_opcodes.prover_input.json --params vectors/cairo/official/all_opcodes.params.json --proof-format json --verify",
+              "native_unit": "committed cells"
+            },
+            "guard_cairo_all_builtins": {
+              "args": "prove --prover-input vectors/cairo/official/all_builtins.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+              "native_unit": "committed cells"
+            }
+          },
+          "impact_map": {
+            "note": "Cairo-track editable-path prefixes. The Cairo frontend and its product integrations exercise both statements, as does generic prover/PCS/FFT/field/crypto code. Metal paths are board-scoped exactly as the native map scopes them to core_metal. Unmatched editable paths select every guard (fail closed).",
+            "rules": [
+              {
+                "prefixes": [
+                  "src/frontends/cairo/",
+                  "src/integrations/cairo_cpu/",
+                  "src/integrations/cairo_metal/",
+                  "src/integrations/cairo_cuda/"
+                ],
+                "guards": "all"
+              },
+              {
+                "prefixes": [
+                  "src/prover/",
+                  "src/core/fri/",
+                  "src/core/pcs/",
+                  "src/core/fields/",
+                  "src/core/crypto/",
+                  "src/backends/cpu_scalar/"
+                ],
+                "guards": "all"
+              },
+              {
+                "prefixes": [
+                  "src/backends/metal/"
+                ],
+                "board": "cairo_metal",
+                "guards": "all"
+              },
+              {
+                "prefixes": [
+                  "src/backends/metal/"
+                ],
+                "board": "cairo_cpu",
+                "guards": []
+              }
+            ]
+          }
         },
-        "guard_wf_16x64": {
-          "args": "--example wide_fibonacci --log-n-rows 16 --sequence-len 64 --warmups {warmups} --samples {samples} --protocol functional",
-          "native_unit": "trace_rows"
-        },
-        "guard_xor_14": {
-          "args": "--example xor --log-size 14 --log-step 2 --offset 3 --warmups {warmups} --samples {samples} --protocol functional",
-          "native_unit": "xor_rows"
-        },
-        "guard_xor_16": {
-          "args": "--example xor --log-size 16 --log-step 2 --offset 3 --warmups {warmups} --samples {samples} --protocol functional",
-          "native_unit": "xor_rows"
-        },
-        "guard_plonk_14": {
-          "args": "--example plonk --log-n-rows 14 --warmups {warmups} --samples {samples} --protocol functional",
-          "native_unit": "plonk_rows"
-        },
-        "guard_plonk_16": {
-          "args": "--example plonk --log-n-rows 16 --warmups {warmups} --samples {samples} --protocol functional",
-          "native_unit": "plonk_rows"
-        },
-        "guard_sm_14": {
-          "args": "--example state_machine --initial-x 9 --initial-y 3 --log-n-rows 14 --warmups {warmups} --samples {samples} --protocol functional",
-          "native_unit": "state_transitions"
-        },
-        "guard_sm_16": {
-          "args": "--example state_machine --initial-x 9 --initial-y 3 --log-n-rows 16 --warmups {warmups} --samples {samples} --protocol functional",
-          "native_unit": "state_transitions"
-        },
-        "guard_blake_10x10": {
-          "args": "--example blake --log-n-rows 10 --n-rounds 10 --warmups {warmups} --samples {samples} --protocol functional",
-          "native_unit": "blake_round_instances"
-        },
-        "guard_blake_12x16": {
-          "args": "--example blake --log-n-rows 12 --n-rounds 16 --warmups {warmups} --samples {samples} --protocol functional",
-          "native_unit": "blake_round_instances"
-        },
-        "guard_poseidon_10": {
-          "args": "--example poseidon --log-n-instances 10 --warmups {warmups} --samples {samples} --protocol functional",
-          "native_unit": "poseidon_instances"
-        },
-        "guard_poseidon_13": {
-          "args": "--example poseidon --log-n-instances 13 --warmups {warmups} --samples {samples} --protocol functional",
-          "native_unit": "poseidon_instances"
+        "riscv": {
+          "note": "TRACKS §8: the RISC-V track guards with its OWN committed basket — the six `small`-class ELF programs covering the ALU, branch, jump/link, load/store, shift/logic, and declared-region families at the cheapest committed shape. Identical committed vectors to the scored basket; the native `--example` portfolio is meaningless to this product binary.",
+          "policy": {
+            "warmups": 1,
+            "samples_per_round": 1,
+            "min_rounds": 3,
+            "max_rounds": 5,
+            "budget_upper": 1.05,
+            "inconclusive_extra_rounds": 2,
+            "wall_clock_cap_seconds": 600,
+            "command_timeout_seconds": 600,
+            "note": "Mirrors the riscv group's own gates_policy sampling; the guard wall budget is that group's `deep` cap."
+          },
+          "workloads": {
+            "guard_riscv_alu_test": {
+              "args": "bench --elf vectors/riscv_elfs/alu_test.elf --backend cpu --protocol functional {admission} --warmups {warmups} --samples {samples}",
+              "native_unit": "executed instructions"
+            },
+            "guard_riscv_branch_fib": {
+              "args": "bench --elf vectors/riscv_elfs/branch_fib.elf --backend cpu --protocol functional {admission} --warmups {warmups} --samples {samples}",
+              "native_unit": "executed instructions"
+            },
+            "guard_riscv_declared_region": {
+              "args": "bench --elf vectors/riscv_elfs/declared_region.elf --backend cpu --protocol functional {admission} --warmups {warmups} --samples {samples}",
+              "native_unit": "executed instructions"
+            },
+            "guard_riscv_jal_jalr": {
+              "args": "bench --elf vectors/riscv_elfs/jal_jalr.elf --backend cpu --protocol functional {admission} --warmups {warmups} --samples {samples}",
+              "native_unit": "executed instructions"
+            },
+            "guard_riscv_mem_ls": {
+              "args": "bench --elf vectors/riscv_elfs/mem_ls.elf --backend cpu --protocol functional {admission} --warmups {warmups} --samples {samples}",
+              "native_unit": "executed instructions"
+            },
+            "guard_riscv_shift_logic": {
+              "args": "bench --elf vectors/riscv_elfs/shift_logic.elf --backend cpu --protocol functional {admission} --warmups {warmups} --samples {samples}",
+              "native_unit": "executed instructions"
+            }
+          },
+          "impact_map": {
+            "note": "RISC-V-track editable-path prefixes. The RISC-V frontend and its product integrations exercise the whole basket, as does generic prover/PCS/FFT/field/crypto code. The riscv board is a CPU lane, so Metal paths select nothing on it. Unmatched editable paths select every guard (fail closed).",
+            "rules": [
+              {
+                "prefixes": [
+                  "src/frontends/riscv/",
+                  "src/integrations/riscv_cpu/",
+                  "src/integrations/riscv_metal/"
+                ],
+                "guards": "all"
+              },
+              {
+                "prefixes": [
+                  "src/prover/",
+                  "src/core/fri/",
+                  "src/core/pcs/",
+                  "src/core/fields/",
+                  "src/core/crypto/",
+                  "src/backends/cpu_scalar/"
+                ],
+                "guards": "all"
+              },
+              {
+                "prefixes": [
+                  "src/backends/metal/"
+                ],
+                "board": "riscv",
+                "guards": []
+              }
+            ]
+          }
         }
       },
       "policy": {
@@ -753,49 +1289,6 @@
         "budget_upper": 1.05,
         "inconclusive_extra_rounds": 4,
         "note": "pass = paired upper CI bound <= budget_upper; an inconclusive guard (CI straddling the budget after min rounds) samples inconclusive_extra_rounds more, then fails closed"
-      },
-      "impact_map": {
-        "note": "Editable-path prefixes to the guard sets a diff must exercise; generic prover/PCS/FFT/accumulation code touches every native AIR. Unmatched editable paths select every guard (fail closed).",
-        "rules": [
-          {
-            "prefixes": [
-              "src/backends/metal/"
-            ],
-            "board": "core_metal",
-            "guards": "all"
-          },
-          {
-            "prefixes": [
-              "src/prover/",
-              "src/core/fri/",
-              "src/core/pcs/",
-              "src/core/fields/",
-              "src/backends/cpu_scalar/"
-            ],
-            "guards": "all"
-          },
-          {
-            "prefixes": [
-              "src/core/crypto/"
-            ],
-            "guards": [
-              "guard_blake_10x10",
-              "guard_blake_12x16",
-              "guard_poseidon_10",
-              "guard_poseidon_13",
-              "guard_wf_10x8",
-              "guard_wf_14x32",
-              "guard_plonk_14"
-            ]
-          },
-          {
-            "prefixes": [
-              "src/backends/metal/"
-            ],
-            "guards": [],
-            "board": "core_cpu"
-          }
-        ]
       }
     },
     "holdout_generator": {
@@ -864,7 +1357,48 @@
       "auto_boost_rounds": 5,
       "maximum_rounds": 25
     },
-    "neutral_band_note": "Promotion requires the declared-objective CI entirely below 1 - theta, where theta = max(theta_floor, dispersion_multiplier x per-class A/A dispersion recorded in the ledger epoch)."
+    "neutral_band_note": "Promotion requires the declared-objective CI entirely below 1 - theta, where theta = max(theta_floor, dispersion_multiplier x per-class A/A dispersion recorded in the ledger epoch).",
+    "confirmation_ladder": {
+      "schema": "stwo_perf_confirmation_ladder_v1",
+      "sequential_stop": {
+        "enabled": false,
+        "rule": "pocock_constant_boundary_bonferroni_v1",
+        "alpha": 0.05,
+        "stop_on_decisive_miss": true
+      },
+      "tiers": {
+        "T0": {
+          "cost_target_seconds": 30,
+          "warmups": 1,
+          "samples": 1,
+          "min_phase_move": 0.02,
+          "note": "correctness smoke plus ONE stage-profiled sample on the proxy fixture; the claimed phase must move here before T1 is scheduled. One warmup is the floor, not a nicety: the Cairo arm records its mandatory phase profile on a discarded warmup, so warmups=0 would leave that track with no phase evidence at all."
+        },
+        "T1": {
+          "cost_target_seconds": 300,
+          "note": "paired ABBA on proxy fixtures with sequential early stopping and the PoW-excluded boundary; never ranks."
+        },
+        "T2": {
+          "cost_target_seconds": 2700,
+          "note": "full dual-boundary paired run on the contributor host, real classes, guards impact-mapped; the claimed verdict."
+        },
+        "T3": {
+          "cost_target_seconds": null,
+          "note": "judge-scheduled re-run plus audits on the designated host; the scored row. No cost target — the judge never trades honesty for time."
+        }
+      },
+      "proxy_validity": {
+        "receipt_schema": "stwo_perf_proxy_validity_receipt_v1",
+        "receipt_dir": "autoresearch/reference/proxy_validity",
+        "min_correlation": 0.8,
+        "min_observations": 5
+      },
+      "cost_telemetry": {
+        "statistic": "median",
+        "window": 5
+      },
+      "note": "TRACKS §3.5/§3.6. sequential_stop.enabled arms the pre-registered spending rule on scored paired runs; the T1 iterate path arms it explicitly because T1 never ranks. Absent this block the runner keeps pre-ladder fixed min/max-round behavior. Tier cost targets are CI-checked per track by scripts/check_tier_cost_targets.py."
+    }
   },
   "qualification_policy": {
     "schema_version": 1,

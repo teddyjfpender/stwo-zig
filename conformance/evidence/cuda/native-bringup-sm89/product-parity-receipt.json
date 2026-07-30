@@ -1,0 +1,166 @@
+{
+  "challenge": {
+    "air": "wide_fibonacci",
+    "log_n_rows": 5,
+    "process_repetitions": 3,
+    "protocol": {
+      "fri_config": {
+        "fold_step": 1,
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 3
+      },
+      "lifting_log_size": null,
+      "pow_bits": 10
+    },
+    "sequence_len": 8
+  },
+  "commands": [
+    {
+      "argv": [
+        "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cuda",
+        "prove",
+        "--air",
+        "wide_fibonacci",
+        "--backend",
+        "cuda",
+        "--protocol",
+        "raw-stwo-wide-v1",
+        "--log-n-rows",
+        "5",
+        "--sequence-len",
+        "8",
+        "--output",
+        "/workspace/cuda-clean-evidence/parity/cuda-proof.json",
+        "--report-out",
+        "/workspace/cuda-clean-evidence/parity/cuda-report.json",
+        "--repeat",
+        "3"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "aee1c5fafd2a12622b93a33c1738e43a5a34ed7a5b0169daa28cdc88e2dc5d22"
+    },
+    {
+      "argv": [
+        "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cpu",
+        "prove",
+        "--example",
+        "wide_fibonacci",
+        "--log-n-rows",
+        "5",
+        "--sequence-len",
+        "8",
+        "--protocol",
+        "functional",
+        "--output",
+        "/workspace/cuda-clean-evidence/parity/cpu-proof.json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "5eb2377c4450a2097edf6b59a8fc53deda1050f70042c31b27e067c6658248a3"
+    }
+  ],
+  "cuda_residency": {
+    "cpu_fallbacks": 0,
+    "path": "/workspace/cuda-clean-evidence/parity/cuda-report.json",
+    "resident": true,
+    "sha256": "a9877a8cc20f2823aecc28d0c05743a716005d26301a5849a6879233896326a5",
+    "strict_aot": true
+  },
+  "products": {
+    "cuda": {
+      "bytes": 5976848,
+      "path": "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cuda",
+      "sha256": "e7a8655323c4be570552a511585b826c28b0f5274ec940bd1e5fbdb781a7f750"
+    },
+    "native_cpu": {
+      "bytes": 10620696,
+      "path": "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cpu",
+      "sha256": "ea24ad31fa2a4ca6e8207eff78b42f224bdcc25040465067a8108bd5c9fe1569"
+    },
+    "rust_verifier": {
+      "bytes": 3200224,
+      "path": "/workspace/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+      "sha256": "a14c130ce59379fb2ede7f45c132aa864cef4a22119504ec4014a6f3e4d1e04a"
+    }
+  },
+  "proofs": {
+    "canonical_byte_parity": true,
+    "cpu": {
+      "artifact_sha256": "e28d67f7bace0991db4eac5a75776c1767a5ea315568fef4f142a96aeb4eaf8b",
+      "path": "/workspace/cuda-clean-evidence/parity/cpu-proof.json",
+      "proof_bytes": 8390,
+      "proof_sha256": "452fb396032380b7c031fc95f0b7c00d0a3c6e05622321f84f06cb3a801e3b2c",
+      "source": "generated"
+    },
+    "cuda": {
+      "artifact_sha256": "e28d67f7bace0991db4eac5a75776c1767a5ea315568fef4f142a96aeb4eaf8b",
+      "path": "/workspace/cuda-clean-evidence/parity/cuda-proof.json",
+      "proof_bytes": 8390,
+      "proof_sha256": "452fb396032380b7c031fc95f0b7c00d0a3c6e05622321f84f06cb3a801e3b2c"
+    }
+  },
+  "schema": "stwo-zig-cuda-parity-oracle-v1",
+  "verdict": "pass",
+  "verifications": [
+    {
+      "argv": [
+        "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cpu",
+        "verify",
+        "--artifact",
+        "/workspace/cuda-clean-evidence/parity/cuda-proof.json",
+        "--protocol",
+        "functional"
+      ],
+      "artifact": "cuda-proof.json",
+      "exit_code": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "15823e37b6b2d0e51a3409d5280d3f59f8246a959f22bce84d09215f4bfda0c8",
+      "verifier": "zig-native-cpu"
+    },
+    {
+      "argv": [
+        "/workspace/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/workspace/cuda-clean-evidence/parity/cuda-proof.json"
+      ],
+      "artifact": "cuda-proof.json",
+      "exit_code": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verifier": "pinned-rust-stwo"
+    },
+    {
+      "argv": [
+        "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cpu",
+        "verify",
+        "--artifact",
+        "/workspace/cuda-clean-evidence/parity/cpu-proof.json",
+        "--protocol",
+        "functional"
+      ],
+      "artifact": "cpu-proof.json",
+      "exit_code": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "15823e37b6b2d0e51a3409d5280d3f59f8246a959f22bce84d09215f4bfda0c8",
+      "verifier": "zig-native-cpu"
+    },
+    {
+      "argv": [
+        "/workspace/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/workspace/cuda-clean-evidence/parity/cpu-proof.json"
+      ],
+      "artifact": "cpu-proof.json",
+      "exit_code": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verifier": "pinned-rust-stwo"
+    }
+  ]
+}

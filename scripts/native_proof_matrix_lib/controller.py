@@ -28,6 +28,7 @@ from .artifacts import (
     host_measurement_lock,
     output_dir_lock,
     prepare_output_dir,
+    preflight_rust_oracle_adapter,
     require_binary,
     require_unprofiled_environment,
     run_lane,
@@ -281,16 +282,16 @@ def product_receipts(
 
 def run_matrix(args: argparse.Namespace) -> dict[str, Any]:
     require_unprofiled_environment(os.environ)
-    binaries = {
-        "cpu": require_binary(args.cpu_bin, "cpu"),
-        "metal": require_binary(args.metal_bin, "metal"),
-    }
-    # A bounded correctness matrix may still use the pinned final oracle even
-    # when its sample count is intentionally too small for headline evidence.
     rust_oracle = (
         require_binary(args.rust_oracle_bin, "Rust oracle")
         if args.rust_oracle_bin is not None else None
     )
+    if rust_oracle is not None:
+        preflight_rust_oracle_adapter(rust_oracle, args.timeout_seconds)
+    binaries = {
+        "cpu": require_binary(args.cpu_bin, "cpu"),
+        "metal": require_binary(args.metal_bin, "metal"),
+    }
     binary_hashes = {lane: sha256_file(binary) for lane, binary in binaries.items()}
     metal_runtime = getattr(args, "metal_runtime", "source-jit")
     output_dir = args.output_dir.resolve()

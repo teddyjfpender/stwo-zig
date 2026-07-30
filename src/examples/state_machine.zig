@@ -1,7 +1,5 @@
 const std = @import("std");
-const core_air_accumulation = @import("stwo_core").air.accumulation;
 const core_air_components = @import("stwo_core").air.components;
-const core_air_derive = @import("stwo_core").air.derive;
 const channel_blake2s = @import("stwo_core").channel.blake2s;
 const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
@@ -10,19 +8,18 @@ const pcs_verifier = @import("stwo_core").pcs.verifier;
 const core_proof = @import("stwo_core").proof;
 const core_verifier = @import("stwo_core").verifier;
 const blake2_merkle = @import("stwo_core").vcs_lifted.blake2_merkle;
-const prover_air_accumulation = @import("stwo_prover_impl").air.accumulation;
-const prover_component = @import("stwo_prover_impl").air.component_prover;
-const prover_engine = @import("stwo_prover_impl").engine;
-const stage_profile = @import("stwo_prover_impl").stage_profile;
-const secure_column = @import("stwo_prover_impl").secure_column;
+const prover_component = @import("stwo_prover_engine").air.component_prover;
+const prover_engine = @import("stwo_prover_engine").engine;
+const stage_profile = @import("stwo_prover_api").stage_profile;
 const prover_transaction = @import("common/prover_transaction.zig");
+const component_mod = @import("state_machine/component.zig");
 const trace_input = @import("state_machine/input.zig");
+const interaction = @import("state_machine/interaction.zig");
 const statement_impl = @import("state_machine/statement.zig");
-const CpuBackend = @import("../backends/cpu_scalar/mod.zig").CpuBackend;
+const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
-const CirclePointQM31 = @import("stwo_core").circle.CirclePointQM31;
 
 pub const State = trace_input.State;
 pub const Hasher = blake2_merkle.Blake2sPrefixedMerkleHasher;
@@ -36,13 +33,15 @@ pub const CpuProverEngine = prover_engine.ProverEngine(
     MerkleChannel,
     Channel,
 );
+pub const protocol_name = "raw-stwo-state-machine-v2";
+const PROOF_COMMITMENTS: usize = 4;
 
 pub fn ProverEngineForBackend(comptime Backend: type) type {
     return prover_engine.ProverEngine(Backend, Hasher, MerkleChannel, Channel);
 }
 
 comptime {
-    prover_engine.assertProverEngine(CpuProverEngine);
+    @import("stwo_prover_api").assertProverEngine(CpuProverEngine);
 }
 
 pub const Request = trace_input.Request;
@@ -67,7 +66,6 @@ pub const claimsSatisfyStatement = statement_impl.claimsSatisfyStatement;
 pub const prepareStatement = statement_impl.prepare;
 pub const verifyStatement = statement_impl.verify;
 const mixStatement0 = statement_impl.mixStatement0;
-const mixPublicInput = statement_impl.mixPublicInput;
 const mixStatement1 = statement_impl.mixStatement1;
 
 pub const ProveOutput = struct {
@@ -345,7 +343,7 @@ pub fn verify(
     statement: PreparedStatement,
     proof_in: Proof,
 ) anyerror!void {
-    if (statement.stmt0.n == 0 or statement.stmt0.n >= 31) {
+    if (statement.stmt0.n < 5 or statement.stmt0.n >= 31) {
         var proof = proof_in;
         proof.deinit(allocator);
         return Error.InvalidLogSize;
@@ -355,7 +353,7 @@ pub fn verify(
         proof.deinit(allocator);
         return Error.InvalidLogSize;
     }
-    if (proof_in.commitment_scheme_proof.commitments.items.len < 2) {
+    if (proof_in.commitment_scheme_proof.commitments.items.len != PROOF_COMMITMENTS) {
         var proof = proof_in;
         proof.deinit(allocator);
         return Error.InvalidProofShape;
@@ -378,28 +376,55 @@ pub fn verify(
     try commitment_scheme.commit(
         allocator,
         proof.commitment_scheme_proof.commitments.items[0],
-        &[_]u32{log_n_rows},
+        &.{},
         &channel,
     );
+    mixStatement0(&channel, statement.stmt0);
     try commitment_scheme.commit(
         allocator,
         proof.commitment_scheme_proof.commitments.items[1],
-        &[_]u32{ log_n_rows, log_n_rows },
+        &.{ log_n_rows, log_n_rows, log_n_rows - 1, log_n_rows - 1 },
         &channel,
     );
 
-    mixStatement0(&channel, statement.stmt0);
-    const elements = Elements.draw(&channel);
+    const elements = try Elements.draw(allocator, &channel);
     try verifyStatement(statement, elements);
-    mixPublicInput(&channel, statement.public_input);
     mixStatement1(&channel, statement.stmt1);
+    try commitment_scheme.commit(
+        allocator,
+        proof.commitment_scheme_proof.commitments.items[2],
+        &.{
+            log_n_rows,
+            log_n_rows,
+            log_n_rows,
+            log_n_rows,
+            log_n_rows - 1,
+            log_n_rows - 1,
+            log_n_rows - 1,
+            log_n_rows - 1,
+        },
+        &channel,
+    );
 
-    const component = ExampleStateMachineComponent{
-        .trace_log_size = log_n_rows,
-        .composition_eval = statement.stmt1.x_axis_claimed_sum.add(statement.stmt1.y_axis_claimed_sum),
+    const component0 = component_mod.Component{
+        .log_size = log_n_rows,
+        .coordinate = 0,
+        .main_offset = 0,
+        .interaction_offset = 0,
+        .lookup_elements = elements,
+        .claimed_sum = statement.stmt1.x_axis_claimed_sum,
+    };
+    const component1 = component_mod.Component{
+        .log_size = log_n_rows - 1,
+        .coordinate = 1,
+        .main_offset = 2,
+        .interaction_offset = 4,
+        .lookup_elements = elements,
+        .claimed_sum = statement.stmt1.y_axis_claimed_sum,
     };
     const verifier_components = [_]core_air_components.Component{
-        component.asVerifierComponent(),
+        component0.asVerifierComponent(),
+        component1.asVerifierComponent(),
     };
 
     proof_moved = true;
@@ -414,119 +439,16 @@ pub fn verify(
     );
 }
 
-const ExampleStateMachineComponent = struct {
-    trace_log_size: u32,
-    composition_eval: QM31,
-
-    const Adapter = core_air_derive.ComponentAdapter(
-        @This(),
-        prover_component.ComponentProver,
-        prover_component.Trace,
-        prover_air_accumulation.DomainEvaluationAccumulator,
-    );
-
-    fn asVerifierComponent(self: *const @This()) core_air_components.Component {
-        return Adapter.asVerifierComponent(self);
-    }
-
-    fn asProverComponent(self: *const @This()) prover_component.ComponentProver {
-        return Adapter.asProverComponent(self);
-    }
-
-    pub fn nConstraints(_: *const @This()) usize {
-        return 1;
-    }
-
-    pub fn maxConstraintLogDegreeBound(self: *const @This()) u32 {
-        return self.trace_log_size + 1;
-    }
-
-    pub fn traceLogDegreeBounds(
-        self: *const @This(),
-        allocator: std.mem.Allocator,
-    ) !core_air_components.TraceLogDegreeBounds {
-        const preprocessed = try allocator.dupe(u32, &[_]u32{self.trace_log_size});
-        const main = try allocator.dupe(u32, &[_]u32{
-            self.trace_log_size,
-            self.trace_log_size,
-        });
-        return core_air_components.TraceLogDegreeBounds.initOwned(
-            try allocator.dupe([]u32, &[_][]u32{
-                preprocessed,
-                main,
-            }),
-        );
-    }
-
-    pub fn maskPoints(
-        _: *const @This(),
-        allocator: std.mem.Allocator,
-        point: CirclePointQM31,
-        _: u32,
-    ) !core_air_components.MaskPoints {
-        const preprocessed_col = try allocator.alloc(CirclePointQM31, 0);
-        const preprocessed_cols = try allocator.dupe([]CirclePointQM31, &[_][]CirclePointQM31{
-            preprocessed_col,
-        });
-
-        const main_col0 = try allocator.alloc(CirclePointQM31, 1);
-        main_col0[0] = point;
-        const main_col1 = try allocator.alloc(CirclePointQM31, 1);
-        main_col1[0] = point;
-        const main_cols = try allocator.dupe([]CirclePointQM31, &[_][]CirclePointQM31{
-            main_col0,
-            main_col1,
-        });
-
-        return core_air_components.MaskPoints.initOwned(
-            try allocator.dupe([][]CirclePointQM31, &[_][][]CirclePointQM31{
-                preprocessed_cols,
-                main_cols,
-            }),
-        );
-    }
-
-    pub fn preprocessedColumnIndices(
-        _: *const @This(),
-        allocator: std.mem.Allocator,
-    ) ![]usize {
-        return allocator.dupe(usize, &[_]usize{0});
-    }
-
-    pub fn evaluateConstraintQuotientsAtPoint(
-        self: *const @This(),
-        _: CirclePointQM31,
-        _: *const core_air_components.MaskValues,
-        evaluation_accumulator: *core_air_accumulation.PointEvaluationAccumulator,
-        _: u32,
-    ) !void {
-        evaluation_accumulator.accumulate(self.composition_eval);
-    }
-
-    pub fn evaluateConstraintQuotientsOnDomain(
-        self: *const @This(),
-        _: *const prover_component.Trace,
-        evaluation_accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
-    ) !void {
-        const domain_size = @as(usize, 1) << @intCast(self.trace_log_size + 1);
-        const values = try evaluation_accumulator.allocator.alloc(QM31, domain_size);
-        defer evaluation_accumulator.allocator.free(values);
-        @memset(values, self.composition_eval);
-
-        var col = try secure_column.SecureColumnByCoords.fromSecureSlice(evaluation_accumulator.allocator, values);
-        defer col.deinit(evaluation_accumulator.allocator);
-        try evaluation_accumulator.accumulateColumn(self.trace_log_size + 1, &col);
-    }
-};
-
 const ProvingSpec = struct {
     pub const Statement = PreparedStatement;
     pub const PreparedInput = trace_input.PreparedInput;
-    pub const max_components: usize = 1;
+    pub const PreparedInteraction = interaction.PreparedInteraction;
+    pub const max_components: usize = 2;
 
     pub const ProverContext = struct {
         statement_value: PreparedStatement,
-        component: ExampleStateMachineComponent,
+        component0: component_mod.Component,
+        component1: component_mod.Component,
     };
 
     pub fn validateRequest(request: Request) Error!void {
@@ -538,16 +460,13 @@ const ProvingSpec = struct {
             return error.PreparedInputConsumed;
         const main = prepared.trace.main.columns orelse
             return error.PreparedInputConsumed;
-        if (preprocessed.len != 1 or main.len != 2)
+        if (preprocessed.len != 0 or main.len != 4)
             return error.InvalidPreparedGeometry;
-        for (preprocessed) |column| {
-            if (column.log_size != prepared.request.log_n_rows)
-                return error.InvalidPreparedGeometry;
-        }
-        for (main) |column| {
-            if (column.log_size != prepared.request.log_n_rows)
-                return error.InvalidPreparedGeometry;
-        }
+        if (main[0].log_size != prepared.request.log_n_rows or
+            main[1].log_size != prepared.request.log_n_rows or
+            main[2].log_size != prepared.request.log_n_rows - 1 or
+            main[3].log_size != prepared.request.log_n_rows - 1)
+            return error.InvalidPreparedGeometry;
     }
 
     pub fn compositionLog(request: Request) Error!u32 {
@@ -555,31 +474,59 @@ const ProvingSpec = struct {
             return error.InvalidLogSize;
     }
 
-    pub fn initProverContext(
-        out: *ProverContext,
-        channel: *Channel,
-        request: Request,
-    ) !void {
+    pub fn beforeMainCommit(channel: *Channel, request: Request) !void {
         mixStatement0(channel, .{
             .n = request.log_n_rows,
             .m = request.log_n_rows - 1,
         });
-        const elements = Elements.draw(channel);
-        const prepared_statement = try prepareStatement(
-            request.log_n_rows,
-            request.initial_state,
-            elements,
-        );
-        mixPublicInput(channel, prepared_statement.public_input);
-        mixStatement1(channel, prepared_statement.stmt1);
+    }
 
+    pub fn prepareInteraction(
+        allocator: std.mem.Allocator,
+        channel: *Channel,
+        prepared: *const trace_input.PreparedInput,
+    ) !PreparedInteraction {
+        return interaction.generate(allocator, channel, prepared);
+    }
+
+    pub fn deinitPreparedInteraction(
+        prepared: *PreparedInteraction,
+        allocator: std.mem.Allocator,
+    ) void {
+        prepared.deinit(allocator);
+    }
+
+    pub fn beforeInteractionCommit(
+        channel: *Channel,
+        _: Request,
+        prepared: *const PreparedInteraction,
+    ) !void {
+        mixStatement1(channel, prepared.statement.stmt1);
+    }
+
+    pub fn initProverContext(
+        out: *ProverContext,
+        _: *Channel,
+        request: Request,
+        prepared: *const PreparedInteraction,
+    ) !void {
         out.* = .{
-            .statement_value = prepared_statement,
-            .component = .{
-                .trace_log_size = request.log_n_rows,
-                .composition_eval = prepared_statement.stmt1.x_axis_claimed_sum.add(
-                    prepared_statement.stmt1.y_axis_claimed_sum,
-                ),
+            .statement_value = prepared.statement,
+            .component0 = .{
+                .log_size = request.log_n_rows,
+                .coordinate = 0,
+                .main_offset = 0,
+                .interaction_offset = 0,
+                .lookup_elements = prepared.lookup_elements,
+                .claimed_sum = prepared.statement.stmt1.x_axis_claimed_sum,
+            },
+            .component1 = .{
+                .log_size = request.log_n_rows - 1,
+                .coordinate = 1,
+                .main_offset = 2,
+                .interaction_offset = 4,
+                .lookup_elements = prepared.lookup_elements,
+                .claimed_sum = prepared.statement.stmt1.y_axis_claimed_sum,
             },
         };
     }
@@ -593,8 +540,9 @@ const ProvingSpec = struct {
         out: []prover_component.ComponentProver,
     ) ![]const prover_component.ComponentProver {
         if (out.len < max_components) return error.InvalidProofShape;
-        out[0] = context.component.asProverComponent();
-        return out[0..1];
+        out[0] = context.component0.asProverComponent();
+        out[1] = context.component1.asProverComponent();
+        return out[0..2];
     }
 };
 
@@ -634,6 +582,13 @@ test "examples state_machine: rejects invalid log size and coordinate index" {
     const alloc = std.testing.allocator;
     try std.testing.expectError(
         Error.InvalidLogSize,
+        prepareInput(alloc, .{
+            .log_n_rows = 4,
+            .initial_state = .{ M31.zero(), M31.zero() },
+        }),
+    );
+    try std.testing.expectError(
+        Error.InvalidLogSize,
         transitionStates(0, .{ M31.zero(), M31.zero() }),
     );
     try std.testing.expectError(
@@ -663,8 +618,8 @@ test "examples state_machine: claimed-sum accumulation equals telescoping form" 
 
 test "examples state_machine: draw yields distinct lookup elements on successive calls" {
     var channel = Channel{};
-    const e0 = Elements.draw(&channel);
-    const e1 = Elements.draw(&channel);
+    const e0 = try Elements.draw(std.testing.allocator, &channel);
+    const e1 = try Elements.draw(std.testing.allocator, &channel);
     try std.testing.expect(!e0.z.eql(e1.z) or !e0.alpha.eql(e1.alpha));
 }
 
@@ -791,7 +746,7 @@ test "examples state_machine: prove and prove_ex wrappers emit identical proof b
     defer output_prove_ex.proof.aux.deinit(alloc);
     defer output_prove_ex.proof.proof.deinit(alloc);
 
-    const proof_wire = @import("../interop/proof_wire.zig");
+    const proof_wire = @import("stwo_proof_wire");
     const prove_bytes = try proof_wire.encodeProofBytes(alloc, output_prove.proof);
     defer alloc.free(prove_bytes);
     const prove_ex_bytes = try proof_wire.encodeProofBytes(alloc, output_prove_ex.proof.proof);

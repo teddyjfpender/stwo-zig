@@ -8,10 +8,19 @@ const native_transaction = @import("native_transaction");
 const output_transaction = @import("output_transaction");
 const product_identity = @import("native_product_identity");
 const registry = @import("registry.zig");
-const starkv_adapter = @import("starkv_adapter");
+const riscv_adapter = @import("riscv_adapter");
 
 const atomic_file = stwo.interop.atomic_file;
 const artifact_verifier = stwo.interop.examples_artifact_verifier;
+
+/// The aggregate CLI's RISC-V prover engine and the adapter backend tag that
+/// names it. `riscv_adapter` is engine-generic, so the engine is bound here at
+/// the product boundary exactly as `src/products/riscv_cpu/app.zig` binds it for
+/// the focused product. This CLI links only the CPU commitment backend, so `.cpu`
+/// is the only tag it may ever pass; a request for any other device backend is
+/// still mapped to `.unavailable_device` below and fails closed inside `run`.
+const RiscVEngine = stwo.integrations.riscv_cpu.CpuProverEngine;
+const riscv_backend: riscv_adapter.Backend = .cpu;
 
 pub fn main() !void {
     const allocator = std.heap.smp_allocator;
@@ -26,7 +35,7 @@ pub fn main() !void {
         .applications => try writeApplications(),
         .verify => |request| verifyArtifact(allocator, request) catch |err| switch (err) {
             error.AdapterNotReleaseGated => {
-                try writeLine(std.fs.File.stderr().deprecatedWriter(), starkv_adapter.PENDING_DIAGNOSTIC);
+                try writeLine(std.fs.File.stderr().deprecatedWriter(), riscv_adapter.PENDING_DIAGNOSTIC);
                 std.process.exit(1);
             },
             else => return err,
@@ -51,7 +60,7 @@ pub fn main() !void {
 fn runElf(
     allocator: std.mem.Allocator,
     run: cli.ElfRun,
-    mode: starkv_adapter.Mode,
+    mode: riscv_adapter.Mode,
     proof_output: ?[]const u8,
     report_output: ?[]const u8,
 ) !void {
@@ -64,7 +73,7 @@ fn runElf(
     defer if (proof_temporary) |path| allocator.free(path);
     defer if (proof_temporary) |path| std.fs.cwd().deleteFile(path) catch {};
 
-    const report = starkv_adapter.run(allocator, run.elf_path, run.input_path, .{
+    const report = riscv_adapter.run(RiscVEngine, riscv_backend, allocator, run.elf_path, run.input_path, .{
         .backend = switch (run.backend) {
             .cpu => .cpu,
             .metal_hybrid => .unavailable_device,
@@ -76,14 +85,7 @@ fn runElf(
         .proof_report_path = proof_output,
     }) catch |err| switch (err) {
         error.AdapterNotReleaseGated => {
-            try writeLine(std.fs.File.stderr().deprecatedWriter(), starkv_adapter.PENDING_DIAGNOSTIC);
-            std.process.exit(1);
-        },
-        error.UnsupportedProofFamily => {
-            try writeLine(
-                std.fs.File.stderr().deprecatedWriter(),
-                starkv_adapter.UNSUPPORTED_PROOF_FAMILY_DIAGNOSTIC,
-            );
+            try writeLine(std.fs.File.stderr().deprecatedWriter(), riscv_adapter.PENDING_DIAGNOSTIC);
             std.process.exit(1);
         },
         else => return err,
@@ -172,17 +174,21 @@ fn verifyArtifact(allocator: std.mem.Allocator, request: cli.Verify) !void {
         .riscv => |parsed| {
             const expected = request.expected_statement_digest orelse
                 return error.MissingExpectedStatementDigest;
-            return starkv_adapter.verifyArtifact(
+            const elf_path = request.elf_path orelse return error.MissingElf;
+            return riscv_adapter.verifyArtifact(
+                RiscVEngine,
                 allocator,
                 parsed.value,
                 riscvProtocol(request.protocol),
                 expected,
+                elf_path,
             );
         },
         .other => |raw| raw,
     };
     if (request.expected_statement_digest != null)
         return error.ExpectedStatementDigestRequiresRiscVArtifact;
+    if (request.elf_path != null) return error.ElfRequiresRiscVArtifact;
     const encoded = try native_transaction.verifyBytes(
         artifact_verifier,
         stwo.interop.examples_artifact,
@@ -205,7 +211,7 @@ fn writeApplications() !void {
     try stdout.writeByte('\n');
 }
 
-fn riscvProtocol(value: cli.Protocol) starkv_adapter.Protocol {
+fn riscvProtocol(value: cli.Protocol) riscv_adapter.Protocol {
     return switch (value) {
         .secure => .secure,
         .functional => .functional,
@@ -218,10 +224,12 @@ fn writeLine(writer: anytype, bytes: []const u8) !void {
     try writer.writeByte('\n');
 }
 
-test "stark-v adapter: staged CPU path is live while device backends fail closed" {
+test "RISC-V adapter: CPU path is live while unavailable device backends fail closed" {
     // Prove mode reaches real execution: a missing ELF surfaces as a file
     // error, proving the staged path is wired rather than gated.
-    try std.testing.expectError(error.FileNotFound, starkv_adapter.run(
+    try std.testing.expectError(error.FileNotFound, riscv_adapter.run(
+        RiscVEngine,
+        riscv_backend,
         std.testing.allocator,
         "definitely-missing-guest.elf",
         null,
@@ -235,7 +243,9 @@ test "stark-v adapter: staged CPU path is live while device backends fail closed
         },
     ));
     // Device backends remain gated until a device-native RISC-V engine lands.
-    try std.testing.expectError(error.AdapterNotReleaseGated, starkv_adapter.run(
+    try std.testing.expectError(error.AdapterNotReleaseGated, riscv_adapter.run(
+        RiscVEngine,
+        riscv_backend,
         std.testing.allocator,
         "guest.elf",
         null,

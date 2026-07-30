@@ -231,6 +231,82 @@ pub const Program = struct {
         self.* = undefined;
     }
 
+    pub fn clone(self: Program, allocator: std.mem.Allocator) !Program {
+        var result = Program{
+            .allocator = allocator,
+            .header = self.header,
+            .base_consts = try allocator.dupe(u32, self.base_consts),
+            .ext_consts = undefined,
+            .base_insts = undefined,
+            .ext_insts = undefined,
+            .constraint_roots = undefined,
+        };
+        errdefer allocator.free(result.base_consts);
+        result.ext_consts = try allocator.dupe([4]u32, self.ext_consts);
+        errdefer allocator.free(result.ext_consts);
+        result.base_insts = try allocator.dupe(BaseInst, self.base_insts);
+        errdefer allocator.free(result.base_insts);
+        result.ext_insts = try allocator.dupe(ExtInst, self.ext_insts);
+        errdefer allocator.free(result.ext_insts);
+        result.constraint_roots = try allocator.dupe(
+            u32,
+            self.constraint_roots,
+        );
+        return result;
+    }
+
+    pub fn setDomainLogSize(self: *Program, log_size: u32) !void {
+        if (log_size > 31) return error.InvalidHeader;
+        self.header.domain_log_size = log_size;
+    }
+
+    /// Rebinds one recorded field constant and authenticates the resulting
+    /// semantic payload. Callers own the source classification.
+    pub fn replaceBaseConstant(
+        self: *Program,
+        source: u32,
+        target: u32,
+    ) !usize {
+        if (source >= m31_prime or target >= m31_prime)
+            return error.InvalidFieldElement;
+        var replacements: usize = 0;
+        for (self.base_insts) |*instruction| {
+            if (instruction.op != .constant or instruction.a != source)
+                continue;
+            instruction.a = target;
+            replacements += 1;
+        }
+        if (replacements != 0)
+            self.header.semantic_hash = self.semanticHash();
+        return replacements;
+    }
+
+    pub fn semanticHash(self: Program) u64 {
+        var hash: u64 = 0xcbf29ce484222325;
+        for (self.base_consts) |value| hashInt(&hash, u32, value);
+        for (self.ext_consts) |value| for (value) |coordinate|
+            hashInt(&hash, u32, coordinate);
+        for (self.base_insts) |instruction| {
+            hashInt(&hash, u8, @intFromEnum(instruction.op));
+            hashInt(&hash, u8, instruction.interaction);
+            hashInt(&hash, u16, instruction.dst);
+            hashInt(&hash, u32, instruction.a);
+            hashInt(&hash, u32, instruction.b);
+            hashInt(&hash, i32, instruction.imm);
+        }
+        for (self.ext_insts) |instruction| {
+            hashInt(&hash, u8, @intFromEnum(instruction.op));
+            hashInt(&hash, u8, 0);
+            hashInt(&hash, u16, instruction.dst);
+            hashInt(&hash, u32, instruction.a);
+            hashInt(&hash, u32, instruction.b);
+            hashInt(&hash, u32, instruction.c);
+            hashInt(&hash, u32, instruction.d);
+        }
+        for (self.constraint_roots) |root| hashInt(&hash, u32, root);
+        return hash;
+    }
+
     pub fn validate(self: Program) !void {
         const base_written = try self.allocator.alloc(bool, self.header.max_base_regs);
         defer self.allocator.free(base_written);
@@ -298,6 +374,12 @@ fn hashBytes(hash: *u64, bytes: []const u8) void {
     }
 }
 
+fn hashInt(hash: *u64, comptime T: type, value: T) void {
+    var encoded: [@sizeOf(T)]u8 = undefined;
+    std.mem.writeInt(T, &encoded, value, .little);
+    hashBytes(hash, &encoded);
+}
+
 fn decodeU32Section(bytes: []const u8, payload_start: usize, section: Section, out: []u32) void {
     var cursor = payload_start + section.offset;
     for (out) |*value| value.* = take(u32, bytes, &cursor);
@@ -340,4 +422,72 @@ test "Cairo evaluation program: V1 ABI record sizes remain canonical" {
     try std.testing.expectEqual(@as(usize, 24), section_bytes);
     try std.testing.expectEqual(@as(u32, 16), sectionElementSize(.base_insts));
     try std.testing.expectEqual(@as(u32, 20), sectionElementSize(.ext_insts));
+}
+
+test "Cairo evaluation program: cloned constants rebind semantic identity" {
+    const allocator = std.testing.allocator;
+    const bytes = try std.fs.cwd().readFileAlloc(
+        allocator,
+        "vectors/cairo/official/all_builtins_canonical.air_programs_v1.bin",
+        2 * 1024 * 1024,
+    );
+    defer allocator.free(bytes);
+    const encoded_program = findProgram(bytes, "add_mod_builtin") orelse
+        return error.MissingTestProgram;
+    var source = try Program.parse(allocator, encoded_program);
+    defer source.deinit();
+    var rebound = try source.clone(allocator);
+    defer rebound.deinit();
+    try rebound.setDomainLogSize(7);
+    try std.testing.expectEqual(@as(usize, 1), try rebound.replaceBaseConstant(
+        7711,
+        9001,
+    ));
+    try std.testing.expect(rebound.header.semantic_hash != source.header.semantic_hash);
+    try std.testing.expectEqual(rebound.semanticHash(), rebound.header.semantic_hash);
+    try rebound.validate();
+}
+
+fn findProgram(bundle: []const u8, wanted: []const u8) ?[]const u8 {
+    if (bundle.len < 40 or !std.mem.eql(u8, bundle[0..8], "STWZEVA\x00"))
+        return null;
+    var cursor: usize = 40;
+    const component_count = readInt(u32, bundle, 28) orelse return null;
+    for (0..component_count) |_| {
+        const component_start = cursor;
+        const label_len = readInt(u16, bundle, cursor) orelse return null;
+        const span_count = readInt(u32, bundle, cursor + 24) orelse return null;
+        const preprocessed_count = readInt(u32, bundle, cursor + 28) orelse
+            return null;
+        const denominator_count = readInt(u32, bundle, cursor + 32) orelse
+            return null;
+        const ext_source_count = readInt(u32, bundle, cursor + 36) orelse
+            return null;
+        const part_count = readInt(u32, bundle, cursor + 40) orelse return null;
+        cursor += 44;
+        if (cursor + label_len > bundle.len) return null;
+        const label = bundle[cursor..][0..label_len];
+        cursor += label_len +
+            @as(usize, span_count) * 12 +
+            @as(usize, preprocessed_count) * 4 +
+            @as(usize, denominator_count) * 4 +
+            @as(usize, ext_source_count) * 32;
+        for (0..part_count) |_| {
+            const program_len = readInt(u32, bundle, cursor + 4) orelse
+                return null;
+            const program_start = cursor + 16;
+            const program_end = program_start + program_len;
+            if (program_end > bundle.len) return null;
+            if (std.mem.eql(u8, label, wanted))
+                return bundle[program_start..program_end];
+            cursor = program_end;
+        }
+        if (cursor <= component_start) return null;
+    }
+    return null;
+}
+
+fn readInt(comptime T: type, bytes: []const u8, offset: usize) ?T {
+    if (offset + @sizeOf(T) > bytes.len) return null;
+    return std.mem.readInt(T, bytes[offset..][0..@sizeOf(T)], .little);
 }

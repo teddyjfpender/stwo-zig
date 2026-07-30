@@ -16,11 +16,13 @@ pub const State = enum {
 
 pub const TargetSupport = enum {
     any,
+    linux,
     macos,
 
     pub fn accepts(self: TargetSupport, os: std.Target.Os.Tag) bool {
         return switch (self) {
             .any => true,
+            .linux => os == .linux,
             .macos => os == .macos,
         };
     }

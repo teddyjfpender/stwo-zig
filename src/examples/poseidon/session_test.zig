@@ -3,9 +3,7 @@
 const std = @import("std");
 const fri = @import("stwo_core").fri;
 const pcs = @import("stwo_core").pcs;
-const proof_wire = @import("../../interop/proof_wire.zig");
-const prover_engine = @import("stwo_prover_impl").engine;
-const MetalCommitBackend = @import("../../backends/metal/mod.zig").MetalCommitBackend;
+const proof_wire = @import("stwo_proof_wire");
 const subject = @import("../poseidon.zig");
 
 fn testConfig() !pcs.PcsConfig {
@@ -16,13 +14,7 @@ fn testConfig() !pcs.PcsConfig {
 }
 
 fn testStatement() subject.Statement {
-    return .{ .log_n_instances = 5 };
-}
-
-test "Poseidon engine: Metal backend satisfies the prover transaction contract" {
-    const MetalEngine = subject.ProverEngineForBackend(MetalCommitBackend);
-    comptime prover_engine.assertProverEngine(MetalEngine);
-    try std.testing.expect(@hasDecl(MetalEngine, "Session"));
+    return .{ .log_n_instances = 8 };
 }
 
 test "Poseidon session: compatibility, prepared, and sequential proofs match exactly" {
@@ -101,15 +93,15 @@ test "Poseidon session: compatibility, prepared, and sequential proofs match exa
     try std.testing.expectEqualSlices(u8, expected, first_bytes);
     try std.testing.expectEqualSlices(u8, expected, second_bytes);
     try std.testing.expectEqualSlices(u8, expected, extended_bytes);
-    try std.testing.expectEqual(@as(usize, 102_977), expected.len);
+    try std.testing.expectEqual(@as(usize, 112_247), expected.len);
 
     var digest: [std.crypto.hash.sha2.Sha256.digest_length]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(expected, &digest, .{});
     try std.testing.expectEqualSlices(u8, &[_]u8{
-        0xf6, 0x54, 0xa2, 0x51, 0x1f, 0xe5, 0x00, 0x8d,
-        0xf2, 0x09, 0xa4, 0xea, 0x0e, 0x96, 0xd8, 0xea,
-        0x6e, 0xb2, 0x9f, 0x97, 0x5e, 0x36, 0x84, 0xac,
-        0x0a, 0x46, 0x71, 0x2c, 0xfe, 0x49, 0x55, 0x08,
+        0x21, 0xa2, 0x28, 0x31, 0x01, 0x0d, 0xa1, 0x4e,
+        0x3a, 0x8d, 0x3b, 0x09, 0x71, 0x84, 0xe2, 0xde,
+        0xf2, 0x75, 0x1d, 0x4f, 0x66, 0x57, 0x56, 0xcc,
+        0x2a, 0x3d, 0x25, 0xf7, 0x28, 0x7f, 0xf1, 0x15,
     }, &digest);
     try std.testing.expectEqual(@as(u64, 1), session.constructionTelemetry().tower_build_count);
 }
@@ -183,12 +175,12 @@ fn prepareAndDeinit(allocator: std.mem.Allocator) !void {
     defer prepared.deinit(allocator);
     try std.testing.expectEqual(@as(usize, 0), prepared.trace.preprocessed.columns.?.len);
     try std.testing.expectEqual(@as(usize, subject.N_COLUMNS), prepared.trace.main.columns.?.len);
-    try std.testing.expectEqual(@as(u32, 2), prepared.trace.max_column_log);
+    try std.testing.expectEqual(@as(u32, 5), prepared.trace.max_column_log);
     try std.testing.expectEqual(@as(u64, 1_264), prepared.trace.committed_columns);
-    try std.testing.expectEqual(@as(u64, 5_056), prepared.trace.committed_cells);
+    try std.testing.expectEqual(@as(u64, 40_448), prepared.trace.committed_cells);
     for (prepared.trace.main.columns.?) |column| {
-        try std.testing.expectEqual(@as(u32, 2), column.log_size);
-        try std.testing.expectEqual(@as(usize, 4), column.values.len);
+        try std.testing.expectEqual(@as(u32, 5), column.log_size);
+        try std.testing.expectEqual(@as(usize, 32), column.values.len);
     }
 }
 

@@ -15,7 +15,7 @@ const common_allowed_files = [_][]const u8{
     "src/interop/examples_artifact_verifier.zig",
     "src/interop/output_transaction.zig",
     "src/interop/postcard.zig",
-    "src/interop/proof_wire.zig",
+    "src/interop/proof_wire/mod.zig",
     "src/interop/riscv_artifact.zig",
     "src/integrations/native/product_identity.zig",
     "src/integrations/native/transaction.zig",
@@ -31,6 +31,7 @@ const common_allowed_prefixes = [_][]const u8{
     "src/interop/postcard",
     "src/interop/riscv_artifact",
     "src/prover",
+    "src/prover_api",
     "src/std_shims",
     "src/tools/prove",
     "src/tracing",
@@ -39,10 +40,12 @@ const common_allowed_prefixes = [_][]const u8{
 const metal_allowed_files = common_allowed_files ++ .{
     metal_facade,
     "src/backends/metal/arena_plan.zig",
+    "src/backends/metal/cairo/diagnostics/transcript_fixture.zig",
     "src/backends/metal/command_epoch.zig",
     "src/backends/metal/commit_backend.zig",
     "src/backends/metal/commit_policy.zig",
     "src/backends/metal/core_aot.zig",
+    "src/backends/metal/host_primitives.zig",
     "src/backends/metal/merkle_tree.zig",
     "src/backends/metal/mod.zig",
     "src/backends/metal/protocol_recipes.zig",
@@ -52,6 +55,7 @@ const metal_allowed_files = common_allowed_files ++ .{
     "src/backends/metal/runtime.zig",
     "src/backends/metal/shader_manifest.zig",
     "src/backends/metal/shared_runtime.zig",
+    "src/backends/metal/source_contract.zig",
     "src/backends/metal/telemetry.zig",
 };
 
@@ -61,6 +65,38 @@ const metal_allowed_prefixes = common_allowed_prefixes ++ .{
     "src/backends/metal/shaders",
     "src/backends/metal/tests",
 };
+
+const shared_named_imports = [_]policy.NamedImport{
+    .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
+    .{ .name = "stwo_core", .source = "src/core/mod.zig" },
+    .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
+    .{ .name = "stwo_native_examples", .source = "src/examples/mod.zig" },
+    .{ .name = "stwo_proof_wire", .source = "src/interop/proof_wire/mod.zig" },
+    .{ .name = "stwo_prover_api", .source = "src/prover_api/mod.zig" },
+    .{ .name = "stwo_prover_engine", .source = "src/prover/mod.zig" },
+    .{ .name = "stwo_riscv_frontend", .source = "src/frontends/riscv/mod.zig" },
+    .{ .name = "stwo_riscv_cpu_integration", .source = "src/integrations/riscv_cpu/mod.zig" },
+    .{ .name = "native_proof_runner", .source = "src/prover/native/runner.zig" },
+    .{ .name = "native_resource_admission", .source = "src/prover/native/resource_admission.zig" },
+    .{ .name = "native_transaction", .source = "src/integrations/native/transaction.zig" },
+    .{ .name = "output_transaction", .source = "src/interop/output_transaction.zig" },
+    .{ .name = "native_product_identity", .source = "src/integrations/native/product_identity.zig" },
+    .{ .name = "native_cpu_capabilities", .source = "src/products/native_cpu/capabilities.zig" },
+    .{ .name = "riscv_cpu_capabilities", .source = "src/products/riscv_cpu/capabilities.zig" },
+    .{ .name = "riscv_adapter", .source = "src/integrations/riscv_cpu/proof_adapter.zig" },
+};
+
+const cpu_named_imports = .{
+    policy.NamedImport{ .name = "stwo", .source = cpu_facade },
+} ++ shared_named_imports;
+
+const metal_named_imports = .{
+    policy.NamedImport{ .name = "stwo", .source = metal_facade },
+    policy.NamedImport{
+        .name = "stwo_metal_backend",
+        .source = "src/backends/metal/mod.zig",
+    },
+} ++ shared_named_imports;
 
 const cpu_source_closure = sourceClosure(false);
 const metal_source_closure = sourceClosure(true);
@@ -72,20 +108,7 @@ fn sourceClosure(comptime metal: bool) policy.SourceClosure {
             if (metal) metal_facade else cpu_facade,
             "src/prover/native/runner.zig",
         },
-        .named_imports = &.{
-            .{ .name = "stwo", .source = if (metal) metal_facade else cpu_facade },
-            .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
-            .{ .name = "stwo_core", .source = "src/core/mod.zig" },
-            .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
-            .{ .name = "native_proof_runner", .source = "src/prover/native/runner.zig" },
-            .{ .name = "native_resource_admission", .source = "src/prover/native/resource_admission.zig" },
-            .{ .name = "native_transaction", .source = "src/integrations/native/transaction.zig" },
-            .{ .name = "output_transaction", .source = "src/interop/output_transaction.zig" },
-            .{ .name = "native_product_identity", .source = "src/integrations/native/product_identity.zig" },
-            .{ .name = "native_cpu_capabilities", .source = "src/products/native_cpu/capabilities.zig" },
-            .{ .name = "riscv_cpu_capabilities", .source = "src/products/riscv_cpu/capabilities.zig" },
-            .{ .name = "starkv_adapter", .source = "src/integrations/riscv_cpu/proof_adapter.zig" },
-        },
+        .named_imports = if (metal) &metal_named_imports else &cpu_named_imports,
         .generated_imports = &.{"aggregate_capabilities"},
         .allowed_files = if (metal) &metal_allowed_files else &common_allowed_files,
         .allowed_prefixes = if (metal) &metal_allowed_prefixes else &common_allowed_prefixes,

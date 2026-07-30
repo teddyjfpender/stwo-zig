@@ -1,4 +1,4 @@
-//! Exact schema-v3 reconstruction for independent artifact verification.
+//! Exact schema-v4 reconstruction for independent artifact verification.
 
 const std = @import("std");
 const stwo = @import("stwo");
@@ -67,6 +67,15 @@ pub const Reconstruction = struct {
             .program_root = public.program_root,
             .initial_rw_root = public.initial_rw_root,
             .final_rw_root = public.final_rw_root,
+            .completion = .{
+                .kind = switch (public.completion.kind) {
+                    .halt_flag => .halt_flag,
+                    .unretired_self_loop => .unretired_self_loop,
+                },
+                .address = public.completion.address,
+                .value = public.completion.value,
+                .clock = public.completion.clock,
+            },
             .io_entries = .{
                 .input_start = public.input_start,
                 .input_len = public.input_len,

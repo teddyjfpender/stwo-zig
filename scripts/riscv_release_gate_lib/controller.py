@@ -1,4 +1,4 @@
-"""Execution and evidence capture for the enforcing CP-13 command."""
+"""Execution and evidence capture for the active Sail-backed RISC-V gate."""
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ def command_plan(
     *,
     strict: bool,
     phase: str,
-    stark_v_source: Path | None,
+    formal_workspace: Path | None,
     candidate: str,
     evidence_dir: Path,
     host_system: str | None = None,
@@ -74,34 +74,64 @@ def command_plan(
         ]
     )
     if strict:
-        if stark_v_source is None:
-            raise ValueError("--strict requires --stark-v-source")
-        receipt = str(evidence_dir / "oracle-receipt.json")
+        if formal_workspace is None:
+            raise ValueError("--strict requires --formal-workspace")
+        workspace = formal_workspace.resolve()
+        sail_binary = workspace / "source/sail-riscv/build/c_emulator/sail_riscv_sim"
+        spike_binary = workspace / "install/spike/bin/spike"
+        corpus_report = evidence_dir / "formal-corpus.json"
+        arch_workdir = evidence_dir / "arch-test"
         commands.extend(
             [
                 ["zig", "build", "release-gate-strict", "-Doptimize=ReleaseFast"],
                 [
                     python,
-                    "scripts/riscv_release_oracle.py",
-                    "build-and-compare",
-                    "--stark-v-source",
-                    str(stark_v_source),
-                    "--candidate",
-                    candidate,
-                    "--receipt-out",
-                    receipt,
+                    "scripts/riscv_formal_tools.py",
+                    "verify",
+                    "--workspace",
+                    str(workspace),
                 ],
-                [python, "scripts/riscv_release_oracle.py", "validate", "--receipt", receipt],
                 [
                     python,
-                    "scripts/riscv_release_evidence.py",
-                    "--receipt",
-                    receipt,
-                    "--candidate",
-                    candidate,
+                    "scripts/riscv_trace_vectors.py",
+                    "--sail-bin",
+                    str(sail_binary),
+                    "--spike-bin",
+                    str(spike_binary),
+                    "--formal-report",
+                    str(corpus_report),
+                ],
+                [
+                    python,
+                    "scripts/riscv_arch_tests.py",
+                    "build",
+                    "--formal-workspace",
+                    str(workspace),
+                    "--workdir",
+                    str(arch_workdir),
+                ],
+                [
+                    python,
+                    "scripts/riscv_arch_tests.py",
+                    "audit",
+                    "--formal-workspace",
+                    str(workspace),
+                    "--workdir",
+                    str(arch_workdir),
                 ],
             ]
         )
+        if (platform.system() if host_system is None else host_system) == "Darwin":
+            # riscv_arch_tests.py runs this binary as
+            # `<bin> --elf X --production --profile`, which is the *benchmark*
+            # CLI's argv shape. `stwo-zig-riscv-metal` used to be that program;
+            # it is now the production proof CLI
+            # (`prove|bench|verify|applications`) and rejects that argv with
+            # UnknownCommand. `riscv-metal-bench` is the same benchmark program
+            # under its own name, so the audit must point at it.
+            commands[-1].extend(
+                ["--metal-bin", "zig-out/bin/riscv-metal-bench"]
+            )
     else:
         commands.append(["zig", "build", "release-gate", "-Doptimize=ReleaseFast"])
     return commands
@@ -200,9 +230,10 @@ def _tool_versions(root: Path = ROOT) -> dict[str, str]:
 
 def _artifact_digests(root: Path, evidence_dir: Path) -> dict[str, str]:
     paths = (
-        "conformance/2026-07-18-riscv-release-goal.md",
-        "conformance/2026-07-18-riscv-bias-audit.md",
+        "conformance/2026-07-26-riscv-sail-contract.md",
+        "conformance/riscv/formal-corpus-evidence.json",
         "conformance/divergence-log.md",
+        "soundness/SAIL_AIR_COMPOSITION.md",
         "src/tests/riscv/malicious_witness_test.zig",
         "autoresearch/MANIFEST.json",
     )
@@ -335,10 +366,12 @@ def run_gate(
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Run and record the enforcing CP-13 RISC-V gate")
+    parser = argparse.ArgumentParser(
+        description="Run and record the Sail-backed RISC-V release gate"
+    )
     parser.add_argument("--strict", action="store_true")
     parser.add_argument("--phase", choices=("candidate", "promoted"), required=True)
-    parser.add_argument("--stark-v-source", type=Path)
+    parser.add_argument("--formal-workspace", type=Path)
     parser.add_argument("--candidate", required=True)
     parser.add_argument("--evidence-dir", type=Path)
     parser.add_argument(
@@ -362,7 +395,7 @@ def main(argv: list[str] | None = None) -> int:
         commands = command_plan(
             strict=args.strict,
             phase=args.phase,
-            stark_v_source=args.stark_v_source,
+            formal_workspace=args.formal_workspace,
             candidate=args.candidate,
             evidence_dir=evidence_dir,
         )

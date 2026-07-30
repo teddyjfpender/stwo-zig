@@ -1,0 +1,133 @@
+{
+  "schema": "stwo_riscv_csp_suite_v1",
+  "suite": "ethproofs_client_side_proving",
+  "upstream": {
+    "repository": "https://github.com/privacy-ethereum/csp-benchmarks",
+    "commit": "269c43cc32d3127e3d9ce74d20652887d894cca3",
+    "commit_date": "2026-06-30T16:31:37+08:00",
+    "input_generator": {
+      "path": "utils/src/lib.rs",
+      "sha256": "8be25b688abe926e265330f9bf517a96f0e3029d3a2ce799abf069085556a0a3",
+      "algorithm": "rand 0.8 StdRng::seed_from_u64(input_size), then fill_bytes"
+    },
+    "size_metadata": {
+      "path": "utils/src/metadata.rs",
+      "sha256": "4b4a5775bb979ee7f0c2abcbd4a0e0cc7687b3689273dd16dd039042297e26d8"
+    },
+    "rust_toolchain": {
+      "path": "rust-toolchain.toml",
+      "sha256": "a7903e7ef8155e8e544bb7910d33614d7088788d2a036c004096ac9c11f2f16e",
+      "channel": "nightly-2026-03-04",
+      "rustc_commit": "d9563937fa3b030c5845811113505070109414d2"
+    },
+    "guest_dependency_revision": "5a2e9d6e888fc8953bf50b59aeb3d8bcdc0d9d57"
+  },
+  "vm_input_encoding": "[message length: u32 little-endian][message bytes]",
+  "targets": {
+    "sha256": {
+      "guest": {
+        "path": "vectors/riscv_csp/guests/sha256.elf",
+        "sha256": "eed01acd33276f356b28400eb82dba08ed09d9e7842f8cc122be302053fd8c35",
+        "bytes": 76016,
+        "source_path": "stark-v/guest/sha256/src/main.rs",
+        "source_sha256": "9108f936a93957e3a49eba709dddcfa9a55e6b6b53d170015c930bbc9a5602e8",
+        "lockfile_path": "stark-v/guest/sha256/Cargo.lock",
+        "lockfile_sha256": "ca91746dfe2f6f2056c7fd95b6de72f1d29d8acebb4f643af895115675cd4ca1"
+      },
+      "uses_precompile": false,
+      "output_encoding": "raw 32-byte SHA-256 digest",
+      "cases": [
+        {
+          "input_size": 128,
+          "input_path": "vectors/riscv_csp/inputs/msg_128.bin",
+          "input_sha256": "f839f3c9a73f35f365f55a5c03e25354802191fe76218c5c3928235a14e15794",
+          "expected_digest": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5",
+          "expected_cycles": 14056
+        },
+        {
+          "input_size": 256,
+          "input_path": "vectors/riscv_csp/inputs/msg_256.bin",
+          "input_sha256": "2d1afb7f8f3a864ecee25e039d97cd742888c579a38f1cc250659cd7fe75cf6f",
+          "expected_digest": "6bda52c594dea36810439254eaf14da801987b3f60143b0457342dd2ed64f216",
+          "expected_cycles": 22832
+        },
+        {
+          "input_size": 512,
+          "input_path": "vectors/riscv_csp/inputs/msg_512.bin",
+          "input_sha256": "b431b3635e3df1b6bb9b503d35469733f89249ebea783c3d452f8965641627e3",
+          "expected_digest": "6b9f1bb0633f59b95756aa230cd378da66eb24fa6055c50c8b6b32a000c71a73",
+          "expected_cycles": 40384
+        },
+        {
+          "input_size": 1024,
+          "input_path": "vectors/riscv_csp/inputs/msg_1024.bin",
+          "input_sha256": "9ceba14adc9db992c3d5cb42b5276ef0dabf5fa47a3ec3d92280f2f85442e474",
+          "expected_digest": "d3a16043fa6ee210a3bbfa5da11af45cbb45c398a9d1a2eea2e8bed60048761c",
+          "expected_cycles": 75488
+        },
+        {
+          "input_size": 2048,
+          "input_path": "vectors/riscv_csp/inputs/msg_2048.bin",
+          "input_sha256": "218bb97ce15e86f776a275909ab80b353959eed1bc64566e2af3745cfe21299f",
+          "expected_digest": "f11d48451256c7133c5e465ea9cb93b594b0cc0c5f9a6c4faf48e608f157a126",
+          "expected_cycles": 145696
+        }
+      ]
+    },
+    "keccak": {
+      "guest": {
+        "path": "vectors/riscv_csp/guests/keccak.elf",
+        "sha256": "ec3dd877e23a9c46d372350d1a0c1fc12092476ae3f6c5287550ca030f8d351c",
+        "bytes": 76628,
+        "source_path": "stark-v/guest/keccak/src/main.rs",
+        "source_sha256": "29dda9c6bee20ac1771cf8f971fce105f161101772378bdbd24204341be07307",
+        "lockfile_path": "stark-v/guest/keccak/Cargo.lock",
+        "lockfile_sha256": "9b61a59556d3439d18ca2a9f7d502b7024c44ec759208a245d42fc214d40e403"
+      },
+      "uses_precompile": false,
+      "output_encoding": "raw 32-byte Keccak-256 digest",
+      "cases": [
+        {
+          "input_size": 128,
+          "input_path": "vectors/riscv_csp/inputs/msg_128.bin",
+          "input_sha256": "f839f3c9a73f35f365f55a5c03e25354802191fe76218c5c3928235a14e15794",
+          "expected_digest": "50c4135413586321c16183bc51423b45fa12884edbfcba99fa1a2a689b586cf1",
+          "expected_cycles": 19114
+        },
+        {
+          "input_size": 256,
+          "input_path": "vectors/riscv_csp/inputs/msg_256.bin",
+          "input_sha256": "2d1afb7f8f3a864ecee25e039d97cd742888c579a38f1cc250659cd7fe75cf6f",
+          "expected_digest": "c22ea0397eb10b924d6b9caf8230cfcce92c9179f6d0d6c1174abd5d8622a263",
+          "expected_cycles": 36904
+        },
+        {
+          "input_size": 512,
+          "input_path": "vectors/riscv_csp/inputs/msg_512.bin",
+          "input_sha256": "b431b3635e3df1b6bb9b503d35469733f89249ebea783c3d452f8965641627e3",
+          "expected_digest": "3b96044b37dd7f325879478ae932ab78da2ff04f3495fe4ecc0ddc73a403bda9",
+          "expected_cycles": 72408
+        },
+        {
+          "input_size": 1024,
+          "input_path": "vectors/riscv_csp/inputs/msg_1024.bin",
+          "input_sha256": "9ceba14adc9db992c3d5cb42b5276ef0dabf5fa47a3ec3d92280f2f85442e474",
+          "expected_digest": "d7b7efa4100517618de462495e3b266b23e91911fde63b42ea3bdb208daad442",
+          "expected_cycles": 143416
+        },
+        {
+          "input_size": 2048,
+          "input_path": "vectors/riscv_csp/inputs/msg_2048.bin",
+          "input_sha256": "218bb97ce15e86f776a275909ab80b353959eed1bc64566e2af3745cfe21299f",
+          "expected_digest": "4239a7a63551619c764842fa2d46777df6bd00792b06b4555e41cfaceb197308",
+          "expected_cycles": 285456
+        }
+      ]
+    }
+  },
+  "unsupported_targets": {
+    "ecdsa": "The pinned CSP Stark-V adapter has no workload-identical ECDSA guest.",
+    "poseidon": "The pinned CSP Stark-V adapter has no workload-identical Poseidon guest.",
+    "poseidon2": "The repository's M31 Poseidon2 workload is not CSP's BN254 Poseidon2 workload."
+  }
+}

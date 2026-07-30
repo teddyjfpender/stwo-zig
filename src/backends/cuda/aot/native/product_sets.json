@@ -1,0 +1,7 @@
+{
+  "schema": "stwo-zig-cuda-aot-product-sets-v1",
+  "sets": [
+    ".",
+    "cairo_eval"
+  ]
+}

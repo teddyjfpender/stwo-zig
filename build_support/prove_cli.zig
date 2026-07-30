@@ -50,14 +50,19 @@ pub fn addProduct(context: Context) *std.Build.Step.Compile {
         .target = context.target,
         .optimize = context.optimize,
     });
-    const starkv_adapter = b.createModule(.{
-        .root_source_file = b.path("src/integrations/riscv_cpu/proof_adapter.zig"),
+    const riscv_adapter = b.createModule(.{
+        .root_source_file = graph.source(
+            b,
+            "src/integrations/riscv_cpu/proof_adapter.zig",
+            context.target,
+            context.optimize,
+        ),
         .target = context.target,
         .optimize = context.optimize,
     });
-    starkv_adapter.addImport("stwo", context.stwo_module);
-    starkv_adapter.addImport("riscv_cpu_capabilities", riscv_capabilities);
-    starkv_adapter.addOptions("build_identity", identity_options);
+    riscv_adapter.addImport("stwo", context.stwo_module);
+    riscv_adapter.addImport("riscv_cpu_capabilities", riscv_capabilities);
+    riscv_adapter.addOptions("build_identity", identity_options);
     const module = b.createModule(.{
         .root_source_file = b.path("src/tools/prove/main.zig"),
         .target = context.target,
@@ -92,7 +97,7 @@ pub fn addProduct(context: Context) *std.Build.Step.Compile {
     module.addOptions("product_identity", product_options);
     module.addImport("native_cpu_capabilities", native_capabilities);
     module.addImport("riscv_cpu_capabilities", riscv_capabilities);
-    module.addImport("starkv_adapter", starkv_adapter);
+    module.addImport("riscv_adapter", riscv_adapter);
     const executable = b.addExecutable(.{ .name = "stwo-zig", .root_module = module });
     executable.linkLibC();
     if (context.metal_enabled) metal_backend.linkRuntime(b, executable);
@@ -169,7 +174,7 @@ pub fn addProduct(context: Context) *std.Build.Step.Compile {
     app_module.addImport("native_product_identity", native_identity);
     app_module.addImport("native_cpu_capabilities", native_capabilities);
     app_module.addImport("riscv_cpu_capabilities", riscv_capabilities);
-    app_module.addImport("starkv_adapter", starkv_adapter);
+    app_module.addImport("riscv_adapter", riscv_adapter);
     const app_tests = b.addTest(.{ .root_module = app_module });
     app_tests.linkLibC();
     if (context.metal_enabled) metal_backend.linkRuntime(b, app_tests);

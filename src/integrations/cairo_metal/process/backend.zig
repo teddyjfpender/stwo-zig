@@ -1,12 +1,13 @@
 //! Authenticated Cairo Metal backend behind the public prover contract.
 
 const std = @import("std");
-const prover = @import("../../../frontends/cairo/prover.zig");
-const compact = @import("../../../frontends/cairo/compact_verifier_interchange.zig");
-const composition_bundle = @import("../../../frontends/cairo/witness/composition_bundle.zig");
-const semantic_pack = @import("../../../frontends/cairo/witness/semantic_pack.zig");
-const artifact_manifest = @import("../../../tools/metal_session/artifacts/manifest.zig");
-const artifact_views = @import("../../../tools/metal_session/artifacts/views.zig");
+const prover = @import("stwo_cairo_frontend").prover;
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
+const composition_bundle = @import("stwo_cairo_frontend").witness.composition_bundle;
+const semantic_pack = @import("stwo_cairo_frontend").witness.semantic_pack;
+const metal_session = @import("stwo_metal_session");
+const artifact_manifest = metal_session.artifact_manifest;
+const artifact_views = metal_session.artifact_views;
 const runner = @import("runner.zig");
 
 pub const AuthenticatedFile = semantic_pack.AuthenticatedFile;

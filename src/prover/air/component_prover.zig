@@ -6,6 +6,8 @@ const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
 const pcs = @import("stwo_core").pcs;
 const accumulation = @import("accumulation.zig");
+const component_parallel = @import("component_parallel.zig");
+const device_composition = @import("device_composition.zig");
 const prover_circle = @import("../poly/circle/mod.zig");
 const prover_twiddles = @import("../poly/twiddles.zig");
 const secure_column = @import("../secure_column.zig");
@@ -82,6 +84,7 @@ pub const BackendCompositionCapability = union(enum) {
 pub const ComponentProverVTable = struct {
     nConstraints: *const fn (ctx: *const anyopaque) usize,
     maxConstraintLogDegreeBound: *const fn (ctx: *const anyopaque) u32,
+    compositionLogSplit: ?*const fn (ctx: *const anyopaque) u32 = null,
     traceLogDegreeBounds: *const fn (ctx: *const anyopaque, allocator: std.mem.Allocator) anyerror!core_air_components.TraceLogDegreeBounds,
     maskPoints: *const fn (
         ctx: *const anyopaque,
@@ -108,6 +111,15 @@ pub const ComponentProver = struct {
     ctx: *const anyopaque,
     vtable: *const ComponentProverVTable,
     backend_composition_capability: ?BackendCompositionCapability = null,
+    /// Optional caller-owned domain split. The composition scheduler invokes
+    /// at most one such evaluator while ordinary component jobs drain from the
+    /// same bounded pool, so implementations may enqueue row tasks safely.
+    domain_parallel_evaluator: ?*const fn (
+        ctx: *const anyopaque,
+        trace: *const Trace,
+        evaluation_accumulator: *accumulation.DomainEvaluationAccumulator,
+        pool: *work_pool_mod.WorkPool,
+    ) anyerror!void = null,
 
     pub inline fn nConstraints(self: ComponentProver) usize {
         return self.vtable.nConstraints(self.ctx);
@@ -115,6 +127,12 @@ pub const ComponentProver = struct {
 
     pub inline fn maxConstraintLogDegreeBound(self: ComponentProver) u32 {
         return self.vtable.maxConstraintLogDegreeBound(self.ctx);
+    }
+
+    pub inline fn compositionLogSplit(self: ComponentProver) u32 {
+        const get = self.vtable.compositionLogSplit orelse
+            return @import("stwo_core").verifier_types.COMPOSITION_LOG_SPLIT;
+        return get(self.ctx);
     }
 
     pub inline fn traceLogDegreeBounds(
@@ -172,11 +190,26 @@ pub const ComponentProver = struct {
             evaluation_accumulator,
         );
     }
+
+    pub inline fn evaluateConstraintQuotientsOnDomainParallel(
+        self: ComponentProver,
+        trace: *const Trace,
+        evaluation_accumulator: *accumulation.DomainEvaluationAccumulator,
+        pool: *work_pool_mod.WorkPool,
+    ) anyerror!void {
+        const evaluate = self.domain_parallel_evaluator orelse
+            return self.evaluateConstraintQuotientsOnDomain(trace, evaluation_accumulator);
+        return evaluate(self.ctx, trace, evaluation_accumulator, pool);
+    }
 };
 
 pub const ComponentProvers = struct {
     components: []const ComponentProver,
     n_preprocessed_columns: usize,
+    /// Optional whole-stage device composition evaluator for this one proof.
+    /// See `device_composition.zig` for the fail-closed contract; a stage that
+    /// declines leaves every line below unchanged.
+    composition_stage: ?device_composition.Stage = null,
 
     pub const ComponentsView = struct {
         prover_components: []ComponentProver,
@@ -232,6 +265,25 @@ pub const ComponentProvers = struct {
         return max_bound;
     }
 
+    pub fn compositionLogSplit(self: ComponentProvers) !u32 {
+        if (self.components.len == 0) return error.InvalidCompositionLogSplit;
+        const split = self.components[0].compositionLogSplit();
+        if (split == 0 or
+            split > @import("stwo_core").verifier_types.MAX_COMPOSITION_LOG_SPLIT)
+        {
+            return error.InvalidCompositionLogSplit;
+        }
+        for (self.components[1..]) |component| {
+            if (component.compositionLogSplit() != split) {
+                return error.InconsistentCompositionLogSplit;
+            }
+        }
+        if (self.compositionLogDegreeBound() <= split) {
+            return error.InvalidCompositionLogSplit;
+        }
+        return split;
+    }
+
     pub fn totalConstraints(self: ComponentProvers) usize {
         var total: usize = 0;
         for (self.components) |component| total += component.nConstraints();
@@ -266,6 +318,15 @@ pub const ComponentProvers = struct {
         residency_handles: []const ?*anyopaque,
         composition_twiddles: ?M31TwiddleTree,
     ) anyerror!SecureColumnByCoords {
+        // Consulted first and exactly once; a decline falls through to the
+        // unchanged host path below, which is what makes the hook default-safe.
+        if (try device_composition.tryStage(self.composition_stage, .{
+            .allocator = allocator,
+            .random_coeff = random_coeff,
+            .composition_log_degree_bound = self.compositionLogDegreeBound(),
+            .total_constraints = self.totalConstraints(),
+            .trace = trace,
+        })) |evaluation| return evaluation;
         if (comptime B != void and @hasDecl(B, "computeCompositionEvaluation")) {
             if (try B.computeCompositionEvaluation(
                 allocator,
@@ -283,6 +344,18 @@ pub const ComponentProvers = struct {
         if (self.components.len > 1) {
             if (work_pool_mod.getGlobalPool()) |pool| {
                 return self.computeCompositionEvaluationParallel(
+                    allocator,
+                    random_coeff,
+                    trace,
+                    pool,
+                );
+            }
+        }
+        if (self.components.len == 1 and
+            self.components[0].domain_parallel_evaluator != null)
+        {
+            if (work_pool_mod.getGlobalPool()) |pool| {
+                return self.computeCompositionEvaluationSingleParallel(
                     allocator,
                     random_coeff,
                     trace,
@@ -320,22 +393,28 @@ pub const ComponentProvers = struct {
         return accumulator.finalize();
     }
 
-    /// Context passed to each worker thread.
-    const ParallelWorkerCtx = struct {
-        component: ComponentProver,
+    fn computeCompositionEvaluationSingleParallel(
+        self: ComponentProvers,
+        allocator: std.mem.Allocator,
+        random_coeff: QM31,
         trace: *const Trace,
-        accumulator: accumulation.DomainEvaluationAccumulator,
-        err: ?anyerror = null,
+        pool: *work_pool_mod.WorkPool,
+    ) anyerror!SecureColumnByCoords {
+        var accumulator = try accumulation.DomainEvaluationAccumulator.init(
+            allocator,
+            random_coeff,
+            self.compositionLogDegreeBound(),
+            self.totalConstraints(),
+        );
+        defer accumulator.deinit();
 
-        fn run(ctx: *ParallelWorkerCtx) void {
-            ctx.component.evaluateConstraintQuotientsOnDomain(
-                ctx.trace,
-                &ctx.accumulator,
-            ) catch |e| {
-                ctx.err = e;
-            };
-        }
-    };
+        try self.components[0].evaluateConstraintQuotientsOnDomainParallel(
+            trace,
+            &accumulator,
+            pool,
+        );
+        return accumulator.finalize();
+    }
 
     /// Parallel implementation: each component gets its own accumulator
     /// with pre-assigned power ranges, evaluated concurrently, then merged.
@@ -346,77 +425,22 @@ pub const ComponentProvers = struct {
         trace: *const Trace,
         pool: *work_pool_mod.WorkPool,
     ) anyerror!SecureColumnByCoords {
-        const max_log_size = self.compositionLogDegreeBound();
-        const total_constraints = self.totalConstraints();
-
-        // Generate the shared powers array once.
-        const powers = try accumulation.generateSecurePowers(
+        return component_parallel.compute(
             allocator,
+            self.components,
+            self.compositionLogDegreeBound(),
+            self.totalConstraints(),
             random_coeff,
-            total_constraints,
+            trace,
+            pool,
         );
-        defer allocator.free(powers);
-
-        // Allocate per-component worker contexts.
-        const workers = try allocator.alloc(ParallelWorkerCtx, self.components.len);
-        defer allocator.free(workers);
-
-        // Pre-compute the starting power index for each component.
-        // Powers are consumed from the tail: the first component starts at
-        // total_constraints and consumes nConstraints() powers, the second
-        // starts where the first left off, etc.
-        var power_cursor: usize = total_constraints;
-        for (self.components, 0..) |component, i| {
-            const n = component.nConstraints();
-            workers[i] = .{
-                .component = component,
-                .trace = trace,
-                .accumulator = try accumulation.DomainEvaluationAccumulator.initForComponent(
-                    powers,
-                    allocator,
-                    max_log_size,
-                    power_cursor,
-                ),
-            };
-            power_cursor -= n;
-        }
-
-        // Clean up all sub-accumulators on exit (whether success or error).
-        defer {
-            for (workers) |*w| {
-                w.accumulator.deinit();
-            }
-        }
-
-        // Dispatch all but the first component to the thread pool;
-        // process the first on the calling thread to keep it busy.
-        var wg = std.Thread.WaitGroup{};
-        for (workers[1..]) |*w| {
-            pool.spawnWg(&wg, ParallelWorkerCtx.run, .{w});
-        }
-        ParallelWorkerCtx.run(&workers[0]);
-        wg.wait();
-
-        // Check for errors from any worker.
-        for (workers) |w| {
-            if (w.err) |e| return e;
-        }
-
-        // Merge all sub-accumulators into the first one.
-        for (workers[1..]) |*w| {
-            workers[0].accumulator.merge(&w.accumulator);
-        }
-
-        // Set next_power_index to 0 so finalize() succeeds.
-        workers[0].accumulator.next_power_index = 0;
-
-        return workers[0].accumulator.finalize();
     }
 };
 
 const CORE_COMPONENT_ADAPTER_VTABLE = core_air_components.ComponentVTable{
     .nConstraints = coreAdapterNConstraints,
     .maxConstraintLogDegreeBound = coreAdapterMaxConstraintLogDegreeBound,
+    .compositionLogSplit = coreAdapterCompositionLogSplit,
     .traceLogDegreeBounds = coreAdapterTraceLogDegreeBounds,
     .maskPoints = coreAdapterMaskPoints,
     .preprocessedColumnIndices = coreAdapterPreprocessedColumnIndices,
@@ -433,6 +457,10 @@ fn coreAdapterNConstraints(ctx: *const anyopaque) usize {
 
 fn coreAdapterMaxConstraintLogDegreeBound(ctx: *const anyopaque) u32 {
     return coreAdapterCast(ctx).maxConstraintLogDegreeBound();
+}
+
+fn coreAdapterCompositionLogSplit(ctx: *const anyopaque) u32 {
+    return coreAdapterCast(ctx).compositionLogSplit();
 }
 
 fn coreAdapterTraceLogDegreeBounds(
@@ -787,7 +815,6 @@ test "prover air component prover: multi-component sequential matches merged acc
     var trace = Trace{ .polys = TreeVec([]const Poly).initOwned(try alloc.alloc([]const Poly, 0)) };
     defer trace.polys.deinit(alloc);
 
-    // Sequential path (getGlobalPool returns null in tests)
     var sequential = try component_provers.computeCompositionEvaluationSequential(
         alloc,
         alpha,
@@ -796,32 +823,22 @@ test "prover air component prover: multi-component sequential matches merged acc
     defer sequential.deinit(alloc);
     const seq_vec = try sequential.toVec(alloc);
     defer alloc.free(seq_vec);
-
-    // Simulate what the parallel path does: split into per-component
-    // accumulators, evaluate, merge, finalize.
     const total_constraints = component_provers.totalConstraints();
     const max_log_size = component_provers.compositionLogDegreeBound();
     const powers = try accumulation.generateSecurePowers(alloc, alpha, total_constraints);
     defer alloc.free(powers);
-
-    // Component A gets power_cursor = 2, component B gets power_cursor = 1
     var acc_a = try accumulation.DomainEvaluationAccumulator.initForComponent(powers, alloc, max_log_size, 2);
     defer acc_a.deinit();
     var acc_b = try accumulation.DomainEvaluationAccumulator.initForComponent(powers, alloc, max_log_size, 1);
     defer acc_b.deinit();
-
     try components_arr[0].evaluateConstraintQuotientsOnDomain(&trace, &acc_a);
     try components_arr[1].evaluateConstraintQuotientsOnDomain(&trace, &acc_b);
-
     acc_a.merge(&acc_b);
     acc_a.next_power_index = 0;
-
     var merged = try acc_a.finalize();
     defer merged.deinit(alloc);
     const merged_vec = try merged.toVec(alloc);
     defer alloc.free(merged_vec);
-
-    // Both paths must produce identical results
     try std.testing.expectEqual(seq_vec.len, merged_vec.len);
     for (seq_vec, merged_vec) |s, m| {
         try std.testing.expect(s.eql(m));

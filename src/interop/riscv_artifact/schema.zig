@@ -1,16 +1,25 @@
-//! Stable JSON wire types for the staged Stark-V proof artifact.
+//! Stable JSON wire types for the Sail-authoritative RV32IM proof artifact.
 
-pub const SCHEMA_VERSION: u32 = 3;
+pub const SCHEMA_VERSION: u32 = 4;
 pub const ARTIFACT_KIND = "stwo_riscv_proof";
-pub const EXCHANGE_MODE = "riscv_proof_json_wire_v3";
+pub const EXCHANGE_MODE = "riscv_proof_json_wire_v4";
 pub const LEGACY_EXCHANGE_MODE_V1 = "riscv_proof_json_wire_v1";
 pub const LEGACY_EXCHANGE_MODE_V2 = "riscv_proof_json_wire_v2";
+pub const LEGACY_EXCHANGE_MODE_V3 = "riscv_proof_json_wire_v3";
 pub const EXCHANGE_MODE_PREFIX = "riscv_proof_json_wire_v";
 
 pub const GENERATOR = "zig";
-pub const AIR = "stark_v_rv32im";
-pub const ORACLE_REPOSITORY = "https://github.com/ClementWalter/stark-v";
-pub const ORACLE_COMMIT = "d478f783055aa0d73a93768a433a3c6c31c91d1c";
+pub const AIR = "sail_rv32im_zkvm_v1";
+
+/// Backends whose proofs this artifact schema admits. Every entry must produce
+/// byte-identical proof bytes for a given statement: the RISC-V frontend pins
+/// one hasher/channel triple, and `MetalProverEngine` and `CpuProverEngine`
+/// instantiate `ProverEngine` over the *same* Blake2s types, so the wire format
+/// does not vary by backend. Adding an entry here is a claim that the backend
+/// meets that bar.
+pub const BACKENDS = [_][]const u8{ "cpu", "metal" };
+pub const ORACLE_REPOSITORY = "https://github.com/riscv/sail-riscv";
+pub const ORACLE_COMMIT = "8c7f2da58de0ba5e4457e4de07e0046f0439f35f";
 pub const IMPLEMENTATION_REPOSITORY = "https://github.com/teddyjfpender/stwo-zig";
 
 pub const MAX_ARTIFACT_BYTES: usize = 256 * 1024 * 1024;
@@ -21,6 +30,29 @@ pub const MAX_INFRA_COMPONENTS: usize = 512;
 pub const MAX_TOTAL_STEPS: u32 = 10_000_000;
 pub const MAX_DOMAIN_LOG_SIZE: u32 = 30;
 pub const MAX_COMMITTED_CELLS: u64 = 1 << 32;
+pub const ACCESS_CLOCK_STRIDE: u32 = 4;
+pub const MAX_ACCESSES_PER_INSTRUCTION: u32 = 3;
+
+pub fn maximumAccessClock(instruction_count: u32) u64 {
+    if (instruction_count == 0) return 0;
+    return (@as(u64, instruction_count) - 1) * ACCESS_CLOCK_STRIDE +
+        MAX_ACCESSES_PER_INSTRUCTION;
+}
+
+pub fn isCanonicalAccessClock(clock: u32) bool {
+    if (clock == 0) return false;
+    return ((clock - 1) % ACCESS_CLOCK_STRIDE) < MAX_ACCESSES_PER_INSTRUCTION;
+}
+
+pub fn isAccessClockWithinExecution(
+    clock: u32,
+    instruction_count: u32,
+    allow_zero: bool,
+) bool {
+    if (clock == 0) return allow_zero;
+    return isCanonicalAccessClock(clock) and
+        @as(u64, clock) <= maximumAccessClock(instruction_count);
+}
 
 pub const Qm31Wire = [4]u32;
 
@@ -59,6 +91,18 @@ pub const OutputWordWire = struct {
     clock: u32,
 };
 
+pub const CompletionKindWire = enum {
+    halt_flag,
+    unretired_self_loop,
+};
+
+pub const CompletionWire = struct {
+    kind: CompletionKindWire,
+    address: u32,
+    value: u32,
+    clock: u32,
+};
+
 pub const PublicDataWire = struct {
     initial_pc: u32,
     final_pc: u32,
@@ -69,6 +113,7 @@ pub const PublicDataWire = struct {
     program_root: ?u32,
     initial_rw_root: ?u32,
     final_rw_root: ?u32,
+    completion: CompletionWire,
     input_start: u32,
     input_len: u32,
     input_words: []const u32,
@@ -128,7 +173,7 @@ pub const InteractionClaimWire = struct {
     infrastructure_claims: []const InfraClaimWire,
 };
 
-/// JSON envelope reserved for CPU proofs while the adapter is staged.
+/// JSON envelope for Sail-profile RISC-V CPU proofs.
 /// `proof_bytes_hex` is the canonical Stwo proof wire encoded as lowercase hex.
 pub const Artifact = struct {
     artifact_kind: []const u8,

@@ -78,6 +78,7 @@ def classify_rejection(stdout_tail: str, stderr_tail: str) -> str:
         "deep-ali",
         "verify failed",
         "verification failed",
+        "oods evaluation does not match",
         "not matching",
         "witnesstooshort",
         "merkleverificationerror",

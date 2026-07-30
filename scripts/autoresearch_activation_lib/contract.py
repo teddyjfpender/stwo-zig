@@ -10,11 +10,6 @@ import re
 from pathlib import Path
 from typing import Any
 
-try:
-    from riscv_release_gate_lib.contract import receipt_errors
-except ModuleNotFoundError:
-    from scripts.riscv_release_gate_lib.contract import receipt_errors
-
 
 SETTINGS_SCHEMA = "autoresearch_github_settings_receipt_v2"
 REQUIRED_WORKFLOWS = {
@@ -22,7 +17,8 @@ REQUIRED_WORKFLOWS = {
     ".github/workflows/promote.yml": "autoresearch-promote",
 }
 REQUIRED_CHECKS = frozenset({"autoresearch-validate", "autoresearch-judge"})
-RISCV_ORACLE_COMMIT = "d478f783055aa0d73a93768a433a3c6c31c91d1c"
+RISCV_SAIL_COMMIT = "8c7f2da58de0ba5e4457e4de07e0046f0439f35f"
+RISCV_STARK_V_BENCHMARK_COMMIT = "d478f783055aa0d73a93768a433a3c6c31c91d1c"
 RISCV_REPORT_SCHEMA = "riscv_proof_v2"
 RISCV_CALIBRATION_SCHEMA = "stwo_perf_riscv_calibration_freeze_v1"
 RISCV_RESOURCE_TELEMETRY = {
@@ -264,55 +260,47 @@ def _workflow_errors(root: Path) -> list[str]:
     return errors
 
 
-def _release_anchor_errors(root: Path, oracle: dict[str, Any]) -> list[str]:
+def _sail_evidence_errors(root: Path, oracle: dict[str, Any]) -> list[str]:
     errors: list[str] = []
-    binding = oracle.get("release_anchor")
+    binding = oracle.get("evidence")
     if not isinstance(binding, dict):
-        return ["RISC-V Stark-V release anchor is not pinned"]
-    if set(binding) != {"receipt", "sha256", "candidate_commit"}:
-        errors.append("RISC-V release anchor binding has unexpected fields")
-    relative = binding.get("receipt")
+        return ["RISC-V Sail corpus evidence is not pinned"]
+    if set(binding) != {"path", "sha256"}:
+        errors.append("RISC-V Sail evidence binding has unexpected fields")
+    relative = binding.get("path")
     digest = binding.get("sha256")
-    candidate = binding.get("candidate_commit")
     if not isinstance(relative, str) or not relative or Path(relative).is_absolute():
-        return errors + ["RISC-V release anchor path is invalid"]
+        return errors + ["RISC-V Sail evidence path is invalid"]
     if not SHA256_RE.fullmatch(str(digest or "")):
-        errors.append("RISC-V release anchor digest is invalid")
-    if not COMMIT_RE.fullmatch(str(candidate or "")):
-        errors.append("RISC-V release anchor candidate is invalid")
+        errors.append("RISC-V Sail evidence digest is invalid")
 
     repository = root.resolve()
     path = (repository / relative).resolve()
     try:
         path.relative_to(repository)
     except ValueError:
-        return errors + ["RISC-V release anchor escapes the repository"]
+        return errors + ["RISC-V Sail evidence escapes the repository"]
     if not path.is_file():
-        return errors + ["RISC-V release anchor receipt is missing"]
+        return errors + ["RISC-V Sail evidence is missing"]
     raw = path.read_bytes()
     if SHA256_RE.fullmatch(str(digest or "")) and hashlib.sha256(raw).hexdigest() != digest:
-        errors.append("RISC-V release anchor receipt digest mismatches")
+        errors.append("RISC-V Sail evidence digest mismatches")
     try:
-        receipt = json.loads(raw, object_pairs_hook=_strict_object)
+        evidence = json.loads(raw, object_pairs_hook=_strict_object)
     except (UnicodeDecodeError, ValueError):
-        return errors + ["RISC-V release anchor receipt is not valid JSON"]
-    if not isinstance(receipt, dict):
-        return errors + ["RISC-V release anchor receipt must be an object"]
-    created_at = receipt.get("created_at_unix")
-    validation_time = (
-        created_at if isinstance(created_at, int) and not isinstance(created_at, bool)
-        else None
-    )
-    try:
-        evidence_errors = receipt_errors(receipt, str(candidate), now=validation_time)
-    except (OSError, ValueError, KeyError, TypeError) as error:
-        errors.append(f"RISC-V release anchor validation failed: {error}")
-    else:
-        if evidence_errors:
-            errors.append(
-                "RISC-V release anchor fails the full evidence contract "
-                f"({len(evidence_errors)} findings): {evidence_errors[0]}"
-            )
+        return errors + ["RISC-V Sail evidence is not valid JSON"]
+    if not isinstance(evidence, dict):
+        return errors + ["RISC-V Sail evidence must be an object"]
+    sail = evidence.get("sail")
+    if (
+        evidence.get("schema") != "stwo-riscv-formal-corpus-evidence-v1"
+        or evidence.get("result") != "equivalent"
+        or evidence.get("semantic_authority") != "Sail"
+        or evidence.get("independent_cross_check") != "Spike"
+        or not isinstance(sail, dict)
+        or sail.get("repository_revision") != RISCV_SAIL_COMMIT
+    ):
+        errors.append("RISC-V Sail evidence identity or verdict is invalid")
     return errors
 
 
@@ -403,15 +391,16 @@ def _calibration_errors(
     ):
         errors.append("RISC-V calibration was not measured on the designated host")
     authority = document.get("oracle")
-    release = oracle.get("release_anchor")
-    if not isinstance(authority, dict) or not isinstance(release, dict) or (
+    reference = oracle.get("benchmark_reference")
+    if not isinstance(authority, dict) or not isinstance(reference, dict) or (
         authority.get("authority") != "stark-v"
-        or authority.get("commit") != RISCV_ORACLE_COMMIT
-        or authority.get("release_anchor_candidate") != release.get("candidate_commit")
-        or authority.get("release_anchor_sha256") != release.get("sha256")
+        or authority.get("commit") != RISCV_STARK_V_BENCHMARK_COMMIT
+        or reference.get("authority") != "stark-v"
+        or reference.get("commit") != RISCV_STARK_V_BENCHMARK_COMMIT
         or "parallel" not in (authority.get("required_features") or [])
+        or "parallel" not in (reference.get("required_features") or [])
     ):
-        errors.append("RISC-V calibration oracle identity is invalid")
+        errors.append("RISC-V calibration benchmark-reference identity is invalid")
 
     class_evidence = document.get("classes")
     if not isinstance(class_evidence, dict) or set(class_evidence) != set(classes):
@@ -500,13 +489,23 @@ def activation_errors(
     if not isinstance(oracle, dict):
         errors.append("RISC-V final correctness oracle is missing")
     else:
-        if oracle.get("authority") != "stark-v" or oracle.get("commit") != RISCV_ORACLE_COMMIT:
-            errors.append("RISC-V final correctness oracle is not pinned Stark-V")
+        if (
+            oracle.get("authority") != "sail-riscv"
+            or oracle.get("repository") != "https://github.com/riscv/sail-riscv"
+            or oracle.get("commit") != RISCV_SAIL_COMMIT
+        ):
+            errors.append("RISC-V final correctness authority is not pinned Sail")
         if oracle.get("final_validator") is not True:
-            errors.append("Stark-V is not marked as the final validator")
-        if "parallel" not in (oracle.get("required_features") or []):
-            errors.append("Stark-V oracle does not require the parallel feature")
-        errors.extend(_release_anchor_errors(root, oracle))
+            errors.append("Sail evidence is not marked as the final validator")
+        benchmark = oracle.get("benchmark_reference")
+        if (
+            not isinstance(benchmark, dict)
+            or benchmark.get("authority") != "stark-v"
+            or benchmark.get("commit") != RISCV_STARK_V_BENCHMARK_COMMIT
+            or "parallel" not in (benchmark.get("required_features") or [])
+        ):
+            errors.append("RISC-V Stark-V benchmark reference is not pinned")
+        errors.extend(_sail_evidence_errors(root, oracle))
     errors.extend(_release_phase_errors(root))
     errors.extend(_workload_errors(group, board_classes))
 

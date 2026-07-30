@@ -18,6 +18,7 @@ pub const air = @import("air/mod.zig");
 pub const fri = @import("fri.zig");
 pub const pcs = @import("pcs/mod.zig");
 pub const proof = @import("proof.zig");
+pub const proof_json = @import("proof_json.zig");
 pub const test_utils = @import("test_utils.zig");
 pub const verifier_types = @import("verifier_types.zig");
 pub const verifier = @import("verifier.zig");
@@ -84,6 +85,17 @@ pub fn ComponentVec(comptime T: type) type {
 
 fn childType(comptime SliceType: type) type {
     return @typeInfo(SliceType).pointer.child;
+}
+
+test "api signature: core vector constructors preserve element types" {
+    comptime {
+        if (ColumnVec(u32) != []u32) {
+            @compileError("ColumnVec must remain a plain slice");
+        }
+        if (@typeInfo(ComponentVec(u32)) != .@"struct") {
+            @compileError("ComponentVec must remain an owning struct");
+        }
+    }
 }
 
 test "component vec: flatten and flatten cols" {

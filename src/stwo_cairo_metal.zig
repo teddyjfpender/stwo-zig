@@ -1,0 +1,28 @@
+//! Focused Stwo facade for official Cairo programs on Apple Metal.
+
+const std = @import("std");
+
+pub const core = @import("stwo_core");
+pub const prover = @import("stwo_prover_engine");
+
+pub const backends = struct {
+    pub const metal = @import("stwo_metal_backend");
+};
+
+pub const frontends = struct {
+    pub const cairo = @import("stwo_cairo_frontend");
+};
+
+pub const integrations = struct {
+    pub const cairo_metal = @import("stwo_cairo_metal_integration").prover;
+};
+
+pub const interop = struct {
+    pub const atomic_file = @import("interop/atomic_file.zig");
+    pub const bzip2 = @import("interop/bzip2.zig");
+    pub const output_transaction = @import("interop/output_transaction.zig");
+};
+
+test {
+    std.testing.refAllDecls(@This());
+}

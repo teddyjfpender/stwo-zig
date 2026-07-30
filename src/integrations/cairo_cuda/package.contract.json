@@ -1,0 +1,60 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_cairo_cuda_integration",
+  "version": "0.1.0",
+  "layer": "integration",
+  "owner": "cairo-cuda-integration",
+  "public_modules": {
+    "stwo_cairo_cuda_integration": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_backend_contracts": "../../backend",
+    "stwo_cairo_frontend": "../../frontends/cairo",
+    "stwo_core": "../../core",
+    "stwo_cuda_backend": "../../backends/cuda",
+    "stwo_native_cuda_integration": "../native_cuda",
+    "stwo_prover_engine": "../../prover"
+  },
+  "injected_modules": [],
+  "api_surface": [
+    "base_writer_plan",
+    "casm_input",
+    "diagnostic_sn2",
+    "eval_aot",
+    "eval_codegen",
+    "eval_parity_fixture",
+    "eval_product_registry",
+    "eval_simd_oracle",
+    "executor",
+    "identity",
+    "lowering_map",
+    "native_ec",
+    "program",
+    "recorded_witness",
+    "recorded_witness_oracle",
+    "relation_adapter",
+    "relation_sn2_parity_fixture",
+    "request_compiler"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::api signature: Cairo CUDA keeps its emitter explicitly development-only"
+    ],
+    "invariant_tests": [
+      "program_test.zig::Cairo production admission uses configured source authority and exact proof plan"
+    ]
+  },
+  "ci": {
+    "lane": "cairo_cuda_integration",
+    "host": "linux",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/integrations/cairo_cuda/build.zig",
+      "-Doptimize=ReleaseFast",
+      "-j2"
+    ]
+  }
+}

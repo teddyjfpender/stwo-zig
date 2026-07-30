@@ -1,43 +1,78 @@
-//! JSON trace serialization for cross-language equivalence testing.
-//!
-//! Produces a JSON document compatible with the Rust stark-v trace dumper,
-//! enabling bit-exact comparison of final CPU state, step count, and
-//! per-step program counters between the Zig and Rust runners.
+//! Canonical RVFI-shaped retirement trace for formal-model differentials.
 //!
 //! Format:
 //! ```json
 //! {
-//!   "steps": [{"step": 0, "pc": 65536}, {"step": 1, "pc": 65540}, ...],
+//!   "schema": "stwo-riscv-retirement-trace-v1",
+//!   "profile": "rv32im-zkvm-v1",
+//!   "initial_pc": 65536,
+//!   "retirements": [{
+//!     "order": 0, "pc": 65536, "instruction": 1048723,
+//!     "rd": 1, "rd_value": 1, "next_pc": 65540,
+//!     "memory": {
+//!       "address": 0, "read_mask": 0, "read_value": 0,
+//!       "write_mask": 0, "write_value": 0
+//!     }
+//!   }],
 //!   "final_pc": 65544,
-//!   "final_regs": [0, 42, ...],   // x0..x31
+//!   "final_regs": [0, 42, ...],
 //!   "total_steps": 5
 //! }
 //! ```
 
 const std = @import("std");
+const decode = @import("../isa/decode.zig");
+const profile = @import("../isa/profile.zig");
 const trace_mod = @import("trace.zig");
 const cpu_mod = @import("cpu.zig");
 
-/// Write an execution trace to JSON format.
-///
-/// The output captures:
-///   - Per-step program counter (for divergence diagnosis)
-///   - Final values of all 32 registers
-///   - Final program counter
-///   - Total step count
-///
-/// Two traces are considered *equivalent* when `total_steps`, `final_pc`,
-/// and all 32 `final_regs` entries match.  Per-step PCs are included so
-/// that, on mismatch, the first diverging instruction can be pinpointed.
+pub const SCHEMA = "stwo-riscv-retirement-trace-v1";
+
+/// Write every successful RV32IM retirement in the fields shared with RVFI.
+/// ECALL/EBREAK host events may exist in a diagnostic execution trace, but
+/// they are outside the proof profile and are intentionally omitted here.
 pub fn writeTraceJson(
     writer: anytype,
     exec_trace: *const trace_mod.Trace,
     final_cpu: cpu_mod.Cpu,
 ) !void {
-    try writer.writeAll("{\"steps\":[");
-    for (exec_trace.rows.items, 0..) |row, i| {
-        if (i > 0) try writer.writeAll(",");
-        try writer.print("{{\"step\":{d},\"pc\":{d}}}", .{ row.clk, row.pc });
+    try writer.print(
+        "{{\"schema\":\"{s}\",\"profile\":\"{s}\",\"initial_pc\":{d},\"retirements\":[",
+        .{ SCHEMA, profile.name, exec_trace.initial_pc },
+    );
+    var order: usize = 0;
+    for (exec_trace.rows.items) |row| {
+        _ = decode.proofOpcode(row.opcode) catch continue;
+        if (order != 0) try writer.writeByte(',');
+        const usage = decode.operandUsage(row.opcode);
+        const rd: u5 = if (usage.writes_rd) row.rd else 0;
+        const rd_value = if (usage.writes_rd and row.rd != 0) row.rd_val else 0;
+        const width = decode.memoryWidthBytes(row.opcode) orelse 0;
+        const mask: u8 = if (width == 0)
+            0
+        else
+            (@as(u8, 1) << @intCast(width)) - 1;
+        const value_mask = memoryValueMask(width);
+        try writer.print(
+            "{{\"order\":{d},\"pc\":{d},\"instruction\":{d}," ++
+                "\"rd\":{d},\"rd_value\":{d},\"next_pc\":{d}," ++
+                "\"memory\":{{\"address\":{d},\"read_mask\":{d}," ++
+                "\"read_value\":{d},\"write_mask\":{d},\"write_value\":{d}}}}}",
+            .{
+                order,
+                row.pc,
+                row.inst_word,
+                rd,
+                rd_value,
+                row.next_pc,
+                if (width == 0) 0 else row.mem_addr,
+                if (row.is_load) mask else 0,
+                if (row.is_load) row.mem_val & value_mask else 0,
+                if (row.is_store) mask else 0,
+                if (row.is_store) row.mem_val & value_mask else 0,
+            },
+        );
+        order += 1;
     }
     try writer.writeAll("],");
     try writer.print("\"final_pc\":{d},\"final_regs\":[", .{final_cpu.pc});
@@ -46,7 +81,17 @@ pub fn writeTraceJson(
         try writer.print("{d}", .{final_cpu.readReg(@intCast(i))});
     }
     try writer.writeAll("],");
-    try writer.print("\"total_steps\":{d}}}", .{exec_trace.step_count});
+    try writer.print("\"total_steps\":{d}}}", .{order});
+}
+
+fn memoryValueMask(width: u3) u32 {
+    return switch (width) {
+        0 => 0,
+        1 => 0xff,
+        2 => 0xffff,
+        4 => 0xffff_ffff,
+        else => unreachable,
+    };
 }
 
 // ---------------------------------------------------------------------------
@@ -56,7 +101,9 @@ pub fn writeTraceJson(
 const runner = @import("mod.zig");
 
 /// Build a minimal in-memory ELF with the given instructions at vaddr 0x10000.
-fn buildTestElf(comptime n_insts: usize, instructions: [n_insts]u32) [84 + n_insts * 4]u8 {
+/// Test support only; shared with `sail_oracle.zig` so the two files exercise
+/// the same guest shape.
+pub fn buildTestElf(comptime n_insts: usize, instructions: [n_insts]u32) [84 + n_insts * 4]u8 {
     const code_size = n_insts * 4;
     var elf_buf: [84 + code_size]u8 = [_]u8{0} ** (84 + code_size);
 
@@ -133,9 +180,18 @@ test "trace_dump: writeTraceJson produces well-formed JSON" {
 
     const root = parsed.value.object;
 
-    // Verify total_steps
+    try std.testing.expectEqualStrings(
+        SCHEMA,
+        root.get("schema").?.string,
+    );
+    try std.testing.expectEqualStrings(
+        profile.name,
+        root.get("profile").?.string,
+    );
+
+    // ECALL is an environment event, not a successful proof retirement.
     const total_steps = root.get("total_steps").?.integer;
-    try std.testing.expectEqual(@as(i64, 2), total_steps);
+    try std.testing.expectEqual(@as(i64, 1), total_steps);
 
     // Verify final_pc is present and numeric
     const final_pc = root.get("final_pc").?.integer;
@@ -151,11 +207,14 @@ test "trace_dump: writeTraceJson produces well-formed JSON" {
     // x0 is always 0
     try std.testing.expectEqual(@as(i64, 0), final_regs.items[0].integer);
 
-    // Verify steps array has 2 entries with correct PCs
-    const steps = root.get("steps").?.array;
-    try std.testing.expectEqual(@as(usize, 2), steps.items.len);
-    try std.testing.expectEqual(@as(i64, 0x10000), steps.items[0].object.get("pc").?.integer);
-    try std.testing.expectEqual(@as(i64, 0x10004), steps.items[1].object.get("pc").?.integer);
+    const retirements = root.get("retirements").?.array;
+    try std.testing.expectEqual(@as(usize, 1), retirements.items.len);
+    const first = retirements.items[0].object;
+    try std.testing.expectEqual(@as(i64, 0x10000), first.get("pc").?.integer);
+    try std.testing.expectEqual(@as(i64, 0x02A00093), first.get("instruction").?.integer);
+    try std.testing.expectEqual(@as(i64, 1), first.get("rd").?.integer);
+    try std.testing.expectEqual(@as(i64, 42), first.get("rd_value").?.integer);
+    try std.testing.expectEqual(@as(i64, 0x10004), first.get("next_pc").?.integer);
 }
 
 test "trace_dump: multi-instruction trace with register side-effects" {
@@ -189,5 +248,30 @@ test "trace_dump: multi-instruction trace with register side-effects" {
     try std.testing.expectEqual(@as(i64, 30), final_regs.items[3].integer);
 
     const total_steps = root.get("total_steps").?.integer;
-    try std.testing.expectEqual(@as(i64, 4), total_steps);
+    try std.testing.expectEqual(@as(i64, 3), total_steps);
+}
+
+test "trace_dump: load and store effects use RVFI byte masks and unshifted values" {
+    const alloc = std.testing.allocator;
+    const elf = buildTestElf(4, .{
+        0x07F00093, // ADDI x1, x0, 0x7f
+        0x00110023, // SB x1, 0(x2)
+        0x00010183, // LB x3, 0(x2)
+        0x00000073, // ECALL
+    });
+    var result = try runner.run(alloc, &elf, 1000);
+    defer result.deinit();
+    var buf: std.ArrayList(u8) = .{};
+    defer buf.deinit(alloc);
+    try writeTraceJson(buf.writer(alloc), &result.execution_trace, result.cpu_final);
+    const parsed = try std.json.parseFromSlice(std.json.Value, alloc, buf.items, .{});
+    defer parsed.deinit();
+    const rows = parsed.value.object.get("retirements").?.array.items;
+    try std.testing.expectEqual(@as(usize, 3), rows.len);
+    const store = rows[1].object.get("memory").?.object;
+    try std.testing.expectEqual(@as(i64, 1), store.get("write_mask").?.integer);
+    try std.testing.expectEqual(@as(i64, 0x7f), store.get("write_value").?.integer);
+    const load = rows[2].object.get("memory").?.object;
+    try std.testing.expectEqual(@as(i64, 1), load.get("read_mask").?.integer);
+    try std.testing.expectEqual(@as(i64, 0x7f), load.get("read_value").?.integer);
 }

@@ -1,0 +1,9 @@
+.{
+    .fingerprint = 0xecce9d8f98719cf2,
+    .name = .stwo_proof_wire,
+    .version = "0.1.0",
+    .paths = .{"."},
+    .dependencies = .{
+        .stwo_core = .{ .path = "../../core" },
+    },
+}

@@ -1,0 +1,59 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_core",
+  "version": "0.1.0",
+  "layer": "protocol",
+  "owner": "protocol-core",
+  "public_modules": {
+    "stwo_core": "mod.zig"
+  },
+  "dependencies": {},
+  "injected_modules": [],
+  "api_surface": [
+    "ColumnVec",
+    "ComponentVec",
+    "air",
+    "channel",
+    "circle",
+    "constraint_framework",
+    "constraints",
+    "crypto",
+    "fft",
+    "fields",
+    "fraction",
+    "fri",
+    "pcs",
+    "poly",
+    "proof",
+    "proof_json",
+    "proof_of_work",
+    "queries",
+    "test_utils",
+    "utils",
+    "vcs",
+    "vcs_lifted",
+    "verifier",
+    "verifier_types"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::api signature: core vector constructors preserve element types"
+    ],
+    "invariant_tests": [
+      "mod.zig::component vec: flatten and flatten cols"
+    ]
+  },
+  "ci": {
+    "lane": "core",
+    "host": "linux",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/core/build.zig",
+      "-Doptimize=ReleaseFast",
+      "-j2"
+    ]
+  }
+}

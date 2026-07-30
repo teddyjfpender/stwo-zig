@@ -7,6 +7,20 @@ pub const Options = struct {
     aggregate_metal: bool,
     riscv_release_phase: []const u8,
     riscv_evidence_dir: []const u8,
+    riscv_refinement_ir_dir: ?[]const u8,
+    riscv_air_program_ir_dir: ?[]const u8,
+    cuda_nvcc: ?[]const u8,
+    cuda_host_cxx: ?[]const u8,
+    cuda_host_runtime: ?[]const u8,
+    cuda_host_unwind_runtime: ?[]const u8,
+    cuda_archiver: ?[]const u8,
+    cuda_home: ?[]const u8,
+    cuda_library_dir: ?[]const u8,
+    cuda_architectures: ?[]const u8,
+    cuda_build_jobs: ?u16,
+    metal_core_aot_bundle: ?[]const u8,
+    cairo_test_filter: ?[]const u8,
+    riscv_test_filter: ?[]const u8,
     identity: ?build_identity.Identity,
 
     pub fn read(b: *std.Build) Options {
@@ -34,6 +48,40 @@ pub const Options = struct {
             .aggregate_metal = b.option(bool, "aggregate-metal", "Explicitly link Metal into aggregate test roots") orelse false,
             .riscv_release_phase = b.option([]const u8, "riscv-release-phase", "CP-13 phase: candidate or promoted") orelse "candidate",
             .riscv_evidence_dir = b.option([]const u8, "riscv-evidence-dir", "Fresh CP-13 evidence directory") orelse "zig-out/release-evidence/riscv",
+            .riscv_refinement_ir_dir = b.option(
+                []const u8,
+                "riscv-refinement-ir-dir",
+                "Fresh output directory for the RISC-V symbolic AIR extractor",
+            ),
+            .riscv_air_program_ir_dir = b.option(
+                []const u8,
+                "riscv-air-program-ir-dir",
+                "Fresh output directory for production AIR IR v2",
+            ),
+            .cuda_nvcc = b.option([]const u8, "cuda-nvcc", "Explicit nvcc executable"),
+            .cuda_host_cxx = b.option([]const u8, "cuda-host-cxx", "Explicit nvcc host C++ compiler"),
+            .cuda_host_runtime = b.option([]const u8, "cuda-host-runtime", "Absolute GNU C++ runtime shared-library path"),
+            .cuda_host_unwind_runtime = b.option([]const u8, "cuda-host-unwind-runtime", "Absolute GNU C++ unwind runtime shared-library path"),
+            .cuda_archiver = b.option([]const u8, "cuda-ar", "Explicit static archiver"),
+            .cuda_home = b.option([]const u8, "cuda-home", "Explicit CUDA toolkit root"),
+            .cuda_library_dir = b.option([]const u8, "cuda-library-dir", "Explicit CUDA library directory"),
+            .cuda_architectures = b.option([]const u8, "cuda-arch", "Comma-separated numeric CUDA SM targets"),
+            .cuda_build_jobs = b.option(u16, "cuda-build-jobs", "Maximum parallel nvcc processes"),
+            .metal_core_aot_bundle = b.option(
+                []const u8,
+                "metal-core-aot-bundle",
+                "Authenticated core Metal AOT bundle consumed by production Metal products",
+            ),
+            .cairo_test_filter = b.option(
+                []const u8,
+                "cairo-test-filter",
+                "Compile and run Cairo tests whose names contain this text",
+            ),
+            .riscv_test_filter = b.option(
+                []const u8,
+                "riscv-test-filter",
+                "Run RISC-V tests whose names contain this text",
+            ),
             .identity = resolveIdentity(b, .{
                 .commit = implementation_commit,
                 .dirty = implementation_dirty,
@@ -103,10 +151,87 @@ fn commandFor(
         command.addArg(b.fmt("-Driscv-release-phase={s}", .{options.riscv_release_phase}));
         command.addArg(b.fmt("-Driscv-evidence-dir={s}", .{options.riscv_evidence_dir}));
     }
+    if (std.mem.eql(u8, scope, "riscv_cpu")) {
+        if (options.riscv_refinement_ir_dir) |dir| command.addArg(b.fmt(
+            "-Driscv-refinement-ir-dir={s}",
+            .{dir},
+        ));
+        if (options.riscv_air_program_ir_dir) |dir| command.addArg(b.fmt(
+            "-Driscv-air-program-ir-dir={s}",
+            .{dir},
+        ));
+    }
+    if (std.mem.eql(u8, scope, "cuda_tools") or
+        std.mem.eql(u8, scope, "native_cuda") or
+        std.mem.eql(u8, scope, "cairo_cuda"))
+        addCudaArguments(b, command, options);
+    if (std.mem.eql(u8, scope, "cairo_metal")) {
+        const bundle = if (options.metal_core_aot_bundle) |configured|
+            if (std.fs.path.isAbsolute(configured))
+                configured
+            else
+                b.pathFromRoot(configured)
+        else blk: {
+            const producer = commandFor(
+                b,
+                target,
+                optimize,
+                options,
+                "metal_tools",
+                "metal-core-aot-acceptance",
+            );
+            command.step.dependOn(&producer.step);
+            break :blk b.getInstallPath(
+                .prefix,
+                "share/stwo-zig/metal/core",
+            );
+        };
+        command.addArg(b.fmt(
+            "-Dmetal-core-aot-bundle={s}",
+            .{bundle},
+        ));
+    }
+    if (std.mem.eql(u8, scope, "compatibility_tools")) {
+        if (options.cairo_test_filter) |filter| command.addArg(b.fmt(
+            "-Dcairo-test-filter={s}",
+            .{filter},
+        ));
+    }
+    if (std.mem.eql(u8, scope, "riscv_cpu") or std.mem.eql(u8, scope, "riscv_cpu_compat")) {
+        if (options.riscv_test_filter) |filter| command.addArg(b.fmt(
+            "-Driscv-test-filter={s}",
+            .{filter},
+        ));
+    }
     if (b.user_input_options.get("target") != null or b.user_input_options.get("cpu") != null)
         command.addArg(b.fmt("-Dtarget={s}", .{triple}));
     if (options.identity) |identity| addIdentityArguments(b, command, identity);
     return command;
+}
+
+fn addCudaArguments(
+    b: *std.Build,
+    command: *std.Build.Step.Run,
+    options: Options,
+) void {
+    const StringOption = struct { name: []const u8, value: ?[]const u8 };
+    for ([_]StringOption{
+        .{ .name = "cuda-nvcc", .value = options.cuda_nvcc },
+        .{ .name = "cuda-host-cxx", .value = options.cuda_host_cxx },
+        .{ .name = "cuda-host-runtime", .value = options.cuda_host_runtime },
+        .{ .name = "cuda-host-unwind-runtime", .value = options.cuda_host_unwind_runtime },
+        .{ .name = "cuda-ar", .value = options.cuda_archiver },
+        .{ .name = "cuda-home", .value = options.cuda_home },
+        .{ .name = "cuda-library-dir", .value = options.cuda_library_dir },
+        .{ .name = "cuda-arch", .value = options.cuda_architectures },
+    }) |option| if (option.value) |value| command.addArg(b.fmt(
+        "-D{s}={s}",
+        .{ option.name, value },
+    ));
+    if (options.cuda_build_jobs) |jobs| command.addArg(b.fmt(
+        "-Dcuda-build-jobs={d}",
+        .{jobs},
+    ));
 }
 
 fn resolveIdentity(b: *std.Build, options: IdentityOptions) ?build_identity.Identity {

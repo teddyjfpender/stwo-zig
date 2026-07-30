@@ -6,9 +6,9 @@ const m31 = @import("stwo_core").fields.m31;
 const pcs_core = @import("stwo_core").pcs;
 const pcs_utils = @import("stwo_core").pcs.utils;
 const vcs_verifier = @import("stwo_core").vcs_lifted.verifier;
-const prover_circle = @import("stwo_prover_impl").poly.circle;
-const pcs_prover = @import("stwo_prover_impl").pcs;
-const stage_profile = @import("stwo_prover_impl").stage_profile;
+const prover_circle = @import("stwo_prover_engine").poly.circle;
+const pcs_prover = @import("stwo_prover_engine").pcs;
+const stage_profile = @import("stwo_prover_api").stage_profile;
 
 const M31 = m31.M31;
 const CirclePointQM31 = circle.CirclePointQM31;
@@ -21,7 +21,7 @@ test "prover pcs: commitment scheme commit, roots and log sizes" {
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
-    const CpuBackend = @import("../../../../backends/cpu_scalar/mod.zig").CpuBackend;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Scheme = CommitmentSchemeProver(CpuBackend, Hasher, MerkleChannel);
     const alloc = std.testing.allocator;
 
@@ -70,7 +70,7 @@ test "prover pcs: polynomials and trace expose committed columns" {
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
-    const CpuBackend = @import("../../../../backends/cpu_scalar/mod.zig").CpuBackend;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Scheme = CommitmentSchemeProver(CpuBackend, Hasher, MerkleChannel);
     const alloc = std.testing.allocator;
 
@@ -108,7 +108,7 @@ test "prover pcs: tree builder extends and commits" {
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
-    const CpuBackend = @import("../../../../backends/cpu_scalar/mod.zig").CpuBackend;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Scheme = CommitmentSchemeProver(CpuBackend, Hasher, MerkleChannel);
     const alloc = std.testing.allocator;
 
@@ -145,7 +145,7 @@ test "prover pcs: commit polys applies blowup and stores coefficients" {
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
-    const CpuBackend = @import("../../../../backends/cpu_scalar/mod.zig").CpuBackend;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Scheme = CommitmentSchemeProver(CpuBackend, Hasher, MerkleChannel);
     const alloc = std.testing.allocator;
 
@@ -185,7 +185,7 @@ test "prover pcs: commit polys reuses mixed log sizes through twiddle source" {
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
-    const CpuBackend = @import("../../../../backends/cpu_scalar/mod.zig").CpuBackend;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Scheme = CommitmentSchemeProver(CpuBackend, Hasher, MerkleChannel);
     const alloc = std.testing.allocator;
 
@@ -254,9 +254,9 @@ test "prover pcs: commit polys reuses mixed log sizes through twiddle source" {
 test "prover pcs: borrowed twiddle tower initializer leaves tower ownership external" {
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
-    const CpuBackend = @import("../../../../backends/cpu_scalar/mod.zig").CpuBackend;
-    const M31TwiddleTower = @import("stwo_prover_impl").poly.twiddle_tower.M31TwiddleTower;
-    const TwiddleSource = @import("stwo_prover_impl").poly.twiddle_source.TwiddleSource;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
+    const M31TwiddleTower = @import("stwo_prover_engine").poly.twiddle_tower.M31TwiddleTower;
+    const TwiddleSource = @import("stwo_prover_engine").poly.twiddle_source.TwiddleSource;
     const Scheme = CommitmentSchemeProver(CpuBackend, Hasher, MerkleChannel);
     const alloc = std.testing.allocator;
 
@@ -277,7 +277,7 @@ test "prover pcs: prove values deinitializes scheme before sample transfer" {
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
-    const CpuBackend = @import("../../../../backends/cpu_scalar/mod.zig").CpuBackend;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Scheme = CommitmentSchemeProver(CpuBackend, Hasher, MerkleChannel);
     const alloc = std.testing.allocator;
 
@@ -307,11 +307,11 @@ test "prover pcs: prove values deinitializes scheme before sample transfer" {
     );
 }
 
-test "prover pcs: build query positions tree applies preprocessed mapping" {
+test "prover pcs: build query positions tree maps every heterogeneous and empty tree" {
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
-    const CpuBackend = @import("../../../../backends/cpu_scalar/mod.zig").CpuBackend;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Scheme = CommitmentSchemeProver(CpuBackend, Hasher, MerkleChannel);
     const alloc = std.testing.allocator;
 
@@ -343,9 +343,19 @@ test "prover pcs: build query positions tree applies preprocessed mapping" {
         &channel,
     );
 
+    const interaction_col = [_]M31{ M31.fromCanonical(9), M31.fromCanonical(10) };
+    try scheme.commit(
+        alloc,
+        &[_]ColumnEvaluation{.{ .log_size = 1, .values = interaction_col[0..] }},
+        &channel,
+    );
+    try scheme.commit(alloc, &.{}, &channel);
+
     const query_positions = [_]usize{ 0, 1, 5, 6 };
     const lifting_log_size = @as(u32, 3) + scheme.config.fri_config.log_blowup_factor;
     const pp_max_log_size = @as(u32, 2) + scheme.config.fri_config.log_blowup_factor;
+    const interaction_max_log_size = @as(u32, 1) +
+        scheme.config.fri_config.log_blowup_factor;
     var tree_queries = try scheme.buildQueryPositionsTree(alloc, query_positions[0..], lifting_log_size);
     defer tree_queries.deinitDeep(alloc);
 
@@ -356,17 +366,30 @@ test "prover pcs: build query positions tree applies preprocessed mapping" {
         pp_max_log_size,
     );
     defer alloc.free(expected_pp);
+    const expected_interaction = try pcs_utils.prepareTreeQueryPositions(
+        alloc,
+        query_positions[0..],
+        lifting_log_size,
+        interaction_max_log_size,
+    );
+    defer alloc.free(expected_interaction);
 
-    try std.testing.expectEqual(@as(usize, 2), tree_queries.items.len);
+    try std.testing.expectEqual(@as(usize, 4), tree_queries.items.len);
     try std.testing.expectEqualSlices(usize, expected_pp, tree_queries.items[0]);
     try std.testing.expectEqualSlices(usize, query_positions[0..], tree_queries.items[1]);
+    try std.testing.expectEqualSlices(
+        usize,
+        expected_interaction,
+        tree_queries.items[2],
+    );
+    try std.testing.expectEqual(@as(usize, 0), tree_queries.items[3].len);
 }
 
 test "prover pcs: decommit by tree positions verifies" {
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
-    const CpuBackend = @import("../../../../backends/cpu_scalar/mod.zig").CpuBackend;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Scheme = CommitmentSchemeProver(CpuBackend, Hasher, MerkleChannel);
     const Verifier = vcs_verifier.MerkleVerifierLifted(Hasher);
     const alloc = std.testing.allocator;
@@ -448,7 +471,7 @@ test "prover pcs: streaming commitment produces identical root to non-streaming"
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
-    const CpuBackend = @import("../../../../backends/cpu_scalar/mod.zig").CpuBackend;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Scheme = CommitmentSchemeProver(CpuBackend, Hasher, MerkleChannel);
     const alloc = std.testing.allocator;
 
@@ -533,7 +556,7 @@ test "prover pcs: streaming commitment with batch_size=1 matches non-streaming" 
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
-    const CpuBackend = @import("../../../../backends/cpu_scalar/mod.zig").CpuBackend;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Scheme = CommitmentSchemeProver(CpuBackend, Hasher, MerkleChannel);
     const alloc = std.testing.allocator;
 
@@ -593,7 +616,7 @@ test "prover pcs: Blake-width streaming profile retains final Merkle stage" {
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
-    const CpuBackend = @import("../../../../backends/cpu_scalar/mod.zig").CpuBackend;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Scheme = CommitmentSchemeProver(CpuBackend, Hasher, MerkleChannel);
     const alloc = std.testing.allocator;
     const blake_main_trace_columns: usize = 192;
@@ -656,7 +679,7 @@ test "prover pcs: streaming tree builder API matches non-streaming" {
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
-    const CpuBackend = @import("../../../../backends/cpu_scalar/mod.zig").CpuBackend;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Scheme = CommitmentSchemeProver(CpuBackend, Hasher, MerkleChannel);
     const alloc = std.testing.allocator;
 

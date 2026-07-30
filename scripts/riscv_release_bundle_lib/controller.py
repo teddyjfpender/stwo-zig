@@ -1,4 +1,4 @@
-"""CLI orchestration for immutable exhaustive evidence bundles."""
+"""Archived pre-Sail bundle-format orchestration for forensic tests."""
 
 from __future__ import annotations
 

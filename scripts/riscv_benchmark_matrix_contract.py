@@ -376,7 +376,9 @@ def validate_row(row: object, label: str = "row") -> None:
         or parity["fields"] != list(SEMANTIC_FIELDS)
         or parity["mismatches"] != []
     ):
-        raise MatrixContractError(f"{label}: semantic oracle parity did not pass")
+        raise MatrixContractError(
+            f"{label}: legacy benchmark execution parity did not pass"
+        )
     require_sha256(parity["public_data_sha256"], f"{label}.semantic_parity.public_data_sha256")
     if not (
         item["oracle_semantics"]["public_data_sha256"]

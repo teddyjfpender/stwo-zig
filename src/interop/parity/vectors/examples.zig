@@ -1,10 +1,10 @@
 //! Example AIR oracle vectors.
 
 const std = @import("std");
-const example_plonk_mod = @import("../../../examples/plonk.zig");
-const example_state_machine_mod = @import("../../../examples/state_machine.zig");
-const example_wide_fibonacci_mod = @import("../../../examples/wide_fibonacci.zig");
-const example_xor_mod = @import("../../../examples/xor.zig");
+const example_plonk_mod = @import("stwo_native_examples").plonk;
+const example_state_machine_mod = @import("stwo_native_examples").state_machine;
+const example_wide_fibonacci_mod = @import("stwo_native_examples").wide_fibonacci;
+const example_xor_mod = @import("stwo_native_examples").xor;
 const m31_mod = @import("stwo_core").fields.m31;
 const qm31_mod = @import("stwo_core").fields.qm31;
 const fixtures = @import("fixtures.zig");
@@ -161,7 +161,7 @@ test "field vectors: examples state machine lookup draw parity" {
         var channel = Channel{};
         channel.mixU64(v.mix_u64);
         channel.mixU32s(v.mix_u32s);
-        const elements = example_state_machine_mod.Elements.draw(&channel);
+        const elements = try example_state_machine_mod.Elements.draw(alloc, &channel);
         try std.testing.expect(elements.z.eql(qm31From(v.z)));
         try std.testing.expect(elements.alpha.eql(qm31From(v.alpha)));
 
@@ -169,7 +169,7 @@ test "field vectors: examples state machine lookup draw parity" {
             var altered_channel = Channel{};
             altered_channel.mixU64(v.mix_u64 +% 1);
             altered_channel.mixU32s(v.mix_u32s);
-            const altered = example_state_machine_mod.Elements.draw(&altered_channel);
+            const altered = try example_state_machine_mod.Elements.draw(alloc, &altered_channel);
             try std.testing.expect(!altered.z.eql(elements.z) or !altered.alpha.eql(elements.alpha));
         }
     }

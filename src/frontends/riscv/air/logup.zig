@@ -215,8 +215,8 @@ pub fn verifyGlobalCancellation(claims: []const QM31, boundary: QM31) !void {
 // Tests
 // ---------------------------------------------------------------------------
 
-const eval_mod = @import("stwo_prover_impl").poly.circle.evaluation;
-const poly_mod = @import("stwo_prover_impl").poly.circle.poly;
+const eval_mod = @import("stwo_prover_engine").poly.circle.evaluation;
+const poly_mod = @import("stwo_prover_engine").poly.circle.poly;
 const infra = @import("../infra_trace.zig");
 
 test "geometry: trace-order shift equals evaluation at point minus coset step" {

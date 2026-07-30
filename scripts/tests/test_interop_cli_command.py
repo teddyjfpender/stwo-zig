@@ -36,8 +36,52 @@ class InteropCliCommandTests(unittest.TestCase):
         self.assertIn("-Mroot=src/tools/interop/main.zig", command)
         self.assertIn("-Mstwo=src/stwo.zig", command)
         self.assertIn("-Mstwo_core=src/core/mod.zig", command)
+        self.assertIn(
+            "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig",
+            command,
+        )
+        self.assertIn(
+            "-Mstwo_native_examples=src/examples/mod.zig",
+            command,
+        )
         self.assertIn("-Mstwo_backend_contracts=src/backend/mod.zig", command)
-        self.assertIn("-Mstwo_prover_impl=src/prover/mod.zig", command)
+        self.assertIn("-Mstwo_prover_engine=src/prover/mod.zig", command)
+        self.assertIn(
+            "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
+            command,
+        )
+        self.assertIn(
+            "-Mstwo_metal_backend=src/backends/metal/mod.zig",
+            command,
+        )
+        self.assertIn(
+            "-Mstwo_cuda_backend=src/backends/cuda/mod.zig",
+            command,
+        )
+        self.assertIn(
+            "-Mstwo_riscv_frontend=src/frontends/riscv/mod.zig",
+            command,
+        )
+        self.assertIn(
+            "-Mstwo_cairo_frontend=src/frontends/cairo/mod.zig",
+            command,
+        )
+        self.assertIn(
+            "-Mstwo_riscv_cpu_integration=src/integrations/riscv_cpu/mod.zig",
+            command,
+        )
+        self.assertIn(
+            "-Mstwo_cairo_cpu_integration=src/integrations/cairo_cpu/mod.zig",
+            command,
+        )
+        self.assertIn(
+            "-Mstwo_metal_session=src/tools/metal_session/mod.zig",
+            command,
+        )
+        self.assertIn(
+            "-Mstwo_cairo_metal_integration=src/integrations/cairo_metal/mod.zig",
+            command,
+        )
         self.assertEqual(["--mode", "verify", "--artifact", "proof.json"], command[-4:])
 
     def test_callers_use_the_shared_command_boundary(self) -> None:

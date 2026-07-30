@@ -1,0 +1,311 @@
+{
+  "aot_cubin_count": 1,
+  "aot_entries": 1,
+  "aot_pack": "cuda_aot_pack.bin",
+  "aot_pack_sha256": "d237404c85619dbd9b0bb549dd930aa5d5130299d2e6154df4195713049ea994",
+  "aot_source_count": 1,
+  "archive": "libstwo_cuda_kernels.a",
+  "archive_sha256": "482594c2aa6494337811edbd304143fdf69cbf5d318c61341f3695b879e601e7",
+  "authority_aot_source_count": 340,
+  "authority_ordinary_source_count": 59,
+  "build_identity_sha256": "a7c9ad8e282a0a885bd079883af47493988808bde5acdf8363347b3e85a04831",
+  "cuda_home": "/usr/local/cuda-12.8",
+  "cuda_library_dir": "/usr/local/cuda-12.8/targets/x86_64-linux/lib",
+  "fixed_flags": {
+    "aot": [
+      "-cubin",
+      "-O3",
+      "--std=c++17",
+      "--expt-relaxed-constexpr"
+    ],
+    "device_link": [
+      "-dlink",
+      "-Xcompiler",
+      "-fPIC"
+    ],
+    "host": [
+      "-std=c++17",
+      "-O3",
+      "-fPIC",
+      "-c"
+    ],
+    "native_cuda": [
+      "-c",
+      "-O3",
+      "--std=c++17",
+      "--expt-relaxed-constexpr",
+      "-Xcompiler",
+      "-fPIC"
+    ],
+    "ordinary": [
+      "-dc",
+      "-O3",
+      "--std=c++17",
+      "--expt-relaxed-constexpr",
+      "-Xcompiler",
+      "-fPIC"
+    ]
+  },
+  "include_dirs": [
+    "/workspace/stwo-zig-cuda-clean/src/backends/cuda/vendor/upstream",
+    "/workspace/stwo-zig-cuda-clean/src/backends/cuda/vendor/upstream/generated",
+    "/workspace/stwo-zig-cuda-clean/src/backends/cuda/vendor/upstream/witness"
+  ],
+  "jobs": 8,
+  "linked_libraries": [
+    "cuda",
+    "cudart",
+    "stdc++"
+  ],
+  "native_aot_closure_sha256": "4a5d5d1c2216b55b2655929adb6d0cf131e2cfc11821a11533f58c15fafe3e68",
+  "native_cuda_source_count": 22,
+  "native_host_source_count": 1,
+  "native_runtime_closure_sha256": "3bb65d66a43fc03bb7677c2acfac974184718043770ddbf22dcf0828896f418f",
+  "native_runtime_files": [
+    {
+      "bytes": 13057,
+      "path": "aot_loader.cpp",
+      "sha256": "a57a4c8c1c0f5049c8d0e739ad8b335147d4ebcb1b2952a11ba9500e10adec0a"
+    },
+    {
+      "bytes": 2117,
+      "path": "aot_loader.h",
+      "sha256": "b3d6edb159d4bf1520cd3983ee227728aff86333cefa070378d28c5c35af6bb9"
+    },
+    {
+      "bytes": 5514,
+      "path": "commitment/blake2s_core.cuh",
+      "sha256": "3f8081fe9342b4ab331d60688e7717f14bc8f8736ca48c381d37914ad8ef1fd2"
+    },
+    {
+      "bytes": 7038,
+      "path": "commitment/merkle.cu",
+      "sha256": "5da2d29ca52bb2fb21fa6acb4d0e4e68cd708612286a7edcbf7be4d718d7c76c"
+    },
+    {
+      "bytes": 8783,
+      "path": "commitment/progressive.cu",
+      "sha256": "e89a3ebde3a1cb30669e1d8c89d41c95b1acac2f09ba9c21f22b9a15b9c28aee"
+    },
+    {
+      "bytes": 4060,
+      "path": "commitment/progressive_scalar.cuh",
+      "sha256": "0e48110a25e372f7bec0c1ecd5c90647b4a5ed28beb7630ecdc3f380ef5a2011"
+    },
+    {
+      "bytes": 2202,
+      "path": "commitment/resident_layout.cuh",
+      "sha256": "2d6b4f93097abdc97f046cd7d9a1c3fa91647478ec07add9fe3459c515681bdc"
+    },
+    {
+      "bytes": 596,
+      "path": "common/circle_twiddle.cuh",
+      "sha256": "70c5c2f306eeb3838a49f531febf96bed95126637781a595bbf5d39786012c91"
+    },
+    {
+      "bytes": 1099,
+      "path": "common/m31.cuh",
+      "sha256": "e9762058eea4f25c5fb017e9dec1ba6e84dfa86795e2ca0230c8e11c067a3c30"
+    },
+    {
+      "bytes": 1814,
+      "path": "constraints/field.cuh",
+      "sha256": "819262cfef8eae4cdc34a007d9183fc4b2aa2e41dd8351b0da87584520fa7aec"
+    },
+    {
+      "bytes": 1598,
+      "path": "constraints/powers.cu",
+      "sha256": "1e1ef24d4c33a9d7a26674fc5828aec73859d574021434f02385c17f6558102c"
+    },
+    {
+      "bytes": 8416,
+      "path": "decommit/contract.cuh",
+      "sha256": "dbb0a918536af005af90cefbdedfd3b7bbbcaca7f56167c5894bce57c338ea3c"
+    },
+    {
+      "bytes": 12458,
+      "path": "decommit/fri.cu",
+      "sha256": "83bd034531dd5f415c07ba489b32b62a58936f5ed13f27d21b3c5cdd8a5b8598"
+    },
+    {
+      "bytes": 7882,
+      "path": "decommit/merkle_walk.cuh",
+      "sha256": "ddb5b72bdb90532752ff7e615fa9433605f6604d0d73b10d357589e0b4b2a399"
+    },
+    {
+      "bytes": 12773,
+      "path": "decommit/query_planning.cu",
+      "sha256": "0155fa2656957b79c504b4d1eb8537d3919227971a66a05c7b01986fb8670887"
+    },
+    {
+      "bytes": 3551,
+      "path": "decommit/sparse_parents.cu",
+      "sha256": "8db2ffa8a4ea251b97614694985664cf273ffdf30c511e08c877174b81381aea"
+    },
+    {
+      "bytes": 14647,
+      "path": "decommit/trace.cu",
+      "sha256": "c39eb0b5d45bfa443fa8cd54f74c1988e5bfd7c964b318325e66e9251e105a16"
+    },
+    {
+      "bytes": 3172,
+      "path": "fri/field.cuh",
+      "sha256": "70cd85f72a272acd6c483bedb436dd5d0e7efc12f41c90f2f35c98e2e48cce3f"
+    },
+    {
+      "bytes": 10486,
+      "path": "fri/final.cu",
+      "sha256": "2014ac81c8f39c2508e400f7414452865844dcf32756d0c510e3fa5c14bc927e"
+    },
+    {
+      "bytes": 10496,
+      "path": "fri/fold.cu",
+      "sha256": "56ea5799a3bade3dfe36527fab7ee21f83b03e3d774de57759f166fd17e40032"
+    },
+    {
+      "bytes": 1376,
+      "path": "fri/safety.cuh",
+      "sha256": "908fb61a058d6c2e315ad493159ffcb4b526ffb04d2db83b25994b86b22f6051"
+    },
+    {
+      "bytes": 4046,
+      "path": "kernels/wide_fibonacci_trace.cu",
+      "sha256": "8fa8e12714b6ed1e0b364be010cef322d05250cf3581789847395aa1c21003e3"
+    },
+    {
+      "bytes": 11126,
+      "path": "oods/barycentric.cu",
+      "sha256": "d651589a56a36f60c7199494371fbf24911be675aefb838fdacd1a653a0c9e6a"
+    },
+    {
+      "bytes": 3417,
+      "path": "oods/batch_inverse.cuh",
+      "sha256": "aef648d133e6a8736e8170442088ae78f10d88ccac1145312291d91fe9addfc1"
+    },
+    {
+      "bytes": 17142,
+      "path": "oods/evaluate.cu",
+      "sha256": "e9d89e4c9c767c2f18b503d369a8815b87e1ee34e052e305a2c6508e4ad10e9b"
+    },
+    {
+      "bytes": 6267,
+      "path": "oods/field.cuh",
+      "sha256": "8634cb0aa351e3fa7ef7a6d975f082e98ce5c2931bd1239d129947e9b8e86563"
+    },
+    {
+      "bytes": 1890,
+      "path": "oods/safety.cuh",
+      "sha256": "70aea1083b9d1ac01fdbf65c60a5beb639d3424801ca8a843db65eef286fc145"
+    },
+    {
+      "bytes": 4168,
+      "path": "pow/candidate.cuh",
+      "sha256": "0de6d7cd6d729745d5c4d8ade4fafe0fec8d31d980752ced70defc33b6a1fd12"
+    },
+    {
+      "bytes": 1132,
+      "path": "pow/safety.cuh",
+      "sha256": "a6ed01cf960407dd2e195ce2af94df3f9028711856d53eba389cd9883f6ca205"
+    },
+    {
+      "bytes": 5392,
+      "path": "pow/search.cu",
+      "sha256": "ea4a6cad3a0401a3403fbc8ae8aff1231e1e75e1fbcf857cc517c749fd12a759"
+    },
+    {
+      "bytes": 8678,
+      "path": "quotient/combine.cu",
+      "sha256": "c99b8de31ef20097115aeb6c6fa7e313f3b0c9a191cd48c3c69a56e00c7c258e"
+    },
+    {
+      "bytes": 2927,
+      "path": "quotient/field.cuh",
+      "sha256": "dd18ef893c30af3da0e130bcb4ffc2de15f252f10f43658ca0cb664e845c18e6"
+    },
+    {
+      "bytes": 9783,
+      "path": "quotient/numerator.cu",
+      "sha256": "30996f07eb02bb5ecf3a3231dd9f447a29f1eca6e6f38fbff7fa23590d0ae9e2"
+    },
+    {
+      "bytes": 7827,
+      "path": "quotient/prepare.cu",
+      "sha256": "416554309ab8bcda0cf8655e56e04aedbf38d284cc242b9cdb660dc780054eb3"
+    },
+    {
+      "bytes": 1374,
+      "path": "quotient/safety.cuh",
+      "sha256": "0b72bcc02dcf71a145cfc71801004af34f23735ae39b376d67a608e21ba49501"
+    },
+    {
+      "bytes": 1250,
+      "path": "quotient/types.cuh",
+      "sha256": "35c7c2be9ff70a02df82f3de6b89e0295d51042853de7965d317afd5e75289bb"
+    },
+    {
+      "bytes": 14215,
+      "path": "runtime/context.cu",
+      "sha256": "e3a9a2774170be9aec687a1a3b9dd836e9bb34c0e63354f1d281bda55ce8b3f7"
+    },
+    {
+      "bytes": 3664,
+      "path": "transcript/blake2s_words.cuh",
+      "sha256": "f07b30ce24db3426ac539a64a43c8d14eb48b4f774778c8b5cc5d1bb739d7921"
+    },
+    {
+      "bytes": 13649,
+      "path": "transcript/transcript.cu",
+      "sha256": "89355db4aee974c549371ae24c7e4557393f977c2d0385bc1e7858f0353bbde6"
+    },
+    {
+      "bytes": 7491,
+      "path": "transform/b2n_retained.cu",
+      "sha256": "11c32f83471bbbff691e278a274c1e2aadaea5961ba63e3eab47b6e43ae649d0"
+    },
+    {
+      "bytes": 6482,
+      "path": "transform/composition_split.cu",
+      "sha256": "83318728fb42d3fa4f9f099ba3cf89edb0857c52e4feb5238614ed709010a25a"
+    },
+    {
+      "bytes": 6084,
+      "path": "transform/lde.cu",
+      "sha256": "7d549e91a6a2dce05e51f7b15ac4ff2cb407522951d8068a184acf7d6d5749ad"
+    },
+    {
+      "bytes": 4748,
+      "path": "transform/n2b.cu",
+      "sha256": "50f436cebf2aa138f656b0ba7ee0e539505a291b4929eedeaee27f3dbf8ec1dd"
+    },
+    {
+      "bytes": 2338,
+      "path": "transform/transform_internal.cuh",
+      "sha256": "f3bbe553a6b37fb4e7bda8153e9300e766ce05813dec361da6264f30ad1fd0e5"
+    }
+  ],
+  "native_runtime_source_count": 23,
+  "ordinary_source_count": 0,
+  "product_manifest_sha256": "cff1151cc0fa8780f8b0b1babab06cfe06ea7a5733d60ec4619cc649ed017b19",
+  "schema": "stwo-zig-cuda-native-build-v1",
+  "source_closure_sha256": "63c7503f83ed467fdcf010be867b0f395ace8a4a0d1d11572112ce7405cbbe2b",
+  "target_sms": [
+    89
+  ],
+  "tools": {
+    "archiver": {
+      "path": "/usr/bin/x86_64-linux-gnu-ar",
+      "sha256": "534681ac11c18868cfc4fdf98770aa0ba8973eedc90c231e94e6ba96e1a04f27",
+      "version": "GNU ar (GNU Binutils for Ubuntu) 2.42\nCopyright (C) 2024 Free Software Foundation, Inc.\nThis program is free software; you may redistribute it under the terms of\nthe GNU General Public License version 3 or (at your option) any later version.\nThis program has absolutely no warranty."
+    },
+    "host_cxx": {
+      "path": "/usr/bin/x86_64-linux-gnu-g++-13",
+      "sha256": "52f1ddb33fe78b9441e0f42e9cd22c571f1101938e046c8a26582494e041cc73",
+      "version": "g++-13 (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+    },
+    "nvcc": {
+      "path": "/usr/local/cuda-12.8/bin/nvcc",
+      "sha256": "59e4e55f9a38b78c590df1e28a69dad91052958f18a03868ca4a547c043fbba7",
+      "version": "nvcc: NVIDIA (R) Cuda compiler driver\nCopyright (c) 2005-2025 NVIDIA Corporation\nBuilt on Fri_Feb_21_20:23:50_PST_2025\nCuda compilation tools, release 12.8, V12.8.93\nBuild cuda_12.8.r12.8/compiler.35583870_0"
+    }
+  }
+}

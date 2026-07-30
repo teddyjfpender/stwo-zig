@@ -1,11 +1,134 @@
 const std = @import("std");
 
+pub const install_subdir = "share/stwo-zig/metal/core";
+pub const manifest_filename = "stwo_zig_core.manifest.json";
+pub const manifest_digest_filename = "stwo_zig_core.manifest.sha256";
+pub const air_filename = "stwo_zig_core.air";
+pub const metallib_filename = "stwo_zig_core.metallib";
+
 pub const Context = struct {
     b: *std.Build,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
     shader_manifest_module: *std.Build.Module,
 };
+
+/// One already-built core library admitted as an immutable build input.
+///
+/// The product identity binds `manifest_sha256`; the runtime then remeasures
+/// the manifest and every artifact named by it before Metal sees any bytes.
+/// A path is configuration, never authority.
+pub const ExternalBundle = struct {
+    directory: std.Build.LazyPath,
+    absolute_path: []const u8,
+    manifest_sha256: [32]u8,
+    manifest_sha256_hex: [64]u8,
+
+    pub fn addOptions(
+        self: ExternalBundle,
+        b: *std.Build,
+    ) *std.Build.Step.Options {
+        const options = b.addOptions();
+        options.addOption(
+            [32]u8,
+            "manifest_sha256",
+            self.manifest_sha256,
+        );
+        options.addOption(
+            []const u8,
+            "manifest_sha256_hex",
+            b.dupe(&self.manifest_sha256_hex),
+        );
+        options.addOption([]const u8, "install_subdir", install_subdir);
+        return options;
+    }
+
+    pub fn install(
+        self: ExternalBundle,
+        b: *std.Build,
+        owner: *std.Build.Step,
+    ) void {
+        const destination = b.getInstallPath(.prefix, install_subdir);
+        if (std.mem.eql(u8, self.absolute_path, destination)) return;
+        const install_bundle = b.addInstallDirectory(.{
+            .source_dir = self.directory,
+            .install_dir = .prefix,
+            .install_subdir = install_subdir,
+        });
+        owner.dependOn(&install_bundle.step);
+    }
+};
+
+/// Load and authenticate the canonical manifest trust anchor at configure
+/// time. Full semantic and artifact admission remains the runtime
+/// responsibility of `core_aot.admit`, so later substitution fails closed.
+pub fn loadExternalBundle(
+    b: *std.Build,
+    configured_path: []const u8,
+) ExternalBundle {
+    if (configured_path.len == 0)
+        @panic("Metal core AOT bundle path cannot be empty");
+    const unresolved = if (std.fs.path.isAbsolute(configured_path))
+        configured_path
+    else
+        b.pathFromRoot(configured_path);
+    const absolute_path = std.fs.cwd().realpathAlloc(
+        b.allocator,
+        unresolved,
+    ) catch |err| std.debug.panic(
+        "cannot resolve Metal core AOT bundle {s}: {s}",
+        .{ unresolved, @errorName(err) },
+    );
+    var directory = std.fs.openDirAbsolute(absolute_path, .{}) catch |err|
+        std.debug.panic(
+            "cannot open Metal core AOT bundle {s}: {s}",
+            .{ absolute_path, @errorName(err) },
+        );
+    defer directory.close();
+
+    const manifest = directory.readFileAlloc(
+        b.allocator,
+        manifest_filename,
+        1024 * 1024,
+    ) catch |err| std.debug.panic(
+        "cannot read Metal core AOT manifest: {s}",
+        .{@errorName(err)},
+    );
+    const anchor = directory.readFileAlloc(
+        b.allocator,
+        manifest_digest_filename,
+        1024,
+    ) catch |err| std.debug.panic(
+        "cannot read Metal core AOT trust anchor: {s}",
+        .{@errorName(err)},
+    );
+    const expected = parseTrustAnchor(anchor) catch |err| std.debug.panic(
+        "invalid Metal core AOT trust anchor: {s}",
+        .{@errorName(err)},
+    );
+    var measured: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(manifest, &measured, .{});
+    if (!std.mem.eql(u8, &expected, &measured))
+        @panic("Metal core AOT manifest does not match its trust anchor");
+    inline for (.{ air_filename, metallib_filename }) |filename| {
+        const stat = directory.statFile(filename) catch |err|
+            std.debug.panic(
+                "missing Metal core AOT artifact {s}: {s}",
+                .{ filename, @errorName(err) },
+            );
+        if (stat.kind != .file or stat.size == 0)
+            std.debug.panic(
+                "Metal core AOT artifact {s} is not a non-empty file",
+                .{filename},
+            );
+    }
+    return .{
+        .directory = .{ .cwd_relative = absolute_path },
+        .absolute_path = absolute_path,
+        .manifest_sha256 = measured,
+        .manifest_sha256_hex = std.fmt.bytesToHex(measured, .lower),
+    };
+}
 
 pub fn addProducts(context: Context) void {
     const b = context.b;
@@ -55,6 +178,32 @@ pub fn addProducts(context: Context) void {
         return;
     }
     addHostedAcceptance(context, tool);
+}
+
+fn parseTrustAnchor(encoded: []const u8) ![32]u8 {
+    const suffix = "  " ++ manifest_filename ++ "\n";
+    if (encoded.len != 64 + suffix.len or
+        !std.mem.eql(u8, encoded[64..], suffix))
+        return error.NonCanonicalTrustAnchor;
+    var result: [32]u8 = undefined;
+    _ = std.fmt.hexToBytes(&result, encoded[0..64]) catch
+        return error.NonCanonicalTrustAnchor;
+    for (encoded[0..64]) |byte| {
+        if (!std.ascii.isDigit(byte) and !(byte >= 'a' and byte <= 'f'))
+            return error.NonCanonicalTrustAnchor;
+    }
+    return result;
+}
+
+test "external bundle trust anchors are canonical" {
+    const digest = try parseTrustAnchor(
+        "ab" ** 32 ++ "  " ++ manifest_filename ++ "\n",
+    );
+    try std.testing.expectEqual([_]u8{0xab} ** 32, digest);
+    try std.testing.expectError(
+        error.NonCanonicalTrustAnchor,
+        parseTrustAnchor("AB" ** 32 ++ "  " ++ manifest_filename ++ "\n"),
+    );
 }
 
 /// Fail-closed stubs so the platform-blind product catalog's configure
@@ -124,12 +273,18 @@ fn addHostedAcceptance(context: Context, tool: *std.Build.Step.Compile) void {
     run_probe.addDirectoryArg(bundle);
     run_probe.addArg("--trust-anchor");
     run_probe.addFileArg(bundle.path(b, "stwo_zig_core.manifest.sha256"));
+    const install_bundle = b.addInstallDirectory(.{
+        .source_dir = bundle,
+        .install_dir = .prefix,
+        .install_subdir = install_subdir,
+    });
 
     const acceptance_step = b.step(
         "metal-core-aot-acceptance",
         "Build, authenticate, and inspect the linked Native core metallib",
     );
     acceptance_step.dependOn(&run_probe.step);
+    acceptance_step.dependOn(&install_bundle.step);
 }
 
 fn linkProbe(b: *std.Build, artifact: *std.Build.Step.Compile) void {

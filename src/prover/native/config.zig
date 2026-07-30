@@ -96,7 +96,15 @@ pub const EvidenceClass = enum {
     correctness_only,
 };
 
-pub const Example = enum { wide_fibonacci, xor, plonk, state_machine, blake, poseidon };
+pub const Example = enum {
+    wide_fibonacci,
+    xor,
+    plonk,
+    plonk_logup,
+    state_machine,
+    blake,
+    poseidon,
+};
 
 pub const WideFibonacciParameters = struct {
     log_n_rows: u32 = 12,
@@ -113,6 +121,10 @@ pub const PlonkParameters = struct {
     log_n_rows: u32 = 10,
 };
 
+pub const PlonkLogupParameters = struct {
+    log_n_rows: u32 = 10,
+};
+
 pub const StateMachineParameters = struct {
     log_n_rows: u32 = 10,
     initial_x: u32 = 9,
@@ -121,7 +133,7 @@ pub const StateMachineParameters = struct {
 
 pub const BlakeParameters = struct {
     log_n_rows: u32 = 8,
-    n_rounds: u32 = 2,
+    n_rounds: u32 = 10,
 };
 
 pub const PoseidonParameters = struct {
@@ -132,6 +144,7 @@ pub const Workload = union(Example) {
     wide_fibonacci: WideFibonacciParameters,
     xor: XorParameters,
     plonk: PlonkParameters,
+    plonk_logup: PlonkLogupParameters,
     state_machine: StateMachineParameters,
     blake: BlakeParameters,
     poseidon: PoseidonParameters,
@@ -164,6 +177,7 @@ pub const Args = struct {
     wide_fibonacci: WideFibonacciParameters = .{},
     xor: XorParameters = .{},
     plonk: PlonkParameters = .{},
+    plonk_logup: PlonkLogupParameters = .{},
     state_machine: StateMachineParameters = .{},
     blake: BlakeParameters = .{},
     poseidon: PoseidonParameters = .{},
@@ -183,6 +197,7 @@ pub const Args = struct {
             .wide_fibonacci => .{ .wide_fibonacci = self.wide_fibonacci },
             .xor => .{ .xor = self.xor },
             .plonk => .{ .plonk = self.plonk },
+            .plonk_logup => .{ .plonk_logup = self.plonk_logup },
             .state_machine => .{ .state_machine = self.state_machine },
             .blake => .{ .blake = self.blake },
             .poseidon => .{ .poseidon = self.poseidon },
@@ -198,9 +213,14 @@ pub const Args = struct {
 pub const ParseResult = union(enum) { run: Args, help };
 
 const MAX_SEQUENCE_LEN: u32 = 512;
-const MAX_BLAKE_ROUNDS: u32 = 32;
+// These mirror the exact Blake AIR. examples.zig cross-checks admission
+// against the source-owned mixed-height geometry on every aggregate test run.
+const BLAKE_N_ROUNDS: u32 = 10;
+const BLAKE_COMMITTED_COLUMNS: u64 = 2_628;
+const BLAKE_FIXED_COMMITTED_CELLS: u64 = 51_627_008;
+const BLAKE_VARIABLE_CELLS_PER_ROW: u64 = 6_848;
 const POSEIDON_LOG_INSTANCES_PER_ROW: u32 = 3;
-const POSEIDON_COLUMNS: u64 = 1264;
+const POSEIDON_TRACE_COLUMNS: u64 = 1296;
 const MAX_XOR_OFFSET: usize = (1 << 31) - 1;
 const M31_MODULUS: u32 = 0x7fffffff;
 pub const MIN_HEADLINE_WARMUPS: usize = 10;
@@ -289,6 +309,7 @@ pub fn parseArgs(backend: Backend, argv: []const []const u8) !ParseResult {
     if (log_n_rows_override) |log_n_rows| switch (result.example) {
         .wide_fibonacci => result.wide_fibonacci.log_n_rows = log_n_rows,
         .plonk => result.plonk.log_n_rows = log_n_rows,
+        .plonk_logup => result.plonk_logup.log_n_rows = log_n_rows,
         .state_machine => result.state_machine.log_n_rows = log_n_rows,
         .blake => result.blake.log_n_rows = log_n_rows,
         .xor, .poseidon => return error.IrrelevantWorkloadParameter,
@@ -300,6 +321,9 @@ pub fn parseArgs(backend: Backend, argv: []const []const u8) !ParseResult {
         (saw_wide_parameter or saw_state_machine_parameter or saw_blake_parameter or saw_poseidon_parameter))
         return error.IrrelevantWorkloadParameter;
     if (result.example == .plonk and
+        (saw_wide_parameter or saw_xor_parameter or saw_state_machine_parameter or saw_blake_parameter or saw_poseidon_parameter))
+        return error.IrrelevantWorkloadParameter;
+    if (result.example == .plonk_logup and
         (saw_wide_parameter or saw_xor_parameter or saw_state_machine_parameter or saw_blake_parameter or saw_poseidon_parameter))
         return error.IrrelevantWorkloadParameter;
     if (result.example == .state_machine and
@@ -366,7 +390,8 @@ pub fn admitWorkload(
             );
         },
         .xor => |parameters| blk: {
-            const admission = try resource_admission.admit(profile, parameters.log_size, 3);
+            if (parameters.log_size < 2) return error.InvalidLogRows;
+            const admission = try resource_admission.admit(profile, parameters.log_size, 15);
             if (parameters.log_step > parameters.log_size) return error.InvalidStep;
             if (parameters.offset > MAX_XOR_OFFSET) return error.InvalidOffset;
             const period = @as(usize, 1) << @intCast(parameters.log_step);
@@ -374,23 +399,51 @@ pub fn admitWorkload(
             break :blk admission;
         },
         .plonk => |parameters| resource_admission.admit(profile, parameters.log_n_rows, 8),
+        .plonk_logup => |parameters| resource_admission.admit(
+            profile,
+            parameters.log_n_rows,
+            16,
+        ),
         .state_machine => |parameters| blk: {
             if (parameters.initial_x >= M31_MODULUS or parameters.initial_y >= M31_MODULUS)
                 return error.InvalidInitialState;
-            break :blk resource_admission.admit(profile, parameters.log_n_rows, 3);
+            if (parameters.log_n_rows < 5) return error.InvalidLogRows;
+            const logical = try resource_admission.measure(parameters.log_n_rows, 12);
+            const committed_cells = try std.math.mul(u64, logical.rows, 9);
+            break :blk resource_admission.admitExact(
+                profile,
+                parameters.log_n_rows,
+                12,
+                committed_cells,
+            );
         },
         .blake => |parameters| blk: {
-            if (parameters.n_rounds == 0 or parameters.n_rounds > MAX_BLAKE_ROUNDS)
+            if (parameters.n_rounds != BLAKE_N_ROUNDS)
                 return error.InvalidRoundCount;
-            const columns = try std.math.mul(u64, parameters.n_rounds, 96);
-            break :blk resource_admission.admit(profile, parameters.log_n_rows, columns);
+            const rows = @as(u64, 1) << @intCast(parameters.log_n_rows);
+            const variable_cells = try std.math.mul(
+                u64,
+                rows,
+                BLAKE_VARIABLE_CELLS_PER_ROW,
+            );
+            const committed_cells = try std.math.add(
+                u64,
+                BLAKE_FIXED_COMMITTED_CELLS,
+                variable_cells,
+            );
+            break :blk resource_admission.admitMixedHeight(
+                profile,
+                parameters.log_n_rows,
+                BLAKE_COMMITTED_COLUMNS,
+                committed_cells,
+            );
         },
         .poseidon => |parameters| blk: {
             if (parameters.log_n_instances <= POSEIDON_LOG_INSTANCES_PER_ROW or
                 parameters.log_n_instances > resource_admission.MAX_LOG_ROWS + POSEIDON_LOG_INSTANCES_PER_ROW)
                 return error.InvalidLogNInstances;
             const log_n_rows = parameters.log_n_instances - POSEIDON_LOG_INSTANCES_PER_ROW;
-            break :blk resource_admission.admit(profile, log_n_rows, POSEIDON_COLUMNS);
+            break :blk resource_admission.admit(profile, log_n_rows, POSEIDON_TRACE_COLUMNS);
         },
     };
 }
@@ -399,8 +452,8 @@ pub fn writeUsage(writer: anytype, backend: Backend) !void {
     try writer.writeAll(
         \\Usage: native-proof-bench-{cpu|metal} [options]
         \\
-        \\  --example NAME       wide_fibonacci, xor, plonk, state_machine, blake, or poseidon
-        \\  --log-n-rows N       Wide Fibonacci, Plonk, State Machine, or Blake log2 rows
+        \\  --example NAME       wide_fibonacci, xor, plonk, plonk_logup, state_machine, blake, or poseidon
+        \\  --log-n-rows N       Wide Fibonacci, Plonk variants, State Machine, or Blake log2 rows
         \\  --log-rows N         Legacy Wide Fibonacci log2 rows alias
         \\  --sequence-len N     Wide Fibonacci trace column count
         \\  --log-size N         XOR log2 rows
@@ -408,7 +461,7 @@ pub fn writeUsage(writer: anytype, backend: Backend) !void {
         \\  --offset N           XOR periodic-indicator offset
         \\  --initial-x N        State Machine initial x coordinate
         \\  --initial-y N        State Machine initial y coordinate
-        \\  --n-rounds N         Blake round count (maximum: 32)
+        \\  --n-rounds N         Blake round count (fixed upstream protocol: 10)
         \\  --log-n-instances N  Poseidon log2 instance count
         \\  --protocol NAME      smoke, functional, or secure (default: functional)
         \\  --warmups N          Verified untimed warmups (minimum: 10, maximum: 30)
@@ -438,6 +491,8 @@ test "native proof config: parses tagged workloads and legacy wide requests" {
     try std.testing.expectEqual(Example.xor, xor_args.example);
     try std.testing.expectEqual(@as(u32, 8), xor_args.xor.log_size);
     try std.testing.expectEqual(@as(usize, 5), xor_args.xor.offset);
+    const xor_admission = try admitWorkload(xor_args.workload(), xor_args.resource_profile);
+    try std.testing.expectEqual(@as(u64, 3_840), xor_admission.geometry.committed_cells);
 
     const wide = (try parseArgs(.cpu_native, &.{ "--log-rows", "7", "--sequence-len", "9" })).run;
     try std.testing.expectEqual(@as(u32, 7), wide.wide_fibonacci.log_n_rows);
@@ -456,11 +511,14 @@ test "native proof config: parses tagged workloads and legacy wide requests" {
     try std.testing.expectEqual(@as(u32, 19), state.state_machine.initial_y);
 
     const blake = (try parseArgs(.cpu_native, &.{
-        "--example", "blake", "--log-n-rows", "7", "--n-rounds", "3",
+        "--example",          "blake",
+        "--log-n-rows",       "7",
+        "--n-rounds",         "10",
+        "--resource-profile", "large",
     })).run;
     try std.testing.expectEqual(Example.blake, blake.example);
     try std.testing.expectEqual(@as(u32, 7), blake.blake.log_n_rows);
-    try std.testing.expectEqual(@as(u32, 3), blake.blake.n_rounds);
+    try std.testing.expectEqual(@as(u32, 10), blake.blake.n_rounds);
 
     const poseidon = (try parseArgs(.cpu_native, &.{
         "--example", "poseidon", "--log-n-instances", "13",
@@ -475,14 +533,24 @@ test "native proof config: bounds and tags fail closed" {
     try std.testing.expectError(error.InvalidLogRows, parseArgs(.cpu_native, &.{
         "--example", "xor", "--log-size", "4294967295", "--log-step", "4294967295",
     }));
+    try std.testing.expectError(error.InvalidLogRows, parseArgs(.cpu_native, &.{
+        "--example", "xor", "--log-size", "1", "--log-step", "1", "--offset", "0",
+    }));
     try std.testing.expectError(error.InvalidOffset, parseArgs(.cpu_native, &.{ "--example", "xor", "--offset", "4" }));
     try std.testing.expectError(error.IrrelevantWorkloadParameter, parseArgs(.cpu_native, &.{ "--example", "xor", "--log-rows", "5" }));
     try std.testing.expectError(error.IrrelevantWorkloadParameter, parseArgs(.cpu_native, &.{ "--example", "plonk", "--sequence-len", "4" }));
     try std.testing.expectError(error.InvalidInitialState, parseArgs(.cpu_native, &.{ "--example", "state_machine", "--initial-x", "2147483647" }));
+    try std.testing.expectError(error.InvalidLogRows, parseArgs(.cpu_native, &.{
+        "--example", "state_machine", "--log-n-rows", "4", "--initial-x", "9", "--initial-y", "3",
+    }));
+    try std.testing.expectError(error.InvalidLogRows, parseArgs(.cpu_native, &.{
+        "--example", "state_machine", "--log-n-rows", "64", "--initial-x", "9", "--initial-y", "3",
+    }));
     try std.testing.expectError(error.IrrelevantWorkloadParameter, parseArgs(.cpu_native, &.{ "--example", "state_machine", "--offset", "1" }));
     try std.testing.expectError(error.InvalidRoundCount, parseArgs(.cpu_native, &.{ "--example", "blake", "--n-rounds", "0" }));
+    try std.testing.expectError(error.InvalidRoundCount, parseArgs(.cpu_native, &.{ "--example", "blake", "--n-rounds", "9" }));
     try std.testing.expectError(error.InvalidRoundCount, parseArgs(.cpu_native, &.{ "--example", "blake", "--n-rounds", "33" }));
-    try std.testing.expectError(error.CommittedCellBudgetExceeded, parseArgs(.cpu_native, &.{ "--example", "blake", "--log-n-rows", "18", "--n-rounds", "2" }));
+    try std.testing.expectError(error.CommittedCellBudgetExceeded, parseArgs(.cpu_native, &.{ "--example", "blake", "--log-n-rows", "4", "--n-rounds", "10" }));
     try std.testing.expectError(error.IrrelevantWorkloadParameter, parseArgs(.cpu_native, &.{ "--example", "plonk", "--n-rounds", "2" }));
     try std.testing.expectError(error.InvalidLogNInstances, parseArgs(.cpu_native, &.{ "--example", "poseidon", "--log-n-instances", "3" }));
     try std.testing.expectError(error.CommittedCellBudgetExceeded, parseArgs(.cpu_native, &.{ "--example", "poseidon", "--log-n-instances", "18" }));

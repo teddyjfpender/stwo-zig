@@ -1,4 +1,4 @@
-//! Fixed-memory structural preflight for untrusted schema-v3 JSON.
+//! Fixed-memory structural preflight for untrusted schema-v4 JSON.
 //!
 //! The typed JSON parser allocates slices as it encounters them. This scanner
 //! therefore runs first, rejects non-canonical structure, and proves every
@@ -18,9 +18,10 @@ pub const Route = struct {
     artifact_kind_is_riscv: bool = false,
     schema_version: ?u32 = null,
     exchange_mode_present: bool = false,
-    exchange_mode_is_v3: bool = false,
+    exchange_mode_is_v4: bool = false,
     exchange_mode_is_v1: bool = false,
     exchange_mode_is_v2: bool = false,
+    exchange_mode_is_v3: bool = false,
     exchange_mode_is_riscv: bool = false,
 
     pub fn isRiscV(self: Route) bool {
@@ -30,11 +31,12 @@ pub const Route = struct {
     pub fn validateRiscV(self: Route) !void {
         if (!self.exchange_mode_present) return error.UnsupportedExchangeMode;
         const version = self.schema_version orelse return error.UnsupportedSchemaVersion;
-        if (version == 1 or version == 2 or
-            self.exchange_mode_is_v1 or self.exchange_mode_is_v2)
+        if (version == 1 or version == 2 or version == 3 or
+            self.exchange_mode_is_v1 or self.exchange_mode_is_v2 or
+            self.exchange_mode_is_v3)
             return error.LegacySchemaVersion;
         if (version != schema.SCHEMA_VERSION) return error.UnsupportedSchemaVersion;
-        if (!self.exchange_mode_is_v3) return error.UnsupportedExchangeMode;
+        if (!self.exchange_mode_is_v4) return error.UnsupportedExchangeMode;
         if (!self.artifact_kind_present or !self.artifact_kind_is_riscv)
             return error.UnsupportedArtifactKind;
     }
@@ -66,9 +68,10 @@ pub fn route(raw: []const u8) !Route {
             try mark(&routing_seen, 2);
             result.exchange_mode_present = true;
             const value = try readString(&scanner, 64);
-            result.exchange_mode_is_v3 = std.mem.eql(u8, value, schema.EXCHANGE_MODE);
+            result.exchange_mode_is_v4 = std.mem.eql(u8, value, schema.EXCHANGE_MODE);
             result.exchange_mode_is_v1 = std.mem.eql(u8, value, schema.LEGACY_EXCHANGE_MODE_V1);
             result.exchange_mode_is_v2 = std.mem.eql(u8, value, schema.LEGACY_EXCHANGE_MODE_V2);
+            result.exchange_mode_is_v3 = std.mem.eql(u8, value, schema.LEGACY_EXCHANGE_MODE_V3);
             result.exchange_mode_is_riscv = std.mem.startsWith(
                 u8,
                 value,
@@ -383,6 +386,7 @@ const PublicField = enum {
     program_root,
     initial_rw_root,
     final_rw_root,
+    completion,
     input_start,
     input_len,
     input_words,
@@ -409,6 +413,7 @@ fn parsePublicData(scanner: *std.json.Scanner, shape: *Shape) !void {
             },
             .initial_regs, .final_regs, .reg_last_clock => try parseFixedU32Array(scanner, 32),
             .program_root, .initial_rw_root, .final_rw_root => _ = try readOptionalU32(scanner),
+            .completion => try parseCompletion(scanner),
             .input_words => shape.input_word_count = try parseU32Array(
                 scanner,
                 schema.MAX_IO_BYTES / 4,
@@ -417,6 +422,21 @@ fn parsePublicData(scanner: *std.json.Scanner, shape: *Shape) !void {
         }
     }
     try requireAll(PublicField, seen);
+}
+
+const CompletionField = enum { kind, address, value, clock };
+fn parseCompletion(scanner: *std.json.Scanner) !void {
+    try expect(scanner, .object_begin);
+    var seen: u64 = 0;
+    while (true) {
+        const token = try scanner.next();
+        if (token == .object_end) break;
+        switch (try objectField(CompletionField, token, &seen)) {
+            .kind => _ = try readString(scanner, 32),
+            .address, .value, .clock => _ = try readU32(scanner),
+        }
+    }
+    try requireAll(CompletionField, seen);
 }
 
 const OutputWordField = enum { addr, value, clock };
@@ -642,15 +662,15 @@ test "preflight routing rejects duplicate security headers without typed allocat
 
 test "preflight rejects unknown nested fields and oversized arrays" {
     const unknown =
-        "{\"artifact_kind\":\"stwo_riscv_proof\",\"schema_version\":3," ++
-        "\"exchange_mode\":\"riscv_proof_json_wire_v3\",\"unknown\":0}";
+        "{\"artifact_kind\":\"stwo_riscv_proof\",\"schema_version\":4," ++
+        "\"exchange_mode\":\"riscv_proof_json_wire_v4\",\"unknown\":0}";
     try std.testing.expectError(error.UnknownField, validate(unknown));
 
     var bytes: std.ArrayList(u8) = .{};
     defer bytes.deinit(std.testing.allocator);
-    try bytes.appendSlice(std.testing.allocator, "{\"artifact_kind\":\"stwo_riscv_proof\",\"schema_version\":3," ++
-        "\"exchange_mode\":\"riscv_proof_json_wire_v3\",\"release_status\":\"not_release_gated\"," ++
-        "\"generator\":\"zig\",\"air\":\"stark_v_rv32im\",\"backend\":\"cpu\",\"protocol\":\"smoke\"," ++
+    try bytes.appendSlice(std.testing.allocator, "{\"artifact_kind\":\"stwo_riscv_proof\",\"schema_version\":4," ++
+        "\"exchange_mode\":\"riscv_proof_json_wire_v4\",\"release_status\":\"not_release_gated\"," ++
+        "\"generator\":\"zig\",\"air\":\"sail_rv32im_zkvm_v1\",\"backend\":\"cpu\",\"protocol\":\"smoke\"," ++
         "\"source\":{\"elf_sha256\":\"" ++ "00" ** 32 ++ "\",\"input_sha256\":\"" ++ "00" ** 32 ++ "\"}," ++
         "\"provenance\":{\"oracle_repository\":\"x\",\"oracle_commit\":\"" ++ "00" ** 20 ++
         "\",\"implementation_repository\":\"x\",\"implementation_commit\":\"" ++ "00" ** 20 ++

@@ -14,10 +14,13 @@ from pathlib import Path
 from typing import Any, Mapping
 
 
-ADAPTER = "stark-v-rv32im-elf"
-AIR = "stark_v_rv32im"
+ADAPTER = "sail-rv32im-zkvm-elf"
+AIR = "sail_rv32im_zkvm_v1"
 ISA = "rv32im"
-BACKENDS = ["cpu"]
+# Focused-registry product identity per selectable backend. Intentionally
+# duplicated rather than imported from the CSP contract module: this module is
+# a standalone admission authority and must not depend on benchmark code.
+PRODUCT_NAMES = {"cpu": "stwo-riscv-cpu", "metal": "stwo-riscv-metal"}
 MAX_REGISTRY_BYTES = 1 << 20
 AGGREGATE_FIELDS = {
     "schema_version", "backend_availability", "product_matrix",
@@ -67,8 +70,10 @@ def _exact_fields(value: Mapping[str, Any], expected: set[str], label: str) -> N
         )
 
 
-def parse(raw: bytes | str) -> Admission:
+def parse(raw: bytes | str, *, backend: str = "cpu") -> Admission:
     """Parse an aggregate or focused CLI `applications` output, failing closed."""
+    if backend not in PRODUCT_NAMES:
+        raise AdmissionError(f"unknown RISC-V admission backend {backend!r}")
     if isinstance(raw, bytes):
         if len(raw) > MAX_REGISTRY_BYTES:
             raise AdmissionError("applications registry output is oversized")
@@ -92,16 +97,20 @@ def parse(raw: bytes | str) -> Admission:
             raise AdmissionError("focused applications registry product is not an object")
         _exact_fields(product, FOCUSED_PRODUCT_FIELDS, "focused RISC-V product")
         expected_product = {
-            "name": "stwo-riscv-cpu",
-            "frontend": "stark-v-rv32im",
-            "backend": "cpu",
+            "name": PRODUCT_NAMES[backend],
+            "frontend": "sail-rv32im-zkvm",
+            "backend": backend,
         }
         if any(product.get(field) != value for field, value in expected_product.items()):
             raise AdmissionError("focused RISC-V product identity drifted")
         availability = root["backend_availability"]
-        if availability != {"cpu": True}:
+        if availability != {backend: True}:
             raise AdmissionError("focused RISC-V backend availability drifted")
     elif root_fields == AGGREGATE_FIELDS:
+        if backend != "cpu":
+            raise AdmissionError(
+                f"{backend} admission requires the focused product registry"
+            )
         availability = root["backend_availability"]
         if (
             not isinstance(availability, dict)
@@ -135,7 +144,7 @@ def parse(raw: bytes | str) -> Admission:
             "air": AIR,
             "status": "release_gated",
             "isa": ISA,
-            "backends": BACKENDS,
+            "backends": [backend],
         }:
             raise AdmissionError("released RISC-V application declaration drifted")
         return Admission("promoted", "release_gated", False)
@@ -154,7 +163,7 @@ def parse(raw: bytes | str) -> Admission:
         entry.get("status") != "not_release_gated"
         or (focused and entry.get("air") != AIR)
         or entry.get("isa") != ISA
-        or entry.get("backends") != BACKENDS
+        or entry.get("backends") != [backend]
         or not isinstance(reason, str)
         or not reason.strip()
     ):
@@ -167,6 +176,7 @@ def resolve(
     *,
     cwd: Path | None = None,
     timeout_seconds: int = 30,
+    backend: str = "cpu",
 ) -> Admission:
     """Resolve admission from `cli applications` with no ambient output."""
     try:
@@ -185,4 +195,4 @@ def resolve(
         )
     if completed.stderr:
         raise AdmissionError("applications registry command wrote unexpected stderr")
-    return parse(completed.stdout)
+    return parse(completed.stdout, backend=backend)

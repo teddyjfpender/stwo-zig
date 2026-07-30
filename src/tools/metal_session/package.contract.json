@@ -1,0 +1,39 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_metal_session",
+  "version": "0.1.0",
+  "layer": "service",
+  "owner": "metal-session",
+  "public_modules": {
+    "stwo_metal_session": "mod.zig"
+  },
+  "dependencies": {},
+  "injected_modules": [],
+  "api_surface": [
+    "artifact_manifest",
+    "artifact_store",
+    "artifact_views",
+    "protocol"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::api signature: Metal session parser returns an owned parsed request"
+    ],
+    "invariant_tests": [
+      "protocol.zig::strict v4 parser fails closed on prior versions and missing composition program"
+    ]
+  },
+  "ci": {
+    "lane": "metal_session",
+    "host": "linux",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/tools/metal_session/build.zig",
+      "-Doptimize=ReleaseFast",
+      "-j2"
+    ]
+  }
+}

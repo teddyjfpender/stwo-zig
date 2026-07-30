@@ -82,7 +82,9 @@ def _item(
     ledger_sha256: str,
     commit_resolver: Callable[[str], str],
 ) -> dict | None:
-    epoch_spec = ledger.known_epochs(manifest.root)[epoch]
+    # TRACKS §7: the board's era, when it declares one, owns its audit anchor;
+    # the global epoch's anchor stays the fallback.
+    epoch_spec = ledger.epoch_for_board(manifest.root, epoch, board)
     policy = metrics.policy_from_epoch(epoch_spec)
     due = metrics.due_state(
         rows, epoch, board, workload_class, policy=policy,
@@ -93,9 +95,17 @@ def _item(
     group = manifest.group_for_board(board)
     gate_policy = manifest.gates_for_workload(group.group_id, workload_class)
     blocked = None
-    if not group.enabled or not group.promotion_eligible:
+    retirement = group.retirement or None
+    if retirement is not None and group.enabled:
+        # TRACKS §6 retire-and-complete: a retired board refuses new promotions
+        # but still owes the closing audit that stamps its last audited score.
+        # Auditing is not promoting, so promotion ineligibility cannot block it
+        # — once the closing audit is recorded, nothing further is due.
+        if retirement.get("closing_audit") is not None:
+            blocked = "retired board has already recorded its closing audit"
+    elif not group.enabled or not group.promotion_eligible:
         blocked = "workload group is not enabled and promotion eligible"
-    elif gate_policy.get("require_rust_oracle") is not True:
+    if blocked is None and gate_policy.get("require_rust_oracle") is not True:
         blocked = "workload gate policy does not require the pinned oracle"
 
     if due.direct_audit_due:
@@ -537,10 +547,12 @@ def append_signed(repo: Path, bundle: dict) -> int:
     existing = ledger.ledger_path(repo).read_text()
     proposed = existing + "".join(ledger.serialize_row(row) + "\n" for row in rows)
     parsed = ledger.parse(proposed)
-    epoch_spec = ledger.known_epochs(repo)[int(bundle["epoch"])]
-    policy = metrics.policy_from_epoch(epoch_spec)
     touched = {(row["board"], row["workload_class"]) for row in rows}
-    for board, workload_class in touched:
+    for board, workload_class in sorted(touched):
+        # Replay each touched cell under ITS board's era policy (TRACKS §7).
+        policy = metrics.policy_from_epoch(
+            ledger.epoch_for_board(repo, int(bundle["epoch"]), board)
+        )
         metrics.score_class(
             parsed,
             int(bundle["epoch"]),

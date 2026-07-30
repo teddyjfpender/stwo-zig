@@ -7,6 +7,10 @@ This gate enforces true bidirectional exchange for the `blake`, `plonk`,
 2. Zig-generated proof artifact verifies in Rust.
 3. Tampered artifacts are rejected in both directions.
 
+The exact upstream Plonk/LogUp protocol is additionally gated Zig-to-Rust:
+the production Native CPU CLI generates the proof and pinned Rust Stwo
+independently accepts it and rejects statement, shape, and proof mutations.
+
 A machine-readable report is emitted under vectors/reports/.
 """
 
@@ -32,20 +36,26 @@ except ModuleNotFoundError:
 try:
     from e2e_interop_lib import (
         ACTIVE_MUTATIONS,
+        PLONK_LOGUP_ORACLE_MUTATIONS,
         archive_receipt,
         collect_provenance,
         coverage_manifest,
         mutate_artifact,
+        plonk_logup_oracle_coverage_manifest,
+        mutations_for_example,
         register_artifact,
     )
     from interop_cli_lib.command import build_command, installed_binary
 except ModuleNotFoundError:
     from scripts.e2e_interop_lib import (
         ACTIVE_MUTATIONS,
+        PLONK_LOGUP_ORACLE_MUTATIONS,
         archive_receipt,
         collect_provenance,
         coverage_manifest,
         mutate_artifact,
+        plonk_logup_oracle_coverage_manifest,
+        mutations_for_example,
         register_artifact,
     )
     from scripts.interop_cli_lib.command import build_command, installed_binary
@@ -227,11 +237,39 @@ def classify_rejection(
         "statement not satisfied",
         "invalidproofshape",
         "invalid proof shape",
+        "invalidlogsize",
+        "invalid log size",
+        "invalid statement shape",
+        "invalid state_machine statement",
+        "invalid plonk_logup log_n_rows",
+        "invalidclaimedsum",
+        "claimedsummismatch",
+        "invalid xor claimed_sum",
+        "proofofwork",
+        "invalidstructure", "shapemismatch",
+        "emptysampledset", "emptytrees",
+        "invalidpreprocessedtree", "querypositionoutofrange",
+        "columnindexoutofbounds", "divisionbyzero",
+        "degenerateline", "noncanonical",
+        "nonuniquexcoordinates", "invalidevaluationlength",
+        "invalidnumfrilayers", "firstlayerevaluationsinvalid",
+        "firstlayercommitmentinvalid", "innerlayercommitmentinvalid",
+        "innerlayerevaluationsinvalid", "lastlayerdegreeinvalid",
+        "lastlayerevaluationsinvalid", "witnesstoolong",
+        "rootmismatch", "root mismatch",
+        "invalidqueryshape", "duplicatequerymismatch",
+        "evaluations are invalid in the first layer",
+        "queries do not resolve to their commitment in the first layer",
+        "queries do not resolve to their commitment in inner layer",
+        "evaluations are invalid in inner layer",
+        "degree of last layer is invalid",
+        "evaluations in the last layer are invalid",
         "proofconfigmismatch",
         "proof pcs config does not match artifact pcs config",
         "deep-ali",
         "verify failed",
         "verification failed",
+        "oods evaluation does not match",
         "not matching",
         "witnesstooshort",
         "merkleverificationerror",
@@ -299,9 +337,11 @@ def run_negative_matrix(
     artifact_dir: Path,
     all_steps: list[dict[str, Any]],
     artifact_records: list[dict[str, Any]],
+    mutations: tuple[Any, ...] | None = None,
 ) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
-    for spec in ACTIVE_MUTATIONS:
+    applicable = mutations if mutations is not None else mutations_for_example(example)
+    for spec in applicable:
         mutated = artifact_dir / f"{example}_{direction}_{spec.mutation_id}_tampered.json"
         mutate_artifact(source_artifact, mutated, spec, example=example)
         record = register_artifact(
@@ -341,6 +381,73 @@ def run_negative_matrix(
     return results
 
 
+def run_plonk_logup_oracle_case(
+    *,
+    artifact_dir: Path,
+    native_cpu_binary: Path,
+    rust_binary: Path,
+    all_steps: list[dict[str, Any]],
+    artifact_records: list[dict[str, Any]],
+) -> dict[str, Any]:
+    example = "plonk_logup"
+    direction = "zig_to_rust"
+    artifact = artifact_dir / f"{example}_{direction}.json"
+    prepare_generated_artifact(artifact)
+    run_step(
+        name=f"{example}_zig_generate",
+        cmd=[
+            str(native_cpu_binary),
+            "prove",
+            "--example",
+            example,
+            "--log-n-rows",
+            "4",
+            "--protocol",
+            "smoke",
+            "--output",
+            str(artifact),
+        ],
+        steps=all_steps,
+    )
+    assert_artifact_metadata(artifact, expected_generator="zig", example=example)
+    record = register_artifact(
+        artifact,
+        example=example,
+        direction=direction,
+        role="accepted_proof",
+    )
+    artifact_records.append(record)
+    verify_step = run_step(
+        name=f"{example}_{direction}_verify",
+        cmd=runtime_command(rust_binary, mode="verify", artifact=artifact),
+        steps=all_steps,
+    )
+    verify_step["artifact_sha256"] = record["artifact_sha256"]
+    negative_matrix = run_negative_matrix(
+        example=example,
+        direction=direction,
+        source_artifact=artifact,
+        verifier_binary=rust_binary,
+        artifact_dir=artifact_dir,
+        all_steps=all_steps,
+        artifact_records=artifact_records,
+        mutations=PLONK_LOGUP_ORACLE_MUTATIONS,
+    )
+    return {
+        "example": example,
+        "status": "ok",
+        "directions": [
+            {
+                "direction": direction,
+                "artifact": rel(artifact),
+                "artifact_sha256": record["artifact_sha256"],
+                "proof_sha256": record["proof_sha256"],
+                "negative_matrix": negative_matrix,
+            }
+        ],
+    }
+
+
 def run_exchange_direction(
     *,
     example: str,
@@ -354,9 +461,17 @@ def run_exchange_direction(
 ) -> dict[str, Any]:
     artifact = artifact_dir / f"{example}_{direction}.json"
     prepare_generated_artifact(artifact)
+    command = runtime_command(
+        generator_binary,
+        mode="generate",
+        artifact=artifact,
+        example=example,
+    )
+    if example == "blake":
+        command.extend(("--pow-bits", "10"))
     run_step(
         name=f"{example}_{generator}_generate",
-        cmd=runtime_command(generator_binary, mode="generate", artifact=artifact, example=example),
+        cmd=command,
         steps=all_steps,
     )
     assert_artifact_metadata(artifact, expected_generator=generator, example=example)
@@ -442,10 +557,11 @@ def compute_summary(
     *,
     examples: list[str],
     steps: list[dict[str, Any]],
+    include_plonk_logup_oracle: bool = False,
 ) -> dict[str, Any]:
     step_by_name = {str(step.get("name", "")): step for step in steps}
 
-    cases_total = len(examples) * 2
+    cases_total = len(examples) * 2 + int(include_plonk_logup_oracle)
     cases_executed = 0
     cases_passed = 0
     for example in examples:
@@ -459,6 +575,12 @@ def compute_summary(
             cases_executed += 1
             if step.get("status") == "ok":
                 cases_passed += 1
+    if include_plonk_logup_oracle:
+        plonk_logup_step = step_by_name.get("plonk_logup_zig_to_rust_verify")
+        if plonk_logup_step is not None:
+            cases_executed += 1
+            if plonk_logup_step.get("status") == "ok":
+                cases_passed += 1
     cases_failed = cases_executed - cases_passed
 
     tamper_steps = [step for step in steps if step.get("expect_failure")]
@@ -467,13 +589,20 @@ def compute_summary(
         rejection_class = str(step.get("rejection_class", REJECTION_CLASS_OTHER))
         tamper_rejection_counts[rejection_class] = tamper_rejection_counts.get(rejection_class, 0) + 1
 
-    tamper_cases_total = len(examples) * 2 * len(ACTIVE_MUTATIONS)
+    tamper_cases_total = sum(
+        len(mutations_for_example(example)) * 2 for example in examples
+    )
+    if include_plonk_logup_oracle:
+        tamper_cases_total += len(PLONK_LOGUP_ORACLE_MUTATIONS)
     tamper_cases_executed = len(tamper_steps)
     tamper_cases_passed = len([step for step in tamper_steps if step.get("status") == "ok"])
     tamper_cases_failed = tamper_cases_executed - tamper_cases_passed
 
     return {
-        "examples": examples,
+        "examples": [
+            *examples,
+            *(["plonk_logup"] if include_plonk_logup_oracle else []),
+        ],
         "cases_total": cases_total,
         "cases_executed": cases_executed,
         "cases_passed": cases_passed,
@@ -485,6 +614,15 @@ def compute_summary(
         "tamper_rejection_classes": tamper_rejection_counts,
         "steps_total": len(steps),
     }
+
+
+def combined_mutation_coverage(examples: list[str]) -> dict[str, Any]:
+    coverage = coverage_manifest(examples)
+    exact = plonk_logup_oracle_coverage_manifest()
+    coverage["applicable"].extend(exact["applicable"])
+    coverage["not_applicable"].extend(exact["not_applicable"])
+    coverage["required_cases"] += exact["required_cases"]
+    return coverage
 
 
 def parse_args() -> argparse.Namespace:
@@ -576,9 +714,19 @@ def main() -> int:
             cmd=build_command(args.zig_optimize),
             steps=steps,
         )
+        run_step(
+            name="zig_native_cpu_product_build",
+            cmd=["zig", "build", "stwo-native-cpu", f"-Doptimize={args.zig_optimize}"],
+            steps=steps,
+        )
         zig_binary = installed_binary(ROOT)
-        if not zig_binary.is_file() or not rust_binary.is_file():
-            raise RuntimeError("interop build did not produce both exact verifier binaries")
+        native_cpu_binary = (ROOT / "zig-out/bin/stwo-zig-native-cpu").resolve()
+        if (
+            not zig_binary.is_file()
+            or not native_cpu_binary.is_file()
+            or not rust_binary.is_file()
+        ):
+            raise RuntimeError("interop build did not produce every exact verifier binary")
 
         run_step(
             name="zig_interop_proof_wire_test",
@@ -596,11 +744,17 @@ def main() -> int:
             ROOT / "scripts/e2e_interop_lib/evidence.py",
             ROOT / "scripts/e2e_interop_lib/mutations.py",
             ROOT / "src/interop/examples_artifact.zig",
-            ROOT / "src/interop/proof_wire.zig",
+            ROOT / "src/interop/examples_artifact_verifier.zig",
+            ROOT / "src/interop/proof_wire/mod.zig",
+            ROOT / "src/examples/plonk_logup.zig",
+            *list((ROOT / "src/examples/plonk_logup").glob("*.zig")),
+            ROOT / "src/products/native_cpu/app.zig",
+            ROOT / "src/products/native_cpu/cli.zig",
             ROOT / "src/tools/interop/artifact.zig",
             ROOT / "tools/stwo-interop-rs/Cargo.toml",
             ROOT / "tools/stwo-interop-rs/Cargo.lock",
-            *list((ROOT / "tools/stwo-interop-rs/src").glob("*.rs")),
+            *list((ROOT / "tools/stwo-interop-rs/src").rglob("*.rs")),
+            ROOT / "tools/stwo-interop-rs/upstream_blake_provenance.json",
         }
         provenance = collect_provenance(
             root=ROOT,
@@ -608,6 +762,7 @@ def main() -> int:
             upstream_commit=UPSTREAM_COMMIT,
             zig_optimize=args.zig_optimize,
             zig_binary=zig_binary,
+            native_cpu_binary=native_cpu_binary,
             rust_binary=rust_binary,
             gate_sources=gate_sources,
         )
@@ -623,6 +778,15 @@ def main() -> int:
                 artifact_records=artifact_records,
             )
             cases.append(case)
+        cases.append(
+            run_plonk_logup_oracle_case(
+                artifact_dir=artifact_dir,
+                native_cpu_binary=native_cpu_binary,
+                rust_binary=rust_binary,
+                all_steps=steps,
+                artifact_records=artifact_records,
+            )
+        )
 
         status = "ok"
     except Exception as exc:  # pylint: disable=broad-except
@@ -635,8 +799,12 @@ def main() -> int:
         "exchange_mode": EXCHANGE_MODE,
         "upstream_commit": UPSTREAM_COMMIT,
         "rust_toolchain": args.rust_toolchain,
-        "summary": compute_summary(examples=list(args.examples), steps=steps),
-        "mutation_coverage": coverage_manifest(list(args.examples)),
+        "summary": compute_summary(
+            examples=list(args.examples),
+            steps=steps,
+            include_plonk_logup_oracle=True,
+        ),
+        "mutation_coverage": combined_mutation_coverage(list(args.examples)),
         "cases": cases,
         "steps": steps,
         "artifacts": {

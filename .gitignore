@@ -4,6 +4,7 @@ zig-out/
 target/
 tools/stwo-vector-gen/target/
 tools/stwo-interop-rs/target/
+formal/**/.lake/
 
 # Python
 __pycache__/
@@ -14,6 +15,10 @@ __pycache__/
 
 # Metal pipeline archives
 *.metallib.binarchive
+
+# Raw profiler captures may contain environment metadata and credentials.
+*.nsys-rep
+*.ncu-rep
 
 # Judge run products (published signed to the judge-verdicts branch, never tracked)
 judge-out/
@@ -26,3 +31,6 @@ vectors/.profile*
 vectors/reports/*.json
 vectors/reports/interop_artifacts/
 vectors/reports/prove_checkpoints_artifacts/
+
+# Local unattended night-run scratch: prompt, runner, log, report.
+.riscv-night-run/

@@ -1,40 +1,31 @@
 [package]
 name = "stwo-cairo-trace-oracle"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 license = "Apache-2.0"
 publish = false
 
 [package.metadata.canonical-oracle]
 checkpoint-abi = "STWO_CAIRO_BASE_CHECKPOINT_V1"
-stwo-cairo-repository = "https://github.com/teddyjfpender/stwo-cairo"
-stwo-cairo-revision = "dcd5834565b7a26a27a614e353c9c60109ebc1d9"
-stwo-repository = "https://github.com/teddyjfpender/stwo"
-stwo-revision = "3fe684648ff31e55b71525ad689fab7dfbd88880"
+stwo-cairo-repository = "https://github.com/starkware-libs/stwo-cairo"
+stwo-cairo-revision = "82f21252a68ec006d73e299f5bf1ce6d4db0ee78"
+stwo-repository = "https://github.com/starkware-libs/stwo"
+stwo-revision = "7b211edde786775016ef3eecb837a6240d8fe792"
 
 [dependencies]
 anyhow = "1.0"
-cairo-air = { git = "https://github.com/teddyjfpender/stwo-cairo", rev = "dcd5834565b7a26a27a614e353c9c60109ebc1d9" }
-cairo-vm = { version = "3.2.0", default-features = false }
+cairo-air = { git = "https://github.com/starkware-libs/stwo-cairo", rev = "82f21252a68ec006d73e299f5bf1ce6d4db0ee78" }
 hex = "0.4"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.10"
-stwo = { git = "https://github.com/teddyjfpender/stwo", rev = "9d7e3d6fa0fc64a0d143a8b2fcb8ee952f4de8f2", features = ["parallel", "prover"] }
-stwo-cairo-adapter = { git = "https://github.com/teddyjfpender/stwo-cairo", rev = "dcd5834565b7a26a27a614e353c9c60109ebc1d9" }
-stwo-cairo-common = { git = "https://github.com/teddyjfpender/stwo-cairo", rev = "dcd5834565b7a26a27a614e353c9c60109ebc1d9", features = ["prover"] }
-stwo-cairo-prover = { git = "https://github.com/teddyjfpender/stwo-cairo", rev = "dcd5834565b7a26a27a614e353c9c60109ebc1d9" }
+stwo = { git = "https://github.com/starkware-libs/stwo", rev = "7b211edd", features = ["parallel", "prover"] }
+stwo-cairo-adapter = { git = "https://github.com/starkware-libs/stwo-cairo", rev = "82f21252a68ec006d73e299f5bf1ce6d4db0ee78" }
+stwo-cairo-common = { git = "https://github.com/starkware-libs/stwo-cairo", rev = "82f21252a68ec006d73e299f5bf1ce6d4db0ee78" }
+stwo-cairo-prover = { git = "https://github.com/starkware-libs/stwo-cairo", rev = "82f21252a68ec006d73e299f5bf1ce6d4db0ee78" }
 
 [profile.release]
 codegen-units = 1
 lto = "thin"
-
-[replace]
-"https://github.com/teddyjfpender/stwo#stwo@2.2.0" = { git = "https://github.com/teddyjfpender/stwo", rev = "3fe684648ff31e55b71525ad689fab7dfbd88880" }
-"https://github.com/teddyjfpender/stwo#stwo-backend-cuda@2.2.0" = { git = "https://github.com/teddyjfpender/stwo", rev = "3fe684648ff31e55b71525ad689fab7dfbd88880" }
-"https://github.com/teddyjfpender/stwo#stwo-backend-cuda-kernels@0.1.0" = { git = "https://github.com/teddyjfpender/stwo", rev = "3fe684648ff31e55b71525ad689fab7dfbd88880" }
-"https://github.com/teddyjfpender/stwo#stwo-constraint-framework@2.2.0" = { git = "https://github.com/teddyjfpender/stwo", rev = "3fe684648ff31e55b71525ad689fab7dfbd88880" }
-"https://github.com/teddyjfpender/stwo#stwo-air-utils@2.2.0" = { git = "https://github.com/teddyjfpender/stwo", rev = "3fe684648ff31e55b71525ad689fab7dfbd88880" }
-"https://github.com/teddyjfpender/stwo#stwo-air-utils-derive@2.2.0" = { git = "https://github.com/teddyjfpender/stwo", rev = "3fe684648ff31e55b71525ad689fab7dfbd88880" }
 
 [workspace]

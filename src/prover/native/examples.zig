@@ -4,11 +4,13 @@ const std = @import("std");
 const stwo = @import("stwo");
 const config = @import("config.zig");
 const report = @import("report.zig");
+const test_support = @import("examples_test_support.zig");
 
 const artifacts = stwo.interop.examples_artifact;
 const stage_profile = stwo.prover.stage_profile;
 const blake = stwo.examples.blake;
 const plonk = stwo.examples.plonk;
+const plonk_logup = stwo.examples.plonk_logup;
 const poseidon = stwo.examples.poseidon;
 const state_machine = stwo.examples.state_machine;
 const wide_fibonacci = stwo.examples.wide_fibonacci;
@@ -17,6 +19,7 @@ const xor = stwo.examples.xor;
 pub const Geometry = struct {
     trace_log_rows: u32,
     trace_rows: u64,
+    /// Commitments for witness/preprocessed trees before composition.
     committed_trees: u32 = 2,
     committed_columns: u64,
     committed_trace_cells: u64,
@@ -29,6 +32,7 @@ pub fn name(workload: config.Workload) []const u8 {
         .wide_fibonacci => "wide_fibonacci",
         .xor => "xor",
         .plonk => "plonk",
+        .plonk_logup => "plonk_logup",
         .state_machine => "state_machine",
         .blake => "blake",
         .poseidon => "poseidon",
@@ -40,6 +44,7 @@ pub fn parameters(workload: config.Workload) report.WorkloadParameters {
         .wide_fibonacci => |value| .{ .wide_fibonacci = value },
         .xor => |value| .{ .xor = value },
         .plonk => |value| .{ .plonk = value },
+        .plonk_logup => |value| .{ .plonk_logup = value },
         .state_machine => |value| .{ .state_machine = value },
         .blake => |value| .{ .blake = value },
         .poseidon => |value| .{ .poseidon = value },
@@ -64,8 +69,9 @@ pub fn geometry(workload: config.Workload) !Geometry {
             break :blk .{
                 .trace_log_rows = value.log_size,
                 .trace_rows = rows,
-                .committed_columns = 3,
-                .committed_trace_cells = try std.math.mul(u64, rows, 3),
+                .committed_trees = 3,
+                .committed_columns = 15,
+                .committed_trace_cells = try std.math.mul(u64, rows, 15),
                 .native_unit = "xor_rows",
                 .native_units = rows,
             };
@@ -81,25 +87,43 @@ pub fn geometry(workload: config.Workload) !Geometry {
                 .native_units = rows,
             };
         },
+        .plonk_logup => |value| blk: {
+            const rows = @as(u64, 1) << @intCast(value.log_n_rows);
+            break :blk .{
+                .trace_log_rows = value.log_n_rows,
+                .trace_rows = rows,
+                .committed_trees = 3,
+                .committed_columns = 16,
+                .committed_trace_cells = try std.math.mul(u64, rows, 16),
+                .native_unit = "plonk_logup_rows",
+                .native_units = rows,
+            };
+        },
         .state_machine => |value| blk: {
             const rows = @as(u64, 1) << @intCast(value.log_n_rows);
             break :blk .{
                 .trace_log_rows = value.log_n_rows,
                 .trace_rows = rows,
-                .committed_columns = 3,
-                .committed_trace_cells = try std.math.mul(u64, rows, 3),
+                .committed_trees = 3,
+                .committed_columns = 12,
+                .committed_trace_cells = try std.math.mul(u64, rows, 9),
                 .native_unit = "state_transitions",
-                .native_units = rows,
+                .native_units = try std.math.add(u64, rows, rows / 2),
             };
         },
         .blake => |value| blk: {
             const rows = @as(u64, 1) << @intCast(value.log_n_rows);
-            const columns = try std.math.mul(u64, value.n_rounds, 96);
+            const columns = blake.geometry.PREPROCESSED_COLUMNS +
+                blake.geometry.MAIN_COLUMNS +
+                blake.geometry.INTERACTION_COLUMNS;
             break :blk .{
                 .trace_log_rows = value.log_n_rows,
                 .trace_rows = rows,
+                .committed_trees = 3,
                 .committed_columns = columns,
-                .committed_trace_cells = try std.math.mul(u64, rows, columns),
+                .committed_trace_cells = try blake.geometry.committedCells(
+                    value.log_n_rows,
+                ),
                 .native_unit = "blake_round_instances",
                 .native_units = try std.math.mul(u64, rows, value.n_rounds),
             };
@@ -110,11 +134,13 @@ pub fn geometry(workload: config.Workload) !Geometry {
             });
             const rows = @as(u64, 1) << @intCast(log_n_rows);
             const native_units = @as(u64, 1) << @intCast(value.log_n_instances);
+            const columns: u64 = poseidon.N_TRACE_COLUMNS;
             break :blk .{
                 .trace_log_rows = log_n_rows,
                 .trace_rows = rows,
-                .committed_columns = poseidon.N_COLUMNS,
-                .committed_trace_cells = try std.math.mul(u64, rows, poseidon.N_COLUMNS),
+                .committed_trees = 3,
+                .committed_columns = columns,
+                .committed_trace_cells = try std.math.mul(u64, rows, columns),
                 .native_unit = "poseidon_instances",
                 .native_units = native_units,
             };
@@ -136,7 +162,7 @@ pub fn descriptorDigest(
         ) catch unreachable,
         .xor => |value| std.fmt.bufPrint(
             &buffer,
-            "native-proof-workload-v3|example=xor|log_size={d}|log_step={d}|offset={d}",
+            "native-proof-workload-v3|example=xor|log_size={d}|log_step={d}|offset={d}|air_protocol=raw-stwo-xor-lookup-v2",
             .{ value.log_size, value.log_step, value.offset },
         ) catch unreachable,
         .plonk => |value| std.fmt.bufPrint(
@@ -144,9 +170,14 @@ pub fn descriptorDigest(
             "native-proof-workload-v3|example=plonk|log_n_rows={d}",
             .{value.log_n_rows},
         ) catch unreachable,
+        .plonk_logup => |value| std.fmt.bufPrint(
+            &buffer,
+            "native-proof-workload-v3|example=plonk_logup|protocol=raw-stwo-plonk-logup-v1|log_n_rows={d}",
+            .{value.log_n_rows},
+        ) catch unreachable,
         .state_machine => |value| std.fmt.bufPrint(
             &buffer,
-            "native-proof-workload-v3|example=state_machine|log_n_rows={d}|initial_x={d}|initial_y={d}",
+            "native-proof-workload-v3|example=state_machine|log_n_rows={d}|initial_x={d}|initial_y={d}|air_protocol=raw-stwo-state-machine-v2",
             .{ value.log_n_rows, value.initial_x, value.initial_y },
         ) catch unreachable,
         .blake => |value| std.fmt.bufPrint(
@@ -156,8 +187,8 @@ pub fn descriptorDigest(
         ) catch unreachable,
         .poseidon => |value| std.fmt.bufPrint(
             &buffer,
-            "native-proof-workload-v3|example=poseidon|log_n_instances={d}",
-            .{value.log_n_instances},
+            "native-proof-workload-v3|example=poseidon|log_n_instances={d}|air_protocol={s}",
+            .{ value.log_n_instances, poseidon.protocol_name },
         ) catch unreachable,
     };
     const description = std.fmt.bufPrint(
@@ -392,6 +423,76 @@ pub const PlonkSpec = struct {
     }
 };
 
+pub const PlonkLogupSpec = struct {
+    pub const Request = plonk_logup.Request;
+    pub const PreparedInput = plonk_logup.PreparedInput;
+    pub const Statement = plonk_logup.Statement;
+    pub const Proof = plonk_logup.Proof;
+    pub const ProveOutput = plonk_logup.ProveOutput;
+    pub const example_name = "plonk_logup";
+
+    pub fn request(value: config.PlonkLogupParameters) Request {
+        return .{ .log_n_rows = value.log_n_rows };
+    }
+
+    pub fn prepareInput(allocator: std.mem.Allocator, value: Request) !PreparedInput {
+        return plonk_logup.prepareInput(allocator, value);
+    }
+
+    pub fn requiredCircleLog(value: Request, pcs_config: stwo.core.pcs.PcsConfig) !u32 {
+        return plonk_logup.requiredTwiddleCircleLog(value, pcs_config);
+    }
+
+    pub fn provePrepared(
+        comptime Engine: type,
+        session: *const Engine.Session,
+        allocator: std.mem.Allocator,
+        pcs_config: stwo.core.pcs.PcsConfig,
+        prepared: PreparedInput,
+        recorder: ?*stage_profile.Recorder,
+    ) !ProveOutput {
+        return plonk_logup.provePreparedWithSessionAndEngine(
+            Engine,
+            session,
+            allocator,
+            pcs_config,
+            prepared,
+            recorder,
+        );
+    }
+
+    pub fn validateOutputStatement(value: Request, statement: Statement) !void {
+        if (value.log_n_rows != statement.log_n_rows)
+            return error.ProverStatementMismatch;
+    }
+
+    pub fn verify(
+        allocator: std.mem.Allocator,
+        pcs_config: stwo.core.pcs.PcsConfig,
+        statement: Statement,
+        proof: Proof,
+    ) !void {
+        return plonk_logup.verify(allocator, pcs_config, statement, proof);
+    }
+
+    pub fn writeArtifact(
+        allocator: std.mem.Allocator,
+        path: []const u8,
+        pcs_config: stwo.core.pcs.PcsConfig,
+        statement: Statement,
+        proof_bytes: []const u8,
+    ) !void {
+        return artifacts.writeNativeProofArtifact(
+            allocator,
+            path,
+            pcs_config,
+            "prove",
+            .{ .plonk_logup = statement },
+            proof_bytes,
+        );
+    }
+};
+
 pub const StateMachineSpec = struct {
     pub const Request = state_machine.Request;
     pub const PreparedInput = state_machine.PreparedInput;
@@ -479,7 +580,7 @@ pub const StateMachineSpec = struct {
 };
 
 pub const BlakeSpec = struct {
-    pub const Request = blake.Statement;
+    pub const Request = blake.Request;
     pub const PreparedInput = blake.PreparedInput;
     pub const Statement = blake.Statement;
     pub const Proof = blake.Proof;
@@ -517,7 +618,10 @@ pub const BlakeSpec = struct {
     }
 
     pub fn validateOutputStatement(value: Request, statement: Statement) !void {
-        if (!std.meta.eql(value, statement)) return error.ProverStatementMismatch;
+        try blake.exact_input.validate(value);
+        try blake.exact_statement.verify(statement);
+        if (value.log_n_rows != statement.stmt0.log_size)
+            return error.ProverStatementMismatch;
     }
 
     pub fn verify(
@@ -586,7 +690,9 @@ pub const PoseidonSpec = struct {
     }
 
     pub fn validateOutputStatement(value: Request, statement: Statement) !void {
-        if (!std.meta.eql(value, statement)) return error.ProverStatementMismatch;
+        if (value.log_n_instances != statement.log_n_instances) {
+            return error.ProverStatementMismatch;
+        }
     }
 
     pub fn verify(
@@ -627,7 +733,7 @@ test "native proof examples: geometry and descriptors are tagged" {
     } };
     const blake_workload: config.Workload = .{ .blake = .{
         .log_n_rows = 5,
-        .n_rounds = 2,
+        .n_rounds = 10,
     } };
     const poseidon_workload: config.Workload = .{ .poseidon = .{ .log_n_instances = 8 } };
     const wide_geometry = try geometry(wide);
@@ -637,13 +743,25 @@ test "native proof examples: geometry and descriptors are tagged" {
     const blake_geometry = try geometry(blake_workload);
     const poseidon_geometry = try geometry(poseidon_workload);
     try std.testing.expectEqual(@as(u64, 256), wide_geometry.committed_trace_cells);
-    try std.testing.expectEqual(@as(u64, 96), xor_geometry.committed_trace_cells);
+    try std.testing.expectEqual(@as(u64, 480), xor_geometry.committed_trace_cells);
+    try std.testing.expectEqual(@as(u32, 3), xor_geometry.committed_trees);
+    try std.testing.expectEqual(@as(u64, 15), xor_geometry.committed_columns);
     try std.testing.expectEqual(@as(u64, 256), plonk_geometry.committed_trace_cells);
-    try std.testing.expectEqual(@as(u64, 96), state_geometry.committed_trace_cells);
-    try std.testing.expectEqual(@as(u64, 6_144), blake_geometry.committed_trace_cells);
-    try std.testing.expectEqual(@as(u64, 64), blake_geometry.native_units);
+    try std.testing.expectEqual(@as(u32, 3), state_geometry.committed_trees);
+    try std.testing.expectEqual(@as(u64, 12), state_geometry.committed_columns);
+    try std.testing.expectEqual(@as(u64, 288), state_geometry.committed_trace_cells);
+    try std.testing.expectEqual(@as(u64, 48), state_geometry.native_units);
+    try std.testing.expectEqual(@as(u64, 51_846_144), blake_geometry.committed_trace_cells);
+    try std.testing.expectEqual(@as(u64, 320), blake_geometry.native_units);
     try std.testing.expectEqualStrings("blake_round_instances", blake_geometry.native_unit);
-    try std.testing.expectEqual(@as(u64, 40_448), poseidon_geometry.committed_trace_cells);
+    try std.testing.expectEqual(@as(u32, 3), poseidon_geometry.committed_trees);
+    try std.testing.expectEqual(@as(u64, 1_296), poseidon_geometry.committed_columns);
+    try std.testing.expectEqual(@as(u64, 41_472), poseidon_geometry.committed_trace_cells);
+    const blake_admission = try config.admitWorkload(blake_workload, .large);
+    try std.testing.expect(blake_geometry.committed_columns ==
+        blake_admission.geometry.committed_columns);
+    try std.testing.expect(blake_geometry.committed_trace_cells ==
+        blake_admission.geometry.committed_cells);
     try std.testing.expectEqual(@as(u64, 256), poseidon_geometry.native_units);
     try std.testing.expectEqualStrings("poseidon_instances", poseidon_geometry.native_unit);
     try std.testing.expect(!std.mem.eql(
@@ -664,62 +782,63 @@ test "native proof examples: descriptor digests match independent fixed vectors"
     } };
     const blake_workload: config.Workload = .{ .blake = .{
         .log_n_rows = 8,
-        .n_rounds = 2,
+        .n_rounds = 10,
     } };
     const poseidon_workload: config.Workload = .{ .poseidon = .{ .log_n_instances = 13 } };
-    var expected_wide: [32]u8 = undefined;
-    var expected_xor: [32]u8 = undefined;
-    var expected_plonk: [32]u8 = undefined;
-    var expected_state: [32]u8 = undefined;
-    var expected_blake: [32]u8 = undefined;
-    var expected_poseidon: [32]u8 = undefined;
-    _ = try std.fmt.hexToBytes(
-        &expected_wide,
+    try test_support.expectDigest(
+        descriptorDigest(wide, .functional),
         "8586bce9ae8c0673453803b3b65ca8d4fc677638d53e5933e7692af4dd38586f",
     );
-    _ = try std.fmt.hexToBytes(
-        &expected_xor,
-        "b0272044b4e572bf519aa58c00ee3520f2961b409d2ecb67ba86c5760a991c0e",
+    try test_support.expectDigest(
+        descriptorDigest(xor_workload, .functional),
+        "7cc6f69d95db54edac2908b65701c3c3674215f0c83c29db474680bf5a1405db",
     );
-    _ = try std.fmt.hexToBytes(
-        &expected_plonk,
+    try test_support.expectDigest(
+        descriptorDigest(plonk_workload, .functional),
         "8e22d72f97cfe01bdb3fdf94e362160418ca16022db7cdaccacf073e2ef67cee",
     );
-    _ = try std.fmt.hexToBytes(
-        &expected_state,
-        "2aef739c7447cb192da8648b7a4b539ccb86c1f532de7de986287cb89844b8a7",
+    try test_support.expectDigest(
+        descriptorDigest(state_workload, .functional),
+        "90501fb81745fd984bd8186e5750f9b7ff6bf2017b0df4df869f313299b771e9",
     );
-    _ = try std.fmt.hexToBytes(
-        &expected_blake,
-        "bee0efa41b40d2f61fbecccb2096af92ff2bcf6fbbc253a852077d4c95a1830e",
+    try test_support.expectDigest(
+        descriptorDigest(blake_workload, .functional),
+        "5cfebf8c9565c41c67b574454b43de6f36e2a9d9307e7bfb8aec693cdb92f4aa",
     );
-    _ = try std.fmt.hexToBytes(
-        &expected_poseidon,
-        "aa292dd3fce8924260fbf1729589c9cfd93335298c7995bed4f537250527b956",
+    try test_support.expectDigest(
+        descriptorDigest(poseidon_workload, .functional),
+        "bb508f796006fc2b8482e04b0fc941be001c86d05be029600bc3ca8af123c7e3",
     );
-    try std.testing.expectEqualSlices(u8, &expected_wide, &descriptorDigest(wide, .functional));
-    try std.testing.expectEqualSlices(u8, &expected_xor, &descriptorDigest(xor_workload, .functional));
-    try std.testing.expectEqualSlices(u8, &expected_plonk, &descriptorDigest(plonk_workload, .functional));
-    try std.testing.expectEqualSlices(u8, &expected_state, &descriptorDigest(state_workload, .functional));
-    try std.testing.expectEqualSlices(u8, &expected_blake, &descriptorDigest(blake_workload, .functional));
-    try std.testing.expectEqualSlices(u8, &expected_poseidon, &descriptorDigest(poseidon_workload, .functional));
 }
 
 test "native proof examples: Blake output statement is bound to the request" {
-    const request_value = BlakeSpec.request(.{ .log_n_rows = 8, .n_rounds = 2 });
-    try BlakeSpec.validateOutputStatement(request_value, request_value);
+    const request_value = BlakeSpec.request(.{ .log_n_rows = 8, .n_rounds = 10 });
+    const zero = stwo.core.fields.qm31.QM31.zero();
+    const statement: BlakeSpec.Statement = .{
+        .stmt0 = .{ .log_size = request_value.log_n_rows },
+        .stmt1 = .{
+            .scheduler_claimed_sum = zero,
+            .round_claimed_sums = .{ zero, zero },
+            .xor_claimed_sums = .{ zero, zero, zero, zero, zero },
+        },
+    };
+    try BlakeSpec.validateOutputStatement(request_value, statement);
 
-    var wrong_rounds = request_value;
-    wrong_rounds.n_rounds += 1;
+    var wrong_log = statement;
+    wrong_log.stmt0.log_size += 1;
     try std.testing.expectError(
         error.ProverStatementMismatch,
-        BlakeSpec.validateOutputStatement(request_value, wrong_rounds),
+        BlakeSpec.validateOutputStatement(request_value, wrong_log),
     );
 }
 
-test "native proof examples: Poseidon output statement is bound to the request" {
+test "native proof examples: Poseidon output binds geometry and carries generated claim" {
     const request_value = PoseidonSpec.request(.{ .log_n_instances = 8 });
     try PoseidonSpec.validateOutputStatement(request_value, request_value);
+
+    var generated_statement = request_value;
+    generated_statement.claimed_sum = stwo.core.fields.qm31.QM31.one();
+    try PoseidonSpec.validateOutputStatement(request_value, generated_statement);
 
     var wrong_instances = request_value;
     wrong_instances.log_n_instances += 1;

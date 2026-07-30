@@ -4,7 +4,7 @@ const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const pcs_core = @import("stwo_core").pcs;
 const prover_circle = @import("../poly/circle/mod.zig");
-const stage_profile = @import("../stage_profile.zig");
+const stage_profile = @import("stwo_prover_api").stage_profile;
 const vcs_lifted_prover = @import("../vcs_lifted/prover.zig");
 const commitment_tree = @import("commitment_tree.zig");
 const column_preparation = @import("columns/preparation.zig");
@@ -16,6 +16,37 @@ const ColumnEvaluation = commitment_tree.ColumnEvaluation;
 const CoefficientRetentionPolicy = column_storage.CoefficientRetentionPolicy;
 
 const deferred_commit = @import("deferred_commit.zig");
+const merkle_layer_cache = @import("merkle_layer_cache.zig");
+
+/// Re-derives every layer at or above `spot_check_limit` nodes from the layer
+/// below it. A loaded artifact that passes its own integrity digest can still
+/// be internally inconsistent — written by a different revision, or by a
+/// truncated writer that produced a well-formed shorter tree — and this catches
+/// that class without paying for a full rebuild. It is a availability guard,
+/// not a soundness one: an inconsistent tree that slipped through would change
+/// the root, and the root is what the transcript commits to.
+fn topLayersRederive(comptime H: type, layers: []const []H.Hash) bool {
+    const spot_check_limit: usize = 4096;
+    if (layers.len < 2) return false;
+    var index: usize = 0;
+    while (index + 1 < layers.len and layers[index].len <= spot_check_limit) : (index += 1) {
+        const parents = layers[index];
+        const children = layers[index + 1];
+        if (children.len != parents.len * 2) return false;
+        for (parents, 0..) |parent, position| {
+            const recomputed = H.hashChildren(.{
+                .left = children[2 * position],
+                .right = children[2 * position + 1],
+            });
+            if (!std.mem.eql(
+                u8,
+                std.mem.asBytes(&parent),
+                std.mem.asBytes(&recomputed),
+            )) return false;
+        }
+    }
+    return index > 0;
+}
 
 pub fn appendCommittedTree(
     comptime MC: type,
@@ -86,6 +117,7 @@ pub fn TreeBuilder(comptime B: type, comptime H: type, comptime MC: type, compti
                 self.commitment_scheme.config.fri_config.log_blowup_factor,
                 self.commitment_scheme.coefficient_retention_policy,
                 &self.commitment_scheme.twiddle_source,
+                null,
                 null,
             );
             errdefer prepared.deinit(self.allocator);
@@ -232,6 +264,7 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
                 if (batch_retain) CoefficientRetentionPolicy.always else CoefficientRetentionPolicy.never,
                 &self.commitment_scheme.twiddle_source,
                 recorder,
+                null,
             ) catch |err| {
                 column_storage.freeOwnedColumnEvaluations(self.allocator, owned_batch);
                 return err;
@@ -265,6 +298,68 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
             self.allocator.free(prepared.columns);
         }
 
+        /// Describes the tree this commit is about to produce, for an armed
+        /// layer source. Returns null when nothing is armed or the shape is
+        /// outside what an artifact may describe.
+        fn cacheRequest(
+            sorted: []const MerkleProver.ColumnRef,
+            column_log_sizes: []u32,
+        ) ?merkle_layer_cache.Request {
+            if (sorted.len == 0) return null;
+            const log_size = sorted[sorted.len - 1].log_size;
+            if (log_size < 1 or log_size > 30) return null;
+            for (sorted, column_log_sizes) |column, *entry| entry.* = column.log_size;
+            return .{
+                .hasher_tag = @typeName(H),
+                .hash_bytes = @sizeOf(H.Hash),
+                .log_size = log_size,
+                .column_log_sizes = column_log_sizes,
+            };
+        }
+
+        fn loadCachedTree(
+            self: *Self,
+            sorted: []const MerkleProver.ColumnRef,
+        ) ?MerkleProver {
+            const source = merkle_layer_cache.armed() orelse return null;
+            const column_log_sizes = self.allocator.alloc(u32, sorted.len) catch return null;
+            defer self.allocator.free(column_log_sizes);
+            const request = cacheRequest(sorted, column_log_sizes) orelse return null;
+
+            const layers = MerkleProver.allocateLayers(
+                self.allocator,
+                request.log_size,
+            ) catch return null;
+            var adopted = false;
+            defer if (!adopted) MerkleProver.freeLayers(self.allocator, layers);
+
+            const views = self.allocator.alloc([]u8, layers.len) catch return null;
+            defer self.allocator.free(views);
+            for (layers, views) |layer, *view| view.* = std.mem.sliceAsBytes(layer);
+
+            if (!source.load(source.ctx, request, views)) return null;
+            if (!topLayersRederive(H, layers)) return null;
+            adopted = true;
+            return MerkleProver.fromLayers(self.allocator, layers);
+        }
+
+        fn storeCachedTree(
+            self: *Self,
+            sorted: []const MerkleProver.ColumnRef,
+            merkle: MerkleProver,
+        ) void {
+            const source = merkle_layer_cache.armed() orelse return;
+            const column_log_sizes = self.allocator.alloc(u32, sorted.len) catch return;
+            defer self.allocator.free(column_log_sizes);
+            const request = cacheRequest(sorted, column_log_sizes) orelse return;
+            if (merkle.layers.len != @as(usize, request.log_size) + 1) return;
+
+            const views = self.allocator.alloc([]const u8, merkle.layers.len) catch return;
+            defer self.allocator.free(views);
+            for (merkle.layers, views) |layer, *view| view.* = std.mem.sliceAsBytes(layer);
+            source.store(source.ctx, request, views);
+        }
+
         /// Finalize the streaming commitment: build the full Merkle tree from
         /// the accumulated leaf hashes, create a `CommitmentTreeProver`, mix
         /// the root into the channel, and append the tree to the commitment
@@ -278,9 +373,16 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
             const sorted = try MerkleProver.sortColumnsByLogSizeAsc(self.allocator, col_refs);
             defer self.allocator.free(sorted);
 
+            // An armed layer source may supply the tree outright. Its bytes flow
+            // into exactly the pipeline a built tree would, so a wrong load can
+            // only produce a transcript the verifier rejects.
+            const loaded = self.loadCachedTree(sorted);
+
             // Preserve incremental lifted hashing for the dense prefix, while
             // allowing the committer to bypass sparse high-domain expansions.
-            var merkle = try self.streaming_committer.commitColumnsWithSparseTail(sorted);
+            var merkle = loaded orelse
+                try self.streaming_committer.commitColumnsWithSparseTail(sorted);
+            if (loaded == null) self.storeCachedTree(sorted, merkle);
             // streaming_committer is now consumed; reinitialize to safe state for deinit.
             self.streaming_committer = MerkleProver.StreamingCommitter.init(self.allocator);
             errdefer merkle.deinit(self.allocator);

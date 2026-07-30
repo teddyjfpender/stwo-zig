@@ -16,7 +16,7 @@ pub fn validate(artifact: schema.Artifact, release_status: []const u8) !void {
     try requireEqual(artifact.release_status, release_status, error.InvalidReleaseStatus);
     try requireEqual(artifact.generator, schema.GENERATOR, error.UnsupportedGenerator);
     try requireEqual(artifact.air, schema.AIR, error.UnsupportedAir);
-    try requireEqual(artifact.backend, "cpu", error.UnsupportedBackend);
+    if (!isAdmittedBackend(artifact.backend)) return error.UnsupportedBackend;
     if (!isProtocol(artifact.protocol)) return error.UnsupportedProtocol;
     try requireEqual(
         artifact.provenance.oracle_repository,
@@ -234,8 +234,37 @@ fn validatePublicData(public: schema.PublicDataWire) !void {
     if (public.input_len > schema.MAX_IO_BYTES or public.output_len > schema.MAX_IO_BYTES)
         return error.IoLimitExceeded;
     if (public.program_root == null) return error.MissingProgramRoot;
+    if ((public.initial_pc & 3) != 0 or (public.final_pc & 3) != 0)
+        return error.MisalignedProgramCounter;
+    if (public.initial_regs[0] != 0 or public.final_regs[0] != 0)
+        return error.NonZeroX0;
+    switch (public.completion.kind) {
+        .halt_flag => {
+            if ((public.completion.address & 3) != 0 or
+                public.completion.address >= 0x7fff_fffc)
+                return error.InvalidCompletionAddress;
+            if (public.completion.value == 0)
+                return error.InvalidCompletionValue;
+            if (!schema.isAccessClockWithinExecution(
+                public.completion.clock,
+                public.clock,
+                false,
+            ))
+                return error.InvalidCompletionClock;
+        },
+        .unretired_self_loop => {
+            if (public.completion.address != public.final_pc or
+                public.completion.address > 0x3fff_fffc)
+                return error.InvalidCompletionAddress;
+            if (public.completion.value != 0x0000_006f)
+                return error.InvalidCompletionValue;
+            if (public.completion.clock != 0)
+                return error.InvalidCompletionClock;
+        },
+    }
     for (public.reg_last_clock) |clock| {
-        if (clock > public.clock) return error.InvalidRegisterClock;
+        if (!schema.isAccessClockWithinExecution(clock, public.clock, true))
+            return error.InvalidRegisterClock;
     }
 
     const expected_input_words_u32 = std.math.divCeil(u32, public.input_len, 4) catch unreachable;
@@ -297,7 +326,8 @@ fn validatePublicData(public: schema.PublicDataWire) !void {
 }
 
 fn validateOutputClock(clock: u32, final_clock: u32) !void {
-    if (clock == 0 or clock > final_clock) return error.InvalidOutputClock;
+    if (!schema.isAccessClockWithinExecution(clock, final_clock, false))
+        return error.InvalidOutputClock;
 }
 
 fn validateCellBudget(statement: schema.StatementWire) !void {
@@ -402,6 +432,13 @@ fn opcodeLogSize(count: u32) u32 {
 fn computeLogSize(count: u32) u32 {
     if (count <= 1) return 1;
     return @intCast(std.math.log2_int_ceil(u32, count));
+}
+
+fn isAdmittedBackend(backend: []const u8) bool {
+    for (schema.BACKENDS) |admitted| {
+        if (std.mem.eql(u8, backend, admitted)) return true;
+    }
+    return false;
 }
 
 fn isProtocol(value: []const u8) bool {

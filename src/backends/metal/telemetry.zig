@@ -14,15 +14,44 @@ pub const Event = enum {
     metal_fri_line_fold_dispatch,
     metal_fri_fold_commit_epoch,
     metal_qm31_coordinate_dispatch,
+    /// One LogUp relation epoch (`relation.metal`'s fused/scan kernel chain).
+    metal_relation_epoch,
     metal_trace_generation_dispatch,
     metal_trace_generation_synchronization,
     metal_trace_generation_copyback,
+    /// One AIR composition-evaluation epoch dispatched from the composition
+    /// metallib.
+    metal_composition_eval_dispatch,
     cpu_small_merkle_commit,
     cpu_streaming_merkle_commit,
     cpu_sampled_value_evaluation,
     cpu_small_circle_interpolation,
     cpu_small_circle_evaluation,
     cpu_small_circle_lde,
+    /// A composition evaluation that a device path was structurally admitted
+    /// for and then declined — currently only an unauthenticated composition
+    /// metallib. This is NOT recorded for the default host placement of
+    /// composition, which is a placement and not a fallback; recording it there
+    /// would make every hybrid Metal proof report a fallback and would destroy
+    /// the meaning of `accelerated_without_fallbacks`.
+    cpu_composition_evaluation,
+    /// One base-trace commit whose source columns already were the backend's
+    /// contiguous base arena AND whose arena was page-aligned, so the
+    /// coefficient buffer was a `newBufferWithBytesNoCopy` alias of host memory
+    /// and nothing was copied (`circle_legacy.m:229-236`). This is the whole
+    /// point of the trace arena and until now nothing observed it.
+    metal_commit_source_arena_alias,
+    /// One base-trace commit whose source columns were the base arena but whose
+    /// arena missed the page-alignment or page-multiple requirement, so the
+    /// commit paid exactly one `memcpy` per column into a fresh device buffer
+    /// (`circle_legacy.m:324-329`). Still byte-correct, still device-accelerated
+    /// — this is NOT a fallback and is deliberately excluded from
+    /// `cpuFallbackTotal`.
+    metal_commit_source_arena_memcpy,
+    /// One base-trace commit whose source columns were NOT the base arena, i.e.
+    /// the arena was not adopted and the fused-upload/blit encoder ran
+    /// (`circle_legacy.m:267-323`). The pre-arena behaviour.
+    metal_commit_source_upload,
 };
 
 pub const CounterValues = struct {
@@ -36,15 +65,21 @@ pub const CounterValues = struct {
     metal_fri_line_fold_dispatches: u64 = 0,
     metal_fri_fold_commit_epochs: u64 = 0,
     metal_qm31_coordinate_dispatches: u64 = 0,
+    metal_relation_epochs: u64 = 0,
     metal_trace_generation_dispatches: u64 = 0,
     metal_trace_generation_synchronizations: u64 = 0,
     metal_trace_generation_copybacks: u64 = 0,
+    metal_composition_eval_dispatches: u64 = 0,
     cpu_small_merkle_commits: u64 = 0,
     cpu_streaming_merkle_commits: u64 = 0,
     cpu_sampled_value_evaluations: u64 = 0,
     cpu_small_circle_interpolations: u64 = 0,
     cpu_small_circle_evaluations: u64 = 0,
     cpu_small_circle_ldes: u64 = 0,
+    cpu_composition_evaluations: u64 = 0,
+    metal_commit_source_arena_aliases: u64 = 0,
+    metal_commit_source_arena_memcpys: u64 = 0,
+    metal_commit_source_uploads: u64 = 0,
 
     pub fn delta(after: CounterValues, before: CounterValues) CounterValues {
         var result: CounterValues = .{};
@@ -66,7 +101,9 @@ pub const CounterValues = struct {
             self.metal_fri_line_fold_dispatches,
             self.metal_fri_fold_commit_epochs,
             self.metal_qm31_coordinate_dispatches,
+            self.metal_relation_epochs,
             self.metal_trace_generation_dispatches,
+            self.metal_composition_eval_dispatches,
         }) |value| total +|= value;
         return total;
     }
@@ -79,6 +116,7 @@ pub const CounterValues = struct {
             self.cpu_small_circle_interpolations,
             self.cpu_small_circle_evaluations,
             self.cpu_small_circle_ldes,
+            self.cpu_composition_evaluations,
         }) |value| total +|= value;
         return total;
     }
@@ -287,15 +325,21 @@ const CounterBank = struct {
     metal_fri_line_fold_dispatches: AtomicCounter = AtomicCounter.init(0),
     metal_fri_fold_commit_epochs: AtomicCounter = AtomicCounter.init(0),
     metal_qm31_coordinate_dispatches: AtomicCounter = AtomicCounter.init(0),
+    metal_relation_epochs: AtomicCounter = AtomicCounter.init(0),
     metal_trace_generation_dispatches: AtomicCounter = AtomicCounter.init(0),
     metal_trace_generation_synchronizations: AtomicCounter = AtomicCounter.init(0),
     metal_trace_generation_copybacks: AtomicCounter = AtomicCounter.init(0),
+    metal_composition_eval_dispatches: AtomicCounter = AtomicCounter.init(0),
     cpu_small_merkle_commits: AtomicCounter = AtomicCounter.init(0),
     cpu_streaming_merkle_commits: AtomicCounter = AtomicCounter.init(0),
     cpu_sampled_value_evaluations: AtomicCounter = AtomicCounter.init(0),
     cpu_small_circle_interpolations: AtomicCounter = AtomicCounter.init(0),
     cpu_small_circle_evaluations: AtomicCounter = AtomicCounter.init(0),
     cpu_small_circle_ldes: AtomicCounter = AtomicCounter.init(0),
+    cpu_composition_evaluations: AtomicCounter = AtomicCounter.init(0),
+    metal_commit_source_arena_aliases: AtomicCounter = AtomicCounter.init(0),
+    metal_commit_source_arena_memcpys: AtomicCounter = AtomicCounter.init(0),
+    metal_commit_source_uploads: AtomicCounter = AtomicCounter.init(0),
 };
 
 var counter_bank: CounterBank = .{};
@@ -312,17 +356,41 @@ pub fn record(event: Event) void {
         .metal_fri_line_fold_dispatch => &counter_bank.metal_fri_line_fold_dispatches,
         .metal_fri_fold_commit_epoch => &counter_bank.metal_fri_fold_commit_epochs,
         .metal_qm31_coordinate_dispatch => &counter_bank.metal_qm31_coordinate_dispatches,
+        .metal_relation_epoch => &counter_bank.metal_relation_epochs,
         .metal_trace_generation_dispatch => &counter_bank.metal_trace_generation_dispatches,
         .metal_trace_generation_synchronization => &counter_bank.metal_trace_generation_synchronizations,
         .metal_trace_generation_copyback => &counter_bank.metal_trace_generation_copybacks,
+        .metal_composition_eval_dispatch => &counter_bank.metal_composition_eval_dispatches,
         .cpu_small_merkle_commit => &counter_bank.cpu_small_merkle_commits,
         .cpu_streaming_merkle_commit => &counter_bank.cpu_streaming_merkle_commits,
         .cpu_sampled_value_evaluation => &counter_bank.cpu_sampled_value_evaluations,
         .cpu_small_circle_interpolation => &counter_bank.cpu_small_circle_interpolations,
         .cpu_small_circle_evaluation => &counter_bank.cpu_small_circle_evaluations,
         .cpu_small_circle_lde => &counter_bank.cpu_small_circle_ldes,
+        .cpu_composition_evaluation => &counter_bank.cpu_composition_evaluations,
+        .metal_commit_source_arena_alias => &counter_bank.metal_commit_source_arena_aliases,
+        .metal_commit_source_arena_memcpy => &counter_bank.metal_commit_source_arena_memcpys,
+        .metal_commit_source_upload => &counter_bank.metal_commit_source_uploads,
     };
     _ = counter.fetchAdd(1, .monotonic);
+}
+
+/// The `source_binding` code the circle-LDE commit reports back, mapped onto its
+/// counter. The classification is made where the decision is made — inside the
+/// Objective-C commit — and is reported, never re-derived here, so the counter
+/// cannot drift away from the branch it claims to observe.
+pub const CommitSourceBinding = enum(u32) {
+    upload = 0,
+    arena_alias = 1,
+    arena_memcpy = 2,
+};
+
+pub fn recordCommitSourceBinding(code: u32) void {
+    record(switch (std.meta.intToEnum(CommitSourceBinding, code) catch return) {
+        .upload => .metal_commit_source_upload,
+        .arena_alias => .metal_commit_source_arena_alias,
+        .arena_memcpy => .metal_commit_source_arena_memcpy,
+    });
 }
 
 pub fn capture(pipeline_cache: runtime.PipelineCacheStats) Snapshot {
@@ -432,4 +500,92 @@ test "Metal telemetry classification fails closed" {
     try std.testing.expectEqual(Classification.host_only, host.classification());
     try std.testing.expectError(error.NoMetalDispatch, host.requireMetalDispatch());
     try std.testing.expectError(error.NoMetalDispatch, host.requireAcceleratedWithoutFallbacks());
+}
+
+test "relation and composition dispatches count toward the Metal total" {
+    // Before this counter existed, `metalDispatchTotal` summed exactly ten
+    // fields and could not see interaction or composition device work, so a
+    // proof that dispatched only those would have classified as
+    // `no_backend_work` and the zero-fallback gate would have under-reported.
+    const relation = Delta{
+        .counters = .{ .metal_relation_epochs = 3 },
+        .pipeline_cache = .{},
+    };
+    try std.testing.expectEqual(@as(u64, 3), relation.counters.metalDispatchTotal());
+    try std.testing.expectEqual(
+        Classification.accelerated_without_fallbacks,
+        relation.classification(),
+    );
+    try relation.requireAcceleratedWithoutFallbacks();
+
+    const composition = Delta{
+        .counters = .{ .metal_composition_eval_dispatches = 2 },
+        .pipeline_cache = .{},
+    };
+    try std.testing.expectEqual(@as(u64, 2), composition.counters.metalDispatchTotal());
+    try composition.requireAcceleratedWithoutFallbacks();
+}
+
+test "a declined composition device path is a counted fallback" {
+    // The digest-binding fail-closed path records this. A Metal proof that
+    // fell back to the host evaluator because the composition metallib failed
+    // authentication must not be able to claim `accelerated_without_fallbacks`.
+    const declined = Delta{
+        .counters = .{
+            .metal_circle_lde_dispatches = 40,
+            .cpu_composition_evaluations = 1,
+        },
+        .pipeline_cache = .{},
+    };
+    try std.testing.expectEqual(@as(u64, 1), declined.counters.cpuFallbackTotal());
+    try std.testing.expectEqual(
+        Classification.accelerated_with_fallbacks,
+        declined.classification(),
+    );
+    try std.testing.expectError(
+        error.CpuFallbackObserved,
+        declined.requireAcceleratedWithoutFallbacks(),
+    );
+}
+
+test "the new counters leave untouched paths byte-for-byte unchanged" {
+    // Every counter added here defaults to zero, so a report from a path that
+    // does not record them must produce exactly the totals it produced before.
+    // This is the guard that the two new Metal counters and the new CPU
+    // fallback counter cannot move an existing workload's dispatch count.
+    const hybrid = Delta{
+        .counters = .{
+            .resident_merkle_commits = 4,
+            .metal_quotient_dispatches = 1,
+            .metal_sampled_value_dispatches = 1,
+            .metal_circle_transform_dispatches = 2,
+            .metal_circle_lde_dispatches = 40,
+            .metal_fri_circle_fold_dispatches = 10,
+            .metal_fri_line_fold_dispatches = 8,
+            .metal_fri_fold_commit_epochs = 6,
+            .metal_qm31_coordinate_dispatches = 2,
+            .metal_trace_generation_dispatches = 0,
+        },
+        .pipeline_cache = .{},
+    };
+    try std.testing.expectEqual(@as(u64, 74), hybrid.counters.metalDispatchTotal());
+    try std.testing.expectEqual(@as(u64, 0), hybrid.counters.cpuFallbackTotal());
+    try std.testing.expectEqual(
+        Classification.accelerated_without_fallbacks,
+        hybrid.classification(),
+    );
+    try hybrid.requireAcceleratedWithoutFallbacks();
+}
+
+test "every Event maps to a distinct counter" {
+    // A switch in `record` is exhaustive, but two events could still be mapped
+    // to the same counter by a copy-paste. Counting fields against variants
+    // catches that, and catches a counter added without an event.
+    const event_count = std.meta.fields(Event).len;
+    const counter_count = std.meta.fields(CounterValues).len;
+    try std.testing.expectEqual(event_count, counter_count);
+    try std.testing.expectEqual(
+        std.meta.fields(CounterBank).len,
+        std.meta.fields(CounterValues).len,
+    );
 }

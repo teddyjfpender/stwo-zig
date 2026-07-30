@@ -285,11 +285,16 @@ fn productIdsForScope(b: *std.Build, scope: Scope) []const []const u8 {
 pub fn constructorName(constructor: specs.Constructor) []const u8 {
     return switch (constructor) {
         .aggregate => "products/matrix.construct.aggregate",
+        .cairo_cpu => "products/matrix.construct.cairo_cpu",
+        .cairo_cuda => "products/matrix.construct.cairo_cuda",
+        .cairo_metal => "products/matrix.construct.cairo_metal",
         .core => "products/matrix.construct.core",
         .prover => "products/matrix.construct.prover",
         .native_cpu => "products/matrix.construct.native_cpu",
+        .native_cuda => "products/matrix.construct.native_cuda",
         .native_metal => "products/matrix.construct.native_metal",
         .riscv_cpu => "products/matrix.construct.riscv_cpu",
+        .riscv_metal => "products/matrix.construct.riscv_metal",
         .unavailable => "products/matrix.addDeferredProducts",
     };
 }

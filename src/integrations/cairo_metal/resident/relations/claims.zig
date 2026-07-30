@@ -1,9 +1,9 @@
 //! Canonical relation claimed-sum ordering and schedule validation.
 
 const std = @import("std");
-const arena_plan = @import("../../../../backends/metal/arena_plan.zig");
-const composition_bundle_mod = @import("../../../../frontends/cairo/witness/composition_bundle.zig");
-const relation_bundle_mod = @import("../../../../frontends/cairo/witness/relation_bundle.zig");
+const arena_plan = @import("stwo_metal_backend").arena_plan;
+const composition_bundle_mod = @import("stwo_cairo_frontend").witness.composition_bundle;
+const relation_bundle_mod = @import("stwo_cairo_frontend").witness.relation_bundle;
 const schedule_bindings = @import("../../schedule_bindings.zig");
 const Error = @import("../errors.zig").Error;
 

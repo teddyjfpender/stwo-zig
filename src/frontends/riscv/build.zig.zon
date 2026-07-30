@@ -1,0 +1,11 @@
+.{
+    .fingerprint = 0x0dc66c7aa6e159cd,
+    .name = .stwo_riscv_frontend,
+    .version = "0.1.0",
+    .paths = .{"."},
+    .dependencies = .{
+        .stwo_core = .{ .path = "../../core" },
+        .stwo_prover_api = .{ .path = "../../prover_api" },
+        .stwo_prover_engine = .{ .path = "../../prover" },
+    },
+}

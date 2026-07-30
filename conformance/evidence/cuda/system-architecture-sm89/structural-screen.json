@@ -1,0 +1,3298 @@
+{
+  "coverage": {
+    "activation_ready": false,
+    "classes": {
+      "extreme": {
+        "blockers": [],
+        "enabled_workloads": [
+          "extreme_wf_log22x100"
+        ]
+      },
+      "hash_heavy": {
+        "blockers": [
+          {
+            "reason": "Native Blake and Poseidon do not yet emit ProofProgram CUDA packs",
+            "workload_id": "hash_native"
+          }
+        ],
+        "enabled_workloads": []
+      },
+      "irregular": {
+        "blockers": [
+          {
+            "reason": "Native state-machine multi-component CUDA coverage is not release-gated",
+            "workload_id": "irregular_native"
+          }
+        ],
+        "enabled_workloads": []
+      },
+      "latency": {
+        "blockers": [],
+        "enabled_workloads": [
+          "latency_wf_log14x32"
+        ]
+      },
+      "lookup_heavy": {
+        "blockers": [
+          {
+            "reason": "Native Plonk and lookup/LogUp AIRs do not yet emit CUDA packs",
+            "workload_id": "lookup_native"
+          }
+        ],
+        "enabled_workloads": []
+      },
+      "narrow_deep": {
+        "blockers": [],
+        "enabled_workloads": [
+          "narrow_deep_wf_log22x3"
+        ]
+      },
+      "sustained": {
+        "blockers": [
+          {
+            "reason": "The product CLI does not yet admit a randomized mixed-shape proof queue",
+            "workload_id": "mixed_shape_queue"
+          }
+        ],
+        "enabled_workloads": []
+      },
+      "vm": {
+        "blockers": [
+          {
+            "reason": "RISC-V ALU, memory, branch, SHA and Keccak CUDA packs are pending",
+            "workload_id": "vm_portfolio"
+          }
+        ],
+        "enabled_workloads": []
+      },
+      "wide": {
+        "blockers": [],
+        "enabled_workloads": [
+          "wide_wf_log18x37",
+          "wide_wf_log18x73",
+          "wide_wf_log18x128"
+        ]
+      }
+    },
+    "covered_class_count": 4,
+    "missing_classes": [
+      "hash_heavy",
+      "lookup_heavy",
+      "irregular",
+      "vm",
+      "sustained"
+    ],
+    "required_class_count": 9
+  },
+  "generated_at_utc": "2026-07-24T10:39:33.444249+00:00",
+  "headline_eligible": false,
+  "measurement_contract": {
+    "cold_process_samples": 1,
+    "fallback_requirement": "zero CPU fallback attempts and completions",
+    "first_request_samples_per_process": 1,
+    "one_process_runtime_per_session": true,
+    "portfolio_weighting": "equal-weight geometric mean across structural classes",
+    "profiler_replay_is_verdict": false,
+    "proof_requirement": "byte-identical and independently Zig-verified",
+    "regression_ceiling": 1.05,
+    "rounds": 1,
+    "schedule": "candidate_only_diagnostic",
+    "shape_plan_compiled_once_per_process": true,
+    "stage_timing_source": "CUDA events resolved at terminal proof fence",
+    "steady_verified_samples_per_process": 5,
+    "warmups_per_process": 3
+  },
+  "portfolio": {
+    "available": false,
+    "reason": "candidate-only diagnostic; no baseline arm"
+  },
+  "profile": "screen",
+  "provenance": {
+    "binaries": {
+      "candidate": {
+        "path": "/workspace/stwo-zig-cuda-evidence-5111126a/zig-out/bin/stwo-zig-native-cuda",
+        "sha256": "5b8f2e7b7c46cd56d1a1cadb801d4cdf0b576a8a9e5f3e71a04d2aeb1dccffc7"
+      }
+    },
+    "cuda_visible_devices": "0",
+    "host": {
+      "logical_cpu_count": 32,
+      "machine": "x86_64",
+      "release": "6.5.0-44-generic",
+      "system": "Linux"
+    },
+    "repository_commit": "3e453695e6416bbe0ae04558fa6f2cd867cd4ad4",
+    "repository_dirty": false
+  },
+  "schema": "native_cuda_structural_benchmark_v1",
+  "workloads": [
+    {
+      "cold": {
+        "candidate": {
+          "external_wall_ms": {
+            "mad": 0.0,
+            "max": 346.991328,
+            "median": 346.991328,
+            "min": 346.991328
+          },
+          "first_verified_request_ms": {
+            "mad": 0.0,
+            "max": 16.480882,
+            "median": 16.480882,
+            "min": 16.480882
+          },
+          "lifecycle_sum_ms": {
+            "mad": 0.0,
+            "max": 231.666914,
+            "median": 231.666914,
+            "min": 231.666914
+          },
+          "peak_rss_kib": {
+            "mad": 0.0,
+            "max": 119184.0,
+            "median": 119184.0,
+            "min": 119184.0
+          },
+          "runtime_init_ms": {
+            "mad": 0.0,
+            "max": 214.042777,
+            "median": 214.042777,
+            "min": 214.042777
+          },
+          "runtime_teardown_ms": {
+            "mad": 0.0,
+            "max": 0.184949,
+            "median": 0.184949,
+            "min": 0.184949
+          },
+          "shape_prepare_ms": {
+            "mad": 0.0,
+            "max": 0.958306,
+            "median": 0.958306,
+            "min": 0.958306
+          }
+        }
+      },
+      "comparison": null,
+      "profiler_evidence": {
+        "missing": [
+          "launch_gap_and_overlap",
+          "dram_and_l2_traffic",
+          "achieved_bandwidth",
+          "occupancy",
+          "registers_and_spills",
+          "power_and_energy"
+        ],
+        "nsight_compute": null,
+        "nsight_systems": null
+      },
+      "proof_gate": {
+        "all_arms_byte_identical": true,
+        "canonical_bytes": 41840,
+        "canonical_sha256": "57a7d291eb8a103d0e4395c23fd7dc9ab7e9ed2d0f95558835cc6482630f3374",
+        "device": {
+          "driver_version": 13000,
+          "global_memory_bytes": 25250627584,
+          "multiprocessors": 128,
+          "ordinal": 0,
+          "runtime_version": 12080,
+          "sm_major": 8,
+          "sm_minor": 9,
+          "toolkit_version": 12080,
+          "uuid": "3dabce32b71d9cdf6392026267492cb6"
+        },
+        "product_identities": {
+          "candidate": {
+            "aot_manifest": "cuda-authenticated-native-pack-v1",
+            "backend": "cuda",
+            "cpu_features_sha256": "d91f6a4602569b7dd872531ac3bb462ab25647471775f68857eabdb060daa2b7",
+            "cpu_model": "znver2",
+            "dirty_content_sha256": null,
+            "frontend": "native-examples",
+            "identity_sha256": "9efd4f7782066e096adb3b076c448ffbf9d8514fe6f92160128f1aca8e41ce49",
+            "implementation_commit": "5111126a57d035dcaf11628be0d9e7d85123be27",
+            "implementation_dirty": false,
+            "implementation_repository": "https://github.com/teddyjfpender/stwo-zig",
+            "implementation_tree": "905cdee69c4b372cfc921715bded950f18ba8091",
+            "name": "stwo-native-cuda",
+            "optimize": "ReleaseFast",
+            "protocol_features": "native-wide-fibonacci-v1+cuda-resident-proof-v1+explicit-toolchain-v1",
+            "protocol_manifest_sha256": "a89a42acdf673f45bac7e484c1034ce957db54ca1c4c9309cadb479e7abea332",
+            "role": "cli",
+            "runtime_manifest": "cuda-process-runtime-v1",
+            "schema_version": 2,
+            "sdk_manifest": "cuda-explicit-toolchain-v1",
+            "target_abi": "gnu",
+            "target_arch": "x86_64",
+            "target_os": "linux",
+            "zig_version": "0.15.2"
+          }
+        },
+        "program_sha256": "56634baeb9b5206f08da7e3ec7b885b824301b4903555d117245d80d0aff3bd9"
+      },
+      "sessions": [
+        {
+          "arm": "candidate",
+          "metrics": {
+            "first_request": {
+              "device_ms": 14.864192,
+              "resident_ms": 15.005128,
+              "verified_ms": 16.482502
+            },
+            "mechanism": {
+              "all_stages_complete_once": true,
+              "aot": {
+                "build_identity_sha256": "3663ea56ea97b16f3ac1559705a5475606afbc85a3536c309ed1bdff0d14b3f0",
+                "cache_hits": 8,
+                "entries": 1,
+                "launch_failures": 0,
+                "launches": 9,
+                "loads": 1,
+                "misses": 0
+              },
+              "cpu_fallback_attempts": 0,
+              "cpu_fallbacks_completed": 0,
+              "d2d_bytes": 1212,
+              "device_elapsed_ns": 2064512,
+              "device_timing_intervals": 10,
+              "graph_launches": 0,
+              "h2d_bytes": 136332,
+              "kernel_launches": 344,
+              "peak_live_bytes": 18059332,
+              "plan": {
+                "cache_key_sha256": "e085ef35afbbc252f1d9301c6f35de023a08d2905598fc103d1813c04960c501",
+                "compiled_once": true,
+                "node_count": 8,
+                "persistent_bytes": 0,
+                "predicted_minimum_launches": 21,
+                "program_sha256": "56634baeb9b5206f08da7e3ec7b885b824301b4903555d117245d80d0aff3bd9",
+                "request_bytes": 18059332,
+                "reuse_count": 9,
+                "schedule_version": 1,
+                "transcript_barriers": 40
+              },
+              "pool_reserved_bytes": 33554432,
+              "pool_used_bytes": 0,
+              "resident": true,
+              "strict_aot": true,
+              "sync_calls": 1,
+              "terminal_d2h_bytes": 96168,
+              "terminal_d2h_operations": 1
+            },
+            "proof": {
+              "artifact_bytes": 84232,
+              "artifact_sha256": "d32393fe3b1f9abbc4795d87c3b3316e06111f014ec30f0635f13ec0ff0587f9",
+              "canonical_bytes": 41840,
+              "canonical_sha256": "57a7d291eb8a103d0e4395c23fd7dc9ab7e9ed2d0f95558835cc6482630f3374"
+            },
+            "raw_repetition": {
+              "all_canonical_bytes_identical": true,
+              "count": 9,
+              "device_elapsed_ns": [
+                14864192,
+                2090144,
+                2066592,
+                2065504,
+                2062784,
+                2062144,
+                2063232,
+                2060064,
+                2064512
+              ],
+              "independent_verification_ns": [
+                760297,
+                270099,
+                210069,
+                211469,
+                215259,
+                222099,
+                207499,
+                236989,
+                211599
+              ],
+              "persistent_session": true,
+              "resident_prove_ns": [
+                15005128,
+                2163611,
+                2119261,
+                2115831,
+                2112891,
+                2112941,
+                2115131,
+                2110871,
+                2114961
+              ],
+              "runtime_proof_indices": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9
+              ],
+              "stable_launch_topology": true,
+              "terminal_decode_ns": [
+                716667,
+                381988,
+                314929,
+                304259,
+                385079,
+                306159,
+                337879,
+                303879,
+                306259
+              ],
+              "verified_request_ns": [
+                16482502,
+                2817778,
+                2645869,
+                2632989,
+                2714849,
+                2642619,
+                2661959,
+                2653269,
+                2634199
+              ],
+              "zero_final_pool_usage": true
+            },
+            "resources": {
+              "cycles_elapsed": null,
+              "instructions_retired": null,
+              "measurement": "gnu_usr_bin_time_v_v1",
+              "measurement_locale": "C",
+              "normalized_unit": "KiB",
+              "peak_memory_footprint_bytes": null,
+              "peak_rss_kib": 120096
+            },
+            "stage_ms_last_steady_sample": {
+              "constraint_evaluation": 0.2048,
+              "decommit": 0.463872,
+              "fri_commit": 0.78848,
+              "ingress": 0.131424,
+              "oods": 0.063488,
+              "pow": 0.026624,
+              "proof_assembly": 0.07248,
+              "quotient": 0.044032,
+              "total": 2.064512,
+              "trace_commit": 0.258048,
+              "trace_generation": 0.011264
+            },
+            "steady": {
+              "device_committed_mcells_per_second": 254.16524464025318,
+              "device_critical_path_ms": {
+                "mad": 0.000640000000000196,
+                "max": 2.064512,
+                "median": 2.062784,
+                "min": 2.060064
+              },
+              "device_row_mhz": 7.942663895007912,
+              "host_gap_ms": {
+                "mad": 0.0003480000000000011,
+                "max": 0.051899,
+                "median": 0.050797,
+                "min": 0.050107
+              },
+              "independent_verification_ms": {
+                "mad": 0.006839999999999985,
+                "max": 0.236989,
+                "median": 0.215259,
+                "min": 0.207499
+              },
+              "resident_committed_mcells_per_second": 248.13186927604698,
+              "resident_ms": {
+                "mad": 0.0020199999999999108,
+                "max": 2.115131,
+                "median": 2.112941,
+                "min": 2.110871
+              },
+              "resident_row_mhz": 7.754120914876468,
+              "terminal_decode_ms": {
+                "mad": 0.0023799999999999932,
+                "max": 0.385079,
+                "median": 0.306259,
+                "min": 0.303879
+              },
+              "verified_committed_mcells_per_second": 197.60077097346706,
+              "verified_ms": {
+                "mad": 0.010650000000000048,
+                "max": 2.714849,
+                "median": 2.653269,
+                "min": 2.634199
+              },
+              "verified_row_mhz": 6.175024092920846
+            }
+          },
+          "order_index": 0,
+          "raw": {
+            "aot": {
+              "build_identity_sha256": "3663ea56ea97b16f3ac1559705a5475606afbc85a3536c309ed1bdff0d14b3f0",
+              "cache_hits": 8,
+              "entries": 1,
+              "launch_failures": 0,
+              "launches": 9,
+              "loads": 1,
+              "misses": 0
+            },
+            "arm": "candidate",
+            "command": [
+              "/workspace/stwo-zig-cuda-evidence-5111126a/zig-out/bin/stwo-zig-native-cuda",
+              "prove",
+              "--air",
+              "wide_fibonacci",
+              "--backend",
+              "cuda",
+              "--protocol",
+              "raw-stwo-wide-v1",
+              "--log-n-rows",
+              "14",
+              "--sequence-len",
+              "32",
+              "--output",
+              "/tmp/cuda-structural-screen-3e453695.artifacts/latency_wf_log14x32/steady/000-candidate/proof-artifact.json",
+              "--report-out",
+              "/tmp/cuda-structural-screen-3e453695.artifacts/latency_wf_log14x32/steady/000-candidate/product-report.json",
+              "--repeat",
+              "9"
+            ],
+            "device": {
+              "driver_version": 13000,
+              "global_memory_bytes": 25250627584,
+              "multiprocessors": 128,
+              "ordinal": 0,
+              "runtime_version": 12080,
+              "sm_major": 8,
+              "sm_minor": 9,
+              "toolkit_version": 12080,
+              "uuid": "3dabce32b71d9cdf6392026267492cb6"
+            },
+            "device_stage_timing_ns": {
+              "constraint_evaluation": 204800,
+              "decommit": 463872,
+              "fri_commit": 788480,
+              "ingress": 131424,
+              "oods": 63488,
+              "pow": 26624,
+              "proof_assembly": 72480,
+              "quotient": 44032,
+              "total": 2064512,
+              "trace_commit": 258048,
+              "trace_generation": 11264
+            },
+            "external_wall_ns": 319986299,
+            "ordinal": 0,
+            "phase": "steady",
+            "plan": {
+              "cache_key_sha256": "e085ef35afbbc252f1d9301c6f35de023a08d2905598fc103d1813c04960c501",
+              "compiled_once": true,
+              "node_count": 8,
+              "persistent_bytes": 0,
+              "predicted_minimum_launches": 21,
+              "program_sha256": "56634baeb9b5206f08da7e3ec7b885b824301b4903555d117245d80d0aff3bd9",
+              "request_bytes": 18059332,
+              "reuse_count": 9,
+              "schedule_version": 1,
+              "transcript_barriers": 40
+            },
+            "product_identity": {
+              "aot_manifest": "cuda-authenticated-native-pack-v1",
+              "backend": "cuda",
+              "cpu_features_sha256": "d91f6a4602569b7dd872531ac3bb462ab25647471775f68857eabdb060daa2b7",
+              "cpu_model": "znver2",
+              "dirty_content_sha256": null,
+              "frontend": "native-examples",
+              "identity_sha256": "9efd4f7782066e096adb3b076c448ffbf9d8514fe6f92160128f1aca8e41ce49",
+              "implementation_commit": "5111126a57d035dcaf11628be0d9e7d85123be27",
+              "implementation_dirty": false,
+              "implementation_repository": "https://github.com/teddyjfpender/stwo-zig",
+              "implementation_tree": "905cdee69c4b372cfc921715bded950f18ba8091",
+              "name": "stwo-native-cuda",
+              "optimize": "ReleaseFast",
+              "protocol_features": "native-wide-fibonacci-v1+cuda-resident-proof-v1+explicit-toolchain-v1",
+              "protocol_manifest_sha256": "a89a42acdf673f45bac7e484c1034ce957db54ca1c4c9309cadb479e7abea332",
+              "role": "cli",
+              "runtime_manifest": "cuda-process-runtime-v1",
+              "schema_version": 2,
+              "sdk_manifest": "cuda-explicit-toolchain-v1",
+              "target_abi": "gnu",
+              "target_arch": "x86_64",
+              "target_os": "linux",
+              "zig_version": "0.15.2"
+            },
+            "proof": {
+              "artifact_bytes": 84232,
+              "artifact_sha256": "d32393fe3b1f9abbc4795d87c3b3316e06111f014ec30f0635f13ec0ff0587f9",
+              "canonical_bytes": 41840,
+              "canonical_sha256": "57a7d291eb8a103d0e4395c23fd7dc9ab7e9ed2d0f95558835cc6482630f3374"
+            },
+            "repetition": {
+              "all_canonical_bytes_identical": true,
+              "count": 9,
+              "device_elapsed_ns": [
+                14864192,
+                2090144,
+                2066592,
+                2065504,
+                2062784,
+                2062144,
+                2063232,
+                2060064,
+                2064512
+              ],
+              "independent_verification_ns": [
+                760297,
+                270099,
+                210069,
+                211469,
+                215259,
+                222099,
+                207499,
+                236989,
+                211599
+              ],
+              "persistent_session": true,
+              "resident_prove_ns": [
+                15005128,
+                2163611,
+                2119261,
+                2115831,
+                2112891,
+                2112941,
+                2115131,
+                2110871,
+                2114961
+              ],
+              "runtime_proof_indices": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9
+              ],
+              "stable_launch_topology": true,
+              "terminal_decode_ns": [
+                716667,
+                381988,
+                314929,
+                304259,
+                385079,
+                306159,
+                337879,
+                303879,
+                306259
+              ],
+              "verified_request_ns": [
+                16482502,
+                2817778,
+                2645869,
+                2632989,
+                2714849,
+                2642619,
+                2661959,
+                2653269,
+                2634199
+              ],
+              "zero_final_pool_usage": true
+            },
+            "report_sha256": "8d4aad82021983e8bd581ccfe293ccb93e17ecf5b50f67735ab1a6e08ec23636",
+            "residency": {
+              "all_stages_complete_once": true,
+              "cpu_fallback_attempts": 0,
+              "cpu_fallbacks_completed": 0,
+              "d2d_bytes": 1212,
+              "device_elapsed_ns": 2064512,
+              "device_timing_intervals": 10,
+              "graph_launches": 0,
+              "h2d_bytes": 136332,
+              "kernel_launches": 344,
+              "peak_live_bytes": 18059332,
+              "pool_reserved_bytes": 33554432,
+              "pool_used_bytes": 0,
+              "resident": true,
+              "strict_aot": true,
+              "sync_calls": 1,
+              "terminal_d2h_bytes": 96168,
+              "terminal_d2h_operations": 1
+            },
+            "resources": {
+              "cycles_elapsed": null,
+              "instructions_retired": null,
+              "measurement": "gnu_usr_bin_time_v_v1",
+              "measurement_locale": "C",
+              "normalized_unit": "KiB",
+              "peak_memory_footprint_bytes": null,
+              "peak_rss_kib": 120096
+            },
+            "stderr_sha256": "d3b6d535268f91bdb315017e35fde3c1983447254676d4c5a0606223da8cd55d",
+            "stdout_sha256": "bf8a6a726a992b4a5286588f062cf2e5e46fdb52c559dc5e983afa20bd350740",
+            "timing_ns": {
+              "independent_verification": 760297,
+              "resident_prove": 15005128,
+              "runtime_init": 176216173,
+              "runtime_teardown": 185219,
+              "shape_prepare": 996626,
+              "terminal_decode": 716667,
+              "total_before_publication": 224248665,
+              "verified_request": 16482502
+            }
+          },
+          "round": 0
+        }
+      ],
+      "statement": {
+        "log_n_rows": 14,
+        "sequence_len": 32,
+        "trace_cells": 524288,
+        "trace_rows": 16384
+      },
+      "structural_class": "latency",
+      "workload_id": "latency_wf_log14x32"
+    },
+    {
+      "cold": {
+        "candidate": {
+          "external_wall_ms": {
+            "mad": 0.0,
+            "max": 496.379341,
+            "median": 496.379341,
+            "min": 496.379341
+          },
+          "first_verified_request_ms": {
+            "mad": 0.0,
+            "max": 81.269035,
+            "median": 81.269035,
+            "min": 81.269035
+          },
+          "lifecycle_sum_ms": {
+            "mad": 0.0,
+            "max": 385.964768,
+            "median": 385.964768,
+            "min": 385.964768
+          },
+          "peak_rss_kib": {
+            "mad": 0.0,
+            "max": 152636.0,
+            "median": 152636.0,
+            "min": 152636.0
+          },
+          "runtime_init_ms": {
+            "mad": 0.0,
+            "max": 176.554572,
+            "median": 176.554572,
+            "min": 176.554572
+          },
+          "runtime_teardown_ms": {
+            "mad": 0.0,
+            "max": 57.781942,
+            "median": 57.781942,
+            "min": 57.781942
+          },
+          "shape_prepare_ms": {
+            "mad": 0.0,
+            "max": 70.359219,
+            "median": 70.359219,
+            "min": 70.359219
+          }
+        }
+      },
+      "comparison": null,
+      "profiler_evidence": {
+        "missing": [
+          "launch_gap_and_overlap",
+          "dram_and_l2_traffic",
+          "achieved_bandwidth",
+          "occupancy",
+          "registers_and_spills",
+          "power_and_energy"
+        ],
+        "nsight_compute": null,
+        "nsight_systems": null
+      },
+      "proof_gate": {
+        "all_arms_byte_identical": true,
+        "canonical_bytes": 84643,
+        "canonical_sha256": "f7afc599abfc1a20d95899caf0d7439ccd26104eb223648e85a1509ee4be934a",
+        "device": {
+          "driver_version": 13000,
+          "global_memory_bytes": 25250627584,
+          "multiprocessors": 128,
+          "ordinal": 0,
+          "runtime_version": 12080,
+          "sm_major": 8,
+          "sm_minor": 9,
+          "toolkit_version": 12080,
+          "uuid": "3dabce32b71d9cdf6392026267492cb6"
+        },
+        "product_identities": {
+          "candidate": {
+            "aot_manifest": "cuda-authenticated-native-pack-v1",
+            "backend": "cuda",
+            "cpu_features_sha256": "d91f6a4602569b7dd872531ac3bb462ab25647471775f68857eabdb060daa2b7",
+            "cpu_model": "znver2",
+            "dirty_content_sha256": null,
+            "frontend": "native-examples",
+            "identity_sha256": "9efd4f7782066e096adb3b076c448ffbf9d8514fe6f92160128f1aca8e41ce49",
+            "implementation_commit": "5111126a57d035dcaf11628be0d9e7d85123be27",
+            "implementation_dirty": false,
+            "implementation_repository": "https://github.com/teddyjfpender/stwo-zig",
+            "implementation_tree": "905cdee69c4b372cfc921715bded950f18ba8091",
+            "name": "stwo-native-cuda",
+            "optimize": "ReleaseFast",
+            "protocol_features": "native-wide-fibonacci-v1+cuda-resident-proof-v1+explicit-toolchain-v1",
+            "protocol_manifest_sha256": "a89a42acdf673f45bac7e484c1034ce957db54ca1c4c9309cadb479e7abea332",
+            "role": "cli",
+            "runtime_manifest": "cuda-process-runtime-v1",
+            "schema_version": 2,
+            "sdk_manifest": "cuda-explicit-toolchain-v1",
+            "target_abi": "gnu",
+            "target_arch": "x86_64",
+            "target_os": "linux",
+            "zig_version": "0.15.2"
+          }
+        },
+        "program_sha256": "31db60cb1bf60217b50098a895957490b1b05918b4bb8d0076678390f4dd6fd4"
+      },
+      "sessions": [
+        {
+          "arm": "candidate",
+          "metrics": {
+            "first_request": {
+              "device_ms": 78.97389,
+              "resident_ms": 79.207673,
+              "verified_ms": 81.153015
+            },
+            "mechanism": {
+              "all_stages_complete_once": true,
+              "aot": {
+                "build_identity_sha256": "3663ea56ea97b16f3ac1559705a5475606afbc85a3536c309ed1bdff0d14b3f0",
+                "cache_hits": 8,
+                "entries": 1,
+                "launch_failures": 0,
+                "launches": 9,
+                "loads": 1,
+                "misses": 0
+              },
+              "cpu_fallback_attempts": 0,
+              "cpu_fallbacks_completed": 0,
+              "d2d_bytes": 1004,
+              "device_elapsed_ns": 58005665,
+              "device_timing_intervals": 10,
+              "graph_launches": 0,
+              "h2d_bytes": 33560832,
+              "kernel_launches": 598,
+              "peak_live_bytes": 2818785536,
+              "plan": {
+                "cache_key_sha256": "5d8642074265f565e43488d56fcf424f13933e6dbb30a751d478ed45bef50649",
+                "compiled_once": true,
+                "node_count": 8,
+                "persistent_bytes": 0,
+                "predicted_minimum_launches": 29,
+                "program_sha256": "31db60cb1bf60217b50098a895957490b1b05918b4bb8d0076678390f4dd6fd4",
+                "request_bytes": 2818785536,
+                "reuse_count": 9,
+                "schedule_version": 1,
+                "transcript_barriers": 56
+              },
+              "pool_reserved_bytes": 2852126720,
+              "pool_used_bytes": 0,
+              "resident": true,
+              "strict_aot": true,
+              "sync_calls": 1,
+              "terminal_d2h_bytes": 208156,
+              "terminal_d2h_operations": 1
+            },
+            "proof": {
+              "artifact_bytes": 169837,
+              "artifact_sha256": "70be93376ecb365385f9f2261d7f14536af95a0d655d871590e03af34c9325cc",
+              "canonical_bytes": 84643,
+              "canonical_sha256": "f7afc599abfc1a20d95899caf0d7439ccd26104eb223648e85a1509ee4be934a"
+            },
+            "raw_repetition": {
+              "all_canonical_bytes_identical": true,
+              "count": 9,
+              "device_elapsed_ns": [
+                78973890,
+                60104417,
+                59736129,
+                58078271,
+                57982977,
+                58004864,
+                57972255,
+                57950016,
+                58005665
+              ],
+              "independent_verification_ns": [
+                991566,
+                427898,
+                391119,
+                387339,
+                382558,
+                386999,
+                388329,
+                396309,
+                382878
+              ],
+              "persistent_session": true,
+              "resident_prove_ns": [
+                79207673,
+                60206222,
+                59854793,
+                58196570,
+                58102479,
+                58123130,
+                58096380,
+                58087531,
+                58126061
+              ],
+              "runtime_proof_indices": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9
+              ],
+              "stable_launch_topology": true,
+              "terminal_decode_ns": [
+                953386,
+                717077,
+                647767,
+                646537,
+                656318,
+                657777,
+                638637,
+                621637,
+                619547
+              ],
+              "verified_request_ns": [
+                81153015,
+                61356827,
+                60899779,
+                59236266,
+                59147835,
+                59174076,
+                59129116,
+                59111187,
+                59134836
+              ],
+              "zero_final_pool_usage": true
+            },
+            "resources": {
+              "cycles_elapsed": null,
+              "instructions_retired": null,
+              "measurement": "gnu_usr_bin_time_v_v1",
+              "measurement_locale": "C",
+              "normalized_unit": "KiB",
+              "peak_memory_footprint_bytes": null,
+              "peak_rss_kib": 152800
+            },
+            "stage_ms_last_steady_sample": {
+              "constraint_evaluation": 30.471169,
+              "decommit": 0.886784,
+              "fri_commit": 6.009856,
+              "ingress": 2.641152,
+              "oods": 0.545792,
+              "pow": 0.0256,
+              "proof_assembly": 0.172256,
+              "quotient": 1.874944,
+              "total": 58.005665,
+              "trace_commit": 15.311872,
+              "trace_generation": 0.06624
+            },
+            "steady": {
+              "device_committed_mcells_per_second": 217.01045118811336,
+              "device_critical_path_ms": {
+                "mad": 0.021886999999999546,
+                "max": 58.005665,
+                "median": 57.982977,
+                "min": 57.950016
+              },
+              "device_row_mhz": 72.33681706270445,
+              "host_gap_ms": {
+                "mad": 0.002130000000000007,
+                "max": 0.137515,
+                "median": 0.120396,
+                "min": 0.118266
+              },
+              "independent_verification_ms": {
+                "mad": 0.004120999999999986,
+                "max": 0.396309,
+                "median": 0.386999,
+                "min": 0.382558
+              },
+              "resident_committed_mcells_per_second": 216.5641159648283,
+              "resident_ms": {
+                "mad": 0.014948000000003958,
+                "max": 58.126061,
+                "median": 58.102479,
+                "min": 58.087531
+              },
+              "resident_row_mhz": 72.18803865494276,
+              "terminal_decode_ms": {
+                "mad": 0.017680999999999947,
+                "max": 0.657777,
+                "median": 0.638637,
+                "min": 0.619547
+              },
+              "verified_committed_mcells_per_second": 212.7834090890182,
+              "verified_ms": {
+                "mad": 0.012999000000000649,
+                "max": 59.174076,
+                "median": 59.134836,
+                "min": 59.111187
+              },
+              "verified_row_mhz": 70.92780302967273
+            }
+          },
+          "order_index": 0,
+          "raw": {
+            "aot": {
+              "build_identity_sha256": "3663ea56ea97b16f3ac1559705a5475606afbc85a3536c309ed1bdff0d14b3f0",
+              "cache_hits": 8,
+              "entries": 1,
+              "launch_failures": 0,
+              "launches": 9,
+              "loads": 1,
+              "misses": 0
+            },
+            "arm": "candidate",
+            "command": [
+              "/workspace/stwo-zig-cuda-evidence-5111126a/zig-out/bin/stwo-zig-native-cuda",
+              "prove",
+              "--air",
+              "wide_fibonacci",
+              "--backend",
+              "cuda",
+              "--protocol",
+              "raw-stwo-wide-v1",
+              "--log-n-rows",
+              "22",
+              "--sequence-len",
+              "3",
+              "--output",
+              "/tmp/cuda-structural-screen-3e453695.artifacts/narrow_deep_wf_log22x3/steady/000-candidate/proof-artifact.json",
+              "--report-out",
+              "/tmp/cuda-structural-screen-3e453695.artifacts/narrow_deep_wf_log22x3/steady/000-candidate/product-report.json",
+              "--repeat",
+              "9"
+            ],
+            "device": {
+              "driver_version": 13000,
+              "global_memory_bytes": 25250627584,
+              "multiprocessors": 128,
+              "ordinal": 0,
+              "runtime_version": 12080,
+              "sm_major": 8,
+              "sm_minor": 9,
+              "toolkit_version": 12080,
+              "uuid": "3dabce32b71d9cdf6392026267492cb6"
+            },
+            "device_stage_timing_ns": {
+              "constraint_evaluation": 30471169,
+              "decommit": 886784,
+              "fri_commit": 6009856,
+              "ingress": 2641152,
+              "oods": 545792,
+              "pow": 25600,
+              "proof_assembly": 172256,
+              "quotient": 1874944,
+              "total": 58005665,
+              "trace_commit": 15311872,
+              "trace_generation": 66240
+            },
+            "external_wall_ns": 961919441,
+            "ordinal": 0,
+            "phase": "steady",
+            "plan": {
+              "cache_key_sha256": "5d8642074265f565e43488d56fcf424f13933e6dbb30a751d478ed45bef50649",
+              "compiled_once": true,
+              "node_count": 8,
+              "persistent_bytes": 0,
+              "predicted_minimum_launches": 29,
+              "program_sha256": "31db60cb1bf60217b50098a895957490b1b05918b4bb8d0076678390f4dd6fd4",
+              "request_bytes": 2818785536,
+              "reuse_count": 9,
+              "schedule_version": 1,
+              "transcript_barriers": 56
+            },
+            "product_identity": {
+              "aot_manifest": "cuda-authenticated-native-pack-v1",
+              "backend": "cuda",
+              "cpu_features_sha256": "d91f6a4602569b7dd872531ac3bb462ab25647471775f68857eabdb060daa2b7",
+              "cpu_model": "znver2",
+              "dirty_content_sha256": null,
+              "frontend": "native-examples",
+              "identity_sha256": "9efd4f7782066e096adb3b076c448ffbf9d8514fe6f92160128f1aca8e41ce49",
+              "implementation_commit": "5111126a57d035dcaf11628be0d9e7d85123be27",
+              "implementation_dirty": false,
+              "implementation_repository": "https://github.com/teddyjfpender/stwo-zig",
+              "implementation_tree": "905cdee69c4b372cfc921715bded950f18ba8091",
+              "name": "stwo-native-cuda",
+              "optimize": "ReleaseFast",
+              "protocol_features": "native-wide-fibonacci-v1+cuda-resident-proof-v1+explicit-toolchain-v1",
+              "protocol_manifest_sha256": "a89a42acdf673f45bac7e484c1034ce957db54ca1c4c9309cadb479e7abea332",
+              "role": "cli",
+              "runtime_manifest": "cuda-process-runtime-v1",
+              "schema_version": 2,
+              "sdk_manifest": "cuda-explicit-toolchain-v1",
+              "target_abi": "gnu",
+              "target_arch": "x86_64",
+              "target_os": "linux",
+              "zig_version": "0.15.2"
+            },
+            "proof": {
+              "artifact_bytes": 169837,
+              "artifact_sha256": "70be93376ecb365385f9f2261d7f14536af95a0d655d871590e03af34c9325cc",
+              "canonical_bytes": 84643,
+              "canonical_sha256": "f7afc599abfc1a20d95899caf0d7439ccd26104eb223648e85a1509ee4be934a"
+            },
+            "repetition": {
+              "all_canonical_bytes_identical": true,
+              "count": 9,
+              "device_elapsed_ns": [
+                78973890,
+                60104417,
+                59736129,
+                58078271,
+                57982977,
+                58004864,
+                57972255,
+                57950016,
+                58005665
+              ],
+              "independent_verification_ns": [
+                991566,
+                427898,
+                391119,
+                387339,
+                382558,
+                386999,
+                388329,
+                396309,
+                382878
+              ],
+              "persistent_session": true,
+              "resident_prove_ns": [
+                79207673,
+                60206222,
+                59854793,
+                58196570,
+                58102479,
+                58123130,
+                58096380,
+                58087531,
+                58126061
+              ],
+              "runtime_proof_indices": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9
+              ],
+              "stable_launch_topology": true,
+              "terminal_decode_ns": [
+                953386,
+                717077,
+                647767,
+                646537,
+                656318,
+                657777,
+                638637,
+                621637,
+                619547
+              ],
+              "verified_request_ns": [
+                81153015,
+                61356827,
+                60899779,
+                59236266,
+                59147835,
+                59174076,
+                59129116,
+                59111187,
+                59134836
+              ],
+              "zero_final_pool_usage": true
+            },
+            "report_sha256": "762931344224445a90d28f5e20f07ec55081d96cc231784db3ed3198300e925d",
+            "residency": {
+              "all_stages_complete_once": true,
+              "cpu_fallback_attempts": 0,
+              "cpu_fallbacks_completed": 0,
+              "d2d_bytes": 1004,
+              "device_elapsed_ns": 58005665,
+              "device_timing_intervals": 10,
+              "graph_launches": 0,
+              "h2d_bytes": 33560832,
+              "kernel_launches": 598,
+              "peak_live_bytes": 2818785536,
+              "pool_reserved_bytes": 2852126720,
+              "pool_used_bytes": 0,
+              "resident": true,
+              "strict_aot": true,
+              "sync_calls": 1,
+              "terminal_d2h_bytes": 208156,
+              "terminal_d2h_operations": 1
+            },
+            "resources": {
+              "cycles_elapsed": null,
+              "instructions_retired": null,
+              "measurement": "gnu_usr_bin_time_v_v1",
+              "measurement_locale": "C",
+              "normalized_unit": "KiB",
+              "peak_memory_footprint_bytes": null,
+              "peak_rss_kib": 152800
+            },
+            "stderr_sha256": "e7c34ea5083c3c9a570823d607c8e0c62ea606625a91dc0c26d2e52a740da191",
+            "stdout_sha256": "4425ed4800919d3c0ddb2438b6dcbe035c7e80bd036bf29259fda9e2d398ada6",
+            "timing_ns": {
+              "independent_verification": 991566,
+              "resident_prove": 79207673,
+              "runtime_init": 172517608,
+              "runtime_teardown": 54003127,
+              "shape_prepare": 70996157,
+              "terminal_decode": 953386,
+              "total_before_publication": 865180549,
+              "verified_request": 81153015
+            }
+          },
+          "round": 0
+        }
+      ],
+      "statement": {
+        "log_n_rows": 22,
+        "sequence_len": 3,
+        "trace_cells": 12582912,
+        "trace_rows": 4194304
+      },
+      "structural_class": "narrow_deep",
+      "workload_id": "narrow_deep_wf_log22x3"
+    },
+    {
+      "cold": {
+        "candidate": {
+          "external_wall_ms": {
+            "mad": 0.0,
+            "max": 305.699958,
+            "median": 305.699958,
+            "min": 305.699958
+          },
+          "first_verified_request_ms": {
+            "mad": 0.0,
+            "max": 22.068899,
+            "median": 22.068899,
+            "min": 22.068899
+          },
+          "lifecycle_sum_ms": {
+            "mad": 0.0,
+            "max": 203.644379,
+            "median": 203.644379,
+            "min": 203.644379
+          },
+          "peak_rss_kib": {
+            "mad": 0.0,
+            "max": 121392.0,
+            "median": 121392.0,
+            "min": 121392.0
+          },
+          "runtime_init_ms": {
+            "mad": 0.0,
+            "max": 170.733085,
+            "median": 170.733085,
+            "min": 170.733085
+          },
+          "runtime_teardown_ms": {
+            "mad": 0.0,
+            "max": 5.922045,
+            "median": 5.922045,
+            "min": 5.922045
+          },
+          "shape_prepare_ms": {
+            "mad": 0.0,
+            "max": 4.92035,
+            "median": 4.92035,
+            "min": 4.92035
+          }
+        }
+      },
+      "comparison": null,
+      "profiler_evidence": {
+        "missing": [
+          "launch_gap_and_overlap",
+          "dram_and_l2_traffic",
+          "achieved_bandwidth",
+          "occupancy",
+          "registers_and_spills",
+          "power_and_energy"
+        ],
+        "nsight_compute": null,
+        "nsight_systems": null
+      },
+      "proof_gate": {
+        "all_arms_byte_identical": true,
+        "canonical_bytes": 71248,
+        "canonical_sha256": "1d751d4a65d044f91686d65db6d5858bad78afd60da54bfa64317f42a07fddbb",
+        "device": {
+          "driver_version": 13000,
+          "global_memory_bytes": 25250627584,
+          "multiprocessors": 128,
+          "ordinal": 0,
+          "runtime_version": 12080,
+          "sm_major": 8,
+          "sm_minor": 9,
+          "toolkit_version": 12080,
+          "uuid": "3dabce32b71d9cdf6392026267492cb6"
+        },
+        "product_identities": {
+          "candidate": {
+            "aot_manifest": "cuda-authenticated-native-pack-v1",
+            "backend": "cuda",
+            "cpu_features_sha256": "d91f6a4602569b7dd872531ac3bb462ab25647471775f68857eabdb060daa2b7",
+            "cpu_model": "znver2",
+            "dirty_content_sha256": null,
+            "frontend": "native-examples",
+            "identity_sha256": "9efd4f7782066e096adb3b076c448ffbf9d8514fe6f92160128f1aca8e41ce49",
+            "implementation_commit": "5111126a57d035dcaf11628be0d9e7d85123be27",
+            "implementation_dirty": false,
+            "implementation_repository": "https://github.com/teddyjfpender/stwo-zig",
+            "implementation_tree": "905cdee69c4b372cfc921715bded950f18ba8091",
+            "name": "stwo-native-cuda",
+            "optimize": "ReleaseFast",
+            "protocol_features": "native-wide-fibonacci-v1+cuda-resident-proof-v1+explicit-toolchain-v1",
+            "protocol_manifest_sha256": "a89a42acdf673f45bac7e484c1034ce957db54ca1c4c9309cadb479e7abea332",
+            "role": "cli",
+            "runtime_manifest": "cuda-process-runtime-v1",
+            "schema_version": 2,
+            "sdk_manifest": "cuda-explicit-toolchain-v1",
+            "target_abi": "gnu",
+            "target_arch": "x86_64",
+            "target_os": "linux",
+            "zig_version": "0.15.2"
+          }
+        },
+        "program_sha256": "599a3d6d2b045dae77ded15f1e075b75a7ea60ca15571e097df62fd478d87a59"
+      },
+      "sessions": [
+        {
+          "arm": "candidate",
+          "metrics": {
+            "first_request": {
+              "device_ms": 20.147616,
+              "resident_ms": 20.264807,
+              "verified_ms": 22.00386
+            },
+            "mechanism": {
+              "all_stages_complete_once": true,
+              "aot": {
+                "build_identity_sha256": "3663ea56ea97b16f3ac1559705a5475606afbc85a3536c309ed1bdff0d14b3f0",
+                "cache_hits": 8,
+                "entries": 1,
+                "launch_failures": 0,
+                "launches": 9,
+                "loads": 1,
+                "misses": 0
+              },
+              "cpu_fallback_attempts": 0,
+              "cpu_fallbacks_completed": 0,
+              "d2d_bytes": 1420,
+              "device_elapsed_ns": 7515232,
+              "device_timing_intervals": 10,
+              "graph_launches": 0,
+              "h2d_bytes": 2104024,
+              "kernel_launches": 462,
+              "peak_live_bytes": 308436748,
+              "plan": {
+                "cache_key_sha256": "e373d4f4478ebd90671cf0a536cdb6b6e7152286236f2d7f6459514a1b56c861",
+                "compiled_once": true,
+                "node_count": 8,
+                "persistent_bytes": 0,
+                "predicted_minimum_launches": 25,
+                "program_sha256": "599a3d6d2b045dae77ded15f1e075b75a7ea60ca15571e097df62fd478d87a59",
+                "request_bytes": 308436748,
+                "reuse_count": 9,
+                "schedule_version": 1,
+                "transcript_barriers": 48
+              },
+              "pool_reserved_bytes": 335544320,
+              "pool_used_bytes": 0,
+              "resident": true,
+              "strict_aot": true,
+              "sync_calls": 1,
+              "terminal_d2h_bytes": 147332,
+              "terminal_d2h_operations": 1
+            },
+            "proof": {
+              "artifact_bytes": 143048,
+              "artifact_sha256": "21ac8f935304c485e9025892515b0430c4f311db9937c65afdd8bc98b5413e77",
+              "canonical_bytes": 71248,
+              "canonical_sha256": "1d751d4a65d044f91686d65db6d5858bad78afd60da54bfa64317f42a07fddbb"
+            },
+            "raw_repetition": {
+              "all_canonical_bytes_identical": true,
+              "count": 9,
+              "device_elapsed_ns": [
+                20147616,
+                7528832,
+                7544704,
+                7508576,
+                7503264,
+                7500256,
+                7508640,
+                7504704,
+                7515232
+              ],
+              "independent_verification_ns": [
+                837107,
+                452928,
+                415968,
+                331158,
+                330258,
+                331338,
+                333029,
+                327858,
+                365118
+              ],
+              "persistent_session": true,
+              "resident_prove_ns": [
+                20264807,
+                7614408,
+                7602398,
+                7567519,
+                7555979,
+                7552359,
+                7560839,
+                7557809,
+                7569729
+              ],
+              "runtime_proof_indices": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9
+              ],
+              "stable_launch_topology": true,
+              "terminal_decode_ns": [
+                901746,
+                600998,
+                594098,
+                526128,
+                507048,
+                489148,
+                497908,
+                499568,
+                488968
+              ],
+              "verified_request_ns": [
+                22003860,
+                8671364,
+                8614724,
+                8427135,
+                8395485,
+                8375045,
+                8393996,
+                8387475,
+                8426005
+              ],
+              "zero_final_pool_usage": true
+            },
+            "resources": {
+              "cycles_elapsed": null,
+              "instructions_retired": null,
+              "measurement": "gnu_usr_bin_time_v_v1",
+              "measurement_locale": "C",
+              "normalized_unit": "KiB",
+              "peak_memory_footprint_bytes": null,
+              "peak_rss_kib": 122488
+            },
+            "stage_ms_last_steady_sample": {
+              "constraint_evaluation": 1.059808,
+              "decommit": 0.654336,
+              "fri_commit": 1.308672,
+              "ingress": 0.243936,
+              "oods": 0.185344,
+              "pow": 0.0256,
+              "proof_assembly": 0.105344,
+              "quotient": 0.239616,
+              "total": 7.515232,
+              "trace_commit": 3.656736,
+              "trace_generation": 0.03584
+            },
+            "steady": {
+              "device_committed_mcells_per_second": 1292.4331192809204,
+              "device_critical_path_ms": {
+                "mad": 0.0039359999999994955,
+                "max": 7.515232,
+                "median": 7.504704,
+                "min": 7.500256
+              },
+              "device_row_mhz": 34.93062484543028,
+              "host_gap_ms": {
+                "mad": 0.0005159999999999956,
+                "max": 0.054497,
+                "median": 0.052715,
+                "min": 0.052103
+              },
+              "independent_verification_ms": {
+                "mad": 0.001690999999999998,
+                "max": 0.365118,
+                "median": 0.331338,
+                "min": 0.327858
+              },
+              "resident_committed_mcells_per_second": 1283.3518285524283,
+              "resident_ms": {
+                "mad": 0.003029999999999866,
+                "max": 7.569729,
+                "median": 7.557809,
+                "min": 7.552359
+              },
+              "resident_row_mhz": 34.68518455547104,
+              "terminal_decode_ms": {
+                "mad": 0.00875999999999999,
+                "max": 0.507048,
+                "median": 0.497908,
+                "min": 0.488968
+              },
+              "verified_committed_mcells_per_second": 1155.5078177306732,
+              "verified_ms": {
+                "mad": 0.006520999999999333,
+                "max": 8.426005,
+                "median": 8.393996,
+                "min": 8.375045
+              },
+              "verified_row_mhz": 31.229941019747926
+            }
+          },
+          "order_index": 0,
+          "raw": {
+            "aot": {
+              "build_identity_sha256": "3663ea56ea97b16f3ac1559705a5475606afbc85a3536c309ed1bdff0d14b3f0",
+              "cache_hits": 8,
+              "entries": 1,
+              "launch_failures": 0,
+              "launches": 9,
+              "loads": 1,
+              "misses": 0
+            },
+            "arm": "candidate",
+            "command": [
+              "/workspace/stwo-zig-cuda-evidence-5111126a/zig-out/bin/stwo-zig-native-cuda",
+              "prove",
+              "--air",
+              "wide_fibonacci",
+              "--backend",
+              "cuda",
+              "--protocol",
+              "raw-stwo-wide-v1",
+              "--log-n-rows",
+              "18",
+              "--sequence-len",
+              "37",
+              "--output",
+              "/tmp/cuda-structural-screen-3e453695.artifacts/wide_wf_log18x37/steady/000-candidate/proof-artifact.json",
+              "--report-out",
+              "/tmp/cuda-structural-screen-3e453695.artifacts/wide_wf_log18x37/steady/000-candidate/product-report.json",
+              "--repeat",
+              "9"
+            ],
+            "device": {
+              "driver_version": 13000,
+              "global_memory_bytes": 25250627584,
+              "multiprocessors": 128,
+              "ordinal": 0,
+              "runtime_version": 12080,
+              "sm_major": 8,
+              "sm_minor": 9,
+              "toolkit_version": 12080,
+              "uuid": "3dabce32b71d9cdf6392026267492cb6"
+            },
+            "device_stage_timing_ns": {
+              "constraint_evaluation": 1059808,
+              "decommit": 654336,
+              "fri_commit": 1308672,
+              "ingress": 243936,
+              "oods": 185344,
+              "pow": 25600,
+              "proof_assembly": 105344,
+              "quotient": 239616,
+              "total": 7515232,
+              "trace_commit": 3656736,
+              "trace_generation": 35840
+            },
+            "external_wall_ns": 374371565,
+            "ordinal": 0,
+            "phase": "steady",
+            "plan": {
+              "cache_key_sha256": "e373d4f4478ebd90671cf0a536cdb6b6e7152286236f2d7f6459514a1b56c861",
+              "compiled_once": true,
+              "node_count": 8,
+              "persistent_bytes": 0,
+              "predicted_minimum_launches": 25,
+              "program_sha256": "599a3d6d2b045dae77ded15f1e075b75a7ea60ca15571e097df62fd478d87a59",
+              "request_bytes": 308436748,
+              "reuse_count": 9,
+              "schedule_version": 1,
+              "transcript_barriers": 48
+            },
+            "product_identity": {
+              "aot_manifest": "cuda-authenticated-native-pack-v1",
+              "backend": "cuda",
+              "cpu_features_sha256": "d91f6a4602569b7dd872531ac3bb462ab25647471775f68857eabdb060daa2b7",
+              "cpu_model": "znver2",
+              "dirty_content_sha256": null,
+              "frontend": "native-examples",
+              "identity_sha256": "9efd4f7782066e096adb3b076c448ffbf9d8514fe6f92160128f1aca8e41ce49",
+              "implementation_commit": "5111126a57d035dcaf11628be0d9e7d85123be27",
+              "implementation_dirty": false,
+              "implementation_repository": "https://github.com/teddyjfpender/stwo-zig",
+              "implementation_tree": "905cdee69c4b372cfc921715bded950f18ba8091",
+              "name": "stwo-native-cuda",
+              "optimize": "ReleaseFast",
+              "protocol_features": "native-wide-fibonacci-v1+cuda-resident-proof-v1+explicit-toolchain-v1",
+              "protocol_manifest_sha256": "a89a42acdf673f45bac7e484c1034ce957db54ca1c4c9309cadb479e7abea332",
+              "role": "cli",
+              "runtime_manifest": "cuda-process-runtime-v1",
+              "schema_version": 2,
+              "sdk_manifest": "cuda-explicit-toolchain-v1",
+              "target_abi": "gnu",
+              "target_arch": "x86_64",
+              "target_os": "linux",
+              "zig_version": "0.15.2"
+            },
+            "proof": {
+              "artifact_bytes": 143048,
+              "artifact_sha256": "21ac8f935304c485e9025892515b0430c4f311db9937c65afdd8bc98b5413e77",
+              "canonical_bytes": 71248,
+              "canonical_sha256": "1d751d4a65d044f91686d65db6d5858bad78afd60da54bfa64317f42a07fddbb"
+            },
+            "repetition": {
+              "all_canonical_bytes_identical": true,
+              "count": 9,
+              "device_elapsed_ns": [
+                20147616,
+                7528832,
+                7544704,
+                7508576,
+                7503264,
+                7500256,
+                7508640,
+                7504704,
+                7515232
+              ],
+              "independent_verification_ns": [
+                837107,
+                452928,
+                415968,
+                331158,
+                330258,
+                331338,
+                333029,
+                327858,
+                365118
+              ],
+              "persistent_session": true,
+              "resident_prove_ns": [
+                20264807,
+                7614408,
+                7602398,
+                7567519,
+                7555979,
+                7552359,
+                7560839,
+                7557809,
+                7569729
+              ],
+              "runtime_proof_indices": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9
+              ],
+              "stable_launch_topology": true,
+              "terminal_decode_ns": [
+                901746,
+                600998,
+                594098,
+                526128,
+                507048,
+                489148,
+                497908,
+                499568,
+                488968
+              ],
+              "verified_request_ns": [
+                22003860,
+                8671364,
+                8614724,
+                8427135,
+                8395485,
+                8375045,
+                8393996,
+                8387475,
+                8426005
+              ],
+              "zero_final_pool_usage": true
+            },
+            "report_sha256": "d9a359ba9a0cc7f19c947b8414a268acaa839295b155c0b0550f5a156cbcbba3",
+            "residency": {
+              "all_stages_complete_once": true,
+              "cpu_fallback_attempts": 0,
+              "cpu_fallbacks_completed": 0,
+              "d2d_bytes": 1420,
+              "device_elapsed_ns": 7515232,
+              "device_timing_intervals": 10,
+              "graph_launches": 0,
+              "h2d_bytes": 2104024,
+              "kernel_launches": 462,
+              "peak_live_bytes": 308436748,
+              "pool_reserved_bytes": 335544320,
+              "pool_used_bytes": 0,
+              "resident": true,
+              "strict_aot": true,
+              "sync_calls": 1,
+              "terminal_d2h_bytes": 147332,
+              "terminal_d2h_operations": 1
+            },
+            "resources": {
+              "cycles_elapsed": null,
+              "instructions_retired": null,
+              "measurement": "gnu_usr_bin_time_v_v1",
+              "measurement_locale": "C",
+              "normalized_unit": "KiB",
+              "peak_memory_footprint_bytes": null,
+              "peak_rss_kib": 122488
+            },
+            "stderr_sha256": "9d84752cfa634ba4c02dff55294649df2d541624b846b543ae8cadecd15af8a2",
+            "stdout_sha256": "e1f75ec0284e65224273a7394948b78261ee0f3987c7e919305bc282e766e0fb",
+            "timing_ns": {
+              "independent_verification": 837107,
+              "resident_prove": 20264807,
+              "runtime_init": 171343183,
+              "runtime_teardown": 5951875,
+              "shape_prepare": 4962239,
+              "terminal_decode": 901746,
+              "total_before_publication": 281257139,
+              "verified_request": 22003860
+            }
+          },
+          "round": 0
+        }
+      ],
+      "statement": {
+        "log_n_rows": 18,
+        "sequence_len": 37,
+        "trace_cells": 9699328,
+        "trace_rows": 262144
+      },
+      "structural_class": "wide",
+      "workload_id": "wide_wf_log18x37"
+    },
+    {
+      "cold": {
+        "candidate": {
+          "external_wall_ms": {
+            "mad": 0.0,
+            "max": 317.138761,
+            "median": 317.138761,
+            "min": 317.138761
+          },
+          "first_verified_request_ms": {
+            "mad": 0.0,
+            "max": 28.601962,
+            "median": 28.601962,
+            "min": 28.601962
+          },
+          "lifecycle_sum_ms": {
+            "mad": 0.0,
+            "max": 212.926132,
+            "median": 212.926132,
+            "min": 212.926132
+          },
+          "peak_rss_kib": {
+            "mad": 0.0,
+            "max": 121284.0,
+            "median": 121284.0,
+            "min": 121284.0
+          },
+          "runtime_init_ms": {
+            "mad": 0.0,
+            "max": 170.607196,
+            "median": 170.607196,
+            "min": 170.607196
+          },
+          "runtime_teardown_ms": {
+            "mad": 0.0,
+            "max": 8.507216,
+            "median": 8.507216,
+            "min": 8.507216
+          },
+          "shape_prepare_ms": {
+            "mad": 0.0,
+            "max": 5.209758,
+            "median": 5.209758,
+            "min": 5.209758
+          }
+        }
+      },
+      "comparison": null,
+      "profiler_evidence": {
+        "missing": [
+          "launch_gap_and_overlap",
+          "dram_and_l2_traffic",
+          "achieved_bandwidth",
+          "occupancy",
+          "registers_and_spills",
+          "power_and_energy"
+        ],
+        "nsight_compute": null,
+        "nsight_systems": null
+      },
+      "proof_gate": {
+        "all_arms_byte_identical": true,
+        "canonical_bytes": 69759,
+        "canonical_sha256": "5185a08a40f14b20e0e5e16ccfb9ca388949df97968bae85cafe3ecbbaeb1bf2",
+        "device": {
+          "driver_version": 13000,
+          "global_memory_bytes": 25250627584,
+          "multiprocessors": 128,
+          "ordinal": 0,
+          "runtime_version": 12080,
+          "sm_major": 8,
+          "sm_minor": 9,
+          "toolkit_version": 12080,
+          "uuid": "3dabce32b71d9cdf6392026267492cb6"
+        },
+        "product_identities": {
+          "candidate": {
+            "aot_manifest": "cuda-authenticated-native-pack-v1",
+            "backend": "cuda",
+            "cpu_features_sha256": "d91f6a4602569b7dd872531ac3bb462ab25647471775f68857eabdb060daa2b7",
+            "cpu_model": "znver2",
+            "dirty_content_sha256": null,
+            "frontend": "native-examples",
+            "identity_sha256": "9efd4f7782066e096adb3b076c448ffbf9d8514fe6f92160128f1aca8e41ce49",
+            "implementation_commit": "5111126a57d035dcaf11628be0d9e7d85123be27",
+            "implementation_dirty": false,
+            "implementation_repository": "https://github.com/teddyjfpender/stwo-zig",
+            "implementation_tree": "905cdee69c4b372cfc921715bded950f18ba8091",
+            "name": "stwo-native-cuda",
+            "optimize": "ReleaseFast",
+            "protocol_features": "native-wide-fibonacci-v1+cuda-resident-proof-v1+explicit-toolchain-v1",
+            "protocol_manifest_sha256": "a89a42acdf673f45bac7e484c1034ce957db54ca1c4c9309cadb479e7abea332",
+            "role": "cli",
+            "runtime_manifest": "cuda-process-runtime-v1",
+            "schema_version": 2,
+            "sdk_manifest": "cuda-explicit-toolchain-v1",
+            "target_abi": "gnu",
+            "target_arch": "x86_64",
+            "target_os": "linux",
+            "zig_version": "0.15.2"
+          }
+        },
+        "program_sha256": "09317bce77b3764f76c68ccc59c77a505abd2918ec4bfdcd0797675af57d29d7"
+      },
+      "sessions": [
+        {
+          "arm": "candidate",
+          "metrics": {
+            "first_request": {
+              "device_ms": 27.009248,
+              "resident_ms": 27.126708,
+              "verified_ms": 28.89892
+            },
+            "mechanism": {
+              "all_stages_complete_once": true,
+              "aot": {
+                "build_identity_sha256": "3663ea56ea97b16f3ac1559705a5475606afbc85a3536c309ed1bdff0d14b3f0",
+                "cache_hits": 8,
+                "entries": 1,
+                "launch_failures": 0,
+                "launches": 9,
+                "loads": 1,
+                "misses": 0
+              },
+              "cpu_fallback_attempts": 0,
+              "cpu_fallbacks_completed": 0,
+              "d2d_bytes": 1996,
+              "device_elapsed_ns": 14138112,
+              "device_timing_intervals": 10,
+              "graph_launches": 0,
+              "h2d_bytes": 2106184,
+              "kernel_launches": 462,
+              "peak_live_bytes": 459436012,
+              "plan": {
+                "cache_key_sha256": "7412b9ad08e371bc68e10d16a464e5187de89c19d5e063a4cf6bd4456942b38a",
+                "compiled_once": true,
+                "node_count": 8,
+                "persistent_bytes": 0,
+                "predicted_minimum_launches": 25,
+                "program_sha256": "09317bce77b3764f76c68ccc59c77a505abd2918ec4bfdcd0797675af57d29d7",
+                "request_bytes": 459436012,
+                "reuse_count": 9,
+                "schedule_version": 1,
+                "transcript_barriers": 48
+              },
+              "pool_reserved_bytes": 469762048,
+              "pool_used_bytes": 0,
+              "resident": true,
+              "strict_aot": true,
+              "sync_calls": 1,
+              "terminal_d2h_bytes": 148340,
+              "terminal_d2h_operations": 1
+            },
+            "proof": {
+              "artifact_bytes": 140070,
+              "artifact_sha256": "3954215d2827bc2c1dfd4b49735c9326dc7aeaeb35495f3340f22dfbb221f63d",
+              "canonical_bytes": 69759,
+              "canonical_sha256": "5185a08a40f14b20e0e5e16ccfb9ca388949df97968bae85cafe3ecbbaeb1bf2"
+            },
+            "raw_repetition": {
+              "all_canonical_bytes_identical": true,
+              "count": 9,
+              "device_elapsed_ns": [
+                27009248,
+                14176128,
+                14310432,
+                14327744,
+                14161280,
+                14168672,
+                14161792,
+                14139936,
+                14138112
+              ],
+              "independent_verification_ns": [
+                855026,
+                328298,
+                376799,
+                323858,
+                325529,
+                319999,
+                318188,
+                317749,
+                333878
+              ],
+              "persistent_session": true,
+              "resident_prove_ns": [
+                27126708,
+                14245771,
+                14397581,
+                14416350,
+                14217942,
+                14224681,
+                14216372,
+                14193351,
+                14192421
+              ],
+              "runtime_proof_indices": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9
+              ],
+              "stable_launch_topology": true,
+              "terminal_decode_ns": [
+                916836,
+                594908,
+                1155595,
+                500968,
+                472768,
+                480708,
+                481298,
+                468698,
+                473379
+              ],
+              "verified_request_ns": [
+                28898920,
+                15171477,
+                15938685,
+                15245036,
+                15018569,
+                15027578,
+                15017968,
+                14982018,
+                15001878
+              ],
+              "zero_final_pool_usage": true
+            },
+            "resources": {
+              "cycles_elapsed": null,
+              "instructions_retired": null,
+              "measurement": "gnu_usr_bin_time_v_v1",
+              "measurement_locale": "C",
+              "normalized_unit": "KiB",
+              "peak_memory_footprint_bytes": null,
+              "peak_rss_kib": 122056
+            },
+            "stage_ms_last_steady_sample": {
+              "constraint_evaluation": 1.24928,
+              "decommit": 0.7168,
+              "fri_commit": 1.421312,
+              "ingress": 0.244352,
+              "oods": 0.32768,
+              "pow": 0.027648,
+              "proof_assembly": 0.104576,
+              "quotient": 0.330752,
+              "total": 14.138112,
+              "trace_commit": 9.638688,
+              "trace_generation": 0.077024
+            },
+            "steady": {
+              "device_committed_mcells_per_second": 1351.326433768699,
+              "device_critical_path_ms": {
+                "mad": 0.007392000000001175,
+                "max": 14.168672,
+                "median": 14.16128,
+                "min": 14.138112
+              },
+              "device_row_mhz": 18.51132101053012,
+              "host_gap_ms": {
+                "mad": 0.0011649999999999994,
+                "max": 0.056662,
+                "median": 0.05458,
+                "min": 0.053415
+              },
+              "independent_verification_ms": {
+                "mad": 0.0022499999999999742,
+                "max": 0.333878,
+                "median": 0.319999,
+                "min": 0.317749
+              },
+              "resident_committed_mcells_per_second": 1346.0897055873327,
+              "resident_ms": {
+                "mad": 0.008309000000000566,
+                "max": 14.224681,
+                "median": 14.216372,
+                "min": 14.192421
+              },
+              "resident_row_mhz": 18.439585008045654,
+              "terminal_decode_ms": {
+                "mad": 0.004680999999999991,
+                "max": 0.481298,
+                "median": 0.473379,
+                "min": 0.468698
+              },
+              "verified_committed_mcells_per_second": 1274.2410957327916,
+              "verified_ms": {
+                "mad": 0.00961000000000034,
+                "max": 15.027578,
+                "median": 15.017968,
+                "min": 14.982018
+              },
+              "verified_row_mhz": 17.455357475791665
+            }
+          },
+          "order_index": 0,
+          "raw": {
+            "aot": {
+              "build_identity_sha256": "3663ea56ea97b16f3ac1559705a5475606afbc85a3536c309ed1bdff0d14b3f0",
+              "cache_hits": 8,
+              "entries": 1,
+              "launch_failures": 0,
+              "launches": 9,
+              "loads": 1,
+              "misses": 0
+            },
+            "arm": "candidate",
+            "command": [
+              "/workspace/stwo-zig-cuda-evidence-5111126a/zig-out/bin/stwo-zig-native-cuda",
+              "prove",
+              "--air",
+              "wide_fibonacci",
+              "--backend",
+              "cuda",
+              "--protocol",
+              "raw-stwo-wide-v1",
+              "--log-n-rows",
+              "18",
+              "--sequence-len",
+              "73",
+              "--output",
+              "/tmp/cuda-structural-screen-3e453695.artifacts/wide_wf_log18x73/steady/000-candidate/proof-artifact.json",
+              "--report-out",
+              "/tmp/cuda-structural-screen-3e453695.artifacts/wide_wf_log18x73/steady/000-candidate/product-report.json",
+              "--repeat",
+              "9"
+            ],
+            "device": {
+              "driver_version": 13000,
+              "global_memory_bytes": 25250627584,
+              "multiprocessors": 128,
+              "ordinal": 0,
+              "runtime_version": 12080,
+              "sm_major": 8,
+              "sm_minor": 9,
+              "toolkit_version": 12080,
+              "uuid": "3dabce32b71d9cdf6392026267492cb6"
+            },
+            "device_stage_timing_ns": {
+              "constraint_evaluation": 1249280,
+              "decommit": 716800,
+              "fri_commit": 1421312,
+              "ingress": 244352,
+              "oods": 327680,
+              "pow": 27648,
+              "proof_assembly": 104576,
+              "quotient": 330752,
+              "total": 14138112,
+              "trace_commit": 9638688,
+              "trace_generation": 77024
+            },
+            "external_wall_ns": 441290109,
+            "ordinal": 0,
+            "phase": "steady",
+            "plan": {
+              "cache_key_sha256": "7412b9ad08e371bc68e10d16a464e5187de89c19d5e063a4cf6bd4456942b38a",
+              "compiled_once": true,
+              "node_count": 8,
+              "persistent_bytes": 0,
+              "predicted_minimum_launches": 25,
+              "program_sha256": "09317bce77b3764f76c68ccc59c77a505abd2918ec4bfdcd0797675af57d29d7",
+              "request_bytes": 459436012,
+              "reuse_count": 9,
+              "schedule_version": 1,
+              "transcript_barriers": 48
+            },
+            "product_identity": {
+              "aot_manifest": "cuda-authenticated-native-pack-v1",
+              "backend": "cuda",
+              "cpu_features_sha256": "d91f6a4602569b7dd872531ac3bb462ab25647471775f68857eabdb060daa2b7",
+              "cpu_model": "znver2",
+              "dirty_content_sha256": null,
+              "frontend": "native-examples",
+              "identity_sha256": "9efd4f7782066e096adb3b076c448ffbf9d8514fe6f92160128f1aca8e41ce49",
+              "implementation_commit": "5111126a57d035dcaf11628be0d9e7d85123be27",
+              "implementation_dirty": false,
+              "implementation_repository": "https://github.com/teddyjfpender/stwo-zig",
+              "implementation_tree": "905cdee69c4b372cfc921715bded950f18ba8091",
+              "name": "stwo-native-cuda",
+              "optimize": "ReleaseFast",
+              "protocol_features": "native-wide-fibonacci-v1+cuda-resident-proof-v1+explicit-toolchain-v1",
+              "protocol_manifest_sha256": "a89a42acdf673f45bac7e484c1034ce957db54ca1c4c9309cadb479e7abea332",
+              "role": "cli",
+              "runtime_manifest": "cuda-process-runtime-v1",
+              "schema_version": 2,
+              "sdk_manifest": "cuda-explicit-toolchain-v1",
+              "target_abi": "gnu",
+              "target_arch": "x86_64",
+              "target_os": "linux",
+              "zig_version": "0.15.2"
+            },
+            "proof": {
+              "artifact_bytes": 140070,
+              "artifact_sha256": "3954215d2827bc2c1dfd4b49735c9326dc7aeaeb35495f3340f22dfbb221f63d",
+              "canonical_bytes": 69759,
+              "canonical_sha256": "5185a08a40f14b20e0e5e16ccfb9ca388949df97968bae85cafe3ecbbaeb1bf2"
+            },
+            "repetition": {
+              "all_canonical_bytes_identical": true,
+              "count": 9,
+              "device_elapsed_ns": [
+                27009248,
+                14176128,
+                14310432,
+                14327744,
+                14161280,
+                14168672,
+                14161792,
+                14139936,
+                14138112
+              ],
+              "independent_verification_ns": [
+                855026,
+                328298,
+                376799,
+                323858,
+                325529,
+                319999,
+                318188,
+                317749,
+                333878
+              ],
+              "persistent_session": true,
+              "resident_prove_ns": [
+                27126708,
+                14245771,
+                14397581,
+                14416350,
+                14217942,
+                14224681,
+                14216372,
+                14193351,
+                14192421
+              ],
+              "runtime_proof_indices": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9
+              ],
+              "stable_launch_topology": true,
+              "terminal_decode_ns": [
+                916836,
+                594908,
+                1155595,
+                500968,
+                472768,
+                480708,
+                481298,
+                468698,
+                473379
+              ],
+              "verified_request_ns": [
+                28898920,
+                15171477,
+                15938685,
+                15245036,
+                15018569,
+                15027578,
+                15017968,
+                14982018,
+                15001878
+              ],
+              "zero_final_pool_usage": true
+            },
+            "report_sha256": "e96756ecbb8ff36dd5b317330833ec26f675662f60f2b2c6a30cfb723fbee05c",
+            "residency": {
+              "all_stages_complete_once": true,
+              "cpu_fallback_attempts": 0,
+              "cpu_fallbacks_completed": 0,
+              "d2d_bytes": 1996,
+              "device_elapsed_ns": 14138112,
+              "device_timing_intervals": 10,
+              "graph_launches": 0,
+              "h2d_bytes": 2106184,
+              "kernel_launches": 462,
+              "peak_live_bytes": 459436012,
+              "pool_reserved_bytes": 469762048,
+              "pool_used_bytes": 0,
+              "resident": true,
+              "strict_aot": true,
+              "sync_calls": 1,
+              "terminal_d2h_bytes": 148340,
+              "terminal_d2h_operations": 1
+            },
+            "resources": {
+              "cycles_elapsed": null,
+              "instructions_retired": null,
+              "measurement": "gnu_usr_bin_time_v_v1",
+              "measurement_locale": "C",
+              "normalized_unit": "KiB",
+              "peak_memory_footprint_bytes": null,
+              "peak_rss_kib": 122056
+            },
+            "stderr_sha256": "bf8d21d040a5d62186918d19027231f616f9f1e0d8e3a0bafcfb60e0c4053c15",
+            "stdout_sha256": "39c24573eea656ba95a7236331af0801469eec79ec724915e873417d20d6644f",
+            "timing_ns": {
+              "independent_verification": 855026,
+              "resident_prove": 27126708,
+              "runtime_init": 171793541,
+              "runtime_teardown": 9190072,
+              "shape_prepare": 4962130,
+              "terminal_decode": 916836,
+              "total_before_publication": 345415614,
+              "verified_request": 28898920
+            }
+          },
+          "round": 0
+        }
+      ],
+      "statement": {
+        "log_n_rows": 18,
+        "sequence_len": 73,
+        "trace_cells": 19136512,
+        "trace_rows": 262144
+      },
+      "structural_class": "wide",
+      "workload_id": "wide_wf_log18x73"
+    },
+    {
+      "cold": {
+        "candidate": {
+          "external_wall_ms": {
+            "mad": 0.0,
+            "max": 329.47418,
+            "median": 329.47418,
+            "min": 329.47418
+          },
+          "first_verified_request_ms": {
+            "mad": 0.0,
+            "max": 38.089033,
+            "median": 38.089033,
+            "min": 38.089033
+          },
+          "lifecycle_sum_ms": {
+            "mad": 0.0,
+            "max": 227.70644,
+            "median": 227.70644,
+            "min": 227.70644
+          },
+          "peak_rss_kib": {
+            "mad": 0.0,
+            "max": 121648.0,
+            "median": 121648.0,
+            "min": 121648.0
+          },
+          "runtime_init_ms": {
+            "mad": 0.0,
+            "max": 171.528862,
+            "median": 171.528862,
+            "min": 171.528862
+          },
+          "runtime_teardown_ms": {
+            "mad": 0.0,
+            "max": 12.959696,
+            "median": 12.959696,
+            "min": 12.959696
+          },
+          "shape_prepare_ms": {
+            "mad": 0.0,
+            "max": 5.128849,
+            "median": 5.128849,
+            "min": 5.128849
+          }
+        }
+      },
+      "comparison": null,
+      "profiler_evidence": {
+        "missing": [
+          "launch_gap_and_overlap",
+          "dram_and_l2_traffic",
+          "achieved_bandwidth",
+          "occupancy",
+          "registers_and_spills",
+          "power_and_energy"
+        ],
+        "nsight_compute": null,
+        "nsight_systems": null
+      },
+      "proof_gate": {
+        "all_arms_byte_identical": true,
+        "canonical_bytes": 76406,
+        "canonical_sha256": "d8903758e7792df8fbe272cb25346c60abfe333f4324c0f08d42b6bf58c5c96d",
+        "device": {
+          "driver_version": 13000,
+          "global_memory_bytes": 25250627584,
+          "multiprocessors": 128,
+          "ordinal": 0,
+          "runtime_version": 12080,
+          "sm_major": 8,
+          "sm_minor": 9,
+          "toolkit_version": 12080,
+          "uuid": "3dabce32b71d9cdf6392026267492cb6"
+        },
+        "product_identities": {
+          "candidate": {
+            "aot_manifest": "cuda-authenticated-native-pack-v1",
+            "backend": "cuda",
+            "cpu_features_sha256": "d91f6a4602569b7dd872531ac3bb462ab25647471775f68857eabdb060daa2b7",
+            "cpu_model": "znver2",
+            "dirty_content_sha256": null,
+            "frontend": "native-examples",
+            "identity_sha256": "9efd4f7782066e096adb3b076c448ffbf9d8514fe6f92160128f1aca8e41ce49",
+            "implementation_commit": "5111126a57d035dcaf11628be0d9e7d85123be27",
+            "implementation_dirty": false,
+            "implementation_repository": "https://github.com/teddyjfpender/stwo-zig",
+            "implementation_tree": "905cdee69c4b372cfc921715bded950f18ba8091",
+            "name": "stwo-native-cuda",
+            "optimize": "ReleaseFast",
+            "protocol_features": "native-wide-fibonacci-v1+cuda-resident-proof-v1+explicit-toolchain-v1",
+            "protocol_manifest_sha256": "a89a42acdf673f45bac7e484c1034ce957db54ca1c4c9309cadb479e7abea332",
+            "role": "cli",
+            "runtime_manifest": "cuda-process-runtime-v1",
+            "schema_version": 2,
+            "sdk_manifest": "cuda-explicit-toolchain-v1",
+            "target_abi": "gnu",
+            "target_arch": "x86_64",
+            "target_os": "linux",
+            "zig_version": "0.15.2"
+          }
+        },
+        "program_sha256": "cd2bbacaafd6e8f54910a0a7ae6917d04a19d6b23183b0cadce29ca5018a2cf4"
+      },
+      "sessions": [
+        {
+          "arm": "candidate",
+          "metrics": {
+            "first_request": {
+              "device_ms": 35.939361,
+              "resident_ms": 36.059851,
+              "verified_ms": 37.908174
+            },
+            "mechanism": {
+              "all_stages_complete_once": true,
+              "aot": {
+                "build_identity_sha256": "3663ea56ea97b16f3ac1559705a5475606afbc85a3536c309ed1bdff0d14b3f0",
+                "cache_hits": 8,
+                "entries": 1,
+                "launch_failures": 0,
+                "launches": 9,
+                "loads": 1,
+                "misses": 0
+              },
+              "cpu_fallback_attempts": 0,
+              "cpu_fallbacks_completed": 0,
+              "d2d_bytes": 2876,
+              "device_elapsed_ns": 22532831,
+              "device_timing_intervals": 10,
+              "graph_launches": 0,
+              "h2d_bytes": 2109484,
+              "kernel_launches": 462,
+              "peak_live_bytes": 690129332,
+              "plan": {
+                "cache_key_sha256": "7cb64b2683313a4ed195b2f3d85fafa08aca1a905db4284eadb09fc50292fc20",
+                "compiled_once": true,
+                "node_count": 8,
+                "persistent_bytes": 0,
+                "predicted_minimum_launches": 25,
+                "program_sha256": "cd2bbacaafd6e8f54910a0a7ae6917d04a19d6b23183b0cadce29ca5018a2cf4",
+                "request_bytes": 690129332,
+                "reuse_count": 9,
+                "schedule_version": 1,
+                "transcript_barriers": 48
+              },
+              "pool_reserved_bytes": 704643072,
+              "pool_used_bytes": 0,
+              "resident": true,
+              "strict_aot": true,
+              "sync_calls": 1,
+              "terminal_d2h_bytes": 149880,
+              "terminal_d2h_operations": 1
+            },
+            "proof": {
+              "artifact_bytes": 153365,
+              "artifact_sha256": "e76c33aad4664e2b7abb482569b08a639c3ed6dc6aed9895603160b9056e5865",
+              "canonical_bytes": 76406,
+              "canonical_sha256": "d8903758e7792df8fbe272cb25346c60abfe333f4324c0f08d42b6bf58c5c96d"
+            },
+            "raw_repetition": {
+              "all_canonical_bytes_identical": true,
+              "count": 9,
+              "device_elapsed_ns": [
+                35939361,
+                22599520,
+                22534945,
+                22533536,
+                22535233,
+                22544545,
+                22534752,
+                22530560,
+                22532831
+              ],
+              "independent_verification_ns": [
+                831387,
+                493588,
+                463388,
+                385329,
+                424149,
+                396378,
+                347969,
+                347178,
+                369399
+              ],
+              "persistent_session": true,
+              "resident_prove_ns": [
+                36059851,
+                22670386,
+                22595467,
+                22589726,
+                22588997,
+                22599827,
+                22588037,
+                22584526,
+                22587807
+              ],
+              "runtime_proof_indices": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9
+              ],
+              "stable_launch_topology": true,
+              "terminal_decode_ns": [
+                1016656,
+                555628,
+                578727,
+                491968,
+                552177,
+                542788,
+                502908,
+                488758,
+                478838
+              ],
+              "verified_request_ns": [
+                37908174,
+                23722542,
+                23640112,
+                23469443,
+                23567833,
+                23541383,
+                23441514,
+                23423142,
+                23438634
+              ],
+              "zero_final_pool_usage": true
+            },
+            "resources": {
+              "cycles_elapsed": null,
+              "instructions_retired": null,
+              "measurement": "gnu_usr_bin_time_v_v1",
+              "measurement_locale": "C",
+              "normalized_unit": "KiB",
+              "peak_memory_footprint_bytes": null,
+              "peak_rss_kib": 122416
+            },
+            "stage_ms_last_steady_sample": {
+              "constraint_evaluation": 1.309696,
+              "decommit": 0.687104,
+              "fri_commit": 1.312768,
+              "ingress": 0.246144,
+              "oods": 0.4864,
+              "pow": 0.0256,
+              "proof_assembly": 0.10992,
+              "quotient": 0.459776,
+              "total": 22.532831,
+              "trace_commit": 17.750015,
+              "trace_generation": 0.145408
+            },
+            "steady": {
+              "device_committed_mcells_per_second": 1489.0082659884608,
+              "device_critical_path_ms": {
+                "mad": 0.0019209999999993954,
+                "max": 22.544545,
+                "median": 22.534752,
+                "min": 22.53056
+              },
+              "device_row_mhz": 11.63287707803485,
+              "host_gap_ms": {
+                "mad": 0.000681000000000001,
+                "max": 0.055282,
+                "median": 0.053966,
+                "min": 0.053285
+              },
+              "independent_verification_ms": {
+                "mad": 0.02222099999999999,
+                "max": 0.424149,
+                "median": 0.369399,
+                "min": 0.347178
+              },
+              "resident_committed_mcells_per_second": 1485.495707307368,
+              "resident_ms": {
+                "mad": 0.0009599999999991837,
+                "max": 22.599827,
+                "median": 22.588037,
+                "min": 22.584526
+              },
+              "resident_row_mhz": 11.605435213338813,
+              "terminal_decode_ms": {
+                "mad": 0.024070000000000036,
+                "max": 0.552177,
+                "median": 0.502908,
+                "min": 0.478838
+              },
+              "verified_committed_mcells_per_second": 1431.4106162255562,
+              "verified_ms": {
+                "mad": 0.01837200000000294,
+                "max": 23.567833,
+                "median": 23.441514,
+                "min": 23.423142
+              },
+              "verified_row_mhz": 11.182895439262158
+            }
+          },
+          "order_index": 0,
+          "raw": {
+            "aot": {
+              "build_identity_sha256": "3663ea56ea97b16f3ac1559705a5475606afbc85a3536c309ed1bdff0d14b3f0",
+              "cache_hits": 8,
+              "entries": 1,
+              "launch_failures": 0,
+              "launches": 9,
+              "loads": 1,
+              "misses": 0
+            },
+            "arm": "candidate",
+            "command": [
+              "/workspace/stwo-zig-cuda-evidence-5111126a/zig-out/bin/stwo-zig-native-cuda",
+              "prove",
+              "--air",
+              "wide_fibonacci",
+              "--backend",
+              "cuda",
+              "--protocol",
+              "raw-stwo-wide-v1",
+              "--log-n-rows",
+              "18",
+              "--sequence-len",
+              "128",
+              "--output",
+              "/tmp/cuda-structural-screen-3e453695.artifacts/wide_wf_log18x128/steady/000-candidate/proof-artifact.json",
+              "--report-out",
+              "/tmp/cuda-structural-screen-3e453695.artifacts/wide_wf_log18x128/steady/000-candidate/product-report.json",
+              "--repeat",
+              "9"
+            ],
+            "device": {
+              "driver_version": 13000,
+              "global_memory_bytes": 25250627584,
+              "multiprocessors": 128,
+              "ordinal": 0,
+              "runtime_version": 12080,
+              "sm_major": 8,
+              "sm_minor": 9,
+              "toolkit_version": 12080,
+              "uuid": "3dabce32b71d9cdf6392026267492cb6"
+            },
+            "device_stage_timing_ns": {
+              "constraint_evaluation": 1309696,
+              "decommit": 687104,
+              "fri_commit": 1312768,
+              "ingress": 246144,
+              "oods": 486400,
+              "pow": 25600,
+              "proof_assembly": 109920,
+              "quotient": 459776,
+              "total": 22532831,
+              "trace_commit": 17750015,
+              "trace_generation": 145408
+            },
+            "external_wall_ns": 513119883,
+            "ordinal": 0,
+            "phase": "steady",
+            "plan": {
+              "cache_key_sha256": "7cb64b2683313a4ed195b2f3d85fafa08aca1a905db4284eadb09fc50292fc20",
+              "compiled_once": true,
+              "node_count": 8,
+              "persistent_bytes": 0,
+              "predicted_minimum_launches": 25,
+              "program_sha256": "cd2bbacaafd6e8f54910a0a7ae6917d04a19d6b23183b0cadce29ca5018a2cf4",
+              "request_bytes": 690129332,
+              "reuse_count": 9,
+              "schedule_version": 1,
+              "transcript_barriers": 48
+            },
+            "product_identity": {
+              "aot_manifest": "cuda-authenticated-native-pack-v1",
+              "backend": "cuda",
+              "cpu_features_sha256": "d91f6a4602569b7dd872531ac3bb462ab25647471775f68857eabdb060daa2b7",
+              "cpu_model": "znver2",
+              "dirty_content_sha256": null,
+              "frontend": "native-examples",
+              "identity_sha256": "9efd4f7782066e096adb3b076c448ffbf9d8514fe6f92160128f1aca8e41ce49",
+              "implementation_commit": "5111126a57d035dcaf11628be0d9e7d85123be27",
+              "implementation_dirty": false,
+              "implementation_repository": "https://github.com/teddyjfpender/stwo-zig",
+              "implementation_tree": "905cdee69c4b372cfc921715bded950f18ba8091",
+              "name": "stwo-native-cuda",
+              "optimize": "ReleaseFast",
+              "protocol_features": "native-wide-fibonacci-v1+cuda-resident-proof-v1+explicit-toolchain-v1",
+              "protocol_manifest_sha256": "a89a42acdf673f45bac7e484c1034ce957db54ca1c4c9309cadb479e7abea332",
+              "role": "cli",
+              "runtime_manifest": "cuda-process-runtime-v1",
+              "schema_version": 2,
+              "sdk_manifest": "cuda-explicit-toolchain-v1",
+              "target_abi": "gnu",
+              "target_arch": "x86_64",
+              "target_os": "linux",
+              "zig_version": "0.15.2"
+            },
+            "proof": {
+              "artifact_bytes": 153365,
+              "artifact_sha256": "e76c33aad4664e2b7abb482569b08a639c3ed6dc6aed9895603160b9056e5865",
+              "canonical_bytes": 76406,
+              "canonical_sha256": "d8903758e7792df8fbe272cb25346c60abfe333f4324c0f08d42b6bf58c5c96d"
+            },
+            "repetition": {
+              "all_canonical_bytes_identical": true,
+              "count": 9,
+              "device_elapsed_ns": [
+                35939361,
+                22599520,
+                22534945,
+                22533536,
+                22535233,
+                22544545,
+                22534752,
+                22530560,
+                22532831
+              ],
+              "independent_verification_ns": [
+                831387,
+                493588,
+                463388,
+                385329,
+                424149,
+                396378,
+                347969,
+                347178,
+                369399
+              ],
+              "persistent_session": true,
+              "resident_prove_ns": [
+                36059851,
+                22670386,
+                22595467,
+                22589726,
+                22588997,
+                22599827,
+                22588037,
+                22584526,
+                22587807
+              ],
+              "runtime_proof_indices": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9
+              ],
+              "stable_launch_topology": true,
+              "terminal_decode_ns": [
+                1016656,
+                555628,
+                578727,
+                491968,
+                552177,
+                542788,
+                502908,
+                488758,
+                478838
+              ],
+              "verified_request_ns": [
+                37908174,
+                23722542,
+                23640112,
+                23469443,
+                23567833,
+                23541383,
+                23441514,
+                23423142,
+                23438634
+              ],
+              "zero_final_pool_usage": true
+            },
+            "report_sha256": "0f3c220e1244ac206e41aa01f8f3c8702c2d59fe75fc47465dae42b06a8fc72e",
+            "residency": {
+              "all_stages_complete_once": true,
+              "cpu_fallback_attempts": 0,
+              "cpu_fallbacks_completed": 0,
+              "d2d_bytes": 2876,
+              "device_elapsed_ns": 22532831,
+              "device_timing_intervals": 10,
+              "graph_launches": 0,
+              "h2d_bytes": 2109484,
+              "kernel_launches": 462,
+              "peak_live_bytes": 690129332,
+              "pool_reserved_bytes": 704643072,
+              "pool_used_bytes": 0,
+              "resident": true,
+              "strict_aot": true,
+              "sync_calls": 1,
+              "terminal_d2h_bytes": 149880,
+              "terminal_d2h_operations": 1
+            },
+            "resources": {
+              "cycles_elapsed": null,
+              "instructions_retired": null,
+              "measurement": "gnu_usr_bin_time_v_v1",
+              "measurement_locale": "C",
+              "normalized_unit": "KiB",
+              "peak_memory_footprint_bytes": null,
+              "peak_rss_kib": 122416
+            },
+            "stderr_sha256": "a845ab251e39a13af0d65794c601913b3f84624a81c6cb64f9179e5270491e8e",
+            "stdout_sha256": "c1dadb49e213bf8efba93f9484874e122b42e6a367b2890d39b933b21cb96f7f",
+            "timing_ns": {
+              "independent_verification": 831387,
+              "resident_prove": 36059851,
+              "runtime_init": 166287414,
+              "runtime_teardown": 12963346,
+              "shape_prepare": 4992469,
+              "terminal_decode": 1016656,
+              "total_before_publication": 419735718,
+              "verified_request": 37908174
+            }
+          },
+          "round": 0
+        }
+      ],
+      "statement": {
+        "log_n_rows": 18,
+        "sequence_len": 128,
+        "trace_cells": 33554432,
+        "trace_rows": 262144
+      },
+      "structural_class": "wide",
+      "workload_id": "wide_wf_log18x128"
+    },
+    {
+      "cold": {
+        "candidate": {
+          "external_wall_ms": {
+            "mad": 0.0,
+            "max": 876.790121,
+            "median": 876.790121,
+            "min": 876.790121
+          },
+          "first_verified_request_ms": {
+            "mad": 0.0,
+            "max": 357.784493,
+            "median": 357.784493,
+            "min": 357.784493
+          },
+          "lifecycle_sum_ms": {
+            "mad": 0.0,
+            "max": 769.688694,
+            "median": 769.688694,
+            "min": 769.688694
+          },
+          "peak_rss_kib": {
+            "mad": 0.0,
+            "max": 153312.0,
+            "median": 153312.0,
+            "min": 153312.0
+          },
+          "runtime_init_ms": {
+            "mad": 0.0,
+            "max": 165.874856,
+            "median": 165.874856,
+            "min": 165.874856
+          },
+          "runtime_teardown_ms": {
+            "mad": 0.0,
+            "max": 174.883768,
+            "median": 174.883768,
+            "min": 174.883768
+          },
+          "shape_prepare_ms": {
+            "mad": 0.0,
+            "max": 71.145577,
+            "median": 71.145577,
+            "min": 71.145577
+          }
+        }
+      },
+      "comparison": null,
+      "profiler_evidence": {
+        "missing": [
+          "launch_gap_and_overlap",
+          "dram_and_l2_traffic",
+          "achieved_bandwidth",
+          "occupancy",
+          "registers_and_spills",
+          "power_and_energy"
+        ],
+        "nsight_compute": null,
+        "nsight_systems": null
+      },
+      "proof_gate": {
+        "all_arms_byte_identical": true,
+        "canonical_bytes": 106436,
+        "canonical_sha256": "2c0ca9f7a73ea80f4cc32f2e27785f9ccf6b11dc460a133ebc8f5cc441e76205",
+        "device": {
+          "driver_version": 13000,
+          "global_memory_bytes": 25250627584,
+          "multiprocessors": 128,
+          "ordinal": 0,
+          "runtime_version": 12080,
+          "sm_major": 8,
+          "sm_minor": 9,
+          "toolkit_version": 12080,
+          "uuid": "3dabce32b71d9cdf6392026267492cb6"
+        },
+        "product_identities": {
+          "candidate": {
+            "aot_manifest": "cuda-authenticated-native-pack-v1",
+            "backend": "cuda",
+            "cpu_features_sha256": "d91f6a4602569b7dd872531ac3bb462ab25647471775f68857eabdb060daa2b7",
+            "cpu_model": "znver2",
+            "dirty_content_sha256": null,
+            "frontend": "native-examples",
+            "identity_sha256": "9efd4f7782066e096adb3b076c448ffbf9d8514fe6f92160128f1aca8e41ce49",
+            "implementation_commit": "5111126a57d035dcaf11628be0d9e7d85123be27",
+            "implementation_dirty": false,
+            "implementation_repository": "https://github.com/teddyjfpender/stwo-zig",
+            "implementation_tree": "905cdee69c4b372cfc921715bded950f18ba8091",
+            "name": "stwo-native-cuda",
+            "optimize": "ReleaseFast",
+            "protocol_features": "native-wide-fibonacci-v1+cuda-resident-proof-v1+explicit-toolchain-v1",
+            "protocol_manifest_sha256": "a89a42acdf673f45bac7e484c1034ce957db54ca1c4c9309cadb479e7abea332",
+            "role": "cli",
+            "runtime_manifest": "cuda-process-runtime-v1",
+            "schema_version": 2,
+            "sdk_manifest": "cuda-explicit-toolchain-v1",
+            "target_abi": "gnu",
+            "target_arch": "x86_64",
+            "target_os": "linux",
+            "zig_version": "0.15.2"
+          }
+        },
+        "program_sha256": "18f1110e0f9f6ca37c1cd9a4027630f3f0d3c3f0d093913071475e0e6a58f362"
+      },
+      "sessions": [
+        {
+          "arm": "candidate",
+          "metrics": {
+            "first_request": {
+              "device_ms": 355.434799,
+              "resident_ms": 355.646483,
+              "verified_ms": 357.713204
+            },
+            "mechanism": {
+              "all_stages_complete_once": true,
+              "aot": {
+                "build_identity_sha256": "3663ea56ea97b16f3ac1559705a5475606afbc85a3536c309ed1bdff0d14b3f0",
+                "cache_hits": 8,
+                "entries": 1,
+                "launch_failures": 0,
+                "launches": 9,
+                "loads": 1,
+                "misses": 0
+              },
+              "cpu_fallback_attempts": 0,
+              "cpu_fallbacks_completed": 0,
+              "d2d_bytes": 2556,
+              "device_elapsed_ns": 321364361,
+              "device_timing_intervals": 10,
+              "graph_launches": 0,
+              "h2d_bytes": 33566652,
+              "kernel_launches": 598,
+              "peak_live_bytes": 9160586244,
+              "plan": {
+                "cache_key_sha256": "64d6a86ba7a63769ac22c427303b8471b7ad23aa2a1550af419cd60b31eee740",
+                "compiled_once": true,
+                "node_count": 8,
+                "persistent_bytes": 0,
+                "predicted_minimum_launches": 29,
+                "program_sha256": "18f1110e0f9f6ca37c1cd9a4027630f3f0d3c3f0d093913071475e0e6a58f362",
+                "request_bytes": 9160586244,
+                "reuse_count": 9,
+                "schedule_version": 1,
+                "transcript_barriers": 56
+              },
+              "pool_reserved_bytes": 9193914368,
+              "pool_used_bytes": 0,
+              "resident": true,
+              "strict_aot": true,
+              "sync_calls": 1,
+              "terminal_d2h_bytes": 210872,
+              "terminal_d2h_operations": 1
+            },
+            "proof": {
+              "artifact_bytes": 213425,
+              "artifact_sha256": "9dbcd823026d0e838d0f31d3599a58b5d4c237e5889db7588ec1f7c31b56efa4",
+              "canonical_bytes": 106436,
+              "canonical_sha256": "2c0ca9f7a73ea80f4cc32f2e27785f9ccf6b11dc460a133ebc8f5cc441e76205"
+            },
+            "raw_repetition": {
+              "all_canonical_bytes_identical": true,
+              "count": 9,
+              "device_elapsed_ns": [
+                355434799,
+                321413285,
+                321272188,
+                321297411,
+                321332775,
+                321303646,
+                321383134,
+                321355000,
+                321364361
+              ],
+              "independent_verification_ns": [
+                921386,
+                608107,
+                545467,
+                487938,
+                502348,
+                565878,
+                489728,
+                505088,
+                513998
+              ],
+              "persistent_session": true,
+              "resident_prove_ns": [
+                355646483,
+                321528713,
+                321421583,
+                321423714,
+                321459804,
+                321440633,
+                321541212,
+                321477823,
+                321489373
+              ],
+              "runtime_proof_indices": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9
+              ],
+              "stable_launch_topology": true,
+              "terminal_decode_ns": [
+                1144945,
+                859567,
+                801067,
+                788716,
+                789566,
+                737357,
+                749517,
+                738347,
+                772417
+              ],
+              "verified_request_ns": [
+                357713204,
+                323003407,
+                322775067,
+                322707408,
+                322759138,
+                322751208,
+                322787907,
+                322728478,
+                322783108
+              ],
+              "zero_final_pool_usage": true
+            },
+            "resources": {
+              "cycles_elapsed": null,
+              "instructions_retired": null,
+              "measurement": "gnu_usr_bin_time_v_v1",
+              "measurement_locale": "C",
+              "normalized_unit": "KiB",
+              "peak_memory_footprint_bytes": null,
+              "peak_rss_kib": 154252
+            },
+            "stage_ms_last_steady_sample": {
+              "constraint_evaluation": 33.944546,
+              "decommit": 0.93392,
+              "fri_commit": 6.01088,
+              "ingress": 2.57488,
+              "oods": 4.934656,
+              "pow": 0.0256,
+              "proof_assembly": 0.173984,
+              "quotient": 5.471232,
+              "total": 321.364361,
+              "trace_commit": 265.381927,
+              "trace_generation": 1.912736
+            },
+            "steady": {
+              "device_committed_mcells_per_second": 1305.1933220270419,
+              "device_critical_path_ms": {
+                "mad": 0.022224999999991724,
+                "max": 321.383134,
+                "median": 321.355,
+                "min": 321.303646
+              },
+              "device_row_mhz": 13.051933220270417,
+              "host_gap_ms": {
+                "mad": 0.004206000000000001,
+                "max": 0.158078,
+                "median": 0.127029,
+                "min": 0.122823
+              },
+              "independent_verification_ms": {
+                "mad": 0.008909999999999973,
+                "max": 0.565878,
+                "median": 0.505088,
+                "min": 0.489728
+              },
+              "resident_committed_mcells_per_second": 1304.694663183656,
+              "resident_ms": {
+                "mad": 0.018018999999981133,
+                "max": 321.541212,
+                "median": 321.477823,
+                "min": 321.440633
+              },
+              "resident_row_mhz": 13.04694663183656,
+              "terminal_decode_ms": {
+                "mad": 0.012159999999999949,
+                "max": 0.789566,
+                "median": 0.749517,
+                "min": 0.737357
+              },
+              "verified_committed_mcells_per_second": 1299.5151821232091,
+              "verified_ms": {
+                "mad": 0.02397000000001981,
+                "max": 322.787907,
+                "median": 322.759138,
+                "min": 322.728478
+              },
+              "verified_row_mhz": 12.995151821232092
+            }
+          },
+          "order_index": 0,
+          "raw": {
+            "aot": {
+              "build_identity_sha256": "3663ea56ea97b16f3ac1559705a5475606afbc85a3536c309ed1bdff0d14b3f0",
+              "cache_hits": 8,
+              "entries": 1,
+              "launch_failures": 0,
+              "launches": 9,
+              "loads": 1,
+              "misses": 0
+            },
+            "arm": "candidate",
+            "command": [
+              "/workspace/stwo-zig-cuda-evidence-5111126a/zig-out/bin/stwo-zig-native-cuda",
+              "prove",
+              "--air",
+              "wide_fibonacci",
+              "--backend",
+              "cuda",
+              "--protocol",
+              "raw-stwo-wide-v1",
+              "--log-n-rows",
+              "22",
+              "--sequence-len",
+              "100",
+              "--output",
+              "/tmp/cuda-structural-screen-3e453695.artifacts/extreme_wf_log22x100/steady/000-candidate/proof-artifact.json",
+              "--report-out",
+              "/tmp/cuda-structural-screen-3e453695.artifacts/extreme_wf_log22x100/steady/000-candidate/product-report.json",
+              "--repeat",
+              "9"
+            ],
+            "device": {
+              "driver_version": 13000,
+              "global_memory_bytes": 25250627584,
+              "multiprocessors": 128,
+              "ordinal": 0,
+              "runtime_version": 12080,
+              "sm_major": 8,
+              "sm_minor": 9,
+              "toolkit_version": 12080,
+              "uuid": "3dabce32b71d9cdf6392026267492cb6"
+            },
+            "device_stage_timing_ns": {
+              "constraint_evaluation": 33944546,
+              "decommit": 933920,
+              "fri_commit": 6010880,
+              "ingress": 2574880,
+              "oods": 4934656,
+              "pow": 25600,
+              "proof_assembly": 173984,
+              "quotient": 5471232,
+              "total": 321364361,
+              "trace_commit": 265381927,
+              "trace_generation": 1912736
+            },
+            "external_wall_ns": 3458854884,
+            "ordinal": 0,
+            "phase": "steady",
+            "plan": {
+              "cache_key_sha256": "64d6a86ba7a63769ac22c427303b8471b7ad23aa2a1550af419cd60b31eee740",
+              "compiled_once": true,
+              "node_count": 8,
+              "persistent_bytes": 0,
+              "predicted_minimum_launches": 29,
+              "program_sha256": "18f1110e0f9f6ca37c1cd9a4027630f3f0d3c3f0d093913071475e0e6a58f362",
+              "request_bytes": 9160586244,
+              "reuse_count": 9,
+              "schedule_version": 1,
+              "transcript_barriers": 56
+            },
+            "product_identity": {
+              "aot_manifest": "cuda-authenticated-native-pack-v1",
+              "backend": "cuda",
+              "cpu_features_sha256": "d91f6a4602569b7dd872531ac3bb462ab25647471775f68857eabdb060daa2b7",
+              "cpu_model": "znver2",
+              "dirty_content_sha256": null,
+              "frontend": "native-examples",
+              "identity_sha256": "9efd4f7782066e096adb3b076c448ffbf9d8514fe6f92160128f1aca8e41ce49",
+              "implementation_commit": "5111126a57d035dcaf11628be0d9e7d85123be27",
+              "implementation_dirty": false,
+              "implementation_repository": "https://github.com/teddyjfpender/stwo-zig",
+              "implementation_tree": "905cdee69c4b372cfc921715bded950f18ba8091",
+              "name": "stwo-native-cuda",
+              "optimize": "ReleaseFast",
+              "protocol_features": "native-wide-fibonacci-v1+cuda-resident-proof-v1+explicit-toolchain-v1",
+              "protocol_manifest_sha256": "a89a42acdf673f45bac7e484c1034ce957db54ca1c4c9309cadb479e7abea332",
+              "role": "cli",
+              "runtime_manifest": "cuda-process-runtime-v1",
+              "schema_version": 2,
+              "sdk_manifest": "cuda-explicit-toolchain-v1",
+              "target_abi": "gnu",
+              "target_arch": "x86_64",
+              "target_os": "linux",
+              "zig_version": "0.15.2"
+            },
+            "proof": {
+              "artifact_bytes": 213425,
+              "artifact_sha256": "9dbcd823026d0e838d0f31d3599a58b5d4c237e5889db7588ec1f7c31b56efa4",
+              "canonical_bytes": 106436,
+              "canonical_sha256": "2c0ca9f7a73ea80f4cc32f2e27785f9ccf6b11dc460a133ebc8f5cc441e76205"
+            },
+            "repetition": {
+              "all_canonical_bytes_identical": true,
+              "count": 9,
+              "device_elapsed_ns": [
+                355434799,
+                321413285,
+                321272188,
+                321297411,
+                321332775,
+                321303646,
+                321383134,
+                321355000,
+                321364361
+              ],
+              "independent_verification_ns": [
+                921386,
+                608107,
+                545467,
+                487938,
+                502348,
+                565878,
+                489728,
+                505088,
+                513998
+              ],
+              "persistent_session": true,
+              "resident_prove_ns": [
+                355646483,
+                321528713,
+                321421583,
+                321423714,
+                321459804,
+                321440633,
+                321541212,
+                321477823,
+                321489373
+              ],
+              "runtime_proof_indices": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9
+              ],
+              "stable_launch_topology": true,
+              "terminal_decode_ns": [
+                1144945,
+                859567,
+                801067,
+                788716,
+                789566,
+                737357,
+                749517,
+                738347,
+                772417
+              ],
+              "verified_request_ns": [
+                357713204,
+                323003407,
+                322775067,
+                322707408,
+                322759138,
+                322751208,
+                322787907,
+                322728478,
+                322783108
+              ],
+              "zero_final_pool_usage": true
+            },
+            "report_sha256": "6d6974f4f94981acd7c241e195041275dffc7e2a322d7d0c0b24fe8a1c8114f1",
+            "residency": {
+              "all_stages_complete_once": true,
+              "cpu_fallback_attempts": 0,
+              "cpu_fallbacks_completed": 0,
+              "d2d_bytes": 2556,
+              "device_elapsed_ns": 321364361,
+              "device_timing_intervals": 10,
+              "graph_launches": 0,
+              "h2d_bytes": 33566652,
+              "kernel_launches": 598,
+              "peak_live_bytes": 9160586244,
+              "pool_reserved_bytes": 9193914368,
+              "pool_used_bytes": 0,
+              "resident": true,
+              "strict_aot": true,
+              "sync_calls": 1,
+              "terminal_d2h_bytes": 210872,
+              "terminal_d2h_operations": 1
+            },
+            "resources": {
+              "cycles_elapsed": null,
+              "instructions_retired": null,
+              "measurement": "gnu_usr_bin_time_v_v1",
+              "measurement_locale": "C",
+              "normalized_unit": "KiB",
+              "peak_memory_footprint_bytes": null,
+              "peak_rss_kib": 154252
+            },
+            "stderr_sha256": "007ee21f38d10e2f0f8e20854d99194297dd01f8bbe979851155c1903d92d465",
+            "stdout_sha256": "bec30d6964a5d52319db4c41abc04da0780da8d5174408f1128d87caff6909bb",
+            "timing_ns": {
+              "independent_verification": 921386,
+              "resident_prove": 355646483,
+              "runtime_init": 166706312,
+              "runtime_teardown": 174557809,
+              "shape_prepare": 70692788,
+              "terminal_decode": 1144945,
+              "total_before_publication": 3361701075,
+              "verified_request": 357713204
+            }
+          },
+          "round": 0
+        }
+      ],
+      "statement": {
+        "log_n_rows": 22,
+        "sequence_len": 100,
+        "trace_cells": 419430400,
+        "trace_rows": 4194304
+      },
+      "structural_class": "extreme",
+      "workload_id": "extreme_wf_log22x100"
+    }
+  ]
+}

@@ -140,8 +140,8 @@ pub(crate) fn generate_example_state_machine_lookup_draw_vectors(
         let mut channel = Blake2sChannel::default();
         channel.mix_u64(mix_u64);
         channel.mix_u32s(&mix_u32s);
-        let z = channel.draw_secure_felt();
-        let alpha = channel.draw_secure_felt();
+        let elements = channel.draw_secure_felts(2);
+        let [z, alpha]: [QM31; 2] = elements.try_into().unwrap();
 
         out.push(ExampleStateMachineLookupDrawVector {
             mix_u64,

@@ -1,7 +1,8 @@
-//! Canonical Stark-V RISC-V claim transcript representations.
+//! Canonical RISC-V claim transcript representations.
 //!
-//! Component order is part of the Fiat-Shamir protocol. Keep it aligned with
-//! pinned Stark-V `crates/prover/src/components/mod.rs`.
+//! Component order is part of the Fiat-Shamir protocol. The first sixteen
+//! opcode components preserve the legacy layout; FENCE is appended before the
+//! infrastructure block in the Sail-authoritative schema.
 
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
@@ -23,6 +24,7 @@ pub const Component = enum(u8) {
     mulh,
     shifts_imm,
     shifts_reg,
+    fence,
     program,
     memory,
     merkle,
@@ -88,12 +90,13 @@ pub const InteractionClaim = struct {
 };
 
 test "claim transcript: canonical component order is pinned" {
-    try std.testing.expectEqual(@as(usize, 27), COMPONENT_COUNT);
+    try std.testing.expectEqual(@as(usize, 28), COMPONENT_COUNT);
     try std.testing.expectEqual(@as(u8, 0), @intFromEnum(Component.auipc));
     try std.testing.expectEqual(@as(u8, 15), @intFromEnum(Component.shifts_reg));
-    try std.testing.expectEqual(@as(u8, 16), @intFromEnum(Component.program));
-    try std.testing.expectEqual(@as(u8, 20), @intFromEnum(Component.clock_update));
-    try std.testing.expectEqual(@as(u8, 26), @intFromEnum(Component.range_check_m31));
+    try std.testing.expectEqual(@as(u8, 16), @intFromEnum(Component.fence));
+    try std.testing.expectEqual(@as(u8, 17), @intFromEnum(Component.program));
+    try std.testing.expectEqual(@as(u8, 21), @intFromEnum(Component.clock_update));
+    try std.testing.expectEqual(@as(u8, 27), @intFromEnum(Component.range_check_m31));
 }
 
 test "claim transcript: main and interaction mix call boundaries are canonical" {

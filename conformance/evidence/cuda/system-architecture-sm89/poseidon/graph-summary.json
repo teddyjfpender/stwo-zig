@@ -1,0 +1,139 @@
+{
+  "schema_version": 6,
+  "product": "stwo-native-cuda",
+  "backend": "cuda",
+  "application": "poseidon",
+  "protocol": "raw-stwo-poseidon-v1",
+  "execution_mode": "graphs",
+  "statement": {
+    "log_n_instances": 10,
+    "trace_rows": 128,
+    "trace_cells": 161792
+  },
+  "plan": {
+    "program_sha256": "a7ff40cfb16c7bdb33e2f3c333bffb3a00a707b31c492366d086859a02ad6692",
+    "semantic_sha256": "a028971487ad9089d64af3d07d122b9a6821dad36dd2d606b57c5aff2bfdaa62",
+    "cache_key_sha256": "b05a82e91cc4e8f058ba6155dc912a8560d1bad992417e0be311ae58dd8d2c3a",
+    "schedule_version": 2,
+    "compiled_once": true,
+    "reuse_count": 3,
+    "node_count": 8,
+    "request_bytes": 3079616,
+    "persistent_bytes": 3079616,
+    "predicted_minimum_launches": 14,
+    "transcript_barriers": 26
+  },
+  "proof": {
+    "path": "/tmp/integrated-poseidon-proof.json",
+    "format": "proof_exchange_json_wire_v1",
+    "canonical_bytes": 112834,
+    "canonical_sha256": "af33240da8e7947362fdf7e78d306f2e11cb2e3df7e1b6f498a6e86ac3ae7b1b",
+    "upstream_commit": "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2",
+    "zig_verified": true
+  },
+  "timing_ns": {
+    "runtime_init": 911590763,
+    "shape_prepare": 151827252,
+    "resident_prove": 32027320,
+    "terminal_decode": 1031145,
+    "independent_verification": 1641584,
+    "verified_request": 34700639,
+    "runtime_teardown": 316478,
+    "total_before_publication": 1108670801
+  },
+  "process_repetition": {
+    "count": 3,
+    "persistent_session": true,
+    "all_canonical_bytes_identical": true,
+    "stable_launch_topology": true,
+    "request_allocations_released": true,
+    "bounded_persistent_pool_usage": true,
+    "graph_cache_hits_total": 14,
+    "graph_cache_misses_total": 7,
+    "resident_prove_ns": [
+      32027320,
+      2395790,
+      2377370
+    ],
+    "terminal_decode_ns": [
+      1031145,
+      647977,
+      644317
+    ],
+    "independent_verification_ns": [
+      1641584,
+      1152346,
+      912617
+    ],
+    "verified_request_ns": [
+      34700639,
+      4200323,
+      3937684
+    ],
+    "device_elapsed_ns": [
+      31917791,
+      2370720,
+      2355680
+    ],
+    "runtime_proof_indices": [
+      1,
+      2,
+      3
+    ]
+  },
+  "residency": {
+    "resident": true,
+    "strict_aot": true,
+    "all_stages_complete_once": true,
+    "terminal_d2h_operations": 1,
+    "terminal_d2h_bytes": 67244,
+    "h2d_bytes": 78520,
+    "d2d_bytes": 20700,
+    "cpu_fallback_attempts": 0,
+    "cpu_fallbacks_completed": 0,
+    "kernel_launches": 127,
+    "graph_launches": 7,
+    "graph_cache_hits": 7,
+    "graph_cache_misses": 0,
+    "sync_calls": 1,
+    "device_timing_intervals": 10,
+    "device_elapsed_ns": 2355680,
+    "peak_live_bytes": 3079616,
+    "persistent_bytes": 3079616,
+    "pool_used_bytes": 3079616,
+    "pool_reserved_bytes": 33554432
+  },
+  "device_stage_timing_ns": {
+    "ingress": 101920,
+    "trace_generation": 123904,
+    "trace_commit": 169984,
+    "constraint_evaluation": 41984,
+    "oods": 585728,
+    "quotient": 660480,
+    "fri_commit": 153600,
+    "pow": 26624,
+    "decommit": 440320,
+    "proof_assembly": 51136,
+    "total": 2355680
+  },
+  "aot": {
+    "entries": 6,
+    "loads": 2,
+    "cache_hits": 0,
+    "misses": 0,
+    "launches": 2,
+    "launch_failures": 0,
+    "build_identity_sha256": "7065021bd7278747b0ac806f8596af278ab42c7df554c85419771599a46dcdf0"
+  },
+  "device": {
+    "ordinal": 0,
+    "sm_major": 8,
+    "sm_minor": 9,
+    "uuid": "3dabce32b71d9cdf6392026267492cb6",
+    "driver_version": 13000,
+    "runtime_version": 12080,
+    "toolkit_version": 12080,
+    "global_memory_bytes": 25250627584,
+    "multiprocessors": 128
+  }
+}

@@ -1,0 +1,14 @@
+.{
+    .fingerprint = 0x0a72a23ee484de15,
+    .name = .stwo_native_cuda_integration,
+    .version = "0.1.0",
+    .paths = .{"."},
+    .dependencies = .{
+        .stwo_backend_contracts = .{ .path = "../../backend" },
+        .stwo_core = .{ .path = "../../core" },
+        .stwo_cuda_backend = .{ .path = "../../backends/cuda" },
+        .stwo_native_examples = .{ .path = "../../examples" },
+        .stwo_proof_wire = .{ .path = "../../interop/proof_wire" },
+        .stwo_prover_engine = .{ .path = "../../prover" },
+    },
+}

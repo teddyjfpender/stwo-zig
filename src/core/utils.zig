@@ -48,6 +48,24 @@ pub fn offsetBitReversedCircleDomainIndex(
     eval_log_size: u32,
     offset: isize,
 ) usize {
+    if (domain_log_size == eval_log_size) {
+        const size: usize = @as(usize, 1) << @intCast(eval_log_size);
+        const size_isize: isize = @intCast(size);
+        const circle_index = bitReverseIndex(i, eval_log_size);
+        const coset_index = circleDomainIndexToCosetIndex(
+            circle_index,
+            eval_log_size,
+        );
+        const shifted_coset_index: usize = @intCast(@mod(
+            @as(isize, @intCast(coset_index)) + @mod(offset, size_isize),
+            size_isize,
+        ));
+        return bitReverseIndex(
+            cosetIndexToCircleDomainIndex(shifted_coset_index, eval_log_size),
+            eval_log_size,
+        );
+    }
+
     var prev_index = bitReverseIndex(i, eval_log_size);
     const half_size: usize = @as(usize, 1) << @intCast(eval_log_size - 1);
     const step_unit: usize = @as(usize, 1) << @intCast(eval_log_size - domain_log_size - 1);
@@ -146,6 +164,36 @@ test "utils: offset bit reversed index matches repeated previous" {
     const prev = previousBitReversedCircleDomainIndex(initial_index, domain_log_size, eval_log_size);
     const prev2 = previousBitReversedCircleDomainIndex(prev, domain_log_size, eval_log_size);
     try std.testing.expectEqual(prev2, actual);
+}
+
+test "utils: equal domain and evaluation logs follow wrapped coset order" {
+    const log_size: u32 = 5;
+    const n: usize = @as(usize, 1) << @intCast(log_size);
+    const offsets = [_]isize{ -2, -1, 0, 1, 2 };
+
+    for (0..n) |coset_index| {
+        const circle_index = cosetIndexToCircleDomainIndex(coset_index, log_size);
+        const storage_index = bitReverseIndex(circle_index, log_size);
+        for (offsets) |offset| {
+            const expected_coset_index: usize = @intCast(@mod(
+                @as(isize, @intCast(coset_index)) + offset,
+                @as(isize, @intCast(n)),
+            ));
+            const expected_storage_index = bitReverseIndex(
+                cosetIndexToCircleDomainIndex(expected_coset_index, log_size),
+                log_size,
+            );
+            try std.testing.expectEqual(
+                expected_storage_index,
+                offsetBitReversedCircleDomainIndex(
+                    storage_index,
+                    log_size,
+                    log_size,
+                    offset,
+                ),
+            );
+        }
+    }
 }
 
 test "utils: circle and coset index conversion are inverses" {
