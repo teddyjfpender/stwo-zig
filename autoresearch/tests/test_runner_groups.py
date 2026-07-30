@@ -888,6 +888,9 @@ class RunnerGroupTest(unittest.TestCase):
         script = self.root / "scripts/riscv_sail_gate.py"
         script.parent.mkdir(parents=True)
         script.write_text("# fixture\n")
+        elf = self.root / "vectors/riscv_elfs/alu_test.elf"
+        elf.parent.mkdir(parents=True)
+        elf.write_bytes(b"ELF fixture")
         manifest = self._riscv_manifest()
         group = manifest.group("riscv")
         object.__setattr__(group, "correctness_oracle", {
@@ -944,7 +947,16 @@ class RunnerGroupTest(unittest.TestCase):
             "riscv_sail_gate.py" in command and command.endswith(" bind")
             for command in commands
         ))
-        self.assertTrue(any(" verify " in f" {command} " for command in commands))
+        verify_commands = [
+            shlex.split(command)
+            for command in commands
+            if " verify " in f" {command} "
+        ]
+        self.assertEqual(1, len(verify_commands))
+        self.assertEqual(
+            str(elf.resolve()),
+            verify_commands[0][verify_commands[0].index("--elf") + 1],
+        )
         self.assertFalse(any("build-and-compare" in command for command in commands))
         self.assertFalse(any("stwo-interop-rs" in command for command in commands))
 

@@ -3397,9 +3397,39 @@ def _riscv_sail_oracle_check(
     binary = candidate_root / group.binary
     if not binary.is_file():
         raise RunError(f"missing RISC-V candidate verifier: {binary}")
+    formatted_args = shlex.split(
+        _format_workload_args(candidate_root, group, workload, 0, 1)
+    )
+    elf_positions = [
+        index for index, value in enumerate(formatted_args) if value == "--elf"
+    ]
+    if (
+        len(elf_positions) != 1
+        or elf_positions[0] + 1 >= len(formatted_args)
+        or formatted_args[elf_positions[0] + 1].startswith("-")
+    ):
+        raise RunError(
+            f"{workload.workload_id}: RISC-V workload must bind exactly one "
+            "--elf path for independent verification"
+        )
+    candidate_root_resolved = candidate_root.resolve()
+    elf_path = (
+        candidate_root_resolved / formatted_args[elf_positions[0] + 1]
+    ).resolve()
+    try:
+        elf_path.relative_to(candidate_root_resolved)
+    except ValueError as exc:
+        raise RunError(
+            f"{workload.workload_id}: RISC-V workload ELF escapes the repository"
+        ) from exc
+    if not elf_path.is_file():
+        raise RunError(
+            f"{workload.workload_id}: RISC-V workload ELF is missing: {elf_path}"
+        )
     verify_raw = _run(
         shlex.join([
             str(binary), "verify", "--artifact", str(proof_path),
+            "--elf", str(elf_path),
             "--protocol", str(artifact.get("protocol")),
             "--expect-statement-digest", statement_digest,
         ]),
