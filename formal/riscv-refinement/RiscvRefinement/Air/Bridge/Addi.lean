@@ -2513,6 +2513,97 @@ theorem fixedLookupsHold_eq
     EvaluatedLookup.isLive,
   ]
 
+def zeroRow
+    (zeroDestination : Bool)
+    (source : RegisterIndex) : AddiRow where
+  pc := BitVec.ofNat 32 0x1000
+  clock := 1
+  rd := if zeroDestination then zeroRegister else BitVec.ofNat 5 1
+  rdPreviousClock := 0
+  rdPrevious := WordBytes.zero
+  rdNext := WordBytes.zero
+  rs1 := source
+  rs1PreviousClock := 0
+  rs1Previous := WordBytes.zero
+  rs1Next := WordBytes.zero
+  imm0 := BitVec.ofNat 8 0
+  imm1 := BitVec.ofNat 3 0
+  immSign := BitVec.ofNat 1 0
+  result := WordBytes.zero
+  rdNonzero := !zeroDestination
+  claimedNextPc := nextPc (BitVec.ofNat 32 0x1000)
+
+def zeroWitness
+    (zeroDestination : Bool)
+    (source : RegisterIndex) :
+    Witness (zeroRow zeroDestination source) where
+  destinationInverse := if zeroDestination then 0 else 1
+
+theorem zeroAdmission
+    (zeroDestination : Bool)
+    (source : RegisterIndex) :
+    Admission (zeroRow zeroDestination source) := by
+  constructor <;> simp [zeroRow]
+
+set_option maxRecDepth 30000 in
+set_option maxHeartbeats 0 in
+theorem zeroAcceptance
+    (zeroDestination : Bool)
+    (source : RegisterIndex) :
+    Acceptance
+      (zeroRow zeroDestination source)
+      (zeroWitness zeroDestination source) := by
+  refine {
+    selectors :=
+      selectorAccepted
+        (zeroRow zeroDestination source)
+        (zeroWitness zeroDestination source)
+    constraints := ?_
+    fixedLookups := ?_
+  }
+  · apply
+      (constraintsHold_iff
+        (zeroRow zeroDestination source)
+        (zeroWitness zeroDestination source)).mpr
+    cases zeroDestination <;>
+      simp [
+        ConstraintEquations,
+        carry1Field,
+        carry2Field,
+        carry3Field,
+        carry4Field,
+        immediateLimb1Field,
+        signLimbField,
+        zeroRow,
+        zeroWitness,
+        zeroRegister,
+        boolM31,
+        Lui.boolM31,
+        bitVecM31,
+        Lui.bitVecM31,
+        WordBytes.zero,
+      ]
+  · rw [fixedLookupsHold_eq]
+    simp [
+      immediateLookup,
+      sourceClockLookup,
+      resultLowLookup,
+      resultHighLookup,
+      destinationClockLookup,
+      EvaluatedLookup.fixedRequestHolds,
+      EvaluatedLookup.fixedMembership,
+      EvaluatedLookup.isLive,
+      FixedTableId.contains,
+      sourceClockGapField,
+      destinationClockGapField,
+      accessClockField,
+      zeroRow,
+      bitVecM31,
+      Lui.bitVecM31,
+      WordBytes.zero,
+      M31.toNat,
+    ] <;> decide
+
 def exampleRow : AddiRow where
   pc := BitVec.ofNat 32 0x1000
   clock := 1

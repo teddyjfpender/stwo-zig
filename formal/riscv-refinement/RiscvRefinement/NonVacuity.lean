@@ -144,6 +144,88 @@ def honestAddiEnvironment : AddiEnvironment honestAddiRow where
   sourceBinds := by decide
   destinationBinds := by decide
 
+def honestAddiProductionWitness :
+    Air.Bridge.Addi.Witness honestAddiRow where
+  destinationInverse := M31.reduce 1789569706
+
+theorem honest_addi_production_admission :
+    Air.Bridge.Addi.Admission honestAddiRow := by
+  constructor <;> decide
+
+set_option maxRecDepth 30000 in
+set_option maxHeartbeats 0 in
+theorem honest_addi_production_acceptance :
+    Air.Bridge.Addi.Acceptance
+      honestAddiRow honestAddiProductionWitness := by
+  refine {
+    selectors :=
+      Air.Bridge.Addi.selectorAccepted
+        honestAddiRow honestAddiProductionWitness
+    constraints := ?_
+    fixedLookups := ?_
+  }
+  · apply
+      (Air.Bridge.Addi.constraintsHold_iff
+        honestAddiRow honestAddiProductionWitness).mpr
+    simp [
+      Air.Bridge.Addi.ConstraintEquations,
+      Air.Bridge.Addi.carry1Field,
+      Air.Bridge.Addi.carry2Field,
+      Air.Bridge.Addi.carry3Field,
+      Air.Bridge.Addi.carry4Field,
+      Air.Bridge.Addi.immediateLimb1Field,
+      Air.Bridge.Addi.signLimbField,
+      honestAddiRow,
+      honestAddiProductionWitness,
+      Air.Bridge.Addi.boolM31,
+      Air.Bridge.Lui.boolM31,
+      Air.Bridge.Addi.bitVecM31,
+      Air.Bridge.Lui.bitVecM31,
+      WordBytes.zero,
+    ] <;> decide
+  · rw [Air.Bridge.Addi.fixedLookupsHold_eq]
+    decide
+
+def honestAddiProductionEnvironment :
+    AddiEnvironment (Air.Bridge.Addi.interpretedRow honestAddiRow) where
+  pre := honestAddiPreState
+  word :=
+    Decode.encodeAddi
+      (addiImmediate
+        honestAddiRow.imm0
+        honestAddiRow.imm1
+        honestAddiRow.immSign)
+      honestAddiRow.rs1
+      honestAddiRow.rd
+  pcBinds := rfl
+  wordBinds := rfl
+  sourceBinds := by decide
+  destinationBinds := by decide
+
+theorem addi_production_overflow_exists :
+    Air.Bridge.Addi.Admission honestAddiRow ∧
+      Air.Bridge.Addi.Acceptance
+        honestAddiRow honestAddiProductionWitness ∧
+      honestAddiRow.rs1Previous.word =
+        BitVec.ofNat 32 0x7fffffff ∧
+      honestAddiRow.result.word =
+        BitVec.ofNat 32 0x80000000 ∧
+      AddiRefinement
+        (Air.Bridge.Addi.interpretedRow honestAddiRow)
+        honestAddiProductionEnvironment := by
+  exact ⟨
+    honest_addi_production_admission,
+    honest_addi_production_acceptance,
+    by decide,
+    by decide,
+    addi_production_refines
+      honestAddiRow
+      honestAddiProductionWitness
+      honestAddiProductionEnvironment
+      honest_addi_production_admission
+      honest_addi_production_acceptance
+  ⟩
+
 theorem addi_exists :
     ∃ (row : AddiRow) (environment : AddiEnvironment row),
       AddiHolds row ∧ AddiRefinement row environment :=

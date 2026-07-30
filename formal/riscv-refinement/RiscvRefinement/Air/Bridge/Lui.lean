@@ -1144,6 +1144,71 @@ theorem fixedLookupsHold_eq
     clockLookupAt_evaluation row witness,
   ]
 
+def zeroRow (zeroDestination : Bool) : LuiRow where
+  pc := BitVec.ofNat 32 0x1000
+  clock := 1
+  rd := if zeroDestination then zeroRegister else BitVec.ofNat 5 1
+  rdPreviousClock := 0
+  rdPrevious := WordBytes.zero
+  rdNext := WordBytes.zero
+  imm0 := BitVec.ofNat 4 0
+  imm1 := BitVec.ofNat 8 0
+  imm2 := BitVec.ofNat 8 0
+  rdNonzero := !zeroDestination
+  claimedNextPc := nextPc (BitVec.ofNat 32 0x1000)
+
+def zeroWitness
+    (zeroDestination : Bool) :
+    Witness (zeroRow zeroDestination) where
+  destinationInverse := if zeroDestination then 0 else 1
+
+theorem zeroAdmission
+    (zeroDestination : Bool) :
+    Admission (zeroRow zeroDestination) := by
+  constructor <;> simp [zeroRow]
+
+set_option maxRecDepth 20000 in
+theorem zeroAcceptance
+    (zeroDestination : Bool) :
+    Acceptance (zeroRow zeroDestination) (zeroWitness zeroDestination) := by
+  refine {
+    selectors :=
+      selectorAccepted
+        (zeroRow zeroDestination)
+        (zeroWitness zeroDestination)
+    constraints := ?_
+    fixedLookups := ?_
+  }
+  · apply
+      (constraintsHold_iff
+        (zeroRow zeroDestination)
+        (zeroWitness zeroDestination)).mpr
+    cases zeroDestination <;>
+      simp [
+        ConstraintEquations,
+        zeroRow,
+        zeroWitness,
+        zeroRegister,
+        boolM31,
+        bitVecM31,
+        WordBytes.zero,
+      ]
+  · rw [fixedLookupsHold_eq]
+    simp [
+      immediateLookup,
+      clockLookup,
+      EvaluatedLookup.fixedRequestHolds,
+      EvaluatedLookup.fixedMembership,
+      EvaluatedLookup.isLive,
+      FixedTableId.contains,
+      clockGapField,
+      accessClockField,
+      zeroRow,
+      bitVecM31,
+      WordBytes.zero,
+      M31.toNat,
+    ] <;> decide
+
 def exampleRow : LuiRow where
   pc := BitVec.ofNat 32 0x1000
   clock := 1
