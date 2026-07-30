@@ -52,7 +52,8 @@ def architecturalNextPc (evaluation : SymbolicEvaluation) : Prop :=
   (evaluation.lookup? 35).bind (fun lookup => lookup.tuple[0]?) =
     some
       (Air.Bridge.Jalr.bitVecM31
-        (Air.Bridge.Jalr.jumpTarget row.rs1Value.word row.immediate))
+        (Air.Bridge.Jalr.jumpTarget
+          row.rs1Previous.word row.immediate))
 
 def originalAcceptance (evaluation : SymbolicEvaluation) : Prop :=
   withoutStateEmitProjection evaluation ∧
@@ -81,11 +82,13 @@ theorem original_sound
     architecturalNextPc evaluation := by
   unfold architecturalNextPc
   rw [accepted.2]
-  simp [
-    Air.Bridge.Jalr.stateEmitLookup,
-    Air.Bridge.Jalr.stateTargetField_eq
-      row Air.Bridge.Jalr.exampleAdmission,
+  simp only [Option.bind_some]
+  rw [
+    Air.Bridge.Jalr.stateEmitFields
+      row witness Air.Bridge.Jalr.exampleAdmission
+        Air.Bridge.Jalr.exampleAcceptance,
   ]
+  rfl
 
 set_option maxRecDepth 50000 in
 theorem wrongStateEmit_satisfies :
@@ -94,7 +97,7 @@ theorem wrongStateEmit_satisfies :
   have accepted := Air.Bridge.Jalr.exampleAcceptance
   refine ⟨⟨?_, ?_, ?_⟩, ?_⟩
   · simpa [wrongStateEmitEvaluation] using
-      Air.Bridge.Jalr.selectorAccepted row witness
+      accepted.selectors
   · rw [wrongStateEmitEvaluation, SymbolicEvaluation.constraintsHold]
     apply all_setIfInBounds_of_all
     · simpa [SymbolicEvaluation.constraintsHold] using accepted.constraints
@@ -141,12 +144,13 @@ theorem wrongStateEmit_refutes :
       Air.Bridge.Jalr.bitVecM31 (RiscvRefinement.nextPc row.pc) =
         Air.Bridge.Jalr.bitVecM31
           (Air.Bridge.Jalr.jumpTarget
-            row.rs1Value.word row.immediate) := by
+            row.rs1Previous.word row.immediate) := by
     simpa [wrongStateEmitLookup] using equality
   have values := congrArg M31.val fieldEquality
   simp [
     row,
     Air.Bridge.Jalr.exampleRow,
+    Air.Bridge.Jalr.exampleSource,
     Air.Bridge.Jalr.wordBytes,
     WordBytes.value,
     Air.Bridge.Jalr.jumpTarget,
@@ -165,6 +169,20 @@ def wrongStateEmitControl :
   witness := wrongStateEmitEvaluation
   satisfies := wrongStateEmit_satisfies
   refutes := wrongStateEmit_refutes
+
+theorem mutationCertificate :
+    withoutStateEmitProjection wrongStateEmitEvaluation ∧
+      ¬ architecturalNextPc wrongStateEmitEvaluation :=
+  ⟨wrongStateEmit_satisfies, wrongStateEmit_refutes⟩
+
+def jalr_state_target_mutation :
+    MutationControl withoutStateEmitProjection architecturalNextPc :=
+  wrongStateEmitControl
+
+theorem jalr_state_target_mutation_certificate :
+    withoutStateEmitProjection wrongStateEmitEvaluation ∧
+      ¬ architecturalNextPc wrongStateEmitEvaluation :=
+  mutationCertificate
 
 theorem wrongStateEmit_strictly_weaker :
     ¬ (∀ evaluation,
