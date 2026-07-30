@@ -22,7 +22,6 @@
     "Runtime",
     "Tree",
     "arena_plan",
-    "cairo",
     "commit_backend",
     "commit_policy",
     "merkle_tree",

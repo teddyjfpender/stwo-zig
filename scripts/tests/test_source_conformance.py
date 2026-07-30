@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from unittest import mock
 
 from scripts.check_source_conformance import (
     BASELINE_TRACKS,
@@ -19,7 +20,8 @@ from scripts.check_source_conformance import (
     write_baseline,
 )
 from scripts.source_conformance_lib.policy import ACTIVE_FORMAL_EVIDENCE_ROOTS
-from scripts.source_conformance_lib import comments, policy
+from scripts.source_conformance_lib import change_scope, comments, policy, report
+from scripts.source_conformance_lib.change_scope import ChangeScope
 from scripts.source_conformance_lib.model import is_headroom
 
 
@@ -433,7 +435,13 @@ class SourceConformanceTests(unittest.TestCase):
             self.assertEqual({}, load_baseline(baseline))
             errors = io.StringIO()
             with redirect_stdout(io.StringIO()), redirect_stderr(errors):
-                self.assertEqual(0, main(["--repo", str(repo), "--baseline", str(baseline)]))
+                self.assertEqual(0, main([
+                    "--repo",
+                    str(repo),
+                    "--baseline",
+                    str(baseline),
+                    report.SHOW_ALL_FLAG,
+                ]))
             self.assertIn("warning: build_support/products.zig: 450 lines", errors.getvalue())
             self.assertNotIn("error:", errors.getvalue())
 
@@ -470,6 +478,140 @@ class SourceConformanceTests(unittest.TestCase):
                 messages["headroom:thin-owner:scripts/benchmark_delta.py"],
             )
             self.assertEqual([], scan(repo))
+
+    #: One near-ceiling file inside the change under test, one outside it.
+    SCOPED_TREE = {"build_support/products.zig": 460, "build_support/graph.zig": 470}
+    IN_SCOPE = ChangeScope(frozenset({"build_support/products.zig"}))
+    GIT_REPLIES = {
+        ("merge-base", "HEAD", "origin/main"): "abc123\n",
+        ("diff", "--name-only", "abc123", "--"): "src/core/a.zig\nscripts/b.py\n",
+        ("ls-files", "--others", "--exclude-standard"): "src/core/new.zig\n",
+    }
+
+    def scoped_notices(self, repo: Path) -> list[Finding]:
+        """Measure a tree holding one changed and one unchanged near-ceiling file."""
+        for relative, count in self.SCOPED_TREE.items():
+            path = repo / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("\n" * count, encoding="utf-8")
+        notices = [notice for notice in measure(repo) if is_headroom(notice)]
+        self.assertEqual(2, len(notices))
+        return notices
+
+    def scoped_warning(self, relative: str) -> str:
+        count = self.SCOPED_TREE[relative]
+        return (
+            f"warning: {relative}: {count} lines approaches the 500-line "
+            f"build-support owner ceiling ({500 - count} line(s) of headroom)"
+        )
+
+    def test_one_measurement_reports_one_line_however_many_ceilings_apply(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary)
+            controller = repo / "scripts/example_lib/controller.py"
+            controller.parent.mkdir(parents=True)
+            controller.write_text("pass\n" * 800, encoding="utf-8")
+            (repo / "scripts/example.py").write_text(
+                "from example_lib.controller import main\n",
+                encoding="utf-8",
+            )
+            notices = [notice for notice in measure(repo) if is_headroom(notice)]
+            self.assertEqual(
+                {
+                    "headroom:deep-controller:scripts/example_lib/controller.py",
+                    "headroom:file-size:scripts/example_lib/controller.py",
+                },
+                {notice.key for notice in notices},
+                "both ceilings must still be measured",
+            )
+            self.assertEqual(
+                ["scripts/example_lib/controller.py: 800 lines approaches "
+                 "the 850-line evidence controller soft ceiling (50 line(s) of headroom) "
+                 "and the 850-line manual-source ceiling (50 line(s) of headroom)"],
+                [notice.message for notice in report.merge(notices)],
+            )
+
+    def test_size_notices_report_the_change_and_summarise_everything_else(self) -> None:
+        tail = "are within 10% of a size ceiling; rerun with --show-headroom to list them"
+        changed = self.scoped_warning("build_support/products.zig")
+        cases = {
+            "in-change": (self.IN_SCOPE, False, [
+                changed,
+                f"note: 1 unchanged file(s) {tail}",
+            ]),
+            "scope-unavailable": (
+                ChangeScope(frozenset(), unavailable="no readable git work tree"),
+                False,
+                [f"note: change scope unavailable (no readable git work tree); 2 file(s) {tail}"],
+            ),
+            "show-all": (self.IN_SCOPE, True, [
+                self.scoped_warning("build_support/graph.zig"),
+                changed,
+            ]),
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary)
+            notices = self.scoped_notices(repo)
+            for name, (scope, show_all, expected) in cases.items():
+                with self.subTest(name=name):
+                    errors = io.StringIO()
+                    report.report(notices, scope, show_all=show_all, stream=errors)
+                    self.assertEqual(expected, errors.getvalue().splitlines())
+
+    def test_change_scope_reads_the_merge_base_diff_and_untracked_files(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary)
+            replies = {("rev-parse", "--show-toplevel"): f"{repo}\n", **self.GIT_REPLIES}
+
+            def runner(argv, broken: object = None) -> str | None:
+                arguments = tuple(argv[3:])
+                return None if arguments == broken else replies.get(arguments)
+
+            scope = change_scope.resolve(repo, runner)
+            self.assertEqual("abc123", scope.base)
+            self.assertEqual(
+                frozenset({"src/core/a.zig", "scripts/b.py", "src/core/new.zig"}),
+                scope.paths,
+            )
+            self.assertTrue(scope.covers("scripts/b.py"))
+            self.assertFalse(scope.covers("scripts/untouched.py"))
+
+            for broken in replies:
+                with self.subTest(broken=broken):
+                    degraded = change_scope.resolve(
+                        repo,
+                        lambda argv, failing=broken: runner(argv, failing),
+                    )
+                    self.assertFalse(degraded.known)
+                    self.assertTrue(degraded.unavailable)
+
+            replies[("rev-parse", "--show-toplevel")] = "/somewhere/else\n"
+            self.assertEqual(
+                "scanned tree is not a git work tree root",
+                change_scope.resolve(repo, runner).unavailable,
+            )
+            live = change_scope.resolve(Path(__file__).resolve().parents[2])
+            self.assertTrue(live.unavailable or all(not p.startswith("/") for p in live.paths))
+
+    def test_scoping_narrows_notices_but_never_findings_or_exit_codes(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary)
+            self.scoped_notices(repo)
+            (repo / "build_support/graph.zig").write_text("\n" * 501, encoding="utf-8")
+            baseline = repo / "baseline.json"
+            write_baseline(baseline, [])
+            errors = io.StringIO()
+            # Nothing here is in scope, yet the unchanged breach must still fail.
+            with mock.patch.object(
+                change_scope, "resolve", return_value=ChangeScope(frozenset())
+            ), redirect_stdout(io.StringIO()), redirect_stderr(errors):
+                self.assertEqual(1, main(["--repo", str(repo), "--baseline", str(baseline)]))
+            self.assertIn(
+                "error: build_support/graph.zig: build-support owner exceeds the 500-line ceiling",
+                errors.getvalue(),
+            )
+            self.assertNotIn("warning: build_support/products.zig", errors.getvalue())
+            self.assertIn("note: 1 unchanged file(s)", errors.getvalue())
 
     def test_formal_evidence_root_registry_is_explicit_and_checked_in(self) -> None:
         expected = {

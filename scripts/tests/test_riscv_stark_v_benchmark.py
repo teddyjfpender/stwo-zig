@@ -1,10 +1,13 @@
 import unittest
 
+from scripts.riscv_csp_benchmark_lib import host as csp_host
 from scripts.riscv_stark_v_benchmark import (
     MIN_RUST_PARALLELISM,
     PHASE_MARKERS,
+    SCHEMA,
     collect_host_environment,
     parse_phase_seconds,
+    power_evidence_block,
 )
 
 FIXTURE = """\
@@ -60,3 +63,38 @@ class HostEnvironmentTests(unittest.TestCase):
             self.assertTrue(env["platform"][key])
         self.assertIsNotNone(env["hardware"]["logical_cpu_count"])
         self.assertIn("chip", env["hardware"])
+
+    def test_field_set_stays_exactly_what_the_matrix_contract_admits(self) -> None:
+        """Power evidence must not be smuggled into this block.
+
+        ``riscv_benchmark_matrix_contract`` admits ``report.host_environment``
+        through ``exact_fields`` with precisely these five names, and two
+        sibling harnesses embed this same block, so a sixth field here breaks
+        them at report-validation time rather than here.  That is why the run's
+        power conditions ride in the report's own ``power_conditions`` block.
+        """
+        self.assertEqual(
+            {"schema", "platform", "hardware", "toolchain", "stark_v_commit"},
+            set(collect_host_environment()),
+        )
+
+
+class SharedPowerEvidenceTests(unittest.TestCase):
+    """The power question is answered by one implementation, not two."""
+
+    def test_the_power_block_is_the_csp_harness_implementation(self) -> None:
+        # A sibling that captured its own power state would drift from the CSP
+        # harness silently, which is the defect this sharing exists to remove.
+        self.assertIs(csp_host.power_evidence_block, power_evidence_block)
+
+    def test_the_block_carries_its_evidence_and_its_verdict(self) -> None:
+        self.assertEqual(
+            {"power_source", "low_power_mode", "admissible", "reasons"},
+            set(power_evidence_block()),
+        )
+
+    def test_the_report_schema_records_that_the_shape_changed(self) -> None:
+        # The `power_conditions` block is new evidence in the report body, so a
+        # consumer must be able to tell a report that has it from one that
+        # cannot: v1 reports predate power certification entirely.
+        self.assertEqual("riscv_starkv_benchmark_v2", SCHEMA)

@@ -59,7 +59,7 @@ pub fn proveEthereumBlockWithEngine(
     defer run_result.deinit();
 
     // Prove the execution.
-    const prove_output = try prover_mod.proveRiscVWithEngine(
+    const prove_output = try prover_mod.proveRiscVTraceOnlyNoPublicIo(
         Engine,
         allocator,
         pcs_config,

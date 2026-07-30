@@ -7,6 +7,7 @@ const opcode_memory = @import("air/opcode_memory.zig");
 const trace_mod = @import("runner/trace.zig");
 const state_chain = @import("runner/state_chain.zig");
 const memory_state = @import("runner/memory_state.zig");
+const run_result_mod = @import("runner/result.zig");
 const orchestration = @import("prover/orchestration.zig");
 const types = @import("prover/types.zig");
 
@@ -28,8 +29,137 @@ pub const ProverError = types.ProverError;
 pub const assertProverEngine = types.assertProverEngine;
 pub const ProverEngineForBackend = types.ProverEngineForBackend;
 
-/// Proves through the transaction-level engine selected by the caller.
-pub fn proveRiscVWithEngine(
+/// The one secure PCS profile this repository publishes, and the single source
+/// of truth every "secure" selector resolves to: the staged adapter's `.secure`
+/// protocol (`src/integrations/riscv_cpu/proof_adapter.zig`) and the benchmark
+/// runner's `--secure` flag (`src/tools/riscv/bench/runner.zig`) both return
+/// exactly this value rather than restating its numbers.
+///
+/// Cross-language mirror: `scripts/riscv_csp_benchmark_lib/contract.py` parses
+/// *this literal* and refuses to validate a workload manifest when its own
+/// `SECURE_PCS_CONFIG` disagrees, so two profiles can no longer both connote
+/// "the secure one" while differing (issue #152 item 7). The parser is
+/// deliberately dumb: keep one `.field = value,` per line.
+pub const SECURE_PCS_CONFIG: pcs_core.PcsConfig = .{
+    .pow_bits = 26,
+    .fri_config = .{
+        .log_blowup_factor = 1,
+        .log_last_layer_degree_bound = 0,
+        .n_queries = 70,
+        .fold_step = 1,
+    },
+    .lifting_log_size = null,
+};
+
+/// Why a completed run must not be handed to the prover.
+///
+/// One definition, reached from every caller that proves a *run* rather than a
+/// hand-built trace: the production ELF adapter
+/// (`src/integrations/riscv_cpu/proof_adapter.zig`) and the benchmark runner
+/// (`src/tools/riscv/bench/runner.zig`). A fail-closed check present on one path
+/// and absent from its sibling is worse than one absent from both, because the
+/// passing path lends the other unearned confidence (issue #152 item 5).
+pub const RunAdmissionError = error{
+    /// The run ended for a reason no statement can bind. Only a halt-flag store
+    /// or the canonical `jal x0, 0` sentinel carries a proof-bearing completion;
+    /// an ECALL, EBREAK, host halt, step-limit cutoff or undecodable word does
+    /// not, and reaches the prover only to fail far downstream.
+    UnprovableCompletion,
+    /// The committed memory image carries public-I/O words the caller's
+    /// `PublicData` will not publish, so the public-I/O LogUp bus cannot cancel
+    /// and proving fails much later with `LogupSumNonZero`.
+    UnpublishedPublicIo,
+};
+
+/// The public I/O a caller's `PublicData` will actually publish.
+///
+/// Named rather than positional because the two fields are not interchangeable:
+/// the input side is a length the statement republishes word by word, the output
+/// side is a whole-region yes/no.
+pub const PublishedIo = struct {
+    /// Bytes of public input the statement publishes.
+    input_len: usize,
+    /// Whether the statement publishes the guest's output and completion words.
+    output: bool,
+
+    /// What the trace-only entrypoint publishes: nothing at all.
+    pub const none: PublishedIo = .{ .input_len = 0, .output = false };
+};
+
+/// A run the prover must refuse, carrying the evidence that names the cause.
+pub const RunAdmissionRejection = union(enum) {
+    /// The completion reason the run actually ended with.
+    unprovable_completion: run_result_mod.CompletionReason,
+    /// Address of the first committed public-I/O word that would go unpublished.
+    unpublished_public_io: u32,
+
+    pub fn toError(self: RunAdmissionRejection) RunAdmissionError {
+        return switch (self) {
+            .unprovable_completion => RunAdmissionError.UnprovableCompletion,
+            .unpublished_public_io => RunAdmissionError.UnpublishedPublicIo,
+        };
+    }
+};
+
+/// Rejects every completion reason that carries no proof-bearing completion.
+pub fn classifyCompletion(
+    reason: run_result_mod.CompletionReason,
+) ?RunAdmissionRejection {
+    return switch (reason) {
+        .halt_flag, .self_loop => null,
+        else => .{ .unprovable_completion = reason },
+    };
+}
+
+/// Rejects a committed memory image whose public-I/O words the statement would
+/// not publish.
+///
+/// Read from the run's own committed words rather than from the declared region:
+/// a guest is free to leave its declared input region untouched, and an untouched
+/// word emits no consume to leave dangling.
+pub fn classifyPublicIo(
+    opt_memory: ?*const memory_state.Snapshot,
+    published: PublishedIo,
+) ?RunAdmissionRejection {
+    const memory = opt_memory orelse return null;
+    for (memory.words) |word| {
+        if (word.final_clock == 0) continue;
+        const unpublished_input = word.role.is_public_input and published.input_len == 0;
+        const unpublished_output = !published.output and
+            (word.role.is_public_output or word.role.is_public_completion);
+        if (unpublished_input or unpublished_output)
+            return .{ .unpublished_public_io = word.addr };
+    }
+    return null;
+}
+
+/// The shared admission verdict for a completed run whose statement publishes
+/// the run's own public I/O.
+pub fn classifyRunAdmission(
+    run: *const run_result_mod.RunResult,
+) ?RunAdmissionRejection {
+    if (classifyCompletion(run.completion_reason)) |rejection| return rejection;
+    return classifyPublicIo(
+        &run.rw_memory,
+        .{ .input_len = run.input.len, .output = true },
+    );
+}
+
+/// Fail closed on any run the prover cannot bind. Every production caller that
+/// hands a `RunResult` to the prover calls exactly this.
+pub fn admitRunForProving(run: *const run_result_mod.RunResult) RunAdmissionError!void {
+    if (classifyRunAdmission(run)) |rejection| return rejection.toError();
+}
+
+/// Proves a trace under a statement that publishes **no** public I/O.
+///
+/// The name states the limitation because the limitation is not recoverable at
+/// the call site: this path synthesizes public data with an empty I/O region, so
+/// any guest that reads input or writes output cannot balance the public-I/O
+/// LogUp bus. It exists for hand-built traces and I/O-free guests only; every
+/// other caller wants `proveRiscVWithEngineAndPublicData`, whose public data is
+/// a required argument (issue #152 item 1).
+pub fn proveRiscVTraceOnlyNoPublicIo(
     comptime Engine: type,
     allocator: std.mem.Allocator,
     pcs_config: pcs_core.PcsConfig,
@@ -39,7 +169,7 @@ pub fn proveRiscVWithEngine(
     recorder: ?*stage_profile.Recorder,
 ) !ProveOutput {
     var channel = Engine.Channel{};
-    return proveRiscVWithEngineUsingChannel(
+    return proveRiscVTraceOnlyNoPublicIoUsingChannel(
         Engine,
         allocator,
         pcs_config,
@@ -51,17 +181,19 @@ pub fn proveRiscVWithEngine(
     );
 }
 
-/// Proves through the normal frontend path while exposing its live channel to
-/// conformance instrumentation. The default entrypoint remains branch-free.
+/// The trace-only path with its live channel exposed to conformance
+/// instrumentation. The default entrypoint remains branch-free.
 ///
-/// Ordering note: `deriveRegisterBoundary` below is the first thing that
-/// inspects the trace, and it runs *ahead* of the opcode admission filter in
-/// `prover/statement_geometry.build` (`Trace.groupByOpcodeFamily`). It is
-/// therefore the entrypoint's own fail-closed gate for execution-only opcodes,
-/// and a trace containing one is rejected here with `UnsupportedForProof`
-/// rather than reaching geometry. Anything inserted before this call that
+/// Ordering note: the public-I/O gate is the very first statement, so a run this
+/// path cannot represent is refused before any work is done rather than ~1.2 s
+/// later inside the prover. `deriveRegisterBoundary` follows, and it is the
+/// first thing that inspects the trace; it runs *ahead* of the opcode admission
+/// filter in `prover/statement_geometry.build` (`Trace.groupByOpcodeFamily`) and
+/// is therefore the entrypoint's own fail-closed gate for execution-only
+/// opcodes, rejecting such a trace with `UnsupportedForProof` rather than
+/// letting it reach geometry. Anything inserted before that call which
 /// classifies opcodes must be fallible for the same reason.
-pub fn proveRiscVWithEngineUsingChannel(
+pub fn proveRiscVTraceOnlyNoPublicIoUsingChannel(
     comptime Engine: type,
     allocator: std.mem.Allocator,
     pcs_config: pcs_core.PcsConfig,
@@ -71,6 +203,7 @@ pub fn proveRiscVWithEngineUsingChannel(
     recorder: ?*stage_profile.Recorder,
     channel: *Engine.Channel,
 ) !ProveOutput {
+    if (classifyPublicIo(opt_memory, PublishedIo.none)) |rejection| return rejection.toError();
     const register_boundary = try opcode_memory.deriveRegisterBoundary(exec_trace.rows.items);
     if (opt_chain) |chain| {
         if (!std.mem.eql(u32, &register_boundary.last_clock, &chain.reg_last_clk))

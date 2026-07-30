@@ -8,6 +8,7 @@
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
+const diagnostic_hints = @import("diagnostic_hints.zig");
 const memory_logup = @import("memory_logup.zig");
 const relation_challenges = @import("relation_challenges.zig");
 const trace_mod = @import("../runner/trace.zig");
@@ -164,13 +165,28 @@ pub const RegisterBoundaryError = decode.ProofOpcodeError || error{InvalidRegist
 /// API while validating the exact source-before-destination access chain.
 /// Production ELF proving supplies the runner's full initial/final state.
 ///
-/// This runs at the very top of `prover.proveRiscVWithEngineUsingChannel`,
+/// This runs at the very top of `prover.proveRiscVTraceOnlyNoPublicIoUsingChannel`,
 /// which is *before* `prover/statement_geometry.build` invokes
 /// `Trace.groupByOpcodeFamily`. It therefore cannot assume the execution-only
 /// opcodes have already been filtered out and must fail closed itself, which is
 /// why it resolves families through the fallible `proofOpcodeFamily` rather
-/// than the post-filter `opcodeFamily` helper.
+/// than the post-filter `opcodeFamily` helper. Since `opcodeFamily` now takes a
+/// `trace.ProofOpcode`, that is no longer a discipline this comment has to
+/// carry: the post-filter helper is not callable from here at all.
+///
+/// Both failures are reported with the diagnostic that answers them before the
+/// error propagates, because the two send a reader to different modules and the
+/// error names alone have historically not been enough to tell them apart.
 pub fn deriveRegisterBoundary(rows: []const trace_mod.TraceRow) RegisterBoundaryError!RegisterBoundary {
+    return deriveRegisterBoundaryUnreported(rows) catch |err| {
+        diagnostic_hints.reportRegisterBoundary(err);
+        return err;
+    };
+}
+
+fn deriveRegisterBoundaryUnreported(
+    rows: []const trace_mod.TraceRow,
+) RegisterBoundaryError!RegisterBoundary {
     var result = RegisterBoundary{};
     var seen = [_]bool{false} ** 32;
     for (rows) |row| {

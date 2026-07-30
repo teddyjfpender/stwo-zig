@@ -62,7 +62,8 @@ const Claim = riscv.RiscVClaim;
 | AIR and witness | `air`, `access_clock`, `infra_trace`, `witness_layout`, `opcode_manifest` |
 | ISA and diagnostics | `isa`, `diagnostics`, `testing` |
 | Statement ownership | `RiscVClaim`, `owned_statement` |
-| Engine-generic proving | `prover_mod`, `proveRiscVWithEngine`, `proveRiscVWithEngineAndPublicData`, `verifyRiscVWithEngine`, `proveAndVerifyElfWithEngine` |
+| Engine-generic proving | `prover_mod`, `proveRiscVWithEngineAndPublicData`, `verifyRiscVWithEngine`, `proveAndVerifyElfWithEngine` |
+| Trace-only proving | `proveRiscVTraceOnlyNoPublicIo` — synthesizes an empty public-I/O region, so it is for hand-built traces and I/O-free guests only and rejects a run whose committed memory carries public I/O |
 
 The execution result and proof objects contain owned allocations; follow the
 deinitialization methods on the returned concrete types. Host callbacks are

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import copy
-import json
 import subprocess
 import tempfile
 import unittest
@@ -11,7 +10,6 @@ from unittest import mock
 
 from scripts import riscv_cli_admission
 from scripts import riscv_csp_benchmark as csp
-from scripts.riscv_csp_benchmark_lib import build_identity as csp_build_identity
 from scripts.riscv_csp_benchmark_lib import contract as csp_contract
 from scripts.riscv_csp_benchmark_lib import host as csp_host
 
@@ -234,6 +232,7 @@ class HostEvidenceTests(unittest.TestCase):
                 "architecture",
                 "cpu",
                 "gpu",
+                "host_architecture",
                 "kernel",
                 "logical_cpu_count",
                 "low_power_mode",
@@ -281,11 +280,11 @@ class PowerEvidenceCaptureTests(unittest.TestCase):
             }
         )
         with mock.patch.object(csp_host.subprocess, "run", run):
-            self.assertEqual(("Battery Power", True), csp_host._power_evidence())
+            self.assertEqual(("Battery Power", True), csp_host.power_evidence())
 
     def test_absent_pmset_degrades_to_unknown_instead_of_failing(self) -> None:
         with mock.patch.object(csp_host.subprocess, "run", self.pmset({})):
-            self.assertEqual((None, None), csp_host._power_evidence())
+            self.assertEqual((None, None), csp_host.power_evidence())
 
 
 class PowerConditionTests(unittest.TestCase):
@@ -372,119 +371,6 @@ class ResultClassTests(unittest.TestCase):
                 )
 
 
-class BuildIdentityTests(unittest.TestCase):
-    @staticmethod
-    def registry(**overrides: object) -> bytes:
-        product = {
-            "schema_version": 2,
-            "name": "stwo-riscv-cpu",
-            "frontend": "sail-rv32im-zkvm",
-            "backend": "cpu",
-            "target": {
-                "arch": "aarch64",
-                "os": "macos",
-                "abi": "none",
-                "cpu_model": "apple_m1",
-                "cpu_features_sha256": "0" * 64,
-            },
-            "optimize": "ReleaseFast",
-        }
-        product["target"].update(overrides.pop("target", {}))
-        product.update(overrides)
-        return json.dumps({"schema_version": 1, "product": product}).encode()
-
-    def validate(self, raw: bytes) -> dict:
-        identity = csp_build_identity.parse_build_identity(raw)
-        csp_build_identity.validate_build_identity(
-            identity,
-            machine="arm64",
-            system="Darwin",
-        )
-        return identity
-
-    def test_optimize_mode_is_recoverable_from_the_admitted_identity(self) -> None:
-        # The check reads the same focused-product surface admission already
-        # authenticates, rather than a second provenance channel.
-        self.assertLessEqual(
-            {"target", "optimize"},
-            riscv_cli_admission.FOCUSED_PRODUCT_FIELDS,
-        )
-
-    def test_release_fast_host_binary_is_admitted(self) -> None:
-        self.assertEqual(
-            {
-                "arch": "aarch64",
-                "os": "macos",
-                "abi": "none",
-                "cpu_model": "apple_m1",
-                "optimize": "ReleaseFast",
-            },
-            self.validate(self.registry()),
-        )
-
-    def test_debug_binary_is_refused(self) -> None:
-        for mode in ("Debug", "ReleaseSafe", "ReleaseSmall"):
-            with self.subTest(optimize=mode):
-                with self.assertRaisesRegex(
-                    csp.BenchmarkError,
-                    "require -Doptimize=ReleaseFast",
-                ):
-                    self.validate(self.registry(optimize=mode))
-
-    def test_translated_foreign_architecture_binary_is_refused(self) -> None:
-        with self.assertRaisesRegex(csp.BenchmarkError, "targets x86_64-macos"):
-            self.validate(self.registry(target={"arch": "x86_64"}))
-
-    def test_foreign_operating_system_binary_is_refused(self) -> None:
-        with self.assertRaisesRegex(csp.BenchmarkError, "targets aarch64-linux"):
-            self.validate(self.registry(target={"os": "linux"}))
-
-    def test_unmappable_host_fails_closed(self) -> None:
-        identity = csp_build_identity.parse_build_identity(self.registry())
-        with self.assertRaisesRegex(csp.BenchmarkError, "cannot map host"):
-            csp_build_identity.validate_build_identity(
-                identity,
-                machine="riscv64",
-                system="Darwin",
-            )
-
-    def test_registry_without_a_build_identity_fails_closed(self) -> None:
-        aggregate = json.dumps(
-            {
-                "schema_version": 1,
-                "backend_availability": {"cpu": True, "metal-hybrid": False},
-                "product_matrix": {},
-            }
-        ).encode()
-        with self.assertRaisesRegex(
-            csp.BenchmarkError,
-            "publishes no build identity",
-        ):
-            csp_build_identity.parse_build_identity(aggregate)
-
-    def test_partial_build_identity_is_refused(self) -> None:
-        with self.assertRaisesRegex(csp.BenchmarkError, "identity is incomplete"):
-            csp_build_identity.parse_build_identity(
-                self.registry(target={"cpu_model": None})
-            )
-
-    def test_registry_rejects_duplicate_json_fields(self) -> None:
-        raw = b'{"schema_version":1,"product":{},"product":{}}'
-        with self.assertRaisesRegex(csp.BenchmarkError, "repeats field"):
-            csp_build_identity.parse_build_identity(raw)
-
-    def test_unexecutable_binary_names_the_architecture_hypothesis(self) -> None:
-        def run(command, **_: object):
-            raise OSError(8, "Exec format error")
-
-        with mock.patch.object(csp_build_identity.subprocess, "run", run):
-            with self.assertRaisesRegex(
-                csp.BenchmarkError,
-                "built for another architecture",
-            ):
-                csp_build_identity.read_build_identity(Path("/opt/example/prover"))
-
-
 class RetainedReportTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -499,7 +385,7 @@ class RetainedReportTests(unittest.TestCase):
 
     def test_report_is_the_complete_verified_standard_matrix(self) -> None:
         report = self.report
-        self.assertEqual(csp.SCHEMA, report["schema"])
+        self.assertIn(report["schema"], csp.SUPERSEDED_SCHEMAS)
         self.assertEqual(
             str(csp.MANIFEST.relative_to(csp.ROOT)),
             report["suite_manifest"],
@@ -591,6 +477,25 @@ class RetainedReportTests(unittest.TestCase):
                 for item in report["negative_validation"]
             ],
         )
+
+    def test_superseded_evidence_never_claims_the_current_shape(self) -> None:
+        """The retained CPU report is authentic v2 evidence, not relabelled v3.
+
+        It predates power certification and executable provenance, so it must
+        neither carry those fields nor wear the current schema name.  The two
+        directions are asserted together: a hand-edited label fails the first
+        block, a silent shape change with a stale ``SCHEMA`` fails the second.
+        """
+        report = self.report
+        self.assertEqual("stwo_riscv_csp_benchmark_v2", report["schema"])
+        self.assertNotEqual(csp.SCHEMA, report["schema"])
+        self.assertNotIn(csp.SCHEMA, csp.SUPERSEDED_SCHEMAS)
+        for field in ("power_conditions_admissible", "power_condition_reasons"):
+            self.assertNotIn(field, report)
+        for field in ("prover_build_identity", "trace_provenance"):
+            self.assertNotIn(field, report["identities"])
+        self.assertNotIn("host_architecture", report["host"])
+        self.assertNotEqual("power-condition-non-publishable", report["result_class"])
 
     def test_report_preserves_security_and_host_qualification(self) -> None:
         report = self.report

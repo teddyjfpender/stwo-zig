@@ -109,6 +109,13 @@ pub const OpcodeInteraction = struct {
 /// `rows` is the component's shard of its family's rows in execution order;
 /// `rows.len` must not exceed the domain size. Padding rows carry zero
 /// numerators (enabler 0) over the all-zero tuple.
+///
+/// The shard must be non-empty: the component's family is read off `rows[0]`,
+/// and `statement_geometry` never describes a shard with no rows. That used to
+/// be spelled `if (rows.len == 0) unreachable`, which in ReleaseFast is
+/// undefined behaviour rather than a check -- the same defect class as the
+/// opcode-family precondition this module's family lookup now carries in its
+/// types. An empty shard is a geometry defect, so it gets a name that says so.
 pub fn genOpcodeInteraction(
     allocator: std.mem.Allocator,
     rows: []const trace_mod.TraceRow,
@@ -116,6 +123,7 @@ pub fn genOpcodeInteraction(
     relations: *const relation_challenges.Relations,
 ) !OpcodeInteraction {
     const n = @as(usize, 1) << @intCast(log_size);
+    if (rows.len == 0) return error.EmptyOpcodeShard;
     std.debug.assert(rows.len <= n);
 
     const pairs_state = try allocator.alloc(logup.RowPair, n);
@@ -182,7 +190,7 @@ pub fn genOpcodeInteraction(
     const memory = try opcode_memory.generate(
         allocator,
         rows,
-        if (rows.len == 0) unreachable else trace_mod.opcodeFamily(rows[0].opcode),
+        trace_mod.opcodeFamily(try trace_mod.ProofOpcode.classify(rows[0].opcode)),
         log_size,
         &relations.memory_access,
     );
@@ -251,6 +259,18 @@ fn testRow(clk: u32, pc: u32, next_pc: u32, inst_word: u32) trace_mod.TraceRow {
         .next_pc = next_pc,
         .inst_word = inst_word,
     };
+}
+
+test "interaction_gen: an empty opcode shard is named, not assumed away" {
+    // Pins the replacement of `if (rows.len == 0) unreachable`. `unreachable`
+    // is a check only in safe builds; in ReleaseFast it is a licence to read
+    // `rows[0]` out of an empty slice. The named error is a check in every
+    // optimization mode, which is the property this test exists to hold.
+    const relations = testRelations();
+    try std.testing.expectError(
+        error.EmptyOpcodeShard,
+        genOpcodeInteraction(std.testing.allocator, &.{}, 1, &relations),
+    );
 }
 
 test "interaction_gen: claims telescope across shards and the program bus balances" {

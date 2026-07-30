@@ -66,8 +66,33 @@ pub const Trace = struct {
 
     pub fn groupByOpcodeFamily(self: *const Trace, _: std.mem.Allocator) !OpcodeFamilyCounts {
         var counts = OpcodeFamilyCounts{};
-        for (self.rows.items) |row| counts.increment(try proofOpcodeFamily(row.opcode));
+        for (self.rows.items) |row| {
+            counts.increment(opcodeFamily(try ProofOpcode.classify(row.opcode)));
+        }
         return counts;
+    }
+
+    /// The filter, as a value every later stage can carry.
+    ///
+    /// `groupByOpcodeFamily` answers *how many* rows each family has and
+    /// discards the classification it computed to find out; a stage that runs
+    /// after it then has to reclassify, and until this returned a `ProofOpcode`
+    /// the only cheap way to do that was a total map over raw `Opcode` whose
+    /// precondition lived in a doc comment.
+    ///
+    /// The returned slice is index-parallel to `rows`. Holding it is the
+    /// caller's proof that the filter ran: `opcodeFamily` accepts nothing else,
+    /// so a stage that has one cannot reach an execution-only opcode, and a
+    /// stage that does not have one cannot compile against the total map at
+    /// all. Fails closed on the first row with no proof encoding, exactly as
+    /// `groupByOpcodeFamily` does.
+    pub fn proofOpcodes(self: *const Trace, allocator: std.mem.Allocator) ![]ProofOpcode {
+        const result = try allocator.alloc(ProofOpcode, self.rows.items.len);
+        errdefer allocator.free(result);
+        for (self.rows.items, result) |row, *slot| {
+            slot.* = try ProofOpcode.classify(row.opcode);
+        }
+        return result;
     }
 
     pub fn columnsForFamily(
@@ -88,7 +113,7 @@ pub const Trace = struct {
         }
         var index: usize = 0;
         for (self.rows.items) |row| {
-            if (try proofOpcodeFamily(row.opcode) != family) continue;
+            if (opcodeFamily(try ProofOpcode.classify(row.opcode)) != family) continue;
             if (index == size) break;
             fillFamilyColumns(&columns, index, row, family);
             index += 1;
@@ -163,32 +188,55 @@ pub const OpcodeFamily = opcode_manifest.Family;
 
 pub const N_FAMILIES: usize = @typeInfo(OpcodeFamily).@"enum".fields.len;
 
+/// An architectural opcode that has passed the proof filter.
+///
+/// The one field is an `opcode_manifest.Opcode`, the enum of opcodes the proof
+/// system can represent. That enum has no ECALL and no EBREAK, so *every*
+/// inhabitant of `ProofOpcode` -- however it is spelled, including a struct
+/// literal -- names an opcode with a family. The filter is therefore not a
+/// convention a caller can forget: it is the only total function from
+/// `isa.Opcode` into this type, and it is fallible.
+///
+/// This replaces a precondition that lived in a doc comment. `opcodeFamily`
+/// used to take a raw `Opcode` and resolve it with `catch unreachable`; nothing
+/// enforced the "runs after the filter" claim, one of four call sites violated
+/// it, and `unreachable` in ReleaseFast is undefined behaviour -- an
+/// ECALL-terminated trace silently produced a garbage family that surfaced much
+/// later as an unrelated-looking `error.InvalidRegisterAccessChain`. Making the
+/// total map take a `ProofOpcode` turns "the filter has run" into a fact the
+/// compiler checks: a pre-filter caller cannot obtain one without handling
+/// `error.UnsupportedForProof`.
+pub const ProofOpcode = struct {
+    id: opcode_manifest.Opcode,
+
+    /// The filter. The only route from an architectural opcode to a
+    /// `ProofOpcode`, and the only fallible step in the pair.
+    pub fn classify(opcode: Opcode) decode.ProofOpcodeError!ProofOpcode {
+        return .{ .id = try decode.proofOpcode(opcode) };
+    }
+
+    /// Total on this type by construction.
+    pub fn family(self: ProofOpcode) OpcodeFamily {
+        return opcode_manifest.family(self.id);
+    }
+};
+
+/// Fallible family map over raw architectural opcodes.
+///
+/// The only family map available to a caller that has not run the filter, and
+/// the one every pre-filter caller must use.
 pub fn proofOpcodeFamily(opcode: Opcode) decode.ProofOpcodeError!OpcodeFamily {
-    return opcode_manifest.family(try decode.proofOpcode(opcode));
+    return (try ProofOpcode.classify(opcode)).family();
 }
 
-/// Total-map convenience for prover internals that provably run *after*
-/// `groupByOpcodeFamily` has rejected every execution-only opcode.
+/// Total family map over filtered opcodes.
 ///
-/// The precondition is enforced rather than assumed. This used to be
-/// `catch unreachable`, and `unreachable` in ReleaseFast is undefined
-/// behaviour: an ECALL-terminated trace reaching a caller that runs before the
-/// filter silently yielded a garbage family instead of stopping, and the
-/// corruption only surfaced much later as an unrelated-looking access-chain
-/// error. `std.debug.assert` would be no improvement -- it is likewise elided
-/// in ReleaseFast. `std.debug.panic` is active in every optimization mode and
-/// matches what the rest of this codebase uses for release-active invariants,
-/// so a precondition violation now traps deterministically and names the
-/// offending opcode.
-///
-/// A caller that can run *before* the filter must not use this function: call
-/// `proofOpcodeFamily` and propagate `error.UnsupportedForProof` instead.
-pub fn opcodeFamily(opcode: Opcode) OpcodeFamily {
-    return proofOpcodeFamily(opcode) catch std.debug.panic(
-        "riscv trace: opcode {s} has no proof family; opcodeFamily requires " ++
-            "groupByOpcodeFamily to have already rejected execution-only opcodes",
-        .{@tagName(opcode)},
-    );
+/// Infallible with no run-time guard, because there is nothing left to guard:
+/// the argument type cannot hold an opcode without a family. Callers that run
+/// before the filter cannot call this at all -- they have no `ProofOpcode` --
+/// which is the whole point of the newtype.
+pub fn opcodeFamily(proof: ProofOpcode) OpcodeFamily {
+    return proof.family();
 }
 
 pub const OpcodeFamilyCounts = struct {
@@ -229,6 +277,68 @@ test "trace rejects execution-only opcodes before family witness generation" {
         error.UnsupportedForProof,
         trace.columnsForFamily(std.testing.allocator, .base_alu_reg, 0),
     );
+    try std.testing.expectError(
+        error.UnsupportedForProof,
+        trace.proofOpcodes(std.testing.allocator),
+    );
+}
+
+test "trace hands out filtered opcodes index-parallel to its rows" {
+    const allocator = std.testing.allocator;
+    var trace = Trace.init(allocator);
+    defer trace.deinit();
+    try trace.append(testRow(.ADD));
+    try trace.append(testRow(.SW));
+    try trace.append(testRow(.FENCE));
+
+    const filtered = try trace.proofOpcodes(allocator);
+    defer allocator.free(filtered);
+    try std.testing.expectEqual(trace.rows.items.len, filtered.len);
+    try std.testing.expectEqual(OpcodeFamily.base_alu_reg, opcodeFamily(filtered[0]));
+    try std.testing.expectEqual(OpcodeFamily.load_store, opcodeFamily(filtered[1]));
+    try std.testing.expectEqual(OpcodeFamily.fence, opcodeFamily(filtered[2]));
+}
+
+test "the total family map is reachable only through the filter" {
+    // The structural half of the fix, and the half a revert cannot survive.
+    //
+    // NOTE: this file's tests are compiled by no gate -- `src/frontends/riscv`
+    // is its own Zig module and only its own `build.zig` `test` step reaches
+    // them. The copy of this assertion that runs is in
+    // `src/tests/riscv/opcode_family_precondition_test.zig`; keep the two in
+    // step, and prefer adding obligations there.
+    //
+    // The defect was not that `opcodeFamily` mishandled ECALL -- it was that
+    // `opcodeFamily` *accepted* ECALL's type at all, so "the filter has already
+    // run" was a claim in prose that one of four call sites did not honour.
+    // Restoring the raw-`Opcode` signature restores exactly that hazard, and
+    // fails here at compile time rather than in whichever caller is next to
+    // forget.
+    const total = @typeInfo(@TypeOf(opcodeFamily)).@"fn";
+    try std.testing.expectEqual(@as(usize, 1), total.params.len);
+    try std.testing.expectEqual(ProofOpcode, total.params[0].type.?);
+    // Total: no error union, so no caller is invited to decide what to do with
+    // an opcode that has no family. There is no such value of this type.
+    try std.testing.expectEqual(OpcodeFamily, total.return_type.?);
+
+    // And the only constructor from a raw opcode is fallible, so the type
+    // cannot be entered without discharging the admission question.
+    const filter = @typeInfo(@TypeOf(ProofOpcode.classify)).@"fn";
+    try std.testing.expectEqual(Opcode, filter.params[0].type.?);
+    const returns = @typeInfo(filter.return_type.?);
+    try std.testing.expect(returns == .error_union);
+    try std.testing.expectEqual(ProofOpcode, returns.error_union.payload);
+
+    // The filtered type is a newtype over the proof opcode set, not over the
+    // architectural one: a `ProofOpcode` written as a struct literal still
+    // cannot name ECALL, because `opcode_manifest.Opcode` has no such tag.
+    const fields = @typeInfo(ProofOpcode).@"struct".fields;
+    try std.testing.expectEqual(@as(usize, 1), fields.len);
+    try std.testing.expectEqual(opcode_manifest.Opcode, fields[0].type);
+    for (std.enums.values(opcode_manifest.Opcode)) |id| {
+        // Total on every inhabitant; this loop is the totality proof.
+        _ = opcodeFamily(.{ .id = id });
+    }
 }
 
 fn testRow(opcode: Opcode) TraceRow {

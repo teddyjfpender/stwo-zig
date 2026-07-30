@@ -52,6 +52,7 @@ const before = try Transaction.telemetrySnapshot();
 | Transaction and interaction | `prover`, `interaction_executor`, `resident_lookup` |
 | Arena and scheduling | `arena_binding`, `schedule_bindings`, `recipe_requirements`, `composition_eval_arena`, `composition_prewarm`, `composition_stage` |
 | Cairo proof stages | `memory_trace`, `oods`, `quotient_inputs`, `quotient_reference`, `runtime_decommit_geometry` |
+| Diagnostics | `transcript_fixture` |
 | Generated programs | `composition_aot`, `eval_codegen`, `witness_codegen`, `witness_aot` |
 | Persistent process | `process_backend`, `process_runner` |
 

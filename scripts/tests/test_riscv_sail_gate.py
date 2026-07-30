@@ -10,6 +10,11 @@ exercised by the hosted riscv-sail-differential workflow and by
 The workflow contracts at the bottom are the other half of the same idea:
 the hosted job must not be able to report success without having run, so the
 receipts the gate writes and the verdict job reads are asserted end to end.
+The preflight tests do the same for the step that a warm cache would
+otherwise make vacuous -- they require the pinned Sail compiler to be
+executed here, not assumed -- and ContractDocumentTest ties the NORMATIVE
+gate document to the workflow, because a normative document that disagrees
+with the gate it governs is worse than no document at all.
 """
 
 from __future__ import annotations
@@ -29,6 +34,36 @@ from scripts import riscv_sail_gate as gate
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW_PATH = Path(".github/workflows/riscv-sail-differential.yml")
+CONTRACT_PATH = Path("conformance/riscv-sail-differential-gate.md")
+SAVE_STEP = "Save pinned formal toolchain workspace"
+# Read from the pinned formal profile rather than restated: a compiler bump
+# must move these assertions with the gate, not silently past it.
+PINNED_COMPILER = gate.formal_tools.load_profile().sail_compiler
+
+
+def _workflow_step(job: str, name: str) -> str:
+    """The YAML of one named step, up to the next step in the same job."""
+    return job.split(f"- name: {name}", 1)[1].split("      - name:", 1)[0]
+
+
+def _comment_above(job: str, name: str) -> str:
+    """The comment block immediately above a named step.
+
+    Read so a test can require the prose and the condition beneath it to say
+    the same thing: a comment that outlived the behavior it describes is how
+    the next reader concludes the gate does something it stopped doing.
+    """
+    block: list[str] = []
+    for line in reversed(job.split(f"- name: {name}", 1)[0].splitlines()):
+        stripped = line.strip()
+        if not stripped:
+            if block:
+                break
+            continue
+        if not stripped.startswith("#"):
+            break
+        block.append(stripped)
+    return "\n".join(reversed(block))
 
 
 def _copy_binding_inputs(destination: Path) -> tuple[Path, Path]:
@@ -192,20 +227,30 @@ class PreflightTest(unittest.TestCase):
             self.assertFalse(receipts.exists())
         output = stderr.getvalue()
         self.assertIn(gate.SMT_SOLVER, output)
-        self.assertIn("Sail compiler", output)
+        # The compiler diagnostic, not the substring "Sail compiler": the
+        # missing-z3 message contains that phrase too, so asserting on it
+        # would pass for a preflight that never looks at the compiler.
+        self.assertIn(f"pinned Sail compiler {PINNED_COMPILER} does not run", output)
         self.assertIn("dtc", output)
         self.assertIn("NOT FUNCTIONAL", output)
 
     def _functional_toolchain(
-        self, stack: contextlib.ExitStack, state: str
-    ) -> None:
-        """Every pinned dependency resolves; the workspace is in `state`."""
+        self, stack: contextlib.ExitStack, state: str, **compiler: object
+    ) -> mock.Mock:
+        """Every pinned dependency resolves; the workspace is in `state`.
+
+        Keyword arguments are forwarded to the `resolve_sail_compiler` mock,
+        so a test can make the pinned compiler alone fail. The mock is
+        returned because the call is itself part of the contract: this step
+        exists to execute the pinned compiler on this runner, not to assume
+        that whatever the cache restored can run.
+        """
+        compiler.setdefault("return_value", Path("/opt/sail/bin/sail"))
+        resolve = mock.Mock(**compiler)
         for patch in (
             mock.patch.object(gate.shutil, "which", return_value="/usr/bin/z3"),
             mock.patch.object(
-                gate.formal_tools,
-                "resolve_sail_compiler",
-                return_value=Path("/opt/sail/bin/sail"),
+                gate.formal_tools, "resolve_sail_compiler", resolve
             ),
             mock.patch.object(
                 gate.formal_tools,
@@ -215,6 +260,63 @@ class PreflightTest(unittest.TestCase):
             mock.patch.object(gate, "workspace_state", return_value=state),
         ):
             stack.enter_context(patch)
+        return resolve
+
+    def test_the_pinned_compiler_is_executed_here_not_assumed(self) -> None:
+        # The mutation this exists to catch: replace the resolve_sail_compiler
+        # call with a constant path. Nothing else notices -- the
+        # absent-dependency tests are still red for z3 and dtc, and every
+        # other preflight test mocks the resolution away -- while the step
+        # stops proving anything about the one binary that defines RV32IM
+        # semantics, which is precisely the warm-cache hole it was added for.
+        with tempfile.TemporaryDirectory() as tmp:
+            release_binary = Path(tmp) / "release" / "bin" / "sail"
+            stdout = io.StringIO()
+            with contextlib.ExitStack() as stack:
+                resolve = self._functional_toolchain(stack, "warm")
+                stack.enter_context(contextlib.redirect_stdout(stdout))
+                returncode = gate.preflight(
+                    workspace=Path(tmp) / "workspace",
+                    sail_compiler=release_binary,
+                    cache_hit=True,
+                    github_output=None,
+                )
+            self.assertEqual(returncode, gate.EXIT_PASS)
+            # The binary the workflow downloaded, checked against the pinned
+            # version from the formal profile -- not some `sail` on PATH.
+            resolve.assert_called_once_with(release_binary, PINNED_COMPILER)
+        self.assertIn(
+            f"Sail {PINNED_COMPILER} at /opt/sail/bin/sail", stdout.getvalue()
+        )
+
+    def test_a_pinned_compiler_that_will_not_run_here_is_red(self) -> None:
+        # Warm cache, z3 present, dtc present, workspace verifiable: the shape
+        # of a run that used to sail through. The compiler alone fails, and
+        # that is a red gate with no receipt, not a cached-toolchain green.
+        with tempfile.TemporaryDirectory() as tmp:
+            receipts = Path(tmp) / "github-output"
+            stderr = io.StringIO()
+            with contextlib.ExitStack() as stack:
+                self._functional_toolchain(
+                    stack,
+                    "warm",
+                    side_effect=gate.formal_tools.FormalToolsError(
+                        f"Sail compiler {PINNED_COMPILER} was not found"
+                    ),
+                )
+                stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
+                stack.enter_context(contextlib.redirect_stderr(stderr))
+                returncode = gate.preflight(
+                    workspace=Path(tmp) / "workspace",
+                    sail_compiler=None,
+                    cache_hit=True,
+                    github_output=receipts,
+                )
+            self.assertEqual(returncode, gate.EXIT_TOOLCHAIN_UNAVAILABLE)
+            self.assertFalse(receipts.exists())
+        output = stderr.getvalue()
+        self.assertIn(f"pinned Sail compiler {PINNED_COMPILER} does not run", output)
+        self.assertIn("NOT FUNCTIONAL", output)
 
     def test_a_functional_toolchain_writes_the_receipt_the_verdict_reads(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -339,7 +441,7 @@ class WorkflowContractTest(unittest.TestCase):
         cls.verdict_job = cls.workflow.split("  verdict:", 1)[1]
 
     def _step(self, job: str, name: str) -> str:
-        return job.split(f"- name: {name}", 1)[1].split("      - name:", 1)[0]
+        return _workflow_step(job, name)
 
     def test_provisioning_and_preflight_run_on_every_path(self) -> None:
         # A cache hit must not be able to bypass either the install steps or
@@ -414,13 +516,132 @@ class WorkflowContractTest(unittest.TestCase):
             with self.subTest(ingredient=ingredient):
                 self.assertIn(ingredient, keys[0])
 
+    def _save_condition(self) -> str:
+        lines = [
+            line.strip()
+            for line in self._step(self.live_job, SAVE_STEP).splitlines()
+            if line.strip().startswith("if:")
+        ]
+        self.assertEqual(1, len(lines), "the save step needs exactly one condition")
+        return lines[0]
+
     def test_only_a_workspace_the_gate_proved_usable_is_cached(self) -> None:
-        save = self._step(self.live_job, "Save pinned formal toolchain workspace")
+        condition = self._save_condition()
+        # `always()`: a red run must still warm the next one. Dropping it
+        # would deny a divergence investigation the toolchain it most needs.
+        self.assertIn("always()", condition)
         for state in ("verified", "rebuilt"):
             with self.subTest(state=state):
                 self.assertIn(
-                    f"steps.differential.outputs.toolchain_state == '{state}'", save
+                    f"steps.differential.outputs.toolchain_state == '{state}'",
+                    condition,
                 )
+        # The states that must NOT publish a workspace: the gate ran and the
+        # toolchain never came up, or the preflight went red and the gate step
+        # never ran, leaving the receipt empty. A cache entry is immutable
+        # under its key, so either would be permanent until the epoch is bumped.
+        self.assertNotIn("unavailable", condition)
+
+    def test_the_save_condition_and_the_comment_above_it_agree(self) -> None:
+        # This step was `if: always()`; the narrowing is deliberate, and the
+        # only place its reason survives is the prose directly above it. A
+        # comment that outlived the behavior it describes is worse than none:
+        # it is what the next reader trusts while editing the condition back.
+        condition = self._save_condition()
+        comment = _comment_above(self.live_job, SAVE_STEP)
+        self.assertIn("always()", comment)
+        self.assertIn("toolchain_state", comment)
+        for state in ("verified", "rebuilt", "unavailable"):
+            with self.subTest(state=state):
+                self.assertIn(state, comment)
+        self.assertIn("preflight", comment)
+        for state in re.findall(r"toolchain_state == '(\w+)'", condition):
+            with self.subTest(accepted=state):
+                self.assertIn(state, comment)
+
+
+class ContractDocumentTest(unittest.TestCase):
+    """The NORMATIVE document must describe the gate that actually runs.
+
+    `conformance/riscv-sail-differential-gate.md` names this workflow and is
+    marked normative, so it is what a reader consults before changing the
+    gate. When the two disagree the document does active harm: it licenses
+    edits the workflow no longer permits. These tie the document to the
+    workflow on exactly the facts that move -- the receipts the verdict
+    requires, and the toolchain states the cache save keys on.
+    """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.document = (ROOT / CONTRACT_PATH).read_text(encoding="utf-8")
+        cls.workflow = (ROOT / WORKFLOW_PATH).read_text(encoding="utf-8")
+        cls.live_job = cls.workflow.split("  differential:", 1)[1].split(
+            "  verdict:", 1
+        )[0]
+        section = cls.document.split("## Fail-closed contract", 1)[1].split(
+            "\n## ", 1
+        )[0]
+        # The table specifically, not the section: the surrounding prose
+        # discusses the same mechanisms, so a row deleted from the enumeration
+        # of red paths would still be "mentioned somewhere" and go unnoticed.
+        cls.rows = [
+            line for line in section.splitlines() if line.startswith("| ")
+        ]
+        cls.section = section
+
+    def _row(self, *terms: str) -> str:
+        """The one contract row naming every term, asserted to exist."""
+        matches = [row for row in self.rows if all(term in row for term in terms)]
+        self.assertEqual(
+            1, len(matches), f"exactly one fail-closed row must name {terms}"
+        )
+        return matches[0]
+
+    def test_the_document_governs_this_workflow_and_this_check(self) -> None:
+        self.assertIn("**Status:** NORMATIVE", self.document)
+        self.assertIn(WORKFLOW_PATH.as_posix(), self.document)
+        self.assertIn("Sail differential gates", self.document)
+        self.assertGreater(len(self.rows), 8)  # header, separator, red paths
+
+    def test_every_receipt_the_verdict_requires_is_a_contract_row(self) -> None:
+        # Derived from the workflow, so a receipt the verdict starts requiring
+        # without a row here is red rather than merely undocumented.
+        receipts = set(
+            re.findall(r"needs\.differential\.outputs\.(\w+)", self.workflow)
+        )
+        self.assertIn("toolchain_health", receipts)
+        for receipt in sorted(receipts - {"cache_state"}):
+            with self.subTest(receipt=receipt):
+                self.assertTrue(
+                    any(f"`{receipt}`" in row for row in self.rows),
+                    f"{receipt} is required by the verdict job",
+                )
+
+    def test_the_preflight_red_path_is_a_contract_row(self) -> None:
+        # The row the wave-1 change owed and did not write: a toolchain that
+        # will not run is red at the preflight, on the warm path too.
+        row = self._row("preflight", "cache hit")
+        for dependency in (gate.SMT_SOLVER, "dtc", "sail"):
+            with self.subTest(dependency=dependency):
+                self.assertIn(dependency, row)
+
+    def test_the_cache_hygiene_states_are_documented_as_written(self) -> None:
+        condition = _workflow_step(self.live_job, SAVE_STEP)
+        states = set(re.findall(r"toolchain_state == '(\w+)'", condition))
+        self.assertEqual({"verified", "rebuilt"}, states)
+        row = self._row("`toolchain_state`")
+        for state in sorted(states):
+            with self.subTest(state=state):
+                self.assertIn(f"`{state}`", row)
+        self.assertIn("`unavailable`", row)
+
+    def test_the_three_provisioning_paths_are_reasoned_through(self) -> None:
+        # Cache hit, cache miss, and dependency failure are the three shapes
+        # this gate's soundness turns on; the document enumerates them so the
+        # warm path is never assumed to be the cold path minus a build.
+        for path in ("Cache miss", "Cache hit", "Dependency failure"):
+            with self.subTest(path=path):
+                self.assertIn(f"**{path}.**", self.section)
 
 
 if __name__ == "__main__":

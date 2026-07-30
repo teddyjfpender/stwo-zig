@@ -56,6 +56,7 @@ def scan_zig(relative: Path, text: str) -> list[Finding]:
     code = comments.strip_zig(text)
     if not is_zig_root(relative, code):
         return []
+    repo_path = Path("src") / relative
     line_count = len(text.splitlines())
     findings: list[Finding] = []
     if line_count > policy.ZIG_OWNER_CEILING:
@@ -71,6 +72,7 @@ def scan_zig(relative: Path, text: str) -> list[Finding]:
             line_count,
             policy.ZIG_OWNER_CEILING,
             "active Zig command/test owner ceiling",
+            repo_path,
         ))
     main_lines = zig_main_lines(code)
     if main_lines is None:
@@ -88,6 +90,7 @@ def scan_zig(relative: Path, text: str) -> list[Finding]:
             main_lines,
             policy.ZIG_ENTRYPOINT_CEILING,
             "Zig entry-point ceiling",
+            repo_path,
         ))
     return findings
 
