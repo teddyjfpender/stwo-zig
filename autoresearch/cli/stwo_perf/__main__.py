@@ -26,6 +26,44 @@ def cmd_benchmark(_args) -> int:
     return 0
 
 
+def cmd_task(args) -> int:
+    """TRACKS §8: the per-track agent brief, generated from the contract.
+
+    Printing is the default because the brief is meant to be handed to a
+    coding agent verbatim; --write regenerates the committed copies and
+    --check proves they have not drifted from the manifest.
+    """
+    from . import track_task
+    m = manifest_mod.load()
+    if args.check:
+        stale = track_task.stale(m)
+        if stale:
+            return _fail(
+                "generated task briefs are stale: " + ", ".join(stale)
+                + " — regenerate with `stwo-perf task --write`"
+            )
+        print(f"{ansi.OK} every generated task brief matches the manifest")
+        return 0
+    if args.write:
+        changed = track_task.write(m)
+        if not changed:
+            print(f"{ansi.OK} generated task briefs already current")
+        else:
+            print(f"{ansi.OK} regenerated: " + ", ".join(changed))
+        return 0
+    if args.board is None:
+        print(track_task.render_index(m), end="")
+        return 0
+    if args.board not in track_task.track_boards(m):
+        return _fail(
+            f"board {args.board} owns no workload group, so it has no track "
+            "brief; registered tracks: "
+            + ", ".join(track_task.track_boards(m))
+        )
+    print(track_task.render_brief(m, args.board), end="")
+    return 0
+
+
 def cmd_frontier(_args) -> int:
     m = manifest_mod.load()
     rows = ledger.load(m.root)
@@ -66,31 +104,144 @@ def cmd_setup(args) -> int:
     return 0
 
 
+# TRACKS §8 frontend-aware board auto-routing. A track is a (frontend,
+# backend) pair, so the diff picks each coordinate independently: the frontend
+# sources and product integrations name the frontend, the backend kernels name
+# the lane. src/integrations/native_cuda/ is deliberately in both — it is the
+# native frontend's CUDA integration.
+FRONTEND_PREFIXES: dict[str, tuple[str, ...]] = {
+    "cairo": (
+        "src/frontends/cairo/",
+        "src/integrations/cairo_cpu/",
+        "src/integrations/cairo_metal/",
+        "src/integrations/cairo_cuda/",
+    ),
+    "riscv": (
+        "src/frontends/riscv/",
+        "src/integrations/riscv_cpu/",
+        "src/integrations/riscv_metal/",
+    ),
+    "native": (
+        "src/integrations/native/",
+        "src/integrations/native_cuda/",
+    ),
+}
+# Ordered: the first backend the diff touches wins, preserving the pre-TRACKS-§8
+# CUDA-over-Metal precedence exactly. A product integration names BOTH
+# coordinates — src/integrations/cairo_metal/ is the Cairo frontend on the
+# Metal lane — so those prefixes appear here as well as above.
+BACKEND_PREFIXES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("cuda", (
+        "src/backends/cuda/",
+        "src/integrations/native_cuda/",
+        "src/integrations/cairo_cuda/",
+    )),
+    ("metal", (
+        "src/backends/metal/",
+        "src/integrations/cairo_metal/",
+        "src/integrations/riscv_metal/",
+    )),
+)
+FRONTEND_BOARD_PREFIX = {"core": "native", "cairo": "cairo", "riscv": "riscv"}
+BACKEND_BOARD_SUFFIX = {"cpu": "cpu", "metal": "metal", "cuda": "cuda"}
+FRONTEND_LABEL = {"native": "Native", "cairo": "Cairo", "riscv": "RISC-V"}
+BACKEND_LABEL = {"cpu": "CPU", "metal": "Metal", "cuda": "CUDA"}
+
+
+def _track_of_board(board: str) -> tuple[str, str] | None:
+    """Decompose a board name into its (frontend, backend) track.
+
+    Boards are named `<frontend>[_<backend>]` (`core_metal`, `cairo_cpu`,
+    `riscv`), so the manifest's own group list — not a second hand-maintained
+    table — is the routing authority: a board added to the manifest is
+    routable the moment it lands. Names outside the convention (objective
+    boards like `pr6_supremacy`) are not auto-routable and return None.
+    """
+    head, _, tail = board.partition("_")
+    frontend = FRONTEND_BOARD_PREFIX.get(head)
+    if frontend is None:
+        return None
+    backend = BACKEND_BOARD_SUFFIX.get(tail) if tail else "cpu"
+    if backend is None:
+        return None
+    return frontend, backend
+
+
+def routed_board(m, paths: list[str]) -> tuple[str, str] | None:
+    """The board a diff routes to, plus the reason, or None for the default.
+
+    Fails closed on ambiguity: a diff spanning two frontends belongs to no
+    single track, and guessing one would score a change on a board that cannot
+    show its effect. Same for a (frontend, backend) pair the manifest declares
+    no board for. Both raise rather than silently pick.
+    """
+    frontends = sorted(
+        name for name, prefixes in FRONTEND_PREFIXES.items()
+        if any(p.startswith(prefixes) for p in paths)
+    )
+    if len(frontends) > 1:
+        raise manifest_mod.ManifestError(
+            "the diff spans more than one frontend ("
+            + ", ".join(FRONTEND_LABEL[f] for f in frontends)
+            + "): a submission is scored on exactly one track, and no board "
+            "can show a cross-frontend change. Split the diff, or name the "
+            "board explicitly with --board"
+        )
+    backend = next(
+        (
+            name for name, prefixes in BACKEND_PREFIXES
+            if any(p.startswith(prefixes) for p in paths)
+        ),
+        None,
+    )
+    if not frontends and backend is None:
+        return None
+    frontend = frontends[0] if frontends else "native"
+    backend = backend or "cpu"
+    boards_by_track = {}
+    for group in m.groups():
+        track = _track_of_board(group.board)
+        if track is not None:
+            boards_by_track[track] = group.board
+    board = boards_by_track.get((frontend, backend))
+    if board is None:
+        raise manifest_mod.ManifestError(
+            f"the diff routes to the {FRONTEND_LABEL[frontend]} frontend on the "
+            f"{BACKEND_LABEL[backend]} backend, but the manifest declares no "
+            "board for that track; name an existing board with --board"
+        )
+    return board, (
+        f"diff touches {FRONTEND_LABEL[frontend]} on {BACKEND_LABEL[backend]}"
+    )
+
+
 def _resolve_board(args, m) -> str:
     """Explicit --board wins; otherwise route by the diff — a change that
-    touches one backend can only show its effect on that backend's board."""
+    touches one frontend or backend can only show its effect on that track's
+    board (TRACKS §8)."""
     if args.board:
         return args.board
     from . import runner
-    paths = runner.changed_paths(m.root)
-    if any(
-        p.startswith(("src/backends/cuda/", "src/integrations/native_cuda/"))
-        for p in paths
-    ):
-        print(ansi.style(
-            "  board auto-selected: core_cuda (diff touches Native CUDA; "
-            "the staged board fails closed until activation)", "dim"))
-        return "core_cuda"
-    if any(p.startswith("src/backends/metal/") for p in paths):
-        print(ansi.style(
-            "  board auto-selected: core_metal (diff touches src/backends/metal/; "
-            "pass --board to override)", "dim"))
-        return "core_metal"
-    return "core_cpu"
+    routed = routed_board(m, runner.changed_paths(m.root))
+    if routed is None:
+        return "core_cpu"
+    board, reason = routed
+    print(ansi.style(
+        f"  board auto-selected: {board} ({reason}; pass --board to override)",
+        "dim",
+    ))
+    return board
 
 
 def cmd_run(args) -> int:
     from . import runner
+    if getattr(args, "fast_boundary", False):
+        return _fail(
+            "--fast-boundary is a T1 iterate flag: `stwo-perf run` produces the "
+            "claimed (T2) verdict and T2/T3 keep the full dual boundary — the "
+            "ranked number never excludes anything (TRACKS §3.5). Use "
+            "`stwo-perf ladder t1 --fast-boundary` for the inner loop."
+        )
     m = manifest_mod.load()
     out_dir = m.root / "autoresearch" / ".runs" / "latest"
     board = _resolve_board(args, m)
@@ -169,6 +320,109 @@ def cmd_run(args) -> int:
     print(render.verdict(verdict))
     print()
     print(ansi.style(f"  verdict written to {out}", "dim"))
+    return 0
+
+
+def cmd_ladder(args) -> int:
+    """Confirmation-ladder tiers below the ranked path (TRACKS §3.5)."""
+    from . import runner
+    m = manifest_mod.load()
+    out_dir = m.root / "autoresearch" / ".runs" / "ladder"
+    try:
+        if args.ladder_cmd == "t0":
+            result = runner.phase_prefilter(
+                Path(args.predecessor).resolve(), m.root, m,
+                args.workload_class, out_dir,
+                board=args.board, phase=args.phase, era=args.era,
+            )
+        elif args.ladder_cmd == "t1":
+            result = runner.iterate_estimate(
+                m.root, Path(args.predecessor).resolve(), m,
+                args.workload_class, out_dir,
+                board=args.board, fast_boundary=args.fast_boundary,
+                era=args.era,
+            )
+        else:
+            observations = []
+            for spec in args.observation:
+                proxy_run, separator, class_run = spec.rpartition(":")
+                if not separator or not proxy_run or not class_run:
+                    return _fail(
+                        "--observation takes PROXY_RUN.json:CLASS_RUN.json"
+                    )
+                observations.append((Path(proxy_run), Path(class_run)))
+            result = runner.build_proxy_validity_receipt(
+                m.root, m, board=args.board,
+                workload_class=args.workload_class, era=args.era,
+                observations=observations,
+            )
+    except runner.RunError as exc:
+        return _fail(str(exc))
+
+    out = Path(args.out) if args.out else out_dir / f"{args.ladder_cmd}.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+
+    if args.ladder_cmd == "proxy-receipt":
+        measurement = result["measurement"]
+        print(ansi.kv_panel("proxy validity receipt", [
+            ("board", result["board"]),
+            ("class", result["workload_class"]),
+            ("era", str(result["era"])),
+            ("proxy", result["proxy"]["proxy_id"]),
+            ("observations", str(measurement["observation_count"])),
+            ("correlation", f"{measurement['correlation']:.6f}"),
+            ("floor", str(measurement["min_correlation"])),
+            ("valid", str(measurement["valid"])),
+        ]))
+        print(ansi.style(f"  receipt written to {out}", "dim"))
+        if not measurement["valid"]:
+            return _fail(
+                "proxy validity is below the registered floor — rotate the "
+                "proxy at the era boundary (TRACKS §3.5)"
+            )
+        print("  commit it under the registered receipt directory via a reviewed PR")
+        return 0
+
+    for marker in result["markers"]:
+        print(ansi.style(f"  ⚠ {marker}", "yellow"))
+    if args.ladder_cmd == "t0":
+        print(ansi.kv_panel("T0 phase prefilter", [
+            ("board", result["board"]),
+            ("class", result["workload_class"]),
+            ("workload", result["workload"]),
+            ("claimed phase", result["claimed_phase"]),
+            ("resolved phase", result["resolved_phase"]),
+            ("relative move", f"{result['relative_move']:.6f}"),
+            ("required move", str(result["min_phase_move"])),
+            ("correctness smoke", str(result["correctness_smoke"]["pass"])),
+            ("seconds", f"{result['measurement_seconds']:.2f}"),
+            ("pass", ansi.style(str(result["pass"]), "bold")),
+        ]))
+    else:
+        print(ansi.kv_panel("T1 iterate estimate", [
+            ("board", result["board"]),
+            ("class", result["workload_class"]),
+            ("boundary", result["boundary"]),
+            ("r geomean", f"{result['r_geomean']:.6f}"),
+            ("CI", f"[{result['ci'][0]:.6f}, {result['ci'][1]:.6f}]"),
+            ("theta", f"{result['theta']:.6f}"),
+            ("seconds", f"{result['measurement_seconds']:.2f}"),
+        ]))
+        evidence = result.get("boundary_evidence")
+        if evidence and evidence.get("estimate"):
+            print(ansi.style(f"  ⚠ {evidence['label']}", "yellow"))
+    print(ansi.style(f"  {result['note']}", "dim"))
+    print(ansi.style(f"  written to {out}", "dim"))
+    if not result.get("within_cost_target", True):
+        print(ansi.style(
+            f"  ⚠ tier exceeded its {result['cost_target_seconds']}s cost target — "
+            "shrink the proxy, not the honesty (TRACKS §3.6)", "yellow"))
+    if args.ladder_cmd == "t0" and not result["pass"]:
+        return _fail(
+            "T0 prefilter failed: the claimed phase did not move (or the "
+            "correctness smoke failed) — T1 is not scheduled"
+        )
     return 0
 
 
@@ -592,6 +846,19 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("benchmark", help="show the fixed suite, gates, and ledger state")
     sub.add_parser("frontier", help="print the promotions ledger and Pareto frontier")
 
+    p = sub.add_parser(
+        "task",
+        help="print the per-track agent brief, generated from the manifest "
+             "and epochs (TRACKS §8); no --board prints the track index",
+    )
+    p.add_argument("--board", default=None, choices=list(ledger.BOARDS),
+                   help="the track to brief; omit for the index")
+    p.add_argument("--write", action="store_true",
+                   help="regenerate the committed index and per-track briefs")
+    p.add_argument("--check", action="store_true",
+                   help="fail if any committed brief has drifted from the "
+                        "manifest or epochs")
+
     p = sub.add_parser("clone", help="create a searcher workspace (git worktree)")
     p.add_argument("dest")
 
@@ -599,8 +866,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--board",
         default=None,
-        choices=["core_cpu", "core_hybrid", "core_metal", "core_cuda",
-                 "heavy_native", "heavy_cairo", "stream", "riscv"],
+        # ledger.BOARDS is the single source of truth for board names: a
+        # hardcoded list silently rejects every board added since it was
+        # written (TRACKS §8 wave-1 added the Cairo tracks and pr6_supremacy).
+        choices=list(ledger.BOARDS),
         help="build only the workload group owned by this board",
     )
 
@@ -624,11 +893,10 @@ def build_parser() -> argparse.ArgumentParser:
              "submissions still face the judged guard matrix)",
     )
     p.add_argument("--board", default=None,
-                   choices=["core_cpu", "core_hybrid", "core_metal", "core_cuda",
-                            "heavy_native", "heavy_cairo", "stream", "riscv"],
+                   choices=list(ledger.BOARDS),
                    help="scoring board (schema/scoring.md); kernels are never "
-                        "boards. Default: auto — CUDA or Metal when the diff "
-                        "touches that backend, else core_cpu")
+                        "boards. Default: auto — routed from the diff's "
+                        "frontend and backend (TRACKS §8), else core_cpu")
     p.add_argument("--predecessor", help="worktree of the paired A arm (required)")
     p.add_argument("--aa", action="store_true",
                    help="A/A dispersion measurement (both arms = this tree)")
@@ -637,6 +905,58 @@ def build_parser() -> argparse.ArgumentParser:
         help="permit RISC-V A/A calibration before board activation; requires --aa",
     )
     p.add_argument("--out", help="verdict output path")
+    p.add_argument(
+        "--fast-boundary", action="store_true",
+        help="refused here by design: the claimed (T2) and ranked (T3) numbers "
+             "keep the full dual boundary; the PoW-excluded boundary belongs to "
+             "`stwo-perf ladder t1` (TRACKS §3.5)",
+    )
+
+    p = sub.add_parser(
+        "ladder",
+        help="confirmation-ladder tiers below the ranked path: T0 phase "
+             "prefilter, T1 iterate estimate, proxy validity receipts",
+    )
+    ladder = p.add_subparsers(dest="ladder_cmd", required=True)
+    t0 = ladder.add_parser(
+        "t0", help="one stage-profiled sample per arm; the claimed phase must move",
+    )
+    t0.add_argument("--phase", required=True,
+                    help="the §3.2 phase the submission claims to move")
+    t1 = ladder.add_parser(
+        "t1", help="paired ABBA on proxy fixtures with sequential early stopping",
+    )
+    t1.add_argument(
+        "--fast-boundary", action="store_true",
+        help="measure the PoW-excluded request boundary (pow 26 is ~constant "
+             "work and pure noise for paired deltas); refuses fail-closed when "
+             "the group's report schema exposes no measured PoW phase",
+    )
+    receipt = ladder.add_parser(
+        "proxy-receipt",
+        help="assemble an era proxy-validity receipt from measured runs "
+             "(judge host only; measures nothing itself)",
+    )
+    receipt.add_argument(
+        "--observation", action="append", default=[], required=True,
+        metavar="PROXY_RUN.json:CLASS_RUN.json",
+        help="one measured proxy/class pair; repeat until the registered "
+             "minimum observation count is met",
+    )
+    for tier_parser in (t0, t1, receipt):
+        tier_parser.add_argument("--board", required=True,
+                                 help="track board (validated against the manifest)")
+        tier_parser.add_argument(
+            "--class", dest="workload_class", required=True,
+            help="manifest-declared workload class",
+        )
+        tier_parser.add_argument("--era", type=int, default=None,
+                                 help="board era (default: current ledger epoch)")
+        tier_parser.add_argument("--out", help="output document path")
+    for tier_parser in (t0, t1):
+        tier_parser.add_argument(
+            "--predecessor", required=True, help="worktree of the paired A arm",
+        )
 
     p = sub.add_parser(
         "calibrate-metal",
@@ -801,6 +1121,8 @@ HANDLERS = {
     "install-workflows": cmd_install_workflows, "feed": cmd_feed,
     "update": cmd_update,
     "calibrate-metal": cmd_calibrate_metal,
+    "ladder": cmd_ladder,
+    "task": cmd_task,
 }
 
 

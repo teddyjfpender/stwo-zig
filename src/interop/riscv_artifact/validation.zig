@@ -16,7 +16,7 @@ pub fn validate(artifact: schema.Artifact, release_status: []const u8) !void {
     try requireEqual(artifact.release_status, release_status, error.InvalidReleaseStatus);
     try requireEqual(artifact.generator, schema.GENERATOR, error.UnsupportedGenerator);
     try requireEqual(artifact.air, schema.AIR, error.UnsupportedAir);
-    try requireEqual(artifact.backend, "cpu", error.UnsupportedBackend);
+    if (!isAdmittedBackend(artifact.backend)) return error.UnsupportedBackend;
     if (!isProtocol(artifact.protocol)) return error.UnsupportedProtocol;
     try requireEqual(
         artifact.provenance.oracle_repository,
@@ -432,6 +432,13 @@ fn opcodeLogSize(count: u32) u32 {
 fn computeLogSize(count: u32) u32 {
     if (count <= 1) return 1;
     return @intCast(std.math.log2_int_ceil(u32, count));
+}
+
+fn isAdmittedBackend(backend: []const u8) bool {
+    for (schema.BACKENDS) |admitted| {
+        if (std.mem.eql(u8, backend, admitted)) return true;
+    }
+    return false;
 }
 
 fn isProtocol(value: []const u8) bool {

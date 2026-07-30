@@ -1,100 +1,19 @@
 //! Machine-readable capability surface for the focused RISC-V CPU product.
+//!
+//! Thin binding of the shared focused-product registry. The CPU product
+//! supplies its own capabilities and identity modules and the single-key
+//! `backend_availability` object, so the backend set below is the only
+//! backend this registry can ever report.
 
 const std = @import("std");
 const builtin = @import("builtin");
 const capabilities = @import("riscv_cpu_capabilities");
 const identity = @import("product_identity");
+const shared_registry = @import("riscv_shared_registry");
 
-pub fn write(writer: anytype) !void {
-    try std.json.Stringify.value(.{
-        .schema_version = @as(u32, 1),
-        .product = .{
-            .schema_version = identity.schema_version,
-            .name = identity.product,
-            .frontend = identity.frontend,
-            .backend = identity.backend,
-            .role = identity.role,
-            .protocol_features = identity.protocol_features,
-            .protocol_manifest_sha256 = identity.protocol_manifest_sha256,
-            .identity_sha256 = identity.identity_sha256,
-            .source = .{
-                .repository = identity.implementation_repository,
-                .commit = identity.implementation_commit,
-                .tree = if (identity.implementation_tree_available)
-                    identity.implementation_tree
-                else
-                    null,
-                .dirty = identity.implementation_dirty,
-                .dirty_content_sha256 = if (identity.dirty_content_sha256_available)
-                    identity.dirty_content_sha256
-                else
-                    null,
-            },
-            .zig_version = identity.zig_version,
-            .target = .{
-                .arch = identity.target_arch,
-                .os = identity.target_os,
-                .abi = identity.target_abi,
-                .cpu_model = identity.cpu_model,
-                .cpu_features_sha256 = identity.cpu_features_sha256,
-            },
-            .optimize = identity.optimize,
-            .runtime = .{
-                .manifest = identity.runtime_manifest,
-                .sdk = identity.sdk_manifest,
-                .aot = identity.aot_manifest,
-            },
-        },
-        .backend_availability = .{ .cpu = true },
-        .applications = if (capabilities.adapter_release_gated)
-            &[_]Application{Application.releaseGated()}
-        else
-            &[_]Application{},
-        .deferred_adapters = if (capabilities.adapter_release_gated)
-            &[_]Application{}
-        else
-            &[_]Application{Application.deferred()},
-    }, .{}, writer);
-}
+const impl = shared_registry.Registry(capabilities, identity, .{ .cpu = true });
 
-const Application = struct {
-    adapter: []const u8 = capabilities.adapter,
-    air: []const u8 = capabilities.air,
-    status: []const u8,
-    isa: []const u8 = capabilities.isa,
-    backends: []const []const u8 = &.{capabilities.backend},
-    reason: ?[]const u8 = null,
-
-    pub fn jsonStringify(self: Application, writer: anytype) !void {
-        try writer.beginObject();
-        try writer.objectField("adapter");
-        try writer.write(self.adapter);
-        try writer.objectField("air");
-        try writer.write(self.air);
-        try writer.objectField("status");
-        try writer.write(self.status);
-        try writer.objectField("isa");
-        try writer.write(self.isa);
-        try writer.objectField("backends");
-        try writer.write(self.backends);
-        if (self.reason) |reason| {
-            try writer.objectField("reason");
-            try writer.write(reason);
-        }
-        try writer.endObject();
-    }
-
-    fn releaseGated() Application {
-        return .{ .status = "release_gated" };
-    }
-
-    fn deferred() Application {
-        return .{
-            .status = "not_release_gated",
-            .reason = capabilities.deferred_reason,
-        };
-    }
-};
+pub const write = impl.write;
 
 test "registry exposes exactly the RISC-V CPU capability" {
     var storage: [4096]u8 = undefined;

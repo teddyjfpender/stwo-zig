@@ -53,6 +53,14 @@ pub fn proveRiscVWithEngine(
 
 /// Proves through the normal frontend path while exposing its live channel to
 /// conformance instrumentation. The default entrypoint remains branch-free.
+///
+/// Ordering note: `deriveRegisterBoundary` below is the first thing that
+/// inspects the trace, and it runs *ahead* of the opcode admission filter in
+/// `prover/statement_geometry.build` (`Trace.groupByOpcodeFamily`). It is
+/// therefore the entrypoint's own fail-closed gate for execution-only opcodes,
+/// and a trace containing one is rejected here with `UnsupportedForProof`
+/// rather than reaching geometry. Anything inserted before this call that
+/// classifies opcodes must be fallible for the same reason.
 pub fn proveRiscVWithEngineUsingChannel(
     comptime Engine: type,
     allocator: std.mem.Allocator,

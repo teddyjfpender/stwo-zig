@@ -104,12 +104,17 @@ jobs:
           path: ${{ runner.tool_cache }}/stwo-zig/riscv-formal
           key: riscv-formal-v1-${{ runner.os }}-${{ hashFiles('conformance/riscv/rv32im-sail-profile.json', 'conformance/riscv/sail-rvfi-zkvm-entry.patch', 'conformance/riscv/sail-rv32im-override.json', 'conformance/riscv/sail-rv32im-tagged-options.json') }}
 
-      - name: Install pinned-backend build and SMT dependencies
+      # device-tree-compiler is Spike's build dependency. z3 is Sail's: the
+      # pinned 0.20.2 release binary shells out to an SMT solver, so without it
+      # even `sail --version` dies with "SMT solver returned unexpected status
+      # 127 / z3: not found" and every later step is skipped. That failure is
+      # invisible on a warm toolchain cache, because a cache hit never reaches
+      # this install path -- so the differential silently stops running rather
+      # than reporting a mismatch.
+      - name: Install the pinned Spike and Sail system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            device-tree-compiler \
-            z3
+          sudo apt-get install -y --no-install-recommends device-tree-compiler z3
 
       # The pinned Sail compiler ships as a hash-pinned upstream release
       # binary, so no opam bootstrap runs in CI. A profile compiler bump
