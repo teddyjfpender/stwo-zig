@@ -2,18 +2,19 @@
 //!
 //! `runner/trace.zig` exposes two family maps over the same opcode set:
 //!
-//!   - `proofOpcodeFamily` is **partial** and fallible. ECALL and EBREAK are
-//!     execution-only (`isa/decode.zig` `proofOpcode`), so it answers
-//!     `error.UnsupportedForProof` for them.
-//!   - `opcodeFamily` is **total** and infallible. It is only defined on the
-//!     opcodes the first map admits, and its precondition is that
-//!     `Trace.groupByOpcodeFamily` has already rejected everything else.
+//!   - `proofOpcodeFamily` is **partial** and fallible over raw `Opcode`. ECALL
+//!     and EBREAK are execution-only (`isa/decode.zig` `proofOpcode`), so it
+//!     answers `error.UnsupportedForProof` for them.
+//!   - `opcodeFamily` is **total** and infallible over `trace.ProofOpcode`, the
+//!     newtype the filter produces. Its precondition is no longer a claim about
+//!     call order: the argument type has no inhabitant without a family, and
+//!     `ProofOpcode.classify` is the only route into it from a raw `Opcode`.
 //!
-//! That precondition was documented but not enforced: `opcodeFamily` was
+//! That precondition used to be documented but not enforced: `opcodeFamily` was
 //! `proofOpcodeFamily(opcode) catch unreachable`, and `unreachable` in
 //! ReleaseFast is undefined behaviour. One caller --
 //! `air/opcode_memory.zig` `deriveRegisterBoundary` -- runs at the *first*
-//! statement of `prover.proveRiscVWithEngineUsingChannel`, which is strictly
+//! statement of `prover.proveRiscVTraceOnlyNoPublicIoUsingChannel`, which is strictly
 //! before `prover/statement_geometry.build` invokes the filter. On an
 //! ECALL-terminated trace it therefore reached the `unreachable`: a Debug build
 //! panicked with "attempt to unwrap error: UnsupportedForProof", and a
@@ -37,18 +38,37 @@
 //!    in that fix-agnostic form as well as against the identifier the fix
 //!    currently uses.
 //!
-//! 3. **Fail-closed behaviour at the two prove entrypoints**, which is what
-//!    proves the precondition for the *remaining* unchecked call sites
-//!    (`air/interaction_gen.zig`, `prover/opcode_trace.zig`). Those sites live
-//!    in `main_trace`/`interaction_trace`, which `prover/orchestration.zig`
-//!    runs only after `derive`. A trace carrying an unsupported opcode must
-//!    therefore be rejected inside `derive`, and if it ever were not, the
-//!    `std.debug.panic` those sites now reach would abort this test process
-//!    rather than silently mis-derive.
+//! 3. **Fail-closed behaviour at the two prove entrypoints.** This used to be
+//!    what stood in for a proof of the precondition at the *remaining*
+//!    unchecked call sites (`air/interaction_gen.zig`,
+//!    `prover/opcode_trace.zig`): those sites live in
+//!    `main_trace`/`interaction_trace`, which `prover/orchestration.zig` runs
+//!    only after `derive`, so a trace carrying an unsupported opcode had to be
+//!    rejected inside `derive` for them to be safe. Both now resolve families
+//!    through the filter itself, so their safety no longer depends on stage
+//!    order -- but end-to-end rejection is still worth pinning, because a
+//!    caller that reaches proving with an unprovable trace is a defect whatever
+//!    the downstream stages do with it.
 //!
-//! Both regression tests are cheap by construction: every one of them fails
-//! before any FFT, commitment or Merkle work happens, so this file belongs in
-//! the fast `test-riscv` suite rather than the exhaustive gate.
+//! 4. **The structural fact itself**, which is what a revert cannot survive:
+//!    the total map's parameter type *is* the filtered type, so a pre-filter
+//!    caller cannot reach it and restoring the raw-`Opcode` signature fails at
+//!    compile time rather than in whichever caller is next to forget. Pinned by
+//!    "the total family map is reachable only through the filter" below, plus
+//!    "an empty opcode shard is named rather than assumed away" for the same
+//!    defect class one call site over (`unreachable` guarding `rows[0]`).
+//!
+//!    A twin of the first assertion sits beside the code, in `runner/trace.zig`.
+//!    It is duplicated here rather than left there because
+//!    `src/frontends/riscv/**` is a separate Zig module (`stwo_riscv_frontend`)
+//!    whose in-file tests no product step, release gate or workflow compiles --
+//!    `-Driscv-test-filter` reports "selects no test" for every test name
+//!    defined in that tree. The copy that runs is this one. Prefer adding new
+//!    obligations here.
+//!
+//! Every regression above is cheap by construction: all of them fail before any
+//! FFT, commitment or Merkle work happens, so this file belongs in the fast
+//! `test-riscv` suite rather than the exhaustive gate.
 //!
 //! Optimization modes: the original defect was invisible in Debug (it panicked
 //! rather than failing a test) and silent in ReleaseFast (UB). Nothing here
@@ -61,7 +81,9 @@ const std = @import("std");
 const pcs = @import("stwo_core").pcs;
 const isa_decode = @import("stwo_riscv_frontend").isa.decode;
 const opcode_manifest = @import("stwo_riscv_frontend").opcode_manifest;
+const interaction_gen = @import("stwo_riscv_frontend").air.interaction_gen;
 const opcode_memory = @import("stwo_riscv_frontend").air.opcode_memory;
+const relation_challenges = @import("stwo_riscv_frontend").air.relation_challenges;
 const runner = @import("stwo_riscv_frontend").runner;
 const trace_mod = @import("stwo_riscv_frontend").runner.trace;
 const riscv_cpu = @import("stwo_riscv_cpu_integration");
@@ -164,8 +186,11 @@ test "opcode family precondition: every admitted opcode keeps its pinned family"
 
         // The total map agrees with it. This is the invariant that makes the
         // total map safe to call at all: it is the same function on the
-        // admitted domain, and only its behaviour off that domain differs.
-        try std.testing.expectEqual(expected, trace_mod.opcodeFamily(opcode));
+        // admitted domain -- and the domain is now the argument type, so there
+        // is no "off that domain" behaviour left to differ. Reaching the total
+        // map requires the filter, which is the point of `ProofOpcode`.
+        const filtered = try trace_mod.ProofOpcode.classify(opcode);
+        try std.testing.expectEqual(expected, trace_mod.opcodeFamily(filtered));
 
         // And the manifest entry itself agrees, so the pin covers the source of
         // truth and not only the two wrappers over it.
@@ -241,6 +266,105 @@ test "opcode family precondition: the family filter rejects an execution-only ro
             trace.columnsForFamily(allocator, .base_alu_reg, 0),
         );
     }
+}
+
+test "opcode family precondition: the total family map is reachable only through the filter" {
+    // The structural half of the fix, and the half a revert cannot survive.
+    //
+    // The defect was not that `opcodeFamily` mishandled ECALL -- it was that
+    // `opcodeFamily` *accepted* ECALL's type at all, so "the filter has already
+    // run" was a claim in prose that one of four call sites did not honour.
+    // Restoring the raw-`Opcode` signature restores exactly that hazard, and
+    // must fail here rather than in whichever caller is next to forget.
+    //
+    // A twin of this assertion sits beside the code in `runner/trace.zig`. It
+    // is duplicated rather than moved because `src/frontends/riscv/**` is a
+    // separate Zig module whose in-file tests no product step, release gate or
+    // workflow compiles -- confirmed with `-Driscv-test-filter`, which reports
+    // that every test name defined under that tree selects no test. The copy
+    // that runs is this one.
+    const total = @typeInfo(@TypeOf(trace_mod.opcodeFamily)).@"fn";
+    try std.testing.expectEqual(@as(usize, 1), total.params.len);
+    try std.testing.expectEqual(trace_mod.ProofOpcode, total.params[0].type.?);
+    // Total: no error union, so no caller is invited to decide what to do with
+    // an opcode that has no family. There is no such value of this type.
+    try std.testing.expectEqual(Family, total.return_type.?);
+
+    // The only constructor from a raw opcode is fallible, so the type cannot be
+    // entered without discharging the admission question.
+    const filter = @typeInfo(@TypeOf(trace_mod.ProofOpcode.classify)).@"fn";
+    try std.testing.expectEqual(Opcode, filter.params[0].type.?);
+    const returns = @typeInfo(filter.return_type.?);
+    try std.testing.expect(returns == .error_union);
+    try std.testing.expectEqual(trace_mod.ProofOpcode, returns.error_union.payload);
+
+    // The newtype wraps the *proof* opcode set, not the architectural one, so a
+    // `ProofOpcode` written as a struct literal still cannot name ECALL: the
+    // manifest enum has no such tag. Without this the newtype would only be a
+    // convention, bypassable by anyone who spelled the literal out.
+    const fields = @typeInfo(trace_mod.ProofOpcode).@"struct".fields;
+    try std.testing.expectEqual(@as(usize, 1), fields.len);
+    try std.testing.expectEqual(opcode_manifest.Opcode, fields[0].type);
+    for (execution_only) |excluded| {
+        for (std.enums.values(opcode_manifest.Opcode)) |id| {
+            if (!std.mem.eql(u8, @tagName(id), @tagName(excluded))) continue;
+            std.debug.print(
+                "{s} has a proof-opcode tag, so a ProofOpcode literal can name it\n",
+                .{@tagName(excluded)},
+            );
+            return error.ExecutionOnlyOpcodeIsRepresentable;
+        }
+    }
+    for (std.enums.values(opcode_manifest.Opcode)) |id| {
+        // Total on every inhabitant; this loop is the totality proof.
+        _ = trace_mod.opcodeFamily(.{ .id = id });
+    }
+}
+
+test "opcode family precondition: the filter is handed out as a value, index-parallel to the rows" {
+    // How the post-filter stages get a `ProofOpcode` without reclassifying.
+    // `prover/opcode_trace.zig` runs its family lookup inside a `void` worker
+    // body that had no way to report an inadmissible opcode even if it noticed
+    // one; it now consumes this slice, so the fallible step happens once, where
+    // an error can still be returned.
+    const allocator = std.testing.allocator;
+    var trace = trace_mod.Trace.init(allocator);
+    defer trace.deinit();
+    try trace.append(addiRow(1, 0x10000, 1, 42));
+    try trace.append(rowFor(.FENCE, 2, 0x10004));
+
+    const filtered = try trace.proofOpcodes(allocator);
+    defer allocator.free(filtered);
+    try std.testing.expectEqual(trace.rows.items.len, filtered.len);
+    try std.testing.expectEqual(Family.base_alu_imm, trace_mod.opcodeFamily(filtered[0]));
+    try std.testing.expectEqual(Family.fence, trace_mod.opcodeFamily(filtered[1]));
+
+    // Fails closed on the first row with no proof encoding, exactly as
+    // `groupByOpcodeFamily` does, so holding the slice really is evidence.
+    for (execution_only) |opcode| {
+        var rejected = trace_mod.Trace.init(allocator);
+        defer rejected.deinit();
+        try rejected.append(rowFor(opcode, 1, 0x10000));
+        try std.testing.expectError(
+            error.UnsupportedForProof,
+            rejected.proofOpcodes(allocator),
+        );
+    }
+}
+
+test "opcode family precondition: an empty opcode shard is named rather than assumed away" {
+    // The same defect class, one call site over. `genOpcodeInteraction` reads
+    // its component's family off `rows[0]` and guarded that with
+    // `if (rows.len == 0) unreachable`, which is a check only in safe builds; at
+    // `-Doptimize=ReleaseFast` it is a licence to read the first element of an
+    // empty slice. `statement_geometry` never describes an empty shard, so this
+    // is a geometry defect, and it now has a name that says so in every
+    // optimization mode.
+    var relations = relation_challenges.Relations.dummy();
+    try std.testing.expectError(
+        error.EmptyOpcodeShard,
+        interaction_gen.genOpcodeInteraction(std.testing.allocator, &.{}, 1, &relations),
+    );
 }
 
 test "opcode family precondition: the pre-filter caller is declared fallible on unsupported opcodes" {

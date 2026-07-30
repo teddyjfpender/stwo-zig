@@ -36,14 +36,22 @@ import statistics
 import subprocess
 import sys
 from pathlib import Path
+from typing import Mapping
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts import riscv_cli_admission  # noqa: E402
+from scripts.riscv_csp_benchmark_lib.host import (  # noqa: E402
+    power_evidence_block,
+    sysctl_value,
+)
 
-SCHEMA = "riscv_starkv_benchmark_v1"
+# v2 added the `power_conditions` block. Battery power and low power mode
+# throttle sustained multi-core CPU work, so a report without that evidence
+# cannot say whether its numbers are measurements or throttling artefacts.
+SCHEMA = "riscv_starkv_benchmark_v2"
 PINNED_COMMIT = "d478f783055aa0d73a93768a433a3c6c31c91d1c"
 DEFAULT_REPORT = ROOT / "vectors/reports/latest_riscv_starkv_benchmark_report.json"
 ZIG_BINARY = ROOT / "zig-out/bin/stwo-zig"
@@ -69,17 +77,6 @@ PHASE_MARKERS = {
 MIN_RUST_PARALLELISM = 1.5
 
 
-def _sysctl(key: str) -> str | None:
-    try:
-        result = subprocess.run(
-            ["sysctl", "-n", key], capture_output=True, text=True, timeout=10
-        )
-    except (OSError, subprocess.SubprocessError):
-        return None
-    value = result.stdout.strip()
-    return value if result.returncode == 0 and value else None
-
-
 def _tool_version(argv: list[str]) -> str | None:
     try:
         result = subprocess.run(argv, capture_output=True, text=True, timeout=15)
@@ -89,22 +86,49 @@ def _tool_version(argv: list[str]) -> str | None:
     return out[0] if result.returncode == 0 and out else None
 
 
-def collect_host_environment(stark_v_source: Path | None = None) -> dict[str, object]:
+def collect_host_environment(
+    stark_v_source: Path | None = None,
+    *,
+    power_conditions: Mapping[str, object] | None = None,
+) -> dict[str, object]:
     """Portable machine context for a benchmark report: what ran it, where.
 
     No serial numbers or user data. Fields absent on non-macOS hosts are null,
     with the platform block always populated so every report is self-describing.
+
+    ## Power conditions ride here, in every harness that embeds this block
+
+    All three harnesses that publish prove/verify timings embed this block, and
+    only one of them used to record power state -- so the other two could publish
+    battery-throttled numbers with nothing in the report saying so, which is the
+    defect issue #152 item 6c exists to prevent. The evidence therefore lives
+    here rather than in one harness's own report body, and its schema is v2
+    because a consumer must be able to tell a report that carries the evidence
+    from one that could not.
+
+    ``power_conditions`` is the shared ``power_evidence_block`` -- one
+    implementation, in ``riscv_csp_benchmark_lib.host``. Callers that already
+    captured it (to warn an operator while the run is still worth aborting) pass
+    it in, so one run reports one capture rather than two that can disagree.
+
+    The field set is pinned on the consuming side by
+    ``riscv_benchmark_matrix_contract.HOST_ENVIRONMENT_FIELDS``; this function's
+    test asserts equality against that constant, so the producer and the contract
+    cannot drift apart silently in either direction.
     """
     import platform
 
-    memsize = _sysctl("hw.memsize")
+    memsize = sysctl_value("hw.memsize")
     stark_v_commit = None
     if stark_v_source is not None:
         stark_v_commit = _tool_version(
             ["git", "-C", str(stark_v_source), "rev-parse", "HEAD"]
         )
     return {
-        "schema": "riscv_benchmark_host_environment_v1",
+        "schema": "riscv_benchmark_host_environment_v2",
+        "power_conditions": (
+            power_evidence_block() if power_conditions is None else dict(power_conditions)
+        ),
         "platform": {
             "system": platform.system(),
             "release": platform.release(),
@@ -113,8 +137,8 @@ def collect_host_environment(stark_v_source: Path | None = None) -> dict[str, ob
             "os_build_version": _tool_version(["sw_vers", "-buildVersion"]),
         },
         "hardware": {
-            "chip": _sysctl("machdep.cpu.brand_string"),
-            "machine_model": _sysctl("hw.model"),
+            "chip": sysctl_value("machdep.cpu.brand_string"),
+            "machine_model": sysctl_value("hw.model"),
             "logical_cpu_count": os.cpu_count(),
             "physical_memory_bytes": int(memsize) if memsize else None,
         },
@@ -287,19 +311,32 @@ def main(argv: list[str] | None = None) -> int:
     rust_binary = validate_stark_v(args.stark_v_source.resolve())
     pinned, corpus = load_corpus()
     multicore = (os.cpu_count() or 1) > 1
+    # Captured before the first sample so an operator sees a throttled host
+    # while the run is still worth aborting, not after it finishes.
+    power = power_evidence_block()
+    if not power["admissible"]:
+        print(f"[power] {'; '.join(power['reasons'])}", flush=True)
 
     rows = []
     failures = 0
     for vector in corpus:
-        admission = vector["proof_admission"]
-        if admission.get("status") != "supported":
+        # Named apart from `admission`, the binary's own registry phase: the
+        # manifest's per-vector admission decides whether a family is proved at
+        # all, and shadowing the CLI authority with it published the manifest's
+        # word as the binary's.
+        proof_admission = vector["proof_admission"]
+        if proof_admission.get("status") != "supported":
             rows.append({
                 "name": vector["name"],
                 "elf_sha256": vector["elf_sha256"],
                 "status": "skipped_unsupported_family",
-                "proof_admission": admission,
+                "proof_admission": proof_admission,
             })
-            print(f"{vector['name']:20s} skip   {admission.get('known_limitation', admission.get('status'))}", flush=True)
+            print(
+                f"{vector['name']:20s} skip   "
+                f"{proof_admission.get('known_limitation', proof_admission.get('status'))}",
+                flush=True,
+            )
             continue
         zig = run_zig_lane(
             vector["elf"], args.warmups, args.samples, admission,
@@ -356,7 +393,18 @@ def main(argv: list[str] | None = None) -> int:
         },
         "metal_note": "RISC-V adapter is CPU-only; no RISC-V Metal prover on "
                       "either lane. Native CPU-vs-Metal is in the native proof matrix.",
-        "host_environment": collect_host_environment(args.stark_v_source.resolve()),
+        "host_environment": collect_host_environment(
+            args.stark_v_source.resolve(), power_conditions=power,
+        ),
+        # Same evidence, same implementation, same verdict as the CSP harness:
+        # a check that exists on one benchmark path and not its sibling is how
+        # throttled numbers get published as clean ones.
+        #
+        # Retained at the root because this report's own v2 schema declared it
+        # there before the shared host block could carry it. It is the *same*
+        # capture the host block embeds -- `test_riscv_stark_v_benchmark` pins the
+        # two equal -- so a consumer reading either spelling reads one verdict.
+        "power_conditions": power,
         "warmups": args.warmups,
         "samples": args.samples,
         "failure_count": failures,

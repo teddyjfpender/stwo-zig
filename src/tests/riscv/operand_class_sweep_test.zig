@@ -169,7 +169,7 @@ fn underTestRowVerdict(
     case: *const Case,
     run: *const runner.RunResult,
 ) !row_admissibility.Verdict {
-    const family = trace_mod.opcodeFamily(case.op);
+    const family = try trace_mod.proofOpcodeFamily(case.op);
     const trace = &run.execution_trace;
     const pc = guest_elf.bodyPc(case.under_test);
     const logical = try familyLogicalRow(trace, family, pc);
@@ -205,7 +205,7 @@ fn runCase(allocator: std.mem.Allocator, case: *const Case) !void {
         .direct_constraints => {
             std.debug.print(
                 "{s}: honest {s} row fails a direct constraint\n",
-                .{ case.name, @tagName(trace_mod.opcodeFamily(case.op)) },
+                .{ case.name, @tagName(try trace_mod.proofOpcodeFamily(case.op)) },
             );
             return error.HonestClassRowRejected;
         },
@@ -214,7 +214,7 @@ fn runCase(allocator: std.mem.Allocator, case: *const Case) !void {
                 "{s}: honest {s} row rejected by {s} request {d}\n",
                 .{
                     case.name,
-                    @tagName(trace_mod.opcodeFamily(case.op)),
+                    @tagName(try trace_mod.proofOpcodeFamily(case.op)),
                     @tagName(rejection.domain),
                     rejection.index,
                 },
@@ -227,21 +227,21 @@ fn runCase(allocator: std.mem.Allocator, case: *const Case) !void {
 // Runtime: microseconds. No guest runs, no proving -- this is a precondition
 // check over the corpus table itself.
 test "operand class sweep: every corpus case names a proof-admitted opcode" {
-    // `underTestRowVerdict` and the two `std.debug.print` arms below resolve a
-    // case's family through the *total* `trace_mod.opcodeFamily`, whose
-    // precondition is that the opcode has a proof family at all. Nothing in the
-    // corpus format enforces that: `Case.op` is data, and a case naming ECALL
-    // or EBREAK would satisfy every structural self-check and only fail deep
-    // inside the sweep -- historically as undefined behaviour, and now as a
-    // process-aborting panic that reports no case name.
+    // `Case.op` is data. Nothing in the corpus format says it has to be an
+    // opcode the proof system can represent, and a case naming ECALL or EBREAK
+    // would satisfy every structural self-check in this file.
     //
-    // Checking it here converts that into a named failure before any guest is
-    // built, and keeps the total map's remaining test-side call sites honest.
+    // The sweep's family lookups are all fallible now (`proofOpcodeFamily`;
+    // the total map takes a `trace.ProofOpcode` and so is unreachable from raw
+    // corpus data), so such a case can no longer be undefined behaviour. It
+    // would still surface as a bare `error.UnsupportedForProof` from somewhere
+    // deep inside a guest build, naming no case. Checking the whole corpus up
+    // front costs microseconds and names the offender instead.
     for (operand_classes.all) |case| {
         _ = trace_mod.proofOpcodeFamily(case.op) catch |err| {
             std.debug.print(
                 "{s}: case opcode {s} has no proof family ({s}), so the sweep's " ++
-                    "total-map family lookups have no defined answer for it\n",
+                    "family lookups have no answer for it\n",
                 .{ case.name, @tagName(case.op), @errorName(err) },
             );
             return error.CorpusCaseNotProofAdmitted;
@@ -262,7 +262,7 @@ test "operand class sweep: runner and AIR agree with Sail on every enumerated cl
             std.debug.print("FAILED {s}: {s}\n", .{ case.name, @errorName(err) });
             failures += 1;
         };
-        family_counts[@intFromEnum(trace_mod.opcodeFamily(case.op))] += 1;
+        family_counts[@intFromEnum(try trace_mod.proofOpcodeFamily(case.op))] += 1;
     }
     const elapsed_ms = timer.read() / std.time.ns_per_ms;
     std.debug.print(

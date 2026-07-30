@@ -1,7 +1,7 @@
 //! Diagnostic validation and restoration of Cairo transcript bootstrap fixtures.
 
 const std = @import("std");
-const arena_plan = @import("../../arena_plan.zig");
+const arena_plan = @import("stwo_metal_backend").arena_plan;
 
 const Error = error{
     DuplicateBinding,

@@ -113,6 +113,90 @@ SECURE_PCS_CONFIG = {
     "lifting_log_size": None,
 }
 
+# The Zig side of the same constant. Python cannot import it, so the mechanism is
+# a parse plus a refusal: `validate_manifest` will not authenticate a workload
+# while the two disagree. Before this existed, the benchmark CLI's `--production`
+# profile was pow_bits=24 and this dict was pow_bits=26, and numbers were
+# published from the wrong one (issue #152 item 7).
+PROVER_SOURCE = ROOT / "src" / "frontends" / "riscv" / "prover.zig"
+_ZIG_SECURE_PCS_BLOCK = re.compile(
+    r"pub const SECURE_PCS_CONFIG:[^=]*=\s*\.\{(?P<body>.*?)\n\};",
+    re.DOTALL,
+)
+_ZIG_FRI_BLOCK = re.compile(r"\.fri_config\s*=\s*\.\{(?P<body>.*?)\n\s*\},", re.DOTALL)
+_ZIG_FIELD = re.compile(r"^\s*\.(?P<name>[a-z_][a-z0-9_]*)\s*=\s*(?P<value>[^,]+),\s*$")
+
+
+def _zig_scalar(name: str, raw: str) -> int | None:
+    value = raw.strip()
+    if value == "null":
+        return None
+    if not re.fullmatch(r"[0-9](?:[0-9_]*[0-9])?", value):
+        raise BenchmarkError(f"secure PCS field {name} is not a Zig integer: {raw!r}")
+    return int(value.replace("_", ""))
+
+
+def _zig_fields(body: str, label: str, expected: set[str]) -> dict[str, int | None]:
+    fields: dict[str, int | None] = {}
+    for line in body.splitlines():
+        if not line.strip() or line.lstrip().startswith("//"):
+            continue
+        match = _ZIG_FIELD.match(line)
+        if match is None:
+            raise BenchmarkError(f"{label} is not one `.field = value,` per line: {line!r}")
+        name = match.group("name")
+        if name in fields:
+            raise BenchmarkError(f"{label} repeats field {name!r}")
+        fields[name] = _zig_scalar(name, match.group("value"))
+    _exact_fields(fields, expected, label)
+    return fields
+
+
+def secure_pcs_config_from_zig(path: Path | None = None) -> dict[str, Any]:
+    """Return ``prover.SECURE_PCS_CONFIG`` as the report-shaped dictionary."""
+    source_path = PROVER_SOURCE if path is None else path
+    try:
+        text = source_path.read_text(encoding="utf-8")
+    except OSError as error:
+        raise BenchmarkError(
+            f"cannot read the Zig secure PCS profile: {source_path}"
+        ) from error
+    block = _ZIG_SECURE_PCS_BLOCK.search(text)
+    if block is None:
+        raise BenchmarkError(
+            f"{source_path} declares no `pub const SECURE_PCS_CONFIG` literal"
+        )
+    body = block.group("body")
+    fri = _ZIG_FRI_BLOCK.search(body)
+    if fri is None:
+        raise BenchmarkError(f"{source_path}: secure PCS profile has no fri_config")
+    outer = _zig_fields(
+        _ZIG_FRI_BLOCK.sub("", body),
+        f"{source_path} secure PCS profile",
+        {"pow_bits", "lifting_log_size"},
+    )
+    inner = _zig_fields(
+        fri.group("body"),
+        f"{source_path} secure PCS fri_config",
+        set(SECURE_PCS_CONFIG["fri_config"]),
+    )
+    return {
+        "pow_bits": outer["pow_bits"],
+        "fri_config": inner,
+        "lifting_log_size": outer["lifting_log_size"],
+    }
+
+
+def assert_secure_pcs_config_agrees(path: Path | None = None) -> None:
+    """Fail closed while the Python and Zig secure profiles differ."""
+    zig_config = secure_pcs_config_from_zig(path)
+    if zig_config != SECURE_PCS_CONFIG:
+        raise BenchmarkError(
+            "secure PCS profile drifted between "
+            f"{PROVER_SOURCE if path is None else path} ({zig_config}) and "
+            f"contract.SECURE_PCS_CONFIG ({SECURE_PCS_CONFIG})"
+        )
+
 
 class BenchmarkError(RuntimeError):
     """The suite cannot produce trustworthy benchmark evidence."""
@@ -516,6 +600,10 @@ def _validate_negative_cases(
 def validate_manifest(
     path: Path = MANIFEST,
 ) -> tuple[dict[str, Any], list[Case], list[NegativeCase]]:
+    # A workload contract is only authenticated against a security profile the
+    # implementation actually offers. Checked here rather than at import time so
+    # the failure names the run it invalidates.
+    assert_secure_pcs_config_agrees()
     manifest = load_json(path)
     if not isinstance(manifest, dict):
         raise BenchmarkError("CSP manifest root is not an object")

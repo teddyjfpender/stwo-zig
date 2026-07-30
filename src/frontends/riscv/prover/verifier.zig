@@ -15,6 +15,11 @@ const prover_engine = @import("stwo_prover_engine").engine;
 const component_order = @import("../air/component_order.zig");
 const clock_update_component = @import("../air/clock_update_component.zig");
 const clock_update_interaction = @import("../air/clock_update_interaction.zig");
+const diagnostic_hints = @import("../air/diagnostic_hints.zig");
+
+/// Owner-exported source used by the root regression test to pin diagnostic
+/// reporting without reaching across the frontend package boundary.
+pub const diagnostic_wiring_source = @embedFile("verifier.zig");
 const opcode_component = @import("../air/lookups/opcode_component.zig");
 const opcode_interaction = @import("../air/lookups/opcode_interaction.zig");
 const lookup_table_component = @import("../air/lookups/tables/component.zig");
@@ -167,10 +172,21 @@ pub fn verifyRiscVWithEngineUsingChannel(
 
     try workspace.canonicalize(claim, &statement);
     const canonical_view = workspace.canonical.view();
-    try logup.verifyGlobalCancellation(
-        &.{canonical_view.total()},
-        try public_logup.sum(&statement.public_data, &relations),
-    );
+    const component_total = canonical_view.total();
+    const public_boundary = try public_logup.sum(&statement.public_data, &relations);
+    logup.verifyGlobalCancellation(&.{component_total}, public_boundary) catch |err| {
+        // `LogupSumNonZero` names the symptom and stops. Which relation is
+        // unbalanced is not derivable here -- a component's claimed sum is a
+        // single field element over every relation that component touches --
+        // but it *is* derivable by `riscv-trace-dump --relation-sums`, which
+        // ships next to this binary. Say so at the point of failure rather than
+        // leaving the reader to rediscover the tooling.
+        diagnostic_hints.reportLogupImbalance(
+            component_total.add(public_boundary),
+            statement.public_data.declaresPublicIo(),
+        );
+        return err;
+    };
 
     var main_offset: usize = 0;
     var interaction_offset: usize = 0;

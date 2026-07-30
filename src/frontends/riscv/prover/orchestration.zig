@@ -41,8 +41,8 @@
 //!
 //! ## Usage
 //! ```zig
-//! const result = try proveRiscVWithEngine(
-//!     Engine, allocator, config, &exec_trace, &state_chain, &rw_memory, null,
+//! const result = try proveRiscVWithEngineAndPublicData(
+//!     Engine, allocator, config, &exec_trace, &state_chain, &rw_memory, null, public_data,
 //! );
 //! try verifyRiscVWithEngine(Engine, allocator, config, result.statement, result.proof, result.interaction_claim);
 //! ```

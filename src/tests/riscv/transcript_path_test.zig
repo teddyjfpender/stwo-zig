@@ -318,7 +318,7 @@ test "riscv transcript: production prover and verifier are byte-symmetric end to
     var prover_trace = try TranscriptRecorder.init(allocator);
     defer prover_trace.deinit();
     var prover_channel = TraceChannel{ .recorder = &prover_trace };
-    var output = try prover.proveRiscVWithEngineUsingChannel(
+    var output = try prover.proveRiscVTraceOnlyNoPublicIoUsingChannel(
         TraceEngine,
         allocator,
         TEST_PCS_CONFIG,

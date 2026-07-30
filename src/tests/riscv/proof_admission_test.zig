@@ -103,7 +103,7 @@ test "transaction engine is the proving substitution point" {
     var run = try runner.run(allocator, &elf, 1000);
     defer run.deinit();
 
-    var output = try prover.proveRiscVWithEngine(
+    var output = try prover.proveRiscVTraceOnlyNoPublicIo(
         CountingEngine,
         allocator,
         TEST_CONFIG,
@@ -156,7 +156,7 @@ test "MULH family reaches the selected proving engine" {
         .inst_word = 0x0220_b1b3,
     });
 
-    var output = try prover.proveRiscVWithEngine(
+    var output = try prover.proveRiscVTraceOnlyNoPublicIo(
         CountingEngine,
         allocator,
         TEST_CONFIG,

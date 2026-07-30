@@ -31,8 +31,26 @@ pub const ProveBlockResult = struct {
 /// 1. Loads the guest ELF.
 /// 2. Sets up the host runtime with block input as a hint.
 /// 3. Executes the guest with syscall dispatch.
-/// 4. STARK proves the execution trace.
-/// 5. Returns the proof, journal, and metadata.
+/// 4. Refuses any run the prover cannot bind, through the shared
+///    `prover_mod.admitRunForProving` gate.
+/// 5. STARK proves the execution trace.
+/// 6. Returns the proof, journal, and metadata.
+///
+/// ## Provable hosted runs are narrower than hosted runs
+///
+/// This is the third caller that hands a real `RunResult` to the prover, and it
+/// is admitted by the same gate as the other two (see the call site below). Two
+/// consequences are worth stating at the entry point rather than leaving to be
+/// discovered from a downstream error:
+///
+///   - a guest that ends through the SP1-style `HALT` syscall completes as
+///     `.host_halt`, which `air/public_data.completionFromRun` cannot bind. Such
+///     a run is refused here with `UnprovableCompletion`; a provable guest must
+///     end on the canonical `jal x0, 0` sentinel or its declared halt flag.
+///   - every `ECALL` is an execution-only opcode, so a guest that uses *any*
+///     syscall is refused later by the entry point's own opcode filter with
+///     `UnsupportedForProof`. The hosted syscall surface is therefore available
+///     to execution, not to proving.
 pub fn proveEthereumBlockWithEngine(
     comptime Engine: type,
     allocator: std.mem.Allocator,
@@ -58,8 +76,23 @@ pub fn proveEthereumBlockWithEngine(
     );
     defer run_result.deinit();
 
+    // Fail closed through the *one* definition of "this run may be proved".
+    // `prover_mod.admitRunForProving` is the same function the production ELF
+    // adapter (`src/integrations/riscv_cpu/proof_adapter.zig`) and the benchmark
+    // runner (`src/tools/riscv/bench/runner.zig`) call; this path ran a real
+    // guest and handed the result straight on, so an unbindable run surfaced as
+    // an unrelated-looking failure deep inside the prover instead of here
+    // (issue #152 item 5).
+    //
+    // The completion verdict is the leg this call adds. Its public-I/O leg is
+    // evaluated against the run's own I/O, which is *weaker* than what this path
+    // publishes; `proveRiscVTraceOnlyNoPublicIo` below re-checks the same
+    // committed memory at `PublishedIo.none` strictness, so the strictest of the
+    // two still decides.
+    try prover_mod.admitRunForProving(&run_result);
+
     // Prove the execution.
-    const prove_output = try prover_mod.proveRiscVWithEngine(
+    const prove_output = try prover_mod.proveRiscVTraceOnlyNoPublicIo(
         Engine,
         allocator,
         pcs_config,

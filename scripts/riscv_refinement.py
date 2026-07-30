@@ -12,60 +12,51 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-if __package__:
-    from . import (
-        riscv_opcode_coverage,
-        riscv_refinement_receipt_build as receipt_build,
-        riscv_refinement_receipt_constants as receipt_constants,
-        riscv_refinement_receipt_identity as receipt_identity,
-        riscv_refinement_receipt_validate as receipt_validate,
-        riscv_team_a,
-        riscv_team_b,
-    )
-    from .riscv_refinement_lib import (
-        air_program,
-        air_program_contract,
-        audited_inventory,
-        codec,
-        negative,
-        render,
-        sail,
-    )
-    from .riscv_refinement_lib.model import (
-        FULL_OPCODE_COUNT,
-        PILOT_OPCODES,
-        SCHEMA_VERSION,
-        Paths,
-        RefinementError,
-        repository_root,
-    )
-    from .riscv_refinement_lib.process import _run
-else:
-    import riscv_opcode_coverage
-    import riscv_refinement_receipt_build as receipt_build
-    import riscv_refinement_receipt_constants as receipt_constants
-    import riscv_refinement_receipt_identity as receipt_identity
-    import riscv_refinement_receipt_validate as receipt_validate
-    import riscv_team_a
-    import riscv_team_b
-    from riscv_refinement_lib import (
-        air_program,
-        air_program_contract,
-        audited_inventory,
-        codec,
-        negative,
-        render,
-        sail,
-    )
-    from riscv_refinement_lib.model import (
-        FULL_OPCODE_COUNT,
-        PILOT_OPCODES,
-        SCHEMA_VERSION,
-        Paths,
-        RefinementError,
-        repository_root,
-    )
-    from riscv_refinement_lib.process import _run
+# The library is named exactly once, so it has exactly one module identity.
+#
+# This used to be a two-spelling fallback: ``scripts.riscv_refinement_lib`` first,
+# bare ``riscv_refinement_lib`` second, with a comment explaining that the order
+# mattered. It did, and relying on it was the defect. Direct execution
+# (``python3 scripts/riscv_refinement.py``) puts ``scripts/`` on ``sys.path``
+# instead of the repository root, so the qualified import failed and the fallback
+# imported the same files again under a second name -- giving ``RefinementError``
+# two distinct classes. A test that catches one cannot catch the other, and
+# ``except RefinementError`` in this module would not catch what the library
+# raised: the failure is silent in the fail-open direction, since an
+# ``assertRaises`` that can never see its exception simply reports the *other*
+# escape path as untested rather than reporting anything at all.
+#
+# Repairing ``sys.path`` and importing the one spelling removes the second name
+# from the file, so no import order can reintroduce the second identity.
+if __package__ in (None, ""):  # direct execution; the repository root is absent
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from scripts import (
+    riscv_opcode_coverage,
+    riscv_refinement_receipt_build as receipt_build,
+    riscv_refinement_receipt_constants as receipt_constants,
+    riscv_refinement_receipt_identity as receipt_identity,
+    riscv_refinement_receipt_validate as receipt_validate,
+    riscv_team_a,
+    riscv_team_b,
+)
+from scripts.riscv_refinement_lib import (
+    air_program,
+    air_program_contract,
+    audited_inventory,
+    codec,
+    negative,
+    render,
+    sail,
+)
+from scripts.riscv_refinement_lib.model import (
+    FULL_OPCODE_COUNT,
+    PILOT_OPCODES,
+    SCHEMA_VERSION,
+    Paths,
+    RefinementError,
+    repository_root,
+)
+from scripts.riscv_refinement_lib.process import _run
 
 AUDITED_THEOREMS = audited_inventory.AUDITED_THEOREMS
 AUDITED_THEOREMS_BLOCK = audited_inventory.AUDITED_THEOREMS_BLOCK
@@ -337,6 +328,90 @@ def negative_controls(paths: Paths) -> None:
 
 
 
+def _blank_span(rendered: list[str], text: str, start: int, end: int) -> int:
+    """Overwrite ``text[start:end]`` with spaces, preserving every whitespace char."""
+    for position in range(start, end):
+        if not text[position].isspace():
+            rendered[position] = " "
+    return end
+
+
+def _skip_lean_string(text: str, start: int) -> int:
+    """Return the index after the Lean string literal opened at ``start``.
+
+    The caller skips a literal without blanking it, so nothing inside a literal is
+    ever hidden from the scan. What skipping buys is that a ``--`` or ``/-`` inside
+    a literal opens no comment. Both branches below exist because of what happens
+    when the skip ends in the wrong place, and they fail in opposite directions.
+
+    ``\\`` escapes the next character, which also carries a Lean string gap over a
+    newline. Without it a ``\\"`` would end the literal early and drop the scanner
+    back into code mode *inside the literal's own text*, where a ``/-`` opens a
+    block comment that blanks real code up to the next ``-/`` -- so a forbidden
+    term after the literal is hidden and the scan reports a clean sweep. That is
+    the fail-open direction, and the only one this function has.
+
+    An unterminated literal recovers at the newline, which bounds a stray quote to
+    its own line and keeps comment stripping working on the lines after it.
+    Without that the skip would run to the next quote anywhere in the file, or to
+    end of file, leaving every ``--`` and ``/- -/`` in between unblanked; prose
+    naming a forbidden term would then be read as code. That direction fails
+    closed -- a false breach report, not a missed one.
+    """
+    index = start + 1
+    while index < len(text):
+        char = text[index]
+        if char == "\\":
+            index += 2
+        elif char == '"':
+            return index + 1
+        elif char == "\n":
+            return index
+        else:
+            index += 1
+    return len(text)
+
+
+def _strip_lean_comments(text: str) -> str:
+    """Return ``text`` with Lean ``--`` and nesting ``/- -/`` comments blanked.
+
+    Splitting on ``--`` alone is wrong in both directions. It leaves ``/-! -/``
+    block comments intact, so prose naming a forbidden term fails the scan, and
+    it truncates at a ``--`` inside a string literal, so real code after
+    ``"a--b"`` is never scanned at all. Comment characters become spaces rather
+    than disappearing, so line numbers and columns still address the source.
+
+    An unterminated block comment would blank the rest of the file, which is the
+    one way this function could hide a forbidden term, so it fails closed instead.
+    """
+    rendered = list(text)
+    index = 0
+    depth = 0
+    while index < len(text):
+        if depth:
+            if text.startswith("/-", index):
+                depth += 1
+                index = _blank_span(rendered, text, index, index + 2)
+            elif text.startswith("-/", index):
+                depth -= 1
+                index = _blank_span(rendered, text, index, index + 2)
+            else:
+                index = _blank_span(rendered, text, index, index + 1)
+        elif text[index] == '"':
+            index = _skip_lean_string(text, index)
+        elif text.startswith("/-", index):
+            depth = 1
+            index = _blank_span(rendered, text, index, index + 2)
+        elif text.startswith("--", index):
+            end = text.find("\n", index)
+            index = _blank_span(rendered, text, index, len(text) if end < 0 else end)
+        else:
+            index += 1
+    if depth:
+        raise RefinementError("unterminated Lean block comment")
+    return "".join(rendered)
+
+
 def _scan_forbidden_proof_terms(paths: Paths) -> None:
     forbidden = re.compile(r"\b(sorry|admit|axiom|unsafe|native_decide)\b")
     errors: list[str] = []
@@ -345,10 +420,14 @@ def _scan_forbidden_proof_terms(paths: Paths) -> None:
         *sorted((paths.formal / "RiscvRefinement").rglob("*.lean")),
     ]
     for source in sources:
-        for number, line in enumerate(source.read_text(encoding="utf-8").splitlines(), 1):
-            code = line.split("--", 1)[0]
-            if forbidden.search(code):
-                errors.append(f"{source.relative_to(paths.root)}:{number}")
+        relative = source.relative_to(paths.root)
+        try:
+            code = _strip_lean_comments(source.read_text(encoding="utf-8"))
+        except RefinementError as error:
+            raise RefinementError(f"{relative}: {error}") from error
+        for number, line in enumerate(code.splitlines(), 1):
+            if forbidden.search(line):
+                errors.append(f"{relative}:{number}")
     if errors:
         raise RefinementError(
             "forbidden proof escape appears at " + ", ".join(errors)

@@ -614,22 +614,70 @@ class RunnerGroupTest(unittest.TestCase):
         manifest = self._riscv_manifest()
         workload = manifest.workloads("wide", board="riscv")[0]
 
-        def legacy(artifact):
-            artifact["schema_version"] = 3
-            artifact["exchange_mode"] = "riscv_proof_json_wire_v3"
+        def legacy_v3(artifact):
+            artifact.update({
+                "schema_version": 3,
+                "exchange_mode": "riscv_proof_json_wire_v3",
+                "air": "stark_v_rv32im",
+            })
+            artifact["provenance"].update({
+                "oracle_repository": "https://github.com/ClementWalter/stark-v",
+                "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+            })
 
+        _commands, fake_run = self._riscv_run(
+            "release_gated", False, mutate_artifact=legacy_v3,
+        )
+        with mock.patch.object(runner, "_run", side_effect=fake_run), \
+                self.assertRaisesRegex(runner.RunError, "schema_version.*equal 4"):
+            runner.bench_once(
+                self.root, manifest, workload, 0, 1, self.out_dir, "legacy-v3",
+            )
+
+    def test_riscv_bench_rejects_non_sail_artifact_authority(self):
+        self._set_riscv_phase(promoted=True)
+        manifest = self._riscv_manifest()
+        workload = manifest.workloads("wide", board="riscv")[0]
+        mutations = {
+            "repository": lambda artifact: artifact["provenance"].update(
+                oracle_repository="https://github.com/ClementWalter/stark-v"
+            ),
+            "commit": lambda artifact: artifact["provenance"].update(
+                oracle_commit="d478f783055aa0d73a93768a433a3c6c31c91d1c"
+            ),
+        }
+        for name, mutate in mutations.items():
+            _commands, fake_run = self._riscv_run(
+                "release_gated", False, mutate_artifact=mutate,
+            )
+            with self.subTest(name=name), \
+                    mock.patch.object(runner, "_run", side_effect=fake_run), \
+                    self.assertRaisesRegex(
+                        runner.RunError, "provenance does not bind the report",
+                    ):
+                runner.bench_once(
+                    self.root, manifest, workload, 0, 1, self.out_dir,
+                    f"non-sail-{name}",
+                )
+
+    def test_riscv_bench_rejects_malformed_artifact_provenance(self):
+        self._set_riscv_phase(promoted=True)
+        manifest = self._riscv_manifest()
+        workload = manifest.workloads("wide", board="riscv")[0]
         _commands, fake_run = self._riscv_run(
             "release_gated",
             False,
-            mutate_artifact=legacy,
+            mutate_artifact=lambda artifact: artifact["provenance"].pop(
+                "witness_layout_sha256"
+            ),
         )
         with mock.patch.object(runner, "_run", side_effect=fake_run), \
                 self.assertRaisesRegex(
-                    runner.RunError,
-                    "retained artifact schema_version must equal 4",
+                    runner.RunError, "provenance is not canonical",
                 ):
             runner.bench_once(
-                self.root, manifest, workload, 0, 1, self.out_dir, "a1",
+                self.root, manifest, workload, 0, 1, self.out_dir,
+                "malformed-provenance",
             )
 
     def test_riscv_proof_digest_ignores_commit_bearing_artifact_fields(self):

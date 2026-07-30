@@ -27,7 +27,7 @@ pub const HostRuntime = host.HostRuntime;
 pub const runWithHost = runner.runWithHost;
 pub const runWithInput = runner.runWithInput;
 pub const RiscVClaim = air.claims.RiscVClaim;
-pub const proveRiscVWithEngine = prover_mod.proveRiscVWithEngine;
+pub const proveRiscVTraceOnlyNoPublicIo = prover_mod.proveRiscVTraceOnlyNoPublicIo;
 pub const proveRiscVWithEngineAndPublicData = prover_mod.proveRiscVWithEngineAndPublicData;
 pub const verifyRiscVWithEngine = prover_mod.verifyRiscVWithEngine;
 pub const proveAndVerifyElfWithEngine = prover_mod.proveAndVerifyElfWithEngine;
@@ -39,15 +39,25 @@ test "api signature: RISC-V facade preserves runner and prover entry points" {
             .@"fn" => {},
             else => @compileError("runWithInput must remain a function"),
         }
-        switch (@typeInfo(@TypeOf(proveRiscVWithEngine))) {
+        switch (@typeInfo(@TypeOf(proveRiscVWithEngineAndPublicData))) {
             .@"fn" => {},
-            else => @compileError("proveRiscVWithEngine must remain a function"),
+            else => @compileError("proveRiscVWithEngineAndPublicData must remain a function"),
+        }
+        switch (@typeInfo(@TypeOf(proveRiscVTraceOnlyNoPublicIo))) {
+            .@"fn" => {},
+            else => @compileError("proveRiscVTraceOnlyNoPublicIo must remain a function"),
         }
     }
 }
 
 test {
     @import("std").testing.refAllDeclsRecursive(infra_trace);
+    // Every test-bearing file in this package, named once. Without it the
+    // compiler analyses only the files something happens to reference from a
+    // test body, which silently left 142 of this package's named tests out of
+    // every binary. See `test_inventory.zig` for the collection rule.
+    _ = @import("test_inventory.zig");
+    _ = @import("test_inventory_test.zig");
     _ = @import("opcode_coverage_test.zig");
     _ = @import("air/extract/mod.zig");
     _ = @import("air/semantic_eval.zig");

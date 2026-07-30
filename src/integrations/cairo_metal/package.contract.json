@@ -35,6 +35,7 @@
     "resident_lookup",
     "runtime_decommit_geometry",
     "schedule_bindings",
+    "transcript_fixture",
     "witness_aot",
     "witness_codegen"
   ],

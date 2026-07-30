@@ -103,11 +103,46 @@ resolves to something in the tree.
 | Fresh attestation does not re-derive the committed evidence | `run` evidence-drift comparison (only the two build-nondeterministic binary hashes are volatile; identity is source revision + `--build-info`) |
 | Toolchain absent or unbuildable | `run` exits 3, printing the exact program/retirement inventory that was **not** checked — never a skip, never green |
 | Sail compiler release URL/digest stale after a compiler-version bump | the hash-pinned download plus `resolve_sail_compiler`'s version check |
+| Pinned toolchain not functional on the runner — no `z3`, no `dtc`, or a `sail` that will not execute at the pinned version — **on a cache hit as well as a cache miss** | `preflight` exits 3 naming the absent dependency, before the expensive gate; it writes no `toolchain_health` receipt, and the verdict job reads an unwritten receipt as red |
+| A live-selected job reporting success with its gate steps skipped, edited away, or never reached | the verdict job requires the `toolchain_health`, `differential_ran`, and `sail_leg` receipts, each written only by the step that did the work; an unselected run has the opposite shape (no job, no receipts) |
+| A workspace this run never proved usable being published into the toolchain cache | the save step's `toolchain_state` condition: `verified` or `rebuilt` only. `unavailable`, or an absent receipt because the preflight went red, skips the save |
 
 The scheduled daily run exists for provisioning rot, not semantics: pins
 cannot drift by themselves, but caches evict, upstream release assets and
 package mirrors decay, and the cold path should be found broken by a
 schedule, not by the first PR that needs it.
+
+### Cache hit, cache miss, dependency failure
+
+The cache is a speed input, never an evidence input, and the three paths are
+enumerated here because that property is the one a warm cache erodes.
+
+- **Cache miss.** The workspace is cold. `preflight` proves `z3`, the pinned
+  `sail`, and `dtc` run on this host, and reports `cache_state=cold`; `run
+  --prepare-on-miss` builds the workspace from pins, records
+  `toolchain_state=rebuilt`, and the differential runs. The save publishes
+  the freshly built workspace.
+- **Cache hit.** The restored workspace supplies built Sail/Spike binaries and
+  nothing else; the host is still unproven. `preflight` therefore runs anyway
+  — this is the whole point of the step — and establishes the same three
+  dependencies on this runner. It reports `cache_state=warm`, or `corrupt` if
+  the restored workspace does not verify, which is loud but not fatal: `run
+  --prepare-on-miss` rebuilds it from pins and the differential still runs.
+  Nothing about a cache hit can shorten the path to green. A corrupt entry
+  cannot be overwritten under its own key — cache entries are immutable — so
+  that rebuild repeats every run until the `-v2-` epoch is bumped: the gate
+  stays correct and stops being fast, which is the safe direction and is why
+  a workspace is only published once this run proved it usable.
+- **Dependency failure.** A provisioning fault — an evicted `z3` mirror, a
+  moved Sail release asset, a runner image without `dtc` — is red at
+  `preflight` with the dependency named, on both paths. It used to surface
+  minutes later as later steps that "did not run", which in a summary line is
+  indistinguishable from a gate that was legitimately out of scope. Because
+  no `toolchain_health` receipt is written, the verdict job fails the
+  required check rather than inheriting a job-level success, and because no
+  `toolchain_state` receipt is written either, the failed run does not
+  publish its workspace into the immutable cache entry that every later run
+  would then restore.
 
 ## What this gate does and does not establish
 

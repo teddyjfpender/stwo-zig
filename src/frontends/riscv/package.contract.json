@@ -29,7 +29,7 @@
     "opcode_manifest",
     "owned_statement",
     "proveAndVerifyElfWithEngine",
-    "proveRiscVWithEngine",
+    "proveRiscVTraceOnlyNoPublicIo",
     "proveRiscVWithEngineAndPublicData",
     "prover_mod",
     "runWithHost",

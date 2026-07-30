@@ -1,4 +1,11 @@
-"""Host evidence and CSP publication-host classification."""
+"""Host evidence, host-architecture truth, and publication-host classification.
+
+Every fact here describes the machine a measurement was taken on.  Two of them
+are shared with the Stark-V comparison harness rather than reimplemented there
+(``power_evidence`` and ``power_conditions_admissible``): a throttling check
+that exists on one benchmark path and not on its sibling is the defect this
+module exists to remove, not a defect to reproduce.
+"""
 
 from __future__ import annotations
 
@@ -6,10 +13,11 @@ import json
 import os
 import platform
 import subprocess
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 
-def _sysctl(name: str) -> str | None:
+def sysctl_value(name: str) -> str | None:
+    """Return a ``sysctl`` reading, or ``None`` when the host does not answer."""
     try:
         value = subprocess.run(
             ["sysctl", "-n", name],
@@ -23,6 +31,79 @@ def _sysctl(name: str) -> str | None:
     if value.returncode == 0 and value.stdout.strip():
         return value.stdout.strip()
     return None
+
+
+def host_architecture(
+    *,
+    system: str | None = None,
+    machine: str | None = None,
+    sysctl: Callable[[str], str | None] | None = None,
+) -> str | None:
+    """Return the *hardware* architecture in ``platform.machine()`` vocabulary.
+
+    ``platform.machine()`` answers for the running interpreter, not for the
+    host.  A translated x86_64 ``python3`` on an Apple Silicon Mac reports
+    ``x86_64``, so an x86_64 prover running under Rosetta 2 looks native to
+    anything that trusts it, and the translated -- slow -- timings are
+    published as clean host numbers.  macOS answers for the hardware instead:
+    ``sysctl.proc_translated`` marks this process as translated, and Rosetta 2
+    exists only on Apple Silicon, while ``hw.optional.arm64`` marks the
+    hardware directly.  Returns ``None`` when neither answers, because a host
+    that cannot be established must be refused rather than assumed native.
+    Non-Darwin hosts have no per-process translation layer in the configuration
+    this suite supports, so the kernel's own answer is the host's.
+    """
+    system = platform.system() if system is None else system
+    machine = platform.machine() if machine is None else machine
+    probe = sysctl_value if sysctl is None else sysctl
+    if system != "Darwin":
+        return machine or None
+    translated = probe("sysctl.proc_translated")
+    if translated == "1" or probe("hw.optional.arm64") == "1":
+        return "arm64"
+    if translated == "0":
+        return machine or None
+    return None
+
+
+def _pmset(*arguments: str) -> list[str]:
+    """Return ``pmset`` output lines, empty when the tool is unavailable."""
+    try:
+        completed = subprocess.run(
+            ["pmset", *arguments],
+            capture_output=True,
+            check=False,
+            timeout=5,
+            text=True,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return []
+    if completed.returncode != 0:
+        return []
+    return completed.stdout.splitlines()
+
+
+def power_evidence() -> tuple[str | None, bool | None]:
+    """Capture power source and low-power state, fail-soft to ``None``.
+
+    Battery power throttles sustained multi-core CPU work on Apple Silicon
+    while leaving the GPU largely unaffected, so it inflates every CPU-vs-GPU
+    ratio.  Per-sample variance stays small under throttling, so a stable
+    looking run is not evidence of a valid one and this must be recorded.
+    Hosts without ``pmset`` degrade to unknown rather than failing.
+    """
+    source: str | None = None
+    for line in _pmset("-g", "batt"):
+        if line.startswith("Now drawing from '") and line.endswith("'"):
+            source = line.split("'")[1] or None
+            break
+    low_power_mode: bool | None = None
+    for line in _pmset("-g"):
+        fields = line.split()
+        if len(fields) == 2 and fields[0] == "powermode" and fields[1].isdigit():
+            low_power_mode = int(fields[1]) == 1
+            break
+    return source, low_power_mode
 
 
 def _gpu_evidence() -> dict[str, Any]:
@@ -80,7 +161,7 @@ def _gpu_evidence() -> dict[str, Any]:
     metal_support = raw_metal if isinstance(raw_metal, str) and raw_metal else None
     unified_memory = (
         True
-        if platform.machine() == "arm64"
+        if host_architecture() == "arm64"
         and name is not None
         and name.startswith("Apple")
         else None
@@ -94,18 +175,24 @@ def _gpu_evidence() -> dict[str, Any]:
 
 
 def collect_host() -> dict[str, Any]:
-    cpu = _sysctl("machdep.cpu.brand_string") or platform.processor() or "unknown"
-    memory_raw = _sysctl("hw.memsize")
+    cpu = sysctl_value("machdep.cpu.brand_string") or platform.processor() or "unknown"
+    memory_raw = sysctl_value("hw.memsize")
     memory = int(memory_raw) if memory_raw and memory_raw.isdigit() else None
+    power_source, low_power_mode = power_evidence()
     return {
         "os": platform.system(),
         "os_version": platform.mac_ver()[0] or platform.release(),
         "kernel": platform.release(),
+        # Both are recorded because they disagree exactly when it matters: a
+        # translated interpreter reports its own architecture, not the host's.
         "architecture": platform.machine(),
+        "host_architecture": host_architecture(),
         "cpu": cpu,
         "logical_cpu_count": os.cpu_count(),
         "memory_bytes": memory,
         "gpu": _gpu_evidence(),
+        "power_source": power_source,
+        "low_power_mode": low_power_mode,
         "python": platform.python_version(),
     }
 
@@ -135,3 +222,63 @@ def official_host_match(
                 "CSP publication host requires Metal support evidence"
             )
     return not reasons, reasons
+
+
+def power_conditions_admissible(
+    host: Mapping[str, Any],
+) -> tuple[bool, list[str]]:
+    """Decide whether the run's power conditions can carry published timings.
+
+    Kept separate from ``official_host_match`` because this is a property of
+    the run, not of the hardware: the official host on battery and a foreign
+    host on AC are different defects and must not collapse into one reason
+    list.  Both feed the report's single ``result_class`` notion.
+    """
+    reasons: list[str] = []
+    source = host.get("power_source")
+    if source != "AC Power":
+        reasons.append(
+            "CSP-comparable timings require AC power (observed: "
+            f"{source or 'no power-source evidence'})"
+        )
+    low_power_mode = host.get("low_power_mode")
+    if low_power_mode is not False:
+        reasons.append(
+            "CSP-comparable timings require low power mode disabled "
+            f"(observed: {'enabled' if low_power_mode else 'no evidence'})"
+        )
+    return not reasons, reasons
+
+
+def power_evidence_block() -> dict[str, Any]:
+    """Return one report-ready power block: the evidence and its verdict.
+
+    Every benchmark harness that publishes timings embeds this block, so the
+    power question is answered identically wherever it is asked.  A sibling
+    harness that captured its own power state would drift silently from this
+    one, which is why callers embed the block rather than the fields.
+    """
+    source, low_power_mode = power_evidence()
+    observed = {"power_source": source, "low_power_mode": low_power_mode}
+    admissible, reasons = power_conditions_admissible(observed)
+    return {**observed, "admissible": admissible, "reasons": reasons}
+
+
+def classify_result(
+    *,
+    host_matches: bool,
+    power_admissible: bool,
+    complete_matrix: bool,
+    memory_available: bool,
+) -> str:
+    """Classify a run for publication against the CSP publication host.
+
+    Throttled runs get their own class ahead of the host comparison: a
+    battery-captured run is not merely host-qualified, it is not a valid
+    measurement of anything and must never be read as one.
+    """
+    if not power_admissible:
+        return "power-condition-non-publishable"
+    if host_matches and complete_matrix and memory_available:
+        return "official-host-comparable"
+    return "host-qualified-non-comparable"

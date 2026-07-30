@@ -106,7 +106,7 @@ pub fn addProduct(context: Context) void {
         "stwo-zig-riscv-cpu",
     );
     const install_host = context.b.addInstallArtifact(host, .{});
-    const host_trace = addTraceExecutable(context, context.target, context.optimize);
+    const host_trace = addTraceExecutable(context, context.target, context.optimize, "riscv-trace-dump");
     const install_host_trace = context.b.addInstallArtifact(host_trace, .{});
     const trace_step = context.b.step("riscv-trace-dump", "Build RISC-V trace dumper CLI");
     trace_step.dependOn(&install_host_trace.step);
@@ -130,9 +130,19 @@ pub fn addProduct(context: Context) void {
     );
     static.linkage = .static;
     const install_static = context.b.addInstallArtifact(static, .{});
-    const static_trace = addTraceExecutable(context, static_target, .ReleaseFast);
+    // Keep both dumpers installed while host tooling resolves the native name.
+    const static_trace = addTraceExecutable(context, static_target, .ReleaseFast, "riscv-trace-dump-x86_64-linux-musl");
     static_trace.linkage = .static;
     const install_static_trace = context.b.addInstallArtifact(static_trace, .{});
+    // Refuse cross-target names that would overwrite a host install artifact.
+    for ([_]*std.Build.Step.Compile{ static, static_trace }) |cross| {
+        for ([_]*std.Build.Step.Compile{ host, host_trace }) |native| {
+            if (std.mem.eql(u8, cross.name, native.name)) std.debug.panic(
+                "RISC-V CPU product installs cross-target {s} over the host binary",
+                .{cross.name},
+            );
+        }
+    }
     const static_step = context.b.step(
         "stwo-zig-riscv-cpu-static",
         "Build the static x86_64-linux-musl RISC-V CPU challenge executable",
@@ -140,8 +150,6 @@ pub fn addProduct(context: Context) void {
     static_step.dependOn(&install_static.step);
     static_step.dependOn(&install_static_trace.step);
 
-    const tests = addTests(context);
-    const integration_tests = addIntegrationTests(context);
     const core_prover_tests = addCoreProverTests(context);
     const exhaustive_tests = addExhaustiveTests(context);
     const air_satisfaction_exports = addAirSatisfactionExportTests(context);
@@ -150,8 +158,7 @@ pub fn addProduct(context: Context) void {
         "test-riscv-cpu-product",
         "Test the focused RISC-V CPU product shell and capability surface",
     );
-    test_step.dependOn(&context.b.addRunArtifact(tests).step);
-    test_step.dependOn(test_filter.addRun(context.b, integration_tests));
+    test_step.dependOn(test_filter.addSuites(context.b, addTests(context)));
     test_step.dependOn(sail_oracle_tests.add(
         context.b,
         moduleProduct(.@"test"),
@@ -224,6 +231,7 @@ fn addTraceExecutable(
     context: Context,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
+    name: []const u8,
 ) *std.Build.Step.Compile {
     const b = context.b;
     const protocol = if (target.result.cpu.arch == context.target.result.cpu.arch and
@@ -248,7 +256,7 @@ fn addTraceExecutable(
         root,
     );
     root.addOptions("build_identity", graph_identity.buildOptions(b, context.identity));
-    return b.addExecutable(.{ .name = "riscv-trace-dump", .root_module = root });
+    return b.addExecutable(.{ .name = name, .root_module = root });
 }
 fn addExecutable(
     context: Context,
@@ -286,7 +294,10 @@ fn addExecutable(
     );
     return b.addExecutable(.{ .name = name, .root_module = root });
 }
-fn addTests(context: Context) *std.Build.Step.Compile {
+/// Every test body `test-riscv-cpu-product` runs, under one filter. Three of
+/// these suites were previously only linked, which compiles but runs no tests.
+/// One guard lets `-Driscv-test-filter` match any suite in the product step.
+fn addTests(context: Context) []const test_filter.Suite {
     const b = context.b;
     const stwo = createStwoModule(b, context.protocol, context.target, context.optimize);
     const capabilities = createCapabilitiesModule(context, context.target, context.optimize);
@@ -332,7 +343,12 @@ fn addTests(context: Context) *std.Build.Step.Compile {
             context.optimize,
         ),
     );
-    return b.addTest(.{ .root_module = root });
+    const suites = b.allocator.alloc(test_filter.Suite, 4) catch @panic("out of memory");
+    suites[0] = .{ .tests = b.addTest(.{ .root_module = root }) };
+    suites[1] = .{ .tests = addTestRoot(context, .{}) };
+    suites[2] = hostBinding(context).frontendSuite(context.protocol);
+    suites[3] = hostBinding(context).moduleSuite(adapter, shared_shell.adapter_test_floor);
+    return suites;
 }
 /// Which suites a `src/tests.zig` binary compiles in, and which of its tests it
 /// runs. Named rather than positional: four booleans at a call site say nothing
@@ -347,10 +363,6 @@ const TestRoot = struct {
     rigidity_exhaustive: bool = false,
     filters: []const []const u8 = &.{},
 };
-fn addIntegrationTests(context: Context) *std.Build.Step.Compile {
-    return addTestRoot(context, .{});
-}
-
 fn addCoreProverTests(context: Context) *std.Build.Step.Compile {
     return addTestRoot(context, .{ .exhaustive = true });
 }
@@ -361,7 +373,6 @@ fn addExhaustiveTests(context: Context) *std.Build.Step.Compile {
         .rigidity_exhaustive = true,
     });
 }
-
 fn addRigidityTests(context: Context) *std.Build.Step.Compile {
     return addTestRoot(context, .{
         .exhaustive = true,
@@ -413,7 +424,6 @@ fn addTestRoot(context: Context, options: TestRoot) *std.Build.Step.Compile {
     root.addOptions("test_options", test_options);
     return b.addTest(.{ .root_module = root, .filters = test_filter.apply(b, options.filters) });
 }
-
 fn createStwoModule(
     b: *std.Build,
     protocol: graph.ProtocolModules,
@@ -445,7 +455,6 @@ fn createStwoModule(
     );
     return module;
 }
-
 fn moduleProduct(role: graph.Role) graph.Product {
     return shared_shell.roleProduct(product, role);
 }
@@ -465,7 +474,6 @@ fn binding(
         .optimize = optimize,
     };
 }
-
 /// The binding for the host target, which every module but the static
 /// challenge executable's is created against.
 fn hostBinding(context: Context) shared_shell.Binding {

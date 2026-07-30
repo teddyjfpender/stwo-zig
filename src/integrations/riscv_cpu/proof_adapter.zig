@@ -141,9 +141,13 @@ fn runProve(
     // must never become an empty-input bypass around this boundary.
     var run_result = try runner.runWithInput(allocator, elf_bytes, input_bytes, 10_000_000);
     defer run_result.deinit();
-    if (run_result.completion_reason != .halt_flag and
-        run_result.completion_reason != .self_loop)
-        return error.InvalidReleaseCompletion;
+    // Fail closed on any run the statement cannot bind, through the *one*
+    // definition of that rule (`prover.admitRunForProving`). The benchmark
+    // runner in `src/tools/riscv/bench/runner.zig` calls the same function: this
+    // path used to own a private copy of the completion test, the bench tool had
+    // none, and the two drifted until an ECALL-terminated trace reached the
+    // prover (issue #152 item 5).
+    try prover.admitRunForProving(&run_result);
     const execution_seconds = seconds(execution_timer.read());
 
     const config = stagedPcsConfig(options.protocol);
@@ -520,16 +524,13 @@ fn runBenchmark(
     return std.json.Stringify.valueAlloc(allocator, report, .{});
 }
 
+/// The staged protocol profiles. `.secure` is not restated here: it *is*
+/// `prover.SECURE_PCS_CONFIG`, the single cross-language source of truth that
+/// `scripts/riscv_csp_benchmark_lib/contract.py` mirrors and the benchmark
+/// runner's `--secure` flag resolves to (issue #152 item 7).
 fn stagedPcsConfig(protocol: Protocol) stwo.core.pcs.PcsConfig {
     return switch (protocol) {
-        .secure => .{
-            .pow_bits = 26,
-            .fri_config = .{
-                .log_blowup_factor = 1,
-                .log_last_layer_degree_bound = 0,
-                .n_queries = 70,
-            },
-        },
+        .secure => stwo.frontends.riscv.prover_mod.SECURE_PCS_CONFIG,
         .functional => .{
             .pow_bits = 10,
             .fri_config = .{
@@ -707,6 +708,37 @@ test "adapter PCS profiles satisfy their advertised artifact policies" {
         try std.testing.expectEqual(case.pow_bits, config.pow_bits);
         try std.testing.expectEqual(case.n_queries, config.fri_config.n_queries);
     }
+    // The secure profile is the shared constant itself, not a copy of its
+    // numbers: a second literal is how `--production` came to publish a
+    // different "secure" profile than the one upstream CSP does. This compares
+    // values, so it catches a copy that has *drifted*; that the arm is the
+    // constant rather than an equal-valued literal is pinned structurally in
+    // `proof_adapter/staged_pcs_profile_test.zig`.
+    try std.testing.expectEqual(
+        stwo.frontends.riscv.prover_mod.SECURE_PCS_CONFIG,
+        stagedPcsConfig(.secure),
+    );
+}
+
+test {
+    _ = @import("proof_adapter/staged_pcs_profile_test.zig");
+}
+
+test "adapter fail-closes through the shared run-admission gate" {
+    const prover = stwo.frontends.riscv.prover_mod;
+    // Every completion reason but the two proof-bearing ones must be refused,
+    // and the refusal must come from the gate this adapter calls rather than
+    // from a private copy. `runProve` invokes `admitRunForProving` directly, so
+    // a regression here is a regression in what the adapter enforces.
+    for (std.enums.values(stwo.frontends.riscv.runner.CompletionReason)) |reason| {
+        const provable = reason == .halt_flag or reason == .self_loop;
+        const rejection = prover.classifyCompletion(reason);
+        try std.testing.expectEqual(provable, rejection == null);
+        if (rejection) |value| try std.testing.expectEqual(
+            prover.RunAdmissionError.UnprovableCompletion,
+            value.toError(),
+        );
+    }
 }
 
 test "staged verifier binds build and witness-layout provenance" {
@@ -765,6 +797,10 @@ test "wire arena rolls back every partial allocation" {
                 .output_data_addr = 12,
                 .output_words = &output_words,
             },
+            // Required: without it `init` returns `InvalidCompletion` before the
+            // induced allocation failure, so the rollback property goes untested.
+            // Added when this test was first compiled by a build step.
+            .completion = .{ .kind = .halt_flag, .address = 8, .value = 1, .clock = 1 },
         },
         .n_infra = 1,
         .infra_descs = undefined,
