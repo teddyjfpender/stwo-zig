@@ -198,6 +198,19 @@ _NATIVE_RESOURCE_KEYS = {
 }
 
 
+# --- RISC-V (riscv_proof_v2) ----------------------------------------------
+#
+# The harness report schema and retained proof-artifact schema are separate
+# contracts. The current release-gated Sail artifact is v4; the report remains
+# `riscv_proof_v2`. Tests bind these constants back to the Zig publication
+# contract so a future artifact bump cannot leave hosted qualification parsing
+# an obsolete fixture again.
+RISCV_ARTIFACT_SCHEMA_VERSION = 4
+RISCV_ARTIFACT_EXCHANGE_MODE = "riscv_proof_json_wire_v4"
+RISCV_ARTIFACT_AIR = "sail_rv32im_zkvm_v1"
+RISCV_IMPLEMENTATION_REPOSITORY = "https://github.com/teddyjfpender/stwo-zig"
+
+
 # --- Cairo (cairo_proof_v1) ------------------------------------------------
 #
 # `cairo_proof_v1` is the harness envelope, not the product's own report
@@ -1173,11 +1186,11 @@ def _parse_riscv_report(
         )
     required = {
         "artifact_kind": "stwo_riscv_proof",
-        "schema_version": 3,
-        "exchange_mode": "riscv_proof_json_wire_v3",
+        "schema_version": RISCV_ARTIFACT_SCHEMA_VERSION,
+        "exchange_mode": RISCV_ARTIFACT_EXCHANGE_MODE,
         "release_status": expected_status,
         "generator": "zig",
-        "air": "stark_v_rv32im",
+        "air": RISCV_ARTIFACT_AIR,
         "backend": "cpu",
     }
     for field_name, expected in required.items():
@@ -1199,11 +1212,13 @@ def _parse_riscv_report(
     }
     if not isinstance(provenance, dict) or set(provenance) != provenance_fields:
         raise ValueError("retained artifact provenance is not canonical")
+    oracle_repository = group.correctness_oracle.get("repository")
+    oracle_commit = group.correctness_oracle.get("commit")
     if (
-        provenance.get("oracle_repository") != "https://github.com/ClementWalter/stark-v"
-        or provenance.get("oracle_commit") != "d478f783055aa0d73a93768a433a3c6c31c91d1c"
+        provenance.get("oracle_repository") != oracle_repository
+        or provenance.get("oracle_commit") != oracle_commit
         or provenance.get("implementation_repository")
-        != "https://github.com/teddyjfpender/stwo-zig"
+        != RISCV_IMPLEMENTATION_REPOSITORY
         or provenance.get("implementation_commit") != report["implementation_commit"]
         or provenance.get("implementation_dirty") is not report["implementation_dirty"]
     ):
