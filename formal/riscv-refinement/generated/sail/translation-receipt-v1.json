@@ -1,5 +1,5 @@
 {
-  "canonical_digest": "708ed95872d6b32a6b80806af94fd8e4210cdb280150453688a2f9315b2f22e2",
+  "canonical_digest": "008459d979422ef9e471897bfc0436e33b1fd7c7c5af77c2211be74a2280fa25",
   "claim": "binds each generated Sail definition text to its parsed AST and to the normalized observable effect of every instruction selector; it is evidence about the translation only, it is not a proof about the pinned Sail model, and it must be re-derived from the generated InstsEnd.lean on a host carrying the pinned Sail compiler before it counts as Sail evidence",
   "definitions": {
     "execute_ITYPE": {
@@ -13,7 +13,7 @@
         "selector-match-feeds-effect",
         "selector-match-is-total"
       ],
-      "ast_sha256": "1d44a5fef2e5a4cb65dc4f66da1f6b08d37b1f4fd9d043205b91e28e8fca7fe6",
+      "ast_sha256": "048f9d35651afaff301d78af5f6f7ccfb94ac9bf7d16d42af644411556c6e0e5",
       "binders": [
         {
           "names": [
@@ -130,6 +130,199 @@
       },
       "source_sha256": "1d014d14c56ab01dc511fc36c8c6ee4dea56a63708257b8a5df451e7c6f6b17d"
     },
+    "execute_RTYPE": {
+      "applied_rules": [
+        "collapse-single-statement-do",
+        "monadic-bind-is-observation",
+        "next-pc-sequential-unless-set",
+        "register-write-via-wX_bits",
+        "retirement-from-terminal-pure",
+        "selector-match-feeds-effect",
+        "selector-match-is-total"
+      ],
+      "ast_sha256": "f170c513e07496f203d74207e9b70c4f0587805feacdd49d9fdd17a1b5381d92",
+      "binders": [
+        {
+          "names": [
+            "rs2"
+          ],
+          "type": "regidx"
+        },
+        {
+          "names": [
+            "rs1"
+          ],
+          "type": "regidx"
+        },
+        {
+          "names": [
+            "rd"
+          ],
+          "type": "regidx"
+        },
+        {
+          "names": [
+            "op"
+          ],
+          "type": "rop"
+        }
+      ],
+      "result_type": "(SailM ExecutionResult)",
+      "selector_binder": "op",
+      "selectors": {
+        "ADD": {
+          "memory_read": null,
+          "memory_write": null,
+          "next_pc": "sequential-pc-plus-4",
+          "reads_program_counter": false,
+          "register_reads": [
+            "rs1",
+            "rs2"
+          ],
+          "register_write": {
+            "target": "rd",
+            "value": "((\u2190 (rX_bits rs1)) + (\u2190 (rX_bits rs2)))"
+          },
+          "retirement": "RETIRE_SUCCESS"
+        },
+        "AND": {
+          "memory_read": null,
+          "memory_write": null,
+          "next_pc": "sequential-pc-plus-4",
+          "reads_program_counter": false,
+          "register_reads": [
+            "rs1",
+            "rs2"
+          ],
+          "register_write": {
+            "target": "rd",
+            "value": "((\u2190 (rX_bits rs1)) &&& (\u2190 (rX_bits rs2)))"
+          },
+          "retirement": "RETIRE_SUCCESS"
+        },
+        "OR": {
+          "memory_read": null,
+          "memory_write": null,
+          "next_pc": "sequential-pc-plus-4",
+          "reads_program_counter": false,
+          "register_reads": [
+            "rs1",
+            "rs2"
+          ],
+          "register_write": {
+            "target": "rd",
+            "value": "((\u2190 (rX_bits rs1)) ||| (\u2190 (rX_bits rs2)))"
+          },
+          "retirement": "RETIRE_SUCCESS"
+        },
+        "SLL": {
+          "memory_read": null,
+          "memory_write": null,
+          "next_pc": "sequential-pc-plus-4",
+          "reads_program_counter": false,
+          "register_reads": [
+            "rs1",
+            "rs2"
+          ],
+          "register_write": {
+            "target": "rd",
+            "value": "(shift_bits_left (\u2190 (rX_bits rs1)) (Sail.BitVec.extractLsb (\u2190 (rX_bits rs2)) (log2_xlen -i 1) 0))"
+          },
+          "retirement": "RETIRE_SUCCESS"
+        },
+        "SLT": {
+          "memory_read": null,
+          "memory_write": null,
+          "next_pc": "sequential-pc-plus-4",
+          "reads_program_counter": false,
+          "register_reads": [
+            "rs1",
+            "rs2"
+          ],
+          "register_write": {
+            "target": "rd",
+            "value": "(zero_extend (m := 32) (bool_to_bit (zopz0zI_s (\u2190 (rX_bits rs1)) (\u2190 (rX_bits rs2)))))"
+          },
+          "retirement": "RETIRE_SUCCESS"
+        },
+        "SLTU": {
+          "memory_read": null,
+          "memory_write": null,
+          "next_pc": "sequential-pc-plus-4",
+          "reads_program_counter": false,
+          "register_reads": [
+            "rs1",
+            "rs2"
+          ],
+          "register_write": {
+            "target": "rd",
+            "value": "(zero_extend (m := 32) (bool_to_bit (zopz0zI_u (\u2190 (rX_bits rs1)) (\u2190 (rX_bits rs2)))))"
+          },
+          "retirement": "RETIRE_SUCCESS"
+        },
+        "SRA": {
+          "memory_read": null,
+          "memory_write": null,
+          "next_pc": "sequential-pc-plus-4",
+          "reads_program_counter": false,
+          "register_reads": [
+            "rs1",
+            "rs2"
+          ],
+          "register_write": {
+            "target": "rd",
+            "value": "(shift_bits_right_arith (\u2190 (rX_bits rs1)) (Sail.BitVec.extractLsb (\u2190 (rX_bits rs2)) (log2_xlen -i 1) 0))"
+          },
+          "retirement": "RETIRE_SUCCESS"
+        },
+        "SRL": {
+          "memory_read": null,
+          "memory_write": null,
+          "next_pc": "sequential-pc-plus-4",
+          "reads_program_counter": false,
+          "register_reads": [
+            "rs1",
+            "rs2"
+          ],
+          "register_write": {
+            "target": "rd",
+            "value": "(shift_bits_right (\u2190 (rX_bits rs1)) (Sail.BitVec.extractLsb (\u2190 (rX_bits rs2)) (log2_xlen -i 1) 0))"
+          },
+          "retirement": "RETIRE_SUCCESS"
+        },
+        "SUB": {
+          "memory_read": null,
+          "memory_write": null,
+          "next_pc": "sequential-pc-plus-4",
+          "reads_program_counter": false,
+          "register_reads": [
+            "rs1",
+            "rs2"
+          ],
+          "register_write": {
+            "target": "rd",
+            "value": "((\u2190 (rX_bits rs1)) - (\u2190 (rX_bits rs2)))"
+          },
+          "retirement": "RETIRE_SUCCESS"
+        },
+        "XOR": {
+          "memory_read": null,
+          "memory_write": null,
+          "next_pc": "sequential-pc-plus-4",
+          "reads_program_counter": false,
+          "register_reads": [
+            "rs1",
+            "rs2"
+          ],
+          "register_write": {
+            "target": "rd",
+            "value": "((\u2190 (rX_bits rs1)) ^^^ (\u2190 (rX_bits rs2)))"
+          },
+          "retirement": "RETIRE_SUCCESS"
+        }
+      },
+      "source_sha256": "01359d58d0543ce431b7315caf9961ea80329de2f017f2ea6cb205a7149cd628"
+    },
     "execute_UTYPE": {
       "applied_rules": [
         "collapse-single-statement-do",
@@ -203,7 +396,7 @@
     "selector-match-feeds-effect": "a generated effect whose value is selected by an inline monadic match is normalized by feeding each alternative directly to that effect",
     "selector-match-is-total": "the single match on the instruction selector supplies one alternative per selector and no wildcard"
   },
-  "parser_version": "sail-lean-subset-parser-v1",
+  "parser_version": "sail-lean-subset-parser-v2",
   "schema_version": "stwo-sail-translation-receipt-v1",
   "sequential_next_pc": "sequential-pc-plus-4"
 }

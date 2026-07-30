@@ -1,11 +1,47 @@
 {
   "bridge_source": "formal/riscv-refinement/generated-sail-bridge/Pilot.lean",
-  "bridge_source_sha256": "99a926701c9cef25e0d04299168c9663a69804241f18e3ba399e7881844a609e",
-  "canonical_digest": "b3c8e40ce124d7a85b40dbc8b128a84a014adcdaf8f7c4900f76815e18f6b32f",
+  "bridge_source_sha256": "1392bbcf673af3e3fda08a91a2ca50e907a38b3c9513809781ca7844d32395c3",
+  "canonical_digest": "6032b4a424f4278aa9b3a30d2e06f1bf20877730c82baf6eeef9190d5b2c4ab1",
   "claim_boundary": {
     "fetch_interrupt_trap_and_step_loop_framing": false,
     "generated_execute_clause_monad_normalization": true,
-    "sequential_next_pc_and_tick_fragment": true
+    "input_bound_team_a_selectors": [
+      "LUI",
+      "AUIPC",
+      "ADDI",
+      "XORI",
+      "ORI",
+      "ANDI",
+      "SLTI",
+      "SLTIU",
+      "ADD",
+      "SUB",
+      "XOR",
+      "OR",
+      "AND",
+      "SLT",
+      "SLTU",
+      "BEQ",
+      "BNE",
+      "BLT",
+      "BGE",
+      "BLTU",
+      "BGEU",
+      "JAL",
+      "JALR",
+      "FENCE"
+    ],
+    "normalized_retirement_selectors": [
+      "LUI",
+      "ADDI"
+    ],
+    "pinned_generated_model_axioms": [
+      "sys_enable_experimental_extensions"
+    ],
+    "publication_binding": false,
+    "sequential_next_pc_and_tick_fragment": true,
+    "team_a_execute_clause_input_binding": true,
+    "team_a_normalized_retirement_composition": false
   },
   "evidence_source": "exact-pinned-generated-backend",
   "generated_backend_sha256": "074d61135954f165c3490630aec286f28638ba99f1c64c92056bd3c29c05c21a",
@@ -24,7 +60,7 @@
   "lean_sail_revision": "79b4d08505af29d88b3918f32d29840fae1fa191",
   "lean_toolchain": "leanprover/lean4:v4.29.0",
   "normalized_capsule": "RiscvRefinement/Sail/Generated/Pilot.lean",
-  "normalized_capsule_sha256": "942a2e82406bffa4c50c3b101a3529777b2f2ad6bcf4fb77f51c5478cbc9c0ac",
+  "normalized_capsule_sha256": "85acf31a99bc6579551eca6ca4c616f7730d32e0108ee003171a08261548aad8",
   "schema_version": "stwo-generated-sail-monad-bridge-v1",
   "support_patch": "conformance/riscv/sail-lean-riscv-extras.patch",
   "support_patch_sha256": "ceb85e86b94a9f254502373f821198f9dfd3019105b77dc7987818b2a4388070",
@@ -44,7 +80,135 @@
       "Quot.sound",
       "propext"
     ],
+    "LeanRV32IM.Functions.execute_BTYPE_BEQ_eq": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext",
+      "sys_enable_experimental_extensions"
+    ],
+    "LeanRV32IM.Functions.execute_BTYPE_BGEU_eq": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext",
+      "sys_enable_experimental_extensions"
+    ],
+    "LeanRV32IM.Functions.execute_BTYPE_BGE_eq": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext",
+      "sys_enable_experimental_extensions"
+    ],
+    "LeanRV32IM.Functions.execute_BTYPE_BLTU_eq": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext",
+      "sys_enable_experimental_extensions"
+    ],
+    "LeanRV32IM.Functions.execute_BTYPE_BLT_eq": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext",
+      "sys_enable_experimental_extensions"
+    ],
+    "LeanRV32IM.Functions.execute_BTYPE_BNE_eq": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext",
+      "sys_enable_experimental_extensions"
+    ],
+    "LeanRV32IM.Functions.execute_FENCE_eq": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "LeanRV32IM.Functions.execute_ITYPE_ADDI_eq": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "LeanRV32IM.Functions.execute_ITYPE_ANDI_eq": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "LeanRV32IM.Functions.execute_ITYPE_ORI_eq": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "LeanRV32IM.Functions.execute_ITYPE_SLTIU_eq": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "LeanRV32IM.Functions.execute_ITYPE_SLTI_eq": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "LeanRV32IM.Functions.execute_ITYPE_XORI_eq": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "LeanRV32IM.Functions.execute_JALR_eq": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext",
+      "sys_enable_experimental_extensions"
+    ],
+    "LeanRV32IM.Functions.execute_JAL_eq": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext",
+      "sys_enable_experimental_extensions"
+    ],
     "LeanRV32IM.Functions.execute_LUI_normalizes_write": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "LeanRV32IM.Functions.execute_RTYPE_ADD_eq": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "LeanRV32IM.Functions.execute_RTYPE_AND_eq": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "LeanRV32IM.Functions.execute_RTYPE_OR_eq": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "LeanRV32IM.Functions.execute_RTYPE_SLTU_eq": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "LeanRV32IM.Functions.execute_RTYPE_SLT_eq": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "LeanRV32IM.Functions.execute_RTYPE_SUB_eq": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "LeanRV32IM.Functions.execute_RTYPE_XOR_eq": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "LeanRV32IM.Functions.execute_UTYPE_AUIPC_eq": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "LeanRV32IM.Functions.execute_UTYPE_LUI_eq": [
       "Classical.choice",
       "Quot.sound",
       "propext"
@@ -54,6 +218,30 @@
     "LeanRV32IM.Functions.execute_LUI_normalizes_write",
     "LeanRV32IM.Functions.execute_ADDI_normalizes_write",
     "LeanRV32IM.Functions.complete_LUI_normalizes",
-    "LeanRV32IM.Functions.complete_ADDI_normalizes"
+    "LeanRV32IM.Functions.complete_ADDI_normalizes",
+    "LeanRV32IM.Functions.execute_UTYPE_LUI_eq",
+    "LeanRV32IM.Functions.execute_UTYPE_AUIPC_eq",
+    "LeanRV32IM.Functions.execute_ITYPE_ADDI_eq",
+    "LeanRV32IM.Functions.execute_ITYPE_SLTI_eq",
+    "LeanRV32IM.Functions.execute_ITYPE_SLTIU_eq",
+    "LeanRV32IM.Functions.execute_ITYPE_ANDI_eq",
+    "LeanRV32IM.Functions.execute_ITYPE_ORI_eq",
+    "LeanRV32IM.Functions.execute_ITYPE_XORI_eq",
+    "LeanRV32IM.Functions.execute_RTYPE_ADD_eq",
+    "LeanRV32IM.Functions.execute_RTYPE_SUB_eq",
+    "LeanRV32IM.Functions.execute_RTYPE_XOR_eq",
+    "LeanRV32IM.Functions.execute_RTYPE_OR_eq",
+    "LeanRV32IM.Functions.execute_RTYPE_AND_eq",
+    "LeanRV32IM.Functions.execute_RTYPE_SLT_eq",
+    "LeanRV32IM.Functions.execute_RTYPE_SLTU_eq",
+    "LeanRV32IM.Functions.execute_BTYPE_BEQ_eq",
+    "LeanRV32IM.Functions.execute_BTYPE_BNE_eq",
+    "LeanRV32IM.Functions.execute_BTYPE_BLT_eq",
+    "LeanRV32IM.Functions.execute_BTYPE_BGE_eq",
+    "LeanRV32IM.Functions.execute_BTYPE_BLTU_eq",
+    "LeanRV32IM.Functions.execute_BTYPE_BGEU_eq",
+    "LeanRV32IM.Functions.execute_JAL_eq",
+    "LeanRV32IM.Functions.execute_JALR_eq",
+    "LeanRV32IM.Functions.execute_FENCE_eq"
   ]
 }
