@@ -1199,6 +1199,50 @@ theorem exampleAcceptance :
   · rw [fixedLookupsHold_eq]
     decide
 
+def x0ExampleRow : Row where
+  clock := 7
+  pc := BitVec.ofNat 32 0
+  rd := zeroRegister
+  rdPrevious := WordBytes.zero
+  rdPreviousClock := 0
+  rdNext := WordBytes.zero
+  immediateEncoded := BitVec.ofNat 20 8
+  result := exampleLinkBytes
+  rdNonzero := false
+
+def x0ExampleWitness : Witness x0ExampleRow where
+  destinationInverse := 0
+
+theorem x0ExampleAdmission : Admission x0ExampleRow := by
+  constructor <;> decide
+
+set_option maxRecDepth 20000 in
+theorem x0ExampleAcceptance :
+    Acceptance x0ExampleRow x0ExampleWitness := by
+  refine {
+    selectors := selectorAccepted x0ExampleRow x0ExampleWitness
+    constraints := ?_
+    fixedLookups := ?_
+  }
+  · apply (constraintsHold_iff x0ExampleRow x0ExampleWitness).mpr
+    simp [
+      ConstraintEquations,
+      x0ExampleRow,
+      x0ExampleWitness,
+      exampleLinkBytes,
+      zeroRegister,
+      bitVecM31,
+      boolM31,
+      TeamACommon.bitVecM31,
+      TeamACommon.boolM31,
+      TeamACommon.wordBytesField,
+      Lui.bitVecM31,
+      Lui.boolM31,
+      WordBytes.zero,
+    ]
+  · rw [fixedLookupsHold_eq]
+    decide
+
 theorem acceptanceNonvacuous :
     ∃ (row : Row) (witness : Witness row),
       Admission row ∧ Acceptance row witness :=
@@ -1207,5 +1251,20 @@ theorem acceptanceNonvacuous :
 theorem exampleRefines :
     ProductionRefinement exampleRow exampleWitness :=
   sound exampleRow exampleWitness exampleAdmission exampleAcceptance
+
+theorem x0AcceptanceNonvacuous :
+    ∃ (row : Row) (witness : Witness row),
+      row.rd = zeroRegister ∧
+        Admission row ∧ Acceptance row witness ∧
+        ProductionRefinement row witness :=
+  ⟨
+    x0ExampleRow,
+    x0ExampleWitness,
+    rfl,
+    x0ExampleAdmission,
+    x0ExampleAcceptance,
+    sound x0ExampleRow x0ExampleWitness
+      x0ExampleAdmission x0ExampleAcceptance
+  ⟩
 
 end RiscvRefinement.Air.Bridge.Jal

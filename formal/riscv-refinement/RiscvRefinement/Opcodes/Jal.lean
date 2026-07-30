@@ -129,4 +129,23 @@ theorem jalExists :
       Air.Bridge.Jal.exampleAdmission
       Air.Bridge.Jal.exampleAcceptance⟩
 
+theorem jalX0Exists :
+    ∃ (row : Row) (witness : Witness row),
+      row.rd = zeroRegister ∧
+        Admission row ∧
+        Acceptance row witness ∧
+        Refinement row witness :=
+  ⟨
+    Air.Bridge.Jal.x0ExampleRow,
+    Air.Bridge.Jal.x0ExampleWitness,
+    rfl,
+    Air.Bridge.Jal.x0ExampleAdmission,
+    Air.Bridge.Jal.x0ExampleAcceptance,
+    refines
+      Air.Bridge.Jal.x0ExampleRow
+      Air.Bridge.Jal.x0ExampleWitness
+      Air.Bridge.Jal.x0ExampleAdmission
+      Air.Bridge.Jal.x0ExampleAcceptance
+  ⟩
+
 end RiscvRefinement.Opcodes.Jal
