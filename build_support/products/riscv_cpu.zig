@@ -130,7 +130,7 @@ pub fn addProduct(context: Context) void {
     );
     static.linkage = .static;
     const install_static = context.b.addInstallArtifact(static, .{});
-    // Target-qualified so both dumpers coexist and host tooling resolves the host binary.
+    // Keep both dumpers installed while host tooling resolves the native name.
     const static_trace = addTraceExecutable(context, static_target, .ReleaseFast, "riscv-trace-dump-x86_64-linux-musl");
     static_trace.linkage = .static;
     const install_static_trace = context.b.addInstallArtifact(static_trace, .{});
@@ -294,11 +294,9 @@ fn addExecutable(
     );
     return b.addExecutable(.{ .name = name, .root_module = root });
 }
-/// Every test body `test-riscv-cpu-product` runs, under one filter.
-///
-/// Four suites, three only *linked* before: linking compiles the code and none
-/// of its tests, so 458 frontend and 11 adapter tests ran nowhere against the 37
-/// this step ran. One guarded step, so `-Driscv-test-filter` may match any suite.
+/// Every test body `test-riscv-cpu-product` runs, under one filter. Three of
+/// these suites were previously only linked, which compiles but runs no tests.
+/// One guard lets `-Driscv-test-filter` match any suite in the product step.
 fn addTests(context: Context) []const test_filter.Suite {
     const b = context.b;
     const stwo = createStwoModule(b, context.protocol, context.target, context.optimize);
@@ -375,7 +373,6 @@ fn addExhaustiveTests(context: Context) *std.Build.Step.Compile {
         .rigidity_exhaustive = true,
     });
 }
-
 fn addRigidityTests(context: Context) *std.Build.Step.Compile {
     return addTestRoot(context, .{
         .exhaustive = true,
@@ -427,7 +424,6 @@ fn addTestRoot(context: Context, options: TestRoot) *std.Build.Step.Compile {
     root.addOptions("test_options", test_options);
     return b.addTest(.{ .root_module = root, .filters = test_filter.apply(b, options.filters) });
 }
-
 fn createStwoModule(
     b: *std.Build,
     protocol: graph.ProtocolModules,
@@ -459,7 +455,6 @@ fn createStwoModule(
     );
     return module;
 }
-
 fn moduleProduct(role: graph.Role) graph.Product {
     return shared_shell.roleProduct(product, role);
 }
@@ -479,7 +474,6 @@ fn binding(
         .optimize = optimize,
     };
 }
-
 /// The binding for the host target, which every module but the static
 /// challenge executable's is created against.
 fn hostBinding(context: Context) shared_shell.Binding {
