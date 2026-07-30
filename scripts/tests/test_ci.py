@@ -229,6 +229,21 @@ class CiTests(unittest.TestCase):
         self.assertIn("run: python3 scripts/ci.py --strict\n", workflow)
         self.assertIn("inputs.gate == 'strict'", workflow)
 
+    def test_focused_cairo_cpu_primes_its_offline_cargo_build(self) -> None:
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        focused_linux = workflow.split("  focused-linux:", 1)[1].split(
+            "  focused-macos:", 1
+        )[0]
+        fetch = focused_linux.index("name: Fetch pinned Cairo adapter dependencies")
+        run = focused_linux.index("name: Run focused lane")
+        self.assertLess(fetch, run)
+        self.assertIn("if: matrix.lane == 'cairo_cpu'", focused_linux)
+        self.assertIn(
+            "cargo fetch --locked\n"
+            "          --manifest-path tools/stwo-cairo-vm-adapter-rs/Cargo.toml",
+            focused_linux,
+        )
+
     def test_hosted_ci_quarantines_the_pre_sail_riscv_evidence_lane(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
         dispatch = workflow.split("permissions:", 1)[0]
