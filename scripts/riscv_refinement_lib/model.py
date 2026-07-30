@@ -24,6 +24,7 @@ class RefinementError(RuntimeError):
 class Paths:
     root: Path
     uniqueness_ir_override: Path | None = None
+    air_program_ir_override: Path | None = None
 
     @property
     def uniqueness_ir(self) -> Path:
@@ -32,6 +33,14 @@ class Paths:
                 return self.uniqueness_ir_override
             return self.root / self.uniqueness_ir_override
         return self.root / "zig-out" / "uniqueness-ir"
+
+    @property
+    def air_program_ir(self) -> Path:
+        if self.air_program_ir_override is not None:
+            if self.air_program_ir_override.is_absolute():
+                return self.air_program_ir_override
+            return self.root / self.air_program_ir_override
+        return self.root / "zig-out" / "refinement-air-ir-v2"
 
     @property
     def formal(self) -> Path:

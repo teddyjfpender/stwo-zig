@@ -213,6 +213,7 @@ jobs:
           # job treats an absent receipt as a leg that never ran.
           echo "sail_leg=required" >> "$GITHUB_OUTPUT"
 
+<<<<<<< HEAD
       # This step was `if: always()` and is deliberately narrower now; both
       # halves of the condition are load-bearing and neither is the other's
       # qualifier.
@@ -236,6 +237,31 @@ jobs:
       # receipt, meaning the preflight went red and the gate step never ran at
       # all. Both leave the next run to rebuild the workspace from pins: slow
       # and correct, rather than fast and wrong.
+=======
+      # sail_oracle.zig's own two self-checks -- "does the oracle answer at
+      # all?" and "is a forged trace really DIVERGENT?" -- ran in NO build step
+      # until 2026-07-29, because zig test collects tests only from its root
+      # module and every RISC-V step reached that file as a module dependency.
+      # test-riscv-sail-oracle is their home; it also runs in the PR-blocking
+      # test-riscv-cpu-product lane, but there and everywhere else they can
+      # only skip. This is the one job that can make them mean something, and
+      # the forged-trace check in particular is the only place the oracle is
+      # asked to say DIVERGENT rather than merely agree.
+      #
+      # A separate step rather than another target on the invocation above:
+      # -Driscv-test-filter REPLACES a step's filters and takes one value, so
+      # "malicious prover" would apply here too and EmptySelectionGuard would
+      # fail this artifact for matching nothing. Unfiltered, this step carries
+      # no filter literal that could drift.
+      - name: Require the pinned oracle for the sail_oracle self-checks
+        env:
+          STWO_RISCV_FORMAL_WORKSPACE: ${{ runner.tool_cache }}/stwo-zig/riscv-formal
+          STWO_ZIG_REQUIRE_SAIL_ORACLE: "1"
+        run: zig build test-riscv-sail-oracle -Doptimize=ReleaseSafe
+
+      # Save even after a red differential: a divergence investigation needs
+      # the warm toolchain far more than a green run does.
+>>>>>>> origin/main
       - name: Save pinned formal toolchain workspace
         if: always() && (steps.differential.outputs.toolchain_state == 'verified' || steps.differential.outputs.toolchain_state == 'rebuilt')
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830  # v4

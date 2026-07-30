@@ -1,27 +1,119 @@
-"""Regression tests for the generated RISC-V refinement pilot."""
+"""Core AIR and generated-Sail boundary regression tests."""
 
 from __future__ import annotations
 
-import copy
-import json
-import re
-import subprocess
-import sys
-import tempfile
-import textwrap
-import unittest
-from argparse import Namespace
-from pathlib import Path
+from scripts.tests.riscv_refinement_test_support import *
+from scripts.tests.test_riscv_refinement_audit import (
+    RefinementAuditPinTest,
+)
+from scripts.tests.test_riscv_refinement_receipt import (
+    RefinementReceiptTest,
+)
+from scripts.tests.test_riscv_refinement_sail import RefinementSailTest
 
-from scripts import riscv_refinement
-from scripts.riscv_refinement_lib import air, codec, negative, render, sail
-from scripts.riscv_refinement_lib.model import Paths, RefinementError
-
-ROOT = Path(__file__).resolve().parents[2]
-GENERATED_AIR = ROOT / "formal" / "riscv-refinement" / "generated" / "air"
+for _test_case in (
+    RefinementAuditPinTest,
+    RefinementReceiptTest,
+    RefinementSailTest,
+):
+    _test_case.__module__ = __name__
+del _test_case
 
 
 class RefinementAirTest(unittest.TestCase):
+    def test_generated_sail_team_a_input_boundary_is_explicit(self) -> None:
+        self.assertEqual(
+            sail_lean_bridge.CLAIM_BOUNDARY[
+                "input_bound_team_a_selectors"
+            ],
+            [
+                "LUI", "AUIPC",
+                "ADDI", "XORI", "ORI", "ANDI", "SLTI", "SLTIU",
+                "ADD", "SUB", "XOR", "OR", "AND", "SLT", "SLTU",
+                "BEQ", "BNE", "BLT", "BGE", "BLTU", "BGEU",
+                "JAL", "JALR", "FENCE",
+            ],
+        )
+        self.assertEqual(
+            sail_lean_bridge.CLAIM_BOUNDARY[
+                "normalized_retirement_selectors"
+            ],
+            ["LUI", "ADDI"],
+        )
+        self.assertFalse(
+            sail_lean_bridge.CLAIM_BOUNDARY[
+                "team_a_normalized_retirement_composition"
+            ],
+        )
+        self.assertFalse(
+            sail_lean_bridge.CLAIM_BOUNDARY[
+                "fetch_interrupt_trap_and_step_loop_framing"
+            ],
+        )
+        self.assertEqual(
+            sail_lean_bridge.CLAIM_BOUNDARY[
+                "pinned_generated_model_axioms"
+            ],
+            ["sys_enable_experimental_extensions"],
+        )
+
+    def test_generated_sail_control_flow_axioms_are_scoped(self) -> None:
+        jump_theorems = {
+            theorem
+            for theorem in sail_lean_bridge.THEOREMS
+            if (
+                "execute_BTYPE_" in theorem
+                or theorem.endswith("execute_JAL_eq")
+                or theorem.endswith("execute_JALR_eq")
+            )
+        }
+        self.assertEqual(
+            jump_theorems,
+            sail_lean_bridge._JUMP_INPUT_THEOREMS,
+        )
+        for theorem in sail_lean_bridge.THEOREMS:
+            expected = set(sail_lean_bridge.KERNEL_AXIOMS)
+            if theorem in jump_theorems:
+                expected |= set(
+                    sail_lean_bridge.PINNED_GENERATED_MODEL_AXIOMS
+                )
+            self.assertEqual(
+                set(sail_lean_bridge.EXPECTED_THEOREM_AXIOMS[theorem]),
+                expected,
+            )
+
+    def test_generated_sail_axiom_parser_enforces_each_scope(self) -> None:
+        def output(
+            inventories: dict[str, list[str]],
+        ) -> str:
+            return "\n".join(
+                f"'{theorem}' depends on axioms: "
+                f"[{', '.join(inventories[theorem])}]"
+                for theorem in sail_lean_bridge.THEOREMS
+            )
+
+        expected = copy.deepcopy(
+            sail_lean_bridge.EXPECTED_THEOREM_AXIOMS
+        )
+        self.assertEqual(
+            sail_lean_bridge._proof_axioms(output(expected)),
+            expected,
+        )
+        missing_model_input = copy.deepcopy(expected)
+        jump_theorem = next(
+            iter(sail_lean_bridge._JUMP_INPUT_THEOREMS)
+        )
+        missing_model_input[jump_theorem].remove(
+            "sys_enable_experimental_extensions"
+        )
+        with self.assertRaisesRegex(
+            RefinementError,
+            "per-theorem contract",
+        ):
+            sail_lean_bridge._proof_axioms(
+                output(missing_model_input)
+            )
+
     def test_source_closure_is_version_controlled_and_cache_free(self) -> None:
         digests = render._source_digests(Paths(ROOT))
         self.assertIn("src/core/fields/m31.zig", digests)
@@ -29,6 +121,94 @@ class RefinementAirTest(unittest.TestCase):
         self.assertFalse(
             any("/.zig-cache/" in relative for relative in digests),
         )
+
+    def test_proof_closure_covers_all_handwritten_lean_and_certificates(
+        self,
+    ) -> None:
+        digests = render._proof_digests(Paths(ROOT))
+        self.assertIn(
+            "formal/riscv-refinement/RiscvRefinement/Air/Bridge/"
+            "BaseAluReg.lean",
+            digests,
+        )
+        self.assertIn(
+            "formal/riscv-refinement/RiscvRefinement/Opcodes/Branches.lean",
+            digests,
+        )
+        self.assertIn(
+            "formal/riscv-refinement/generated-sail-bridge/Pilot.lean",
+            digests,
+        )
+        self.assertIn(
+            "formal/riscv-refinement/team-b-coverage.json",
+            digests,
+        )
+        self.assertNotIn(
+            "formal/riscv-refinement/RiscvRefinement/Air/Generated/"
+            "Programs.lean",
+            digests,
+        )
+        self.assertNotIn(
+            "formal/riscv-refinement/RiscvRefinement/Sail/Generated/"
+            "Pilot.lean",
+            digests,
+        )
+
+    def test_generator_closure_covers_team_gates(self) -> None:
+        digests = render._generator_digests(Paths(ROOT))
+        for relative in (
+            "scripts/riscv_opcode_coverage.py",
+            "scripts/riscv_team_a.py",
+            "scripts/riscv_team_b.py",
+            "scripts/riscv_team_b_inventory.py",
+            "scripts/riscv_team_b_refresh.py",
+            "scripts/riscv_team_b_witnesses.py",
+        ):
+            self.assertIn(relative, digests)
+
+    def test_empty_generated_lake_manifest_resolves_pinned_sail_once(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            project = Path(raw)
+            manifest = project / "lake-manifest.json"
+            manifest.write_text('{"packages":[]}\n', encoding="utf-8")
+
+            def lake_update(
+                argv: list[str],
+                cwd: Path,
+                **_: object,
+            ) -> str:
+                self.assertEqual(argv, ["lake", "update"])
+                self.assertEqual(cwd, project)
+                manifest.write_text(
+                    json.dumps(
+                        {
+                            "packages": [
+                                {
+                                    "name": "Sail",
+                                    "rev":
+                                        sail_lean_bridge.LEAN_SAIL_REVISION,
+                                }
+                            ]
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+                return ""
+
+            with mock.patch.object(
+                sail_lean_bridge,
+                "_run",
+                side_effect=lake_update,
+            ) as run:
+                revision = sail_lean_bridge._lean_sail_revision(project)
+
+            self.assertEqual(
+                revision,
+                sail_lean_bridge.LEAN_SAIL_REVISION,
+            )
+            run.assert_called_once()
 
     def test_existing_air_export_requires_the_exact_nonempty_family_set(
         self,
@@ -121,366 +301,268 @@ class RefinementAirTest(unittest.TestCase):
         with self.assertRaises(RefinementError):
             air.validate_family(unused, "lui")
 
-    def test_axiom_audit_allows_only_declared_foundations(self) -> None:
-        lines = "\n".join(
-            line
-            for index, theorem in enumerate(
-                riscv_refinement.AUDITED_THEOREMS,
-            )
-            for line in (
-                f"REFINEMENT_THEOREM {theorem}",
-                *(
-                    ()
-                    if index == 0
-                    else (
-                        f"REFINEMENT_AXIOM {theorem} propext",
-                        f"REFINEMENT_AXIOM {theorem} Quot.sound",
-                    )
-                ),
-            )
-        )
-        report = riscv_refinement._audit_axioms(lines)
+    def test_air_ir_v2_contract_accepts_canonical_typed_program(self) -> None:
+        payload = air_ir_v2_fixture()
+        air_program.validate(payload)
+
+    def test_committed_lui_air_ir_v2_is_source_bound_production_program(
+        self,
+    ) -> None:
+        path = GENERATED_AIR / "lui.air-ir-v2.json"
+        payload = air_program.load_canonical(path)
+        air_program.verify_source_files(payload, ROOT)
+        self.assertEqual("lui", payload["family"])
+        self.assertEqual(18, len(payload["columns"]))
+        self.assertEqual(53, len(payload["nodes"]))
+        self.assertEqual(16, len(payload["events"]))
         self.assertEqual(
-            set(riscv_refinement.AUDITED_THEOREMS),
-            set(report),
+            9,
+            sum(event["kind"] == "constraint" for event in payload["events"]),
         )
         self.assertEqual(
-            [],
-            report[riscv_refinement.AUDITED_THEOREMS[0]],
+            7,
+            sum(event["kind"] == "lookup" for event in payload["events"]),
+        )
+        self.assertFalse(
+            any(
+                column["name"].startswith("bus_value_")
+                for column in payload["columns"]
+            )
         )
 
-        poisoned = lines.replace(
-            " propext",
-            " hidden.native_axiom",
-            1,
+        reordered = copy.deepcopy(payload)
+        reordered["events"][13], reordered["events"][14] = (
+            reordered["events"][14],
+            reordered["events"][13],
         )
+        reordered["events"][13]["ordinal"] = 13
+        reordered["events"][14]["ordinal"] = 14
+        resign_air_ir_v2(reordered)
         with self.assertRaises(RefinementError):
-            riscv_refinement._audit_axioms(poisoned)
+            air_program.validate(reordered)
 
-        duplicate = (
-            lines
-            + "\n"
-            + "REFINEMENT_THEOREM "
-            + riscv_refinement.AUDITED_THEOREMS[0]
-        )
-        with self.assertRaisesRegex(RefinementError, "repeated theorem"):
-            riscv_refinement._audit_axioms(duplicate)
-
-        extra = (
-            lines
-            + "\nREFINEMENT_THEOREM "
-            + "RiscvRefinement.Future.attributed_multiline"
-        )
-        with self.assertRaisesRegex(RefinementError, "unexpected"):
-            riscv_refinement._audit_axioms(extra)
-
-        with self.assertRaisesRegex(RefinementError, "malformed theorem"):
-            riscv_refinement._audit_axioms(
-                lines + "\nREFINEMENT_THEOREM malformed name",
+        stale_source = copy.deepcopy(payload)
+        stale_source["source_identity"]["files"][0]["sha256"] = "0" * 64
+        stale_source["source_identity"]["source_closure_sha256"] = (
+            codec.sha256_bytes(
+                codec.canonical_bytes(stale_source["source_identity"]["files"])
             )
+        )
+        resign_air_ir_v2(stale_source)
+        air_program.validate(stale_source)
+        with self.assertRaisesRegex(RefinementError, "source digest drifted"):
+            air_program.verify_source_files(stale_source, ROOT)
 
-    def test_release_receipt_cannot_reuse_stale_air(self) -> None:
-        with self.assertRaisesRegex(RefinementError, "fresh production AIR"):
-            riscv_refinement.receipt(
-                Namespace(no_export_air=True),
-                Paths(ROOT),
-            )
-
-    def test_receipt_theorem_axiom_schema_fails_closed(self) -> None:
-        for malformed in (None, [], {"unknown.theorem": []}):
-            with self.assertRaisesRegex(RefinementError, "theorem set"):
-                riscv_refinement._validate_receipt_theorem_axioms(malformed)
-        malformed_axioms = {
-            theorem: [] for theorem in riscv_refinement.AUDITED_THEOREMS
+        semantic_mutation = copy.deepcopy(payload)
+        semantic_mutation["events"][9]["tuple"][0] = 51
+        resign_air_ir_v2(semantic_mutation)
+        air_program.validate(semantic_mutation)
+        air_program.verify_source_files(semantic_mutation, ROOT)
+        unsigned = {
+            key: value
+            for key, value in payload.items()
+            if key in air_program.UNSIGNED_TOP_LEVEL_KEYS
         }
-        malformed_axioms[riscv_refinement.AUDITED_THEOREMS[0]] = [1]
-        with self.assertRaisesRegex(RefinementError, "theorem-axiom schema"):
-            riscv_refinement._validate_receipt_theorem_axioms(
-                malformed_axioms,
+        with self.assertRaisesRegex(RefinementError, "fresh production"):
+            air_program.verify_production_binding(
+                semantic_mutation,
+                unsigned,
+                ROOT,
             )
 
-    def test_receipt_numeric_identity_rejects_bool_and_float_coercions(
+    def test_committed_air_ir_v2_exactly_covers_the_opcode_manifest(
         self,
     ) -> None:
-        valid = {
-            "schema_version": 1,
-            "coverage": {
-                "proved_normalized_opcodes": 2,
-                "production_opcodes": 46,
-            },
+        expected = {
+            f"{mnemonic}.air-ir-v2.json"
+            for _, mnemonic, _ in air_program.OPCODES
         }
-        riscv_refinement._validate_receipt_numeric_identity(valid)
-        for field, replacement in (
-            ("schema_version", True),
-            ("schema_version", 1.0),
-        ):
-            malformed = copy.deepcopy(valid)
-            malformed[field] = replacement
-            with self.assertRaisesRegex(RefinementError, "numeric identity"):
-                riscv_refinement._validate_receipt_numeric_identity(
-                    malformed,
+        actual = {
+            path.name for path in GENERATED_AIR.glob("*.air-ir-v2.json")
+        }
+        self.assertEqual(expected, actual)
+        self.assertEqual(46, len(actual))
+
+        for manifest_id, mnemonic, family in air_program.OPCODES:
+            with self.subTest(mnemonic=mnemonic):
+                payload = air_program.load_canonical(
+                    GENERATED_AIR / f"{mnemonic}.air-ir-v2.json"
                 )
-        for replacement in (True, 2.0):
-            malformed = copy.deepcopy(valid)
-            malformed["coverage"]["proved_normalized_opcodes"] = replacement
-            with self.assertRaisesRegex(RefinementError, "numeric identity"):
-                riscv_refinement._validate_receipt_numeric_identity(
-                    malformed,
-                )
-
-    def test_lean_comment_stripper_covers_lines_blocks_and_strings(self) -> None:
-        line = "theorem ok : True := trivial -- axiom lives in a comment\n"
-        self.assertNotIn("axiom", riscv_refinement._strip_lean_comments(line))
-
-        block = (
-            "/-! This module documents the axiom set it never uses. -/\n"
-            "/- sorry and native_decide appear only as prose -/\n"
-            "theorem ok : True := trivial\n"
-        )
-        stripped = riscv_refinement._strip_lean_comments(block)
-        for term in ("axiom", "sorry", "native_decide"):
-            self.assertNotIn(term, stripped)
-        self.assertIn("theorem ok : True := trivial", stripped)
-
-        nested = "/- outer /- inner axiom -/ still comment -/ theorem ok : True := trivial\n"
-        nested_stripped = riscv_refinement._strip_lean_comments(nested)
-        self.assertNotIn("axiom", nested_stripped)
-        self.assertIn("theorem ok : True := trivial", nested_stripped)
-
-        literal = 'def dashes : String := "-- not a comment"\naxiom cheat : True\n'
-        self.assertIn("axiom cheat", riscv_refinement._strip_lean_comments(literal))
-
-        same_line = 'def dashes : String := "a -- b"; axiom cheat : True\n'
-        self.assertIn("axiom cheat", riscv_refinement._strip_lean_comments(same_line))
-
-        for text in (line, block, nested, literal, same_line):
-            with self.subTest(text=text):
-                rewritten = riscv_refinement._strip_lean_comments(text)
-                self.assertEqual(len(text), len(rewritten))
+                air_program.verify_source_files(payload, ROOT)
+                self.assertEqual(family, payload["family"])
                 self.assertEqual(
-                    len(text.splitlines()),
-                    len(rewritten.splitlines()),
+                    {
+                        "expression": payload["opcode_selector"]["expression"],
+                        "manifest_id": manifest_id,
+                        "mnemonic": mnemonic,
+                    },
+                    payload["opcode_selector"],
+                )
+                self.assertEqual(
+                    air_program.FAMILY_SOURCE_PATHS[family],
+                    tuple(
+                        item["path"]
+                        for item in payload["source_identity"]["files"]
+                    ),
                 )
 
-    def test_proof_escape_scan_sees_through_comments_and_string_literals(self) -> None:
-        cases = {
-            "Line.lean": "theorem ok : True := trivial -- axiom in a comment\n",
-            "Block.lean": "/-! An axiom-free development. -/\ntheorem ok : True := trivial\n",
-            "Nested.lean": "/- outer /- sorry -/ -/\ntheorem ok : True := trivial\n",
-        }
-        for name, text in cases.items():
-            with self.subTest(name=name), tempfile.TemporaryDirectory() as raw:
-                paths = self._lean_tree(Path(raw), {name: text})
-                riscv_refinement._scan_forbidden_proof_terms(paths)
+    def test_each_family_source_closure_includes_its_semantics(self) -> None:
+        self.assertEqual(
+            set(air_program_contract.FAMILIES),
+            set(air_program.FAMILY_SOURCE_PATHS),
+        )
+        for (
+            family,
+            semantic_paths,
+        ) in air_program_contract.FAMILY_SEMANTIC_PATHS.items():
+            with self.subTest(family=family):
+                closure = set(air_program.FAMILY_SOURCE_PATHS[family])
+                self.assertTrue(
+                    set(air_program_contract.COMMON_SOURCE_PATHS) <= closure
+                )
+                self.assertTrue(set(semantic_paths) <= closure)
 
-        breaches = {
-            # Splitting on the first "--" would stop inside the literal and never
-            # reach the escape that follows it on the same line.
-            "Literal.lean": (
-                'def dashes : String := "a -- b"; axiom cheat : True\n',
-                "forbidden proof escape",
-            ),
-            "Bare.lean": (
-                "theorem broken : True := by sorry\n",
-                "forbidden proof escape",
-            ),
-            # An unterminated block comment would blank the rest of the file, so
-            # the scan must refuse it instead of reporting a clean sweep.
-            "Unterminated.lean": (
-                "/- opened and never closed\naxiom cheat : True\n",
-                r"Unterminated\.lean: unterminated Lean block comment",
-            ),
-        }
-        for name, (text, expected) in breaches.items():
-            with self.subTest(name=name), tempfile.TemporaryDirectory() as raw:
-                paths = self._lean_tree(Path(raw), {name: text})
-                with self.assertRaisesRegex(RefinementError, expected):
-                    riscv_refinement._scan_forbidden_proof_terms(paths)
+    def test_same_family_artifacts_share_one_production_program(self) -> None:
+        canonical_by_family: dict[str, bytes] = {}
+        for _, mnemonic, family in air_program.OPCODES:
+            payload = air_program.load_canonical(
+                GENERATED_AIR / f"{mnemonic}.air-ir-v2.json"
+            )
+            semantic = copy.deepcopy(payload)
+            semantic.pop("content_digest")
+            semantic["opcode_selector"] = {
+                "expression": semantic["opcode_selector"]["expression"]
+            }
+            canonical = codec.canonical_bytes(semantic)
+            with self.subTest(mnemonic=mnemonic, family=family):
+                if family in canonical_by_family:
+                    self.assertEqual(canonical_by_family[family], canonical)
+                else:
+                    canonical_by_family[family] = canonical
+        self.assertEqual(17, len(canonical_by_family))
 
-    def test_an_escaped_quote_cannot_reopen_comment_scanning_inside_a_literal(
+    def test_air_ir_v2_decoder_fails_closed_on_nodes_and_events(self) -> None:
+        base = air_ir_v2_fixture()
+        mutations = []
+
+        unknown_operation = copy.deepcopy(base)
+        unknown_operation["nodes"][4]["op"] = "div"
+        mutations.append(unknown_operation)
+
+        forward_reference = copy.deepcopy(base)
+        forward_reference["nodes"][4]["args"][0] = 4
+        mutations.append(forward_reference)
+
+        invalid_constant = copy.deepcopy(base)
+        invalid_constant["nodes"][1]["value"] = air_program.M31_MODULUS
+        mutations.append(invalid_constant)
+
+        floating_schema = copy.deepcopy(base)
+        floating_schema["schema_version"] = 2.0
+        mutations.append(floating_schema)
+
+        boolean_constant = copy.deepcopy(base)
+        boolean_constant["nodes"][1]["value"] = True
+        mutations.append(boolean_constant)
+
+        zero_active = copy.deepcopy(base)
+        zero_active["active_row"] = 7
+        mutations.append(zero_active)
+
+        wrong_manifest_family = copy.deepcopy(base)
+        wrong_manifest_family["family"] = "auipc"
+        mutations.append(wrong_manifest_family)
+
+        invalid_arity = copy.deepcopy(base)
+        invalid_arity["events"][12]["tuple"].append(1)
+        mutations.append(invalid_arity)
+
+        dead_lookup = copy.deepcopy(base)
+        dead_lookup["events"][12]["numerator"] = 7
+        mutations.append(dead_lookup)
+
+        reordered = copy.deepcopy(base)
+        reordered["events"][12]["ordinal"] = 11
+        mutations.append(reordered)
+
+        wrong_table = copy.deepcopy(base)
+        wrong_table["events"][12]["table_id"] = "range_check_8_8"
+        mutations.append(wrong_table)
+
+        gapped_access = copy.deepcopy(base)
+        for event in gapped_access["events"][13:16]:
+            event["access_ordinal"] = 2
+        mutations.append(gapped_access)
+
+        missing_access_gap = copy.deepcopy(base)
+        missing_access_gap["events"][15]["access_ordinal"] = None
+        mutations.append(missing_access_gap)
+
+        misplaced_access = copy.deepcopy(base)
+        misplaced_access["events"][9]["access_ordinal"] = 1
+        mutations.append(misplaced_access)
+
+        relabelled_projection = copy.deepcopy(base)
+        relabelled_projection["projection"]["source_events"] = [13, 14]
+        relabelled_projection["projection"]["destination_events"] = []
+        mutations.append(relabelled_projection)
+
+        wrong_builder = copy.deepcopy(base)
+        wrong_builder["source_identity"]["builder"] = (
+            "src/frontends/riscv/air/semantic_eval.zig"
+        )
+        mutations.append(wrong_builder)
+
+        dead_node = copy.deepcopy(base)
+        dead_node["nodes"].append({"op": "const", "value": 7})
+        mutations.append(dead_node)
+
+        duplicate_node = copy.deepcopy(base)
+        duplicate_node["nodes"].append({"op": "sub", "args": [2, 1]})
+        duplicate_node["events"][0]["root"] = len(duplicate_node["nodes"]) - 1
+        mutations.append(duplicate_node)
+
+        for payload in mutations:
+            resign_air_ir_v2(payload)
+            with self.subTest(payload=payload):
+                with self.assertRaises(RefinementError):
+                    air_program.validate(payload)
+
+    def test_air_ir_v2_canonical_loader_rejects_duplicates_and_pretty_json(
         self,
     ) -> None:
-        """The fail-open branch of ``_skip_lean_string``, exercised end to end.
-
-        ``"x \\" /- y"`` is one literal. Drop the backslash-escape branch and the
-        skip stops at the escaped quote, back in code mode but still inside the
-        literal, where the ``/-`` opens a block comment. Everything up to the next
-        ``-/`` is then blanked -- including the ``axiom`` on the following line --
-        and the scan reports a clean sweep over a file that declares an axiom.
-
-        This is the one direction in which the skipper can hide a proof escape, so
-        it is asserted on the scanner rather than on the stripper: the obligation
-        is that the term is *reported*, not merely that some characters survive.
-        """
-        text = (
-            'def s : String := "x \\" /- y"\n'
-            "axiom cheat : True\n"
-            "def t : Nat := 1 -/\n"
-        )
+        payload = air_ir_v2_fixture()
         with tempfile.TemporaryDirectory() as raw:
-            paths = self._lean_tree(Path(raw), {"Escaped.lean": text})
-            with self.assertRaisesRegex(
-                RefinementError,
-                r"RiscvRefinement/Escaped\.lean:2",
-            ):
-                riscv_refinement._scan_forbidden_proof_terms(paths)
-        # And the mechanism, so a failure says which half broke: the literal's own
-        # text is skipped, not blanked, and the line after it is still code.
-        stripped = riscv_refinement._strip_lean_comments(text)
-        self.assertIn("/- y", stripped)
-        self.assertIn("axiom cheat", stripped)
+            directory = Path(raw)
+            canonical = directory / "canonical.json"
+            canonical.write_bytes(codec.canonical_bytes(payload))
+            self.assertEqual(payload, air_program.load_canonical(canonical))
 
-    def test_a_stray_quote_is_bounded_to_its_line_so_later_prose_stays_prose(
-        self,
-    ) -> None:
-        """The newline-recovery branch, which fails closed rather than open.
+            pretty = directory / "pretty.json"
+            pretty.write_bytes(codec.pretty_bytes(payload))
+            with self.assertRaisesRegex(RefinementError, "not compact canonical"):
+                air_program.load_canonical(pretty)
 
-        A literal is skipped, never blanked, so an unterminated one hides nothing.
-        What it can do is switch comment stripping off for everything up to the
-        next quote in the file. The comment two lines below would then be read as
-        code and its prose reported as a proof escape -- a breach report about a
-        sentence. Recovery at the newline is what keeps the stripper working.
-        """
-        text = (
-            'def a : String := "unterminated\n'
-            "-- prose about sorry, axiom and native_decide\n"
-            'def b : String := "closed"\n'
-        )
-        stripped = riscv_refinement._strip_lean_comments(text)
-        for term in ("sorry", "axiom", "native_decide"):
-            self.assertNotIn(term, stripped)
-        self.assertIn('def b : String := "closed"', stripped)
-        self.assertEqual(len(text), len(stripped))
-        with tempfile.TemporaryDirectory() as raw:
-            paths = self._lean_tree(Path(raw), {"Stray.lean": text})
-            riscv_refinement._scan_forbidden_proof_terms(paths)
-
-    def test_proof_escape_scan_reports_the_line_the_term_is_on(self) -> None:
-        with tempfile.TemporaryDirectory() as raw:
-            paths = self._lean_tree(
-                Path(raw),
-                {
-                    "Late.lean": (
-                        "/- a block comment\n   spanning three lines\n   ends here -/\n"
-                        "theorem broken : True := by sorry\n"
-                    ),
-                },
+            duplicate = directory / "duplicate.json"
+            duplicate.write_text(
+                '{"kind":"first","kind":"second"}',
+                encoding="utf-8",
             )
-            with self.assertRaisesRegex(
-                RefinementError,
-                r"RiscvRefinement/Late\.lean:4",
-            ):
-                riscv_refinement._scan_forbidden_proof_terms(paths)
+            with self.assertRaisesRegex(RefinementError, "duplicate JSON key"):
+                air_program.load_canonical(duplicate)
 
-    #: Reached under a bare top-level name, as direct execution reaches it.
-    _ONE_IDENTITY_PROGRAM = textwrap.dedent(
-        """
-        import importlib
-        import sys
 
-        root = sys.argv[1]
-        # Exactly what `python3 scripts/riscv_refinement.py` puts on sys.path:
-        # the scripts directory, and no repository root.
-        sys.path.insert(0, root + "/scripts")
-        module = importlib.import_module("riscv_refinement")
-
-        # Now reach the library the way every test and sibling script reaches it.
-        sys.path.insert(0, root)
-        from scripts.riscv_refinement_lib.model import RefinementError
-
-        assert module.RefinementError is RefinementError, (
-            "two identities: "
-            f"{module.RefinementError.__module__} vs {RefinementError.__module__}"
-        )
-        # The consequence, stated as the thing that actually broke: an
-        # `except`/`assertRaises` written against one class must catch what the
-        # library raises.
-        try:
-            raise module.RefinementError("boom")
-        except RefinementError:
-            pass
-        print("one identity")
-        """
-    )
-
-    def test_the_library_has_one_identity_however_the_script_is_reached(self) -> None:
-        """``RefinementError`` cannot become two classes, whatever is on sys.path.
-
-        Direct execution puts ``scripts/`` on ``sys.path`` rather than the
-        repository root, so a bare ``riscv_refinement_lib`` import would load the
-        same files under a second module name. ``assertRaises(RefinementError)``
-        against the qualified class then cannot see the bare class, and the
-        assertion passes vacuously -- four of them did.
-
-        Run in a subprocess from a neutral working directory: an in-process check
-        would find the repository root already importable through ``''`` and prove
-        nothing, and importing the module twice would leave both identities in this
-        interpreter's ``sys.modules`` for every later test.
-        """
-        with tempfile.TemporaryDirectory() as neutral:
-            completed = subprocess.run(
-                [sys.executable, "-c", self._ONE_IDENTITY_PROGRAM, str(ROOT)],
-                cwd=neutral,
-                check=False,
-                capture_output=True,
-                text=True,
-            )
-        self.assertEqual(
-            0,
-            completed.returncode,
-            f"{completed.stdout}\n{completed.stderr}",
-        )
-        self.assertIn("one identity", completed.stdout)
-
-    def test_direct_execution_still_works_without_a_second_spelling(self) -> None:
-        """The fallback's purpose is kept; only its second module name is gone.
-
-        The bare spelling existed so ``python3 scripts/riscv_refinement.py`` would
-        run at all. Removing it without this would trade a silent-vacuity bug for a
-        broken entry point, so both halves are asserted: the script runs from a
-        working directory that makes the repository root unimportable, and its
-        source names the library under one spelling only.
-        """
-        with tempfile.TemporaryDirectory() as neutral:
-            completed = subprocess.run(
-                [sys.executable, str(ROOT / "scripts" / "riscv_refinement.py"), "--help"],
-                cwd=neutral,
-                check=False,
-                capture_output=True,
-                text=True,
-            )
-        self.assertEqual(0, completed.returncode, completed.stderr)
-        self.assertIn("usage: riscv_refinement.py", completed.stdout)
-
-        source = (ROOT / "scripts" / "riscv_refinement.py").read_text(encoding="utf-8")
-        bare = re.compile(r"^\s*(?:from|import)\s+riscv_refinement_lib\b", re.MULTILINE)
-        self.assertIsNone(
-            bare.search(source),
-            "the bare spelling is back; it gives the library a second identity",
-        )
-        self.assertIn("from scripts.riscv_refinement_lib import", source)
-
-    @staticmethod
-    def _lean_tree(root: Path, sources: dict[str, str]) -> Paths:
-        formal = root / "formal" / "riscv-refinement"
-        (formal / "RiscvRefinement").mkdir(parents=True)
-        (formal / "RiscvRefinement.lean").write_text(
-            "import RiscvRefinement.Common\n",
-            encoding="utf-8",
-        )
-        for name, text in sources.items():
-            (formal / "RiscvRefinement" / name).write_text(text, encoding="utf-8")
-        return Paths(root)
-
-    def test_sail_configuration_comment_parser_preserves_strings(self) -> None:
-        source = '{"repository":"https://example.test/x",// comment\n"value":32}'
-        self.assertEqual(
-            {
-                "repository": "https://example.test/x",
-                "value": 32,
-            },
-            json.loads(sail._strip_line_comments(source)),
-        )
+def load_tests(
+    loader: unittest.TestLoader,
+    tests: unittest.TestSuite,
+    pattern: str | None,
+) -> unittest.TestSuite:
+    # Explicit facade invocations retain the historical complete suite. During
+    # broad discovery, the three split `test_*.py` modules own their cases so
+    # the imported classes are not executed twice.
+    if pattern is None or pattern == "test_riscv_refinement.py":
+        return tests
+    return loader.loadTestsFromTestCase(RefinementAirTest)
 
 
 if __name__ == "__main__":

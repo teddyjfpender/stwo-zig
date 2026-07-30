@@ -1,4 +1,5 @@
 import RiscvRefinement.Air.Generated.Pilot
+import RiscvRefinement.Air.Bridge.Lui
 import RiscvRefinement.Bridge.Decode
 import RiscvRefinement.Sail.Generated.Pilot
 
@@ -170,5 +171,108 @@ theorem lui_refines
       lui_destination_from_constraints row holds,
       lui_value_refines,
     ]
+
+theorem lui_production_refines
+    (row : LuiRow)
+    (witness : Air.Bridge.Lui.Witness row)
+    (environment :
+      LuiEnvironment (Air.Bridge.Lui.interpretedRow row))
+    (admission : Air.Bridge.Lui.Admission row)
+    (accepted : Air.Bridge.Lui.Acceptance row witness) :
+    LuiRefinement (Air.Bridge.Lui.interpretedRow row) environment :=
+  lui_refines
+    (Air.Bridge.Lui.interpretedRow row)
+    environment
+    (Air.Bridge.Lui.sound row witness admission accepted)
+
+def productionLuiPreState : PreState where
+  pc := BitVec.ofNat 32 0x1000
+  registers := fun _ => zeroWord
+  x0IsZero := rfl
+
+def productionLuiEnvironment :
+    LuiEnvironment
+      (Air.Bridge.Lui.interpretedRow Air.Bridge.Lui.exampleRow) where
+  pre := productionLuiPreState
+  word :=
+    Decode.encodeLui
+      (luiImmediate
+        Air.Bridge.Lui.exampleRow.imm0
+        Air.Bridge.Lui.exampleRow.imm1
+        Air.Bridge.Lui.exampleRow.imm2)
+      Air.Bridge.Lui.exampleRow.rd
+  pcBinds := rfl
+  wordBinds := rfl
+  destinationBinds := by
+    decide
+
+theorem lui_production_nonvacuous :
+    ∃ (row : LuiRow)
+      (witness : Air.Bridge.Lui.Witness row)
+      (environment :
+        LuiEnvironment (Air.Bridge.Lui.interpretedRow row)),
+      Air.Bridge.Lui.Admission row ∧
+        Air.Bridge.Lui.Acceptance row witness ∧
+        LuiRefinement (Air.Bridge.Lui.interpretedRow row) environment :=
+  ⟨
+    Air.Bridge.Lui.exampleRow,
+    Air.Bridge.Lui.exampleWitness,
+    productionLuiEnvironment,
+    Air.Bridge.Lui.exampleAdmission,
+    Air.Bridge.Lui.exampleAcceptance,
+    lui_production_refines
+      Air.Bridge.Lui.exampleRow
+      Air.Bridge.Lui.exampleWitness
+      productionLuiEnvironment
+      Air.Bridge.Lui.exampleAdmission
+      Air.Bridge.Lui.exampleAcceptance
+  ⟩
+
+def zeroProductionLuiEnvironment
+    (zeroDestination : Bool) :
+    LuiEnvironment
+      (Air.Bridge.Lui.interpretedRow
+        (Air.Bridge.Lui.zeroRow zeroDestination)) where
+  pre := productionLuiPreState
+  word :=
+    Decode.encodeLui
+      (luiImmediate
+        (Air.Bridge.Lui.zeroRow zeroDestination).imm0
+        (Air.Bridge.Lui.zeroRow zeroDestination).imm1
+        (Air.Bridge.Lui.zeroRow zeroDestination).imm2)
+      (Air.Bridge.Lui.zeroRow zeroDestination).rd
+  pcBinds := rfl
+  wordBinds := rfl
+  destinationBinds := by
+    simp [
+      Air.Bridge.Lui.interpretedRow,
+      Air.Bridge.Lui.zeroRow,
+      productionLuiPreState,
+      WordBytes.zero_word,
+    ]
+
+theorem lui_zero_destination_production_nonvacuous :
+    ∃ (row : LuiRow)
+      (witness : Air.Bridge.Lui.Witness row)
+      (environment :
+        LuiEnvironment (Air.Bridge.Lui.interpretedRow row)),
+      Air.Bridge.Lui.Admission row ∧
+        Air.Bridge.Lui.Acceptance row witness ∧
+        LuiRefinement (Air.Bridge.Lui.interpretedRow row) environment ∧
+        row.rd = zeroRegister :=
+  ⟨
+    Air.Bridge.Lui.zeroRow true,
+    Air.Bridge.Lui.zeroWitness true,
+    zeroProductionLuiEnvironment true,
+    Air.Bridge.Lui.zeroAdmission true,
+    Air.Bridge.Lui.zeroAcceptance true,
+    lui_production_refines
+      (Air.Bridge.Lui.zeroRow true)
+      (Air.Bridge.Lui.zeroWitness true)
+      (zeroProductionLuiEnvironment true)
+      (Air.Bridge.Lui.zeroAdmission true)
+      (Air.Bridge.Lui.zeroAcceptance true),
+    rfl
+  ⟩
 
 end RiscvRefinement.Opcodes

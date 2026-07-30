@@ -13,6 +13,7 @@ pub const clock_update_component = @import("clock_update_component.zig");
 pub const clock_update_interaction = @import("clock_update_interaction.zig");
 pub const component_order = @import("component_order.zig");
 pub const diagnostic_hints = @import("diagnostic_hints.zig");
+pub const constraint_program = @import("constraint_program.zig");
 pub const extract = @import("extract/mod.zig");
 pub const interaction = @import("interaction.zig");
 pub const interaction_gen = @import("interaction_gen.zig");
@@ -42,6 +43,7 @@ test {
     std.testing.refAllDecls(@This());
     // `refAllDecls` references these lazily from inside a test body, which is
     // too late for the test runner to collect the tests they contain.
+    _ = @import("constraint_program.zig");
     _ = @import("extract/mod.zig");
     _ = @import("semantic_eval.zig");
 }

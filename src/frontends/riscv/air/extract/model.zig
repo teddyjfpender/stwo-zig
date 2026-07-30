@@ -1,26 +1,23 @@
 //! Build one family's per-row uniqueness model by running the shipped AIR.
 //!
-//! Nothing here restates a constraint. `semantic_eval.Eval(Scalar)` and
-//! `opcode_entries.Entries(Scalar)` are the same declarations the prover uses,
-//! instantiated over the recording scalar; this module only decides which
-//! columns the uniqueness question quantifies over, and that decision is
-//! derived from the relation requests rather than from a hand-written table.
+//! Nothing here restates a constraint. `constraint_program.Builder(Scalar)` is
+//! the same declaration the prover uses, instantiated over the recording
+//! scalar; this module only decides which columns the uniqueness question
+//! quantifies over.
 
 const std = @import("std");
+const constraint_program = @import("../constraint_program.zig");
 const symbolic = @import("symbolic.zig");
 const semantics = @import("../semantics/mod.zig");
-const semantic_eval = @import("../semantic_eval.zig");
 const entry_mod = @import("../lookups/entry.zig");
-const opcode_entries = @import("../lookups/opcode_entries.zig");
 const trace = @import("../../runner/trace.zig");
 
 const Scalar = symbolic.Scalar;
 const sem = semantics.Families(Scalar);
-const Eval = semantic_eval.Eval(Scalar);
-const Entries = opcode_entries.Entries(Scalar);
+const Program = constraint_program.Builder(Scalar);
 
 pub const Error = error{
-    /// The builder no longer emits bus requests in consume/emit pairs, so the
+    /// Production emitted an unpaired or misordered consume/emit role, so the
     /// input/output split below would be silently wrong. Fail rather than model.
     UnpairedBusRequest,
 } || std.mem.Allocator.Error;
@@ -89,7 +86,7 @@ pub fn declareColumns(
     family: trace.OpcodeFamily,
     out: []Scalar,
 ) !void {
-    std.debug.assert(out.len == Eval.mainColumnCount(family));
+    std.debug.assert(out.len == Program.mainColumnCount(family));
     for (out, 0..) |*column, index| {
         _ = index;
         column.* = arena.column("");
@@ -152,14 +149,14 @@ fn nameLeaves(
 
 /// Run the shipped AIR over the recording scalar and classify what it touched.
 ///
-/// Roles are read off the relation requests, not declared:
+/// Roles come from the explicit metadata emitted by production construction:
 ///   * every component of a `program_access` tuple is `input` -- that tuple is
 ///     the fetched instruction, and granting the program bus is the only way a
 ///     per-row question can talk about "the same instruction" at all;
-///   * every component of the consumed side of a `memory_access` or
-///     `registers_state` pair is `input` -- what the row was handed;
-///   * every component of the emitted side is `output` -- what the row claims
-///     about the machine afterwards, which is its entire observable effect;
+///   * every component of an explicitly `.consume` memory/state event is
+///     `input` -- what the row was handed;
+///   * every component of an explicitly `.emit` memory/state event is `output`
+///     -- what the row claims about the machine afterwards;
 ///   * `input` beats `output` beats `witness` where a column appears twice
 ///     (an access address is consumed and emitted, and is genuinely given);
 ///   * everything the buses never mention stays `witness`: sign bits, carries,
@@ -172,13 +169,14 @@ pub fn build(
     arena: *symbolic.Arena,
     family: trace.OpcodeFamily,
 ) !System {
-    const n_columns = Eval.mainColumnCount(family);
+    const n_columns = Program.mainColumnCount(family);
     const columns = try allocator.alloc(Scalar, n_columns);
     defer allocator.free(columns);
     try declareColumns(arena, family, columns);
 
-    const evaluation = try Eval.evaluate(family, columns, Scalar.one());
-    const list = try Entries.fromMain(family, columns);
+    const program = try Program.build(family, columns, Scalar.one());
+    const evaluation = program.direct_constraints;
+    const list = program.lookup_entries;
 
     const roles = try allocator.alloc(Role, n_columns);
     defer allocator.free(roles);
@@ -205,9 +203,11 @@ pub fn build(
     var index: usize = 0;
     while (index < list.len) {
         const item = list.entries[index];
-        const paired = item.domain == .memory_access or item.domain == .registers_state;
-        if (paired) {
-            if (index + 1 >= list.len or list.entries[index + 1].domain != item.domain) {
+        if (item.role == .consume) {
+            if (index + 1 >= list.len or
+                list.entries[index + 1].domain != item.domain or
+                list.entries[index + 1].role != .emit)
+            {
                 return error.UnpairedBusRequest;
             }
             unmodelled += 2;
@@ -218,6 +218,7 @@ pub fn build(
             index += 2;
             continue;
         }
+        if (item.role == .emit) return error.UnpairedBusRequest;
         if (item.domain == .program_access) {
             unmodelled += 1;
             try classify(allocator, arena, item, .input, roles, &alias_roles, &alias_of, &constraints);

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate and check the LUI/ADDI Universal AIR-to-Sail Lean pilot."""
+"""Generate and check the graded RV32IM AIR-to-Sail refinement evidence."""
 
 from __future__ import annotations
 
@@ -10,79 +10,122 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
-# The library is named exactly once, so it has exactly one module identity.
-#
-# This used to be a two-spelling fallback: ``scripts.riscv_refinement_lib`` first,
-# bare ``riscv_refinement_lib`` second, with a comment explaining that the order
-# mattered. It did, and relying on it was the defect. Direct execution
-# (``python3 scripts/riscv_refinement.py``) puts ``scripts/`` on ``sys.path``
-# instead of the repository root, so the qualified import failed and the fallback
-# imported the same files again under a second name -- giving ``RefinementError``
-# two distinct classes. A test that catches one cannot catch the other, and
-# ``except RefinementError`` in this module would not catch what the library
-# raised: the failure is silent in the fail-open direction, since an
-# ``assertRaises`` that can never see its exception simply reports the *other*
-# escape path as untested rather than reporting anything at all.
-#
-# Repairing ``sys.path`` and importing the one spelling removes the second name
-# from the file, so no import order can reintroduce the second identity.
-if __package__ in (None, ""):  # direct execution; the repository root is absent
-    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from scripts.riscv_refinement_lib import codec, negative, render, sail
-from scripts.riscv_refinement_lib.model import (
-    FULL_OPCODE_COUNT,
-    PILOT_OPCODES,
-    SCHEMA_VERSION,
-    Paths,
-    RefinementError,
-    repository_root,
-)
+if __package__:
+    from . import (
+        riscv_opcode_coverage,
+        riscv_refinement_receipt_build as receipt_build,
+        riscv_refinement_receipt_constants as receipt_constants,
+        riscv_refinement_receipt_identity as receipt_identity,
+        riscv_refinement_receipt_validate as receipt_validate,
+        riscv_team_a,
+        riscv_team_b,
+    )
+    from .riscv_refinement_lib import (
+        air_program,
+        air_program_contract,
+        audited_inventory,
+        codec,
+        negative,
+        render,
+        sail,
+    )
+    from .riscv_refinement_lib.model import (
+        FULL_OPCODE_COUNT,
+        PILOT_OPCODES,
+        SCHEMA_VERSION,
+        Paths,
+        RefinementError,
+        repository_root,
+    )
+    from .riscv_refinement_lib.process import _run
+else:
+    import riscv_opcode_coverage
+    import riscv_refinement_receipt_build as receipt_build
+    import riscv_refinement_receipt_constants as receipt_constants
+    import riscv_refinement_receipt_identity as receipt_identity
+    import riscv_refinement_receipt_validate as receipt_validate
+    import riscv_team_a
+    import riscv_team_b
+    from riscv_refinement_lib import (
+        air_program,
+        air_program_contract,
+        audited_inventory,
+        codec,
+        negative,
+        render,
+        sail,
+    )
+    from riscv_refinement_lib.model import (
+        FULL_OPCODE_COUNT,
+        PILOT_OPCODES,
+        SCHEMA_VERSION,
+        Paths,
+        RefinementError,
+        repository_root,
+    )
+    from riscv_refinement_lib.process import _run
 
-AUDITED_THEOREMS = (
-    "RiscvRefinement.WordBytes.value_lt",
-    "RiscvRefinement.WordBytes.word_toNat",
-    "RiscvRefinement.WordBytes.zero_word",
-    "RiscvRefinement.WordBytes.eq_of_limbs",
-    "RiscvRefinement.toNat_append_arith",
-    "RiscvRefinement.architecturalWrite_zero",
-    "RiscvRefinement.architecturalValue_zero",
-    "RiscvRefinement.architecturalWrite_value",
-    "RiscvRefinement.Decode.encode_lui_is_canonical",
-    "RiscvRefinement.Decode.encode_addi_is_canonical",
-    "RiscvRefinement.Opcodes.lui_value_refines",
-    "RiscvRefinement.Opcodes.lui_result_bytes_refine",
-    "RiscvRefinement.Opcodes.lui_destination_from_constraints",
-    "RiscvRefinement.Opcodes.lui_refines",
-    "RiscvRefinement.Opcodes.addi_immediate_refines",
-    "RiscvRefinement.Opcodes.addi_immediate_value_lt",
-    "RiscvRefinement.Opcodes.addi_source_from_constraints",
-    "RiscvRefinement.Opcodes.addi_arithmetic_from_constraints",
-    "RiscvRefinement.Opcodes.addi_destination_from_constraints",
-    "RiscvRefinement.Opcodes.addi_value_refines",
-    "RiscvRefinement.Opcodes.addi_refines",
-    "RiscvRefinement.NonVacuity.honest_lui_holds",
-    "RiscvRefinement.NonVacuity.lui_exists",
-    "RiscvRefinement.NonVacuity.honest_addi_holds",
-    "RiscvRefinement.NonVacuity.addi_exists",
-    "RiscvRefinement.Coverage.pilot_coverage_exact",
+AUDITED_THEOREMS = audited_inventory.AUDITED_THEOREMS
+AUDITED_THEOREMS_BLOCK = audited_inventory.AUDITED_THEOREMS_BLOCK
+_render_audited_theorems = audited_inventory.render
+_rewrite_audited_theorems = audited_inventory.rewrite
+
+APPROVED_LEAN_AXIOMS = receipt_constants.APPROVED_LEAN_AXIOMS
+RECEIPT_SCHEMA_VERSION = receipt_constants.RECEIPT_SCHEMA_VERSION
+RECEIPT_TIER = receipt_constants.RECEIPT_TIER
+RECEIPT_CLAIM_BOUNDARY = receipt_constants.RECEIPT_CLAIM_BOUNDARY
+TEAM_A_INDEX_RELATIVE = receipt_constants.TEAM_A_INDEX_RELATIVE
+TEAM_B_INDEX_RELATIVE = receipt_constants.TEAM_B_INDEX_RELATIVE
+OPCODE_INDEX_RELATIVE = receipt_constants.OPCODE_INDEX_RELATIVE
+MUTATION_THEOREMS = receipt_constants.MUTATION_THEOREMS
+NEGATIVE_CONTROLS = receipt_constants.NEGATIVE_CONTROLS
+LIVE_SAIL_OPTIONS = receipt_constants.LIVE_SAIL_OPTIONS
+AUDIT_COMMAND = receipt_constants.AUDIT_COMMAND
+AUDITED_THEOREMS_REFRESH = receipt_constants.AUDITED_THEOREMS_REFRESH
+
+_production_inputs = receipt_build._production_inputs
+_sail_inputs = receipt_build._sail_inputs
+_theorem_axiom_index = receipt_build._theorem_axiom_index
+_build_receipt_payload = receipt_build._build_receipt_payload
+
+_tool = receipt_identity._tool
+_toolchain = receipt_identity._toolchain
+_repository_state = receipt_identity._repository_state
+_strict_identity = receipt_identity._strict_identity
+_sha256_identity = receipt_identity._sha256_identity
+_payload_identity = receipt_identity._payload_identity
+_validate_payload_identity = receipt_identity._validate_payload_identity
+_certificate_index_identities = receipt_identity._certificate_index_identities
+_validate_certificate_mappings = receipt_identity._validate_certificate_mappings
+_fixed_table_schemas = receipt_identity._fixed_table_schemas
+_opcode_mutations = receipt_identity._opcode_mutations
+_team_a_proof_time_diagnostics = receipt_identity._team_a_proof_time_diagnostics
+_generated_manifest_identity = receipt_identity._generated_manifest_identity
+
+_receipt_revision_matches = receipt_validate._receipt_revision_matches
+_validate_receipt_theorem_axioms = (
+    receipt_validate._validate_receipt_theorem_axioms
 )
-APPROVED_LEAN_AXIOMS = frozenset(
-    {
-        "propext",
-        "Classical.choice",
-        "Quot.sound",
-    }
+_validate_receipt_numeric_identity = (
+    receipt_validate._validate_receipt_numeric_identity
 )
-CLAIM_BOUNDARY = (
-    "kernel-checked normalized LUI/ADDI AIR predicate to reviewed "
-    "Sail expression capsule; serialized-M31 and generated-monad "
-    "normalization theorems remain open"
+_validate_theorem_axiom_index = receipt_validate._validate_theorem_axiom_index
+_validate_production_inputs = receipt_validate._validate_production_inputs
+_validate_production_certificate_bindings = (
+    receipt_validate._validate_production_certificate_bindings
 )
-NEGATIVE_CONTROLS = (
-    "lui-free-low-limb",
-    "addi-free-high-carry",
+_validate_sail_inputs = receipt_validate._validate_sail_inputs
+_validate_certificate_sail_bindings = (
+    receipt_validate._validate_certificate_sail_bindings
 )
+_validate_receipt_structure = receipt_validate._validate_receipt_structure
+
+
+@dataclass(frozen=True)
+class Verification:
+    theorem_axioms: dict[str, list[str]]
 
 
 def common_arguments(parser: argparse.ArgumentParser) -> None:
@@ -99,9 +142,38 @@ def common_arguments(parser: argparse.ArgumentParser) -> None:
         type=Path,
         help="exact AIR directory supplied by an upstream exporter",
     )
+    parser.add_argument(
+        "--air-program-ir-dir",
+        type=Path,
+        help="exact production AIR IR v2 directory supplied by an upstream exporter",
+    )
+    parser.add_argument(
+        "--reuse-committed-sail-evidence",
+        action="store_true",
+        help=(
+            "rebuild the Sail evidence from the committed manifest provenance "
+            "instead of a live Sail toolchain; refuses unless every Sail input "
+            "is byte-identical and the Sail artifacts are reproduced exactly"
+        ),
+    )
+
+
+def reuses_committed_sail_evidence(args: argparse.Namespace) -> bool:
+    return bool(getattr(args, "reuse_committed_sail_evidence", False))
 
 
 def evidence(args: argparse.Namespace, paths: Paths) -> sail.SailEvidence:
+    if reuses_committed_sail_evidence(args):
+        supplied = sorted(
+            option for option in LIVE_SAIL_OPTIONS if getattr(args, option, None)
+        )
+        if supplied:
+            raise RefinementError(
+                "--reuse-committed-sail-evidence consumes no live Sail "
+                "toolchain; drop "
+                + ", ".join(f"--{option.replace('_', '-')}" for option in supplied)
+            )
+        return sail.carried_evidence(paths)
     return sail.collect_evidence(
         paths.root,
         args.sail_riscv_dir,
@@ -118,6 +190,7 @@ def prepared_outputs(
         render.export_air(paths)
     else:
         render.validate_air_export(paths.uniqueness_ir)
+        render.validate_air_program_export(paths.air_program_ir)
     return render.artifacts(paths, evidence(args, paths))
 
 
@@ -125,6 +198,42 @@ def generate(args: argparse.Namespace, paths: Paths) -> None:
     outputs = prepared_outputs(args, paths)
     render.write_artifacts(paths, outputs)
     print(f"generated {len(outputs)} refinement artifacts")
+
+
+def capture_sail_translation(
+    args: argparse.Namespace,
+    paths: Paths,
+) -> None:
+    """Bootstrap checked slices and Lean bridge from a manifest-bound backend."""
+    if args.reuse_committed_sail_evidence:
+        raise RefinementError(
+            "capture-sail-translation does not accept "
+            "--reuse-committed-sail-evidence"
+        )
+    if args.sail_riscv_dir is not None or args.sail_bin is not None:
+        raise RefinementError(
+            "capture-sail-translation consumes only --sail-generated-file"
+        )
+    if args.sail_generated_file is None:
+        raise RefinementError(
+            "capture-sail-translation requires --sail-generated-file"
+        )
+    if not args.no_export_air:
+        render.export_air(paths)
+    else:
+        render.validate_air_export(paths.uniqueness_ir)
+        render.validate_air_program_export(paths.air_program_ir)
+    evidence = sail.capture_pinned_generated_evidence(
+        paths,
+        args.sail_generated_file,
+    )
+    outputs = render.artifacts(paths, evidence)
+    render.write_artifacts(paths, outputs)
+    print(
+        "captured pinned generated-Sail translation/monad receipts: "
+        f"{evidence.translation_receipt['canonical_digest']} / "
+        f"{evidence.monad_bridge_receipt['canonical_digest']}"
+    )
 
 
 def check_generated(args: argparse.Namespace, paths: Paths) -> None:
@@ -226,109 +335,6 @@ def negative_controls(paths: Paths) -> None:
     )
 
 
-def _run(argv: list[str], cwd: Path, timeout: int = 600) -> str:
-    try:
-        completed = subprocess.run(
-            argv,
-            cwd=cwd,
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            timeout=timeout,
-        )
-    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
-        output = exc.stdout.strip() if isinstance(exc, subprocess.CalledProcessError) else ""
-        if len(output) > 8000:
-            output = "... " + output[-8000:]
-        raise RefinementError(
-            f"command failed: {' '.join(argv)}" + (f"\n{output}" if output else "")
-        ) from exc
-    return completed.stdout
-
-
-def _blank_span(rendered: list[str], text: str, start: int, end: int) -> int:
-    """Overwrite ``text[start:end]`` with spaces, preserving every whitespace char."""
-    for position in range(start, end):
-        if not text[position].isspace():
-            rendered[position] = " "
-    return end
-
-
-def _skip_lean_string(text: str, start: int) -> int:
-    """Return the index after the Lean string literal opened at ``start``.
-
-    The caller skips a literal without blanking it, so nothing inside a literal is
-    ever hidden from the scan. What skipping buys is that a ``--`` or ``/-`` inside
-    a literal opens no comment. Both branches below exist because of what happens
-    when the skip ends in the wrong place, and they fail in opposite directions.
-
-    ``\\`` escapes the next character, which also carries a Lean string gap over a
-    newline. Without it a ``\\"`` would end the literal early and drop the scanner
-    back into code mode *inside the literal's own text*, where a ``/-`` opens a
-    block comment that blanks real code up to the next ``-/`` -- so a forbidden
-    term after the literal is hidden and the scan reports a clean sweep. That is
-    the fail-open direction, and the only one this function has.
-
-    An unterminated literal recovers at the newline, which bounds a stray quote to
-    its own line and keeps comment stripping working on the lines after it.
-    Without that the skip would run to the next quote anywhere in the file, or to
-    end of file, leaving every ``--`` and ``/- -/`` in between unblanked; prose
-    naming a forbidden term would then be read as code. That direction fails
-    closed -- a false breach report, not a missed one.
-    """
-    index = start + 1
-    while index < len(text):
-        char = text[index]
-        if char == "\\":
-            index += 2
-        elif char == '"':
-            return index + 1
-        elif char == "\n":
-            return index
-        else:
-            index += 1
-    return len(text)
-
-
-def _strip_lean_comments(text: str) -> str:
-    """Return ``text`` with Lean ``--`` and nesting ``/- -/`` comments blanked.
-
-    Splitting on ``--`` alone is wrong in both directions. It leaves ``/-! -/``
-    block comments intact, so prose naming a forbidden term fails the scan, and
-    it truncates at a ``--`` inside a string literal, so real code after
-    ``"a--b"`` is never scanned at all. Comment characters become spaces rather
-    than disappearing, so line numbers and columns still address the source.
-
-    An unterminated block comment would blank the rest of the file, which is the
-    one way this function could hide a forbidden term, so it fails closed instead.
-    """
-    rendered = list(text)
-    index = 0
-    depth = 0
-    while index < len(text):
-        if depth:
-            if text.startswith("/-", index):
-                depth += 1
-                index = _blank_span(rendered, text, index, index + 2)
-            elif text.startswith("-/", index):
-                depth -= 1
-                index = _blank_span(rendered, text, index, index + 2)
-            else:
-                index = _blank_span(rendered, text, index, index + 1)
-        elif text[index] == '"':
-            index = _skip_lean_string(text, index)
-        elif text.startswith("/-", index):
-            depth = 1
-            index = _blank_span(rendered, text, index, index + 2)
-        elif text.startswith("--", index):
-            end = text.find("\n", index)
-            index = _blank_span(rendered, text, index, len(text) if end < 0 else end)
-        else:
-            index += 1
-    if depth:
-        raise RefinementError("unterminated Lean block comment")
-    return "".join(rendered)
 
 
 def _scan_forbidden_proof_terms(paths: Paths) -> None:
@@ -339,21 +345,18 @@ def _scan_forbidden_proof_terms(paths: Paths) -> None:
         *sorted((paths.formal / "RiscvRefinement").rglob("*.lean")),
     ]
     for source in sources:
-        relative = source.relative_to(paths.root)
-        try:
-            code = _strip_lean_comments(source.read_text(encoding="utf-8"))
-        except RefinementError as error:
-            raise RefinementError(f"{relative}: {error}") from error
-        for number, line in enumerate(code.splitlines(), 1):
-            if forbidden.search(line):
-                errors.append(f"{relative}:{number}")
+        for number, line in enumerate(source.read_text(encoding="utf-8").splitlines(), 1):
+            code = line.split("--", 1)[0]
+            if forbidden.search(code):
+                errors.append(f"{source.relative_to(paths.root)}:{number}")
     if errors:
         raise RefinementError(
             "forbidden proof escape appears at " + ", ".join(errors)
         )
 
 
-def _audit_axioms(output: str) -> dict[str, list[str]]:
+def _parse_audit_records(output: str) -> dict[str, list[str]]:
+    """Read the Lean audit transcript without deciding which theorems belong."""
     theorem_pattern = re.compile(
         r"^REFINEMENT_THEOREM (?P<theorem>RiscvRefinement\.[^\s]+)$"
     )
@@ -396,6 +399,11 @@ def _audit_axioms(output: str) -> dict[str, list[str]]:
             raise RefinementError(
                 f"axiom audit emitted a malformed axiom record: {stripped}"
             )
+    return report
+
+
+def _audit_axioms(output: str) -> dict[str, list[str]]:
+    report = _parse_audit_records(output)
     missing = sorted(set(AUDITED_THEOREMS) - set(report))
     extra = sorted(set(report) - set(AUDITED_THEOREMS))
     if missing or extra:
@@ -405,7 +413,9 @@ def _audit_axioms(output: str) -> dict[str, list[str]]:
         if extra:
             details.append("unexpected " + ", ".join(extra))
         raise RefinementError(
-            "axiom audit declaration coverage drifted: " + "; ".join(details)
+            "axiom audit declaration coverage drifted: "
+            + "; ".join(details)
+            + f"; {AUDITED_THEOREMS_REFRESH}"
         )
     unexpected = {
         axiom
@@ -424,9 +434,56 @@ def _audit_axioms(output: str) -> dict[str, list[str]]:
     }
 
 
-@dataclass(frozen=True)
-class Verification:
-    theorem_axioms: dict[str, list[str]]
+def _live_audited_theorems(
+    args: argparse.Namespace,
+    paths: Paths,
+) -> tuple[str, ...]:
+    if args.audit_output is not None:
+        try:
+            output = args.audit_output.read_text(encoding="utf-8")
+        except (OSError, UnicodeError) as exc:
+            raise RefinementError(
+                f"{args.audit_output}: unreadable axiom audit transcript"
+            ) from exc
+    else:
+        _run(["lake", "build"], paths.formal)
+        output = _run(list(AUDIT_COMMAND), paths.formal)
+    return tuple(sorted(_parse_audit_records(output)))
+
+
+def audited_theorems(args: argparse.Namespace, paths: Paths) -> None:
+    """Refresh or check the pinned theorem set; never relax the equality gate."""
+    live = _live_audited_theorems(args, paths)
+    pinned = tuple(AUDITED_THEOREMS)
+    missing = sorted(set(pinned) - set(live))
+    extra = sorted(set(live) - set(pinned))
+    if not args.write:
+        if not missing and not extra:
+            print(f"audited theorems pinned exactly: {len(live)} theorems")
+            return
+        details: list[str] = []
+        if extra:
+            details.append("unpinned " + ", ".join(extra))
+        if missing:
+            details.append("retired " + ", ".join(missing))
+        raise RefinementError(
+            "pinned audited theorem set differs from the live Lean environment: "
+            + "; ".join(details)
+            + f"; {AUDITED_THEOREMS_REFRESH}"
+        )
+    source = args.pin_file or (
+        paths.root
+        / "scripts"
+        / "riscv_refinement_lib"
+        / "audited_inventory.py"
+    )
+    _rewrite_audited_theorems(source, live)
+    print(
+        f"repinned {len(live)} audited theorems in "
+        f"{source} (+{len(extra)}, -{len(missing)}); review the diff"
+    )
+
+
 
 
 def verify(args: argparse.Namespace, paths: Paths) -> Verification:
@@ -437,83 +494,65 @@ def verify(args: argparse.Namespace, paths: Paths) -> Verification:
     _run(
         [
             sys.executable,
+            "scripts/riscv_team_b.py",
+            "check",
+            "--air-ir-dir",
+            str(paths.uniqueness_ir),
+        ],
+        paths.root,
+    )
+    _run(
+        [
+            sys.executable,
+            "scripts/riscv_team_b_witnesses.py",
+            "--air-ir-dir",
+            str(paths.uniqueness_ir),
+        ],
+        paths.root,
+    )
+    _run(
+        [sys.executable, "scripts/riscv_team_a.py", "check"],
+        paths.root,
+    )
+    _run(
+        [sys.executable, "scripts/riscv_opcode_coverage.py", "check"],
+        paths.root,
+    )
+    _run(
+        [
+            sys.executable,
             "-m",
             "unittest",
             "scripts.tests.test_riscv_refinement",
+            "scripts.tests.test_riscv_team_b",
+            "scripts.tests.test_riscv_team_b_witnesses",
+            "scripts.tests.test_riscv_team_a",
+            "scripts.tests.test_sail_translation",
+            "scripts.tests.test_sail_air_composition_contract",
         ],
         paths.root,
     )
     _run(["lake", "build"], paths.formal)
-    audit_output = _run(
-        [
-            "lake",
-            "env",
-            "lean",
-            "RiscvRefinement/AxiomAudit.lean",
-        ],
-        paths.formal,
-    )
+    audit_output = _run(list(AUDIT_COMMAND), paths.formal)
     axiom_report = _audit_axioms(audit_output)
+    try:
+        print(riscv_team_a.check_axiom_bindings(axiom_report))
+    except riscv_team_a.TeamAError as exc:
+        raise RefinementError(str(exc)) from exc
+    missing_mutations = sorted(
+        set(MUTATION_THEOREMS.values()) - set(axiom_report)
+    )
+    if missing_mutations:
+        raise RefinementError(
+            "Lean mutation theorem coverage is incomplete: "
+            + ", ".join(missing_mutations)
+        )
     print(
-        "refinement pilot verified: fresh artifacts, 2/46 coverage, "
+        "refinement verified: fresh artifacts, retained 2/46 normalized "
+        "pilot, exact 24/24 Team A and 46/46 graded certificate coverage, "
         "negative controls, unit tests, Lean build, and axiom audit"
     )
     return Verification(theorem_axioms=axiom_report)
-
-
-def _tool(
-    name: str,
-    version_argv: list[str],
-    cwd: Path,
-) -> dict[str, str]:
-    found = shutil.which(name)
-    if found is None:
-        raise RefinementError(f"required tool {name!r} is not on PATH")
-    binary = Path(found).resolve()
-    version = _run([str(binary), *version_argv], cwd).strip().splitlines()[0]
-    return {
-        "sha256": codec.sha256_file(binary),
-        "version": version,
-    }
-
-
-def _toolchain(paths: Paths) -> dict[str, dict[str, str]]:
-    python = Path(sys.executable).resolve()
-    lean_path = Path(
-        _run(["lake", "env", "which", "lean"], paths.formal).strip()
-    ).resolve()
-    if not lean_path.is_file():
-        raise RefinementError("pinned Lean executable could not be resolved")
-    return {
-        "python": {
-            "sha256": codec.sha256_file(python),
-            "version": sys.version.split()[0],
-        },
-        "zig": _tool("zig", ["version"], paths.root),
-        "lake": _tool("lake", ["--version"], paths.formal),
-        "lean": {
-            "sha256": codec.sha256_file(lean_path),
-            "version": _run(
-                [str(lean_path), "--version"],
-                paths.formal,
-            ).strip().splitlines()[0],
-        },
-    }
-
-
-def _repository_state(paths: Paths) -> tuple[str, list[str]]:
-    revision = _run(["git", "rev-parse", "HEAD"], paths.root).strip()
-    status = _run(
-        ["git", "status", "--porcelain", "--untracked-files=all"],
-        paths.root,
-    )
-    receipt_path = paths.receipt.relative_to(paths.root).as_posix()
-    dirty_paths = sorted(
-        line[3:]
-        for line in status.splitlines()
-        if line and line[3:] != receipt_path
-    )
-    return revision, dirty_paths
 
 
 def receipt(args: argparse.Namespace, paths: Paths) -> None:
@@ -522,126 +561,31 @@ def receipt(args: argparse.Namespace, paths: Paths) -> None:
             "release receipts require a fresh production AIR export; "
             "--no-export-air is forbidden"
         )
+    if reuses_committed_sail_evidence(args):
+        raise RefinementError(
+            "release receipts require live Sail toolchain evidence; "
+            "--reuse-committed-sail-evidence is forbidden"
+        )
     verification = verify(args, paths)
     sail_evidence = evidence(args, paths)
-    manifest = codec.load_json(paths.manifest)
     revision, dirty_paths = _repository_state(paths)
     if dirty_paths:
         raise RefinementError(
             "release receipt requires a clean repository; dirty paths: "
             + ", ".join(dirty_paths)
         )
-    payload = {
-        "schema_version": 1,
-        "kind": "stwo-riscv-refinement-receipt",
-        "tier": "level-1-normalized-pilot",
-        "claim_boundary": CLAIM_BOUNDARY,
-        "repository_revision": revision,
-        "repository_dirty": bool(dirty_paths),
-        "repository_dirty_paths": dirty_paths,
-        "generated_manifest_digest": manifest["canonical_digest"],
-        "opcodes": list(PILOT_OPCODES),
-        "lean_build": "passed",
-        "coverage": {
-            "proved_normalized_opcodes": len(PILOT_OPCODES),
-            "production_opcodes": FULL_OPCODE_COUNT,
-        },
-        "negative_controls": list(NEGATIVE_CONTROLS),
-        "approved_lean_axioms": sorted(APPROVED_LEAN_AXIOMS),
-        "theorem_axioms": verification.theorem_axioms,
-        "proof_escape_scan": "passed",
-        "toolchain": _toolchain(paths),
-        "semantic_toolchain": sail.toolchain(sail_evidence),
-    }
-    payload["canonical_digest"] = codec.content_digest(payload)
+    payload = _build_receipt_payload(
+        paths,
+        verification,
+        sail_evidence,
+        revision,
+    )
     codec.atomic_write(paths.receipt, codec.pretty_bytes(payload))
     print(
         "refinement receipt: "
         f"{payload['canonical_digest']} "
-        "(Level-1 LUI/ADDI, no unapproved axioms)"
+        "(A5 24/24 AIR, 46/46 graded, 2 normalized, 0 publication)"
     )
-
-
-def _receipt_revision_matches(paths: Paths, revision: str) -> None:
-    if re.fullmatch(r"[0-9a-f]{40}", revision) is None:
-        raise RefinementError("refinement receipt repository revision is invalid")
-    current, dirty_paths = _repository_state(paths)
-    if dirty_paths:
-        raise RefinementError(
-            "receipt verification requires a clean repository; dirty paths: "
-            + ", ".join(dirty_paths)
-        )
-    if current == revision:
-        return
-    try:
-        subprocess.run(
-            ["git", "merge-base", "--is-ancestor", revision, current],
-            cwd=paths.root,
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        unchanged = subprocess.run(
-            [
-                "git",
-                "diff",
-                "--quiet",
-                revision,
-                current,
-                "--",
-                ".",
-                f":(exclude){paths.receipt.relative_to(paths.root).as_posix()}",
-            ],
-            cwd=paths.root,
-            check=False,
-        )
-    except (OSError, subprocess.CalledProcessError) as exc:
-        raise RefinementError(
-            "could not validate refinement receipt repository revision"
-        ) from exc
-    if unchanged.returncode != 0:
-        raise RefinementError(
-            "repository changed beyond the committed refinement receipt"
-        )
-
-
-def _validate_receipt_theorem_axioms(value: object) -> None:
-    if (
-        not isinstance(value, dict)
-        or set(value) != set(AUDITED_THEOREMS)
-    ):
-        raise RefinementError("refinement receipt theorem set is invalid")
-    for theorem, axioms in value.items():
-        if (
-            not isinstance(theorem, str)
-            or not isinstance(axioms, list)
-            or any(not isinstance(axiom, str) for axiom in axioms)
-        ):
-            raise RefinementError(
-                "refinement receipt theorem-axiom schema is invalid"
-            )
-
-
-def _validate_receipt_numeric_identity(payload: dict[str, object]) -> None:
-    coverage_value = payload.get("coverage")
-    expected_coverage = {
-        "proved_normalized_opcodes": len(PILOT_OPCODES),
-        "production_opcodes": FULL_OPCODE_COUNT,
-    }
-    if (
-        type(payload.get("schema_version")) is not int
-        or payload["schema_version"] != 1
-        or not isinstance(coverage_value, dict)
-        or set(coverage_value) != set(expected_coverage)
-        or any(
-            type(coverage_value[key]) is not int
-            or coverage_value[key] != expected
-            for key, expected in expected_coverage.items()
-        )
-    ):
-        raise RefinementError(
-            "refinement receipt numeric identity is invalid"
-        )
 
 
 def verify_receipt(args: argparse.Namespace, paths: Paths) -> None:
@@ -650,67 +594,29 @@ def verify_receipt(args: argparse.Namespace, paths: Paths) -> None:
             "receipt verification requires a fresh production AIR export; "
             "--no-export-air is forbidden"
         )
+    if reuses_committed_sail_evidence(args):
+        raise RefinementError(
+            "receipt verification requires live Sail toolchain evidence; "
+            "--reuse-committed-sail-evidence is forbidden"
+        )
     payload = codec.load_json(paths.receipt)
-    required = {
-        "approved_lean_axioms",
-        "canonical_digest",
-        "claim_boundary",
-        "coverage",
-        "generated_manifest_digest",
-        "kind",
-        "lean_build",
-        "negative_controls",
-        "opcodes",
-        "proof_escape_scan",
-        "repository_dirty",
-        "repository_dirty_paths",
-        "repository_revision",
-        "schema_version",
-        "semantic_toolchain",
-        "theorem_axioms",
-        "tier",
-        "toolchain",
-    }
-    if set(payload) != required:
-        raise RefinementError("refinement receipt schema drifted")
-    _validate_receipt_numeric_identity(payload)
-    _validate_receipt_theorem_axioms(payload["theorem_axioms"])
-    verification = verify(args, paths)
-    if (
-        payload["kind"] != "stwo-riscv-refinement-receipt"
-        or payload["tier"] != "level-1-normalized-pilot"
-        or payload["claim_boundary"] != CLAIM_BOUNDARY
-        or payload["canonical_digest"] != codec.content_digest(payload)
-        or payload["opcodes"] != list(PILOT_OPCODES)
-        or payload["negative_controls"] != list(NEGATIVE_CONTROLS)
-        or payload["lean_build"] != "passed"
-        or payload["proof_escape_scan"] != "passed"
-        or payload["repository_dirty"] is not False
-        or payload["repository_dirty_paths"] != []
-        or payload["approved_lean_axioms"] != sorted(APPROVED_LEAN_AXIOMS)
-        or payload["theorem_axioms"] != verification.theorem_axioms
-    ):
-        raise RefinementError("refinement receipt identity or theorem set is invalid")
-    manifest = codec.load_json(paths.manifest)
-    render.validate_committed_manifest(paths, manifest)
-    coverage(paths)
-    if (
-        payload["generated_manifest_digest"] != manifest["canonical_digest"]
-        or manifest.get("sail") != sail.provenance(evidence(args, paths))
-    ):
-        raise RefinementError("refinement receipt does not bind the current manifest")
-    if payload["toolchain"] != _toolchain(paths):
-        raise RefinementError(
-            "refinement receipt does not bind the current proof toolchain"
-        )
-    if payload["semantic_toolchain"] != sail.toolchain(evidence(args, paths)):
-        raise RefinementError(
-            "refinement receipt does not bind the current Sail toolchain"
-        )
+    _validate_receipt_structure(payload)
     _receipt_revision_matches(paths, payload["repository_revision"])
+    verification = verify(args, paths)
+    sail_evidence = evidence(args, paths)
+    expected = _build_receipt_payload(
+        paths,
+        verification,
+        sail_evidence,
+        payload["repository_revision"],
+    )
+    if payload != expected:
+        raise RefinementError(
+            "refinement receipt does not bind the current A5 evidence"
+        )
     unexpected = {
         axiom
-        for axioms in payload["theorem_axioms"].values()
+        for axioms in payload["theorem_axiom_index"]["entries"].values()
         for axiom in axioms
         if axiom not in APPROVED_LEAN_AXIOMS
     }
@@ -740,12 +646,30 @@ def parser() -> argparse.ArgumentParser:
     for name in ("generate", "check-generated", "verify", "receipt"):
         command = commands.add_parser(name)
         common_arguments(command)
+    capture_parser = commands.add_parser("capture-sail-translation")
+    common_arguments(capture_parser)
     prepare_parser = commands.add_parser("prepare-sail")
     prepare_parser.add_argument("--sail-riscv-dir", type=Path)
     prepare_parser.add_argument("--sail-bin", type=Path)
     prepare_parser.add_argument("--force", action="store_true")
     coverage_parser = commands.add_parser("coverage")
     coverage_parser.add_argument("--require-full", action="store_true")
+    audited_parser = commands.add_parser("audited-theorems")
+    audited_parser.add_argument(
+        "--write",
+        action="store_true",
+        help="repin AUDITED_THEOREMS from the live Lean environment",
+    )
+    audited_parser.add_argument(
+        "--audit-output",
+        type=Path,
+        help="replay a captured axiom-audit transcript instead of running Lean",
+    )
+    audited_parser.add_argument(
+        "--pin-file",
+        type=Path,
+        help="source file holding the AUDITED_THEOREMS pin",
+    )
     commands.add_parser("negative-controls")
     verify_receipt_parser = commands.add_parser("verify-receipt")
     common_arguments(verify_receipt_parser)
@@ -756,16 +680,25 @@ def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     root = repository_root()
     air_ir_dir = getattr(args, "air_ir_dir", None)
-    paths = Paths(root, air_ir_dir)
+    air_program_ir_dir = getattr(args, "air_program_ir_dir", None)
+    paths = Paths(root, air_ir_dir, air_program_ir_dir)
     try:
-        if air_ir_dir is not None and not getattr(args, "no_export_air", False):
-            raise RefinementError("--air-ir-dir requires --no-export-air")
+        if (
+            air_ir_dir is not None or air_program_ir_dir is not None
+        ) and not getattr(args, "no_export_air", False):
+            raise RefinementError(
+                "--air-ir-dir and --air-program-ir-dir require --no-export-air"
+            )
         if args.command == "generate":
             generate(args, paths)
+        elif args.command == "capture-sail-translation":
+            capture_sail_translation(args, paths)
         elif args.command == "check-generated":
             check_generated(args, paths)
         elif args.command == "coverage":
             coverage(paths, args.require_full)
+        elif args.command == "audited-theorems":
+            audited_theorems(args, paths)
         elif args.command == "negative-controls":
             negative_controls(paths)
         elif args.command == "prepare-sail":
