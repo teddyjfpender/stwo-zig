@@ -80,6 +80,14 @@ TEST_MODULE_RE = re.compile(r"scripts\.tests\.test_([a-z_0-9]+)")
 IMPORT_RE = re.compile(
     r"^\s*(?:import|from)\s+(?:scripts\.)?([a-z_0-9]+)", re.MULTILINE
 )
+FROM_SCRIPTS_GROUP_RE = re.compile(
+    r"^\s*from\s+scripts\s+import\s*\((.*?)^\s*\)",
+    re.MULTILINE | re.DOTALL,
+)
+FROM_SCRIPTS_LINE_RE = re.compile(
+    r"^\s*from\s+scripts\s+import\s+([^\n(]+)$",
+    re.MULTILINE,
+)
 
 
 def _references(text: str, universe: set[str]) -> set[str]:
@@ -92,6 +100,16 @@ def _references(text: str, universe: set[str]) -> set[str]:
         name = f"{match.group(1)}.py"
         if name in universe:
             found.add(name)
+    for imports in FROM_SCRIPTS_GROUP_RE.findall(text):
+        for module in re.findall(r"\b([a-z_0-9]+)\b", imports):
+            name = f"{module}.py"
+            if name in universe:
+                found.add(name)
+    for imports in FROM_SCRIPTS_LINE_RE.findall(text):
+        for module in re.findall(r"\b([a-z_0-9]+)\b", imports):
+            name = f"{module}.py"
+            if name in universe:
+                found.add(name)
     return found
 
 

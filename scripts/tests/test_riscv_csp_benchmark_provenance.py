@@ -260,14 +260,12 @@ class HostArchitectureTests(unittest.TestCase):
             csp_host, "sysctl_value", lambda name: readings.get(name)
         ):
             with mock.patch.object(csp_host.platform, "machine", lambda: "x86_64"):
-                with self.assertRaisesRegex(
-                    csp.BenchmarkError,
-                    "targets x86_64-macos but this host is aarch64-macos",
-                ):
-                    csp_build_identity.validate_build_identity(
-                        identity,
-                        system="Darwin",
-                    )
+                with mock.patch.object(csp_host.platform, "system", lambda: "Darwin"):
+                    with self.assertRaisesRegex(
+                        csp.BenchmarkError,
+                        "targets x86_64-macos but this host is aarch64-macos",
+                    ):
+                        csp_build_identity.validate_build_identity(identity)
 
     def test_validation_reads_the_hardware_by_default(self) -> None:
         # Pins the wiring: the default comparison comes from
