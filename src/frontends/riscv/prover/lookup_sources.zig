@@ -54,12 +54,8 @@ pub fn ingest(
                 .shard_count = count,
                 .n_real_rows = component.n_real_rows,
                 .committed_columns = column_views[shard_offset][0..component.n_columns],
-                .committed_digest = undefined,
+                .committed_digest = std.mem.zeroes(source_ingest.Digest),
             };
-            shards[shard_offset].committed_digest = source_ingest.digestShard(
-                family,
-                shards[shard_offset],
-            );
             ordinal += 1;
             shard_offset += 1;
         }
@@ -71,7 +67,11 @@ pub fn ingest(
         source_count += 1;
     }
     if (shard_offset != statement.n_components) return error.InvalidShardCount;
-    return source_ingest.ingest(allocator, sources[0..source_count], options);
+    return source_ingest.ingestGenerated(
+        allocator,
+        sources[0..source_count],
+        options,
+    );
 }
 
 pub fn registerMemoryBoundary(

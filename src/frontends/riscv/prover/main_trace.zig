@@ -127,12 +127,20 @@ pub fn generateAndCommit(
     // Table multiplicities are derived from the exact family buffers that are
     // committed below. Keeping the lookup source and its commitment on one
     // witness path is what makes a pre-commit mutation hook visible to both.
-    var lookup_source = try lookup_sources.ingest(
-        allocator,
-        statement.*,
-        &workspace.opcode_columns,
-        .{ .unrepresentable = if (forged) .drop else .reject },
-    );
+    var lookup_source = blk: {
+        var stage = try stage_profile.StageScope.begin(
+            recorder,
+            "riscv_lookup_source_ingest",
+            "RISC-V lookup-source ingestion",
+        );
+        defer stage.end();
+        break :blk try lookup_sources.ingest(
+            allocator,
+            statement.*,
+            &workspace.opcode_columns,
+            .{ .unrepresentable = if (forged) .drop else .reject },
+        );
+    };
     errdefer lookup_source.deinit(allocator);
     try registerLookupSources(&lookup_source, witness, workspace);
     try appendLookupColumns(allocator, &columns, &lookup_source);

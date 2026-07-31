@@ -2,10 +2,12 @@
 //!
 //! Inputs are the padded, bit-reversed M31 columns committed by the production
 //! main trace. The adapter restores logical row order, reconstructs the pinned
-//! relation-entry list, validates every source before allocating the result,
-//! then registers signed table numerators into one counter set.
+//! relation-entry list, and validates and registers each row in the same pass.
+//! Caller-bound sources additionally authenticate their supplied shard digest;
+//! production-generated sources derive the identical manifest directly.
 
 const std = @import("std");
+const work_pool = @import("stwo_prover_engine").work_pool;
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const blake2 = @import("stwo_core").vcs.blake2_hash;
@@ -97,21 +99,252 @@ pub const Options = struct {
     unrepresentable: UnrepresentableRequest = .reject,
 };
 
-/// Validate all production sources before allocating the returned table set.
-/// A caller can therefore never observe partially registered counters.
+/// Validates caller-supplied shard digests while registering each validated row
+/// exactly once. Partially registered counters are destroyed on every error and
+/// can therefore never escape to the caller.
 pub fn ingest(
     allocator: std.mem.Allocator,
     sources: []const FamilySource,
     options: Options,
 ) !Result {
-    const validation = try validateSources(allocator, sources, options);
-    var counters = try counter.Set.init(allocator);
-    errdefer counters.deinit(allocator);
-    for (sources) |source| {
-        for (source.shards) |shard| {
-            _ = try scanShard(allocator, source.family, shard, &counters, options);
+    return ingestImpl(allocator, sources, options, .validate);
+}
+
+/// Production opcode columns and their shard descriptors are assembled in one
+/// scope, so there is no independent digest to authenticate against. Derive the
+/// bound manifest directly instead of hashing every multi-gigabyte source once
+/// to fill `committed_digest` and immediately hashing it again to compare.
+pub fn ingestGenerated(
+    allocator: std.mem.Allocator,
+    sources: []const FamilySource,
+    options: Options,
+) !Result {
+    if (generatedPaddedRows(sources) >= generated_parallel_row_threshold) {
+        if (work_pool.getGlobalPool()) |pool| {
+            return ingestGeneratedParallel(allocator, sources, options, pool);
         }
     }
+    return ingestImpl(allocator, sources, options, .derive);
+}
+
+const generated_parallel_row_threshold: usize = 1 << 18;
+// A complete dense counter set is about 11 MiB. Eight private sets keep the
+// parallel hot loop synchronization-free while bounding extra scratch below
+// 100 MiB even on hosts that expose many more pool lanes.
+const max_generated_ingest_workers: usize = 8;
+
+fn generatedPaddedRows(sources: []const FamilySource) usize {
+    var rows: usize = 0;
+    for (sources) |source| {
+        for (source.shards) |shard| {
+            if (shard.committed_columns.len == 0) return 0;
+            rows = std.math.add(
+                usize,
+                rows,
+                shard.committed_columns[0].len,
+            ) catch return std.math.maxInt(usize);
+        }
+    }
+    return rows;
+}
+
+const GeneratedShardWork = struct {
+    family: trace.OpcodeFamily,
+    shard: Shard,
+    digest: Digest = undefined,
+    counts: [schema.KIND_COUNT]u64 = .{0} ** schema.KIND_COUNT,
+};
+
+const GeneratedWorker = struct {
+    allocator: std.mem.Allocator,
+    work: []GeneratedShardWork,
+    counters: *counter.Set,
+    options: Options,
+    index: usize,
+    stride: usize,
+    err: ?anyerror = null,
+
+    fn run(self: *@This()) void {
+        var work_index = self.index;
+        while (work_index < self.work.len) : (work_index += self.stride) {
+            const item = &self.work[work_index];
+            item.digest = digestShard(item.family, item.shard);
+            item.counts = scanShard(
+                self.allocator,
+                item.family,
+                item.shard,
+                self.counters,
+                self.options,
+            ) catch |err| {
+                self.err = err;
+                return;
+            };
+        }
+    }
+};
+
+/// Generated shards are independent until their signed table multiplicities
+/// are added. Each worker therefore scans disjoint row-major shards into a
+/// private dense counter set, avoiding synchronization in the hot row loop;
+/// the bounded sets are merged afterwards in canonical table-row order.
+fn ingestGeneratedParallel(
+    allocator: std.mem.Allocator,
+    sources: []const FamilySource,
+    options: Options,
+    pool: *work_pool.WorkPool,
+) !Result {
+    var work_count: usize = 0;
+    for (sources) |source| {
+        work_count = std.math.add(usize, work_count, source.shards.len) catch
+            return error.InvalidShardCount;
+    }
+    if (work_count < 2) return ingestImpl(allocator, sources, options, .derive);
+
+    const work = try allocator.alloc(GeneratedShardWork, work_count);
+    defer allocator.free(work);
+    const geometry = try prepareGeneratedWork(sources, work);
+
+    const worker_count = @min(
+        @min(pool.workerCount(), max_generated_ingest_workers),
+        work.len,
+    );
+    if (worker_count < 2) return ingestImpl(allocator, sources, options, .derive);
+
+    const counter_sets = try allocator.alloc(counter.Set, worker_count);
+    defer allocator.free(counter_sets);
+    var initialized_sets: usize = 0;
+    var sets_owned = true;
+    defer if (sets_owned) {
+        for (counter_sets[0..initialized_sets]) |*set| set.deinit(allocator);
+    };
+    for (counter_sets) |*set| {
+        set.* = try counter.Set.init(allocator);
+        initialized_sets += 1;
+    }
+
+    const workers = try allocator.alloc(GeneratedWorker, worker_count);
+    defer allocator.free(workers);
+    for (workers, counter_sets, 0..) |*worker, *set, index| {
+        worker.* = .{
+            .allocator = allocator,
+            .work = work,
+            .counters = set,
+            .options = options,
+            .index = index,
+            .stride = worker_count,
+        };
+    }
+    var wait_group = std.Thread.WaitGroup{};
+    for (workers[1..]) |*worker| {
+        pool.spawnWg(&wait_group, GeneratedWorker.run, .{worker});
+    }
+    GeneratedWorker.run(&workers[0]);
+    wait_group.wait();
+    for (workers) |worker| if (worker.err) |err| return err;
+
+    for (counter_sets[1..]) |*set| {
+        mergeCounterSets(&counter_sets[0], set);
+        set.deinit(allocator);
+    }
+    const counters = counter_sets[0];
+    sets_owned = false;
+
+    var validation = geometry;
+    var manifest = blake2.Blake2sHasher.init();
+    manifest.update(manifest_digest_domain);
+    updateU32(&manifest, @intCast(sources.len));
+    var work_index: usize = 0;
+    for (sources) |source| {
+        updateU32(&manifest, @intFromEnum(source.family));
+        updateU32(&manifest, @intCast(source.shards.len));
+        for (source.shards) |_| {
+            const item = work[work_index];
+            for (&validation.source_entries, item.counts) |*total, count| {
+                total.* += count;
+            }
+            manifest.update(&item.digest);
+            work_index += 1;
+        }
+    }
+    std.debug.assert(work_index == work.len);
+    validation.manifest_digest = manifest.finalize();
+    return .{
+        .counters = counters,
+        .family_count = validation.family_count,
+        .shard_count = validation.shard_count,
+        .real_rows = validation.real_rows,
+        .padded_rows = validation.padded_rows,
+        .source_entries = validation.source_entries,
+        .manifest_digest = validation.manifest_digest,
+    };
+}
+
+fn prepareGeneratedWork(
+    sources: []const FamilySource,
+    work: []GeneratedShardWork,
+) !Validation {
+    var seen = [_]bool{false} ** trace.N_FAMILIES;
+    var previous_family: ?usize = null;
+    var validation = Validation{
+        .family_count = 0,
+        .shard_count = 0,
+        .real_rows = 0,
+        .padded_rows = 0,
+        .source_entries = .{0} ** schema.KIND_COUNT,
+        .manifest_digest = undefined,
+    };
+    var work_index: usize = 0;
+    for (sources) |source| {
+        const family_index = @intFromEnum(source.family);
+        if (seen[family_index]) return error.DuplicateFamily;
+        if (previous_family) |previous| {
+            if (family_index <= previous) return error.FamilyOutOfOrder;
+        }
+        seen[family_index] = true;
+        previous_family = family_index;
+        if (source.shards.len == 0 or source.shards.len > std.math.maxInt(u32))
+            return error.InvalidShardCount;
+        validation.family_count += 1;
+        for (source.shards, 0..) |shard, shard_index| {
+            try validateShardShape(source.family, shard, shard_index, source.shards.len);
+            work[work_index] = .{ .family = source.family, .shard = shard };
+            work_index += 1;
+            validation.shard_count += 1;
+            validation.real_rows += @intCast(shard.n_real_rows);
+            validation.padded_rows += @intCast(
+                shard.committed_columns[0].len - shard.n_real_rows,
+            );
+        }
+    }
+    if (work_index != work.len) return error.InvalidShardCount;
+    return validation;
+}
+
+fn mergeCounterSets(destination: *counter.Set, source: *const counter.Set) void {
+    for (&destination.counters, &source.counters) |*dst, *src| {
+        for (dst.values, src.values) |*value, addend| {
+            value.* = value.add(addend);
+        }
+    }
+}
+
+const DigestPolicy = enum { validate, derive };
+
+fn ingestImpl(
+    allocator: std.mem.Allocator,
+    sources: []const FamilySource,
+    options: Options,
+    digest_policy: DigestPolicy,
+) !Result {
+    var counters = try counter.Set.init(allocator);
+    errdefer counters.deinit(allocator);
+    const validation = try validateSources(
+        allocator,
+        sources,
+        options,
+        digest_policy,
+        &counters,
+    );
     return .{
         .counters = counters,
         .family_count = validation.family_count,
@@ -145,6 +378,8 @@ fn validateSources(
     allocator: std.mem.Allocator,
     sources: []const FamilySource,
     options: Options,
+    digest_policy: DigestPolicy,
+    counters: *counter.Set,
 ) !Validation {
     var seen = [_]bool{false} ** trace.N_FAMILIES;
     var previous_family: ?usize = null;
@@ -174,9 +409,16 @@ fn validateSources(
         for (source.shards, 0..) |shard, shard_index| {
             try validateShardShape(source.family, shard, shard_index, source.shards.len);
             const actual_digest = digestShard(source.family, shard);
-            if (!std.mem.eql(u8, &actual_digest, &shard.committed_digest))
+            if (digest_policy == .validate and
+                !std.mem.eql(u8, &actual_digest, &shard.committed_digest))
                 return error.CommittedDigestMismatch;
-            const counts = try scanShard(allocator, source.family, shard, null, options);
+            const counts = try scanShard(
+                allocator,
+                source.family,
+                shard,
+                counters,
+                options,
+            );
             for (&source_entries, counts) |*total, count| total.* += count;
             shard_count += 1;
             real_rows += @intCast(shard.n_real_rows);
@@ -379,6 +621,22 @@ fn boundShard(
     return shard;
 }
 
+fn expectEqualResults(expected: *const Result, actual: *const Result) !void {
+    try std.testing.expectEqual(expected.family_count, actual.family_count);
+    try std.testing.expectEqual(expected.shard_count, actual.shard_count);
+    try std.testing.expectEqual(expected.real_rows, actual.real_rows);
+    try std.testing.expectEqual(expected.padded_rows, actual.padded_rows);
+    try std.testing.expectEqualSlices(u64, &expected.source_entries, &actual.source_entries);
+    try std.testing.expectEqualSlices(u8, &expected.manifest_digest, &actual.manifest_digest);
+    for (&expected.counters.counters, &actual.counters.counters) |*want, *got| {
+        try std.testing.expectEqual(want.kind, got.kind);
+        try std.testing.expectEqual(want.values.len, got.values.len);
+        for (want.values, got.values) |want_value, got_value| {
+            try std.testing.expect(want_value.eql(got_value));
+        }
+    }
+}
+
 test "lookup source ingestion: committed families feed all six signed tables" {
     const allocator = std.testing.allocator;
     const families = [_]trace.OpcodeFamily{ .base_alu_reg, .base_alu_imm, .lt_imm, .auipc };
@@ -421,6 +679,14 @@ test "lookup source ingestion: committed families feed all six signed tables" {
         try std.testing.expect(entries_count > 0);
         try std.testing.expect(!total.isZero());
     }
+
+    // Generated production sources derive their digest instead of comparing a
+    // caller-provided copy. The resulting provenance and counters must still be
+    // byte-for-byte identical to strict ingestion.
+    for (&shards) |*shard| shard.committed_digest = std.mem.zeroes(Digest);
+    var generated = try ingestGenerated(allocator, &sources, .{});
+    defer generated.deinit(allocator);
+    try expectEqualResults(&result, &generated);
 }
 
 test "lookup source ingestion: every table counter is additive across shards" {
