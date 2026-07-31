@@ -32,6 +32,7 @@ if __package__ in (None, ""):  # direct execution; the repository root is absent
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from scripts import (
     riscv_opcode_coverage,
+    riscv_refinement_publication,
     riscv_refinement_receipt_build as receipt_build,
     riscv_refinement_receipt_constants as receipt_constants,
     riscv_refinement_receipt_identity as receipt_identity,
@@ -627,11 +628,21 @@ def verify(args: argparse.Namespace, paths: Paths) -> Verification:
             "Lean mutation theorem coverage is incomplete: "
             + ", ".join(missing_mutations)
         )
+    publication_evidence = (
+        riscv_refinement_publication.build_publication_evidence(
+            paths,
+            codec.load_json(
+                paths.formal / sail.COMMITTED_MONAD_BRIDGE_RECEIPT
+            ),
+            axiom_report,
+        )
+    )
     print(
-        "refinement verified: fresh artifacts, retained 2/46 normalized "
-        "pilot, exact 24/24 production-AIR and 46/46 graded certificate "
-        "coverage, negative controls, unit tests, Lean build, and axiom "
-        "audit; publication remains fail-closed"
+        "refinement verified: fresh artifacts, exact 46/46 generated-Sail "
+        "normalizations and publication implications, exact 46/46 "
+        "production-program identities, negative controls, unit tests, "
+        "Lean build, and axiom audits "
+        f"(full-step={publication_evidence['full_generated_sail_step']})"
     )
     return Verification(theorem_axioms=axiom_report)
 
@@ -665,8 +676,8 @@ def receipt(args: argparse.Namespace, paths: Paths) -> None:
     print(
         "refinement receipt: "
         f"{payload['canonical_digest']} "
-        "(24/24 production AIR, 46/46 graded, 2 normalized, "
-        "0 publication)"
+        "(FV-1/FV-2: 46/46 normalized, 46/46 publication; "
+        "FV-3 through FV-5 remain open)"
     )
 
 
