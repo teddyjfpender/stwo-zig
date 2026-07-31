@@ -47,6 +47,42 @@ class ManifestTest(unittest.TestCase):
         self.assertTrue(small)
         self.assertTrue(all(w.workload_class == "small" for w in small))
 
+    def test_riscv_small_wall_covers_public_qualifier_without_global_drift(self):
+        riscv_small = self.m.gates_for_workload("riscv", "small")
+        riscv_walls = {"small": 600, "wide": 360, "deep": 600}
+        self.assertEqual(
+            riscv_small["wall_clock_cap_seconds"],
+            riscv_walls,
+        )
+        self.assertEqual(riscv_small["command_timeout_seconds"], 1200)
+        self.assertEqual(
+            (
+                riscv_small["warmups"],
+                riscv_small["samples_per_round"],
+                riscv_small["min_rounds"],
+                riscv_small["max_rounds"],
+            ),
+            (1, 1, 3, 5),
+        )
+        self.assertEqual(
+            self.m.gates_for_workload("riscv", "wide")[
+                "wall_clock_cap_seconds"
+            ],
+            riscv_walls,
+        )
+        self.assertEqual(
+            self.m.gates_for_workload("riscv", "deep")[
+                "wall_clock_cap_seconds"
+            ],
+            riscv_walls,
+        )
+        self.assertEqual(
+            self.m.gates_for_workload("native", "small")[
+                "wall_clock_cap_seconds"
+            ],
+            {"small": 240},
+        )
+
     def test_manifest_owns_scored_class_order_and_board_exposure(self):
         self.assertEqual(
             self.m.class_names(scored_only=True),
