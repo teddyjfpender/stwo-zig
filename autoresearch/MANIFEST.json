@@ -995,7 +995,9 @@
             "glob": "src/integrations/native/**",
             "min_rung": "s3"
           }
-        ]
+        ],
+        "delisted": true,
+        "delisted_reason": "Dropped from the track surface for now (no CUDA hardware in the campaign); the staged group, activation contract, and tests stay intact — flip this flag when hardware lands (TRACKS wave 3)."
       },
       "cairo_cpu": {
         "enabled": true,

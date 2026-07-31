@@ -302,6 +302,13 @@ def _promotion_scope(manifest: Manifest) -> dict:
             "promotion_blocked_reason": group.promotion_blocked_reason,
             "report_schema": group.report_schema,
             "retirement": dict(group.retirement) or None,
+            # Delisted: dropped from the product surface without touching the
+            # group's contract, tests, or history — the site hides, never the
+            # harness (TRACKS §2; the CUDA "for now" case).
+            "delisted": bool(manifest.raw["workload_registry"]["groups"]
+                             .get(group.group_id, {}).get("delisted", False)),
+            "delisted_reason": manifest.raw["workload_registry"]["groups"]
+                               .get(group.group_id, {}).get("delisted_reason"),
             "workloads": {
                 w.workload_id: {"class": w.workload_class, "native_unit": w.native_unit}
                 for w in group.workloads
