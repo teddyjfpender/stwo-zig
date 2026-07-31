@@ -363,7 +363,7 @@
           "max_rounds": 5,
           "wall_clock_cap_seconds": {
             "small": 600,
-            "wide": 360,
+            "wide": 900,
             "deep": 600
           }
         },
