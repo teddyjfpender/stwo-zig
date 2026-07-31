@@ -172,7 +172,7 @@ class RefinementAirTest(unittest.TestCase):
         digests = render._generator_digests(Paths(ROOT))
         for relative in (
             ".github/workflows/riscv-sail-formal.yml",
-            ".github/workflows/riscv-team-b-refinement.yml",
+            ".github/workflows/riscv-refinement.yml",
             "scripts/riscv_opcode_coverage.py",
             "scripts/riscv_team_a.py",
             "scripts/riscv_team_b.py",

@@ -6,6 +6,13 @@ from scripts.tests.riscv_refinement_test_support import *
 
 
 class RefinementSailTest(unittest.TestCase):
+    def test_live_bridge_command_pins_the_external_lean_root(self) -> None:
+        paths = Paths(ROOT)
+        command = sail_lean_bridge._bridge_lean_command(paths)
+        bridge = ROOT / sail_lean_bridge.BRIDGE_SOURCE
+        self.assertEqual(command[command.index("-R") + 1], str(bridge.parent))
+        self.assertEqual(command[-1], str(bridge))
+
     def test_carried_sail_evidence_reproduces_the_committed_provenance(
         self,
     ) -> None:

@@ -1,8 +1,9 @@
 # RISC-V production AIR IR v2 contract
 
-**Status:** normative wire and interpretation contract for the first Team A
-Level-2 AIR-binding PR in
-[issue #136](https://github.com/teddyjfpender/stwo-zig/issues/136).
+**Status:** normative repository-wide wire and interpretation contract for
+production RISC-V AIR binding. It originated in the first Level-2 AIR-binding
+work for [issue #136](https://github.com/teddyjfpender/stwo-zig/issues/136);
+contributor allocation is not part of this contract.
 
 **Machine-readable companion:**
 [`air-ir-v2.schema.json`](air-ir-v2.schema.json).

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate and check the graded RV32IM AIR-to-Sail refinement evidence."""
+"""Generate and check manifest-wide RV32IM AIR-to-Sail refinement evidence."""
 
 from __future__ import annotations
 
@@ -608,6 +608,7 @@ def verify(args: argparse.Namespace, paths: Paths) -> Verification:
             "scripts.tests.test_riscv_team_a",
             "scripts.tests.test_sail_translation",
             "scripts.tests.test_sail_air_composition_contract",
+            "scripts.tests.test_riscv_refinement_publication",
         ],
         paths.root,
     )
@@ -628,8 +629,9 @@ def verify(args: argparse.Namespace, paths: Paths) -> Verification:
         )
     print(
         "refinement verified: fresh artifacts, retained 2/46 normalized "
-        "pilot, exact 24/24 Team A and 46/46 graded certificate coverage, "
-        "negative controls, unit tests, Lean build, and axiom audit"
+        "pilot, exact 24/24 production-AIR and 46/46 graded certificate "
+        "coverage, negative controls, unit tests, Lean build, and axiom "
+        "audit; publication remains fail-closed"
     )
     return Verification(theorem_axioms=axiom_report)
 
@@ -663,7 +665,8 @@ def receipt(args: argparse.Namespace, paths: Paths) -> None:
     print(
         "refinement receipt: "
         f"{payload['canonical_digest']} "
-        "(A5 24/24 AIR, 46/46 graded, 2 normalized, 0 publication)"
+        "(24/24 production AIR, 46/46 graded, 2 normalized, "
+        "0 publication)"
     )
 
 

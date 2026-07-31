@@ -24,6 +24,7 @@ enum Command {
         program_type: execution::ProgramType,
         arguments: Option<PathBuf>,
         output: PathBuf,
+        overwrite: bool,
     },
 }
 
@@ -62,7 +63,8 @@ fn run() -> Result<()> {
             program_type,
             arguments,
             output,
-        } => run_program(program_type, &program, arguments.as_deref(), &output)?,
+            overwrite,
+        } => run_program(program_type, &program, arguments.as_deref(), &output, overwrite)?,
     }
     Ok(())
 }
@@ -72,8 +74,9 @@ fn run_program(
     program_path: &Path,
     arguments_path: Option<&Path>,
     output_path: &Path,
+    overwrite: bool,
 ) -> Result<()> {
-    let program_bytes = read_bounded(program_path, MAX_PROGRAM_BYTES)?;
+    let program_bytes = read_bounded_maybe_gzip(program_path, MAX_PROGRAM_BYTES)?;
     let argument_bytes = arguments_path
         .map(|path| read_bounded(path, MAX_ARGUMENT_BYTES))
         .transpose()?;
@@ -84,7 +87,34 @@ fn run_program(
         prover_input.public_segment_context = public_segment_context;
     }
     prover_input.public_memory_addresses.sort_unstable();
-    write_json_new(output_path, &prover_input)
+    if overwrite {
+        write_json_overwrite(output_path, &prover_input)
+    } else {
+        write_json_new(output_path, &prover_input)
+    }
+}
+
+/// Committed fixture programs may be gzip-compressed (`.json.gz`) to respect
+/// the repository fixture budget; detection is by the gzip magic, and the
+/// DECOMPRESSED size is held to the same bound as a plain program.
+fn read_bounded_maybe_gzip(path: &Path, limit: u64) -> Result<Vec<u8>> {
+    let bytes = read_bounded(path, limit)?;
+    if bytes.len() < 2 || bytes[0] != 0x1f || bytes[1] != 0x8b {
+        return Ok(bytes);
+    }
+    let mut decoder = flate2::read::GzDecoder::new(bytes.as_slice());
+    let mut decompressed = Vec::new();
+    decoder
+        .by_ref()
+        .take(limit + 1)
+        .read_to_end(&mut decompressed)
+        .with_context(|| format!("failed to decompress {}", path.display()))?;
+    anyhow::ensure!(
+        decompressed.len() as u64 <= limit,
+        "{} exceeds the {limit}-byte limit after decompression",
+        path.display()
+    );
+    Ok(decompressed)
 }
 
 fn read_bounded(path: &Path, limit: u64) -> Result<Vec<u8>> {
@@ -107,6 +137,29 @@ fn read_bounded(path: &Path, limit: u64) -> Result<Vec<u8>> {
         .read_to_end(&mut bytes)
         .with_context(|| format!("failed to read {}", path.display()))?;
     Ok(bytes)
+}
+
+/// Build-derived outputs (`zig build cairo-zkvm-fixtures`) regenerate on every
+/// invocation: write to a sibling temp file and rename over the target so a
+/// crash never leaves a truncated ProverInput behind.
+fn write_json_overwrite(path: &Path, value: &impl serde::Serialize) -> Result<()> {
+    let mut temp = path.as_os_str().to_owned();
+    temp.push(".tmp");
+    let temp = PathBuf::from(temp);
+    {
+        let file = File::create(&temp)
+            .with_context(|| format!("failed to create {}", temp.display()))?;
+        let mut writer = BufWriter::with_capacity(4 << 20, file);
+        serde_json::to_writer(&mut writer, value).context("failed to serialize ProverInput")?;
+        writer.flush().context("failed to flush ProverInput")?;
+        writer
+            .into_inner()
+            .context("failed to finish ProverInput")?
+            .sync_all()
+            .context("failed to sync ProverInput")?;
+    }
+    std::fs::rename(&temp, path)
+        .with_context(|| format!("failed to move {} into place", temp.display()))
 }
 
 fn write_json_new(path: &Path, value: &impl serde::Serialize) -> Result<()> {
@@ -151,10 +204,16 @@ where
     let mut program_type = None;
     let mut arguments = None;
     let mut output = None;
+    let mut overwrite = false;
     while let Some(flag) = args.next() {
         let flag = flag
             .into_string()
             .map_err(|_| anyhow::anyhow!("option is not valid UTF-8"))?;
+        if flag == "--overwrite" {
+            anyhow::ensure!(!overwrite, "duplicate option --overwrite");
+            overwrite = true;
+            continue;
+        }
         let value = args
             .next()
             .ok_or_else(|| anyhow::anyhow!("missing value for {flag}"))?;
@@ -177,6 +236,7 @@ where
         program_type,
         arguments,
         output: output.ok_or_else(|| anyhow::anyhow!("missing --prover-input-out"))?,
+        overwrite,
     })
 }
 

@@ -1,0 +1,166 @@
+{
+  "reference_kind": "device-baseline",
+  "schema": "device-baseline-cairo-zkvm-v1",
+  "name": "m4-max-cairo-zkvm-baseline",
+  "measured_at_utc": "2026-07-31",
+  "note": "Reference baseline for the cairo function basket, measured end to end on the development M4 Max: pinned adapter execution (VM-step counts reproduce vectors/cairo/cairo_program_matrix.json exactly) followed by stwo-cairo-cpu prove --verify. Single warm sample per case, whole-pipeline boundary. NEVER SCORED: board scores come from the calibrated judge host; this file exists so every basket row has a committed, device-attributed measurement from day one of the era.",
+  "host": {
+    "model": "MacBook Pro",
+    "chip": "Apple M4 Max",
+    "cores_total": 14,
+    "cores_performance": 10,
+    "cores_efficiency": 4,
+    "memory_gb": 36,
+    "os": "macOS (Darwin 24.3.0)"
+  },
+  "toolchains": {
+    "zig": "0.15.2",
+    "rustc": "1.97.1",
+    "cairo_lang": "0.14.0.1",
+    "adapter_identity": {
+      "cairo_language_version": "2.20.0",
+      "cairo_vm_version": "3.2.0",
+      "executable_sha256": "36716bb9b3533f85f1e4fa51aec244ee4ce2f5389583e053d8c392c08fdad3c9",
+      "layout": "all_cairo_stwo",
+      "name": "stwo-cairo-vm-adapter",
+      "program_types": [
+        "json",
+        "executable"
+      ],
+      "schema_version": 1,
+      "stwo_cairo_revision": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+      "stwo_revision": "7b211edde786775016ef3eecb837a6240d8fe792"
+    }
+  },
+  "boundary": "adapter execute + stwo-cairo-cpu prove --verify (wall clock)",
+  "params": "vectors/cairo/official/all_builtins.params.json",
+  "generated_from_commit": "6afbfe218c57d9a1a9aa637e566c0cf462eea482",
+  "cases": [
+    {
+      "identity": "blake-chain-precompile:medium",
+      "input_size": 1024,
+      "vm_steps": 166008,
+      "vm_steps_match_matrix": true,
+      "prove_verify_wall_s": 11.64,
+      "proof_bytes": 2454329,
+      "prover_input_bytes": 6155247
+    },
+    {
+      "identity": "blake-precompile:medium",
+      "input_size": 65536,
+      "vm_steps": 172223,
+      "vm_steps_match_matrix": true,
+      "prove_verify_wall_s": 11.72,
+      "proof_bytes": 2605772,
+      "prover_input_bytes": 8370730
+    },
+    {
+      "identity": "ec:large",
+      "input_size": 4096,
+      "vm_steps": 958498,
+      "vm_steps_match_matrix": true,
+      "prove_verify_wall_s": 14.86,
+      "proof_bytes": 2118018,
+      "prover_input_bytes": 75703339
+    },
+    {
+      "identity": "ec:medium",
+      "input_size": 1024,
+      "vm_steps": 239650,
+      "vm_steps_match_matrix": true,
+      "prove_verify_wall_s": 11.81,
+      "proof_bytes": 2127386,
+      "prover_input_bytes": 18729487
+    },
+    {
+      "identity": "fib:large",
+      "input_size": 131072,
+      "vm_steps": 917520,
+      "vm_steps_match_matrix": true,
+      "prove_verify_wall_s": 12.83,
+      "proof_bytes": 1884608,
+      "prover_input_bytes": 49644554
+    },
+    {
+      "identity": "fib:medium",
+      "input_size": 32768,
+      "vm_steps": 229392,
+      "vm_steps_match_matrix": true,
+      "prove_verify_wall_s": 11.96,
+      "proof_bytes": 1887963,
+      "prover_input_bytes": 12122208
+    },
+    {
+      "identity": "mat_mul:large",
+      "input_size": 32,
+      "vm_steps": 705179,
+      "vm_steps_match_matrix": true,
+      "prove_verify_wall_s": 11.66,
+      "proof_bytes": 1904409,
+      "prover_input_bytes": 27547795
+    },
+    {
+      "identity": "mat_mul:medium",
+      "input_size": 24,
+      "vm_steps": 304643,
+      "vm_steps_match_matrix": true,
+      "prove_verify_wall_s": 10.91,
+      "proof_bytes": 1876667,
+      "prover_input_bytes": 11742196
+    },
+    {
+      "identity": "sha2-chain:medium",
+      "input_size": 512,
+      "vm_steps": 183442,
+      "vm_steps_match_matrix": true,
+      "prove_verify_wall_s": 9.19,
+      "proof_bytes": 2047373,
+      "prover_input_bytes": 7162697
+    },
+    {
+      "identity": "sha2:large",
+      "input_size": 16384,
+      "vm_steps": 605445,
+      "vm_steps_match_matrix": true,
+      "prove_verify_wall_s": 10.07,
+      "proof_bytes": 2392961,
+      "prover_input_bytes": 44850816
+    },
+    {
+      "identity": "sha2:medium",
+      "input_size": 4096,
+      "vm_steps": 160491,
+      "vm_steps_match_matrix": true,
+      "prove_verify_wall_s": 9.2,
+      "proof_bytes": 2409129,
+      "prover_input_bytes": 11838140
+    },
+    {
+      "identity": "sha3-chain:medium",
+      "input_size": 32,
+      "vm_steps": 212354,
+      "vm_steps_match_matrix": true,
+      "prove_verify_wall_s": 11.34,
+      "proof_bytes": 2388490,
+      "prover_input_bytes": 13603305
+    },
+    {
+      "identity": "sha3:large",
+      "input_size": 16384,
+      "vm_steps": 814193,
+      "vm_steps_match_matrix": true,
+      "prove_verify_wall_s": 11.99,
+      "proof_bytes": 2384584,
+      "prover_input_bytes": 75430573
+    },
+    {
+      "identity": "sha3:medium",
+      "input_size": 4096,
+      "vm_steps": 217337,
+      "vm_steps_match_matrix": true,
+      "prove_verify_wall_s": 11.01,
+      "proof_bytes": 2369090,
+      "prover_input_bytes": 21562343
+    }
+  ]
+}

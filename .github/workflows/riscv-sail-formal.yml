@@ -2,7 +2,7 @@
 # hosted CI so the "reviewed capsule" claim boundary stops depending on any
 # developer laptop having a working Sail installation.
 #
-# What this workflow does that riscv-team-b-refinement.yml deliberately does
+# What this workflow does that riscv-refinement.yml deliberately does
 # not: it provisions the pinned Sail compiler (the same hash-pinned upstream
 # release binary riscv-sail-differential.yml installs), builds the pinned
 # sail-riscv workspace, regenerates the exact-profile RV32IM Sail Lean
@@ -16,7 +16,7 @@
 # Lean backend, the Lean proof tree, and the Zig pilot -- far too slow for a
 # per-PR required check, and a slow required check only teaches contributors
 # to ignore it. The fast PR-scoped formal leg stays in
-# riscv-team-b-refinement.yml; this job is the capability that makes the
+# riscv-refinement.yml; this job is the capability that makes the
 # Sail-present run hosted instead of a laptop prerequisite.
 #
 # Fail-closed contract: there is no skip path anywhere in this workflow. A
@@ -32,7 +32,7 @@ on:
   push:
     branches: ["main"]
   schedule:
-    # Daily, offset from the 04:37 Sail differential and the 05:23 Team B
+    # Daily, offset from the 04:37 Sail differential and the 05:23 refinement
     # clean-room so the three heavy formal jobs do not contend.
     - cron: "41 3 * * *"
   workflow_dispatch:

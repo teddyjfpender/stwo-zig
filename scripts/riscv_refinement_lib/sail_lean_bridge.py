@@ -208,6 +208,20 @@ def _project(generated_file: Path) -> Path:
     return project
 
 
+def _bridge_lean_command(paths: Paths) -> list[str]:
+    """Build the Lean command with the external bridge root made explicit."""
+    source = paths.root / BRIDGE_SOURCE
+    return [
+        "lake",
+        "env",
+        "lean",
+        "--tstack=400000",
+        "-R",
+        str(source.parent),
+        str(source),
+    ]
+
+
 def _patch_support(paths: Paths, project: Path) -> None:
     patch = paths.root / SUPPORT_PATCH
     if (
@@ -421,13 +435,7 @@ def verify(
         else f"{formal_lean_path}{os.pathsep}{inherited}"
     )
     output = _run(
-        [
-            "lake",
-            "env",
-            "lean",
-            "--tstack=400000",
-            str(paths.root / BRIDGE_SOURCE),
-        ],
+        _bridge_lean_command(paths),
         project,
         env=environment,
         timeout=600,

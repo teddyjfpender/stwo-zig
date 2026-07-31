@@ -1,10 +1,13 @@
 # Team B contract: generated Sail binding and complete normalized retirement
 
-Status: **Stage B0 freeze, proposed.** This document is the Team B half of the
-joint contract required by issue #137 Stage B0. It is normative for the Team B
-side of the interface and advisory for Team A's side until both DRIs sign it.
+> **Historical rollout contract — superseded and non-normative.** It records a
+> proposed contributor allocation for issue #137, not an ISA partition or a
+> verification grade. The repository-wide contract is
+> [`UNIVERSAL_AIR_SAIL_REFINEMENT.md`](UNIVERSAL_AIR_SAIL_REFINEMENT.md), and
+> the current claim/roadmap ledger is
+> [`RISCV_FRONTEND_VERIFICATION_STATUS.md`](RISCV_FRONTEND_VERIFICATION_STATUS.md).
 
-Normative parent plan: [`UNIVERSAL_AIR_SAIL_REFINEMENT.md`](UNIVERSAL_AIR_SAIL_REFINEMENT.md).
+Current parent contract: [`UNIVERSAL_AIR_SAIL_REFINEMENT.md`](UNIVERSAL_AIR_SAIL_REFINEMENT.md).
 Composition premise this closes, jointly with Team A: SA-1 premise 5 in
 [`SAIL_AIR_COMPOSITION.md`](SAIL_AIR_COMPOSITION.md).
 
@@ -551,6 +554,6 @@ from a clean checkout. A signer who cannot check an item does not sign.
    `scripts/tests/test_riscv_team_b_witnesses.py::AddressAliasingRegressionTest`
    passes, and the witness gate fails unless the historical row is rejected by
    production constraint root 69 alone.
-6. The hosted gate `.github/workflows/riscv-team-b-refinement.yml` has no path
+6. The successor hosted gate `.github/workflows/riscv-refinement.yml` has no path
    that passes with the Lean leg skipped, and its scheduled clean-room job
    rebuilds from empty caches and runs `leanchecker`.

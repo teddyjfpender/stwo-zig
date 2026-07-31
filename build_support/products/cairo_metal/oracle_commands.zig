@@ -79,10 +79,7 @@ pub fn addProgramProof(
     configureMetal(run, aot_bundle_path);
     run.setEnvironmentVariable(
         "STWO_CAIRO_VM_ADAPTER",
-        b.pathFromRoot(
-            "tools/stwo-cairo-vm-adapter-rs/target/debug/" ++
-                "stwo-cairo-vm-adapter",
-        ),
+        cargoDebugTool(b, "tools/stwo-cairo-vm-adapter-rs", "stwo-cairo-vm-adapter"),
     );
     run.addArgs(&.{ "run-and-prove", "--program" });
     run.addFileArg(b.path(case.program));
@@ -205,11 +202,17 @@ pub fn addAdapterTests(b: *std.Build) *std.Build.Step.Run {
     });
 }
 
+/// A cargo-built tool honoring CARGO_TARGET_DIR (the focused CI lanes point
+/// it into the lane cache); the manifest-relative default only holds when
+/// that override is absent.
+fn cargoDebugTool(b: *std.Build, comptime tool_dir: []const u8, comptime name: []const u8) []const u8 {
+    if (b.graph.env_map.get("CARGO_TARGET_DIR")) |dir|
+        return b.fmt("{s}/debug/" ++ name, .{dir});
+    return b.pathFromRoot(tool_dir ++ "/target/debug/" ++ name);
+}
+
 pub fn oraclePath(b: *std.Build) []const u8 {
-    return b.pathFromRoot(
-        "tools/stwo-cairo-official-verifier-rs/target/debug/" ++
-            "stwo-cairo-official-verifier",
-    );
+    return cargoDebugTool(b, "tools/stwo-cairo-official-verifier-rs", "stwo-cairo-official-verifier");
 }
 
 fn configureMetal(

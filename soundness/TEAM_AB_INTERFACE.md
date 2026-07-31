@@ -1,6 +1,11 @@
 # Team A / Team B interface reconciliation
 
-Status: merge-planning document. This file records the exact conflict surface
+> **Historical integration record — non-normative.** The contributor split in
+> this document has no semantic meaning. Current claims and work sequencing
+> live in
+> [`RISCV_FRONTEND_VERIFICATION_STATUS.md`](RISCV_FRONTEND_VERIFICATION_STATUS.md).
+
+This file records the exact conflict surface
 between the two in-flight refinement branches, which side must win each
 conflict and why, the guarantees a careless merge would silently drop, and the
 integration order that preserves both sides' claims.
@@ -452,7 +457,7 @@ Checklist for the #141 rebase/integration (integration DRI):
    with sign-off from both DRIs (jointly versioned surface).
 9. Run the Python suites:
    `python3 -m unittest scripts.tests.test_riscv_refinement scripts.tests.test_riscv_team_b scripts.tests.test_riscv_team_b_witnesses scripts.tests.test_sail_translation scripts.tests.test_sail_air_composition_contract -v`.
-10. Re-run the merged CI workflows (`riscv-team-b-refinement.yml` and A's AIR
+10. Re-run the merged CI workflows (`riscv-refinement.yml` and A's AIR
     IR gates); note B's workflow now also builds the v2 export inside
     `riscv-refinement-ir` (additive, slower, harmless).
 11. Do not re-freeze interfaces in this merge: `Retirement` is now the agreed

@@ -10,7 +10,7 @@ This brief is generated from `autoresearch/MANIFEST.json` and `autoresearch/ledg
 
 - **Board**: `cairo_metal` · **group**: `cairo_metal` · **report schema**: `cairo_proof_v1`
 - **Enabled**: no · **promotion eligible**: no
-- **Build**: `zig build stwo-cairo-metal -Doptimize=ReleaseFast` → `zig-out/bin/stwo-cairo-metal`
+- **Build**: `zig build cairo-zkvm-fixtures stwo-cairo-metal -Doptimize=ReleaseFast` → `zig-out/bin/stwo-cairo-metal`
 - **Disabled because**: cairo_metal is staged only: TRACKS §2 records the Cairo + Metal product as parity_gated, not released. The product descriptor in build_support/products/cairo_metal.zig still carries state .parity_gated behind its test-cairo-metal-product and test-cairo-metal-oracle release gates, no Metal-lane Cairo calibration exists on the designated judge host, and the generalized per-board Metal calibration (TRACKS §7) is not yet built. The group stays dark and fails closed.
 - **Promotion blocked because**: TRACKS §7: no cairo_metal calibration exists on the designated Apple M5 Max judge host, and the product is parity_gated rather than released.
 - **Era**: none declared; the board falls back to global epoch `2`.
@@ -22,6 +22,20 @@ This brief is generated from `autoresearch/MANIFEST.json` and `autoresearch/ledg
 | --- | --- | --- |
 | `small` | `mcairo_all_opcodes` | committed cells |
 | `wide` | `mcairo_all_builtins` | committed cells |
+| `wide` | `mcairo_fib_medium` | committed cells |
+| `deep` | `mcairo_fib_large` | committed cells |
+| `wide` | `mcairo_sha2_medium` | committed cells |
+| `deep` | `mcairo_sha2_large` | committed cells |
+| `wide` | `mcairo_sha2_chain_medium` | committed cells |
+| `wide` | `mcairo_sha3_medium` | committed cells |
+| `deep` | `mcairo_sha3_large` | committed cells |
+| `wide` | `mcairo_sha3_chain_medium` | committed cells |
+| `wide` | `mcairo_blake_medium` | committed cells |
+| `wide` | `mcairo_blake_chain_medium` | committed cells |
+| `wide` | `mcairo_mat_mul_medium` | committed cells |
+| `deep` | `mcairo_mat_mul_large` | committed cells |
+| `wide` | `mcairo_ec_medium` | committed cells |
+| `deep` | `mcairo_ec_large` | committed cells |
 
 Scores are compared only inside one era on one board. A number from another track, another era, or another boundary is not a comparison (TRACKS §3, §7).
 
