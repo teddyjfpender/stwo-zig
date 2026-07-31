@@ -221,6 +221,8 @@ class CiTests(unittest.TestCase):
         self.assertTrue(any("check_upstream_pins" in line for line in flattened))
         self.assertTrue(any("check_source_conformance" in line for line in flattened))
         self.assertTrue(any("unittest discover" in line for line in flattened))
+        self.assertEqual("-S", FAST_PLAN[-1][1])
+        self.assertNotIn("-S", command_plan(False, "ReleaseFast")[0])
 
     def test_hosted_ci_exposes_standard_and_strict_shared_entrypoints(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")

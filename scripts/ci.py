@@ -37,7 +37,7 @@ FAST_PLAN: list[list[str]] = [
     ["zig", "fmt", "--check", "build.zig", "build_support", "src", "tools"],
     [sys.executable, "scripts/check_upstream_pins.py"],
     [sys.executable, "scripts/check_source_conformance.py"],
-    SCRIPT_TESTS,
+    [sys.executable, "-S", *SCRIPT_TESTS[1:]],
 ]
 
 
