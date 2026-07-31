@@ -188,6 +188,7 @@ test {
     _ = @import("prover/proof_workspace.zig");
     _ = @import("prover/statement_validation.zig");
     _ = @import("prover/test_witness_hook.zig");
+    _ = @import("prover/trace_arena.zig");
     _ = @import("prover/verifier_test.zig");
     _ = @import("air/constraint_program.zig");
     _ = @import("air/extract/program.zig");

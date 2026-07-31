@@ -47,6 +47,7 @@ const statement_geometry = @import("statement_geometry.zig");
 const statement_validation = @import("statement_validation.zig");
 const test_trace_dump = @import("test_trace_dump.zig");
 const test_witness_hook = @import("test_witness_hook.zig");
+const trace_arena = @import("trace_arena.zig");
 const types = @import("types.zig");
 
 const M31 = m31.M31;
@@ -97,8 +98,16 @@ pub fn generateAndCommit(
     const statement = &workspace.statement;
     const n_opcode_main = statement.nOpcodeMainColumns();
     const n_main = n_opcode_main + statement.nInfraColumns();
+    const arena_capable = comptime @hasDecl(Engine, "Backend") and
+        @hasDecl(Engine.Backend, "adopts_source_trace_arena") and
+        Engine.Backend.adopts_source_trace_arena;
 
-    var columns = try Columns.init(allocator, n_main, n_opcode_main);
+    var columns = try Columns.init(
+        allocator,
+        n_main,
+        n_opcode_main,
+        if (arena_capable) statement else null,
+    );
     defer columns.deinit(allocator);
 
     var opcode = try OpcodeGeneration.begin(workspace, allocator, exec_trace, recorder);
@@ -159,7 +168,22 @@ pub fn generateAndCommit(
         var stage = try stage_profile.StageScope.begin(recorder, "riscv_main_trace_commit", "RISC-V main trace commit");
         defer stage.end();
         columns.moved = true;
-        try Engine.commit(scheme, allocator, columns.values, recorder, channel);
+        if (comptime @hasDecl(Engine, "commitWithBacking")) {
+            if (columns.backing_buffers) |backing_buffers| {
+                try Engine.commitWithBacking(
+                    scheme,
+                    allocator,
+                    columns.values,
+                    backing_buffers,
+                    recorder,
+                    channel,
+                );
+            } else {
+                try Engine.commit(scheme, allocator, columns.values, recorder, channel);
+            }
+        } else {
+            try Engine.commit(scheme, allocator, columns.values, recorder, channel);
+        }
     }
     return .{ .lookup_source = lookup_source };
 }
@@ -196,7 +220,7 @@ fn appendProgramColumns(
         geometry.program_log_size,
     );
     for (0..program_commitment.N_MAIN_COLUMNS) |c| {
-        columns.append(.{
+        try columns.appendOwned(allocator, .{
             .log_size = geometry.program_log_size,
             .values = generated.values[c],
         });
@@ -221,7 +245,7 @@ fn appendMemoryColumns(
             log_size,
         );
         for (generated.values) |values| {
-            columns.append(.{ .log_size = log_size, .values = values });
+            try columns.appendOwned(allocator, .{ .log_size = log_size, .values = values });
         }
         row_start += shard_len;
     }
@@ -240,7 +264,7 @@ fn appendMerkleColumns(
         geometry.merkle_log_size,
     );
     for (0..merkle_node.N_MAIN_COLUMNS) |c| {
-        columns.append(.{
+        try columns.appendOwned(allocator, .{
             .log_size = geometry.merkle_log_size,
             .values = generated.values[c],
         });
@@ -254,13 +278,25 @@ fn appendPoseidonColumns(
     witness: *const CommitmentWitness,
     geometry: Geometry,
 ) !void {
+    if (columns.isArenaBacked()) {
+        var destinations = try columns.reserve(
+            poseidon2_air.N_MAIN_COLUMNS,
+            geometry.poseidon_log_size,
+        );
+        return poseidon2_air.generateMainInto(
+            allocator,
+            &destinations,
+            witness.poseidonCalls(),
+            geometry.poseidon_log_size,
+        );
+    }
     const generated = try poseidon2_air.generateMain(
         allocator,
         witness.poseidonCalls(),
         geometry.poseidon_log_size,
     );
     for (0..poseidon2_air.N_MAIN_COLUMNS) |c| {
-        columns.append(.{
+        try columns.appendOwned(allocator, .{
             .log_size = geometry.poseidon_log_size,
             .values = generated.values[c],
         });
@@ -289,9 +325,9 @@ fn appendClockColumns(
     );
     workspace.clock_main = generated.columns;
     for (0..infra.CLOCK_UPDATE_COLS) |c| {
-        columns.append(.{
+        try columns.appendCopy(allocator, .{
             .log_size = geometry.clock_update_log,
-            .values = try allocator.dupe(M31, workspace.clock_main[c]),
+            .values = workspace.clock_main[c],
         });
     }
 }
@@ -322,7 +358,7 @@ fn appendLookupColumns(
 ) !void {
     for (component_order.lookupTables()) |kind| {
         const counter = &lookup_source.counters.counters[@intFromEnum(kind)];
-        columns.append(.{
+        try columns.appendOwned(allocator, .{
             .log_size = lookup_table_schema.logSize(kind),
             .values = try counter.committedColumn(allocator),
         });
@@ -345,9 +381,9 @@ fn copyOpcodeColumns(
         const generated = &workspace.opcode_columns.components[comp_idx];
         if (generated.n_columns != desc.n_columns) return ProverError.InvalidStatement;
         for (generated.columns[0..generated.n_columns], 0..) |values, column| {
-            columns.put(opcode_col_offset + column, .{
+            try columns.putCopy(allocator, opcode_col_offset + column, .{
                 .log_size = desc.log_size,
-                .values = try allocator.dupe(M31, values),
+                .values = values,
             });
         }
         opcode_col_offset += desc.n_columns;
@@ -360,6 +396,9 @@ fn copyOpcodeColumns(
 const Columns = struct {
     values: []prover_pcs.ColumnEvaluation,
     initialized: []bool,
+    /// Present when generation writes into one backend-shaped arena from the
+    /// outset. Transferred alongside `values`.
+    backing_buffers: ?[][]M31,
     /// Next infrastructure slot. Opcode slots are addressed absolutely.
     offset: usize,
     moved: bool,
@@ -368,39 +407,151 @@ const Columns = struct {
         allocator: std.mem.Allocator,
         n_main: usize,
         infra_offset: usize,
+        arena_statement: ?*const types.RiscVStatement,
     ) !Columns {
-        const values = try allocator.alloc(prover_pcs.ColumnEvaluation, n_main);
+        var backing_buffers: ?[][]M31 = null;
+        const values = if (arena_statement) |statement| blk: {
+            const log_sizes = try allocator.alloc(u32, n_main);
+            defer allocator.free(log_sizes);
+            var index: usize = 0;
+            for (statement.component_descs[0..statement.n_components]) |desc| {
+                for (0..desc.n_columns) |_| {
+                    log_sizes[index] = desc.log_size;
+                    index += 1;
+                }
+            }
+            for (statement.infra_descs[0..statement.n_infra]) |desc| {
+                for (0..desc.n_columns) |_| {
+                    log_sizes[index] = desc.log_size;
+                    index += 1;
+                }
+            }
+            if (index != n_main) return error.InvalidTraceShape;
+            const prepared = trace_arena.prepare(allocator, log_sizes) catch |err| switch (err) {
+                error.UnsupportedArenaAlignment => break :blk try allocator.alloc(
+                    prover_pcs.ColumnEvaluation,
+                    n_main,
+                ),
+                else => return err,
+            };
+            backing_buffers = prepared.backing_buffers;
+            break :blk prepared.columns;
+        } else try allocator.alloc(prover_pcs.ColumnEvaluation, n_main);
         const initialized = allocator.alloc(bool, n_main) catch |err| {
-            allocator.free(values);
+            if (backing_buffers) |buffers| {
+                allocator.free(values);
+                for (buffers) |buffer| allocator.free(buffer);
+                allocator.free(buffers);
+            } else {
+                allocator.free(values);
+            }
             return err;
         };
         @memset(initialized, false);
         return .{
             .values = values,
             .initialized = initialized,
+            .backing_buffers = backing_buffers,
             .offset = infra_offset,
             .moved = false,
         };
     }
 
-    fn put(self: *Columns, index: usize, column: prover_pcs.ColumnEvaluation) void {
-        self.values[index] = column;
+    fn putOwned(
+        self: *Columns,
+        allocator: std.mem.Allocator,
+        index: usize,
+        column: prover_pcs.ColumnEvaluation,
+    ) !void {
+        if (self.backing_buffers != null) {
+            const destination = self.values[index];
+            if (destination.log_size != column.log_size or
+                destination.values.len != column.values.len)
+                return error.InvalidTraceShape;
+            @memcpy(@constCast(destination.values), column.values);
+            allocator.free(@constCast(column.values));
+        } else {
+            self.values[index] = column;
+        }
         self.initialized[index] = true;
     }
 
-    fn append(self: *Columns, column: prover_pcs.ColumnEvaluation) void {
-        self.put(self.offset, column);
+    fn appendOwned(
+        self: *Columns,
+        allocator: std.mem.Allocator,
+        column: prover_pcs.ColumnEvaluation,
+    ) !void {
+        try self.putOwned(allocator, self.offset, column);
         self.offset += 1;
+    }
+
+    fn putCopy(
+        self: *Columns,
+        allocator: std.mem.Allocator,
+        index: usize,
+        column: prover_pcs.ColumnEvaluation,
+    ) !void {
+        if (self.backing_buffers != null) {
+            const destination = self.values[index];
+            if (destination.log_size != column.log_size or
+                destination.values.len != column.values.len)
+                return error.InvalidTraceShape;
+            @memcpy(@constCast(destination.values), column.values);
+        } else {
+            self.values[index] = .{
+                .log_size = column.log_size,
+                .values = try allocator.dupe(M31, column.values),
+            };
+        }
+        self.initialized[index] = true;
+    }
+
+    fn appendCopy(
+        self: *Columns,
+        allocator: std.mem.Allocator,
+        column: prover_pcs.ColumnEvaluation,
+    ) !void {
+        try self.putCopy(allocator, self.offset, column);
+        self.offset += 1;
+    }
+
+    fn isArenaBacked(self: *const Columns) bool {
+        return self.backing_buffers != null;
+    }
+
+    fn reserve(
+        self: *Columns,
+        comptime count: usize,
+        log_size: u32,
+    ) ![count][]M31 {
+        if (!self.isArenaBacked() or self.offset + count > self.values.len)
+            return error.InvalidTraceShape;
+        var result: [count][]M31 = undefined;
+        for (0..count) |index| {
+            const destination = self.values[self.offset + index];
+            if (destination.log_size != log_size)
+                return error.InvalidTraceShape;
+            result[index] = @constCast(destination.values);
+            self.initialized[self.offset + index] = true;
+        }
+        self.offset += count;
+        return result;
     }
 
     /// Releases the flags always, and the column buffers only while this array
     /// still owns them: after `moved` the commitment scheme does.
     fn deinit(self: *Columns, allocator: std.mem.Allocator) void {
         if (!self.moved) {
-            for (self.values, self.initialized) |column, initialized| {
-                if (initialized) allocator.free(@constCast(column.values));
+            if (self.backing_buffers) |backing_buffers| {
+                allocator.free(self.values);
+                for (backing_buffers) |buffer| allocator.free(buffer);
+                allocator.free(backing_buffers);
+            } else {
+                for (self.values, self.initialized) |column, initialized| {
+                    if (initialized) allocator.free(@constCast(column.values));
+                }
+                allocator.free(self.values);
             }
-            allocator.free(self.values);
         }
         allocator.free(self.initialized);
     }

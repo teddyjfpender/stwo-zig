@@ -78,18 +78,37 @@ pub fn generateMain(
     log_size: u32,
 ) !Columns {
     const size = @as(usize, 1) << @intCast(log_size);
-    if (calls.len > size) return error.InvalidTraceShape;
     var columns = try allocateColumns(allocator, N_MAIN_COLUMNS, size);
     errdefer freeColumns(allocator, &columns);
-    for (&columns) |column| @memset(column, M31.zero());
+    try generateMainInto(allocator, &columns, calls, log_size);
+    return .{ .values = columns };
+}
+
+/// Writes the exact main trace into caller-owned final storage.
+///
+/// The resident Metal path plans all 445 columns before witness generation, so
+/// allocating another multi-gigabyte column set merely to copy it into that
+/// arena would defeat residency. The ordinary allocator-returning API above is
+/// a thin owner around this same implementation.
+pub fn generateMainInto(
+    allocator: std.mem.Allocator,
+    columns: *[N_MAIN_COLUMNS][]M31,
+    calls: []const Call,
+    log_size: u32,
+) !void {
+    const size = @as(usize, 1) << @intCast(log_size);
+    if (calls.len > size) return error.InvalidTraceShape;
+    for (columns) |column| {
+        if (column.len != size) return error.InvalidTraceShape;
+        @memset(column, M31.zero());
+    }
     const table = try infra.BitReversalTable.init(allocator, log_size);
     defer table.deinit(allocator);
     for (calls, 0..) |call, row_index| {
         const row = fill(call);
         const dst = table.map(row_index);
-        for (row, 0..) |value, column| columns[column][dst] = value;
+        for (row, 0..) |value, column| columns.*[column][dst] = value;
     }
-    return .{ .values = columns };
 }
 
 /// Fill exactly the generated Rust witness row, including degree-reduction
