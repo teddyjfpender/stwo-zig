@@ -40,11 +40,14 @@
 test {
     // Package root.
     _ = @import("access_clock.zig");
+    _ = @import("air_semantics_test_root.zig");
     _ = @import("infra_trace.zig");
+    _ = @import("isa_test_root.zig");
     _ = @import("opcode_coverage_test.zig");
     _ = @import("opcode_manifest.zig");
     _ = @import("owned_statement.zig");
     _ = @import("proof_transcript.zig");
+    _ = @import("runner_test_root.zig");
     _ = @import("testing.zig");
     _ = @import("witness_layout.zig");
 

@@ -1297,16 +1297,25 @@ Use the repository entrypoints rather than reconstructing CI commands locally:
 
 ```sh
 python3 scripts/install_hooks.py  # once per checkout
+python3 scripts/dev_test.py       # narrowest package-owned tests for worktree changes
 python3 scripts/ci.py --fast      # static validate-or-reject in seconds; no compilation
 python3 scripts/ci.py             # same standard gate as hosted CI
 python3 scripts/ci.py --strict    # release evidence gate
 ```
 
-Run `--fast` first and often: it rejects formatting, pin-drift, source-conformance,
-and script-contract breakage in seconds without a single `zig build`. That
+`dev_test.py` derives package ownership and broad fallbacks from each
+`package.contract.json`. For field, crypto, FRI/PCS, prover AIR/poly/PCS,
+RISC-V ISA/runner/AIR-semantics, and SM83 ISA/runner edits it selects smaller
+test roots instead. Pass paths explicitly to preview a planned edit, or use
+`--dry-run` to inspect the commands. An unowned path fails closed; the script
+never reports green for a change it cannot route.
+
+Run `--fast` first and often: it rejects formatting, pin drift, and source-conformance
+breakage in seconds without a single `zig build`. That
 compilation-free property is enforced by test, not convention — a compile-class
 command entering the fast plan fails `scripts/tests/test_ci.py`. Only after fast
-passes is the standard gate worth its minutes.
+passes is the standard gate, including the complete script-contract suite, worth
+its minutes.
 
 For the RISC-V lane, `scripts/riscv_formal_tools.py`,
 `scripts/riscv_trace_vectors.py`, and `scripts/riscv_arch_tests.py` own formal

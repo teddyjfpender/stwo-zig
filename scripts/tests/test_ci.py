@@ -215,14 +215,13 @@ class CiTests(unittest.TestCase):
                 command,
             )
 
-    def test_fast_plan_covers_static_gates_and_script_tests(self) -> None:
+    def test_fast_plan_covers_only_static_gates(self) -> None:
         flattened = [" ".join(command) for command in FAST_PLAN]
         self.assertTrue(any("zig fmt --check" in line for line in flattened))
         self.assertTrue(any("check_upstream_pins" in line for line in flattened))
         self.assertTrue(any("check_source_conformance" in line for line in flattened))
-        self.assertTrue(any("unittest discover" in line for line in flattened))
-        self.assertEqual("-S", FAST_PLAN[-1][1])
-        self.assertNotIn("-S", command_plan(False, "ReleaseFast")[0])
+        self.assertFalse(any("unittest discover" in line for line in flattened))
+        self.assertIn("unittest", command_plan(False, "ReleaseFast")[0])
 
     def test_hosted_ci_exposes_standard_and_strict_shared_entrypoints(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")

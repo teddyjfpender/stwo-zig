@@ -57,6 +57,45 @@ pub fn build(b: *std.Build) void {
         "Compile and test the stwo_riscv_frontend package",
     );
     test_step.dependOn(TestCountFloor.add(b, run_tests, test_floor));
+
+    addFocusedTests(b, core, target, optimize, .{
+        .step = "test-isa",
+        .description = "Run only RISC-V ISA authority and decoder tests",
+        .root = "isa_test_root.zig",
+    });
+    addFocusedTests(b, core, target, optimize, .{
+        .step = "test-runner",
+        .description = "Run only RISC-V execution-runner tests",
+        .root = "runner_test_root.zig",
+    });
+    addFocusedTests(b, core, target, optimize, .{
+        .step = "test-air-semantics",
+        .description = "Run only RISC-V instruction-family AIR tests",
+        .root = "air_semantics_test_root.zig",
+    });
+}
+
+const FocusedTest = struct {
+    step: []const u8,
+    description: []const u8,
+    root: []const u8,
+};
+
+fn addFocusedTests(
+    b: *std.Build,
+    core: *std.Build.Module,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    spec: FocusedTest,
+) void {
+    const root = b.createModule(.{
+        .root_source_file = b.path(spec.root),
+        .target = target,
+        .optimize = optimize,
+    });
+    root.addImport("stwo_core", core);
+    const tests = b.addRunArtifact(b.addTest(.{ .root_module = root }));
+    b.step(spec.step, spec.description).dependOn(&tests.step);
 }
 
 /// Turns "the binary lost its tests" from a zero exit into a named failure.
