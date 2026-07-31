@@ -362,8 +362,8 @@
           "min_rounds": 3,
           "max_rounds": 5,
           "wall_clock_cap_seconds": {
-            "small": 240,
-            "wide": 360,
+            "small": 600,
+            "wide": 1200,
             "deep": 600
           }
         },
@@ -742,7 +742,97 @@
             "glob": "src/integrations/riscv_metal/**",
             "min_rung": "s3"
           }
-        ]
+        ],
+        "function_basket": {
+          "note": "TRACKS §3.3: the riscv benchmark contract — 11 whole-pipeline guest functions, each proved end to end (guest ELF through RV32IM execution, trace generation, the stwo-zig prover, and proof verification), never an isolated prover stage. The seven ISA micro-tests in the era-2 scoring universe (riscv_alu_test, riscv_branch_fib, riscv_declared_region, riscv_jal_jalr, riscv_mem_ls, riscv_shift_logic, riscv_multi_shard_addi) retire 8-131078 instructions of coverage, not computation; they are outside this basket, and at the era-3 recalibration they leave the scored universe to persist only as unscored smoke gates — the same correction the native boards taught when scoring settled onto PCS islands instead of the whole system.",
+          "documentation": "autoresearch/TRACKS.md",
+          "functions": {
+            "sha256": {
+              "summary": "SHA-256 over 128B-2KiB messages — bitwise, rotate, and memory pressure; era-2 functional rows plus era-3 CSP rows at secure parameters",
+              "rows": [
+                "riscv_sha2_128b",
+                "riscv_sha2_256b",
+                "riscv_sha2_512b",
+                "riscv_sha2_1024b",
+                "riscv_sha2_2048b",
+                "riscv_csp_sha256_128b",
+                "riscv_csp_sha256_256b",
+                "riscv_csp_sha256_512b",
+                "riscv_csp_sha256_1024b",
+                "riscv_csp_sha256_2048b"
+              ]
+            },
+            "keccak": {
+              "summary": "Keccak-f[1600] sponge over 128B-2KiB messages — wide XOR/rotate state transitions dominating trace width",
+              "rows": [
+                "riscv_keccak_128b",
+                "riscv_csp_keccak_128b",
+                "riscv_csp_keccak_256b",
+                "riscv_csp_keccak_512b",
+                "riscv_csp_keccak_1024b",
+                "riscv_csp_keccak_2048b"
+              ]
+            },
+            "poseidon2_m31": {
+              "summary": "Poseidon2 over M31 for 2-16 field elements — the algebraic hash the proof system itself leans on, as guest computation",
+              "rows": [
+                "riscv_csp_poseidon2_m31_2fe",
+                "riscv_csp_poseidon2_m31_4fe",
+                "riscv_csp_poseidon2_m31_8fe",
+                "riscv_csp_poseidon2_m31_12fe",
+                "riscv_csp_poseidon2_m31_16fe"
+              ]
+            },
+            "ecdsa_secp256k1": {
+              "summary": "ECDSA verification on secp256k1 — 5.4M-instruction large-integer arithmetic, the basket's long-tail depth anchor",
+              "rows": [
+                "riscv_csp_ecdsa_secp256k1"
+              ]
+            },
+            "memcpy": {
+              "summary": "Block memory copy — load/store throughput and address-generation pressure",
+              "rows": [
+                "riscv_memcpy_loop"
+              ]
+            },
+            "sieve_primes": {
+              "summary": "Sieve of Eratosthenes — branchy read-modify-write over a live array",
+              "rows": [
+                "riscv_sieve_primes"
+              ]
+            },
+            "bubble_sort": {
+              "summary": "In-place comparison sort — data-dependent branching and swap traffic",
+              "rows": [
+                "riscv_bubble_sort"
+              ]
+            },
+            "collatz": {
+              "summary": "Collatz trajectories — unpredictable control flow with mul/div mix",
+              "rows": [
+                "riscv_collatz"
+              ]
+            },
+            "xorshift_prng": {
+              "summary": "Xorshift PRNG stream — shift/XOR dependency chains at 65K instructions",
+              "rows": [
+                "riscv_xorshift_prng"
+              ]
+            },
+            "fib_iter": {
+              "summary": "Iterative Fibonacci — tight arithmetic loop, the deep-class control anchor",
+              "rows": [
+                "riscv_fib_iter"
+              ]
+            },
+            "gcd_euclid": {
+              "summary": "Euclidean GCD — remainder-driven loop, division-heavy at 125K instructions",
+              "rows": [
+                "riscv_gcd_euclid"
+              ]
+            }
+          }
+        }
       },
       "riscv_metal": {
         "enabled": false,
@@ -841,7 +931,142 @@
             "glob": "src/integrations/riscv_metal/**",
             "min_rung": "s3"
           }
-        ]
+        ],
+        "workload_provisioning": {
+          "note": "TRACKS §3.3/§9: the riscv_metal function basket mirrors the riscv basket row-for-row so the two lanes score the same computations on different backends. Every entry below is pinned to a committed artifact with a committed instruction count; nothing here is runnable until stwo-zig#169 lands, and the incompleteness stays loud rather than silent.",
+          "documentation": "autoresearch/TRACKS.md",
+          "pending": {
+            "mriscv_csp_sha256_256b": {
+              "expected_cycles": 22832,
+              "source": "vectors/riscv_csp/guests/sha256.elf + vectors/riscv_csp/inputs/msg_256.bin",
+              "reason": "blocked on stwo-zig#169: every committed guest ELF completes by hosted ecall, which riscv-metal-bench rejects (UnprovableCompletion). Activation needs hosted-completion support in the metal runner — preferred, because it keeps this lane proving the SAME committed artifact as the cpu lane — or halt-sentinel rebuilds of the corpus."
+            },
+            "mriscv_csp_sha256_1024b": {
+              "expected_cycles": 75488,
+              "source": "vectors/riscv_csp/guests/sha256.elf + vectors/riscv_csp/inputs/msg_1024.bin",
+              "reason": "blocked on stwo-zig#169: every committed guest ELF completes by hosted ecall, which riscv-metal-bench rejects (UnprovableCompletion). Activation needs hosted-completion support in the metal runner — preferred, because it keeps this lane proving the SAME committed artifact as the cpu lane — or halt-sentinel rebuilds of the corpus."
+            },
+            "mriscv_csp_keccak_256b": {
+              "expected_cycles": 36904,
+              "source": "vectors/riscv_csp/guests/keccak.elf + vectors/riscv_csp/inputs/msg_256.bin",
+              "reason": "blocked on stwo-zig#169: every committed guest ELF completes by hosted ecall, which riscv-metal-bench rejects (UnprovableCompletion). Activation needs hosted-completion support in the metal runner — preferred, because it keeps this lane proving the SAME committed artifact as the cpu lane — or halt-sentinel rebuilds of the corpus."
+            },
+            "mriscv_csp_keccak_1024b": {
+              "expected_cycles": 143416,
+              "source": "vectors/riscv_csp/guests/keccak.elf + vectors/riscv_csp/inputs/msg_1024.bin",
+              "reason": "blocked on stwo-zig#169: every committed guest ELF completes by hosted ecall, which riscv-metal-bench rejects (UnprovableCompletion). Activation needs hosted-completion support in the metal runner — preferred, because it keeps this lane proving the SAME committed artifact as the cpu lane — or halt-sentinel rebuilds of the corpus."
+            },
+            "mriscv_csp_poseidon2_m31_8fe": {
+              "expected_cycles": 328615,
+              "source": "vectors/riscv_csp/guests/poseidon2_m31.elf (8 field elements)",
+              "reason": "blocked on stwo-zig#169: every committed guest ELF completes by hosted ecall, which riscv-metal-bench rejects (UnprovableCompletion). Activation needs hosted-completion support in the metal runner — preferred, because it keeps this lane proving the SAME committed artifact as the cpu lane — or halt-sentinel rebuilds of the corpus."
+            },
+            "mriscv_csp_ecdsa_secp256k1": {
+              "expected_cycles": 5425005,
+              "source": "vectors/riscv_csp/guests/ecdsa_secp256k1.elf",
+              "reason": "blocked on stwo-zig#169: every committed guest ELF completes by hosted ecall, which riscv-metal-bench rejects (UnprovableCompletion). Activation needs hosted-completion support in the metal runner — preferred, because it keeps this lane proving the SAME committed artifact as the cpu lane — or halt-sentinel rebuilds of the corpus."
+            },
+            "mriscv_sieve_primes": {
+              "expected_cycles": 2792,
+              "source": "vectors/riscv_elfs/trace_vectors.json#sieve_primes",
+              "reason": "blocked on stwo-zig#169: every committed guest ELF completes by hosted ecall, which riscv-metal-bench rejects (UnprovableCompletion). Activation needs hosted-completion support in the metal runner — preferred, because it keeps this lane proving the SAME committed artifact as the cpu lane — or halt-sentinel rebuilds of the corpus."
+            },
+            "mriscv_bubble_sort": {
+              "expected_cycles": 9462,
+              "source": "vectors/riscv_elfs/trace_vectors.json#bubble_sort",
+              "reason": "blocked on stwo-zig#169: every committed guest ELF completes by hosted ecall, which riscv-metal-bench rejects (UnprovableCompletion). Activation needs hosted-completion support in the metal runner — preferred, because it keeps this lane proving the SAME committed artifact as the cpu lane — or halt-sentinel rebuilds of the corpus."
+            },
+            "mriscv_collatz": {
+              "expected_cycles": 34237,
+              "source": "vectors/riscv_elfs/trace_vectors.json#collatz",
+              "reason": "blocked on stwo-zig#169: every committed guest ELF completes by hosted ecall, which riscv-metal-bench rejects (UnprovableCompletion). Activation needs hosted-completion support in the metal runner — preferred, because it keeps this lane proving the SAME committed artifact as the cpu lane — or halt-sentinel rebuilds of the corpus."
+            },
+            "mriscv_xorshift_prng": {
+              "expected_cycles": 65544,
+              "source": "vectors/riscv_elfs/trace_vectors.json#xorshift_prng",
+              "reason": "blocked on stwo-zig#169: every committed guest ELF completes by hosted ecall, which riscv-metal-bench rejects (UnprovableCompletion). Activation needs hosted-completion support in the metal runner — preferred, because it keeps this lane proving the SAME committed artifact as the cpu lane — or halt-sentinel rebuilds of the corpus."
+            },
+            "mriscv_gcd_euclid": {
+              "expected_cycles": 124931,
+              "source": "vectors/riscv_elfs/trace_vectors.json#gcd_euclid",
+              "reason": "blocked on stwo-zig#169: every committed guest ELF completes by hosted ecall, which riscv-metal-bench rejects (UnprovableCompletion). Activation needs hosted-completion support in the metal runner — preferred, because it keeps this lane proving the SAME committed artifact as the cpu lane — or halt-sentinel rebuilds of the corpus."
+            }
+          }
+        },
+        "function_basket": {
+          "note": "TRACKS §3.3: the riscv_metal benchmark contract — the same 11 guest functions as the riscv cpu lane, proved on the Metal backend, so a cross-lane comparison is always same-computation, different-backend. Two functions run today (memcpy, fib_iter); the other nine are pinned and counted but blocked on stwo-zig#169 (hosted-completion support in riscv-metal-bench). mriscv_alu_test stays outside the basket: at 8 retired instructions it is an ISA smoke gate, not a function.",
+          "documentation": "autoresearch/TRACKS.md",
+          "functions": {
+            "memcpy": {
+              "summary": "Block memory copy on Metal — load/store throughput through the full prove-verify boundary",
+              "rows": [
+                "mriscv_memcpy_loop"
+              ]
+            },
+            "fib_iter": {
+              "summary": "Iterative Fibonacci on Metal — tight arithmetic loop, the lane's live depth anchor",
+              "rows": [
+                "mriscv_fib_iter"
+              ]
+            },
+            "sha256": {
+              "summary": "SHA-256 over 256B and 1KiB messages — same committed guests as the cpu lane's CSP rows",
+              "rows": [
+                "mriscv_csp_sha256_256b",
+                "mriscv_csp_sha256_1024b"
+              ]
+            },
+            "keccak": {
+              "summary": "Keccak-f[1600] over 256B and 1KiB messages — wide state transitions on the Metal prover",
+              "rows": [
+                "mriscv_csp_keccak_256b",
+                "mriscv_csp_keccak_1024b"
+              ]
+            },
+            "poseidon2_m31": {
+              "summary": "Poseidon2 over M31, 8 field elements — algebraic hashing as guest computation",
+              "rows": [
+                "mriscv_csp_poseidon2_m31_8fe"
+              ]
+            },
+            "ecdsa_secp256k1": {
+              "summary": "ECDSA verification on secp256k1 — the 5.4M-instruction depth anchor, mirrored from the cpu lane",
+              "rows": [
+                "mriscv_csp_ecdsa_secp256k1"
+              ]
+            },
+            "sieve_primes": {
+              "summary": "Sieve of Eratosthenes — branchy array mutation, mirrored from the cpu lane",
+              "rows": [
+                "mriscv_sieve_primes"
+              ]
+            },
+            "bubble_sort": {
+              "summary": "In-place comparison sort — data-dependent branching, mirrored from the cpu lane",
+              "rows": [
+                "mriscv_bubble_sort"
+              ]
+            },
+            "collatz": {
+              "summary": "Collatz trajectories — unpredictable control flow, mirrored from the cpu lane",
+              "rows": [
+                "mriscv_collatz"
+              ]
+            },
+            "xorshift_prng": {
+              "summary": "Xorshift PRNG stream — shift/XOR dependency chains, mirrored from the cpu lane",
+              "rows": [
+                "mriscv_xorshift_prng"
+              ]
+            },
+            "gcd_euclid": {
+              "summary": "Euclidean GCD — division-heavy loop, mirrored from the cpu lane",
+              "rows": [
+                "mriscv_gcd_euclid"
+              ]
+            }
+          }
+        }
       },
       "metal": {
         "enabled": true,
@@ -995,7 +1220,9 @@
             "glob": "src/integrations/native/**",
             "min_rung": "s3"
           }
-        ]
+        ],
+        "delisted": true,
+        "delisted_reason": "Dropped from the track surface for now (no CUDA hardware in the campaign); the staged group, activation contract, and tests stay intact — flip this flag when hardware lands (TRACKS wave 3)."
       },
       "cairo_cpu": {
         "enabled": true,
@@ -1051,7 +1278,7 @@
           ]
         },
         "workload_provisioning": {
-          "note": "TRACKS §3.3 campaign portfolio entries whose prover inputs are host-local and far above the repository fixture budget. They are declared here so the basket's incompleteness is loud, never silent; generation commands live in autoresearch/schema/cairo-proof-v1.md. Entries here are not runnable workloads and are never scored.",
+          "note": "TRACKS §3.3 campaign portfolio entries whose prover inputs are host-local and far above the repository fixture budget. They are declared here so the basket's incompleteness is loud, never silent; generation commands live in autoresearch/schema/cairo-proof-v1.md. Entries here are not runnable workloads and are never scored. Matrix candidates (the expected_cycles/source entries) are pinned to vectors/cairo/cairo_program_matrix.json: sources and per-tier VM-step counts are committed, so the compiled fixture is the only missing piece.",
           "documentation": "autoresearch/schema/cairo-proof-v1.md",
           "pending": {
             "cairo_poseidon_aggregator": {
@@ -1083,6 +1310,76 @@
               "vm_steps": 7367979,
               "committed_cells": 604162096,
               "reason": "prover input is host-local; 7.37M VM steps exceed the repository fixture budget and the workload needs roughly 17-18 GiB resident memory"
+            },
+            "cairo_fib_medium": {
+              "expected_cycles": 229392,
+              "source": "vectors/cairo/cairo_program_matrix.json#fib:medium",
+              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
+            },
+            "cairo_fib_large": {
+              "expected_cycles": 917520,
+              "source": "vectors/cairo/cairo_program_matrix.json#fib:large",
+              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
+            },
+            "cairo_sha2_medium": {
+              "expected_cycles": 160491,
+              "source": "vectors/cairo/cairo_program_matrix.json#sha2:medium",
+              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
+            },
+            "cairo_sha2_large": {
+              "expected_cycles": 605445,
+              "source": "vectors/cairo/cairo_program_matrix.json#sha2:large",
+              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
+            },
+            "cairo_sha2_chain_medium": {
+              "expected_cycles": 183442,
+              "source": "vectors/cairo/cairo_program_matrix.json#sha2-chain:medium",
+              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
+            },
+            "cairo_sha3_medium": {
+              "expected_cycles": 217337,
+              "source": "vectors/cairo/cairo_program_matrix.json#sha3:medium",
+              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
+            },
+            "cairo_sha3_large": {
+              "expected_cycles": 814193,
+              "source": "vectors/cairo/cairo_program_matrix.json#sha3:large",
+              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
+            },
+            "cairo_sha3_chain_medium": {
+              "expected_cycles": 212354,
+              "source": "vectors/cairo/cairo_program_matrix.json#sha3-chain:medium",
+              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
+            },
+            "cairo_blake_medium": {
+              "expected_cycles": 172223,
+              "source": "vectors/cairo/cairo_program_matrix.json#blake-precompile:medium",
+              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
+            },
+            "cairo_blake_chain_medium": {
+              "expected_cycles": 166008,
+              "source": "vectors/cairo/cairo_program_matrix.json#blake-chain-precompile:medium",
+              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
+            },
+            "cairo_mat_mul_medium": {
+              "expected_cycles": 304643,
+              "source": "vectors/cairo/cairo_program_matrix.json#mat_mul:medium",
+              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
+            },
+            "cairo_mat_mul_large": {
+              "expected_cycles": 705179,
+              "source": "vectors/cairo/cairo_program_matrix.json#mat_mul:large",
+              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
+            },
+            "cairo_ec_medium": {
+              "expected_cycles": 239650,
+              "source": "vectors/cairo/cairo_program_matrix.json#ec:medium",
+              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
+            },
+            "cairo_ec_large": {
+              "expected_cycles": 958498,
+              "source": "vectors/cairo/cairo_program_matrix.json#ec:large",
+              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
             }
           }
         },
@@ -1108,7 +1405,103 @@
             "glob": "src/integrations/cairo_cpu/**",
             "min_rung": "s3"
           }
-        ]
+        ],
+        "function_basket": {
+          "note": "TRACKS §3.3: the cairo_cpu benchmark contract — 14 whole-pipeline Cairo functions, each a real program proved end to end (compiled Cairo through the official cairo-vm, trace generation, the stwo-zig prover, and the pinned stwo-cairo verifier), never an isolated prover stage. The scored coverage programs (cairo_all_opcodes, cairo_all_builtins) are the calibration smoke floor, deliberately outside the basket: they visit every opcode and builtin without computing anything, and a basket of coverage programs is how a campaign ends up optimizing islands. Nine functions are pinned to the committed zkvm-benchmarks program matrix (sha-pinned sources, per-tier VM-step counts committed); five come from the campaign portfolio.",
+          "documentation": "autoresearch/TRACKS.md",
+          "functions": {
+            "fib": {
+              "summary": "Recursive Fibonacci — control flow and opcode-transition pressure; matrix tiers plus the 100k-iteration campaign variant",
+              "rows": [
+                "cairo_fib_medium",
+                "cairo_fib_large",
+                "cairo_fibonacci_100k"
+              ]
+            },
+            "sha2": {
+              "summary": "SHA-256 over 4-16KiB inputs — memory, bitwise, and range-check work",
+              "rows": [
+                "cairo_sha2_medium",
+                "cairo_sha2_large"
+              ]
+            },
+            "sha2_chain": {
+              "summary": "Chained SHA-256 — repeated compression with state carried across 512 hashes",
+              "rows": [
+                "cairo_sha2_chain_medium"
+              ]
+            },
+            "sha3": {
+              "summary": "Keccak over 4-16KiB inputs — Keccak builtin and memory traffic",
+              "rows": [
+                "cairo_sha3_medium",
+                "cairo_sha3_large"
+              ]
+            },
+            "sha3_chain": {
+              "summary": "Chained Keccak — repeated sponge state transitions",
+              "rows": [
+                "cairo_sha3_chain_medium"
+              ]
+            },
+            "blake": {
+              "summary": "Blake precompile over 64KiB — builtin throughput",
+              "rows": [
+                "cairo_blake_medium"
+              ]
+            },
+            "blake_chain": {
+              "summary": "Chained Blake precompile — repeated builtin transitions",
+              "rows": [
+                "cairo_blake_chain_medium"
+              ]
+            },
+            "mat_mul": {
+              "summary": "Dense matrix multiplication at 24x24 and 32x32 — cubic arithmetic and memory growth",
+              "rows": [
+                "cairo_mat_mul_medium",
+                "cairo_mat_mul_large"
+              ]
+            },
+            "ec_double": {
+              "summary": "secp256k1 point doubling, 1024-4096 doublings — large-integer and EC pressure",
+              "rows": [
+                "cairo_ec_medium",
+                "cairo_ec_large"
+              ]
+            },
+            "poseidon_aggregator": {
+              "summary": "Poseidon hash aggregator — the campaign's builtin-saturation portfolio program",
+              "rows": [
+                "cairo_poseidon_aggregator"
+              ]
+            },
+            "pedersen_aggregator": {
+              "summary": "Pedersen hash aggregator — EC-builtin pressure from the campaign portfolio",
+              "rows": [
+                "cairo_pedersen_aggregator"
+              ]
+            },
+            "factorial": {
+              "summary": "Factorial to 100k — deep felt arithmetic chain from the campaign portfolio",
+              "rows": [
+                "cairo_factorial_100k"
+              ]
+            },
+            "arithmetic_bound": {
+              "summary": "2M-step arithmetic-bound loop — raw VM step throughput from the campaign portfolio",
+              "rows": [
+                "cairo_arithmetic_2m"
+              ]
+            },
+            "memory_stress": {
+              "summary": "7M-cell memory-bound program — committed-cell pressure from the campaign portfolio",
+              "rows": [
+                "cairo_memory_7m"
+              ]
+            }
+          }
+        }
       },
       "cairo_metal": {
         "enabled": false,
@@ -1183,7 +1576,209 @@
             "glob": "src/integrations/cairo_metal/**",
             "min_rung": "s3"
           }
-        ]
+        ],
+        "workload_provisioning": {
+          "note": "TRACKS §3.3/§9: the cairo_metal function basket mirrors cairo_cpu row-for-row — same programs, same pinned sources and step counts, Metal backend — so cross-lane comparisons are always same-computation, different-backend. Matrix candidates are pinned to vectors/cairo/cairo_program_matrix.json; portfolio entries mirror the cairo_cpu campaign set. Nothing here is runnable until the fixtures land, and the incompleteness stays loud rather than silent.",
+          "documentation": "autoresearch/schema/cairo-proof-v1.md",
+          "pending": {
+            "mcairo_poseidon_aggregator": {
+              "vm_steps": 6892,
+              "committed_cells": 48299328,
+              "reason": "prover input is host-local; regeneration needs the pinned Cairo VM adapter and the campaign aggregator program, neither of which is committed (metal lane: same artifact as cairo_cpu so the lanes stay comparable)"
+            },
+            "mcairo_pedersen_aggregator": {
+              "vm_steps": 5872,
+              "committed_cells": 48037024,
+              "reason": "prover input is host-local; regeneration needs the pinned Cairo VM adapter and the campaign aggregator program, neither of which is committed (metal lane: same artifact as cairo_cpu so the lanes stay comparable)"
+            },
+            "mcairo_fibonacci_100k": {
+              "vm_steps": 700022,
+              "committed_cells": 112959872,
+              "reason": "prover input is host-local; 700k VM steps exceed the repository fixture budget (metal lane: same artifact as cairo_cpu so the lanes stay comparable)"
+            },
+            "mcairo_factorial_100k": {
+              "vm_steps": 600015,
+              "committed_cells": 123184848,
+              "reason": "prover input is host-local; 600k VM steps exceed the repository fixture budget (metal lane: same artifact as cairo_cpu so the lanes stay comparable)"
+            },
+            "mcairo_arithmetic_2m": {
+              "vm_steps": 2200019,
+              "committed_cells": 216639776,
+              "reason": "prover input is host-local; 2.2M VM steps exceed the repository fixture budget (metal lane: same artifact as cairo_cpu so the lanes stay comparable)"
+            },
+            "mcairo_memory_7m": {
+              "vm_steps": 7367979,
+              "committed_cells": 604162096,
+              "reason": "prover input is host-local; 7.37M VM steps exceed the repository fixture budget and the workload needs roughly 17-18 GiB resident memory (metal lane: same artifact as cairo_cpu so the lanes stay comparable)"
+            },
+            "mcairo_fib_medium": {
+              "expected_cycles": 229392,
+              "source": "vectors/cairo/cairo_program_matrix.json#fib:medium",
+              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
+            },
+            "mcairo_fib_large": {
+              "expected_cycles": 917520,
+              "source": "vectors/cairo/cairo_program_matrix.json#fib:large",
+              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
+            },
+            "mcairo_sha2_medium": {
+              "expected_cycles": 160491,
+              "source": "vectors/cairo/cairo_program_matrix.json#sha2:medium",
+              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
+            },
+            "mcairo_sha2_large": {
+              "expected_cycles": 605445,
+              "source": "vectors/cairo/cairo_program_matrix.json#sha2:large",
+              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
+            },
+            "mcairo_sha2_chain_medium": {
+              "expected_cycles": 183442,
+              "source": "vectors/cairo/cairo_program_matrix.json#sha2-chain:medium",
+              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
+            },
+            "mcairo_sha3_medium": {
+              "expected_cycles": 217337,
+              "source": "vectors/cairo/cairo_program_matrix.json#sha3:medium",
+              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
+            },
+            "mcairo_sha3_large": {
+              "expected_cycles": 814193,
+              "source": "vectors/cairo/cairo_program_matrix.json#sha3:large",
+              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
+            },
+            "mcairo_sha3_chain_medium": {
+              "expected_cycles": 212354,
+              "source": "vectors/cairo/cairo_program_matrix.json#sha3-chain:medium",
+              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
+            },
+            "mcairo_blake_medium": {
+              "expected_cycles": 172223,
+              "source": "vectors/cairo/cairo_program_matrix.json#blake-precompile:medium",
+              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
+            },
+            "mcairo_blake_chain_medium": {
+              "expected_cycles": 166008,
+              "source": "vectors/cairo/cairo_program_matrix.json#blake-chain-precompile:medium",
+              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
+            },
+            "mcairo_mat_mul_medium": {
+              "expected_cycles": 304643,
+              "source": "vectors/cairo/cairo_program_matrix.json#mat_mul:medium",
+              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
+            },
+            "mcairo_mat_mul_large": {
+              "expected_cycles": 705179,
+              "source": "vectors/cairo/cairo_program_matrix.json#mat_mul:large",
+              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
+            },
+            "mcairo_ec_medium": {
+              "expected_cycles": 239650,
+              "source": "vectors/cairo/cairo_program_matrix.json#ec:medium",
+              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
+            },
+            "mcairo_ec_large": {
+              "expected_cycles": 958498,
+              "source": "vectors/cairo/cairo_program_matrix.json#ec:large",
+              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
+            }
+          }
+        },
+        "function_basket": {
+          "note": "TRACKS §3.3: the cairo_metal benchmark contract — 14 whole-pipeline Cairo functions, each a real program proved end to end (compiled Cairo through the official cairo-vm, trace generation, the stwo-zig prover, and the pinned stwo-cairo verifier), never an isolated prover stage. The scored coverage programs (mcairo_all_opcodes, mcairo_all_builtins) are the calibration smoke floor, deliberately outside the basket: they visit every opcode and builtin without computing anything, and a basket of coverage programs is how a campaign ends up optimizing islands. Nine functions are pinned to the committed zkvm-benchmarks program matrix (sha-pinned sources, per-tier VM-step counts committed); five come from the campaign portfolio.",
+          "documentation": "autoresearch/TRACKS.md",
+          "functions": {
+            "fib": {
+              "summary": "Recursive Fibonacci — control flow and opcode-transition pressure; matrix tiers plus the 100k-iteration campaign variant",
+              "rows": [
+                "mcairo_fib_medium",
+                "mcairo_fib_large",
+                "mcairo_fibonacci_100k"
+              ]
+            },
+            "sha2": {
+              "summary": "SHA-256 over 4-16KiB inputs — memory, bitwise, and range-check work",
+              "rows": [
+                "mcairo_sha2_medium",
+                "mcairo_sha2_large"
+              ]
+            },
+            "sha2_chain": {
+              "summary": "Chained SHA-256 — repeated compression with state carried across 512 hashes",
+              "rows": [
+                "mcairo_sha2_chain_medium"
+              ]
+            },
+            "sha3": {
+              "summary": "Keccak over 4-16KiB inputs — Keccak builtin and memory traffic",
+              "rows": [
+                "mcairo_sha3_medium",
+                "mcairo_sha3_large"
+              ]
+            },
+            "sha3_chain": {
+              "summary": "Chained Keccak — repeated sponge state transitions",
+              "rows": [
+                "mcairo_sha3_chain_medium"
+              ]
+            },
+            "blake": {
+              "summary": "Blake precompile over 64KiB — builtin throughput",
+              "rows": [
+                "mcairo_blake_medium"
+              ]
+            },
+            "blake_chain": {
+              "summary": "Chained Blake precompile — repeated builtin transitions",
+              "rows": [
+                "mcairo_blake_chain_medium"
+              ]
+            },
+            "mat_mul": {
+              "summary": "Dense matrix multiplication at 24x24 and 32x32 — cubic arithmetic and memory growth",
+              "rows": [
+                "mcairo_mat_mul_medium",
+                "mcairo_mat_mul_large"
+              ]
+            },
+            "ec_double": {
+              "summary": "secp256k1 point doubling, 1024-4096 doublings — large-integer and EC pressure",
+              "rows": [
+                "mcairo_ec_medium",
+                "mcairo_ec_large"
+              ]
+            },
+            "poseidon_aggregator": {
+              "summary": "Poseidon hash aggregator — the campaign's builtin-saturation portfolio program",
+              "rows": [
+                "mcairo_poseidon_aggregator"
+              ]
+            },
+            "pedersen_aggregator": {
+              "summary": "Pedersen hash aggregator — EC-builtin pressure from the campaign portfolio",
+              "rows": [
+                "mcairo_pedersen_aggregator"
+              ]
+            },
+            "factorial": {
+              "summary": "Factorial to 100k — deep felt arithmetic chain from the campaign portfolio",
+              "rows": [
+                "mcairo_factorial_100k"
+              ]
+            },
+            "arithmetic_bound": {
+              "summary": "2M-step arithmetic-bound loop — raw VM step throughput from the campaign portfolio",
+              "rows": [
+                "mcairo_arithmetic_2m"
+              ]
+            },
+            "memory_stress": {
+              "summary": "7M-cell memory-bound program — committed-cell pressure from the campaign portfolio",
+              "rows": [
+                "mcairo_memory_7m"
+              ]
+            }
+          }
+        }
       },
       "pr6_supremacy": {
         "enabled": false,
