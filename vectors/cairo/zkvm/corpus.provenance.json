@@ -1,0 +1,239 @@
+{
+  "schema": "stwo_cairo_zkvm_fixture_corpus_v1",
+  "note": "TRACKS §3.3 function-basket fixtures. Programs are the sha-pinned zksecurity/zkvm-benchmarks Cairo-0 sources compiled with the pinned cairo-compile in proof mode, committed gzip-compressed (deterministic, mtime=0). Prover inputs are NOT committed: `zig build cairo-zkvm-fixtures` derives them through the pinned Cairo VM adapter sidecar, and each derived file must reproduce prover_input_sha256 and expected_vm_steps below exactly. A mismatch is a broken toolchain, never a tolerable drift.",
+  "source_repository": {
+    "url": "https://github.com/zksecurity/zkvm-benchmarks.git",
+    "commit": "6d9d1e5e5a8086e6b3a52b03017421159f65ee6e",
+    "program_root": "stwo"
+  },
+  "compiler": {
+    "executable": "cairo-compile",
+    "version": "0.14.0.1",
+    "profile": "proof_mode",
+    "arguments": [
+      "--proof_mode"
+    ],
+    "program_input_key": "iterations"
+  },
+  "program_matrix": {
+    "path": "vectors/cairo/cairo_program_matrix.json",
+    "sha256": "4a639d0b3254be24bdc106d22dc07fa76afdb9e9251ae319d60060b8300e876a"
+  },
+  "derived_output_directory": "zig-out/cairo-zkvm",
+  "programs": {
+    "blake-chain-precompile": {
+      "compiled_gz": "vectors/cairo/zkvm/blake-chain-precompile.compiled.json.gz",
+      "compiled_gz_sha256": "c6455f7f8c5c7021d20d491cb367738f2ad5347593cf46f2ae21de58ad8552c0",
+      "compiled_sha256": "9154710202c0fd28f59c08cf9afe48a392bd5576e0c6bdba191178d7d483397d",
+      "compiled_bytes": 366377,
+      "source_relative": "blake-chain-precompile/blake_chain.cairo",
+      "source_sha256": "c61b2a5c66c18f52bf5d6ee7837933dfea78cfa581e87766debf8ef654be82a7"
+    },
+    "blake-precompile": {
+      "compiled_gz": "vectors/cairo/zkvm/blake-precompile.compiled.json.gz",
+      "compiled_gz_sha256": "f43fd99a5687cc991a83828cd1f423353d206df1c43e63de1c652277aa0de508",
+      "compiled_sha256": "207c555ebd3f6006b82c64aacb8b8014e06cc17abfb4d0516c54ed55f6e67516",
+      "compiled_bytes": 334810,
+      "source_relative": "blake-precompile/blake.cairo",
+      "source_sha256": "965adf969527fc457765705ae4bf34c6b8da9152e68e7131be1f2f2ed7e225b4"
+    },
+    "ec": {
+      "compiled_gz": "vectors/cairo/zkvm/ec.compiled.json.gz",
+      "compiled_gz_sha256": "2c63fbfcdb1ac0730296a112cf03cad3bf4878e659b615741b2e4f0918d7a2cc",
+      "compiled_sha256": "f4657e6fa87f1118bd313d6d1be675e223e0fdfae4aa6a2124ca552339b6e5f6",
+      "compiled_bytes": 508581,
+      "source_relative": "ec/ec_add.cairo",
+      "source_sha256": "7b4dd38a9ae43b43e11ed3ad659c2f5e76c1f352ed2eee07af90821a8cf80feb"
+    },
+    "fib": {
+      "compiled_gz": "vectors/cairo/zkvm/fib.compiled.json.gz",
+      "compiled_gz_sha256": "b16dcaef0ec063049de282a66cea2cb5e4bd7159e379d7183fb63fb83ff42bbf",
+      "compiled_sha256": "29768f558394d2e8f1b0c8ecca1ebeb6ae8cb2ca3c1a69415bc3774a24dcd9c5",
+      "compiled_bytes": 68172,
+      "source_relative": "fib/fibonacci.cairo",
+      "source_sha256": "1874eb6a715308c1a8a552cbee98af8e0ca97b5136f6349322af088f352bcfc8"
+    },
+    "mat_mul": {
+      "compiled_gz": "vectors/cairo/zkvm/mat_mul.compiled.json.gz",
+      "compiled_gz_sha256": "feb0852d9c658219c59cd63d0cda9a50da23fcb363c244b124e1a98f8f26df22",
+      "compiled_sha256": "62875067280a0ac81fe93eb4db08c892867be3eb481ffbe0bbdf8be995f1f0ea",
+      "compiled_bytes": 272107,
+      "source_relative": "mat_mul/mat_mul.cairo",
+      "source_sha256": "7537df87942c84b05a26d481a4c35be237efbf2485d7504dd0e42cad8ead0787"
+    },
+    "sha2": {
+      "compiled_gz": "vectors/cairo/zkvm/sha2.compiled.json.gz",
+      "compiled_gz_sha256": "770db921fe038acbc08a209ab2e98f7075d41be186a6c5dfa2a20fc268006f53",
+      "compiled_sha256": "74d478bcc939e3c324716309e5ed9d38ca054ba1392de1b010d00c9c05aa2dbc",
+      "compiled_bytes": 4137791,
+      "source_relative": "sha2/sha256.cairo",
+      "source_sha256": "24efc41e316c3166fe47f96442cbbc083822844f9fe80dc5fc6a0a8323f40fb5"
+    },
+    "sha2-chain": {
+      "compiled_gz": "vectors/cairo/zkvm/sha2-chain.compiled.json.gz",
+      "compiled_gz_sha256": "15e3e4a0a91f569b5097b2709f48386cbec51c69b542487b47824734b2bed906",
+      "compiled_sha256": "74c7f1a0586fcb0977e84ec03c032d3a73903c4f26380b8ee5eae244965ec1c1",
+      "compiled_bytes": 4190117,
+      "source_relative": "sha2-chain/sha256_chain.cairo",
+      "source_sha256": "f6d4389b3ab7fcdf60e431c782c45ffa8614b13e52d390fc0292200057d422b0"
+    },
+    "sha3": {
+      "compiled_gz": "vectors/cairo/zkvm/sha3.compiled.json.gz",
+      "compiled_gz_sha256": "281c1f3a382a85f9f0bad8e2fdea2d8ba8df2d58ccafd1b94f62054c9a85aaf8",
+      "compiled_sha256": "46fb858da2460288feca6da719605e13f0f2657f9d706675c7927a26346dec04",
+      "compiled_bytes": 16842348,
+      "source_relative": "sha3/cairo_keccak.cairo",
+      "source_sha256": "a587e9f231454714f3fdbc9b2c202f710cee4a1ee3111f0a608db9a0283951e4"
+    },
+    "sha3-chain": {
+      "compiled_gz": "vectors/cairo/zkvm/sha3-chain.compiled.json.gz",
+      "compiled_gz_sha256": "936428d3ec41b939e701e4a6da92d6199b116427c470ba4d36d5ef753d547c45",
+      "compiled_sha256": "cd47e0d88e4aad7cc4b3ef9c07c87654565933df6ad9ca44288b51c5c78294e9",
+      "compiled_bytes": 16892241,
+      "source_relative": "sha3-chain/keccak_chain.cairo",
+      "source_sha256": "fd7a30324d0c5a3a1606d4bd013b944259ad400bf3add6226c6e7d65755b0090"
+    }
+  },
+  "cases": {
+    "fib_medium": {
+      "identity": "fib:medium",
+      "program": "fib",
+      "arguments": "vectors/cairo/zkvm/fib_medium.arguments.json",
+      "arguments_sha256": "ac6404b835e321f7a177220066fc7c4d09853116d84b272a5cb2192876387e23",
+      "iterations": 32768,
+      "expected_vm_steps": 229392,
+      "prover_input_sha256": "b844ffaf522241d5754f349cf8403c71c50f3d8e039202902e40028178c97bcd",
+      "prover_input_bytes": 12122208
+    },
+    "fib_large": {
+      "identity": "fib:large",
+      "program": "fib",
+      "arguments": "vectors/cairo/zkvm/fib_large.arguments.json",
+      "arguments_sha256": "d1f04f05fe49d774c75c054bfe56596001fe342e67e98113c6e757e57884b73b",
+      "iterations": 131072,
+      "expected_vm_steps": 917520,
+      "prover_input_sha256": "491241ef43f3def584387090c2098dccbf74f0c2e7dfd5774a9447ce3d510963",
+      "prover_input_bytes": 49644554
+    },
+    "sha2_medium": {
+      "identity": "sha2:medium",
+      "program": "sha2",
+      "arguments": "vectors/cairo/zkvm/sha2_medium.arguments.json",
+      "arguments_sha256": "08b251ff5aba6d81c543ccfb5af8a095ae32d47a209fe1ea277e6a79bb5076c1",
+      "iterations": 4096,
+      "expected_vm_steps": 160491,
+      "prover_input_sha256": "47a1161dbe2756f509a98c23c045ee0324d16f15f787b2940338dab78093f040",
+      "prover_input_bytes": 11838140
+    },
+    "sha2_large": {
+      "identity": "sha2:large",
+      "program": "sha2",
+      "arguments": "vectors/cairo/zkvm/sha2_large.arguments.json",
+      "arguments_sha256": "a5dd14c3b11fdd908e2cb1d424c46be0bf5eed5aa6a702137f0819a9d7050de9",
+      "iterations": 16384,
+      "expected_vm_steps": 605445,
+      "prover_input_sha256": "5d773b7edc889b36f7261bfa9e257af9e987576c07b4c89dd3feb0cd412bfeed",
+      "prover_input_bytes": 44850816
+    },
+    "sha2_chain_medium": {
+      "identity": "sha2-chain:medium",
+      "program": "sha2-chain",
+      "arguments": "vectors/cairo/zkvm/sha2_chain_medium.arguments.json",
+      "arguments_sha256": "4dff84d4a35a3e75db7230c8a74a08d3b1a5c4967fa5aa54f421eade67ff5554",
+      "iterations": 512,
+      "expected_vm_steps": 183442,
+      "prover_input_sha256": "ab70b785a46a2b705dc37590ce4ad84d16fb0e16c583efe845a913acefa937bf",
+      "prover_input_bytes": 7162697
+    },
+    "sha3_medium": {
+      "identity": "sha3:medium",
+      "program": "sha3",
+      "arguments": "vectors/cairo/zkvm/sha3_medium.arguments.json",
+      "arguments_sha256": "08b251ff5aba6d81c543ccfb5af8a095ae32d47a209fe1ea277e6a79bb5076c1",
+      "iterations": 4096,
+      "expected_vm_steps": 217337,
+      "prover_input_sha256": "b2ec514cbdf929efe0ba036ba2a7c88d8042bb77cf7e8e2f0ce48518375cf19d",
+      "prover_input_bytes": 21562343
+    },
+    "sha3_large": {
+      "identity": "sha3:large",
+      "program": "sha3",
+      "arguments": "vectors/cairo/zkvm/sha3_large.arguments.json",
+      "arguments_sha256": "a5dd14c3b11fdd908e2cb1d424c46be0bf5eed5aa6a702137f0819a9d7050de9",
+      "iterations": 16384,
+      "expected_vm_steps": 814193,
+      "prover_input_sha256": "e5bd6bf6985303e701500d2ce4319c7e9c18dadbfe9172863db54180c408198a",
+      "prover_input_bytes": 75430573
+    },
+    "sha3_chain_medium": {
+      "identity": "sha3-chain:medium",
+      "program": "sha3-chain",
+      "arguments": "vectors/cairo/zkvm/sha3_chain_medium.arguments.json",
+      "arguments_sha256": "f71c0f9c8578bab097a137f52e884f1ae5d8c776ab0271c01db09f91e66c0fe6",
+      "iterations": 32,
+      "expected_vm_steps": 212354,
+      "prover_input_sha256": "698b7885cc951494b35c9be75da7a99b3881e752eb1d9089e10dee7a1e250992",
+      "prover_input_bytes": 13603305
+    },
+    "blake_precompile_medium": {
+      "identity": "blake-precompile:medium",
+      "program": "blake-precompile",
+      "arguments": "vectors/cairo/zkvm/blake_precompile_medium.arguments.json",
+      "arguments_sha256": "eea2fb3865ca9f5db0d573d890954e119e44ecbb3b11e3421a066a3a0a6de844",
+      "iterations": 65536,
+      "expected_vm_steps": 172223,
+      "prover_input_sha256": "629a83a2bc594f4777c52c7ba38caca5d7f1b9692f4535ea7dd4a274177bbb25",
+      "prover_input_bytes": 8370730
+    },
+    "blake_chain_precompile_medium": {
+      "identity": "blake-chain-precompile:medium",
+      "program": "blake-chain-precompile",
+      "arguments": "vectors/cairo/zkvm/blake_chain_precompile_medium.arguments.json",
+      "arguments_sha256": "b28d78ee3447071bb59ef5b2909a93da939630204a718f18fb9d55be5d9d44a5",
+      "iterations": 1024,
+      "expected_vm_steps": 166008,
+      "prover_input_sha256": "406159eb54f37d3cfe0be37fd63651b67ee45e58f44fec4f51d662413bde535e",
+      "prover_input_bytes": 6155247
+    },
+    "mat_mul_medium": {
+      "identity": "mat_mul:medium",
+      "program": "mat_mul",
+      "arguments": "vectors/cairo/zkvm/mat_mul_medium.arguments.json",
+      "arguments_sha256": "25a1266502dc321f609c1d3be21e725ae2bdc366f9eaee096e99485d398fba60",
+      "iterations": 24,
+      "expected_vm_steps": 304643,
+      "prover_input_sha256": "7bbe3d47299a474812a0c02b19592795a81aceefcdbfba3bfe01b3202aff1ce1",
+      "prover_input_bytes": 11742196
+    },
+    "mat_mul_large": {
+      "identity": "mat_mul:large",
+      "program": "mat_mul",
+      "arguments": "vectors/cairo/zkvm/mat_mul_large.arguments.json",
+      "arguments_sha256": "f71c0f9c8578bab097a137f52e884f1ae5d8c776ab0271c01db09f91e66c0fe6",
+      "iterations": 32,
+      "expected_vm_steps": 705179,
+      "prover_input_sha256": "dfc125a39497bb8411afbbba23591561fe5398b2291a403bbb6b713a844523c2",
+      "prover_input_bytes": 27547795
+    },
+    "ec_medium": {
+      "identity": "ec:medium",
+      "program": "ec",
+      "arguments": "vectors/cairo/zkvm/ec_medium.arguments.json",
+      "arguments_sha256": "b28d78ee3447071bb59ef5b2909a93da939630204a718f18fb9d55be5d9d44a5",
+      "iterations": 1024,
+      "expected_vm_steps": 239650,
+      "prover_input_sha256": "c06c4faeea115f99b42fa244cfd2ddda6024a5407a8cdeae6bc7851a2683b308",
+      "prover_input_bytes": 18729487
+    },
+    "ec_large": {
+      "identity": "ec:large",
+      "program": "ec",
+      "arguments": "vectors/cairo/zkvm/ec_large.arguments.json",
+      "arguments_sha256": "08b251ff5aba6d81c543ccfb5af8a095ae32d47a209fe1ea277e6a79bb5076c1",
+      "iterations": 4096,
+      "expected_vm_steps": 958498,
+      "prover_input_sha256": "26881282d644e522ca44f69364e8a2f5120ffec4b544b103683e7ef43b194fc0",
+      "prover_input_bytes": 75703339
+    }
+  }
+}

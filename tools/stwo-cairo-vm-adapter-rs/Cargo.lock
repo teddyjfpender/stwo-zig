@@ -3654,6 +3654,7 @@ dependencies = [
  "cairo-lang-runner",
  "cairo-lang-utils",
  "cairo-vm",
+ "flate2",
  "serde",
  "serde_json",
  "sha2 0.10.9",
