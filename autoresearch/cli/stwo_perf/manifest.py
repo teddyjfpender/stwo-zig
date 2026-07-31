@@ -93,6 +93,20 @@ ERA_STAGED_ROLES = ("scored_candidate", "killer")
 # a staged basket that declares none is a basket extension pretending to be a
 # killer set.
 ERA_STAGED_MIN_KILLERS = 2
+# TRACKS §3.3: a frontend track's benchmark contract. The basket names the
+# real functions the track scores (or will score) end to end — guest program
+# through frontend execution, trace generation, proving, and verification —
+# and maps each function to rows in one of the three concrete vehicles
+# (workloads, era_staged_basket.rows, workload_provisioning.pending). A row's
+# status is derived from which vehicle holds it, never declared, so the
+# published statement cannot drift from what actually runs. Coverage programs
+# and ISA micro-tests stay outside the basket: they are smoke surface, not
+# functions, and scoring them alone is how a campaign ends up exercising
+# islands instead of the whole system.
+FUNCTION_BASKET_KEYS = frozenset({"note", "documentation", "functions"})
+FUNCTION_BASKET_ENTRY_KEYS = frozenset({"summary", "rows"})
+FUNCTION_BASKET_MIN_FUNCTIONS = 10
+FUNCTION_BASKET_MAX_FUNCTIONS = 15
 METAL_CALIBRATION_SCHEMA = "stwo_perf_metal_calibration_freeze_v2"
 METAL_CALIBRATION_FIELDS = frozenset({
     "schema", "status", "board", "epoch", "artifact", "artifact_sha256",
@@ -304,6 +318,9 @@ class WorkloadGroup:
     # TRACKS §7: rows admitted for this board but held out of the scoring
     # universe until a named future era opens. Never runnable, never scored.
     era_staged_basket: dict = field(default_factory=dict)
+    # TRACKS §3.3: the track's declared benchmark functions, each mapping to
+    # rows in workloads / era_staged_basket.rows / workload_provisioning.pending.
+    function_basket: dict = field(default_factory=dict)
     # TRACKS §6: a retired-and-completed track. Present only on retired groups.
     retirement: dict = field(default_factory=dict)
     # TRACKS §3.1: the boundary this group's board scores. Defaults to today's
@@ -496,6 +513,7 @@ class Manifest:
                 workload_provisioning=dict(spec.get("workload_provisioning", {})),
                 report_adapter=dict(spec.get("report_adapter", {})),
                 era_staged_basket=dict(spec.get("era_staged_basket", {})),
+                function_basket=dict(spec.get("function_basket", {})),
                 retirement=dict(spec.get("retirement", {})),
                 scored_dimension=str(
                     spec.get("scored_dimension", DEFAULT_SCORED_DIMENSION)
@@ -865,6 +883,13 @@ def _validate(raw: dict) -> None:
             spec.get("era_staged_basket"),
             spec.get("workloads", {}),
             registry["classes"],
+        )
+        _validate_group_function_basket(
+            gid,
+            spec.get("function_basket"),
+            spec.get("workloads", {}),
+            spec.get("era_staged_basket") or {},
+            spec.get("workload_provisioning") or {},
         )
         if report_schema == "cairo_proof_v1":
             _validate_cairo_group(gid, spec)
@@ -1425,6 +1450,89 @@ def _validate_group_era_staged_basket(
         )
 
 
+def _validate_group_function_basket(
+    gid: str,
+    basket: object,
+    workloads: object,
+    era_basket: object,
+    provisioning: object,
+) -> None:
+    """TRACKS §3.3: the benchmark contract is declared once and cannot drift.
+
+    Every basket row must resolve to exactly one concrete vehicle — a runnable
+    workload, an era-staged row, or a pending provisioning entry — so the
+    published function list is always a statement about what runs today (or is
+    blocked and says why), never aspiration.
+    """
+    if not basket:
+        return
+    if not isinstance(basket, dict) or set(basket) != FUNCTION_BASKET_KEYS:
+        raise ManifestError(
+            f"workload group {gid}: function_basket requires exactly "
+            + ", ".join(sorted(FUNCTION_BASKET_KEYS))
+        )
+    for key in ("note", "documentation"):
+        if not isinstance(basket[key], str) or not basket[key].strip():
+            raise ManifestError(
+                f"workload group {gid}: function_basket.{key} must be non-empty"
+            )
+    functions = basket["functions"]
+    if not isinstance(functions, dict) or not functions:
+        raise ManifestError(
+            f"workload group {gid}: function_basket.functions must be a "
+            "non-empty object"
+        )
+    count = len(functions)
+    if not FUNCTION_BASKET_MIN_FUNCTIONS <= count <= FUNCTION_BASKET_MAX_FUNCTIONS:
+        raise ManifestError(
+            f"workload group {gid}: function_basket declares {count} "
+            f"function(s); a quality basket is "
+            f"{FUNCTION_BASKET_MIN_FUNCTIONS}-{FUNCTION_BASKET_MAX_FUNCTIONS} "
+            "whole-pipeline functions"
+        )
+    scored = set(workloads) if isinstance(workloads, dict) else set()
+    era_rows = era_basket.get("rows") if isinstance(era_basket, dict) else None
+    staged = set(era_rows) if isinstance(era_rows, dict) else set()
+    pend = provisioning.get("pending") if isinstance(provisioning, dict) else None
+    pending = set(pend) if isinstance(pend, dict) else set()
+    seen: set[str] = set()
+    for name, entry in functions.items():
+        if not isinstance(entry, dict) or set(entry) != FUNCTION_BASKET_ENTRY_KEYS:
+            raise ManifestError(
+                f"workload group {gid}: basket function {name} requires exactly "
+                + ", ".join(sorted(FUNCTION_BASKET_ENTRY_KEYS))
+            )
+        if not isinstance(entry["summary"], str) or not entry["summary"].strip():
+            raise ManifestError(
+                f"workload group {gid}: basket function {name}.summary must be "
+                "non-empty"
+            )
+        rows = entry["rows"]
+        if (
+            not isinstance(rows, list)
+            or not rows
+            or any(not isinstance(r, str) or not r.strip() for r in rows)
+        ):
+            raise ManifestError(
+                f"workload group {gid}: basket function {name}.rows must be a "
+                "non-empty list of row ids"
+            )
+        for rid in rows:
+            if rid in seen:
+                raise ManifestError(
+                    f"workload group {gid}: basket row {rid} appears more than "
+                    "once; a row scores exactly one function"
+                )
+            seen.add(rid)
+            homes = (rid in scored) + (rid in staged) + (rid in pending)
+            if homes != 1:
+                raise ManifestError(
+                    f"workload group {gid}: basket row {rid} ({name}) must live "
+                    "in exactly one of workloads, era_staged_basket.rows, or "
+                    f"workload_provisioning.pending; found in {homes}"
+                )
+
+
 def _validate_cairo_group(gid: str, spec: dict) -> None:
     """Cairo tracks are oracle-pinned and never promotion eligible in wave 1."""
     if spec.get("promotion_eligible"):
@@ -1552,20 +1660,31 @@ def _validate_group_workload_provisioning(
                 f"workload group {gid}: {wid} is both a runnable workload and a "
                 "pending provisioning entry"
             )
-        if not isinstance(entry, dict) or set(entry) != {
-            "vm_steps", "committed_cells", "reason",
-        }:
+        if not isinstance(entry, dict) or set(entry) not in (
+            {"vm_steps", "committed_cells", "reason"},
+            {"expected_cycles", "source", "reason"},
+        ):
             raise ManifestError(
                 f"workload group {gid}: pending workload {wid} requires exactly "
-                "vm_steps, committed_cells, and reason"
+                "vm_steps, committed_cells, and reason — or, for a candidate "
+                "pinned to a committed corpus, exactly expected_cycles, source, "
+                "and reason"
             )
-        for key in ("vm_steps", "committed_cells"):
+        for key in ("vm_steps", "committed_cells", "expected_cycles"):
+            if key not in entry:
+                continue
             value = entry[key]
             if type(value) is not int or value <= 0:
                 raise ManifestError(
                     f"workload group {gid}: pending workload {wid}.{key} must be "
                     "a positive integer"
                 )
+        source = entry.get("source")
+        if source is not None and (not isinstance(source, str) or not source.strip()):
+            raise ManifestError(
+                f"workload group {gid}: pending workload {wid}.source must name "
+                "the committed corpus entry that pins the candidate"
+            )
         if not isinstance(entry["reason"], str) or not entry["reason"].strip():
             raise ManifestError(
                 f"workload group {gid}: pending workload {wid} has no reason"
