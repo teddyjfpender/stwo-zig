@@ -49,7 +49,7 @@ class ManifestTest(unittest.TestCase):
 
     def test_riscv_small_and_wide_walls_cover_qualifier_without_global_drift(self):
         riscv_small = self.m.gates_for_workload("riscv", "small")
-        riscv_walls = {"small": 600, "wide": 900, "deep": 600}
+        riscv_walls = {"small": 600, "wide": 1200, "deep": 600}
         self.assertEqual(
             riscv_small["wall_clock_cap_seconds"],
             riscv_walls,
