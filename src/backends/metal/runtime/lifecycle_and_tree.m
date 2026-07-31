@@ -26,8 +26,9 @@ void *stwo_zig_metal_merkle_commit(
     const uint32_t *const *columns,
     const size_t *column_lengths,
     const uint32_t *column_log_sizes,
-    const uint32_t *backing_words,
-    size_t backing_word_count,
+    const uint32_t *const *backing_words,
+    const size_t *backing_word_counts,
+    uint32_t backing_count,
     uint32_t column_count,
     uint32_t lifting_log_size,
     const uint32_t *leaf_seed,
@@ -61,36 +62,50 @@ void *stwo_zig_metal_merkle_commit(
             contiguous_words += column_lengths[column];
         }
         size_t page_size = (size_t)getpagesize();
-        bool backing_requested = backing_words != NULL || backing_word_count != 0u;
-        bool backing_valid = backing_words != NULL &&
-            backing_word_count <= SIZE_MAX / sizeof(uint32_t);
-        uintptr_t backing_begin = (uintptr_t)backing_words;
-        uintptr_t backing_end = backing_begin;
+        bool backing_requested = backing_words != NULL || backing_word_counts != NULL ||
+            backing_count != 0u;
+        bool backing_valid = backing_words != NULL && backing_word_counts != NULL &&
+            backing_count != 0u;
+        uintptr_t backing_begin = 0u;
+        uintptr_t backing_end = 0u;
         uintptr_t column_min = UINTPTR_MAX;
         uintptr_t column_max = 0u;
         if (backing_valid) {
-            size_t backing_bytes = backing_word_count * sizeof(uint32_t);
-            backing_valid = backing_begin <= UINTPTR_MAX - backing_bytes;
-            if (backing_valid) backing_end = backing_begin + backing_bytes;
+            for (uint32_t backing = 0u; backing_valid && backing < backing_count; ++backing) {
+                backing_valid = backing_words[backing] != NULL &&
+                    backing_word_counts[backing] <= SIZE_MAX / sizeof(uint32_t);
+            }
             for (uint32_t column = 0u; backing_valid && column < column_count; ++column) {
                 uintptr_t column_begin = (uintptr_t)columns[column];
                 size_t column_bytes = column_lengths[column] * sizeof(uint32_t);
-                backing_valid = column_begin >= backing_begin && column_begin <= backing_end &&
-                    column_bytes <= backing_end - column_begin;
-                if (backing_valid) {
-                    if (column_begin < column_min) column_min = column_begin;
-                    if (column_begin + column_bytes > column_max)
-                        column_max = column_begin + column_bytes;
+                bool covered = false;
+                for (uint32_t backing = 0u; backing < backing_count; ++backing) {
+                    uintptr_t begin = (uintptr_t)backing_words[backing];
+                    size_t bytes = backing_word_counts[backing] * sizeof(uint32_t);
+                    if (begin <= UINTPTR_MAX - bytes && column_begin >= begin &&
+                        column_begin <= begin + bytes && column_bytes <= begin + bytes - column_begin) {
+                        covered = true;
+                        break;
+                    }
                 }
+                backing_valid = covered;
+                if (covered && column_begin < column_min) column_min = column_begin;
+                if (covered && column_begin + column_bytes > column_max)
+                    column_max = column_begin + column_bytes;
             }
         }
         if (backing_requested && !backing_valid) {
             write_error(error_message, error_message_len, @"Metal Merkle backing layout is invalid");
             return NULL;
         }
-        size_t backing_bytes = backing_valid ? backing_word_count * sizeof(uint32_t) : 0u;
+        size_t backing_bytes = backing_valid && backing_count == 1u
+            ? backing_word_counts[0] * sizeof(uint32_t) : 0u;
+        if (backing_valid && backing_count == 1u) {
+            backing_begin = (uintptr_t)backing_words[0];
+            backing_end = backing_begin + backing_bytes;
+        }
         bool alias_backing = flat_bytes >= (1u * 1024u * 1024u) &&
-            runtime.device.hasUnifiedMemory && backing_valid &&
+            runtime.device.hasUnifiedMemory && backing_valid && backing_count == 1u &&
             (backing_begin % page_size) == 0u && (backing_bytes % page_size) == 0u;
         uintptr_t alias_backing_begin = backing_begin;
         size_t alias_backing_bytes = backing_bytes;
@@ -300,6 +315,27 @@ void *stwo_zig_metal_merkle_commit(
             ? layer_word_offsets[lifting_log_size] : 0u;
         tree.logSize = lifting_log_size;
         tree.gpuMilliseconds = (command.GPUEndTime - command.GPUStartTime) * 1000.0;
+        NSMutableData *resident_begins =
+            [NSMutableData dataWithLength:(NSUInteger)column_count * sizeof(uintptr_t)];
+        NSMutableData *resident_counts =
+            [NSMutableData dataWithLength:(NSUInteger)column_count * sizeof(size_t)];
+        NSData *resident_offsets = [NSData dataWithBytes:offset_values
+            length:(NSUInteger)column_count * sizeof(uint32_t)];
+        if (resident_begins == nil || resident_counts == nil || resident_offsets == nil) {
+            write_error(error_message, error_message_len,
+                        @"Metal resident column map allocation failed");
+            return NULL;
+        }
+        uintptr_t *begin_values = resident_begins.mutableBytes;
+        size_t *count_values = resident_counts.mutableBytes;
+        for (uint32_t column = 0u; column < column_count; ++column) {
+            begin_values[column] = (uintptr_t)columns[column];
+            count_values[column] = column_lengths[column];
+        }
+        tree.residentColumnBuffers = @[ staging ];
+        tree.residentColumnHostBegins = resident_begins;
+        tree.residentColumnWordCounts = resident_counts;
+        tree.residentColumnWordOffsets = resident_offsets;
         return (__bridge_retained void *)tree;
     }
 }

@@ -121,9 +121,9 @@ pub fn MetalMerkleTree(comptime H: type) type {
             runtime: *runtime_mod.Runtime,
             allocator: std.mem.Allocator,
             columns: []const []const M31,
-            backing: []const M31,
+            backings: []const []M31,
         ) !Self {
-            return commitOwned(runtime, allocator, columns, true, backing);
+            return commitOwned(runtime, allocator, columns, true, backings);
         }
 
         fn commitOwned(
@@ -131,7 +131,7 @@ pub fn MetalMerkleTree(comptime H: type) type {
             allocator: std.mem.Allocator,
             columns: []const []const M31,
             tracks_shared_runtime: bool,
-            backing: ?[]const M31,
+            backings: ?[]const []M31,
         ) !Self {
             const log_sizes = try allocator.alloc(u32, columns.len);
             defer allocator.free(log_sizes);
@@ -149,7 +149,7 @@ pub fn MetalMerkleTree(comptime H: type) type {
                 word_columns[index] = std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(column));
             }
 
-            const tree = if (backing) |values|
+            const tree = if (backings) |values|
                 try runtime.commitColumnsWithBacking(
                     allocator,
                     word_columns,
@@ -158,7 +158,7 @@ pub fn MetalMerkleTree(comptime H: type) type {
                     H.leafSeed(),
                     H.nodeSeed(),
                     H.domainPrefixBytes(),
-                    std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(values)),
+                    values,
                 )
             else
                 try runtime.commitColumns(

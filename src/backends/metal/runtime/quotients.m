@@ -8,28 +8,6 @@ static const size_t stwo_zig_quotient_resident_segment_min_bytes =
 static const size_t stwo_zig_quotient_gpu_flat_pack_min_bytes =
     64u * 1024u * 1024u;
 
-static StwoZigMetalTree *stwo_zig_quotient_resident_source(
-    NSArray<StwoZigMetalTree *> *resident_trees,
-    const uint32_t *column,
-    size_t column_words,
-    uintptr_t *resident_begin_out,
-    size_t *resident_words_out
-) {
-    uintptr_t address = (uintptr_t)column;
-    for (StwoZigMetalTree *tree in resident_trees) {
-        uintptr_t begin = tree.residentColumnsHostBegin;
-        size_t words = tree.residentColumnsWordCount;
-        if (tree.residentColumns == nil || address < begin) continue;
-        size_t offset_words = (address - begin) / sizeof(uint32_t);
-        if (offset_words <= words && column_words <= words - offset_words) {
-            *resident_begin_out = begin;
-            *resident_words_out = words;
-            return tree;
-        }
-    }
-    return nil;
-}
-
 static size_t stwo_zig_quotient_raw_source_run_count(
     const uint32_t *const *raw_columns,
     const size_t *raw_column_lengths,
@@ -41,23 +19,18 @@ static size_t stwo_zig_quotient_raw_source_run_count(
     while (column < raw_column_count) {
         size_t run_start = column;
         size_t run_words = raw_column_lengths[column];
-        uintptr_t resident_begin = 0u;
-        size_t resident_words = 0u;
-        StwoZigMetalTree *resident_tree = stwo_zig_quotient_resident_source(
-            resident_trees,
-            raw_columns[column],
-            raw_column_lengths[column],
-            &resident_begin,
-            &resident_words
-        );
+        StwoZigResidentColumnBinding resident_binding;
+        bool resident = stwo_zig_tree_resident_column(
+            resident_trees, raw_columns[column], raw_column_lengths[column],
+            &resident_binding);
         column += 1u;
-        if (resident_tree != nil) {
+        if (resident) {
             while (column < raw_column_count) {
-                uintptr_t address = (uintptr_t)raw_columns[column];
-                if (address < resident_begin) break;
-                size_t offset_words = (address - resident_begin) / sizeof(uint32_t);
-                if (offset_words > resident_words ||
-                    raw_column_lengths[column] > resident_words - offset_words ||
+                StwoZigResidentColumnBinding next_binding;
+                if (!stwo_zig_tree_resident_column(
+                        resident_trees, raw_columns[column], raw_column_lengths[column],
+                        &next_binding) ||
+                    next_binding.buffer != resident_binding.buffer ||
                     run_words > SIZE_MAX - raw_column_lengths[column])
                     break;
                 run_words += raw_column_lengths[column];
@@ -96,20 +69,15 @@ static bool stwo_zig_encode_quotient_flat_pack(
             return false;
         }
         size_t column_bytes = raw_column_lengths[column] * sizeof(uint32_t);
-        uintptr_t resident_begin = 0u;
-        size_t resident_words = 0u;
-        StwoZigMetalTree *resident_tree = stwo_zig_quotient_resident_source(
-            resident_trees,
-            raw_columns[column],
-            raw_column_lengths[column],
-            &resident_begin,
-            &resident_words
-        );
+        StwoZigResidentColumnBinding resident_binding;
+        bool resident = stwo_zig_tree_resident_column(
+            resident_trees, raw_columns[column], raw_column_lengths[column],
+            &resident_binding);
         id<MTLBuffer> source = nil;
         size_t source_offset = 0u;
-        if (resident_tree != nil) {
-            source = resident_tree.residentColumns;
-            source_offset = (uintptr_t)raw_columns[column] - resident_begin;
+        if (resident) {
+            source = resident_binding.buffer;
+            source_offset = resident_binding.wordOffset * sizeof(uint32_t);
         } else {
             uintptr_t address = (uintptr_t)raw_columns[column];
             uintptr_t alias_address = address - (address % page_size);
@@ -509,26 +477,22 @@ bool stwo_zig_metal_compute_quotients(
             while (column < raw_column_count) {
                 size_t run_start = column;
                 size_t run_words = raw_column_lengths[column];
-                uintptr_t resident_begin = 0u;
-                size_t resident_words = 0u;
-                StwoZigMetalTree *resident_tree = stwo_zig_quotient_resident_source(
-                    resident_trees,
-                    raw_columns[column],
-                    raw_column_lengths[column],
-                    &resident_begin,
-                    &resident_words
-                );
+                StwoZigResidentColumnBinding resident_binding;
+                bool resident_run = stwo_zig_tree_resident_column(
+                    resident_trees, raw_columns[column], raw_column_lengths[column],
+                    &resident_binding);
                 id<MTLBuffer> resident_source =
-                    resident_tree == nil ? nil : resident_tree.residentColumns;
-                bool resident_run = resident_source != nil;
+                    resident_run ? resident_binding.buffer : nil;
                 column += 1;
                 if (resident_run) {
                     while (column < raw_column_count) {
-                        uintptr_t address = (uintptr_t)raw_columns[column];
-                        if (address < resident_begin) break;
-                        size_t offset_words = (address - resident_begin) / sizeof(uint32_t);
-                        if (offset_words > resident_words ||
-                            raw_column_lengths[column] > resident_words - offset_words) break;
+                        StwoZigResidentColumnBinding next_binding;
+                        if (!stwo_zig_tree_resident_column(
+                                resident_trees, raw_columns[column], raw_column_lengths[column],
+                                &next_binding) ||
+                            next_binding.buffer != resident_source ||
+                            run_words > SIZE_MAX - raw_column_lengths[column])
+                            break;
                         run_words += raw_column_lengths[column];
                         column += 1;
                     }
@@ -579,11 +543,18 @@ bool stwo_zig_metal_compute_quotients(
                             for (size_t source_column = run_start; source_column < column; ++source_column) {
                                 size_t logical_column_end = logical_column_start + raw_column_lengths[source_column];
                                 if ((size_t)view.offset < logical_column_end) {
-                                    size_t resident_column_offset =
-                                        ((uintptr_t)raw_columns[source_column] - resident_begin) /
-                                        sizeof(uint32_t);
-                                    view.offset = (uint32_t)(resident_column_offset +
-                                        (size_t)view.offset - logical_column_start);
+                                    StwoZigResidentColumnBinding column_binding;
+                                    size_t row_offset = (size_t)view.offset - logical_column_start;
+                                    if (!stwo_zig_tree_resident_column(
+                                            resident_trees, raw_columns[source_column],
+                                            raw_column_lengths[source_column], &column_binding) ||
+                                        column_binding.buffer != resident_source ||
+                                        column_binding.wordOffset > UINT32_MAX - row_offset) {
+                                        write_error(error_message, error_message_len,
+                                                    @"Metal quotient resident view mapping failed");
+                                        return false;
+                                    }
+                                    view.offset = (uint32_t)(column_binding.wordOffset + row_offset);
                                     break;
                                 }
                                 logical_column_start = logical_column_end;

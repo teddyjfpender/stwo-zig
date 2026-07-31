@@ -3,6 +3,8 @@ const runtime = @import("../runtime.zig");
 const ffi = @import("bindings.zig");
 const protocol_mode = @import("protocol_mode.zig");
 
+const M31 = @import("stwo_core").fields.m31.M31;
+
 const MetalError = runtime.MetalError;
 const Runtime = runtime.Runtime;
 const CommandEpoch = runtime.CommandEpoch;
@@ -465,7 +467,7 @@ pub fn commitColumnsWithBacking(
     leaf_seed: [8]u32,
     node_seed: [8]u32,
     domain_prefix_bytes: u32,
-    backing: []const u32,
+    backings: []const []M31,
 ) (MetalError || std.mem.Allocator.Error)!Tree {
     return commitColumnsConfigured(
         self,
@@ -476,7 +478,7 @@ pub fn commitColumnsWithBacking(
         leaf_seed,
         node_seed,
         domain_prefix_bytes,
-        backing,
+        backings,
     );
 }
 
@@ -489,7 +491,7 @@ fn commitColumnsConfigured(
     leaf_seed: [8]u32,
     node_seed: [8]u32,
     domain_prefix_bytes: u32,
-    backing: ?[]const u32,
+    backings: ?[]const []M31,
 ) (MetalError || std.mem.Allocator.Error)!Tree {
     if (columns.len == 0 or columns.len != log_sizes.len) return MetalError.InvalidColumns;
     if (!validDomainPrefixBytes(domain_prefix_bytes)) return MetalError.InvalidColumns;
@@ -525,14 +527,28 @@ fn commitColumnsConfigured(
         sorted_log_sizes[sorted_index] = log_size;
     }
 
+    const backing_ptrs = if (backings) |values| blk: {
+        const ptrs = try allocator.alloc([*]const u32, values.len);
+        for (values, ptrs) |backing, *ptr| ptr.* = @ptrCast(backing.ptr);
+        break :blk ptrs;
+    } else null;
+    defer if (backing_ptrs) |ptrs| allocator.free(ptrs);
+    const backing_lengths = if (backings) |values| blk: {
+        const lengths = try allocator.alloc(usize, values.len);
+        for (values, lengths) |backing, *len| len.* = backing.len;
+        break :blk lengths;
+    } else null;
+    defer if (backing_lengths) |lengths| allocator.free(lengths);
+
     var message: [1024]u8 = [_]u8{0} ** 1024;
     const tree = ffi.stwo_zig_metal_merkle_commit(
         self.handle,
         sorted_columns.ptr,
         sorted_lengths.ptr,
         sorted_log_sizes.ptr,
-        if (backing) |words| words.ptr else null,
-        if (backing) |words| words.len else 0,
+        if (backing_ptrs) |ptrs| ptrs.ptr else null,
+        if (backing_lengths) |lengths| lengths.ptr else null,
+        if (backings) |values| @intCast(values.len) else 0,
         @intCast(columns.len),
         lifting_log_size,
         &leaf_seed,

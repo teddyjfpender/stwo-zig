@@ -451,9 +451,80 @@
 @property(nonatomic, strong) id<MTLBuffer> residentColumns;
 @property(nonatomic, assign) uintptr_t residentColumnsHostBegin;
 @property(nonatomic, assign) NSUInteger residentColumnsWordCount;
+// Proof-owned bindings from authenticated host column arenas to the exact
+// Metal buffers that expose them. A tree may cover several skewed LDE arenas;
+// keeping this map on the tree prevents cross-proof/global residency lookup.
+@property(nonatomic, strong) NSArray<id<MTLBuffer>> *residentColumnBuffers;
+@property(nonatomic, strong) NSData *residentColumnHostBegins;
+@property(nonatomic, strong) NSData *residentColumnWordCounts;
+@property(nonatomic, strong) NSData *residentColumnWordOffsets;
 @end
 @implementation StwoZigMetalTree
 @end
+
+typedef struct {
+    __unsafe_unretained StwoZigMetalTree *tree;
+    __unsafe_unretained id<MTLBuffer> buffer;
+    size_t wordOffset;
+    size_t availableWords;
+} StwoZigResidentColumnBinding;
+
+static bool stwo_zig_tree_resident_column(
+    NSArray<StwoZigMetalTree *> *trees,
+    const uint32_t *column,
+    size_t column_words,
+    StwoZigResidentColumnBinding *binding
+) {
+    if (column == NULL || binding == NULL) return false;
+    uintptr_t address = (uintptr_t)column;
+    for (StwoZigMetalTree *tree in trees) {
+        NSArray<id<MTLBuffer>> *buffers = tree.residentColumnBuffers;
+        const uintptr_t *begins = tree.residentColumnHostBegins.bytes;
+        const size_t *counts = tree.residentColumnWordCounts.bytes;
+        const uint32_t *offsets = tree.residentColumnWordOffsets.bytes;
+        NSUInteger count = tree.residentColumnHostBegins.length / sizeof(uintptr_t);
+        if (buffers.count == 1u && begins != NULL && counts != NULL && offsets != NULL &&
+            tree.residentColumnHostBegins.length == count * sizeof(uintptr_t) &&
+            tree.residentColumnWordCounts.length == count * sizeof(size_t) &&
+            tree.residentColumnWordOffsets.length == count * sizeof(uint32_t)) {
+            for (NSUInteger index = 0u; index < count; ++index) {
+                uintptr_t begin = begins[index];
+                size_t words = counts[index];
+                if (address < begin || (address - begin) % sizeof(uint32_t) != 0u)
+                    continue;
+                size_t offset = (address - begin) / sizeof(uint32_t);
+                if (offset > words || column_words > words - offset) continue;
+                id<MTLBuffer> buffer = buffers[0];
+                size_t device_offset = (size_t)offsets[index] + offset;
+                if (buffer == nil || device_offset > buffer.length / sizeof(uint32_t) ||
+                    column_words > buffer.length / sizeof(uint32_t) - device_offset)
+                    continue;
+                binding->tree = tree;
+                binding->buffer = buffer;
+                binding->wordOffset = device_offset;
+                binding->availableWords = words - offset;
+                return true;
+            }
+        }
+
+        // Compatibility for trees built by older/specialized epochs while
+        // their callers migrate to the multi-arena map.
+        uintptr_t begin = tree.residentColumnsHostBegin;
+        size_t words = tree.residentColumnsWordCount;
+        if (tree.residentColumns == nil || address < begin ||
+            (address - begin) % sizeof(uint32_t) != 0u)
+            continue;
+        size_t offset = (address - begin) / sizeof(uint32_t);
+        if (offset <= words && column_words <= words - offset) {
+            binding->tree = tree;
+            binding->buffer = tree.residentColumns;
+            binding->wordOffset = offset;
+            binding->availableWords = words - offset;
+            return true;
+        }
+    }
+    return false;
+}
 
 static uint32_t tree_layer_word_offset(StwoZigMetalTree *tree, NSUInteger level) {
     if (tree.layerWordOffsets == nil) return 0u;

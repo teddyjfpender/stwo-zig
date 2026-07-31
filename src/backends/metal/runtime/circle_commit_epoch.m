@@ -586,6 +586,16 @@ void *stwo_zig_metal_circle_lde_merkle_commit(
         tree.residentColumns = extended;
         tree.residentColumnsHostBegin = (uintptr_t)extended_words;
         tree.residentColumnsWordCount = extended_word_count;
+        uintptr_t resident_begin = (uintptr_t)extended_words;
+        size_t resident_words = extended_word_count;
+        uint32_t resident_offset = 0u;
+        tree.residentColumnBuffers = @[ extended ];
+        tree.residentColumnHostBegins =
+            [NSData dataWithBytes:&resident_begin length:sizeof(resident_begin)];
+        tree.residentColumnWordCounts =
+            [NSData dataWithBytes:&resident_words length:sizeof(resident_words)];
+        tree.residentColumnWordOffsets =
+            [NSData dataWithBytes:&resident_offset length:sizeof(resident_offset)];
         return (__bridge_retained void *)tree;
     }
 }

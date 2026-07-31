@@ -235,7 +235,7 @@ pub const MetalCommitBackend = struct {
     ) !MerkleTree(H) {
         var cells: usize = 0;
         for (columns) |column| cells = try std.math.add(usize, cells, column.len);
-        if (cells == 0 or !commit_policy.usesResidentMerkle(cells) or backing_buffers.len != 1) {
+        if (cells == 0 or !commit_policy.usesResidentMerkle(cells) or backing_buffers.len == 0) {
             return commitMerkle(H, allocator, columns);
         }
 
@@ -245,7 +245,7 @@ pub const MetalCommitBackend = struct {
             lease.runtime,
             allocator,
             columns,
-            backing_buffers[0],
+            backing_buffers,
         );
         telemetry.record(.resident_merkle_commit);
         return resident_tree;
