@@ -680,6 +680,19 @@ proof-row count is unknown and its manifest remains `proof_ready=false`. The
 new workload proves the player attack, damage, and faint path, but not the
 post-faint cleanup through the marker-to-marker battle return.
 
+PE-AGI also exposes a separate `make proof-benchmark-test` game-side workload:
+a level-100 Snorlax-versus-level-100 Lapras battle with four executed moves per
+side, a poll-aligned action tape, explicit legal move sets, and a public seeded
+battle RNG. The visual and proof-fast ROMs produce the same 16-event logic
+transcript (`624f4742bef3c46c555c8f6b3d7c2dcba8e5c3b774f7b0387eae014a018aa1eb`).
+The visual run has 9,186,295 callbacks and 66,528,074 M-cycles; presentation
+elision reduces the proof-fast run to 594,575 callbacks and 1,436,786 M-cycles,
+which fits in one 2^20 callback chunk. This is the larger game regression and
+backend-autoresearch target, but it is not silently substituted for the pinned
+frontend fixture above. Its manifest remains `proof_ready=false`; importing
+its checkpoint, exact action tape, and scheduler-row geometry is required
+before this repository can claim a proof or backend receipt for that battle.
+
 The timed 2^17 results below remain historical v5/v6 evidence for the visual
 fixture only.
 
