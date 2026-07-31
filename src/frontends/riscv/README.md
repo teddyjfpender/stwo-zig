@@ -243,6 +243,26 @@ Release evidence additionally covers operand classes, trace vectors,
 adversarial witnesses, selector rigidity, access determinacy, Sail
 differentials, and independent artifact verification.
 
+### Formal-refinement integration
+
+Production semantics and formal export share the same typed
+`ConstraintProgram`; a second handwritten AIR model is not an accepted source
+of evidence. The manifest-wide publication gate is designed to bind all 46
+selectors to generated AIR, generated Sail, exact theorem identities, source
+digests, and axiom records. It remains fail-closed until every binding is
+present. Changes under this package are included in
+`.github/workflows/riscv-refinement.yml` and must keep the neutral publication
+inventory exact.
+
+Completed FV-1/FV-2 artifacts establish local opcode retirement refinement;
+the aggregate 46-opcode receipt has not yet been promoted. Even after that
+promotion, FV-1/FV-2 do not establish arbitrary frontend-trace composition,
+the complete Word32/M31 invariant, or proof-system soundness. The authoritative
+boundary and remaining gates are in
+[`RISCV_FRONTEND_VERIFICATION_STATUS.md`](../../../soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md);
+the reproducible proof entry point is documented in
+[`formal/riscv-refinement/README.md`](../../../formal/riscv-refinement/README.md).
+
 ## Change checklist
 
 1. Derive semantic changes from the pinned Sail contract.
@@ -250,12 +270,14 @@ differentials, and independent artifact verification.
 3. Extend positive, negative, and adversarial coverage for every affected
    opcode family.
 4. Preserve backend neutrality and deterministic host behavior.
-5. Run the package suite and the complete RISC-V release gate.
+5. Run the package suite, `python3 scripts/riscv_refinement.py verify`, and the
+   complete RISC-V release gate.
 
 ## Related documentation
 
 - [RISC-V Sail contract](../../../conformance/2026-07-26-riscv-sail-contract.md)
 - [RISC-V release evidence](../../../conformance/riscv-release-evidence.md)
+- [RISC-V verification status](../../../soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md)
 - [Universal AIR to Sail refinement plan](../../../soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md)
 - [CPU integration](../../integrations/riscv_cpu/README.md)
 - [Metal integration](../../integrations/riscv_metal/README.md)

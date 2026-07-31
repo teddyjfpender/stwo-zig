@@ -6,12 +6,28 @@ from scripts.tests.riscv_refinement_test_support import *
 
 
 class RefinementSailTest(unittest.TestCase):
-    def test_live_bridge_command_pins_the_external_lean_root(self) -> None:
+    def test_live_bridge_commands_pin_the_external_lean_root(self) -> None:
         paths = Paths(ROOT)
-        command = sail_lean_bridge._bridge_lean_command(paths)
-        bridge = ROOT / sail_lean_bridge.BRIDGE_SOURCE
-        self.assertEqual(command[command.index("-R") + 1], str(bridge.parent))
-        self.assertEqual(command[-1], str(bridge))
+        output = Path("/tmp/stwo-test-Pilot.olean")
+        pilot = sail_lean_bridge._bridge_lean_command(
+            paths,
+            sail_lean_bridge.PILOT_SOURCE,
+            output,
+        )
+        composition = sail_lean_bridge._bridge_lean_command(
+            paths,
+            sail_lean_bridge.COMPOSITION_SOURCE,
+        )
+        bridge_root = str(
+            (ROOT / sail_lean_bridge.PILOT_SOURCE).parent
+        )
+        self.assertEqual(pilot[pilot.index("-R") + 1], bridge_root)
+        self.assertEqual(
+            composition[composition.index("-R") + 1],
+            bridge_root,
+        )
+        self.assertEqual(pilot[pilot.index("-o") + 1], str(output))
+        self.assertNotIn("-o", composition)
 
     def test_carried_sail_evidence_reproduces_the_committed_provenance(
         self,
@@ -147,7 +163,7 @@ class RefinementSailTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as raw:
             paths = carried_fixture(Path(raw))
-            bridge = paths.root / sail_lean_bridge.BRIDGE_SOURCE
+            bridge = paths.root / sail_lean_bridge.COMPOSITION_SOURCE
             bridge.write_bytes(bridge.read_bytes() + b"-- drift\n")
             with self.assertRaisesRegex(
                 RefinementError,

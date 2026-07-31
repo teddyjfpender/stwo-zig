@@ -1,55 +1,91 @@
-# RISC-V graded AIR-to-Sail refinement
+# RISC-V AIR-to-Sail refinement
 
-This Lean project contains the issue #136 A5 graded integration and retains
-the Level-1 LUI/ADDI normalized pilot within it. Team A's production AIR IR v2
-source binding kernel-checks the normalized LUI and ADDI row predicates
-against a generated normalized capsule bound to the exact
-pinned Sail `execute_UTYPE`/`execute_ITYPE` slices by a checked, fail-closed AST
-translation receipt. A separate cross-project Lean check imports the exact
-generated backend and proves input equations for all 24 Team A selectors,
-including BTYPE, JAL, JALR, and FENCE. Only LUI/ADDI are normalized to the
-repository retirement capsule and composed with the shared sequential next-PC
-write and `tick_pc` fragment. All 17 production families and all 46 opcode
-selectors now round-trip through the shared production `ConstraintProgram`.
+This Lean project checks the RV32IM frontend against the repository's pinned,
+generated Sail model. The public claim is organized by verification layer and
+opcode family; contributor-team assignments have no semantic meaning.
 
-The LUI and ADDI AIR bridges now interpret their generated production programs
-directly, derive constraints and ordered relation lookups from evaluated
-events, enforce every live fixed-table request, rule out M31 clock wraparound,
-and prove the resulting typed rows satisfy `LuiHolds` and `AddiHolds`.
-Concrete witnesses pass through those same interpreters. The direct bridge
-binds the Team A generated execute-clause inputs, but the control-flow
-equations are not retirement-normalization theorems. The bridge does not cover
-fetch, interrupt, trap, counter, or later-step framing in the full generated
-Sail step loop. Accordingly, the repository still reports `2/46` as normalized
-pilot coverage and does not count either pilot as a publication-level opcode.
+The concise claim ledger and remaining roadmap are in
+[`soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md`](../../soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md).
+The detailed theorem contract is
+[`soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md`](../../soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md).
 
-## Theorems
+## Claim boundary
 
-- `RiscvRefinement.Opcodes.lui_refines`
-- `RiscvRefinement.Opcodes.addi_refines`
-- `RiscvRefinement.Air.Bridge.Lui.sound`
-- `RiscvRefinement.Air.Bridge.Lui.lookup_projection`
-- `RiscvRefinement.Air.Bridge.Lui.acceptance_nonvacuous`
-- `RiscvRefinement.Air.Bridge.Addi.sound`
-- `RiscvRefinement.Air.Bridge.Addi.lookup_projection`
-- `RiscvRefinement.Air.Bridge.Addi.acceptance_nonvacuous`
-- `RiscvRefinement.Air.Bridge.Mutations.luiLowLimb_strictly_weaker`
-- `RiscvRefinement.Air.Bridge.Mutations.addiCarry_strictly_weaker`
-- `RiscvRefinement.Air.Bridge.Mutations.immediateRange_strictly_weaker`
-- `RiscvRefinement.Air.Bridge.Mutations.selectorRelabel_strictly_weaker`
-- `RiscvRefinement.Air.Bridge.Mutations.reordered_strictly_weaker`
-- `RiscvRefinement.NonVacuity.lui_exists`
-- `RiscvRefinement.NonVacuity.addi_exists`
+The publication gate is designed to establish two local results for every one
+of the 46 admitted RV32IM opcodes:
 
-The ADDI proof derives its 32-bit result from the four byte equations and four
-one-bit carries. The LUI proof derives its word from the four constrained
-destination limbs. Neither theorem accepts an aggregate “correct result”
-hypothesis.
+1. the pinned generated-Sail execute path normalizes to an exact architectural
+   retirement; and
+2. acceptance of the exact generated production AIR program implies that
+   retirement under explicit row, state, profile, and admission bindings.
+
+The gate also checks a premise-free framing theorem for the retained generated
+full-step trace. It does not claim that an arbitrary full program trace exists
+from a single row, or that local rows compose across the frontend's register,
+memory, clock, interrupt, and trap machinery. Those are separate blocking
+gates.
+
+The repository therefore keeps:
+
+```text
+whole_frontend_verified = false
+proof_system_soundness = false
+```
+
+until the word/field invariant, whole-trace composition, independent
+reproduction, and any separate proof-system obligations are complete.
+
+## Publication target and current checkpoint
+
+The fail-closed publication target uses these public identities:
+
+- `LeanRV32IM.Functions.complete_<OP>_normalizes`, once for each manifest
+  opcode;
+- `LeanRV32IM.Functions.generated_full_step_retirement_composition`;
+- `LeanRV32IM.Publication.<OP>_accepted_air_refines`, once for each manifest
+  opcode; and
+- `LeanRV32IM.Publication.universal_publication_contract`.
+
+The theorem inventory is fail-closed: exact manifest order, source digests,
+fixed-table schemas, theorem names, axiom sets, non-vacuity evidence, and
+mutation identities are receipt inputs. Adding a theorem-name string cannot
+increase coverage.
+
+The target is not yet fully published. The kernel-clean sources on the default
+build and the complete continuation snapshots are itemized in
+[`checkpoints/issue-136/README.md`](checkpoints/issue-136/README.md). In
+particular, there is no current 46/46 FV-1/FV-2 receipt, and checkpoint files
+outside the Lake library cannot contribute proof evidence.
+
+## Repository layout
+
+- `RiscvRefinement/Air/Generated/` — generated typed production constraint
+  programs and exact manifest inventory.
+- `RiscvRefinement/Air/Bridge/` — proofs interpreting accepted generated AIR
+  programs.
+- `RiscvRefinement/Opcodes/` — reusable family semantics, witnesses, and
+  mutation controls.
+- `RiscvRefinement/Publication/` — the exact accepted-AIR publication layer
+  and universal coverage contract.
+- `generated-sail-bridge/Pilot.lean` — the receipt-bound generated-Sail bridge
+  currently carrying two normalized retirements plus exact input equations.
+- `checkpoints/issue-136/{Pilot.fv1-kernel-clean,Composition.kernel-clean}.lean`
+  — the checked expanded normalizer/full-step continuation, isolated until it
+  can be promoted and receipted atomically.
+- `checkpoints/issue-136/` — full, non-gating continuation sources and the
+  exact proof handoff.
+- `scripts/riscv_refinement.py` — primary generation, verification, and
+  receipt entry point.
+- `scripts/riscv_refinement_publication.py` — exact FV-1/FV-2 publication
+  evidence validator.
+
+Historical work-allocation documents and compatibility scripts are not
+normative claim surfaces. The root Lean aggregator and publication receipt
+must expose one neutral 46-opcode inventory.
 
 ## Reproduce
 
-Install or select Sail `0.20.2`, Lean is selected by `lean-toolchain`, and
-prepare the pinned formal workspace:
+Select the pinned tools and prepare the Sail workspace:
 
 ```sh
 python3 scripts/riscv_formal_tools.py prepare \
@@ -59,41 +95,34 @@ python3 scripts/riscv_refinement.py prepare-sail \
   --sail-riscv-dir /tmp/stwo-riscv-formal/source/sail-riscv
 ```
 
-The second command recursively applies the repository's normative RV32IM
-overrides to the generated RV32 base configuration, validates the resulting
-configuration with the pinned simulator, requires the ISA string `rv32im`,
-and generates the Sail Lean theorem backend from that exact configuration.
-
-Generate the committed capsules and run the complete pilot gate:
+Generate the exact production and Sail inputs:
 
 ```sh
 python3 scripts/riscv_refinement.py generate \
   --sail-riscv-dir /tmp/stwo-riscv-formal/source/sail-riscv
+```
 
+Run the repository gate when working on promotion:
+
+```sh
 STWO_SAIL_RISCV_DIR=/tmp/stwo-riscv-formal/source/sail-riscv \
   zig build riscv-refinement-pilot
 ```
 
-The gate freshly exports all 17 production symbolic-AIR families plus exactly
-46 source-bound AIR IR v2 programs. It rejects manifest, schema, source, event,
-or expression drift and differentially checks the shared symbolic program
-against the QM31 production evaluator. It then compares every generated file
-byte-for-byte, runs coverage and negative controls, runs the Python
-infrastructure tests, builds Lean (including strict LUI decode and active/
-inactive evaluation guards), scans for proof escapes, and audits every
-exported theorem's axioms.
+The gate freshly exports all 17 production AIR families and exactly 46
+source-bound programs. It rejects manifest, schema, source, event-order,
+expression, lookup, or fixed-table drift; differentially checks the shared
+symbolic program against production evaluation; builds Lean; checks the exact
+generated Sail bridge; scans for proof escapes; validates non-vacuity and
+mutations; and audits theorem axioms.
 
-The Stage A2 mutation bundle is checked in Lean against the interpreted
-production programs. It proves architectural counterexamples for the free LUI
-low limb, deleted ADDI high carry, and ADDI/XORI selector relabel. It also
-proves strict loss of the raw immediate-range request and exact event-order
-projection. The generated-Sail side of the joint Level-2 gate remains open.
-Every Team A execute-clause input is now kernel-bound. The normalized
-execute-clause monad and sequential PC/tick theorem remains LUI/ADDI-only; the
-open portion includes normalized retirement composition for the other
-selectors and the wider generated step-loop framing.
+At this checkpoint the command is intentionally fail-closed before promotion:
+it must not report 46/46 while the public generated-Sail composition,
+load/store, and division obligations named in the status ledger remain open.
+For ordinary work outside formal refinement, the default Lean build and the
+frontend's focused tests remain the usable local gates.
 
-After committing all inputs and generated artifacts, create the evidence
+After committing every input and generated artifact, create and replay the
 receipt:
 
 ```sh
@@ -102,28 +131,38 @@ python3 scripts/riscv_refinement.py receipt \
 python3 scripts/riscv_refinement.py verify-receipt
 ```
 
-Receipt generation never accepts `--no-export-air`. It records the source
-revision and dirty paths, complete generated-manifest digest, exact theorem
-axioms, negative controls, coverage, tool binary identities, and the Level-1
-claim boundary.
+Receipt generation never accepts a carried or stale Sail result as fresh
+evidence. The current generated bridge runner pins Lean's external source root
+with `-R` and checks the receipt-bound Pilot against the pinned backend. The
+two-module Pilot/Composition runner is preserved under the issue checkpoint
+and must be promoted together with a fresh live-toolchain receipt.
 
-## Generated files
+## Generated inputs
 
-Do not edit these by hand:
+Do not edit generated artifacts by hand. Important generated surfaces include:
 
-- `generated/air/{lui,addi}.json`
-- `generated/air/{all 46 manifest mnemonics}.air-ir-v2.json`
-- `generated/sail/rv32im-zkvm-v1.json`
-- `generated/sail/definitions/{execute_UTYPE,execute_ITYPE}.lean`
-- `generated/sail/translation-receipt-v1.json`
-- `generated/sail/generated-monad-bridge-receipt-v1.json`
-- `RiscvRefinement/Air/Generated/Pilot.lean`
-- `RiscvRefinement/Air/Generated/LuiProgram.lean`
-- `RiscvRefinement/Sail/Generated/Pilot.lean`
-- `generated-manifest.json`
+- `generated/air/*.air-ir-v2.json`;
+- `generated/sail/rv32im-zkvm-v1.json`;
+- `generated/sail/definitions/*.lean`;
+- `generated/sail/translation-receipt-v1.json`;
+- `generated/sail/generated-monad-bridge-receipt-v1.json`;
+- `RiscvRefinement/Air/Generated/*.lean`; and
+- `generated-manifest.json`.
 
-The detailed theorem contract, trusted-base analysis, rollout order, and
-publication definition of done are in
-[`soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md`](../../soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md).
-The exact production AIR wire and interpretation contract is
-[`soundness/AIR_IR_V2_CONTRACT.md`](../../soundness/AIR_IR_V2_CONTRACT.md).
+A semantic source change must flow through regeneration and invalidate the
+corresponding digest, theorem audit, or receipt. Byte-identical regeneration
+is part of the publication evidence.
+
+## Review rule
+
+Review claims in this order:
+
+1. inspect the exact theorem signature and caller premises;
+2. confirm it consumes `AcceptedProductionEvaluation` for the exact generated
+   program rather than a handwritten `Holds` assumption;
+3. confirm selector activation and live relations are derived and retained;
+4. inspect the theorem's exact axiom list;
+5. check its non-vacuity witness and mutation control; and
+6. compare the machine-readable claim with the status ledger.
+
+No coverage count or green workflow substitutes for those checks.

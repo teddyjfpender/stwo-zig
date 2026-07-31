@@ -1,4 +1,10 @@
-# RV32IM zkVM soundness roadmap
+# RV32IM zkVM assurance evidence log
+
+> **Current roadmap:**
+> [`RISCV_FRONTEND_VERIFICATION_STATUS.md`](RISCV_FRONTEND_VERIFICATION_STATUS.md)
+> is the single normative claim ledger and forward roadmap. This file retains
+> the dated engineering evidence behind that ledger; its historical workstream
+> labels and completion boxes do not promote the frontend verification claim.
 
 This roadmap tracks assurance beyond ordinary feature completeness. The
 normative architectural model is pinned Sail RISC-V; Spike is an independent

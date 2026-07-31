@@ -25,66 +25,87 @@ del _test_case
 
 
 class RefinementAirTest(unittest.TestCase):
-    def test_generated_sail_team_a_input_boundary_is_explicit(self) -> None:
-        self.assertEqual(
-            sail_lean_bridge.CLAIM_BOUNDARY[
-                "input_bound_team_a_selectors"
-            ],
-            [
-                "LUI", "AUIPC",
-                "ADDI", "XORI", "ORI", "ANDI", "SLTI", "SLTIU",
-                "ADD", "SUB", "XOR", "OR", "AND", "SLT", "SLTU",
-                "BEQ", "BNE", "BLT", "BGE", "BLTU", "BGEU",
-                "JAL", "JALR", "FENCE",
-            ],
-        )
+    def test_generated_sail_publication_boundary_is_explicit(self) -> None:
         self.assertEqual(
             sail_lean_bridge.CLAIM_BOUNDARY[
                 "normalized_retirement_selectors"
             ],
-            ["LUI", "ADDI"],
+            sail_lean_bridge.ADMITTED_SELECTORS,
         )
-        self.assertFalse(
+        self.assertEqual(
+            sail_lean_bridge.CLAIM_BOUNDARY["input_bound_selectors"],
+            sail_lean_bridge.ADMITTED_SELECTORS,
+        )
+        self.assertTrue(
             sail_lean_bridge.CLAIM_BOUNDARY[
-                "team_a_normalized_retirement_composition"
+                "generated_execute_clause_input_binding"
             ],
         )
-        self.assertFalse(
+        self.assertTrue(
+            sail_lean_bridge.CLAIM_BOUNDARY[
+                "generated_retirement_composition"
+            ],
+        )
+        self.assertTrue(
             sail_lean_bridge.CLAIM_BOUNDARY[
                 "fetch_interrupt_trap_and_step_loop_framing"
             ],
+        )
+        self.assertTrue(
+            sail_lean_bridge.CLAIM_BOUNDARY["publication_binding"],
+        )
+        self.assertEqual(
+            len(sail_lean_bridge.SELECTOR_SOURCE_DIGESTS),
+            46,
+        )
+        self.assertEqual(
+            [
+                identity["selector"]
+                for identity
+                in sail_lean_bridge.SELECTOR_SOURCE_DIGESTS
+            ],
+            sail_lean_bridge.ADMITTED_SELECTORS,
         )
         self.assertEqual(
             sail_lean_bridge.CLAIM_BOUNDARY[
                 "pinned_generated_model_axioms"
             ],
-            ["sys_enable_experimental_extensions"],
+            [
+                "load_reservation",
+                "match_reservation",
+                "plat_term_write",
+                "sys_enable_experimental_extensions",
+            ],
         )
 
-    def test_generated_sail_control_flow_axioms_are_scoped(self) -> None:
-        jump_theorems = {
-            theorem
-            for theorem in sail_lean_bridge.THEOREMS
-            if (
-                "execute_BTYPE_" in theorem
-                or theorem.endswith("execute_JAL_eq")
-                or theorem.endswith("execute_JALR_eq")
-            )
-        }
-        self.assertEqual(
-            jump_theorems,
-            sail_lean_bridge._JUMP_INPUT_THEOREMS,
-        )
-        for theorem in sail_lean_bridge.THEOREMS:
+    def test_generated_sail_model_axioms_are_selector_scoped(self) -> None:
+        for selector in sail_lean_bridge.ADMITTED_SELECTORS:
             expected = set(sail_lean_bridge.KERNEL_AXIOMS)
-            if theorem in jump_theorems:
-                expected |= set(
-                    sail_lean_bridge.PINNED_GENERATED_MODEL_AXIOMS
-                )
-            self.assertEqual(
-                set(sail_lean_bridge.EXPECTED_THEOREM_AXIOMS[theorem]),
-                expected,
+            expected |= set(
+                sail_lean_bridge._selector_theorem_axioms(selector)
             )
+            for theorem in (
+                "LeanRV32IM.Functions."
+                f"complete_{selector}_normalizes",
+                "LeanRV32IM.Publication."
+                f"{selector}_accepted_air_refines",
+            ):
+                self.assertEqual(
+                    set(
+                        sail_lean_bridge.EXPECTED_THEOREM_AXIOMS[
+                            theorem
+                        ]
+                    ),
+                    expected,
+                )
+        self.assertEqual(
+            set(
+                sail_lean_bridge.EXPECTED_THEOREM_AXIOMS[
+                    sail_lean_bridge.UNIVERSAL_PUBLICATION_THEOREM
+                ]
+            ),
+            set(sail_lean_bridge.APPROVED_AXIOMS),
+        )
 
     def test_generated_sail_axiom_parser_enforces_each_scope(self) -> None:
         def output(
