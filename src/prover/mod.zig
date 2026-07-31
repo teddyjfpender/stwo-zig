@@ -18,6 +18,7 @@ pub const vcs = @import("vcs/mod.zig");
 pub const vcs_lifted = @import("vcs_lifted/mod.zig");
 pub const prove = @import("prove.zig");
 pub const task_graph = @import("task_graph.zig");
+pub const transaction = @import("transaction.zig");
 pub const work_pool = @import("work_pool.zig");
 pub const resident_storage = @import("resident_storage.zig");
 pub const measurement = @import("measurement/mod.zig");

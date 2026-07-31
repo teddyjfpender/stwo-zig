@@ -1,0 +1,92 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_sm83_cpu_integration",
+  "version": "0.1.0",
+  "layer": "integration",
+  "owner": "sm83-cpu-integration",
+  "public_modules": {
+    "stwo_sm83_cpu_integration": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_core": "../../core",
+    "stwo_cpu_backend": "../../backends/cpu_scalar",
+    "stwo_prover_engine": "../../prover",
+    "stwo_sm83_frontend": "../../frontends/sm83"
+  },
+  "injected_modules": [
+    "machine_environment_test_options"
+  ],
+  "api_surface": [
+    "CpuProverEngine",
+    "EnvironmentExecutionStatement",
+    "EnvironmentProveOutput",
+    "EnvironmentProverEngine",
+    "ExecutionStatement",
+    "MachineEnvironmentExecutionStatement",
+    "MachineEnvironmentInput",
+    "MachineEnvironmentProveOutput",
+    "MachineEnvironmentProverEngine",
+    "MachineEnvironmentVerifierEngine",
+    "ProveOutput",
+    "proveEnvironmentExecution",
+    "proveExecution",
+    "proveMachineEnvironmentExecution",
+    "proveMachineExecution",
+    "verifyEnvironmentExecution",
+    "verifyExecution",
+    "verifyMachineEnvironmentExecution"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::api signature: SM83 CPU integration selects the CPU backend"
+    ],
+    "invariant_tests": [
+      "cartridge_test.zig::cartridge CPU proof roundtrip and adversarial boundaries",
+      "environment_test.zig::environment CPU proof binds actions devices and observations",
+      "family_proofs_test.zig::SM83 ALU8 CPU prover rejects a committed half-carry mutation",
+      "family_proofs_test.zig::SM83 CPU proof binds CB BIT register and read-only indirect rows",
+      "family_proofs_test.zig::SM83 CPU proof binds CB RES SET register and indirect writes",
+      "family_proofs_test.zig::SM83 CPU proof binds CB rotate-shift register and indirect rows",
+      "family_proofs_test.zig::SM83 CPU proof binds INTERRUPT DI EI RETI state and stack reads",
+      "family_proofs_test.zig::SM83 CPU proof binds LOAD16 little-endian state and memory writes",
+      "family_proofs_test.zig::SM83 CPU proof binds LOAD8 register and indirect-read rows",
+      "family_proofs_test.zig::SM83 CPU proof binds STACK PUSH POP memory",
+      "family_proofs_test.zig::SM83 CPU proof binds conditional branches and CALL RET stack",
+      "family_proofs_test.zig::SM83 CPU proof binds terminal STOP second fetch",
+      "family_proofs_test.zig::SM83 CPU proof chains MISC flags into terminal HALT",
+      "family_proofs_test.zig::SM83 CPU proof composes ADD HL and signed-offset ALU16 rows",
+      "family_proofs_test.zig::SM83 CPU proof composes ALU8 and DAA rows",
+      "family_proofs_test.zig::SM83 CPU proof composes INC16 and accumulator-rotate rows",
+      "family_proofs_test.zig::SM83 CPU prover rejects a committed DAA result mutation",
+      "machine_environment_test.zig::machine environment CPU proof roundtrip and adversarial mutations",
+      "mod.zig::SM83 CPU proof binds ADD A,(HL) ROM fetch and data-memory read",
+      "mod.zig::SM83 CPU proof binds ordered INC (HL) reads and writes",
+      "mod.zig::SM83 CPU prover rejects an inactive-vacuity mutation",
+      "mod.zig::SM83 CPU prover rejects data-memory witness mutations",
+      "mod.zig::SM83 CPU prover rejects state, opcode, and ROM multiplicity mutations",
+      "mod.zig::SM83 execution CPU proof roundtrip verifies",
+      "mod.zig::SM83 verifier rejects non-canonical preprocessing and public-state mutation",
+      "mod.zig::SM83 verifier rejects raw ROM and balanced lookup-claim mutations",
+      "mod.zig::SM83 verifier rejects raw initial and final memory mutations",
+      "pokemon_battle_chain_proof.zig::SM83 Pokemon battle chain is secure by default and smoke is explicit",
+      "pokemon_battle_chain_proof.zig::SM83 Pokemon battle chunk boundaries and pinned frontier fail closed",
+      "pokemon_battle_chain_proof.zig::SM83 Pokemon battle chunk count is positive bounded and order independent",
+      "pokemon_checkpoint_proof.zig::SM83 Pokemon checkpoint proof defaults to the secure profile",
+      "pokemon_checkpoint_proof.zig::SM83 Pokemon checkpoint proof rejects duplicate and unknown flags",
+      "pokemon_checkpoint_proof.zig::SM83 Pokemon checkpoint proof smoke profile requires an explicit flag"
+    ]
+  },
+  "ci": {
+    "lane": "sm83_cpu_integration",
+    "host": "linux",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/integrations/sm83_cpu/build.zig",
+      "-Doptimize=ReleaseFast",
+      "-j2"
+    ]
+  }
+}

@@ -61,11 +61,14 @@ comptime prover.engine.assertProverEngine(Engine);
 | Commitments and FRI | `pcs`, `fri`, `vcs`, `vcs_lifted`, `channel` |
 | Scheduling and storage | `task_graph`, `work_pool`, `resident_storage`, `mmap_alloc` |
 | Observability | `measurement`, `stage_profile` |
+| Prepared transaction ownership | `transaction` |
 
 The low-level `prove.prove`, `prove.proveEx`, and
 `prove.proveExWithRecorder` functions consume a commitment scheme. The typed
 engine exposes the same ownership rule through the stable transaction API:
 `commit` consumes column requests and `prove` consumes the scheme.
+`transaction` owns prepared-column transfer, commitment ordering, statement
+mixing, and cleanup for frontend-selected engines.
 
 ## Dependencies
 

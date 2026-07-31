@@ -3,6 +3,7 @@
 This file is the single source-pin ledger for the repository's independent correctness
 authorities. A revision applies only to the compatibility lane that names it. Native Stwo
 acceptance does not establish Cairo acceptance, and neither establishes RISC-V ISA conformance.
+No one of those lanes establishes SM83 ISA conformance.
 `python3 scripts/check_upstream_pins.py` rejects drift in manifests, lockfiles, source constants,
 formal-profile metadata, generated registries, persistent sessions, prover boundaries, and hosted
 CI checkout metadata.
@@ -81,6 +82,44 @@ Pins:
 - Pinned legacy Stark-V commit: `d478f783055aa0d73a93768a433a3c6c31c91d1c`
 - Legacy Stark-V pin date: `2026-06-12`
 - Legacy Stark-V AIR-oracle demotion date: `2026-07-26`
+
+## SM83 ISA Lane
+
+This development lane governs SM83 opcode metadata and instruction-level
+retirement semantics. gb-opcodes and Pan Docs define instruction metadata,
+SingleStepTests supplies the admitted per-opcode transition corpus, and
+SameBoy is the independent reference emulator. Blargg and Mooneye are pinned
+now but remain whole-machine integration gates; they do not validate an
+individual family before the complete machine model exists.
+
+- SM83 opcode repository: `https://github.com/gbdev/gb-opcodes`
+- Pinned SM83 opcode commit: `376f61c86fdac2048f7ce5fe838ae756b306017e`
+- Pinned SM83 opcode JSON SHA-256: `e7e3cd657d8e87b44570474eb3a6ed735501c9a00520f3d6937881203c823bc5`
+- Pan Docs repository: `https://github.com/gbdev/pandocs`
+- Pinned Pan Docs commit: `fe246067b695b5404a4a6a47efb4fd6d921ececb`
+- SM83 SingleStepTests repository: `https://github.com/SingleStepTests/sm83`
+- Pinned SM83 SingleStepTests commit: `f9c30210245dd691661db39f5ace022c465ecc2f`
+- Pinned SM83 SingleStepTests v1 SHA-256: `f4116a3776c2c5e25bfffa75d41b0b4af78fb75b4e8cfd9785efd76a9abeca0a`
+- SameBoy repository: `https://github.com/LIJI32/SameBoy`
+- Pinned SameBoy commit: `213a12ce93d66b105a113debd9396306066a7cfc`
+- Blargg test ROM repository: `https://github.com/retrio/gb-test-roms`
+- Pinned Blargg test ROM commit: `c240dd7d700e5c0b00a7bbba52b53e4ee67b5f15`
+- Mooneye test suite repository: `https://github.com/Gekkio/mooneye-test-suite`
+- Pinned Mooneye test suite commit: `31510e12eea6286d36eea060a6adde755e1067aa`
+- Pinned Mooneye WLA-DX commit: `89a90a56be5c2b8cf19a9afa3e1b32384ddb1a97`
+- Pinned Mooneye release: `mts-20260714-0944-31510e1`
+- Pinned Mooneye release SHA-256: `6d4fdda2f1d8d2f5f51b0ff3f6f3cc2fbae047aa395a39c82bda3a0e7cbd2641`
+- SM83 pin date: `2026-07-30`
+
+The official Mooneye release ROMs are the byte authority: 112 of 115 ROMs
+assembled on macOS differed from the Linux release even with both source and
+WLA-DX revisions pinned.
+
+The first application reproducibility check used pret/pokered commit
+`405b6246372d7e5a2cb029cbb65219b13286b8c9`. Its byte-identical outputs matched
+the known Pokémon Red SHA-1 `ea9bcae617fdf159b045185467ae58b2e4a48b9a`
+and Pokémon Blue SHA-1 `d7037c83e1ae5b39bde3c30787637ba1d4c48ce2`.
+Those ROMs are fixtures and future public inputs, not semantic authorities.
 
 ## Cairo Lane
 
@@ -195,6 +234,8 @@ The current Native Stwo increment targets:
 5. For RISC-V ISA changes, validate the exact Sail configuration, run retirement-level Sail and
    Spike differentials, and run every applicable architectural test through execute → prove →
    independent verify.
-6. Require the affected Zig parity, bidirectional interoperability, and exact external-authority
+6. For SM83 ISA changes, run the pinned per-opcode corpus and retain Blargg/Mooneye as
+   whole-machine gates once their required machine layers exist.
+7. Require the affected Zig parity, bidirectional interoperability, and exact external-authority
    tests to pass before merging.
-7. Document any intentional divergence in `conformance/divergence-log.md`.
+8. Document any intentional divergence in `conformance/divergence-log.md`.

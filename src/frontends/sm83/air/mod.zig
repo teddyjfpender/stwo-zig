@@ -1,0 +1,267 @@
+pub const alu16 = @import("alu16.zig");
+pub const alu16_component = @import("alu16_component.zig");
+pub const alu8 = @import("alu8.zig");
+pub const alu8_component = @import("alu8_component.zig");
+pub const apu_binding = @import("apu_binding.zig");
+pub const apu_binding_air = @import("apu_binding_air.zig");
+pub const apu_binding_component = @import("apu_binding_component.zig");
+pub const apu_execution_lookup = @import("apu_execution_lookup.zig");
+pub const apu_execution_lookup_component =
+    @import("apu_execution_lookup_component.zig");
+pub const branch = @import("branch.zig");
+pub const branch_component = @import("branch_component.zig");
+pub const cartridge_access = @import("cartridge_access.zig");
+pub const cartridge_access_component = @import("cartridge_access_component.zig");
+pub const cartridge_machine_access = @import("cartridge_machine_access.zig");
+pub const cartridge_memory_lookup = @import("cartridge_memory_lookup.zig");
+pub const cartridge_memory_lookup_component =
+    @import("cartridge_memory_lookup_component.zig");
+pub const cartridge_rom_lookup = @import("cartridge_rom_lookup.zig");
+pub const cartridge_rom_lookup_component = @import("cartridge_rom_lookup_component.zig");
+pub const cb_bit = @import("cb_bit.zig");
+pub const cb_bit_component = @import("cb_bit_component.zig");
+pub const cb_res_set = @import("cb_res_set.zig");
+pub const cb_res_set_component = @import("cb_res_set_component.zig");
+pub const cb_rotate_shift = @import("cb_rotate_shift.zig");
+pub const cb_rotate_shift_component = @import("cb_rotate_shift_component.zig");
+pub const component_domain = @import("component_domain.zig");
+pub const daa = @import("daa.zig");
+pub const daa_component = @import("daa_component.zig");
+pub const dma = @import("dma.zig");
+pub const dma_binding = @import("dma_binding.zig");
+pub const dma_binding_component = @import("dma_binding_component.zig");
+pub const dma_component = @import("dma_component.zig");
+pub const dma_execution_lookup = @import("dma_execution_lookup.zig");
+pub const dma_execution_lookup_component =
+    @import("dma_execution_lookup_component.zig");
+pub const dma_memory_lookup = @import("dma_memory_lookup.zig");
+pub const dma_memory_lookup_component =
+    @import("dma_memory_lookup_component.zig");
+pub const execution = @import("execution.zig");
+pub const execution_component = @import("execution_component.zig");
+pub const execution_input = @import("execution_input.zig");
+pub const execution_trace = @import("execution_trace.zig");
+pub const family_component = @import("family_component.zig");
+pub const family_trace = @import("family_trace.zig");
+pub const incdec16 = @import("incdec16.zig");
+pub const incdec16_component = @import("incdec16_component.zig");
+pub const incdec8 = @import("incdec8.zig");
+pub const incdec8_component = @import("incdec8_component.zig");
+pub const intermediate_ram_observation_lookup =
+    @import("intermediate_ram_observation_lookup.zig");
+pub const intermediate_ram_observation_lookup_component =
+    @import("intermediate_ram_observation_lookup_component.zig");
+pub const interrupt = @import("interrupt.zig");
+pub const interrupt_component = @import("interrupt_component.zig");
+pub const interrupt_service = @import("interrupt_service.zig");
+pub const interrupt_service_component = @import("interrupt_service_component.zig");
+pub const interrupt_service_memory_lookup =
+    @import("interrupt_service_memory_lookup.zig");
+pub const interrupt_service_memory_lookup_component =
+    @import("interrupt_service_memory_lookup_component.zig");
+pub const joypad = @import("joypad.zig");
+pub const joypad_action_lookup = @import("joypad_action_lookup.zig");
+pub const joypad_binding = @import("joypad_binding.zig");
+pub const joypad_binding_component =
+    @import("joypad_binding_component.zig");
+pub const joypad_component = @import("joypad_component.zig");
+pub const joypad_if_memory_lookup =
+    @import("joypad_if_memory_lookup.zig");
+pub const joypad_if_memory_lookup_component =
+    @import("joypad_if_memory_lookup_component.zig");
+pub const joypad_mmio_lookup = @import("joypad_mmio_lookup.zig");
+pub const joypad_mmio_lookup_component =
+    @import("joypad_mmio_lookup_component.zig");
+pub const load8 = @import("load8.zig");
+pub const load8_component = @import("load8_component.zig");
+pub const load16 = @import("load16.zig");
+pub const load16_component = @import("load16_component.zig");
+pub const machine_scheduler_trace =
+    @import("machine_scheduler_trace.zig");
+pub const memory_lookup = @import("memory_lookup.zig");
+pub const memory_lookup_component = @import("memory_lookup_component.zig");
+pub const misc = @import("misc.zig");
+pub const misc_component = @import("misc_component.zig");
+pub const ppu_timing = @import("ppu_timing.zig");
+pub const ppu_timing_component = @import("ppu_timing_component.zig");
+pub const ppu_binding = @import("ppu_binding.zig");
+pub const ppu_binding_component = @import("ppu_binding_component.zig");
+pub const ppu_if_memory_lookup =
+    @import("ppu_if_memory_lookup.zig");
+pub const ppu_if_memory_lookup_component =
+    @import("ppu_if_memory_lookup_component.zig");
+pub const ppu_mmio_lookup = @import("ppu_mmio_lookup.zig");
+pub const ppu_mmio_lookup_component =
+    @import("ppu_mmio_lookup_component.zig");
+pub const program_lookup = @import("program_lookup.zig");
+pub const program_lookup_component = @import("program_lookup_component.zig");
+pub const rotate_accumulator = @import("rotate_accumulator.zig");
+pub const rotate_accumulator_component = @import("rotate_accumulator_component.zig");
+pub const scheduler = @import("scheduler.zig");
+pub const scheduler_binding = @import("scheduler_binding.zig");
+pub const scheduler_binding_component =
+    @import("scheduler_binding_component.zig");
+pub const scheduler_component = @import("scheduler_component.zig");
+pub const scheduler_memory_lookup =
+    @import("scheduler_memory_lookup.zig");
+pub const scheduler_memory_lookup_component =
+    @import("scheduler_memory_lookup_component.zig");
+pub const stack = @import("stack.zig");
+pub const stack_component = @import("stack_component.zig");
+pub const timer = @import("timer.zig");
+pub const timer_binding = @import("timer_binding.zig");
+pub const timer_binding_component = @import("timer_binding_component.zig");
+pub const timer_component = @import("timer_component.zig");
+pub const timer_if_memory_lookup =
+    @import("timer_if_memory_lookup.zig");
+pub const timer_if_memory_lookup_component =
+    @import("timer_if_memory_lookup_component.zig");
+pub const timer_mmio_lookup = @import("timer_mmio_lookup.zig");
+pub const timer_mmio_lookup_component =
+    @import("timer_mmio_lookup_component.zig");
+
+test {
+    _ = @import("../execution_trace_test_root.zig");
+    _ = alu16;
+    _ = alu16_component;
+    _ = alu8;
+    _ = alu8_component;
+    _ = apu_binding;
+    _ = @import("apu_binding_test.zig");
+    _ = apu_binding_air;
+    _ = apu_binding_component;
+    _ = @import("apu_binding_component_test.zig");
+    _ = apu_execution_lookup;
+    _ = @import("apu_execution_lookup_test.zig");
+    _ = apu_execution_lookup_component;
+    _ = @import("apu_execution_lookup_component_test.zig");
+    _ = branch;
+    _ = branch_component;
+    _ = cartridge_access;
+    _ = cartridge_access_component;
+    _ = @import("cartridge_access_component_test.zig");
+    _ = cartridge_machine_access;
+    _ = @import("cartridge_machine_access_test.zig");
+    _ = cartridge_memory_lookup;
+    _ = cartridge_memory_lookup_component;
+    _ = @import("cartridge_memory_lookup_component_test.zig");
+    _ = @import("cartridge_memory_lookup_test.zig");
+    _ = cartridge_rom_lookup;
+    _ = cartridge_rom_lookup_component;
+    _ = cb_bit;
+    _ = cb_bit_component;
+    _ = cb_res_set;
+    _ = cb_res_set_component;
+    _ = cb_rotate_shift;
+    _ = cb_rotate_shift_component;
+    _ = component_domain;
+    _ = daa;
+    _ = daa_component;
+    _ = dma;
+    _ = dma_binding;
+    _ = @import("dma_binding_test.zig");
+    _ = dma_binding_component;
+    _ = @import("dma_binding_component_test.zig");
+    _ = dma_component;
+    _ = dma_execution_lookup;
+    _ = @import("dma_execution_lookup_test.zig");
+    _ = dma_execution_lookup_component;
+    _ = @import("dma_execution_lookup_component_test.zig");
+    _ = dma_memory_lookup;
+    _ = @import("dma_memory_lookup_test.zig");
+    _ = dma_memory_lookup_component;
+    _ = @import("dma_memory_lookup_component_test.zig");
+    _ = execution;
+    _ = execution_component;
+    _ = execution_input;
+    _ = execution_trace;
+    _ = family_component;
+    _ = family_trace;
+    _ = incdec16;
+    _ = incdec16_component;
+    _ = incdec8;
+    _ = incdec8_component;
+    _ = intermediate_ram_observation_lookup;
+    _ = @import("intermediate_ram_observation_lookup_test.zig");
+    _ = intermediate_ram_observation_lookup_component;
+    _ = @import("intermediate_ram_observation_lookup_component_test.zig");
+    _ = interrupt;
+    _ = interrupt_component;
+    _ = interrupt_service;
+    _ = interrupt_service_component;
+    _ = interrupt_service_memory_lookup;
+    _ = interrupt_service_memory_lookup_component;
+    _ = @import("interrupt_service_memory_lookup_test.zig");
+    _ = joypad;
+    _ = joypad_action_lookup;
+    _ = @import("joypad_action_lookup_test.zig");
+    _ = joypad_binding;
+    _ = @import("joypad_binding_test.zig");
+    _ = joypad_binding_component;
+    _ = @import("joypad_binding_component_test.zig");
+    _ = joypad_component;
+    _ = joypad_if_memory_lookup;
+    _ = @import("joypad_if_memory_lookup_test.zig");
+    _ = joypad_if_memory_lookup_component;
+    _ = @import("joypad_if_memory_lookup_component_test.zig");
+    _ = joypad_mmio_lookup;
+    _ = @import("joypad_mmio_lookup_test.zig");
+    _ = joypad_mmio_lookup_component;
+    _ = @import("joypad_mmio_lookup_component_test.zig");
+    _ = load8;
+    _ = load8_component;
+    _ = load16;
+    _ = load16_component;
+    _ = machine_scheduler_trace;
+    _ = @import("machine_scheduler_trace_test.zig");
+    _ = memory_lookup;
+    _ = memory_lookup_component;
+    _ = misc;
+    _ = misc_component;
+    _ = ppu_timing;
+    _ = @import("ppu_timing_test.zig");
+    _ = ppu_timing_component;
+    _ = ppu_binding;
+    _ = ppu_binding_component;
+    _ = @import("ppu_binding_test.zig");
+    _ = ppu_if_memory_lookup;
+    _ = @import("ppu_if_memory_lookup_test.zig");
+    _ = ppu_if_memory_lookup_component;
+    _ = @import("ppu_if_memory_lookup_component_test.zig");
+    _ = ppu_mmio_lookup;
+    _ = @import("ppu_mmio_lookup_test.zig");
+    _ = ppu_mmio_lookup_component;
+    _ = @import("ppu_mmio_lookup_component_test.zig");
+    _ = program_lookup;
+    _ = program_lookup_component;
+    _ = rotate_accumulator;
+    _ = rotate_accumulator_component;
+    _ = scheduler;
+    _ = scheduler_binding;
+    _ = scheduler_binding_component;
+    _ = @import("scheduler_binding_test.zig");
+    _ = scheduler_component;
+    _ = @import("scheduler_component_test.zig");
+    _ = scheduler_memory_lookup;
+    _ = scheduler_memory_lookup_component;
+    _ = @import("scheduler_memory_lookup_test.zig");
+    _ = @import("scheduler_memory_lookup_domain_test.zig");
+    _ = stack;
+    _ = stack_component;
+    _ = timer;
+    _ = timer_binding;
+    _ = @import("timer_binding_test.zig");
+    _ = timer_binding_component;
+    _ = @import("timer_binding_component_test.zig");
+    _ = @import("timer_test.zig");
+    _ = timer_component;
+    _ = @import("timer_component_test.zig");
+    _ = timer_if_memory_lookup;
+    _ = @import("timer_if_memory_lookup_test.zig");
+    _ = timer_if_memory_lookup_component;
+    _ = @import("timer_if_memory_lookup_component_test.zig");
+    _ = timer_mmio_lookup;
+    _ = @import("timer_mmio_lookup_test.zig");
+    _ = timer_mmio_lookup_component;
+    _ = @import("timer_mmio_lookup_component_test.zig");
+}

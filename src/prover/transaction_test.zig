@@ -9,7 +9,7 @@ const prover_component = @import("stwo_prover_engine").air.component_prover;
 const prover_engine = @import("stwo_prover_engine").engine;
 const prover_pcs = @import("stwo_prover_engine").pcs;
 const stage_profile = @import("stwo_prover_api").stage_profile;
-const subject = @import("prover_transaction.zig");
+const subject = @import("stwo_prover_engine").transaction;
 
 const M31 = m31.M31;
 const ColumnEvaluation = prover_pcs.ColumnEvaluation;

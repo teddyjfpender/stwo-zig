@@ -6,7 +6,6 @@ const examples = @import("mod.zig");
 test {
     std.testing.refAllDecls(examples);
     _ = @import("blake/session_test.zig");
-    _ = @import("common/prover_transaction_test.zig");
     _ = @import("plonk/session_test.zig");
     _ = @import("poseidon/session_test.zig");
     _ = @import("state_machine/session_test.zig");

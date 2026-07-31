@@ -92,7 +92,10 @@ The codebase is divided by responsibility, not by arbitrary file size or impleme
 The intended dependency direction is:
 
 ```text
-frontends/cairo               block/program semantics, ingestion, AIR, witness
+frontends/{cairo,riscv,sm83}  machine/program semantics, ingestion, AIR, witness
+             |
+             v
+integrations                  explicit frontend/backend composition
              |
              v
 prover + backend contracts    protocol orchestration and capability interfaces
@@ -119,7 +122,10 @@ docs                           architecture, protocols, performance claims, oper
 - `src/backends/metal/`: Metal runtime, memory, pipeline, kernel, and prover integration. Objective-C
   and MSL details stop at this boundary.
 - `src/backends/cuda/`: CUDA-specific resources and execution, isolated from Metal and core.
-- `src/frontends/cairo/`: Cairo statement, adapter, AIR, witness, geometry, and proof-plan logic.
+- `src/frontends/`: machine statements, adapters, AIR, witnesses, geometry, and proof-plan logic.
+  Frontends must not select a concrete backend or embed application-specific content.
+- `src/integrations/`: explicit frontend/backend composition. Integrations select concrete
+  backends without duplicating frontend semantics or generic prover orchestration.
 - `src/interop/`: versioned external representations and cross-language conversion.
 - `src/bench/`: benchmark execution primitives, not production protocol logic.
 - `scripts/`: orchestration and report tooling. Scripts must call stable program boundaries rather
