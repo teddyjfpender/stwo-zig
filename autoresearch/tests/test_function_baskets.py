@@ -105,17 +105,47 @@ class CommittedBasketContentTest(unittest.TestCase):
         self.assertEqual(statuses, {"scored", "staged"})
 
     def test_blocked_lanes_say_why(self):
-        # riscv_metal is blocked on stwo-zig#169; cairo lanes on fixture
-        # generation. The pending reasons must carry the actual blocker.
+        # riscv_metal is blocked on stwo-zig#169; the pending reasons must
+        # carry the actual blocker, not a vague apology.
         raw = raw_manifest()["workload_registry"]["groups"]
         rm = raw["riscv_metal"]["workload_provisioning"]["pending"]
         self.assertTrue(all("#169" in e["reason"] for e in rm.values()))
-        cc = raw["cairo_cpu"]["workload_provisioning"]["pending"]
-        matrix_rows = {k: e for k, e in cc.items() if "source" in e}
-        self.assertTrue(matrix_rows)
-        self.assertTrue(
-            all("cairo-compile" in e["reason"] for e in matrix_rows.values())
+
+    def test_cairo_matrix_rows_graduated_to_runnable_workloads(self):
+        # 2026-07-31: the 14 zkvm matrix rows are committed fixtures — compiled
+        # programs in vectors/cairo/zkvm/, ProverInputs derived by `zig build
+        # cairo-zkvm-fixtures` and digest-checked against the provenance
+        # record. Only the six oversized portfolio programs remain pending.
+        raw = raw_manifest()["workload_registry"]["groups"]
+        prov = json.loads(
+            (REPO_ROOT / "vectors/cairo/zkvm/corpus.provenance.json").read_text()
         )
+        self.assertEqual(len(prov["cases"]), 14)
+        for gid, prefix in (("cairo_cpu", "cairo_"), ("cairo_metal", "mcairo_")):
+            group = raw[gid]
+            with self.subTest(group=gid):
+                self.assertEqual(len(group["workload_provisioning"]["pending"]), 6)
+                matrix_workloads = [
+                    wid for wid in group["workloads"]
+                    if "zig-out/cairo-zkvm/" in group["workloads"][wid]["args"]
+                ]
+                self.assertEqual(len(matrix_workloads), 14)
+                self.assertIn("cairo-zkvm-fixtures", group["build_step"])
+
+    def test_cairo_basket_rows_now_derive_scored_for_matrix_functions(self):
+        view = feed_mod._function_basket_view(self.groups_for_feed()["cairo_cpu"])
+        statuses = [
+            row["status"]
+            for entry in view["functions"].values()
+            for row in entry["rows"].values()
+        ]
+        self.assertGreaterEqual(statuses.count("scored"), 14)
+        self.assertEqual(statuses.count("pending"), 6)
+
+    @classmethod
+    def groups_for_feed(cls):
+        m = manifest_mod.load(REPO_ROOT)
+        return {g.group_id: g for g in m.groups()}
 
 
 class BasketValidatorTest(unittest.TestCase):

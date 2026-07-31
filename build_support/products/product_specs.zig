@@ -70,6 +70,7 @@ pub const products = [_]Spec{
             "cmp",
             "python3",
             "stwo-cairo-official-verifier",
+            "stwo-cairo-vm-adapter",
         },
         .generated_module_roots = &.{
             "generated:options:",

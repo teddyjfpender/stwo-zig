@@ -6,6 +6,7 @@ const cairo_oracle_gate = @import("cairo_cpu/oracle_gate.zig");
 const cairo_support = @import("cairo_support.zig");
 const cairo_witness_cpu_aot = @import("cairo_witness_cpu_aot.zig");
 const cairo_vm_adapter = @import("cairo_cpu/vm_adapter.zig");
+const cairo_zkvm_fixtures = @import("cairo_cpu/zkvm_fixtures.zig");
 const closure_gate = @import("../gates/product_closure.zig");
 const graph_identity = @import("../graph/identity.zig");
 const graph_install = @import("../graph/install.zig");
@@ -122,6 +123,7 @@ pub fn addProduct(context: Context) void {
     cairo_support.linkBzip2(context.b, installed.executable);
     installed.build_step.dependOn(cairo_vm_adapter.addInstall(context.b));
     cairo_support.installProfile(context.b, installed.build_step);
+    _ = cairo_zkvm_fixtures.addStep(context.b);
 
     const test_stwo = createStwoModule(context, .@"test");
     const test_witness_aot = cairo_witness_cpu_aot.createModule(

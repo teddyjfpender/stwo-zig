@@ -222,7 +222,8 @@ class CairoManifestGroupTest(unittest.TestCase):
         self.assertFalse(group.promotion_eligible)
         self.assertIn("calibration", (group.promotion_blocked_reason or "").lower())
         self.assertEqual(
-            group.build_step, "zig build stwo-cairo-cpu -Doptimize=ReleaseFast",
+            group.build_step,
+            "zig build cairo-zkvm-fixtures stwo-cairo-cpu -Doptimize=ReleaseFast",
         )
         self.assertEqual(group.binary, "zig-out/bin/stwo-cairo-cpu")
         self.assertEqual(group.report_schema, "cairo_proof_v1")
@@ -233,7 +234,8 @@ class CairoManifestGroupTest(unittest.TestCase):
         self.assertFalse(group.promotion_eligible)
         self.assertIn("parity_gated", group.disabled_reason)
         self.assertEqual(
-            group.build_step, "zig build stwo-cairo-metal -Doptimize=ReleaseFast",
+            group.build_step,
+            "zig build cairo-zkvm-fixtures stwo-cairo-metal -Doptimize=ReleaseFast",
         )
         self.assertEqual(group.binary, "zig-out/bin/stwo-cairo-metal")
         self.assertEqual(group.report_schema, "cairo_proof_v1")
@@ -255,18 +257,30 @@ class CairoManifestGroupTest(unittest.TestCase):
             self.assertIs(oracle["final_validator"], True)
 
     def test_cairo_workloads_use_committed_fixtures_and_standard_classes(self):
+        # A prover input is either a committed vectors file or a build-derived
+        # zkvm fixture (`zig build cairo-zkvm-fixtures`), in which case the
+        # committed provenance record pins the digest the derivation must
+        # reproduce — the fixture is still fully determined by the repository.
+        derived = json.loads(
+            (REPO_ROOT / "vectors/cairo/zkvm/corpus.provenance.json").read_text()
+        )
+        derived_paths = {
+            f"zig-out/cairo-zkvm/{tag}.prover_input.json"
+            for tag in derived["cases"]
+        }
         for board in ("cairo_cpu", "cairo_metal"):
             group = self.m.group_for_board(board)
             self.assertTrue(group.workloads)
             for workload in group.workloads:
-                self.assertIn(workload.workload_class, ("small", "wide"))
+                self.assertIn(workload.workload_class, ("small", "wide", "deep"))
                 command, proof_format, verify = runner._cairo_command(workload)
                 self.assertEqual(command, "prove")
                 self.assertEqual(proof_format, "json")
                 self.assertTrue(verify)
                 fixture = workload.args.split("--prover-input ")[1].split(" ")[0]
                 params = workload.args.split("--params ")[1].split(" ")[0]
-                self.assertTrue((REPO_ROOT / fixture).is_file(), fixture)
+                if fixture not in derived_paths:
+                    self.assertTrue((REPO_ROOT / fixture).is_file(), fixture)
                 self.assertTrue((REPO_ROOT / params).is_file(), params)
 
     def test_acceptance_corpus_is_wired_and_digest_bound(self):

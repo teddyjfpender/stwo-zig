@@ -15,6 +15,7 @@ cairo-language-version = "2.20.0"
 
 [dependencies]
 anyhow = "1.0"
+flate2 = "1.1"
 cairo-lang-executable = "=2.20.0"
 cairo-lang-execute-utils = "=2.20.0"
 cairo-lang-runner = "=2.20.0"

@@ -10,7 +10,7 @@ This brief is generated from `autoresearch/MANIFEST.json` and `autoresearch/ledg
 
 - **Board**: `cairo_cpu` · **group**: `cairo_cpu` · **report schema**: `cairo_proof_v1`
 - **Enabled**: yes · **promotion eligible**: no
-- **Build**: `zig build stwo-cairo-cpu -Doptimize=ReleaseFast` → `zig-out/bin/stwo-cairo-cpu`
+- **Build**: `zig build cairo-zkvm-fixtures stwo-cairo-cpu -Doptimize=ReleaseFast` → `zig-out/bin/stwo-cairo-cpu`
 - **Promotion blocked because**: TRACKS §7: cairo_cpu records evidence but cannot promote until per-(board, class) A/A dispersion and anchors are measured on the designated Apple M5 Max judge host and frozen into harness.anchor_* plus a cairo calibration freeze for board cairo_cpu. No Cairo calibration exists yet, so promotion fails closed; the gate opens only after that M5 calibration is committed.
 - **Era**: none declared; the board falls back to global epoch `2`.
 - **Scored boundary**: `prove_ms`
@@ -21,6 +21,20 @@ This brief is generated from `autoresearch/MANIFEST.json` and `autoresearch/ledg
 | --- | --- | --- |
 | `small` | `cairo_all_opcodes` | committed cells |
 | `wide` | `cairo_all_builtins` | committed cells |
+| `wide` | `cairo_fib_medium` | committed cells |
+| `deep` | `cairo_fib_large` | committed cells |
+| `wide` | `cairo_sha2_medium` | committed cells |
+| `deep` | `cairo_sha2_large` | committed cells |
+| `wide` | `cairo_sha2_chain_medium` | committed cells |
+| `wide` | `cairo_sha3_medium` | committed cells |
+| `deep` | `cairo_sha3_large` | committed cells |
+| `wide` | `cairo_sha3_chain_medium` | committed cells |
+| `wide` | `cairo_blake_medium` | committed cells |
+| `wide` | `cairo_blake_chain_medium` | committed cells |
+| `wide` | `cairo_mat_mul_medium` | committed cells |
+| `deep` | `cairo_mat_mul_large` | committed cells |
+| `wide` | `cairo_ec_medium` | committed cells |
+| `deep` | `cairo_ec_large` | committed cells |
 
 Scores are compared only inside one era on one board. A number from another track, another era, or another boundary is not a comparison (TRACKS §3, §7).
 

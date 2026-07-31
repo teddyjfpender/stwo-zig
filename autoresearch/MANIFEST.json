@@ -1229,7 +1229,7 @@
         "promotion_eligible": false,
         "promotion_blocked_reason": "TRACKS §7: cairo_cpu records evidence but cannot promote until per-(board, class) A/A dispersion and anchors are measured on the designated Apple M5 Max judge host and frozen into harness.anchor_* plus a cairo calibration freeze for board cairo_cpu. No Cairo calibration exists yet, so promotion fails closed; the gate opens only after that M5 calibration is committed.",
         "board": "cairo_cpu",
-        "build_step": "zig build stwo-cairo-cpu -Doptimize=ReleaseFast",
+        "build_step": "zig build cairo-zkvm-fixtures stwo-cairo-cpu -Doptimize=ReleaseFast",
         "binary": "zig-out/bin/stwo-cairo-cpu",
         "report_schema": "cairo_proof_v1",
         "correctness_oracle": {
@@ -1278,7 +1278,7 @@
           ]
         },
         "workload_provisioning": {
-          "note": "TRACKS §3.3 campaign portfolio entries whose prover inputs are host-local and far above the repository fixture budget. They are declared here so the basket's incompleteness is loud, never silent; generation commands live in autoresearch/schema/cairo-proof-v1.md. Entries here are not runnable workloads and are never scored. Matrix candidates (the expected_cycles/source entries) are pinned to vectors/cairo/cairo_program_matrix.json: sources and per-tier VM-step counts are committed, so the compiled fixture is the only missing piece.",
+          "note": "TRACKS §3.3 campaign portfolio entries whose prover inputs are host-local and far above the repository fixture budget. They are declared here so the basket's incompleteness is loud, never silent; generation commands live in autoresearch/schema/cairo-proof-v1.md. Entries here are not runnable workloads and are never scored. The fourteen matrix rows graduated to runnable workloads on 2026-07-31: their compiled programs are committed under vectors/cairo/zkvm/ and `zig build cairo-zkvm-fixtures` derives each ProverInput through the pinned adapter, digest-checked against corpus.provenance.json.",
           "documentation": "autoresearch/schema/cairo-proof-v1.md",
           "pending": {
             "cairo_poseidon_aggregator": {
@@ -1310,76 +1310,6 @@
               "vm_steps": 7367979,
               "committed_cells": 604162096,
               "reason": "prover input is host-local; 7.37M VM steps exceed the repository fixture budget and the workload needs roughly 17-18 GiB resident memory"
-            },
-            "cairo_fib_medium": {
-              "expected_cycles": 229392,
-              "source": "vectors/cairo/cairo_program_matrix.json#fib:medium",
-              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
-            },
-            "cairo_fib_large": {
-              "expected_cycles": 917520,
-              "source": "vectors/cairo/cairo_program_matrix.json#fib:large",
-              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
-            },
-            "cairo_sha2_medium": {
-              "expected_cycles": 160491,
-              "source": "vectors/cairo/cairo_program_matrix.json#sha2:medium",
-              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
-            },
-            "cairo_sha2_large": {
-              "expected_cycles": 605445,
-              "source": "vectors/cairo/cairo_program_matrix.json#sha2:large",
-              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
-            },
-            "cairo_sha2_chain_medium": {
-              "expected_cycles": 183442,
-              "source": "vectors/cairo/cairo_program_matrix.json#sha2-chain:medium",
-              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
-            },
-            "cairo_sha3_medium": {
-              "expected_cycles": 217337,
-              "source": "vectors/cairo/cairo_program_matrix.json#sha3:medium",
-              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
-            },
-            "cairo_sha3_large": {
-              "expected_cycles": 814193,
-              "source": "vectors/cairo/cairo_program_matrix.json#sha3:large",
-              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
-            },
-            "cairo_sha3_chain_medium": {
-              "expected_cycles": 212354,
-              "source": "vectors/cairo/cairo_program_matrix.json#sha3-chain:medium",
-              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
-            },
-            "cairo_blake_medium": {
-              "expected_cycles": 172223,
-              "source": "vectors/cairo/cairo_program_matrix.json#blake-precompile:medium",
-              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
-            },
-            "cairo_blake_chain_medium": {
-              "expected_cycles": 166008,
-              "source": "vectors/cairo/cairo_program_matrix.json#blake-chain-precompile:medium",
-              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
-            },
-            "cairo_mat_mul_medium": {
-              "expected_cycles": 304643,
-              "source": "vectors/cairo/cairo_program_matrix.json#mat_mul:medium",
-              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
-            },
-            "cairo_mat_mul_large": {
-              "expected_cycles": 705179,
-              "source": "vectors/cairo/cairo_program_matrix.json#mat_mul:large",
-              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
-            },
-            "cairo_ec_medium": {
-              "expected_cycles": 239650,
-              "source": "vectors/cairo/cairo_program_matrix.json#ec:medium",
-              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
-            },
-            "cairo_ec_large": {
-              "expected_cycles": 958498,
-              "source": "vectors/cairo/cairo_program_matrix.json#ec:large",
-              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
             }
           }
         },
@@ -1392,6 +1322,76 @@
           "cairo_all_builtins": {
             "class": "wide",
             "args": "prove --prover-input vectors/cairo/official/all_builtins.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "cairo_fib_medium": {
+            "class": "wide",
+            "args": "prove --prover-input zig-out/cairo-zkvm/fib_medium.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "cairo_fib_large": {
+            "class": "deep",
+            "args": "prove --prover-input zig-out/cairo-zkvm/fib_large.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "cairo_sha2_medium": {
+            "class": "wide",
+            "args": "prove --prover-input zig-out/cairo-zkvm/sha2_medium.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "cairo_sha2_large": {
+            "class": "deep",
+            "args": "prove --prover-input zig-out/cairo-zkvm/sha2_large.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "cairo_sha2_chain_medium": {
+            "class": "wide",
+            "args": "prove --prover-input zig-out/cairo-zkvm/sha2_chain_medium.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "cairo_sha3_medium": {
+            "class": "wide",
+            "args": "prove --prover-input zig-out/cairo-zkvm/sha3_medium.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "cairo_sha3_large": {
+            "class": "deep",
+            "args": "prove --prover-input zig-out/cairo-zkvm/sha3_large.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "cairo_sha3_chain_medium": {
+            "class": "wide",
+            "args": "prove --prover-input zig-out/cairo-zkvm/sha3_chain_medium.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "cairo_blake_medium": {
+            "class": "wide",
+            "args": "prove --prover-input zig-out/cairo-zkvm/blake_precompile_medium.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "cairo_blake_chain_medium": {
+            "class": "wide",
+            "args": "prove --prover-input zig-out/cairo-zkvm/blake_chain_precompile_medium.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "cairo_mat_mul_medium": {
+            "class": "wide",
+            "args": "prove --prover-input zig-out/cairo-zkvm/mat_mul_medium.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "cairo_mat_mul_large": {
+            "class": "deep",
+            "args": "prove --prover-input zig-out/cairo-zkvm/mat_mul_large.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "cairo_ec_medium": {
+            "class": "wide",
+            "args": "prove --prover-input zig-out/cairo-zkvm/ec_medium.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "cairo_ec_large": {
+            "class": "deep",
+            "args": "prove --prover-input zig-out/cairo-zkvm/ec_large.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
             "native_unit": "committed cells"
           }
         },
@@ -1509,7 +1509,7 @@
         "disabled_reason": "cairo_metal is staged only: TRACKS §2 records the Cairo + Metal product as parity_gated, not released. The product descriptor in build_support/products/cairo_metal.zig still carries state .parity_gated behind its test-cairo-metal-product and test-cairo-metal-oracle release gates, no Metal-lane Cairo calibration exists on the designated judge host, and the generalized per-board Metal calibration (TRACKS §7) is not yet built. The group stays dark and fails closed.",
         "promotion_blocked_reason": "TRACKS §7: no cairo_metal calibration exists on the designated Apple M5 Max judge host, and the product is parity_gated rather than released.",
         "board": "cairo_metal",
-        "build_step": "zig build stwo-cairo-metal -Doptimize=ReleaseFast",
+        "build_step": "zig build cairo-zkvm-fixtures stwo-cairo-metal -Doptimize=ReleaseFast",
         "binary": "zig-out/bin/stwo-cairo-metal",
         "report_schema": "cairo_proof_v1",
         "correctness_oracle": {
@@ -1564,6 +1564,76 @@
             "class": "wide",
             "args": "prove --prover-input vectors/cairo/official/all_builtins.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
             "native_unit": "committed cells"
+          },
+          "mcairo_fib_medium": {
+            "class": "wide",
+            "args": "prove --prover-input zig-out/cairo-zkvm/fib_medium.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "mcairo_fib_large": {
+            "class": "deep",
+            "args": "prove --prover-input zig-out/cairo-zkvm/fib_large.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "mcairo_sha2_medium": {
+            "class": "wide",
+            "args": "prove --prover-input zig-out/cairo-zkvm/sha2_medium.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "mcairo_sha2_large": {
+            "class": "deep",
+            "args": "prove --prover-input zig-out/cairo-zkvm/sha2_large.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "mcairo_sha2_chain_medium": {
+            "class": "wide",
+            "args": "prove --prover-input zig-out/cairo-zkvm/sha2_chain_medium.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "mcairo_sha3_medium": {
+            "class": "wide",
+            "args": "prove --prover-input zig-out/cairo-zkvm/sha3_medium.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "mcairo_sha3_large": {
+            "class": "deep",
+            "args": "prove --prover-input zig-out/cairo-zkvm/sha3_large.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "mcairo_sha3_chain_medium": {
+            "class": "wide",
+            "args": "prove --prover-input zig-out/cairo-zkvm/sha3_chain_medium.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "mcairo_blake_medium": {
+            "class": "wide",
+            "args": "prove --prover-input zig-out/cairo-zkvm/blake_precompile_medium.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "mcairo_blake_chain_medium": {
+            "class": "wide",
+            "args": "prove --prover-input zig-out/cairo-zkvm/blake_chain_precompile_medium.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "mcairo_mat_mul_medium": {
+            "class": "wide",
+            "args": "prove --prover-input zig-out/cairo-zkvm/mat_mul_medium.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "mcairo_mat_mul_large": {
+            "class": "deep",
+            "args": "prove --prover-input zig-out/cairo-zkvm/mat_mul_large.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "mcairo_ec_medium": {
+            "class": "wide",
+            "args": "prove --prover-input zig-out/cairo-zkvm/ec_medium.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
+          },
+          "mcairo_ec_large": {
+            "class": "deep",
+            "args": "prove --prover-input zig-out/cairo-zkvm/ec_large.prover_input.json --params vectors/cairo/official/all_builtins.params.json --proof-format json --verify",
+            "native_unit": "committed cells"
           }
         },
         "guard_registry": "cairo",
@@ -1578,7 +1648,7 @@
           }
         ],
         "workload_provisioning": {
-          "note": "TRACKS §3.3/§9: the cairo_metal function basket mirrors cairo_cpu row-for-row — same programs, same pinned sources and step counts, Metal backend — so cross-lane comparisons are always same-computation, different-backend. Matrix candidates are pinned to vectors/cairo/cairo_program_matrix.json; portfolio entries mirror the cairo_cpu campaign set. Nothing here is runnable until the fixtures land, and the incompleteness stays loud rather than silent.",
+          "note": "TRACKS §3.3/§9: the cairo_metal function basket mirrors cairo_cpu row-for-row — same programs, same pinned sources and step counts, Metal backend — so cross-lane comparisons are always same-computation, different-backend. The fourteen matrix rows graduated to runnable workloads on 2026-07-31 (committed programs + derived ProverInputs, same artifacts as cairo_cpu); portfolio entries mirror the cairo_cpu campaign set. Nothing here is runnable until the fixtures land, and the incompleteness stays loud rather than silent.",
           "documentation": "autoresearch/schema/cairo-proof-v1.md",
           "pending": {
             "mcairo_poseidon_aggregator": {
@@ -1610,76 +1680,6 @@
               "vm_steps": 7367979,
               "committed_cells": 604162096,
               "reason": "prover input is host-local; 7.37M VM steps exceed the repository fixture budget and the workload needs roughly 17-18 GiB resident memory (metal lane: same artifact as cairo_cpu so the lanes stay comparable)"
-            },
-            "mcairo_fib_medium": {
-              "expected_cycles": 229392,
-              "source": "vectors/cairo/cairo_program_matrix.json#fib:medium",
-              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
-            },
-            "mcairo_fib_large": {
-              "expected_cycles": 917520,
-              "source": "vectors/cairo/cairo_program_matrix.json#fib:large",
-              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
-            },
-            "mcairo_sha2_medium": {
-              "expected_cycles": 160491,
-              "source": "vectors/cairo/cairo_program_matrix.json#sha2:medium",
-              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
-            },
-            "mcairo_sha2_large": {
-              "expected_cycles": 605445,
-              "source": "vectors/cairo/cairo_program_matrix.json#sha2:large",
-              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
-            },
-            "mcairo_sha2_chain_medium": {
-              "expected_cycles": 183442,
-              "source": "vectors/cairo/cairo_program_matrix.json#sha2-chain:medium",
-              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
-            },
-            "mcairo_sha3_medium": {
-              "expected_cycles": 217337,
-              "source": "vectors/cairo/cairo_program_matrix.json#sha3:medium",
-              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
-            },
-            "mcairo_sha3_large": {
-              "expected_cycles": 814193,
-              "source": "vectors/cairo/cairo_program_matrix.json#sha3:large",
-              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
-            },
-            "mcairo_sha3_chain_medium": {
-              "expected_cycles": 212354,
-              "source": "vectors/cairo/cairo_program_matrix.json#sha3-chain:medium",
-              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
-            },
-            "mcairo_blake_medium": {
-              "expected_cycles": 172223,
-              "source": "vectors/cairo/cairo_program_matrix.json#blake-precompile:medium",
-              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
-            },
-            "mcairo_blake_chain_medium": {
-              "expected_cycles": 166008,
-              "source": "vectors/cairo/cairo_program_matrix.json#blake-chain-precompile:medium",
-              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
-            },
-            "mcairo_mat_mul_medium": {
-              "expected_cycles": 304643,
-              "source": "vectors/cairo/cairo_program_matrix.json#mat_mul:medium",
-              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
-            },
-            "mcairo_mat_mul_large": {
-              "expected_cycles": 705179,
-              "source": "vectors/cairo/cairo_program_matrix.json#mat_mul:large",
-              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
-            },
-            "mcairo_ec_medium": {
-              "expected_cycles": 239650,
-              "source": "vectors/cairo/cairo_program_matrix.json#ec:medium",
-              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
-            },
-            "mcairo_ec_large": {
-              "expected_cycles": 958498,
-              "source": "vectors/cairo/cairo_program_matrix.json#ec:large",
-              "reason": "compiled proof-mode fixture not committed: compile the sha-pinned source (zksecurity/zkvm-benchmarks@6d9d1e5, see cairo_program_matrix.json) with cairo-compile 0.14.0.1 --proof_mode, execute through the pinned cairo-vm adapter to produce the prover input, and commit both under vectors/cairo/programs/"
             }
           }
         },
