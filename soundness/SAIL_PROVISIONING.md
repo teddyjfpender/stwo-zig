@@ -1,16 +1,17 @@
 # Sail provisioning: a CI capability, not a laptop prerequisite
 
 Status: normative for how the pinned Sail 0.20.2 toolchain is provisioned and
-for what a green provisioning run does and does not upgrade. Companion to
-[`TEAM_B_SAIL_REFINEMENT_CONTRACT.md`](TEAM_B_SAIL_REFINEMENT_CONTRACT.md)
-section 0, whose claim boundary this document never widens.
+for what a green provisioning run does and does not upgrade. The claim boundary
+is the repository-wide
+[`RISCV_FRONTEND_VERIFICATION_STATUS.md`](RISCV_FRONTEND_VERIFICATION_STATUS.md);
+provisioning never widens it.
 
 ## 1. The problem this solves
 
-Every Team B architectural capsule is labelled "reviewed capsule", and stays
-non-publication-level until the pinned Sail 0.20.2 toolchain actually runs
-against this repository. Until now the only way to run it was a local build on
-one developer machine. That made the Sail-present gate
+Historical reviewed architectural capsules stay non-publication-level until
+the pinned Sail 0.20.2 toolchain actually runs against this repository. The
+original rollout could run only on one developer machine. That made the
+Sail-present gate
 (`zig build riscv-refinement-pilot` with live evidence, and
 `scripts/riscv_refinement.py receipt`) a laptop prerequisite: unverifiable by
 reviewers, unrepeatable by CI, and hostage to one machine's opam switch.
@@ -43,7 +44,12 @@ reproducible infrastructure".
 | `zig build riscv-refinement-pilot` (with `STWO_SAIL_RISCV_DIR`/`SAIL` set) | The digest pins in `scripts/riscv_refinement_lib/sail.py` (`GENERATED_DEFINITION_HASHES`, `SOURCE_SLICE_HASHES`) and the committed generated artifacts are checked against the **freshly generated** backend, not re-asserted from committed hashes; plus the full pilot gate: fresh symbolic AIR export, byte-identical artifacts, coverage, negative controls, Lean build, proof-escape scan, axiom audit. |
 | `python3 scripts/riscv_refinement.py receipt --sail-riscv-dir ... --sail-bin ...` | A release receipt signed with **live** Sail evidence (`semantic_toolchain` binds the compiler and simulator binary sha256s) can be minted on hosted CI. The receipt command refuses `--reuse-committed-sail-evidence` and `--no-export-air`, so a green receipt step is by construction a live-toolchain run. |
 
-## 3. What a green run upgrades -- and what it does not
+## 3. Historical effect of the original provisioning rollout
+
+This section records the claim boundary when hosted provisioning first landed.
+Its contributor split and 2/46 pilot counts are historical. Current promotion
+status comes only from the repository-wide claim ledger and regenerated
+publication receipt.
 
 Be precise here, because "the Sail toolchain ran in CI" is easy to over-read.
 
@@ -59,7 +65,7 @@ Be precise here, because "the Sail toolchain ran in CI" is easy to over-read.
   machine". Any maintainer can dispatch the workflow and obtain a fresh
   live-evidence receipt artifact.
 - The provisioning caveat in
-  `.github/workflows/riscv-team-b-refinement.yml` ("the Sail-bound Level-1
+  `.github/workflows/riscv-refinement.yml` ("the Sail-bound Level-1
   pilot gate remains the separate, locally-run `zig build
   riscv-refinement-pilot`") is retired in substance: the Sail-present run is a
   hosted capability.

@@ -1,11 +1,16 @@
 # Team B rollout status
 
-Team B of the Universal AIR → Sail refinement plan (issue #137) owns 22 of the
+> **Historical rollout record — non-normative.** This contributor allocation
+> is superseded by the manifest-wide publication inventory. See
+> [`README.md`](README.md) and
+> [`../../soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md`](../../soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md).
+
+Team B of the original Universal AIR → Sail refinement plan (issue #137) owned 22 of the
 46 admitted RV32IM opcodes, across six AIR families, plus the generated-Sail
 normalization obligation.
 
-Normative contract: [`../../soundness/TEAM_B_SAIL_REFINEMENT_CONTRACT.md`](../../soundness/TEAM_B_SAIL_REFINEMENT_CONTRACT.md).
-Machine-readable status: [`team-b-coverage.json`](team-b-coverage.json).
+Historical contract: [`../../soundness/TEAM_B_SAIL_REFINEMENT_CONTRACT.md`](../../soundness/TEAM_B_SAIL_REFINEMENT_CONTRACT.md).
+Historical machine-readable snapshot: [`team-b-coverage.json`](team-b-coverage.json).
 
 ## What is claimed
 
@@ -228,7 +233,7 @@ cd formal/riscv-refinement && lake build
 lake env lean RiscvRefinement/AxiomAudit.lean
 ```
 
-Hosted equivalent: `.github/workflows/riscv-team-b-refinement.yml`. It has no
+Hosted successor: `.github/workflows/riscv-refinement.yml`. It has no
 skip path — toolchain provisioning is verified against `lean-toolchain` rather
 than inferred from a later step succeeding — and a scheduled clean-room job
 rebuilds everything from empty caches and re-checks the environment through
