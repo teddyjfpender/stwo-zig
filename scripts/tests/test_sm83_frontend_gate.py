@@ -12,6 +12,14 @@ from scripts import sm83_frontend_gate
 
 
 class Sm83FrontendGateTests(unittest.TestCase):
+    def test_mooneye_release_url_names_the_pinned_directory_asset(self) -> None:
+        release = sm83_frontend_gate.MOONEYE_RELEASE
+        self.assertTrue(
+            sm83_frontend_gate.MOONEYE_RELEASE_URL.endswith(
+                f"/{release}/{release}.tar.xz"
+            )
+        )
+
     def test_mooneye_gate_appends_one_rom_after_the_release_directory(self) -> None:
         release = Path("/pinned/mooneye-release")
         relative_rom = "acceptance/timer/div_write.gb"

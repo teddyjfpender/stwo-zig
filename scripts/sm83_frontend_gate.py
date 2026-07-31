@@ -30,7 +30,8 @@ MOONEYE_RELEASE = "mts-20260714-0944-31510e1"
 MOONEYE_RELEASE_SHA256 = "6d4fdda2f1d8d2f5f51b0ff3f6f3cc2fbae047aa395a39c82bda3a0e7cbd2641"
 MOONEYE_RELEASE_SIZE = 51_248
 MOONEYE_RELEASE_URL = (
-    f"https://gekkio.fi/files/mooneye-test-suite/{MOONEYE_RELEASE}.tar.xz"
+    f"https://gekkio.fi/files/mooneye-test-suite/{MOONEYE_RELEASE}/"
+    f"{MOONEYE_RELEASE}.tar.xz"
 )
 
 
