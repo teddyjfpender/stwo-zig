@@ -202,7 +202,6 @@ pub fn addAdapterTests(b: *std.Build) *std.Build.Step.Run {
     });
 }
 
-
 /// A cargo-built tool honoring CARGO_TARGET_DIR (the focused CI lanes point
 /// it into the lane cache); the manifest-relative default only holds when
 /// that override is absent.
