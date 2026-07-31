@@ -242,6 +242,7 @@ class AuditExecutionTest(unittest.TestCase):
         repo = root / "repo"
         repo.mkdir()
         self._git(repo, "init", "-q")
+        self._git(repo, "config", "maintenance.auto", "false")
         self._git(repo, "config", "user.name", "Audit Test")
         self._git(repo, "config", "user.email", "audit@example.com")
         shutil.copytree(ROOT / "autoresearch", repo / "autoresearch")
