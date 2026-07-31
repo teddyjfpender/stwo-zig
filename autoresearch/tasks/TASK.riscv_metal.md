@@ -23,6 +23,17 @@ This brief is generated from `autoresearch/MANIFEST.json` and `autoresearch/ledg
 | `small` | `mriscv_alu_test` | executed instructions |
 | `wide` | `mriscv_memcpy_loop` | executed instructions |
 | `deep` | `mriscv_fib_iter` | executed instructions |
+| `wide` | `mriscv_csp_sha256_256b` | executed instructions |
+| `deep` | `mriscv_csp_sha256_1024b` | executed instructions |
+| `wide` | `mriscv_csp_keccak_256b` | executed instructions |
+| `deep` | `mriscv_csp_keccak_1024b` | executed instructions |
+| `deep` | `mriscv_csp_poseidon2_m31_8fe` | executed instructions |
+| `deep` | `mriscv_csp_ecdsa_secp256k1` | executed instructions |
+| `wide` | `mriscv_sieve_primes` | executed instructions |
+| `wide` | `mriscv_bubble_sort` | executed instructions |
+| `wide` | `mriscv_collatz` | executed instructions |
+| `deep` | `mriscv_xorshift_prng` | executed instructions |
+| `deep` | `mriscv_gcd_euclid` | executed instructions |
 
 Scores are compared only inside one era on one board. A number from another track, another era, or another boundary is not a comparison (TRACKS §3, §7).
 

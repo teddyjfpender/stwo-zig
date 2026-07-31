@@ -914,6 +914,61 @@
             "class": "deep",
             "args": "--elf vectors/riscv_elfs/fib_iter.elf --pow-bits 26 --n-queries 70",
             "native_unit": "executed instructions"
+          },
+          "mriscv_csp_sha256_256b": {
+            "class": "wide",
+            "args": "--elf vectors/riscv_csp/guests/sha256.elf --input vectors/riscv_csp/inputs/msg_256.bin --pow-bits 26 --n-queries 70",
+            "native_unit": "executed instructions"
+          },
+          "mriscv_csp_sha256_1024b": {
+            "class": "deep",
+            "args": "--elf vectors/riscv_csp/guests/sha256.elf --input vectors/riscv_csp/inputs/msg_1024.bin --pow-bits 26 --n-queries 70",
+            "native_unit": "executed instructions"
+          },
+          "mriscv_csp_keccak_256b": {
+            "class": "wide",
+            "args": "--elf vectors/riscv_csp/guests/keccak.elf --input vectors/riscv_csp/inputs/msg_256.bin --pow-bits 26 --n-queries 70",
+            "native_unit": "executed instructions"
+          },
+          "mriscv_csp_keccak_1024b": {
+            "class": "deep",
+            "args": "--elf vectors/riscv_csp/guests/keccak.elf --input vectors/riscv_csp/inputs/msg_1024.bin --pow-bits 26 --n-queries 70",
+            "native_unit": "executed instructions"
+          },
+          "mriscv_csp_poseidon2_m31_8fe": {
+            "class": "deep",
+            "args": "--elf vectors/riscv_csp/guests/poseidon2_m31.elf --input vectors/riscv_csp/inputs/field_m31_8.bin --pow-bits 26 --n-queries 70",
+            "native_unit": "executed instructions"
+          },
+          "mriscv_csp_ecdsa_secp256k1": {
+            "class": "deep",
+            "args": "--elf vectors/riscv_csp/guests/ecdsa_secp256k1.elf --input vectors/riscv_csp/inputs/ecdsa_secp256k1.bin --pow-bits 26 --n-queries 70",
+            "native_unit": "executed instructions"
+          },
+          "mriscv_sieve_primes": {
+            "class": "wide",
+            "args": "--elf vectors/riscv_elfs/sieve_primes.elf --pow-bits 26 --n-queries 70",
+            "native_unit": "executed instructions"
+          },
+          "mriscv_bubble_sort": {
+            "class": "wide",
+            "args": "--elf vectors/riscv_elfs/bubble_sort.elf --pow-bits 26 --n-queries 70",
+            "native_unit": "executed instructions"
+          },
+          "mriscv_collatz": {
+            "class": "wide",
+            "args": "--elf vectors/riscv_elfs/collatz.elf --pow-bits 26 --n-queries 70",
+            "native_unit": "executed instructions"
+          },
+          "mriscv_xorshift_prng": {
+            "class": "deep",
+            "args": "--elf vectors/riscv_elfs/xorshift_prng.elf --pow-bits 26 --n-queries 70",
+            "native_unit": "executed instructions"
+          },
+          "mriscv_gcd_euclid": {
+            "class": "deep",
+            "args": "--elf vectors/riscv_elfs/gcd_euclid.elf --pow-bits 26 --n-queries 70",
+            "native_unit": "executed instructions"
           }
         },
         "guard_registry": null,
@@ -932,69 +987,8 @@
             "min_rung": "s3"
           }
         ],
-        "workload_provisioning": {
-          "note": "TRACKS §3.3/§9: the riscv_metal function basket mirrors the riscv basket row-for-row so the two lanes score the same computations on different backends. Every entry below is pinned to a committed artifact with a committed instruction count; nothing here is runnable until stwo-zig#169 lands, and the incompleteness stays loud rather than silent.",
-          "documentation": "autoresearch/TRACKS.md",
-          "pending": {
-            "mriscv_csp_sha256_256b": {
-              "expected_cycles": 22832,
-              "source": "vectors/riscv_csp/guests/sha256.elf + vectors/riscv_csp/inputs/msg_256.bin",
-              "reason": "blocked on stwo-zig#169: every committed guest ELF completes by hosted ecall, which riscv-metal-bench rejects (UnprovableCompletion). Activation needs hosted-completion support in the metal runner — preferred, because it keeps this lane proving the SAME committed artifact as the cpu lane — or halt-sentinel rebuilds of the corpus."
-            },
-            "mriscv_csp_sha256_1024b": {
-              "expected_cycles": 75488,
-              "source": "vectors/riscv_csp/guests/sha256.elf + vectors/riscv_csp/inputs/msg_1024.bin",
-              "reason": "blocked on stwo-zig#169: every committed guest ELF completes by hosted ecall, which riscv-metal-bench rejects (UnprovableCompletion). Activation needs hosted-completion support in the metal runner — preferred, because it keeps this lane proving the SAME committed artifact as the cpu lane — or halt-sentinel rebuilds of the corpus."
-            },
-            "mriscv_csp_keccak_256b": {
-              "expected_cycles": 36904,
-              "source": "vectors/riscv_csp/guests/keccak.elf + vectors/riscv_csp/inputs/msg_256.bin",
-              "reason": "blocked on stwo-zig#169: every committed guest ELF completes by hosted ecall, which riscv-metal-bench rejects (UnprovableCompletion). Activation needs hosted-completion support in the metal runner — preferred, because it keeps this lane proving the SAME committed artifact as the cpu lane — or halt-sentinel rebuilds of the corpus."
-            },
-            "mriscv_csp_keccak_1024b": {
-              "expected_cycles": 143416,
-              "source": "vectors/riscv_csp/guests/keccak.elf + vectors/riscv_csp/inputs/msg_1024.bin",
-              "reason": "blocked on stwo-zig#169: every committed guest ELF completes by hosted ecall, which riscv-metal-bench rejects (UnprovableCompletion). Activation needs hosted-completion support in the metal runner — preferred, because it keeps this lane proving the SAME committed artifact as the cpu lane — or halt-sentinel rebuilds of the corpus."
-            },
-            "mriscv_csp_poseidon2_m31_8fe": {
-              "expected_cycles": 328615,
-              "source": "vectors/riscv_csp/guests/poseidon2_m31.elf (8 field elements)",
-              "reason": "blocked on stwo-zig#169: every committed guest ELF completes by hosted ecall, which riscv-metal-bench rejects (UnprovableCompletion). Activation needs hosted-completion support in the metal runner — preferred, because it keeps this lane proving the SAME committed artifact as the cpu lane — or halt-sentinel rebuilds of the corpus."
-            },
-            "mriscv_csp_ecdsa_secp256k1": {
-              "expected_cycles": 5425005,
-              "source": "vectors/riscv_csp/guests/ecdsa_secp256k1.elf",
-              "reason": "blocked on stwo-zig#169: every committed guest ELF completes by hosted ecall, which riscv-metal-bench rejects (UnprovableCompletion). Activation needs hosted-completion support in the metal runner — preferred, because it keeps this lane proving the SAME committed artifact as the cpu lane — or halt-sentinel rebuilds of the corpus."
-            },
-            "mriscv_sieve_primes": {
-              "expected_cycles": 2792,
-              "source": "vectors/riscv_elfs/trace_vectors.json#sieve_primes",
-              "reason": "blocked on stwo-zig#169: every committed guest ELF completes by hosted ecall, which riscv-metal-bench rejects (UnprovableCompletion). Activation needs hosted-completion support in the metal runner — preferred, because it keeps this lane proving the SAME committed artifact as the cpu lane — or halt-sentinel rebuilds of the corpus."
-            },
-            "mriscv_bubble_sort": {
-              "expected_cycles": 9462,
-              "source": "vectors/riscv_elfs/trace_vectors.json#bubble_sort",
-              "reason": "blocked on stwo-zig#169: every committed guest ELF completes by hosted ecall, which riscv-metal-bench rejects (UnprovableCompletion). Activation needs hosted-completion support in the metal runner — preferred, because it keeps this lane proving the SAME committed artifact as the cpu lane — or halt-sentinel rebuilds of the corpus."
-            },
-            "mriscv_collatz": {
-              "expected_cycles": 34237,
-              "source": "vectors/riscv_elfs/trace_vectors.json#collatz",
-              "reason": "blocked on stwo-zig#169: every committed guest ELF completes by hosted ecall, which riscv-metal-bench rejects (UnprovableCompletion). Activation needs hosted-completion support in the metal runner — preferred, because it keeps this lane proving the SAME committed artifact as the cpu lane — or halt-sentinel rebuilds of the corpus."
-            },
-            "mriscv_xorshift_prng": {
-              "expected_cycles": 65544,
-              "source": "vectors/riscv_elfs/trace_vectors.json#xorshift_prng",
-              "reason": "blocked on stwo-zig#169: every committed guest ELF completes by hosted ecall, which riscv-metal-bench rejects (UnprovableCompletion). Activation needs hosted-completion support in the metal runner — preferred, because it keeps this lane proving the SAME committed artifact as the cpu lane — or halt-sentinel rebuilds of the corpus."
-            },
-            "mriscv_gcd_euclid": {
-              "expected_cycles": 124931,
-              "source": "vectors/riscv_elfs/trace_vectors.json#gcd_euclid",
-              "reason": "blocked on stwo-zig#169: every committed guest ELF completes by hosted ecall, which riscv-metal-bench rejects (UnprovableCompletion). Activation needs hosted-completion support in the metal runner — preferred, because it keeps this lane proving the SAME committed artifact as the cpu lane — or halt-sentinel rebuilds of the corpus."
-            }
-          }
-        },
         "function_basket": {
-          "note": "TRACKS §3.3: the riscv_metal benchmark contract — the same 11 guest functions as the riscv cpu lane, proved on the Metal backend, so a cross-lane comparison is always same-computation, different-backend. Two functions run today (memcpy, fib_iter); the other nine are pinned and counted but blocked on stwo-zig#169 (hosted-completion support in riscv-metal-bench). mriscv_alu_test stays outside the basket: at 8 retired instructions it is an ISA smoke gate, not a function.",
+          "note": "TRACKS §3.3: the riscv_metal benchmark contract — the same 11 guest functions as the riscv cpu lane, proved on the Metal backend from the SAME committed artifacts, so a cross-lane comparison is always same-computation, different-backend. All 11 graduated to runnable workloads on 2026-07-31 when the bench runner's default path became halt-flag-aware (issue #169): every row proved end to end on an Apple M4 Max at secure parameters (pow 26 / 70 queries), with executed instruction counts matching the committed corpus exactly. mriscv_alu_test stays outside the basket: at 8 retired instructions it is an ISA smoke gate, not a function.",
           "documentation": "autoresearch/TRACKS.md",
           "functions": {
             "memcpy": {
