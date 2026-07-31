@@ -47,9 +47,9 @@ class ManifestTest(unittest.TestCase):
         self.assertTrue(small)
         self.assertTrue(all(w.workload_class == "small" for w in small))
 
-    def test_riscv_small_wall_covers_public_qualifier_without_global_drift(self):
+    def test_riscv_small_and_wide_walls_cover_qualifier_without_global_drift(self):
         riscv_small = self.m.gates_for_workload("riscv", "small")
-        riscv_walls = {"small": 600, "wide": 360, "deep": 600}
+        riscv_walls = {"small": 600, "wide": 900, "deep": 600}
         self.assertEqual(
             riscv_small["wall_clock_cap_seconds"],
             riscv_walls,
@@ -75,6 +75,12 @@ class ManifestTest(unittest.TestCase):
                 "wall_clock_cap_seconds"
             ],
             riscv_walls,
+        )
+        self.assertEqual(
+            self.m.gates_for_workload("riscv_metal", "wide")[
+                "wall_clock_cap_seconds"
+            ],
+            {"small": 240, "wide": 360, "deep": 600},
         )
         self.assertEqual(
             self.m.gates_for_workload("native", "small")[
