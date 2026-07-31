@@ -77,6 +77,7 @@ ENTRY_POINT_GLOBS = (
     "autoresearch/**/*.yml",
     "autoresearch/**/*.json",
     "autoresearch/**/*.md",
+    "formal/**/*.md",
 )
 
 REFERENCE_RE = re.compile(r"scripts/([a-z_0-9]+\.py)|\"([a-z_0-9]+\.py)\"")

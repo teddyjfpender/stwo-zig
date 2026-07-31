@@ -277,6 +277,19 @@ class PlanIntegrationTest(unittest.TestCase):
         )
         self.assertEqual(self.select("docs/deep/nested/page.md"), set(POLICY["always_lanes"]))
 
+    def test_static_floor_is_fast_and_complete_script_tests_are_separate(self) -> None:
+        static = POLICY["lanes"]["static"]["commands"]
+        scripts = POLICY["lanes"]["script_contracts"]["commands"]
+        self.assertIn(["python3", "scripts/ci.py", "--fast"], static)
+        self.assertFalse(any("discover" in command for command in static))
+        self.assertEqual(
+            [[
+                "python3", "-m", "unittest", "discover", "-s",
+                "scripts/tests", "-p", "test_*.py",
+            ]],
+            scripts,
+        )
+
     def test_unmapped_path_fails_open_to_the_full_matrix(self) -> None:
         self.assertEqual(self.select("scripts/riscv_poseidon_table_uniqueness.py"), set(POLICY["lanes"]))
         self.assertEqual(self.select("build_support/anything_new.zig"), set(POLICY["lanes"]))
@@ -284,6 +297,17 @@ class PlanIntegrationTest(unittest.TestCase):
 
     def test_workflow_change_fails_open_to_the_full_matrix(self) -> None:
         self.assertEqual(self.select(".github/workflows/ci.yml"), set(POLICY["lanes"]))
+
+    def test_independent_workflow_change_runs_only_its_script_contracts(self) -> None:
+        for path in (
+            ".github/workflows/benchmark-pages.yml",
+            ".githooks/pre-commit",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(
+                    {"static", "script_contracts"},
+                    self.select(path),
+                )
 
     def test_package_change_selects_graph_lanes_through_the_plan(self) -> None:
         selected = self.select("src/frontends/cairo/air.zig")
@@ -298,7 +322,7 @@ class PlanIntegrationTest(unittest.TestCase):
             len(self.select("src/integrations/cairo_cpu/mod.zig")),
         )
 
-    def test_push_full_matrix_selects_every_hosted_lane(self) -> None:
+    def test_scheduled_full_matrix_selects_every_hosted_lane(self) -> None:
         lanes, reasons = ci_scope_plan.select_lanes(
             ["autoresearch/notes/x/note.md"],
             self.catalog,
@@ -314,7 +338,7 @@ class PlanIntegrationTest(unittest.TestCase):
         self.assertEqual(set(lanes), hosted)
         self.assertEqual(reasons["static"], ["full-matrix"])
 
-    def test_push_full_matrix_spares_unselected_self_hosted_lanes(self) -> None:
+    def test_scheduled_full_matrix_spares_unselected_self_hosted_lanes(self) -> None:
         lanes, reasons = ci_scope_plan.select_lanes(
             ["autoresearch/notes/x/note.md"],
             self.catalog,
@@ -325,11 +349,11 @@ class PlanIntegrationTest(unittest.TestCase):
         for lane in lanes:
             if not POLICY["lanes"][lane].get("hosted", True):
                 self.fail(
-                    f"self-hosted lane {lane} entered the push full matrix "
+                    f"self-hosted lane {lane} entered the scheduled full matrix "
                     "on a notes-only diff"
                 )
 
-    def test_push_full_matrix_keeps_diff_selected_self_hosted_lanes(self) -> None:
+    def test_scheduled_full_matrix_keeps_diff_selected_self_hosted_lanes(self) -> None:
         self_hosted = {
             lane
             for lane in POLICY["lanes"]

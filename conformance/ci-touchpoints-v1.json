@@ -6,17 +6,37 @@
   "lanes": {
     "static": {
       "host": "linux",
-      "description": "Formatting, policy, and Python contract tests",
+      "description": "Compilation-free formatting and repository policy checks",
       "commands": [
         [
-          "zig",
-          "fmt",
-          "--check",
-          "build.zig",
-          "build_support",
-          "src",
-          "tools"
+          "python3",
+          "scripts/ci.py",
+          "--fast"
         ],
+        [
+          "python3",
+          "-m",
+          "unittest",
+          "scripts.tests.test_ci",
+          "scripts.tests.test_focused_ci_contract",
+          "scripts.tests.test_ci_package_graph",
+          "scripts.tests.test_ci_scope_push",
+          "scripts.tests.test_ci_touchpoint_prefixes"
+        ],
+        [
+          "python3",
+          "scripts/check_build_monorepo_baseline.py"
+        ],
+        [
+          "python3",
+          "scripts/check_package_workspace.py"
+        ]
+      ]
+    },
+    "script_contracts": {
+      "host": "linux",
+      "description": "Complete Python orchestration and policy contract suite",
+      "commands": [
         [
           "python3",
           "-m",
@@ -26,22 +46,6 @@
           "scripts/tests",
           "-p",
           "test_*.py"
-        ],
-        [
-          "python3",
-          "scripts/check_build_monorepo_baseline.py"
-        ],
-        [
-          "python3",
-          "scripts/check_source_conformance.py"
-        ],
-        [
-          "python3",
-          "scripts/check_package_workspace.py"
-        ],
-        [
-          "python3",
-          "scripts/check_upstream_pins.py"
         ]
       ]
     },
@@ -818,6 +822,7 @@
         "scripts/sm83_frontend_gate.py"
       ],
       "lanes": [
+        "script_contracts",
         "package",
         "sm83_frontend"
       ]
@@ -851,6 +856,7 @@
         "scripts/metal_core_aot_receipt_lib"
       ],
       "lanes": [
+        "script_contracts",
         "metal_aot"
       ]
     },
@@ -1111,6 +1117,7 @@
         "tools/stwo-cuda-adapter-rs"
       ],
       "lanes": [
+        "script_contracts",
         "native_cuda_integration",
         "cairo_cuda_integration",
         "package",
@@ -1152,14 +1159,31 @@
     },
     {
       "prefixes": [
+        "soundness"
+      ],
+      "lanes": [
+        "script_contracts"
+      ]
+    },
+    {
+      "prefixes": [
         ".github/workflows",
-        ".githooks",
+        ".githooks"
+      ],
+      "lanes": [
+        "script_contracts"
+      ]
+    },
+    {
+      "prefixes": [
+        ".github/workflows/ci.yml",
         "scripts/ci_scope_plan.py",
         "scripts/ci_scope_run.py",
         "scripts/ci_scope_push.py",
         "conformance/ci-touchpoints-v1.json"
       ],
       "lanes": [
+        "script_contracts",
         "build_graph",
         "core",
         "backend_contracts",

@@ -5,6 +5,8 @@ on:
   push:
     branches: ["main"]
     tags: ["aot-evidence-*"]
+  schedule:
+    - cron: "11 2 * * *"
   workflow_dispatch:
     inputs:
       gate:
@@ -20,12 +22,17 @@ permissions:
   actions: read
   contents: read
 
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
+
 jobs:
   focused-plan:
     name: Select focused gates
     if: >-
       github.event_name == 'pull_request' ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      github.event_name == 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -50,13 +57,6 @@ jobs:
         with:
           version: 0.15.2
 
-      - name: PR6 fail-closed correctness smoke
-        run: |
-          PYTHONPATH=autoresearch/cli python3 -m unittest \
-            autoresearch.tests.test_manifest \
-            autoresearch.tests.test_peer_series
-          zig build test-stwo-prover -Doptimize=ReleaseFast
-
       - name: Emit authoritative product catalog
         run: zig build product-matrix-identity -Doptimize=ReleaseFast
 
@@ -67,15 +67,17 @@ jobs:
           # can lag the base branch, which would count already-merged main
           # commits as part of the PR and select lanes the PR never touched.
           #
-          # Pushes to main take the full matrix instead of a scoped selection:
-          # it is the post-merge safety net for any selection mistake a PR made,
-          # and it keeps every lane's compiler cache warm for the next PR.
+          # Pull requests and pushes to main are diff-scoped. A nightly full
+          # hosted matrix catches selection drift without serializing every
+          # merge behind unrelated products.
           SCOPE_ARGS=()
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             BASE="$(git merge-base "origin/${{ github.base_ref }}" HEAD)"
+          elif [ "${{ github.event_name }}" = "schedule" ]; then
+            BASE="$(git rev-parse HEAD^)"
+            SCOPE_ARGS+=(--full-matrix)
           else
             BASE="${{ github.event.before }}"
-            SCOPE_ARGS+=(--full-matrix)
           fi
           python3 scripts/ci_scope_plan.py \
             --base "$BASE" \
@@ -117,7 +119,8 @@ jobs:
     needs: focused-plan
     if: >-
       (github.event_name == 'pull_request' ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main')) &&
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      github.event_name == 'schedule') &&
       needs.focused-plan.outputs.linux_count != '0'
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -125,10 +128,10 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.focused-plan.outputs.linux_matrix) }}
     steps:
-      - name: Checkout complete policy history
+      - name: Checkout exact source
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Setup Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
@@ -139,6 +142,7 @@ jobs:
         uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29  # v2
         with:
           version: 0.15.2
+          use-cache: false
 
       - name: Install pinned Rust oracle toolchain
         if: matrix.lane == 'native_oracle' || matrix.lane == 'native_cuda_static'
@@ -151,12 +155,14 @@ jobs:
           --manifest-path tools/stwo-cairo-vm-adapter-rs/Cargo.toml
 
       - name: Restore product-scoped compiler cache
+        if: matrix.lane != 'static'
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
         with:
           path: ${{ runner.tool_cache }}/stwo-zig/focused/${{ matrix.lane }}
-          key: focused-v1-${{ runner.os }}-${{ matrix.lane }}-${{ hashFiles('build.zig.zon', 'conformance/ci-touchpoints-v1.json') }}-${{ github.sha }}
+          key: focused-v1-${{ runner.os }}-${{ matrix.lane }}-${{ hashFiles('build.zig.zon') }}-${{ github.sha }}
           restore-keys: |
-            focused-v1-${{ runner.os }}-${{ matrix.lane }}-${{ hashFiles('build.zig.zon', 'conformance/ci-touchpoints-v1.json') }}-
+            focused-v1-${{ runner.os }}-${{ matrix.lane }}-${{ hashFiles('build.zig.zon') }}-
+            focused-v1-${{ runner.os }}-${{ matrix.lane }}-
 
       - name: Run focused lane
         run: |
@@ -181,7 +187,8 @@ jobs:
     needs: focused-plan
     if: >-
       (github.event_name == 'pull_request' ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main')) &&
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      github.event_name == 'schedule') &&
       needs.focused-plan.outputs.macos_count != '0'
     runs-on: macos-14
     timeout-minutes: 10
@@ -189,10 +196,10 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.focused-plan.outputs.macos_matrix) }}
     steps:
-      - name: Checkout complete policy history
+      - name: Checkout exact source
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Setup Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
@@ -203,6 +210,7 @@ jobs:
         uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29  # v2
         with:
           version: 0.15.2
+          use-cache: false
 
       - name: Require full Xcode for AOT-owned changes
         if: matrix.lane == 'metal_aot'
@@ -215,9 +223,10 @@ jobs:
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
         with:
           path: ${{ runner.tool_cache }}/stwo-zig/focused/${{ matrix.lane }}
-          key: focused-v1-${{ runner.os }}-${{ matrix.lane }}-${{ hashFiles('build.zig.zon', 'conformance/ci-touchpoints-v1.json') }}-${{ github.sha }}
+          key: focused-v1-${{ runner.os }}-${{ matrix.lane }}-${{ hashFiles('build.zig.zon') }}-${{ github.sha }}
           restore-keys: |
-            focused-v1-${{ runner.os }}-${{ matrix.lane }}-${{ hashFiles('build.zig.zon', 'conformance/ci-touchpoints-v1.json') }}-
+            focused-v1-${{ runner.os }}-${{ matrix.lane }}-${{ hashFiles('build.zig.zon') }}-
+            focused-v1-${{ runner.os }}-${{ matrix.lane }}-
 
       - name: Run focused lane
         run: |
@@ -242,15 +251,16 @@ jobs:
     needs: focused-plan
     if: >-
       (github.event_name == 'pull_request' ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main')) &&
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      github.event_name == 'schedule') &&
       needs.focused-plan.outputs.cuda_required == 'true'
     runs-on: [self-hosted, linux, x64, cuda]
     timeout-minutes: 30
     steps:
-      - name: Checkout complete policy history
+      - name: Checkout exact source
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Setup Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
@@ -261,6 +271,7 @@ jobs:
         uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29  # v2
         with:
           version: 0.15.2
+          use-cache: false
 
       - name: Install pinned Rust oracle toolchain
         run: rustup toolchain install nightly-2025-07-14 --profile minimal
@@ -282,9 +293,10 @@ jobs:
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
         with:
           path: ${{ runner.tool_cache }}/stwo-zig/focused/native_cuda_device
-          key: focused-v1-${{ runner.os }}-native_cuda_device-${{ hashFiles('build.zig.zon', 'conformance/ci-touchpoints-v1.json') }}-${{ github.sha }}
+          key: focused-v1-${{ runner.os }}-native_cuda_device-${{ hashFiles('build.zig.zon') }}-${{ github.sha }}
           restore-keys: |
-            focused-v1-${{ runner.os }}-native_cuda_device-${{ hashFiles('build.zig.zon', 'conformance/ci-touchpoints-v1.json') }}-
+            focused-v1-${{ runner.os }}-native_cuda_device-${{ hashFiles('build.zig.zon') }}-
+            focused-v1-${{ runner.os }}-native_cuda_device-
 
       - name: Run fail-closed Native CUDA product and oracle lane
         run: |
@@ -309,7 +321,8 @@ jobs:
     needs: [focused-plan, focused-linux, focused-macos, focused-cuda]
     if: >-
       always() && (github.event_name == 'pull_request' ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main'))
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      github.event_name == 'schedule')
     runs-on: ubuntu-latest
     timeout-minutes: 2
     env:

@@ -1364,9 +1364,10 @@ conformance. The pre-push hook uses the generated product catalog and
 `conformance/ci-touchpoints-v1.json` to run only gates owned by the exact commits being pushed.
 It reuses product-scoped caches and writes timing receipts under `zig-out/ci/pre-push/`. A host
 that cannot execute a selected Metal or Full-Xcode lane reports it as deferred to authoritative
-hosted CI. Exhaustive build-graph closure and aggregate compatibility products also run in hosted
-CI, where they can execute in parallel instead of serially rebuilding every commit-bound product
-identity in the local feedback loop.
+hosted CI. Pull requests and pushes to `main` use the same fail-closed affected-product closure;
+unknown paths still select every lane. The complete Python script-contract suite runs when scripts,
+their workflows, or soundness contracts change. A nightly full hosted matrix catches selector drift
+without putting unrelated products on every merge's critical path.
 Neither hook runs hardware benchmarks, profiles, or large SN PIE workloads.
 The RISC-V focused lane is a correctness workload exception: whenever selected,
 it runs the bounded four-program production proof gate and retains independent

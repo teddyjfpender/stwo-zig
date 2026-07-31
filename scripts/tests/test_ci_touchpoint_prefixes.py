@@ -91,12 +91,13 @@ class TouchpointPrefixTests(unittest.TestCase):
 
     def test_metal_aot_and_cuda_script_touchpoints_stay_narrowly_scoped(self) -> None:
         self.assertEqual(
-            {"static", "metal_aot"},
+            {"static", "script_contracts", "metal_aot"},
             self.lanes_for("scripts/metal_core_aot_receipt.py"),
         )
         self.assertEqual(
             {
                 "static",
+                "script_contracts",
                 "package",
                 "native_cuda_static",
                 "native_cuda_device",
@@ -104,6 +105,12 @@ class TouchpointPrefixTests(unittest.TestCase):
                 "cairo_cuda_integration",
             },
             self.lanes_for("scripts/cuda_build.py"),
+        )
+
+    def test_soundness_documents_run_contracts_without_product_fanout(self) -> None:
+        self.assertEqual(
+            {"static", "script_contracts"},
+            self.lanes_for("soundness/SAIL_AIR_COMPOSITION.md"),
         )
 
     def test_plan_entrypoint_refuses_a_policy_with_a_dead_rule_prefix(self) -> None:

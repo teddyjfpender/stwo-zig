@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: autoresearch-validate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   validate:
     name: autoresearch-validate
@@ -20,5 +24,19 @@ jobs:
           BASE_REF: origin/${{ github.base_ref }}
           PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
         run: python3 autoresearch/bots/validate_action.py
+      - name: Select harness unit-test scope
+        id: harness-scope
+        env:
+          BASE_REF: origin/${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          base="$(git merge-base "$BASE_REF" HEAD)"
+          changed="$(git diff --name-only "$base" HEAD)"
+          if grep -Eq '^(autoresearch/|scripts/autoresearch_|scripts/tests/test_autoresearch|\.github/workflows/(audit|automerge|judge|pr6-supremacy|promote|qualify-fork|record|validate)\.yml$)' <<<"$changed"; then
+            echo "required=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "required=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Harness unit tests
+        if: steps.harness-scope.outputs.required == 'true'
         run: python3 -m unittest discover -s autoresearch/tests -v

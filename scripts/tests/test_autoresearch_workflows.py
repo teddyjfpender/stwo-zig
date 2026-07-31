@@ -105,6 +105,7 @@ class WorkflowContractTest(unittest.TestCase):
             )
 
     def test_judge_identity_runner_and_authority_order(self) -> None:
+        self.assertEqual(WORKFLOWS[0].read_bytes(), WORKFLOWS[2].read_bytes())
         for path in (WORKFLOWS[0], WORKFLOWS[2]):
             text = path.read_text(encoding="utf-8")
             self.assertIn("name: autoresearch-judge", text)
@@ -114,6 +115,10 @@ class WorkflowContractTest(unittest.TestCase):
             self.assertIn("runs-on: [self-hosted, macOS, stwo-judge]", text)
             evaluate, remainder = text.split("\n  publish:\n", 1)
             publish, required = remainder.split("\n  required:\n", 1)
+            header = text.split("jobs:", 1)[0]
+            self.assertNotIn("concurrency:", header)
+            self.assertIn("group: autoresearch-judge-${{ github.repository }}", evaluate)
+            self.assertIn("cancel-in-progress: false", evaluate)
             self.assertIn("contents: read", evaluate)
             self.assertNotIn("secrets.JUDGE_HMAC_SECRET", evaluate)
             self.assertNotIn("contents: write", evaluate)
@@ -190,14 +195,20 @@ class WorkflowContractTest(unittest.TestCase):
             self.assertIn("python3 autoresearch/bots/promote_action.py", text)
 
     def test_required_check_names_are_stable(self) -> None:
-        for path in (
+        paths = (
             ROOT / ".github/workflows/validate.yml",
             ROOT / "autoresearch/workflows/validate.yml",
-        ):
+        )
+        self.assertEqual(paths[0].read_bytes(), paths[1].read_bytes())
+        for path in paths:
+            text = path.read_text(encoding="utf-8")
             self.assertIn(
                 "name: autoresearch-validate",
-                path.read_text(encoding="utf-8"),
+                text,
             )
+            self.assertIn("group: autoresearch-validate-${{ github.event.pull_request.number }}", text)
+            self.assertIn("id: harness-scope", text)
+            self.assertIn("if: steps.harness-scope.outputs.required == 'true'", text)
 
         source = (ROOT / "autoresearch/bots/promote_action.py").read_text(encoding="utf-8")
         self.assertIn("signing.verify(verdict)", source)

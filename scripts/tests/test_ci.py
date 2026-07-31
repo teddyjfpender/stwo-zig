@@ -576,7 +576,38 @@ class CiTests(unittest.TestCase):
         focused = workflow.split("  focused-plan:", 1)[1].split("  release-gate:", 1)[0]
         self.assertIn("github.event.before", focused)
         self.assertIn("github.ref == 'refs/heads/main'", focused)
+        self.assertEqual(1, focused.count("SCOPE_ARGS+=(--full-matrix)"))
+        self.assertIn('elif [ "${{ github.event_name }}" = "schedule" ]', focused)
+        self.assertNotIn("PR6 fail-closed correctness smoke", focused)
+        self.assertNotIn("autoresearch.tests.test_manifest", focused)
         self.assertIn("run: python3 scripts/ci.py\n", workflow)
+
+    def test_hosted_ci_cancels_stale_runs_and_avoids_duplicate_caches(self) -> None:
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        header = workflow.split("jobs:", 1)[0]
+        self.assertIn("group: ci-${{ github.event_name }}-", header)
+        self.assertIn("github.event_name == 'pull_request'", header)
+        focused = workflow.split("  focused-plan:", 1)[1].split(
+            "  release-gate:", 1
+        )[0]
+        self.assertEqual(3, focused.count("use-cache: false"))
+        self.assertEqual(3, focused.count("fetch-depth: 1"))
+        self.assertEqual(1, focused.count("fetch-depth: 0"))
+        self.assertIn("if: matrix.lane != 'static'", focused)
+        self.assertNotIn(
+            "hashFiles('build.zig.zon', 'conformance/ci-touchpoints-v1.json')",
+            focused,
+        )
+
+    def test_pr6_serializes_only_the_scarce_runner_job(self) -> None:
+        workflow = (ROOT / ".github/workflows/pr6-supremacy.yml").read_text(
+            encoding="utf-8"
+        )
+        header, jobs = workflow.split("jobs:", 1)
+        self.assertNotIn("concurrency:", header)
+        smoke, wide = jobs.split("  wide-series:", 1)
+        self.assertIn("contains(github.event.pull_request.labels.*.name, 'supremacy')", smoke)
+        self.assertIn("group: pr6-supremacy-m5", wide)
 
     def test_hosted_metal_gate_builds_reproducible_aot_and_compiles_broader_graph(
         self,

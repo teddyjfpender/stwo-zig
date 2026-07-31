@@ -494,6 +494,14 @@ class WorkflowContractTest(unittest.TestCase):
     def _step(self, job: str, name: str) -> str:
         return _workflow_step(job, name)
 
+    def test_superseded_runs_cancel_without_cross_event_cancellation(self) -> None:
+        header = self.workflow.split("jobs:", 1)[0]
+        self.assertIn(
+            "group: riscv-sail-differential-${{ github.event_name }}-${{ github.ref }}",
+            header,
+        )
+        self.assertIn("cancel-in-progress: true", header)
+
     def test_provisioning_and_preflight_run_on_every_path(self) -> None:
         # A cache hit must not be able to bypass either the install steps or
         # the assertion that the pinned toolchain actually works, and the
