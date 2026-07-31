@@ -287,6 +287,47 @@ def _metal_progress(latest_matrix: dict | None) -> dict | None:
     }
 
 
+def _function_basket_view(group) -> dict | None:
+    """TRACKS §3.3: emit the group's benchmark contract with derived statuses.
+
+    The manifest validator already guarantees every basket row lives in exactly
+    one vehicle, so the status derivation here is total: a row is scored
+    (runnable workload), staged (era-gated, admitted, waiting on a
+    recalibration event), or pending (declared, pinned, and loudly blocked)."""
+    basket = group.function_basket or None
+    if not basket:
+        return None
+    scored = {w.workload_id: w for w in group.workloads}
+    staged = (group.era_staged_basket or {}).get("rows", {})
+    pending = (group.workload_provisioning or {}).get("pending", {})
+    functions = {}
+    for name, entry in basket["functions"].items():
+        rows = {}
+        for rid in entry["rows"]:
+            if rid in scored:
+                rows[rid] = {
+                    "status": "scored",
+                    "class": scored[rid].workload_class,
+                    "expected_cycles": None,
+                }
+            elif rid in staged:
+                row = staged[rid]
+                rows[rid] = {
+                    "status": "staged",
+                    "class": row.get("class"),
+                    "expected_cycles": row.get("admission", {}).get("expected_cycles"),
+                }
+            else:
+                row = pending.get(rid, {})
+                rows[rid] = {
+                    "status": "pending",
+                    "class": None,
+                    "expected_cycles": row.get("expected_cycles") or row.get("vm_steps"),
+                }
+        functions[name] = {"summary": entry["summary"], "rows": rows}
+    return {"note": basket["note"], "functions": functions}
+
+
 def _promotion_scope(manifest: Manifest) -> dict:
     """The decided benchmark set: which boards a workload group actually owns.
 
@@ -313,6 +354,12 @@ def _promotion_scope(manifest: Manifest) -> dict:
                 w.workload_id: {"class": w.workload_class, "native_unit": w.native_unit}
                 for w in group.workloads
             },
+            # TRACKS §3.3: the track's benchmark contract — the named
+            # whole-pipeline functions and their rows, with each row's status
+            # DERIVED from the vehicle that holds it (workloads → scored,
+            # era_staged_basket → staged, workload_provisioning → pending) so
+            # the published list can never drift from what actually runs.
+            "function_basket": _function_basket_view(group),
         }
     owned = sorted({g.board for g in manifest.groups() if g.promotion_eligible})
     staged = sorted({g.board for g in manifest.groups() if not g.promotion_eligible})
