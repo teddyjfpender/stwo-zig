@@ -384,8 +384,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -425,8 +425,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -466,8 +466,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -648,8 +648,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -689,8 +689,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -730,8 +730,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -2908,8 +2908,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3232,8 +3232,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3420,8 +3420,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3638,8 +3638,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -4033,8 +4033,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -4333,8 +4333,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -4374,8 +4374,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -4415,8 +4415,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -4456,8 +4456,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -4497,8 +4497,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -7088,8 +7088,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -7551,8 +7551,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -7671,8 +7671,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -7957,8 +7957,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8492,8 +8492,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8842,8 +8842,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8883,8 +8883,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8924,8 +8924,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8965,8 +8965,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -9006,8 +9006,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -9624,8 +9624,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -9815,8 +9815,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -9931,8 +9931,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -10193,8 +10193,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -10234,8 +10234,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -10275,8 +10275,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1243,
-       "seconds": 854244
+       "commits": 1251,
+       "seconds": 861385
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -12886,8 +12886,8 @@
    "vectors/reports/benchmark_history/index.json": "f8ef3c4aff34a2bedc21899c017521695d28f2fbb327b5fb2d09fb1dc5acd7b2",
    "vectors/reports/benchmark_history/runs/2026-07-23-190948-matrix-v6-467edbc9/report.json": "51cedc323c0a9fa12c17ad96ac34375013f276b2565778c6e61d8ef401837730"
   },
-  "repo_commit": "72c173ca565b",
-  "repo_commit_time": "2026-07-31T15:04:51+01:00"
+  "repo_commit": "1b97a9afaf03",
+  "repo_commit_time": "2026-07-31T17:03:52+01:00"
  },
  "references": {
   "m4_max_cairo_zkvm_baseline": {
