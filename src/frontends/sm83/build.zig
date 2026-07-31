@@ -27,6 +27,26 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Compile and test the stwo_sm83_frontend package");
     test_step.dependOn(&tests.step);
 
+    const isa_tests = b.addRunArtifact(b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("isa/mod.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    }));
+    b.step("test-isa", "Run only SM83 opcode-table and decoder tests")
+        .dependOn(&isa_tests.step);
+
+    const runner_tests = b.addRunArtifact(b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("runner_test_root.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    }));
+    b.step("test-runner", "Run only SM83 instruction-runner tests")
+        .dependOn(&runner_tests.step);
+
     const checkpoint_tests = b.addRunArtifact(b.addTest(.{
         .root_module = b.createModule(.{
             .root_source_file = b.path("sameboy_checkpoint_test_root.zig"),

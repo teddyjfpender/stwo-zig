@@ -221,6 +221,8 @@ python3 scripts/sm83_frontend_gate.py
 Use the narrowest local command that owns the change:
 
 ```sh
+zig build test-isa --build-file src/frontends/sm83/build.zig -Doptimize=ReleaseSafe
+zig build test-runner --build-file src/frontends/sm83/build.zig -Doptimize=ReleaseSafe
 python3 scripts/sm83_frontend_gate.py --opcode 80
 python3 scripts/sm83_frontend_gate.py --opcode cb:11
 python3 scripts/sm83_frontend_gate.py --family increment_decrement8
