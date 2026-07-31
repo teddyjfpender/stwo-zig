@@ -1,4 +1,7 @@
 //! Metal proof for the complete pinned proof-fast Pokemon benchmark battle.
+//! TODO(sm83-metal-memory): Reduce resident commitment high-water memory before
+//! claiming a full-battle Metal receipt. The 65,536-row smoke attempt exceeded
+//! 25 GiB of wired unified memory and was stopped without producing a receipt.
 
 const std = @import("std");
 const core = @import("stwo_core");
