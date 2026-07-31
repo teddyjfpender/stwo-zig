@@ -120,6 +120,12 @@ pub const ComponentProver = struct {
         evaluation_accumulator: *accumulation.DomainEvaluationAccumulator,
         pool: *work_pool_mod.WorkPool,
     ) anyerror!void = null,
+    /// When set, every component carrying this flag is evaluated in a
+    /// breadth-first pool phase instead of being launched as a leaf job. This
+    /// avoids nested pool waits for AIRs whose few large components all need
+    /// row-level parallelism. The default retains the component-parallel
+    /// scheduler used by Cairo and other heterogeneous frontends.
+    pool_exclusive_domain: bool = false,
 
     pub inline fn nConstraints(self: ComponentProver) usize {
         return self.vtable.nConstraints(self.ctx);

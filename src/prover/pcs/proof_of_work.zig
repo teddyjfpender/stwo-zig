@@ -72,7 +72,13 @@ fn grindBlake2sInPool(
     pow_bits: u32,
     pool: *work_pool_mod.WorkPool,
 ) u64 {
-    const worker_count = @min(pool.workerCount(), 4);
+    // Grinding is a synchronous phase: no other prover work can use the pool
+    // until the nonce is known and mixed into the transcript. Use every pool
+    // lane here instead of leaving most Apple Max cores idle. The strided
+    // residue search atomically lowers a shared upper bound, so the returned
+    // lowest nonce (and therefore the proof bytes) is independent of this
+    // worker count.
+    const worker_count = pool.workerCount();
     std.debug.assert(worker_count >= 2);
     std.debug.assert(worker_count <= work_pool_mod.MAX_WORKERS);
 

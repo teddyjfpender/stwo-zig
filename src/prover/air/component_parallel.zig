@@ -10,8 +10,11 @@ const QM31 = qm31.QM31;
 const SecureColumnByCoords = secure_column.SecureColumnByCoords;
 
 /// Evaluates components into independent coefficient ranges, then combines
-/// their domain buckets in protocol order. At most one component may subdivide
-/// its own domain through `pool`; all other jobs are leaf work items.
+/// their domain buckets in protocol order. The default overlaps component leaf
+/// jobs and lets one dominant component subdivide its domain. Components that
+/// opt into `pool_exclusive_domain` instead run breadth-first, one component at
+/// a time, so every large row domain can use the bounded pool without nested
+/// waits or oversubscription.
 pub fn compute(
     allocator: std.mem.Allocator,
     components: anytype,
@@ -78,6 +81,10 @@ pub fn compute(
         power_cursor -= component.nConstraints();
     }
 
+    if (hasPoolExclusiveDomain(components)) {
+        return computePoolExclusive(workers, components, pool);
+    }
+
     const caller_index = dominantDomainComponent(components);
     var wait_group = std.Thread.WaitGroup{};
     for (workers, 0..) |*worker, index| {
@@ -96,6 +103,55 @@ pub fn compute(
         workers[0].accumulator.merge(&worker.accumulator);
     workers[0].accumulator.next_power_index = 0;
     return workers[0].accumulator.finalize();
+}
+
+fn computePoolExclusive(workers: anytype, components: anytype, pool: *work_pool.WorkPool) anyerror!SecureColumnByCoords {
+    const caller_index = dominantPoolExclusiveComponent(components);
+    var wait_group = std.Thread.WaitGroup{};
+    for (workers, components) |*worker, component| {
+        if (component.pool_exclusive_domain) continue;
+        pool.spawnWg(&wait_group, @TypeOf(worker.*).run, .{worker});
+    }
+
+    @TypeOf(workers[0]).runParallel(&workers[caller_index], pool);
+    wait_group.wait();
+    for (workers) |worker| if (worker.err) |err| return err;
+
+    for (workers, components, 0..) |*worker, component, index| {
+        if (!component.pool_exclusive_domain or index == caller_index) continue;
+        @TypeOf(worker.*).runParallel(worker, pool);
+        if (worker.err) |err| return err;
+    }
+
+    for (workers[1..]) |*worker|
+        workers[0].accumulator.merge(&worker.accumulator);
+    workers[0].accumulator.next_power_index = 0;
+    return workers[0].accumulator.finalize();
+}
+
+fn hasPoolExclusiveDomain(components: anytype) bool {
+    for (components) |component| {
+        if (component.pool_exclusive_domain) {
+            std.debug.assert(component.domain_parallel_evaluator != null);
+            return true;
+        }
+    }
+    return false;
+}
+
+fn dominantPoolExclusiveComponent(components: anytype) usize {
+    var selected: ?usize = null;
+    var selected_work: u128 = 0;
+    for (components, 0..) |component, index| {
+        if (!component.pool_exclusive_domain) continue;
+        const rows = @as(u128, 1) << @intCast(component.maxConstraintLogDegreeBound());
+        const work = rows * component.nConstraints();
+        if (selected == null or work > selected_work) {
+            selected = index;
+            selected_work = work;
+        }
+    }
+    return selected.?;
 }
 
 fn dominantDomainComponent(components: anytype) usize {
