@@ -388,19 +388,19 @@ test "clock update generated interaction satisfies row semantics and rejects mut
         0,
         &relations,
         generated.claims,
-        generated.previous,
     );
     _ = component.asProverComponent();
     const placement = try infra.BitReversalTable.init(allocator, 4);
     defer placement.deinit(allocator);
     const committed_row = placement.map(0);
+    const previous_row = placement.map((@as(usize, 1) << 4) - 1);
     var sampled: [interaction.N_MAIN_COLUMNS]QM31 = undefined;
     for (&sampled, &main.columns) |*value, column| value.* = QM31.fromBase(column[committed_row]);
     var current: [interaction.N_SUMS]QM31 = undefined;
     var previous: [interaction.N_SUMS]QM31 = undefined;
     for (0..interaction.N_SUMS) |index| {
         current[index] = secureAt(generated.columns[index * 4 ..][0..4], committed_row);
-        previous[index] = secureAt(generated.previous[index * 4 ..][0..4], committed_row);
+        previous[index] = secureAt(generated.columns[index * 4 ..][0..4], previous_row);
     }
     try std.testing.expect((try component.evaluateRow(
         &sampled,
@@ -452,6 +452,7 @@ test "clock update OODS uses exact global offsets" {
     const placement = try infra.BitReversalTable.init(allocator, 4);
     defer placement.deinit(allocator);
     const committed_row = placement.map(0);
+    const previous_row = placement.map((@as(usize, 1) << 4) - 1);
 
     var pp_storage = [_][1]QM31{.{q(19)}} ** 5;
     pp_storage[first_index][0] = QM31.one();
@@ -469,8 +470,8 @@ test "clock update OODS uses exact global offsets" {
     for (0..interaction.N_SUMS) |sum_index| {
         const current = generated.claims[sum_index].toM31Array();
         const previous = secureAt(
-            generated.previous[sum_index * 4 ..][0..4],
-            committed_row,
+            generated.columns[sum_index * 4 ..][0..4],
+            previous_row,
         ).toM31Array();
         for (0..4) |coordinate| {
             const index = sum_index * 4 + coordinate;
@@ -508,13 +509,9 @@ test "clock update on-domain path enforces inactive padding" {
     const log_size: u32 = 4;
     const eval_log_size: u32 = 5;
     const eval_size: usize = 1 << eval_log_size;
-    const trace_size: usize = 1 << log_size;
     const values = try allocator.alloc(M31, eval_size);
     defer allocator.free(values);
     @memset(values, M31.zero());
-    const previous_values = try allocator.alloc(M31, trace_size);
-    defer allocator.free(previous_values);
-    @memset(previous_values, M31.zero());
     const zero_poly = prover_component.Poly{ .log_size = eval_log_size, .values = values };
     var pp = [_]prover_component.Poly{zero_poly} ** 2;
     var main = [_]prover_component.Poly{zero_poly} ** interaction.N_MAIN_COLUMNS;
@@ -523,7 +520,6 @@ test "clock update on-domain path enforces inactive padding" {
     const trace_data = prover_component.Trace{
         .polys = pcs.TreeVec([]const prover_component.Poly).initOwned(&trees),
     };
-    const previous = [_][]const M31{previous_values} ** interaction.N_INTERACTION_COLUMNS;
     const component = try ClockUpdateComponent.initProver(
         log_size,
         0,
@@ -532,7 +528,6 @@ test "clock update on-domain path enforces inactive padding" {
         0,
         &relations,
         .{QM31.zero()} ** interaction.N_SUMS,
-        previous,
     );
     var accumulator = try prover_air_accumulation.DomainEvaluationAccumulator.init(
         allocator,

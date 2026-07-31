@@ -19,6 +19,7 @@ const canonic = @import("stwo_core").poly.circle.canonic;
 const utils = @import("stwo_core").utils;
 const prover_air_accumulation = @import("stwo_prover_engine").air.accumulation;
 const prover_component = @import("stwo_prover_engine").air.component_prover;
+const work_pool = @import("stwo_prover_engine").work_pool;
 const infra = @import("../../infra_trace.zig");
 const logup = @import("../logup.zig");
 const relations_mod = @import("../relation_challenges.zig");
@@ -28,8 +29,6 @@ const opcode_entries = @import("opcode_entries.zig");
 const opcode_interaction = @import("opcode_interaction.zig");
 
 const CirclePointQM31 = circle.CirclePointQM31;
-const EMPTY_PREVIOUS: [entry.MAX_BATCHES][4][]const M31 =
-    .{.{ &.{}, &.{}, &.{}, &.{} }} ** entry.MAX_BATCHES;
 
 pub const Evaluation = struct {
     values: [entry.MAX_BATCHES]QM31 = .{QM31.zero()} ** entry.MAX_BATCHES,
@@ -51,7 +50,6 @@ pub const OpcodeLookupComponent = struct {
     interaction_col_offset: usize,
     relations: *const relations_mod.Relations,
     claims: [entry.MAX_BATCHES]QM31,
-    previous: [entry.MAX_BATCHES][4][]const M31 = EMPTY_PREVIOUS,
 
     const Adapter = core_air_derive.ComponentAdapter(
         @This(),
@@ -77,8 +75,6 @@ pub const OpcodeLookupComponent = struct {
             interaction_col_offset,
             relations,
             claims,
-            EMPTY_PREVIOUS,
-            false,
         );
     }
 
@@ -90,7 +86,6 @@ pub const OpcodeLookupComponent = struct {
         interaction_col_offset: usize,
         relations: *const relations_mod.Relations,
         claims: []const QM31,
-        previous: [entry.MAX_BATCHES][4][]const M31,
     ) !OpcodeLookupComponent {
         return init(
             family,
@@ -100,8 +95,6 @@ pub const OpcodeLookupComponent = struct {
             interaction_col_offset,
             relations,
             claims,
-            previous,
-            true,
         );
     }
 
@@ -113,19 +106,9 @@ pub const OpcodeLookupComponent = struct {
         interaction_col_offset: usize,
         relations: *const relations_mod.Relations,
         claims: []const QM31,
-        previous: [entry.MAX_BATCHES][4][]const M31,
-        require_previous: bool,
     ) !OpcodeLookupComponent {
         const n_batches = opcode_entries.batchCount(family);
         if (claims.len != n_batches) return error.InvalidTraceShape;
-        if (require_previous) {
-            const size = @as(usize, 1) << @intCast(log_size);
-            for (previous[0..n_batches]) |set| {
-                for (set) |column| {
-                    if (column.len != size) return error.InvalidTraceShape;
-                }
-            }
-        }
         var stored_claims = [_]QM31{QM31.zero()} ** entry.MAX_BATCHES;
         @memcpy(stored_claims[0..n_batches], claims);
         return .{
@@ -136,12 +119,16 @@ pub const OpcodeLookupComponent = struct {
             .interaction_col_offset = interaction_col_offset,
             .relations = relations,
             .claims = stored_claims,
-            .previous = previous,
         };
     }
 
     pub fn asProverComponent(self: *const @This()) prover_component.ComponentProver {
-        return Adapter.asProverComponent(self);
+        var component = Adapter.asProverComponent(self);
+        if (self.log_size >= 12) {
+            component.domain_parallel_evaluator = evaluateDomainParallelAdapter;
+            component.pool_exclusive_domain = true;
+        }
+        return component;
     }
 
     pub fn asVerifierComponent(self: *const @This()) core_air_components.Component {
@@ -261,6 +248,24 @@ pub const OpcodeLookupComponent = struct {
         trace_data: *const prover_component.Trace,
         accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
     ) !void {
+        return self.evaluateConstraintQuotientsOnDomainImpl(trace_data, accumulator, null);
+    }
+
+    pub fn evaluateConstraintQuotientsOnDomainParallel(
+        self: *const @This(),
+        trace_data: *const prover_component.Trace,
+        accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
+        pool: *work_pool.WorkPool,
+    ) !void {
+        return self.evaluateConstraintQuotientsOnDomainImpl(trace_data, accumulator, pool);
+    }
+
+    fn evaluateConstraintQuotientsOnDomainImpl(
+        self: *const @This(),
+        trace_data: *const prover_component.Trace,
+        accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
+        maybe_pool: ?*work_pool.WorkPool,
+    ) !void {
         if (trace_data.polys.items.len < 3) return error.InvalidProofShape;
         const allocator = accumulator.allocator;
         const eval_log_size = self.log_size + 1;
@@ -308,41 +313,24 @@ pub const OpcodeLookupComponent = struct {
         const column_accumulator = &accumulators[0];
         const main_start: usize = 1;
         const interaction_start = main_start + n_main;
-        for (0..eval_size) |row| {
-            const previous_row = utils.previousBitReversedCircleDomainIndex(
-                row,
-                self.log_size,
-                eval_log_size,
-            );
-            var sampled: [trace.MAX_FAMILY_COLUMNS]QM31 = undefined;
-            for (sampled[0..n_main], evaluations[main_start..][0..n_main]) |*value, column| {
-                value.* = QM31.fromBase(column[row]);
-            }
-            var current = [_]QM31{QM31.zero()} ** entry.MAX_BATCHES;
-            var previous = [_]QM31{QM31.zero()} ** entry.MAX_BATCHES;
-            for (0..self.nConstraints()) |batch| {
-                current[batch] = secureAt(evaluations[interaction_start + 4 * batch ..][0..4], row);
-                previous[batch] = secureAt(
-                    evaluations[interaction_start + 4 * batch ..][0..4],
-                    previous_row,
-                );
-            }
-            const evaluation = try self.evaluateRow(
-                sampled[0..n_main],
-                current[0..self.nConstraints()],
-                previous[0..self.nConstraints()],
-                QM31.fromBase(evaluations[0][row]),
-            );
-            var folded = QM31.zero();
-            for (evaluation.values[0..evaluation.len], 0..) |constraint, index| {
-                const powers = column_accumulator.random_coeff_powers;
-                folded = folded.add(powers[powers.len - 1 - index].mul(constraint));
-            }
-            column_accumulator.accumulate(
-                row,
-                folded.mulM31(denominator_inv[row >> @intCast(self.log_size)]),
-            );
+        const direct_store = column_accumulator.next_fresh_index == 0;
+        const evaluation = OpcodeDomainEvaluation{
+            .allocator = allocator,
+            .component = self,
+            .evaluations = evaluations,
+            .n_main = n_main,
+            .interaction_start = interaction_start,
+            .eval_log_size = eval_log_size,
+            .denominator_inv = denominator_inv,
+            .column_accumulator = column_accumulator,
+            .direct_store = direct_store,
+        };
+        if (maybe_pool) |pool| {
+            try evaluation.evaluateParallel(pool, eval_size);
+        } else {
+            try evaluation.evaluateRange(0, eval_size);
         }
+        column_accumulator.next_fresh_index = if (direct_store) eval_size else null;
     }
 
     pub fn evaluateRow(
@@ -371,6 +359,109 @@ pub const OpcodeLookupComponent = struct {
         return result;
     }
 };
+
+const OpcodeDomainEvaluation = struct {
+    allocator: std.mem.Allocator,
+    component: *const OpcodeLookupComponent,
+    evaluations: []const []const M31,
+    n_main: usize,
+    interaction_start: usize,
+    eval_log_size: u32,
+    denominator_inv: []const M31,
+    column_accumulator: *prover_air_accumulation.ColumnAccumulator,
+    direct_store: bool,
+
+    fn evaluateParallel(self: *const @This(), pool: *work_pool.WorkPool, row_count: usize) !void {
+        const worker_count = @min(pool.workerCount(), @max(@as(usize, 1), row_count / 4096));
+        if (worker_count <= 1) return self.evaluateRange(0, row_count);
+
+        const workers = try self.allocator.alloc(RangeWorker, worker_count);
+        defer self.allocator.free(workers);
+        for (workers, 0..) |*worker, index| {
+            worker.* = .{
+                .evaluation = self,
+                .row_start = row_count * index / worker_count,
+                .row_end = row_count * (index + 1) / worker_count,
+            };
+        }
+        var wait_group = std.Thread.WaitGroup{};
+        for (workers[1..]) |*worker| pool.spawnWg(&wait_group, RangeWorker.run, .{worker});
+        RangeWorker.run(&workers[0]);
+        wait_group.wait();
+        for (workers) |worker| if (worker.err) |err| return err;
+    }
+
+    fn evaluateRange(self: *const @This(), row_start: usize, row_end: usize) !void {
+        const component = self.component;
+        const batch_count = component.nConstraints();
+        const powers = self.column_accumulator.random_coeff_powers;
+        for (row_start..row_end) |row| {
+            const previous_row = utils.previousBitReversedCircleDomainIndex(
+                row,
+                component.log_size,
+                self.eval_log_size,
+            );
+            var sampled: [trace.MAX_FAMILY_COLUMNS]QM31 = undefined;
+            for (sampled[0..self.n_main], self.evaluations[1..][0..self.n_main]) |*value, column| {
+                value.* = QM31.fromBase(column[row]);
+            }
+            var current = [_]QM31{QM31.zero()} ** entry.MAX_BATCHES;
+            var previous = [_]QM31{QM31.zero()} ** entry.MAX_BATCHES;
+            for (0..batch_count) |batch| {
+                current[batch] = secureAt(
+                    self.evaluations[self.interaction_start + 4 * batch ..][0..4],
+                    row,
+                );
+                previous[batch] = secureAt(
+                    self.evaluations[self.interaction_start + 4 * batch ..][0..4],
+                    previous_row,
+                );
+            }
+            const constraints = try component.evaluateRow(
+                sampled[0..self.n_main],
+                current[0..batch_count],
+                previous[0..batch_count],
+                QM31.fromBase(self.evaluations[0][row]),
+            );
+            var folded = QM31.zero();
+            for (constraints.values[0..constraints.len], 0..) |constraint, index| {
+                folded = folded.add(powers[powers.len - 1 - index].mul(constraint));
+            }
+            const contribution = folded.mulM31(
+                self.denominator_inv[row >> @intCast(component.log_size)],
+            );
+            const output = self.column_accumulator.col;
+            if (self.direct_store) {
+                output.set(row, contribution);
+            } else {
+                output.set(row, output.at(row).add(contribution));
+            }
+        }
+    }
+};
+
+const RangeWorker = struct {
+    evaluation: *const OpcodeDomainEvaluation,
+    row_start: usize,
+    row_end: usize,
+    err: ?anyerror = null,
+
+    fn run(self: *@This()) void {
+        self.evaluation.evaluateRange(self.row_start, self.row_end) catch |err| {
+            self.err = err;
+        };
+    }
+};
+
+fn evaluateDomainParallelAdapter(
+    raw_context: *const anyopaque,
+    trace_data: *const prover_component.Trace,
+    accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
+    pool: *work_pool.WorkPool,
+) anyerror!void {
+    const self: *const OpcodeLookupComponent = @ptrCast(@alignCast(raw_context));
+    return self.evaluateConstraintQuotientsOnDomainParallel(trace_data, accumulator, pool);
+}
 
 fn committedValues(poly: prover_component.Poly, expected_log_size: u32) ![]const M31 {
     try poly.validate();
@@ -537,7 +628,6 @@ test "opcode lookup component: generated active row satisfies every batch" {
         0,
         &relations,
         generated.claims[0..generated.n_batches],
-        generated.previous,
     );
     _ = component.asProverComponent();
     var sampled: [trace.MAX_FAMILY_COLUMNS]QM31 = undefined;
@@ -547,9 +637,10 @@ test "opcode lookup component: generated active row satisfies every batch" {
     }
     var current = [_]QM31{QM31.zero()} ** entry.MAX_BATCHES;
     var previous = [_]QM31{QM31.zero()} ** entry.MAX_BATCHES;
+    const previous_row = placement.map(size - 1);
     for (0..generated.n_batches) |batch| {
         current[batch] = secureAt(generated.columns[4 * batch ..][0..4], committed_row);
-        previous[batch] = secureAt(&generated.previous[batch], committed_row);
+        previous[batch] = secureAt(generated.columns[4 * batch ..][0..4], previous_row);
     }
     const honest = try component.evaluateRow(
         sampled[0..n_main],
@@ -568,9 +659,8 @@ test "opcode lookup component: generated active row satisfies every batch" {
     try std.testing.expect(!mutated.allZero());
 }
 
-test "opcode lookup component: prover construction rejects incomplete predecessor masks" {
+test "opcode lookup component: prover construction rejects wrong claim count" {
     const relations = relations_mod.Relations.dummy();
-    const n_batches = opcode_entries.batchCount(.div);
     const claims = [_]QM31{QM31.zero()} ** entry.MAX_BATCHES;
     try std.testing.expectError(
         error.InvalidTraceShape,
@@ -581,8 +671,7 @@ test "opcode lookup component: prover construction rejects incomplete predecesso
             0,
             0,
             &relations,
-            claims[0..n_batches],
-            EMPTY_PREVIOUS,
+            claims[0..1],
         ),
     );
 }
@@ -633,6 +722,7 @@ test "opcode lookup component: OODS uses exact global offsets" {
     var main_storage = [_][1]QM31{.{QM31.fromU32Unchecked(19, 2, 11, 13)}} **
         (trace.MAX_FAMILY_COLUMNS + main_offset + 2);
     const committed_row = placement.map(0);
+    const previous_row = placement.map(size - 1);
     for (main_columns[0..n_main], main_storage[main_offset..][0..n_main]) |column, *value| {
         value[0] = QM31.fromBase(column[committed_row]);
     }
@@ -648,7 +738,7 @@ test "opcode lookup component: OODS uses exact global offsets" {
             interaction_storage[interaction_offset + 4 * batch + coordinate][0] =
                 QM31.fromBase(generated.columns[4 * batch + coordinate][committed_row]);
             interaction_storage[interaction_offset + 4 * batch + coordinate][1] =
-                QM31.fromBase(generated.previous[batch][coordinate][committed_row]);
+                QM31.fromBase(generated.columns[4 * batch + coordinate][previous_row]);
         }
     }
     var secure: [interaction_storage.len][]QM31 = undefined;

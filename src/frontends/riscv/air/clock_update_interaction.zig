@@ -99,7 +99,6 @@ pub fn registerRangeCheckCounters(
 
 pub const InteractionTrace = struct {
     columns: [N_INTERACTION_COLUMNS][]M31 = .{&.{}} ** N_INTERACTION_COLUMNS,
-    previous: [N_INTERACTION_COLUMNS][]M31 = .{&.{}} ** N_INTERACTION_COLUMNS,
     claims: [N_SUMS]QM31 = .{QM31.zero()} ** N_SUMS,
 
     pub fn takeColumns(self: *InteractionTrace) [N_INTERACTION_COLUMNS][]M31 {
@@ -110,7 +109,6 @@ pub const InteractionTrace = struct {
 
     pub fn deinit(self: *InteractionTrace, allocator: std.mem.Allocator) void {
         for (self.columns) |column| if (column.len != 0) allocator.free(column);
-        for (self.previous) |column| allocator.free(column);
         self.* = undefined;
     }
 };
@@ -127,20 +125,13 @@ pub fn generate(
     try validateColumns(main, size);
     var result = InteractionTrace{};
     var current_initialized: usize = 0;
-    var previous_initialized: usize = 0;
     errdefer {
         for (result.columns[0..current_initialized]) |column| allocator.free(column);
-        for (result.previous[0..previous_initialized]) |column| allocator.free(column);
     }
     for (&result.columns) |*column| {
         column.* = try allocator.alloc(M31, size);
         current_initialized += 1;
     }
-    for (&result.previous) |*column| {
-        column.* = try allocator.alloc(M31, size);
-        previous_initialized += 1;
-    }
-
     const placement = try infra.BitReversalTable.init(allocator, log_size);
     defer placement.deinit(allocator);
     const chunk_capacity = @min(size, CHUNK_ROWS);
@@ -186,13 +177,6 @@ pub fn generate(
         }
     }
 
-    for (0..size) |logical_row| {
-        const current_row = placement.map(logical_row);
-        const previous_row = placement.map((logical_row + size - 1) % size);
-        for (&result.previous, &result.columns) |previous, current| {
-            previous[current_row] = current[previous_row];
-        }
-    }
     return result;
 }
 
