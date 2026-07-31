@@ -82,6 +82,7 @@ zig build test-pokemon-checkpoint --build-file src/integrations/sm83_metal/build
 zig build test-pokemon-checkpoint --build-file src/integrations/sm83_metal/build.zig -Doptimize=ReleaseFast -- /path/to/PE-AGI/v1 --proof-fast-dma-probe --smoke
 zig build test-pokemon-checkpoint --build-file src/integrations/sm83_metal/build.zig -Doptimize=ReleaseFast -- /path/to/PE-AGI/v1 --proof-fast-chunk-1 --smoke
 zig build test-pokemon-checkpoint --build-file src/integrations/sm83_metal/build.zig -Doptimize=ReleaseFast -- /path/to/PE-AGI/v1 --proof-fast-chunk-2 --smoke
+zig build test-pokemon-checkpoint --build-file src/integrations/sm83_metal/build.zig -Doptimize=ReleaseFast -- /path/to/PE-AGI/v1 --proof-fast-turn --smoke
 zig build test-pokemon-checkpoint --build-file src/integrations/sm83_metal/build.zig -Doptimize=ReleaseFast -- /path/to/PE-AGI/v1 --smoke
 ```
 

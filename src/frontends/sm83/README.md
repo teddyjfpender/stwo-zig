@@ -630,23 +630,21 @@ python3 scripts/sm83_pokemon_benchmark.py \
 
 The benchmark authenticates the complete `_ROGUE_FAST` marker-to-marker target
 (447,516 callbacks, 4,899,537 M-cycles, and the terminal boundary inside the
-1,048,576-record capture), prepares and exactly replays the first 131,072
-scheduler rows, then proves and verifies that same slice at 96-bit security. It
-may select `--backend metal` without changing the frontend workload. The full
-target is not timed or presented as proof-ready because its reference manifest
-lacks ordered per-M-cycle bus records and does not authenticate the action tape.
+1,048,576-record capture), then prepares, proves, and verifies a 262,144-row
+battle-turn workload at 96-bit security. That workload starts after setup and
+contains three exact ROM milestones in order: `ExecutePlayerMove` at row
+212,538, `ApplyDamageToEnemyPokemon` at row 226,037, and
+`HandleEnemyMonFainted` at row 245,787. It contains 54,602 callbacks, 330,527
+M-cycles, two committed joypad actions, and 3,040 authenticated DMA bytes.
+Select `--backend metal` to keep the identical frontend workload and public
+claim while changing the proving backend. The JSON receipt is written to
+`zig-out/sm83-pokemon-benchmark.json`.
 
-One local ReleaseFast CPU run on AC power (Mac16,5, Apple M4 Max, 36 GB,
-macOS 15.3.1, Zig 0.15.2) prepared 131,072 rows with 12,425 callbacks,
-146,040 M-cycles, 1,280 DMA bytes, and no actions in 16.415110 seconds. Its
-96-bit CPU/SIMD proof of those same rows verified in 26.461546 seconds. These
-are one-shot whole-command timings
-from a dirty pre-commit tree with no warmup, so they are reproducibility and
-autoresearch seed evidence, not headline performance claims. The ignored JSON
-receipt is written to `zig-out/sm83-pokemon-benchmark.json`.
-An immediately following Metal run proved and verified the same 96-bit chunk in
-29.676887 seconds; its separate preparation phase took 6.071310 seconds with a
-warm ambient build cache. These one-shot numbers are not a controlled backend
+Fresh one-shot ReleaseFast receipts on the local Apple M4 Max prepared the
+workload in 15.143673 seconds and proved plus verified it at 96 bits in
+168.445876 seconds on CPU/SIMD. The identical Metal run prepared in 14.191932
+seconds and proved plus CPU-verified in 233.210696 seconds. These whole-command,
+zero-warmup timings are autoresearch baselines, not a controlled backend
 comparison.
 
 The former 2^14 active-DMA rejection was a PPU-policy degree-accounting bug.
@@ -666,22 +664,21 @@ bytes, and one action. Use `--proof-fast-chunk-1 --smoke` and
 now proves and verifies through both CPU/SIMD and Metal at 96-bit security;
 chunk 2 remains an exact replay specification without a post-fix proof receipt.
 
-The machine-readable benchmark runs exact replay preparation and a verified
-96-bit proof over the same 2^17-row chunk. A one-shot ReleaseFast CPU run on a
-Mac16,5 Apple M4 Max with 36 GB RAM and AC power reported:
-
-```sh
-python3 scripts/sm83_pokemon_benchmark.py \
-  --pokemon-dir /Users/theodorepender/Coding/sm83/PE-AGI/v1 --backend cpu
-```
-
-```text
-PASS rows=131072 callbacks=12425 mcycles=146040 actions=0 dma_sources=1280 lookahead_rows=10645 oracle_records=12426 prepare=16.415110s cpu_prove_verify=26.461546s
-```
+The larger `--proof-fast-turn` profile skips an exact 1,703,936-row prefix and
+pins the 2^18-row turn above. Its positive counts and three milestone row
+offsets fail closed before witness preparation. It is the backend-optimization
+benchmark; the short and 2^17 profiles remain the faster correctness loops.
+A 2^19 diagnostic of the same turn passed CPU proving but failed Metal with
+`Metal Merkle allocation failed`; it is deliberately not exposed as the
+cross-backend benchmark. Batched or streaming resident leaf commitment is the
+backend optimization needed to raise that frontier without a hidden host
+fallback.
 
 The `_ROGUE_FAST` full-battle metadata remains an authenticated target only:
 447,516 callback rows, 4,899,537 M-cycles, and 1,048,576 captured trace rows;
-proof-row count is unknown and its manifest remains `proof_ready=false`.
+proof-row count is unknown and its manifest remains `proof_ready=false`. The
+new workload proves the player attack, damage, and faint path, but not the
+post-faint cleanup through the marker-to-marker battle return.
 
 The timed 2^17 results below remain historical v5/v6 evidence for the visual
 fixture only.

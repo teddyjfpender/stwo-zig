@@ -129,6 +129,8 @@ zig build test-pokemon-checkpoint --build-file src/integrations/sm83_cpu/build.z
 zig build test-pokemon-checkpoint --build-file src/integrations/sm83_cpu/build.zig \
   -Doptimize=ReleaseFast -- /path/to/PE-AGI/v1 --proof-fast-chunk-2 --smoke
 zig build test-pokemon-checkpoint --build-file src/integrations/sm83_cpu/build.zig \
+  -Doptimize=ReleaseFast -- /path/to/PE-AGI/v1 --proof-fast-turn --smoke
+zig build test-pokemon-checkpoint --build-file src/integrations/sm83_cpu/build.zig \
   -Doptimize=ReleaseFast -- /path/to/PE-AGI/v1 --smoke
 zig build test-pokemon-battle-chain --build-file src/integrations/sm83_cpu/build.zig \
   -Doptimize=ReleaseFast -- /path/to/PE-AGI/v1

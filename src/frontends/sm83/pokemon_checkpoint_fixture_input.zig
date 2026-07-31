@@ -114,7 +114,7 @@ pub fn actionsFor(
 
 pub fn isProofFast(profile: Profile) bool {
     return switch (profile) {
-        .proof_fast_short, .proof_fast_dma_probe, .proof_fast_chunk_1, .proof_fast_chunk_2 => true,
+        .proof_fast_short, .proof_fast_dma_probe, .proof_fast_chunk_1, .proof_fast_chunk_2, .proof_fast_turn => true,
         .short, .start_release, .battle_chunk_1, .battle_chunk_2 => false,
     };
 }

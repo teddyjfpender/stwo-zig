@@ -49,7 +49,8 @@ pub fn main() !void {
             "usage: sm83-pokemon-metal-proof /path/to/PE-AGI/v1 " ++
                 "[--proof-fast|--proof-fast-dma-probe|" ++
                 "--proof-fast-chunk-1|" ++
-                "--proof-fast-chunk-2|--start-release|" ++
+                "--proof-fast-chunk-2|--proof-fast-turn|" ++
+                "--start-release|" ++
                 "--battle-chunk-1|--battle-chunk-2] " ++
                 "[--smoke]\n",
             .{},
@@ -178,6 +179,11 @@ fn parseOptions(arguments: []const []const u8) !Options {
         {
             saw_fixture = true;
             result.fixture = .proof_fast_chunk_2;
+        } else if (std.mem.eql(u8, argument, "--proof-fast-turn") and
+            !saw_fixture)
+        {
+            saw_fixture = true;
+            result.fixture = .proof_fast_turn;
         } else if (std.mem.eql(u8, argument, "--battle-chunk-1") and
             !saw_fixture)
         {
@@ -201,6 +207,7 @@ fn validateFixtureCounts(
     const expected_actions: usize = switch (profile) {
         .short, .proof_fast_short, .proof_fast_dma_probe, .proof_fast_chunk_1, .battle_chunk_1 => 0,
         .proof_fast_chunk_2, .start_release, .battle_chunk_2 => 1,
+        .proof_fast_turn => 2,
     };
     if (summary.rows != input.results.len or
         summary.mcycles == 0 or
@@ -224,6 +231,7 @@ fn validateStatementCounts(
         .proof_fast_short => 13,
         .proof_fast_dma_probe => 14,
         .proof_fast_chunk_1, .proof_fast_chunk_2, .start_release, .battle_chunk_1, .battle_chunk_2 => 17,
+        .proof_fast_turn => 18,
     };
     if (statement.base.base.log_size != expected_log_size or
         statement.dma_execution_lookup_claims.execution_count !=

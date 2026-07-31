@@ -51,7 +51,7 @@ class Sm83PokemonBenchmarkTests(unittest.TestCase):
                 "-Doptimize=ReleaseFast",
                 "--",
                 str(corpus),
-                "--proof-fast-chunk-1",
+                "--proof-fast-turn",
             ],
             benchmark.command_for_prepare("zig", corpus),
         )
@@ -65,19 +65,19 @@ class Sm83PokemonBenchmarkTests(unittest.TestCase):
                 "-Doptimize=ReleaseFast",
                 "--",
                 str(corpus),
-                "--proof-fast-chunk-1",
+                "--proof-fast-turn",
             ],
             benchmark.command_for_proof("zig", corpus, "metal"),
         )
 
     def test_receipts_fail_closed_on_count_drift(self) -> None:
         prepared = (
-            "SM83 Pokemon fixture: PREPARED rows=131072 callbacks=12425 "
-            "mcycles=146040 lookahead_rows=10645 oracle_records=12426 "
-            "party_count=6 first_species=0x01 dma_sources=1280"
+            "SM83 Pokemon fixture: PREPARED rows=262144 callbacks=54602 "
+            "mcycles=330527 lookahead_rows=3684 oracle_records=200480 "
+            "party_count=1 first_species=0x84 dma_sources=3040"
         )
         self.assertEqual(
-            131_072,
+            262_144,
             benchmark.parse_counts(
                 benchmark.PREPARED_PATTERN,
                 prepared,
@@ -87,7 +87,7 @@ class Sm83PokemonBenchmarkTests(unittest.TestCase):
         with self.assertRaises(benchmark.BenchmarkError):
             benchmark.parse_counts(
                 benchmark.PREPARED_PATTERN,
-                prepared.replace("callbacks=12425", "callbacks=12424"),
+                prepared.replace("callbacks=54602", "callbacks=54601"),
                 benchmark.LONG_RECEIPT_EXPECTED,
             )
 

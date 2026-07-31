@@ -7,6 +7,7 @@ pub const Profile = enum {
     proof_fast_dma_probe,
     proof_fast_chunk_1,
     proof_fast_chunk_2,
+    proof_fast_turn,
     start_release,
     battle_chunk_1,
     battle_chunk_2,
@@ -70,6 +71,17 @@ pub fn spec(profile: Profile) Spec {
             .dma_source_bytes = 1_280,
             .actions = 1,
         },
+        .proof_fast_turn => .{
+            .skip_rows = 13 << 17,
+            .skip_instructions = 145_877,
+            .skip_mcycles = 1_876_526,
+            .rows = 1 << 18,
+            .instructions = 54_602,
+            .mcycles = 330_527,
+            .lookahead_rows = 3_684,
+            .dma_source_bytes = 3_040,
+            .actions = 2,
+        },
         .start_release => .{
             .rows = 1 << 17,
             .instructions = 25_115,
@@ -108,6 +120,7 @@ test "profiles pin power-of-two rows and the START release" {
     const proof_fast = spec(.proof_fast_short);
     const proof_fast_first = spec(.proof_fast_chunk_1);
     const proof_fast_second = spec(.proof_fast_chunk_2);
+    const proof_fast_turn = spec(.proof_fast_turn);
     const action = spec(.start_release);
     const next = spec(.battle_chunk_1);
     const third = spec(.battle_chunk_2);
@@ -115,6 +128,7 @@ test "profiles pin power-of-two rows and the START release" {
     try std.testing.expect(std.math.isPowerOfTwo(proof_fast.rows));
     try std.testing.expect(std.math.isPowerOfTwo(proof_fast_first.rows));
     try std.testing.expect(std.math.isPowerOfTwo(proof_fast_second.rows));
+    try std.testing.expect(std.math.isPowerOfTwo(proof_fast_turn.rows));
     try std.testing.expect(std.math.isPowerOfTwo(action.rows));
     try std.testing.expect(std.math.isPowerOfTwo(next.rows));
     try std.testing.expect(std.math.isPowerOfTwo(third.rows));
@@ -133,6 +147,8 @@ test "profiles pin power-of-two rows and the START release" {
     );
     try std.testing.expectEqual(@as(usize, 1), action.actions);
     try std.testing.expectEqual(@as(usize, 1_440), action.dma_source_bytes);
+    try std.testing.expectEqual(@as(usize, 2), proof_fast_turn.actions);
+    try std.testing.expectEqual(@as(usize, 1 << 18), proof_fast_turn.rows);
     try std.testing.expectEqual(action.instructions, next.skip_instructions);
     try std.testing.expectEqual(action.mcycles, next.skip_mcycles);
     try std.testing.expectEqual(

@@ -23,26 +23,31 @@ DEFAULT_REPORT = ROOT / "zig-out" / "sm83-pokemon-benchmark.json"
 TRACE_DIRECTORY = Path("build/traces/battle-seed-1-fast")
 
 LONG_EXPECTED = {
-    "rows": 131_072,
-    "callbacks": 12_425,
-    "mcycles": 146_040,
-    "lookahead_rows": 10_645,
-    "oracle_records": 12_426,
-    "dma_sources": 1_280,
-    "actions": 0,
+    "rows": 262_144,
+    "callbacks": 54_602,
+    "mcycles": 330_527,
+    "lookahead_rows": 3_684,
+    "oracle_records": 200_480,
+    "dma_sources": 3_040,
+    "actions": 2,
 }
 LONG_RECEIPT_EXPECTED = {
     key: value for key, value in LONG_EXPECTED.items() if key != "actions"
 }
 PROOF_EXPECTED = {
     "security_bits": 96,
-    "rows": 131_072,
-    "callbacks": 12_425,
-    "mcycles": 146_040,
-    "actions": 0,
-    "dma_sources": 1_280,
+    "rows": 262_144,
+    "callbacks": 54_602,
+    "mcycles": 330_527,
+    "actions": 2,
+    "dma_sources": 3_040,
     "apu_events": 0,
     "observations": 2,
+}
+TURN_MILESTONES = {
+    "execute_player_move": 212_538,
+    "apply_damage_to_enemy_pokemon": 226_037,
+    "handle_enemy_mon_fainted": 245_787,
 }
 FULL_BATTLE_EXPECTED = {
     "callback_rows": 447_516,
@@ -61,7 +66,7 @@ PREPARED_PATTERN = re.compile(
 )
 PROOF_PATTERN = re.compile(
     r"SM83 Pokemon (?P<backend>CPU|Metal) proof: PASS "
-    r"profile=secure fixture_profile=proof_fast_chunk_1 "
+    r"profile=secure fixture_profile=proof_fast_turn "
     r"security_bits=(?P<security_bits>\d+) rows=(?P<rows>\d+) "
     r"mcycles=(?P<mcycles>\d+) callbacks=(?P<callbacks>\d+) "
     r"actions=(?P<actions>\d+) dma_sources=(?P<dma_sources>\d+) "
@@ -91,7 +96,7 @@ def command_for_prepare(zig: str, corpus: Path) -> list[str]:
         "-Doptimize=ReleaseFast",
         "--",
         str(corpus),
-        "--proof-fast-chunk-1",
+        "--proof-fast-turn",
     ]
 
 
@@ -106,7 +111,7 @@ def command_for_proof(zig: str, corpus: Path, backend: str) -> list[str]:
         "-Doptimize=ReleaseFast",
         "--",
         str(corpus),
-        "--proof-fast-chunk-1",
+        "--proof-fast-turn",
     ]
 
 
@@ -327,8 +332,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     proof_counts = parse_counts(PROOF_PATTERN, proof_output, PROOF_EXPECTED)
 
     report = {
-        "schema": "sm83_pokemon_benchmark_v1",
-        "status": "verified_bounded_baseline",
+        "schema": "sm83_pokemon_benchmark_v2",
+        "status": "verified_battle_turn_baseline",
         "captured_at": dt.datetime.now(dt.timezone.utc).isoformat(),
         "source": {
             "git_commit": git_value("rev-parse", "HEAD"),
@@ -336,18 +341,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         },
         "host": host_identity(args.zig),
         "full_battle_target": full_target,
-        "long_preparation": {
-            "label": "proof_fast_chunk_1 exact machine replay and witness preparation",
+        "battle_turn_workload": {
+            "label": "proof_fast_turn exact replay from command handling through opponent faint",
             "terminal_battle": False,
             "backend": "frontend CPU runner and backend-generic witness preparation",
             "build_mode": "ReleaseFast",
             "command": prepare_command,
             "counts": prepare_counts,
+            "milestone_rows": TURN_MILESTONES,
             "elapsed_seconds": prepare_seconds,
             "verified_proof": False,
         },
         "verified_proof_baseline": {
-            "label": "proof_fast_chunk_1",
+            "label": "proof_fast_turn",
             "backend": args.backend,
             "build_mode": "ReleaseFast",
             "command": proof_command,
@@ -362,7 +368,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "evidence_class": "one-shot local release diagnostic; not a headline benchmark",
         },
         "limitations": [
-            "the long workload is one exact non-terminal 2^17-row chunk, not the full battle",
+            "the proved workload begins after battle setup and ends shortly after the opponent-faint handler, not at the marker-to-marker battle return",
             "the full-battle target has callback and M-cycle counts but no measured proof-row count",
             "no cross-language Rust verifier receipt is available for the SM83 extension",
         ],
@@ -370,9 +376,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     atomic_write_json(args.report_out.resolve(), report)
     print(
         "SM83 Pokemon benchmark: PASS "
-        f"long_rows={prepare_counts['rows']} long_callbacks={prepare_counts['callbacks']} "
-        f"long_mcycles={prepare_counts['mcycles']} long_actions={prepare_counts['actions']} "
-        f"long_dma={prepare_counts['dma_sources']} long_seconds={prepare_seconds:.6f} "
+        f"turn_rows={prepare_counts['rows']} turn_callbacks={prepare_counts['callbacks']} "
+        f"turn_mcycles={prepare_counts['mcycles']} turn_actions={prepare_counts['actions']} "
+        f"turn_dma={prepare_counts['dma_sources']} turn_seconds={prepare_seconds:.6f} "
         f"proof_backend={args.backend} proof_rows={proof_counts['rows']} "
         f"proof_callbacks={proof_counts['callbacks']} proof_mcycles={proof_counts['mcycles']} "
         f"proof_seconds={proof_seconds:.6f} report={args.report_out.resolve()}"

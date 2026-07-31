@@ -320,6 +320,8 @@ pub const Fixture = struct {
         );
         if (actions.len != spec.actions)
             return error.InvalidFixtureActionCount;
+        if (profile == .proof_fast_turn)
+            try validateProofFastTurnMilestones(results);
 
         const final_mcycle =
             try addMcycles(initial_mcycle, prefix_mcycles);
@@ -595,6 +597,9 @@ pub fn main() !void {
         std.mem.eql(u8, arguments[2], "--proof-fast-chunk-2"))
         .proof_fast_chunk_2
     else if (arguments.len == 3 and
+        std.mem.eql(u8, arguments[2], "--proof-fast-turn"))
+        .proof_fast_turn
+    else if (arguments.len == 3 and
         std.mem.eql(u8, arguments[2], "--start-release"))
         .start_release
     else if (arguments.len == 3 and
@@ -608,7 +613,8 @@ pub fn main() !void {
             "usage: pokemon_checkpoint_fixture /path/to/PE-AGI/v1 " ++
                 "[--proof-fast|--proof-fast-dma-probe|" ++
                 "--proof-fast-chunk-1|" ++
-                "--proof-fast-chunk-2|--start-release|" ++
+                "--proof-fast-chunk-2|--proof-fast-turn|" ++
+                "--start-release|" ++
                 "--battle-chunk-1|--battle-chunk-2]\n",
             .{},
         );
@@ -645,6 +651,27 @@ pub fn main() !void {
             summary.skipped_rows,
         },
     );
+}
+
+fn validateProofFastTurnMilestones(
+    results: []const machine.CartridgeStepResult,
+) !void {
+    const expected = [_]struct { row: usize, bank: u6, pc: u16 }{
+        .{ .row = 212_538, .bank = 0x0f, .pc = 0x54fa },
+        .{ .row = 226_037, .bank = 0x0f, .pc = 0x5fde },
+        .{ .row = 245_787, .bank = 0x0f, .pc = 0x447a },
+    };
+    for (expected) |milestone| {
+        if (milestone.row >= results.len)
+            return error.MissingProofFastTurnMilestone;
+        const result = results[milestone.row];
+        if (result.event != .instruction or
+            result.before.cpu.pc != milestone.pc or
+            result.mapper_before.selectedRomBank() != milestone.bank)
+        {
+            return error.MissingProofFastTurnMilestone;
+        }
+    }
 }
 
 fn addMcycles(left: u32, right: u32) !u32 {
