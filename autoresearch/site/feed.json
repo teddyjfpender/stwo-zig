@@ -384,8 +384,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -425,8 +425,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -466,8 +466,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -648,8 +648,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -689,8 +689,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -730,8 +730,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -2908,8 +2908,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3232,8 +3232,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3420,8 +3420,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3638,8 +3638,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -4033,8 +4033,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -4333,8 +4333,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -4374,8 +4374,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -4415,8 +4415,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -4456,8 +4456,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -4497,8 +4497,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -7088,8 +7088,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -7551,8 +7551,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -7671,8 +7671,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -7957,8 +7957,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8492,8 +8492,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8842,8 +8842,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8883,8 +8883,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8924,8 +8924,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8965,8 +8965,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -9006,8 +9006,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -9624,8 +9624,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -9815,8 +9815,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -9931,8 +9931,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -10193,8 +10193,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -10234,8 +10234,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -10275,8 +10275,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 1251,
-       "seconds": 861385
+       "commits": 1253,
+       "seconds": 866659
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -10436,7 +10436,7 @@
       "min_rung": "s3"
      }
     ],
-    "markdown": "<!-- GENERATED by `stwo-perf task --write` from autoresearch/MANIFEST.json and autoresearch/ledger/epochs.json. Do not edit by hand: edit the manifest, then regenerate. -->\n\n# TASK \u2014 the `riscv_metal` track\n\nMake the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.\n\nThis brief is generated from `autoresearch/MANIFEST.json` and `autoresearch/ledger/epochs.json`. Those documents are the contract; this file is a view of them. Regenerate with `stwo-perf task --board riscv_metal`.\n\n## Track state\n\n- **Board**: `riscv_metal` \u00b7 **group**: `riscv_metal` \u00b7 **report schema**: `riscv_proof_v2`\n- **Enabled**: no \u00b7 **promotion eligible**: no\n- **Build**: `zig build riscv-metal-bench -Doptimize=ReleaseFast` \u2192 `zig-out/bin/riscv-metal-bench`\n- **Disabled because**: riscv_metal is staged only: TRACKS \u00a72 records the RISC-V + Metal product as parity_gated, not released. Three independent things are missing and each of them alone keeps the group dark. (1) The product descriptor in build_support/products/riscv_metal.zig carries state .parity_gated behind its test-riscv-metal, metal-test, and riscv-release-gate release gates. (2) The installed riscv-metal-bench binary is the shared RISC-V bench runner (src/tools/riscv/bench/runner.zig): it prints a human-readable benchmark to stdout and emits no riscv_proof_v2 report, no retained proof artifact, and no resource telemetry, so there is nothing for the harness to parse \u2014 see this group's report_adapter block. (3) No RISC-V Metal-lane calibration exists on the designated Apple M5 Max judge host, and the generalized per-board Metal calibration TRACKS \u00a77 requires is not built yet. The RISC-V proof adapter is additionally recorded as CPU-only in vectors/riscv_elfs/crypto/provenance.json (metal_backend: gated_riscv_adapter_is_cpu_only). The group fails closed.\n- **Promotion blocked because**: TRACKS \u00a77: no riscv_metal A/A dispersion or anchors exist on the designated Apple M5 Max judge host, the product is parity_gated rather than released, and no report adapter emits a scoreable row. Promotion fails closed; the gate opens only after the adapter lands and that M5 calibration is committed.\n- **Era**: none declared; the board falls back to global epoch `2`.\n- **Scored boundary**: `prove_ms`\n\n## Scored basket\n\n| class | workload | unit |\n| --- | --- | --- |\n| `small` | `mriscv_alu_test` | executed instructions |\n| `wide` | `mriscv_memcpy_loop` | executed instructions |\n| `deep` | `mriscv_fib_iter` | executed instructions |\n\nScores are compared only inside one era on one board. A number from another track, another era, or another boundary is not a comparison (TRACKS \u00a73, \u00a77).\n\n## Editable paths for THIS track\n\n| path | minimum acceptance rung |\n| --- | --- |\n| `src/backend/proof_program.zig` | `s4` |\n| `src/backends/cpu_scalar/**` | `s3` |\n| `src/backends/cuda/**` | `s3` |\n| `src/backends/metal/**` | `s3` |\n| `src/core/crypto/**` | `s3` |\n| `src/core/fields/**` | `s3` |\n| `src/core/fri/**` | `s3` |\n| `src/core/pcs/**` | `s3` |\n| `src/frontends/riscv/**` | `s3` |\n| `src/integrations/native_cuda/**` | `s3` |\n| `src/integrations/riscv_cpu/**` | `s3` |\n| `src/integrations/riscv_metal/**` | `s3` |\n| `src/prover/air/**` | `s3` |\n| `src/prover/fft_pool.zig` | `s4` |\n| `src/prover/fri.zig` | `s3` |\n| `src/prover/pcs/**` | `s3` |\n| `src/prover/poly/**` | `s3` |\n| `src/prover/resident_storage.zig` | `s4` |\n| `src/prover/session.zig` | `s4` |\n| `src/prover/vcs_lifted/**` | `s3` |\n| `src/prover/work_pool.zig` | `s4` |\n\nEverything else is out of scope for this track. Frontend sources are editable **only** by their own track: a Cairo submission may edit `src/frontends/cairo/**`, and the same edit is an out-of-scope stray on a native or RISC-V submission (G2 fails).\n\nLocked paths (never editable by any track): `autoresearch/**`, `scripts/**`, `vectors/**`, `conformance/**`, `build.zig`, `build.zig.zon`, `build/**`, `src/bench/**`, `src/tests/**`, `src/interop/**`, `.github/**`\n\n## Regression guards\n\nThis track binds **no guard registry**: TRACKS \u00a78: guards must run on the track's OWN product binary, and this track has no binary that can run one. The riscv registry's guards are `bench --elf ... --protocol functional {admission} ...` commands against the RISC-V CPU product CLI; the installed riscv-metal-bench accepts no `bench` subcommand, no `--protocol`, and no admission token, and emits no parseable report (see this group's report_adapter). Binding the riscv portfolio here would re-measure the CPU lane's statements on a binary that cannot run them \u2014 exactly the flat-portfolio nonsense per-group registries removed. A riscv_metal registry arrives with the report adapter, and its first candidates are the killer rows staged in workload_registry.groups.riscv.era_staged_basket.\n\n## Correctness oracle\n\n- **Authority**: `sail-riscv`\n- **Repository**: https://github.com/riscv/sail-riscv @ `8c7f2da58de0ba5e4457e4de07e0046f0439f35f`\n- The oracle is the **final correctness authority**: a proof it refuses is not a proof, whatever the harness measured.\n\n## Confirmation ladder\n\n| tier | cost target | what it buys |\n| --- | --- | --- |\n| `T0` | 30 s | correctness smoke plus ONE stage-profiled sample on the proxy fixture; the claimed phase must move here before T1 is scheduled. One warmup is the floor, not a nicety: the Cairo arm records its mandatory phase profile on a discarded warmup, so warmups=0 would leave that track with no phase evidence at all. |\n| `T1` | 300 s | paired ABBA on proxy fixtures with sequential early stopping and the PoW-excluded boundary; never ranks. |\n| `T2` | 2700 s | full dual-boundary paired run on the contributor host, real classes, guards impact-mapped; the claimed verdict. |\n| `T3` | judge-scheduled | judge-scheduled re-run plus audits on the designated host; the scored row. No cost target \u2014 the judge never trades honesty for time. |\n\nT0 and T1 never rank; they gate scheduling. The claimed (T2) and ranked (T3) numbers always keep the full dual boundary \u2014 the ranked number never excludes anything (TRACKS \u00a73.5).\n\n## Participate\n\n```sh\nstwo-perf clone ../work && cd ../work\nstwo-perf setup --board riscv_metal\nstwo-perf ladder t0 --board riscv_metal --class small --phase <phase> --predecessor <tree>\nstwo-perf ladder t1 --board riscv_metal --class small --predecessor <tree> --fast-boundary\nstwo-perf run --board riscv_metal --class small --predecessor <tree>\nstwo-perf submit\n```\n\n`--board riscv_metal` is explicit above because auto-routing only fires when the diff names a frontend or backend (TRACKS \u00a78); a diff that spans two frontends is refused rather than routed.\n\n**This track cannot promote today.** Runs still record evidence, and the ledger still serves history; no new row is scored until the manifest says otherwise.\n",
+    "markdown": "<!-- GENERATED by `stwo-perf task --write` from autoresearch/MANIFEST.json and autoresearch/ledger/epochs.json. Do not edit by hand: edit the manifest, then regenerate. -->\n\n# TASK \u2014 the `riscv_metal` track\n\nMake the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.\n\nThis brief is generated from `autoresearch/MANIFEST.json` and `autoresearch/ledger/epochs.json`. Those documents are the contract; this file is a view of them. Regenerate with `stwo-perf task --board riscv_metal`.\n\n## Track state\n\n- **Board**: `riscv_metal` \u00b7 **group**: `riscv_metal` \u00b7 **report schema**: `riscv_proof_v2`\n- **Enabled**: no \u00b7 **promotion eligible**: no\n- **Build**: `zig build riscv-metal-bench -Doptimize=ReleaseFast` \u2192 `zig-out/bin/riscv-metal-bench`\n- **Disabled because**: riscv_metal is staged only: TRACKS \u00a72 records the RISC-V + Metal product as parity_gated, not released. Three independent things are missing and each of them alone keeps the group dark. (1) The product descriptor in build_support/products/riscv_metal.zig carries state .parity_gated behind its test-riscv-metal, metal-test, and riscv-release-gate release gates. (2) The installed riscv-metal-bench binary is the shared RISC-V bench runner (src/tools/riscv/bench/runner.zig): it prints a human-readable benchmark to stdout and emits no riscv_proof_v2 report, no retained proof artifact, and no resource telemetry, so there is nothing for the harness to parse \u2014 see this group's report_adapter block. (3) No RISC-V Metal-lane calibration exists on the designated Apple M5 Max judge host, and the generalized per-board Metal calibration TRACKS \u00a77 requires is not built yet. The RISC-V proof adapter is additionally recorded as CPU-only in vectors/riscv_elfs/crypto/provenance.json (metal_backend: gated_riscv_adapter_is_cpu_only). The group fails closed.\n- **Promotion blocked because**: TRACKS \u00a77: no riscv_metal A/A dispersion or anchors exist on the designated Apple M5 Max judge host, the product is parity_gated rather than released, and no report adapter emits a scoreable row. Promotion fails closed; the gate opens only after the adapter lands and that M5 calibration is committed.\n- **Era**: none declared; the board falls back to global epoch `2`.\n- **Scored boundary**: `prove_ms`\n\n## Scored basket\n\n| class | workload | unit |\n| --- | --- | --- |\n| `small` | `mriscv_alu_test` | executed instructions |\n| `wide` | `mriscv_memcpy_loop` | executed instructions |\n| `deep` | `mriscv_fib_iter` | executed instructions |\n| `wide` | `mriscv_csp_sha256_256b` | executed instructions |\n| `deep` | `mriscv_csp_sha256_1024b` | executed instructions |\n| `wide` | `mriscv_csp_keccak_256b` | executed instructions |\n| `deep` | `mriscv_csp_keccak_1024b` | executed instructions |\n| `deep` | `mriscv_csp_poseidon2_m31_8fe` | executed instructions |\n| `deep` | `mriscv_csp_ecdsa_secp256k1` | executed instructions |\n| `wide` | `mriscv_sieve_primes` | executed instructions |\n| `wide` | `mriscv_bubble_sort` | executed instructions |\n| `wide` | `mriscv_collatz` | executed instructions |\n| `deep` | `mriscv_xorshift_prng` | executed instructions |\n| `deep` | `mriscv_gcd_euclid` | executed instructions |\n\nScores are compared only inside one era on one board. A number from another track, another era, or another boundary is not a comparison (TRACKS \u00a73, \u00a77).\n\n## Editable paths for THIS track\n\n| path | minimum acceptance rung |\n| --- | --- |\n| `src/backend/proof_program.zig` | `s4` |\n| `src/backends/cpu_scalar/**` | `s3` |\n| `src/backends/cuda/**` | `s3` |\n| `src/backends/metal/**` | `s3` |\n| `src/core/crypto/**` | `s3` |\n| `src/core/fields/**` | `s3` |\n| `src/core/fri/**` | `s3` |\n| `src/core/pcs/**` | `s3` |\n| `src/frontends/riscv/**` | `s3` |\n| `src/integrations/native_cuda/**` | `s3` |\n| `src/integrations/riscv_cpu/**` | `s3` |\n| `src/integrations/riscv_metal/**` | `s3` |\n| `src/prover/air/**` | `s3` |\n| `src/prover/fft_pool.zig` | `s4` |\n| `src/prover/fri.zig` | `s3` |\n| `src/prover/pcs/**` | `s3` |\n| `src/prover/poly/**` | `s3` |\n| `src/prover/resident_storage.zig` | `s4` |\n| `src/prover/session.zig` | `s4` |\n| `src/prover/vcs_lifted/**` | `s3` |\n| `src/prover/work_pool.zig` | `s4` |\n\nEverything else is out of scope for this track. Frontend sources are editable **only** by their own track: a Cairo submission may edit `src/frontends/cairo/**`, and the same edit is an out-of-scope stray on a native or RISC-V submission (G2 fails).\n\nLocked paths (never editable by any track): `autoresearch/**`, `scripts/**`, `vectors/**`, `conformance/**`, `build.zig`, `build.zig.zon`, `build/**`, `src/bench/**`, `src/tests/**`, `src/interop/**`, `.github/**`\n\n## Regression guards\n\nThis track binds **no guard registry**: TRACKS \u00a78: guards must run on the track's OWN product binary, and this track has no binary that can run one. The riscv registry's guards are `bench --elf ... --protocol functional {admission} ...` commands against the RISC-V CPU product CLI; the installed riscv-metal-bench accepts no `bench` subcommand, no `--protocol`, and no admission token, and emits no parseable report (see this group's report_adapter). Binding the riscv portfolio here would re-measure the CPU lane's statements on a binary that cannot run them \u2014 exactly the flat-portfolio nonsense per-group registries removed. A riscv_metal registry arrives with the report adapter, and its first candidates are the killer rows staged in workload_registry.groups.riscv.era_staged_basket.\n\n## Correctness oracle\n\n- **Authority**: `sail-riscv`\n- **Repository**: https://github.com/riscv/sail-riscv @ `8c7f2da58de0ba5e4457e4de07e0046f0439f35f`\n- The oracle is the **final correctness authority**: a proof it refuses is not a proof, whatever the harness measured.\n\n## Confirmation ladder\n\n| tier | cost target | what it buys |\n| --- | --- | --- |\n| `T0` | 30 s | correctness smoke plus ONE stage-profiled sample on the proxy fixture; the claimed phase must move here before T1 is scheduled. One warmup is the floor, not a nicety: the Cairo arm records its mandatory phase profile on a discarded warmup, so warmups=0 would leave that track with no phase evidence at all. |\n| `T1` | 300 s | paired ABBA on proxy fixtures with sequential early stopping and the PoW-excluded boundary; never ranks. |\n| `T2` | 2700 s | full dual-boundary paired run on the contributor host, real classes, guards impact-mapped; the claimed verdict. |\n| `T3` | judge-scheduled | judge-scheduled re-run plus audits on the designated host; the scored row. No cost target \u2014 the judge never trades honesty for time. |\n\nT0 and T1 never rank; they gate scheduling. The claimed (T2) and ranked (T3) numbers always keep the full dual boundary \u2014 the ranked number never excludes anything (TRACKS \u00a73.5).\n\n## Participate\n\n```sh\nstwo-perf clone ../work && cd ../work\nstwo-perf setup --board riscv_metal\nstwo-perf ladder t0 --board riscv_metal --class small --phase <phase> --predecessor <tree>\nstwo-perf ladder t1 --board riscv_metal --class small --predecessor <tree> --fast-boundary\nstwo-perf run --board riscv_metal --class small --predecessor <tree>\nstwo-perf submit\n```\n\n`--board riscv_metal` is explicit above because auto-routing only fires when the diff names a frontend or backend (TRACKS \u00a78); a diff that spans two frontends is refused rather than routed.\n\n**This track cannot promote today.** Runs still record evidence, and the ledger still serves history; no new row is scored until the manifest says otherwise.\n",
     "objective": "Make the prover faster on this track's scored boundary, on this track's committed basket, without changing a single proof byte.",
     "path": "autoresearch/tasks/TASK.riscv_metal.md",
     "title": "TASK \u2014 the `riscv_metal` track"
@@ -12567,9 +12567,9 @@
       "bubble_sort": {
        "rows": {
         "mriscv_bubble_sort": {
-         "class": null,
-         "expected_cycles": 9462,
-         "status": "pending"
+         "class": "wide",
+         "expected_cycles": null,
+         "status": "scored"
         }
        },
        "summary": "In-place comparison sort \u2014 data-dependent branching, mirrored from the cpu lane"
@@ -12577,9 +12577,9 @@
       "collatz": {
        "rows": {
         "mriscv_collatz": {
-         "class": null,
-         "expected_cycles": 34237,
-         "status": "pending"
+         "class": "wide",
+         "expected_cycles": null,
+         "status": "scored"
         }
        },
        "summary": "Collatz trajectories \u2014 unpredictable control flow, mirrored from the cpu lane"
@@ -12587,9 +12587,9 @@
       "ecdsa_secp256k1": {
        "rows": {
         "mriscv_csp_ecdsa_secp256k1": {
-         "class": null,
-         "expected_cycles": 5425005,
-         "status": "pending"
+         "class": "deep",
+         "expected_cycles": null,
+         "status": "scored"
         }
        },
        "summary": "ECDSA verification on secp256k1 \u2014 the 5.4M-instruction depth anchor, mirrored from the cpu lane"
@@ -12607,9 +12607,9 @@
       "gcd_euclid": {
        "rows": {
         "mriscv_gcd_euclid": {
-         "class": null,
-         "expected_cycles": 124931,
-         "status": "pending"
+         "class": "deep",
+         "expected_cycles": null,
+         "status": "scored"
         }
        },
        "summary": "Euclidean GCD \u2014 division-heavy loop, mirrored from the cpu lane"
@@ -12617,14 +12617,14 @@
       "keccak": {
        "rows": {
         "mriscv_csp_keccak_1024b": {
-         "class": null,
-         "expected_cycles": 143416,
-         "status": "pending"
+         "class": "deep",
+         "expected_cycles": null,
+         "status": "scored"
         },
         "mriscv_csp_keccak_256b": {
-         "class": null,
-         "expected_cycles": 36904,
-         "status": "pending"
+         "class": "wide",
+         "expected_cycles": null,
+         "status": "scored"
         }
        },
        "summary": "Keccak-f[1600] over 256B and 1KiB messages \u2014 wide state transitions on the Metal prover"
@@ -12642,9 +12642,9 @@
       "poseidon2_m31": {
        "rows": {
         "mriscv_csp_poseidon2_m31_8fe": {
-         "class": null,
-         "expected_cycles": 328615,
-         "status": "pending"
+         "class": "deep",
+         "expected_cycles": null,
+         "status": "scored"
         }
        },
        "summary": "Poseidon2 over M31, 8 field elements \u2014 algebraic hashing as guest computation"
@@ -12652,14 +12652,14 @@
       "sha256": {
        "rows": {
         "mriscv_csp_sha256_1024b": {
-         "class": null,
-         "expected_cycles": 75488,
-         "status": "pending"
+         "class": "deep",
+         "expected_cycles": null,
+         "status": "scored"
         },
         "mriscv_csp_sha256_256b": {
-         "class": null,
-         "expected_cycles": 22832,
-         "status": "pending"
+         "class": "wide",
+         "expected_cycles": null,
+         "status": "scored"
         }
        },
        "summary": "SHA-256 over 256B and 1KiB messages \u2014 same committed guests as the cpu lane's CSP rows"
@@ -12667,9 +12667,9 @@
       "sieve_primes": {
        "rows": {
         "mriscv_sieve_primes": {
-         "class": null,
-         "expected_cycles": 2792,
-         "status": "pending"
+         "class": "wide",
+         "expected_cycles": null,
+         "status": "scored"
         }
        },
        "summary": "Sieve of Eratosthenes \u2014 branchy array mutation, mirrored from the cpu lane"
@@ -12677,15 +12677,15 @@
       "xorshift_prng": {
        "rows": {
         "mriscv_xorshift_prng": {
-         "class": null,
-         "expected_cycles": 65544,
-         "status": "pending"
+         "class": "deep",
+         "expected_cycles": null,
+         "status": "scored"
         }
        },
        "summary": "Xorshift PRNG stream \u2014 shift/XOR dependency chains, mirrored from the cpu lane"
       }
      },
-     "note": "TRACKS \u00a73.3: the riscv_metal benchmark contract \u2014 the same 11 guest functions as the riscv cpu lane, proved on the Metal backend, so a cross-lane comparison is always same-computation, different-backend. Two functions run today (memcpy, fib_iter); the other nine are pinned and counted but blocked on stwo-zig#169 (hosted-completion support in riscv-metal-bench). mriscv_alu_test stays outside the basket: at 8 retired instructions it is an ISA smoke gate, not a function."
+     "note": "TRACKS \u00a73.3: the riscv_metal benchmark contract \u2014 the same 11 guest functions as the riscv cpu lane, proved on the Metal backend from the SAME committed artifacts, so a cross-lane comparison is always same-computation, different-backend. All 11 graduated to runnable workloads on 2026-07-31 when the bench runner's default path became halt-flag-aware (issue #169): every row proved end to end on an Apple M4 Max at secure parameters (pow 26 / 70 queries), with executed instruction counts matching the committed corpus exactly. mriscv_alu_test stays outside the basket: at 8 retired instructions it is an ISA smoke gate, not a function."
     },
     "promotion_blocked_reason": "TRACKS \u00a77: no riscv_metal A/A dispersion or anchors exist on the designated Apple M5 Max judge host, the product is parity_gated rather than released, and no report adapter emits a scoreable row. Promotion fails closed; the gate opens only after the adapter lands and that M5 calibration is committed.",
     "promotion_eligible": false,
@@ -12696,12 +12696,56 @@
       "class": "small",
       "native_unit": "executed instructions"
      },
+     "mriscv_bubble_sort": {
+      "class": "wide",
+      "native_unit": "executed instructions"
+     },
+     "mriscv_collatz": {
+      "class": "wide",
+      "native_unit": "executed instructions"
+     },
+     "mriscv_csp_ecdsa_secp256k1": {
+      "class": "deep",
+      "native_unit": "executed instructions"
+     },
+     "mriscv_csp_keccak_1024b": {
+      "class": "deep",
+      "native_unit": "executed instructions"
+     },
+     "mriscv_csp_keccak_256b": {
+      "class": "wide",
+      "native_unit": "executed instructions"
+     },
+     "mriscv_csp_poseidon2_m31_8fe": {
+      "class": "deep",
+      "native_unit": "executed instructions"
+     },
+     "mriscv_csp_sha256_1024b": {
+      "class": "deep",
+      "native_unit": "executed instructions"
+     },
+     "mriscv_csp_sha256_256b": {
+      "class": "wide",
+      "native_unit": "executed instructions"
+     },
      "mriscv_fib_iter": {
+      "class": "deep",
+      "native_unit": "executed instructions"
+     },
+     "mriscv_gcd_euclid": {
       "class": "deep",
       "native_unit": "executed instructions"
      },
      "mriscv_memcpy_loop": {
       "class": "wide",
+      "native_unit": "executed instructions"
+     },
+     "mriscv_sieve_primes": {
+      "class": "wide",
+      "native_unit": "executed instructions"
+     },
+     "mriscv_xorshift_prng": {
+      "class": "deep",
       "native_unit": "executed instructions"
      }
     }
@@ -12728,7 +12772,7 @@
   "determinism": "pure function of the named inputs; a committed feed names the commit it was generated FROM (one-commit lag by construction) \u2014 verify via inputs_sha256, not commit equality",
   "dirty_inputs": [],
   "inputs_sha256": {
-   "autoresearch/MANIFEST.json": "fa72bb2276312d17c08c685fd23f0fb9c7325ebff2b8cd410bac55168f762ed6",
+   "autoresearch/MANIFEST.json": "5f3f2573b491b016824a0eaa3cfe665ca11aa76e99c8b29751a83c55390238d4",
    "autoresearch/ledger/epochs.json": "788378df0d2c39c52f905b9241e120d1b2b030bbf36e4e81dbc8c7e6b8c1a2f4",
    "autoresearch/ledger/promotions.tsv": "65ebaae10a028ea4dc7267a9cc8dc68b0c5bfc713218103047cb99054d64d676",
    "autoresearch/reference/m4-max-cairo-zkvm-baseline.json": "65df072982f6f8e2cb70cb446b47a8df698fa6928c41eeeefc6d49f599c3cdbd",
@@ -12886,8 +12930,8 @@
    "vectors/reports/benchmark_history/index.json": "f8ef3c4aff34a2bedc21899c017521695d28f2fbb327b5fb2d09fb1dc5acd7b2",
    "vectors/reports/benchmark_history/runs/2026-07-23-190948-matrix-v6-467edbc9/report.json": "51cedc323c0a9fa12c17ad96ac34375013f276b2565778c6e61d8ef401837730"
   },
-  "repo_commit": "1b97a9afaf03",
-  "repo_commit_time": "2026-07-31T17:03:52+01:00"
+  "repo_commit": "2ed9c2e95872",
+  "repo_commit_time": "2026-07-31T18:31:46+01:00"
  },
  "references": {
   "m4_max_cairo_zkvm_baseline": {
