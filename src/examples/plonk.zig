@@ -15,7 +15,7 @@ const prover_component = @import("stwo_prover_engine").air.component_prover;
 const prover_engine = @import("stwo_prover_engine").engine;
 const stage_profile = @import("stwo_prover_api").stage_profile;
 const secure_column = @import("stwo_prover_engine").secure_column;
-const prover_transaction = @import("common/prover_transaction.zig");
+const prover_transaction = @import("stwo_prover_engine").transaction;
 const trace_input = @import("plonk/input.zig");
 const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 

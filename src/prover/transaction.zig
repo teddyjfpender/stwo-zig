@@ -2,9 +2,9 @@
 
 const std = @import("std");
 const pcs_core = @import("stwo_core").pcs;
-const prover_component = @import("stwo_prover_engine").air.component_prover;
-const prover_engine = @import("stwo_prover_engine").engine;
-const prover_pcs = @import("stwo_prover_engine").pcs;
+const prover_component = @import("air/component_prover.zig");
+const prover_engine = @import("engine.zig");
+const prover_pcs = @import("pcs/mod.zig");
 const stage_profile = @import("stwo_prover_api").stage_profile;
 
 const ColumnEvaluation = prover_pcs.ColumnEvaluation;

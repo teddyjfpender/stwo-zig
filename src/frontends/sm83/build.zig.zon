@@ -1,0 +1,11 @@
+.{
+    .fingerprint = 0xb2897c3e1f73c088,
+    .name = .stwo_sm83_frontend,
+    .version = "0.1.0",
+    .paths = .{"."},
+    .dependencies = .{
+        .stwo_core = .{ .path = "../../core" },
+        .stwo_prover_api = .{ .path = "../../prover_api" },
+        .stwo_prover_engine = .{ .path = "../../prover" },
+    },
+}

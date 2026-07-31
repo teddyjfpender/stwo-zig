@@ -159,6 +159,16 @@
         ]
       ]
     },
+    "sm83_frontend": {
+      "host": "linux",
+      "description": "Independent ROM-agnostic SM83 frontend package",
+      "commands": [
+        ["zig", "build", "test", "--build-file", "src/frontends/sm83/build.zig", "-Doptimize=ReleaseFast", "-j2"],
+        ["python3", "scripts/sm83_frontend_gate.py"],
+        ["python3", "scripts/sm83_frontend_gate.py", "--mooneye-ppu-live"],
+        ["python3", "scripts/sm83_frontend_gate.py", "--mooneye-dma-live"]
+      ]
+    },
     "riscv_cpu_integration": {
       "host": "linux",
       "description": "Independent RISC-V frontend and CPU backend composition package",
@@ -172,6 +182,14 @@
           "-Doptimize=ReleaseFast",
           "-j2"
         ]
+      ]
+    },
+    "sm83_cpu_integration": {
+      "host": "linux",
+      "description": "Independent SM83 frontend and CPU backend proof composition package",
+      "commands": [
+        ["zig", "build", "test", "--build-file", "src/integrations/sm83_cpu/build.zig", "-Doptimize=ReleaseFast", "-j2"],
+        ["zig", "build", "test-machine-environment", "--build-file", "src/integrations/sm83_cpu/build.zig", "-Doptimize=ReleaseFast", "-j2"]
       ]
     },
     "cairo_cpu_integration": {
@@ -262,6 +280,14 @@
           "-Doptimize=ReleaseSafe",
           "-j2"
         ]
+      ]
+    },
+    "sm83_metal_integration": {
+      "host": "macos",
+      "description": "Independent SM83 frontend and Metal backend composition package",
+      "commands": [
+        ["zig", "build", "test", "--build-file", "src/integrations/sm83_metal/build.zig", "-Doptimize=ReleaseSafe", "-j2"],
+        ["zig", "build", "test-machine-environment", "--build-file", "src/integrations/sm83_metal/build.zig", "-Doptimize=ReleaseSafe", "-j2"]
       ]
     },
     "cairo_metal_integration": {
@@ -683,13 +709,16 @@
         "prover_api",
         "prover",
         "riscv_frontend",
+        "sm83_frontend",
         "riscv_cpu_integration",
+        "sm83_cpu_integration",
         "cairo_frontend",
         "cairo_cpu_integration",
         "cpu_backend",
         "cuda_backend",
         "metal_backend",
         "riscv_metal_integration",
+        "sm83_metal_integration",
         "cairo_metal_integration",
         "metal_session",
         "proof_wire",
@@ -718,9 +747,11 @@
         "prover_api",
         "prover",
         "riscv_cpu_integration",
+        "sm83_cpu_integration",
         "cairo_cpu_integration",
         "metal_backend",
         "riscv_metal_integration",
+        "sm83_metal_integration",
         "package",
         "native_cpu",
         "native_oracle",
@@ -740,9 +771,11 @@
         "build_graph",
         "prover",
         "riscv_cpu_integration",
+        "sm83_cpu_integration",
         "cairo_cpu_integration",
         "metal_backend",
         "riscv_metal_integration",
+        "sm83_metal_integration",
         "package",
         "native_cpu",
         "native_oracle",
@@ -778,6 +811,24 @@
         "native_metal",
         "aggregate_metal",
         "metal_compile"
+      ]
+    },
+    {
+      "prefixes": [
+        "scripts/sm83_frontend_gate.py"
+      ],
+      "lanes": [
+        "package",
+        "sm83_frontend"
+      ]
+    },
+    {
+      "prefixes": [
+        "src/integrations/sm83_cpu",
+        "src/integrations/sm83_metal"
+      ],
+      "lanes": [
+        "package"
       ]
     },
     {
@@ -1115,13 +1166,16 @@
         "prover_api",
         "prover",
         "riscv_frontend",
+        "sm83_frontend",
         "riscv_cpu_integration",
+        "sm83_cpu_integration",
         "cairo_frontend",
         "cairo_cpu_integration",
         "cpu_backend",
         "cuda_backend",
         "metal_backend",
         "riscv_metal_integration",
+        "sm83_metal_integration",
         "cairo_metal_integration",
         "metal_session",
         "proof_wire",

@@ -21,6 +21,7 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
         lane: str,
         build_file: str,
         consumers: set[str],
+        steps: tuple[str, ...] = ("test",),
     ) -> None:
         selected, _ = ci_scope_plan.select_lanes(
             [path],
@@ -31,8 +32,10 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
             {"static", lane, "package", *consumers}.issubset(selected)
         )
         commands = self.policy["lanes"][lane]["commands"]
-        self.assertEqual(1, len(commands))
-        self.assertIn(build_file, commands[0])
+        self.assertEqual(len(steps), len(commands))
+        for step, command in zip(steps, commands, strict=True):
+            self.assertEqual(["zig", "build", step], command[:3])
+            self.assertIn(build_file, command)
 
     def test_riscv_cpu_integration_has_an_independent_package_lane(self) -> None:
         self.assert_package_lane(
@@ -48,6 +51,28 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
             lane="cairo_cpu_integration",
             build_file="src/integrations/cairo_cpu/build.zig",
             consumers={"cairo_cpu", "cairo_metal"},
+        )
+
+    def test_sm83_cpu_integration_has_an_independent_package_lane(self) -> None:
+        self.assert_package_lane(
+            path="src/integrations/sm83_cpu/mod.zig",
+            lane="sm83_cpu_integration",
+            build_file="src/integrations/sm83_cpu/build.zig",
+            consumers=set(),
+            steps=("test", "test-machine-environment"),
+        )
+
+    def test_sm83_metal_integration_has_an_independent_package_lane(self) -> None:
+        self.assert_package_lane(
+            path="src/integrations/sm83_metal/mod.zig",
+            lane="sm83_metal_integration",
+            build_file="src/integrations/sm83_metal/build.zig",
+            consumers=set(),
+            steps=("test", "test-machine-environment"),
+        )
+        self.assertEqual(
+            "macos",
+            self.policy["lanes"]["sm83_metal_integration"]["host"],
         )
 
     def test_riscv_metal_integration_has_an_independent_package_lane(self) -> None:
@@ -172,7 +197,8 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
                 "native_examples", "native_metal",
                 "native_oracle", "package", "prover", "riscv_cpu",
                 "riscv_cpu_integration", "riscv_frontend", "riscv_metal",
-                "riscv_metal_integration", "static",
+                "riscv_metal_integration", "sm83_cpu_integration",
+                "sm83_frontend", "sm83_metal_integration", "static",
             ],
         )
 

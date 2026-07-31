@@ -1,0 +1,12 @@
+.{
+    .fingerprint = 0x8f05a749e94a923b,
+    .name = .stwo_sm83_metal_integration,
+    .version = "0.1.0",
+    .paths = .{"."},
+    .dependencies = .{
+        .stwo_core = .{ .path = "../../core" },
+        .stwo_cpu_backend = .{ .path = "../../backends/cpu_scalar" },
+        .stwo_metal_backend = .{ .path = "../../backends/metal" },
+        .stwo_sm83_frontend = .{ .path = "../../frontends/sm83" },
+    },
+}

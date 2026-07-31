@@ -15,9 +15,12 @@ pub const Package = enum {
     cuda_backend,
     metal_backend,
     riscv_frontend,
+    sm83_frontend,
     riscv_cpu_integration,
+    sm83_cpu_integration,
     cairo_cpu_integration,
     riscv_metal_integration,
+    sm83_metal_integration,
     cairo_metal_integration,
     metal_session,
     proof_wire,
@@ -47,9 +50,12 @@ const owners = [_]Owner{
     .{ .prefix = "src/backends/cuda/", .package = .cuda_backend, .dependency_name = "stwo_cuda_backend" },
     .{ .prefix = "src/backends/metal/", .package = .metal_backend, .dependency_name = "stwo_metal_backend" },
     .{ .prefix = "src/frontends/riscv/", .package = .riscv_frontend, .dependency_name = "stwo_riscv_frontend" },
+    .{ .prefix = "src/frontends/sm83/", .package = .sm83_frontend, .dependency_name = "stwo_sm83_frontend" },
     .{ .prefix = "src/integrations/riscv_cpu/", .package = .riscv_cpu_integration, .dependency_name = "stwo_riscv_cpu_integration" },
+    .{ .prefix = "src/integrations/sm83_cpu/", .package = .sm83_cpu_integration, .dependency_name = "stwo_sm83_cpu_integration" },
     .{ .prefix = "src/integrations/cairo_cpu/", .package = .cairo_cpu_integration, .dependency_name = "stwo_cairo_cpu_integration" },
     .{ .prefix = "src/integrations/riscv_metal/", .package = .riscv_metal_integration, .dependency_name = "stwo_riscv_metal_integration" },
+    .{ .prefix = "src/integrations/sm83_metal/", .package = .sm83_metal_integration, .dependency_name = "stwo_sm83_metal_integration" },
     .{ .prefix = "src/integrations/cairo_metal/", .package = .cairo_metal_integration, .dependency_name = "stwo_cairo_metal_integration" },
     .{ .prefix = "src/tools/metal_session/", .package = .metal_session, .dependency_name = "stwo_metal_session" },
     .{ .prefix = "src/interop/proof_wire/", .package = .proof_wire, .dependency_name = "stwo_proof_wire" },
@@ -114,8 +120,16 @@ test "canonical owner roots resolve to package dependencies" {
         resolve("src/frontends/riscv/mod.zig").?.package,
     );
     try std.testing.expectEqual(
+        Package.sm83_frontend,
+        resolve("src/frontends/sm83/mod.zig").?.package,
+    );
+    try std.testing.expectEqual(
         Package.riscv_cpu_integration,
         resolve("src/integrations/riscv_cpu/mod.zig").?.package,
+    );
+    try std.testing.expectEqual(
+        Package.sm83_cpu_integration,
+        resolve("src/integrations/sm83_cpu/mod.zig").?.package,
     );
     try std.testing.expectEqual(
         Package.cairo_cpu_integration,
@@ -124,6 +138,10 @@ test "canonical owner roots resolve to package dependencies" {
     try std.testing.expectEqual(
         Package.riscv_metal_integration,
         resolve("src/integrations/riscv_metal/mod.zig").?.package,
+    );
+    try std.testing.expectEqual(
+        Package.sm83_metal_integration,
+        resolve("src/integrations/sm83_metal/mod.zig").?.package,
     );
     try std.testing.expectEqual(
         Package.cairo_metal_integration,

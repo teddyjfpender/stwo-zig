@@ -25,8 +25,8 @@ POLICY = json.loads((ROOT / "conformance/ci-touchpoints-v1.json").read_text(enco
 # The workspace validator's edge count. A change here means a real dependency
 # was added or removed; update the number deliberately, with the closure
 # consequences reviewed.
-EXPECTED_PACKAGES = 18
-EXPECTED_EDGES = 59
+EXPECTED_PACKAGES = 21
+EXPECTED_EDGES = 70
 
 
 def contract(package: str, dependencies: dict[str, str]) -> str:
@@ -207,6 +207,17 @@ class RepositoryGraphTest(unittest.TestCase):
         self.assertEqual(
             lanes,
             frozenset({"riscv_frontend", "riscv_cpu_integration", "riscv_metal_integration"}),
+        )
+
+    def test_sm83_frontend_change_selects_its_backend_integrations(self) -> None:
+        lanes, _ = graph.selection(["src/frontends/sm83/air.zig"], self.packages, self.bindings)
+        self.assertEqual(
+            lanes,
+            frozenset({
+                "sm83_frontend",
+                "sm83_cpu_integration",
+                "sm83_metal_integration",
+            }),
         )
 
     def test_backend_contracts_reach_transitive_integration_lanes(self) -> None:

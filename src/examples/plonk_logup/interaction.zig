@@ -5,7 +5,7 @@ const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const utils = @import("stwo_core").utils;
 const prover_pcs = @import("stwo_prover_engine").pcs;
-const prover_transaction = @import("../common/prover_transaction.zig");
+const prover_transaction = @import("stwo_prover_engine").transaction;
 const input = @import("input.zig");
 
 pub const LookupElements = struct {

@@ -22,6 +22,7 @@ try:
     from upstream_pins_lib.official_cairo_vectors import (
         check as check_official_cairo_vectors,
     )
+    from upstream_pins_lib.sm83 import check as check_sm83_pins
 except ModuleNotFoundError:  # Imported as scripts.check_upstream_pins in tests.
     from scripts.upstream_pins_lib import model
     from scripts.upstream_pins_lib.blake_oracle_source import (
@@ -36,6 +37,7 @@ except ModuleNotFoundError:  # Imported as scripts.check_upstream_pins in tests.
     from scripts.upstream_pins_lib.official_cairo_manifest import (
         check as _check_official_cairo_manifest,
     )
+    from scripts.upstream_pins_lib.sm83 import check as check_sm83_pins
 
 
 ROOT = model.ROOT
@@ -694,6 +696,7 @@ def validate_repository(root: Path = ROOT, ledger_path: Path | None = None) -> l
         return [f"{path}: {error}"]
 
     errors: list[str] = []
+    errors.extend(check_sm83_pins(root, ledger))
     for pin in _text_pins(ledger):
         errors.extend(_check_text_pin(root, pin))
 
@@ -835,7 +838,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"- {error}", file=sys.stderr)
         return 1
     print(
-        "upstream pin ledger matches all Native, RISC-V formal/legacy, and Cairo carriers"
+        "upstream pin ledger matches all Native, RISC-V formal/legacy, SM83, and Cairo carriers"
     )
     return 0
 

@@ -222,6 +222,20 @@ class UpstreamPinTests(unittest.TestCase):
                 self.assertIn("src/frontends/riscv/isa/authority.zig", joined)
                 self.assertIn("conformance/riscv/rv32im-sail-profile.json", joined)
 
+    def test_sm83_corpus_drift_reaches_frontend_and_gate(self) -> None:
+        drifted = LEDGER.read_text(encoding="utf-8").replace(
+            "f9c30210245dd691661db39f5ace022c465ecc2f",
+            "b" * 40,
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "upstream.md"
+            path.write_text(drifted, encoding="utf-8")
+            errors = validate_repository(ROOT, path)
+
+        joined = "\n".join(errors)
+        self.assertIn("src/frontends/sm83/isa/authority.zig", joined)
+        self.assertIn("scripts/sm83_frontend_gate.py", joined)
+
     def test_riscv_legacy_layout_drift_does_not_masquerade_as_isa_authority(self) -> None:
         drifted = LEDGER.read_text(encoding="utf-8").replace(
             "d478f783055aa0d73a93768a433a3c6c31c91d1c",

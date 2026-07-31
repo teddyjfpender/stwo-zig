@@ -25,6 +25,9 @@ an official-oracle-gated Cairo CPU frontend, and independently owned GPU product
 > The [pin ledger](conformance/upstream.md) names a separate authority for each
 > frontend. Native proofs use pinned Rust Stwo; RISC-V decode and retirement use
 > pinned Sail, with Spike and the architectural tests as independent checks.
+> The development-only SM83 frontend uses pinned gb-opcodes and SingleStepTests
+> vectors, with SameBoy as the reference emulator, Blargg as the current flat
+> integration gate, and focused Mooneye ROMs as machine-level timing gates.
 
 ## Backends
 
@@ -41,6 +44,7 @@ an official-oracle-gated Cairo CPU frontend, and independently owned GPU product
 | **Native Stwo** | Blake, Poseidon, Plonk, state-machine, wide-Fibonacci, and XOR AIRs |
 | **Cairo** | Official Stwo-Cairo `1.2.2` CPU/SIMD and authenticated Metal proofs, compiled JSON and Cairo 2.20 executable execution |
 | **RISC-V** | Release-gated Sail RV32IM zkVM frontend with sharded AIR components, CPU/SIMD and Metal proving, independent verification, and pinned formal evidence |
+| **SM83** | Development frontend whose runner and direct AIR evaluation cover all 500 executable flat-ISA encodings plus interrupt service; representative CPU/SIMD and Metal proofs cover every family selector. All 500,000 pinned transitions, Blargg 11/11 (25,298,812 instructions), and focused Mooneye 25/25 (535,337 instructions / 535,411 machine steps) pass. The RTC-free MBC3 proof binds execution-bus accesses to mapper endpoints, the 1 MiB ROM, and ordered system/SRAM memory. Its v7 reduced-DMG-B machine transaction additionally composes actions, joypad/timer endpoints and MMIO, scheduler/HALT behavior, interrupt service, PPU timing/MMIO including scroll/window latch endpoints, DMA, IF updates, selected final RAM, and canonical intermediate RAM observations through CPU/SIMD and Metal. The ROM gates remain emulator evidence rather than claims that those complete ROM runs have been proved, and the [hardware-fidelity contract](src/frontends/sm83/README.md#hardware-fidelity-and-graduation) names the remaining target-execution gaps. |
 
 ## Quick Start
 
@@ -111,9 +115,9 @@ contract. Start with the smallest package that owns the behavior being changed:
 | :--- | :--- |
 | Protocol and contracts | [`stwo_core`](src/core/README.md), [`stwo_backend_contracts`](src/backend/README.md), [`stwo_prover_api`](src/prover_api/README.md), [`stwo_prover_engine`](src/prover/README.md), [`stwo_proof_wire`](src/interop/proof_wire/README.md) |
 | Backends | [`stwo_cpu_backend`](src/backends/cpu_scalar/README.md), [`stwo_metal_backend`](src/backends/metal/README.md), [`stwo_cuda_backend`](src/backends/cuda/README.md) |
-| Frontends and services | [`stwo_riscv_frontend`](src/frontends/riscv/README.md), [`stwo_cairo_frontend`](src/frontends/cairo/README.md), [`stwo_native_examples`](src/examples/README.md), [`stwo_metal_session`](src/tools/metal_session/README.md) |
-| CPU integrations | [`stwo_riscv_cpu_integration`](src/integrations/riscv_cpu/README.md), [`stwo_cairo_cpu_integration`](src/integrations/cairo_cpu/README.md) |
-| Metal integrations | [`stwo_riscv_metal_integration`](src/integrations/riscv_metal/README.md), [`stwo_cairo_metal_integration`](src/integrations/cairo_metal/README.md) |
+| Frontends and services | [`stwo_riscv_frontend`](src/frontends/riscv/README.md), [`stwo_cairo_frontend`](src/frontends/cairo/README.md), [`stwo_sm83_frontend`](src/frontends/sm83/README.md), [`stwo_native_examples`](src/examples/README.md), [`stwo_metal_session`](src/tools/metal_session/README.md) |
+| CPU integrations | [`stwo_riscv_cpu_integration`](src/integrations/riscv_cpu/README.md), [`stwo_cairo_cpu_integration`](src/integrations/cairo_cpu/README.md), [`stwo_sm83_cpu_integration`](src/integrations/sm83_cpu/README.md) |
+| Metal integrations | [`stwo_riscv_metal_integration`](src/integrations/riscv_metal/README.md), [`stwo_cairo_metal_integration`](src/integrations/cairo_metal/README.md), [`stwo_sm83_metal_integration`](src/integrations/sm83_metal/README.md) |
 | CUDA integrations | [`stwo_native_cuda_integration`](src/integrations/native_cuda/README.md), [`stwo_cairo_cuda_integration`](src/integrations/cairo_cuda/README.md) |
 
 The workspace checker rejects a missing or contract-stale package README. The

@@ -1,0 +1,78 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_sm83_metal_integration",
+  "version": "0.1.0",
+  "layer": "integration",
+  "owner": "sm83-metal-integration",
+  "public_modules": {
+    "stwo_sm83_metal_integration": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_core": "../../core",
+    "stwo_cpu_backend": "../../backends/cpu_scalar",
+    "stwo_metal_backend": "../../backends/metal",
+    "stwo_sm83_frontend": "../../frontends/sm83"
+  },
+  "injected_modules": [],
+  "api_surface": [
+    "EnvironmentExecutionStatement",
+    "EnvironmentProveOutput",
+    "EnvironmentProverEngine",
+    "ExecutionStatement",
+    "MachineEnvironmentExecutionStatement",
+    "MachineEnvironmentProveOutput",
+    "MachineEnvironmentProverEngine",
+    "MetalProverEngine",
+    "ProveOutput",
+    "proveEnvironmentExecution",
+    "proveExecution",
+    "proveMachineEnvironmentExecution",
+    "proveMachineExecution",
+    "verifyEnvironmentExecution",
+    "verifyExecution",
+    "verifyMachineEnvironmentExecution"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::api signature: SM83 Metal engine satisfies the shared prover contract"
+    ],
+    "invariant_tests": [
+      "cartridge_test.zig::cartridge Metal proof roundtrip and soundness controls",
+      "cartridge_test.zig::environment Metal proof binds actions devices and observations",
+      "environment.zig::environment adapter selects only Metal",
+      "machine_environment.zig::machine environment Metal proves verifies and rejects mutations",
+      "mod.zig::SM83 ADD A,(HL) memory reads prove and verify on Metal",
+      "mod.zig::SM83 ALU16 mixed arithmetic proves and verifies on Metal",
+      "mod.zig::SM83 ALU8 and DAA Metal proof roundtrip verifies",
+      "mod.zig::SM83 BRANCH conditions and CALL RET prove and verify on Metal",
+      "mod.zig::SM83 CB BIT register and (HL) reads prove and verify on Metal",
+      "mod.zig::SM83 CB RES SET register and (HL) writes prove and verify on Metal",
+      "mod.zig::SM83 CB rotate and (HL) shift prove and verify on Metal",
+      "mod.zig::SM83 INC (HL) memory writes prove and verify on Metal",
+      "mod.zig::SM83 INC16 and accumulator rotates prove and verify on Metal",
+      "mod.zig::SM83 INTERRUPT DI EI RETI and soundness prove and verify on Metal",
+      "mod.zig::SM83 LOAD16 state and little-endian writes prove and verify on Metal",
+      "mod.zig::SM83 LOAD8 mixed register and (HL) reads prove and verify on Metal",
+      "mod.zig::SM83 MISC flag chain HALT and STOP prove and verify on Metal",
+      "mod.zig::SM83 Metal integration selects only the Metal backend",
+      "mod.zig::SM83 STACK PUSH POP and vacuity prove and verify on Metal",
+      "pokemon_battle_chain_proof.zig::Metal Pokemon battle chain is secure unless smoke is explicit",
+      "pokemon_checkpoint_proof.zig::SM83 Pokemon Metal checkpoint proof defaults to the secure profile",
+      "pokemon_checkpoint_proof.zig::SM83 Pokemon Metal checkpoint proof rejects duplicate and unknown flags",
+      "pokemon_checkpoint_proof.zig::SM83 Pokemon Metal checkpoint smoke profile requires an explicit flag"
+    ]
+  },
+  "ci": {
+    "lane": "sm83_metal_integration",
+    "host": "macos",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/integrations/sm83_metal/build.zig",
+      "-Doptimize=ReleaseSafe",
+      "-j2"
+    ]
+  }
+}

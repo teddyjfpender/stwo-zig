@@ -28,6 +28,23 @@ class PinLedger:
     riscv_arch_test_revision: str
     riscv_legacy_repository: str
     riscv_legacy_revision: str
+    sm83_opcode_repository: str
+    sm83_opcode_revision: str
+    sm83_opcode_json_sha256: str
+    sm83_pandocs_repository: str
+    sm83_pandocs_revision: str
+    sm83_single_step_repository: str
+    sm83_single_step_revision: str
+    sm83_single_step_v1_sha256: str
+    sm83_sameboy_repository: str
+    sm83_sameboy_revision: str
+    sm83_blargg_repository: str
+    sm83_blargg_revision: str
+    sm83_mooneye_repository: str
+    sm83_mooneye_revision: str
+    sm83_mooneye_wla_revision: str
+    sm83_mooneye_release: str
+    sm83_mooneye_release_sha256: str
     official_cairo_repository: str
     official_cairo_revision: str
     official_cairo_stwo_repository: str
@@ -99,6 +116,85 @@ def parse_ledger(path: Path = DEFAULT_LEDGER) -> PinLedger:
             text,
             rf"^- Pinned legacy Stark-V commit: `({REVISION_RE})`$",
             "legacy Stark-V revision",
+        ),
+        sm83_opcode_repository=_single_field(
+            text, r"^- SM83 opcode repository: `([^`]+)`$", "SM83 opcode repository"
+        ),
+        sm83_opcode_revision=_single_field(
+            text,
+            rf"^- Pinned SM83 opcode commit: `({REVISION_RE})`$",
+            "SM83 opcode revision",
+        ),
+        sm83_opcode_json_sha256=_single_field(
+            text,
+            r"^- Pinned SM83 opcode JSON SHA-256: `([0-9a-f]{64})`$",
+            "SM83 opcode JSON SHA-256",
+        ),
+        sm83_pandocs_repository=_single_field(
+            text, r"^- Pan Docs repository: `([^`]+)`$", "Pan Docs repository"
+        ),
+        sm83_pandocs_revision=_single_field(
+            text,
+            rf"^- Pinned Pan Docs commit: `({REVISION_RE})`$",
+            "Pan Docs revision",
+        ),
+        sm83_single_step_repository=_single_field(
+            text,
+            r"^- SM83 SingleStepTests repository: `([^`]+)`$",
+            "SM83 SingleStepTests repository",
+        ),
+        sm83_single_step_revision=_single_field(
+            text,
+            rf"^- Pinned SM83 SingleStepTests commit: `({REVISION_RE})`$",
+            "SM83 SingleStepTests revision",
+        ),
+        sm83_single_step_v1_sha256=_single_field(
+            text,
+            r"^- Pinned SM83 SingleStepTests v1 SHA-256: `([0-9a-f]{64})`$",
+            "SM83 SingleStepTests v1 SHA-256",
+        ),
+        sm83_sameboy_repository=_single_field(
+            text, r"^- SameBoy repository: `([^`]+)`$", "SameBoy repository"
+        ),
+        sm83_sameboy_revision=_single_field(
+            text,
+            rf"^- Pinned SameBoy commit: `({REVISION_RE})`$",
+            "SameBoy revision",
+        ),
+        sm83_blargg_repository=_single_field(
+            text,
+            r"^- Blargg test ROM repository: `([^`]+)`$",
+            "Blargg test ROM repository",
+        ),
+        sm83_blargg_revision=_single_field(
+            text,
+            rf"^- Pinned Blargg test ROM commit: `({REVISION_RE})`$",
+            "Blargg test ROM revision",
+        ),
+        sm83_mooneye_repository=_single_field(
+            text,
+            r"^- Mooneye test suite repository: `([^`]+)`$",
+            "Mooneye test suite repository",
+        ),
+        sm83_mooneye_revision=_single_field(
+            text,
+            rf"^- Pinned Mooneye test suite commit: `({REVISION_RE})`$",
+            "Mooneye test suite revision",
+        ),
+        sm83_mooneye_wla_revision=_single_field(
+            text,
+            rf"^- Pinned Mooneye WLA-DX commit: `({REVISION_RE})`$",
+            "Mooneye WLA-DX revision",
+        ),
+        sm83_mooneye_release=_single_field(
+            text,
+            r"^- Pinned Mooneye release: `([^`]+)`$",
+            "Mooneye release",
+        ),
+        sm83_mooneye_release_sha256=_single_field(
+            text,
+            r"^- Pinned Mooneye release SHA-256: `([0-9a-f]{64})`$",
+            "Mooneye release SHA-256",
         ),
         official_cairo_repository=_single_field(
             text,
