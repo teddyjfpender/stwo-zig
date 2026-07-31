@@ -79,7 +79,7 @@ def main(argv: list[str] | None = None) -> int:
     tier.add_argument(
         "--fast",
         action="store_true",
-        help="static checks and script tests only; no compilation (seconds, not minutes)",
+        help="static checks only; no compilation (seconds, not minutes)",
     )
     parser.add_argument(
         "--optimize",

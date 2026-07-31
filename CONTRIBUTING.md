@@ -1298,6 +1298,8 @@ Use the repository entrypoints rather than reconstructing CI commands locally:
 ```sh
 python3 scripts/install_hooks.py  # once per checkout
 python3 scripts/dev_test.py       # narrowest package-owned tests for worktree changes
+python3 scripts/dev_test.py --check path/to/file.zig  # incremental type-check, no codegen
+python3 scripts/dev_test.py --watch path/to/file.zig  # persistent edit/save diagnostics
 python3 scripts/ci.py --fast      # static validate-or-reject in seconds; no compilation
 python3 scripts/ci.py             # same standard gate as hosted CI
 python3 scripts/ci.py --strict    # release evidence gate
@@ -1306,9 +1308,17 @@ python3 scripts/ci.py --strict    # release evidence gate
 `dev_test.py` derives package ownership and broad fallbacks from each
 `package.contract.json`. For field, crypto, FRI/PCS, prover AIR/poly/PCS,
 RISC-V ISA/runner/AIR-semantics, and SM83 ISA/runner edits it selects smaller
-test roots instead. Pass paths explicitly to preview a planned edit, or use
-`--dry-run` to inspect the commands. An unowned path fails closed; the script
-never reports green for a change it cannot route.
+Debug-mode test roots instead. Debug avoids LLVM optimization during the edit
+loop; the standard gate remains the optimized authority. Pass paths explicitly
+to preview a planned edit, or use `--dry-run` to inspect the commands. An
+unowned path fails closed; the script never reports green for a change it
+cannot route. Broad package fallbacks retain their declared ReleaseSafe command.
+
+`--check` follows Zig's recommended incremental, no-binary path and skips test
+execution; use it for compile errors while editing, then run the normal focused
+test before committing. `--watch` keeps one focused package's compiler process
+alive and rebuilds on each save. Unfocused package fallbacks still run their
+complete declared test command rather than pretending to be check-only.
 
 Run `--fast` first and often: it rejects formatting, pin drift, and source-conformance
 breakage in seconds without a single `zig build`. That

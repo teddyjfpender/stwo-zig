@@ -27,7 +27,7 @@ class DevTestPlanTests(unittest.TestCase):
                     "test-fields",
                     "--build-file",
                     "src/core/build.zig",
-                    "-Doptimize=ReleaseSafe",
+                    "-Doptimize=Debug",
                     "-j1",
                 ],
                 [
@@ -36,7 +36,7 @@ class DevTestPlanTests(unittest.TestCase):
                     "test-isa",
                     "--build-file",
                     "src/frontends/riscv/build.zig",
-                    "-Doptimize=ReleaseSafe",
+                    "-Doptimize=Debug",
                     "-j1",
                 ],
                 [
@@ -45,7 +45,7 @@ class DevTestPlanTests(unittest.TestCase):
                     "test-runner",
                     "--build-file",
                     "src/frontends/sm83/build.zig",
-                    "-Doptimize=ReleaseSafe",
+                    "-Doptimize=Debug",
                     "-j1",
                 ],
             ],
@@ -56,7 +56,7 @@ class DevTestPlanTests(unittest.TestCase):
             ROOT,
             ["src/core/fri/folding.zig", "src/core/pcs/verifier.zig"],
         )
-        self.assertEqual([command[2] for command in commands], ["test-fri", "test-pcs"])
+        self.assertEqual(commands[0][2:4], ["test-fri", "test-pcs"])
 
     def test_prover_pcs_routes_quotients_separately(self) -> None:
         commands = dev_test.commands_for_paths(
@@ -68,7 +68,7 @@ class DevTestPlanTests(unittest.TestCase):
             ],
         )
         self.assertEqual(
-            [command[2] for command in commands],
+            commands[0][2:5],
             [
                 "test-pcs-commitments",
                 "test-pcs-quotient-ops",
@@ -99,6 +99,15 @@ class DevTestPlanTests(unittest.TestCase):
         )
         self.assertEqual(len(commands), 1)
         self.assertEqual(commands[0][2], "test")
+
+    def test_check_only_uses_incremental_no_binary_build(self) -> None:
+        (command,) = dev_test.commands_for_paths(
+            ROOT,
+            ["src/frontends/sm83/isa/decode.zig"],
+            check_only=True,
+        )
+        self.assertIn("-Dcheck-only=true", command)
+        self.assertIn("-fincremental", command)
 
     def test_unowned_path_fails_closed(self) -> None:
         with self.assertRaisesRegex(dev_test.DevTestError, "no Zig package owns"):

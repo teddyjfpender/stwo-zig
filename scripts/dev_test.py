@@ -153,7 +153,12 @@ def broad_command(root: Path, package: ci_package_graph.Package) -> list[str]:
     return local_command(command)
 
 
-def commands_for_paths(root: Path, raw_paths: Iterable[str]) -> list[list[str]]:
+def commands_for_paths(
+    root: Path,
+    raw_paths: Iterable[str],
+    *,
+    check_only: bool = False,
+) -> list[list[str]]:
     paths = sorted({normalize_path(path) for path in raw_paths})
     packages = ci_package_graph.load_packages(root)
     selected: dict[str, list[str]] = {}
@@ -176,16 +181,20 @@ def commands_for_paths(root: Path, raw_paths: Iterable[str]) -> list[list[str]]:
         if None in steps:
             commands.append(broad_command(root, package))
             continue
-        for step in sorted(value for value in steps if value is not None):
-            commands.append([
+        selected_steps = sorted(value for value in steps if value is not None)
+        if selected_steps:
+            command = [
                 "zig",
                 "build",
-                step,
+                *selected_steps,
                 "--build-file",
                 f"{package.directory}/build.zig",
-                "-Doptimize=ReleaseSafe",
+                "-Doptimize=Debug",
                 "-j1",
-            ])
+            ]
+            if check_only:
+                command.extend(("-Dcheck-only=true", "-fincremental"))
+            commands.append(command)
     return commands
 
 
@@ -194,6 +203,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("paths", nargs="*", help="changed paths; defaults to the worktree diff")
     parser.add_argument("--root", type=Path, default=ROOT)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="type-check focused roots without code generation or test execution",
+    )
+    parser.add_argument(
+        "--watch",
+        action="store_true",
+        help="continuously type-check one focused package using Zig incremental compilation",
+    )
     args = parser.parse_args(argv)
     try:
         root = args.root.resolve(strict=True)
@@ -201,7 +220,15 @@ def main(argv: list[str] | None = None) -> int:
         if not paths:
             print("dev test: no worktree changes")
             return 0
-        commands = commands_for_paths(root, paths)
+        commands = commands_for_paths(
+            root,
+            paths,
+            check_only=args.check or args.watch,
+        )
+        if args.watch:
+            if len(commands) != 1 or "-Dcheck-only=true" not in commands[0]:
+                raise DevTestError("--watch requires one focused package")
+            commands[0].append("--watch")
         for command in commands:
             print(f"+ {shlex.join(command)}", flush=True)
             if args.dry_run:
@@ -221,6 +248,8 @@ def main(argv: list[str] | None = None) -> int:
     ) as error:
         print(f"dev test: FAIL: {error}", file=sys.stderr)
         return 2
+    except KeyboardInterrupt:
+        return 130
 
 
 if __name__ == "__main__":

@@ -3,6 +3,11 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const check_only = b.option(
+        bool,
+        "check-only",
+        "Type-check focused roots without emitting or running test binaries",
+    ) orelse false;
     const dependency_options = .{ .target = target, .optimize = optimize };
 
     const core = b.dependency("stwo_core", dependency_options).module("stwo_core");
@@ -40,27 +45,27 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_tests.step);
     test_step.dependOn(&run_deep_tests.step);
 
-    const air_step = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, .{
+    const air_step = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
         .step = "test-air",
         .description = "Run only prover AIR orchestration tests",
         .root = "air_test_root.zig",
     });
-    const poly_step = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, .{
+    const poly_step = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
         .step = "test-poly",
         .description = "Run only prover polynomial tests",
         .root = "poly_test_root.zig",
     });
-    const pcs_commitments_step = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, .{
+    const pcs_commitments_step = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
         .step = "test-pcs-commitments",
         .description = "Run only prover PCS commitment tests",
         .root = "pcs_commitments_test_root.zig",
     });
-    _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, .{
+    _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
         .step = "test-pcs-quotient-geometry",
         .description = "Run only prover quotient geometry tests",
         .root = "pcs_quotient_geometry_test_root.zig",
     });
-    _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, .{
+    _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
         .step = "test-pcs-quotient-planning",
         .description = "Run only prover quotient planning tests",
         .root = "pcs_quotient_planning_test_root.zig",
@@ -68,17 +73,17 @@ pub fn build(b: *std.Build) void {
     // quotient_ops imports the complete quotient execution graph, so this is
     // also the exhaustive quotient root. Keep the smaller geometry, planning,
     // row, and tile roots above/below for local edits that do not touch it.
-    const quotient_ops_step = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, .{
+    const quotient_ops_step = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
         .step = "test-pcs-quotient-ops",
         .description = "Run only prover quotient arithmetic tests",
         .root = "pcs_quotient_ops_test_root.zig",
     });
-    _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, .{
+    _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
         .step = "test-pcs-quotient-rows",
         .description = "Run only prover quotient row-executor tests",
         .root = "pcs_quotient_rows_test_root.zig",
     });
-    _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, .{
+    _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
         .step = "test-pcs-quotient-tiles",
         .description = "Run only prover quotient tile-executor tests",
         .root = "pcs_quotient_tiles_test_root.zig",
@@ -103,6 +108,7 @@ fn addFocusedTests(
     prover_api: *std.Build.Module,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
+    check_only: bool,
     spec: FocusedTest,
 ) *std.Build.Step {
     const root = b.createModule(.{
@@ -113,8 +119,8 @@ fn addFocusedTests(
     root.addImport("stwo_core", core);
     root.addImport("stwo_backend_contracts", backend_contracts);
     root.addImport("stwo_prover_api", prover_api);
-    const tests = b.addRunArtifact(b.addTest(.{ .root_module = root }));
+    const tests = b.addTest(.{ .root_module = root });
     const step = b.step(spec.step, spec.description);
-    step.dependOn(&tests.step);
+    step.dependOn(if (check_only) &tests.step else &b.addRunArtifact(tests).step);
     return step;
 }
