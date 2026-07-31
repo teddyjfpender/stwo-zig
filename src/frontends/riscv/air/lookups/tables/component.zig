@@ -136,7 +136,6 @@ pub const LookupTableComponent = struct {
     pub fn asProverComponent(self: *const @This()) prover_component.ComponentProver {
         var component = Adapter.asProverComponent(self);
         component.domain_parallel_evaluator = evaluateDomainParallelAdapter;
-        component.pool_exclusive_domain = true;
         return component;
     }
 
@@ -759,4 +758,6 @@ test "lookup table component: prover construction uses committed shift masks" {
     const prover = component.asProverComponent();
     try std.testing.expectEqual(@as(usize, 1), prover.nConstraints());
     try std.testing.expectEqual(@as(u32, 16), prover.maxConstraintLogDegreeBound());
+    try std.testing.expect(prover.domain_parallel_evaluator != null);
+    try std.testing.expect(!prover.pool_exclusive_domain);
 }

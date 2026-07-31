@@ -126,7 +126,6 @@ pub const OpcodeLookupComponent = struct {
         var component = Adapter.asProverComponent(self);
         if (self.log_size >= 12) {
             component.domain_parallel_evaluator = evaluateDomainParallelAdapter;
-            component.pool_exclusive_domain = true;
         }
         return component;
     }
@@ -594,6 +593,24 @@ test "opcode lookup component: every family has exact variable-width metadata" {
         try std.testing.expectEqual(@as(usize, 0), bounds.items[1].len);
         _ = component.asVerifierComponent();
     }
+}
+
+test "opcode lookup component: large domains expose sharding without monopolizing the pool" {
+    const relations = relations_mod.Relations.dummy();
+    const family: trace.OpcodeFamily = .base_alu_imm;
+    const claims = [_]QM31{QM31.zero()} ** entry.MAX_BATCHES;
+    const component = try OpcodeLookupComponent.initProver(
+        family,
+        12,
+        0,
+        0,
+        0,
+        &relations,
+        claims[0..opcode_entries.batchCount(family)],
+    );
+    const prover = component.asProverComponent();
+    try std.testing.expect(prover.domain_parallel_evaluator != null);
+    try std.testing.expect(!prover.pool_exclusive_domain);
 }
 
 test "opcode lookup component: generated active row satisfies every batch" {

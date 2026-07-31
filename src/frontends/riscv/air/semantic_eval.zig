@@ -6,6 +6,7 @@
 //! does not construct lookup arrays it will not consume.
 
 const std = @import("std");
+const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const constraint_program = @import("constraint_program.zig");
 const semantics = @import("semantics/mod.zig");
@@ -37,6 +38,48 @@ pub fn Eval(comptime S: type) type {
         }
     };
 }
+
+/// Minimal base-field scalar adapter for the lifted-domain prover path.
+///
+/// Direct opcode constraints contain only base-field constants and operations.
+/// Evaluating those polynomials in QM31 therefore performs four-coordinate
+/// extension arithmetic on values whose upper three coordinates are known to
+/// be zero. This wrapper preserves the generic semantics interface while
+/// keeping the hot row loop in M31; the resulting residuals are embedded only
+/// when they are folded by the transcript's secure random coefficients.
+pub const BaseScalar = struct {
+    value: M31,
+
+    pub inline fn zero() BaseScalar {
+        return fromBase(M31.zero());
+    }
+
+    pub inline fn one() BaseScalar {
+        return fromBase(M31.one());
+    }
+
+    pub inline fn fromBase(value: M31) BaseScalar {
+        return .{ .value = value };
+    }
+
+    pub inline fn isZero(self: BaseScalar) bool {
+        return self.value.isZero();
+    }
+
+    pub inline fn add(lhs: BaseScalar, rhs: BaseScalar) BaseScalar {
+        return fromBase(lhs.value.add(rhs.value));
+    }
+
+    pub inline fn sub(lhs: BaseScalar, rhs: BaseScalar) BaseScalar {
+        return fromBase(lhs.value.sub(rhs.value));
+    }
+
+    pub inline fn mul(lhs: BaseScalar, rhs: BaseScalar) BaseScalar {
+        return fromBase(lhs.value.mul(rhs.value));
+    }
+};
+
+pub const BaseEval = Eval(BaseScalar);
 
 const shipped = Eval(QM31);
 
@@ -122,6 +165,38 @@ test "semantic evaluator accepts canonical inactive padding for compatible famil
         );
         try std.testing.expectEqual(constraintCount(family), result.len);
         try std.testing.expect(result.allZero());
+    }
+}
+
+test "base-field domain evaluator matches QM31 embedding for every family" {
+    var base_columns = [_]BaseScalar{BaseScalar.zero()} ** trace.MAX_FAMILY_COLUMNS;
+    var secure_columns = [_]QM31{QM31.zero()} ** trace.MAX_FAMILY_COLUMNS;
+    for (&base_columns, &secure_columns, 0..) |*base, *secure, index| {
+        const value = M31.fromU64(index *% 0x9e3779b1 +% 0x12345);
+        base.* = BaseScalar.fromBase(value);
+        secure.* = QM31.fromBase(value);
+    }
+    const base_active = BaseScalar.fromBase(M31.fromCanonical(7));
+    const secure_active = QM31.fromBase(base_active.value);
+
+    for (0..trace.N_FAMILIES) |index| {
+        const family: trace.OpcodeFamily = @enumFromInt(index);
+        if (!isTraceCompatible(family)) continue;
+        const n_columns = mainColumnCount(family);
+        const base = try BaseEval.evaluate(
+            family,
+            base_columns[0..n_columns],
+            base_active,
+        );
+        const secure = try evaluate(
+            family,
+            secure_columns[0..n_columns],
+            secure_active,
+        );
+        try std.testing.expectEqual(base.len, secure.len);
+        for (base.values[0..base.len], secure.values[0..secure.len]) |base_value, secure_value| {
+            try std.testing.expect(secure_value.eql(QM31.fromBase(base_value.value)));
+        }
     }
 }
 

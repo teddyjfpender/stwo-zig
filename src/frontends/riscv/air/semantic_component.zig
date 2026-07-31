@@ -227,19 +227,22 @@ pub const SemanticComponent = struct {
         defer allocator.free(accumulators);
         const column_accumulator = &accumulators[0];
         const denominator_shift: std.math.Log2Int(usize) = @intCast(self.log_size);
+        const powers = column_accumulator.random_coeff_powers;
         for (0..eval_size) |row| {
-            var sampled: [trace.MAX_FAMILY_COLUMNS]QM31 = undefined;
+            var sampled: [trace.MAX_FAMILY_COLUMNS]semantic_eval.BaseScalar = undefined;
             for (sampled[0..n_main], evaluations[1..]) |*value, column| {
-                value.* = QM31.fromBase(column[row]);
+                value.* = semantic_eval.BaseScalar.fromBase(column[row]);
             }
-            const evaluation = try self.evaluateRow(
+            const evaluation = try semantic_eval.BaseEval.evaluate(
+                self.family,
                 sampled[0..n_main],
-                QM31.fromBase(evaluations[0][row]),
+                semantic_eval.BaseScalar.fromBase(evaluations[0][row]),
             );
             var folded = QM31.zero();
             for (evaluation.values[0..evaluation.len], 0..) |constraint, index| {
-                const powers = column_accumulator.random_coeff_powers;
-                folded = folded.add(powers[powers.len - 1 - index].mul(constraint));
+                folded = folded.add(
+                    powers[powers.len - 1 - index].mulM31(constraint.value),
+                );
             }
             column_accumulator.accumulate(
                 row,
