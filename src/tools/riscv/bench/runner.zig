@@ -318,10 +318,19 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
 
     if (input_buf != null and hosted) return error.IncompatibleInputModes;
     const step_limit = if (elf_path != null) max_steps else fib_n * 6;
+    // The default (no input, no host) path must watch the linker-declared
+    // halt flag exactly like the production ELF adapter
+    // (`src/integrations/riscv_cpu/proof_adapter.zig` -> `runWithInput`),
+    // or a guest that halts by flag store sails past its own completion
+    // into undecodable words and the run arrives unbindable
+    // (issue #169: every committed basket ELF was refused this way on the
+    // Metal lane while the CPU product proved the same artifacts).
     var run_result = if (input_buf) |input|
         try runner.runWithInput(allocator, elf_bytes, input, step_limit)
+    else if (hosted)
+        try runner.runWithHost(allocator, elf_bytes, step_limit, host_iface)
     else
-        try runner.runWithHost(allocator, elf_bytes, step_limit, host_iface);
+        try runner.runWithInput(allocator, elf_bytes, &.{}, step_limit);
     defer run_result.deinit();
     const exec_ms = t_exec.elapsedMs();
 

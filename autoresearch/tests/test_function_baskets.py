@@ -104,12 +104,20 @@ class CommittedBasketContentTest(unittest.TestCase):
         }
         self.assertEqual(statuses, {"scored", "staged"})
 
-    def test_blocked_lanes_say_why(self):
-        # riscv_metal is blocked on stwo-zig#169; the pending reasons must
-        # carry the actual blocker, not a vague apology.
-        raw = raw_manifest()["workload_registry"]["groups"]
-        rm = raw["riscv_metal"]["workload_provisioning"]["pending"]
-        self.assertTrue(all("#169" in e["reason"] for e in rm.values()))
+    def test_riscv_metal_basket_is_fully_runnable(self):
+        # 2026-07-31: the #169 fix made the bench runner's default path
+        # halt-flag-aware, so every basket row proves from the same committed
+        # artifacts as the cpu lane. Nothing is pending on this group anymore.
+        raw = raw_manifest()["workload_registry"]["groups"]["riscv_metal"]
+        self.assertNotIn("workload_provisioning", raw)
+        self.assertEqual(len(raw["workloads"]), 14)
+        view = feed_mod._function_basket_view(self.groups["riscv_metal"])
+        statuses = {
+            row["status"]
+            for entry in view["functions"].values()
+            for row in entry["rows"].values()
+        }
+        self.assertEqual(statuses, {"scored"})
 
     def test_cairo_matrix_rows_graduated_to_runnable_workloads(self):
         # 2026-07-31: the 14 zkvm matrix rows are committed fixtures — compiled
@@ -226,11 +234,11 @@ class BasketValidatorTest(unittest.TestCase):
 
     def test_pending_entry_with_mixed_shape_is_refused(self):
         raw = self._raw()
-        pending = raw["workload_registry"]["groups"]["riscv_metal"][
+        pending = raw["workload_registry"]["groups"]["cairo_cpu"][
             "workload_provisioning"]["pending"]
-        entry = copy.deepcopy(pending["mriscv_sieve_primes"])
-        entry["vm_steps"] = 5
-        pending["mriscv_sieve_primes"] = entry
+        entry = copy.deepcopy(pending["cairo_memory_7m"])
+        entry["expected_cycles"] = 5
+        pending["cairo_memory_7m"] = entry
         with self.assertRaisesRegex(ManifestError, "requires exactly"):
             manifest_mod._validate(raw)
 
