@@ -138,12 +138,20 @@ zig build test-pokemon-battle-chain --build-file src/integrations/sm83_cpu/build
   -Doptimize=ReleaseFast -- /path/to/PE-AGI/v1 --smoke
 zig build test-pokemon-battle-chain --build-file src/integrations/sm83_cpu/build.zig \
   -Doptimize=ReleaseFast -- /path/to/PE-AGI/v1 --chunks 17 --smoke
+STWO_ZIG_WORKERS=1 STWO_ZIG_MERKLE_WORKERS=1 \
+  zig build test-pokemon-battle-chain \
+  --build-file src/integrations/sm83_cpu/build.zig -Doptimize=ReleaseFast \
+  -- /path/to/PE-AGI/v1 --benchmark
 ```
 
 The default is the repository's 96-bit production PCS profile (`pow=26`, 70
 queries). `--smoke` explicitly selects the three-query development profile.
 The chain defaults to three chunks and accepts `--chunks N` for a bounded
 1...256-chunk prefix; this is an operational count, not an asserted battle end.
+`--benchmark` instead selects the pinned complete proof-fast benchmark battle
+and its fixed twelve-chunk geometry; it rejects `--chunks`. The one-worker
+environment is the measured memory-safe local configuration, not a semantic or
+security change.
 The historical v6 checkpoint slice had an empty action schedule and inactive
 DMA; the focused v7 machine-environment gate retains active-action, active-DMA,
 semantic-witness, and vacuity mutations.
@@ -154,6 +162,16 @@ with `profile=smoke`, `fixture_profile=short`, `security_bits=3`, `rows=4096`,
 and `observations=2`. This receipt covers only the three-bit development
 profile and short fixture; it does not establish a secure-profile or larger
 chunk v7 result.
+
+The complete benchmark battle now passes the v7 CPU/SIMD gate at 96-bit
+security with `proof_ready=true`, 12 independently verified and state-joined
+proofs, 786,432 scheduler rows, 1,505,332 M-cycles, 601,239 SameBoy callbacks,
+33 actions, and 13,600 authenticated DMA source bytes. The final committed
+system digest is
+`bd371af12b911647f1e6f175ddf5ef587cc57abf18f3bbe4001cbb8679275780`;
+the typed endpoint records a won battle, zero enemy HP, exit from battle, and
+rogue stage 1. See the frontend guide for the exact hardware boundary and
+memory frontier.
 
 Fresh v7 CPU/SIMD ReleaseFast proof-fast receipts pass with
 `fixture_profile=proof_fast_short`, `rows=8192`, `mcycles=8600`,

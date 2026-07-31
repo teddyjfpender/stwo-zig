@@ -27,6 +27,7 @@ const ppu_binding = @import("air/ppu_binding.zig");
 
 pub const Artifacts = fixture_input.Artifacts;
 pub const Profile = fixture_input.Profile;
+pub const BENCHMARK_ARTIFACTS = fixture_input.BENCHMARK_ARTIFACTS;
 const VISUAL_ARTIFACTS = fixture_input.VISUAL_ARTIFACTS;
 const PROOF_FAST_ARTIFACTS = fixture_input.PROOF_FAST_ARTIFACTS;
 const MAX_LOOKAHEAD_ROWS = fixture_input.MAX_LOOKAHEAD_ROWS;
@@ -49,6 +50,8 @@ pub const actionsFor = fixture_input.actionsFor;
 const isProofFast = fixture_input.isProofFast;
 pub const normalizeProofFastPpuBoundary =
     fixture_input.normalizeProofFastPpuBoundary;
+pub const normalizeBenchmarkPpuBoundary =
+    fixture_input.normalizeBenchmarkPpuBoundary;
 const normalizeProofFastPpuMode = fixture_input.normalizeProofFastPpuMode;
 const partyObservations = fixture_input.partyObservations;
 const validateDmaSourceArity = fixture_input.validateDmaSourceArity;

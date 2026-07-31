@@ -168,6 +168,11 @@ test "checkpoint parser rejects native header section and hidden-state mutations
             .value = 154,
             .expected = error.InvalidNativePpu,
         },
+        .{
+            .offset = 768 + 422,
+            .value = 4,
+            .expected = error.InvalidNativePpu,
+        },
     };
     for (mutations) |mutation| {
         const original = fixture.checkpoint[mutation.offset];

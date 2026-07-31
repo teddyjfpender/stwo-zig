@@ -7,8 +7,8 @@
 const std = @import("std");
 const replay = @import("pokemon_checkpoint_replay.zig");
 const runner = @import("runner/mod.zig");
-const machine = @import("runner/machine.zig");
 const apu_surface = @import("pokemon_hardware_surface_apu.zig");
+const cycle_projection = @import("pokemon_hardware_surface_cycle.zig");
 const unsupported = @import("pokemon_hardware_surface_inventory.zig");
 
 const Access = runner.cartridge_memory.Access;
@@ -153,6 +153,56 @@ pub const EXPECTED = Report{
     .finish_oracle_records = 42_303,
 };
 
+pub const BENCHMARK_EXPECTED = Report{
+    .chunks = 3,
+    .rows = 786_432,
+    .mcycles = 1_505_332,
+    .callbacks = 601_239,
+    .actions = 33,
+    .all_cpu_accesses = 1_157_525,
+    .mmio = .{
+        .touched_addresses = 10,
+        .accesses = .{ .reads = 239, .writes = 771 },
+    },
+    .dedicated_mmio = .{
+        .touched_addresses = 6,
+        .accesses = .{ .reads = 239, .writes = 711 },
+    },
+    // Write-only BGP/OBP0/OBP1/WX presentation latches are committed by the
+    // system-memory relation; no framebuffer or pixel behavior is claimed.
+    .generic_mmio = .{
+        .touched_addresses = 4,
+        .accesses = .{ .writes = 60 },
+    },
+    .ppu_dedicated = .{
+        .touched_addresses = 4,
+        .accesses = .{ .reads = 3, .writes = 272 },
+    },
+    .vram = .{
+        .touched_addresses = 1_288,
+        .accesses = .{ .writes = 7_912 },
+    },
+    .scy_writes = 85,
+    .scx_writes = 85,
+    .wy_writes = 102,
+    .vram_vblank_writes = 7_912,
+    .ff46_writes = 85,
+    .ff46_c3_writes = 85,
+    .dma_source_bytes = 13_600,
+    .dma_allowed_cpu_accesses = 1_157_525,
+    .apu_semantics = .{ .final_knowledge = .fully_known },
+    // These writes only alter omitted pixels. CPU OAM access, unsafe VRAM,
+    // DMA bus rejection, STAT timing, and unowned MMIO remain exactly zero.
+    .unsafe = .{
+        .render_register_write_outside_vblank = 17,
+        .ff46_write_outside_vblank = 1,
+    },
+    .unsupported_semantics = unsupported.PINNED_EXPECTED,
+    .finish_lookahead_rows = 3_228,
+    .finish_lookahead_mcycles = 3_235,
+    .finish_oracle_records = 601_240,
+};
+
 pub const AuditError = error{
     DisconnectedDmaChunks,
     DisconnectedPpuChunks,
@@ -169,6 +219,7 @@ const MmioClass = enum {
     dedicated_dma,
     dedicated_apu,
     dedicated_wave,
+    reduced_render_latch,
     generic_other,
 
     fn dedicated(self: MmioClass) bool {
@@ -267,22 +318,39 @@ const Collector = struct {
         }
     }
 
-    fn finish(self: *Collector) AuditError!Report {
+    fn finish(self: *Collector, exact: bool) AuditError!Report {
         summarizeMmio(self);
+        var unowned_addresses: usize = 0;
+        for (self.mmio, self.mmio_classes) |counts, maybe_class| {
+            if (counts.total() != 0 and maybe_class == .generic_other)
+                unowned_addresses += 1;
+        }
         unsupported.setUnownedMmioAddresses(
             &self.report.unsupported_semantics,
-            self.report.generic_mmio.touched_addresses,
+            unowned_addresses,
         ) catch return error.PokemonHardwareSurfaceDrift;
         self.report.vram = footprint(&self.vram);
         self.report.oam = footprint(&self.oam);
-        try validateMmio(self.mmio);
-        try validateVram(self.vram);
-        for (self.oam) |counts|
-            if (counts.total() != 0)
-                return error.PokemonHardwareSurfaceDrift;
-        try validateReport(self.report);
+        if (exact) {
+            try validateMmio(self.mmio);
+            try validateVram(self.vram);
+            for (self.oam) |counts|
+                if (counts.total() != 0)
+                    return error.PokemonHardwareSurfaceDrift;
+            try validateReport(self.report);
+        } else {
+            try validateBenchmarkReducedMmio(self.mmio);
+            try validateTargetReport(self.report);
+        }
         return self.report;
     }
+};
+
+const AuditConfiguration = struct {
+    profile: replay.Profile,
+    rows: usize,
+    expectations: []const replay.Expectation,
+    exact: bool,
 };
 
 /// Replays and validates the complete pinned three-chunk hardware surface.
@@ -292,17 +360,45 @@ pub fn audit(
     allocator: std.mem.Allocator,
     corpus_root: []const u8,
 ) !Report {
+    return auditProfile(allocator, corpus_root, .{
+        .profile = .visual,
+        .rows = replay.DEFAULT_ROWS,
+        .expectations = &replay.VERIFIED_PREFIX,
+        .exact = true,
+    });
+}
+
+pub fn auditBenchmark(
+    allocator: std.mem.Allocator,
+    corpus_root: []const u8,
+) !Report {
+    return auditProfile(allocator, corpus_root, .{
+        .profile = .benchmark,
+        .rows = 1 << 18,
+        .expectations = &replay.BENCHMARK_VERIFIED_PREFIX,
+        .exact = false,
+    });
+}
+
+fn auditProfile(
+    allocator: std.mem.Allocator,
+    corpus_root: []const u8,
+    configuration: AuditConfiguration,
+) !Report {
     const collector = try allocator.create(Collector);
     defer allocator.destroy(collector);
     collector.* = .{};
 
-    const session = try replay.Session.init(allocator, corpus_root, .{});
+    const session = try replay.Session.init(allocator, corpus_root, .{
+        .profile = configuration.profile,
+        .rows = configuration.rows,
+    });
     defer session.deinit();
     var prior_ppu: ?PpuState = null;
     var prior_dma: ?runner.dma.State = null;
     var apu = apu_surface.Audit.init(try session.checkpoint.toApuMmio());
 
-    for (replay.VERIFIED_PREFIX) |expected| {
+    for (configuration.expectations) |expected| {
         var chunk = try session.next(expected);
         errdefer chunk.deinit();
         const input = chunk.input();
@@ -340,8 +436,11 @@ pub fn audit(
             for (0..result.m_cycles) |cycle| {
                 collector.report.unsafe.hblank_stat_enabled_mcycles +=
                     @intFromBool(ppu.timing.stat_enable & 0x1 != 0);
-                const maybe_access = cycleAccess(result, cycle);
-                const transition = advanceDma(dma, maybe_access) catch
+                const maybe_access = cycle_projection.access(result, cycle);
+                const transition = cycle_projection.advanceDma(
+                    dma,
+                    maybe_access,
+                ) catch
                     return error.InvalidDmaTrace;
                 dma = transition.after;
                 observed_dma_sources += @intFromBool(
@@ -350,7 +449,7 @@ pub fn audit(
                 unsupported.recordCycle(
                     &collector.report.unsupported_semantics,
                     .{
-                        .origin = cycleOrigin(result, cycle),
+                        .origin = cycle_projection.origin(result, cycle),
                         .ppu_mode = ppu.timing.mode(),
                         .access = maybe_access,
                         .verifier_owned_mmio = if (maybe_access) |access|
@@ -415,63 +514,12 @@ pub fn audit(
     collector.report.finish_lookahead_rows = terminal.lookahead_rows;
     collector.report.finish_lookahead_mcycles = terminal.lookahead_mcycles;
     collector.report.finish_oracle_records = terminal.oracle_records;
-    return collector.finish();
-}
-
-fn cycleAccess(
-    result: machine.CartridgeStepResult,
-    cycle: usize,
-) ?Access {
-    if (result.instruction) |instruction|
-        return instruction.activeAccesses()[cycle];
-    if (result.event == .interrupt_service)
-        return result.service.activeCycles()[cycle].access;
-    return null;
-}
-
-fn cycleOrigin(
-    result: machine.CartridgeStepResult,
-    cycle: usize,
-) unsupported.Origin {
-    if (result.instruction != null) return .instruction;
-    if (result.event == .interrupt_service and
-        result.service.activeCycles()[cycle].kind == .oam_bug)
-    {
-        return .interrupt_service_oam_bug;
-    }
-    return .other;
-}
-
-fn advanceDma(
-    before: runner.dma.State,
-    access: ?Access,
-) !runner.dma.Transition {
-    const write_page: ?u8 = if (access) |item|
-        if (item.logical_address == runner.dma.DMA_ADDRESS and
-            item.action == .write)
-            item.value
-        else
-            null
-    else
-        null;
-    const event: runner.dma.Event = if (before.phase == .transfer)
-        if (write_page) |page|
-            .{ .transfer_and_write = .{
-                .source_byte = 0,
-                .page = page,
-            } }
-        else
-            .{ .transfer = 0 }
-    else if (write_page) |page|
-        .{ .write_ff46 = page }
-    else
-        .tick;
-    return runner.dma.Transition.apply(before, event);
+    return collector.finish(configuration.exact);
 }
 
 fn verifierOwnsMmio(address: u16) bool {
     if (address < 0xff00 or address > 0xff7f) return true;
-    return mmioClass(address).dedicated();
+    return mmioClass(address) != .generic_other;
 }
 
 fn mmioClass(address: u16) MmioClass {
@@ -480,6 +528,7 @@ fn mmioClass(address: u16) MmioClass {
         0xff04...0xff07 => .dedicated_timer,
         0xff40...0xff45, 0xff4a => .dedicated_ppu,
         0xff46 => .dedicated_dma,
+        0xff47...0xff49, 0xff4b => .reduced_render_latch,
         0xff10...0xff26 => .dedicated_apu,
         0xff30...0xff3f => .dedicated_wave,
         else => .generic_other,
@@ -495,6 +544,7 @@ fn validateRegion(access: Access, class: MmioClass) AuditError!void {
         .dedicated_wave,
         => .apu_mmio,
         .dedicated_dma,
+        .reduced_render_latch,
         .generic_other,
         => .system,
     };
@@ -625,6 +675,26 @@ fn validateMmio(actual: [0x80]AccessCounts) AuditError!void {
         return error.PokemonHardwareSurfaceDrift;
 }
 
+fn validateBenchmarkReducedMmio(actual: [0x80]AccessCounts) AuditError!void {
+    const expected = [_]MmioExpected{
+        .{ .address = 0xff47, .writes = 3 },
+        .{ .address = 0xff48, .writes = 11 },
+        .{ .address = 0xff49, .writes = 9 },
+        .{ .address = 0xff4b, .writes = 37 },
+    };
+    for (expected) |item| {
+        const counts = actual[item.address - 0xff00];
+        if (counts.reads != item.reads or counts.writes != item.writes)
+            return error.PokemonHardwareSurfaceDrift;
+    }
+    for (actual, 0..) |counts, index| {
+        if (counts.total() == 0) continue;
+        const address: u16 = @intCast(0xff00 + index);
+        if (mmioClass(address) == .generic_other)
+            return error.PokemonHardwareSurfaceDrift;
+    }
+}
+
 fn validateVram(actual: [0x2000]AccessCounts) AuditError!void {
     for (actual, 0..) |counts, offset| {
         const address = 0x8000 + offset;
@@ -644,7 +714,7 @@ fn validateVram(actual: [0x2000]AccessCounts) AuditError!void {
     }
 }
 
-fn validatePositive(report: Report) AuditError!void {
+pub fn validatePositive(report: Report) AuditError!void {
     if (report.chunks == 0 or report.rows == 0 or report.mcycles == 0 or
         report.callbacks == 0 or report.all_cpu_accesses == 0 or
         report.mmio.touched_addresses == 0 or
@@ -669,10 +739,30 @@ fn validatePositive(report: Report) AuditError!void {
     }
 }
 
-fn validateReport(report: Report) AuditError!void {
-    try validatePositive(report);
-    unsupported.validatePinned(report.unsupported_semantics) catch
+fn validateTargetReport(report: Report) AuditError!void {
+    var unsupported_cases = report.unsafe;
+    unsupported_cases.render_register_write_outside_vblank = 0;
+    unsupported_cases.ff46_write_outside_vblank = 0;
+    if (report.chunks == 0 or report.rows == 0 or report.mcycles == 0 or
+        report.callbacks == 0 or report.actions != 33 or
+        report.all_cpu_accesses == 0 or report.mmio.accesses.total() == 0 or
+        report.finish_lookahead_rows == 0 or
+        report.finish_lookahead_mcycles == 0 or
+        !report.unsupported_semantics.targetAdmissible() or
+        !std.meta.eql(unsupported_cases, UnsafeCases{}) or
+        report.generic_mmio.touched_addresses != 4 or
+        report.generic_mmio.accesses.reads != 0 or
+        report.generic_mmio.accesses.writes != 60 or
+        report.oam.accesses.total() != 0)
+    {
         return error.PokemonHardwareSurfaceDrift;
+    }
+    try validateCommonRelations(report);
+    if (!std.meta.eql(report, BENCHMARK_EXPECTED))
+        return error.PokemonHardwareSurfaceDrift;
+}
+
+fn validateCommonRelations(report: Report) AuditError!void {
     const classified_mmio = AccessCounts{
         .reads = report.dedicated_mmio.accesses.reads +
             report.generic_mmio.accesses.reads,
@@ -687,9 +777,6 @@ fn validateReport(report: Report) AuditError!void {
         report.dedicated_mmio.touched_addresses +
             report.generic_mmio.touched_addresses or
         !std.meta.eql(report.mmio.accesses, classified_mmio) or
-        report.generic_mmio.touched_addresses != 0 or
-        report.generic_mmio.accesses.total() != 0 or
-        !std.meta.eql(report.dedicated_mmio, report.mmio) or
         report.all_cpu_accesses !=
             report.dma_allowed_cpu_accesses + blocked or
         report.unsupported_semantics
@@ -698,10 +785,6 @@ fn validateReport(report: Report) AuditError!void {
         report.unsupported_semantics
             .verifier_rejected_dma_oam_accesses !=
             report.unsafe.dma_oam_blocked or
-        report.unsupported_semantics.unowned_mmio_addresses !=
-            report.generic_mmio.touched_addresses or
-        report.unsupported_semantics.unowned_mmio_accesses !=
-            report.generic_mmio.accesses.total() or
         report.ff46_writes != report.ff46_c3_writes or
         dma_bytes != report.ff46_writes * runner.dma.OAM_LENGTH or
         report.vram.accesses.reads != 0 or
@@ -719,55 +802,24 @@ fn validateReport(report: Report) AuditError!void {
         apu_semantics.wave_bursts !=
             apu_semantics.dac_off_six_mcycles_before or
         apu_semantics.wave_bursts != apu_semantics.inactive_wave_bursts or
-        apu_semantics.unsupported_events != 0 or
-        apu_semantics.final_knowledge != .unknown_channel_and_wave)
+        apu_semantics.unsupported_events != 0)
+    {
+        return error.PokemonHardwareSurfaceDrift;
+    }
+}
+
+pub fn validateReport(report: Report) AuditError!void {
+    try validatePositive(report);
+    unsupported.validatePinned(report.unsupported_semantics) catch
+        return error.PokemonHardwareSurfaceDrift;
+    try validateCommonRelations(report);
+    if (report.generic_mmio.touched_addresses != 0 or
+        report.generic_mmio.accesses.total() != 0 or
+        !std.meta.eql(report.dedicated_mmio, report.mmio) or
+        report.apu_semantics.final_knowledge != .unknown_channel_and_wave)
     {
         return error.PokemonHardwareSurfaceDrift;
     }
     if (!std.meta.eql(report, EXPECTED))
         return error.PokemonHardwareSurfaceDrift;
-}
-
-test "SM83 Pokemon hardware surface pinned replay remains exact" {
-    const corpus_root = std.posix.getenv("SM83_POKEMON_CORPUS") orelse
-        return error.SkipZigTest;
-    const report = try audit(std.testing.allocator, corpus_root);
-    try std.testing.expectEqualDeep(EXPECTED, report);
-}
-
-test "SM83 Pokemon hardware surface expected counts are fail closed" {
-    var drifted = EXPECTED;
-    drifted.apu.accesses.writes -= 1;
-    try std.testing.expectError(
-        error.PokemonHardwareSurfaceDrift,
-        validateReport(drifted),
-    );
-
-    var invalid = EXPECTED;
-    invalid.vram.accesses.writes = 0;
-    try std.testing.expectError(
-        error.PokemonHardwareSurfaceDrift,
-        validatePositive(invalid),
-    );
-
-    var apu_count = EXPECTED;
-    apu_count.apu_semantics.events -= 1;
-    try std.testing.expectError(
-        error.PokemonHardwareSurfaceDrift,
-        validateReport(apu_count),
-    );
-
-    var apu_order = EXPECTED;
-    apu_order.apu_semantics.ordered_wave_bursts -= 1;
-    try std.testing.expectError(
-        error.PokemonHardwareSurfaceDrift,
-        validateReport(apu_order),
-    );
-
-    var stopped = EXPECTED;
-    stopped.unsupported_semantics.stopped_boundary_rows = 1;
-    try std.testing.expectError(
-        error.PokemonHardwareSurfaceDrift,
-        validateReport(stopped),
-    );
 }

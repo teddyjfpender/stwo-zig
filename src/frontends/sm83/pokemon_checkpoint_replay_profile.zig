@@ -14,6 +14,7 @@ pub const MAX_ROWS: usize = 1 << 24;
 pub const Profile = enum {
     visual,
     proof_fast,
+    benchmark,
 };
 
 pub const Options = struct {
@@ -90,6 +91,48 @@ pub const PROOF_FAST_VERIFIED_PREFIX = [_]Expectation{
     },
 };
 
+/// Complete proof-fast benchmark battle plus the next power-of-two boundary.
+pub const BENCHMARK_VERIFIED_PREFIX = [_]Expectation{
+    .{
+        .callbacks = 131_651,
+        .mcycles = 412_476,
+        .dma_source_bytes = 3_680,
+        .actions = 7,
+        .next_instruction_rows = 1,
+    },
+    .{
+        .callbacks = 262_111,
+        .mcycles = 577_257,
+        .dma_source_bytes = 5_280,
+        .actions = 18,
+        .next_instruction_rows = 1,
+    },
+    .{
+        .callbacks = 207_477,
+        .mcycles = 515_599,
+        .dma_source_bytes = 4_640,
+        .actions = 8,
+        .next_instruction_rows = 3_228,
+    },
+};
+
+/// Same execution split into the largest proof geometry that stayed below
+/// the local 12 GiB resident-memory guard on CPU/SIMD.
+pub const BENCHMARK_PROOF_PREFIX = [_]Expectation{
+    .{ .callbacks = 22_562, .mcycles = 94_930, .dma_source_bytes = 800, .actions = 0, .next_instruction_rows = 9_150 },
+    .{ .callbacks = 1_968, .mcycles = 67_795, .dma_source_bytes = 640, .actions = 0, .next_instruction_rows = 11_579 },
+    .{ .callbacks = 41_593, .mcycles = 109_548, .dma_source_bytes = 960, .actions = 3, .next_instruction_rows = 1 },
+    .{ .callbacks = 65_528, .mcycles = 140_203, .dma_source_bytes = 1_280, .actions = 4, .next_instruction_rows = 1 },
+    .{ .callbacks = 65_528, .mcycles = 144_167, .dma_source_bytes = 1_280, .actions = 4, .next_instruction_rows = 1 },
+    .{ .callbacks = 65_527, .mcycles = 145_286, .dma_source_bytes = 1_417, .actions = 4, .next_instruction_rows = 1 },
+    .{ .callbacks = 65_528, .mcycles = 144_678, .dma_source_bytes = 1_303, .actions = 6, .next_instruction_rows = 1 },
+    .{ .callbacks = 65_528, .mcycles = 143_126, .dma_source_bytes = 1_280, .actions = 4, .next_instruction_rows = 1 },
+    .{ .callbacks = 65_528, .mcycles = 147_881, .dma_source_bytes = 1_280, .actions = 4, .next_instruction_rows = 1 },
+    .{ .callbacks = 65_527, .mcycles = 144_305, .dma_source_bytes = 1_440, .actions = 0, .next_instruction_rows = 1 },
+    .{ .callbacks = 65_528, .mcycles = 144_118, .dma_source_bytes = 1_280, .actions = 0, .next_instruction_rows = 1 },
+    .{ .callbacks = 10_894, .mcycles = 79_295, .dma_source_bytes = 640, .actions = 4, .next_instruction_rows = 3_228 },
+};
+
 pub fn readRom(
     allocator: std.mem.Allocator,
     directory: *std.fs.Dir,
@@ -152,23 +195,33 @@ pub fn fixtureProfile(profile: Profile) fixture.Profile {
     return switch (profile) {
         .visual => .short,
         .proof_fast => .proof_fast_short,
+        .benchmark => .proof_fast_short,
     };
 }
 
 pub fn artifactsFor(profile: Profile) fixture.Artifacts {
-    return fixture.artifactsFor(fixtureProfile(profile));
+    return if (profile == .benchmark)
+        fixture.BENCHMARK_ARTIFACTS
+    else
+        fixture.artifactsFor(fixtureProfile(profile));
 }
 
 pub fn actionsFor(
     profile: Profile,
 ) []const @import("action_schedule.zig").Action {
-    return fixture.actionsFor(fixtureProfile(profile));
+    return if (profile == .benchmark)
+        &@import("pokemon_battle_actions.zig").BENCHMARK_ACTIONS
+    else
+        fixture.actionsFor(fixtureProfile(profile));
 }
 
 pub fn normalizeCheckpoint(
     profile: Profile,
     checkpoint: *sameboy_checkpoint.Checkpoint,
 ) !void {
-    if (profile == .proof_fast)
-        try fixture.normalizeProofFastPpuBoundary(checkpoint);
+    switch (profile) {
+        .visual => {},
+        .proof_fast => try fixture.normalizeProofFastPpuBoundary(checkpoint),
+        .benchmark => try fixture.normalizeBenchmarkPpuBoundary(checkpoint),
+    }
 }

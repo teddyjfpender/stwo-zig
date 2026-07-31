@@ -29,6 +29,7 @@ pub const pokemon_checkpoint_fixture =
     @import("pokemon_checkpoint_fixture.zig");
 pub const pokemon_checkpoint_replay =
     @import("pokemon_checkpoint_replay.zig");
+pub const pokemon_battle_chain = @import("pokemon_battle_chain.zig");
 pub const air = @import("air/mod.zig");
 pub const joypad_trace = @import("joypad_trace.zig");
 pub const machine_memory_replay = @import("machine_memory_replay.zig");
@@ -132,7 +133,9 @@ test {
     _ = @import("machine_environment_verifier_test.zig");
     _ = pokemon_checkpoint_fixture;
     _ = pokemon_checkpoint_replay;
-    _ = @import("pokemon_hardware_surface.zig");
+    _ = @import("pokemon_checkpoint_replay_test.zig");
+    _ = pokemon_battle_chain;
+    _ = @import("pokemon_hardware_surface_test.zig");
     _ = @import("environment_proof_components.zig");
     _ = @import("environment_proof_components_test.zig");
     _ = air;

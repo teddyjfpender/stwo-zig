@@ -116,7 +116,7 @@ pub fn build(b: *std.Build) void {
     );
     if (pokemon_corpus) |corpus_root| {
         const pokemon_hardware_surface_module = b.createModule(.{
-            .root_source_file = b.path("pokemon_hardware_surface.zig"),
+            .root_source_file = b.path("pokemon_hardware_surface_test.zig"),
             .target = target,
             .optimize = optimize,
         });
@@ -125,7 +125,10 @@ pub fn build(b: *std.Build) void {
         pokemon_hardware_surface_module.addImport("stwo_prover_engine", prover);
         const pokemon_hardware_surface_tests = b.addTest(.{
             .root_module = pokemon_hardware_surface_module,
-            .filters = &.{"SM83 Pokemon hardware surface"},
+            .filters = &.{
+                "SM83 Pokemon hardware surface",
+                "SM83 Pokemon benchmark hardware surface",
+            },
         });
         const run_pokemon_hardware_surface_tests =
             b.addRunArtifact(pokemon_hardware_surface_tests);

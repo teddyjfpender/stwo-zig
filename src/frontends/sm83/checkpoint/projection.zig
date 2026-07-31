@@ -18,6 +18,7 @@ const apu_mmio = @import("../runner/apu_mmio.zig");
 // VBlank's separate five-dot request ordering is modeled in `ppu_timing`;
 // folding it into this checkpoint phase would shift every other PPU mode.
 const FIXED_MODEL_PHASE_DOTS: i64 = 4;
+const MODE_LATCH_PENDING: u8 = 0xff;
 
 pub const Error =
     runner.joypad.ValidationError ||
@@ -152,10 +153,16 @@ pub fn toPpuMmio(
     {
         return error.UnrepresentablePpuState;
     }
+    // The 0xff sentinel is SameBoy's state before the delayed mode latch is
+    // installed, so its accumulator has not acquired the four-dot lag yet.
+    const phase_dots: i64 = if (ppu.mode_for_interrupt == MODE_LATCH_PENDING)
+        0
+    else
+        FIXED_MODEL_PHASE_DOTS;
     const derived_dot =
         @as(i64, ppu.cycles_for_line) +
         @divTrunc(@as(i64, timer.display_cycles), 2) -
-        FIXED_MODEL_PHASE_DOTS;
+        phase_dots;
     if (derived_dot < 0 or
         derived_dot >= runner.ppu_timing.DOTS_PER_LINE or
         ppu.current_line != ppu.current_lcd_line)
@@ -205,7 +212,8 @@ pub fn toPpuMmio(
         return error.UnrepresentablePpuState;
     }
 
-    if (ppu.mode_for_interrupt != @intFromEnum(timing.mode()) or
+    if ((ppu.mode_for_interrupt != MODE_LATCH_PENDING and
+        ppu.mode_for_interrupt != @intFromEnum(timing.mode())) or
         system[runner.ppu_mmio.STAT_ADDRESS] != timing.readStat() or
         system[runner.ppu_mmio.LY_ADDRESS] != timing.readLy())
     {

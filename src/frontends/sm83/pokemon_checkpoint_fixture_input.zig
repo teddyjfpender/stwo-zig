@@ -53,6 +53,19 @@ pub const PROOF_FAST_ARTIFACTS: Artifacts = .{
     .initial_pressed = runner.joypad.Key.a.mask(),
 };
 
+pub const BENCHMARK_ARTIFACTS: Artifacts = .{
+    .rom_path = "pokered_rogue_fast_benchmark.gbc",
+    .rom_sha256 = "269840fecc22ea7b6dadf55b92b99be0b03e9365dded13dc2091c6afaf89817b",
+    .checkpoint_path = "build/traces/battle-benchmark-fast/boundary-000000.s1",
+    .checkpoint_sha256 = "96c258eacfa2f61386dbbc5f436e16df36f7274023fcbc697bf01ef8dc4fcaed",
+    .trace_path = "build/traces/battle-benchmark-fast/instructions.bin",
+    .trace_sha256 = "1eb564fe69f473442b7874c74e13b0555a555ff490c241b50c1ac1523283415e",
+    .trace_size = 30_408_704,
+    .trace_records = 1_048_576,
+    .initial_mcycle = 5_967_321,
+    .initial_pressed = 0,
+};
+
 pub const MAX_LOOKAHEAD_ROWS: usize = 1 << 15;
 pub const LOOKAHEAD_ORACLE_RECORDS: usize = 1;
 pub const FRAME_TICKS_8MHZ: u64 = 139_810;
@@ -147,6 +160,23 @@ pub fn normalizeProofFastPpuMode(mode: *u8, stat: *u8) !void {
         return error.UnpinnedProofFastPpuBoundary;
     mode.* = 0;
     stat.* = 0x80;
+}
+
+pub fn normalizeBenchmarkPpuBoundary(
+    checkpoint: *sameboy_checkpoint.Checkpoint,
+) !void {
+    const stat_address = runner.ppu_mmio.STAT_ADDRESS;
+    if (checkpoint.timer.display_cycles != 40 or
+        checkpoint.ppu.cycles_for_line != 0 or
+        checkpoint.ppu.current_line != 1 or
+        checkpoint.ppu.current_lcd_line != 1 or
+        checkpoint.ppu.mode_for_interrupt != 0xff or
+        checkpoint.system[stat_address] != 0x82)
+    {
+        return error.UnpinnedBenchmarkPpuBoundary;
+    }
+    // Projection retains SameBoy's pre-latch sentinel and cross-checks the
+    // already-visible mode-2 STAT value against the derived fixed-line state.
 }
 
 pub fn partyObservations(mcycle: u32) [2]observation.Sample {

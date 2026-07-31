@@ -84,6 +84,7 @@ zig build test-pokemon-checkpoint --build-file src/integrations/sm83_metal/build
 zig build test-pokemon-checkpoint --build-file src/integrations/sm83_metal/build.zig -Doptimize=ReleaseFast -- /path/to/PE-AGI/v1 --proof-fast-chunk-2 --smoke
 zig build test-pokemon-checkpoint --build-file src/integrations/sm83_metal/build.zig -Doptimize=ReleaseFast -- /path/to/PE-AGI/v1 --proof-fast-turn --smoke
 zig build test-pokemon-checkpoint --build-file src/integrations/sm83_metal/build.zig -Doptimize=ReleaseFast -- /path/to/PE-AGI/v1 --smoke
+zig build test-pokemon-battle-chain --build-file src/integrations/sm83_metal/build.zig -Doptimize=ReleaseFast -- /path/to/PE-AGI/v1 --smoke
 ```
 
 The focused lane passes 21/21 tests and executes all 15 flat-ISA family
@@ -127,6 +128,15 @@ Fresh v7 Metal ReleaseFast proof-fast receipts pass with
 preprocessing; Metal remains the proving backend without fallback. These
 receipts establish both profiles only for this short fixture, not a whole
 battle or larger chunk.
+
+The backend-neutral complete-battle chain is wired into this package too. It
+compiles, selects `MetalProverEngine`, and has no CPU proving fallback; the
+frontend-owned verifier remains unchanged. A local 65,536-row full-battle
+smoke attempt exceeded 25 GB of wired unified memory and was stopped before a
+proof receipt. Metal therefore does not yet have a completed full-battle
+claim. Use the direct command only on a suitable host; the Python benchmark
+harness requires `--allow-high-memory-metal`. Reducing resident commitment
+high-water memory is the measured Metal optimization frontier.
 
 For this fast-only profile, the raw pinned checkpoint is projected by a
 fail-closed PPU normalization: SameBoy's variable mode 3 at derived dot 272 is

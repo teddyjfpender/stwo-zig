@@ -56,6 +56,7 @@
       "mod.zig::SM83 MISC flag chain HALT and STOP prove and verify on Metal",
       "mod.zig::SM83 Metal integration selects only the Metal backend",
       "mod.zig::SM83 STACK PUSH POP and vacuity prove and verify on Metal",
+      "pokemon_battle_chain_proof.zig::Metal Pokemon battle chain is secure unless smoke is explicit",
       "pokemon_checkpoint_proof.zig::SM83 Pokemon Metal checkpoint proof defaults to the secure profile",
       "pokemon_checkpoint_proof.zig::SM83 Pokemon Metal checkpoint proof rejects duplicate and unknown flags",
       "pokemon_checkpoint_proof.zig::SM83 Pokemon Metal checkpoint smoke profile requires an explicit flag"

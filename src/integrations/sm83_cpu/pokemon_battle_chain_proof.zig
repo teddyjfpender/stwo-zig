@@ -6,6 +6,7 @@ const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 const frontend = @import("stwo_sm83_frontend");
 
 const replay = frontend.pokemon_checkpoint_replay;
+const battle_chain = frontend.pokemon_battle_chain;
 const prover = frontend.machine_environment_prover;
 const verifier = frontend.machine_environment_verifier;
 const ProverEngine = prover.ProverEngineForBackend(CpuBackend);
@@ -42,6 +43,7 @@ const Options = struct {
     corpus_root: []const u8,
     security: SecurityProfile = .secure,
     chunks: usize = DEFAULT_CHUNKS,
+    benchmark: bool = false,
 };
 
 pub fn main() !void {
@@ -53,13 +55,27 @@ pub fn main() !void {
     const options = parseOptions(arguments) catch {
         std.debug.print(
             "usage: sm83-pokemon-cpu-battle-chain /path/to/PE-AGI/v1 " ++
-                "[--smoke] [--chunks N]\n",
+                "[--benchmark] [--smoke] [--chunks N]\n",
             .{},
         );
         return error.InvalidArguments;
     };
 
     const config = try proofConfig(options.security);
+    if (options.benchmark) {
+        if (options.chunks != DEFAULT_CHUNKS)
+            return error.BenchmarkChunkCountIsPinned;
+        const receipt = try battle_chain.proveAndVerify(
+            ProverEngine,
+            VerifierEngine,
+            allocator,
+            config,
+            options.corpus_root,
+            .benchmark,
+        );
+        battle_chain.printReceipt("CPU", receipt);
+        return;
+    }
     var session = try replay.Session.init(
         allocator,
         options.corpus_root,
@@ -207,12 +223,19 @@ fn parseOptions(arguments: []const []const u8) !Options {
     var result = Options{ .corpus_root = arguments[1] };
     var saw_smoke = false;
     var saw_chunks = false;
+    var saw_benchmark = false;
     var index: usize = 2;
     while (index < arguments.len) {
         const argument = arguments[index];
         if (std.mem.eql(u8, argument, "--smoke") and !saw_smoke) {
             saw_smoke = true;
             result.security = .smoke;
+            index += 1;
+            continue;
+        }
+        if (std.mem.eql(u8, argument, "--benchmark") and !saw_benchmark) {
+            saw_benchmark = true;
+            result.benchmark = true;
             index += 1;
             continue;
         }
@@ -366,6 +389,14 @@ test "SM83 Pokemon battle chain is secure by default and smoke is explicit" {
         @as(u32, 3),
         (try proofConfig(smoke.security)).securityBits(),
     );
+
+    const benchmark = try parseOptions(&.{
+        "battle-chain",
+        "/corpus",
+        "--benchmark",
+    });
+    try std.testing.expect(benchmark.benchmark);
+    try std.testing.expectEqual(SecurityProfile.secure, benchmark.security);
 
     try std.testing.expectError(
         error.InvalidArguments,

@@ -29,6 +29,10 @@ pub fn build(b: *std.Build) void {
         "test-pokemon-checkpoint",
         "Prove the pinned Pokemon checkpoint slice on Metal",
     );
+    const pokemon_battle_step = b.step(
+        "test-pokemon-battle-chain",
+        "Prove and verify the complete Pokemon benchmark battle on Metal",
+    );
     if (target.result.os.tag != .macos) {
         const unsupported = b.addFail(
             "stwo_sm83_metal_integration tests require macOS and the Apple Metal SDK",
@@ -36,6 +40,7 @@ pub fn build(b: *std.Build) void {
         test_step.dependOn(&unsupported.step);
         machine_environment_step.dependOn(&unsupported.step);
         pokemon_checkpoint_step.dependOn(&unsupported.step);
+        pokemon_battle_step.dependOn(&unsupported.step);
         return;
     }
     // The complete machine-environment proof has its own focused step below.
@@ -95,4 +100,25 @@ pub fn build(b: *std.Build) void {
     const run_pokemon_gate = b.addRunArtifact(pokemon_executable);
     if (b.args) |args| run_pokemon_gate.addArgs(args);
     pokemon_checkpoint_step.dependOn(&run_pokemon_gate.step);
+
+    const pokemon_battle_module = b.createModule(.{
+        .root_source_file = b.path("pokemon_battle_chain_proof.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    pokemon_battle_module.addImport("stwo_core", core);
+    pokemon_battle_module.addImport("stwo_cpu_backend", cpu);
+    pokemon_battle_module.addImport("stwo_metal_backend", metal);
+    pokemon_battle_module.addImport("stwo_sm83_frontend", frontend);
+    const pokemon_battle_executable = b.addExecutable(.{
+        .name = "sm83-pokemon-metal-battle-chain",
+        .root_module = pokemon_battle_module,
+    });
+    pokemon_battle_executable.linkLibC();
+    pokemon_battle_executable.linkFramework("Foundation");
+    pokemon_battle_executable.linkFramework("Metal");
+    pokemon_battle_executable.linkSystemLibrary("objc");
+    const run_pokemon_battle = b.addRunArtifact(pokemon_battle_executable);
+    if (b.args) |args| run_pokemon_battle.addArgs(args);
+    pokemon_battle_step.dependOn(&run_pokemon_battle.step);
 }

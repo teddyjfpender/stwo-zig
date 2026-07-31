@@ -32,7 +32,6 @@ pub const proveMachineExecution = @import("machine_proof.zig").proveExecution;
 comptime {
     sm83_prover.assertProverEngine(MetalProverEngine);
 }
-
 test "api signature: SM83 Metal engine satisfies the shared prover contract" {
     comptime sm83_prover.assertProverEngine(MetalProverEngine);
 }
@@ -846,5 +845,6 @@ test "SM83 Metal integration selects only the Metal backend" {
 test {
     _ = @import("cartridge_test.zig");
     _ = @import("pokemon_checkpoint_proof.zig");
+    _ = @import("pokemon_battle_chain_proof.zig");
     std.testing.refAllDecls(@This());
 }

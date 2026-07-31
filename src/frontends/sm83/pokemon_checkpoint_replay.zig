@@ -33,6 +33,9 @@ pub const Expectation = replay_profile.Expectation;
 pub const VERIFIED_PREFIX = replay_profile.VERIFIED_PREFIX;
 pub const PROOF_FAST_VERIFIED_PREFIX =
     replay_profile.PROOF_FAST_VERIFIED_PREFIX;
+pub const BENCHMARK_VERIFIED_PREFIX =
+    replay_profile.BENCHMARK_VERIFIED_PREFIX;
+pub const BENCHMARK_PROOF_PREFIX = replay_profile.BENCHMARK_PROOF_PREFIX;
 const readRom = replay_profile.readRom;
 const readTrace = replay_profile.readTrace;
 const readCheckpoint = replay_profile.readCheckpoint;
@@ -46,6 +49,24 @@ const PARTY_COUNT_ADDRESS: u16 = PARTY_DATA_START;
 const PARTY_SPECIES_ADDRESS: u16 = PARTY_DATA_START + 1;
 const PINNED_PARTY_COUNT: u8 = 1;
 const PINNED_FIRST_SPECIES: u8 = 0x84;
+
+pub const BenchmarkOutcome = struct {
+    battle_result: u8,
+    enemy_hp: u16,
+    battle_hp: u16,
+    party_hp: u16,
+    in_battle: u8,
+    stage: u8,
+};
+
+pub const EXPECTED_BENCHMARK_OUTCOME = BenchmarkOutcome{
+    .battle_result = 0,
+    .enemy_hp = 0,
+    .battle_hp = 180,
+    .party_hp = 430,
+    .in_battle = 0,
+    .stage = 1,
+};
 
 const OBSERVATION_REGIONS = [_]ram_observation.Region{.{
     .space = .system,
@@ -74,6 +95,24 @@ pub const FinishSummary = struct {
     oracle_records: usize,
     actions: usize,
 };
+
+pub fn benchmarkOutcome(system: []const u8) !BenchmarkOutcome {
+    if (system.len != memory_lookup.SYSTEM_SIZE)
+        return error.InvalidBenchmarkEndpointImage;
+    return .{
+        .battle_result = system[0xcf0b],
+        .enemy_hp = readBigU16(system, 0xcfe6),
+        .battle_hp = readBigU16(system, 0xd015),
+        .party_hp = readBigU16(system, 0xd16c),
+        .in_battle = system[0xd057],
+        .stage = system[0xd357],
+    };
+}
+
+pub fn validateBenchmarkOutcome(system: []const u8) !void {
+    if (!std.meta.eql(try benchmarkOutcome(system), EXPECTED_BENCHMARK_OUTCOME))
+        return error.BenchmarkOutcomeMismatch;
+}
 
 const State = enum {
     ready,
@@ -362,6 +401,9 @@ pub const Session = struct {
             printDivergence(
                 self.absolute_rows,
                 self.comparator.next_record,
+                self.current_mcycle,
+                &self.comparator,
+                null,
                 err,
             );
             return err;
@@ -372,6 +414,9 @@ pub const Session = struct {
             printDivergence(
                 self.absolute_rows,
                 self.comparator.next_record,
+                self.current_mcycle,
+                &self.comparator,
+                result,
                 err,
             );
             return err;
@@ -614,16 +659,57 @@ fn addMcycles(left: u32, right: u32) !u32 {
         return error.MachineClockOverflow;
 }
 
+fn readBigU16(bytes: []const u8, address: u16) u16 {
+    return @as(u16, bytes[address]) << 8 | bytes[address + 1];
+}
+
 fn printDivergence(
     machine_row: usize,
     oracle_record: usize,
+    current_mcycle: u32,
+    comparator: *const oracle.Comparator,
+    actual: ?machine.CartridgeStepResult,
     err: anyerror,
 ) void {
+    const expected_mcycle = if (comparator.trace.record(oracle_record)) |record|
+        record.callbackMcycle() catch 0
+    else |_|
+        0;
     std.debug.print(
         "SM83 Pokemon replay: DIVERGENCE machine_row={d} " ++
-            "oracle_record={d} error={s}\n",
-        .{ machine_row, oracle_record, @errorName(err) },
+            "oracle_record={d} current_mcycle={d} expected_mcycle={d} " ++
+            "elapsed={d} error={s}\n",
+        .{
+            machine_row,
+            oracle_record,
+            current_mcycle,
+            expected_mcycle,
+            comparator.elapsed_since_callback,
+            @errorName(err),
+        },
     );
+    if (actual) |result| {
+        const expected = comparator.trace.record(oracle_record) catch return;
+        const expected_cpu = expected.cpu() catch return;
+        std.debug.print(
+            "  expected pc=0x{x:0>4} sp=0x{x:0>4} af=0x{x:0>4} bc=0x{x:0>4} de=0x{x:0>4} hl=0x{x:0>4}\n" ++
+                "  actual   pc=0x{x:0>4} sp=0x{x:0>4} af=0x{x:0>4} bc=0x{x:0>4} de=0x{x:0>4} hl=0x{x:0>4}\n",
+            .{
+                expected_cpu.pc,
+                expected_cpu.sp,
+                expected_cpu.af(),
+                expected_cpu.bc(),
+                expected_cpu.de(),
+                expected_cpu.hl(),
+                result.before.cpu.pc,
+                result.before.cpu.sp,
+                result.before.cpu.af(),
+                result.before.cpu.bc(),
+                result.before.cpu.de(),
+                result.before.cpu.hl(),
+            },
+        );
+    }
 }
 
 fn digest(bytes: []const u8) [32]u8 {
@@ -696,6 +782,7 @@ test "public observations retain the pinned party identity" {
 test "replay profiles select pinned inputs and fast normalization fails closed" {
     const visual = artifactsFor(.visual);
     const fast = artifactsFor(.proof_fast);
+    const benchmark = artifactsFor(.benchmark);
     try std.testing.expect(!std.mem.eql(
         u8,
         visual.rom_sha256,
@@ -710,6 +797,8 @@ test "replay profiles select pinned inputs and fast normalization fails closed" 
         fast.initial_pressed,
     );
     try std.testing.expectEqual(@as(usize, 69), actionsFor(.proof_fast).len);
+    try std.testing.expectEqual(@as(usize, 33), actionsFor(.benchmark).len);
+    try std.testing.expectEqual(@as(u32, 5_967_321), benchmark.initial_mcycle);
 
     var system = std.mem.zeroes([memory_lookup.SYSTEM_SIZE]u8);
     var checkpoint: sameboy_checkpoint.Checkpoint = undefined;
@@ -720,6 +809,10 @@ test "replay profiles select pinned inputs and fast normalization fails closed" 
     try std.testing.expectError(
         error.UnpinnedProofFastPpuBoundary,
         normalizeCheckpoint(.proof_fast, &checkpoint),
+    );
+    try std.testing.expectError(
+        error.UnpinnedBenchmarkPpuBoundary,
+        normalizeCheckpoint(.benchmark, &checkpoint),
     );
 }
 
@@ -745,77 +838,4 @@ test "proof-fast replay stays exact across adjacent chunks" {
     const terminal = try session.finish();
     try std.testing.expectEqual(@as(usize, 14_498), terminal.lookahead_rows);
     try std.testing.expectEqual(oracle_start + 1, terminal.oracle_records);
-}
-
-test "pinned battle chunks stream once with exact adjacent endpoints" {
-    const corpus_root = std.posix.getenv("SM83_POKEMON_CORPUS") orelse
-        return error.SkipZigTest;
-    const ChainBoundary = struct {
-        machine_state: machine.MachineState,
-        mapper: cartridge.mbc3.State,
-        system_digest: [32]u8,
-        sram_digest: [32]u8,
-        joypad: runner.joypad.State,
-        timer: runner.timer.Timer,
-        ppu: ppu_binding.State,
-        apu: runner.apu_mmio.State,
-        dma: runner.dma.State,
-        mcycle: u32,
-    };
-
-    var session = try Session.init(
-        std.testing.allocator,
-        corpus_root,
-        .{},
-    );
-    defer session.deinit();
-    var previous: ?ChainBoundary = null;
-    for (VERIFIED_PREFIX, 0..) |counts, index| {
-        var chunk = try session.next(counts);
-        errdefer chunk.deinit();
-        const input = chunk.input();
-        if (previous) |boundary| {
-            try std.testing.expectEqual(
-                boundary.machine_state,
-                input.results[0].before,
-            );
-            try std.testing.expectEqual(
-                boundary.mapper,
-                input.results[0].mapper_before,
-            );
-            try std.testing.expectEqualSlices(
-                u8,
-                &boundary.system_digest,
-                &digest(input.initial_images.system.bytes),
-            );
-            try std.testing.expectEqualSlices(
-                u8,
-                &boundary.sram_digest,
-                &digest(input.initial_images.sram.bytes),
-            );
-            try std.testing.expectEqual(boundary.joypad, input.initial_joypad);
-            try std.testing.expectEqual(boundary.timer, input.initial_timer);
-            try std.testing.expectEqual(boundary.ppu, input.initial_ppu);
-            try std.testing.expectEqual(boundary.apu, input.initial_apu);
-            try std.testing.expectEqual(boundary.dma, input.initial_dma);
-            try std.testing.expectEqual(boundary.mcycle, input.initial_mcycle);
-        }
-        const last = input.results[input.results.len - 1];
-        previous = .{
-            .machine_state = last.after,
-            .mapper = last.mapper_after,
-            .system_digest = digest(input.final_images.system.bytes),
-            .sram_digest = digest(input.final_images.sram.bytes),
-            .joypad = chunk.final.joypad,
-            .timer = chunk.final.timer,
-            .ppu = chunk.final.ppu,
-            .apu = chunk.final.apu,
-            .dma = chunk.final.dma,
-            .mcycle = input.initial_mcycle + counts.mcycles,
-        };
-        try std.testing.expectEqual(index, chunk.summary().index);
-        chunk.deinit();
-    }
-    const terminal = try session.finish();
-    try std.testing.expectEqual(@as(usize, 7_468), terminal.lookahead_rows);
 }

@@ -101,6 +101,8 @@ Import the package as `const sm83 = @import("stwo_sm83_frontend");`.
   pinned prefix endpoints and refuses an uncommitted terminal action. Its
   sibling `pokemon_checkpoint_replay_profile` owns replay geometry and the
   one-time pinned artifact loading policy.
+- `pokemon_battle_chain` proves and verifies those chunks through caller-owned
+  prover and verifier engines, then checks every adjacent statement boundary.
 - `cartridge_proof_statement` defines the detached-device, CPU-only public
   cartridge claim and its canonical ROM/system/SRAM commitment geometry.
 - `cartridge_prover` executes that backend-generic cartridge proof
@@ -620,116 +622,73 @@ The secure receipts use
 secure proving only for that 8,192-row proof-fast short slice, not the complete
 optimized battle.
 
-Run the pinned optimization workload and emit a machine-readable local receipt
-with:
+### Complete proof-fast benchmark battle
+
+PE-AGI's `make proof-benchmark-test` fixture is now the primary backend
+benchmark. It is a complete level-100 Snorlax-versus-level-100 Lapras battle:
+four moves per side, 33 accepted-poll press/release events, a public seeded
+battle RNG, opponent faint, battle return, and rogue-stage progression. The
+proof-fast run has 594,575 SameBoy instruction callbacks and 1,436,786
+M-cycles. Its 16-event game-logic transcript matches the visual ROM at digest
+`624f4742bef3c46c555c8f6b3d7c2dcba8e5c3b774f7b0387eae014a018aa1eb`.
+
+Run the secure CPU/SIMD gate and emit a machine-readable receipt with:
 
 ```sh
 python3 scripts/sm83_pokemon_benchmark.py \
   --pokemon-dir ../PE-AGI/v1 --backend cpu
 ```
 
-The benchmark authenticates the complete `_ROGUE_FAST` marker-to-marker target
-(447,516 callbacks, 4,899,537 M-cycles, and the terminal boundary inside the
-1,048,576-record capture), then prepares, proves, and verifies a 262,144-row
-battle-turn workload at 96-bit security. That workload starts after setup and
-contains three exact ROM milestones in order: `ExecutePlayerMove` at row
-212,538, `ApplyDamageToEnemyPokemon` at row 226,037, and
-`HandleEnemyMonFainted` at row 245,787. It contains 54,602 callbacks, 330,527
-M-cycles, two committed joypad actions, and 3,040 authenticated DMA bytes.
-Select `--backend metal` to keep the identical frontend workload and public
-claim while changing the proving backend. The JSON receipt is written to
-`zig-out/sm83-pokemon-benchmark.json`.
+The gate authenticates the ROM, checkpoint, SameBoy trace, action tape, battle
+logic, and both reference boundary files; runs the exact hardware-surface
+audit; then proves and independently verifies twelve contiguous 65,536-row v7
+statements at 96-bit security. It validates every complete machine-state join,
+rejects CPU-join, action, RAM-observation, and final-image mutations, and binds
+the outer action schedule with digest
+`89be37761cdef991ee299f16adfde19fad405be3a5c1adf50b925ee1a4b914ba`.
 
-Fresh one-shot ReleaseFast receipts on the local Apple M4 Max prepared the
-workload in 15.143673 seconds and proved plus verified it at 96 bits in
-168.445876 seconds on CPU/SIMD. The identical Metal run prepared in 14.191932
-seconds and proved plus CPU-verified in 233.210696 seconds. These whole-command,
-zero-warmup timings are autoresearch baselines, not a controlled backend
-comparison.
+The current pinned receipt is:
 
-The former 2^14 active-DMA rejection was a PPU-policy degree-accounting bug.
-`visible = lcd * (1 - line_vblank)` unnecessarily made the policy quartic even
-though the timing AIR already enforces that vblank implies LCD active. The
-equivalent `visible = lcd - line_vblank` keeps the policy cubic; a focused
-forged-state regression documents the required invariant. The exact shared-tree
-CPU/SIMD smoke proof now passes with 16,384 rows, 857 callbacks, 17,415 M-cycles,
-and 160 authenticated DMA bytes.
+```text
+proof_ready=true security_bits=96 chunks=12 rows=786432
+mcycles=1505332 callbacks=601239 actions=33 dma_sources=13600
+initial_mcycle=5967321 final_mcycle=7472653
+final_system_digest=bd371af12b911647f1e6f175ddf5ef587cc57abf18f3bbe4001cbb8679275780
+battle_result=0 enemy_hp=0 battle_hp=180 party_hp=430 in_battle=0 stage=1
+```
 
-Both configured 2^17 `_ROGUE_FAST` profiles prepare and replay exactly. Chunk 1
-has 12,425 callbacks, 146,040 M-cycles, 10,645
-lookahead rows, 1,280 DMA bytes, and no action; chunk 2 skips that exact prefix
-and has 7,424 callbacks, 141,366 M-cycles, 9,727 lookahead rows, 1,280 DMA
-bytes, and one action. Use `--proof-fast-chunk-1 --smoke` and
-`--proof-fast-chunk-2 --smoke` for the direct 131,072-row reproducers. Chunk 1
-now proves and verifies through both CPU/SIMD and Metal at 96-bit security;
-chunk 2 remains an exact replay specification without a post-fix proof receipt.
+The proof boundary extends 6,664 instruction callbacks beyond the battle-end
+marker to the next fixed scheduler boundary. `rows` counts scheduler rows, not
+instructions or user actions. The chain's public inputs are the pinned ROM,
+initial complete machine image, exact action schedule, and each joining/final
+complete machine image. Pokémon-specific endpoint bytes are checked by the
+fixture but are not part of the generic SM83 AIR.
 
-The larger `--proof-fast-turn` profile skips an exact 1,703,936-row prefix and
-pins the 2^18-row turn above. Its positive counts and three milestone row
-offsets fail closed before witness preparation. It is the backend-optimization
-benchmark; the short and 2^17 profiles remain the faster correctness loops.
-A 2^19 diagnostic of the same turn passed CPU proving but failed Metal with
-`Metal Merkle allocation failed`; it is deliberately not exposed as the
-cross-backend benchmark. Batched or streaming resident leaf commitment is the
-backend optimization needed to raise that frontier without a hidden host
-fallback.
+The PE-AGI reference manifest correctly remains `proof_ready=false`: its
+SameBoy records do not themselves contain ordered bus cycles. The frontend
+restores the checkpoint, regenerates the ordered bus/device execution, and
+differentially checks every instruction callback against that pinned trace.
+Only the downstream Stwo receipt becomes `proof_ready=true` after all twelve
+proofs and joins verify.
 
-The `_ROGUE_FAST` full-battle metadata remains an authenticated target only:
-447,516 callback rows, 4,899,537 M-cycles, and 1,048,576 captured trace rows;
-proof-row count is unknown and its manifest remains `proof_ready=false`. The
-new workload proves the player attack, damage, and faint path, but not the
-post-faint cleanup through the marker-to-marker battle return.
+The benchmark reaches 1,157,525 CPU accesses, 1,010 MMIO accesses, 7,912 VRAM
+writes, 85 WRAM-to-OAM DMA launches, and 13,600 authenticated DMA source bytes.
+It reaches no CPU OAM access, APU event, STOP, active-DMA HALT/STOP, direct IF
+access, OAM bug, rejected DMA access, or unowned MMIO address. Four write-only
+presentation latches (`BGP`, `OBP0`, `OBP1`, and `WX`) remain committed as raw
+system-image state. Seventeen scroll/window writes and one DMA launch occur
+outside VBlank; they affect omitted pixels only. The admitted headless claim
+therefore covers CPU-visible execution and continuation state, not rendered
+pixels or audio samples.
 
-PE-AGI also exposes a separate `make proof-benchmark-test` game-side workload:
-a level-100 Snorlax-versus-level-100 Lapras battle with four executed moves per
-side, a poll-aligned action tape, explicit legal move sets, and a public seeded
-battle RNG. The visual and proof-fast ROMs produce the same 16-event logic
-transcript (`624f4742bef3c46c555c8f6b3d7c2dcba8e5c3b774f7b0387eae014a018aa1eb`).
-The visual run has 9,186,295 callbacks and 66,528,074 M-cycles; presentation
-elision reduces the proof-fast run to 594,575 callbacks and 1,436,786 M-cycles,
-which fits in one 2^20 callback chunk. This is the larger game regression and
-backend-autoresearch target, but it is not silently substituted for the pinned
-frontend fixture above. Its manifest remains `proof_ready=false`; importing
-its checkpoint, exact action tape, and scheduler-row geometry is required
-before this repository can claim a proof or backend receipt for that battle.
-
-The timed 2^17 results below remain historical v5/v6 evidence for the visual
-fixture only.
-
-The first three battle chunks previously passed three-bit CPU/SIMD and Metal v5
-proofs. They are historical sizing evidence and must be rerun before being used
-as v7 proof receipts:
-
-| Chunk | Oracle range | Rows | M-cycles | Callbacks | Actions | DMA sources | Observations | CPU | Metal |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 0, `start_release` | `[0, 25,115)` | 131,072 | 163,027 | 25,115 | 1 | 1,440 | 2 | 25.49 s | 95.92 s |
-| 1, `battle_chunk_1` | `[25,115, 33,924)` | 131,072 | 142,224 | 8,809 | 0 | 1,280 | 2 | 87.61 s | 93.61 s |
-| 2, `battle_chunk_2` | `[33924,42302)` | 131,072 | 141,631 | 8,378 | 1 | 1,280 | 2 | 91.72 s | 95.42 s |
-
-The recorded v6 CPU/SIMD chain sequentially proves and verifies all three chunks,
-releases each proof fixture before loading the next, validates every joining
-machine endpoint, rejects a mutated joining CPU state at both joins, and binds
-the two outer actions with digest
-`6eabf9e757684a8e963e9b8f42491d3ca2171fafe1570141559494f864965724`.
-It passes at both 3 and 96 security bits with 393,216 rows, 446,882 M-cycles,
-42,302 callbacks, two outer actions, and three chunks; the secure run took
-140.94 seconds. This is historical v6 evidence, not a v7 receipt. Both versions
-remain reduced fixed-172-dot, non-rendering device claims, not full
-variable-timing PPU claims.
-
-The pinned marker-to-marker battle reconstructs to 16,853,006 scheduler rows:
-129 leaves at the current 2^17 geometry, with 55,282 padding rows in the final
-leaf. That oracle-gap reconstruction reproduces the first three replayed
-boundaries exactly, but remains an estimate until the frontend streams the
-complete battle. The padded post-battle oracle file would require 159 leaves.
-Larger power-of-two leaves are supported by the prover geometry; they reduce
-the battle to 65 leaves at 2^18, 33 at 2^19, or 17 at 2^20.
-
-The draft is not battle-ready for merge until a pinned command streams that
-entire optimized battle, proves and independently verifies every chunk, checks
-every public-state join and the terminal marker, authenticates the complete
-action schedule, and emits a stable benchmark receipt. The current 2^14
-degree regression is fixed and must remain covered while that gate is added.
+Proof memory is part of the operational contract. On the local 38 GB M4 Max,
+262,144-row CPU chunks exceeded 22 GB RSS and the Metal full-battle path
+exceeded 25 GB wired unified memory, so both runs were stopped. The checked-in
+CPU command uses twelve 65,536-row chunks and one prover/Merkle worker; its
+observed peak stayed below 9 GB. Metal uses the identical frontend statement
+and verifier with no fallback, but it has no completed full-battle receipt yet.
+Its direct CLI requires an explicit high-memory opt-in in the Python harness;
+streamed/resident commitment memory is the backend optimization target.
 
 `--precommit` runs frontend tests, the full corpus, Blargg, focused Mooneye,
 CPU/SIMD and Metal proofs, mutation controls, formatting, package and CI

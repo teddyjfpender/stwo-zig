@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Emit one honest local benchmark receipt for the pinned _ROGUE_FAST ROM."""
+"""Prove the pinned proof-fast Pokemon battle and emit an honest receipt."""
 
 from __future__ import annotations
 
@@ -20,57 +20,60 @@ from typing import Any, Sequence
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CORPUS = ROOT.parent / "PE-AGI" / "v1"
 DEFAULT_REPORT = ROOT / "zig-out" / "sm83-pokemon-benchmark.json"
-TRACE_DIRECTORY = Path("build/traces/battle-seed-1-fast")
+TRACE_DIRECTORY = Path("build/traces/battle-benchmark-fast")
 
-LONG_EXPECTED = {
-    "rows": 262_144,
-    "callbacks": 54_602,
-    "mcycles": 330_527,
-    "lookahead_rows": 3_684,
-    "oracle_records": 200_480,
-    "dma_sources": 3_040,
-    "actions": 2,
-}
-LONG_RECEIPT_EXPECTED = {
-    key: value for key, value in LONG_EXPECTED.items() if key != "actions"
-}
 PROOF_EXPECTED = {
     "security_bits": 96,
-    "rows": 262_144,
-    "callbacks": 54_602,
-    "mcycles": 330_527,
-    "actions": 2,
-    "dma_sources": 3_040,
-    "apu_events": 0,
-    "observations": 2,
+    "chunks": 12,
+    "rows": 786_432,
+    "mcycles": 1_505_332,
+    "callbacks": 601_239,
+    "actions": 33,
+    "dma_sources": 13_600,
+    "initial_mcycle": 5_967_321,
+    "final_mcycle": 7_472_653,
+    "battle_result": 0,
+    "enemy_hp": 0,
+    "battle_hp": 180,
+    "party_hp": 430,
+    "in_battle": 0,
+    "stage": 1,
 }
-TURN_MILESTONES = {
-    "execute_player_move": 212_538,
-    "apply_damage_to_enemy_pokemon": 226_037,
-    "handle_enemy_mon_fainted": 245_787,
-}
+EXPECTED_ACTION_DIGEST = (
+    "89be37761cdef991ee299f16adfde19fad405be3a5c1adf50b925ee1a4b914ba"
+)
+EXPECTED_FINAL_SYSTEM_DIGEST = (
+    "bd371af12b911647f1e6f175ddf5ef587cc57abf18f3bbe4001cbb8679275780"
+)
 FULL_BATTLE_EXPECTED = {
-    "callback_rows": 447_516,
-    "callbacks": 447_516,
-    "mcycles": 4_899_537,
+    "callback_rows": 594_575,
+    "callbacks": 594_575,
+    "mcycles": 1_436_786,
     "captured_trace_rows": 1_048_576,
-    "padding_rows": 601_060,
+    "padding_rows": 454_001,
+    "actions": 33,
+    "logic_events": 16,
 }
 
-PREPARED_PATTERN = re.compile(
-    r"SM83 Pokemon fixture: PREPARED "
-    r"rows=(?P<rows>\d+) callbacks=(?P<callbacks>\d+) "
-    r"mcycles=(?P<mcycles>\d+) lookahead_rows=(?P<lookahead_rows>\d+) "
-    r"oracle_records=(?P<oracle_records>\d+).*?"
-    r"dma_sources=(?P<dma_sources>\d+)"
-)
 PROOF_PATTERN = re.compile(
-    r"SM83 Pokemon (?P<backend>CPU|Metal) proof: PASS "
-    r"profile=secure fixture_profile=proof_fast_turn "
-    r"security_bits=(?P<security_bits>\d+) rows=(?P<rows>\d+) "
+    r"SM83 Pokemon (?P<backend>CPU|Metal) battle proof: PASS "
+    r"proof_ready=true security_bits=(?P<security_bits>\d+) "
+    r"chunks=(?P<chunks>\d+) rows=(?P<rows>\d+) "
     r"mcycles=(?P<mcycles>\d+) callbacks=(?P<callbacks>\d+) "
     r"actions=(?P<actions>\d+) dma_sources=(?P<dma_sources>\d+) "
-    r"apu_events=(?P<apu_events>\d+) observations=(?P<observations>\d+)"
+    r"initial_mcycle=(?P<initial_mcycle>\d+) "
+    r"final_mcycle=(?P<final_mcycle>\d+) "
+    r"action_digest=(?P<action_digest>[0-9a-f]{64}) "
+    r"final_system_digest=(?P<final_system_digest>[0-9a-f]{64}) "
+    r"battle_result=(?P<battle_result>\d+) enemy_hp=(?P<enemy_hp>\d+) "
+    r"battle_hp=(?P<battle_hp>\d+) party_hp=(?P<party_hp>\d+) "
+    r"in_battle=(?P<in_battle>\d+) stage=(?P<stage>\d+) "
+    r"rom_digest=(?P<rom_digest>[0-9a-f]{64}) "
+    r"initial_system_digest=(?P<initial_system_digest>[0-9a-f]{64}) "
+    r"initial_sram_digest=(?P<initial_sram_digest>[0-9a-f]{64}) "
+    r"final_sram_digest=(?P<final_sram_digest>[0-9a-f]{64}) "
+    r"first_statement_digest=(?P<first_statement_digest>[0-9a-f]{64}) "
+    r"last_statement_digest=(?P<last_statement_digest>[0-9a-f]{64})"
 )
 
 
@@ -86,53 +89,83 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def command_for_prepare(zig: str, corpus: Path) -> list[str]:
+def command_for_hardware_audit(zig: str, corpus: Path) -> list[str]:
     return [
         zig,
         "build",
-        "benchmark-pokemon-prepare",
+        "test-pokemon-hardware-surface",
         "--build-file",
         "src/frontends/sm83/build.zig",
         "-Doptimize=ReleaseFast",
-        "--",
-        str(corpus),
-        "--proof-fast-turn",
+        f"-Dpokemon-corpus={corpus}",
     ]
 
 
 def command_for_proof(zig: str, corpus: Path, backend: str) -> list[str]:
     build_file = f"src/integrations/sm83_{backend}/build.zig"
-    return [
+    command = [
         zig,
         "build",
-        "test-pokemon-checkpoint",
+        "test-pokemon-battle-chain",
         "--build-file",
         build_file,
         "-Doptimize=ReleaseFast",
         "--",
         str(corpus),
-        "--proof-fast-turn",
     ]
+    if backend == "cpu":
+        command.append("--benchmark")
+    return command
 
 
-def parse_counts(pattern: re.Pattern[str], output: str, expected: dict[str, int]) -> dict[str, int]:
-    match = pattern.search(output)
+def parse_proof_receipt(output: str) -> dict[str, Any]:
+    match = PROOF_PATTERN.search(output)
     if match is None:
-        raise BenchmarkError("benchmark command omitted its exact positive receipt")
+        raise BenchmarkError("proof command omitted its exact positive receipt")
     counts = {
         key: int(value)
         for key, value in match.groupdict().items()
-        if key != "backend" and value is not None
+        if key
+        not in {
+            "backend",
+            "action_digest",
+            "final_system_digest",
+            "rom_digest",
+            "initial_system_digest",
+            "initial_sram_digest",
+            "final_sram_digest",
+            "first_statement_digest",
+            "last_statement_digest",
+        }
+        and value is not None
     }
-    for key, value in expected.items():
+    for key, value in PROOF_EXPECTED.items():
         if counts.get(key) != value:
             raise BenchmarkError(
-                f"benchmark receipt drifted for {key}: expected {value}, got {counts.get(key)}"
+                f"proof receipt drifted for {key}: expected {value}, got {counts.get(key)}"
             )
+    strings = {
+        "backend": match.group("backend"),
+        "action_digest": match.group("action_digest"),
+        "final_system_digest": match.group("final_system_digest"),
+        "rom_digest": match.group("rom_digest"),
+        "initial_system_digest": match.group("initial_system_digest"),
+        "initial_sram_digest": match.group("initial_sram_digest"),
+        "final_sram_digest": match.group("final_sram_digest"),
+        "first_statement_digest": match.group("first_statement_digest"),
+        "last_statement_digest": match.group("last_statement_digest"),
+    }
+    if strings["action_digest"] != EXPECTED_ACTION_DIGEST:
+        raise BenchmarkError("proof action digest drifted")
+    if strings["final_system_digest"] != EXPECTED_FINAL_SYSTEM_DIGEST:
+        raise BenchmarkError("proof final-system digest drifted")
+    counts.update(strings)
     return counts
 
 
-def run_timed(command: Sequence[str]) -> tuple[str, float]:
+def run_timed(
+    command: Sequence[str], environment: dict[str, str] | None = None
+) -> tuple[str, float]:
     started = time.perf_counter_ns()
     completed = subprocess.run(
         list(command),
@@ -140,6 +173,7 @@ def run_timed(command: Sequence[str]) -> tuple[str, float]:
         capture_output=True,
         text=True,
         check=False,
+        env=None if environment is None else {**os.environ, **environment},
     )
     elapsed = (time.perf_counter_ns() - started) / 1_000_000_000
     output = completed.stdout + completed.stderr
@@ -154,6 +188,7 @@ def validate_full_battle_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
     checks = {
         "schema": "pe-agi-sameboy-battle-trace-v1",
         "proof_ready": False,
+        "scenario": "proof-benchmark",
         "battle_rows": FULL_BATTLE_EXPECTED["callback_rows"],
         "battle_mcycles": FULL_BATTLE_EXPECTED["mcycles"],
         "battle_end_row": FULL_BATTLE_EXPECTED["callbacks"],
@@ -174,15 +209,19 @@ def validate_full_battle_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
             "end_bank": manifest["markers"]["end"]["bank"],
             "end_pc": manifest["markers"]["end"]["pc"],
             "contains_battle_end": chunks[0]["contains_battle_end"],
+            "action_count": manifest["input"]["count"],
+            "logic_count": manifest["battle_logic"]["count"],
         }
     except (IndexError, KeyError, TypeError) as error:
         raise BenchmarkError("full-battle manifest identity is incomplete") from error
     expected_identity = {
         "start_bank": 1,
-        "start_pc": 20_094,
+        "start_pc": 20_153,
         "end_bank": 1,
-        "end_pc": 20_099,
+        "end_pc": 20_167,
         "contains_battle_end": True,
+        "action_count": FULL_BATTLE_EXPECTED["actions"],
+        "logic_count": FULL_BATTLE_EXPECTED["logic_events"],
     }
     if len(chunks) != 1 or identity != expected_identity:
         raise BenchmarkError(
@@ -204,6 +243,14 @@ def validate_full_battle_target(corpus: Path) -> dict[str, Any]:
     files = {
         "rom": (corpus / manifest["rom"]["file"], manifest["rom"]["sha256"]),
         "trace": (directory / "instructions.bin", manifest["trace_sha256"]),
+        "actions": (
+            directory / manifest["input"]["file"],
+            manifest["input"]["sha256"],
+        ),
+        "battle_logic": (
+            directory / manifest["battle_logic"]["file"],
+            manifest["battle_logic"]["sha256"],
+        ),
     }
     for boundary in ("initial_state", "final_state"):
         entry = manifest["chunks"][0][boundary]
@@ -224,13 +271,10 @@ def validate_full_battle_target(corpus: Path) -> dict[str, Any]:
         }
     return {
         **FULL_BATTLE_EXPECTED,
-        "actions": None,
-        "actions_authenticated": False,
-        "proof_rows": None,
-        "proof_available": False,
-        "proof_ready": False,
+        "actions_authenticated": True,
+        "reference_manifest_proof_ready": False,
         "markers": identity,
-        "stage": "authenticated SameBoy reference target; not timed or proved",
+        "stage": "authenticated SameBoy reference imported by the Stwo replay gate",
         "artifacts": identities,
     }
 
@@ -304,10 +348,15 @@ def atomic_write_json(path: Path, value: dict[str, Any]) -> None:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Benchmark an exact long Pokemon replay slice and verified proof baseline"
+        description="Prove the complete pinned proof-fast Pokemon battle"
     )
     parser.add_argument("--pokemon-dir", type=Path, default=DEFAULT_CORPUS)
     parser.add_argument("--backend", choices=("cpu", "metal"), default="cpu")
+    parser.add_argument(
+        "--allow-high-memory-metal",
+        action="store_true",
+        help="allow the experimental full-battle Metal path",
+    )
     parser.add_argument("--zig", default="zig")
     parser.add_argument("--report-out", type=Path, default=DEFAULT_REPORT)
     args = parser.parse_args(argv)
@@ -316,24 +365,37 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.error(f"missing pinned Pokemon corpus directory: {corpus}")
     if args.backend == "metal" and sys.platform != "darwin":
         parser.error("Metal benchmark requires macOS")
+    if args.backend == "metal" and not args.allow_high_memory_metal:
+        parser.error(
+            "Metal full-battle proving currently exceeds 25 GiB unified memory; "
+            "pass --allow-high-memory-metal only on a suitable host"
+        )
 
     full_target = validate_full_battle_target(corpus)
-    prepare_command = command_for_prepare(args.zig, corpus)
-    prepare_output, prepare_seconds = run_timed(prepare_command)
-    prepare_counts = parse_counts(
-        PREPARED_PATTERN,
-        prepare_output,
-        LONG_RECEIPT_EXPECTED,
-    )
-    prepare_counts["actions"] = LONG_EXPECTED["actions"]
+    audit_command = command_for_hardware_audit(args.zig, corpus)
+    _, audit_seconds = run_timed(audit_command)
 
     proof_command = command_for_proof(args.zig, corpus, args.backend)
-    proof_output, proof_seconds = run_timed(proof_command)
-    proof_counts = parse_counts(PROOF_PATTERN, proof_output, PROOF_EXPECTED)
+    proof_environment = (
+        {"STWO_ZIG_WORKERS": "1", "STWO_ZIG_MERKLE_WORKERS": "1"}
+        if args.backend == "cpu"
+        else None
+    )
+    proof_output, proof_seconds = run_timed(proof_command, proof_environment)
+    proof_counts = parse_proof_receipt(proof_output)
+    expected_backend = "CPU" if args.backend == "cpu" else "Metal"
+    if proof_counts["backend"] != expected_backend:
+        raise BenchmarkError(
+            f"proof backend drifted: expected {expected_backend}, "
+            f"got {proof_counts['backend']}"
+        )
+    if proof_counts["rom_digest"] != full_target["artifacts"]["rom"]["sha256"]:
+        raise BenchmarkError("proof ROM digest differs from the pinned artifact")
 
     report = {
-        "schema": "sm83_pokemon_benchmark_v2",
-        "status": "verified_battle_turn_baseline",
+        "schema": "sm83_pokemon_benchmark_v3",
+        "status": "full_battle_proof_ready",
+        "proof_ready": True,
         "captured_at": dt.datetime.now(dt.timezone.utc).isoformat(),
         "source": {
             "git_commit": git_value("rev-parse", "HEAD"),
@@ -341,25 +403,21 @@ def main(argv: Sequence[str] | None = None) -> int:
         },
         "host": host_identity(args.zig),
         "full_battle_target": full_target,
-        "battle_turn_workload": {
-            "label": "proof_fast_turn exact replay from command handling through opponent faint",
-            "terminal_battle": False,
-            "backend": "frontend CPU runner and backend-generic witness preparation",
+        "hardware_audit": {
+            "status": "passed_exact_pinned_report",
             "build_mode": "ReleaseFast",
-            "command": prepare_command,
-            "counts": prepare_counts,
-            "milestone_rows": TURN_MILESTONES,
-            "elapsed_seconds": prepare_seconds,
-            "verified_proof": False,
+            "command": audit_command,
+            "elapsed_seconds": audit_seconds,
         },
-        "verified_proof_baseline": {
-            "label": "proof_fast_turn",
+        "verified_proof": {
+            "label": "proof-fast complete benchmark battle",
             "backend": args.backend,
             "build_mode": "ReleaseFast",
             "command": proof_command,
+            "environment": proof_environment,
             "counts": proof_counts,
             "elapsed_seconds": proof_seconds,
-            "verified_proof": True,
+            "proof_ready": True,
         },
         "measurement": {
             "samples": 1,
@@ -368,17 +426,15 @@ def main(argv: Sequence[str] | None = None) -> int:
             "evidence_class": "one-shot local release diagnostic; not a headline benchmark",
         },
         "limitations": [
-            "the proved workload begins after battle setup and ends shortly after the opponent-faint handler, not at the marker-to-marker battle return",
-            "the full-battle target has callback and M-cycle counts but no measured proof-row count",
+            "the claim is the documented headless SM83 machine model; it does not claim rendered pixels or audio samples",
+            "the PE-AGI manifest remains a SameBoy reference manifest with proof_ready=false; this receipt is the downstream Stwo proof",
             "no cross-language Rust verifier receipt is available for the SM83 extension",
         ],
     }
     atomic_write_json(args.report_out.resolve(), report)
     print(
         "SM83 Pokemon benchmark: PASS "
-        f"turn_rows={prepare_counts['rows']} turn_callbacks={prepare_counts['callbacks']} "
-        f"turn_mcycles={prepare_counts['mcycles']} turn_actions={prepare_counts['actions']} "
-        f"turn_dma={prepare_counts['dma_sources']} turn_seconds={prepare_seconds:.6f} "
+        "proof_ready=true "
         f"proof_backend={args.backend} proof_rows={proof_counts['rows']} "
         f"proof_callbacks={proof_counts['callbacks']} proof_mcycles={proof_counts['mcycles']} "
         f"proof_seconds={proof_seconds:.6f} report={args.report_out.resolve()}"

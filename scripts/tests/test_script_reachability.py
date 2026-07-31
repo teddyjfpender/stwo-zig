@@ -21,11 +21,11 @@ SCRIPTS = ROOT / "scripts"
 # purpose; remove the entry in the same commit that deletes the tool.
 OPERATOR_TOOLS: dict[str, str] = {
     # Owner: sm83-frontend. One-shot local release diagnostic over the pinned
-    # Pokemon proof-fast preparation and verified short-proof boundaries.
+    # complete proof-fast battle and verified proof chain.
     # Its fail-closed command and receipt contracts run in
     # scripts/tests/test_sm83_pokemon_benchmark.py.
     "sm83_pokemon_benchmark.py":
-        "pinned Pokemon proof-fast preparation and proof benchmark receipt",
+        "pinned complete Pokemon battle proof benchmark receipt",
     # Owner: soundness. Per-row witness-uniqueness checking of an AIR family
     # via z3, from a serialisable constraint IR. Deliberately un-gated: it
     # needs z3, which hosted CI does not install, and no family's IR is

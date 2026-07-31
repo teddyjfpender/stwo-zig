@@ -454,9 +454,10 @@ fn validateNative(native: NativeViews) ImportError!void {
     }
     for ([_]usize{ 294, 297, 298, 299, 300, 423, 427, 428 }) |offset|
         _ = try readBool(native.video, offset);
+    const mode = native.video[422];
     if (native.video[301] >= 154 or
         native.video[425] >= 154 or
-        native.video[422] > 3)
+        (mode > 3 and mode != 0xff))
     {
         return error.InvalidNativePpu;
     }
