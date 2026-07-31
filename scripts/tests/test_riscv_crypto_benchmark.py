@@ -147,8 +147,14 @@ class TraceProvenanceReachabilityTests(unittest.TestCase):
             source = Path(raw)
             (source / "target/release").mkdir(parents=True)
             (source / "target/release/stark-v-bench").write_bytes(b"")
+            zig_bench = source / "stwo-zig"
+            zig_trace = source / "riscv-trace-dump"
+            zig_bench.write_bytes(b"")
+            zig_trace.write_bytes(b"")
             with mock.patch.multiple(
                 crypto,
+                ZIG_BENCH=zig_bench,
+                ZIG_TRACE=zig_trace,
                 read_trace_provenance=mock.Mock(
                     side_effect=BenchmarkError("built at another commit"),
                 ),

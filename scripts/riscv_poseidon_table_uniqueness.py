@@ -113,7 +113,7 @@ SOURCE_BINDINGS: dict[str, str] = {
     "src/frontends/riscv/prover/preprocessed.zig":
         "703134062751202f3bae288cded347e5bd869aac787359c05c069d5a6b7812bc",
     "src/frontends/riscv/prover/opcode_trace.zig":
-        "5a2843e281c67d832a4c40906f2e41dd921be5f6d4c971d835e7f0036b16d7bb",
+        "3537cceac5bcbbb6c2d325bd6f0ad01c1d5d577a7df1ca6e21867912624ccbac",
     "src/frontends/riscv/infra_trace/permutation.zig":
         "2e6551f2c758b18f4a620d166b908a269297e9f1a74308c2ebd769dd8a474b98",
     "scripts/air_satisfaction_lib/poseidon2.py":
