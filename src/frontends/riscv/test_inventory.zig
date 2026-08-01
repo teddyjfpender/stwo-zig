@@ -173,6 +173,7 @@ test {
 
     // AIR: symbolic extraction for the uniqueness model.
     _ = @import("air/extract/mod.zig");
+    _ = @import("air/extract/runtime_program.zig");
     _ = @import("air/extract/symbolic.zig");
 
     // Shared primitives.
