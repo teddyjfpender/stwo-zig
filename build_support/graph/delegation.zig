@@ -223,6 +223,15 @@ fn commandFor(
     }
     if (b.user_input_options.get("target") != null or b.user_input_options.get("cpu") != null)
         command.addArg(b.fmt("-Dtarget={s}", .{triple}));
+    // `standardTargetOptions` resolves `-Dcpu`, but `zigTriple` intentionally
+    // contains only the architecture/OS/ABI. Preserve the caller's CPU model
+    // and feature expression across the focused sub-build boundary as well;
+    // otherwise every delegated product silently falls back to the target's
+    // baseline model (apple_m1 on aarch64-macos today).
+    if (b.user_input_options.get("cpu")) |cpu_option| switch (cpu_option.value) {
+        .scalar => |cpu| command.addArg(b.fmt("-Dcpu={s}", .{cpu})),
+        else => @panic("standard -Dcpu option must be a scalar"),
+    };
     if (options.identity) |identity| addIdentityArguments(b, command, identity);
     return command;
 }
