@@ -33,6 +33,72 @@ typedef struct {
     uint32_t source_slot;
 } StwoZigResidentRawColumn;
 
+// Stable counting-bucket layout for the quotient's small, dense batch key.
+// The shader consumes one contiguous descriptor range per batch instead of
+// scanning every descriptor once for every batch.  Stability is intentional:
+// it preserves the host's within-batch transcript-power order exactly.
+static bool stwo_zig_bucket_resident_raw_quotient_views(
+    NSData *mapped_view_data,
+    uint32_t view_count,
+    uint32_t batch_count,
+    NSData **views_out,
+    NSData **batch_offsets_out
+) {
+    if (views_out == NULL || batch_offsets_out == NULL) return false;
+    *views_out = nil;
+    *batch_offsets_out = nil;
+    if (mapped_view_data == nil || view_count == 0u || batch_count == 0u ||
+        mapped_view_data.length !=
+            (NSUInteger)view_count * sizeof(StwoZigResidentRawQuotientView) ||
+        (size_t)batch_count + 1u > SIZE_MAX / sizeof(uint32_t))
+        return false;
+
+    NSMutableData *offset_data = [NSMutableData dataWithLength:
+        ((NSUInteger)batch_count + 1u) * sizeof(uint32_t)];
+    NSMutableData *cursor_data = [NSMutableData dataWithLength:
+        (NSUInteger)batch_count * sizeof(uint32_t)];
+    NSMutableData *grouped_view_data = [NSMutableData dataWithLength:
+        (NSUInteger)view_count * sizeof(StwoZigResidentRawQuotientView)];
+    if (offset_data == nil || cursor_data == nil || grouped_view_data == nil)
+        return false;
+
+    const StwoZigResidentRawQuotientView *input = mapped_view_data.bytes;
+    uint32_t *offsets = offset_data.mutableBytes;
+    for (uint32_t view_index = 0u; view_index < view_count; ++view_index) {
+        uint32_t batch = input[view_index].batch;
+        if (batch >= batch_count || offsets[batch + 1u] == UINT32_MAX)
+            return false;
+        offsets[batch + 1u] += 1u;
+    }
+    for (uint32_t batch = 0u; batch < batch_count; ++batch) {
+        if (offsets[batch + 1u] > UINT32_MAX - offsets[batch]) return false;
+        offsets[batch + 1u] += offsets[batch];
+    }
+    if (offsets[batch_count] != view_count) return false;
+
+    uint32_t *cursors = cursor_data.mutableBytes;
+    memcpy(cursors, offsets, (NSUInteger)batch_count * sizeof(uint32_t));
+    StwoZigResidentRawQuotientView *grouped = grouped_view_data.mutableBytes;
+    for (uint32_t view_index = 0u; view_index < view_count; ++view_index) {
+        uint32_t batch = input[view_index].batch;
+        uint32_t destination = cursors[batch]++;
+        if (destination >= offsets[batch + 1u]) return false;
+        grouped[destination] = input[view_index];
+    }
+    for (uint32_t batch = 0u; batch < batch_count; ++batch) {
+        if (cursors[batch] != offsets[batch + 1u]) return false;
+        for (uint32_t view_index = offsets[batch];
+             view_index < offsets[batch + 1u];
+             ++view_index) {
+            if (grouped[view_index].batch != batch) return false;
+        }
+    }
+
+    *views_out = [grouped_view_data copy];
+    *batch_offsets_out = [offset_data copy];
+    return *views_out != nil && *batch_offsets_out != nil;
+}
+
 static bool stwo_zig_raw_quotient_view_geometry_is_valid(
     const StwoZigRawQuotientView *view,
     uint32_t row_count,
@@ -59,8 +125,8 @@ static bool stwo_zig_raw_quotient_view_geometry_is_valid(
 // supplied by this proof.  Admission is all-or-nothing: any host column,
 // duplicate/reordered tree, fifth source buffer, malformed geometry, or offset
 // ambiguity returns false and the caller keeps the established segmented path.
-// Views are emitted in their original column-major/batch-major order; that is
-// the order in which the host attached the transcript random-power weights.
+// Views are stably grouped by batch after source mapping.  The grouping changes
+// no coefficient assignment and preserves original order inside every batch.
 static bool stwo_zig_prepare_resident_multi_source_quotient(
     const uint32_t *const *raw_columns,
     const size_t *raw_column_lengths,
@@ -71,11 +137,14 @@ static bool stwo_zig_prepare_resident_multi_source_quotient(
     uint32_t row_count,
     uint32_t batch_count,
     NSArray<id<MTLBuffer>> **sources_out,
-    NSData **views_out
+    NSData **views_out,
+    NSData **batch_offsets_out
 ) {
-    if (sources_out == NULL || views_out == NULL) return false;
+    if (sources_out == NULL || views_out == NULL || batch_offsets_out == NULL)
+        return false;
     *sources_out = nil;
     *views_out = nil;
+    *batch_offsets_out = nil;
     if (raw_columns == NULL || raw_column_lengths == NULL ||
         raw_column_count == 0u || resident_trees.count == 0u ||
         views == NULL || view_count == 0u)
@@ -190,21 +259,38 @@ static bool stwo_zig_prepare_resident_multi_source_quotient(
     }
     if (!column_seen || column_index + 1u != raw_column_count) return false;
 
+    NSData *grouped_views = nil;
+    NSData *batch_offsets = nil;
+    if (!stwo_zig_bucket_resident_raw_quotient_views(
+            mapped_view_data,
+            view_count,
+            batch_count,
+            &grouped_views,
+            &batch_offsets))
+        return false;
+
     *sources_out = [sources copy];
-    *views_out = [mapped_view_data copy];
-    return *sources_out != nil && *views_out != nil;
+    *views_out = grouped_views;
+    *batch_offsets_out = batch_offsets;
+    return *sources_out != nil && *views_out != nil && *batch_offsets_out != nil;
 }
 
-static NSData *stwo_zig_raw_quotient_views_for_single_source(
+static bool stwo_zig_prepare_raw_quotient_views_for_single_source(
     const void *views,
-    uint32_t view_count
+    uint32_t view_count,
+    uint32_t batch_count,
+    NSData **views_out,
+    NSData **batch_offsets_out
 ) {
+    if (views_out == NULL || batch_offsets_out == NULL) return false;
+    *views_out = nil;
+    *batch_offsets_out = nil;
     if (views == NULL || view_count == 0u ||
         (size_t)view_count > SIZE_MAX / sizeof(StwoZigResidentRawQuotientView))
-        return nil;
+        return false;
     NSMutableData *mapped_view_data = [NSMutableData dataWithLength:
         (NSUInteger)view_count * sizeof(StwoZigResidentRawQuotientView)];
-    if (mapped_view_data == nil) return nil;
+    if (mapped_view_data == nil) return false;
     const StwoZigRawQuotientView *input_views =
         (const StwoZigRawQuotientView *)views;
     StwoZigResidentRawQuotientView *mapped_views = mapped_view_data.mutableBytes;
@@ -223,7 +309,13 @@ static NSData *stwo_zig_raw_quotient_views_for_single_source(
             .source_slot = 0u,
         };
     }
-    return [mapped_view_data copy];
+    return stwo_zig_bucket_resident_raw_quotient_views(
+        mapped_view_data,
+        view_count,
+        batch_count,
+        views_out,
+        batch_offsets_out
+    );
 }
 
 static size_t stwo_zig_quotient_raw_source_run_count(
@@ -419,6 +511,7 @@ bool stwo_zig_metal_compute_quotients(
         }
         NSArray<id<MTLBuffer>> *resident_quotient_sources = nil;
         NSData *resident_quotient_views = nil;
+        NSData *resident_quotient_batch_offsets = nil;
         bool resident_multi_source = false;
         id<MTLBuffer> flat_buffer;
         size_t raw_len = 0;
@@ -471,7 +564,8 @@ bool stwo_zig_metal_compute_quotients(
                     row_count,
                     batch_count,
                     &resident_quotient_sources,
-                    &resident_quotient_views
+                    &resident_quotient_views,
+                    &resident_quotient_batch_offsets
                 );
             gpu_flat_pack =
                 large_segment_candidate && !resident_multi_source && !gpu_raw_upload;
@@ -510,9 +604,19 @@ bool stwo_zig_metal_compute_quotients(
             [runtime.device newBufferWithBytes:views
                                         length:(NSUInteger)view_count * 5u * sizeof(uint32_t)
                                        options:MTLResourceStorageModeShared];
-        NSData *single_source_raw_views = raw_views && !resident_multi_source && !gpu_raw_upload
-            ? stwo_zig_raw_quotient_views_for_single_source(views, view_count)
-            : nil;
+        NSData *single_source_raw_views = nil;
+        NSData *single_source_batch_offsets = nil;
+        if (raw_views && !resident_multi_source && !gpu_raw_upload &&
+            !stwo_zig_prepare_raw_quotient_views_for_single_source(
+                views,
+                view_count,
+                batch_count,
+                &single_source_raw_views,
+                &single_source_batch_offsets)) {
+            write_error(error_message, error_message_len,
+                        @"Metal quotient batch-index planning failed");
+            return false;
+        }
         id<MTLBuffer> raw_view_buffer = resident_multi_source
             ? [runtime.device newBufferWithBytes:resident_quotient_views.bytes
                                           length:resident_quotient_views.length
@@ -522,6 +626,14 @@ bool stwo_zig_metal_compute_quotients(
                                               length:single_source_raw_views.length
                                              options:MTLResourceStorageModeShared]
                 : nil);
+        NSData *raw_batch_offsets = resident_multi_source
+            ? resident_quotient_batch_offsets
+            : single_source_batch_offsets;
+        id<MTLBuffer> raw_batch_offset_buffer = raw_batch_offsets == nil
+            ? nil
+            : [runtime.device newBufferWithBytes:raw_batch_offsets.bytes
+                                          length:raw_batch_offsets.length
+                                         options:MTLResourceStorageModeShared];
         id<MTLBuffer> sample_buffer = [runtime.device newBufferWithBytes:sample_components
                                                                   length:(NSUInteger)batch_count * 8u * sizeof(uint32_t)
                                                                  options:MTLResourceStorageModeShared];
@@ -580,6 +692,7 @@ bool stwo_zig_metal_compute_quotients(
         if (flat_buffer == nil || (!raw_views && view_buffer == nil) ||
             (resident_multi_source && raw_view_buffer == nil) ||
             (raw_views && !resident_multi_source && !gpu_raw_upload && raw_view_buffer == nil) ||
+            (raw_views && !gpu_raw_upload && raw_batch_offset_buffer == nil) ||
             sample_buffer == nil ||
             linear_buffer == nil || x_buffer == nil || y_buffer == nil || output_buffer == nil) {
             write_error(error_message, error_message_len, @"Metal quotient allocation failed");
@@ -886,6 +999,7 @@ bool stwo_zig_metal_compute_quotients(
                 [encoder setBuffer:y_buffer offset:y_offset atIndex:10];
                 [encoder setBuffer:output_buffer offset:0u atIndex:11];
                 [encoder setBytes:&row_count length:sizeof(row_count) atIndex:12];
+                [encoder setBuffer:raw_batch_offset_buffer offset:0u atIndex:13];
             } else {
                 [encoder setBuffer:flat_buffer offset:0 atIndex:0];
                 [encoder setBuffer:view_buffer offset:0 atIndex:1];
