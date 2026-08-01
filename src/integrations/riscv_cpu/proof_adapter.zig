@@ -91,7 +91,16 @@ pub fn run(
     if (comptime @hasDecl(Engine, "warmup")) try Engine.warmup();
     const process_identity = try artifact_validation.measureProcessIdentity(allocator);
     return switch (options.mode) {
-        .prove => runProve(Engine, backend, allocator, elf_path, input_path, options, process_identity),
+        .prove => runProve(
+            Engine,
+            backend,
+            allocator,
+            elf_path,
+            input_path,
+            options,
+            process_identity,
+            false,
+        ),
         .bench => |benchmark| runBenchmark(
             Engine,
             backend,
@@ -113,6 +122,7 @@ fn runProve(
     input_path: ?[]const u8,
     options: Options,
     process_identity: ProcessIdentity,
+    emit_stage_profile: bool,
 ) ![]u8 {
     const proof_temporary = options.proof_temporary orelse return error.AdapterNotReleaseGated;
     var total_timer = try std.time.Timer.start();
@@ -220,6 +230,11 @@ fn runProve(
     }
     var profile = try recorder.snapshot(allocator);
     defer profile.deinit(allocator);
+    if (emit_stage_profile) {
+        const encoded_profile = try std.json.Stringify.valueAlloc(allocator, profile, .{});
+        defer allocator.free(encoded_profile);
+        std.log.info("RISC-V stage profile: {s}", .{encoded_profile});
+    }
     const witness_seconds = witnessSeconds(profile.stages);
     const proving_seconds = @max(0.0, proving_with_witness_seconds - witness_seconds);
     var proof_owned = true;
@@ -489,7 +504,7 @@ fn runBenchmark(
             .experimental = options.experimental,
             .proof_temporary = path,
             .proof_report_path = if (keep_artifact) options.proof_report_path else null,
-        }, process_identity);
+        }, process_identity, benchmark.profiled and is_sample);
         defer allocator.free(report_raw);
         const elapsed = seconds(timer.read());
 
