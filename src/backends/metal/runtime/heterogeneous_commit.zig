@@ -472,7 +472,8 @@ test "heterogeneous commit sort order is log then canonical index" {
         .{ .log_size = 6, .values = &.{} },
     };
     var order = [_]usize{ 0, 1, 2, 3 };
-    std.sort.heap(usize, &order, &columns, canonicalColumnLessThan);
+    const column_context: []const ColumnEvaluation = &columns;
+    std.sort.heap(usize, &order, column_context, canonicalColumnLessThan);
     try std.testing.expectEqualSlices(usize, &.{ 1, 3, 0, 2 }, &order);
 }
 

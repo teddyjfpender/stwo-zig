@@ -59,7 +59,7 @@ const Engine = metal.PlainMetalProverEngine;
 | Commitments | `MetalCommitBackend`, `MetalMerkleTree`, `commit_backend`, `merkle_tree`, `commit_policy` |
 | Proving | `MetalProverEngine`, `PlainMetalProverEngine`, `prover_engine`, `protocol_recipes`, `recipes` |
 | Reliability | `recovery`, `telemetry`, `source_contract` |
-| Generated/device assets | `shaders` |
+| Generated/device assets | `shaders`, `riscv_polynomial_codegen` |
 
 Prefer the typed engine or an integration package over reaching into runtime
 submodules. Low-level runtime APIs require explicit lifecycle, ownership, and

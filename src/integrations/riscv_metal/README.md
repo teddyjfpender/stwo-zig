@@ -53,6 +53,7 @@ defer statement.deinit(allocator);
 | `proveRiscVWithPublicData` | Bind explicit public data |
 | `verifyRiscV` | Verify proof, statement, and interaction claim |
 | `proveAndVerifyElf` | Execute, prove, and verify an ELF |
+| `riscv_polynomial_codegen` | Authenticated RISC-V Metal polynomial codegen assets |
 
 ## Dependencies
 

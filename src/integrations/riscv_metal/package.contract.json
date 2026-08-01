@@ -21,6 +21,7 @@
     "proveRiscV",
     "proveRiscVWithPublicData",
     "proveRiscVWithRecorder",
+    "riscv_polynomial_codegen",
     "verifyRiscV"
   ],
   "api_contract": {
