@@ -405,17 +405,15 @@ kernel void stwo_zig_quotient_rows_raw(
     device const uint *domain_y [[buffer(10)]],
     device uint *output [[buffer(11)]],
     constant uint &row_count [[buffer(12)]],
-    device const uint *batch_offsets [[buffer(13)]],
     uint row [[thread_position_in_grid]]
 ) {
     if (row >= row_count) return;
-    if (batch_offsets[0] != 0u || batch_offsets[batch_count] != view_count) return;
     Qm31Value accumulator = { 0u, 0u, 0u, 0u };
     for (uint batch = 0; batch < batch_count; ++batch) {
         Qm31Value numerator_sum = { 0u, 0u, 0u, 0u };
-        uint view_end = batch_offsets[batch + 1u];
-        for (uint view_index = batch_offsets[batch]; view_index < view_end; ++view_index) {
+        for (uint view_index = 0; view_index < view_count; ++view_index) {
             ResidentRawQuotientView view = views[view_index];
+            if (view.batch != batch) continue;
             uint source = view.direct != 0u
                 ? row
                 : ((row >> view.shift) << 1u) | (row & 1u);
