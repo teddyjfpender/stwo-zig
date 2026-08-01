@@ -3,6 +3,7 @@
 const std = @import("std");
 const build_identity = @import("../build_identity.zig");
 const cairo_oracle_gate = @import("cairo_cpu/oracle_gate.zig");
+const cairo_csp_fixtures = @import("cairo_cpu/csp_fixtures.zig");
 const cairo_support = @import("cairo_support.zig");
 const cairo_witness_cpu_aot = @import("cairo_witness_cpu_aot.zig");
 const cairo_vm_adapter = @import("cairo_cpu/vm_adapter.zig");
@@ -123,6 +124,7 @@ pub fn addProduct(context: Context) void {
     cairo_support.linkBzip2(context.b, installed.executable);
     installed.build_step.dependOn(cairo_vm_adapter.addInstall(context.b));
     cairo_support.installProfile(context.b, installed.build_step);
+    cairo_csp_fixtures.addSteps(context.b);
     _ = cairo_zkvm_fixtures.addStep(context.b);
 
     const test_stwo = createStwoModule(context, .@"test");
