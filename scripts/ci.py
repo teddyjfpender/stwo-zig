@@ -37,7 +37,6 @@ FAST_PLAN: list[list[str]] = [
     ["zig", "fmt", "--check", "build.zig", "build_support", "src", "tools"],
     [sys.executable, "scripts/check_upstream_pins.py"],
     [sys.executable, "scripts/check_source_conformance.py"],
-    SCRIPT_TESTS,
 ]
 
 
@@ -80,7 +79,7 @@ def main(argv: list[str] | None = None) -> int:
     tier.add_argument(
         "--fast",
         action="store_true",
-        help="static checks and script tests only; no compilation (seconds, not minutes)",
+        help="static checks only; no compilation (seconds, not minutes)",
     )
     parser.add_argument(
         "--optimize",

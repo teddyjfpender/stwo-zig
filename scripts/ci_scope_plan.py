@@ -218,13 +218,10 @@ def select_lanes(
     bindings = ci_package_graph.lane_packages(policy, packages)
     paths = sorted({normalize_path(path) for path in changed_paths})
     if full_matrix:
-        # Post-merge safety net: pushes to main re-run every hosted lane
-        # regardless of the diff, so a HOSTED-lane selection mistake cannot
-        # reach main unnoticed and every hosted lane's compiler cache stays
-        # warm for the next PR. Lanes marked hosted=false run on scarce
-        # self-hosted hardware that must not be summoned by unrelated merges;
-        # they keep the diff-scoped selection on push, exactly as they had
-        # before the full-matrix expansion existed.
+        # Scheduled safety net: re-run every hosted lane regardless of the
+        # diff so selection mistakes are detected without putting the full
+        # matrix on every merge's critical path. Lanes marked hosted=false run
+        # on scarce self-hosted hardware and remain diff-scoped.
         hosted = [
             lane
             for lane in sorted(policy["lanes"])
@@ -366,7 +363,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--full-matrix",
         action="store_true",
-        help="select every lane regardless of the diff (post-merge safety net)",
+        help="select every hosted lane regardless of the diff (scheduled safety net)",
     )
     args = parser.parse_args(argv)
     try:

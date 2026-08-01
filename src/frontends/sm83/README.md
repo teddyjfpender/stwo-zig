@@ -221,6 +221,8 @@ python3 scripts/sm83_frontend_gate.py
 Use the narrowest local command that owns the change:
 
 ```sh
+zig build test-isa --build-file src/frontends/sm83/build.zig -Doptimize=ReleaseSafe
+zig build test-runner --build-file src/frontends/sm83/build.zig -Doptimize=ReleaseSafe
 python3 scripts/sm83_frontend_gate.py --opcode 80
 python3 scripts/sm83_frontend_gate.py --opcode cb:11
 python3 scripts/sm83_frontend_gate.py --family increment_decrement8
@@ -572,7 +574,24 @@ The importer retains SameBoy's exact raw APU, DMA, and video sections rather tha
 pretending their hidden timing state is equivalent to the frontend's smaller
 device models.
 
-All `_ROGUE_FAST` profiles use this exact external artifact bundle:
+The external source and fixture bundle are pinned by `conformance/upstream.md`.
+From the `stwo-zig` root, hydrate the default sibling path with:
+
+```sh
+mkdir -p ../PE-AGI
+git clone --branch v1.0.0 https://github.com/teddyjfpender/PE-AGI.git ../PE-AGI/v1
+gh release download v1.0.0 --repo teddyjfpender/PE-AGI \
+  --pattern pe-agi-v1-proof-fixtures.tar.gz --dir /tmp
+openssl dgst -sha256 /tmp/pe-agi-v1-proof-fixtures.tar.gz
+tar -xzf /tmp/pe-agi-v1-proof-fixtures.tar.gz -C ../PE-AGI/v1
+make -C ../PE-AGI/v1 validate-fast-e2e validate-fast-benchmark
+```
+
+The expected archive SHA-256 is
+`b6c4cab23465d8f8dcb18307859d5e5ddde4e29aab8602c49a629c1200fa1791`.
+The release contains no ROM; the final command builds and validates the two
+ROM inputs from the pinned source. All `_ROGUE_FAST` profiles then use this
+exact external artifact bundle:
 
 | Artifact | Relative path under `PE-AGI/v1` | Bytes / records | SHA-256 |
 | --- | --- | ---: | --- |

@@ -267,6 +267,7 @@ test "wide Fibonacci component: OODS quotient and coefficient order match scalar
             try std.testing.expectEqual(@as(usize, 1), recurrence.trace_tree_index);
             try std.testing.expectEqual(@as(usize, 0), recurrence.first_column);
         },
+        else => return error.UnexpectedBackendCompositionCapability,
     }
 
     var actual = core_air_accumulation.PointEvaluationAccumulator.init(alpha);

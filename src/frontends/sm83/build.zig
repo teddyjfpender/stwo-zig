@@ -3,6 +3,11 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const check_only = b.option(
+        bool,
+        "check-only",
+        "Type-check focused roots without emitting or running test binaries",
+    ) orelse false;
     const core = b.dependency("stwo_core", .{
         .target = target,
         .optimize = optimize,
@@ -26,6 +31,26 @@ pub fn build(b: *std.Build) void {
     const tests = b.addRunArtifact(b.addTest(.{ .root_module = frontend }));
     const test_step = b.step("test", "Compile and test the stwo_sm83_frontend package");
     test_step.dependOn(&tests.step);
+
+    const isa_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("isa/mod.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    b.step("test-isa", "Run only SM83 opcode-table and decoder tests")
+        .dependOn(if (check_only) &isa_tests.step else &b.addRunArtifact(isa_tests).step);
+
+    const runner_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("runner_test_root.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    b.step("test-runner", "Run only SM83 instruction-runner tests")
+        .dependOn(if (check_only) &runner_tests.step else &b.addRunArtifact(runner_tests).step);
 
     const checkpoint_tests = b.addRunArtifact(b.addTest(.{
         .root_module = b.createModule(.{

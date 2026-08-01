@@ -12,6 +12,12 @@ const observation =
     @import("air/intermediate_ram_observation_lookup.zig");
 const ppu_binding = @import("air/ppu_binding.zig");
 
+pub const PE_AGI_REPOSITORY = "https://github.com/teddyjfpender/PE-AGI";
+pub const PE_AGI_REVISION = "619058c9a4bef2a3aa6fadc2d559c43d7d2026ae";
+pub const PE_AGI_RELEASE = "v1.0.0";
+pub const PE_AGI_FIXTURES_SHA256 =
+    "b6c4cab23465d8f8dcb18307859d5e5ddde4e29aab8602c49a629c1200fa1791";
+
 pub const Artifacts = struct {
     rom_path: []const u8,
     rom_sha256: []const u8,
