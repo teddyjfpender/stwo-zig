@@ -184,6 +184,7 @@ test {
 
     // Proof orchestration.
     _ = @import("prover/lookup_sources.zig");
+    _ = @import("prover/opcode_trace.zig");
     _ = @import("prover/preprocessed.zig");
     _ = @import("prover/proof_workspace.zig");
     _ = @import("prover/statement_validation.zig");

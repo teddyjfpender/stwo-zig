@@ -97,6 +97,14 @@ pub fn addSuites(b: *std.Build, suites: []const Suite) *std.Build.Step {
     var guarded = filter != null;
     for (suites, runs) |suite, *run| {
         run.* = b.addRunArtifact(suite.tests);
+        // Production ReleaseFast proving avoids re-evaluating the direct AIR
+        // before commitment. RISC-V test/CI runs deliberately restore that
+        // diagnostic pass so malformed generated witnesses keep their exact
+        // early-rejection coverage in every optimization mode.
+        run.*.setEnvironmentVariable(
+            "STWO_ZIG_RISCV_AUDIT_OPCODE_WITNESS",
+            "1",
+        );
         if (suite.minimum != 0) guarded = true;
     }
     // Both duties read the run's test-name table, which only the invocation that

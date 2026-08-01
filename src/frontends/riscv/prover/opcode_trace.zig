@@ -1,9 +1,11 @@
 //! Parallel generation and ownership of committed opcode-family columns.
 
 const std = @import("std");
+const builtin = @import("builtin");
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const work_pool = @import("stwo_prover_engine").work_pool;
+const diagnostics = @import("../diagnostics/mod.zig");
 const infra = @import("../infra_trace.zig");
 const semantic_eval = @import("../air/semantic_eval.zig");
 const statement_mod = @import("../air/statement.zig");
@@ -239,8 +241,30 @@ pub fn generate(
             domain_sizes[component_index],
         );
     }
-    try validateDirectSemantics(allocator, statement, &result);
+    // The proof composition evaluates these exact direct constraints again.
+    // Keep the earlier, more local diagnostic in safety-oriented builds and
+    // explicit audits, but do not make every ReleaseFast proof pay both full
+    // domain passes. A malformed witness still fails closed in the proof /
+    // verifier path; the audit only moves that rejection before commitment and
+    // adds the exact family, row, and constraint diagnostic below.
+    if (directSemanticAuditEnabled()) {
+        try validateDirectSemantics(allocator, statement, &result);
+    }
     return result;
+}
+
+fn directSemanticAuditEnabled() bool {
+    return directSemanticAuditEnabledFor(
+        builtin.mode,
+        std.process.hasEnvVarConstant(diagnostics.OPCODE_WITNESS_AUDIT_ENV),
+    );
+}
+
+fn directSemanticAuditEnabledFor(
+    mode: std.builtin.OptimizeMode,
+    explicitly_requested: bool,
+) bool {
+    return mode != .ReleaseFast or explicitly_requested;
 }
 
 /// Fail before committing a family witness whose direct AIR constraints do
@@ -296,4 +320,60 @@ fn deinitPlacements(
         if (placement.*) |table| table.deinit(allocator);
         placement.* = null;
     }
+}
+
+test "opcode witness semantic audit is default-safe and ReleaseFast opt-in" {
+    try std.testing.expect(directSemanticAuditEnabledFor(.Debug, false));
+    try std.testing.expect(directSemanticAuditEnabledFor(.ReleaseSafe, false));
+    try std.testing.expect(directSemanticAuditEnabledFor(.ReleaseSmall, false));
+    try std.testing.expect(!directSemanticAuditEnabledFor(.ReleaseFast, false));
+    try std.testing.expect(directSemanticAuditEnabledFor(.ReleaseFast, true));
+}
+
+test "opcode witness semantic audit rejects a forged generated row" {
+    const allocator = std.testing.allocator;
+    var exec_trace = trace.Trace.init(allocator);
+    defer exec_trace.deinit();
+    try exec_trace.append(.{
+        .clk = 1,
+        .pc = 0x1000,
+        .opcode = .ADDI,
+        .rd = 1,
+        .rs1 = 0,
+        .rs2 = 0,
+        .imm = 1,
+        .rs1_val = 0,
+        .rs2_val = 0,
+        .rd_val = 2,
+        .mem_addr = 0,
+        .mem_val = 0,
+        .is_load = false,
+        .is_store = false,
+        .branch_taken = false,
+        .next_pc = 0x1004,
+        .inst_word = 0x00100093,
+    });
+
+    var columns: Columns = undefined;
+    columns.components[0] = try exec_trace.columnsForFamily(
+        allocator,
+        .base_alu_imm,
+        4,
+    );
+    defer columns.components[0].deinit(allocator);
+
+    var statement: statement_mod.RiscVStatement = undefined;
+    statement.n_components = 1;
+    statement.component_descs[0] = .{
+        .family = .base_alu_imm,
+        .log_size = 4,
+        .n_rows = 1,
+        .n_columns = trace.nColumnsForFamily(.base_alu_imm),
+    };
+    statement.n_infra = 0;
+
+    try std.testing.expectError(
+        error.InvalidSemanticWitness,
+        validateDirectSemantics(allocator, statement, &columns),
+    );
 }
