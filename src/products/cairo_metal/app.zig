@@ -43,7 +43,7 @@ pub const Product = struct {
     pub fn compositionDevice(
         asset_path: []const u8,
     ) ?package.frontends.cairo.proving.air.device_stage.Device {
-        return package.integrations.cairo_metal.composition_stage.device(asset_path);
+        return package.integrations.cairo_metal.composition_stage.productDevice(asset_path);
     }
 
     pub const ProofContext = struct {
@@ -145,6 +145,25 @@ test "Cairo Metal application requires no-fallback telemetry" {
         &metal_aot_config.manifest_sha256,
         &([_]u8{0} ** 32),
     ));
+    _ = &package.integrations.cairo_metal.composition_stage.productDevice;
+}
+
+test "composition decline cannot claim fallback-free product evidence" {
+    const delta: backend_transaction.TelemetryDelta = .{
+        .counters = .{
+            .resident_merkle_commits = 1,
+            .cpu_composition_evaluations = 1,
+        },
+        .pipeline_cache = .{},
+    };
+    try std.testing.expectEqual(
+        package.backends.metal.telemetry.Classification.accelerated_with_fallbacks,
+        delta.classification(),
+    );
+    try std.testing.expectError(
+        error.CpuFallbackObserved,
+        delta.requireAcceleratedWithoutFallbacks(),
+    );
 }
 
 test "Cairo Metal host writers cover every authenticated program" {

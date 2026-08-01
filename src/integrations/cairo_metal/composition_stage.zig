@@ -20,15 +20,14 @@
 //!
 //! `open` is the only place a decision is made, and it makes three:
 //!
-//! 1. **The library.** `composition_aot.authenticate` under the process policy —
-//!    the checked-in manifest by default. A rejection declines the whole stage
-//!    and the proof runs the unchanged host composition path. This is *not*
-//!    counted as a CPU fallback, and the reason is worth stating: before this
-//!    increment every Metal Cairo proof evaluated composition on the host with
-//!    `cpu_fallbacks = 0`, so a decline returns the proof to exactly the path
-//!    the whole campaign has been measuring. Calling that a fallback would
-//!    retroactively mis-classify every proof in the record. It is recorded as a
-//!    `composition_device_declined` stage marker and logged at error level.
+//! 1. **The library.** The product constructor uses
+//!    `composition_aot.authenticateEvalDomainForProduct`, pinned to the artifact
+//!    named by product identity. The diagnostic constructor retains the process
+//!    policy. A rejection declines the whole stage
+//!    and the proof runs the unchanged host composition path. Once the stage is
+//!    armed, that decline is counted as `cpu_composition_evaluation`; the Cairo
+//!    product's no-fallback publication gate then rejects the result. The
+//!    default, unarmed host placement remains a placement and records nothing.
 //! 2. **The arena.** Every expressible component is planned
 //!    (`composition_eval_arena.plan`) and the shared buffer is sized to the
 //!    largest plan. A planning refusal or a plan over the byte cap declines the
@@ -103,28 +102,42 @@ comptime {
 pub const enable_env = "STWO_ZIG_COMPOSITION_DEVICE";
 /// Overrides the metallib path. This is how the fail-closed test points the
 /// product at a corrupted copy: it names a different artifact, it never relaxes
-/// the digest policy (`composition_aot.policy_env` does that, by naming a
-/// digest).
+/// the digest policy. `composition_aot.policy_env` can name a digest only for
+/// the diagnostic constructor; the product constructor ignores it.
 pub const metallib_env = "STWO_ZIG_COMPOSITION_METALLIB";
 /// The Option-A eval-domain library, which sits beside the AIR template library
 /// it was minted from rather than a directory above it like the superseded SN2
 /// artifact did.
 pub const metallib_leaf = "air_template_composition_eval_domain.metallib";
 
+const AdmissionPolicy = enum {
+    approved_product,
+    process,
+};
+
 const Config = struct {
     /// A directory to look for the metallib in, derived from an asset path the
     /// product already resolves. Never owned.
     search_root: ?[]const u8 = null,
+    admission_policy: AdmissionPolicy,
 };
 
-var config: Config = .{};
+var product_config: Config = .{ .admission_policy = .approved_product };
+var process_config: Config = .{ .admission_policy = .process };
 
-/// Builds the injectable device. `asset_path` is any resolved Cairo vector path;
-/// its grandparent directory is searched for the metallib, which is where the
-/// checked-in artifact lives relative to the AIR template library.
+/// Builds the product's injectable device. Product identity names the exact
+/// eval-domain digest, so this route ignores the process digest policy.
+pub fn productDevice(asset_path: ?[]const u8) device_stage.Device {
+    product_config.search_root = asset_path;
+    return .{ .context = &product_config, .open = openAdapter };
+}
+
+/// Builds a diagnostic injectable device. Tools retain the explicit process
+/// digest override, but use storage distinct from the product constructor so a
+/// diagnostic call cannot change the product admission policy.
 pub fn device(asset_path: ?[]const u8) device_stage.Device {
-    config = .{ .search_root = asset_path };
-    return .{ .context = &config, .open = openAdapter };
+    process_config.search_root = asset_path;
+    return .{ .context = &process_config, .open = openAdapter };
 }
 
 const Entry = struct {
@@ -174,9 +187,18 @@ fn openAdapter(
 ) anyerror!?device_stage.Session {
     const self: *Config = @ptrCast(@alignCast(context));
     return open(self.*, allocator, components) catch |err| {
-        std.log.err("device composition stage declined: {t}", .{err});
+        recordWholeStageDecline(err);
         return null;
     };
+}
+
+fn recordWholeStageDecline(err: anyerror) void {
+    // Both AOT admission wrappers already record and log rejection before
+    // mapping it to this stage-local error. Every other armed-stage error is
+    // recorded here exactly once before the frontend resumes host evaluation.
+    if (err == error.CompositionAotAdmissionDeclined) return;
+    telemetry.record(.cpu_composition_evaluation);
+    std.log.err("device composition stage declined: {t}", .{err});
 }
 
 fn open(
@@ -191,10 +213,10 @@ fn open(
     const path = try resolveMetallib(allocator, settings);
     defer allocator.free(path);
     // Integrity before load, and a rejection is terminal for this path.
-    const admission = try composition_aot.authenticate(
-        path,
-        try composition_aot.policyFromProcess(allocator),
-    );
+    const admission = switch (settings.admission_policy) {
+        .approved_product => composition_aot.authenticateEvalDomainForProduct(path),
+        .process => composition_aot.authenticateFromProcess(allocator, path),
+    } catch return error.CompositionAotAdmissionDeclined;
     std.log.info(
         "device composition metallib admitted: {s} ({s}, {d} bytes)",
         .{ admission.label orelse "pinned", &admission.measurement.hex(), admission.measurement.length },
@@ -231,7 +253,7 @@ fn open(
         peak_words = @max(peak_words, component_plan.words);
         max_columns = @max(max_columns, component_plan.columns);
     }
-    if (planned == 0) return null;
+    if (planned == 0) return error.NoExpressibleCompositionComponents;
 
     var library = try lease.runtime.loadEvalLibrary(path);
     var library_owned = true;
@@ -277,7 +299,7 @@ fn open(
         accepted_flag.* = true;
         accepted += 1;
     }
-    if (accepted == 0) return null;
+    if (accepted == 0) return error.NoAuthenticatedCompositionKernels;
 
     var arena = try lease.runtime.allocateResidentBuffer(peak_words * @sizeOf(u32));
     var arena_owned = true;
@@ -395,7 +417,11 @@ fn closeAdapter(context: *anyopaque) void {
 
 fn evaluateAdapter(context: *anyopaque, request: *const device_stage.Request) anyerror!void {
     const self: *Session = @ptrCast(@alignCast(context));
-    return evaluate(self, request);
+    return evaluate(self, request) catch |err| {
+        telemetry.record(.cpu_composition_evaluation);
+        std.log.err("device composition evaluation declined: {t}", .{err});
+        return err;
+    };
 }
 
 fn evaluate(self: *Session, request: *const device_stage.Request) !void {
@@ -522,6 +548,25 @@ test "the enable switch and the path override are named, not guessed" {
     );
 }
 
+test "product and diagnostic constructors retain distinct admission policies" {
+    const product = productDevice("/product/air_template_library_v1.json");
+    const diagnostic = device("/diagnostic/air_template_library_v1.json");
+    const product_settings: *const Config = @ptrCast(@alignCast(product.context));
+    const diagnostic_settings: *const Config = @ptrCast(@alignCast(diagnostic.context));
+
+    try std.testing.expect(product.context != diagnostic.context);
+    try std.testing.expectEqual(AdmissionPolicy.approved_product, product_settings.admission_policy);
+    try std.testing.expectEqual(AdmissionPolicy.process, diagnostic_settings.admission_policy);
+    try std.testing.expectEqualStrings(
+        "/product/air_template_library_v1.json",
+        product_settings.search_root.?,
+    );
+    try std.testing.expectEqualStrings(
+        "/diagnostic/air_template_library_v1.json",
+        diagnostic_settings.search_root.?,
+    );
+}
+
 test "the default metallib path is the eval-domain entry in the approved manifest" {
     // The path the product resolves and the manifest entry that admits it must
     // not drift apart: a rename on one side has to fail here rather than at a
@@ -533,4 +578,12 @@ test "the default metallib path is the eval-domain entry in the approved manifes
     }
     try std.testing.expect(found);
     try std.testing.expect(std.mem.endsWith(u8, default_metallib_path, metallib_leaf));
+}
+
+test "armed whole-stage declines enter no-fallback evidence" {
+    const empty_cache = metal.PipelineCacheStats.zero();
+    const before = telemetry.capture(empty_cache).counters.cpu_composition_evaluations;
+    recordWholeStageDecline(error.NoAuthenticatedCompositionKernels);
+    const after = telemetry.capture(empty_cache).counters.cpu_composition_evaluations;
+    try std.testing.expectEqual(before + 1, after);
 }

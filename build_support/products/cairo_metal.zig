@@ -16,10 +16,22 @@ const graph = @import("../graph/modules.zig");
 const integration_graph = @import("../graph/integrations.zig");
 const policy = @import("../graph/product.zig");
 
+const composition_aot_source =
+    "vectors/cairo/official/air_template_composition_eval_domain.metallib";
+const composition_aot_install =
+    "share/stwo-zig/cairo/official/air_template_composition_eval_domain.metallib";
+const composition_aot_sha256 =
+    "06435e82fcae331f952e2eab66dfd58ecb4166b1197b554b336c033f845bacfb";
+const composition_aot_identity =
+    "cairo-composition-eval-domain-aot-v1:" ++
+    "label=air_template_composition_eval_domain_v1;" ++
+    "sha256=" ++ composition_aot_sha256 ++ ";length=5933764";
+
 const protocol_features =
     cairo_support.protocol_features ++
     "+metal-runtime-v2+plain-blake2s+authenticated-core-aot-v2" ++
-    "+authenticated-witness-cpu-aot-v1";
+    "+authenticated-witness-cpu-aot-v1" ++
+    "+authenticated-cairo-composition-eval-domain-aot-v1";
 
 const source_closure = policy.SourceClosure{
     .entry_roots = &.{
@@ -83,6 +95,7 @@ pub const descriptor = policy.Descriptor{
         "stwo-cairo-vm-adapter",
         "share/stwo-zig/cairo/official/all_opcodes.params.json",
         "share/stwo-zig/cairo/official/all_builtins.params.json",
+        composition_aot_install,
         "share/stwo-zig/metal/core/stwo_zig_core.air",
         "share/stwo-zig/metal/core/stwo_zig_core.manifest.json",
         "share/stwo-zig/metal/core/stwo_zig_core.manifest.sha256",
@@ -175,6 +188,7 @@ pub fn addProduct(context: Context) void {
     metal.linkRuntime(context.b, installed.executable);
     installed.build_step.dependOn(cairo_vm_adapter.addInstall(context.b));
     cairo_support.installProfile(context.b, installed.build_step);
+    installCompositionAot(context.b, installed.build_step);
     aot_bundle.install(context.b, installed.build_step);
 
     const test_stwo = createStwoModule(context, .@"test");
@@ -362,13 +376,40 @@ fn createProductModule(
             logical_product,
             context.target,
             context.optimize,
-            metal.authenticatedAotIdentity(
+            authenticatedRuntimeIdentity(
                 context.b,
                 &aot_bundle.manifest_sha256_hex,
             ),
         ),
     );
     return root;
+}
+
+fn authenticatedRuntimeIdentity(
+    b: *std.Build,
+    core_manifest_sha256: []const u8,
+) graph_identity.RuntimeHooks {
+    var identity = metal.authenticatedAotIdentity(
+        b,
+        core_manifest_sha256,
+    );
+    identity.runtime_manifest = b.fmt(
+        "{s};{s}",
+        .{ identity.runtime_manifest, composition_aot_identity },
+    );
+    identity.aot_manifest = b.fmt(
+        "{s};{s}",
+        .{ identity.aot_manifest, composition_aot_identity },
+    );
+    return identity;
+}
+
+fn installCompositionAot(b: *std.Build, owner: *std.Build.Step) void {
+    const install = b.addInstallFile(
+        b.path(composition_aot_source),
+        composition_aot_install,
+    );
+    owner.dependOn(&install.step);
 }
 
 fn product(role: graph.Role) graph.Product {
@@ -385,4 +426,15 @@ test "Cairo Metal is a focused parity-gated product" {
     try descriptor.validate();
     try std.testing.expect(descriptor.isConstructible());
     try std.testing.expectEqual(policy.State.parity_gated, descriptor.state);
+    try std.testing.expect(std.mem.indexOf(
+        u8,
+        protocol_features,
+        "authenticated-cairo-composition-eval-domain-aot-v1",
+    ) != null);
+    var installs_composition_aot = false;
+    for (descriptor.installed_artifacts) |artifact| {
+        if (std.mem.eql(u8, artifact, composition_aot_install))
+            installs_composition_aot = true;
+    }
+    try std.testing.expect(installs_composition_aot);
 }

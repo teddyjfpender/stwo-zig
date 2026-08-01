@@ -82,11 +82,16 @@ pub const ApprovedMetallib = struct {
 /// the checked-in blobs; per issue #124's closing comments they are *not*
 /// byte-reproducible across Xcode versions, so these are artifact identities,
 /// not build-recipe identities.
+pub const eval_domain_label = "air_template_composition_eval_domain_v1";
+pub const eval_domain_sha256_hex =
+    "06435e82fcae331f952e2eab66dfd58ecb4166b1197b554b336c033f845bacfb";
+pub const eval_domain_length: u64 = 5933764;
+
 pub const approved_metallibs = [_]ApprovedMetallib{
     .{
-        .label = "air_template_composition_eval_domain_v1",
-        .sha256_hex = "06435e82fcae331f952e2eab66dfd58ecb4166b1197b554b336c033f845bacfb",
-        .length = 5933764,
+        .label = eval_domain_label,
+        .sha256_hex = eval_domain_sha256_hex,
+        .length = eval_domain_length,
     },
     .{
         .label = "air_template_composition_stored_domain_v1",
@@ -395,18 +400,40 @@ pub fn policyFromProcess(allocator: std.mem.Allocator) !Policy {
 }
 
 /// Authenticates `path` under the process policy and returns its admission.
-/// Any error means "do not load"; callers must fall back to the host evaluator
-/// and record the fallback rather than retrying with a weaker policy.
+/// Any error means "do not load" and is recorded here before returning; callers
+/// may fall back to the host evaluator but must not retry with a weaker policy.
 pub fn authenticateFromProcess(allocator: std.mem.Allocator, path: []const u8) !Admission {
-    const policy = try policyFromProcess(allocator);
+    const policy = policyFromProcess(allocator) catch |err| {
+        // A malformed or unreadable process policy is itself an admission
+        // rejection. It must not escape the counter that makes proof
+        // publication fail closed.
+        recordRejection(path, err);
+        return err;
+    };
     return authenticate(path, policy) catch |err| {
         // Count the decline. A Metal proof that fell back to the host
         // evaluator because its composition library failed authentication must
         // not be able to report `accelerated_without_fallbacks`.
-        telemetry.record(.cpu_composition_evaluation);
-        std.log.err("composition metallib rejected: {s} ({t})", .{ path, err });
+        recordRejection(path, err);
         return err;
     };
+}
+
+/// Product admission is stricter than the diagnostic process policy: the
+/// generated Cairo Metal identity names the eval-domain artifact exactly, so
+/// neither the process digest override nor another approved manifest entry may
+/// substitute a different composition program beneath that identity.
+pub fn authenticateEvalDomainForProduct(path: []const u8) !Admission {
+    const expected = parseDigest(eval_domain_sha256_hex) catch unreachable;
+    return authenticate(path, .{ .pinned_digest = expected }) catch |err| {
+        recordRejection(path, err);
+        return err;
+    };
+}
+
+fn recordRejection(path: []const u8, err: anyerror) void {
+    telemetry.record(.cpu_composition_evaluation);
+    std.log.err("composition metallib rejected: {s} ({t})", .{ path, err });
 }
 
 test "the process policy defaults to the manifest" {
@@ -416,4 +443,35 @@ test "the process policy defaults to the manifest" {
     try std.testing.expectEqual(Policy.approved_manifest, policy);
     try std.testing.expect(policy.gates());
     try std.testing.expect(!(Policy{ .report_only = {} }).gates());
+}
+
+test "process-aware admission rejection enters no-fallback evidence" {
+    const empty_cache = @import("stwo_metal_backend").runtime.PipelineCacheStats.zero();
+    const before = telemetry.capture(empty_cache).counters.cpu_composition_evaluations;
+    try std.testing.expectError(
+        Error.InvalidCompositionMetallibPath,
+        authenticateFromProcess(
+            std.testing.allocator,
+            "/nonexistent/stwo-zig-cairo-composition.metallib",
+        ),
+    );
+    const after = telemetry.capture(empty_cache).counters.cpu_composition_evaluations;
+    try std.testing.expectEqual(before + 1, after);
+}
+
+test "product admission pins eval-domain identity, not the whole approved manifest" {
+    const admission = try authenticateEvalDomainForProduct(eval_domain_path);
+    try std.testing.expectEqualStrings(eval_domain_label, admission.label.?);
+    try std.testing.expectEqual(eval_domain_length, admission.measurement.length);
+
+    const empty_cache = @import("stwo_metal_backend").runtime.PipelineCacheStats.zero();
+    const before = telemetry.capture(empty_cache).counters.cpu_composition_evaluations;
+    try std.testing.expectError(
+        Error.CompositionMetallibDigestMismatch,
+        authenticateEvalDomainForProduct(
+            "vectors/cairo/official/air_template_composition_stored_domain.metallib",
+        ),
+    );
+    const after = telemetry.capture(empty_cache).counters.cpu_composition_evaluations;
+    try std.testing.expectEqual(before + 1, after);
 }
