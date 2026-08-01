@@ -105,9 +105,25 @@ class DelegatedIdentityCacheTest(unittest.TestCase):
             arguments.append("--allow-empty")
         self.git(repository, *arguments)
 
-    def build(self, repository: Path, prefix: Path) -> tuple[dict[str, object], str]:
+    def build(
+        self,
+        repository: Path,
+        prefix: Path,
+        *,
+        cpu: str | None = None,
+    ) -> tuple[dict[str, object], str]:
+        command = [
+            "zig",
+            "build",
+            "identity-probe",
+            "-p",
+            str(prefix),
+            "--verbose",
+        ]
+        if cpu is not None:
+            command.append(f"-Dcpu={cpu}")
         result = subprocess.run(
-            ["zig", "build", "identity-probe", "-p", str(prefix), "--verbose"],
+            command,
             cwd=repository,
             text=True,
             capture_output=True,
@@ -145,6 +161,10 @@ class DelegatedIdentityCacheTest(unittest.TestCase):
             )
             self.assertIn(f"-Dimplementation-tree={baseline['tree']}", baseline_build)
             self.assertIn("-Dimplementation-dirty=false", baseline_build)
+
+            _, cpu_build = self.build(repository, prefix, cpu="baseline")
+            self.assertIn("-Dcpu=baseline", cpu_build)
+
             self.commit(repository, "identity-only", allow_empty=True)
             commit_only, commit_build = self.build(repository, prefix)
             self.assertIn(
