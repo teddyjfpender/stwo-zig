@@ -16,7 +16,9 @@ pub fn generateLibrary(
     const writer = source.writer(allocator);
     try writer.writeAll(
         "// Generated from the production RISC-V typed AIR builders.\n" ++
-            "// Regenerate through runtime_program.zig; do not hand-edit.\n",
+            "// Generator: src/backends/metal/runtime/riscv_polynomial_aot_codegen.zig\n" ++
+            "// Regenerate: STWO_ZIG_REGENERATE_RISCV_POLYNOMIAL_AOT=1 zig build test-riscv-metal\n" ++
+            "// Do not hand-edit.\n",
     );
     try writer.writeAll(lookup_codegen.preamble);
     for (base_entries) |entry| {

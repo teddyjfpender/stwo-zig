@@ -1,5 +1,7 @@
 // Generated from the production RISC-V typed AIR builders.
-// Regenerate through runtime_program.zig; do not hand-edit.
+// Generator: src/backends/metal/runtime/riscv_polynomial_aot_codegen.zig
+// Regenerate: STWO_ZIG_REGENERATE_RISCV_POLYNOMIAL_AOT=1 zig build test-riscv-metal
+// Do not hand-edit.
 #include <metal_stdlib>
 using namespace metal;
 constant uint RISCV_M31_P = 0x7fffffffu;

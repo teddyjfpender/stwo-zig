@@ -97,6 +97,10 @@ jobs:
             echo "::notice title=riscv_metal deferred::RISC-V Metal device-execution lane selected but excluded from hosted macOS runners (GPU-less VMs). Covered by local pre-push on a real Mac / judge host."
             echo "- riscv_metal: deferred to local/judge-host runs (no Metal GPU on hosted runners)" >> "$GITHUB_STEP_SUMMARY"
           fi
+          if grep -q '"sm83_metal_integration"' "$RUNNER_TEMP/focused-ci-plan.json"; then
+            echo "::notice title=sm83_metal_integration deferred::SM83 Metal integration executes proofs and needs a real Metal device. Covered by local pre-push on a real Mac / judge host."
+            echo "- sm83_metal_integration: deferred to local/judge-host runs (no Metal GPU on hosted runners)" >> "$GITHUB_STEP_SUMMARY"
+          fi
           if grep -q '"cairo_metal"' "$RUNNER_TEMP/focused-ci-plan.json"; then
             echo "::notice title=cairo_metal deferred::Cairo Metal product lane selected but excluded from hosted macOS runners. It requires a real Metal device and an authenticated external AOT bundle."
             echo "- cairo_metal: deferred to a real-device judge host with STWO_METAL_CORE_AOT_BUNDLE" >> "$GITHUB_STEP_SUMMARY"
@@ -128,10 +132,13 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.focused-plan.outputs.linux_matrix) }}
     steps:
-      - name: Checkout exact source
+      - name: Checkout source and immutable policy history
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
         with:
-          fetch-depth: 1
+          # Static/script gates validate historical, commit-bound receipts and
+          # source conformance resolves the live merge base. A shallow Linux
+          # checkout makes both checks fail open or fail for missing objects.
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6

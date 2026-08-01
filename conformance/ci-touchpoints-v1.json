@@ -288,7 +288,8 @@
     },
     "sm83_metal_integration": {
       "host": "macos",
-      "description": "Independent SM83 frontend and Metal backend composition package",
+      "hosted": false,
+      "description": "Independent SM83 frontend and Metal backend composition package on a real Metal device",
       "commands": [
         ["zig", "build", "test", "--build-file", "src/integrations/sm83_metal/build.zig", "-Doptimize=ReleaseSafe", "-j2"],
         ["zig", "build", "test-machine-environment", "--build-file", "src/integrations/sm83_metal/build.zig", "-Doptimize=ReleaseSafe", "-j2"]
