@@ -67,7 +67,7 @@ zig build test-native-metal -Doptimize=ReleaseFast  # macOS with Metal
 | `stwo-native-metal` | macOS with Apple Metal | Parity-gated, source-JIT, device-only CLI |
 | `stwo-zig` | Zig-supported hosts | Released CPU aggregate; Metal only with `-Daggregate-metal=true` on macOS |
 | `stwo-zig-riscv-cpu` | Native host; static x86_64 Linux artifact | Release-gated RV32IM prove, verify, and benchmark CLI |
-| `stwo-zig-riscv-metal` | macOS with Apple Metal | Parity-gated, device-only RV32IM prove-and-verify CLI |
+| `stwo-zig-riscv-metal` | macOS with Apple Metal | Parity-gated authenticated-AOT RV32IM CLI with resident-AIR and zero-fallback evidence |
 | `stwo-cairo-cpu` | Zig-supported hosts with Rust build tooling | Released CPU/SIMD CLI; complete admitted corpus accepted by official Rust |
 | `stwo-cairo-metal` | macOS with Apple Metal | Parity-gated authenticated-AOT CLI; exact CPU parity, zero-fallback telemetry, and official Rust acceptance across the release corpus |
 | CUDA products | No production host | Explicitly unavailable; no fallback or placeholder execution |
@@ -239,6 +239,8 @@ zig build test-riscv-prover -Doptimize=ReleaseFast  # prove + verify roundtrips
 zig build test-riscv-metal -Doptimize=ReleaseFast   # macOS, no CPU fallback
 zig build riscv-bench -Doptimize=ReleaseFast        # CPU benchmark CLI
 zig build riscv-metal-bench -Doptimize=ReleaseFast  # Metal commitments CLI (macOS)
+zig build riscv-csp-bench -Doptimize=ReleaseFast    # full CPU EthProofs CSP matrix
+zig build riscv-csp-bench-metal -Doptimize=ReleaseFast # full resident Metal CSP matrix
 zig build riscv-trace-dump -Doptimize=ReleaseFast   # trace dumper for equivalence runs
 
 python3 scripts/riscv_formal_tools.py verify \

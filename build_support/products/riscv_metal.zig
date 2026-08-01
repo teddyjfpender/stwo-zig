@@ -37,6 +37,7 @@
 
 const std = @import("std");
 const metal = @import("../backends/metal.zig");
+const metal_aot = @import("../backends/metal_aot.zig");
 const build_identity = @import("../build_identity.zig");
 const closure_gate = @import("../gates/product_closure.zig");
 const graph_identity = @import("../graph/identity.zig");
@@ -50,7 +51,8 @@ const product = graph.Product{
     .frontend = .riscv,
     .backend = .metal,
     .role = .cli,
-    .protocol_features = "rv32im-zkvm-v1+lifted-pcs-v1+metal-runtime-v1",
+    .protocol_features = "rv32im-zkvm-v1+lifted-pcs-v1" ++
+        "+metal-runtime-v2+authenticated-core-aot-v2",
 };
 
 const source_closure = product_policy.SourceClosure{
@@ -79,6 +81,11 @@ const source_closure = product_policy.SourceClosure{
         .{ .name = "interop_postcard", .source = "src/interop/postcard.zig" },
         .{ .name = "interop_riscv_artifact", .source = "src/interop/riscv_artifact.zig" },
     } ++ shared_shell.shell_named_imports),
+    .generated_imports = &.{
+        "build_identity",
+        "metal_aot_config",
+        "product_identity",
+    },
     .allowed_files = &.{
         "src/riscv_metal_bench_cli.zig",
         "src/products/riscv_metal/root.zig",
@@ -128,7 +135,14 @@ pub const descriptor = product_policy.Descriptor{
     .build_step = "stwo-riscv-metal",
     .test_step = "test-riscv-metal",
     .executable = "stwo-zig-riscv-metal",
-    .installed_artifacts = &.{"stwo-zig-riscv-metal"},
+    .installed_artifacts = &.{
+        "stwo-zig-riscv-metal",
+        "share/stwo-zig/metal/core/stwo_zig_core.air",
+        "share/stwo-zig/metal/core/stwo_zig_core.manifest.json",
+        "share/stwo-zig/metal/core/stwo_zig_core.manifest.sha256",
+        "share/stwo-zig/metal/core/stwo_zig_core.metal",
+        "share/stwo-zig/metal/core/stwo_zig_core.metallib",
+    },
     .compatibility_aliases = &.{"riscv-metal-bench"},
     .release_gates = &.{ "test-riscv-metal", "metal-test", "riscv-release-gate" },
     .benchmark_step = "riscv-metal-bench",
@@ -150,17 +164,46 @@ pub fn addProduct(context: Context) void {
     );
     if (!descriptor.isAvailableOn(context.target.result.os.tag)) {
         product_policy.registerUnavailable(context.b, descriptor, context.target.result.os.tag);
+        registerUnavailableCspBenchmark(
+            context.b,
+            descriptor.unsupported_target_reason.?,
+        );
         return;
     }
+    const configured_bundle = context.b.option(
+        []const u8,
+        "metal-core-aot-bundle",
+        "Authenticated core Metal AOT bundle consumed by stwo-riscv-metal",
+    ) orelse {
+        registerMissingAotBundle(context.b);
+        return;
+    };
+    const aot_bundle = metal_aot.loadExternalBundle(
+        context.b,
+        configured_bundle,
+    );
 
     const installed = graph_install.executable(
         context.b,
         descriptor.executable.?,
-        productionRootModule(context),
+        productionRootModule(context, aot_bundle),
         descriptor.build_step,
         "Build the focused RV32IM Metal proof CLI",
     );
     metal.linkRuntime(context.b, installed.executable);
+    aot_bundle.install(context.b, installed.build_step);
+
+    const csp_benchmark = context.b.addSystemCommand(&.{
+        "python3",
+        "scripts/riscv_csp_benchmark.py",
+        "--backend",
+        "metal",
+    });
+    csp_benchmark.step.dependOn(installed.build_step);
+    context.b.step(
+        "riscv-csp-bench-metal",
+        "Run the pinned EthProofs CSP benchmark matrix on Metal",
+    ).dependOn(&csp_benchmark.step);
 
     const benchmark_product = moduleProduct(.benchmark);
     const benchmark = graph_install.executable(
@@ -183,6 +226,10 @@ pub fn addProduct(context: Context) void {
         testProduct(),
         "src/tests/riscv/metal_backend_test.zig",
     );
+    proof_test_module.addOptions(
+        "metal_aot_config",
+        aot_bundle.addOptions(context.b),
+    );
     const stwo = createFacadeModule(context, moduleProduct(.library));
     proof_test_module.addImport("stwo_riscv_metal", stwo);
     const proof_tests = context.b.addTest(.{
@@ -195,8 +242,13 @@ pub fn addProduct(context: Context) void {
         "Test RV32IM Metal engine ownership and end-to-end proof parity",
     );
     test_step.dependOn(&context.b.addRunArtifact(integration_tests).step);
-    test_step.dependOn(&context.b.addRunArtifact(proof_tests).step);
-    addShellTests(context, test_step);
+    const run_proof_tests = context.b.addRunArtifact(proof_tests);
+    run_proof_tests.setEnvironmentVariable(
+        "STWO_RISCV_METAL_AOT_BUNDLE",
+        aot_bundle.absolute_path,
+    );
+    test_step.dependOn(&run_proof_tests.step);
+    addShellTests(context, aot_bundle, test_step);
 
     const closure_check = closure_gate.addCheck(.{
         .b = context.b,
@@ -204,6 +256,29 @@ pub fn addProduct(context: Context) void {
         .binary = installed.executable,
     });
     test_step.dependOn(&closure_check.step);
+}
+
+fn registerMissingAotBundle(b: *std.Build) void {
+    const reason =
+        "requires -Dmetal-core-aot-bundle=<path>; build the bundle with " ++
+        "`zig build metal-core-aot-acceptance` on a full-Xcode host or " ++
+        "consume its retained artifact";
+    const failure = b.addFail(b.fmt(
+        "{s} is unavailable: {s}",
+        .{ descriptor.product.name, reason },
+    ));
+    b.step(descriptor.build_step, reason).dependOn(&failure.step);
+    b.step(descriptor.test_step.?, reason).dependOn(&failure.step);
+    b.step(descriptor.benchmark_step.?, reason).dependOn(&failure.step);
+    b.step("riscv-csp-bench-metal", reason).dependOn(&failure.step);
+}
+
+fn registerUnavailableCspBenchmark(b: *std.Build, reason: []const u8) void {
+    const failure = b.addFail(b.fmt(
+        "RISC-V Metal CSP benchmark is unavailable: {s}",
+        .{reason},
+    ));
+    b.step("riscv-csp-bench-metal", reason).dependOn(&failure.step);
 }
 
 /// The product shell's own tests. These are the isolation assertions that keep
@@ -219,14 +294,28 @@ pub fn addProduct(context: Context) void {
 /// in test mode, and reports "All 0 tests passed". Rooting per file also keeps
 /// each binary's module graph to what that file actually imports, so only the
 /// `app.zig` root pays for the facade and the Metal runtime.
-fn addShellTests(context: Context, test_step: *std.Build.Step) void {
+fn addShellTests(
+    context: Context,
+    aot_bundle: metal_aot.ExternalBundle,
+    test_step: *std.Build.Step,
+) void {
     const b = context.b;
     const identity_product = moduleProduct(.@"test");
 
-    const app = rootModule(context, identity_product, "src/products/riscv_metal/app.zig");
+    const app = rootModule(
+        context,
+        identity_product,
+        "src/products/riscv_metal/app.zig",
+        aot_bundle,
+    );
     const app_tests = b.addTest(.{ .root_module = app });
     metal.linkRuntime(b, app_tests);
-    test_step.dependOn(&b.addRunArtifact(app_tests).step);
+    const run_app_tests = b.addRunArtifact(app_tests);
+    run_app_tests.setEnvironmentVariable(
+        "STWO_RISCV_METAL_AOT_BUNDLE",
+        aot_bundle.absolute_path,
+    );
+    test_step.dependOn(&run_app_tests.step);
 
     const cli = binding(context).leafModule("src/products/riscv_metal/cli.zig");
     cli.addImport("riscv_shared_cli", binding(context).leafModule(
@@ -239,13 +328,10 @@ fn addShellTests(context: Context, test_step: *std.Build.Step) void {
     registry.addImport("riscv_shared_registry", binding(context).leafModule(
         "src/products/riscv_shared/registry.zig",
     ));
-    registry.addOptions("product_identity", graph_identity.productOptions(
-        b,
-        context.identity,
-        identity_product,
-        context.target,
-        context.optimize,
-    ));
+    registry.addOptions(
+        "product_identity",
+        productIdentityOptions(context, identity_product, aot_bundle),
+    );
     test_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = registry })).step);
 
     test_step.dependOn(&b.addRunArtifact(b.addTest(.{
@@ -257,14 +343,23 @@ fn addShellTests(context: Context, test_step: *std.Build.Step) void {
 /// binding one-for-one so the shared shell (`src/products/riscv_shared/*.zig`)
 /// and the engine-generic adapter see exactly the same injected module names in
 /// both products.
-fn productionRootModule(context: Context) *std.Build.Module {
-    return rootModule(context, product, "src/products/riscv_metal/main.zig");
+fn productionRootModule(
+    context: Context,
+    aot_bundle: metal_aot.ExternalBundle,
+) *std.Build.Module {
+    return rootModule(
+        context,
+        product,
+        "src/products/riscv_metal/main.zig",
+        aot_bundle,
+    );
 }
 
 fn rootModule(
     context: Context,
     identity_product: graph.Product,
     root_source_file: []const u8,
+    aot_bundle: metal_aot.ExternalBundle,
 ) *std.Build.Module {
     const b = context.b;
     const stwo = createFacadeModule(context, moduleProduct(.library));
@@ -294,18 +389,31 @@ fn rootModule(
     root.addImport("output_transaction", binding(context).leafModule(
         "src/interop/output_transaction.zig",
     ));
+    root.addOptions("metal_aot_config", aot_bundle.addOptions(b));
     root.addOptions("build_identity", graph_identity.buildOptions(b, context.identity));
     root.addOptions(
         "product_identity",
-        graph_identity.productOptions(
-            b,
-            context.identity,
-            identity_product,
-            context.target,
-            context.optimize,
-        ),
+        productIdentityOptions(context, identity_product, aot_bundle),
     );
     return root;
+}
+
+fn productIdentityOptions(
+    context: Context,
+    identity_product: graph.Product,
+    aot_bundle: metal_aot.ExternalBundle,
+) *std.Build.Step.Options {
+    return graph_identity.productOptionsWithRuntime(
+        context.b,
+        context.identity,
+        identity_product,
+        context.target,
+        context.optimize,
+        metal.authenticatedAotIdentity(
+            context.b,
+            &aot_bundle.manifest_sha256_hex,
+        ),
+    );
 }
 
 /// This product's capability surface. It is one module reached under two names:

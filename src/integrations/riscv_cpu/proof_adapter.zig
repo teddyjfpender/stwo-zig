@@ -167,6 +167,9 @@ fn runProve(
         "sail_rv32im_zkvm_v1",
     );
     defer recorder.deinit();
+    const telemetry_before = if (comptime backend == .metal)
+        try Engine.telemetrySnapshot()
+    else {};
     var proving_timer = try std.time.Timer.start();
     var prove_channel = Engine.Channel{};
     var output = try prover.proveRiscVWithEngineAndPublicDataUsingChannel(
@@ -206,6 +209,15 @@ fn runProve(
         prove_channel.n_draws,
     );
     const proving_with_witness_seconds = seconds(proving_timer.read());
+    var resident_polynomial_telemetry: ResidentPolynomialTelemetry = .{};
+    if (comptime backend == .metal) {
+        const telemetry_after = try Engine.telemetrySnapshot();
+        const telemetry_delta = telemetry_after.delta(telemetry_before);
+        try telemetry_delta.requireResidentRiscPolynomialExecution();
+        resident_polynomial_telemetry = ResidentPolynomialTelemetry.fromDelta(
+            telemetry_delta,
+        );
+    }
     var profile = try recorder.snapshot(allocator);
     defer profile.deinit(allocator);
     const witness_seconds = witnessSeconds(profile.stages);
@@ -242,6 +254,8 @@ fn runProve(
     );
     if (!std.mem.eql(u8, &transcript_state_digest, &verify_transcript_state_digest))
         return error.TranscriptStateDigestMismatch;
+    if (comptime backend == .metal)
+        resident_polynomial_telemetry.verified_samples_with_dispatch = 1;
     const verification_seconds = seconds(verification_timer.read());
     const proof_hex = try allocator.alloc(u8, proof_bytes.items.len * 2);
     defer allocator.free(proof_hex);
@@ -308,6 +322,30 @@ fn runProve(
         .proof_bytes_hex = proof_hex,
     });
 
+    const resident_polynomial_telemetry_json: []const u8 = if (comptime backend == .metal)
+        try std.fmt.allocPrint(
+            allocator,
+            "\"resident_polynomial_telemetry\":{{" ++
+                "\"eligible_base_components\":{d}," ++
+                "\"eligible_lookup_components\":{d}," ++
+                "\"base_batch_dispatches\":{d}," ++
+                "\"lookup_batch_dispatches\":{d}," ++
+                "\"declines\":{d}," ++
+                "\"verified_samples_with_dispatch\":{d}}},",
+            .{
+                resident_polynomial_telemetry.eligible_base_components,
+                resident_polynomial_telemetry.eligible_lookup_components,
+                resident_polynomial_telemetry.base_batch_dispatches,
+                resident_polynomial_telemetry.lookup_batch_dispatches,
+                resident_polynomial_telemetry.declines,
+                resident_polynomial_telemetry.verified_samples_with_dispatch,
+            },
+        )
+    else
+        "";
+    defer if (comptime backend == .metal)
+        allocator.free(resident_polynomial_telemetry_json);
+
     return std.fmt.allocPrint(
         allocator,
         "{{\"schema\":\"riscv_prove_v1\",\"release_status\":\"{s}\"," ++
@@ -315,7 +353,7 @@ fn runProve(
             "\"total_steps\":{d},\"n_components\":{d}," ++
             "\"execution_seconds\":{d},\"witness_seconds\":{d}," ++
             "\"proving_seconds\":{d},\"verification_seconds\":{d}," ++
-            "\"total_seconds\":{d}," ++
+            "\"total_seconds\":{d},{s}" ++
             "\"statement_sha256\":\"{s}\"," ++
             "\"transcript_state_blake2s\":\"{s}\"," ++
             "\"implementation_commit\":\"{s}\",\"implementation_dirty\":{}," ++
@@ -330,6 +368,7 @@ fn runProve(
             proving_seconds,
             verification_seconds,
             seconds(total_timer.read()),
+            resident_polynomial_telemetry_json,
             &statement_digest_hex,
             &transcript_state_digest_hex,
             build_identity.implementation_commit,
@@ -355,6 +394,35 @@ fn witnessSeconds(nodes: []const stwo.prover.stage_profile.StageNode) f64 {
     return total;
 }
 
+const ResidentPolynomialTelemetry = struct {
+    eligible_base_components: u64 = 0,
+    eligible_lookup_components: u64 = 0,
+    base_batch_dispatches: u64 = 0,
+    lookup_batch_dispatches: u64 = 0,
+    declines: u64 = 0,
+    verified_samples_with_dispatch: u64 = 0,
+
+    fn fromDelta(delta: anytype) ResidentPolynomialTelemetry {
+        const counters = delta.counters;
+        return .{
+            .eligible_base_components = counters.riscv_base_polynomial_eligible_components,
+            .eligible_lookup_components = counters.riscv_lookup_polynomial_eligible_components,
+            .base_batch_dispatches = counters.metal_riscv_base_polynomial_batch_dispatches,
+            .lookup_batch_dispatches = counters.metal_riscv_lookup_polynomial_batch_dispatches,
+            .declines = counters.cpu_riscv_polynomial_composition_declines,
+        };
+    }
+
+    fn add(self: *ResidentPolynomialTelemetry, other: ResidentPolynomialTelemetry) void {
+        self.eligible_base_components +|= other.eligible_base_components;
+        self.eligible_lookup_components +|= other.eligible_lookup_components;
+        self.base_batch_dispatches +|= other.base_batch_dispatches;
+        self.lookup_batch_dispatches +|= other.lookup_batch_dispatches;
+        self.declines +|= other.declines;
+        self.verified_samples_with_dispatch +|= other.verified_samples_with_dispatch;
+    }
+};
+
 const ProveReport = struct {
     total_steps: u32,
     n_components: u32,
@@ -368,6 +436,7 @@ const ProveReport = struct {
     implementation_commit: []const u8,
     implementation_dirty: bool,
     executable_sha256: []const u8,
+    resident_polynomial_telemetry: ?ResidentPolynomialTelemetry = null,
 };
 
 fn runBenchmark(
@@ -392,6 +461,7 @@ fn runBenchmark(
     var proving_seconds: f64 = 0;
     var verification_seconds: f64 = 0;
     var transcript_state_digest: ?[32]u8 = null;
+    var resident_polynomial_telemetry: ResidentPolynomialTelemetry = .{};
 
     const resources_before_warmups = resource_usage.capture();
     const iterations = try std.math.add(usize, benchmark.warmups, benchmark.samples);
@@ -461,6 +531,14 @@ fn runBenchmark(
             witness_seconds += report.witness_seconds;
             proving_seconds += report.proving_seconds;
             verification_seconds += report.verification_seconds;
+            if (comptime backend == .metal) {
+                resident_polynomial_telemetry.add(
+                    report.resident_polynomial_telemetry orelse
+                        return error.MissingResidentPolynomialTelemetry,
+                );
+            } else if (report.resident_polynomial_telemetry != null) {
+                return error.UnexpectedResidentPolynomialTelemetry;
+            }
 
             const artifact_bytes = try std.fs.cwd().readFileAlloc(
                 allocator,
@@ -493,6 +571,8 @@ fn runBenchmark(
     const artifact_hex = std.fmt.bytesToHex(artifact_digest.?, .lower);
     const transcript_state_hex = std.fmt.bytesToHex(transcript_state_digest.?, .lower);
     const executable_hex = std.fmt.bytesToHex(process_identity.executable_sha256, .lower);
+    const report_resident_polynomial_telemetry: ?ResidentPolynomialTelemetry =
+        if (comptime backend == .metal) resident_polynomial_telemetry else null;
     const report = .{
         .schema = "riscv_proof_v2",
         .release_status = stwo.interop.riscv_artifact.RELEASE_STATUS,
@@ -520,8 +600,11 @@ fn runBenchmark(
         .artifact_sha256 = &artifact_hex,
         .proof_path = options.proof_report_path,
         .resources = resources,
+        .resident_polynomial_telemetry = report_resident_polynomial_telemetry,
     };
-    return std.json.Stringify.valueAlloc(allocator, report, .{});
+    return std.json.Stringify.valueAlloc(allocator, report, .{
+        .emit_null_optional_fields = false,
+    });
 }
 
 /// The staged protocol profiles. `.secure` is not restated here: it *is*

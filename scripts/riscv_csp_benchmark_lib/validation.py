@@ -14,6 +14,16 @@ from scripts.riscv_csp_benchmark_lib.contract import (
 )
 
 
+RESIDENT_POLYNOMIAL_TELEMETRY_FIELDS = {
+    "eligible_base_components",
+    "eligible_lookup_components",
+    "base_batch_dispatches",
+    "lookup_batch_dispatches",
+    "declines",
+    "verified_samples_with_dispatch",
+}
+
+
 class Admission(Protocol):
     """Structural view of the admission state these validators check against.
 
@@ -53,6 +63,61 @@ def validate_benchmark_report(
     if not isinstance(statement, str) or not HEX_32.fullmatch(statement):
         raise BenchmarkError(f"{case.target}/{case.input_size}: statement digest invalid")
     return commit
+
+
+def validate_resident_polynomial_telemetry(
+    report: Mapping[str, Any],
+    case: Case,
+    *,
+    backend: str,
+    samples: int,
+) -> dict[str, int] | None:
+    """Require structured proof that every Metal sample used resident AIR AOT.
+
+    A log digest commits to opaque bytes; it cannot establish which path ran.
+    The production benchmark report therefore carries these counters as a
+    first-class contract. CPU reports must omit the Metal-only object so a
+    copied or mislabelled report cannot accidentally satisfy both lanes.
+    """
+
+    telemetry_key = "resident_polynomial_telemetry"
+    telemetry = report.get(telemetry_key)
+    label = f"{case.target}/{case.input_size}"
+    if backend != "metal":
+        if telemetry_key in report:
+            raise BenchmarkError(
+                f"{label}: CPU report unexpectedly carries resident polynomial telemetry"
+            )
+        return None
+    if not isinstance(telemetry, dict):
+        raise BenchmarkError(
+            f"{label}: Metal report has no resident polynomial telemetry"
+        )
+    if set(telemetry) != RESIDENT_POLYNOMIAL_TELEMETRY_FIELDS:
+        raise BenchmarkError(
+            f"{label}: resident polynomial telemetry fields drifted"
+        )
+    if any(
+        not isinstance(telemetry[field], int)
+        or isinstance(telemetry[field], bool)
+        or telemetry[field] < 0
+        for field in RESIDENT_POLYNOMIAL_TELEMETRY_FIELDS
+    ):
+        raise BenchmarkError(
+            f"{label}: resident polynomial telemetry counters are invalid"
+        )
+    if (
+        telemetry["eligible_base_components"] == 0
+        or telemetry["eligible_lookup_components"] == 0
+        or telemetry["base_batch_dispatches"] == 0
+        or telemetry["lookup_batch_dispatches"] == 0
+        or telemetry["declines"] != 0
+        or telemetry["verified_samples_with_dispatch"] != samples
+    ):
+        raise BenchmarkError(
+            f"{label}: resident polynomial dispatch was not proven for every sample"
+        )
+    return {field: telemetry[field] for field in sorted(telemetry)}
 
 
 def validate_artifact(

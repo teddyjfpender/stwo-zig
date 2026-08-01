@@ -111,6 +111,7 @@ pub const steps = [_]Step{
     .{ .name = "riscv-refinement-ir", .description = "Export symbolic AIR and production AIR IR v2 for Lean refinement", .scope = .riscv_cpu },
     .{ .name = "riscv-refinement-pilot", .description = "Verify the LUI/ADDI normalized AIR-to-Sail Lean pilot", .scope = .riscv_cpu },
     .{ .name = "riscv-csp-bench", .description = "Run the pinned EthProofs CSP benchmark matrix", .scope = .riscv_cpu },
+    .{ .name = "riscv-csp-bench-metal", .description = "Run the pinned EthProofs CSP benchmark matrix on Metal", .scope = .riscv_metal },
     .{ .name = "metal-arena-plan", .description = "Build sparse Metal arena planner", .scope = .metal_tools },
     .{ .name = "metal-arena-session", .description = "Build persistent Metal SN PIE prover session", .scope = .metal_tools },
     .{ .name = "metal-prover-session-test", .description = "Run persistent Metal prover-session unit tests", .scope = .metal_tools },
@@ -221,7 +222,7 @@ pub const configure = [_]Configure{
             .frontend = "riscv",
             .backend = "metal",
             .role = "cli",
-            .protocol_manifest = "rv32im-zkvm-v1+lifted-pcs-v1+metal-runtime-v1",
+            .protocol_manifest = "rv32im-zkvm-v1+lifted-pcs-v1+metal-runtime-v2+authenticated-core-aot-v2",
         }},
     },
     .{ .scope = .package, .role = .package_exports, .product_ids = &.{ "stwo-core", "stwo-prover", "stwo" }, .module_roots = &.{ "src/products/prover/root.zig", "src/stwo.zig" }, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = package_dependencies.protocol_package_roots, .allowed_module_files = &.{ "src/stwo.zig", "build_support/graph/identity/emitter.zig" }, .allowed_module_prefixes = &.{ "src/products/core", "src/products/prover" }, .external_tools = &.{"python3"}, .constructors = &.{"products/libraries.addProducts"}, .constructed_products = &.{

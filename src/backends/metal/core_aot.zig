@@ -180,7 +180,9 @@ pub fn admit(
 }
 
 pub fn verifyAuthority() !void {
-    if (!std.mem.eql(u8, &sourceDigest(), authoritySourceDigest()))
+    const source_digest = sourceDigest();
+    const authority_digest = authoritySourceDigest();
+    if (!std.mem.eql(u8, &source_digest, &authority_digest))
         return error.CoreSourceDigestMismatch;
     if (authorityExports().len == 0) return error.EmptyCoreExportInventory;
 }
@@ -330,8 +332,8 @@ fn authoritySource() [:0]const u8 {
     return shader_manifest.native_amalgamated_source;
 }
 
-fn authoritySourceDigest() *const [32]u8 {
-    return &shader_manifest.native_amalgamated_source_sha256;
+fn authoritySourceDigest() [32]u8 {
+    return shader_manifest.nativeAmalgamatedSourceDigest();
 }
 
 fn authorityExports() []const shader_manifest.Export {

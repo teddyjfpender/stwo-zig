@@ -117,6 +117,12 @@ macOS Metal product is separate and fail closed:
 zig build stwo-riscv-metal -Doptimize=ReleaseFast
 ```
 
+That product step builds and installs the authenticated core metallib, binds its
+manifest digest into the executable identity, and admits it before any prover
+warmup. Proving and benchmarking fail closed if the bundle is missing, altered,
+or cannot supply the resident RISC-V AIR kernels; help, registry, and retained
+proof verification remain device-free.
+
 ## EthProofs CSP benchmark
 
 The standard client-side proving benchmark runs SHA-256, Keccak-256,
@@ -130,13 +136,21 @@ Run the complete canonical matrix with:
 
 ```sh
 zig build riscv-csp-bench -Doptimize=ReleaseFast
+zig build riscv-csp-bench-metal -Doptimize=ReleaseFast
 ```
 
-The build step installs the production CPU prover and trace diagnostic, then
-runs sixteen rows with the `secure` protocol: five byte sizes for each hash,
-five field-element sizes for Poseidon2-M31, and the exact dynamic k256 ECDSA
-case. It performs one warmup and ten verified samples per row and writes
-`vectors/reports/riscv_csp_benchmark_report.json`.
+Each build step installs its production prover and the separately owned trace
+diagnostic, then runs sixteen rows with the `secure` protocol: five byte sizes
+for each hash, five field-element sizes for Poseidon2-M31, and the exact dynamic
+k256 ECDSA case. It performs one warmup and ten verified samples per row. CPU
+evidence is written to `vectors/reports/riscv_csp_benchmark_report.json`; Metal
+evidence uses `vectors/reports/riscv_csp_benchmark_report.metal.json` so the two
+lanes cannot overwrite one another.
+
+Every Metal row additionally retains structured resident-polynomial telemetry.
+Publication fails unless every verified sample dispatched both the semantic and
+lookup AIR batches from authenticated AOT and recorded zero eligible-route
+declines; an opaque log digest is not accepted as proof of GPU execution.
 
 For a quick, non-headline development run:
 

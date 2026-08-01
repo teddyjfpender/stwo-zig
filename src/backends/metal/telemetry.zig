@@ -22,6 +22,18 @@ pub const Event = enum {
     /// One AIR composition-evaluation epoch dispatched from the composition
     /// metallib.
     metal_composition_eval_dispatch,
+    /// One RISC-V semantic component admitted to the resident base-polynomial
+    /// route. Component totals are added in one atomic operation per proof.
+    riscv_base_polynomial_eligible_component,
+    /// One RISC-V opcode-lookup component admitted to the resident lookup-
+    /// polynomial route. Component totals are added once per proof.
+    riscv_lookup_polynomial_eligible_component,
+    /// One successfully completed resident semantic batch whose values are
+    /// eligible to enter the returned composition evaluation.
+    metal_riscv_base_polynomial_batch_dispatch,
+    /// One successfully completed resident opcode-lookup batch whose values
+    /// are eligible to enter the returned composition evaluation.
+    metal_riscv_lookup_polynomial_batch_dispatch,
     cpu_small_merkle_commit,
     cpu_streaming_merkle_commit,
     cpu_sampled_value_evaluation,
@@ -35,6 +47,10 @@ pub const Event = enum {
     /// would make every hybrid Metal proof report a fallback and would destroy
     /// the meaning of `accelerated_without_fallbacks`.
     cpu_composition_evaluation,
+    /// A composition containing resident-eligible RISC-V semantic or lookup
+    /// components declined that route and therefore continued on the generic
+    /// host evaluator. Counted once per composition, never per component.
+    cpu_riscv_polynomial_composition_decline,
     /// One base-trace commit whose source columns already were the backend's
     /// contiguous base arena AND whose arena was page-aligned, so the
     /// coefficient buffer was a `newBufferWithBytesNoCopy` alias of host memory
@@ -70,6 +86,10 @@ pub const CounterValues = struct {
     metal_trace_generation_synchronizations: u64 = 0,
     metal_trace_generation_copybacks: u64 = 0,
     metal_composition_eval_dispatches: u64 = 0,
+    riscv_base_polynomial_eligible_components: u64 = 0,
+    riscv_lookup_polynomial_eligible_components: u64 = 0,
+    metal_riscv_base_polynomial_batch_dispatches: u64 = 0,
+    metal_riscv_lookup_polynomial_batch_dispatches: u64 = 0,
     cpu_small_merkle_commits: u64 = 0,
     cpu_streaming_merkle_commits: u64 = 0,
     cpu_sampled_value_evaluations: u64 = 0,
@@ -77,6 +97,7 @@ pub const CounterValues = struct {
     cpu_small_circle_evaluations: u64 = 0,
     cpu_small_circle_ldes: u64 = 0,
     cpu_composition_evaluations: u64 = 0,
+    cpu_riscv_polynomial_composition_declines: u64 = 0,
     metal_commit_source_arena_aliases: u64 = 0,
     metal_commit_source_arena_memcpys: u64 = 0,
     metal_commit_source_uploads: u64 = 0,
@@ -104,6 +125,8 @@ pub const CounterValues = struct {
             self.metal_relation_epochs,
             self.metal_trace_generation_dispatches,
             self.metal_composition_eval_dispatches,
+            self.metal_riscv_base_polynomial_batch_dispatches,
+            self.metal_riscv_lookup_polynomial_batch_dispatches,
         }) |value| total +|= value;
         return total;
     }
@@ -117,6 +140,7 @@ pub const CounterValues = struct {
             self.cpu_small_circle_evaluations,
             self.cpu_small_circle_ldes,
             self.cpu_composition_evaluations,
+            self.cpu_riscv_polynomial_composition_declines,
         }) |value| total +|= value;
         return total;
     }
@@ -267,6 +291,14 @@ pub const ClassificationError = error{
     CpuFallbackObserved,
 };
 
+pub const ResidentRiscPolynomialError = ClassificationError || error{
+    NoEligibleBasePolynomialComponents,
+    NoEligibleLookupPolynomialComponents,
+    NoBasePolynomialBatchDispatch,
+    NoLookupPolynomialBatchDispatch,
+    ResidentPolynomialDeclineObserved,
+};
+
 pub const Snapshot = struct {
     counters: CounterValues,
     pipeline_cache: runtime.PipelineCacheStats,
@@ -310,6 +342,26 @@ pub const Delta = struct {
         if (self.counters.metalDispatchTotal() == 0) return error.NoMetalDispatch;
         if (self.counters.cpuFallbackTotal() != 0) return error.CpuFallbackObserved;
     }
+
+    /// A RISC-V Metal proof may claim resident polynomial execution only when
+    /// both frontend-owned component classes were eligible, both resident
+    /// batches completed, and no eligible route declined to the host path.
+    pub fn requireResidentRiscPolynomialExecution(
+        self: Delta,
+    ) ResidentRiscPolynomialError!void {
+        const counters = self.counters;
+        if (counters.riscv_base_polynomial_eligible_components == 0)
+            return error.NoEligibleBasePolynomialComponents;
+        if (counters.riscv_lookup_polynomial_eligible_components == 0)
+            return error.NoEligibleLookupPolynomialComponents;
+        if (counters.metal_riscv_base_polynomial_batch_dispatches == 0)
+            return error.NoBasePolynomialBatchDispatch;
+        if (counters.metal_riscv_lookup_polynomial_batch_dispatches == 0)
+            return error.NoLookupPolynomialBatchDispatch;
+        if (counters.cpu_riscv_polynomial_composition_declines != 0)
+            return error.ResidentPolynomialDeclineObserved;
+        try self.requireAcceleratedWithoutFallbacks();
+    }
 };
 
 const AtomicCounter = std.atomic.Value(u64);
@@ -330,6 +382,10 @@ const CounterBank = struct {
     metal_trace_generation_synchronizations: AtomicCounter = AtomicCounter.init(0),
     metal_trace_generation_copybacks: AtomicCounter = AtomicCounter.init(0),
     metal_composition_eval_dispatches: AtomicCounter = AtomicCounter.init(0),
+    riscv_base_polynomial_eligible_components: AtomicCounter = AtomicCounter.init(0),
+    riscv_lookup_polynomial_eligible_components: AtomicCounter = AtomicCounter.init(0),
+    metal_riscv_base_polynomial_batch_dispatches: AtomicCounter = AtomicCounter.init(0),
+    metal_riscv_lookup_polynomial_batch_dispatches: AtomicCounter = AtomicCounter.init(0),
     cpu_small_merkle_commits: AtomicCounter = AtomicCounter.init(0),
     cpu_streaming_merkle_commits: AtomicCounter = AtomicCounter.init(0),
     cpu_sampled_value_evaluations: AtomicCounter = AtomicCounter.init(0),
@@ -337,6 +393,7 @@ const CounterBank = struct {
     cpu_small_circle_evaluations: AtomicCounter = AtomicCounter.init(0),
     cpu_small_circle_ldes: AtomicCounter = AtomicCounter.init(0),
     cpu_composition_evaluations: AtomicCounter = AtomicCounter.init(0),
+    cpu_riscv_polynomial_composition_declines: AtomicCounter = AtomicCounter.init(0),
     metal_commit_source_arena_aliases: AtomicCounter = AtomicCounter.init(0),
     metal_commit_source_arena_memcpys: AtomicCounter = AtomicCounter.init(0),
     metal_commit_source_uploads: AtomicCounter = AtomicCounter.init(0),
@@ -345,6 +402,11 @@ const CounterBank = struct {
 var counter_bank: CounterBank = .{};
 
 pub fn record(event: Event) void {
+    recordN(event, 1);
+}
+
+pub fn recordN(event: Event, count: u64) void {
+    if (count == 0) return;
     const counter = switch (event) {
         .host_merkle_commit => &counter_bank.host_merkle_commits,
         .resident_merkle_commit => &counter_bank.resident_merkle_commits,
@@ -361,6 +423,10 @@ pub fn record(event: Event) void {
         .metal_trace_generation_synchronization => &counter_bank.metal_trace_generation_synchronizations,
         .metal_trace_generation_copyback => &counter_bank.metal_trace_generation_copybacks,
         .metal_composition_eval_dispatch => &counter_bank.metal_composition_eval_dispatches,
+        .riscv_base_polynomial_eligible_component => &counter_bank.riscv_base_polynomial_eligible_components,
+        .riscv_lookup_polynomial_eligible_component => &counter_bank.riscv_lookup_polynomial_eligible_components,
+        .metal_riscv_base_polynomial_batch_dispatch => &counter_bank.metal_riscv_base_polynomial_batch_dispatches,
+        .metal_riscv_lookup_polynomial_batch_dispatch => &counter_bank.metal_riscv_lookup_polynomial_batch_dispatches,
         .cpu_small_merkle_commit => &counter_bank.cpu_small_merkle_commits,
         .cpu_streaming_merkle_commit => &counter_bank.cpu_streaming_merkle_commits,
         .cpu_sampled_value_evaluation => &counter_bank.cpu_sampled_value_evaluations,
@@ -368,11 +434,12 @@ pub fn record(event: Event) void {
         .cpu_small_circle_evaluation => &counter_bank.cpu_small_circle_evaluations,
         .cpu_small_circle_lde => &counter_bank.cpu_small_circle_ldes,
         .cpu_composition_evaluation => &counter_bank.cpu_composition_evaluations,
+        .cpu_riscv_polynomial_composition_decline => &counter_bank.cpu_riscv_polynomial_composition_declines,
         .metal_commit_source_arena_alias => &counter_bank.metal_commit_source_arena_aliases,
         .metal_commit_source_arena_memcpy => &counter_bank.metal_commit_source_arena_memcpys,
         .metal_commit_source_upload => &counter_bank.metal_commit_source_uploads,
     };
-    _ = counter.fetchAdd(1, .monotonic);
+    _ = counter.fetchAdd(count, .monotonic);
 }
 
 /// The `source_binding` code the circle-LDE commit reports back, mapped onto its
@@ -545,6 +612,57 @@ test "a declined composition device path is a counted fallback" {
     try std.testing.expectError(
         error.CpuFallbackObserved,
         declined.requireAcceleratedWithoutFallbacks(),
+    );
+}
+
+test "resident RISC polynomial evidence requires both successful lanes" {
+    const complete = Delta{
+        .counters = .{
+            .riscv_base_polynomial_eligible_components = 3,
+            .riscv_lookup_polynomial_eligible_components = 3,
+            .metal_riscv_base_polynomial_batch_dispatches = 1,
+            .metal_riscv_lookup_polynomial_batch_dispatches = 1,
+        },
+        .pipeline_cache = .{},
+    };
+    try complete.requireResidentRiscPolynomialExecution();
+    try std.testing.expectEqual(@as(u64, 2), complete.counters.metalDispatchTotal());
+
+    var missing = complete;
+    missing.counters.riscv_base_polynomial_eligible_components = 0;
+    try std.testing.expectError(
+        error.NoEligibleBasePolynomialComponents,
+        missing.requireResidentRiscPolynomialExecution(),
+    );
+    missing = complete;
+    missing.counters.riscv_lookup_polynomial_eligible_components = 0;
+    try std.testing.expectError(
+        error.NoEligibleLookupPolynomialComponents,
+        missing.requireResidentRiscPolynomialExecution(),
+    );
+    missing = complete;
+    missing.counters.metal_riscv_base_polynomial_batch_dispatches = 0;
+    try std.testing.expectError(
+        error.NoBasePolynomialBatchDispatch,
+        missing.requireResidentRiscPolynomialExecution(),
+    );
+    missing = complete;
+    missing.counters.metal_riscv_lookup_polynomial_batch_dispatches = 0;
+    try std.testing.expectError(
+        error.NoLookupPolynomialBatchDispatch,
+        missing.requireResidentRiscPolynomialExecution(),
+    );
+
+    var declined = complete;
+    declined.counters.cpu_riscv_polynomial_composition_declines = 1;
+    try std.testing.expectEqual(@as(u64, 1), declined.counters.cpuFallbackTotal());
+    try std.testing.expectEqual(
+        Classification.accelerated_with_fallbacks,
+        declined.classification(),
+    );
+    try std.testing.expectError(
+        error.ResidentPolynomialDeclineObserved,
+        declined.requireResidentRiscPolynomialExecution(),
     );
 }
 

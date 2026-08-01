@@ -109,7 +109,25 @@ pub fn addProxy(
     scope: []const u8,
 ) void {
     const command = commandFor(b, target, optimize, options, scope, name);
+    // The CSP harness authenticates a frontend-only trace diagnostic in
+    // addition to the selected prover. Keep that CPU-owned tool in its focused
+    // graph, but make the public Metal matrix step self-contained and ordered.
+    if (requiresRiscvTracePrerequisite(name)) {
+        const trace = commandFor(
+            b,
+            target,
+            optimize,
+            options,
+            "riscv_cpu",
+            "riscv-trace-dump",
+        );
+        command.step.dependOn(&trace.step);
+    }
     b.step(name, description).dependOn(&command.step);
+}
+
+fn requiresRiscvTracePrerequisite(step_name: []const u8) bool {
+    return std.mem.eql(u8, step_name, "riscv-csp-bench-metal");
 }
 
 pub fn addInstallProxy(
@@ -165,7 +183,7 @@ fn commandFor(
         std.mem.eql(u8, scope, "native_cuda") or
         std.mem.eql(u8, scope, "cairo_cuda"))
         addCudaArguments(b, command, options);
-    if (std.mem.eql(u8, scope, "cairo_metal")) {
+    if (requiresAuthenticatedCoreAot(scope)) {
         const bundle = if (options.metal_core_aot_bundle) |configured|
             if (std.fs.path.isAbsolute(configured))
                 configured
@@ -207,6 +225,11 @@ fn commandFor(
         command.addArg(b.fmt("-Dtarget={s}", .{triple}));
     if (options.identity) |identity| addIdentityArguments(b, command, identity);
     return command;
+}
+
+fn requiresAuthenticatedCoreAot(scope: []const u8) bool {
+    return std.mem.eql(u8, scope, "cairo_metal") or
+        std.mem.eql(u8, scope, "riscv_metal");
 }
 
 fn addCudaArguments(
@@ -291,4 +314,17 @@ fn productCacheDir(b: *std.Build, scope: []const u8) []const u8 {
         return if (std.fs.path.isAbsolute(configured)) configured else b.pathFromRoot(configured);
     }
     return b.pathFromRoot(b.fmt(".zig-cache/products/{s}", .{scope}));
+}
+
+test "production Metal product scopes automatically consume authenticated core AOT" {
+    try std.testing.expect(requiresAuthenticatedCoreAot("cairo_metal"));
+    try std.testing.expect(requiresAuthenticatedCoreAot("riscv_metal"));
+    try std.testing.expect(!requiresAuthenticatedCoreAot("native_metal"));
+    try std.testing.expect(!requiresAuthenticatedCoreAot("metal_tools"));
+}
+
+test "the public Metal CSP step first builds the focused trace diagnostic" {
+    try std.testing.expect(requiresRiscvTracePrerequisite("riscv-csp-bench-metal"));
+    try std.testing.expect(!requiresRiscvTracePrerequisite("stwo-riscv-metal"));
+    try std.testing.expect(!requiresRiscvTracePrerequisite("riscv-csp-bench"));
 }

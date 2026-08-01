@@ -332,16 +332,18 @@ pub const native_amalgamated_source: [:0]const u8 = "#define STWO_ZIG_AMALGAMATE
     "\n#line 1 \"src/backends/metal/shaders/core/polynomial_eval.metal\"\n" ++ polynomial_eval_source ++
     "\n#line 1 \"src/backends/metal/shaders/core/riscv_polynomials.metal\"\n" ++ riscv_polynomials_source ++ "\x00";
 
-pub const native_amalgamated_source_sha256: [32]u8 = digest: {
-    @setEvalBranchQuota(10_000_000);
+/// Hash at runtime. The generated RISC-V polynomial kernels are large enough
+/// that evaluating SHA-256 at comptime exhausts the compiler's branch quota
+/// and creates avoidable multi-gigabyte compiler memory pressure.
+pub fn nativeAmalgamatedSourceDigest() [32]u8 {
     var result: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(
         native_amalgamated_source[0 .. native_amalgamated_source.len - 1],
         &result,
         .{},
     );
-    break :digest result;
-};
+    return result;
+}
 
 /// The runtime still compiles one library. Translation-unit boundaries are
 /// explicit here so AOT compilation can consume the same ordered manifest.
@@ -403,16 +405,15 @@ pub const amalgamated_source: [:0]const u8 = "#define STWO_ZIG_AMALGAMATED 1\n" 
     "\n#line 1 \"src/backends/metal/shaders/core/riscv_polynomials.metal\"\n" ++
     riscv_polynomials_source ++ "\x00";
 
-pub const amalgamated_source_sha256: [32]u8 = digest: {
-    @setEvalBranchQuota(10_000_000);
+pub fn amalgamatedSourceDigest() [32]u8 {
     var result: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(
         amalgamated_source[0 .. amalgamated_source.len - 1],
         &result,
         .{},
     );
-    break :digest result;
-};
+    return result;
+}
 
 fn manifestContains(name: []const u8) bool {
     for (exports) |entry| {

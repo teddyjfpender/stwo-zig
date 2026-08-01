@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const pcs = @import("stwo_core").pcs;
+const metal_aot_config = @import("metal_aot_config");
 const stwo_riscv_metal = @import("stwo_riscv_metal");
 const riscv = stwo_riscv_metal.frontends.riscv;
 const riscv_metal = stwo_riscv_metal.integrations.riscv_metal;
@@ -18,6 +19,19 @@ const TEST_CONFIG = pcs.PcsConfig{
 
 test "metal: RV32IM retirement trace proves and verifies without fallback" {
     const allocator = std.testing.allocator;
+    const bundle_path = try std.process.getEnvVarOwned(
+        allocator,
+        "STWO_RISCV_METAL_AOT_BUNDLE",
+    );
+    defer allocator.free(bundle_path);
+    try riscv_metal.MetalProverEngine.initializeRuntime(allocator, .{
+        .authenticated_aot = .{
+            .bundle_path = bundle_path,
+            .manifest_sha256 = metal_aot_config.manifest_sha256,
+        },
+    });
+    defer riscv_metal.MetalProverEngine.Backend.shutdown() catch unreachable;
+
     const elf = runner.trace_dump.buildTestElf(9, .{
         0x00100093, // ADDI x1, x0, 1
         0x00100093,
@@ -32,6 +46,7 @@ test "metal: RV32IM retirement trace proves and verifies without fallback" {
     var run = try runner.run(allocator, &elf, 1000);
     defer run.deinit();
 
+    const telemetry_before = try riscv_metal.MetalProverEngine.telemetrySnapshot();
     const output = try riscv_metal.proveRiscV(
         allocator,
         TEST_CONFIG,
@@ -40,6 +55,25 @@ test "metal: RV32IM retirement trace proves and verifies without fallback" {
         null,
     );
     defer output.deinitAfterProofMoved(allocator);
+    const telemetry_after = try riscv_metal.MetalProverEngine.telemetrySnapshot();
+    const telemetry_delta = telemetry_after.delta(telemetry_before);
+    try telemetry_delta.requireResidentRiscPolynomialExecution();
+    try std.testing.expect(
+        telemetry_delta.counters.riscv_base_polynomial_eligible_components > 0,
+    );
+    try std.testing.expect(
+        telemetry_delta.counters.riscv_lookup_polynomial_eligible_components > 0,
+    );
+    try std.testing.expect(
+        telemetry_delta.counters.metal_riscv_base_polynomial_batch_dispatches > 0,
+    );
+    try std.testing.expect(
+        telemetry_delta.counters.metal_riscv_lookup_polynomial_batch_dispatches > 0,
+    );
+    try std.testing.expectEqual(
+        @as(u64, 0),
+        telemetry_delta.counters.cpu_riscv_polynomial_composition_declines,
+    );
     try riscv_metal.verifyRiscV(
         allocator,
         TEST_CONFIG,

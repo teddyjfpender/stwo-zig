@@ -15,6 +15,7 @@ const base_codegen = @import("base_polynomial_codegen.zig");
 const lookup_codegen = @import("lookup_polynomial_codegen.zig");
 const metal_runtime = @import("../runtime.zig");
 const shared_runtime = @import("../shared_runtime.zig");
+const telemetry = @import("../telemetry.zig");
 
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
@@ -97,11 +98,7 @@ pub fn evaluate(
     trace: *const Trace,
     residency_handles: []const ?*anyopaque,
 ) !?SecureColumn {
-    if (std.posix.getenv(disable_env)) |value| {
-        if (std.mem.eql(u8, value, "0")) return null;
-    }
-    if (components.len == 0 or trace.polys.items.len == 0 or residency_handles.len == 0)
-        return null;
+    if (components.len == 0) return null;
 
     var total_constraints: usize = 0;
     var max_log_size: u32 = 0;
@@ -118,12 +115,25 @@ pub fn evaluate(
         if (lookupCapability(component) != null) lookup_count += 1;
     }
     if (semantic_count + lookup_count == 0) return null;
+    telemetry.recordN(
+        .riscv_base_polynomial_eligible_component,
+        @intCast(semantic_count),
+    );
+    telemetry.recordN(
+        .riscv_lookup_polynomial_eligible_component,
+        @intCast(lookup_count),
+    );
+    if (std.posix.getenv(disable_env)) |value| {
+        if (std.mem.eql(u8, value, "0")) return declineResidentPolynomial();
+    }
+    if (trace.polys.items.len == 0 or residency_handles.len == 0)
+        return declineResidentPolynomial();
     for (components) |component| {
         if (baseCapability(component)) |capability| {
             if (!hasTreeResidency(
                 residency_handles,
                 &.{ capability.selector_tree_index, capability.main_tree_index },
-            )) return null;
+            )) return declineResidentPolynomial();
         }
         if (lookupCapability(component)) |capability| {
             if (!hasTreeResidency(
@@ -133,7 +143,7 @@ pub fn evaluate(
                     capability.main_tree_index,
                     capability.interaction_tree_index,
                 },
-            )) return null;
+            )) return declineResidentPolynomial();
         }
     }
 
@@ -278,17 +288,19 @@ pub fn evaluate(
         for (host_workers) |*worker| HostWorker.run(worker);
     }
 
-    var lease = shared_runtime.acquireExisting() catch return null;
+    var lease = shared_runtime.acquireExisting() catch return declineResidentPolynomial();
     defer lease.deinit();
     for (base_programs.items) |*entry| {
         const name = try base_codegen.kernelName(allocator, entry.program);
         defer allocator.free(name);
-        entry.plan = lease.runtime.prepareBasePolynomialAot(name) catch return null;
+        entry.plan = lease.runtime.prepareBasePolynomialAot(name) catch
+            return declineResidentPolynomial();
     }
     for (lookup_programs.items) |*entry| {
         const name = try lookup_codegen.kernelName(allocator, entry.program);
         defer allocator.free(name);
-        entry.plan = lease.runtime.prepareLookupPolynomialAot(name) catch return null;
+        entry.plan = lease.runtime.prepareLookupPolynomialAot(name) catch
+            return declineResidentPolynomial();
     }
 
     const bucket_index = try allocator.alloc(?u32, max_log_size + 1);
@@ -469,14 +481,16 @@ pub fn evaluate(
     }
     for (host_workers) |worker| if (worker.err) |err| return err;
     if (semantic_gpu_result) |result| {
-        const gpu_ms = result catch return null;
+        const gpu_ms = result catch return declineResidentPolynomial();
+        telemetry.record(.metal_riscv_base_polynomial_batch_dispatch);
         std.log.info(
             "resident RISC-V semantic composition: {d} components, {d} kernels, {d:.3} ms GPU",
             .{ semantic_jobs.len, base_programs.items.len, gpu_ms },
         );
     }
     if (lookup_gpu_result) |result| {
-        const gpu_ms = result catch return null;
+        const gpu_ms = result catch return declineResidentPolynomial();
+        telemetry.record(.metal_riscv_lookup_polynomial_batch_dispatch);
         std.log.info(
             "resident RISC-V lookup composition: {d} components, {d} kernels, {d:.3} ms GPU",
             .{ lookup_jobs.len, lookup_programs.items.len, gpu_ms },
@@ -500,6 +514,11 @@ pub fn evaluate(
         }
     }
     return try combined.finalize();
+}
+
+fn declineResidentPolynomial() ?SecureColumn {
+    telemetry.record(.cpu_riscv_polynomial_composition_decline);
+    return null;
 }
 
 fn baseCapability(component: Component) ?BaseCapability {
