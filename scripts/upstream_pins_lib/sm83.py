@@ -10,6 +10,7 @@ from .model import PinLedger, REVISION_RE
 
 def check(root: Path, ledger: PinLedger) -> list[str]:
     authority = "src/frontends/sm83/isa/authority.zig"
+    fixture = "src/frontends/sm83/pokemon_checkpoint_fixture_input.zig"
     gate = "scripts/sm83_frontend_gate.py"
     specs = (
         (authority, "SM83 opcode repository", r'^pub const opcode_repository = "([^"]+)";$', ledger.sm83_opcode_repository),
@@ -35,6 +36,10 @@ def check(root: Path, ledger: PinLedger) -> list[str]:
         (authority, "Mooneye release SHA-256", r'^pub const mooneye_release_sha256 = "([0-9a-f]{64})";$', ledger.sm83_mooneye_release_sha256),
         (gate, "Mooneye gate release", r'^MOONEYE_RELEASE = "([^"]+)"$', ledger.sm83_mooneye_release),
         (gate, "Mooneye gate release SHA-256", r'^MOONEYE_RELEASE_SHA256 = "([0-9a-f]{64})"$', ledger.sm83_mooneye_release_sha256),
+        (fixture, "PE-AGI repository", r'^pub const PE_AGI_REPOSITORY = "([^"]+)";$', ledger.sm83_pe_agi_repository),
+        (fixture, "PE-AGI revision", rf'^pub const PE_AGI_REVISION = "({REVISION_RE})";$', ledger.sm83_pe_agi_revision),
+        (fixture, "PE-AGI release", r'^pub const PE_AGI_RELEASE = "([^"]+)";$', ledger.sm83_pe_agi_release),
+        (fixture, "PE-AGI proof fixtures SHA-256", r'^pub const PE_AGI_FIXTURES_SHA256 =\s*"([0-9a-f]{64})";$', ledger.sm83_pe_agi_fixtures_sha256),
     )
     errors: list[str] = []
     sources: dict[str, str] = {}

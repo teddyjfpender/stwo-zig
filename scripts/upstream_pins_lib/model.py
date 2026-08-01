@@ -45,6 +45,10 @@ class PinLedger:
     sm83_mooneye_wla_revision: str
     sm83_mooneye_release: str
     sm83_mooneye_release_sha256: str
+    sm83_pe_agi_repository: str
+    sm83_pe_agi_revision: str
+    sm83_pe_agi_release: str
+    sm83_pe_agi_fixtures_sha256: str
     official_cairo_repository: str
     official_cairo_revision: str
     official_cairo_stwo_repository: str
@@ -195,6 +199,22 @@ def parse_ledger(path: Path = DEFAULT_LEDGER) -> PinLedger:
             text,
             r"^- Pinned Mooneye release SHA-256: `([0-9a-f]{64})`$",
             "Mooneye release SHA-256",
+        ),
+        sm83_pe_agi_repository=_single_field(
+            text, r"^- PE-AGI repository: `([^`]+)`$", "PE-AGI repository"
+        ),
+        sm83_pe_agi_revision=_single_field(
+            text,
+            rf"^- Pinned PE-AGI commit: `({REVISION_RE})`$",
+            "PE-AGI revision",
+        ),
+        sm83_pe_agi_release=_single_field(
+            text, r"^- Pinned PE-AGI release: `([^`]+)`$", "PE-AGI release"
+        ),
+        sm83_pe_agi_fixtures_sha256=_single_field(
+            text,
+            r"^- Pinned PE-AGI proof fixtures SHA-256: `([0-9a-f]{64})`$",
+            "PE-AGI proof fixtures SHA-256",
         ),
         official_cairo_repository=_single_field(
             text,

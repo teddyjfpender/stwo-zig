@@ -8,10 +8,6 @@ on:
 
 permissions: {}
 
-concurrency:
-  group: autoresearch-judge-${{ github.repository }}
-  cancel-in-progress: false
-
 jobs:
   evaluate:
     if: >-
@@ -21,6 +17,9 @@ jobs:
       github.event.pull_request.author_association)
     runs-on: [self-hosted, macOS, stwo-judge]
     timeout-minutes: 90
+    concurrency:
+      group: autoresearch-judge-${{ github.repository }}
+      cancel-in-progress: false
     permissions:
       contents: read
     env:

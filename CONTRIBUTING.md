@@ -1302,16 +1302,35 @@ Use the repository entrypoints rather than reconstructing CI commands locally:
 
 ```sh
 python3 scripts/install_hooks.py  # once per checkout
+python3 scripts/dev_test.py       # narrowest package-owned tests for worktree changes
+python3 scripts/dev_test.py --check path/to/file.zig  # incremental type-check, no codegen
+python3 scripts/dev_test.py --watch path/to/file.zig  # persistent edit/save diagnostics
 python3 scripts/ci.py --fast      # static validate-or-reject in seconds; no compilation
 python3 scripts/ci.py             # same standard gate as hosted CI
 python3 scripts/ci.py --strict    # release evidence gate
 ```
 
-Run `--fast` first and often: it rejects formatting, pin-drift, source-conformance,
-and script-contract breakage in seconds without a single `zig build`. That
+`dev_test.py` derives package ownership and broad fallbacks from each
+`package.contract.json`. For field, crypto, FRI/PCS, prover AIR/poly/PCS,
+RISC-V ISA/runner/AIR-semantics, and SM83 ISA/runner edits it selects smaller
+Debug-mode test roots instead. Debug avoids LLVM optimization during the edit
+loop; the standard gate remains the optimized authority. Pass paths explicitly
+to preview a planned edit, or use `--dry-run` to inspect the commands. An
+unowned path fails closed; the script never reports green for a change it
+cannot route. Broad package fallbacks retain their declared ReleaseSafe command.
+
+`--check` follows Zig's recommended incremental, no-binary path and skips test
+execution; use it for compile errors while editing, then run the normal focused
+test before committing. `--watch` keeps one focused package's compiler process
+alive and rebuilds on each save. Unfocused package fallbacks still run their
+complete declared test command rather than pretending to be check-only.
+
+Run `--fast` first and often: it rejects formatting, pin drift, and source-conformance
+breakage in seconds without a single `zig build`. That
 compilation-free property is enforced by test, not convention — a compile-class
 command entering the fast plan fails `scripts/tests/test_ci.py`. Only after fast
-passes is the standard gate worth its minutes.
+passes is the standard gate, including the complete script-contract suite, worth
+its minutes.
 
 For the RISC-V lane, `scripts/riscv_formal_tools.py`,
 `scripts/riscv_trace_vectors.py`, and `scripts/riscv_arch_tests.py` own formal
@@ -1350,9 +1369,10 @@ conformance. The pre-push hook uses the generated product catalog and
 `conformance/ci-touchpoints-v1.json` to run only gates owned by the exact commits being pushed.
 It reuses product-scoped caches and writes timing receipts under `zig-out/ci/pre-push/`. A host
 that cannot execute a selected Metal or Full-Xcode lane reports it as deferred to authoritative
-hosted CI. Exhaustive build-graph closure and aggregate compatibility products also run in hosted
-CI, where they can execute in parallel instead of serially rebuilding every commit-bound product
-identity in the local feedback loop.
+hosted CI. Pull requests and pushes to `main` use the same fail-closed affected-product closure;
+unknown paths still select every lane. The complete Python script-contract suite runs when scripts,
+their workflows, or soundness contracts change. A nightly full hosted matrix catches selector drift
+without putting unrelated products on every merge's critical path.
 Neither hook runs hardware benchmarks, profiles, or large SN PIE workloads.
 The RISC-V focused lane is a correctness workload exception: whenever selected,
 it runs the bounded four-program production proof gate and retains independent

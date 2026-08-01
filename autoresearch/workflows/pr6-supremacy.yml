@@ -12,13 +12,12 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: pr6-supremacy-m5
-  cancel-in-progress: false
-
 jobs:
   contract-smoke:
     name: PR6 contract smoke
+    if: >-
+      github.event_name != 'pull_request' ||
+      contains(github.event.pull_request.labels.*.name, 'supremacy')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -67,6 +66,9 @@ jobs:
       contains(github.event.pull_request.labels.*.name, 'supremacy')))
     runs-on: [self-hosted, macOS, stwo-judge]
     timeout-minutes: 360
+    concurrency:
+      group: pr6-supremacy-m5
+      cancel-in-progress: false
     steps:
       - name: Checkout immutable candidate
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6

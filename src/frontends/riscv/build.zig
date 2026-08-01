@@ -18,6 +18,11 @@ const test_floor = 440;
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const check_only = b.option(
+        bool,
+        "check-only",
+        "Type-check focused roots without emitting or running test binaries",
+    ) orelse false;
     const dependency_options = .{ .target = target, .optimize = optimize };
 
     const core = b.dependency("stwo_core", dependency_options).module("stwo_core");
@@ -57,6 +62,48 @@ pub fn build(b: *std.Build) void {
         "Compile and test the stwo_riscv_frontend package",
     );
     test_step.dependOn(TestCountFloor.add(b, run_tests, test_floor));
+
+    addFocusedTests(b, core, target, optimize, check_only, .{
+        .step = "test-isa",
+        .description = "Run only RISC-V ISA authority and decoder tests",
+        .root = "isa_test_root.zig",
+    });
+    addFocusedTests(b, core, target, optimize, check_only, .{
+        .step = "test-runner",
+        .description = "Run only RISC-V execution-runner tests",
+        .root = "runner_test_root.zig",
+    });
+    addFocusedTests(b, core, target, optimize, check_only, .{
+        .step = "test-air-semantics",
+        .description = "Run only RISC-V instruction-family AIR tests",
+        .root = "air_semantics_test_root.zig",
+    });
+}
+
+const FocusedTest = struct {
+    step: []const u8,
+    description: []const u8,
+    root: []const u8,
+};
+
+fn addFocusedTests(
+    b: *std.Build,
+    core: *std.Build.Module,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    check_only: bool,
+    spec: FocusedTest,
+) void {
+    const root = b.createModule(.{
+        .root_source_file = b.path(spec.root),
+        .target = target,
+        .optimize = optimize,
+    });
+    root.addImport("stwo_core", core);
+    const tests = b.addTest(.{ .root_module = root });
+    b.step(spec.step, spec.description).dependOn(
+        if (check_only) &tests.step else &b.addRunArtifact(tests).step,
+    );
 }
 
 /// Turns "the binary lost its tests" from a zero exit into a named failure.

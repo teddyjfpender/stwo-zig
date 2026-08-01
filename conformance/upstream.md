@@ -109,7 +109,11 @@ individual family before the complete machine model exists.
 - Pinned Mooneye WLA-DX commit: `89a90a56be5c2b8cf19a9afa3e1b32384ddb1a97`
 - Pinned Mooneye release: `mts-20260714-0944-31510e1`
 - Pinned Mooneye release SHA-256: `6d4fdda2f1d8d2f5f51b0ff3f6f3cc2fbae047aa395a39c82bda3a0e7cbd2641`
-- SM83 pin date: `2026-07-30`
+- PE-AGI repository: `https://github.com/teddyjfpender/PE-AGI`
+- Pinned PE-AGI commit: `619058c9a4bef2a3aa6fadc2d559c43d7d2026ae`
+- Pinned PE-AGI release: `v1.0.0`
+- Pinned PE-AGI proof fixtures SHA-256: `b6c4cab23465d8f8dcb18307859d5e5ddde4e29aab8602c49a629c1200fa1791`
+- SM83 pin date: `2026-08-01`
 
 The official Mooneye release ROMs are the byte authority: 112 of 115 ROMs
 assembled on macOS differed from the Linux release even with both source and
