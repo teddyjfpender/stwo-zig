@@ -4,6 +4,7 @@ const column_source_materialization = @import("runtime/column_source_materializa
 const commit_policy = @import("commit_policy.zig");
 const combined_commit = @import("runtime/combined_commit.zig");
 const fold_inverses = @import("runtime/fold_inverses.zig");
+const heterogeneous_commit = @import("runtime/heterogeneous_commit.zig");
 const host_primitives = @import("host_primitives.zig");
 const merkle = @import("stwo_prover_engine").vcs_lifted.prover;
 const metal_merkle = @import("merkle_tree.zig");
@@ -49,7 +50,7 @@ pub const MetalCommitBackend = struct {
     // No-copy bind when source == coefficient arena (`circle_legacy.m:227`).
     pub const adopts_source_trace_arena = true;
     pub const lazyFriFoldInverseWorkspace = true;
-    pub const prepareAndCommitOwned = combined_commit.prepareAndCommitOwned;
+    pub const prepareAndCommitOwned = heterogeneous_commit.prepareAndCommitOwned;
     pub const prepareAndCommitPolys = combined_commit.prepareAndCommitPolys;
     pub const preferContiguousQuadraticRecurrenceTrace = true;
     pub const preferDeferredQuadraticRecurrenceTrace = true;

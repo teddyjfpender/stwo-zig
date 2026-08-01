@@ -28,10 +28,26 @@ pub extern fn stwo_zig_metal_archive_store_stats_v1(
     stats_size: usize,
 ) bool;
 pub extern fn stwo_zig_metal_max_buffer_length(runtime: *anyopaque) u64;
+pub extern fn stwo_zig_metal_recommended_max_working_set_size(runtime: *anyopaque) u64;
 pub extern fn stwo_zig_metal_buffer_create(
     runtime: *anyopaque,
     byte_length: usize,
     contents: **anyopaque,
+    error_message: [*]u8,
+    error_message_len: usize,
+) ?*anyopaque;
+pub extern fn stwo_zig_metal_commit_arena_alias(
+    runtime: *anyopaque,
+    contents: *anyopaque,
+    byte_length: usize,
+    error_message: [*]u8,
+    error_message_len: usize,
+) ?*anyopaque;
+pub extern fn stwo_zig_metal_resident_merkle_tree_from_completed_arena(
+    runtime: *anyopaque,
+    epoch: *anyopaque,
+    arena: *anyopaque,
+    plan: *anyopaque,
     error_message: [*]u8,
     error_message_len: usize,
 ) ?*anyopaque;

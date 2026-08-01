@@ -17,18 +17,34 @@ const min_columns: usize = 64;
 const composition_column_count: usize = 8;
 const max_columns: usize = 256;
 
+/// Reuses the established uniform-commit crossover as the minimum useful work
+/// for a mixed-log epoch: eight log-16 columns' worth of base values, no shape
+/// larger than the already-supported uniform maximum, and at least one log-16
+/// column. This avoids paying a submit and terminal wait for tiny trees.
+pub fn admitsMeasuredHeterogeneousShape(
+    column_count: usize,
+    maximum_base_log_size: u32,
+    total_base_words: u64,
+) bool {
+    const minimum_base_words = @as(u64, composition_column_count) << min_base_log_size;
+    return column_count >= 2 and column_count <= max_columns and
+        maximum_base_log_size >= min_base_log_size and
+        total_base_words >= minimum_base_words;
+}
+
 pub fn admitsDeferredQuadraticRecurrenceTrace(row_count: usize, column_count: usize) bool {
     return std.math.isPowerOfTwo(row_count) and
         row_count >= (1 << min_deferred_base_log_size) and
         column_count >= min_columns and column_count <= max_columns;
 }
 
-fn PreparedCommitment(comptime H: type) type {
+pub fn PreparedCommitment(comptime H: type) type {
     return struct {
         columns: []ColumnEvaluation,
         coefficients: []CircleCoefficients,
-        column_backing_buffers: [][]M31,
-        coefficient_backing_buffers: [][]M31,
+        column_backing_buffers: ?[][]M31,
+        coefficient_backing_buffers: ?[][]M31,
+        backing_teardown: ?prover.pcs.BackingTeardownToken = null,
         commitment: metal_merkle.MetalMerkleTree(H),
     };
 }

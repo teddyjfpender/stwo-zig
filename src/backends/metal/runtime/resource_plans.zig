@@ -124,6 +124,7 @@ pub fn ResourcePlans(comptime MetalError: type) type {
 
         pub const ResidentMerklePlan = struct {
             handle: *anyopaque,
+            lifting_log_size: u32,
 
             pub fn deinit(self: *ResidentMerklePlan) void {
                 stwo_zig_metal_resident_merkle_destroy(self.handle);

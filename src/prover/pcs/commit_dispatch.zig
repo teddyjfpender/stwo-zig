@@ -61,12 +61,17 @@ pub fn tryPrecommitted(
         source_backing_buffers,
         source,
     )) orelse return null;
-    return commitment_tree.CommitmentTreeProverForBackend(B, H).initPrecommitted(
+    const backing_teardown = if (comptime @hasField(@TypeOf(prepared), "backing_teardown"))
+        prepared.backing_teardown
+    else
+        null;
+    return commitment_tree.CommitmentTreeProverForBackend(B, H).initPrecommittedWithTeardown(
         prepared.columns,
         prepared.coefficients,
         prepared.column_backing_buffers,
         prepared.coefficient_backing_buffers,
         prepared.commitment,
+        backing_teardown,
     );
 }
 
@@ -88,11 +93,16 @@ pub fn tryPrecommittedPolys(
         retention_policy,
         twiddle_source,
     )) orelse return null;
-    return commitment_tree.CommitmentTreeProverForBackend(B, H).initPrecommitted(
+    const backing_teardown = if (comptime @hasField(@TypeOf(prepared), "backing_teardown"))
+        prepared.backing_teardown
+    else
+        null;
+    return commitment_tree.CommitmentTreeProverForBackend(B, H).initPrecommittedWithTeardown(
         prepared.columns,
         prepared.coefficients,
         prepared.column_backing_buffers,
         prepared.coefficient_backing_buffers,
         prepared.commitment,
+        backing_teardown,
     );
 }

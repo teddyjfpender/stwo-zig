@@ -96,6 +96,143 @@ void stwo_zig_metal_resident_merkle_destroy(void *plan_ptr) {
     if (plan_ptr != NULL) CFRelease(plan_ptr);
 }
 
+void *stwo_zig_metal_commit_arena_alias(
+    void *runtime_ptr, void *contents, size_t byte_length,
+    char *error_message, size_t error_message_len
+) {
+    if (runtime_ptr == NULL || contents == NULL || byte_length == 0u) return NULL;
+    @autoreleasepool {
+        StwoZigMetalRuntime *runtime = (__bridge StwoZigMetalRuntime *)runtime_ptr;
+        size_t page_size = (size_t)getpagesize();
+        if ((uintptr_t)contents % page_size != 0u || byte_length % page_size != 0u ||
+            (uint64_t)byte_length > (uint64_t)runtime.device.maxBufferLength) {
+            write_error(error_message, error_message_len,
+                        @"Metal commitment arena must be page-aligned and device-addressable");
+            return NULL;
+        }
+        id<MTLBuffer> arena = [runtime.device newBufferWithBytesNoCopy:contents
+                                                            length:byte_length
+                                                           options:MTLResourceStorageModeShared
+                                                       deallocator:nil];
+        if (arena == nil) {
+            write_error(error_message, error_message_len,
+                        @"Metal commitment arena no-copy binding failed");
+            return NULL;
+        }
+        return (__bridge_retained void *)arena;
+    }
+}
+
+void *stwo_zig_metal_resident_merkle_tree_from_completed_arena(
+    void *runtime_ptr, void *epoch_ptr, void *arena_ptr, void *plan_ptr,
+    char *error_message, size_t error_message_len
+) {
+    if (runtime_ptr == NULL || epoch_ptr == NULL || arena_ptr == NULL || plan_ptr == NULL)
+        return NULL;
+    @autoreleasepool {
+        StwoZigMetalRuntime *runtime = (__bridge StwoZigMetalRuntime *)runtime_ptr;
+        StwoZigCommandEpoch *epoch = (__bridge StwoZigCommandEpoch *)epoch_ptr;
+        id<MTLBuffer> arena = (__bridge id<MTLBuffer>)arena_ptr;
+        StwoZigResidentMerklePlan *plan = (__bridge StwoZigResidentMerklePlan *)plan_ptr;
+        @synchronized(epoch) {
+            if (epoch.runtime != runtime || epoch.arena != arena ||
+                epoch.state != StwoZigCommandEpochStateCompleted ||
+                epoch.command.status != MTLCommandBufferStatusCompleted ||
+                epoch.residentMerklePlan != plan || epoch.residentMerkleAdopted ||
+                epoch.computeEncoders == 0u || epoch.dispatches == 0u) {
+                write_error(error_message, error_message_len,
+                            @"Completed Metal Merkle arena lacks matching epoch provenance");
+                return NULL;
+            }
+            // Consume provenance before allocating metadata so concurrent or
+            // retrying callers can never publish two owners for one receipt.
+            epoch.residentMerkleAdopted = YES;
+        }
+        if (plan.layerCount != plan.liftingLogSize + 1u || plan.layerCount == 0u ||
+            plan.columnCount == 0u || plan.layerOffsets.length !=
+                (NSUInteger)plan.layerCount * sizeof(uint32_t)) {
+            write_error(error_message, error_message_len,
+                        @"Completed Metal Merkle arena has invalid plan geometry");
+            return NULL;
+        }
+
+        const uint32_t *layer_offsets = plan.layerOffsets.bytes;
+        NSMutableArray<id<MTLBuffer>> *layers =
+            [NSMutableArray arrayWithCapacity:plan.layerCount];
+        NSMutableData *layer_lengths =
+            [NSMutableData dataWithLength:(NSUInteger)plan.layerCount * sizeof(uint32_t)];
+        if (layers == nil || layer_lengths == nil) {
+            write_error(error_message, error_message_len,
+                        @"Completed Metal Merkle metadata allocation failed");
+            return NULL;
+        }
+        uint32_t *length_values = layer_lengths.mutableBytes;
+        uint32_t hashes = 1u << plan.liftingLogSize;
+        for (uint32_t level = 0u; level < plan.layerCount; ++level) {
+            uint64_t layer_words = (uint64_t)hashes * 8u;
+            uint64_t layer_end = (uint64_t)layer_offsets[level] + layer_words;
+            if (layer_words > UINT32_MAX || layer_end > arena.length / sizeof(uint32_t)) {
+                write_error(error_message, error_message_len,
+                            @"Completed Metal Merkle layer exceeds its arena");
+                return NULL;
+            }
+            [layers addObject:arena];
+            length_values[level] = (uint32_t)layer_words;
+            hashes >>= 1u;
+        }
+
+        const uint32_t *column_offsets = plan.columnOffsets.contents;
+        const uint32_t *column_logs = plan.columnLogSizes.contents;
+        NSMutableData *resident_begins =
+            [NSMutableData dataWithLength:(NSUInteger)plan.columnCount * sizeof(uintptr_t)];
+        NSMutableData *resident_counts =
+            [NSMutableData dataWithLength:(NSUInteger)plan.columnCount * sizeof(size_t)];
+        NSMutableData *resident_offsets =
+            [NSMutableData dataWithLength:(NSUInteger)plan.columnCount * sizeof(uint32_t)];
+        if (column_offsets == NULL || column_logs == NULL || resident_begins == nil ||
+            resident_counts == nil || resident_offsets == nil) {
+            write_error(error_message, error_message_len,
+                        @"Completed Metal Merkle column map allocation failed");
+            return NULL;
+        }
+        uintptr_t *begin_values = resident_begins.mutableBytes;
+        size_t *count_values = resident_counts.mutableBytes;
+        uint32_t *offset_values = resident_offsets.mutableBytes;
+        for (uint32_t column = 0u; column < plan.columnCount; ++column) {
+            size_t words = (size_t)1u << column_logs[column];
+            if ((uint64_t)column_offsets[column] + words > arena.length / sizeof(uint32_t)) {
+                write_error(error_message, error_message_len,
+                            @"Completed Metal Merkle column exceeds its arena");
+                return NULL;
+            }
+            begin_values[column] = (uintptr_t)arena.contents +
+                (uintptr_t)column_offsets[column] * sizeof(uint32_t);
+            count_values[column] = words;
+            offset_values[column] = column_offsets[column];
+        }
+
+        StwoZigMetalTree *tree = [StwoZigMetalTree new];
+        if (tree == nil) {
+            write_error(error_message, error_message_len,
+                        @"Completed Metal Merkle tree allocation failed");
+            return NULL;
+        }
+        tree.runtimeOwner = runtime;
+        tree.layers = layers;
+        tree.layerWordOffsets = plan.layerOffsets;
+        tree.layerWordLengths = layer_lengths;
+        tree.rootReadback = arena;
+        tree.rootReadbackWordOffset = layer_offsets[plan.layerCount - 1u];
+        tree.logSize = plan.liftingLogSize;
+        tree.gpuMilliseconds = (epoch.command.GPUEndTime - epoch.command.GPUStartTime) * 1000.0;
+        tree.residentColumnBuffers = @[ arena ];
+        tree.residentColumnHostBegins = resident_begins;
+        tree.residentColumnWordCounts = resident_counts;
+        tree.residentColumnWordOffsets = resident_offsets;
+        return (__bridge_retained void *)tree;
+    }
+}
+
 static bool encode_resident_merkle_prepared(
     StwoZigMetalRuntime *runtime, id<MTLBuffer> arena, StwoZigResidentMerklePlan *plan,
     id<MTLCommandBuffer> command, uint64_t *compute_encoders, uint64_t *dispatches
@@ -247,6 +384,12 @@ bool stwo_zig_metal_command_epoch_encode_resident_merkle(
     @autoreleasepool {
         StwoZigCommandEpoch *epoch = (__bridge StwoZigCommandEpoch *)epoch_ptr;
         if (!command_epoch_can_encode(epoch, error_message, error_message_len)) return false;
+        if (epoch.residentMerklePlan != nil) {
+            epoch.state = StwoZigCommandEpochStateFailed;
+            write_error(error_message, error_message_len,
+                        @"Metal command epoch already has a resident Merkle plan");
+            return false;
+        }
         StwoZigResidentMerklePlan *plan = (__bridge StwoZigResidentMerklePlan *)plan_ptr;
         uint64_t compute_encoders = epoch.computeEncoders, dispatches = epoch.dispatches;
         if (!encode_resident_merkle_prepared(epoch.runtime, epoch.arena, plan, epoch.command,
@@ -256,6 +399,7 @@ bool stwo_zig_metal_command_epoch_encode_resident_merkle(
             return false;
         }
         epoch.computeEncoders = compute_encoders; epoch.dispatches = dispatches;
+        epoch.residentMerklePlan = plan;
         [epoch.retainedPlans addObject:plan];
         return true;
     }

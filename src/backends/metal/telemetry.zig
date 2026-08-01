@@ -68,6 +68,22 @@ pub const Event = enum {
     /// the arena was not adopted and the fused-upload/blit encoder ran
     /// (`circle_legacy.m:267-323`). The pre-arena behaviour.
     metal_commit_source_upload,
+    /// One mixed-log backed-tree commit completed in one caller-owned epoch.
+    metal_heterogeneous_commit_epoch,
+    /// Exact physical command buffers reported by mixed-log commit epochs.
+    metal_heterogeneous_commit_command_buffer,
+    /// Exact terminal waits reported by mixed-log commit epochs.
+    metal_heterogeneous_commit_wait,
+    /// Exact physical compute dispatches reported by mixed-log commit epochs.
+    metal_heterogeneous_commit_dispatch,
+    /// Total bytes retained by successful mixed-log commit arenas.
+    metal_heterogeneous_commit_arena_byte,
+    /// Source bytes whose address changed during allocator resize before Metal
+    /// established its no-copy binding. This does not guess the allocator's
+    /// physical copy/remap implementation.
+    metal_heterogeneous_commit_resize_moved_byte,
+    /// Bytes the old separate Merkle staging allocation would have copied.
+    metal_heterogeneous_commit_staging_byte_avoided,
 };
 
 pub const CounterValues = struct {
@@ -101,6 +117,13 @@ pub const CounterValues = struct {
     metal_commit_source_arena_aliases: u64 = 0,
     metal_commit_source_arena_memcpys: u64 = 0,
     metal_commit_source_uploads: u64 = 0,
+    metal_heterogeneous_commit_epochs: u64 = 0,
+    metal_heterogeneous_commit_command_buffers: u64 = 0,
+    metal_heterogeneous_commit_waits: u64 = 0,
+    metal_heterogeneous_commit_dispatches: u64 = 0,
+    metal_heterogeneous_commit_arena_bytes: u64 = 0,
+    metal_heterogeneous_commit_resize_moved_bytes: u64 = 0,
+    metal_heterogeneous_commit_staging_bytes_avoided: u64 = 0,
 
     pub fn delta(after: CounterValues, before: CounterValues) CounterValues {
         var result: CounterValues = .{};
@@ -397,6 +420,13 @@ const CounterBank = struct {
     metal_commit_source_arena_aliases: AtomicCounter = AtomicCounter.init(0),
     metal_commit_source_arena_memcpys: AtomicCounter = AtomicCounter.init(0),
     metal_commit_source_uploads: AtomicCounter = AtomicCounter.init(0),
+    metal_heterogeneous_commit_epochs: AtomicCounter = AtomicCounter.init(0),
+    metal_heterogeneous_commit_command_buffers: AtomicCounter = AtomicCounter.init(0),
+    metal_heterogeneous_commit_waits: AtomicCounter = AtomicCounter.init(0),
+    metal_heterogeneous_commit_dispatches: AtomicCounter = AtomicCounter.init(0),
+    metal_heterogeneous_commit_arena_bytes: AtomicCounter = AtomicCounter.init(0),
+    metal_heterogeneous_commit_resize_moved_bytes: AtomicCounter = AtomicCounter.init(0),
+    metal_heterogeneous_commit_staging_bytes_avoided: AtomicCounter = AtomicCounter.init(0),
 };
 
 var counter_bank: CounterBank = .{};
@@ -438,6 +468,13 @@ pub fn recordN(event: Event, count: u64) void {
         .metal_commit_source_arena_alias => &counter_bank.metal_commit_source_arena_aliases,
         .metal_commit_source_arena_memcpy => &counter_bank.metal_commit_source_arena_memcpys,
         .metal_commit_source_upload => &counter_bank.metal_commit_source_uploads,
+        .metal_heterogeneous_commit_epoch => &counter_bank.metal_heterogeneous_commit_epochs,
+        .metal_heterogeneous_commit_command_buffer => &counter_bank.metal_heterogeneous_commit_command_buffers,
+        .metal_heterogeneous_commit_wait => &counter_bank.metal_heterogeneous_commit_waits,
+        .metal_heterogeneous_commit_dispatch => &counter_bank.metal_heterogeneous_commit_dispatches,
+        .metal_heterogeneous_commit_arena_byte => &counter_bank.metal_heterogeneous_commit_arena_bytes,
+        .metal_heterogeneous_commit_resize_moved_byte => &counter_bank.metal_heterogeneous_commit_resize_moved_bytes,
+        .metal_heterogeneous_commit_staging_byte_avoided => &counter_bank.metal_heterogeneous_commit_staging_bytes_avoided,
     };
     _ = counter.fetchAdd(count, .monotonic);
 }

@@ -555,7 +555,9 @@ static uint32_t tree_layer_word_length(StwoZigMetalTree *tree, NSUInteger level)
 @property(nonatomic, strong) id<MTLBuffer> arena;
 @property(nonatomic, strong) id<MTLCommandBuffer> command;
 @property(nonatomic, strong) NSMutableArray *retainedPlans;
+@property(nonatomic, strong) StwoZigResidentMerklePlan *residentMerklePlan;
 @property(nonatomic) StwoZigCommandEpochState state;
+@property(nonatomic) BOOL residentMerkleAdopted;
 @property(nonatomic) uint64_t computeEncoders;
 @property(nonatomic) uint64_t blitEncoders;
 @property(nonatomic) uint64_t dispatches;

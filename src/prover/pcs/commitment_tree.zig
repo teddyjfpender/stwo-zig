@@ -14,6 +14,31 @@ const M31 = m31.M31;
 
 pub const ColumnEvaluation = quotient_ops.ColumnEvaluation;
 
+/// Optional backend-owned lifetime hook that runs after all host backing
+/// allocations for a commitment have actually been returned to the allocator.
+/// Treat this value as move-only.
+pub const BackingTeardownToken = struct {
+    context: ?*anyopaque,
+    value: u64,
+    release_fn: *const fn (?*anyopaque, u64) void,
+
+    pub fn init(
+        context: ?*anyopaque,
+        value: u64,
+        release_fn: *const fn (?*anyopaque, u64) void,
+    ) BackingTeardownToken {
+        return .{ .context = context, .value = value, .release_fn = release_fn };
+    }
+
+    pub fn deinit(self: *BackingTeardownToken) void {
+        const context = self.context;
+        const value = self.value;
+        const release_fn = self.release_fn;
+        self.* = undefined;
+        release_fn(context, value);
+    }
+};
+
 const HostMerkleBackend = struct {
     pub fn MerkleTree(comptime H: type) type {
         return vcs_lifted_prover.MerkleProverLifted(H);
@@ -39,6 +64,7 @@ pub fn CommitmentTreeProverForBackend(comptime B: type, comptime H: type) type {
         coefficients: ?[]prover_circle.CircleCoefficients,
         column_backing_buffers: ?[][]M31 = null,
         coefficient_backing_buffers: ?[][]M31 = null,
+        backing_teardown: ?BackingTeardownToken = null,
         commitment: B.MerkleTree(H),
 
         const Self = @This();
@@ -119,12 +145,31 @@ pub fn CommitmentTreeProverForBackend(comptime B: type, comptime H: type) type {
             coefficient_backing_buffers: ?[][]M31,
             commitment: B.MerkleTree(H),
         ) Self {
+            return initPrecommittedWithTeardown(
+                owned_columns,
+                owned_coefficients,
+                column_backing_buffers,
+                coefficient_backing_buffers,
+                commitment,
+                null,
+            );
+        }
+
+        pub fn initPrecommittedWithTeardown(
+            owned_columns: []ColumnEvaluation,
+            owned_coefficients: ?[]prover_circle.CircleCoefficients,
+            column_backing_buffers: ?[][]M31,
+            coefficient_backing_buffers: ?[][]M31,
+            commitment: B.MerkleTree(H),
+            backing_teardown: ?BackingTeardownToken,
+        ) Self {
             std.debug.assert(owned_coefficients == null or owned_coefficients.?.len == owned_columns.len);
             return .{
                 .columns = owned_columns,
                 .coefficients = owned_coefficients,
                 .column_backing_buffers = column_backing_buffers,
                 .coefficient_backing_buffers = coefficient_backing_buffers,
+                .backing_teardown = backing_teardown,
                 .commitment = commitment,
             };
         }
@@ -149,6 +194,7 @@ pub fn CommitmentTreeProverForBackend(comptime B: type, comptime H: type) type {
                 for (buffers) |buffer| allocator.free(buffer);
                 allocator.free(buffers);
             }
+            if (self.backing_teardown) |*token| token.deinit();
             self.* = undefined;
         }
 
@@ -244,4 +290,20 @@ pub fn CommitmentTreeProverForBackend(comptime B: type, comptime H: type) type {
             allocator.free(columns);
         }
     };
+}
+
+test "backing teardown token releases exactly once" {
+    const Context = struct { calls: u32 = 0, released: u64 = 0 };
+    const Counter = struct {
+        fn release(context: ?*anyopaque, value: u64) void {
+            const counter: *Context = @ptrCast(@alignCast(context.?));
+            counter.calls += 1;
+            counter.released += value;
+        }
+    };
+    var context: Context = .{};
+    var token = BackingTeardownToken.init(&context, 7, Counter.release);
+    token.deinit();
+    try std.testing.expectEqual(@as(u32, 1), context.calls);
+    try std.testing.expectEqual(@as(u64, 7), context.released);
 }
