@@ -14,12 +14,17 @@ const infra = @import("../../infra_trace.zig");
 const logup = @import("../logup.zig");
 const relations_mod = @import("../relation_challenges.zig");
 const trace = @import("../../runner/trace.zig");
+const BaseScalar = @import("base_scalar.zig").Scalar;
 const entry = @import("entry.zig");
 const opcode_entries = @import("opcode_entries.zig");
 
 pub const MAX_BATCHES: usize = entry.MAX_BATCHES;
 pub const MAX_COLUMNS: usize = 4 * MAX_BATCHES;
 pub const CHUNK_ROWS: usize = 4096;
+
+const base_opcode_entries = opcode_entries.Entries(BaseScalar);
+const BaseList = entry.Builder(BaseScalar).List;
+const BaseEntry = entry.Builder(BaseScalar).Entry;
 
 pub const Result = struct {
     columns: [MAX_COLUMNS][]M31 = .{&.{}} ** MAX_COLUMNS,
@@ -89,7 +94,7 @@ pub fn generate(
     const inverses = try allocator.alloc(QM31, term_capacity);
     defer allocator.free(inverses);
 
-    var secure: [trace.MAX_FAMILY_COLUMNS]QM31 = undefined;
+    var base: [trace.MAX_FAMILY_COLUMNS]BaseScalar = undefined;
     var row_start: usize = 0;
     while (row_start < size) {
         const chunk_len = @min(CHUNK_ROWS, size - row_start);
@@ -97,16 +102,16 @@ pub fn generate(
         for (0..chunk_len) |local_row| {
             const row = row_start + local_row;
             const committed_row = placement.map(row);
-            for (main_columns, secure[0..main_columns.len]) |column, *value| {
-                value.* = QM31.fromBase(column[committed_row]);
+            for (main_columns, base[0..main_columns.len]) |column, *value| {
+                value.* = BaseScalar.fromBase(column[committed_row]);
             }
-            const list = try opcode_entries.fromMain(
+            const list = try base_opcode_entries.fromMain(
                 family,
-                secure[0..main_columns.len],
+                base[0..main_columns.len],
             );
             if (list.batchCount() != n_batches) return error.InvalidBatchCount;
             for (0..n_batches) |batch| {
-                const pair = try list.pair(batch, relations);
+                const pair = try pairBase(&list, batch, relations);
                 const index = batch * chunk_len + local_row;
                 denominators[index] = pair.d1.mul(pair.d2);
                 numerators[index] = pair.n1.mul(pair.d2).add(pair.n2.mul(pair.d1));
@@ -231,17 +236,20 @@ const OpcodeChunk = struct {
         const inverses = try self.allocator.alloc(QM31, term_len);
         defer self.allocator.free(inverses);
 
-        var secure: [trace.MAX_FAMILY_COLUMNS]QM31 = undefined;
+        var base: [trace.MAX_FAMILY_COLUMNS]BaseScalar = undefined;
         for (0..chunk_len) |local_row| {
             const row = self.row_start + local_row;
             const committed_row = self.placement.map(row);
-            for (self.main_columns, secure[0..self.main_columns.len]) |column, *value| {
-                value.* = QM31.fromBase(column[committed_row]);
+            for (self.main_columns, base[0..self.main_columns.len]) |column, *value| {
+                value.* = BaseScalar.fromBase(column[committed_row]);
             }
-            const list = try opcode_entries.fromMain(self.family, secure[0..self.main_columns.len]);
+            const list = try base_opcode_entries.fromMain(
+                self.family,
+                base[0..self.main_columns.len],
+            );
             if (list.batchCount() != self.n_batches) return error.InvalidBatchCount;
             for (0..self.n_batches) |batch| {
-                const pair = try list.pair(batch, self.relations);
+                const pair = try pairBase(&list, batch, self.relations);
                 const index = batch * chunk_len + local_row;
                 denominators[index] = pair.d1.mul(pair.d2);
                 numerators[index] = pair.n1.mul(pair.d2).add(pair.n2.mul(pair.d1));
@@ -279,6 +287,79 @@ const OpcodeChunk = struct {
         }
     }
 };
+
+fn unwrapValues(comptime arity: usize, values: [arity]BaseScalar) [arity]M31 {
+    var result: [arity]M31 = undefined;
+    for (values, &result) |value, *dst| dst.* = value.value;
+    return result;
+}
+
+fn denominatorBase(
+    relation_entry: *const BaseEntry,
+    relations: *const relations_mod.Relations,
+) !QM31 {
+    try relation_entry.validate();
+    return switch (relation_entry.domain) {
+        .registers_state => relations.registers_state.combineBase(
+            unwrapValues(2, relation_entry.values[0..2].*),
+        ),
+        .memory_access => relations.memory_access.combineBase(
+            unwrapValues(7, relation_entry.values[0..7].*),
+        ),
+        .program_access => relations.program_access.combineBase(
+            unwrapValues(5, relation_entry.values[0..5].*),
+        ),
+        .merkle => relations.merkle.combineBase(
+            unwrapValues(4, relation_entry.values[0..4].*),
+        ),
+        .poseidon2 => relations.poseidon2.combineBase(
+            unwrapValues(16, relation_entry.values[0..16].*),
+        ),
+        .poseidon2_io => relations.poseidon2_io.combineBase(
+            unwrapValues(32, relation_entry.values[0..32].*),
+        ),
+        .bitwise => relations.bitwise.combineBase(
+            unwrapValues(4, relation_entry.values[0..4].*),
+        ),
+        .range_check_20 => relations.range_check_20.combineBase(
+            unwrapValues(1, relation_entry.values[0..1].*),
+        ),
+        .range_check_8_11 => relations.range_check_8_11.combineBase(
+            unwrapValues(2, relation_entry.values[0..2].*),
+        ),
+        .range_check_8_8_4 => relations.range_check_8_8_4.combineBase(
+            unwrapValues(3, relation_entry.values[0..3].*),
+        ),
+        .range_check_8_8 => relations.range_check_8_8.combineBase(
+            unwrapValues(2, relation_entry.values[0..2].*),
+        ),
+        .range_check_m31 => relations.range_check_m31.combineBase(
+            unwrapValues(2, relation_entry.values[0..2].*),
+        ),
+    };
+}
+
+fn pairBase(
+    list: *const BaseList,
+    batch: usize,
+    relations: *const relations_mod.Relations,
+) !logup.RowPair {
+    const first = &list.entries[batch * list.batch_size];
+    const first_numerator = QM31.fromBase(first.numerator.value);
+    if (list.batch_size == 1 or batch * list.batch_size + 1 == list.len) {
+        return logup.RowPair.single(
+            first_numerator,
+            try denominatorBase(first, relations),
+        );
+    }
+    const second = &list.entries[batch * list.batch_size + 1];
+    return .{
+        .n1 = first_numerator,
+        .d1 = try denominatorBase(first, relations),
+        .n2 = QM31.fromBase(second.numerator.value),
+        .d2 = try denominatorBase(second, relations),
+    };
+}
 
 fn validateColumns(
     family: trace.OpcodeFamily,
@@ -355,6 +436,44 @@ fn pairTerm(pair: logup.RowPair) !QM31 {
     const denominator = pair.d1.mul(pair.d2);
     const numerator = pair.n1.mul(pair.d2).add(pair.n2.mul(pair.d1));
     return numerator.mul(try denominator.inv());
+}
+
+fn expectBaseEntryParity(
+    family: trace.OpcodeFamily,
+    main: []const []const M31,
+    committed_row: usize,
+    relations: *const relations_mod.Relations,
+) !void {
+    var base: [trace.MAX_FAMILY_COLUMNS]BaseScalar = undefined;
+    var secure: [trace.MAX_FAMILY_COLUMNS]QM31 = undefined;
+    for (main, base[0..main.len], secure[0..main.len]) |column, *base_value, *secure_value| {
+        const value = column[committed_row];
+        base_value.* = BaseScalar.fromBase(value);
+        secure_value.* = QM31.fromBase(value);
+    }
+    const actual = try base_opcode_entries.fromMain(family, base[0..main.len]);
+    const oracle = try opcode_entries.fromMain(family, secure[0..main.len]);
+    try std.testing.expectEqual(oracle.len, actual.len);
+    try std.testing.expectEqual(oracle.batch_size, actual.batch_size);
+    for (actual.entries[0..actual.len], oracle.entries[0..oracle.len]) |got, want| {
+        try std.testing.expectEqual(want.domain, got.domain);
+        try std.testing.expectEqual(want.arity, got.arity);
+        try std.testing.expectEqual(want.role, got.role);
+        try std.testing.expectEqual(want.access_ordinal, got.access_ordinal);
+        try std.testing.expect(QM31.fromBase(got.numerator.value).eql(want.numerator));
+        for (got.values[0..got.arity], want.values[0..want.arity]) |got_value, want_value| {
+            try std.testing.expect(QM31.fromBase(got_value.value).eql(want_value));
+        }
+    }
+    try std.testing.expectEqual(oracle.batchCount(), actual.batchCount());
+    for (0..actual.batchCount()) |batch| {
+        const got = try pairBase(&actual, batch, relations);
+        const want = try oracle.pair(batch, relations);
+        try std.testing.expect(got.n1.eql(want.n1));
+        try std.testing.expect(got.d1.eql(want.d1));
+        try std.testing.expect(got.n2.eql(want.n2));
+        try std.testing.expect(got.d2.eql(want.d2));
+    }
 }
 
 fn testRowForFamily(family: trace.OpcodeFamily, row_index: usize) trace.TraceRow {
@@ -679,6 +798,35 @@ test "opcode interaction matches scalar prefixes for every family" {
             family,
             testRowForFamily(family, index),
             4,
+            &relations,
+        );
+    }
+}
+
+test "base-field opcode entries match secure reconstruction for every family and padding" {
+    const allocator = std.testing.allocator;
+    const relations = relations_mod.Relations.dummy();
+    for (0..trace.N_FAMILIES) |index| {
+        const family: trace.OpcodeFamily = @enumFromInt(index);
+        var main = try testColumns(
+            allocator,
+            family,
+            4,
+            &.{testRowForFamily(family, index)},
+        );
+        defer freeTestColumns(allocator, main);
+        const placement = try infra.BitReversalTable.init(allocator, 4);
+        defer placement.deinit(allocator);
+        try expectBaseEntryParity(
+            family,
+            main.storage[0..main.len],
+            placement.map(0),
+            &relations,
+        );
+        try expectBaseEntryParity(
+            family,
+            main.storage[0..main.len],
+            placement.map(15),
             &relations,
         );
     }

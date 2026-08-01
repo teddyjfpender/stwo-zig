@@ -9,16 +9,19 @@
 const std = @import("std");
 const work_pool = @import("stwo_prover_engine").work_pool;
 const M31 = @import("stwo_core").fields.m31.M31;
-const QM31 = @import("stwo_core").fields.qm31.QM31;
 const blake2 = @import("stwo_core").vcs.blake2_hash;
 const infra = @import("../../../infra_trace.zig");
 const trace = @import("../../../runner/trace.zig");
+const BaseScalar = @import("../base_scalar.zig").Scalar;
 const entry = @import("../entry.zig");
 const opcode_entries = @import("../opcode_entries.zig");
 const counter = @import("counter.zig");
 const schema = @import("schema.zig");
 
 pub const Digest = blake2.Blake2sHash;
+
+const base_opcode_entries = opcode_entries.Entries(BaseScalar);
+const BaseEntry = entry.Builder(BaseScalar).Entry;
 
 const shard_digest_domain = "stwo-zig/riscv/table-source-shard/v1\x00";
 const manifest_digest_domain = "stwo-zig/riscv/table-source-manifest/v1\x00";
@@ -471,29 +474,36 @@ fn scanShard(
     );
     defer placement.deinit(allocator);
     var counts = [_]u64{0} ** schema.KIND_COUNT;
-    var secure: [trace.MAX_FAMILY_COLUMNS]QM31 = undefined;
+    var base: [trace.MAX_FAMILY_COLUMNS]BaseScalar = undefined;
     for (0..size) |row| {
         const committed_row = placement.map(row);
         for (
             shard.committed_columns,
-            secure[0..shard.committed_columns.len],
-        ) |column, *value| value.* = QM31.fromBase(column[committed_row]);
-        const list = opcode_entries.fromMain(
+            base[0..shard.committed_columns.len],
+        ) |column, *value| value.* = BaseScalar.fromBase(column[committed_row]);
+        const list = base_opcode_entries.fromMain(
             family,
-            secure[0..shard.committed_columns.len],
+            base[0..shard.committed_columns.len],
         ) catch return error.InvalidCommittedRow;
         var active = false;
-        for (list.entries[0..list.len]) |relation_entry| {
+        for (0..list.len) |entry_index| {
+            const relation_entry = &list.entries[entry_index];
             const nonzero = !relation_entry.numerator.isZero();
             active = active or nonzero;
             if (row >= shard.n_real_rows and nonzero) return error.NonZeroPadding;
             const kind = counter.kindForDomain(relation_entry.domain) orelse continue;
-            if (!try representable(kind, relation_entry, options)) continue;
+            const table_row = try representableBase(kind, relation_entry, options) orelse
+                continue;
             if (nonzero) counts[@intFromEnum(kind)] += 1;
             // Registration is per entry rather than one `registerList` over the whole
             // row so a dropped request is dropped from the counters too, which is the
             // only thing that makes `.drop` mean anything.
-            if (counters) |set| try set.get(kind).register(relation_entry);
+            if (counters) |set| {
+                const table = set.get(kind);
+                table.values[table_row] = table.values[table_row].add(
+                    relation_entry.numerator.value,
+                );
+            }
         }
         if (row < shard.n_real_rows and !active) return error.InactiveRealRow;
     }
@@ -501,21 +511,24 @@ fn scanShard(
 }
 
 /// Whether this request has a row in its table, under `options`. A zero-numerator
-/// request is inactive and asks for nothing, so it is representable by construction.
-fn representable(
+/// request is inactive and asks for nothing, so return an arbitrary in-bounds
+/// row whose zero addition leaves the counter unchanged.
+fn representableBase(
     kind: schema.Kind,
-    relation_entry: entry.Entry,
+    relation_entry: *const BaseEntry,
     options: Options,
-) Error!bool {
+) Error!?usize {
     if (relation_entry.arity != schema.arity(kind)) return error.InvalidArity;
-    const numerator = relation_entry.numerator.tryIntoM31() catch
-        return error.NonBaseFieldValue;
-    if (numerator.isZero()) return true;
-    _ = schema.indexSecure(kind, relation_entry.values[0..relation_entry.arity]) catch |err| {
+    if (relation_entry.numerator.isZero()) return 0;
+    var values: [schema.MAX_ARITY]M31 = undefined;
+    for (
+        relation_entry.values[0..relation_entry.arity],
+        values[0..relation_entry.arity],
+    ) |value, *dst| dst.* = value.value;
+    return schema.indexBase(kind, values[0..relation_entry.arity]) catch |err| {
         if (options.unrepresentable == .reject) return err;
-        return false;
+        return null;
     };
-    return true;
 }
 
 fn updateU32(hasher: *blake2.Blake2sHasher, value: u32) void {
