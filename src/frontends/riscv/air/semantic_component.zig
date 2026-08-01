@@ -19,6 +19,7 @@ const prover_air_accumulation = @import("stwo_prover_engine").air.accumulation;
 const prover_component = @import("stwo_prover_engine").air.component_prover;
 const prover_poly = @import("stwo_prover_engine").poly.circle.poly;
 const prover_twiddles = @import("stwo_prover_engine").poly.twiddles;
+const runtime_program = @import("extract/runtime_program.zig");
 const semantic_eval = @import("semantic_eval.zig");
 const trace = @import("../runner/trace.zig");
 
@@ -59,7 +60,28 @@ pub const SemanticComponent = struct {
     }
 
     pub fn asProverComponent(self: *const @This()) prover_component.ComponentProver {
-        return Adapter.asProverComponent(self);
+        var component = Adapter.asProverComponent(self);
+        component.backend_composition_capability = .{
+            .base_polynomial_v1 = .{
+                .program_id = (@as(u64, 1) << 32) | @intFromEnum(self.family),
+                .trace_log_size = self.log_size,
+                .selector_tree_index = 0,
+                .selector_column = self.is_active_col_idx,
+                .main_tree_index = 1,
+                .first_main_column = self.main_col_offset,
+                .main_column_count = self.mainColumnCount(),
+                .export_program = exportRuntimeProgram,
+            },
+        };
+        return component;
+    }
+
+    fn exportRuntimeProgram(
+        ctx: *const anyopaque,
+        allocator: std.mem.Allocator,
+    ) !prover_component.OwnedBasePolynomialProgram {
+        const self: *const SemanticComponent = @ptrCast(@alignCast(ctx));
+        return runtime_program.build(allocator, self.family);
     }
 
     pub fn mainColumnCount(self: *const @This()) usize {

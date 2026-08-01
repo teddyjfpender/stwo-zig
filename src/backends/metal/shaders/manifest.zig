@@ -1,6 +1,6 @@
 const std = @import("std");
 
-pub const core_shader_abi: u32 = 11;
+pub const core_shader_abi: u32 = 12;
 pub const witness_codegen_support_version: u64 = 6;
 
 pub const CompileProfile = struct {
@@ -32,6 +32,7 @@ pub const Unit = enum {
     fri,
     decommit,
     polynomial_eval,
+    riscv_polynomials,
     arena_ops,
     trace_generation,
 };
@@ -138,6 +139,40 @@ pub const exports = [_]Export{
     .{ .name = "stwo_zig_decommit_assemble_fri_resident", .owner = .decommit },
     .{ .name = "stwo_zig_eval_basis", .owner = .polynomial_eval },
     .{ .name = "stwo_zig_eval_polynomials", .owner = .polynomial_eval },
+    .{ .name = "stwo_zig_base_poly_7bce7473ee2f62288eceb8a3377d4634", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_c14a50f654a9c7e71379b41a108194ff", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_f3458c84073cbe0a1a0cc8d255a028f0", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_a2a6593402647f120c2a259a1710c6e3", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_875d2026fe2fc2b5e1c47b100b1b8f0d", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_d170513e9cfabf624e38dfa3d7d2f4ed", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_a74fd0125263cc1e887ee5d726ac99a0", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_3b018614b76f63e7a28e127029c18704", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_aa55ec34af78d3f2b74d4b3d06c708a8", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_0ade2040c246f9cad3919da46161d2fd", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_6301135c98c38c29971098b60b459397", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_95bca92bf8e5c8c0cd1438e06c6c8963", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_538cf123d369ae7e3fa5e0cfe6a0a976", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_2a07b91d7f51809a92cf5dccdf29c1b5", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_04a6d5f01089e9ee1136328c062b3055", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_7c3d009f184e1add15cea06850337ed9", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_ebe47c5c0304bddea66f3a2b7c9cd55c", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_f6f449b57d5a9c234b4276d588b695a2", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_50b304cc2ee4f2f9f39675717cf40382", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_075758e47d896ea9b9ed480adcc498d1", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_459147491178ba9a8fea95e70f7ba7de", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_223a80d6062ce49ec32568323089b631", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_e6f321d7e6a5216f0493a7d9dd1cce68", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_cc2c95d2bff4c999fee2f44e08222252", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_6417a7b6a721b820c56ded08d4ff45d4", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_b15f9ad4a9abfc83a7cdec6c46ee4ade", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_65a7491625ceb251a9d27754aba62fe9", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_4fae56a01407106338de7b5a0585b863", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_2a7765f5161c42b7e1e47eb4f38042a6", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_3d43f646d7e0de973374db1d7e9ffe16", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_58c75167f9212f9663711e80d150d46d", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_05d290ec9454d3ead43a08a8f547ed07", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_944959c865e0c8dee4d3972badf854b0", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_6036f462a378cec7d80f357b57bff1f4", .owner = .riscv_polynomials },
 };
 
 pub fn isDeferredOwner(owner: Unit) bool {
@@ -201,6 +236,7 @@ const composition_source = @embedFile("core/composition.metal");
 const relation_source = @embedFile("core/relation.metal");
 const decommit_kernels_source = @embedFile("core/decommit.metal");
 const polynomial_eval_source = @embedFile("core/polynomial_eval.metal");
+const riscv_polynomials_source = @embedFile("core/riscv_polynomials.metal");
 
 pub const WitnessCodegenSupport = struct {
     base: []const u8,
@@ -258,6 +294,7 @@ pub const translation_units = [_]TranslationUnit{
     .{ .path = "src/backends/metal/shaders/core/relation.metal", .source = relation_source },
     .{ .path = "src/backends/metal/shaders/core/decommit.metal", .source = decommit_kernels_source },
     .{ .path = "src/backends/metal/shaders/core/polynomial_eval.metal", .source = polynomial_eval_source },
+    .{ .path = "src/backends/metal/shaders/core/riscv_polynomials.metal", .source = riscv_polynomials_source },
 };
 
 pub const native_translation_units = [_]TranslationUnit{
@@ -271,6 +308,7 @@ pub const native_translation_units = [_]TranslationUnit{
     .{ .path = "src/backends/metal/shaders/core/relation.metal", .source = relation_source },
     .{ .path = "src/backends/metal/shaders/core/decommit.metal", .source = decommit_kernels_source },
     .{ .path = "src/backends/metal/shaders/core/polynomial_eval.metal", .source = polynomial_eval_source },
+    .{ .path = "src/backends/metal/shaders/core/riscv_polynomials.metal", .source = riscv_polynomials_source },
 };
 
 pub const native_amalgamated_source: [:0]const u8 = "#define STWO_ZIG_AMALGAMATED 1\n" ++
@@ -291,7 +329,8 @@ pub const native_amalgamated_source: [:0]const u8 = "#define STWO_ZIG_AMALGAMATE
     "\n#line 1 \"src/backends/metal/shaders/core/composition.metal\"\n" ++ composition_source ++
     "\n#line 1 \"src/backends/metal/shaders/core/relation.metal\"\n" ++ relation_source ++
     "\n#line 1 \"src/backends/metal/shaders/core/decommit.metal\"\n" ++ decommit_kernels_source ++
-    "\n#line 1 \"src/backends/metal/shaders/core/polynomial_eval.metal\"\n" ++ polynomial_eval_source ++ "\x00";
+    "\n#line 1 \"src/backends/metal/shaders/core/polynomial_eval.metal\"\n" ++ polynomial_eval_source ++
+    "\n#line 1 \"src/backends/metal/shaders/core/riscv_polynomials.metal\"\n" ++ riscv_polynomials_source ++ "\x00";
 
 pub const native_amalgamated_source_sha256: [32]u8 = digest: {
     @setEvalBranchQuota(10_000_000);
@@ -360,7 +399,9 @@ pub const amalgamated_source: [:0]const u8 = "#define STWO_ZIG_AMALGAMATED 1\n" 
     "\n#line 1 \"src/backends/metal/shaders/core/decommit.metal\"\n" ++
     decommit_kernels_source ++
     "\n#line 1 \"src/backends/metal/shaders/core/polynomial_eval.metal\"\n" ++
-    polynomial_eval_source ++ "\x00";
+    polynomial_eval_source ++
+    "\n#line 1 \"src/backends/metal/shaders/core/riscv_polynomials.metal\"\n" ++
+    riscv_polynomials_source ++ "\x00";
 
 pub const amalgamated_source_sha256: [32]u8 = digest: {
     @setEvalBranchQuota(10_000_000);
@@ -396,7 +437,7 @@ fn kernelDeclaration(source: []const u8, name: []const u8) ![]const u8 {
 }
 
 test "Native core source exactly covers its non-Cairo export ABI" {
-    try std.testing.expectEqual(@as(usize, 82), native_exports.len);
+    try std.testing.expectEqual(@as(usize, 116), native_exports.len);
     try std.testing.expectEqual(native_exports.len, std.mem.count(u8, native_amalgamated_source, "kernel void "));
     try std.testing.expect(std.mem.indexOf(u8, native_amalgamated_source, "shaders/cairo/") == null);
     for (native_support_headers) |unit| try std.testing.expect(std.mem.indexOf(u8, unit.path, "/cairo/") == null);
@@ -419,7 +460,7 @@ fn expectIsolated(source: []const u8, names: []const []const u8) !void {
 
 test "metal shader manifest exactly covers source and runtime exports" {
     const runtime_source = @embedFile("../runtime.m");
-    try std.testing.expectEqual(@as(usize, 94), exports.len);
+    try std.testing.expectEqual(@as(usize, 128), exports.len);
 
     var declaration_count: usize = 0;
     var remaining: []const u8 = amalgamated_source[0 .. amalgamated_source.len - 1];
@@ -446,8 +487,8 @@ test "metal shader manifest exactly covers source and runtime exports" {
     }
 }
 
-test "commitment shader bindings match core ABI version 11" {
-    try std.testing.expectEqual(@as(u32, 11), core_shader_abi);
+test "commitment shader bindings match core ABI version 12" {
+    try std.testing.expectEqual(@as(u32, 12), core_shader_abi);
     const bindings = [_]struct { kernel: []const u8, argument: []const u8 }{
         .{ .kernel = "stwo_zig_blake2s_leaves", .argument = "prefix_bytes [[buffer(7)]]" },
         .{ .kernel = "stwo_zig_blake2s_parents", .argument = "prefix_bytes [[buffer(4)]]" },
@@ -472,6 +513,61 @@ test "polynomial evaluation is isolated in its owning shader unit" {
     try std.testing.expect(std.mem.indexOf(u8, abi_types_source, "struct PolynomialEvalTask") != null);
     try std.testing.expect(std.mem.indexOf(u8, abi_types_source, "struct PolynomialBasisTask") != null);
     try std.testing.expect(std.mem.indexOf(u8, polynomial_eval_source, "struct PolynomialEvalTask") == null);
+}
+
+test "RISC-V polynomial kernels have an exact isolated export ABI" {
+    const names = [_][]const u8{
+        "stwo_zig_base_poly_7bce7473ee2f62288eceb8a3377d4634",
+        "stwo_zig_base_poly_c14a50f654a9c7e71379b41a108194ff",
+        "stwo_zig_base_poly_f3458c84073cbe0a1a0cc8d255a028f0",
+        "stwo_zig_base_poly_a2a6593402647f120c2a259a1710c6e3",
+        "stwo_zig_base_poly_875d2026fe2fc2b5e1c47b100b1b8f0d",
+        "stwo_zig_base_poly_d170513e9cfabf624e38dfa3d7d2f4ed",
+        "stwo_zig_base_poly_a74fd0125263cc1e887ee5d726ac99a0",
+        "stwo_zig_base_poly_3b018614b76f63e7a28e127029c18704",
+        "stwo_zig_base_poly_aa55ec34af78d3f2b74d4b3d06c708a8",
+        "stwo_zig_base_poly_0ade2040c246f9cad3919da46161d2fd",
+        "stwo_zig_base_poly_6301135c98c38c29971098b60b459397",
+        "stwo_zig_base_poly_95bca92bf8e5c8c0cd1438e06c6c8963",
+        "stwo_zig_base_poly_538cf123d369ae7e3fa5e0cfe6a0a976",
+        "stwo_zig_base_poly_2a07b91d7f51809a92cf5dccdf29c1b5",
+        "stwo_zig_base_poly_04a6d5f01089e9ee1136328c062b3055",
+        "stwo_zig_base_poly_7c3d009f184e1add15cea06850337ed9",
+        "stwo_zig_base_poly_ebe47c5c0304bddea66f3a2b7c9cd55c",
+        "stwo_zig_lookup_poly_f6f449b57d5a9c234b4276d588b695a2",
+        "stwo_zig_lookup_poly_50b304cc2ee4f2f9f39675717cf40382",
+        "stwo_zig_lookup_poly_075758e47d896ea9b9ed480adcc498d1",
+        "stwo_zig_lookup_poly_459147491178ba9a8fea95e70f7ba7de",
+        "stwo_zig_lookup_poly_223a80d6062ce49ec32568323089b631",
+        "stwo_zig_lookup_poly_e6f321d7e6a5216f0493a7d9dd1cce68",
+        "stwo_zig_lookup_poly_cc2c95d2bff4c999fee2f44e08222252",
+        "stwo_zig_lookup_poly_6417a7b6a721b820c56ded08d4ff45d4",
+        "stwo_zig_lookup_poly_b15f9ad4a9abfc83a7cdec6c46ee4ade",
+        "stwo_zig_lookup_poly_65a7491625ceb251a9d27754aba62fe9",
+        "stwo_zig_lookup_poly_4fae56a01407106338de7b5a0585b863",
+        "stwo_zig_lookup_poly_2a7765f5161c42b7e1e47eb4f38042a6",
+        "stwo_zig_lookup_poly_3d43f646d7e0de973374db1d7e9ffe16",
+        "stwo_zig_lookup_poly_58c75167f9212f9663711e80d150d46d",
+        "stwo_zig_lookup_poly_05d290ec9454d3ead43a08a8f547ed07",
+        "stwo_zig_lookup_poly_944959c865e0c8dee4d3972badf854b0",
+        "stwo_zig_lookup_poly_6036f462a378cec7d80f357b57bff1f4",
+    };
+    try std.testing.expectEqual(@as(usize, 34), names.len);
+    try std.testing.expectEqual(names.len, std.mem.count(u8, riscv_polynomials_source, "kernel void "));
+
+    var owned_count: usize = 0;
+    for (exports) |entry| {
+        if (entry.owner == .riscv_polynomials) owned_count += 1;
+    }
+    try std.testing.expectEqual(names.len, owned_count);
+
+    for (names) |name| {
+        try std.testing.expect(manifestContains(name));
+        try std.testing.expectEqual(@as(usize, 0), countKernelDeclarations(legacy_source, name));
+        try std.testing.expectEqual(@as(usize, 1), countKernelDeclarations(riscv_polynomials_source, name));
+        try std.testing.expectEqual(@as(usize, 1), countKernelDeclarations(native_amalgamated_source, name));
+        try std.testing.expectEqual(@as(usize, 1), countKernelDeclarations(amalgamated_source, name));
+    }
 }
 
 test "composition kernels are isolated in their owning shader unit" {

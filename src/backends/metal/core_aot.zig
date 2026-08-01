@@ -455,7 +455,7 @@ test "Native AOT admission rejects authority drift" {
     );
 
     @memcpy(candidate, valid);
-    try replaceManifestOnce(temporary.dir, candidate, "\"core_shader_abi\": 11", "\"core_shader_abi\": 12");
+    try replaceManifestOnce(temporary.dir, candidate, "\"core_shader_abi\": 12", "\"core_shader_abi\": 13");
     try std.testing.expectError(
         error.CoreShaderAbiMismatch,
         admit(std.testing.allocator, bundle_path, manifestDigest(candidate)),

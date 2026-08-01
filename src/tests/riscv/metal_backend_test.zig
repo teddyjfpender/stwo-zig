@@ -3,6 +3,7 @@
 const std = @import("std");
 const pcs = @import("stwo_core").pcs;
 const stwo_riscv_metal = @import("stwo_riscv_metal");
+const riscv = stwo_riscv_metal.frontends.riscv;
 const riscv_metal = stwo_riscv_metal.integrations.riscv_metal;
 const runner = stwo_riscv_metal.frontends.riscv.runner;
 
@@ -59,4 +60,49 @@ test "metal: RV32IM retirement trace proves and verifies without fallback" {
         run.cpu_final,
         &.{},
     );
+}
+
+test "metal: AOT source matches every production RISC-V polynomial DAG" {
+    const codegen = riscv_metal.riscv_polynomial_codegen;
+    const runtime_program = riscv.air.extract.runtime_program;
+    const semantic_eval = riscv.air.semantic_eval;
+    const trace = riscv.runner.trace;
+
+    var base_entries = std.ArrayList(codegen.base.Entry).empty;
+    defer {
+        for (base_entries.items) |*item| item.program.deinit();
+        base_entries.deinit(std.testing.allocator);
+    }
+    var lookup_entries = std.ArrayList(codegen.lookup.Entry).empty;
+    defer {
+        for (lookup_entries.items) |*item| item.program.deinit();
+        lookup_entries.deinit(std.testing.allocator);
+    }
+    for (0..trace.N_FAMILIES) |family_index| {
+        const family: trace.OpcodeFamily = @enumFromInt(family_index);
+        if (!semantic_eval.isTraceCompatible(family)) continue;
+        try base_entries.append(std.testing.allocator, .{
+            .program_id = (@as(u64, 1) << 32) | @as(u64, @intCast(family_index)),
+            .program = try runtime_program.build(std.testing.allocator, family),
+        });
+        try lookup_entries.append(std.testing.allocator, .{
+            .program_id = (@as(u64, 2) << 32) | @as(u64, @intCast(family_index)),
+            .program = try runtime_program.buildLookups(std.testing.allocator, family),
+        });
+    }
+    const source = try codegen.aot.generateLibrary(
+        std.testing.allocator,
+        base_entries.items,
+        lookup_entries.items,
+    );
+    defer std.testing.allocator.free(source);
+
+    if (std.posix.getenv("STWO_ZIG_REGENERATE_RISCV_POLYNOMIAL_AOT") != null) {
+        try std.fs.cwd().writeFile(.{
+            .sub_path = ".zig-cache/riscv_polynomials.generated.metal",
+            .data = source,
+        });
+        return;
+    }
+    try std.testing.expectEqualStrings(riscv_metal.riscv_polynomial_codegen.source, source);
 }

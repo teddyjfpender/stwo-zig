@@ -21,6 +21,8 @@ extern fn stwo_zig_metal_eval_library_serialize(
     error_message_len: usize,
 ) bool;
 extern fn stwo_zig_metal_eval_destroy(plan: ?*anyopaque) void;
+extern fn stwo_zig_metal_base_polynomial_plan_destroy(plan: ?*anyopaque) void;
+extern fn stwo_zig_metal_lookup_polynomial_plan_destroy(plan: ?*anyopaque) void;
 extern fn stwo_zig_metal_witness_plan_destroy(plan: ?*anyopaque) void;
 extern fn stwo_zig_metal_eval_batch_destroy(batch: ?*anyopaque) void;
 extern fn stwo_zig_metal_composition_finalize_destroy(plan: ?*anyopaque) void;
@@ -236,6 +238,57 @@ pub fn ResourcePlans(comptime MetalError: type) type {
                 stwo_zig_metal_eval_destroy(self.handle);
                 self.* = undefined;
             }
+        };
+
+        pub const BasePolynomialPlan = extern struct {
+            handle: *anyopaque,
+
+            pub fn deinit(self: *BasePolynomialPlan) void {
+                stwo_zig_metal_base_polynomial_plan_destroy(self.handle);
+                self.* = undefined;
+            }
+        };
+
+        pub const BasePolynomialDispatch = extern struct {
+            plan: *anyopaque,
+            selector: [*]const u32,
+            main_column_offset: u32,
+            main_column_count: u32,
+            row_count: u32,
+            power_word_offset: u32,
+            power_word_count: u32,
+            output_index: u32,
+            denominator_inverses: [2]u32,
+        };
+
+        pub const BasePolynomialOutput = extern struct {
+            columns: [4][*]u32,
+            row_count: u32,
+        };
+
+        pub const LookupPolynomialPlan = extern struct {
+            handle: *anyopaque,
+
+            pub fn deinit(self: *LookupPolynomialPlan) void {
+                stwo_zig_metal_lookup_polynomial_plan_destroy(self.handle);
+                self.* = undefined;
+            }
+        };
+
+        pub const LookupPolynomialDispatch = extern struct {
+            plan: *anyopaque,
+            selector: [*]const u32,
+            main_column_offset: u32,
+            main_column_count: u32,
+            interaction_column_offset: u32,
+            interaction_column_count: u32,
+            row_count: u32,
+            power_word_offset: u32,
+            power_word_count: u32,
+            parameter_word_offset: u32,
+            parameter_word_count: u32,
+            output_index: u32,
+            denominator_inverses: [2]u32,
         };
 
         pub const WitnessPlan = extern struct {

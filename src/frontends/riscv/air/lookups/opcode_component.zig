@@ -27,6 +27,7 @@ const trace = @import("../../runner/trace.zig");
 const entry = @import("entry.zig");
 const opcode_entries = @import("opcode_entries.zig");
 const opcode_interaction = @import("opcode_interaction.zig");
+const runtime_program = @import("../extract/runtime_program.zig");
 
 const CirclePointQM31 = circle.CirclePointQM31;
 
@@ -124,10 +125,57 @@ pub const OpcodeLookupComponent = struct {
 
     pub fn asProverComponent(self: *const @This()) prover_component.ComponentProver {
         var component = Adapter.asProverComponent(self);
+        component.backend_composition_capability = .{
+            .lookup_polynomial_v1 = .{
+                .program_id = (@as(u64, 2) << 32) | @intFromEnum(self.family),
+                .trace_log_size = self.log_size,
+                .selector_tree_index = 0,
+                .selector_column = self.is_first_col_idx,
+                .main_tree_index = 1,
+                .first_main_column = self.main_col_offset,
+                .main_column_count = trace.nColumnsForFamily(self.family),
+                .interaction_tree_index = 2,
+                .first_interaction_column = self.interaction_col_offset,
+                .interaction_column_count = opcode_entries.interactionColumnCount(self.family),
+                .export_program = exportRuntimeProgram,
+                .export_parameters = exportRuntimeParameters,
+            },
+        };
         if (self.log_size >= 12) {
             component.domain_parallel_evaluator = evaluateDomainParallelAdapter;
         }
         return component;
+    }
+
+    fn exportRuntimeProgram(
+        ctx: *const anyopaque,
+        allocator: std.mem.Allocator,
+    ) !prover_component.OwnedLookupPolynomialProgram {
+        const self: *const OpcodeLookupComponent = @ptrCast(@alignCast(ctx));
+        return runtime_program.buildLookups(allocator, self.family);
+    }
+
+    fn exportRuntimeParameters(
+        ctx: *const anyopaque,
+        allocator: std.mem.Allocator,
+    ) ![]QM31 {
+        const self: *const OpcodeLookupComponent = @ptrCast(@alignCast(ctx));
+        var sampled = [_]QM31{QM31.zero()} ** trace.MAX_FAMILY_COLUMNS;
+        const lookups = try opcode_entries.fromMain(
+            self.family,
+            sampled[0..trace.nColumnsForFamily(self.family)],
+        );
+        var parameters = std.ArrayList(QM31).empty;
+        errdefer parameters.deinit(allocator);
+        for (lookups.entries[0..lookups.len]) |lookup|
+            try appendRelationParameters(
+                &parameters,
+                allocator,
+                self.relations,
+                lookup.domain,
+            );
+        try parameters.appendSlice(allocator, self.claims[0..self.nConstraints()]);
+        return parameters.toOwnedSlice(allocator);
     }
 
     pub fn asVerifierComponent(self: *const @This()) core_air_components.Component {
@@ -451,6 +499,37 @@ const RangeWorker = struct {
         };
     }
 };
+
+fn appendRelationParameters(
+    parameters: *std.ArrayList(QM31),
+    allocator: std.mem.Allocator,
+    relations: *const relations_mod.Relations,
+    domain: entry.Domain,
+) !void {
+    switch (domain) {
+        .registers_state => try appendRelation(parameters, allocator, relations.registers_state),
+        .memory_access => try appendRelation(parameters, allocator, relations.memory_access),
+        .program_access => try appendRelation(parameters, allocator, relations.program_access),
+        .merkle => try appendRelation(parameters, allocator, relations.merkle),
+        .poseidon2 => try appendRelation(parameters, allocator, relations.poseidon2),
+        .poseidon2_io => try appendRelation(parameters, allocator, relations.poseidon2_io),
+        .bitwise => try appendRelation(parameters, allocator, relations.bitwise),
+        .range_check_20 => try appendRelation(parameters, allocator, relations.range_check_20),
+        .range_check_8_11 => try appendRelation(parameters, allocator, relations.range_check_8_11),
+        .range_check_8_8_4 => try appendRelation(parameters, allocator, relations.range_check_8_8_4),
+        .range_check_8_8 => try appendRelation(parameters, allocator, relations.range_check_8_8),
+        .range_check_m31 => try appendRelation(parameters, allocator, relations.range_check_m31),
+    }
+}
+
+fn appendRelation(
+    parameters: *std.ArrayList(QM31),
+    allocator: std.mem.Allocator,
+    relation: anytype,
+) !void {
+    try parameters.append(allocator, relation.z);
+    try parameters.appendSlice(allocator, &relation.alpha_powers);
+}
 
 fn evaluateDomainParallelAdapter(
     raw_context: *const anyopaque,

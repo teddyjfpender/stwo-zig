@@ -8,6 +8,9 @@ const ArchiveStoreStatsV1 = runtime.ArchiveStoreStatsV1;
 const CommandEpochStats = runtime.CommandEpochStats;
 const PreparedStateRange = runtime.PreparedStateRange;
 const WitnessLayout = runtime.WitnessLayout;
+const BasePolynomialDispatch = runtime.BasePolynomialDispatch;
+const BasePolynomialOutput = runtime.BasePolynomialOutput;
+const LookupPolynomialDispatch = runtime.LookupPolynomialDispatch;
 
 pub extern fn stwo_zig_metal_runtime_destroy(runtime: ?*anyopaque) void;
 pub extern fn stwo_zig_metal_runtime_identity(
@@ -351,6 +354,72 @@ pub extern fn stwo_zig_metal_eval_prepare_library(
     error_message: [*]u8,
     error_message_len: usize,
 ) ?*anyopaque;
+pub extern fn stwo_zig_metal_base_polynomial_prepare_aot(
+    runtime: *anyopaque,
+    name: [*]const u8,
+    name_len: usize,
+    error_message: [*]u8,
+    error_message_len: usize,
+) ?*anyopaque;
+pub extern fn stwo_zig_metal_base_polynomial_prepare_library(
+    runtime: *anyopaque,
+    library: *anyopaque,
+    name: [*]const u8,
+    name_len: usize,
+    error_message: [*]u8,
+    error_message_len: usize,
+) ?*anyopaque;
+pub extern fn stwo_zig_metal_base_polynomial_batch(
+    runtime: *anyopaque,
+    trees: [*]const ?*anyopaque,
+    tree_count: u32,
+    main_columns: [*]const [*]const u32,
+    total_main_columns: u32,
+    dispatches: [*]const BasePolynomialDispatch,
+    dispatch_count: u32,
+    power_words: [*]const u32,
+    total_power_words: u32,
+    outputs: [*]const BasePolynomialOutput,
+    output_count: u32,
+    gpu_milliseconds: *f64,
+    error_message: [*]u8,
+    error_message_len: usize,
+) bool;
+pub extern fn stwo_zig_metal_lookup_polynomial_prepare_aot(
+    runtime: *anyopaque,
+    name: [*]const u8,
+    name_len: usize,
+    error_message: [*]u8,
+    error_message_len: usize,
+) ?*anyopaque;
+pub extern fn stwo_zig_metal_lookup_polynomial_prepare_library(
+    runtime: *anyopaque,
+    library: *anyopaque,
+    name: [*]const u8,
+    name_len: usize,
+    error_message: [*]u8,
+    error_message_len: usize,
+) ?*anyopaque;
+pub extern fn stwo_zig_metal_lookup_polynomial_batch(
+    runtime: *anyopaque,
+    trees: [*]const ?*anyopaque,
+    tree_count: u32,
+    main_columns: [*]const [*]const u32,
+    total_main_columns: u32,
+    interaction_columns: [*]const [*]const u32,
+    total_interaction_columns: u32,
+    dispatches: [*]const LookupPolynomialDispatch,
+    dispatch_count: u32,
+    power_words: [*]const u32,
+    total_power_words: u32,
+    parameter_words: [*]const u32,
+    total_parameter_words: u32,
+    outputs: [*]const BasePolynomialOutput,
+    output_count: u32,
+    gpu_milliseconds: *f64,
+    error_message: [*]u8,
+    error_message_len: usize,
+) bool;
 pub extern fn stwo_zig_metal_eval_batch_prepare(
     plans: [*]const *anyopaque,
     plan_count: u32,
