@@ -246,7 +246,7 @@ fn open(
         var plan_owned = true;
         defer if (plan_owned) component_plan.deinit(allocator);
         const bytes = component_plan.words * @sizeOf(u32);
-        if (bytes > byteCap()) continue;
+        if (bytes > byteCap(settings)) continue;
         entry.* = .{ .plan = component_plan, .plans = &.{} };
         plan_owned = false;
         planned += 1;
@@ -353,7 +353,9 @@ fn layoutFor(plan: eval_arena.Plan, rc_base: u32, domain_log_size: u32) metal.Ev
     };
 }
 
-fn byteCap() u64 {
+fn byteCap(settings: Config) u64 {
+    if (settings.admission_policy == .approved_product)
+        return eval_arena.default_byte_cap;
     const text = std.posix.getenv(eval_arena.byte_cap_env) orelse
         return eval_arena.default_byte_cap;
     return std.fmt.parseInt(u64, std.mem.trim(u8, text, " \t\r\n"), 10) catch

@@ -53,12 +53,15 @@ pub const Error = error{
     EvalArenaColumnShape,
 };
 
-/// The default ceiling on one proof's eval arena, in bytes. The arena is the
-/// peak *single component* requirement, not the sum, so this is generous: the
-/// whole-portfolio lift volume increment 3.7 priced is 0.76-4.80 GB spread
-/// across 29-46 components. A plan above the cap is refused before anything is
-/// allocated, which is a planning refusal and therefore a whole-stage decline.
-pub const default_byte_cap: usize = 8 * 1024 * 1024 * 1024;
+/// The production ceiling on one proof's eval arena, in bytes. The arena is the
+/// peak *single component* requirement, not the sum. Keeping this below the
+/// shared commitment residency budget prevents one large builtin from asking
+/// Metal for a multi-gigabyte allocation before the row-tiled evaluator lands.
+/// A plan above the cap is declined before allocation and remains on the exact
+/// host evaluator.
+pub const default_byte_cap: usize = 512 * 1024 * 1024;
+/// Diagnostic-only override. The authenticated product ignores this process
+/// setting so a benchmark cannot silently enlarge its admitted working set.
 pub const byte_cap_env = "STWO_ZIG_COMPOSITION_EVAL_ARENA_BYTES";
 
 /// One component's resolved geometry and its offsets inside the shared arena.
@@ -383,7 +386,7 @@ test "a mismatched destination is refused rather than asserted" {
 test "the arena byte cap is read from the process and defaults closed" {
     // The default is a ceiling, not a target: it exists so that a pathological
     // claim refuses before a multi-gigabyte allocation is attempted.
-    try std.testing.expect(default_byte_cap > 0);
+    try std.testing.expectEqual(@as(usize, 512 * 1024 * 1024), default_byte_cap);
     try std.testing.expectEqualStrings(
         "STWO_ZIG_COMPOSITION_EVAL_ARENA_BYTES",
         byte_cap_env,
