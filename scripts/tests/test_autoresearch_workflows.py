@@ -20,17 +20,13 @@ from autoresearch.bots.validate_action import author_identity_findings
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOWS = (
-    ROOT / ".github/workflows/judge.yml",
-    ROOT / ".github/workflows/promote.yml",
     ROOT / "autoresearch/workflows/judge.yml",
     ROOT / "autoresearch/workflows/promote.yml",
 )
 AUDIT_WORKFLOWS = (
-    ROOT / ".github/workflows/audit.yml",
     ROOT / "autoresearch/workflows/audit.yml",
 )
 QUALIFY_WORKFLOWS = (
-    ROOT / ".github/workflows/qualify-fork.yml",
     ROOT / "autoresearch/workflows/qualify-fork.yml",
 )
 ACTION_RE = re.compile(r"uses:\s+[^@\s]+@([^\s]+)")
@@ -52,8 +48,7 @@ class WorkflowContractTest(unittest.TestCase):
             self.assertTrue(all(re.fullmatch(r"[0-9a-f]{40}", pin) for pin in pins), path)
 
     def test_fork_qualification_is_board_scoped_and_uses_fixed_harness(self) -> None:
-        installed, source = QUALIFY_WORKFLOWS
-        self.assertEqual(installed.read_bytes(), source.read_bytes())
+        source = QUALIFY_WORKFLOWS[0]
         text = source.read_text(encoding="utf-8")
         self.assertIn("candidate_commit:", text)
         self.assertIn("Check out fixed qualification harness", text)
@@ -73,7 +68,6 @@ class WorkflowContractTest(unittest.TestCase):
         )
 
     def test_audit_ingestion_is_exact_serialized_and_least_privilege(self) -> None:
-        self.assertEqual(AUDIT_WORKFLOWS[0].read_bytes(), AUDIT_WORKFLOWS[1].read_bytes())
         for path in AUDIT_WORKFLOWS:
             text = path.read_text(encoding="utf-8")
             evaluate, remainder = text.split("\n  sign:\n", 1)
@@ -105,7 +99,7 @@ class WorkflowContractTest(unittest.TestCase):
             )
 
     def test_judge_identity_runner_and_authority_order(self) -> None:
-        for path in (WORKFLOWS[0], WORKFLOWS[2]):
+        for path in (WORKFLOWS[0],):
             text = path.read_text(encoding="utf-8")
             self.assertIn("name: autoresearch-judge", text)
             self.assertIn(
@@ -149,7 +143,7 @@ class WorkflowContractTest(unittest.TestCase):
             ("true", "failure", "skipped", 1),
             ("true", "success", "failure", 1),
         )
-        for path in (WORKFLOWS[0], WORKFLOWS[2]):
+        for path in (WORKFLOWS[0],):
             required = path.read_text(encoding="utf-8").split(
                 "\n  required:\n", 1,
             )[1]
@@ -176,7 +170,7 @@ class WorkflowContractTest(unittest.TestCase):
                     self.assertEqual(result.returncode, expected, result.stderr)
 
     def test_promote_identity_signature_and_board_authority(self) -> None:
-        for path in (WORKFLOWS[1], WORKFLOWS[3]):
+        for path in (WORKFLOWS[1],):
             text = path.read_text(encoding="utf-8")
             self.assertIn("name: autoresearch-promote", text)
             self.assertIn("permissions: {}", text)
@@ -190,10 +184,7 @@ class WorkflowContractTest(unittest.TestCase):
             self.assertIn("python3 autoresearch/bots/promote_action.py", text)
 
     def test_required_check_names_are_stable(self) -> None:
-        for path in (
-            ROOT / ".github/workflows/validate.yml",
-            ROOT / "autoresearch/workflows/validate.yml",
-        ):
+        for path in (ROOT / "autoresearch/workflows/validate.yml",):
             self.assertIn(
                 "name: autoresearch-validate",
                 path.read_text(encoding="utf-8"),

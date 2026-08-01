@@ -7,7 +7,6 @@
 Protocol parity with Rust. Portable CPU execution. Resident GPU proving on Metal.
 
 [![CI](https://github.com/teddyjfpender/stwo-zig/actions/workflows/ci.yml/badge.svg)](https://github.com/teddyjfpender/stwo-zig/actions/workflows/ci.yml)
-[![Benchmark Pages](https://github.com/teddyjfpender/stwo-zig/actions/workflows/benchmark-pages.yml/badge.svg)](https://github.com/teddyjfpender/stwo-zig/actions/workflows/benchmark-pages.yml)
 [![Zig 0.15.x](https://img.shields.io/badge/Zig-0.15.x-F7A41D?logo=zig&logoColor=white)](https://ziglang.org/)
 ![Backends: CPU and Metal](https://img.shields.io/badge/backends-CPU_%7C_Metal-2563EB)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-0F766E)](LICENSE)
@@ -35,7 +34,7 @@ an official-oracle-gated Cairo CPU frontend, and independently owned GPU product
 | :--- | :--- | :--- |
 | **Zig CPU / SIMD** | Portable scalar backend with hardware-native SIMD hot paths | Predictable execution and broad compatibility |
 | **Metal** | Persistent resident runtime for Apple GPUs | Device-only production proofs with exact runtime identity |
-| **CUDA** | Unavailable product descriptors only | No release-gated implementation or implicit selection |
+| **CUDA** | Functional source retained; products distribution-deferred | No implicit selection; generated payloads stay preserved until current NVIDIA hardware requalification |
 
 ## Frontends
 
@@ -48,8 +47,8 @@ an official-oracle-gated Cairo CPU frontend, and independently owned GPU product
 
 ## Quick Start
 
-Requires **Zig 0.15.x** and **Python 3**. Rust parity tooling uses
-`nightly-2025-07-14`.
+Core packages require **Zig 0.15.x**. Repository policy and release tooling use
+**Python 3**; optional Rust parity/oracle tooling uses `nightly-2025-07-14`.
 
 ```sh
 zig build test-stwo-core -Doptimize=ReleaseFast
@@ -70,7 +69,7 @@ zig build test-native-metal -Doptimize=ReleaseFast  # macOS with Metal
 | `stwo-zig-riscv-metal` | macOS with Apple Metal | Parity-gated authenticated-AOT RV32IM CLI with resident-AIR and zero-fallback evidence |
 | `stwo-cairo-cpu` | Zig-supported hosts with Rust build tooling | Released CPU/SIMD CLI; complete admitted corpus accepted by official Rust |
 | `stwo-cairo-metal` | macOS with Apple Metal | Parity-gated authenticated-AOT CLI; exact CPU parity, zero-fallback telemetry, and official Rust acceptance across the release corpus |
-| CUDA products | No production host | Explicitly unavailable; no fallback or placeholder execution |
+| CUDA products | Current NVIDIA qualification host pending | Working source retained, distribution deferred, and no fallback or placeholder execution |
 
 The checked four-PIE Cairo coverage record is proof-independent: PIE bytes
 select decoding and component coverage only, never component semantics or
@@ -97,6 +96,19 @@ root.addImport("stwo_prover", stwo_zig.module("stwo_prover"));
 `zig build stwo-core` and `zig build stwo-prover` compile the focused library
 surfaces without installing unrelated executables. Their corresponding
 `test-stwo-*` steps include transitive purity and external-consumer gates.
+
+Build deterministic dependency-closed source archives for all publishable Zig
+packages with:
+
+```sh
+zig build package-dist
+```
+
+The archives, `index.json`, and `SHA256SUMS` are written to
+`zig-out/packages/`. They exclude autoresearch, Rust tools, Lean workspaces,
+vectors, and deferred CUDA payloads while retaining every source and device
+asset required by the selected package closure. See the
+[package release policy](conformance/zig-package-release-policy.md).
 
 The root build is a compatibility dispatcher. Product construction lives under
 `build_support/products/`, backend integration under `build_support/backends/`,
@@ -272,11 +284,14 @@ python3 scripts/install_hooks.py
 | **[RISC-V verification status](soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md)** | Normative theorem boundary, claim ledger, and remaining FV roadmap |
 | **[Soundness evidence log](soundness/ROADMAP.md)** | Dated adversarial findings, fixes, and supporting engineering evidence |
 | **[Independent proof validation](soundness/INDEPENDENT_PROOF_SYSTEM_VALIDATION.md)** | Second-verifier, mutation-corpus, and external PCS/FRI/Fiat–Shamir review scope |
-| **[Autoresearch](autoresearch/README.md)** | The stwo-perf harness: judged scoring, submissions, ledger, and site feed |
+| **[Production repository scope](conformance/repository-production-scope.md)** | Published Zig boundary and staged Rust, Lean, CUDA, and research extraction policy |
+| **[Package publishing](conformance/zig-package-release-policy.md)** | Deterministic source archives, clean-room gates, checksums, and release workflow |
 | **[Benchmark dashboard](bench/README.md)** | Formal CPU/SIMD and Metal results with commit, machine, capture time, and oracle provenance |
 | **[Benchmark history](vectors/reports/benchmark_history/index.json)** | Immutable judged runs, deltas, and bundles under human-readable run ids |
+| **[Local autoresearch tooling](autoresearch/README.md)** | Optional owner-operated performance harness; not installed in production CI |
 | **Design archive** | Prose architecture and history live in the sibling `stwo-zig-og-docs` directory |
 | **[Contributing](CONTRIBUTING.md)** | Zig, SIMD, Metal, correctness, and engineering standards |
+| **[Security](SECURITY.md)** | Private reporting scope and supported product surfaces |
 
 The compatibility target is pinned to upstream commit
 [`a8fcf4bd`](https://github.com/starkware-libs/stwo/commit/a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2).

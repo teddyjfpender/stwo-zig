@@ -1,3 +1,4 @@
+# Optional workflow template; production CI does not publish research dashboards.
 name: Benchmark Pages
 
 on:

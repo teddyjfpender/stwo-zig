@@ -20,6 +20,12 @@ SCRIPTS = ROOT / "scripts"
 # Operator tools invoked by humans, not gates. Each entry must carry a
 # purpose; remove the entry in the same commit that deletes the tool.
 OPERATOR_TOOLS: dict[str, str] = {
+    # Owner: riscv-refinement. Builds the exact FV-1/FV-2 publication payload
+    # when an operator explicitly promotes a verified receipt. It is retained
+    # outside production CI; its contracts run in
+    # scripts/tests/test_riscv_refinement_publication.py.
+    "riscv_refinement_publication.py":
+        "operator publication payload for verified RISC-V refinement receipts",
     # Owner: sm83-frontend. One-shot local release diagnostic over the pinned
     # complete proof-fast battle and verified proof chain.
     # Its fail-closed command and receipt contracts run in

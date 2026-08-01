@@ -1,5 +1,4 @@
-# Install as .github/workflows/judge.yml. Candidate execution is isolated from
-# the signing secret and write token by the evaluate/publish job boundary.
+# Optional workflow template; it is not part of the repository's production CI.
 name: autoresearch-judge
 
 on:

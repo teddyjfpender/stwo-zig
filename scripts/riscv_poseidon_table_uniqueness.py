@@ -91,17 +91,17 @@ SOURCE_BINDINGS: dict[str, str] = {
     "src/core/utils.zig":
         "e6a4427e8cca5a83e0d2accd5c05cc08d9ac167238833fc225155dfd36f2fd18",
     "src/frontends/riscv/air/memory_commitment/poseidon2_air.zig":
-        "2187d5204b5e8b077a0e5d780b5311db99059099d2f3e61c8abec068d2c6723b",
+        "e2d0d5b9e67a428edc2dd279cb5a36f55ed558a7a886271b80e0559ecbeafae7",
     "src/frontends/riscv/air/memory_commitment/poseidon2_constants.zig":
         "d02b32f2f5302d21a440fbace2112d3232603e759cd0b24691c32e81d2bd4cfd",
     "src/frontends/riscv/air/memory_commitment/hash_component.zig":
-        "eacc9bf5fcf7308858204bfb5fef81f3bce40d8344e72792ed5273af926155d5",
+        "207731d35d1a8398f63176a4b5179ed2a7d6b139e7049a8985f7d8c551df5c50",
     "src/frontends/riscv/air/lookups/tables/schema.zig":
         "8ab73ea534acd89deb9ceb8fad83b1d9e775bf96aeb5a1e7344a0e1551bc3cef",
     "src/frontends/riscv/air/lookups/tables/interaction.zig":
-        "429b3385c1352f2a86b1e968fdf6cf143b3916607b29bc41a540bdcef05eac2a",
+        "ef018282c8c27e8c9c03024cfd88ab0c508c7efe1311e47010d7f239733a0a03",
     "src/frontends/riscv/air/lookups/tables/component.zig":
-        "a646b7ff53af0e4043ccd505ed5badf328db014a018b311b1c61b8bed51937a7",
+        "f7bc4f12a43710b5d247815eed3d26f080fb31a69faf44ea013078b9cf7b8066",
     "src/frontends/riscv/air/lookups/tables/counter.zig":
         "c371e5a5146fa1cc6efeca71210b51f2b9635b2af48850352e256f28f79c6d19",
     "src/frontends/riscv/air/lookups/entry.zig":
@@ -113,7 +113,7 @@ SOURCE_BINDINGS: dict[str, str] = {
     "src/frontends/riscv/prover/preprocessed.zig":
         "703134062751202f3bae288cded347e5bd869aac787359c05c069d5a6b7812bc",
     "src/frontends/riscv/prover/opcode_trace.zig":
-        "3537cceac5bcbbb6c2d325bd6f0ad01c1d5d577a7df1ca6e21867912624ccbac",
+        "f122f7c0f77e6ab4317789e1d8910b0c71b4af20bf49b7318c8f40575632e6bd",
     "src/frontends/riscv/infra_trace/permutation.zig":
         "2e6551f2c758b18f4a620d166b908a269297e9f1a74308c2ebd769dd8a474b98",
     "scripts/air_satisfaction_lib/poseidon2.py":

@@ -1,0 +1,90 @@
+{
+  "schema": "stwo-zig-package-release-policy-v1",
+  "archive_format": "tar",
+  "packages": {
+    "stwo_backend_contracts": {
+      "status": "published",
+      "reason": "Portable backend capability contracts are part of the supported Zig SDK."
+    },
+    "stwo_cairo_cpu_integration": {
+      "status": "published",
+      "reason": "The released Cairo CPU composition is a supported Zig source package."
+    },
+    "stwo_cairo_cuda_integration": {
+      "status": "deferred",
+      "reason": "CUDA product publishing waits for current NVIDIA hardware validation and generated-AOT extraction."
+    },
+    "stwo_cairo_frontend": {
+      "status": "published",
+      "reason": "The backend-neutral Cairo frontend is a supported Zig source package."
+    },
+    "stwo_cairo_metal_integration": {
+      "status": "published",
+      "reason": "The authenticated Metal composition is distributed as a macOS Zig source package."
+    },
+    "stwo_core": {
+      "status": "published",
+      "reason": "Core fields, protocol types, transcript, and verifier form the smallest supported package."
+    },
+    "stwo_cpu_backend": {
+      "status": "published",
+      "reason": "The portable scalar and SIMD backend is a supported Zig source package."
+    },
+    "stwo_cuda_backend": {
+      "status": "deferred",
+      "reason": "Working CUDA sources remain preserved, but publishing waits for hardware validation and separation of generated authority payloads."
+    },
+    "stwo_metal_backend": {
+      "status": "published",
+      "reason": "The resident Apple Metal backend is distributed as a macOS Zig source package."
+    },
+    "stwo_metal_session": {
+      "status": "internal",
+      "reason": "The low-level Metal session service is an implementation owner, not an independent supported API."
+    },
+    "stwo_native_cuda_integration": {
+      "status": "deferred",
+      "reason": "CUDA product publishing waits for current NVIDIA hardware validation and generated-AOT extraction."
+    },
+    "stwo_native_examples": {
+      "status": "published",
+      "reason": "Native AIR examples are supported reusable Zig source modules."
+    },
+    "stwo_proof_wire": {
+      "status": "published",
+      "reason": "The versioned proof interchange package is part of the supported Zig SDK."
+    },
+    "stwo_prover_api": {
+      "status": "published",
+      "reason": "Stable prover-facing types and stage contracts are part of the supported Zig SDK."
+    },
+    "stwo_prover_engine": {
+      "status": "published",
+      "reason": "The backend-generic proving engine is a supported Zig source package."
+    },
+    "stwo_riscv_cpu_integration": {
+      "status": "published",
+      "reason": "The release-gated RISC-V CPU composition is a supported Zig source package."
+    },
+    "stwo_riscv_frontend": {
+      "status": "published",
+      "reason": "The backend-neutral RISC-V frontend is a supported Zig source package."
+    },
+    "stwo_riscv_metal_integration": {
+      "status": "published",
+      "reason": "The resident RISC-V Metal composition is distributed as a macOS Zig source package."
+    },
+    "stwo_sm83_cpu_integration": {
+      "status": "published",
+      "reason": "The SM83 CPU composition is distributed for development and downstream testing."
+    },
+    "stwo_sm83_frontend": {
+      "status": "published",
+      "reason": "The backend-neutral SM83 frontend is a reusable Zig source package with development stability."
+    },
+    "stwo_sm83_metal_integration": {
+      "status": "published",
+      "reason": "The SM83 Metal composition is distributed as a macOS Zig source package with development stability."
+    }
+  }
+}

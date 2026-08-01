@@ -19,6 +19,12 @@ Pareto frontier.
 Standalone by design: nothing in here modifies or is imported by the prover
 implementation. Python 3.11+ stdlib only; no packages to install.
 
+> **Repository policy:** autoresearch is owner-operated local tooling. Its
+> workflow templates are not installed in `.github/workflows/`, its tests are
+> not production merge checks, and its ledgers do not gate Zig package or
+> product releases. Install the optional automation only in a dedicated
+> research fork or after an explicit governance change.
+
 ```text
 autoresearch/
   MANIFEST.json        editable paths + rung map, locked paths, workload
@@ -60,11 +66,9 @@ stwo-perf submit --slug quotient-batching \
   --note-file note.md --verdict autoresearch/.runs/latest/verdict.json \
   --transcripts ./transcripts --model "Claude Fable 5"
 
-# then: commit the submission dir + your diff on a branch and open a PR —
-# no label needed; the pipeline classifies submissions from the new
-# submissions/ directory in the PR file list. Green checks auto-merge
-# collaborator PRs; first-time fork PRs wait for maintainer approval of
-# Actions and get a human merge, which records the claimed verdict.
+# then: commit the submission dir + your diff on a branch and open a PR.
+# The canonical repository uses normal human review and merge; no research
+# bot or hosted judge is installed there by default.
 stwo-perf submissions              # pending / promoted / rejected
 stwo-perf sync                     # jump back to the promoted frontier
 stwo-perf notes add --title "tile size sweep" --note-file findings.md
@@ -161,11 +165,11 @@ disappear when piped).
 | remote judge/promoter | create an exact-tree canonical commit, run secret holdout, verify signed promotion, add verified co-author trailers and append one row | merge a stale frontier, altered tree, unsigned verdict, or unconsented attribution |
 | promotion bot (legacy PR flow) | fetch the signed verdict, verify the signature, append one outcome row | append anything unsigned; anything else |
 
-Enforced mechanically, three times: `stwo-perf submit` refuses locally;
-`bots/validate_action.py` re-checks every PR in CI (locked paths on submission
-PRs, append-only ledger byte-prefix check, note schema, transcript hashes,
-secret scan, and a forgery guard that rejects any in-tree judged-verdict
-material on every PR); and `bots/promote_action.py` refuses any verdict whose
+Enforced mechanically by the owner-operated tooling: `stwo-perf submit`
+refuses locally; `bots/validate_action.py` can re-check a candidate tree
+(locked paths, append-only ledger byte-prefix, note schema, transcript hashes,
+secret scan, and judged-verdict forgery guards); and
+`bots/promote_action.py` refuses any verdict whose
 `JUDGE_HMAC_SECRET` signature does not verify. Governance PRs (anchor freeze,
 `epochs.json`, workflow updates, harness fixes) pass validation and are
 governed by human review instead — that is the deliberate exception.
@@ -222,7 +226,10 @@ v2 submission directory containing the note, remote identity/source record,
 tree delta, qualification receipt, and signed judged verdict. Both commits are
 fast-forwarded together, so source and evidence cannot land separately.
 
-## Installing the automation
+## Optional automation for a research fork
+
+The production repository deliberately does not install these workflows. A
+dedicated research fork may opt in with:
 
 ```bash
 cp autoresearch/workflows/*.yml .github/workflows/     # commit via normal review
@@ -243,7 +250,8 @@ cp autoresearch/workflows/*.yml .github/workflows/     # commit via normal revie
 - `remote-queue.yml` — optional scheduled, self-hosted alternative to the local
   queue daemon; centrally revalidates, judges, records, and fast-forwards one.
 
-The workflow installation, online runner, and secret names do not by themselves
+Installing them changes that fork's governance and CI surface. The workflow
+installation, online runner, and secret names do not by themselves
 activate judged authority. Branch protection is still required on `main`:
 require `autoresearch-validate` **and**
 `autoresearch-judge` (an unlabeled PR reports the judge check as skipped,
@@ -324,7 +332,8 @@ the purpose of staging, not a hidden assumption in the hermetic suite.
    baseline-freeze phase).
 2. Measure A/A dispersion per board and class on the judge host; record in
    `ledger/epochs.json`.
-3. Install workflows; add the `stwo-judge` self-hosted runner; protect `main`.
+3. In a dedicated research fork, install workflows, add the `stwo-judge`
+   self-hosted runner, and protect its research branch.
 4. First promotion follows the quickstart above end to end.
 
 Until 1–2 are done every verdict is claimed/advisory — by design, not by gap.

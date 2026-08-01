@@ -1278,6 +1278,11 @@ references over large frameworks.
   machine-specific caches.
 - Commit benchmark evidence only when it is intentionally curated and small enough to review.
 - Large binary fixtures need a documented reason, hash, provenance, and retention policy.
+- Do not delete working Rust, Lean, CUDA, or generated authority code merely to
+  reduce repository size. Follow the immutable replacement and clean-room
+  gates in `conformance/repository-production-scope.md`.
+- Published Zig package closures must pass `zig build package-dist`; they may
+  not acquire autoresearch, Rust, Lean, vector, or deferred CUDA inputs.
 
 ---
 
@@ -1494,8 +1499,8 @@ boundaries.
   threat model explicitly permits them and documentation says so.
 - Do not claim zeroization unless the compiler/runtime/device behavior is actually established.
 - Treat Metal shader source and binary archives as executable code with provenance requirements.
-- Do not open a public issue for a suspected vulnerability. Use the repository's private security
-  contact/policy; if absent, contact maintainers privately.
+- Do not open a public issue for a suspected vulnerability. Follow
+  `SECURITY.md` and use GitHub private vulnerability reporting.
 
 ---
 

@@ -345,8 +345,8 @@ class BenchmarkPagesTests(unittest.TestCase):
         self.assertIn("overflow: hidden", css)
         self.assertNotIn("innerHTML", app)
 
-    def test_pages_workflow_validates_prs_and_publishes_changed_nightlies(self) -> None:
-        workflow = (ROOT / ".github" / "workflows" / "benchmark-pages.yml").read_text(
+    def test_pages_workflow_template_validates_prs_and_publishes_changed_nightlies(self) -> None:
+        workflow = (ROOT / "autoresearch" / "workflows" / "benchmark-pages.yml").read_text(
             encoding="utf-8"
         )
         self.assertIn('cron: "17 03 * * *"', workflow)

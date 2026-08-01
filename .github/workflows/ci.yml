@@ -50,12 +50,8 @@ jobs:
         with:
           version: 0.15.2
 
-      - name: PR6 fail-closed correctness smoke
-        run: |
-          PYTHONPATH=autoresearch/cli python3 -m unittest \
-            autoresearch.tests.test_manifest \
-            autoresearch.tests.test_peer_series
-          zig build test-stwo-prover -Doptimize=ReleaseFast
+      - name: Production correctness smoke
+        run: zig build test-stwo-prover -Doptimize=ReleaseFast
 
       - name: Emit authoritative product catalog
         run: zig build product-matrix-identity -Doptimize=ReleaseFast
