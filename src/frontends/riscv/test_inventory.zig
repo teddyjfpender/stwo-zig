@@ -173,6 +173,7 @@ test {
 
     // AIR: symbolic extraction for the uniqueness model.
     _ = @import("air/extract/mod.zig");
+    _ = @import("air/extract/runtime_program.zig");
     _ = @import("air/extract/symbolic.zig");
 
     // Shared primitives.
@@ -184,10 +185,12 @@ test {
 
     // Proof orchestration.
     _ = @import("prover/lookup_sources.zig");
+    _ = @import("prover/opcode_trace.zig");
     _ = @import("prover/preprocessed.zig");
     _ = @import("prover/proof_workspace.zig");
     _ = @import("prover/statement_validation.zig");
     _ = @import("prover/test_witness_hook.zig");
+    _ = @import("prover/trace_arena.zig");
     _ = @import("prover/verifier_test.zig");
     _ = @import("air/constraint_program.zig");
     _ = @import("air/extract/program.zig");

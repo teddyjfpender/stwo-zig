@@ -36,13 +36,10 @@
 //! - `statement`, `components`, and every scratch array are **borrowed** by the
 //!   proving/verification stages through the workspace pointer. No stage may
 //!   retain a pointer past `destroy`.
-//! - Column buffers *referenced* from `opcode_columns`, `clock_main`,
-//!   `opcode_results`, `table_results`, `clock_result` and the `*_prev` sets are
-//!   acquired by the AIR generators, or **transferred** to the commitment scheme
-//!   at a commit point. They are released by exactly two `defer`s, both
-//!   registered in `orchestration.proveStages` so they run after `Engine.prove`:
-//!   `main_trace.Retained.deinit` for the Tree-1 buffers Tree 2 reads back, and
-//!   `releaseInteractionScratch` for the Tree-2 buffers composition reads back.
+//! - Column buffers referenced from `opcode_columns` and `clock_main` are
+//!   acquired by the AIR generators, or **transferred** to the commitment
+//!   scheme at a commit point. Retained Tree-1 buffers are released by
+//!   `main_trace.Retained.deinit` after `Engine.prove`.
 //!   `destroy` frees the workspace block only; it never frees a column buffer,
 //!   because the workspace never allocated one.
 //! - A workspace value must not be copied. All access goes through the pointer
@@ -57,14 +54,8 @@ const clock_update_component = @import("../air/clock_update_component.zig");
 const clock_update_interaction = @import("../air/clock_update_interaction.zig");
 const component_order = @import("../air/component_order.zig");
 const hash_component = @import("../air/memory_commitment/hash_component.zig");
-const memory_interaction = @import("../air/memory_commitment/interaction.zig");
-const merkle_node = @import("../air/memory_commitment/merkle_node.zig");
-const poseidon2_air = @import("../air/memory_commitment/poseidon2_air.zig");
 const opcode_component = @import("../air/lookups/opcode_component.zig");
-const opcode_interaction = @import("../air/lookups/opcode_interaction.zig");
 const lookup_table_component = @import("../air/lookups/tables/component.zig");
-const lookup_table_interaction = @import("../air/lookups/tables/interaction.zig");
-const program_interaction = @import("../air/program/interaction.zig");
 const riscv_component = @import("../air/component.zig");
 const semantic_component = @import("../air/semantic_component.zig");
 const statement_mod = @import("../air/statement.zig");
@@ -165,19 +156,6 @@ pub const ProofWorkspace = struct {
     /// after Tree 1 has been committed.
     clock_main: [clock_update_interaction.N_MAIN_COLUMNS][]M31,
 
-    opcode_results: [MAX_COMPONENTS]opcode_interaction.Result,
-    n_opcode_results: usize,
-    table_results: [component_order.LOOKUP_TABLE_COUNT]lookup_table_interaction.Result,
-    n_table_results: usize,
-    clock_result: ?clock_update_interaction.InteractionTrace,
-
-    /// Shifted cumulative columns that composition borrows after the
-    /// interaction commitment.
-    program_prev: program_interaction.Previous,
-    merkle_prev: merkle_node.Previous,
-    poseidon_prev: poseidon2_air.Previous,
-    memory_prev: [MAX_INFRA_COMPONENTS]memory_interaction.Previous,
-
     components: ComponentTable(prover_component.ComponentProver),
 
     pub fn byteSize() usize {
@@ -187,21 +165,14 @@ pub const ProofWorkspace = struct {
     /// Allocates and prepares one workspace. Owned by the caller; release with
     /// `destroy`. Fields whose first writer is a stage (`opcode_columns`, the
     /// component arrays, `opcode_results`, `table_results`) stay `undefined`
-    /// exactly as the previous stack locals did, and are guarded by the
-    /// counters and flags initialized here.
+    /// exactly as the previous stack locals did.
     pub fn create(allocator: std.mem.Allocator) !*ProofWorkspace {
         const self = try allocator.create(ProofWorkspace);
         self.statement.n_components = 0;
         self.statement.n_infra = 0;
         self.opcode_error = null;
         self.memory_shard_count = 0;
-        self.n_opcode_results = 0;
-        self.n_table_results = 0;
-        self.clock_result = null;
         self.clock_main = .{&.{}} ** clock_update_interaction.N_MAIN_COLUMNS;
-        self.program_prev = .{.{ &.{}, &.{}, &.{}, &.{} }} ** program_interaction.N_SUMS;
-        self.merkle_prev = .{.{ &.{}, &.{}, &.{}, &.{} }} ** merkle_node.N_SUMS;
-        self.poseidon_prev = .{.{ &.{}, &.{}, &.{}, &.{} }} ** poseidon2_air.N_SUMS;
         self.components.reset();
         return self;
     }
@@ -254,35 +225,6 @@ pub const ProofWorkspace = struct {
         self.opcode_columns.deinit(allocator, self.statement);
     }
 
-    /// Arms `releaseInteractionScratch` for the admitted infrastructure count.
-    ///
-    /// `create` cannot do this: `memory_prev` is indexed by infrastructure
-    /// position, which only exists once the statement has been built. Calling
-    /// this immediately before registering the release is what makes the release
-    /// safe on a path that fails inside the first generator.
-    pub fn beginInteractionScratch(self: *ProofWorkspace) void {
-        for (self.memory_prev[0..self.statement.n_infra]) |*prev| {
-            prev.* = .{.{ &.{}, &.{}, &.{}, &.{} }} ** memory_interaction.N_SUMS;
-        }
-    }
-
-    /// Releases every interaction buffer the workspace still references.
-    /// Safe on any partial-construction path: the counters bound the active
-    /// prefixes and unused `*_prev` sets hold empty slices, whose free is a
-    /// no-op.
-    pub fn releaseInteractionScratch(self: *ProofWorkspace, allocator: std.mem.Allocator) void {
-        for (self.opcode_results[0..self.n_opcode_results]) |*result| result.deinit(allocator);
-        for (self.table_results[0..self.n_table_results]) |*result| result.deinit(allocator);
-        if (self.clock_result) |*result| result.deinit(allocator);
-        for (&self.program_prev) |*set| freeColumns(allocator, set);
-        for (&self.merkle_prev) |*set| freeColumns(allocator, set);
-        for (&self.poseidon_prev) |*set| freeColumns(allocator, set);
-        for (0..self.statement.n_infra) |index| {
-            if (self.statement.infra_descs[index].kind != .memory) continue;
-            for (&self.memory_prev[index]) |*set| freeColumns(allocator, set);
-        }
-    }
-
     /// Releases the clock-update main columns owned by the workspace.
     pub fn releaseClockMain(self: *ProofWorkspace, allocator: std.mem.Allocator) void {
         for (self.clock_main) |column| allocator.free(column);
@@ -329,10 +271,6 @@ pub const VerificationWorkspace = struct {
     }
 };
 
-fn freeColumns(allocator: std.mem.Allocator, columns: []const []M31) void {
-    for (columns) |column| allocator.free(column);
-}
-
 test "workspace capacities are comptime-fixed and independent of the witness" {
     // A capacity change is a protocol-capacity change; it must be deliberate.
     try std.testing.expectEqual(@as(usize, 1024), MAX_COMPONENT_HANDLES);
@@ -353,16 +291,10 @@ test "created proof workspace starts empty and releases cleanly" {
     try std.testing.expectEqual(@as(u32, 0), workspace.statement.n_components);
     try std.testing.expectEqual(@as(u32, 0), workspace.statement.n_infra);
     try std.testing.expectEqual(@as(usize, 0), workspace.memory_shard_count);
-    try std.testing.expectEqual(@as(usize, 0), workspace.n_opcode_results);
-    try std.testing.expectEqual(@as(usize, 0), workspace.n_table_results);
     try std.testing.expectEqual(@as(usize, 0), workspace.components.n_handles);
     try std.testing.expect(workspace.opcode_error == null);
-    try std.testing.expect(workspace.clock_result == null);
     for (workspace.clock_main) |column| try std.testing.expectEqual(@as(usize, 0), column.len);
 
-    // Empty scratch must be releasable: every failure path in orchestration
-    // reaches this call, including ones that never generated a column.
-    workspace.releaseInteractionScratch(allocator);
     workspace.releaseClockMain(allocator);
 }
 

@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const fields = @import("stwo_core").fields;
+const work_pool = @import("stwo_prover_engine").work_pool;
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const infra = @import("../../../infra_trace.zig");
@@ -12,16 +13,14 @@ const counter_mod = @import("counter.zig");
 const schema = @import("schema.zig");
 
 pub const N_COLUMNS: usize = 4;
-pub const Previous = [N_COLUMNS][]M31;
 pub const CHUNK_ROWS: usize = 4096;
 
 pub const Result = struct {
     columns: [N_COLUMNS][]M31,
-    previous: Previous,
     claim: QM31,
 
-    /// Moves the current cumulative columns out for commitment. Previous-row
-    /// masks and the claim remain owned by this result until `deinit`.
+    /// Moves the current cumulative columns out for commitment. The claim
+    /// remains available after the transfer.
     pub fn takeColumns(self: *Result) [N_COLUMNS][]M31 {
         const result = self.columns;
         self.columns = .{&.{}} ** N_COLUMNS;
@@ -30,7 +29,6 @@ pub const Result = struct {
 
     pub fn deinit(self: *Result, allocator: std.mem.Allocator) void {
         freeColumns(allocator, &self.columns);
-        freeColumns(allocator, &self.previous);
         self.* = undefined;
     }
 };
@@ -70,8 +68,6 @@ pub fn generate(
     if (counter.values.len != size) return error.InvalidTraceShape;
     var columns = try allocateColumns(allocator, size);
     errdefer freeColumns(allocator, &columns);
-    var previous = try allocateColumns(allocator, size);
-    errdefer freeColumns(allocator, &previous);
     const table = try infra.BitReversalTable.init(allocator, schema.logSize(counter.kind));
     defer table.deinit(allocator);
 
@@ -106,15 +102,122 @@ pub fn generate(
         row_start += chunk_len;
     }
 
-    for (0..size) |row| {
-        const dst = table.map(row);
-        const prior = table.map((row + size - 1) % size);
-        for (0..N_COLUMNS) |coordinate| {
-            previous[coordinate][dst] = columns[coordinate][prior];
+    return .{ .columns = columns, .claim = accumulator };
+}
+
+/// Work-efficient two-level inclusive scan. Chunks derive and invert their
+/// row terms independently, publish a local prefix and total, then a tiny
+/// serial scan assigns chunk offsets for a disjoint parallel fix-up pass.
+pub fn generateParallel(
+    allocator: std.mem.Allocator,
+    counter: *const counter_mod.Counter,
+    relations: *const relations_mod.Relations,
+    pool: *work_pool.WorkPool,
+) !Result {
+    const size = schema.size(counter.kind);
+    if (counter.values.len != size) return error.InvalidTraceShape;
+    var columns = try allocateColumns(allocator, size);
+    errdefer freeColumns(allocator, &columns);
+    const table = try infra.BitReversalTable.init(allocator, schema.logSize(counter.kind));
+    defer table.deinit(allocator);
+
+    const chunk_count = std.math.divCeil(usize, size, CHUNK_ROWS) catch unreachable;
+    const chunks = try allocator.alloc(TableChunk, chunk_count);
+    defer allocator.free(chunks);
+    for (chunks, 0..) |*chunk, index| {
+        const row_start = index * CHUNK_ROWS;
+        chunk.* = .{
+            .allocator = allocator,
+            .counter = counter,
+            .relations = relations,
+            .table = table,
+            .columns = &columns,
+            .row_start = row_start,
+            .row_end = @min(size, row_start + CHUNK_ROWS),
+        };
+    }
+
+    var wait_group = std.Thread.WaitGroup{};
+    for (chunks[1..]) |*chunk| pool.spawnWg(&wait_group, TableChunk.generate, .{chunk});
+    TableChunk.generate(&chunks[0]);
+    wait_group.wait();
+    for (chunks) |chunk| if (chunk.err) |err| return err;
+
+    var claim = QM31.zero();
+    for (chunks) |*chunk| {
+        chunk.offset = claim;
+        claim = claim.add(chunk.total);
+    }
+
+    wait_group = .{};
+    for (chunks[1..]) |*chunk| pool.spawnWg(&wait_group, TableChunk.addOffset, .{chunk});
+    TableChunk.addOffset(&chunks[0]);
+    wait_group.wait();
+    return .{ .columns = columns, .claim = claim };
+}
+
+const TableChunk = struct {
+    allocator: std.mem.Allocator,
+    counter: *const counter_mod.Counter,
+    relations: *const relations_mod.Relations,
+    table: infra.BitReversalTable,
+    columns: *[N_COLUMNS][]M31,
+    row_start: usize,
+    row_end: usize,
+    total: QM31 = QM31.zero(),
+    offset: QM31 = QM31.zero(),
+    err: ?anyerror = null,
+
+    fn generate(self: *@This()) void {
+        self.generateFallible() catch |err| {
+            self.err = err;
+        };
+    }
+
+    fn generateFallible(self: *@This()) !void {
+        const chunk_len = self.row_end - self.row_start;
+        const denominators = try self.allocator.alloc(QM31, chunk_len);
+        defer self.allocator.free(denominators);
+        const inverses = try self.allocator.alloc(QM31, chunk_len);
+        defer self.allocator.free(inverses);
+        for (denominators, 0..) |*denominator, local_row| {
+            const row = self.row_start + local_row;
+            const tuple = try schema.tupleAt(self.counter.kind, row);
+            const relation_entry = tableEntry(
+                self.counter.kind,
+                tuple,
+                self.counter.values[row],
+            );
+            denominator.* = try relation_entry.denominator(self.relations);
+        }
+        try fields.batchInverseInPlace(QM31, denominators, inverses);
+
+        var accumulator = QM31.zero();
+        for (inverses, self.counter.values[self.row_start..self.row_end], 0..) |denominator_inverse, multiplicity, local_row| {
+            accumulator = accumulator.add(
+                QM31.fromBase(multiplicity).neg().mul(denominator_inverse),
+            );
+            const current = accumulator.toM31Array();
+            const dst = self.table.map(self.row_start + local_row);
+            for (0..N_COLUMNS) |coordinate| self.columns[coordinate][dst] = current[coordinate];
+        }
+        self.total = accumulator;
+    }
+
+    fn addOffset(self: *@This()) void {
+        if (self.offset.isZero()) return;
+        for (self.row_start..self.row_end) |row| {
+            const dst = self.table.map(row);
+            const local = QM31.fromM31(
+                self.columns[0][dst],
+                self.columns[1][dst],
+                self.columns[2][dst],
+                self.columns[3][dst],
+            ).add(self.offset).toM31Array();
+            for (0..N_COLUMNS) |coordinate| self.columns[coordinate][dst] = local[coordinate];
         }
     }
-    return .{ .columns = columns, .previous = previous, .claim = accumulator };
-}
+};
 
 /// Shared on-domain/OODS table AIR identity.
 pub fn evaluate(
@@ -186,36 +289,26 @@ fn generateFullDomainReference(
 
     var columns = try allocateColumns(allocator, size);
     errdefer freeColumns(allocator, &columns);
-    var previous = try allocateColumns(allocator, size);
-    errdefer freeColumns(allocator, &previous);
     const table = try infra.BitReversalTable.init(allocator, schema.logSize(counter.kind));
     defer table.deinit(allocator);
     for (0..size) |row| {
         const dst = table.map(row);
         const current = sums[row].toM31Array();
-        const prior = sums[(row + size - 1) % size].toM31Array();
         for (0..N_COLUMNS) |coordinate| {
             columns[coordinate][dst] = current[coordinate];
-            previous[coordinate][dst] = prior[coordinate];
         }
     }
-    return .{ .columns = columns, .previous = previous, .claim = accumulator };
+    return .{ .columns = columns, .claim = accumulator };
 }
 
 fn expectEqualResults(expected: *const Result, actual: *const Result) !void {
     try std.testing.expect(expected.claim.eql(actual.claim));
     for (0..N_COLUMNS) |coordinate| {
         try std.testing.expectEqual(expected.columns[coordinate].len, actual.columns[coordinate].len);
-        try std.testing.expectEqual(expected.previous[coordinate].len, actual.previous[coordinate].len);
         try std.testing.expect(std.mem.eql(
             u8,
             std.mem.sliceAsBytes(expected.columns[coordinate]),
             std.mem.sliceAsBytes(actual.columns[coordinate]),
-        ));
-        try std.testing.expect(std.mem.eql(
-            u8,
-            std.mem.sliceAsBytes(expected.previous[coordinate]),
-            std.mem.sliceAsBytes(actual.previous[coordinate]),
         ));
     }
 }
@@ -297,10 +390,6 @@ test "generated singleton column closes one signed range M31 request" {
         generated.columns[3][last],
     );
     try std.testing.expect(claim_from_column.eql(generated.claim));
-    for (0..N_COLUMNS) |coordinate| {
-        const previous_row = table.map(schema.size(.range_check_m31) - 2);
-        try std.testing.expect(generated.previous[coordinate][last].eql(generated.columns[coordinate][previous_row]));
-    }
 
     const owned_columns = generated.takeColumns();
     defer freeColumns(allocator, &owned_columns);
@@ -309,9 +398,6 @@ test "generated singleton column closes one signed range M31 request" {
         try std.testing.expectEqual(schema.size(.range_check_m31), column.len);
     }
     try std.testing.expect(generated.claim.eql(claim_from_column));
-    for (generated.previous) |column| {
-        try std.testing.expectEqual(schema.size(.range_check_m31), column.len);
-    }
 }
 
 test "chunked table interaction is byte-identical across inversion boundaries" {

@@ -26,11 +26,12 @@
 //! reach it. Each generator's *shifted cumulative* columns are a different
 //! matter: composition borrows them after this stage returns, so they are parked
 //! in the caller's `ProofWorkspace` and released by
-//! `releaseInteractionScratch`, never here.
+//! transferred to the commitment scheme, never retained as duplicate masks.
 
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const prover_pcs = @import("stwo_prover_engine").pcs;
+const work_pool = @import("stwo_prover_engine").work_pool;
 const stage_profile = @import("stwo_prover_api").stage_profile;
 const clock_update_interaction = @import("../air/clock_update_interaction.zig");
 const component_order = @import("../air/component_order.zig");
@@ -119,13 +120,41 @@ pub fn generateAndCommit(
     var columns = try Columns.init(allocator, n_interaction);
     defer columns.deinit(allocator);
 
-    try generateOpcode(allocator, workspace, &columns, relations, claim);
-    try generateProgram(allocator, workspace, &columns, witness, geometry, relations, claim);
-    try generateMemory(allocator, workspace, &columns, witness, relations, claim);
-    try generateMerkle(allocator, workspace, &columns, witness, geometry, relations, claim);
-    try generatePoseidon(allocator, workspace, &columns, witness, geometry, relations, claim);
-    try generateClock(allocator, workspace, &columns, geometry, relations, claim);
-    try generateLookupTables(allocator, workspace, &columns, lookup_source, relations, claim);
+    {
+        var sub = try stage_profile.StageScope.begin(recorder, "riscv_interaction_opcode", "RISC-V opcode interactions");
+        defer sub.end();
+        try generateOpcode(allocator, workspace, &columns, relations, claim);
+    }
+    {
+        var sub = try stage_profile.StageScope.begin(recorder, "riscv_interaction_program", "RISC-V program interactions");
+        defer sub.end();
+        try generateProgram(allocator, &columns, witness, geometry, relations, claim);
+    }
+    {
+        var sub = try stage_profile.StageScope.begin(recorder, "riscv_interaction_memory", "RISC-V memory interactions");
+        defer sub.end();
+        try generateMemory(allocator, workspace, &columns, witness, relations, claim);
+    }
+    {
+        var sub = try stage_profile.StageScope.begin(recorder, "riscv_interaction_merkle", "RISC-V Merkle interactions");
+        defer sub.end();
+        try generateMerkle(allocator, &columns, witness, geometry, relations, claim);
+    }
+    {
+        var sub = try stage_profile.StageScope.begin(recorder, "riscv_interaction_poseidon", "RISC-V Poseidon interactions");
+        defer sub.end();
+        try generatePoseidon(allocator, &columns, witness, geometry, relations, claim);
+    }
+    {
+        var sub = try stage_profile.StageScope.begin(recorder, "riscv_interaction_clock", "RISC-V clock interactions");
+        defer sub.end();
+        try generateClock(allocator, workspace, &columns, geometry, relations, claim);
+    }
+    {
+        var sub = try stage_profile.StageScope.begin(recorder, "riscv_interaction_tables", "RISC-V lookup-table interactions");
+        defer sub.end();
+        try generateLookupTables(allocator, workspace, &columns, lookup_source, relations, claim);
+    }
     std.debug.assert(columns.filled == n_interaction);
 
     try proof_transcript.mixInteractionClaim(channel, statement, claim);
@@ -146,6 +175,18 @@ fn generateOpcode(
     claim: *RiscVInteractionClaim,
 ) !void {
     const statement = &workspace.statement;
+    if (statement.n_components > 1) {
+        if (work_pool.getGlobalPool()) |pool| {
+            return generateOpcodeParallel(
+                allocator,
+                workspace,
+                columns,
+                relations,
+                claim,
+                pool,
+            );
+        }
+    }
     var opcode_main_offset: usize = 0;
     for (0..statement.n_components) |i| {
         const desc = statement.component_descs[i];
@@ -155,22 +196,71 @@ fn generateOpcode(
             workspace.opcode_columns.components[i].columns[0..n_family_columns],
             family_columns[0..n_family_columns],
         ) |column, *values| values.* = column;
-        workspace.opcode_results[workspace.n_opcode_results] = try opcode_interaction.generate(
+        var generated = try opcode_interaction.generate(
             allocator,
             desc.family,
             family_columns[0..n_family_columns],
             desc.log_size,
             relations,
         );
-        const generated = &workspace.opcode_results[workspace.n_opcode_results];
-        workspace.n_opcode_results += 1;
         @memcpy(
             claim.opcode_claims[i][0..generated.n_batches],
             generated.claims[0..generated.n_batches],
         );
+        const n_columns = generated.nColumns();
         const taken = generated.takeColumns();
-        for (taken[0..generated.nColumns()]) |values| columns.append(desc.log_size, values);
+        for (taken[0..n_columns]) |values| columns.append(desc.log_size, values);
         opcode_main_offset += n_family_columns;
+    }
+    std.debug.assert(opcode_main_offset == statement.nOpcodeMainColumns());
+}
+
+/// Gives each large opcode family the whole bounded pool in turn. This avoids
+/// nested waits and lets the family generator parallelize its row-local tuple,
+/// inversion and scan work before results are appended in protocol order.
+fn generateOpcodeParallel(
+    allocator: std.mem.Allocator,
+    workspace: *ProofWorkspace,
+    columns: *Columns,
+    relations: *const Relations,
+    claim: *RiscVInteractionClaim,
+    pool: *work_pool.WorkPool,
+) !void {
+    const statement = &workspace.statement;
+    var opcode_main_offset: usize = 0;
+    for (0..statement.n_components) |index| {
+        const desc = statement.component_descs[index];
+        const n_family_columns: usize = @intCast(desc.n_columns);
+        var family_columns: [trace_mod.MAX_FAMILY_COLUMNS][]const M31 = undefined;
+        for (
+            workspace.opcode_columns.components[index].columns[0..n_family_columns],
+            family_columns[0..n_family_columns],
+        ) |column, *values| values.* = column;
+        var generated = if (desc.log_size >= 12)
+            try opcode_interaction.generateParallel(
+                allocator,
+                desc.family,
+                family_columns[0..n_family_columns],
+                desc.log_size,
+                relations,
+                pool,
+            )
+        else
+            try opcode_interaction.generate(
+                allocator,
+                desc.family,
+                family_columns[0..n_family_columns],
+                desc.log_size,
+                relations,
+            );
+        @memcpy(
+            claim.opcode_claims[index][0..generated.n_batches],
+            generated.claims[0..generated.n_batches],
+        );
+        const n_columns = generated.nColumns();
+        const taken = generated.takeColumns();
+        for (taken[0..n_columns]) |values| columns.append(desc.log_size, values);
+        opcode_main_offset += @intCast(desc.n_columns);
     }
     std.debug.assert(opcode_main_offset == statement.nOpcodeMainColumns());
 }
@@ -179,7 +269,6 @@ fn generateOpcode(
 /// construction, which is the index its claim is published under.
 fn generateProgram(
     allocator: std.mem.Allocator,
-    workspace: *ProofWorkspace,
     columns: *Columns,
     witness: *const CommitmentWitness,
     geometry: Geometry,
@@ -193,7 +282,6 @@ fn generateProgram(
         relations,
     );
     claim.program_claims[0] = generated.claims.sums;
-    workspace.program_prev = generated.previous;
     for (generated.columns) |values| columns.append(geometry.program_log_size, values);
 }
 
@@ -225,7 +313,6 @@ fn generateMemory(
             relations,
         );
         claim.memory_claims[infra_index] = generated.claims.sums;
-        workspace.memory_prev[infra_index] = generated.previous;
         for (generated.columns) |values| columns.append(desc.log_size, values);
         row_start = row_end;
     }
@@ -234,7 +321,6 @@ fn generateMemory(
 
 fn generateMerkle(
     allocator: std.mem.Allocator,
-    workspace: *ProofWorkspace,
     columns: *Columns,
     witness: *const CommitmentWitness,
     geometry: Geometry,
@@ -248,13 +334,11 @@ fn generateMerkle(
         relations,
     );
     claim.merkle_claims[geometry.merkle_infra_index] = generated.claims.sums;
-    workspace.merkle_prev = generated.previous;
     for (generated.columns) |values| columns.append(geometry.merkle_log_size, values);
 }
 
 fn generatePoseidon(
     allocator: std.mem.Allocator,
-    workspace: *ProofWorkspace,
     columns: *Columns,
     witness: *const CommitmentWitness,
     geometry: Geometry,
@@ -268,7 +352,6 @@ fn generatePoseidon(
         relations,
     );
     claim.poseidon_claims[geometry.poseidon_infra_index] = generated.claims.sums;
-    workspace.poseidon_prev = generated.previous;
     for (generated.columns) |values| columns.append(geometry.poseidon_log_size, values);
 }
 
@@ -284,14 +367,14 @@ fn generateClock(
 ) !void {
     var views: [clock_update_interaction.N_MAIN_COLUMNS][]const M31 = undefined;
     for (&views, workspace.clock_main) |*view, column| view.* = column;
-    workspace.clock_result = try clock_update_interaction.generate(
+    var generated = try clock_update_interaction.generate(
         allocator,
         &views,
         geometry.clock_update_log,
         relations,
     );
-    claim.clock_claims[geometry.clock_infra_index] = workspace.clock_result.?.claims;
-    const taken = workspace.clock_result.?.takeColumns();
+    claim.clock_claims[geometry.clock_infra_index] = generated.claims;
+    const taken = generated.takeColumns();
     for (taken) |values| columns.append(geometry.clock_update_log, values);
 }
 
@@ -305,15 +388,50 @@ fn generateLookupTables(
     relations: *const Relations,
     claim: *RiscVInteractionClaim,
 ) !void {
+    if (work_pool.getGlobalPool()) |pool| {
+        return generateLookupTablesParallel(
+            allocator,
+            workspace,
+            columns,
+            lookup_source,
+            relations,
+            claim,
+            pool,
+        );
+    }
     const table_infra_start = workspace.statement.n_infra - component_order.LOOKUP_TABLE_COUNT;
     for (component_order.lookupTables(), 0..) |kind, table_index| {
-        workspace.table_results[workspace.n_table_results] = try lookup_table_interaction.generate(
+        var generated = try lookup_table_interaction.generate(
             allocator,
             &lookup_source.counters.counters[@intFromEnum(kind)],
             relations,
         );
-        const generated = &workspace.table_results[workspace.n_table_results];
-        workspace.n_table_results += 1;
+        claim.lookup_claims[table_infra_start + table_index] = generated.claim;
+        const taken = generated.takeColumns();
+        for (taken) |values| columns.append(lookup_table_schema.logSize(kind), values);
+    }
+}
+
+/// Gives each large fixed table the whole bounded pool in turn. The table
+/// generator performs a chunk-local scan plus ordered offset fix-up, while
+/// columns and claims are still appended in protocol declaration order.
+fn generateLookupTablesParallel(
+    allocator: std.mem.Allocator,
+    workspace: *ProofWorkspace,
+    columns: *Columns,
+    lookup_source: *const source_ingest.Result,
+    relations: *const Relations,
+    claim: *RiscVInteractionClaim,
+    pool: *work_pool.WorkPool,
+) !void {
+    const table_infra_start = workspace.statement.n_infra - component_order.LOOKUP_TABLE_COUNT;
+    for (component_order.lookupTables(), 0..) |kind, table_index| {
+        var generated = try lookup_table_interaction.generateParallel(
+            allocator,
+            &lookup_source.counters.counters[@intFromEnum(kind)],
+            relations,
+            pool,
+        );
         claim.lookup_claims[table_infra_start + table_index] = generated.claim;
         const taken = generated.takeColumns();
         for (taken) |values| columns.append(lookup_table_schema.logSize(kind), values);

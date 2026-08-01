@@ -1,0 +1,1599 @@
+{
+  "captured_at": "2026-08-01T17:54:24.505333+01:00",
+  "coverage": {
+    "supported_targets": [
+      "sha256",
+      "keccak",
+      "poseidon2_m31",
+      "ecdsa_secp256k1"
+    ],
+    "unsupported_targets": {
+      "ecdsa_p256": "The RISC-V zkVM comparison lane is secp256k1; CSP circuit lanes use P-256.",
+      "poseidon": "Classic Poseidon is a separate permutation and is not relabelled as Poseidon2.",
+      "poseidon2_bn254": "The field-native M31 extension is not CSP's BN254 Poseidon2 workload."
+    }
+  },
+  "host": {
+    "architecture": "arm64",
+    "cpu": "Apple M5 Max",
+    "gpu": {
+      "core_count": 40,
+      "metal_support": "spdisplays_metal4",
+      "name": "Apple M5 Max",
+      "unified_memory": true
+    },
+    "host_architecture": "arm64",
+    "kernel": "25.6.0",
+    "logical_cpu_count": 18,
+    "low_power_mode": false,
+    "memory_bytes": 68719476736,
+    "os": "Darwin",
+    "os_version": "26.6",
+    "power_source": "Battery Power",
+    "python": "3.14.6"
+  },
+  "host_matches_official_csp": false,
+  "host_mismatch_reasons": [
+    "CSP publication host requires Apple M1",
+    "CSP publication host requires 8 logical CPUs",
+    "CSP publication host requires 16 GiB RAM"
+  ],
+  "identities": {
+    "prover_build_identity": {
+      "abi": "none",
+      "arch": "aarch64",
+      "cpu_model": "apple_m1",
+      "optimize": "ReleaseFast",
+      "os": "macos"
+    },
+    "prover_executable": "zig-out/bin/stwo-zig-riscv-cpu",
+    "prover_executable_sha256": "7432b5109114d80e07add728cee54ca4b14b470be734a071ecf745ea65df3f8c",
+    "trace_executable": "zig-out/bin/riscv-trace-dump",
+    "trace_executable_sha256": "d0243c926693813eb697a2ed6901602cc1e894997cc9abc77e9d1d79ae16c161",
+    "trace_provenance": {
+      "build_identity_published": false,
+      "implementation_commit": "5d540e94174e4a678088a5ad793306280aa70c40",
+      "implementation_dirty": false,
+      "oracle_commit": "8c7f2da58de0ba5e4457e4de07e0046f0439f35f",
+      "surface": "public-values diagnostic provenance",
+      "unvalidated": [
+        "target architecture, operating system, ABI, and CPU model",
+        "optimize mode"
+      ],
+      "unvalidated_reason": "the trace dumper publishes no `applications` registry, so the target and optimize checks the prover CLI receives have no source here; it contributes cycle counts, not timings",
+      "witness_layout_sha256": "314f1669804bb2c7fa2c99c5fe7fedb6801f9bf7e0353ace6750e1c2c7b302b9"
+    },
+    "zig_version": "0.15.2"
+  },
+  "limitations": [
+    "The secure profile's 96-bit total is heuristic pending the external PCS/FRI/Fiat-Shamir accounting review.",
+    "Peak footprint includes mandatory self-verification; proving dominates the observed peak, but this is conservative relative to CSP's prove-only memory process.",
+    "No result is uploaded to EthProofs by this command.",
+    "This host differs from CSP's AWS mac2.metal Apple M1/8-core/16-GiB publication host, so timings are host-qualified and not directly rankable against published EthProofs rows.",
+    "Power conditions were not certified for this run, so these timings are not publishable: CSP-comparable timings require AC power (observed: Battery Power)."
+  ],
+  "measurement_commit": "5d540e94174e4a678088a5ad793306280aa70c40",
+  "measurements": [
+    {
+      "backend": "cpu",
+      "cycles": 14056,
+      "evidence": {
+        "artifact_bytes": 1700528,
+        "artifact_sha256": "54a85d6873f0e406bfcb2eea89f682e55b29f2f9d13fde34fb07e7292480de42",
+        "expected_output_digest": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5",
+        "guest_sha256": "eed01acd33276f356b28400eb82dba08ed09d9e7842f8cc122be302053fd8c35",
+        "input_sha256": "f839f3c9a73f35f365f55a5c03e25354802191fe76218c5c3928235a14e15794",
+        "output_digest": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5",
+        "proof_sha256": "200f7c82dfc5fd74865c2e9063d74ab8d7e1f1b477405e8a7ed4bb4344febda7",
+        "public_values_sha256": "0cd53091593a28dd1467991d06fe56b943ff793d3de7d26470f6effceed995c2",
+        "retained_verify_receipt": {
+          "artifact_kind": "stwo_riscv_proof",
+          "artifact_schema_version": 4,
+          "executable_sha256": "7432b5109114d80e07add728cee54ca4b14b470be734a071ecf745ea65df3f8c",
+          "implementation_commit": "5d540e94174e4a678088a5ad793306280aa70c40",
+          "implementation_dirty": false,
+          "proof_bytes": 844663,
+          "proof_sha256": "200f7c82dfc5fd74865c2e9063d74ab8d7e1f1b477405e8a7ed4bb4344febda7",
+          "release_status": "release_gated",
+          "schema": "riscv_verify_v1",
+          "security_policy": "secure",
+          "statement_sha256": "804c8d7c9b787a187fadfcb06245bb5be83a554809caf5168bc1c1e5d94c398d",
+          "status": "verified",
+          "transcript_state_blake2s": "7a97c05879ad01e62c1bd642becfae92c775f620c5a1483c5cd13e10030231c6"
+        },
+        "retained_verify_wall_ns": 158383292,
+        "statement_sha256": "804c8d7c9b787a187fadfcb06245bb5be83a554809caf5168bc1c1e5d94c398d",
+        "status": "verified"
+      },
+      "input_size": 128,
+      "memory": {
+        "includes_mandatory_self_verification": true,
+        "scope": "self-process lifetime peak across verified samples",
+        "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6"
+      },
+      "num_constraints": 0,
+      "peak_memory": 1398198856,
+      "preprocessing_size": 76016,
+      "proof_duration": 1079847300,
+      "proof_size": 844663,
+      "protocol": {
+        "name": "secure",
+        "pcs_config": {
+          "fri_config": {
+            "fold_step": 1,
+            "log_blowup_factor": 1,
+            "log_last_layer_degree_bound": 0,
+            "n_queries": 70
+          },
+          "lifting_log_size": null,
+          "pow_bits": 26
+        }
+      },
+      "prover_log_sha256": "f914bcd7890fadf1320fb74b8773ebc20143b652d7e3c4fe7cf494f158b580ed",
+      "system": "stwo-zig-riscv",
+      "target": "sha256",
+      "timing": {
+        "mean_execution_seconds": 0.0033566666,
+        "mean_proving_seconds": 0.6116754333000001,
+        "mean_verification_seconds": 0.0937831876,
+        "mean_witness_seconds": 0.4648152,
+        "median_end_to_end_seconds": 1.191382542,
+        "outer_command_wall_ns": 13012695375,
+        "proof_definition": "execution + witness + proof generation",
+        "source": "production CLI internal stage timers",
+        "verified_end_to_end_sample_seconds": [
+          1.202862375,
+          1.168380208,
+          1.191382542,
+          1.160020292,
+          1.1667845,
+          1.1457245,
+          1.189821625,
+          1.197276209,
+          1.203943833,
+          1.20769975
+        ],
+        "verify_definition": "production proof verification"
+      },
+      "uses_precompile": false,
+      "verify_duration": 93783188
+    },
+    {
+      "backend": "cpu",
+      "cycles": 22832,
+      "evidence": {
+        "artifact_bytes": 1692731,
+        "artifact_sha256": "147af6f8782ee4e92408b232d56bf0f01d3c40213e00d16615aa7fc244ace9f0",
+        "expected_output_digest": "6bda52c594dea36810439254eaf14da801987b3f60143b0457342dd2ed64f216",
+        "guest_sha256": "eed01acd33276f356b28400eb82dba08ed09d9e7842f8cc122be302053fd8c35",
+        "input_sha256": "2d1afb7f8f3a864ecee25e039d97cd742888c579a38f1cc250659cd7fe75cf6f",
+        "output_digest": "6bda52c594dea36810439254eaf14da801987b3f60143b0457342dd2ed64f216",
+        "proof_sha256": "88f89f1e9d37f9bcb3b038dc8ed723338d4bf64f411673e044d44f0fd721fb82",
+        "public_values_sha256": "e5567ecbeb7bd0f4d588dec881e7b31e861eb91da82c7442caa1172001d4ceef",
+        "retained_verify_receipt": {
+          "artifact_kind": "stwo_riscv_proof",
+          "artifact_schema_version": 4,
+          "executable_sha256": "7432b5109114d80e07add728cee54ca4b14b470be734a071ecf745ea65df3f8c",
+          "implementation_commit": "5d540e94174e4a678088a5ad793306280aa70c40",
+          "implementation_dirty": false,
+          "proof_bytes": 840593,
+          "proof_sha256": "88f89f1e9d37f9bcb3b038dc8ed723338d4bf64f411673e044d44f0fd721fb82",
+          "release_status": "release_gated",
+          "schema": "riscv_verify_v1",
+          "security_policy": "secure",
+          "statement_sha256": "68ca8e70444505e3e19798c998e7cbe22c410933f29a77123e056d346a3a73e3",
+          "status": "verified",
+          "transcript_state_blake2s": "95f0379e8c835faf6005645901083bf1e15198aab837bcada9674a1811dc136f"
+        },
+        "retained_verify_wall_ns": 155293916,
+        "statement_sha256": "68ca8e70444505e3e19798c998e7cbe22c410933f29a77123e056d346a3a73e3",
+        "status": "verified"
+      },
+      "input_size": 256,
+      "memory": {
+        "includes_mandatory_self_verification": true,
+        "scope": "self-process lifetime peak across verified samples",
+        "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6"
+      },
+      "num_constraints": 0,
+      "peak_memory": 1384206368,
+      "preprocessing_size": 76016,
+      "proof_duration": 1072772396,
+      "proof_size": 840593,
+      "protocol": {
+        "name": "secure",
+        "pcs_config": {
+          "fri_config": {
+            "fold_step": 1,
+            "log_blowup_factor": 1,
+            "log_last_layer_degree_bound": 0,
+            "n_queries": 70
+          },
+          "lifting_log_size": null,
+          "pow_bits": 26
+        }
+      },
+      "prover_log_sha256": "6a99c3916b0502764292e723f5d4b047c701504b92abd7fcb10469ca6bbf04fe",
+      "system": "stwo-zig-riscv",
+      "target": "sha256",
+      "timing": {
+        "mean_execution_seconds": 0.0044926831,
+        "mean_proving_seconds": 0.6046201125999999,
+        "mean_verification_seconds": 0.09256767510000001,
+        "mean_witness_seconds": 0.4636596,
+        "median_end_to_end_seconds": 1.180498834,
+        "outer_command_wall_ns": 12989045125,
+        "proof_definition": "execution + witness + proof generation",
+        "source": "production CLI internal stage timers",
+        "verified_end_to_end_sample_seconds": [
+          1.181683917,
+          1.169363667,
+          1.191374333,
+          1.181808417,
+          1.179849041,
+          1.192129042,
+          1.180498834,
+          1.12926175,
+          1.168267083,
+          1.173247792
+        ],
+        "verify_definition": "production proof verification"
+      },
+      "uses_precompile": false,
+      "verify_duration": 92567675
+    },
+    {
+      "backend": "cpu",
+      "cycles": 40384,
+      "evidence": {
+        "artifact_bytes": 1699275,
+        "artifact_sha256": "ac54a4ce7d281cdfe26f724d26c3e24edb1b9302d5093a58b1b6d2e6585ce26c",
+        "expected_output_digest": "6b9f1bb0633f59b95756aa230cd378da66eb24fa6055c50c8b6b32a000c71a73",
+        "guest_sha256": "eed01acd33276f356b28400eb82dba08ed09d9e7842f8cc122be302053fd8c35",
+        "input_sha256": "b431b3635e3df1b6bb9b503d35469733f89249ebea783c3d452f8965641627e3",
+        "output_digest": "6b9f1bb0633f59b95756aa230cd378da66eb24fa6055c50c8b6b32a000c71a73",
+        "proof_sha256": "f59ca887d36cc040e851f96327d36f8ccf4384b9bc67a18b405397fa1b434e71",
+        "public_values_sha256": "c4aa94539d21c299ad627c5323721a3430d9a38510efcecf5085120cedd1a5c3",
+        "retained_verify_receipt": {
+          "artifact_kind": "stwo_riscv_proof",
+          "artifact_schema_version": 4,
+          "executable_sha256": "7432b5109114d80e07add728cee54ca4b14b470be734a071ecf745ea65df3f8c",
+          "implementation_commit": "5d540e94174e4a678088a5ad793306280aa70c40",
+          "implementation_dirty": false,
+          "proof_bytes": 843507,
+          "proof_sha256": "f59ca887d36cc040e851f96327d36f8ccf4384b9bc67a18b405397fa1b434e71",
+          "release_status": "release_gated",
+          "schema": "riscv_verify_v1",
+          "security_policy": "secure",
+          "statement_sha256": "61bc0f3f27e9a0ad4e9f05eace9fd04d0f75d7d1525c0b5a7789d99790197aa8",
+          "status": "verified",
+          "transcript_state_blake2s": "cb1d971093233ba4e96758ce7b1cc86fdce94d81ccc17ab847a6cbc0f690d292"
+        },
+        "retained_verify_wall_ns": 153775292,
+        "statement_sha256": "61bc0f3f27e9a0ad4e9f05eace9fd04d0f75d7d1525c0b5a7789d99790197aa8",
+        "status": "verified"
+      },
+      "input_size": 512,
+      "memory": {
+        "includes_mandatory_self_verification": true,
+        "scope": "self-process lifetime peak across verified samples",
+        "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6"
+      },
+      "num_constraints": 0,
+      "peak_memory": 1430262896,
+      "preprocessing_size": 76016,
+      "proof_duration": 1115176613,
+      "proof_size": 843507,
+      "protocol": {
+        "name": "secure",
+        "pcs_config": {
+          "fri_config": {
+            "fold_step": 1,
+            "log_blowup_factor": 1,
+            "log_last_layer_degree_bound": 0,
+            "n_queries": 70
+          },
+          "lifting_log_size": null,
+          "pow_bits": 26
+        }
+      },
+      "prover_log_sha256": "3c6fc992fffea236d8d70c4f1b199915d0d9885aa541182439b25ab2fa91f204",
+      "system": "stwo-zig-riscv",
+      "target": "sha256",
+      "timing": {
+        "mean_execution_seconds": 0.0068156085000000005,
+        "mean_proving_seconds": 0.6190756043000001,
+        "mean_verification_seconds": 0.094825354,
+        "mean_witness_seconds": 0.4892854,
+        "median_end_to_end_seconds": 1.223887834,
+        "outer_command_wall_ns": 13437450416,
+        "proof_definition": "execution + witness + proof generation",
+        "source": "production CLI internal stage timers",
+        "verified_end_to_end_sample_seconds": [
+          1.204364,
+          1.223887834,
+          1.217166042,
+          1.227046083,
+          1.220373042,
+          1.208238584,
+          1.227366583,
+          1.24089275,
+          1.224703041,
+          1.207469916
+        ],
+        "verify_definition": "production proof verification"
+      },
+      "uses_precompile": false,
+      "verify_duration": 94825354
+    },
+    {
+      "backend": "cpu",
+      "cycles": 75488,
+      "evidence": {
+        "artifact_bytes": 1701173,
+        "artifact_sha256": "4db78aebbe6346dce876f0bf374f8844e6d77430b3a676758a90b0e5152cb561",
+        "expected_output_digest": "d3a16043fa6ee210a3bbfa5da11af45cbb45c398a9d1a2eea2e8bed60048761c",
+        "guest_sha256": "eed01acd33276f356b28400eb82dba08ed09d9e7842f8cc122be302053fd8c35",
+        "input_sha256": "9ceba14adc9db992c3d5cb42b5276ef0dabf5fa47a3ec3d92280f2f85442e474",
+        "output_digest": "d3a16043fa6ee210a3bbfa5da11af45cbb45c398a9d1a2eea2e8bed60048761c",
+        "proof_sha256": "780814010e5bc59fae087d336b7f9ac4f8422e148f63dcb063d67444ac5b986b",
+        "public_values_sha256": "b3c1a92cc1df771d66416bd324a97cdff9b385f05d87ba3ca15b8f8592a5230b",
+        "retained_verify_receipt": {
+          "artifact_kind": "stwo_riscv_proof",
+          "artifact_schema_version": 4,
+          "executable_sha256": "7432b5109114d80e07add728cee54ca4b14b470be734a071ecf745ea65df3f8c",
+          "implementation_commit": "5d540e94174e4a678088a5ad793306280aa70c40",
+          "implementation_dirty": false,
+          "proof_bytes": 843758,
+          "proof_sha256": "780814010e5bc59fae087d336b7f9ac4f8422e148f63dcb063d67444ac5b986b",
+          "release_status": "release_gated",
+          "schema": "riscv_verify_v1",
+          "security_policy": "secure",
+          "statement_sha256": "01c7447da5a8224f97d06bd63bf678b3392b33e9ee927d61cb1153e404de3b6f",
+          "status": "verified",
+          "transcript_state_blake2s": "5e929b0e58543c1196bd6cb48657bd13e26e597d3994de5d2aa8dc948e6eb015"
+        },
+        "retained_verify_wall_ns": 156064042,
+        "statement_sha256": "01c7447da5a8224f97d06bd63bf678b3392b33e9ee927d61cb1153e404de3b6f",
+        "status": "verified"
+      },
+      "input_size": 1024,
+      "memory": {
+        "includes_mandatory_self_verification": true,
+        "scope": "self-process lifetime peak across verified samples",
+        "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6"
+      },
+      "num_constraints": 0,
+      "peak_memory": 1467323144,
+      "preprocessing_size": 76016,
+      "proof_duration": 1505085092,
+      "proof_size": 843758,
+      "protocol": {
+        "name": "secure",
+        "pcs_config": {
+          "fri_config": {
+            "fold_step": 1,
+            "log_blowup_factor": 1,
+            "log_last_layer_degree_bound": 0,
+            "n_queries": 70
+          },
+          "lifting_log_size": null,
+          "pow_bits": 26
+        }
+      },
+      "prover_log_sha256": "3b93d74c2aa7380c3ec153f8a187b97cc1f9552909ad5ca5e37c461666a6590e",
+      "system": "stwo-zig-riscv",
+      "target": "sha256",
+      "timing": {
+        "mean_execution_seconds": 0.012119616699999999,
+        "mean_proving_seconds": 1.0157857751000001,
+        "mean_verification_seconds": 0.09423073739999999,
+        "mean_witness_seconds": 0.47717970000000004,
+        "median_end_to_end_seconds": 1.61278625,
+        "outer_command_wall_ns": 17726256000,
+        "proof_definition": "execution + witness + proof generation",
+        "source": "production CLI internal stage timers",
+        "verified_end_to_end_sample_seconds": [
+          1.602012417,
+          1.558224584,
+          1.590073083,
+          1.635354417,
+          1.61278625,
+          1.636885917,
+          1.592859292,
+          1.616289541,
+          1.592555625,
+          1.655275666
+        ],
+        "verify_definition": "production proof verification"
+      },
+      "uses_precompile": false,
+      "verify_duration": 94230737
+    },
+    {
+      "backend": "cpu",
+      "cycles": 145696,
+      "evidence": {
+        "artifact_bytes": 1765131,
+        "artifact_sha256": "49cc115f195f69a2b901344780d4ae55c7c1adfd6f06d6a9b630a6c6a2bdaa11",
+        "expected_output_digest": "f11d48451256c7133c5e465ea9cb93b594b0cc0c5f9a6c4faf48e608f157a126",
+        "guest_sha256": "eed01acd33276f356b28400eb82dba08ed09d9e7842f8cc122be302053fd8c35",
+        "input_sha256": "218bb97ce15e86f776a275909ab80b353959eed1bc64566e2af3745cfe21299f",
+        "output_digest": "f11d48451256c7133c5e465ea9cb93b594b0cc0c5f9a6c4faf48e608f157a126",
+        "proof_sha256": "1a8937ae2df3ae0d9b1385e296e11d2a481e6bce42f8b3d20bb9f1c9c0803ebe",
+        "public_values_sha256": "0743a6aed669b52bb3c75ce9f6f39be7fbd49595ff4d16cc425db2c9eeda5397",
+        "retained_verify_receipt": {
+          "artifact_kind": "stwo_riscv_proof",
+          "artifact_schema_version": 4,
+          "executable_sha256": "7432b5109114d80e07add728cee54ca4b14b470be734a071ecf745ea65df3f8c",
+          "implementation_commit": "5d540e94174e4a678088a5ad793306280aa70c40",
+          "implementation_dirty": false,
+          "proof_bytes": 874076,
+          "proof_sha256": "1a8937ae2df3ae0d9b1385e296e11d2a481e6bce42f8b3d20bb9f1c9c0803ebe",
+          "release_status": "release_gated",
+          "schema": "riscv_verify_v1",
+          "security_policy": "secure",
+          "statement_sha256": "80c46fe3737cea199a6273a9513a787538b6815e3bb501727544999d64608555",
+          "status": "verified",
+          "transcript_state_blake2s": "757a975b108677ca6ade842705368159345b9d922c3accf51e72fde840442e0e"
+        },
+        "retained_verify_wall_ns": 161049875,
+        "statement_sha256": "80c46fe3737cea199a6273a9513a787538b6815e3bb501727544999d64608555",
+        "status": "verified"
+      },
+      "input_size": 2048,
+      "memory": {
+        "includes_mandatory_self_verification": true,
+        "scope": "self-process lifetime peak across verified samples",
+        "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6"
+      },
+      "num_constraints": 0,
+      "peak_memory": 1552831984,
+      "preprocessing_size": 76016,
+      "proof_duration": 1339630746,
+      "proof_size": 874076,
+      "protocol": {
+        "name": "secure",
+        "pcs_config": {
+          "fri_config": {
+            "fold_step": 1,
+            "log_blowup_factor": 1,
+            "log_last_layer_degree_bound": 0,
+            "n_queries": 70
+          },
+          "lifting_log_size": null,
+          "pow_bits": 26
+        }
+      },
+      "prover_log_sha256": "f737ccb78342535f61a4df62a7fd3921e2ba805b96205426da3e5b8e2e784ca1",
+      "system": "stwo-zig-riscv",
+      "target": "sha256",
+      "timing": {
+        "mean_execution_seconds": 0.0171017375,
+        "mean_proving_seconds": 0.7394968082,
+        "mean_verification_seconds": 0.0988192748,
+        "mean_witness_seconds": 0.5830321999999999,
+        "median_end_to_end_seconds": 1.453921542,
+        "outer_command_wall_ns": 15950442416,
+        "proof_definition": "execution + witness + proof generation",
+        "source": "production CLI internal stage timers",
+        "verified_end_to_end_sample_seconds": [
+          1.453921542,
+          1.460038916,
+          1.452120916,
+          1.4560375,
+          1.455083417,
+          1.44792175,
+          1.446778583,
+          1.433993542,
+          1.45677875,
+          1.429734417
+        ],
+        "verify_definition": "production proof verification"
+      },
+      "uses_precompile": false,
+      "verify_duration": 98819275
+    },
+    {
+      "backend": "cpu",
+      "cycles": 19114,
+      "evidence": {
+        "artifact_bytes": 1703516,
+        "artifact_sha256": "ab0cae8bdd76e5906b3ce49c4920a97f0ec5a81b3859a251232e3b0a3c623aab",
+        "expected_output_digest": "50c4135413586321c16183bc51423b45fa12884edbfcba99fa1a2a689b586cf1",
+        "guest_sha256": "ec3dd877e23a9c46d372350d1a0c1fc12092476ae3f6c5287550ca030f8d351c",
+        "input_sha256": "f839f3c9a73f35f365f55a5c03e25354802191fe76218c5c3928235a14e15794",
+        "output_digest": "50c4135413586321c16183bc51423b45fa12884edbfcba99fa1a2a689b586cf1",
+        "proof_sha256": "b26746259801901ba419efcce66eae55384ef866742f40d2e7f03e4a6f931431",
+        "public_values_sha256": "9e46a70b3b0c5c5edf39378a7ede8f45c7019b1031c69642a4eb4f6c8ff577ba",
+        "retained_verify_receipt": {
+          "artifact_kind": "stwo_riscv_proof",
+          "artifact_schema_version": 4,
+          "executable_sha256": "7432b5109114d80e07add728cee54ca4b14b470be734a071ecf745ea65df3f8c",
+          "implementation_commit": "5d540e94174e4a678088a5ad793306280aa70c40",
+          "implementation_dirty": false,
+          "proof_bytes": 846148,
+          "proof_sha256": "b26746259801901ba419efcce66eae55384ef866742f40d2e7f03e4a6f931431",
+          "release_status": "release_gated",
+          "schema": "riscv_verify_v1",
+          "security_policy": "secure",
+          "statement_sha256": "5920025f394ecb89d4c8ab8a8e3e801d0cf012f361414c9f121f85a02aa007da",
+          "status": "verified",
+          "transcript_state_blake2s": "a459838aae91d1bfeac9b3976e741b73879cf8dca71362034596d91bcce9ecc8"
+        },
+        "retained_verify_wall_ns": 150174584,
+        "statement_sha256": "5920025f394ecb89d4c8ab8a8e3e801d0cf012f361414c9f121f85a02aa007da",
+        "status": "verified"
+      },
+      "input_size": 128,
+      "memory": {
+        "includes_mandatory_self_verification": true,
+        "scope": "self-process lifetime peak across verified samples",
+        "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6"
+      },
+      "num_constraints": 0,
+      "peak_memory": 1400706160,
+      "preprocessing_size": 76628,
+      "proof_duration": 981828179,
+      "proof_size": 846148,
+      "protocol": {
+        "name": "secure",
+        "pcs_config": {
+          "fri_config": {
+            "fold_step": 1,
+            "log_blowup_factor": 1,
+            "log_last_layer_degree_bound": 0,
+            "n_queries": 70
+          },
+          "lifting_log_size": null,
+          "pow_bits": 26
+        }
+      },
+      "prover_log_sha256": "8e4c8b946bbbe1f4bbb83005f8a32b03ee7652a70529fef6d1bb5743912dff7c",
+      "system": "stwo-zig-riscv",
+      "target": "keccak",
+      "timing": {
+        "mean_execution_seconds": 0.0036176333,
+        "mean_proving_seconds": 0.5629419458999999,
+        "mean_verification_seconds": 0.09809012920000001,
+        "mean_witness_seconds": 0.41526859999999993,
+        "median_end_to_end_seconds": 1.088524375,
+        "outer_command_wall_ns": 12010487083,
+        "proof_definition": "execution + witness + proof generation",
+        "source": "production CLI internal stage timers",
+        "verified_end_to_end_sample_seconds": [
+          1.116754542,
+          1.083262166,
+          1.102905334,
+          1.08857075,
+          1.088524375,
+          1.074246208,
+          1.080576709,
+          1.078247959,
+          1.117612625,
+          1.071420083
+        ],
+        "verify_definition": "production proof verification"
+      },
+      "uses_precompile": false,
+      "verify_duration": 98090129
+    },
+    {
+      "backend": "cpu",
+      "cycles": 36904,
+      "evidence": {
+        "artifact_bytes": 1723413,
+        "artifact_sha256": "d6b8d9f19c787adf4f78ddf36d392c2c2d77cc0db1206db1d0940530f25da83a",
+        "expected_output_digest": "c22ea0397eb10b924d6b9caf8230cfcce92c9179f6d0d6c1174abd5d8622a263",
+        "guest_sha256": "ec3dd877e23a9c46d372350d1a0c1fc12092476ae3f6c5287550ca030f8d351c",
+        "input_sha256": "2d1afb7f8f3a864ecee25e039d97cd742888c579a38f1cc250659cd7fe75cf6f",
+        "output_digest": "c22ea0397eb10b924d6b9caf8230cfcce92c9179f6d0d6c1174abd5d8622a263",
+        "proof_sha256": "a97e4b1345094328f679731cbee24b649ebf63f0667b1560824057453f5958a7",
+        "public_values_sha256": "13bc4cfa10000286bf44e2d2390fc51bf75c54d023b9ba52c2d7aaafa4dd5a9b",
+        "retained_verify_receipt": {
+          "artifact_kind": "stwo_riscv_proof",
+          "artifact_schema_version": 4,
+          "executable_sha256": "7432b5109114d80e07add728cee54ca4b14b470be734a071ecf745ea65df3f8c",
+          "implementation_commit": "5d540e94174e4a678088a5ad793306280aa70c40",
+          "implementation_dirty": false,
+          "proof_bytes": 855904,
+          "proof_sha256": "a97e4b1345094328f679731cbee24b649ebf63f0667b1560824057453f5958a7",
+          "release_status": "release_gated",
+          "schema": "riscv_verify_v1",
+          "security_policy": "secure",
+          "statement_sha256": "dbb149d65b50bd28da8f99d8cce1b8c36552792be4917ed7a4e02dcdf90a64ec",
+          "status": "verified",
+          "transcript_state_blake2s": "c2eedbbdfd43911f87b67faa9a8d826a32de2a92faeb137351b3bf77c624ab0d"
+        },
+        "retained_verify_wall_ns": 150573875,
+        "statement_sha256": "dbb149d65b50bd28da8f99d8cce1b8c36552792be4917ed7a4e02dcdf90a64ec",
+        "status": "verified"
+      },
+      "input_size": 256,
+      "memory": {
+        "includes_mandatory_self_verification": true,
+        "scope": "self-process lifetime peak across verified samples",
+        "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6"
+      },
+      "num_constraints": 0,
+      "peak_memory": 1397608552,
+      "preprocessing_size": 76628,
+      "proof_duration": 1464158333,
+      "proof_size": 855904,
+      "protocol": {
+        "name": "secure",
+        "pcs_config": {
+          "fri_config": {
+            "fold_step": 1,
+            "log_blowup_factor": 1,
+            "log_last_layer_degree_bound": 0,
+            "n_queries": 70
+          },
+          "lifting_log_size": null,
+          "pow_bits": 26
+        }
+      },
+      "prover_log_sha256": "63a338e45948c43eb7c6b83294ce4a260ae8247b52dc0ec648e425b96b75c20c",
+      "system": "stwo-zig-riscv",
+      "target": "keccak",
+      "timing": {
+        "mean_execution_seconds": 0.0055016749000000005,
+        "mean_proving_seconds": 1.0500742584,
+        "mean_verification_seconds": 0.0971230877,
+        "mean_witness_seconds": 0.40858239999999996,
+        "median_end_to_end_seconds": 1.583895542,
+        "outer_command_wall_ns": 17332440042,
+        "proof_definition": "execution + witness + proof generation",
+        "source": "production CLI internal stage timers",
+        "verified_end_to_end_sample_seconds": [
+          1.539069958,
+          1.5693075,
+          1.522995375,
+          1.545107542,
+          1.59549125,
+          1.585811333,
+          1.583895542,
+          1.582072458,
+          1.588048875,
+          1.604866625
+        ],
+        "verify_definition": "production proof verification"
+      },
+      "uses_precompile": false,
+      "verify_duration": 97123088
+    },
+    {
+      "backend": "cpu",
+      "cycles": 72408,
+      "evidence": {
+        "artifact_bytes": 1704472,
+        "artifact_sha256": "0efd357b59801f419e5a7ca96062051b88e5f89c0b2dfa2d0d3641d08a0c4e8f",
+        "expected_output_digest": "3b96044b37dd7f325879478ae932ab78da2ff04f3495fe4ecc0ddc73a403bda9",
+        "guest_sha256": "ec3dd877e23a9c46d372350d1a0c1fc12092476ae3f6c5287550ca030f8d351c",
+        "input_sha256": "b431b3635e3df1b6bb9b503d35469733f89249ebea783c3d452f8965641627e3",
+        "output_digest": "3b96044b37dd7f325879478ae932ab78da2ff04f3495fe4ecc0ddc73a403bda9",
+        "proof_sha256": "4163c2732d1dad607242349c272263b89e4eed15c45cda43b632a0fbf8e6b76a",
+        "public_values_sha256": "8d6eeb47a19516d1e63d13497c9ed8ffb4f95a3a8432ef5b837410771cbad1de",
+        "retained_verify_receipt": {
+          "artifact_kind": "stwo_riscv_proof",
+          "artifact_schema_version": 4,
+          "executable_sha256": "7432b5109114d80e07add728cee54ca4b14b470be734a071ecf745ea65df3f8c",
+          "implementation_commit": "5d540e94174e4a678088a5ad793306280aa70c40",
+          "implementation_dirty": false,
+          "proof_bytes": 846088,
+          "proof_sha256": "4163c2732d1dad607242349c272263b89e4eed15c45cda43b632a0fbf8e6b76a",
+          "release_status": "release_gated",
+          "schema": "riscv_verify_v1",
+          "security_policy": "secure",
+          "statement_sha256": "1a84fd372dec6769a3e9eb98e1ccf04e353ba96403bec992755ab693b58b7710",
+          "status": "verified",
+          "transcript_state_blake2s": "43f9565908a0a8cdd3a4c1debc8900fd095f549162f10d3b47226542777a87b1"
+        },
+        "retained_verify_wall_ns": 155282250,
+        "statement_sha256": "1a84fd372dec6769a3e9eb98e1ccf04e353ba96403bec992755ab693b58b7710",
+        "status": "verified"
+      },
+      "input_size": 512,
+      "memory": {
+        "includes_mandatory_self_verification": true,
+        "scope": "self-process lifetime peak across verified samples",
+        "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6"
+      },
+      "num_constraints": 0,
+      "peak_memory": 1446794208,
+      "preprocessing_size": 76628,
+      "proof_duration": 1280753096,
+      "proof_size": 846088,
+      "protocol": {
+        "name": "secure",
+        "pcs_config": {
+          "fri_config": {
+            "fold_step": 1,
+            "log_blowup_factor": 1,
+            "log_last_layer_degree_bound": 0,
+            "n_queries": 70
+          },
+          "lifting_log_size": null,
+          "pow_bits": 26
+        }
+      },
+      "prover_log_sha256": "a22e578e5e54b5a1a24796bef05497f991e9a7458c141ce0bc23a0ea1bc69a16",
+      "system": "stwo-zig-riscv",
+      "target": "keccak",
+      "timing": {
+        "mean_execution_seconds": 0.0099037582,
+        "mean_proving_seconds": 0.8326045375000002,
+        "mean_verification_seconds": 0.09941851230000001,
+        "mean_witness_seconds": 0.4382448,
+        "median_end_to_end_seconds": 1.390996416,
+        "outer_command_wall_ns": 15335518042,
+        "proof_definition": "execution + witness + proof generation",
+        "source": "production CLI internal stage timers",
+        "verified_end_to_end_sample_seconds": [
+          1.383403458,
+          1.392805166,
+          1.425064917,
+          1.390996416,
+          1.397250542,
+          1.389055416,
+          1.376490125,
+          1.376626167,
+          1.392734041,
+          1.383817334
+        ],
+        "verify_definition": "production proof verification"
+      },
+      "uses_precompile": false,
+      "verify_duration": 99418512
+    },
+    {
+      "backend": "cpu",
+      "cycles": 143416,
+      "evidence": {
+        "artifact_bytes": 1719200,
+        "artifact_sha256": "3a83eeed671f940ca4e34cf29132f8f812f6d85dadf36f86b10ab5fa30f6b432",
+        "expected_output_digest": "d7b7efa4100517618de462495e3b266b23e91911fde63b42ea3bdb208daad442",
+        "guest_sha256": "ec3dd877e23a9c46d372350d1a0c1fc12092476ae3f6c5287550ca030f8d351c",
+        "input_sha256": "9ceba14adc9db992c3d5cb42b5276ef0dabf5fa47a3ec3d92280f2f85442e474",
+        "output_digest": "d7b7efa4100517618de462495e3b266b23e91911fde63b42ea3bdb208daad442",
+        "proof_sha256": "8ec2ffc47430045c6d95365954316606cdebc0c5518be33ed067262af80208f9",
+        "public_values_sha256": "b51cd4536ee5a80ca91d57cce57ad2201fcd4ac0c3a41a6457b9dcf8d8f460c2",
+        "retained_verify_receipt": {
+          "artifact_kind": "stwo_riscv_proof",
+          "artifact_schema_version": 4,
+          "executable_sha256": "7432b5109114d80e07add728cee54ca4b14b470be734a071ecf745ea65df3f8c",
+          "implementation_commit": "5d540e94174e4a678088a5ad793306280aa70c40",
+          "implementation_dirty": false,
+          "proof_bytes": 852751,
+          "proof_sha256": "8ec2ffc47430045c6d95365954316606cdebc0c5518be33ed067262af80208f9",
+          "release_status": "release_gated",
+          "schema": "riscv_verify_v1",
+          "security_policy": "secure",
+          "statement_sha256": "eafb137183af36c28e5949ce6a0e2f1bd75a47549330e70fa2c4c5fbdcdaa2c1",
+          "status": "verified",
+          "transcript_state_blake2s": "701d9b22e9ec1edc83d266f5ccabfdd49361552925bf83de5be3a0cb8d6693ff"
+        },
+        "retained_verify_wall_ns": 158457625,
+        "statement_sha256": "eafb137183af36c28e5949ce6a0e2f1bd75a47549330e70fa2c4c5fbdcdaa2c1",
+        "status": "verified"
+      },
+      "input_size": 1024,
+      "memory": {
+        "includes_mandatory_self_verification": true,
+        "scope": "self-process lifetime peak across verified samples",
+        "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6"
+      },
+      "num_constraints": 0,
+      "peak_memory": 1544311488,
+      "preprocessing_size": 76628,
+      "proof_duration": 1403430079,
+      "proof_size": 852751,
+      "protocol": {
+        "name": "secure",
+        "pcs_config": {
+          "fri_config": {
+            "fold_step": 1,
+            "log_blowup_factor": 1,
+            "log_last_layer_degree_bound": 0,
+            "n_queries": 70
+          },
+          "lifting_log_size": null,
+          "pow_bits": 26
+        }
+      },
+      "prover_log_sha256": "9aeb42afddc4b01132570f6b58c81105ce22444373b551f478025dc0ffb35c26",
+      "system": "stwo-zig-riscv",
+      "target": "keccak",
+      "timing": {
+        "mean_execution_seconds": 0.018888916700000005,
+        "mean_proving_seconds": 0.8889540623999999,
+        "mean_verification_seconds": 0.1000906836,
+        "mean_witness_seconds": 0.4955871,
+        "median_end_to_end_seconds": 1.520526625,
+        "outer_command_wall_ns": 16686399000,
+        "proof_definition": "execution + witness + proof generation",
+        "source": "production CLI internal stage timers",
+        "verified_end_to_end_sample_seconds": [
+          1.505674334,
+          1.509185666,
+          1.523007875,
+          1.478687458,
+          1.532160833,
+          1.515393625,
+          1.526057709,
+          1.510782167,
+          1.520526625,
+          1.522450709
+        ],
+        "verify_definition": "production proof verification"
+      },
+      "uses_precompile": false,
+      "verify_duration": 100090684
+    },
+    {
+      "backend": "cpu",
+      "cycles": 285456,
+      "evidence": {
+        "artifact_bytes": 1847495,
+        "artifact_sha256": "404bd381ef574fb55f624ac994de3a7d277e1a32dc89cd1d2a7e61395d969160",
+        "expected_output_digest": "4239a7a63551619c764842fa2d46777df6bd00792b06b4555e41cfaceb197308",
+        "guest_sha256": "ec3dd877e23a9c46d372350d1a0c1fc12092476ae3f6c5287550ca030f8d351c",
+        "input_sha256": "218bb97ce15e86f776a275909ab80b353959eed1bc64566e2af3745cfe21299f",
+        "output_digest": "4239a7a63551619c764842fa2d46777df6bd00792b06b4555e41cfaceb197308",
+        "proof_sha256": "5a92f064ae6b091700255500980a809f6010a4996498cca5f14b0a8284e54918",
+        "public_values_sha256": "4ecbf5888c4ff6fe369135e351f8d3838f9ed91a236520f3fc8ff2ee3da47a63",
+        "retained_verify_receipt": {
+          "artifact_kind": "stwo_riscv_proof",
+          "artifact_schema_version": 4,
+          "executable_sha256": "7432b5109114d80e07add728cee54ca4b14b470be734a071ecf745ea65df3f8c",
+          "implementation_commit": "5d540e94174e4a678088a5ad793306280aa70c40",
+          "implementation_dirty": false,
+          "proof_bytes": 914929,
+          "proof_sha256": "5a92f064ae6b091700255500980a809f6010a4996498cca5f14b0a8284e54918",
+          "release_status": "release_gated",
+          "schema": "riscv_verify_v1",
+          "security_policy": "secure",
+          "statement_sha256": "a0fd579cf8dd53b9192451f675d3ef7ae3413efa612cdd833631b31525e49841",
+          "status": "verified",
+          "transcript_state_blake2s": "f76716e231f6de232c2de9ba7fa4f23328d3a468c049fa0a4adb7e7c1d7cbd34"
+        },
+        "retained_verify_wall_ns": 158008791,
+        "statement_sha256": "a0fd579cf8dd53b9192451f675d3ef7ae3413efa612cdd833631b31525e49841",
+        "status": "verified"
+      },
+      "input_size": 2048,
+      "memory": {
+        "includes_mandatory_self_verification": true,
+        "scope": "self-process lifetime peak across verified samples",
+        "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6"
+      },
+      "num_constraints": 0,
+      "peak_memory": 1789171376,
+      "preprocessing_size": 76628,
+      "proof_duration": 1338310713,
+      "proof_size": 914929,
+      "protocol": {
+        "name": "secure",
+        "pcs_config": {
+          "fri_config": {
+            "fold_step": 1,
+            "log_blowup_factor": 1,
+            "log_last_layer_degree_bound": 0,
+            "n_queries": 70
+          },
+          "lifting_log_size": null,
+          "pow_bits": 26
+        }
+      },
+      "prover_log_sha256": "95b1494d08a43ba183d751d66379cde99ce3f752ffc446a957279ad071d253af",
+      "system": "stwo-zig-riscv",
+      "target": "keccak",
+      "timing": {
+        "mean_execution_seconds": 0.03602288769999999,
+        "mean_proving_seconds": 0.7778518248999999,
+        "mean_verification_seconds": 0.10462838729999999,
+        "mean_witness_seconds": 0.5244359999999999,
+        "median_end_to_end_seconds": 1.460964875,
+        "outer_command_wall_ns": 16018020333,
+        "proof_definition": "execution + witness + proof generation",
+        "source": "production CLI internal stage timers",
+        "verified_end_to_end_sample_seconds": [
+          1.412465417,
+          1.431678917,
+          1.483333625,
+          1.535198834,
+          1.438081958,
+          1.460964875,
+          1.46186475,
+          1.474555541,
+          1.409444875,
+          1.44160075
+        ],
+        "verify_definition": "production proof verification"
+      },
+      "uses_precompile": false,
+      "verify_duration": 104628387
+    },
+    {
+      "backend": "cpu",
+      "cycles": 82297,
+      "evidence": {
+        "artifact_bytes": 1768270,
+        "artifact_sha256": "390e398c8f986d2a6fe14595a6fa1c6f9c50ff9190214963c688b2a1e7b8b81b",
+        "expected_output_digest": "4856a22d07d07c0c7dc3eb4e7ada355c205190474b678547114b44482c9d721e",
+        "guest_sha256": "b1e31859875643a964afdcd2b2f78022b847f170a38c2e679b53aa7af5220b8a",
+        "input_sha256": "36561ae6b6f918ce2d847d5cd6d703f74d56d06e718d3f49704abae56334bbae",
+        "output_digest": "4856a22d07d07c0c7dc3eb4e7ada355c205190474b678547114b44482c9d721e",
+        "proof_sha256": "79e28186f5698fc4e8e03180b9d5519077d1b0303063b86655669c88ba3aa2b5",
+        "public_values_sha256": "4921c734215c2363f1cf90a9cd17508a7b1e01fd6e46fc79b871ff5e795231b9",
+        "retained_verify_receipt": {
+          "artifact_kind": "stwo_riscv_proof",
+          "artifact_schema_version": 4,
+          "executable_sha256": "7432b5109114d80e07add728cee54ca4b14b470be734a071ecf745ea65df3f8c",
+          "implementation_commit": "5d540e94174e4a678088a5ad793306280aa70c40",
+          "implementation_dirty": false,
+          "proof_bytes": 878444,
+          "proof_sha256": "79e28186f5698fc4e8e03180b9d5519077d1b0303063b86655669c88ba3aa2b5",
+          "release_status": "release_gated",
+          "schema": "riscv_verify_v1",
+          "security_policy": "secure",
+          "statement_sha256": "aef2e32903717c6b23e000802deb31e33a500af4a8cb5fd1ab6a07ca22ccd462",
+          "status": "verified",
+          "transcript_state_blake2s": "3ad82e2f8f289cd52171659ac6fc2f004bbd3de7c9a45f8632e52f9196c852f0"
+        },
+        "retained_verify_wall_ns": 149447416,
+        "statement_sha256": "aef2e32903717c6b23e000802deb31e33a500af4a8cb5fd1ab6a07ca22ccd462",
+        "status": "verified"
+      },
+      "input_size": 2,
+      "memory": {
+        "includes_mandatory_self_verification": true,
+        "scope": "self-process lifetime peak across verified samples",
+        "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6"
+      },
+      "num_constraints": 0,
+      "peak_memory": 1418712368,
+      "preprocessing_size": 14408,
+      "proof_duration": 1316979921,
+      "proof_size": 878444,
+      "protocol": {
+        "name": "secure",
+        "pcs_config": {
+          "fri_config": {
+            "fold_step": 1,
+            "log_blowup_factor": 1,
+            "log_last_layer_degree_bound": 0,
+            "n_queries": 70
+          },
+          "lifting_log_size": null,
+          "pow_bits": 26
+        }
+      },
+      "prover_log_sha256": "c3ccdb941ae4891656b141267e1e75810ca738a973c837dec022582c2f47b271",
+      "system": "stwo-zig-riscv",
+      "target": "poseidon2_m31",
+      "timing": {
+        "mean_execution_seconds": 0.0082329625,
+        "mean_proving_seconds": 1.2145833582999999,
+        "mean_verification_seconds": 0.0992547375,
+        "mean_witness_seconds": 0.09416359999999999,
+        "median_end_to_end_seconds": 1.435240375,
+        "outer_command_wall_ns": 15700568542,
+        "proof_definition": "execution + witness + proof generation",
+        "source": "production CLI internal stage timers",
+        "verified_end_to_end_sample_seconds": [
+          1.4125345,
+          1.405690417,
+          1.414774333,
+          1.426196125,
+          1.422883958,
+          1.436205542,
+          1.441919083,
+          1.441236042,
+          1.43782325,
+          1.435240375
+        ],
+        "verify_definition": "production proof verification"
+      },
+      "uses_precompile": false,
+      "verify_duration": 99254738
+    },
+    {
+      "backend": "cpu",
+      "cycles": 164403,
+      "evidence": {
+        "artifact_bytes": 1827363,
+        "artifact_sha256": "1ad7b50083dec5c9bea5d4734beb55a31e1473d53b3365f259b4aba80a535064",
+        "expected_output_digest": "b746a94f6b9e0335d6ab73205688d32a5883c85c9e29b93ae40c8275b713507d",
+        "guest_sha256": "b1e31859875643a964afdcd2b2f78022b847f170a38c2e679b53aa7af5220b8a",
+        "input_sha256": "5ed2b6cb824d90221b830649aed0f260d6c1d1fff6f62f34945e0fca074cc5e3",
+        "output_digest": "b746a94f6b9e0335d6ab73205688d32a5883c85c9e29b93ae40c8275b713507d",
+        "proof_sha256": "667434562c73a93217069500b4cd1e8e4f2811a0393f9a978b5ee019da13d9d6",
+        "public_values_sha256": "878a9b6b558763a55641ec50c42afa247093776a50eacf50345c2fd45a578ffa",
+        "retained_verify_receipt": {
+          "artifact_kind": "stwo_riscv_proof",
+          "artifact_schema_version": 4,
+          "executable_sha256": "7432b5109114d80e07add728cee54ca4b14b470be734a071ecf745ea65df3f8c",
+          "implementation_commit": "5d540e94174e4a678088a5ad793306280aa70c40",
+          "implementation_dirty": false,
+          "proof_bytes": 907671,
+          "proof_sha256": "667434562c73a93217069500b4cd1e8e4f2811a0393f9a978b5ee019da13d9d6",
+          "release_status": "release_gated",
+          "schema": "riscv_verify_v1",
+          "security_policy": "secure",
+          "statement_sha256": "739691b62453dc5b15323c1b0769e8368d44514eb7225fd0f2c685880dc263a7",
+          "status": "verified",
+          "transcript_state_blake2s": "ebcf6b3a43a442b0ac62570076eef79d9aba26c35d942f03524e1dbf19af5045"
+        },
+        "retained_verify_wall_ns": 148827958,
+        "statement_sha256": "739691b62453dc5b15323c1b0769e8368d44514eb7225fd0f2c685880dc263a7",
+        "status": "verified"
+      },
+      "input_size": 4,
+      "memory": {
+        "includes_mandatory_self_verification": true,
+        "scope": "self-process lifetime peak across verified samples",
+        "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6"
+      },
+      "num_constraints": 0,
+      "peak_memory": 1506137560,
+      "preprocessing_size": 14408,
+      "proof_duration": 1055670100,
+      "proof_size": 907671,
+      "protocol": {
+        "name": "secure",
+        "pcs_config": {
+          "fri_config": {
+            "fold_step": 1,
+            "log_blowup_factor": 1,
+            "log_last_layer_degree_bound": 0,
+            "n_queries": 70
+          },
+          "lifting_log_size": null,
+          "pow_bits": 26
+        }
+      },
+      "prover_log_sha256": "0e4c90d4116b4bfd2059b84b4a1d8f831a3c164e72c0ced04379ee982c41ab67",
+      "system": "stwo-zig-riscv",
+      "target": "poseidon2_m31",
+      "timing": {
+        "mean_execution_seconds": 0.0165950333,
+        "mean_proving_seconds": 0.9410291665999999,
+        "mean_verification_seconds": 0.1050610961,
+        "mean_witness_seconds": 0.09804589999999999,
+        "median_end_to_end_seconds": 1.1747025,
+        "outer_command_wall_ns": 12921399375,
+        "proof_definition": "execution + witness + proof generation",
+        "source": "production CLI internal stage timers",
+        "verified_end_to_end_sample_seconds": [
+          1.149422625,
+          1.188121458,
+          1.179512708,
+          1.1963315,
+          1.170185959,
+          1.157309125,
+          1.1747025,
+          1.17128725,
+          1.178299917,
+          1.160278208
+        ],
+        "verify_definition": "production proof verification"
+      },
+      "uses_precompile": false,
+      "verify_duration": 105061096
+    },
+    {
+      "backend": "cpu",
+      "cycles": 328615,
+      "evidence": {
+        "artifact_bytes": 1891988,
+        "artifact_sha256": "5688062283039da4420b4dc9324230c5a381689ab9f4c21d7bd42540f2732307",
+        "expected_output_digest": "c1f7c059745c8e78db8d3628ee7a5d7f98824a76de78545dd7dcfb21e7a4cd25",
+        "guest_sha256": "b1e31859875643a964afdcd2b2f78022b847f170a38c2e679b53aa7af5220b8a",
+        "input_sha256": "0ed2711e85a858614f8c1d74c4914f472f33576e3a4917b874c8fd0794880b33",
+        "output_digest": "c1f7c059745c8e78db8d3628ee7a5d7f98824a76de78545dd7dcfb21e7a4cd25",
+        "proof_sha256": "35ae2719f22d14e4e18ea37934d9de99aeaeebbac228a66026ce35824f7ff93e",
+        "public_values_sha256": "faec04215b3f99330c02b062b85ddaa2e119180bba8995342672affc5856fd56",
+        "retained_verify_receipt": {
+          "artifact_kind": "stwo_riscv_proof",
+          "artifact_schema_version": 4,
+          "executable_sha256": "7432b5109114d80e07add728cee54ca4b14b470be734a071ecf745ea65df3f8c",
+          "implementation_commit": "5d540e94174e4a678088a5ad793306280aa70c40",
+          "implementation_dirty": false,
+          "proof_bytes": 939616,
+          "proof_sha256": "35ae2719f22d14e4e18ea37934d9de99aeaeebbac228a66026ce35824f7ff93e",
+          "release_status": "release_gated",
+          "schema": "riscv_verify_v1",
+          "security_policy": "secure",
+          "statement_sha256": "a7bb60ef3fd11e9c4863c558a87669a9577630e40dc0e7d4aa08e3b224a2d87b",
+          "status": "verified",
+          "transcript_state_blake2s": "70f8128b06afd35d40f96703da16ea8da26c9c7af42e286aeb597caf1ebcc543"
+        },
+        "retained_verify_wall_ns": 153291250,
+        "statement_sha256": "a7bb60ef3fd11e9c4863c558a87669a9577630e40dc0e7d4aa08e3b224a2d87b",
+        "status": "verified"
+      },
+      "input_size": 8,
+      "memory": {
+        "includes_mandatory_self_verification": true,
+        "scope": "self-process lifetime peak across verified samples",
+        "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6"
+      },
+      "num_constraints": 0,
+      "peak_memory": 1741786640,
+      "preprocessing_size": 14408,
+      "proof_duration": 1090909287,
+      "proof_size": 939616,
+      "protocol": {
+        "name": "secure",
+        "pcs_config": {
+          "fri_config": {
+            "fold_step": 1,
+            "log_blowup_factor": 1,
+            "log_last_layer_degree_bound": 0,
+            "n_queries": 70
+          },
+          "lifting_log_size": null,
+          "pow_bits": 26
+        }
+      },
+      "prover_log_sha256": "c62ed9a1d6ccb58ff17787a73497c4ab98113ee12a6ac644029fba211beb9ebd",
+      "system": "stwo-zig-riscv",
+      "target": "poseidon2_m31",
+      "timing": {
+        "mean_execution_seconds": 0.0313385166,
+        "mean_proving_seconds": 0.9554109708,
+        "mean_verification_seconds": 0.10654996670000001,
+        "mean_witness_seconds": 0.10415980000000002,
+        "median_end_to_end_seconds": 1.216527292,
+        "outer_command_wall_ns": 13330627417,
+        "proof_definition": "execution + witness + proof generation",
+        "source": "production CLI internal stage timers",
+        "verified_end_to_end_sample_seconds": [
+          1.211308208,
+          1.19087875,
+          1.216527292,
+          1.1956085,
+          1.227223333,
+          1.224248458,
+          1.244176625,
+          1.18256025,
+          1.218145625,
+          1.189737584
+        ],
+        "verify_definition": "production proof verification"
+      },
+      "uses_precompile": false,
+      "verify_duration": 106549967
+    },
+    {
+      "backend": "cpu",
+      "cycles": 492827,
+      "evidence": {
+        "artifact_bytes": 2071447,
+        "artifact_sha256": "084e677146d5c4b3032bb93ecc07a6d9591d746db00543395ccb50286fcd30ac",
+        "expected_output_digest": "7437741831328c196eeaf71f4bd96519692d05129774c2498183aa3c7bed291f",
+        "guest_sha256": "b1e31859875643a964afdcd2b2f78022b847f170a38c2e679b53aa7af5220b8a",
+        "input_sha256": "2d9e23bba1320ab0a43c5886d6027463b5a60af4aaf13fd35a5bfcacda5d2e65",
+        "output_digest": "7437741831328c196eeaf71f4bd96519692d05129774c2498183aa3c7bed291f",
+        "proof_sha256": "aef579f1726c31c9aa9a6f5ce394ea5737bfaf1d56a13fd023ab17195ca2cf83",
+        "public_values_sha256": "7e20d12414f848c9ad7c82b0f4f3363ef59a856e697d709e1a3d74f7b2513f6b",
+        "retained_verify_receipt": {
+          "artifact_kind": "stwo_riscv_proof",
+          "artifact_schema_version": 4,
+          "executable_sha256": "7432b5109114d80e07add728cee54ca4b14b470be734a071ecf745ea65df3f8c",
+          "implementation_commit": "5d540e94174e4a678088a5ad793306280aa70c40",
+          "implementation_dirty": false,
+          "proof_bytes": 1028462,
+          "proof_sha256": "aef579f1726c31c9aa9a6f5ce394ea5737bfaf1d56a13fd023ab17195ca2cf83",
+          "release_status": "release_gated",
+          "schema": "riscv_verify_v1",
+          "security_policy": "secure",
+          "statement_sha256": "acc6ebbb75eec5f72454ea254b6998b5c6884d644c5cc4f7e9fe3feddbff08b3",
+          "status": "verified",
+          "transcript_state_blake2s": "47658f983cc94d66047e97dfdef7f357b838ea524c6ba8db01d3e07268838919"
+        },
+        "retained_verify_wall_ns": 170502208,
+        "statement_sha256": "acc6ebbb75eec5f72454ea254b6998b5c6884d644c5cc4f7e9fe3feddbff08b3",
+        "status": "verified"
+      },
+      "input_size": 12,
+      "memory": {
+        "includes_mandatory_self_verification": true,
+        "scope": "self-process lifetime peak across verified samples",
+        "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6"
+      },
+      "num_constraints": 0,
+      "peak_memory": 1913751736,
+      "preprocessing_size": 14408,
+      "proof_duration": 1401924387,
+      "proof_size": 1028462,
+      "protocol": {
+        "name": "secure",
+        "pcs_config": {
+          "fri_config": {
+            "fold_step": 1,
+            "log_blowup_factor": 1,
+            "log_last_layer_degree_bound": 0,
+            "n_queries": 70
+          },
+          "lifting_log_size": null,
+          "pow_bits": 26
+        }
+      },
+      "prover_log_sha256": "358a61edd188687ad177520d4479d0e78b16c4deb692a01155503ea172592f5a",
+      "system": "stwo-zig-riscv",
+      "target": "poseidon2_m31",
+      "timing": {
+        "mean_execution_seconds": 0.0475404708,
+        "mean_proving_seconds": 1.2502260166999999,
+        "mean_verification_seconds": 0.11793549580000003,
+        "mean_witness_seconds": 0.1041579,
+        "median_end_to_end_seconds": 1.529806041,
+        "outer_command_wall_ns": 16865502333,
+        "proof_definition": "execution + witness + proof generation",
+        "source": "production CLI internal stage timers",
+        "verified_end_to_end_sample_seconds": [
+          1.518756875,
+          1.512956541,
+          1.515717292,
+          1.5121325,
+          1.50036625,
+          1.549299,
+          1.562217167,
+          1.529806041,
+          1.570257917,
+          1.567305
+        ],
+        "verify_definition": "production proof verification"
+      },
+      "uses_precompile": false,
+      "verify_duration": 117935496
+    },
+    {
+      "backend": "cpu",
+      "cycles": 657039,
+      "evidence": {
+        "artifact_bytes": 2225628,
+        "artifact_sha256": "d338944151e3195331176fcb513cb72b5c97f37e20f4b47b762081d2c996adb1",
+        "expected_output_digest": "aeecb648a377b9743b9d0d17556dd816c73bca5bd8ab8d6940f18c564bcd3059",
+        "guest_sha256": "b1e31859875643a964afdcd2b2f78022b847f170a38c2e679b53aa7af5220b8a",
+        "input_sha256": "5cf6b1945ad9c287e4adbf60f9a8a526864a1ae0062387244ea93fca7ca7268e",
+        "output_digest": "aeecb648a377b9743b9d0d17556dd816c73bca5bd8ab8d6940f18c564bcd3059",
+        "proof_sha256": "25a99c401a50d0790a3ea95cc39be96582d93afdffafaef92bd2949360c28f26",
+        "public_values_sha256": "26ddc65d09e00caffb498dba83c63b6621f2b376293fcbfb105f701e70768e6c",
+        "retained_verify_receipt": {
+          "artifact_kind": "stwo_riscv_proof",
+          "artifact_schema_version": 4,
+          "executable_sha256": "7432b5109114d80e07add728cee54ca4b14b470be734a071ecf745ea65df3f8c",
+          "implementation_commit": "5d540e94174e4a678088a5ad793306280aa70c40",
+          "implementation_dirty": false,
+          "proof_bytes": 1104714,
+          "proof_sha256": "25a99c401a50d0790a3ea95cc39be96582d93afdffafaef92bd2949360c28f26",
+          "release_status": "release_gated",
+          "schema": "riscv_verify_v1",
+          "security_policy": "secure",
+          "statement_sha256": "56866a19c3c99579b02d28b2811bfc53ba25a742d08768caab4070ed6ceb2bf5",
+          "status": "verified",
+          "transcript_state_blake2s": "9649080232bf196bc4d46ec2dcce3a23ef76d6079c00e37a73aabdf442c85d7a"
+        },
+        "retained_verify_wall_ns": 174619792,
+        "statement_sha256": "56866a19c3c99579b02d28b2811bfc53ba25a742d08768caab4070ed6ceb2bf5",
+        "status": "verified"
+      },
+      "input_size": 16,
+      "memory": {
+        "includes_mandatory_self_verification": true,
+        "scope": "self-process lifetime peak across verified samples",
+        "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6"
+      },
+      "num_constraints": 0,
+      "peak_memory": 2117291752,
+      "preprocessing_size": 14408,
+      "proof_duration": 1262713800,
+      "proof_size": 1104714,
+      "protocol": {
+        "name": "secure",
+        "pcs_config": {
+          "fri_config": {
+            "fold_step": 1,
+            "log_blowup_factor": 1,
+            "log_last_layer_degree_bound": 0,
+            "n_queries": 70
+          },
+          "lifting_log_size": null,
+          "pow_bits": 26
+        }
+      },
+      "prover_log_sha256": "ccb5811f3076058db3cb3399767ccb80b077cff8bbdea0d6236315c7f3cd9b2d",
+      "system": "stwo-zig-riscv",
+      "target": "poseidon2_m31",
+      "timing": {
+        "mean_execution_seconds": 0.0620122083,
+        "mean_proving_seconds": 1.0881995918,
+        "mean_verification_seconds": 0.1215617833,
+        "mean_witness_seconds": 0.11250200000000002,
+        "median_end_to_end_seconds": 1.400367625,
+        "outer_command_wall_ns": 15437285666,
+        "proof_definition": "execution + witness + proof generation",
+        "source": "production CLI internal stage timers",
+        "verified_end_to_end_sample_seconds": [
+          1.424542125,
+          1.394935958,
+          1.400367625,
+          1.420038,
+          1.408032333,
+          1.403841458,
+          1.368149875,
+          1.393091208,
+          1.388963042,
+          1.393124791
+        ],
+        "verify_definition": "production proof verification"
+      },
+      "uses_precompile": false,
+      "verify_duration": 121561783
+    },
+    {
+      "backend": "cpu",
+      "cycles": 5425005,
+      "evidence": {
+        "artifact_bytes": 6963783,
+        "artifact_sha256": "10ebf858e2ba98c10c31788412fc5d047c5d2bc06d1a24ee2bbbc06ed1102924",
+        "expected_output_digest": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5",
+        "guest_sha256": "2442039f6437e58b9367dd75d0e6f43435eb9a1698b18f81c53104d8c6ad5189",
+        "input_sha256": "5136df6e9b49321531a2d337dc227939ecc68645036b597bdcc0e531333ad3ff",
+        "output_digest": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5",
+        "proof_sha256": "c2e599195df359a172588654755d6b996e7bd287c2ea974faf25bbdeff27ed6f",
+        "public_values_sha256": "18179d3b28a1d46b9e4e4e776290536e80fda9affacff6aed0898cd89aedcfbf",
+        "retained_verify_receipt": {
+          "artifact_kind": "stwo_riscv_proof",
+          "artifact_schema_version": 4,
+          "executable_sha256": "7432b5109114d80e07add728cee54ca4b14b470be734a071ecf745ea65df3f8c",
+          "implementation_commit": "5d540e94174e4a678088a5ad793306280aa70c40",
+          "implementation_dirty": false,
+          "proof_bytes": 3450572,
+          "proof_sha256": "c2e599195df359a172588654755d6b996e7bd287c2ea974faf25bbdeff27ed6f",
+          "release_status": "release_gated",
+          "schema": "riscv_verify_v1",
+          "security_policy": "secure",
+          "statement_sha256": "eb88ff99632b80c456f1e558d51ce5e7ba9dc60e6d4ccc184697720f5e42369d",
+          "status": "verified",
+          "transcript_state_blake2s": "4fe535e937c3303df676b93c0c46e92a50265d09d601596dd1d52795e997af67"
+        },
+        "retained_verify_wall_ns": 357340416,
+        "statement_sha256": "eb88ff99632b80c456f1e558d51ce5e7ba9dc60e6d4ccc184697720f5e42369d",
+        "status": "verified"
+      },
+      "input_size": 32,
+      "memory": {
+        "includes_mandatory_self_verification": true,
+        "scope": "self-process lifetime peak across verified samples",
+        "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6"
+      },
+      "num_constraints": 0,
+      "peak_memory": 9764190272,
+      "preprocessing_size": 75528,
+      "proof_duration": 6188567129,
+      "proof_size": 3450572,
+      "protocol": {
+        "name": "secure",
+        "pcs_config": {
+          "fri_config": {
+            "fold_step": 1,
+            "log_blowup_factor": 1,
+            "log_last_layer_degree_bound": 0,
+            "n_queries": 70
+          },
+          "lifting_log_size": null,
+          "pow_bits": 26
+        }
+      },
+      "prover_log_sha256": "80ea49c68706fb1c4521de881d99c63622ad389728cfb656a13a408e3172e36b",
+      "system": "stwo-zig-riscv",
+      "target": "ecdsa_secp256k1",
+      "timing": {
+        "mean_execution_seconds": 0.6558527416,
+        "mean_proving_seconds": 4.5910957876000005,
+        "mean_verification_seconds": 0.1581992455,
+        "mean_witness_seconds": 0.9416186,
+        "median_end_to_end_seconds": 6.396581041,
+        "outer_command_wall_ns": 70427367541,
+        "proof_definition": "execution + witness + proof generation",
+        "source": "production CLI internal stage timers",
+        "verified_end_to_end_sample_seconds": [
+          6.473197083,
+          6.355633042,
+          6.381977333,
+          6.477756584,
+          6.393007042,
+          6.464222,
+          6.396581041,
+          6.3358225,
+          6.261258459,
+          6.442536333
+        ],
+        "verify_definition": "production proof verification"
+      },
+      "uses_precompile": false,
+      "verify_duration": 158199246
+    }
+  ],
+  "methodology": {
+    "canonical_inputs": true,
+    "canonical_sizes": [
+      2,
+      4,
+      8,
+      12,
+      16,
+      32,
+      128,
+      256,
+      512,
+      1024,
+      2048
+    ],
+    "num_constraints": "0 means not exposed; cycles are authoritative",
+    "official_csp_host": {
+      "cpu": "Apple M1",
+      "gpu": {
+        "chip": "Apple M1",
+        "core_count": 8
+      },
+      "instance": "mac2.metal",
+      "logical_cpu_count": 8,
+      "memory_bytes": 17179869184,
+      "provider": "AWS"
+    },
+    "peak_memory": "production process lifetime physical-footprint peak",
+    "preprocessing_size": "retained RV32IM ELF bytes",
+    "proof_duration": "mean execution + witness + proof generation",
+    "proof_size": "Postcard proof bytes, excluding schema-v4 JSON framing",
+    "target_sizes": {
+      "ecdsa_secp256k1": [
+        32
+      ],
+      "keccak": [
+        128,
+        256,
+        512,
+        1024,
+        2048
+      ],
+      "poseidon2_m31": [
+        2,
+        4,
+        8,
+        12,
+        16
+      ],
+      "sha256": [
+        128,
+        256,
+        512,
+        1024,
+        2048
+      ]
+    },
+    "uses_precompile": false,
+    "verify_duration": "mean production verification"
+  },
+  "negative_validation": [
+    {
+      "cycles": 5428253,
+      "input_sha256": "75bd5fd25b8a514a8a891502fb32105d1dca26cdaf1d8fd2cc4cba5737806181",
+      "name": "ecdsa_secp256k1_bad_signature",
+      "output_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+      "public_values_sha256": "6ea436de7a8befa2f32bc2b60f2cdfe8a789e468f9cfa47bf484356bbe2033dc",
+      "status": "rejected_as_expected",
+      "target": "ecdsa_secp256k1"
+    }
+  ],
+  "power_condition_reasons": [
+    "CSP-comparable timings require AC power (observed: Battery Power)"
+  ],
+  "power_conditions_admissible": false,
+  "repository_head": "5d540e94174e4a678088a5ad793306280aa70c40",
+  "result_class": "power-condition-non-publishable",
+  "run": {
+    "backend": "cpu",
+    "complete_matrix": true,
+    "environment_overrides": {},
+    "experimental": false,
+    "release_status": "release_gated",
+    "samples": 10,
+    "sizes": [
+      2,
+      4,
+      8,
+      12,
+      16,
+      32,
+      128,
+      256,
+      512,
+      1024,
+      2048
+    ],
+    "targets": [
+      "sha256",
+      "keccak",
+      "poseidon2_m31",
+      "ecdsa_secp256k1"
+    ],
+    "warmups": 1,
+    "workers": null
+  },
+  "schema": "stwo_riscv_csp_benchmark_v3",
+  "security": {
+    "csp_minimum_bits": 96,
+    "eligibility": "parameter_threshold_met_accounting_review_pending",
+    "pcs_config": {
+      "fri_config": {
+        "fold_step": 1,
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70
+      },
+      "lifting_log_size": null,
+      "pow_bits": 26
+    },
+    "profile": "secure"
+  },
+  "source_audit": {
+    "status": "not_requested"
+  },
+  "suite_manifest": "vectors/riscv_csp/manifest-v2.json",
+  "suite_manifest_sha256": "efd864d8ea3022eb101fbe87e828c5b559a1672cb0a1c50af2582b7dce00a9af",
+  "summary": {
+    "all_metal_resident_polynomial_dispatches_verified": true,
+    "all_negative_fixtures_rejected": true,
+    "all_outputs_match": true,
+    "all_peak_memory_available": true,
+    "all_proofs_verified": true,
+    "row_count": 16,
+    "target_count": 4
+  },
+  "system": {
+    "arithm": "AIR",
+    "field_curve": "M31",
+    "id": "stwo-zig-riscv",
+    "iop": "Circle FRI",
+    "is_audited": "not_audited",
+    "is_maintained": true,
+    "is_pq": true,
+    "is_zk": false,
+    "is_zkvm": true,
+    "isa": "RISC-V RV32IM",
+    "pcs": "Circle-PCS",
+    "proving_system": "Circle STARK",
+    "security_bits": 96,
+    "security_status": "heuristic_pending_external_review"
+  },
+  "upstream": {
+    "commit": "269c43cc32d3127e3d9ce74d20652887d894cca3",
+    "commit_date": "2026-06-30T16:31:37+08:00",
+    "extended_input_adapter": {
+      "path": "vectors/riscv_csp/upstream_fixture_dump.rs",
+      "sha256": "32fd265cc990a80167bbd1428cc1a24df2ee264616264b46f002707b93e23801"
+    },
+    "guest_dependency_revision": "5a2e9d6e888fc8953bf50b59aeb3d8bcdc0d9d57",
+    "input_generator": {
+      "algorithm": "CSP seeded SHA-256, Keccak, M31, and secp256k1 generators",
+      "path": "utils/src/lib.rs",
+      "sha256": "8be25b688abe926e265330f9bf517a96f0e3029d3a2ce799abf069085556a0a3"
+    },
+    "repository": "https://github.com/privacy-ethereum/csp-benchmarks",
+    "rust_toolchain": {
+      "channel": "nightly-2026-03-04",
+      "path": "rust-toolchain.toml",
+      "rustc_commit": "d9563937fa3b030c5845811113505070109414d2",
+      "sha256": "a7903e7ef8155e8e544bb7910d33614d7088788d2a036c004096ac9c11f2f16e"
+    },
+    "size_metadata": {
+      "path": "utils/src/metadata.rs",
+      "sha256": "4b4a5775bb979ee7f0c2abcbd4a0e0cc7687b3689273dd16dd039042297e26d8"
+    }
+  }
+}

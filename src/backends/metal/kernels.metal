@@ -13,6 +13,11 @@ struct RawQuotientView {
     uint offset, length, batch, shift, direct;
     uint coeff_a, coeff_b, coeff_c, coeff_d;
 };
+struct ResidentRawQuotientView {
+    uint offset, length, batch, shift, direct;
+    uint coeff_a, coeff_b, coeff_c, coeff_d;
+    uint source_slot;
+};
 
 struct QuadraticRecurrenceColumn {
     device uint *values;
@@ -387,29 +392,41 @@ kernel void stwo_zig_quotient_rows(
 }
 
 kernel void stwo_zig_quotient_rows_raw(
-    device const uint *flat_columns [[buffer(0)]],
-    device const RawQuotientView *views [[buffer(1)]],
-    constant uint &view_count [[buffer(2)]],
-    device const uint *sample_components [[buffer(3)]],
-    device const uint *linear_terms [[buffer(4)]],
-    constant uint &batch_count [[buffer(5)]],
-    device const uint *domain_x [[buffer(6)]],
-    device const uint *domain_y [[buffer(7)]],
-    device uint *output [[buffer(8)]],
-    constant uint &row_count [[buffer(9)]],
+    device const uint *source_0 [[buffer(0)]],
+    device const uint *source_1 [[buffer(1)]],
+    device const uint *source_2 [[buffer(2)]],
+    device const uint *source_3 [[buffer(3)]],
+    device const ResidentRawQuotientView *views [[buffer(4)]],
+    constant uint &view_count [[buffer(5)]],
+    device const uint *sample_components [[buffer(6)]],
+    device const uint *linear_terms [[buffer(7)]],
+    constant uint &batch_count [[buffer(8)]],
+    device const uint *domain_x [[buffer(9)]],
+    device const uint *domain_y [[buffer(10)]],
+    device uint *output [[buffer(11)]],
+    constant uint &row_count [[buffer(12)]],
+    device const uint *batch_offsets [[buffer(13)]],
     uint row [[thread_position_in_grid]]
 ) {
     if (row >= row_count) return;
+    if (batch_offsets[0] != 0u || batch_offsets[batch_count] != view_count) return;
     Qm31Value accumulator = { 0u, 0u, 0u, 0u };
     for (uint batch = 0; batch < batch_count; ++batch) {
         Qm31Value numerator_sum = { 0u, 0u, 0u, 0u };
-        for (uint view_index = 0; view_index < view_count; ++view_index) {
-            RawQuotientView view = views[view_index];
-            if (view.batch != batch) continue;
+        uint view_end = batch_offsets[batch + 1u];
+        for (uint view_index = batch_offsets[batch]; view_index < view_end; ++view_index) {
+            ResidentRawQuotientView view = views[view_index];
             uint source = view.direct != 0u
                 ? row
                 : ((row >> view.shift) << 1u) | (row & 1u);
-            uint value = flat_columns[view.offset + source];
+            uint source_index = view.offset + source;
+            uint value;
+            switch (view.source_slot) {
+                case 0u: value = source_0[source_index]; break;
+                case 1u: value = source_1[source_index]; break;
+                case 2u: value = source_2[source_index]; break;
+                default: value = source_3[source_index]; break;
+            }
             numerator_sum = qm_add(numerator_sum, {
                 m31_mul(value, view.coeff_a), m31_mul(value, view.coeff_b),
                 m31_mul(value, view.coeff_c), m31_mul(value, view.coeff_d),

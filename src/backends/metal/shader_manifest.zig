@@ -12,9 +12,9 @@ pub const Export = authority.Export;
 pub const exports = authority.exports;
 pub const native_exports = authority.native_exports;
 pub const native_amalgamated_source = authority.native_amalgamated_source;
-pub const native_amalgamated_source_sha256 = authority.native_amalgamated_source_sha256;
+pub const nativeAmalgamatedSourceDigest = authority.nativeAmalgamatedSourceDigest;
 pub const amalgamated_source = authority.amalgamated_source;
-pub const amalgamated_source_sha256 = authority.amalgamated_source_sha256;
+pub const amalgamatedSourceDigest = authority.amalgamatedSourceDigest;
 
 test {
     _ = @import("shaders/runtime_initialization_contract_test.zig");

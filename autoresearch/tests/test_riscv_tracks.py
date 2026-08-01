@@ -96,7 +96,11 @@ class RiscvMetalRegistrationTest(unittest.TestCase):
         self.assertIn('"riscv-metal-bench",', product)
         self.assertIn(".state = .parity_gated", product)
         self.assertIn(
-            '.protocol_features = "rv32im-zkvm-v1+lifted-pcs-v1+metal-runtime-v1"',
+            '.protocol_features = "rv32im-zkvm-v1+lifted-pcs-v1" ++',
+            product,
+        )
+        self.assertIn(
+            '"+metal-runtime-v2+authenticated-core-aot-v2"',
             product,
         )
 

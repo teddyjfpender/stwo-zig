@@ -16,6 +16,7 @@ const memory_state = riscv.runner.memory_state;
 const stage_profile = @import("stwo_prover_api").stage_profile;
 
 pub const MetalProverEngine = MetalProverEngineImpl;
+pub const riscv_polynomial_codegen = @import("stwo_metal_backend").riscv_polynomial_codegen;
 
 comptime {
     prover_mod.assertProverEngine(MetalProverEngine);

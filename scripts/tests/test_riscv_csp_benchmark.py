@@ -571,6 +571,120 @@ class ArtifactBackendTests(unittest.TestCase):
             self.validate(artifact, "metal")
 
 
+class ResidentPolynomialTelemetryTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.case = csp.validate_manifest()[1][0]
+
+    @staticmethod
+    def telemetry() -> dict[str, int]:
+        return {
+            "eligible_base_components": 17,
+            "eligible_lookup_components": 17,
+            "base_batch_dispatches": 10,
+            "lookup_batch_dispatches": 10,
+            "declines": 0,
+            "verified_samples_with_dispatch": 10,
+        }
+
+    def validate(
+        self,
+        telemetry: object = None,
+        *,
+        backend: str = "metal",
+    ) -> dict[str, int] | None:
+        report = {}
+        if telemetry is not None:
+            report["resident_polynomial_telemetry"] = telemetry
+        return csp.validate_resident_polynomial_telemetry(
+            report,
+            self.case,
+            backend=backend,
+            samples=10,
+        )
+
+    def test_metal_accepts_and_preserves_the_exact_structured_counters(self) -> None:
+        expected = self.telemetry()
+        self.assertEqual(expected, self.validate(expected))
+
+    def test_metal_rejects_missing_or_non_object_telemetry(self) -> None:
+        for telemetry in (None, [], "resident"):
+            with self.subTest(telemetry=telemetry):
+                with self.assertRaisesRegex(
+                    csp.BenchmarkError,
+                    "no resident polynomial telemetry",
+                ):
+                    self.validate(telemetry)
+
+    def test_metal_rejects_field_drift_and_boolean_counters(self) -> None:
+        missing = self.telemetry()
+        missing.pop("declines")
+        unknown = self.telemetry()
+        unknown["opaque_log_matches"] = 1
+        boolean = self.telemetry()
+        boolean["base_batch_dispatches"] = True
+        for label, telemetry, message in (
+            ("missing", missing, "fields drifted"),
+            ("unknown", unknown, "fields drifted"),
+            ("boolean", boolean, "counters are invalid"),
+        ):
+            with self.subTest(defect=label):
+                with self.assertRaisesRegex(csp.BenchmarkError, message):
+                    self.validate(telemetry)
+
+    def test_metal_rejects_zero_work_dispatch_decline_and_sample_drift(self) -> None:
+        for field, value in (
+            ("eligible_base_components", 0),
+            ("eligible_lookup_components", 0),
+            ("base_batch_dispatches", 0),
+            ("lookup_batch_dispatches", 0),
+            ("declines", 1),
+            ("verified_samples_with_dispatch", 9),
+        ):
+            telemetry = self.telemetry()
+            telemetry[field] = value
+            with self.subTest(field=field):
+                with self.assertRaisesRegex(
+                    csp.BenchmarkError,
+                    "dispatch was not proven for every sample",
+                ):
+                    self.validate(telemetry)
+
+    def test_cpu_must_omit_the_metal_only_object(self) -> None:
+        self.assertIsNone(self.validate(backend="cpu"))
+        with self.assertRaisesRegex(csp.BenchmarkError, "CPU report unexpectedly"):
+            self.validate(self.telemetry(), backend="cpu")
+        with self.assertRaisesRegex(csp.BenchmarkError, "CPU report unexpectedly"):
+            csp.validate_resident_polynomial_telemetry(
+                {"resident_polynomial_telemetry": None},
+                self.case,
+                backend="cpu",
+                samples=10,
+            )
+
+    def test_summary_requires_preserved_evidence_on_every_metal_row(self) -> None:
+        row = {
+            "backend": "metal",
+            "target": "sha256",
+            "evidence": {
+                "status": "verified",
+                "output_digest": "00",
+                "expected_output_digest": "00",
+                "resident_polynomial_telemetry": self.telemetry(),
+            },
+            "peak_memory": 1,
+        }
+        summary = csp._summary([row], [])
+        self.assertTrue(
+            summary["all_metal_resident_polynomial_dispatches_verified"]
+        )
+        del row["evidence"]["resident_polynomial_telemetry"]
+        summary = csp._summary([row], [])
+        self.assertFalse(
+            summary["all_metal_resident_polynomial_dispatches_verified"]
+        )
+
+
 class BackendResolutionTests(unittest.TestCase):
     @staticmethod
     def arguments(
@@ -716,7 +830,7 @@ class AdmissionPassthroughTests(unittest.TestCase):
 
 
 class BuildRegistrationTests(unittest.TestCase):
-    def test_standard_build_step_is_registered_once(self) -> None:
+    def test_backend_specific_build_steps_are_catalogued_once(self) -> None:
         product = (
             csp.ROOT / "build_support" / "products" / "riscv_cpu.zig"
         ).read_text(encoding="utf-8")
@@ -725,6 +839,18 @@ class BuildRegistrationTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         self.assertEqual(1, product.count('"riscv-csp-bench"'))
         self.assertEqual(1, catalog.count('.name = "riscv-csp-bench"'))
+        self.assertEqual(1, catalog.count('.name = "riscv-csp-bench-metal"'))
+        self.assertIn(
+            '.name = "riscv-csp-bench-metal", .description = '
+            '"Run the pinned EthProofs CSP benchmark matrix on Metal", '
+            ".scope = .riscv_metal",
+            catalog,
+        )
+        self.assertIn(
+            '.protocol_manifest = "rv32im-zkvm-v1+lifted-pcs-v1+'
+            'metal-runtime-v2+authenticated-core-aot-v2"',
+            catalog,
+        )
 
 
 if __name__ == "__main__":

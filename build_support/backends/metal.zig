@@ -26,7 +26,10 @@ const runtime_source_units = [_][]const u8{
     "src/backends/metal/runtime/cache_identity.m",
     "src/backends/metal/runtime/archive_store.m",
     "src/backends/metal/runtime/dynamic_evaluation.m",
+    "src/backends/metal/runtime/base_polynomial.m",
+    "src/backends/metal/runtime/lookup_polynomial.m",
     "src/backends/metal/runtime/composition.m",
+    "src/backends/metal/runtime/composition_recurrence.m",
     "src/backends/metal/runtime/prepared_auxiliary.m",
     "src/backends/metal/runtime/circle_legacy.m",
     "src/backends/metal/runtime/circle_commit_epoch.m",
@@ -147,6 +150,7 @@ fn nativeShaderDigest(b: *std.Build) []const u8 {
         .{ .header = "\n#line 1 \"src/backends/metal/shaders/core/relation.metal\"\n", .path = "src/backends/metal/shaders/core/relation.metal" },
         .{ .header = "\n#line 1 \"src/backends/metal/shaders/core/decommit.metal\"\n", .path = "src/backends/metal/shaders/core/decommit.metal" },
         .{ .header = "\n#line 1 \"src/backends/metal/shaders/core/polynomial_eval.metal\"\n", .path = "src/backends/metal/shaders/core/polynomial_eval.metal" },
+        .{ .header = "\n#line 1 \"src/backends/metal/shaders/core/riscv_polynomials.metal\"\n", .path = "src/backends/metal/shaders/core/riscv_polynomials.metal" },
     };
     var hasher = std.crypto.hash.sha2.Sha256.init(.{});
     for (units) |unit| {

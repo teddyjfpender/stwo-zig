@@ -22,6 +22,7 @@ const core_fri = @import("stwo_core").fri;
 const core_poly = @import("stwo_core").poly;
 const prover_impl = @import("stwo_prover_engine");
 const lifted_merkle = @import("stwo_prover_engine").vcs_lifted.prover;
+const riscv_composition = @import("riscv_composition.zig");
 const secure_composition = @import("secure_composition.zig");
 
 const M31 = m31_mod.M31;
@@ -54,12 +55,24 @@ pub const CpuBackend = struct {
     ) !?@import("stwo_prover_engine").secure_column.SecureColumnByCoords {
         _ = residency_handles;
         _ = composition_twiddles;
-        return secure_composition.evaluateLargeRecurrenceComposition(
+        if (try secure_composition.evaluateLargeRecurrenceComposition(
+            allocator,
+            components,
+            random_coeff,
+            trace,
+        )) |evaluation| return evaluation;
+        return riscv_composition.evaluate(
             allocator,
             components,
             random_coeff,
             trace,
         );
+    }
+
+    /// Process-wide structural evidence for the bounded RISC-V CPU composition
+    /// path. This is intentionally separate from hybrid-device telemetry.
+    pub fn riscvCompositionTelemetrySnapshot() riscv_composition.TelemetrySnapshot {
+        return riscv_composition.telemetrySnapshot();
     }
 
     /// Interpolates the four independent secure-field coordinates in place

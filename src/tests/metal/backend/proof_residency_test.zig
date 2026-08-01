@@ -108,7 +108,7 @@ test "metal: resident tree lifetime survives reuse and blocks runtime destructio
     var first_tree = blk: {
         var lease = try shared_runtime.acquireExisting();
         defer lease.deinit();
-        break :blk try MetalTree.commitSharedBacking(lease.runtime, allocator, &first_columns, backing);
+        break :blk try MetalTree.commitSharedBacking(lease.runtime, allocator, &first_columns, &.{backing});
     };
     const first_root = first_tree.root();
     try std.testing.expect(first_tree.quotientResidencyHandle() != null);
@@ -130,7 +130,7 @@ test "metal: resident tree lifetime survives reuse and blocks runtime destructio
     var resident_tree = blk: {
         var lease = try shared_runtime.acquireExisting();
         defer lease.deinit();
-        break :blk try MetalTree.commitSharedBacking(lease.runtime, allocator, &reused_columns, backing);
+        break :blk try MetalTree.commitSharedBacking(lease.runtime, allocator, &reused_columns, &.{backing});
     };
     var resident_tree_live = true;
     defer if (resident_tree_live) resident_tree.deinit(allocator);

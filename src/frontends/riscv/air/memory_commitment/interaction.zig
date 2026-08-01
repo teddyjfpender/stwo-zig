@@ -11,7 +11,6 @@ const boundary = @import("boundary.zig");
 
 pub const N_SUMS: usize = 4;
 pub const N_COLUMNS: usize = N_SUMS * 4;
-pub const Previous = [N_SUMS][4][]M31;
 
 pub const Claims = struct {
     sums: [N_SUMS]QM31,
@@ -25,12 +24,10 @@ pub const Claims = struct {
 
 pub const Result = struct {
     columns: [N_COLUMNS][]M31,
-    previous: Previous,
     claims: Claims,
 
     pub fn deinit(self: *Result, allocator: std.mem.Allocator) void {
         freeColumns(allocator, &self.columns);
-        for (&self.previous) |*set| freeColumns(allocator, set);
         self.* = undefined;
     }
 };
@@ -63,24 +60,19 @@ pub fn generate(
 
     var columns = try allocateColumns(allocator, N_COLUMNS, size);
     errdefer freeColumns(allocator, &columns);
-    var previous = try allocatePrevious(allocator, size);
-    errdefer for (&previous) |*set| freeColumns(allocator, set);
     const table = try infra.BitReversalTable.init(allocator, log_size);
     defer table.deinit(allocator);
     for (0..size) |row| {
         const dst = table.map(row);
         for (0..N_SUMS) |sum_index| {
             const current = cumulative[sum_index].sums[row].toM31Array();
-            const prev = cumulative[sum_index].sums[(row + size - 1) % size].toM31Array();
             for (0..4) |coordinate| {
                 columns[sum_index * 4 + coordinate][dst] = current[coordinate];
-                previous[sum_index][coordinate][dst] = prev[coordinate];
             }
         }
     }
     return .{
         .columns = columns,
-        .previous = previous,
         .claims = .{ .sums = .{
             cumulative[0].claimed,
             cumulative[1].claimed,
@@ -224,17 +216,6 @@ fn allocateColumns(allocator: std.mem.Allocator, comptime n: usize, len: usize) 
         initialized += 1;
     }
     return columns;
-}
-
-fn allocatePrevious(allocator: std.mem.Allocator, len: usize) !Previous {
-    var result: Previous = undefined;
-    var initialized: usize = 0;
-    errdefer for (result[0..initialized]) |*set| freeColumns(allocator, set);
-    for (&result) |*set| {
-        set.* = try allocateColumns(allocator, 4, len);
-        initialized += 1;
-    }
-    return result;
 }
 
 fn freeColumns(allocator: std.mem.Allocator, columns: []const []M31) void {

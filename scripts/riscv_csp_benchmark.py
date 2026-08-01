@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the pinned EthProofs CSP suite through the RISC-V CPU product.
+"""Run the pinned EthProofs CSP suite through a focused RISC-V product.
 
 The ordinary benchmark is self-contained: committed inputs and RV32IM guest
 ELFs are authenticated by ``vectors/riscv_csp/manifest-v2.json``.  Passing
@@ -78,6 +78,7 @@ from scripts.riscv_csp_benchmark_lib.source_audit import (  # noqa: E402
 from scripts.riscv_csp_benchmark_lib.validation import (  # noqa: E402
     validate_artifact,
     validate_benchmark_report,
+    validate_resident_polynomial_telemetry,
     validate_verify_receipt,
 )
 
@@ -349,6 +350,12 @@ def benchmark_case(
         samples=samples,
         admission=admission,
     )
+    resident_polynomial_telemetry = validate_resident_polynomial_telemetry(
+        report,
+        case,
+        backend=backend,
+        samples=samples,
+    )
     artifact = load_json(artifact_path)
     if not isinstance(artifact, dict):
         raise BenchmarkError(f"{case.target}/{case.input_size}: artifact is not an object")
@@ -414,6 +421,23 @@ def benchmark_case(
         )
     ):
         raise BenchmarkError(f"{case.target}/{case.input_size}: sample series drifted")
+    evidence = {
+        "status": "verified",
+        "input_sha256": case.input_sha256,
+        "guest_sha256": case.guest_sha256,
+        "output_digest": execution["output_digest"],
+        "expected_output_digest": case.expected_digest,
+        "public_values_sha256": execution["public_values_sha256"],
+        "statement_sha256": statement_digest,
+        "proof_sha256": proof_sha256,
+        "artifact_sha256": artifact_sha256,
+        "artifact_bytes": artifact_path.stat().st_size,
+        "retained_verify_wall_ns": retained_verify_wall_ns,
+        "retained_verify_receipt": receipt,
+    }
+    if resident_polynomial_telemetry is not None:
+        evidence["resident_polynomial_telemetry"] = resident_polynomial_telemetry
+
     row = {
         "system": "stwo-zig-riscv",
         "backend": backend,
@@ -427,20 +451,7 @@ def benchmark_case(
         "num_constraints": 0,
         "peak_memory": peak_memory,
         "uses_precompile": case.uses_precompile,
-        "evidence": {
-            "status": "verified",
-            "input_sha256": case.input_sha256,
-            "guest_sha256": case.guest_sha256,
-            "output_digest": execution["output_digest"],
-            "expected_output_digest": case.expected_digest,
-            "public_values_sha256": execution["public_values_sha256"],
-            "statement_sha256": statement_digest,
-            "proof_sha256": proof_sha256,
-            "artifact_sha256": artifact_sha256,
-            "artifact_bytes": artifact_path.stat().st_size,
-            "retained_verify_wall_ns": retained_verify_wall_ns,
-            "retained_verify_receipt": receipt,
-        },
+        "evidence": evidence,
         "timing": {
             "source": "production CLI internal stage timers",
             "proof_definition": "execution + witness + proof generation",
@@ -525,6 +536,16 @@ def _summary(
         "all_negative_fixtures_rejected": all(
             item["status"] == "rejected_as_expected"
             for item in negative_evidence
+        ),
+        "all_metal_resident_polynomial_dispatches_verified": all(
+            row.get("backend") != "metal"
+            or isinstance(
+                (row.get("evidence") or {}).get(
+                    "resident_polynomial_telemetry"
+                ),
+                dict,
+            )
+            for row in rows
         ),
     }
 

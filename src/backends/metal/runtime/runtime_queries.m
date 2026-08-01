@@ -53,6 +53,14 @@ uint64_t stwo_zig_metal_max_buffer_length(void *runtime_ptr) {
     }
 }
 
+uint64_t stwo_zig_metal_recommended_max_working_set_size(void *runtime_ptr) {
+    if (runtime_ptr == NULL) return 0u;
+    @autoreleasepool {
+        StwoZigMetalRuntime *runtime = (__bridge StwoZigMetalRuntime *)runtime_ptr;
+        return (uint64_t)runtime.device.recommendedMaxWorkingSetSize;
+    }
+}
+
 bool stwo_zig_metal_qm31_to_coordinates(
     void *runtime_ptr, const uint32_t *source, uint32_t value_count,
     uint32_t *destination, double *gpu_milliseconds,

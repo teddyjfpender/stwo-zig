@@ -8,20 +8,15 @@
 //! longer restates the prover's storage layout.
 
 const std = @import("std");
-const m31 = @import("stwo_core").fields.m31;
 const stage_profile = @import("stwo_prover_api").stage_profile;
 const component_order = @import("../air/component_order.zig");
 const clock_update_component = @import("../air/clock_update_component.zig");
 const clock_update_interaction = @import("../air/clock_update_interaction.zig");
-const merkle_node = @import("../air/memory_commitment/merkle_node.zig");
-const memory_interaction = @import("../air/memory_commitment/interaction.zig");
-const poseidon2_air = @import("../air/memory_commitment/poseidon2_air.zig");
 const opcode_component = @import("../air/lookups/opcode_component.zig");
 const opcode_interaction = @import("../air/lookups/opcode_interaction.zig");
 const lookup_table_component = @import("../air/lookups/tables/component.zig");
 const lookup_table_interaction = @import("../air/lookups/tables/interaction.zig");
 const lookup_table_schema = @import("../air/lookups/tables/schema.zig");
-const program_interaction = @import("../air/program/interaction.zig");
 const relation_challenges = @import("../air/relation_challenges.zig");
 const riscv_component = @import("../air/component.zig");
 const semantic_component = @import("../air/semantic_component.zig");
@@ -29,7 +24,6 @@ const statement_mod = @import("../air/statement.zig");
 const proof_workspace = @import("proof_workspace.zig");
 const types = @import("types.zig");
 
-const M31 = m31.M31;
 const ProofWorkspace = proof_workspace.ProofWorkspace;
 
 /// Assembles declaration-ordered prover components in `workspace` and produces
@@ -72,7 +66,6 @@ pub fn prove(
             interaction_offset,
             relations,
             try interaction_claim.opcodeClaims(desc.family, i),
-            constOpcodePrev(workspace.opcode_results[i].previous),
         );
         components.push(components.opcode_lookup[i].asProverComponent());
         main_offset += desc.n_columns;
@@ -95,8 +88,6 @@ pub fn prove(
                 .relations = relations,
                 .merkle_claims = interaction_claim.merkle_claims[i],
                 .poseidon_claims = interaction_claim.poseidon_claims[i],
-                .s_merkle_prev = constMerklePrev(workspace.merkle_prev),
-                .s_poseidon_prev = constPoseidonPrev(workspace.poseidon_prev),
             };
             components.push(hash.asProverComponent());
             main_offset += desc.n_columns;
@@ -117,7 +108,6 @@ pub fn prove(
                 interaction_offset,
                 relations,
                 interaction_claim.lookup_claims[i],
-                constPrev(workspace.table_results[table_index].previous),
             );
             components.push(components.table[table_index].asProverComponent());
             main_offset += desc.n_columns;
@@ -133,7 +123,6 @@ pub fn prove(
                 interaction_offset,
                 relations,
                 interaction_claim.clock_claims[i],
-                constClockPrev(workspace.clock_result.?.previous),
             );
             components.push(components.clock.asProverComponent());
             main_offset += desc.n_columns;
@@ -161,9 +150,7 @@ pub fn prove(
             .relations = relations,
             .interaction_col_offset = interaction_offset,
             .program_claims = interaction_claim.program_claims[i],
-            .s_program_prev = constProgramPrev(workspace.program_prev),
             .memory_claims = interaction_claim.memory_claims[i],
-            .s_memory_prev = constMemoryPrev(workspace.memory_prev[i]),
         };
         components.push(components.infra[i].asProverComponent());
         main_offset += desc.n_columns;
@@ -182,48 +169,4 @@ pub fn prove(
     const proof = extended.proof;
     extended.aux.deinit(allocator);
     return proof;
-}
-
-fn constPrev(bufs: [4][]M31) [4][]const M31 {
-    return .{ bufs[0], bufs[1], bufs[2], bufs[3] };
-}
-
-fn constClockPrev(
-    bufs: [clock_update_interaction.N_INTERACTION_COLUMNS][]M31,
-) [clock_update_interaction.N_INTERACTION_COLUMNS][]const M31 {
-    var result: [clock_update_interaction.N_INTERACTION_COLUMNS][]const M31 = undefined;
-    for (&result, bufs) |*dst, src| dst.* = src;
-    return result;
-}
-
-fn constOpcodePrev(
-    bufs: [opcode_interaction.MAX_BATCHES][4][]M31,
-) [opcode_interaction.MAX_BATCHES][4][]const M31 {
-    var result: [opcode_interaction.MAX_BATCHES][4][]const M31 = undefined;
-    for (&result, bufs) |*dst, src| dst.* = constPrev(src);
-    return result;
-}
-
-fn constMemoryPrev(bufs: memory_interaction.Previous) [memory_interaction.N_SUMS][4][]const M31 {
-    var result: [memory_interaction.N_SUMS][4][]const M31 = undefined;
-    for (&result, bufs) |*dst, src| dst.* = constPrev(src);
-    return result;
-}
-
-fn constProgramPrev(bufs: program_interaction.Previous) [program_interaction.N_SUMS][4][]const M31 {
-    var result: [program_interaction.N_SUMS][4][]const M31 = undefined;
-    for (&result, bufs) |*dst, src| dst.* = constPrev(src);
-    return result;
-}
-
-fn constMerklePrev(bufs: merkle_node.Previous) [merkle_node.N_SUMS][4][]const M31 {
-    var result: [merkle_node.N_SUMS][4][]const M31 = undefined;
-    for (&result, bufs) |*dst, src| dst.* = constPrev(src);
-    return result;
-}
-
-fn constPoseidonPrev(bufs: poseidon2_air.Previous) [poseidon2_air.N_SUMS][4][]const M31 {
-    var result: [poseidon2_air.N_SUMS][4][]const M31 = undefined;
-    for (&result, bufs) |*dst, src| dst.* = constPrev(src);
-    return result;
 }

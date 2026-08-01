@@ -1,0 +1,166 @@
+{
+  "schema": "stwo_cairo_csp_fixture_provenance_v1",
+  "note": "Source-ready, fail-closed exact Cairo-0 fixtures for the SHA-256/2KiB and Keccak-256/2KiB RISC-V CSP rows. Embedded constants are derived from the normalized payload in the authenticated RISC-V container. Source readiness is not runnable-proof readiness: a row remains pending until the exact compiler output, derived ProverInput, VM-step count, public statement, proof, and independent verifier receipt are all digest-pinned and authenticated.",
+  "allowed_statuses": [
+    "source_ready_compilation_pending",
+    "compiled_ready_derivation_pending",
+    "exact_runnable"
+  ],
+  "logical_input": {
+    "container_path": "vectors/riscv_csp/inputs/msg_2048.bin",
+    "container_sha256": "218bb97ce15e86f776a275909ab80b353959eed1bc64566e2af3745cfe21299f",
+    "container_bytes": 2052,
+    "container_encoding": "u32_le_byte_length_then_message",
+    "payload_offset": 4,
+    "payload_bytes": 2048,
+    "payload_encoding": "raw_bytes",
+    "payload_sha256": "f11d48451256c7133c5e465ea9cb93b594b0cc0c5f9a6c4faf48e608f157a126"
+  },
+  "source_authority": {
+    "pr171_provenance": {
+      "path": "vectors/cairo/zkvm/corpus.provenance.json",
+      "sha256": "867a19f84d1883889a98ad43f66b18a01db485e67f85c399a3a36747a720974e",
+      "schema": "stwo_cairo_zkvm_fixture_corpus_v1"
+    },
+    "repository": "https://github.com/zksecurity/zkvm-benchmarks.git",
+    "commit": "6d9d1e5e5a8086e6b3a52b03017421159f65ee6e",
+    "program_root": "stwo",
+    "base_programs": {
+      "sha2": {
+        "source_relative": "sha2/sha256.cairo",
+        "source_sha256": "24efc41e316c3166fe47f96442cbbc083822844f9fe80dc5fc6a0a8323f40fb5",
+        "required_finalizer": "finalize_sha256"
+      },
+      "sha3": {
+        "source_relative": "sha3/cairo_keccak.cairo",
+        "source_sha256": "a587e9f231454714f3fdbc9b2c202f710cee4a1ee3111f0a608db9a0283951e4",
+        "required_finalizer": "finalize_keccak"
+      }
+    },
+    "cairo_common_keccak": {
+      "repository": "https://github.com/starkware-libs/cairo-lang.git",
+      "commit": "ab8be40403a7634ba296c467b26b8bd945ba5cfa",
+      "path": "src/starkware/cairo/common/cairo_keccak/keccak.cairo",
+      "bytes": 15846,
+      "sha256": "406a7e368a1334f88358d437a898876ff5cd2f88c6a75e51b2b98ab0463073ef"
+    }
+  },
+  "compiler": {
+    "executable": "cairo-compile",
+    "version": "0.14.0.1",
+    "profile": "proof_mode",
+    "arguments": [
+      "--proof_mode"
+    ],
+    "distribution": {
+      "name": "cairo-lang",
+      "version": "0.14.0.1",
+      "filename": "cairo-lang-0.14.0.1.zip",
+      "bytes": 11314392,
+      "sha256": "d53473245f8d0d7d62d77ad5c1715959f61ce128bb369e8e7662040aabed98df"
+    }
+  },
+  "adapter": {
+    "executable": "stwo-cairo-vm-adapter",
+    "program_type": "json",
+    "layout": "all_cairo_stwo",
+    "proof_mode": true,
+    "stwo_cairo_revision": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+    "stwo_revision": "7b211edde786775016ef3eecb837a6240d8fe792"
+  },
+  "derived_output_directory": "zig-out/cairo-csp",
+  "fixtures": {
+    "sha256_2048_bytes": {
+      "comparison_row": "sha256_2048_bytes",
+      "status": "source_ready_compilation_pending",
+      "base_program": "sha2",
+      "source": {
+        "path": "vectors/cairo/csp/sources/sha256_2048_bytes.cairo",
+        "bytes": 34859,
+        "sha256": "e66a6aa1e12edba098d50d10b296b46960b81c5b421be3989ea63a8a3b4aec49"
+      },
+      "arguments": {
+        "path": "vectors/cairo/csp/empty.arguments.json",
+        "bytes": 3,
+        "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+      },
+      "input_embedding": {
+        "encoding": "512_consecutive_u32_big_endian_words",
+        "word_bits": 32,
+        "word_count": 512,
+        "n_bytes": 2048,
+        "host_input_hints": false
+      },
+      "required_finalizer": "finalize_sha256",
+      "output_projection": {
+        "output_builtin_felts": 8,
+        "felt_decimal": [
+          "4045228101",
+          "307676947",
+          "1012811358",
+          "2848691125",
+          "2494614540",
+          "1603955791",
+          "2940790280",
+          "4049051942"
+        ],
+        "projection": "sha256_u32_words_big_endian_to_raw_bytes",
+        "canonical_encoding": "raw_32_bytes",
+        "canonical_hex": "f11d48451256c7133c5e465ea9cb93b594b0cc0c5f9a6c4faf48e608f157a126"
+      },
+      "compiled_program": null,
+      "prover_input": null,
+      "expected_vm_steps": null,
+      "public_statement": null,
+      "proof": null,
+      "verifier_receipt": null,
+      "promotion_blockers": [
+        "Compile this exact source with authenticated cairo-compile 0.14.0.1 --proof_mode and pin deterministic compressed and decompressed program digests.",
+        "Derive ProverInput with the pinned adapter, pin exact VM steps and public output, prove with the secure protocol, and retain an independently accepted verifier receipt."
+      ]
+    },
+    "keccak256_2048_bytes": {
+      "comparison_row": "keccak256_2048_bytes",
+      "status": "source_ready_compilation_pending",
+      "base_program": "sha3",
+      "source": {
+        "path": "vectors/cairo/csp/sources/keccak256_2048_bytes.cairo",
+        "bytes": 12740,
+        "sha256": "fa21eab532ae33b249ba849dc28b858d67ca792d743d693cb3cef4b0f62aaf87"
+      },
+      "arguments": {
+        "path": "vectors/cairo/csp/empty.arguments.json",
+        "bytes": 3,
+        "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+      },
+      "input_embedding": {
+        "encoding": "256_consecutive_u64_little_endian_words",
+        "word_bits": 64,
+        "word_count": 256,
+        "n_bytes": 2048,
+        "host_input_hints": false
+      },
+      "required_finalizer": "finalize_keccak",
+      "output_projection": {
+        "output_builtin_felts": 2,
+        "felt_decimal": [
+          "166772806210671081117397656667725183298",
+          "11231463837351092332313874012492054006"
+        ],
+        "projection": "keccak_u256_little_endian_to_raw_bytes",
+        "canonical_encoding": "raw_32_bytes",
+        "canonical_hex": "4239a7a63551619c764842fa2d46777df6bd00792b06b4555e41cfaceb197308"
+      },
+      "compiled_program": null,
+      "prover_input": null,
+      "expected_vm_steps": null,
+      "public_statement": null,
+      "proof": null,
+      "verifier_receipt": null,
+      "promotion_blockers": [
+        "Compile this exact source with authenticated cairo-compile 0.14.0.1 --proof_mode and pin deterministic compressed and decompressed program digests.",
+        "Derive ProverInput with the pinned adapter, pin exact VM steps and public output, prove with the secure protocol, and retain an independently accepted verifier receipt."
+      ]
+    }
+  }
+}

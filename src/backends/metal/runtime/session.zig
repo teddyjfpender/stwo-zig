@@ -128,6 +128,10 @@ pub fn maxBufferLength(self: *const Runtime) u64 {
     return ffi.stwo_zig_metal_max_buffer_length(self.handle);
 }
 
+pub fn recommendedMaxWorkingSetSize(self: *const Runtime) u64 {
+    return ffi.stwo_zig_metal_recommended_max_working_set_size(self.handle);
+}
+
 pub fn platformIdentityAlloc(self: *const Runtime, allocator: std.mem.Allocator) MetalError![]u8 {
     const length = ffi.stwo_zig_metal_runtime_identity(self.handle, null, 0);
     if (length == 0) return MetalError.RuntimeIdentityFailed;

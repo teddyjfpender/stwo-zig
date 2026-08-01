@@ -59,10 +59,6 @@ pub fn nInteractionCols(kind: Kind) u32 {
     };
 }
 
-const EMPTY_PREV: [4][]const M31 = .{ &.{}, &.{}, &.{}, &.{} };
-const EMPTY_MEMORY_PREV: [memory_interaction.N_SUMS][4][]const M31 =
-    .{EMPTY_PREV} ** memory_interaction.N_SUMS;
-
 pub const RiscVTraceComponent = struct {
     desc: FamilyComponentDesc,
     initial_pc: u32,
@@ -84,17 +80,6 @@ pub const RiscVTraceComponent = struct {
         .{QM31.zero()} ** opcode_memory.N_ACCESSES,
     memory_claims: [memory_interaction.N_SUMS]QM31 =
         .{QM31.zero()} ** memory_interaction.N_SUMS,
-    /// Trace-order-shifted S coordinate columns in committed order at
-    /// `desc.log_size`. Prover-side only (empty on the verifier); consumed by
-    /// the on-domain evaluator as uncommitted column sources.
-    s_state_prev: [4][]const M31 = EMPTY_PREV,
-    s_prog_prev: [4][]const M31 = EMPTY_PREV,
-    s_opcode_memory_prev: [opcode_memory.N_ACCESSES][4][]const M31 =
-        .{EMPTY_PREV} ** opcode_memory.N_ACCESSES,
-    s_program_prev: [program_interaction.N_SUMS][4][]const M31 =
-        .{EMPTY_PREV} ** program_interaction.N_SUMS,
-    s_memory_prev: [memory_interaction.N_SUMS][4][]const M31 = EMPTY_MEMORY_PREV,
-
     const Adapter = core_air_derive.ComponentAdapter(
         @This(),
         prover_component.ComponentProver,

@@ -131,6 +131,10 @@ test "metal: resident commitment epoch owns one submit and wait" {
     try epoch.encodeCircleIfft(ifft);
     try epoch.encodeCircleLde(lde);
     try epoch.encodeResidentMerkle(merkle);
+    try std.testing.expectError(
+        runtime_mod.MetalError.CommitmentFailed,
+        runtime.residentMerkleTreeFromCompletedArena(arena, merkle, &epoch),
+    );
     try epoch.submit();
     try std.testing.expectError(runtime_mod.MetalError.CommandEpochFailed, epoch.submit());
     const stats = try epoch.wait();
@@ -143,6 +147,27 @@ test "metal: resident commitment epoch owns one submit and wait" {
     try std.testing.expectEqual(stats.compute_encoders, stats.dispatches);
     try std.testing.expectEqual(@as(u64, 0), stats.blit_encoders);
     try std.testing.expect(stats.gpu_milliseconds > 0);
+
+    var unrelated_merkle = try runtime.prepareResidentMerkle(
+        &merkle_offsets,
+        &merkle_logs,
+        extended_log,
+        &layer_offsets,
+        Hasher.leafSeed(),
+        Hasher.nodeSeed(),
+        Hasher.domainPrefixBytes(),
+    );
+    defer unrelated_merkle.deinit();
+    try std.testing.expectError(
+        runtime_mod.MetalError.CommitmentFailed,
+        runtime.residentMerkleTreeFromCompletedArena(arena, unrelated_merkle, &epoch),
+    );
+    var resident_tree = try runtime.residentMerkleTreeFromCompletedArena(arena, merkle, &epoch);
+    defer resident_tree.deinit();
+    try std.testing.expectError(
+        runtime_mod.MetalError.CommitmentFailed,
+        runtime.residentMerkleTreeFromCompletedArena(arena, merkle, &epoch),
+    );
 
     for (expected_coefficients, coefficient_offsets) |expected, offset_value| {
         const offset: usize = @intCast(offset_value);
@@ -170,6 +195,8 @@ test "metal: resident commitment epoch owns one submit and wait" {
     defer cpu_tree.deinit(allocator);
     const root_words = words[layer_offsets[layer_offsets.len - 1]..][0..8];
     try std.testing.expectEqualSlices(u8, &cpu_tree.root(), std.mem.sliceAsBytes(root_words));
+    const resident_root = try resident_tree.root();
+    try std.testing.expectEqualSlices(u8, &cpu_tree.root(), &resident_root.hash);
 }
 
 test "metal: compact streaming commitment epoch preserves evaluations and root" {

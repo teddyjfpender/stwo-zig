@@ -1,0 +1,443 @@
+{
+  "schema": "stwo_cairo_riscv_csp_comparison_manifest_v1",
+  "note": "A row is publishable as a cross-frontend comparison only when both frontends constrain the same logical function over the same authenticated logical input and bind the canonical output in a verifier-accepted public statement. A familiar function name, host syscall, builtin, iteration-count workload, field, curve, or input size is not sufficient. The current rows are intentionally pending until exact constrained Cairo executable, arguments, derived ProverInput, VM-step, and public-statement projection pins exist.",
+  "riscv_authority": {
+    "manifest_path": "vectors/riscv_csp/manifest-v2.json",
+    "manifest_sha256": "efd864d8ea3022eb101fbe87e828c5b559a1672cb0a1c50af2582b7dce00a9af",
+    "manifest_schema": "stwo_riscv_csp_suite_v2",
+    "upstream_commit": "269c43cc32d3127e3d9ce74d20652887d894cca3",
+    "retained_report": {
+      "path": "vectors/reports/riscv_csp_benchmark_report.json",
+      "sha256": "b1c9c5673f315cf4a9e8abd3da617fb3ab47342961b2672f68364fbed357e655",
+      "schema": "stwo_riscv_csp_benchmark_v2",
+      "measurement_commit": "ed573380db2f7ee1bc364a091cf6c82a00500ec3",
+      "use": "semantic and verified-output authority only; timings must be remeasured pairwise on the same qualified host"
+    }
+  },
+  "cairo_authority": {
+    "corelib": {
+      "repository": "https://github.com/starkware-libs/cairo",
+      "commit": "eef8857c3a279f7f0208efa258d74a7ed2bf6357",
+      "proof_soundness_role": "semantic_source_reference_only",
+      "proof_soundness_limit": "The modern SHA-256 and Keccak APIs delegate to host-executed Starknet syscalls whose semantics are not constrained by the current Cairo AIR. Functional output agreement through these APIs is not proof-sound hash-computation evidence.",
+      "sources": {
+        "sha256": {
+          "path": "corelib/src/sha256.cairo",
+          "bytes": 12592,
+          "sha256": "c9662254cb417f37a34d8c223b97d6eeeffc135016fbd52e4b3f77d79fcf2343"
+        },
+        "keccak": {
+          "path": "corelib/src/keccak.cairo",
+          "bytes": 12469,
+          "sha256": "fb0c75fb0c1fd589110d128cb2aff6da40fe212eb428e68f8369b348420bdded"
+        },
+        "poseidon": {
+          "path": "corelib/src/poseidon.cairo",
+          "bytes": 4575,
+          "sha256": "67aef04c4e22a56fd32b9f98191c05c6d9a71b0560bd55d38568af644bb77853"
+        },
+        "ecdsa": {
+          "path": "corelib/src/ecdsa.cairo",
+          "bytes": 8857,
+          "sha256": "19a5066d6940bfd19c8d6d7c234578c9de891c71f8f6dbed51db480d76563520"
+        }
+      }
+    },
+    "pr171_fixture_assessment": {
+      "provenance_path": "vectors/cairo/zkvm/corpus.provenance.json",
+      "provenance_sha256": "867a19f84d1883889a98ad43f66b18a01db485e67f85c399a3a36747a720974e",
+      "schema": "stwo_cairo_zkvm_fixture_corpus_v1",
+      "program_input_key": "iterations",
+      "assessed_programs": [
+        "sha2",
+        "sha3"
+      ],
+      "required_finalizers": {
+        "sha2": "finalize_sha256",
+        "sha3": "finalize_keccak"
+      },
+      "publishes_digest_output": {
+        "sha2": false,
+        "sha3": false
+      },
+      "proof_sound_role": "constrained_adaptation_base_only",
+      "verdict": "not_exact_csp_input",
+      "reason": "The PR 171 Cairo-0 programs call the mandatory SHA-256 and Keccak finalizers and are the proof-sound constrained adaptation base. Their current fixtures still synthesize data from an iteration count and publish no digest output, so they do not consume or expose the exact CSP 2 KiB vector and cannot populate an exact comparison row unchanged."
+    },
+    "exact_hash_fixture_preparation": {
+      "provenance_path": "vectors/cairo/csp/fixture-provenance-v1.json",
+      "provenance_sha256": "f5bd908791bd168b4475aaece0e5403b7a4ce338c57b3d21643dd50615d3d668",
+      "schema": "stwo_cairo_csp_fixture_provenance_v1",
+      "prepared_fixtures": [
+        "sha256_2048_bytes",
+        "keccak256_2048_bytes"
+      ],
+      "required_status": "source_ready_compilation_pending",
+      "proof_sound_role": "exact_constrained_source_prepared_proof_pending",
+      "verdict": "not_runnable_until_compiled_derived_proved_and_verified",
+      "reason": "Both exact 2 KiB Cairo-0 sources now embed the authenticated normalized bytes without host-input hints, retain their mandatory finalizer, and publish the declared canonical digest projection. Source preparation closes the semantic-source gap but does not supply compiled-program, ProverInput, VM-step, proof, statement, or verifier-receipt pins."
+    }
+  },
+  "comparison_contract": {
+    "allowed_statuses": [
+      "exact_runnable",
+      "pending_exact_cairo_fixture"
+    ],
+    "logical_input_digest_definition": "logical_input.logical_input_sha256 hashes the normalized logical value after frontend container framing is removed. For the SHA-256 row this digest equals expected_output.hex by definition; riscv.input_sha256 separately authenticates the length-prefixed fixture file.",
+    "timing_scope": "execution plus witness or ProverInput construction plus proof generation; verification is reported separately",
+    "security_protocol": {
+      "name": "secure",
+      "pow_bits": 26,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "n_queries": 70,
+      "fold_step": 1
+    },
+    "public_statement_schema": "stwo_cairo_csp_public_statement_projection_v1",
+    "required_public_bindings": [
+      "program_sha256",
+      "logical_input_encoding",
+      "logical_input_size",
+      "logical_input_sha256",
+      "canonical_output_encoding",
+      "canonical_output_hex"
+    ],
+    "output_requirement": "The Cairo VM output must project byte-for-byte to expected_output.hex; a successful execution or proof without this output equality is a failed row.",
+    "verifier_requirement": "Every measured proof must be accepted by a separate verifier invocation whose statement digest binds the exact public-statement projection."
+  },
+  "rows": [
+    {
+      "id": "sha256_2048_bytes",
+      "status": "pending_exact_cairo_fixture",
+      "relationship": "exact_constrained_source_prepared_proof_pending",
+      "semantic_function": "SHA-256 over exactly 2048 bytes",
+      "riscv": {
+        "target": "sha256",
+        "input_size": 2048,
+        "input_size_unit": "bytes",
+        "input_path": "vectors/riscv_csp/inputs/msg_2048.bin",
+        "input_sha256": "218bb97ce15e86f776a275909ab80b353959eed1bc64566e2af3745cfe21299f",
+        "input_encoding": "u32_le_byte_length_then_message",
+        "output_encoding": "raw 32-byte SHA-256 digest",
+        "expected_cycles": 145696,
+        "report_public_values_sha256": "c9c13e52776d69e9abd3202a50d33e40cfd95648f90f3f58370f81b0f722e72a",
+        "report_statement_sha256": "80c46fe3737cea199a6273a9513a787538b6815e3bb501727544999d64608555",
+        "report_proof_sha256": "3475fd9fc303900ac4caa809a084a91a7a35435bcc56309ce22d880eff245d26"
+      },
+      "logical_input": {
+        "container_encoding": "u32_le_byte_length_then_message",
+        "value_encoding": "raw_bytes",
+        "value_size": 2048,
+        "logical_input_sha256": "f11d48451256c7133c5e465ea9cb93b594b0cc0c5f9a6c4faf48e608f157a126",
+        "exact_value": null
+      },
+      "expected_output": {
+        "canonical_encoding": "raw_32_bytes",
+        "hex": "f11d48451256c7133c5e465ea9cb93b594b0cc0c5f9a6c4faf48e608f157a126",
+        "cairo_projection": "sha256_u32_words_big_endian_to_raw_bytes",
+        "exact_value": {
+          "u32_be": [
+            4045228101,
+            307676947,
+            1012811358,
+            2848691125,
+            2494614540,
+            1603955791,
+            2940790280,
+            4049051942
+          ]
+        }
+      },
+      "cairo_candidate": {
+        "corelib_source": "sha256",
+        "entrypoint": "compute_sha256_byte_array",
+        "relationship": "analogy_only",
+        "semantic_gap": "The modern corelib API delegates compression to a host-executed Starknet syscall whose semantics are not constrained by the current AIR; wrapping it would prove only the syscall transcript, not SHA-256 computation.",
+        "proof_sound_path": {
+          "base_program": "sha2",
+          "required_finalizer": "finalize_sha256",
+          "requires_public_digest_output": true
+        },
+        "required_implementation": "Compile the prepared exact constrained Cairo-0 source with the pinned compiler, derive its ProverInput and VM steps, bind its eight public digest words in the statement projection, prove it, and retain independent verifier acceptance."
+      },
+      "public_statement": {
+        "schema": "stwo_cairo_csp_public_statement_projection_v1",
+        "input_visibility": "public",
+        "required_bindings": [
+          "program_sha256",
+          "logical_input_encoding",
+          "logical_input_size",
+          "logical_input_sha256",
+          "canonical_output_encoding",
+          "canonical_output_hex"
+        ],
+        "expected_projection_sha256": null
+      },
+      "cairo_fixture": {
+        "program": null,
+        "arguments": null,
+        "prover_input": null,
+        "expected_vm_steps": null
+      },
+      "pending": {
+        "reason_code": "exact_constrained_cairo_2kib_sha256_proof_fixture_unpromoted",
+        "blockers": [
+          "Compile the authenticated prepared source with cairo-compile 0.14.0.1 --proof_mode and pin the deterministic program artifact.",
+          "Derive and pin the exact ProverInput, VM steps, public statement/output projection, proof, and independent verifier receipt."
+        ]
+      },
+      "negative_gate": null
+    },
+    {
+      "id": "keccak256_2048_bytes",
+      "status": "pending_exact_cairo_fixture",
+      "relationship": "exact_constrained_source_prepared_proof_pending",
+      "semantic_function": "Keccak-256 over exactly 2048 bytes",
+      "riscv": {
+        "target": "keccak",
+        "input_size": 2048,
+        "input_size_unit": "bytes",
+        "input_path": "vectors/riscv_csp/inputs/msg_2048.bin",
+        "input_sha256": "218bb97ce15e86f776a275909ab80b353959eed1bc64566e2af3745cfe21299f",
+        "input_encoding": "u32_le_byte_length_then_message",
+        "output_encoding": "raw 32-byte Keccak-256 digest",
+        "expected_cycles": 285456,
+        "report_public_values_sha256": "eb42270f9805eba8c74571e3f001d0270a376b12e63117777464a6d4362c2ee3",
+        "report_statement_sha256": "a0fd579cf8dd53b9192451f675d3ef7ae3413efa612cdd833631b31525e49841",
+        "report_proof_sha256": "e4ec416ae99b2cea06fdcdb27749f6f73d5f2e2f2c3698a54d7b9afda3c20036"
+      },
+      "logical_input": {
+        "container_encoding": "u32_le_byte_length_then_message",
+        "value_encoding": "raw_bytes",
+        "value_size": 2048,
+        "logical_input_sha256": "f11d48451256c7133c5e465ea9cb93b594b0cc0c5f9a6c4faf48e608f157a126",
+        "exact_value": null
+      },
+      "expected_output": {
+        "canonical_encoding": "raw_32_bytes",
+        "hex": "4239a7a63551619c764842fa2d46777df6bd00792b06b4555e41cfaceb197308",
+        "cairo_projection": "keccak_u256_little_endian_to_raw_bytes",
+        "exact_value": {
+          "u256_le_decimal": "3821869098560755920338795414005597443760784414446399451158635658250105076034"
+        }
+      },
+      "cairo_candidate": {
+        "corelib_source": "keccak",
+        "entrypoint": "compute_keccak_byte_array",
+        "relationship": "analogy_only",
+        "semantic_gap": "The modern corelib API delegates the permutation to a host-executed Starknet syscall whose semantics are not constrained by the current AIR; wrapping it would prove only the syscall transcript, not Keccak-256 computation.",
+        "proof_sound_path": {
+          "base_program": "sha3",
+          "required_finalizer": "finalize_keccak",
+          "requires_public_digest_output": true
+        },
+        "required_implementation": "Compile the prepared exact constrained Cairo-0 source with the pinned compiler, derive its ProverInput and VM steps, bind its two little-endian u128 public digest limbs in the statement projection, prove it, and retain independent verifier acceptance."
+      },
+      "public_statement": {
+        "schema": "stwo_cairo_csp_public_statement_projection_v1",
+        "input_visibility": "public",
+        "required_bindings": [
+          "program_sha256",
+          "logical_input_encoding",
+          "logical_input_size",
+          "logical_input_sha256",
+          "canonical_output_encoding",
+          "canonical_output_hex"
+        ],
+        "expected_projection_sha256": null
+      },
+      "cairo_fixture": {
+        "program": null,
+        "arguments": null,
+        "prover_input": null,
+        "expected_vm_steps": null
+      },
+      "pending": {
+        "reason_code": "exact_constrained_cairo_2kib_keccak_proof_fixture_unpromoted",
+        "blockers": [
+          "Compile the authenticated prepared source with cairo-compile 0.14.0.1 --proof_mode and pin the deterministic program artifact.",
+          "Derive and pin the exact ProverInput, VM steps, public statement/output projection, proof, and independent verifier receipt."
+        ]
+      },
+      "negative_gate": null
+    },
+    {
+      "id": "poseidon2_m31_16_elements",
+      "status": "pending_exact_cairo_fixture",
+      "relationship": "analogy_only",
+      "semantic_function": "Poseidon2-M31 permutation over 16 canonical M31 elements, returning the final eight-element state",
+      "riscv": {
+        "target": "poseidon2_m31",
+        "input_size": 16,
+        "input_size_unit": "field_elements",
+        "input_path": "vectors/riscv_csp/inputs/field_m31_16.bin",
+        "input_sha256": "5cf6b1945ad9c287e4adbf60f9a8a526864a1ae0062387244ea93fca7ca7268e",
+        "input_encoding": "u32_le_element_count_then_m31_le",
+        "output_encoding": "eight raw little-endian M31 state elements",
+        "expected_cycles": 657039,
+        "report_public_values_sha256": "584c95e81e12999c879dbebf1149c395a6064686c0f4baa008b46fed2f6f115a",
+        "report_statement_sha256": "56866a19c3c99579b02d28b2811bfc53ba25a742d08768caab4070ed6ceb2bf5",
+        "report_proof_sha256": "092774b947aa9e2bb469a261c4d01588b3402ac8d0ff27623e209f31e54a2922"
+      },
+      "logical_input": {
+        "container_encoding": "u32_le_element_count_then_m31_le",
+        "value_encoding": "canonical_m31_u32_le",
+        "value_size": 16,
+        "logical_input_sha256": "f3e6e4883929ed77c477c303dc2c9042703cdfcf4501f4d2c7fde982b6a42708",
+        "exact_value": {
+          "elements": [
+            1822236959,
+            1529036242,
+            1938862368,
+            556756824,
+            995887474,
+            505046931,
+            1020357435,
+            1870562181,
+            1842932960,
+            239528071,
+            320976485,
+            1942538931,
+            335948822,
+            1332637338,
+            406081543,
+            2039127037
+          ]
+        }
+      },
+      "expected_output": {
+        "canonical_encoding": "eight_canonical_m31_u32_le",
+        "hex": "aeecb648a377b9743b9d0d17556dd816c73bca5bd8ab8d6940f18c564bcd3059",
+        "cairo_projection": "eight_m31_values_to_u32_little_endian",
+        "exact_value": {
+          "elements": [
+            1219947694,
+            1958311843,
+            386768187,
+            383282517,
+            1539980231,
+            1770892248,
+            1452077376,
+            1496370507
+          ]
+        }
+      },
+      "cairo_candidate": {
+        "corelib_source": "poseidon",
+        "entrypoint": "poseidon_hash_span",
+        "relationship": "analogy_only",
+        "semantic_gap": "corelib poseidon_hash_span is classic Poseidon over felt252 and returns one felt252; the RISC-V row is Poseidon2 over M31 and returns eight M31 state elements",
+        "proof_sound_path": null,
+        "required_implementation": "Implement or import the exact audited Poseidon2-M31 permutation and exact eight-element state contract in Cairo; the corelib Poseidon builtin cannot be substituted."
+      },
+      "public_statement": {
+        "schema": "stwo_cairo_csp_public_statement_projection_v1",
+        "input_visibility": "public",
+        "required_bindings": [
+          "program_sha256",
+          "logical_input_encoding",
+          "logical_input_size",
+          "logical_input_sha256",
+          "canonical_output_encoding",
+          "canonical_output_hex"
+        ],
+        "expected_projection_sha256": null
+      },
+      "cairo_fixture": {
+        "program": null,
+        "arguments": null,
+        "prover_input": null,
+        "expected_vm_steps": null
+      },
+      "pending": {
+        "reason_code": "exact_cairo_poseidon2_m31_implementation_missing",
+        "blockers": [
+          "The linked corelib Poseidon function is a different algorithm over a different field with a different output contract.",
+          "Build and independently differential-test an exact Poseidon2-M31 Cairo implementation before deriving the pinned fixture and public statement."
+        ]
+      },
+      "negative_gate": null
+    },
+    {
+      "id": "ecdsa_secp256k1_32_byte_digest",
+      "status": "pending_exact_cairo_fixture",
+      "relationship": "analogy_only",
+      "semantic_function": "secp256k1 ECDSA verification over one 32-byte digest, one uncompressed SEC1 public key, and one compact r||s signature",
+      "riscv": {
+        "target": "ecdsa_secp256k1",
+        "input_size": 32,
+        "input_size_unit": "bytes",
+        "input_path": "vectors/riscv_csp/inputs/ecdsa_secp256k1.bin",
+        "input_sha256": "5136df6e9b49321531a2d337dc227939ecc68645036b597bdcc0e531333ad3ff",
+        "input_encoding": "csp_k256_digest_sec1_key_signature",
+        "output_encoding": "raw 32-byte digest for a valid signature",
+        "expected_cycles": 5425005,
+        "report_public_values_sha256": "56a9f9a5c46f4d0094e886e804aac7183b8de0ed925dbf9a2a200eb0451f8c1a",
+        "report_statement_sha256": "eb88ff99632b80c456f1e558d51ce5e7ba9dc60e6d4ccc184697720f5e42369d",
+        "report_proof_sha256": "214d3fe2b4965926083bf8535fb0fd106b2571ed4a4cffe8836f5f01700b6754"
+      },
+      "logical_input": {
+        "container_encoding": "digest32_then_uncompressed_sec1_key65_then_compact_signature64",
+        "value_encoding": "secp256k1_ecdsa_verification_tuple",
+        "value_size": 32,
+        "logical_input_sha256": "5136df6e9b49321531a2d337dc227939ecc68645036b597bdcc0e531333ad3ff",
+        "exact_value": {
+          "digest_hex": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5",
+          "public_key_sec1_hex": "0405b30475af82de72ca14459979e2c42a82a079bb8e754204bbfbbc46f1961b6204ddf47599c83b4dd3857f53dfa089c18cd52a3a79a3c034d4c3ceb28f0c5287",
+          "signature_rs_hex": "974a99c1966505411cc2062ab51a44ae6e479dc574c7341a2f654889d3d07b3d1913a04fd65d1d07c387b41f7b1130dc6b8b6422dde0e4cbc5313090f404dd0d"
+        }
+      },
+      "expected_output": {
+        "canonical_encoding": "validity_true_and_raw_32_byte_digest",
+        "hex": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5",
+        "cairo_projection": "require_true_then_return_digest_bytes",
+        "exact_value": {
+          "valid": true,
+          "digest_hex": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5"
+        }
+      },
+      "cairo_candidate": {
+        "corelib_source": "ecdsa",
+        "entrypoint": "check_ecdsa_signature",
+        "relationship": "analogy_only",
+        "semantic_gap": "corelib check_ecdsa_signature verifies the STARK curve and accepts felt252 x-coordinate inputs; the CSP vector is secp256k1 with a full uncompressed SEC1 key and compact r||s signature",
+        "proof_sound_path": null,
+        "required_implementation": "Implement or import exact audited secp256k1 ECDSA verification in Cairo and bind the digest, both public-key coordinates, r, s, validity result, and returned digest."
+      },
+      "public_statement": {
+        "schema": "stwo_cairo_csp_public_statement_projection_v1",
+        "input_visibility": "public",
+        "required_bindings": [
+          "program_sha256",
+          "logical_input_encoding",
+          "logical_input_size",
+          "logical_input_sha256",
+          "canonical_output_encoding",
+          "canonical_output_hex"
+        ],
+        "expected_projection_sha256": null
+      },
+      "cairo_fixture": {
+        "program": null,
+        "arguments": null,
+        "prover_input": null,
+        "expected_vm_steps": null
+      },
+      "pending": {
+        "reason_code": "exact_cairo_secp256k1_implementation_missing",
+        "blockers": [
+          "The linked corelib ECDSA function is for the STARK curve and cannot verify this secp256k1 vector.",
+          "Build and independently differential-test an exact secp256k1 verifier, then derive the positive and negative fixtures and public statements."
+        ]
+      },
+      "negative_gate": {
+        "input_path": "vectors/riscv_csp/inputs/ecdsa_secp256k1_bad_signature.bin",
+        "input_sha256": "75bd5fd25b8a514a8a891502fb32105d1dca26cdaf1d8fd2cc4cba5737806181",
+        "input_encoding": "digest32_then_uncompressed_sec1_key65_then_compact_signature64",
+        "expected_output_hex": "0000000000000000000000000000000000000000000000000000000000000000",
+        "report_public_values_sha256": "395b6ee71ba866268d168134b9d0e07553d065725de8b565b72bed957405e875",
+        "required_status": "rejected_as_expected"
+      }
+    }
+  ]
+}

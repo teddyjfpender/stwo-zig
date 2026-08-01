@@ -24,6 +24,7 @@ pub const model = @import("model.zig");
 pub const json = @import("json.zig");
 pub const program = @import("program.zig");
 pub const program_json = @import("program_json.zig");
+pub const runtime_program = @import("runtime_program.zig");
 
 /// Fixed so a failure is reproducible; the differential check is a regression
 /// guard, not a fuzzer, and a moving seed would make it flap.

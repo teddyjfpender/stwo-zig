@@ -95,7 +95,7 @@ test "AOT manifest is deterministic and binds the shader authority" {
     try std.testing.expect(root.get("toolchain").? == .null);
 
     const source_json = root.get("source").?.object;
-    const digest_hex = std.fmt.bytesToHex(shader_manifest.native_amalgamated_source_sha256, .lower);
+    const digest_hex = std.fmt.bytesToHex(sourceDigest(), .lower);
     try std.testing.expectEqualStrings(digest_hex[0..], source_json.get("sha256").?.string);
     try std.testing.expectEqual(@as(i64, @intCast(source().len)), source_json.get("bytes").?.integer);
 

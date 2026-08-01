@@ -7,12 +7,14 @@
 
 const std = @import("std");
 const fields = @import("stwo_core").fields;
+const work_pool = @import("stwo_prover_engine").work_pool;
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const infra = @import("../../infra_trace.zig");
 const logup = @import("../logup.zig");
 const relations_mod = @import("../relation_challenges.zig");
 const trace = @import("../../runner/trace.zig");
+const BaseScalar = @import("base_scalar.zig").Scalar;
 const entry = @import("entry.zig");
 const opcode_entries = @import("opcode_entries.zig");
 
@@ -20,9 +22,12 @@ pub const MAX_BATCHES: usize = entry.MAX_BATCHES;
 pub const MAX_COLUMNS: usize = 4 * MAX_BATCHES;
 pub const CHUNK_ROWS: usize = 4096;
 
+const base_opcode_entries = opcode_entries.Entries(BaseScalar);
+const BaseList = entry.Builder(BaseScalar).List;
+const BaseEntry = entry.Builder(BaseScalar).Entry;
+
 pub const Result = struct {
     columns: [MAX_COLUMNS][]M31 = .{&.{}} ** MAX_COLUMNS,
-    previous: [MAX_BATCHES][4][]M31 = .{.{ &.{}, &.{}, &.{}, &.{} }} ** MAX_BATCHES,
     claims: [MAX_BATCHES]QM31 = .{QM31.zero()} ** MAX_BATCHES,
     n_batches: usize,
 
@@ -37,8 +42,7 @@ pub const Result = struct {
     }
 
     /// Moves the current cumulative columns out for commitment. The returned
-    /// active prefix is caller-owned; claims and previous-row masks remain
-    /// valid until `deinit` so composition can borrow them after the commit.
+    /// active prefix is caller-owned and claims remain available afterwards.
     pub fn takeColumns(self: *Result) [MAX_COLUMNS][]M31 {
         const result = self.columns;
         for (self.columns[0..self.nColumns()]) |*column| column.* = &.{};
@@ -48,9 +52,6 @@ pub const Result = struct {
     pub fn deinit(self: *Result, allocator: std.mem.Allocator) void {
         for (self.columns[0..self.nColumns()]) |column| {
             if (column.len != 0) allocator.free(column);
-        }
-        for (self.previous[0..self.n_batches]) |set| {
-            for (set) |column| allocator.free(column);
         }
         self.* = undefined;
     }
@@ -75,24 +76,13 @@ pub fn generate(
     const n_batches = opcode_entries.batchCount(family);
     var result = Result{ .n_batches = n_batches };
     var allocated_columns: usize = 0;
-    var allocated_previous: usize = 0;
     errdefer {
         for (result.columns[0..allocated_columns]) |column| allocator.free(column);
-        for (0..allocated_previous) |flat_index| {
-            allocator.free(result.previous[flat_index / 4][flat_index % 4]);
-        }
     }
     for (result.columns[0 .. 4 * n_batches]) |*column| {
         column.* = try allocator.alloc(M31, size);
         allocated_columns += 1;
     }
-    for (result.previous[0..n_batches]) |*set| {
-        for (set) |*column| {
-            column.* = try allocator.alloc(M31, size);
-            allocated_previous += 1;
-        }
-    }
-
     const placement = try infra.BitReversalTable.init(allocator, log_size);
     defer placement.deinit(allocator);
     const chunk_capacity = @min(size, CHUNK_ROWS);
@@ -104,7 +94,7 @@ pub fn generate(
     const inverses = try allocator.alloc(QM31, term_capacity);
     defer allocator.free(inverses);
 
-    var secure: [trace.MAX_FAMILY_COLUMNS]QM31 = undefined;
+    var base: [trace.MAX_FAMILY_COLUMNS]BaseScalar = undefined;
     var row_start: usize = 0;
     while (row_start < size) {
         const chunk_len = @min(CHUNK_ROWS, size - row_start);
@@ -112,16 +102,16 @@ pub fn generate(
         for (0..chunk_len) |local_row| {
             const row = row_start + local_row;
             const committed_row = placement.map(row);
-            for (main_columns, secure[0..main_columns.len]) |column, *value| {
-                value.* = QM31.fromBase(column[committed_row]);
+            for (main_columns, base[0..main_columns.len]) |column, *value| {
+                value.* = BaseScalar.fromBase(column[committed_row]);
             }
-            const list = try opcode_entries.fromMain(
+            const list = try base_opcode_entries.fromMain(
                 family,
-                secure[0..main_columns.len],
+                base[0..main_columns.len],
             );
             if (list.batchCount() != n_batches) return error.InvalidBatchCount;
             for (0..n_batches) |batch| {
-                const pair = try list.pair(batch, relations);
+                const pair = try pairBase(&list, batch, relations);
                 const index = batch * chunk_len + local_row;
                 denominators[index] = pair.d1.mul(pair.d2);
                 numerators[index] = pair.n1.mul(pair.d2).add(pair.n2.mul(pair.d1));
@@ -149,19 +139,226 @@ pub fn generate(
         row_start += chunk_len;
     }
 
-    // Previous masks are trace-order rotations, stored in the same committed
-    // bit-reversed order as the current cumulative columns.
-    for (0..size) |row| {
-        const dst = placement.map(row);
-        const previous_dst = placement.map((row + size - 1) % size);
-        for (0..n_batches) |batch| {
-            for (0..4) |coordinate| {
-                result.previous[batch][coordinate][dst] =
-                    result.columns[4 * batch + coordinate][previous_dst];
+    return result;
+}
+
+/// Parallel two-level prefix scan over one opcode family. Each bounded chunk
+/// performs tuple reconstruction, batch inversion and a local inclusive scan;
+/// an ordered scan of the chunk totals then drives a disjoint offset pass.
+pub fn generateParallel(
+    allocator: std.mem.Allocator,
+    family: trace.OpcodeFamily,
+    main_columns: []const []const M31,
+    log_size: u32,
+    relations: *const relations_mod.Relations,
+    pool: *work_pool.WorkPool,
+) !Result {
+    const size = @as(usize, 1) << @intCast(log_size);
+    try validateColumns(family, main_columns, size);
+    const n_batches = opcode_entries.batchCount(family);
+    var result = Result{ .n_batches = n_batches };
+    var allocated_columns: usize = 0;
+    errdefer for (result.columns[0..allocated_columns]) |column| allocator.free(column);
+    for (result.columns[0 .. 4 * n_batches]) |*column| {
+        column.* = try allocator.alloc(M31, size);
+        allocated_columns += 1;
+    }
+    const placement = try infra.BitReversalTable.init(allocator, log_size);
+    defer placement.deinit(allocator);
+
+    const chunk_count = std.math.divCeil(usize, size, CHUNK_ROWS) catch unreachable;
+    const chunks = try allocator.alloc(OpcodeChunk, chunk_count);
+    defer allocator.free(chunks);
+    for (chunks, 0..) |*chunk, index| {
+        const row_start = index * CHUNK_ROWS;
+        chunk.* = .{
+            .allocator = allocator,
+            .family = family,
+            .main_columns = main_columns,
+            .relations = relations,
+            .placement = placement,
+            .columns = &result.columns,
+            .n_batches = n_batches,
+            .row_start = row_start,
+            .row_end = @min(size, row_start + CHUNK_ROWS),
+        };
+    }
+
+    var wait_group = std.Thread.WaitGroup{};
+    for (chunks[1..]) |*chunk| pool.spawnWg(&wait_group, OpcodeChunk.generate, .{chunk});
+    OpcodeChunk.generate(&chunks[0]);
+    wait_group.wait();
+    for (chunks) |chunk| if (chunk.err) |err| return err;
+
+    for (0..n_batches) |batch| {
+        var claim = QM31.zero();
+        for (chunks) |*chunk| {
+            chunk.offsets[batch] = claim;
+            claim = claim.add(chunk.totals[batch]);
+        }
+        result.claims[batch] = claim;
+    }
+
+    wait_group = .{};
+    for (chunks[1..]) |*chunk| pool.spawnWg(&wait_group, OpcodeChunk.addOffsets, .{chunk});
+    OpcodeChunk.addOffsets(&chunks[0]);
+    wait_group.wait();
+    return result;
+}
+
+const OpcodeChunk = struct {
+    allocator: std.mem.Allocator,
+    family: trace.OpcodeFamily,
+    main_columns: []const []const M31,
+    relations: *const relations_mod.Relations,
+    placement: infra.BitReversalTable,
+    columns: *[MAX_COLUMNS][]M31,
+    n_batches: usize,
+    row_start: usize,
+    row_end: usize,
+    totals: [MAX_BATCHES]QM31 = .{QM31.zero()} ** MAX_BATCHES,
+    offsets: [MAX_BATCHES]QM31 = .{QM31.zero()} ** MAX_BATCHES,
+    err: ?anyerror = null,
+
+    fn generate(self: *@This()) void {
+        self.generateFallible() catch |err| {
+            self.err = err;
+        };
+    }
+
+    fn generateFallible(self: *@This()) !void {
+        const chunk_len = self.row_end - self.row_start;
+        const term_len = self.n_batches * chunk_len;
+        const numerators = try self.allocator.alloc(QM31, term_len);
+        defer self.allocator.free(numerators);
+        const denominators = try self.allocator.alloc(QM31, term_len);
+        defer self.allocator.free(denominators);
+        const inverses = try self.allocator.alloc(QM31, term_len);
+        defer self.allocator.free(inverses);
+
+        var base: [trace.MAX_FAMILY_COLUMNS]BaseScalar = undefined;
+        for (0..chunk_len) |local_row| {
+            const row = self.row_start + local_row;
+            const committed_row = self.placement.map(row);
+            for (self.main_columns, base[0..self.main_columns.len]) |column, *value| {
+                value.* = BaseScalar.fromBase(column[committed_row]);
+            }
+            const list = try base_opcode_entries.fromMain(
+                self.family,
+                base[0..self.main_columns.len],
+            );
+            if (list.batchCount() != self.n_batches) return error.InvalidBatchCount;
+            for (0..self.n_batches) |batch| {
+                const pair = try pairBase(&list, batch, self.relations);
+                const index = batch * chunk_len + local_row;
+                denominators[index] = pair.d1.mul(pair.d2);
+                numerators[index] = pair.n1.mul(pair.d2).add(pair.n2.mul(pair.d1));
+            }
+        }
+        try fields.batchInverseInPlace(QM31, denominators, inverses);
+
+        for (0..self.n_batches) |batch| {
+            var accumulator = QM31.zero();
+            for (0..chunk_len) |local_row| {
+                const term_index = batch * chunk_len + local_row;
+                accumulator = accumulator.add(numerators[term_index].mul(inverses[term_index]));
+                const current = accumulator.toM31Array();
+                const dst = self.placement.map(self.row_start + local_row);
+                for (current, 0..) |coordinate, index| {
+                    self.columns[4 * batch + index][dst] = coordinate;
+                }
+            }
+            self.totals[batch] = accumulator;
+        }
+    }
+
+    fn addOffsets(self: *@This()) void {
+        for (0..self.n_batches) |batch| {
+            const offset = self.offsets[batch];
+            if (offset.isZero()) continue;
+            for (self.row_start..self.row_end) |row| {
+                const dst = self.placement.map(row);
+                const current = secureAt(self.columns, 4 * batch, dst)
+                    .add(offset).toM31Array();
+                for (current, 0..) |coordinate, index| {
+                    self.columns[4 * batch + index][dst] = coordinate;
+                }
             }
         }
     }
+};
+
+fn unwrapValues(comptime arity: usize, values: [arity]BaseScalar) [arity]M31 {
+    var result: [arity]M31 = undefined;
+    for (values, &result) |value, *dst| dst.* = value.value;
     return result;
+}
+
+fn denominatorBase(
+    relation_entry: *const BaseEntry,
+    relations: *const relations_mod.Relations,
+) !QM31 {
+    try relation_entry.validate();
+    return switch (relation_entry.domain) {
+        .registers_state => relations.registers_state.combineBase(
+            unwrapValues(2, relation_entry.values[0..2].*),
+        ),
+        .memory_access => relations.memory_access.combineBase(
+            unwrapValues(7, relation_entry.values[0..7].*),
+        ),
+        .program_access => relations.program_access.combineBase(
+            unwrapValues(5, relation_entry.values[0..5].*),
+        ),
+        .merkle => relations.merkle.combineBase(
+            unwrapValues(4, relation_entry.values[0..4].*),
+        ),
+        .poseidon2 => relations.poseidon2.combineBase(
+            unwrapValues(16, relation_entry.values[0..16].*),
+        ),
+        .poseidon2_io => relations.poseidon2_io.combineBase(
+            unwrapValues(32, relation_entry.values[0..32].*),
+        ),
+        .bitwise => relations.bitwise.combineBase(
+            unwrapValues(4, relation_entry.values[0..4].*),
+        ),
+        .range_check_20 => relations.range_check_20.combineBase(
+            unwrapValues(1, relation_entry.values[0..1].*),
+        ),
+        .range_check_8_11 => relations.range_check_8_11.combineBase(
+            unwrapValues(2, relation_entry.values[0..2].*),
+        ),
+        .range_check_8_8_4 => relations.range_check_8_8_4.combineBase(
+            unwrapValues(3, relation_entry.values[0..3].*),
+        ),
+        .range_check_8_8 => relations.range_check_8_8.combineBase(
+            unwrapValues(2, relation_entry.values[0..2].*),
+        ),
+        .range_check_m31 => relations.range_check_m31.combineBase(
+            unwrapValues(2, relation_entry.values[0..2].*),
+        ),
+    };
+}
+
+fn pairBase(
+    list: *const BaseList,
+    batch: usize,
+    relations: *const relations_mod.Relations,
+) !logup.RowPair {
+    const first = &list.entries[batch * list.batch_size];
+    const first_numerator = QM31.fromBase(first.numerator.value);
+    if (list.batch_size == 1 or batch * list.batch_size + 1 == list.len) {
+        return logup.RowPair.single(
+            first_numerator,
+            try denominatorBase(first, relations),
+        );
+    }
+    const second = &list.entries[batch * list.batch_size + 1];
+    return .{
+        .n1 = first_numerator,
+        .d1 = try denominatorBase(first, relations),
+        .n2 = QM31.fromBase(second.numerator.value),
+        .d2 = try denominatorBase(second, relations),
+    };
 }
 
 fn validateColumns(
@@ -239,6 +436,44 @@ fn pairTerm(pair: logup.RowPair) !QM31 {
     const denominator = pair.d1.mul(pair.d2);
     const numerator = pair.n1.mul(pair.d2).add(pair.n2.mul(pair.d1));
     return numerator.mul(try denominator.inv());
+}
+
+fn expectBaseEntryParity(
+    family: trace.OpcodeFamily,
+    main: []const []const M31,
+    committed_row: usize,
+    relations: *const relations_mod.Relations,
+) !void {
+    var base: [trace.MAX_FAMILY_COLUMNS]BaseScalar = undefined;
+    var secure: [trace.MAX_FAMILY_COLUMNS]QM31 = undefined;
+    for (main, base[0..main.len], secure[0..main.len]) |column, *base_value, *secure_value| {
+        const value = column[committed_row];
+        base_value.* = BaseScalar.fromBase(value);
+        secure_value.* = QM31.fromBase(value);
+    }
+    const actual = try base_opcode_entries.fromMain(family, base[0..main.len]);
+    const oracle = try opcode_entries.fromMain(family, secure[0..main.len]);
+    try std.testing.expectEqual(oracle.len, actual.len);
+    try std.testing.expectEqual(oracle.batch_size, actual.batch_size);
+    for (actual.entries[0..actual.len], oracle.entries[0..oracle.len]) |got, want| {
+        try std.testing.expectEqual(want.domain, got.domain);
+        try std.testing.expectEqual(want.arity, got.arity);
+        try std.testing.expectEqual(want.role, got.role);
+        try std.testing.expectEqual(want.access_ordinal, got.access_ordinal);
+        try std.testing.expect(QM31.fromBase(got.numerator.value).eql(want.numerator));
+        for (got.values[0..got.arity], want.values[0..want.arity]) |got_value, want_value| {
+            try std.testing.expect(QM31.fromBase(got_value.value).eql(want_value));
+        }
+    }
+    try std.testing.expectEqual(oracle.batchCount(), actual.batchCount());
+    for (0..actual.batchCount()) |batch| {
+        const got = try pairBase(&actual, batch, relations);
+        const want = try oracle.pair(batch, relations);
+        try std.testing.expect(got.n1.eql(want.n1));
+        try std.testing.expect(got.d1.eql(want.d1));
+        try std.testing.expect(got.n2.eql(want.n2));
+        try std.testing.expect(got.d2.eql(want.d2));
+    }
 }
 
 fn testRowForFamily(family: trace.OpcodeFamily, row_index: usize) trace.TraceRow {
@@ -426,8 +661,9 @@ fn expectScalarParity(
                 secureAt(&generated.columns, 4 * batch, committed_row)
                     .eql(accumulators[batch]),
             );
+            const previous_row = placement.map((logical_row + size - 1) % size);
             try std.testing.expect(
-                secureAt(&generated.previous[batch], 0, committed_row)
+                secureAt(&generated.columns, 4 * batch, previous_row)
                     .eql(expected_previous),
             );
         }
@@ -471,9 +707,6 @@ test "opcode interaction derives exact claims from committed main columns" {
         try std.testing.expectEqual(@as(usize, 16), column.len);
     }
     try std.testing.expect(generated.total().eql(expected));
-    for (generated.previous[0..generated.n_batches]) |set| {
-        for (set) |column| try std.testing.expectEqual(@as(usize, 16), column.len);
-    }
 }
 
 test "opcode interaction is padding invariant and shard additive" {
@@ -570,6 +803,35 @@ test "opcode interaction matches scalar prefixes for every family" {
     }
 }
 
+test "base-field opcode entries match secure reconstruction for every family and padding" {
+    const allocator = std.testing.allocator;
+    const relations = relations_mod.Relations.dummy();
+    for (0..trace.N_FAMILIES) |index| {
+        const family: trace.OpcodeFamily = @enumFromInt(index);
+        var main = try testColumns(
+            allocator,
+            family,
+            4,
+            &.{testRowForFamily(family, index)},
+        );
+        defer freeTestColumns(allocator, main);
+        const placement = try infra.BitReversalTable.init(allocator, 4);
+        defer placement.deinit(allocator);
+        try expectBaseEntryParity(
+            family,
+            main.storage[0..main.len],
+            placement.map(0),
+            &relations,
+        );
+        try expectBaseEntryParity(
+            family,
+            main.storage[0..main.len],
+            placement.map(15),
+            &relations,
+        );
+    }
+}
+
 test "opcode interaction carries cumulative state across inversion chunks" {
     const allocator = std.testing.allocator;
     const family: trace.OpcodeFamily = .base_alu_imm;
@@ -601,7 +863,6 @@ test "opcode interaction carries cumulative state across inversion chunks" {
         }
         const list = try opcode_entries.fromMain(family, secure_row[0..main.len]);
         for (0..generated.n_batches) |batch| {
-            const expected_previous = accumulators[batch];
             accumulators[batch] = accumulators[batch].add(
                 try pairTerm(try list.pair(batch, &relations)),
             );
@@ -610,12 +871,6 @@ test "opcode interaction carries cumulative state across inversion chunks" {
                     secureAt(&generated.columns, 4 * batch, committed_row)
                         .eql(accumulators[batch]),
                 );
-                if (logical_row != 0) {
-                    try std.testing.expect(
-                        secureAt(&generated.previous[batch], 0, committed_row)
-                            .eql(expected_previous),
-                    );
-                }
             }
         }
     }

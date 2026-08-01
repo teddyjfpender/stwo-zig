@@ -66,6 +66,146 @@ pub const Trace = struct {
     polys: TreeVec([]const Poly),
 };
 
+/// Backend-neutral base-field polynomial program exported by a frontend from
+/// the same typed builder used by its reference AIR evaluator. Node order is
+/// topological: every operand names an earlier node. `column` values address
+/// the capability's ordered input columns.
+pub const BasePolynomialOp = enum(u8) { constant, column, add, sub, mul, neg };
+
+pub const BasePolynomialNode = struct {
+    op: BasePolynomialOp,
+    lhs: u32 = 0,
+    rhs: u32 = 0,
+    value: u32 = 0,
+};
+
+pub const OwnedBasePolynomialProgram = struct {
+    allocator: std.mem.Allocator,
+    nodes: []BasePolynomialNode,
+    roots: []u32,
+    column_count: usize,
+
+    pub fn deinit(self: *OwnedBasePolynomialProgram) void {
+        self.allocator.free(self.roots);
+        self.allocator.free(self.nodes);
+        self.* = undefined;
+    }
+
+    pub fn validate(self: OwnedBasePolynomialProgram) !void {
+        if (self.column_count == 0 or self.nodes.len == 0 or self.roots.len == 0)
+            return error.InvalidBasePolynomialProgram;
+        for (self.nodes, 0..) |node, index| switch (node.op) {
+            .constant => {},
+            .column => if (node.value >= self.column_count)
+                return error.InvalidBasePolynomialProgram,
+            .add, .sub, .mul => if (node.lhs >= index or node.rhs >= index)
+                return error.InvalidBasePolynomialProgram,
+            .neg => if (node.lhs >= index)
+                return error.InvalidBasePolynomialProgram,
+        };
+        for (self.roots) |root| if (root >= self.nodes.len)
+            return error.InvalidBasePolynomialProgram;
+    }
+};
+
+/// A committed base-polynomial component that a backend may evaluate from the
+/// proof's own residency handles. The selector is the final program input;
+/// preceding inputs are the contiguous main-column block. The exporter is
+/// invoked only during proving and must derive its program from the production
+/// evaluator rather than maintain an independent constraint transcription.
+pub const BasePolynomialCapabilityV1 = struct {
+    program_id: u64,
+    trace_log_size: u32,
+    selector_tree_index: usize,
+    selector_column: usize,
+    main_tree_index: usize,
+    first_main_column: usize,
+    main_column_count: usize,
+    export_program: *const fn (
+        ctx: *const anyopaque,
+        allocator: std.mem.Allocator,
+    ) anyerror!OwnedBasePolynomialProgram,
+};
+
+pub const MAX_LOOKUP_POLYNOMIAL_ARITY: usize = 32;
+
+pub const LookupPolynomialEntry = struct {
+    numerator: u32,
+    values: [MAX_LOOKUP_POLYNOMIAL_ARITY]u32 = undefined,
+    arity: u8,
+};
+
+pub const OwnedLookupPolynomialProgram = struct {
+    allocator: std.mem.Allocator,
+    nodes: []BasePolynomialNode,
+    entries: []LookupPolynomialEntry,
+    column_count: usize,
+    batch_size: usize,
+
+    pub fn deinit(self: *OwnedLookupPolynomialProgram) void {
+        self.allocator.free(self.entries);
+        self.allocator.free(self.nodes);
+        self.* = undefined;
+    }
+
+    pub fn batchCount(self: OwnedLookupPolynomialProgram) usize {
+        return (self.entries.len + self.batch_size - 1) / self.batch_size;
+    }
+
+    pub fn parameterCount(self: OwnedLookupPolynomialProgram) usize {
+        var count = self.batchCount();
+        for (self.entries) |entry| count += 1 + entry.arity;
+        return count;
+    }
+
+    pub fn validate(self: OwnedLookupPolynomialProgram) !void {
+        if (self.column_count == 0 or self.nodes.len == 0 or
+            self.entries.len == 0 or (self.batch_size != 1 and self.batch_size != 2))
+            return error.InvalidLookupPolynomialProgram;
+        for (self.nodes, 0..) |node, index| switch (node.op) {
+            .constant => {},
+            .column => if (node.value >= self.column_count)
+                return error.InvalidLookupPolynomialProgram,
+            .add, .sub, .mul => if (node.lhs >= index or node.rhs >= index)
+                return error.InvalidLookupPolynomialProgram,
+            .neg => if (node.lhs >= index)
+                return error.InvalidLookupPolynomialProgram,
+        };
+        for (self.entries) |entry| {
+            if (entry.arity == 0 or entry.arity > MAX_LOOKUP_POLYNOMIAL_ARITY or
+                entry.numerator >= self.nodes.len)
+                return error.InvalidLookupPolynomialProgram;
+            for (entry.values[0..entry.arity]) |value| if (value >= self.nodes.len)
+                return error.InvalidLookupPolynomialProgram;
+        }
+    }
+};
+
+/// Pairs-batched LogUp transition constraints whose base tuple expressions are
+/// exported from a production typed builder. Parameter order is canonical:
+/// for every entry, `(z, alpha^0, ..., alpha^(arity-1))`, followed by one
+/// claimed sum per batch.
+pub const LookupPolynomialCapabilityV1 = struct {
+    program_id: u64,
+    trace_log_size: u32,
+    selector_tree_index: usize,
+    selector_column: usize,
+    main_tree_index: usize,
+    first_main_column: usize,
+    main_column_count: usize,
+    interaction_tree_index: usize,
+    first_interaction_column: usize,
+    interaction_column_count: usize,
+    export_program: *const fn (
+        ctx: *const anyopaque,
+        allocator: std.mem.Allocator,
+    ) anyerror!OwnedLookupPolynomialProgram,
+    export_parameters: *const fn (
+        ctx: *const anyopaque,
+        allocator: std.mem.Allocator,
+    ) anyerror![]QM31,
+};
+
 /// Reviewed semantic contracts that a backend may accelerate without
 /// identifying a workload or trusting a coincidental vtable address. Each
 /// variant names the complete AIR relation implemented by the accelerated
@@ -79,6 +219,13 @@ pub const BackendCompositionCapability = union(enum) {
         trace_tree_index: usize,
         first_column: usize,
     },
+    /// Direct base-field constraints exported from the frontend's production
+    /// typed AIR builder. Random-coefficient order and vanishing denominators
+    /// remain owned by the generic prover.
+    base_polynomial_v1: BasePolynomialCapabilityV1,
+    /// Pairs-batched LogUp transition constraints over production-exported
+    /// base tuple expressions and committed secure cumulative columns.
+    lookup_polynomial_v1: LookupPolynomialCapabilityV1,
 };
 
 pub const ComponentProverVTable = struct {
@@ -120,6 +267,12 @@ pub const ComponentProver = struct {
         evaluation_accumulator: *accumulation.DomainEvaluationAccumulator,
         pool: *work_pool_mod.WorkPool,
     ) anyerror!void = null,
+    /// When set, every component carrying this flag is evaluated in a
+    /// breadth-first pool phase instead of being launched as a leaf job. This
+    /// avoids nested pool waits for AIRs whose few large components all need
+    /// row-level parallelism. The default retains the component-parallel
+    /// scheduler used by Cairo and other heterogeneous frontends.
+    pool_exclusive_domain: bool = false,
 
     pub inline fn nConstraints(self: ComponentProver) usize {
         return self.vtable.nConstraints(self.ctx);

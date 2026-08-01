@@ -52,24 +52,11 @@ bool stwo_zig_metal_recurrence_composition(
                             @"Metal composition residency handle mismatch");
                 return false;
             }
-            if (resident_tree.residentColumns != nil) {
-                if (trace_address < resident_tree.residentColumnsHostBegin) {
-                    write_error(error_message, error_message_len,
-                                @"Metal composition trace precedes its proof-session tree");
-                    return false;
-                }
-                uintptr_t resident_begin = resident_tree.residentColumnsHostBegin;
-                size_t resident_words = resident_tree.residentColumnsWordCount;
-                size_t offset_bytes = (size_t)(trace_address - resident_begin);
-                if (offset_bytes % sizeof(uint32_t) != 0u ||
-                    offset_bytes / sizeof(uint32_t) > resident_words ||
-                    trace_word_count > resident_words - offset_bytes / sizeof(uint32_t)) {
-                    write_error(error_message, error_message_len,
-                                @"Metal composition trace is outside its proof-session tree");
-                    return false;
-                }
-                trace_buffer = resident_tree.residentColumns;
-                trace_offset = (NSUInteger)offset_bytes;
+            StwoZigResidentColumnBinding resident_binding;
+            if (stwo_zig_tree_resident_column(
+                    @[ resident_tree ], trace_first, trace_word_count, &resident_binding)) {
+                trace_buffer = resident_binding.buffer;
+                trace_offset = (NSUInteger)resident_binding.wordOffset * sizeof(uint32_t);
             }
         }
         if (trace_buffer == nil) {

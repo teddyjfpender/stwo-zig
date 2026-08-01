@@ -547,7 +547,7 @@ theorem lookupProjection
 
 theorem exactProgramIdentity :
     Programs.jalr.source.contentDigest =
-      "1964dff536a67c94e372a72eaf2eaccef250dbca51240e27423073e3e7555e04" ∧
+      "2f8e61070de1a6797802b8de7222f226d67cc0758c7621cff09f1cacadd5e777" ∧
       Programs.jalr.source.family = .jalr ∧
       Programs.jalr.source.nodes.size = 151 ∧
       Programs.jalr.source.events.size = 41 ∧
@@ -2136,7 +2136,7 @@ structure ProductionRefinement
       ]
   programIdentity :
     Programs.jalr.source.contentDigest =
-      "1964dff536a67c94e372a72eaf2eaccef250dbca51240e27423073e3e7555e04"
+      "2f8e61070de1a6797802b8de7222f226d67cc0758c7621cff09f1cacadd5e777"
 
 theorem sound
     (row : Row)

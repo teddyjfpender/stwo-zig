@@ -6,7 +6,6 @@ const protocol_mode = @import("protocol_mode.zig");
 const MetalError = runtime.MetalError;
 const Runtime = runtime.Runtime;
 const CommandEpoch = runtime.CommandEpoch;
-const CommandEpochStats = runtime.CommandEpochStats;
 const ArenaCopyRange = runtime.ArenaCopyRange;
 const DecommitFriRoundParams = runtime.DecommitFriRoundParams;
 const DecommitTraceGroupParams = runtime.DecommitTraceGroupParams;
@@ -330,7 +329,53 @@ pub fn prepareResidentMerkle(
         std.log.err("Metal resident Merkle preparation failed: {s}", .{std.mem.sliceTo(&message, 0)});
         return MetalError.CommitmentFailed;
     };
-    return .{ .handle = handle };
+    return .{ .handle = handle, .lifting_log_size = lifting_log_size };
+}
+
+/// Wraps a page-aligned, allocator-owned commitment arena without copying it.
+/// The caller remains the sole owner of `words`; the returned Metal buffer only
+/// retains a no-copy view and must be destroyed before the allocator frees it.
+pub fn aliasCommitArena(self: *Runtime, words: []@import("stwo_core").fields.m31.M31) MetalError!ResidentBuffer {
+    const byte_length = std.math.mul(usize, words.len, @sizeOf(@import("stwo_core").fields.m31.M31)) catch
+        return MetalError.ColumnTooLarge;
+    if (byte_length == 0 or @as(u64, @intCast(byte_length)) > self.maxBufferLength())
+        return MetalError.ColumnTooLarge;
+    var message: [1024]u8 = [_]u8{0} ** 1024;
+    const handle = ffi.stwo_zig_metal_commit_arena_alias(
+        self.handle,
+        @ptrCast(words.ptr),
+        byte_length,
+        &message,
+        message.len,
+    ) orelse {
+        std.log.err("Metal commitment arena alias failed: {s}", .{std.mem.sliceTo(&message, 0)});
+        return MetalError.CommitmentFailed;
+    };
+    return .{ .handle = handle, .contents = @ptrCast(words.ptr), .byte_length = byte_length };
+}
+
+/// Adopts the Merkle layers materialized by a completed caller-owned epoch.
+/// No command is submitted here. Objective-C consumes proof that this exact
+/// epoch completed this exact plan in this exact arena, and rejects reuse.
+pub fn residentMerkleTreeFromCompletedArena(
+    self: *Runtime,
+    arena: ResidentBuffer,
+    plan: ResidentMerklePlan,
+    epoch: *CommandEpoch,
+) MetalError!Tree {
+    var message: [1024]u8 = [_]u8{0} ** 1024;
+    const handle = ffi.stwo_zig_metal_resident_merkle_tree_from_completed_arena(
+        self.handle,
+        epoch.handle,
+        arena.handle,
+        plan.handle,
+        &message,
+        message.len,
+    ) orelse {
+        std.log.err("Metal completed Merkle arena adoption failed: {s}", .{std.mem.sliceTo(&message, 0)});
+        return MetalError.CommitmentFailed;
+    };
+    return .{ .handle = handle, .runtime_handle = self.handle, .log_size = plan.lifting_log_size };
 }
 
 pub fn residentMerklePrepared(self: *Runtime, arena: ResidentBuffer, plan: ResidentMerklePlan) MetalError!f64 {

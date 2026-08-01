@@ -23,8 +23,6 @@ pub const N_FLAG_CONSTRAINTS: usize = 3;
 pub const N_CONSTRAINTS: usize = N_PERMUTATION_CONSTRAINTS + N_FLAG_CONSTRAINTS;
 pub const N_SUMS: usize = 2;
 pub const N_INTERACTION_COLUMNS: usize = N_SUMS * 4;
-pub const Previous = [N_SUMS][4][]M31;
-
 const INPUT_START: usize = 1;
 const TEMP_START: usize = INPUT_START + WIDTH;
 const WIDE_COLUMN: usize = TEMP_START + N_TEMPORARIES;
@@ -66,12 +64,10 @@ pub const Claims = struct {
 
 pub const Interaction = struct {
     columns: [N_INTERACTION_COLUMNS][]M31,
-    previous: Previous,
     claims: Claims,
 
     pub fn deinit(self: *Interaction, allocator: std.mem.Allocator) void {
         freeColumns(allocator, &self.columns);
-        for (&self.previous) |*set| freeColumns(allocator, set);
         self.* = undefined;
     }
 };
@@ -82,18 +78,37 @@ pub fn generateMain(
     log_size: u32,
 ) !Columns {
     const size = @as(usize, 1) << @intCast(log_size);
-    if (calls.len > size) return error.InvalidTraceShape;
     var columns = try allocateColumns(allocator, N_MAIN_COLUMNS, size);
     errdefer freeColumns(allocator, &columns);
-    for (&columns) |column| @memset(column, M31.zero());
+    try generateMainInto(allocator, &columns, calls, log_size);
+    return .{ .values = columns };
+}
+
+/// Writes the exact main trace into caller-owned final storage.
+///
+/// The resident Metal path plans all 445 columns before witness generation, so
+/// allocating another multi-gigabyte column set merely to copy it into that
+/// arena would defeat residency. The ordinary allocator-returning API above is
+/// a thin owner around this same implementation.
+pub fn generateMainInto(
+    allocator: std.mem.Allocator,
+    columns: *[N_MAIN_COLUMNS][]M31,
+    calls: []const Call,
+    log_size: u32,
+) !void {
+    const size = @as(usize, 1) << @intCast(log_size);
+    if (calls.len > size) return error.InvalidTraceShape;
+    for (columns) |column| {
+        if (column.len != size) return error.InvalidTraceShape;
+        @memset(column, M31.zero());
+    }
     const table = try infra.BitReversalTable.init(allocator, log_size);
     defer table.deinit(allocator);
     for (calls, 0..) |call, row_index| {
         const row = fill(call);
         const dst = table.map(row_index);
-        for (row, 0..) |value, column| columns[column][dst] = value;
+        for (row, 0..) |value, column| columns.*[column][dst] = value;
     }
-    return .{ .values = columns };
 }
 
 /// Fill exactly the generated Rust witness row, including degree-reduction
@@ -246,24 +261,19 @@ pub fn generateInteraction(
 
     var columns = try allocateColumns(allocator, N_INTERACTION_COLUMNS, size);
     errdefer freeColumns(allocator, &columns);
-    var previous = try allocatePrevious(allocator, size);
-    errdefer for (&previous) |*set| freeColumns(allocator, set);
     const table = try infra.BitReversalTable.init(allocator, log_size);
     defer table.deinit(allocator);
     for (0..size) |row| {
         const dst = table.map(row);
         for (0..N_SUMS) |sum_index| {
             const current = cumulative[sum_index].sums[row].toM31Array();
-            const prev = cumulative[sum_index].sums[(row + size - 1) % size].toM31Array();
             for (0..4) |coordinate| {
                 columns[sum_index * 4 + coordinate][dst] = current[coordinate];
-                previous[sum_index][coordinate][dst] = prev[coordinate];
             }
         }
     }
     return .{
         .columns = columns,
-        .previous = previous,
         .claims = .{ .sums = .{ cumulative[0].claimed, cumulative[1].claimed } },
     };
 }
@@ -542,17 +552,6 @@ fn allocateColumns(allocator: std.mem.Allocator, comptime n: usize, len: usize) 
         initialized += 1;
     }
     return columns;
-}
-
-fn allocatePrevious(allocator: std.mem.Allocator, len: usize) !Previous {
-    var previous: Previous = undefined;
-    var initialized: usize = 0;
-    errdefer for (previous[0..initialized]) |*set| freeColumns(allocator, set);
-    for (&previous) |*set| {
-        set.* = try allocateColumns(allocator, 4, len);
-        initialized += 1;
-    }
-    return previous;
 }
 
 fn freeColumns(allocator: std.mem.Allocator, columns: []const []M31) void {

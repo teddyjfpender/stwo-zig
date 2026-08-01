@@ -18,8 +18,6 @@ const relations_mod = @import("relation_challenges.zig");
 const state_chain = @import("../runner/state_chain.zig");
 
 const CirclePointQM31 = circle.CirclePointQM31;
-const EMPTY_PREVIOUS: [interaction.N_INTERACTION_COLUMNS][]const M31 =
-    .{&.{}} ** interaction.N_INTERACTION_COLUMNS;
 
 pub const Evaluation = struct {
     values: [interaction.N_SUMS + 3]QM31,
@@ -38,7 +36,6 @@ pub const ClockUpdateComponent = struct {
     interaction_col_offset: usize,
     relations: *const relations_mod.Relations,
     claims: [interaction.N_SUMS]QM31,
-    previous: [interaction.N_INTERACTION_COLUMNS][]const M31 = EMPTY_PREVIOUS,
 
     const Adapter = core_air_derive.ComponentAdapter(
         @This(),
@@ -64,7 +61,6 @@ pub const ClockUpdateComponent = struct {
             interaction_col_offset,
             relations,
             claims,
-            EMPTY_PREVIOUS,
         );
     }
 
@@ -76,12 +72,7 @@ pub const ClockUpdateComponent = struct {
         interaction_col_offset: usize,
         relations: *const relations_mod.Relations,
         claims: [interaction.N_SUMS]QM31,
-        previous: [interaction.N_INTERACTION_COLUMNS][]const M31,
     ) !ClockUpdateComponent {
-        const size = @as(usize, 1) << @intCast(log_size);
-        for (previous) |column| {
-            if (column.len != size) return error.InvalidTraceShape;
-        }
         return init(
             log_size,
             is_first_col_idx,
@@ -90,7 +81,6 @@ pub const ClockUpdateComponent = struct {
             interaction_col_offset,
             relations,
             claims,
-            previous,
         );
     }
 
@@ -102,7 +92,6 @@ pub const ClockUpdateComponent = struct {
         interaction_col_offset: usize,
         relations: *const relations_mod.Relations,
         claims: [interaction.N_SUMS]QM31,
-        previous: [interaction.N_INTERACTION_COLUMNS][]const M31,
     ) ClockUpdateComponent {
         return .{
             .log_size = log_size,
@@ -112,7 +101,6 @@ pub const ClockUpdateComponent = struct {
             .interaction_col_offset = interaction_col_offset,
             .relations = relations,
             .claims = claims,
-            .previous = previous,
         };
     }
 

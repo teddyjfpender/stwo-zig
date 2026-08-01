@@ -29,6 +29,7 @@
     "prover_engine",
     "recipes",
     "recovery",
+    "riscv_polynomial_codegen",
     "runtime",
     "shaders",
     "shared_runtime",

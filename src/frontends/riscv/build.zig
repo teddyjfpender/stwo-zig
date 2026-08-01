@@ -40,6 +40,13 @@ pub fn build(b: *std.Build) void {
 
     const tests = b.addTest(.{ .root_module = frontend });
     const run_tests = b.addRunArtifact(tests);
+    // ReleaseFast production skips the duplicate pre-commit semantic pass.
+    // The package CI lane opts back in so the validator and its exact
+    // InvalidSemanticWitness verdict remain exercised in the shipping mode.
+    run_tests.setEnvironmentVariable(
+        "STWO_ZIG_RISCV_AUDIT_OPCODE_WITNESS",
+        "1",
+    );
     // The floor reads the run's test-name table, which only the invocation that
     // actually executed the binary populates: a cache hit leaves it null and the
     // floor would then have to fail closed on every repeat of a correct run.

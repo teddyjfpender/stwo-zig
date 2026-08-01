@@ -20,7 +20,6 @@ const merkle_node = @import("merkle_node.zig");
 const poseidon2_air = @import("poseidon2_air.zig");
 
 const CirclePointQM31 = circle.CirclePointQM31;
-const EMPTY_PREV: [4][]const M31 = .{ &.{}, &.{}, &.{}, &.{} };
 const N_POSEIDON_SHELL_CONSTRAINTS: usize = 3;
 const N_POSEIDON_COMPONENT_CONSTRAINTS: usize =
     poseidon2_air.N_CONSTRAINTS + N_POSEIDON_SHELL_CONSTRAINTS + poseidon2_air.N_SUMS;
@@ -38,10 +37,6 @@ pub const HashComponent = struct {
     relations: *const relations_mod.Relations,
     merkle_claims: [merkle_node.N_SUMS]QM31 = .{QM31.zero()} ** merkle_node.N_SUMS,
     poseidon_claims: [poseidon2_air.N_SUMS]QM31 = .{QM31.zero()} ** poseidon2_air.N_SUMS,
-    s_merkle_prev: [merkle_node.N_SUMS][4][]const M31 =
-        .{EMPTY_PREV} ** merkle_node.N_SUMS,
-    s_poseidon_prev: [poseidon2_air.N_SUMS][4][]const M31 =
-        .{EMPTY_PREV} ** poseidon2_air.N_SUMS,
 
     const Adapter = core_air_derive.ComponentAdapter(
         @This(),

@@ -240,9 +240,6 @@ fn proveStages(
     var interaction_claim_owned = true;
     defer if (interaction_claim_owned) allocator.destroy(interaction_claim);
 
-    workspace.beginInteractionScratch();
-    defer workspace.releaseInteractionScratch(allocator);
-
     try interaction_trace.generateAndCommit(
         Engine,
         allocator,

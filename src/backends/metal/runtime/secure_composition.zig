@@ -122,6 +122,7 @@ fn recurrenceShape(components: []const ComponentProver, trace: *const Trace) ?Re
     const capability = component.backend_composition_capability orelse return null;
     const recurrence = switch (capability) {
         .quadratic_sum_squares_v1 => |value| value,
+        else => return null,
     };
     if (recurrence.first_column != 0 or
         recurrence.trace_tree_index >= trace.polys.items.len) return null;

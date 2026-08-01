@@ -19,6 +19,7 @@ const prover_air_accumulation = @import("stwo_prover_engine").air.accumulation;
 const prover_component = @import("stwo_prover_engine").air.component_prover;
 const prover_poly = @import("stwo_prover_engine").poly.circle.poly;
 const prover_twiddles = @import("stwo_prover_engine").poly.twiddles;
+const runtime_program = @import("extract/runtime_program.zig");
 const semantic_eval = @import("semantic_eval.zig");
 const trace = @import("../runner/trace.zig");
 
@@ -59,7 +60,28 @@ pub const SemanticComponent = struct {
     }
 
     pub fn asProverComponent(self: *const @This()) prover_component.ComponentProver {
-        return Adapter.asProverComponent(self);
+        var component = Adapter.asProverComponent(self);
+        component.backend_composition_capability = .{
+            .base_polynomial_v1 = .{
+                .program_id = (@as(u64, 1) << 32) | @intFromEnum(self.family),
+                .trace_log_size = self.log_size,
+                .selector_tree_index = 0,
+                .selector_column = self.is_active_col_idx,
+                .main_tree_index = 1,
+                .first_main_column = self.main_col_offset,
+                .main_column_count = self.mainColumnCount(),
+                .export_program = exportRuntimeProgram,
+            },
+        };
+        return component;
+    }
+
+    fn exportRuntimeProgram(
+        ctx: *const anyopaque,
+        allocator: std.mem.Allocator,
+    ) !prover_component.OwnedBasePolynomialProgram {
+        const self: *const SemanticComponent = @ptrCast(@alignCast(ctx));
+        return runtime_program.build(allocator, self.family);
     }
 
     pub fn mainColumnCount(self: *const @This()) usize {
@@ -227,19 +249,22 @@ pub const SemanticComponent = struct {
         defer allocator.free(accumulators);
         const column_accumulator = &accumulators[0];
         const denominator_shift: std.math.Log2Int(usize) = @intCast(self.log_size);
+        const powers = column_accumulator.random_coeff_powers;
         for (0..eval_size) |row| {
-            var sampled: [trace.MAX_FAMILY_COLUMNS]QM31 = undefined;
+            var sampled: [trace.MAX_FAMILY_COLUMNS]semantic_eval.BaseScalar = undefined;
             for (sampled[0..n_main], evaluations[1..]) |*value, column| {
-                value.* = QM31.fromBase(column[row]);
+                value.* = semantic_eval.BaseScalar.fromBase(column[row]);
             }
-            const evaluation = try self.evaluateRow(
+            const evaluation = try semantic_eval.BaseEval.evaluate(
+                self.family,
                 sampled[0..n_main],
-                QM31.fromBase(evaluations[0][row]),
+                semantic_eval.BaseScalar.fromBase(evaluations[0][row]),
             );
             var folded = QM31.zero();
             for (evaluation.values[0..evaluation.len], 0..) |constraint, index| {
-                const powers = column_accumulator.random_coeff_powers;
-                folded = folded.add(powers[powers.len - 1 - index].mul(constraint));
+                folded = folded.add(
+                    powers[powers.len - 1 - index].mulM31(constraint.value),
+                );
             }
             column_accumulator.accumulate(
                 row,

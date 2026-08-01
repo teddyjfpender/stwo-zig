@@ -128,7 +128,7 @@ discoverable and so nothing can activate it by accident — not because it can
 run.
 
 - **Lane:** the RV32IM frontend on the Metal backend
-  (`rv32im-zkvm-v1+lifted-pcs-v1+metal-runtime-v1`), built by
+  (`rv32im-zkvm-v1+lifted-pcs-v1+metal-runtime-v2+authenticated-core-aot-v2`), built by
   `zig build riscv-metal-bench`.
 - **State:** `enabled: false`, `promotion_eligible: false`. The product is
   `parity_gated`; the installed benchmark prints human-readable output and
