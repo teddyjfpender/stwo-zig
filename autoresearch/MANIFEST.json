@@ -2290,7 +2290,7 @@
         "statistic": "median",
         "window": 5
       },
-      "note": "TRACKS §3.5/§3.6. sequential_stop.enabled arms the pre-registered spending rule on scored paired runs; the T1 iterate path arms it explicitly because T1 never ranks. Absent this block the runner keeps pre-ladder fixed min/max-round behavior. Tier cost targets are CI-checked per track by scripts/check_tier_cost_targets.py."
+      "note": "TRACKS §3.5/§3.6. sequential_stop.enabled arms the pre-registered spending rule on scored paired runs; the T1 iterate path arms it explicitly because T1 never ranks. Absent this block the runner keeps pre-ladder fixed min/max-round behavior. Tier cost targets are checked per track by autoresearch/scripts/check_tier_cost_targets.py."
     }
   },
   "qualification_policy": {

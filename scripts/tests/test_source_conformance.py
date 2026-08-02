@@ -643,7 +643,6 @@ class SourceConformanceTests(unittest.TestCase):
             "scripts/native_proof_matrix.py",
             "scripts/profile_smoke.py",
             "scripts/check_riscv_release_contract.py",
-            "scripts/riscv_release_evidence.py",
             "scripts/riscv_release_gate.py",
         }
         self.assertEqual(expected, set(ACTIVE_FORMAL_EVIDENCE_ROOTS))

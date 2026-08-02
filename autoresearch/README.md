@@ -39,6 +39,9 @@ autoresearch/
   submissions/         one directory per submission, landed by PR
   notes/               standalone working notes (searchable via the CLI)
   cli/                 stwo-perf (harness) and stwo-prof (profiling) CLIs
+  scripts/             owner-operated research policy entrypoints
+  benchmarks/          legacy comparisons and diagnostic benchmark drivers
+  tools/               peer/profiling helpers used only by autoresearch
   backend/             GitHub identity, scoped keys, intake store, and queue workers
   bots/                validate / qualify / intake / judge / promote entrypoints
   workflows/           GitHub Actions to copy into .github/workflows/

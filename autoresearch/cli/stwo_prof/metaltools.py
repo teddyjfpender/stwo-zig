@@ -11,7 +11,12 @@ from pathlib import Path
 from .scaffold import scratch_root
 from .zigtools import ProfError
 
-RUNNER_SOURCE = Path(__file__).resolve().parents[3] / "tools" / "metal-prof-runner" / "runner.m"
+RUNNER_SOURCE = (
+    Path(__file__).resolve().parents[2]
+    / "tools"
+    / "metal-prof-runner"
+    / "runner.m"
+)
 
 
 def runner_binary() -> Path:

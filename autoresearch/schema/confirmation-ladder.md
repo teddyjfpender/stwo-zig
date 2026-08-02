@@ -308,7 +308,7 @@ Exit code 1 means "T1 is not scheduled".
 
 ## 7. Tier cost targets in CI (§3.6)
 
-`scripts/check_tier_cost_targets.py` reads the recorded telemetry —
+`autoresearch/scripts/check_tier_cost_targets.py` reads the recorded telemetry —
 `score.portfolio.measurement_seconds` from claimed (T2) and judged (T3)
 verdicts, `measurement_seconds` from T0/T1 ladder documents — aggregates the
 last `cost_telemetry.window` observations per `(track, tier)` with
@@ -325,4 +325,4 @@ Wiring: `autoresearch/tests/test_tier_cost_targets.py` invokes the check over
 the repository, and the `autoresearch-validate` workflow already runs
 `python3 -m unittest discover -s autoresearch/tests`, so the target is enforced
 on every PR without adding a workflow step. Run it by hand with
-`python3 scripts/check_tier_cost_targets.py`.
+`python3 autoresearch/scripts/check_tier_cost_targets.py`.

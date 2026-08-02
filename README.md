@@ -280,7 +280,7 @@ python3 scripts/install_hooks.py
 | | |
 | :--- | :--- |
 | **[Conformance](conformance/upstream.md)** | Pinned oracle revisions, API parity ledger, and the source-conformance baseline |
-| **[RISC-V release goal](conformance/2026-07-18-riscv-release-goal.md)** | Executable checkpoints, evidence requirements, and the fail-closed promotion contract |
+| **[RISC-V Sail contract](conformance/2026-07-26-riscv-sail-contract.md)** | Normative executable ISA authority and fail-closed evidence contract |
 | **[RISC-V verification status](soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md)** | Normative theorem boundary, claim ledger, and remaining FV roadmap |
 | **[Soundness evidence log](soundness/ROADMAP.md)** | Dated adversarial findings, fixes, and supporting engineering evidence |
 | **[Independent proof validation](soundness/INDEPENDENT_PROOF_SYSTEM_VALIDATION.md)** | Second-verifier, mutation-corpus, and external PCS/FRI/Fiat–Shamir review scope |

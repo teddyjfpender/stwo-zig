@@ -60,8 +60,8 @@ a reused or missing pin.
 Validate and inspect the current plan without building a prover:
 
 ```sh
-python3 scripts/cairo_csp_comparison.py
-python3 scripts/cairo_csp_comparison.py --json
+python3 autoresearch/benchmarks/cairo_csp_comparison.py
+python3 autoresearch/benchmarks/cairo_csp_comparison.py --json
 python3 scripts/cairo_csp_fixtures.py
 zig build cairo-csp-fixtures
 ```
@@ -78,7 +78,7 @@ gate. Both forms currently fail by design rather than timing a source-only or
 near-match row:
 
 ```sh
-python3 scripts/cairo_csp_comparison.py --require-runnable
+python3 autoresearch/benchmarks/cairo_csp_comparison.py --require-runnable
 python3 scripts/cairo_csp_fixtures.py --require-runnable
 zig build cairo-csp-runnable
 ```

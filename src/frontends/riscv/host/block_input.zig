@@ -1,7 +1,9 @@
 //! Ethereum block input loading for the host runtime.
 //!
-//! Loads pre-serialized block input files (produced by the
-//! `prepare-block-input` tool) for use with the HostRuntime.
+//! Loads caller-produced serialized block input files for use with the
+//! HostRuntime. Serialization belongs to the application that owns the guest
+//! schema; the frontend deliberately does not ship an Ethereum-specific
+//! generator.
 
 const std = @import("std");
 

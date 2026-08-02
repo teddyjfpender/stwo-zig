@@ -21,7 +21,8 @@
           "scripts.tests.test_focused_ci_contract",
           "scripts.tests.test_ci_package_graph",
           "scripts.tests.test_ci_scope_push",
-          "scripts.tests.test_ci_touchpoint_prefixes"
+          "scripts.tests.test_ci_touchpoint_prefixes",
+          "scripts.tests.test_tooling_surface"
         ],
         [
           "python3",
@@ -873,6 +874,46 @@
     },
     {
       "prefixes": [
+        "conformance/tooling-surface-v1.json"
+      ],
+      "lanes": [
+        "script_contracts"
+      ]
+    },
+    {
+      "prefixes": [
+        "tools/cairo-witness-compiler",
+        "tools/stwo-cairo-air-compiler",
+        "tools/stwo-cairo-trace-oracle"
+      ],
+      "lanes": [
+        "script_contracts",
+        "cairo_frontend"
+      ]
+    },
+    {
+      "prefixes": [
+        "tools/stwo-cairo-official-verifier-rs",
+        "tools/stwo-cairo-verifier-rs",
+        "tools/stwo-cairo-vm-adapter-rs"
+      ],
+      "lanes": [
+        "script_contracts",
+        "cairo_cpu"
+      ]
+    },
+    {
+      "prefixes": [
+        "tools/stwo-air-derive-vector-gen",
+        "tools/stwo-cf-vector-gen",
+        "tools/stwo-vector-gen"
+      ],
+      "lanes": [
+        "script_contracts"
+      ]
+    },
+    {
+      "prefixes": [
         "tools/stwo-interop-rs"
       ],
       "lanes": [
@@ -1114,8 +1155,7 @@
         "scripts/cuda_proof_parity_gate.py",
         "scripts/cuda_recorded_witness_product.py",
         "scripts/cuda_source_closure.py",
-        "tests/cuda",
-        "tools/stwo-cuda-adapter-rs"
+        "tests/cuda"
       ],
       "lanes": [
         "script_contracts",
@@ -1124,6 +1164,15 @@
         "package",
         "native_cuda_static",
         "native_cuda_device"
+      ]
+    },
+    {
+      "prefixes": [
+        "tools/stwo-cuda-adapter-rs"
+      ],
+      "lanes": [
+        "script_contracts",
+        "native_cuda_static"
       ]
     },
     {
@@ -1160,6 +1209,31 @@
     },
     {
       "prefixes": [
+        "scripts",
+        "tools"
+      ],
+      "lanes": [
+        "script_contracts"
+      ]
+    },
+    {
+      "prefixes": [
+        "build_support"
+      ],
+      "lanes": [
+        "build_graph"
+      ]
+    },
+    {
+      "prefixes": [
+        "formal"
+      ],
+      "lanes": [
+        "script_contracts"
+      ]
+    },
+    {
+      "prefixes": [
         "soundness"
       ],
       "lanes": [
@@ -1185,43 +1259,7 @@
       ],
       "lanes": [
         "script_contracts",
-        "build_graph",
-        "core",
-        "backend_contracts",
-        "prover_api",
-        "prover",
-        "riscv_frontend",
-        "sm83_frontend",
-        "riscv_cpu_integration",
-        "sm83_cpu_integration",
-        "cairo_frontend",
-        "cairo_cpu_integration",
-        "cpu_backend",
-        "cuda_backend",
-        "metal_backend",
-        "riscv_metal_integration",
-        "sm83_metal_integration",
-        "cairo_metal_integration",
-        "metal_session",
-        "proof_wire",
-        "native_examples",
-        "native_cuda_integration",
-        "cairo_cuda_integration",
-        "package",
-        "native_cpu",
-        "native_oracle",
-        "riscv_cpu",
-        "riscv_metal",
-        "cairo_cpu",
-        "cairo_metal",
-        "aggregate_cpu",
-        "deferred",
-        "native_cuda_static",
-        "native_cuda_device",
-        "native_metal",
-        "aggregate_metal",
-        "metal_compile",
-        "metal_aot"
+        "build_graph"
       ]
     }
   ],

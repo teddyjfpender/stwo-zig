@@ -46,8 +46,8 @@ pub const Options = struct {
         );
         return .{
             .aggregate_metal = b.option(bool, "aggregate-metal", "Explicitly link Metal into aggregate test roots") orelse false,
-            .riscv_release_phase = b.option([]const u8, "riscv-release-phase", "CP-13 phase: candidate or promoted") orelse "candidate",
-            .riscv_evidence_dir = b.option([]const u8, "riscv-evidence-dir", "Fresh CP-13 evidence directory") orelse "zig-out/release-evidence/riscv",
+            .riscv_release_phase = b.option([]const u8, "riscv-release-phase", "RISC-V release phase: candidate or promoted") orelse "candidate",
+            .riscv_evidence_dir = b.option([]const u8, "riscv-evidence-dir", "Fresh RISC-V release evidence directory") orelse "zig-out/release-evidence/riscv",
             .riscv_refinement_ir_dir = b.option(
                 []const u8,
                 "riscv-refinement-ir-dir",

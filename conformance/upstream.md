@@ -66,15 +66,13 @@ An oracle that accepts an unsound AIR cannot arbitrate AIR soundness, so agreeme
 longer evidence of correctness on those surfaces and disagreement with it is no longer evidence
 of a defect.
 
-The pre-Sail CP-11 producer, bundle, challenge, owner-dispatch inputs, and fast
-producer-linked smoke profile are retired. Their top-level CLIs fail closed,
-and `contract.receipt_errors` rejects even a structurally valid archived
-receipt as current evidence. The old parser and divergence-shape code remain
-read-only so historical bundles can be inspected; no shape can be added to
-authorize release. `scripts/riscv_stark_v_benchmark.py` and the Stark-V side of
-the autoresearch performance lane remain optional performance comparisons
-only. Pinned Sail/Spike evidence and the current Zig constraint/proof suites
-own correctness admission.
+The pre-Sail CP-11 producer, parser, bundle, challenge, owner-dispatch inputs,
+cache, and replay jobs are retired from the production tree. Historical source
+and receipts remain recoverable from Git, but no Stark-V receipt code is
+installed or accepted by a release gate. The Stark-V comparison harness lives at
+`autoresearch/benchmarks/riscv_stark_v_benchmark.py` and remains optional
+performance evidence only. Pinned Sail/Spike evidence and the current Zig
+constraint/proof suites own correctness admission.
 
 Pins:
 

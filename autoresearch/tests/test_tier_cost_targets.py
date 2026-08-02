@@ -1,9 +1,9 @@
 """Tier cost targets are CI-checked per track (TRACKS §3.6).
 
-This module is also the CI wiring for scripts/check_tier_cost_targets.py: the
-autoresearch-validate workflow runs `python3 -m unittest discover -s
-autoresearch/tests`, so `test_repository_is_within_its_tier_cost_targets`
-enforces the targets on every PR without an extra workflow step.
+This module is the optional research-workflow wiring for
+``autoresearch/scripts/check_tier_cost_targets.py``. A research fork may run
+``python3 -m unittest discover -s autoresearch/tests``; production CI does not
+import this suite.
 """
 
 import contextlib
@@ -17,7 +17,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 
-from scripts.check_tier_cost_targets import (  # noqa: E402
+from autoresearch.scripts.check_tier_cost_targets import (  # noqa: E402
     T0_SCHEMA,
     T1_SCHEMA,
     TierCostError,

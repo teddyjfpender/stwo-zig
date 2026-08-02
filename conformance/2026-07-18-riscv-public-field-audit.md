@@ -1,6 +1,7 @@
 # RISC-V public-field constraint coverage audit
 
-CP-07 closure evidence for `conformance/2026-07-18-riscv-release-goal.md`.
+Public-statement closure evidence for
+`soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md`.
 For every field of `PublicData`, this table names the mechanism that binds it
 beyond transcript mixing (every field is Fiat-Shamir-mixed by
 `PublicData.mixInto` in the pinned oracle's order — mixing alone proves

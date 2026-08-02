@@ -30,7 +30,7 @@ still fail immediately, and cleanup changes must shrink this list.
 
 | Former owner | Resulting owners |
 | --- | --- |
-| `tools/stark-v-trace-dump/src/main.rs` | CLI facade plus `decode`, `elf`, `execute`, and test modules |
+| `tools/stark-v-trace-dump` | Retired after every live caller moved to the production Zig `riscv-trace-dump` and Sail/Spike authorities |
 | `tools/stwo-cairo-verifier-rs/src/lib.rs` | verifier facade plus framing, support, verification, and test modules |
 | `tools/stwo-cairo-verifier-rs/src/compact_codec.rs` | codec facade plus protocol, statement, reconstruction, proof-codec, and test modules |
 | `src/integrations/cairo_metal/arena_binding.zig` | facade plus composition recipe, decommitment, prepared proof/validation, proof assembly, and streaming commitment modules |

@@ -28,7 +28,6 @@ ACTIVE_FORMAL_EVIDENCE_ROOTS = (
     "scripts/native_proof_matrix.py",
     "scripts/profile_smoke.py",
     "scripts/check_riscv_release_contract.py",
-    "scripts/riscv_release_evidence.py",
     "scripts/riscv_release_gate.py",
 )
 # Every active evidence package may consume these stable cross-cutting contracts.
@@ -47,7 +46,6 @@ PYTHON_CONTROLLER_ROOTS = {
 }
 # Higher-level evidence packages may additionally consume these lower-level contracts.
 PYTHON_LIBRARY_DEPENDENCIES = {
-    "autoresearch_activation_lib": frozenset({"riscv_release_gate_lib"}),
     "architecture_host_gate_lib": frozenset({
         "benchmark_delta_lib",
         "build_architecture_receipt_lib",
@@ -55,14 +53,7 @@ PYTHON_LIBRARY_DEPENDENCIES = {
         "metal_core_aot_receipt_lib",
         "product_closure",
         "product_identity_lib",
-        "riscv_release_challenge_lib",
     }),
-    "riscv_release_challenge_lib": frozenset({
-        "riscv_release_oracle_lib",
-        "riscv_staged_smoke_lib",
-    }),
-    "riscv_release_oracle_lib": frozenset({"riscv_trace_vectors_lib"}),
-    "riscv_release_gate_lib": frozenset({"riscv_trace_vectors_lib"}),
     "riscv_operand_classes_lib": frozenset({
         "riscv_equivalence_lib",
         "riscv_sail_oracle_lib",

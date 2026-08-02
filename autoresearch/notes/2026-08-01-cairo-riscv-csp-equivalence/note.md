@@ -99,7 +99,7 @@ is needed; the existing builtins are not substitutions. No solver is relevant.
 Selected transfer, integration boundary, and rejected alternatives:
 
 The selected first slice is a versioned manifest and strict stdlib-only driver,
-[`scripts/cairo_csp_comparison.py`](../../../scripts/cairo_csp_comparison.py),
+[`autoresearch/benchmarks/cairo_csp_comparison.py`](../../benchmarks/cairo_csp_comparison.py),
 which authenticates the RISC-V manifest, exact input files, retained verified
 outputs, proof/statement digests, PR 171 provenance, corelib pins, field/curve
 classification, and future Cairo artifact requirements. It refuses timing when

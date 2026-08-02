@@ -1,1 +1,1 @@
-"""Fail-closed CP-13 release-gate contracts for the RISC-V lane."""
+"""Fail-closed Sail-backed release-gate contracts for the RISC-V lane."""
