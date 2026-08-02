@@ -57,6 +57,7 @@ else:
 CHECKS = (
     check_export_provenance,
     audit_exported_families,
+    check_compact_read_accesses,
     check_lh_witnesses,
     check_load_witnesses,
     check_div_witnesses,

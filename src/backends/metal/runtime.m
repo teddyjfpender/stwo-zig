@@ -720,7 +720,7 @@ static StwoZigMetalRuntime *create_runtime_from_library(
         // BEGIN GENERATED RISC-V POLYNOMIAL PIPELINES.
         // Keep this block in manifest order. Each content-addressed function
         // name is bound once so the runtime initializer remains auditable.
-        NSString *riscvPolynomialName00 = @"stwo_zig_base_poly_7bce7473ee2f62288eceb8a3377d4634";
+        NSString *riscvPolynomialName00 = @"stwo_zig_base_poly_450551d90acd324ebbd24fcf112b6e2a";
         runtime.riscvPolynomialPipelines[riscvPolynomialName00] = make_pipeline(
             device, library, riscvPolynomialName00, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName00] == nil) return NULL;
@@ -768,7 +768,7 @@ static StwoZigMetalRuntime *create_runtime_from_library(
         runtime.riscvPolynomialPipelines[riscvPolynomialName11] = make_pipeline(
             device, library, riscvPolynomialName11, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName11] == nil) return NULL;
-        NSString *riscvPolynomialName12 = @"stwo_zig_base_poly_538cf123d369ae7e3fa5e0cfe6a0a976";
+        NSString *riscvPolynomialName12 = @"stwo_zig_base_poly_373e28e4ebf898ce291ed734807dfa00";
         runtime.riscvPolynomialPipelines[riscvPolynomialName12] = make_pipeline(
             device, library, riscvPolynomialName12, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName12] == nil) return NULL;
@@ -788,7 +788,7 @@ static StwoZigMetalRuntime *create_runtime_from_library(
         runtime.riscvPolynomialPipelines[riscvPolynomialName16] = make_pipeline(
             device, library, riscvPolynomialName16, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName16] == nil) return NULL;
-        NSString *riscvPolynomialName17 = @"stwo_zig_lookup_poly_f6f449b57d5a9c234b4276d588b695a2";
+        NSString *riscvPolynomialName17 = @"stwo_zig_lookup_poly_d3393528172e2c1fd4dfbdc4e0d47c8a";
         runtime.riscvPolynomialPipelines[riscvPolynomialName17] = make_pipeline(
             device, library, riscvPolynomialName17, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName17] == nil) return NULL;
@@ -836,7 +836,7 @@ static StwoZigMetalRuntime *create_runtime_from_library(
         runtime.riscvPolynomialPipelines[riscvPolynomialName28] = make_pipeline(
             device, library, riscvPolynomialName28, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName28] == nil) return NULL;
-        NSString *riscvPolynomialName29 = @"stwo_zig_lookup_poly_3d43f646d7e0de973374db1d7e9ffe16";
+        NSString *riscvPolynomialName29 = @"stwo_zig_lookup_poly_3fe627edfd1799423093b8b5e01e44bc";
         runtime.riscvPolynomialPipelines[riscvPolynomialName29] = make_pipeline(
             device, library, riscvPolynomialName29, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName29] == nil) return NULL;

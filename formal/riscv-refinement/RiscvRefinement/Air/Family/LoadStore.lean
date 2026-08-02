@@ -21,13 +21,13 @@ Modelling conventions, stated once:
   scalar column by its **canonical representative** in `[0, M31)` as a `Nat`.
   Modelling a boolean column as `Bool` discharges its `x * (x - 1) = 0`
   constraint by typing; that is noted at each such constraint below.
-* `src_addr` and `dst_addr` (columns 2 and 22 of the export) appear in no
+* `src_addr` and `dst_addr` (columns 2 and 18 of the export) appear in no
   constraint and in no lookup, so they are not modelled here.
-* `destination_inverse` (column 55) occurs only in the destination-witness
-  constraints C58-C60, whose joint content is the single equation
+* `destination_inverse` (column 47) occurs only in the destination-witness
+  constraints C50-C52, whose joint content is the single equation
   `destination_nonzero = [r2_idx ≠ 0]`; it is therefore folded away exactly as
   `RiscvRefinement.Air.Generated.LuiHolds` folds it for `LUI`.
-* `src_addr_selector` and `dst_addr_selector` (columns 36 and 37) are *defined*
+* `src_addr_selector` and `dst_addr_selector` (columns 28 and 29) are *defined*
   by constraints C16 and C17 from the memory address and `r2_idx`, so they are
   derived functions here rather than committed fields.
 
@@ -42,7 +42,7 @@ open RiscvRefinement
 
 /-- SHA-256 of the exported production symbolic AIR this file transcribes. -/
 def loadStoreIrDigest : String :=
-  "cadb1b662ec30864615aa84541c1bcd863e921f306446ea1c7a328c650180b20"
+  "157254ef806da05107bc89142dd488030bc8f8912bd6872ccf898fed6876a62e"
 
 /-- The base field the production AIR evaluates in. -/
 def m31Modulus : Nat := 2147483647
@@ -78,15 +78,11 @@ structure LoadStoreRow where
   rs1Previous : WordBytes
   /-- `rs1_previous_clock`. -/
   rs1PreviousClock : Nat
-  /-- `rs1_next_*`. -/
-  rs1Next : WordBytes
   /-- `src_previous_*`: the source access block's consumed limbs. For a load
   this is the memory word being read, for a store the `rs2` register cell. -/
   srcPrevious : WordBytes
   /-- `src_previous_clock`. -/
   srcPreviousClock : Nat
-  /-- `src_next_*`. -/
-  srcNext : WordBytes
   /-- `r2_idx`: `rd` for a load and `rs2` for a store; pinned to a register
   index by the program relation. -/
   r2Idx : RegisterIndex
@@ -127,11 +123,18 @@ structure LoadStoreRow where
   result : WordBytes
   /-- `destination_nonzero`. -/
   destinationNonzero : Bool
-  /-- `bus_value_57`: the emitted next program counter. -/
-  claimedNextPc : Word
 deriving DecidableEq, Repr
 
 namespace LoadStoreRow
+
+/-- The base-register source is a read-only access and is committed once. -/
+@[simp] def rs1Next (row : LoadStoreRow) : WordBytes := row.rs1Previous
+
+/-- The load/store source is a read-only access and is committed once. -/
+@[simp] def srcNext (row : LoadStoreRow) : WordBytes := row.srcPrevious
+
+/-- The emitted program counter is derived by the production AIR. -/
+@[simp] def claimedNextPc (row : LoadStoreRow) : Word := nextPc row.pc
 
 /-- `is_store = is_sb + is_sh + is_sw`. Under C69 at most one flag is set, so
 the field sum and the boolean disjunction agree. -/
@@ -198,7 +201,7 @@ def memoryBefore (row : LoadStoreRow) : WordBytes :=
 
 /-- The memory word the access emits. -/
 def memoryAfter (row : LoadStoreRow) : WordBytes :=
-  if row.isStore then row.dstNext else row.srcNext
+  if row.isStore then row.dstNext else row.srcPrevious
 
 /-- The register cell `r2_idx` names: `dst` for a load, `src` for a store. -/
 def operandBefore (row : LoadStoreRow) : WordBytes :=
@@ -206,7 +209,7 @@ def operandBefore (row : LoadStoreRow) : WordBytes :=
 
 /-- The register cell `r2_idx` emits. -/
 def operandAfter (row : LoadStoreRow) : WordBytes :=
-  if row.isStore then row.srcNext else row.dstNext
+  if row.isStore then row.srcPrevious else row.dstNext
 
 /-- The previous clock of the memory access block. -/
 def memoryPreviousClock (row : LoadStoreRow) : Nat :=
@@ -278,20 +281,20 @@ structure LoadStoreHolds (row : LoadStoreRow) : Prop where
   base field, and L06 pins that selector to `4 * aligned_quarter`. The right
   hand side is below `2^22 + 4`, hence already canonical. -/
   memoryAddress :
-    (row.rs1Next.value + row.immFelt) % m31Modulus =
+    (row.rs1Previous.value + row.immFelt) % m31Modulus =
       row.alignedAddress + row.shiftAmount
   /-- `imm_felt` is a base-field element. -/
   immFeltRange : row.immFelt < m31Modulus
   /-- L07, first component: `rs1_next_0` is a byte (typing) and, second
   component, `rs1_next_3` is a seven-bit value. -/
-  baseHighLimbRange : row.rs1Next.limb3.toNat < 128
+  baseHighLimbRange : row.rs1Previous.limb3.toNat < 128
   /-- C69: every placed row pins the high byte of the base register to zero.
   This keeps the full signed-12-bit address calculation inside the M31 field. -/
-  baseHighLimbZero : row.rs1Next.limb3 = 0
+  baseHighLimbZero : row.rs1Previous.limb3 = 0
   /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`, which is
   exactly what keeps `compose(rs1_next)` below the modulus. -/
   baseLimbsCanonical :
-    row.rs1Next.limb0.toNat ≠ 255 ∨ row.rs1Next.limb3.toNat ≠ 127
+    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
   byteLoadExtension :
     row.isByteLoad = true →
@@ -301,17 +304,17 @@ structure LoadStoreHolds (row : LoadStoreRow) : Prop where
   /-- C24, C26, C28, C30: `load_b * (result_0 - src_next_i) * markers_i = 0`. -/
   byteLoadSelect :
     row.isByteLoad = true →
-      (row.marker0 = true → row.result.limb0 = row.srcNext.limb0) ∧
-        (row.marker1 = true → row.result.limb0 = row.srcNext.limb1) ∧
-        (row.marker2 = true → row.result.limb0 = row.srcNext.limb2) ∧
-        (row.marker3 = true → row.result.limb0 = row.srcNext.limb3)
+      (row.marker0 = true → row.result.limb0 = row.srcPrevious.limb0) ∧
+        (row.marker1 = true → row.result.limb0 = row.srcPrevious.limb1) ∧
+        (row.marker2 = true → row.result.limb0 = row.srcPrevious.limb2) ∧
+        (row.marker3 = true → row.result.limb0 = row.srcPrevious.limb3)
   /-- C25, C27, C29, C31: `is_sb * (dst_next_i - src_next_0) * markers_i = 0`. -/
   byteStoreSelect :
     row.isSb = true →
-      (row.marker0 = true → row.dstNext.limb0 = row.srcNext.limb0) ∧
-        (row.marker1 = true → row.dstNext.limb1 = row.srcNext.limb0) ∧
-        (row.marker2 = true → row.dstNext.limb2 = row.srcNext.limb0) ∧
-        (row.marker3 = true → row.dstNext.limb3 = row.srcNext.limb0)
+      (row.marker0 = true → row.dstNext.limb0 = row.srcPrevious.limb0) ∧
+        (row.marker1 = true → row.dstNext.limb1 = row.srcPrevious.limb0) ∧
+        (row.marker2 = true → row.dstNext.limb2 = row.srcPrevious.limb0) ∧
+        (row.marker3 = true → row.dstNext.limb3 = row.srcPrevious.limb0)
   /-- C32-C33: `load_h * (signed_mask - result_i) = 0` for `i ∈ {2,3}`. -/
   halfLoadExtension :
     row.isHalfLoad = true →
@@ -320,34 +323,29 @@ structure LoadStoreHolds (row : LoadStoreRow) : Prop where
   The gate is `1` exactly when `shift_id = 1`. -/
   halfLoadLow :
     row.isHalfLoad = true → row.shiftId = 1 →
-      row.result.limb0 = row.srcNext.limb0 ∧
-        row.result.limb1 = row.srcNext.limb1
+      row.result.limb0 = row.srcPrevious.limb0 ∧
+        row.result.limb1 = row.srcPrevious.limb1
   /-- C36-C37: `load_h * ((shift_id - 1) / 4) * (result_i - src_next_{i+2}) = 0`.
   The gate is `1` exactly when `shift_id = 5`. -/
   halfLoadHigh :
     row.isHalfLoad = true → row.shiftId = 5 →
-      row.result.limb0 = row.srcNext.limb2 ∧
-        row.result.limb1 = row.srcNext.limb3
+      row.result.limb0 = row.srcPrevious.limb2 ∧
+        row.result.limb1 = row.srcPrevious.limb3
   /-- C38-C39. -/
   halfStoreLow :
     row.isSh = true → row.shiftId = 1 →
-      row.dstNext.limb0 = row.srcNext.limb0 ∧
-        row.dstNext.limb1 = row.srcNext.limb1
+      row.dstNext.limb0 = row.srcPrevious.limb0 ∧
+        row.dstNext.limb1 = row.srcPrevious.limb1
   /-- C40-C41. -/
   halfStoreHigh :
     row.isSh = true → row.shiftId = 5 →
-      row.dstNext.limb2 = row.srcNext.limb0 ∧
-        row.dstNext.limb3 = row.srcNext.limb1
+      row.dstNext.limb2 = row.srcPrevious.limb0 ∧
+        row.dstNext.limb3 = row.srcPrevious.limb1
   /-- C42-C45, load half: `is_lw * (result_i - src_next_i) = 0`. -/
-  wordLoad : row.isLw = true → row.result = row.srcNext
+  wordLoad : row.isLw = true → row.result = row.srcPrevious
   /-- C42-C45, store half: `is_sw * (dst_next_i - src_next_i) = 0`. -/
-  wordStore : row.isSw = true → row.dstNext = row.srcNext
-  /-- C46-C49: the base register access is read-only. -/
-  baseReadOnly : row.rs1Next = row.rs1Previous
-  /-- C50-C53: the source access is read-only in both directions. For a load
-  this is the memory-preservation constraint; for a store it is `rs2`. -/
-  sourceReadOnly : row.srcNext = row.srcPrevious
-  /-- C54-C57: `(is_sb + is_sh) * (1 - markers_i) * (dst_next_i - dst_previous_i)`
+  wordStore : row.isSw = true → row.dstNext = row.srcPrevious
+  /-- C46-C49: `(is_sb + is_sh) * (1 - markers_i) * (dst_next_i - dst_previous_i)`
   — an unmarked byte of a partial store survives unchanged. -/
   partialStorePreserve :
     row.isSb = true ∨ row.isSh = true →
@@ -355,15 +353,15 @@ structure LoadStoreHolds (row : LoadStoreRow) : Prop where
         (row.marker1 = false → row.dstNext.limb1 = row.dstPrevious.limb1) ∧
         (row.marker2 = false → row.dstNext.limb2 = row.dstPrevious.limb2) ∧
         (row.marker3 = false → row.dstNext.limb3 = row.dstPrevious.limb3)
-  /-- C58-C60: `nonzero * (nonzero - 1) = 0`, `r2_idx * (1 - nonzero) = 0` and
+  /-- C50-C52: `nonzero * (nonzero - 1) = 0`, `r2_idx * (1 - nonzero) = 0` and
   `r2_idx * inverse - nonzero = 0` jointly say exactly this. -/
   destinationFlag :
     row.destinationNonzero = decide (row.r2Idx ≠ zeroRegister)
-  /-- C61-C64: `is_load * (dst_next_i - nonzero * result_i) = 0`. -/
+  /-- C53-C56: `is_load * (dst_next_i - nonzero * result_i) = 0`. -/
   loadDestination :
     row.isLoad = true →
       row.dstNext = if row.destinationNonzero then row.result else WordBytes.zero
-  /-- C65-C68: `(1 - is_load) * result_i = 0`. -/
+  /-- C57-C60: `(1 - is_load) * result_i = 0`. -/
   storeResultZero : row.isStore = true → row.result = WordBytes.zero
   /-- L14: `range_check_m31` on `(0, result_0 - 128 * src_msb)` forces the
   residual into seven bits, so `src_msb` is bit 7 of the selected byte. -/
@@ -381,8 +379,23 @@ structure LoadStoreHolds (row : LoadStoreRow) : Prop where
   three. -/
   memoryClock :
     validPreviousClock row.memoryPreviousClock (accessClock row.clock 3)
-  /-- C72: `bus_value_57 = pc + 4`. -/
-  nextPcResult : row.claimedNextPc = nextPc row.pc
+
+/-- Compatibility theorem: the compact trace makes the base source read-only
+by construction, rather than by an admitted equality constraint. -/
+theorem LoadStoreHolds.baseReadOnly
+    {row : LoadStoreRow} (_holds : LoadStoreHolds row) :
+    row.rs1Next = row.rs1Previous := rfl
+
+/-- Compatibility theorem: the compact trace makes the second source read-only
+by construction, rather than by an admitted equality constraint. -/
+theorem LoadStoreHolds.sourceReadOnly
+    {row : LoadStoreRow} (_holds : LoadStoreHolds row) :
+    row.srcNext = row.srcPrevious := rfl
+
+/-- Compatibility theorem: next PC is now a derived expression node. -/
+theorem LoadStoreHolds.nextPcResult
+    {row : LoadStoreRow} (_holds : LoadStoreHolds row) :
+    row.claimedNextPc = nextPc row.pc := rfl
 
 /-! ## Normalized retirement and relation tuples -/
 
@@ -396,7 +409,7 @@ def loadStoreRetirement (row : LoadStoreRow) : Retirement where
     else architecturalWrite row.r2Idx row.dstNext.word
   read :=
     if row.isStore then none
-    else some { address := row.busAddress, value := row.srcNext.word }
+    else some { address := row.busAddress, value := row.srcPrevious.word }
   store :=
     if row.isStore then
       some {
@@ -452,7 +465,7 @@ def loadStoreRelations (row : LoadStoreRow) : LoadStoreRelations where
   baseEmit := {
     addr := row.rs1Addr
     clock := accessClock row.clock 1
-    value := row.rs1Next.word
+    value := row.rs1Previous.word
   }
   operandConsume := {
     addr := row.r2Idx

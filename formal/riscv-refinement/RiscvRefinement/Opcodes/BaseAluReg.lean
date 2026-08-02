@@ -198,7 +198,7 @@ structure Refinement
       operand := row.rs2.toNat
     }
   exactProgramLookup :
-    (Air.Bridge.BaseAluReg.evaluation op row witness).lookup? 30 =
+    (Air.Bridge.BaseAluReg.evaluation op row witness).lookup? 22 =
       some (Air.Bridge.BaseAluReg.programLookup op row)
   source1 :
     row.rs1Next.word = environment.pre.registers row.rs1

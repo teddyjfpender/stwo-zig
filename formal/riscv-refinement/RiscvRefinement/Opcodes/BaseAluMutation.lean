@@ -261,7 +261,7 @@ private abbrev witness :=
     false (BitVec.ofNat 5 2) (BitVec.ofNat 5 3)
 
 def wrongStateEmitLookup : EvaluatedLookup where
-  ordinal := 32
+  ordinal := 24
   domain := .registersState
   numerator := 1
   tuple := #[
@@ -276,7 +276,7 @@ def wrongEvaluation (op : Op) : SymbolicEvaluation :=
   let original := Air.Bridge.BaseAluReg.evaluation op row witness
   { original with
     events :=
-      original.events.setIfInBounds 32 (.lookup wrongStateEmitLookup)
+      original.events.setIfInBounds 24 (.lookup wrongStateEmitLookup)
   }
 
 def genericallyAccepted (evaluation : SymbolicEvaluation) : Prop :=
@@ -288,13 +288,13 @@ def withoutStateEmitProjection
     (op : Op)
     (evaluation : SymbolicEvaluation) : Prop :=
   genericallyAccepted evaluation ∧
-    evaluation.lookup? 30 =
+    evaluation.lookup? 22 =
       some (Air.Bridge.BaseAluReg.programLookup op row) ∧
-    evaluation.lookup? 31 =
+    evaluation.lookup? 23 =
       some (Air.Bridge.BaseAluReg.stateConsumeLookup row)
 
 def architecturalNextPc (evaluation : SymbolicEvaluation) : Prop :=
-  (evaluation.lookup? 32).bind (fun lookup => lookup.tuple[0]?) =
+  (evaluation.lookup? 24).bind (fun lookup => lookup.tuple[0]?) =
     some
       (Air.Bridge.BaseAluReg.bitVecM31
         (RiscvRefinement.nextPc row.pc))
@@ -303,7 +303,7 @@ def originalAcceptance
     (op : Op)
     (evaluation : SymbolicEvaluation) : Prop :=
   withoutStateEmitProjection op evaluation ∧
-    evaluation.lookup? 32 =
+    evaluation.lookup? 24 =
       some (Air.Bridge.BaseAluReg.stateEmitLookup row)
 
 theorem original_sound
@@ -359,7 +359,7 @@ theorem wrongStateEmit_refutes (op : Op) :
     ¬ architecturalNextPc (wrongEvaluation op) := by
   unfold architecturalNextPc
   have eventBound :
-      32 <
+      24 <
         (Air.Bridge.BaseAluReg.evaluation op row witness).events.size := by
     cases op <;>
       simp [
@@ -378,7 +378,7 @@ theorem wrongStateEmit_refutes (op : Op) :
         Air.Generated.Programs.andSource,
       ]
   have mutatedAt :
-      (wrongEvaluation op).lookup? 32 = some wrongStateEmitLookup := by
+      (wrongEvaluation op).lookup? 24 = some wrongStateEmitLookup := by
     rw [
       wrongEvaluation,
       SymbolicEvaluation.lookup?,

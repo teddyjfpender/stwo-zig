@@ -58,9 +58,9 @@ class LoadHalfwordWitnessTest(unittest.TestCase):
 
     def test_swapped_endian_bytes_are_caught(self):
         assignment, _ = witnesses.load_halfword_row(0x2000, 2, 0x8ABC1234, 7)
-        assignment["src_next_2"], assignment["src_next_3"] = (
-            assignment["src_next_3"],
-            assignment["src_next_2"],
+        assignment["src_value_2"], assignment["src_value_3"] = (
+            assignment["src_value_3"],
+            assignment["src_value_2"],
         )
         with self.assertRaisesRegex(witnesses.WitnessError, "constraint roots"):
             witnesses.check_witness(self.air_ir_dir, "load_store", assignment)
@@ -73,17 +73,14 @@ class LoadHalfwordWitnessTest(unittest.TestCase):
         with self.assertRaisesRegex(witnesses.WitnessError, "constraint roots"):
             witnesses.check_witness(self.air_ir_dir, "load_store", assignment)
 
-    def test_an_unpreserved_memory_word_is_caught(self):
-        assignment, _ = witnesses.load_halfword_row(0x2000, 2, 0x8ABC1234, 7)
-        assignment["src_next_0"] = (assignment["src_next_0"] + 1) % 256
-        with self.assertRaisesRegex(witnesses.WitnessError, "constraint roots"):
-            witnesses.check_witness(self.air_ir_dir, "load_store", assignment)
+    def test_memory_read_only_is_structural(self):
+        report = witnesses.check_compact_read_accesses(self.air_ir_dir)
+        self.assertIn("source consumed/emitted", report)
 
-    def test_an_unpreserved_source_register_is_caught(self):
-        assignment, _ = witnesses.load_halfword_row(0x2000, 2, 0x8ABC1234, 7)
-        assignment["rs1_next_0"] = (assignment["rs1_next_0"] + 1) % 256
-        with self.assertRaisesRegex(witnesses.WitnessError, "constraint roots"):
-            witnesses.check_witness(self.air_ir_dir, "load_store", assignment)
+    def test_base_read_only_is_structural_and_wired_into_the_gate(self):
+        report = witnesses.check_compact_read_accesses(self.air_ir_dir)
+        self.assertIn("base and source", report)
+        self.assertIn(witnesses.check_compact_read_accesses, witnesses.CHECKS)
 
     def test_an_address_beyond_the_admitted_range_fails_its_range_lookup(self):
         # The base-address and aligned-address range requests bound admitted
@@ -309,7 +306,7 @@ class AddressAliasingRegressionTest(unittest.TestCase):
 
     def test_the_aliasing_row_is_rejected_by_the_new_constraint(self):
         report = witnesses.check_address_aliasing_rejected(self.air_ir_dir)
-        self.assertIn("constraint root 69 rejects it", report)
+        self.assertIn("constraint root 61 rejects it", report)
 
     def test_the_counterexample_has_a_nonzero_high_base_byte(self):
         self.assertNotEqual((witnesses.ALIASING_BASE >> 24) & 0xFF, 0)
