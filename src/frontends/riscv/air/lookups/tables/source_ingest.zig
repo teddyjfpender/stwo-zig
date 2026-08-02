@@ -22,6 +22,7 @@ pub const Digest = blake2.Blake2sHash;
 
 const base_opcode_entries = opcode_entries.Entries(BaseScalar);
 const BaseEntry = entry.Builder(BaseScalar).Entry;
+const BaseList = entry.Builder(BaseScalar).List;
 
 const shard_digest_domain = "stwo-zig/riscv/table-source-shard/v1\x00";
 const manifest_digest_domain = "stwo-zig/riscv/table-source-manifest/v1\x00";
@@ -355,7 +356,7 @@ fn scanGeneratedWorkParallel(
     for (workers) |worker| if (worker.err) |err| return err;
 
     for (counter_sets[1..]) |*set| {
-        mergeCounterSets(&counter_sets[0], set);
+        counter_sets[0].mergeFrom(set);
         set.deinit(allocator);
     }
     const counters = counter_sets[0];
@@ -402,14 +403,6 @@ fn prepareGeneratedWork(
     }
     if (work_index != work.len) return error.InvalidShardCount;
     return validation;
-}
-
-fn mergeCounterSets(destination: *counter.Set, source: *const counter.Set) void {
-    for (&destination.counters, &source.counters) |*dst, *src| {
-        for (dst.values, src.values) |*value, addend| {
-            value.* = value.add(addend);
-        }
-    }
 }
 
 const DigestPolicy = enum { validate, derive };
@@ -566,29 +559,77 @@ fn scanShard(
             family,
             base[0..shard.committed_columns.len],
         ) catch return error.InvalidCommittedRow;
-        var active = false;
-        for (0..list.len) |entry_index| {
-            const relation_entry = &list.entries[entry_index];
-            const nonzero = !relation_entry.numerator.isZero();
-            active = active or nonzero;
-            if (row >= shard.n_real_rows and nonzero) return error.NonZeroPadding;
-            const kind = counter.kindForDomain(relation_entry.domain) orelse continue;
-            const table_row = try representableBase(kind, relation_entry, options) orelse
-                continue;
-            if (nonzero) counts[@intFromEnum(kind)] += 1;
-            // Registration is per entry rather than one `registerList` over the whole
-            // row so a dropped request is dropped from the counters too, which is the
-            // only thing that makes `.drop` mean anything.
-            if (counters) |set| {
-                const table = set.get(kind);
-                table.values[table_row] = table.values[table_row].add(
-                    relation_entry.numerator.value,
-                );
-            }
-        }
+        const active = try registerBaseList(
+            &list,
+            counters,
+            options,
+            &counts,
+            row >= shard.n_real_rows,
+        );
         if (row < shard.n_real_rows and !active) return error.InactiveRealRow;
     }
     return counts;
+}
+
+/// Registers one real row immediately after the generated opcode witness has
+/// written it. The caller owns the column geometry and passes the physical
+/// (bit-reversed) row, so this path performs no allocation and no second trace
+/// traversal. It deliberately uses the same base-field entry reconstruction
+/// and table-index validation as `scanShard`; only padding validation stays in
+/// the full-buffer scanner because generated padding is zero-initialized and
+/// never written.
+pub fn registerGeneratedCommittedRow(
+    family: trace.OpcodeFamily,
+    columns: *const [trace.MAX_FAMILY_COLUMNS][]M31,
+    physical_row: usize,
+    counters: *counter.Set,
+) Error!void {
+    const column_count = trace.nColumnsForFamily(family);
+    var base: [trace.MAX_FAMILY_COLUMNS]BaseScalar = undefined;
+    for (
+        columns[0..column_count],
+        base[0..column_count],
+    ) |column, *value| value.* = BaseScalar.fromBase(column[physical_row]);
+    const list = base_opcode_entries.fromMain(
+        family,
+        base[0..column_count],
+    ) catch return error.InvalidCommittedRow;
+    if (!try registerBaseList(&list, counters, .{}, null, false))
+        return error.InactiveRealRow;
+}
+
+/// Shared registration core for scanned and write-through generated rows.
+/// Keeping table representability and signed-numerator handling here prevents
+/// the fast path from becoming a second interpretation of the lookup AIR.
+fn registerBaseList(
+    list: *const BaseList,
+    counters: ?*counter.Set,
+    options: Options,
+    counts: ?*[schema.KIND_COUNT]u64,
+    padding: bool,
+) Error!bool {
+    var active = false;
+    for (list.entries[0..list.len]) |*relation_entry| {
+        const nonzero = !relation_entry.numerator.isZero();
+        active = active or nonzero;
+        if (padding and nonzero) return error.NonZeroPadding;
+        const kind = counter.kindForDomain(relation_entry.domain) orelse continue;
+        const table_row = try representableBase(kind, relation_entry, options) orelse
+            continue;
+        if (nonzero) {
+            if (counts) |totals| totals[@intFromEnum(kind)] += 1;
+        }
+        // Registration is per entry rather than one `registerList` over the whole
+        // row so a dropped request is dropped from the counters too, which is the
+        // only thing that makes `.drop` mean anything.
+        if (counters) |set| {
+            const table = set.get(kind);
+            table.values[table_row] = table.values[table_row].add(
+                relation_entry.numerator.value,
+            );
+        }
+    }
+    return active;
 }
 
 /// Whether this request has a row in its table, under `options`. A zero-numerator
@@ -791,6 +832,16 @@ test "lookup source ingestion: committed families feed all six signed tables" {
     var generated_counters = try ingestGeneratedCounters(allocator, &sources, .{});
     defer generated_counters.deinit(allocator);
     try expectEqualCounters(&result.counters, &generated_counters.counters);
+
+    // The write-through path sees the same physical cells immediately after
+    // `fillFamilyColumns` writes them. Its fused counters must remain exactly
+    // equal to the independent committed-buffer scan above.
+    var write_through = try counter.Set.init(allocator);
+    defer write_through.deinit(allocator);
+    for (families, &columns) |family, *item| {
+        try registerGeneratedCommittedRow(family, &item.storage, 0, &write_through);
+    }
+    try expectEqualCounters(&generated_counters.counters, &write_through);
 }
 
 test "lookup source ingestion: every table counter is additive across shards" {
