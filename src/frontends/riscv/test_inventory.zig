@@ -66,6 +66,7 @@ test {
     _ = @import("runner/access_witness.zig");
     _ = @import("runner/cpu.zig");
     _ = @import("runner/decode.zig");
+    _ = @import("runner/decode_cache.zig");
     _ = @import("runner/elf_loader.zig");
     _ = @import("runner/execute.zig");
     _ = @import("runner/memory.zig");
@@ -109,7 +110,7 @@ test {
     _ = @import("air/lookups/mod.zig");
     _ = @import("air/lookups/opcode_component.zig");
     _ = @import("air/lookups/opcode_entries.zig");
-    _ = @import("air/lookups/opcode_interaction.zig");
+    _ = @import("air/lookups/opcode_interaction_test.zig");
 
     // AIR: preprocessed lookup tables.
     _ = @import("air/lookups/tables/component.zig");

@@ -27,15 +27,15 @@ fn immediateResult(row: anytype) u32 {
 pub fn reg(columns: anytype, index: usize, row: anytype) void {
     w.common(columns, index, 0, row);
     w.rd(columns, index, 2, row);
-    w.rs1(columns, index, 12, row);
-    w.rs2(columns, index, 22, row);
+    w.readRs1(columns, index, 12, row);
+    w.readRs2(columns, index, 18, row);
     const flags = [_]bool{
         row.opcode == .ADD, row.opcode == .SUB, row.opcode == .XOR,
         row.opcode == .OR,  row.opcode == .AND,
     };
-    for (flags, 0..) |flag, i| w.set(columns, index, 32 + i, w.bit(flag));
-    w.writeLimbs(columns, index, 37, regResult(row));
-    w.destination(columns, index, 41, row.rd);
+    for (flags, 0..) |flag, i| w.set(columns, index, 24 + i, w.bit(flag));
+    w.writeLimbs(columns, index, 29, regResult(row));
+    w.destination(columns, index, 33, row.rd);
 }
 
 pub fn immediate(columns: anytype, index: usize, row: anytype) void {

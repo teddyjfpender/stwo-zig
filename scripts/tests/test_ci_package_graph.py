@@ -290,13 +290,24 @@ class PlanIntegrationTest(unittest.TestCase):
             scripts,
         )
 
-    def test_unmapped_path_fails_open_to_the_full_matrix(self) -> None:
-        self.assertEqual(self.select("scripts/riscv_poseidon_table_uniqueness.py"), set(POLICY["lanes"]))
-        self.assertEqual(self.select("build_support/anything_new.zig"), set(POLICY["lanes"]))
+    def test_new_script_and_build_helper_paths_use_bounded_owner_contracts(self) -> None:
+        self.assertEqual(
+            self.select("scripts/riscv_poseidon_table_uniqueness.py"),
+            {"static", "script_contracts"},
+        )
+        self.assertEqual(
+            self.select("build_support/anything_new.zig"),
+            {"static", "build_graph"},
+        )
+
+    def test_truly_unclassified_path_fails_open_to_the_full_matrix(self) -> None:
         self.assertEqual(self.select("third_party/vendored.c"), set(POLICY["lanes"]))
 
-    def test_workflow_change_fails_open_to_the_full_matrix(self) -> None:
-        self.assertEqual(self.select(".github/workflows/ci.yml"), set(POLICY["lanes"]))
+    def test_ci_workflow_change_runs_control_contracts_not_products(self) -> None:
+        self.assertEqual(
+            self.select(".github/workflows/ci.yml"),
+            {"static", "script_contracts", "build_graph"},
+        )
 
     def test_independent_workflow_change_runs_only_its_script_contracts(self) -> None:
         for path in (

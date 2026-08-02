@@ -1,33 +1,38 @@
-# Copy into .github/workflows/ alongside validate.yml.
+# Install into .github/workflows/ alongside validate.yml when autoresearch automation is desired.
 # Auto-merges green submission PRs so contributions land the moment CI and
 # validation pass; the recorder then puts the result on the board within its
-# one-minute windows. Fires on every workflow completion and merges only when
-# EVERY check run at the head is completed and green, so ordering races are
-# harmless. Scope guards: open PRs against main that add a submission
-# directory, authored by OWNER/MEMBER/COLLABORATOR (unknown forks keep the
-# human merge or the qualified submit-remote path; widen AUTHOR_OK below to
-# open it up).
+# one-minute windows. Two paths, one loop:
+#  - event-driven: fires on every CI/validate completion for that head (fast);
+#  - scheduled sweep every 15 minutes over ALL open PRs — the reconciliation
+#    net that catches anything the event path missed (trigger-ordering races,
+#    transient API failures, fork-head association quirks). A green submission
+#    PR can be delayed by at most one sweep, never stranded.
+# Scope guards: open PRs against main that add a submission directory,
+# authored by OWNER/MEMBER/COLLABORATOR (unknown forks keep the human merge or
+# the qualified submit-remote path; widen AUTHOR_OK below to open it up).
 name: autoresearch-automerge
 
 on:
   workflow_run:
     workflows: [CI, autoresearch-validate]
     types: [completed]
+  schedule:
+    - cron: '*/15 * * * *'
 
 permissions:
   contents: write
   pull-requests: write
 
 concurrency:
-  group: automerge-${{ github.event.workflow_run.head_sha }}
+  group: automerge-${{ github.event.workflow_run.head_sha || 'sweep' }}
   cancel-in-progress: false
 
 jobs:
   merge:
-    if: github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'schedule' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
-      - name: Merge green submission PRs at this head
+      - name: Merge green submission PRs
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
@@ -36,34 +41,70 @@ jobs:
           set -euo pipefail
           AUTHOR_OK='OWNER MEMBER COLLABORATOR'
 
-          prs=$(gh api "repos/$REPO/commits/$HEAD_SHA/pulls" \
-            --jq '.[] | select(.state == "open") | .number' || true)
-          [ -z "$prs" ] && { echo "no open PR at $HEAD_SHA"; exit 0; }
+          # Retried lookup: a transient API failure must never read as a
+          # closed PR — that mistake silently stranded a green PR once.
+          ghv() {
+            local pr="$1" field="$2" jq="$3" attempt
+            for attempt in 1 2 3; do
+              if out=$(gh pr view "$pr" --repo "$REPO" --json "$field" --jq "$jq" 2>/dev/null); then
+                printf '%s' "$out"
+                return 0
+              fi
+              sleep $((attempt * 2))
+            done
+            return 1
+          }
+
+          if [ -z "${HEAD_SHA:-}" ]; then
+            # Scheduled reconciliation: consider every open PR.
+            prs=$(gh pr list --repo "$REPO" --state open --json number \
+              --jq '.[].number' || true)
+          else
+            # Event-driven: PRs whose head is the completed run's head.
+            # (Listed from open PRs, not commits/{sha}/pulls — that API does
+            # not associate commits living only in a contributor's fork.)
+            prs=$(gh pr list --repo "$REPO" --state open --json number,headRefOid \
+              --jq ".[] | select(.headRefOid == \"$HEAD_SHA\") | .number" || true)
+          fi
+          [ -z "$prs" ] && { echo "no open PR to consider"; exit 0; }
 
           for pr in $prs; do
-            base=$(gh pr view "$pr" --repo "$REPO" --json baseRefName --jq .baseRefName)
+            base=$(ghv "$pr" baseRefName .baseRefName) || \
+              { echo "PR #$pr: lookup failed after retries — next sweep reconciles"; continue; }
             [ "$base" = "main" ] || { echo "PR #$pr: base $base — skip"; continue; }
 
-            assoc=$(gh pr view "$pr" --repo "$REPO" --json authorAssociation --jq .authorAssociation)
+            assoc=$(ghv "$pr" authorAssociation .authorAssociation) || \
+              { echo "PR #$pr: lookup failed after retries — next sweep reconciles"; continue; }
             case " $AUTHOR_OK " in
               *" $assoc "*) ;;
               *) echo "PR #$pr: author association $assoc — human merge required"; continue ;;
             esac
 
-            is_submission=$(gh pr view "$pr" --repo "$REPO" --json files \
-              --jq '[.files[].path | select(startswith("autoresearch/submissions/"))] | length')
+            is_submission=$(ghv "$pr" files \
+              '[.files[].path | select(startswith("autoresearch/submissions/"))] | length') || \
+              { echo "PR #$pr: lookup failed after retries — next sweep reconciles"; continue; }
             [ "$is_submission" -gt 0 ] || { echo "PR #$pr: not a submission PR — skip"; continue; }
 
-            # Every check run at this head must be finished and green.
-            pending=$(gh api "repos/$REPO/commits/$HEAD_SHA/check-runs" --paginate \
+            # Every check run at the PR's OWN head must be finished and green
+            # (the sweep path has no workflow_run head to lean on).
+            pr_head=$(ghv "$pr" headRefOid .headRefOid) || \
+              { echo "PR #$pr: lookup failed after retries — next sweep reconciles"; continue; }
+            pending=$(gh api "repos/$REPO/commits/$pr_head/check-runs" --paginate \
               --jq '[.check_runs[] | select(.status != "completed")] | length')
             [ "$pending" -eq 0 ] || { echo "PR #$pr: $pending check(s) still running — wait"; continue; }
-            bad=$(gh api "repos/$REPO/commits/$HEAD_SHA/check-runs" --paginate \
+            bad=$(gh api "repos/$REPO/commits/$pr_head/check-runs" --paginate \
               --jq '[.check_runs[] | select(.conclusion != "success" and .conclusion != "skipped" and .conclusion != "neutral")] | length')
             [ "$bad" -eq 0 ] || { echo "PR #$pr: $bad failing check(s) — no merge"; continue; }
 
             echo "PR #$pr: all checks green — merging"
-            gh pr merge "$pr" --repo "$REPO" --merge \
-              --subject "$(gh pr view "$pr" --repo "$REPO" --json title --jq .title) (#$pr)" || \
-              echo "PR #$pr: merge refused (raced or conflicted); next completion retries"
+            if ! gh pr merge "$pr" --repo "$REPO" --merge \
+              --subject "$(ghv "$pr" title .title || echo "submission") (#$pr)"; then
+              # The ruleset requires branches up to date; on this busy repo a
+              # green PR is often BEHIND by the time its checks finish. Update
+              # the branch so the re-run checks green-light the next sweep --
+              # without this, a behind PR retries forever and never merges.
+              echo "PR #$pr: merge refused -- updating branch for the next sweep"
+              gh pr update-branch "$pr" --repo "$REPO" || \
+                echo "PR #$pr: update-branch also refused; next sweep retries"
+            fi
           done

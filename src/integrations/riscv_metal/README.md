@@ -114,5 +114,5 @@ zero fallback, runtime identity, and successful independent verification.
 - [RISC-V frontend](../../frontends/riscv/README.md)
 - [Metal backend](../../backends/metal/README.md)
 - [CPU integration](../riscv_cpu/README.md)
-- [RISC-V release evidence](../../../conformance/riscv-release-evidence.md)
+- [RISC-V Sail differential gate](../../../conformance/riscv-sail-differential-gate.md)
 - [Repository RISC-V guide](../../../README.md#risc-v-frontend)

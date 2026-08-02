@@ -1,0 +1,97 @@
+{
+  "schema": "stwo-zig-tooling-surface-v1",
+  "policy": "Only correctness, soundness, interoperability, and reproducible fixture authorities may live under tools/. Research and profiling helpers belong under autoresearch/. Every retained root has a bounded PR lane and an extraction condition.",
+  "roots": {
+    "cairo-witness-compiler": {
+      "owner": "cairo-frontend",
+      "role": "fixture-generator",
+      "required_for": "Reproducible official Cairo witness topology",
+      "live_callers": [
+        "scripts/generate_cairo_witness_topology.py",
+        "scripts/upstream_pins_lib/official_cairo_topology.py"
+      ],
+      "pr_lanes": ["static", "script_contracts", "cairo_frontend"],
+      "extraction": "externalize after an authenticated generator release reproduces the committed topology"
+    },
+    "stwo-air-derive-vector-gen": {
+      "owner": "native-parity",
+      "role": "independent-vector-generator",
+      "required_for": "Independent upstream AIR derive parity vectors",
+      "live_callers": ["scripts/parity_air_derive.py"],
+      "pr_lanes": ["static", "script_contracts"],
+      "extraction": "replace with committed Zig cases or an immutable native-oracle bundle"
+    },
+    "stwo-cairo-air-compiler": {
+      "owner": "cairo-frontend",
+      "role": "fixture-generator",
+      "required_for": "Reproducible official Cairo AIR templates",
+      "live_callers": ["scripts/upstream_pins_lib/official_cairo_air.py"],
+      "pr_lanes": ["static", "script_contracts", "cairo_frontend"],
+      "extraction": "externalize after authenticated artifacts reproduce every committed AIR template"
+    },
+    "stwo-cairo-official-verifier-rs": {
+      "owner": "cairo-oracle",
+      "role": "independent-proof-oracle",
+      "required_for": "Official Cairo proof acceptance independent of Zig",
+      "live_callers": ["build_support/products/cairo_cpu/oracle_gate.zig"],
+      "pr_lanes": ["static", "script_contracts", "cairo_cpu"],
+      "extraction": "consume a permanent content-addressed oracle binary from a companion authority repository"
+    },
+    "stwo-cairo-trace-oracle": {
+      "owner": "cairo-frontend",
+      "role": "fixture-generator",
+      "required_for": "Authenticated official Cairo trace checkpoints",
+      "live_callers": ["scripts/check_upstream_pins.py"],
+      "pr_lanes": ["static", "script_contracts", "cairo_frontend"],
+      "extraction": "externalize once checkpoint regeneration is authenticated and clean-room reproducible"
+    },
+    "stwo-cairo-verifier-rs": {
+      "owner": "cairo-oracle",
+      "role": "legacy-proof-oracle",
+      "required_for": "Legacy SN2 envelope compatibility still used by the Cairo Rust oracle bridge",
+      "live_callers": ["src/frontends/cairo/rust_oracle.zig"],
+      "pr_lanes": ["static", "script_contracts", "cairo_cpu"],
+      "extraction": "retire after every consumer uses the official verifier format"
+    },
+    "stwo-cairo-vm-adapter-rs": {
+      "owner": "cairo-execution",
+      "role": "execution-sidecar",
+      "required_for": "Execute Cairo source programs before Zig proving",
+      "live_callers": ["build_support/products/cairo_cpu/vm_adapter.zig"],
+      "pr_lanes": ["static", "script_contracts", "cairo_cpu"],
+      "extraction": "publish as an optional versioned sidecar while retaining pure-Zig ProverInput proving"
+    },
+    "stwo-cf-vector-gen": {
+      "owner": "native-parity",
+      "role": "independent-vector-generator",
+      "required_for": "Independent constraint-framework expression parity",
+      "live_callers": ["scripts/parity_constraint_expr.py"],
+      "pr_lanes": ["static", "script_contracts"],
+      "extraction": "consolidate into the external native-oracle workspace"
+    },
+    "stwo-cuda-adapter-rs": {
+      "owner": "cuda-backend",
+      "role": "qualification-adapter",
+      "required_for": "Independent CUDA bring-up and qualification evidence",
+      "live_callers": ["build_support/backends/cuda_tools.zig"],
+      "pr_lanes": ["static", "script_contracts", "native_cuda_static"],
+      "extraction": "externalize after current-device Zig CUDA parity and activation evidence is reproducible"
+    },
+    "stwo-interop-rs": {
+      "owner": "native-oracle",
+      "role": "independent-proof-oracle",
+      "required_for": "Cross-language Native proof compatibility and independent verification",
+      "live_callers": ["scripts/e2e_interop.py"],
+      "pr_lanes": ["static", "script_contracts", "native_oracle"],
+      "extraction": "consume a permanent content-addressed oracle binary from a companion authority repository"
+    },
+    "stwo-vector-gen": {
+      "owner": "native-parity",
+      "role": "independent-vector-generator",
+      "required_for": "Independent upstream field parity vectors",
+      "live_callers": ["scripts/parity_fields.py"],
+      "pr_lanes": ["static", "script_contracts"],
+      "extraction": "consolidate into the external native-oracle workspace"
+    }
+  }
+}

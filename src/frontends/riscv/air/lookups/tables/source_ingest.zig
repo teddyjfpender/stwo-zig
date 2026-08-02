@@ -22,6 +22,7 @@ pub const Digest = blake2.Blake2sHash;
 
 const base_opcode_entries = opcode_entries.Entries(BaseScalar);
 const BaseEntry = entry.Builder(BaseScalar).Entry;
+const BaseList = entry.Builder(BaseScalar).List;
 
 const shard_digest_domain = "stwo-zig/riscv/table-source-shard/v1\x00";
 const manifest_digest_domain = "stwo-zig/riscv/table-source-manifest/v1\x00";
@@ -74,6 +75,23 @@ pub const Result = struct {
             total.* = table.signedTotal();
         }
         return totals;
+    }
+};
+
+/// Production result for sources generated inside this proving transaction.
+///
+/// The strict `Result` above carries a digest manifest because a caller-owned
+/// source needs authentication. Internally generated columns are already the
+/// exact buffers handed to the commitment scheme, so their only downstream
+/// product is the signed counter set. Keeping this smaller result type makes
+/// that trust boundary explicit and avoids hashing the full trace solely to
+/// populate metadata that the proof never consumes.
+pub const GeneratedCounters = struct {
+    counters: counter.Set,
+
+    pub fn deinit(self: *GeneratedCounters, allocator: std.mem.Allocator) void {
+        self.counters.deinit(allocator);
+        self.* = undefined;
     }
 };
 
@@ -130,6 +148,47 @@ pub fn ingestGenerated(
     return ingestImpl(allocator, sources, options, .derive);
 }
 
+/// Registers internally generated opcode columns without constructing an
+/// unused provenance manifest.
+///
+/// This remains a fail-closed scan of the committed buffers: shard geometry,
+/// every active tuple, inactive real rows, and zero padding receive the same
+/// validation as strict ingestion. Only the caller-authentication digest is
+/// omitted; Tree 1's polynomial commitment is the binding for these buffers.
+pub fn ingestGeneratedCounters(
+    allocator: std.mem.Allocator,
+    sources: []const FamilySource,
+    options: Options,
+) !GeneratedCounters {
+    var work_count: usize = 0;
+    for (sources) |source| {
+        work_count = std.math.add(usize, work_count, source.shards.len) catch
+            return error.InvalidShardCount;
+    }
+    const work = try allocator.alloc(GeneratedShardWork, work_count);
+    defer allocator.free(work);
+    _ = try prepareGeneratedWork(sources, work);
+
+    if (generatedPaddedRows(sources) >= generated_parallel_row_threshold) {
+        if (work_pool.getGlobalPool()) |pool| {
+            if (try scanGeneratedWorkParallel(
+                allocator,
+                work,
+                options,
+                pool,
+                false,
+            )) |counters| return .{ .counters = counters };
+        }
+    }
+
+    var counters = try counter.Set.init(allocator);
+    errdefer counters.deinit(allocator);
+    for (work) |item| {
+        _ = try scanShard(allocator, item.family, item.shard, &counters, options);
+    }
+    return .{ .counters = counters };
+}
+
 const generated_parallel_row_threshold: usize = 1 << 18;
 // A complete dense counter set is about 11 MiB. Eight private sets keep the
 // parallel hot loop synchronization-free while bounding extra scratch below
@@ -165,13 +224,15 @@ const GeneratedWorker = struct {
     options: Options,
     index: usize,
     stride: usize,
+    derive_digest: bool,
     err: ?anyerror = null,
 
     fn run(self: *@This()) void {
         var work_index = self.index;
         while (work_index < self.work.len) : (work_index += self.stride) {
             const item = &self.work[work_index];
-            item.digest = digestShard(item.family, item.shard);
+            if (self.derive_digest)
+                item.digest = digestShard(item.family, item.shard);
             item.counts = scanShard(
                 self.allocator,
                 item.family,
@@ -207,50 +268,13 @@ fn ingestGeneratedParallel(
     defer allocator.free(work);
     const geometry = try prepareGeneratedWork(sources, work);
 
-    const worker_count = @min(
-        @min(pool.workerCount(), max_generated_ingest_workers),
-        work.len,
-    );
-    if (worker_count < 2) return ingestImpl(allocator, sources, options, .derive);
-
-    const counter_sets = try allocator.alloc(counter.Set, worker_count);
-    defer allocator.free(counter_sets);
-    var initialized_sets: usize = 0;
-    var sets_owned = true;
-    defer if (sets_owned) {
-        for (counter_sets[0..initialized_sets]) |*set| set.deinit(allocator);
-    };
-    for (counter_sets) |*set| {
-        set.* = try counter.Set.init(allocator);
-        initialized_sets += 1;
-    }
-
-    const workers = try allocator.alloc(GeneratedWorker, worker_count);
-    defer allocator.free(workers);
-    for (workers, counter_sets, 0..) |*worker, *set, index| {
-        worker.* = .{
-            .allocator = allocator,
-            .work = work,
-            .counters = set,
-            .options = options,
-            .index = index,
-            .stride = worker_count,
-        };
-    }
-    var wait_group = std.Thread.WaitGroup{};
-    for (workers[1..]) |*worker| {
-        pool.spawnWg(&wait_group, GeneratedWorker.run, .{worker});
-    }
-    GeneratedWorker.run(&workers[0]);
-    wait_group.wait();
-    for (workers) |worker| if (worker.err) |err| return err;
-
-    for (counter_sets[1..]) |*set| {
-        mergeCounterSets(&counter_sets[0], set);
-        set.deinit(allocator);
-    }
-    const counters = counter_sets[0];
-    sets_owned = false;
+    const counters = (try scanGeneratedWorkParallel(
+        allocator,
+        work,
+        options,
+        pool,
+        true,
+    )) orelse return ingestImpl(allocator, sources, options, .derive);
 
     var validation = geometry;
     var manifest = blake2.Blake2sHasher.init();
@@ -280,6 +304,64 @@ fn ingestGeneratedParallel(
         .source_entries = validation.source_entries,
         .manifest_digest = validation.manifest_digest,
     };
+}
+
+/// Scans independent shards into private dense histograms, then reduces those
+/// histograms in canonical table-row order. Returning null asks a caller with
+/// too little parallel work to use its sequential path.
+fn scanGeneratedWorkParallel(
+    allocator: std.mem.Allocator,
+    work: []GeneratedShardWork,
+    options: Options,
+    pool: *work_pool.WorkPool,
+    derive_digest: bool,
+) !?counter.Set {
+    const worker_count = @min(
+        @min(pool.workerCount(), max_generated_ingest_workers),
+        work.len,
+    );
+    if (worker_count < 2) return null;
+
+    const counter_sets = try allocator.alloc(counter.Set, worker_count);
+    defer allocator.free(counter_sets);
+    var initialized_sets: usize = 0;
+    var sets_owned = true;
+    defer if (sets_owned) {
+        for (counter_sets[0..initialized_sets]) |*set| set.deinit(allocator);
+    };
+    for (counter_sets) |*set| {
+        set.* = try counter.Set.init(allocator);
+        initialized_sets += 1;
+    }
+
+    const workers = try allocator.alloc(GeneratedWorker, worker_count);
+    defer allocator.free(workers);
+    for (workers, counter_sets, 0..) |*worker, *set, index| {
+        worker.* = .{
+            .allocator = allocator,
+            .work = work,
+            .counters = set,
+            .options = options,
+            .index = index,
+            .stride = worker_count,
+            .derive_digest = derive_digest,
+        };
+    }
+    var wait_group = std.Thread.WaitGroup{};
+    for (workers[1..]) |*worker| {
+        pool.spawnWg(&wait_group, GeneratedWorker.run, .{worker});
+    }
+    GeneratedWorker.run(&workers[0]);
+    wait_group.wait();
+    for (workers) |worker| if (worker.err) |err| return err;
+
+    for (counter_sets[1..]) |*set| {
+        counter_sets[0].mergeFrom(set);
+        set.deinit(allocator);
+    }
+    const counters = counter_sets[0];
+    sets_owned = false;
+    return counters;
 }
 
 fn prepareGeneratedWork(
@@ -321,14 +403,6 @@ fn prepareGeneratedWork(
     }
     if (work_index != work.len) return error.InvalidShardCount;
     return validation;
-}
-
-fn mergeCounterSets(destination: *counter.Set, source: *const counter.Set) void {
-    for (&destination.counters, &source.counters) |*dst, *src| {
-        for (dst.values, src.values) |*value, addend| {
-            value.* = value.add(addend);
-        }
-    }
 }
 
 const DigestPolicy = enum { validate, derive };
@@ -485,29 +559,77 @@ fn scanShard(
             family,
             base[0..shard.committed_columns.len],
         ) catch return error.InvalidCommittedRow;
-        var active = false;
-        for (0..list.len) |entry_index| {
-            const relation_entry = &list.entries[entry_index];
-            const nonzero = !relation_entry.numerator.isZero();
-            active = active or nonzero;
-            if (row >= shard.n_real_rows and nonzero) return error.NonZeroPadding;
-            const kind = counter.kindForDomain(relation_entry.domain) orelse continue;
-            const table_row = try representableBase(kind, relation_entry, options) orelse
-                continue;
-            if (nonzero) counts[@intFromEnum(kind)] += 1;
-            // Registration is per entry rather than one `registerList` over the whole
-            // row so a dropped request is dropped from the counters too, which is the
-            // only thing that makes `.drop` mean anything.
-            if (counters) |set| {
-                const table = set.get(kind);
-                table.values[table_row] = table.values[table_row].add(
-                    relation_entry.numerator.value,
-                );
-            }
-        }
+        const active = try registerBaseList(
+            &list,
+            counters,
+            options,
+            &counts,
+            row >= shard.n_real_rows,
+        );
         if (row < shard.n_real_rows and !active) return error.InactiveRealRow;
     }
     return counts;
+}
+
+/// Registers one real row immediately after the generated opcode witness has
+/// written it. The caller owns the column geometry and passes the physical
+/// (bit-reversed) row, so this path performs no allocation and no second trace
+/// traversal. It deliberately uses the same base-field entry reconstruction
+/// and table-index validation as `scanShard`; only padding validation stays in
+/// the full-buffer scanner because generated padding is zero-initialized and
+/// never written.
+pub fn registerGeneratedCommittedRow(
+    family: trace.OpcodeFamily,
+    columns: *const [trace.MAX_FAMILY_COLUMNS][]M31,
+    physical_row: usize,
+    counters: *counter.Set,
+) Error!void {
+    const column_count = trace.nColumnsForFamily(family);
+    var base: [trace.MAX_FAMILY_COLUMNS]BaseScalar = undefined;
+    for (
+        columns[0..column_count],
+        base[0..column_count],
+    ) |column, *value| value.* = BaseScalar.fromBase(column[physical_row]);
+    const list = base_opcode_entries.fromMain(
+        family,
+        base[0..column_count],
+    ) catch return error.InvalidCommittedRow;
+    if (!try registerBaseList(&list, counters, .{}, null, false))
+        return error.InactiveRealRow;
+}
+
+/// Shared registration core for scanned and write-through generated rows.
+/// Keeping table representability and signed-numerator handling here prevents
+/// the fast path from becoming a second interpretation of the lookup AIR.
+fn registerBaseList(
+    list: *const BaseList,
+    counters: ?*counter.Set,
+    options: Options,
+    counts: ?*[schema.KIND_COUNT]u64,
+    padding: bool,
+) Error!bool {
+    var active = false;
+    for (list.entries[0..list.len]) |*relation_entry| {
+        const nonzero = !relation_entry.numerator.isZero();
+        active = active or nonzero;
+        if (padding and nonzero) return error.NonZeroPadding;
+        const kind = counter.kindForDomain(relation_entry.domain) orelse continue;
+        const table_row = try representableBase(kind, relation_entry, options) orelse
+            continue;
+        if (nonzero) {
+            if (counts) |totals| totals[@intFromEnum(kind)] += 1;
+        }
+        // Registration is per entry rather than one `registerList` over the whole
+        // row so a dropped request is dropped from the counters too, which is the
+        // only thing that makes `.drop` mean anything.
+        if (counters) |set| {
+            const table = set.get(kind);
+            table.values[table_row] = table.values[table_row].add(
+                relation_entry.numerator.value,
+            );
+        }
+    }
+    return active;
 }
 
 /// Whether this request has a row in its table, under `options`. A zero-numerator
@@ -641,7 +763,11 @@ fn expectEqualResults(expected: *const Result, actual: *const Result) !void {
     try std.testing.expectEqual(expected.padded_rows, actual.padded_rows);
     try std.testing.expectEqualSlices(u64, &expected.source_entries, &actual.source_entries);
     try std.testing.expectEqualSlices(u8, &expected.manifest_digest, &actual.manifest_digest);
-    for (&expected.counters.counters, &actual.counters.counters) |*want, *got| {
+    try expectEqualCounters(&expected.counters, &actual.counters);
+}
+
+fn expectEqualCounters(expected: *const counter.Set, actual: *const counter.Set) !void {
+    for (&expected.counters, &actual.counters) |*want, *got| {
         try std.testing.expectEqual(want.kind, got.kind);
         try std.testing.expectEqual(want.values.len, got.values.len);
         for (want.values, got.values) |want_value, got_value| {
@@ -700,6 +826,22 @@ test "lookup source ingestion: committed families feed all six signed tables" {
     var generated = try ingestGenerated(allocator, &sources, .{});
     defer generated.deinit(allocator);
     try expectEqualResults(&result, &generated);
+
+    // The production counter-only path skips provenance hashing, but it must
+    // derive byte-identical signed multiplicities from the same columns.
+    var generated_counters = try ingestGeneratedCounters(allocator, &sources, .{});
+    defer generated_counters.deinit(allocator);
+    try expectEqualCounters(&result.counters, &generated_counters.counters);
+
+    // The write-through path sees the same physical cells immediately after
+    // `fillFamilyColumns` writes them. Its fused counters must remain exactly
+    // equal to the independent committed-buffer scan above.
+    var write_through = try counter.Set.init(allocator);
+    defer write_through.deinit(allocator);
+    for (families, &columns) |family, *item| {
+        try registerGeneratedCommittedRow(family, &item.storage, 0, &write_through);
+    }
+    try expectEqualCounters(&generated_counters.counters, &write_through);
 }
 
 test "lookup source ingestion: every table counter is additive across shards" {
@@ -770,6 +912,10 @@ test "lookup source ingestion: commitment, tuple, and activity mutations fail" {
         .family = .auipc,
         .shards = &.{shard},
     }});
+    try expectGeneratedCounterError(error.ValueOutOfRange, &.{.{
+        .family = .auipc,
+        .shards = &.{shard},
+    }});
 
     columns.storage[15][0] = original;
     columns.storage[0][0] = M31.zero();
@@ -778,10 +924,18 @@ test "lookup source ingestion: commitment, tuple, and activity mutations fail" {
         .family = .auipc,
         .shards = &.{shard},
     }});
+    try expectGeneratedCounterError(error.InactiveRealRow, &.{.{
+        .family = .auipc,
+        .shards = &.{shard},
+    }});
 
     try fillRows(allocator, &columns, .auipc, &.{ row, auipcRow(1) });
     shard.committed_digest = digestShard(.auipc, shard);
     try expectIngestError(error.NonZeroPadding, &.{.{
+        .family = .auipc,
+        .shards = &.{shard},
+    }});
+    try expectGeneratedCounterError(error.NonZeroPadding, &.{.{
         .family = .auipc,
         .shards = &.{shard},
     }});
@@ -823,6 +977,13 @@ test "lookup source ingestion: the drop policy omits an unrepresentable request"
 
 fn expectIngestError(expected: Error, sources: []const FamilySource) !void {
     try std.testing.expectError(expected, ingest(std.testing.allocator, sources, .{}));
+}
+
+fn expectGeneratedCounterError(expected: Error, sources: []const FamilySource) !void {
+    try std.testing.expectError(
+        expected,
+        ingestGeneratedCounters(std.testing.allocator, sources, .{}),
+    );
 }
 
 fn ingestForAllocationFailures(

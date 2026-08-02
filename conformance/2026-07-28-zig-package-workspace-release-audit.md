@@ -1,5 +1,10 @@
 # Zig package-workspace release audit
 
+> **Historical snapshot:** this audit records the original 18-package
+> workspace. The current 21-package graph and 17-package source distribution
+> are governed by [`zig-package-release-policy.md`](zig-package-release-policy.md)
+> and [`package-release-v1.json`](package-release-v1.json).
+
 **Status:** PASS  
 **Audit date:** 2026-07-28  
 **Current branch:** `feat/architecture-hardening`

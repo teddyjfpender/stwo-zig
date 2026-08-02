@@ -22,13 +22,13 @@ pub const Family = struct {
 pub const FAMILIES = [FAMILY_COUNT]Family{
     .{ .ordinal = 9, .n_main_columns = 29, .n_interaction_batches = 6 }, // auipc
     .{ .ordinal = 1, .n_main_columns = 35, .n_interaction_batches = 8 }, // base_alu_imm
-    .{ .ordinal = 0, .n_main_columns = 43, .n_interaction_batches = 9 }, // base_alu_reg
+    .{ .ordinal = 0, .n_main_columns = 35, .n_interaction_batches = 9 }, // base_alu_reg
     .{ .ordinal = 6, .n_main_columns = 30, .n_interaction_batches = 5 }, // branch_eq
     .{ .ordinal = 7, .n_main_columns = 37, .n_interaction_batches = 6 }, // branch_lt
     .{ .ordinal = 15, .n_main_columns = 67, .n_interaction_batches = 25 }, // div
     .{ .ordinal = 11, .n_main_columns = 20, .n_interaction_batches = 4 }, // jal
     .{ .ordinal = 10, .n_main_columns = 41, .n_interaction_batches = 9 }, // jalr
-    .{ .ordinal = 12, .n_main_columns = 56, .n_interaction_batches = 8 }, // load_store
+    .{ .ordinal = 12, .n_main_columns = 48, .n_interaction_batches = 8 }, // load_store
     .{ .ordinal = 5, .n_main_columns = 37, .n_interaction_batches = 6 }, // lt_imm
     .{ .ordinal = 4, .n_main_columns = 44, .n_interaction_batches = 7 }, // lt_reg
     .{ .ordinal = 8, .n_main_columns = 18, .n_interaction_batches = 4 }, // lui

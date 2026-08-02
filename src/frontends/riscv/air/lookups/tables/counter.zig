@@ -105,6 +105,20 @@ pub const Set = struct {
             try self.get(kind).register(relation_entry);
         }
     }
+
+    /// Adds one worker-private counter set in canonical table-row order.
+    /// Both sets keep their ownership; callers may release `source` after the
+    /// merge.  Generated witness workers use this to avoid synchronization in
+    /// their row hot loops.
+    pub fn mergeFrom(self: *Set, source: *const Set) void {
+        for (&self.counters, &source.counters) |*destination, *input| {
+            std.debug.assert(destination.kind == input.kind);
+            std.debug.assert(destination.values.len == input.values.len);
+            for (destination.values, input.values) |*value, addend| {
+                value.* = value.add(addend);
+            }
+        }
+    }
 };
 
 pub fn kindForDomain(domain: entry.Domain) ?schema.Kind {

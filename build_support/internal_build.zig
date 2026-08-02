@@ -160,8 +160,8 @@ const ReleaseOptions = struct {
 
     fn read(b: *std.Build) ReleaseOptions {
         return .{
-            .phase = b.option([]const u8, "riscv-release-phase", "CP-13 phase: candidate or promoted") orelse "candidate",
-            .evidence_dir = b.option([]const u8, "riscv-evidence-dir", "Fresh CP-13 evidence directory") orelse "zig-out/release-evidence/riscv",
+            .phase = b.option([]const u8, "riscv-release-phase", "RISC-V release phase: candidate or promoted") orelse "candidate",
+            .evidence_dir = b.option([]const u8, "riscv-evidence-dir", "Fresh RISC-V release evidence directory") orelse "zig-out/release-evidence/riscv",
         };
     }
 };

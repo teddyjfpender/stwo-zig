@@ -4,6 +4,7 @@ const builtin = @import("builtin");
 pub const m31 = @import("m31.zig");
 pub const cm31 = @import("cm31.zig");
 pub const qm31 = @import("qm31.zig");
+pub const packed_qm31 = @import("packed_qm31.zig");
 
 /// Inverts all elements in `column` using Montgomery's trick.
 ///

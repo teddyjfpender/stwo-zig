@@ -3,11 +3,12 @@
 A unit test over a validator proves the validator works.  It does not prove the
 harness calls it: a gate can be deleted from ``main`` outright and leave a suite
 of passing unit tests behind.  These tests therefore drive
-``riscv_csp_benchmark.main`` and ``riscv_stark_v_benchmark.main`` themselves,
-faking only process boundaries -- the git rev-parse, the two executables'
-published registries, host capture, and the per-case prove/verify -- so every
-gate runs its real implementation over the real committed fixtures and a
-deleted call turns a test red.
+``riscv_csp_benchmark.main`` itself, faking only process boundaries -- the git
+rev-parse, executables' published registries, host capture, and per-case
+prove/verify -- so every production gate runs its real implementation over the
+real committed fixtures and a deleted call turns a test red. Legacy Stark-V
+timing comparisons live under ``autoresearch/`` and have their own optional
+test suite.
 """
 
 from __future__ import annotations
@@ -23,7 +24,6 @@ from pathlib import Path
 from unittest import mock
 
 from scripts import riscv_csp_benchmark as csp
-from scripts import riscv_stark_v_benchmark as stark_v
 from scripts.riscv_csp_benchmark_lib import build_identity as csp_build_identity
 from scripts.riscv_csp_benchmark_lib import host as csp_host
 from scripts.tests.riscv_csp_provenance_fixture import (
@@ -37,8 +37,8 @@ from scripts.tests.riscv_csp_provenance_fixture import (
 )
 
 
-class SiblingPowerEvidenceTests(unittest.TestCase):
-    """Both harnesses must answer the power question from one implementation."""
+class PowerEvidenceTests(unittest.TestCase):
+    """The production CSP harness records and classifies power evidence."""
 
     def test_one_implementation_feeds_both_report_shapes(self) -> None:
         with mock.patch.object(
@@ -57,10 +57,6 @@ class SiblingPowerEvidenceTests(unittest.TestCase):
             csp.power_conditions_admissible(csp_view),
             (sibling["admissible"], sibling["reasons"]),
         )
-
-    def test_the_stark_v_harness_imports_the_shared_implementation(self) -> None:
-        self.assertIs(csp_host.power_evidence_block, stark_v.power_evidence_block)
-
 
 class HarnessWiringTests(unittest.TestCase):
     """Every gate must be reachable from ``main``, not merely implemented."""
@@ -302,104 +298,6 @@ class HarnessWiringTests(unittest.TestCase):
         self.assertEqual("stwo_riscv_csp_benchmark_v3", report["schema"])
         self.assertEqual(csp.SCHEMA, report["schema"])
         self.assertNotIn(report["schema"], csp.SUPERSEDED_SCHEMAS)
-
-
-class StarkVWiringTests(unittest.TestCase):
-    """The sibling harness must publish the shared power evidence it captured."""
-
-    CORPUS = [
-        {
-            "name": "fib_iter",
-            "elf": str(csp.ROOT / "vectors/riscv_elfs/fib_iter.elf"),
-            "elf_sha256": "0" * 64,
-            "proof_admission": {"status": "supported"},
-        }
-    ]
-    ZIG_LANE = {
-        "release_status": "release_gated",
-        "total_steps": 144,
-        "prove_seconds": 2.0,
-        "verify_seconds": 0.5,
-        "execution_seconds": 0.1,
-        "statement_sha256": "1" * 64,
-        "implementation_commit": HEAD,
-        "implementation_dirty": False,
-        "cpu_wall_ratio": 6.0,
-    }
-    RUST_LANE = {
-        "cycles": 144,
-        "prove_seconds": 1.0,
-        "verify_seconds": 0.25,
-        "execution_seconds": 0.05,
-        "cpu_wall_ratio": 6.0,
-    }
-
-    def run_main(self) -> dict:
-        with tempfile.TemporaryDirectory() as raw:
-            report_out = Path(raw) / "report.json"
-            with mock.patch.multiple(
-                stark_v,
-                ZIG_BINARY=STAND_IN_CLI,
-                load_corpus=lambda: (stark_v.PINNED_COMMIT, list(self.CORPUS)),
-                validate_stark_v=lambda source: STAND_IN_CLI,
-                run_zig_lane=lambda *_, **__: dict(self.ZIG_LANE),
-                run_rust_lane=lambda *_, **__: dict(self.RUST_LANE),
-                collect_host_environment=lambda source=None, power_conditions=None: {
-                    "schema": "riscv_benchmark_host_environment_v2",
-                    "power_conditions": power_conditions,
-                },
-            ):
-                with mock.patch.object(
-                    stark_v.riscv_cli_admission, "resolve", admission_resolve
-                ):
-                    with mock.patch.object(
-                        csp_host,
-                        "power_evidence",
-                        lambda: ("Battery Power", True),
-                    ):
-                        exit_code = stark_v.main(
-                            [
-                                "--stark-v-source", str(csp.ROOT),
-                                "--warmups", "0",
-                                "--samples", "1",
-                                "--report-out", str(report_out),
-                            ]
-                        )
-            self.assertEqual(0, exit_code)
-            return json.loads(report_out.read_text(encoding="utf-8"))
-
-    def test_report_carries_the_shared_power_verdict(self) -> None:
-        report = self.run_main()
-        self.assertEqual(
-            {
-                "power_source": "Battery Power",
-                "low_power_mode": True,
-                "admissible": False,
-                "reasons": [
-                    "CSP-comparable timings require AC power "
-                    "(observed: Battery Power)",
-                    "CSP-comparable timings require low power mode disabled "
-                    "(observed: enabled)",
-                ],
-            },
-            report["power_conditions"],
-        )
-        # One run, one capture: the shared host block carries the same verdict the
-        # root field does, so a consumer reading either spelling reads one answer.
-        self.assertEqual(
-            report["power_conditions"],
-            report["host_environment"]["power_conditions"],
-        )
-
-    def test_report_declares_the_bumped_schema(self) -> None:
-        self.assertEqual("riscv_starkv_benchmark_v2", stark_v.SCHEMA)
-        self.assertEqual(stark_v.SCHEMA, self.run_main()["schema"])
-
-    def test_registry_admission_survives_the_vector_loop(self) -> None:
-        # The per-vector manifest admission must not shadow the binary's own
-        # registry phase: the report's release status comes from the CLI.
-        self.assertEqual("release_gated", self.run_main()["zig_release_status"])
-
 
 if __name__ == "__main__":
     unittest.main()

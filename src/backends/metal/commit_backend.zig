@@ -49,6 +49,13 @@ pub const MetalCommitBackend = struct {
     pub const preferMonolithicCommit = true;
     // No-copy bind when source == coefficient arena (`circle_legacy.m:227`).
     pub const adopts_source_trace_arena = true;
+    // Resident composition addresses each component as a tightly packed run
+    // of columns.  Keeping the LDE arena compact also lets the Merkle tree and
+    // every later polynomial batch share that one proof-owned Metal view.
+    pub const requires_contiguous_resident_columns = true;
+    // Apple-silicon pages are 16 KiB; this is also a multiple of Intel macOS's
+    // 4 KiB pages, so `newBufferWithBytesNoCopy` can bind either target.
+    pub const resident_column_arena_alignment = std.mem.Alignment.fromByteUnits(16 * 1024);
     pub const lazyFriFoldInverseWorkspace = true;
     pub const prepareAndCommitOwned = heterogeneous_commit.prepareAndCommitOwned;
     pub const prepareAndCommitPolys = combined_commit.prepareAndCommitPolys;

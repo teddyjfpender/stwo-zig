@@ -59,14 +59,18 @@ structure Row where
   rs1 : RegisterIndex
   rs1PreviousClock : Nat
   rs1Previous : WordBytes
-  rs1Next : WordBytes
   rs2 : RegisterIndex
   rs2PreviousClock : Nat
   rs2Previous : WordBytes
-  rs2Next : WordBytes
   result : WordBytes
   rdNonzero : Bool
 deriving DecidableEq, Repr
+
+/-- Read-only source values are represented once in the production trace. -/
+def Row.rs1Next (row : Row) : WordBytes := row.rs1Previous
+
+/-- Read-only source values are represented once in the production trace. -/
+def Row.rs2Next (row : Row) : WordBytes := row.rs2Previous
 
 structure Witness (row : Row) where
   destinationInverse : M31
@@ -117,31 +121,23 @@ def columns
   | 15 => bitVecM31 row.rs1Previous.limb2
   | 16 => bitVecM31 row.rs1Previous.limb3
   | 17 => M31.reduce row.rs1PreviousClock
-  | 18 => bitVecM31 row.rs1Next.limb0
-  | 19 => bitVecM31 row.rs1Next.limb1
-  | 20 => bitVecM31 row.rs1Next.limb2
-  | 21 => bitVecM31 row.rs1Next.limb3
-  | 22 => bitVecM31 row.rs2
-  | 23 => bitVecM31 row.rs2Previous.limb0
-  | 24 => bitVecM31 row.rs2Previous.limb1
-  | 25 => bitVecM31 row.rs2Previous.limb2
-  | 26 => bitVecM31 row.rs2Previous.limb3
-  | 27 => M31.reduce row.rs2PreviousClock
-  | 28 => bitVecM31 row.rs2Next.limb0
-  | 29 => bitVecM31 row.rs2Next.limb1
-  | 30 => bitVecM31 row.rs2Next.limb2
-  | 31 => bitVecM31 row.rs2Next.limb3
-  | 32 => flagAdd op
-  | 33 => flagSub op
-  | 34 => flagXor op
-  | 35 => flagOr op
-  | 36 => flagAnd op
-  | 37 => bitVecM31 row.result.limb0
-  | 38 => bitVecM31 row.result.limb1
-  | 39 => bitVecM31 row.result.limb2
-  | 40 => bitVecM31 row.result.limb3
-  | 41 => boolM31 row.rdNonzero
-  | 42 => witness.destinationInverse
+  | 18 => bitVecM31 row.rs2
+  | 19 => bitVecM31 row.rs2Previous.limb0
+  | 20 => bitVecM31 row.rs2Previous.limb1
+  | 21 => bitVecM31 row.rs2Previous.limb2
+  | 22 => bitVecM31 row.rs2Previous.limb3
+  | 23 => M31.reduce row.rs2PreviousClock
+  | 24 => flagAdd op
+  | 25 => flagSub op
+  | 26 => flagXor op
+  | 27 => flagOr op
+  | 28 => flagAnd op
+  | 29 => bitVecM31 row.result.limb0
+  | 30 => bitVecM31 row.result.limb1
+  | 31 => bitVecM31 row.result.limb2
+  | 32 => bitVecM31 row.result.limb3
+  | 33 => boolM31 row.rdNonzero
+  | 34 => witness.destinationInverse
   | _ => 0
 
 def evaluation
@@ -158,7 +154,7 @@ def clockGapField (row : Row) (ordinal previous : Nat) : M31 :=
   TeamACommon.clockGapField row.clock ordinal previous
 
 def programLookup (op : Op) (row : Row) : EvaluatedLookup where
-  ordinal := 30
+  ordinal := 22
   domain := .programAccess
   numerator := -(1 : M31)
   tuple := #[
@@ -173,7 +169,7 @@ def programLookup (op : Op) (row : Row) : EvaluatedLookup where
   accessOrdinal := none
 
 def stateConsumeLookup (row : Row) : EvaluatedLookup where
-  ordinal := 31
+  ordinal := 23
   domain := .registersState
   numerator := -(1 : M31)
   tuple := #[bitVecM31 row.pc, M31.reduce row.clock]
@@ -182,7 +178,7 @@ def stateConsumeLookup (row : Row) : EvaluatedLookup where
   accessOrdinal := none
 
 def stateEmitLookup (row : Row) : EvaluatedLookup where
-  ordinal := 32
+  ordinal := 24
   domain := .registersState
   numerator := 1
   tuple := #[
@@ -194,7 +190,7 @@ def stateEmitLookup (row : Row) : EvaluatedLookup where
   accessOrdinal := none
 
 def source1ConsumeLookup (row : Row) : EvaluatedLookup where
-  ordinal := 33
+  ordinal := 25
   domain := .memoryAccess
   numerator := -(1 : M31)
   tuple := #[
@@ -209,7 +205,7 @@ def source1ConsumeLookup (row : Row) : EvaluatedLookup where
   accessOrdinal := some 1
 
 def source1EmitLookup (row : Row) : EvaluatedLookup where
-  ordinal := 34
+  ordinal := 26
   domain := .memoryAccess
   numerator := 1
   tuple := #[
@@ -224,7 +220,7 @@ def source1EmitLookup (row : Row) : EvaluatedLookup where
   accessOrdinal := some 1
 
 def source1ClockLookup (row : Row) : EvaluatedLookup where
-  ordinal := 35
+  ordinal := 27
   domain := .rangeCheck20
   numerator := -(1 : M31)
   tuple := #[clockGapField row 1 row.rs1PreviousClock]
@@ -233,7 +229,7 @@ def source1ClockLookup (row : Row) : EvaluatedLookup where
   accessOrdinal := some 1
 
 def source2ConsumeLookup (row : Row) : EvaluatedLookup where
-  ordinal := 36
+  ordinal := 28
   domain := .memoryAccess
   numerator := -(1 : M31)
   tuple := #[
@@ -248,7 +244,7 @@ def source2ConsumeLookup (row : Row) : EvaluatedLookup where
   accessOrdinal := some 2
 
 def source2EmitLookup (row : Row) : EvaluatedLookup where
-  ordinal := 37
+  ordinal := 29
   domain := .memoryAccess
   numerator := 1
   tuple := #[
@@ -263,7 +259,7 @@ def source2EmitLookup (row : Row) : EvaluatedLookup where
   accessOrdinal := some 2
 
 def source2ClockLookup (row : Row) : EvaluatedLookup where
-  ordinal := 38
+  ordinal := 30
   domain := .rangeCheck20
   numerator := -(1 : M31)
   tuple := #[clockGapField row 2 row.rs2PreviousClock]
@@ -285,31 +281,31 @@ def bitwiseLookupFields
   accessOrdinal := none
 
 def bitwiseLookup0 (op : Op) (row : Row) : EvaluatedLookup :=
-  bitwiseLookupFields op 39
+  bitwiseLookupFields op 31
     (bitVecM31 row.rs1Next.limb0)
     (bitVecM31 row.rs2Next.limb0)
     (bitVecM31 row.result.limb0)
 
 def bitwiseLookup1 (op : Op) (row : Row) : EvaluatedLookup :=
-  bitwiseLookupFields op 40
+  bitwiseLookupFields op 32
     (bitVecM31 row.rs1Next.limb1)
     (bitVecM31 row.rs2Next.limb1)
     (bitVecM31 row.result.limb1)
 
 def bitwiseLookup2 (op : Op) (row : Row) : EvaluatedLookup :=
-  bitwiseLookupFields op 41
+  bitwiseLookupFields op 33
     (bitVecM31 row.rs1Next.limb2)
     (bitVecM31 row.rs2Next.limb2)
     (bitVecM31 row.result.limb2)
 
 def bitwiseLookup3 (op : Op) (row : Row) : EvaluatedLookup :=
-  bitwiseLookupFields op 42
+  bitwiseLookupFields op 34
     (bitVecM31 row.rs1Next.limb3)
     (bitVecM31 row.rs2Next.limb3)
     (bitVecM31 row.result.limb3)
 
 def resultLowLookup (row : Row) : EvaluatedLookup where
-  ordinal := 43
+  ordinal := 35
   domain := .rangeCheck88
   numerator := -(1 : M31)
   tuple := #[bitVecM31 row.result.limb0, bitVecM31 row.result.limb1]
@@ -318,7 +314,7 @@ def resultLowLookup (row : Row) : EvaluatedLookup where
   accessOrdinal := none
 
 def resultHighLookup (row : Row) : EvaluatedLookup where
-  ordinal := 44
+  ordinal := 36
   domain := .rangeCheck88
   numerator := -(1 : M31)
   tuple := #[bitVecM31 row.result.limb2, bitVecM31 row.result.limb3]
@@ -327,7 +323,7 @@ def resultHighLookup (row : Row) : EvaluatedLookup where
   accessOrdinal := none
 
 def destinationConsumeLookup (row : Row) : EvaluatedLookup where
-  ordinal := 45
+  ordinal := 37
   domain := .memoryAccess
   numerator := -(1 : M31)
   tuple := #[
@@ -342,7 +338,7 @@ def destinationConsumeLookup (row : Row) : EvaluatedLookup where
   accessOrdinal := some 3
 
 def destinationEmitLookup (row : Row) : EvaluatedLookup where
-  ordinal := 46
+  ordinal := 38
   domain := .memoryAccess
   numerator := 1
   tuple := #[
@@ -357,7 +353,7 @@ def destinationEmitLookup (row : Row) : EvaluatedLookup where
   accessOrdinal := some 3
 
 def destinationClockLookup (row : Row) : EvaluatedLookup where
-  ordinal := 47
+  ordinal := 39
   domain := .rangeCheck20
   numerator := -(1 : M31)
   tuple := #[clockGapField row 3 row.rdPreviousClock]
@@ -393,6 +389,8 @@ macro "reduce_base_alu_reg" : tactic =>
       Array.map_push,
       Array.map_empty,
       columns,
+      Row.rs1Next,
+      Row.rs2Next,
       flagAdd,
       flagSub,
       flagXor,
@@ -444,13 +442,13 @@ theorem selectorAccepted
     (evaluation op row witness).activeSelectorsAccepted = true := by
   cases op <;> reduce_base_alu_reg
 
-private theorem lookupEvent30 (op : Op) :
-    (program op).source.events[30]? =
+private theorem lookupEvent22 (op : Op) :
+    (program op).source.events[22]? =
       some (.lookup {
-        ordinal := 30
+        ordinal := 22
         domain := .programAccess
-        numerator := 162
-        tuple := #[1, 174, 2, 12, 22]
+        numerator := 138
+        tuple := #[1, 150, 2, 12, 18]
         role := .request
         tableId := none
         liveness := .nonzeroNumerator
@@ -458,15 +456,127 @@ private theorem lookupEvent30 (op : Op) :
       }) := by
   cases op <;> decide
 
+private theorem lookupEvent23 (op : Op) :
+    (program op).source.events[23]? =
+      some (.lookup {
+        ordinal := 23
+        domain := .registersState
+        numerator := 138
+        tuple := #[1, 0]
+        role := .consume
+        tableId := none
+        liveness := .nonzeroNumerator
+        accessOrdinal := none
+      }) := by
+  cases op <;> decide
+
+private theorem lookupEvent24 (op : Op) :
+    (program op).source.events[24]? =
+      some (.lookup {
+        ordinal := 24
+        domain := .registersState
+        numerator := 39
+        tuple := #[151, 152]
+        role := .emit
+        tableId := none
+        liveness := .nonzeroNumerator
+        accessOrdinal := none
+      }) := by
+  cases op <;> decide
+
+private theorem lookupEvent25 (op : Op) :
+    (program op).source.events[25]? =
+      some (.lookup {
+        ordinal := 25
+        domain := .memoryAccess
+        numerator := 138
+        tuple := #[52, 12, 17, 13, 14, 15, 16]
+        role := .consume
+        tableId := none
+        liveness := .nonzeroNumerator
+        accessOrdinal := some 1
+      }) := by
+  cases op <;> decide
+
+private theorem lookupEvent26 (op : Op) :
+    (program op).source.events[26]? =
+      some (.lookup {
+        ordinal := 26
+        domain := .memoryAccess
+        numerator := 39
+        tuple := #[52, 12, 131, 13, 14, 15, 16]
+        role := .emit
+        tableId := none
+        liveness := .nonzeroNumerator
+        accessOrdinal := some 1
+      }) := by
+  cases op <;> decide
+
+private theorem lookupEvent27 (op : Op) :
+    (program op).source.events[27]? =
+      some (.lookup {
+        ordinal := 27
+        domain := .rangeCheck20
+        numerator := 138
+        tuple := #[133]
+        role := .request
+        tableId := some .rangeCheck20
+        liveness := .nonzeroNumerator
+        accessOrdinal := some 1
+      }) := by
+  cases op <;> decide
+
+private theorem lookupEvent28 (op : Op) :
+    (program op).source.events[28]? =
+      some (.lookup {
+        ordinal := 28
+        domain := .memoryAccess
+        numerator := 138
+        tuple := #[52, 18, 23, 19, 20, 21, 22]
+        role := .consume
+        tableId := none
+        liveness := .nonzeroNumerator
+        accessOrdinal := some 2
+      }) := by
+  cases op <;> decide
+
+private theorem lookupEvent29 (op : Op) :
+    (program op).source.events[29]? =
+      some (.lookup {
+        ordinal := 29
+        domain := .memoryAccess
+        numerator := 39
+        tuple := #[52, 18, 135, 19, 20, 21, 22]
+        role := .emit
+        tableId := none
+        liveness := .nonzeroNumerator
+        accessOrdinal := some 2
+      }) := by
+  cases op <;> decide
+
+private theorem lookupEvent30 (op : Op) :
+    (program op).source.events[30]? =
+      some (.lookup {
+        ordinal := 30
+        domain := .rangeCheck20
+        numerator := 138
+        tuple := #[137]
+        role := .request
+        tableId := some .rangeCheck20
+        liveness := .nonzeroNumerator
+        accessOrdinal := some 2
+      }) := by
+  cases op <;> decide
+
 private theorem lookupEvent31 (op : Op) :
     (program op).source.events[31]? =
       some (.lookup {
         ordinal := 31
-        domain := .registersState
-        numerator := 162
-        tuple := #[1, 0]
-        role := .consume
-        tableId := none
+        domain := .bitwise
+        numerator := 157
+        tuple := #[13, 19, 29, 156]
+        role := .request
+        tableId := some .bitwise
         liveness := .nonzeroNumerator
         accessOrdinal := none
       }) := by
@@ -476,11 +586,11 @@ private theorem lookupEvent32 (op : Op) :
     (program op).source.events[32]? =
       some (.lookup {
         ordinal := 32
-        domain := .registersState
-        numerator := 47
-        tuple := #[175, 176]
-        role := .emit
-        tableId := none
+        domain := .bitwise
+        numerator := 157
+        tuple := #[14, 20, 30, 156]
+        role := .request
+        tableId := some .bitwise
         liveness := .nonzeroNumerator
         accessOrdinal := none
       }) := by
@@ -490,13 +600,13 @@ private theorem lookupEvent33 (op : Op) :
     (program op).source.events[33]? =
       some (.lookup {
         ordinal := 33
-        domain := .memoryAccess
-        numerator := 162
-        tuple := #[60, 12, 17, 13, 14, 15, 16]
-        role := .consume
-        tableId := none
+        domain := .bitwise
+        numerator := 157
+        tuple := #[15, 21, 31, 156]
+        role := .request
+        tableId := some .bitwise
         liveness := .nonzeroNumerator
-        accessOrdinal := some 1
+        accessOrdinal := none
       }) := by
   cases op <;> decide
 
@@ -504,13 +614,13 @@ private theorem lookupEvent34 (op : Op) :
     (program op).source.events[34]? =
       some (.lookup {
         ordinal := 34
-        domain := .memoryAccess
-        numerator := 47
-        tuple := #[60, 12, 155, 18, 19, 20, 21]
-        role := .emit
-        tableId := none
+        domain := .bitwise
+        numerator := 157
+        tuple := #[16, 22, 32, 156]
+        role := .request
+        tableId := some .bitwise
         liveness := .nonzeroNumerator
-        accessOrdinal := some 1
+        accessOrdinal := none
       }) := by
   cases op <;> decide
 
@@ -518,13 +628,13 @@ private theorem lookupEvent35 (op : Op) :
     (program op).source.events[35]? =
       some (.lookup {
         ordinal := 35
-        domain := .rangeCheck20
-        numerator := 162
-        tuple := #[157]
+        domain := .rangeCheck88
+        numerator := 138
+        tuple := #[29, 30]
         role := .request
-        tableId := some .rangeCheck20
+        tableId := some .rangeCheck88
         liveness := .nonzeroNumerator
-        accessOrdinal := some 1
+        accessOrdinal := none
       }) := by
   cases op <;> decide
 
@@ -532,13 +642,13 @@ private theorem lookupEvent36 (op : Op) :
     (program op).source.events[36]? =
       some (.lookup {
         ordinal := 36
-        domain := .memoryAccess
-        numerator := 162
-        tuple := #[60, 22, 27, 23, 24, 25, 26]
-        role := .consume
-        tableId := none
+        domain := .rangeCheck88
+        numerator := 138
+        tuple := #[31, 32]
+        role := .request
+        tableId := some .rangeCheck88
         liveness := .nonzeroNumerator
-        accessOrdinal := some 2
+        accessOrdinal := none
       }) := by
   cases op <;> decide
 
@@ -547,120 +657,8 @@ private theorem lookupEvent37 (op : Op) :
       some (.lookup {
         ordinal := 37
         domain := .memoryAccess
-        numerator := 47
-        tuple := #[60, 22, 159, 28, 29, 30, 31]
-        role := .emit
-        tableId := none
-        liveness := .nonzeroNumerator
-        accessOrdinal := some 2
-      }) := by
-  cases op <;> decide
-
-private theorem lookupEvent38 (op : Op) :
-    (program op).source.events[38]? =
-      some (.lookup {
-        ordinal := 38
-        domain := .rangeCheck20
-        numerator := 162
-        tuple := #[161]
-        role := .request
-        tableId := some .rangeCheck20
-        liveness := .nonzeroNumerator
-        accessOrdinal := some 2
-      }) := by
-  cases op <;> decide
-
-private theorem lookupEvent39 (op : Op) :
-    (program op).source.events[39]? =
-      some (.lookup {
-        ordinal := 39
-        domain := .bitwise
-        numerator := 181
-        tuple := #[18, 28, 37, 180]
-        role := .request
-        tableId := some .bitwise
-        liveness := .nonzeroNumerator
-        accessOrdinal := none
-      }) := by
-  cases op <;> decide
-
-private theorem lookupEvent40 (op : Op) :
-    (program op).source.events[40]? =
-      some (.lookup {
-        ordinal := 40
-        domain := .bitwise
-        numerator := 181
-        tuple := #[19, 29, 38, 180]
-        role := .request
-        tableId := some .bitwise
-        liveness := .nonzeroNumerator
-        accessOrdinal := none
-      }) := by
-  cases op <;> decide
-
-private theorem lookupEvent41 (op : Op) :
-    (program op).source.events[41]? =
-      some (.lookup {
-        ordinal := 41
-        domain := .bitwise
-        numerator := 181
-        tuple := #[20, 30, 39, 180]
-        role := .request
-        tableId := some .bitwise
-        liveness := .nonzeroNumerator
-        accessOrdinal := none
-      }) := by
-  cases op <;> decide
-
-private theorem lookupEvent42 (op : Op) :
-    (program op).source.events[42]? =
-      some (.lookup {
-        ordinal := 42
-        domain := .bitwise
-        numerator := 181
-        tuple := #[21, 31, 40, 180]
-        role := .request
-        tableId := some .bitwise
-        liveness := .nonzeroNumerator
-        accessOrdinal := none
-      }) := by
-  cases op <;> decide
-
-private theorem lookupEvent43 (op : Op) :
-    (program op).source.events[43]? =
-      some (.lookup {
-        ordinal := 43
-        domain := .rangeCheck88
-        numerator := 162
-        tuple := #[37, 38]
-        role := .request
-        tableId := some .rangeCheck88
-        liveness := .nonzeroNumerator
-        accessOrdinal := none
-      }) := by
-  cases op <;> decide
-
-private theorem lookupEvent44 (op : Op) :
-    (program op).source.events[44]? =
-      some (.lookup {
-        ordinal := 44
-        domain := .rangeCheck88
-        numerator := 162
-        tuple := #[39, 40]
-        role := .request
-        tableId := some .rangeCheck88
-        liveness := .nonzeroNumerator
-        accessOrdinal := none
-      }) := by
-  cases op <;> decide
-
-private theorem lookupEvent45 (op : Op) :
-    (program op).source.events[45]? =
-      some (.lookup {
-        ordinal := 45
-        domain := .memoryAccess
-        numerator := 162
-        tuple := #[60, 2, 7, 3, 4, 5, 6]
+        numerator := 138
+        tuple := #[52, 2, 7, 3, 4, 5, 6]
         role := .consume
         tableId := none
         liveness := .nonzeroNumerator
@@ -668,13 +666,13 @@ private theorem lookupEvent45 (op : Op) :
       }) := by
   cases op <;> decide
 
-private theorem lookupEvent46 (op : Op) :
-    (program op).source.events[46]? =
+private theorem lookupEvent38 (op : Op) :
+    (program op).source.events[38]? =
       some (.lookup {
-        ordinal := 46
+        ordinal := 38
         domain := .memoryAccess
-        numerator := 47
-        tuple := #[60, 2, 152, 8, 9, 10, 11]
+        numerator := 39
+        tuple := #[52, 2, 128, 8, 9, 10, 11]
         role := .emit
         tableId := none
         liveness := .nonzeroNumerator
@@ -682,13 +680,13 @@ private theorem lookupEvent46 (op : Op) :
       }) := by
   cases op <;> decide
 
-private theorem lookupEvent47 (op : Op) :
-    (program op).source.events[47]? =
+private theorem lookupEvent39 (op : Op) :
+    (program op).source.events[39]? =
       some (.lookup {
-        ordinal := 47
+        ordinal := 39
         domain := .rangeCheck20
-        numerator := 162
-        tuple := #[154]
+        numerator := 138
+        tuple := #[130]
         role := .request
         tableId := some .rangeCheck20
         liveness := .nonzeroNumerator
@@ -702,42 +700,74 @@ theorem lookupProjection
     (op : Op)
     (row : Row)
     (witness : Witness row) :
-    (evaluation op row witness).lookup? 30 = some (programLookup op row) ∧
-      (evaluation op row witness).lookup? 31 =
+    (evaluation op row witness).lookup? 22 = some (programLookup op row) ∧
+      (evaluation op row witness).lookup? 23 =
         some (stateConsumeLookup row) ∧
-      (evaluation op row witness).lookup? 32 = some (stateEmitLookup row) ∧
-      (evaluation op row witness).lookup? 33 =
+      (evaluation op row witness).lookup? 24 = some (stateEmitLookup row) ∧
+      (evaluation op row witness).lookup? 25 =
         some (source1ConsumeLookup row) ∧
-      (evaluation op row witness).lookup? 34 =
+      (evaluation op row witness).lookup? 26 =
         some (source1EmitLookup row) ∧
-      (evaluation op row witness).lookup? 35 =
+      (evaluation op row witness).lookup? 27 =
         some (source1ClockLookup row) ∧
-      (evaluation op row witness).lookup? 36 =
+      (evaluation op row witness).lookup? 28 =
         some (source2ConsumeLookup row) ∧
-      (evaluation op row witness).lookup? 37 =
+      (evaluation op row witness).lookup? 29 =
         some (source2EmitLookup row) ∧
-      (evaluation op row witness).lookup? 38 =
+      (evaluation op row witness).lookup? 30 =
         some (source2ClockLookup row) ∧
-      (evaluation op row witness).lookup? 39 =
+      (evaluation op row witness).lookup? 31 =
         some (bitwiseLookup0 op row) ∧
-      (evaluation op row witness).lookup? 40 =
+      (evaluation op row witness).lookup? 32 =
         some (bitwiseLookup1 op row) ∧
-      (evaluation op row witness).lookup? 41 =
+      (evaluation op row witness).lookup? 33 =
         some (bitwiseLookup2 op row) ∧
-      (evaluation op row witness).lookup? 42 =
+      (evaluation op row witness).lookup? 34 =
         some (bitwiseLookup3 op row) ∧
-      (evaluation op row witness).lookup? 43 =
+      (evaluation op row witness).lookup? 35 =
         some (resultLowLookup row) ∧
-      (evaluation op row witness).lookup? 44 =
+      (evaluation op row witness).lookup? 36 =
         some (resultHighLookup row) ∧
-      (evaluation op row witness).lookup? 45 =
+      (evaluation op row witness).lookup? 37 =
         some (destinationConsumeLookup row) ∧
-      (evaluation op row witness).lookup? 46 =
+      (evaluation op row witness).lookup? 38 =
         some (destinationEmitLookup row) ∧
-      (evaluation op row witness).lookup? 47 =
+      (evaluation op row witness).lookup? 39 =
         some (destinationClockLookup row) := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
     ?_, ?_, ?_⟩
+  · rw [evaluation,
+      LocalProgram.lookup?_evalSymbolic_of_event
+        (program op) (columns op row witness) 22 _ (lookupEvent22 op)]
+    cases op <;> reduce_base_alu_reg
+  · rw [evaluation,
+      LocalProgram.lookup?_evalSymbolic_of_event
+        (program op) (columns op row witness) 23 _ (lookupEvent23 op)]
+    cases op <;> reduce_base_alu_reg
+  · rw [evaluation,
+      LocalProgram.lookup?_evalSymbolic_of_event
+        (program op) (columns op row witness) 24 _ (lookupEvent24 op)]
+    cases op <;> reduce_base_alu_reg
+  · rw [evaluation,
+      LocalProgram.lookup?_evalSymbolic_of_event
+        (program op) (columns op row witness) 25 _ (lookupEvent25 op)]
+    cases op <;> reduce_base_alu_reg
+  · rw [evaluation,
+      LocalProgram.lookup?_evalSymbolic_of_event
+        (program op) (columns op row witness) 26 _ (lookupEvent26 op)]
+    cases op <;> reduce_base_alu_reg
+  · rw [evaluation,
+      LocalProgram.lookup?_evalSymbolic_of_event
+        (program op) (columns op row witness) 27 _ (lookupEvent27 op)]
+    cases op <;> reduce_base_alu_reg
+  · rw [evaluation,
+      LocalProgram.lookup?_evalSymbolic_of_event
+        (program op) (columns op row witness) 28 _ (lookupEvent28 op)]
+    cases op <;> reduce_base_alu_reg
+  · rw [evaluation,
+      LocalProgram.lookup?_evalSymbolic_of_event
+        (program op) (columns op row witness) 29 _ (lookupEvent29 op)]
+    cases op <;> reduce_base_alu_reg
   · rw [evaluation,
       LocalProgram.lookup?_evalSymbolic_of_event
         (program op) (columns op row witness) 30 _ (lookupEvent30 op)]
@@ -778,45 +808,13 @@ theorem lookupProjection
       LocalProgram.lookup?_evalSymbolic_of_event
         (program op) (columns op row witness) 39 _ (lookupEvent39 op)]
     cases op <;> reduce_base_alu_reg
-  · rw [evaluation,
-      LocalProgram.lookup?_evalSymbolic_of_event
-        (program op) (columns op row witness) 40 _ (lookupEvent40 op)]
-    cases op <;> reduce_base_alu_reg
-  · rw [evaluation,
-      LocalProgram.lookup?_evalSymbolic_of_event
-        (program op) (columns op row witness) 41 _ (lookupEvent41 op)]
-    cases op <;> reduce_base_alu_reg
-  · rw [evaluation,
-      LocalProgram.lookup?_evalSymbolic_of_event
-        (program op) (columns op row witness) 42 _ (lookupEvent42 op)]
-    cases op <;> reduce_base_alu_reg
-  · rw [evaluation,
-      LocalProgram.lookup?_evalSymbolic_of_event
-        (program op) (columns op row witness) 43 _ (lookupEvent43 op)]
-    cases op <;> reduce_base_alu_reg
-  · rw [evaluation,
-      LocalProgram.lookup?_evalSymbolic_of_event
-        (program op) (columns op row witness) 44 _ (lookupEvent44 op)]
-    cases op <;> reduce_base_alu_reg
-  · rw [evaluation,
-      LocalProgram.lookup?_evalSymbolic_of_event
-        (program op) (columns op row witness) 45 _ (lookupEvent45 op)]
-    cases op <;> reduce_base_alu_reg
-  · rw [evaluation,
-      LocalProgram.lookup?_evalSymbolic_of_event
-        (program op) (columns op row witness) 46 _ (lookupEvent46 op)]
-    cases op <;> reduce_base_alu_reg
-  · rw [evaluation,
-      LocalProgram.lookup?_evalSymbolic_of_event
-        (program op) (columns op row witness) 47 _ (lookupEvent47 op)]
-    cases op <;> reduce_base_alu_reg
 
 theorem projectionOrdinals (op : Op) :
-    (program op).source.projection.programEvent = 30 ∧
-      (program op).source.projection.stateEvents = #[31, 32] ∧
-      (program op).source.projection.sourceEvents = #[33, 34, 36, 37] ∧
-      (program op).source.projection.destinationEvents = #[45, 46] ∧
-      (program op).source.projection.nextPc = 175 := by
+    (program op).source.projection.programEvent = 22 ∧
+      (program op).source.projection.stateEvents = #[23, 24] ∧
+      (program op).source.projection.sourceEvents = #[25, 26, 28, 29] ∧
+      (program op).source.projection.destinationEvents = #[37, 38] ∧
+      (program op).source.projection.nextPc = 151 := by
   cases op <;> decide
 
 def addCarry1Field (row : Row) : M31 :=
@@ -866,9 +864,8 @@ private theorem constraintsHoldEvents
         (fun
           | .constraint event => event.value == 0
           | .lookup _ => true) =
-      #[49, 51, 53, 55, 57, 59, 68, 75, 82, 89, 96, 103, 110,
-        117, 119, 121, 123, 125, 127, 129, 131, 133, 135, 137, 139,
-        141, 143, 145, 147, 48].all
+      #[41, 43, 45, 47, 49, 51, 60, 67, 74, 81, 88, 95, 102,
+        109, 111, 113, 115, 117, 119, 121, 123, 40].all
         (fun root => nodes.getSymbolic root == 0) := by
   cases op <;>
     simp [
@@ -891,9 +888,8 @@ theorem constraintsHold_eq
     (row : Row)
     (witness : Witness row) :
     (evaluation op row witness).constraintsHold =
-      #[49, 51, 53, 55, 57, 59, 68, 75, 82, 89, 96, 103, 110,
-        117, 119, 121, 123, 125, 127, 129, 131, 133, 135, 137, 139,
-        141, 143, 145, 147, 48].all
+      #[41, 43, 45, 47, 49, 51, 60, 67, 74, 81, 88, 95, 102,
+        109, 111, 113, 115, 117, 119, 121, 123, 40].all
         (fun root =>
           (evaluation op row witness).nodes.getSymbolic root == 0) :=
   constraintsHoldEvents op (evaluation op row witness).nodes
@@ -914,6 +910,26 @@ private theorem bitVecOneBoolean (value : BitVec 1) :
     decide
 
 set_option maxRecDepth 30000 in
+private theorem node41 (op : Op) (row : Row) (witness : Witness row) :
+    (evaluation op row witness).nodes.getSymbolic 41 = 0 := by
+  cases op <;> reduce_base_alu_reg
+
+set_option maxRecDepth 30000 in
+private theorem node43 (op : Op) (row : Row) (witness : Witness row) :
+    (evaluation op row witness).nodes.getSymbolic 43 = 0 := by
+  cases op <;> reduce_base_alu_reg
+
+set_option maxRecDepth 30000 in
+private theorem node45 (op : Op) (row : Row) (witness : Witness row) :
+    (evaluation op row witness).nodes.getSymbolic 45 = 0 := by
+  cases op <;> reduce_base_alu_reg
+
+set_option maxRecDepth 30000 in
+private theorem node47 (op : Op) (row : Row) (witness : Witness row) :
+    (evaluation op row witness).nodes.getSymbolic 47 = 0 := by
+  cases op <;> reduce_base_alu_reg
+
+set_option maxRecDepth 30000 in
 private theorem node49 (op : Op) (row : Row) (witness : Witness row) :
     (evaluation op row witness).nodes.getSymbolic 49 = 0 := by
   cases op <;> reduce_base_alu_reg
@@ -924,179 +940,111 @@ private theorem node51 (op : Op) (row : Row) (witness : Witness row) :
   cases op <;> reduce_base_alu_reg
 
 set_option maxRecDepth 30000 in
-private theorem node53 (op : Op) (row : Row) (witness : Witness row) :
-    (evaluation op row witness).nodes.getSymbolic 53 = 0 := by
-  cases op <;> reduce_base_alu_reg
-
-set_option maxRecDepth 30000 in
-private theorem node55 (op : Op) (row : Row) (witness : Witness row) :
-    (evaluation op row witness).nodes.getSymbolic 55 = 0 := by
-  cases op <;> reduce_base_alu_reg
-
-set_option maxRecDepth 30000 in
-private theorem node57 (op : Op) (row : Row) (witness : Witness row) :
-    (evaluation op row witness).nodes.getSymbolic 57 = 0 := by
-  cases op <;> reduce_base_alu_reg
-
-set_option maxRecDepth 30000 in
-private theorem node59 (op : Op) (row : Row) (witness : Witness row) :
-    (evaluation op row witness).nodes.getSymbolic 59 = 0 := by
-  cases op <;> reduce_base_alu_reg
-
-set_option maxRecDepth 30000 in
-private theorem node68 (op : Op) (row : Row) (witness : Witness row) :
-    (evaluation op row witness).nodes.getSymbolic 68 =
+private theorem node60 (op : Op) (row : Row) (witness : Witness row) :
+    (evaluation op row witness).nodes.getSymbolic 60 =
       flagAdd op *
         (addCarry1Field row * (addCarry1Field row - 1)) := by
   cases op <;> reduce_base_alu_reg
 
 set_option maxRecDepth 30000 in
-private theorem node75 (op : Op) (row : Row) (witness : Witness row) :
-    (evaluation op row witness).nodes.getSymbolic 75 =
+private theorem node67 (op : Op) (row : Row) (witness : Witness row) :
+    (evaluation op row witness).nodes.getSymbolic 67 =
       flagAdd op *
         (addCarry2Field row * (addCarry2Field row - 1)) := by
   cases op <;> reduce_base_alu_reg
 
 set_option maxRecDepth 30000 in
-private theorem node82 (op : Op) (row : Row) (witness : Witness row) :
-    (evaluation op row witness).nodes.getSymbolic 82 =
+private theorem node74 (op : Op) (row : Row) (witness : Witness row) :
+    (evaluation op row witness).nodes.getSymbolic 74 =
       flagAdd op *
         (addCarry3Field row * (addCarry3Field row - 1)) := by
   cases op <;> reduce_base_alu_reg
 
 set_option maxRecDepth 30000 in
-private theorem node89 (op : Op) (row : Row) (witness : Witness row) :
-    (evaluation op row witness).nodes.getSymbolic 89 =
+private theorem node81 (op : Op) (row : Row) (witness : Witness row) :
+    (evaluation op row witness).nodes.getSymbolic 81 =
       flagAdd op *
         (addCarry4Field row * (addCarry4Field row - 1)) := by
   cases op <;> reduce_base_alu_reg
 
 set_option maxRecDepth 30000 in
-private theorem node96 (op : Op) (row : Row) (witness : Witness row) :
-    (evaluation op row witness).nodes.getSymbolic 96 =
+private theorem node88 (op : Op) (row : Row) (witness : Witness row) :
+    (evaluation op row witness).nodes.getSymbolic 88 =
       flagSub op *
         (subCarry1Field row * (subCarry1Field row - 1)) := by
   cases op <;> reduce_base_alu_reg
 
 set_option maxRecDepth 30000 in
-private theorem node103 (op : Op) (row : Row) (witness : Witness row) :
-    (evaluation op row witness).nodes.getSymbolic 103 =
+private theorem node95 (op : Op) (row : Row) (witness : Witness row) :
+    (evaluation op row witness).nodes.getSymbolic 95 =
       flagSub op *
         (subCarry2Field row * (subCarry2Field row - 1)) := by
   cases op <;> reduce_base_alu_reg
 
 set_option maxRecDepth 30000 in
-private theorem node110 (op : Op) (row : Row) (witness : Witness row) :
-    (evaluation op row witness).nodes.getSymbolic 110 =
+private theorem node102 (op : Op) (row : Row) (witness : Witness row) :
+    (evaluation op row witness).nodes.getSymbolic 102 =
       flagSub op *
         (subCarry3Field row * (subCarry3Field row - 1)) := by
   cases op <;> reduce_base_alu_reg
 
 set_option maxRecDepth 30000 in
-private theorem node117 (op : Op) (row : Row) (witness : Witness row) :
-    (evaluation op row witness).nodes.getSymbolic 117 =
+private theorem node109 (op : Op) (row : Row) (witness : Witness row) :
+    (evaluation op row witness).nodes.getSymbolic 109 =
       flagSub op *
         (subCarry4Field row * (subCarry4Field row - 1)) := by
   cases op <;> reduce_base_alu_reg
 
 set_option maxRecDepth 30000 in
-private theorem node119 (op : Op) (row : Row) (witness : Witness row) :
-    (evaluation op row witness).nodes.getSymbolic 119 =
+private theorem node111 (op : Op) (row : Row) (witness : Witness row) :
+    (evaluation op row witness).nodes.getSymbolic 111 =
       boolM31 row.rdNonzero * (boolM31 row.rdNonzero - 1) := by
   cases op <;> reduce_base_alu_reg
 
 set_option maxRecDepth 30000 in
-private theorem node121 (op : Op) (row : Row) (witness : Witness row) :
-    (evaluation op row witness).nodes.getSymbolic 121 =
+private theorem node113 (op : Op) (row : Row) (witness : Witness row) :
+    (evaluation op row witness).nodes.getSymbolic 113 =
       bitVecM31 row.rd * (1 - boolM31 row.rdNonzero) := by
   cases op <;> reduce_base_alu_reg
 
 set_option maxRecDepth 30000 in
-private theorem node123 (op : Op) (row : Row) (witness : Witness row) :
-    (evaluation op row witness).nodes.getSymbolic 123 =
+private theorem node115 (op : Op) (row : Row) (witness : Witness row) :
+    (evaluation op row witness).nodes.getSymbolic 115 =
       bitVecM31 row.rd * witness.destinationInverse -
         boolM31 row.rdNonzero := by
   cases op <;> reduce_base_alu_reg
 
 set_option maxRecDepth 30000 in
-private theorem node125 (op : Op) (row : Row) (witness : Witness row) :
-    (evaluation op row witness).nodes.getSymbolic 125 =
+private theorem node117 (op : Op) (row : Row) (witness : Witness row) :
+    (evaluation op row witness).nodes.getSymbolic 117 =
       bitVecM31 row.rdNext.limb0 -
         boolM31 row.rdNonzero * bitVecM31 row.result.limb0 := by
   cases op <;> reduce_base_alu_reg
 
 set_option maxRecDepth 30000 in
-private theorem node127 (op : Op) (row : Row) (witness : Witness row) :
-    (evaluation op row witness).nodes.getSymbolic 127 =
+private theorem node119 (op : Op) (row : Row) (witness : Witness row) :
+    (evaluation op row witness).nodes.getSymbolic 119 =
       bitVecM31 row.rdNext.limb1 -
         boolM31 row.rdNonzero * bitVecM31 row.result.limb1 := by
   cases op <;> reduce_base_alu_reg
 
 set_option maxRecDepth 30000 in
-private theorem node129 (op : Op) (row : Row) (witness : Witness row) :
-    (evaluation op row witness).nodes.getSymbolic 129 =
+private theorem node121 (op : Op) (row : Row) (witness : Witness row) :
+    (evaluation op row witness).nodes.getSymbolic 121 =
       bitVecM31 row.rdNext.limb2 -
         boolM31 row.rdNonzero * bitVecM31 row.result.limb2 := by
   cases op <;> reduce_base_alu_reg
 
 set_option maxRecDepth 30000 in
-private theorem node131 (op : Op) (row : Row) (witness : Witness row) :
-    (evaluation op row witness).nodes.getSymbolic 131 =
+private theorem node123 (op : Op) (row : Row) (witness : Witness row) :
+    (evaluation op row witness).nodes.getSymbolic 123 =
       bitVecM31 row.rdNext.limb3 -
         boolM31 row.rdNonzero * bitVecM31 row.result.limb3 := by
   cases op <;> reduce_base_alu_reg
 
 set_option maxRecDepth 30000 in
-private theorem node133 (op : Op) (row : Row) (witness : Witness row) :
-    (evaluation op row witness).nodes.getSymbolic 133 =
-      bitVecM31 row.rs1Next.limb0 - bitVecM31 row.rs1Previous.limb0 := by
-  cases op <;> reduce_base_alu_reg
-
-set_option maxRecDepth 30000 in
-private theorem node135 (op : Op) (row : Row) (witness : Witness row) :
-    (evaluation op row witness).nodes.getSymbolic 135 =
-      bitVecM31 row.rs1Next.limb1 - bitVecM31 row.rs1Previous.limb1 := by
-  cases op <;> reduce_base_alu_reg
-
-set_option maxRecDepth 30000 in
-private theorem node137 (op : Op) (row : Row) (witness : Witness row) :
-    (evaluation op row witness).nodes.getSymbolic 137 =
-      bitVecM31 row.rs1Next.limb2 - bitVecM31 row.rs1Previous.limb2 := by
-  cases op <;> reduce_base_alu_reg
-
-set_option maxRecDepth 30000 in
-private theorem node139 (op : Op) (row : Row) (witness : Witness row) :
-    (evaluation op row witness).nodes.getSymbolic 139 =
-      bitVecM31 row.rs1Next.limb3 - bitVecM31 row.rs1Previous.limb3 := by
-  cases op <;> reduce_base_alu_reg
-
-set_option maxRecDepth 30000 in
-private theorem node141 (op : Op) (row : Row) (witness : Witness row) :
-    (evaluation op row witness).nodes.getSymbolic 141 =
-      bitVecM31 row.rs2Next.limb0 - bitVecM31 row.rs2Previous.limb0 := by
-  cases op <;> reduce_base_alu_reg
-
-set_option maxRecDepth 30000 in
-private theorem node143 (op : Op) (row : Row) (witness : Witness row) :
-    (evaluation op row witness).nodes.getSymbolic 143 =
-      bitVecM31 row.rs2Next.limb1 - bitVecM31 row.rs2Previous.limb1 := by
-  cases op <;> reduce_base_alu_reg
-
-set_option maxRecDepth 30000 in
-private theorem node145 (op : Op) (row : Row) (witness : Witness row) :
-    (evaluation op row witness).nodes.getSymbolic 145 =
-      bitVecM31 row.rs2Next.limb2 - bitVecM31 row.rs2Previous.limb2 := by
-  cases op <;> reduce_base_alu_reg
-
-set_option maxRecDepth 30000 in
-private theorem node147 (op : Op) (row : Row) (witness : Witness row) :
-    (evaluation op row witness).nodes.getSymbolic 147 =
-      bitVecM31 row.rs2Next.limb3 - bitVecM31 row.rs2Previous.limb3 := by
-  cases op <;> reduce_base_alu_reg
-
-set_option maxRecDepth 30000 in
-private theorem node48 (op : Op) (row : Row) (witness : Witness row) :
-    (evaluation op row witness).nodes.getSymbolic 48 = 0 := by
+private theorem node40 (op : Op) (row : Row) (witness : Witness row) :
+    (evaluation op row witness).nodes.getSymbolic 40 = 0 := by
   cases op <;> reduce_base_alu_reg
 
 def ArithmeticEquations (op : Op) (row : Row) : Prop :=
@@ -1128,15 +1076,7 @@ def ConstraintEquations
   bitVecM31 row.rdNext.limb2 -
       boolM31 row.rdNonzero * bitVecM31 row.result.limb2 = 0 ∧
   bitVecM31 row.rdNext.limb3 -
-      boolM31 row.rdNonzero * bitVecM31 row.result.limb3 = 0 ∧
-  bitVecM31 row.rs1Next.limb0 - bitVecM31 row.rs1Previous.limb0 = 0 ∧
-  bitVecM31 row.rs1Next.limb1 - bitVecM31 row.rs1Previous.limb1 = 0 ∧
-  bitVecM31 row.rs1Next.limb2 - bitVecM31 row.rs1Previous.limb2 = 0 ∧
-  bitVecM31 row.rs1Next.limb3 - bitVecM31 row.rs1Previous.limb3 = 0 ∧
-  bitVecM31 row.rs2Next.limb0 - bitVecM31 row.rs2Previous.limb0 = 0 ∧
-  bitVecM31 row.rs2Next.limb1 - bitVecM31 row.rs2Previous.limb1 = 0 ∧
-  bitVecM31 row.rs2Next.limb2 - bitVecM31 row.rs2Previous.limb2 = 0 ∧
-  bitVecM31 row.rs2Next.limb3 - bitVecM31 row.rs2Previous.limb3 = 0
+      boolM31 row.rdNonzero * bitVecM31 row.result.limb3 = 0
 
 set_option maxHeartbeats 0 in
 theorem constraintsHold_iff
@@ -1150,12 +1090,11 @@ theorem constraintsHold_iff
     simp [
       ConstraintEquations,
       ArithmeticEquations,
-      node49, node51, node53, node55, node57, node59,
-      node68, node75, node82, node89,
-      node96, node103, node110, node117,
-      node119, node121, node123, node125, node127, node129, node131,
-      node133, node135, node137, node139,
-      node141, node143, node145, node147, node48,
+      node41, node43, node45, node47, node49, node51,
+      node60, node67, node74, node81,
+      node88, node95, node102, node109,
+      node111, node113, node115, node117, node119, node121, node123,
+      node40,
       flag,
       boolM31,
       TeamACommon.boolM31,
@@ -1184,46 +1123,14 @@ structure Admission (row : Row) : Prop where
   destinationPreviousBound : row.rdPreviousClock < 2 ^ 26
   pcBound : row.pc.toNat + 4 < M31.modulus
 
-private theorem byteBound (value : Byte) :
-    value.toNat < M31.modulus := by
-  have := value.isLt
-  simp [M31.modulus_eq] at *
-  omega
-
-private theorem fieldByteEq
-    (left right : Byte)
-    (equality : bitVecM31 left = bitVecM31 right) :
-    left = right :=
-  TeamACommon.bitVecM31_injective_of_bounds
-    left right (byteBound left) (byteBound right) equality
-
 theorem sourcesPreserved
     (op : Op)
     (row : Row)
     (witness : Witness row)
-    (equations : ConstraintEquations op row witness) :
+    (_equations : ConstraintEquations op row witness) :
     row.rs1Next = row.rs1Previous ∧
       row.rs2Next = row.rs2Previous := by
-  rcases equations with
-    ⟨_, _, _, _, _, _, _, source10, source11, source12, source13,
-      source20, source21, source22, source23⟩
-  constructor <;> apply WordBytes.eq_of_limbs
-  · apply fieldByteEq
-    exact (M31.sub_eq_zero_iff _ _).mp source10
-  · apply fieldByteEq
-    exact (M31.sub_eq_zero_iff _ _).mp source11
-  · apply fieldByteEq
-    exact (M31.sub_eq_zero_iff _ _).mp source12
-  · apply fieldByteEq
-    exact (M31.sub_eq_zero_iff _ _).mp source13
-  · apply fieldByteEq
-    exact (M31.sub_eq_zero_iff _ _).mp source20
-  · apply fieldByteEq
-    exact (M31.sub_eq_zero_iff _ _).mp source21
-  · apply fieldByteEq
-    exact (M31.sub_eq_zero_iff _ _).mp source22
-  · apply fieldByteEq
-    exact (M31.sub_eq_zero_iff _ _).mp source23
+  exact ⟨rfl, rfl⟩
 
 theorem destinationFlag
     (op : Op)
@@ -1247,7 +1154,7 @@ theorem destinationBytes
     equations.2.2.2.1
     equations.2.2.2.2.1
     equations.2.2.2.2.2.1
-    equations.2.2.2.2.2.2.1
+    equations.2.2.2.2.2.2
 
 theorem destinationWord
     (op : Op)
@@ -1461,10 +1368,10 @@ theorem bitwiseRequestsHold
   rcases lookupProjection op row witness with
     ⟨_, _, _, _, _, _, _, _, _, lookup0, lookup1, lookup2, lookup3, _⟩
   exact ⟨
-    fixedRequestOfLookup op row witness fixed 39 _ lookup0,
-    fixedRequestOfLookup op row witness fixed 40 _ lookup1,
-    fixedRequestOfLookup op row witness fixed 41 _ lookup2,
-    fixedRequestOfLookup op row witness fixed 42 _ lookup3
+    fixedRequestOfLookup op row witness fixed 31 _ lookup0,
+    fixedRequestOfLookup op row witness fixed 32 _ lookup1,
+    fixedRequestOfLookup op row witness fixed 33 _ lookup2,
+    fixedRequestOfLookup op row witness fixed 34 _ lookup3
   ⟩
 
 def bitwiseByte (op : Op) (left right : Byte) : Byte :=
@@ -1479,6 +1386,12 @@ def bitwiseBytes (op : Op) (left right : WordBytes) : WordBytes where
   limb1 := bitwiseByte op left.limb1 right.limb1
   limb2 := bitwiseByte op left.limb2 right.limb2
   limb3 := bitwiseByte op left.limb3 right.limb3
+
+private theorem byteBound (value : Byte) :
+    value.toNat < M31.modulus := by
+  have := value.isLt
+  simp [M31.modulus_eq] at *
+  omega
 
 private theorem byteFieldVal (value : Byte) :
     (bitVecM31 value).val = value.toNat :=
@@ -1617,10 +1530,10 @@ theorem source1ClockGapBound
   rcases lookupProjection op row witness with
     ⟨_, _, _, _, _, projection, _⟩
   have request :=
-    fixedRequestOfLookup op row witness fixed 35 _ projection
+    fixedRequestOfLookup op row witness fixed 27 _ projection
   exact
     (TeamACommon.rangeCheck20RequestHolds_iff
-      35 (some 1) (clockGapField row 1 row.rs1PreviousClock)).mp request
+      27 (some 1) (clockGapField row 1 row.rs1PreviousClock)).mp request
 
 theorem source2ClockGapBound
     (op : Op)
@@ -1631,10 +1544,10 @@ theorem source2ClockGapBound
   rcases lookupProjection op row witness with
     ⟨_, _, _, _, _, _, _, _, projection, _⟩
   have request :=
-    fixedRequestOfLookup op row witness fixed 38 _ projection
+    fixedRequestOfLookup op row witness fixed 30 _ projection
   exact
     (TeamACommon.rangeCheck20RequestHolds_iff
-      38 (some 2) (clockGapField row 2 row.rs2PreviousClock)).mp request
+      30 (some 2) (clockGapField row 2 row.rs2PreviousClock)).mp request
 
 theorem destinationClockGapBound
     (op : Op)
@@ -1645,10 +1558,10 @@ theorem destinationClockGapBound
   rcases lookupProjection op row witness with
     ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, projection⟩
   have request :=
-    fixedRequestOfLookup op row witness fixed 47 _ projection
+    fixedRequestOfLookup op row witness fixed 39 _ projection
   exact
     (TeamACommon.rangeCheck20RequestHolds_iff
-      47 (some 3) (clockGapField row 3 row.rdPreviousClock)).mp request
+      39 (some 3) (clockGapField row 3 row.rdPreviousClock)).mp request
 
 private theorem accessClockBound
     (row : Row)
@@ -1747,43 +1660,43 @@ structure ProductionRefinement
   fixedLookups :
     (evaluation op row witness).fixedLookupsHold = true
   program :
-    (evaluation op row witness).lookup? 30 = some (programLookup op row)
+    (evaluation op row witness).lookup? 22 = some (programLookup op row)
   stateConsume :
-    (evaluation op row witness).lookup? 31 = some (stateConsumeLookup row)
+    (evaluation op row witness).lookup? 23 = some (stateConsumeLookup row)
   stateEmit :
-    (evaluation op row witness).lookup? 32 = some (stateEmitLookup row)
+    (evaluation op row witness).lookup? 24 = some (stateEmitLookup row)
   source1Consume :
-    (evaluation op row witness).lookup? 33 = some (source1ConsumeLookup row)
+    (evaluation op row witness).lookup? 25 = some (source1ConsumeLookup row)
   source1Emit :
-    (evaluation op row witness).lookup? 34 = some (source1EmitLookup row)
+    (evaluation op row witness).lookup? 26 = some (source1EmitLookup row)
   source1ClockLookup :
-    (evaluation op row witness).lookup? 35 = some (source1ClockLookup row)
+    (evaluation op row witness).lookup? 27 = some (source1ClockLookup row)
   source2Consume :
-    (evaluation op row witness).lookup? 36 = some (source2ConsumeLookup row)
+    (evaluation op row witness).lookup? 28 = some (source2ConsumeLookup row)
   source2Emit :
-    (evaluation op row witness).lookup? 37 = some (source2EmitLookup row)
+    (evaluation op row witness).lookup? 29 = some (source2EmitLookup row)
   source2ClockLookup :
-    (evaluation op row witness).lookup? 38 = some (source2ClockLookup row)
+    (evaluation op row witness).lookup? 30 = some (source2ClockLookup row)
   bitwise0 :
-    (evaluation op row witness).lookup? 39 = some (bitwiseLookup0 op row)
+    (evaluation op row witness).lookup? 31 = some (bitwiseLookup0 op row)
   bitwise1 :
-    (evaluation op row witness).lookup? 40 = some (bitwiseLookup1 op row)
+    (evaluation op row witness).lookup? 32 = some (bitwiseLookup1 op row)
   bitwise2 :
-    (evaluation op row witness).lookup? 41 = some (bitwiseLookup2 op row)
+    (evaluation op row witness).lookup? 33 = some (bitwiseLookup2 op row)
   bitwise3 :
-    (evaluation op row witness).lookup? 42 = some (bitwiseLookup3 op row)
+    (evaluation op row witness).lookup? 34 = some (bitwiseLookup3 op row)
   resultLow :
-    (evaluation op row witness).lookup? 43 = some (resultLowLookup row)
+    (evaluation op row witness).lookup? 35 = some (resultLowLookup row)
   resultHigh :
-    (evaluation op row witness).lookup? 44 = some (resultHighLookup row)
+    (evaluation op row witness).lookup? 36 = some (resultHighLookup row)
   destinationConsume :
-    (evaluation op row witness).lookup? 45 =
+    (evaluation op row witness).lookup? 37 =
       some (destinationConsumeLookup row)
   destinationEmit :
-    (evaluation op row witness).lookup? 46 =
+    (evaluation op row witness).lookup? 38 =
       some (destinationEmitLookup row)
   destinationClockLookup :
-    (evaluation op row witness).lookup? 47 =
+    (evaluation op row witness).lookup? 39 =
       some (destinationClockLookup row)
   source1Value : row.rs1Next = row.rs1Previous
   source2Value : row.rs2Next = row.rs2Previous
@@ -1870,94 +1783,94 @@ theorem sound
     omega
 
 private def source1ClockLookupAt (nodes : LocalValues) : EvaluatedLookup where
-  ordinal := 35
+  ordinal := 27
   domain := .rangeCheck20
-  numerator := nodes.getSymbolic 162
-  tuple := #[nodes.getSymbolic 157]
+  numerator := nodes.getSymbolic 138
+  tuple := #[nodes.getSymbolic 133]
   role := .request
   tableId := some .rangeCheck20
   accessOrdinal := some 1
 
 private def source2ClockLookupAt (nodes : LocalValues) : EvaluatedLookup where
-  ordinal := 38
+  ordinal := 30
   domain := .rangeCheck20
-  numerator := nodes.getSymbolic 162
-  tuple := #[nodes.getSymbolic 161]
+  numerator := nodes.getSymbolic 138
+  tuple := #[nodes.getSymbolic 137]
   role := .request
   tableId := some .rangeCheck20
   accessOrdinal := some 2
 
 private def bitwiseLookup0At (nodes : LocalValues) : EvaluatedLookup where
-  ordinal := 39
+  ordinal := 31
   domain := .bitwise
-  numerator := nodes.getSymbolic 181
+  numerator := nodes.getSymbolic 157
   tuple := #[
-    nodes.getSymbolic 18, nodes.getSymbolic 28,
-    nodes.getSymbolic 37, nodes.getSymbolic 180
+    nodes.getSymbolic 13, nodes.getSymbolic 19,
+    nodes.getSymbolic 29, nodes.getSymbolic 156
   ]
   role := .request
   tableId := some .bitwise
   accessOrdinal := none
 
 private def bitwiseLookup1At (nodes : LocalValues) : EvaluatedLookup where
-  ordinal := 40
+  ordinal := 32
   domain := .bitwise
-  numerator := nodes.getSymbolic 181
+  numerator := nodes.getSymbolic 157
   tuple := #[
-    nodes.getSymbolic 19, nodes.getSymbolic 29,
-    nodes.getSymbolic 38, nodes.getSymbolic 180
+    nodes.getSymbolic 14, nodes.getSymbolic 20,
+    nodes.getSymbolic 30, nodes.getSymbolic 156
   ]
   role := .request
   tableId := some .bitwise
   accessOrdinal := none
 
 private def bitwiseLookup2At (nodes : LocalValues) : EvaluatedLookup where
-  ordinal := 41
+  ordinal := 33
   domain := .bitwise
-  numerator := nodes.getSymbolic 181
+  numerator := nodes.getSymbolic 157
   tuple := #[
-    nodes.getSymbolic 20, nodes.getSymbolic 30,
-    nodes.getSymbolic 39, nodes.getSymbolic 180
+    nodes.getSymbolic 15, nodes.getSymbolic 21,
+    nodes.getSymbolic 31, nodes.getSymbolic 156
   ]
   role := .request
   tableId := some .bitwise
   accessOrdinal := none
 
 private def bitwiseLookup3At (nodes : LocalValues) : EvaluatedLookup where
-  ordinal := 42
+  ordinal := 34
   domain := .bitwise
-  numerator := nodes.getSymbolic 181
+  numerator := nodes.getSymbolic 157
   tuple := #[
-    nodes.getSymbolic 21, nodes.getSymbolic 31,
-    nodes.getSymbolic 40, nodes.getSymbolic 180
+    nodes.getSymbolic 16, nodes.getSymbolic 22,
+    nodes.getSymbolic 32, nodes.getSymbolic 156
   ]
   role := .request
   tableId := some .bitwise
   accessOrdinal := none
 
 private def resultLowLookupAt (nodes : LocalValues) : EvaluatedLookup where
-  ordinal := 43
+  ordinal := 35
   domain := .rangeCheck88
-  numerator := nodes.getSymbolic 162
-  tuple := #[nodes.getSymbolic 37, nodes.getSymbolic 38]
+  numerator := nodes.getSymbolic 138
+  tuple := #[nodes.getSymbolic 29, nodes.getSymbolic 30]
   role := .request
   tableId := some .rangeCheck88
   accessOrdinal := none
 
 private def resultHighLookupAt (nodes : LocalValues) : EvaluatedLookup where
-  ordinal := 44
+  ordinal := 36
   domain := .rangeCheck88
-  numerator := nodes.getSymbolic 162
-  tuple := #[nodes.getSymbolic 39, nodes.getSymbolic 40]
+  numerator := nodes.getSymbolic 138
+  tuple := #[nodes.getSymbolic 31, nodes.getSymbolic 32]
   role := .request
   tableId := some .rangeCheck88
   accessOrdinal := none
 
 private def destinationClockLookupAt (nodes : LocalValues) : EvaluatedLookup where
-  ordinal := 47
+  ordinal := 39
   domain := .rangeCheck20
-  numerator := nodes.getSymbolic 162
-  tuple := #[nodes.getSymbolic 154]
+  numerator := nodes.getSymbolic 138
+  tuple := #[nodes.getSymbolic 130]
   role := .request
   tableId := some .rangeCheck20
   accessOrdinal := some 3
@@ -2133,11 +2046,9 @@ def zeroRow
   rs1 := rs1
   rs1PreviousClock := 0
   rs1Previous := WordBytes.zero
-  rs1Next := WordBytes.zero
   rs2 := rs2
   rs2PreviousClock := 0
   rs2Previous := WordBytes.zero
-  rs2Next := WordBytes.zero
   result := WordBytes.zero
   rdNonzero := !zeroDestination
 
@@ -2182,6 +2093,8 @@ theorem zeroAcceptance
         subCarry2Field,
         subCarry3Field,
         subCarry4Field,
+        Row.rs1Next,
+        Row.rs2Next,
         zeroRow,
         zeroWitness,
         zeroRegister,
@@ -2219,6 +2132,8 @@ theorem zeroAcceptance
         flagOr,
         flagAnd,
         bitwiseOperationId,
+        Row.rs1Next,
+        Row.rs2Next,
         zeroRow,
         WordBytes.zero,
         bitVecM31,
@@ -2296,11 +2211,9 @@ def addOverflowRow : Row where
   rs1 := BitVec.ofNat 5 2
   rs1PreviousClock := 0
   rs1Previous := maxWordBytes
-  rs1Next := maxWordBytes
   rs2 := BitVec.ofNat 5 3
   rs2PreviousClock := 0
   rs2Previous := oneWordBytes
-  rs2Next := oneWordBytes
   result := WordBytes.zero
   rdNonzero := true
 
@@ -2390,11 +2303,9 @@ def subBorrowRow : Row where
   rs1 := BitVec.ofNat 5 2
   rs1PreviousClock := 0
   rs1Previous := WordBytes.zero
-  rs1Next := WordBytes.zero
   rs2 := BitVec.ofNat 5 3
   rs2PreviousClock := 0
   rs2Previous := oneWordBytes
-  rs2Next := oneWordBytes
   result := maxWordBytes
   rdNonzero := true
 

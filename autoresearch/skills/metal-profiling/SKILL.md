@@ -6,7 +6,7 @@ description: Isolate a Metal kernel and measure real GPU time, pipeline reflecti
 # Metal profiling for autoresearch
 
 The tool is `autoresearch/cli/stwo-prof` (`metal` lane), backed by the
-generic kernel runner in `tools/metal-prof-runner/`. It answers the two
+generic kernel runner in `autoresearch/tools/metal-prof-runner/`. It answers the two
 questions every Metal change must answer: what does the kernel actually
 cost on-device, and is the kernel even the problem?
 

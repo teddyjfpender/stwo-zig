@@ -208,7 +208,7 @@ def _cargo_build(repo: Path, target_dir: Path, *, metal: bool) -> tuple[Path, li
         "--release",
         "--locked",
         "--manifest-path",
-        "tools/current-stwo-fib-bench/Cargo.toml",
+        "autoresearch/tools/current-stwo-fib-bench/Cargo.toml",
         "--target-dir",
         str(target_dir),
     ]

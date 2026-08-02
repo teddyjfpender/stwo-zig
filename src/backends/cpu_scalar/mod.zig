@@ -361,3 +361,7 @@ test "cpu_scalar: batchInverse delegates correctly" {
         try std.testing.expect(x.mul(inv_x).eql(M31.one()));
     }
 }
+
+test {
+    _ = @import("riscv_composition_test.zig");
+}

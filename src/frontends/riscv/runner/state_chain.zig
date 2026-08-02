@@ -25,10 +25,15 @@ pub const Access = struct {
     addr_space: u1,
     addr: u32,
     clk: u32,
-    /// Byte-decomposed u32 value as four M31 limbs.
-    value_limbs: [4]M31,
+    /// Architectural value. It is decomposed only when committed columns are
+    /// materialized, keeping the execution hot log compact.
+    value: u32,
     /// Clock of the previous access to the same address.
     clk_prev: u32,
+
+    pub inline fn valueLimbs(self: Access) [4]M31 {
+        return StateChainTracker.decomposeU32(self.value);
+    }
 };
 
 /// A clock gap-filling record (inserted when clk - clk_prev > MAX_CLOCK_DIFF).
@@ -39,7 +44,11 @@ pub const ClockUpdate = struct {
     clk: u32,
     clk_prev: u32,
     /// Value is unchanged from the previous access.
-    value_limbs: [4]M31,
+    value: u32,
+
+    pub inline fn valueLimbs(self: ClockUpdate) [4]M31 {
+        return StateChainTracker.decomposeU32(self.value);
+    }
 };
 
 /// Tracks access chains for both registers and memory.
@@ -99,22 +108,19 @@ pub const StateChainTracker = struct {
         next: u32,
     ) !void {
         const prev_clk = self.reg_last_clk[reg];
-        const previous_limbs = decomposeU32(previous);
-        const next_limbs = decomposeU32(next);
-
         const effective_prev_clk = try self.fillClockGap(
             0,
             @as(u32, reg),
             prev_clk,
             clk,
-            previous_limbs,
+            previous,
         );
 
         try self.accesses.append(self.allocator, .{
             .addr_space = 0,
             .addr = @as(u32, reg),
             .clk = clk,
-            .value_limbs = next_limbs,
+            .value = next,
             .clk_prev = effective_prev_clk,
         });
         self.reg_last_clk[reg] = clk;
@@ -137,22 +143,19 @@ pub const StateChainTracker = struct {
         const initial = try self.mem_initial.getOrPut(aligned_addr);
         if (!initial.found_existing) initial.value_ptr.* = previous;
         const prev_clk = self.mem_last_clk.get(aligned_addr) orelse 0;
-        const previous_limbs = decomposeU32(previous);
-        const next_limbs = decomposeU32(next);
-
         const effective_prev_clk = try self.fillClockGap(
             1,
             aligned_addr,
             prev_clk,
             clk,
-            previous_limbs,
+            previous,
         );
 
         try self.accesses.append(self.allocator, .{
             .addr_space = 1,
             .addr = aligned_addr,
             .clk = clk,
-            .value_limbs = next_limbs,
+            .value = next,
             .clk_prev = effective_prev_clk,
         });
         try self.mem_last_clk.put(aligned_addr, clk);
@@ -165,7 +168,7 @@ pub const StateChainTracker = struct {
         addr: u32,
         prev_clk: u32,
         clk: u32,
-        value_limbs: [4]M31,
+        value: u32,
     ) !u32 {
         var current = prev_clk;
         while (clk -| current > MAX_CLOCK_DIFF) {
@@ -175,7 +178,7 @@ pub const StateChainTracker = struct {
                 .addr = addr,
                 .clk = next,
                 .clk_prev = current,
-                .value_limbs = value_limbs,
+                .value = value,
             };
             if (addr_space == 0) {
                 try self.clock_updates_reg.append(self.allocator, update);
@@ -284,7 +287,7 @@ test "state_chain: memory transition retains the first aligned baseline" {
 
     try std.testing.expectEqual(@as(u32, 0x0403_0201), tracker.mem_initial.get(0x1000).?);
     try std.testing.expectEqual(@as(u32, 8), tracker.mem_last_clk.get(0x1000).?);
-    try std.testing.expectEqual(@as(u32, 0x09), tracker.accesses.items[1].value_limbs[0].v);
+    try std.testing.expectEqual(@as(u32, 0x09), tracker.accesses.items[1].valueLimbs()[0].v);
 }
 
 test "state_chain: mixed register and memory accesses" {
@@ -355,12 +358,12 @@ test "state_chain: long memory transition joins synthetic rows to the real acces
 
     try std.testing.expectEqual(@as(usize, 2), tracker.clock_updates_mem.items.len);
     for (tracker.clock_updates_mem.items) |update| {
-        try std.testing.expectEqual(StateChainTracker.decomposeU32(previous), update.value_limbs);
+        try std.testing.expectEqual(StateChainTracker.decomposeU32(previous), update.valueLimbs());
     }
     try std.testing.expectEqual(@as(u32, 0x1000), tracker.accesses.items[0].addr);
     try std.testing.expectEqual(2 * MAX_CLOCK_DIFF, tracker.accesses.items[0].clk_prev);
     try std.testing.expectEqual(
         StateChainTracker.decomposeU32(next),
-        tracker.accesses.items[0].value_limbs,
+        tracker.accesses.items[0].valueLimbs(),
     );
 }

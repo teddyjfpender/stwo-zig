@@ -20,10 +20,12 @@
 //! the exact interpolation pipeline the prover uses.
 
 const std = @import("std");
+const fields = @import("stwo_core").fields;
 const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
 const circle = @import("stwo_core").circle;
 const canonic = @import("stwo_core").poly.circle.canonic;
+const work_pool = @import("stwo_prover_engine").work_pool;
 const relation_challenges = @import("relation_challenges.zig");
 
 const M31 = m31.M31;
@@ -70,6 +72,216 @@ pub const CumulativeColumn = struct {
         self.* = undefined;
     }
 };
+
+/// Cache-bounded row count used by the parallel LogUp prefix builder. Each
+/// worker batch-inverts every fraction for one chunk, then publishes an exact
+/// local prefix; a tiny ordered scan supplies the chunk offsets.
+pub const PARALLEL_CHUNK_ROWS: usize = 4096;
+
+/// Owned committed columns and claims produced by `generateParallelColumns`.
+pub fn ParallelColumns(comptime n_sums: usize) type {
+    return struct {
+        columns: [4 * n_sums][]M31,
+        claims: [n_sums]QM31,
+
+        pub fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
+            for (self.columns) |column| allocator.free(column);
+            self.* = undefined;
+        }
+    };
+}
+
+/// Builds several pairs-batched cumulative columns without materialising a
+/// full-domain `RowPair` matrix or repeatedly scattering bit-reversed rows.
+///
+/// `context` is a small copyable value with
+/// `fn rowPairsAt(self, logical_row: usize) [n_sums]RowPair`. It must return
+/// zero-numerator padding pairs outside the active witness. Chunks write local
+/// prefixes to disjoint trace-order ranges, then a second parallel pass
+/// transposes once into the committed bit-reversed layout.
+pub fn generateParallelColumns(
+    comptime n_sums: usize,
+    allocator: std.mem.Allocator,
+    context: anytype,
+    log_size: u32,
+    pool: *work_pool.WorkPool,
+) !ParallelColumns(n_sums) {
+    return ParallelColumnGenerator(n_sums, @TypeOf(context)).generate(
+        allocator,
+        context,
+        log_size,
+        pool,
+    );
+}
+
+fn ParallelColumnGenerator(comptime n_sums: usize, comptime Context: type) type {
+    return struct {
+        const Generator = @This();
+
+        const Chunk = struct {
+            allocator: std.mem.Allocator,
+            context: Context,
+            trace_sums: []QM31,
+            trace_size: usize,
+            row_start: usize,
+            row_end: usize,
+            totals: [n_sums]QM31 = .{QM31.zero()} ** n_sums,
+            offsets: [n_sums]QM31 = .{QM31.zero()} ** n_sums,
+            err: ?anyerror = null,
+
+            fn run(self: *@This()) void {
+                self.runFallible() catch |err| {
+                    self.err = err;
+                };
+            }
+
+            fn runFallible(self: *@This()) !void {
+                const chunk_len = self.row_end - self.row_start;
+                const term_len = n_sums * chunk_len;
+                const numerators = try self.allocator.alloc(QM31, term_len);
+                defer self.allocator.free(numerators);
+                const denominators = try self.allocator.alloc(QM31, term_len);
+                defer self.allocator.free(denominators);
+                const inverses = try self.allocator.alloc(QM31, term_len);
+                defer self.allocator.free(inverses);
+
+                for (self.row_start..self.row_end, 0..) |row, local_row| {
+                    const pairs = self.context.rowPairsAt(row);
+                    for (pairs, 0..) |pair, sum_index| {
+                        const term_index = sum_index * chunk_len + local_row;
+                        denominators[term_index] = pair.d1.mul(pair.d2);
+                        numerators[term_index] = pair.n1.mul(pair.d2)
+                            .add(pair.n2.mul(pair.d1));
+                    }
+                }
+                try fields.batchInverseInPlace(QM31, denominators, inverses);
+
+                for (0..n_sums) |sum_index| {
+                    var accumulator = QM31.zero();
+                    for (0..chunk_len) |local_row| {
+                        const term_index = sum_index * chunk_len + local_row;
+                        accumulator = accumulator.add(
+                            numerators[term_index].mul(inverses[term_index]),
+                        );
+                        self.trace_sums[
+                            sum_index * self.trace_size +
+                                self.row_start + local_row
+                        ] = accumulator;
+                    }
+                    self.totals[sum_index] = accumulator;
+                }
+            }
+        };
+
+        const PlacementWorker = struct {
+            columns: *[4 * n_sums][]M31,
+            trace_sums: []const QM31,
+            logical_rows: []const usize,
+            chunks: []const Chunk,
+            trace_size: usize,
+            committed_start: usize,
+            committed_end: usize,
+
+            fn run(self: *@This()) void {
+                for (0..n_sums) |sum_index| {
+                    for (self.committed_start..self.committed_end) |committed_row| {
+                        const logical_row = self.logical_rows[committed_row];
+                        const offset = self.chunks[logical_row / PARALLEL_CHUNK_ROWS]
+                            .offsets[sum_index];
+                        const current = self.trace_sums[
+                            sum_index * self.trace_size + logical_row
+                        ].add(offset).toM31Array();
+                        for (current, 0..) |coordinate, coordinate_index| {
+                            self.columns[4 * sum_index + coordinate_index][committed_row] =
+                                coordinate;
+                        }
+                    }
+                }
+            }
+        };
+
+        fn generate(
+            allocator: std.mem.Allocator,
+            context: Context,
+            log_size: u32,
+            pool: *work_pool.WorkPool,
+        ) !ParallelColumns(n_sums) {
+            const size = @as(usize, 1) << @intCast(log_size);
+            var result: ParallelColumns(n_sums) = undefined;
+            var allocated_columns: usize = 0;
+            errdefer for (result.columns[0..allocated_columns]) |column| allocator.free(column);
+            for (&result.columns) |*column| {
+                column.* = try allocator.alloc(M31, size);
+                allocated_columns += 1;
+            }
+
+            const trace_sums = try allocator.alloc(QM31, n_sums * size);
+            defer allocator.free(trace_sums);
+            const chunk_count = std.math.divCeil(
+                usize,
+                size,
+                PARALLEL_CHUNK_ROWS,
+            ) catch unreachable;
+            const chunks = try allocator.alloc(Chunk, chunk_count);
+            defer allocator.free(chunks);
+            for (chunks, 0..) |*chunk, index| {
+                const row_start = index * PARALLEL_CHUNK_ROWS;
+                chunk.* = .{
+                    .allocator = allocator,
+                    .context = context,
+                    .trace_sums = trace_sums,
+                    .trace_size = size,
+                    .row_start = row_start,
+                    .row_end = @min(size, row_start + PARALLEL_CHUNK_ROWS),
+                };
+            }
+
+            var wait_group = std.Thread.WaitGroup{};
+            for (chunks[1..]) |*chunk| pool.spawnWg(&wait_group, Chunk.run, .{chunk});
+            Chunk.run(&chunks[0]);
+            wait_group.wait();
+            for (chunks) |chunk| if (chunk.err) |err| return err;
+
+            for (0..n_sums) |sum_index| {
+                var claim = QM31.zero();
+                for (chunks) |*chunk| {
+                    chunk.offsets[sum_index] = claim;
+                    claim = claim.add(chunk.totals[sum_index]);
+                }
+                result.claims[sum_index] = claim;
+            }
+
+            const placement = try infra.BitReversalTable.init(allocator, log_size);
+            defer placement.deinit(allocator);
+            const logical_rows = try allocator.alloc(usize, size);
+            defer allocator.free(logical_rows);
+            for (placement.mapping, 0..) |committed_row, logical_row| {
+                logical_rows[committed_row] = logical_row;
+            }
+            const worker_count = @min(chunk_count, pool.workerCount());
+            const workers = try allocator.alloc(PlacementWorker, worker_count);
+            defer allocator.free(workers);
+            for (workers, 0..) |*worker, index| {
+                worker.* = .{
+                    .columns = &result.columns,
+                    .trace_sums = trace_sums,
+                    .logical_rows = logical_rows,
+                    .chunks = chunks,
+                    .trace_size = size,
+                    .committed_start = size * index / worker_count,
+                    .committed_end = size * (index + 1) / worker_count,
+                };
+            }
+            wait_group = .{};
+            for (workers[1..]) |*worker| {
+                pool.spawnWg(&wait_group, PlacementWorker.run, .{worker});
+            }
+            PlacementWorker.run(&workers[0]);
+            wait_group.wait();
+            return result;
+        }
+    };
+}
 
 /// Accumulate batched fractions row by row. `pairs.len` must be the full
 /// domain size; padding rows must carry zero numerators.

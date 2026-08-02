@@ -49,16 +49,17 @@ fn q(value: u32) QM31 {
 }
 
 fn rowForClockUpdate(update: state_chain.ClockUpdate) interaction.Row {
+    const value_limbs = update.valueLimbs();
     return .{
         .enabler = QM31.one(),
         .addr_space = q(update.addr_space),
         .addr = q(update.addr),
         .clock_prev = q(update.clk_prev),
         .value = .{
-            QM31.fromBase(update.value_limbs[0]),
-            QM31.fromBase(update.value_limbs[1]),
-            QM31.fromBase(update.value_limbs[2]),
-            QM31.fromBase(update.value_limbs[3]),
+            QM31.fromBase(value_limbs[0]),
+            QM31.fromBase(value_limbs[1]),
+            QM31.fromBase(value_limbs[2]),
+            QM31.fromBase(value_limbs[3]),
         },
         .clock_prev_low20 = q(update.clk_prev & ((@as(u32, 1) << 20) - 1)),
         .clock_prev_high6 = q(update.clk_prev >> 20),
@@ -299,7 +300,7 @@ test "long register gaps compose clock rows into opcode access witnesses" {
             try std.testing.expectEqual(@as(u32, expected_regs[chain_index]), update.addr);
             try std.testing.expectEqual(expected_prev, update.clk_prev);
             try std.testing.expectEqual(expected_next, update.clk);
-            try std.testing.expectEqual(previous_values[chain_index], update.value_limbs);
+            try std.testing.expectEqual(previous_values[chain_index], update.valueLimbs());
 
             const entries = interaction.orderedEntries(rowForClockUpdate(update));
             try std.testing.expect(entries.entries[0].numerator.eql(QM31.one().neg()));
@@ -343,8 +344,8 @@ test "long register gaps compose clock rows into opcode access witnesses" {
         );
     }
 
-    try std.testing.expectEqual(source_limbs, tracker.accesses.items[0].value_limbs);
-    try std.testing.expectEqual(destination_next_limbs, tracker.accesses.items[1].value_limbs);
+    try std.testing.expectEqual(source_limbs, tracker.accesses.items[0].valueLimbs());
+    try std.testing.expectEqual(destination_next_limbs, tracker.accesses.items[1].valueLimbs());
 }
 
 test "clock update component owns exact bounds and aliases both selectors" {

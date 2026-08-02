@@ -1,11 +1,11 @@
-"""Anti-sprawl ratchet: every script must be reachable from a live entry point.
+"""Production anti-sprawl ratchet for top-level ``scripts/`` entrypoints.
 
-A script in scripts/ earns its place by being wired into the build graph, a
-hosted workflow, a conformance policy, a hook, the docs, or another reachable
-script — or by being declared in OPERATOR_TOOLS below with an owner and a
-one-line purpose. Anything else is dead code and fails this test, so orphans
-can never accumulate silently again. Deletion is cheap: everything is
-restorable from history.
+A production script earns its place through an installed workflow, build edge,
+machine-readable policy, current owner guide, hook, or another reachable
+script. Historical conformance prose and ``autoresearch/`` are deliberately
+not roots: mentioning retired code must not keep it alive forever, and research
+utilities belong under their own tree. Human-only production/soundness tools
+must be declared below with an owner and purpose.
 """
 
 from __future__ import annotations
@@ -20,49 +20,14 @@ SCRIPTS = ROOT / "scripts"
 # Operator tools invoked by humans, not gates. Each entry must carry a
 # purpose; remove the entry in the same commit that deletes the tool.
 OPERATOR_TOOLS: dict[str, str] = {
-    # Owner: sm83-frontend. One-shot local release diagnostic over the pinned
-    # complete proof-fast battle and verified proof chain.
-    # Its fail-closed command and receipt contracts run in
-    # scripts/tests/test_sm83_pokemon_benchmark.py.
-    "sm83_pokemon_benchmark.py":
-        "pinned complete Pokemon battle proof benchmark receipt",
-    # Owner: soundness. Per-row witness-uniqueness checking of an AIR family
-    # via z3, from a serialisable constraint IR. Deliberately un-gated: it
-    # needs z3, which hosted CI does not install, and no family's IR is
-    # emitted from the real modules yet. Its own contracts do run, through
-    # scripts/tests/test_air_uniqueness.py in the discovered suite.
-    "air_uniqueness.py": "SMT witness-uniqueness checker for AIR families",
-    # Owner: soundness. Schedules `air_uniqueness.py` across every emitted
-    # family and folds the shard verdicts into one board. Un-gated for the same
-    # two reasons as the checker it drives, plus a third: a board is a budgeted
-    # measurement, and a gate that fails on a solver timeout would be a gate on
-    # the machine it ran on. Its contracts run through
-    # scripts/tests/test_air_uniqueness_board.py in the discovered suite.
-    "air_uniqueness_board.py": "witness-uniqueness board over every AIR family",
-    # Owner: soundness. Constructively proves active-narrow Poseidon2 main-row
-    # rigidity and the exact deterministic/conditional-functional relations of
-    # all six fixed lookup-table components. It is an operator certificate,
-    # not a proof-wire verifier; its exhaustive and mutation contracts run in
-    # scripts/tests/test_riscv_poseidon_table_uniqueness.py.
-    "riscv_poseidon_table_uniqueness.py":
-        "Poseidon2 and fixed-table row-local rigidity certificate",
-    # Owner: soundness. Separates row-local infrastructure functionality from
-    # the exact LogUp-closure premises needed by program, offline-memory,
-    # Merkle, and clock recurrences. Its exhaustive small models, concrete
-    # overclaim counterexamples, and production-source mutation contracts run
-    # in scripts/tests/test_riscv_infrastructure_uniqueness.py.
-    "riscv_infrastructure_uniqueness.py":
-        "conditional AIR-infrastructure uniqueness and recurrence certificate",
-    # Owner: soundness. Checks the all-path Merkle index/parity induction and
-    # the field-depth cycle bound, pinned to the shipped relation and statement
-    # guard. Contracts run in scripts/tests/test_riscv_merkle_recurrence.py.
-    "riscv_merkle_recurrence.py":
-        "sparse-Merkle index and detached-cycle recurrence certificate",
-    # Owner: soundness. Checks state-clock cycle order, bounded synthetic clock
-    # updates, and the historical wrapped-cycle counterexample. Contracts run
-    # in scripts/tests/test_riscv_state_chain_recurrence.py.
-    "riscv_state_chain_recurrence.py":
-        "state-chain and clock-window recurrence certificate",
+    # Owner: release-performance. Produces and validates authenticated host
+    # performance receipts; architecture promotion is operator driven.
+    "performance_epoch_gate.py":
+        "operator performance-epoch receipt and promotion gate",
+    # Owner: riscv-soundness. Regenerates and audits Sail-selected operand
+    # classes; committed outputs are consumed by the frontend tests.
+    "riscv_operand_classes.py":
+        "Sail-derived RV32IM operand-class corpus generator and auditor",
 }
 
 ENTRY_POINT_GLOBS = (
@@ -70,13 +35,13 @@ ENTRY_POINT_GLOBS = (
     "build_support/**/*.zig",
     ".github/**/*.yml",
     "conformance/*.json",
-    "conformance/*.md",
     "CONTRIBUTING.md",
     "README.md",
-    "autoresearch/**/*.py",
-    "autoresearch/**/*.yml",
-    "autoresearch/**/*.json",
-    "autoresearch/**/*.md",
+    "SECURITY.md",
+    ".githooks/*",
+    "soundness/**/*.md",
+    "src/**/README.md",
+    "vectors/**/README.md",
     "formal/**/*.md",
 )
 
@@ -136,11 +101,16 @@ class ScriptReachabilityTest(unittest.TestCase):
                     if subject in universe:
                         seeds.add(subject)
 
+        declared = set(OPERATOR_TOOLS)
         reachable = set(seeds)
-        frontier = list(seeds)
+        # Declared operator tools are legitimate roots for their support
+        # packages, but remain outside ``reachable`` so stale declarations are
+        # still detected below.
+        frontier = list(seeds | declared)
         lib_dirs = [
             p for p in SCRIPTS.iterdir()
             if p.is_dir() and p.name not in ("tests", "__pycache__")
+            and any(p.rglob("*.py"))
         ]
         # Library packages transitively extend the frontier: a lib used by a
         # reachable script may itself dispatch further scripts (e.g. the
@@ -156,7 +126,8 @@ class ScriptReachabilityTest(unittest.TestCase):
         while frontier:
             current = frontier.pop()
             text = (SCRIPTS / current).read_text(encoding="utf-8", errors="ignore")
-            new = _references(text, universe) - reachable
+            new = _references(text, universe) - reachable - declared
+            library_frontier: list[str] = []
             for lib_name, lib_text in lib_texts.items():
                 if lib_name in visited_libs:
                     continue
@@ -164,11 +135,23 @@ class ScriptReachabilityTest(unittest.TestCase):
                     rf"(?:import|from)\s+(?:scripts\.)?{lib_name}\b", text
                 ):
                     visited_libs.add(lib_name)
-                    new |= _references(lib_text, universe) - reachable
+                    library_frontier.append(lib_name)
+            while library_frontier:
+                lib_name = library_frontier.pop()
+                lib_text = lib_texts[lib_name]
+                new |= _references(lib_text, universe) - reachable - declared
+                for dependency in lib_texts:
+                    if dependency in visited_libs:
+                        continue
+                    if re.search(
+                        rf"(?:import|from)\s+(?:scripts\.)?{dependency}\b",
+                        lib_text,
+                    ):
+                        visited_libs.add(dependency)
+                        library_frontier.append(dependency)
             reachable |= new
             frontier.extend(new)
 
-        declared = set(OPERATOR_TOOLS)
         undeclared_dead = sorted(universe - reachable - declared)
         self.assertEqual(
             undeclared_dead,
@@ -186,4 +169,12 @@ class ScriptReachabilityTest(unittest.TestCase):
             sheltered,
             [],
             f"OPERATOR_TOOLS entries are gate-reachable; remove them: {sheltered}",
+        )
+
+        unreachable_libraries = sorted(set(lib_texts) - visited_libs)
+        self.assertEqual(
+            unreachable_libraries,
+            [],
+            "unreachable script support packages (wire them to a production "
+            f"entrypoint or delete them): {unreachable_libraries}",
         )

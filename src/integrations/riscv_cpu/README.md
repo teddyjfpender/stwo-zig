@@ -113,5 +113,5 @@ evidence, artifact publication, and independent verification.
 
 - [RISC-V frontend](../../frontends/riscv/README.md)
 - [CPU backend](../../backends/cpu_scalar/README.md)
-- [RISC-V release evidence](../../../conformance/riscv-release-evidence.md)
+- [RISC-V Sail differential gate](../../../conformance/riscv-sail-differential-gate.md)
 - [Repository RISC-V guide](../../../README.md#risc-v-frontend)

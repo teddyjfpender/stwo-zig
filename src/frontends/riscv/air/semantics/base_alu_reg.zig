@@ -7,20 +7,22 @@
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const common = @import("common.zig");
+const read_access = @import("read_access.zig");
 
 pub fn Semantics(comptime S: type) type {
     return struct {
         const ops = common.Ops(S);
+        const reads = read_access.Ops(S, ops.Access);
 
-        pub const N_ORACLE_COLUMNS: usize = 43;
-        pub const N_CONSTRAINTS: usize = 29;
+        pub const N_ORACLE_COLUMNS: usize = 35;
+        pub const N_CONSTRAINTS: usize = 21;
 
         pub const Row = struct {
             clk: S,
             pc: S,
             rd: ops.Access,
-            rs1: ops.Access,
-            rs2: ops.Access,
+            rs1: reads.ReadAccess,
+            rs2: reads.ReadAccess,
             is_add: S,
             is_sub: S,
             is_xor: S,
@@ -35,15 +37,15 @@ pub fn Semantics(comptime S: type) type {
                     .clk = columns[0],
                     .pc = columns[1],
                     .rd = ops.accessFromColumns(columns[2..12]),
-                    .rs1 = ops.accessFromColumns(columns[12..22]),
-                    .rs2 = ops.accessFromColumns(columns[22..32]),
-                    .is_add = columns[32],
-                    .is_sub = columns[33],
-                    .is_xor = columns[34],
-                    .is_or = columns[35],
-                    .is_and = columns[36],
-                    .result = columns[37..41].*,
-                    .destination = ops.destinationFromColumns(columns[41..43]),
+                    .rs1 = reads.fromColumns(columns[12..18]),
+                    .rs2 = reads.fromColumns(columns[18..24]),
+                    .is_add = columns[24],
+                    .is_sub = columns[25],
+                    .is_xor = columns[26],
+                    .is_or = columns[27],
+                    .is_and = columns[28],
+                    .result = columns[29..33].*,
+                    .destination = ops.destinationFromColumns(columns[33..35]),
                 };
             }
 
@@ -70,7 +72,7 @@ pub fn Semantics(comptime S: type) type {
             }
             var carry = S.zero();
             for (0..4) |limb| {
-                const numerator = row.rs1.next[limb].add(row.rs2.next[limb]).add(carry).sub(row.result[limb]);
+                const numerator = row.rs1.value[limb].add(row.rs2.value[limb]).add(carry).sub(row.result[limb]);
                 carry = numerator.mul(ops.INV_BYTE_RADIX());
                 out[i] = ops.selected(row.is_add, ops.bit(carry));
                 i += 1;
@@ -78,7 +80,7 @@ pub fn Semantics(comptime S: type) type {
 
             carry = S.zero();
             for (0..4) |limb| {
-                const numerator = row.result[limb].add(row.rs2.next[limb]).add(carry).sub(row.rs1.next[limb]);
+                const numerator = row.result[limb].add(row.rs2.value[limb]).add(carry).sub(row.rs1.value[limb]);
                 carry = numerator.mul(ops.INV_BYTE_RADIX());
                 out[i] = ops.selected(row.is_sub, ops.bit(carry));
                 i += 1;
@@ -88,16 +90,6 @@ pub fn Semantics(comptime S: type) type {
                 i += 1;
             }
             for (ops.destinationResultConstraints(row.rd, row.result, row.destination)) |constraint| {
-                out[i] = constraint;
-                i += 1;
-            }
-            // Sources are read-only: they must emit exactly the value they consumed.
-            const enabler = row.active();
-            for (ops.readOnlyAccessConstraints(row.rs1, enabler)) |constraint| {
-                out[i] = constraint;
-                i += 1;
-            }
-            for (ops.readOnlyAccessConstraints(row.rs2, enabler)) |constraint| {
                 out[i] = constraint;
                 i += 1;
             }
@@ -132,8 +124,8 @@ pub fn Semantics(comptime S: type) type {
             var tuples: [4]ops.BitwiseTuple = undefined;
             for (&tuples, 0..) |*tuple, i| {
                 tuple.* = .{
-                    .lhs = row.rs1.next[i],
-                    .rhs = row.rs2.next[i],
+                    .lhs = row.rs1.value[i],
+                    .rhs = row.rs2.value[i],
                     .result = row.result[i],
                     .operation_id = operation_id,
                 };
@@ -150,10 +142,10 @@ pub fn Semantics(comptime S: type) type {
             return .{
                 .{ row.result[0], row.result[1] },
                 .{ row.result[2], row.result[3] },
-                .{ row.rs1.next[0], row.rs1.next[1] },
-                .{ row.rs1.next[2], row.rs1.next[3] },
-                .{ row.rs2.next[0], row.rs2.next[1] },
-                .{ row.rs2.next[2], row.rs2.next[3] },
+                .{ row.rs1.value[0], row.rs1.value[1] },
+                .{ row.rs1.value[2], row.rs1.value[3] },
+                .{ row.rs2.value[0], row.rs2.value[1] },
+                .{ row.rs2.value[2], row.rs2.value[3] },
             };
         }
 
@@ -168,8 +160,8 @@ pub fn Semantics(comptime S: type) type {
         pub fn accessLookups(row: Row) AccessLookups {
             return .{
                 .rd = ops.registerAccessChain(row.rd, row.clk, .third),
-                .rs1 = ops.registerAccessChain(row.rs1, row.clk, .first),
-                .rs2 = ops.registerAccessChain(row.rs2, row.clk, .second),
+                .rs1 = ops.registerAccessChain(row.rs1.asAccess(), row.clk, .first),
+                .rs2 = ops.registerAccessChain(row.rs2.asAccess(), row.clk, .second),
             };
         }
 
@@ -179,6 +171,11 @@ pub fn Semantics(comptime S: type) type {
                 .previous = .{S.zero()} ** 4,
                 .previous_clock = S.zero(),
                 .next = .{S.zero()} ** 4,
+            };
+            const zero_read = reads.ReadAccess{
+                .addr = S.zero(),
+                .value = .{S.zero()} ** 4,
+                .previous_clock = S.zero(),
             };
             return .{
                 .clk = S.zero(),
@@ -191,8 +188,8 @@ pub fn Semantics(comptime S: type) type {
                 .result = .{S.zero()} ** 4,
                 .destination = .{ .nonzero = S.zero(), .inverse = S.zero() },
                 .rd = zero_access,
-                .rs1 = zero_access,
-                .rs2 = zero_access,
+                .rs1 = zero_read,
+                .rs2 = zero_read,
             };
         }
 
@@ -208,37 +205,29 @@ pub fn Semantics(comptime S: type) type {
                     row.rd.addr = S.one();
                     row.destination = .{ .nonzero = S.one(), .inverse = S.one() };
                     row.is_add = S.one();
-                    row.rs1.next = .{ ops.q(255), ops.q(255), ops.q(0), ops.q(0) };
-                    row.rs1.previous = row.rs1.next;
-                    row.rs2.next = .{ ops.q(1), ops.q(0), ops.q(0), ops.q(0) };
-                    row.rs2.previous = row.rs2.next;
+                    row.rs1.value = .{ ops.q(255), ops.q(255), ops.q(0), ops.q(0) };
+                    row.rs2.value = .{ ops.q(1), ops.q(0), ops.q(0), ops.q(0) };
                     row.rd.next = .{ ops.q(0), ops.q(0), ops.q(1), ops.q(0) };
                     row.result = row.rd.next;
                     try std.testing.expect(evaluate(row).allZero());
                 }
 
-                test "base alu reg semantics: sources must emit the value they consumed" {
+                test "base alu reg semantics: compact sources alias consumed and emitted values" {
                     var row = zeroRow();
                     row.pc = ops.q(0x1000);
                     row.rd.addr = S.one();
                     row.destination = .{ .nonzero = S.one(), .inverse = S.one() };
                     row.is_add = S.one();
-                    row.rs1.next[0] = ops.q(7);
-                    row.rs1.previous = row.rs1.next;
-                    row.rs2.next[0] = ops.q(9);
-                    row.rs2.previous = row.rs2.next;
+                    row.rs1.value[0] = ops.q(7);
+                    row.rs2.value[0] = ops.q(9);
                     row.rd.next[0] = ops.q(16);
                     row.result = row.rd.next;
                     try std.testing.expect(evaluate(row).allZero());
 
-                    // The arithmetic runs on `next`; forging `previous` turns a read into an
-                    // arbitrary register write and must be rejected.
-                    row.rs1.previous[0] = ops.q(0xde);
-                    try std.testing.expect(!evaluate(row).allZero());
-
-                    row.rs1.previous = row.rs1.next;
-                    row.rs2.previous[2] = ops.q(0xad);
-                    try std.testing.expect(!evaluate(row).allZero());
+                    const rs1_access = row.rs1.asAccess();
+                    const rs2_access = row.rs2.asAccess();
+                    try std.testing.expectEqual(rs1_access.previous, rs1_access.next);
+                    try std.testing.expectEqual(rs2_access.previous, rs2_access.next);
                 }
 
                 test "base alu reg semantics: ADD rejects a forged result" {
@@ -247,8 +236,8 @@ pub fn Semantics(comptime S: type) type {
                     row.rd.addr = S.one();
                     row.destination = .{ .nonzero = S.one(), .inverse = S.one() };
                     row.is_add = S.one();
-                    row.rs1.next[0] = ops.q(7);
-                    row.rs2.next[0] = ops.q(9);
+                    row.rs1.value[0] = ops.q(7);
+                    row.rs2.value[0] = ops.q(9);
                     row.rd.next[0] = ops.q(17);
                     row.result[0] = ops.q(17);
                     try std.testing.expect(!evaluate(row).allZero());
@@ -258,10 +247,8 @@ pub fn Semantics(comptime S: type) type {
                     var row = zeroRow();
                     row.pc = ops.q(0x1000);
                     row.is_add = S.one();
-                    row.rs1.next[0] = ops.q(7);
-                    row.rs1.previous = row.rs1.next;
-                    row.rs2.next[0] = ops.q(9);
-                    row.rs2.previous = row.rs2.next;
+                    row.rs1.value[0] = ops.q(7);
+                    row.rs2.value[0] = ops.q(9);
                     row.result[0] = ops.q(16);
                     try std.testing.expect(evaluate(row).allZero());
 
@@ -276,9 +263,8 @@ pub fn Semantics(comptime S: type) type {
                     row.rd.addr = S.one();
                     row.destination = .{ .nonzero = S.one(), .inverse = S.one() };
                     row.is_sub = S.one();
-                    row.rs1.next = .{S.zero()} ** 4;
-                    row.rs2.next[0] = ops.q(1);
-                    row.rs2.previous = row.rs2.next;
+                    row.rs1.value = .{S.zero()} ** 4;
+                    row.rs2.value[0] = ops.q(1);
                     row.rd.next = .{ ops.q(255), ops.q(255), ops.q(255), ops.q(255) };
                     row.result = row.rd.next;
                     try std.testing.expect(evaluate(row).allZero());
@@ -296,8 +282,7 @@ pub fn Semantics(comptime S: type) type {
                     row.clk = ops.q(19);
                     row.rs1.addr = ops.q(7);
                     row.rs1.previous_clock = ops.q(11);
-                    row.rs1.previous[0] = ops.q(41);
-                    row.rs1.next[0] = ops.q(42);
+                    row.rs1.value[0] = ops.q(41);
 
                     const chain = accessLookups(row).rs1;
                     try std.testing.expect(chain.previous.addr_space.isZero());
@@ -305,7 +290,7 @@ pub fn Semantics(comptime S: type) type {
                     try std.testing.expect(chain.previous.clock.eql(ops.q(11)));
                     try std.testing.expect(chain.previous.limbs[0].eql(ops.q(41)));
                     try std.testing.expect(chain.next.clock.eql(ops.q(73)));
-                    try std.testing.expect(chain.next.limbs[0].eql(ops.q(42)));
+                    try std.testing.expect(chain.next.limbs[0].eql(ops.q(41)));
                     try std.testing.expect(chain.clock_gap.eql(ops.q(61)));
                 }
 
@@ -317,11 +302,11 @@ pub fn Semantics(comptime S: type) type {
                     columns[8] = ops.q(4);
                     columns[12] = ops.q(5);
                     columns[17] = ops.q(6);
-                    columns[18] = ops.q(7);
-                    columns[22] = ops.q(8);
-                    columns[27] = ops.q(9);
-                    columns[28] = ops.q(10);
-                    columns[32] = ops.q(11);
+                    columns[13] = ops.q(7);
+                    columns[18] = ops.q(8);
+                    columns[23] = ops.q(9);
+                    columns[19] = ops.q(10);
+                    columns[24] = ops.q(11);
 
                     const row = try Row.fromOracleColumns(&columns);
                     try std.testing.expect(row.rd.addr.eql(ops.q(1)));
@@ -330,10 +315,10 @@ pub fn Semantics(comptime S: type) type {
                     try std.testing.expect(row.rd.next[0].eql(ops.q(4)));
                     try std.testing.expect(row.rs1.addr.eql(ops.q(5)));
                     try std.testing.expect(row.rs1.previous_clock.eql(ops.q(6)));
-                    try std.testing.expect(row.rs1.next[0].eql(ops.q(7)));
+                    try std.testing.expect(row.rs1.value[0].eql(ops.q(7)));
                     try std.testing.expect(row.rs2.addr.eql(ops.q(8)));
                     try std.testing.expect(row.rs2.previous_clock.eql(ops.q(9)));
-                    try std.testing.expect(row.rs2.next[0].eql(ops.q(10)));
+                    try std.testing.expect(row.rs2.value[0].eql(ops.q(10)));
                     try std.testing.expect(row.is_add.eql(ops.q(11)));
                 }
             };

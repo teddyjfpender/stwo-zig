@@ -36,8 +36,10 @@ def mutation_counter_cases() -> tuple[tuple[str, str, dict[str, int]], ...]:
 
     Every case starts from an honest witness this file already proves
     reachable, then re-introduces one classic prover cheat: a deleted
-    preservation, a value at the wrong offset, an amount decoupled from its
-    register, a flipped or free sign, a relabelled selector. If any of these
+    write preservation, a value at the wrong offset, an amount decoupled from
+    its register, a flipped or free sign, a relabelled selector. Read-only
+    accesses are now structural and are checked by `check_compact_read_accesses`
+    rather than by constructing an impossible second copy. If any of these
     rows is ever ACCEPTED, the production AIR lost the constraint that used to
     refuse it — precisely the regression the coverage ledger's
     `air_level_counterexample_gate` promises to catch.
@@ -57,15 +59,11 @@ def mutation_counter_cases() -> tuple[tuple[str, str, dict[str, int]], ...]:
     case("lh-flipped-sign-witness", "load_store", flipped)
 
     swapped, _ = load_halfword_row(0x2000, 2, 0x8ABC1234, 7)
-    swapped["src_next_2"], swapped["src_next_3"] = (
-        swapped["src_next_3"],
-        swapped["src_next_2"],
+    swapped["src_value_2"], swapped["src_value_3"] = (
+        swapped["src_value_3"],
+        swapped["src_value_2"],
     )
     case("lh-swapped-endian-bytes", "load_store", swapped)
-
-    unpreserved, _ = load_halfword_row(0x2000, 2, 0x8ABC1234, 7)
-    unpreserved["src_next_0"] = (unpreserved["src_next_0"] + 1) % 256
-    case("lh-clobbered-memory-word", "load_store", unpreserved)
 
     # --- per-opcode loads ------------------------------------------------
     lb_flipped, _ = load_row("lb", 0x2000, 1, 0xDDCC9CAA, 7)

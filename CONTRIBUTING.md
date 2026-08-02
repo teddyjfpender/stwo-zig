@@ -1278,6 +1278,11 @@ references over large frameworks.
   machine-specific caches.
 - Commit benchmark evidence only when it is intentionally curated and small enough to review.
 - Large binary fixtures need a documented reason, hash, provenance, and retention policy.
+- Do not delete working Rust, Lean, CUDA, or generated authority code merely to
+  reduce repository size. Follow the immutable replacement and clean-room
+  gates in `conformance/repository-production-scope.md`.
+- Published Zig package closures must pass `zig build package-dist`; they may
+  not acquire autoresearch, Rust, Lean, vector, or deferred CUDA inputs.
 
 ---
 
@@ -1330,7 +1335,8 @@ its minutes.
 For the RISC-V lane, `scripts/riscv_formal_tools.py`,
 `scripts/riscv_trace_vectors.py`, and `scripts/riscv_arch_tests.py` own formal
 correctness evidence. They fail closed on the exact Sail compiler/model, Spike,
-and architectural-test revisions. `scripts/riscv_stark_v_benchmark.py` remains
+and architectural-test revisions.
+`autoresearch/benchmarks/riscv_stark_v_benchmark.py` remains
 only a legacy performance/layout comparison; it is not an ISA correctness
 authority or release substitute.
 
@@ -1342,10 +1348,11 @@ reference the autoresearch harness measures against; see that directory's
 README for the anchor-freeze linkage. The native board's tracked history is
 `vectors/reports/benchmark_history/`.
 
-`scripts/build_crypto_guests.py` vendors the compiled cryptographic guests
+`autoresearch/benchmarks/build_crypto_guests.py` vendors the compiled cryptographic guests
 (SHA-256, Keccak, ECDSA from Stark-V's guest-lib as source provenance, plus the repo-owned
 `vectors/riscv_guests/poseidon2_m31` guest) into `vectors/riscv_elfs/crypto/`
-with a provenance record, and `scripts/riscv_crypto_benchmark.py` benches them
+with a provenance record, and
+`autoresearch/benchmarks/riscv_crypto_benchmark.py` benches them
 on both lanes. Rows are either `proof` (SHA-256 all sizes, single-block Keccak)
 or `execution` (ECDSA, Poseidon2-M31, multi-block Keccak — neither lane proves
 these at the pinned config, so both only execute them). The legacy matched
@@ -1514,8 +1521,8 @@ boundaries.
   threat model explicitly permits them and documentation says so.
 - Do not claim zeroization unless the compiler/runtime/device behavior is actually established.
 - Treat Metal shader source and binary archives as executable code with provenance requirements.
-- Do not open a public issue for a suspected vulnerability. Use the repository's private security
-  contact/policy; if absent, contact maintainers privately.
+- Do not open a public issue for a suspected vulnerability. Follow
+  `SECURITY.md` and use GitHub private vulnerability reporting.
 
 ---
 

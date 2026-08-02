@@ -272,11 +272,9 @@ class MetalCalibrationTest(unittest.TestCase):
 
 
 class MetalCalibrationWorkflowTest(unittest.TestCase):
-    def test_installed_workflow_is_bounded_and_mirrored(self) -> None:
-        installed = ROOT / ".github/workflows/metal-calibration.yml"
+    def test_optional_workflow_template_is_bounded(self) -> None:
         source = ROOT / "autoresearch/workflows/metal-calibration.yml"
-        self.assertEqual(installed.read_bytes(), source.read_bytes())
-        text = installed.read_text()
+        text = source.read_text()
         self.assertIn("workflow_dispatch:", text)
         self.assertIn("schedule:", text)
         self.assertIn("timeout-minutes: 75", text)

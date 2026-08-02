@@ -79,12 +79,12 @@ open RiscvRefinement.Opcodes.NonVacuity
 memory word it emits on the bus, with no reinterpretation.
 
 Stated on the row's normalized retirement and against the reviewed capsule's
-`loadWordValue`. `lwValue_matches_capsule` below shows `row.srcNext` is the
+`loadWordValue`. `lwValue_matches_capsule` below shows `row.srcPrevious` is the
 capsule's `memoryWord` for any `LW` row of the unweakened system. -/
 def LwRetiresMemoryWord (row : LoadStoreRow) : Prop :=
   row.isLw = true →
     (loadStoreRetirement row).write =
-      architecturalWrite row.r2Idx (loadWordValue row.srcNext)
+      architecturalWrite row.r2Idx (loadWordValue row.srcPrevious)
 
 /-- `LHU` zero-fills: the value it writes to `rd` is the selected halfword of
 the emitted memory word with a **zero** upper half, whatever the sign of that
@@ -99,7 +99,7 @@ def LhuRetiresZeroExtendedHalf (row : LoadStoreRow) : Prop :=
   row.isLhu = true →
     (loadStoreRetirement row).write =
       architecturalWrite row.r2Idx
-        (Memory.zeroExtendHalf (Memory.selectHalf row.srcNext row.halfSelector))
+        (Memory.zeroExtendHalf (Memory.selectHalf row.srcPrevious row.halfSelector))
 
 /-! ### The capsule anchors
 
@@ -115,7 +115,7 @@ theorem lwValue_matches_capsule
     (env : LoadStoreEnvironment row)
     (holds : LoadStoreHolds row)
     (selector : row.isLw = true) :
-    loadWordValue row.srcNext = loadWordValue env.memoryWord := by
+    loadWordValue row.srcPrevious = loadWordValue env.memoryWord := by
   obtain ⟨_, _, _, _, isSb, isSh, isSw⟩ := lw_flags row holds selector
   have isStore : row.isStore = false := by
     simp [LoadStoreRow.isStore, isSb, isSh, isSw]
@@ -128,7 +128,7 @@ theorem lhuValue_matches_capsule
     (env : LoadStoreEnvironment row)
     (holds : LoadStoreHolds row)
     (selector : row.isLhu = true) :
-    Memory.zeroExtendHalf (Memory.selectHalf row.srcNext row.halfSelector) =
+    Memory.zeroExtendHalf (Memory.selectHalf row.srcPrevious row.halfSelector) =
       loadHalfUnsignedValue env.baseValue env.imm env.memoryWord := by
   obtain ⟨_, _, _, _, isSb, isSh, isSw⟩ := lhu_flags row holds selector
   have isStore : row.isStore = false := by
@@ -160,7 +160,7 @@ theorem loadStoreHolds_lw_retires_memory_word
         architecturalWrite row.r2Idx row.dstNext.word := by
     rw [loadStoreRetirement_load row isStore]
   rw [write, load_write_value row holds isLoad,
-    show loadWordValue row.srcNext = row.srcNext.word from rfl,
+    show loadWordValue row.srcPrevious = row.srcPrevious.word from rfl,
     holds.wordLoad selector]
 
 /-- C34-C37 without an environment: the two low `result` limbs of an `LHU` row
@@ -169,7 +169,7 @@ theorem lhu_half_selected
     (row : LoadStoreRow)
     (holds : LoadStoreHolds row)
     (selector : row.isLhu = true) :
-    Memory.selectHalf row.srcNext row.halfSelector =
+    Memory.selectHalf row.srcPrevious row.halfSelector =
       row.result.limb1.append row.result.limb0 := by
   have isHalfLoad : row.isHalfLoad = true := by
     simp [LoadStoreRow.isHalfLoad, selector]
@@ -190,7 +190,7 @@ theorem lhu_result_zero_extends
     (holds : LoadStoreHolds row)
     (selector : row.isLhu = true) :
     row.result.word =
-      Memory.zeroExtendHalf (Memory.selectHalf row.srcNext row.halfSelector) := by
+      Memory.zeroExtendHalf (Memory.selectHalf row.srcPrevious row.halfSelector) := by
   obtain ⟨isLb, isLh, _, _, _, _, _⟩ := lhu_flags row holds selector
   have isHalfLoad : row.isHalfLoad = true := by
     simp [LoadStoreRow.isHalfLoad, selector]
@@ -268,18 +268,18 @@ structure HoldsWithoutWordLoad (row : LoadStoreRow) : Prop where
   base field, and L06 pins that selector to `4 * aligned_quarter`. The right
   hand side is below `2^22 + 4`, hence already canonical. -/
   memoryAddress :
-    (row.rs1Next.value + row.immFelt) % m31Modulus =
+    (row.rs1Previous.value + row.immFelt) % m31Modulus =
       row.alignedAddress + row.shiftAmount
   /-- `imm_felt` is a base-field element. -/
   immFeltRange : row.immFelt < m31Modulus
   /-- L07, first component: `rs1_next_0` is a byte (typing) and, second
   component, `rs1_next_3` is a seven-bit value. -/
-  baseHighLimbRange : row.rs1Next.limb3.toNat < 128
-  baseHighLimbZero : row.rs1Next.limb3 = 0
+  baseHighLimbRange : row.rs1Previous.limb3.toNat < 128
+  baseHighLimbZero : row.rs1Previous.limb3 = 0
   /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`, which is
   exactly what keeps `compose(rs1_next)` below the modulus. -/
   baseLimbsCanonical :
-    row.rs1Next.limb0.toNat ≠ 255 ∨ row.rs1Next.limb3.toNat ≠ 127
+    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
   byteLoadExtension :
     row.isByteLoad = true →
@@ -289,17 +289,17 @@ structure HoldsWithoutWordLoad (row : LoadStoreRow) : Prop where
   /-- C24, C26, C28, C30: `load_b * (result_0 - src_next_i) * markers_i = 0`. -/
   byteLoadSelect :
     row.isByteLoad = true →
-      (row.marker0 = true → row.result.limb0 = row.srcNext.limb0) ∧
-        (row.marker1 = true → row.result.limb0 = row.srcNext.limb1) ∧
-        (row.marker2 = true → row.result.limb0 = row.srcNext.limb2) ∧
-        (row.marker3 = true → row.result.limb0 = row.srcNext.limb3)
+      (row.marker0 = true → row.result.limb0 = row.srcPrevious.limb0) ∧
+        (row.marker1 = true → row.result.limb0 = row.srcPrevious.limb1) ∧
+        (row.marker2 = true → row.result.limb0 = row.srcPrevious.limb2) ∧
+        (row.marker3 = true → row.result.limb0 = row.srcPrevious.limb3)
   /-- C25, C27, C29, C31: `is_sb * (dst_next_i - src_next_0) * markers_i = 0`. -/
   byteStoreSelect :
     row.isSb = true →
-      (row.marker0 = true → row.dstNext.limb0 = row.srcNext.limb0) ∧
-        (row.marker1 = true → row.dstNext.limb1 = row.srcNext.limb0) ∧
-        (row.marker2 = true → row.dstNext.limb2 = row.srcNext.limb0) ∧
-        (row.marker3 = true → row.dstNext.limb3 = row.srcNext.limb0)
+      (row.marker0 = true → row.dstNext.limb0 = row.srcPrevious.limb0) ∧
+        (row.marker1 = true → row.dstNext.limb1 = row.srcPrevious.limb0) ∧
+        (row.marker2 = true → row.dstNext.limb2 = row.srcPrevious.limb0) ∧
+        (row.marker3 = true → row.dstNext.limb3 = row.srcPrevious.limb0)
   /-- C32-C33: `load_h * (signed_mask - result_i) = 0` for `i ∈ {2,3}`. -/
   halfLoadExtension :
     row.isHalfLoad = true →
@@ -308,33 +308,33 @@ structure HoldsWithoutWordLoad (row : LoadStoreRow) : Prop where
   The gate is `1` exactly when `shift_id = 1`. -/
   halfLoadLow :
     row.isHalfLoad = true → row.shiftId = 1 →
-      row.result.limb0 = row.srcNext.limb0 ∧
-        row.result.limb1 = row.srcNext.limb1
+      row.result.limb0 = row.srcPrevious.limb0 ∧
+        row.result.limb1 = row.srcPrevious.limb1
   /-- C36-C37: `load_h * ((shift_id - 1) / 4) * (result_i - src_next_{i+2}) = 0`.
   The gate is `1` exactly when `shift_id = 5`. -/
   halfLoadHigh :
     row.isHalfLoad = true → row.shiftId = 5 →
-      row.result.limb0 = row.srcNext.limb2 ∧
-        row.result.limb1 = row.srcNext.limb3
+      row.result.limb0 = row.srcPrevious.limb2 ∧
+        row.result.limb1 = row.srcPrevious.limb3
   /-- C38-C39. -/
   halfStoreLow :
     row.isSh = true → row.shiftId = 1 →
-      row.dstNext.limb0 = row.srcNext.limb0 ∧
-        row.dstNext.limb1 = row.srcNext.limb1
+      row.dstNext.limb0 = row.srcPrevious.limb0 ∧
+        row.dstNext.limb1 = row.srcPrevious.limb1
   /-- C40-C41. -/
   halfStoreHigh :
     row.isSh = true → row.shiftId = 5 →
-      row.dstNext.limb2 = row.srcNext.limb0 ∧
-        row.dstNext.limb3 = row.srcNext.limb1
+      row.dstNext.limb2 = row.srcPrevious.limb0 ∧
+        row.dstNext.limb3 = row.srcPrevious.limb1
   -- wordLoad is deliberately absent: this is the mutation.
   -- C42-C45 on the load side, the identity of LW's four result limbs.
   /-- C42-C45, store half: `is_sw * (dst_next_i - src_next_i) = 0`. -/
-  wordStore : row.isSw = true → row.dstNext = row.srcNext
+  wordStore : row.isSw = true → row.dstNext = row.srcPrevious
   /-- C46-C49: the base register access is read-only. -/
-  baseReadOnly : row.rs1Next = row.rs1Previous
+  baseReadOnly : row.rs1Previous = row.rs1Previous
   /-- C50-C53: the source access is read-only in both directions. For a load
   this is the memory-preservation constraint; for a store it is `rs2`. -/
-  sourceReadOnly : row.srcNext = row.srcPrevious
+  sourceReadOnly : row.srcPrevious = row.srcPrevious
   /-- C54-C57: `(is_sb + is_sh) * (1 - markers_i) * (dst_next_i - dst_previous_i)`
   — an unmarked byte of a partial store survives unchanged. -/
   partialStorePreserve :
@@ -510,18 +510,18 @@ structure HoldsWithoutHalfLoadExtension (row : LoadStoreRow) : Prop where
   base field, and L06 pins that selector to `4 * aligned_quarter`. The right
   hand side is below `2^22 + 4`, hence already canonical. -/
   memoryAddress :
-    (row.rs1Next.value + row.immFelt) % m31Modulus =
+    (row.rs1Previous.value + row.immFelt) % m31Modulus =
       row.alignedAddress + row.shiftAmount
   /-- `imm_felt` is a base-field element. -/
   immFeltRange : row.immFelt < m31Modulus
   /-- L07, first component: `rs1_next_0` is a byte (typing) and, second
   component, `rs1_next_3` is a seven-bit value. -/
-  baseHighLimbRange : row.rs1Next.limb3.toNat < 128
-  baseHighLimbZero : row.rs1Next.limb3 = 0
+  baseHighLimbRange : row.rs1Previous.limb3.toNat < 128
+  baseHighLimbZero : row.rs1Previous.limb3 = 0
   /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`, which is
   exactly what keeps `compose(rs1_next)` below the modulus. -/
   baseLimbsCanonical :
-    row.rs1Next.limb0.toNat ≠ 255 ∨ row.rs1Next.limb3.toNat ≠ 127
+    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
   byteLoadExtension :
     row.isByteLoad = true →
@@ -531,50 +531,50 @@ structure HoldsWithoutHalfLoadExtension (row : LoadStoreRow) : Prop where
   /-- C24, C26, C28, C30: `load_b * (result_0 - src_next_i) * markers_i = 0`. -/
   byteLoadSelect :
     row.isByteLoad = true →
-      (row.marker0 = true → row.result.limb0 = row.srcNext.limb0) ∧
-        (row.marker1 = true → row.result.limb0 = row.srcNext.limb1) ∧
-        (row.marker2 = true → row.result.limb0 = row.srcNext.limb2) ∧
-        (row.marker3 = true → row.result.limb0 = row.srcNext.limb3)
+      (row.marker0 = true → row.result.limb0 = row.srcPrevious.limb0) ∧
+        (row.marker1 = true → row.result.limb0 = row.srcPrevious.limb1) ∧
+        (row.marker2 = true → row.result.limb0 = row.srcPrevious.limb2) ∧
+        (row.marker3 = true → row.result.limb0 = row.srcPrevious.limb3)
   /-- C25, C27, C29, C31: `is_sb * (dst_next_i - src_next_0) * markers_i = 0`. -/
   byteStoreSelect :
     row.isSb = true →
-      (row.marker0 = true → row.dstNext.limb0 = row.srcNext.limb0) ∧
-        (row.marker1 = true → row.dstNext.limb1 = row.srcNext.limb0) ∧
-        (row.marker2 = true → row.dstNext.limb2 = row.srcNext.limb0) ∧
-        (row.marker3 = true → row.dstNext.limb3 = row.srcNext.limb0)
+      (row.marker0 = true → row.dstNext.limb0 = row.srcPrevious.limb0) ∧
+        (row.marker1 = true → row.dstNext.limb1 = row.srcPrevious.limb0) ∧
+        (row.marker2 = true → row.dstNext.limb2 = row.srcPrevious.limb0) ∧
+        (row.marker3 = true → row.dstNext.limb3 = row.srcPrevious.limb0)
   -- halfLoadExtension is deliberately absent: this is the mutation.
   -- C32-C33, the upper-limb fill of a halfword load.
   /-- C34-C35: `load_h * ((5 - shift_id) / 4) * (result_i - src_next_i) = 0`.
   The gate is `1` exactly when `shift_id = 1`. -/
   halfLoadLow :
     row.isHalfLoad = true → row.shiftId = 1 →
-      row.result.limb0 = row.srcNext.limb0 ∧
-        row.result.limb1 = row.srcNext.limb1
+      row.result.limb0 = row.srcPrevious.limb0 ∧
+        row.result.limb1 = row.srcPrevious.limb1
   /-- C36-C37: `load_h * ((shift_id - 1) / 4) * (result_i - src_next_{i+2}) = 0`.
   The gate is `1` exactly when `shift_id = 5`. -/
   halfLoadHigh :
     row.isHalfLoad = true → row.shiftId = 5 →
-      row.result.limb0 = row.srcNext.limb2 ∧
-        row.result.limb1 = row.srcNext.limb3
+      row.result.limb0 = row.srcPrevious.limb2 ∧
+        row.result.limb1 = row.srcPrevious.limb3
   /-- C38-C39. -/
   halfStoreLow :
     row.isSh = true → row.shiftId = 1 →
-      row.dstNext.limb0 = row.srcNext.limb0 ∧
-        row.dstNext.limb1 = row.srcNext.limb1
+      row.dstNext.limb0 = row.srcPrevious.limb0 ∧
+        row.dstNext.limb1 = row.srcPrevious.limb1
   /-- C40-C41. -/
   halfStoreHigh :
     row.isSh = true → row.shiftId = 5 →
-      row.dstNext.limb2 = row.srcNext.limb0 ∧
-        row.dstNext.limb3 = row.srcNext.limb1
+      row.dstNext.limb2 = row.srcPrevious.limb0 ∧
+        row.dstNext.limb3 = row.srcPrevious.limb1
   /-- C42-C45, load half: `is_lw * (result_i - src_next_i) = 0`. -/
-  wordLoad : row.isLw = true → row.result = row.srcNext
+  wordLoad : row.isLw = true → row.result = row.srcPrevious
   /-- C42-C45, store half: `is_sw * (dst_next_i - src_next_i) = 0`. -/
-  wordStore : row.isSw = true → row.dstNext = row.srcNext
+  wordStore : row.isSw = true → row.dstNext = row.srcPrevious
   /-- C46-C49: the base register access is read-only. -/
-  baseReadOnly : row.rs1Next = row.rs1Previous
+  baseReadOnly : row.rs1Previous = row.rs1Previous
   /-- C50-C53: the source access is read-only in both directions. For a load
   this is the memory-preservation constraint; for a store it is `rs2`. -/
-  sourceReadOnly : row.srcNext = row.srcPrevious
+  sourceReadOnly : row.srcPrevious = row.srcPrevious
   /-- C54-C57: `(is_sb + is_sh) * (1 - markers_i) * (dst_next_i - dst_previous_i)`
   — an unmarked byte of a partial store survives unchanged. -/
   partialStorePreserve :
@@ -747,18 +747,18 @@ structure HoldsWithoutHalfLoadHigh (row : LoadStoreRow) : Prop where
   base field, and L06 pins that selector to `4 * aligned_quarter`. The right
   hand side is below `2^22 + 4`, hence already canonical. -/
   memoryAddress :
-    (row.rs1Next.value + row.immFelt) % m31Modulus =
+    (row.rs1Previous.value + row.immFelt) % m31Modulus =
       row.alignedAddress + row.shiftAmount
   /-- `imm_felt` is a base-field element. -/
   immFeltRange : row.immFelt < m31Modulus
   /-- L07, first component: `rs1_next_0` is a byte (typing) and, second
   component, `rs1_next_3` is a seven-bit value. -/
-  baseHighLimbRange : row.rs1Next.limb3.toNat < 128
-  baseHighLimbZero : row.rs1Next.limb3 = 0
+  baseHighLimbRange : row.rs1Previous.limb3.toNat < 128
+  baseHighLimbZero : row.rs1Previous.limb3 = 0
   /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`, which is
   exactly what keeps `compose(rs1_next)` below the modulus. -/
   baseLimbsCanonical :
-    row.rs1Next.limb0.toNat ≠ 255 ∨ row.rs1Next.limb3.toNat ≠ 127
+    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
   byteLoadExtension :
     row.isByteLoad = true →
@@ -768,17 +768,17 @@ structure HoldsWithoutHalfLoadHigh (row : LoadStoreRow) : Prop where
   /-- C24, C26, C28, C30: `load_b * (result_0 - src_next_i) * markers_i = 0`. -/
   byteLoadSelect :
     row.isByteLoad = true →
-      (row.marker0 = true → row.result.limb0 = row.srcNext.limb0) ∧
-        (row.marker1 = true → row.result.limb0 = row.srcNext.limb1) ∧
-        (row.marker2 = true → row.result.limb0 = row.srcNext.limb2) ∧
-        (row.marker3 = true → row.result.limb0 = row.srcNext.limb3)
+      (row.marker0 = true → row.result.limb0 = row.srcPrevious.limb0) ∧
+        (row.marker1 = true → row.result.limb0 = row.srcPrevious.limb1) ∧
+        (row.marker2 = true → row.result.limb0 = row.srcPrevious.limb2) ∧
+        (row.marker3 = true → row.result.limb0 = row.srcPrevious.limb3)
   /-- C25, C27, C29, C31: `is_sb * (dst_next_i - src_next_0) * markers_i = 0`. -/
   byteStoreSelect :
     row.isSb = true →
-      (row.marker0 = true → row.dstNext.limb0 = row.srcNext.limb0) ∧
-        (row.marker1 = true → row.dstNext.limb1 = row.srcNext.limb0) ∧
-        (row.marker2 = true → row.dstNext.limb2 = row.srcNext.limb0) ∧
-        (row.marker3 = true → row.dstNext.limb3 = row.srcNext.limb0)
+      (row.marker0 = true → row.dstNext.limb0 = row.srcPrevious.limb0) ∧
+        (row.marker1 = true → row.dstNext.limb1 = row.srcPrevious.limb0) ∧
+        (row.marker2 = true → row.dstNext.limb2 = row.srcPrevious.limb0) ∧
+        (row.marker3 = true → row.dstNext.limb3 = row.srcPrevious.limb0)
   /-- C32-C33: `load_h * (signed_mask - result_i) = 0` for `i ∈ {2,3}`. -/
   halfLoadExtension :
     row.isHalfLoad = true →
@@ -787,29 +787,29 @@ structure HoldsWithoutHalfLoadHigh (row : LoadStoreRow) : Prop where
   The gate is `1` exactly when `shift_id = 1`. -/
   halfLoadLow :
     row.isHalfLoad = true → row.shiftId = 1 →
-      row.result.limb0 = row.srcNext.limb0 ∧
-        row.result.limb1 = row.srcNext.limb1
+      row.result.limb0 = row.srcPrevious.limb0 ∧
+        row.result.limb1 = row.srcPrevious.limb1
   -- halfLoadHigh is deliberately absent: this is the mutation.
   -- C36-C37, the high-half selection gate of a halfword load.
   /-- C38-C39. -/
   halfStoreLow :
     row.isSh = true → row.shiftId = 1 →
-      row.dstNext.limb0 = row.srcNext.limb0 ∧
-        row.dstNext.limb1 = row.srcNext.limb1
+      row.dstNext.limb0 = row.srcPrevious.limb0 ∧
+        row.dstNext.limb1 = row.srcPrevious.limb1
   /-- C40-C41. -/
   halfStoreHigh :
     row.isSh = true → row.shiftId = 5 →
-      row.dstNext.limb2 = row.srcNext.limb0 ∧
-        row.dstNext.limb3 = row.srcNext.limb1
+      row.dstNext.limb2 = row.srcPrevious.limb0 ∧
+        row.dstNext.limb3 = row.srcPrevious.limb1
   /-- C42-C45, load half: `is_lw * (result_i - src_next_i) = 0`. -/
-  wordLoad : row.isLw = true → row.result = row.srcNext
+  wordLoad : row.isLw = true → row.result = row.srcPrevious
   /-- C42-C45, store half: `is_sw * (dst_next_i - src_next_i) = 0`. -/
-  wordStore : row.isSw = true → row.dstNext = row.srcNext
+  wordStore : row.isSw = true → row.dstNext = row.srcPrevious
   /-- C46-C49: the base register access is read-only. -/
-  baseReadOnly : row.rs1Next = row.rs1Previous
+  baseReadOnly : row.rs1Previous = row.rs1Previous
   /-- C50-C53: the source access is read-only in both directions. For a load
   this is the memory-preservation constraint; for a store it is `rs2`. -/
-  sourceReadOnly : row.srcNext = row.srcPrevious
+  sourceReadOnly : row.srcPrevious = row.srcPrevious
   /-- C54-C57: `(is_sb + is_sh) * (1 - markers_i) * (dst_next_i - dst_previous_i)`
   — an unmarked byte of a partial store survives unchanged. -/
   partialStorePreserve :

@@ -290,7 +290,7 @@ the reproducible proof entry point is documented in
 ## Related documentation
 
 - [RISC-V Sail contract](../../../conformance/2026-07-26-riscv-sail-contract.md)
-- [RISC-V release evidence](../../../conformance/riscv-release-evidence.md)
+- [RISC-V Sail differential gate](../../../conformance/riscv-sail-differential-gate.md)
 - [RISC-V verification status](../../../soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md)
 - [Universal AIR to Sail refinement plan](../../../soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md)
 - [CPU integration](../../integrations/riscv_cpu/README.md)

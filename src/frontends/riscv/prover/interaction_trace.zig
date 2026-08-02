@@ -37,7 +37,6 @@ const clock_update_interaction = @import("../air/clock_update_interaction.zig");
 const component_order = @import("../air/component_order.zig");
 const lookup_table_interaction = @import("../air/lookups/tables/interaction.zig");
 const lookup_table_schema = @import("../air/lookups/tables/schema.zig");
-const source_ingest = @import("../air/lookups/tables/source_ingest.zig");
 const opcode_interaction = @import("../air/lookups/opcode_interaction.zig");
 const memory_interaction = @import("../air/memory_commitment/interaction.zig");
 const merkle_node = @import("../air/memory_commitment/merkle_node.zig");
@@ -47,6 +46,7 @@ const relation_challenges = @import("../air/relation_challenges.zig");
 const proof_transcript = @import("../proof_transcript.zig");
 const trace_mod = @import("../runner/trace.zig");
 const commitment_witness = @import("commitment_witness.zig");
+const lookup_sources = @import("lookup_sources.zig");
 const proof_workspace = @import("proof_workspace.zig");
 const statement_geometry = @import("statement_geometry.zig");
 const types = @import("types.zig");
@@ -101,7 +101,7 @@ pub fn generateAndCommit(
     recorder: ?*stage_profile.Recorder,
     witness: *const CommitmentWitness,
     geometry: Geometry,
-    lookup_source: *const source_ingest.Result,
+    lookup_source: *const lookup_sources.Result,
     prefix: *const proof_transcript.ProverRelations,
     claim: *RiscVInteractionClaim,
 ) !void {
@@ -228,6 +228,8 @@ fn generateOpcodeParallel(
 ) !void {
     const statement = &workspace.statement;
     var opcode_main_offset: usize = 0;
+    var retained_plan: ?opcode_interaction.Plan = null;
+    defer if (retained_plan) |*plan| plan.deinit();
     for (0..statement.n_components) |index| {
         const desc = statement.component_descs[index];
         const n_family_columns: usize = @intCast(desc.n_columns);
@@ -236,23 +238,28 @@ fn generateOpcodeParallel(
             workspace.opcode_columns.components[index].columns[0..n_family_columns],
             family_columns[0..n_family_columns],
         ) |column, *values| values.* = column;
-        var generated = if (desc.log_size >= 12)
-            try opcode_interaction.generateParallel(
+        var generated = if (desc.log_size >= 12) blk: {
+            if (retained_plan == null or retained_plan.?.family != desc.family) {
+                if (retained_plan) |*plan| plan.deinit();
+                retained_plan = null;
+                retained_plan = try opcode_interaction.Plan.init(allocator, desc.family);
+            }
+            const plan = if (retained_plan) |*value| value else unreachable;
+            break :blk try opcode_interaction.generateParallelPlanned(
                 allocator,
-                desc.family,
+                plan,
                 family_columns[0..n_family_columns],
                 desc.log_size,
                 relations,
                 pool,
-            )
-        else
-            try opcode_interaction.generate(
-                allocator,
-                desc.family,
-                family_columns[0..n_family_columns],
-                desc.log_size,
-                relations,
             );
+        } else try opcode_interaction.generate(
+            allocator,
+            desc.family,
+            family_columns[0..n_family_columns],
+            desc.log_size,
+            relations,
+        );
         @memcpy(
             claim.opcode_claims[index][0..generated.n_batches],
             generated.claims[0..generated.n_batches],
@@ -327,12 +334,21 @@ fn generateMerkle(
     relations: *const Relations,
     claim: *RiscVInteractionClaim,
 ) !void {
-    const generated = try merkle_node.generateInteraction(
-        allocator,
-        witness.merkleRows(),
-        geometry.merkle_log_size,
-        relations,
-    );
+    const generated = if (geometry.merkle_log_size >= 12 and work_pool.getGlobalPool() != null)
+        try merkle_node.generateInteractionParallel(
+            allocator,
+            witness.merkleRows(),
+            geometry.merkle_log_size,
+            relations,
+            work_pool.getGlobalPool().?,
+        )
+    else
+        try merkle_node.generateInteraction(
+            allocator,
+            witness.merkleRows(),
+            geometry.merkle_log_size,
+            relations,
+        );
     claim.merkle_claims[geometry.merkle_infra_index] = generated.claims.sums;
     for (generated.columns) |values| columns.append(geometry.merkle_log_size, values);
 }
@@ -345,12 +361,21 @@ fn generatePoseidon(
     relations: *const Relations,
     claim: *RiscVInteractionClaim,
 ) !void {
-    const generated = try poseidon2_air.generateInteraction(
-        allocator,
-        witness.poseidonCalls(),
-        geometry.poseidon_log_size,
-        relations,
-    );
+    const generated = if (geometry.poseidon_log_size >= 12 and work_pool.getGlobalPool() != null)
+        try poseidon2_air.generateInteractionParallel(
+            allocator,
+            witness.poseidonCalls(),
+            geometry.poseidon_log_size,
+            relations,
+            work_pool.getGlobalPool().?,
+        )
+    else
+        try poseidon2_air.generateInteraction(
+            allocator,
+            witness.poseidonCalls(),
+            geometry.poseidon_log_size,
+            relations,
+        );
     claim.poseidon_claims[geometry.poseidon_infra_index] = generated.claims.sums;
     for (generated.columns) |values| columns.append(geometry.poseidon_log_size, values);
 }
@@ -384,7 +409,7 @@ fn generateLookupTables(
     allocator: std.mem.Allocator,
     workspace: *ProofWorkspace,
     columns: *Columns,
-    lookup_source: *const source_ingest.Result,
+    lookup_source: *const lookup_sources.Result,
     relations: *const Relations,
     claim: *RiscVInteractionClaim,
 ) !void {
@@ -419,7 +444,7 @@ fn generateLookupTablesParallel(
     allocator: std.mem.Allocator,
     workspace: *ProofWorkspace,
     columns: *Columns,
-    lookup_source: *const source_ingest.Result,
+    lookup_source: *const lookup_sources.Result,
     relations: *const Relations,
     claim: *RiscVInteractionClaim,
     pool: *work_pool.WorkPool,

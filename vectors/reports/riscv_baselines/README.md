@@ -7,8 +7,8 @@ harness measures candidates against.
 
 | File | Board | Produced by |
 | --- | --- | --- |
-| `corpus_baseline.json` | `riscv` (hand-assembled corpus) | `scripts/riscv_stark_v_benchmark.py` |
-| `crypto_baseline.json` | `riscv` (compiled crypto guests) | `scripts/riscv_crypto_benchmark.py` |
+| `corpus_baseline.json` | `riscv` (hand-assembled corpus) | `autoresearch/benchmarks/riscv_stark_v_benchmark.py` |
+| `crypto_baseline.json` | `riscv` (compiled crypto guests) | `autoresearch/benchmarks/riscv_crypto_benchmark.py` |
 
 The native (`core_cpu`) board's tracked history lives separately under
 `vectors/reports/benchmark_history/`.
@@ -36,10 +36,10 @@ intentionally re-freezing, and record the machine it was taken on (the
 ## Regenerating
 
 ```sh
-python3 scripts/build_crypto_guests.py --stark-v-source <checkout>   # crypto guests only
-python3 scripts/riscv_stark_v_benchmark.py --stark-v-source <checkout> \
+python3 autoresearch/benchmarks/build_crypto_guests.py --stark-v-source <checkout>   # crypto guests only
+python3 autoresearch/benchmarks/riscv_stark_v_benchmark.py --stark-v-source <checkout> \
     --report-out vectors/reports/riscv_baselines/corpus_baseline.json
-python3 scripts/riscv_crypto_benchmark.py --stark-v-source <checkout> \
+python3 autoresearch/benchmarks/riscv_crypto_benchmark.py --stark-v-source <checkout> \
     --report-out vectors/reports/riscv_baselines/crypto_baseline.json
 ```
 

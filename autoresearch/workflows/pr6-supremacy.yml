@@ -1,0 +1,112 @@
+# Optional workflow template; production CI does not judge research performance.
+name: PR6 Supremacy
+
+on:
+  pull_request:
+    types: [opened, reopened, labeled, synchronize]
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: "41 03 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  contract-smoke:
+    name: PR6 contract smoke
+    if: >-
+      github.event_name != 'pull_request' ||
+      contains(github.event.pull_request.labels.*.name, 'supremacy')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
+        with:
+          version: 0.15.2
+
+      - name: Validate exact matrix, admission, and timing contracts
+        run: |
+          PYTHONPATH=autoresearch/cli python3 -m unittest \
+            autoresearch.tests.test_manifest \
+            autoresearch.tests.test_peer_series
+          zig build test-stwo-prover -Doptimize=ReleaseFast
+
+      - name: Require the staged board to remain dark
+        run: |
+          PYTHONPATH=autoresearch/cli python3 - <<'PY'
+          from pathlib import Path
+          from stwo_perf.manifest import load
+
+          group = load(Path.cwd()).group_for_board("pr6_supremacy")
+          assert group.enabled is False
+          assert group.promotion_eligible is False
+          assert len(group.workloads) == 18
+          PY
+
+  wide-series:
+    name: Locked M5 PR6 wide series
+    if: >-
+      vars.PR6_SUPREMACY_ENABLED == 'true' &&
+      (github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' &&
+      contains(github.event.pull_request.labels.*.name, 'supremacy')))
+    runs-on: [self-hosted, macOS, stwo-judge]
+    timeout-minutes: 360
+    concurrency:
+      group: pr6-supremacy-m5
+      cancel-in-progress: false
+    steps:
+      - name: Checkout immutable candidate
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require the locked M5 Max and clean source
+        run: |
+          set -euo pipefail
+          test "$(system_profiler SPHardwareDataType -json | python3 -c 'import json,sys; print(json.load(sys.stdin)["SPHardwareDataType"][0]["chip_type"])')" = "Apple M5 Max"
+          test "$(sysctl -n hw.logicalcpu)" = "18"
+          test -z "$(git status --porcelain)"
+
+      - name: Install the pinned peer toolchain
+        run: rustup toolchain install nightly-2025-07-14 --profile minimal
+
+      - name: Require explicit board activation
+        run: |
+          PYTHONPATH=autoresearch/cli python3 - <<'PY'
+          from pathlib import Path
+          from stwo_perf.manifest import load
+
+          group = load(Path.cwd()).group_for_board("pr6_supremacy")
+          if not group.enabled or not group.promotion_eligible:
+              raise SystemExit("PR6 board is still disabled; full judged execution is not authorized")
+          PY
+
+      - name: Measure the mandatory wide-Fibonacci slice sequentially
+        run: >-
+          python3 autoresearch/reference/measure_peer_series.py
+          --out "$RUNNER_TEMP/pr6-wide-${{ github.sha }}.json"
+
+      - name: Retain raw immutable evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: pr6-wide-${{ github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/pr6-wide-${{ github.sha }}.json
+          if-no-files-found: error
+          retention-days: 90

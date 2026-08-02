@@ -61,6 +61,19 @@ fn access(
     writeLimbs(columns, row_index, start + 6, next);
 }
 
+fn readAccess(
+    columns: anytype,
+    row_index: usize,
+    start: usize,
+    address: u32,
+    value: u32,
+    previous_clock: u32,
+) void {
+    set(columns, row_index, start, u(address));
+    writeLimbs(columns, row_index, start + 1, value);
+    set(columns, row_index, start + 5, u(previous_clock));
+}
+
 pub fn rd(columns: anytype, index: usize, start: usize, row: anytype) void {
     access(columns, index, start, row.rd, row.rd_prev_val, row.rd_prev_clk, row.rd_val);
 }
@@ -71,6 +84,14 @@ pub fn rs1(columns: anytype, index: usize, start: usize, row: anytype) void {
 
 pub fn rs2(columns: anytype, index: usize, start: usize, row: anytype) void {
     access(columns, index, start, row.rs2, row.rs2_val, row.rs2_prev_clk, row.rs2_val);
+}
+
+pub fn readRs1(columns: anytype, index: usize, start: usize, row: anytype) void {
+    readAccess(columns, index, start, row.rs1, row.rs1_val, row.rs1_prev_clk);
+}
+
+pub fn readRs2(columns: anytype, index: usize, start: usize, row: anytype) void {
+    readAccess(columns, index, start, row.rs2, row.rs2_val, row.rs2_prev_clk);
 }
 
 pub fn memory(columns: anytype, index: usize, start: usize, row: anytype) void {
@@ -91,6 +112,21 @@ pub fn loadStoreDst(columns: anytype, index: usize, start: usize, row: anytype) 
 
 pub fn loadStoreSrc(columns: anytype, index: usize, start: usize, row: anytype) void {
     if (row.is_load) memory(columns, index, start, row) else rs2(columns, index, start, row);
+}
+
+pub fn readLoadStoreSrc(columns: anytype, index: usize, start: usize, row: anytype) void {
+    if (row.is_load) {
+        readAccess(
+            columns,
+            index,
+            start,
+            row.mem_addr & ~@as(u32, 3),
+            row.mem_prev_word,
+            row.mem_prev_clk,
+        );
+    } else {
+        readRs2(columns, index, start, row);
+    }
 }
 
 pub fn common(columns: anytype, index: usize, clock_column: usize, row: anytype) void {

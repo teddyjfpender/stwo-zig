@@ -2,35 +2,27 @@ import json
 import os
 import subprocess
 import tempfile
-import time
 import unittest
 from pathlib import Path
 from unittest import mock
 
 from scripts.riscv_release_gate_lib.contract import (
-    ARCHIVED_STARK_V_COMMIT,
-    ARCHIVED_RECEIPT_ERROR,
-    BOUNDARIES,
+    AIR_SOUNDNESS_LEDGER_ROW,
     core_purity_errors,
     divergence_errors,
     divergence_ledger_errors,
     frontend_layering_errors,
-    receipt_errors,
-    _relation_case_errors,
 )
 from scripts.riscv_release_gate_lib import controller
 from scripts.riscv_release_gate_lib.controller import command_plan
-from scripts.riscv_release_evidence import _strict_object
-from scripts.tests.riscv_release_receipt_fixture import (
-    TEST_COMMIT as COMMIT,
-    TEST_DIGEST as DIGEST,
-    air_divergence,
-    valid_receipt,
-)
+
+
+COMMIT = "a" * 40
+DIGEST = "b" * 64
 
 
 AIR_ROW = (
-    f"| {air_divergence.LEDGER_LANE} | {air_divergence.LEDGER_BOUNDARY} | zig | rust "
+    f"| {AIR_SOUNDNESS_LEDGER_ROW[0]} | {AIR_SOUNDNESS_LEDGER_ROW[1]} | zig | rust "
     "| Allowed only with the pinned divergence shape. |"
 )
 
@@ -56,14 +48,14 @@ class DivergenceContractTests(unittest.TestCase):
             "| RISC-V | Interaction transcript | zig | rust | Allowed only with the transcript receipt. |",
             AIR_ROW,
         )
-        self.assertEqual([], divergence_ledger_errors(ledger, pinned_oracle="f" * 40))
+        self.assertEqual([], divergence_ledger_errors(ledger))
 
         invented = self.ledger(
             "| RISC-V | Invented waiver | zig | rust | Allowed only with tests. |"
         )
         self.assertIn(
             "release-blocking divergence remains active: RISC-V / Invented waiver",
-            divergence_ledger_errors(invented, pinned_oracle="f" * 40),
+            divergence_ledger_errors(invented),
         )
 
     def test_architectural_divergences_cannot_be_hidden(self) -> None:
@@ -73,7 +65,7 @@ class DivergenceContractTests(unittest.TestCase):
         )
         self.assertIn(
             "required architectural divergence is missing: RISC-V / Interaction transcript",
-            divergence_ledger_errors(ledger, pinned_oracle="f" * 40),
+            divergence_ledger_errors(ledger),
         )
 
     def test_air_soundness_row_is_required_not_merely_permitted(self) -> None:
@@ -84,8 +76,8 @@ class DivergenceContractTests(unittest.TestCase):
         )
         self.assertIn(
             "required architectural divergence is missing: "
-            f"{air_divergence.LEDGER_REFERENCE}",
-            divergence_ledger_errors(ledger, pinned_oracle="f" * 40),
+            f"{AIR_SOUNDNESS_LEDGER_ROW[0]} / {AIR_SOUNDNESS_LEDGER_ROW[1]}",
+            divergence_ledger_errors(ledger),
         )
 
     def test_live_ledger_satisfies_the_machine_read_policy(self) -> None:
@@ -137,137 +129,6 @@ class LayeringContractTests(unittest.TestCase):
                 '// legacy placeholder silent\nconst label = "silent";\n',
             )
             self.assertEqual([], frontend_layering_errors(root))
-
-
-class ReceiptContractTests(unittest.TestCase):
-    def test_receipt_json_rejects_duplicate_fields_at_every_depth(self) -> None:
-        with self.assertRaisesRegex(ValueError, "duplicate JSON field: status"):
-            json.loads(
-                '{"oracle":{"status":"clean","status":"dirty"}}',
-                object_pairs_hook=_strict_object,
-            )
-
-    def test_well_formed_archived_receipt_cannot_authorize_release(self) -> None:
-        now = int(time.time())
-        self.assertEqual(
-            [ARCHIVED_RECEIPT_ERROR],
-            receipt_errors(valid_receipt(now), COMMIT, now=now, vector_names=("alu",)),
-        )
-
-    def test_receipt_rejects_wrong_candidate_staleness_and_missing_boundary(self) -> None:
-        now = int(time.time())
-        receipt = valid_receipt(now - 90_000)
-        receipt["candidate_commit"] = "c" * 40
-        receipt["boundaries"]["relation_sums"] = {"status": "unimplemented"}
-        errors = receipt_errors(receipt, COMMIT, now=now, vector_names=("alu",))
-        self.assertIn("oracle receipt belongs to another candidate", errors)
-        self.assertIn("oracle receipt is expired or from the future", errors)
-        self.assertIn("boundary relation_sums is unimplemented", errors)
-
-    def test_legacy_pass_bit_cannot_substitute_for_required_provenance(self) -> None:
-        receipt = {
-            "schema": "riscv-oracle-receipt-v1",
-            "candidate_commit": COMMIT,
-            "verdict": "PASS",
-            "oracle": {"commit": ARCHIVED_STARK_V_COMMIT},
-            "boundaries": {name: {"status": "pass"} for name in BOUNDARIES},
-        }
-        errors = receipt_errors(receipt, COMMIT, now=0, vector_names=("alu",))
-        self.assertIn("unknown oracle receipt schema", errors)
-        self.assertIn("oracle receipt does not attest a clean source tree", errors)
-        self.assertIn("witness layout digest is not a lowercase SHA-256 digest", errors)
-        self.assertIn("per-case result digests are missing", errors)
-
-    def test_case_digest_manifest_must_cover_every_boundary_and_vector_exactly(self) -> None:
-        now = int(time.time())
-        receipt = valid_receipt(now)
-        receipt["expected_case_result_keys"] = receipt["expected_case_result_keys"][:-1]
-        receipt["case_result_digests"].pop("shared_transcript_prefix/alu")
-        receipt["case_result_digests"]["invented/case"] = DIGEST
-        errors = receipt_errors(receipt, COMMIT, now=now, vector_names=("alu",))
-        self.assertIn("expected case-result key manifest is incomplete or non-canonical", errors)
-        self.assertIn("case-result digest keys do not exactly cover the declared corpus", errors)
-
-    def test_per_corpus_rows_and_digests_are_bound_not_only_declared(self) -> None:
-        now = int(time.time())
-        receipt = valid_receipt(now)
-        receipt["boundaries"]["execution"]["corpus"] = [
-            {"name": "alu", "agree": False}
-        ]
-        errors = receipt_errors(receipt, COMMIT, now=now, vector_names=("alu",))
-        self.assertIn("case-result digest does not bind execution/alu", errors)
-        self.assertIn("boundary case execution/alu does not attest agreement", errors)
-
-        receipt = valid_receipt(now)
-        receipt["boundaries"]["execution"]["corpus"] = []
-        errors = receipt_errors(receipt, COMMIT, now=now, vector_names=("alu",))
-        self.assertIn(
-            "boundary execution corpus is incomplete, duplicated, or non-canonical",
-            errors,
-        )
-
-    def test_nonempty_relation_case_rejects_every_parity_binding_mutation(self) -> None:
-        mutations = (
-            ("relation_tuples", "elf_sha256", "c" * 64, "invalid elf_sha256"),
-            ("relation_tuples", "input_sha256", "c" * 64, "invalid input_sha256"),
-            ("relation_tuples", "agree", False, "invalid agree"),
-            ("relation_sums", "balanced_sum", [1, 0, 0, 0], "does not balance"),
-        )
-        for boundary, field, value, expected in mutations:
-            with self.subTest(boundary=boundary, field=field):
-                receipt = valid_receipt(int(time.time()))
-                receipt["boundaries"][boundary]["nonempty_public_input"][field] = value
-                errors = receipt_errors(receipt, COMMIT, now=receipt["created_at_unix"])
-                self.assertTrue(any(expected in error for error in errors), errors)
-
-        for field, value, expected in (
-            ("implementation_commit", "c" * 40, "binding has invalid implementation_commit"),
-            ("input_sha256", "c" * 64, "binding has invalid input_sha256"),
-        ):
-            receipt = valid_receipt(int(time.time()))
-            case = receipt["boundaries"]["relation_tuples"]["nonempty_public_input"]
-            case["zig_binding"][field] = value
-            errors = receipt_errors(receipt, COMMIT, now=receipt["created_at_unix"])
-            self.assertTrue(any(expected in error for error in errors), errors)
-
-        receipt = valid_receipt(int(time.time()))
-        public = receipt["boundaries"]["relation_sums"]["nonempty_public_input"][
-            "public_data"
-        ]
-        public["agree"] = False
-        public["mismatches"] = ["io_entries"]
-        errors = receipt_errors(receipt, COMMIT, now=receipt["created_at_unix"])
-        self.assertTrue(any("lacks public-data agreement" in error for error in errors))
-
-    def test_every_relation_case_is_balanced_and_proof_admitted(self) -> None:
-        admission = {"status": "supported"}
-        case = {
-            "name": "mul_div",
-            "proof_admission": admission,
-            "proof_admitted": True,
-            "evidence_mode": "balanced_full",
-            "agree": True,
-        }
-        self.assertEqual([], _relation_case_errors(case, "relation_tuples", admission))
-        case["proof_admitted"] = False
-        case["limitation_evidence"] = {}
-        errors = _relation_case_errors(case, "relation_tuples", admission)
-        self.assertTrue(any("proof-admission verdict" in error for error in errors))
-        self.assertTrue(any("obsolete Stark-V limitation" in error for error in errors))
-
-    def test_relation_cases_bind_the_live_manifest_elf_digest(self) -> None:
-        now = int(time.time())
-        receipt = valid_receipt(now)
-        receipt["boundaries"]["relation_tuples"]["corpus"][0]["elf_sha256"] = "c" * 64
-        with mock.patch(
-            "scripts.riscv_release_gate_lib.contract.trace_vector_contract",
-            return_value=(("alu",), {"alu": {"status": "supported"}}, {"alu": DIGEST}),
-        ):
-            errors = receipt_errors(receipt, COMMIT, now=now, vector_names=("alu",))
-        self.assertIn(
-            "boundary case relation_tuples/alu is not bound to the live ELF digest",
-            errors,
-        )
 
 
 class CommandPlanTests(unittest.TestCase):

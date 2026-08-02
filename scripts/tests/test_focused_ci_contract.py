@@ -136,14 +136,15 @@ class PlannerContractTests(unittest.TestCase):
             self.lanes_for("packaging/new-release-surface.toml"),
         )
 
-    def test_ci_policy_or_planner_change_selects_every_lane(self) -> None:
+    def test_ci_policy_or_planner_change_runs_only_control_contracts(self) -> None:
+        expected = {"static", "script_contracts", "build_graph"}
         for path in (
             "conformance/ci-touchpoints-v1.json",
             "scripts/ci_scope_plan.py",
             ".github/workflows/ci.yml",
         ):
             with self.subTest(path=path):
-                self.assertEqual(set(self.policy["lanes"]), self.lanes_for(path))
+                self.assertEqual(expected, self.lanes_for(path))
 
     def test_shared_core_change_fans_out_to_every_consumer_and_package(self) -> None:
         selected = self.lanes_for("src/core/fields/m31.zig")
