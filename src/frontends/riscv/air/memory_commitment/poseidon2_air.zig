@@ -7,6 +7,7 @@
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
+const work_pool = @import("stwo_prover_engine").work_pool;
 const infra = @import("../../infra_trace.zig");
 const lookup_entry = @import("../lookups/entry.zig");
 const logup = @import("../logup.zig");
@@ -36,12 +37,25 @@ pub const Call = struct {
     input: [WIDTH]u32,
     wide: bool = false,
     io: bool = false,
+    /// Narrow output already carried by the Merkle witness. Interaction
+    /// generation may use it instead of recomputing 426 main-trace
+    /// temporaries. Only the input and one-lane narrow-output relations have
+    /// nonzero multiplicity in this mode; the Poseidon lookup AIR still binds
+    /// them to the separately committed permutation row and rejects any
+    /// disagreement.
+    narrow_output: ?u32 = null,
 
     pub fn narrow(left: u32, right: u32) Call {
         var input = [_]u32{0} ** WIDTH;
         input[0] = left;
         input[1] = right;
         return .{ .input = input };
+    }
+
+    pub fn narrowWithOutput(left: u32, right: u32, output_value: u32) Call {
+        var call = narrow(left, right);
+        call.narrow_output = output_value;
+        return call;
     }
 };
 
@@ -104,12 +118,65 @@ pub fn generateMainInto(
     }
     const table = try infra.BitReversalTable.init(allocator, log_size);
     defer table.deinit(allocator);
+    if (work_pool.getGlobalPool()) |pool| {
+        const worker_count = @min(
+            pool.workerCount(),
+            @max(@as(usize, 1), calls.len / 4096),
+        );
+        if (worker_count > 1) {
+            const logical_rows = try allocator.alloc(usize, size);
+            defer allocator.free(logical_rows);
+            for (table.mapping, 0..) |committed_row, logical_row| {
+                logical_rows[committed_row] = logical_row;
+            }
+            const workers = try allocator.alloc(MainTraceWorker, worker_count);
+            defer allocator.free(workers);
+            for (workers, 0..) |*worker, index| {
+                worker.* = .{
+                    .columns = columns,
+                    .calls = calls,
+                    .logical_rows = logical_rows,
+                    .committed_start = size * index / worker_count,
+                    .committed_end = size * (index + 1) / worker_count,
+                };
+            }
+            var wait_group = std.Thread.WaitGroup{};
+            for (workers[1..]) |*worker| {
+                pool.spawnWg(&wait_group, MainTraceWorker.run, .{worker});
+            }
+            MainTraceWorker.run(&workers[0]);
+            wait_group.wait();
+            return;
+        }
+    }
     for (calls, 0..) |call, row_index| {
         const row = fill(call);
         const dst = table.map(row_index);
         for (row, 0..) |value, column| columns.*[column][dst] = value;
     }
 }
+
+/// Writes disjoint committed ranges so hundreds of column streams never share
+/// cache lines between workers. The inverse placement maps each destination
+/// back to the canonical witness call without changing protocol order.
+const MainTraceWorker = struct {
+    columns: *[N_MAIN_COLUMNS][]M31,
+    calls: []const Call,
+    logical_rows: []const usize,
+    committed_start: usize,
+    committed_end: usize,
+
+    fn run(self: *@This()) void {
+        for (self.committed_start..self.committed_end) |committed_row| {
+            const logical_row = self.logical_rows[committed_row];
+            if (logical_row >= self.calls.len) continue;
+            const row = fill(self.calls[logical_row]);
+            for (row, 0..) |value, column| {
+                self.columns[column][committed_row] = value;
+            }
+        }
+    }
+};
 
 /// Fill exactly the generated Rust witness row, including degree-reduction
 /// temporaries. The final permutation state occupies temporaries 410..425.
@@ -278,6 +345,41 @@ pub fn generateInteraction(
     };
 }
 
+/// Parallel cache-bounded interaction generation for production-sized hash
+/// traces. The narrow Merkle output is already carried by each call, so this
+/// path performs only the relation work required by Tree 2.
+pub fn generateInteractionParallel(
+    allocator: std.mem.Allocator,
+    calls: []const Call,
+    log_size: u32,
+    relations: *const relations_mod.Relations,
+    pool: *work_pool.WorkPool,
+) !Interaction {
+    const size = @as(usize, 1) << @intCast(log_size);
+    if (calls.len > size) return error.InvalidTraceShape;
+    const generated = try logup.generateParallelColumns(
+        N_SUMS,
+        allocator,
+        InteractionContext{ .calls = calls, .relations = relations },
+        log_size,
+        pool,
+    );
+    return .{
+        .columns = generated.columns,
+        .claims = .{ .sums = generated.claims },
+    };
+}
+
+const InteractionContext = struct {
+    calls: []const Call,
+    relations: *const relations_mod.Relations,
+
+    pub fn rowPairsAt(self: @This(), row: usize) [N_SUMS]logup.RowPair {
+        if (row < self.calls.len) return rowPairsFromCall(self.calls[row], self.relations);
+        return paddingPairs();
+    }
+};
+
 pub fn interactionConstraints(
     main: [N_MAIN_COLUMNS]QM31,
     is_first: QM31,
@@ -301,7 +403,16 @@ pub fn interactionConstraints(
 }
 
 pub fn rowPairsFromCall(call: Call, relations: *const relations_mod.Relations) [N_SUMS]logup.RowPair {
-    const main = fill(call);
+    const main = if (call.narrow_output != null and !call.wide and !call.io) blk: {
+        const output_value = call.narrow_output.?;
+        var interaction_main = [_]M31{M31.zero()} ** N_MAIN_COLUMNS;
+        interaction_main[0] = M31.one();
+        for (call.input, 0..) |value, lane| {
+            interaction_main[INPUT_START + lane] = M31.fromU64(value);
+        }
+        interaction_main[OUTPUT_START] = M31.fromU64(output_value);
+        break :blk interaction_main;
+    } else fill(call);
     var secure: [N_MAIN_COLUMNS]QM31 = undefined;
     for (&secure, main) |*dst, value| dst.* = QM31.fromBase(value);
     return rowPairs(secure, relations);
@@ -664,6 +775,32 @@ test "poseidon2 AIR: Merkle input and narrow output cancel exactly" {
         .sub(try relations.poseidon2.combineSecure(merkle_output).inv());
     const poseidon_sum = try pairSum(poseidon_pairs[0]);
     try std.testing.expect(merkle_sum.add(poseidon_sum).isZero());
+}
+
+test "poseidon2 AIR: carried narrow output preserves active interaction terms" {
+    const relations = relations_mod.Relations.dummy();
+    const plain = Call.narrow(31, 41);
+    const output_value = output(fill(plain))[0].v;
+    const carried = Call.narrowWithOutput(31, 41, output_value);
+    const expected = rowPairsFromCall(plain, &relations);
+    const actual = rowPairsFromCall(carried, &relations);
+    try std.testing.expectEqualDeep(expected[0], actual[0]);
+    try std.testing.expect(actual[1].n1.isZero());
+    try std.testing.expect(actual[1].n2.isZero());
+    try std.testing.expect((try pairSum(expected[1])).isZero());
+    try std.testing.expect((try pairSum(actual[1])).isZero());
+
+    // A carried value is a narrow-only optimization. Other protocol modes
+    // deliberately fall back to the full row so ReleaseFast cannot silently
+    // reinterpret a malformed Call when debug assertions are disabled.
+    var wide = carried;
+    wide.wide = true;
+    var plain_wide = plain;
+    plain_wide.wide = true;
+    try std.testing.expectEqualDeep(
+        rowPairsFromCall(plain_wide, &relations),
+        rowPairsFromCall(wide, &relations),
+    );
 }
 
 fn pairSum(pair: logup.RowPair) !QM31 {

@@ -113,7 +113,7 @@ pub fn genMemoryColumnsRange(
             M31.fromCanonical(access.addr & 0x7fff_ffff),
         );
         permutation.placeValue(columns[2], row_index, placement, M31.fromCanonical(access.clk));
-        for (access.value_limbs, 0..) |value, limb| {
+        for (access.valueLimbs(), 0..) |value, limb| {
             permutation.placeValue(columns[3 + limb], row_index, placement, value);
         }
         row_index += 1;

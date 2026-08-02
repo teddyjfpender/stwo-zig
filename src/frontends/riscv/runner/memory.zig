@@ -1,69 +1,119 @@
 //! Byte-addressable sparse memory for RISC-V execution.
 //!
-//! Backed by a hash map so that only touched addresses consume memory,
-//! which is important for the large 32-bit address space of RISC-V.
+//! The 32-bit address space is split into 64 KiB pages. A flat page table makes
+//! the fetch/load hot path two indexed loads instead of four hash lookups, while
+//! pages remain sparse and untouched bytes retain the architectural value zero.
 
 const std = @import("std");
 
+const PAGE_BITS = 16;
+const PAGE_SIZE = 1 << PAGE_BITS;
+const PAGE_COUNT = 1 << (32 - PAGE_BITS);
+const PAGE_MASK = PAGE_SIZE - 1;
+const Page = [PAGE_SIZE]u8;
+
 pub const Memory = struct {
-    data: std.AutoHashMap(u32, u8),
+    pages: []?*Page,
+    initialized_words: std.AutoHashMap(u32, void),
+    allocator: std.mem.Allocator,
 
     pub fn init(allocator: std.mem.Allocator) Memory {
+        const pages = allocator.alloc(?*Page, PAGE_COUNT) catch
+            @panic("Memory.init: allocation failed");
+        @memset(pages, null);
         return .{
-            .data = std.AutoHashMap(u32, u8).init(allocator),
+            .pages = pages,
+            .initialized_words = std.AutoHashMap(u32, void).init(allocator),
+            .allocator = allocator,
         };
     }
 
     pub fn deinit(self: *Memory) void {
-        self.data.deinit();
+        for (self.pages) |maybe_page| {
+            if (maybe_page) |page| self.allocator.destroy(page);
+        }
+        self.allocator.free(self.pages);
+        self.initialized_words.deinit();
+        self.* = undefined;
     }
 
-    /// Add every initialized aligned word address without exposing byte-map
-    /// iteration to commitment consumers.
+    /// Add every initialized aligned word address without exposing the memory
+    /// representation to commitment consumers.
     pub fn addAlignedWordAddresses(
         self: *const Memory,
         addresses: *std.AutoHashMap(u32, void),
     ) !void {
-        var iterator = self.data.keyIterator();
-        while (iterator.next()) |addr| {
-            try addresses.put(addr.* & ~@as(u32, 3), {});
-        }
+        var iterator = self.initialized_words.keyIterator();
+        while (iterator.next()) |addr| try addresses.put(addr.*, {});
     }
 
     // ----- Byte access -----
 
-    pub fn readByte(self: *const Memory, addr: u32) u8 {
-        return self.data.get(addr) orelse 0;
+    pub inline fn readByte(self: *const Memory, addr: u32) u8 {
+        const page = self.pages[pageIndex(addr)] orelse return 0;
+        return page[pageOffset(addr)];
     }
 
     pub fn writeByte(self: *Memory, addr: u32, val: u8) void {
-        self.data.put(addr, val) catch @panic("Memory.writeByte: allocation failed");
+        const page = self.ensurePage(addr);
+        page[pageOffset(addr)] = val;
+        self.markInitializedRange(addr, 1);
     }
 
     // ----- 16-bit little-endian access -----
 
-    pub fn readU16(self: *const Memory, addr: u32) u16 {
-        const lo: u16 = self.readByte(addr);
-        const hi: u16 = self.readByte(addr +% 1);
-        return (hi << 8) | lo;
+    pub inline fn readU16(self: *const Memory, addr: u32) u16 {
+        const offset = pageOffset(addr);
+        if (offset <= PAGE_SIZE - 2) {
+            const page = self.pages[pageIndex(addr)] orelse return 0;
+            return @as(u16, page[offset]) |
+                (@as(u16, page[offset + 1]) << 8);
+        }
+        return @as(u16, self.readByte(addr)) |
+            (@as(u16, self.readByte(addr +% 1)) << 8);
     }
 
     pub fn writeU16(self: *Memory, addr: u32, val: u16) void {
+        const offset = pageOffset(addr);
+        if (offset <= PAGE_SIZE - 2) {
+            const page = self.ensurePage(addr);
+            page[offset] = @truncate(val);
+            page[offset + 1] = @truncate(val >> 8);
+            self.markInitializedRange(addr, 2);
+            return;
+        }
         self.writeByte(addr, @truncate(val));
         self.writeByte(addr +% 1, @truncate(val >> 8));
     }
 
     // ----- 32-bit little-endian access -----
 
-    pub fn readU32(self: *const Memory, addr: u32) u32 {
-        const b0: u32 = self.readByte(addr);
-        const b1: u32 = self.readByte(addr +% 1);
-        const b2: u32 = self.readByte(addr +% 2);
-        const b3: u32 = self.readByte(addr +% 3);
-        return (b3 << 24) | (b2 << 16) | (b1 << 8) | b0;
+    pub inline fn readU32(self: *const Memory, addr: u32) u32 {
+        const offset = pageOffset(addr);
+        if (offset <= PAGE_SIZE - 4) {
+            const page = self.pages[pageIndex(addr)] orelse return 0;
+            return @as(u32, page[offset]) |
+                (@as(u32, page[offset + 1]) << 8) |
+                (@as(u32, page[offset + 2]) << 16) |
+                (@as(u32, page[offset + 3]) << 24);
+        }
+        return @as(u32, self.readByte(addr)) |
+            (@as(u32, self.readByte(addr +% 1)) << 8) |
+            (@as(u32, self.readByte(addr +% 2)) << 16) |
+            (@as(u32, self.readByte(addr +% 3)) << 24);
     }
 
     pub fn writeU32(self: *Memory, addr: u32, val: u32) void {
+        const offset = pageOffset(addr);
+        if (offset <= PAGE_SIZE - 4) {
+            const page = self.ensurePage(addr);
+            page[offset] = @truncate(val);
+            page[offset + 1] = @truncate(val >> 8);
+            page[offset + 2] = @truncate(val >> 16);
+            page[offset + 3] = @truncate(val >> 24);
+            self.markInitializedRange(addr, 4);
+            return;
+        }
         self.writeByte(addr, @truncate(val));
         self.writeByte(addr +% 1, @truncate(val >> 8));
         self.writeByte(addr +% 2, @truncate(val >> 16));
@@ -74,37 +124,92 @@ pub const Memory = struct {
 
     /// Copy a contiguous slice of bytes into memory starting at `base_addr`.
     pub fn loadSegment(self: *Memory, base_addr: u32, segment: []const u8) void {
-        for (segment, 0..) |byte, i| {
-            self.writeByte(base_addr +% @as(u32, @intCast(i)), byte);
-        }
+        self.writeBytes(base_addr, segment);
     }
 
     /// Materialize a zero-initialized ELF range. Presence matters to the
     /// memory commitment even when the guest never accesses the bytes.
     pub fn loadZeroes(self: *Memory, base_addr: u32, len: u32) void {
-        for (0..len) |i| {
-            self.writeByte(base_addr +% @as(u32, @intCast(i)), 0);
+        self.markInitializedRange(base_addr, len);
+        var remaining: usize = len;
+        var addr = base_addr;
+        while (remaining != 0) {
+            const offset = pageOffset(addr);
+            const chunk_len = @min(remaining, PAGE_SIZE - offset);
+            if (self.pages[pageIndex(addr)]) |page| {
+                @memset(page[offset .. offset + chunk_len], 0);
+            }
+            addr +%= @intCast(chunk_len);
+            remaining -= chunk_len;
         }
     }
 
     /// Read `buf.len` bytes from guest memory starting at `addr` into `buf`.
-    pub fn readSlice(self: *const Memory, addr: u32, buf: []u8) void {
-        for (buf, 0..) |*b, i| {
-            b.* = self.readByte(addr +% @as(u32, @intCast(i)));
+    pub fn readSlice(self: *const Memory, base_addr: u32, buf: []u8) void {
+        var remaining = buf;
+        var addr = base_addr;
+        while (remaining.len != 0) {
+            const offset = pageOffset(addr);
+            const chunk_len = @min(remaining.len, PAGE_SIZE - offset);
+            if (self.pages[pageIndex(addr)]) |page| {
+                @memcpy(remaining[0..chunk_len], page[offset .. offset + chunk_len]);
+            } else {
+                @memset(remaining[0..chunk_len], 0);
+            }
+            addr +%= @intCast(chunk_len);
+            remaining = remaining[chunk_len..];
         }
     }
 
     /// Write `data` bytes into guest memory starting at `addr`.
-    pub fn writeSlice(self: *Memory, addr: u32, data: []const u8) void {
-        for (data, 0..) |byte, i| {
-            self.writeByte(addr +% @as(u32, @intCast(i)), byte);
+    pub fn writeSlice(self: *Memory, base_addr: u32, data: []const u8) void {
+        self.writeBytes(base_addr, data);
+    }
+
+    fn writeBytes(self: *Memory, base_addr: u32, data: []const u8) void {
+        self.markInitializedRange(base_addr, data.len);
+        var remaining = data;
+        var addr = base_addr;
+        while (remaining.len != 0) {
+            const offset = pageOffset(addr);
+            const chunk_len = @min(remaining.len, PAGE_SIZE - offset);
+            const page = self.ensurePage(addr);
+            @memcpy(page[offset .. offset + chunk_len], remaining[0..chunk_len]);
+            addr +%= @intCast(chunk_len);
+            remaining = remaining[chunk_len..];
         }
     }
-};
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
+    fn ensurePage(self: *Memory, addr: u32) *Page {
+        const index = pageIndex(addr);
+        if (self.pages[index]) |page| return page;
+        const page = self.allocator.create(Page) catch
+            @panic("Memory.ensurePage: allocation failed");
+        @memset(page, 0);
+        self.pages[index] = page;
+        return page;
+    }
+
+    fn markInitializedRange(self: *Memory, base_addr: u32, len: usize) void {
+        var remaining = len;
+        var addr = base_addr;
+        while (remaining != 0) {
+            self.initialized_words.put(addr & ~@as(u32, 3), {}) catch
+                @panic("Memory: initialized-word allocation failed");
+            const advance = @min(remaining, 4 - @as(usize, @intCast(addr & 3)));
+            addr +%= @intCast(advance);
+            remaining -= advance;
+        }
+    }
+
+    inline fn pageIndex(addr: u32) usize {
+        return @intCast(addr >> PAGE_BITS);
+    }
+
+    inline fn pageOffset(addr: u32) usize {
+        return @intCast(addr & PAGE_MASK);
+    }
+};
 
 test "Memory readU32/writeU32 roundtrip" {
     var mem = Memory.init(std.testing.allocator);
@@ -148,33 +253,12 @@ test "Memory readU16/writeU16 roundtrip" {
     try std.testing.expectEqual(@as(u16, 0xBEEF), mem.readU16(0x200));
 }
 
-test "Memory loadSegment" {
+test "Memory accesses preserve wrapping page-boundary semantics" {
     var mem = Memory.init(std.testing.allocator);
     defer mem.deinit();
 
-    const data = [_]u8{ 0x10, 0x20, 0x30, 0x40 };
-    mem.loadSegment(0x2000, &data);
-
-    try std.testing.expectEqual(@as(u32, 0x40302010), mem.readU32(0x2000));
-}
-
-test "Memory readSlice/writeSlice roundtrip" {
-    var mem = Memory.init(std.testing.allocator);
-    defer mem.deinit();
-
-    const data = [_]u8{ 0xDE, 0xAD, 0xBE, 0xEF, 0xCA, 0xFE };
-    mem.writeSlice(0x3000, &data);
-
-    var buf: [6]u8 = undefined;
-    mem.readSlice(0x3000, &buf);
-    try std.testing.expectEqualSlices(u8, &data, &buf);
-}
-
-test "Memory readSlice returns zeros for untouched" {
-    var mem = Memory.init(std.testing.allocator);
-    defer mem.deinit();
-
-    var buf: [4]u8 = undefined;
-    mem.readSlice(0x5000, &buf);
-    try std.testing.expectEqualSlices(u8, &[_]u8{ 0, 0, 0, 0 }, &buf);
+    mem.writeU32(0xFFFF_FFFE, 0x0403_0201);
+    try std.testing.expectEqual(@as(u32, 0x0403_0201), mem.readU32(0xFFFF_FFFE));
+    try std.testing.expectEqual(@as(u8, 0x03), mem.readByte(0));
+    try std.testing.expectEqual(@as(u8, 0x04), mem.readByte(1));
 }

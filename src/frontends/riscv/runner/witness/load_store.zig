@@ -19,8 +19,8 @@ fn loadResult(row: anytype) u32 {
 pub fn fill(columns: anytype, index: usize, row: anytype) void {
     w.common(columns, index, 0, row);
     w.loadStoreDst(columns, index, 2, row);
-    w.rs1(columns, index, 12, row);
-    w.loadStoreSrc(columns, index, 22, row);
+    w.readRs1(columns, index, 12, row);
+    w.readLoadStoreSrc(columns, index, 18, row);
 
     const byte_op = row.opcode == .LB or row.opcode == .LBU or row.opcode == .SB;
     const half_op = row.opcode == .LH or row.opcode == .LHU or row.opcode == .SH;
@@ -38,12 +38,12 @@ pub fn fill(columns: anytype, index: usize, row: anytype) void {
     else
         0;
 
-    w.set(columns, index, 32, w.u(r2));
-    w.set(columns, index, 33, w.signed(row.imm));
-    w.set(columns, index, 34, w.u(selected_msb));
-    w.set(columns, index, 35, w.u(shift));
-    w.set(columns, index, 36, w.u(src_selector));
-    w.set(columns, index, 37, w.u(dst_selector));
+    w.set(columns, index, 24, w.u(r2));
+    w.set(columns, index, 25, w.signed(row.imm));
+    w.set(columns, index, 26, w.u(selected_msb));
+    w.set(columns, index, 27, w.u(shift));
+    w.set(columns, index, 28, w.u(src_selector));
+    w.set(columns, index, 29, w.u(dst_selector));
     for (0..4) |limb| {
         const marked = if (byte_op)
             limb == offset
@@ -51,15 +51,15 @@ pub fn fill(columns: anytype, index: usize, row: anytype) void {
             (offset < 2 and limb < 2) or (offset >= 2 and limb >= 2)
         else
             false;
-        w.set(columns, index, 38 + limb, w.bit(marked));
+        w.set(columns, index, 30 + limb, w.bit(marked));
     }
     const flags = [_]bool{
         row.opcode == .LB, row.opcode == .LH, row.opcode == .LBU, row.opcode == .LHU,
         row.opcode == .LW, row.opcode == .SB, row.opcode == .SH,  row.opcode == .SW,
     };
-    for (flags, 0..) |flag, i| w.set(columns, index, 42 + i, w.bit(flag));
-    w.writeLimbs(columns, index, 50, result);
-    w.destination(columns, index, 54, @intCast(r2));
+    for (flags, 0..) |flag, i| w.set(columns, index, 34 + i, w.bit(flag));
+    w.writeLimbs(columns, index, 42, result);
+    w.destination(columns, index, 46, @intCast(r2));
 }
 
 fn semanticRow(row: anytype) !load_store_semantics.Row {

@@ -21,6 +21,7 @@ __all__ = [
     "load_halfword_row",
     "LH_WITNESSES",
     "MAX_ADMITTED_ALIGNED_ADDRESS",
+    "check_compact_read_accesses",
     "check_lh_witnesses",
     "LOAD_WITNESSES",
     "_DISCRIMINATING_LOAD_PAIRS",
@@ -49,6 +50,68 @@ LOAD_OPCODE_IDS: dict[str, int] = {
     "lbu": 22,
     "lhu": 23,
 }
+
+
+def check_compact_read_accesses(air_ir_dir: Path) -> str:
+    """Require read-only register/memory values to have one physical copy.
+
+    The compact layout removed eight `previous`/`next` equality columns. The
+    consumed and emitted lookups must now reuse the same four source nodes;
+    otherwise removing those equality roots would release the read-only
+    invariant instead of making it structural.
+    """
+    payload = load_family(air_ir_dir, "load_store")
+    column_names = [column["name"] for column in payload["columns"]]
+    required = {
+        *(f"rs1_value_{index}" for index in range(4)),
+        *(f"src_value_{index}" for index in range(4)),
+    }
+    forbidden = {
+        *(f"rs1_previous_{index}" for index in range(4)),
+        *(f"rs1_next_{index}" for index in range(4)),
+        *(f"src_previous_{index}" for index in range(4)),
+        *(f"src_next_{index}" for index in range(4)),
+    }
+    missing = sorted(required - set(column_names))
+    retained = sorted(forbidden & set(column_names))
+    if missing or retained:
+        raise WitnessError(
+            "load_store compact read layout drifted: missing single-copy "
+            f"columns {missing}, retained duplicate columns {retained}"
+        )
+
+    nodes = payload["nodes"]
+
+    def column_tuple(lookup_index: int) -> list[str]:
+        names: list[str] = []
+        for node_index in payload["lookups"][lookup_index]["tuple"][-4:]:
+            node = nodes[node_index]
+            if node["op"] != "col":
+                raise WitnessError(
+                    "load_store read lookup value is no longer a direct "
+                    f"column at lookup {lookup_index}, node {node_index}"
+                )
+            names.append(node["name"])
+        return names
+
+    expected_base = [f"rs1_value_{index}" for index in range(4)]
+    expected_source = [f"src_value_{index}" for index in range(4)]
+    base_consumed, base_emitted = column_tuple(3), column_tuple(4)
+    source_consumed, source_emitted = column_tuple(8), column_tuple(9)
+    if base_consumed != expected_base or base_emitted != expected_base:
+        raise WitnessError(
+            "load_store base read lookups do not reuse the exact single-copy "
+            f"limbs: consumed={base_consumed}, emitted={base_emitted}"
+        )
+    if source_consumed != expected_source or source_emitted != expected_source:
+        raise WitnessError(
+            "load_store source read lookups do not reuse the exact single-copy "
+            f"limbs: consumed={source_consumed}, emitted={source_emitted}"
+        )
+    return (
+        "load_store compact reads: base and source consumed/emitted lookups "
+        "reuse eight single-copy value columns; no previous/next duplicates"
+    )
 
 
 def load_row(
@@ -148,21 +211,19 @@ def load_row(
         "destination_inverse": modular_inverse(rd) if rd else 0,
         # Synthesized lookup-argument aliases, each pinned by its own
         # defining constraint in the exported AIR.
-        "bus_value_56": LOAD_OPCODE_IDS[selector],
-        "bus_value_57": pc + 4,
-        "bus_value_58": clock + 1,
-        "bus_value_59": (clock - 1) * 4 + 1,
-        "bus_value_60": 1,
-        "bus_value_61": (clock - 1) * 4 + 3,
-        "bus_value_62": 0,
-        "bus_value_63": (clock - 1) * 4 + 2,
+        "bus_value_48": LOAD_OPCODE_IDS[selector],
+        "bus_value_49": pc + 4,
+        "bus_value_50": clock + 1,
+        "bus_value_51": (clock - 1) * 4 + 1,
+        "bus_value_52": 1,
+        "bus_value_53": (clock - 1) * 4 + 3,
+        "bus_value_54": 0,
+        "bus_value_55": (clock - 1) * 4 + 2,
     }
     assignment[f"is_{selector}"] = 1
     for index in range(4):
-        assignment[f"rs1_previous_{index}"] = source[index]
-        assignment[f"rs1_next_{index}"] = source[index]
-        assignment[f"src_previous_{index}"] = memory[index]
-        assignment[f"src_next_{index}"] = memory[index]
+        assignment[f"rs1_value_{index}"] = source[index]
+        assignment[f"src_value_{index}"] = memory[index]
         assignment[f"dst_previous_{index}"] = 0
         assignment[f"dst_next_{index}"] = destination[index]
         assignment[f"result_{index}"] = result[index]
@@ -370,7 +431,7 @@ def store_row(
     space), and `dst` is the *memory word* (RAM space) — the mirror image of a
     load. The unselected bytes of the memory word are carried through
     ``dst_previous -> dst_next`` unchanged; that preservation is exactly what
-    constraints C54–C57 of the exported AIR demand, and what the mutation
+    constraints C46–C49 of the exported AIR demand, and what the mutation
     battery clobbers to prove they still exist.
     """
     if selector not in ("sb", "sh", "sw"):
@@ -438,24 +499,22 @@ def store_row(
         "is_sw": 1 if selector == "sw" else 0,
         "destination_nonzero": nonzero,
         "destination_inverse": modular_inverse(r2) if r2 else 0,
-        "bus_value_56": {"sb": 24, "sh": 25, "sw": 26}[selector],
-        "bus_value_57": pc + 4,
-        "bus_value_58": clock + 1,
-        "bus_value_59": (clock - 1) * 4 + 1,
-        "bus_value_60": 0,
-        "bus_value_61": (clock - 1) * 4 + 2,
-        "bus_value_62": 1,
-        "bus_value_63": (clock - 1) * 4 + 3,
+        "bus_value_48": {"sb": 24, "sh": 25, "sw": 26}[selector],
+        "bus_value_49": pc + 4,
+        "bus_value_50": clock + 1,
+        "bus_value_51": (clock - 1) * 4 + 1,
+        "bus_value_52": 0,
+        "bus_value_53": (clock - 1) * 4 + 2,
+        "bus_value_54": 1,
+        "bus_value_55": (clock - 1) * 4 + 3,
     }
     for index in range(4):
-        assignment[f"rs1_previous_{index}"] = source[index]
-        assignment[f"rs1_next_{index}"] = source[index]
-        assignment[f"src_previous_{index}"] = value[index]
-        assignment[f"src_next_{index}"] = value[index]
+        assignment[f"rs1_value_{index}"] = source[index]
+        assignment[f"src_value_{index}"] = value[index]
         assignment[f"dst_previous_{index}"] = old[index]
         assignment[f"dst_next_{index}"] = new[index]
         # A store writes no destination register, and the production AIR pins
-        # every `result` limb to zero on store rows (C65–C68).
+        # every `result` limb to zero on store rows (C57–C60).
         assignment[f"result_{index}"] = 0
     return assignment, new_word
 
@@ -498,7 +557,7 @@ def check_store_witnesses(air_ir_dir: Path) -> str:
             )
         # Assert unselected-byte preservation explicitly: every byte lane the
         # store does not write must reach the expected word unchanged. This
-        # guards the witness table itself; the production AIR's own C54–C57
+        # guards the witness table itself; the production AIR's own C46–C49
         # are exercised by the row passing (and by the mutation battery).
         offset = (base + displacement) & 3
         written = set(range(offset, offset + _STORE_LANES[selector]))
@@ -537,7 +596,7 @@ def check_store_witnesses(air_ir_dir: Path) -> str:
 # --------------------------------------------------------------------------
 
 #: Base register value whose field-arithmetic address diverges from its
-#: architectural address. Constraint root 69 must now reject this row.
+#: architectural address. Constraint root 61 must now reject this row.
 ALIASING_BASE = 0x7FFFFFFB
 ALIASING_DISPLACEMENT = 8
 
@@ -556,11 +615,11 @@ def address_aliasing_row(
     Returns the row, the architectural effective address, and the address the
     AIR's base-field sum would name without the high-base-limb bound. The AIR
     computes
-    ``mem_addr = composeU32(rs1.next) + imm_felt`` in the M31 base field, not
+    ``mem_addr = composeU32(rs1.value) + imm_felt`` in the M31 base field, not
     modulo 2^32. A base just under the field modulus plus a small displacement
     wraps the *field* and lands on a small aligned address while the
     architectural 32-bit address is somewhere else entirely. Production
-    constraint root 69 now pins the base's high byte to zero on active rows,
+    constraint root 61 now pins the base's high byte to zero on active rows,
     so this assignment is deliberately not reachable.
     """
     field_address = (base + displacement) % M31
@@ -599,20 +658,18 @@ def address_aliasing_row(
         "is_sw": 0,
         "destination_nonzero": 1,
         "destination_inverse": modular_inverse(rd),
-        "bus_value_56": 21,
-        "bus_value_57": pc + 4,
-        "bus_value_58": clock + 1,
-        "bus_value_59": (clock - 1) * 4 + 1,
-        "bus_value_60": 1,
-        "bus_value_61": (clock - 1) * 4 + 3,
-        "bus_value_62": 0,
-        "bus_value_63": (clock - 1) * 4 + 2,
+        "bus_value_48": 21,
+        "bus_value_49": pc + 4,
+        "bus_value_50": clock + 1,
+        "bus_value_51": (clock - 1) * 4 + 1,
+        "bus_value_52": 1,
+        "bus_value_53": (clock - 1) * 4 + 3,
+        "bus_value_54": 0,
+        "bus_value_55": (clock - 1) * 4 + 2,
     }
     for index in range(4):
-        assignment[f"rs1_previous_{index}"] = source[index]
-        assignment[f"rs1_next_{index}"] = source[index]
-        assignment[f"src_previous_{index}"] = memory[index]
-        assignment[f"src_next_{index}"] = memory[index]
+        assignment[f"rs1_value_{index}"] = source[index]
+        assignment[f"src_value_{index}"] = memory[index]
         assignment[f"dst_previous_{index}"] = 0
         assignment[f"dst_next_{index}"] = memory[index]
         assignment[f"result_{index}"] = memory[index]
@@ -634,10 +691,10 @@ def check_address_aliasing_rejected(air_ir_dir: Path) -> str:
         for index, root in enumerate(payload["constraints"])
         if values[root] != 0
     ]
-    if unsatisfied != [69]:
+    if unsatisfied != [61]:
         raise WitnessError(
             "the historical load_store aliasing row must be rejected by "
-            f"constraint root 69 alone; observed roots {unsatisfied}"
+            f"constraint root 61 alone; observed roots {unsatisfied}"
         )
     checked = check_range_lookups(payload, values)
     if architectural == field_address:
@@ -646,6 +703,6 @@ def check_address_aliasing_rejected(air_ir_dir: Path) -> str:
         "load_store address-aliasing regression: historical base "
         f"{ALIASING_BASE:#010x} + {ALIASING_DISPLACEMENT} is architecturally "
         f"{architectural:#010x} but would alias to {field_address:#010x} in "
-        f"M31; production constraint root 69 rejects it, with {checked} active "
+        f"M31; production constraint root 61 rejects it, with {checked} active "
         "range requests otherwise valid"
     )

@@ -15,12 +15,17 @@ const statement_mod = @import("../air/statement.zig");
 const trace = @import("../runner/trace.zig");
 const opcode_trace = @import("opcode_trace.zig");
 
+/// Counter-only result for columns generated within the proving transaction.
+/// Strict digest-carrying source ingestion remains available in
+/// `source_ingest` for caller-owned and formal-audit inputs.
+pub const Result = source_ingest.GeneratedCounters;
+
 pub fn ingest(
     allocator: std.mem.Allocator,
     statement: statement_mod.RiscVStatement,
-    columns: *const opcode_trace.Columns,
+    columns: *opcode_trace.Columns,
     options: source_ingest.Options,
-) !source_ingest.Result {
+) !Result {
     var shard_counts = [_]u32{0} ** trace.N_FAMILIES;
     for (0..statement.n_components) |component_index| {
         const family_index = @intFromEnum(statement.component_descs[component_index].family);
@@ -67,7 +72,19 @@ pub fn ingest(
         source_count += 1;
     }
     if (shard_offset != statement.n_components) return error.InvalidShardCount;
-    return source_ingest.ingestGenerated(
+
+    // Honest generated rows already registered their exact committed values
+    // while those values were hot in the opcode writer. Geometry above is
+    // still checked independently before ownership can move. A coherent
+    // forgery mutates the columns after generation, so its `.drop` policy must
+    // destroy the stale pre-mutation counters and retain the fail-closed full
+    // scan used by the malicious-prover harness.
+    if (options.unrepresentable == .reject) {
+        if (columns.takeLookupCounters()) |counters| return .{ .counters = counters };
+    } else {
+        columns.discardLookupCounters(allocator);
+    }
+    return source_ingest.ingestGeneratedCounters(
         allocator,
         sources[0..source_count],
         options,

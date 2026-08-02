@@ -7,6 +7,8 @@ const QM31 = @import("stwo_core").fields.qm31.QM31;
 const work_pool = @import("stwo_prover_engine").work_pool;
 const diagnostics = @import("../diagnostics/mod.zig");
 const infra = @import("../infra_trace.zig");
+const lookup_counter = @import("../air/lookups/tables/counter.zig");
+const source_ingest = @import("../air/lookups/tables/source_ingest.zig");
 const semantic_eval = @import("../air/semantic_eval.zig");
 const statement_mod = @import("../air/statement.zig");
 const trace = @import("../runner/trace.zig");
@@ -56,12 +58,31 @@ pub fn generateIsActive(
 
 pub const Columns = struct {
     components: [MAX_COMPONENTS]trace.TraceColumns,
+    /// Signed table multiplicities derived in the same row-local pass that
+    /// writes `components`. Ownership moves to lookup-source assembly; a
+    /// forged-row harness discards these pre-mutation values and rescans.
+    lookup_counters: ?lookup_counter.Set,
+
+    pub fn takeLookupCounters(self: *Columns) ?lookup_counter.Set {
+        const counters = self.lookup_counters orelse return null;
+        self.lookup_counters = null;
+        return counters;
+    }
+
+    pub fn discardLookupCounters(
+        self: *Columns,
+        allocator: std.mem.Allocator,
+    ) void {
+        if (self.lookup_counters) |*counters| counters.deinit(allocator);
+        self.lookup_counters = null;
+    }
 
     pub fn deinit(
         self: *Columns,
         allocator: std.mem.Allocator,
         statement: statement_mod.RiscVStatement,
     ) void {
+        self.discardLookupCounters(allocator);
         for (0..statement.n_components) |component_index| {
             const component = &self.components[component_index];
             for (component.columns[0..component.n_columns]) |*values| {
@@ -92,6 +113,7 @@ pub fn generate(
     defer allocator.free(proof_opcodes);
 
     var result: Columns = undefined;
+    result.lookup_counters = null;
     var log_sizes: [MAX_COMPONENTS]u32 = undefined;
     var domain_sizes: [MAX_COMPONENTS]usize = undefined;
     var n_cols: [MAX_COMPONENTS]usize = undefined;
@@ -104,6 +126,7 @@ pub fn generate(
     var partial_component: usize = 0;
     var partial_cols: usize = 0;
     errdefer {
+        result.discardLookupCounters(allocator);
         for (initialized_components[0..n_initialized]) |component_index| {
             for (result.components[component_index].columns[0..n_cols[component_index]]) |values| {
                 if (values.len != 0) allocator.free(values);
@@ -163,6 +186,8 @@ pub fn generate(
         domain_sizes: *const [MAX_COMPONENTS]usize,
         first_component: *const [trace.N_FAMILIES]usize,
         family_component_counts: *const [trace.N_FAMILIES]usize,
+        lookup_counters: *lookup_counter.Set,
+        err: ?anyerror = null,
 
         fn run(work: *@This()) void {
             var offsets = work.family_offsets;
@@ -176,12 +201,22 @@ pub fn generate(
                 const component_index = work.first_component[family_index] + shard_index;
                 const row_index = family_row - shard_index * MAX_OPCODE_SHARD_ROWS;
                 if (row_index >= work.domain_sizes[component_index]) continue;
+                const physical_row = work.placements[component_index].?.map(row_index);
                 trace.fillFamilyColumns(
                     &work.result.components[component_index].columns,
-                    work.placements[component_index].?.map(row_index),
+                    physical_row,
                     row,
                     family,
                 );
+                source_ingest.registerGeneratedCommittedRow(
+                    family,
+                    &work.result.components[component_index].columns,
+                    physical_row,
+                    work.lookup_counters,
+                ) catch |err| {
+                    work.err = err;
+                    return;
+                };
             }
         }
     };
@@ -191,6 +226,22 @@ pub fn generate(
         @max(@as(usize, 1), @min(pool.workerCount(), exec_trace.rows.items.len / 65_536))
     else
         1;
+
+    // Dense per-worker tables keep row generation lock-free. The scratch is
+    // bounded by the same worker count already selected for opcode columns and
+    // is released as soon as its deterministic reduction completes.
+    const worker_counters = try allocator.alloc(lookup_counter.Set, worker_count);
+    defer allocator.free(worker_counters);
+    var initialized_counter_sets: usize = 0;
+    var worker_sets_owned = true;
+    defer if (worker_sets_owned) {
+        for (worker_counters[0..initialized_counter_sets]) |*set| set.deinit(allocator);
+    };
+    for (worker_counters) |*set| {
+        set.* = try lookup_counter.Set.init(allocator);
+        initialized_counter_sets += 1;
+    }
+
     var worker_family_counts: [work_pool.MAX_WORKERS][trace.N_FAMILIES]usize =
         .{.{0} ** trace.N_FAMILIES} ** work_pool.MAX_WORKERS;
     const chunk_len = (exec_trace.rows.items.len + worker_count - 1) / worker_count;
@@ -220,6 +271,7 @@ pub fn generate(
             .domain_sizes = &domain_sizes,
             .first_component = &first_component,
             .family_component_counts = &family_component_counts,
+            .lookup_counters = &worker_counters[worker],
         };
     }
     if (worker_count > 1) {
@@ -232,6 +284,14 @@ pub fn generate(
     } else {
         FillWork.run(&works[0]);
     }
+    for (works[0..worker_count]) |work| if (work.err) |err| return err;
+
+    for (worker_counters[1..]) |*set| {
+        worker_counters[0].mergeFrom(set);
+        set.deinit(allocator);
+    }
+    result.lookup_counters = worker_counters[0];
+    worker_sets_owned = false;
 
     for (0..statement.n_components) |component_index| {
         const family_index = @intFromEnum(statement.component_descs[component_index].family);

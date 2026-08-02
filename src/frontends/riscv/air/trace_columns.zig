@@ -2,9 +2,9 @@
 //!
 //! The family layouts are the macro-expanded `define_trace_tables!` order at
 //! `d478f783055aa0d73a93768a433a3c6c31c91d1c` supplies the legacy lineage.
-//! Access fields expand in place to ten columns. Families without opcode flags
-//! receive a leading enabler; intentional layout divergences are recorded in
-//! `conformance/divergence-log.md`.
+//! Writable accesses expand to ten columns. Reviewed compact source accesses
+//! commit six columns and alias consumed/emitted values by construction.
+//! Intentional layout divergences are recorded in the soundness documentation.
 
 const base = @import("trace_columns/base.zig");
 const compare = @import("trace_columns/compare.zig");
@@ -44,9 +44,9 @@ pub const RangeCheck8_8_4Multiplicity = infrastructure.RangeCheck8_8_4Multiplici
 pub const RangeCheckM31Multiplicity = infrastructure.RangeCheckM31Multiplicity;
 pub const Poseidon2Columns = infrastructure.Poseidon2Columns;
 
-test "opcode-family widths preserve legacy prefixes and sound x0 extensions" {
+test "opcode-family widths pin compact reads and sound x0 extensions" {
     const std = @import("std");
-    const expected = [_]usize{ 43, 35, 60, 51, 44, 37, 30, 37, 18, 29, 41, 20, 56, 39, 47, 67, 6 };
+    const expected = [_]usize{ 35, 35, 60, 51, 44, 37, 30, 37, 18, 29, 41, 20, 48, 39, 47, 67, 6 };
     const actual = [_]usize{
         BaseAluRegColumns.N_COLUMNS, BaseAluImmColumns.N_COLUMNS,
         ShiftsRegColumns.N_COLUMNS,  ShiftsImmColumns.N_COLUMNS,
@@ -61,7 +61,7 @@ test "opcode-family widths preserve legacy prefixes and sound x0 extensions" {
     try std.testing.expectEqualSlices(usize, &expected, &actual);
 }
 
-test "total opcode family columns is 660" {
+test "total opcode family columns is 644" {
     const std = @import("std");
     const total = BaseAluRegColumns.N_COLUMNS + BaseAluImmColumns.N_COLUMNS +
         ShiftsRegColumns.N_COLUMNS + ShiftsImmColumns.N_COLUMNS +
@@ -70,5 +70,5 @@ test "total opcode family columns is 660" {
         LuiColumns.N_COLUMNS + AuipcColumns.N_COLUMNS + JalrColumns.N_COLUMNS +
         JalColumns.N_COLUMNS + LoadStoreColumns.N_COLUMNS + MulColumns.N_COLUMNS +
         MulhColumns.N_COLUMNS + DivColumns.N_COLUMNS + FenceColumns.N_COLUMNS;
-    try std.testing.expectEqual(@as(usize, 660), total);
+    try std.testing.expectEqual(@as(usize, 644), total);
 }

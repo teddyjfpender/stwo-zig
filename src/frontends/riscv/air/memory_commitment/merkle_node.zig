@@ -8,6 +8,7 @@
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
+const work_pool = @import("stwo_prover_engine").work_pool;
 const infra = @import("../../infra_trace.zig");
 const lookup_entry = @import("../lookups/entry.zig");
 const logup = @import("../logup.zig");
@@ -49,7 +50,7 @@ pub const NodeRow = struct {
     }
 
     pub fn poseidonCall(self: NodeRow) poseidon2_air.Call {
-        return poseidon2_air.Call.narrow(self.lhs, self.rhs);
+        return poseidon2_air.Call.narrowWithOutput(self.lhs, self.rhs, self.cur);
     }
 };
 
@@ -150,6 +151,42 @@ pub fn generateInteraction(
         } },
     };
 }
+
+/// Parallel cache-bounded interaction generation for production-sized trees.
+/// Rows remain in canonical trace order until the final disjoint transpose,
+/// avoiding the full-domain pair matrix and repeated bit-reversed scattering
+/// in the scalar compatibility path above.
+pub fn generateInteractionParallel(
+    allocator: std.mem.Allocator,
+    rows: []const NodeRow,
+    log_size: u32,
+    relations: *const relations_mod.Relations,
+    pool: *work_pool.WorkPool,
+) !Interaction {
+    const size = @as(usize, 1) << @intCast(log_size);
+    if (rows.len > size) return error.InvalidTraceShape;
+    const generated = try logup.generateParallelColumns(
+        N_SUMS,
+        allocator,
+        InteractionContext{ .rows = rows, .relations = relations },
+        log_size,
+        pool,
+    );
+    return .{
+        .columns = generated.columns,
+        .claims = .{ .sums = generated.claims },
+    };
+}
+
+const InteractionContext = struct {
+    rows: []const NodeRow,
+    relations: *const relations_mod.Relations,
+
+    pub fn rowPairsAt(self: @This(), row: usize) [N_SUMS]logup.RowPair {
+        if (row < self.rows.len) return rowPairsFromNode(self.rows[row], self.relations);
+        return paddingPairs();
+    }
+};
 
 pub fn evaluate(
     main: [N_MAIN_COLUMNS]QM31,

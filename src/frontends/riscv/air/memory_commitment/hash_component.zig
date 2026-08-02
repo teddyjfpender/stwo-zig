@@ -14,6 +14,7 @@ const prover_air_accumulation = @import("stwo_prover_engine").air.accumulation;
 const prover_component = @import("stwo_prover_engine").air.component_prover;
 const prover_poly = @import("stwo_prover_engine").poly.circle.poly;
 const prover_twiddles = @import("stwo_prover_engine").poly.twiddles;
+const work_pool = @import("stwo_prover_engine").work_pool;
 const logup = @import("../logup.zig");
 const relations_mod = @import("../relation_challenges.zig");
 const merkle_node = @import("merkle_node.zig");
@@ -46,7 +47,11 @@ pub const HashComponent = struct {
     );
 
     pub fn asProverComponent(self: *const @This()) prover_component.ComponentProver {
-        return Adapter.asProverComponent(self);
+        var component = Adapter.asProverComponent(self);
+        if (self.log_size >= 12) {
+            component.domain_parallel_evaluator = evaluateDomainParallelAdapter;
+        }
+        return component;
     }
 
     pub fn asVerifierComponent(self: *const @This()) core_air_components.Component {
@@ -206,6 +211,24 @@ pub const HashComponent = struct {
         trace: *const prover_component.Trace,
         accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
     ) !void {
+        return self.evaluateConstraintQuotientsOnDomainImpl(trace, accumulator, null);
+    }
+
+    pub fn evaluateConstraintQuotientsOnDomainParallel(
+        self: *const @This(),
+        trace: *const prover_component.Trace,
+        accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
+        pool: *work_pool.WorkPool,
+    ) !void {
+        return self.evaluateConstraintQuotientsOnDomainImpl(trace, accumulator, pool);
+    }
+
+    fn evaluateConstraintQuotientsOnDomainImpl(
+        self: *const @This(),
+        trace: *const prover_component.Trace,
+        accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
+        maybe_pool: ?*work_pool.WorkPool,
+    ) !void {
         if (trace.polys.items.len < 3) return error.InvalidProofShape;
         const allocator = accumulator.allocator;
         const eval_log_size = self.maxConstraintLogDegreeBound();
@@ -272,8 +295,9 @@ pub const HashComponent = struct {
 
         const trace_coset = canonic.CanonicCoset.new(self.log_size).coset();
         const extension_bits: u5 = @intCast(eval_log_size - self.log_size);
-        var denominator_inv: [4]M31 = undefined;
+        var denominator_inv: [2]M31 = undefined;
         const denominator_count = @as(usize, 1) << extension_bits;
+        std.debug.assert(denominator_count == denominator_inv.len);
         for (denominator_inv[0..denominator_count], 0..) |*inverse, index| {
             inverse.* = try core_constraints.cosetVanishing(
                 M31,
@@ -289,28 +313,84 @@ pub const HashComponent = struct {
         const column_accumulator = &accumulators[0];
         const main_start: usize = 2;
         const interaction_start = main_start + n_main;
-        for (0..eval_size) |row| {
+        const direct_store = column_accumulator.next_fresh_index == 0;
+        const evaluation = HashDomainEvaluation{
+            .component = self,
+            .evaluations = evaluations,
+            .main_start = main_start,
+            .interaction_start = interaction_start,
+            .column_accumulator = column_accumulator,
+            .denominator_inv = denominator_inv,
+            .direct_store = direct_store,
+        };
+        if (maybe_pool) |pool| {
+            try evaluation.evaluateParallel(allocator, pool, eval_size);
+        } else {
+            try evaluation.evaluateRange(0, eval_size);
+        }
+        column_accumulator.next_fresh_index = if (direct_store) eval_size else null;
+    }
+};
+
+const HashDomainEvaluation = struct {
+    component: *const HashComponent,
+    evaluations: []const []const M31,
+    main_start: usize,
+    interaction_start: usize,
+    column_accumulator: *prover_air_accumulation.ColumnAccumulator,
+    denominator_inv: [2]M31,
+    direct_store: bool,
+
+    fn evaluateParallel(
+        self: *const @This(),
+        allocator: std.mem.Allocator,
+        pool: *work_pool.WorkPool,
+        row_count: usize,
+    ) !void {
+        const worker_count = @min(pool.workerCount(), @max(@as(usize, 1), row_count / 4096));
+        if (worker_count <= 1) return self.evaluateRange(0, row_count);
+
+        const workers = try allocator.alloc(HashRangeWorker, worker_count);
+        defer allocator.free(workers);
+        for (workers, 0..) |*worker, index| {
+            worker.* = .{
+                .evaluation = self,
+                .row_start = row_count * index / worker_count,
+                .row_end = row_count * (index + 1) / worker_count,
+            };
+        }
+        var wait_group = std.Thread.WaitGroup{};
+        for (workers[1..]) |*worker| pool.spawnWg(&wait_group, HashRangeWorker.run, .{worker});
+        HashRangeWorker.run(&workers[0]);
+        wait_group.wait();
+        for (workers) |worker| if (worker.err) |err| return err;
+    }
+
+    fn evaluateRange(self: *const @This(), row_start: usize, row_end: usize) !void {
+        const component = self.component;
+        const eval_log_size = component.maxConstraintLogDegreeBound();
+        for (row_start..row_end) |row| {
             const previous_row = utils.previousBitReversedCircleDomainIndex(
                 row,
-                self.log_size,
+                component.log_size,
                 eval_log_size,
             );
-            const is_first = QM31.fromBase(evaluations[0][row]);
-            const is_active = QM31.fromBase(evaluations[1][row]);
+            const is_first = QM31.fromBase(self.evaluations[0][row]);
+            const is_active = QM31.fromBase(self.evaluations[1][row]);
             var row_evaluation = QM31.zero();
-            switch (self.kind) {
+            switch (component.kind) {
                 .merkle => {
                     const main = readMain(
                         merkle_node.N_MAIN_COLUMNS,
-                        evaluations[main_start..][0..merkle_node.N_MAIN_COLUMNS],
+                        self.evaluations[self.main_start..][0..merkle_node.N_MAIN_COLUMNS],
                         row,
                     );
                     var sums: [merkle_node.N_SUMS]QM31 = undefined;
                     var previous: [merkle_node.N_SUMS]QM31 = undefined;
                     readInteraction(
                         merkle_node.N_SUMS,
-                        evaluations,
-                        interaction_start,
+                        self.evaluations,
+                        self.interaction_start,
                         row,
                         previous_row,
                         &sums,
@@ -322,23 +402,26 @@ pub const HashComponent = struct {
                         is_first,
                         sums,
                         previous,
-                        self.merkle_claims,
-                        self.relations,
+                        component.merkle_claims,
+                        component.relations,
                     );
-                    row_evaluation = combineConstraints(column_accumulator.random_coeff_powers, &constraints);
+                    row_evaluation = combineConstraints(
+                        self.column_accumulator.random_coeff_powers,
+                        &constraints,
+                    );
                 },
                 .poseidon2 => {
                     const main = readMain(
                         poseidon2_air.N_MAIN_COLUMNS,
-                        evaluations[main_start..][0..poseidon2_air.N_MAIN_COLUMNS],
+                        self.evaluations[self.main_start..][0..poseidon2_air.N_MAIN_COLUMNS],
                         row,
                     );
                     var sums: [poseidon2_air.N_SUMS]QM31 = undefined;
                     var previous: [poseidon2_air.N_SUMS]QM31 = undefined;
                     readInteraction(
                         poseidon2_air.N_SUMS,
-                        evaluations,
-                        interaction_start,
+                        self.evaluations,
+                        self.interaction_start,
                         row,
                         previous_row,
                         &sums,
@@ -350,22 +433,50 @@ pub const HashComponent = struct {
                         is_first,
                         sums,
                         previous,
-                        self.poseidon_claims,
-                        self.relations,
+                        component.poseidon_claims,
+                        component.relations,
                     );
                     row_evaluation = combineConstraints(
-                        column_accumulator.random_coeff_powers,
+                        self.column_accumulator.random_coeff_powers,
                         &constraints,
                     );
                 },
             }
-            column_accumulator.accumulate(
-                row,
-                row_evaluation.mulM31(denominator_inv[row >> @intCast(self.log_size)]),
+            const contribution = row_evaluation.mulM31(
+                self.denominator_inv[row >> @intCast(component.log_size)],
             );
+            const output = self.column_accumulator.col;
+            if (self.direct_store) {
+                output.set(row, contribution);
+            } else {
+                output.set(row, output.at(row).add(contribution));
+            }
         }
     }
 };
+
+const HashRangeWorker = struct {
+    evaluation: *const HashDomainEvaluation,
+    row_start: usize,
+    row_end: usize,
+    err: ?anyerror = null,
+
+    fn run(self: *@This()) void {
+        self.evaluation.evaluateRange(self.row_start, self.row_end) catch |err| {
+            self.err = err;
+        };
+    }
+};
+
+fn evaluateDomainParallelAdapter(
+    raw_context: *const anyopaque,
+    trace_data: *const prover_component.Trace,
+    accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
+    pool: *work_pool.WorkPool,
+) anyerror!void {
+    const self: *const HashComponent = @ptrCast(@alignCast(raw_context));
+    return self.evaluateConstraintQuotientsOnDomainParallel(trace_data, accumulator, pool);
+}
 
 pub fn nMainColumns(kind: Kind) usize {
     return switch (kind) {
@@ -534,6 +645,25 @@ test "hash component: exact shapes remain pinned" {
     try std.testing.expectEqual(@as(usize, 435), N_POSEIDON_COMPONENT_CONSTRAINTS);
     try std.testing.expectEqual(@as(usize, 10), nMainColumns(.merkle));
     try std.testing.expectEqual(@as(usize, 12), nInteractionColumns(.merkle));
+}
+
+test "hash component: large domains expose one bounded row splitter" {
+    const relations = relations_mod.Relations.dummy();
+    var component = HashComponent{
+        .kind = .poseidon2,
+        .log_size = 11,
+        .n_rows = 1,
+        .is_first_col_idx = 0,
+        .is_active_col_idx = 1,
+        .main_col_offset = 0,
+        .interaction_col_offset = 0,
+        .relations = &relations,
+    };
+    try std.testing.expect(component.asProverComponent().domain_parallel_evaluator == null);
+    component.log_size = 12;
+    const split = component.asProverComponent();
+    try std.testing.expect(split.domain_parallel_evaluator != null);
+    try std.testing.expect(!split.pool_exclusive_domain);
 }
 
 test "hash component: RISC-V Poseidon shell binds selector and narrow mode" {

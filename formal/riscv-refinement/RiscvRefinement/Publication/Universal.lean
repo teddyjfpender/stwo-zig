@@ -39,9 +39,9 @@ private def identity
 
 def expectedProgramIdentities : List ProgramIdentity := [
   identity 0 "add" .baseAluReg
-    "61ba91ac87afda7e41906d1a7167664a4a80525ea497fe117dd06e608a00e186",
+    "1089f1276d41923b11fbdf8f34fbb58048b163f027dd2835a81ab2d458f66e6f",
   identity 1 "sub" .baseAluReg
-    "43b6f252f66cdcf82438c83fb738e22cca41ee8c23ae1d16c84cdceeb1c17373",
+    "ba0c2d9fa4050891cfedd4768d59e66efb7de6b5d81951c57b6de4bd550b3b29",
   identity 2 "sll" .shiftsReg
     "69e9eb8a4a78d0ffe16bebe020b32af43ecb7520fab92d84e2811844a96a93ac",
   identity 3 "slt" .ltReg
@@ -49,15 +49,15 @@ def expectedProgramIdentities : List ProgramIdentity := [
   identity 4 "sltu" .ltReg
     "48813e3a89590c2683450fc97c2fb5b0aca85b5a0019de9302ee7b1e4b328749",
   identity 5 "xor" .baseAluReg
-    "f70c7b3737e74fd5c8bd0f35bb75e0a5b5e88467669a438896aca3776fddf5a3",
+    "bbc9cab370c9232645f5d041706c7a23c4937b09daf02e5a4b4a003b500f82e9",
   identity 6 "srl" .shiftsReg
     "3ff07a7b37ddf01c3155a28ba70981bca6fa1159b24db4d83cb82bfa458391a0",
   identity 7 "sra" .shiftsReg
     "4437a8c8e51bf0c891d3e9547baf9cf51669e13c01a3c904bd94c7c2c0961cdb",
   identity 8 "or" .baseAluReg
-    "854de747d1454431a43fedeb74b3513cba543d516d3b28e7e8f0a10c26d4f3ac",
+    "6e73bc9ed146415e517af4af27a1e9e347cd6a08d598c4b12e61ff67fc9f4299",
   identity 9 "and" .baseAluReg
-    "4a2a4dfe809a958f208bd5b1ec3582962dcdabc38fbfa63a63783750aa780d02",
+    "b7a731674bfa3a2ed01574ab243cf4f7feeeb6db8e031a122f7c3259cb0a662f",
   identity 10 "addi" .baseAluImm
     "c81449734da29c1e76450ace58542a3f9421ae4d8e540d766da674a2a9acbb2a",
   identity 11 "slti" .ltImm
@@ -77,21 +77,21 @@ def expectedProgramIdentities : List ProgramIdentity := [
   identity 18 "srai" .shiftsImm
     "e66f5bac7a6f2d8a7fb82767e15bc7d4d5d29e03df72cb3456321b2a868fe271",
   identity 19 "lb" .loadStore
-    "2ef5d5edbb8bdf8ef3cc1996bea98fa80bde20b25e6e2d2a53df0e843bc8ef0b",
+    "be64f6f847266cff147de247401d07f6b7b1b83031d6291cd2dd1e2a5987a1c5",
   identity 20 "lh" .loadStore
-    "c6ef1b0528e1f8d7b319d06b3edc6987749f733c441d6334c45b3bcc6e6a741e",
+    "99ae422d6abb3b50225bfb54f14607da860a06083d3d2e66f99cdf391505fe9d",
   identity 21 "lw" .loadStore
-    "44fbf8eaa8a58ae3916e0f51396fb9f8f3a6d612aa62e9d7a2782afcc0dfcfe2",
+    "eec3daae2f539e73bad2168b06e8928639c6a2907b81577f3b0422ece1f651fa",
   identity 22 "lbu" .loadStore
-    "8504b6262e3ed0d01bdf399ef84403db010671cb864c8c46791684c19dbbe83d",
+    "336403b9d469a78eea46cd518ea1dd21c3b50ff4c7c443a2d643b201786dd5fa",
   identity 23 "lhu" .loadStore
-    "a54b597e3cfe5077b40a88e0285e083f0dca5e45f3b240ba478b187167588e1f",
+    "1725ac9731173083c4506fff6e58084ba7ba1ee589d02dbe53b46f37eb1e4a46",
   identity 24 "sb" .loadStore
-    "ad2aea46014e0301700c38e25821d16e5eafe3433e77d63fca3ba6d3f0fa8fbd",
+    "0e6f10a9f0704131216768f519fbefe13d717045db8921126c2526f3f2c35feb",
   identity 25 "sh" .loadStore
-    "7ec0001e7403388c25424b3259162996356ca8b1bde549f261ead019d647e195",
+    "c976c15184a275903b133a66c1af4d6e76f4a9cf49d13e0de6778c293668e9cc",
   identity 26 "sw" .loadStore
-    "5b89a62bbb5fdbea09583e89270d9c440097e6832b1f6291234bf1813df6b198",
+    "d508e05548286d811929e7553b54532e9e272071c9fbf09930917e4d8b3440d6",
   identity 27 "beq" .branchEq
     "518d3a436310e9c88eca0c3e77accb07cbec721ce10605d1e6fbacbe8e7cafc2",
   identity 28 "bne" .branchEq

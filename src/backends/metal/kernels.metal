@@ -18,6 +18,9 @@ struct ResidentRawQuotientView {
     uint coeff_a, coeff_b, coeff_c, coeff_d;
     uint source_slot;
 };
+struct ResidentRawQuotientGroup {
+    uint view_start, view_count, row_count, partial_offset, shift, direct;
+};
 
 struct QuadraticRecurrenceColumn {
     device uint *values;
@@ -450,6 +453,129 @@ kernel void stwo_zig_quotient_rows_raw(
     output[row_count + row] = accumulator.b;
     output[2u * row_count + row] = accumulator.c;
     output[3u * row_count + row] = accumulator.d;
+}
+
+inline uint quotient_resident_source_value(
+    device const uint *source_0,
+    device const uint *source_1,
+    device const uint *source_2,
+    device const uint *source_3,
+    uint source_slot,
+    uint index
+) {
+    switch (source_slot) {
+        case 0u: return source_0[index];
+        case 1u: return source_1[index];
+        case 2u: return source_2[index];
+        default: return source_3[index];
+    }
+}
+
+// Reduce coefficient-weighted resident columns at their native evaluation
+// sizes.  The old row kernel lifted every short column first, multiplying its
+// traffic by the quotient/source domain ratio.  This pass reads each source
+// cell once per actual contribution and writes one compact planar partial per
+// (sample batch, geometry) group.
+kernel void stwo_zig_quotient_partials_raw(
+    device const uint *source_0 [[buffer(0)]],
+    device const uint *source_1 [[buffer(1)]],
+    device const uint *source_2 [[buffer(2)]],
+    device const uint *source_3 [[buffer(3)]],
+    device const ResidentRawQuotientView *views [[buffer(4)]],
+    device const ResidentRawQuotientGroup *groups [[buffer(5)]],
+    device const uint *row_starts [[buffer(6)]],
+    constant uint &group_count [[buffer(7)]],
+    constant uint &total_group_rows [[buffer(8)]],
+    device uint *partials [[buffer(9)]],
+    uint gid [[thread_position_in_grid]]
+) {
+    if (gid >= total_group_rows) return;
+    uint low = 0u;
+    uint high = group_count;
+    while (low + 1u < high) {
+        uint middle = low + ((high - low) >> 1u);
+        if (row_starts[middle] <= gid) low = middle;
+        else high = middle;
+    }
+    ResidentRawQuotientGroup group = groups[low];
+    uint row = gid - row_starts[low];
+    if (row >= group.row_count) return;
+
+    Qm31Value accumulator = { 0u, 0u, 0u, 0u };
+    uint view_end = group.view_start + group.view_count;
+    for (uint view_index = group.view_start; view_index < view_end; ++view_index) {
+        ResidentRawQuotientView view = views[view_index];
+        uint value = quotient_resident_source_value(
+            source_0, source_1, source_2, source_3,
+            view.source_slot, view.offset + row
+        );
+        accumulator = qm_add(accumulator, {
+            m31_mul(value, view.coeff_a), m31_mul(value, view.coeff_b),
+            m31_mul(value, view.coeff_c), m31_mul(value, view.coeff_d),
+        });
+    }
+    uint base = group.partial_offset;
+    partials[base + row] = accumulator.a;
+    partials[base + group.row_count + row] = accumulator.b;
+    partials[base + 2u * group.row_count + row] = accumulator.c;
+    partials[base + 3u * group.row_count + row] = accumulator.d;
+}
+
+// Lift only the compact partials, then apply the unchanged quotient
+// denominator and linear terms.  There are tens of groups rather than
+// thousands of source-column contributions on large RISC-V proofs.
+kernel void stwo_zig_quotient_combine_partials_raw(
+    device const uint *partials [[buffer(0)]],
+    device const ResidentRawQuotientGroup *groups [[buffer(1)]],
+    device const uint *batch_groups [[buffer(2)]],
+    device const uint *sample_components [[buffer(3)]],
+    device const uint *linear_terms [[buffer(4)]],
+    constant uint &batch_count [[buffer(5)]],
+    device const uint *domain_x [[buffer(6)]],
+    device const uint *domain_y [[buffer(7)]],
+    device uint *output [[buffer(8)]],
+    constant uint &row_count [[buffer(9)]],
+    uint row [[thread_position_in_grid]]
+) {
+    if (row >= row_count) return;
+    Qm31Value quotient = { 0u, 0u, 0u, 0u };
+    for (uint batch = 0u; batch < batch_count; ++batch) {
+        Qm31Value numerator_sum = { 0u, 0u, 0u, 0u };
+        for (uint group_index = batch_groups[batch];
+             group_index < batch_groups[batch + 1u]; ++group_index) {
+            ResidentRawQuotientGroup group = groups[group_index];
+            uint source = group.direct != 0u
+                ? row
+                : ((row >> group.shift) << 1u) | (row & 1u);
+            uint base = group.partial_offset;
+            Qm31Value partial = {
+                partials[base + source],
+                partials[base + group.row_count + source],
+                partials[base + 2u * group.row_count + source],
+                partials[base + 3u * group.row_count + source],
+            };
+            numerator_sum = qm_add(numerator_sum, partial);
+        }
+
+        uint sample_base = batch * 8u;
+        Cm31Value denominator = quotient_denominator_precomputed(
+            sample_components, sample_base, domain_x[row], domain_y[row]
+        );
+        uint linear_base = batch * 8u;
+        Qm31Value sum_a = { linear_terms[linear_base], linear_terms[linear_base + 1u],
+                            linear_terms[linear_base + 2u], linear_terms[linear_base + 3u] };
+        Qm31Value sum_b = { linear_terms[linear_base + 4u], linear_terms[linear_base + 5u],
+                            linear_terms[linear_base + 6u], linear_terms[linear_base + 7u] };
+        Qm31Value numerator = qm_sub(
+            numerator_sum,
+            qm_add(qm_mul_m31(sum_a, domain_y[row]), sum_b)
+        );
+        quotient = qm_add(quotient, qm_mul_cm(numerator, cm_inv(denominator)));
+    }
+    output[row] = quotient.a;
+    output[row_count + row] = quotient.b;
+    output[2u * row_count + row] = quotient.c;
+    output[3u * row_count + row] = quotient.d;
 }
 
 kernel void stwo_zig_quotient_numerator_raw(

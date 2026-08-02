@@ -310,10 +310,10 @@ theorem m31_sum_cases
 theorem base_lt_modulus
     (row : LoadStoreRow)
     (holds : LoadStoreHolds row) :
-    row.rs1Next.value < m31Modulus := by
-  have limb0 := row.rs1Next.limb0.isLt
-  have limb1 := row.rs1Next.limb1.isLt
-  have limb2 := row.rs1Next.limb2.isLt
+    row.rs1Previous.value < m31Modulus := by
+  have limb0 := row.rs1Previous.limb0.isLt
+  have limb1 := row.rs1Previous.limb1.isLt
+  have limb2 := row.rs1Previous.limb2.isLt
   have limb3 := holds.baseHighLimbRange
   have canonical := holds.baseLimbsCanonical
   simp only [Nat.reducePow] at limb0 limb1 limb2
@@ -326,12 +326,12 @@ high-register aliasing gap; no machine-side address premise is needed. -/
 theorem base_add_4096_lt_modulus
     (row : LoadStoreRow)
     (holds : LoadStoreHolds row) :
-    row.rs1Next.value + 4096 < m31Modulus := by
-  have limb0 := row.rs1Next.limb0.isLt
-  have limb1 := row.rs1Next.limb1.isLt
-  have limb2 := row.rs1Next.limb2.isLt
+    row.rs1Previous.value + 4096 < m31Modulus := by
+  have limb0 := row.rs1Previous.limb0.isLt
+  have limb1 := row.rs1Previous.limb1.isLt
+  have limb2 := row.rs1Previous.limb2.isLt
   have limb3 :
-      row.rs1Next.limb3.toNat = 0 := congrArg BitVec.toNat holds.baseHighLimbZero
+      row.rs1Previous.limb3.toNat = 0 := congrArg BitVec.toNat holds.baseHighLimbZero
   simp only [Nat.reducePow] at limb0 limb1 limb2
   simp only [WordBytes.value, m31Modulus] at limb3 ⊢
   omega
@@ -387,9 +387,9 @@ theorem effective_address_toNat
     (env : LoadStoreEnvironment row)
     (holds : LoadStoreHolds row) :
     env.effectiveAddress.toNat = row.alignedAddress + row.shiftAmount := by
-  have baseWord : row.rs1Next.word = env.pre.registers row.rs1Addr := by
-    rw [holds.baseReadOnly, env.baseBinds]
-  have baseNat : (env.pre.registers row.rs1Addr).toNat = row.rs1Next.value := by
+  have baseWord : row.rs1Previous.word = env.pre.registers row.rs1Addr := by
+    exact env.baseBinds
+  have baseNat : (env.pre.registers row.rs1Addr).toNat = row.rs1Previous.value := by
     rw [← baseWord, WordBytes.word_toNat]
   have baseRange := base_lt_modulus row holds
   have offsetRange := shift_amount_lt_four row holds
@@ -410,7 +410,7 @@ theorem effective_address_toNat
     simp only [LoadStoreEnvironment.effectiveAddress,
       LoadStoreEnvironment.baseValue, Memory.effectiveAddress_toNat,
       signExtend_toNat_neg env.imm sign, baseNat, Nat.reducePow]
-    rcases m31_sum_cases row.rs1Next.value row.immFelt
+    rcases m31_sum_cases row.rs1Previous.value row.immFelt
         (row.alignedAddress + row.shiftAmount) baseRange displacementRange field
       with wrapFree | wrapped
     · simp only [immValue, m31Modulus] at wrapFree
@@ -507,7 +507,7 @@ theorem memoryBefore_load (row : LoadStoreRow) (isStore : row.isStore = false) :
   simp [LoadStoreRow.memoryBefore, isStore]
 
 theorem memoryAfter_load (row : LoadStoreRow) (isStore : row.isStore = false) :
-    row.memoryAfter = row.srcNext := by
+    row.memoryAfter = row.srcPrevious := by
   simp [LoadStoreRow.memoryAfter, isStore]
 
 theorem operandBefore_load (row : LoadStoreRow) (isStore : row.isStore = false) :
@@ -541,7 +541,7 @@ theorem operandBefore_store (row : LoadStoreRow) (isStore : row.isStore = true) 
   simp [LoadStoreRow.operandBefore, isStore]
 
 theorem operandAfter_store (row : LoadStoreRow) (isStore : row.isStore = true) :
-    row.operandAfter = row.srcNext := by
+    row.operandAfter = row.srcPrevious := by
   simp [LoadStoreRow.operandAfter, isStore]
 
 theorem memoryPreviousClock_store
@@ -559,7 +559,7 @@ theorem loadStoreRetirement_load
     loadStoreRetirement row = {
       nextPc := row.claimedNextPc
       write := architecturalWrite row.r2Idx row.dstNext.word
-      read := some { address := row.busAddress, value := row.srcNext.word }
+      read := some { address := row.busAddress, value := row.srcPrevious.word }
       store := none
     } := by
   simp [loadStoreRetirement, isStore]
@@ -584,7 +584,7 @@ theorem load_memory_word
     (env : LoadStoreEnvironment row)
     (holds : LoadStoreHolds row)
     (isStore : row.isStore = false) :
-    env.memoryWord = row.srcNext := by
+    env.memoryWord = row.srcPrevious := by
   simp only [LoadStoreEnvironment.memoryWord, LoadStoreEnvironment.busAddress,
     row_busAddress row env holds, ← env.memoryBinds,
     memoryBefore_load row isStore, holds.sourceReadOnly]
@@ -810,7 +810,7 @@ theorem half_selected
     (holds : LoadStoreHolds row)
     (selector : row.isHalfLoad = true)
     (isHalf : row.isHalf = true) :
-    Memory.selectHalf row.srcNext (Memory.halfSelector env.effectiveAddress) =
+    Memory.selectHalf row.srcPrevious (Memory.halfSelector env.effectiveAddress) =
       row.result.limb1.append row.result.limb0 := by
   rw [row_halfSelector row env holds]
   rcases lh_shift row holds isHalf with ⟨identifier, amount⟩ | ⟨identifier, amount⟩
@@ -878,7 +878,7 @@ structure LhRefinement
   /-- A load leaves memory untouched. -/
   memoryPreserved : row.memoryAfter = row.memoryBefore
   /-- A load leaves its base register untouched. -/
-  basePreserved : row.rs1Next = row.rs1Previous
+  basePreserved : row.rs1Previous = row.rs1Previous
   programTuple :
     (loadStoreRelations row).program = {
       pc := env.pre.pc
@@ -985,8 +985,7 @@ theorem lh_refines
       rw [load_write_value row holds isLoad, value]
     simp only [executeLh, executeLoad, LoadStoreEnvironment.effectiveAddress_eq,
       LoadStoreEnvironment.busAddress_eq, pcValue, write, ← bus, memory]
-  · rw [memoryAfter_load row isStore, memoryBefore_load row isStore,
-      holds.sourceReadOnly]
+  · rw [memoryAfter_load row isStore, memoryBefore_load row isStore]
   · simp only [loadStoreRelations, loadStoreProgramTuple, env.pcBinds,
       env.immBinds, LoadStoreRow.opcodeId, isLb, selector, isLbu, isLhu, isLw,
       isSb, isSh, isSw, bitValue_true, bitValue_false]
@@ -1030,7 +1029,7 @@ structure LoadRefinement
   busAddress : Memory.busAddress env.effectiveAddress = row.busAddress
   retirement : loadStoreRetirement row = architectural
   memoryPreserved : row.memoryAfter = row.memoryBefore
-  basePreserved : row.rs1Next = row.rs1Previous
+  basePreserved : row.rs1Previous = row.rs1Previous
   programTuple :
     (loadStoreRelations row).program = {
       pc := env.pre.pc
@@ -1141,8 +1140,7 @@ theorem load_refines
       rw [load_write_value row holds isLoad, result]
     simp only [LoadStoreEnvironment.busAddress_eq, write, ← bus, memory,
       pcValue]
-  · rw [memoryAfter_load row isStore, memoryBefore_load row isStore,
-      holds.sourceReadOnly]
+  · rw [memoryAfter_load row isStore, memoryBefore_load row isStore]
   · simp [loadStoreRelations, loadStoreProgramTuple, env.pcBinds, env.immBinds,
       identifier]
   · simp [loadStoreRelations, env.pcBinds]
@@ -1189,7 +1187,7 @@ theorem byte_selected
     (holds : LoadStoreHolds row)
     (selector : row.isByteLoad = true)
     (isByte : row.isByte = true) :
-    Memory.selectByte row.srcNext (Memory.byteOffset env.effectiveAddress) =
+    Memory.selectByte row.srcPrevious (Memory.byteOffset env.effectiveAddress) =
       row.result.limb0 := by
   rw [row_byteOffset row env holds]
   have sum := holds.byteMarkerSum isByte
@@ -1441,7 +1439,7 @@ theorem store_operand_value
     (env : LoadStoreEnvironment row)
     (holds : LoadStoreHolds row)
     (isStore : row.isStore = true) :
-    env.operandValue = row.srcNext.word := by
+    env.operandValue = row.srcPrevious.word := by
   simp only [LoadStoreEnvironment.operandValue, ← env.operandBinds,
     operandBefore_store row isStore, holds.sourceReadOnly]
 
@@ -1588,8 +1586,8 @@ structure StoreRefinement
   /-- A store performs no architectural memory read observation. -/
   noRead : (loadStoreRetirement row).read = none
   /-- The data register is read-only. -/
-  sourcePreserved : row.srcNext = row.srcPrevious
-  basePreserved : row.rs1Next = row.rs1Previous
+  sourcePreserved : row.srcPrevious = row.srcPrevious
+  basePreserved : row.rs1Previous = row.rs1Previous
   memoryUpdated : row.memoryAfter = after
   programTuple :
     (loadStoreRelations row).program = {
@@ -1865,10 +1863,8 @@ def lhLowRow : LoadStoreRow where
   rs1Addr := BitVec.ofNat 5 5
   rs1Previous := limbs 0x00 0x01 0x00 0x00
   rs1PreviousClock := 0
-  rs1Next := limbs 0x00 0x01 0x00 0x00
   srcPrevious := limbs 0x34 0x12 0xff 0xee
   srcPreviousClock := 0
-  srcNext := limbs 0x34 0x12 0xff 0xee
   r2Idx := BitVec.ofNat 5 7
   immFelt := 4
   srcMsb := false
@@ -1888,7 +1884,6 @@ def lhLowRow : LoadStoreRow where
   isSw := false
   result := limbs 0x34 0x12 0x00 0x00
   destinationNonzero := true
-  claimedNextPc := nextPc (BitVec.ofNat 32 0x1000)
 
 theorem lhLow_holds : LoadStoreHolds lhLowRow := by
   constructor <;> first | decide | (unfold validPreviousClock; decide)
@@ -1917,9 +1912,7 @@ def lhHighRow : LoadStoreRow :=
   { lhLowRow with
     dstNext := limbs 0x00 0x80 0xff 0xff
     rs1Previous := limbs 0x00 0x02 0x00 0x00
-    rs1Next := limbs 0x00 0x02 0x00 0x00
     srcPrevious := limbs 0x11 0x22 0x00 0x80
-    srcNext := limbs 0x11 0x22 0x00 0x80
     immFelt := 2
     srcMsb := true
     shiftAmount := 2
@@ -1960,9 +1953,7 @@ def lhWrapRow : LoadStoreRow :=
   { lhLowRow with
     dstNext := limbs 0x78 0xab 0xff 0xff
     rs1Previous := limbs 0x00 0x10 0x00 0x00
-    rs1Next := limbs 0x00 0x10 0x00 0x00
     srcPrevious := limbs 0x78 0xab 0x00 0x00
-    srcNext := limbs 0x78 0xab 0x00 0x00
     immFelt := 2147483643
     srcMsb := true
     alignedQuarter := 1023
@@ -2054,7 +2045,6 @@ def lbRow : LoadStoreRow :=
     isLb := true
     dstNext := limbs 0x9c 0xff 0xff 0xff
     srcPrevious := limbs 0x34 0x9c 0x11 0x22
-    srcNext := limbs 0x34 0x9c 0x11 0x22
     immFelt := 5
     srcMsb := true
     shiftAmount := 1
@@ -2194,7 +2184,6 @@ def sbRow : LoadStoreRow :=
     dstPrevious := limbs 0x01 0x02 0x03 0x04
     dstNext := limbs 0x01 0xab 0x03 0x04
     srcPrevious := limbs 0xab 0x00 0x00 0x00
-    srcNext := limbs 0xab 0x00 0x00 0x00
     immFelt := 5
     shiftAmount := 1
     marker0 := false
@@ -2234,11 +2223,9 @@ def shRow : LoadStoreRow :=
     isLh := false
     isSh := true
     rs1Previous := limbs 0x00 0x02 0x00 0x00
-    rs1Next := limbs 0x00 0x02 0x00 0x00
     dstPrevious := limbs 0x11 0x22 0x33 0x44
     dstNext := limbs 0x11 0x22 0x34 0x12
     srcPrevious := limbs 0x34 0x12 0x00 0x00
-    srcNext := limbs 0x34 0x12 0x00 0x00
     immFelt := 2
     shiftAmount := 2
     alignedQuarter := 128
@@ -2283,7 +2270,6 @@ def swRow : LoadStoreRow :=
     dstPrevious := WordBytes.zero
     dstNext := limbs 0xef 0xcd 0xab 0x89
     srcPrevious := limbs 0xef 0xcd 0xab 0x89
-    srcNext := limbs 0xef 0xcd 0xab 0x89
     marker0 := false
     marker1 := false
     result := WordBytes.zero }

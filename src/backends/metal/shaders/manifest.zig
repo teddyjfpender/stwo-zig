@@ -117,6 +117,8 @@ pub const exports = [_]Export{
     .{ .name = "stwo_zig_qm31_to_coordinates", .owner = .quotient },
     .{ .name = "stwo_zig_quotient_rows", .owner = .quotient },
     .{ .name = "stwo_zig_quotient_rows_raw", .owner = .quotient },
+    .{ .name = "stwo_zig_quotient_partials_raw", .owner = .quotient },
+    .{ .name = "stwo_zig_quotient_combine_partials_raw", .owner = .quotient },
     .{ .name = "stwo_zig_quotient_numerator_raw", .owner = .quotient },
     .{ .name = "stwo_zig_quotient_finalize", .owner = .quotient },
     .{ .name = "stwo_zig_quotient_coefficients_resident", .owner = .quotient },
@@ -139,7 +141,7 @@ pub const exports = [_]Export{
     .{ .name = "stwo_zig_decommit_assemble_fri_resident", .owner = .decommit },
     .{ .name = "stwo_zig_eval_basis", .owner = .polynomial_eval },
     .{ .name = "stwo_zig_eval_polynomials", .owner = .polynomial_eval },
-    .{ .name = "stwo_zig_base_poly_7bce7473ee2f62288eceb8a3377d4634", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_450551d90acd324ebbd24fcf112b6e2a", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_base_poly_c14a50f654a9c7e71379b41a108194ff", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_base_poly_f3458c84073cbe0a1a0cc8d255a028f0", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_base_poly_a2a6593402647f120c2a259a1710c6e3", .owner = .riscv_polynomials },
@@ -151,12 +153,12 @@ pub const exports = [_]Export{
     .{ .name = "stwo_zig_base_poly_0ade2040c246f9cad3919da46161d2fd", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_base_poly_6301135c98c38c29971098b60b459397", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_base_poly_95bca92bf8e5c8c0cd1438e06c6c8963", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_base_poly_538cf123d369ae7e3fa5e0cfe6a0a976", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_373e28e4ebf898ce291ed734807dfa00", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_base_poly_2a07b91d7f51809a92cf5dccdf29c1b5", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_base_poly_04a6d5f01089e9ee1136328c062b3055", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_base_poly_7c3d009f184e1add15cea06850337ed9", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_base_poly_ebe47c5c0304bddea66f3a2b7c9cd55c", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_f6f449b57d5a9c234b4276d588b695a2", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_d3393528172e2c1fd4dfbdc4e0d47c8a", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_lookup_poly_50b304cc2ee4f2f9f39675717cf40382", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_lookup_poly_075758e47d896ea9b9ed480adcc498d1", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_lookup_poly_459147491178ba9a8fea95e70f7ba7de", .owner = .riscv_polynomials },
@@ -168,7 +170,7 @@ pub const exports = [_]Export{
     .{ .name = "stwo_zig_lookup_poly_65a7491625ceb251a9d27754aba62fe9", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_lookup_poly_4fae56a01407106338de7b5a0585b863", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_lookup_poly_2a7765f5161c42b7e1e47eb4f38042a6", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_3d43f646d7e0de973374db1d7e9ffe16", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_3fe627edfd1799423093b8b5e01e44bc", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_lookup_poly_58c75167f9212f9663711e80d150d46d", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_lookup_poly_05d290ec9454d3ead43a08a8f547ed07", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_lookup_poly_944959c865e0c8dee4d3972badf854b0", .owner = .riscv_polynomials },
@@ -438,7 +440,7 @@ fn kernelDeclaration(source: []const u8, name: []const u8) ![]const u8 {
 }
 
 test "Native core source exactly covers its non-Cairo export ABI" {
-    try std.testing.expectEqual(@as(usize, 116), native_exports.len);
+    try std.testing.expectEqual(@as(usize, 118), native_exports.len);
     try std.testing.expectEqual(native_exports.len, std.mem.count(u8, native_amalgamated_source, "kernel void "));
     try std.testing.expect(std.mem.indexOf(u8, native_amalgamated_source, "shaders/cairo/") == null);
     for (native_support_headers) |unit| try std.testing.expect(std.mem.indexOf(u8, unit.path, "/cairo/") == null);
@@ -461,7 +463,7 @@ fn expectIsolated(source: []const u8, names: []const []const u8) !void {
 
 test "metal shader manifest exactly covers source and runtime exports" {
     const runtime_source = @embedFile("../runtime.m");
-    try std.testing.expectEqual(@as(usize, 128), exports.len);
+    try std.testing.expectEqual(@as(usize, 130), exports.len);
 
     var declaration_count: usize = 0;
     var remaining: []const u8 = amalgamated_source[0 .. amalgamated_source.len - 1];
@@ -499,6 +501,8 @@ test "commitment shader bindings match core ABI version 12" {
         .{ .kernel = "stwo_zig_qm31_to_coordinates", .argument = "prefix_bytes [[buffer(5)]]" },
         .{ .kernel = "stwo_zig_fri_fold_line", .argument = "prefix_bytes [[buffer(8)]]" },
         .{ .kernel = "stwo_zig_quotient_domain_points_resident", .argument = "mode [[buffer(6)]]" },
+        .{ .kernel = "stwo_zig_quotient_partials_raw", .argument = "partials [[buffer(9)]]" },
+        .{ .kernel = "stwo_zig_quotient_combine_partials_raw", .argument = "row_count [[buffer(9)]]" },
     };
     for (bindings) |binding| {
         const declaration = try kernelDeclaration(amalgamated_source, binding.kernel);
@@ -518,7 +522,7 @@ test "polynomial evaluation is isolated in its owning shader unit" {
 
 test "RISC-V polynomial kernels have an exact isolated export ABI" {
     const names = [_][]const u8{
-        "stwo_zig_base_poly_7bce7473ee2f62288eceb8a3377d4634",
+        "stwo_zig_base_poly_450551d90acd324ebbd24fcf112b6e2a",
         "stwo_zig_base_poly_c14a50f654a9c7e71379b41a108194ff",
         "stwo_zig_base_poly_f3458c84073cbe0a1a0cc8d255a028f0",
         "stwo_zig_base_poly_a2a6593402647f120c2a259a1710c6e3",
@@ -530,12 +534,12 @@ test "RISC-V polynomial kernels have an exact isolated export ABI" {
         "stwo_zig_base_poly_0ade2040c246f9cad3919da46161d2fd",
         "stwo_zig_base_poly_6301135c98c38c29971098b60b459397",
         "stwo_zig_base_poly_95bca92bf8e5c8c0cd1438e06c6c8963",
-        "stwo_zig_base_poly_538cf123d369ae7e3fa5e0cfe6a0a976",
+        "stwo_zig_base_poly_373e28e4ebf898ce291ed734807dfa00",
         "stwo_zig_base_poly_2a07b91d7f51809a92cf5dccdf29c1b5",
         "stwo_zig_base_poly_04a6d5f01089e9ee1136328c062b3055",
         "stwo_zig_base_poly_7c3d009f184e1add15cea06850337ed9",
         "stwo_zig_base_poly_ebe47c5c0304bddea66f3a2b7c9cd55c",
-        "stwo_zig_lookup_poly_f6f449b57d5a9c234b4276d588b695a2",
+        "stwo_zig_lookup_poly_d3393528172e2c1fd4dfbdc4e0d47c8a",
         "stwo_zig_lookup_poly_50b304cc2ee4f2f9f39675717cf40382",
         "stwo_zig_lookup_poly_075758e47d896ea9b9ed480adcc498d1",
         "stwo_zig_lookup_poly_459147491178ba9a8fea95e70f7ba7de",
@@ -547,7 +551,7 @@ test "RISC-V polynomial kernels have an exact isolated export ABI" {
         "stwo_zig_lookup_poly_65a7491625ceb251a9d27754aba62fe9",
         "stwo_zig_lookup_poly_4fae56a01407106338de7b5a0585b863",
         "stwo_zig_lookup_poly_2a7765f5161c42b7e1e47eb4f38042a6",
-        "stwo_zig_lookup_poly_3d43f646d7e0de973374db1d7e9ffe16",
+        "stwo_zig_lookup_poly_3fe627edfd1799423093b8b5e01e44bc",
         "stwo_zig_lookup_poly_58c75167f9212f9663711e80d150d46d",
         "stwo_zig_lookup_poly_05d290ec9454d3ead43a08a8f547ed07",
         "stwo_zig_lookup_poly_944959c865e0c8dee4d3972badf854b0",

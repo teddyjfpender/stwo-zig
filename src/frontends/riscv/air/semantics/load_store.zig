@@ -1,6 +1,6 @@
 //! Exact pinned Stark-V byte/half/word load-store semantics and lookups.
 //!
-//! The effective address is a base-field sum, `composeU32(rs1.next) + imm_felt`,
+//! The effective address is a base-field sum, `composeU32(rs1.value) + imm_felt`,
 //! and the base field is not `2^32`. That is only the architectural address
 //! while the sum stays inside the canonical range of `M31 = 2^31 - 1`, so the
 //! base carries an explicit bound: its high limb is pinned to zero, which puts
@@ -12,21 +12,23 @@
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const common = @import("common.zig");
+const read_access = @import("read_access.zig");
 
 pub fn Semantics(comptime S: type) type {
     return struct {
         const ops = common.Ops(S);
+        const reads = read_access.Ops(S, ops.Access);
 
-        pub const N_ORACLE_COLUMNS: usize = 56;
-        pub const N_CONSTRAINTS: usize = 70;
+        pub const N_ORACLE_COLUMNS: usize = 48;
+        pub const N_CONSTRAINTS: usize = 62;
         pub const CURRENT_TRACE_COMPATIBLE = true;
 
         pub const Row = struct {
             clk: S,
             pc: S,
             dst: ops.Access,
-            rs1: ops.Access,
-            src: ops.Access,
+            rs1: reads.ReadAccess,
+            src: reads.ReadAccess,
             r2_idx: S,
             imm_felt: S,
             src_msb: S,
@@ -51,25 +53,25 @@ pub fn Semantics(comptime S: type) type {
                     .clk = columns[0],
                     .pc = columns[1],
                     .dst = ops.accessFromColumns(columns[2..12]),
-                    .rs1 = ops.accessFromColumns(columns[12..22]),
-                    .src = ops.accessFromColumns(columns[22..32]),
-                    .r2_idx = columns[32],
-                    .imm_felt = columns[33],
-                    .src_msb = columns[34],
-                    .shift_amount = columns[35],
-                    .src_addr_selector = columns[36],
-                    .dst_addr_selector = columns[37],
-                    .markers = columns[38..42].*,
-                    .is_lb = columns[42],
-                    .is_lh = columns[43],
-                    .is_lbu = columns[44],
-                    .is_lhu = columns[45],
-                    .is_lw = columns[46],
-                    .is_sb = columns[47],
-                    .is_sh = columns[48],
-                    .is_sw = columns[49],
-                    .result = columns[50..54].*,
-                    .destination = ops.destinationFromColumns(columns[54..56]),
+                    .rs1 = reads.fromColumns(columns[12..18]),
+                    .src = reads.fromColumns(columns[18..24]),
+                    .r2_idx = columns[24],
+                    .imm_felt = columns[25],
+                    .src_msb = columns[26],
+                    .shift_amount = columns[27],
+                    .src_addr_selector = columns[28],
+                    .dst_addr_selector = columns[29],
+                    .markers = columns[30..34].*,
+                    .is_lb = columns[34],
+                    .is_lh = columns[35],
+                    .is_lbu = columns[36],
+                    .is_lhu = columns[37],
+                    .is_lw = columns[38],
+                    .is_sb = columns[39],
+                    .is_sh = columns[40],
+                    .is_sw = columns[41],
+                    .result = columns[42..46].*,
+                    .destination = ops.destinationFromColumns(columns[46..48]),
                 };
             }
 
@@ -116,7 +118,7 @@ pub fn Semantics(comptime S: type) type {
                 .load_h = row.is_lh.add(row.is_lhu),
                 .is_store = is_store,
                 .is_load = enabler.sub(is_store),
-                .mem_addr = ops.composeU32(row.rs1.next).add(row.imm_felt),
+                .mem_addr = ops.composeU32(row.rs1.value).add(row.imm_felt),
                 .marker_sum = marker_sum,
                 .shift_id = shift_id,
                 .signed_mask = is_signed.mul(row.src_msb).mul(ops.q(255)),
@@ -178,9 +180,9 @@ pub fn Semantics(comptime S: type) type {
             }
             for (0..4) |limb| {
                 const marker = row.markers[limb];
-                out[n] = d.load_b.mul(row.result[0].sub(row.src.next[limb])).mul(marker);
+                out[n] = d.load_b.mul(row.result[0].sub(row.src.value[limb])).mul(marker);
                 n += 1;
-                out[n] = row.is_sb.mul(row.dst.next[limb].sub(row.src.next[0])).mul(marker);
+                out[n] = row.is_sb.mul(row.dst.next[limb].sub(row.src.value[0])).mul(marker);
                 n += 1;
             }
             for (2..4) |limb| {
@@ -190,45 +192,29 @@ pub fn Semantics(comptime S: type) type {
 
             const low_half = ops.q(5).sub(d.shift_id).mul(ops.INV_4());
             const high_half = d.shift_id.sub(S.one()).mul(ops.INV_4());
-            out[n] = d.load_h.mul(low_half).mul(row.result[0].sub(row.src.next[0]));
+            out[n] = d.load_h.mul(low_half).mul(row.result[0].sub(row.src.value[0]));
             n += 1;
-            out[n] = d.load_h.mul(low_half).mul(row.result[1].sub(row.src.next[1]));
+            out[n] = d.load_h.mul(low_half).mul(row.result[1].sub(row.src.value[1]));
             n += 1;
-            out[n] = d.load_h.mul(high_half).mul(row.result[0].sub(row.src.next[2]));
+            out[n] = d.load_h.mul(high_half).mul(row.result[0].sub(row.src.value[2]));
             n += 1;
-            out[n] = d.load_h.mul(high_half).mul(row.result[1].sub(row.src.next[3]));
+            out[n] = d.load_h.mul(high_half).mul(row.result[1].sub(row.src.value[3]));
             n += 1;
-            out[n] = row.is_sh.mul(low_half).mul(row.dst.next[0].sub(row.src.next[0]));
+            out[n] = row.is_sh.mul(low_half).mul(row.dst.next[0].sub(row.src.value[0]));
             n += 1;
-            out[n] = row.is_sh.mul(low_half).mul(row.dst.next[1].sub(row.src.next[1]));
+            out[n] = row.is_sh.mul(low_half).mul(row.dst.next[1].sub(row.src.value[1]));
             n += 1;
-            out[n] = row.is_sh.mul(high_half).mul(row.dst.next[2].sub(row.src.next[0]));
+            out[n] = row.is_sh.mul(high_half).mul(row.dst.next[2].sub(row.src.value[0]));
             n += 1;
-            out[n] = row.is_sh.mul(high_half).mul(row.dst.next[3].sub(row.src.next[1]));
+            out[n] = row.is_sh.mul(high_half).mul(row.dst.next[3].sub(row.src.value[1]));
             n += 1;
 
             for (0..4) |limb| {
-                out[n] = row.is_lw.mul(row.result[limb].sub(row.src.next[limb]))
-                    .add(row.is_sw.mul(row.dst.next[limb].sub(row.src.next[limb])));
+                out[n] = row.is_lw.mul(row.result[limb].sub(row.src.value[limb]))
+                    .add(row.is_sw.mul(row.dst.next[limb].sub(row.src.value[limb])));
                 n += 1;
             }
-            // Read-only accesses must emit exactly the value they consumed. The
-            // access chain commits `previous` and `next` as distinct column groups
-            // and the semantics above compute on `next`, so without these residuals
-            // both source operands are free prover choices that are also written back
-            // to the register file or memory. `rs1` is always read-only; `src` is
-            // read-only in both directions (the loaded memory word or the stored data
-            // register). `dst` is the written access — its `next` is pinned by the
-            // load result link and the store constraints instead.
             const enabler = row.active();
-            for (ops.readOnlyAccessConstraints(row.rs1, enabler)) |constraint| {
-                out[n] = constraint;
-                n += 1;
-            }
-            for (ops.readOnlyAccessConstraints(row.src, enabler)) |constraint| {
-                out[n] = constraint;
-                n += 1;
-            }
             // A byte or halfword store overwrites only its marked bytes; every
             // unmarked byte of the target memory word must survive unchanged. The
             // marker set is already pinned by the marker-sum and shift-id constraints
@@ -276,7 +262,7 @@ pub fn Semantics(comptime S: type) type {
             // architectural address are lost — `LW x7, 8(x5)` with
             // `x5 = 0x7ffffffb` is architecturally the misaligned `0x80000003`
             // but the field sum is the clean `0x00000004` (issue #140).
-            out[n] = enabler.mul(row.rs1.next[3]);
+            out[n] = enabler.mul(row.rs1.value[3]);
             n += 1;
             std.debug.assert(n == out.len);
             return .{ .values = out };
@@ -310,15 +296,15 @@ pub fn Semantics(comptime S: type) type {
             const d = derive(row);
             const second = ops.accessClock(row.clk, .second);
             return .{
-                .rs1 = ops.registerAccessChain(row.rs1, row.clk, .first),
+                .rs1 = ops.registerAccessChain(row.rs1.asAccess(), row.clk, .first),
                 // Loads read memory after rs1 and rd bookkeeping; stores read
                 // rs2 second. Both use the same committed `src` block.
                 .src = ops.accessChain(
-                    row.src,
+                    row.src.asAccess(),
                     second.add(d.is_load),
                     d.is_load,
                     row.src_addr_selector,
-                    row.src.next,
+                    row.src.value,
                 ),
                 // Loads write rd second; stores update memory third.
                 .dst = ops.accessChain(
@@ -340,7 +326,7 @@ pub fn Semantics(comptime S: type) type {
         }
 
         pub fn baseAddressM31Lookup(row: Row) [2]S {
-            return .{ row.rs1.next[0], row.rs1.next[3] };
+            return .{ row.rs1.value[0], row.rs1.value[3] };
         }
 
         /// Seven-bit residuals that bind `src_msb` to the actual sign-bearing result
@@ -361,19 +347,26 @@ pub fn Semantics(comptime S: type) type {
             };
         }
 
+        fn zeroReadAccess() reads.ReadAccess {
+            return .{
+                .addr = S.zero(),
+                .value = .{S.zero()} ** 4,
+                .previous_clock = S.zero(),
+            };
+        }
+
         fn honestSignedByteLoad() Row {
             var dst = zeroAccess();
             dst.addr = ops.q(2);
             dst.next = .{ ops.q(128), ops.q(255), ops.q(255), ops.q(255) };
-            var src = zeroAccess();
+            var src = zeroReadAccess();
             src.addr = S.zero();
-            src.previous = .{ ops.q(7), ops.q(128), ops.q(9), ops.q(10) };
-            src.next = src.previous;
+            src.value = .{ ops.q(7), ops.q(128), ops.q(9), ops.q(10) };
             return .{
                 .clk = S.one(),
                 .pc = ops.q(0x1000),
                 .dst = dst,
-                .rs1 = zeroAccess(),
+                .rs1 = zeroReadAccess(),
                 .src = src,
                 .r2_idx = ops.q(2),
                 .imm_felt = S.one(),
@@ -404,19 +397,17 @@ pub fn Semantics(comptime S: type) type {
         /// both an honest row and the issue #140 row whose field address and
         /// architectural address disagree.
         fn wordLoad(base: u32, imm: u32, address: u32) Row {
-            var rs1 = zeroAccess();
+            var rs1 = zeroReadAccess();
             rs1.addr = ops.q(5);
-            for (&rs1.next, 0..) |*limb, i| {
+            for (&rs1.value, 0..) |*limb, i| {
                 limb.* = ops.q((base >> @as(u5, @intCast(8 * i))) & 0xff);
             }
-            rs1.previous = rs1.next;
-            var src = zeroAccess();
+            var src = zeroReadAccess();
             src.addr = ops.q(address);
-            src.next = .{ ops.q(0xef), ops.q(0xbe), ops.q(0xad), ops.q(0xde) };
-            src.previous = src.next;
+            src.value = .{ ops.q(0xef), ops.q(0xbe), ops.q(0xad), ops.q(0xde) };
             var dst = zeroAccess();
             dst.addr = ops.q(7);
-            dst.next = src.next;
+            dst.next = src.value;
             return .{
                 .clk = S.one(),
                 .pc = ops.q(0x1000),
@@ -438,7 +429,7 @@ pub fn Semantics(comptime S: type) type {
                 .is_sb = S.zero(),
                 .is_sh = S.zero(),
                 .is_sw = S.zero(),
-                .result = src.next,
+                .result = src.value,
                 .destination = .{
                     .nonzero = S.one(),
                     .inverse = ops.q(7).inv() catch unreachable,
@@ -457,8 +448,7 @@ pub fn Semantics(comptime S: type) type {
                 .inverse = ops.q(3).inv() catch unreachable,
             };
             row.src.addr = ops.q(3);
-            row.src.previous = .{ ops.q(0xab), S.zero(), S.zero(), S.zero() };
-            row.src.next = row.src.previous;
+            row.src.value = .{ ops.q(0xab), S.zero(), S.zero(), S.zero() };
             row.dst.addr = S.zero();
             row.dst.previous = .{ ops.q(1), ops.q(2), ops.q(3), ops.q(4) };
             row.dst.next = .{ ops.q(1), ops.q(0xab), ops.q(3), ops.q(4) };
@@ -499,14 +489,12 @@ pub fn Semantics(comptime S: type) type {
                     try std.testing.expect(!evaluate(row).allZero());
                 }
 
-                test "load store: read-only accesses must emit the value they consumed" {
-                    var row = honestSignedByteLoad();
-                    row.rs1.previous[0] = ops.q(7);
-                    try std.testing.expect(!evaluate(row).allZero());
-
-                    row = honestSignedByteLoad();
-                    row.src.previous[1] = ops.q(64);
-                    try std.testing.expect(!evaluate(row).allZero());
+                test "load store: compact reads alias consumed and emitted values" {
+                    const row = honestSignedByteLoad();
+                    const rs1 = row.rs1.asAccess();
+                    const src = row.src.asAccess();
+                    try std.testing.expectEqual(rs1.previous, rs1.next);
+                    try std.testing.expectEqual(src.previous, src.next);
                 }
 
                 test "load store: byte store preserves the unmarked bytes of the word" {
@@ -561,9 +549,8 @@ pub fn Semantics(comptime S: type) type {
                         .inverse = ops.q(3).inv() catch unreachable,
                     };
                     row.src.addr = ops.q(3);
-                    row.src.previous = .{ ops.q(1), ops.q(2), ops.q(3), ops.q(4) };
-                    row.src.next = row.src.previous;
-                    row.dst.next = row.src.next;
+                    row.src.value = .{ ops.q(1), ops.q(2), ops.q(3), ops.q(4) };
+                    row.dst.next = row.src.value;
                     row.result = .{S.zero()} ** 4;
                     row.src_addr_selector = ops.q(3);
                     row.dst_addr_selector = ops.q(4);
@@ -611,10 +598,10 @@ pub fn Semantics(comptime S: type) type {
                     var columns = [_]S{S.zero()} ** N_ORACLE_COLUMNS;
                     columns[2] = ops.q(10);
                     columns[12] = ops.q(11);
-                    columns[22] = ops.q(12);
-                    columns[32] = ops.q(13);
-                    columns[42] = ops.q(14);
-                    columns[49] = ops.q(15);
+                    columns[18] = ops.q(12);
+                    columns[24] = ops.q(13);
+                    columns[34] = ops.q(14);
+                    columns[41] = ops.q(15);
                     const row = try Row.fromOracleColumns(&columns);
                     try std.testing.expect(row.dst.addr.eql(ops.q(10)));
                     try std.testing.expect(row.rs1.addr.eql(ops.q(11)));
