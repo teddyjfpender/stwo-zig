@@ -99,6 +99,155 @@ pub fn build(
         });
     }
     if (pending.items.len == 0) return error.EmptyProgramCommitment;
+    return finishCommitment(allocator, &pending);
+}
+
+/// Builds the declared-program commitment directly from execution rows.
+///
+/// `execution_rows` is any slice whose elements expose `pc` and `inst_word`.
+/// The loaded program image already supplies the unique address/word set, so
+/// copying millions of fetches and rediscovering that set with a hash table is
+/// redundant. A bounded dense address index handles ordinary contiguous ELFs;
+/// unusually sparse images retain the same fail-closed semantics through an
+/// `AutoHashMap` fallback.
+pub fn buildDeclared(
+    allocator: std.mem.Allocator,
+    execution_rows: anytype,
+    program_words: []const memory_state.WordState,
+    extra_fetch: ?table.Fetch,
+) !Commitment {
+    if (program_words.len == 0) return error.EmptyProgramCommitment;
+    var index = try DeclaredWordIndex.init(allocator, program_words);
+    defer index.deinit(allocator);
+    const multiplicities = try allocator.alloc(u32, program_words.len);
+    defer allocator.free(multiplicities);
+    @memset(multiplicities, 0);
+
+    for (execution_rows) |row| {
+        try registerDeclaredFetch(
+            program_words,
+            &index,
+            multiplicities,
+            .{ .pc = row.pc, .word = row.inst_word },
+        );
+    }
+    if (extra_fetch) |fetch| {
+        try registerDeclaredFetch(program_words, &index, multiplicities, fetch);
+    }
+
+    var pending: std.ArrayList(Row) = .{};
+    defer pending.deinit(allocator);
+    try pending.ensureTotalCapacity(allocator, program_words.len);
+    for (program_words, multiplicities) |word, multiplicity| {
+        // Pinned Stark-V omits declared zero words. An attempted fetch of one
+        // was rejected by `registerDeclaredFetch` above.
+        if (word.initial_word == 0) continue;
+        pending.appendAssumeCapacity(.{
+            .addr = word.addr,
+            .values = try decode.decodeProgramWord(word.initial_word),
+            .multiplicity = multiplicity,
+            .root = 0,
+        });
+    }
+    if (pending.items.len == 0) return error.EmptyProgramCommitment;
+    return finishCommitment(allocator, &pending);
+}
+
+const MAX_DENSE_PROGRAM_WORD_SLOTS: usize = 1 << 22;
+const MISSING_WORD_INDEX: u32 = std.math.maxInt(u32);
+
+const DeclaredWordIndex = union(enum) {
+    dense: struct {
+        base: u32,
+        slots: []u32,
+    },
+    sparse: std.AutoHashMap(u32, u32),
+
+    fn init(
+        allocator: std.mem.Allocator,
+        words: []const memory_state.WordState,
+    ) !DeclaredWordIndex {
+        var min_addr: u32 = std.math.maxInt(u32);
+        var max_addr: u32 = 0;
+        for (words) |word| {
+            try profile.requireProgramWordAddress(word.addr);
+            min_addr = @min(min_addr, word.addr);
+            max_addr = @max(max_addr, word.addr);
+        }
+        const slot_count = (@as(usize, max_addr - min_addr) >> 2) + 1;
+        if (slot_count <= MAX_DENSE_PROGRAM_WORD_SLOTS) {
+            const slots = try allocator.alloc(u32, slot_count);
+            errdefer allocator.free(slots);
+            @memset(slots, MISSING_WORD_INDEX);
+            for (words, 0..) |word, word_index| {
+                const slot = @as(usize, word.addr - min_addr) >> 2;
+                if (slots[slot] != MISSING_WORD_INDEX) return error.DuplicateLeaf;
+                slots[slot] = @intCast(word_index);
+            }
+            return .{ .dense = .{ .base = min_addr, .slots = slots } };
+        }
+
+        var sparse = std.AutoHashMap(u32, u32).init(allocator);
+        errdefer sparse.deinit();
+        try sparse.ensureTotalCapacity(@intCast(words.len));
+        for (words, 0..) |word, word_index| {
+            const entry = try sparse.getOrPut(word.addr);
+            if (entry.found_existing) return error.DuplicateLeaf;
+            entry.value_ptr.* = @intCast(word_index);
+        }
+        return .{ .sparse = sparse };
+    }
+
+    fn deinit(self: *DeclaredWordIndex, allocator: std.mem.Allocator) void {
+        switch (self.*) {
+            .dense => |dense| allocator.free(dense.slots),
+            .sparse => |*sparse| sparse.deinit(),
+        }
+        self.* = undefined;
+    }
+
+    fn get(self: *const DeclaredWordIndex, address: u32) ?usize {
+        const raw = switch (self.*) {
+            .dense => |dense| blk: {
+                if (address < dense.base) return null;
+                const offset = address - dense.base;
+                if ((offset & 3) != 0) return null;
+                const slot = @as(usize, offset) >> 2;
+                if (slot >= dense.slots.len) return null;
+                break :blk dense.slots[slot];
+            },
+            .sparse => |sparse| sparse.get(address) orelse return null,
+        };
+        if (raw == MISSING_WORD_INDEX) return null;
+        return @intCast(raw);
+    }
+};
+
+fn registerDeclaredFetch(
+    words: []const memory_state.WordState,
+    index: *const DeclaredWordIndex,
+    multiplicities: []u32,
+    fetch: table.Fetch,
+) !void {
+    try profile.requireProgramWordAddress(fetch.pc);
+    const word_index = index.get(fetch.pc) orelse return error.FetchedProgramWordMissing;
+    const declared = words[word_index];
+    if (declared.initial_word != fetch.word) return error.ProgramWordChanged;
+    if (fetch.word == 0) {
+        // Preserve the old fetch-table error surface for an executed zero
+        // instruction instead of reporting it merely as an omitted ROM row.
+        _ = try decode.decodeProgramWord(fetch.word);
+        unreachable;
+    }
+    if (multiplicities[word_index] == std.math.maxInt(u32))
+        return error.MultiplicityOverflow;
+    multiplicities[word_index] += 1;
+}
+
+fn finishCommitment(
+    allocator: std.mem.Allocator,
+    pending: *std.ArrayList(Row),
+) !Commitment {
     std.mem.sort(Row, pending.items, {}, lessRow);
 
     var leaves: std.ArrayList(sparse_merkle.Leaf) = .{};
@@ -211,6 +360,33 @@ test "program commitment: declared zero gaps do not affect rows roots or multipl
     try std.testing.expectEqual(compact.tree.root, gapped.tree.root);
     try std.testing.expectEqualSlices(sparse_merkle.Leaf, compact.tree.leaves, gapped.tree.leaves);
     try std.testing.expectEqualSlices(sparse_merkle.Node, compact.tree.nodes, gapped.tree.nodes);
+}
+
+test "program commitment: dense declared index matches fetch-table construction" {
+    const words = [_]memory_state.WordState{
+        .{ .addr = 0x1000, .initial_word = 0x00100093, .final_word = 0x00100093, .final_clock = 0 },
+        .{ .addr = 0x1004, .initial_word = 0, .final_word = 0, .final_clock = 0 },
+        .{ .addr = 0x1008, .initial_word = 0x002081b3, .final_word = 0x002081b3, .final_clock = 0 },
+    };
+    const fetches = [_]table.Fetch{
+        .{ .pc = 0x1008, .word = 0x002081b3 },
+        .{ .pc = 0x1000, .word = 0x00100093 },
+        .{ .pc = 0x1000, .word = 0x00100093 },
+    };
+    const ExecutionRow = struct { pc: u32, inst_word: u32 };
+    const execution = [_]ExecutionRow{
+        .{ .pc = fetches[0].pc, .inst_word = fetches[0].word },
+        .{ .pc = fetches[1].pc, .inst_word = fetches[1].word },
+        .{ .pc = fetches[2].pc, .inst_word = fetches[2].word },
+    };
+    var expected = try build(std.testing.allocator, &fetches, &words);
+    defer expected.deinit(std.testing.allocator);
+    var actual = try buildDeclared(std.testing.allocator, &execution, &words, null);
+    defer actual.deinit(std.testing.allocator);
+    try std.testing.expectEqualSlices(Row, expected.rows, actual.rows);
+    try std.testing.expectEqual(expected.tree.root, actual.tree.root);
+    try std.testing.expectEqualSlices(sparse_merkle.Leaf, expected.tree.leaves, actual.tree.leaves);
+    try std.testing.expectEqualSlices(sparse_merkle.Node, expected.tree.nodes, actual.tree.nodes);
 }
 
 test "program commitment: fetched zero instruction fails closed" {

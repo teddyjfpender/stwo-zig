@@ -130,6 +130,20 @@ fn buildProgram(
     completion: public_data_mod.Completion,
 ) !program_commitment.Commitment {
     const has_public_fetch = completion.kind == .unretired_self_loop;
+    const public_fetch: ?program_table.Fetch = if (has_public_fetch)
+        .{ .pc = completion.address, .word = completion.value }
+    else
+        null;
+    if (opt_memory) |snapshot| {
+        if (snapshot.program_words.len != 0) {
+            return program_commitment.buildDeclared(
+                allocator,
+                exec_trace.rows.items,
+                snapshot.program_words,
+                public_fetch,
+            );
+        }
+    }
     const fetches = try allocator.alloc(
         program_table.Fetch,
         exec_trace.rows.items.len + @intFromBool(has_public_fetch),
@@ -139,10 +153,7 @@ fn buildProgram(
         fetch.* = .{ .pc = row.pc, .word = row.inst_word };
     }
     if (has_public_fetch) {
-        fetches[fetches.len - 1] = .{
-            .pc = completion.address,
-            .word = completion.value,
-        };
+        fetches[fetches.len - 1] = public_fetch.?;
     }
     return program_commitment.build(
         allocator,

@@ -7,9 +7,15 @@
 
 const std = @import("std");
 const fields = @import("stwo_core").fields;
+const prover_component = @import("stwo_prover_engine").air.component_prover;
 const work_pool = @import("stwo_prover_engine").work_pool;
-const M31 = @import("stwo_core").fields.m31.M31;
-const QM31 = @import("stwo_core").fields.qm31.QM31;
+const m31 = fields.m31;
+const qm31 = fields.qm31;
+const packed_qm31 = fields.packed_qm31;
+const M31 = m31.M31;
+const QM31 = qm31.QM31;
+const PackedM31 = m31.PackedM31;
+const PackedQM31 = packed_qm31.PackedQM31;
 const infra = @import("../../infra_trace.zig");
 const logup = @import("../logup.zig");
 const relations_mod = @import("../relation_challenges.zig");
@@ -17,6 +23,7 @@ const trace = @import("../../runner/trace.zig");
 const BaseScalar = @import("base_scalar.zig").Scalar;
 const entry = @import("entry.zig");
 const opcode_entries = @import("opcode_entries.zig");
+const runtime_program = @import("../extract/runtime_program.zig");
 
 pub const MAX_BATCHES: usize = entry.MAX_BATCHES;
 pub const MAX_COLUMNS: usize = 4 * MAX_BATCHES;
@@ -25,6 +32,52 @@ pub const CHUNK_ROWS: usize = 4096;
 const base_opcode_entries = opcode_entries.Entries(BaseScalar);
 const BaseList = entry.Builder(BaseScalar).List;
 const BaseEntry = entry.Builder(BaseScalar).Entry;
+
+/// Data-oriented lookup replay derived from the exact production builder.
+///
+/// The symbolic DAG is the same backend-neutral program consumed by CPU and
+/// Metal composition. Domain tags are sampled once from the typed builder so
+/// relation selection remains production-owned too. Shards of one family can
+/// share a plan; no row-sized state or challenge material is retained here.
+pub const Plan = struct {
+    allocator: std.mem.Allocator,
+    family: trace.OpcodeFamily,
+    program: prover_component.OwnedLookupPolynomialProgram,
+    reachable: []bool,
+    domains: [entry.MAX_ENTRIES]entry.Domain = undefined,
+
+    pub fn init(allocator: std.mem.Allocator, family: trace.OpcodeFamily) !Plan {
+        var program = try runtime_program.buildLookups(allocator, family);
+        errdefer program.deinit();
+        const reachable = try lookupReachable(allocator, program);
+        errdefer allocator.free(reachable);
+
+        const zero_columns = [_]BaseScalar{BaseScalar.zero()} ** trace.MAX_FAMILY_COLUMNS;
+        const typed = try base_opcode_entries.fromMain(
+            family,
+            zero_columns[0..trace.nColumnsForFamily(family)],
+        );
+        if (typed.len != program.entries.len or typed.batch_size != program.batch_size)
+            return error.InvalidLookupPolynomialProgram;
+        var result = Plan{
+            .allocator = allocator,
+            .family = family,
+            .program = program,
+            .reachable = reachable,
+        };
+        for (typed.entries[0..typed.len], result.domains[0..typed.len]) |source, *domain| {
+            try source.validate();
+            domain.* = source.domain;
+        }
+        return result;
+    }
+
+    pub fn deinit(self: *Plan) void {
+        self.allocator.free(self.reachable);
+        self.program.deinit();
+        self.* = undefined;
+    }
+};
 
 pub const Result = struct {
     columns: [MAX_COLUMNS][]M31 = .{&.{}} ** MAX_COLUMNS,
@@ -113,8 +166,13 @@ pub fn generate(
             for (0..n_batches) |batch| {
                 const pair = try pairBase(&list, batch, relations);
                 const index = batch * chunk_len + local_row;
-                denominators[index] = pair.d1.mul(pair.d2);
-                numerators[index] = pair.n1.mul(pair.d2).add(pair.n2.mul(pair.d1));
+                if (list.batch_size == 1) {
+                    denominators[index] = pair.d1;
+                    numerators[index] = pair.n1;
+                } else {
+                    denominators[index] = pair.d1.mul(pair.d2);
+                    numerators[index] = pair.n1.mul(pair.d2).add(pair.n2.mul(pair.d1));
+                }
             }
         }
         try fields.batchInverseInPlace(
@@ -153,6 +211,28 @@ pub fn generateParallel(
     relations: *const relations_mod.Relations,
     pool: *work_pool.WorkPool,
 ) !Result {
+    var plan = try Plan.init(allocator, family);
+    defer plan.deinit();
+    return generateParallelPlanned(
+        allocator,
+        &plan,
+        main_columns,
+        log_size,
+        relations,
+        pool,
+    );
+}
+
+/// Parallel generation with a family plan retained across statement shards.
+pub fn generateParallelPlanned(
+    allocator: std.mem.Allocator,
+    plan: *const Plan,
+    main_columns: []const []const M31,
+    log_size: u32,
+    relations: *const relations_mod.Relations,
+    pool: *work_pool.WorkPool,
+) !Result {
+    const family = plan.family;
     const size = @as(usize, 1) << @intCast(log_size);
     try validateColumns(family, main_columns, size);
     const n_batches = opcode_entries.batchCount(family);
@@ -165,6 +245,8 @@ pub fn generateParallel(
     }
     const placement = try infra.BitReversalTable.init(allocator, log_size);
     defer placement.deinit(allocator);
+    const trace_sums = try allocator.alloc(QM31, n_batches * size);
+    defer allocator.free(trace_sums);
 
     const chunk_count = std.math.divCeil(usize, size, CHUNK_ROWS) catch unreachable;
     const chunks = try allocator.alloc(OpcodeChunk, chunk_count);
@@ -174,10 +256,12 @@ pub fn generateParallel(
         chunk.* = .{
             .allocator = allocator,
             .family = family,
+            .plan = plan,
             .main_columns = main_columns,
             .relations = relations,
             .placement = placement,
-            .columns = &result.columns,
+            .trace_sums = trace_sums,
+            .trace_size = size,
             .n_batches = n_batches,
             .row_start = row_start,
             .row_end = @min(size, row_start + CHUNK_ROWS),
@@ -199,9 +283,33 @@ pub fn generateParallel(
         result.claims[batch] = claim;
     }
 
+    // Local scans are trace-order contiguous. Transpose them into committed
+    // order once, after chunk offsets are known, so workers write disjoint
+    // contiguous output ranges instead of repeatedly scattering bit-reversed
+    // rows and then reading those same cache lines back for the offset pass.
+    const logical_rows = try allocator.alloc(usize, size);
+    defer allocator.free(logical_rows);
+    for (placement.mapping, 0..) |committed_row, logical_row| {
+        logical_rows[committed_row] = logical_row;
+    }
+    const placement_workers = try allocator.alloc(PlacementWorker, chunk_count);
+    defer allocator.free(placement_workers);
+    for (placement_workers, 0..) |*worker, index| {
+        worker.* = .{
+            .columns = &result.columns,
+            .trace_sums = trace_sums,
+            .logical_rows = logical_rows,
+            .chunks = chunks,
+            .n_batches = n_batches,
+            .trace_size = size,
+            .committed_start = size * index / chunk_count,
+            .committed_end = size * (index + 1) / chunk_count,
+        };
+    }
     wait_group = .{};
-    for (chunks[1..]) |*chunk| pool.spawnWg(&wait_group, OpcodeChunk.addOffsets, .{chunk});
-    OpcodeChunk.addOffsets(&chunks[0]);
+    for (placement_workers[1..]) |*worker|
+        pool.spawnWg(&wait_group, PlacementWorker.run, .{worker});
+    PlacementWorker.run(&placement_workers[0]);
     wait_group.wait();
     return result;
 }
@@ -209,10 +317,12 @@ pub fn generateParallel(
 const OpcodeChunk = struct {
     allocator: std.mem.Allocator,
     family: trace.OpcodeFamily,
+    plan: *const Plan,
     main_columns: []const []const M31,
     relations: *const relations_mod.Relations,
     placement: infra.BitReversalTable,
-    columns: *[MAX_COLUMNS][]M31,
+    trace_sums: []QM31,
+    trace_size: usize,
     n_batches: usize,
     row_start: usize,
     row_end: usize,
@@ -235,53 +345,80 @@ const OpcodeChunk = struct {
         defer self.allocator.free(denominators);
         const inverses = try self.allocator.alloc(QM31, term_len);
         defer self.allocator.free(inverses);
+        const node_values = try self.allocator.alloc(PackedM31, self.plan.program.nodes.len);
+        defer self.allocator.free(node_values);
 
-        var base: [trace.MAX_FAMILY_COLUMNS]BaseScalar = undefined;
-        for (0..chunk_len) |local_row| {
-            const row = self.row_start + local_row;
-            const committed_row = self.placement.map(row);
-            for (self.main_columns, base[0..self.main_columns.len]) |column, *value| {
-                value.* = BaseScalar.fromBase(column[committed_row]);
+        std.debug.assert(chunk_len % m31.PACK_WIDTH == 0);
+        var base: [trace.MAX_FAMILY_COLUMNS]PackedM31 = undefined;
+        var local_row: usize = 0;
+        while (local_row < chunk_len) : (local_row += m31.PACK_WIDTH) {
+            var committed_rows: [m31.PACK_WIDTH]usize = undefined;
+            inline for (0..m31.PACK_WIDTH) |lane| {
+                committed_rows[lane] = self.placement.map(self.row_start + local_row + lane);
             }
-            const list = try base_opcode_entries.fromMain(
-                self.family,
+            for (self.main_columns, base[0..self.main_columns.len]) |column, *value| {
+                var lane_values: PackedM31 = undefined;
+                inline for (0..m31.PACK_WIDTH) |lane| {
+                    lane_values[lane] = column[committed_rows[lane]].v;
+                }
+                value.* = lane_values;
+            }
+            evaluateNodes(
+                self.plan.program.nodes,
+                self.plan.reachable,
+                node_values,
                 base[0..self.main_columns.len],
             );
-            if (list.batchCount() != self.n_batches) return error.InvalidBatchCount;
             for (0..self.n_batches) |batch| {
-                const pair = try pairBase(&list, batch, self.relations);
-                const index = batch * chunk_len + local_row;
-                denominators[index] = pair.d1.mul(pair.d2);
-                numerators[index] = pair.n1.mul(pair.d2).add(pair.n2.mul(pair.d1));
+                const pair = try pairPlanned(self.plan, node_values, batch, self.relations);
+                const denominator = if (self.plan.program.batch_size == 1)
+                    pair.d1
+                else
+                    pair.d1.mul(pair.d2);
+                const numerator = if (self.plan.program.batch_size == 1)
+                    PackedQM31.fromBase(pair.n1)
+                else
+                    pair.d2.mulBase(pair.n1).add(pair.d1.mulBase(pair.n2));
+                inline for (0..m31.PACK_WIDTH) |lane| {
+                    const index = batch * chunk_len + local_row + lane;
+                    denominators[index] = denominator.lane(lane);
+                    numerators[index] = numerator.lane(lane);
+                }
             }
         }
         try fields.batchInverseInPlace(QM31, denominators, inverses);
 
         for (0..self.n_batches) |batch| {
             var accumulator = QM31.zero();
-            for (0..chunk_len) |local_row| {
-                const term_index = batch * chunk_len + local_row;
+            for (0..chunk_len) |row_offset| {
+                const term_index = batch * chunk_len + row_offset;
                 accumulator = accumulator.add(numerators[term_index].mul(inverses[term_index]));
-                const current = accumulator.toM31Array();
-                const dst = self.placement.map(self.row_start + local_row);
-                for (current, 0..) |coordinate, index| {
-                    self.columns[4 * batch + index][dst] = coordinate;
-                }
+                self.trace_sums[batch * self.trace_size + self.row_start + row_offset] = accumulator;
             }
             self.totals[batch] = accumulator;
         }
     }
+};
 
-    fn addOffsets(self: *@This()) void {
+const PlacementWorker = struct {
+    columns: *[MAX_COLUMNS][]M31,
+    trace_sums: []const QM31,
+    logical_rows: []const usize,
+    chunks: []const OpcodeChunk,
+    n_batches: usize,
+    trace_size: usize,
+    committed_start: usize,
+    committed_end: usize,
+
+    fn run(self: *@This()) void {
         for (0..self.n_batches) |batch| {
-            const offset = self.offsets[batch];
-            if (offset.isZero()) continue;
-            for (self.row_start..self.row_end) |row| {
-                const dst = self.placement.map(row);
-                const current = secureAt(self.columns, 4 * batch, dst)
+            for (self.committed_start..self.committed_end) |committed_row| {
+                const logical_row = self.logical_rows[committed_row];
+                const offset = self.chunks[logical_row / CHUNK_ROWS].offsets[batch];
+                const current = self.trace_sums[batch * self.trace_size + logical_row]
                     .add(offset).toM31Array();
                 for (current, 0..) |coordinate, index| {
-                    self.columns[4 * batch + index][dst] = coordinate;
+                    self.columns[4 * batch + index][committed_row] = coordinate;
                 }
             }
         }
@@ -359,6 +496,127 @@ fn pairBase(
         .n2 = QM31.fromBase(second.numerator.value),
         .d2 = try denominatorBase(second, relations),
     };
+}
+
+const PackedRowPair = struct {
+    n1: PackedM31,
+    d1: PackedQM31,
+    n2: PackedM31,
+    d2: PackedQM31,
+};
+
+fn combinePlanned(
+    comptime arity: usize,
+    lookup: prover_component.LookupPolynomialEntry,
+    nodes: []const PackedM31,
+    relation: anytype,
+) PackedQM31 {
+    var result = PackedQM31.zero();
+    inline for (0..arity) |value_index| {
+        result = result.add(
+            PackedQM31.splat(relation.alpha_powers[value_index])
+                .mulBase(nodes[lookup.values[value_index]]),
+        );
+    }
+    return result.sub(PackedQM31.splat(relation.z));
+}
+
+fn denominatorPlanned(
+    lookup: prover_component.LookupPolynomialEntry,
+    domain: entry.Domain,
+    nodes: []const PackedM31,
+    relations: *const relations_mod.Relations,
+) !PackedQM31 {
+    if (lookup.arity != entry.expectedArity(domain))
+        return error.InvalidLookupPolynomialProgram;
+    return switch (domain) {
+        .registers_state => combinePlanned(2, lookup, nodes, relations.registers_state),
+        .memory_access => combinePlanned(7, lookup, nodes, relations.memory_access),
+        .program_access => combinePlanned(5, lookup, nodes, relations.program_access),
+        .merkle => combinePlanned(4, lookup, nodes, relations.merkle),
+        .poseidon2 => combinePlanned(16, lookup, nodes, relations.poseidon2),
+        .poseidon2_io => combinePlanned(32, lookup, nodes, relations.poseidon2_io),
+        .bitwise => combinePlanned(4, lookup, nodes, relations.bitwise),
+        .range_check_20 => combinePlanned(1, lookup, nodes, relations.range_check_20),
+        .range_check_8_11 => combinePlanned(2, lookup, nodes, relations.range_check_8_11),
+        .range_check_8_8_4 => combinePlanned(3, lookup, nodes, relations.range_check_8_8_4),
+        .range_check_8_8 => combinePlanned(2, lookup, nodes, relations.range_check_8_8),
+        .range_check_m31 => combinePlanned(2, lookup, nodes, relations.range_check_m31),
+    };
+}
+
+fn pairPlanned(
+    plan: *const Plan,
+    nodes: []const PackedM31,
+    batch: usize,
+    relations: *const relations_mod.Relations,
+) !PackedRowPair {
+    const program = plan.program;
+    const first_index = batch * program.batch_size;
+    if (first_index >= program.entries.len) return error.InvalidBatchCount;
+    const first = program.entries[first_index];
+    if (program.batch_size == 1 or first_index + 1 == program.entries.len) {
+        return .{
+            .n1 = nodes[first.numerator],
+            .d1 = try denominatorPlanned(first, plan.domains[first_index], nodes, relations),
+            .n2 = @splat(0),
+            .d2 = PackedQM31.one(),
+        };
+    }
+    const second_index = first_index + 1;
+    const second = program.entries[second_index];
+    return .{
+        .n1 = nodes[first.numerator],
+        .d1 = try denominatorPlanned(first, plan.domains[first_index], nodes, relations),
+        .n2 = nodes[second.numerator],
+        .d2 = try denominatorPlanned(second, plan.domains[second_index], nodes, relations),
+    };
+}
+
+fn evaluateNodes(
+    nodes: []const prover_component.BasePolynomialNode,
+    reachable: []const bool,
+    values: []PackedM31,
+    columns: []const PackedM31,
+) void {
+    for (nodes, reachable, 0..) |node, is_reachable, index| {
+        if (!is_reachable) continue;
+        values[index] = switch (node.op) {
+            .constant => @splat(node.value),
+            .column => columns[node.value],
+            .add => m31.addPacked(values[node.lhs], values[node.rhs]),
+            .sub => m31.subPacked(values[node.lhs], values[node.rhs]),
+            .mul => m31.mulPacked(values[node.lhs], values[node.rhs]),
+            .neg => m31.negPacked(values[node.lhs]),
+        };
+    }
+}
+
+fn lookupReachable(
+    allocator: std.mem.Allocator,
+    program: prover_component.OwnedLookupPolynomialProgram,
+) ![]bool {
+    const reachable = try allocator.alloc(bool, program.nodes.len);
+    @memset(reachable, false);
+    for (program.entries) |lookup| {
+        reachable[lookup.numerator] = true;
+        for (lookup.values[0..lookup.arity]) |value| reachable[value] = true;
+    }
+    var cursor = program.nodes.len;
+    while (cursor != 0) {
+        cursor -= 1;
+        if (!reachable[cursor]) continue;
+        const node = program.nodes[cursor];
+        switch (node.op) {
+            .constant, .column => {},
+            .add, .sub, .mul => {
+                reachable[node.lhs] = true;
+                reachable[node.rhs] = true;
+            },
+            .neg => reachable[node.lhs] = true,
+        }
+    }
+    return reachable;
 }
 
 fn validateColumns(
@@ -473,6 +731,50 @@ fn expectBaseEntryParity(
         try std.testing.expect(got.d1.eql(want.d1));
         try std.testing.expect(got.n2.eql(want.n2));
         try std.testing.expect(got.d2.eql(want.d2));
+    }
+}
+
+fn expectPlanPairParity(
+    allocator: std.mem.Allocator,
+    family: trace.OpcodeFamily,
+    main: []const []const M31,
+    committed_active_row: usize,
+    committed_padding_row: usize,
+    relations: *const relations_mod.Relations,
+) !void {
+    var plan = try Plan.init(allocator, family);
+    defer plan.deinit();
+    const node_values = try allocator.alloc(PackedM31, plan.program.nodes.len);
+    defer allocator.free(node_values);
+    var packed_columns: [trace.MAX_FAMILY_COLUMNS]PackedM31 = undefined;
+    for (main, packed_columns[0..main.len]) |column, *packed_column| {
+        inline for (0..m31.PACK_WIDTH) |lane| {
+            const row = if (lane % 2 == 0) committed_active_row else committed_padding_row;
+            packed_column[lane] = column[row].v;
+        }
+    }
+    evaluateNodes(
+        plan.program.nodes,
+        plan.reachable,
+        node_values,
+        packed_columns[0..main.len],
+    );
+
+    inline for (0..m31.PACK_WIDTH) |lane| {
+        const row = if (lane % 2 == 0) committed_active_row else committed_padding_row;
+        var scalar_columns: [trace.MAX_FAMILY_COLUMNS]BaseScalar = undefined;
+        for (main, scalar_columns[0..main.len]) |column, *value| {
+            value.* = BaseScalar.fromBase(column[row]);
+        }
+        const typed = try base_opcode_entries.fromMain(family, scalar_columns[0..main.len]);
+        for (0..typed.batchCount()) |batch| {
+            const expected = try pairBase(&typed, batch, relations);
+            const actual = try pairPlanned(&plan, node_values, batch, relations);
+            try std.testing.expect(QM31.fromBase(M31.fromCanonical(actual.n1[lane])).eql(expected.n1));
+            try std.testing.expect(actual.d1.lane(lane).eql(expected.d1));
+            try std.testing.expect(QM31.fromBase(M31.fromCanonical(actual.n2[lane])).eql(expected.n2));
+            try std.testing.expect(actual.d2.lane(lane).eql(expected.d2));
+        }
     }
 }
 
@@ -826,6 +1128,14 @@ test "base-field opcode entries match secure reconstruction for every family and
         try expectBaseEntryParity(
             family,
             main.storage[0..main.len],
+            placement.map(15),
+            &relations,
+        );
+        try expectPlanPairParity(
+            allocator,
+            family,
+            main.storage[0..main.len],
+            placement.map(0),
             placement.map(15),
             &relations,
         );

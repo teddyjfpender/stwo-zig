@@ -228,6 +228,8 @@ fn generateOpcodeParallel(
 ) !void {
     const statement = &workspace.statement;
     var opcode_main_offset: usize = 0;
+    var retained_plan: ?opcode_interaction.Plan = null;
+    defer if (retained_plan) |*plan| plan.deinit();
     for (0..statement.n_components) |index| {
         const desc = statement.component_descs[index];
         const n_family_columns: usize = @intCast(desc.n_columns);
@@ -236,23 +238,28 @@ fn generateOpcodeParallel(
             workspace.opcode_columns.components[index].columns[0..n_family_columns],
             family_columns[0..n_family_columns],
         ) |column, *values| values.* = column;
-        var generated = if (desc.log_size >= 12)
-            try opcode_interaction.generateParallel(
+        var generated = if (desc.log_size >= 12) blk: {
+            if (retained_plan == null or retained_plan.?.family != desc.family) {
+                if (retained_plan) |*plan| plan.deinit();
+                retained_plan = null;
+                retained_plan = try opcode_interaction.Plan.init(allocator, desc.family);
+            }
+            const plan = if (retained_plan) |*value| value else unreachable;
+            break :blk try opcode_interaction.generateParallelPlanned(
                 allocator,
-                desc.family,
+                plan,
                 family_columns[0..n_family_columns],
                 desc.log_size,
                 relations,
                 pool,
-            )
-        else
-            try opcode_interaction.generate(
-                allocator,
-                desc.family,
-                family_columns[0..n_family_columns],
-                desc.log_size,
-                relations,
             );
+        } else try opcode_interaction.generate(
+            allocator,
+            desc.family,
+            family_columns[0..n_family_columns],
+            desc.log_size,
+            relations,
+        );
         @memcpy(
             claim.opcode_claims[index][0..generated.n_batches],
             generated.claims[0..generated.n_batches],
@@ -327,12 +334,21 @@ fn generateMerkle(
     relations: *const Relations,
     claim: *RiscVInteractionClaim,
 ) !void {
-    const generated = try merkle_node.generateInteraction(
-        allocator,
-        witness.merkleRows(),
-        geometry.merkle_log_size,
-        relations,
-    );
+    const generated = if (geometry.merkle_log_size >= 12 and work_pool.getGlobalPool() != null)
+        try merkle_node.generateInteractionParallel(
+            allocator,
+            witness.merkleRows(),
+            geometry.merkle_log_size,
+            relations,
+            work_pool.getGlobalPool().?,
+        )
+    else
+        try merkle_node.generateInteraction(
+            allocator,
+            witness.merkleRows(),
+            geometry.merkle_log_size,
+            relations,
+        );
     claim.merkle_claims[geometry.merkle_infra_index] = generated.claims.sums;
     for (generated.columns) |values| columns.append(geometry.merkle_log_size, values);
 }
@@ -345,12 +361,21 @@ fn generatePoseidon(
     relations: *const Relations,
     claim: *RiscVInteractionClaim,
 ) !void {
-    const generated = try poseidon2_air.generateInteraction(
-        allocator,
-        witness.poseidonCalls(),
-        geometry.poseidon_log_size,
-        relations,
-    );
+    const generated = if (geometry.poseidon_log_size >= 12 and work_pool.getGlobalPool() != null)
+        try poseidon2_air.generateInteractionParallel(
+            allocator,
+            witness.poseidonCalls(),
+            geometry.poseidon_log_size,
+            relations,
+            work_pool.getGlobalPool().?,
+        )
+    else
+        try poseidon2_air.generateInteraction(
+            allocator,
+            witness.poseidonCalls(),
+            geometry.poseidon_log_size,
+            relations,
+        );
     claim.poseidon_claims[geometry.poseidon_infra_index] = generated.claims.sums;
     for (generated.columns) |values| columns.append(geometry.poseidon_log_size, values);
 }

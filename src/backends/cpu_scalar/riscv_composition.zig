@@ -14,11 +14,13 @@ const prover = @import("stwo_prover_engine");
 const constraints = core.constraints;
 const m31 = core.fields.m31;
 const qm31 = core.fields.qm31;
+const packed_qm31 = core.fields.packed_qm31;
 const canonic = core.poly.circle.canonic;
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
 const PackedM31 = m31.PackedM31;
+const PackedQM31 = packed_qm31.PackedQM31;
 const Component = prover.air.component_prover.ComponentProver;
 const BaseCapability = prover.air.component_prover.BasePolynomialCapabilityV1;
 const LookupCapability = prover.air.component_prover.LookupPolynomialCapabilityV1;
@@ -108,113 +110,6 @@ fn recordMax(counter: *AtomicCounter, value: u64) void {
         return;
     }
 }
-
-const PackedCM31 = struct {
-    a: PackedM31,
-    b: PackedM31,
-
-    inline fn add(lhs: PackedCM31, rhs: PackedCM31) PackedCM31 {
-        return .{
-            .a = m31.addPacked(lhs.a, rhs.a),
-            .b = m31.addPacked(lhs.b, rhs.b),
-        };
-    }
-
-    inline fn sub(lhs: PackedCM31, rhs: PackedCM31) PackedCM31 {
-        return .{
-            .a = m31.subPacked(lhs.a, rhs.a),
-            .b = m31.subPacked(lhs.b, rhs.b),
-        };
-    }
-
-    inline fn mul(lhs: PackedCM31, rhs: PackedCM31) PackedCM31 {
-        const ac = m31.mulPacked(lhs.a, rhs.a);
-        const bd = m31.mulPacked(lhs.b, rhs.b);
-        const cross = m31.mulPacked(
-            m31.addPacked(lhs.a, lhs.b),
-            m31.addPacked(rhs.a, rhs.b),
-        );
-        return .{
-            .a = m31.subPacked(ac, bd),
-            .b = m31.subPacked(m31.subPacked(cross, ac), bd),
-        };
-    }
-
-    inline fn mulByR(value: PackedCM31) PackedCM31 {
-        // (a + bi) * (2 + i) = (2a - b) + (a + 2b)i.
-        return .{
-            .a = m31.subPacked(m31.addPacked(value.a, value.a), value.b),
-            .b = m31.addPacked(value.a, m31.addPacked(value.b, value.b)),
-        };
-    }
-};
-
-const PackedQM31 = struct {
-    c0: PackedCM31,
-    c1: PackedCM31,
-
-    inline fn zero() PackedQM31 {
-        const zeros: PackedM31 = @splat(0);
-        return .{
-            .c0 = .{ .a = zeros, .b = zeros },
-            .c1 = .{ .a = zeros, .b = zeros },
-        };
-    }
-
-    inline fn fromBase(value: PackedM31) PackedQM31 {
-        const zeros: PackedM31 = @splat(0);
-        return .{
-            .c0 = .{ .a = value, .b = zeros },
-            .c1 = .{ .a = zeros, .b = zeros },
-        };
-    }
-
-    inline fn splat(value: QM31) PackedQM31 {
-        const limbs = value.toM31Array();
-        return .{
-            .c0 = .{
-                .a = m31.splatPacked(limbs[0]),
-                .b = m31.splatPacked(limbs[1]),
-            },
-            .c1 = .{
-                .a = m31.splatPacked(limbs[2]),
-                .b = m31.splatPacked(limbs[3]),
-            },
-        };
-    }
-
-    inline fn add(lhs: PackedQM31, rhs: PackedQM31) PackedQM31 {
-        return .{ .c0 = lhs.c0.add(rhs.c0), .c1 = lhs.c1.add(rhs.c1) };
-    }
-
-    inline fn sub(lhs: PackedQM31, rhs: PackedQM31) PackedQM31 {
-        return .{ .c0 = lhs.c0.sub(rhs.c0), .c1 = lhs.c1.sub(rhs.c1) };
-    }
-
-    inline fn mul(lhs: PackedQM31, rhs: PackedQM31) PackedQM31 {
-        const ac = lhs.c0.mul(rhs.c0);
-        const bd = lhs.c1.mul(rhs.c1);
-        const cross = lhs.c0.add(lhs.c1).mul(rhs.c0.add(rhs.c1)).sub(ac).sub(bd);
-        return .{ .c0 = ac.add(bd.mulByR()), .c1 = cross };
-    }
-
-    inline fn mulBase(self: PackedQM31, value: PackedM31) PackedQM31 {
-        return .{
-            .c0 = .{
-                .a = m31.mulPacked(self.c0.a, value),
-                .b = m31.mulPacked(self.c0.b, value),
-            },
-            .c1 = .{
-                .a = m31.mulPacked(self.c1.a, value),
-                .b = m31.mulPacked(self.c1.b, value),
-            },
-        };
-    }
-
-    inline fn coordinates(self: PackedQM31) [qm31.SECURE_EXTENSION_DEGREE]PackedM31 {
-        return .{ self.c0.a, self.c0.b, self.c1.a, self.c1.b };
-    }
-};
 
 const BaseProgramEntry = struct {
     program_id: u64,
