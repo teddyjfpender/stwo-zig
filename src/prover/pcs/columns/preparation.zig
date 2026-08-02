@@ -246,6 +246,65 @@ fn prepareColumnsCombinedForBackend(
 
     var groups = try circle_transforms.buildLogSizeGroupsFromColumns(allocator, owned_columns);
     defer circle_transforms.deinitLogSizeGroups(allocator, &groups);
+
+    // Keep every extended log-size group in one page-aligned allocation.  The
+    // columns themselves may have different lengths and padded strides, but a
+    // single backing lets unified-memory backends expose the finished trace to
+    // the GPU with one `newBufferWithBytesNoCopy` view.  One allocation per
+    // group forced the Merkle boundary to repack multi-gigabyte RISC-V traces
+    // into a second private staging arena even though the GPU had produced all
+    // of the values in shared memory immediately beforehand.
+    const page_words = std.heap.pageSize() / @sizeOf(M31);
+    const compact_resident_columns = comptime @hasDecl(B, "requires_contiguous_resident_columns") and
+        B.requires_contiguous_resident_columns;
+    var transform_arena_words: usize = 0;
+    for (groups.items) |group| {
+        const extended_log_size = std.math.add(u32, group.log_size, log_blowup_factor) catch
+            return error.ShapeMismatch;
+        if (extended_log_size >= @bitSizeOf(usize)) return error.ShapeMismatch;
+        const extended_len = @as(usize, 1) << @intCast(extended_log_size);
+        const column_count = group.indices.items.len;
+        if (column_count == 0) return error.ShapeMismatch;
+        const page_rotate = column_count >= 64 and extended_len >= (1 << 18);
+        const extended_stride = try std.math.add(
+            usize,
+            extended_len,
+            if (compact_resident_columns)
+                0
+            else if (page_rotate)
+                page_words + 16
+            else if (column_count >= 64)
+                16
+            else
+                0,
+        );
+        const extended_span = try std.math.add(
+            usize,
+            try std.math.mul(usize, column_count - 1, extended_stride),
+            extended_len,
+        );
+        const group_words = std.mem.alignForward(usize, extended_span, page_words);
+        transform_arena_words = try std.math.add(
+            usize,
+            transform_arena_words,
+            group_words,
+        );
+    }
+    if (transform_arena_words == 0) return error.ShapeMismatch;
+    const transform_arena: []M31 = if (comptime @hasDecl(B, "resident_column_arena_alignment"))
+        try allocator.alignedAlloc(
+            M31,
+            B.resident_column_arena_alignment,
+            transform_arena_words,
+        )
+    else
+        try allocator.alloc(M31, transform_arena_words);
+    column_buffers.append(allocator, transform_arena) catch |err| {
+        allocator.free(transform_arena);
+        return err;
+    };
+    var transform_arena_cursor: usize = 0;
+
     for (groups.items) |group| {
         const extended_log_size = std.math.add(u32, group.log_size, log_blowup_factor) catch
             return error.ShapeMismatch;
@@ -255,7 +314,6 @@ fn prepareColumnsCombinedForBackend(
         const extended_twiddles = try twiddle_source.get(allocator, extended_log_size);
 
         const column_count = group.indices.items.len;
-        const page_words = std.heap.pageSize() / @sizeOf(M31);
         const base_in_place = comptime @hasDecl(B, "combined_base_in_place") and
             B.combined_base_in_place;
         // Keep Metal coefficients independently releasable from the skewed
@@ -287,15 +345,22 @@ fn prepareColumnsCombinedForBackend(
         // rotation for small columns where a page of padding is material.
         const page_rotate = column_count >= 64 and extended_domain.size() >= (1 << 18);
         const extended_stride = extended_domain.size() +
-            @as(usize, if (page_rotate) page_words + 16 else if (column_count >= 64) 16 else 0);
+            @as(usize, if (compact_resident_columns)
+                0
+            else if (page_rotate)
+                page_words + 16
+            else if (column_count >= 64)
+                16
+            else
+                0);
         const extended_span = try std.math.add(
             usize,
             try std.math.mul(usize, column_count - 1, extended_stride),
             extended_domain.size(),
         );
         const backing_words = std.mem.alignForward(usize, extended_span, page_words);
-        const transform_buffer = try allocator.alloc(M31, backing_words);
-        try column_buffers.append(allocator, transform_buffer);
+        const transform_buffer = transform_arena[transform_arena_cursor..][0..backing_words];
+        transform_arena_cursor += backing_words;
 
         const base_values = try allocator.alloc([]M31, group.indices.items.len);
         defer allocator.free(base_values);
@@ -337,6 +402,7 @@ fn prepareColumnsCombinedForBackend(
             try initialized_indices.append(allocator, column_index);
         }
     }
+    std.debug.assert(transform_arena_cursor == transform_arena.len);
 
     if (source_arena) |arena| {
         // Column values borrow the arena; the arena is released exactly once,
