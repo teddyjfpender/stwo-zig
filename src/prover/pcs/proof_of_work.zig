@@ -8,9 +8,9 @@ const Blake2sChannel = stwo_core.channel.blake2s.Blake2sChannel;
 const Blake2sHasher = stwo_core.crypto.blake2s_backend.Blake2sHasher;
 
 pub fn grind(channel: anytype, pow_bits: u32) u64 {
-    if (pow_bits == 0) return 0;
-
     if (comptime @TypeOf(channel.*) == Blake2sChannel) {
+        if (pow_bits == 0) return 0;
+
         // Preserve the dedicated PoW worker override. The default path reuses
         // the prover pool instead of creating and joining OS threads here.
         if (!std.process.hasEnvVarConstant("STWO_ZIG_POW_WORKERS")) {

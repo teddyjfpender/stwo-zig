@@ -41,7 +41,8 @@ pub fn genMemClockUpdateColumns(
         );
         permutation.placeValue(columns[2], row, placement, M31.fromCanonical(update.clk));
         permutation.placeValue(columns[3], row, placement, M31.fromCanonical(update.clk_prev));
-        for (update.value_limbs[0..3], 0..) |value, limb| {
+        const value_limbs = update.valueLimbs();
+        for (value_limbs[0..3], 0..) |value, limb| {
             permutation.placeValue(columns[4 + limb], row, placement, value);
         }
     }
@@ -76,7 +77,7 @@ pub fn genRegClockUpdateColumns(
             M31.fromCanonical(update.addr & 0x7fff_ffff),
         );
         permutation.placeValue(columns[2], row, placement, M31.fromCanonical(update.clk_prev));
-        for (update.value_limbs, 0..) |value, limb| {
+        for (update.valueLimbs(), 0..) |value, limb| {
             permutation.placeValue(columns[3 + limb], row, placement, value);
         }
     }
@@ -142,7 +143,7 @@ fn placeClockUpdateRow(
         M31.fromCanonical(update.addr & 0x7fff_ffff),
     );
     permutation.placeValue(columns[3], row, placement, M31.fromCanonical(update.clk_prev));
-    for (update.value_limbs, 0..) |value, limb| {
+    for (update.valueLimbs(), 0..) |value, limb| {
         permutation.placeValue(columns[4 + limb], row, placement, value);
     }
     permutation.placeValue(

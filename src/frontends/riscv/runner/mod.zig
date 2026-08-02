@@ -1,12 +1,10 @@
 //! RISC-V RV32IM runner — fetch/decode/execute loop with ELF loading.
-//!
-//! Provides a complete functional simulator for RV32IM programs.
-//! Supports optional host syscall interface for guest↔host communication.
 
 const std = @import("std");
 const isa_profile = @import("../isa/profile.zig");
 pub const cpu = @import("cpu.zig");
 pub const decode = @import("decode.zig");
+const decode_cache = @import("decode_cache.zig");
 pub const memory = @import("memory.zig");
 pub const execute_mod = @import("execute.zig");
 pub const elf_loader = @import("elf_loader.zig");
@@ -90,6 +88,8 @@ fn runConfigured(
     exec_trace.initial_pc = rv_cpu.pc;
     var chain_tracker = state_chain.StateChainTracker.init(allocator);
     errdefer chain_tracker.deinit();
+    var instruction_cache = try decode_cache.Cache.init(allocator);
+    defer instruction_cache.deinit();
     var exit_code: ?u32 = null;
     var completion_reason: CompletionReason = undefined;
 
@@ -112,7 +112,7 @@ fn runConfigured(
         const inst_word = mem.readU32(rv_cpu.pc);
         if (strict_completion and (inst_word == 0x00000073 or inst_word == 0x00100073))
             return error.InvalidInstruction;
-        const inst = DecodedInst.decode(inst_word) catch {
+        const inst = instruction_cache.decode(inst_word) catch {
             if (strict_completion) return error.InvalidInstruction;
             completion_reason = .invalid_instruction;
             break;
