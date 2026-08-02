@@ -31,7 +31,6 @@ const stage_profile = @import("stwo_prover_api").stage_profile;
 const clock_update_interaction = @import("../air/clock_update_interaction.zig");
 const component_order = @import("../air/component_order.zig");
 const lookup_table_schema = @import("../air/lookups/tables/schema.zig");
-const source_ingest = @import("../air/lookups/tables/source_ingest.zig");
 const memory_trace = @import("../air/memory_commitment/trace.zig");
 const merkle_node = @import("../air/memory_commitment/merkle_node.zig");
 const poseidon2_air = @import("../air/memory_commitment/poseidon2_air.zig");
@@ -65,7 +64,7 @@ const computeLogSize = statement_validation.computeLogSize;
 /// generation pass. **Transferred** to the caller of `generateAndCommit`;
 /// release with `deinit` once the interaction trace is committed.
 pub const Retained = struct {
-    lookup_source: source_ingest.Result,
+    lookup_source: lookup_sources.Result,
 
     pub fn deinit(
         self: *Retained,
@@ -335,7 +334,7 @@ fn appendClockColumns(
 /// Adds the non-opcode multiplicity requests to the counters ingested from the
 /// opcode buffers, so one counter set covers every committed lookup.
 fn registerLookupSources(
-    lookup_source: *source_ingest.Result,
+    lookup_source: *lookup_sources.Result,
     witness: *const CommitmentWitness,
     workspace: *const ProofWorkspace,
 ) !void {
@@ -354,7 +353,7 @@ fn registerLookupSources(
 fn appendLookupColumns(
     allocator: std.mem.Allocator,
     columns: *Columns,
-    lookup_source: *source_ingest.Result,
+    lookup_source: *lookup_sources.Result,
 ) !void {
     for (component_order.lookupTables()) |kind| {
         const counter = &lookup_source.counters.counters[@intFromEnum(kind)];

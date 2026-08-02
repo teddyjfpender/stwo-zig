@@ -37,7 +37,6 @@ const clock_update_interaction = @import("../air/clock_update_interaction.zig");
 const component_order = @import("../air/component_order.zig");
 const lookup_table_interaction = @import("../air/lookups/tables/interaction.zig");
 const lookup_table_schema = @import("../air/lookups/tables/schema.zig");
-const source_ingest = @import("../air/lookups/tables/source_ingest.zig");
 const opcode_interaction = @import("../air/lookups/opcode_interaction.zig");
 const memory_interaction = @import("../air/memory_commitment/interaction.zig");
 const merkle_node = @import("../air/memory_commitment/merkle_node.zig");
@@ -47,6 +46,7 @@ const relation_challenges = @import("../air/relation_challenges.zig");
 const proof_transcript = @import("../proof_transcript.zig");
 const trace_mod = @import("../runner/trace.zig");
 const commitment_witness = @import("commitment_witness.zig");
+const lookup_sources = @import("lookup_sources.zig");
 const proof_workspace = @import("proof_workspace.zig");
 const statement_geometry = @import("statement_geometry.zig");
 const types = @import("types.zig");
@@ -101,7 +101,7 @@ pub fn generateAndCommit(
     recorder: ?*stage_profile.Recorder,
     witness: *const CommitmentWitness,
     geometry: Geometry,
-    lookup_source: *const source_ingest.Result,
+    lookup_source: *const lookup_sources.Result,
     prefix: *const proof_transcript.ProverRelations,
     claim: *RiscVInteractionClaim,
 ) !void {
@@ -384,7 +384,7 @@ fn generateLookupTables(
     allocator: std.mem.Allocator,
     workspace: *ProofWorkspace,
     columns: *Columns,
-    lookup_source: *const source_ingest.Result,
+    lookup_source: *const lookup_sources.Result,
     relations: *const Relations,
     claim: *RiscVInteractionClaim,
 ) !void {
@@ -419,7 +419,7 @@ fn generateLookupTablesParallel(
     allocator: std.mem.Allocator,
     workspace: *ProofWorkspace,
     columns: *Columns,
-    lookup_source: *const source_ingest.Result,
+    lookup_source: *const lookup_sources.Result,
     relations: *const Relations,
     claim: *RiscVInteractionClaim,
     pool: *work_pool.WorkPool,
