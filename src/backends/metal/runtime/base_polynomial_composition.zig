@@ -67,6 +67,16 @@ const HostWorker = struct {
             self.err = err;
         };
     }
+
+    fn runParallel(self: *HostWorker, pool: *prover.work_pool.WorkPool) void {
+        self.component.evaluateConstraintQuotientsOnDomainParallel(
+            self.trace,
+            &self.accumulator,
+            pool,
+        ) catch |err| {
+            self.err = err;
+        };
+    }
 };
 
 const SemanticJob = struct {
@@ -277,13 +287,31 @@ pub fn evaluate(
 
     // Host-only components are independent once their coefficient slices are
     // assigned. Start them before resolving the resident AOT pipelines so any
-    // cold-process Metal setup is hidden behind useful composition work.
+    // cold-process Metal setup is hidden behind useful composition work. The
+    // largest component with a reviewed domain splitter receives one external
+    // coordinator thread: it can use every bounded-pool worker without a
+    // nested pool wait, while this thread keeps submitting resident GPU work.
     var wait_group = std.Thread.WaitGroup{};
     const pool = prover.work_pool.getGlobalPool();
     var host_pending = pool != null;
     defer if (host_pending) wait_group.wait();
+    var parallel_thread: ?std.Thread = null;
+    defer if (parallel_thread) |thread| thread.join();
+    var parallel_on_caller: ?usize = null;
     if (pool) |active| {
-        for (host_workers) |*worker| active.spawnWg(&wait_group, HostWorker.run, .{worker});
+        const parallel_index = dominantParallelHostWorker(host_workers);
+        for (host_workers, 0..) |*worker, index| {
+            if (parallel_index != null and index == parallel_index.?) continue;
+            active.spawnWg(&wait_group, HostWorker.run, .{worker});
+        }
+        if (parallel_index) |index| {
+            parallel_thread = std.Thread.spawn(
+                .{},
+                HostWorker.runParallel,
+                .{ &host_workers[index], active },
+            ) catch null;
+            if (parallel_thread == null) parallel_on_caller = index;
+        }
     } else {
         for (host_workers) |*worker| HostWorker.run(worker);
     }
@@ -475,6 +503,11 @@ pub fn evaluate(
         parameter_words,
         outputs,
     );
+    if (parallel_on_caller) |index| HostWorker.runParallel(&host_workers[index], pool.?);
+    if (parallel_thread) |thread| {
+        thread.join();
+        parallel_thread = null;
+    }
     if (pool != null) {
         wait_group.wait();
         host_pending = false;
@@ -514,6 +547,27 @@ pub fn evaluate(
         }
     }
     return try combined.finalize();
+}
+
+/// Picks the host component with the most domain work. Only one component may
+/// recursively split over the shared pool at a time; all others remain leaf
+/// jobs. This is the same scheduling invariant as the generic composition
+/// path, preserved here while resident RISC-V jobs run on the GPU.
+fn dominantParallelHostWorker(workers: []const HostWorker) ?usize {
+    var selected: ?usize = null;
+    var selected_work: u128 = 0;
+    for (workers, 0..) |worker, index| {
+        if (worker.component.domain_parallel_evaluator == null) continue;
+        const log_size = worker.component.maxConstraintLogDegreeBound();
+        if (log_size >= @bitSizeOf(u128)) continue;
+        const work = (@as(u128, 1) << @intCast(log_size)) *
+            worker.component.nConstraints();
+        if (selected == null or work > selected_work) {
+            selected = index;
+            selected_work = work;
+        }
+    }
+    return selected;
 }
 
 fn declineResidentPolynomial() ?SecureColumn {

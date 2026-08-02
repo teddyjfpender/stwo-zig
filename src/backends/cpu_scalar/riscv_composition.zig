@@ -289,6 +289,16 @@ const HostWorker = struct {
             self.err = err;
         };
     }
+
+    fn runParallel(self: *HostWorker, pool: *prover.work_pool.WorkPool) void {
+        self.component.evaluateConstraintQuotientsOnDomainParallel(
+            self.trace,
+            &self.accumulator,
+            pool,
+        ) catch |err| {
+            self.err = err;
+        };
+    }
 };
 
 const EvaluationContext = struct {
@@ -583,9 +593,21 @@ pub fn evaluate(
 
     if (prover.work_pool.getGlobalPool()) |pool| {
         var wait_group: std.Thread.WaitGroup = .{};
-        for (host_workers) |*worker| pool.spawnWg(&wait_group, HostWorker.run, .{worker});
-        for (tile_workers[1..]) |*worker| pool.spawnWg(&wait_group, TileWorker.run, .{worker});
-        TileWorker.run(&tile_workers[0]);
+        if (dominantParallelHostWorker(host_workers)) |parallel_index| {
+            for (host_workers, 0..) |*worker, index| {
+                if (index == parallel_index) continue;
+                pool.spawnWg(&wait_group, HostWorker.run, .{worker});
+            }
+            // Packed opcode tiles and the selected frontend evaluator write
+            // independent accumulator buckets. Keep the caller on the
+            // dominant domain while every packed tile drains as a pool leaf.
+            for (tile_workers) |*worker| pool.spawnWg(&wait_group, TileWorker.run, .{worker});
+            HostWorker.runParallel(&host_workers[parallel_index], pool);
+        } else {
+            for (host_workers) |*worker| pool.spawnWg(&wait_group, HostWorker.run, .{worker});
+            for (tile_workers[1..]) |*worker| pool.spawnWg(&wait_group, TileWorker.run, .{worker});
+            TileWorker.run(&tile_workers[0]);
+        }
         wait_group.wait();
     } else {
         for (host_workers) |*worker| HostWorker.run(worker);
@@ -612,6 +634,23 @@ pub fn evaluate(
         }
     }
     return try combined.finalize();
+}
+
+fn dominantParallelHostWorker(workers: []const HostWorker) ?usize {
+    var selected: ?usize = null;
+    var selected_work: u128 = 0;
+    for (workers, 0..) |worker, index| {
+        if (worker.component.domain_parallel_evaluator == null) continue;
+        const log_size = worker.component.maxConstraintLogDegreeBound();
+        if (log_size >= @bitSizeOf(u128)) continue;
+        const work = (@as(u128, 1) << @intCast(log_size)) *
+            worker.component.nConstraints();
+        if (selected == null or work > selected_work) {
+            selected = index;
+            selected_work = work;
+        }
+    }
+    return selected;
 }
 
 fn hasCandidatePair(components: []const Component) bool {
