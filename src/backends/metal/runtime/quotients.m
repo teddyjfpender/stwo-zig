@@ -21,10 +21,26 @@ typedef struct {
     uint32_t source_slot;
 } StwoZigResidentRawQuotientView;
 
+// One reduction group contains all coefficient-weighted columns which share
+// a sample batch and native evaluation geometry.  Reducing them before the
+// quotient-domain lift avoids rereading every short column once per lifted
+// row.  The intermediate remains planar so the final pass keeps coalesced
+// reads and writes.
+typedef struct {
+    uint32_t view_start;
+    uint32_t view_count;
+    uint32_t row_count;
+    uint32_t partial_offset;
+    uint32_t shift;
+    uint32_t direct;
+} StwoZigResidentRawQuotientGroup;
+
 _Static_assert(sizeof(StwoZigResidentRawQuotientView) == 40u,
                "resident raw quotient view ABI");
 _Static_assert(offsetof(StwoZigResidentRawQuotientView, source_slot) == 36u,
                "resident raw quotient source-slot ABI");
+_Static_assert(sizeof(StwoZigResidentRawQuotientGroup) == 24u,
+               "resident raw quotient group ABI");
 
 typedef struct {
     size_t logical_offset;
@@ -97,6 +113,167 @@ static bool stwo_zig_bucket_resident_raw_quotient_views(
     *views_out = [grouped_view_data copy];
     *batch_offsets_out = [offset_data copy];
     return *views_out != nil && *batch_offsets_out != nil;
+}
+
+// Re-bucket the already batch-contiguous descriptors by their small geometry
+// key.  The output order is batch-major then shift-major, with stable order
+// inside each group.  Field addition makes the grouping algebraically exact;
+// stability nevertheless keeps the transformation easy to audit.
+static bool stwo_zig_prepare_resident_quotient_groups(
+    NSData *batch_view_data,
+    NSData *batch_offset_data,
+    uint32_t view_count,
+    uint32_t batch_count,
+    uint32_t row_count,
+    NSData **views_out,
+    NSData **groups_out,
+    NSData **row_starts_out,
+    NSData **batch_groups_out,
+    uint32_t *group_count_out,
+    uint32_t *total_group_rows_out,
+    uint32_t *partial_words_out
+) {
+    if (views_out == NULL || groups_out == NULL || row_starts_out == NULL ||
+        batch_groups_out == NULL || group_count_out == NULL ||
+        total_group_rows_out == NULL || partial_words_out == NULL)
+        return false;
+    *views_out = nil;
+    *groups_out = nil;
+    *row_starts_out = nil;
+    *batch_groups_out = nil;
+    *group_count_out = 0u;
+    *total_group_rows_out = 0u;
+    *partial_words_out = 0u;
+    if (batch_view_data == nil || batch_offset_data == nil || view_count == 0u ||
+        batch_count == 0u || row_count == 0u ||
+        batch_view_data.length !=
+            (NSUInteger)view_count * sizeof(StwoZigResidentRawQuotientView) ||
+        batch_offset_data.length !=
+            ((NSUInteger)batch_count + 1u) * sizeof(uint32_t) ||
+        (size_t)batch_count > SIZE_MAX / 32u)
+        return false;
+
+    const size_t bucket_count = (size_t)batch_count * 32u;
+    if (bucket_count > SIZE_MAX / sizeof(uint32_t)) return false;
+    NSMutableData *count_data = [NSMutableData dataWithLength:
+        (NSUInteger)bucket_count * sizeof(uint32_t)];
+    NSMutableData *bucket_offset_data = [NSMutableData dataWithLength:
+        ((NSUInteger)bucket_count + 1u) * sizeof(uint32_t)];
+    NSMutableData *cursor_data = [NSMutableData dataWithLength:
+        (NSUInteger)bucket_count * sizeof(uint32_t)];
+    if (count_data == nil || bucket_offset_data == nil || cursor_data == nil)
+        return false;
+
+    const StwoZigResidentRawQuotientView *input = batch_view_data.bytes;
+    const uint32_t *batch_offsets = batch_offset_data.bytes;
+    uint32_t *counts = count_data.mutableBytes;
+    for (uint32_t batch = 0u; batch < batch_count; ++batch) {
+        if (batch_offsets[batch] > batch_offsets[batch + 1u] ||
+            batch_offsets[batch + 1u] > view_count)
+            return false;
+        for (uint32_t index = batch_offsets[batch];
+             index < batch_offsets[batch + 1u]; ++index) {
+            const StwoZigResidentRawQuotientView view = input[index];
+            if (view.batch != batch || view.shift >= 32u || view.length == 0u ||
+                view.length > row_count)
+                return false;
+            const size_t bucket = (size_t)batch * 32u + view.shift;
+            if (counts[bucket] == UINT32_MAX) return false;
+            counts[bucket] += 1u;
+        }
+    }
+
+    uint32_t *bucket_offsets = bucket_offset_data.mutableBytes;
+    uint32_t group_count = 0u;
+    for (size_t bucket = 0u; bucket < bucket_count; ++bucket) {
+        if (counts[bucket] != 0u) {
+            if (group_count == UINT32_MAX) return false;
+            group_count += 1u;
+        }
+        if (counts[bucket] > UINT32_MAX - bucket_offsets[bucket]) return false;
+        bucket_offsets[bucket + 1u] = bucket_offsets[bucket] + counts[bucket];
+    }
+    if (bucket_offsets[bucket_count] != view_count || group_count == 0u)
+        return false;
+
+    NSMutableData *grouped_view_data = [NSMutableData dataWithLength:
+        (NSUInteger)view_count * sizeof(StwoZigResidentRawQuotientView)];
+    NSMutableData *group_data = [NSMutableData dataWithLength:
+        (NSUInteger)group_count * sizeof(StwoZigResidentRawQuotientGroup)];
+    NSMutableData *row_start_data = [NSMutableData dataWithLength:
+        ((NSUInteger)group_count + 1u) * sizeof(uint32_t)];
+    NSMutableData *batch_group_data = [NSMutableData dataWithLength:
+        ((NSUInteger)batch_count + 1u) * sizeof(uint32_t)];
+    if (grouped_view_data == nil || group_data == nil || row_start_data == nil ||
+        batch_group_data == nil)
+        return false;
+
+    uint32_t *cursors = cursor_data.mutableBytes;
+    memcpy(cursors, bucket_offsets, bucket_count * sizeof(uint32_t));
+    StwoZigResidentRawQuotientView *grouped = grouped_view_data.mutableBytes;
+    for (uint32_t batch = 0u; batch < batch_count; ++batch) {
+        for (uint32_t index = batch_offsets[batch];
+             index < batch_offsets[batch + 1u]; ++index) {
+            const StwoZigResidentRawQuotientView view = input[index];
+            const size_t bucket = (size_t)batch * 32u + view.shift;
+            const uint32_t destination = cursors[bucket]++;
+            if (destination >= bucket_offsets[bucket + 1u]) return false;
+            grouped[destination] = view;
+        }
+    }
+
+    StwoZigResidentRawQuotientGroup *groups = group_data.mutableBytes;
+    uint32_t *row_starts = row_start_data.mutableBytes;
+    uint32_t *batch_groups = batch_group_data.mutableBytes;
+    uint32_t group_index = 0u;
+    uint32_t total_group_rows = 0u;
+    uint32_t partial_words = 0u;
+    for (uint32_t batch = 0u; batch < batch_count; ++batch) {
+        batch_groups[batch] = group_index;
+        for (uint32_t shift = 0u; shift < 32u; ++shift) {
+            const size_t bucket = (size_t)batch * 32u + shift;
+            const uint32_t count = counts[bucket];
+            if (count == 0u) continue;
+            const uint32_t start = bucket_offsets[bucket];
+            const StwoZigResidentRawQuotientView first = grouped[start];
+            if (first.batch != batch || first.shift != shift ||
+                first.length > UINT32_MAX / 4u ||
+                total_group_rows > UINT32_MAX - first.length ||
+                partial_words > UINT32_MAX - first.length * 4u)
+                return false;
+            for (uint32_t local = 1u; local < count; ++local) {
+                const StwoZigResidentRawQuotientView view = grouped[start + local];
+                if (view.batch != batch || view.shift != shift ||
+                    view.length != first.length || view.direct != first.direct)
+                    return false;
+            }
+            row_starts[group_index] = total_group_rows;
+            groups[group_index] = (StwoZigResidentRawQuotientGroup){
+                .view_start = start,
+                .view_count = count,
+                .row_count = first.length,
+                .partial_offset = partial_words,
+                .shift = shift,
+                .direct = first.direct,
+            };
+            total_group_rows += first.length;
+            partial_words += first.length * 4u;
+            group_index += 1u;
+        }
+    }
+    batch_groups[batch_count] = group_index;
+    row_starts[group_index] = total_group_rows;
+    if (group_index != group_count) return false;
+
+    *views_out = [grouped_view_data copy];
+    *groups_out = [group_data copy];
+    *row_starts_out = [row_start_data copy];
+    *batch_groups_out = [batch_group_data copy];
+    *group_count_out = group_count;
+    *total_group_rows_out = total_group_rows;
+    *partial_words_out = partial_words;
+    return *views_out != nil && *groups_out != nil && *row_starts_out != nil &&
+        *batch_groups_out != nil;
 }
 
 static bool stwo_zig_raw_quotient_view_geometry_is_valid(
@@ -575,18 +752,6 @@ bool stwo_zig_metal_compute_quotients(
                                               options:gpu_flat_pack
                                                   ? MTLResourceStorageModePrivate
                                                   : MTLResourceStorageModeShared];
-            if (profile_quotient) {
-                fprintf(stderr,
-                        "Metal quotient shape: raw_bytes=%zu columns=%u views=%u "
-                        "source_runs=%zu resident_sources=%lu resident_trees=%u "
-                        "batches=%u rows=%u path=%s\n",
-                        raw_bytes, raw_column_count, view_count, raw_source_runs,
-                        (unsigned long)resident_quotient_sources.count,
-                        resident_tree_count, batch_count, row_count,
-                        resident_multi_source ? "resident-fused" :
-                            (gpu_raw_upload ? "segmented" :
-                                (gpu_flat_pack ? "gpu-flat" : "cpu-flat")));
-            }
             if (!resident_multi_source && !gpu_raw_upload && !gpu_flat_pack) {
                 uint32_t *destination = flat_buffer.contents;
                 size_t cursor = 0;
@@ -617,9 +782,59 @@ bool stwo_zig_metal_compute_quotients(
                         @"Metal quotient batch-index planning failed");
             return false;
         }
+        NSData *partial_view_data = nil;
+        NSData *partial_group_data = nil;
+        NSData *partial_row_start_data = nil;
+        NSData *partial_batch_group_data = nil;
+        uint32_t partial_group_count = 0u;
+        uint32_t partial_total_rows = 0u;
+        uint32_t partial_words = 0u;
+        bool gpu_grouped_partials = false;
+        if (resident_multi_source && raw_bytes >= stwo_zig_quotient_gpu_flat_pack_min_bytes &&
+            stwo_zig_prepare_resident_quotient_groups(
+                resident_quotient_views,
+                resident_quotient_batch_offsets,
+                view_count,
+                batch_count,
+                row_count,
+                &partial_view_data,
+                &partial_group_data,
+                &partial_row_start_data,
+                &partial_batch_group_data,
+                &partial_group_count,
+                &partial_total_rows,
+                &partial_words
+            )) {
+            const uint64_t partial_bytes = (uint64_t)partial_words * sizeof(uint32_t);
+            // The intermediate is admitted only when it is materially smaller
+            // than the resident inputs and remains bounded to one GiB.  All
+            // other shapes retain the established direct resident kernel.
+            gpu_grouped_partials = partial_bytes <= UINT64_C(1024) * 1024u * 1024u &&
+                partial_bytes <= raw_bytes / 2u;
+        }
+        if (profile_quotient) {
+            fprintf(stderr,
+                    "Metal quotient shape: raw_bytes=%zu columns=%u views=%u "
+                    "source_runs=%zu resident_sources=%lu resident_trees=%u "
+                    "batches=%u rows=%u path=%s groups=%u partial_bytes=%llu\n",
+                    raw_bytes, raw_column_count, view_count, raw_source_runs,
+                    (unsigned long)resident_quotient_sources.count,
+                    resident_tree_count, batch_count, row_count,
+                    gpu_grouped_partials ? "resident-partials" :
+                        (resident_multi_source ? "resident-direct" :
+                            (gpu_raw_upload ? "segmented" :
+                                (gpu_flat_pack ? "gpu-flat" : "cpu-flat"))),
+                    gpu_grouped_partials ? partial_group_count : 0u,
+                    (unsigned long long)(gpu_grouped_partials
+                        ? (uint64_t)partial_words * sizeof(uint32_t)
+                        : 0u));
+        }
+        NSData *resident_views_for_gpu = gpu_grouped_partials
+            ? partial_view_data
+            : resident_quotient_views;
         id<MTLBuffer> raw_view_buffer = resident_multi_source
-            ? [runtime.device newBufferWithBytes:resident_quotient_views.bytes
-                                          length:resident_quotient_views.length
+            ? [runtime.device newBufferWithBytes:resident_views_for_gpu.bytes
+                                          length:resident_views_for_gpu.length
                                          options:MTLResourceStorageModeShared]
             : (single_source_raw_views != nil
                 ? [runtime.device newBufferWithBytes:single_source_raw_views.bytes
@@ -634,6 +849,25 @@ bool stwo_zig_metal_compute_quotients(
             : [runtime.device newBufferWithBytes:raw_batch_offsets.bytes
                                           length:raw_batch_offsets.length
                                          options:MTLResourceStorageModeShared];
+        id<MTLBuffer> partial_group_buffer = gpu_grouped_partials
+            ? [runtime.device newBufferWithBytes:partial_group_data.bytes
+                                          length:partial_group_data.length
+                                         options:MTLResourceStorageModeShared]
+            : nil;
+        id<MTLBuffer> partial_row_start_buffer = gpu_grouped_partials
+            ? [runtime.device newBufferWithBytes:partial_row_start_data.bytes
+                                          length:partial_row_start_data.length
+                                         options:MTLResourceStorageModeShared]
+            : nil;
+        id<MTLBuffer> partial_batch_group_buffer = gpu_grouped_partials
+            ? [runtime.device newBufferWithBytes:partial_batch_group_data.bytes
+                                          length:partial_batch_group_data.length
+                                         options:MTLResourceStorageModeShared]
+            : nil;
+        id<MTLBuffer> partial_buffer = gpu_grouped_partials
+            ? [runtime.device newBufferWithLength:(NSUInteger)partial_words * sizeof(uint32_t)
+                                          options:MTLResourceStorageModePrivate]
+            : nil;
         id<MTLBuffer> sample_buffer = [runtime.device newBufferWithBytes:sample_components
                                                                   length:(NSUInteger)batch_count * 8u * sizeof(uint32_t)
                                                                  options:MTLResourceStorageModeShared];
@@ -693,6 +927,9 @@ bool stwo_zig_metal_compute_quotients(
             (resident_multi_source && raw_view_buffer == nil) ||
             (raw_views && !resident_multi_source && !gpu_raw_upload && raw_view_buffer == nil) ||
             (raw_views && !gpu_raw_upload && raw_batch_offset_buffer == nil) ||
+            (gpu_grouped_partials &&
+                (partial_group_buffer == nil || partial_row_start_buffer == nil ||
+                 partial_batch_group_buffer == nil || partial_buffer == nil)) ||
             sample_buffer == nil ||
             linear_buffer == nil || x_buffer == nil || y_buffer == nil || output_buffer == nil) {
             write_error(error_message, error_message_len, @"Metal quotient allocation failed");
@@ -829,7 +1066,50 @@ bool stwo_zig_metal_compute_quotients(
                       threadsPerThreadgroup:MTLSizeMake(domain_width, 1u, 1u)];
             [domain_encoder endEncoding];
         }
-        if (gpu_raw_upload && !resident_multi_source) {
+        if (gpu_grouped_partials) {
+            id<MTLComputeCommandEncoder> partials = [command computeCommandEncoder];
+            partials.label = @"stwo_zig_quotient_partials_raw";
+            [partials setComputePipelineState:runtime.quotientPartialsRaw];
+            id<MTLBuffer> first_source = resident_quotient_sources[0];
+            for (NSUInteger source_slot = 0u;
+                 source_slot < stwo_zig_quotient_max_resident_sources;
+                 ++source_slot) {
+                id<MTLBuffer> source = source_slot < resident_quotient_sources.count
+                    ? resident_quotient_sources[source_slot]
+                    : first_source;
+                [partials setBuffer:source offset:0u atIndex:source_slot];
+            }
+            [partials setBuffer:raw_view_buffer offset:0u atIndex:4];
+            [partials setBuffer:partial_group_buffer offset:0u atIndex:5];
+            [partials setBuffer:partial_row_start_buffer offset:0u atIndex:6];
+            [partials setBytes:&partial_group_count length:sizeof(partial_group_count) atIndex:7];
+            [partials setBytes:&partial_total_rows length:sizeof(partial_total_rows) atIndex:8];
+            [partials setBuffer:partial_buffer offset:0u atIndex:9];
+            NSUInteger partial_width = MIN(runtime.quotientPartialsRaw.maxTotalThreadsPerThreadgroup,
+                                           runtime.quotientPartialsRaw.threadExecutionWidth * 8u);
+            [partials dispatchThreads:MTLSizeMake(partial_total_rows, 1u, 1u)
+                   threadsPerThreadgroup:MTLSizeMake(partial_width, 1u, 1u)];
+            [partials endEncoding];
+
+            id<MTLComputeCommandEncoder> combine = [command computeCommandEncoder];
+            combine.label = @"stwo_zig_quotient_combine_partials_raw";
+            [combine setComputePipelineState:runtime.quotientCombinePartialsRaw];
+            [combine setBuffer:partial_buffer offset:0u atIndex:0];
+            [combine setBuffer:partial_group_buffer offset:0u atIndex:1];
+            [combine setBuffer:partial_batch_group_buffer offset:0u atIndex:2];
+            [combine setBuffer:sample_buffer offset:0u atIndex:3];
+            [combine setBuffer:linear_buffer offset:0u atIndex:4];
+            [combine setBytes:&batch_count length:sizeof(batch_count) atIndex:5];
+            [combine setBuffer:x_buffer offset:x_offset atIndex:6];
+            [combine setBuffer:y_buffer offset:y_offset atIndex:7];
+            [combine setBuffer:output_buffer offset:0u atIndex:8];
+            [combine setBytes:&row_count length:sizeof(row_count) atIndex:9];
+            NSUInteger combine_width = MIN(runtime.quotientCombinePartialsRaw.maxTotalThreadsPerThreadgroup,
+                                           runtime.quotientCombinePartialsRaw.threadExecutionWidth * 8u);
+            [combine dispatchThreads:MTLSizeMake(row_count, 1u, 1u)
+                  threadsPerThreadgroup:MTLSizeMake(combine_width, 1u, 1u)];
+            [combine endEncoding];
+        } else if (gpu_raw_upload && !resident_multi_source) {
             id<MTLBuffer> numerators = [runtime.device newBufferWithLength:(NSUInteger)batch_count * row_count * 4u * sizeof(uint32_t)
                                                                    options:MTLResourceStorageModePrivate];
             if (numerators == nil) {
@@ -1160,9 +1440,10 @@ bool stwo_zig_metal_compute_quotients(
                     "source_runs=%zu resident_sources=%lu\n",
                     (command.GPUEndTime - command.GPUStartTime) * 1000.0,
                     (quotient_wall_end - quotient_wall_start) * 1000.0,
-                    resident_multi_source ? "resident-fused" :
-                        (gpu_raw_upload ? "segmented" :
-                            (gpu_flat_pack ? "gpu-flat" : "cpu-flat")),
+                    gpu_grouped_partials ? "resident-partials" :
+                        (resident_multi_source ? "resident-direct" :
+                            (gpu_raw_upload ? "segmented" :
+                                (gpu_flat_pack ? "gpu-flat" : "cpu-flat"))),
                     raw_source_runs,
                     (unsigned long)resident_quotient_sources.count);
         }

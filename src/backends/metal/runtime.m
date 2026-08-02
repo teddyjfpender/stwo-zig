@@ -41,6 +41,8 @@
 @property(nonatomic, strong) id<MTLComputePipelineState> circleRfftFused;
 @property(nonatomic, strong) id<MTLComputePipelineState> quotientNumerator;
 @property(nonatomic, strong) id<MTLComputePipelineState> quotientFinalize;
+@property(nonatomic, strong) id<MTLComputePipelineState> quotientPartialsRaw;
+@property(nonatomic, strong) id<MTLComputePipelineState> quotientCombinePartialsRaw;
 @property(nonatomic, strong) id<MTLComputePipelineState> quotientDomainPointsResident;
 @property(nonatomic, strong) id<MTLBuffer> quotientDomainCache;
 @property(nonatomic) uint32_t quotientDomainCacheRowCount;
@@ -649,6 +651,8 @@ static StwoZigMetalRuntime *create_runtime_from_library(
         runtime.circleRfftFused = make_pipeline(device, library, @"stwo_zig_circle_rfft_fused_tail", error_message, error_message_len);
         runtime.quotientNumerator = make_pipeline(device, library, @"stwo_zig_quotient_numerator_raw", error_message, error_message_len);
         runtime.quotientFinalize = make_pipeline(device, library, @"stwo_zig_quotient_finalize", error_message, error_message_len);
+        runtime.quotientPartialsRaw = make_pipeline(device, library, @"stwo_zig_quotient_partials_raw", error_message, error_message_len);
+        runtime.quotientCombinePartialsRaw = make_pipeline(device, library, @"stwo_zig_quotient_combine_partials_raw", error_message, error_message_len);
         runtime.quotientDomainPointsResident = make_pipeline(device, library, @"stwo_zig_quotient_domain_points_resident", error_message, error_message_len);
         runtime.quotientDenominatorsResident = make_pipeline(device, library, @"stwo_zig_quotient_denominators_resident", error_message, error_message_len);
         runtime.quotientCombineResident = make_pipeline(device, library, @"stwo_zig_quotient_combine_resident", error_message, error_message_len);
@@ -863,6 +867,7 @@ static StwoZigMetalRuntime *create_runtime_from_library(
             runtime.circleExpand == nil || runtime.circleIfftFused == nil || runtime.circleIfftFusedWide == nil ||
             runtime.circleRfftFused == nil ||
             runtime.quotientNumerator == nil || runtime.quotientFinalize == nil ||
+            runtime.quotientPartialsRaw == nil || runtime.quotientCombinePartialsRaw == nil ||
             runtime.quotientDomainPointsResident == nil || runtime.quotientDenominatorsResident == nil ||
             runtime.quotientCombineResident == nil || runtime.quotientCoefficientsResident == nil ||
             runtime.friFoldCircle == nil || runtime.friFoldLine == nil || runtime.friFold3Resident == nil ||

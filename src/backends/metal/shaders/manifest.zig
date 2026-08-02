@@ -117,6 +117,8 @@ pub const exports = [_]Export{
     .{ .name = "stwo_zig_qm31_to_coordinates", .owner = .quotient },
     .{ .name = "stwo_zig_quotient_rows", .owner = .quotient },
     .{ .name = "stwo_zig_quotient_rows_raw", .owner = .quotient },
+    .{ .name = "stwo_zig_quotient_partials_raw", .owner = .quotient },
+    .{ .name = "stwo_zig_quotient_combine_partials_raw", .owner = .quotient },
     .{ .name = "stwo_zig_quotient_numerator_raw", .owner = .quotient },
     .{ .name = "stwo_zig_quotient_finalize", .owner = .quotient },
     .{ .name = "stwo_zig_quotient_coefficients_resident", .owner = .quotient },
@@ -438,7 +440,7 @@ fn kernelDeclaration(source: []const u8, name: []const u8) ![]const u8 {
 }
 
 test "Native core source exactly covers its non-Cairo export ABI" {
-    try std.testing.expectEqual(@as(usize, 116), native_exports.len);
+    try std.testing.expectEqual(@as(usize, 118), native_exports.len);
     try std.testing.expectEqual(native_exports.len, std.mem.count(u8, native_amalgamated_source, "kernel void "));
     try std.testing.expect(std.mem.indexOf(u8, native_amalgamated_source, "shaders/cairo/") == null);
     for (native_support_headers) |unit| try std.testing.expect(std.mem.indexOf(u8, unit.path, "/cairo/") == null);
@@ -461,7 +463,7 @@ fn expectIsolated(source: []const u8, names: []const []const u8) !void {
 
 test "metal shader manifest exactly covers source and runtime exports" {
     const runtime_source = @embedFile("../runtime.m");
-    try std.testing.expectEqual(@as(usize, 128), exports.len);
+    try std.testing.expectEqual(@as(usize, 130), exports.len);
 
     var declaration_count: usize = 0;
     var remaining: []const u8 = amalgamated_source[0 .. amalgamated_source.len - 1];
@@ -499,6 +501,8 @@ test "commitment shader bindings match core ABI version 12" {
         .{ .kernel = "stwo_zig_qm31_to_coordinates", .argument = "prefix_bytes [[buffer(5)]]" },
         .{ .kernel = "stwo_zig_fri_fold_line", .argument = "prefix_bytes [[buffer(8)]]" },
         .{ .kernel = "stwo_zig_quotient_domain_points_resident", .argument = "mode [[buffer(6)]]" },
+        .{ .kernel = "stwo_zig_quotient_partials_raw", .argument = "partials [[buffer(9)]]" },
+        .{ .kernel = "stwo_zig_quotient_combine_partials_raw", .argument = "row_count [[buffer(9)]]" },
     };
     for (bindings) |binding| {
         const declaration = try kernelDeclaration(amalgamated_source, binding.kernel);
