@@ -347,6 +347,33 @@ fn appendColumnAccess(
     });
 }
 
+fn appendReadColumnAccess(
+    allocator: std.mem.Allocator,
+    accesses: *std.ArrayList(OrderedAccess),
+    columns: *const runner.trace.TraceColumns,
+    comptime family: Family,
+    row: usize,
+    ordinal: u8,
+    comptime role: []const u8,
+    addr_space: u32,
+) !void {
+    const Layout = witness_layout.LayoutFor(family);
+    const value = columnWord(columns, Layout, role, "prev", row);
+    try accesses.append(allocator, .{
+        .clock = columnValue(columns, Layout, "clock", row),
+        .kind = 1,
+        .ordinal = ordinal,
+        .family_index = canonicalFamilyIndex(family),
+        .family = @tagName(family),
+        .role = role,
+        .addr_space = addr_space,
+        .addr = columnValue(columns, Layout, role ++ "_addr", row),
+        .previous_clock = columnValue(columns, Layout, role ++ "_clock_prev", row),
+        .previous = value,
+        .next = value,
+    });
+}
+
 fn appendFamilyAccesses(
     allocator: std.mem.Allocator,
     accesses: *std.ArrayList(OrderedAccess),
@@ -358,7 +385,12 @@ fn appendFamilyAccesses(
     var columns = try trace.columnsForFamily(allocator, family, log_size);
     defer columns.deinit(allocator);
     for (0..columns.n_real_rows) |row| switch (family) {
-        .base_alu_reg, .shifts_reg, .lt_reg, .mul, .mulh, .div => {
+        .base_alu_reg => {
+            try appendReadColumnAccess(allocator, accesses, &columns, family, row, 0, "rs1", 0);
+            try appendReadColumnAccess(allocator, accesses, &columns, family, row, 1, "rs2", 0);
+            try appendColumnAccess(allocator, accesses, &columns, family, row, 2, "rd", 0);
+        },
+        .shifts_reg, .lt_reg, .mul, .mulh, .div => {
             try appendColumnAccess(allocator, accesses, &columns, family, row, 0, "rs1", 0);
             try appendColumnAccess(allocator, accesses, &columns, family, row, 1, "rs2", 0);
             try appendColumnAccess(allocator, accesses, &columns, family, row, 2, "rd", 0);
@@ -377,8 +409,8 @@ fn appendFamilyAccesses(
             const is_store = columnValue(&columns, Layout, "opcode_sb_flag", row) +
                 columnValue(&columns, Layout, "opcode_sh_flag", row) +
                 columnValue(&columns, Layout, "opcode_sw_flag", row) != 0;
-            try appendColumnAccess(allocator, accesses, &columns, family, row, 0, "rs1", 0);
-            try appendColumnAccess(
+            try appendReadColumnAccess(allocator, accesses, &columns, family, row, 0, "rs1", 0);
+            try appendReadColumnAccess(
                 allocator,
                 accesses,
                 &columns,
@@ -403,12 +435,6 @@ fn appendFamilyAccesses(
     };
 }
 
-fn limbsToWord(limbs: [4]@import("stwo_core").fields.m31.M31) u32 {
-    var value: u32 = 0;
-    for (limbs, 0..) |limb, index| value |= limb.v << @intCast(8 * index);
-    return value;
-}
-
 fn orderedAccessLessThan(_: void, lhs: OrderedAccess, rhs: OrderedAccess) bool {
     if (lhs.clock != rhs.clock) return lhs.clock < rhs.clock;
     if (lhs.kind != rhs.kind) return lhs.kind < rhs.kind;
@@ -430,7 +456,7 @@ fn dumpOrderedAccesses(allocator: std.mem.Allocator, path: []const u8, max_steps
         try appendFamilyAccesses(allocator, &accesses, &result.execution_trace, family);
     }
     for (result.state_chain_tracker.clock_updates_reg.items) |gap| {
-        const value = limbsToWord(gap.value_limbs);
+        const value = gap.value;
         try accesses.append(allocator, .{
             .clock = gap.clk,
             .kind = 0,
@@ -446,7 +472,7 @@ fn dumpOrderedAccesses(allocator: std.mem.Allocator, path: []const u8, max_steps
         });
     }
     for (result.state_chain_tracker.clock_updates_mem.items) |gap| {
-        const value = limbsToWord(gap.value_limbs);
+        const value = gap.value;
         try accesses.append(allocator, .{
             .clock = gap.clk,
             .kind = 0,
