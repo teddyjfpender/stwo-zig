@@ -11,6 +11,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 DOCUMENT = ROOT / "soundness" / "SAIL_AIR_COMPOSITION.md"
 REFINEMENT_DOCUMENT = ROOT / "soundness" / "UNIVERSAL_AIR_SAIL_REFINEMENT.md"
+REFINEMENT_STATUS = ROOT / "soundness" / "RISCV_FRONTEND_VERIFICATION_STATUS.md"
+FORMAL_README = ROOT / "formal" / "riscv-refinement" / "README.md"
 FORMAL_EVIDENCE = ROOT / "conformance" / "riscv" / "formal-corpus-evidence.json"
 CLAIMS = ROOT / "src" / "frontends" / "riscv" / "air" / "transcript" / "claims.zig"
 OPCODE_MANIFEST = ROOT / "src" / "frontends" / "riscv" / "opcode_manifest.zig"
@@ -21,6 +23,27 @@ class SailAirCompositionContractTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.document = DOCUMENT.read_text(encoding="utf-8")
         cls.refinement_document = REFINEMENT_DOCUMENT.read_text(encoding="utf-8")
+        cls.refinement_status = REFINEMENT_STATUS.read_text(encoding="utf-8")
+        cls.formal_readme = FORMAL_README.read_text(encoding="utf-8")
+
+    def test_refinement_status_surfaces_agree_on_the_bounded_claim(self) -> None:
+        for source in (
+            self.refinement_document,
+            self.refinement_status,
+            self.formal_readme,
+        ):
+            with self.subTest(source=source[:40]):
+                self.assertIn("46/46", source)
+                self.assertIn("94", source)
+                self.assertIn("constructive_row_local_execution = true", source)
+                self.assertIn("FV-3", source)
+                self.assertIn("FV-4", source)
+                self.assertIn("FV-5", source)
+                self.assertIn("whole_frontend_verified = false", source)
+                self.assertIn("proof_system_soundness = false", source)
+                self.assertIn("receipt-bound", source)
+                self.assertIn("receipt", source)
+                self.assertIn("regenerat", source)
 
     def test_all_five_cross_row_lemmas_are_explicit_and_unique(self) -> None:
         headings = re.findall(r"^### (CR-[1-5]) — ", self.document, re.MULTILINE)
@@ -122,18 +145,18 @@ class SailAirCompositionContractTest(unittest.TestCase):
 
     def test_universal_refinement_plan_preserves_scope_and_binding_gates(self) -> None:
         required = (
-            "records the earlier graded rollout; it is not the publication claim targeted",
+            "bridge receipts bind the current row-local FV-1/FV-2 source",
             "AIR IR v2 is delivered for all 17 families and 46 selectors",
             "generated fetch/decode/execute step",
             "typed AST and a canonical receipt records their normalized selector",
             "one exact manifest-wide accepted-production-AIR theorem inventory",
-            "The completed result closes SA-1 premise 5.",
+            "The eventual FV-4 trace theorem closes SA-1 premise 5.",
             "does **not** by itself prove",
             "**Publication binding:**",
             "must not claim a universal theorem about the shipped AIR until level 2 is",
             "The final CI result is a Lean kernel check.",
             "Hand-transcribing 46 instruction functions",
-            "# Complete public pilot gate:",
+            "# Complete live row-local publication gate",
             "Every opcode needs a machine-checked existence theorem",
             "independent proof-system validation",
         )
@@ -155,11 +178,13 @@ class SailAirCompositionContractTest(unittest.TestCase):
         self.assertEqual([f"FV-{index}" for index in range(1, 6)], gates)
 
         required = (
-            "receipts, and merge to `main`",
+            "and regenerated receipts satisfy the row-local obligations",
             "neutral 46-opcode",
             "one exact manifest-wide accepted-production-AIR theorem inventory",
-            "The graded 46/46 index is an input to these gates",
-            "2/46 normalized, 0/46 publication-level",
+            "The historical graded 46/46 index is only an input",
+            "Current status: 46/46 receipt-bound constructive row-local publication",
+            "exactly 94 receipt records",
+            "constructive_row_local_execution = true",
             "A theorem whose strongest chain is only “reviewed semantic predicate → AIR",
             "`composeU32` is therefore non-injective",
             "`ALIASING_BASE = 0x7FFFFFFB`",

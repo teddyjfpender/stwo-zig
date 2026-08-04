@@ -111,7 +111,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv-air-satisfaction-export", .description = "Export committed traces for the independent AIR satisfaction checker", .scope = .riscv_cpu },
     .{ .name = "test-riscv-air-satisfaction", .description = "Export and independently check all RISC-V AIR main-trace components", .scope = .riscv_cpu },
     .{ .name = "riscv-refinement-ir", .description = "Export symbolic AIR and production AIR IR v2 for Lean refinement", .scope = .riscv_cpu },
-    .{ .name = "riscv-refinement-pilot", .description = "Verify the LUI/ADDI normalized AIR-to-Sail Lean pilot", .scope = .riscv_cpu },
+    .{ .name = "riscv-refinement-pilot", .description = "Verify the 46-opcode FV-1/FV-2 publication evidence", .scope = .riscv_cpu },
     .{ .name = "riscv-csp-bench", .description = "Run the pinned EthProofs CSP benchmark matrix", .scope = .riscv_cpu },
     .{ .name = "riscv-csp-bench-metal", .description = "Run the pinned EthProofs CSP benchmark matrix on Metal", .scope = .riscv_metal },
     .{ .name = "metal-arena-plan", .description = "Build sparse Metal arena planner", .scope = .metal_tools },

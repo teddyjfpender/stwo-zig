@@ -8,6 +8,9 @@ The concise claim ledger and remaining roadmap are in
 [`soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md`](../../soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md).
 The detailed theorem contract is
 [`soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md`](../../soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md).
+The temporary review exception and behavior-preserving split sequence for
+oversized promotion proofs is recorded in
+[`DECOMPOSITION_PLAN.md`](DECOMPOSITION_PLAN.md).
 
 ## Claim boundary
 
@@ -35,7 +38,7 @@ proof_system_soundness = false
 until the word/field invariant, whole-trace composition, independent
 reproduction, and any separate proof-system obligations are complete.
 
-## Publication target and current checkpoint
+## Publication target and current status
 
 The fail-closed publication target uses these public identities:
 
@@ -51,11 +54,25 @@ fixed-table schemas, theorem names, axiom sets, non-vacuity evidence, and
 mutation identities are receipt inputs. Adding a theorem-name string cannot
 increase coverage.
 
-The target is not yet fully published. The kernel-clean sources on the default
-build and the complete continuation snapshots are itemized in
-[`checkpoints/issue-136/README.md`](checkpoints/issue-136/README.md). In
-particular, there is no current 46/46 FV-1/FV-2 receipt, and checkpoint files
+The current Lean source closes the row-local FV-1/FV-2 theorem surface for all
+46 opcodes: 46 generated-Sail retirement normalizers, 46 accepted-production-
+AIR publication implications, the generated full-step framing theorem, and
+the typed universal contract. The bridge audit inventory therefore contains
+exactly 94 public theorems, and its machine-readable policy records
+`constructive_row_local_execution = true`.
+
+The regenerated generated-Sail bridge receipt binds this 46/46 source, the
+exact 47-source digest closure, the 94-theorem axiom inventory, and the
+constructive row-local policy. Minting and replaying the clean-tree top-level
+release receipt remains a publication TODO. Historical continuation snapshots
+are itemized in
+[`checkpoints/issue-136/README.md`](checkpoints/issue-136/README.md); files
 outside the Lake library cannot contribute proof evidence.
+
+FV-3 (Word32/M31 representation), FV-4 (arbitrary-trace composition), and
+FV-5 (independent reproduction and review) remain open and blocking. Thus the
+46/46 result gates row-local opcode/AIR changes, but does not establish that a
+whole frontend trace or an accepted cryptographic proof is sound.
 
 ## Repository layout
 
@@ -68,12 +85,15 @@ outside the Lake library cannot contribute proof evidence.
 - `RiscvRefinement/Publication/` — the exact accepted-AIR publication layer
   and universal coverage contract.
 - `generated-sail-bridge/Pilot.lean` — the receipt-bound generated-Sail bridge
-  currently carrying two normalized retirements plus exact input equations.
-- `checkpoints/issue-136/{Pilot.fv1-kernel-clean,Composition.kernel-clean}.lean`
-  — the checked expanded normalizer/full-step continuation, isolated until it
-  can be promoted and receipted atomically.
-- `checkpoints/issue-136/` — full, non-gating continuation sources and the
-  exact proof handoff.
+  carrying the 46 exact opcode normalizers and observation erasure lemmas.
+- `generated-sail-bridge/Composition.lean` — state-indexed decode, generated
+  base-arm/full-step framing, and neutral public composition contracts.
+- `generated-sail-bridge/ExecutionClosure.lean` — reusable constructors that
+  turn componentwise state bindings into exact generated execution.
+- `generated-sail-bridge/Decode*.lean` and `Publication*.lean` — split family
+  certificates and the 46-opcode public theorem surface.
+- `checkpoints/issue-136/` — historical, non-gating continuation snapshots;
+  checkpoint files never contribute to the current proof count.
 - `scripts/riscv_refinement.py` — primary generation, verification, and
   receipt entry point.
 - `scripts/riscv_refinement_publication.py` — exact FV-1/FV-2 publication
@@ -95,11 +115,23 @@ python3 scripts/riscv_refinement.py prepare-sail \
   --sail-riscv-dir /tmp/stwo-riscv-formal/source/sail-riscv
 ```
 
-Generate the exact production and Sail inputs:
+Generate the exact production and Sail inputs with live Sail evidence:
 
 ```sh
 python3 scripts/riscv_refinement.py generate \
   --sail-riscv-dir /tmp/stwo-riscv-formal/source/sail-riscv
+```
+
+Focused repository-Lean and publication-policy checks are below. The live gate
+later in this section additionally compiles the external generated-Sail bridge
+closure and audits its exact 94-theorem inventory.
+
+```sh
+python3 -m unittest scripts.tests.test_riscv_refinement_sail_policy -v
+python3 -m unittest scripts.tests.test_riscv_refinement_publication -v
+(cd formal/riscv-refinement && lake build)
+(cd formal/riscv-refinement && \
+  lake env lean RiscvRefinement/AxiomAudit.lean)
 ```
 
 Run the repository gate when working on promotion:
@@ -116,11 +148,11 @@ symbolic program against production evaluation; builds Lean; checks the exact
 generated Sail bridge; scans for proof escapes; validates non-vacuity and
 mutations; and audits theorem axioms.
 
-At this checkpoint the command is intentionally fail-closed before promotion:
-it must not report 46/46 while the public generated-Sail composition,
-load/store, and division obligations named in the status ledger remain open.
-For ordinary work outside formal refinement, the default Lean build and the
-frontend's focused tests remain the usable local gates.
+The full live command reports the bounded claim as 46/46 normalized
+retirements and 46/46 row-local publication implications while retaining
+`whole_frontend_verified = false` and `proof_system_soundness = false`. Any
+later source or artifact identity drift fails closed rather than silently
+reusing an old receipt.
 
 After committing every input and generated artifact, create and replay the
 receipt:
@@ -128,14 +160,17 @@ receipt:
 ```sh
 python3 scripts/riscv_refinement.py receipt \
   --sail-riscv-dir /tmp/stwo-riscv-formal/source/sail-riscv
-python3 scripts/riscv_refinement.py verify-receipt
+python3 scripts/riscv_refinement.py verify-receipt \
+  --sail-riscv-dir /tmp/stwo-riscv-formal/source/sail-riscv
 ```
 
 Receipt generation never accepts a carried or stale Sail result as fresh
-evidence. The current generated bridge runner pins Lean's external source root
-with `-R` and checks the receipt-bound Pilot against the pinned backend. The
-two-module Pilot/Composition runner is preserved under the issue checkpoint
-and must be promoted together with a fresh live-toolchain receipt.
+evidence. The generated bridge runner pins Lean's external source root with
+`-R`, creates a fresh temporary olean directory, and compiles all 47 sources in
+the ordered `BRIDGE_SOURCES` dependency closure before checking the public
+entrypoint. The receipt binds every source path and digest, so changing or
+omitting a decoder, execution, arithmetic, or publication module invalidates
+the evidence.
 
 ## Generated inputs
 

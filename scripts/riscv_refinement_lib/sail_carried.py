@@ -13,6 +13,7 @@ from .model import (
     SAIL_REVISION,
     SAIL_VERSION,
 )
+from .render_validation import manifest_content_digest
 from .sail_contract import (
     BASE_CONFIGURATION,
     CARRIED_EVIDENCE,
@@ -90,7 +91,7 @@ def _carried_pins(carried: dict[str, object]) -> None:
     pinned: dict[str, object] = {
         "normalization": NORMALIZATION,
         "generated_monad_normalization_theorem": True,
-        "generated_step_loop_framing_theorem": False,
+        "generated_step_loop_framing_theorem": True,
     }
     for key, expected in pinned.items():
         if carried.get(key) != expected:
@@ -355,7 +356,7 @@ def capture_pinned_generated_evidence(
     manifest = codec.load_json(paths.manifest)
     if (
         manifest.get("kind") != "stwo-riscv-refinement-generated-manifest"
-        or manifest.get("canonical_digest") != codec.content_digest(manifest)
+        or manifest.get("canonical_digest") != manifest_content_digest(manifest)
     ):
         raise RefinementError(
             "committed refinement manifest identity is invalid; exact backend "
@@ -464,7 +465,7 @@ def carried_evidence(paths: Paths) -> SailEvidence:
     manifest = codec.load_json(paths.manifest)
     if (
         manifest.get("kind") != "stwo-riscv-refinement-generated-manifest"
-        or manifest.get("canonical_digest") != codec.content_digest(manifest)
+        or manifest.get("canonical_digest") != manifest_content_digest(manifest)
     ):
         raise RefinementError(
             "committed refinement manifest identity is invalid; its Sail "
@@ -571,7 +572,7 @@ def provenance(evidence: SailEvidence) -> dict[str, object]:
                 evidence.monad_bridge_receipt["claim_boundary"],
         },
         "generated_monad_normalization_theorem": True,
-        "generated_step_loop_framing_theorem": False,
+        "generated_step_loop_framing_theorem": True,
         "evidence_source": evidence.evidence_source,
     }
 

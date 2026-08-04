@@ -5,7 +5,7 @@ from __future__ import annotations
 import shutil
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 if __package__:
     from . import riscv_team_a, riscv_team_b
@@ -135,6 +135,7 @@ def _payload_identity(
     expected_kind: str | None = None,
     expected_schema: object | None = None,
     expected_payload: dict[str, Any] | None = None,
+    content_digest: Callable[[dict[str, Any]], str] = codec.content_digest,
 ) -> dict[str, object]:
     """Bind both the canonical JSON value and its exact committed bytes."""
     path = paths.root / relative
@@ -151,7 +152,7 @@ def _payload_identity(
         payload.get("canonical_digest"),
         f"{relative} canonical_digest",
     )
-    if canonical_digest != codec.content_digest(payload):
+    if canonical_digest != content_digest(payload):
         raise RefinementError(
             f"receipt input canonical digest is invalid: {relative}"
         )
@@ -178,7 +179,12 @@ def _payload_identity(
     }
 
 
-def _validate_payload_identity(value: object, label: str) -> None:
+def _validate_payload_identity(
+    value: object,
+    label: str,
+    *,
+    content_digest: Callable[[dict[str, Any]], str] = codec.content_digest,
+) -> None:
     required = {
         "artifact",
         "canonical_digest",
@@ -202,7 +208,7 @@ def _validate_payload_identity(value: object, label: str) -> None:
     if (
         not isinstance(payload, dict)
         or payload.get("canonical_digest") != value["canonical_digest"]
-        or value["canonical_digest"] != codec.content_digest(payload)
+        or value["canonical_digest"] != content_digest(payload)
         or value["payload_sha256"]
         != codec.sha256_bytes(codec.canonical_bytes(payload))
         or value["sha256"]
@@ -599,7 +605,7 @@ def _validate_certificate_mappings(
             reviewed_sail_capsules += 1
     if (
         generated_sail_inputs != 24
-        or normalized_retirements != 2
+        or normalized_retirements != 24
         or reviewed_sail_capsules != 22
     ):
         raise RefinementError(
@@ -672,6 +678,7 @@ def _generated_manifest_identity(paths: Paths) -> dict[str, object]:
         relative,
         expected_kind="stwo-riscv-refinement-generated-manifest",
         expected_schema=SCHEMA_VERSION,
+        content_digest=render.manifest_content_digest,
     )
     render.validate_committed_manifest(paths, identity["payload"])
     return identity

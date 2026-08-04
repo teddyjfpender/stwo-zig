@@ -109,6 +109,6 @@ pub fn addPilot(
     verify.step.dependOn(&pilot_program_export_run.step);
     b.step(
         "riscv-refinement-pilot",
-        "Verify the retained pilot and exact graded 46-opcode certificates",
+        "Verify the 46-opcode FV-1/FV-2 publication evidence",
     ).dependOn(&verify.step);
 }

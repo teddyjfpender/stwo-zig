@@ -1,4 +1,4 @@
-"""Kernel-check Team A execute-clause bindings against generated Sail Lean."""
+"""Kernel-check opcode publication bindings against generated Sail Lean."""
 
 from __future__ import annotations
 
@@ -6,16 +6,77 @@ import json
 import os
 import re
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import Any
 
-from . import codec
+from . import air_program_contract, codec
 from .model import LEAN_TOOLCHAIN, Paths, RefinementError
 
 SCHEMA_VERSION = "stwo-generated-sail-monad-bridge-v1"
-BRIDGE_SOURCE = Path(
-    "formal/riscv-refinement/generated-sail-bridge/Pilot.lean"
+BRIDGE_DIRECTORY = Path("formal/riscv-refinement/generated-sail-bridge")
+PILOT_SOURCE = BRIDGE_DIRECTORY / "Pilot.lean"
+COMPOSITION_SOURCE = BRIDGE_DIRECTORY / "Composition.lean"
+PUBLICATION_SOURCE = BRIDGE_DIRECTORY / "Publication.lean"
+# Keep the exact 47-source kernel-build closure in dependency order.  Every
+# source is compiled to the same temporary olean directory, so later modules
+# resolve only artifacts produced earlier in this sequence (plus the pinned
+# generated/formal projects).
+BRIDGE_SOURCES = tuple(
+    BRIDGE_DIRECTORY / name
+    for name in (
+        "Pilot.lean",
+        "Composition.lean",
+        "ExecutionClosure.lean",
+        "ExecutionCompare.lean",
+        "DecodeAluBase.lean",
+        "DecodeAluBaseState.lean",
+        "DecodeAluIType.lean",
+        "DecodeAluShift.lean",
+        "DecodeAluSlli.lean",
+        "DecodeAluSrli.lean",
+        "DecodeAluSrai.lean",
+        "DecodeAluShiftCertificates.lean",
+        "DecodeMulDivEncoding.lean",
+        "DecodeMulDivState.lean",
+        "DecodeMulDivGate.lean",
+        "DecodeMulDivMul.lean",
+        "DecodeMulDivMulh.lean",
+        "DecodeMulDivMulhsu.lean",
+        "DecodeMulDivMulhu.lean",
+        "DecodeMulDivDiv.lean",
+        "DecodeMulDivDivu.lean",
+        "DecodeMulDivRem.lean",
+        "DecodeMulDivRemu.lean",
+        "DecodeMulDiv.lean",
+        "MulDivArithmetic.lean",
+        "DecodeControl.lean",
+        "DecodeControlState.lean",
+        "ExecutionControl.lean",
+        "ExecutionControlBranches.lean",
+        "ExecutionControlJump.lean",
+        "DecodeMemory.lean",
+        "DecodeMemoryState.lean",
+        "ExecutionMemory.lean",
+        "ExecutionMemoryWrite.lean",
+        "ExecutionMemoryVmem.lean",
+        "ExecutionMemoryStore.lean",
+        "PublicationAlu.lean",
+        "PublicationCompare.lean",
+        "PublicationShifts.lean",
+        "PublicationControl.lean",
+        "PublicationMemory.lean",
+        "PublicationMemoryTheorem.lean",
+        "PublicationMulDivMultiply.lean",
+        "PublicationMulDivHighMultiply.lean",
+        "PublicationMulDivDivision.lean",
+        "PublicationMulDiv.lean",
+        "Publication.lean",
+    )
 )
+# The publication module is the public cross-project axiom-print entrypoint.
+# Keep the singular alias for callers that intentionally mutate that entrypoint.
+BRIDGE_SOURCE = PUBLICATION_SOURCE
 SUPPORT_PATCH = Path("conformance/riscv/sail-lean-riscv-extras.patch")
 COMMITTED_RECEIPT = Path(
     "generated/sail/generated-monad-bridge-receipt-v1.json"
@@ -42,35 +103,101 @@ GENERATED_MODULE_SHA256 = {
         "0ef72eb67e9628999a3e738394cbdd7915381006cb807ab16121fe0695230af5",
     "LeanRV32IM/RiscvExtras.lean": PATCHED_SUPPORT_SHA256,
 }
+
+# Exact generated execute-definition identities used by the 46 admitted
+# selectors.  Several selectors share one generated match definition; each
+# publication entry still repeats the exact digest in manifest order so no
+# selector can inherit evidence from an unordered family set.
+GENERATED_EXECUTE_DEFINITION_SHA256 = {
+    "execute_BTYPE":
+        "a11b2b09e968914dca9357daca2cd8a35cf4ad5c1928f3a10d7c32f4276a3a2a",
+    "execute_DIV":
+        "d0f4f08b121c59f548139820078411a66f8174c852250df5e397dbfbfa400070",
+    "execute_FENCE":
+        "693dd10a1ab20451cfda389c750d6c6c822812674d1b606df153a9d8fa43b606",
+    "execute_ITYPE":
+        "1d014d14c56ab01dc511fc36c8c6ee4dea56a63708257b8a5df451e7c6f6b17d",
+    "execute_JAL":
+        "b8059df92609bcabb2390263f871c3f268c7412c339c387dcf5ffe61e7224b35",
+    "execute_JALR":
+        "de8be00415e4df2f499f850f3e8e694235aa4bc6552aeebc5781598c10e345e3",
+    "execute_LOAD":
+        "df0a2a6920158599f9088a245c670c7a160fe45bb7c1bbf165b6299aa0daf363",
+    "execute_MUL":
+        "05dfb7ec7ba8011b1dd5f594ea59ceea1137edc4af32379d3561cc1e4e216b82",
+    "execute_REM":
+        "93a012c6781b6a6c2091610b10361b0a503c810c361d269f43cd173f2887501a",
+    "execute_RTYPE":
+        "01359d58d0543ce431b7315caf9961ea80329de2f017f2ea6cb205a7149cd628",
+    "execute_SHIFTIOP":
+        "00c8d03dfb9e5ee7af2fa689b2f2fc9960406deb2c17bbcc4a5167374bca2e57",
+    "execute_STORE":
+        "825282d41c18828a70302942d1a33192b7de4811d2f03202e8e625e3faf396f4",
+    "execute_UTYPE":
+        "f746995b8c903140529bb742379c295bee8d95a02de2d730990dc77fe1cacf1c",
+}
+
+
+def _selector_execute_definition(mnemonic: str, family: str) -> str:
+    if family in {"base_alu_reg", "lt_reg", "shifts_reg"}:
+        return "execute_RTYPE"
+    if family in {"base_alu_imm", "lt_imm"}:
+        return "execute_ITYPE"
+    if family == "shifts_imm":
+        return "execute_SHIFTIOP"
+    if family == "load_store":
+        return "execute_LOAD" if mnemonic.startswith("l") else "execute_STORE"
+    if family in {"branch_eq", "branch_lt"}:
+        return "execute_BTYPE"
+    if family in {"lui", "auipc"}:
+        return "execute_UTYPE"
+    if family in {"mul", "mulh"}:
+        return "execute_MUL"
+    if family == "div":
+        return "execute_DIV" if mnemonic.startswith("div") else "execute_REM"
+    if family in {"jal", "jalr", "fence"}:
+        return f"execute_{mnemonic.upper()}"
+    raise RefinementError(
+        f"no generated execute definition for {mnemonic}/{family}"
+    )
+
+
+SELECTOR_SOURCE_DEFINITIONS = {
+    mnemonic.upper(): _selector_execute_definition(mnemonic, family)
+    for _, mnemonic, family in air_program_contract.OPCODES
+}
+SELECTOR_SOURCE_DIGESTS = [
+    {
+        "selector": mnemonic.upper(),
+        "sha256": GENERATED_EXECUTE_DEFINITION_SHA256[
+            SELECTOR_SOURCE_DEFINITIONS[mnemonic.upper()]
+        ],
+    }
+    for _, mnemonic, _ in air_program_contract.OPCODES
+]
+ADMITTED_SELECTORS = [
+    mnemonic.upper()
+    for _, mnemonic, _ in air_program_contract.OPCODES
+]
+NORMALIZED_THEOREMS = tuple(
+    f"LeanRV32IM.Functions.complete_{selector}_normalizes"
+    for selector in ADMITTED_SELECTORS
+)
+PUBLICATION_THEOREMS = tuple(
+    f"LeanRV32IM.Publication.{selector}_accepted_air_refines"
+    for selector in ADMITTED_SELECTORS
+)
+FULL_STEP_THEOREM = (
+    "LeanRV32IM.Functions.generated_full_step_retirement_composition"
+)
+UNIVERSAL_PUBLICATION_THEOREM = (
+    "LeanRV32IM.Publication.universal_publication_contract"
+)
 THEOREMS = (
-    "LeanRV32IM.Functions.execute_LUI_normalizes_write",
-    "LeanRV32IM.Functions.execute_ADDI_normalizes_write",
-    "LeanRV32IM.Functions.complete_LUI_normalizes",
-    "LeanRV32IM.Functions.complete_ADDI_normalizes",
-    "LeanRV32IM.Functions.execute_UTYPE_LUI_eq",
-    "LeanRV32IM.Functions.execute_UTYPE_AUIPC_eq",
-    "LeanRV32IM.Functions.execute_ITYPE_ADDI_eq",
-    "LeanRV32IM.Functions.execute_ITYPE_SLTI_eq",
-    "LeanRV32IM.Functions.execute_ITYPE_SLTIU_eq",
-    "LeanRV32IM.Functions.execute_ITYPE_ANDI_eq",
-    "LeanRV32IM.Functions.execute_ITYPE_ORI_eq",
-    "LeanRV32IM.Functions.execute_ITYPE_XORI_eq",
-    "LeanRV32IM.Functions.execute_RTYPE_ADD_eq",
-    "LeanRV32IM.Functions.execute_RTYPE_SUB_eq",
-    "LeanRV32IM.Functions.execute_RTYPE_XOR_eq",
-    "LeanRV32IM.Functions.execute_RTYPE_OR_eq",
-    "LeanRV32IM.Functions.execute_RTYPE_AND_eq",
-    "LeanRV32IM.Functions.execute_RTYPE_SLT_eq",
-    "LeanRV32IM.Functions.execute_RTYPE_SLTU_eq",
-    "LeanRV32IM.Functions.execute_BTYPE_BEQ_eq",
-    "LeanRV32IM.Functions.execute_BTYPE_BNE_eq",
-    "LeanRV32IM.Functions.execute_BTYPE_BLT_eq",
-    "LeanRV32IM.Functions.execute_BTYPE_BGE_eq",
-    "LeanRV32IM.Functions.execute_BTYPE_BLTU_eq",
-    "LeanRV32IM.Functions.execute_BTYPE_BGEU_eq",
-    "LeanRV32IM.Functions.execute_JAL_eq",
-    "LeanRV32IM.Functions.execute_JALR_eq",
-    "LeanRV32IM.Functions.execute_FENCE_eq",
+    *NORMALIZED_THEOREMS,
+    *PUBLICATION_THEOREMS,
+    FULL_STEP_THEOREM,
+    UNIVERSAL_PUBLICATION_THEOREM,
 )
 KERNEL_AXIOMS = frozenset(
     {
@@ -81,75 +208,157 @@ KERNEL_AXIOMS = frozenset(
 )
 PINNED_GENERATED_MODEL_AXIOMS = frozenset(
     {
-        # `jump_to` consults the generated model's extension configuration.
-        # This callback is an explicit axiom in the pinned generated support
-        # module, whose digest is part of the bridge source closure. It is a
-        # Sail model input, not a proof escape or a repository-level semantic
-        # assumption.
+        # Exact syntactic extern closure of the pinned generated full step.
+        # The generated RV32IM decoder still contains disabled extension arms,
+        # so Lean's dependency audit retains their support constants even when
+        # a selector-specific profile proves those arms unreachable.  These
+        # names are assumptions of the pinned generated model, not new bridge
+        # assumptions, and their defining source digest is receipt-bound.
+        "cancel_reservation",
+        "get_16_random_bits",
+        "load_reservation",
+        "match_reservation",
+        "plat_term_write",
+        "riscv_f16Add",
+        "riscv_f16Div",
+        "riscv_f16Eq",
+        "riscv_f16Le",
+        "riscv_f16Le_quiet",
+        "riscv_f16Lt",
+        "riscv_f16Lt_quiet",
+        "riscv_f16Mul",
+        "riscv_f16MulAdd",
+        "riscv_f16Sqrt",
+        "riscv_f16Sub",
+        "riscv_f16ToF32",
+        "riscv_f16ToF64",
+        "riscv_f16ToI32",
+        "riscv_f16ToUi32",
+        "riscv_f16roundToInt",
+        "riscv_f32Add",
+        "riscv_f32Div",
+        "riscv_f32Eq",
+        "riscv_f32Le",
+        "riscv_f32Le_quiet",
+        "riscv_f32Lt",
+        "riscv_f32Lt_quiet",
+        "riscv_f32Mul",
+        "riscv_f32MulAdd",
+        "riscv_f32Sqrt",
+        "riscv_f32Sub",
+        "riscv_f32ToBF16",
+        "riscv_f32ToF16",
+        "riscv_f32ToF64",
+        "riscv_f32ToI32",
+        "riscv_f32ToI64",
+        "riscv_f32ToUi32",
+        "riscv_f32ToUi64",
+        "riscv_f32roundToInt",
+        "riscv_f64Add",
+        "riscv_f64Div",
+        "riscv_f64Eq",
+        "riscv_f64Le",
+        "riscv_f64Le_quiet",
+        "riscv_f64Lt",
+        "riscv_f64Lt_quiet",
+        "riscv_f64Mul",
+        "riscv_f64MulAdd",
+        "riscv_f64Sqrt",
+        "riscv_f64Sub",
+        "riscv_f64ToF16",
+        "riscv_f64ToF32",
+        "riscv_f64ToI32",
+        "riscv_f64ToI64",
+        "riscv_f64ToUi32",
+        "riscv_f64ToUi64",
+        "riscv_f64roundToInt",
+        "riscv_i32ToF16",
+        "riscv_i32ToF32",
+        "riscv_i32ToF64",
+        "riscv_i64ToF32",
+        "riscv_i64ToF64",
+        "riscv_ui32ToF16",
+        "riscv_ui32ToF32",
+        "riscv_ui32ToF64",
+        "riscv_ui64ToF32",
+        "riscv_ui64ToF64",
         "sys_enable_experimental_extensions",
+        "valid_reservation",
     }
 )
 APPROVED_AXIOMS = KERNEL_AXIOMS | PINNED_GENERATED_MODEL_AXIOMS
-_JUMP_INPUT_THEOREMS = frozenset(
-    {
-        "LeanRV32IM.Functions.execute_BTYPE_BEQ_eq",
-        "LeanRV32IM.Functions.execute_BTYPE_BNE_eq",
-        "LeanRV32IM.Functions.execute_BTYPE_BLT_eq",
-        "LeanRV32IM.Functions.execute_BTYPE_BGE_eq",
-        "LeanRV32IM.Functions.execute_BTYPE_BLTU_eq",
-        "LeanRV32IM.Functions.execute_BTYPE_BGEU_eq",
-        "LeanRV32IM.Functions.execute_JAL_eq",
-        "LeanRV32IM.Functions.execute_JALR_eq",
-    }
+_CONTROL_FLOW_SELECTORS = frozenset(
+    {"BEQ", "BNE", "BLT", "BGE", "BLTU", "BGEU", "JAL", "JALR"}
 )
+_LOAD_SELECTORS = frozenset({"LB", "LH", "LW", "LBU", "LHU"})
+_STORE_SELECTORS = frozenset({"SB", "SH", "SW"})
+
+
+def _selector_theorem_axioms(selector: str) -> frozenset[str]:
+    if selector in _LOAD_SELECTORS:
+        return frozenset(
+            {
+                "load_reservation",
+                "plat_term_write",
+                "sys_enable_experimental_extensions",
+            }
+        )
+    if selector in _STORE_SELECTORS:
+        return frozenset(
+            {
+                "match_reservation",
+                "plat_term_write",
+                "sys_enable_experimental_extensions",
+            }
+        )
+    if selector in _CONTROL_FLOW_SELECTORS:
+        return frozenset({"sys_enable_experimental_extensions"})
+    return frozenset()
+
+
+_NORMALIZER_MODEL_AXIOMS = {
+    f"LeanRV32IM.Functions.complete_{selector}_normalizes":
+        _selector_theorem_axioms(selector)
+    for selector in ADMITTED_SELECTORS
+}
+_PUBLICATION_MODEL_AXIOMS = {
+    # Every public proposition retains the exact generated full-step frame and
+    # successful trace decoder, so its syntactic closure is deliberately the
+    # same pinned extern set as the standalone full-step theorem.
+    f"LeanRV32IM.Publication.{selector}_accepted_air_refines":
+        PINNED_GENERATED_MODEL_AXIOMS
+    for selector in ADMITTED_SELECTORS
+}
 EXPECTED_THEOREM_AXIOMS = {
     theorem: sorted(
         KERNEL_AXIOMS
         | (
             PINNED_GENERATED_MODEL_AXIOMS
-            if theorem in _JUMP_INPUT_THEOREMS
-            else frozenset()
+            if theorem in {
+                FULL_STEP_THEOREM,
+                UNIVERSAL_PUBLICATION_THEOREM,
+            }
+            else _NORMALIZER_MODEL_AXIOMS.get(theorem, frozenset())
+                | _PUBLICATION_MODEL_AXIOMS.get(theorem, frozenset())
         )
     )
     for theorem in THEOREMS
 }
 CLAIM_BOUNDARY = {
     "generated_execute_clause_monad_normalization": True,
-    "team_a_execute_clause_input_binding": True,
-    "input_bound_team_a_selectors": [
-        "LUI",
-        "AUIPC",
-        "ADDI",
-        "XORI",
-        "ORI",
-        "ANDI",
-        "SLTI",
-        "SLTIU",
-        "ADD",
-        "SUB",
-        "XOR",
-        "OR",
-        "AND",
-        "SLT",
-        "SLTU",
-        "BEQ",
-        "BNE",
-        "BLT",
-        "BGE",
-        "BLTU",
-        "BGEU",
-        "JAL",
-        "JALR",
-        "FENCE",
-    ],
-    "normalized_retirement_selectors": ["LUI", "ADDI"],
-    "team_a_normalized_retirement_composition": False,
+    "generated_execute_clause_input_binding": True,
+    "input_bound_selectors": list(ADMITTED_SELECTORS),
+    "normalized_retirement_selectors": list(ADMITTED_SELECTORS),
+    "generated_retirement_composition": True,
     "pinned_generated_model_axioms": sorted(
         PINNED_GENERATED_MODEL_AXIOMS
     ),
     "sequential_next_pc_and_tick_fragment": True,
-    "fetch_interrupt_trap_and_step_loop_framing": False,
-    "publication_binding": False,
+    "fetch_interrupt_trap_and_step_loop_framing": True,
+    # Every public opcode result now constructs a successful row-local
+    # generated decoder/execute retirement from its component bindings.
+    "constructive_row_local_execution": True,
+    "publication_binding": True,
 }
 _UNPATCHED_OPEN = b"open LeanRV32IM.Defs\n\n"
 _AXIOM_LINE = re.compile(
@@ -208,18 +417,53 @@ def _project(generated_file: Path) -> Path:
     return project
 
 
-def _bridge_lean_command(paths: Paths) -> list[str]:
-    """Build the Lean command with the external bridge root made explicit."""
-    source = paths.root / BRIDGE_SOURCE
-    return [
+def _bridge_lean_command(
+    paths: Paths,
+    source_relative: Path,
+    output: Path | None = None,
+) -> list[str]:
+    """Build a Lean 4.29-safe command for an external bridge source."""
+    source = paths.root / source_relative
+    command = [
         "lake",
         "env",
         "lean",
         "--tstack=400000",
         "-R",
         str(source.parent),
-        str(source),
     ]
+    if output is not None:
+        command.extend(["-o", str(output)])
+    command.append(str(source))
+    return command
+
+
+def _kernel_build_bridge_sources(
+    paths: Paths,
+    project: Path,
+    environment: dict[str, str],
+    output_dir: Path,
+) -> str:
+    """Kernel-build the ordered external bridge closure one module at a time."""
+    bridge_environment = dict(environment)
+    inherited_lean_path = bridge_environment.get("LEAN_PATH")
+    bridge_environment["LEAN_PATH"] = (
+        str(output_dir)
+        if not inherited_lean_path
+        else f"{output_dir}{os.pathsep}{inherited_lean_path}"
+    )
+    outputs: list[str] = []
+    for source in BRIDGE_SOURCES:
+        output = output_dir / source.with_suffix(".olean").name
+        outputs.append(
+            _run(
+                _bridge_lean_command(paths, source, output),
+                project,
+                env=bridge_environment,
+                timeout=600,
+            )
+        )
+    return "\n".join(fragment for fragment in outputs if fragment)
 
 
 def _patch_support(paths: Paths, project: Path) -> None:
@@ -318,6 +562,51 @@ def _source_closure(project: Path) -> tuple[int, str]:
     return len(mapping), codec.sha256_bytes(codec.canonical_bytes(mapping))
 
 
+def _extract_definition(text: str, name: str) -> str:
+    marker = f"def {name} "
+    try:
+        start = text.index(marker)
+    except ValueError as exc:
+        raise RefinementError(
+            f"generated Sail output has no {name}"
+        ) from exc
+    next_definition = re.search(
+        r"\ndef [A-Za-z0-9_]+ ",
+        text[start + 1 :],
+    )
+    end = (
+        start + 1 + next_definition.start()
+        if next_definition is not None
+        else len(text)
+    )
+    return text[start:end].rstrip() + "\n"
+
+
+def _validate_selector_source_digests(generated_file: Path) -> None:
+    try:
+        generated_text = generated_file.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as exc:
+        raise RefinementError(
+            "generated Sail execute definitions are unreadable"
+        ) from exc
+    actual = {
+        name: codec.sha256_bytes(
+            _extract_definition(generated_text, name).encode("utf-8")
+        )
+        for name in GENERATED_EXECUTE_DEFINITION_SHA256
+    }
+    if actual != GENERATED_EXECUTE_DEFINITION_SHA256:
+        changed = sorted(
+            name
+            for name, digest in actual.items()
+            if GENERATED_EXECUTE_DEFINITION_SHA256.get(name) != digest
+        )
+        raise RefinementError(
+            "generated Sail publication execute definitions drifted: "
+            + ", ".join(changed)
+        )
+
+
 def _proof_axioms(output: str) -> dict[str, list[str]]:
     found: dict[str, list[str]] = {}
     for theorem, raw_axioms in _AXIOM_LINE.findall(output):
@@ -356,24 +645,45 @@ def _proof_axioms(output: str) -> dict[str, list[str]]:
     return ordered
 
 
+def _bridge_source_identities(paths: Paths) -> list[dict[str, str]]:
+    """Scan and bind every source in the declared bridge closure."""
+    identities: list[dict[str, str]] = []
+    for relative in BRIDGE_SOURCES:
+        source = paths.root / relative
+        if source.is_symlink() or not source.is_file():
+            raise RefinementError(
+                f"generated Sail monad bridge source is absent: {relative}"
+            )
+        try:
+            source_text = source.read_text(encoding="utf-8")
+        except (OSError, UnicodeError) as exc:
+            raise RefinementError(
+                "generated Sail monad bridge source is unreadable: "
+                f"{relative}"
+            ) from exc
+        stripped_comments = re.sub(
+            r"/-!.*?-/", "", source_text, flags=re.DOTALL
+        )
+        if _PROOF_ESCAPES.search(stripped_comments):
+            raise RefinementError(
+                "generated Sail monad bridge contains a forbidden proof "
+                f"escape: {relative}"
+            )
+        identities.append(
+            {
+                "path": relative.as_posix(),
+                "sha256": codec.sha256_file(source),
+            }
+        )
+    return identities
+
+
 def _static_identity(
     paths: Paths,
     generated_backend_sha256: str,
 ) -> dict[str, Any]:
+    source_identities = _bridge_source_identities(paths)
     bridge = paths.root / BRIDGE_SOURCE
-    if bridge.is_symlink() or not bridge.is_file():
-        raise RefinementError("generated Sail monad bridge source is absent")
-    try:
-        bridge_text = bridge.read_text(encoding="utf-8")
-    except (OSError, UnicodeError) as exc:
-        raise RefinementError(
-            "generated Sail monad bridge source is unreadable"
-        ) from exc
-    stripped_comments = re.sub(r"/-!.*?-/", "", bridge_text, flags=re.DOTALL)
-    if _PROOF_ESCAPES.search(stripped_comments):
-        raise RefinementError(
-            "generated Sail monad bridge contains a forbidden proof escape"
-        )
     capsule = paths.formal / "RiscvRefinement/Sail/Generated/Pilot.lean"
     if capsule.is_symlink() or not capsule.is_file():
         raise RefinementError(
@@ -383,6 +693,7 @@ def _static_identity(
         "generated_backend_sha256": generated_backend_sha256,
         "bridge_source": BRIDGE_SOURCE.as_posix(),
         "bridge_source_sha256": codec.sha256_file(bridge),
+        "bridge_sources": source_identities,
         "normalized_capsule":
             "RiscvRefinement/Sail/Generated/Pilot.lean",
         "normalized_capsule_sha256": codec.sha256_file(capsule),
@@ -393,6 +704,9 @@ def _static_identity(
         "lean_toolchain": LEAN_TOOLCHAIN,
         "lean_sail_revision": LEAN_SAIL_REVISION,
         "generated_module_sha256": dict(GENERATED_MODULE_SHA256),
+        "selector_source_digests": [
+            dict(identity) for identity in SELECTOR_SOURCE_DIGESTS
+        ],
         "theorems": list(THEOREMS),
         "claim_boundary": dict(CLAIM_BOUNDARY),
     }
@@ -405,10 +719,14 @@ def verify(
 ) -> dict[str, Any]:
     """Build the exact generated project and kernel-check the cross bridge."""
     project = _project(generated_file)
+    # Fail before provisioning/building the generated project if any member of
+    # the handwritten bridge closure is absent or contains a proof escape.
+    _bridge_source_identities(paths)
     if codec.sha256_file(generated_file) != generated_backend_sha256:
         raise RefinementError(
             "generated Sail bridge backend digest does not match its evidence"
         )
+    _validate_selector_source_digests(generated_file)
     _patch_support(paths, project)
     revision = _lean_sail_revision(project)
     toolchain = (
@@ -434,12 +752,16 @@ def verify(
         if not inherited
         else f"{formal_lean_path}{os.pathsep}{inherited}"
     )
-    output = _run(
-        _bridge_lean_command(paths),
-        project,
-        env=environment,
-        timeout=600,
-    )
+    with tempfile.TemporaryDirectory(
+        prefix="stwo-generated-sail-bridge-"
+    ) as raw_output:
+        output_dir = Path(raw_output)
+        output = _kernel_build_bridge_sources(
+            paths,
+            project,
+            environment,
+            output_dir,
+        )
     receipt: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "kind": "stwo-generated-sail-monad-bridge",

@@ -231,12 +231,16 @@ def _check_generated_sail_binding(
             f"{mnemonic} generated Sail receipt has no claim boundary"
         )
     normalized = claim_boundary.get("normalized_retirement_selectors")
-    input_bound = claim_boundary.get("input_bound_team_a_selectors")
+    input_bound = claim_boundary.get("input_bound_selectors")
+    expected_selectors = [
+        selector.upper()
+        for selector, _, _ in manifest_opcodes()
+    ]
     if (
         not isinstance(normalized, list)
         or any(not isinstance(selector, str) for selector in normalized)
         or normalized != list(dict.fromkeys(normalized))
-        or normalized != ["LUI", "ADDI"]
+        or normalized != expected_selectors
     ):
         raise TeamAError(
             f"{mnemonic} generated Sail receipt has a malformed normalized "
@@ -246,15 +250,11 @@ def _check_generated_sail_binding(
         not isinstance(input_bound, list)
         or any(not isinstance(selector, str) for selector in input_bound)
         or input_bound != list(dict.fromkeys(input_bound))
-        or set(input_bound)
-        != {
-            selector.upper()
-            for selector in GENERATED_SAIL_INPUT_THEOREMS
-        }
+        or input_bound != expected_selectors
     ):
         raise TeamAError(
             f"{mnemonic} generated Sail receipt does not bind exactly the "
-            "24 Team A execute-clause inputs"
+            "46 manifest execute-clause inputs"
         )
     if (
         not isinstance(theorems, list)
@@ -265,7 +265,7 @@ def _check_generated_sail_binding(
         or receipt_payload.get("canonical_digest") != digest
         or theorem not in theorems
         or claim_boundary.get(
-            "team_a_execute_clause_input_binding",
+            "generated_execute_clause_input_binding",
             False,
         ) is not True
     ):
@@ -298,9 +298,9 @@ def check_coverage() -> str:
             "generated Sail selector/theorem map does not exactly cover "
             "Team A"
         )
-    if set(GENERATED_SAIL_RETIREMENT_THEOREMS) != {"lui", "addi"}:
+    if set(GENERATED_SAIL_RETIREMENT_THEOREMS) != expected:
         raise TeamAError(
-            "generated Sail retirement map drifted beyond LUI/ADDI"
+            "generated Sail retirement map does not exactly cover Team A"
         )
     if set(EXPECTED_PROOF_BINDINGS) != expected:
         raise TeamAError(

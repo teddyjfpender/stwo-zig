@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 if __package__:
+    from . import riscv_refinement_publication as publication
     from .riscv_refinement_lib import air_program, air_program_contract, codec, render, sail
     from .riscv_refinement_lib.model import FULL_OPCODE_COUNT, Paths, RefinementError
     from .riscv_refinement_receipt_constants import (
@@ -31,6 +32,7 @@ if __package__:
         _validate_receipt_theorem_axioms,
     )
 else:
+    import riscv_refinement_publication as publication
     from riscv_refinement_lib import air_program, air_program_contract, codec, render, sail
     from riscv_refinement_lib.model import FULL_OPCODE_COUNT, Paths, RefinementError
     from riscv_refinement_receipt_constants import (
@@ -288,15 +290,16 @@ def _build_receipt_payload(
         "team_a_timed_certificates": 24,
         "team_b_reviewed_capsule_refinements": 22,
         "generated_sail_clause_bindings": 24,
-        "generated_sail_retirement_bindings": 2,
-        "generated_sail_input_only_bindings": 22,
+        "generated_sail_retirement_bindings": 24,
+        "generated_sail_input_only_bindings": 0,
         "reviewed_sail_capsule_bindings": 22,
         "unbound_sail_selectors": 0,
         "publication_level_opcodes": 0,
         "whole_frontend_verified": False,
     }:
         raise RefinementError(
-            "aggregate coverage claim boundary is not the A5 boundary"
+            "aggregate coverage claim boundary is not the exact "
+            "FV-1/FV-2 source-certificate boundary"
         )
     payload: dict[str, object] = {
         "schema_version": RECEIPT_SCHEMA_VERSION,
@@ -314,6 +317,11 @@ def _build_receipt_payload(
             paths,
             mappings,
             generated_manifest["payload"],
+        ),
+        "publication_evidence": publication.build_publication_evidence(
+            paths,
+            sail_evidence.monad_bridge_receipt,
+            verification.theorem_axioms,
         ),
         "sail_inputs": _sail_inputs(paths, sail_evidence),
         "opcode_mutations": _opcode_mutations(mappings),

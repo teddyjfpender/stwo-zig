@@ -97,8 +97,10 @@ GENERATED_SAIL_INPUT_THEOREMS = {
     "fence": "LeanRV32IM.Functions.execute_FENCE_eq",
 }
 GENERATED_SAIL_RETIREMENT_THEOREMS = {
-    "addi": "LeanRV32IM.Functions.complete_ADDI_normalizes",
-    "lui": "LeanRV32IM.Functions.complete_LUI_normalizes",
+    mnemonic: (
+        f"LeanRV32IM.Functions.complete_{mnemonic.upper()}_normalizes"
+    )
+    for mnemonic in GENERATED_SAIL_INPUT_THEOREMS
 }
 EXPECTED_PROOF_BINDINGS = {
     "add": {

@@ -50,7 +50,7 @@ def carried_fixture(root: Path) -> Paths:
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(Paths(ROOT).formal / relative, destination)
     for relative in (
-        sail_lean_bridge.BRIDGE_SOURCE,
+        *sail_lean_bridge.BRIDGE_SOURCES,
         sail_lean_bridge.SUPPORT_PATCH,
     ):
         destination = root / relative

@@ -15,29 +15,31 @@ from typing import Any, Mapping
 
 if __package__:
     from . import riscv_opcode_coverage
-    from .riscv_refinement_lib import air_program, air_program_contract
+    from .riscv_refinement_lib import (
+        air_program,
+        air_program_contract,
+        sail_lean_bridge,
+    )
     from .riscv_refinement_lib.model import Paths, RefinementError
     from .riscv_refinement_receipt_constants import APPROVED_LEAN_AXIOMS
 else:
     import riscv_opcode_coverage
-    from riscv_refinement_lib import air_program, air_program_contract
+    from riscv_refinement_lib import (
+        air_program,
+        air_program_contract,
+        sail_lean_bridge,
+    )
     from riscv_refinement_lib.model import Paths, RefinementError
     from riscv_refinement_receipt_constants import APPROVED_LEAN_AXIOMS
 
 
 FULL_OPCODE_COUNT = 46
 HEX_SHA256 = re.compile(r"[0-9a-f]{64}")
-APPROVED_SAIL_AXIOMS = frozenset(
-    {
-        "propext",
-        "Classical.choice",
-        "Quot.sound",
-        "load_reservation",
-        "match_reservation",
-        "plat_term_write",
-        "sys_enable_experimental_extensions",
-    }
-)
+# Keep receipt validation and the kernel bridge on one exact assumption policy.
+# The pinned generated full step retains disabled extension callbacks in its
+# syntactic dependency closure; accepting only the older seven-name subset
+# would make every complete publication receipt impossible to validate.
+APPROVED_SAIL_AXIOMS = sail_lean_bridge.APPROVED_AXIOMS
 
 PROGRAM_IDENTITY_THEOREM = (
     "RiscvRefinement.Publication.exactProductionProgramIdentities"
@@ -200,6 +202,7 @@ def _validate_sail_receipt(
         != expected_selectors
         or boundary.get("fetch_interrupt_trap_and_step_loop_framing")
         is not True
+        or boundary.get("constructive_row_local_execution") is not True
         or boundary.get("publication_binding") is not True
     ):
         raise RefinementError(

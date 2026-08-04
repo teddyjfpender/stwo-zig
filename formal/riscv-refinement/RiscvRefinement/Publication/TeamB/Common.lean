@@ -98,21 +98,21 @@ def Selector.localTheoremIdentity : Selector → String
   | .srai =>
       "RiscvRefinement.Publication.TeamB.Shifts.srai_accepted_air_implies_retirement"
   | .lb =>
-      "RiscvRefinement.Publication.TeamB.LoadStore.lb_accepted_air_implies_retirement"
+      "RiscvRefinement.Publication.TeamB.LoadStore.lb_accepted_air_refines"
   | .lh =>
-      "RiscvRefinement.Publication.TeamB.LoadStore.lh_accepted_air_implies_retirement"
+      "RiscvRefinement.Publication.TeamB.LoadStore.lh_accepted_air_refines"
   | .lw =>
-      "RiscvRefinement.Publication.TeamB.LoadStore.lw_accepted_air_implies_retirement"
+      "RiscvRefinement.Publication.TeamB.LoadStore.lw_accepted_air_refines"
   | .lbu =>
-      "RiscvRefinement.Publication.TeamB.LoadStore.lbu_accepted_air_implies_retirement"
+      "RiscvRefinement.Publication.TeamB.LoadStore.lbu_accepted_air_refines"
   | .lhu =>
-      "RiscvRefinement.Publication.TeamB.LoadStore.lhu_accepted_air_implies_retirement"
+      "RiscvRefinement.Publication.TeamB.LoadStore.lhu_accepted_air_refines"
   | .sb =>
-      "RiscvRefinement.Publication.TeamB.LoadStore.sb_accepted_air_implies_retirement"
+      "RiscvRefinement.Publication.TeamB.LoadStore.sb_accepted_air_refines"
   | .sh =>
-      "RiscvRefinement.Publication.TeamB.LoadStore.sh_accepted_air_implies_retirement"
+      "RiscvRefinement.Publication.TeamB.LoadStore.sh_accepted_air_refines"
   | .sw =>
-      "RiscvRefinement.Publication.TeamB.LoadStore.sw_accepted_air_implies_retirement"
+      "RiscvRefinement.Publication.TeamB.LoadStore.sw_accepted_air_refines"
   | .mul =>
       "RiscvRefinement.Publication.TeamB.Multiply.mul_accepted_air_implies_retirement"
   | .mulh =>

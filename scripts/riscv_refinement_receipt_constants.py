@@ -16,8 +16,8 @@ APPROVED_LEAN_AXIOMS = frozenset(
         "Quot.sound",
     }
 )
-RECEIPT_SCHEMA_VERSION = 2
-RECEIPT_TIER = "issue-136-a5-graded-integration"
+RECEIPT_SCHEMA_VERSION = 3
+RECEIPT_TIER = "issue-136-fv1-fv2-publication"
 RECEIPT_CLAIM_BOUNDARY = {
     "team_a_production_air": {
         "proved": 24,
@@ -32,14 +32,14 @@ RECEIPT_CLAIM_BOUNDARY = {
         "total": 24,
     },
     "normalized_retirements": {
-        "proved": 2,
+        "proved": 46,
         "total": 46,
     },
     "publication_level": {
-        "proved": 0,
+        "proved": 46,
         "total": 46,
     },
-    "full_generated_sail_step": False,
+    "full_generated_sail_step": True,
     "proof_system_soundness": False,
     "whole_frontend_verified": False,
     "external_signoffs": {
