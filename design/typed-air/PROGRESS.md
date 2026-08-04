@@ -3,8 +3,8 @@
 **Status date:** 2026-08-04
 **Branch:** `feat/typed-air-precompiles`
 **Current milestone:** M1 — validated logical IR
-**Active task:** none
-**Next ready task:** F-001 — add `air/lang` skeleton and test wiring
+**Active task:** F-002 — typed IDs, semantic types, source spans, and arena
+**Next ready task:** F-003 — deterministic expression nodes and interning
 
 ## Dashboard
 
@@ -33,13 +33,17 @@
 - Defined project charter, engineering canon, target architecture, IR,
   precompile model, soundness invariants, implementation phases, task graph,
   validation ladder, performance protocol, and initial ADRs.
+- Completed F-001: the isolated `air/lang` module has an explicit logical
+  schema version, is named in the test inventory, and is imported by no
+  production path. The ReleaseFast RISC-V package suite passed.
 
 ## Immediate next actions
 
-1. F-001 — create the isolated `air/lang` module skeleton and make its tests
-   visible to the RISC-V package test inventory.
-2. F-002 — implement typed IDs, semantic types, source spans, and owned arena.
-3. F-003 — implement deterministic expression nodes and structural interning.
+1. Complete F-002 with construction, ownership, and compile-time ID-separation
+   tests.
+2. F-003 — implement deterministic expression nodes and structural interning.
+3. F-004 — add constraints, hints, effects, functions, and structural
+   validation.
 
 No production behavior should change in these tasks.
 
@@ -103,6 +107,17 @@ The dossier passes the staged whitespace check, Zig formatting portion of the
 hook, and local Markdown-link validation. This baseline failure must be
 resolved separately before the hook can return green; it is not folded into
 the typed-AIR scope.
+
+### 2026-08-04 — M1 implementation started
+
+Activated F-001. The first code change is limited to an isolated
+`air/lang` module and explicit RISC-V test-inventory wiring. Production AIR,
+witness, runner, prover, transcript, and formal-export paths remain unchanged.
+
+F-001 completed with
+`zig build test --build-file src/frontends/riscv/build.zig
+-Doptimize=ReleaseFast -j2`. The package test-count floor observed the new
+test, and the command exited successfully.
 
 ## Update protocol
 

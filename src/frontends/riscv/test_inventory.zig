@@ -105,6 +105,9 @@ test {
     _ = @import("air/semantic_eval.zig");
     _ = @import("air/trace_columns.zig");
 
+    // AIR: isolated typed authoring kernel.
+    _ = @import("air/lang/mod.zig");
+
     // AIR: relation wiring.
     _ = @import("air/lookups/entry.zig");
     _ = @import("air/lookups/mod.zig");
