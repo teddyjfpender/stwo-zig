@@ -108,6 +108,8 @@ test {
     // AIR: isolated typed authoring kernel.
     _ = @import("air/lang/kernel_test.zig");
     _ = @import("air/lang/mod.zig");
+    _ = @import("air/lang/program_test.zig");
+    _ = @import("air/lang/validate_test.zig");
 
     // AIR: relation wiring.
     _ = @import("air/lookups/entry.zig");

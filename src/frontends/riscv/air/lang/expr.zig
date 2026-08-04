@@ -5,6 +5,7 @@
 //! site returns the same value ID.
 
 const std = @import("std");
+const program = @import("program.zig");
 const source = @import("source.zig");
 const types = @import("types.zig");
 
@@ -32,6 +33,7 @@ pub const Op = union(enum) {
     mul: Binary,
     neg: types.ValueId,
     select: Selection,
+    hint_output: program.HintOutput,
 };
 
 pub const Key = struct {
@@ -113,6 +115,10 @@ fn hashOp(state: *u64, op: Op) void {
             mix(state, @intFromEnum(selection.selector));
             mix(state, @intFromEnum(selection.when_true));
             mix(state, @intFromEnum(selection.when_false));
+        },
+        .hint_output => |output| {
+            mix(state, @intFromEnum(output.hint));
+            mix(state, output.index);
         },
     }
 }

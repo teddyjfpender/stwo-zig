@@ -6,6 +6,7 @@
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const expr = @import("expr.zig");
+const program = @import("program.zig");
 const source_mod = @import("source.zig");
 const types = @import("types.zig");
 
@@ -25,12 +26,29 @@ pub const NodeError = error{
     UnsupportedConstantType,
 };
 
+pub const ProgramError = error{
+    DuplicateAccessOrdinal,
+    DuplicateConstraintName,
+    DuplicateFunctionName,
+    EmptyEffectValues,
+    EmptyFunction,
+    EmptyHintOutputs,
+    InvalidAccessOrdinal,
+    InvalidConstraintGate,
+    InvalidConstraintRoot,
+    InvalidEffectLiveness,
+    InvalidFunctionInput,
+    TooManyHintOutputs,
+};
+
 pub const Error = std.mem.Allocator.Error ||
     types.IdError ||
     types.TypeError ||
     source_mod.SpanError ||
+    program.RangeError ||
     ArenaError ||
-    NodeError;
+    NodeError ||
+    ProgramError;
 
 pub const Arena = struct {
     allocator: std.mem.Allocator,
@@ -40,6 +58,15 @@ pub const Arena = struct {
     sources_by_path: std.AutoHashMap(types.NameId, types.SourceId),
     nodes: std.ArrayList(expr.Node),
     interned_nodes: expr.Map,
+    constraints: std.ArrayList(program.Constraint),
+    hints: std.ArrayList(program.Hint),
+    hint_inputs: std.ArrayList(types.ValueId),
+    hint_outputs: std.ArrayList(types.ValueId),
+    effects: std.ArrayList(program.Effect),
+    effect_values: std.ArrayList(types.ValueId),
+    functions: std.ArrayList(program.Function),
+    function_inputs: std.ArrayList(types.ValueId),
+    function_outputs: std.ArrayList(types.ValueId),
 
     pub fn init(allocator: std.mem.Allocator) Arena {
         return .{
@@ -50,10 +77,28 @@ pub const Arena = struct {
             .sources_by_path = std.AutoHashMap(types.NameId, types.SourceId).init(allocator),
             .nodes = .empty,
             .interned_nodes = expr.Map.init(allocator),
+            .constraints = .empty,
+            .hints = .empty,
+            .hint_inputs = .empty,
+            .hint_outputs = .empty,
+            .effects = .empty,
+            .effect_values = .empty,
+            .functions = .empty,
+            .function_inputs = .empty,
+            .function_outputs = .empty,
         };
     }
 
     pub fn deinit(self: *Arena) void {
+        self.function_outputs.deinit(self.allocator);
+        self.function_inputs.deinit(self.allocator);
+        self.functions.deinit(self.allocator);
+        self.effect_values.deinit(self.allocator);
+        self.effects.deinit(self.allocator);
+        self.hint_outputs.deinit(self.allocator);
+        self.hint_inputs.deinit(self.allocator);
+        self.hints.deinit(self.allocator);
+        self.constraints.deinit(self.allocator);
         self.interned_nodes.deinit();
         self.nodes.deinit(self.allocator);
         self.sources_by_path.deinit();
@@ -128,6 +173,106 @@ pub const Arena = struct {
     /// Borrowed until the next node insertion or `deinit`.
     pub fn nodesView(self: *const Arena) []const expr.Node {
         return self.nodes.items;
+    }
+
+    pub fn constraint(self: *const Arena, id: types.ConstraintId) ?program.Constraint {
+        const index = types.idIndex(id);
+        if (index >= self.constraints.items.len) return null;
+        return self.constraints.items[index];
+    }
+
+    /// Borrowed until the next constraint insertion or `deinit`.
+    pub fn constraintsView(self: *const Arena) []const program.Constraint {
+        return self.constraints.items;
+    }
+
+    pub fn hint(self: *const Arena, id: types.HintId) ?program.Hint {
+        const index = types.idIndex(id);
+        if (index >= self.hints.items.len) return null;
+        return self.hints.items[index];
+    }
+
+    /// Borrowed until the next hint insertion or `deinit`.
+    pub fn hintsView(self: *const Arena) []const program.Hint {
+        return self.hints.items;
+    }
+
+    pub fn hintInputs(self: *const Arena, id: types.HintId) ?[]const types.ValueId {
+        const item = self.hint(id) orelse return null;
+        return item.inputs.slice(self.hint_inputs.items);
+    }
+
+    pub fn hintOutputs(self: *const Arena, id: types.HintId) ?[]const types.ValueId {
+        const item = self.hint(id) orelse return null;
+        return item.outputs.slice(self.hint_outputs.items);
+    }
+
+    /// Borrowed until the next hint insertion or `deinit`.
+    pub fn hintInputsView(self: *const Arena) []const types.ValueId {
+        return self.hint_inputs.items;
+    }
+
+    /// Borrowed until the next hint insertion or `deinit`.
+    pub fn hintOutputsView(self: *const Arena) []const types.ValueId {
+        return self.hint_outputs.items;
+    }
+
+    pub fn effect(self: *const Arena, id: types.EffectId) ?program.Effect {
+        const index = types.idIndex(id);
+        if (index >= self.effects.items.len) return null;
+        return self.effects.items[index];
+    }
+
+    /// Borrowed until the next effect insertion or `deinit`.
+    pub fn effectsView(self: *const Arena) []const program.Effect {
+        return self.effects.items;
+    }
+
+    pub fn effectValues(self: *const Arena, id: types.EffectId) ?[]const types.ValueId {
+        const item = self.effect(id) orelse return null;
+        return item.values.slice(self.effect_values.items);
+    }
+
+    /// Borrowed until the next effect insertion or `deinit`.
+    pub fn effectValuesView(self: *const Arena) []const types.ValueId {
+        return self.effect_values.items;
+    }
+
+    pub fn function(self: *const Arena, id: types.FunctionId) ?program.Function {
+        const index = types.idIndex(id);
+        if (index >= self.functions.items.len) return null;
+        return self.functions.items[index];
+    }
+
+    /// Borrowed until the next function insertion or `deinit`.
+    pub fn functionsView(self: *const Arena) []const program.Function {
+        return self.functions.items;
+    }
+
+    pub fn functionInputs(
+        self: *const Arena,
+        id: types.FunctionId,
+    ) ?[]const types.ValueId {
+        const item = self.function(id) orelse return null;
+        return item.inputs.slice(self.function_inputs.items);
+    }
+
+    pub fn functionOutputs(
+        self: *const Arena,
+        id: types.FunctionId,
+    ) ?[]const types.ValueId {
+        const item = self.function(id) orelse return null;
+        return item.outputs.slice(self.function_outputs.items);
+    }
+
+    /// Borrowed until the next function insertion or `deinit`.
+    pub fn functionInputsView(self: *const Arena) []const types.ValueId {
+        return self.function_inputs.items;
+    }
+
+    /// Borrowed until the next function insertion or `deinit`.
+    pub fn functionOutputsView(self: *const Arena) []const types.ValueId {
+        return self.function_outputs.items;
     }
 
     pub fn input(
@@ -249,6 +394,193 @@ pub const Arena = struct {
         }, span);
     }
 
+    pub fn assertZero(
+        self: *Arena,
+        stable_name: []const u8,
+        root: types.ValueId,
+        gate: ?types.ValueId,
+        category: program.ConstraintCategory,
+        span: source_mod.SourceSpan,
+    ) Error!types.ConstraintId {
+        try self.validateSpan(span);
+        const root_node = self.node(root) orelse return error.UnknownValue;
+        if (!isFieldScalar(root_node.key.ty))
+            return error.InvalidConstraintRoot;
+        if (gate) |gate_id| {
+            const gate_node = self.node(gate_id) orelse return error.UnknownValue;
+            if (!isSelector(gate_node.key.ty))
+                return error.InvalidConstraintGate;
+        }
+
+        const name_id = try self.internName(stable_name);
+        for (self.constraints.items) |existing| {
+            if (existing.name == name_id) return error.DuplicateConstraintName;
+        }
+
+        const id = try types.idFromIndex(
+            types.ConstraintId,
+            self.constraints.items.len,
+        );
+        try self.constraints.append(self.allocator, .{
+            .name = name_id,
+            .root = root,
+            .gate = gate,
+            .category = category,
+            .source_span = span,
+        });
+        return id;
+    }
+
+    /// Declares an honest witness recipe and creates one typed value node for
+    /// each output. The returned values remain untrusted until constraints or
+    /// effects bind them in a later validation phase.
+    pub fn addHint(
+        self: *Arena,
+        recipe: []const u8,
+        inputs: []const types.ValueId,
+        output_types: []const types.Type,
+        span: source_mod.SourceSpan,
+    ) Error!types.HintId {
+        if (output_types.len == 0) return error.EmptyHintOutputs;
+        if (output_types.len > @as(usize, std.math.maxInt(u16)) + 1)
+            return error.TooManyHintOutputs;
+        try self.validateSpan(span);
+        for (inputs) |input_id| {
+            if (self.node(input_id) == null) return error.UnknownValue;
+        }
+        for (output_types) |ty| try ty.validate();
+
+        const recipe_id = try self.internName(recipe);
+        const hint_id = try types.idFromIndex(types.HintId, self.hints.items.len);
+        const input_range = try program.RefRange.init(
+            self.hint_inputs.items.len,
+            inputs.len,
+        );
+        const output_range = try program.RefRange.init(
+            self.hint_outputs.items.len,
+            output_types.len,
+        );
+
+        const input_start = self.hint_inputs.items.len;
+        errdefer self.hint_inputs.shrinkRetainingCapacity(input_start);
+        try self.hint_inputs.appendSlice(self.allocator, inputs);
+
+        const output_start = self.hint_outputs.items.len;
+        errdefer self.hint_outputs.shrinkRetainingCapacity(output_start);
+        const node_start = self.nodes.items.len;
+        errdefer self.rollbackNodes(node_start);
+        for (output_types, 0..) |ty, index| {
+            const output = try self.internNode(.{
+                .ty = ty,
+                .op = .{ .hint_output = .{
+                    .hint = hint_id,
+                    .index = @intCast(index),
+                } },
+            }, span);
+            try self.hint_outputs.append(self.allocator, output);
+        }
+
+        try self.hints.append(self.allocator, .{
+            .recipe = recipe_id,
+            .inputs = input_range,
+            .outputs = output_range,
+            .source_span = span,
+        });
+        return hint_id;
+    }
+
+    pub fn addEffect(
+        self: *Arena,
+        kind: program.EffectKind,
+        values: []const types.ValueId,
+        liveness: ?types.ValueId,
+        access_ordinal: ?u8,
+        span: source_mod.SourceSpan,
+    ) Error!types.EffectId {
+        if (values.len == 0) return error.EmptyEffectValues;
+        try self.validateSpan(span);
+        for (values) |value| {
+            if (self.node(value) == null) return error.UnknownValue;
+        }
+        if (liveness) |liveness_id| {
+            const liveness_node = self.node(liveness_id) orelse
+                return error.UnknownValue;
+            if (!isSelector(liveness_node.key.ty))
+                return error.InvalidEffectLiveness;
+        }
+        if (requiresAccessOrdinal(kind) != (access_ordinal != null))
+            return error.InvalidAccessOrdinal;
+        if (access_ordinal) |ordinal| {
+            for (self.effects.items) |existing| {
+                if (existing.access_ordinal == ordinal)
+                    return error.DuplicateAccessOrdinal;
+            }
+        }
+
+        const id = try types.idFromIndex(types.EffectId, self.effects.items.len);
+        const value_range = try program.RefRange.init(
+            self.effect_values.items.len,
+            values.len,
+        );
+        const value_start = self.effect_values.items.len;
+        errdefer self.effect_values.shrinkRetainingCapacity(value_start);
+        try self.effect_values.appendSlice(self.allocator, values);
+        try self.effects.append(self.allocator, .{
+            .kind = kind,
+            .values = value_range,
+            .liveness = liveness,
+            .access_ordinal = access_ordinal,
+            .source_span = span,
+        });
+        return id;
+    }
+
+    pub fn addFunction(
+        self: *Arena,
+        stable_name: []const u8,
+        inputs: []const types.ValueId,
+        outputs: []const types.ValueId,
+        span: source_mod.SourceSpan,
+    ) Error!types.FunctionId {
+        if (inputs.len == 0 and outputs.len == 0) return error.EmptyFunction;
+        try self.validateSpan(span);
+        for (inputs) |input_id| {
+            const input_node = self.node(input_id) orelse return error.UnknownValue;
+            if (input_node.key.op != .input) return error.InvalidFunctionInput;
+        }
+        for (outputs) |output_id| {
+            if (self.node(output_id) == null) return error.UnknownValue;
+        }
+
+        const name_id = try self.internName(stable_name);
+        for (self.functions.items) |existing| {
+            if (existing.name == name_id) return error.DuplicateFunctionName;
+        }
+
+        const id = try types.idFromIndex(types.FunctionId, self.functions.items.len);
+        const input_range = try program.RefRange.init(
+            self.function_inputs.items.len,
+            inputs.len,
+        );
+        const output_range = try program.RefRange.init(
+            self.function_outputs.items.len,
+            outputs.len,
+        );
+        const input_start = self.function_inputs.items.len;
+        errdefer self.function_inputs.shrinkRetainingCapacity(input_start);
+        try self.function_inputs.appendSlice(self.allocator, inputs);
+        const output_start = self.function_outputs.items.len;
+        errdefer self.function_outputs.shrinkRetainingCapacity(output_start);
+        try self.function_outputs.appendSlice(self.allocator, outputs);
+        try self.functions.append(self.allocator, .{
+            .name = name_id,
+            .inputs = input_range,
+            .outputs = output_range,
+            .source_span = span,
+        });
+        return id;
+    }
+
     fn fieldBinary(
         self: *Arena,
         comptime operation: enum { add, sub, mul },
@@ -293,9 +625,16 @@ pub const Arena = struct {
         try self.interned_nodes.put(key, id);
         return id;
     }
+
+    fn rollbackNodes(self: *Arena, starting_len: usize) void {
+        while (self.nodes.items.len > starting_len) {
+            const removed = self.nodes.pop().?;
+            std.debug.assert(self.interned_nodes.remove(removed.key));
+        }
+    }
 };
 
-fn isFieldScalar(ty: types.Type) bool {
+pub fn isFieldScalar(ty: types.Type) bool {
     return switch (ty) {
         .felt,
         .bit,
@@ -314,7 +653,7 @@ fn isFieldScalar(ty: types.Type) bool {
     };
 }
 
-fn maxUnsignedValue(ty: types.Type) NodeError!u32 {
+pub fn maxUnsignedValue(ty: types.Type) NodeError!u32 {
     return switch (ty) {
         .bit, .selector => 1,
         .byte => std.math.maxInt(u8),
@@ -328,5 +667,23 @@ fn maxUnsignedValue(ty: types.Type) NodeError!u32 {
         else
             (@as(u32, 1) << @intCast(bounded.bits)) - 1,
         .felt, .array => error.UnsupportedConstantType,
+    };
+}
+
+pub fn isSelector(ty: types.Type) bool {
+    return switch (ty) {
+        .bit, .selector => true,
+        else => false,
+    };
+}
+
+pub fn requiresAccessOrdinal(kind: program.EffectKind) bool {
+    return switch (kind) {
+        .register_read,
+        .register_write,
+        .memory_read,
+        .memory_write,
+        => true,
+        else => false,
     };
 }

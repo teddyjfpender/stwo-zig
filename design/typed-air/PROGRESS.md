@@ -3,15 +3,15 @@
 **Status date:** 2026-08-04
 **Branch:** `feat/typed-air-precompiles`
 **Current milestone:** M1 — validated logical IR
-**Active task:** F-004 — constraints, hints, effects, functions, validation
-**Next ready task:** F-005 — canonical logical manifest serialization
+**Active task:** F-005 — canonical logical manifest serialization
+**Next ready task:** F-006 — typed relation schema registry
 
 ## Dashboard
 
 | Milestone | State | Evidence |
 | --- | --- | --- |
 | M0 — engineering dossier | complete | This directory and initial ADRs |
-| M1 — validated logical IR | ready | F-001 is dependency-free |
+| M1 — validated logical IR | active | F-001 through F-004 complete; F-005 active |
 | M2 — shadow compiler | queued | Requires M1 |
 | M3 — compatibility lowering | queued | Requires shadow import |
 | M4 — Poseidon compiler pilot | queued | Requires degree/layout passes |
@@ -43,12 +43,18 @@
   topological IDs, commutative add/multiply interning, typed operation
   rejection, primary source preservation, deterministic replay, and
   allocation-failure cleanup pass.
+- Completed F-004: arena-owned constraints, hints, ordered effects, and
+  function signatures pass allocation-failure cleanup and whole-program
+  validation. The allocation-free structural validator verifies canonical
+  ranges, topological references, interning indexes, hint-output identity,
+  selector use, unique access ordinals, stable names, sources, and signatures.
+  Each of its 22 named error classes has a focused negative test.
 
 ## Immediate next actions
 
-1. Complete F-004 with one named negative test for every validator error class.
-2. F-005 — add canonical logical manifest serialization.
-3. A-001 — import the current production symbolic polynomial DAG.
+1. F-005 — add canonical logical manifest serialization.
+2. F-006 — define typed relation schemas and role/arity validation.
+3. F-007 — add acyclic static function calls.
 
 No production behavior should change in these tasks.
 
@@ -131,6 +137,13 @@ that distinct semantic IDs remain distinct Zig types.
 F-003 completed with the same ReleaseFast package command. Structural hashing
 uses explicit semantic fields rather than rendered text or object bytes; the
 tests rebuild the graph in a second arena and require identical node keys.
+
+F-004 completed with the same ReleaseFast package command. Whole-program
+records remain isolated from production code. The validator is allocation-free
+and checks all stored semantics independently of constructor success; 22
+one-error corruption tests prove every public validator error is reachable and
+stable. Allocation-failure enumeration now crosses hint output construction,
+constraints, ordered effects, and functions.
 
 ## Update protocol
 

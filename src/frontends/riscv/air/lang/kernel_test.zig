@@ -256,8 +256,36 @@ fn allocationFailureCase(allocator: std.mem.Allocator) !void {
     const generated = source.SourceSpan.generated();
     const lhs = try arena.input("lhs", .felt, generated);
     const rhs = try arena.input("rhs", .felt, generated);
+    const live = try arena.input("live", .bit, generated);
     const sum = try arena.add(lhs, rhs, generated);
-    _ = try arena.mul(sum, lhs, generated);
+    const product = try arena.mul(sum, lhs, generated);
+    const hint_id = try arena.addHint(
+        "allocation.inverse.v1",
+        &.{product},
+        &.{ .felt, .bit },
+        generated,
+    );
+    const outputs = arena.hintOutputs(hint_id).?;
+    _ = try arena.assertZero(
+        "allocation.binding",
+        outputs[0],
+        outputs[1],
+        .hint_binding,
+        generated,
+    );
+    _ = try arena.addEffect(
+        .register_read,
+        &.{ lhs, rhs },
+        live,
+        0,
+        generated,
+    );
+    _ = try arena.addFunction(
+        "allocation.product",
+        &.{ lhs, rhs, live },
+        &.{ product, outputs[0] },
+        generated,
+    );
 }
 
 test "logical arena releases every partial allocation" {

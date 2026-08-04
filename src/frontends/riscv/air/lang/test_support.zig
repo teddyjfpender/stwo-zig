@@ -1,0 +1,98 @@
+const std = @import("std");
+const ir = @import("ir.zig");
+const source = @import("source.zig");
+const types = @import("types.zig");
+
+pub const Fixture = struct {
+    arena: ir.Arena,
+    lhs: types.ValueId,
+    rhs: types.ValueId,
+    live: types.ValueId,
+    word: types.ValueId,
+    sum: types.ValueId,
+    hint_output: types.ValueId,
+    negated: types.ValueId,
+
+    pub fn init(allocator: std.mem.Allocator) !Fixture {
+        var arena = ir.Arena.init(allocator);
+        errdefer arena.deinit();
+
+        const primary_source = try arena.addSource("fixture/primary.zig");
+        _ = try arena.addSource("fixture/secondary.zig");
+        const span = try source.SourceSpan.init(
+            primary_source,
+            .{ .byte_offset = 0, .line = 1, .column = 1 },
+            .{ .byte_offset = 4, .line = 1, .column = 5 },
+        );
+        const lhs = try arena.input("lhs", .felt, span);
+        const rhs = try arena.input("rhs", .felt, span);
+        const live = try arena.input("live", .bit, span);
+        const word = try arena.input("word", .word32, span);
+        const sum = try arena.add(lhs, rhs, span);
+        const hint_id = try arena.addHint(
+            "fixture.inverse.v1",
+            &.{lhs},
+            &.{.felt},
+            span,
+        );
+        const hint_output = arena.hintOutputs(hint_id).?[0];
+        const negated = try arena.neg(sum, span);
+
+        _ = try arena.assertZero(
+            "fixture.sum",
+            sum,
+            live,
+            .semantic,
+            span,
+        );
+        _ = try arena.assertZero(
+            "fixture.hint",
+            hint_output,
+            null,
+            .hint_binding,
+            span,
+        );
+        _ = try arena.addEffect(
+            .register_read,
+            &.{ lhs, rhs },
+            live,
+            0,
+            span,
+        );
+        _ = try arena.addEffect(
+            .memory_write,
+            &.{hint_output},
+            live,
+            1,
+            span,
+        );
+        _ = try arena.addFunction(
+            "fixture.sum_fn",
+            &.{ lhs, rhs, live },
+            &.{sum},
+            span,
+        );
+        _ = try arena.addFunction(
+            "fixture.hint_fn",
+            &.{lhs},
+            &.{ hint_output, negated },
+            span,
+        );
+
+        return .{
+            .arena = arena,
+            .lhs = lhs,
+            .rhs = rhs,
+            .live = live,
+            .word = word,
+            .sum = sum,
+            .hint_output = hint_output,
+            .negated = negated,
+        };
+    }
+
+    pub fn deinit(self: *Fixture) void {
+        self.arena.deinit();
+        self.* = undefined;
+    }
+};
