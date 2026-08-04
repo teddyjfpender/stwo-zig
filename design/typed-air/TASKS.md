@@ -38,19 +38,19 @@ first production milestone. `P2` improves breadth or optimization.
 | F-002 | Implement typed IDs, semantic types, source spans, and arena ownership | F-001 | Construction/deinit tests; invalid cross-ID use impossible at compile time | done |
 | F-003 | Implement expression nodes and structural interning | F-002 | Stable topological IDs; equivalent expressions intern; order-independent test corpus | done |
 | F-004 | Implement constraints, hints, effects, functions, and structural validator | F-003 | Named negative test for every validator error class | done |
-| F-005 | Implement canonical logical manifest serialization | F-004 | Two clean builds and insertion-order perturbations produce identical bytes | active |
+| F-005 | Implement canonical logical manifest serialization | F-004 | Two clean builds and insertion-order perturbations produce identical bytes | done |
 
 ## Foundation tasks
 
-| ID | Priority | Task | Depends | Acceptance |
-| --- | --- | --- | --- | --- |
-| F-006 | P0 | Define typed relation schema registry | F-002 | Existing relation domains represented without strings; invalid roles/arity reject |
-| F-007 | P0 | Define acyclic function graph and static call validation | F-004 | Recursive cycle and missing callee tests reject deterministically |
-| F-008 | P0 | Define hint recipe registry and binding metadata | F-004 | Unbound output and unknown recipe reject |
-| F-009 | P1 | Add stable diagnostic renderer | F-003 | Diagnostics include component, source span, value path, type, and degree |
-| F-010 | P1 | Add canonical program digest | F-005 | Digest changes for semantic order/type changes and not allocator/address changes |
-| F-011 | P1 | Add allocation-failure tests for arena finalization | F-004 | All partially initialized owners deinit cleanly |
-| F-012 | P1 | Document public authoring interface | F-004 | One minimal pure and one effectful example compile in tests |
+| ID | Priority | Task | Depends | Acceptance | Status |
+| --- | --- | --- | --- | --- | --- |
+| F-006 | P0 | Define typed relation schema registry | F-002 | Existing relation domains represented without strings; invalid roles/arity reject | active |
+| F-007 | P0 | Define acyclic function graph and static call validation | F-004 | Recursive cycle and missing callee tests reject deterministically | ready |
+| F-008 | P0 | Define hint recipe registry and binding metadata | F-004 | Unbound output and unknown recipe reject | ready |
+| F-009 | P1 | Add stable diagnostic renderer | F-003 | Diagnostics include component, source span, value path, type, and degree | ready |
+| F-010 | P1 | Add canonical program digest | F-005 | Digest changes for semantic order/type changes and not allocator/address changes | ready |
+| F-011 | P1 | Add allocation-failure tests for arena finalization | F-004 | All partially initialized owners deinit cleanly | ready |
+| F-012 | P1 | Document public authoring interface | F-004 | One minimal pure and one effectful example compile in tests | ready |
 
 ## Shadow analysis and lowering
 

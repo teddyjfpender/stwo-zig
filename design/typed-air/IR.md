@@ -285,7 +285,12 @@ formal IR version
 runtime capability version
 ```
 
-The manifest is serialized with fixed field order and canonical integers.
+The logical manifest uses the versioned `STWAIRL\0` encoding: explicit stable
+tags, fixed field order, length-prefixed bytes, and fixed-width little-endian
+integers. Names and source paths are serialized by content rather than arena
+ID, while constraints and effects retain declared semantic order. See
+[ADR-0005](decisions/0005-canonical-logical-manifest.md). The later physical
+layout manifest extends this identity rather than reinterpreting it.
 
 ## Validation passes
 

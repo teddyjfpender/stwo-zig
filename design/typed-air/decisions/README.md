@@ -22,12 +22,13 @@ shape, authoring model, or delivery order.
 | [0002](0002-compatibility-before-optimization.md) | Compatibility lowering before optimization | accepted |
 | [0003](0003-one-proof-precompiles-first.md) | One-proof precompiles before separate proof recursion | accepted |
 | [0004](0004-acyclic-functions-in-v0.md) | Acyclic function graph in IR v0 | accepted |
+| [0005](0005-canonical-logical-manifest.md) | Canonical logical manifest encoding | accepted |
 
 ## Pending ADRs
 
 - Guest precompile invocation ABI and relationship to the RV32IM profile.
 - Guest Poseidon relation domain/version and duplicate-call policy.
-- Canonical logical/layout manifest serialization format.
+- Canonical physical layout manifest serialization format.
 - Production activation criteria for generated witness writers.
 - Cross-proof relation-summary construction.
 - Recursive verifier field and proof protocol.
