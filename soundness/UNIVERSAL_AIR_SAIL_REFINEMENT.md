@@ -7,14 +7,18 @@
 > categories, publication grades, or current ownership boundaries.
 
 **Status:** `whole_frontend_verified = false` and
-`proof_system_soundness = false`. The receipt currently committed on `main`
-records the earlier graded rollout; it is not the publication claim targeted
-by FV-1/FV-2. The active promotion must establish a neutral 46-opcode
-inventory, 46 generated-Sail normalizers, 46 accepted-production-AIR
-implications, full-step retirement framing, an exact axiom audit, reproducible
-receipts, and merge to `main` before those stronger results count as repository
-evidence. FV-3 (Word32/M31 discipline), FV-4 (arbitrary-trace composition),
-and FV-5 (independent reproduction/review) remain blocking after that landing.
+`proof_system_soundness = false`. The regenerated generated-Sail translation
+and bridge receipts bind the current row-local FV-1/FV-2 source; minting and
+replaying the clean-tree top-level release receipt remains a TODO. The checked
+Lean source closure has a neutral
+46-opcode inventory, 46 generated-Sail normalizers, 46 constructive row-local
+accepted-production-AIR implications, and two inventory-wide entries: the
+full-step framing theorem and typed universal contract. That is exactly 94
+audited public theorems. Its bridge policy records
+`constructive_row_local_execution = true`. The exact 47-source closure and
+94-theorem axiom inventory are portable receipt evidence.
+FV-3 (Word32/M31 discipline), FV-4 (arbitrary-trace composition), and FV-5
+(independent reproduction/review) remain open and blocking.
 
 **Primary result:** machine-check, for every input admitted by each of the 46
 proof opcodes, that satisfaction of the shipped row AIR and its exact local
@@ -36,7 +40,7 @@ the current corpus.” Finite Sail agreement, committed-witness mutation tests,
 and two-copy row uniqueness remain valuable evidence, but none quantifies over
 every admitted architectural state. The result specified here does.
 
-### Historical pilot baseline and active promotion
+## Historical pilot baseline and current row-local publication source
 
 The earlier release receipt contains a kernel-checked vertical prototype for
 LUI and ADDI under `formal/riscv-refinement/`. Its proved implication is:
@@ -58,16 +62,16 @@ witnesses, including the ADDI overflow case
 escapes and audited with `#print axioms`; only `propext`,
 `Classical.choice`, and `Quot.sound` are permitted.
 
-The generator freshly exports all 17 production symbolic-AIR families, accepts
+The historical Level-1 generator freshly exports all 17 production symbolic-AIR families, accepts
 only the exact closed LUI and base-ALU-immediate normalized schemas, packages
 LUI/ADDI, and binds every RISC-V frontend source plus the generator and proof
 closure by SHA-256. Independently of that Level-1 normalizer, every production
 family now uses one typed `ConstraintProgram` for direct evaluation, lookup
 lowering, and canonical AIR IR v2 serialization, producing exactly 46
 source-bound selector artifacts. The historical receipt split proof grades by
-contributor allocation. The active FV-1/FV-2 publication replaces that split
-with one exact manifest-wide accepted-production-AIR theorem inventory,
-organized by opcode family. The Sail side uses the pinned repository and
+contributor allocation. The current FV-1/FV-2 source replaces that split with
+one exact manifest-wide accepted-production-AIR theorem inventory, organized
+by opcode family. The Sail side uses the pinned repository and
 compiler, constructs the
 exact `rv32im-zkvm-v1` configuration from the normative overrides, validates
 that it reports `rv32im`, generates the theorem backend under that
@@ -77,15 +81,15 @@ into a typed AST and a canonical receipt records their normalized selector
 effects. Direct generated-Lean equations bind every admitted execute-clause
 input, including BTYPE, JAL, JALR, and FENCE.
 
-The currently committed receipt remains deliberately called a **2/46
-normalized pilot**, not “2 of 46 publication opcodes proved.” The exact
-generated LUI/ADDI execute-clause
-monads now normalize to the receipt-bound capsule, and the common sequential
-next-PC/tick fragment composes with them. FV-1/FV-2 promotion is specifically
-the replacement for that narrow receipt. Even after it lands, SA-1 remains
-open until the FV-3/FV-4 global obligations in the status ledger are closed.
-The generated manifest records narrow positive claims and negative global
-claims, and fails closed if stale AIR or Sail artifacts are requested.
+The earlier **2/46 normalized pilot** receipt, not “2 of 46 publication
+opcodes proved,” remains historical evidence. The regenerated FV-1/FV-2
+receipts supersede its claim counts. In current source, all 46 generated
+execute paths normalize, all 46 public propositions
+construct their row-local generated execution, and the retained generated
+full-step framing theorem is present. This closes the source obligations of
+FV-1/FV-2, but not FV-3, FV-4, or FV-5. SA-1 therefore remains open. Future
+changes must regenerate both receipts rather than editing counts or digests by
+hand.
 
 ## 1. Objective and claim boundary
 
@@ -113,7 +117,8 @@ The theorem is universal over operands, register aliases, immediates, addresses,
 memory words, and legal corner cases. It is not a finite enumeration of u32
 values and is not inferred from uniqueness.
 
-The completed result closes SA-1 premise 5. It does **not** by itself prove:
+The eventual FV-4 trace theorem closes SA-1 premise 5. The current row-local
+FV-1/FV-2 result does **not** by itself prove:
 
 - that an accepted serialized proof binds an exact AIR witness;
 - PCS commitment binding or FRI/list-decoding soundness;
@@ -316,7 +321,10 @@ canonical AIR IR                   generated Sail semantics
          per-opcode universal refinement proofs
                      |
                      v
-       exact 46-opcode coverage and SA-1 premise 5
+          exact 46-opcode row-local coverage
+                     |
+                     v
+       FV-4 arbitrary-trace composition / SA-1 premise 5
 ```
 
 No Rust semantic oracle appears in this pipeline. Stark-V layout information is
@@ -385,10 +393,10 @@ It also runs an eight-assignment-per-family, fixed-seed differential between
 the recorded DAG and the QM31 instantiation of the same production source.
 The dedicated `riscv-refinement-ir` build root executes this frontend-owned
 extractor directly. Its default output is cleared first; a caller-supplied
-output must be absent or empty. The public pilot gate additionally rejects a
-missing, extra, or empty family before normalization. This is a strong pilot
-foundation, but the random differential is not a universal source-binding
-proof.
+output must be absent or empty. The public row-local gate additionally rejects
+a missing, extra, or empty family before normalization. This is a strong
+source-binding foundation, but the random differential is not a universal
+source-binding proof.
 
 ### 6.2 Canonical refinement IR
 
@@ -440,16 +448,12 @@ programs: a single typed `ConstraintProgram` builder is interpreted by
 production over concrete field expressions and lookup views, serialized by the
 exporter, and interpreted by Lean. A fresh-export equality gate prevents a
 shape-preserving replacement artifact from relying on self-authentication
-alone. All 24 Team A selectors have per-opcode theorems over their exact
-generated local programs, tuple projections, non-vacuity witnesses, and
-mutations. The 22 Team B selectors remain bound to reviewed family capsules
-rather than exact generated local programs. Across both teams, only LUI and
-ADDI are normalized through generated Sail retirement; neither the remaining
-44 retirement normalizations nor the converse accepted-AIR soundness theorem
-is established in the currently committed receipt. The active FV-1/FV-2
-promotion replaces this historical split with 46 generated normalizers and 46
-accepted-production-AIR implications; those count only after the integrated
-audit, receipt, reproduction, and merge gates pass.
+alone. The historical certificate inputs retain 24 exact local programs and
+22 reviewed family capsules, but they no longer define the public theorem
+grade. The current neutral publication layer binds all 46 exact production
+program identities to 46 generated-Sail normalizers and 46
+accepted-production-AIR implications. That 46/46 source surface and its
+94-theorem audit are the receipt-bound row-local FV-1/FV-2 result.
 
 ## 7. Binding the proof to pinned Sail
 
@@ -493,17 +497,14 @@ fallback is a generated normalized semantics capsule plus a checked translation
 receipt from the Sail AST. Hand-transcribing 46 instruction functions and
 validating them only with test vectors is not an acceptable fallback.
 
-The LUI/ADDI pilot now carries that checked translation artifact: exact
-generated `execute_UTYPE` and `execute_ITYPE` slices, their typed AST digests,
-and a fail-closed canonical receipt for every selector in those definitions.
-Carried-evidence runs re-derive it byte for byte; only a live pinned-toolchain
-run can mint release evidence. The cross-project proof at
-`formal/riscv-refinement/generated-sail-bridge/Pilot.lean` additionally imports
-the exact generated Lean project and proves that the LUI/ADDI clause monads
-plus sequential next-PC/tick fragment equal the normalized executions. Its
-receipt explicitly leaves fetch, interrupt, trap, counter, and later-step
-framing false; it does not constitute the independent fallback approval
-required by the Team B contract.
+The generated bridge now carries the checked translation artifacts and exact
+generated execute-definition identities needed by all 46 selectors.
+`Pilot.lean`, `Composition.lean`, the split decode/execution modules, and the
+family publication modules import the exact generated Lean project and expose
+46 retirement normalizers, 46 constructive row-local publication theorems,
+the generated full-step framing theorem, and the typed universal contract.
+Carried-evidence runs may only re-derive committed bytes; only a live
+pinned-toolchain run can mint the replacement bridge and release receipts.
 
 ### 7.3 Decode narrowing
 
@@ -513,16 +514,14 @@ The admission theorem expresses the zkVM language as a conservative subset and
 proves refinement only for that subset. It must not weaken or override the
 semantics of an admitted instruction.
 
-## 8. Pilot: LUI and ADDI
+## 8. Historical pilot: LUI and ADDI
 
-The Level-2 publication milestone is complete only when both opcodes are
-universally proved and non-vacuous from generated AIR and generated Sail
-definitions. The current pilot proves source-bound, interpreted production AIR
-programs imply the normalized LUI/ADDI predicates, and the normalized capsule
-is bound to actual generated execute clauses by the checked AST receipt and a
-kernel-checked clause-monad equality. The remaining publication gap is full
-generated Sail step-loop framing (or the contract's independently approved
-fallback), not AIR interpretation or execute-clause transcription.
+LUI and ADDI established the first source-bound, interpreted production-AIR
+programs, non-vacuity controls, generated execute-clause bindings, and
+kernel-checked normalizers. The current publication source generalizes that
+architecture across all 46 opcodes and includes generated full-step framing;
+this section remains as the historical vertical-slice rationale, not the
+current coverage count.
 
 ### 8.1 LUI
 
@@ -636,9 +635,10 @@ only for straight-line ALU rows.
 
 The implementation scales by 17 AIR-family proof frameworks, but completion is
 tracked by opcode. A family theorem with an unproved selector case does not
-cover that opcode. The graded rollout now covers exactly 46/46 selectors; the
-table remains the normative publication inventory, because a graded
-certificate is not automatically a generated-Sail retirement theorem.
+cover that opcode. The current row-local publication source covers exactly
+46/46 selectors with one generated-Sail normalizer and one accepted-production-
+AIR implication apiece. The table remains the normative opcode inventory;
+the historical graded certificate index alone is not publication evidence.
 
 | AIR family | Opcodes | Count | Principal proof obligations | Risk |
 | --- | --- | ---: | --- | --- |
@@ -661,7 +661,7 @@ certificate is not automatically a generated-Sail retirement theorem.
 | `fence` | FENCE | 1 | decode, PC+4, absence of effects | low |
 | **Total** |  | **46** |  |  |
 
-Recommended promotion order from graded evidence to publication evidence:
+The completed source promotion followed this family-oriented order:
 
 1. LUI, FENCE, JAL;
 2. base ALU register/immediate;
@@ -730,37 +730,59 @@ hand.
 
 ## 12. Build, reproduction, and change control
 
-The pilot exposes the following interfaces:
+Use the following interfaces for local source validation and live artifact
+publication:
 
 ```sh
-# One-time, after preparing the pinned formal-tool workspace:
+# One-time pinned formal-tool workspace and generated backend:
+python3 scripts/riscv_formal_tools.py prepare \
+  --workspace /tmp/stwo-riscv-formal
 python3 scripts/riscv_refinement.py prepare-sail \
   --sail-riscv-dir /tmp/stwo-riscv-formal/source/sail-riscv
 
-# Generate or reproduce committed inputs. The default standalone export is
-# freshly replaced; -Driscv-refinement-ir-dir=... must name an absent or empty
-# directory:
-zig build riscv-refinement-ir
-python3 scripts/riscv_refinement.py generate
-python3 scripts/riscv_refinement.py check-generated
-python3 scripts/riscv_refinement.py coverage
+# Validate the current proof source without claiming a fresh receipt:
+python3 -m unittest scripts.tests.test_riscv_refinement_sail_policy -v
+python3 -m unittest scripts.tests.test_riscv_refinement_publication -v
 (cd formal/riscv-refinement && lake build)
+(cd formal/riscv-refinement && \
+  lake env lean RiscvRefinement/AxiomAudit.lean)
 
-# Complete public pilot gate:
-zig build riscv-refinement-pilot
+# Generate or reproduce committed inputs with the live pinned Sail workspace.
+# The default standalone export is freshly replaced;
+# -Driscv-refinement-ir-dir=... must name an absent or empty directory:
+zig build riscv-refinement-ir
+python3 scripts/riscv_refinement.py generate \
+  --sail-riscv-dir /tmp/stwo-riscv-formal/source/sail-riscv
+python3 scripts/riscv_refinement.py check-generated \
+  --sail-riscv-dir /tmp/stwo-riscv-formal/source/sail-riscv
+python3 scripts/riscv_refinement.py coverage
 
-# Clean-tree evidence:
-python3 scripts/riscv_refinement.py receipt
-python3 scripts/riscv_refinement.py verify-receipt
+# Complete live row-local publication gate (legacy target name retained):
+STWO_SAIL_RISCV_DIR=/tmp/stwo-riscv-formal/source/sail-riscv \
+  zig build riscv-refinement-pilot
+
+# Clean-tree live evidence:
+# Commit the regenerated inputs before this step.
+python3 scripts/riscv_refinement.py receipt \
+  --sail-riscv-dir /tmp/stwo-riscv-formal/source/sail-riscv
+python3 scripts/riscv_refinement.py verify-receipt \
+  --sail-riscv-dir /tmp/stwo-riscv-formal/source/sail-riscv
 ```
 
 `prepare-sail` writes the merged exact-profile configuration and generates the
 external theorem backend. The repository's existing
 `scripts/riscv_formal_tools.py` owns pinned checkout/compiler/simulator
 preparation. `riscv-refinement-pilot` first runs the dedicated production IR
-export and then checks byte-identical generation, 2/46 normalized coverage,
-46/46 graded coverage, negative controls, Python infrastructure tests, the
-pinned Lean build, and the complete axiom audit.
+export and then checks byte-identical generation, 46/46 normalized retirements,
+46/46 constructive row-local publication implications, negative controls,
+Python infrastructure tests, the pinned Lean build, and the complete
+94-theorem axiom audit. The command still prints
+`whole_frontend_verified=false` and `proof_system_soundness=false`.
+
+At the time of this status update, the proof source, focused tests, and
+generated bridge receipt are current. The identity check accepts the exact
+recorded inputs and fails closed on later source or artifact drift. The
+top-level clean-tree release receipt remains a publication TODO.
 
 `--no-export-air` exists only so the root build step can consume the exporter
 it already depends on. Receipt generation rejects that switch and always
@@ -776,11 +798,11 @@ index, builds the complete Lean project, runs non-vacuity and mutation shards,
 scans for proof escapes, and audits axioms. It consumes the committed
 generated-Sail receipt and does not pretend to have regenerated Sail.
 `.github/workflows/riscv-sail-formal.yml` separately provisions Sail 0.20.2,
-regenerates the pinned theorem backend, runs the live pilot, and mints live
-evidence on pushes to `main`, schedules, and explicit dispatches. The focused
-RISC-V product and release gates also run the cheap aggregate certificate and
-current-source identity check; that check detects stale formal inputs but does
-not substitute for a Lean or live-Sail run.
+regenerates the pinned theorem backend, runs the live row-local publication
+gate, and mints live evidence on pushes to `main`, schedules, and explicit
+dispatches. The focused RISC-V product and release gates also run the cheap
+aggregate certificate and current-source identity check; that check detects
+stale formal inputs but does not substitute for a Lean or live-Sail run.
 
 Every pull request touching the following surfaces triggers the fast
 refinement build:
@@ -812,20 +834,21 @@ The check fails on:
 
 ### 12.2 Tiering
 
-- **Fast graded PR CI:** fresh production AIR, exact 46/46 grade-preserving
+- **Fast row-local PR CI:** fresh production AIR, exact 46/46 manifest
   coverage, every current Lean theorem and non-vacuity witness, mutations,
-  proof-escape scan, and axiom audit.
+  proof-escape scan, and axiom audit using committed carried Sail bytes.
 - **Live Sail CI:** regenerate the pinned generated-Sail backend, rebuild the
-  current 2/46 normalized pilot, and mint live evidence.
-- **Publication CI:** all 46 generated-Sail retirement theorems, the
-  accepted-AIR soundness direction, Word32/M31 boundary lemmas, and trace
-  composition. This tier is not yet implemented.
+  46/46 row-local FV-1/FV-2 surface, and mint live evidence.
+- **Whole-frontend completion CI:** add the FV-3 Word32/M31 boundary, FV-4
+  trace composition, and FV-5 reproduction/sign-off gates. This tier is not
+  yet implemented.
 - **Scheduled clean-room build:** regenerate pinned Sail and AIR definitions
   from empty caches, build every theorem, and publish a signed receipt.
 
-Semantic changes must keep the fast graded check on every PR. A nightly-only
-universal theorem is too weak for a release branch; when publication CI is
-implemented, its affordable source-bound portion must become PR-blocking.
+Semantic changes must keep the fast row-local check on every PR. A nightly-only
+trace theorem is too weak for a release branch; when the remaining completion
+CI is implemented, its affordable source-bound portion must become
+PR-blocking.
 
 ### 12.3 Receipt
 
@@ -850,12 +873,18 @@ The issue #136 A5 graded-integration receipt contains:
 - negative-control identities; and
 - final canonical receipt digest.
 
-The final publication receipt must additionally carry all 46 generated-Sail
-retirement theorem identities, the accepted-AIR soundness and trace-composition
-theorems, the complete M31/Word32 conversion inventory, the five closure-gate
-results from §15.1, and the required independent sign-offs. Timing is
-diagnostic. Coverage, pins, hashes, theorem results, and sign-offs are
-normative.
+The regenerated FV-1/FV-2 receipt replaces those historical counts with 46
+generated-Sail retirement theorem identities, 46 accepted-production-AIR
+publication theorem identities, the generated full-step theorem, the typed
+universal contract, the exact 94-theorem axiom inventory, and
+`constructive_row_local_execution = true`. It must continue to record
+`whole_frontend_verified = false` and `proof_system_soundness = false`.
+
+A later whole-frontend completion receipt must additionally carry the complete
+FV-3 M31/Word32 conversion inventory, the FV-4 trace-composition theorem, and
+the FV-5 independent reproduction and sign-offs. Timing is diagnostic.
+Coverage, pins, hashes, theorem results, and sign-offs are normative. Nothing
+in the row-local receipt asserts FV-3, FV-4, or FV-5 completion.
 
 ## 13. Proof-review discipline
 
@@ -899,26 +928,22 @@ Mandatory pilot/stress mutations include:
 These controls do not strengthen the theorem; they establish that the pipeline
 is connected to the obligations it claims to prove.
 
-The current LUI/ADDI Stage A2 controls are Lean-checked against the interpreted
-production programs. They construct witnesses for a free LUI low limb, deleted
-ADDI high carry, deleted immediate-range request, selector relabel, and event
-reorder, and prove each weakened system strictly loses the stated
-architectural or binding fact. They reach the kernel proof and no longer rely
-only on the Python normalizer. They are still stated against the normalized
-capsule; the open generated-Sail fetch/interrupt/trap/counter and later-step
-framing boundary prevents treating them as end-to-end Sail publication
-controls.
+The original LUI/ADDI Stage A2 controls are Lean-checked against interpreted
+production programs, and the 46-opcode source inventory retains per-opcode
+non-vacuity and mutation identities. They reach the kernel proof and no longer
+rely only on the Python normalizer. These controls demonstrate sensitivity of
+the row-local FV-1/FV-2 pipeline; they do not discharge the FV-3 representation
+inventory or FV-4 cross-row composition obligations.
 
 ## 15. Work packages and gates
 
 ### UR-00 — theorem and trusted-base freeze
 
-Status: **AIR-side pilot freeze delivered**. The theorem signatures, toolchain,
-closed pilot schemas, all-selector AIR IR v2 contract, LUI/ADDI serialized-AIR
-interpreters and composition, digest closure, axiom policy, generated execute
-translation receipt, direct generated execute-clause monad bridge, and claim
-boundary are implemented. Full generated-Sail step-loop framing and the
-required sign-off remain open for publication.
+Status: **row-local theorem and trusted-base freeze delivered in source**. The
+all-selector AIR IR v2 contract, exact theorem signatures, digest closure,
+generated execute translation, full-step framing, 94-theorem axiom policy, and
+constructive row-local publication boundary are implemented and receipt-bound.
+FV-5 independent reproduction and sign-off remain open.
 
 Deliver:
 
@@ -933,13 +958,12 @@ Exit gate: reviewers agree what a green theorem does and does not mean.
 
 ### UR-01 — formal foundations and LUI
 
-Status: **production AIR-to-normalized slice delivered**. The typed
+Status: **row-local FV-1/FV-2 publication theorem delivered**. The typed
 word/byte/M31 foundations, exact LUI shape gate, universal normalized theorem,
 non-vacuity witness, source-bound production program, strict Lean evaluator,
 composition with `LuiHolds`, and a Lean-checked mutation are present. The
-execute clause and sequential PC/tick fragment are kernel-bound to generated
-Sail; clean publication remains open across the full step-loop/sign-off
-boundary.
+execute clause, constructive execution, and generated full-step framing are
+kernel- and receipt-bound.
 
 Deliver:
 
@@ -954,11 +978,11 @@ Exit gate: clean kernel proof from pinned generated inputs.
 
 ### UR-02 — ADDI vertical slice
 
-Status: **production AIR-to-normalized slice delivered**. Sign extension, byte
+Status: **row-local FV-1/FV-2 publication theorem delivered**. Sign extension, byte
 carries, modular addition, source preservation, alias/x0 behavior, interpreted
 production-program composition, non-vacuity, and the Stage A2 mutation bundle
-are kernel checked. The execute clause and sequential PC/tick fragment are
-kernel-bound to generated Sail; the full step-loop/sign-off boundary remains.
+are kernel checked. The execute clause, constructive execution, and generated
+full-step framing are kernel- and receipt-bound.
 
 Deliver:
 
@@ -970,16 +994,14 @@ Deliver:
 - mutation controls.
 
 Level-2 exit gate: the production-to-generated-clause path works for a
-nontrivial arithmetic row. Its full generated Sail step-loop/sign-off side
-remains open.
+nontrivial arithmetic row. This local gate is closed; FV-3/FV-4/FV-5 remain.
 
 ### UR-03 — memory stress
 
-Status: **reviewed-capsule stress mechanization delivered by Team B**. All
-eight load/store selectors have normalized refinements, non-vacuity, and
-load-bearing mutation controls, including signed high-half LH and the closed
-high-address alias regression. Generated-Sail slices/receipts and step
-composition remain open, so this is not publication coverage.
+Status: **eight row-local FV-1/FV-2 publication theorems delivered in current
+source**. The load/store selectors have accepted-production-AIR implications,
+constructive generated-Sail executions, non-vacuity, and load-bearing mutation
+controls. The broader Word32/M31 alias inventory remains open under FV-3.
 
 Deliver:
 
@@ -995,11 +1017,10 @@ load/store selectors.
 
 ### UR-04 — DIV stress
 
-Status: **reviewed-capsule stress mechanization delivered by Team B**. DIV,
-DIVU, REM, and REMU cover the named exceptional cases with normalized
-refinements, non-vacuity, and mutation controls. Generated-Sail
-slices/receipts and step composition remain open, so this is not publication
-coverage.
+Status: **four row-local FV-1/FV-2 publication theorems delivered in current
+source**. DIV, DIVU, REM, and REMU cover the named exceptional cases with
+accepted-production-AIR implications, constructive generated-Sail execution,
+non-vacuity, and mutation controls; these are receipt-bound.
 
 Deliver:
 
@@ -1014,10 +1035,9 @@ without treating solver output as an axiom.
 
 ### UR-05 — complete 46-opcode rollout
 
-Status: **historical graded rollout delivered; neutral publication promotion
-in progress**. The old receipt partitions the manifest exactly 46/46 but does
-not establish publication-level refinement. FV-1/FV-2 must replace it with one
-46-opcode inventory whose theorem strength is uniform and contributor-neutral.
+Status: **neutral 46-opcode row-local publication source delivered**. The
+current source has a uniform contributor-neutral, receipt-bound inventory of
+46 normalizers and 46 accepted-production-AIR implications.
 
 Deliver:
 
@@ -1031,13 +1051,12 @@ Exit gate: coverage matches the opcode manifest exactly.
 
 ### UR-06 — production source binding
 
-Status: **shared 46-program source binding delivered; uniform local
-publication pending final FV-2 integration**. Direct evaluation, lookup
-lowering, and AIR IR v2 serialization share one typed production program;
-canonical generation, strict source closure, fresh-export equality, and Lean
-decode/evaluation are checked. The remaining local gate is one exact
-accepted-AIR implication per manifest opcode plus the aggregate theorem,
-axiom audit, receipt, and reproduction.
+Status: **shared 46-program source binding and uniform row-local publication
+delivered in current source**. Direct evaluation, lookup lowering, and AIR IR
+v2 serialization share one typed production program; canonical generation,
+strict source closure, fresh-export equality, Lean decode/evaluation, 46 exact
+accepted-AIR implications, and the aggregate theorem are checked and
+receipt-bound. Independent reproduction remains.
 
 Deliver:
 
@@ -1064,15 +1083,22 @@ Deliver:
 Exit gate: a third party can regenerate the models and kernel-check every
 opcode theorem from the pinned inputs.
 
-### 15.1 Normative remaining closure gates
+### 15.1 Normative closure gates
 
-The graded 46/46 index is an input to these gates, not evidence that they have
-already passed. “Universal AIR → Sail refinement,” “formally verified
-frontend,” and `whole_frontend_verified = true` are forbidden until **all
-five** gates below are satisfied by named kernel theorems and one
-machine-readable publication receipt.
+The historical graded 46/46 index is only an input. The current Lean source
+and regenerated receipts satisfy the row-local obligations of FV-1 and FV-2.
+FV-3, FV-4,
+and FV-5 remain open and blocking. “Formally verified frontend,” “sound for
+all executions,” and `whole_frontend_verified = true` are forbidden until all
+five gates have named, receipt-bound, independently reproduced evidence.
 
 #### FV-1 — generated Sail retirement and full-step framing
+
+**Current status: 46/46 receipt-bound.** The
+default bridge contains each `complete_<OP>_normalizes` theorem and the
+generated full-step framing theorem. Together with the FV-2 inventory, that
+framing theorem and the typed universal contract complete the exact
+94-theorem public audit.
 
 For every one of the 46 admitted selectors, normalize the exact pinned
 generated-Sail execute clause to the repository retirement projection and
@@ -1099,10 +1125,13 @@ The stable FV-1 kernel surface is:
   the generated step outcome and distinguishing successful retirement from
   interrupt, trap, and fetch failure while preserving the generated
   counter/tick postlude; and
-- the two-file bridge source closure
-  `generated-sail-bridge/{Pilot,Composition}.lean`, where `Pilot.lean` is
-  compiled to a temporary `Pilot.olean` and `Composition.lean` imports that
-  exact artifact. Both source digests are part of the receipt.
+- the ordered bridge source closure declared by
+  `scripts.riscv_refinement_lib.sail_lean_bridge.BRIDGE_SOURCES`, beginning
+  with `Pilot.lean`, `Composition.lean`, and `ExecutionClosure.lean`, followed
+  by the split decoder and family-publication modules and the final
+  `Publication.lean` entrypoint. Each module is compiled to the same fresh
+  temporary olean directory in dependency order; no stale repository olean is
+  eligible. Every source path and digest is part of the receipt.
 
 The generated-Sail source receipt must bind each selector to the digest of its
 exact generated execute definition. A family-shared generated definition may
@@ -1117,7 +1146,18 @@ the postlude counters consulted by the generated loop. For memory selectors
 they also prove that ordinary RAM, rather than platform MMIO, handles the
 access. In the pinned generated model this means proving
 `htif_tohost_base = none` (or an equally strong disjoint-address fact), Bare
-translation, and non-reservation load/store arguments. The generated Lean
+translation, and non-reservation load/store arguments. Bare translation is
+not inferred merely from the architectural profile name: the state boundary
+binds `mstatus` so that `MPRV = 0`, binds `cur_privilege = Machine`, and proves
+that the resulting effective privilege selects `Bare`. It also binds
+`pma_regions` and proves that the complete naturally aligned access lies in a
+matching readable/writable main-memory region, proves the platform CLINT,
+signature, and HTIF predicates false at that address, proves the naturally
+aligned 1-, 2-, or 4-byte access remains within its 4 KiB page, and supplies
+every raw byte read by the generated concurrency interface as an exact memory
+map lookup. These are component facts;
+a premise asserting the result of `vmem_read`, `vmem_write`, `mem_read`, or
+`mem_write_value` is a forbidden precomputed monad outcome. The generated Lean
 source mentions `plat_term_write`, `load_reservation`, `match_reservation`,
 and `sys_enable_experimental_extensions` transitively; the receipt records
 that exact syntactic axiom footprint, while the opcode theorem must prove the
@@ -1125,7 +1165,30 @@ corresponding branches unreachable under the admitted profile. Merely adding
 those callbacks to an axiom allowlist does not discharge the profile
 obligation.
 
+The decoder certificate is state-indexed and non-vacuous. For the concrete
+initial generated state, input word, and expected instruction it must produce
+an exact successful outcome of the form
+
+```text
+∃ final, ext_decode input_word initial = ok expected_instruction final
+```
+
+An implication saying only that every *successful* decode has the expected
+result is insufficient: it is vacuously true when a required generated
+register is absent and can be false across profiles where the same word
+successfully decodes as `Illegal`. In the pinned decoder, the PAUSE/LPAD prefix
+eagerly evaluates the Zicfilp enable check for every admitted base word. The
+component boundary therefore binds `cur_privilege` and `mseccfg`; the RV32IM
+profile also binds `misa`, proves its M bit enabled and C bit disabled, and
+preserves those registers across decode. These are semantic inputs, not
+axioms or precomputed decoder outcomes.
+
 #### FV-2 — accepted production AIR implies the Sail transition
+
+**Current status: 46/46 receipt-bound constructive row-local publication
+implications.** Every public result
+contains constructive state-indexed decode/execution evidence, and the bridge
+policy records `constructive_row_local_execution = true`.
 
 The required direction is:
 
@@ -1184,6 +1247,14 @@ names merely to exist. The generated bridge axiom audit therefore contains
 exactly 94 receipt records: 46 normalization theorems, 46 cross-project
 theorems, the full-step theorem, and the typed universal contract.
 
+The successful row-local execution has the same fail-closed shape as decode:
+the final state and generated result are outputs of the proposition. A caller
+may supply componentwise register, memory, address-profile, and admission
+facts, but may not supply the generated monad outcome, final-state equality,
+or expected observed retirement as a premise. The machine-readable bridge
+receipt records `constructive_row_local_execution = true` only when this
+strong field is present in all 46 public cross-project theorem results.
+
 The repository-side receipt additionally requires
 `exactProductionProgramIdentities`, `exactProductionProgramCount`,
 `exactProductionManifestOrder`, `exactProductionManifestIdsNodup`,
@@ -1196,6 +1267,9 @@ historical contributor-team partition or assembling a count from theorem-name
 metadata.
 
 #### FV-3 — M31/Word32 representation and global invariant closure
+
+**Current status: open and blocking.** FV-1/FV-2 component premises do not
+replace a mechanically enforced global representation invariant.
 
 M31 arithmetic is modulo \(p = 2^{31}-1\); RV32 machine-word arithmetic is
 modulo \(2^{32}\). `composeU32` is therefore non-injective over arbitrary byte
@@ -1227,6 +1301,9 @@ Exit evidence:
 
 #### FV-4 — trace and cross-row composition
 
+**Current status: open and blocking.** Row-local generated execution is not an
+arbitrary-length frontend trace theorem.
+
 Compose the 46 accepted-row theorems over a complete admitted execution, not
 only isolated rows. The theorem must connect program binding, register-state
 and memory buses, strict access clocks, state-chain telescoping, initial and
@@ -1246,6 +1323,10 @@ Exit evidence:
 
 #### FV-5 — independent review, reproduction, and claim promotion
 
+**Current status: open and blocking.** This includes minting/replaying the
+top-level clean-tree release receipt, clean-room reproduction, and independent
+sign-off for the current 46/46 bridge-receipt-bound source.
+
 The publication receipt must record accountable review for production AIR and
 tuple projection, generated Sail and execution profile, memory stress,
 division stress, and independent Lean soundness/non-vacuity. Contributor-team
@@ -1258,7 +1339,7 @@ Only after FV-1 through FV-5 pass may the receipt set
 the independent SA-1 premise-1 reduction is complete; frontend verification
 must not silently promote the cryptographic proof-system claim.
 
-### 15.2 Operational adoption audit (2026-07-30)
+### 15.2 Operational adoption audit (2026-08-04)
 
 | Consumer | Current use of the formal work | Assessment |
 | --- | --- | --- |
@@ -1266,11 +1347,11 @@ must not silently promote the cryptographic proof-system claim.
 | Production relation lookups | All 17 families use `ConstraintProgram.buildLookups` | strong: tuple order is not maintained in a second semantic implementation |
 | AIR IR v2 export | The same builder emits 46 selector programs with source closure and fresh-export checks | strong |
 | Focused product and release gates | Run the aggregate 46/46 certificate and current-source identity check | useful cheap fail-closed consumption; not a Lean substitute |
-| Pull-request formal gate | Fresh AIR export, complete graded Lean build, mutations, proof-escape scan, and axiom audit | strong |
-| Live generated-Sail gate | Pinned Sail provisioning, backend regeneration, current 2/46 normalization, and receipt minting on `main`/schedule | correctly separated from carried-evidence PR CI |
+| Pull-request formal gate | Fresh AIR export, complete 46/46 row-local Lean build, mutations, proof-escape scan, and axiom audit | strong source gate; carried generated bytes are not fresh receipt evidence |
+| Live generated-Sail gate | Pinned Sail provisioning, backend regeneration, 46/46 FV-1/FV-2 validation, and receipt minting on `main`/schedule | generated-Sail bridge receipt regenerated and locally validated; top-level release receipt TODO |
 | Runtime frontend binary | Does not load Lean artifacts or proof receipts | correct: proofs constrain development and release, not runtime semantics |
 | Machine-word/field API | Raw `composeU32` remains available and six production sites rely on site/global reasoning | incomplete; FV-3 is not mechanized |
-| Generated-Sail publication | 2/46 normalized, 0/46 publication-level | incomplete; FV-1 and FV-2 dominate the remaining work |
+| Generated-Sail row-local publication | 46/46 normalized, 46/46 publication, 94 audited public theorems, constructive execution true; receipt-bound | FV-1/FV-2 row-local closure complete; no FV-3/FV-4/FV-5 promotion |
 | Whole-trace theorem and sign-off | Not established | incomplete; FV-4 and FV-5 remain blocking |
 
 ## 16. Principal risks and mitigations
@@ -1326,15 +1407,20 @@ The completion receipt must fail closed unless it records all of:
 It may still record `proof_system_soundness = false`; that field belongs to
 the separate accepted-proof reduction in SA-1 premise 1.
 
-Before that point, acceptable language is:
+Before whole-frontend completion, accurate current language is:
 
-> “Level-1 normalized LUI/ADDI refinement pilot” or “memory/DIV stress
-> mechanization.”
+> “The current Lean source contains 46/46 kernel-checked row-local
+> accepted-production-AIR-to-generated-Sail implications, 46/46 retirement
+> normalizers, a generated full-step framing theorem, and an exact 94-theorem
+> public inventory. The generated-Sail bridge receipt binds that row-local
+> result; top-level release receipt replay remains a TODO. FV-3,
+> FV-4, and FV-5 remain open; `whole_frontend_verified = false` and
+> `proof_system_soundness = false`.”
 
-“N of 46 production opcodes machine-proved” is acceptable only after the
+“N of 46 production opcodes machine-proved” is acceptable only when the exact
 serialized-AIR and generated-Sail bindings are kernel checked for those N
-opcodes. A digest-bound reviewed normalization is useful evidence, but it is
-not counted as publication-level opcode coverage.
+opcodes. The current N is 46 at the row-local boundary; this does not imply
+cross-row trace composition or accepted-proof soundness.
 
 After that point, the precise claim is:
 

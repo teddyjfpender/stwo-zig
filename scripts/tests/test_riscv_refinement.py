@@ -13,10 +13,18 @@ from scripts.tests.test_riscv_refinement_audit import (
 from scripts.tests.test_riscv_refinement_receipt import (
     RefinementReceiptTest,
 )
+from scripts.tests.test_riscv_refinement_manifest_identity import (
+    RefinementManifestIdentityTest,
+)
+from scripts.tests.test_riscv_refinement_sail_policy import (
+    RefinementPublicationPolicyTest,
+)
 from scripts.tests.test_riscv_refinement_sail import RefinementSailTest
 
 for _test_case in (
     RefinementAuditPinTest,
+    RefinementManifestIdentityTest,
+    RefinementPublicationPolicyTest,
     RefinementReceiptTest,
     RefinementSailTest,
 ):
@@ -25,99 +33,6 @@ del _test_case
 
 
 class RefinementAirTest(unittest.TestCase):
-    def test_generated_sail_team_a_input_boundary_is_explicit(self) -> None:
-        self.assertEqual(
-            sail_lean_bridge.CLAIM_BOUNDARY[
-                "input_bound_team_a_selectors"
-            ],
-            [
-                "LUI", "AUIPC",
-                "ADDI", "XORI", "ORI", "ANDI", "SLTI", "SLTIU",
-                "ADD", "SUB", "XOR", "OR", "AND", "SLT", "SLTU",
-                "BEQ", "BNE", "BLT", "BGE", "BLTU", "BGEU",
-                "JAL", "JALR", "FENCE",
-            ],
-        )
-        self.assertEqual(
-            sail_lean_bridge.CLAIM_BOUNDARY[
-                "normalized_retirement_selectors"
-            ],
-            ["LUI", "ADDI"],
-        )
-        self.assertFalse(
-            sail_lean_bridge.CLAIM_BOUNDARY[
-                "team_a_normalized_retirement_composition"
-            ],
-        )
-        self.assertFalse(
-            sail_lean_bridge.CLAIM_BOUNDARY[
-                "fetch_interrupt_trap_and_step_loop_framing"
-            ],
-        )
-        self.assertEqual(
-            sail_lean_bridge.CLAIM_BOUNDARY[
-                "pinned_generated_model_axioms"
-            ],
-            ["sys_enable_experimental_extensions"],
-        )
-
-    def test_generated_sail_control_flow_axioms_are_scoped(self) -> None:
-        jump_theorems = {
-            theorem
-            for theorem in sail_lean_bridge.THEOREMS
-            if (
-                "execute_BTYPE_" in theorem
-                or theorem.endswith("execute_JAL_eq")
-                or theorem.endswith("execute_JALR_eq")
-            )
-        }
-        self.assertEqual(
-            jump_theorems,
-            sail_lean_bridge._JUMP_INPUT_THEOREMS,
-        )
-        for theorem in sail_lean_bridge.THEOREMS:
-            expected = set(sail_lean_bridge.KERNEL_AXIOMS)
-            if theorem in jump_theorems:
-                expected |= set(
-                    sail_lean_bridge.PINNED_GENERATED_MODEL_AXIOMS
-                )
-            self.assertEqual(
-                set(sail_lean_bridge.EXPECTED_THEOREM_AXIOMS[theorem]),
-                expected,
-            )
-
-    def test_generated_sail_axiom_parser_enforces_each_scope(self) -> None:
-        def output(
-            inventories: dict[str, list[str]],
-        ) -> str:
-            return "\n".join(
-                f"'{theorem}' depends on axioms: "
-                f"[{', '.join(inventories[theorem])}]"
-                for theorem in sail_lean_bridge.THEOREMS
-            )
-
-        expected = copy.deepcopy(
-            sail_lean_bridge.EXPECTED_THEOREM_AXIOMS
-        )
-        self.assertEqual(
-            sail_lean_bridge._proof_axioms(output(expected)),
-            expected,
-        )
-        missing_model_input = copy.deepcopy(expected)
-        jump_theorem = next(
-            iter(sail_lean_bridge._JUMP_INPUT_THEOREMS)
-        )
-        missing_model_input[jump_theorem].remove(
-            "sys_enable_experimental_extensions"
-        )
-        with self.assertRaisesRegex(
-            RefinementError,
-            "per-theorem contract",
-        ):
-            sail_lean_bridge._proof_axioms(
-                output(missing_model_input)
-            )
-
     def test_source_closure_is_version_controlled_and_cache_free(self) -> None:
         digests = render._source_digests(Paths(ROOT))
         self.assertIn("src/core/fields/m31.zig", digests)

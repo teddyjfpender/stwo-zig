@@ -8,7 +8,8 @@ from pathlib import Path
 from typing import Any
 
 if __package__:
-    from .riscv_refinement_lib import air_program_contract, codec, sail
+    from . import riscv_refinement_publication as publication
+    from .riscv_refinement_lib import air_program_contract, codec, render, sail
     from .riscv_refinement_lib.audited_inventory import AUDITED_THEOREMS
     from .riscv_refinement_lib.model import (
         FULL_OPCODE_COUNT,
@@ -39,7 +40,8 @@ if __package__:
         _validate_payload_identity,
     )
 else:
-    from riscv_refinement_lib import air_program_contract, codec, sail
+    import riscv_refinement_publication as publication
+    from riscv_refinement_lib import air_program_contract, codec, render, sail
     from riscv_refinement_lib.audited_inventory import AUDITED_THEOREMS
     from riscv_refinement_lib.model import (
         FULL_OPCODE_COUNT,
@@ -500,6 +502,118 @@ def _validate_certificate_sail_bindings(
             )
 
 
+def _validate_publication_bindings(
+    value: object,
+    production_inputs: object,
+    sail_inputs: object,
+    theorem_axiom_index: object,
+) -> None:
+    publication.validate_publication_evidence(value)
+    if (
+        not isinstance(value, dict)
+        or not isinstance(production_inputs, dict)
+        or not isinstance(sail_inputs, dict)
+        or not isinstance(theorem_axiom_index, dict)
+    ):
+        raise RefinementError(
+            "publication evidence cannot bind the receipt inputs"
+        )
+    entries = value["entries"]
+    production_programs = production_inputs.get("opcode_air_programs")
+    theorem_entries = theorem_axiom_index.get("entries")
+    monad_identity = sail_inputs.get("monad_bridge_receipt")
+    monad = (
+        monad_identity.get("payload")
+        if isinstance(monad_identity, dict)
+        else None
+    )
+    source_identities = (
+        monad.get("selector_source_digests")
+        if isinstance(monad, dict)
+        else None
+    )
+    monad_axioms = (
+        monad.get("theorem_axioms")
+        if isinstance(monad, dict)
+        else None
+    )
+    if (
+        not isinstance(production_programs, list)
+        or not isinstance(theorem_entries, dict)
+        or not isinstance(source_identities, list)
+        or not isinstance(monad_axioms, dict)
+        or len(entries) != len(production_programs)
+        or len(entries) != len(source_identities)
+    ):
+        raise RefinementError(
+            "publication evidence input inventory is incomplete"
+        )
+    for universal in value["universal_theorems"]:
+        if universal not in theorem_entries:
+            raise RefinementError(
+                f"publication local theorem is not audited: {universal}"
+            )
+    for entry, program, source_identity in zip(
+        entries,
+        production_programs,
+        source_identities,
+    ):
+        selector = entry["mnemonic"].upper()
+        if (
+            not isinstance(program, dict)
+            or entry["manifest_id"] != program.get("manifest_id")
+            or entry["mnemonic"] != program.get("mnemonic")
+            or entry["family"] != program.get("family")
+            or entry["production_air_digest"]
+            != program.get("content_digest")
+            or not isinstance(source_identity, dict)
+            or source_identity.get("selector") != selector
+            or source_identity.get("sha256")
+            != entry["generated_sail_source_digest"]
+        ):
+            raise RefinementError(
+                f"publication input binding drifted for {selector}"
+            )
+        for field in (
+            "tuple_theorem",
+            "non_vacuity_theorem",
+            "mutation_theorem",
+        ):
+            if entry[field] not in theorem_entries:
+                raise RefinementError(
+                    f"publication retained theorem is not audited: "
+                    f"{entry[field]}"
+                )
+        for field in (
+            "generated_sail_retirement_theorem",
+            "accepted_air_refinement_theorem",
+        ):
+            theorem = entry[field]
+            if (
+                theorem not in monad_axioms
+                or monad_axioms[theorem]
+                != value["generated_sail_theorem_axioms"].get(theorem)
+            ):
+                raise RefinementError(
+                    f"publication Sail theorem is not cross-bound: {theorem}"
+                )
+    for boundary, label in (
+        (value["full_step_theorem"], "full-step"),
+        (
+            value["cross_project_contract_theorem"],
+            "cross-project contract",
+        ),
+    ):
+        if (
+            boundary not in monad_axioms
+            or monad_axioms[boundary]
+            != value["generated_sail_theorem_axioms"].get(boundary)
+        ):
+            raise RefinementError(
+                f"publication {label} theorem is not cross-bound"
+            )
+
+
 def _validate_receipt_structure(payload: dict[str, object]) -> None:
     required = {
         "approved_lean_axioms",
@@ -515,6 +629,7 @@ def _validate_receipt_structure(payload: dict[str, object]) -> None:
         "opcode_mutations",
         "pilot_mutation_theorems",
         "production_inputs",
+        "publication_evidence",
         "proof_escape_scan",
         "repository_dirty",
         "repository_dirty_paths",
@@ -559,6 +674,7 @@ def _validate_receipt_structure(payload: dict[str, object]) -> None:
     _validate_payload_identity(
         payload["generated_manifest"],
         "generated manifest",
+        content_digest=render.manifest_content_digest,
     )
     if payload["generated_manifest"].get("artifact") != (
         "formal/riscv-refinement/generated-manifest.json"
@@ -670,4 +786,10 @@ def _validate_receipt_structure(payload: dict[str, object]) -> None:
     _validate_certificate_sail_bindings(
         sail_inputs,
         mappings,
+    )
+    _validate_publication_bindings(
+        payload.get("publication_evidence"),
+        production_inputs,
+        sail_inputs,
+        payload.get("theorem_axiom_index"),
     )

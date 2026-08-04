@@ -6,14 +6,14 @@
 # not: it provisions the pinned Sail compiler (the same hash-pinned upstream
 # release binary riscv-sail-differential.yml installs), builds the pinned
 # sail-riscv workspace, regenerates the exact-profile RV32IM Sail Lean
-# theorem backend, runs the full Sail-bound Level-1 pilot gate
+# theorem backend, runs the Sail-bound 46-opcode FV-1/FV-2 publication gate
 # (`zig build riscv-refinement-pilot`), and mints the live-evidence
 # refinement receipt. Command-to-claim mapping and the macOS story:
 # soundness/SAIL_PROVISIONING.md.
 #
 # Trigger policy: schedule + workflow_dispatch + push to main ONLY, never on
 # every pull request. A cold run builds the Sail simulator, Spike, the Sail
-# Lean backend, the Lean proof tree, and the Zig pilot -- far too slow for a
+# Lean backend, the Lean proof tree, and the formal gate -- far too slow for a
 # per-PR required check, and a slow required check only teaches contributors
 # to ignore it. The fast PR-scoped formal leg stays in
 # riscv-refinement.yml; this job is the capability that makes the
@@ -48,11 +48,11 @@ concurrency:
 
 jobs:
   sail-present-refinement:
-    name: Sail-present Level-1 refinement gate
+    name: Sail-present 46-opcode FV-1/FV-2 publication gate
     runs-on: ubuntu-latest
     # Cold path: Sail simulator cmake build + Spike build (~30 min), Sail
     # --lean backend generation (bounded at 30 min inside prepare-sail),
-    # full Lean proof build, Zig pilot, then the receipt's repeat
+    # full Lean proof build, formal gate, then the receipt's repeat
     # verification pass. Warm-cache runs are far shorter; the budget covers
     # the fully cold rebuild.
     timeout-minutes: 180
@@ -179,21 +179,14 @@ jobs:
           cd formal/riscv-refinement
           lake build
 
-      # The full Sail-bound Level-1 pilot gate, previously a laptop-only
-      # command: fresh symbolic AIR export, byte-identical generated
+      # The Sail-bound 46-opcode FV-1/FV-2 publication gate, previously a
+      # laptop-only command: fresh symbolic AIR export, byte-identical generated
       # artifacts under LIVE Sail evidence (the digest pins are re-derived
       # from the backend generated above, not re-asserted from committed
       # hashes), coverage, negative controls, Python unit tests, Lean
       # build, proof-escape scan, and the axiom audit.
       #
-      # KNOWN RED until the committed manifest carries live-grade evidence
-      # or the grade-blind identity fix lands: the committed
-      # generated-manifest.json records evidence_source
-      # carried-committed-sail-evidence, this run renders live-toolchain,
-      # and the byte-identity check counts that one field as drift.
-      # Diagnosis and the specified fix: soundness/SAIL_PROVISIONING.md
-      # sections 4 and 7. Do not add a skip or a tolerance here.
-      - name: Run the Sail-present refinement pilot gate
+      - name: Run the Sail-present 46-opcode FV-1/FV-2 publication gate
         env:
           STWO_SAIL_RISCV_DIR: ${{ runner.tool_cache }}/stwo-zig/riscv-formal/source/sail-riscv
           SAIL: ${{ runner.temp }}/sail/bin/sail

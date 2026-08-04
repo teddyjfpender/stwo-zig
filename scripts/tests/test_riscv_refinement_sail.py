@@ -2,16 +2,179 @@
 
 from __future__ import annotations
 
+import os
+
 from scripts.tests.riscv_refinement_test_support import *
 
 
 class RefinementSailTest(unittest.TestCase):
-    def test_live_bridge_command_pins_the_external_lean_root(self) -> None:
+    def test_live_bridge_commands_pin_the_external_lean_root(self) -> None:
         paths = Paths(ROOT)
-        command = sail_lean_bridge._bridge_lean_command(paths)
-        bridge = ROOT / sail_lean_bridge.BRIDGE_SOURCE
-        self.assertEqual(command[command.index("-R") + 1], str(bridge.parent))
-        self.assertEqual(command[-1], str(bridge))
+        self.assertEqual(len(sail_lean_bridge.BRIDGE_SOURCES), 47)
+        self.assertEqual(
+            [source.name for source in sail_lean_bridge.BRIDGE_SOURCES],
+            [
+                "Pilot.lean",
+                "Composition.lean",
+                "ExecutionClosure.lean",
+                "ExecutionCompare.lean",
+                "DecodeAluBase.lean",
+                "DecodeAluBaseState.lean",
+                "DecodeAluIType.lean",
+                "DecodeAluShift.lean",
+                "DecodeAluSlli.lean",
+                "DecodeAluSrli.lean",
+                "DecodeAluSrai.lean",
+                "DecodeAluShiftCertificates.lean",
+                "DecodeMulDivEncoding.lean",
+                "DecodeMulDivState.lean",
+                "DecodeMulDivGate.lean",
+                "DecodeMulDivMul.lean",
+                "DecodeMulDivMulh.lean",
+                "DecodeMulDivMulhsu.lean",
+                "DecodeMulDivMulhu.lean",
+                "DecodeMulDivDiv.lean",
+                "DecodeMulDivDivu.lean",
+                "DecodeMulDivRem.lean",
+                "DecodeMulDivRemu.lean",
+                "DecodeMulDiv.lean",
+                "MulDivArithmetic.lean",
+                "DecodeControl.lean",
+                "DecodeControlState.lean",
+                "ExecutionControl.lean",
+                "ExecutionControlBranches.lean",
+                "ExecutionControlJump.lean",
+                "DecodeMemory.lean",
+                "DecodeMemoryState.lean",
+                "ExecutionMemory.lean",
+                "ExecutionMemoryWrite.lean",
+                "ExecutionMemoryVmem.lean",
+                "ExecutionMemoryStore.lean",
+                "PublicationAlu.lean",
+                "PublicationCompare.lean",
+                "PublicationShifts.lean",
+                "PublicationControl.lean",
+                "PublicationMemory.lean",
+                "PublicationMemoryTheorem.lean",
+                "PublicationMulDivMultiply.lean",
+                "PublicationMulDivHighMultiply.lean",
+                "PublicationMulDivDivision.lean",
+                "PublicationMulDiv.lean",
+                "Publication.lean",
+            ],
+        )
+        bridge_root = str(
+            (ROOT / sail_lean_bridge.PILOT_SOURCE).parent
+        )
+        for source in sail_lean_bridge.BRIDGE_SOURCES:
+            with self.subTest(source=source):
+                output = Path("/tmp") / source.with_suffix(".olean").name
+                command = sail_lean_bridge._bridge_lean_command(
+                    paths,
+                    source,
+                    output,
+                )
+                self.assertEqual(
+                    command[command.index("-R") + 1],
+                    bridge_root,
+                )
+                self.assertEqual(
+                    command[command.index("-o") + 1],
+                    str(output),
+                )
+        self.assertEqual(
+            sail_lean_bridge.BRIDGE_SOURCE,
+            sail_lean_bridge.PUBLICATION_SOURCE,
+        )
+        self.assertEqual(
+            sail_lean_bridge.BRIDGE_SOURCES[-1],
+            sail_lean_bridge.PUBLICATION_SOURCE,
+        )
+
+    def test_live_bridge_kernel_build_follows_the_declared_closure(self) -> None:
+        paths = Paths(ROOT)
+        project = Path("/tmp/generated-sail-project")
+        output_dir = Path("/tmp/stwo-test-bridge-oleans")
+        environment = {"LEAN_PATH": "/tmp/formal-oleans"}
+
+        def run(
+            argv: list[str],
+            cwd: Path,
+            *,
+            env: dict[str, str] | None = None,
+            timeout: int = 0,
+        ) -> str:
+            source = Path(argv[-1])
+            self.assertEqual(cwd, project)
+            self.assertEqual(timeout, 600)
+            self.assertIsNotNone(env)
+            assert env is not None
+            self.assertEqual(
+                env["LEAN_PATH"],
+                f"{output_dir}{os.pathsep}/tmp/formal-oleans",
+            )
+            self.assertEqual(
+                argv[argv.index("-o") + 1],
+                str(output_dir / source.with_suffix(".olean").name),
+            )
+            return source.stem
+
+        with mock.patch.object(
+            sail_lean_bridge,
+            "_run",
+            side_effect=run,
+        ) as kernel_run:
+            output = sail_lean_bridge._kernel_build_bridge_sources(
+                paths,
+                project,
+                environment,
+                output_dir,
+            )
+
+        self.assertEqual(
+            output.splitlines(),
+            [source.stem for source in sail_lean_bridge.BRIDGE_SOURCES],
+        )
+        self.assertEqual(
+            [
+                Path(call.args[0][-1]).relative_to(ROOT)
+                for call in kernel_run.call_args_list
+            ],
+            list(sail_lean_bridge.BRIDGE_SOURCES),
+        )
+        self.assertEqual(environment, {"LEAN_PATH": "/tmp/formal-oleans"})
+
+    def test_live_bridge_scans_every_declared_source_for_escapes(self) -> None:
+        sources = (Path("bridge/First.lean"), Path("bridge/Second.lean"))
+        with tempfile.TemporaryDirectory() as raw:
+            paths = Paths(Path(raw))
+            for source in sources:
+                absolute = paths.root / source
+                absolute.parent.mkdir(parents=True, exist_ok=True)
+                absolute.write_text(
+                    "/-! Prose about an axiom. -/\n"
+                    "theorem clean : True := trivial\n",
+                    encoding="utf-8",
+                )
+            with mock.patch.object(
+                sail_lean_bridge,
+                "BRIDGE_SOURCES",
+                sources,
+            ):
+                identities = sail_lean_bridge._bridge_source_identities(paths)
+                self.assertEqual(
+                    [identity["path"] for identity in identities],
+                    [source.as_posix() for source in sources],
+                )
+                (paths.root / sources[-1]).write_text(
+                    "theorem escaped : True := by sorry\n",
+                    encoding="utf-8",
+                )
+                with self.assertRaisesRegex(
+                    RefinementError,
+                    re.escape(sources[-1].as_posix()),
+                ):
+                    sail_lean_bridge._bridge_source_identities(paths)
 
     def test_carried_sail_evidence_reproduces_the_committed_provenance(
         self,
@@ -181,7 +344,9 @@ class RefinementSailTest(unittest.TestCase):
             paths = carried_fixture(Path(raw))
             manifest = codec.load_json(paths.manifest)
             manifest["sail"]["checkout_state"] = "trust-me"
-            manifest["canonical_digest"] = codec.content_digest(manifest)
+            manifest["canonical_digest"] = render.manifest_content_digest(
+                manifest
+            )
             codec.atomic_write(paths.manifest, codec.pretty_bytes(manifest))
             with self.assertRaisesRegex(
                 RefinementError,
@@ -210,7 +375,9 @@ class RefinementSailTest(unittest.TestCase):
             manifest["sail"]["generated_monad_bridge_receipt"][
                 "canonical_digest"
             ] = receipt["canonical_digest"]
-            manifest["canonical_digest"] = codec.content_digest(manifest)
+            manifest["canonical_digest"] = render.manifest_content_digest(
+                manifest
+            )
             codec.atomic_write(paths.manifest, codec.pretty_bytes(manifest))
 
             with self.assertRaisesRegex(

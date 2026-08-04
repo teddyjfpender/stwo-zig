@@ -30,7 +30,13 @@ from .render_paths import (
     SOURCE_PATHS,
     SOURCE_TREES,
 )
-from .render_validation import check_artifacts, validate_manifest, write_artifacts
+from .render_validation import (
+    MANIFEST_CLAIM_BOUNDARY,
+    check_artifacts,
+    manifest_content_digest,
+    validate_manifest,
+    write_artifacts,
+)
 
 AIR_LEAN_TEMPLATE = """\
 -- GENERATED FILE. DO NOT EDIT.
@@ -677,16 +683,7 @@ def artifacts(paths: Paths, evidence: sail.SailEvidence) -> dict[Path, bytes]:
         "schema_version": SCHEMA_VERSION,
         "kind": "stwo-riscv-refinement-generated-manifest",
         "tier": "level-1-normalized-pilot",
-        "claim_boundary": {
-            "lui_air_ir_v2_roundtrip": True,
-            "lean_serialized_m31_air_interpreter": True,
-            "lui_air_to_normalized_composition": True,
-            "addi_air_to_normalized_composition": True,
-            "generated_sail_ast_translation_receipt": True,
-            "lean_generated_sail_monad_normalization": True,
-            "lean_generated_sail_step_loop_framing": False,
-            "kernel_checked_normalized_refinement": True,
-        },
+        "claim_boundary": dict(MANIFEST_CLAIM_BOUNDARY),
         "lean_toolchain": LEAN_TOOLCHAIN,
         "opcodes": [
             {
@@ -718,7 +715,7 @@ def artifacts(paths: Paths, evidence: sail.SailEvidence) -> dict[Path, bytes]:
             )
         },
     }
-    manifest["canonical_digest"] = codec.content_digest(manifest)
+    manifest["canonical_digest"] = manifest_content_digest(manifest)
     outputs[Path("generated-manifest.json")] = codec.pretty_bytes(manifest)
     return outputs
 

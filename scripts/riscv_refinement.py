@@ -76,6 +76,11 @@ LIVE_SAIL_OPTIONS = receipt_constants.LIVE_SAIL_OPTIONS
 AUDIT_COMMAND = receipt_constants.AUDIT_COMMAND
 AUDITED_THEOREMS_REFRESH = receipt_constants.AUDITED_THEOREMS_REFRESH
 
+FV_CLAIM_SUMMARY = (
+    "46/46 normalized retirements, 46/46 publication implications; "
+    "whole_frontend_verified=false; proof_system_soundness=false"
+)
+
 _production_inputs = receipt_build._production_inputs
 _sail_inputs = receipt_build._sail_inputs
 _theorem_axiom_index = receipt_build._theorem_axiom_index
@@ -253,7 +258,8 @@ def coverage(paths: Paths, require_full: bool = False) -> None:
         or manifest.get("kind")
         != "stwo-riscv-refinement-generated-manifest"
         or manifest.get("tier") != "level-1-normalized-pilot"
-        or manifest.get("canonical_digest") != codec.content_digest(manifest)
+        or manifest.get("canonical_digest")
+        != render.manifest_content_digest(manifest)
     ):
         raise RefinementError("generated refinement manifest identity is invalid")
     entries = manifest.get("opcodes")
@@ -628,10 +634,9 @@ def verify(args: argparse.Namespace, paths: Paths) -> Verification:
             + ", ".join(missing_mutations)
         )
     print(
-        "refinement verified: fresh artifacts, retained 2/46 normalized "
-        "pilot, exact 24/24 production-AIR and 46/46 graded certificate "
-        "coverage, negative controls, unit tests, Lean build, and axiom "
-        "audit; publication remains fail-closed"
+        "refinement verified: fresh artifacts, exact 24/24 production-AIR "
+        "and 46/46 certificate coverage, negative controls, unit tests, "
+        f"Lean build, and axiom audit; {FV_CLAIM_SUMMARY}"
     )
     return Verification(theorem_axioms=axiom_report)
 
@@ -665,8 +670,7 @@ def receipt(args: argparse.Namespace, paths: Paths) -> None:
     print(
         "refinement receipt: "
         f"{payload['canonical_digest']} "
-        "(24/24 production AIR, 46/46 graded, 2 normalized, "
-        "0 publication)"
+        f"(24/24 production AIR; {FV_CLAIM_SUMMARY})"
     )
 
 

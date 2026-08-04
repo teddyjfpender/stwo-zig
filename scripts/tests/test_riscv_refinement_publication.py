@@ -34,6 +34,7 @@ class PublicationEvidenceTests(unittest.TestCase):
                 "input_bound_selectors": selectors,
                 "normalized_retirement_selectors": selectors,
                 "fetch_interrupt_trap_and_step_loop_framing": True,
+                "constructive_row_local_execution": True,
                 "publication_binding": True,
             },
             "selector_source_digests": [
@@ -108,22 +109,27 @@ class PublicationEvidenceTests(unittest.TestCase):
             46,
         )
 
-    def test_current_carried_receipt_is_not_publication_evidence(self) -> None:
+    def test_current_carried_receipt_is_publication_evidence(self) -> None:
         receipt = json.loads(
             (
                 self.paths.formal
                 / "generated/sail/generated-monad-bridge-receipt-v1.json"
             ).read_text(encoding="utf-8")
         )
-        with self.assertRaisesRegex(
-            RefinementError,
-            "does not establish FV-1/FV-2",
-        ):
-            publication.build_publication_evidence(
-                self.paths,
-                receipt,
-                self.local_axioms(),
-            )
+        evidence = publication.build_publication_evidence(
+            self.paths,
+            receipt,
+            self.local_axioms(),
+        )
+        self.assertEqual(
+            evidence["normalized_retirements"],
+            {"proved": 46, "total": 46},
+        )
+        self.assertEqual(
+            evidence["publication_level"],
+            {"proved": 46, "total": 46},
+        )
+        self.assertTrue(evidence["full_generated_sail_step"])
 
     def test_missing_composition_theorem_is_rejected(self) -> None:
         receipt = self.receipt()
@@ -156,6 +162,21 @@ class PublicationEvidenceTests(unittest.TestCase):
         receipt = self.receipt()
         receipt["claim_boundary"][
             "fetch_interrupt_trap_and_step_loop_framing"
+        ] = False
+        with self.assertRaisesRegex(
+            RefinementError,
+            "does not establish FV-1/FV-2",
+        ):
+            publication.build_publication_evidence(
+                self.paths,
+                receipt,
+                self.local_axioms(),
+            )
+
+    def test_hypothetical_execution_claim_is_rejected(self) -> None:
+        receipt = self.receipt()
+        receipt["claim_boundary"][
+            "constructive_row_local_execution"
         ] = False
         with self.assertRaisesRegex(
             RefinementError,

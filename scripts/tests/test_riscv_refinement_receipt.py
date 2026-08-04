@@ -115,7 +115,7 @@ class RefinementReceiptTest(unittest.TestCase):
                     malformed,
                 )
 
-    def test_receipt_v2_boundary_is_explicitly_non_publication(self) -> None:
+    def test_receipt_v3_boundary_publishes_fv1_fv2_only(self) -> None:
         boundary = riscv_refinement.RECEIPT_CLAIM_BOUNDARY
         self.assertEqual(
             boundary["team_a_production_air"],
@@ -131,11 +131,12 @@ class RefinementReceiptTest(unittest.TestCase):
         )
         self.assertEqual(
             boundary["normalized_retirements"]["proved"],
-            2,
+            46,
         )
-        self.assertEqual(boundary["publication_level"]["proved"], 0)
-        self.assertFalse(boundary["full_generated_sail_step"])
+        self.assertEqual(boundary["publication_level"]["proved"], 46)
+        self.assertTrue(boundary["full_generated_sail_step"])
         self.assertFalse(boundary["proof_system_soundness"])
+        self.assertFalse(boundary["whole_frontend_verified"])
         self.assertEqual(
             boundary["external_signoffs"]["status"],
             "not-established",
@@ -397,7 +398,7 @@ class RefinementReceiptTest(unittest.TestCase):
             for index, mapping in enumerate(mappings)
             if (
                 mapping["team"] == "A"
-                and mapping["sail_binding"] == "generated-clause-input"
+                and mapping["sail_binding"] == "generated-retirement"
             )
         )
         team_b_index = next(
