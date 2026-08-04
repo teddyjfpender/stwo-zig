@@ -12,6 +12,11 @@ pub const archive_name = "stwo_cuda_kernels";
 const build_script = "scripts/cuda_build.py";
 const build_script_root = "scripts/cuda_build_lib";
 
+pub const AotProduct = enum {
+    native,
+    cairo,
+};
+
 pub const Toolchain = struct {
     nvcc: []const u8 = "",
     host_cxx: []const u8 = "",
@@ -50,9 +55,20 @@ pub const Archive = struct {
     build: *std.Build.Step.Run,
 };
 
-pub fn addArchive(b: *std.Build, toolchain: Toolchain) Archive {
+pub fn addArchive(
+    b: *std.Build,
+    toolchain: Toolchain,
+    product: AotProduct,
+    cairo_eval_root: ?std.Build.LazyPath,
+) Archive {
     require(toolchain);
-    const command = buildCommand(b, toolchain, false);
+    const command = buildCommand(
+        b,
+        toolchain,
+        false,
+        product,
+        cairo_eval_root,
+    );
     return .{
         .directory = command.addOutputDirectoryArg("stwo-native-cuda-runtime"),
         .build = command,
@@ -61,7 +77,13 @@ pub fn addArchive(b: *std.Build, toolchain: Toolchain) Archive {
 
 pub fn addPlan(b: *std.Build, toolchain: Toolchain) *std.Build.Step.Run {
     require(toolchain);
-    const command = buildCommand(b, toolchain, true);
+    const command = buildCommand(
+        b,
+        toolchain,
+        true,
+        .native,
+        null,
+    );
     _ = command.addOutputDirectoryArg("stwo-native-cuda-plan");
     return command;
 }
@@ -100,6 +122,8 @@ fn buildCommand(
     b: *std.Build,
     toolchain: Toolchain,
     plan_only: bool,
+    product: AotProduct,
+    cairo_eval_root: ?std.Build.LazyPath,
 ) *std.Build.Step.Run {
     const command = b.addSystemCommand(&.{"python3"});
     command.addFileArg(b.path(build_script));
@@ -117,6 +141,17 @@ fn buildCommand(
     command.addArg("--native-aot-root");
     command.addDirectoryArg(b.path(native_aot_root));
     addDirectoryInputs(b, command, native_aot_root);
+    command.addArgs(&.{ "--aot-set", "." });
+    if (product == .cairo) {
+        const generated = cairo_eval_root orelse @panic(
+            "Cairo CUDA archive requires generated eval AOT sources",
+        );
+        command.addArgs(&.{ "--aot-set", "cairo_eval" });
+        command.addArgs(&.{ "--aot-set-root", "cairo_eval" });
+        command.addDirectoryArg(generated);
+    } else if (cairo_eval_root != null) {
+        @panic("Native CUDA archive cannot consume Cairo AOT sources");
+    }
     command.addArgs(&.{ "--nvcc", toolchain.nvcc });
     command.addArgs(&.{ "--host-cxx", toolchain.host_cxx });
     command.addArgs(&.{ "--ar", toolchain.archiver });

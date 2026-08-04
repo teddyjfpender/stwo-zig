@@ -134,7 +134,12 @@ pub fn addProduct(context: Context) void {
         descriptor.build_step,
         "Build the focused Native CUDA proof executable",
     );
-    const archive = cuda.addArchive(context.b, options.toolchain());
+    const archive = cuda.addArchive(
+        context.b,
+        options.toolchain(),
+        .native,
+        null,
+    );
     cuda.linkRuntime(installed.executable, options.toolchain(), archive);
     const install_archive = context.b.addInstallFile(
         archive.directory.path(context.b, "libstwo_cuda_kernels.a"),

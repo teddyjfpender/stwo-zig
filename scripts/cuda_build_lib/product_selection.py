@@ -35,11 +35,14 @@ class ProductSelection:
     aot_sources: tuple[Path, ...]
     aot_manifest: tuple[dict[str, object], ...]
     aot_closure_sha256: str
+    aot_sets: tuple[str, ...]
 
 
 class ProductConfig(Protocol):
     product_manifest: Path
     native_aot_root: Path
+    aot_sets: tuple[str, ...]
+    aot_set_roots: tuple[tuple[str, Path], ...]
 
 
 class SourceAuthority(Protocol):
@@ -78,18 +81,38 @@ def load_product_selection(
         raise BuildError("CUDA resident source selection names an absent authority file")
 
     aot_root = config.native_aot_root.resolve()
-    declaration, product_sets = _load_aot_product_sets(aot_root)
+    declaration, declared_sets = _load_aot_product_sets(aot_root)
+    product_sets = config.aot_sets
+    if (
+        not product_sets
+        or product_sets != tuple(sorted(set(product_sets)))
+        or product_sets[0] != "."
+        or not set(product_sets).issubset(declared_sets)
+    ):
+        raise BuildError("CUDA AOT product-set selection is not canonical")
+    overrides: dict[str, Path] = {}
+    for name, root in config.aot_set_roots:
+        if name in overrides:
+            raise BuildError("CUDA AOT product-set root is duplicated")
+        overrides[name] = root.resolve()
+    if not set(overrides).issubset(product_sets):
+        raise BuildError("CUDA AOT product-set root is not selected")
     aot_manifest: list[dict[str, object]] = []
     aot_sources: list[Path] = []
     seen_cache_keys: set[str] = set()
     aot_closure = hashlib.sha256()
-    declaration_payload = _canonical_json_bytes(declaration)
+    selection = {
+        "schema": declaration["schema"],
+        "sets": list(product_sets),
+    }
+    declaration_payload = _canonical_json_bytes(selection)
     aot_closure.update(len(declaration_payload).to_bytes(8, "little"))
     aot_closure.update(declaration_payload)
     for relative_set in product_sets:
-        set_root = (aot_root / relative_set).resolve()
-        if not set_root.is_relative_to(aot_root):
+        pinned_root = (aot_root / relative_set).resolve()
+        if not pinned_root.is_relative_to(aot_root):
             raise BuildError("CUDA AOT product set escapes its root")
+        set_root = overrides.get(relative_set, pinned_root)
         try:
             manifest = json.loads(
                 (set_root / "aot_manifest.json").read_text(encoding="utf-8")
@@ -98,6 +121,23 @@ def load_product_selection(
             raise BuildError(
                 f"cannot read CUDA AOT product-set manifest: {error}"
             ) from error
+        if set_root != pinned_root:
+            try:
+                pinned_manifest = json.loads(
+                    (pinned_root / "aot_manifest.json").read_text(
+                        encoding="utf-8"
+                    )
+                )
+            except (OSError, json.JSONDecodeError) as error:
+                raise BuildError(
+                    f"cannot read pinned CUDA AOT product-set manifest: {error}"
+                ) from error
+            if _canonical_json_bytes(manifest) != _canonical_json_bytes(
+                pinned_manifest
+            ):
+                raise BuildError(
+                    "generated CUDA AOT product-set manifest differs from its pin"
+                )
         validate_aot_manifest(set_root, manifest, allow_empty=True)
         set_name = relative_set.encode("utf-8")
         manifest_payload = _canonical_json_bytes(manifest)
@@ -123,7 +163,9 @@ def load_product_selection(
                 raise BuildError("CUDA AOT product sets have duplicate cache keys")
             seen_cache_keys.add(cache_key)
             source = set_root / str(entry["file"])
-            relative = source.relative_to(aot_root).as_posix().encode("utf-8")
+            relative = (
+                Path(relative_set) / source.name
+            ).as_posix().encode("utf-8")
             source_payload = source.read_bytes()
             aot_closure.update(len(relative).to_bytes(8, "little"))
             aot_closure.update(relative)
@@ -137,6 +179,7 @@ def load_product_selection(
         aot_sources=tuple(aot_sources),
         aot_manifest=tuple(aot_manifest),
         aot_closure_sha256=aot_closure.hexdigest(),
+        aot_sets=product_sets,
     )
 
 

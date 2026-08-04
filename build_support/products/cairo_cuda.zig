@@ -3,6 +3,7 @@
 const std = @import("std");
 const build_identity = @import("../build_identity.zig");
 const cuda = @import("../backends/cuda.zig");
+const cuda_aot = @import("../backends/cuda_aot.zig");
 const cuda_tools = @import("../backends/cuda_tools.zig");
 const graph_identity = @import("../graph/identity.zig");
 const graph = @import("../graph/modules.zig");
@@ -118,7 +119,17 @@ pub fn addProduct(context: Context) void {
         descriptor.build_step,
         "Build the resident Cairo CUDA proof executable",
     );
-    const archive = cuda.addArchive(context.b, options.toolchain());
+    const cairo_eval_aot = cuda_aot.addCairoEval(
+        context.b,
+        context.target,
+        stwo,
+    );
+    const archive = cuda.addArchive(
+        context.b,
+        options.toolchain(),
+        .cairo,
+        cairo_eval_aot.directory,
+    );
     cuda.linkRuntime(installed.executable, options.toolchain(), archive);
     const install_archive = context.b.addInstallFile(
         archive.directory.path(context.b, "libstwo_cuda_kernels.a"),

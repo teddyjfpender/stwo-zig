@@ -80,9 +80,9 @@ individual integration packages.
 The next reusable boundary is a per-frontend kernel catalog and binding
 contract: a frontend should supply authenticated trace/constraint programs and
 statement bindings, while the backend continues to own residency, PCS stages,
-scheduling, telemetry, and teardown. AOT packs must also become per-frontend
-products instead of one shared archive before CUDA can be described as
-frontend-pluggable.
+scheduling, telemetry, and teardown. Native and Cairo now select distinct
+authenticated AOT sets; the remaining work is to expose the same catalog and
+binding contract to new frontend adapters.
 
 ## Dependencies
 
@@ -124,9 +124,42 @@ The 2026-08-04 audit against CuMetal commit
 The maintained QM31 power-expansion kernel also passed an exact numerical
 Apple-GPU execution probe. Unsupported paths failed closed. The largest common
 gap was CuMetal lowering of `__nv_brev`; other gaps included funnel shifts,
-shared atomics, CUB, and incomplete runtime constants. Keep this lane explicit
-and optional until those gaps are represented by a checked compatibility
-manifest and reproducible numerical tests.
+shared atomics, CUB, and incomplete runtime constants. The checked ledger below
+preserves those gaps. The numerical probe remains audit evidence, rather than a
+gate, until its CuMetal execution harness is repository-owned and reproducible.
+
+The local maintained-device-code floor is intentionally outside CI and never
+enters a product closure. On macOS, run it with an explicit CuMetal build:
+
+```sh
+zig build cuda-cumetal-portability \
+  -Dcuda-cumetalc=/absolute/path/to/cumetalc
+```
+
+The CuMetal 0.1.3 compatibility ledger covers all 33 maintained translation
+units: 17 translate unchanged, and two trace units translate through their
+existing host-parity bit-reversal implementation. The remaining 14 blockers are
+recorded by category: CUDA runtime API coverage (5), funnel shifts (4), shared
+atomics (2), CUB (1), 64-bit `atomicMin` (1), and bit reversal (1). The positive
+step therefore translates 19 units to validated Metal libraries in Zig's build
+cache without changing the NVIDIA production path. Adding translated outputs
+to source control, accepting a smaller floor, or using translated timings as
+CUDA evidence is not permitted.
+
+### Generated Cairo evaluation sources
+
+The 271 exact SN2 Cairo evaluation bodies are emitted by Zig into the build
+cache from `vectors/cairo/sn_pie_2_composition.bin`; they are not maintained
+source files. The checked-in `aot_manifest.json` remains the authentication pin,
+and a Cairo CUDA archive is rejected unless the generated manifest matches it
+exactly. Native CUDA archives select only the 48 Native AOT entries, avoiding
+271 unnecessary `nvcc` compilations per target SM.
+
+The host-independent generator can be inspected directly with:
+
+```sh
+zig build cuda-cairo-eval-aot -Doptimize=ReleaseFast
+```
 
 ## Contract and invariants
 

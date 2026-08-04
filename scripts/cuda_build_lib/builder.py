@@ -82,6 +82,8 @@ class BuildConfig:
     native_aot_root: Path
     output_dir: Path
     toolchain: Toolchain
+    aot_sets: tuple[str, ...] = (".",)
+    aot_set_roots: tuple[tuple[str, Path], ...] = ()
 
 
 def normalize_sms(values: Iterable[str]) -> tuple[int, ...]:
@@ -205,6 +207,7 @@ def build_plan(config: BuildConfig, probe_tools: bool) -> dict[str, object]:
         "product_manifest_sha256": product.manifest_sha256,
         "native_runtime_closure_sha256": native["closure_sha256"],
         "native_aot_closure_sha256": product.aot_closure_sha256,
+        "aot_product_sets": list(product.aot_sets),
         "tools": tools,
         "target_sms": list(toolchain.sms),
         "fixed_flags": fixed,

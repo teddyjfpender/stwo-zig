@@ -53,6 +53,19 @@ def parser() -> argparse.ArgumentParser:
         type=Path,
         default=ROOT / "src/backends/cuda/aot/native",
     )
+    result.add_argument(
+        "--aot-set",
+        action="append",
+        choices=(".", "cairo_eval"),
+        help="Authenticated frontend AOT set; defaults to the Native set only",
+    )
+    result.add_argument(
+        "--aot-set-root",
+        action="append",
+        nargs=2,
+        metavar=("NAME", "DIRECTORY"),
+        help="Build-cache source root overriding one selected AOT set",
+    )
     result.add_argument("--out-dir", type=Path, required=True)
     result.add_argument("--nvcc", required=True)
     result.add_argument("--host-cxx", required=True)
@@ -93,6 +106,11 @@ def main() -> int:
                 cuda_library_dir=args.cuda_library_dir.resolve(),
                 sms=normalize_sms(args.arch),
                 jobs=args.jobs,
+            ),
+            aot_sets=tuple(args.aot_set or (".",)),
+            aot_set_roots=tuple(
+                (name, Path(directory).resolve())
+                for name, directory in (args.aot_set_root or ())
             ),
         )
         if args.plan_only:

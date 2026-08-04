@@ -4,18 +4,12 @@ import hashlib
 import json
 import shutil
 import subprocess
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "scripts"))
-
-from cuda_build_lib.builder import BuildError, validate_aot_manifest  # noqa: E402
-
-
 CAIRO_EVAL_AOT = (
     ROOT / "src/backends/cuda/aot/native/cairo_eval"
 )
@@ -48,48 +42,13 @@ class CudaCairoEvalAotTests(unittest.TestCase):
                 for entry in manifest
             )
         )
-        validate_aot_manifest(CAIRO_EVAL_AOT, manifest)
 
-    def test_source_and_placement_drift_are_rejected(self) -> None:
-        entry = self.manifest()[0]
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            source = CAIRO_EVAL_AOT / str(entry["file"])
-            shutil.copy2(source, root / source.name)
-            isolated = [entry]
-            validate_aot_manifest(root, isolated)
-
-            (root / source.name).write_bytes(source.read_bytes() + b"\n")
-            with self.assertRaisesRegex(
-                BuildError,
-                "stale Cairo eval identities",
-            ):
-                validate_aot_manifest(root, isolated)
-
-            shutil.copy2(source, root / source.name)
-            changed = json.loads(json.dumps(isolated))
-            changed[0]["occurrences"][0]["global_rc_base"] += 1
-            with self.assertRaisesRegex(
-                BuildError,
-                "stale Cairo eval identities",
-            ):
-                validate_aot_manifest(root, changed)
-
-    def test_exact_program_identity_is_not_replaceable_by_semantic_hash(
-        self,
-    ) -> None:
-        entry = self.manifest()[0]
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            source = CAIRO_EVAL_AOT / str(entry["file"])
-            shutil.copy2(source, root / source.name)
-            changed = json.loads(json.dumps([entry]))
-            changed[0]["occurrences"][0]["program_identity"] = "01" * 32
-            with self.assertRaisesRegex(
-                BuildError,
-                "stale Cairo eval identities",
-            ):
-                validate_aot_manifest(root, changed)
+    def test_checkout_retains_only_the_authenticated_manifest(self) -> None:
+        self.assertEqual([], list(CAIRO_EVAL_AOT.glob("*.cu")))
+        self.assertEqual(
+            ["aot_manifest.json"],
+            sorted(path.name for path in CAIRO_EVAL_AOT.iterdir()),
+        )
 
     def test_sn2_parity_fixture_and_strict_aot_smoke_are_pinned(self) -> None:
         fixture_bytes = PARITY_FIXTURE.read_bytes()

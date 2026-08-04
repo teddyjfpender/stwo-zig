@@ -74,6 +74,8 @@ pub const steps = [_]Step{
     .{ .name = "test-metal-core-aot-probe", .description = "Run Native core metallib probe contract tests without compiling shaders", .scope = .metal_tools },
     .{ .name = "metal-core-aot-acceptance", .description = "Build, authenticate, and inspect the linked Native core metallib", .scope = .metal_tools },
     .{ .name = "cuda-source-closure", .description = "Verify the exact pinned CUDA/C++ source authority", .scope = .cuda_tools },
+    .{ .name = "cuda-cumetal-portability", .description = "Translate the maintained CUDA device-code portability floor with CuMetal", .scope = .cuda_tools },
+    .{ .name = "cuda-cairo-eval-aot", .description = "Generate authenticated Cairo CUDA eval sources in Zig's build cache", .scope = .cuda_tools },
     .{ .name = "cuda-build-plan", .description = "Validate and print the isolated native CUDA archive build plan", .scope = .cuda_tools },
     .{ .name = "test-cuda-build-plan", .description = "Test CUDA source, AOT, toolchain, and build-plan contracts without a GPU", .scope = .cuda_tools },
     .{ .name = "test-cuda-runtime-contract", .description = "Test proof-owned CUDA context, residency, and strict-AOT contracts", .scope = .cuda_tools },

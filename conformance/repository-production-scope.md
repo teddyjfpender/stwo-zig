@@ -83,7 +83,7 @@ silently retain a proof about an older AIR. Published packages exclude it.
 The functional CUDA implementation remains required work and is not deleted.
 Its three packages are distribution-deferred because the repository cannot
 currently requalify them on the target 5090-class host. In particular, the
-generated Cairo AOT sources and the vendored host-authority snapshot remain on
+vendored host-authority snapshot and recorded-witness source copies remain on
 `main` until all of the following pass:
 
 - deterministic regeneration or an authenticated content-addressed bundle;
@@ -92,20 +92,24 @@ generated Cairo AOT sources and the vendored host-authority snapshot remain on
 - native and Cairo proof parity on current NVIDIA hardware; and
 - negative tests for missing, stale, or partially fetched payloads.
 
-After those gates pass, generated payloads may move to a dedicated immutable
-CUDA artifact repository or branch while the handwritten Zig/CUDA runtime,
-ABI, manifests, and fail-closed loader stay here. The split must reduce clone
-and package size without weakening offline reproducibility.
+The Cairo evaluation population already has an authoritative Zig generator and
+an exact manifest pin, so its disposable `.cu` outputs are cache-resident. After
+the remaining gates pass, the retained imported/generated payloads may move to
+a dedicated immutable CUDA artifact repository or branch while the handwritten
+Zig/CUDA runtime, ABI, manifests, generators, and fail-closed loader stay here.
+The split must reduce clone and package size without weakening offline
+reproducibility.
 
 The checked-in source populations have different migration rules:
 
 - The 15 product-owned Native AOT sources (3,958 lines) are maintained kernel
   implementations, not disposable generated output. They remain until a
   reviewed source generator or ordinary maintained-kernel replacement exists.
-- The 271 Cairo evaluation sources (159,806 lines) are reproducible from
-  `vectors/cairo/sn_pie_2_composition.bin` and the Zig CUDA emitter. The CUDA
-  builder must generate them into its cache and authenticate the emitted
-  manifest before their checked-in copies are removed.
+- The 271 Cairo evaluation bodies (159,806 lines when materialized) are reproducible
+  from `vectors/cairo/sn_pie_2_composition.bin` and the Zig CUDA emitter. They
+  are generated into Zig's build cache, and the builder requires their emitted
+  manifest to equal the checked-in authenticated manifest. Generated `.cu`
+  copies do not belong in the source tree.
 - The 33 recorded-witness sources comprise 26 exact authority copies and seven
   deterministic derivations (79,420 lines total). Their compact witness
   program and a Zig-owned CUDA emitter must replace the imported Rust emitter

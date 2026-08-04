@@ -18,6 +18,7 @@ pub const Options = struct {
     cuda_library_dir: ?[]const u8,
     cuda_architectures: ?[]const u8,
     cuda_build_jobs: ?u16,
+    cuda_cumetalc: ?[]const u8,
     metal_core_aot_bundle: ?[]const u8,
     cairo_test_filter: ?[]const u8,
     riscv_test_filter: ?[]const u8,
@@ -67,6 +68,11 @@ pub const Options = struct {
             .cuda_library_dir = b.option([]const u8, "cuda-library-dir", "Explicit CUDA library directory"),
             .cuda_architectures = b.option([]const u8, "cuda-arch", "Comma-separated numeric CUDA SM targets"),
             .cuda_build_jobs = b.option(u16, "cuda-build-jobs", "Maximum parallel nvcc processes"),
+            .cuda_cumetalc = b.option(
+                []const u8,
+                "cuda-cumetalc",
+                "Explicit CuMetal compiler for the optional macOS CUDA portability lane",
+            ),
             .metal_core_aot_bundle = b.option(
                 []const u8,
                 "metal-core-aot-bundle",
@@ -256,6 +262,7 @@ fn addCudaArguments(
         .{ .name = "cuda-home", .value = options.cuda_home },
         .{ .name = "cuda-library-dir", .value = options.cuda_library_dir },
         .{ .name = "cuda-arch", .value = options.cuda_architectures },
+        .{ .name = "cuda-cumetalc", .value = options.cuda_cumetalc },
     }) |option| if (option.value) |value| command.addArg(b.fmt(
         "-D{s}={s}",
         .{ option.name, value },
