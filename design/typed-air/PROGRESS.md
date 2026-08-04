@@ -3,8 +3,8 @@
 **Status date:** 2026-08-04
 **Branch:** `feat/typed-air-precompiles`
 **Current milestone:** M1 — validated logical IR
-**Active task:** F-003 — deterministic expression nodes and interning
-**Next ready task:** F-004 — constraints, hints, effects, functions, validation
+**Active task:** F-004 — constraints, hints, effects, functions, validation
+**Next ready task:** F-005 — canonical logical manifest serialization
 
 ## Dashboard
 
@@ -39,14 +39,16 @@
 - Completed F-002: distinct typed IDs, semantic integer/layout validation,
   owned stable names and sources, checked source spans, and allocation-failure
   cleanup all pass in the ReleaseFast package suite.
+- Completed F-003: explicitly hashed structural expression keys, stable
+  topological IDs, commutative add/multiply interning, typed operation
+  rejection, primary source preservation, deterministic replay, and
+  allocation-failure cleanup pass.
 
 ## Immediate next actions
 
-1. Complete F-003 with topological node IDs, structural keys, and canonical
-   interning tests.
-2. F-004 — add constraints, hints, effects, functions, and structural
-   validation.
-3. F-005 — add canonical logical manifest serialization.
+1. Complete F-004 with one named negative test for every validator error class.
+2. F-005 — add canonical logical manifest serialization.
+3. A-001 — import the current production symbolic polynomial DAG.
 
 No production behavior should change in these tasks.
 
@@ -125,6 +127,10 @@ test, and the command exited successfully.
 F-002 completed with the same ReleaseFast package command. Its focused tests
 also run `checkAllAllocationFailures` across name/source ownership and verify
 that distinct semantic IDs remain distinct Zig types.
+
+F-003 completed with the same ReleaseFast package command. Structural hashing
+uses explicit semantic fields rather than rendered text or object bytes; the
+tests rebuild the graph in a second arena and require identical node keys.
 
 ## Update protocol
 
