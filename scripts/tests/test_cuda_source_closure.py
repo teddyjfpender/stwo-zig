@@ -55,9 +55,11 @@ class CudaSourceClosureTests(unittest.TestCase):
         native = (CUDA / "native" / "relation" / "layout.cuh").read_text(
             encoding="utf-8"
         )
-        authority = (CUDA / "vendor" / "upstream" / "relation_fused.cuh").read_text(
-            encoding="utf-8"
-        )
+        authority = (
+            CUDA
+            / "vendor/host_authority"
+            / "crates/backend-cuda-kernels/cuda/relation_fused.cuh"
+        ).read_text(encoding="utf-8")
         self.assertIn("if (kind == 8u || kind == 9u)", native)
         self.assertIn("sources[argument + word][row]", native)
         self.assertNotIn("ProjectedColumnsNoId", authority)

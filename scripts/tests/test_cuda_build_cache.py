@@ -91,10 +91,15 @@ class CudaBuildCacheTests(unittest.TestCase):
         (cuda_root / "product_manifest.json").symlink_to(
             ROOT / "src/backends/cuda/product_manifest.json"
         )
-        vendor = cuda_root / "vendor"
-        vendor.mkdir()
-        (vendor / "upstream").symlink_to(
-            ROOT / "src/backends/cuda/vendor/upstream",
+        authority = (
+            cuda_root
+            / "vendor/host_authority/crates/backend-cuda-kernels"
+        )
+        authority.mkdir(parents=True)
+        (authority / "cuda").symlink_to(
+            ROOT
+            / "src/backends/cuda/vendor/host_authority"
+            / "crates/backend-cuda-kernels/cuda",
             target_is_directory=True,
         )
         shutil.copytree(

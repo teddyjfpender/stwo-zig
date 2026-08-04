@@ -22,7 +22,10 @@ from cuda_build_lib.builder import (  # noqa: E402
 
 
 CUDA_ROOT = ROOT / "src/backends/cuda"
-SOURCE = CUDA_ROOT / "vendor/upstream"
+SOURCE = (
+    CUDA_ROOT
+    / "vendor/host_authority/crates/backend-cuda-kernels/cuda"
+)
 NATIVE = CUDA_ROOT / "native"
 
 

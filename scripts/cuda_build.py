@@ -27,7 +27,11 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument(
         "--source-root",
         type=Path,
-        default=ROOT / "src/backends/cuda/vendor/upstream",
+        default=(
+            ROOT
+            / "src/backends/cuda/vendor/host_authority"
+            / "crates/backend-cuda-kernels/cuda"
+        ),
     )
     result.add_argument(
         "--source-manifest",

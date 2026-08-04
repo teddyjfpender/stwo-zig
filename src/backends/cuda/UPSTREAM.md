@@ -1,6 +1,16 @@
-# CUDA Source Authority
+# CUDA source authority
 
-The files under `vendor/upstream/` are an exact, unmodified import of:
+The files under `vendor/host_authority/` preserve one self-contained, exact
+projection of the upstream Cargo workspace:
+
+- root Cargo lock, workspace manifest, toolchain, formatting, and license files;
+- all workspace crates, including `backend-cuda` and its resident proof-stage
+  tests; and
+- the full `backend-cuda-kernels` crate, including its generated AOT sources.
+
+The CUDA kernel authority used by the Zig build is the subtree at
+`vendor/host_authority/crates/backend-cuda-kernels/cuda`. It is an exact,
+unmodified import of:
 
 - Repository: `https://github.com/teddyjfpender/stwo`
 - Branch: `perf-optimizations`
@@ -9,13 +19,11 @@ The files under `vendor/upstream/` are an exact, unmodified import of:
 - Source path: `crates/backend-cuda-kernels/cuda`
 - License: Apache-2.0
 
-The files under `vendor/host_authority/` preserve a self-contained, exact
-projection of the upstream Cargo workspace:
-
-- root Cargo lock, workspace manifest, toolchain, formatting, and license files;
-- all workspace crates, including `backend-cuda` and its resident proof-stage
-  tests; and
-- the full `backend-cuda-kernels` crate, including its generated AOT sources.
+The repository previously tracked the same 458 kernel files a second time at
+`vendor/upstream`. The two trees were byte-identical. Keeping the kernel
+subtree inside the complete host authority preserves every source byte and
+both immutable closure manifests without carrying a second 658,194-line
+checkout.
 
 The final Zig-owned CUDA proof engine does not compile or link this Rust
 authority. The isolated `tools/stwo-cuda-adapter-rs` bring-up product does: it
@@ -23,9 +31,9 @@ is the same-source migration oracle used to qualify copied kernels, discover
 missing AOT coverage, and compare canonical proofs while the Zig host
 orchestration is ported.
 
-These imports deliberately include the generated AOT CUDA sources. Do not
-reformat, partially regenerate, or hand-edit either directory. Update them as
-one reviewed source-authority change and refresh both manifests with:
+This import deliberately includes the generated AOT CUDA sources. Do not
+reformat, partially regenerate, or hand-edit it. Update it as one reviewed
+source-authority change and refresh both manifests with:
 
 ```sh
 python3 scripts/cuda_source_closure.py --write

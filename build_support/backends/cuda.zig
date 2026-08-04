@@ -2,7 +2,8 @@
 
 const std = @import("std");
 
-pub const source_root = "src/backends/cuda/vendor/upstream";
+pub const source_root =
+    "src/backends/cuda/vendor/host_authority/crates/backend-cuda-kernels/cuda";
 pub const source_manifest = "src/backends/cuda/source_manifest.json";
 pub const product_manifest = "src/backends/cuda/product_manifest.json";
 pub const native_root = "src/backends/cuda/native";

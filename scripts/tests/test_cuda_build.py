@@ -31,7 +31,11 @@ from cuda_build_lib.aot_identity import source_closure_identity  # noqa: E402
 from cuda_device_smoke import compile_command  # noqa: E402
 
 
-SOURCE = ROOT / "src/backends/cuda/vendor/upstream"
+SOURCE = (
+    ROOT
+    / "src/backends/cuda/vendor/host_authority"
+    / "crates/backend-cuda-kernels/cuda"
+)
 MANIFEST = ROOT / "src/backends/cuda/source_manifest.json"
 PRODUCT = ROOT / "src/backends/cuda/product_manifest.json"
 NATIVE = ROOT / "src/backends/cuda/native"

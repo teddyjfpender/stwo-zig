@@ -11,7 +11,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CUDA_ROOT = ROOT / "src/backends/cuda"
-SOURCE = CUDA_ROOT / "vendor/upstream"
+SOURCE = (
+    CUDA_ROOT
+    / "vendor/host_authority/crates/backend-cuda-kernels/cuda"
+)
 SOURCE_MANIFEST = CUDA_ROOT / "source_manifest.json"
 PRODUCT_MANIFEST = CUDA_ROOT / "product_manifest.json"
 NATIVE = CUDA_ROOT / "native"

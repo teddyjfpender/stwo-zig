@@ -12,10 +12,13 @@ pub const aot = struct {
 pub const product_aot = aot.product_registry;
 pub const runtime = @import("runtime/mod.zig");
 pub const upstream_sources = struct {
+    const authority_root =
+        "vendor/host_authority/crates/backend-cuda-kernels/cuda/";
+
     pub const poseidon_witness_round_keys =
-        @embedFile("vendor/upstream/poseidon_witness_round_keys.cuh");
+        @embedFile(authority_root ++ "poseidon_witness_round_keys.cuh");
     pub const pedersen_table_init =
-        @embedFile("vendor/upstream/pedersen_table_init.cu");
+        @embedFile(authority_root ++ "pedersen_table_init.cu");
 };
 
 pub const CudaBackend = struct {

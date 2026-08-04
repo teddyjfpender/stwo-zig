@@ -97,6 +97,28 @@ CUDA artifact repository or branch while the handwritten Zig/CUDA runtime,
 ABI, manifests, and fail-closed loader stay here. The split must reduce clone
 and package size without weakening offline reproducibility.
 
+The checked-in source populations have different migration rules:
+
+- The 15 product-owned Native AOT sources (3,958 lines) are maintained kernel
+  implementations, not disposable generated output. They remain until a
+  reviewed source generator or ordinary maintained-kernel replacement exists.
+- The 271 Cairo evaluation sources (159,806 lines) are reproducible from
+  `vectors/cairo/sn_pie_2_composition.bin` and the Zig CUDA emitter. The CUDA
+  builder must generate them into its cache and authenticate the emitted
+  manifest before their checked-in copies are removed.
+- The 33 recorded-witness sources comprise 26 exact authority copies and seven
+  deterministic derivations (79,420 lines total). Their compact witness
+  program and a Zig-owned CUDA emitter must replace the imported Rust emitter
+  before source removal.
+- The 340 copied authority AOT sources are reference-only and never enter the
+  Native product. They move with the host authority after the external
+  acquisition and parity gates above are complete.
+
+The redundant `vendor/upstream` checkout was not an independent authority: it
+was byte-identical to the CUDA subtree already present in
+`vendor/host_authority`. It was collapsed into that retained subtree without
+removing unique source or changing either closure identity.
+
 ## Release surface
 
 `zig build package-dist` emits the complete v1 publishable set. Each archive

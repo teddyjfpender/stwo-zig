@@ -12,7 +12,11 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-AUTHORITY = ROOT / "src/backends/cuda/vendor/upstream/generated"
+AUTHORITY = (
+    ROOT
+    / "src/backends/cuda/vendor/host_authority"
+    / "crates/backend-cuda-kernels/cuda/generated"
+)
 PRODUCT = ROOT / "src/backends/cuda/aot/native"
 SCHEMA = "recorded_witness_v1"
 EXPECTED_ISOLATED_SOURCES = 7

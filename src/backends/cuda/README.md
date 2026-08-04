@@ -62,6 +62,28 @@ comptime {
 Application-specific request compilation belongs to Native or Cairo CUDA
 integration packages, not this backend.
 
+## Frontend integration state
+
+The backend boundary is partly generic, but it is not yet a complete frontend
+plug-in surface. Frontends can emit the backend-neutral `ProofProgram`, and the
+CUDA backend compiles that into a target-bound `CudaPlan`. Kernel selection,
+statement binding, and several execution controllers are still owned by the
+individual integration packages.
+
+| Frontend | CUDA state |
+| :--- | :--- |
+| Native examples | Staged product with resident integration packages |
+| Cairo | Staged, partial resident product; production admission remains closed |
+| RISC-V | Explicitly unavailable until a parity-gated adapter exists |
+| SM83 | No CUDA product descriptor |
+
+The next reusable boundary is a per-frontend kernel catalog and binding
+contract: a frontend should supply authenticated trace/constraint programs and
+statement bindings, while the backend continues to own residency, PCS stages,
+scheduling, telemetry, and teardown. AOT packs must also become per-frontend
+products instead of one shared archive before CUDA can be described as
+frontend-pluggable.
+
 ## Dependencies
 
 - `stwo_backend_contracts` — architectural capability vocabulary.
@@ -82,6 +104,30 @@ registered as `stwo-native-cuda`, but it is unavailable unless every explicit
 CUDA toolchain path and architecture option is supplied. Treat those builds as
 engineering/device-acceptance work, not a production release.
 
+### Apple Silicon portability development
+
+[CuMetal](https://github.com/Lulzx/cuda-metal) is useful as an optional,
+source-first portability and correctness screen on Apple Silicon. It is not a
+CUDA product target and must not satisfy NVIDIA acceptance or performance
+gates. In particular, translated Metal timing says nothing reliable about
+NVIDIA occupancy, memory hierarchy, graphs, or launch behavior.
+
+The 2026-08-04 audit against CuMetal commit
+`e88dd103bddaff9a134913dec4bd8439817d160c` found:
+
+| Source population | Strict compile coverage |
+| :--- | ---: |
+| Maintained Native CUDA translation units | 17 / 33 |
+| Native AOT translation units | 31 / 48 |
+| Generated Cairo evaluation translation units | 221 / 271 |
+
+The maintained QM31 power-expansion kernel also passed an exact numerical
+Apple-GPU execution probe. Unsupported paths failed closed. The largest common
+gap was CuMetal lowering of `__nv_brev`; other gaps included funnel shifts,
+shared atomics, CUB, and incomplete runtime constants. Keep this lane explicit
+and optional until those gaps are represented by a checked compatibility
+manifest and reproducible numerical tests.
+
 ## Contract and invariants
 
 - API signature: the backend exposes resident session/context types only.
@@ -99,6 +145,8 @@ proofs, and independent verification.
 3. Authenticate generated kernels and registry entries before launch.
 4. Account for every host/device transfer, allocation, launch, and teardown.
 5. Run host contract tests and the explicit Linux/NVIDIA acceptance scope.
+6. Treat CuMetal as portability evidence only; never publish its timing as CUDA
+   performance evidence.
 
 ## Related documentation
 

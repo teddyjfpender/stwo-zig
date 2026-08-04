@@ -13,7 +13,11 @@ ROOT = Path(__file__).resolve().parents[1]
 AUTHORITIES = (
     {
         "name": "kernels",
-        "source_root": ROOT / "src/backends/cuda/vendor/upstream",
+        "source_root": (
+            ROOT
+            / "src/backends/cuda/vendor/host_authority"
+            / "crates/backend-cuda-kernels/cuda"
+        ),
         "manifest": ROOT / "src/backends/cuda/source_manifest.json",
         "upstream": {
             "repository": "https://github.com/teddyjfpender/stwo",
