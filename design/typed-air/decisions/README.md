@@ -1,0 +1,62 @@
+# Architecture decision records
+
+**Status:** active index
+**Last updated:** 2026-08-04
+
+ADRs record decisions that change the project's trusted boundary, protocol
+shape, authoring model, or delivery order.
+
+## States
+
+- **proposed** — ready for review; implementation may explore but not depend on
+  production acceptance.
+- **accepted** — governs implementation until superseded.
+- **superseded** — replaced by a newer ADR that links back.
+- **rejected** — retained to prevent repeating settled discussion.
+
+## Index
+
+| ADR | Decision | Status |
+| --- | --- | --- |
+| [0001](0001-zig-authored-canonical-ir.md) | Zig-authored canonical typed IR | accepted |
+| [0002](0002-compatibility-before-optimization.md) | Compatibility lowering before optimization | accepted |
+| [0003](0003-one-proof-precompiles-first.md) | One-proof precompiles before separate proof recursion | accepted |
+| [0004](0004-acyclic-functions-in-v0.md) | Acyclic function graph in IR v0 | accepted |
+
+## Pending ADRs
+
+- Guest precompile invocation ABI and relationship to the RV32IM profile.
+- Guest Poseidon relation domain/version and duplicate-call policy.
+- Canonical logical/layout manifest serialization format.
+- Production activation criteria for generated witness writers.
+- Cross-proof relation-summary construction.
+- Recursive verifier field and proof protocol.
+
+## Template
+
+```markdown
+# ADR-NNNN — title
+
+**Status:** proposed
+**Date:** YYYY-MM-DD
+
+## Context
+
+What forces a decision? Which authority and constraints apply?
+
+## Decision
+
+State one testable decision.
+
+## Consequences
+
+List benefits, costs, risks, and migration effects.
+
+## Rejected alternatives
+
+Record serious alternatives and why they are not selected now.
+
+## Revisit when
+
+Name evidence or conditions that justify reopening the decision.
+```
