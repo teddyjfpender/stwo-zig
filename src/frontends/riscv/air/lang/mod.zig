@@ -6,6 +6,10 @@
 
 const std = @import("std");
 
+pub const types = @import("types.zig");
+pub const source = @import("source.zig");
+pub const ir = @import("ir.zig");
+
 /// Logical schema version for the pre-production authoring kernel.
 ///
 /// This is not an artifact or proof-protocol version. It lets focused tests

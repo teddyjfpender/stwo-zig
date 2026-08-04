@@ -3,8 +3,8 @@
 **Status date:** 2026-08-04
 **Branch:** `feat/typed-air-precompiles`
 **Current milestone:** M1 — validated logical IR
-**Active task:** F-002 — typed IDs, semantic types, source spans, and arena
-**Next ready task:** F-003 — deterministic expression nodes and interning
+**Active task:** F-003 — deterministic expression nodes and interning
+**Next ready task:** F-004 — constraints, hints, effects, functions, validation
 
 ## Dashboard
 
@@ -36,14 +36,17 @@
 - Completed F-001: the isolated `air/lang` module has an explicit logical
   schema version, is named in the test inventory, and is imported by no
   production path. The ReleaseFast RISC-V package suite passed.
+- Completed F-002: distinct typed IDs, semantic integer/layout validation,
+  owned stable names and sources, checked source spans, and allocation-failure
+  cleanup all pass in the ReleaseFast package suite.
 
 ## Immediate next actions
 
-1. Complete F-002 with construction, ownership, and compile-time ID-separation
-   tests.
-2. F-003 — implement deterministic expression nodes and structural interning.
-3. F-004 — add constraints, hints, effects, functions, and structural
+1. Complete F-003 with topological node IDs, structural keys, and canonical
+   interning tests.
+2. F-004 — add constraints, hints, effects, functions, and structural
    validation.
+3. F-005 — add canonical logical manifest serialization.
 
 No production behavior should change in these tasks.
 
@@ -118,6 +121,10 @@ F-001 completed with
 `zig build test --build-file src/frontends/riscv/build.zig
 -Doptimize=ReleaseFast -j2`. The package test-count floor observed the new
 test, and the command exited successfully.
+
+F-002 completed with the same ReleaseFast package command. Its focused tests
+also run `checkAllAllocationFailures` across name/source ownership and verify
+that distinct semantic IDs remain distinct Zig types.
 
 ## Update protocol
 

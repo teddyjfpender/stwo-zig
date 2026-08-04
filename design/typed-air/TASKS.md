@@ -35,8 +35,8 @@ first production milestone. `P2` improves breadth or optimization.
 | ID | Task | Depends | Acceptance | Status |
 | --- | --- | --- | --- | --- |
 | F-001 | Add `air/lang` package skeleton and test inventory wiring | M0 | Package tests execute new focused tests; no production imports | done |
-| F-002 | Implement typed IDs, semantic types, source spans, and arena ownership | F-001 | Construction/deinit tests; invalid cross-ID use impossible at compile time | active |
-| F-003 | Implement expression nodes and structural interning | F-002 | Stable topological IDs; equivalent expressions intern; order-independent test corpus | queued |
+| F-002 | Implement typed IDs, semantic types, source spans, and arena ownership | F-001 | Construction/deinit tests; invalid cross-ID use impossible at compile time | done |
+| F-003 | Implement expression nodes and structural interning | F-002 | Stable topological IDs; equivalent expressions intern; order-independent test corpus | active |
 | F-004 | Implement constraints, hints, effects, functions, and structural validator | F-003 | Named negative test for every validator error class | queued |
 | F-005 | Implement canonical logical manifest serialization | F-004 | Two clean builds and insertion-order perturbations produce identical bytes | queued |
 
