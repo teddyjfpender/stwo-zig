@@ -13,6 +13,7 @@ pub const program = @import("program.zig");
 pub const ir = @import("ir.zig");
 pub const validate = @import("validate.zig");
 pub const manifest = @import("manifest.zig");
+pub const relation = @import("relation.zig");
 
 /// Logical schema version for the pre-production authoring kernel.
 ///

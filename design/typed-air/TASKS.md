@@ -44,8 +44,8 @@ first production milestone. `P2` improves breadth or optimization.
 
 | ID | Priority | Task | Depends | Acceptance | Status |
 | --- | --- | --- | --- | --- | --- |
-| F-006 | P0 | Define typed relation schema registry | F-002 | Existing relation domains represented without strings; invalid roles/arity reject | active |
-| F-007 | P0 | Define acyclic function graph and static call validation | F-004 | Recursive cycle and missing callee tests reject deterministically | ready |
+| F-006 | P0 | Define typed relation schema registry | F-002 | Existing relation domains represented without strings; invalid roles/arity reject | done |
+| F-007 | P0 | Define acyclic function graph and static call validation | F-004 | Recursive cycle and missing callee tests reject deterministically | active |
 | F-008 | P0 | Define hint recipe registry and binding metadata | F-004 | Unbound output and unknown recipe reject | ready |
 | F-009 | P1 | Add stable diagnostic renderer | F-003 | Diagnostics include component, source span, value path, type, and degree | ready |
 | F-010 | P1 | Add canonical program digest | F-005 | Digest changes for semantic order/type changes and not allocator/address changes | ready |

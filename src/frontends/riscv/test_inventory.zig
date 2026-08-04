@@ -110,6 +110,7 @@ test {
     _ = @import("air/lang/manifest_test.zig");
     _ = @import("air/lang/mod.zig");
     _ = @import("air/lang/program_test.zig");
+    _ = @import("air/lang/relation_test.zig");
     _ = @import("air/lang/validate_test.zig");
 
     // AIR: relation wiring.

@@ -3,15 +3,15 @@
 **Status date:** 2026-08-04
 **Branch:** `feat/typed-air-precompiles`
 **Current milestone:** M1 — validated logical IR
-**Active task:** F-006 — typed relation schema registry
-**Next ready task:** F-007 — acyclic function graph
+**Active task:** F-007 — acyclic function graph
+**Next ready task:** F-008 — hint recipe registry and bindings
 
 ## Dashboard
 
 | Milestone | State | Evidence |
 | --- | --- | --- |
 | M0 — engineering dossier | complete | This directory and initial ADRs |
-| M1 — validated logical IR | active | F-001 through F-005 complete; F-006 active |
+| M1 — validated logical IR | active | F-001 through F-006 complete; F-007 active |
 | M2 — shadow compiler | queued | Requires M1 |
 | M3 — compatibility lowering | queued | Requires shadow import |
 | M4 — Poseidon compiler pilot | queued | Requires degree/layout passes |
@@ -54,12 +54,17 @@
   allocated programs remain byte-identical when name and source interning order
   is reversed; reversing semantic effect order changes the bytes. The empty
   encoding is pinned and serialization has allocation-failure coverage.
+- Completed F-006: a typed registry covers all twelve production relation
+  domains in transcript order. Schemas pin version, field specifications,
+  roles, challenge convention, multiplicity, ordinal, padding, public-boundary,
+  and coefficient-bound policies. Tests cross-check every production arity and
+  reject unknown IDs, wrong roles, arities, types, and ordinals.
 
 ## Immediate next actions
 
-1. F-006 — define typed relation schemas and role/arity validation.
-2. F-007 — add acyclic static function calls.
-3. F-008 — register hint recipes and validate output bindings.
+1. F-007 — add acyclic static function calls.
+2. F-008 — register hint recipes and validate output bindings.
+3. F-010 — derive a domain-separated semantic program digest.
 
 No production behavior should change in these tasks.
 
@@ -156,6 +161,11 @@ resolves names and source paths by content, preserves semantic record order,
 and ignores allocator and interning-table accidents. Determinism, semantic
 order sensitivity, invalid-program fail-closed behavior, and allocation
 rollback each have focused tests.
+
+F-006 completed with the same ReleaseFast package command. The isolated
+registry uses enum domains and typed schema IDs instead of string dispatch. A
+test-only bridge compares its stable order and arity to the production relation
+entry authority; no shipped lookup or transcript behavior changed.
 
 ## Update protocol
 

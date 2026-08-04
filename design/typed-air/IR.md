@@ -183,6 +183,14 @@ A relation schema owns:
 The initial registry wraps the existing program, memory, state, range-check,
 Merkle, and Poseidon relations without changing their protocol order.
 
+The version-0 implementation pins all twelve current Stark-V-compatible
+domains in transcript challenge order. Each schema uses a typed domain and
+`RelationSchemaId`, exact or field-scalar field specifications, allowed roles,
+the alpha-powers-minus-z challenge convention, access-ordinal policy, padding
+policy, public-boundary policy, and an explicit coefficient-bound authority.
+Tests compare every domain and arity against the shipped lookup registry so the
+logical copy cannot silently drift.
+
 A guest Poseidon precompile receives a distinct schema/version or an explicit
 mode field. It must not accidentally balance against the sparse-Merkle
 infrastructure relation merely because the mathematical permutation matches.

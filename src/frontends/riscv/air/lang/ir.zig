@@ -635,22 +635,7 @@ pub const Arena = struct {
 };
 
 pub fn isFieldScalar(ty: types.Type) bool {
-    return switch (ty) {
-        .felt,
-        .bit,
-        .byte,
-        .uint16,
-        .uint20,
-        .register_index,
-        .clock,
-        .selector,
-        => true,
-        .bounded_uint => |bounded| switch (bounded.representation) {
-            .canonical_field => true,
-            .little_endian_limbs => false,
-        },
-        .word32, .address, .pc, .array => false,
-    };
+    return ty.isFieldScalar();
 }
 
 pub fn maxUnsignedValue(ty: types.Type) NodeError!u32 {
@@ -671,10 +656,7 @@ pub fn maxUnsignedValue(ty: types.Type) NodeError!u32 {
 }
 
 pub fn isSelector(ty: types.Type) bool {
-    return switch (ty) {
-        .bit, .selector => true,
-        else => false,
-    };
+    return ty.isSelector();
 }
 
 pub fn requiresAccessOrdinal(kind: program.EffectKind) bool {

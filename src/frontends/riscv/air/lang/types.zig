@@ -161,4 +161,30 @@ pub const Type = union(enum) {
         try result.validate();
         return result;
     }
+
+    pub fn isFieldScalar(self: Type) bool {
+        return switch (self) {
+            .felt,
+            .bit,
+            .byte,
+            .uint16,
+            .uint20,
+            .register_index,
+            .clock,
+            .selector,
+            => true,
+            .bounded_uint => |bounded| switch (bounded.representation) {
+                .canonical_field => true,
+                .little_endian_limbs => false,
+            },
+            .word32, .address, .pc, .array => false,
+        };
+    }
+
+    pub fn isSelector(self: Type) bool {
+        return switch (self) {
+            .bit, .selector => true,
+            else => false,
+        };
+    }
 };
