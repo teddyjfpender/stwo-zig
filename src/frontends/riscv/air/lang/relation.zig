@@ -173,15 +173,34 @@ pub fn validateEvent(
     field_types: []const types.Type,
     access_ordinal: ?u8,
 ) Error!void {
-    const item = getById(schema_id) orelse return error.UnknownSchema;
-    if (!item.allowed_roles.allows(role)) return error.InvalidRole;
-    if (field_types.len != item.fields.len) return error.InvalidArity;
+    const item = try validateEventShape(
+        schema_id,
+        role,
+        field_types.len,
+        access_ordinal,
+    );
     for (item.fields, field_types) |expected, actual| {
         actual.validate() catch return error.InvalidFieldType;
         if (!expected.accepts(actual)) return error.InvalidFieldType;
     }
+}
+
+/// Validates compatibility metadata when the source representation carries
+/// field polynomials but not yet their semantic column types. Full typed
+/// authoring must call `validateEvent`; shadow import may call this narrower
+/// boundary without claiming type evidence it does not possess.
+pub fn validateEventShape(
+    schema_id: types.RelationSchemaId,
+    role: Role,
+    arity: usize,
+    access_ordinal: ?u8,
+) Error!*const Schema {
+    const item = getById(schema_id) orelse return error.UnknownSchema;
+    if (!item.allowed_roles.allows(role)) return error.InvalidRole;
+    if (arity != item.fields.len) return error.InvalidArity;
     if (item.access_ordinal == .forbidden and access_ordinal != null)
         return error.UnexpectedAccessOrdinal;
+    return item;
 }
 
 fn schema(

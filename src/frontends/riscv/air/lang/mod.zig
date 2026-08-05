@@ -21,6 +21,7 @@ pub const digest = @import("digest.zig");
 pub const degree = @import("degree.zig");
 pub const diagnostic = @import("diagnostic.zig");
 pub const shadow_import = @import("shadow_import.zig");
+pub const shadow_program = @import("shadow_program.zig");
 
 /// Logical schema version for the pre-production authoring kernel.
 ///

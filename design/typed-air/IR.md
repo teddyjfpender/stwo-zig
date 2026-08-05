@@ -205,6 +205,14 @@ policy, public-boundary policy, and an explicit coefficient-bound authority.
 Tests compare every domain and arity against the shipped lookup registry so the
 logical copy cannot silently drift.
 
+The A-002 production compatibility bridge stores an ordered pre-lowering
+lookup record beside the typed arena. It retains schema, role, the exact shipped
+signed numerator, mapped tuple values, access ordinal, and batch size, but does
+not call that record an authored `Effect`: symbolic extraction has erased the
+semantic field types needed for full validation. `validateEventShape` exists
+only for this explicit boundary. Authored effects must carry reviewed semantic
+types and pass full `validateEvent` before lowering.
+
 A guest Poseidon precompile receives a distinct schema/version or an explicit
 mode field. It must not accidentally balance against the sparse-Merkle
 infrastructure relation merely because the mathematical permutation matches.

@@ -27,6 +27,7 @@ shape, authoring model, or delivery order.
 | [0007](0007-semantic-program-digest.md) | Domain-separated semantic program digest | accepted |
 | [0008](0008-stable-structured-diagnostics.md) | Stable structured diagnostics and logical degree context | accepted |
 | [0009](0009-lossless-production-shadow-import.md) | Lossless production symbolic shadow import | accepted |
+| [0010](0010-ordered-production-program-shadow-import.md) | Ordered production program shadow import | accepted |
 
 ## Pending ADRs
 

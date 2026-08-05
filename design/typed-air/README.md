@@ -92,6 +92,8 @@ paths, ordered provisional effects, static calls, relation schemas, canonical
 manifests, semantic identity, and stable diagnostics. Its complete executable
 surface is documented in [AUTHORING.md](AUTHORING.md). A lossless shadow bridge
 now imports and differentially replays every production family while preserving
-independently computed degree. The next seam imports ordered constraints,
-selectors, and lookup events; this work continues to strengthen and reify the
-existing path rather than replace the prover or rewrite all opcodes.
+independently computed degree. The complete production program boundary now
+also preserves ordered constraints, selectors, lookup metadata, and batching.
+The next seam computes complete row, boundary, and interaction degree; this work
+continues to strengthen and reify the existing path rather than replace the
+prover or rewrite all opcodes.

@@ -3,8 +3,8 @@
 **Status date:** 2026-08-05
 **Branch:** `feat/typed-air-precompiles`
 **Current milestone:** M2 — shadow compiler
-**Active task:** A-002 — ordered production program shadow import
-**Next queued task:** A-004 — complete final-degree model
+**Active task:** A-004 — complete final-degree model
+**Next queued task:** A-005 — all-family machine and human report
 
 ## Dashboard
 
@@ -12,7 +12,7 @@
 | --- | --- | --- |
 | M0 — engineering dossier | complete | This directory and initial ADRs |
 | M1 — validated logical IR | complete | F-001 through F-012 complete and green |
-| M2 — shadow compiler | active | A-001 and A-003 complete; A-002 active |
+| M2 — shadow compiler | active | A-001 through A-003 complete; A-004 active |
 | M3 — compatibility lowering | queued | Requires shadow import |
 | M4 — Poseidon compiler pilot | queued | Requires degree/layout passes |
 | M5 — effect and witness pilot | queued | Requires typed schemas and lowering |
@@ -108,12 +108,21 @@
   outputs, gates, and overflow. An independent recurrence over every shipped
   symbolic node agrees with the typed analysis for every mapped node and every
   production direct-constraint root across all 17 families.
+- Completed A-002: the exact complete production builder result imports main
+  columns, placement selector, row-active expression, ordered direct roots,
+  relation domains and roles, signed numerators, ordered tuple fields, access
+  ordinals, and batch size. Same-arena comparisons cover every record of all 17
+  families; deterministic random replay additionally covers every lookup-only
+  expression node. The owned validator, corruption corpus, deterministic
+  reconstruction test, and allocation-failure sweep pass without production
+  wiring. Relation shape validation explicitly avoids inventing erased semantic
+  field types.
 
 ## Immediate next actions
 
-1. A-002 — import columns, constraints, selectors, and ordered lookups.
-2. A-004 — model gates, row windows, boundaries, and interaction degree.
-3. A-005 — emit the all-family degree and dependency report.
+1. A-004 — model gates, row windows, boundaries, and interaction degree.
+2. A-005 — emit the all-family degree and dependency report.
+3. A-006 — define the `compat-v1` physical column mapping.
 
 No production behavior should change in these tasks.
 
@@ -129,6 +138,7 @@ Accepted:
 - Domain-separated semantic program digest projection.
 - Stable diagnostic codes and topological logical-degree analysis.
 - Lossless mapped import of the production symbolic DAG in shadow mode.
+- Ordered same-source import of the complete production program surface.
 
 Pending:
 
@@ -297,6 +307,26 @@ recurrences, and backend degree remain explicitly unclaimed until A-004.
 No production AIR, witness, prover, verifier, transcript, runtime export, or
 formal-extraction path changed. A-002 is active to import the ordered program
 surface rather than infer it from expression reachability.
+
+### 2026-08-05 — M2 ordered program boundary established
+
+A-002 completed with ADR-0010 and the ReleaseFast package suite. One complete
+production builder invocation now supplies the shadow compiler's columns,
+placement selector, row-active expression, ordered constraints, and ordered
+lookup records. Tests compare the source and imported records from the same
+arena for every family, including domain, role, signed numerator, every tuple
+field, access ordinal, and batching. Four fixed-seed replay points per family
+cover the full DAG, including expressions constructed only by lookup emission.
+
+The compatibility record intentionally preserves lookup polynomials rather
+than presenting them as authored typed effects. Production extraction does not
+carry the semantic byte/clock/address types required for full relation-event
+validation, and its numerators already encode signs. Shape-only validation is
+therefore named and separate; effect normalization remains explicit A-008 work.
+Deterministic rebuild, corrupted-state rejection, and induced allocation
+failure coverage pass. A-004 is active to distinguish logical root degree from
+the complete constraint, row-mask, and interaction degree required by a
+backend.
 
 ## Update protocol
 

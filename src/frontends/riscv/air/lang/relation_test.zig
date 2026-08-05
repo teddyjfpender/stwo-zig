@@ -95,6 +95,34 @@ test "relation registry rejects unexpected access ordinals" {
     );
 }
 
+test "relation shape validation preserves metadata without claiming field types" {
+    const schema = try relation.validateEventShape(
+        relation.id(.memory_access),
+        .consume,
+        7,
+        1,
+    );
+    try std.testing.expectEqual(relation.Domain.memory_access, schema.domain);
+    try std.testing.expectError(
+        error.InvalidArity,
+        relation.validateEventShape(
+            relation.id(.memory_access),
+            .consume,
+            6,
+            1,
+        ),
+    );
+    try std.testing.expectError(
+        error.UnexpectedAccessOrdinal,
+        relation.validateEventShape(
+            relation.id(.program_access),
+            .request,
+            5,
+            1,
+        ),
+    );
+}
+
 test "relation registry rejects unknown typed schema IDs" {
     const unknown = try types.idFromIndex(types.RelationSchemaId, 999);
     try std.testing.expect(relation.getById(unknown) == null);
