@@ -1,5 +1,6 @@
 const std = @import("std");
 const functions = @import("functions.zig");
+const hints = @import("hints.zig");
 const ir = @import("ir.zig");
 const source = @import("source.zig");
 const test_support = @import("test_support.zig");
@@ -12,7 +13,7 @@ test "whole logical program owns ordered records and passes validation" {
 
     try validate.validate(&fixture.arena);
     try std.testing.expectEqual(@as(usize, 2), fixture.arena.constraintsView().len);
-    try std.testing.expectEqual(@as(usize, 1), fixture.arena.hintsView().len);
+    try std.testing.expectEqual(@as(usize, 1), hints.view(&fixture.arena).len);
     try std.testing.expectEqual(@as(usize, 2), fixture.arena.effectsView().len);
     try std.testing.expectEqual(@as(usize, 2), functions.view(&fixture.arena).len);
     try std.testing.expectEqual(@as(usize, 1), functions.calls(&fixture.arena).len);
@@ -21,12 +22,16 @@ test "whole logical program owns ordered records and passes validation" {
     try std.testing.expectEqualSlices(
         types.ValueId,
         &.{fixture.lhs},
-        fixture.arena.hintInputs(hint_id).?,
+        hints.inputs(&fixture.arena, hint_id).?,
     );
     try std.testing.expectEqualSlices(
         types.ValueId,
         &.{fixture.hint_output},
-        fixture.arena.hintOutputs(hint_id).?,
+        hints.outputs(&fixture.arena, hint_id).?,
+    );
+    try std.testing.expectEqual(
+        @as(usize, 2),
+        hints.bindings(&fixture.arena, hint_id).?.len,
     );
     const second_effect = try types.idFromIndex(types.EffectId, 1);
     try std.testing.expectEqualSlices(
@@ -77,9 +82,43 @@ test "program constructors reject malformed hints and effects" {
     const live = try arena.input("live", .bit, generated);
 
     try std.testing.expectError(
-        error.EmptyHintOutputs,
-        arena.addHint("empty", &.{felt}, &.{}, generated),
+        error.InvalidHintInputType,
+        hints.add(&arena, .identity_felt, &.{live}, live, generated),
     );
+    try std.testing.expectError(
+        error.InvalidHintActivation,
+        hints.add(&arena, .identity_felt, &.{felt}, felt, generated),
+    );
+    const hint_id = try hints.add(
+        &arena,
+        .identity_felt,
+        &.{felt},
+        live,
+        generated,
+    );
+    try std.testing.expectError(error.UnboundHintOutput, validate.validate(&arena));
+    const hint_output = hints.outputs(&arena, hint_id).?[0];
+    const hint_root = try arena.sub(hint_output, felt, generated);
+    const hint_binding = try arena.assertZero(
+        "hint.identity",
+        hint_root,
+        live,
+        .hint_binding,
+        generated,
+    );
+    try std.testing.expectError(
+        error.InvalidHintBindingPath,
+        hints.bind(&arena, hint_id, &.{.{
+            .output_index = 0,
+            .target = .{ .constraint = hint_binding },
+            .path = &.{hint_output},
+        }}),
+    );
+    try hints.bind(&arena, hint_id, &.{.{
+        .output_index = 0,
+        .target = .{ .constraint = hint_binding },
+        .path = &.{ hint_output, hint_root },
+    }});
     try std.testing.expectError(
         error.EmptyEffectValues,
         arena.addEffect(.program_fetch, &.{}, live, null, generated),

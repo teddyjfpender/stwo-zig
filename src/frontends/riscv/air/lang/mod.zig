@@ -15,6 +15,8 @@ pub const validate = @import("validate.zig");
 pub const manifest = @import("manifest.zig");
 pub const relation = @import("relation.zig");
 pub const functions = @import("functions.zig");
+pub const hint_recipe = @import("hint_recipe.zig");
+pub const hints = @import("hints.zig");
 
 /// Logical schema version for the pre-production authoring kernel.
 ///
@@ -23,5 +25,5 @@ pub const functions = @import("functions.zig");
 pub const LOGICAL_SCHEMA_VERSION = manifest.logical_schema_version;
 
 test "typed AIR language: isolated kernel has an explicit logical version" {
-    try std.testing.expectEqual(@as(u16, 1), LOGICAL_SCHEMA_VERSION);
+    try std.testing.expectEqual(@as(u16, 2), LOGICAL_SCHEMA_VERSION);
 }

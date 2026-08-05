@@ -3,15 +3,15 @@
 **Status date:** 2026-08-04
 **Branch:** `feat/typed-air-precompiles`
 **Current milestone:** M1 — validated logical IR
-**Active task:** F-008 — hint recipe registry and bindings
-**Next ready task:** F-010 — canonical program digest
+**Active task:** F-010 — canonical program digest
+**Next ready task:** F-009 — stable diagnostic renderer
 
 ## Dashboard
 
 | Milestone | State | Evidence |
 | --- | --- | --- |
 | M0 — engineering dossier | complete | This directory and initial ADRs |
-| M1 — validated logical IR | active | F-001 through F-007 complete; F-008 active |
+| M1 — validated logical IR | active | F-001 through F-008 complete; F-010 active |
 | M2 — shadow compiler | queued | Requires M1 |
 | M3 — compatibility lowering | queued | Requires shadow import |
 | M4 — Poseidon compiler pilot | queued | Requires degree/layout passes |
@@ -67,12 +67,19 @@
   outputs, arity drift, and type drift. Manifest format 2 records calls and
   lowering strategy. The full ReleaseFast package suite and allocation-failure
   call path pass; all 25 validator error classes have named negative tests.
+- Completed F-008: hints use a closed typed recipe registry with pinned
+  versions, signatures, honest algorithms, and exceptional-case policies.
+  Every output carries a canonical output-first path to a matching-activation
+  constraint or effect; unknown recipes, unbound outputs, malformed paths, and
+  activation drift reject. Manifest format 3 records all recipe and binding
+  metadata. The full ReleaseFast package suite, honest recipe vectors, and
+  allocation-failure paths pass; all 28 validator errors have named negatives.
 
 ## Immediate next actions
 
-1. F-008 — register hint recipes and validate output bindings.
-2. F-010 — derive a domain-separated semantic program digest.
-3. F-009 — render stable source-attributed diagnostics.
+1. F-010 — derive a domain-separated semantic program digest.
+2. F-009 — render stable source-attributed diagnostics.
+3. F-012 — compile minimal pure and effectful authoring examples.
 
 No production behavior should change in these tasks.
 
@@ -84,6 +91,7 @@ Accepted:
 - Compatibility before optimization.
 - One-proof guest precompiles before independent recursive leaves.
 - Acyclic function graph in IR v0.
+- Typed hint recipes with explicit proof-binding paths.
 
 Pending:
 
@@ -106,6 +114,7 @@ Pending:
 | Precompile weakens base-RV32IM claim | Pending explicit guest ABI ADR |
 | Parallelism hides total cost | Performance vector and critical-path telemetry |
 | Recursion balances detached calls | IR v0 rejects recursive function graphs |
+| Hint callback or output drifts silently | Closed versioned registry and checked proof paths |
 
 ## Baseline metrics
 
@@ -183,6 +192,17 @@ forward edges cannot be constructed; the allocation-free validator rechecks
 the complete graph and every call-output identity against raw arena state.
 Manifest format 2 and logical schema 1 serialize this semantic distinction.
 All 25 validator error classes have focused named rejection tests.
+
+F-008 completed with the same ReleaseFast package command. The string recipe
+surface was replaced by `HintRecipeId` and a closed registry whose entries pin
+version, exact signature, deterministic algorithm, and exceptional behavior.
+Hints carry activation selectors and are sealed with canonical binding lists;
+each binding supplies a direct-edge value path from one output to a matching
+constraint root or effect value. This keeps validation allocation-free and
+source-attributable. Manifest format 3 / logical schema 2 records the complete
+contract. Honest inverse-or-zero vectors, malformed bindings, missing recipes,
+unbound outputs, semantic serialization, and partial allocation cleanup pass;
+all 28 validator errors have named negative tests.
 
 ## Update protocol
 

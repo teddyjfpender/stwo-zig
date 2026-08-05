@@ -8,6 +8,8 @@
 const std = @import("std");
 const expr = @import("expr.zig");
 const functions = @import("functions.zig");
+const hint_recipe = @import("hint_recipe.zig");
+const hints = @import("hints.zig");
 const ir = @import("ir.zig");
 const program = @import("program.zig");
 const source = @import("source.zig");
@@ -15,8 +17,8 @@ const types = @import("types.zig");
 const validate = @import("validate.zig");
 
 pub const magic = "STWAIRL\x00";
-pub const format_version: u16 = 2;
-pub const logical_schema_version: u16 = 1;
+pub const format_version: u16 = 3;
+pub const logical_schema_version: u16 = 2;
 
 pub const ManifestError = error{ManifestTooLarge};
 pub const Error = std.mem.Allocator.Error || validate.Error || ManifestError;
@@ -44,7 +46,7 @@ fn writeValidated(writer: anytype, arena: *const ir.Arena) !void {
     try writeInt(writer, u16, logical_schema_version);
     try writeCount(writer, arena.nodesView().len);
     try writeCount(writer, arena.constraintsView().len);
-    try writeCount(writer, arena.hintsView().len);
+    try writeCount(writer, hints.view(arena).len);
     try writeCount(writer, arena.effectsView().len);
     try writeCount(writer, functions.view(arena).len);
     try writeCount(writer, functions.calls(arena).len);
@@ -57,12 +59,22 @@ fn writeValidated(writer: anytype, arena: *const ir.Arena) !void {
         try writeInt(writer, u8, constraintCategoryTag(constraint.category));
         try writeSpan(writer, arena, constraint.source_span);
     }
-    for (arena.hintsView(), 0..) |hint, index| {
+    for (hints.view(arena), 0..) |hint, index| {
         const id = types.idFromIndex(types.HintId, index) catch
             return error.ManifestTooLarge;
-        try writeName(writer, arena, hint.recipe);
-        try writeValues(writer, arena.hintInputs(id).?);
-        try writeValues(writer, arena.hintOutputs(id).?);
+        const recipe = hint_recipe.getById(hint.recipe) orelse unreachable;
+        try writeInt(writer, u16, @intFromEnum(hint.recipe));
+        try writeInt(writer, u16, recipe.version);
+        try writeOptionalValueId(writer, hint.activation);
+        try writeValues(writer, hints.inputs(arena, id).?);
+        try writeValues(writer, hints.outputs(arena, id).?);
+        const bindings = hints.bindings(arena, id).?;
+        try writeCount(writer, bindings.len);
+        for (bindings) |binding| {
+            try writeInt(writer, u16, binding.output_index);
+            try writeHintBindingTarget(writer, binding.target);
+            try writeValues(writer, hints.bindingPath(arena, binding).?);
+        }
         try writeSpan(writer, arena, hint.source_span);
     }
     for (arena.effectsView(), 0..) |effect, index| {
@@ -239,6 +251,22 @@ fn writeOptionalFunctionId(writer: anytype, id: ?types.FunctionId) !void {
         try writeInt(writer, u32, @intFromEnum(value));
     } else {
         try writeInt(writer, u8, 0);
+    }
+}
+
+fn writeHintBindingTarget(
+    writer: anytype,
+    target: program.HintBindingTarget,
+) !void {
+    switch (target) {
+        .constraint => |id| {
+            try writeInt(writer, u8, 0);
+            try writeInt(writer, u32, @intFromEnum(id));
+        },
+        .effect => |id| {
+            try writeInt(writer, u8, 1);
+            try writeInt(writer, u32, @intFromEnum(id));
+        },
     }
 }
 

@@ -1,5 +1,6 @@
 const std = @import("std");
 const functions = @import("functions.zig");
+const hints = @import("hints.zig");
 const ir = @import("ir.zig");
 const source = @import("source.zig");
 const types = @import("types.zig");
@@ -12,11 +13,14 @@ test "typed AIR IDs are non-interchangeable and preserve their tag widths" {
             @compileError("effect and hint IDs must remain distinct");
         if (types.CallId == types.FunctionId)
             @compileError("call and function IDs must remain distinct");
+        if (types.HintRecipeId == types.RelationSchemaId)
+            @compileError("hint recipe and relation schema IDs must remain distinct");
         if (types.NameId == types.SourceId)
             @compileError("name and source IDs must remain distinct");
     }
     try std.testing.expectEqual(@as(usize, 4), @sizeOf(types.ValueId));
     try std.testing.expectEqual(@as(usize, 2), @sizeOf(types.RelationSchemaId));
+    try std.testing.expectEqual(@as(usize, 2), @sizeOf(types.HintRecipeId));
 
     const value_id = try types.idFromIndex(types.ValueId, 17);
     try std.testing.expectEqual(@as(usize, 17), types.idIndex(value_id));
@@ -262,17 +266,20 @@ fn allocationFailureCase(allocator: std.mem.Allocator) !void {
     const live = try arena.input("live", .bit, generated);
     const sum = try arena.add(lhs, rhs, generated);
     const product = try arena.mul(sum, lhs, generated);
-    const hint_id = try arena.addHint(
-        "allocation.inverse.v1",
+    const hint_id = try hints.add(
+        &arena,
+        .field_inverse_or_zero,
         &.{product},
-        &.{ .felt, .bit },
+        live,
         generated,
     );
-    const outputs = arena.hintOutputs(hint_id).?;
-    _ = try arena.assertZero(
+    const outputs = hints.outputs(&arena, hint_id).?;
+    const product_inverse = try arena.mul(product, outputs[0], generated);
+    const binding_root = try arena.sub(product_inverse, outputs[1], generated);
+    const binding = try arena.assertZero(
         "allocation.binding",
-        outputs[0],
-        outputs[1],
+        binding_root,
+        live,
         .hint_binding,
         generated,
     );
@@ -283,6 +290,18 @@ fn allocationFailureCase(allocator: std.mem.Allocator) !void {
         0,
         generated,
     );
+    try hints.bind(&arena, hint_id, &.{
+        .{
+            .output_index = 0,
+            .target = .{ .constraint = binding },
+            .path = &.{ outputs[0], product_inverse, binding_root },
+        },
+        .{
+            .output_index = 1,
+            .target = .{ .constraint = binding },
+            .path = &.{ outputs[1], binding_root },
+        },
+    });
     const product_function = try functions.add(
         &arena,
         "allocation.product",

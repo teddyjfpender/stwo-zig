@@ -30,12 +30,10 @@ pub const ProgramError = error{
     DuplicateAccessOrdinal,
     DuplicateConstraintName,
     EmptyEffectValues,
-    EmptyHintOutputs,
     InvalidAccessOrdinal,
     InvalidConstraintGate,
     InvalidConstraintRoot,
     InvalidEffectLiveness,
-    TooManyHintOutputs,
 };
 
 pub const NodeCheckpoint = struct {
@@ -63,6 +61,8 @@ pub const Arena = struct {
     hints: std.ArrayList(program.Hint),
     hint_inputs: std.ArrayList(types.ValueId),
     hint_outputs: std.ArrayList(types.ValueId),
+    hint_bindings: std.ArrayList(program.HintBinding),
+    hint_binding_values: std.ArrayList(types.ValueId),
     effects: std.ArrayList(program.Effect),
     effect_values: std.ArrayList(types.ValueId),
     functions: std.ArrayList(program.Function),
@@ -86,6 +86,8 @@ pub const Arena = struct {
             .hints = .empty,
             .hint_inputs = .empty,
             .hint_outputs = .empty,
+            .hint_bindings = .empty,
+            .hint_binding_values = .empty,
             .effects = .empty,
             .effect_values = .empty,
             .functions = .empty,
@@ -107,6 +109,8 @@ pub const Arena = struct {
         self.functions.deinit(self.allocator);
         self.effect_values.deinit(self.allocator);
         self.effects.deinit(self.allocator);
+        self.hint_binding_values.deinit(self.allocator);
+        self.hint_bindings.deinit(self.allocator);
         self.hint_outputs.deinit(self.allocator);
         self.hint_inputs.deinit(self.allocator);
         self.hints.deinit(self.allocator);
@@ -196,37 +200,6 @@ pub const Arena = struct {
     /// Borrowed until the next constraint insertion or `deinit`.
     pub fn constraintsView(self: *const Arena) []const program.Constraint {
         return self.constraints.items;
-    }
-
-    pub fn hint(self: *const Arena, id: types.HintId) ?program.Hint {
-        const index = types.idIndex(id);
-        if (index >= self.hints.items.len) return null;
-        return self.hints.items[index];
-    }
-
-    /// Borrowed until the next hint insertion or `deinit`.
-    pub fn hintsView(self: *const Arena) []const program.Hint {
-        return self.hints.items;
-    }
-
-    pub fn hintInputs(self: *const Arena, id: types.HintId) ?[]const types.ValueId {
-        const item = self.hint(id) orelse return null;
-        return item.inputs.slice(self.hint_inputs.items);
-    }
-
-    pub fn hintOutputs(self: *const Arena, id: types.HintId) ?[]const types.ValueId {
-        const item = self.hint(id) orelse return null;
-        return item.outputs.slice(self.hint_outputs.items);
-    }
-
-    /// Borrowed until the next hint insertion or `deinit`.
-    pub fn hintInputsView(self: *const Arena) []const types.ValueId {
-        return self.hint_inputs.items;
-    }
-
-    /// Borrowed until the next hint insertion or `deinit`.
-    pub fn hintOutputsView(self: *const Arena) []const types.ValueId {
-        return self.hint_outputs.items;
     }
 
     pub fn effect(self: *const Arena, id: types.EffectId) ?program.Effect {
@@ -406,64 +379,6 @@ pub const Arena = struct {
         return id;
     }
 
-    /// Declares an honest witness recipe and creates one typed value node for
-    /// each output. The returned values remain untrusted until constraints or
-    /// effects bind them in a later validation phase.
-    pub fn addHint(
-        self: *Arena,
-        recipe: []const u8,
-        inputs: []const types.ValueId,
-        output_types: []const types.Type,
-        span: source_mod.SourceSpan,
-    ) Error!types.HintId {
-        if (output_types.len == 0) return error.EmptyHintOutputs;
-        if (output_types.len > @as(usize, std.math.maxInt(u16)) + 1)
-            return error.TooManyHintOutputs;
-        try self.validateSpan(span);
-        for (inputs) |input_id| {
-            if (self.node(input_id) == null) return error.UnknownValue;
-        }
-        for (output_types) |ty| try ty.validate();
-
-        const recipe_id = try self.internName(recipe);
-        const hint_id = try types.idFromIndex(types.HintId, self.hints.items.len);
-        const input_range = try program.RefRange.init(
-            self.hint_inputs.items.len,
-            inputs.len,
-        );
-        const output_range = try program.RefRange.init(
-            self.hint_outputs.items.len,
-            output_types.len,
-        );
-
-        const input_start = self.hint_inputs.items.len;
-        errdefer self.hint_inputs.shrinkRetainingCapacity(input_start);
-        try self.hint_inputs.appendSlice(self.allocator, inputs);
-
-        const output_start = self.hint_outputs.items.len;
-        errdefer self.hint_outputs.shrinkRetainingCapacity(output_start);
-        const node_start = self.nodes.items.len;
-        errdefer self.rollbackNodes(node_start);
-        for (output_types, 0..) |ty, index| {
-            const output = try self.internNode(.{
-                .ty = ty,
-                .op = .{ .hint_output = .{
-                    .hint = hint_id,
-                    .index = @intCast(index),
-                } },
-            }, span);
-            try self.hint_outputs.append(self.allocator, output);
-        }
-
-        try self.hints.append(self.allocator, .{
-            .recipe = recipe_id,
-            .inputs = input_range,
-            .outputs = output_range,
-            .source_span = span,
-        });
-        return hint_id;
-    }
-
     pub fn addEffect(
         self: *Arena,
         kind: program.EffectKind,
@@ -578,6 +493,23 @@ pub const Arena = struct {
         return self.internNode(.{
             .ty = ty,
             .op = .{ .call_output = .{ .call = call_id, .index = index } },
+        }, span);
+    }
+
+    /// Package-level construction hook for the typed hint builder.
+    pub fn internHintOutput(
+        self: *Arena,
+        hint_id: types.HintId,
+        index: u16,
+        ty: types.Type,
+        span: source_mod.SourceSpan,
+    ) Error!types.ValueId {
+        return self.internNode(.{
+            .ty = ty,
+            .op = .{ .hint_output = .{
+                .hint = hint_id,
+                .index = index,
+            } },
         }, span);
     }
 

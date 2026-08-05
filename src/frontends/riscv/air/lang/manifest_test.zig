@@ -11,8 +11,8 @@ test "logical manifest has a pinned empty-program encoding" {
     defer std.testing.allocator.free(actual);
 
     const expected = "STWAIRL\x00" ++
+        "\x03\x00" ++
         "\x02\x00" ++
-        "\x01\x00" ++
         "\x00\x00\x00\x00" ** 6;
     try std.testing.expectEqualStrings(expected, actual);
 }
@@ -64,6 +64,31 @@ test "logical manifest binds call lowering strategy" {
     );
     defer std.testing.allocator.free(relation_bytes);
     try std.testing.expect(!std.mem.eql(u8, inline_bytes, relation_bytes));
+}
+
+test "logical manifest binds explicit hint proof paths" {
+    var fixture = try test_support.Fixture.init(std.testing.allocator);
+    defer fixture.deinit();
+    const all_bindings = try manifest.serializeAlloc(
+        std.testing.allocator,
+        &fixture.arena,
+    );
+    defer std.testing.allocator.free(all_bindings);
+
+    var range = fixture.arena.hints.items[0].bindings.?;
+    range.len = 1;
+    fixture.arena.hints.items[0].bindings = range;
+    fixture.arena.hint_bindings.shrinkRetainingCapacity(1);
+    const first_path = fixture.arena.hint_bindings.items[0].path;
+    fixture.arena.hint_binding_values.shrinkRetainingCapacity(
+        @as(usize, first_path.start) + @as(usize, first_path.len),
+    );
+    const constraint_only = try manifest.serializeAlloc(
+        std.testing.allocator,
+        &fixture.arena,
+    );
+    defer std.testing.allocator.free(constraint_only);
+    try std.testing.expect(!std.mem.eql(u8, all_bindings, constraint_only));
 }
 
 test "logical manifest validates before writing any bytes" {

@@ -23,6 +23,7 @@ shape, authoring model, or delivery order.
 | [0003](0003-one-proof-precompiles-first.md) | One-proof precompiles before separate proof recursion | accepted |
 | [0004](0004-acyclic-functions-in-v0.md) | Acyclic function graph in IR v0 | accepted |
 | [0005](0005-canonical-logical-manifest.md) | Canonical logical manifest encoding | accepted |
+| [0006](0006-typed-hint-recipes-and-proof-paths.md) | Typed hint recipes and explicit proof paths | accepted |
 
 ## Pending ADRs
 

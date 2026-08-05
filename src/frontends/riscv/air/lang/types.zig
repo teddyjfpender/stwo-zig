@@ -12,6 +12,7 @@ pub const EffectId = enum(u32) { _ };
 pub const HintId = enum(u32) { _ };
 pub const FunctionId = enum(u32) { _ };
 pub const CallId = enum(u32) { _ };
+pub const HintRecipeId = enum(u16) { _ };
 pub const NameId = enum(u32) { _ };
 pub const SourceId = enum(u32) { _ };
 pub const RelationSchemaId = enum(u16) { _ };

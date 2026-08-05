@@ -6,7 +6,7 @@ const types = @import("types.zig");
 
 pub const RangeError = error{ReferenceRangeOverflow};
 
-/// A canonical range into one of the program's typed reference pools.
+/// A canonical range into one of the program's arena-owned item pools.
 pub const RefRange = struct {
     start: u32,
     len: u32,
@@ -61,10 +61,25 @@ pub const CallOutput = struct {
 };
 
 pub const Hint = struct {
-    recipe: types.NameId,
+    recipe: types.HintRecipeId,
     inputs: RefRange,
     outputs: RefRange,
+    activation: ?types.ValueId,
+    bindings: ?RefRange,
     source_span: source.SourceSpan,
+};
+
+pub const HintBindingTarget = union(enum) {
+    constraint: types.ConstraintId,
+    effect: types.EffectId,
+};
+
+/// A checked dataflow path from one hint output to a proof-enforced target.
+/// Path values are stored output-first and end at the target root/value.
+pub const HintBinding = struct {
+    output_index: u16,
+    target: HintBindingTarget,
+    path: RefRange,
 };
 
 pub const EffectKind = enum {

@@ -160,10 +160,25 @@ test "validator rejects InvalidRange" {
 test "validator rejects InvalidHint" {
     var fixture = try test_support.Fixture.init(std.testing.allocator);
     defer fixture.deinit();
+    const saved = fixture.arena.hint_inputs.items[0];
+    defer fixture.arena.hint_inputs.items[0] = saved;
+    fixture.arena.hint_inputs.items[0] = fixture.word;
+    try std.testing.expectError(error.InvalidHint, validate.validate(&fixture.arena));
+}
+
+test "validator rejects UnknownHintRecipe" {
+    var fixture = try test_support.Fixture.init(std.testing.allocator);
+    defer fixture.deinit();
     const saved = fixture.arena.hints.items[0].recipe;
     defer fixture.arena.hints.items[0].recipe = saved;
-    fixture.arena.hints.items[0].recipe = try types.idFromIndex(types.NameId, 999);
-    try std.testing.expectError(error.InvalidHint, validate.validate(&fixture.arena));
+    fixture.arena.hints.items[0].recipe = try types.idFromIndex(
+        types.HintRecipeId,
+        999,
+    );
+    try std.testing.expectError(
+        error.UnknownHintRecipe,
+        validate.validate(&fixture.arena),
+    );
 }
 
 test "validator rejects InvalidHintOutput" {
@@ -174,6 +189,30 @@ test "validator rejects InvalidHintOutput" {
     fixture.arena.hint_outputs.items[0] = fixture.lhs;
     try std.testing.expectError(
         error.InvalidHintOutput,
+        validate.validate(&fixture.arena),
+    );
+}
+
+test "validator rejects InvalidHintBinding" {
+    var fixture = try test_support.Fixture.init(std.testing.allocator);
+    defer fixture.deinit();
+    const saved = fixture.arena.hint_binding_values.items[0];
+    defer fixture.arena.hint_binding_values.items[0] = saved;
+    fixture.arena.hint_binding_values.items[0] = fixture.lhs;
+    try std.testing.expectError(
+        error.InvalidHintBinding,
+        validate.validate(&fixture.arena),
+    );
+}
+
+test "validator rejects UnboundHintOutput" {
+    var fixture = try test_support.Fixture.init(std.testing.allocator);
+    defer fixture.deinit();
+    const saved = fixture.arena.hints.items[0].bindings;
+    defer fixture.arena.hints.items[0].bindings = saved;
+    fixture.arena.hints.items[0].bindings = null;
+    try std.testing.expectError(
+        error.UnboundHintOutput,
         validate.validate(&fixture.arena),
     );
 }

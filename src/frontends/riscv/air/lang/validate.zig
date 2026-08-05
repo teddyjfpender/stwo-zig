@@ -8,6 +8,8 @@ const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const expr = @import("expr.zig");
 const functions = @import("functions.zig");
+const hint_recipe = @import("hint_recipe.zig");
+const hints = @import("hints.zig");
 const ir = @import("ir.zig");
 const program = @import("program.zig");
 const types = @import("types.zig");
@@ -27,6 +29,7 @@ pub const Error = error{
     InvalidEffect,
     InvalidFunction,
     InvalidHint,
+    InvalidHintBinding,
     InvalidHintOutput,
     InvalidInternTable,
     InvalidName,
@@ -38,6 +41,8 @@ pub const Error = error{
     InvalidSourceSpan,
     InvalidType,
     NonCanonicalNode,
+    UnboundHintOutput,
+    UnknownHintRecipe,
 };
 
 /// Validates in stable arena order and returns the first structural error.
@@ -50,8 +55,10 @@ pub fn validate(arena: *const ir.Arena) Error!void {
     try validateFunctions(arena);
     try validateCalls(arena);
     try validateNodes(arena);
+    try validateHintInvocations(arena);
     try validateConstraints(arena);
     try validateEffects(arena);
+    try validateHintBindings(arena);
 }
 
 fn validateNames(arena: *const ir.Arena) Error!void {
@@ -83,18 +90,22 @@ fn validateSources(arena: *const ir.Arena) Error!void {
 fn validateHints(arena: *const ir.Arena) Error!void {
     var input_cursor: usize = 0;
     var output_cursor: usize = 0;
-    for (arena.hintsView(), 0..) |hint, hint_index| {
-        if (!validName(arena, hint.recipe)) return error.InvalidHint;
+    for (hints.view(arena), 0..) |hint, hint_index| {
+        if (hint_recipe.getById(hint.recipe) == null)
+            return error.UnknownHintRecipe;
         validateSpan(arena, hint.source_span) catch return error.InvalidSourceSpan;
+        if (hint.activation) |activation| {
+            if (!validValue(arena, activation)) return error.InvalidHint;
+        }
 
         const inputs = try canonicalRange(
             hint.inputs,
-            arena.hintInputsView(),
+            arena.hint_inputs.items,
             &input_cursor,
         );
         const outputs = try canonicalRange(
             hint.outputs,
-            arena.hintOutputsView(),
+            arena.hint_outputs.items,
             &output_cursor,
         );
         if (outputs.len == 0) return error.InvalidHint;
@@ -116,10 +127,44 @@ fn validateHints(arena: *const ir.Arena) Error!void {
             }
         }
     }
-    if (input_cursor != arena.hintInputsView().len or
-        output_cursor != arena.hintOutputsView().len)
+    if (input_cursor != arena.hint_inputs.items.len or
+        output_cursor != arena.hint_outputs.items.len)
     {
         return error.InvalidRange;
+    }
+}
+
+fn validateHintInvocations(arena: *const ir.Arena) Error!void {
+    for (hints.view(arena), 0..) |hint, hint_index| {
+        const item = hint_recipe.getById(hint.recipe) orelse
+            return error.UnknownHintRecipe;
+        const hint_id = types.idFromIndex(types.HintId, hint_index) catch
+            return error.InvalidHint;
+        const inputs = hints.inputs(arena, hint_id) orelse
+            return error.InvalidHint;
+        const outputs = hints.outputs(arena, hint_id) orelse
+            return error.InvalidHint;
+        if (inputs.len != item.input_types.len or
+            outputs.len != item.output_types.len)
+        {
+            return error.InvalidHint;
+        }
+        for (inputs, item.input_types) |input_id, expected_type| {
+            const input = arena.node(input_id) orelse return error.InvalidHint;
+            if (!std.meta.eql(input.key.ty, expected_type))
+                return error.InvalidHint;
+        }
+        for (outputs, item.output_types) |output_id, expected_type| {
+            const output = arena.node(output_id) orelse
+                return error.InvalidHintOutput;
+            if (!std.meta.eql(output.key.ty, expected_type))
+                return error.InvalidHintOutput;
+        }
+        if (hint.activation) |activation_id| {
+            const activation = arena.node(activation_id) orelse
+                return error.InvalidHint;
+            if (!activation.key.ty.isSelector()) return error.InvalidHint;
+        }
     }
 }
 
@@ -198,7 +243,7 @@ fn validateNode(arena: *const ir.Arena, node: expr.Node, index: usize) Error!voi
             }
         },
         .hint_output => |binding| {
-            const outputs = arena.hintOutputs(binding.hint) orelse
+            const outputs = hints.outputs(arena, binding.hint) orelse
                 return error.InvalidHintOutput;
             const output_index: usize = binding.index;
             if (output_index >= outputs.len or
@@ -272,6 +317,65 @@ fn validateEffects(arena: *const ir.Arena) Error!void {
     }
     if (value_cursor != arena.effectValuesView().len)
         return error.InvalidRange;
+}
+
+fn validateHintBindings(arena: *const ir.Arena) Error!void {
+    var binding_cursor: usize = 0;
+    var path_cursor: usize = 0;
+    for (hints.view(arena), 0..) |hint, hint_index| {
+        const range = hint.bindings orelse return error.UnboundHintOutput;
+        const hint_bindings = try canonicalBindingRange(
+            range,
+            arena.hint_bindings.items,
+            &binding_cursor,
+        );
+        if (hint_bindings.len == 0) return error.UnboundHintOutput;
+        const hint_id = types.idFromIndex(types.HintId, hint_index) catch
+            return error.InvalidHintBinding;
+        const outputs = hints.outputs(arena, hint_id) orelse
+            return error.InvalidHintBinding;
+
+        for (hint_bindings, 0..) |binding, binding_index| {
+            const output_index: usize = binding.output_index;
+            if (output_index >= outputs.len) return error.InvalidHintBinding;
+            if (binding_index != 0 and
+                !hintBindingLess(hint_bindings[binding_index - 1], binding))
+            {
+                return error.InvalidHintBinding;
+            }
+            const path = try canonicalRange(
+                binding.path,
+                arena.hint_binding_values.items,
+                &path_cursor,
+            );
+            if (!hints.targetMatchesActivation(arena, hint.activation, binding.target) or
+                !hints.pathIsValid(
+                    arena,
+                    outputs[output_index],
+                    binding.target,
+                    path,
+                ))
+            {
+                return error.InvalidHintBinding;
+            }
+        }
+
+        for (outputs, 0..) |_, output_index| {
+            var found = false;
+            for (hint_bindings) |binding| {
+                if (binding.output_index == output_index) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) return error.UnboundHintOutput;
+        }
+    }
+    if (binding_cursor != arena.hint_bindings.items.len or
+        path_cursor != arena.hint_binding_values.items.len)
+    {
+        return error.InvalidRange;
+    }
 }
 
 fn validateFunctions(arena: *const ir.Arena) Error!void {
@@ -390,6 +494,44 @@ fn canonicalRange(
     cursor.* = std.math.add(usize, cursor.*, slice.len) catch
         return error.InvalidRange;
     return slice;
+}
+
+fn canonicalBindingRange(
+    range: program.RefRange,
+    values: []const program.HintBinding,
+    cursor: *usize,
+) Error![]const program.HintBinding {
+    if (range.start != cursor.*) return error.InvalidRange;
+    const start: usize = range.start;
+    const len: usize = range.len;
+    const end = std.math.add(usize, start, len) catch
+        return error.InvalidRange;
+    if (end > values.len) return error.InvalidRange;
+    cursor.* = end;
+    return values[start..end];
+}
+
+fn hintBindingLess(lhs: program.HintBinding, rhs: program.HintBinding) bool {
+    if (lhs.output_index != rhs.output_index)
+        return lhs.output_index < rhs.output_index;
+    const lhs_tag = hintBindingTargetTag(lhs.target);
+    const rhs_tag = hintBindingTargetTag(rhs.target);
+    if (lhs_tag != rhs_tag) return lhs_tag < rhs_tag;
+    return hintBindingTargetIndex(lhs.target) < hintBindingTargetIndex(rhs.target);
+}
+
+fn hintBindingTargetTag(target: program.HintBindingTarget) u8 {
+    return switch (target) {
+        .constraint => 0,
+        .effect => 1,
+    };
+}
+
+fn hintBindingTargetIndex(target: program.HintBindingTarget) usize {
+    return switch (target) {
+        .constraint => |id| types.idIndex(id),
+        .effect => |id| types.idIndex(id),
+    };
 }
 
 fn priorNode(

@@ -24,6 +24,7 @@ pub const EffectId = enum(u32) { _ };
 pub const HintId = enum(u32) { _ };
 pub const FunctionId = enum(u32) { _ };
 pub const CallId = enum(u32) { _ };
+pub const HintRecipeId = enum(u16) { _ };
 pub const RelationSchemaId = enum(u16) { _ };
 ```
 
@@ -122,17 +123,29 @@ A hint record contains:
 - stable recipe ID and version;
 - ordered typed inputs;
 - ordered typed outputs;
+- optional selector activation;
 - exceptional-case policy;
 - source span; and
 - the set of constraints/effects intended to bind each output.
 
-Construction fails if a hint output has no binding path. A later adversarial
-validator should be able to replace each hint output independently and identify
-the guard that rejects the mutation.
+The v0 registry is closed and numeric: arbitrary strings never select an
+algorithm or signature. Each entry pins an exact input/output type sequence,
+deterministic honest algorithm, and exceptional-case policy. The initial
+recipes are felt identity and field inverse-or-zero; the latter returns an
+inverse and nonzero bit and explicitly maps zero to `(0, 0)`.
+
+Each output has one or more canonical proof-binding certificates. A certificate
+names a `hint_binding` constraint or ordered effect with the same gate/liveness
+as the hint activation, then records an output-first value path ending at that
+constraint root or effect value. Every adjacent path value has a direct dataflow
+edge. This supports allocation-free validation and precise diagnostics without
+trusting recursive graph search. Unknown recipes, unbound outputs, activation
+drift, and malformed paths reject before lowering.
 
 Hint recipes are registered concrete functions. Recipe IDs are protocol
 metadata when they affect witness layout, but the proof never trusts the recipe
-to be honest.
+to be honest. A later adversarial validator replaces each output independently
+and identifies the guard that rejects the mutation.
 
 ## Effects
 

@@ -1,5 +1,6 @@
 const std = @import("std");
 const functions = @import("functions.zig");
+const hints = @import("hints.zig");
 const ir = @import("ir.zig");
 const source = @import("source.zig");
 const types = @import("types.zig");
@@ -38,7 +39,6 @@ pub const Fixture = struct {
                 "rhs",
                 "live",
                 "word",
-                "fixture.inverse.v1",
                 "fixture.sum",
                 "fixture.hint",
                 "fixture.sum_fn",
@@ -63,13 +63,15 @@ pub const Fixture = struct {
         const live = try arena.input("live", .bit, span);
         const word = try arena.input("word", .word32, span);
         const sum = try arena.add(lhs, rhs, span);
-        const hint_id = try arena.addHint(
-            "fixture.inverse.v1",
+        const hint_id = try hints.add(
+            &arena,
+            .identity_felt,
             &.{lhs},
-            &.{.felt},
+            live,
             span,
         );
-        const hint_output = arena.hintOutputs(hint_id).?[0];
+        const hint_output = hints.outputs(&arena, hint_id).?[0];
+        const hint_binding = try arena.sub(hint_output, lhs, span);
         const negated = try arena.neg(sum, span);
 
         _ = try arena.assertZero(
@@ -79,10 +81,10 @@ pub const Fixture = struct {
             .semantic,
             span,
         );
-        _ = try arena.assertZero(
+        const hint_constraint = try arena.assertZero(
             "fixture.hint",
-            hint_output,
-            null,
+            hint_binding,
+            live,
             .hint_binding,
             span,
         );
@@ -93,13 +95,25 @@ pub const Fixture = struct {
             0,
             span,
         );
-        _ = try arena.addEffect(
+        const hint_effect = try arena.addEffect(
             .memory_write,
             &.{hint_output},
             live,
             1,
             span,
         );
+        try hints.bind(&arena, hint_id, &.{
+            .{
+                .output_index = 0,
+                .target = .{ .constraint = hint_constraint },
+                .path = &.{ hint_output, hint_binding },
+            },
+            .{
+                .output_index = 0,
+                .target = .{ .effect = hint_effect },
+                .path = &.{hint_output},
+            },
+        });
         const sum_function = try functions.add(
             &arena,
             "fixture.sum_fn",

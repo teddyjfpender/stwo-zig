@@ -35,6 +35,9 @@ pre-production versions are:
   function-signature baseline;
 - **format 2 / logical schema 1:** adds the call count, call records, typed
   `call_output` nodes, and explicit inline-versus-relation-backed strategy.
+- **format 3 / logical schema 2:** replaces string-dispatched hints with typed
+  recipe IDs and versions, and adds activation plus canonical binding targets
+  and value paths.
 
 ## Consequences
 
@@ -61,6 +64,6 @@ pre-production versions are:
 
 ## Revisit when
 
-Revisit the field set when relation schemas, calls, hint bindings, or layout
-metadata enter the logical schema. Extend by versioning; never reinterpret a
-published version in place.
+Revisit the field set when relation schemas or layout metadata enter the
+logical schema. Extend by versioning; never reinterpret a published version in
+place.
