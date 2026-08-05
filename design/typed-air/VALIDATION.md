@@ -158,8 +158,16 @@ every changed column or event moved.
 M2 establishes the check half of this contract: the package test renders
 [`m2-production-shadow-report-v1.tsv`](artifacts/m2-production-shadow-report-v1.tsv)
 and its [readable view](artifacts/m2-production-shadow-report-v1.md) in memory
-and requires byte identity. A deliberate update command remains A-006/A-012
-work because physical layout identity and semantic diffing are not yet defined.
+and requires byte identity. A deliberate update command and semantic layout
+diff remain A-012 work; `compat-v1` now supplies the physical mapping they will
+compare.
+
+A-006 additionally reconstructs the existing Sail-authoritative witness-layout
+digest from `compat-v1` descriptors and compares every physical name directly
+to reflected production fields. Separate tests resolve local references at
+nonzero offsets and require exact agreement with the semantic and lookup
+backend capabilities. Logical and physical names are compared as a mapping,
+not assumed equal.
 
 ## Differential design
 

@@ -98,6 +98,8 @@ preserves ordered constraints, selectors, lookup metadata, and batching. A
 second pass now models the exact direct and pairs-batched LogUp identities,
 boundary terms, and quotient expansion for all 17 families. The versioned
 [M2 production report](artifacts/m2-production-shadow-report-v1.md) pins those
-counts, dependencies, and final degrees. The next seam defines the `compat-v1`
-physical mapping; this work continues to strengthen and reify the existing path
-rather than replace the prover or rewrite all opcodes.
+counts, dependencies, and final degrees. The `compat-v1` mapping now binds every
+logical input to the exact preprocessed/main/interaction tree position while
+keeping logical and physical names distinct. The next seam lowers LUI's direct
+constraints back through that mapping; this work continues to strengthen and
+reify the existing path rather than replace the prover or rewrite all opcodes.

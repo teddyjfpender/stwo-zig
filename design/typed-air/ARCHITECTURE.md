@@ -149,6 +149,13 @@ The initial `compat-v1` policy maps logical inputs and witnesses onto the
 existing physical layouts and rejects any mismatch. It does no opportunistic
 optimization.
 
+Its implemented opcode-family mapping is local to one component: tree IDs and
+column order are fixed, while statement assembly supplies checked global
+offsets. Logical semantic names and physical witness names are retained as
+separate fields rather than joined by string equality. The mapping covers the
+two preprocessed selectors, every main input, and every batch/coordinate of the
+interaction trace.
+
 An optimized policy is a named, versioned protocol choice. It may not depend on
 hash-map order, machine characteristics, or a benchmark result discovered
 during the current build.
@@ -243,6 +250,7 @@ src/frontends/riscv/air/lang/
   degree.zig             logical DAG degree analysis
   protocol_degree.zig    complete current-protocol degree analysis
   protocol_report.zig    deterministic compatibility evidence
+  compat_layout.zig      exact local `compat-v1` physical mapping
   layout.zig             policies and physical allocation
   manifest.zig           canonical layout identity
   lower_constraint.zig   current ConstraintProgram compatibility

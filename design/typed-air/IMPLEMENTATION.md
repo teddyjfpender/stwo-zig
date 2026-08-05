@@ -95,6 +95,9 @@ families and independently checks the shipped direct and lookup backend bounds.
 
 ## Phase 3 — compatibility lowering
 
+**Status:** active; A-006 physical mapping is complete and A-007 direct
+constraint lowering is active.
+
 Lower a logical program back into the current `ConstraintProgram` and runtime
 polynomial formats.
 

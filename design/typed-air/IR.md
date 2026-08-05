@@ -358,6 +358,15 @@ proof paths, effects, functions, and calls. Source paths/spans and arena
 implementation state are deliberately excluded. See
 [ADR-0007](decisions/0007-semantic-program-digest.md).
 
+`compat-v1` now supplies the first executable physical mapping. Local tree IDs
+are preprocessed 0, main 1, and interaction 2. The active selector and every
+main input have reverse `ValueId` mappings; interaction columns are batch-major
+QM31 coordinates with explicit current/previous windows. A main descriptor
+carries separate logical and committed names because semantic paths such as
+`clock` can map to physical names such as `clk`. Physical names are read from
+the frozen witness schema, never inferred from logical spelling. See
+[ADR-0012](decisions/0012-compat-v1-local-physical-mapping.md).
+
 ## Validation passes
 
 Before lowering:

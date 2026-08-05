@@ -3,8 +3,8 @@
 **Status date:** 2026-08-05
 **Branch:** `feat/typed-air-precompiles`
 **Current milestone:** M3 — compatibility lowering
-**Active task:** A-006 — `compat-v1` physical column mapping
-**Next queued task:** A-007 — lower direct constraints
+**Active task:** A-007 — lower direct constraints
+**Next queued task:** A-008 — lower ordered lookup effects
 
 ## Dashboard
 
@@ -13,7 +13,7 @@
 | M0 — engineering dossier | complete | This directory and initial ADRs |
 | M1 — validated logical IR | complete | F-001 through F-012 complete and green |
 | M2 — shadow compiler | complete | A-001 through A-005 complete and green |
-| M3 — compatibility lowering | active | A-006 physical mapping active |
+| M3 — compatibility lowering | active | A-006 complete; A-007 active |
 | M4 — Poseidon compiler pilot | queued | Requires degree/layout passes |
 | M5 — effect and witness pilot | queued | Requires typed schemas and lowering |
 | M6 — guest precompile | queued | Requires Poseidon and ABI ADRs |
@@ -130,13 +130,22 @@
   embedded from `design/typed-air/artifacts` and byte-compared in the
   ReleaseFast suite; structural corruption and every writer allocation failure
   reject cleanly.
+- Completed A-006: `compat-v1` maps local preprocessed, main, and interaction
+  columns without allocation. Every main `ValueId` carries separate logical and
+  physical names, every interaction coordinate records its exact lookup batch
+  and row window, and checked offsets resolve into statement-global positions.
+  Tests compare all 644 main names to the Sail-authoritative reflected layouts,
+  reproduce the existing witness-layout digest, validate all 620 interaction
+  positions, and agree with real semantic/lookup backend capability geometry.
+  The differential exposed and correctly represented logical/physical aliases
+  such as `clock` → `clk` rather than joining namespaces by string equality.
 
 ## Immediate next actions
 
-1. A-006 — define the `compat-v1` physical column mapping.
-2. A-007 — lower direct constraints to the current program shape, beginning
+1. A-007 — lower direct constraints to the current program shape, beginning
    with LUI.
-3. A-008 — reproduce typed effect ordering and signed lookup entries.
+2. A-008 — reproduce typed effect ordering and signed lookup entries.
+3. A-009 — reproduce the runtime polynomial program.
 
 No production behavior should change in these tasks.
 
@@ -154,6 +163,8 @@ Accepted:
 - Lossless mapped import of the production symbolic DAG in shadow mode.
 - Ordered same-source import of the complete production program surface.
 - Complete current-protocol degree model and pinned M2 report.
+- Explicit local `compat-v1` physical mapping with distinct logical and
+  committed names.
 
 Pending:
 
@@ -379,6 +390,32 @@ register-boundary diagnostics are expected negative-test evidence. No
 production AIR, witness, prover, verifier, transcript, runtime export, or
 formal-extraction path changed. M2 is complete and A-006 activates M3 by
 defining the exact `compat-v1` physical column mapping.
+
+### 2026-08-05 — M3 `compat-v1` physical mapping established
+
+A-006 completed with `compat_layout.zig` and ADR-0012. The mapping fixes the
+three production tree indices, local selector positions, main input positions,
+batch-major QM31 interaction coordinates, row windows, batch occupancy, and
+checked global-offset resolution. It is allocation-free, uses canonical
+sentinels for every inactive fixed-capacity slot, and independently revalidates
+the imported program and its own stored state.
+
+The first exact name comparison caught an important namespace distinction:
+logical semantic paths are not the committed witness schema. For example,
+`clock` maps positionally to physical `clk`. The accepted descriptor therefore
+retains both names, sources committed names directly from `witness_layout`, and
+never uses name equality to discover the value mapping.
+
+All 17 families compare every mapped main index/name to reflected production
+fields and reconstruct the existing Sail-authoritative witness-layout digest.
+The test also covers all interaction positions and resolves deliberately
+nonzero offsets into the exact tree/index/count fields advertised by the real
+semantic and opcode-lookup backend capabilities. Corrupted family, selector,
+main, hidden-tail, batch, coordinate, and lookup mappings reject; global index
+overflow rejects. The ReleaseFast package gate and package-boundary audit pass.
+
+No production consumer imports `air/lang`; A-007 is active to lower the LUI
+direct roots through this mapping and compare normalized structure.
 
 ## Update protocol
 

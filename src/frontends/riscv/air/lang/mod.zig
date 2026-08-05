@@ -19,6 +19,7 @@ pub const hint_recipe = @import("hint_recipe.zig");
 pub const hints = @import("hints.zig");
 pub const digest = @import("digest.zig");
 pub const degree = @import("degree.zig");
+pub const compat_layout = @import("compat_layout.zig");
 pub const protocol_degree = @import("protocol_degree.zig");
 pub const protocol_report = @import("protocol_report.zig");
 pub const diagnostic = @import("diagnostic.zig");

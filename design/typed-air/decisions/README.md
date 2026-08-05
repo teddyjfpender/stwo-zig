@@ -29,6 +29,7 @@ shape, authoring model, or delivery order.
 | [0009](0009-lossless-production-shadow-import.md) | Lossless production symbolic shadow import | accepted |
 | [0010](0010-ordered-production-program-shadow-import.md) | Ordered production program shadow import | accepted |
 | [0011](0011-complete-protocol-degree-and-pinned-report.md) | Complete protocol degree and pinned production report | accepted |
+| [0012](0012-compat-v1-local-physical-mapping.md) | `compat-v1` local physical mapping | accepted |
 
 ## Pending ADRs
 
