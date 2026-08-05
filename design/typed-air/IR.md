@@ -265,6 +265,15 @@ The compiler reports both logical-expression degree and final protocol
 constraint degree. A component is rejected if either the direct or interaction
 lowering exceeds its declared bound.
 
+The implemented logical pass evaluates the validated DAG once in topological
+order. Constants are degree zero; inputs and committed hint/call outputs are
+degree one; add/sub/neg preserve maxima; multiplication adds with overflow
+rejection; selection adds selector degree to the maximum branch; and a
+constraint total includes its gate. This report is not relabelled as final
+protocol degree. Stable diagnostics render its expression, gate, total, and
+limit alongside the typed source value path. See
+[ADR-0008](decisions/0008-stable-structured-diagnostics.md).
+
 ## Materialization
 
 Materialization introduces a committed witness column `v` and a constraint

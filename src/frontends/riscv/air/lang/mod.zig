@@ -18,6 +18,8 @@ pub const functions = @import("functions.zig");
 pub const hint_recipe = @import("hint_recipe.zig");
 pub const hints = @import("hints.zig");
 pub const digest = @import("digest.zig");
+pub const degree = @import("degree.zig");
+pub const diagnostic = @import("diagnostic.zig");
 
 /// Logical schema version for the pre-production authoring kernel.
 ///

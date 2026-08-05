@@ -3,15 +3,15 @@
 **Status date:** 2026-08-04
 **Branch:** `feat/typed-air-precompiles`
 **Current milestone:** M1 — validated logical IR
-**Active task:** F-009 — stable diagnostic renderer
-**Next ready task:** F-012 — public authoring examples
+**Active task:** F-012 — public authoring examples
+**Next ready task:** F-011 — allocation-finalization audit
 
 ## Dashboard
 
 | Milestone | State | Evidence |
 | --- | --- | --- |
 | M0 — engineering dossier | complete | This directory and initial ADRs |
-| M1 — validated logical IR | active | F-001 through F-008 and F-010 complete; F-009 active |
+| M1 — validated logical IR | active | F-001 through F-010 complete; F-012 active |
 | M2 — shadow compiler | queued | Requires M1 |
 | M3 — compatibility lowering | queued | Requires shadow import |
 | M4 — Poseidon compiler pilot | queued | Requires degree/layout passes |
@@ -80,12 +80,17 @@
   effects, functions, and calls while excluding source spans and arena state.
   The empty identity is pinned; source/interner/allocation invariance and
   type/order/call-strategy sensitivity pass in the full ReleaseFast suite.
+- Completed F-009: diagnostics render stable codes, escaped component/message
+  text, exact source ranges, typed value paths, and explicit expression/gate/
+  total/limit degree context. The supporting topological logical-degree pass
+  covers every IR operation, treats committed hint/call outputs correctly, and
+  rejects overflow. Golden rendering and partial-allocation cleanup pass.
 
 ## Immediate next actions
 
-1. F-009 — render stable source-attributed diagnostics.
-2. F-012 — compile minimal pure and effectful authoring examples.
-3. F-011 — audit and complete partial-finalization allocation coverage.
+1. F-012 — compile minimal pure and effectful authoring examples.
+2. F-011 — audit and complete partial-finalization allocation coverage.
+3. A-001 — import the production symbolic polynomial DAG in shadow mode.
 
 No production behavior should change in these tasks.
 
@@ -99,6 +104,7 @@ Accepted:
 - Acyclic function graph in IR v0.
 - Typed hint recipes with explicit proof-binding paths.
 - Domain-separated semantic program digest projection.
+- Stable diagnostic codes and topological logical-degree analysis.
 
 Pending:
 
@@ -219,6 +225,14 @@ paths, function signatures, calls, and lowering strategy. It excludes source
 paths/spans and arena implementation state. The empty digest is a pinned vector;
 separate tests prove source and interning invariance plus type, name, effect
 order, and call-strategy sensitivity.
+
+F-009 completed with the same ReleaseFast package command. The renderer pins
+machine codes and escaped text while carrying component, exact source range,
+typed `ValueId` path, and degree context. A new topological analysis computes
+logical value and gated-constraint degree with checked arithmetic; it labels
+hint/call outputs as committed degree-one values and explicitly does not claim
+the later relation/mask/interaction degree. Golden output, unknown-value
+fallback, overflow rejection, and partial allocation cleanup pass.
 
 ## Update protocol
 
