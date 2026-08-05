@@ -67,7 +67,16 @@ __host__ __device__ __forceinline__ void conjugate_line_coefficients(
 __device__ __forceinline__ std::uint32_t bit_reverse(
     std::uint32_t value,
     std::uint32_t bits) {
+#if defined(STWO_CUMETAL)
+    value = ((value & 0x55555555u) << 1) | ((value >> 1) & 0x55555555u);
+    value = ((value & 0x33333333u) << 2) | ((value >> 2) & 0x33333333u);
+    value = ((value & 0x0f0f0f0fu) << 4) | ((value >> 4) & 0x0f0f0f0fu);
+    value = ((value & 0x00ff00ffu) << 8) | ((value >> 8) & 0x00ff00ffu);
+    value = (value << 16) | (value >> 16);
+    return bits == 0u ? 0u : value >> (32u - bits);
+#else
     return __brev(value) >> (32u - bits);
+#endif
 }
 
 __device__ __forceinline__ CirclePoint domain_at_index(

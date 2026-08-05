@@ -78,6 +78,7 @@ pub fn targetFor(session: anytype) !cuda_plan.CompileOptions {
         session.device.sm_minor,
     ) catch return error.InvalidDeviceArchitecture;
     return .{
+        .provider = @TypeOf(session.*).execution_provider,
         .sm = sm,
         .device_uuid = session.platform.uuid,
         .driver_version = session.platform.driver_version,

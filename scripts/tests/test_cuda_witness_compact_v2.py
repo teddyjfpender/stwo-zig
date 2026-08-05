@@ -5,13 +5,9 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-UPSTREAM = (
-    ROOT / "src/backends/cuda/vendor/upstream/witness_edge_gather.cu"
-)
-HOST_AUTHORITY = (
+AUTHORITY = (
     ROOT
-    / "src/backends/cuda/vendor/host_authority"
-    / "crates/backend-cuda-kernels/cuda/witness_edge_gather.cu"
+    / "src/backends/cuda/authority/active/witness_edge_gather.cu"
 )
 ABI = ROOT / "src/backends/cuda/abi/stages/cairo_witness.zig"
 OVERLAY = ROOT / "src/backends/cuda/native/cairo/witness_compact_v2.cu"
@@ -19,9 +15,8 @@ SMOKE = ROOT / "tests/cuda/native_witness_compact_v2_smoke.cpp"
 
 
 class CudaWitnessCompactV2Tests(unittest.TestCase):
-    def test_native_authorities_are_identical_and_preserve_v1(self) -> None:
-        source = UPSTREAM.read_text(encoding="utf-8")
-        self.assertEqual(source, HOST_AUTHORITY.read_text(encoding="utf-8"))
+    def test_native_authority_preserves_v1(self) -> None:
+        source = AUTHORITY.read_text(encoding="utf-8")
         self.assertIn(
             'extern "C" int stwo_witness_input_compact_on(',
             source,

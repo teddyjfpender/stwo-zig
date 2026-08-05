@@ -19,10 +19,14 @@ from cuda_build_lib.builder import (  # noqa: E402
     compile_native_cuda,
     load_source_closure,
 )
+from scripts.tests.cuda_native_aot_fixture import native_aot_root  # noqa: E402
 
 
 CUDA_ROOT = ROOT / "src/backends/cuda"
-SOURCE = CUDA_ROOT / "vendor/upstream"
+SOURCE = (
+    CUDA_ROOT
+    / "authority/active"
+)
 NATIVE = CUDA_ROOT / "native"
 
 
@@ -32,7 +36,6 @@ class CudaProductClosureTests(unittest.TestCase):
             "abi": root / "abi",
             "native": root / "native",
             "source": root / "source",
-            "host_authority": root / "host_authority",
             "runtime_stages": root / "runtime" / "stages",
         }
         for path in paths.values():
@@ -46,8 +49,15 @@ class CudaProductClosureTests(unittest.TestCase):
             "const launch = abi.stwo_active;\n",
             encoding="utf-8",
         )
-        (paths["host_authority"] / "raw.rs").write_text(
-            "extern \"C\" {\n    pub fn stwo_active() -> i32;\n}\n",
+        paths["symbols"] = paths["abi"] / "upstream_symbols.json"
+        paths["symbols"].write_text(
+            "{\n"
+            '  "schema": "stwo-zig-cuda-upstream-abi-symbols-v1",\n'
+            '  "source_sha256": "' + "00" * 32 + '",\n'
+            '  "symbols": ["stwo_active"],\n'
+            '  "upstream_commit": '
+            '"1d1d10c31fdac45c9ecb7aee9d3e8935b5cf8035"\n'
+            "}\n",
             encoding="utf-8",
         )
         native_source = 'extern "C" int stwo_active() { return 0; }\n'
@@ -56,10 +66,13 @@ class CudaProductClosureTests(unittest.TestCase):
         (paths["native"] / "proof.cu").write_text(native_source, encoding="utf-8")
         return paths
 
-    def policy(self) -> dict[str, object]:
+    def policy(self, symbol_authority: Path | None = None) -> dict[str, object]:
         return {
             "abi": {
-                "rust_authority": "raw.rs",
+                "upstream_symbol_authority": str(
+                    symbol_authority
+                    or CUDA_ROOT / "abi/upstream_symbols.json"
+                ),
                 "generated_symbols": [],
                 "zig_owned_symbols": [],
                 "staged_stage_modules": [],
@@ -83,10 +96,12 @@ class CudaProductClosureTests(unittest.TestCase):
             ABI=paths["abi"],
             NATIVE=paths["native"],
             SOURCE=paths["source"],
-            HOST_AUTHORITY=paths["host_authority"],
             RUNTIME_STAGES=paths["runtime_stages"],
         ):
-            return closure.validate_abi(self.policy(), self.ordinary())
+            return closure.validate_abi(
+                self.policy(paths["symbols"]),
+                self.ordinary(),
+            )
 
     def test_zero_staged_modules_is_valid_when_every_symbol_is_implemented(
         self,
@@ -109,24 +124,26 @@ class CudaProductClosureTests(unittest.TestCase):
             ):
                 self.validate_fixture(paths)
 
-    def test_current_unsafe_five_source_selection_is_rejected(self) -> None:
+    def test_external_only_sources_are_absent_from_active_closure(self) -> None:
         product = closure.read_json(closure.PRODUCT_MANIFEST)
         self.assertIsInstance(product, dict)
-        unsafe_sources = [
-            closure.SOURCE / name
-            for name in (
-                "batch_inverse.cu",
-                "cuda_mem_pool.cu",
-                "prefix_sum.cu",
-                "relation_graph.cu",
-                "utils.cu",
-            )
-        ]
-        with self.assertRaisesRegex(
+        assert isinstance(product, dict)
+        external = product["external_ordinary_inventory"]
+        self.assertIn("cuda_mem_pool.cu", external["quarantined_migration"])
+        self.assertFalse((closure.SOURCE / "cuda_mem_pool.cu").exists())
+        self.assertFalse((closure.SOURCE / "prefix_sum.cu").exists())
+        self.assertFalse((closure.SOURCE / "utils.cu").exists())
+
+    def test_external_manifest_identity_is_ratchet_pinned(self) -> None:
+        with mock.patch.object(
+            closure,
+            "EXTERNAL_HOST_MANIFEST_SHA256",
+            "00" * 32,
+        ), self.assertRaisesRegex(
             closure.ProductClosureError,
-            "forbidden API/token policy.*cuda_mem_pool.cu",
+            "external CUDA authority pin drifted",
         ):
-            closure.validate_product_policy(product, unsafe_sources, [])
+            closure.validate()
 
     def test_product_policy_scans_native_symbols(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -146,10 +163,10 @@ class CudaProductClosureTests(unittest.TestCase):
             output = Path(temporary)
             config = BuildConfig(
                 source_root=SOURCE,
-                source_manifest=CUDA_ROOT / "source_manifest.json",
+                source_manifest=CUDA_ROOT / "active_source_manifest.json",
                 product_manifest=CUDA_ROOT / "product_manifest.json",
                 native_root=NATIVE,
-                native_aot_root=CUDA_ROOT / "aot/native",
+                native_aot_root=native_aot_root(),
                 output_dir=output,
                 toolchain=Toolchain(
                     nvcc=Path("/opt/cuda/bin/nvcc"),
@@ -163,7 +180,7 @@ class CudaProductClosureTests(unittest.TestCase):
             )
             source_closure = load_source_closure(
                 SOURCE,
-                CUDA_ROOT / "source_manifest.json",
+                CUDA_ROOT / "active_source_manifest.json",
             )
             plan = build_plan(config, probe_tools=False)
             with mock.patch(

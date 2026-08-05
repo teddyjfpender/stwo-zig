@@ -15,8 +15,8 @@ develop, reproduce, or independently audit the monorepo.
 
 The repository currently retains three kinds of adjacent evidence:
 
-- Rust interoperability and oracle tools under `tools/`, plus the pinned CUDA
-  host-authority snapshot;
+- Rust interoperability and oracle tools under `tools/`, plus immutable
+  manifests and a fetch boundary for the external CUDA host authority;
 - Lean refinement work under `formal/`; and
 - autoresearch harnesses, ledgers, reports, and optional workflow templates
   under `autoresearch/`.
@@ -66,9 +66,11 @@ acceptance behavior. Until that exists:
   tree; and
 - no new production package may depend on Cargo.
 
-The large Rust footprint below `src/backends/cuda/vendor/host_authority` is a
-pinned backend authority snapshot. It follows the stricter CUDA extraction
-gate below rather than being treated as ordinary application source.
+The former 1,003-file CUDA Rust workspace is no longer tracked. Its exact
+commit, Git trees, 1,003-file host manifest, 458-file kernel manifest, and
+fetch/verify tool remain. The isolated Rust adapter materializes that authority
+only when its explicit oracle step is requested; it is not an ordinary CI or
+release dependency.
 
 ## Lean extraction
 
@@ -81,21 +83,44 @@ silently retain a proof about an older AIR. Published packages exclude it.
 ## CUDA retention and future split
 
 The functional CUDA implementation remains required work and is not deleted.
-Its three packages are distribution-deferred because the repository cannot
-currently requalify them on the target 5090-class host. In particular, the
-generated Cairo AOT sources and the vendored host-authority snapshot remain on
-`main` until all of the following pass:
+Its packages are distribution-deferred because the repository cannot currently
+requalify them on the target NVIDIA host. Extraction is now complete for the
+bulk authority and generated-witness populations because the following local
+gates are in place:
 
-- deterministic regeneration or an authenticated content-addressed bundle;
-- manifest-complete source and symbol coverage;
-- clean-room build from the external artifact;
-- native and Cairo proof parity on current NVIDIA hardware; and
-- negative tests for missing, stale, or partially fetched payloads.
+- deterministic Zig regeneration from authenticated compact witness IR;
+- manifest-complete source, AOT, and ABI-symbol coverage;
+- an immutable external fetch that reproduces both full closure hashes;
+- a 28-file authenticated active source closure; and
+- fail-closed checks for absent, stale, or mismatched inputs.
 
-After those gates pass, generated payloads may move to a dedicated immutable
-CUDA artifact repository or branch while the handwritten Zig/CUDA runtime,
-ABI, manifests, and fail-closed loader stay here. The split must reduce clone
-and package size without weakening offline reproducibility.
+Native and Cairo proof parity on current NVIDIA hardware is still required for
+production admission, but it no longer blocks repository cleanup. The
+handwritten Zig/CUDA runtime, ABI, manifests, generators, active authority, and
+fail-closed loader stay here. Full Rust/CUDA authority is materialized only for
+explicit audit or adapter work.
+
+The checked-in source populations have different migration rules:
+
+- The 15 product-owned Native AOT sources (3,958 lines) are maintained kernel
+  implementations, not disposable generated output. They remain until a
+  reviewed source generator or ordinary maintained-kernel replacement exists.
+- The 271 Cairo evaluation bodies (159,806 lines when materialized) are reproducible
+  from `vectors/cairo/sn_pie_2_composition.bin` and the Zig CUDA emitter. They
+  are generated into Zig's build cache, and the builder requires their emitted
+  manifest to equal the checked-in authenticated manifest. Generated `.cu`
+  copies do not belong in the source tree.
+- The 33 recorded-witness sources comprised 26 exact authority copies and seven
+  deterministic derivations (79,420 lines total). They are now emitted by Zig
+  into the cache from the authenticated witness-program bundle and checked
+  against their existing source hashes.
+- The 340 copied authority AOT sources are reference-only, never enter a Native
+  product, and now exist only behind the external authority boundary.
+
+The earlier `vendor/upstream` and `vendor/host_authority` trees contained no
+unique repository-owned source. Both full closure identities remain checked,
+and `scripts/cuda_external_authority.py` reproduced them from the immutable
+upstream revision before the tracked workspace was removed.
 
 ## Release surface
 

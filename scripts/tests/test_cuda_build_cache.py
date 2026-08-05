@@ -2,18 +2,57 @@
 
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
+import sys
 import tempfile
 import textwrap
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "scripts"))
+
+from cuda_build_lib.builder import (  # noqa: E402
+    BuildConfig,
+    BuildError,
+    Toolchain,
+    build_plan,
+)
+from scripts.tests.cuda_native_aot_fixture import native_aot_root  # noqa: E402
+
+
+CUDA_ROOT = ROOT / "src/backends/cuda"
+NATIVE = CUDA_ROOT / "native"
+NATIVE_AOT = native_aot_root()
 
 
 class CudaBuildCacheTests(unittest.TestCase):
+    def test_generated_aot_set_must_match_its_pinned_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            generated = root / "cuda/aot/native"
+            shutil.copytree(NATIVE_AOT, generated)
+            shutil.copytree(NATIVE, root / "cuda/native")
+            config = replace(
+                self._config(root / "output"),
+                aot_set_roots=((".", generated),),
+            )
+            build_plan(config, probe_tools=False)
+
+            manifest = generated / "aot_manifest.json"
+            decoded = json.loads(manifest.read_text(encoding="utf-8"))
+            decoded[0]["cache_key"] = "0000000000000001"
+            manifest.write_text(json.dumps(decoded), encoding="utf-8")
+            with self.assertRaisesRegex(
+                BuildError,
+                "generated CUDA AOT product-set manifest differs from its pin",
+            ):
+                build_plan(config, probe_tools=False)
+
     def test_native_cuda_source_and_header_changes_invalidate_the_plan(self) -> None:
         zig = shutil.which("zig")
         if zig is None:
@@ -31,14 +70,18 @@ class CudaBuildCacheTests(unittest.TestCase):
             self._run_plan(zig, project, cache)
             self.assertEqual(initial, self._plan_outputs(cache))
 
-            header = project / "src/backends/cuda/native/commitment/blake2s_core.cuh"
-            header.write_bytes(header.read_bytes() + b"\n// cache-invalidation-header\n")
+            # Use an unreferenced header here so this test isolates Zig's build
+            # cache key. Headers in an authenticated AOT source closure are
+            # intentionally rejected as stale until their manifest is repinned;
+            # that fail-closed behavior is covered by test_cuda_aot_identity.py.
+            header = project / "src/backends/cuda/native/cache_invalidation_probe.cuh"
+            header.write_bytes(b"// cache-invalidation-header\n")
             self._run_plan(zig, project, cache)
             after_header = self._plan_outputs(cache)
             self.assertEqual(2, len(after_header))
             self.assertTrue(initial < after_header)
 
-            source = project / "src/backends/cuda/native/commitment/merkle.cu"
+            source = project / "src/backends/cuda/native/runtime/context.cu"
             source.write_bytes(source.read_bytes() + b"\n// cache-invalidation-source\n")
             self._run_plan(zig, project, cache)
             after_source = self._plan_outputs(cache)
@@ -52,6 +95,10 @@ class CudaBuildCacheTests(unittest.TestCase):
         shutil.copy2(
             ROOT / "build_support/backends/cuda.zig",
             build_support / "cuda.zig",
+        )
+        shutil.copy2(
+            ROOT / "build_support/backends/cuda_aot.zig",
+            build_support / "cuda_aot.zig",
         )
         (project / "build.zig").write_text(
             textwrap.dedent(
@@ -85,16 +132,16 @@ class CudaBuildCacheTests(unittest.TestCase):
 
         cuda_root = project / "src/backends/cuda"
         cuda_root.mkdir(parents=True)
-        (cuda_root / "source_manifest.json").symlink_to(
-            ROOT / "src/backends/cuda/source_manifest.json"
+        (cuda_root / "active_source_manifest.json").symlink_to(
+            ROOT / "src/backends/cuda/active_source_manifest.json"
         )
         (cuda_root / "product_manifest.json").symlink_to(
             ROOT / "src/backends/cuda/product_manifest.json"
         )
-        vendor = cuda_root / "vendor"
-        vendor.mkdir()
-        (vendor / "upstream").symlink_to(
-            ROOT / "src/backends/cuda/vendor/upstream",
+        authority = cuda_root / "authority"
+        authority.mkdir(parents=True)
+        (authority / "active").symlink_to(
+            ROOT / "src/backends/cuda/authority/active",
             target_is_directory=True,
         )
         shutil.copytree(
@@ -106,6 +153,41 @@ class CudaBuildCacheTests(unittest.TestCase):
         (aot / "native").symlink_to(
             ROOT / "src/backends/cuda/aot/native",
             target_is_directory=True,
+        )
+        tools = project / "src/tools"
+        tools.mkdir(parents=True)
+        (tools / "cairo_cuda_witness_aot").symlink_to(
+            ROOT / "src/tools/cairo_cuda_witness_aot",
+            target_is_directory=True,
+        )
+        (tools / "cairo_witness_cpu_codegen").symlink_to(
+            ROOT / "src/tools/cairo_witness_cpu_codegen",
+            target_is_directory=True,
+        )
+        vectors = project / "vectors/cairo"
+        vectors.mkdir(parents=True)
+        (vectors / "sn_pie_2_witness_programs.bin").symlink_to(
+            ROOT / "vectors/cairo/sn_pie_2_witness_programs.bin"
+        )
+
+    @staticmethod
+    def _config(output: Path) -> BuildConfig:
+        return BuildConfig(
+            source_root=CUDA_ROOT / "authority/active",
+            source_manifest=CUDA_ROOT / "active_source_manifest.json",
+            product_manifest=CUDA_ROOT / "product_manifest.json",
+            native_root=NATIVE,
+            native_aot_root=NATIVE_AOT,
+            output_dir=output,
+            toolchain=Toolchain(
+                nvcc=Path("/opt/cuda/bin/nvcc"),
+                host_cxx=Path("/usr/bin/c++"),
+                archiver=Path("/usr/bin/ar"),
+                cuda_home=Path("/opt/cuda"),
+                cuda_library_dir=Path("/opt/cuda/lib64"),
+                sms=(90,),
+                jobs=1,
+            ),
         )
 
     @staticmethod

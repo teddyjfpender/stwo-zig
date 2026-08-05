@@ -26,7 +26,16 @@ __device__ __forceinline__ uint32_t message_word(
 __device__ __forceinline__ uint32_t rotate_right(
     uint32_t value,
     uint32_t shift) {
+#if defined(STWO_CUMETAL)
+    uint32_t right;
+    uint32_t left;
+    const uint32_t complement = 32u - shift;
+    asm("shr.b32 %0, %1, %2;" : "=r"(right) : "r"(value), "r"(shift));
+    asm("shl.b32 %0, %1, %2;" : "=r"(left) : "r"(value), "r"(complement));
+    return right | left;
+#else
     return (value >> shift) | (value << (32u - shift));
+#endif
 }
 
 #define STWO_POW_G(m0, m1, a, b, c, d)                    \
@@ -58,6 +67,69 @@ __device__ __forceinline__ uint32_t rotate_right(
 // Fixed 40-byte Blake2s compression. Named scalar state and compile-time
 // message indices prevent a per-thread message array from spilling to local
 // memory in the persistent search.
+#if defined(STWO_CUMETAL)
+#define STWO_POW_DYNAMIC_G(i, a, b, c, d)                              \
+    do {                                                               \
+        a = a + b + message[blake2s::kSigma[round][2 * i]];           \
+        d = rotate_right(d ^ a, 16);                                   \
+        c += d;                                                        \
+        b = rotate_right(b ^ c, 12);                                   \
+        a = a + b + message[blake2s::kSigma[round][2 * i + 1]];       \
+        d = rotate_right(d ^ a, 8);                                    \
+        c += d;                                                        \
+        b = rotate_right(b ^ c, 7);                                    \
+    } while (0)
+
+// Clang's scalar, fully unrolled form is ideal for NVIDIA register
+// allocation, but it reaches Metal with more than 1,600 SSA registers and
+// crashes Apple's pipeline compiler. Keep the same ten Blake2s rounds as a
+// loop for CuMetal so the state remains bounded and register allocatable.
+__device__ __forceinline__ uint32_t candidate_hash_word(
+    const Prefix &prefix,
+    unsigned long long nonce) {
+    uint32_t message[16] = {};
+#pragma unroll
+    for (uint32_t word = 0; word < 8; ++word) {
+        message[word] = prefix.words[word];
+    }
+    message[8] = static_cast<uint32_t>(nonce);
+    message[9] = static_cast<uint32_t>(nonce >> 32);
+
+    uint32_t work[16] = {
+        0x6a09e667u ^ 0x01010020u,
+        0xbb67ae85u,
+        0x3c6ef372u,
+        0xa54ff53au,
+        0x510e527fu,
+        0x9b05688cu,
+        0x1f83d9abu,
+        0x5be0cd19u,
+        0x6a09e667u,
+        0xbb67ae85u,
+        0x3c6ef372u,
+        0xa54ff53au,
+        0x510e527fu ^ 40u,
+        0x9b05688cu,
+        0x1f83d9abu ^ 0xffffffffu,
+        0x5be0cd19u,
+    };
+
+#pragma unroll 1
+    for (uint32_t round = 0; round < 10; ++round) {
+        STWO_POW_DYNAMIC_G(0, work[0], work[4], work[8], work[12]);
+        STWO_POW_DYNAMIC_G(1, work[1], work[5], work[9], work[13]);
+        STWO_POW_DYNAMIC_G(2, work[2], work[6], work[10], work[14]);
+        STWO_POW_DYNAMIC_G(3, work[3], work[7], work[11], work[15]);
+        STWO_POW_DYNAMIC_G(4, work[0], work[5], work[10], work[15]);
+        STWO_POW_DYNAMIC_G(5, work[1], work[6], work[11], work[12]);
+        STWO_POW_DYNAMIC_G(6, work[2], work[7], work[8], work[13]);
+        STWO_POW_DYNAMIC_G(7, work[3], work[4], work[9], work[14]);
+    }
+    return (0x6a09e667u ^ 0x01010020u) ^ work[0] ^ work[8];
+}
+
+#undef STWO_POW_DYNAMIC_G
+#else
 __device__ __forceinline__ uint32_t candidate_hash_word(
     const Prefix &prefix,
     unsigned long long nonce) {
@@ -110,6 +182,7 @@ __device__ __forceinline__ uint32_t candidate_hash_word(
         15, 11, 9, 14, 3, 12, 13, 0);
     return (0x6a09e667u ^ 0x01010020u) ^ v0 ^ v8;
 }
+#endif
 
 #undef STWO_POW_ROUND
 #undef STWO_POW_G

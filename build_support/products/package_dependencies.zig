@@ -40,6 +40,10 @@ pub const riscv_cpu_integration_package_roots = &.{
     "dependency:../src/integrations/riscv_cpu:mod.zig",
 };
 
+pub const riscv_cuda_integration_package_roots = &.{
+    "dependency:../src/integrations/riscv_cuda:mod.zig",
+};
+
 pub const cairo_cpu_integration_package_roots = &.{
     "dependency:../src/integrations/cairo_cpu:mod.zig",
 };
@@ -233,6 +237,16 @@ pub const riscv_metal_protocol_package_roots = &.{
     "dependency:../src/core:mod.zig",
     "dependency:../src/frontends/riscv:mod.zig",
     "dependency:../src/integrations/riscv_metal:mod.zig",
+    "dependency:../src/prover:mod.zig",
+    "dependency:../src/prover_api:mod.zig",
+};
+
+pub const riscv_cuda_protocol_package_roots = &.{
+    "dependency:../src/backend:mod.zig",
+    "dependency:../src/backends/cuda:mod.zig",
+    "dependency:../src/core:mod.zig",
+    "dependency:../src/frontends/riscv:mod.zig",
+    "dependency:../src/integrations/riscv_cuda:mod.zig",
     "dependency:../src/prover:mod.zig",
     "dependency:../src/prover_api:mod.zig",
 };

@@ -4,6 +4,7 @@ const types = @import("types.zig");
 
 pub extern "c" fn stwo_static_cuda_module_build_identity(out: *[32]u8) c_int;
 pub extern "c" fn stwo_zig_cuda_aot_entry_count() usize;
+pub extern "c" fn stwo_cuda_execution_provider() u32;
 pub extern "c" fn stwo_cuda_device_snapshot(
     out_count: *u32,
     out_current: *u32,

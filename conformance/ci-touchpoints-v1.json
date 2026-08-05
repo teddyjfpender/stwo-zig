@@ -287,6 +287,21 @@
         ]
       ]
     },
+    "riscv_cuda_integration": {
+      "host": "linux",
+      "description": "Host-independent RISC-V frontend and CUDA-provider admission boundary",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/integrations/riscv_cuda/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
+      ]
+    },
     "sm83_metal_integration": {
       "host": "macos",
       "hosted": false,
@@ -538,16 +553,16 @@
     },
     "native_cuda_static": {
       "host": "linux",
-      "description": "Native CUDA source, build-plan, runtime, and Rust-adapter contracts without a GPU",
+      "description": "Native CUDA source, generated-AOT, build-plan, and runtime contracts without a GPU",
       "commands": [
         [
           "zig",
           "build",
           "cuda-source-closure",
+          "cuda-cumetal-ledger",
           "cuda-build-plan",
           "test-cuda-build-plan",
           "test-cuda-runtime-contract",
-          "test-cuda-adapter",
           "-Doptimize=ReleaseFast",
           "-j2"
         ]
@@ -724,6 +739,7 @@
         "cuda_backend",
         "metal_backend",
         "riscv_metal_integration",
+        "riscv_cuda_integration",
         "sm83_metal_integration",
         "cairo_metal_integration",
         "metal_session",
@@ -1136,9 +1152,19 @@
         "src/backends/cuda"
       ],
       "lanes": [
+        "riscv_cuda_integration",
         "package",
         "native_cuda_static",
         "native_cuda_device"
+      ]
+    },
+    {
+      "prefixes": [
+        "src/integrations/riscv_cuda"
+      ],
+      "lanes": [
+        "package",
+        "riscv_cuda_integration"
       ]
     },
     {

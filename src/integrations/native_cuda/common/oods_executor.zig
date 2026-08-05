@@ -242,7 +242,7 @@ fn buildBatches(
     prepared: anytype,
     ingress: anytype,
     views: anytype,
-    storage: *[resident_views.max_trace_trees]Batch,
+    storage: *[oods_batches.max_batches]Batch,
 ) ![]const Batch {
     const logical = prepared.logical;
     const sample_count = logical.quotient.sample_count;

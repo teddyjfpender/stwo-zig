@@ -88,6 +88,22 @@ The staged `stwo-native-cuda` Linux product requires every explicit CUDA
 compiler, runtime, archive, home, library, and architecture option. It is not a
 released CLI and must not be selected implicitly.
 
+### Native CuMetal development gate
+
+On Apple Silicon, `CuMetalRuntime` and `CuMetalDriver` use the same resident
+session, plan, strict-AOT, proof assembly, and independent-verifier boundaries
+as the CUDA integration, with the provider identity included in plans and
+receipts. The local `run-native-cumetal-smoke` gate proves and verifies the
+pinned wide-Fibonacci shape (`log_n_rows=5`, three queries, ten PoW bits),
+requires Apple-GPU launch provenance, and asserts zero CPU fallback.
+
+The provider archive contains all 33 Native runtime CUDA translation units, the
+selected six-source authority closure, the 15 maintained Native AOT entries,
+and two hash-authenticated source-native Metal shims for PoW search and query
+normalization. Passing this gate qualifies that Native workload and integration
+boundary for local development. It does not release the NVIDIA product or
+claim coverage for every Native adapter.
+
 ## Contract and invariants
 
 - API signature: the integration exposes an owned request and driver boundary.

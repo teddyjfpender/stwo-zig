@@ -3,7 +3,7 @@
 namespace stwo::cuda::decommit {
 namespace {
 
-__device__ bool contains_sorted(
+__device__ __forceinline__ bool contains_sorted(
     const uint32_t *values,
     uint32_t count,
     uint32_t target) {
@@ -19,6 +19,19 @@ __device__ bool contains_sorted(
     }
     return lower < count && values[lower] == target;
 }
+
+struct FriAssemblyShared {
+    MerkleWalkShared walk;
+    uint32_t tree_start;
+    uint32_t query_offset;
+    uint32_t witness_offset;
+    uint32_t witness_count;
+    uint32_t prefix_base;
+    uint32_t query_count;
+    uint32_t expanded_count;
+    uint32_t all_values_offset;
+    uint32_t failed;
+};
 
 __global__ __launch_bounds__(kBlockSize)
 void assemble_fri_kernel(
@@ -45,105 +58,109 @@ void assemble_fri_kernel(
     uint32_t assembly_capacity_words) {
     if (blockIdx.x != 0) return;
     const uint32_t lane = threadIdx.x;
-    __shared__ MerkleWalkShared walk_state;
-    __shared__ uint32_t *meta;
-    __shared__ uint32_t tree_start;
-    __shared__ uint32_t query_offset;
-    __shared__ uint32_t witness_offset;
-    __shared__ uint32_t witness_count;
-    __shared__ uint32_t prefix_base;
-    __shared__ uint32_t query_count;
-    __shared__ uint32_t expanded_count;
-    __shared__ uint32_t failed;
+    __shared__ FriAssemblyShared state;
     if (lane == 0) {
-        meta = checked_tree_meta(
-            assembly, assembly_capacity_words, tree_index);
-        query_count = *tree_query_count_pointer;
-        expanded_count = *expanded_count_pointer;
-        tree_start = assembly[kHeaderUsedWords];
-        witness_count = 0;
-        failed = meta == nullptr || query_count == 0 ||
-            query_count > tree_query_capacity || expanded_count == 0 ||
-            expanded_count > expanded_capacity ||
-            expanded_count > workspace_capacity;
-        for (uint32_t index = 0; !failed && index < query_count; ++index) {
-            failed = (index != 0 &&
-                      tree_queries[index - 1] >= tree_queries[index]);
+        state.query_count = *tree_query_count_pointer;
+        state.expanded_count = *expanded_count_pointer;
+        state.tree_start = assembly[kHeaderUsedWords];
+        state.witness_count = 0;
+        state.failed = checked_tree_meta(
+                assembly, assembly_capacity_words, tree_index) == nullptr ||
+            state.query_count == 0 ||
+            state.query_count > tree_query_capacity ||
+            state.expanded_count == 0 ||
+            state.expanded_count > expanded_capacity ||
+            state.expanded_count > workspace_capacity;
+        for (uint32_t index = 0;
+             !state.failed && index < state.query_count;
+             ++index) {
+            state.failed = index != 0 &&
+                tree_queries[index - 1] >= tree_queries[index];
         }
-        for (uint32_t index = 0; !failed && index < expanded_count; ++index) {
-            failed = expanded_positions[index] >= coordinate_stride_words ||
+        for (uint32_t index = 0;
+             !state.failed && index < state.expanded_count;
+             ++index) {
+            state.failed =
+                expanded_positions[index] >= coordinate_stride_words ||
                 (index != 0 &&
                  expanded_positions[index - 1] >= expanded_positions[index]);
         }
-        if (!failed) {
-            failed = !reserve_words(
-                assembly,
-                assembly_capacity_words,
-                query_count,
-                &query_offset);
+        if (!state.failed) {
+            const uint32_t cursor = assembly[kHeaderUsedWords];
+            if (state.query_count > assembly_capacity_words - cursor) {
+                assembly[kHeaderUsedWords] = 0;
+                state.failed = 1;
+            } else {
+                state.query_offset = cursor;
+                assembly[kHeaderUsedWords] = cursor + state.query_count;
+            }
         }
     }
     __syncthreads();
-    if (failed) {
+    if (state.failed) {
         if (lane == 0) fail_assembly(assembly);
         return;
     }
     for (uint32_t index = lane;
-         index < query_count;
+         index < state.query_count;
          index += kBlockSize) {
-        assembly[query_offset + index] = tree_queries[index];
+        assembly[state.query_offset + index] = tree_queries[index];
     }
 
     for (uint32_t base = 0;
-         base < expanded_count;
+         base < state.expanded_count;
          base += kBlockSize) {
         const uint32_t index = base + lane;
-        const bool emit = index < expanded_count &&
+        const bool emit = index < state.expanded_count &&
             !contains_sorted(
-                tree_queries, query_count, expanded_positions[index]);
-        if (index < expanded_count) walk_scratch[index] = emit;
-        walk_state.group_scan[lane] = emit;
+                tree_queries, state.query_count, expanded_positions[index]);
+        if (index < state.expanded_count) walk_scratch[index] = emit;
+        state.walk.group_scan[lane] = emit;
         __syncthreads();
-        inclusive_scan(walk_state.group_scan);
+        inclusive_scan(state.walk.group_scan);
         if (lane == 0) {
             const uint32_t active =
-                min(kBlockSize, expanded_count - base);
-            witness_count += walk_state.group_scan[active - 1u];
+                min(kBlockSize, state.expanded_count - base);
+            state.witness_count += state.walk.group_scan[active - 1u];
         }
         __syncthreads();
     }
     if (lane == 0) {
-        const uint64_t witness_words = 4ull * witness_count;
-        failed = witness_words > UINT32_MAX ||
-            !reserve_words(
-                assembly,
-                assembly_capacity_words,
-                static_cast<uint32_t>(witness_words),
-                &witness_offset);
-        prefix_base = 0;
+        const uint64_t witness_words = 4ull * state.witness_count;
+        const uint32_t cursor = assembly[kHeaderUsedWords];
+        state.failed = witness_words > UINT32_MAX ||
+            witness_words > assembly_capacity_words - cursor;
+        if (state.failed) {
+            assembly[kHeaderUsedWords] = 0;
+        } else {
+            state.witness_offset = cursor;
+            assembly[kHeaderUsedWords] =
+                cursor + static_cast<uint32_t>(witness_words);
+        }
+        state.prefix_base = 0;
     }
     __syncthreads();
-    if (failed) {
+    if (state.failed) {
         if (lane == 0) fail_assembly(assembly);
         return;
     }
 
     for (uint32_t base = 0;
-         base < expanded_count;
+         base < state.expanded_count;
          base += kBlockSize) {
         const uint32_t index = base + lane;
         const bool emit =
-            index < expanded_count && walk_scratch[index] != 0;
-        walk_state.group_scan[lane] = emit;
+            index < state.expanded_count && walk_scratch[index] != 0;
+        state.walk.group_scan[lane] = emit;
         __syncthreads();
-        inclusive_scan(walk_state.group_scan);
+        inclusive_scan(state.walk.group_scan);
         if (emit) {
             const uint32_t destination =
-                prefix_base + walk_state.group_scan[lane] - 1u;
+                state.prefix_base + state.walk.group_scan[lane] - 1u;
 #pragma unroll
             for (uint32_t coordinate = 0; coordinate < 4; ++coordinate) {
                 assembly[
-                    witness_offset + 4u * destination + coordinate] =
+                    state.witness_offset + 4u * destination + coordinate] =
                     canonical_m31(
                         coordinate_slab[
                             static_cast<uint64_t>(coordinate) *
@@ -154,16 +171,12 @@ void assemble_fri_kernel(
         __syncthreads();
         if (lane == 0) {
             const uint32_t active =
-                min(kBlockSize, expanded_count - base);
-            prefix_base += walk_state.group_scan[active - 1u];
+                min(kBlockSize, state.expanded_count - base);
+            state.prefix_base += state.walk.group_scan[active - 1u];
         }
         __syncthreads();
     }
 
-    __shared__ uint32_t hash_offset;
-    __shared__ uint32_t hash_count;
-    __shared__ uint32_t aux_offset;
-    __shared__ uint32_t aux_count;
     const RetainedNodeSource source{
         retained_slab,
         retained_slab_hashes,
@@ -179,38 +192,37 @@ void assemble_fri_kernel(
             source,
             assembly,
             assembly_capacity_words,
-            walk_state,
-            &hash_offset,
-            &hash_count,
-            &aux_offset,
-            &aux_count)) {
+            state.walk)) {
         return;
     }
 
-    __shared__ uint32_t all_values_offset;
     if (lane == 0) {
-        const uint64_t all_value_words = 5ull * expanded_count;
-        failed = all_value_words > UINT32_MAX ||
-            !reserve_words(
-                assembly,
-                assembly_capacity_words,
-                static_cast<uint32_t>(all_value_words),
-                &all_values_offset);
+        const uint64_t all_value_words = 5ull * state.expanded_count;
+        const uint32_t cursor = assembly[kHeaderUsedWords];
+        state.failed = all_value_words > UINT32_MAX ||
+            all_value_words > assembly_capacity_words - cursor;
+        if (state.failed) {
+            assembly[kHeaderUsedWords] = 0;
+        } else {
+            state.all_values_offset = cursor;
+            assembly[kHeaderUsedWords] =
+                cursor + static_cast<uint32_t>(all_value_words);
+        }
     }
     __syncthreads();
-    if (failed) {
+    if (state.failed) {
         if (lane == 0) fail_assembly(assembly);
         return;
     }
     for (uint32_t index = lane;
-         index < expanded_count;
+         index < state.expanded_count;
          index += kBlockSize) {
-        assembly[all_values_offset + 5u * index] =
+        assembly[state.all_values_offset + 5u * index] =
             expanded_positions[index];
 #pragma unroll
         for (uint32_t coordinate = 0; coordinate < 4; ++coordinate) {
             assembly[
-                all_values_offset + 5u * index + 1u + coordinate] =
+                state.all_values_offset + 5u * index + 1u + coordinate] =
                 canonical_m31(
                     coordinate_slab[
                         static_cast<uint64_t>(coordinate) *
@@ -220,25 +232,28 @@ void assemble_fri_kernel(
     }
     __syncthreads();
     if (lane == 0) {
+        uint32_t *meta =
+            assembly + kHeaderWords + tree_index * kTreeMetaWords;
         meta[kMetaKind] = 1;
         meta[kMetaRole] = tree_index;
-        meta[kMetaQueryOffset] = query_offset;
-        meta[kMetaQueryCount] = query_count;
+        meta[kMetaQueryOffset] = state.query_offset;
+        meta[kMetaQueryCount] = state.query_count;
         meta[kMetaValuesOffset] = 0;
         meta[kMetaValuesCount] = 0;
         meta[kMetaFriWitnessOffset] =
-            witness_count == 0 ? 0 : witness_offset;
-        meta[kMetaFriWitnessCount] = witness_count;
+            state.witness_count == 0 ? 0 : state.witness_offset;
+        meta[kMetaFriWitnessCount] = state.witness_count;
         meta[kMetaHashWitnessOffset] =
-            hash_count == 0 ? 0 : hash_offset;
-        meta[kMetaHashWitnessCount] = hash_count;
-        meta[kMetaAuxOffset] = aux_count == 0 ? 0 : aux_offset;
-        meta[kMetaAuxCount] = aux_count;
-        meta[kMetaAllValuesOffset] = all_values_offset;
-        meta[kMetaAllValuesCount] = expanded_count;
+            state.walk.hash_count == 0 ? 0 : state.walk.hash_offset;
+        meta[kMetaHashWitnessCount] = state.walk.hash_count;
+        meta[kMetaAuxOffset] =
+            state.walk.aux_count == 0 ? 0 : state.walk.aux_offset;
+        meta[kMetaAuxCount] = state.walk.aux_count;
+        meta[kMetaAllValuesOffset] = state.all_values_offset;
+        meta[kMetaAllValuesCount] = state.expanded_count;
         meta[kMetaLeafLogSize] = leaf_log_size;
         meta[kMetaUsedWords] =
-            assembly[kHeaderUsedWords] - tree_start;
+            assembly[kHeaderUsedWords] - state.tree_start;
     }
     __syncthreads();
 

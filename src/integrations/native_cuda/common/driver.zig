@@ -57,7 +57,12 @@ pub fn DriverFor(comptime Transaction: type, comptime Executor: type) type {
             request: Request,
             prepared: *PreparedProof,
         ) !Output {
-            return self.runPrepared(runtime, request, prepared, .graphs);
+            // CuMetal 0.1.3 does not preserve CUDA kernel-argument storage
+            // through graph replay. Keep its proof fully resident while using
+            // the already-conformant direct schedule; NVIDIA retains graph
+            // capture and replay.
+            const mode: ExecutionMode = if (@TypeOf(runtime.*).ProofSession.execution_provider == .cumetal) .direct else .graphs;
+            return self.runPrepared(runtime, request, prepared, mode);
         }
 
         /// Forced direct execution is the byte-parity oracle for every cached
@@ -82,6 +87,9 @@ pub fn DriverFor(comptime Transaction: type, comptime Executor: type) type {
         ) !Output {
             const geometry = try Executor.admit(request);
             try Executor.validatePrepared(prepared, geometry);
+            try prepared.frontendReceipt().requireProvider(
+                @TypeOf(runtime.*).ProofSession.execution_provider,
+            );
             const session = try runtime.beginProof();
             var session_live = true;
             errdefer if (session_live) session.abortRetained() catch {};
@@ -202,6 +210,7 @@ fn assertExecutor(comptime Executor: type) void {
         "schedule",
         "cacheKey",
         "graphsEnabled",
+        "frontendReceipt",
     }) |name| {
         if (!@hasDecl(Prepared, name))
             @compileError("Native CUDA prepared plan is missing " ++ name);
@@ -211,6 +220,8 @@ fn assertExecutor(comptime Executor: type) void {
 test "generic driver admits before execution and aborts failed transactions" {
     const arena = @import("stwo_cuda_backend").runtime.arena;
     const execution_plan = @import("stwo_cuda_backend").runtime.execution_plan;
+    const frontend_contract = @import("stwo_cuda_backend").frontend_contract;
+    const provider = @import("stwo_cuda_backend").runtime.provider;
     const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
     const TestRequest = struct { valid: bool = true };
     const TestGeometry = struct { marker: u32 };
@@ -294,6 +305,19 @@ test "generic driver admits before execution and aborts failed transactions" {
         pub const PreparedPlan = struct {
             arena_plan: arena.Plan,
             scheduled: [1]execution_plan.ScheduledNode,
+            var frontend_receipt = frontend_contract.Receipt{
+                .frontend = .native,
+                .provider = .nvidia_cuda,
+                .evidence_class = .nvidia_device,
+                .level = .structural,
+                .statement = [_]u8{1} ** 32,
+                .semantic_program = [_]u8{2} ** 32,
+                .complete_program = [_]u8{3} ** 32,
+                .plan = [_]u8{4} ** 32,
+                .aot = [_]u8{5} ** 32,
+                .parity = [_]u8{6} ** 32,
+                .provider_evidence = [_]u8{7} ** 32,
+            };
 
             pub fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
                 self.arena_plan.deinit(allocator);
@@ -317,6 +341,11 @@ test "generic driver admits before execution and aborts failed transactions" {
             }
             pub fn graphsEnabled(_: *const @This()) bool {
                 return false;
+            }
+            pub fn frontendReceipt(
+                _: *const @This(),
+            ) *const frontend_contract.Receipt {
+                return &frontend_receipt;
             }
         };
 
@@ -375,9 +404,11 @@ test "generic driver admits before execution and aborts failed transactions" {
         }
     };
     const Session = struct {
+        pub const execution_provider = provider.Kind.nvidia_cuda;
         pub fn abortRetained(_: *@This()) !void {}
     };
     const Runtime = struct {
+        pub const ProofSession = Session;
         session: Session = .{},
         begins: usize = 0,
 

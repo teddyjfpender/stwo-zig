@@ -3,6 +3,7 @@
 const std = @import("std");
 const arena = @import("stwo_cuda_backend").runtime.arena;
 const execution_plan = @import("stwo_cuda_backend").runtime.execution_plan;
+const frontend_contract = @import("stwo_cuda_backend").frontend_contract;
 const proof_ir = @import("stwo_backend_contracts").proof_program;
 
 /// The policy owns frontend allocation cardinalities, program emission, the
@@ -29,6 +30,7 @@ pub fn PreparedPlanFor(
         requirement_storage: []arena.Requirement,
         proof_program: proof_ir.ProofProgram,
         cuda_plan: execution_plan.CudaPlan,
+        frontend_receipt: frontend_contract.Receipt,
 
         pub fn init(
             allocator: std.mem.Allocator,
@@ -88,6 +90,10 @@ pub fn PreparedPlanFor(
             errdefer cuda_plan.deinit(allocator);
             if (cuda_plan.arena_plan.total_words > Policy.maxTotalWords())
                 return error.SizeOverflow;
+            const frontend_receipt = try frontend_contract.admitStructural(
+                program,
+                cuda_plan,
+            );
             return .{
                 .logical = logical,
                 .quotient = quotient,
@@ -98,6 +104,7 @@ pub fn PreparedPlanFor(
                 .requirement_storage = arena_requirements,
                 .proof_program = program,
                 .cuda_plan = cuda_plan,
+                .frontend_receipt = frontend_receipt,
             };
         }
 

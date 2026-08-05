@@ -23,6 +23,10 @@ test "strict session returns a resident verdict and never exposes fallback" {
         var fail_next_launch = false;
         var loader_destroy_saw_live_function = false;
 
+        pub fn stwo_cuda_execution_provider() u32 {
+            return 1;
+        }
+
         pub fn stwo_cuda_device_snapshot(
             count: *u32,
             current: *u32,

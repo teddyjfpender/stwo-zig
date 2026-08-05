@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 
@@ -27,15 +28,18 @@ from cuda_build_lib.builder import (  # noqa: E402
     validate_aot_manifest,
     write_aot_carriers,
 )
-from cuda_build_lib.aot_identity import source_closure_identity  # noqa: E402
 from cuda_device_smoke import compile_command  # noqa: E402
+from scripts.tests.cuda_native_aot_fixture import native_aot_root  # noqa: E402
 
 
-SOURCE = ROOT / "src/backends/cuda/vendor/upstream"
-MANIFEST = ROOT / "src/backends/cuda/source_manifest.json"
+SOURCE = (
+    ROOT
+    / "src/backends/cuda/authority/active"
+)
+MANIFEST = ROOT / "src/backends/cuda/active_source_manifest.json"
 PRODUCT = ROOT / "src/backends/cuda/product_manifest.json"
 NATIVE = ROOT / "src/backends/cuda/native"
-NATIVE_AOT = ROOT / "src/backends/cuda/aot/native"
+NATIVE_AOT = native_aot_root()
 
 EXPECTED_NATIVE_IMPLEMENTATION_SOURCES = {
     "host": {"aot_loader.cpp"},
@@ -121,8 +125,8 @@ class CudaBuildTests(unittest.TestCase):
 
     def test_imported_closure_and_aot_manifest_are_exact(self) -> None:
         closure = load_source_closure(SOURCE, MANIFEST)
-        self.assertEqual(59, len(closure.ordinary_sources))
-        self.assertEqual(340, len(closure.generated_sources))
+        self.assertEqual(9, len(closure.ordinary_sources))
+        self.assertEqual(0, len(closure.generated_sources))
         self.assertTrue(all("generated" not in path.parts for path in closure.ordinary_sources))
         self.assertTrue(all(path.is_file() for path in closure.generated_sources))
 
@@ -137,11 +141,12 @@ class CudaBuildTests(unittest.TestCase):
         expected_sources = set().union(*EXPECTED_NATIVE_IMPLEMENTATION_SOURCES.values())
         self.assertEqual("stwo-zig-cuda-native-build-v1", plan["schema"])
         self.assertEqual([86, 90], plan["target_sms"])
-        self.assertEqual(59, plan["authority_ordinary_source_count"])
-        self.assertEqual(340, plan["authority_aot_source_count"])
+        self.assertEqual(9, plan["authority_ordinary_source_count"])
+        self.assertEqual(0, plan["authority_aot_source_count"])
         self.assertEqual(6, plan["ordinary_source_count"])
-        self.assertEqual(319, plan["aot_source_count"])
-        self.assertEqual(638, plan["aot_cubin_count"])
+        self.assertEqual(["."], plan["aot_product_sets"])
+        self.assertEqual(48, plan["aot_source_count"])
+        self.assertEqual(96, plan["aot_cubin_count"])
         self.assertEqual(expected_sources, actual_sources)
         self.assertEqual(len(native["sources"]), plan["native_runtime_source_count"])
         self.assertEqual(len(native["host_sources"]), plan["native_host_source_count"])
@@ -168,6 +173,18 @@ class CudaBuildTests(unittest.TestCase):
         self.assertIn("-cubin", plan["fixed_flags"]["aot"])
         self.assertIn("-dlink", plan["fixed_flags"]["device_link"])
         self.assertNotIn("nvrtc", plan["fixed_flags"]["host"])
+
+    def test_unavailable_frontend_cannot_borrow_native_aot(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            config = replace(
+                self.config(Path(temporary)),
+                frontend="riscv",
+            )
+            with self.assertRaisesRegex(
+                BuildError,
+                "has no canonical AOT selection",
+            ):
+                build_plan(config, probe_tools=False)
 
     def test_native_aot_source_bytes_change_the_build_identity(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -215,31 +232,6 @@ class CudaBuildTests(unittest.TestCase):
             before["build_identity_sha256"],
             after["build_identity_sha256"],
         )
-
-    def test_native_aot_closure_identity_binds_headers_not_entry_name(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            cuda_root = Path(temporary) / "cuda"
-            native_aot = cuda_root / "aot" / "native"
-            native_headers = cuda_root / "native" / "transcript"
-            native_aot.mkdir(parents=True)
-            native_headers.mkdir(parents=True)
-            header = native_headers / "state.cuh"
-            header.write_text("#define STATE_WORDS 14\n", encoding="utf-8")
-            source_a = native_aot / "statement_aaaaaaaaaaaaaaaa.cu"
-            source_b = native_aot / "statement_bbbbbbbbbbbbbbbb.cu"
-            source_bytes = '#include "../../native/transcript/state.cuh"\n'
-            source_a.write_text(source_bytes, encoding="utf-8")
-            source_b.write_text(source_bytes, encoding="utf-8")
-
-            before = source_closure_identity(native_aot, source_a)
-            self.assertEqual(
-                before,
-                source_closure_identity(native_aot, source_b),
-            )
-            header.write_text("#define STATE_WORDS 15\n", encoding="utf-8")
-            after = source_closure_identity(native_aot, source_a)
-
-        self.assertNotEqual(before, after)
 
     def test_native_runtime_has_no_jit_or_cpu_fallback_surface(self) -> None:
         closure = load_native_closure(NATIVE)

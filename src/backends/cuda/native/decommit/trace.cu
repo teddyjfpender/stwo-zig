@@ -26,6 +26,7 @@ void pack_trace_group_kernel(
     __shared__ uint32_t value_offset;
     __shared__ uint32_t mapped_count;
     __shared__ uint32_t failed;
+    __shared__ uint32_t validation_failed[kBlockSize];
     if (lane == 0) {
         meta = checked_tree_meta(
             assembly, assembly_capacity_words, tree_index);
@@ -75,6 +76,7 @@ void pack_trace_group_kernel(
     }
     __syncthreads();
 
+    uint32_t lane_failed = 0;
     for (uint32_t column = lane;
          column < group_column_count;
          column += kBlockSize) {
@@ -83,7 +85,14 @@ void pack_trace_group_kernel(
             (1ull << column_log) > column_stride_words ||
             static_cast<uint64_t>(column + 1u) * column_stride_words >
                 column_slab_words) {
-            atomicExch(&failed, 1u);
+            lane_failed = 1;
+        }
+    }
+    validation_failed[lane] = lane_failed;
+    __syncthreads();
+    if (lane == 0) {
+        for (uint32_t index = 0; index < kBlockSize; ++index) {
+            failed |= validation_failed[index];
         }
     }
     __syncthreads();
@@ -178,10 +187,6 @@ void assemble_trace_kernel(
     }
 
     __shared__ MerkleWalkShared walk_state;
-    __shared__ uint32_t hash_offset;
-    __shared__ uint32_t hash_count;
-    __shared__ uint32_t aux_offset;
-    __shared__ uint32_t aux_count;
     const RetainedNodeSource retained{
         retained_slab,
         retained_slab_hashes,
@@ -208,11 +213,7 @@ void assemble_trace_kernel(
             source,
             assembly,
             assembly_capacity_words,
-            walk_state,
-            &hash_offset,
-            &hash_count,
-            &aux_offset,
-            &aux_count)) {
+            walk_state)) {
         return;
     }
 
@@ -226,10 +227,11 @@ void assemble_trace_kernel(
         meta[kMetaFriWitnessOffset] = 0;
         meta[kMetaFriWitnessCount] = 0;
         meta[kMetaHashWitnessOffset] =
-            hash_count == 0 ? 0 : hash_offset;
-        meta[kMetaHashWitnessCount] = hash_count;
-        meta[kMetaAuxOffset] = aux_count == 0 ? 0 : aux_offset;
-        meta[kMetaAuxCount] = aux_count;
+            walk_state.hash_count == 0 ? 0 : walk_state.hash_offset;
+        meta[kMetaHashWitnessCount] = walk_state.hash_count;
+        meta[kMetaAuxOffset] =
+            walk_state.aux_count == 0 ? 0 : walk_state.aux_offset;
+        meta[kMetaAuxCount] = walk_state.aux_count;
         meta[kMetaAllValuesOffset] = 0;
         meta[kMetaAllValuesCount] = 0;
         meta[kMetaLeafLogSize] = leaf_log_size;
@@ -287,8 +289,8 @@ extern "C" int stwo_decommit_pack_trace_group_on(
             mapped_count, sizeof(uint32_t), assembly, assembly_bytes)) {
         return cudaErrorInvalidValue;
     }
-    pack_trace_group_kernel<<<
-        1, kBlockSize, 0, reinterpret_cast<cudaStream_t>(stream)>>>(
+    const cudaStream_t proof_stream = reinterpret_cast<cudaStream_t>(stream);
+    pack_trace_group_kernel<<<1, kBlockSize, 0, proof_stream>>>(
         tree_index,
         total_column_count,
         first_column,
@@ -379,8 +381,8 @@ extern "C" int stwo_decommit_assemble_trace_on(
             assembly_bytes)) {
         return cudaErrorInvalidValue;
     }
-    assemble_trace_kernel<<<
-        1, kBlockSize, 0, reinterpret_cast<cudaStream_t>(stream)>>>(
+    const cudaStream_t proof_stream = reinterpret_cast<cudaStream_t>(stream);
+    assemble_trace_kernel<<<1, kBlockSize, 0, proof_stream>>>(
         tree_index,
         tree_role,
         leaf_log_size,

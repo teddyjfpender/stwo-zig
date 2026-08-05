@@ -151,6 +151,7 @@ pub fn targetFor(session: anytype) !cuda_plan.CompileOptions {
     // both runtime and toolchain fields until the runtime ABI exposes those
     // sub-digests separately.
     return .{
+        .provider = @TypeOf(session.*).execution_provider,
         .sm = sm,
         .device_uuid = session.platform.uuid,
         .driver_version = session.platform.driver_version,

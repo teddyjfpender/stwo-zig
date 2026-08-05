@@ -1,5 +1,30 @@
 {
-  "schema": "stwo-zig-cuda-aot-product-sets-v1",
+  "schema": "stwo-zig-cuda-aot-frontend-catalog-v1",
+  "frontends": {
+    "cairo": {
+      "sets": [
+        ".",
+        "cairo_eval"
+      ],
+      "status": "staged"
+    },
+    "native": {
+      "sets": [
+        "."
+      ],
+      "status": "staged"
+    },
+    "riscv": {
+      "reason": "structural provider binding exists; executable AOT and proof parity are incomplete",
+      "sets": [],
+      "status": "unavailable"
+    },
+    "sm83": {
+      "reason": "no CUDA product descriptor",
+      "sets": [],
+      "status": "unavailable"
+    }
+  },
   "sets": [
     ".",
     "cairo_eval"
