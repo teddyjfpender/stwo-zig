@@ -35,6 +35,7 @@ shape, authoring model, or delivery order.
 | [0015](0015-validated-canonical-runtime-export.md) | Validated canonical runtime export | accepted |
 | [0016](0016-source-bound-air-ir-v2-compatibility.md) | Source-bound AIR IR v2 compatibility | accepted |
 | [0017](0017-sectioned-compatibility-manifests.md) | Sectioned `compat-v1` family manifests | accepted |
+| [0018](0018-degree-bounded-materialization-and-compatibility-order.md) | Degree-bounded materialization and Poseidon compatibility order | accepted |
 
 ## Pending ADRs
 

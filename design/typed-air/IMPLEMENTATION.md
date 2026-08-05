@@ -170,8 +170,9 @@ bytes fail closed.
 
 ## Phase 4 — pure Poseidon2 compiler pilot
 
-**Status:** active in the isolated authoring kernel; H-001 and H-002 are
-complete, while materialization/layout work remains non-production.
+**Status:** active in the isolated authoring kernel; H-001 through H-004 are
+complete in shadow mode, while generated witness and relation work remain
+non-production.
 
 Author the M31 Poseidon2 permutation as typed pure functions.
 
@@ -187,6 +188,16 @@ Implement:
 
 First reproduce the existing 445-column sparse-Merkle component. Only then add
 an experimental optimized policy.
+
+The accepted compatibility path keeps generic compilation and historical
+layout separate. The degree-three materializer selects and orders an
+authenticated root-closure cut set under an explicit versioned policy. A
+second versioned adapter revalidates that plan, reconstructs the canonical
+Poseidon semantic schedule, and bijectively assigns it to the 426 frozen
+lane-major slots. Its owned binding retains the semantic program, policy,
+activation context, and plan identity needed for later witness and constraint
+consumers to reauthenticate the result. See
+[ADR-0018](decisions/0018-degree-bounded-materialization-and-compatibility-order.md).
 
 **Exit gate:**
 

@@ -3,8 +3,8 @@
 **Status date:** 2026-08-05
 **Branch:** `feat/typed-air-precompiles`
 **Current milestone:** M4 — Poseidon compiler pilot
-**Active task:** H-003 — deterministic degree-three materialization
-**Next queued task:** H-004 — bind the 426-slot compatibility schedule
+**Active task:** H-005 — direct-to-final-storage witness generation
+**Next ready task:** H-006 — reproduce Poseidon relations and claims
 
 ## Dashboard
 
@@ -14,7 +14,7 @@
 | M1 — validated logical IR | complete | F-001 through F-012 complete and green |
 | M2 — shadow compiler | complete | A-001 through A-005 complete and green |
 | M3 — compatibility lowering | blocked | [V-008 evidence](receipts/m3-compatibility-v1.json) recorded; broad proof/formal gates open |
-| M4 — Poseidon compiler pilot | active | H-001 and H-002 complete; H-003 in integration |
+| M4 — Poseidon compiler pilot | active | H-001 through H-004 complete; H-005 active |
 | M5 — effect and witness pilot | queued | Requires typed schemas and lowering |
 | M6 — guest precompile | queued | Requires Poseidon and ABI ADRs |
 | M7 — parallel proving | queued | Requires working component |
@@ -211,6 +211,24 @@
   deterministic random production differentials. Its degree is explicitly
   `5^22`; deterministic replay, source provenance, late preflight failure, and
   exhaustive allocation failure are pinned before H-003 adds a materializer.
+- Completed H-003: the versioned generic degree-three materializer computes
+  reachability, structural reuse, logical degree, and cuts only over the
+  requested root closure while retaining a whole-program semantic identity.
+  For canonical Poseidon2 it deterministically emits exactly 426 boundaries:
+  410 degree-required cuts and sixteen declared outputs. Every gated equality
+  has final degree three. Eight named tests pin transparent linear operations,
+  reuse and `ValueId` tie-breaks, forced outputs, unreachable overflow
+  isolation, plan corruption, deterministic replay, and exhaustive allocation
+  failure.
+- Completed H-004: the separate versioned compatibility adapter reconstructs
+  the canonical Poseidon2 function shell and bijectively binds the complete
+  authenticated H-003 set to the exact 426-slot legacy lane-major schedule
+  within the existing 445-column main trace. The owned result retains semantic,
+  policy, activation, plan, and compatibility identities and fully revalidates
+  them before use. Fixed full-width input and sixteen deterministic random
+  states match production in every physical slot; one-at-a-time mutation of
+  every production temporary constraint rejects. Ten named tests also reject
+  schedule, dependency, source, role, and complete-triple ordering attacks.
 - Completed V-008: the machine-readable
   [M3 receipt](receipts/m3-compatibility-v1.json) names the clean detached
   `7cdf41d5b246baf845adeb99d02444d9a6090514` snapshot, exact toolchain,
@@ -223,10 +241,11 @@
 
 ## Immediate next actions
 
-1. H-003 — integrate the deterministic degree-three materializer.
-2. H-004 — bind its schedule to all 426 current Poseidon2 temporaries.
-3. Resolve the recorded production rigidity and formal-artifact gates before
-   any M3 release promotion.
+1. H-005 — generate the compatibility witness directly into final storage.
+2. H-006 — reproduce Poseidon relation events, interaction claims, and forged
+   relation rejection.
+3. H-008 — render the complete source-to-materialization diagnostic map while
+   H-005 and H-006 remain isolated implementation lanes.
 
 No production behavior should change in these tasks.
 
@@ -256,6 +275,9 @@ Accepted:
   with one JSON encoding authority.
 - Section-framed `STWAIRC\0` v1 family receipts with exact runtime bodies,
   exact-checked formal identities, and a readable aggregate index.
+- Root-scoped degree-bounded materialization with a separately versioned,
+  fully revalidated Poseidon compatibility order, as fixed by
+  [ADR-0018](decisions/0018-degree-bounded-materialization-and-compatibility-order.md).
 
 Pending:
 
@@ -290,10 +312,14 @@ independently compiled families it records 3,051 source nodes canonicalized to
 3,049 typed nodes, 545 direct constraints, 242 lookup entries, 155 interaction
 batches, and maximum direct/interaction degree three.
 
+The canonical Poseidon2 compatibility geometry is now measured as 445 main
+columns containing 426 materialized values: 410 degree-required cuts and
+sixteen forced outputs. All emitted materialization equalities have maximum
+final degree three under their explicit activation context.
+
 The following measurements remain assigned to their later owning milestones;
 they are not prerequisites for closing the opcode shadow compiler:
 
-- Poseidon2 main/interaction geometry and materializations — H-004;
 - package/proof durations and CPU/Metal Poseidon timing — H-007/H-010;
 - RISC-V structural workloads and proof crossover measurements — C-013/R-006.
 
@@ -673,6 +699,30 @@ conformance also retains eight existing repository-baseline errors. No
 authority artifact was regenerated, no failure was waived, and no production
 consumer changed. V-008 is complete as an evidence task; M3 release promotion
 remains blocked while isolated M4 work proceeds.
+
+### 2026-08-05 — M4 degree-bounded Poseidon layout reproduced
+
+H-003 and H-004 complete the first compiler-to-physical-layout bridge without
+activating it in production. The generic `degree-bounded-v1` materializer
+selects exactly 410 required cuts plus sixteen outputs from the canonical typed
+Poseidon2 graph, guarantees degree-three gated equalities, ignores unreachable
+degree overflow when selecting the root-local plan, and deterministically
+authenticates every boundary. The component-specific compatibility adapter then
+reconstructs the trusted function shell and maps that complete set bijectively
+onto all 426 historical lane-major slots in the 445-column trace.
+
+The adapter's owned binding retains and revalidates the program digest, policy,
+gate, plan identity, semantic source, and physical slot for every entry. Full
+fixed and randomized state differentials agree slot by slot with the production
+witness schedule; every individual production temporary constraint is also
+mutated and observed to fail. Debug, ReleaseSafe, and ReleaseFast package
+evidence, workspace validation, allocation-failure sweeps, and an independent
+adversarial audit guard the integration.
+
+This is still shadow evidence. It does not generate production witness rows,
+activate generated constraints, close Poseidon relations, prove CPU/Metal
+equivalence, or establish any proving-time improvement. Those obligations begin
+with H-005 and H-006.
 
 ## Update protocol
 

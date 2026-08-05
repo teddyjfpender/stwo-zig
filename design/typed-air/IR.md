@@ -310,26 +310,34 @@ internal round schedule, and declares one pure 16-input/16-output function. The
 unmaterialized output degree is `5^22`, so this graph is semantic authority for
 the pilot rather than an admissible direct AIR. It emits no constraint, hint,
 effect, witness column, or layout. H-003 owns the separate deterministic
-degree-three materialization decision; H-004 must first reproduce the existing
-426 temporary columns before any optimization is proposed.
+degree-three materialization decision; H-004 binds its semantic set bijectively
+to the existing 426 temporary columns before any optimization is proposed.
 
 ## Materialization
 
 Materialization introduces a committed witness column `v` and a constraint
 binding `v` to a logical expression. The algorithm must be deterministic.
 
-Version 0 policy:
+Version 1 policy:
 
-1. Preserve explicit compatibility columns.
-2. Compute structural use counts and full degree.
+1. Compute reachability and structural use counts from the ordered roots; an
+   unreachable arena subgraph cannot affect degree or overflow the request.
+2. Account for the shared gate and row-mask degree outside every equality.
 3. Inline expressions that remain within the degree budget.
-4. Materialize only when required by degree or explicitly required by the
-   compatibility layout.
-5. Recursively split products using a stable ordering: greatest excess degree,
-   then greatest structural reuse, then lowest source/topological ID.
-6. Reuse one materialization for structurally identical expressions with
-   compatible gates and windows.
-7. Re-run degree validation after all gates and relation constraints exist.
+4. Recursively split using greatest excess degree, greatest structural reuse,
+   then lowest source/topological ID.
+5. Force every declared output to a materialization boundary.
+6. Emit a canonical dependency-topological semantic order, which is not a
+   physical-layout ABI.
+7. Recompute the entire selection, dependency, degree, name, fingerprint, and
+   output plan during validation.
+
+The cut set and degrees are root-local; names and fingerprints deliberately
+bind the whole-program digest. The Poseidon adapter separately reorders the
+authenticated set into the historical lane-major schedule and uniquely matches
+source stage, round constant, square chain, and final output root. The policy
+boundary and version rules are fixed by
+[ADR-0018](decisions/0018-degree-bounded-materialization-and-compatibility-order.md).
 
 An experimental cost policy may later consider commitment, evaluation, and
 backend costs, but it emits a proposal and cost report. It does not silently

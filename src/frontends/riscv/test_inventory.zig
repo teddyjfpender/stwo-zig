@@ -110,6 +110,7 @@ test {
     _ = @import("air/lang/compat_layout_test.zig");
     _ = @import("air/lang/compat_manifest_diff_test.zig");
     _ = @import("air/lang/compat_manifest_test.zig");
+    _ = @import("air/lang/degree3_materializer_test.zig");
     _ = @import("air/lang/degree_test.zig");
     _ = @import("air/lang/diagnostic_test.zig");
     _ = @import("air/lang/digest_test.zig");
@@ -131,6 +132,8 @@ test {
     _ = @import("air/lang/shadow_program_test.zig");
     _ = @import("air/lang/static_collections_test.zig");
     _ = @import("air/lang/typed_poseidon2_test.zig");
+    _ = @import("air/lang/typed_poseidon2_compat_schedule_test.zig");
+    _ = @import("air/lang/typed_poseidon2_compat_test.zig");
     _ = @import("air/lang/validate_test.zig");
 
     // AIR: relation wiring.

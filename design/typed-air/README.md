@@ -117,7 +117,10 @@ and byte-compared by the package suite, with an explicit fail-closed check and
 review-only atomic update command. The command now validates both inputs and
 reports the first field-aware divergence with logical/physical names before an
 update writes atomically. Typed fixed arrays/maps/folds and the pure width-16
-M31 Poseidon2 function have also landed in the isolated authoring kernel; they
-make no production or layout decision while the deterministic materializer is
-developed. This work continues to strengthen and reify the existing path
-rather than replace the prover or rewrite all opcodes.
+M31 Poseidon2 function have also landed in the isolated authoring kernel. A
+generic, versioned degree-three materializer now selects exactly 410 required
+cuts plus sixteen outputs, and a separately versioned compatibility adapter
+bijectively binds them to all 426 historical lane-major slots in the existing
+445-column layout. Both remain shadow-only while direct witness generation and
+relation closure are developed. This work continues to strengthen and reify
+the existing path rather than replace the prover or rewrite all opcodes.

@@ -26,6 +26,8 @@ below are compiled by
 | `manifest` | Full source-attributed canonical logical artifact |
 | `digest` | Source-independent semantic program identity |
 | `typed_poseidon2` | Pure width-16 M31 Poseidon2 pilot definition; no constraints or layout |
+| `degree3_materializer` | Root-scoped versioned degree-three cuts, dependencies, identities, and validation |
+| `typed_poseidon2_compat` | Authenticated mapping from generic cuts to the current 426-slot Poseidon layout |
 
 Import `air/lang/mod.zig` and use these namespaces. Callers should not mutate
 arena storage directly; public fields currently exist so corruption tests can
@@ -174,9 +176,11 @@ add constraints, hints, effects, or storage.
 `typed_poseidon2.define` demonstrates the intended pure-function boundary. It
 declares sixteen named felt inputs and statically expands the pinned permutation
 to sixteen outputs. Its high unmaterialized degree is intentional. Callers must
-not constrain those outputs directly: H-003 inserts reviewed degree-three
-boundaries and H-004 first reproduces the current 426-column compatibility
-schedule.
+not constrain those outputs directly. The versioned H-003 policy derives
+root-local degree-three boundaries and forces the sixteen outputs; H-004 then
+maps that semantic set into the current 426-column compatibility schedule.
+Generic topological order is not a layout ABI; see
+[ADR-0018](decisions/0018-degree-bounded-materialization-and-compatibility-order.md).
 
 ## Identity and diagnostics
 
