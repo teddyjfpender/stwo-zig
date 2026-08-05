@@ -24,6 +24,7 @@ shape, authoring model, or delivery order.
 | [0004](0004-acyclic-functions-in-v0.md) | Acyclic function graph in IR v0 | accepted |
 | [0005](0005-canonical-logical-manifest.md) | Canonical logical manifest encoding | accepted |
 | [0006](0006-typed-hint-recipes-and-proof-paths.md) | Typed hint recipes and explicit proof paths | accepted |
+| [0007](0007-semantic-program-digest.md) | Domain-separated semantic program digest | accepted |
 
 ## Pending ADRs
 

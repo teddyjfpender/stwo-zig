@@ -17,6 +17,7 @@ pub const relation = @import("relation.zig");
 pub const functions = @import("functions.zig");
 pub const hint_recipe = @import("hint_recipe.zig");
 pub const hints = @import("hints.zig");
+pub const digest = @import("digest.zig");
 
 /// Logical schema version for the pre-production authoring kernel.
 ///

@@ -3,15 +3,15 @@
 **Status date:** 2026-08-04
 **Branch:** `feat/typed-air-precompiles`
 **Current milestone:** M1 — validated logical IR
-**Active task:** F-010 — canonical program digest
-**Next ready task:** F-009 — stable diagnostic renderer
+**Active task:** F-009 — stable diagnostic renderer
+**Next ready task:** F-012 — public authoring examples
 
 ## Dashboard
 
 | Milestone | State | Evidence |
 | --- | --- | --- |
 | M0 — engineering dossier | complete | This directory and initial ADRs |
-| M1 — validated logical IR | active | F-001 through F-008 complete; F-010 active |
+| M1 — validated logical IR | active | F-001 through F-008 and F-010 complete; F-009 active |
 | M2 — shadow compiler | queued | Requires M1 |
 | M3 — compatibility lowering | queued | Requires shadow import |
 | M4 — Poseidon compiler pilot | queued | Requires degree/layout passes |
@@ -74,12 +74,18 @@
   activation drift reject. Manifest format 3 records all recipe and binding
   metadata. The full ReleaseFast package suite, honest recipe vectors, and
   allocation-failure paths pass; all 28 validator errors have named negatives.
+- Completed F-010: semantic digest format 1 streams a validated program into a
+  domain-separated SHA-256 identity without allocating. It binds explicit
+  types, stable semantic names, declared record order, hint proof metadata,
+  effects, functions, and calls while excluding source spans and arena state.
+  The empty identity is pinned; source/interner/allocation invariance and
+  type/order/call-strategy sensitivity pass in the full ReleaseFast suite.
 
 ## Immediate next actions
 
-1. F-010 — derive a domain-separated semantic program digest.
-2. F-009 — render stable source-attributed diagnostics.
-3. F-012 — compile minimal pure and effectful authoring examples.
+1. F-009 — render stable source-attributed diagnostics.
+2. F-012 — compile minimal pure and effectful authoring examples.
+3. F-011 — audit and complete partial-finalization allocation coverage.
 
 No production behavior should change in these tasks.
 
@@ -92,6 +98,7 @@ Accepted:
 - One-proof guest precompiles before independent recursive leaves.
 - Acyclic function graph in IR v0.
 - Typed hint recipes with explicit proof-binding paths.
+- Domain-separated semantic program digest projection.
 
 Pending:
 
@@ -203,6 +210,15 @@ source-attributable. Manifest format 3 / logical schema 2 records the complete
 contract. Honest inverse-or-zero vectors, malformed bindings, missing recipes,
 unbound outputs, semantic serialization, and partial allocation cleanup pass;
 all 28 validator errors have named negative tests.
+
+F-010 completed with the same ReleaseFast package command. Digest format 1
+streams explicit little-endian tags and widths directly into SHA-256 under the
+`stwo-zig/typed-air/semantic` domain after whole-program validation. It includes
+semantic names, types, ordered constraints/effects, recipe policies and proof
+paths, function signatures, calls, and lowering strategy. It excludes source
+paths/spans and arena implementation state. The empty digest is a pinned vector;
+separate tests prove source and interning invariance plus type, name, effect
+order, and call-strategy sensitivity.
 
 ## Update protocol
 

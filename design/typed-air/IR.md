@@ -322,6 +322,13 @@ ID, while constraints and effects retain declared semantic order. See
 [ADR-0005](decisions/0005-canonical-logical-manifest.md). The later physical
 layout manifest extends this identity rather than reinterpreting it.
 
+The logical program also exposes semantic digest format 1: SHA-256 under the
+`stwo-zig/typed-air/semantic` domain over a validated, allocation-free canonical
+projection. It binds stable semantic names, types, declared order, recipes,
+proof paths, effects, functions, and calls. Source paths/spans and arena
+implementation state are deliberately excluded. See
+[ADR-0007](decisions/0007-semantic-program-digest.md).
+
 ## Validation passes
 
 Before lowering:
