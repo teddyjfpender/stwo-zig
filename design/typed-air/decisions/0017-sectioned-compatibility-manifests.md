@@ -69,8 +69,11 @@ runtime and manifest encoding boundary.
   their distinct selector and wire policies.
 - The artifacts describe the isolated compatibility path. They neither switch
   a production consumer nor authorize a protocol revision.
-- A-012 can parse the framed format and name the first changed field instead of
-  reporting only a byte offset or digest mismatch.
+- The allocation-free A-012 parser validates each side independently and names
+  the first changed field instead of reporting only a byte offset or digest
+  mismatch. Detailed fields precede duplicate envelope digests in review
+  order. Check fails closed; explicit update renders the same difference before
+  atomic replacement.
 
 ## Rejected alternatives
 

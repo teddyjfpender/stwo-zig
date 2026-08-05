@@ -113,6 +113,10 @@ layout, embedded direct and lookup runtime programs, complete degree records,
 hint identities, and exact-checked formal exports. Their
 [family-ordered index and binary artifacts](artifacts/README.md) are regenerated
 and byte-compared by the package suite, with an explicit fail-closed check and
-review-only atomic update command. A-012 is adding field-aware first-difference
-diagnostics over this format. This work continues to strengthen and reify the
-existing path rather than replace the prover or rewrite all opcodes.
+review-only atomic update command. The command now validates both inputs and
+reports the first field-aware divergence with logical/physical names before an
+update writes atomically. Typed fixed arrays/maps/folds and the pure width-16
+M31 Poseidon2 function have also landed in the isolated authoring kernel; they
+make no production or layout decision while the deterministic materializer is
+developed. This work continues to strengthen and reify the existing path
+rather than replace the prover or rewrite all opcodes.

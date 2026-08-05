@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const compat_manifest = @import("compat_manifest.zig");
+const compat_manifest_diff = @import("compat_manifest_diff.zig");
 const trace = @import("../../runner/trace.zig");
 
 const max_artifact_bytes: usize = 16 * 1024 * 1024;
@@ -53,7 +54,7 @@ fn run() !void {
         const filename = compat_manifest.artifactFilename(owned.summary.family);
         switch (mode) {
             .check => try checkFile(allocator, directory, filename, owned.bytes),
-            .update => try writeAtomic(directory, filename, owned.bytes),
+            .update => try updateFile(allocator, directory, filename, owned.bytes),
         }
     }
     switch (mode) {
@@ -63,7 +64,8 @@ fn run() !void {
             compat_manifest.index_filename,
             index.items,
         ),
-        .update => try writeAtomic(
+        .update => try updateFile(
+            allocator,
             directory,
             compat_manifest.index_filename,
             index.items,
@@ -81,13 +83,69 @@ fn checkFile(
     filename: []const u8,
     expected: []const u8,
 ) !void {
-    const actual = try directory.readFileAlloc(
+    const actual = directory.readFileAlloc(
         allocator,
         filename,
         max_artifact_bytes,
-    );
+    ) catch |err| switch (err) {
+        error.FileNotFound => {
+            std.debug.print(
+                "{s}: missing actual/on-disk artifact\n",
+                .{filename},
+            );
+            return error.ArtifactMismatch;
+        },
+        else => return err,
+    };
     defer allocator.free(actual);
     if (std.mem.eql(u8, expected, actual)) return;
+    try reportMismatch(allocator, filename, expected, actual);
+    return error.ArtifactMismatch;
+}
+
+fn updateFile(
+    allocator: std.mem.Allocator,
+    directory: std.fs.Dir,
+    filename: []const u8,
+    expected: []const u8,
+) !void {
+    const actual = directory.readFileAlloc(
+        allocator,
+        filename,
+        max_artifact_bytes,
+    ) catch |err| switch (err) {
+        error.FileNotFound => {
+            const expected_digest = digest(expected);
+            const expected_hex = std.fmt.bytesToHex(expected_digest, .lower);
+            std.debug.print(
+                "{s}: add expected/generated {d} bytes sha256={s}\n",
+                .{ filename, expected.len, &expected_hex },
+            );
+            return writeAtomic(directory, filename, expected);
+        },
+        else => return err,
+    };
+    defer allocator.free(actual);
+    if (std.mem.eql(u8, expected, actual)) return;
+    try reportMismatch(allocator, filename, expected, actual);
+    try writeAtomic(directory, filename, expected);
+}
+
+fn reportMismatch(
+    allocator: std.mem.Allocator,
+    filename: []const u8,
+    expected: []const u8,
+    actual: []const u8,
+) !void {
+    if (std.mem.endsWith(u8, filename, ".stwairc")) {
+        var semantic: std.ArrayList(u8) = .empty;
+        defer semantic.deinit(allocator);
+        try compat_manifest_diff.writeResult(
+            semantic.writer(allocator),
+            compat_manifest_diff.compare(expected, actual),
+        );
+        std.debug.print("{s}: {s}\n", .{ filename, semantic.items });
+    }
     const expected_digest = digest(expected);
     const actual_digest = digest(actual);
     const expected_hex = std.fmt.bytesToHex(expected_digest, .lower);
@@ -96,7 +154,6 @@ fn checkFile(
         "{s}: expected {d} bytes sha256={s}, found {d} bytes sha256={s}\n",
         .{ filename, expected.len, &expected_hex, actual.len, &actual_hex },
     );
-    return error.ArtifactMismatch;
 }
 
 fn writeAtomic(directory: std.fs.Dir, filename: []const u8, bytes: []const u8) !void {

@@ -294,6 +294,25 @@ families are degree two and ten are degree three. The complete result and its
 limitations are fixed by [ADR-0011](decisions/0011-complete-protocol-degree-and-pinned-report.md)
 and the [M2 report](artifacts/m2-production-shadow-report-v1.md).
 
+## Static collections and pure functions
+
+`StaticArray(element, N)` keeps scalar value IDs visible to the ordinary DAG
+while making element type and shape part of the Zig type. Maps, zip maps, and
+left folds expand eagerly in ascending index order. Each result retains the
+source span of its unrolled expansion even when structural CSE returns a value
+whose primary node span came from an earlier site. Shape, type, provenance, and
+all operation spans preflight before callbacks; a failed expansion rolls every
+new node back to its checkpoint.
+
+The first consumer is the isolated width-16 M31 Poseidon2 definition. It
+imports the pinned numeric constants, statically expands the exact external and
+internal round schedule, and declares one pure 16-input/16-output function. The
+unmaterialized output degree is `5^22`, so this graph is semantic authority for
+the pilot rather than an admissible direct AIR. It emits no constraint, hint,
+effect, witness column, or layout. H-003 owns the separate deterministic
+degree-three materialization decision; H-004 must first reproduce the existing
+426 temporary columns before any optimization is proposed.
+
 ## Materialization
 
 Materialization introduces a committed witness column `v` and a constraint

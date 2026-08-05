@@ -49,5 +49,13 @@ from an ordinary test. During allocation-failure testing, the legacy production
 symbolic builder uses stable scratch storage while every allocation introduced
 by the runtime/receipt result boundary is exhaustively failed and cleaned up.
 Normal generation uses one allocator. These receipts remain compatibility
-evidence, not a production activation or proof-protocol change. Field-aware
-first-divergence reporting is the separate A-012 tool.
+evidence, not a production activation or proof-protocol change.
+
+The A-012 comparator parses and validates both complete v1 bodies without
+allocation. It reports the first changed semantic path, including expected
+logical and physical names where available. Check mode renders that result and
+fails closed. Explicit update mode renders the same generated-versus-on-disk
+result before atomically replacing the file; malformed or oversized existing
+artifacts are never silently accepted. The TSV index remains a raw byte/digest
+comparison because it is the readable projection rather than a second binary
+protocol object.

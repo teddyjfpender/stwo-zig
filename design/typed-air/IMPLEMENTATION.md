@@ -95,8 +95,8 @@ families and independently checks the shipped direct and lookup backend bounds.
 
 ## Phase 3 — compatibility lowering
 
-**Status:** active; A-006 through A-011 are complete. A-012 field-aware layout
-diffing is active before the clean-tree M3 receipt.
+**Status:** implementation complete; A-006 through A-012 are green. V-008 is
+recording the clean-tree M3 receipt.
 
 Lower a logical program back into the current `ConstraintProgram` and runtime
 polynomial formats.
@@ -152,6 +152,14 @@ contract. See
 [ADR-0017](decisions/0017-sectioned-compatibility-manifests.md) and the
 [M3 artifact index](artifacts/m3-compat-v1/index-v1.tsv).
 
+The field-aware review pass validates both complete v1 manifests without
+allocation, then compares detailed records before their duplicate identity
+digests. It reports one stable generated-versus-on-disk path with logical and
+physical names where available. Default check fails after rendering it;
+explicit update renders the same result before atomic replacement. Malformed
+framing, nested runtime programs, sentinel tails, tags, strings, and trailing
+bytes fail closed.
+
 **Exit gate:**
 
 - all 17 compatibility manifests are stable;
@@ -159,6 +167,9 @@ contract. See
 - package, proof, and formal gates are green.
 
 ## Phase 4 — pure Poseidon2 compiler pilot
+
+**Status:** active in the isolated authoring kernel; H-001 and H-002 are
+complete, while materialization/layout work remains non-production.
 
 Author the M31 Poseidon2 permutation as typed pure functions.
 

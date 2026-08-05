@@ -1,7 +1,7 @@
 # Authoring typed AIR programs
 
 **Status:** executable pre-production interface
-**Last updated:** 2026-08-04
+**Last updated:** 2026-08-05
 
 This is the supported authoring path for the isolated logical kernel in
 `src/frontends/riscv/air/lang`. It is intentionally not imported by production
@@ -15,6 +15,7 @@ below are compiled by
 | --- | --- |
 | `ir` | Owned arena, source/name interning, values, constraints, and provisional ordered effects |
 | `types` | Semantic value types and non-interchangeable IDs |
+| `static_collections` | Fixed typed arrays with deterministic map, zip-map, fold, and per-expansion provenance |
 | `functions` | Dependency-topological function declarations and static calls |
 | `hint_recipe` | Closed recipe registry, versions, signatures, algorithms, and exceptional cases |
 | `hints` | Hint output construction and canonical proof-binding paths |
@@ -24,6 +25,7 @@ below are compiled by
 | `diagnostic` | Stable codes and source/type/path/degree rendering |
 | `manifest` | Full source-attributed canonical logical artifact |
 | `digest` | Source-independent semantic program identity |
+| `typed_poseidon2` | Pure width-16 M31 Poseidon2 pilot definition; no constraints or layout |
 
 Import `air/lang/mod.zig` and use these namespaces. Callers should not mutate
 arena storage directly; public fields currently exist so corruption tests can
@@ -153,6 +155,28 @@ needs no internal calls. For a caller:
 Every call explicitly chooses `inline_expansion` or `relation_backed`. That
 choice changes both the manifest and semantic digest. Recursion and forward
 references reject.
+
+## Statically shaped authoring
+
+Use `static_collections.StaticArray(element, N)` when a pure function has a
+compile-time shape but each scalar must remain visible to interning, degree
+analysis, materialization, and diagnostics. Construction validates the scalar
+type and every source span. `map`, `zipMap`, and `fold` expand in ascending
+index order and roll the entire node expansion back if a callback fails. Their
+`WithSpans` variants retain a distinct source site for every unrolled step even
+when CSE returns an older node ID.
+
+The callback builder is an expression-only convenience surface, not a Zig
+security boundary; authoring callbacks remain trusted construction code and
+whole-program validation remains authoritative. Collections do not implicitly
+add constraints, hints, effects, or storage.
+
+`typed_poseidon2.define` demonstrates the intended pure-function boundary. It
+declares sixteen named felt inputs and statically expands the pinned permutation
+to sixteen outputs. Its high unmaterialized degree is intentional. Callers must
+not constrain those outputs directly: H-003 inserts reviewed degree-three
+boundaries and H-004 first reproduces the current 426-column compatibility
+schedule.
 
 ## Identity and diagnostics
 

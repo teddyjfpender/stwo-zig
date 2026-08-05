@@ -165,16 +165,18 @@ Golden artifact tooling has two explicit modes:
 - `update` atomically writes a proposed artifact.
 
 Tests never update goldens automatically. A reviewer must be able to see why
-every changed column or event moved. A-012 adds the field-aware semantic diff
-used for that review; until it lands, the check command fails closed with file
-lengths and SHA-256 identities.
+every changed column or event moved. A-012 supplies the field-aware semantic
+diff used for that review. Both bodies are validated first; check then reports
+the first named generated-versus-on-disk difference together with file lengths
+and SHA-256 identities before failing.
 
 M2 established the report check half of this contract: the package test renders
 [`m2-production-shadow-report-v1.tsv`](artifacts/m2-production-shadow-report-v1.tsv)
 and its [readable view](artifacts/m2-production-shadow-report-v1.md) in memory
 and requires byte identity. A-011 adds the explicit family-manifest check/update
-command. The semantic layout diff remains A-012 work; `compat-v1` supplies the
-physical mapping and sectioned wire object it will compare.
+command. A-012 parses that sectioned `compat-v1` object without allocation and
+compares detailed layout, runtime, relation, degree, hint, and formal records
+before their repeated identity digests.
 
 A-006 additionally reconstructs the existing Sail-authoritative witness-layout
 digest from `compat-v1` descriptors and compares every physical name directly
@@ -233,6 +235,18 @@ failure at every allocation owned by new runtime/receipt results, requiring all
 partial owners to deinitialize. The standalone command exposes default `check`
 and explicit atomic `update`; see
 [ADR-0017](decisions/0017-sectioned-compatibility-manifests.md).
+
+A-012 validates the generated and on-disk manifest independently before
+comparison. Its structured result is equality, one borrowed first difference,
+or a malformed-side diagnostic with a stable semantic path and byte offset.
+Tests cover all 17 equal artifacts; logical and physical column names; moved
+references; runtime nodes and named roots; lookup schema, role, event, and batch
+records; degree/formal identity; malformed framing, UTF-8, optionals, runtime
+programs, and trailing bytes; and expected-side precedence. The command was
+also exercised end to end against a temporary corrupted LUI artifact: check
+named `layout.main[16].physical_name`, update rendered the same difference
+before atomic repair, and the following check passed. Invalid magic was
+attributed to `actual/on-disk` at `header.magic`.
 
 ## Differential design
 

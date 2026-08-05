@@ -108,6 +108,7 @@ test {
     // AIR: isolated typed authoring kernel.
     _ = @import("air/lang/authoring_test.zig");
     _ = @import("air/lang/compat_layout_test.zig");
+    _ = @import("air/lang/compat_manifest_diff_test.zig");
     _ = @import("air/lang/compat_manifest_test.zig");
     _ = @import("air/lang/degree_test.zig");
     _ = @import("air/lang/diagnostic_test.zig");

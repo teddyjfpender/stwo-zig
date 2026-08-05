@@ -67,22 +67,22 @@ first production milestone. `P2` improves breadth or optimization.
 | A-009 | P0 | Reproduce runtime polynomial program | A-007 | Node/root/column identity test | done |
 | A-010 | P0 | Reproduce AIR IR v2 projection | A-008 | Byte-identical canonical export for LUI | done |
 | A-011 | P1 | Round-trip every current family | A-009, A-010 | 17 compatibility manifests and exports exact | done |
-| A-012 | P1 | Add layout diff command/test helper | A-006 | Diff identifies first semantic/layout divergence with names | active |
+| A-012 | P1 | Add layout diff command/test helper | A-006 | Diff identifies first semantic/layout divergence with names | done |
 
 ## Poseidon2 compiler pilot
 
-| ID | Priority | Task | Depends | Acceptance |
-| --- | --- | --- | --- | --- |
-| H-001 | P0 | Add typed fixed-size arrays, maps, and folds | F-007 | Static shape and source-span tests |
-| H-002 | P0 | Author pure M31 Poseidon2 permutation | H-001, A-003 | Output matches current permutation vectors |
-| H-003 | P0 | Implement deterministic degree-three materializer | H-002, A-006 | Every lowered constraint within bound; stable allocation |
-| H-004 | P0 | Reproduce 426 existing materializations | H-003 | Current 445-column layout and constraint order exact |
-| H-005 | P0 | Generate direct-to-final-storage witness | H-004, F-008 | Byte-identical rows; no per-row allocation |
-| H-006 | P0 | Reproduce Poseidon relations and claims | H-004, F-006 | Honest and forged relation tests match current behavior |
-| H-007 | P0 | Run real CPU and Metal proof equivalence | H-005, H-006 | Independent verification succeeds on both admitted backends |
-| H-008 | P1 | Add source-to-materialization diagnostics | H-003, F-009 | All 426 columns trace to semantic source paths |
-| H-009 | P2 | Prototype cost-aware materialization policy | H-007 | Separate manifest and cost report; no production activation |
-| H-010 | P2 | Benchmark compatibility and proposed layouts | H-009 | Verified measurements under PERFORMANCE.md |
+| ID | Priority | Task | Depends | Acceptance | Status |
+| --- | --- | --- | --- | --- | --- |
+| H-001 | P0 | Add typed fixed-size arrays, maps, and folds | F-007 | Static shape and source-span tests | done |
+| H-002 | P0 | Author pure M31 Poseidon2 permutation | H-001, A-003 | Output matches current permutation vectors | done |
+| H-003 | P0 | Implement deterministic degree-three materializer | H-002, A-006 | Every lowered constraint within bound; stable allocation | ready |
+| H-004 | P0 | Reproduce 426 existing materializations | H-003 | Current 445-column layout and constraint order exact | queued |
+| H-005 | P0 | Generate direct-to-final-storage witness | H-004, F-008 | Byte-identical rows; no per-row allocation | queued |
+| H-006 | P0 | Reproduce Poseidon relations and claims | H-004, F-006 | Honest and forged relation tests match current behavior | queued |
+| H-007 | P0 | Run real CPU and Metal proof equivalence | H-005, H-006 | Independent verification succeeds on both admitted backends | queued |
+| H-008 | P1 | Add source-to-materialization diagnostics | H-003, F-009 | All 426 columns trace to semantic source paths | queued |
+| H-009 | P2 | Prototype cost-aware materialization policy | H-007 | Separate manifest and cost report; no production activation | queued |
+| H-010 | P2 | Benchmark compatibility and proposed layouts | H-009 | Verified measurements under PERFORMANCE.md | queued |
 
 ## Typed effects and opcode migration
 

@@ -3,8 +3,8 @@
 **Status date:** 2026-08-05
 **Branch:** `feat/typed-air-precompiles`
 **Current milestone:** M3 — compatibility lowering
-**Active task:** A-012 — add layout diff helper
-**Next queued task:** V-008 — record the clean-tree M3 milestone receipt
+**Active task:** V-008 — record the clean-tree M3 milestone receipt
+**Next queued task:** H-003 — deterministic degree-three materialization
 
 ## Dashboard
 
@@ -13,8 +13,8 @@
 | M0 — engineering dossier | complete | This directory and initial ADRs |
 | M1 — validated logical IR | complete | F-001 through F-012 complete and green |
 | M2 — shadow compiler | complete | A-001 through A-005 complete and green |
-| M3 — compatibility lowering | active | A-006 through A-011 complete; A-012 active |
-| M4 — Poseidon compiler pilot | queued | Requires degree/layout passes |
+| M3 — compatibility lowering | receipt | A-006 through A-012 complete; V-008 active |
+| M4 — Poseidon compiler pilot | parallel | H-001 and H-002 complete in isolated shadow mode |
 | M5 — effect and witness pilot | queued | Requires typed schemas and lowering |
 | M6 — guest precompile | queued | Requires Poseidon and ABI ADRs |
 | M7 — parallel proving | queued | Requires working component |
@@ -189,12 +189,34 @@
   for reviewed replacements. The legacy symbolic builder remains on stable
   scratch storage during failure injection, preserving its panic-on-OOM
   contract while testing every new owning boundary.
+- Completed A-012: an allocation-free parser validates both generated and
+  on-disk `STWAIRC\0` version-1 bodies before comparing them. It rejects
+  malformed framing, nested runtime topology, sentinel tails, enum/optional
+  tags, UTF-8, and trailing bytes with stable side, path, and offset. The first
+  semantic divergence names logical and physical columns, direct roots,
+  lookup schemas/roles/events/batches, degree records, hints, or formal export
+  identities before duplicated envelope digests. Check mode now reports the
+  named difference and fails; update mode reports the same difference before
+  atomically replacing a reviewed artifact. All 17 equal receipts, focused
+  mutations, malformed inputs, and end-to-end check/update repair pass.
+- Completed H-001: statically shaped typed arrays expose deterministic
+  map/zip/fold expansion over scalar IR nodes, retain one source span per
+  unrolled element through CSE, preflight shape/type/provenance, roll back a
+  failed expansion transactionally, and release every partial allocation.
+  The eight-test surface is green in Debug, ReleaseSafe, and ReleaseFast.
+- Completed H-002: the isolated typed surface now authors the exact width-16
+  M31 Poseidon2 permutation as one pure static function. The 2,171-node graph
+  imports the pinned production constants, emits no constraints, hints,
+  effects, or layout, and matches three full-state vectors plus 128
+  deterministic random production differentials. Its degree is explicitly
+  `5^22`; deterministic replay, source provenance, late preflight failure, and
+  exhaustive allocation failure are pinned before H-003 adds a materializer.
 
 ## Immediate next actions
 
-1. A-012 — add the first-field semantic/layout divergence helper.
-2. V-008 — record a clean-tree M3 milestone receipt with manifest digests.
-3. H-001 — begin typed fixed-size arrays, maps, and folds after M3 closes.
+1. V-008 — record a clean-tree M3 milestone receipt with manifest digests.
+2. H-003 — integrate the deterministic degree-three materializer.
+3. H-004 — bind its schedule to all 426 current Poseidon2 temporaries.
 
 No production behavior should change in these tasks.
 
@@ -595,9 +617,32 @@ the new runtime and receipt result boundary. The standalone
 publishes replacements atomically.
 
 This receipt is compatibility evidence only: it changes no production consumer,
-proof protocol, witness authority, or formal artifact. A-012 is now active to
-parse the framed identity and report the first named semantic or layout
-divergence; V-008 follows with the clean-tree M3 receipt.
+proof protocol, witness authority, or formal artifact.
+
+### 2026-08-05 — M3 semantic artifact review is field-aware
+
+A-012 completed with `compat_manifest_diff.zig` and direct integration into the
+`typed-air-manifest` command. The allocation-free parser validates the generated
+and on-disk v1 envelopes independently, including every framed section and
+nested runtime program. It returns one borrowed, structured result: equality,
+the first named semantic difference, or a fail-closed malformed-artifact
+diagnostic with explicit side, path, and byte offset.
+
+Detailed layout, root, relation, degree, hint, and formal fields compare before
+their duplicate identity digests, so review output explains the changed object.
+Check mode exits unsuccessfully after rendering it. Explicit update mode renders
+the same generated-versus-on-disk difference before atomic replacement. An
+end-to-end temporary-artifact test changed `lui`'s `rd_nonzero` physical name,
+observed `layout.main[16].physical_name`, repaired it through update, and then
+passed check; invalid magic reported `actual/on-disk` at `header.magic`.
+
+In parallel, H-001 and H-002 established the first M4 authoring surface without
+changing production. Fixed typed arrays/maps/folds and a pure width-16 M31
+Poseidon2 definition are separately committed and ReleaseFast package-green.
+The pure graph matches pinned and randomized production vectors while retaining
+materialization and layout as explicit later-pass decisions. V-008 is active to
+close M3 with a clean-tree evidence receipt; H-003/H-004 may continue in
+dependency-safe, isolated lanes.
 
 ## Update protocol
 
