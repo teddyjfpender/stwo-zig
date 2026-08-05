@@ -1,7 +1,7 @@
 # Architecture decision records
 
 **Status:** active index
-**Last updated:** 2026-08-04
+**Last updated:** 2026-08-05
 
 ADRs record decisions that change the project's trusted boundary, protocol
 shape, authoring model, or delivery order.
@@ -26,6 +26,7 @@ shape, authoring model, or delivery order.
 | [0006](0006-typed-hint-recipes-and-proof-paths.md) | Typed hint recipes and explicit proof paths | accepted |
 | [0007](0007-semantic-program-digest.md) | Domain-separated semantic program digest | accepted |
 | [0008](0008-stable-structured-diagnostics.md) | Stable structured diagnostics and logical degree context | accepted |
+| [0009](0009-lossless-production-shadow-import.md) | Lossless production symbolic shadow import | accepted |
 
 ## Pending ADRs
 

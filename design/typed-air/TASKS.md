@@ -1,7 +1,7 @@
 # Task graph
 
 **Status:** active backlog
-**Last updated:** 2026-08-04
+**Last updated:** 2026-08-05
 
 ## Status vocabulary
 
@@ -56,9 +56,9 @@ first production milestone. `P2` improves breadth or optimization.
 
 | ID | Priority | Task | Depends | Acceptance | Status |
 | --- | --- | --- | --- | --- | --- |
-| A-001 | P0 | Import current symbolic polynomial DAG | F-004 | Random replay equals `symbolic.replay` | active |
-| A-002 | P0 | Import columns, constraints, selector, and ordered lookups | A-001, F-006 | Counts and order match all 17 families | queued |
-| A-003 | P0 | Implement logical degree propagation | A-001 | Unit corpus covers constants, sums, products, selections, aliases | queued |
+| A-001 | P0 | Import current symbolic polynomial DAG | F-004 | Random replay equals `symbolic.replay` | done |
+| A-002 | P0 | Import columns, constraints, selector, and ordered lookups | A-001, F-006 | Counts and order match all 17 families | active |
+| A-003 | P0 | Implement logical degree propagation | A-001 | Unit corpus covers constants, sums, products, selections, aliases | done |
 | A-004 | P0 | Model gates, row windows, boundaries, and interaction degree | A-002, A-003 | Report includes complete final degree, not only root degree | queued |
 | A-005 | P0 | Emit all-family degree and dependency report | A-004 | Golden machine report and readable summary for 17 families | queued |
 | A-006 | P0 | Define `compat-v1` physical column mapping | F-005, A-002 | Current column count/name/order reproduced | queued |

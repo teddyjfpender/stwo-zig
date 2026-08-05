@@ -1,10 +1,10 @@
 # Progress ledger
 
-**Status date:** 2026-08-04
+**Status date:** 2026-08-05
 **Branch:** `feat/typed-air-precompiles`
 **Current milestone:** M2 — shadow compiler
-**Active task:** A-001 — production symbolic DAG shadow import
-**Next queued task:** A-003 — degree propagation over imported roots
+**Active task:** A-002 — ordered production program shadow import
+**Next queued task:** A-004 — complete final-degree model
 
 ## Dashboard
 
@@ -12,7 +12,7 @@
 | --- | --- | --- |
 | M0 — engineering dossier | complete | This directory and initial ADRs |
 | M1 — validated logical IR | complete | F-001 through F-012 complete and green |
-| M2 — shadow compiler | active | A-001 symbolic DAG import active |
+| M2 — shadow compiler | active | A-001 and A-003 complete; A-002 active |
 | M3 — compatibility lowering | queued | Requires shadow import |
 | M4 — Poseidon compiler pilot | queued | Requires degree/layout passes |
 | M5 — effect and witness pilot | queued | Requires typed schemas and lowering |
@@ -96,12 +96,24 @@
   state where possible, and prove allocated/freed byte equality. Together with
   arena, manifest, degree, and diagnostic allocation enumeration, every owning
   foundation object has partial-initialization cleanup evidence.
+- Completed A-001: the shipped symbolic polynomial DAG imports through checked
+  typed constructors with an explicit source-node map, owned column names,
+  canonical M31 constants, and linear replay. Deterministic randomized replay
+  agrees at every mapped node for the exact direct-constraint programs of all
+  17 opcode families. Malformed schemas, invalid replay buffers, commutative
+  node merging, field wraparound, and every partial allocation have focused
+  tests. No production consumer imports the adapter.
+- Completed A-003: logical degree covers constants, sums, differences,
+  products, negation, selections, canonical aliases, hint outputs, call
+  outputs, gates, and overflow. An independent recurrence over every shipped
+  symbolic node agrees with the typed analysis for every mapped node and every
+  production direct-constraint root across all 17 families.
 
 ## Immediate next actions
 
-1. A-001 — import the production symbolic polynomial DAG in shadow mode.
-2. A-003 — extend logical degree reporting over imported production roots.
-3. A-002 — import columns, constraints, selectors, and ordered lookups.
+1. A-002 — import columns, constraints, selectors, and ordered lookups.
+2. A-004 — model gates, row windows, boundaries, and interaction degree.
+3. A-005 — emit the all-family degree and dependency report.
 
 No production behavior should change in these tasks.
 
@@ -116,6 +128,7 @@ Accepted:
 - Typed hint recipes with explicit proof-binding paths.
 - Domain-separated semantic program digest projection.
 - Stable diagnostic codes and topological logical-degree analysis.
+- Lossless mapped import of the production symbolic DAG in shadow mode.
 
 Pending:
 
@@ -140,9 +153,10 @@ Pending:
 | Recursion balances detached calls | IR v0 rejects recursive function graphs |
 | Hint callback or output drifts silently | Closed versioned registry and checked proof paths |
 
-## Baseline metrics
+## Outstanding baseline metrics
 
-To be recorded before M2 implementation:
+A-004/A-005 must turn the current shadow-program observations into a pinned
+machine report before compatibility lowering begins:
 
 - current all-family logical node/constraint/event counts;
 - current per-family maximum final degree;
@@ -262,6 +276,27 @@ and optional binding state before deinitialization. Reusable completed states
 are revalidated, and each iteration requires allocated bytes to equal freed
 bytes. Existing whole-arena, manifest, degree, and diagnostic enumeration
 completes the ownership evidence for M1.
+
+### 2026-08-05 — M2 lossless expression import established
+
+A-001 completed with ADR-0009 and the ReleaseFast package suite. The adapter
+validates the shipped symbolic arena, owns imported names and mappings, reduces
+constants canonically, and replays the typed DAG in one topological pass. A
+fixed-seed differential builds the exact production direct program for all 17
+opcode families and compares every source node at eight field points. Focused
+tests cover commutative ID collapse, wraparound, ambiguous or malformed source
+schemas, replay shape failures, and all injected allocation failures.
+
+A-003 completed in the same gate. The typed unit corpus now names every degree
+operation and canonical alias behavior. A separately implemented recurrence
+over the six production symbolic operations agrees at every mapped node and
+every direct-constraint root for all families. This proves logical expression
+degree only; row masks, boundary terms, lookup fractions, interaction
+recurrences, and backend degree remain explicitly unclaimed until A-004.
+
+No production AIR, witness, prover, verifier, transcript, runtime export, or
+formal-extraction path changed. A-002 is active to import the ordered program
+surface rather than infer it from expression reachability.
 
 ## Update protocol
 
