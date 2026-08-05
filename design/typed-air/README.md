@@ -59,6 +59,7 @@ correctness merely because its witness generator agrees with it.
 13. [decisions/README.md](decisions/README.md) — accepted and proposed decisions.
 14. [notes/README.md](notes/README.md) — dated research and implementation notes.
 15. [artifacts/README.md](artifacts/README.md) — reviewed deterministic evidence.
+16. [receipts/README.md](receipts/README.md) — clean-snapshot milestone evidence and open gates.
 
 ## Working rules
 

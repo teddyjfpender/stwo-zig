@@ -95,8 +95,10 @@ families and independently checks the shipped direct and lookup backend bounds.
 
 ## Phase 3 — compatibility lowering
 
-**Status:** implementation complete; A-006 through A-012 are green. V-008 is
-recording the clean-tree M3 receipt.
+**Status:** implementation complete; A-006 through A-012 are green and V-008
+records the clean-snapshot evidence. Release promotion remains blocked by the
+broad witness-rigidity and formal generated-artifact gates named in the
+[M3 receipt](receipts/m3-compatibility-v1.json).
 
 Lower a logical program back into the current `ConstraintProgram` and runtime
 polynomial formats.

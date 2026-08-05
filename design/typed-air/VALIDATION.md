@@ -334,6 +334,10 @@ At M3 and later milestones, record:
 - known open claims.
 
 The receipt describes evidence. It does not promote the claim ledger by itself.
+The first concrete instance is the
+[M3 compatibility receipt](receipts/m3-compatibility-v1.json), which records
+green compatibility and focused proof evidence together with the broad
+prover-core and formal-artifact gates that remain red.
 
 ## Required gates by change class
 

@@ -22,8 +22,8 @@ first production milestone. `P2` improves breadth or optimization.
 | M0 | Engineering dossier | Branch, canon, architecture, tasks, validation, progress | done |
 | M1 | Validated logical IR | Deterministic IR kernel and negative tests | done |
 | M2 | Shadow compiler | All 17 current families imported and degree-reported | done |
-| M3 | Compatibility lowering | LUI and then all families round-trip exactly | active |
-| M4 | Pure compiler pilot | Poseidon2 compatibility layout generated | queued |
+| M3 | Compatibility lowering | LUI and then all families round-trip exactly | blocked |
+| M4 | Pure compiler pilot | Poseidon2 compatibility layout generated | active |
 | M5 | Effect/witness pilot | LUI, ADDI, signed load/JALR, DIV vertical slices | queued |
 | M6 | Guest precompile | Poseidon2 calls close in one proof | queued |
 | M7 | Parallel proving | Component stages scheduled and measured | queued |
@@ -75,7 +75,7 @@ first production milestone. `P2` improves breadth or optimization.
 | --- | --- | --- | --- | --- | --- |
 | H-001 | P0 | Add typed fixed-size arrays, maps, and folds | F-007 | Static shape and source-span tests | done |
 | H-002 | P0 | Author pure M31 Poseidon2 permutation | H-001, A-003 | Output matches current permutation vectors | done |
-| H-003 | P0 | Implement deterministic degree-three materializer | H-002, A-006 | Every lowered constraint within bound; stable allocation | ready |
+| H-003 | P0 | Implement deterministic degree-three materializer | H-002, A-006 | Every lowered constraint within bound; stable allocation | active |
 | H-004 | P0 | Reproduce 426 existing materializations | H-003 | Current 445-column layout and constraint order exact | queued |
 | H-005 | P0 | Generate direct-to-final-storage witness | H-004, F-008 | Byte-identical rows; no per-row allocation | queued |
 | H-006 | P0 | Reproduce Poseidon relations and claims | H-004, F-006 | Honest and forged relation tests match current behavior | queued |
@@ -149,7 +149,7 @@ first production milestone. `P2` improves breadth or optimization.
 | V-005 | P0 | Bind formal regeneration to logical/layout identity | A-010 | Drift fails existing refinement workflow |
 | V-006 | P1 | Add CPU/Metal canonical program identity receipt | H-007 | Backend reports same logical/layout digest |
 | V-007 | P1 | Add documentation link and task-state checker | M0 | Broken local links and multiple active tasks fail |
-| V-008 | P1 | Add clean-tree milestone receipt | M3 | Commit, tool versions, manifests, tests, and digests recorded |
+| V-008 | P1 | Add clean-tree milestone receipt (done) | M3 | Commit, tool versions, manifests, tests, and digests recorded |
 
 ## Critical path
 

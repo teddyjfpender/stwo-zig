@@ -59,3 +59,8 @@ result before atomically replacing the file; malformed or oversized existing
 artifacts are never silently accepted. The TSV index remains a raw byte/digest
 comparison because it is the readable projection rather than a second binary
 protocol object.
+
+The exact clean-snapshot commands, tool versions, aggregate identities, proof
+results, and deliberately open release gates are recorded separately in the
+[M3 milestone receipt](../receipts/m3-compatibility-v1.json). The receipt does
+not change or supersede these compatibility artifacts.

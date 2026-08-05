@@ -2,9 +2,9 @@
 
 **Status date:** 2026-08-05
 **Branch:** `feat/typed-air-precompiles`
-**Current milestone:** M3 — compatibility lowering
-**Active task:** V-008 — record the clean-tree M3 milestone receipt
-**Next queued task:** H-003 — deterministic degree-three materialization
+**Current milestone:** M4 — Poseidon compiler pilot
+**Active task:** H-003 — deterministic degree-three materialization
+**Next queued task:** H-004 — bind the 426-slot compatibility schedule
 
 ## Dashboard
 
@@ -13,8 +13,8 @@
 | M0 — engineering dossier | complete | This directory and initial ADRs |
 | M1 — validated logical IR | complete | F-001 through F-012 complete and green |
 | M2 — shadow compiler | complete | A-001 through A-005 complete and green |
-| M3 — compatibility lowering | receipt | A-006 through A-012 complete; V-008 active |
-| M4 — Poseidon compiler pilot | parallel | H-001 and H-002 complete in isolated shadow mode |
+| M3 — compatibility lowering | blocked | [V-008 evidence](receipts/m3-compatibility-v1.json) recorded; broad proof/formal gates open |
+| M4 — Poseidon compiler pilot | active | H-001 and H-002 complete; H-003 in integration |
 | M5 — effect and witness pilot | queued | Requires typed schemas and lowering |
 | M6 — guest precompile | queued | Requires Poseidon and ABI ADRs |
 | M7 — parallel proving | queued | Requires working component |
@@ -211,12 +211,22 @@
   deterministic random production differentials. Its degree is explicitly
   `5^22`; deterministic replay, source provenance, late preflight failure, and
   exhaustive allocation failure are pinned before H-003 adds a materializer.
+- Completed V-008: the machine-readable
+  [M3 receipt](receipts/m3-compatibility-v1.json) names the clean detached
+  `7cdf41d5b246baf845adeb99d02444d9a6090514` snapshot, exact toolchain,
+  M2/M3 and formal identities, 657-test package results, all 17 manifest
+  checks, workspace and AIR-satisfaction results, and a focused real proof. It
+  also records rather than waives the broad prover-core rigidity failures,
+  eight baseline source-conformance errors, and five stale artifacts detected
+  by the refinement pilot after the 120-job Lean build passed. Compatibility
+  implementation is complete; M3 release promotion remains blocked.
 
 ## Immediate next actions
 
-1. V-008 — record a clean-tree M3 milestone receipt with manifest digests.
-2. H-003 — integrate the deterministic degree-three materializer.
-3. H-004 — bind its schedule to all 426 current Poseidon2 temporaries.
+1. H-003 — integrate the deterministic degree-three materializer.
+2. H-004 — bind its schedule to all 426 current Poseidon2 temporaries.
+3. Resolve the recorded production rigidity and formal-artifact gates before
+   any M3 release promotion.
 
 No production behavior should change in these tasks.
 
@@ -268,6 +278,8 @@ Pending:
 | Parallelism hides total cost | Performance vector and critical-path telemetry |
 | Recursion balances detached calls | IR v0 rejects recursive function graphs |
 | Hint callback or output drifts silently | Closed versioned registry and checked proof paths |
+| Broad production proof gate is red | V-008 records exact rigidity findings; no release promotion |
+| Formal generated artifacts are stale | Refinement pilot fails closed on five named files; reviewed workflow required |
 
 ## Baseline metrics
 
@@ -643,6 +655,24 @@ The pure graph matches pinned and randomized production vectors while retaining
 materialization and layout as explicit later-pass decisions. V-008 is active to
 close M3 with a clean-tree evidence receipt; H-003/H-004 may continue in
 dependency-safe, isolated lanes.
+
+### 2026-08-05 — M3 clean-snapshot evidence recorded without gate inflation
+
+V-008 records evidence for immutable revision
+`7cdf41d5b246baf845adeb99d02444d9a6090514` and tree
+`24a6e49b3acce11163a3f94107ae5d9d95c8fd83`. ReleaseFast and ReleaseSafe
+package suites compiled 657 tests each (656 passed, one skipped), all 17
+compatibility manifests matched, the 21-package workspace audit and 29-test AIR
+satisfaction gate passed, and the focused end-to-end proof verified. Artifact
+hashes and aggregate geometry are pinned in the machine receipt.
+
+The receipt is intentionally not green overall. The broad prover-core gate has
+two witness-rigidity failures, and the refinement pilot—after a complete
+120-job Lean build—reports drift in five committed generated artifacts. Source
+conformance also retains eight existing repository-baseline errors. No
+authority artifact was regenerated, no failure was waived, and no production
+consumer changed. V-008 is complete as an evidence task; M3 release promotion
+remains blocked while isolated M4 work proceeds.
 
 ## Update protocol
 
