@@ -12,7 +12,9 @@
     "stwo_prover_api": "../../prover_api",
     "stwo_prover_engine": "../../prover"
   },
-  "injected_modules": [],
+  "injected_modules": [
+    "typed_air_artifacts"
+  ],
   "api_surface": [
     "Cpu",
     "HostInterface",

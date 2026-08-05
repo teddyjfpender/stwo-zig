@@ -11,6 +11,7 @@ Notes are evidence, not authority. Durable decisions move into
 ## Index
 
 - [2026-08-04 research baseline](2026-08-04-research-baseline.md)
+- [2026-08-05 M2 complete degree audit](2026-08-05-m2-degree-audit.md)
 
 ## Note template
 

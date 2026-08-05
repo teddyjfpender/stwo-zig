@@ -21,8 +21,8 @@ first production milestone. `P2` improves breadth or optimization.
 | --- | --- | --- | --- |
 | M0 | Engineering dossier | Branch, canon, architecture, tasks, validation, progress | done |
 | M1 | Validated logical IR | Deterministic IR kernel and negative tests | done |
-| M2 | Shadow compiler | All 17 current families imported and degree-reported | active |
-| M3 | Compatibility lowering | LUI and then all families round-trip exactly | queued |
+| M2 | Shadow compiler | All 17 current families imported and degree-reported | done |
+| M3 | Compatibility lowering | LUI and then all families round-trip exactly | active |
 | M4 | Pure compiler pilot | Poseidon2 compatibility layout generated | queued |
 | M5 | Effect/witness pilot | LUI, ADDI, signed load/JALR, DIV vertical slices | queued |
 | M6 | Guest precompile | Poseidon2 calls close in one proof | queued |
@@ -59,9 +59,9 @@ first production milestone. `P2` improves breadth or optimization.
 | A-001 | P0 | Import current symbolic polynomial DAG | F-004 | Random replay equals `symbolic.replay` | done |
 | A-002 | P0 | Import columns, constraints, selector, and ordered lookups | A-001, F-006 | Counts and order match all 17 families | done |
 | A-003 | P0 | Implement logical degree propagation | A-001 | Unit corpus covers constants, sums, products, selections, aliases | done |
-| A-004 | P0 | Model gates, row windows, boundaries, and interaction degree | A-002, A-003 | Report includes complete final degree, not only root degree | active |
-| A-005 | P0 | Emit all-family degree and dependency report | A-004 | Golden machine report and readable summary for 17 families | queued |
-| A-006 | P0 | Define `compat-v1` physical column mapping | F-005, A-002 | Current column count/name/order reproduced | queued |
+| A-004 | P0 | Model gates, row windows, boundaries, and interaction degree | A-002, A-003 | Report includes complete final degree, not only root degree | done |
+| A-005 | P0 | Emit all-family degree and dependency report | A-004 | Golden machine report and readable summary for 17 families | done |
+| A-006 | P0 | Define `compat-v1` physical column mapping | F-005, A-002 | Current column count/name/order reproduced | active |
 | A-007 | P0 | Lower direct constraints to current `ConstraintProgram` | A-006 | LUI exact normalized DAG comparison | queued |
 | A-008 | P0 | Lower typed effects to current ordered lookup entries | A-007, F-006 | LUI event fields and batch order exact | queued |
 | A-009 | P0 | Reproduce runtime polynomial program | A-007 | Node/root/column identity test | queued |

@@ -240,7 +240,9 @@ src/frontends/riscv/air/lang/
   ir.zig                 logical program and arena ownership
   builder.zig            authoring interface
   validate.zig           structural and effect validation
-  degree.zig             complete degree analysis
+  degree.zig             logical DAG degree analysis
+  protocol_degree.zig    complete current-protocol degree analysis
+  protocol_report.zig    deterministic compatibility evidence
   layout.zig             policies and physical allocation
   manifest.zig           canonical layout identity
   lower_constraint.zig   current ConstraintProgram compatibility

@@ -155,6 +155,12 @@ Golden checks have two commands:
 Tests never update goldens automatically. A reviewer must be able to see why
 every changed column or event moved.
 
+M2 establishes the check half of this contract: the package test renders
+[`m2-production-shadow-report-v1.tsv`](artifacts/m2-production-shadow-report-v1.tsv)
+and its [readable view](artifacts/m2-production-shadow-report-v1.md) in memory
+and requires byte identity. A deliberate update command remains A-006/A-012
+work because physical layout identity and semantic diffing are not yet defined.
+
 ## Differential design
 
 Expression comparison should not rely solely on node IDs. Normalize or compare

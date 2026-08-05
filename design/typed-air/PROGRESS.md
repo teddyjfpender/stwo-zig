@@ -2,9 +2,9 @@
 
 **Status date:** 2026-08-05
 **Branch:** `feat/typed-air-precompiles`
-**Current milestone:** M2 — shadow compiler
-**Active task:** A-004 — complete final-degree model
-**Next queued task:** A-005 — all-family machine and human report
+**Current milestone:** M3 — compatibility lowering
+**Active task:** A-006 — `compat-v1` physical column mapping
+**Next queued task:** A-007 — lower direct constraints
 
 ## Dashboard
 
@@ -12,8 +12,8 @@
 | --- | --- | --- |
 | M0 — engineering dossier | complete | This directory and initial ADRs |
 | M1 — validated logical IR | complete | F-001 through F-012 complete and green |
-| M2 — shadow compiler | active | A-001 through A-003 complete; A-004 active |
-| M3 — compatibility lowering | queued | Requires shadow import |
+| M2 — shadow compiler | complete | A-001 through A-005 complete and green |
+| M3 — compatibility lowering | active | A-006 physical mapping active |
 | M4 — Poseidon compiler pilot | queued | Requires degree/layout passes |
 | M5 — effect and witness pilot | queued | Requires typed schemas and lowering |
 | M6 — guest precompile | queued | Requires Poseidon and ABI ADRs |
@@ -117,12 +117,26 @@
   reconstruction test, and allocation-failure sweep pass without production
   wiring. Relation shape validation explicitly avoids inventing erased semantic
   field types.
+- Completed A-004: the complete protocol pass accounts separately for imported
+  direct roots, relation numerators and denominators, shifted cumulative
+  columns, `is_first`, claimed sums, one- and two-entry LogUp batches, and
+  post-vanishing quotient expansion. Checked arithmetic rejects degree,
+  trace-log, and batch-layout failures. All-family tests independently compare
+  the resulting minimum bounds to both shipped backend declarations.
+- Completed A-005: report format 1 deterministically records all 17 families in
+  production order with columns, DAG nodes and canonical merges, direct roots,
+  lookups, batches, interaction geometry, roles, relation dependencies, final
+  degrees, and expansion bits. Machine TSV and readable Markdown views are
+  embedded from `design/typed-air/artifacts` and byte-compared in the
+  ReleaseFast suite; structural corruption and every writer allocation failure
+  reject cleanly.
 
 ## Immediate next actions
 
-1. A-004 — model gates, row windows, boundaries, and interaction degree.
-2. A-005 — emit the all-family degree and dependency report.
-3. A-006 — define the `compat-v1` physical column mapping.
+1. A-006 — define the `compat-v1` physical column mapping.
+2. A-007 — lower direct constraints to the current program shape, beginning
+   with LUI.
+3. A-008 — reproduce typed effect ordering and signed lookup entries.
 
 No production behavior should change in these tasks.
 
@@ -139,6 +153,7 @@ Accepted:
 - Stable diagnostic codes and topological logical-degree analysis.
 - Lossless mapped import of the production symbolic DAG in shadow mode.
 - Ordered same-source import of the complete production program surface.
+- Complete current-protocol degree model and pinned M2 report.
 
 Pending:
 
@@ -163,17 +178,21 @@ Pending:
 | Recursion balances detached calls | IR v0 rejects recursive function graphs |
 | Hint callback or output drifts silently | Closed versioned registry and checked proof paths |
 
-## Outstanding baseline metrics
+## Baseline metrics
 
-A-004/A-005 must turn the current shadow-program observations into a pinned
-machine report before compatibility lowering begins:
+The [M2 machine report](artifacts/m2-production-shadow-report-v1.tsv) now pins
+the current all-family logical node, direct-constraint, lookup, batch,
+dependency, interaction-column, and final-degree counts. In aggregate across
+independently compiled families it records 3,051 source nodes canonicalized to
+3,049 typed nodes, 545 direct constraints, 242 lookup entries, 155 interaction
+batches, and maximum direct/interaction degree three.
 
-- current all-family logical node/constraint/event counts;
-- current per-family maximum final degree;
-- current Poseidon2 main/interaction geometry;
-- current package/proof test durations;
-- current RISC-V structural workload reports;
-- current CPU and Metal Poseidon component timing.
+The following measurements remain assigned to their later owning milestones;
+they are not prerequisites for closing the opcode shadow compiler:
+
+- Poseidon2 main/interaction geometry and materializations — H-004;
+- package/proof durations and CPU/Metal Poseidon timing — H-007/H-010;
+- RISC-V structural workloads and proof crossover measurements — C-013/R-006.
 
 ## Log
 
@@ -327,6 +346,39 @@ Deterministic rebuild, corrupted-state rejection, and induced allocation
 failure coverage pass. A-004 is active to distinguish logical root degree from
 the complete constraint, row-mask, and interaction degree required by a
 backend.
+
+### 2026-08-05 — M2 complete protocol geometry pinned
+
+A-004 completed with `protocol_degree.zig` and ADR-0011. The pass traverses the
+validated imported program and retains every direct, lookup, and interaction
+degree record. It models the exact shipped pairs-batched recurrence, including
+current/previous cumulative masks, the degree-one `is_first` boundary term,
+degree-zero transcript claims, nonlinear relation fields, single-entry
+sentinels, and quotient expansion after vanishing-polynomial division. Focused
+tests cover nonlinear pairs and singletons, numerator-dominating terms,
+expansion thresholds, trace-log overflow, and induced allocation failures.
+
+The all-family differential finds maximum direct degree three in ten families
+and degree two in seven. Every current lookup interaction is degree three. At a
+representative trace log size, the computed direct bound never exceeds the
+shipped semantic component's declaration, while every computed interaction
+bound exactly equals the real opcode lookup component's declaration. “Degree
+three” is algebraic constraint degree and does not imply cubic-time proving.
+
+A-005 completed in the same ReleaseFast gate. Report format 1 pins 17 families,
+644 independently summed main columns, 3,051 source nodes, 3,049 canonical
+typed nodes, 545 direct roots, 242 ordered lookups, 155 interaction batches,
+620 M31 interaction-coordinate columns, role counts, and all twelve relation
+dependencies. Its TSV and Markdown renderings are checked byte-for-byte from
+the design artifact module. The report validator rejects corrupt order,
+geometry, role/dependency totals, expansion values, and overflow, and both
+writers pass allocation-failure enumeration.
+
+The expanded full ReleaseFast RISC-V package suite passes; its two printed
+register-boundary diagnostics are expected negative-test evidence. No
+production AIR, witness, prover, verifier, transcript, runtime export, or
+formal-extraction path changed. M2 is complete and A-006 activates M3 by
+defining the exact `compat-v1` physical column mapping.
 
 ## Update protocol
 

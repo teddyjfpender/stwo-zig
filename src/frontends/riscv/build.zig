@@ -34,6 +34,13 @@ pub fn build(b: *std.Build) void {
         "stwo_prover_api",
         dependency_options,
     ).module("stwo_prover_api");
+    const typed_air_artifacts = b.createModule(.{
+        .root_source_file = b.path(
+            "../../../design/typed-air/artifacts/embedded.zig",
+        ),
+        .target = target,
+        .optimize = optimize,
+    });
     const frontend = b.addModule("stwo_riscv_frontend", .{
         .root_source_file = b.path("mod.zig"),
         .target = target,
@@ -42,6 +49,9 @@ pub fn build(b: *std.Build) void {
     frontend.addImport("stwo_core", core);
     frontend.addImport("stwo_prover_api", prover_api);
     frontend.addImport("stwo_prover_engine", prover);
+    // Test-only consumers import this name explicitly. Production frontend
+    // modules never reference the design artifact package.
+    frontend.addImport("typed_air_artifacts", typed_air_artifacts);
 
     const tests = b.addTest(.{ .root_module = frontend });
     const run_tests = b.addRunArtifact(tests);

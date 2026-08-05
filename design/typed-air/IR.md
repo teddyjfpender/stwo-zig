@@ -282,6 +282,18 @@ protocol degree. Stable diagnostics render its expression, gate, total, and
 limit alongside the typed source value path. See
 [ADR-0008](decisions/0008-stable-structured-diagnostics.md).
 
+The production-shadow protocol pass then analyzes the exact current lowering.
+Direct placement is already present in each imported root. Relation
+denominators take the maximum degree of their tuple fields; shifted cumulative
+columns and `is_first` are degree one; transcript challenges and claims are
+degree zero; and one- or two-entry batches use the shipped LogUp recurrence.
+It converts final algebraic degree `d` into
+`ceil(log2(max(1, d - 1)))` quotient-expansion bits after vanishing-polynomial
+division. Every current lookup interaction is degree three, while seven direct
+families are degree two and ten are degree three. The complete result and its
+limitations are fixed by [ADR-0011](decisions/0011-complete-protocol-degree-and-pinned-report.md)
+and the [M2 report](artifacts/m2-production-shadow-report-v1.md).
+
 ## Materialization
 
 Materialization introduces a committed witness column `v` and a constraint

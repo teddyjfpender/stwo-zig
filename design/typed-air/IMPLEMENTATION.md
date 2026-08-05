@@ -60,7 +60,7 @@ on stable field and frontend types where representation identity requires it.
 
 ## Phase 2 — shadow adapter and degree auditor
 
-**Status:** active; A-001 symbolic DAG import is the first slice.
+**Status:** complete; A-001 through A-005 satisfy the exit gate.
 
 Adapt the existing production `Builder(symbolic.Scalar)` output into the
 logical IR or a lossless compatibility view. Do not author opcodes in the new
@@ -80,6 +80,10 @@ Implement:
 
 This phase should immediately identify the exact degree of every current root
 without changing one committed column.
+
+The accepted result is pinned in the machine and human views under
+[`artifacts/`](artifacts/README.md). It records 17 independently compiled
+families and independently checks the shipped direct and lookup backend bounds.
 
 **Exit gate:**
 
@@ -288,9 +292,9 @@ Review question: is the logical object sufficient and minimal?
 
 Files:
 
-- `air/lang/import_constraint_program.zig`;
-- `air/lang/degree.zig`;
-- report tests over all families.
+- `air/lang/{shadow_import,shadow_program}.zig`;
+- `air/lang/{degree,protocol_degree,protocol_report}.zig`;
+- byte-pinned report tests over all families.
 
 Review question: does the analyzer describe the complete current program
 without changing it?

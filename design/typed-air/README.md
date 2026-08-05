@@ -58,6 +58,7 @@ correctness merely because its witness generator agrees with it.
 12. [PROGRESS.md](PROGRESS.md) — current state, next actions, and chronological log.
 13. [decisions/README.md](decisions/README.md) — accepted and proposed decisions.
 14. [notes/README.md](notes/README.md) — dated research and implementation notes.
+15. [artifacts/README.md](artifacts/README.md) — reviewed deterministic evidence.
 
 ## Working rules
 
@@ -92,8 +93,11 @@ paths, ordered provisional effects, static calls, relation schemas, canonical
 manifests, semantic identity, and stable diagnostics. Its complete executable
 surface is documented in [AUTHORING.md](AUTHORING.md). A lossless shadow bridge
 now imports and differentially replays every production family while preserving
-independently computed degree. The complete production program boundary now
-also preserves ordered constraints, selectors, lookup metadata, and batching.
-The next seam computes complete row, boundary, and interaction degree; this work
-continues to strengthen and reify the existing path rather than replace the
-prover or rewrite all opcodes.
+independently computed degree. The complete production program boundary also
+preserves ordered constraints, selectors, lookup metadata, and batching. A
+second pass now models the exact direct and pairs-batched LogUp identities,
+boundary terms, and quotient expansion for all 17 families. The versioned
+[M2 production report](artifacts/m2-production-shadow-report-v1.md) pins those
+counts, dependencies, and final degrees. The next seam defines the `compat-v1`
+physical mapping; this work continues to strengthen and reify the existing path
+rather than replace the prover or rewrite all opcodes.
