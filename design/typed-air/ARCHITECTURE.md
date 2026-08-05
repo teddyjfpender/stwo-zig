@@ -168,6 +168,12 @@ Evaluates the lowered program over the same QM31/M31 representations used by
 the current production path. It must preserve constraint and random-coefficient
 order.
 
+The `compat-v1` direct lowerer is an owned, fallible precursor to this layer.
+It maps logical inputs positionally, emits the exact physical column prefix,
+canonicalizes only commutative operand orientation, and preserves ordered
+direct roots. Structural validation occurs before replay or export; see
+[ADR-0013](decisions/0013-fallible-normalized-direct-lowering.md).
+
 ### Witness engine
 
 Evaluates pure expressions, invokes registered hint recipes, handles concrete

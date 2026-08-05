@@ -95,8 +95,8 @@ families and independently checks the shipped direct and lookup backend bounds.
 
 ## Phase 3 — compatibility lowering
 
-**Status:** active; A-006 physical mapping is complete and A-007 direct
-constraint lowering is active.
+**Status:** active; A-006 physical mapping and A-007 direct-constraint lowering
+are complete. A-008 ordered effect lowering is active.
 
 Lower a logical program back into the current `ConstraintProgram` and runtime
 polynomial formats.
@@ -113,6 +113,12 @@ surface. Require:
 
 Then repeat the adapter/lowerer round trip for all existing families while
 still using their current authoring source.
+
+The direct pass now lowers the reachable root closure into an owned, fallible
+six-operation program. An independent normalizer establishes exact node and
+ordered-root equality for all 17 families; randomized M31 replay, corruption,
+malformed-buffer, determinism, and allocation-failure tests provide secondary
+evidence. See [ADR-0013](decisions/0013-fallible-normalized-direct-lowering.md).
 
 **Exit gate:**
 

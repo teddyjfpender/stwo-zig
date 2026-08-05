@@ -169,6 +169,14 @@ nonzero offsets and require exact agreement with the semantic and lookup
 backend capabilities. Logical and physical names are compared as a mapping,
 not assumed equal.
 
+A-007 compares direct lowering against an independent linear-interning
+normalizer rather than sharing the implementation's hash-consing machinery.
+All 17 families require exact normalized node slices and all 545 ordered roots,
+then compare every root again under four deterministic randomized M31
+assignments per family. The owned result separately exercises deterministic
+reconstruction, structural corruption, malformed replay buffers, and induced
+allocation failure.
+
 ## Differential design
 
 Expression comparison should not rely solely on node IDs. Normalize or compare

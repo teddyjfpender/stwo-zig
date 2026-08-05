@@ -3,8 +3,8 @@
 **Status date:** 2026-08-05
 **Branch:** `feat/typed-air-precompiles`
 **Current milestone:** M3 — compatibility lowering
-**Active task:** A-007 — lower direct constraints
-**Next queued task:** A-008 — lower ordered lookup effects
+**Active task:** A-008 — lower ordered lookup effects
+**Next queued task:** A-009 — reproduce runtime polynomial program
 
 ## Dashboard
 
@@ -13,7 +13,7 @@
 | M0 — engineering dossier | complete | This directory and initial ADRs |
 | M1 — validated logical IR | complete | F-001 through F-012 complete and green |
 | M2 — shadow compiler | complete | A-001 through A-005 complete and green |
-| M3 — compatibility lowering | active | A-006 complete; A-007 active |
+| M3 — compatibility lowering | active | A-006 and A-007 complete; A-008 active |
 | M4 — Poseidon compiler pilot | queued | Requires degree/layout passes |
 | M5 — effect and witness pilot | queued | Requires typed schemas and lowering |
 | M6 — guest precompile | queued | Requires Poseidon and ABI ADRs |
@@ -139,13 +139,22 @@
   positions, and agree with real semantic/lookup backend capability geometry.
   The differential exposed and correctly represented logical/physical aliases
   such as `clock` → `clk` rather than joining namespaces by string equality.
+- Completed A-007: the fallible owned direct lowerer validates `compat-v1`,
+  emits the exact main-plus-selector column prefix, lowers only the ordered-root
+  dependency closure, canonicalizes commutative operands, and deterministically
+  expands selection into the production six-operation vocabulary. An
+  independent linear-interning oracle establishes exact normalized node and
+  ordered-root equality for all 17 families and all 545 roots. Four
+  deterministic randomized M31 replays per family agree root by root; repeated
+  lowering, structural corruption, malformed buffers, and every induced DIV
+  allocation failure pass without leaks.
 
 ## Immediate next actions
 
-1. A-007 — lower direct constraints to the current program shape, beginning
-   with LUI.
-2. A-008 — reproduce typed effect ordering and signed lookup entries.
-3. A-009 — reproduce the runtime polynomial program.
+1. A-008 — reproduce typed effect ordering and signed lookup entries,
+   beginning with LUI.
+2. A-009 — reproduce the runtime polynomial program.
+3. A-010 — reproduce the AIR IR v2 projection for LUI.
 
 No production behavior should change in these tasks.
 
@@ -165,6 +174,8 @@ Accepted:
 - Complete current-protocol degree model and pinned M2 report.
 - Explicit local `compat-v1` physical mapping with distinct logical and
   committed names.
+- Fallible normalized direct-constraint lowering with structural identity as
+  the primary compatibility criterion.
 
 Pending:
 
@@ -414,8 +425,32 @@ semantic and opcode-lookup backend capabilities. Corrupted family, selector,
 main, hidden-tail, batch, coordinate, and lookup mappings reject; global index
 overflow rejects. The ReleaseFast package gate and package-boundary audit pass.
 
-No production consumer imports `air/lang`; A-007 is active to lower the LUI
-direct roots through this mapping and compare normalized structure.
+No production consumer imports `air/lang`; at this point A-007 became active to
+lower the LUI direct roots through this mapping and compare normalized
+structure.
+
+### 2026-08-05 — M3 direct constraints lower exactly
+
+A-007 completed with `lower_constraint.zig` and ADR-0013. The pass validates
+the imported shadow and `compat-v1` layout, emits physical main inputs followed
+by the active selector, marks only the ordered direct-root dependency closure,
+and lowers it into an owned copy of the production six-operation node
+vocabulary. Addition and multiplication operands are canonical; selection has
+one deterministic expansion. Construction is fallible and does not depend on
+the production extractor's global panic-on-allocation-failure arena.
+
+The LUI acceptance check was strengthened to every current opcode family. An
+independent normalizer using linear interning produces the exact same node
+slices and 545 ordered roots as the hash-consed lowerer across all 17 families.
+Deterministic randomized replay additionally agrees at every root. Repeated
+LUI construction is byte-structurally stable; malformed programs and replay
+buffers fail closed; allocation-failure enumeration over DIV frees every
+partial owner.
+
+The full ReleaseFast package suite and package-workspace audit pass. The two
+printed register-boundary diagnostics remain expected negative-test evidence.
+No production consumer or proof artifact changed. A-008 is active to reproduce
+LUI's ordered lookup effects and batch boundaries through the same mapping.
 
 ## Update protocol
 

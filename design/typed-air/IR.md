@@ -367,6 +367,15 @@ carries separate logical and committed names because semantic paths such as
 the frozen witness schema, never inferred from logical spelling. See
 [ADR-0012](decisions/0012-compat-v1-local-physical-mapping.md).
 
+Direct constraints lower through that mapping into the production extractor's
+six-operation node vocabulary. The pass emits the complete main-column prefix
+followed by `is_active`, retains only direct-root dependencies, canonicalizes
+commutative operand order, and expands selection as
+`when_false + selector * (when_true - when_false)`. Its owned program validates
+without allocation and replays only after structural validation. Exact
+normalized node and ordered-root equality holds for all 17 current families;
+see [ADR-0013](decisions/0013-fallible-normalized-direct-lowering.md).
+
 ## Validation passes
 
 Before lowering:
