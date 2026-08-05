@@ -8,13 +8,11 @@ pub const descriptor = policy.Descriptor{
         .frontend = .riscv,
         .backend = .cuda,
         .role = .cli,
-        .protocol_features =
-            "rv32im-zkvm-v1+cuda-frontend-admission-v1+execution-unavailable",
+        .protocol_features = "rv32im-zkvm-v1+cuda-frontend-admission-v1+execution-unavailable",
     },
     .state = .unavailable,
     .target_support = .any,
-    .unavailable_reason =
-        "the structural RISC-V CUDA integration is present, but executable " ++
+    .unavailable_reason = "the structural RISC-V CUDA integration is present, but executable " ++
         "AOT and end-to-end proof parity evidence are incomplete",
     .build_step = "stwo-riscv-cuda",
     .test_step = null,

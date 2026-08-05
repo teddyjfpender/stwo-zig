@@ -84,6 +84,11 @@ cannot faithfully lower the PTX. The gate constructs the complete resident
 wide-Fibonacci proof, asserts zero fallback, and independently verifies it in
 Zig.
 
+The authenticated wide-Fibonacci kernel uses 32-bit size and stride arguments
+for the CUDA-to-Metal ABI. The Zig binding validates arena ownership, ranges,
+aliases, shapes, and capacities first, and rejects any geometry that cannot be
+represented as `u32`; no size or stride is truncated at launch.
+
 This tier provides early compiler-compatibility and numerical evidence. It is
 not evidence about NVIDIA occupancy, memory ordering, graph behavior,
 performance, or production readiness.

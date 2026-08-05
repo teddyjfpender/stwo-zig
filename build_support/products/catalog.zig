@@ -245,7 +245,12 @@ pub const configure = [_]Configure{
         .scope = .cuda_tools,
         .role = .backend_tools,
         .product_ids = &.{"stwo-native-cuda-tools"},
-        .module_roots = &.{"build_support/backends/cuda.zig"},
+        .module_roots = &.{
+            "build_support/backends/cuda.zig",
+            "src/tools/cairo_cuda_eval_aot/main.zig",
+            "src/tools/cairo_cuda_witness_aot/main.zig",
+            "src/tools/cairo_witness_cpu_codegen/model.zig",
+        },
         .dependency_module_roots = package_dependencies.frontend_cuda_metal_cpu_protocol_package_roots,
         .allowed_module_files = &.{
             "tests/cuda/cumetal/native_frontend_execution.zig",
@@ -261,8 +266,11 @@ pub const configure = [_]Configure{
         .allowed_module_prefixes = &.{
             "build_support/backends",
             "src/backends/cuda",
+            "src/tools/cairo_cuda_eval_aot",
+            "src/tools/cairo_cuda_witness_aot",
+            "src/tools/cairo_witness_cpu_codegen",
         },
-        .external_tools = &.{ "cargo", "python3" },
+        .external_tools = &.{"python3"},
         .constructors = &.{"backends/cuda_tools.addProducts"},
     },
     .{
