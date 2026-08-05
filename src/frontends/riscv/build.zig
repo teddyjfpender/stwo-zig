@@ -2,7 +2,7 @@ const std = @import("std");
 
 /// Fewest tests this package's test binary must contain.
 ///
-/// Measured on this tree: 485. Zig collects a `test` only from a file it was
+/// Measured on this tree: 494. Zig collects a `test` only from a file it was
 /// made to analyse, so for as long as this step existed it silently compiled 319
 /// of the 461 named tests in the package -- `refAllDecls` in a `mod.zig` does not
 /// pull a file's tests in, and nothing said so. A binary that compiled almost
@@ -13,7 +13,7 @@ const std = @import("std");
 /// `test_inventory_test.zig` fails when a file is missing from that list. This
 /// floor is the backstop for the wiring itself. Raise it deliberately as the
 /// suite grows; never lower it to make a build pass.
-const test_floor = 452;
+const test_floor = 461;
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
