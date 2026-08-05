@@ -2,7 +2,7 @@ const std = @import("std");
 
 /// Fewest tests this package's test binary must contain.
 ///
-/// Measured on this tree: 473. Zig collects a `test` only from a file it was
+/// Measured on this tree: 477. Zig collects a `test` only from a file it was
 /// made to analyse, so for as long as this step existed it silently compiled 319
 /// of the 461 named tests in the package -- `refAllDecls` in a `mod.zig` does not
 /// pull a file's tests in, and nothing said so. A binary that compiled almost
@@ -13,7 +13,7 @@ const std = @import("std");
 /// `test_inventory_test.zig` fails when a file is missing from that list. This
 /// floor is the backstop for the wiring itself. Raise it deliberately as the
 /// suite grows; never lower it to make a build pass.
-const test_floor = 440;
+const test_floor = 444;
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
@@ -72,6 +72,33 @@ pub fn build(b: *std.Build) void {
         "Compile and test the stwo_riscv_frontend package",
     );
     test_step.dependOn(TestCountFloor.add(b, run_tests, test_floor));
+
+    const manifest_mode = b.option(
+        []const u8,
+        "typed-air-manifest-mode",
+        "Compatibility artifact mode: check (default) or update",
+    ) orelse "check";
+    const manifest_tool_root = b.createModule(.{
+        .root_source_file = b.path("compat_manifest_tool.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    manifest_tool_root.addImport("stwo_core", core);
+    manifest_tool_root.addImport("stwo_prover_engine", prover);
+    const manifest_tool = b.addExecutable(.{
+        .name = "riscv-typed-air-manifest",
+        .root_module = manifest_tool_root,
+    });
+    const run_manifest_tool = b.addRunArtifact(manifest_tool);
+    run_manifest_tool.setCwd(.{ .cwd_relative = b.pathFromRoot("../../..") });
+    run_manifest_tool.addArgs(&.{
+        manifest_mode,
+        "design/typed-air/artifacts/m3-compat-v1",
+    });
+    b.step(
+        "typed-air-manifest",
+        "Check or explicitly update typed-AIR compatibility artifacts",
+    ).dependOn(&run_manifest_tool.step);
 
     addFocusedTests(b, core, target, optimize, check_only, .{
         .step = "test-isa",

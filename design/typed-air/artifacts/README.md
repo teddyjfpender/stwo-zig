@@ -17,3 +17,37 @@ therefore fails the golden comparison until the versioned artifact is
 deliberately reviewed and regenerated. The report
 describes the current production program imported in shadow mode; it does not
 authorize a generated lowering or alter production proving behavior.
+
+## M3 `compat-v1` family manifests
+
+- [`m3-compat-v1/index-v1.tsv`](m3-compat-v1/index-v1.tsv) is the readable
+  family-ordered whole-manifest, source/semantic, layout, runtime, degree, and
+  formal digest index together with geometry, export counts, and maximum
+  degrees.
+- `m3-compat-v1/*.stwairc` are the 17 canonical section-framed binary
+  identities described by
+  [ADR-0017](../decisions/0017-sectioned-compatibility-manifests.md).
+
+Each `STWAIRC\0` version-1 binary has seven ordered, length-framed sections:
+identity, physical layout, direct runtime program and roots, lookup runtime
+program/events/batches, complete degree analysis, hint recipes, and formal AIR
+IR v2 exports. Direct and lookup runtime bodies are embedded exactly. Formal
+entries retain opcode, mnemonic, byte length, and SHA-256 after the typed and
+production emitters have compared the complete AIR IR body byte for byte.
+
+The package suite regenerates and byte-compares every file in memory. Run the
+same fail-closed check directly with:
+
+```sh
+zig build typed-air-manifest --build-file src/frontends/riscv/build.zig \
+  -Doptimize=ReleaseFast
+```
+
+An intentional reviewed replacement uses the same command with
+`-Dtyped-air-manifest-mode=update`. Update mode writes atomically and never runs
+from an ordinary test. During allocation-failure testing, the legacy production
+symbolic builder uses stable scratch storage while every allocation introduced
+by the runtime/receipt result boundary is exhaustively failed and cleaned up.
+Normal generation uses one allocator. These receipts remain compatibility
+evidence, not a production activation or proof-protocol change. Field-aware
+first-divergence reporting is the separate A-012 tool.

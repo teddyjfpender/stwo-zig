@@ -1,7 +1,7 @@
 # Implementation plan
 
 **Status:** executable delivery plan
-**Last updated:** 2026-08-04
+**Last updated:** 2026-08-05
 
 ## Delivery method
 
@@ -95,8 +95,8 @@ families and independently checks the shipped direct and lookup backend bounds.
 
 ## Phase 3 — compatibility lowering
 
-**Status:** active; A-006 through A-010 are complete. A-011 complete-family
-round-trip receipts are active.
+**Status:** active; A-006 through A-011 are complete. A-012 field-aware layout
+diffing is active before the clean-tree M3 receipt.
 
 Lower a logical program back into the current `ConstraintProgram` and runtime
 polynomial formats.
@@ -138,6 +138,19 @@ source-schedule provenance, derives roles and event projections, and delegates
 encoding to the existing AIR IR v2 writer. Its output is byte-identical for LUI
 and every opcode-manifest entry; see
 [ADR-0016](decisions/0016-source-bound-air-ir-v2-compatibility.md).
+
+The all-family receipt pass emits one canonical `STWAIRC\0` version-1 artifact
+for each of the 17 production families plus a family-ordered TSV index. Seven
+framed sections bind authority revisions, exact physical layout, complete
+direct and lookup runtime bodies, event and batch metadata, complete degree
+records, hint recipes, and every exact-checked AIR IR v2 export. The package
+suite rebuilds and byte-compares all artifacts; a standalone command defaults
+to fail-closed check and permits only explicit atomic update. Result/scratch
+allocator separation makes every new encoding allocation exhaustively
+failure-testable without changing the legacy symbolic builder's panic-on-OOM
+contract. See
+[ADR-0017](decisions/0017-sectioned-compatibility-manifests.md) and the
+[M3 artifact index](artifacts/m3-compat-v1/index-v1.tsv).
 
 **Exit gate:**
 
@@ -331,9 +344,10 @@ without changing it?
 
 Files:
 
-- `air/lang/{layout,manifest,lower_constraint}.zig`;
-- LUI exact-diff tests;
-- AIR IR/runtime export comparison.
+- `air/lang/{compat_layout,lower_constraint,lower_lookup}.zig`;
+- `air/lang/{lower_runtime,lower_air_ir,compat_manifest}.zig`;
+- exact all-family runtime and AIR IR export comparisons; and
+- 17 byte-pinned family receipts with check/update tooling.
 
 Review question: can the new middle layer be observationally invisible?
 

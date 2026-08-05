@@ -34,12 +34,12 @@ shape, authoring model, or delivery order.
 | [0014](0014-role-normalized-ordered-lookup-lowering.md) | Role-normalized ordered lookup lowering | accepted |
 | [0015](0015-validated-canonical-runtime-export.md) | Validated canonical runtime export | accepted |
 | [0016](0016-source-bound-air-ir-v2-compatibility.md) | Source-bound AIR IR v2 compatibility | accepted |
+| [0017](0017-sectioned-compatibility-manifests.md) | Sectioned `compat-v1` family manifests | accepted |
 
 ## Pending ADRs
 
 - Guest precompile invocation ABI and relationship to the RV32IM profile.
 - Guest Poseidon relation domain/version and duplicate-call policy.
-- Canonical physical layout manifest serialization format.
 - Production activation criteria for generated witness writers.
 - Cross-proof relation-summary construction.
 - Recursive verifier field and proof protocol.

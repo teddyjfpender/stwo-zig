@@ -1,7 +1,7 @@
 # Validation and evidence plan
 
 **Status:** required gate design
-**Last updated:** 2026-08-04
+**Last updated:** 2026-08-05
 
 ## Principle
 
@@ -123,6 +123,18 @@ zig build riscv-refinement-ir \
   -Driscv-refinement-ir-dir=zig-out/family-air
 ```
 
+Typed-AIR compatibility artifact check:
+
+```sh
+zig build typed-air-manifest \
+  --build-file src/frontends/riscv/build.zig \
+  -Doptimize=ReleaseFast
+```
+
+An intentional reviewed replacement adds
+`-Dtyped-air-manifest-mode=update`. Check is the default; tests never select
+update mode.
+
 Lean source build:
 
 ```sh
@@ -147,20 +159,22 @@ For each component, retain a machine-readable manifest with:
 - formal/runtime program identity; and
 - source revision.
 
-Golden checks have two commands:
+Golden artifact tooling has two explicit modes:
 
 - `check` regenerates in memory and requires byte identity;
-- `update` writes a proposed artifact and prints a semantic diff.
+- `update` atomically writes a proposed artifact.
 
 Tests never update goldens automatically. A reviewer must be able to see why
-every changed column or event moved.
+every changed column or event moved. A-012 adds the field-aware semantic diff
+used for that review; until it lands, the check command fails closed with file
+lengths and SHA-256 identities.
 
-M2 establishes the check half of this contract: the package test renders
+M2 established the report check half of this contract: the package test renders
 [`m2-production-shadow-report-v1.tsv`](artifacts/m2-production-shadow-report-v1.tsv)
 and its [readable view](artifacts/m2-production-shadow-report-v1.md) in memory
-and requires byte identity. A deliberate update command and semantic layout
-diff remain A-012 work; `compat-v1` now supplies the physical mapping they will
-compare.
+and requires byte identity. A-011 adds the explicit family-manifest check/update
+command. The semantic layout diff remains A-012 work; `compat-v1` supplies the
+physical mapping and sectioned wire object it will compare.
 
 A-006 additionally reconstructs the existing Sail-authoritative witness-layout
 digest from `compat-v1` descriptors and compares every physical name directly
@@ -198,6 +212,27 @@ selector-to-one placement, source node numbering/orientation, column roles,
 event ordinals, opcode projection, and fixed-table metadata, then uses the one
 existing encoder. LUI is the acceptance floor; every manifest opcode is tested.
 Digest-bound raw provenance corruption and allocation failure are negatives.
+
+A-011 emits 17 separately reviewable `STWAIRC\0` version-1 manifests in
+production-family order. Their seven framed sections carry authority and
+source identities, all physical column descriptors, complete direct and lookup
+runtime bytes, named roots, typed event and physical batch metadata, final
+degree records, hint recipes, and formal export identities. Runtime ownership
+is revalidated before serialization. Every formal entry is admitted only after
+the typed and production AIR IR v2 bodies compare byte for byte, then records
+its opcode, mnemonic, exact byte length, and SHA-256. The aggregate TSV index
+pins each whole manifest and its source/semantic, layout, runtime, degree, and
+formal digests together with geometry, export counts, and maximum direct and
+interaction degree.
+
+The package suite regenerates all 17 binaries and the index in memory and
+requires exact bytes from the embedded checked artifacts. Separate determinism
+and family-order negatives fail closed. Allocation testing uses a stable scratch
+allocator for the legacy panic-on-OOM production symbolic builder and injects
+failure at every allocation owned by new runtime/receipt results, requiring all
+partial owners to deinitialize. The standalone command exposes default `check`
+and explicit atomic `update`; see
+[ADR-0017](decisions/0017-sectioned-compatibility-manifests.md).
 
 ## Differential design
 

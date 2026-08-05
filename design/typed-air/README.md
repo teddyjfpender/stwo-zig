@@ -107,6 +107,12 @@ lowering likewise reproduces all 242 events and 155 physical batches while
 binding role signs to normalized liveness. Both direct and lookup programs now
 export exactly into the existing backend-neutral runtime capability shapes.
 The selector-specialized formal path also reproduces AIR IR v2 byte for byte
-for every opcode-manifest entry. The next seam packages all-family compatibility
-identities and round-trip receipts; this work continues to strengthen and reify
-the existing path rather than replace the prover or rewrite all opcodes.
+for every opcode-manifest entry. Seventeen canonical `STWAIRC\0` v1 family
+manifests now bind the source schedule, semantic identity, exact physical
+layout, embedded direct and lookup runtime programs, complete degree records,
+hint identities, and exact-checked formal exports. Their
+[family-ordered index and binary artifacts](artifacts/README.md) are regenerated
+and byte-compared by the package suite, with an explicit fail-closed check and
+review-only atomic update command. A-012 is adding field-aware first-difference
+diagnostics over this format. This work continues to strengthen and reify the
+existing path rather than replace the prover or rewrite all opcodes.

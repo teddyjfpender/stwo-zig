@@ -1,7 +1,7 @@
 # Canonical typed IR
 
 **Status:** design specification, version 0
-**Last updated:** 2026-08-04
+**Last updated:** 2026-08-05
 
 ## Purpose
 
@@ -400,6 +400,27 @@ typed graph and retains source IDs for all ordered roots. Formal lowering
 replays that provenance, derives roles/projections, and calls the existing JSON
 writer. Raw numbering is legacy wire identity, never logical semantic identity;
 see [ADR-0016](decisions/0016-source-bound-air-ir-v2-compatibility.md).
+
+The accepted compatibility identity is the section-framed `STWAIRC\0` format
+version 1. One artifact for each of the 17 production families records seven
+ordered sections: authority identity, physical layout, direct runtime program,
+lookup runtime program and events, complete degree analysis, hint recipes, and
+formal AIR IR v2 exports. Runtime program bytes are carried in full alongside
+their domain-separated digests. Each formal entry records opcode identity,
+exact byte length, and SHA-256 only after the typed and production AIR IR bodies
+compare byte for byte. Fixed-width little-endian integers, explicit stable enum
+tags, and length-framed strings and sections make host representation irrelevant.
+The family-ordered TSV index exposes whole-artifact and section identities,
+geometry, export counts, and maximum degrees for review. See
+[ADR-0017](decisions/0017-sectioned-compatibility-manifests.md) and the
+[checked M3 artifacts](artifacts/README.md).
+
+Receipt generation deliberately separates result and scratch allocation. The
+legacy production symbolic builder retains its established panic-on-OOM
+contract on stable scratch storage; exhaustive failure injection applies to
+every allocation introduced by runtime ownership and manifest encoding. Normal
+callers pass one allocator for both. This boundary does not weaken ordinary
+ownership or deterministic-byte requirements.
 
 ## Validation passes
 

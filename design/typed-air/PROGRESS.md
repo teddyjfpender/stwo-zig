@@ -3,8 +3,8 @@
 **Status date:** 2026-08-05
 **Branch:** `feat/typed-air-precompiles`
 **Current milestone:** M3 — compatibility lowering
-**Active task:** A-011 — round-trip every current family
-**Next queued task:** A-012 — add layout diff helper
+**Active task:** A-012 — add layout diff helper
+**Next queued task:** V-008 — record the clean-tree M3 milestone receipt
 
 ## Dashboard
 
@@ -13,7 +13,7 @@
 | M0 — engineering dossier | complete | This directory and initial ADRs |
 | M1 — validated logical IR | complete | F-001 through F-012 complete and green |
 | M2 — shadow compiler | complete | A-001 through A-005 complete and green |
-| M3 — compatibility lowering | active | A-006 through A-010 complete; A-011 active |
+| M3 — compatibility lowering | active | A-006 through A-011 complete; A-012 active |
 | M4 — Poseidon compiler pilot | queued | Requires degree/layout passes |
 | M5 — effect and witness pilot | queued | Requires typed schemas and lowering |
 | M6 — guest precompile | queued | Requires Poseidon and ABI ADRs |
@@ -174,12 +174,27 @@
   LUI and every opcode-manifest entry are byte-identical to production. Source
   orientation corruption and every induced DIV allocation failure reject or
   clean up.
+- Completed A-011: one canonical `STWAIRC\0` version-1 receipt for each of the
+  17 production families binds authority and source revisions, semantic
+  identity, exact physical columns, complete direct and lookup runtime bodies,
+  named roots and ordered events/batches, full protocol degree records, hint
+  recipes, and every formal opcode export. Typed and production AIR IR v2
+  bodies compare byte for byte before their lengths and digests enter the
+  receipt. A family-ordered TSV index exposes whole-manifest, source/semantic,
+  layout, runtime, degree, and formal digests with geometry, export counts, and
+  maximum degrees. The package suite
+  regenerates and compares all 18 files exactly; deterministic generation,
+  reordered-family rejection, and exhaustive result-allocation failure pass.
+  The explicit tool defaults to fail-closed check and reserves atomic update
+  for reviewed replacements. The legacy symbolic builder remains on stable
+  scratch storage during failure injection, preserving its panic-on-OOM
+  contract while testing every new owning boundary.
 
 ## Immediate next actions
 
-1. A-011 — package all-family compatibility identities and round-trip receipts.
-2. A-012 — add the first-difference layout/report helper.
-3. V-008 — record a clean-tree M3 milestone receipt once both are complete.
+1. A-012 — add the first-field semantic/layout divergence helper.
+2. V-008 — record a clean-tree M3 milestone receipt with manifest digests.
+3. H-001 — begin typed fixed-size arrays, maps, and folds after M3 closes.
 
 No production behavior should change in these tasks.
 
@@ -207,12 +222,13 @@ Accepted:
   owners.
 - Digest-bound source-schedule compatibility for selector-specialized AIR IR v2
   with one JSON encoding authority.
+- Section-framed `STWAIRC\0` v1 family receipts with exact runtime bodies,
+  exact-checked formal identities, and a readable aggregate index.
 
 Pending:
 
 - guest invocation ABI;
 - guest Poseidon relation schema/version;
-- canonical physical-layout manifest format;
 - generated witness activation policy;
 - cross-proof relation summary;
 - recursive verifier field/protocol.
@@ -554,6 +570,34 @@ receipt before export, and induced DIV allocation failures free the reconstructe
 arena. ReleaseFast and ReleaseSafe package suites are green with expected
 negative diagnostics. No formal artifact or production consumer changed. A-011
 is active to package complete all-family identities and receipts.
+
+### 2026-08-05 — M3 all-family compatibility receipts pinned
+
+A-011 completed with `compat_manifest.zig` and ADR-0017. Each production-family
+enum value now owns one canonical `STWAIRC\0` version-1 binary. Seven ordered,
+length-framed sections bind authority revisions and source schedule, exact
+preprocessed/main/interaction layout, embedded direct and lookup runtime
+programs, named roots and ordered relation events/batches, complete protocol
+degree records, hint recipes, and every opcode's formal export identity.
+Runtime programs are validated against the typed lowerings. Every formal body
+is compared byte for byte with the production AIR IR v2 emitter before its
+length and SHA-256 are recorded.
+
+The checked artifact set contains 17 family binaries and one enum-ordered TSV
+index exposing whole-manifest, source/semantic, layout, runtime, degree, and
+formal digests with geometry, export count, and maximum direct/interaction
+degree. Package tests regenerate and compare every
+file exactly, reject reordered family summaries, and prove deterministic DIV
+generation. A dedicated allocation-failure sweep holds the legacy production
+symbolic builder on stable scratch storage while failing every allocation in
+the new runtime and receipt result boundary. The standalone
+`typed-air-manifest` build step defaults to fail-closed check; explicit update
+publishes replacements atomically.
+
+This receipt is compatibility evidence only: it changes no production consumer,
+proof protocol, witness authority, or formal artifact. A-012 is now active to
+parse the framed identity and report the first named semantic or layout
+divergence; V-008 follows with the clean-tree M3 receipt.
 
 ## Update protocol
 

@@ -14,6 +14,10 @@ const symbolic = @import("../extract/symbolic.zig");
 const types = @import("types.zig");
 const validate = @import("validate.zig");
 
+pub const source_schedule_digest_version: u16 = 1;
+pub const source_schedule_digest_domain =
+    "stwo-zig/typed-air/source-schedule-v1";
+
 pub const ImportError = error{
     DuplicateSymbolicColumn,
     DuplicateSymbolicColumnName,
@@ -284,7 +288,7 @@ pub fn import(
 
 fn sourceScheduleDigest(nodes: []const symbolic.Node) [32]u8 {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    hash.update("stwo-zig/typed-air/source-schedule-v1");
+    hash.update(source_schedule_digest_domain);
     var count_bytes: [8]u8 = undefined;
     std.mem.writeInt(u64, &count_bytes, nodes.len, .little);
     hash.update(&count_bytes);
