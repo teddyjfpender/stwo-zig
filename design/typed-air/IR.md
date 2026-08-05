@@ -339,6 +339,31 @@ source stage, round constant, square chain, and final output root. The policy
 boundary and version rules are fixed by
 [ADR-0018](decisions/0018-degree-bounded-materialization-and-compatibility-order.md).
 
+## Compiled witness and relation plans
+
+Physical consumers do not interpret an untrusted `ValueId` list. The Poseidon
+witness constructor first revalidates the semantic arena, degree-bounded plan,
+and complete compatibility binding, then compiles the canonical output closure
+into owned topological field instructions. It retains explicit input and
+materialization slot maps plus the authority identities needed to reconstruct
+and compare that executable projection after an ownership boundary.
+
+Execution preflights the instruction structure, canonical SHA-256 projection,
+trace shape, and every input/destination address range before the first write.
+After that boundary it is infallible and allocation-free: padding is zeroed and
+logical rows are evaluated directly into bit-reversed final column storage.
+One plan owns one mutable scratch vector, so it is deliberately non-reentrant.
+
+Relation lowering is a separate authenticated plan. Compatibility version 1
+contains four request events—input, narrow output, wide output, and atomic
+input/output—in two fixed pairs-batches. It preserves the signed mode/enabler
+formulas, sixteen- or thirty-two-field denominator ABI, semantic projections,
+eight interaction columns, and two claims. Bulk generation authenticates once
+before using private allocation-free row kernels. A carried narrow output is
+only an interaction optimization; cancellation with the Merkle counterpart and
+validation against the committed main row remain its proof binding. See
+[ADR-0019](decisions/0019-authenticated-witness-and-relation-plans.md).
+
 An experimental cost policy may later consider commitment, evaluation, and
 backend costs, but it emits a proposal and cost report. It does not silently
 replace the accepted protocol layout.

@@ -3,8 +3,8 @@
 **Status date:** 2026-08-05
 **Branch:** `feat/typed-air-precompiles`
 **Current milestone:** M4 — Poseidon compiler pilot
-**Active task:** H-005 — direct-to-final-storage witness generation
-**Next ready task:** H-006 — reproduce Poseidon relations and claims
+**Active task:** H-007 — real CPU and Metal generated-artifact proof equivalence
+**Next queued task:** H-009 — cost-aware materialization policy experiment
 
 ## Dashboard
 
@@ -14,7 +14,7 @@
 | M1 — validated logical IR | complete | F-001 through F-012 complete and green |
 | M2 — shadow compiler | complete | A-001 through A-005 complete and green |
 | M3 — compatibility lowering | blocked | [V-008 evidence](receipts/m3-compatibility-v1.json) recorded; broad proof/formal gates open |
-| M4 — Poseidon compiler pilot | active | H-001 through H-004 complete; H-005 active |
+| M4 — Poseidon compiler pilot | active | H-001 through H-006 and H-008 complete; H-007 active |
 | M5 — effect and witness pilot | queued | Requires typed schemas and lowering |
 | M6 — guest precompile | queued | Requires Poseidon and ABI ADRs |
 | M7 — parallel proving | queued | Requires working component |
@@ -229,6 +229,33 @@
   states match production in every physical slot; one-at-a-time mutation of
   every production temporary constraint rejects. Ten named tests also reject
   schedule, dependency, source, role, and complete-triple ordering attacks.
+- Completed H-005: an authenticated compiler owns the canonical typed Poseidon
+  output closure as 2,171 compact instructions plus reusable M31 scratch. It
+  evaluates directly into all 445 caller-owned, bit-reversed final columns,
+  zeroes padding, and allocates nothing during execution. Shape, call count,
+  address overflow, input/destination aliasing, instruction structure, the
+  canonical executable digest, and all input/materialization slots validate
+  before mutation. Independent canonical recompilation reauthenticates a
+  transported executor. Nine named tests establish exact narrow/wide/I/O and
+  randomized production equality, guards, fail-before-mutation corruption
+  rejection, and exhaustive construction-allocation cleanup.
+- Completed H-006: a separately versioned authenticated relation plan fixes the
+  four current Poseidon request events, their signed mode/enabler numerators,
+  semantic projections and ABI arities, the exact two batches, eight
+  bit-reversed interaction columns, and two claims. Bulk generation
+  authenticates once before allocation-free row kernels. Six named tests match
+  production entries, pairs, padding, columns, and claims; reject tuple, mode,
+  multiplicity, order, role, domain, geometry, column, and claim forgeries; and
+  show that a mismatched carried narrow output cannot close against the Merkle
+  counterpart or committed row.
+- Completed H-008: a canonical 37-field machine projection and concise human
+  view trace every one of 426 physical slots to its distinct generic plan ID,
+  semantic value/path/source span, dependencies, degrees, policy identities,
+  constraint ordinal, and column. Its golden SHA-256 is
+  `33eadd080a715fe09d1b3ed3ad8abc18cb35f71e56895e6ac62810a1dfeb0ef2`.
+  Four named tests pin complete coverage and field order, deterministic
+  cross-allocation replay, corruption-before-output, writer failure, and
+  exhaustive validation-allocation cleanup.
 - Completed V-008: the machine-readable
   [M3 receipt](receipts/m3-compatibility-v1.json) names the clean detached
   `7cdf41d5b246baf845adeb99d02444d9a6090514` snapshot, exact toolchain,
@@ -241,11 +268,12 @@
 
 ## Immediate next actions
 
-1. H-005 — generate the compatibility witness directly into final storage.
-2. H-006 — reproduce Poseidon relation events, interaction claims, and forged
-   relation rejection.
-3. H-008 — render the complete source-to-materialization diagnostic map while
-   H-005 and H-006 remain isolated implementation lanes.
+1. H-007 — commit H-005 main and H-006 interaction artifacts inside real CPU
+   and Metal proofs and independently verify both without fallback.
+2. Review the generated-witness production-activation policy only after that
+   proof evidence exists; shadow equality alone is insufficient.
+3. H-009 — if H-007 closes, prototype a separately identified cost-aware
+   materialization policy and complete cost vector without activation.
 
 No production behavior should change in these tasks.
 
@@ -278,6 +306,10 @@ Accepted:
 - Root-scoped degree-bounded materialization with a separately versioned,
   fully revalidated Poseidon compatibility order, as fixed by
   [ADR-0018](decisions/0018-degree-bounded-materialization-and-compatibility-order.md).
+- Authenticated, reconstructible compiled witness and relation plans with
+  fail-before-mutation final-storage execution, as fixed for shadow
+  compatibility by
+  [ADR-0019](decisions/0019-authenticated-witness-and-relation-plans.md).
 
 Pending:
 
@@ -302,6 +334,8 @@ Pending:
 | Hint callback or output drifts silently | Closed versioned registry and checked proof paths |
 | Broad production proof gate is red | V-008 records exact rigidity findings; no release promotion |
 | Formal generated artifacts are stale | Refinement pilot fails closed on five named files; reviewed workflow required |
+| Compiled witness drifts after binding | Executable digest, structural preflight, and independent canonical recompilation |
+| Shadow equality is mistaken for proof evidence | H-007 requires generated artifacts inside CPU/Metal proofs before promotion |
 
 ## Baseline metrics
 
@@ -316,6 +350,13 @@ The canonical Poseidon2 compatibility geometry is now measured as 445 main
 columns containing 426 materialized values: 410 degree-required cuts and
 sixteen forced outputs. All emitted materialization equalities have maximum
 final degree three under their explicit activation context.
+
+The witness compiler evaluates 2,171 owned instructions into those columns
+with one reusable scratch vector and no execution allocation. Poseidon relation
+geometry is four ordered events in two batches, two QM31 cumulative sums, and
+eight committed M31 interaction columns. The H-008 426-record report binds this
+surface to the golden SHA-256
+`33eadd080a715fe09d1b3ed3ad8abc18cb35f71e56895e6ac62810a1dfeb0ef2`.
 
 The following measurements remain assigned to their later owning milestones;
 they are not prerequisites for closing the opcode shadow compiler:
@@ -723,6 +764,32 @@ This is still shadow evidence. It does not generate production witness rows,
 activate generated constraints, close Poseidon relations, prove CPU/Metal
 equivalence, or establish any proving-time improvement. Those obligations begin
 with H-005 and H-006.
+
+### 2026-08-05 — M4 witness, relations, and diagnostics reproduced
+
+H-005, H-006, and H-008 complete the remaining shadow data path from the pure
+typed graph to the current Poseidon main and interaction geometry. The witness
+compiler owns an authenticated 2,171-instruction closure and reusable scratch,
+then writes all 445 bit-reversed columns directly into final storage with zero
+padding and no execution allocation. Every fallible structural, digest, shape,
+and alias check precedes mutation; canonical recompilation detects a transported
+executor whose instructions or 426-slot mapping changed.
+
+The relation plan independently fixes four signed request events, two batches,
+eight interaction columns, and two claims. Honest narrow, wide, I/O, padding,
+and carried-output cases agree exactly with production. Targeted tuple, mode,
+multiplicity, ordering, geometry, column, and claim forgeries reject, and a
+wrong carried output cannot close against the honest Merkle counterpart. The
+canonical diagnostic stream exposes 37 ordered fields for all 426 slots and is
+pinned by SHA-256
+`33eadd080a715fe09d1b3ed3ad8abc18cb35f71e56895e6ac62810a1dfeb0ef2`.
+
+The RISC-V package now compiles 694 tests: 693 pass and one is intentionally
+skipped. All nineteen new H-005/H-006/H-008 named tests pass in Debug,
+ReleaseSafe, and ReleaseFast, with only the two expected register-boundary
+negative diagnostics. This remains non-production evidence. H-007 must commit
+the generated artifacts inside real CPU and Metal proofs and independently
+verify them before the pilot can claim proof-path equivalence.
 
 ## Update protocol
 

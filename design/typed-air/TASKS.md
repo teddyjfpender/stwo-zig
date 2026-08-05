@@ -77,10 +77,10 @@ first production milestone. `P2` improves breadth or optimization.
 | H-002 | P0 | Author pure M31 Poseidon2 permutation | H-001, A-003 | Output matches current permutation vectors | done |
 | H-003 | P0 | Implement deterministic degree-three materializer | H-002, A-006 | Every lowered constraint within bound; stable allocation | done |
 | H-004 | P0 | Reproduce 426 existing materializations | H-003 | Current 445-column layout and constraint order exact | done |
-| H-005 | P0 | Generate direct-to-final-storage witness | H-004, F-008 | Byte-identical rows; no per-row allocation | active |
-| H-006 | P0 | Reproduce Poseidon relations and claims | H-004, F-006 | Honest and forged relation tests match current behavior | ready |
-| H-007 | P0 | Run real CPU and Metal proof equivalence | H-005, H-006 | Independent verification succeeds on both admitted backends | queued |
-| H-008 | P1 | Add source-to-materialization diagnostics | H-003, F-009 | All 426 columns trace to semantic source paths | ready |
+| H-005 | P0 | Generate direct-to-final-storage witness | H-004, F-008 | Byte-identical rows; no per-row allocation | done |
+| H-006 | P0 | Reproduce Poseidon relations and claims | H-004, F-006 | Honest and forged relation tests match current behavior | done |
+| H-007 | P0 | Run real CPU and Metal proof equivalence | H-005, H-006 | Independent verification succeeds on both admitted backends | active |
+| H-008 | P1 | Add source-to-materialization diagnostics | H-003, F-009 | All 426 columns trace to semantic source paths | done |
 | H-009 | P2 | Prototype cost-aware materialization policy | H-007 | Separate manifest and cost report; no production activation | queued |
 | H-010 | P2 | Benchmark compatibility and proposed layouts | H-009 | Verified measurements under PERFORMANCE.md | queued |
 

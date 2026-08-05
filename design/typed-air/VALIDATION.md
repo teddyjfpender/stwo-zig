@@ -248,6 +248,25 @@ named `layout.main[16].physical_name`, update rendered the same difference
 before atomic repair, and the following check passed. Invalid magic was
 attributed to `actual/on-disk` at `header.magic`.
 
+H-005, H-006, and H-008 add the Poseidon-specific V1/V2 bridge. H-005 compiles the
+authenticated typed closure independently of the production witness generator
+and compares all 445 final columns across every mode, deterministic randomized
+traces, bit-reversed placement, and zero padding. Shape, alias, executable, and
+slot corruptions must fail before a sentinel destination changes; construction
+is swept under allocation failure. H-006 independently derives four relation
+entries, two pairs, eight interaction columns, and two claims, then compares
+each with production and rejects tuple, mode, multiplicity, order, role,
+domain, geometry, column, claim, and carried-output forgeries. H-008 binds all
+426 generic/physical identities in a canonical 37-field report with golden
+SHA-256
+`33eadd080a715fe09d1b3ed3ad8abc18cb35f71e56895e6ac62810a1dfeb0ef2`.
+
+These gates establish shadow witness and relation equality, not V3 proof-path
+equivalence. H-007 must commit the generated main and interaction artifacts
+inside real CPU and Metal proofs and independently verify them; proving the
+unchanged production artifacts after an out-of-band equality assertion is not
+sufficient.
+
 ## Differential design
 
 Expression comparison should not rely solely on node IDs. Normalize or compare

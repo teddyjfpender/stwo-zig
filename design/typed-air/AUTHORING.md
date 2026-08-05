@@ -28,6 +28,9 @@ below are compiled by
 | `typed_poseidon2` | Pure width-16 M31 Poseidon2 pilot definition; no constraints or layout |
 | `degree3_materializer` | Root-scoped versioned degree-three cuts, dependencies, identities, and validation |
 | `typed_poseidon2_compat` | Authenticated mapping from generic cuts to the current 426-slot Poseidon layout |
+| `typed_poseidon2_witness` | Authenticated compiled evaluator that writes the 445-column compatibility trace directly into final storage |
+| `typed_poseidon2_relations` | Authenticated four-event/two-batch Poseidon relation, interaction, and claim lowering |
+| `materialization_diagnostics` | Canonical 426-record source, plan, degree, constraint, and physical-placement report |
 
 Import `air/lang/mod.zig` and use these namespaces. Callers should not mutate
 arena storage directly; public fields currently exist so corruption tests can
@@ -44,12 +47,23 @@ prove the validator is independent of constructors.
 6. Call `validate.validate` before treating the program as complete.
 7. Derive degree reports, diagnostics, manifests, and semantic digests from the
    validated arena.
-8. Call `deinit` exactly once. Views and IDs remain scoped to that arena.
+8. At a physical consumer boundary, validate the H-003 materialization plan and
+   H-004 binding before compiling witness or relation plans. Reauthenticate an
+   owned plan after transport or mutation-capable ownership transfer.
+9. Preflight final storage before witness execution; one executor owns mutable
+   scratch and is not reentrant. Bulk relation generation authenticates once
+   and then uses allocation-free row kernels.
+10. Call `deinit` exactly once. Views and IDs remain scoped to their arena or
+    owning compiled plan.
 
 Construction methods are transactional under allocation failure. A returned
 borrowed slice is valid only until the corresponding pool grows or the arena is
 deinitialized. Do not retain caller-owned strings: the arena copies stable names
-and source paths.
+and source paths. The Poseidon executor writes directly into caller-owned
+bit-reversed column storage, allocates nothing during execution, and rejects
+shape, alias, instruction, and slot corruption before the first mutation. These
+interfaces remain shadow-only under
+[ADR-0019](decisions/0019-authenticated-witness-and-relation-plans.md).
 
 ## Minimal pure component
 

@@ -36,6 +36,7 @@ shape, authoring model, or delivery order.
 | [0016](0016-source-bound-air-ir-v2-compatibility.md) | Source-bound AIR IR v2 compatibility | accepted |
 | [0017](0017-sectioned-compatibility-manifests.md) | Sectioned `compat-v1` family manifests | accepted |
 | [0018](0018-degree-bounded-materialization-and-compatibility-order.md) | Degree-bounded materialization and Poseidon compatibility order | accepted |
+| [0019](0019-authenticated-witness-and-relation-plans.md) | Authenticated witness and relation execution plans | accepted |
 
 ## Pending ADRs
 

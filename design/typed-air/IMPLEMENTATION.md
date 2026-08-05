@@ -170,9 +170,9 @@ bytes fail closed.
 
 ## Phase 4 — pure Poseidon2 compiler pilot
 
-**Status:** active in the isolated authoring kernel; H-001 through H-004 are
-complete in shadow mode, while generated witness and relation work remain
-non-production.
+**Status:** active in the isolated authoring kernel; H-001 through H-006 and
+H-008 are complete in shadow mode, while real generated-artifact proof
+equivalence remains open.
 
 Author the M31 Poseidon2 permutation as typed pure functions.
 
@@ -198,6 +198,18 @@ lane-major slots. Its owned binding retains the semantic program, policy,
 activation context, and plan identity needed for later witness and constraint
 consumers to reauthenticate the result. See
 [ADR-0018](decisions/0018-degree-bounded-materialization-and-compatibility-order.md).
+
+The witness compiler authenticates that binding, owns a 2,171-instruction
+closure and reusable scratch, and writes the exact 445-column bit-reversed
+trace directly into caller-owned final storage without per-row allocation. Its
+fallible shape, alias, executable-integrity, and slot checks all precede the
+first mutation. The relation plan separately fixes the four current Poseidon
+events, two batches, eight interaction columns, and two claims; bulk generation
+authenticates once before its allocation-free row kernel. A canonical
+37-field diagnostic projection traces all 426 physical slots back through the
+generic plan. These boundaries are fixed by
+[ADR-0019](decisions/0019-authenticated-witness-and-relation-plans.md) and
+remain shadow-only until H-007 proves with their committed artifacts.
 
 **Exit gate:**
 

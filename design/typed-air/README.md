@@ -121,6 +121,11 @@ M31 Poseidon2 function have also landed in the isolated authoring kernel. A
 generic, versioned degree-three materializer now selects exactly 410 required
 cuts plus sixteen outputs, and a separately versioned compatibility adapter
 bijectively binds them to all 426 historical lane-major slots in the existing
-445-column layout. Both remain shadow-only while direct witness generation and
-relation closure are developed. This work continues to strengthen and reify
-the existing path rather than replace the prover or rewrite all opcodes.
+445-column layout. The authenticated compiler now also evaluates
+the full 2,171-instruction closure directly into final bit-reversed storage,
+reproduces the existing four Poseidon relation events, two batches, eight
+interaction columns, and two claims, and renders a golden 426-record
+source-to-storage report. These paths remain shadow-only while H-007 exercises
+their committed artifacts in real CPU and Metal proofs. This work continues to
+strengthen and reify the existing path rather than replace the prover or
+rewrite all opcodes.
