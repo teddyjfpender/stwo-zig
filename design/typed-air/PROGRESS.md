@@ -3,8 +3,8 @@
 **Status date:** 2026-08-05
 **Branch:** `feat/typed-air-precompiles`
 **Current milestone:** M3 — compatibility lowering
-**Active task:** A-009 — reproduce runtime polynomial program
-**Next queued task:** A-010 — reproduce AIR IR v2 projection
+**Active task:** A-010 — reproduce AIR IR v2 projection
+**Next queued task:** A-011 — round-trip every current family
 
 ## Dashboard
 
@@ -13,7 +13,7 @@
 | M0 — engineering dossier | complete | This directory and initial ADRs |
 | M1 — validated logical IR | complete | F-001 through F-012 complete and green |
 | M2 — shadow compiler | complete | A-001 through A-005 complete and green |
-| M3 — compatibility lowering | active | A-006 through A-008 complete; A-009 active |
+| M3 — compatibility lowering | active | A-006 through A-009 complete; A-010 active |
 | M4 — Poseidon compiler pilot | queued | Requires degree/layout passes |
 | M5 — effect and witness pilot | queued | Requires typed schemas and lowering |
 | M6 — guest precompile | queued | Requires Poseidon and ABI ADRs |
@@ -158,12 +158,19 @@
   lookup-only runtime programs; randomized replay covers all 242 events and all
   155 batches. Sign mismatch, corruption, determinism, and every induced DIV
   allocation failure reject or clean up as specified.
+- Completed A-009: a representation-only runtime exporter revalidates canonical
+  direct and lookup programs, checks the six polynomial operation names/tags at
+  compile time, initializes ignored lookup tails with deterministic sentinels,
+  copies into the prover-owned capability types, and validates the result. All
+  17 families match independently normalized production nodes, roots/entries,
+  columns, batches, arities, and lookup parameter counts. Malformed inputs
+  reject before copying; both full DIV allocation-failure paths clean up.
 
 ## Immediate next actions
 
-1. A-009 — reproduce the runtime polynomial program.
-2. A-010 — reproduce the AIR IR v2 projection for LUI.
-3. A-011 — round-trip every current family after both exporters are exact.
+1. A-010 — reproduce the AIR IR v2 projection for LUI.
+2. A-011 — round-trip every current family after both exporters are exact.
+3. A-012 — add the first-difference layout/report helper.
 
 No production behavior should change in these tasks.
 
@@ -187,6 +194,8 @@ Accepted:
   the primary compatibility criterion.
 - Role-normalized ordered lookup lowering with cached sign binding and explicit
   physical batches.
+- Validated canonical export into existing direct and lookup runtime capability
+  owners.
 
 Pending:
 
@@ -488,7 +497,29 @@ identity. All 155 batches match `compat-v1`. LUI reconstruction, corruption,
 malformed sign, and DIV allocation-failure tests pass in both ReleaseFast and
 ReleaseSafe package suites. The package workspace audit remains green. This is
 still an erased compatibility record, not semantic field-type evidence for an
-authored effect. No production behavior changed; A-009 is active.
+authored effect. No production behavior changed; at this point A-009 became
+active.
+
+### 2026-08-05 — M3 canonical runtime owners reproduced
+
+A-009 completed with `lower_runtime.zig` and ADR-0015. The pass performs no
+algebra or layout selection: it revalidates a lowered owner, copies each node
+and ordered root or entry into the prover's backend-neutral capability type,
+initializes ignored lookup tuple tails with a deterministic invalid-node
+sentinel, and validates the returned owner. Compile-time checks pin all six
+operation names and integer tags across the language and prover ABIs.
+
+All 17 direct exports match the independent production normalization node for
+node, root for root, and column for column. All 17 lookup exports additionally
+match every numerator and tuple root, arity, batch count, and parameter count.
+Malformed direct and role-sign state rejects before output allocation. Induced
+allocation-failure enumeration over both complete DIV build-and-export paths
+frees all partial typed and runtime owners.
+
+ReleaseFast remains green with the two expected register-boundary negative-test
+diagnostics. No capability callback imports the new exporter, so production
+evaluation order and proof artifacts remain unchanged. A-010 is active to emit
+the LUI AIR IR v2 projection from the canonical program.
 
 ## Update protocol
 

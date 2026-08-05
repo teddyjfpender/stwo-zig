@@ -117,6 +117,7 @@ test {
     _ = @import("air/lang/kernel_test.zig");
     _ = @import("air/lang/lower_constraint_test.zig");
     _ = @import("air/lang/lower_lookup_test.zig");
+    _ = @import("air/lang/lower_runtime_test.zig");
     _ = @import("air/lang/manifest_test.zig");
     _ = @import("air/lang/mod.zig");
     _ = @import("air/lang/program_test.zig");

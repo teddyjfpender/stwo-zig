@@ -186,6 +186,12 @@ its four physical interaction references. Random replay covers all 242 events;
 corruption, sign mismatch, deterministic reconstruction, and allocation failure
 are separate gates.
 
+A-009 requires exact canonical node, ordered-root, and column identity for the
+direct runtime type across all 17 families. The lookup runtime type additionally
+requires every entry numerator/tuple root and arity, batch count, parameter
+count, and deterministic unused tail. Both exporters validate input and output;
+malformed owners and induced allocation failure are explicit negatives.
+
 ## Differential design
 
 Expression comparison should not rely solely on node IDs. Normalize or compare

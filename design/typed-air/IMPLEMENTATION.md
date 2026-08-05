@@ -95,8 +95,8 @@ families and independently checks the shipped direct and lookup backend bounds.
 
 ## Phase 3 — compatibility lowering
 
-**Status:** active; A-006 physical mapping, A-007 direct-constraint lowering,
-and A-008 ordered lookup lowering are complete. A-009 runtime export is active.
+**Status:** active; A-006 through A-009 are complete. A-010 AIR IR v2 export is
+active.
 
 Lower a logical program back into the current `ConstraintProgram` and runtime
 polynomial formats.
@@ -126,6 +126,12 @@ tuple and event order, access ordinals, batch occupancy, and every physical
 interaction coordinate. All-family canonical structure and replay agree with
 the lookup-only runtime exporter; see
 [ADR-0014](decisions/0014-role-normalized-ordered-lookup-lowering.md).
+
+The runtime pass revalidates and mechanically copies the canonical programs
+into the prover's owned direct and lookup capability types. Compile-time enum
+ABI checks, deterministic tuple tails, all-family structural identity, and both
+DIV allocation-failure paths are green; see
+[ADR-0015](decisions/0015-validated-canonical-runtime-export.md).
 
 **Exit gate:**
 

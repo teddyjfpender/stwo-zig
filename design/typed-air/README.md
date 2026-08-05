@@ -104,7 +104,8 @@ keeping logical and physical names distinct. Direct lowering now reproduces
 the independently normalized node DAG and all 545 ordered roots across all 17
 families, with randomized replay and failure-path coverage. Ordered lookup
 lowering likewise reproduces all 242 events and 155 physical batches while
-binding role signs to normalized liveness. The next seam exports these owned
-canonical programs into the existing runtime capability types; this work
+binding role signs to normalized liveness. Both direct and lookup programs now
+export exactly into the existing backend-neutral runtime capability shapes.
+The next seam reproduces the canonical AIR IR v2 projection for LUI; this work
 continues to strengthen and reify the existing path rather than replace the
 prover or rewrite all opcodes.

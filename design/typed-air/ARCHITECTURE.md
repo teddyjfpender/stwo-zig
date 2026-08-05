@@ -204,6 +204,11 @@ Produces backend-neutral topological polynomial programs for CPU and Metal.
 Frontend program identity, column order, and roots remain explicit. Generated
 device kernels are derived accelerators, not a second semantic source.
 
+The compatibility exporter revalidates its canonical source and copies it into
+the existing prover-owned direct and lookup types. It has no algebra, policy,
+or dispatch authority. Operation-tag ABI agreement is compile-time checked and
+the returned owner is independently validated.
+
 ### Concrete machine interpreter
 
 This is deliberately last. During migration, the existing runner remains the

@@ -386,6 +386,13 @@ withholds semantic field types; authored effects must pass full typed schema
 validation. See
 [ADR-0014](decisions/0014-role-normalized-ordered-lookup-lowering.md).
 
+Runtime export is a representation boundary, not another compiler. It copies
+validated canonical nodes and ordered roots/events into the backend-neutral
+owned capability types, checks the six-operation enum ABI at compile time,
+initializes unused tuple storage deterministically, and validates the result.
+It performs no algebraic or layout decision; see
+[ADR-0015](decisions/0015-validated-canonical-runtime-export.md).
+
 ## Validation passes
 
 Before lowering:
