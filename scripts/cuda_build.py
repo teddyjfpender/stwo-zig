@@ -29,14 +29,13 @@ def parser() -> argparse.ArgumentParser:
         type=Path,
         default=(
             ROOT
-            / "src/backends/cuda/vendor/host_authority"
-            / "crates/backend-cuda-kernels/cuda"
+            / "src/backends/cuda/authority/active"
         ),
     )
     result.add_argument(
         "--source-manifest",
         type=Path,
-        default=ROOT / "src/backends/cuda/source_manifest.json",
+        default=ROOT / "src/backends/cuda/active_source_manifest.json",
     )
     result.add_argument(
         "--product-manifest",
@@ -52,6 +51,12 @@ def parser() -> argparse.ArgumentParser:
         "--native-aot-root",
         type=Path,
         default=ROOT / "src/backends/cuda/aot/native",
+    )
+    result.add_argument(
+        "--frontend",
+        choices=("native", "cairo", "riscv", "sm83"),
+        default="native",
+        help="Frontend whose exact AOT catalog is being built",
     )
     result.add_argument(
         "--aot-set",
@@ -107,6 +112,7 @@ def main() -> int:
                 sms=normalize_sms(args.arch),
                 jobs=args.jobs,
             ),
+            frontend=args.frontend,
             aot_sets=tuple(args.aot_set or (".",)),
             aot_set_roots=tuple(
                 (name, Path(directory).resolve())

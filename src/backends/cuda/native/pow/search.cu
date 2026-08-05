@@ -8,6 +8,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#if defined(STWO_CUMETAL)
+extern "C" int stwo_cumetal_register_pow_search(const void *host_stub);
+#endif
+
 namespace stwo::cuda::pow {
 
 constexpr uint32_t kLowBits = 20;
@@ -17,6 +21,32 @@ constexpr unsigned long long kIndexLimit =
 constexpr uint32_t kThreads = 256;
 constexpr uint32_t kBlocks = 1024;
 constexpr uint32_t kMinimumBlocksPerMultiprocessor = 6;
+#if defined(STWO_CUMETAL)
+// Metal does not expose portable device-scope 64-bit atomics on every Apple
+// GPU family supported by CuMetal. Search monotonically ordered index windows
+// with one GPU thread instead. The protocol's current PoW is small, and this
+// exact path avoids both unsupported atomics and an Apple pipeline-compiler
+// failure caused by the large per-thread Blake2s state multiplied across a
+// workgroup. The host advances only after a complete window reports no winner,
+// preserving the exact minimum-nonce semantics of the NVIDIA kernel.
+constexpr unsigned long long kCuMetalWindowSize = 1ull << 24;
+#endif
+
+__device__ __forceinline__ unsigned long long atomic_min_u64(
+    unsigned long long *address,
+    unsigned long long value) {
+#if defined(STWO_CUMETAL)
+    unsigned long long observed = atomicAdd(address, 0ull);
+    while (observed > value) {
+        const unsigned long long prior = atomicCAS(address, observed, value);
+        if (prior == observed) break;
+        observed = prior;
+    }
+    return observed;
+#else
+    return atomicMin(address, value);
+#endif
+}
 
 __device__ __forceinline__ unsigned long long index_to_nonce(
     unsigned long long index) {
@@ -48,9 +78,38 @@ __global__ void prefix_kernel(
     }
 }
 
-__global__ __launch_bounds__(
-    kThreads,
-    kMinimumBlocksPerMultiprocessor)
+#if defined(STWO_CUMETAL)
+__global__ void search_kernel(
+    const uint32_t *prefix_digest,
+    uint32_t pow_bits,
+    unsigned long long window_begin,
+    uint32_t window_size,
+    unsigned long long *best_nonce,
+    uint32_t *completed_blocks,
+    uint32_t *transcript_nonce) {
+    Prefix prefix;
+#pragma unroll
+    for (uint32_t word = 0; word < 8; ++word) {
+        prefix.words[word] = prefix_digest[word];
+    }
+
+    for (uint32_t offset = 0; offset < window_size; ++offset) {
+        const unsigned long long nonce =
+            index_to_nonce(window_begin + offset);
+        if (trailing_zeros(candidate_hash_word(prefix, nonce)) >= pow_bits) {
+            *best_nonce = nonce;
+            *completed_blocks = 1;
+            transcript_nonce[0] = static_cast<uint32_t>(nonce);
+            transcript_nonce[1] = static_cast<uint32_t>(nonce >> 32);
+            __threadfence();
+            return;
+        }
+    }
+    *completed_blocks = 1;
+    __threadfence();
+}
+#else
+__global__ __launch_bounds__(kThreads, kMinimumBlocksPerMultiprocessor)
 void search_kernel(
     const uint32_t *prefix_digest,
     uint32_t pow_bits,
@@ -75,7 +134,7 @@ void search_kernel(
         const unsigned long long current_best = atomicAdd(best_nonce, 0ull);
         if (candidate >= current_best) break;
         if (trailing_zeros(candidate_hash_word(prefix, candidate)) >= pow_bits) {
-            atomicMin(best_nonce, candidate);
+            atomic_min_u64(best_nonce, candidate);
         }
         if (stride >= search_end - index) break;
         index += stride;
@@ -93,6 +152,7 @@ void search_kernel(
         }
     }
 }
+#endif
 
 inline bool valid_workspace(
     const uint32_t *transcript_state,
@@ -153,6 +213,52 @@ extern "C" int stwo_blake2s_pow_persistent_on(
     status = cudaPeekAtLastError();
     if (status != cudaSuccess) return static_cast<int>(status);
 
+#if defined(STWO_CUMETAL)
+    if (stwo_cumetal_register_pow_search(
+            reinterpret_cast<const void *>(stwo::cuda::pow::search_kernel)) !=
+        0) {
+        return static_cast<int>(cudaErrorUnknown);
+    }
+    unsigned long long window_begin = 0;
+    while (window_begin < search_end) {
+        const unsigned long long remaining = search_end - window_begin;
+        const unsigned long long window_size =
+            remaining < stwo::cuda::pow::kCuMetalWindowSize
+                ? remaining
+                : stwo::cuda::pow::kCuMetalWindowSize;
+        stwo::cuda::pow::search_kernel<<<
+            1,
+            1,
+            0,
+            proof_stream>>>(
+                prefix_digest, pow_bits, window_begin,
+                static_cast<uint32_t>(window_size), best_nonce,
+                completed_blocks, transcript_nonce);
+        status = cudaPeekAtLastError();
+        if (status != cudaSuccess) return static_cast<int>(status);
+
+        unsigned long long host_best = ~0ull;
+        status = cudaMemcpyAsync(
+            &host_best,
+            best_nonce,
+            sizeof(host_best),
+            cudaMemcpyDeviceToHost,
+            proof_stream);
+        if (status != cudaSuccess) return static_cast<int>(status);
+        status = cudaStreamSynchronize(proof_stream);
+        if (status != cudaSuccess) return static_cast<int>(status);
+        if (host_best != ~0ull) return static_cast<int>(cudaSuccess);
+
+        window_begin += window_size;
+        if (window_begin < search_end) {
+            stwo::cuda::pow::initialize_kernel<<<1, 1, 0, proof_stream>>>(
+                best_nonce, completed_blocks, transcript_nonce);
+            status = cudaPeekAtLastError();
+            if (status != cudaSuccess) return static_cast<int>(status);
+        }
+    }
+    return static_cast<int>(cudaSuccess);
+#else
     stwo::cuda::pow::search_kernel<<<
         stwo::cuda::pow::kBlocks,
         stwo::cuda::pow::kThreads,
@@ -161,4 +267,5 @@ extern "C" int stwo_blake2s_pow_persistent_on(
             prefix_digest, pow_bits, search_end, best_nonce, completed_blocks,
             transcript_nonce);
     return static_cast<int>(cudaPeekAtLastError());
+#endif
 }

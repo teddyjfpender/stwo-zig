@@ -10,10 +10,10 @@ pub const aot = struct {
     pub const product_registry = @import("aot/product_registry.zig");
 };
 pub const product_aot = aot.product_registry;
+pub const frontend_contract = @import("frontend_contract.zig");
 pub const runtime = @import("runtime/mod.zig");
 pub const upstream_sources = struct {
-    const authority_root =
-        "vendor/host_authority/crates/backend-cuda-kernels/cuda/";
+    const authority_root = "authority/active/";
 
     pub const poseidon_witness_round_keys =
         @embedFile(authority_root ++ "poseidon_witness_round_keys.cuh");
@@ -26,6 +26,17 @@ pub const CudaBackend = struct {
     pub const Context = runtime.NativeContext;
     pub const resident = true;
     pub const allows_cpu_fallback = false;
+    pub const provider = runtime.provider.Kind.nvidia_cuda;
+};
+
+/// Apple-GPU execution provider for the same resident CUDA architecture.
+/// Its verdicts and plan keys remain explicitly non-NVIDIA evidence.
+pub const CuMetalBackend = struct {
+    pub const Session = runtime.CuMetalSession;
+    pub const Context = runtime.NativeContext;
+    pub const resident = true;
+    pub const allows_cpu_fallback = false;
+    pub const provider = runtime.provider.Kind.cumetal;
 };
 
 test "api signature: CUDA backend exposes only resident session types" {
@@ -49,6 +60,7 @@ test "CUDA backend advertises only the resident fail-closed architecture" {
 
 test {
     _ = abi;
+    _ = frontend_contract;
     _ = product_aot;
     _ = runtime;
 }

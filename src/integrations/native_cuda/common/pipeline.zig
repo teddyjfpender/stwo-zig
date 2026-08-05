@@ -86,6 +86,12 @@ pub fn PipelineFor(
             pub fn graphsEnabled(self: *const PreparedPlan) bool {
                 return self.structural.cuda_plan.target.enable_graphs;
             }
+
+            pub fn frontendReceipt(
+                self: *const PreparedPlan,
+            ) *const @import("stwo_cuda_backend").frontend_contract.Receipt {
+                return &self.structural.frontend_receipt;
+            }
         };
 
         pub fn admit(request: Request) !Geometry {

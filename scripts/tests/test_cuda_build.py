@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 
@@ -28,17 +29,17 @@ from cuda_build_lib.builder import (  # noqa: E402
     write_aot_carriers,
 )
 from cuda_device_smoke import compile_command  # noqa: E402
+from scripts.tests.cuda_native_aot_fixture import native_aot_root  # noqa: E402
 
 
 SOURCE = (
     ROOT
-    / "src/backends/cuda/vendor/host_authority"
-    / "crates/backend-cuda-kernels/cuda"
+    / "src/backends/cuda/authority/active"
 )
-MANIFEST = ROOT / "src/backends/cuda/source_manifest.json"
+MANIFEST = ROOT / "src/backends/cuda/active_source_manifest.json"
 PRODUCT = ROOT / "src/backends/cuda/product_manifest.json"
 NATIVE = ROOT / "src/backends/cuda/native"
-NATIVE_AOT = ROOT / "src/backends/cuda/aot/native"
+NATIVE_AOT = native_aot_root()
 
 EXPECTED_NATIVE_IMPLEMENTATION_SOURCES = {
     "host": {"aot_loader.cpp"},
@@ -124,8 +125,8 @@ class CudaBuildTests(unittest.TestCase):
 
     def test_imported_closure_and_aot_manifest_are_exact(self) -> None:
         closure = load_source_closure(SOURCE, MANIFEST)
-        self.assertEqual(59, len(closure.ordinary_sources))
-        self.assertEqual(340, len(closure.generated_sources))
+        self.assertEqual(9, len(closure.ordinary_sources))
+        self.assertEqual(0, len(closure.generated_sources))
         self.assertTrue(all("generated" not in path.parts for path in closure.ordinary_sources))
         self.assertTrue(all(path.is_file() for path in closure.generated_sources))
 
@@ -140,8 +141,8 @@ class CudaBuildTests(unittest.TestCase):
         expected_sources = set().union(*EXPECTED_NATIVE_IMPLEMENTATION_SOURCES.values())
         self.assertEqual("stwo-zig-cuda-native-build-v1", plan["schema"])
         self.assertEqual([86, 90], plan["target_sms"])
-        self.assertEqual(59, plan["authority_ordinary_source_count"])
-        self.assertEqual(340, plan["authority_aot_source_count"])
+        self.assertEqual(9, plan["authority_ordinary_source_count"])
+        self.assertEqual(0, plan["authority_aot_source_count"])
         self.assertEqual(6, plan["ordinary_source_count"])
         self.assertEqual(["."], plan["aot_product_sets"])
         self.assertEqual(48, plan["aot_source_count"])
@@ -172,6 +173,18 @@ class CudaBuildTests(unittest.TestCase):
         self.assertIn("-cubin", plan["fixed_flags"]["aot"])
         self.assertIn("-dlink", plan["fixed_flags"]["device_link"])
         self.assertNotIn("nvrtc", plan["fixed_flags"]["host"])
+
+    def test_unavailable_frontend_cannot_borrow_native_aot(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            config = replace(
+                self.config(Path(temporary)),
+                frontend="riscv",
+            )
+            with self.assertRaisesRegex(
+                BuildError,
+                "has no canonical AOT selection",
+            ):
+                build_plan(config, probe_tools=False)
 
     def test_native_aot_source_bytes_change_the_build_identity(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

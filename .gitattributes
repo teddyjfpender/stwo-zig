@@ -1,5 +1,6 @@
 src/backends/cuda/vendor/host_authority/** whitespace=-trailing-space,-blank-at-eof
 src/backends/cuda/aot/native/witness_*.cu whitespace=-trailing-space,-blank-at-eof
+src/backends/cuda/cumetal/patches/** whitespace=-trailing-space,-blank-at-eof
 src/backends/cuda/vendor/** linguist-vendored=true
 src/backends/cuda/aot/** linguist-generated=true
 formal/riscv-refinement/generated/** linguist-generated=true

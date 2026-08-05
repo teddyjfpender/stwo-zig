@@ -139,7 +139,7 @@ pub const products = [_]Spec{
         .generated_module_roots = &.{"generated:options:"},
         .dependency_module_roots = catalog.package_dependencies.cairo_cuda_protocol_package_roots,
     },
-    .{ .descriptor = riscv_cuda.descriptor, .scope = .deferred, .constructor = .unavailable, .dependency_module_roots = catalog.package_dependencies.protocol_package_roots },
+    .{ .descriptor = riscv_cuda.descriptor, .scope = .deferred, .constructor = .unavailable, .dependency_module_roots = catalog.package_dependencies.riscv_cuda_protocol_package_roots },
 };
 
 pub const descriptors = blk: {

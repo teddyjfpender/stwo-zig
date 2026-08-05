@@ -10,6 +10,12 @@
 
 #include <cuda.h>
 
+#if defined(STWO_CUMETAL)
+#define STWO_CUDA_ERROR_INVALID_HANDLE CUDA_ERROR_INVALID_VALUE
+#else
+#define STWO_CUDA_ERROR_INVALID_HANDLE CUDA_ERROR_INVALID_HANDLE
+#endif
+
 #include <cstring>
 #include <limits>
 #include <memory>
@@ -87,6 +93,7 @@ struct Module {
 struct Loader {
     void *exec_context = nullptr;
     CUcontext driver_context = nullptr;
+    bool owns_driver_context = false;
     CUstream stream = nullptr;
     uint32_t device = 0;
     uint32_t sm_major = 0;
@@ -107,7 +114,7 @@ struct BoundFunction {
 };
 
 int require_owner(Loader *loader) {
-    if (loader == nullptr) return CUDA_ERROR_INVALID_HANDLE;
+    if (loader == nullptr) return STWO_CUDA_ERROR_INVALID_HANDLE;
     if (loader->owner != std::this_thread::get_id()) return CUDA_ERROR_INVALID_CONTEXT;
     CUcontext current = nullptr;
     if (cuCtxGetCurrent(&current) != CUDA_SUCCESS ||
@@ -120,11 +127,13 @@ int require_owner(Loader *loader) {
 int current_binding(
     void *exec_context,
     CUcontext *out_context,
+    bool *out_owns_context,
     CUstream *out_stream,
     uint32_t *out_device,
     uint32_t *out_sm_major,
     uint32_t *out_sm_minor) {
-    if (exec_context == nullptr || out_context == nullptr || out_stream == nullptr ||
+    if (exec_context == nullptr || out_context == nullptr ||
+        out_owns_context == nullptr || out_stream == nullptr ||
         out_device == nullptr || out_sm_major == nullptr || out_sm_minor == nullptr) {
         return CUDA_ERROR_INVALID_VALUE;
     }
@@ -134,12 +143,35 @@ int current_binding(
     int sm_major = 0;
     int sm_minor = 0;
     void *stream = nullptr;
+    *out_owns_context = false;
     if (stwo_exec_context_device(exec_context, &context_device) != CUDA_SUCCESS ||
         stwo_exec_context_stream(exec_context, &stream) != CUDA_SUCCESS ||
-        stream == nullptr ||
+        stream == nullptr || context_device < 0) {
+        return CUDA_ERROR_INVALID_CONTEXT;
+    }
+#if defined(STWO_CUMETAL)
+    // CuMetal's runtime and driver compatibility layers deliberately keep
+    // separate ownership domains. Runtime stream creation therefore does not
+    // manufacture the current CUcontext that strict AOT module APIs require.
+    // Own one driver context for exactly the lifetime of this proof runtime;
+    // NVIDIA continues to require the pre-existing runtime primary context.
+    if (cuInit(0) != CUDA_SUCCESS ||
+        cuDeviceGet(&device, context_device) != CUDA_SUCCESS ||
+        cuCtxCreate(&context, 0, device) != CUDA_SUCCESS ||
+        context == nullptr || cuCtxSetCurrent(context) != CUDA_SUCCESS) {
+        if (context != nullptr) (void)cuCtxDestroy(context);
+        return CUDA_ERROR_INVALID_CONTEXT;
+    }
+    *out_owns_context = true;
+#else
+    if (
         cuCtxGetCurrent(&context) != CUDA_SUCCESS || context == nullptr ||
         cuCtxGetDevice(&device) != CUDA_SUCCESS || device < 0 ||
-        context_device != static_cast<int>(device) ||
+        context_device != static_cast<int>(device)) {
+        return CUDA_ERROR_INVALID_CONTEXT;
+    }
+#endif
+    if (
         cuDeviceGetAttribute(
             &sm_major, CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, device) !=
             CUDA_SUCCESS ||
@@ -147,6 +179,10 @@ int current_binding(
             &sm_minor, CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, device) !=
             CUDA_SUCCESS ||
         sm_major < 0 || sm_minor < 0) {
+#if defined(STWO_CUMETAL)
+        (void)cuCtxDestroy(context);
+        *out_owns_context = false;
+#endif
         return CUDA_ERROR_INVALID_CONTEXT;
     }
     *out_context = context;
@@ -196,11 +232,21 @@ int validate_launch(
             &static_shared_bytes, CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES, function) !=
             CUDA_SUCCESS ||
         max_threads <= 0 || threads > static_cast<uint64_t>(max_threads) ||
-        registers < 0 || binary_version <= 0 || local_bytes < 0 ||
+        registers < 0 || local_bytes < 0 ||
         static_shared_bytes < 0 ||
         dynamic_shared_bytes > static_cast<uint32_t>(max_dynamic_shared)) {
         return CUDA_ERROR_INVALID_VALUE;
     }
+#if defined(STWO_CUMETAL)
+    // A Metal pipeline has no SASS binary version. Bind this provider-local
+    // receipt field to the authenticated SM compatibility target instead of
+    // rejecting a successfully validated metallib as an absent NVIDIA image.
+    if (binary_version == 0) {
+        binary_version = static_cast<int>(loader->sm_major * 10 + loader->sm_minor);
+    }
+#else
+    if (binary_version <= 0) return CUDA_ERROR_INVALID_VALUE;
+#endif
     receipt->registers_per_thread = static_cast<uint32_t>(registers);
     receipt->max_threads_per_block = static_cast<uint32_t>(max_threads);
     receipt->binary_version = static_cast<uint32_t>(binary_version);
@@ -245,7 +291,7 @@ int authenticate_image(
 
 int resolve_module_globals(Module *module) {
     if (module == nullptr || module->module == nullptr) {
-        return CUDA_ERROR_INVALID_HANDLE;
+        return STWO_CUDA_ERROR_INVALID_HANDLE;
     }
     if (module->module_globals == STWO_NATIVE_AOT_MODULE_GLOBALS_NONE) {
         return CUDA_SUCCESS;
@@ -323,6 +369,7 @@ extern "C" int stwo_native_aot_loader_create(
     const int status = current_binding(
         exec_context,
         &loader->driver_context,
+        &loader->owns_driver_context,
         &loader->stream,
         &loader->device,
         &loader->sm_major,
@@ -338,10 +385,18 @@ extern "C" int stwo_native_aot_loader_destroy(void *raw_loader) {
     Loader *loader = static_cast<Loader *>(raw_loader);
     const int status = require_owner(loader);
     if (status != CUDA_SUCCESS) return status;
-    if (loader->live_functions != 0) return CUDA_ERROR_INVALID_HANDLE;
+    if (loader->live_functions != 0) return STWO_CUDA_ERROR_INVALID_HANDLE;
     unload_modules(loader);
+    int context_status = CUDA_SUCCESS;
+#if defined(STWO_CUMETAL)
+    if (loader->owns_driver_context) {
+        context_status = cuCtxDestroy(loader->driver_context);
+        loader->driver_context = nullptr;
+        loader->owns_driver_context = false;
+    }
+#endif
     delete loader;
-    return CUDA_SUCCESS;
+    return context_status;
 }
 
 extern "C" int stwo_native_aot_function_bind(
@@ -657,11 +712,12 @@ extern "C" int stwo_native_aot_function_launch(
 extern "C" int stwo_native_aot_function_destroy(void *raw_function) {
     BoundFunction *function = static_cast<BoundFunction *>(raw_function);
     if (function == nullptr || function->loader == nullptr) {
-        return CUDA_ERROR_INVALID_HANDLE;
+        return STWO_CUDA_ERROR_INVALID_HANDLE;
     }
     const int owner = require_owner(function->loader);
     if (owner != CUDA_SUCCESS) return owner;
-    if (function->loader->live_functions == 0) return CUDA_ERROR_INVALID_HANDLE;
+    if (function->loader->live_functions == 0)
+        return STWO_CUDA_ERROR_INVALID_HANDLE;
     function->loader->live_functions -= 1;
     delete function;
     return CUDA_SUCCESS;

@@ -9,22 +9,40 @@ const device_admission = @import("device_admission.zig");
 const execution_cache_module = @import("execution_cache.zig");
 const function_cache_module = @import("function_cache.zig");
 const kernel_module = @import("kernel.zig");
+const provider_module = @import("provider.zig");
 const runtime_error = @import("error.zig");
 const telemetry = @import("telemetry.zig");
 const verdict_module = @import("verdict.zig");
 pub const NativeSession = SessionFor(native_api, native_aot);
+pub const CuMetalSession = SessionForProvider(
+    native_api,
+    native_aot,
+    .cumetal,
+);
 const FunctionKey = function_cache_module.Key;
 const FunctionCache = function_cache_module.Map;
 const function_cache_allocator = function_cache_module.allocator;
 pub const Verdict = verdict_module.Verdict;
 
-pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
+pub fn SessionFor(
+    comptime Api: type,
+    comptime AotApi: type,
+) type {
+    return SessionForProvider(Api, AotApi, .nvidia_cuda);
+}
+
+pub fn SessionForProvider(
+    comptime Api: type,
+    comptime AotApi: type,
+    comptime provider: provider_module.Kind,
+) type {
     const Context = context_module.ContextFor(Api);
     const Arena = arena_module.ArenaFor(Context);
     const ExecutionCache = execution_cache_module.CacheFor(Api, Context);
     return struct {
         const Self = @This();
         pub const FinishVerdict = Verdict;
+        pub const execution_provider = provider;
 
         context: Context,
         device: types.DeviceSnapshot,
@@ -41,6 +59,8 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
         state: enum { idle, open, proved, closed } = .idle,
 
         pub fn open(accepted_sms: []const u32) runtime_error.Error!Self {
+            if (Api.stwo_cuda_execution_provider() != @intFromEnum(provider))
+                return error.ExecutionProviderMismatch;
             var device = types.DeviceSnapshot{};
             try runtime_error.check(Api.stwo_cuda_device_snapshot(
                 &device.count,
@@ -462,6 +482,7 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
                 1,
             ) catch return error.InvalidState;
             const verdict = Verdict{
+                .provider = provider,
                 .device = self.device,
                 .platform = self.platform,
                 .build_identity = self.build_identity,

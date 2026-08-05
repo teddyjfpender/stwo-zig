@@ -28,6 +28,11 @@ pub const transcript_schedule = @import("transcript_schedule.zig");
 /// Release activation remains false until the resident proof matches the CPU
 /// canonical bytes, passes the pinned Rust verifier, and reports no fallback.
 pub const release_enabled = false;
+pub const CuMetalDriver = driver.DriverFor(
+    driver.CuMetalTransaction,
+    executor.pipeline,
+);
+pub const CuMetalRuntime = driver.CuMetalRuntime;
 
 test {
     _ = canonical_ingress;

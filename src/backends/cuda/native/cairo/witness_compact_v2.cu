@@ -5,7 +5,11 @@
 // product-owned ABI keeps them separate:
 // [stride_rows, real_rows, word_base, words_per_instance, instances, dst].
 #include <cuda_runtime.h>
+#if defined(STWO_CUMETAL)
+#include <cub/cub.h>
+#else
 #include <cub/cub.cuh>
+#endif
 #include <cstdint>
 #include <cstdio>
 
@@ -131,10 +135,12 @@ __global__ void stwo_compact_v2_heads_kernel(
     if (!same_tuple &&
         stwo_compact_v2_key_equal(
             tuples, current, previous, tuple_words, key_words)) {
+#if !defined(STWO_CUMETAL)
         printf(
             "stwo compact v2 trap: key collision at sorted row %u "
             "(tuple %u vs %u)\n",
             row, current, previous);
+#endif
         asm("trap;");
     }
     heads[row] = same_tuple ? 0u : 1u;
@@ -198,10 +204,12 @@ __global__ void stwo_compact_v2_finalize_kernel(
             unique < 16u ? 16u : 1u << (32u - __clz(unique - 1u));
         if (unique == 0u || unique > consumer_rows ||
             expected != consumer_rows) {
+#if !defined(STWO_CUMETAL)
             printf(
                 "stwo compact v2 trap: unique=%u consumer_rows=%u "
                 "expected_pow2=%u total_rows=%u\n",
                 unique, consumer_rows, expected, total_rows);
+#endif
             asm("trap;");
         }
     }
@@ -270,14 +278,21 @@ extern "C" int stwo_witness_input_compact_v2_on(
 
     uint32_t *current_indices = indices_a_dev;
     uint32_t *next_indices = indices_b_dev;
+    cudaError_t error = cudaSuccess;
     for (uint32_t word = tuple_words; word-- > 0;) {
         stwo_compact_v2_key_kernel<<<sort_grid, block, 0, cuda_stream>>>(
             tuples_dev, current_indices, tuple_words, word, sort_rows,
             keys_a_dev);
-        cudaError_t error = cudaGetLastError();
+        error = cudaGetLastError();
         if (error != cudaSuccess) {
             return (int)error;
         }
+#if defined(STWO_CUMETAL)
+        // CuMetal's CUB compatibility path operates directly on UMA from the
+        // host, so complete the producer stream before host-side sorting.
+        error = cudaStreamSynchronize(cuda_stream);
+        if (error != cudaSuccess) return (int)error;
+#endif
         error = cub::DeviceRadixSort::SortPairs(
             sort_temp_dev, sort_temp_bytes,
             keys_a_dev, keys_b_dev, current_indices, next_indices,
@@ -296,7 +311,11 @@ extern "C" int stwo_witness_input_compact_v2_on(
     if (cudaGetLastError() != cudaSuccess) {
         return 1;
     }
-    cudaError_t error = cub::DeviceScan::InclusiveSum(
+#if defined(STWO_CUMETAL)
+    error = cudaStreamSynchronize(cuda_stream);
+    if (error != cudaSuccess) return (int)error;
+#endif
+    error = cub::DeviceScan::InclusiveSum(
         scan_temp_dev, scan_temp_bytes, heads_dev, positions_dev, sort_rows,
         cuda_stream);
     if (error != cudaSuccess) {

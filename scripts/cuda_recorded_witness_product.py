@@ -1,46 +1,25 @@
 #!/usr/bin/env python3
-"""Derive the authenticated Native recorded-witness AOT source product."""
+"""Verify that recorded-witness CUDA is cache-generated, never checked in."""
 
 from __future__ import annotations
 
-import argparse
-import hashlib
 import json
-import os
-import tempfile
+import re
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-AUTHORITY = (
-    ROOT
-    / "src/backends/cuda/vendor/host_authority"
-    / "crates/backend-cuda-kernels/cuda/generated"
-)
 PRODUCT = ROOT / "src/backends/cuda/aot/native"
+BUNDLE = ROOT / "vectors/cairo/sn_pie_2_witness_programs.bin"
 SCHEMA = "recorded_witness_v1"
-EXPECTED_ISOLATED_SOURCES = 7
-INLINE_MUL = (
-    b"static __device__ __forceinline__ void stwo_wit_deduce_felt_mul(\n"
-)
-ISOLATED_MUL = (
-    b"static __device__ __noinline__ void stwo_wit_deduce_felt_mul(\n"
-)
+EXPECTED_SOURCES = 33
+EXPECTED_BUNDLE_MAGIC = b"STWZWIT\x00"
+IDENTITY_RE = re.compile(r"^[0-9a-f]{64}$")
+HASH_RE = re.compile(r"^[0-9a-f]{16}$")
 
 
 class ProductError(RuntimeError):
     pass
-
-
-def derive_source(authority: bytes) -> bytes:
-    occurrences = authority.count(INLINE_MUL)
-    if occurrences > 1 or ISOLATED_MUL in authority:
-        raise ProductError("recorded witness authority lost the FeltMul boundary")
-    return (
-        authority.replace(INLINE_MUL, ISOLATED_MUL)
-        if occurrences == 1
-        else authority
-    )
 
 
 def load_manifest(path: Path) -> list[dict[str, object]]:
@@ -53,108 +32,52 @@ def load_manifest(path: Path) -> list[dict[str, object]]:
     return value
 
 
-def recorded_entries(
-    manifest: list[dict[str, object]],
-) -> dict[str, dict[str, object]]:
-    result: dict[str, dict[str, object]] = {}
-    for entry in manifest:
-        if entry.get("abi_schema") != SCHEMA:
-            continue
-        file_name = str(entry.get("file", ""))
-        if not file_name or file_name in result:
-            raise ProductError("recorded witness manifest has invalid files")
-        result[file_name] = entry
-    return result
-
-
-def expected_product() -> list[tuple[Path, bytes, dict[str, object]]]:
-    authority_entries = recorded_entries(
-        load_manifest(AUTHORITY / "aot_manifest.json")
-    )
-    product_manifest = load_manifest(PRODUCT / "aot_manifest.json")
-    product_entries = recorded_entries(product_manifest)
-    if not product_entries or set(product_entries) - set(authority_entries):
-        raise ProductError("Native recorded witness product lost its authority")
-    result: list[tuple[Path, bytes, dict[str, object]]] = []
-    isolated_sources = 0
-    identity_fields = (
-        "abi_schema",
-        "cache_key",
-        "file",
-        "kernel_name",
-        "kind",
-        "label",
-        "program_identity",
-        "semantic_hash",
-    )
-    for file_name in sorted(product_entries):
-        authority_entry = authority_entries[file_name]
-        product_entry = product_entries[file_name]
-        if any(
-            authority_entry.get(field) != product_entry.get(field)
-            for field in identity_fields
+def recorded_entries() -> list[dict[str, object]]:
+    entries = [
+        entry
+        for entry in load_manifest(PRODUCT / "aot_manifest.json")
+        if entry.get("abi_schema") == SCHEMA
+    ]
+    files = [str(entry.get("file", "")) for entry in entries]
+    if len(entries) != EXPECTED_SOURCES or files != sorted(set(files)):
+        raise ProductError("recorded-witness manifest population drifted")
+    for entry in entries:
+        if (
+            entry.get("identity_scheme")
+            != "sha256-source-and-blake3-program-v1"
+            or IDENTITY_RE.fullmatch(str(entry.get("program_identity", "")))
+            is None
+            or IDENTITY_RE.fullmatch(str(entry.get("source_sha256", ""))) is None
+            or HASH_RE.fullmatch(str(entry.get("semantic_hash", ""))) is None
+            or HASH_RE.fullmatch(str(entry.get("cache_key", ""))) is None
         ):
-            raise ProductError(
-                f"Native recorded witness identity drift: {file_name}"
-            )
-        authority_source = (AUTHORITY / file_name).read_bytes()
-        isolated_sources += int(INLINE_MUL in authority_source)
-        source = derive_source(authority_source)
-        result.append((PRODUCT / file_name, source, product_entry))
-    if isolated_sources != EXPECTED_ISOLATED_SOURCES:
-        raise ProductError(
-            "recorded witness product has an unexpected FeltMul surface"
-        )
-    return result
+            raise ProductError("recorded-witness identity pin is malformed")
+    return entries
 
 
 def verify() -> int:
-    entries = expected_product()
-    for path, expected, entry in entries:
-        if not path.is_file() or path.read_bytes() != expected:
-            raise ProductError(f"stale Native recorded witness source: {path.name}")
-        digest = hashlib.sha256(expected).hexdigest()
-        if entry.get("source_sha256") != digest:
-            raise ProductError(f"stale Native recorded witness digest: {path.name}")
+    entries = recorded_entries()
+    checked_in = [
+        str(entry["file"])
+        for entry in entries
+        if (PRODUCT / str(entry["file"])).exists()
+    ]
+    if checked_in:
+        raise ProductError(
+            f"recorded-witness generated sources are checked in: {checked_in}"
+        )
+    try:
+        prefix = BUNDLE.read_bytes()[: len(EXPECTED_BUNDLE_MAGIC)]
+    except OSError as error:
+        raise ProductError(f"cannot read witness bundle: {error}") from error
+    if prefix != EXPECTED_BUNDLE_MAGIC:
+        raise ProductError("recorded-witness IR bundle is not authenticated V1")
     return len(entries)
 
 
-def atomic_write(path: Path, payload: bytes) -> None:
-    with tempfile.NamedTemporaryFile(
-        dir=path.parent,
-        prefix=f".{path.name}.",
-        delete=False,
-    ) as stream:
-        stream.write(payload)
-        staging = Path(stream.name)
-    os.replace(staging, path)
-
-
-def write() -> int:
-    manifest_path = PRODUCT / "aot_manifest.json"
-    manifest = load_manifest(manifest_path)
-    manifest_entries = recorded_entries(manifest)
-    entries = expected_product()
-    for path, source, _ in entries:
-        atomic_write(path, source)
-        manifest_entries[path.name]["source_sha256"] = hashlib.sha256(
-            source
-        ).hexdigest()
-    encoded = (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode()
-    atomic_write(manifest_path, encoded)
-    return verify()
-
-
 def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--write",
-        action="store_true",
-        help="replace the Native product with its deterministic derivation",
-    )
-    args = parser.parse_args()
-    count = write() if args.write else verify()
-    print(f"Native recorded witness AOT product verified: {count} sources")
+    count = verify()
+    print(f"Native recorded-witness cache product verified: {count} programs")
     return 0
 
 

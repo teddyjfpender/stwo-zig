@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify the exact imported CUDA and host-orchestration source authorities."""
+"""Verify the compact product closure or an explicit external CUDA checkout."""
 
 from __future__ import annotations
 
@@ -11,6 +11,31 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 AUTHORITIES = (
+    {
+        "name": "active-product-kernels",
+        "source_root": ROOT / "src/backends/cuda/authority/active",
+        "manifest": ROOT / "src/backends/cuda/active_source_manifest.json",
+        "upstream": {
+            "repository": "https://github.com/teddyjfpender/stwo",
+            "branch": "perf-optimizations",
+            "commit": "1d1d10c31fdac45c9ecb7aee9d3e8935b5cf8035",
+            "tree": "044f995e98ba6f2fdb5a1634a99c14927d7a93c0",
+            "path": "crates/backend-cuda-kernels/cuda",
+            "projection": (
+                "transitive product, witness-codegen support, embedded data, "
+                "and derivation inputs"
+            ),
+            "normalized_final_newline": ["fp256_config.cuh", "timer.cuh"],
+        },
+        "expected_closure": {
+            "file_count": 28,
+            "byte_count": 295636,
+            "closure_sha256": "99f8b738f505fe450c8ff37ec2ea389df248f56a8cc770b02fc9cf070e872065",
+        },
+    },
+)
+
+EXTERNAL_AUTHORITIES = (
     {
         "name": "kernels",
         "source_root": (
@@ -126,8 +151,14 @@ def main() -> int:
         action="store_true",
         help="replace the tracked manifest with the current imported closure",
     )
+    parser.add_argument(
+        "--external",
+        action="store_true",
+        help="verify the explicitly materialized full upstream workspace",
+    )
     args = parser.parse_args()
-    for authority in AUTHORITIES:
+    selected = EXTERNAL_AUTHORITIES if args.external else AUTHORITIES
+    for authority in selected:
         actual = build_manifest(authority)
         validate_expected_closure(authority, actual)
         manifest = authority["manifest"]

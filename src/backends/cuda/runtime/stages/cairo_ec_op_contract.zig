@@ -16,8 +16,7 @@ pub const normalize_block: u32 = 64;
 pub const normalize_round_tile: u32 = 4;
 pub const padding_block: u32 = 64;
 
-const authority_root =
-    "../../vendor/host_authority/crates/backend-cuda-kernels/cuda/";
+const authority_root = "../../authority/active/";
 const source = @embedFile(authority_root ++ "ec_op_witness.cu");
 const expected_source_sha256 =
     "992f03a616c843f1b180adc397216635c2debb65b3fb4ccbbf9da2ae989a16bc";

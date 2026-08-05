@@ -41,6 +41,7 @@ class ProductSelection:
 class ProductConfig(Protocol):
     product_manifest: Path
     native_aot_root: Path
+    frontend: str
     aot_sets: tuple[str, ...]
     aot_set_roots: tuple[tuple[str, Path], ...]
 
@@ -81,15 +82,20 @@ def load_product_selection(
         raise BuildError("CUDA resident source selection names an absent authority file")
 
     aot_root = config.native_aot_root.resolve()
-    declaration, declared_sets = _load_aot_product_sets(aot_root)
+    declaration, declared_sets, frontend_sets = _load_aot_product_sets(aot_root)
     product_sets = config.aot_sets
     if (
-        not product_sets
+        config.frontend not in frontend_sets
+        or frontend_sets[config.frontend] is None
+        or product_sets != frontend_sets[config.frontend]
+        or not product_sets
         or product_sets != tuple(sorted(set(product_sets)))
         or product_sets[0] != "."
         or not set(product_sets).issubset(declared_sets)
     ):
-        raise BuildError("CUDA AOT product-set selection is not canonical")
+        raise BuildError(
+            f"CUDA frontend {config.frontend!r} has no canonical AOT selection"
+        )
     overrides: dict[str, Path] = {}
     for name, root in config.aot_set_roots:
         if name in overrides:
@@ -103,6 +109,7 @@ def load_product_selection(
     aot_closure = hashlib.sha256()
     selection = {
         "schema": declaration["schema"],
+        "frontend": config.frontend,
         "sets": list(product_sets),
     }
     declaration_payload = _canonical_json_bytes(selection)
@@ -183,22 +190,28 @@ def load_product_selection(
     )
 
 
-def _load_aot_product_sets(aot_root: Path) -> tuple[dict[str, object], list[str]]:
+def _load_aot_product_sets(
+    aot_root: Path,
+) -> tuple[dict[str, object], list[str], dict[str, tuple[str, ...] | None]]:
     declaration_path = aot_root / "product_sets.json"
     if not declaration_path.is_file():
         declaration = {
-            "schema": "stwo-zig-cuda-aot-product-sets-v1",
+            "schema": "stwo-zig-cuda-aot-frontend-catalog-v1",
+            "frontends": {
+                "native": {"sets": ["."], "status": "staged"},
+            },
             "sets": ["."],
         }
-        return declaration, ["."]
+        return declaration, ["."], {"native": (".",)}
     try:
         declaration = json.loads(declaration_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
         raise BuildError(f"cannot read CUDA AOT product sets: {error}") from error
     if (
         not isinstance(declaration, dict)
-        or set(declaration) != {"schema", "sets"}
-        or declaration.get("schema") != "stwo-zig-cuda-aot-product-sets-v1"
+        or set(declaration) != {"frontends", "schema", "sets"}
+        or declaration.get("schema")
+        != "stwo-zig-cuda-aot-frontend-catalog-v1"
     ):
         raise BuildError("unsupported CUDA AOT product-set declaration")
     sets = declaration.get("sets")
@@ -216,7 +229,38 @@ def _load_aot_product_sets(aot_root: Path) -> tuple[dict[str, object], list[str]
         )
     ):
         raise BuildError("CUDA AOT product sets are not canonical")
-    return declaration, sets
+    frontends = declaration.get("frontends")
+    if (
+        not isinstance(frontends, dict)
+        or tuple(frontends) != tuple(sorted(frontends))
+        or set(frontends) != {"cairo", "native", "riscv", "sm83"}
+    ):
+        raise BuildError("CUDA AOT frontend catalog is not canonical")
+    frontend_sets: dict[str, tuple[str, ...] | None] = {}
+    for name, raw in frontends.items():
+        if not isinstance(raw, dict):
+            raise BuildError("CUDA AOT frontend catalog entry is malformed")
+        status = raw.get("status")
+        selected = raw.get("sets")
+        required = {"sets", "status"} | (
+            {"reason"} if status == "unavailable" else set()
+        )
+        if (
+            set(raw) != required
+            or status not in {"staged", "unavailable"}
+            or not isinstance(selected, list)
+            or selected != sorted(set(selected))
+            or not set(selected).issubset(sets)
+            or (status == "staged" and (not selected or selected[0] != "."))
+            or (status == "unavailable" and selected)
+            or (
+                status == "unavailable"
+                and (not isinstance(raw.get("reason"), str) or not raw["reason"])
+            )
+        ):
+            raise BuildError("CUDA AOT frontend catalog entry is malformed")
+        frontend_sets[name] = tuple(selected) if status == "staged" else None
+    return declaration, sets, frontend_sets
 
 
 def validate_aot_manifest(
@@ -286,7 +330,7 @@ def validate_aot_manifest(
         if previous is not None and previous >= order:
             raise BuildError("AOT manifest order is not canonical")
         if not (generated_dir / file_name).is_file():
-            raise BuildError(f"copied AOT source is absent: {file_name}")
+            raise BuildError(f"CUDA AOT source is absent: {file_name}")
         identity_fields = required | (
             {"module_globals"} if "module_globals" in raw else set()
         )

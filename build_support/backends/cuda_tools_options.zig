@@ -12,6 +12,13 @@ pub const Options = struct {
     cuda_home: ?[]const u8,
     library_dir: ?[]const u8,
     architectures: ?[]const u8,
+    cumetal_clang: ?[]const u8,
+    cumetalc: ?[]const u8,
+    cumetal_root: ?[]const u8,
+    cumetal_library: ?[]const u8,
+    cumetal_archiver: ?[]const u8,
+    air_inspect: ?[]const u8,
+    air_validate: ?[]const u8,
     jobs: u16,
 
     pub fn read(b: *std.Build) Options {
@@ -24,6 +31,13 @@ pub const Options = struct {
             .cuda_home = b.option([]const u8, "cuda-home", "Explicit CUDA toolkit root"),
             .library_dir = b.option([]const u8, "cuda-library-dir", "Explicit CUDA library directory"),
             .architectures = b.option([]const u8, "cuda-arch", "Comma-separated numeric CUDA SM targets"),
+            .cumetal_clang = b.option([]const u8, "cuda-cumetal-clang", "Explicit Clang CUDA frontend for the CuMetal provider"),
+            .cumetalc = b.option([]const u8, "cuda-cumetalc", "Explicit compiler from the authenticated CuMetal build"),
+            .cumetal_root = b.option([]const u8, "cuda-cumetal-root", "Pinned and compatibility-patched CuMetal checkout"),
+            .cumetal_library = b.option([]const u8, "cuda-cumetal-library", "Explicit patched libcumetal.dylib"),
+            .cumetal_archiver = b.option([]const u8, "cuda-cumetal-ar", "Explicit Darwin archiver for CuMetal"),
+            .air_inspect = b.option([]const u8, "cuda-air-inspect", "Explicit CuMetal metallib inspector"),
+            .air_validate = b.option([]const u8, "cuda-air-validate", "Explicit CuMetal metallib validator"),
             .jobs = b.option(u16, "cuda-build-jobs", "Maximum parallel nvcc processes") orelse 8,
         };
     }
@@ -86,6 +100,13 @@ test "CUDA archive options are all-or-nothing" {
         .cuda_home = null,
         .library_dir = null,
         .architectures = null,
+        .cumetal_clang = null,
+        .cumetalc = null,
+        .cumetal_root = null,
+        .cumetal_library = null,
+        .cumetal_archiver = null,
+        .air_inspect = null,
+        .air_validate = null,
         .jobs = 8,
     };
     try std.testing.expect(!absent.complete());

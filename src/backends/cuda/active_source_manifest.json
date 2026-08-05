@@ -1,0 +1,161 @@
+{
+  "authority": "active-product-kernels",
+  "byte_count": 295636,
+  "closure_sha256": "99f8b738f505fe450c8ff37ec2ea389df248f56a8cc770b02fc9cf070e872065",
+  "file_count": 28,
+  "files": [
+    {
+      "bytes": 12003,
+      "path": "batch_inverse.cu",
+      "sha256": "c129fd09d512e6cfa5686060ec778214823079e35adcbf61a909f08e787aed30"
+    },
+    {
+      "bytes": 1820,
+      "path": "batch_inverse.cuh",
+      "sha256": "92c1bf8fda9fb918954ebf1d2955c7f6fda36db3232fdd6d8170872db5cc81f4"
+    },
+    {
+      "bytes": 5097,
+      "path": "composition.cu",
+      "sha256": "871fcd7500910c8b74ad9f2c44f8155d61f6694b10a026a9eba49fc1c14be5f5"
+    },
+    {
+      "bytes": 1221,
+      "path": "composition.cuh",
+      "sha256": "c232e9a3ef081a2ebb2cb1dbaa7c5886892714e7a79bf5a9055adee30da78d3d"
+    },
+    {
+      "bytes": 6780,
+      "path": "cuda_mem_pool.cuh",
+      "sha256": "2f3c9a710b70bd03a8c1d2a6ee3bc93f92cdec77ea6057e5f886fbb46dc4c238"
+    },
+    {
+      "bytes": 28507,
+      "path": "ec_op_witness.cu",
+      "sha256": "992f03a616c843f1b180adc397216635c2debb65b3fb4ccbbf9da2ae989a16bc"
+    },
+    {
+      "bytes": 16997,
+      "path": "ec_ops.cuh",
+      "sha256": "41b58653bbbf99e43748b02ad44d56a161a691f8ba5c78ae2fdb2f6e64d7bbdb"
+    },
+    {
+      "bytes": 6299,
+      "path": "fields.cu",
+      "sha256": "5b31ff24b307b36be77d1910378167521bb9d3a980211059264e6b614b21bc95"
+    },
+    {
+      "bytes": 2739,
+      "path": "fields.cuh",
+      "sha256": "f4dde295ba4de91166280f6afc428af7018ba3b0be87d10c257f65fd811b3050"
+    },
+    {
+      "bytes": 4180,
+      "path": "fixed_table_materializer.cu",
+      "sha256": "7d914ffb7aa27a2d790c8d37147117db3d5e27d13ce17a4264ed2d461a6bc40e"
+    },
+    {
+      "bytes": 3400,
+      "path": "fp256_carry_chain.cuh",
+      "sha256": "0aafb6e875eb3727ab1d618357ae1498ed9d91c69e1b553dc06d5d6d122a016f"
+    },
+    {
+      "bytes": 3874,
+      "path": "fp256_config.cuh",
+      "sha256": "452c871df0f1999c15628dbf4fffdd87df6a453a73d6d229e441ebae625274e6"
+    },
+    {
+      "bytes": 29619,
+      "path": "fp256_dispatch_st.cuh",
+      "sha256": "5ee2a469e34f5f7fdce5f653341cea842f5d9c8d1993c7b151bb7341b60d9937"
+    },
+    {
+      "bytes": 2365,
+      "path": "fp256_host_math.cuh",
+      "sha256": "39d957ee97d1af42f207b43f21d9e37c4d384f3f3bfbb56aea6250c45702398e"
+    },
+    {
+      "bytes": 1505,
+      "path": "fp256_storage.cuh",
+      "sha256": "8d8c84ef231e05b6200053026bf50405396eaf3eeabd97caa18803de64e934a8"
+    },
+    {
+      "bytes": 1501,
+      "path": "m31_fast32.cuh",
+      "sha256": "04af1d6d703b876fe0dc8505ae76f8990e93f0a444f215781bbb0bd10f4324f2"
+    },
+    {
+      "bytes": 44121,
+      "path": "pedersen_table_init.cu",
+      "sha256": "022d8d8b99dba145c4abbe9fca8cfd8306d41fad1ef8e84396b7ec3236841d28"
+    },
+    {
+      "bytes": 10495,
+      "path": "poseidon_witness_round_keys.cuh",
+      "sha256": "a606868540f59a8e257f3d1b60220d12f0a878f54a2d324f56b9f12ef3b8d34b"
+    },
+    {
+      "bytes": 726,
+      "path": "prefix_sum.cuh",
+      "sha256": "0c746877de116d95d264aff647ae721022d96aad2e2f1738fc468e873433594d"
+    },
+    {
+      "bytes": 8375,
+      "path": "ptx.cuh",
+      "sha256": "94cc65af73318acb7142f6dc19a74aca02deb8e62ad08fbe713e22d833a3c0ed"
+    },
+    {
+      "bytes": 9052,
+      "path": "relation_fused.cuh",
+      "sha256": "9539c4808b834e6a42be17f4640bf0c2ef17002e35b2e84cc60bcc8d94be6397"
+    },
+    {
+      "bytes": 26312,
+      "path": "relation_graph.cu",
+      "sha256": "2065ef419a3c53d390d310556434dc9b1e53f292fcc22dd1298d09b94c41d7f8"
+    },
+    {
+      "bytes": 2428,
+      "path": "relation_scan.cuh",
+      "sha256": "f158e7c1be47b349e668c35f4c44fd678c3f71a15d1adbe45b2526a394b6d921"
+    },
+    {
+      "bytes": 10708,
+      "path": "stwo_wit_deduce.cuh",
+      "sha256": "18bbf926d713b881cbb17d3a4bdf529cc1679bbdd16d74fac85a95f2346fbc74"
+    },
+    {
+      "bytes": 281,
+      "path": "timer.cuh",
+      "sha256": "1080b4d1ae35c0fdc542962560d7fd8c447869804fa9c83dc8e4883dce56dd2b"
+    },
+    {
+      "bytes": 13300,
+      "path": "utils.cuh",
+      "sha256": "94a546605bdc3fb2d717f132a9af5395e81a04bc4482f2fba10f2da0d1f505ff"
+    },
+    {
+      "bytes": 19874,
+      "path": "witness_edge_gather.cu",
+      "sha256": "3c279e7b931b4d75b75fa3ef148a9778058a302c17bf46f1a06a98850052cf7c"
+    },
+    {
+      "bytes": 22057,
+      "path": "witness_feed_counts.cu",
+      "sha256": "bae0e94db4fcdec6bd2fb8f800d6ce465fbf278097ef7630b338a68164e7d7f4"
+    }
+  ],
+  "schema": "stwo-zig-cuda-source-closure-v1",
+  "upstream": {
+    "branch": "perf-optimizations",
+    "commit": "1d1d10c31fdac45c9ecb7aee9d3e8935b5cf8035",
+    "normalized_final_newline": [
+      "fp256_config.cuh",
+      "timer.cuh"
+    ],
+    "path": "crates/backend-cuda-kernels/cuda",
+    "projection": "transitive product, witness-codegen support, embedded data, and derivation inputs",
+    "repository": "https://github.com/teddyjfpender/stwo",
+    "tree": "044f995e98ba6f2fdb5a1634a99c14927d7a93c0"
+  }
+}

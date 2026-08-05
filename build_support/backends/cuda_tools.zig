@@ -3,6 +3,7 @@
 const std = @import("std");
 const cuda = @import("cuda.zig");
 const cuda_aot = @import("cuda_aot.zig");
+const cuda_cumetal = @import("cuda_cumetal.zig");
 const cuda_portability = @import("cuda_portability.zig");
 pub const Options = @import("cuda_tools_options.zig").Options;
 const construction_observer = @import("../graph/construction_observer.zig");
@@ -14,13 +15,24 @@ pub fn addProducts(
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
 ) void {
-    cuda_portability.addStep(b, target);
     const options = Options.read(b);
+    cuda_portability.addStep(b, target, .{
+        .compiler = options.cumetalc,
+        .root = options.cumetal_root,
+        .inspect = options.air_inspect,
+        .validate = options.air_validate,
+    });
+    cuda_aot.addNativeToolStep(b);
     const source = cuda.addSourceClosureGate(b);
     b.step(
         "cuda-source-closure",
         "Verify the exact pinned CUDA/C++ source authority",
     ).dependOn(&source.step);
+    const external_authority = addExternalAuthority(b);
+    b.step(
+        "cuda-authority-materialize",
+        "Fetch and authenticate the audit-only upstream CUDA workspace",
+    ).dependOn(&external_authority.run.step);
 
     const plan = cuda.addPlan(b, options.planningToolchain());
     b.step(
@@ -38,6 +50,7 @@ pub fn addProducts(
         "scripts.tests.test_cuda_cairo_eval_aot",
         "scripts.tests.test_cuda_source_closure",
         "scripts.tests.test_cuda_product_closure",
+        "scripts.tests.test_cuda_recorded_witness_product",
         "scripts.tests.test_cuda_aot_authentication",
         "scripts.tests.test_cuda_blake_aot",
         "scripts.tests.test_cuda_blake_exact_interaction_oracle",
@@ -333,18 +346,16 @@ pub fn addProducts(
     });
     blake_exact_step.dependOn(&b.addRunArtifact(blake_route_tests).step);
 
-    const adapter_tests = b.addSystemCommand(&.{
-        "cargo",
-        "+nightly-2025-07-14",
+    addCuMetalNative(b, target, optimize, stwo, options);
+
+    const adapter_tests = addExternalAdapter(
+        b,
         "test",
-        "--locked",
-        "--manifest-path",
-        "tools/stwo-cuda-adapter-rs/Cargo.toml",
-    });
-    adapter_tests.step.dependOn(&source.step);
+        external_authority.directory,
+    );
     b.step(
         "test-cuda-adapter",
-        "Compile and test the isolated copied-backend Native proof adapter",
+        "Compile and test the external-authority Native proof adapter",
     ).dependOn(&adapter_tests.step);
 
     if (options.complete()) {
@@ -356,18 +367,14 @@ pub fn addProducts(
         );
         b.step(
             "cuda-native-archive",
-            "Build the exact static CUDA runtime and copied AOT pack",
+            "Build the exact static CUDA runtime and generated AOT pack",
         ).dependOn(&archive.build.step);
 
-        const adapter = b.addSystemCommand(&.{
-            "cargo",
-            "+nightly-2025-07-14",
+        const adapter = addExternalAdapter(
+            b,
             "build",
-            "--release",
-            "--locked",
-            "--manifest-path",
-            "tools/stwo-cuda-adapter-rs/Cargo.toml",
-        });
+            external_authority.directory,
+        );
         adapter.setEnvironmentVariable("STWO_CUDA_NVCC", options.nvcc.?);
         adapter.setEnvironmentVariable("STWO_CUDA_HOST_COMPILER", options.host_cxx.?);
         adapter.setEnvironmentVariable("STWO_CUDA_ARCH", options.architectures.?);
@@ -378,7 +385,7 @@ pub fn addProducts(
         adapter.step.dependOn(&source.step);
         b.step(
             "cuda-native-adapter",
-            "Build the copied-backend Native CUDA proof adapter",
+            "Build the external-authority Native CUDA proof adapter",
         ).dependOn(&adapter.step);
     } else {
         const unavailable = b.addFail(
@@ -388,7 +395,7 @@ pub fn addProducts(
         );
         b.step(
             "cuda-native-archive",
-            "Build the exact static CUDA runtime and copied AOT pack",
+            "Build the exact static CUDA runtime and generated AOT pack",
         ).dependOn(&unavailable.step);
 
         const adapter_unavailable = b.addFail(
@@ -397,8 +404,115 @@ pub fn addProducts(
         );
         b.step(
             "cuda-native-adapter",
-            "Build the copied-backend Native CUDA proof adapter",
+            "Build the external-authority Native CUDA proof adapter",
         ).dependOn(&adapter_unavailable.step);
     }
     construction_observer.recordConstructor(b, "backends/cuda_tools.addProducts");
+}
+
+fn addCuMetalNative(
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    stwo: *std.Build.Module,
+    options: Options,
+) void {
+    const archive_step = b.step(
+        "cuda-cumetal-native-archive",
+        "Build the authenticated Native CuMetal provider archive",
+    );
+    const smoke_step = b.step(
+        "run-native-cumetal-smoke",
+        "Prove and verify Native wide Fibonacci on the Apple GPU",
+    );
+    if (target.result.os.tag != .macos) {
+        const unavailable = b.addFail("the CuMetal provider requires macOS");
+        archive_step.dependOn(&unavailable.step);
+        smoke_step.dependOn(&unavailable.step);
+        return;
+    }
+    const clang = options.cumetal_clang;
+    const compiler = options.cumetalc;
+    const root = options.cumetal_root;
+    const library = options.cumetal_library;
+    const inspect = options.air_inspect;
+    const validate = options.air_validate;
+    if (clang == null or compiler == null or root == null or
+        library == null or inspect == null or validate == null)
+    {
+        const unavailable = b.addFail(
+            "Native CuMetal requires -Dcuda-cumetal-clang, " ++
+                "-Dcuda-cumetalc, -Dcuda-cumetal-root, " ++
+                "-Dcuda-cumetal-library, -Dcuda-air-inspect, and " ++
+                "-Dcuda-air-validate",
+        );
+        archive_step.dependOn(&unavailable.step);
+        smoke_step.dependOn(&unavailable.step);
+        return;
+    }
+    const toolchain = cuda_cumetal.Toolchain{
+        .clang = clang.?,
+        .compiler = compiler.?,
+        .root = root.?,
+        .library = library.?,
+        .air_inspect = inspect.?,
+        .air_validate = validate.?,
+        .archiver = options.cumetal_archiver orelse "/usr/bin/ar",
+        .jobs = options.jobs,
+    };
+    const archive = cuda_cumetal.addNativeArchive(b, toolchain);
+    archive_step.dependOn(&archive.build.step);
+    const root_module = b.createModule(.{
+        .root_source_file = b.path(
+            "tests/cuda/cumetal/native_frontend_execution.zig",
+        ),
+        .target = target,
+        .optimize = optimize,
+    });
+    root_module.addImport("stwo_under_test", stwo);
+    const tests = b.addTest(.{ .root_module = root_module });
+    cuda_cumetal.linkRuntime(tests, toolchain, archive);
+    const run = b.addRunArtifact(tests);
+    run.setEnvironmentVariable("CUMETAL_TRACE_GPU", "1");
+    run.setEnvironmentVariable("CUMETAL_MSL_MATH_MODE", "safe");
+    smoke_step.dependOn(&run.step);
+}
+
+const ExternalAuthority = struct {
+    directory: std.Build.LazyPath,
+    run: *std.Build.Step.Run,
+};
+
+fn addExternalAuthority(b: *std.Build) ExternalAuthority {
+    const command = b.addSystemCommand(&.{"python3"});
+    command.addFileArg(b.path("scripts/cuda_external_authority.py"));
+    command.addArg("materialize");
+    command.addArg("--output");
+    const directory = command.addOutputDirectoryArg("cuda-host-authority");
+    command.addFileInput(b.path("src/backends/cuda/source_manifest.json"));
+    command.addFileInput(b.path(
+        "src/backends/cuda/host_source_manifest.json",
+    ));
+    return .{ .directory = directory, .run = command };
+}
+
+fn addExternalAdapter(
+    b: *std.Build,
+    subcommand: []const u8,
+    authority: std.Build.LazyPath,
+) *std.Build.Step.Run {
+    const command = b.addSystemCommand(&.{"python3"});
+    command.addFileArg(b.path("scripts/cuda_adapter_external.py"));
+    command.addFileInput(b.path("scripts/cuda_external_authority.py"));
+    command.addArg(subcommand);
+    command.addArg("--authority-root");
+    command.addDirectoryArg(authority);
+    command.addArg("--adapter-root");
+    command.addDirectoryArg(b.path("tools/stwo-cuda-adapter-rs"));
+    command.addArg("--output");
+    _ = command.addOutputDirectoryArg(b.fmt(
+        "cuda-adapter-{s}",
+        .{subcommand},
+    ));
+    return command;
 }

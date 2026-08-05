@@ -2,6 +2,7 @@
 #define STWO_ZIG_CUDA_N2B_FUSED_CUH
 
 #include "../common/circle_twiddle.cuh"
+#include "../common/provider_compat.cuh"
 #include "transform_internal.cuh"
 
 namespace stwo::cuda::transform {
@@ -385,11 +386,11 @@ inline cudaError_t launch_n2b_continue(
     cudaStream_t stream) {
     if (column_count == 0 || start_stage == 0 ||
         start_stage + stages - 1u >= log_n) {
-        return cudaErrorInvalidConfiguration;
+        return STWO_CUDA_ERROR_INVALID_CONFIGURATION;
     }
     const uint32_t end_stage = start_stage + stages - 1u;
     const uint32_t min_stride = 1u << (log_n - end_stage);
-    if (min_stride < 32u) return cudaErrorInvalidConfiguration;
+    if (min_stride < 32u) return STWO_CUDA_ERROR_INVALID_CONFIGURATION;
     if (stages == 6) {
         const dim3 block{32, 8};
         const dim3 grid{
@@ -421,7 +422,7 @@ inline cudaError_t launch_n2b_continue(
             end_stage,
             twiddles);
     } else {
-        return cudaErrorInvalidConfiguration;
+        return STWO_CUDA_ERROR_INVALID_CONFIGURATION;
     }
     return cudaPeekAtLastError();
 }
@@ -437,10 +438,10 @@ inline cudaError_t launch_n2b_first_from_coefficients(
     cudaStream_t stream) {
     if (column_count == 0 || coefficient_log_sizes == nullptr ||
         stages >= log_n) {
-        return cudaErrorInvalidConfiguration;
+        return STWO_CUDA_ERROR_INVALID_CONFIGURATION;
     }
     const uint32_t min_stride = 1u << (log_n - stages);
-    if (min_stride < 32u) return cudaErrorInvalidConfiguration;
+    if (min_stride < 32u) return STWO_CUDA_ERROR_INVALID_CONFIGURATION;
     if (stages == 6) {
         const dim3 block{32, 8};
         const dim3 grid{
@@ -472,7 +473,7 @@ inline cudaError_t launch_n2b_first_from_coefficients(
             stages,
             twiddles);
     } else {
-        return cudaErrorInvalidConfiguration;
+        return STWO_CUDA_ERROR_INVALID_CONFIGURATION;
     }
     return cudaPeekAtLastError();
 }
@@ -488,7 +489,7 @@ inline cudaError_t launch_n2b_final(
     cudaStream_t stream) {
     if (column_count == 0 || start_stage == 0 ||
         start_stage + stages - 1u != log_n) {
-        return cudaErrorInvalidConfiguration;
+        return STWO_CUDA_ERROR_INVALID_CONFIGURATION;
     }
     if (stages == 7 || stages == 8) {
         const uint32_t log_values = stages - kN2bLogWarp;
@@ -525,7 +526,7 @@ inline cudaError_t launch_n2b_final(
             0,
             stream>>>(columns, log_n, start_stage, twiddles);
     } else {
-        return cudaErrorInvalidConfiguration;
+        return STWO_CUDA_ERROR_INVALID_CONFIGURATION;
     }
     return cudaPeekAtLastError();
 }

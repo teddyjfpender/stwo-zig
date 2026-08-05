@@ -81,6 +81,7 @@ pub const descriptor = policy.Descriptor{
     },
     .release_gates = &.{
         "cuda-source-closure",
+        "cuda-cumetal-ledger",
         "test-cuda-build-plan",
         "test-cuda-runtime-contract",
         "test-cuda-plonk-logup-contract",
@@ -89,7 +90,6 @@ pub const descriptor = policy.Descriptor{
         "test-cuda-poseidon-arena-contract",
         "test-cuda-blake-exact-structure",
         "upstream-pins",
-        "test-cuda-adapter",
         "run-native-cuda-smoke",
     },
     .benchmark_step = "benchmark-native-cuda",

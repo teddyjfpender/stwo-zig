@@ -17,6 +17,7 @@ pub const Package = enum {
     riscv_frontend,
     sm83_frontend,
     riscv_cpu_integration,
+    riscv_cuda_integration,
     sm83_cpu_integration,
     cairo_cpu_integration,
     riscv_metal_integration,
@@ -52,6 +53,7 @@ const owners = [_]Owner{
     .{ .prefix = "src/frontends/riscv/", .package = .riscv_frontend, .dependency_name = "stwo_riscv_frontend" },
     .{ .prefix = "src/frontends/sm83/", .package = .sm83_frontend, .dependency_name = "stwo_sm83_frontend" },
     .{ .prefix = "src/integrations/riscv_cpu/", .package = .riscv_cpu_integration, .dependency_name = "stwo_riscv_cpu_integration" },
+    .{ .prefix = "src/integrations/riscv_cuda/", .package = .riscv_cuda_integration, .dependency_name = "stwo_riscv_cuda_integration" },
     .{ .prefix = "src/integrations/sm83_cpu/", .package = .sm83_cpu_integration, .dependency_name = "stwo_sm83_cpu_integration" },
     .{ .prefix = "src/integrations/cairo_cpu/", .package = .cairo_cpu_integration, .dependency_name = "stwo_cairo_cpu_integration" },
     .{ .prefix = "src/integrations/riscv_metal/", .package = .riscv_metal_integration, .dependency_name = "stwo_riscv_metal_integration" },
@@ -126,6 +128,10 @@ test "canonical owner roots resolve to package dependencies" {
     try std.testing.expectEqual(
         Package.riscv_cpu_integration,
         resolve("src/integrations/riscv_cpu/mod.zig").?.package,
+    );
+    try std.testing.expectEqual(
+        Package.riscv_cuda_integration,
+        resolve("src/integrations/riscv_cuda/mod.zig").?.package,
     );
     try std.testing.expectEqual(
         Package.sm83_cpu_integration,

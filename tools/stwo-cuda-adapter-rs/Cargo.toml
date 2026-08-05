@@ -9,6 +9,6 @@ hex = "0.4"
 num-traits = "0.2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-stwo = { path = "../../src/backends/cuda/vendor/host_authority/crates/stwo", features = ["prover", "parallel"] }
-stwo-backend-cuda = { path = "../../src/backends/cuda/vendor/host_authority/crates/backend-cuda", features = ["parallel"] }
-stwo-backend-cuda-kernels = { path = "../../src/backends/cuda/vendor/host_authority/crates/backend-cuda-kernels" }
+stwo = { path = ".authority/crates/stwo", features = ["prover", "parallel"] }
+stwo-backend-cuda = { path = ".authority/crates/backend-cuda", features = ["parallel"] }
+stwo-backend-cuda-kernels = { path = ".authority/crates/backend-cuda-kernels" }

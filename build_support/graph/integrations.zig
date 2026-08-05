@@ -64,6 +64,54 @@ pub fn addRiscVCpuImport(
     return integration;
 }
 
+/// Constructs the RISC-V frontend to CUDA provider composition. This package
+/// owns only the structural/formal boundary until the RISC-V AOT catalogue and
+/// execution-parity gate are complete.
+pub fn createRiscVCuda(
+    b: *std.Build,
+    protocol: graph.ProtocolModules,
+    product: graph.Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    cuda_backend: *std.Build.Module,
+    riscv_frontend: *std.Build.Module,
+) *std.Build.Module {
+    const integration = graph.create(b, .{
+        .product = product,
+        .root_source_file = "src/integrations/riscv_cuda/mod.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    integration.addImport("stwo_backend_contracts", protocol.backend_contracts);
+    integration.addImport("stwo_cuda_backend", cuda_backend);
+    integration.addImport("stwo_riscv_frontend", riscv_frontend);
+    return integration;
+}
+
+/// Declares a consumer's dependency on the package-owned RISC-V CUDA seam.
+pub fn addRiscVCudaImport(
+    b: *std.Build,
+    protocol: graph.ProtocolModules,
+    product: graph.Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    cuda_backend: *std.Build.Module,
+    riscv_frontend: *std.Build.Module,
+    consumer: *std.Build.Module,
+) *std.Build.Module {
+    const integration = createRiscVCuda(
+        b,
+        protocol,
+        product,
+        target,
+        optimize,
+        cuda_backend,
+        riscv_frontend,
+    );
+    consumer.addImport("stwo_riscv_cuda_integration", integration);
+    return integration;
+}
+
 pub fn addCairoCpuStack(
     b: *std.Build,
     protocol: graph.ProtocolModules,

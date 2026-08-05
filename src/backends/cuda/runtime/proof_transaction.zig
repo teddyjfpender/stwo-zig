@@ -10,6 +10,7 @@ const session_module = @import("session.zig");
 const telemetry = @import("telemetry.zig");
 
 pub const ResidentProofTransaction = TransactionFor(session_module.NativeSession);
+pub const CuMetalProofTransaction = TransactionFor(session_module.CuMetalSession);
 pub const device_memory_safety_reserve_bytes: usize = 256 * 1024 * 1024;
 
 pub fn TransactionFor(comptime Session: type) type {

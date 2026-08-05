@@ -5,6 +5,7 @@ const runtime_error = @import("error.zig");
 const session_module = @import("session.zig");
 
 pub const NativeRuntime = ProcessOwnedRuntimeFor(session_module.NativeSession);
+pub const CuMetalRuntime = ProcessOwnedRuntimeFor(session_module.CuMetalSession);
 
 /// Wraps one session implementation in a process-wide ownership lease.
 ///

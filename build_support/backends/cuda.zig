@@ -1,10 +1,11 @@
 //! Explicit, isolated build and link ownership for the native CUDA archive.
 
 const std = @import("std");
+const cuda_aot = @import("cuda_aot.zig");
 
 pub const source_root =
-    "src/backends/cuda/vendor/host_authority/crates/backend-cuda-kernels/cuda";
-pub const source_manifest = "src/backends/cuda/source_manifest.json";
+    "src/backends/cuda/authority/active";
+pub const source_manifest = "src/backends/cuda/active_source_manifest.json";
 pub const product_manifest = "src/backends/cuda/product_manifest.json";
 pub const native_root = "src/backends/cuda/native";
 pub const native_aot_root = "src/backends/cuda/aot/native";
@@ -125,6 +126,7 @@ fn buildCommand(
     product: AotProduct,
     cairo_eval_root: ?std.Build.LazyPath,
 ) *std.Build.Step.Run {
+    const native_aot = cuda_aot.addNative(b);
     const command = b.addSystemCommand(&.{"python3"});
     command.addFileArg(b.path(build_script));
     addDirectoryInputs(b, command, build_script_root);
@@ -142,6 +144,9 @@ fn buildCommand(
     command.addDirectoryArg(b.path(native_aot_root));
     addDirectoryInputs(b, command, native_aot_root);
     command.addArgs(&.{ "--aot-set", "." });
+    command.addArgs(&.{ "--frontend", @tagName(product) });
+    command.addArgs(&.{ "--aot-set-root", "." });
+    command.addDirectoryArg(native_aot.directory);
     if (product == .cairo) {
         const generated = cairo_eval_root orelse @panic(
             "Cairo CUDA archive requires generated eval AOT sources",

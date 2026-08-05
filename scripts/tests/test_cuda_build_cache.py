@@ -22,11 +22,12 @@ from cuda_build_lib.builder import (  # noqa: E402
     Toolchain,
     build_plan,
 )
+from scripts.tests.cuda_native_aot_fixture import native_aot_root  # noqa: E402
 
 
 CUDA_ROOT = ROOT / "src/backends/cuda"
 NATIVE = CUDA_ROOT / "native"
-NATIVE_AOT = CUDA_ROOT / "aot/native"
+NATIVE_AOT = native_aot_root()
 
 
 class CudaBuildCacheTests(unittest.TestCase):
@@ -69,14 +70,18 @@ class CudaBuildCacheTests(unittest.TestCase):
             self._run_plan(zig, project, cache)
             self.assertEqual(initial, self._plan_outputs(cache))
 
-            header = project / "src/backends/cuda/native/commitment/blake2s_core.cuh"
-            header.write_bytes(header.read_bytes() + b"\n// cache-invalidation-header\n")
+            # Use an unreferenced header here so this test isolates Zig's build
+            # cache key. Headers in an authenticated AOT source closure are
+            # intentionally rejected as stale until their manifest is repinned;
+            # that fail-closed behavior is covered by test_cuda_aot_identity.py.
+            header = project / "src/backends/cuda/native/cache_invalidation_probe.cuh"
+            header.write_bytes(b"// cache-invalidation-header\n")
             self._run_plan(zig, project, cache)
             after_header = self._plan_outputs(cache)
             self.assertEqual(2, len(after_header))
             self.assertTrue(initial < after_header)
 
-            source = project / "src/backends/cuda/native/commitment/merkle.cu"
+            source = project / "src/backends/cuda/native/runtime/context.cu"
             source.write_bytes(source.read_bytes() + b"\n// cache-invalidation-source\n")
             self._run_plan(zig, project, cache)
             after_source = self._plan_outputs(cache)
@@ -90,6 +95,10 @@ class CudaBuildCacheTests(unittest.TestCase):
         shutil.copy2(
             ROOT / "build_support/backends/cuda.zig",
             build_support / "cuda.zig",
+        )
+        shutil.copy2(
+            ROOT / "build_support/backends/cuda_aot.zig",
+            build_support / "cuda_aot.zig",
         )
         (project / "build.zig").write_text(
             textwrap.dedent(
@@ -123,21 +132,16 @@ class CudaBuildCacheTests(unittest.TestCase):
 
         cuda_root = project / "src/backends/cuda"
         cuda_root.mkdir(parents=True)
-        (cuda_root / "source_manifest.json").symlink_to(
-            ROOT / "src/backends/cuda/source_manifest.json"
+        (cuda_root / "active_source_manifest.json").symlink_to(
+            ROOT / "src/backends/cuda/active_source_manifest.json"
         )
         (cuda_root / "product_manifest.json").symlink_to(
             ROOT / "src/backends/cuda/product_manifest.json"
         )
-        authority = (
-            cuda_root
-            / "vendor/host_authority/crates/backend-cuda-kernels"
-        )
+        authority = cuda_root / "authority"
         authority.mkdir(parents=True)
-        (authority / "cuda").symlink_to(
-            ROOT
-            / "src/backends/cuda/vendor/host_authority"
-            / "crates/backend-cuda-kernels/cuda",
+        (authority / "active").symlink_to(
+            ROOT / "src/backends/cuda/authority/active",
             target_is_directory=True,
         )
         shutil.copytree(
@@ -150,12 +154,27 @@ class CudaBuildCacheTests(unittest.TestCase):
             ROOT / "src/backends/cuda/aot/native",
             target_is_directory=True,
         )
+        tools = project / "src/tools"
+        tools.mkdir(parents=True)
+        (tools / "cairo_cuda_witness_aot").symlink_to(
+            ROOT / "src/tools/cairo_cuda_witness_aot",
+            target_is_directory=True,
+        )
+        (tools / "cairo_witness_cpu_codegen").symlink_to(
+            ROOT / "src/tools/cairo_witness_cpu_codegen",
+            target_is_directory=True,
+        )
+        vectors = project / "vectors/cairo"
+        vectors.mkdir(parents=True)
+        (vectors / "sn_pie_2_witness_programs.bin").symlink_to(
+            ROOT / "vectors/cairo/sn_pie_2_witness_programs.bin"
+        )
 
     @staticmethod
     def _config(output: Path) -> BuildConfig:
         return BuildConfig(
-            source_root=CUDA_ROOT / "vendor/host_authority/crates/backend-cuda-kernels/cuda",
-            source_manifest=CUDA_ROOT / "source_manifest.json",
+            source_root=CUDA_ROOT / "authority/active",
+            source_manifest=CUDA_ROOT / "active_source_manifest.json",
             product_manifest=CUDA_ROOT / "product_manifest.json",
             native_root=NATIVE,
             native_aot_root=NATIVE_AOT,

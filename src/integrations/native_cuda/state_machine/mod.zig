@@ -48,6 +48,11 @@ pub const NativeDriver = driver.DriverFor(
     executor.pipeline,
 );
 pub const NativeRuntime = driver.NativeRuntime;
+pub const CuMetalDriver = driver.DriverFor(
+    driver.CuMetalTransaction,
+    executor.pipeline,
+);
+pub const CuMetalRuntime = driver.CuMetalRuntime;
 
 test {
     _ = canonical_input;

@@ -203,7 +203,7 @@ cudaError_t n2b_columns_after_first_interval_on(
     bool include_circle,
     uint32_t *launches_out) {
     if (log_n < kFirstFusedLogN || log_n > kLastFusedLogN) {
-        return cudaErrorInvalidConfiguration;
+        return STWO_CUDA_ERROR_INVALID_CONFIGURATION;
     }
     return n2b_fused_columns_from_interval_on(
         columns,

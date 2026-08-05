@@ -12,6 +12,7 @@ pub const graph_execution = @import("graph_execution.zig");
 pub const interactions = @import("interactions/mod.zig");
 pub const kernel = @import("kernel.zig");
 pub const persistent_allocation = @import("persistent_allocation.zig");
+pub const provider = @import("provider.zig");
 pub const proof_transaction = @import("proof_transaction.zig");
 pub const process_runtime = @import("process_runtime.zig");
 pub const proof_assembly = @import("proof_assembly/mod.zig");
@@ -29,6 +30,8 @@ pub const NativeContext = context.NativeContext;
 pub const NativeBaseFieldColumn = column.NativeBaseFieldColumn;
 pub const NativeSession = session.NativeSession;
 pub const NativeRuntime = process_runtime.NativeRuntime;
+pub const CuMetalSession = session.CuMetalSession;
+pub const CuMetalRuntime = process_runtime.CuMetalRuntime;
 
 test {
     _ = arena;
@@ -43,6 +46,7 @@ test {
     _ = interactions;
     _ = kernel;
     _ = persistent_allocation;
+    _ = provider;
     _ = proof_transaction;
     _ = process_runtime;
     _ = proof_assembly;
