@@ -128,6 +128,7 @@ test {
     _ = @import("air/lang/relation_test.zig");
     _ = @import("air/lang/shadow_import_test.zig");
     _ = @import("air/lang/shadow_program_test.zig");
+    _ = @import("air/lang/static_collections_test.zig");
     _ = @import("air/lang/validate_test.zig");
 
     // AIR: relation wiring.
