@@ -30,6 +30,8 @@ direct-constraint lowerer with the following contract:
 - lower `select(s, t, f)` deterministically to `f + s * (t - f)`;
 - sort operands of addition and multiplication by node ID;
 - hash-cons every target node through a fallible allocator; and
+- relabel the reachable result canonically by dependency height and stable
+  structural key, retaining the physical column prefix; and
 - preserve direct-root count and declaration order.
 
 The owned result has an allocation-free validator. It rejects malformed column
@@ -44,6 +46,13 @@ layer replays four deterministic randomized assignments per family and compares
 every production and lowered root over M31. Repeated LUI lowering is identical;
 corruption and malformed-buffer cases reject; induced allocation failure across
 the DIV family frees every partial allocation.
+
+The canonical relabeling is independent of source insertion order. This became
+load-bearing when complete-program construction interned constants during its
+direct section that lookup-only construction first encountered later. Columns
+remain first; constants and operations are ordered by height, operation, value,
+and already-canonical operands. An independently implemented test oracle applies
+the same specified ordering without sharing the lowerer's hash table or code.
 
 ## Consequences
 

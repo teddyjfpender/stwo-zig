@@ -102,7 +102,9 @@ counts, dependencies, and final degrees. The `compat-v1` mapping binds every
 logical input to the exact preprocessed/main/interaction tree position while
 keeping logical and physical names distinct. Direct lowering now reproduces
 the independently normalized node DAG and all 545 ordered roots across all 17
-families, with randomized replay and failure-path coverage. The next seam
-reconstructs LUI's ordered lookup effects; this work continues to strengthen
-and reify the existing path rather than replace the prover or rewrite all
-opcodes.
+families, with randomized replay and failure-path coverage. Ordered lookup
+lowering likewise reproduces all 242 events and 155 physical batches while
+binding role signs to normalized liveness. The next seam exports these owned
+canonical programs into the existing runtime capability types; this work
+continues to strengthen and reify the existing path rather than replace the
+prover or rewrite all opcodes.

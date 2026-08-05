@@ -186,6 +186,12 @@ Transforms typed effects into ordered relation entries. Relation domains,
 roles, arities, access ordinals, and multiplicities come from schemas rather
 than call-site conventions.
 
+The compatibility precursor accepts erased production records, not authored
+effects. It normalizes request/consume/emit signs into explicit liveness,
+retains a structurally checked signed numerator, and binds each ordered batch
+to its `compat-v1` interaction coordinates. Full semantic field-type evidence
+remains a later typed-authoring obligation.
+
 ### Formal exporter
 
 Serializes the exact lowered production program. During compatibility phases it
@@ -260,6 +266,7 @@ src/frontends/riscv/air/lang/
   layout.zig             policies and physical allocation
   manifest.zig           canonical layout identity
   lower_constraint.zig   current ConstraintProgram compatibility
+  lower_lookup.zig       role-normalized ordered lookup compatibility
   lower_runtime.zig      backend-neutral polynomial programs
   witness.zig            row evaluation and hint dispatch
   relations.zig          typed relation schema lowering

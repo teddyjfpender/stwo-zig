@@ -95,8 +95,8 @@ families and independently checks the shipped direct and lookup backend bounds.
 
 ## Phase 3 — compatibility lowering
 
-**Status:** active; A-006 physical mapping and A-007 direct-constraint lowering
-are complete. A-008 ordered effect lowering is active.
+**Status:** active; A-006 physical mapping, A-007 direct-constraint lowering,
+and A-008 ordered lookup lowering are complete. A-009 runtime export is active.
 
 Lower a logical program back into the current `ConstraintProgram` and runtime
 polynomial formats.
@@ -119,6 +119,13 @@ six-operation program. An independent normalizer establishes exact node and
 ordered-root equality for all 17 families; randomized M31 replay, corruption,
 malformed-buffer, determinism, and allocation-failure tests provide secondary
 evidence. See [ADR-0013](decisions/0013-fallible-normalized-direct-lowering.md).
+
+The ordered lookup pass normalizes already-signed production numerators into
+role plus liveness while retaining a structurally bound signed root. It pins
+tuple and event order, access ordinals, batch occupancy, and every physical
+interaction coordinate. All-family canonical structure and replay agree with
+the lookup-only runtime exporter; see
+[ADR-0014](decisions/0014-role-normalized-ordered-lookup-lowering.md).
 
 **Exit gate:**
 

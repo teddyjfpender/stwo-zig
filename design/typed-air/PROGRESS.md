@@ -3,8 +3,8 @@
 **Status date:** 2026-08-05
 **Branch:** `feat/typed-air-precompiles`
 **Current milestone:** M3 — compatibility lowering
-**Active task:** A-008 — lower ordered lookup effects
-**Next queued task:** A-009 — reproduce runtime polynomial program
+**Active task:** A-009 — reproduce runtime polynomial program
+**Next queued task:** A-010 — reproduce AIR IR v2 projection
 
 ## Dashboard
 
@@ -13,7 +13,7 @@
 | M0 — engineering dossier | complete | This directory and initial ADRs |
 | M1 — validated logical IR | complete | F-001 through F-012 complete and green |
 | M2 — shadow compiler | complete | A-001 through A-005 complete and green |
-| M3 — compatibility lowering | active | A-006 and A-007 complete; A-008 active |
+| M3 — compatibility lowering | active | A-006 through A-008 complete; A-009 active |
 | M4 — Poseidon compiler pilot | queued | Requires degree/layout passes |
 | M5 — effect and witness pilot | queued | Requires typed schemas and lowering |
 | M6 — guest precompile | queued | Requires Poseidon and ABI ADRs |
@@ -148,13 +148,22 @@
   deterministic randomized M31 replays per family agree root by root; repeated
   lowering, structural corruption, malformed buffers, and every induced DIV
   allocation failure pass without leaks.
+- Completed A-008: ordered lookup lowering separates unsigned liveness from the
+  already-signed production numerator and structurally binds both to the event
+  role. It retains schema, tuple order, arity, ordinal, fixed sentinel tails,
+  declaration order, batch occupancy, and all four physical QM31 coordinate
+  references per batch. Canonical dependency-height relabeling removes node-ID
+  drift caused by unrelated direct-section interning. An independent oracle
+  establishes exact normalized DAG and flattened-root identity with all 17
+  lookup-only runtime programs; randomized replay covers all 242 events and all
+  155 batches. Sign mismatch, corruption, determinism, and every induced DIV
+  allocation failure reject or clean up as specified.
 
 ## Immediate next actions
 
-1. A-008 — reproduce typed effect ordering and signed lookup entries,
-   beginning with LUI.
-2. A-009 — reproduce the runtime polynomial program.
-3. A-010 — reproduce the AIR IR v2 projection for LUI.
+1. A-009 — reproduce the runtime polynomial program.
+2. A-010 — reproduce the AIR IR v2 projection for LUI.
+3. A-011 — round-trip every current family after both exporters are exact.
 
 No production behavior should change in these tasks.
 
@@ -176,6 +185,8 @@ Accepted:
   committed names.
 - Fallible normalized direct-constraint lowering with structural identity as
   the primary compatibility criterion.
+- Role-normalized ordered lookup lowering with cached sign binding and explicit
+  physical batches.
 
 Pending:
 
@@ -449,8 +460,35 @@ partial owner.
 
 The full ReleaseFast package suite and package-workspace audit pass. The two
 printed register-boundary diagnostics remain expected negative-test evidence.
-No production consumer or proof artifact changed. A-008 is active to reproduce
-LUI's ordered lookup effects and batch boundaries through the same mapping.
+No production consumer or proof artifact changed. At this point A-008 became
+active to reproduce LUI's ordered lookup effects and batch boundaries through
+the same mapping.
+
+### 2026-08-05 — M3 ordered lookups and role signs reproduced
+
+A-008 completed with `lower_lookup.zig` and ADR-0014. Request and consume
+entries must expose a syntactic negative numerator and retain its operand as
+normalized liveness; emit liveness equals its positive numerator. The owned
+event keeps the signed numerator as a cache that validation binds back to role,
+preventing both sign loss and double negation. Schema, role, tuple roots,
+access ordinal, event order, sentinel tail, batch occupancy, and all four
+physical interaction-coordinate references are checked without allocation.
+
+The first lookup-only structural differential exposed incidental node ordering:
+the complete builder may intern a constant while constructing direct roots
+before the lookup-only builder encounters it. The shared lowerer now relabels
+reachable nodes by dependency height and stable structural key. A separately
+implemented linear-interning oracle performs the documented canonical ordering
+without sharing lowerer code. Exact canonical nodes and flattened roots now
+match the production lookup-only runtime program across all 17 families.
+
+Four deterministic randomized assignments per family agree for every one of
+the 242 numerators and every tuple field, and separately recheck each role-sign
+identity. All 155 batches match `compat-v1`. LUI reconstruction, corruption,
+malformed sign, and DIV allocation-failure tests pass in both ReleaseFast and
+ReleaseSafe package suites. The package workspace audit remains green. This is
+still an erased compatibility record, not semantic field-type evidence for an
+authored effect. No production behavior changed; A-009 is active.
 
 ## Update protocol
 

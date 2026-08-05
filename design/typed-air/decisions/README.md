@@ -31,6 +31,7 @@ shape, authoring model, or delivery order.
 | [0011](0011-complete-protocol-degree-and-pinned-report.md) | Complete protocol degree and pinned production report | accepted |
 | [0012](0012-compat-v1-local-physical-mapping.md) | `compat-v1` local physical mapping | accepted |
 | [0013](0013-fallible-normalized-direct-lowering.md) | Fallible normalized direct-constraint lowering | accepted |
+| [0014](0014-role-normalized-ordered-lookup-lowering.md) | Role-normalized ordered lookup lowering | accepted |
 
 ## Pending ADRs
 

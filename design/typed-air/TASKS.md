@@ -63,8 +63,8 @@ first production milestone. `P2` improves breadth or optimization.
 | A-005 | P0 | Emit all-family degree and dependency report | A-004 | Golden machine report and readable summary for 17 families | done |
 | A-006 | P0 | Define `compat-v1` physical column mapping | F-005, A-002 | Current column count/name/order reproduced | done |
 | A-007 | P0 | Lower direct constraints to current `ConstraintProgram` | A-006 | LUI exact normalized DAG comparison | done |
-| A-008 | P0 | Lower typed effects to current ordered lookup entries | A-007, F-006 | LUI event fields and batch order exact | active |
-| A-009 | P0 | Reproduce runtime polynomial program | A-007 | Node/root/column identity test | queued |
+| A-008 | P0 | Lower typed effects to current ordered lookup entries | A-007, F-006 | LUI event fields and batch order exact | done |
+| A-009 | P0 | Reproduce runtime polynomial program | A-007 | Node/root/column identity test | active |
 | A-010 | P0 | Reproduce AIR IR v2 projection | A-008 | Byte-identical canonical export for LUI | queued |
 | A-011 | P1 | Round-trip every current family | A-009, A-010 | 17 compatibility manifests and exports exact | queued |
 | A-012 | P1 | Add layout diff command/test helper | A-006 | Diff identifies first semantic/layout divergence with names | queued |

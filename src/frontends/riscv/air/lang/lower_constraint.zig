@@ -38,6 +38,14 @@ pub const ReplayError = ValidationError || error{
     InvalidReplayColumns,
 };
 
+/// Physical input prefix required by a lowered root set. Lookup expressions
+/// depend only on main columns; direct placement constraints additionally read
+/// the external active selector.
+pub const ColumnSet = enum {
+    main,
+    main_and_selector,
+};
+
 pub const Program = struct {
     allocator: std.mem.Allocator,
     nodes: []symbolic.Node,
@@ -58,12 +66,10 @@ pub const Program = struct {
     /// success. Canonical uniqueness is quadratic in node count by design;
     /// validation is cold and current family DAGs contain fewer than 500 nodes.
     pub fn validate(self: *const Program) ValidationError!void {
-        if (self.column_count < 2 or
-            self.nodes.len < self.column_count or
-            self.roots.len == 0)
-        {
+        if (self.column_count == 0 or self.nodes.len < self.column_count) {
             return error.InvalidColumnLayout;
         }
+        if (self.roots.len == 0) return error.InvalidRoot;
         for (self.nodes, 0..) |node, index| {
             if (index < self.column_count) {
                 const expected = symbolic.Node{
@@ -74,9 +80,14 @@ pub const Program = struct {
                     return error.InvalidColumnLayout;
             } else switch (node.op) {
                 .column => return error.InvalidColumnLayout,
-                .constant => if (node.value >= m31.Modulus)
-                    return error.InvalidConstant,
+                .constant => {
+                    if (node.lhs != 0 or node.rhs != 0)
+                        return error.NonCanonicalNode;
+                    if (node.value >= m31.Modulus)
+                        return error.InvalidConstant;
+                },
                 .add, .sub, .mul => {
+                    if (node.value != 0) return error.NonCanonicalNode;
                     if (node.lhs >= index or node.rhs >= index)
                         return error.InvalidNode;
                     if ((node.op == .add or node.op == .mul) and
@@ -85,8 +96,11 @@ pub const Program = struct {
                         return error.NonCanonicalNode;
                     }
                 },
-                .neg => if (node.lhs >= index)
-                    return error.InvalidNode,
+                .neg => {
+                    if (node.rhs != 0 or node.value != 0)
+                        return error.NonCanonicalNode;
+                    if (node.lhs >= index) return error.InvalidNode;
+                },
             }
             for (self.nodes[0..index]) |prior| {
                 if (std.meta.eql(node, prior)) return error.DuplicateNode;
@@ -125,6 +139,36 @@ pub fn lower(
     layout: *const compat_layout.Layout,
 ) LowerError!Program {
     try layout.validate(imported);
+    const roots = try allocator.alloc(
+        types.ValueId,
+        imported.direct_constraints.len,
+    );
+    defer allocator.free(roots);
+    for (imported.direct_constraints, roots) |constraint_id, *root| {
+        const constraint = imported.imported.arena.constraint(constraint_id) orelse
+            return error.InvalidConstraintMap;
+        root.* = constraint.root;
+    }
+    return lowerValues(
+        allocator,
+        imported,
+        layout,
+        roots,
+        .main_and_selector,
+    );
+}
+
+/// Lowers an ordered value-root set through the same canonical expression
+/// machinery used by direct constraints. This is the shared seam for lookup
+/// numerators/fields and later runtime or formal exporters.
+pub fn lowerValues(
+    allocator: std.mem.Allocator,
+    imported: *const shadow_program.ImportedProgram,
+    layout: *const compat_layout.Layout,
+    roots: []const types.ValueId,
+    column_set: ColumnSet,
+) LowerError!Program {
+    try layout.validate(imported);
     const typed_nodes = imported.imported.arena.nodesView();
     const reachable = try allocator.alloc(bool, typed_nodes.len);
     defer allocator.free(reachable);
@@ -133,10 +177,10 @@ pub fn lower(
     defer allocator.free(mapped);
     @memset(mapped, no_node);
 
-    for (imported.direct_constraints) |constraint_id| {
-        const constraint = imported.imported.arena.constraint(constraint_id) orelse
-            return error.InvalidConstraintMap;
-        reachable[types.idIndex(constraint.root)] = true;
+    for (roots) |root| {
+        const index = types.idIndex(root);
+        if (index >= typed_nodes.len) return error.MissingOperand;
+        reachable[index] = true;
     }
     var reverse = typed_nodes.len;
     while (reverse > 0) {
@@ -170,16 +214,18 @@ pub fn lower(
             return error.InvalidMainLayout;
         mapped[value_index] = lowered;
     }
-    const selector_column = std.math.cast(u32, layout.main().len) orelse
-        return error.CountOverflow;
-    const lowered_selector = try target.intern(.{
-        .op = .column,
-        .value = selector_column,
-    });
-    const selector_index = types.idIndex(imported.selector);
-    if (selector_index >= mapped.len or mapped[selector_index] != no_node)
-        return error.InvalidPreprocessedLayout;
-    mapped[selector_index] = lowered_selector;
+    if (column_set == .main_and_selector) {
+        const selector_column = std.math.cast(u32, layout.main().len) orelse
+            return error.CountOverflow;
+        const lowered_selector = try target.intern(.{
+            .op = .column,
+            .value = selector_column,
+        });
+        const selector_index = types.idIndex(imported.selector);
+        if (selector_index >= mapped.len or mapped[selector_index] != no_node)
+            return error.InvalidPreprocessedLayout;
+        mapped[selector_index] = lowered_selector;
+    }
 
     for (typed_nodes, 0..) |node, index| {
         if (!reachable[index] or mapped[index] != no_node) continue;
@@ -223,25 +269,151 @@ pub fn lower(
         };
     }
 
-    const roots = try allocator.alloc(u32, imported.direct_constraints.len);
-    errdefer allocator.free(roots);
-    for (imported.direct_constraints, roots) |constraint_id, *root| {
-        const constraint = imported.imported.arena.constraint(constraint_id) orelse
-            return error.InvalidConstraintMap;
-        root.* = try operand(mapped, constraint.root);
+    const lowered_roots = try allocator.alloc(u32, roots.len);
+    var roots_owned = true;
+    errdefer if (roots_owned) allocator.free(lowered_roots);
+    for (roots, lowered_roots) |root, *lowered_root| {
+        lowered_root.* = try operand(mapped, root);
     }
     const nodes = try target.nodes.toOwnedSlice(allocator);
-    errdefer allocator.free(nodes);
-    const column_count = std.math.add(usize, layout.main().len, 1) catch
+    var nodes_owned = true;
+    errdefer if (nodes_owned) allocator.free(nodes);
+    const column_count = std.math.add(
+        usize,
+        layout.main().len,
+        @intFromBool(column_set == .main_and_selector),
+    ) catch
         return error.CountOverflow;
     var result = Program{
         .allocator = allocator,
         .nodes = nodes,
-        .roots = roots,
+        .roots = lowered_roots,
         .column_count = column_count,
     };
+    roots_owned = false;
+    nodes_owned = false;
+    errdefer result.deinit();
+    try canonicalize(&result);
     try result.validate();
     return result;
+}
+
+const Candidate = struct {
+    old_index: u32,
+    node: symbolic.Node,
+};
+
+/// Re-labels a valid topological DAG independently of source insertion order.
+/// Columns retain their physical prefix. Remaining nodes are ordered by
+/// dependency height and then by a stable structural key over already-remapped
+/// operands. This makes lookup-only and complete-program construction converge
+/// even when dead sibling work first interned a shared constant.
+fn canonicalize(program: *Program) (std.mem.Allocator.Error || error{CountOverflow})!void {
+    const allocator = program.allocator;
+    const heights = try allocator.alloc(u32, program.nodes.len);
+    defer allocator.free(heights);
+    var maximum_height: u32 = 0;
+    for (program.nodes, 0..) |node, index| {
+        heights[index] = switch (node.op) {
+            .constant, .column => 0,
+            .add, .sub, .mul => std.math.add(
+                u32,
+                @max(heights[node.lhs], heights[node.rhs]),
+                1,
+            ) catch return error.CountOverflow,
+            .neg => std.math.add(u32, heights[node.lhs], 1) catch
+                return error.CountOverflow,
+        };
+        maximum_height = @max(maximum_height, heights[index]);
+    }
+
+    const remapped = try allocator.alloc(u32, program.nodes.len);
+    defer allocator.free(remapped);
+    @memset(remapped, no_node);
+    const candidates = try allocator.alloc(Candidate, program.nodes.len);
+    defer allocator.free(candidates);
+    var canonical: std.ArrayList(symbolic.Node) = .empty;
+    defer canonical.deinit(allocator);
+    try canonical.ensureTotalCapacity(allocator, program.nodes.len);
+
+    for (program.nodes[0..program.column_count], 0..) |node, index| {
+        canonical.appendAssumeCapacity(node);
+        remapped[index] = @intCast(index);
+    }
+
+    var height: u32 = 0;
+    while (height <= maximum_height) : (height += 1) {
+        var count: usize = 0;
+        for (program.nodes[program.column_count..], program.column_count..) |node, old_index| {
+            if (heights[old_index] != height) continue;
+            candidates[count] = .{
+                .old_index = @intCast(old_index),
+                .node = try remapNode(node, remapped),
+            };
+            count += 1;
+        }
+        std.mem.sort(Candidate, candidates[0..count], {}, candidateLessThan);
+        for (candidates[0..count]) |candidate| {
+            if (canonical.items.len > program.column_count and
+                std.meta.eql(canonical.items[canonical.items.len - 1], candidate.node))
+            {
+                remapped[candidate.old_index] = @intCast(canonical.items.len - 1);
+                continue;
+            }
+            const new_index = std.math.cast(u32, canonical.items.len) orelse
+                return error.CountOverflow;
+            canonical.appendAssumeCapacity(candidate.node);
+            remapped[candidate.old_index] = new_index;
+        }
+        if (height == maximum_height) break;
+    }
+
+    for (program.roots) |*root| {
+        if (root.* >= remapped.len or remapped[root.*] == no_node)
+            return error.CountOverflow;
+        root.* = remapped[root.*];
+    }
+    const canonical_nodes = try canonical.toOwnedSlice(allocator);
+    allocator.free(program.nodes);
+    program.nodes = canonical_nodes;
+}
+
+fn remapNode(
+    source_node: symbolic.Node,
+    remapped: []const u32,
+) error{CountOverflow}!symbolic.Node {
+    var node = source_node;
+    switch (node.op) {
+        .constant => {},
+        .column => return error.CountOverflow,
+        .add, .sub, .mul => {
+            if (node.lhs >= remapped.len or node.rhs >= remapped.len or
+                remapped[node.lhs] == no_node or remapped[node.rhs] == no_node)
+            {
+                return error.CountOverflow;
+            }
+            node.lhs = remapped[node.lhs];
+            node.rhs = remapped[node.rhs];
+            if ((node.op == .add or node.op == .mul) and node.rhs < node.lhs)
+                std.mem.swap(u32, &node.lhs, &node.rhs);
+        },
+        .neg => {
+            if (node.lhs >= remapped.len or remapped[node.lhs] == no_node)
+                return error.CountOverflow;
+            node.lhs = remapped[node.lhs];
+        },
+    }
+    return node;
+}
+
+fn candidateLessThan(_: void, lhs: Candidate, rhs: Candidate) bool {
+    const lhs_op = @intFromEnum(lhs.node.op);
+    const rhs_op = @intFromEnum(rhs.node.op);
+    if (lhs_op != rhs_op) return lhs_op < rhs_op;
+    if (lhs.node.value != rhs.node.value) return lhs.node.value < rhs.node.value;
+    if (lhs.node.lhs != rhs.node.lhs) return lhs.node.lhs < rhs.node.lhs;
+    if (lhs.node.rhs != rhs.node.rhs) return lhs.node.rhs < rhs.node.rhs;
+    return lhs.old_index < rhs.old_index;
 }
 
 fn markOperand(

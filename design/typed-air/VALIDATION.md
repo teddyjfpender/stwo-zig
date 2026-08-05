@@ -177,6 +177,15 @@ assignments per family. The owned result separately exercises deterministic
 reconstruction, structural corruption, malformed replay buffers, and induced
 allocation failure.
 
+A-008 extends that oracle to production lookup-only programs. Canonical
+topological relabeling makes comparison independent of constants first interned
+by an unrelated direct section. Every family requires exact node and flattened
+`numerator, tuple...` root identity; every event separately matches schema,
+role, arity, ordinal, order, and role-signed liveness, while every batch matches
+its four physical interaction references. Random replay covers all 242 events;
+corruption, sign mismatch, deterministic reconstruction, and allocation failure
+are separate gates.
+
 ## Differential design
 
 Expression comparison should not rely solely on node IDs. Normalize or compare

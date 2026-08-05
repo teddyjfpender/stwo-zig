@@ -376,6 +376,16 @@ without allocation and replays only after structural validation. Exact
 normalized node and ordered-root equality holds for all 17 current families;
 see [ADR-0013](decisions/0013-fallible-normalized-direct-lowering.md).
 
+Ordered lookup compatibility uses a role-normalized event record. Request and
+consume numerators must be a leading negation whose operand is retained as
+liveness; emit numerator and liveness are identical. The signed numerator
+remains as a checked cache so lowering cannot apply the role sign twice. Event
+roots are signed numerator followed by tuple fields, and batches bind directly
+to their four `compat-v1` QM31 coordinate references. This shadow record still
+withholds semantic field types; authored effects must pass full typed schema
+validation. See
+[ADR-0014](decisions/0014-role-normalized-ordered-lookup-lowering.md).
+
 ## Validation passes
 
 Before lowering:
