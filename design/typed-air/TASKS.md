@@ -20,8 +20,8 @@ first production milestone. `P2` improves breadth or optimization.
 | Milestone | Result | Exit condition | Status |
 | --- | --- | --- | --- |
 | M0 | Engineering dossier | Branch, canon, architecture, tasks, validation, progress | done |
-| M1 | Validated logical IR | Deterministic IR kernel and negative tests | ready |
-| M2 | Shadow compiler | All 17 current families imported and degree-reported | queued |
+| M1 | Validated logical IR | Deterministic IR kernel and negative tests | done |
+| M2 | Shadow compiler | All 17 current families imported and degree-reported | active |
 | M3 | Compatibility lowering | LUI and then all families round-trip exactly | queued |
 | M4 | Pure compiler pilot | Poseidon2 compatibility layout generated | queued |
 | M5 | Effect/witness pilot | LUI, ADDI, signed load/JALR, DIV vertical slices | queued |
@@ -49,25 +49,25 @@ first production milestone. `P2` improves breadth or optimization.
 | F-008 | P0 | Define hint recipe registry and binding metadata | F-004 | Unbound output and unknown recipe reject | done |
 | F-009 | P1 | Add stable diagnostic renderer | F-003 | Diagnostics include component, source span, value path, type, and degree | done |
 | F-010 | P1 | Add canonical program digest | F-005 | Digest changes for semantic order/type changes and not allocator/address changes | done |
-| F-011 | P1 | Add allocation-failure tests for arena finalization | F-004 | All partially initialized owners deinit cleanly | active |
+| F-011 | P1 | Add allocation-failure tests for arena finalization | F-004 | All partially initialized owners deinit cleanly | done |
 | F-012 | P1 | Document public authoring interface | F-004 | One minimal pure and one effectful example compile in tests | done |
 
 ## Shadow analysis and lowering
 
-| ID | Priority | Task | Depends | Acceptance |
-| --- | --- | --- | --- | --- |
-| A-001 | P0 | Import current symbolic polynomial DAG | F-004 | Random replay equals `symbolic.replay` |
-| A-002 | P0 | Import columns, constraints, selector, and ordered lookups | A-001, F-006 | Counts and order match all 17 families |
-| A-003 | P0 | Implement logical degree propagation | A-001 | Unit corpus covers constants, sums, products, selections, aliases |
-| A-004 | P0 | Model gates, row windows, boundaries, and interaction degree | A-002, A-003 | Report includes complete final degree, not only root degree |
-| A-005 | P0 | Emit all-family degree and dependency report | A-004 | Golden machine report and readable summary for 17 families |
-| A-006 | P0 | Define `compat-v1` physical column mapping | F-005, A-002 | Current column count/name/order reproduced |
-| A-007 | P0 | Lower direct constraints to current `ConstraintProgram` | A-006 | LUI exact normalized DAG comparison |
-| A-008 | P0 | Lower typed effects to current ordered lookup entries | A-007, F-006 | LUI event fields and batch order exact |
-| A-009 | P0 | Reproduce runtime polynomial program | A-007 | Node/root/column identity test |
-| A-010 | P0 | Reproduce AIR IR v2 projection | A-008 | Byte-identical canonical export for LUI |
-| A-011 | P1 | Round-trip every current family | A-009, A-010 | 17 compatibility manifests and exports exact |
-| A-012 | P1 | Add layout diff command/test helper | A-006 | Diff identifies first semantic/layout divergence with names |
+| ID | Priority | Task | Depends | Acceptance | Status |
+| --- | --- | --- | --- | --- | --- |
+| A-001 | P0 | Import current symbolic polynomial DAG | F-004 | Random replay equals `symbolic.replay` | active |
+| A-002 | P0 | Import columns, constraints, selector, and ordered lookups | A-001, F-006 | Counts and order match all 17 families | queued |
+| A-003 | P0 | Implement logical degree propagation | A-001 | Unit corpus covers constants, sums, products, selections, aliases | queued |
+| A-004 | P0 | Model gates, row windows, boundaries, and interaction degree | A-002, A-003 | Report includes complete final degree, not only root degree | queued |
+| A-005 | P0 | Emit all-family degree and dependency report | A-004 | Golden machine report and readable summary for 17 families | queued |
+| A-006 | P0 | Define `compat-v1` physical column mapping | F-005, A-002 | Current column count/name/order reproduced | queued |
+| A-007 | P0 | Lower direct constraints to current `ConstraintProgram` | A-006 | LUI exact normalized DAG comparison | queued |
+| A-008 | P0 | Lower typed effects to current ordered lookup entries | A-007, F-006 | LUI event fields and batch order exact | queued |
+| A-009 | P0 | Reproduce runtime polynomial program | A-007 | Node/root/column identity test | queued |
+| A-010 | P0 | Reproduce AIR IR v2 projection | A-008 | Byte-identical canonical export for LUI | queued |
+| A-011 | P1 | Round-trip every current family | A-009, A-010 | 17 compatibility manifests and exports exact | queued |
+| A-012 | P1 | Add layout diff command/test helper | A-006 | Diff identifies first semantic/layout divergence with names | queued |
 
 ## Poseidon2 compiler pilot
 

@@ -87,7 +87,10 @@ The repository already supplies much of the substrate:
 - `prover/air/component_parallel.zig` already schedules heterogeneous AIR
   components concurrently.
 
-The missing center is a canonical typed IR that owns values, degree, hints,
-ordered effects, layout, and relation schemas. The first engineering work
-therefore strengthens and reifies the existing path; it does not replace the
+The isolated kernel now owns typed values, logical degree, hints and proof
+paths, ordered provisional effects, static calls, relation schemas, canonical
+manifests, semantic identity, and stable diagnostics. Its complete executable
+surface is documented in [AUTHORING.md](AUTHORING.md). The next missing seam is
+a lossless shadow import of the current production symbolic program; this work
+continues to strengthen and reify the existing path rather than replace the
 prover or rewrite all opcodes.

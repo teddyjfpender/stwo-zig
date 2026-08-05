@@ -31,6 +31,8 @@ ledger.
 
 ## Phase 1 — IR kernel in isolation
 
+**Status:** complete on `feat/typed-air-precompiles`; no production imports.
+
 Create `src/frontends/riscv/air/lang/` without changing production behavior.
 
 Implement:
@@ -57,6 +59,8 @@ on stable field and frontend types where representation identity requires it.
 - two clean constructions emit byte-identical logical manifests.
 
 ## Phase 2 — shadow adapter and degree auditor
+
+**Status:** active; A-001 symbolic DAG import is the first slice.
 
 Adapt the existing production `Builder(symbolic.Scalar)` output into the
 logical IR or a lossless compatibility view. Do not author opcodes in the new

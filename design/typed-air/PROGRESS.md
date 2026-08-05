@@ -2,17 +2,17 @@
 
 **Status date:** 2026-08-04
 **Branch:** `feat/typed-air-precompiles`
-**Current milestone:** M1 — validated logical IR
-**Active task:** F-011 — allocation-finalization audit
-**Next ready task:** A-001 — production symbolic DAG shadow import
+**Current milestone:** M2 — shadow compiler
+**Active task:** A-001 — production symbolic DAG shadow import
+**Next queued task:** A-003 — degree propagation over imported roots
 
 ## Dashboard
 
 | Milestone | State | Evidence |
 | --- | --- | --- |
 | M0 — engineering dossier | complete | This directory and initial ADRs |
-| M1 — validated logical IR | active | F-001 through F-010 and F-012 complete; F-011 active |
-| M2 — shadow compiler | queued | Requires M1 |
+| M1 — validated logical IR | complete | F-001 through F-012 complete and green |
+| M2 — shadow compiler | active | A-001 symbolic DAG import active |
 | M3 — compatibility lowering | queued | Requires shadow import |
 | M4 — Poseidon compiler pilot | queued | Requires degree/layout passes |
 | M5 — effect and witness pilot | queued | Requires typed schemas and lowering |
@@ -90,12 +90,18 @@
   identity artifacts, and production-isolation boundary. Compiled pure and
   activated hint/effect examples validate and derive degrees, manifests, and
   semantic identities in the ReleaseFast package suite.
+- Completed F-011: induced allocation failures sweep function declaration
+  finalization, static-call construction, and hint-binding finalization. Tests
+  require multi-pool and node-interner rollback, validate reusable completed
+  state where possible, and prove allocated/freed byte equality. Together with
+  arena, manifest, degree, and diagnostic allocation enumeration, every owning
+  foundation object has partial-initialization cleanup evidence.
 
 ## Immediate next actions
 
-1. F-011 — audit and complete partial-finalization allocation coverage.
-2. A-001 — import the production symbolic polynomial DAG in shadow mode.
-3. A-003 — extend logical degree reporting over imported production roots.
+1. A-001 — import the production symbolic polynomial DAG in shadow mode.
+2. A-003 — extend logical degree reporting over imported production roots.
+3. A-002 — import columns, constraints, selectors, and ordered lookups.
 
 No production behavior should change in these tasks.
 
@@ -247,6 +253,15 @@ derives a degree report, manifest, and digest; the effectful example seals one
 hint output to both a matching-gated constraint and matching-live ordered
 effect. The document explicitly labels raw effects and the entire kernel as
 pre-production shadow interfaces.
+
+F-011 completed with the same ReleaseFast package command. Dedicated failing-
+allocator sweeps cross every allocation boundary in function declaration
+sealing, static calls, and hint binding. Failures must restore all correlated
+reference pools, generated nodes, interning indexes, open-declaration state,
+and optional binding state before deinitialization. Reusable completed states
+are revalidated, and each iteration requires allocated bytes to equal freed
+bytes. Existing whole-arena, manifest, degree, and diagnostic enumeration
+completes the ownership evidence for M1.
 
 ## Update protocol
 
