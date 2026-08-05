@@ -34,6 +34,7 @@ pub const Op = union(enum) {
     neg: types.ValueId,
     select: Selection,
     hint_output: program.HintOutput,
+    call_output: program.CallOutput,
 };
 
 pub const Key = struct {
@@ -118,6 +119,10 @@ fn hashOp(state: *u64, op: Op) void {
         },
         .hint_output => |output| {
             mix(state, @intFromEnum(output.hint));
+            mix(state, output.index);
+        },
+        .call_output => |output| {
+            mix(state, @intFromEnum(output.call));
             mix(state, output.index);
         },
     }

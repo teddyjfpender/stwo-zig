@@ -55,6 +55,11 @@ pub const HintOutput = struct {
     index: u16,
 };
 
+pub const CallOutput = struct {
+    call: types.CallId,
+    index: u16,
+};
+
 pub const Hint = struct {
     recipe: types.NameId,
     inputs: RefRange,
@@ -87,6 +92,21 @@ pub const Effect = struct {
 pub const Function = struct {
     name: types.NameId,
     inputs: RefRange,
+    outputs: RefRange,
+    source_span: source.SourceSpan,
+    complete: bool,
+};
+
+pub const CallStrategy = enum {
+    inline_expansion,
+    relation_backed,
+};
+
+pub const Call = struct {
+    caller: ?types.FunctionId,
+    callee: types.FunctionId,
+    strategy: CallStrategy,
+    arguments: RefRange,
     outputs: RefRange,
     source_span: source.SourceSpan,
 };

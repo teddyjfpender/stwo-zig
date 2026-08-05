@@ -7,6 +7,7 @@
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const expr = @import("expr.zig");
+const functions = @import("functions.zig");
 const ir = @import("ir.zig");
 const program = @import("program.zig");
 const types = @import("types.zig");
@@ -19,6 +20,9 @@ pub const Error = error{
     DuplicateNode,
     DuplicateSource,
     InvalidAccessOrdinal,
+    InvalidCall,
+    InvalidCallGraph,
+    InvalidCallOutput,
     InvalidConstraint,
     InvalidEffect,
     InvalidFunction,
@@ -43,10 +47,11 @@ pub fn validate(arena: *const ir.Arena) Error!void {
     try validateNames(arena);
     try validateSources(arena);
     try validateHints(arena);
+    try validateFunctions(arena);
+    try validateCalls(arena);
     try validateNodes(arena);
     try validateConstraints(arena);
     try validateEffects(arena);
-    try validateFunctions(arena);
 }
 
 fn validateNames(arena: *const ir.Arena) Error!void {
@@ -202,6 +207,16 @@ fn validateNode(arena: *const ir.Arena, node: expr.Node, index: usize) Error!voi
                 return error.InvalidHintOutput;
             }
         },
+        .call_output => |binding| {
+            const outputs = functions.callOutputs(arena, binding.call) orelse
+                return error.InvalidCallOutput;
+            const output_index: usize = binding.index;
+            if (output_index >= outputs.len or
+                types.idIndex(outputs[output_index]) != index)
+            {
+                return error.InvalidCallOutput;
+            }
+        },
     }
 }
 
@@ -260,24 +275,24 @@ fn validateEffects(arena: *const ir.Arena) Error!void {
 }
 
 fn validateFunctions(arena: *const ir.Arena) Error!void {
+    if (arena.open_function != null) return error.InvalidFunction;
     var input_cursor: usize = 0;
     var output_cursor: usize = 0;
-    for (arena.functionsView(), 0..) |function, index| {
+    for (functions.view(arena), 0..) |function, index| {
         if (!validName(arena, function.name)) return error.InvalidFunction;
+        if (!function.complete) return error.InvalidFunction;
         validateSpan(arena, function.source_span) catch
             return error.InvalidSourceSpan;
         const inputs = try canonicalRange(
             function.inputs,
-            arena.functionInputsView(),
+            arena.function_inputs.items,
             &input_cursor,
         );
         const outputs = try canonicalRange(
             function.outputs,
-            arena.functionOutputsView(),
+            arena.function_outputs.items,
             &output_cursor,
         );
-        if (inputs.len == 0 and outputs.len == 0)
-            return error.InvalidFunction;
         for (inputs) |input_id| {
             const input_node = arena.node(input_id) orelse
                 return error.InvalidFunction;
@@ -286,13 +301,80 @@ fn validateFunctions(arena: *const ir.Arena) Error!void {
         for (outputs) |output_id| {
             if (!validValue(arena, output_id)) return error.InvalidFunction;
         }
-        for (arena.functionsView()[0..index]) |prior| {
+        for (functions.view(arena)[0..index]) |prior| {
             if (function.name == prior.name)
                 return error.DuplicateFunctionName;
         }
     }
-    if (input_cursor != arena.functionInputsView().len or
-        output_cursor != arena.functionOutputsView().len)
+    if (input_cursor != arena.function_inputs.items.len or
+        output_cursor != arena.function_outputs.items.len)
+    {
+        return error.InvalidRange;
+    }
+}
+
+fn validateCalls(arena: *const ir.Arena) Error!void {
+    var argument_cursor: usize = 0;
+    var output_cursor: usize = 0;
+    for (functions.calls(arena), 0..) |call, call_index| {
+        validateSpan(arena, call.source_span) catch
+            return error.InvalidSourceSpan;
+        const callee = functions.get(arena, call.callee) orelse
+            return error.InvalidCall;
+        if (!callee.complete) return error.InvalidCall;
+        if (call.caller) |caller_id| {
+            const caller = functions.get(arena, caller_id) orelse
+                return error.InvalidCall;
+            if (!caller.complete) return error.InvalidCall;
+            if (types.idIndex(call.callee) >= types.idIndex(caller_id))
+                return error.InvalidCallGraph;
+        }
+        const arguments = try canonicalRange(
+            call.arguments,
+            arena.call_arguments.items,
+            &argument_cursor,
+        );
+        const outputs = try canonicalRange(
+            call.outputs,
+            arena.call_outputs.items,
+            &output_cursor,
+        );
+        const expected_inputs = functions.inputs(arena, call.callee) orelse
+            return error.InvalidCall;
+        const expected_outputs = functions.outputs(arena, call.callee) orelse
+            return error.InvalidCall;
+        if (arguments.len != expected_inputs.len or
+            outputs.len != expected_outputs.len)
+        {
+            return error.InvalidCall;
+        }
+        for (arguments, expected_inputs) |actual_id, expected_id| {
+            const actual = arena.node(actual_id) orelse return error.InvalidCall;
+            const expected = arena.node(expected_id) orelse return error.InvalidCall;
+            if (!std.meta.eql(actual.key.ty, expected.key.ty))
+                return error.InvalidCall;
+        }
+        for (outputs, expected_outputs, 0..) |output_id, expected_id, output_index| {
+            const output_node = arena.node(output_id) orelse
+                return error.InvalidCallOutput;
+            const expected_node = arena.node(expected_id) orelse
+                return error.InvalidCall;
+            if (!std.meta.eql(output_node.key.ty, expected_node.key.ty))
+                return error.InvalidCallOutput;
+            switch (output_node.key.op) {
+                .call_output => |binding| {
+                    if (types.idIndex(binding.call) != call_index or
+                        binding.index != output_index)
+                    {
+                        return error.InvalidCallOutput;
+                    }
+                },
+                else => return error.InvalidCallOutput,
+            }
+        }
+    }
+    if (argument_cursor != arena.call_arguments.items.len or
+        output_cursor != arena.call_outputs.items.len)
     {
         return error.InvalidRange;
     }

@@ -7,6 +7,7 @@
 
 const std = @import("std");
 const expr = @import("expr.zig");
+const functions = @import("functions.zig");
 const ir = @import("ir.zig");
 const program = @import("program.zig");
 const source = @import("source.zig");
@@ -14,8 +15,8 @@ const types = @import("types.zig");
 const validate = @import("validate.zig");
 
 pub const magic = "STWAIRL\x00";
-pub const format_version: u16 = 1;
-pub const logical_schema_version: u16 = 0;
+pub const format_version: u16 = 2;
+pub const logical_schema_version: u16 = 1;
 
 pub const ManifestError = error{ManifestTooLarge};
 pub const Error = std.mem.Allocator.Error || validate.Error || ManifestError;
@@ -45,7 +46,8 @@ fn writeValidated(writer: anytype, arena: *const ir.Arena) !void {
     try writeCount(writer, arena.constraintsView().len);
     try writeCount(writer, arena.hintsView().len);
     try writeCount(writer, arena.effectsView().len);
-    try writeCount(writer, arena.functionsView().len);
+    try writeCount(writer, functions.view(arena).len);
+    try writeCount(writer, functions.calls(arena).len);
 
     for (arena.nodesView()) |node| try writeNode(writer, arena, node);
     for (arena.constraintsView()) |constraint| {
@@ -72,13 +74,23 @@ fn writeValidated(writer: anytype, arena: *const ir.Arena) !void {
         try writeOptionalInt(writer, u8, effect.access_ordinal);
         try writeSpan(writer, arena, effect.source_span);
     }
-    for (arena.functionsView(), 0..) |function, index| {
+    for (functions.view(arena), 0..) |function, index| {
         const id = types.idFromIndex(types.FunctionId, index) catch
             return error.ManifestTooLarge;
         try writeName(writer, arena, function.name);
-        try writeValues(writer, arena.functionInputs(id).?);
-        try writeValues(writer, arena.functionOutputs(id).?);
+        try writeValues(writer, functions.inputs(arena, id).?);
+        try writeValues(writer, functions.outputs(arena, id).?);
         try writeSpan(writer, arena, function.source_span);
+    }
+    for (functions.calls(arena), 0..) |call, index| {
+        const id = types.idFromIndex(types.CallId, index) catch
+            return error.ManifestTooLarge;
+        try writeOptionalFunctionId(writer, call.caller);
+        try writeInt(writer, u32, @intFromEnum(call.callee));
+        try writeInt(writer, u8, callStrategyTag(call.strategy));
+        try writeValues(writer, functions.callArguments(arena, id).?);
+        try writeValues(writer, functions.callOutputs(arena, id).?);
+        try writeSpan(writer, arena, call.source_span);
     }
 }
 
@@ -124,6 +136,11 @@ fn writeNode(writer: anytype, arena: *const ir.Arena, node: expr.Node) !void {
         .hint_output => |output| {
             try writeInt(writer, u8, 8);
             try writeInt(writer, u32, @intFromEnum(output.hint));
+            try writeInt(writer, u16, output.index);
+        },
+        .call_output => |output| {
+            try writeInt(writer, u8, 9);
+            try writeInt(writer, u32, @intFromEnum(output.call));
             try writeInt(writer, u16, output.index);
         },
     }
@@ -216,6 +233,15 @@ fn writeOptionalValueId(writer: anytype, id: ?types.ValueId) !void {
     }
 }
 
+fn writeOptionalFunctionId(writer: anytype, id: ?types.FunctionId) !void {
+    if (id) |value| {
+        try writeInt(writer, u8, 1);
+        try writeInt(writer, u32, @intFromEnum(value));
+    } else {
+        try writeInt(writer, u8, 0);
+    }
+}
+
 fn writeOptionalInt(writer: anytype, comptime T: type, value: ?T) !void {
     if (value) |present| {
         try writeInt(writer, u8, 1);
@@ -278,5 +304,12 @@ fn effectKindTag(kind: program.EffectKind) u8 {
         .component_call => 8,
         .public_consume => 9,
         .public_produce => 10,
+    };
+}
+
+fn callStrategyTag(strategy: program.CallStrategy) u8 {
+    return switch (strategy) {
+        .inline_expansion => 0,
+        .relation_backed => 1,
     };
 }

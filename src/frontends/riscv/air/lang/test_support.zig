@@ -1,4 +1,5 @@
 const std = @import("std");
+const functions = @import("functions.zig");
 const ir = @import("ir.zig");
 const source = @import("source.zig");
 const types = @import("types.zig");
@@ -12,6 +13,7 @@ pub const Fixture = struct {
     sum: types.ValueId,
     hint_output: types.ValueId,
     negated: types.ValueId,
+    call_output: types.ValueId,
 
     pub fn init(allocator: std.mem.Allocator) !Fixture {
         return initWithPerturbedInterning(allocator, false);
@@ -98,17 +100,31 @@ pub const Fixture = struct {
             1,
             span,
         );
-        _ = try arena.addFunction(
+        const sum_function = try functions.add(
+            &arena,
             "fixture.sum_fn",
             &.{ lhs, rhs, live },
             &.{sum},
             span,
         );
-        _ = try arena.addFunction(
+        const hint_function = try functions.begin(
+            &arena,
             "fixture.hint_fn",
-            &.{lhs},
-            &.{ hint_output, negated },
+            &.{ lhs, rhs, live },
             span,
+        );
+        const call_id = try functions.call(
+            &arena,
+            sum_function,
+            &.{ lhs, rhs, live },
+            .inline_expansion,
+            span,
+        );
+        const call_output = functions.callOutputs(&arena, call_id).?[0];
+        try functions.finish(
+            &arena,
+            hint_function,
+            &.{ hint_output, negated, call_output },
         );
 
         return .{
@@ -120,6 +136,7 @@ pub const Fixture = struct {
             .sum = sum,
             .hint_output = hint_output,
             .negated = negated,
+            .call_output = call_output,
         };
     }
 

@@ -11,9 +11,9 @@ test "logical manifest has a pinned empty-program encoding" {
     defer std.testing.allocator.free(actual);
 
     const expected = "STWAIRL\x00" ++
+        "\x02\x00" ++
         "\x01\x00" ++
-        "\x00\x00" ++
-        "\x00\x00\x00\x00" ** 5;
+        "\x00\x00\x00\x00" ** 6;
     try std.testing.expectEqualStrings(expected, actual);
 }
 
@@ -47,6 +47,23 @@ test "logical manifest preserves semantic effect order" {
     const reverse_bytes = try manifest.serializeAlloc(std.testing.allocator, &reverse);
     defer std.testing.allocator.free(reverse_bytes);
     try std.testing.expect(!std.mem.eql(u8, forward_bytes, reverse_bytes));
+}
+
+test "logical manifest binds call lowering strategy" {
+    var fixture = try test_support.Fixture.init(std.testing.allocator);
+    defer fixture.deinit();
+    const inline_bytes = try manifest.serializeAlloc(
+        std.testing.allocator,
+        &fixture.arena,
+    );
+    defer std.testing.allocator.free(inline_bytes);
+    fixture.arena.calls.items[0].strategy = .relation_backed;
+    const relation_bytes = try manifest.serializeAlloc(
+        std.testing.allocator,
+        &fixture.arena,
+    );
+    defer std.testing.allocator.free(relation_bytes);
+    try std.testing.expect(!std.mem.eql(u8, inline_bytes, relation_bytes));
 }
 
 test "logical manifest validates before writing any bytes" {

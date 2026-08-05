@@ -1,4 +1,5 @@
 const std = @import("std");
+const functions = @import("functions.zig");
 const ir = @import("ir.zig");
 const source = @import("source.zig");
 const types = @import("types.zig");
@@ -9,6 +10,8 @@ test "typed AIR IDs are non-interchangeable and preserve their tag widths" {
             @compileError("value and constraint IDs must remain distinct");
         if (types.EffectId == types.HintId)
             @compileError("effect and hint IDs must remain distinct");
+        if (types.CallId == types.FunctionId)
+            @compileError("call and function IDs must remain distinct");
         if (types.NameId == types.SourceId)
             @compileError("name and source IDs must remain distinct");
     }
@@ -280,12 +283,27 @@ fn allocationFailureCase(allocator: std.mem.Allocator) !void {
         0,
         generated,
     );
-    _ = try arena.addFunction(
+    const product_function = try functions.add(
+        &arena,
         "allocation.product",
         &.{ lhs, rhs, live },
         &.{ product, outputs[0] },
         generated,
     );
+    const caller = try functions.begin(
+        &arena,
+        "allocation.caller",
+        &.{ lhs, rhs, live },
+        generated,
+    );
+    const call_id = try functions.call(
+        &arena,
+        product_function,
+        &.{ lhs, rhs, live },
+        .inline_expansion,
+        generated,
+    );
+    try functions.finish(&arena, caller, functions.callOutputs(&arena, call_id).?);
 }
 
 test "logical arena releases every partial allocation" {

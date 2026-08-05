@@ -3,15 +3,15 @@
 **Status date:** 2026-08-04
 **Branch:** `feat/typed-air-precompiles`
 **Current milestone:** M1 — validated logical IR
-**Active task:** F-007 — acyclic function graph
-**Next ready task:** F-008 — hint recipe registry and bindings
+**Active task:** F-008 — hint recipe registry and bindings
+**Next ready task:** F-010 — canonical program digest
 
 ## Dashboard
 
 | Milestone | State | Evidence |
 | --- | --- | --- |
 | M0 — engineering dossier | complete | This directory and initial ADRs |
-| M1 — validated logical IR | active | F-001 through F-006 complete; F-007 active |
+| M1 — validated logical IR | active | F-001 through F-007 complete; F-008 active |
 | M2 — shadow compiler | queued | Requires M1 |
 | M3 — compatibility lowering | queued | Requires shadow import |
 | M4 — Poseidon compiler pilot | queued | Requires degree/layout passes |
@@ -48,7 +48,7 @@
   validation. The allocation-free structural validator verifies canonical
   ranges, topological references, interning indexes, hint-output identity,
   selector use, unique access ordinals, stable names, sources, and signatures.
-  Each of its 22 named error classes has a focused negative test.
+  Each validator error class has a focused named negative test.
 - Completed F-005: the versioned `STWAIRL\0` logical encoding writes explicit
   tags and fixed-width little-endian integers after validation. Two separately
   allocated programs remain byte-identical when name and source interning order
@@ -59,12 +59,20 @@
   roles, challenge convention, multiplicity, ordinal, padding, public-boundary,
   and coefficient-bound policies. Tests cross-check every production arity and
   reject unknown IDs, wrong roles, arities, types, and ordinals.
+- Completed F-007: static calls own typed argument and output pools, preserve
+  explicit inline-versus-relation-backed lowering intent, and can target only
+  earlier complete functions. Two-phase declarations make dependency order
+  canonical and prevent recursion through the public builder; the independent
+  validator rejects missing callees, forward/self edges, malformed call
+  outputs, arity drift, and type drift. Manifest format 2 records calls and
+  lowering strategy. The full ReleaseFast package suite and allocation-failure
+  call path pass; all 25 validator error classes have named negative tests.
 
 ## Immediate next actions
 
-1. F-007 — add acyclic static function calls.
-2. F-008 — register hint recipes and validate output bindings.
-3. F-010 — derive a domain-separated semantic program digest.
+1. F-008 — register hint recipes and validate output bindings.
+2. F-010 — derive a domain-separated semantic program digest.
+3. F-009 — render stable source-attributed diagnostics.
 
 No production behavior should change in these tasks.
 
@@ -81,7 +89,7 @@ Pending:
 
 - guest invocation ABI;
 - guest Poseidon relation schema/version;
-- canonical serialized manifest format;
+- canonical physical-layout manifest format;
 - generated witness activation policy;
 - cross-proof relation summary;
 - recursive verifier field/protocol.
@@ -166,6 +174,15 @@ F-006 completed with the same ReleaseFast package command. The isolated
 registry uses enum domains and typed schema IDs instead of string dispatch. A
 test-only bridge compares its stable order and arity to the production relation
 entry authority; no shipped lookup or transcript behavior changed.
+
+F-007 completed with the same ReleaseFast package command. Calls carry a typed
+callee, optional lexical caller, arguments, generated output identities, source
+span, and explicit inline or relation-backed strategy. Functions are declared
+in dependency-topological order through a two-phase builder, so recursive and
+forward edges cannot be constructed; the allocation-free validator rechecks
+the complete graph and every call-output identity against raw arena state.
+Manifest format 2 and logical schema 1 serialize this semantic distinction.
+All 25 validator error classes have focused named rejection tests.
 
 ## Update protocol
 

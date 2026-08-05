@@ -23,6 +23,7 @@ pub const ConstraintId = enum(u32) { _ };
 pub const EffectId = enum(u32) { _ };
 pub const HintId = enum(u32) { _ };
 pub const FunctionId = enum(u32) { _ };
+pub const CallId = enum(u32) { _ };
 pub const RelationSchemaId = enum(u16) { _ };
 ```
 
@@ -200,14 +201,22 @@ infrastructure relation merely because the mathematical permutation matches.
 A function has typed inputs, outputs, local values, constraints, hints, and
 effects. Loops are statically unrolled. Calls are statically resolved.
 
-Version 0 rejects recursion by detecting cycles in the function-call graph.
-Inlining and relation-backed activation are both lowerings of a call:
+Version 0 stores declarations in dependency-topological order: a function may
+call only an earlier, complete declaration. A two-phase builder opens a caller,
+records its calls, and seals its outputs. This makes cycles and forward edges
+unrepresentable through the public API; whole-program validation independently
+rechecks the rule against raw arena state. Root-level calls have no caller.
+
+Every call owns ordered arguments and typed `call_output` values. Inlining and
+relation-backed activation are explicit lowering strategies on the call:
 
 - inline calls duplicate the callee program structurally;
 - relation-backed calls emit an activation relation and place callee
   activations in a component table.
 
-Changing between those forms is a protocol layout decision.
+Changing between those forms is a semantic manifest change and a protocol
+layout decision; the serializer never infers strategy from later compiler
+heuristics.
 
 ## Row windows and masks
 
@@ -307,7 +316,7 @@ Before lowering:
 1. all IDs are in range and topological;
 2. types match every operation;
 3. names required for protocol identity are unique;
-4. function graph is acyclic;
+4. function declarations and calls are complete and dependency-topological;
 5. effects conform to schemas;
 6. access ordinals are complete and nonduplicated;
 7. hint outputs have binding paths;

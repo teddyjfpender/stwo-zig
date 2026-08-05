@@ -29,16 +29,17 @@ pub const NodeError = error{
 pub const ProgramError = error{
     DuplicateAccessOrdinal,
     DuplicateConstraintName,
-    DuplicateFunctionName,
     EmptyEffectValues,
-    EmptyFunction,
     EmptyHintOutputs,
     InvalidAccessOrdinal,
     InvalidConstraintGate,
     InvalidConstraintRoot,
     InvalidEffectLiveness,
-    InvalidFunctionInput,
     TooManyHintOutputs,
+};
+
+pub const NodeCheckpoint = struct {
+    len: usize,
 };
 
 pub const Error = std.mem.Allocator.Error ||
@@ -67,6 +68,10 @@ pub const Arena = struct {
     functions: std.ArrayList(program.Function),
     function_inputs: std.ArrayList(types.ValueId),
     function_outputs: std.ArrayList(types.ValueId),
+    calls: std.ArrayList(program.Call),
+    call_arguments: std.ArrayList(types.ValueId),
+    call_outputs: std.ArrayList(types.ValueId),
+    open_function: ?types.FunctionId,
 
     pub fn init(allocator: std.mem.Allocator) Arena {
         return .{
@@ -86,10 +91,17 @@ pub const Arena = struct {
             .functions = .empty,
             .function_inputs = .empty,
             .function_outputs = .empty,
+            .calls = .empty,
+            .call_arguments = .empty,
+            .call_outputs = .empty,
+            .open_function = null,
         };
     }
 
     pub fn deinit(self: *Arena) void {
+        self.call_outputs.deinit(self.allocator);
+        self.call_arguments.deinit(self.allocator);
+        self.calls.deinit(self.allocator);
         self.function_outputs.deinit(self.allocator);
         self.function_inputs.deinit(self.allocator);
         self.functions.deinit(self.allocator);
@@ -236,43 +248,6 @@ pub const Arena = struct {
     /// Borrowed until the next effect insertion or `deinit`.
     pub fn effectValuesView(self: *const Arena) []const types.ValueId {
         return self.effect_values.items;
-    }
-
-    pub fn function(self: *const Arena, id: types.FunctionId) ?program.Function {
-        const index = types.idIndex(id);
-        if (index >= self.functions.items.len) return null;
-        return self.functions.items[index];
-    }
-
-    /// Borrowed until the next function insertion or `deinit`.
-    pub fn functionsView(self: *const Arena) []const program.Function {
-        return self.functions.items;
-    }
-
-    pub fn functionInputs(
-        self: *const Arena,
-        id: types.FunctionId,
-    ) ?[]const types.ValueId {
-        const item = self.function(id) orelse return null;
-        return item.inputs.slice(self.function_inputs.items);
-    }
-
-    pub fn functionOutputs(
-        self: *const Arena,
-        id: types.FunctionId,
-    ) ?[]const types.ValueId {
-        const item = self.function(id) orelse return null;
-        return item.outputs.slice(self.function_outputs.items);
-    }
-
-    /// Borrowed until the next function insertion or `deinit`.
-    pub fn functionInputsView(self: *const Arena) []const types.ValueId {
-        return self.function_inputs.items;
-    }
-
-    /// Borrowed until the next function insertion or `deinit`.
-    pub fn functionOutputsView(self: *const Arena) []const types.ValueId {
-        return self.function_outputs.items;
     }
 
     pub fn input(
@@ -535,52 +510,6 @@ pub const Arena = struct {
         return id;
     }
 
-    pub fn addFunction(
-        self: *Arena,
-        stable_name: []const u8,
-        inputs: []const types.ValueId,
-        outputs: []const types.ValueId,
-        span: source_mod.SourceSpan,
-    ) Error!types.FunctionId {
-        if (inputs.len == 0 and outputs.len == 0) return error.EmptyFunction;
-        try self.validateSpan(span);
-        for (inputs) |input_id| {
-            const input_node = self.node(input_id) orelse return error.UnknownValue;
-            if (input_node.key.op != .input) return error.InvalidFunctionInput;
-        }
-        for (outputs) |output_id| {
-            if (self.node(output_id) == null) return error.UnknownValue;
-        }
-
-        const name_id = try self.internName(stable_name);
-        for (self.functions.items) |existing| {
-            if (existing.name == name_id) return error.DuplicateFunctionName;
-        }
-
-        const id = try types.idFromIndex(types.FunctionId, self.functions.items.len);
-        const input_range = try program.RefRange.init(
-            self.function_inputs.items.len,
-            inputs.len,
-        );
-        const output_range = try program.RefRange.init(
-            self.function_outputs.items.len,
-            outputs.len,
-        );
-        const input_start = self.function_inputs.items.len;
-        errdefer self.function_inputs.shrinkRetainingCapacity(input_start);
-        try self.function_inputs.appendSlice(self.allocator, inputs);
-        const output_start = self.function_outputs.items.len;
-        errdefer self.function_outputs.shrinkRetainingCapacity(output_start);
-        try self.function_outputs.appendSlice(self.allocator, outputs);
-        try self.functions.append(self.allocator, .{
-            .name = name_id,
-            .inputs = input_range,
-            .outputs = output_range,
-            .source_span = span,
-        });
-        return id;
-    }
-
     fn fieldBinary(
         self: *Arena,
         comptime operation: enum { add, sub, mul },
@@ -624,6 +553,32 @@ pub const Arena = struct {
         errdefer _ = self.nodes.pop();
         try self.interned_nodes.put(key, id);
         return id;
+    }
+
+    /// Package-level transaction support for typed derived-node builders.
+    pub fn nodeCheckpoint(self: *const Arena) NodeCheckpoint {
+        return .{ .len = self.nodes.items.len };
+    }
+
+    pub fn rollbackToNodeCheckpoint(
+        self: *Arena,
+        checkpoint: NodeCheckpoint,
+    ) void {
+        std.debug.assert(checkpoint.len <= self.nodes.items.len);
+        self.rollbackNodes(checkpoint.len);
+    }
+
+    pub fn internCallOutput(
+        self: *Arena,
+        call_id: types.CallId,
+        index: u16,
+        ty: types.Type,
+        span: source_mod.SourceSpan,
+    ) Error!types.ValueId {
+        return self.internNode(.{
+            .ty = ty,
+            .op = .{ .call_output = .{ .call = call_id, .index = index } },
+        }, span);
     }
 
     fn rollbackNodes(self: *Arena, starting_len: usize) void {

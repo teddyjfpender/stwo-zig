@@ -14,7 +14,7 @@ not provide stable enum tags, integer widths, padding, or field order.
 ## Decision
 
 Use the versioned `STWAIRL\0` canonical binary encoding for logical manifests.
-Version 1 has:
+All versions have:
 
 - an eight-byte domain magic, encoding version, and logical-schema version;
 - fixed-width little-endian unsigned integers;
@@ -28,7 +28,13 @@ Version 1 has:
 Arena hash tables, capacities, pointers, unused interned IDs, padding bytes,
 and iteration order are not serialized. Effects remain in declared order; the
 serializer never sorts data whose order is semantic. A breaking change to any
-tag or field sequence increments the encoding version.
+tag or field sequence increments the encoding version. Published
+pre-production versions are:
+
+- **format 1 / logical schema 0:** expression, constraint, hint, effect, and
+  function-signature baseline;
+- **format 2 / logical schema 1:** adds the call count, call records, typed
+  `call_output` nodes, and explicit inline-versus-relation-backed strategy.
 
 ## Consequences
 
@@ -38,8 +44,9 @@ tag or field sequence increments the encoding version.
 - Source/name interning strategies may change without manifest churn.
 - Source spans are present for diagnostic reproducibility; the later canonical
   program digest may select a narrower semantic projection.
-- Version 1 is write-only until a real external consumer justifies a decoder;
-  a decoder must validate rather than reconstruct unchecked arena state.
+- Current formats are write-only until a real external consumer justifies a
+  decoder; a decoder must validate rather than reconstruct unchecked arena
+  state.
 
 ## Rejected alternatives
 

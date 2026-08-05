@@ -101,7 +101,7 @@ test "validator rejects InvalidNodeOrder" {
 test "validator rejects InvalidNodeShape" {
     var fixture = try test_support.Fixture.init(std.testing.allocator);
     defer fixture.deinit();
-    const index = types.idIndex(fixture.sum);
+    const index = types.idIndex(fixture.negated);
     const saved = fixture.arena.nodes.items[index].key.ty;
     defer fixture.arena.nodes.items[index].key.ty = saved;
     fixture.arena.nodes.items[index].key.ty = .word32;
@@ -174,6 +174,42 @@ test "validator rejects InvalidHintOutput" {
     fixture.arena.hint_outputs.items[0] = fixture.lhs;
     try std.testing.expectError(
         error.InvalidHintOutput,
+        validate.validate(&fixture.arena),
+    );
+}
+
+test "validator rejects InvalidCall for a missing callee" {
+    var fixture = try test_support.Fixture.init(std.testing.allocator);
+    defer fixture.deinit();
+    const saved = fixture.arena.calls.items[0].callee;
+    defer fixture.arena.calls.items[0].callee = saved;
+    fixture.arena.calls.items[0].callee = try types.idFromIndex(
+        types.FunctionId,
+        999,
+    );
+    try std.testing.expectError(error.InvalidCall, validate.validate(&fixture.arena));
+}
+
+test "validator rejects InvalidCallGraph for a recursive self-cycle" {
+    var fixture = try test_support.Fixture.init(std.testing.allocator);
+    defer fixture.deinit();
+    const saved = fixture.arena.calls.items[0].callee;
+    defer fixture.arena.calls.items[0].callee = saved;
+    fixture.arena.calls.items[0].callee = fixture.arena.calls.items[0].caller.?;
+    try std.testing.expectError(
+        error.InvalidCallGraph,
+        validate.validate(&fixture.arena),
+    );
+}
+
+test "validator rejects InvalidCallOutput" {
+    var fixture = try test_support.Fixture.init(std.testing.allocator);
+    defer fixture.deinit();
+    const saved = fixture.arena.call_outputs.items[0];
+    defer fixture.arena.call_outputs.items[0] = saved;
+    fixture.arena.call_outputs.items[0] = fixture.lhs;
+    try std.testing.expectError(
+        error.InvalidCallOutput,
         validate.validate(&fixture.arena),
     );
 }

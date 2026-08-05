@@ -1,4 +1,5 @@
 const std = @import("std");
+const functions = @import("functions.zig");
 const ir = @import("ir.zig");
 const source = @import("source.zig");
 const test_support = @import("test_support.zig");
@@ -13,7 +14,8 @@ test "whole logical program owns ordered records and passes validation" {
     try std.testing.expectEqual(@as(usize, 2), fixture.arena.constraintsView().len);
     try std.testing.expectEqual(@as(usize, 1), fixture.arena.hintsView().len);
     try std.testing.expectEqual(@as(usize, 2), fixture.arena.effectsView().len);
-    try std.testing.expectEqual(@as(usize, 2), fixture.arena.functionsView().len);
+    try std.testing.expectEqual(@as(usize, 2), functions.view(&fixture.arena).len);
+    try std.testing.expectEqual(@as(usize, 1), functions.calls(&fixture.arena).len);
 
     const hint_id = try types.idFromIndex(types.HintId, 0);
     try std.testing.expectEqualSlices(
@@ -31,6 +33,17 @@ test "whole logical program owns ordered records and passes validation" {
         types.ValueId,
         &.{fixture.hint_output},
         fixture.arena.effectValues(second_effect).?,
+    );
+    const call_id = try types.idFromIndex(types.CallId, 0);
+    try std.testing.expectEqualSlices(
+        types.ValueId,
+        &.{ fixture.lhs, fixture.rhs, fixture.live },
+        functions.callArguments(&fixture.arena, call_id).?,
+    );
+    try std.testing.expectEqualSlices(
+        types.ValueId,
+        &.{fixture.call_output},
+        functions.callOutputs(&fixture.arena, call_id).?,
     );
 }
 
@@ -98,17 +111,86 @@ test "program constructors reject malformed function signatures" {
     const rhs = try arena.input("rhs", .felt, generated);
     const sum = try arena.add(lhs, rhs, generated);
 
-    try std.testing.expectError(
-        error.EmptyFunction,
-        arena.addFunction("empty", &.{}, &.{}, generated),
-    );
+    _ = try functions.add(&arena, "unit", &.{}, &.{}, generated);
     try std.testing.expectError(
         error.InvalidFunctionInput,
-        arena.addFunction("bad_input", &.{sum}, &.{sum}, generated),
+        functions.add(&arena, "bad_input", &.{sum}, &.{sum}, generated),
     );
-    _ = try arena.addFunction("sum", &.{ lhs, rhs }, &.{sum}, generated);
+    _ = try functions.add(&arena, "sum", &.{ lhs, rhs }, &.{sum}, generated);
     try std.testing.expectError(
         error.DuplicateFunctionName,
-        arena.addFunction("sum", &.{ lhs, rhs }, &.{sum}, generated),
+        functions.add(&arena, "sum", &.{ lhs, rhs }, &.{sum}, generated),
     );
+}
+
+test "static calls are typed and dependency-topological" {
+    var arena = ir.Arena.init(std.testing.allocator);
+    defer arena.deinit();
+    const generated = source.SourceSpan.generated();
+    const lhs = try arena.input("lhs", .felt, generated);
+    const rhs = try arena.input("rhs", .felt, generated);
+    const bit = try arena.input("bit", .bit, generated);
+    const sum = try arena.add(lhs, rhs, generated);
+    const callee = try functions.add(
+        &arena,
+        "callee",
+        &.{ lhs, rhs },
+        &.{sum},
+        generated,
+    );
+    const caller = try functions.begin(
+        &arena,
+        "caller",
+        &.{ lhs, rhs },
+        generated,
+    );
+    try std.testing.expectError(
+        error.FunctionAlreadyOpen,
+        functions.begin(&arena, "nested", &.{lhs}, generated),
+    );
+    try std.testing.expectError(
+        error.NonTopologicalCall,
+        functions.call(
+            &arena,
+            caller,
+            &.{ lhs, rhs },
+            .inline_expansion,
+            generated,
+        ),
+    );
+    try std.testing.expectError(
+        error.CallArityMismatch,
+        functions.call(
+            &arena,
+            callee,
+            &.{lhs},
+            .inline_expansion,
+            generated,
+        ),
+    );
+    try std.testing.expectError(
+        error.ArgumentTypeMismatch,
+        functions.call(
+            &arena,
+            callee,
+            &.{ bit, rhs },
+            .inline_expansion,
+            generated,
+        ),
+    );
+    const call_id = try functions.call(
+        &arena,
+        callee,
+        &.{ lhs, rhs },
+        .relation_backed,
+        generated,
+    );
+    const call_outputs = functions.callOutputs(&arena, call_id).?;
+    try std.testing.expectEqual(@as(usize, 1), call_outputs.len);
+    try std.testing.expect(std.meta.eql(
+        arena.node(call_outputs[0]).?.key.ty,
+        arena.node(sum).?.key.ty,
+    ));
+    try functions.finish(&arena, caller, call_outputs);
+    try validate.validate(&arena);
 }
