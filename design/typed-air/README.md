@@ -48,15 +48,16 @@ correctness merely because its witness generator agrees with it.
 2. [CANON.md](CANON.md) — taste, style, and engineering laws.
 3. [ARCHITECTURE.md](ARCHITECTURE.md) — current seams and target system.
 4. [IR.md](IR.md) — typed intermediate representation and lowering contract.
-5. [PRECOMPILES.md](PRECOMPILES.md) — component ABI and parallel proving model.
-6. [SOUNDNESS.md](SOUNDNESS.md) — threat model and preserved proof obligations.
-7. [IMPLEMENTATION.md](IMPLEMENTATION.md) — staged delivery and first pull requests.
-8. [TASKS.md](TASKS.md) — dependency-ordered executable work.
-9. [VALIDATION.md](VALIDATION.md) — test, formal, and release evidence.
-10. [PERFORMANCE.md](PERFORMANCE.md) — measurement and optimization discipline.
-11. [PROGRESS.md](PROGRESS.md) — current state, next actions, and chronological log.
-12. [decisions/README.md](decisions/README.md) — accepted and proposed decisions.
-13. [notes/README.md](notes/README.md) — dated research and implementation notes.
+5. [AUTHORING.md](AUTHORING.md) — executable public surface and lifecycle.
+6. [PRECOMPILES.md](PRECOMPILES.md) — component ABI and parallel proving model.
+7. [SOUNDNESS.md](SOUNDNESS.md) — threat model and preserved proof obligations.
+8. [IMPLEMENTATION.md](IMPLEMENTATION.md) — staged delivery and first pull requests.
+9. [TASKS.md](TASKS.md) — dependency-ordered executable work.
+10. [VALIDATION.md](VALIDATION.md) — test, formal, and release evidence.
+11. [PERFORMANCE.md](PERFORMANCE.md) — measurement and optimization discipline.
+12. [PROGRESS.md](PROGRESS.md) — current state, next actions, and chronological log.
+13. [decisions/README.md](decisions/README.md) — accepted and proposed decisions.
+14. [notes/README.md](notes/README.md) — dated research and implementation notes.
 
 ## Working rules
 

@@ -49,8 +49,8 @@ first production milestone. `P2` improves breadth or optimization.
 | F-008 | P0 | Define hint recipe registry and binding metadata | F-004 | Unbound output and unknown recipe reject | done |
 | F-009 | P1 | Add stable diagnostic renderer | F-003 | Diagnostics include component, source span, value path, type, and degree | done |
 | F-010 | P1 | Add canonical program digest | F-005 | Digest changes for semantic order/type changes and not allocator/address changes | done |
-| F-011 | P1 | Add allocation-failure tests for arena finalization | F-004 | All partially initialized owners deinit cleanly | ready |
-| F-012 | P1 | Document public authoring interface | F-004 | One minimal pure and one effectful example compile in tests | active |
+| F-011 | P1 | Add allocation-failure tests for arena finalization | F-004 | All partially initialized owners deinit cleanly | active |
+| F-012 | P1 | Document public authoring interface | F-004 | One minimal pure and one effectful example compile in tests | done |
 
 ## Shadow analysis and lowering
 

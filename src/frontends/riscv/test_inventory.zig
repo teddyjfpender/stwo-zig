@@ -106,6 +106,7 @@ test {
     _ = @import("air/trace_columns.zig");
 
     // AIR: isolated typed authoring kernel.
+    _ = @import("air/lang/authoring_test.zig");
     _ = @import("air/lang/degree_test.zig");
     _ = @import("air/lang/diagnostic_test.zig");
     _ = @import("air/lang/digest_test.zig");
