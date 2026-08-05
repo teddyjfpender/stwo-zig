@@ -66,7 +66,10 @@ fn measuredRead(
 }
 
 test "terminal measurement maps only observed residency counters" {
-    var verdict = std.mem.zeroes(runtime_session.Verdict);
+    var verdict = std.mem.zeroInit(
+        runtime_session.Verdict,
+        .{ .provider = .nvidia_cuda },
+    );
     verdict.counters.d2h_proof_operations = 1;
     verdict.counters.d2h_proof_bytes = 4096;
     verdict.counters.cpu_fallback_attempts = 2;

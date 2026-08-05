@@ -79,14 +79,14 @@
   },
   {
     "abi_schema": "native_constraint_slab_v1",
-    "cache_key": "7a6ba68d80b91b07",
-    "file": "constraint_wide_fibonacci_7a6ba68d80b91b07.cu",
+    "cache_key": "77dc1ee9436bd636",
+    "file": "constraint_wide_fibonacci_77dc1ee9436bd636.cu",
     "identity_scheme": "sha256-source-and-contract-v1",
     "kernel_name": "stwo_native_constraint_wide_fibonacci_slab_v1_6f60dbf6e15716eb",
     "kind": "constraint",
     "label": "wide_fibonacci",
     "module_globals": "none",
-    "program_identity": "ef9f12d696c42b8f37120d2f876f1459872f171a6212d5b2b4f181c031267467",
+    "program_identity": "cc0e0c12a54052e0c505c304aa67e93b12facec0052d37b7b025da11be578c45",
     "semantic_contract": "stwo-zig/native/wide-fibonacci/constraint/v1;field=m31;rows=2^(log_n_rows+1);constraint[col]=trace[col]-trace[col-2]^2-trace[col-1]^2;coeff=qm31[random_coefficient_base+sequence_len-1-col];denom=denom[row>>log_n_rows];accumulate=coordinates+denom*sum(coeff*constraint)",
     "semantic_hash": "6f60dbf6e15716eb"
   },

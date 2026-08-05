@@ -12,7 +12,7 @@ pub const max_sequence_len: u32 = 512;
 pub const secure_extension_degree: u32 =
     @sizeOf(field.SecureField) / @sizeOf(u32);
 pub const argument_count: u32 = 14;
-pub const cache_key: u64 = 0x7a6ba68d80b91b07;
+pub const cache_key: u64 = 0x77dc1ee9436bd636;
 pub const kernel_name =
     "stwo_native_constraint_wide_fibonacci_slab_v1_6f60dbf6e15716eb";
 
@@ -34,17 +34,19 @@ pub const PreparedLaunch = struct {
 };
 
 const Arguments = struct {
+    // The authenticated AOT ABI keeps geometry in u32. prepare() rejects any
+    // arena shape that cannot be represented without truncation.
     trace_slab: [*]u32,
-    trace_slab_words: u64,
-    trace_column_stride_words: u64,
+    trace_slab_words: u32,
+    trace_column_stride_words: u32,
     sequence_len: u32,
     random_coefficient_powers: [*]u32,
-    random_coefficient_words: u64,
+    random_coefficient_words: u32,
     denominator_inverses: [*]u32,
-    denominator_words: u64,
+    denominator_words: u32,
     coordinate_slab: [*]u32,
-    coordinate_slab_words: u64,
-    coordinate_stride_words: u64,
+    coordinate_slab_words: u32,
+    coordinate_stride_words: u32,
     row_count: u32,
     trace_log_size: u32,
     random_coefficient_base: u32,
@@ -127,13 +129,13 @@ pub fn prepare(
         .kernel = try descriptor(trace_log_size),
         .arguments = .{
             .trace_slab = trace.pointer,
-            .trace_slab_words = try u64Count(
+            .trace_slab_words = try u32Count(
                 buffers.trace_evaluations.storage.len,
             ),
-            .trace_column_stride_words = try u64Count(trace.stride_words),
+            .trace_column_stride_words = try u32Count(trace.stride_words),
             .sequence_len = sequence_len,
             .random_coefficient_powers = @ptrCast(powers.pointer),
-            .random_coefficient_words = try u64Count(
+            .random_coefficient_words = try u32Count(
                 std.math.mul(
                     usize,
                     buffers.random_coefficient_powers.len,
@@ -141,14 +143,14 @@ pub fn prepare(
                 ) catch return error.SizeOverflow,
             ),
             .denominator_inverses = denominators.pointer,
-            .denominator_words = try u64Count(
+            .denominator_words = try u32Count(
                 buffers.denominator_inverses.len,
             ),
             .coordinate_slab = coordinates.pointer,
-            .coordinate_slab_words = try u64Count(
+            .coordinate_slab_words = try u32Count(
                 buffers.composition_coordinates.storage.len,
             ),
-            .coordinate_stride_words = try u64Count(
+            .coordinate_stride_words = try u32Count(
                 coordinates.stride_words,
             ),
             .row_count = row_count,
@@ -199,8 +201,8 @@ fn evaluationRows(trace_log_size: u32) runtime_error.Error!u32 {
     return @as(u32, 1) << shift;
 }
 
-fn u64Count(value: usize) runtime_error.Error!u64 {
-    return std.math.cast(u64, value) orelse error.SizeOverflow;
+fn u32Count(value: usize) runtime_error.Error!u32 {
+    return std.math.cast(u32, value) orelse error.SizeOverflow;
 }
 
 test "wide-Fibonacci AOT descriptor covers each quotient-domain row once" {
@@ -214,6 +216,19 @@ test "wide-Fibonacci AOT descriptor covers each quotient-domain row once" {
 
 test "wide-Fibonacci AOT descriptor rejects unrepresentable domains" {
     try std.testing.expectError(error.SizeOverflow, descriptor(31));
+}
+
+test "wide-Fibonacci AOT geometry conversion fails closed above u32" {
+    try std.testing.expectEqual(
+        std.math.maxInt(u32),
+        try u32Count(std.math.maxInt(u32)),
+    );
+    if (@sizeOf(usize) > @sizeOf(u32)) {
+        try std.testing.expectError(
+            error.SizeOverflow,
+            u32Count(@as(usize, std.math.maxInt(u32)) + 1),
+        );
+    }
 }
 
 test "wide-Fibonacci slab binding validates arena ownership range and aliases" {
