@@ -393,6 +393,14 @@ initializes unused tuple storage deterministically, and validates the result.
 It performs no algebraic or layout decision; see
 [ADR-0015](decisions/0015-validated-canonical-runtime-export.md).
 
+AIR IR v2 has a distinct formal policy: `is_active` becomes constant one and
+the frozen wire retains historical source numbering and commutative orientation.
+The shadow therefore digest-binds an exact source schedule to the canonical
+typed graph and retains source IDs for all ordered roots. Formal lowering
+replays that provenance, derives roles/projections, and calls the existing JSON
+writer. Raw numbering is legacy wire identity, never logical semantic identity;
+see [ADR-0016](decisions/0016-source-bound-air-ir-v2-compatibility.md).
+
 ## Validation passes
 
 Before lowering:

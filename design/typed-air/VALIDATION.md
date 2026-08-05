@@ -192,6 +192,13 @@ requires every entry numerator/tuple root and arity, batch count, parameter
 count, and deterministic unused tail. Both exporters validate input and output;
 malformed owners and induced allocation failure are explicit negatives.
 
+A-010 requires whole-byte equality with the existing AIR IR v2 writer, not a
+parsed-object comparison. The compatibility path independently reconstructs
+selector-to-one placement, source node numbering/orientation, column roles,
+event ordinals, opcode projection, and fixed-table metadata, then uses the one
+existing encoder. LUI is the acceptance floor; every manifest opcode is tested.
+Digest-bound raw provenance corruption and allocation failure are negatives.
+
 ## Differential design
 
 Expression comparison should not rely solely on node IDs. Normalize or compare

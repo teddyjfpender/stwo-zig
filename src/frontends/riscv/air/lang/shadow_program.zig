@@ -22,7 +22,7 @@ const validate_mod = @import("validate.zig");
 
 const Builder = constraint_program.Builder(symbolic.Scalar);
 
-pub const ValidationError = validate_mod.Error || relation.Error || error{
+pub const ValidationError = validate_mod.Error || relation.Error || shadow_import.ImportError || error{
     InvalidActiveRow,
     InvalidBatchSize,
     InvalidColumnLayout,
@@ -59,7 +59,9 @@ pub const Lookup = struct {
     schema: types.RelationSchemaId,
     role: relation.Role,
     numerator: types.ValueId,
+    source_numerator: u32,
     fields: program.RefRange,
+    source_fields: program.RefRange,
     access_ordinal: ?u8,
     source_span: source_mod.SourceSpan,
 };
@@ -70,15 +72,21 @@ pub const ImportedProgram = struct {
     imported: shadow_import.Imported,
     main_column_count: usize,
     selector: types.ValueId,
+    source_selector: u32,
     active_row: types.ValueId,
+    source_active_row: u32,
     direct_constraints: []types.ConstraintId,
+    direct_source_roots: []u32,
     lookups: []Lookup,
     lookup_values: []types.ValueId,
+    source_lookup_values: []u32,
     batch_size: u8,
 
     pub fn deinit(self: *ImportedProgram) void {
+        self.allocator.free(self.source_lookup_values);
         self.allocator.free(self.lookup_values);
         self.allocator.free(self.lookups);
+        self.allocator.free(self.direct_source_roots);
         self.allocator.free(self.direct_constraints);
         self.imported.deinit();
         self.* = undefined;
@@ -96,6 +104,19 @@ pub const ImportedProgram = struct {
         return self.lookups[index].fields.slice(self.lookup_values);
     }
 
+    pub fn sourceLookupFields(
+        self: *const ImportedProgram,
+        index: usize,
+    ) ?[]const u32 {
+        if (index >= self.lookups.len) return null;
+        const range = self.lookups[index].source_fields;
+        const start: usize = range.start;
+        const len: usize = range.len;
+        const end = std.math.add(usize, start, len) catch return null;
+        if (end > self.source_lookup_values.len) return null;
+        return self.source_lookup_values[start..end];
+    }
+
     pub fn batchCount(self: *const ImportedProgram) usize {
         if (self.batch_size == 0) return 0;
         return (self.lookups.len + self.batch_size - 1) / self.batch_size;
@@ -106,6 +127,7 @@ pub const ImportedProgram = struct {
     /// claimed at this shadow boundary; shape, role, ordinal, values, and order
     /// are all checked.
     pub fn validate(self: *const ImportedProgram) ValidationError!void {
+        try self.imported.validateSourceCopy();
         try validate_mod.validate(&self.imported.arena);
         if (self.main_column_count != Builder.mainColumnCount(self.family) or
             self.imported.columns.len != self.main_column_count + 1)
@@ -114,6 +136,11 @@ pub const ImportedProgram = struct {
         }
         if (self.selector != self.imported.columns[self.main_column_count])
             return error.InvalidSelector;
+        if (self.source_selector >= self.imported.source_nodes.len or
+            self.imported.valueForSourceNode(self.source_selector) != self.selector)
+        {
+            return error.InvalidSelector;
+        }
         const selector_node = self.imported.arena.node(self.selector) orelse
             return error.InvalidSelector;
         const selector_name = switch (selector_node.key.op) {
@@ -130,9 +157,15 @@ pub const ImportedProgram = struct {
         const active_node = self.imported.arena.node(self.active_row) orelse
             return error.InvalidActiveRow;
         if (!active_node.key.ty.isFieldScalar()) return error.InvalidActiveRow;
+        if (self.source_active_row >= self.imported.source_nodes.len or
+            self.imported.valueForSourceNode(self.source_active_row) != self.active_row)
+        {
+            return error.InvalidActiveRow;
+        }
 
         if (self.direct_constraints.len != Builder.constraintCount(self.family) or
-            self.imported.arena.constraintsView().len != self.direct_constraints.len)
+            self.imported.arena.constraintsView().len != self.direct_constraints.len or
+            self.direct_source_roots.len != self.direct_constraints.len)
         {
             return error.InvalidConstraintCount;
         }
@@ -141,6 +174,12 @@ pub const ImportedProgram = struct {
                 return error.InvalidConstraintMap;
             const constraint = self.imported.arena.constraint(constraint_id) orelse
                 return error.InvalidConstraintMap;
+            const source_root = self.direct_source_roots[index];
+            if (source_root >= self.imported.source_nodes.len or
+                self.imported.valueForSourceNode(source_root) != constraint.root)
+            {
+                return error.InvalidConstraintMap;
+            }
             if (constraint.gate != null or constraint.category != .semantic)
                 return error.InvalidConstraintMetadata;
             var name_buffer: [96]u8 = undefined;
@@ -162,13 +201,26 @@ pub const ImportedProgram = struct {
             return error.InvalidBatchSize;
 
         var value_cursor: usize = 0;
-        for (self.lookups) |lookup| {
+        var source_value_cursor: usize = 0;
+        for (self.lookups, 0..) |lookup, lookup_index| {
             if (lookup.fields.start != value_cursor)
                 return error.InvalidLookupRange;
             const fields = lookup.fields.slice(self.lookup_values) orelse
                 return error.InvalidLookupRange;
             value_cursor = std.math.add(usize, value_cursor, fields.len) catch
                 return error.InvalidLookupRange;
+            if (lookup.source_fields.start != source_value_cursor)
+                return error.InvalidLookupRange;
+            const source_fields = self.sourceLookupFields(lookup_index) orelse
+                return error.InvalidLookupRange;
+            source_value_cursor = std.math.add(
+                usize,
+                source_value_cursor,
+                source_fields.len,
+            ) catch return error.InvalidLookupRange;
+            if (source_fields.len != fields.len) {
+                return error.InvalidLookupValue;
+            }
             _ = relation.validateEventShape(
                 lookup.schema,
                 lookup.role,
@@ -179,16 +231,29 @@ pub const ImportedProgram = struct {
                 return error.InvalidNumerator;
             if (!numerator.key.ty.isFieldScalar())
                 return error.InvalidNumerator;
-            for (fields) |field| {
+            if (lookup.source_numerator >= self.imported.source_nodes.len or
+                self.imported.valueForSourceNode(lookup.source_numerator) !=
+                    lookup.numerator)
+            {
+                return error.InvalidLookupValue;
+            }
+            for (fields, source_fields) |field, source_field| {
                 const node = self.imported.arena.node(field) orelse
                     return error.InvalidLookupValue;
                 if (!node.key.ty.isFieldScalar())
                     return error.InvalidLookupValue;
+                if (source_field >= self.imported.source_nodes.len or
+                    self.imported.valueForSourceNode(source_field) != field)
+                {
+                    return error.InvalidLookupValue;
+                }
             }
             self.imported.arena.validateSpan(lookup.source_span) catch
                 return error.InvalidSourceSpan;
         }
         if (value_cursor != self.lookup_values.len)
+            return error.InvalidLookupRange;
+        if (source_value_cursor != self.source_lookup_values.len)
             return error.InvalidLookupRange;
     }
 };
@@ -280,11 +345,17 @@ pub fn importBuilt(
         source_program.direct_constraints.len,
     );
     errdefer allocator.free(direct_constraints);
+    const direct_source_roots = try allocator.alloc(
+        u32,
+        source_program.direct_constraints.len,
+    );
+    errdefer allocator.free(direct_source_roots);
     for (
         source_program.direct_constraints.values[0..source_program.direct_constraints.len],
         direct_constraints,
+        direct_source_roots,
         0..,
-    ) |source_root, *destination, index| {
+    ) |source_root, *destination, *source_destination, index| {
         const root = try mapSourceValue(&imported, source_root.id);
         var name_buffer: [96]u8 = undefined;
         const name = constraintName(&name_buffer, family, index) catch
@@ -296,6 +367,7 @@ pub fn importBuilt(
             .semantic,
             span,
         );
+        source_destination.* = source_root.id;
     }
 
     var lookup_value_count: usize = 0;
@@ -312,6 +384,8 @@ pub fn importBuilt(
     errdefer allocator.free(lookups);
     const lookup_values = try allocator.alloc(types.ValueId, lookup_value_count);
     errdefer allocator.free(lookup_values);
+    const source_lookup_values = try allocator.alloc(u32, lookup_value_count);
+    errdefer allocator.free(source_lookup_values);
 
     var value_cursor: usize = 0;
     for (
@@ -330,11 +404,17 @@ pub fn importBuilt(
             value_cursor,
             source_lookup.arity,
         );
+        const source_value_range = try program.RefRange.init(
+            value_cursor,
+            source_lookup.arity,
+        );
         destination.* = .{
             .schema = relation.id(domain),
             .role = role,
             .numerator = try mapSourceValue(&imported, source_lookup.numerator.id),
+            .source_numerator = source_lookup.numerator.id,
             .fields = value_range,
+            .source_fields = source_value_range,
             .access_ordinal = source_lookup.access_ordinal,
             .source_span = span,
         };
@@ -343,6 +423,7 @@ pub fn importBuilt(
                 &imported,
                 source_value.id,
             );
+            source_lookup_values[value_cursor] = source_value.id;
             value_cursor += 1;
         }
     }
@@ -354,10 +435,14 @@ pub fn importBuilt(
         .imported = imported,
         .main_column_count = main_column_count,
         .selector = try mapSourceValue(&imported, source_selector.id),
+        .source_selector = source_selector.id,
         .active_row = try mapSourceValue(&imported, source_program.active_row.id),
+        .source_active_row = source_program.active_row.id,
         .direct_constraints = direct_constraints,
+        .direct_source_roots = direct_source_roots,
         .lookups = lookups,
         .lookup_values = lookup_values,
+        .source_lookup_values = source_lookup_values,
         .batch_size = @intCast(source_program.lookup_entries.batch_size),
     };
     try result.validate();

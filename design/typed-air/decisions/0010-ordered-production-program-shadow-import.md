@@ -32,6 +32,8 @@ and lookup sections independently. The owned result records:
 - ordered compatibility lookup records containing typed schema ID, role, the
   exact shipped signed numerator, ordered mapped tuple fields, access ordinal,
   and source span; and
+- exact source IDs for selector, active row, direct roots, lookup numerators,
+  and tuple fields, each checked through the total source-to-typed map; and
 - the exact production lookup batch size.
 
 The lookup record is deliberately not a high-level typed `Effect`. It preserves

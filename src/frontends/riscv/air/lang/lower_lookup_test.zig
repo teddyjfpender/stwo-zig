@@ -157,8 +157,13 @@ test "lookup lowering rejects a pre-signed role mismatch" {
     defer imported.deinit();
     const layout = try compat_layout.build(&imported);
     const saved = imported.lookups[0].numerator;
+    const saved_source = imported.lookups[0].source_numerator;
     imported.lookups[0].numerator = imported.active_row;
-    defer imported.lookups[0].numerator = saved;
+    imported.lookups[0].source_numerator = imported.source_active_row;
+    defer {
+        imported.lookups[0].numerator = saved;
+        imported.lookups[0].source_numerator = saved_source;
+    }
     try std.testing.expectError(
         error.InvalidNumeratorSign,
         lower_lookup.lower(std.testing.allocator, &imported, &layout),

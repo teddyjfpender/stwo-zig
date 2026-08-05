@@ -95,8 +95,8 @@ families and independently checks the shipped direct and lookup backend bounds.
 
 ## Phase 3 — compatibility lowering
 
-**Status:** active; A-006 through A-009 are complete. A-010 AIR IR v2 export is
-active.
+**Status:** active; A-006 through A-010 are complete. A-011 complete-family
+round-trip receipts are active.
 
 Lower a logical program back into the current `ConstraintProgram` and runtime
 polynomial formats.
@@ -132,6 +132,12 @@ into the prover's owned direct and lookup capability types. Compile-time enum
 ABI checks, deterministic tuple tails, all-family structural identity, and both
 DIV allocation-failure paths are green; see
 [ADR-0015](decisions/0015-validated-canonical-runtime-export.md).
+
+The formal pass applies the explicit selector-to-one policy, replays checked
+source-schedule provenance, derives roles and event projections, and delegates
+encoding to the existing AIR IR v2 writer. Its output is byte-identical for LUI
+and every opcode-manifest entry; see
+[ADR-0016](decisions/0016-source-bound-air-ir-v2-compatibility.md).
 
 **Exit gate:**
 

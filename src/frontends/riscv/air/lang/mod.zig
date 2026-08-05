@@ -21,6 +21,7 @@ pub const digest = @import("digest.zig");
 pub const degree = @import("degree.zig");
 pub const compat_layout = @import("compat_layout.zig");
 pub const lower_constraint = @import("lower_constraint.zig");
+pub const lower_air_ir = @import("lower_air_ir.zig");
 pub const lower_lookup = @import("lower_lookup.zig");
 pub const lower_runtime = @import("lower_runtime.zig");
 pub const protocol_degree = @import("protocol_degree.zig");

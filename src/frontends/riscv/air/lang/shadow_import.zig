@@ -35,6 +35,11 @@ pub const Error = std.mem.Allocator.Error || ir.Error || validate.Error || Impor
 pub const Imported = struct {
     allocator: std.mem.Allocator,
     arena: ir.Arena,
+    /// Exact source-order compatibility schedule. Semantic consumers use the
+    /// typed arena; AIR IR v2 compatibility uses this only to preserve its
+    /// historical node numbering and commutative operand orientation.
+    source_nodes: []symbolic.Node,
+    source_schedule_digest: [32]u8,
     source_to_value: []types.ValueId,
     columns: []types.ValueId,
     /// Target node id -> source column index, or `no_column` for non-inputs.
@@ -48,6 +53,7 @@ pub const Imported = struct {
         self.allocator.free(self.column_for_value);
         self.allocator.free(self.columns);
         self.allocator.free(self.source_to_value);
+        self.allocator.free(self.source_nodes);
         self.arena.deinit();
         self.* = undefined;
     }
@@ -59,6 +65,86 @@ pub const Imported = struct {
         const index: usize = source_node;
         if (index >= self.source_to_value.len) return null;
         return self.source_to_value[index];
+    }
+
+    /// Allocation-free binding between the preserved source schedule and the
+    /// canonical typed graph. This does not require the original hash table.
+    pub fn validateSourceCopy(self: *const Imported) ImportError!void {
+        if (self.source_nodes.len != self.source_to_value.len or
+            self.columns.len == 0)
+        {
+            return error.InvalidSymbolicNode;
+        }
+        if (!std.mem.eql(
+            u8,
+            &self.source_schedule_digest,
+            &sourceScheduleDigest(self.source_nodes),
+        )) return error.InvalidSymbolicNode;
+        var column_count: usize = 0;
+        for (self.source_nodes, self.source_to_value, 0..) |node, mapped, index| {
+            const mapped_node = self.arena.node(mapped) orelse
+                return error.InvalidSymbolicNode;
+            for (self.source_nodes[0..index]) |prior| {
+                if (std.meta.eql(node, prior))
+                    return error.InvalidSymbolicInternTable;
+            }
+            switch (node.op) {
+                .constant => {
+                    if (node.lhs != 0 or node.rhs != 0)
+                        return error.InvalidSymbolicNode;
+                    const expected = m31.M31.fromU64(node.value).toU32();
+                    const actual = switch (mapped_node.key.op) {
+                        .constant => |constant| switch (constant) {
+                            .field => |value| value,
+                            .unsigned => return error.InvalidSymbolicNode,
+                        },
+                        else => return error.InvalidSymbolicNode,
+                    };
+                    if (actual != expected) return error.InvalidSymbolicNode;
+                },
+                .column => {
+                    if (node.lhs != 0 or node.rhs != 0 or
+                        node.value >= self.columns.len or
+                        self.columns[node.value] != mapped)
+                    {
+                        return error.InvalidSymbolicNode;
+                    }
+                    column_count += 1;
+                },
+                .add, .sub, .mul => {
+                    if (node.value != 0 or node.lhs >= index or node.rhs >= index)
+                        return error.InvalidSymbolicNode;
+                    var lhs = self.source_to_value[node.lhs];
+                    var rhs = self.source_to_value[node.rhs];
+                    if ((node.op == .add or node.op == .mul) and
+                        types.idIndex(rhs) < types.idIndex(lhs))
+                    {
+                        std.mem.swap(types.ValueId, &lhs, &rhs);
+                    }
+                    const matches = switch (mapped_node.key.op) {
+                        .add => |binary| node.op == .add and
+                            binary.lhs == lhs and binary.rhs == rhs,
+                        .sub => |binary| node.op == .sub and
+                            binary.lhs == lhs and binary.rhs == rhs,
+                        .mul => |binary| node.op == .mul and
+                            binary.lhs == lhs and binary.rhs == rhs,
+                        else => false,
+                    };
+                    if (!matches) return error.InvalidSymbolicNode;
+                },
+                .neg => {
+                    if (node.rhs != 0 or node.value != 0 or node.lhs >= index)
+                        return error.InvalidSymbolicNode;
+                    const matches = switch (mapped_node.key.op) {
+                        .neg => |operand| operand == self.source_to_value[node.lhs],
+                        else => false,
+                    };
+                    if (!matches) return error.InvalidSymbolicNode;
+                },
+            }
+        }
+        if (column_count != self.columns.len)
+            return error.MissingSymbolicColumn;
     }
 
     /// Replays the imported field DAG in one topological pass.
@@ -121,6 +207,8 @@ pub fn import(
     try validateSource(source);
     var arena = ir.Arena.init(allocator);
     errdefer arena.deinit();
+    const source_nodes = try allocator.dupe(symbolic.Node, source.nodes.items);
+    errdefer allocator.free(source_nodes);
     const source_to_value = try allocator.alloc(types.ValueId, source.nodes.items.len);
     errdefer allocator.free(source_to_value);
     const columns = try allocator.alloc(types.ValueId, source.names.items.len);
@@ -181,13 +269,34 @@ pub fn import(
         column_for_value[value_index] = std.math.cast(u32, column_index) orelse
             return error.IdOverflow;
     }
-    return .{
+    const result = Imported{
         .allocator = allocator,
         .arena = arena,
+        .source_nodes = source_nodes,
+        .source_schedule_digest = sourceScheduleDigest(source_nodes),
         .source_to_value = source_to_value,
         .columns = columns,
         .column_for_value = column_for_value,
     };
+    try result.validateSourceCopy();
+    return result;
+}
+
+fn sourceScheduleDigest(nodes: []const symbolic.Node) [32]u8 {
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    hash.update("stwo-zig/typed-air/source-schedule-v1");
+    var count_bytes: [8]u8 = undefined;
+    std.mem.writeInt(u64, &count_bytes, nodes.len, .little);
+    hash.update(&count_bytes);
+    for (nodes) |node| {
+        hash.update(&.{@intFromEnum(node.op)});
+        inline for (.{ node.lhs, node.rhs, node.value }) |value| {
+            var bytes: [4]u8 = undefined;
+            std.mem.writeInt(u32, &bytes, value, .little);
+            hash.update(&bytes);
+        }
+    }
+    return hash.finalResult();
 }
 
 fn validateSource(source: *const symbolic.Arena) ImportError!void {

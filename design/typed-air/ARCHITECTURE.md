@@ -198,6 +198,12 @@ Serializes the exact lowered production program. During compatibility phases it
 must reproduce AIR IR v2 exactly. Any future IR version is introduced through a
 new normative contract, never an undocumented schema extension.
 
+AIR IR v2 compatibility preserves a digest-bound source schedule alongside the
+canonical typed graph because the legacy wire exposes historical node numbers
+and operand orientation. The formal lowerer substitutes selector one, derives
+roles and projection metadata, reconstructs the checked schedule, and delegates
+bytes to the existing sole JSON writer.
+
 ### Runtime backend exporter
 
 Produces backend-neutral topological polynomial programs for CPU and Metal.
@@ -271,6 +277,7 @@ src/frontends/riscv/air/lang/
   layout.zig             policies and physical allocation
   manifest.zig           canonical layout identity
   lower_constraint.zig   current ConstraintProgram compatibility
+  lower_air_ir.zig       source-bound AIR IR v2 compatibility
   lower_lookup.zig       role-normalized ordered lookup compatibility
   lower_runtime.zig      backend-neutral polynomial programs
   witness.zig            row evaluation and hint dispatch

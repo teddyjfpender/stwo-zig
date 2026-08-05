@@ -33,6 +33,7 @@ shape, authoring model, or delivery order.
 | [0013](0013-fallible-normalized-direct-lowering.md) | Fallible normalized direct-constraint lowering | accepted |
 | [0014](0014-role-normalized-ordered-lookup-lowering.md) | Role-normalized ordered lookup lowering | accepted |
 | [0015](0015-validated-canonical-runtime-export.md) | Validated canonical runtime export | accepted |
+| [0016](0016-source-bound-air-ir-v2-compatibility.md) | Source-bound AIR IR v2 compatibility | accepted |
 
 ## Pending ADRs
 

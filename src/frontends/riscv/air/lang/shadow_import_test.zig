@@ -33,10 +33,30 @@ test "shadow import preserves replay while canonicalizing equivalent nodes" {
     );
     defer imported.deinit();
 
+    try std.testing.expectEqualSlices(
+        symbolic.Node,
+        source_arena.nodes.items,
+        imported.source_nodes,
+    );
+    try imported.validateSourceCopy();
+
     try std.testing.expectEqual(
         imported.valueForSourceNode(sum_xy.id).?,
         imported.valueForSourceNode(sum_yx.id).?,
     );
+
+    const saved_source = imported.source_nodes[sum_xy.id];
+    std.mem.swap(
+        u32,
+        &imported.source_nodes[sum_xy.id].lhs,
+        &imported.source_nodes[sum_xy.id].rhs,
+    );
+    try std.testing.expectError(
+        error.InvalidSymbolicNode,
+        imported.validateSourceCopy(),
+    );
+    imported.source_nodes[sum_xy.id] = saved_source;
+    try imported.validateSourceCopy();
     try std.testing.expectEqual(
         imported.valueForSourceNode(product_xy.id).?,
         imported.valueForSourceNode(product_yx.id).?,

@@ -3,8 +3,8 @@
 **Status date:** 2026-08-05
 **Branch:** `feat/typed-air-precompiles`
 **Current milestone:** M3 — compatibility lowering
-**Active task:** A-010 — reproduce AIR IR v2 projection
-**Next queued task:** A-011 — round-trip every current family
+**Active task:** A-011 — round-trip every current family
+**Next queued task:** A-012 — add layout diff helper
 
 ## Dashboard
 
@@ -13,7 +13,7 @@
 | M0 — engineering dossier | complete | This directory and initial ADRs |
 | M1 — validated logical IR | complete | F-001 through F-012 complete and green |
 | M2 — shadow compiler | complete | A-001 through A-005 complete and green |
-| M3 — compatibility lowering | active | A-006 through A-009 complete; A-010 active |
+| M3 — compatibility lowering | active | A-006 through A-010 complete; A-011 active |
 | M4 — Poseidon compiler pilot | queued | Requires degree/layout passes |
 | M5 — effect and witness pilot | queued | Requires typed schemas and lowering |
 | M6 — guest precompile | queued | Requires Poseidon and ABI ADRs |
@@ -165,12 +165,21 @@
   17 families match independently normalized production nodes, roots/entries,
   columns, batches, arities, and lookup parameter counts. Malformed inputs
   reject before copying; both full DIV allocation-failure paths clean up.
+- Completed A-010: AIR IR v2 lowering applies selector-to-one placement while
+  preserving the frozen wire's historical node schedule. The shadow now owns a
+  domain-separated-digest-bound raw node copy and exact source IDs for active
+  row, selector, direct roots, lookup numerators, and tuple fields; validation
+  binds every item back to the canonical typed graph. The pass derives semantic
+  column roles and event projections, then uses the existing sole JSON writer.
+  LUI and every opcode-manifest entry are byte-identical to production. Source
+  orientation corruption and every induced DIV allocation failure reject or
+  clean up.
 
 ## Immediate next actions
 
-1. A-010 — reproduce the AIR IR v2 projection for LUI.
-2. A-011 — round-trip every current family after both exporters are exact.
-3. A-012 — add the first-difference layout/report helper.
+1. A-011 — package all-family compatibility identities and round-trip receipts.
+2. A-012 — add the first-difference layout/report helper.
+3. V-008 — record a clean-tree M3 milestone receipt once both are complete.
 
 No production behavior should change in these tasks.
 
@@ -196,6 +205,8 @@ Accepted:
   physical batches.
 - Validated canonical export into existing direct and lookup runtime capability
   owners.
+- Digest-bound source-schedule compatibility for selector-specialized AIR IR v2
+  with one JSON encoding authority.
 
 Pending:
 
@@ -518,8 +529,31 @@ frees all partial typed and runtime owners.
 
 ReleaseFast remains green with the two expected register-boundary negative-test
 diagnostics. No capability callback imports the new exporter, so production
-evaluation order and proof artifacts remain unchanged. A-010 is active to emit
-the LUI AIR IR v2 projection from the canonical program.
+evaluation order and proof artifacts remain unchanged. At this point A-010
+became active to emit the LUI AIR IR v2 projection from the canonical program.
+
+### 2026-08-05 — M3 AIR IR v2 reproduced byte for byte
+
+A-010 completed with `lower_air_ir.zig` and ADR-0016. The work makes an explicit
+distinction between canonical typed semantic identity and AIR IR v2's frozen
+source-schedule identity. The shadow importer now owns an exact raw node copy
+under a domain-separated SHA-256 receipt, validates every copied node against
+its typed value, and retains source IDs for selector, active row, direct roots,
+signed numerators, and tuple fields.
+
+Formal lowering emits semantic main columns, seeds constant one, substitutes
+the runtime selector, and replays the checked raw schedule through fallible
+exact interning. It independently derives column roles and program/state/source/
+destination projections from ordered relation metadata. The existing production
+JSON writer remains the only authority for schema version, compact key order,
+escaping, and fixed-table metadata.
+
+The typed compatibility output is byte-identical to production for LUI and for
+every opcode-manifest entry. A commutative-orientation mutation fails the source
+receipt before export, and induced DIV allocation failures free the reconstructed
+arena. ReleaseFast and ReleaseSafe package suites are green with expected
+negative diagnostics. No formal artifact or production consumer changed. A-011
+is active to package complete all-family identities and receipts.
 
 ## Update protocol
 

@@ -31,6 +31,9 @@ field-polynomial DAG into the typed arena. It operates in shadow mode and:
   checked arena APIs;
 - records a total source-node-to-typed-value map instead of assuming equal
   node numbers;
+- retains an exact, domain-separated-digest-bound source node schedule for
+  frozen wire-format compatibility, while binding every copied node back to
+  its canonical typed value;
 - records both source-column-to-value and target-value-to-column maps so
   concrete replay is linear in graph size; and
 - validates the resulting typed arena before returning ownership.
@@ -55,6 +58,8 @@ and lookups remain A-002 work and must retain their production order explicitly.
 - The current builder remains the single production authority during M2.
 - Typed canonicalization can reduce representation size without changing field
   evaluation or degree.
+- Historical source numbering and commutative orientation remain available as
+  checked provenance for AIR IR v2, not as a second semantic graph.
 - Every later source root or lookup field must pass through the explicit map;
   raw source node IDs are never valid typed IDs.
 - Import and replay require linear auxiliary storage. They are shadow/compiler

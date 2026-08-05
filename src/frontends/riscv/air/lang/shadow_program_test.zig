@@ -39,9 +39,14 @@ test "ordered shadow program exactly imports every production family" {
             imported.imported.valueForSourceNode(fixture.selector.id).?,
             imported.selector,
         );
+        try std.testing.expectEqual(fixture.selector.id, imported.source_selector);
         try std.testing.expectEqual(
             imported.imported.valueForSourceNode(fixture.program.active_row.id).?,
             imported.active_row,
+        );
+        try std.testing.expectEqual(
+            fixture.program.active_row.id,
+            imported.source_active_row,
         );
         for (imported.mainColumns(), fixture.column_ids[0..fixture.main_column_count]) |column, source_id|
             try std.testing.expectEqual(
@@ -56,12 +61,14 @@ test "ordered shadow program exactly imports every production family" {
         for (
             fixture.program.direct_constraints.values[0..fixture.program.direct_constraints.len],
             imported.direct_constraints,
-        ) |source_root, constraint_id| {
+            imported.direct_source_roots,
+        ) |source_root, constraint_id, source_id| {
             const constraint = imported.imported.arena.constraint(constraint_id).?;
             try std.testing.expectEqual(
                 imported.imported.valueForSourceNode(source_root.id).?,
                 constraint.root,
             );
+            try std.testing.expectEqual(source_root.id, source_id);
         }
 
         try std.testing.expectEqual(
@@ -92,15 +99,24 @@ test "ordered shadow program exactly imports every production family" {
                 imported.imported.valueForSourceNode(source_lookup.numerator.id).?,
                 lookup.numerator,
             );
+            try std.testing.expectEqual(source_lookup.numerator.id, lookup.source_numerator);
             const fields = imported.lookupFields(lookup_index).?;
+            const source_fields = imported.sourceLookupFields(lookup_index).?;
             try std.testing.expectEqual(@as(usize, source_lookup.arity), fields.len);
-            for (source_lookup.values[0..source_lookup.arity], fields) |source_value, field|
+            for (
+                source_lookup.values[0..source_lookup.arity],
+                fields,
+                source_fields,
+            ) |source_value, field, source_field| {
                 try std.testing.expectEqual(
                     imported.imported.valueForSourceNode(source_value.id).?,
                     field,
                 );
+                try std.testing.expectEqual(source_value.id, source_field);
+            }
         }
         try std.testing.expect(imported.lookupFields(imported.lookups.len) == null);
+        try std.testing.expect(imported.sourceLookupFields(imported.lookups.len) == null);
 
         for (0..4) |_| {
             for (column_values[0..fixture.arena.names.items.len]) |*value|

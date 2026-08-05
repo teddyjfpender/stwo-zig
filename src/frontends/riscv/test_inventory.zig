@@ -115,6 +115,7 @@ test {
     _ = @import("air/lang/hint_recipe_test.zig");
     _ = @import("air/lang/hints_test.zig");
     _ = @import("air/lang/kernel_test.zig");
+    _ = @import("air/lang/lower_air_ir_test.zig");
     _ = @import("air/lang/lower_constraint_test.zig");
     _ = @import("air/lang/lower_lookup_test.zig");
     _ = @import("air/lang/lower_runtime_test.zig");

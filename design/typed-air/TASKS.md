@@ -65,8 +65,8 @@ first production milestone. `P2` improves breadth or optimization.
 | A-007 | P0 | Lower direct constraints to current `ConstraintProgram` | A-006 | LUI exact normalized DAG comparison | done |
 | A-008 | P0 | Lower typed effects to current ordered lookup entries | A-007, F-006 | LUI event fields and batch order exact | done |
 | A-009 | P0 | Reproduce runtime polynomial program | A-007 | Node/root/column identity test | done |
-| A-010 | P0 | Reproduce AIR IR v2 projection | A-008 | Byte-identical canonical export for LUI | active |
-| A-011 | P1 | Round-trip every current family | A-009, A-010 | 17 compatibility manifests and exports exact | queued |
+| A-010 | P0 | Reproduce AIR IR v2 projection | A-008 | Byte-identical canonical export for LUI | done |
+| A-011 | P1 | Round-trip every current family | A-009, A-010 | 17 compatibility manifests and exports exact | active |
 | A-012 | P1 | Add layout diff command/test helper | A-006 | Diff identifies first semantic/layout divergence with names | queued |
 
 ## Poseidon2 compiler pilot
