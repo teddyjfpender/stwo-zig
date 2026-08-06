@@ -117,13 +117,25 @@ pub const Binding = struct {
     /// than the product's own, so making it a test root cannot perturb the
     /// graph the product ships.
     pub fn frontendSuite(self: Binding, protocol: graph.ProtocolModules) test_filter.Suite {
-        return self.moduleSuite(graph.createRiscVFrontend(
+        const frontend = graph.createRiscVFrontend(
             self.b,
             protocol,
             roleProduct(self.product, .@"test"),
             self.target,
             self.optimize,
-        ), frontend_test_floor);
+        );
+        // Three compatibility tests consume the checked-in typed-AIR fixtures
+        // through a generated module name. Keep that design-time dependency on
+        // this fresh test root: neither the product's frontend module nor any
+        // production executable receives the import.
+        frontend.addImport("typed_air_artifacts", self.b.createModule(.{
+            .root_source_file = self.b.path(
+                "design/typed-air/artifacts/embedded.zig",
+            ),
+            .target = self.target,
+            .optimize = self.optimize,
+        }));
+        return self.moduleSuite(frontend, frontend_test_floor);
     }
 
     /// The engine-generic proof adapter. Every product binds it under the

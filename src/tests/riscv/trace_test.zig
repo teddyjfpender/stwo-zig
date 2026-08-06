@@ -49,6 +49,7 @@ test {
     _ = @import("prover_test.zig");
     _ = @import("public_relation_binding_test.zig");
     _ = @import("transcript_path_test.zig");
+    _ = @import("typed_poseidon2_proof_equivalence_test.zig");
     // The extraction differential guards every uniqueness verdict: if the IR
     // stops matching `Semantics(QM31)`, the solver is answering about a system
     // we no longer ship. Unregistered it never ran, so the guard was nominal.

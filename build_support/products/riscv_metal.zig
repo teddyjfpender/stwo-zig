@@ -85,6 +85,9 @@ const source_closure = product_policy.SourceClosure{
         "build_identity",
         "metal_aot_config",
         "product_identity",
+        // Injected by the frontend package build for compatibility tests. The
+        // production Metal module graph never constructs or consumes it.
+        "typed_air_artifacts",
     },
     .allowed_files = &.{
         "src/riscv_metal_bench_cli.zig",

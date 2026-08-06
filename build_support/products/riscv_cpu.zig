@@ -41,7 +41,9 @@ const source_closure = product_policy.SourceClosure{
         .{ .name = "riscv_cpu_capabilities", .source = "src/products/riscv_cpu/capabilities.zig" },
         .{ .name = "output_transaction", .source = "src/interop/output_transaction.zig" },
     } ++ shared_shell.shell_named_imports),
-    .generated_imports = &.{"aggregate_capabilities"},
+    // Lexical closure reaches package-only compatibility tests; production
+    // never constructs or consumes their injected design-artifact module.
+    .generated_imports = &.{ "aggregate_capabilities", "typed_air_artifacts" },
     .allowed_files = &.{
         "src/products/riscv_cpu/main.zig",
         "src/stwo_riscv_cpu.zig",

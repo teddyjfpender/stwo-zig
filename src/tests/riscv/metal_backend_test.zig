@@ -96,6 +96,45 @@ test "metal: RV32IM retirement trace proves and verifies without fallback" {
     );
 }
 
+test "metal: typed Poseidon2 artifacts prove and verify without fallback" {
+    const allocator = std.testing.allocator;
+    const bundle_path = try std.process.getEnvVarOwned(
+        allocator,
+        "STWO_RISCV_METAL_AOT_BUNDLE",
+    );
+    defer allocator.free(bundle_path);
+    try riscv_metal.MetalProverEngine.initializeRuntime(allocator, .{
+        .authenticated_aot = .{
+            .bundle_path = bundle_path,
+            .manifest_sha256 = metal_aot_config.manifest_sha256,
+        },
+    });
+    defer riscv_metal.MetalProverEngine.Backend.shutdown() catch unreachable;
+
+    const telemetry_before = try riscv_metal.MetalProverEngine.telemetrySnapshot();
+    const receipt = try riscv.testing.typed_poseidon2_proof_test.exerciseBackend(
+        riscv_metal.MetalProverEngine.Backend,
+        allocator,
+    );
+    const telemetry_after = try riscv_metal.MetalProverEngine.telemetrySnapshot();
+    const telemetry_delta = telemetry_after.delta(telemetry_before);
+
+    try receipt.validate();
+    try std.testing.expectEqualStrings(
+        @typeName(riscv_metal.MetalProverEngine.Backend),
+        receipt.backend_name,
+    );
+    try std.testing.expectEqual(@as(usize, 46), receipt.active_rows);
+    try std.testing.expectEqual(receipt.active_rows, receipt.narrow_rows);
+    try std.testing.expectEqual(@as(usize, 0), receipt.wide_rows);
+    try std.testing.expectEqual(@as(usize, 0), receipt.io_rows);
+    try telemetry_delta.requireResidentRiscPolynomialExecution();
+    try std.testing.expectEqual(
+        @as(u64, 0),
+        telemetry_delta.counters.cpu_riscv_polynomial_composition_declines,
+    );
+}
+
 test "metal: AOT source matches every production RISC-V polynomial DAG" {
     const codegen = riscv_metal.riscv_polynomial_codegen;
     const runtime_program = riscv.air.extract.runtime_program;

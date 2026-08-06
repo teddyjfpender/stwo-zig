@@ -10,6 +10,8 @@ pub const relation_export_components_test =
     @import("air/relation_export_components_test.zig");
 pub const relation_export_test = @import("air/relation_export_test.zig");
 pub const semantic_component_test = @import("air/semantic_component_test.zig");
+pub const typed_poseidon2_proof_test =
+    @import("air/lang/typed_poseidon2_proof_test.zig");
 pub const jalr_semantics = @import("air/semantics/jalr.zig");
 pub const prover_orchestration = @import("prover/orchestration.zig");
 pub const witness_hook = @import("prover/test_witness_hook.zig");
