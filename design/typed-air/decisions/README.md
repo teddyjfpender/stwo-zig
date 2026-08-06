@@ -1,7 +1,7 @@
 # Architecture decision records
 
 **Status:** active index
-**Last updated:** 2026-08-05
+**Last updated:** 2026-08-06
 
 ADRs record decisions that change the project's trusted boundary, protocol
 shape, authoring model, or delivery order.
@@ -37,6 +37,7 @@ shape, authoring model, or delivery order.
 | [0017](0017-sectioned-compatibility-manifests.md) | Sectioned `compat-v1` family manifests | accepted |
 | [0018](0018-degree-bounded-materialization-and-compatibility-order.md) | Degree-bounded materialization and Poseidon compatibility order | accepted |
 | [0019](0019-authenticated-witness-and-relation-plans.md) | Authenticated witness and relation execution plans | accepted |
+| [0020](0020-cost-frontier-materialization-proposals.md) | Cost-frontier materialization proposals | proposed |
 
 ## Pending ADRs
 
