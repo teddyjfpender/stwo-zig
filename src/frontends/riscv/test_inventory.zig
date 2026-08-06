@@ -126,8 +126,10 @@ test {
     _ = @import("air/lang/lower_runtime_test.zig");
     _ = @import("air/lang/manifest_test.zig");
     _ = @import("air/lang/materialization_cost_test.zig");
+    _ = @import("air/lang/materialization_direct_program_test.zig");
     _ = @import("air/lang/materialization_cost_direct_test.zig");
     _ = @import("air/lang/materialization_cut_set_test.zig");
+    _ = @import("air/lang/materialization_direct_benchmark_test.zig");
     _ = @import("air/lang/materialization_diagnostics_test.zig");
     _ = @import("air/lang/materialization_fixed_direct_test.zig");
     _ = @import("air/lang/materialization_fixed_cost_test.zig");
@@ -135,6 +137,11 @@ test {
     _ = @import("air/lang/materialization_frontier_manifest_test.zig");
     _ = @import("air/lang/materialization_frontier_projection_test.zig");
     _ = @import("air/lang/materialization_neighbourhood_test.zig");
+    _ = @import("air/lang/poseidon_layout_benchmark_artifact.zig");
+    _ = @import("air/lang/poseidon_layout_benchmark_artifact_test.zig");
+    _ = @import("air/lang/poseidon_layout_benchmark_protocol.zig");
+    _ = @import("air/lang/poseidon_layout_benchmark_protocol_test.zig");
+    _ = @import("air/lang/poseidon_layout_benchmark_rss.zig");
     _ = @import("air/lang/mod.zig");
     _ = @import("air/lang/program_test.zig");
     _ = @import("air/lang/protocol_degree_test.zig");
@@ -148,6 +155,7 @@ test {
     _ = @import("air/lang/typed_poseidon2_compat_test.zig");
     _ = @import("air/lang/typed_poseidon2_identity_test.zig");
     _ = @import("air/lang/typed_poseidon2_frontier_artifact_test.zig");
+    _ = @import("air/lang/typed_poseidon2_layout_executor_test.zig");
     _ = @import("air/lang/typed_poseidon2_relations_test.zig");
     _ = @import("air/lang/typed_poseidon2_witness_test.zig");
     _ = @import("air/lang/validate_test.zig");

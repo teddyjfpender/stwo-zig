@@ -89,6 +89,7 @@ const source_closure = product_policy.SourceClosure{
         // production Metal module graph never constructs or consumes it.
         "typed_air_artifacts",
         "typed_air_h009_artifacts",
+        "typed_air_h010_artifacts",
     },
     .allowed_files = &.{
         "src/riscv_metal_bench_cli.zig",

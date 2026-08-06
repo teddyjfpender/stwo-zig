@@ -23,7 +23,7 @@ first production milestone. `P2` improves breadth or optimization.
 | M1 | Validated logical IR | Deterministic IR kernel and negative tests | done |
 | M2 | Shadow compiler | All 17 current families imported and degree-reported | done |
 | M3 | Compatibility lowering | LUI and then all families round-trip exactly | blocked |
-| M4 | Pure compiler pilot | Poseidon2 compatibility layout generated | active |
+| M4 | Pure compiler pilot | Poseidon2 compatibility path verified; H-010 default cohort reviewed | active |
 | M5 | Effect/witness pilot | LUI, ADDI, signed load/JALR, DIV vertical slices | queued |
 | M6 | Guest precompile | Poseidon2 calls close in one proof | queued |
 | M7 | Parallel proving | Component stages scheduled and measured | queued |
@@ -82,7 +82,31 @@ first production milestone. `P2` improves breadth or optimization.
 | H-007 | P0 | Run real CPU and Metal proof equivalence | H-005, H-006 | Independent verification succeeds on both admitted backends | done |
 | H-008 | P1 | Add source-to-materialization diagnostics | H-003, F-009 | All 426 columns trace to semantic source paths | done |
 | H-009 | P2 | Prototype cost-aware materialization policy | H-007 | Separate manifest and cost report; no production activation | done |
-| H-010 | P2 | Benchmark compatibility and proposed layouts | H-009 | Verified measurements under PERFORMANCE.md | active |
+| H-010 | P2 | Benchmark compatibility and proposed layouts | H-009 | Complete authenticated four-arm log-10/log-14 cohort under PERFORMANCE.md; no production/proof claim | active |
+
+### H-010 implementation state
+
+The active task has completed its isolated harness prerequisites:
+
+- exact H-009 artifact, fixed-program, four-arm, proposal, and cut
+  authentication;
+- checked log-10/log-14 `STWAIRB\0` vectors and a byte-regenerated readable
+  index, with log 18 generated only as a non-receiptable opt-in;
+- one common retained CPU evaluator with prepared witness/direct capabilities
+  and no per-row allocation;
+- independent expected-output comparison, all 430 roots on every admitted row,
+  and one-at-a-time mutations for all 426 materializations and fixed roles;
+- regression-only candidate trace pins, explicit timer boundaries, normalized
+  high-water RSS, strict child/report schemas, and serial rotated orchestration;
+  and
+- source/build isolation from production CPU/Metal executables and explicit
+  negative proof, PCS, verifier, Metal-candidate, and promotion capabilities.
+
+H-010 remains active because the required clean-host log-10/log-14 timing
+cohort, review, and any deliberately frozen evidence are still outstanding.
+Log 18 cannot satisfy or replace that exit condition. A result cannot select a
+layout; any production proposal requires a separate accepted decision and the
+full proof-path and performance gates.
 
 ## Typed effects and opcode migration
 

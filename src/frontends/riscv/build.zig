@@ -2,7 +2,7 @@ const std = @import("std");
 
 /// Fewest tests this package's test binary must contain.
 ///
-/// Measured on this tree: 763. Zig collects a `test` only from a file it was
+/// Measured on this tree: 793. Zig collects a `test` only from a file it was
 /// made to analyse, so before the explicit inventory this step silently compiled
 /// only 319 of the then-461 named tests -- `refAllDecls` in a `mod.zig` does not
 /// pull a file's tests in, and nothing said so. A binary that compiled almost
@@ -13,7 +13,7 @@ const std = @import("std");
 /// `test_inventory_test.zig` fails when a file is missing from that list. This
 /// floor is the backstop for the wiring itself. Raise it deliberately as the
 /// suite grows; never lower it to make a build pass.
-const test_floor = 763;
+const test_floor = 793;
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
@@ -48,6 +48,13 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    const typed_air_h010_artifacts = b.createModule(.{
+        .root_source_file = b.path(
+            "../../../design/typed-air/artifacts/h010_embedded.zig",
+        ),
+        .target = target,
+        .optimize = optimize,
+    });
     const frontend = b.addModule("stwo_riscv_frontend", .{
         .root_source_file = b.path("mod.zig"),
         .target = target,
@@ -60,6 +67,7 @@ pub fn build(b: *std.Build) void {
     // modules never reference the design artifact package.
     frontend.addImport("typed_air_artifacts", typed_air_artifacts);
     frontend.addImport("typed_air_h009_artifacts", typed_air_h009_artifacts);
+    frontend.addImport("typed_air_h010_artifacts", typed_air_h010_artifacts);
 
     const tests = b.addTest(.{ .root_module = frontend });
     const run_tests = b.addRunArtifact(tests);
@@ -133,6 +141,42 @@ pub fn build(b: *std.Build) void {
         "typed-air-frontier",
         "Check or explicitly update the H-009 Poseidon cost-frontier artifacts",
     ).dependOn(&run_frontier_tool.step);
+
+    const layout_benchmark_root = b.createModule(.{
+        .root_source_file = b.path("poseidon_layout_benchmark_tool.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    layout_benchmark_root.addImport("stwo_core", core);
+    layout_benchmark_root.addImport("stwo_prover_engine", prover);
+    layout_benchmark_root.addImport(
+        "typed_air_h009_artifacts",
+        typed_air_h009_artifacts,
+    );
+    layout_benchmark_root.addImport(
+        "typed_air_h010_artifacts",
+        typed_air_h010_artifacts,
+    );
+    const layout_benchmark = b.addExecutable(.{
+        .name = "riscv-poseidon-layout-benchmark",
+        .root_module = layout_benchmark_root,
+    });
+    // The process-resource adapter uses Darwin/Linux libc rusage surfaces.
+    layout_benchmark.linkLibC();
+    const run_layout_benchmark = b.addRunArtifact(layout_benchmark);
+    run_layout_benchmark.setCwd(.{ .cwd_relative = b.pathFromRoot("../../..") });
+    if (b.args) |args|
+        run_layout_benchmark.addArgs(args)
+    else
+        run_layout_benchmark.addArg("check");
+    b.step(
+        "typed-air-layout-benchmark",
+        "Check H-010 correctness or run one isolated experimental sample",
+    ).dependOn(&run_layout_benchmark.step);
+    b.step(
+        "typed-air-layout-benchmark-install",
+        "Install the isolated H-010 runner for fresh-process host sampling",
+    ).dependOn(&b.addInstallArtifact(layout_benchmark, .{}).step);
 
     addFocusedTests(b, core, target, optimize, check_only, .{
         .step = "test-isa",

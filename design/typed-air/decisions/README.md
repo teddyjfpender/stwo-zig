@@ -39,6 +39,7 @@ shape, authoring model, or delivery order.
 | [0019](0019-authenticated-witness-and-relation-plans.md) | Authenticated witness and relation execution plans | accepted |
 | [0020](0020-cost-frontier-materialization-proposals.md) | Cost-frontier materialization proposals | proposed |
 | [0021](0021-backend-neutral-poseidon-program-identity.md) | Backend-neutral Poseidon program identity | accepted |
+| [0022](0022-authenticated-poseidon-layout-benchmark.md) | Authenticated Poseidon layout benchmark boundary | proposed |
 
 ## Pending ADRs
 

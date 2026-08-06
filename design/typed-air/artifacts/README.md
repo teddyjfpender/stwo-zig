@@ -95,3 +95,40 @@ zig build typed-air-frontier --build-file src/frontends/riscv/build.zig \
 An intentional reviewed replacement adds
 `-Dtyped-air-frontier-mode=update`. Update is explicit and writes each file
 atomically; ordinary tests and check mode never update artifacts.
+
+## H-010 Poseidon layout benchmark vectors
+
+`h010-poseidon-layout-v1/vector-log10.stwairb` and
+`vector-log14.stwairb` are the checked default-input artifacts for the isolated
+H-010 CPU layout experiment. Each canonical `STWAIRB\0` v1 stream records the
+generator and semantic identities, every sixteen-lane input, the enabler/wide/io
+roles, and sixteen outputs from the unchanged static Poseidon reference, then
+ends in a SHA-256 seal over all preceding bytes.
+
+[`h010-poseidon-layout-v1/index-v1.tsv`](h010-poseidon-layout-v1/index-v1.tsv)
+is the readable projection. It pins the complete vector metadata plus rows 0,
+1, and the final row for each checked vector. Its file SHA-256 is
+`1c881a3a944794943f872ea85678a4809db68a96021b06abbc15ef42d878fd19`.
+
+| Log | Bytes | File SHA-256 | Internal seal |
+| --- | ---: | --- | --- |
+| 10 | 143,490 | `2d90fa647d55758f1fdf7be46de5232ee006ac3682ab0371ec1108c95c8f14ee` | `27be0de8a88a36ac9cb686c40da6442abdd18950bc4cb45a93773f45de4fb113` |
+| 14 | 2,293,890 | `b2f84aa4ecc9f017932a2ca81fd89060d1fccb8bfaf90c9843ac9013cb6f83d8` | `b9ce7ca07edee474d0ca9da8e2a4dcdd24d300b6a99c1a1c5305a90da9a3c11d` |
+
+The tool regenerates and byte-compares both vectors and the index without
+candidate execution:
+
+```sh
+zig build typed-air-layout-benchmark \
+  --build-file src/frontends/riscv/build.zig \
+  -Doptimize=ReleaseFast -- \
+  vector-artifacts check design/typed-air/artifacts/h010-poseidon-layout-v1
+```
+
+Replacing reviewed bytes requires the same command with `update`; writes are
+atomic and ordinary benchmark/check commands never update them. The dedicated
+`h010_embedded.zig` bridge is injected only into package tests and the isolated
+benchmark executable. Log 18 is deliberately not checked here: it is a large,
+generated, opt-in stress vector whose results are marked non-receiptable. These
+vectors authenticate benchmark inputs; they do not activate a layout or alter
+the proof protocol.

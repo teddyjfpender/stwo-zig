@@ -126,7 +126,15 @@ fn sourceClosure(comptime metal: bool) policy.SourceClosure {
             "src/prover/native/runner.zig",
         },
         .named_imports = if (metal) &metal_named_imports else &cpu_named_imports,
-        .generated_imports = &.{"aggregate_capabilities"},
+        // Lexical closure reaches the RISC-V package's compatibility and
+        // proposal tests. These fixtures are injected only on the fresh test
+        // module; neither aggregate executable constructs or consumes them.
+        .generated_imports = &.{
+            "aggregate_capabilities",
+            "typed_air_artifacts",
+            "typed_air_h009_artifacts",
+            "typed_air_h010_artifacts",
+        },
         .allowed_files = if (metal) &metal_allowed_files else &common_allowed_files,
         .allowed_prefixes = if (metal) &metal_allowed_prefixes else &common_allowed_prefixes,
         .required_dynamic_dependencies = if (metal) &.{

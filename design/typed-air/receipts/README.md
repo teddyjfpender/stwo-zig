@@ -38,3 +38,18 @@ later commit that adds the receipt is intentionally not self-referential.
   evidence snapshot. The identity is locally co-attested beside verified
   proofs; it is not transcript-bound, part of the public statement, or checked
   by the production verifier.
+
+## Active work without a receipt
+
+H-010 has no milestone receipt yet. Its isolated implementation authenticates
+four H-009-derived arms, checked log-10/log-14 `STWAIRB\0` vectors and their
+readable index, independent expected outputs, all direct roots, the complete
+materialization/fixed-role mutation matrix, prepared allocation-free CPU
+evaluators, and explicit timing/RSS sample boundaries. Generated log 18 remains
+an opt-in non-receiptable stress case.
+
+Those checked vector artifacts are protocol inputs, not a timing receipt. Any
+host report remains `experimental_uncommitted_timing` beneath `zig-out/` unless
+a later review deliberately freezes its exact bytes. No complete default
+cohort, winner, production layout, proof-speed claim, or H-010 receipt is
+asserted by this index.

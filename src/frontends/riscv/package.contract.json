@@ -14,7 +14,8 @@
   },
   "injected_modules": [
     "typed_air_artifacts",
-    "typed_air_h009_artifacts"
+    "typed_air_h009_artifacts",
+    "typed_air_h010_artifacts"
   ],
   "api_surface": [
     "Cpu",

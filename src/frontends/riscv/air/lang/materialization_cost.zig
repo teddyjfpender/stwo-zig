@@ -16,7 +16,7 @@
 //! shared before it is multiplied into every materialization equality.
 
 const std = @import("std");
-const direct_model = @import("materialization_cost_direct.zig");
+const direct_program = @import("materialization_direct_program.zig");
 const identity = @import("degree3_materializer_identity.zig");
 const expr = @import("expr.zig");
 const fixed_direct = @import("materialization_fixed_direct.zig");
@@ -196,6 +196,7 @@ pub const ValidationError = error{
 pub const Error = std.mem.Allocator.Error ||
     validator.Error ||
     fixed_direct.Error ||
+    direct_program.Error ||
     ValidationError;
 
 /// Recomputes candidate feasibility and returns its complete integer report.
@@ -270,40 +271,6 @@ pub fn analyze(
     const available = try allocator.alloc(bool, nodes.len);
     defer allocator.free(available);
     @memset(available, false);
-
-    var direct = direct_model.Arena.init(allocator);
-    defer direct.deinit();
-    const mapped = try allocator.alloc(u32, nodes.len);
-    defer allocator.free(mapped);
-    @memset(mapped, no_direct_node);
-    const needed = try allocator.alloc(bool, nodes.len);
-    defer allocator.free(needed);
-    var direct_roots: std.ArrayList(direct_model.RootUse) = .empty;
-    defer direct_roots.deinit(allocator);
-    const total_roots = std.math.add(
-        usize,
-        request.selected.len,
-        std.math.cast(usize, fixed_root_count) orelse return error.CountOverflow,
-    ) catch return error.CountOverflow;
-    try direct_roots.ensureTotalCapacity(allocator, total_roots);
-
-    const context = try lowerContext(&direct, arena, request.gate, request.policy, mapped);
-    var fixed_lowering: ?fixed_direct.Lowering = if (request.fixed_direct_program) |program|
-        try fixed_direct.Lowering.init(allocator, program, materialization_count)
-    else
-        null;
-    defer if (fixed_lowering) |*lowering| lowering.deinit();
-    var fixed_emitter = FixedEmitter{
-        .direct = &direct,
-        .gate = if (request.gate) |gate| mapped[types.idIndex(gate)] else null,
-    };
-    if (fixed_lowering) |*lowering| {
-        const roots = try allocator.alloc(u32, lowering.program.prefix_roots.len);
-        defer allocator.free(roots);
-        try lowering.lowerPrefix(&fixed_emitter, roots);
-        for (roots) |root|
-            direct_roots.appendAssumeCapacity(try direct.recordRoot(root));
-    }
     for (request.selected) |value| {
         try computeDegrees(arena, reachable, available, degrees);
         const body_degree = degrees[types.idIndex(value)];
@@ -315,31 +282,25 @@ pub fn analyze(
         ) catch return error.DegreeOverflow;
         if (constraint_degree > request.policy.maximum_constraint_degree)
             return error.InfeasibleSelection;
-
-        const body = try lowerValue(&direct, arena, value, mapped, needed);
-        const column = try direct.committed(value, true);
-        const equality = try direct.binary(.sub, column, body);
-        const root = if (context) |context_node|
-            try direct.binary(.mul, equality, context_node)
-        else
-            equality;
-        direct_roots.appendAssumeCapacity(try direct.recordRoot(root));
-        mapped[types.idIndex(value)] = column;
         available[types.idIndex(value)] = true;
     }
-    if (fixed_lowering) |*lowering| {
-        const roots = try allocator.alloc(u32, lowering.program.suffix_roots.len);
-        defer allocator.free(roots);
-        try lowering.lowerSuffix(&fixed_emitter, roots);
-        for (roots) |root|
-            direct_roots.appendAssumeCapacity(try direct.recordRoot(root));
-    }
+
+    const materialization_column_start: u64 = if (request.fixed_direct_program) |program|
+        program.materialization_column_start
+    else
+        request.geometry.base_main_columns;
+    var lowered = try direct_program.extractValidated(allocator, arena, .{
+        .gate = request.gate,
+        .policy = request.policy,
+        .selected = request.selected,
+        .materialization_column_start = materialization_column_start,
+        .fixed_direct_program = request.fixed_direct_program,
+    });
+    defer lowered.deinit();
 
     const direct_root_count = try checkedAdd(materialization_count, fixed_root_count);
-    const operation_counts = try direct.operationCounts();
-    const direct_node_count = std.math.cast(u64, direct.nodeCount()) orelse
+    if (lowered.counts.root_uses != direct_root_count)
         return error.CountOverflow;
-    const peak_live = try direct.peakLiveNodes(allocator, direct_roots.items);
 
     const scenarios = try allocator.alloc(ScenarioCost, request.log_sizes.len);
     var scenarios_owned = true;
@@ -361,13 +322,13 @@ pub fn analyze(
             .candidate_main_columns = candidate_main_columns,
             .direct_roots = direct_root_count,
             .interaction_columns = request.geometry.interaction_columns,
-            .canonical_direct_nodes = direct_node_count,
-            .canonical_direct_additions = operation_counts.additions,
-            .canonical_direct_subtractions = operation_counts.subtractions,
-            .canonical_direct_negations = operation_counts.negations,
-            .canonical_direct_multiplications = operation_counts.multiplications,
-            .unique_committed_column_reads = operation_counts.committed,
-            .canonical_streaming_peak_live_nodes = peak_live,
+            .canonical_direct_nodes = lowered.counts.nodes,
+            .canonical_direct_additions = lowered.counts.additions,
+            .canonical_direct_subtractions = lowered.counts.subtractions,
+            .canonical_direct_negations = lowered.counts.negations,
+            .canonical_direct_multiplications = lowered.counts.multiplications,
+            .unique_committed_column_reads = lowered.counts.unique_committed_column_reads,
+            .canonical_streaming_peak_live_nodes = lowered.counts.streaming_peak_live_nodes,
             .semantic_witness_nodes = semantic_witness_nodes,
         },
         .scenarios = scenarios,
@@ -510,164 +471,6 @@ fn computeDegrees(
             ) catch return error.DegreeOverflow,
         };
     }
-}
-
-const no_direct_node = std.math.maxInt(u32);
-const FixedEmitter = struct {
-    direct: *direct_model.Arena,
-    gate: ?u32,
-
-    pub fn constant(self: *FixedEmitter, value: u32) Error!u32 {
-        return self.direct.intern(.{ .op = .constant, .value = value });
-    }
-
-    pub fn column(
-        self: *FixedEmitter,
-        namespace_digest: *const fixed_direct.Digest,
-        column_value: *const fixed_direct.Column,
-        resolved: u64,
-    ) Error!u32 {
-        return switch (column_value.binding) {
-            .gate => self.gate orelse error.MissingFixedGate,
-            .component => self.direct.fixedCommitted(
-                namespace_digest.*,
-                column_value.tree,
-                resolved,
-            ),
-        };
-    }
-
-    pub fn binary(
-        self: *FixedEmitter,
-        op: fixed_direct.BinaryOp,
-        lhs: u32,
-        rhs: u32,
-    ) Error!u32 {
-        return self.direct.binary(switch (op) {
-            .add => .add,
-            .sub => .sub,
-            .mul => .mul,
-        }, lhs, rhs);
-    }
-
-    pub fn neg(self: *FixedEmitter, value: u32) Error!u32 {
-        return self.direct.intern(.{ .op = .neg, .lhs = value });
-    }
-};
-
-fn lowerContext(
-    direct: *direct_model.Arena,
-    arena: *const ir.Arena,
-    gate: ?types.ValueId,
-    policy: Policy,
-    mapped: []u32,
-) Error!?u32 {
-    var context: ?u32 = null;
-    if (gate) |value| {
-        const node = arena.node(value) orelse return error.InvalidGate;
-        const lowered = switch (node.key.op) {
-            .constant => |constant| try direct.intern(.{
-                .op = .constant,
-                .value = constantValue(constant),
-            }),
-            .input, .hint_output, .call_output => try direct.committed(value, false),
-            else => return error.UnsupportedGateExpression,
-        };
-        mapped[types.idIndex(value)] = lowered;
-        context = lowered;
-    }
-    if (policy.row_mask_degree != 0) {
-        const mask = try direct.intern(.{
-            .op = .row_mask,
-            .value = policy.row_mask_degree,
-        });
-        context = if (context) |prior|
-            try direct.binary(.mul, prior, mask)
-        else
-            mask;
-    }
-    return context;
-}
-
-fn lowerValue(
-    direct: *direct_model.Arena,
-    arena: *const ir.Arena,
-    root: types.ValueId,
-    mapped: []u32,
-    needed: []bool,
-) Error!u32 {
-    const root_index = types.idIndex(root);
-    if (mapped[root_index] != no_direct_node) return mapped[root_index];
-    @memset(needed, false);
-    needed[root_index] = true;
-    const root_end = std.math.add(usize, root_index, 1) catch
-        return error.CountOverflow;
-    var reverse = root_end;
-    while (reverse > 0) {
-        reverse -= 1;
-        if (!needed[reverse] or mapped[reverse] != no_direct_node) continue;
-        markOperands(needed, arena.nodesView()[reverse].key.op);
-    }
-
-    for (arena.nodesView()[0..root_end], 0..) |node, index| {
-        if (!needed[index] or mapped[index] != no_direct_node) continue;
-        mapped[index] = switch (node.key.op) {
-            .constant => |constant| try direct.intern(.{
-                .op = .constant,
-                .value = constantValue(constant),
-            }),
-            .input, .hint_output, .call_output => try direct.committed(
-                @enumFromInt(index),
-                false,
-            ),
-            .add => |binary| try direct.binary(
-                .add,
-                try directOperand(mapped, binary.lhs),
-                try directOperand(mapped, binary.rhs),
-            ),
-            .sub => |binary| try direct.binary(
-                .sub,
-                try directOperand(mapped, binary.lhs),
-                try directOperand(mapped, binary.rhs),
-            ),
-            .mul => |binary| try direct.binary(
-                .mul,
-                try directOperand(mapped, binary.lhs),
-                try directOperand(mapped, binary.rhs),
-            ),
-            .neg => |value| try direct.intern(.{
-                .op = .neg,
-                .lhs = try directOperand(mapped, value),
-            }),
-            .select => |selection| blk: {
-                const selector = try directOperand(mapped, selection.selector);
-                const when_true = try directOperand(mapped, selection.when_true);
-                const when_false = try directOperand(mapped, selection.when_false);
-                const difference = try direct.binary(.sub, when_true, when_false);
-                const selected = try direct.binary(.mul, selector, difference);
-                break :blk try direct.binary(.add, when_false, selected);
-            },
-        };
-    }
-    return directOperand(mapped, root);
-}
-
-fn directOperand(
-    mapped: []const u32,
-    value: types.ValueId,
-) ValidationError!u32 {
-    const index = types.idIndex(value);
-    if (index >= mapped.len or mapped[index] == no_direct_node)
-        return error.MissingDirectOperand;
-    const result = mapped[index];
-    return result;
-}
-
-fn constantValue(constant: expr.Constant) u64 {
-    return switch (constant) {
-        .field => |value| value,
-        .unsigned => |value| value,
-    };
 }
 
 fn scenarioCost(

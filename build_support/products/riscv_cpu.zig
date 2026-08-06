@@ -43,7 +43,7 @@ const source_closure = product_policy.SourceClosure{
     } ++ shared_shell.shell_named_imports),
     // Lexical closure reaches package-only compatibility tests; production
     // never constructs or consumes their injected design-artifact module.
-    .generated_imports = &.{ "aggregate_capabilities", "typed_air_artifacts", "typed_air_h009_artifacts" },
+    .generated_imports = &shared_shell.frontend_generated_imports,
     .allowed_files = &.{
         "src/products/riscv_cpu/main.zig",
         "src/stwo_riscv_cpu.zig",

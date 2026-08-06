@@ -40,6 +40,15 @@ pub const frontend_test_floor = 440;
 /// compile it.
 pub const adapter_test_floor = 5;
 
+/// Generated names reached only through the frontend package's lexical test
+/// inventory. Product executables never receive these design-time modules.
+pub const frontend_generated_imports = [_][]const u8{
+    "aggregate_capabilities",
+    "typed_air_artifacts",
+    "typed_air_h009_artifacts",
+    "typed_air_h010_artifacts",
+};
+
 /// The shared focused-product shell (`src/products/riscv_shared/*.zig`) under
 /// the module names the shell files themselves import.
 ///
@@ -124,10 +133,10 @@ pub const Binding = struct {
             self.target,
             self.optimize,
         );
-        // Compatibility and H-009 tests consume checked-in typed-AIR fixtures
+        // Compatibility, H-009, and H-010 tests consume checked-in typed-AIR fixtures
         // through separate generated module names. Keep those design-time
         // dependencies on this fresh test root: neither the product's frontend
-        // module nor any production executable receives either import.
+        // module nor any production executable receives any of these imports.
         frontend.addImport("typed_air_artifacts", self.b.createModule(.{
             .root_source_file = self.b.path(
                 "design/typed-air/artifacts/embedded.zig",
@@ -138,6 +147,13 @@ pub const Binding = struct {
         frontend.addImport("typed_air_h009_artifacts", self.b.createModule(.{
             .root_source_file = self.b.path(
                 "design/typed-air/artifacts/h009_embedded.zig",
+            ),
+            .target = self.target,
+            .optimize = self.optimize,
+        }));
+        frontend.addImport("typed_air_h010_artifacts", self.b.createModule(.{
+            .root_source_file = self.b.path(
+                "design/typed-air/artifacts/h010_embedded.zig",
             ),
             .target = self.target,
             .optimize = self.optimize,

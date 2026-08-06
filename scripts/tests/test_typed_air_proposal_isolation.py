@@ -16,11 +16,28 @@ class TypedAirProposalIsolationTests(unittest.TestCase):
                 "src/frontends/riscv/air/lang/materialization_cost_test.zig": (
                     'const cost = @import("materialization_cost.zig");\n'
                 ),
+                "src/frontends/riscv/air/lang/materialization_direct_program.zig": (
+                    'const cost = @import("materialization_cost.zig");\n'
+                ),
+                "src/frontends/riscv/air/lang/typed_poseidon2_layout_executor_test.zig": (
+                    'const executor = @import("typed_poseidon2_layout_executor.zig");\n'
+                    'const reviewed = @import("typed_air_h009_artifacts");\n'
+                    "const frontier = reviewed.h009_poseidon2_frontier;\n"
+                ),
+                "src/frontends/riscv/air/lang/poseidon_layout_benchmark_command.zig": (
+                    'const vectors = @import("typed_air_h010_artifacts");\n'
+                    "const bytes = vectors.poseidon_layout_vector_log10;\n"
+                ),
                 "src/frontends/riscv/air/lang/mod.zig": (
                     'pub const materialization_cost = @import("materialization_cost.zig");\n'
                 ),
                 "src/frontends/riscv/materialization_frontier_tool.zig": (
                     'const command = @import("air/lang/materialization_frontier_command.zig");\n'
+                ),
+                "src/frontends/riscv/poseidon_layout_benchmark_tool.zig": (
+                    'const benchmark = @import("air/lang/materialization_direct_benchmark.zig");\n'
+                    'const reviewed = @import("typed_air_h009_artifacts");\n'
+                    "const frontier = reviewed.h009_poseidon2_frontier;\n"
                 ),
                 "src/frontends/riscv/build.zig": (
                     'const artifact_name = "typed_air_h009_artifacts";\n'
@@ -36,6 +53,20 @@ class TypedAirProposalIsolationTests(unittest.TestCase):
                     "const policy = frontend.air.lang.cost_aware_materializer;\n"
                     "// materialization_frontier_manifest in a comment is inert.\n"
                 ),
+                "src/frontends/riscv/prover/layout.zig": (
+                    'const executor = @import("air/lang/typed_poseidon2_layout_executor.zig");\n'
+                ),
+                "src/frontends/riscv/prover/layout_validate.zig": (
+                    'const validate = @import('
+                    '"air/lang/typed_poseidon2_layout_executor_validate.zig");\n'
+                ),
+                "src/frontends/riscv/prover/direct_validate.zig": (
+                    'const validate = @import('
+                    '"air/lang/materialization_direct_benchmark_validate.zig");\n'
+                ),
+                "src/frontends/riscv/air/lang/nested/materialization_cost.zig": (
+                    'const cost = @import("../materialization_cost.zig");\n'
+                ),
             }
             for relative, text in sources.items():
                 path = repo / relative
@@ -46,6 +77,10 @@ class TypedAirProposalIsolationTests(unittest.TestCase):
             self.assertEqual(
                 {
                     "typed-air-proposal-consumer:frontends/riscv/air/lang/mod.zig",
+                    "typed-air-proposal-consumer:frontends/riscv/air/lang/nested/materialization_cost.zig",
+                    "typed-air-proposal-consumer:frontends/riscv/prover/direct_validate.zig",
+                    "typed-air-proposal-consumer:frontends/riscv/prover/layout.zig",
+                    "typed-air-proposal-consumer:frontends/riscv/prover/layout_validate.zig",
                     "typed-air-proposal-consumer:frontends/riscv/prover/production.zig",
                     "typed-air-proposal-consumer:tests/riscv/proposal_test.zig",
                 },
@@ -55,6 +90,8 @@ class TypedAirProposalIsolationTests(unittest.TestCase):
                 self.assertTrue(
                     "cost_aware_materializer" in finding.message
                     or "materialization_cost" in finding.message
+                    or "materialization_direct_benchmark" in finding.message
+                    or "typed_poseidon2_layout_executor" in finding.message
                 )
 
     def test_reviewed_artifact_fields_are_confined_to_the_exact_artifact_test(self) -> None:
@@ -86,6 +123,24 @@ class TypedAirProposalIsolationTests(unittest.TestCase):
             findings = typed_air_proposals.scan(repo)
             self.assertEqual(1, len(findings))
             self.assertIn("materialization_frontier_manifest", findings[0].message)
+
+    def test_h010_artifact_module_is_confined_to_exact_tool_consumers(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary)
+            source = repo / "src/frontends/riscv/prover/production.zig"
+            source.parent.mkdir(parents=True)
+            source.write_text(
+                'const vectors = @import("typed_air_h010_artifacts");\n'
+                'const bypass = @embedFile('
+                '"../../../../design/typed-air/artifacts/'
+                'h010-poseidon-layout-v1/vector-log10.stwairb");\n',
+                encoding="utf-8",
+            )
+
+            findings = typed_air_proposals.scan(repo)
+            self.assertEqual(1, len(findings))
+            self.assertIn("typed_air_h010_artifacts", findings[0].message)
+            self.assertIn("h010-poseidon-layout-v1", findings[0].message)
 
 
 if __name__ == "__main__":

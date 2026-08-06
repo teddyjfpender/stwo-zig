@@ -139,3 +139,32 @@ transcript, public statement, proof bytes, or production verifier. The final
 [H-009 and V-006 receipts](receipts/README.md) name the immutable evidence and
 its limits. This work continues to strengthen and reify the existing path
 rather than replace the prover or rewrite all opcodes.
+
+## Active H-010 experiment
+
+H-010 now has an authenticated, isolated CPU benchmark implementation under
+the policy in
+[ADR-0022](decisions/0022-authenticated-poseidon-layout-benchmark.md). It
+recomputes four deterministic arms from the checked H-009 frontier: the
+compatibility seed and the minimum, lower-median, and maximum removed-`ValueId`
+representatives. Every arm uses the same retained evaluator, prepared scratch,
+and allocation-free row loops; the experiment does not compare a candidate
+interpreter with the differently shaped production static evaluator.
+
+Logs 10 and 14 read checked `STWAIRB\0` vectors and independently recorded
+Poseidon outputs. Their generated
+[readable index](artifacts/h010-poseidon-layout-v1/index-v1.tsv) pins complete
+vector identities and boundary rows. Admission requires every expected output,
+all 430 direct roots on every timing row, and the complete 426-materialization
+and fixed-role mutation matrix to pass. Per-arm trace digests are regression
+pins for the candidate layout implementation, not independent correctness
+oracles.
+
+The timing boundary contains only prepared main-trace witness execution and
+the complete fixed direct-root evaluator. It reports setup, witness, direct,
+and normalized process high-water RSS from serial fresh children. It executes
+no proof, commitment, LogUp, PCS, verifier, Metal candidate, or production
+layout change. Log 18 is generated only as an explicit opt-in resource stress
+case and is non-receiptable. H-010 remains active until a clean, complete
+log-10/log-14 cohort is collected and reviewed; no timing receipt or winning
+layout is claimed here.

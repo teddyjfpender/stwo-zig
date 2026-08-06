@@ -125,6 +125,13 @@ measured noise interval and no structural cost unexpectedly changes. A fixed
 percentage budget should be set only after the baseline distribution is
 recorded.
 
+An explicitly scoped microbenchmark may measure a pre-proof implementation
+boundary for diagnosis, but it must say that no proof was executed and cannot
+support production promotion. H-010 is such a boundary: independent expected
+outputs, complete direct-root evaluation, and mutation coverage admit its
+samples, while any later production decision still requires verified
+proof-path evidence under the full procedure above.
+
 ## Compiler cost report
 
 Every layout proposal reports a vector rather than one magic score:
@@ -152,11 +159,56 @@ compatibility seed. Its `canonical_streaming_peak_live_nodes = 39` describes a
 theoretical ordered schedule derived from interned-node births and explicit
 root-fold events after each lowering phase. The 3,460-node coordinate is the
 modeled proposal DAG, not observed production-backend scratch. Production
-Poseidon still uses a separate static evaluator; alternative H-009 layouts do
-not currently execute on either backend, and Poseidon composition has no Metal
-capability. H-010 must build one common candidate evaluator before measuring
-actual work and memory, and must not relabel either structural coordinate as an
-observed saving.
+Poseidon still uses a separate static evaluator, and Poseidon composition has
+no candidate Metal capability. H-010 now provides one common retained CPU
+evaluator for the compatibility seed and three authenticated H-009
+representatives. It must not relabel either H-009 structural coordinate as an
+observed saving, and its measurements cannot be pooled with the differently
+shaped production static evaluator.
+
+## H-010 isolated layout experiment
+
+H-010 is a pre-promotion CPU microbenchmark, not a prover benchmark. Its
+correctness admission comes from checked deterministic vectors, independently
+recorded static-reference outputs, all 430 direct roots evaluating to zero on
+every admitted row, and the complete materialization/fixed-role mutation
+matrix. Candidate trace digests are useful drift alarms but are classified as
+regression pins rather than independent correctness evidence.
+
+Every ranked arm uses the same ReleaseFast executable, retained scalar-M31
+interpreter, prepared capabilities, and allocation-free row loops. The default
+logs are 10 and 14, read from checked `STWAIRB\0` vectors with a regenerated
+readable index. Log 18 is deterministically generated only when explicitly
+requested and is labelled
+`generated_opt_in_uncommitted_non_receiptable`; it cannot enter or replace a
+default cohort.
+
+Each arm/sample pair runs in a fresh serial child. For each default log, three
+full warmup rounds precede eleven measured rounds, with the starting arm rotated
+each round. No sample is discarded or retried. Reports retain every raw value
+and integer median, median absolute deviation, minimum, and maximum for:
+
+- `setup_ns` — authenticated arm construction, lowering, allocation, and
+  prepared-capability validation;
+- `witness_ns` — base/fixed-role writes and the selected 426 materializations;
+- `direct_ns` — all 3,460 direct nodes and all 430 ordered root folds; and
+- `peak_rss_bytes` — normalized operating-system high-water resident memory,
+  alongside its native value and unit.
+
+Vector read and authentication, reference comparisons, completed-trace
+digesting, mutation tests, report serialization, process launch, and teardown
+are outside the phase timers. Missing RSS, identity drift, output/root failure,
+child failure, schema drift, or a missing sample invalidates the whole host/log
+cohort. The report path is create-only and timing artifacts remain uncommitted
+unless a later reviewed receipt freezes exact bytes.
+
+The boundary excludes the hash-component shell, LogUp and interactions,
+commitments/LDEs, quotient construction, PCS/FRI, proof encoding, verification,
+parallel component scheduling, and Metal candidate execution. Consequently an
+H-010 result says only how these authenticated layouts behave in this common
+CPU evaluator. It cannot establish proving speed, proof size, verifier cost,
+backend parity, or production authority, and does not satisfy the promotion
+requirements below without later full proof-path evidence.
 
 ## Parallel critical path
 

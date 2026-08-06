@@ -1,7 +1,7 @@
 # Validation and evidence plan
 
 **Status:** required gate design
-**Last updated:** 2026-08-05
+**Last updated:** 2026-08-06
 
 ## Principle
 
@@ -134,6 +134,45 @@ zig build typed-air-manifest \
 An intentional reviewed replacement adds
 `-Dtyped-air-manifest-mode=update`. Check is the default; tests never select
 update mode.
+
+H-010 authenticated evaluator admission:
+
+```sh
+zig build typed-air-layout-benchmark \
+  --build-file src/frontends/riscv/build.zig \
+  -Doptimize=ReleaseFast
+```
+
+H-010 checked vector and readable-index regeneration check:
+
+```sh
+zig build typed-air-layout-benchmark \
+  --build-file src/frontends/riscv/build.zig \
+  -Doptimize=ReleaseFast -- \
+  vector-artifacts check design/typed-air/artifacts/h010-poseidon-layout-v1
+```
+
+The explicit `vector-artifacts update` form is review-only and writes
+atomically. The ordinary admission command and package tests never select it.
+Install the isolated ReleaseFast child used by the host orchestrator with:
+
+```sh
+zig build typed-air-layout-benchmark-install \
+  --build-file src/frontends/riscv/build.zig \
+  -Doptimize=ReleaseFast
+```
+
+A timing cohort is collected only from that executable on a clean snapshot,
+with a new output path and an explicit operator power-state declaration:
+
+```sh
+python3 scripts/typed_air_poseidon_benchmark.py \
+  --output zig-out/h010/<new-run-id>.json \
+  --power-state '<operator declaration>'
+```
+
+`--include-log-18` adds a separate non-receiptable stress cohort; it never
+replaces either default log.
 
 Lean source build:
 
@@ -311,6 +350,42 @@ Its structural plateau is negative optimization evidence, not a timing,
 memory, proof-size, global-optimality, or production-activation result. H-010
 must measure the compatibility layout and any retained representative under
 the complete performance vector before any policy decision.
+
+H-010 now supplies the isolated validation boundary for that measurement. Its
+closed protocol authenticates the raw H-009 bytes and decoded identities,
+recomputes the exact q0, lower-median q50, and q100 arm selection over all 126
+proposals, and checks the fixed direct program through three independent
+identity surfaces. Logs 10 and 14 decode checked `STWAIRB\0` vectors; their
+internal seals, complete-file SHA-256 values, byte lengths, call digests,
+output digests, and readable index are pinned. Generated log 18 carries a
+separate non-receiptable storage class.
+
+Before timing, every arm runs over logs 4 and 6 boundary fixtures and every row
+of both checked default vectors. The candidate witness output must equal all
+sixteen expected values recorded from the unchanged static Poseidon reference,
+and all 430 direct roots must be zero on every row. For each arm, a canary row
+then mutates every one of the 426 materialization cells and requires its first
+owning equality root to become nonzero. Separate fixed-root cases mutate
+`enabler`, `wide`, `io`, and their mutual exclusion. Artifact, geometry,
+identity, seal, semantic-output, truncation, and coherently resealed corruption
+tests fail closed.
+
+The hot paths are prepared before their timers and reuse retained scratch; no
+row-loop allocation is admitted. Per-arm trace digests pin candidate layout
+regressions only. They are deliberately not used as correctness oracles, which
+remain the independently generated expected outputs and complete zero-root
+evaluation. The process-RSS adapter rejects zero or ambiguous values, preserves
+the native Darwin-byte or Linux-KiB unit, normalizes to bytes, and is exercised
+against a known 64-MiB page-touched allocation.
+
+Each sample explicitly reports that proof, verification, hash-component shell,
+LogUp, commitment, PCS, Metal candidate execution, production layout change,
+and promotion authority are absent. The host accepts only one exact JSON line
+from each fresh child, rotates four arms serially through three warmup and
+eleven measured rounds per default log, retains every value, rejects retries
+and partial cohorts, and writes a new report atomically. This is V1/V2-style
+microbenchmark correctness and resource evidence, not V3 proof-path evidence.
+No clean timing report or H-010 receipt is claimed in this document.
 
 ## Differential design
 

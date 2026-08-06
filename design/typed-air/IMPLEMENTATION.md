@@ -1,7 +1,7 @@
 # Implementation plan
 
 **Status:** executable delivery plan
-**Last updated:** 2026-08-05
+**Last updated:** 2026-08-06
 
 ## Delivery method
 
@@ -248,6 +248,40 @@ rejects any new in-repository production reference to a proposal identifier or
 artifact field, so publication of the authoring surface cannot silently become
 activation.
 
+H-010 adds an isolated measurement implementation without widening that
+authority. It decodes the exact checked H-009 bytes, recomputes the quantile
+selection over all 126 retained proposals, and authenticates the compatibility
+seed plus `removed-q0`, `removed-q50`, and `removed-q100`. Before lowering it
+also requires equality among the recomputed fixed-program digest, the canonical
+source digest, and the artifact field. All four arms compile through one
+retained scalar-M31 evaluator into prepared witness and direct capabilities.
+Their timed row loops reuse preallocated semantic and 3,460-node direct scratch
+and perform no per-row allocation.
+
+The correctness vectors are separate protocol artifacts. Logs 10 and 14 decode
+the checked `STWAIRB\0` files under
+[`artifacts/h010-poseidon-layout-v1/`](artifacts/h010-poseidon-layout-v1/);
+the generated TSV index byte-compares their identities plus rows 0, 1, and the
+final row. Expected outputs are produced by the unchanged static Poseidon
+reference, independently of the candidate layout executor and direct
+interpreter. Untimed admission evaluates every arm over every checked row,
+requires all sixteen outputs and all 430 ordered roots, and mutates each of 426
+materialization cells plus `enabler`, `wide`, `io`, and their exclusion rule.
+Candidate trace digests remain explicitly regression-only; expected outputs and
+zero direct roots are the correctness authority.
+
+The measurement layer runs each arm/log pair in a fresh serial child, separates
+setup, witness, and direct timers, records native and normalized process
+high-water RSS, and emits a strict fail-closed sample for host orchestration.
+The required logs are 10 and 14. Generated log 18 is an optional
+`generated_opt_in_uncommitted_non_receiptable` stress case and cannot enter or
+replace the default cohort. The runner does not execute the hash-component
+shell, LogUp, commitments, PCS, proof, verifier, Metal candidate path, or any
+production layout. See
+[ADR-0022](decisions/0022-authenticated-poseidon-layout-benchmark.md). The
+harness is present, but H-010 remains active until its clean default cohort is
+collected and reviewed; no report or receipt is asserted by this plan.
+
 **Exit gate:**
 
 - compatibility rows are byte-identical;
@@ -255,8 +289,12 @@ activation.
 - lookup and claim sums match;
 - real CPU and Metal proofs verify;
 - compatibility performance is not meaningfully worse;
+- the H-010 preflight authenticates every arm/vector, checks independent
+  outputs and all direct roots, and closes the complete mutation matrix;
+- a complete clean-host log-10/log-14 cohort follows the serial fresh-child
+  timing and RSS protocol, with raw samples retained; and
 - optimized policy, if retained, has a separate manifest and complete cost
-  report.
+  report and a separate production-authority decision.
 
 ## Phase 5 — typed machine effects
 
