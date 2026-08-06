@@ -12,6 +12,7 @@ pub const expr = @import("expr.zig");
 pub const static_collections = @import("static_collections.zig");
 pub const typed_poseidon2 = @import("typed_poseidon2.zig");
 pub const typed_poseidon2_compat = @import("typed_poseidon2_compat.zig");
+pub const typed_poseidon2_identity = @import("typed_poseidon2_identity.zig");
 pub const typed_poseidon2_relations = @import("typed_poseidon2_relations.zig");
 pub const typed_poseidon2_witness = @import("typed_poseidon2_witness.zig");
 pub const program = @import("program.zig");

@@ -64,3 +64,34 @@ The exact clean-snapshot commands, tool versions, aggregate identities, proof
 results, and deliberately open release gates are recorded separately in the
 [M3 milestone receipt](../receipts/m3-compatibility-v1.json). The receipt does
 not change or supersede these compatibility artifacts.
+
+## H-009 Poseidon2 materialization cost frontier
+
+- [`h009-poseidon2-cost-v1/frontier.stwairm`](h009-poseidon2-cost-v1/frontier.stwairm)
+  is the canonical section-framed search receipt.
+- [`h009-poseidon2-cost-v1/frontier-v1.tsv`](h009-poseidon2-cost-v1/frontier-v1.tsv)
+  is its exact tabular review projection.
+- [`h009-poseidon2-cost-v1/frontier-v1.md`](h009-poseidon2-cost-v1/frontier-v1.md)
+  is the human review view.
+
+The binary receipt authenticates the semantic program, fixed direct-polynomial
+program, complete cost model, search configuration, accounting, seed, and 126
+retained proposals. The TSV and Markdown deliberately select the fields useful
+for review; they are byte-exact projections, not alternate complete encodings.
+The complete one-pass neighbourhood is a structural cost
+plateau: every retained proposal has the exact seed vector. It is evidence for
+H-010 benchmark selection, not a speedup claim and not production activation.
+
+The package suite decodes the binary and regenerates both readable views byte
+for byte. These files are exposed only through the dedicated test bridge
+[`h009_embedded.zig`](h009_embedded.zig); the compatibility-artifact bridge
+does not carry them. The same fail-closed command is:
+
+```sh
+zig build typed-air-frontier --build-file src/frontends/riscv/build.zig \
+  -Doptimize=ReleaseFast
+```
+
+An intentional reviewed replacement adds
+`-Dtyped-air-frontier-mode=update`. Update is explicit and writes each file
+atomically; ordinary tests and check mode never update artifacts.

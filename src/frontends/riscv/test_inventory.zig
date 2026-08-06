@@ -110,6 +110,8 @@ test {
     _ = @import("air/lang/compat_layout_test.zig");
     _ = @import("air/lang/compat_manifest_diff_test.zig");
     _ = @import("air/lang/compat_manifest_test.zig");
+    _ = @import("air/lang/cost_aware_materializer_adversarial_test.zig");
+    _ = @import("air/lang/cost_aware_materializer_test.zig");
     _ = @import("air/lang/degree3_materializer_test.zig");
     _ = @import("air/lang/degree_test.zig");
     _ = @import("air/lang/diagnostic_test.zig");
@@ -123,7 +125,16 @@ test {
     _ = @import("air/lang/lower_lookup_test.zig");
     _ = @import("air/lang/lower_runtime_test.zig");
     _ = @import("air/lang/manifest_test.zig");
+    _ = @import("air/lang/materialization_cost_test.zig");
+    _ = @import("air/lang/materialization_cost_direct_test.zig");
+    _ = @import("air/lang/materialization_cut_set_test.zig");
     _ = @import("air/lang/materialization_diagnostics_test.zig");
+    _ = @import("air/lang/materialization_fixed_direct_test.zig");
+    _ = @import("air/lang/materialization_fixed_cost_test.zig");
+    _ = @import("air/lang/materialization_frontier_cost_model_test.zig");
+    _ = @import("air/lang/materialization_frontier_manifest_test.zig");
+    _ = @import("air/lang/materialization_frontier_projection_test.zig");
+    _ = @import("air/lang/materialization_neighbourhood_test.zig");
     _ = @import("air/lang/mod.zig");
     _ = @import("air/lang/program_test.zig");
     _ = @import("air/lang/protocol_degree_test.zig");
@@ -135,6 +146,8 @@ test {
     _ = @import("air/lang/typed_poseidon2_test.zig");
     _ = @import("air/lang/typed_poseidon2_compat_schedule_test.zig");
     _ = @import("air/lang/typed_poseidon2_compat_test.zig");
+    _ = @import("air/lang/typed_poseidon2_identity_test.zig");
+    _ = @import("air/lang/typed_poseidon2_frontier_artifact_test.zig");
     _ = @import("air/lang/typed_poseidon2_relations_test.zig");
     _ = @import("air/lang/typed_poseidon2_witness_test.zig");
     _ = @import("air/lang/validate_test.zig");

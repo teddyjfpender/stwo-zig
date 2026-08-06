@@ -170,9 +170,9 @@ bytes fail closed.
 
 ## Phase 4 — pure Poseidon2 compiler pilot
 
-**Status:** active in the isolated authoring kernel; H-001 through H-006 and
-H-008 are complete in shadow mode, while real generated-artifact proof
-equivalence remains open.
+**Status:** active in the isolated authoring kernel; H-001 through H-009 are
+complete. Generated artifacts verify in real test-only CPU and Metal proofs,
+and the separate optimized-policy prototype is pinned as a cost plateau.
 
 Author the M31 Poseidon2 permutation as typed pure functions.
 
@@ -215,6 +215,23 @@ claim boundaries of complete CPU and Metal proofs. The returned claim is
 reconciled after proving, then a fresh unchanged production verifier
 specialization verifies the result. That evidence is test-only and does not
 itself authorize a production witness change.
+
+H-009 keeps optimization authority separate. A bounded canonical edit search
+rebuilds every candidate cut, lowers authenticated fixed prefix/equality/suffix
+algebra into one hash-consed DAG, and emits a section-framed `STWAIRM\0`
+receipt plus exact TSV and Markdown views. The complete first neighbourhood
+retains 126 cuts, all equal to the compatibility seed on every structural and
+scenario coordinate. The artifact therefore selects no production layout; it
+is reproducible negative evidence and an H-010 benchmark input. See
+[ADR-0020](decisions/0020-cost-frontier-materialization-proposals.md) and the
+[artifact index](artifacts/README.md).
+
+The proposal modules are deliberately absent from `air/lang/mod.zig`; only the
+reviewed authoring files, package tests, and dedicated artifact tool import
+them. H-009 embeds use a separate test-only module. The source-conformance gate
+rejects any new in-repository production reference to a proposal identifier or
+artifact field, so publication of the authoring surface cannot silently become
+activation.
 
 **Exit gate:**
 

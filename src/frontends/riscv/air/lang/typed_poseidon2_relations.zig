@@ -22,6 +22,9 @@ const types = @import("types.zig");
 
 pub const FORMAT_VERSION: u16 = 1;
 pub const POLICY_VERSION: u16 = 1;
+pub const RELATION_DIGEST_FORMAT_VERSION: u16 = 1;
+pub const RELATION_DIGEST_DOMAIN_SEPARATOR =
+    "stwo-zig/typed-air/poseidon2-relations/v1";
 pub const WIDTH: usize = poseidon.WIDTH;
 pub const N_EVENTS: usize = 4;
 pub const N_BATCHES: usize = 2;
@@ -189,6 +192,27 @@ pub const Plan = struct {
     materializer_policy: materializer.Policy,
     events: [N_EVENTS]EventPlan,
     batches: [N_BATCHES]BatchPlan,
+
+    /// Allocation-free local authentication used before a relation identity
+    /// crosses a backend boundary. Full arena authentication remains the job
+    /// of `validateAgainst` at construction/transport boundaries.
+    pub fn validateIdentityShape(self: *const Plan) Error!void {
+        try self.identity.validate();
+        if (!std.meta.eql(self.identity, Identity.canonical()) or
+            !std.meta.eql(
+                self.compatibility_identity,
+                compat.Identity.canonical(),
+            ) or
+            self.materializer_policy_version != materializer.policy_version or
+            self.materializer_policy.maximum_constraint_degree !=
+                compat.MAXIMUM_CONSTRAINT_DEGREE or
+            self.materializer_policy.row_mask_degree != 0)
+        {
+            return error.BindingSealMismatch;
+        }
+        for (self.events, 0..) |event, ordinal| try event.validate(ordinal);
+        for (self.batches, 0..) |batch, ordinal| try batch.validate(ordinal);
+    }
 
     pub fn validateAgainst(
         self: *const Plan,

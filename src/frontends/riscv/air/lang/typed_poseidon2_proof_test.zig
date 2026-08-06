@@ -17,6 +17,9 @@ const trace_mod = @import("../../runner/trace.zig");
 const compat = @import("typed_poseidon2_compat.zig");
 const harness = @import("typed_poseidon2_proof_harness.zig");
 
+pub const CANONICAL_PROGRAM_IDENTITY_DIGEST =
+    harness.CANONICAL_PROGRAM_IDENTITY_DIGEST;
+
 pub const TEST_CONFIG = pcs_core.PcsConfig{
     .pow_bits = 0,
     .fri_config = .{
@@ -67,7 +70,7 @@ pub fn proveWithPublicData(
     );
     errdefer output.deinit(allocator);
     try context.installOutputClaims(&output);
-    const receipt = context.receipt();
+    const receipt = try context.receipt();
     try receipt.validate();
     return .{ .output = output, .receipt = receipt };
 }
@@ -98,7 +101,7 @@ pub fn proveTraceOnly(
     );
     errdefer output.deinit(allocator);
     try context.installOutputClaims(&output);
-    const receipt = context.receipt();
+    const receipt = try context.receipt();
     try receipt.validate();
     return .{ .output = output, .receipt = receipt };
 }

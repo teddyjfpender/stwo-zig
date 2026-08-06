@@ -128,6 +128,11 @@ test "metal: typed Poseidon2 artifacts prove and verify without fallback" {
     try std.testing.expectEqual(receipt.active_rows, receipt.narrow_rows);
     try std.testing.expectEqual(@as(usize, 0), receipt.wide_rows);
     try std.testing.expectEqual(@as(usize, 0), receipt.io_rows);
+    try std.testing.expectEqualSlices(
+        u8,
+        &riscv.testing.typed_poseidon2_proof_test.CANONICAL_PROGRAM_IDENTITY_DIGEST,
+        &receipt.program_identity.combined_digest,
+    );
     try telemetry_delta.requireResidentRiscPolynomialExecution();
     try std.testing.expectEqual(
         @as(u64, 0),

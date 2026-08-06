@@ -2,9 +2,9 @@ const std = @import("std");
 
 /// Fewest tests this package's test binary must contain.
 ///
-/// Measured on this tree: 539. Zig collects a `test` only from a file it was
-/// made to analyse, so for as long as this step existed it silently compiled 319
-/// of the 461 named tests in the package -- `refAllDecls` in a `mod.zig` does not
+/// Measured on this tree: 763. Zig collects a `test` only from a file it was
+/// made to analyse, so before the explicit inventory this step silently compiled
+/// only 319 of the then-461 named tests -- `refAllDecls` in a `mod.zig` does not
 /// pull a file's tests in, and nothing said so. A binary that compiled almost
 /// nothing still exits 0 in milliseconds, so the count is the only thing that
 /// distinguishes this step from an empty shell.
@@ -13,7 +13,7 @@ const std = @import("std");
 /// `test_inventory_test.zig` fails when a file is missing from that list. This
 /// floor is the backstop for the wiring itself. Raise it deliberately as the
 /// suite grows; never lower it to make a build pass.
-const test_floor = 506;
+const test_floor = 763;
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
@@ -41,6 +41,13 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    const typed_air_h009_artifacts = b.createModule(.{
+        .root_source_file = b.path(
+            "../../../design/typed-air/artifacts/h009_embedded.zig",
+        ),
+        .target = target,
+        .optimize = optimize,
+    });
     const frontend = b.addModule("stwo_riscv_frontend", .{
         .root_source_file = b.path("mod.zig"),
         .target = target,
@@ -52,6 +59,7 @@ pub fn build(b: *std.Build) void {
     // Test-only consumers import this name explicitly. Production frontend
     // modules never reference the design artifact package.
     frontend.addImport("typed_air_artifacts", typed_air_artifacts);
+    frontend.addImport("typed_air_h009_artifacts", typed_air_h009_artifacts);
 
     const tests = b.addTest(.{ .root_module = frontend });
     const run_tests = b.addRunArtifact(tests);
@@ -99,6 +107,32 @@ pub fn build(b: *std.Build) void {
         "typed-air-manifest",
         "Check or explicitly update typed-AIR compatibility artifacts",
     ).dependOn(&run_manifest_tool.step);
+
+    const frontier_mode = b.option(
+        []const u8,
+        "typed-air-frontier-mode",
+        "H-009 Poseidon cost-frontier artifact mode: check (default) or update",
+    ) orelse "check";
+    const frontier_tool_root = b.createModule(.{
+        .root_source_file = b.path("materialization_frontier_tool.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    frontier_tool_root.addImport("stwo_core", core);
+    const frontier_tool = b.addExecutable(.{
+        .name = "riscv-typed-air-frontier",
+        .root_module = frontier_tool_root,
+    });
+    const run_frontier_tool = b.addRunArtifact(frontier_tool);
+    run_frontier_tool.setCwd(.{ .cwd_relative = b.pathFromRoot("../../..") });
+    run_frontier_tool.addArgs(&.{
+        frontier_mode,
+        "design/typed-air/artifacts/h009-poseidon2-cost-v1",
+    });
+    b.step(
+        "typed-air-frontier",
+        "Check or explicitly update the H-009 Poseidon cost-frontier artifacts",
+    ).dependOn(&run_frontier_tool.step);
 
     addFocusedTests(b, core, target, optimize, check_only, .{
         .step = "test-isa",

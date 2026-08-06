@@ -26,3 +26,8 @@ later commit that adds the receipt is intentionally not self-referential.
   production verifier. The path remains explicitly test-only, uses
   integration-test non-production-security PCS parameters, and leaves canonical
   cross-backend identity attestation to V-006.
+- [`v006-poseidon-program-identity-v1.json`](v006-poseidon-program-identity-v1.json)
+  defines the pending clean-snapshot receipt for the backend-neutral semantic,
+  layout, executor, relation, and combined Poseidon identities. It remains
+  explicitly non-final until one immutable CPU/Metal evidence snapshot is
+  recorded.

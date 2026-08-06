@@ -18,12 +18,9 @@ const challenges = @import("../relation_challenges.zig");
 const transcript_claims = @import("../transcript/claims.zig");
 const proof_types = @import("../../prover/types.zig");
 const compat = @import("typed_poseidon2_compat.zig");
-const ir = @import("ir.zig");
-const materializer = @import("degree3_materializer.zig");
-const poseidon = @import("typed_poseidon2.zig");
+const identity = @import("typed_poseidon2_identity.zig");
+const proof_authority = @import("typed_poseidon2_proof_authority.zig");
 const relations = @import("typed_poseidon2_relations.zig");
-const source = @import("source.zig");
-const types = @import("types.zig");
 const witness = @import("typed_poseidon2_witness.zig");
 const BaseChannel = proof_types.Channel;
 const BaseMerkleChannel = proof_types.MerkleChannel;
@@ -40,8 +37,12 @@ pub const Error = error{
     PoseidonInteractionWindowMissing,
     PoseidonMainWindowMissing,
     PoseidonModePartitionInvalid,
+    PoseidonProgramIdentityMismatch,
     UnexpectedCommitOrder,
 };
+
+pub const CANONICAL_PROGRAM_IDENTITY_DIGEST =
+    identity.CANONICAL_COMBINED_DIGEST;
 
 pub const Mutation = union(enum) {
     none,
@@ -67,6 +68,7 @@ pub const Receipt = struct {
     output_claims_from_typed: bool,
     commits_seen: u8,
     typed_claims: [relations.N_SUMS]QM31,
+    program_identity: identity.ProgramIdentity,
     pub fn validate(self: Receipt) Error!void {
         if (self.active_rows == 0 or self.narrow_rows > self.active_rows or
             self.wide_rows > self.active_rows - self.narrow_rows or
@@ -79,6 +81,10 @@ pub const Receipt = struct {
         {
             return error.CandidateProofIncomplete;
         }
+        self.program_identity.validate() catch
+            return error.PoseidonProgramIdentityMismatch;
+        if (!self.program_identity.isCanonical())
+            return error.PoseidonProgramIdentityMismatch;
     }
 };
 
@@ -218,7 +224,7 @@ pub const Context = struct {
     allocator: std.mem.Allocator,
     backend_name: []const u8,
     mutation: Mutation,
-    authority: Authority,
+    authority: proof_authority.Authority,
     phase: Phase = .initial,
     commits_seen: u8 = 0,
     main_offset: usize = 0,
@@ -245,7 +251,7 @@ pub const Context = struct {
             .allocator = allocator,
             .backend_name = backend_name,
             .mutation = mutation,
-            .authority = try Authority.init(allocator),
+            .authority = try proof_authority.Authority.init(allocator),
         };
     }
     pub fn deinit(self: *Context) void {
@@ -429,7 +435,10 @@ pub const Context = struct {
         self.output_claims_installed = true;
     }
 
-    pub fn receipt(self: *const Context) Receipt {
+    pub fn receipt(self: *const Context) !Receipt {
+        const final_identity = try self.authority.programIdentity();
+        if (!std.meta.eql(final_identity, self.authority.program_identity))
+            return error.PoseidonProgramIdentityMismatch;
         return .{
             .backend_name = self.backend_name,
             .active_rows = self.rows.len,
@@ -447,6 +456,7 @@ pub const Context = struct {
             .output_claims_from_typed = self.output_claims_installed,
             .commits_seen = self.commits_seen,
             .typed_claims = self.typed_claims.sums,
+            .program_identity = final_identity,
         };
     }
 };
@@ -466,74 +476,6 @@ const MainStorage = struct {
     fn deinit(self: *MainStorage) void {
         self.allocator.free(self.backing);
         self.* = undefined;
-    }
-};
-
-const Authority = struct {
-    allocator: std.mem.Allocator,
-    arena: ir.Arena,
-    gate: types.ValueId,
-    spans: poseidon.DefinitionSpans,
-    definition: poseidon.Definition,
-    plan: materializer.Plan,
-    binding: compat.OwnedBinding,
-    executor: witness.Executor,
-    relation_plan: relations.Plan,
-
-    fn init(allocator: std.mem.Allocator) !Authority {
-        var arena = ir.Arena.init(allocator);
-        errdefer arena.deinit();
-        const source_id = try arena.addSource("air/components/poseidon2_m31.proof-harness.zig");
-        const gate = try arena.input(compat.ENABLER_NAME, .selector, try spanAt(source_id, 1));
-        const spans = try distinctSpans(source_id);
-        const definition = try poseidon.define(&arena, spans);
-        const roots = poseidon.values(definition.outputs);
-        var plan = try materializer.plan(allocator, &arena, .{ .roots = &roots, .gate = gate });
-        errdefer plan.deinit();
-        var schedule = try compat.generate(allocator);
-        defer schedule.deinit(allocator);
-        var binding = try compat.bindPlan(allocator, &arena, definition, spans, schedule, &plan);
-        errdefer binding.deinit(allocator);
-        var executor = try witness.Executor.init(
-            allocator,
-            &arena,
-            definition,
-            spans,
-            &plan,
-            &binding,
-        );
-        errdefer executor.deinit();
-        var result = Authority{
-            .allocator = allocator,
-            .arena = arena,
-            .gate = gate,
-            .spans = spans,
-            .definition = definition,
-            .plan = plan,
-            .binding = binding,
-            .executor = executor,
-            .relation_plan = undefined,
-        };
-        result.relation_plan = try relations.authenticate(allocator, result.relationAuthority());
-        return result;
-    }
-
-    fn deinit(self: *Authority) void {
-        self.executor.deinit();
-        self.binding.deinit(self.allocator);
-        self.plan.deinit();
-        self.arena.deinit();
-        self.* = undefined;
-    }
-
-    fn relationAuthority(self: *const Authority) relations.Authority {
-        return .{
-            .arena = &self.arena,
-            .definition = self.definition,
-            .spans = self.spans,
-            .materialization_plan = &self.plan,
-            .binding = &self.binding,
-        };
     }
 };
 
@@ -703,54 +645,6 @@ inline fn committedRow(logical_row: usize, log_size: u32) usize {
     return core_utils.bitReverseIndex(
         core_utils.cosetIndexToCircleDomainIndex(logical_row, log_size),
         log_size,
-    );
-}
-
-fn distinctSpans(source_id: types.SourceId) !poseidon.DefinitionSpans {
-    var line: u32 = 2;
-    const declaration = try spanAt(source_id, line);
-    line += 1;
-    var inputs: [poseidon.WIDTH]source.SourceSpan = undefined;
-    for (&inputs) |*span| {
-        span.* = try spanAt(source_id, line);
-        line += 1;
-    }
-    const initial_linear = try spanAt(source_id, line);
-    line += 1;
-    var external: [poseidon.N_EXTERNAL_ROUNDS]poseidon.ExternalRoundSpans = undefined;
-    for (&external) |*round| {
-        round.* = .{
-            .constants = try spanAt(source_id, line),
-            .sbox = try spanAt(source_id, line + 1),
-            .linear = try spanAt(source_id, line + 2),
-        };
-        line += 3;
-    }
-    var internal: [poseidon.N_INTERNAL_ROUNDS]poseidon.InternalRoundSpans = undefined;
-    for (&internal) |*round| {
-        round.* = .{
-            .constant = try spanAt(source_id, line),
-            .sbox = try spanAt(source_id, line + 1),
-            .linear = try spanAt(source_id, line + 2),
-        };
-        line += 3;
-    }
-    return .{
-        .declaration = declaration,
-        .inputs = inputs,
-        .body = .{
-            .initial_linear = initial_linear,
-            .external_rounds = external,
-            .internal_rounds = internal,
-        },
-    };
-}
-
-fn spanAt(source_id: types.SourceId, line: u32) !source.SourceSpan {
-    return source.SourceSpan.init(
-        source_id,
-        .{ .byte_offset = line * 8, .line = line, .column = 1 },
-        .{ .byte_offset = line * 8 + 1, .line = line, .column = 2 },
     );
 }
 

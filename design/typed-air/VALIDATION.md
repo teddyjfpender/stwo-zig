@@ -279,6 +279,27 @@ parameters, and verifies in a fresh same-process verifier state. Claims are
 transcript/AIR-bound rather than separate committed columns, and canonical
 logical/layout/backend attestation remains V-006.
 
+H-009 adds an isolated proposal-artifact gate. Package tests decode the checked
+`STWAIRM\0` binary, validate every digest and accounting invariant, and
+regenerate its TSV and Markdown projections byte for byte without rerunning
+the search. Reproducible search execution is owned by the explicit command:
+
+```sh
+zig build typed-air-frontier --build-file src/frontends/riscv/build.zig \
+  -Doptimize=ReleaseFast
+```
+
+The default is fail-closed `check`; only
+`-Dtyped-air-frontier-mode=update` may atomically publish reviewed replacements.
+Adversarial tests cover forged public cuts, safe-versus-trusted edit parity,
+manifest truncation/corruption/canonicality, fixed-column aliasing, phase
+emitter drift, late-root liveness, and root-by-root equality with production
+fixed Poseidon constraints. A canonical neighbourhood test pins the exact 410
+removals, 304 additions, and 410 swaps. The source-conformance scanner also
+rejects proposal imports, public-surface access, or H-009 artifact fields from
+unreviewed production sources; only an explicit authoring/test/tool allowlist
+is accepted.
+
 ## Differential design
 
 Expression comparison should not rely solely on node IDs. Normalize or compare

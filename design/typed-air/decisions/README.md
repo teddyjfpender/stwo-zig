@@ -38,6 +38,7 @@ shape, authoring model, or delivery order.
 | [0018](0018-degree-bounded-materialization-and-compatibility-order.md) | Degree-bounded materialization and Poseidon compatibility order | accepted |
 | [0019](0019-authenticated-witness-and-relation-plans.md) | Authenticated witness and relation execution plans | accepted |
 | [0020](0020-cost-frontier-materialization-proposals.md) | Cost-frontier materialization proposals | proposed |
+| [0021](0021-backend-neutral-poseidon-program-identity.md) | Backend-neutral Poseidon program identity | accepted |
 
 ## Pending ADRs
 

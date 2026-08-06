@@ -24,6 +24,11 @@ test "typed Poseidon2: CPU commits generated artifacts and verifies" {
     try std.testing.expectEqual(receipt.active_rows, receipt.narrow_rows);
     try std.testing.expectEqual(@as(usize, 0), receipt.wide_rows);
     try std.testing.expectEqual(@as(usize, 0), receipt.io_rows);
+    try std.testing.expectEqualSlices(
+        u8,
+        &proof_equivalence.CANONICAL_PROGRAM_IDENTITY_DIGEST,
+        &receipt.program_identity.combined_digest,
+    );
 }
 
 test "typed Poseidon2: CPU rejects generated artifact mutations" {

@@ -26,6 +26,9 @@ const types = @import("types.zig");
 pub const N_MAIN_COLUMNS: usize = compat.N_MAIN_COLUMNS;
 pub const WIDTH: usize = compat.WIDTH;
 pub const Call = production.Call;
+pub const EXECUTION_DIGEST_FORMAT_VERSION: u16 = 1;
+pub const EXECUTION_DIGEST_DOMAIN_SEPARATOR =
+    "stwo-zig/typed-air/poseidon2-witness-executor/v1";
 
 pub const ConstructionError = materializer.Error || compat.BindingError || error{
     BindingSnapshotMismatch,
@@ -247,7 +250,7 @@ pub const Executor = struct {
         const identity = Identity.from(definition, binding);
         if (!identity.matches(definition, binding))
             return error.BindingSnapshotMismatch;
-        const execution_digest = executionDigest(
+        const execution_digest = computeExecutionDigest(
             &identity,
             instructions,
             &input_slots,
@@ -272,6 +275,29 @@ pub const Executor = struct {
 
     pub fn instructionCount(self: *const Executor) usize {
         return self.instructions.len;
+    }
+
+    /// Returns the canonical H-005 executable identity after rechecking every
+    /// owned instruction and slot. The digest preimage is deliberately the
+    /// same one used since H-005; exposing it does not mint a second identity.
+    pub fn identityDigest(self: *const Executor) ExecutionError!digest.Digest {
+        if (!self.hasValidExecutableShape()) return error.CorruptExecutor;
+        const actual = computeExecutionDigest(
+            &self.identity,
+            self.instructions,
+            &self.input_slots,
+            &self.materialization_slots,
+        );
+        if (!std.mem.eql(u8, &self.execution_digest, &actual))
+            return error.CorruptExecutor;
+        return actual;
+    }
+
+    /// Complete authenticated envelope copied when this executor was built.
+    /// Consumers use this snapshot to reject cross-program component mixing.
+    pub fn identitySnapshot(self: *const Executor) ExecutionError!Identity {
+        _ = try self.identityDigest();
+        return self.identity;
     }
 
     /// Re-establishes authenticity after a new ownership or transport boundary
@@ -343,7 +369,7 @@ pub const Executor = struct {
         log_size: u32,
     ) ExecutionError!usize {
         if (!self.hasValidExecutableShape() or
-            !std.mem.eql(u8, &self.execution_digest, &executionDigest(
+            !std.mem.eql(u8, &self.execution_digest, &computeExecutionDigest(
                 &self.identity,
                 self.instructions,
                 &self.input_slots,
@@ -590,15 +616,15 @@ fn inputLane(inputs: *const [WIDTH]types.ValueId, value: types.ValueId) ?u8 {
 /// addresses, and scratch contents are excluded. This is a cheap accidental
 /// corruption guard at the mutation boundary; `reauthenticate` additionally
 /// recompiles from the arena to establish an independent authority.
-fn executionDigest(
+fn computeExecutionDigest(
     identity: *const Identity,
     instructions: []const Instruction,
     input_slots: *const [WIDTH]u32,
     materialization_slots: *const [compat.N_MATERIALIZATIONS]u32,
 ) digest.Digest {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    hash.update("stwo-zig/typed-air/poseidon2-witness-executor/v1");
-    hashInt(&hash, u16, 1);
+    hash.update(EXECUTION_DIGEST_DOMAIN_SEPARATOR);
+    hashInt(&hash, u16, EXECUTION_DIGEST_FORMAT_VERSION);
     hashInt(&hash, u16, identity.compatibility.format_version);
     hashInt(&hash, u32, @intFromEnum(identity.compatibility.policy));
     hashInt(&hash, u16, identity.compatibility.policy_version);

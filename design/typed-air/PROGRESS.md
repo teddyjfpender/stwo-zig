@@ -3,8 +3,8 @@
 **Status date:** 2026-08-06
 **Branch:** `feat/typed-air-precompiles`
 **Current milestone:** M4 — Poseidon compiler pilot
-**Active task:** H-009 — cost-aware materialization policy experiment
-**Next ready task:** V-006 — CPU/Metal canonical program identity receipt
+**Active task:** V-006 — CPU/Metal canonical program identity receipt
+**Next ready task:** H-010 — benchmark compatibility and proposed layouts
 
 ## Dashboard
 
@@ -14,7 +14,7 @@
 | M1 — validated logical IR | complete | F-001 through F-012 complete and green |
 | M2 — shadow compiler | complete | A-001 through A-005 complete and green |
 | M3 — compatibility lowering | blocked | [V-008 evidence](receipts/m3-compatibility-v1.json) recorded; broad proof/formal gates open |
-| M4 — Poseidon compiler pilot | active | H-001 through H-008 complete; H-009 active and H-010 queued |
+| M4 — Poseidon compiler pilot | active | H-001 through H-009 complete; V-006 active and H-010 ready |
 | M5 — effect and witness pilot | queued | Requires typed schemas and lowering |
 | M6 — guest precompile | queued | Requires Poseidon and ABI ADRs |
 | M7 — parallel proving | queued | Requires working component |
@@ -269,6 +269,20 @@
   `f204eb4617330e755598bdc3ef67c0be7441c879`, both reproducible product-closure
   identities, and the 118-export Metal bundle identity while preserving the
   test-security, same-process, narrow-only, and V-006 identity limits.
+- Completed H-009: a separately identified bounded search validates each
+  candidate cut from the typed semantic DAG, lowers an authenticated fixed
+  prefix, all materialization equalities, and fixed suffix into one globally
+  hash-consed direct DAG, and retains a deterministic Pareto frontier. The
+  checked canonical `STWAIRM\0` artifact and exact TSV/Markdown review views
+  record all 1,124 one-pass edits, 430 feasible and 694 infeasible results, and
+  126 retained non-seed cuts. A canonical test pins the 410 removal, 304
+  addition, and 410 swap edits. Every retained cut is exactly cost-equivalent
+  to the compatibility seed across the complete vector and five log-size scenarios,
+  so the result is a local plateau rather than a performance claim. Embedded
+  tests regenerate both views byte for byte; `typed-air-frontier` defaults to
+  fail-closed check and reserves atomic replacement for explicit update. The
+  proposal surface has no `air/lang/mod.zig` re-export, H-009 embeds are
+  isolated, and source conformance rejects unreviewed production consumers.
 - Completed V-008: the machine-readable
   [M3 receipt](receipts/m3-compatibility-v1.json) names the clean detached
   `7cdf41d5b246baf845adeb99d02444d9a6090514` snapshot, exact toolchain,
@@ -281,13 +295,13 @@
 
 ## Immediate next actions
 
-1. H-009 — prototype a separately identified cost-aware materialization policy
-   with a deterministic manifest and complete symbolic cost vector.
-2. V-006 — bind the canonical logical, layout, executable, and backend path
+1. V-006 — bind the canonical logical, layout, executable, and backend path
    identities without overstating what the in-memory H-007 receipt proves.
-3. H-010 — benchmark compatibility and proposed layouts under the pinned
+2. H-010 — benchmark compatibility and proposed layouts under the pinned
    performance protocol, including total work and memory rather than wall time
    alone.
+3. C-001 — prepare the guest precompile ABI decision after the compiler pilot
+   evidence is closed, without silently changing the base RV32IM claim.
 
 No production behavior should change in these tasks.
 
@@ -829,7 +843,40 @@ verification is fresh-state but same-process, claims are transcript/AIR-bound
 rather than separate Merkle columns, and V-006 has not yet attested canonical
 logical/layout identities across backends. No production authority changed.
 The [machine receipt](receipts/h007-poseidon-proof-equivalence-v1.json) records
-those facts and exclusions; H-009 is now the sole active task.
+those facts and exclusions; the later H-009 record below supersedes its task
+queue statement without changing that H-007 evidence.
+
+### 2026-08-06 — bounded Poseidon materialization frontier pinned
+
+H-009 now has a deterministic proposal pipeline and reviewed evidence without
+changing production. The cost model authenticates the materialization tree and
+physical interval, the enabler/wide/io fixed columns, eleven-node fixed SSA,
+four fixed roots, and prefix/equality/suffix schedule. Explicit node-birth and
+root-fold events make the canonical streaming-liveness coordinate sound even
+when a later root reuses an earlier interned node. Fixed columns cannot alias
+the candidate block, both lowering phases must use one emitter, ordered root
+multiplicity remains representable, and randomized root-by-root differentials
+tie all four fixed formulas to the production Poseidon AIR.
+
+The complete one-pass neighbourhood contains 1,124 edits. It admits 430 unique
+feasible candidates, rejects 694, sees no duplicates, and retains 126
+untruncated non-seed cuts. All 126 match the seed at every structural and
+scenario coordinate: 426 materializations, 445 main columns, 430 roots, 3,460
+canonical direct nodes, 1,346 additions, 429 subtractions, 1,080
+multiplications, 445 committed reads, theoretical streaming peak 39, and 2,171
+semantic witness nodes. Current CPU and Metal evaluators still retain all
+3,460 direct scratch nodes, so 39 is an optimization opportunity, not observed
+backend memory.
+
+The canonical complete binary and exact TSV/Markdown review projections are
+checked under `artifacts/h009-poseidon2-cost-v1/`. Package tests decode the
+binary and regenerate both views exactly; the standalone check/update command
+generated and then rechecked all three files. The ReleaseFast frontend suite
+now compiles 763 tests (762 pass, one intentionally skipped). H-009 is complete
+as a prototype and negative structural result. Exact proposal-consumer
+isolation is enforced by source conformance. It makes no global-optimality,
+proving-speed, proof-size, or production-activation claim; V-006 is active and
+H-010 is ready.
 
 ## Update protocol
 

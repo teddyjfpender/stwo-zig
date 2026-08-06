@@ -1,7 +1,7 @@
 # Performance engineering contract
 
 **Status:** measurement and optimization policy
-**Last updated:** 2026-08-04
+**Last updated:** 2026-08-06
 
 ## Goal
 
@@ -144,6 +144,16 @@ estimated Metal reads/writes and occupancy pressure
 A weighted score may rank experiments, but the weights are backend/version
 specific and never part of soundness. The accepted manifest records the policy,
 not the transient machine profile that suggested it.
+
+H-009's first reviewed report uses checked integer coordinates and five row
+scenarios rather than backend weights. The complete one-pass Poseidon
+neighbourhood is a plateau: 126 retained non-seed cuts exactly match the
+compatibility seed. Its `canonical_streaming_peak_live_nodes = 39` describes a
+theoretical ordered schedule derived from interned-node births and explicit
+root-fold events after each lowering phase; current CPU and Metal direct
+evaluators retain scratch for all 3,460 canonical nodes. H-010 must measure the
+actual evaluator and resident-memory behavior and must not relabel the
+theoretical coordinate as an observed saving.
 
 ## Parallel critical path
 

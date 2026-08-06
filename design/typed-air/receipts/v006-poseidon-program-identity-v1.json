@@ -1,0 +1,236 @@
+{
+  "schema_version": 1,
+  "kind": "stwo-typed-air-task-receipt",
+  "milestone": "M4-poseidon-compiler-pilot",
+  "task": "V-006",
+  "status": "pending-clean-snapshot-evidence",
+  "recorded_on": "2026-08-06",
+  "branch": "feat/typed-air-precompiles",
+  "decision": "design/typed-air/decisions/0021-backend-neutral-poseidon-program-identity.md",
+  "receipt_state": {
+    "final": false,
+    "reason": "canonical identities and acceptance contract are pinned; immutable clean-tree CPU and Metal evidence remains to be recorded",
+    "promotion_rule": "set final true only after every acceptance criterion is met against one clean immutable evidence snapshot and all observed placeholders are replaced"
+  },
+  "evidence_snapshot": {
+    "repository_revision": null,
+    "tree": null,
+    "worktree_clean": null,
+    "method": "pending: run every recorded command from the same clean immutable revision before the later receipt-only commit is authored"
+  },
+  "scope": {
+    "production_runtime_changed": false,
+    "production_witness_authority_changed": false,
+    "proof_protocol_changed": false,
+    "proof_transcript_changed": false,
+    "public_statement_changed": false,
+    "production_verifier_changed": false,
+    "formal_artifact_changed": false,
+    "test_product_graph_changed": true,
+    "description": "test-only backend-neutral identity for the authenticated typed Poseidon semantic program, physical layout, witness executor, and relation plan, returned beside real CPU and Metal proof-path evidence"
+  },
+  "program_identity": {
+    "component_id": "stwo.riscv.poseidon2-m31",
+    "format_version": 1,
+    "hash": "sha256",
+    "combined_domain": "stwo-zig/typed-air/poseidon2-program-identity/v1",
+    "transport_magic_ascii": "STWAIRP\\0",
+    "transport_magic_hex": "5354574149525000",
+    "canonical_preimage_bytes": 182,
+    "transport_receipt_bytes": 214,
+    "integer_encoding": "fixed-width unsigned little-endian",
+    "children": [
+      {
+        "tag": 1,
+        "name": "semantic",
+        "format_version": 1,
+        "domain": "stwo-zig/typed-air/semantic",
+        "digest": "9e8c3b5accdc2be31cf8ca128b5b27c87613f691ee8fd25e031f4286ceac81ed",
+        "coverage": "source-independent validated typed-AIR logical program"
+      },
+      {
+        "tag": 2,
+        "name": "layout",
+        "format_version": 1,
+        "domain": "stwo-zig/typed-air/poseidon2-layout/v1",
+        "digest": "afbe1dfdf19fff06e2b6954276fd53d9d4bd67eea614acaba84c5678a8b31633",
+        "coverage": "authenticated compatibility and materializer identities, gate and policy, 445 ordered main-column roles and mappings, eight ordered interaction-column roles, and two ordered claim slots"
+      },
+      {
+        "tag": 3,
+        "name": "executor",
+        "format_version": 1,
+        "domain": "stwo-zig/typed-air/poseidon2-witness-executor/v1",
+        "digest": "6fe46c3c4dfc48b9dccc248ae23af8f246a83de3ec03b97274f6b7f90dbb9b88",
+        "coverage": "authenticated H-005 envelope, compiled instruction stream, input slots, and materialization slots"
+      },
+      {
+        "tag": 4,
+        "name": "relation",
+        "format_version": 1,
+        "domain": "stwo-zig/typed-air/poseidon2-relations/v1",
+        "digest": "e70e62b2ff2815f52011468ad39e29b26c621c3039a9281298215ecaf90988b3",
+        "coverage": "authenticated H-006 identity, all four ordered event records and both batch records, bound to semantic and layout identities"
+      }
+    ],
+    "geometry": {
+      "main_columns": 445,
+      "materialized_columns": 426,
+      "interaction_columns": 8,
+      "claim_slots": 2
+    },
+    "combined_digest": "594c88bfe11d6c8cb65918a7bfcf72257a79b61674997dbed24151ea3fb88a65",
+    "transport_receipt_sha256": "745d92b8b7b0dc78a12397454d865f3818ce774b8589cc7de12ee357c92bc36c",
+    "excluded": [
+      "source paths and spans",
+      "allocator and host memory representation",
+      "backend name",
+      "repository and product-closure revisions",
+      "Metal AOT bundle identity",
+      "backend telemetry"
+    ]
+  },
+  "proof_path_co_attestation": {
+    "construction": "the test-only proof authority reconstructs all four child identities from authenticated owned H-003/H-004/H-005/H-006 components before the concrete proof engine observes a committed column",
+    "finalization": "receipt creation reconstructs the identity after proof construction and typed output-claim installation and rejects if it differs from the value sealed at authority construction",
+    "validation": "the returned receipt validates its combined seal and requires exact equality with the canonical five-digest identity",
+    "backend_contract": "the CPU and Metal product exercises each compare the returned combined digest with the same canonical constant after an honest proof verifies through the unchanged production verifier",
+    "identity_in_transcript": false,
+    "identity_in_public_statement": false,
+    "identity_checked_by_production_verifier": false,
+    "classification": "local proof-path co-attestation; not a cryptographic binding between arbitrary proof bytes and the program-identity receipt"
+  },
+  "source_artifacts": {
+    "identity": "src/frontends/riscv/air/lang/typed_poseidon2_identity.zig",
+    "reviewed_goldens": "src/frontends/riscv/air/lang/typed_poseidon2_identity_golden.zig",
+    "identity_tests": "src/frontends/riscv/air/lang/typed_poseidon2_identity_test.zig",
+    "proof_authority": "src/frontends/riscv/air/lang/typed_poseidon2_proof_authority.zig",
+    "proof_harness": "src/frontends/riscv/air/lang/typed_poseidon2_proof_harness.zig",
+    "cpu_product_tests": "src/tests/riscv/typed_poseidon2_proof_equivalence_test.zig",
+    "metal_product_tests": "src/tests/riscv/metal_backend_test.zig"
+  },
+  "test_configuration": {
+    "fixture": {
+      "active_rows": 46,
+      "narrow_rows": 46,
+      "wide_rows": 0,
+      "io_rows": 0
+    },
+    "pcs_test_security": {
+      "pow_bits": 0,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "n_queries": 3
+    }
+  },
+  "validation": [
+    {
+      "id": "frontend-identity",
+      "command": "zig build test --build-file src/frontends/riscv/build.zig -Doptimize=ReleaseFast -j1",
+      "status": "pending",
+      "expected": "identity construction, golden equality, source/allocation invariance, child sensitivity, exact transport round trip, corruption rejection, layout coverage, executor binding, and relation coverage pass",
+      "observed_tests": null
+    },
+    {
+      "id": "cpu-product",
+      "command": "zig build test-riscv-cpu-product -Doptimize=ReleaseFast -j1",
+      "status": "pending",
+      "expected": "honest typed Poseidon proof verifies through the unchanged CPU production verifier, receipt validation passes, returned combined identity equals the canonical digest, and four existing generated-artifact negative cases reject",
+      "observed_combined_digest": null,
+      "closure_receipt_sha256": null,
+      "closure_manifest_sha256": null,
+      "closure_source_count": null,
+      "closure_source_content_sha256": null,
+      "closure_binary_sha256": null
+    },
+    {
+      "id": "metal-product",
+      "command": "zig build test-riscv-metal -Doptimize=ReleaseFast -j1",
+      "status": "pending",
+      "expected": "honest typed Poseidon proof verifies through the unchanged Metal production verifier, receipt validation passes, returned combined identity equals the CPU canonical digest, authenticated AOT admission succeeds, resident polynomial execution is observed, and CPU polynomial-composition declines remain zero",
+      "observed_combined_digest": null,
+      "closure_receipt_sha256": null,
+      "closure_manifest_sha256": null,
+      "closure_source_count": null,
+      "closure_source_content_sha256": null,
+      "closure_binary_sha256": null,
+      "aot_manifest_sha256": null,
+      "aot_source_sha256": null,
+      "aot_air_sha256": null,
+      "aot_metallib_sha256": null
+    },
+    {
+      "id": "package-workspace",
+      "command": "python3 scripts/check_package_workspace.py --repo .",
+      "status": "pending",
+      "observed_packages": null,
+      "observed_public_modules": null,
+      "observed_dependency_edges": null
+    },
+    {
+      "id": "source-conformance",
+      "command": "python3 scripts/check_source_conformance.py",
+      "status": "pending",
+      "expected": "no new source-conformance finding attributable to V-006; any repository baseline remains listed rather than waived",
+      "observed_new_v006_findings": null,
+      "observed_baseline_findings": null
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "immutable-snapshot",
+      "requirement": "all evidence commands run against one named clean repository revision and tree",
+      "met": null
+    },
+    {
+      "id": "canonical-encoding",
+      "requirement": "the 182-byte preimage, 214-byte transport, five golden digests, and transport SHA-256 match the reviewed constants exactly",
+      "met": null
+    },
+    {
+      "id": "complete-child-binding",
+      "requirement": "semantic, layout, executor, and relation mutation/sensitivity tests demonstrate that every child participates in the combined identity and malformed transport rejects",
+      "met": null
+    },
+    {
+      "id": "proof-lifecycle-reconstruction",
+      "requirement": "the proof authority seals identity before backend work, reconstructs it at receipt creation, and rejects drift or a noncanonical receipt",
+      "met": null
+    },
+    {
+      "id": "cpu-evidence",
+      "requirement": "the CPU product command passes, its honest proof verifies, and its receipt returns combined digest 594c88bfe11d6c8cb65918a7bfcf72257a79b61674997dbed24151ea3fb88a65",
+      "met": null
+    },
+    {
+      "id": "metal-evidence",
+      "requirement": "the Metal product command passes with authenticated resident execution, its honest proof verifies, and its receipt returns the same combined digest with zero CPU polynomial-composition declines",
+      "met": null
+    },
+    {
+      "id": "backend-neutrality",
+      "requirement": "backend name, AOT identity, telemetry, and product-closure identity remain evidence metadata and do not affect the canonical program digest",
+      "met": null
+    },
+    {
+      "id": "regression-gates",
+      "requirement": "package-workspace and source-conformance gates introduce no V-006 regression, and product-closure identities are recorded",
+      "met": null
+    },
+    {
+      "id": "claim-boundary",
+      "requirement": "the final receipt and ADR state explicitly that identity is co-attested, not transcript-bound or production-verifier-authenticated",
+      "met": null
+    }
+  ],
+  "limitations": [
+    "the program identity is not mixed into the Fiat-Shamir channel, proof commitment, or public statement and is not checked by the production verifier",
+    "the identity receipt and verified proof are co-attested by the local test path; they are not one cryptographically inseparable artifact",
+    "the typed proof authority and substitution harness remain test-only and shadow-only; no production witness, constraint, prover, verifier, or transcript authority changes",
+    "the real RISC-V proof fixture exercises narrow mode only; H-005/H-006 differentials cover wide and I/O generation outside this full-proof receipt",
+    "the PCS parameters are integration-test parameters and do not establish production-security soundness",
+    "backend-neutral program equality does not authenticate the Metal build; AOT admission and telemetry remain separate evidence",
+    "this receipt makes no proving-speed, proof-size, optimized-materialization, precompile-ABI, recursion, or parallel-scheduling claim",
+    "whole_frontend_verified and proof_system_soundness remain false"
+  ]
+}

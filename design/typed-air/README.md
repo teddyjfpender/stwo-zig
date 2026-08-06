@@ -129,7 +129,9 @@ source-to-storage report. H-007 now exercises those generated artifacts at the
 live commitment and claim boundaries of complete CPU and authenticated-AOT
 Metal proofs. Both honest backend paths verify; the focused CPU lane rejects
 targeted main, interaction, and claim mutations. The path remains test-only and
-shadow-only pending an explicit production-authority decision. H-009 now
-explores a separately identified cost-aware layout without activating it. This
+shadow-only pending an explicit production-authority decision. H-009 now pins
+a separately identified, bounded cost-frontier experiment without activating
+it. Its complete local neighbourhood is a structural plateau, so H-010 has no
+claimed winner and must measure any representative before promotion. This
 work continues to strengthen and reify the existing path rather than replace
 the prover or rewrite all opcodes.
