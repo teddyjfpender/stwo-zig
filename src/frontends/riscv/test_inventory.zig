@@ -116,6 +116,7 @@ test {
     _ = @import("air/lang/degree_test.zig");
     _ = @import("air/lang/diagnostic_test.zig");
     _ = @import("air/lang/digest_test.zig");
+    _ = @import("air/lang/effects_test.zig");
     _ = @import("air/lang/finalization_test.zig");
     _ = @import("air/lang/hint_recipe_test.zig");
     _ = @import("air/lang/hints_test.zig");

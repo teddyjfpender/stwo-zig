@@ -1,4 +1,8 @@
 const std = @import("std");
+const effects = @import("effects.zig");
+const ir = @import("ir.zig");
+const program = @import("program.zig");
+const relation = @import("relation.zig");
 const source = @import("source.zig");
 const test_support = @import("test_support.zig");
 const types = @import("types.zig");
@@ -308,6 +312,114 @@ test "validator rejects DuplicateAccessOrdinal" {
         error.DuplicateAccessOrdinal,
         validate.validate(&fixture.arena),
     );
+}
+
+test "all-unbound mode retains provisional legacy effect validation" {
+    var arena = ir.Arena.init(std.testing.allocator);
+    defer arena.deinit();
+    const generated = source.SourceSpan.generated();
+    const value = try arena.input("value", .felt, generated);
+    _ = try arena.addEffect(
+        .state_consume,
+        &.{value},
+        null,
+        null,
+        generated,
+    );
+    try validate.validate(&arena);
+}
+
+test "typed mode rejects mixed unbound relation effects but permits public effects" {
+    var arena = ir.Arena.init(std.testing.allocator);
+    defer arena.deinit();
+    const generated = source.SourceSpan.generated();
+    const pc = try arena.input("pc", .pc, generated);
+    const value = try arena.input("value", .felt, generated);
+    const active = try arena.input("active", .bit, generated);
+
+    _ = try effects.programFetch(
+        &arena,
+        .{
+            .pc = pc,
+            .opcode_id = value,
+            .rd = value,
+            .rs1 = value,
+            .operand = value,
+        },
+        active,
+        generated,
+    );
+    _ = try arena.addEffect(
+        .register_read,
+        &.{value},
+        active,
+        0,
+        generated,
+    );
+    try std.testing.expectError(error.InvalidEffect, validate.validate(&arena));
+
+    arena.effects.items[1].kind = .component_call;
+    arena.effects.items[1].access_ordinal = null;
+    try std.testing.expectError(error.InvalidEffect, validate.validate(&arena));
+
+    arena.effects.items[1].kind = .public_consume;
+    try validate.validate(&arena);
+}
+
+test "unreviewed bound effect families fail closed" {
+    const Shape = enum { memory, range, program };
+    const Case = struct {
+        kind: program.EffectKind,
+        domain: relation.Domain,
+        role: relation.Role,
+        ordinal: ?u8,
+        shape: Shape,
+    };
+    const cases = [_]Case{
+        .{ .kind = .register_read, .domain = .memory_access, .role = .consume, .ordinal = 0, .shape = .memory },
+        .{ .kind = .register_write, .domain = .memory_access, .role = .emit, .ordinal = 0, .shape = .memory },
+        .{ .kind = .memory_read, .domain = .memory_access, .role = .consume, .ordinal = 1, .shape = .memory },
+        .{ .kind = .memory_write, .domain = .memory_access, .role = .emit, .ordinal = 1, .shape = .memory },
+        .{ .kind = .range_request, .domain = .range_check_20, .role = .request, .ordinal = null, .shape = .range },
+        .{ .kind = .component_call, .domain = .program_access, .role = .request, .ordinal = null, .shape = .program },
+    };
+
+    for (cases) |case| {
+        var arena = ir.Arena.init(std.testing.allocator);
+        defer arena.deinit();
+        const generated = source.SourceSpan.generated();
+        const felt = try arena.input("felt", .felt, generated);
+        const pc = try arena.input("pc", .pc, generated);
+        const address = try arena.input("address", .address, generated);
+        const clock = try arena.input("clock", .clock, generated);
+        const byte = try arena.input("byte", .byte, generated);
+        const uint20 = try arena.input("uint20", .uint20, generated);
+        const active = try arena.input("active", .bit, generated);
+        const memory_values = [_]types.ValueId{
+            felt, address, clock, byte, byte, byte, byte,
+        };
+        const range_values = [_]types.ValueId{uint20};
+        const program_values = [_]types.ValueId{ pc, felt, felt, felt, felt };
+        const values: []const types.ValueId = switch (case.shape) {
+            .memory => &memory_values,
+            .range => &range_values,
+            .program => &program_values,
+        };
+        const schema = relation.get(case.domain);
+        _ = try arena.addBoundEffectUnchecked(
+            case.kind,
+            .{
+                .schema = schema.id,
+                .schema_version = schema.version,
+                .role = case.role,
+            },
+            values,
+            active,
+            case.ordinal,
+            generated,
+        );
+        try std.testing.expectError(error.InvalidEffect, validate.validate(&arena));
+    }
 }
 
 test "validator rejects InvalidFunction" {

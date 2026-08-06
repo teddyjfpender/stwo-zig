@@ -14,6 +14,15 @@ test "semantic digest has a pinned empty-program identity" {
     try std.testing.expectEqualStrings(expected, &rendered);
 }
 
+test "legacy relation effects retain their pinned v1 semantic identity" {
+    var fixture = try test_support.Fixture.init(std.testing.allocator);
+    defer fixture.deinit();
+    const actual = try digest.compute(&fixture.arena);
+    const rendered = std.fmt.bytesToHex(actual, .lower);
+    const expected = "adb43b290f45dc96d7d3c4d5ca91ada30acecfabbb3a29a4301da9b240cea389";
+    try std.testing.expectEqualStrings(expected, &rendered);
+}
+
 test "semantic digest ignores allocation, interning, and diagnostic sources" {
     var canonical = try test_support.Fixture.init(std.testing.allocator);
     defer canonical.deinit();

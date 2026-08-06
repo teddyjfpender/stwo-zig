@@ -17,6 +17,7 @@ pub const typed_poseidon2_relations = @import("typed_poseidon2_relations.zig");
 pub const typed_poseidon2_witness = @import("typed_poseidon2_witness.zig");
 pub const program = @import("program.zig");
 pub const ir = @import("ir.zig");
+pub const effects = @import("effects.zig");
 pub const validate = @import("validate.zig");
 pub const manifest = @import("manifest.zig");
 pub const relation = @import("relation.zig");
@@ -31,6 +32,7 @@ pub const compat_layout = @import("compat_layout.zig");
 pub const compat_manifest = @import("compat_manifest.zig");
 pub const compat_manifest_diff = @import("compat_manifest_diff.zig");
 pub const lower_constraint = @import("lower_constraint.zig");
+pub const lower_effects = @import("lower_effects.zig");
 pub const lower_air_ir = @import("lower_air_ir.zig");
 pub const lower_lookup = @import("lower_lookup.zig");
 pub const lower_runtime = @import("lower_runtime.zig");
@@ -45,7 +47,13 @@ pub const shadow_program = @import("shadow_program.zig");
 /// This is not an artifact or proof-protocol version. It lets focused tests
 /// reject accidental reuse of a future incompatible logical representation.
 pub const LOGICAL_SCHEMA_VERSION = manifest.logical_schema_version;
+pub const TYPED_EFFECT_LOGICAL_SCHEMA_VERSION =
+    manifest.typed_effect_logical_schema_version;
 
 test "typed AIR language: isolated kernel has an explicit logical version" {
     try std.testing.expectEqual(@as(u16, 2), LOGICAL_SCHEMA_VERSION);
+    try std.testing.expectEqual(
+        @as(u16, 3),
+        TYPED_EFFECT_LOGICAL_SCHEMA_VERSION,
+    );
 }

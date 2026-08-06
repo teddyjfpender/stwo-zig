@@ -7,25 +7,21 @@ const std = @import("std");
 const types = @import("types.zig");
 
 pub const Domain = enum(u8) {
-    registers_state,
-    memory_access,
-    program_access,
-    merkle,
-    poseidon2,
-    poseidon2_io,
-    bitwise,
-    range_check_20,
-    range_check_8_11,
-    range_check_8_8_4,
-    range_check_8_8,
-    range_check_m31,
+    registers_state = 0,
+    memory_access = 1,
+    program_access = 2,
+    merkle = 3,
+    poseidon2 = 4,
+    poseidon2_io = 5,
+    bitwise = 6,
+    range_check_20 = 7,
+    range_check_8_11 = 8,
+    range_check_8_8_4 = 9,
+    range_check_8_8 = 10,
+    range_check_m31 = 11,
 };
 
-pub const Role = enum(u8) {
-    request,
-    consume,
-    emit,
-};
+pub const Role = types.RelationRole;
 
 pub const RoleSet = struct {
     bits: u8,

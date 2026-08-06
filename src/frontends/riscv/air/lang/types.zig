@@ -17,6 +17,15 @@ pub const NameId = enum(u32) { _ };
 pub const SourceId = enum(u32) { _ };
 pub const RelationSchemaId = enum(u16) { _ };
 
+/// Semantic sign convention for one typed relation event.  This lives beside
+/// the typed IDs so logical program records can carry a role without importing
+/// a lowering implementation.
+pub const RelationRole = enum(u8) {
+    request = 0,
+    consume = 1,
+    emit = 2,
+};
+
 pub const IdError = error{IdOverflow};
 
 /// Converts a collection index into one of this module's typed enum IDs.

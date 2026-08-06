@@ -96,8 +96,22 @@ pub const EffectKind = enum {
     public_produce,
 };
 
+/// Version-pinned relation ABI carried by an authored effect.
+///
+/// `EffectKind` records machine meaning; this binding records the exact proof
+/// relation that enforces it.  Keeping both is necessary because several
+/// semantic kinds share a relation and `range_request` is schema-polymorphic.
+pub const RelationBinding = struct {
+    schema: types.RelationSchemaId,
+    schema_version: u16,
+    role: types.RelationRole,
+};
+
 pub const Effect = struct {
     kind: EffectKind,
+    /// Null only for non-relation effects and the explicitly provisional
+    /// migration surface.  Reviewed relation constructors always populate it.
+    binding: ?RelationBinding,
     values: RefRange,
     liveness: ?types.ValueId,
     access_ordinal: ?u8,

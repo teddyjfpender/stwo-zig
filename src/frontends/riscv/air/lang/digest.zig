@@ -19,15 +19,52 @@ const Sha256 = std.crypto.hash.sha2.Sha256;
 
 pub const Digest = [32]u8;
 pub const format_version: u16 = 1;
+pub const typed_effect_format_version: u16 = 2;
 pub const domain_separator = "stwo-zig/typed-air/semantic";
 pub const Error = validate.Error;
+
+pub const Identity = struct {
+    format_version: u16,
+    bytes: Digest,
+};
 
 /// Computes a semantic digest without allocating.
 pub fn compute(arena: *const ir.Arena) Error!Digest {
     try validate.validate(arena);
+    if (hasRelationBindings(arena))
+        return error.InvalidEffect;
+    return computeValidated(arena, .legacy_v1);
+}
+
+/// Semantic identity v2, which explicitly binds typed relation ABI metadata.
+pub fn computeV2(arena: *const ir.Arena) validate.Error!Digest {
+    try validate.validate(arena);
+    return computeValidated(arena, .typed_effect_v2);
+}
+
+pub fn computeIdentity(arena: *const ir.Arena) validate.Error!Identity {
+    try validate.validate(arena);
+    if (hasRelationBindings(arena)) {
+        return .{
+            .format_version = typed_effect_format_version,
+            .bytes = computeValidated(arena, .typed_effect_v2),
+        };
+    }
+    return .{
+        .format_version = format_version,
+        .bytes = computeValidated(arena, .legacy_v1),
+    };
+}
+
+const Projection = enum { legacy_v1, typed_effect_v2 };
+
+fn computeValidated(arena: *const ir.Arena, projection: Projection) Digest {
     var hash = Sha256.init(.{});
     hash.update(domain_separator);
-    hashInt(&hash, u16, format_version);
+    hashInt(&hash, u16, switch (projection) {
+        .legacy_v1 => format_version,
+        .typed_effect_v2 => typed_effect_format_version,
+    });
     hashCount(&hash, arena.nodesView().len);
     hashCount(&hash, arena.constraintsView().len);
     hashCount(&hash, hints.view(arena).len);
@@ -63,6 +100,8 @@ pub fn compute(arena: *const ir.Arena) Error!Digest {
     for (arena.effectsView(), 0..) |effect, index| {
         const effect_id = types.idFromIndex(types.EffectId, index) catch unreachable;
         hashInt(&hash, u8, effectKindTag(effect.kind));
+        if (projection == .typed_effect_v2)
+            hashRelationBinding(&hash, effect.binding);
         hashValues(&hash, arena.effectValues(effect_id).?);
         hashOptionalValueId(&hash, effect.liveness);
         hashOptionalInt(&hash, u8, effect.access_ordinal);
@@ -82,6 +121,27 @@ pub fn compute(arena: *const ir.Arena) Error!Digest {
         hashValues(&hash, functions.callOutputs(arena, call_id).?);
     }
     return hash.finalResult();
+}
+
+fn hasRelationBindings(arena: *const ir.Arena) bool {
+    for (arena.effectsView()) |effect| {
+        if (effect.binding != null) return true;
+    }
+    return false;
+}
+
+fn hashRelationBinding(
+    hash: *Sha256,
+    binding: ?program.RelationBinding,
+) void {
+    if (binding) |present| {
+        hashInt(hash, u8, 1);
+        hashInt(hash, u16, @intFromEnum(present.schema));
+        hashInt(hash, u16, present.schema_version);
+        hashInt(hash, u8, @intFromEnum(present.role));
+    } else {
+        hashInt(hash, u8, 0);
+    }
 }
 
 fn hashNode(hash: *Sha256, arena: *const ir.Arena, node: expr.Node) void {

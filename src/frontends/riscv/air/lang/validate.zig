@@ -6,6 +6,7 @@
 
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
+const effects = @import("effects.zig");
 const expr = @import("expr.zig");
 const functions = @import("functions.zig");
 const hint_recipe = @import("hint_recipe.zig");
@@ -305,18 +306,25 @@ fn validateEffects(arena: *const ir.Arena) Error!void {
                 return error.InvalidEffect;
             if (!ir.isSelector(liveness.key.ty)) return error.InvalidEffect;
         }
-        if (ir.requiresAccessOrdinal(effect.kind) !=
-            (effect.access_ordinal != null))
-        {
-            return error.InvalidAccessOrdinal;
-        }
-        if (effect.access_ordinal) |ordinal| {
-            if (used_ordinals[ordinal]) return error.DuplicateAccessOrdinal;
-            used_ordinals[ordinal] = true;
+        // The old provisional record treated ordinals as globally unique.
+        // Relation-bound access groups deliberately share one ordinal across
+        // consume, emit, and clock-gap events; their group validator owns that
+        // policy.  Preserve the legacy rule only for unbound records.
+        if (effect.binding == null) {
+            if (ir.requiresAccessOrdinal(effect.kind) !=
+                (effect.access_ordinal != null))
+            {
+                return error.InvalidAccessOrdinal;
+            }
+            if (effect.access_ordinal) |ordinal| {
+                if (used_ordinals[ordinal]) return error.DuplicateAccessOrdinal;
+                used_ordinals[ordinal] = true;
+            }
         }
     }
     if (value_cursor != arena.effectValuesView().len)
         return error.InvalidRange;
+    effects.validateProgram(arena) catch return error.InvalidEffect;
 }
 
 fn validateHintBindings(arena: *const ir.Arena) Error!void {

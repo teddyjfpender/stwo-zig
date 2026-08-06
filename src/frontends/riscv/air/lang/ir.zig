@@ -40,6 +40,11 @@ pub const NodeCheckpoint = struct {
     len: usize,
 };
 
+pub const EffectCheckpoint = struct {
+    effects_len: usize,
+    values_len: usize,
+};
+
 pub const Error = std.mem.Allocator.Error ||
     types.IdError ||
     types.TypeError ||
@@ -387,6 +392,53 @@ pub const Arena = struct {
         access_ordinal: ?u8,
         span: source_mod.SourceSpan,
     ) Error!types.EffectId {
+        return self.appendEffect(
+            kind,
+            null,
+            values,
+            liveness,
+            access_ordinal,
+            span,
+            true,
+        );
+    }
+
+    /// Unchecked storage hook for reviewed high-level effect builders.
+    ///
+    /// This performs only arena-level structural checks. It does not establish
+    /// that `binding`, `kind`, and `values` form a valid relation event; the
+    /// typed constructors and whole-program validator own those invariants.
+    /// General authoring code must not call this entry point directly.
+    pub fn addBoundEffectUnchecked(
+        self: *Arena,
+        kind: program.EffectKind,
+        binding: program.RelationBinding,
+        values: []const types.ValueId,
+        liveness: types.ValueId,
+        access_ordinal: ?u8,
+        span: source_mod.SourceSpan,
+    ) Error!types.EffectId {
+        return self.appendEffect(
+            kind,
+            binding,
+            values,
+            liveness,
+            access_ordinal,
+            span,
+            false,
+        );
+    }
+
+    fn appendEffect(
+        self: *Arena,
+        kind: program.EffectKind,
+        binding: ?program.RelationBinding,
+        values: []const types.ValueId,
+        liveness: ?types.ValueId,
+        access_ordinal: ?u8,
+        span: source_mod.SourceSpan,
+        enforce_provisional_ordinal_policy: bool,
+    ) Error!types.EffectId {
         if (values.len == 0) return error.EmptyEffectValues;
         try self.validateSpan(span);
         for (values) |value| {
@@ -398,9 +450,13 @@ pub const Arena = struct {
             if (!isSelector(liveness_node.key.ty))
                 return error.InvalidEffectLiveness;
         }
-        if (requiresAccessOrdinal(kind) != (access_ordinal != null))
+        if (enforce_provisional_ordinal_policy and
+            requiresAccessOrdinal(kind) != (access_ordinal != null))
+        {
             return error.InvalidAccessOrdinal;
-        if (access_ordinal) |ordinal| {
+        }
+        if (enforce_provisional_ordinal_policy and access_ordinal != null) {
+            const ordinal = access_ordinal.?;
             for (self.effects.items) |existing| {
                 if (existing.access_ordinal == ordinal)
                     return error.DuplicateAccessOrdinal;
@@ -417,12 +473,31 @@ pub const Arena = struct {
         try self.effect_values.appendSlice(self.allocator, values);
         try self.effects.append(self.allocator, .{
             .kind = kind,
+            .binding = binding,
             .values = value_range,
             .liveness = liveness,
             .access_ordinal = access_ordinal,
             .source_span = span,
         });
         return id;
+    }
+
+    /// Transaction boundary for effect groups such as consume/emit retirement.
+    pub fn effectCheckpoint(self: *const Arena) EffectCheckpoint {
+        return .{
+            .effects_len = self.effects.items.len,
+            .values_len = self.effect_values.items.len,
+        };
+    }
+
+    pub fn rollbackToEffectCheckpoint(
+        self: *Arena,
+        checkpoint: EffectCheckpoint,
+    ) void {
+        std.debug.assert(checkpoint.effects_len <= self.effects.items.len);
+        std.debug.assert(checkpoint.values_len <= self.effect_values.items.len);
+        self.effects.shrinkRetainingCapacity(checkpoint.effects_len);
+        self.effect_values.shrinkRetainingCapacity(checkpoint.values_len);
     }
 
     fn fieldBinary(

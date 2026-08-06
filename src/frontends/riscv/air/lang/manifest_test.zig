@@ -17,6 +17,19 @@ test "logical manifest has a pinned empty-program encoding" {
     try std.testing.expectEqualStrings(expected, actual);
 }
 
+test "legacy relation effects retain their pinned v3 manifest identity" {
+    var fixture = try test_support.Fixture.init(std.testing.allocator);
+    defer fixture.deinit();
+    const actual = try manifest.serializeAlloc(std.testing.allocator, &fixture.arena);
+    defer std.testing.allocator.free(actual);
+    var actual_digest: [std.crypto.hash.sha2.Sha256.digest_length]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(actual, &actual_digest, .{});
+    const rendered = std.fmt.bytesToHex(actual_digest, .lower);
+    const expected = "72e315fc5e4525ae62844f56ab7feae79ec460b1c6db5412ff9a5c542e27bdb4";
+    try std.testing.expectEqual(@as(usize, 1209), actual.len);
+    try std.testing.expectEqualStrings(expected, &rendered);
+}
+
 test "logical manifest is independent of interning insertion order and address" {
     var canonical = try test_support.Fixture.init(std.testing.allocator);
     defer canonical.deinit();

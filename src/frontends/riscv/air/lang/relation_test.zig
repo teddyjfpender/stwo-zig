@@ -3,6 +3,26 @@ const production = @import("../lookups/entry.zig");
 const relation = @import("relation.zig");
 const types = @import("types.zig");
 
+test "relation domain and role wire tags are pinned to production" {
+    const logical_domains = std.meta.tags(relation.Domain);
+    const production_domains = std.meta.tags(production.Domain);
+    try std.testing.expectEqual(@as(usize, 12), logical_domains.len);
+    try std.testing.expectEqual(logical_domains.len, production_domains.len);
+    for (logical_domains, production_domains, 0..) |logical, shipped, index| {
+        try std.testing.expectEqual(index, @intFromEnum(logical));
+        try std.testing.expectEqual(index, @intFromEnum(shipped));
+    }
+
+    const logical_roles = std.meta.tags(relation.Role);
+    const production_roles = std.meta.tags(production.EventRole);
+    try std.testing.expectEqual(@as(usize, 3), logical_roles.len);
+    try std.testing.expectEqual(logical_roles.len, production_roles.len);
+    for (logical_roles, production_roles, 0..) |logical, shipped, index| {
+        try std.testing.expectEqual(index, @intFromEnum(logical));
+        try std.testing.expectEqual(index, @intFromEnum(shipped));
+    }
+}
+
 test "relation registry covers the exact production domain order and arity" {
     const production_domains = std.meta.tags(production.Domain);
     try std.testing.expectEqual(production_domains.len, relation.schemas.len);

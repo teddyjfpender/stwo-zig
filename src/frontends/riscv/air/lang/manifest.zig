@@ -19,8 +19,13 @@ const validate = @import("validate.zig");
 pub const magic = "STWAIRL\x00";
 pub const format_version: u16 = 3;
 pub const logical_schema_version: u16 = 2;
+pub const typed_effect_format_version: u16 = 4;
+pub const typed_effect_logical_schema_version: u16 = 3;
 
-pub const ManifestError = error{ManifestTooLarge};
+pub const ManifestError = error{
+    ManifestTooLarge,
+    RelationBindingsRequireManifestV4,
+};
 pub const Error = std.mem.Allocator.Error || validate.Error || ManifestError;
 
 pub fn serializeAlloc(
@@ -28,22 +33,53 @@ pub fn serializeAlloc(
     arena: *const ir.Arena,
 ) Error![]u8 {
     try validate.validate(arena);
+    try requireLegacyEffects(arena);
     var bytes: std.ArrayList(u8) = .empty;
     errdefer bytes.deinit(allocator);
-    try writeValidated(bytes.writer(allocator), arena);
+    try writeValidated(bytes.writer(allocator), arena, .legacy_v3);
+    return bytes.toOwnedSlice(allocator);
+}
+
+/// Canonical logical encoding with explicit typed relation bindings.
+pub fn serializeAllocV4(
+    allocator: std.mem.Allocator,
+    arena: *const ir.Arena,
+) Error![]u8 {
+    try validate.validate(arena);
+    var bytes: std.ArrayList(u8) = .empty;
+    errdefer bytes.deinit(allocator);
+    try writeValidated(bytes.writer(allocator), arena, .typed_effect_v4);
     return bytes.toOwnedSlice(allocator);
 }
 
 /// Writes one validated canonical encoding to `writer`.
 pub fn writeCanonical(writer: anytype, arena: *const ir.Arena) !void {
     try validate.validate(arena);
-    try writeValidated(writer, arena);
+    try requireLegacyEffects(arena);
+    try writeValidated(writer, arena, .legacy_v3);
 }
 
-fn writeValidated(writer: anytype, arena: *const ir.Arena) !void {
+pub fn writeCanonicalV4(writer: anytype, arena: *const ir.Arena) !void {
+    try validate.validate(arena);
+    try writeValidated(writer, arena, .typed_effect_v4);
+}
+
+const Encoding = enum { legacy_v3, typed_effect_v4 };
+
+fn writeValidated(
+    writer: anytype,
+    arena: *const ir.Arena,
+    encoding: Encoding,
+) !void {
     try writer.writeAll(magic);
-    try writeInt(writer, u16, format_version);
-    try writeInt(writer, u16, logical_schema_version);
+    try writeInt(writer, u16, switch (encoding) {
+        .legacy_v3 => format_version,
+        .typed_effect_v4 => typed_effect_format_version,
+    });
+    try writeInt(writer, u16, switch (encoding) {
+        .legacy_v3 => logical_schema_version,
+        .typed_effect_v4 => typed_effect_logical_schema_version,
+    });
     try writeCount(writer, arena.nodesView().len);
     try writeCount(writer, arena.constraintsView().len);
     try writeCount(writer, hints.view(arena).len);
@@ -81,6 +117,8 @@ fn writeValidated(writer: anytype, arena: *const ir.Arena) !void {
         const id = types.idFromIndex(types.EffectId, index) catch
             return error.ManifestTooLarge;
         try writeInt(writer, u8, effectKindTag(effect.kind));
+        if (encoding == .typed_effect_v4)
+            try writeRelationBinding(writer, effect.binding);
         try writeValues(writer, arena.effectValues(id).?);
         try writeOptionalValueId(writer, effect.liveness);
         try writeOptionalInt(writer, u8, effect.access_ordinal);
@@ -103,6 +141,27 @@ fn writeValidated(writer: anytype, arena: *const ir.Arena) !void {
         try writeValues(writer, functions.callArguments(arena, id).?);
         try writeValues(writer, functions.callOutputs(arena, id).?);
         try writeSpan(writer, arena, call.source_span);
+    }
+}
+
+fn requireLegacyEffects(arena: *const ir.Arena) ManifestError!void {
+    for (arena.effectsView()) |effect| {
+        if (effect.binding != null)
+            return error.RelationBindingsRequireManifestV4;
+    }
+}
+
+fn writeRelationBinding(
+    writer: anytype,
+    binding: ?program.RelationBinding,
+) !void {
+    if (binding) |present| {
+        try writeInt(writer, u8, 1);
+        try writeInt(writer, u16, @intFromEnum(present.schema));
+        try writeInt(writer, u16, present.schema_version);
+        try writeInt(writer, u8, @intFromEnum(present.role));
+    } else {
+        try writeInt(writer, u8, 0);
     }
 }
 
