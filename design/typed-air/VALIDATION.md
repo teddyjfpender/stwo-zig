@@ -261,11 +261,23 @@ domain, geometry, column, claim, and carried-output forgeries. H-008 binds all
 SHA-256
 `33eadd080a715fe09d1b3ed3ad8abc18cb35f71e56895e6ac62810a1dfeb0ef2`.
 
-These gates establish shadow witness and relation equality, not V3 proof-path
-equivalence. H-007 must commit the generated main and interaction artifacts
-inside real CPU and Metal proofs and independently verify them; proving the
-unchanged production artifacts after an out-of-band equality assertion is not
-sufficient.
+H-007 closes the V3 proof-path gate for the compatibility pilot. Its test-only
+engine wrapper regenerates all 445 main columns into the live Tree-1 buffers,
+derives all eight interaction columns from the live Fiat-Shamir challenges into
+the Tree-2 buffers, mixes the typed total at the canonical transcript ordinal,
+and installs both typed sums in the component before composition. The returned
+output claim is reconciled to those sums after proving and before verification.
+Focused CPU proof and corruption tests pass; the full CPU and authenticated-AOT
+Metal product gates pass with resident Metal polynomial execution and no known
+CPU fallback. A fresh unchanged production verifier specialization verifies the
+honest proof. The immutable evidence and exact limits are recorded in the
+[H-007 receipt](receipts/h007-poseidon-proof-equivalence-v1.json).
+
+This is proof-path integration evidence, not production activation or a broad
+soundness claim. The full-proof fixture is narrow-only, uses test-security PCS
+parameters, and verifies in a fresh same-process verifier state. Claims are
+transcript/AIR-bound rather than separate committed columns, and canonical
+logical/layout/backend attestation remains V-006.
 
 ## Differential design
 

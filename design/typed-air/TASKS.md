@@ -1,7 +1,7 @@
 # Task graph
 
 **Status:** active backlog
-**Last updated:** 2026-08-05
+**Last updated:** 2026-08-06
 
 ## Status vocabulary
 
@@ -79,9 +79,9 @@ first production milestone. `P2` improves breadth or optimization.
 | H-004 | P0 | Reproduce 426 existing materializations | H-003 | Current 445-column layout and constraint order exact | done |
 | H-005 | P0 | Generate direct-to-final-storage witness | H-004, F-008 | Byte-identical rows; no per-row allocation | done |
 | H-006 | P0 | Reproduce Poseidon relations and claims | H-004, F-006 | Honest and forged relation tests match current behavior | done |
-| H-007 | P0 | Run real CPU and Metal proof equivalence | H-005, H-006 | Independent verification succeeds on both admitted backends | active |
+| H-007 | P0 | Run real CPU and Metal proof equivalence | H-005, H-006 | Independent verification succeeds on both admitted backends | done |
 | H-008 | P1 | Add source-to-materialization diagnostics | H-003, F-009 | All 426 columns trace to semantic source paths | done |
-| H-009 | P2 | Prototype cost-aware materialization policy | H-007 | Separate manifest and cost report; no production activation | queued |
+| H-009 | P2 | Prototype cost-aware materialization policy | H-007 | Separate manifest and cost report; no production activation | active |
 | H-010 | P2 | Benchmark compatibility and proposed layouts | H-009 | Verified measurements under PERFORMANCE.md | queued |
 
 ## Typed effects and opcode migration

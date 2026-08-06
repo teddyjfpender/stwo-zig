@@ -125,7 +125,11 @@ bijectively binds them to all 426 historical lane-major slots in the existing
 the full 2,171-instruction closure directly into final bit-reversed storage,
 reproduces the existing four Poseidon relation events, two batches, eight
 interaction columns, and two claims, and renders a golden 426-record
-source-to-storage report. These paths remain shadow-only while H-007 exercises
-their committed artifacts in real CPU and Metal proofs. This work continues to
-strengthen and reify the existing path rather than replace the prover or
-rewrite all opcodes.
+source-to-storage report. H-007 now exercises those generated artifacts at the
+live commitment and claim boundaries of complete CPU and authenticated-AOT
+Metal proofs. Both honest backend paths verify; the focused CPU lane rejects
+targeted main, interaction, and claim mutations. The path remains test-only and
+shadow-only pending an explicit production-authority decision. H-009 now
+explores a separately identified cost-aware layout without activating it. This
+work continues to strengthen and reify the existing path rather than replace
+the prover or rewrite all opcodes.

@@ -1,0 +1,210 @@
+{
+  "schema_version": 1,
+  "kind": "stwo-typed-air-task-receipt",
+  "milestone": "M4-poseidon-compiler-pilot",
+  "task": "H-007",
+  "status": "proof-path-equivalence-recorded-shadow-only",
+  "recorded_on": "2026-08-06",
+  "branch": "feat/typed-air-precompiles",
+  "evidence_snapshot": {
+    "repository_revision": "f204eb4617330e755598bdc3ef67c0be7441c879",
+    "tree": "9015846ca49d63a2eea27ac2b1b77402cb691c50",
+    "worktree_clean": true,
+    "method": "commands run from the clean branch at repository_revision before this later receipt commit was authored"
+  },
+  "scope": {
+    "production_runtime_changed": false,
+    "production_witness_authority_changed": false,
+    "proof_protocol_changed": false,
+    "formal_artifact_changed": false,
+    "test_product_graph_changed": true,
+    "description": "test-only substitution of authenticated H-005/H-006 Poseidon main, interaction, and claim artifacts at the live commitment and transcript boundaries of complete RISC-V proofs"
+  },
+  "toolchain": {
+    "host": "arm64 Darwin 25.6.0",
+    "zig": "0.15.2",
+    "python": "3.14.6",
+    "metal": {
+      "xcode_version": "26.6",
+      "xcode_build": "17F113",
+      "sdk_version": "26.5",
+      "sdk_build": "25F70",
+      "compiler": "Apple metal 32023.883",
+      "toolchain_identifier": "com.apple.dt.toolchain.Metal.32023.883"
+    }
+  },
+  "generated_proof_path": {
+    "main_columns": 445,
+    "materialized_columns": 426,
+    "interaction_columns": 8,
+    "claims": 2,
+    "commitments_seen": 3,
+    "fixture": {
+      "active_rows": 46,
+      "narrow_rows": 46,
+      "wide_rows": 0,
+      "io_rows": 0
+    },
+    "pcs_test_security": {
+      "pow_bits": 0,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "n_queries": 3
+    },
+    "binding": [
+      "H-005 regenerates all 445 caller-owned Tree-1 Poseidon columns before the real backend commitment",
+      "H-006 derives all eight caller-owned Tree-2 interaction columns from the live Fiat-Shamir relation challenges before commitment",
+      "the typed total replaces the canonical Poseidon transcript claim, both typed sums enter the component before composition, and the returned output claim is reconciled to them after proving",
+      "verification uses a fresh unchanged production prover-engine specialization for the same admitted backend"
+    ]
+  },
+  "source_artifacts": {
+    "proof_harness": {
+      "path": "src/frontends/riscv/air/lang/typed_poseidon2_proof_harness.zig",
+      "bytes": 30069,
+      "sha256": "b0924fbc923dfcd3920d5137757dcf25729ff20efcad6e4028e4126629240a34"
+    },
+    "backend_exercise": {
+      "path": "src/frontends/riscv/air/lang/typed_poseidon2_proof_test.zig",
+      "bytes": 7034,
+      "sha256": "6539a8ba2633016e065c734efaac9854cc9b1dd7bf318f6141640b333eec2dd0"
+    },
+    "cpu_product_tests": {
+      "path": "src/tests/riscv/typed_poseidon2_proof_equivalence_test.zig",
+      "bytes": 1474,
+      "sha256": "86ac294ceb1307154f6e8679047f84a57596951e6bf05f0e8bf4645062a1973a"
+    },
+    "metal_product_tests": {
+      "path": "src/tests/riscv/metal_backend_test.zig",
+      "bytes": 6862,
+      "sha256": "5a301fd92db0a0fa5339abe4016edc7cbe2a2c0b37e134eba1e32250806534fc"
+    }
+  },
+  "product_closures": {
+    "cpu": {
+      "local_evidence_path": "zig-out/release-evidence/architecture/product-closures/stwo-riscv-cpu.json",
+      "availability": "reproducible build output; hash and salient fields retained here, raw JSON not repository-retained",
+      "receipt_sha256": "adba8ee6c77929f50d0ad5a7805c20f87fd41a3139d28daaa5209dfd84558030",
+      "manifest_sha256": "d4853f39a8690f0b9d758cf18c8e71d6735bc30f896c7559f12c3c6264fbc441",
+      "source_count": 474,
+      "source_content_sha256": "278fee5e4ecdff689cd38f081c8a31cc27b19dbc2c8897c9b9267e18f45efbb7",
+      "binary_sha256": "e71decf90cbf8eb240cc7be367b8e84b7e7f28ebb5fc2a5e143bf5ebcb8ced9b",
+      "static_x86_64_binary_sha256": "7fd0874ad4610c8fecfe6cc1a2881851d03280f17b226323fc7b1dd78ba7cf81"
+    },
+    "metal": {
+      "local_evidence_path": "zig-out/release-evidence/architecture/product-closures/stwo-riscv-metal.json",
+      "availability": "reproducible build output; hash and salient fields retained here, raw JSON not repository-retained",
+      "receipt_sha256": "a55566219a8a20ff1a79ee6ef3052cb63a0c9fe8a32c2046d7b3e0582579b262",
+      "manifest_sha256": "aab4eee046fc696573727bd94d0c2bb64be1d8a43d5cbfc236b002d8de8b26db",
+      "source_count": 531,
+      "source_content_sha256": "0e9d9d1e97c1bb271c6137e2585366510b763f06ce8707dfb3a0330d0a9164f0",
+      "binary_sha256": "904a926e3785427b34b1097a94efd47ca3bd28dbdbb1cbcd9309d3bbb88fe34c"
+    }
+  },
+  "metal_aot": {
+    "local_bundle_path": "zig-out/share/stwo-zig/metal/core",
+    "availability": "reproducible authenticated build output; identities retained here, bundle not repository-retained",
+    "format": "stwo-zig-metal-core-aot-v2",
+    "exports": 118,
+    "function_constants": 0,
+    "manifest_json_sha256": "0c2bd2960707ce5f86ca844e5fac9d43f667297c780e7cdda2ea228915281449",
+    "source_sha256": "304911285a54a8089068e755cb457bceacceb3add65e226574ed8abde29c7abc",
+    "air_sha256": "c4478d16d30128d7741e9567af6cc62d321ab07228974601a473f434d7dcb9fb",
+    "metallib_sha256": "e0f1f7b95233c97971f97984a161462f350b823591af72a57f2173fb3b5302de",
+    "admission": "authenticated AOT accepted with exact export inventory and AOT/JIT kernel parity"
+  },
+  "validation": [
+    {
+      "id": "cpu-product",
+      "command": "zig build test-riscv-cpu-product -Doptimize=ReleaseFast -j1",
+      "status": "passed",
+      "closure": "PASS (474 transitive Zig sources)",
+      "h007_tests": 2,
+      "negative_cases": 4,
+      "mode_partition": {
+        "active_rows": 46,
+        "narrow_rows": 46,
+        "wide_rows": 0,
+        "io_rows": 0
+      }
+    },
+    {
+      "id": "metal-product",
+      "command": "zig build test-riscv-metal -Doptimize=ReleaseFast -j1",
+      "status": "passed",
+      "closure": "PASS (531 transitive Zig sources)",
+      "telemetry": "resident RISC base and lookup polynomial execution; zero cpu_riscv_polynomial_composition_declines"
+    },
+    {
+      "id": "compatibility-artifacts",
+      "command": "zig build typed-air-manifest --build-file src/frontends/riscv/build.zig -Doptimize=ReleaseFast",
+      "status": "passed",
+      "families_checked": 17
+    },
+    {
+      "id": "package-workspace",
+      "command": "python3 scripts/check_package_workspace.py --repo .",
+      "status": "passed",
+      "packages": 21,
+      "public_modules": 21,
+      "dependency_edges": 70
+    },
+    {
+      "id": "source-conformance",
+      "command": "python3 scripts/check_source_conformance.py",
+      "status": "failed-baseline",
+      "new_h007_errors": 0,
+      "warnings": [
+        "build_support/products/riscv_cpu.zig is 499 lines with one line of owner-ceiling headroom",
+        "src/frontends/riscv/air/lang/compat_manifest.zig is 812 lines",
+        "src/frontends/riscv/air/lang/compat_manifest_diff.zig is 799 lines"
+      ],
+      "errors": [
+        "backends/metal/commit_backend.zig exceeds the 850-line ceiling",
+        "frontends/riscv/air/lookups/tables/source_ingest.zig exceeds the 850-line ceiling",
+        "stale baseline entry: backends/cpu_scalar/riscv_composition.zig",
+        "stale baseline entry: frontends/riscv/air/lookups/opcode_interaction.zig",
+        "backends/metal/kernels.metal exceeds its baseline budget",
+        "backends/metal/runtime.m exceeds its baseline budget",
+        "backends/metal/runtime/quotients.m exceeds its baseline budget",
+        "backends/metal/shaders/manifest.zig exceeds its baseline budget"
+      ],
+      "classification": "the eight failing findings are the pre-existing repository baseline; the touched CPU owner warning is retained visibly at 499/500 and the command is not treated as green"
+    }
+  ],
+  "negative_evidence": [
+    {
+      "mutation": "one M31 in a generated main column after authentication",
+      "result": "ConstraintsNotSatisfied"
+    },
+    {
+      "mutation": "one M31 in a generated interaction column after authentication",
+      "result": "ConstraintsNotSatisfied"
+    },
+    {
+      "mutation": "one typed QM31 component claim after authentication",
+      "result": "ConstraintsNotSatisfied"
+    },
+    {
+      "mutation": "out-of-range main-column mutation request",
+      "result": "InvalidCandidateMutation with allocator cleanup"
+    }
+  ],
+  "performance": {
+    "benchmark_report": null,
+    "status": "pending-H-010",
+    "reason": "H-007 proves protocol integration and backend residency; it does not compare compatibility and proposed materialization costs"
+  },
+  "open_claims": [
+    "all generated proof paths remain test-only and shadow-only; no production witness or constraint authority changes",
+    "the real RISC-V fixture exercises narrow mode only; H-005/H-006 differentials cover wide and I/O generation outside this full-proof receipt",
+    "claims are transcript- and AIR-bound values, not separately Merkle-committed columns",
+    "the fresh production verifier runs in the same process; separate-process verification remains open",
+    "the PCS parameters are integration-test parameters and do not establish production-security soundness",
+    "V-006 remains open: this receipt does not bind a canonical logical, layout, execution-plan, or cross-backend program identity",
+    "H-009/H-010 optimized-policy and performance claims remain open",
+    "no guest precompile ABI, parallel component scheduler, cross-proof relation summary, or two-to-one recursion is claimed",
+    "whole_frontend_verified remains false",
+    "proof_system_soundness remains false"
+  ]
+}

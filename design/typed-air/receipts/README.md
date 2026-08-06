@@ -18,3 +18,11 @@ later commit that adds the receipt is intentionally not self-referential.
   runtime/formal projections are exact. The receipt deliberately leaves M3
   release promotion open because the broad prover-core gate exposes existing
   witness-rigidity findings.
+- [`h007-poseidon-proof-equivalence-v1.json`](h007-poseidon-proof-equivalence-v1.json)
+  records the H-007 proof-path checkpoint. Authenticated typed Poseidon main,
+  and interaction artifacts enter their real CPU and Metal commitments;
+  transcript and component claims enter the proof, and the returned claim is
+  reconciled after proving. Both honest proofs verify through the unchanged
+  production verifier. The path remains explicitly test-only, uses
+  integration-test non-production-security PCS parameters, and leaves canonical
+  cross-backend identity attestation to V-006.

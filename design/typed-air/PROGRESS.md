@@ -1,10 +1,10 @@
 # Progress ledger
 
-**Status date:** 2026-08-05
+**Status date:** 2026-08-06
 **Branch:** `feat/typed-air-precompiles`
 **Current milestone:** M4 — Poseidon compiler pilot
-**Active task:** H-007 — real CPU and Metal generated-artifact proof equivalence
-**Next queued task:** H-009 — cost-aware materialization policy experiment
+**Active task:** H-009 — cost-aware materialization policy experiment
+**Next ready task:** V-006 — CPU/Metal canonical program identity receipt
 
 ## Dashboard
 
@@ -14,7 +14,7 @@
 | M1 — validated logical IR | complete | F-001 through F-012 complete and green |
 | M2 — shadow compiler | complete | A-001 through A-005 complete and green |
 | M3 — compatibility lowering | blocked | [V-008 evidence](receipts/m3-compatibility-v1.json) recorded; broad proof/formal gates open |
-| M4 — Poseidon compiler pilot | active | H-001 through H-006 and H-008 complete; H-007 active |
+| M4 — Poseidon compiler pilot | active | H-001 through H-008 complete; H-009 active and H-010 queued |
 | M5 — effect and witness pilot | queued | Requires typed schemas and lowering |
 | M6 — guest precompile | queued | Requires Poseidon and ABI ADRs |
 | M7 — parallel proving | queued | Requires working component |
@@ -256,6 +256,19 @@
   Four named tests pin complete coverage and field order, deterministic
   cross-allocation replay, corruption-before-output, writer failure, and
   exhaustive validation-allocation cleanup.
+- Completed H-007: a test-only real-backend wrapper regenerates all 445
+  Poseidon main columns directly into the live Tree-1 commitment buffers,
+  derives all eight interaction columns from the live Fiat-Shamir challenges
+  into Tree-2, and installs both typed claims at the canonical transcript,
+  component, and returned-output boundaries. The focused CPU suite proves and
+  verifies one 46-row narrow-only fixture and rejects main, interaction, and
+  claim mutations. Full ReleaseFast CPU and authenticated-AOT Metal product
+  gates pass; Metal reports resident RISC polynomial execution and zero known
+  CPU composition declines. The immutable
+  [H-007 receipt](receipts/h007-poseidon-proof-equivalence-v1.json) binds commit
+  `f204eb4617330e755598bdc3ef67c0be7441c879`, both reproducible product-closure
+  identities, and the 118-export Metal bundle identity while preserving the
+  test-security, same-process, narrow-only, and V-006 identity limits.
 - Completed V-008: the machine-readable
   [M3 receipt](receipts/m3-compatibility-v1.json) names the clean detached
   `7cdf41d5b246baf845adeb99d02444d9a6090514` snapshot, exact toolchain,
@@ -268,12 +281,13 @@
 
 ## Immediate next actions
 
-1. H-007 — commit H-005 main and H-006 interaction artifacts inside real CPU
-   and Metal proofs and independently verify both without fallback.
-2. Review the generated-witness production-activation policy only after that
-   proof evidence exists; shadow equality alone is insufficient.
-3. H-009 — if H-007 closes, prototype a separately identified cost-aware
-   materialization policy and complete cost vector without activation.
+1. H-009 — prototype a separately identified cost-aware materialization policy
+   with a deterministic manifest and complete symbolic cost vector.
+2. V-006 — bind the canonical logical, layout, executable, and backend path
+   identities without overstating what the in-memory H-007 receipt proves.
+3. H-010 — benchmark compatibility and proposed layouts under the pinned
+   performance protocol, including total work and memory rather than wall time
+   alone.
 
 No production behavior should change in these tasks.
 
@@ -790,6 +804,32 @@ ReleaseSafe, and ReleaseFast, with only the two expected register-boundary
 negative diagnostics. This remains non-production evidence. H-007 must commit
 the generated artifacts inside real CPU and Metal proofs and independently
 verify them before the pilot can claim proof-path equivalence.
+
+### 2026-08-06 — generated Poseidon artifacts proved on CPU and Metal
+
+H-007 now closes the compatibility pilot's real-proof boundary. The prover
+first discovers the canonical Poseidon windows, then independently
+reauthenticates H-005/H-006 and overwrites the actual caller-owned Tree-1 and
+Tree-2 buffers before their real backend commitments. The typed total enters
+the live transcript at the exact Poseidon component ordinal; both sums enter
+the component before composition, and the returned output claim is reconciled
+to the typed sums after proving.
+
+At clean commit `f204eb4617330e755598bdc3ef67c0be7441c879`, the focused
+ReleaseFast CPU suite passes both the honest proof and all generated-artifact
+mutation cases with 46 active narrow rows and no wide or I/O rows. The full CPU
+product gate passes with a 474-source closure. The full Metal product gate
+passes after authenticated admission of the 118-export, zero-function-constant
+AOT bundle, reports resident RISC polynomial execution with zero known CPU
+composition declines, and closes a 531-source product graph. Both verify
+through a fresh unchanged production verifier specialization.
+
+The evidence is deliberately bounded: the PCS configuration is test-security,
+verification is fresh-state but same-process, claims are transcript/AIR-bound
+rather than separate Merkle columns, and V-006 has not yet attested canonical
+logical/layout identities across backends. No production authority changed.
+The [machine receipt](receipts/h007-poseidon-proof-equivalence-v1.json) records
+those facts and exclusions; H-009 is now the sole active task.
 
 ## Update protocol
 

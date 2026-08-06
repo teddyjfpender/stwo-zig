@@ -209,7 +209,12 @@ authenticates once before its allocation-free row kernel. A canonical
 37-field diagnostic projection traces all 426 physical slots back through the
 generic plan. These boundaries are fixed by
 [ADR-0019](decisions/0019-authenticated-witness-and-relation-plans.md) and
-remain shadow-only until H-007 proves with their committed artifacts.
+remain shadow-only. H-007 has now substituted their authenticated output into
+the live main and interaction commitments and into the transcript and component
+claim boundaries of complete CPU and Metal proofs. The returned claim is
+reconciled after proving, then a fresh unchanged production verifier
+specialization verifies the result. That evidence is test-only and does not
+itself authorize a production witness change.
 
 **Exit gate:**
 
