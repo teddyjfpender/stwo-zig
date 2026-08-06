@@ -150,10 +150,13 @@ scenarios rather than backend weights. The complete one-pass Poseidon
 neighbourhood is a plateau: 126 retained non-seed cuts exactly match the
 compatibility seed. Its `canonical_streaming_peak_live_nodes = 39` describes a
 theoretical ordered schedule derived from interned-node births and explicit
-root-fold events after each lowering phase; current CPU and Metal direct
-evaluators retain scratch for all 3,460 canonical nodes. H-010 must measure the
-actual evaluator and resident-memory behavior and must not relabel the
-theoretical coordinate as an observed saving.
+root-fold events after each lowering phase. The 3,460-node coordinate is the
+modeled proposal DAG, not observed production-backend scratch. Production
+Poseidon still uses a separate static evaluator; alternative H-009 layouts do
+not currently execute on either backend, and Poseidon composition has no Metal
+capability. H-010 must build one common candidate evaluator before measuring
+actual work and memory, and must not relabel either structural coordinate as an
+observed saving.
 
 ## Parallel critical path
 

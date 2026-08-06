@@ -3,8 +3,8 @@
 **Status date:** 2026-08-06
 **Branch:** `feat/typed-air-precompiles`
 **Current milestone:** M4 — Poseidon compiler pilot
-**Active task:** V-006 — CPU/Metal canonical program identity receipt
-**Next ready task:** H-010 — benchmark compatibility and proposed layouts
+**Active task:** H-010 — benchmark compatibility and proposed layouts
+**Next ready task:** C-001 — guest precompile ABI decision
 
 ## Dashboard
 
@@ -14,7 +14,7 @@
 | M1 — validated logical IR | complete | F-001 through F-012 complete and green |
 | M2 — shadow compiler | complete | A-001 through A-005 complete and green |
 | M3 — compatibility lowering | blocked | [V-008 evidence](receipts/m3-compatibility-v1.json) recorded; broad proof/formal gates open |
-| M4 — Poseidon compiler pilot | active | H-001 through H-009 complete; V-006 active and H-010 ready |
+| M4 — Poseidon compiler pilot | active | H-001 through H-009 and V-006 complete; H-010 active |
 | M5 — effect and witness pilot | queued | Requires typed schemas and lowering |
 | M6 — guest precompile | queued | Requires Poseidon and ABI ADRs |
 | M7 — parallel proving | queued | Requires working component |
@@ -283,6 +283,15 @@
   fail-closed check and reserves atomic replacement for explicit update. The
   proposal surface has no `air/lang/mod.zig` re-export, H-009 embeds are
   isolated, and source conformance rejects unreviewed production consumers.
+- Completed V-006: one canonical backend-neutral receipt binds the Poseidon
+  semantic program, 445-column physical layout, authenticated witness
+  executor, and relation plan under five reviewed SHA-256 digests. The CPU and
+  Metal product paths reconstruct and return the same combined identity after
+  honest proofs verify through the unchanged production verifier. The clean
+  [V-006 receipt](receipts/v006-poseidon-program-identity-v1.json) records both
+  product closures and the authenticated 118-export Metal AOT bundle. This is
+  local proof-path co-attestation only: the identity is not in the transcript,
+  public statement, proof bytes, or production verifier contract.
 - Completed V-008: the machine-readable
   [M3 receipt](receipts/m3-compatibility-v1.json) names the clean detached
   `7cdf41d5b246baf845adeb99d02444d9a6090514` snapshot, exact toolchain,
@@ -295,13 +304,13 @@
 
 ## Immediate next actions
 
-1. V-006 — bind the canonical logical, layout, executable, and backend path
-   identities without overstating what the in-memory H-007 receipt proves.
-2. H-010 — benchmark compatibility and proposed layouts under the pinned
+1. H-010 — benchmark compatibility and proposed layouts under the pinned
    performance protocol, including total work and memory rather than wall time
    alone.
-3. C-001 — prepare the guest precompile ABI decision after the compiler pilot
+2. C-001 — prepare the guest precompile ABI decision after the compiler pilot
    evidence is closed, without silently changing the base RV32IM claim.
+3. E-001 — prepare the typed program-state effect boundary without activating
+   a generated witness or changing the production opcode path.
 
 No production behavior should change in these tasks.
 
@@ -338,6 +347,15 @@ Accepted:
   fail-before-mutation final-storage execution, as fixed for shadow
   compatibility by
   [ADR-0019](decisions/0019-authenticated-witness-and-relation-plans.md).
+- A canonical backend-neutral Poseidon identity over semantic, layout,
+  executor, and relation identities, co-attested beside verified CPU and Metal
+  proofs without claiming transcript or production-verifier binding, as fixed
+  by
+  [ADR-0021](decisions/0021-backend-neutral-poseidon-program-identity.md).
+- Cost-frontier proposals remain separately identified, test-only evidence;
+  an equal structural neighbourhood is a benchmark input rather than an
+  activation decision, as fixed by
+  [ADR-0020](decisions/0020-cost-frontier-materialization-proposals.md).
 
 Pending:
 
@@ -364,6 +382,8 @@ Pending:
 | Formal generated artifacts are stale | Refinement pilot fails closed on five named files; reviewed workflow required |
 | Compiled witness drifts after binding | Executable digest, structural preflight, and independent canonical recompilation |
 | Shadow equality is mistaken for proof evidence | H-007 requires generated artifacts inside CPU/Metal proofs before promotion |
+| Local identity co-attestation is mistaken for protocol binding | V-006 states that the transcript, public statement, proof bytes, and production verifier are unchanged |
+| Structural cost equality is mistaken for measured speed | H-009 records a plateau; H-010 owns backend timing, work, and memory evidence |
 
 ## Baseline metrics
 
@@ -864,9 +884,11 @@ untruncated non-seed cuts. All 126 match the seed at every structural and
 scenario coordinate: 426 materializations, 445 main columns, 430 roots, 3,460
 canonical direct nodes, 1,346 additions, 429 subtractions, 1,080
 multiplications, 445 committed reads, theoretical streaming peak 39, and 2,171
-semantic witness nodes. Current CPU and Metal evaluators still retain all
-3,460 direct scratch nodes, so 39 is an optimization opportunity, not observed
-backend memory.
+semantic witness nodes. The 3,460-node value is the modeled proposal DAG, not
+observed backend scratch. Production Poseidon uses a separate static evaluator,
+alternative H-009 layouts do not yet execute on CPU or Metal, and Poseidon
+composition has no Metal capability. The 39-node schedule is therefore an
+implementation hypothesis, not an observed memory saving.
 
 The canonical complete binary and exact TSV/Markdown review projections are
 checked under `artifacts/h009-poseidon2-cost-v1/`. Package tests decode the
@@ -875,8 +897,39 @@ generated and then rechecked all three files. The ReleaseFast frontend suite
 now compiles 763 tests (762 pass, one intentionally skipped). H-009 is complete
 as a prototype and negative structural result. Exact proposal-consumer
 isolation is enforced by source conformance. It makes no global-optimality,
-proving-speed, proof-size, or production-activation claim; V-006 is active and
-H-010 is ready.
+proving-speed, proof-size, or production-activation claim. The clean immutable
+[H-009 receipt](receipts/h009-poseidon2-cost-frontier-v1.json) pins commit
+`4a020b85a5b0c5c566c2e09cbec5cf083753e3e7`, the complete search and artifact
+identities, and the unchanged CPU/Metal product gates. H-010 is active.
+
+### 2026-08-06 — backend-neutral Poseidon identity co-attested
+
+V-006 closes the identity ambiguity left deliberately open by H-007. The
+authenticated typed semantic program, 445-column layout, 2,171-instruction
+executor, and four-event/two-batch relation plan now each have a canonical
+child digest. Their reviewed combined digest is
+`594c88bfe11d6c8cb65918a7bfcf72257a79b61674997dbed24151ea3fb88a65`.
+The proof authority reconstructs the owned H-003 through H-006 chain before
+backend work, reconstructs it again after proof construction and claim
+installation, and rejects lifecycle drift or a self-consistent noncanonical
+receipt.
+
+At clean commit `4a020b85a5b0c5c566c2e09cbec5cf083753e3e7`, both the CPU
+and authenticated-AOT Metal product gates pass and return that exact identity
+beside independently verified honest proofs. The CPU closure contains 507
+transitive Zig sources; the Metal closure contains 564 and admits the exact
+118-export, zero-function-constant AOT bundle with resident RISC polynomial
+execution and zero CPU polynomial-composition declines. ReleaseFast and
+ReleaseSafe frontend suites each compile 763 tests, with 762 passing and one
+intentional skip. Package-workspace, artifact, proposal-isolation, and product
+closure gates pass; source conformance adds no H-009 or V-006 finding and
+retains only the recorded unrelated repository baseline.
+
+The [V-006 receipt](receipts/v006-poseidon-program-identity-v1.json) is final
+for this test-only scope. It does not place the identity in the Fiat-Shamir
+transcript, public statement, proof commitment, or production verifier, and
+therefore makes no cryptographic inseparability or production-activation
+claim. H-010 now owns the remaining compiler-pilot performance decision.
 
 ## Update protocol
 

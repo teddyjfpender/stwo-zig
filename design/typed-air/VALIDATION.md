@@ -277,7 +277,11 @@ This is proof-path integration evidence, not production activation or a broad
 soundness claim. The full-proof fixture is narrow-only, uses test-security PCS
 parameters, and verifies in a fresh same-process verifier state. Claims are
 transcript/AIR-bound rather than separate committed columns, and canonical
-logical/layout/backend attestation remains V-006.
+logical/layout/executor/relation identity is now co-attested by the final
+[V-006 receipt](receipts/v006-poseidon-program-identity-v1.json). That identity
+is returned beside the verified proof by the test-only authority; it is not
+mixed into the transcript, public statement, proof commitment, or production
+verifier contract.
 
 H-009 adds an isolated proposal-artifact gate. Package tests decode the checked
 `STWAIRM\0` binary, validate every digest and accounting invariant, and
@@ -299,6 +303,14 @@ removals, 304 additions, and 410 swaps. The source-conformance scanner also
 rejects proposal imports, public-surface access, or H-009 artifact fields from
 unreviewed production sources; only an explicit authoring/test/tool allowlist
 is accepted.
+
+The immutable
+[H-009 receipt](receipts/h009-poseidon2-cost-frontier-v1.json) records exact
+artifact, search, cost-model, product-closure, and regression-gate identities.
+Its structural plateau is negative optimization evidence, not a timing,
+memory, proof-size, global-optimality, or production-activation result. H-010
+must measure the compatibility layout and any retained representative under
+the complete performance vector before any policy decision.
 
 ## Differential design
 

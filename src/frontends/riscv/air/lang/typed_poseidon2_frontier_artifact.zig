@@ -194,8 +194,11 @@ pub fn writeMarkdown(writer: anytype, value: manifest.Manifest) !void {
         });
     try writer.writeAll(
         "\n`canonical_streaming_peak_live_nodes` is an idealized root-folding " ++
-            "schedule. Current CPU and Metal evaluators retain one scratch value per " ++
-            "canonical direct node; H-010 measures actual work and memory separately.\n\n",
+            "schedule for the modeled proposal DAG. `canonical_direct_nodes` is the " ++
+            "size of that DAG, not observed backend scratch. The production Poseidon " ++
+            "component uses a separate static evaluator, and no alternative proposal " ++
+            "currently executes on CPU or Metal. H-010 must build and measure one " ++
+            "common candidate evaluator before comparing work or memory.\n\n",
     );
     var equal_to_baseline: usize = 0;
     for (value.frontier) |proposal| if (sameCosts(value.baseline, proposal)) {

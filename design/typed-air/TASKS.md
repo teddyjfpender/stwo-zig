@@ -82,7 +82,7 @@ first production milestone. `P2` improves breadth or optimization.
 | H-007 | P0 | Run real CPU and Metal proof equivalence | H-005, H-006 | Independent verification succeeds on both admitted backends | done |
 | H-008 | P1 | Add source-to-materialization diagnostics | H-003, F-009 | All 426 columns trace to semantic source paths | done |
 | H-009 | P2 | Prototype cost-aware materialization policy | H-007 | Separate manifest and cost report; no production activation | done |
-| H-010 | P2 | Benchmark compatibility and proposed layouts | H-009 | Verified measurements under PERFORMANCE.md | ready |
+| H-010 | P2 | Benchmark compatibility and proposed layouts | H-009 | Verified measurements under PERFORMANCE.md | active |
 
 ## Typed effects and opcode migration
 
@@ -147,7 +147,7 @@ first production milestone. `P2` improves breadth or optimization.
 | V-003 | P0 | Add root-by-root production differential helper | A-007 | First mismatch names constraint and source path |
 | V-004 | P0 | Add hint/column mutation generator | F-008, E-012 | One-at-a-time mutation report with attribution |
 | V-005 | P0 | Bind formal regeneration to logical/layout identity | A-010 | Drift fails existing refinement workflow |
-| V-006 | P1 | Add CPU/Metal canonical program identity receipt (active) | H-007 | Backend reports same logical/layout digest |
+| V-006 | P1 | Add CPU/Metal canonical program identity receipt (done) | H-007 | Backend reports same logical/layout digest |
 | V-007 | P1 | Add documentation link and task-state checker | M0 | Broken local links and multiple active tasks fail |
 | V-008 | P1 | Add clean-tree milestone receipt (done) | M3 | Commit, tool versions, manifests, tests, and digests recorded |
 

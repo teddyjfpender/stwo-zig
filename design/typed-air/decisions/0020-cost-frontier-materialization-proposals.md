@@ -132,9 +132,12 @@ production.
 - More columns can remain nondominated when they materially reduce composition
   work or live pressure; that is a hypothesis for H-010, not a performance win.
 - The streaming peak is an optimization opportunity, not current-backend
-  telemetry. The current CPU and Metal evaluators retain a scratch value for
-  every canonical direct node before folding roots; H-010 must report that
-  resident-node count and measured memory separately.
+  telemetry. The 3,460-node count is the modeled hash-consed proposal DAG, not
+  observed production scratch: the current Poseidon component uses a separate
+  static evaluator, has no alternative-layout CPU/Metal execution path, and
+  has no Metal composition capability. H-010 must first build one common
+  candidate evaluator, then report its actual storage and measured memory
+  separately from the 39-node theoretical schedule.
 - No production witness, constraint, layout, transcript, or verifier authority
   changes.
 

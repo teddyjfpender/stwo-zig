@@ -132,6 +132,10 @@ targeted main, interaction, and claim mutations. The path remains test-only and
 shadow-only pending an explicit production-authority decision. H-009 now pins
 a separately identified, bounded cost-frontier experiment without activating
 it. Its complete local neighbourhood is a structural plateau, so H-010 has no
-claimed winner and must measure any representative before promotion. This
-work continues to strengthen and reify the existing path rather than replace
-the prover or rewrite all opcodes.
+claimed winner and must measure any representative before promotion. V-006
+also pins one backend-neutral semantic/layout/executor/relation identity and
+co-attests it beside both verified backend paths; it does not change the
+transcript, public statement, proof bytes, or production verifier. The final
+[H-009 and V-006 receipts](receipts/README.md) name the immutable evidence and
+its limits. This work continues to strengthen and reify the existing path
+rather than replace the prover or rewrite all opcodes.

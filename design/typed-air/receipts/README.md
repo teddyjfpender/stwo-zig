@@ -26,8 +26,15 @@ later commit that adds the receipt is intentionally not self-referential.
   production verifier. The path remains explicitly test-only, uses
   integration-test non-production-security PCS parameters, and leaves canonical
   cross-backend identity attestation to V-006.
+- [`h009-poseidon2-cost-frontier-v1.json`](h009-poseidon2-cost-frontier-v1.json)
+  records the isolated H-009 bounded materialization search. The complete
+  declared one-edit neighbourhood is a structural cost plateau, with exact
+  artifacts and regression gates pinned. It activates no layout and makes no
+  timing, memory, proof-size, or global-optimality claim; H-010 owns measured
+  evaluation.
 - [`v006-poseidon-program-identity-v1.json`](v006-poseidon-program-identity-v1.json)
-  defines the pending clean-snapshot receipt for the backend-neutral semantic,
-  layout, executor, relation, and combined Poseidon identities. It remains
-  explicitly non-final until one immutable CPU/Metal evidence snapshot is
-  recorded.
+  records the final test-only backend-neutral semantic, layout, executor,
+  relation, and combined Poseidon identities against one clean CPU/Metal
+  evidence snapshot. The identity is locally co-attested beside verified
+  proofs; it is not transcript-bound, part of the public statement, or checked
+  by the production verifier.

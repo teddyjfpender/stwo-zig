@@ -170,9 +170,11 @@ bytes fail closed.
 
 ## Phase 4 — pure Poseidon2 compiler pilot
 
-**Status:** active in the isolated authoring kernel; H-001 through H-009 are
-complete. Generated artifacts verify in real test-only CPU and Metal proofs,
-and the separate optimized-policy prototype is pinned as a cost plateau.
+**Status:** active in the isolated authoring kernel; H-001 through H-009 and
+V-006 are complete, and H-010 is active. Generated artifacts verify in real
+test-only CPU and Metal proofs, the backend-neutral program identity is
+co-attested, and the separate optimized-policy prototype is pinned as a cost
+plateau.
 
 Author the M31 Poseidon2 permutation as typed pure functions.
 
@@ -216,6 +218,17 @@ reconciled after proving, then a fresh unchanged production verifier
 specialization verifies the result. That evidence is test-only and does not
 itself authorize a production witness change.
 
+V-006 gives that proof-path evidence one backend-neutral name. A canonical
+receipt combines the semantic program, exact physical layout, authenticated
+witness executor, and relation plan identities. The test-only proof authority
+reconstructs those owned components before backend work and again at receipt
+creation; CPU and Metal return the same combined digest beside honest proofs.
+The identity is deliberately absent from the Fiat-Shamir transcript, public
+statement, proof bytes, and production verifier, so this is co-attestation and
+not a new protocol binding. See
+[ADR-0021](decisions/0021-backend-neutral-poseidon-program-identity.md) and the
+[V-006 receipt](receipts/v006-poseidon-program-identity-v1.json).
+
 H-009 keeps optimization authority separate. A bounded canonical edit search
 rebuilds every candidate cut, lowers authenticated fixed prefix/equality/suffix
 algebra into one hash-consed DAG, and emits a section-framed `STWAIRM\0`
@@ -224,7 +237,9 @@ retains 126 cuts, all equal to the compatibility seed on every structural and
 scenario coordinate. The artifact therefore selects no production layout; it
 is reproducible negative evidence and an H-010 benchmark input. See
 [ADR-0020](decisions/0020-cost-frontier-materialization-proposals.md) and the
-[artifact index](artifacts/README.md).
+[artifact index](artifacts/README.md). The immutable search and regression
+evidence is recorded in the
+[H-009 receipt](receipts/h009-poseidon2-cost-frontier-v1.json).
 
 The proposal modules are deliberately absent from `air/lang/mod.zig`; only the
 reviewed authoring files, package tests, and dedicated artifact tool import

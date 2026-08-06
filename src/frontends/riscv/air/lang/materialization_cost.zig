@@ -64,8 +64,10 @@ pub const CostVector = struct {
     unique_committed_column_reads: u64,
     /// Idealized first-intern streaming order: roots fold at explicit ordered
     /// events and a node is released after its final operand or root use.
-    /// Current CPU/Metal evaluators retain `canonical_direct_nodes` scratch
-    /// values instead.
+    /// This is a schedule property of the modeled proposal DAG, not observed
+    /// production-backend memory. A retained-node interpreter for this exact
+    /// DAG would require `canonical_direct_nodes` values; the production
+    /// Poseidon component currently uses a separate static evaluator.
     canonical_streaming_peak_live_nodes: u64,
     semantic_witness_nodes: u64,
 };

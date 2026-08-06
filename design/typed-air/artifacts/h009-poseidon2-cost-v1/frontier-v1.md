@@ -36,7 +36,7 @@ The fixed scope is the 430-root Poseidon permutation direct AIR: enabler boolean
 | `canonical_streaming_peak_live_nodes` | 39 |
 | `semantic_witness_nodes` | 2171 |
 
-`canonical_streaming_peak_live_nodes` is an idealized root-folding schedule. Current CPU and Metal evaluators retain one scratch value per canonical direct node; H-010 measures actual work and memory separately.
+`canonical_streaming_peak_live_nodes` is an idealized root-folding schedule for the modeled proposal DAG. `canonical_direct_nodes` is the size of that DAG, not observed backend scratch. The production Poseidon component uses a separate static evaluator, and no alternative proposal currently executes on CPU or Metal. H-010 must build and measure one common candidate evaluator before comparing work or memory.
 
 ## Frontier
 
