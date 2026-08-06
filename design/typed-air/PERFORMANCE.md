@@ -210,6 +210,40 @@ CPU evaluator. It cannot establish proving speed, proof size, verifier cost,
 backend parity, or production authority, and does not satisfy the promotion
 requirements below without later full proof-path evidence.
 
+### Completed H-010 result
+
+The experiment closed on clean implementation commit
+`82bf6b9cd5eb1ab48edd6fb7c0c88a3be687e8c6`, tree
+`8cbb9300fa9b820baa079eeb94addf71db97f130`. Both independently
+collected default reports are valid and complete, contain 112 fresh sample
+children, and record zero failures, retries, or drops. They were collected at
+declared power state `AC/100%/powermode0` from the same executable SHA-256
+`65cc075bea26b731ce50093cc1fffa06ef7fd2ddb9979370b40f2e9398ab96bf`
+and the same 301-source closure SHA-256
+`b23fea8136f4791b60196a2c21b15afad5274e45bd29f672657a992dfc48d983`.
+The exact locally retained ignored report identities are:
+
+| Report | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `v2` | 337,144 | `98abdf472818e21e43ff0e3cc3d509598558a6df6c1c215ea789a997fb5bc25d` |
+| `v3-confirm` | 337,146 | `eabeba5d67b26574dbe4246f8924411fe7c1df252452d078688ae6a0bcb5682a` |
+
+Candidate-arm median deltas against the compatibility seed were:
+
+| Report | Log | Witness range | Direct range | RSS range |
+| --- | ---: | ---: | ---: | ---: |
+| `v2` | 10 | +0.123% to +1.009% | -0.415% to +0.384% | 0.000% to +0.209% |
+| `v2` | 14 | -2.557% to +2.242% | -0.124% to +0.214% | -0.128% to -0.043% |
+| `v3-confirm` | 10 | -1.121% to +0.924% | -0.872% to +0.940% | -0.416% to -0.208% |
+| `v3-confirm` | 14 | -1.589% to +0.271% | +0.004% to +0.796% | +0.043% for every candidate arm |
+
+These ranges do not establish a meaningful or repeatable layout regression.
+In particular, q0 and q100 log-14 witness directions flip between the two
+runs, and the observed movement remains within MAD/noise. H-010 therefore
+selects no layout and makes no proof, Metal-candidate, production, or promotion
+claim. Any future optimized layout needs a new decision and full verified
+proof-path evidence rather than reinterpretation of this microbenchmark.
+
 ## Parallel critical path
 
 For components `i`, disclose:

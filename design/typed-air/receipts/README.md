@@ -30,8 +30,8 @@ later commit that adds the receipt is intentionally not self-referential.
   records the isolated H-009 bounded materialization search. The complete
   declared one-edit neighbourhood is a structural cost plateau, with exact
   artifacts and regression gates pinned. It activates no layout and makes no
-  timing, memory, proof-size, or global-optimality claim; H-010 owns measured
-  evaluation.
+  timing, memory, proof-size, or global-optimality claim. H-010 subsequently
+  measured representative cuts without selecting a layout.
 - [`v006-poseidon-program-identity-v1.json`](v006-poseidon-program-identity-v1.json)
   records the final test-only backend-neutral semantic, layout, executor,
   relation, and combined Poseidon identities against one clean CPU/Metal
@@ -39,17 +39,27 @@ later commit that adds the receipt is intentionally not self-referential.
   proofs; it is not transcript-bound, part of the public statement, or checked
   by the production verifier.
 
-## Active work without a receipt
+## H-010 receipt publication
 
-H-010 has no milestone receipt yet. Its isolated implementation authenticates
-four H-009-derived arms, checked log-10/log-14 `STWAIRB\0` vectors and their
-readable index, independent expected outputs, all direct roots, the complete
-materialization/fixed-role mutation matrix, prepared allocation-free CPU
-evaluators, and explicit timing/RSS sample boundaries. Generated log 18 remains
-an opt-in non-receiptable stress case.
+The
+[H-010 receipt](h010-authenticated-poseidon-layout-benchmark-v1.json) records
+clean implementation commit `82bf6b9cd5eb1ab48edd6fb7c0c88a3be687e8c6`, tree
+`8cbb9300fa9b820baa079eeb94addf71db97f130`, and two independently
+valid complete default reports retained locally as ignored evidence:
 
-Those checked vector artifacts are protocol inputs, not a timing receipt. Any
-host report remains `experimental_uncommitted_timing` beneath `zig-out/` unless
-a later review deliberately freezes its exact bytes. No complete default
-cohort, winner, production layout, proof-speed claim, or H-010 receipt is
-asserted by this index.
+- `v2`: 337,144 bytes, SHA-256
+  `98abdf472818e21e43ff0e3cc3d509598558a6df6c1c215ea789a997fb5bc25d`;
+- `v3-confirm`: 337,146 bytes, SHA-256
+  `eabeba5d67b26574dbe4246f8924411fe7c1df252452d078688ae6a0bcb5682a`.
+
+Each report contains all 112 required fresh sample children with zero failures,
+retries, or drops under the same executable and source-closure identities. The
+reports show no meaningful repeatable layout regression; q0 and q100 log-14
+witness directions flip within MAD/noise. The receipt therefore selects no
+layout and preserves false proof, Metal-candidate, production-layout, and
+promotion claims.
+
+The checked vectors and readable index are protocol inputs, while the report
+bytes remain local timing evidence pinned by size and SHA-256. Publishing the
+receipt does not move either class into the proof transcript, public statement,
+production verifier, or product authority.

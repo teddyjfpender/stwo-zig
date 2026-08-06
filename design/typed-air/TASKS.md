@@ -23,9 +23,9 @@ first production milestone. `P2` improves breadth or optimization.
 | M1 | Validated logical IR | Deterministic IR kernel and negative tests | done |
 | M2 | Shadow compiler | All 17 current families imported and degree-reported | done |
 | M3 | Compatibility lowering | LUI and then all families round-trip exactly | blocked |
-| M4 | Pure compiler pilot | Poseidon2 compatibility path verified; H-010 default cohort reviewed | active |
-| M5 | Effect/witness pilot | LUI, ADDI, signed load/JALR, DIV vertical slices | queued |
-| M6 | Guest precompile | Poseidon2 calls close in one proof | queued |
+| M4 | Pure compiler pilot | Poseidon2 compatibility path verified; H-010 default cohort reviewed | done |
+| M5 | Effect/witness pilot | LUI, ADDI, signed load/JALR, DIV vertical slices | ready |
+| M6 | Guest precompile | Poseidon2 calls close in one proof | active |
 | M7 | Parallel proving | Component stages scheduled and measured | queued |
 | M8 | Broad migration | Handwritten witness duplication retired | queued |
 | M9 | Recursive aggregation | Bound leaf summaries aggregate two-to-one | deferred |
@@ -82,11 +82,11 @@ first production milestone. `P2` improves breadth or optimization.
 | H-007 | P0 | Run real CPU and Metal proof equivalence | H-005, H-006 | Independent verification succeeds on both admitted backends | done |
 | H-008 | P1 | Add source-to-materialization diagnostics | H-003, F-009 | All 426 columns trace to semantic source paths | done |
 | H-009 | P2 | Prototype cost-aware materialization policy | H-007 | Separate manifest and cost report; no production activation | done |
-| H-010 | P2 | Benchmark compatibility and proposed layouts | H-009 | Complete authenticated four-arm log-10/log-14 cohort under PERFORMANCE.md; no production/proof claim | active |
+| H-010 | P2 | Benchmark compatibility and proposed layouts | H-009 | Complete authenticated four-arm log-10/log-14 cohort under PERFORMANCE.md; no production/proof claim | done |
 
-### H-010 implementation state
+### H-010 completion evidence
 
-The active task has completed its isolated harness prerequisites:
+The isolated harness and its admission prerequisites are complete:
 
 - exact H-009 artifact, fixed-program, four-arm, proposal, and cut
   authentication;
@@ -102,11 +102,19 @@ The active task has completed its isolated harness prerequisites:
 - source/build isolation from production CPU/Metal executables and explicit
   negative proof, PCS, verifier, Metal-candidate, and promotion capabilities.
 
-H-010 remains active because the required clean-host log-10/log-14 timing
-cohort, review, and any deliberately frozen evidence are still outstanding.
-Log 18 cannot satisfy or replace that exit condition. A result cannot select a
-layout; any production proposal requires a separate accepted decision and the
-full proof-path and performance gates.
+Clean implementation commit `82bf6b9cd5eb1ab48edd6fb7c0c88a3be687e8c6`
+with tree `8cbb9300fa9b820baa079eeb94addf71db97f130` produced two
+independently valid and complete default reports. The locally retained ignored
+`v2` report is 337,144 bytes with SHA-256
+`98abdf472818e21e43ff0e3cc3d509598558a6df6c1c215ea789a997fb5bc25d`;
+`v3-confirm` is 337,146 bytes with SHA-256
+`eabeba5d67b26574dbe4246f8924411fe7c1df252452d078688ae6a0bcb5682a`.
+Each report records 112 fresh sample children with zero failures, retries, or
+drops under the same executable and source closure. Candidate deltas remain
+inside run-to-run noise, including q0/q100 log-14 witness directions that flip
+between reports, so H-010 selects no layout. Proof, Metal-candidate, and
+production claims remain false. Any future promotion still requires a separate
+accepted decision and full proof-path evidence.
 
 ## Typed effects and opcode migration
 
@@ -131,21 +139,21 @@ full proof-path and performance gates.
 
 ## Guest precompile
 
-| ID | Priority | Task | Depends | Acceptance |
-| --- | --- | --- | --- | --- |
-| C-001 | P0 | Accept guest ABI ADR | H-007 | Explicit extension semantics and failure policy |
-| C-002 | P0 | Accept guest relation/version ADR | C-001, F-006 | Domain separation and multiplicity policy fixed |
-| C-003 | P0 | Implement owned typed call buffer | C-002 | Stable order, duplicates, empty case, allocation failure tests |
-| C-004 | P0 | Implement runner/host invocation boundary | C-003 | Invalid calls reject before mutation; output corpus matches |
-| C-005 | P0 | Add guest Poseidon component registry entry | C-003 | Stable kind/version and verifier construction |
-| C-006 | P0 | Extend statement geometry and artifact identity | C-005 | Call count/columns/log size bound and malformed artifacts reject |
-| C-007 | P0 | Generate guest precompile main trace | C-004, C-006 | Calls map exactly to active rows; padding inactive |
-| C-008 | P0 | Generate shared-challenge relation interactions | C-007 | Source/supply sums close; omission/duplication fail |
-| C-009 | P0 | Prove and independently verify one guest program | C-008 | CPU proof and new-process verifier green |
-| C-010 | P1 | Add Metal component admission | C-009 | Authenticated AOT or reviewed generic path; no CPU fallback |
-| C-011 | P0 | Add native-versus-precompile semantic corpus | C-009 | Same advertised outputs; extension labelled |
-| C-012 | P1 | Add precompile mutation fleet | C-009 | Input, output, mode, multiplicity, padding, count forgeries reject |
-| C-013 | P1 | Benchmark crossover and total work | C-011, C-012 | Complete report under PERFORMANCE.md |
+| ID | Priority | Task | Depends | Acceptance | Status |
+| --- | --- | --- | --- | --- | --- |
+| C-001 | P0 | Accept guest ABI ADR | H-007 | Explicit extension semantics and failure policy | active |
+| C-002 | P0 | Accept guest relation/version ADR | C-001, F-006 | Domain separation and multiplicity policy fixed | queued |
+| C-003 | P0 | Implement owned typed call buffer | C-002 | Stable order, duplicates, empty case, allocation failure tests | queued |
+| C-004 | P0 | Implement runner/host invocation boundary | C-003 | Invalid calls reject before mutation; output corpus matches | queued |
+| C-005 | P0 | Add guest Poseidon component registry entry | C-003 | Stable kind/version and verifier construction | queued |
+| C-006 | P0 | Extend statement geometry and artifact identity | C-005 | Call count/columns/log size bound and malformed artifacts reject | queued |
+| C-007 | P0 | Generate guest precompile main trace | C-004, C-006 | Calls map exactly to active rows; padding inactive | queued |
+| C-008 | P0 | Generate shared-challenge relation interactions | C-007 | Source/supply sums close; omission/duplication fail | queued |
+| C-009 | P0 | Prove and independently verify one guest program | C-008 | CPU proof and new-process verifier green | queued |
+| C-010 | P1 | Add Metal component admission | C-009 | Authenticated AOT or reviewed generic path; no CPU fallback | queued |
+| C-011 | P0 | Add native-versus-precompile semantic corpus | C-009 | Same advertised outputs; extension labelled | queued |
+| C-012 | P1 | Add precompile mutation fleet | C-009 | Input, output, mode, multiplicity, padding, count forgeries reject | queued |
+| C-013 | P1 | Benchmark crossover and total work | C-011, C-012 | Complete report under PERFORMANCE.md | queued |
 
 ## Parallelism and recursion
 

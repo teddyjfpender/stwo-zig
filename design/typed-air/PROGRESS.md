@@ -2,9 +2,9 @@
 
 **Status date:** 2026-08-06
 **Branch:** `feat/typed-air-precompiles`
-**Current milestone:** M4 — Poseidon compiler pilot
-**Active task:** H-010 — benchmark compatibility and proposed layouts
-**Next ready task:** C-001 — guest precompile ABI decision
+**Current milestone:** M6 — guest precompile
+**Active task:** C-001 — guest precompile ABI decision
+**Next ready task:** E-001 — typed program-state effect boundary
 
 ## Dashboard
 
@@ -14,9 +14,9 @@
 | M1 — validated logical IR | complete | F-001 through F-012 complete and green |
 | M2 — shadow compiler | complete | A-001 through A-005 complete and green |
 | M3 — compatibility lowering | blocked | [V-008 evidence](receipts/m3-compatibility-v1.json) recorded; broad proof/formal gates open |
-| M4 — Poseidon compiler pilot | active | H-001 through H-009 and V-006 complete; H-010 active |
-| M5 — effect and witness pilot | queued | Requires typed schemas and lowering |
-| M6 — guest precompile | queued | Requires Poseidon and ABI ADRs |
+| M4 — Poseidon compiler pilot | complete | H-001 through H-010 and V-006 complete; no layout selected |
+| M5 — effect and witness pilot | ready | Shared typed schemas and compatibility lowering are complete |
+| M6 — guest precompile | active | C-001 guest ABI decision active; no extension accepted yet |
 | M7 — parallel proving | queued | Requires working component |
 | M8 — broad migration | queued | Requires vertical opcode ladder |
 | M9 — recursive aggregation | deferred | Requires relation-summary design |
@@ -301,16 +301,33 @@
   eight baseline source-conformance errors, and five stale artifacts detected
   by the refinement pilot after the 120-job Lean build passed. Compatibility
   implementation is complete; M3 release promotion remains blocked.
+- Completed H-010: clean implementation commit
+  `82bf6b9cd5eb1ab48edd6fb7c0c88a3be687e8c6`, tree
+  `8cbb9300fa9b820baa079eeb94addf71db97f130`, authenticates four
+  H-009-derived arms, checked log-10/log-14 vectors and their readable index,
+  one prepared allocation-free retained evaluator, independent expected
+  outputs, all 430 roots, the complete materialization/fixed-role mutation
+  matrix, and strict fresh-child timing/RSS orchestration. Two independently
+  valid complete reports retained locally as ignored evidence contain all 112
+  required children with zero failures, retries, or drops: `v2`, 337,144 bytes
+  with SHA-256
+  `98abdf472818e21e43ff0e3cc3d509598558a6df6c1c215ea789a997fb5bc25d`,
+  and `v3-confirm`, 337,146 bytes with SHA-256
+  `eabeba5d67b26574dbe4246f8924411fe7c1df252452d078688ae6a0bcb5682a`.
+  Candidate-versus-seed movement is not meaningful or repeatable across the
+  two cohorts, so no layout is selected and all proof, Metal-candidate,
+  production, and promotion exclusions remain in force. The
+  [H-010 receipt](receipts/h010-authenticated-poseidon-layout-benchmark-v1.json)
+  names the exact evidence and bounded conclusion.
 
 ## Immediate next actions
 
-1. H-010 — benchmark compatibility and proposed layouts under the pinned
-   performance protocol, including total work and memory rather than wall time
-   alone.
-2. C-001 — prepare the guest precompile ABI decision after the compiler pilot
-   evidence is closed, without silently changing the base RV32IM claim.
-3. E-001 — prepare the typed program-state effect boundary without activating
-   a generated witness or changing the production opcode path.
+1. C-001 — accept or reject an explicit guest precompile ABI and failure policy
+   without silently changing the base RV32IM claim.
+2. C-002 — prepare the guest Poseidon relation/version decision so it can begin
+   immediately after C-001 without pre-empting that ABI authority.
+3. E-001 — prepare the typed program-state effect boundary on the parallel
+   ready track without activating a generated witness or changing production.
 
 No production behavior should change in these tasks.
 
@@ -356,6 +373,10 @@ Accepted:
   an equal structural neighbourhood is a benchmark input rather than an
   activation decision, as fixed by
   [ADR-0020](decisions/0020-cost-frontier-materialization-proposals.md).
+- H-010 closes the authenticated retained-evaluator experiment without
+  selecting a materialization layout. Its two complete default cohorts are
+  diagnostic CPU evidence only; proof, Metal-candidate, production-layout, and
+  promotion authority remain false.
 
 Pending:
 
@@ -383,7 +404,7 @@ Pending:
 | Compiled witness drifts after binding | Executable digest, structural preflight, and independent canonical recompilation |
 | Shadow equality is mistaken for proof evidence | H-007 requires generated artifacts inside CPU/Metal proofs before promotion |
 | Local identity co-attestation is mistaken for protocol binding | V-006 states that the transcript, public statement, proof bytes, and production verifier are unchanged |
-| Structural cost equality is mistaken for measured speed | H-009 records a plateau; H-010 owns backend timing, work, and memory evidence |
+| Noisy microbenchmark movement is mistaken for a layout winner | H-010 has two complete independent cohorts; q0/q100 log-14 witness directions flip within MAD/noise, so no layout is selected |
 
 ## Baseline metrics
 
@@ -406,10 +427,17 @@ eight committed M31 interaction columns. The H-008 426-record report binds this
 surface to the golden SHA-256
 `33eadd080a715fe09d1b3ed3ad8abc18cb35f71e56895e6ac62810a1dfeb0ef2`.
 
+H-010 now adds two complete common-evaluator cohorts at logs 10 and 14. Each
+contains 112 fresh child samples with no failures, retries, or drops. Across
+both reports, candidate witness, direct, and RSS deltas remain small and
+inconsistent; q0/q100 log-14 witness directions reverse between runs. The
+authoritative interpretation is no meaningful repeatable layout regression
+and no selected layout, not a zero-cost or proving-speed claim. Exact ranges
+and report identities are recorded in [PERFORMANCE.md](PERFORMANCE.md).
+
 The following measurements remain assigned to their later owning milestones;
 they are not prerequisites for closing the opcode shadow compiler:
 
-- package/proof durations and CPU/Metal Poseidon timing — H-007/H-010;
 - RISC-V structural workloads and proof crossover measurements — C-013/R-006.
 
 ## Log
@@ -902,7 +930,8 @@ proving-speed, proof-size, or production-activation claim. The clean immutable
 `ee14cc8b9bed1a20dfd8dfce7f6c7f112ccee850`, the complete search and artifact
 identities, the calibrated evaluator boundary, and the unchanged CPU/Metal
 product gates. The calibration leaves the canonical binary and TSV unchanged;
-only the human projection and explanatory sources change. H-010 is active.
+only the human projection and explanatory sources change. At this checkpoint
+H-010 became active; the closure entry below completes it.
 
 ### 2026-08-06 — backend-neutral Poseidon identity co-attested
 
@@ -931,7 +960,60 @@ The [V-006 receipt](receipts/v006-poseidon-program-identity-v1.json) is final
 for this test-only scope. It does not place the identity in the Fiat-Shamir
 transcript, public statement, proof commitment, or production verifier, and
 therefore makes no cryptographic inseparability or production-activation
-claim. H-010 now owns the remaining compiler-pilot performance decision.
+claim. At this checkpoint H-010 owned the remaining compiler-pilot performance
+decision; the closure entry below completes it.
+
+### 2026-08-06 — authenticated Poseidon layout benchmark closed without promotion
+
+H-010 closes the M4 compiler pilot on clean implementation commit
+`82bf6b9cd5eb1ab48edd6fb7c0c88a3be687e8c6`, tree
+`8cbb9300fa9b820baa079eeb94addf71db97f130`. The isolated runner
+authenticates the exact H-009 artifact and four deterministic cuts, checked
+log-10/log-14 `STWAIRB\0` vectors and readable index, fixed program, prepared
+allocation-free retained witness/direct evaluators, independent expected
+outputs, all 430 roots on every admitted row, and the complete 426-cell and
+fixed-role mutation matrix. Candidate trace digests remain regression-only and
+log 18 remains generated, opt-in, and non-receiptable.
+
+Two independently collected reports are valid and complete under declared
+power state `AC/100%/powermode0`. Both use executable SHA-256
+`65cc075bea26b731ce50093cc1fffa06ef7fd2ddb9979370b40f2e9398ab96bf`
+and the 301-source closure SHA-256
+`b23fea8136f4791b60196a2c21b15afad5274e45bd29f672657a992dfc48d983`.
+The locally retained ignored `v2` bytes are 337,144 bytes with SHA-256
+`98abdf472818e21e43ff0e3cc3d509598558a6df6c1c215ea789a997fb5bc25d`;
+`v3-confirm` is 337,146 bytes with SHA-256
+`eabeba5d67b26574dbe4246f8924411fe7c1df252452d078688ae6a0bcb5682a`.
+Each contains all 112 required fresh sample children with zero failures,
+retries, or drops.
+
+In `v2`, candidate-versus-seed log-10 deltas span +0.123% to +1.009% for
+witness, -0.415% to +0.384% for direct, and 0.000% to +0.209% for RSS. Log-14
+deltas span -2.557% to +2.242%, -0.124% to +0.214%, and -0.128% to -0.043%
+respectively. In `v3-confirm`, log-10 spans -1.121% to +0.924%, -0.872% to
++0.940%, and -0.416% to -0.208%; log-14 spans -1.589% to +0.271%, +0.004% to
++0.796%, and +0.043% for every candidate arm. q0 and q100 log-14 witness
+directions flip between runs, and the movement remains within MAD/noise. The
+bounded conclusion is no meaningful repeatable layout regression and no
+selected layout.
+
+Clean reruns pass ReleaseFast and ReleaseSafe frontend suites with 792 of 793
+tests passing and one intentional skip; aggregate, CPU, and Metal product
+closures contain 567, 520, and 577 sources with SHA-256 identities
+`5137a2f7e587f2b80af44950f545ca70e003bdf4de71944aa71f47fba5ac11d0`,
+`a64b61790c33988efc7ad1b5f14b5910b6fe830ff20980a735645b7ba0001ad8`,
+and `e4f0fd05906e062c61030b4ac7d5340c306981c1a441aef58ae501fdc8a507b7`.
+Metal admits 118 authenticated AOT exports. Package workspace checks cover 21
+packages and 70 edges; H-010/isolation Python tests pass 14 of 14 and
+source-conformance unit tests pass 35 of 35. The repository conformance scan
+retains the exact inherited three warnings and eight errors with no H-010
+finding.
+
+The [H-010 receipt](receipts/h010-authenticated-poseidon-layout-benchmark-v1.json)
+records the immutable implementation, both report identities, clean gates, and
+exclusions. Proof, verification, Metal-candidate, production-layout, and
+promotion claims remain false. M4 and H-010 are complete; C-001 is now the sole
+active task and must decide the guest ABI before any precompile implementation.
 
 ## Update protocol
 

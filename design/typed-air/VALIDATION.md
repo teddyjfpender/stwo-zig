@@ -348,8 +348,9 @@ The immutable
 artifact, search, cost-model, product-closure, and regression-gate identities.
 Its structural plateau is negative optimization evidence, not a timing,
 memory, proof-size, global-optimality, or production-activation result. H-010
-must measure the compatibility layout and any retained representative under
-the complete performance vector before any policy decision.
+was therefore required to measure the compatibility layout and retained
+representatives under the complete performance vector before any policy
+decision; the closure below does so without selecting a layout.
 
 H-010 now supplies the isolated validation boundary for that measurement. Its
 closed protocol authenticates the raw H-009 bytes and decoded identities,
@@ -385,7 +386,35 @@ from each fresh child, rotates four arms serially through three warmup and
 eleven measured rounds per default log, retains every value, rejects retries
 and partial cohorts, and writes a new report atomically. This is V1/V2-style
 microbenchmark correctness and resource evidence, not V3 proof-path evidence.
-No clean timing report or H-010 receipt is claimed in this document.
+
+H-010 closes on clean implementation commit
+`82bf6b9cd5eb1ab48edd6fb7c0c88a3be687e8c6`, tree
+`8cbb9300fa9b820baa079eeb94addf71db97f130`. The locally retained
+ignored `v2` report is 337,144 bytes with SHA-256
+`98abdf472818e21e43ff0e3cc3d509598558a6df6c1c215ea789a997fb5bc25d`;
+the independent `v3-confirm` report is 337,146 bytes with SHA-256
+`eabeba5d67b26574dbe4246f8924411fe7c1df252452d078688ae6a0bcb5682a`.
+Both are valid and complete, contain all 112 required sample children, and
+record zero failures, retries, or drops under identical executable,
+source-closure, and `AC/100%/powermode0` identities.
+
+Clean evidence reruns record 792 passing of 793 collected frontend tests with
+one intentional skip in both ReleaseFast and ReleaseSafe; aggregate, CPU, and
+Metal product closures of 567, 520, and 577 sources with respective SHA-256
+digests
+`5137a2f7e587f2b80af44950f545ca70e003bdf4de71944aa71f47fba5ac11d0`,
+`a64b61790c33988efc7ad1b5f14b5910b6fe830ff20980a735645b7ba0001ad8`,
+and `e4f0fd05906e062c61030b4ac7d5340c306981c1a441aef58ae501fdc8a507b7`;
+118 authenticated Metal AOT exports; a 21-package/70-edge workspace; 14 of 14
+H-010/orchestration-isolation Python tests; and 35 of 35 source-conformance unit
+tests. The repository source-conformance command retains exactly its inherited
+three warnings and eight errors and adds no H-010 finding.
+
+The two reports show no meaningful repeatable layout regression and select no
+layout. Proof, verification, Metal-candidate, production-layout, and promotion
+claims remain false. The
+[H-010 receipt](receipts/h010-authenticated-poseidon-layout-benchmark-v1.json)
+names this bounded evidence; it does not alter the V3 or production boundary.
 
 ## Differential design
 
@@ -477,6 +506,12 @@ The first concrete instance is the
 [M3 compatibility receipt](receipts/m3-compatibility-v1.json), which records
 green compatibility and focused proof evidence together with the broad
 prover-core and formal-artifact gates that remain red.
+
+The [H-010 receipt](receipts/h010-authenticated-poseidon-layout-benchmark-v1.json)
+records the clean H-010 implementation tree, both exact locally retained
+report identities, the independently rerun gates, and the no-selection
+conclusion. It does not convert the microbenchmark into proof-path or
+production evidence.
 
 ## Required gates by change class
 

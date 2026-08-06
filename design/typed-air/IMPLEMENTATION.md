@@ -170,11 +170,11 @@ bytes fail closed.
 
 ## Phase 4 — pure Poseidon2 compiler pilot
 
-**Status:** active in the isolated authoring kernel; H-001 through H-009 and
-V-006 are complete, and H-010 is active. Generated artifacts verify in real
-test-only CPU and Metal proofs, the backend-neutral program identity is
-co-attested, and the separate optimized-policy prototype is pinned as a cost
-plateau.
+**Status:** complete in the isolated authoring kernel; H-001 through H-010 and
+V-006 are complete. Generated artifacts verify in real test-only CPU and Metal
+proofs, the backend-neutral program identity is co-attested, and the separate
+optimized-policy prototype is pinned as a cost plateau with no selected
+replacement layout.
 
 Author the M31 Poseidon2 permutation as typed pure functions.
 
@@ -279,8 +279,15 @@ replace the default cohort. The runner does not execute the hash-component
 shell, LogUp, commitments, PCS, proof, verifier, Metal candidate path, or any
 production layout. See
 [ADR-0022](decisions/0022-authenticated-poseidon-layout-benchmark.md). The
-harness is present, but H-010 remains active until its clean default cohort is
-collected and reviewed; no report or receipt is asserted by this plan.
+harness and default cohort are complete at clean commit
+`82bf6b9cd5eb1ab48edd6fb7c0c88a3be687e8c6`, tree
+`8cbb9300fa9b820baa079eeb94addf71db97f130`. Two independently
+valid reports retain all 112 required sample children without failure, retry,
+or drop. Their candidate-versus-seed directions are small, remain within
+MAD/noise, and are not repeatable across runs, so the pilot closes without
+selecting or activating a layout. The
+[H-010 receipt](receipts/h010-authenticated-poseidon-layout-benchmark-v1.json)
+records the exact report identities and exclusions.
 
 **Exit gate:**
 
@@ -350,6 +357,9 @@ that boundary.
 - production proof corpus and formal regeneration pass.
 
 ## Phase 7 — guest Poseidon2 precompile
+
+**Status:** active at C-001; no guest ABI or production extension is accepted
+yet.
 
 Before code, accept ADRs for guest ABI, relation schema, component versioning,
 and base-RV32IM claim language.
