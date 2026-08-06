@@ -3,23 +3,23 @@
   "kind": "stwo-typed-air-task-receipt",
   "milestone": "M4-poseidon-compiler-pilot",
   "task": "H-009",
-  "status": "pending-corrected-clean-snapshot-evidence",
+  "status": "prototype-evidence-recorded-structural-plateau-no-production-activation",
   "recorded_on": "2026-08-06",
   "branch": "feat/typed-air-precompiles",
   "decision": "design/typed-air/decisions/0020-cost-frontier-materialization-proposals.md",
   "receipt_state": {
-    "final": false,
-    "reason": "the structural result is complete, but a precision correction distinguishing the modeled proposal DAG from the production Poseidon evaluator requires a new clean immutable regression snapshot",
+    "final": true,
+    "reason": "the isolated bounded search, corrected evaluator-scope language, complete declared neighbourhood accounting, canonical artifacts, exact structural plateau, product regressions, and proposal-isolation gates are recorded against one clean immutable snapshot",
     "claim_boundary": "final for the H-009 prototype only; no layout is selected or activated and no proving-speed, memory, proof-size, global-optimality, or production claim is made",
     "performance_handoff": "H-010 must measure compatibility and any retained representative under design/typed-air/PERFORMANCE.md before an optimization decision"
   },
   "evidence_snapshot": {
-    "repository_revision": null,
-    "tree": null,
-    "worktree_clean": null,
-    "clean_before_commands": null,
-    "clean_after_commands": null,
-    "method": "pending: rerun every recorded frontend, artifact, CPU, Metal, package, and conformance command against the correction commit before finalizing this later receipt"
+    "repository_revision": "ee14cc8b9bed1a20dfd8dfce7f6c7f112ccee850",
+    "tree": "3ff754ef6eecaa2bdfb8514c92fee7fbd431f1f4",
+    "worktree_clean": true,
+    "clean_before_commands": true,
+    "clean_after_commands": true,
+    "method": "all recorded frontend, artifact, CPU, Metal, package, and conformance commands ran from this exact clean revision and tree before this later receipt-only finalization commit was authored"
   },
   "prerequisite": {
     "task": "H-007",
@@ -360,19 +360,19 @@
   },
   "product_closures": {
     "cpu": {
-      "receipt_sha256": "989412d6c9ccb07c8fa44f3c5b8526316b4c9e72cedf4b1cfb9072927fad86ce",
+      "receipt_sha256": "d74bbac6be1af985689a2c226f4fac6d6d8ec1853f045340b239d6eeec74ed26",
       "manifest_sha256": "056728c78fe104dbd62baa80204458224c4607570178cc202c109a10e886256d",
       "source_count": 507,
-      "source_content_sha256": "9c563cb632dae0e434d6c8a6d227bada03ace8714a6d381e09bbff416a503604",
-      "binary_sha256": "1743c3879ff90d5718124eeea04489230ba59622c3a2b3ff94d5000e251dbae8",
-      "static_x86_64_binary_sha256": "716e4fa88aa47e3056cd6a703e7566db1528f873e1ae33c3b214ccf135f98411"
+      "source_content_sha256": "8fece2d7f245d91da502d8c874b5caa6a142bc0a877355f38f84be1a43cfd95c",
+      "binary_sha256": "e544eba39b308ced37c23e085c69a9e01761208ac67fd5e9c8fa478583cd5710",
+      "static_x86_64_binary_sha256": "7acd02dbfc0d6bfb296f2526a59efcbed7b7fe3dc069b0f78f0bcbb9a05aaf3e"
     },
     "metal": {
-      "receipt_sha256": "ee03109ac983b6bd49745e491e103806f1e5a0ed142982a6846c687a8c1c604e",
+      "receipt_sha256": "d22c61dcf59677300b97b7093c33edd770f48b186ef0a6ea33cc793c5e8a6967",
       "manifest_sha256": "cce9cb892ec35cd8950159c3360beca474ecd13503b4c64698e538345c519a9d",
       "source_count": 564,
-      "source_content_sha256": "53bfec326fc538602eb243da9895e47774e3637803aed7ba2fba972a32258506",
-      "binary_sha256": "434eb07c8fc4ae638136002f03c2b12edef98c8a99ed63e30933cbb86754bf94",
+      "source_content_sha256": "78f1a7158efdec6d5e6cc61d0be5b97b878b4d9eefb44cbee77f7ba0e936722a",
+      "binary_sha256": "e2b15212d2f618d6066202be8f5056565665d64f76cddcce9a488cb9e1dedb92",
       "aot_manifest_sha256": "0c2bd2960707ce5f86ca844e5fac9d43f667297c780e7cdda2ea228915281449",
       "aot_source_sha256": "304911285a54a8089068e755cb457bceacceb3add65e226574ed8abde29c7abc",
       "aot_air_sha256": "c4478d16d30128d7741e9567af6cc62d321ab07228974601a473f434d7dcb9fb",
@@ -381,7 +381,7 @@
       "aot_function_constants": 0
     }
   },
-  "validation_evidence_state": "the observations below are the last clean-snapshot results and define the rerun contract; they are not final evidence for the corrected wording until evidence_snapshot is populated",
+  "validation_evidence_state": "final: every observation below was reproduced against evidence_snapshot with exact HEAD, tree, and empty porcelain before and after",
   "validation": [
     {
       "id": "frontend-release-fast",
@@ -409,6 +409,8 @@
       "id": "typed-air-frontier",
       "command": "zig build typed-air-frontier --build-file src/frontends/riscv/build.zig -Doptimize=ReleaseFast",
       "status": "passed",
+      "build_steps_passed": 3,
+      "build_steps_total": 3,
       "artifacts_checked": 3,
       "search_reexecuted": true,
       "projection_revalidated_against_search": true,
@@ -418,6 +420,8 @@
       "id": "typed-air-manifest",
       "command": "zig build typed-air-manifest --build-file src/frontends/riscv/build.zig -Doptimize=ReleaseFast",
       "status": "passed",
+      "build_steps_passed": 3,
+      "build_steps_total": 3,
       "families_checked": 17
     },
     {
@@ -435,7 +439,9 @@
       "closure": "PASS (564 transitive Zig sources)",
       "authenticated_aot_admitted": true,
       "resident_risc_polynomial_execution_observed": true,
-      "cpu_riscv_polynomial_composition_declines": 0
+      "cpu_riscv_polynomial_composition_declines": 0,
+      "candidate_poseidon_metal_execution": false,
+      "telemetry_boundary": "resident base and lookup counters belong to eligible RISC polynomial components in the whole proof; Poseidon composition and alternative H-009 layouts are not Metal-executed"
     },
     {
       "id": "package-workspace-python",
@@ -490,7 +496,7 @@
     {
       "id": "immutable-snapshot",
       "requirement": "all evidence commands run against one named clean repository revision and tree",
-      "met": false
+      "met": true
     },
     {
       "id": "separate-policy-identity",
@@ -540,7 +546,7 @@
     {
       "id": "regression-gates",
       "requirement": "frontend, artifact, CPU, Metal, and package gates pass and introduce no H-009 source-conformance finding",
-      "met": false
+      "met": true
     },
     {
       "id": "no-activation",

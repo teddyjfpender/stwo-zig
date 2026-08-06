@@ -899,8 +899,10 @@ as a prototype and negative structural result. Exact proposal-consumer
 isolation is enforced by source conformance. It makes no global-optimality,
 proving-speed, proof-size, or production-activation claim. The clean immutable
 [H-009 receipt](receipts/h009-poseidon2-cost-frontier-v1.json) pins commit
-`4a020b85a5b0c5c566c2e09cbec5cf083753e3e7`, the complete search and artifact
-identities, and the unchanged CPU/Metal product gates. H-010 is active.
+`ee14cc8b9bed1a20dfd8dfce7f6c7f112ccee850`, the complete search and artifact
+identities, the calibrated evaluator boundary, and the unchanged CPU/Metal
+product gates. The calibration leaves the canonical binary and TSV unchanged;
+only the human projection and explanatory sources change. H-010 is active.
 
 ### 2026-08-06 — backend-neutral Poseidon identity co-attested
 
