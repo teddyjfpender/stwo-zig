@@ -13,7 +13,8 @@
     "stwo_prover_engine": "../../prover"
   },
   "injected_modules": [
-    "typed_air_artifacts"
+    "typed_air_artifacts",
+    "typed_air_h009_artifacts"
   ],
   "api_surface": [
     "Cpu",

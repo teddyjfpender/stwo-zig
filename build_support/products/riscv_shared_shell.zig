@@ -124,13 +124,20 @@ pub const Binding = struct {
             self.target,
             self.optimize,
         );
-        // Three compatibility tests consume the checked-in typed-AIR fixtures
-        // through a generated module name. Keep that design-time dependency on
-        // this fresh test root: neither the product's frontend module nor any
-        // production executable receives the import.
+        // Compatibility and H-009 tests consume checked-in typed-AIR fixtures
+        // through separate generated module names. Keep those design-time
+        // dependencies on this fresh test root: neither the product's frontend
+        // module nor any production executable receives either import.
         frontend.addImport("typed_air_artifacts", self.b.createModule(.{
             .root_source_file = self.b.path(
                 "design/typed-air/artifacts/embedded.zig",
+            ),
+            .target = self.target,
+            .optimize = self.optimize,
+        }));
+        frontend.addImport("typed_air_h009_artifacts", self.b.createModule(.{
+            .root_source_file = self.b.path(
+                "design/typed-air/artifacts/h009_embedded.zig",
             ),
             .target = self.target,
             .optimize = self.optimize,
