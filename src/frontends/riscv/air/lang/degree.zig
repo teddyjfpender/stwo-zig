@@ -93,6 +93,14 @@ pub fn analyze(
                     value_degrees[types.idIndex(selection.when_false)],
                 ),
             ),
+            .machine_derived => |derived| switch (derived) {
+                .register_address => |address| value_degrees[types.idIndex(address.index)],
+                .access_clock => |clock| value_degrees[types.idIndex(clock.instruction_clock)],
+                .strict_clock_gap => |gap| @max(
+                    value_degrees[types.idIndex(gap.current_clock)],
+                    value_degrees[types.idIndex(gap.previous_clock)],
+                ),
+            },
         };
     }
 

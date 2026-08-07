@@ -1,9 +1,74 @@
 const std = @import("std");
+const digest = @import("digest.zig");
+const effects = @import("effects.zig");
 const ir = @import("ir.zig");
 const materializer = @import("degree3_materializer.zig");
+const materialization_identity = @import("degree3_materializer_identity.zig");
 const poseidon = @import("typed_poseidon2.zig");
 const source = @import("source.zig");
 const types = @import("types.zig");
+
+test "machine-derived affine nodes retain degree and source identity" {
+    var arena = ir.Arena.init(std.testing.allocator);
+    defer arena.deinit();
+    const generated = source.SourceSpan.generated();
+    const instruction_clock = try arena.input("clock", .clock, generated);
+    const previous_clock = try arena.input("previous_clock", .clock, generated);
+    const active = try arena.input("active", .bit, generated);
+    const register = try arena.input("register", .register_index, generated);
+    const value = try arena.constantUnsigned(.byte, 0, generated);
+    var schedule = try effects.AccessSchedule.begin(
+        &arena,
+        instruction_clock,
+        active,
+        generated,
+    );
+    const group = try schedule.registerRead(.{
+        .index = register,
+        .previous_clock = previous_clock,
+        .value = .{ value, value, value, value },
+    }, generated);
+    const current_clock = arena.effectValues(group.emit).?[2];
+    const gap = arena.effectValues(group.clock_gap).?[0];
+    var result = try materializer.plan(std.testing.allocator, &arena, .{
+        .roots = &.{ current_clock, gap },
+        .gate = null,
+    });
+    defer result.deinit();
+
+    try std.testing.expectEqual(
+        digest.register_group_format_version,
+        result.program_digest_format,
+    );
+    try std.testing.expectEqual(@as(usize, 2), result.materializations.len);
+    try std.testing.expectEqual(current_clock, result.materializations[0].source_value);
+    try std.testing.expectEqual(
+        materializer.SourceOp.access_clock,
+        result.materializations[0].source_op,
+    );
+    try std.testing.expectEqual(gap, result.materializations[1].source_value);
+    try std.testing.expectEqual(
+        materializer.SourceOp.strict_clock_gap,
+        result.materializations[1].source_op,
+    );
+    for (result.materializations) |item| {
+        try std.testing.expectEqual(@as(materializer.Degree, 1), item.body_degree);
+        try std.testing.expectEqual(@as(materializer.Degree, 1), item.equality_degree);
+    }
+    try std.testing.expectEqual(@as(usize, 0), result.dependenciesFor(@enumFromInt(0)).?.len);
+    try std.testing.expectEqualSlices(
+        materializer.MaterializationId,
+        &.{@as(materializer.MaterializationId, @enumFromInt(0))},
+        result.dependenciesFor(@enumFromInt(1)).?,
+    );
+    try result.validate(std.testing.allocator, &arena);
+    result.program_digest_format = digest.typed_effect_format_version;
+    try std.testing.expectError(
+        error.ProgramDigestMismatch,
+        result.validate(std.testing.allocator, &arena),
+    );
+    result.program_digest_format = digest.register_group_format_version;
+}
 
 test "degree-three materializer cuts a gated product deterministically" {
     var arena = ir.Arena.init(std.testing.allocator);
@@ -23,6 +88,7 @@ test "degree-three materializer cuts a gated product deterministically" {
     defer result.deinit();
     try result.validate(std.testing.allocator, &arena);
 
+    try std.testing.expectEqual(digest.format_version, result.program_digest_format);
     try std.testing.expectEqualStrings(
         "stwo.typed-air.materialize.degree-bounded-v1",
         materializer.policy_id,
@@ -52,6 +118,23 @@ test "degree-three materializer cuts a gated product deterministically" {
         result.materializations[0].stable_name.slice(),
         "air.mat.v1.mul.generated.",
     ));
+    const legacy_fingerprint = materialization_identity.fingerprint(
+        result.program_digest,
+        product,
+        gate,
+        result.policy,
+    );
+    try std.testing.expectEqual(
+        legacy_fingerprint,
+        try materialization_identity.fingerprintForIdentity(
+            result.program_digest_format,
+            result.program_digest,
+            product,
+            gate,
+            result.policy,
+        ),
+    );
+    try std.testing.expectEqual(legacy_fingerprint, result.materializations[0].fingerprint);
 }
 
 test "degree-three materializer derives the exact Poseidon compatibility schedule" {
@@ -118,6 +201,7 @@ test "materialization allocation and names replay identically in clean arenas" {
     var second = try second_fixture.makePlan(std.testing.allocator);
     defer second.deinit();
 
+    try std.testing.expectEqual(first.program_digest_format, second.program_digest_format);
     try std.testing.expectEqual(first.program_digest, second.program_digest);
     try std.testing.expectEqualSlices(
         materializer.Materialization,

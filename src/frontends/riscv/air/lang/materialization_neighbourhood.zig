@@ -156,13 +156,22 @@ fn operands(op: expr.Op) [3]?types.ValueId {
             selection.when_true,
             selection.when_false,
         },
+        .machine_derived => |derived| switch (derived) {
+            .register_address => |address| .{ address.index, null, null },
+            .access_clock => |clock| .{ clock.instruction_clock, null, null },
+            .strict_clock_gap => |gap| .{
+                gap.current_clock,
+                gap.previous_clock,
+                null,
+            },
+        },
     };
 }
 
 fn isDerivedScalar(node: expr.Node) bool {
     if (!node.key.ty.isFieldScalar()) return false;
     return switch (node.key.op) {
-        .add, .sub, .mul, .neg, .select => true,
+        .add, .sub, .mul, .neg, .select, .machine_derived => true,
         else => false,
     };
 }

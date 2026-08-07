@@ -469,7 +469,7 @@ fn evaluateNodes(
                 values[types.idIndex(selection.when_true)]
             else
                 values[types.idIndex(selection.when_false)],
-            .hint_output, .call_output => return error.UnsupportedPoseidonNode,
+            .hint_output, .call_output, .machine_derived => return error.UnsupportedPoseidonNode,
         };
     }
     return values;

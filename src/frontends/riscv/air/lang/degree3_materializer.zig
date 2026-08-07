@@ -81,11 +81,13 @@ pub const ValidationError = error{
     ProgramDigestMismatch,
     UnsupportedGateExpression,
 };
-pub const Error = std.mem.Allocator.Error || validator.Error || ValidationError;
+pub const Error = std.mem.Allocator.Error || validator.Error ||
+    identity.IdentityError || ValidationError;
 
 /// Owned policy result. It borrows no arena memory.
 pub const Plan = struct {
     allocator: std.mem.Allocator,
+    program_digest_format: u16,
     program_digest: digest.Digest,
     gate: ?types.ValueId,
     policy: Policy,
@@ -117,9 +119,12 @@ pub const Plan = struct {
         arena: *const ir.Arena,
     ) Error!void {
         try validator.validate(arena);
-        const actual_digest = try digest.compute(arena);
-        if (!std.mem.eql(u8, &self.program_digest, &actual_digest))
+        const actual_identity = try digest.computeIdentity(arena);
+        if (self.program_digest_format != actual_identity.format_version or
+            !std.mem.eql(u8, &self.program_digest, &actual_identity.bytes))
+        {
             return error.ProgramDigestMismatch;
+        }
         const context_degree = try validateContext(arena, self.gate, self.policy);
         if (self.outputs.len == 0) return error.EmptyRoots;
         if (self.materializations.len == 0) return error.InvalidOutput;
@@ -200,7 +205,8 @@ pub const Plan = struct {
             else
                 .degree;
             if (item.reason != expected_reason) return error.InvalidMaterialization;
-            const expected_fingerprint = identity.fingerprint(
+            const expected_fingerprint = try identity.fingerprintForIdentity(
+                self.program_digest_format,
                 self.program_digest,
                 item.source_value,
                 self.gate,
@@ -269,7 +275,7 @@ pub fn plan(
 ) Error!Plan {
     try validator.validate(arena);
     if (request.roots.len == 0) return error.EmptyRoots;
-    const program_digest = try digest.compute(arena);
+    const program_identity = try digest.computeIdentity(arena);
     const context_degree = try validateContext(arena, request.gate, request.policy);
     const body_limit = request.policy.maximum_constraint_degree - context_degree;
     const node_count = arena.nodeCount();
@@ -360,8 +366,9 @@ pub fn plan(
         );
         const dependency_len = dependencies.items.len - dependency_start;
         const node = arena.node(value).?;
-        const fingerprint = identity.fingerprint(
-            program_digest,
+        const fingerprint = try identity.fingerprintForIdentity(
+            program_identity.format_version,
+            program_identity.bytes,
             value,
             request.gate,
             request.policy,
@@ -401,7 +408,8 @@ pub fn plan(
     const owned_dependencies = try dependencies.toOwnedSlice(allocator);
     var result = Plan{
         .allocator = allocator,
-        .program_digest = program_digest,
+        .program_digest_format = program_identity.format_version,
+        .program_digest = program_identity.bytes,
         .gate = request.gate,
         .policy = request.policy,
         .materializations = materializations,
@@ -450,7 +458,7 @@ const Selector = struct {
             );
             if (self.degrees[types.idIndex(value)] <= self.body_limit) continue;
             switch (self.arena.node(value).?.key.op) {
-                .add, .sub, .neg => continue,
+                .add, .sub, .neg, .machine_derived => continue,
                 .select => if (candidate_was_over) continue,
                 else => {},
             }
@@ -490,6 +498,20 @@ fn chooseOperand(
                 candidates[1] = selection.when_true;
             if (degreeOf(degrees, selection.when_false) == branch_max)
                 candidates[2] = selection.when_false;
+        },
+        .machine_derived => |derived| switch (derived) {
+            .register_address => |address| candidates[0] = address.index,
+            .access_clock => |clock| candidates[0] = clock.instruction_clock,
+            .strict_clock_gap => |gap| {
+                const maximum = @max(
+                    degreeOf(degrees, gap.current_clock),
+                    degreeOf(degrees, gap.previous_clock),
+                );
+                if (degreeOf(degrees, gap.current_clock) == maximum)
+                    candidates[0] = gap.current_clock;
+                if (degreeOf(degrees, gap.previous_clock) == maximum)
+                    candidates[1] = gap.previous_clock;
+            },
         },
         .constant, .input, .hint_output, .call_output => return null,
     }
@@ -611,6 +633,14 @@ fn computeDegrees(
                     degreeOf(degrees, selection.when_false),
                 ),
             ),
+            .machine_derived => |derived| switch (derived) {
+                .register_address => |address| degreeOf(degrees, address.index),
+                .access_clock => |clock| degreeOf(degrees, clock.instruction_clock),
+                .strict_clock_gap => |gap| @max(
+                    degreeOf(degrees, gap.current_clock),
+                    degreeOf(degrees, gap.previous_clock),
+                ),
+            },
         };
     }
 }
@@ -745,6 +775,15 @@ fn operands(op: expr.Op) [3]?types.ValueId {
             selection.selector,
             selection.when_true,
             selection.when_false,
+        },
+        .machine_derived => |derived| switch (derived) {
+            .register_address => |address| .{ address.index, null, null },
+            .access_clock => |clock| .{ clock.instruction_clock, null, null },
+            .strict_clock_gap => |gap| .{
+                gap.current_clock,
+                gap.previous_clock,
+                null,
+            },
         },
     };
 }

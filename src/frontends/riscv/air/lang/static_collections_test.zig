@@ -488,6 +488,18 @@ fn evaluate(arena: *const ir.Arena, root: types.ValueId) !u32 {
                 values[types.idIndex(selection.when_true)]
             else
                 values[types.idIndex(selection.when_false)],
+            .machine_derived => |derived| switch (derived) {
+                .register_address => |address| values[types.idIndex(address.index)],
+                .access_clock => |clock| reduce(
+                    (@as(u64, values[types.idIndex(clock.instruction_clock)]) +
+                        modulus - 1) * 4 + @intFromEnum(clock.ordinal),
+                ),
+                .strict_clock_gap => |gap| reduce(
+                    @as(u64, values[types.idIndex(gap.current_clock)]) +
+                        modulus - values[types.idIndex(gap.previous_clock)] +
+                        modulus - 1,
+                ),
+            },
             .input, .hint_output, .call_output => return error.NotConcrete,
         };
     }

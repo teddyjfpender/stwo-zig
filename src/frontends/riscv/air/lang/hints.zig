@@ -262,6 +262,12 @@ fn directlyUses(op: expr.Op, dependency: types.ValueId) bool {
         .select => |selection| selection.selector == dependency or
             selection.when_true == dependency or
             selection.when_false == dependency,
+        .machine_derived => |derived| switch (derived) {
+            .register_address => |address| address.index == dependency,
+            .access_clock => |clock| clock.instruction_clock == dependency,
+            .strict_clock_gap => |gap| gap.current_clock == dependency or
+                gap.previous_clock == dependency,
+        },
         .constant, .input, .hint_output, .call_output => false,
     };
 }

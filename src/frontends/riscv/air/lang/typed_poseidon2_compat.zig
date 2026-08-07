@@ -488,6 +488,8 @@ fn validatePlanEnvelope(
     definition: poseidon.Definition,
     plan_value: *const materializer.Plan,
 ) (materializer.Error || BindingError)!types.ValueId {
+    if (plan_value.program_digest_format != digest.format_version)
+        return error.ProgramDigestMismatch;
     if (plan_value.policy.maximum_constraint_degree != MAXIMUM_CONSTRAINT_DEGREE or
         plan_value.policy.row_mask_degree != 0)
     {

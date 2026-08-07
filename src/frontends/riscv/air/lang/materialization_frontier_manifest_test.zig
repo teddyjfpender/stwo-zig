@@ -1,4 +1,6 @@
 const std = @import("std");
+const digest = @import("digest.zig");
+const frontier_digest = @import("materialization_frontier_digest.zig");
 const manifest = @import("materialization_frontier_manifest.zig");
 const test_support = @import("materialization_frontier_manifest_test_support.zig");
 
@@ -55,6 +57,53 @@ test "ordered roots, u64 policy degrees, and search digests preserve authority" 
     );
     try std.testing.expectEqualSlices(u8, &expected_cut, &fixture.baseline.cut_digest);
     try std.testing.expectEqualSlices(u8, &expected_proposal, &fixture.baseline.proposal_digest);
+
+    const legacy_via_versioned_api = try frontier_digest.computeCutForIdentity(
+        digest.format_version,
+        fixture.identity.semantic_digest,
+        fixture.identity.seed_policy_version,
+        fixture.identity.gate,
+        fixture.identity.maximum_constraint_degree,
+        fixture.identity.row_mask_degree,
+        fixture.identity.roots,
+        fixture.baseline.selected_values,
+    );
+    try std.testing.expectEqualSlices(u8, &expected_cut, &legacy_via_versioned_api);
+    const typed_effect_cut = try frontier_digest.computeCutForIdentity(
+        digest.typed_effect_format_version,
+        fixture.identity.semantic_digest,
+        fixture.identity.seed_policy_version,
+        fixture.identity.gate,
+        fixture.identity.maximum_constraint_degree,
+        fixture.identity.row_mask_degree,
+        fixture.identity.roots,
+        fixture.baseline.selected_values,
+    );
+    const register_group_cut = try frontier_digest.computeCutForIdentity(
+        digest.register_group_format_version,
+        fixture.identity.semantic_digest,
+        fixture.identity.seed_policy_version,
+        fixture.identity.gate,
+        fixture.identity.maximum_constraint_degree,
+        fixture.identity.row_mask_degree,
+        fixture.identity.roots,
+        fixture.baseline.selected_values,
+    );
+    try std.testing.expect(!std.mem.eql(u8, &expected_cut, &typed_effect_cut));
+    try std.testing.expect(!std.mem.eql(u8, &typed_effect_cut, &register_group_cut));
+    try std.testing.expectError(
+        error.UnsupportedSemanticDigestFormat,
+        frontier_digest.computeCutForIdentity(
+            0,
+            fixture.identity.semantic_digest,
+            fixture.identity.seed_policy_version,
+            fixture.identity.gate,
+            fixture.identity.maximum_constraint_degree,
+            fixture.identity.row_mask_degree,
+            fixture.identity.roots,
+            fixture.baseline.selected_values,
+        ),
+    );
 
     std.mem.swap(u32, &fixture.roots[0], &fixture.roots[1]);
     fixture.identity.maximum_constraint_degree = 1_000;

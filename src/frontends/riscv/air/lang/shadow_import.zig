@@ -197,7 +197,7 @@ pub const Imported = struct {
                         selector.mul(when_true.sub(when_false)),
                     );
                 },
-                .hint_output, .call_output => return error.UnsupportedReplayNode,
+                .hint_output, .call_output, .machine_derived => return error.UnsupportedReplayNode,
             };
         }
     }

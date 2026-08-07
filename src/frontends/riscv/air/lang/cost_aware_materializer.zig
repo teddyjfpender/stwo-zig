@@ -166,7 +166,7 @@ pub const Result = struct {
         defer expected_cut.deinit();
         const model = try costModelIdentity(allocator, config);
         const model_digest = frontier_digest.computeCostModel(model);
-        const expected_config_digest = configurationDigestWithModel(
+        const expected_config_digest = try configurationDigestWithModel(
             &expected_cut,
             config,
             model_digest,
@@ -245,6 +245,7 @@ pub const Error = std.mem.Allocator.Error ||
     cut_set.Error ||
     cost.Error ||
     materializer.Error ||
+    frontier_digest.IdentityError ||
     ValidationError;
 
 const Stored = struct {
@@ -266,7 +267,7 @@ pub fn search(
     errdefer if (baseline_cut_owned) baseline_cut.deinit();
     const model = try costModelIdentity(allocator, config);
     const model_digest = frontier_digest.computeCostModel(model);
-    const configuration_digest = configurationDigestWithModel(
+    const configuration_digest = try configurationDigestWithModel(
         &baseline_cut,
         config,
         model_digest,
@@ -357,7 +358,7 @@ pub fn search(
                 };
                 var candidate_cut_owned = true;
                 errdefer if (candidate_cut_owned) candidate_cut.deinit();
-                const candidate_digest = cutDigest(&candidate_cut);
+                const candidate_digest = try cutDigest(&candidate_cut);
                 if (seen.contains(candidate_digest)) {
                     duplicates = try increment(duplicates);
                     candidate_cut.deinit();
@@ -493,10 +494,11 @@ fn configurationDigestWithModel(
     cut: *const cut_set.CutSet,
     config: SearchConfig,
     model_digest: digest.Digest,
-) digest.Digest {
-    return frontier_digest.computeConfiguration(
+) frontier_digest.IdentityError!digest.Digest {
+    return frontier_digest.computeConfigurationForIdentity(
+        cut.program_digest_format,
         cut.program_digest,
-        cutDigest(cut),
+        try cutDigest(cut),
         policy_id,
         policy_version,
         model_digest,
@@ -506,8 +508,11 @@ fn configurationDigestWithModel(
     );
 }
 
-pub fn cutDigest(cut: *const cut_set.CutSet) digest.Digest {
-    return frontier_digest.computeCut(
+pub fn cutDigest(
+    cut: *const cut_set.CutSet,
+) frontier_digest.IdentityError!digest.Digest {
+    return frontier_digest.computeCutForIdentity(
+        cut.program_digest_format,
         cut.program_digest,
         materializer.policy_version,
         if (cut.gate) |gate| @intFromEnum(gate) else null,
@@ -539,7 +544,7 @@ fn makeProposal(
     model_digest: digest.Digest,
     provenance: Provenance,
 ) Error!Proposal {
-    const candidate_digest = cutDigest(&candidate_cut);
+    const candidate_digest = try cutDigest(&candidate_cut);
     var report = try cost.analyze(allocator, arena, .{
         .roots = candidate_cut.roots,
         .gate = candidate_cut.gate,
@@ -571,7 +576,7 @@ fn validateProposal(
         .gate = proposal.cut.gate,
         .policy = proposal.cut.policy,
     });
-    const expected_cut_digest = cutDigest(&proposal.cut);
+    const expected_cut_digest = try cutDigest(&proposal.cut);
     if (!std.mem.eql(u8, &proposal.cut_digest, &expected_cut_digest))
         return error.DigestMismatch;
     var expected_report = try cost.analyze(allocator, arena, .{
@@ -600,7 +605,8 @@ fn sameAuthority(lhs: *const cut_set.CutSet, rhs: *const cut_set.CutSet) bool {
 }
 
 fn sameRequest(lhs: *const cut_set.CutSet, rhs: *const cut_set.CutSet) bool {
-    return std.mem.eql(u8, &lhs.program_digest, &rhs.program_digest) and
+    return lhs.program_digest_format == rhs.program_digest_format and
+        std.mem.eql(u8, &lhs.program_digest, &rhs.program_digest) and
         lhs.gate == rhs.gate and
         std.meta.eql(lhs.policy, rhs.policy) and
         std.mem.eql(types.ValueId, lhs.roots, rhs.roots);

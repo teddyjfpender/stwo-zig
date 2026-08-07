@@ -430,6 +430,14 @@ fn markOperands(flags: []bool, op: expr.Op) void {
             flags[types.idIndex(selection.when_true)] = true;
             flags[types.idIndex(selection.when_false)] = true;
         },
+        .machine_derived => |derived| switch (derived) {
+            .register_address => |address| flags[types.idIndex(address.index)] = true,
+            .access_clock => |clock| flags[types.idIndex(clock.instruction_clock)] = true,
+            .strict_clock_gap => |gap| {
+                flags[types.idIndex(gap.current_clock)] = true;
+                flags[types.idIndex(gap.previous_clock)] = true;
+            },
+        },
     }
 }
 
@@ -469,6 +477,14 @@ fn computeDegrees(
                     degrees[types.idIndex(selection.when_false)],
                 ),
             ) catch return error.DegreeOverflow,
+            .machine_derived => |derived| switch (derived) {
+                .register_address => |address| degrees[types.idIndex(address.index)],
+                .access_clock => |clock| degrees[types.idIndex(clock.instruction_clock)],
+                .strict_clock_gap => |gap| @max(
+                    degrees[types.idIndex(gap.current_clock)],
+                    degrees[types.idIndex(gap.previous_clock)],
+                ),
+            },
         };
     }
 }

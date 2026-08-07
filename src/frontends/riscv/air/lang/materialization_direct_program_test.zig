@@ -2,6 +2,7 @@ const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const cost = @import("materialization_cost.zig");
 const direct_program = @import("materialization_direct_program.zig");
+const effects = @import("effects.zig");
 const fixed = @import("materialization_fixed_direct.zig");
 const ir = @import("ir.zig");
 const materializer = @import("degree3_materializer.zig");
@@ -9,6 +10,80 @@ const poseidon = @import("typed_poseidon2.zig");
 const poseidon_fixed = @import("typed_poseidon2_fixed_direct.zig");
 const source = @import("source.zig");
 const types = @import("types.zig");
+
+test "machine-derived access clock and strict gap lower as affine direct nodes" {
+    var arena = ir.Arena.init(std.testing.allocator);
+    defer arena.deinit();
+    const generated = source.SourceSpan.generated();
+    const instruction_clock = try arena.input("clock", .clock, generated);
+    const previous_clock = try arena.input("previous_clock", .clock, generated);
+    const active = try arena.input("active", .bit, generated);
+    const first_register = try arena.input("first_register", .register_index, generated);
+    const second_register = try arena.input("second_register", .register_index, generated);
+    const zero_byte = try arena.constantUnsigned(.byte, 0, generated);
+    const word = [_]types.ValueId{zero_byte} ** 4;
+    var schedule = try effects.AccessSchedule.begin(
+        &arena,
+        instruction_clock,
+        active,
+        generated,
+    );
+    _ = try schedule.registerRead(.{
+        .index = first_register,
+        .previous_clock = previous_clock,
+        .value = word,
+    }, generated);
+    const second = try schedule.registerRead(.{
+        .index = second_register,
+        .previous_clock = previous_clock,
+        .value = word,
+    }, generated);
+    const gap = arena.effectValues(second.clock_gap).?[0];
+
+    var program = try direct_program.extract(std.testing.allocator, &arena, .{
+        .gate = null,
+        .selected = &.{gap},
+        .materialization_column_start = 0,
+    });
+    defer program.deinit();
+
+    try std.testing.expectEqual(@as(u64, 12), program.counts.nodes);
+    try std.testing.expectEqual(@as(u64, 1), program.counts.additions);
+    try std.testing.expectEqual(@as(u64, 4), program.counts.subtractions);
+    try std.testing.expectEqual(@as(u64, 1), program.counts.multiplications);
+    try std.testing.expectEqual(@as(u64, 3), program.counts.unique_committed_column_reads);
+
+    const values = try std.testing.allocator.alloc(m31.M31, program.nodes().len);
+    defer std.testing.allocator.free(values);
+    const materialized_namespace = @as(u64, 1) << 63;
+    const clock_value: u32 = 8;
+    const previous_value: u32 = 29;
+    const expected_gap = m31.M31.fromCanonical(
+        4 * (clock_value - 1) + @intFromEnum(types.AccessOrdinal.second) -
+            previous_value - 1,
+    );
+    for (program.nodes(), values) |node, *value| {
+        value.* = switch (node.op) {
+            .constant => m31.M31.fromU64(node.value),
+            .committed => blk: {
+                if ((node.value & materialized_namespace) != 0)
+                    break :blk expected_gap;
+                const source_value: types.ValueId = @enumFromInt(@as(u32, @intCast(node.value)));
+                if (source_value == instruction_clock)
+                    break :blk m31.M31.fromCanonical(clock_value);
+                if (source_value == previous_clock)
+                    break :blk m31.M31.fromCanonical(previous_value);
+                return error.UnexpectedCommittedValue;
+            },
+            .add => values[node.lhs].add(values[node.rhs]),
+            .sub => values[node.lhs].sub(values[node.rhs]),
+            .mul => values[node.lhs].mul(values[node.rhs]),
+            .neg => values[node.lhs].neg(),
+            .fixed_committed, .row_mask => return error.UnexpectedDirectNode,
+        };
+    }
+    try std.testing.expect(values[program.roots()[0].node].isZero());
+}
 
 test "canonical Poseidon direct program owns the exact H-009 DAG and layout" {
     var fixture = try PoseidonFixture.init(std.testing.allocator);

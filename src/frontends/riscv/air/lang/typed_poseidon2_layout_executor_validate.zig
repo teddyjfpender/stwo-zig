@@ -7,6 +7,7 @@ const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const compat = @import("typed_poseidon2_compat.zig");
 const cut_set = @import("materialization_cut_set.zig");
+const digest = @import("digest.zig");
 const fixed_cost = @import("typed_poseidon2_fixed_direct.zig");
 const frontier = @import("materialization_frontier_manifest.zig");
 const ir = @import("ir.zig");
@@ -68,6 +69,7 @@ pub fn validateProposalCut(
 ) ConstructionError!void {
     if (proposal_cut.values.len != N_MATERIALIZATIONS or
         proposal.selected_values.len != proposal_cut.values.len or
+        proposal_cut.program_digest_format != digest.format_version or
         !std.mem.eql(u8, &proposal_cut.program_digest, &manifest.identity.semantic_digest) or
         manifest.identity.gate != (if (proposal_cut.gate) |gate|
             @intFromEnum(gate)
@@ -86,7 +88,8 @@ pub fn validateProposalCut(
     for (proposal_cut.values, proposal.selected_values) |value, raw| {
         if (@intFromEnum(value) != raw) return error.ProposalMismatch;
     }
-    const canonical_cut_digest = search.cutDigest(proposal_cut);
+    const canonical_cut_digest = search.cutDigest(proposal_cut) catch
+        return error.ProposalMismatch;
     if (!std.mem.eql(u8, &canonical_cut_digest, &proposal.cut_digest))
         return error.ProposalMismatch;
 }
@@ -140,7 +143,7 @@ pub fn compileSelectedSlots(
                 try markReachable(reachable, reverse, selection.when_true);
                 try markReachable(reachable, reverse, selection.when_false);
             },
-            .hint_output, .call_output => return error.InstructionClosureMismatch,
+            .hint_output, .call_output, .machine_derived => return error.InstructionClosureMismatch,
         }
     }
 

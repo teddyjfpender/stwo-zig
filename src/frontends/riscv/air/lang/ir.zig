@@ -19,6 +19,7 @@ pub const NodeError = error{
     BranchTypeMismatch,
     ConstantOutOfRange,
     InputTypeConflict,
+    InvalidMachineDerivedOperand,
     InvalidSelectorType,
     NonCanonicalFieldConstant,
     NonFieldOperand,
@@ -347,6 +348,93 @@ pub const Arena = struct {
         }, span);
     }
 
+    /// Inject a range-constrained register index into memory-address space.
+    /// The field polynomial is unchanged; the closed operation records why the
+    /// semantic type refinement is sound.
+    pub fn registerAddress(
+        self: *Arena,
+        index: types.ValueId,
+        span: source_mod.SourceSpan,
+    ) Error!types.ValueId {
+        const index_node = self.node(index) orelse return error.UnknownValue;
+        if (!std.meta.eql(index_node.key.ty, types.Type.register_index))
+            return error.InvalidMachineDerivedOperand;
+        return self.internNode(.{
+            .ty = .address,
+            .op = .{ .machine_derived = .{
+                .register_address = .{ .index = index },
+            } },
+        }, span);
+    }
+
+    /// Derive `4 * (instruction_clock - 1) + ordinal` for one of the three
+    /// protocol access positions. The ordinal is one-based by construction.
+    pub fn accessClock(
+        self: *Arena,
+        instruction_clock: types.ValueId,
+        ordinal: types.AccessOrdinal,
+        span: source_mod.SourceSpan,
+    ) Error!types.ValueId {
+        const clock_node = self.node(instruction_clock) orelse
+            return error.UnknownValue;
+        if (!std.meta.eql(clock_node.key.ty, types.Type.clock))
+            return error.InvalidMachineDerivedOperand;
+        return self.internNode(.{
+            .ty = .clock,
+            .op = .{ .machine_derived = .{
+                .access_clock = .{
+                    .instruction_clock = instruction_clock,
+                    .ordinal = ordinal,
+                },
+            } },
+        }, span);
+    }
+
+    /// Derive the strict predecessor gap `current - previous - 1`.
+    ///
+    /// The `.uint20` result is valid only inside the register-access group
+    /// whose adjacent range request is checked by whole-program validation.
+    pub fn strictClockGap(
+        self: *Arena,
+        current_clock: types.ValueId,
+        previous_clock: types.ValueId,
+        active: types.ValueId,
+        ordinal: types.AccessOrdinal,
+        span: source_mod.SourceSpan,
+    ) Error!types.ValueId {
+        const current_node = self.node(current_clock) orelse
+            return error.UnknownValue;
+        const previous_node = self.node(previous_clock) orelse
+            return error.UnknownValue;
+        const active_node = self.node(active) orelse return error.UnknownValue;
+        if (!std.meta.eql(current_node.key.ty, types.Type.clock) or
+            !std.meta.eql(previous_node.key.ty, types.Type.clock) or
+            !active_node.key.ty.isSelector())
+        {
+            return error.InvalidMachineDerivedOperand;
+        }
+        const current = switch (current_node.key.op) {
+            .machine_derived => |derived| switch (derived) {
+                .access_clock => |clock| clock,
+                else => return error.InvalidMachineDerivedOperand,
+            },
+            else => return error.InvalidMachineDerivedOperand,
+        };
+        if (current.ordinal != ordinal)
+            return error.InvalidMachineDerivedOperand;
+        return self.internNode(.{
+            .ty = .uint20,
+            .op = .{ .machine_derived = .{
+                .strict_clock_gap = .{
+                    .current_clock = current_clock,
+                    .previous_clock = previous_clock,
+                    .active = active,
+                    .ordinal = ordinal,
+                },
+            } },
+        }, span);
+    }
+
     pub fn assertZero(
         self: *Arena,
         stable_name: []const u8,
@@ -488,6 +576,18 @@ pub const Arena = struct {
             .effects_len = self.effects.items.len,
             .values_len = self.effect_values.items.len,
         };
+    }
+
+    /// Reserve both contiguous effect pools before an atomic semantic group.
+    /// Capacity growth is not logical mutation; callers still checkpoint and
+    /// roll back lengths around the infallible-capacity append sequence.
+    pub fn ensureUnusedEffectCapacity(
+        self: *Arena,
+        effect_count: usize,
+        value_count: usize,
+    ) std.mem.Allocator.Error!void {
+        try self.effect_values.ensureUnusedCapacity(self.allocator, value_count);
+        try self.effects.ensureUnusedCapacity(self.allocator, effect_count);
     }
 
     pub fn rollbackToEffectCheckpoint(

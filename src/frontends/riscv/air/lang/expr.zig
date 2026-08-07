@@ -25,6 +25,37 @@ pub const Selection = struct {
     when_false: types.ValueId,
 };
 
+pub const RegisterAddress = struct {
+    index: types.ValueId,
+};
+
+pub const AccessClock = struct {
+    instruction_clock: types.ValueId,
+    ordinal: types.AccessOrdinal,
+};
+
+pub const StrictClockGap = struct {
+    current_clock: types.ValueId,
+    previous_clock: types.ValueId,
+    active: types.ValueId,
+    ordinal: types.AccessOrdinal,
+};
+
+/// Closed machine refinements whose result type and polynomial meaning are
+/// fixed by the variant. This is intentionally not a general cast or affine
+/// expression escape hatch.
+pub const MachineDerivedTag = enum(u8) {
+    register_address = 0,
+    access_clock = 1,
+    strict_clock_gap = 2,
+};
+
+pub const MachineDerived = union(MachineDerivedTag) {
+    register_address: RegisterAddress,
+    access_clock: AccessClock,
+    strict_clock_gap: StrictClockGap,
+};
+
 pub const Op = union(enum) {
     constant: Constant,
     input: types.NameId,
@@ -35,6 +66,7 @@ pub const Op = union(enum) {
     select: Selection,
     hint_output: program.HintOutput,
     call_output: program.CallOutput,
+    machine_derived: MachineDerived,
 };
 
 pub const Key = struct {
@@ -124,6 +156,24 @@ fn hashOp(state: *u64, op: Op) void {
         .call_output => |output| {
             mix(state, @intFromEnum(output.call));
             mix(state, output.index);
+        },
+        .machine_derived => |derived| {
+            mix(state, @intFromEnum(std.meta.activeTag(derived)));
+            switch (derived) {
+                .register_address => |address| {
+                    mix(state, @intFromEnum(address.index));
+                },
+                .access_clock => |clock| {
+                    mix(state, @intFromEnum(clock.instruction_clock));
+                    mix(state, @intFromEnum(clock.ordinal));
+                },
+                .strict_clock_gap => |gap| {
+                    mix(state, @intFromEnum(gap.current_clock));
+                    mix(state, @intFromEnum(gap.previous_clock));
+                    mix(state, @intFromEnum(gap.active));
+                    mix(state, @intFromEnum(gap.ordinal));
+                },
+            }
         },
     }
 }

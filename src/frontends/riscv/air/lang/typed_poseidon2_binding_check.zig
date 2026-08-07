@@ -18,8 +18,11 @@ pub fn validate(
     entries: anytype,
     plan_value: *const materializer.Plan,
 ) Error!void {
-    if (!std.mem.eql(u8, &program_digest, &plan_value.program_digest))
+    if (plan_value.program_digest_format != digest.format_version or
+        !std.mem.eql(u8, &program_digest, &plan_value.program_digest))
+    {
         return error.ProgramDigestMismatch;
+    }
     if (plan_value.gate == null or gate != plan_value.gate.? or
         !std.meta.eql(policy, plan_value.policy) or
         entries.len != entry_count or

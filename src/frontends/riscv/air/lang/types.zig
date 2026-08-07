@@ -26,6 +26,17 @@ pub const RelationRole = enum(u8) {
     emit = 2,
 };
 
+/// One-based architectural access group within a machine instruction.
+///
+/// The numeric value is persisted in logical artifacts and matches the
+/// production lookup metadata. It is deliberately distinct from the
+/// zero-based enum used by the concrete execution clock helper.
+pub const AccessOrdinal = enum(u8) {
+    first = 1,
+    second = 2,
+    third = 3,
+};
+
 pub const IdError = error{IdOverflow};
 
 /// Converts a collection index into one of this module's typed enum IDs.

@@ -324,7 +324,7 @@ fn evaluate(
                 node_values[types.idIndex(selection.when_true)]
             else
                 node_values[types.idIndex(selection.when_false)],
-            .hint_output, .call_output => return error.UnsupportedPoseidonNode,
+            .hint_output, .call_output, .machine_derived => return error.UnsupportedPoseidonNode,
         };
     }
 
@@ -374,6 +374,14 @@ fn analyzeWideDegrees(
                     result[types.idIndex(selection.when_false)],
                 ),
             ),
+            .machine_derived => |derived| switch (derived) {
+                .register_address => |address| result[types.idIndex(address.index)],
+                .access_clock => |clock| result[types.idIndex(clock.instruction_clock)],
+                .strict_clock_gap => |gap| @max(
+                    result[types.idIndex(gap.current_clock)],
+                    result[types.idIndex(gap.previous_clock)],
+                ),
+            },
         };
     }
     return result;

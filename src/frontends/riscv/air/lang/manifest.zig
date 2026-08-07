@@ -21,9 +21,12 @@ pub const format_version: u16 = 3;
 pub const logical_schema_version: u16 = 2;
 pub const typed_effect_format_version: u16 = 4;
 pub const typed_effect_logical_schema_version: u16 = 3;
+pub const register_group_format_version: u16 = 5;
+pub const register_group_logical_schema_version: u16 = 4;
 
 pub const ManifestError = error{
     ManifestTooLarge,
+    MachineDerivedRequiresManifestV5,
     RelationBindingsRequireManifestV4,
 };
 pub const Error = std.mem.Allocator.Error || validate.Error || ManifestError;
@@ -46,9 +49,23 @@ pub fn serializeAllocV4(
     arena: *const ir.Arena,
 ) Error![]u8 {
     try validate.validate(arena);
+    try requireNoMachineDerivedNodes(arena);
     var bytes: std.ArrayList(u8) = .empty;
     errdefer bytes.deinit(allocator);
     try writeValidated(bytes.writer(allocator), arena, .typed_effect_v4);
+    return bytes.toOwnedSlice(allocator);
+}
+
+/// Canonical logical encoding with closed machine-derived operations and
+/// instruction-local access groups.
+pub fn serializeAllocV5(
+    allocator: std.mem.Allocator,
+    arena: *const ir.Arena,
+) Error![]u8 {
+    try validate.validate(arena);
+    var bytes: std.ArrayList(u8) = .empty;
+    errdefer bytes.deinit(allocator);
+    try writeValidated(bytes.writer(allocator), arena, .register_group_v5);
     return bytes.toOwnedSlice(allocator);
 }
 
@@ -61,10 +78,16 @@ pub fn writeCanonical(writer: anytype, arena: *const ir.Arena) !void {
 
 pub fn writeCanonicalV4(writer: anytype, arena: *const ir.Arena) !void {
     try validate.validate(arena);
+    try requireNoMachineDerivedNodes(arena);
     try writeValidated(writer, arena, .typed_effect_v4);
 }
 
-const Encoding = enum { legacy_v3, typed_effect_v4 };
+pub fn writeCanonicalV5(writer: anytype, arena: *const ir.Arena) !void {
+    try validate.validate(arena);
+    try writeValidated(writer, arena, .register_group_v5);
+}
+
+const Encoding = enum { legacy_v3, typed_effect_v4, register_group_v5 };
 
 fn writeValidated(
     writer: anytype,
@@ -75,10 +98,12 @@ fn writeValidated(
     try writeInt(writer, u16, switch (encoding) {
         .legacy_v3 => format_version,
         .typed_effect_v4 => typed_effect_format_version,
+        .register_group_v5 => register_group_format_version,
     });
     try writeInt(writer, u16, switch (encoding) {
         .legacy_v3 => logical_schema_version,
         .typed_effect_v4 => typed_effect_logical_schema_version,
+        .register_group_v5 => register_group_logical_schema_version,
     });
     try writeCount(writer, arena.nodesView().len);
     try writeCount(writer, arena.constraintsView().len);
@@ -117,7 +142,7 @@ fn writeValidated(
         const id = types.idFromIndex(types.EffectId, index) catch
             return error.ManifestTooLarge;
         try writeInt(writer, u8, effectKindTag(effect.kind));
-        if (encoding == .typed_effect_v4)
+        if (encoding != .legacy_v3)
             try writeRelationBinding(writer, effect.binding);
         try writeValues(writer, arena.effectValues(id).?);
         try writeOptionalValueId(writer, effect.liveness);
@@ -149,6 +174,13 @@ fn requireLegacyEffects(arena: *const ir.Arena) ManifestError!void {
         if (effect.binding != null)
             return error.RelationBindingsRequireManifestV4;
     }
+}
+
+fn requireNoMachineDerivedNodes(arena: *const ir.Arena) ManifestError!void {
+    for (arena.nodesView()) |node| switch (node.key.op) {
+        .machine_derived => return error.MachineDerivedRequiresManifestV5,
+        else => {},
+    };
 }
 
 fn writeRelationBinding(
@@ -213,6 +245,27 @@ fn writeNode(writer: anytype, arena: *const ir.Arena, node: expr.Node) !void {
             try writeInt(writer, u8, 9);
             try writeInt(writer, u32, @intFromEnum(output.call));
             try writeInt(writer, u16, output.index);
+        },
+        .machine_derived => |derived| {
+            try writeInt(writer, u8, 10);
+            switch (derived) {
+                .register_address => |address| {
+                    try writeInt(writer, u8, 0);
+                    try writeValueId(writer, address.index);
+                },
+                .access_clock => |clock| {
+                    try writeInt(writer, u8, 1);
+                    try writeValueId(writer, clock.instruction_clock);
+                    try writeInt(writer, u8, @intFromEnum(clock.ordinal));
+                },
+                .strict_clock_gap => |gap| {
+                    try writeInt(writer, u8, 2);
+                    try writeValueId(writer, gap.current_clock);
+                    try writeValueId(writer, gap.previous_clock);
+                    try writeValueId(writer, gap.active);
+                    try writeInt(writer, u8, @intFromEnum(gap.ordinal));
+                },
+            }
         },
     }
     try writeSpan(writer, arena, node.primary_source);

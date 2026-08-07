@@ -476,6 +476,11 @@ fn lowerValue(
                 const selected = try direct_arena.binary(.mul, selector, difference);
                 break :blk try direct_arena.binary(.add, when_false, selected);
             },
+            .machine_derived => |derived| try lowerMachineDerived(
+                direct_arena,
+                derived,
+                mapped,
+            ),
         };
     }
     return directOperand(mapped, root);
@@ -494,7 +499,49 @@ fn markOperands(flags: []bool, op: expr.Op) void {
             flags[types.idIndex(selection.when_true)] = true;
             flags[types.idIndex(selection.when_false)] = true;
         },
+        .machine_derived => |derived| switch (derived) {
+            .register_address => |address| flags[types.idIndex(address.index)] = true,
+            .access_clock => |clock| flags[types.idIndex(clock.instruction_clock)] = true,
+            .strict_clock_gap => |gap| {
+                flags[types.idIndex(gap.current_clock)] = true;
+                flags[types.idIndex(gap.previous_clock)] = true;
+            },
+        },
     }
+}
+
+fn lowerMachineDerived(
+    direct_arena: *direct.Arena,
+    derived: expr.MachineDerived,
+    mapped: []const u32,
+) Error!u32 {
+    return switch (derived) {
+        .register_address => |address| directOperand(mapped, address.index),
+        .access_clock => |clock| blk: {
+            const one = try direct_arena.intern(.{ .op = .constant, .value = 1 });
+            const four = try direct_arena.intern(.{ .op = .constant, .value = 4 });
+            const ordinal = try direct_arena.intern(.{
+                .op = .constant,
+                .value = @intFromEnum(clock.ordinal),
+            });
+            const shifted = try direct_arena.binary(
+                .sub,
+                try directOperand(mapped, clock.instruction_clock),
+                one,
+            );
+            const scaled = try direct_arena.binary(.mul, shifted, four);
+            break :blk direct_arena.binary(.add, scaled, ordinal);
+        },
+        .strict_clock_gap => |gap| blk: {
+            const one = try direct_arena.intern(.{ .op = .constant, .value = 1 });
+            const delta = try direct_arena.binary(
+                .sub,
+                try directOperand(mapped, gap.current_clock),
+                try directOperand(mapped, gap.previous_clock),
+            );
+            break :blk direct_arena.binary(.sub, delta, one);
+        },
+    };
 }
 
 fn directOperand(mapped: []const u32, value: types.ValueId) Error!u32 {

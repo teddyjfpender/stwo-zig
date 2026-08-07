@@ -5,11 +5,15 @@
 //! accounting context, but a cut or proposal never acquires a second digest.
 
 const std = @import("std");
+const semantic = @import("digest.zig");
 
-pub const Digest = [32]u8;
+pub const Digest = semantic.Digest;
 pub const cut_digest_version: u16 = 1;
 pub const proposal_digest_version: u16 = 1;
 pub const search_digest_version: u16 = 1;
+pub const typed_cut_digest_version: u16 = 2;
+pub const typed_search_digest_version: u16 = 2;
+pub const IdentityError = error{UnsupportedSemanticDigestFormat};
 pub const EditKind = enum(u8) { seed, remove, add, swap };
 pub const EvaluationSchedule = enum(u8) {
     candidate_equalities_only = 0,
@@ -92,6 +96,54 @@ pub fn computeConfiguration(
     return hash.finalResult();
 }
 
+/// Version-aware configuration identity. The format-1 branch deliberately
+/// delegates to the historical preimage; typed formats use a new preimage and
+/// bind the semantic format immediately before the semantic digest bytes.
+pub fn computeConfigurationForIdentity(
+    semantic_digest_format: u16,
+    semantic_digest: Digest,
+    seed_cut_digest: Digest,
+    policy_id: []const u8,
+    policy_version: u16,
+    cost_model_digest: Digest,
+    config: anytype,
+    geometry: anytype,
+    scenarios: anytype,
+) IdentityError!Digest {
+    if (semantic_digest_format == semantic.format_version) {
+        return computeConfiguration(
+            semantic_digest,
+            seed_cut_digest,
+            policy_id,
+            policy_version,
+            cost_model_digest,
+            config,
+            geometry,
+            scenarios,
+        );
+    }
+    try validateTypedSemanticFormat(semantic_digest_format);
+
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    hash.update(config_digest_domain);
+    hashInt(&hash, u16, typed_search_digest_version);
+    hashString(&hash, policy_id);
+    hashInt(&hash, u16, policy_version);
+    hashInt(&hash, u16, semantic_digest_format);
+    hash.update(&semantic_digest);
+    hash.update(&seed_cut_digest);
+    hash.update(&cost_model_digest);
+    hashInt(&hash, u16, config.max_passes);
+    hashInt(&hash, u32, config.max_candidate_evaluations);
+    hashInt(&hash, u16, config.beam_width);
+    hashInt(&hash, u16, config.frontier_limit);
+    inline for (geometry_fields) |field|
+        hashInt(&hash, u64, @field(geometry, field));
+    hashInt(&hash, u16, @intCast(scenarios.len));
+    for (scenarios) |scenario| hashInt(&hash, u8, scenarioLogSize(scenario));
+    return hash.finalResult();
+}
+
 pub fn computeCostModel(identity: CostModelIdentity) Digest {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
     hash.update(cost_model_digest_domain);
@@ -157,6 +209,53 @@ pub fn computeCut(
     hashIds(&hash, roots);
     hashIds(&hash, selected);
     return hash.finalResult();
+}
+
+/// Version-aware cut identity with an exact format-1 compatibility branch.
+pub fn computeCutForIdentity(
+    semantic_digest_format: u16,
+    semantic_digest: Digest,
+    seed_policy_version: u16,
+    gate: ?u32,
+    maximum_constraint_degree: u64,
+    row_mask_degree: u64,
+    roots: anytype,
+    selected: anytype,
+) IdentityError!Digest {
+    if (semantic_digest_format == semantic.format_version) {
+        return computeCut(
+            semantic_digest,
+            seed_policy_version,
+            gate,
+            maximum_constraint_degree,
+            row_mask_degree,
+            roots,
+            selected,
+        );
+    }
+    try validateTypedSemanticFormat(semantic_digest_format);
+
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    hash.update(cut_digest_domain);
+    hashInt(&hash, u16, typed_cut_digest_version);
+    hashString(&hash, seed_policy_id);
+    hashInt(&hash, u16, seed_policy_version);
+    hashInt(&hash, u16, semantic_digest_format);
+    hash.update(&semantic_digest);
+    hashOptionalId(&hash, gate);
+    hashInt(&hash, u64, maximum_constraint_degree);
+    hashInt(&hash, u64, row_mask_degree);
+    hashIds(&hash, roots);
+    hashIds(&hash, selected);
+    return hash.finalResult();
+}
+
+fn validateTypedSemanticFormat(format: u16) IdentityError!void {
+    if (format != semantic.typed_effect_format_version and
+        format != semantic.register_group_format_version)
+    {
+        return error.UnsupportedSemanticDigestFormat;
+    }
 }
 
 pub fn computeProposalCombined(

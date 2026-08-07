@@ -1,4 +1,6 @@
 const std = @import("std");
+const digest = @import("digest.zig");
+const effects = @import("effects.zig");
 const search_policy = @import("cost_aware_materializer.zig");
 const ir = @import("ir.zig");
 const manifest = @import("materialization_frontier_manifest.zig");
@@ -54,6 +56,65 @@ test "search and STWAIRM projection share every canonical digest preimage" {
     const replay = try manifest.encodeAlloc(std.testing.allocator, decoded.view());
     defer std.testing.allocator.free(replay);
     try std.testing.expectEqualSlices(u8, bytes, replay);
+}
+
+test "typed semantic search remains authenticated and legacy projection fails closed" {
+    var arena = ir.Arena.init(std.testing.allocator);
+    defer arena.deinit();
+    const generated = source.SourceSpan.generated();
+    const instruction_clock = try arena.input("clock", .clock, generated);
+    const previous_clock = try arena.input("previous-clock", .clock, generated);
+    const active = try arena.input("active", .bit, generated);
+    const register = try arena.input("register", .register_index, generated);
+    const value = try arena.constantUnsigned(.byte, 0, generated);
+    var schedule = try effects.AccessSchedule.begin(
+        &arena,
+        instruction_clock,
+        active,
+        generated,
+    );
+    const group = try schedule.registerRead(.{
+        .index = register,
+        .previous_clock = previous_clock,
+        .value = .{ value, value, value, value },
+    }, generated);
+    const roots = [_]types.ValueId{
+        arena.effectValues(group.emit).?[2],
+        arena.effectValues(group.clock_gap).?[0],
+    };
+    var plan = try materializer.plan(std.testing.allocator, &arena, .{
+        .roots = &roots,
+        .gate = null,
+    });
+    defer plan.deinit();
+    try std.testing.expectEqual(
+        digest.register_group_format_version,
+        plan.program_digest_format,
+    );
+
+    const config = tinyConfig();
+    var result = try search_policy.search(
+        std.testing.allocator,
+        &arena,
+        &plan,
+        config,
+    );
+    defer result.deinit();
+    try std.testing.expectEqual(
+        digest.register_group_format_version,
+        result.baseline.cut.program_digest_format,
+    );
+    try result.validateAgainst(std.testing.allocator, &arena, &plan, config);
+    try std.testing.expectError(
+        error.UnsupportedSemanticDigestFormat,
+        projection.fromSearch(
+            std.testing.allocator,
+            &arena,
+            &plan,
+            config,
+            &result,
+        ),
+    );
 }
 
 test "Poseidon projection binds the explicit fixed direct program and exact costs" {

@@ -1,5 +1,6 @@
 const std = @import("std");
 const cut_set = @import("materialization_cut_set.zig");
+const digest = @import("digest.zig");
 const ir = @import("ir.zig");
 const materializer = @import("degree3_materializer.zig");
 const poseidon = @import("typed_poseidon2.zig");
@@ -161,9 +162,13 @@ test "validation detects corruption and edits are transactional" {
     );
     defer result.deinit();
 
+    try std.testing.expectEqual(digest.format_version, result.program_digest_format);
     result.program_digest[0] ^= 1;
     try expectValidationError(error.ProgramDigestMismatch, &result, &fixture.arena, request);
     result.program_digest[0] ^= 1;
+    result.program_digest_format = digest.typed_effect_format_version;
+    try expectValidationError(error.ProgramDigestMismatch, &result, &fixture.arena, request);
+    result.program_digest_format = digest.format_version;
     try expectValidationError(error.GateMismatch, &result, &fixture.arena, .{ .roots = &roots, .gate = null });
     try expectValidationError(
         error.PolicyMismatch,
@@ -236,6 +241,7 @@ test "Poseidon cut-set import releases every partial allocation" {
 }
 
 fn expectSameCutSet(lhs: *const cut_set.CutSet, rhs: *const cut_set.CutSet) !void {
+    try std.testing.expectEqual(lhs.program_digest_format, rhs.program_digest_format);
     try std.testing.expectEqual(lhs.program_digest, rhs.program_digest);
     try std.testing.expectEqualSlices(types.ValueId, lhs.roots, rhs.roots);
     try std.testing.expectEqualSlices(types.ValueId, lhs.values, rhs.values);

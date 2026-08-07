@@ -538,7 +538,7 @@ fn closeReachability(arena: *const ir.Arena, reachable: []bool) ConstructionErro
                 try markReachable(reachable, cursor, selection.when_true);
                 try markReachable(reachable, cursor, selection.when_false);
             },
-            .hint_output, .call_output => return error.UnsupportedExpression,
+            .hint_output, .call_output, .machine_derived => return error.UnsupportedExpression,
         }
     }
 }
@@ -579,7 +579,7 @@ fn compileInstruction(
             .when_true = try localSlot(selection.when_true, node_index, local_slots),
             .when_false = try localSlot(selection.when_false, node_index, local_slots),
         } },
-        .hint_output, .call_output => error.UnsupportedExpression,
+        .hint_output, .call_output, .machine_derived => error.UnsupportedExpression,
     };
 }
 

@@ -80,6 +80,7 @@ pub const Error = std.mem.Allocator.Error || validator.Error || ValidationError;
 /// index is strictly increasing and smaller than `i`.
 pub const CutSet = struct {
     allocator: std.mem.Allocator,
+    program_digest_format: u16,
     program_digest: digest.Digest,
     gate: ?types.ValueId,
     policy: Policy,
@@ -131,9 +132,12 @@ pub const CutSet = struct {
         request: Request,
     ) Error!void {
         try validator.validate(arena);
-        const actual_digest = try digest.compute(arena);
-        if (!std.mem.eql(u8, &self.program_digest, &actual_digest))
+        const actual_identity = try digest.computeIdentity(arena);
+        if (self.program_digest_format != actual_identity.format_version or
+            !std.mem.eql(u8, &self.program_digest, &actual_identity.bytes))
+        {
             return error.ProgramDigestMismatch;
+        }
         if (self.gate != request.gate) return error.GateMismatch;
         if (!std.meta.eql(self.policy, request.policy)) return error.PolicyMismatch;
         if (!std.mem.eql(types.ValueId, self.roots, request.roots))
@@ -233,7 +237,7 @@ pub fn build(
 ) Error!CutSet {
     try validator.validate(arena);
     if (request.roots.len == 0) return error.EmptyRoots;
-    const program_digest = try digest.compute(arena);
+    const program_identity = try digest.computeIdentity(arena);
     const context_degree = try validateContext(arena, request.gate, request.policy);
     const node_count = arena.nodeCount();
 
@@ -324,7 +328,8 @@ pub fn build(
     const owned_dependencies = try dependencies.toOwnedSlice(allocator);
     return .{
         .allocator = allocator,
-        .program_digest = program_digest,
+        .program_digest_format = program_identity.format_version,
+        .program_digest = program_identity.bytes,
         .gate = request.gate,
         .policy = request.policy,
         .roots = roots,
@@ -500,6 +505,14 @@ fn computeBodyDegree(
                     degrees[types.idIndex(selection.when_false)],
                 ),
             ) catch return error.DegreeOverflow,
+            .machine_derived => |derived| switch (derived) {
+                .register_address => |address| degrees[types.idIndex(address.index)],
+                .access_clock => |clock| degrees[types.idIndex(clock.instruction_clock)],
+                .strict_clock_gap => |gap| @max(
+                    degrees[types.idIndex(gap.current_clock)],
+                    degrees[types.idIndex(gap.previous_clock)],
+                ),
+            },
         };
     }
     return degrees[root_index];
@@ -514,6 +527,15 @@ fn operands(op: expr.Op) [3]?types.ValueId {
             selection.selector,
             selection.when_true,
             selection.when_false,
+        },
+        .machine_derived => |derived| switch (derived) {
+            .register_address => |address| .{ address.index, null, null },
+            .access_clock => |clock| .{ clock.instruction_clock, null, null },
+            .strict_clock_gap => |gap| .{
+                gap.current_clock,
+                gap.previous_clock,
+                null,
+            },
         },
     };
 }

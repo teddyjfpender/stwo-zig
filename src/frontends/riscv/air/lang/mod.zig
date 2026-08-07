@@ -49,11 +49,17 @@ pub const shadow_program = @import("shadow_program.zig");
 pub const LOGICAL_SCHEMA_VERSION = manifest.logical_schema_version;
 pub const TYPED_EFFECT_LOGICAL_SCHEMA_VERSION =
     manifest.typed_effect_logical_schema_version;
+pub const REGISTER_GROUP_LOGICAL_SCHEMA_VERSION =
+    manifest.register_group_logical_schema_version;
 
 test "typed AIR language: isolated kernel has an explicit logical version" {
     try std.testing.expectEqual(@as(u16, 2), LOGICAL_SCHEMA_VERSION);
     try std.testing.expectEqual(
         @as(u16, 3),
         TYPED_EFFECT_LOGICAL_SCHEMA_VERSION,
+    );
+    try std.testing.expectEqual(
+        @as(u16, 4),
+        REGISTER_GROUP_LOGICAL_SCHEMA_VERSION,
     );
 }

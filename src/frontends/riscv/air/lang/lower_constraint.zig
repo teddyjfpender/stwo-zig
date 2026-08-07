@@ -12,6 +12,7 @@ const M31 = @import("stwo_core").fields.m31.M31;
 const m31 = @import("stwo_core").fields.m31;
 const symbolic = @import("../extract/symbolic.zig");
 const compat_layout = @import("compat_layout.zig");
+const expr = @import("expr.zig");
 const shadow_program = @import("shadow_program.zig");
 const types = @import("types.zig");
 
@@ -199,6 +200,22 @@ pub fn lowerValues(
                 try markOperand(reachable, reverse, selection.when_true);
                 try markOperand(reachable, reverse, selection.when_false);
             },
+            .machine_derived => |derived| switch (derived) {
+                .register_address => |address| try markOperand(
+                    reachable,
+                    reverse,
+                    address.index,
+                ),
+                .access_clock => |clock| try markOperand(
+                    reachable,
+                    reverse,
+                    clock.instruction_clock,
+                ),
+                .strict_clock_gap => |gap| {
+                    try markOperand(reachable, reverse, gap.current_clock);
+                    try markOperand(reachable, reverse, gap.previous_clock);
+                },
+            },
         }
     }
 
@@ -264,6 +281,11 @@ pub fn lowerValues(
                 try operand(mapped, selection.selector),
                 try operand(mapped, selection.when_true),
                 try operand(mapped, selection.when_false),
+            ),
+            .machine_derived => |derived| try lowerMachineDerived(
+                &target,
+                derived,
+                mapped,
             ),
             .hint_output, .call_output => return error.UnsupportedNode,
         };
@@ -431,6 +453,40 @@ fn operand(mapped: []const u32, value: types.ValueId) error{MissingOperand}!u32 
     if (index >= mapped.len or mapped[index] == no_node)
         return error.MissingOperand;
     return mapped[index];
+}
+
+fn lowerMachineDerived(
+    target: *CanonicalArena,
+    derived: expr.MachineDerived,
+    mapped: []const u32,
+) LowerError!u32 {
+    return switch (derived) {
+        .register_address => |address| operand(mapped, address.index),
+        .access_clock => |clock| blk: {
+            const one = try target.intern(.{ .op = .constant, .value = 1 });
+            const four = try target.intern(.{ .op = .constant, .value = 4 });
+            const ordinal = try target.intern(.{
+                .op = .constant,
+                .value = @intFromEnum(clock.ordinal),
+            });
+            const shifted = try target.binary(
+                .sub,
+                try operand(mapped, clock.instruction_clock),
+                one,
+            );
+            const scaled = try target.binary(.mul, shifted, four);
+            break :blk target.binary(.add, scaled, ordinal);
+        },
+        .strict_clock_gap => |gap| blk: {
+            const one = try target.intern(.{ .op = .constant, .value = 1 });
+            const delta = try target.binary(
+                .sub,
+                try operand(mapped, gap.current_clock),
+                try operand(mapped, gap.previous_clock),
+            );
+            break :blk target.binary(.sub, delta, one);
+        },
+    };
 }
 
 const CanonicalArena = struct {

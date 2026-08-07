@@ -263,6 +263,49 @@ fn validateNode(arena: *const ir.Arena, node: expr.Node, index: usize) Error!voi
                 return error.InvalidCallOutput;
             }
         },
+        .machine_derived => |derived| switch (derived) {
+            .register_address => |address| {
+                const register = try priorNode(arena, address.index, index);
+                if (!std.meta.eql(node.key.ty, types.Type.address) or
+                    !std.meta.eql(register.key.ty, types.Type.register_index))
+                {
+                    return error.InvalidNodeShape;
+                }
+            },
+            .access_clock => |clock| {
+                const instruction_clock = try priorNode(
+                    arena,
+                    clock.instruction_clock,
+                    index,
+                );
+                if (!std.meta.eql(node.key.ty, types.Type.clock) or
+                    !std.meta.eql(instruction_clock.key.ty, types.Type.clock))
+                {
+                    return error.InvalidNodeShape;
+                }
+            },
+            .strict_clock_gap => |gap| {
+                const current = try priorNode(arena, gap.current_clock, index);
+                const previous = try priorNode(arena, gap.previous_clock, index);
+                const active = try priorNode(arena, gap.active, index);
+                if (!std.meta.eql(node.key.ty, types.Type.uint20) or
+                    !std.meta.eql(current.key.ty, types.Type.clock) or
+                    !std.meta.eql(previous.key.ty, types.Type.clock) or
+                    !ir.isSelector(active.key.ty))
+                {
+                    return error.InvalidNodeShape;
+                }
+                const current_clock = switch (current.key.op) {
+                    .machine_derived => |current_derived| switch (current_derived) {
+                        .access_clock => |clock| clock,
+                        else => return error.InvalidNodeShape,
+                    },
+                    else => return error.InvalidNodeShape,
+                };
+                if (current_clock.ordinal != gap.ordinal)
+                    return error.InvalidNodeShape;
+            },
+        },
     }
 }
 

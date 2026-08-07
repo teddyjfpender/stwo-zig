@@ -1,6 +1,7 @@
 //! Fail-closed projection from an authenticated bounded search to `STWAIRM`.
 
 const std = @import("std");
+const digest = @import("digest.zig");
 const search_policy = @import("cost_aware_materializer.zig");
 const frontier_digest = @import("materialization_frontier_digest.zig");
 const ir = @import("ir.zig");
@@ -11,6 +12,7 @@ const types = @import("types.zig");
 
 pub const Error = search_policy.Error || manifest.ManifestError || error{
     CostOverflow,
+    UnsupportedSemanticDigestFormat,
     UnsupportedCostScope,
 };
 
@@ -58,6 +60,8 @@ pub fn fromSearch(
     result: *const search_policy.Result,
 ) Error!Owned {
     try result.validateAgainst(allocator, arena, seed_plan, config);
+    if (result.baseline.cut.program_digest_format != digest.format_version)
+        return error.UnsupportedSemanticDigestFormat;
 
     const roots = try idsAlloc(allocator, result.baseline.cut.roots);
     errdefer allocator.free(roots);
