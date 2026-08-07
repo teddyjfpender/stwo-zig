@@ -1,0 +1,840 @@
+{
+  "schema": "stwo-typed-air-m5-m9-performance-protocol-v1",
+  "schema_version": 1,
+  "status": "normative-for-m5-through-m9-performance-promotion",
+  "repository": "https://github.com/teddyjfpender/stwo-zig",
+  "documentation": "design/typed-air/PERFORMANCE.md",
+  "scope": {
+    "milestones": [
+      "M5",
+      "M6",
+      "M7",
+      "M8",
+      "M9"
+    ],
+    "claim": "verified end-to-end proving performance without hidden geometry, work, memory, proof-size, verifier, or backend regressions",
+    "non_goals": [
+      "using an isolated pre-proof microbenchmark as production-promotion evidence",
+      "replacing correctness, soundness, formal, or independent-verifier gates",
+      "pooling CPU and Metal results into one verdict",
+      "selecting a benchmark or target after candidate measurements are visible"
+    ]
+  },
+  "strictness": {
+    "encoding": "UTF-8 JSON",
+    "object_policy": "closed; duplicate, missing, and unknown fields are rejected by the protocol and receipt validators",
+    "number_policy": "finite JSON integers or finite JSON numbers only; NaN, infinity, numeric strings, and negative durations or byte counts are rejected",
+    "null_policy": "null is permitted only for a field the protocol declares inapplicable to that lane or milestone; an unavailable applicable field produces NO_VERDICT",
+    "path_policy": "repository paths are normalized repository-relative paths with no parent traversal",
+    "identity_policy": "lowercase hexadecimal SHA-256 for files and artifacts; lowercase hexadecimal Git object IDs for commits and trees",
+    "mutation_policy": "this protocol is frozen before a candidate capture; changing corpus, statistics, or thresholds requires a new version and reviewed rationale before new candidate results are inspected",
+    "failure_policy": "attempts are append-only and cannot be retried, replaced, reordered, or omitted"
+  },
+  "statistical_authority": {
+    "relationship": "reuse the authenticated estimator and sampling semantics; this typed-AIR protocol remains the promotion authority for its own corpus and budgets",
+    "amendment_path": "conformance/2026-07-21-performance-authority-epoch-3-amendment.md",
+    "amendment_sha256": "481e2c995eadb8cdd1240e4a205d63fc15550d03a3ee3635ba434286f8033606",
+    "statistics_path": "conformance/performance-authority/epoch-3/stats.py",
+    "statistics_sha256": "6c5b887033273e2e523841509c3387395245b63e5a32c7b0f17304d7b99c9ec7",
+    "estimator": "Hodges-Lehmann Walsh-average location over round ratios",
+    "confidence_level": 0.95,
+    "bootstrap": "deterministic percentile",
+    "bootstrap_iterations": 4000,
+    "bootstrap_seed": "first 32 bits, big-endian, of SHA-256 over subject_id + ':0'",
+    "subject_id": "milestone_id + ':' + lane_id + ':' + workload_id + ':' + metric_id"
+  },
+  "comparison_contract": {
+    "arm_a": "baseline source or the explicitly named same-candidate reference configuration",
+    "arm_b": "candidate source or the explicitly named same-candidate subject configuration",
+    "baseline": "the reviewed predecessor commit and tree frozen in the capture plan before candidate execution",
+    "candidate": "the clean candidate commit and tree proposed to close the milestone",
+    "build_mode": "ReleaseFast",
+    "same_between_arms": [
+      "Zig toolchain identity",
+      "target and CPU feature policy",
+      "PCS and security parameters",
+      "workload and input bytes",
+      "backend and runtime mode",
+      "host and power state",
+      "worker count except in an explicitly declared M7 or M9 scaling comparison"
+    ],
+    "required_source_identity": [
+      "commit",
+      "tree",
+      "clean_status",
+      "source_closure_sha256"
+    ],
+    "required_build_identity": [
+      "build_step",
+      "optimization_mode",
+      "toolchain",
+      "target",
+      "executable_path",
+      "executable_bytes",
+      "executable_sha256"
+    ],
+    "speed_ratio": "median baseline duration divided by median candidate duration; larger is better",
+    "resource_ratio": "median candidate resource divided by median baseline resource; smaller is better",
+    "round_ratio": "compute the appropriate reference/subject ratio from the ten verified samples in each arm of one paired round, then apply the estimator across rounds",
+    "proof_timing_boundary": "guest execution plus witness generation plus proving plus native verification",
+    "timing_partition": "guest execution, witness generation, cryptographic proving excluding witness generation, and native verification are non-overlapping top-level phases whose sum equals verified_request_ns",
+    "independent_verification_timing": "outside the proof timing boundary but mandatory for every timed proof",
+    "same_candidate_comparisons": "M6 software/precompile, M7 worker scaling, and M9 flat/recursive comparisons use the same paired schedule and ratio rules while binding both arms to one candidate source identity"
+  },
+  "corpus_authority": {
+    "canonical_trace_manifest_path": "vectors/riscv_elfs/trace_vectors.json",
+    "canonical_trace_manifest_sha256": "0c0cddc58a38c9533a0a8581d253dcf2b6e604292aeb30b54348f897e2b508b1",
+    "crypto_provenance_path": "vectors/riscv_elfs/crypto/provenance.json",
+    "crypto_provenance_sha256": "c2a86cf401284f155270a45d303cb9951fe65932dec1ace79a279490df53274d",
+    "generated_workloads": "the capture plan materializes every generated workload before candidate execution and binds generator identity, seed, parameters, bytes, and SHA-256",
+    "capture_rule": "the capture plan binds every ELF and input by path, bytes, and SHA-256; a path match without a digest match is rejected"
+  },
+  "sampling_protocol": {
+    "process_isolation": "one fresh child process for every warmup and measured attempt",
+    "serial_attempts": true,
+    "excluded_verified_warmups_per_arm": 10,
+    "paired_rounds": 3,
+    "measured_verified_proofs_per_arm_per_round": 10,
+    "measured_verified_proofs_per_arm": 30,
+    "pairing": "round-level alternating AB/BA",
+    "first_order": "AB when the low bit of SHA-256(milestone_id + ':' + lane_id + ':' + workload_id) is zero, otherwise BA",
+    "cooldown_seconds_between_attempts": 1.0,
+    "early_stopping": false,
+    "retry_failed_attempts": false,
+    "drop_outliers": false,
+    "retain_raw_attempts": true,
+    "host_requirements": [
+      "stable declared power source and power mode",
+      "no thermal-throttling indication during a cohort",
+      "no host, OS, toolchain, executable, or backend identity change during a cohort",
+      "no unrelated benchmark process admitted by the capture plan"
+    ],
+    "a_a_calibration": {
+      "required_per_host_backend_session": true,
+      "workload_id": "multi_shard_addi",
+      "arms": "the same executable and source identity in both arms",
+      "sampling": "the complete warmup, paired-round, and cooldown protocol above",
+      "required_metrics": [
+        "verified_request_ns",
+        "proving_ns",
+        "peak_rss_bytes"
+      ],
+      "ratio_ci_must_contain": 1.0,
+      "maximum_ci_width": 0.06,
+      "failure_outcome": "NO_VERDICT"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "PASS",
+      "FAIL",
+      "NO_VERDICT"
+    ],
+    "pass": "every exact invariant and every required statistical budget passes, the primary target passes, and all evidence validates",
+    "hard_fail_conditions": [
+      "candidate build, execution, proof, native verification, or independent verification failure",
+      "semantic output, multiplicity, relation-summary, protocol-preserving geometry, transcript, or proof-byte mismatch",
+      "allocation, bounded-worker, scaling, performance, memory, work, proof-size, or verifier budget failure",
+      "candidate-only Metal fallback or missing resident-dispatch evidence",
+      "a measured attempt deliberately omitted, retried, replaced, or relabelled",
+      "raw evidence or artifact digest mismatch"
+    ],
+    "no_verdict_conditions": [
+      "A/A calibration failure",
+      "dirty or unresolvable baseline or candidate source identity before capture",
+      "host, power, thermal, toolchain, executable, backend, or security-parameter drift during capture",
+      "environmental interruption that is independent of either arm and is retained in the attempt ledger",
+      "required authority-host counter or raw artifact unavailable",
+      "insufficient complete paired rounds or verified samples",
+      "receipt or raw bundle unavailable to the validator"
+    ],
+    "promotion_rule": "FAIL and NO_VERDICT both prohibit milestone performance promotion"
+  },
+  "metric_classes": {
+    "exact": [
+      "semantic outputs",
+      "call and relation multiplicities",
+      "component descriptors and registry order",
+      "active and padded rows",
+      "preprocessed, main, interaction, quotient, and total committed cells",
+      "constraint degree histogram and maximum log-degree bound",
+      "statement, transcript, program, layout, and relation-summary digests",
+      "proof bytes and proof size for protocol-preserving changes",
+      "hot-loop allocation calls, bytes, frees, and reallocations",
+      "submitted, completed, failed, cancelled, and peak-active task counts",
+      "worker bound and backend-fallback state"
+    ],
+    "statistical": [
+      "verified_request_ns",
+      "guest_execution_ns",
+      "witness_ns",
+      "proving_ns",
+      "native_verification_ns",
+      "independent_verification_ns",
+      "material stage durations",
+      "process_cpu_ns",
+      "retired_instructions where supported by the authority host",
+      "GPU command time on a required Metal lane",
+      "peak_rss_bytes"
+    ],
+    "observational": [
+      "stages whose baseline median is below 10 ms or below five percent of verified request time",
+      "energy when a calibrated counter is unavailable",
+      "GPU occupancy and bandwidth counters",
+      "intermediate worker-count speedups",
+      "queue wait, worker utilization, and steal counts",
+      "build time, executable size, and generated-code size"
+    ],
+    "material_stage_rule": {
+      "minimum_baseline_median_ns": 10000000,
+      "minimum_fraction_of_verified_request": 0.05,
+      "below_threshold_outcome": "recorded but never used to pass or fail a timing claim"
+    }
+  },
+  "universal_hard_budgets": {
+    "verified_request_speed_lower_ci": 0.97,
+    "proving_speed_lower_ci": 0.97,
+    "native_verification_candidate_over_baseline_upper_ci": 1.03,
+    "peak_rss_candidate_over_baseline_upper_ci": 1.05,
+    "peak_rss_candidate_max_over_baseline_max": 1.10,
+    "process_cpu_candidate_over_baseline_upper_ci": 1.05,
+    "retired_instructions_candidate_over_baseline_upper_ci": 1.05,
+    "gpu_command_time_candidate_over_baseline_upper_ci": 1.05,
+    "protocol_preserving_proof_bytes": "exact equality",
+    "protocol_changing_proof_size_candidate_over_baseline": 1.10,
+    "application": "every required workload and lane passes independently; an aggregate or geometric mean cannot hide a failing row",
+    "override_policy": "only an explicit narrower milestone gate in this protocol may replace a universal resource budget"
+  },
+  "optimization_claim_contract": {
+    "predeclaration": "each capture plan names exactly one primary target from the milestone entry before candidate execution",
+    "postselection": "forbidden",
+    "optimization_minimum_speed_lower_ci": 1.05,
+    "compatibility_migration": "M5 and M8 declare non-inferiority targets and make no speedup claim",
+    "optimization_milestones": "M6, M7, and M9 must pass their predeclared improvement target in addition to all non-regression gates"
+  },
+  "geometry_accounting": {
+    "rows_per_component": "2^log_size",
+    "preprocessed_cells": "sum(preprocessed_columns_i * 2^log_size_i)",
+    "main_cells": "sum(main_columns_i * 2^log_size_i)",
+    "interaction_cells": "sum(interaction_columns_i * 2^log_size_i)",
+    "committed_cells": "preprocessed_cells + main_cells + interaction_cells",
+    "quotient_cells": "sum(quotient_columns_i * 2^quotient_log_size_i)",
+    "required_disclosures": [
+      "every component descriptor in protocol order",
+      "active rows and padded rows",
+      "columns and cells by tree and component",
+      "constraint count by final degree",
+      "maximum constraint log-degree bound",
+      "relation entries and batches",
+      "committed bytes and device-resident bytes"
+    ],
+    "comparison_rule": "cell ratios use exact integer totals; column counts alone are never accepted as AIR-size evidence"
+  },
+  "allocation_accounting": {
+    "applicable_milestones": [
+      "M5",
+      "M8"
+    ],
+    "prepare_boundary": "compile and validate the typed plan, allocate final caller-owned column storage, then reset the counting allocator",
+    "hot_boundary": "execute the prepared row loop into final storage",
+    "hot_allocation_calls": 0,
+    "hot_allocated_bytes": 0,
+    "hot_reallocation_calls": 0,
+    "hot_free_calls": 0,
+    "prepare_allocation_call_count": "exactly invariant across log_rows 10, 14, and 18 for a fixed family and layout",
+    "output_bytes": "exactly equal to the canonical manifest projection",
+    "time_scaling": {
+      "log_rows": [
+        10,
+        14,
+        18
+      ],
+      "maximum_adjacent_time_ratio": 17.6,
+      "ratio": "larger-log duration divided by adjacent smaller-log duration within the same candidate family",
+      "decision": "upper 95% confidence bound is no greater than 17.6",
+      "meaning": "a sixteen-fold row increase may consume at most sixteen-fold time plus ten percent"
+    }
+  },
+  "lanes": [
+    {
+      "id": "cpu-native",
+      "backend": "cpu",
+      "runtime_mode": "native",
+      "required": true,
+      "proof_equality_group": "canonical-functional"
+    },
+    {
+      "id": "metal-hybrid",
+      "backend": "metal-hybrid",
+      "runtime_mode": "source-jit-or-frozen-binary-as-declared",
+      "required": true,
+      "proof_equality_group": "canonical-functional",
+      "required_evidence": [
+        "Metal runtime identity",
+        "resident dispatch count",
+        "zero fallback dispatches"
+      ]
+    }
+  ],
+  "milestones": [
+    {
+      "id": "M5",
+      "name": "typed effects and witness pilot",
+      "promotion_class": "protocol-preserving compatibility migration",
+      "required_lanes": [
+        "cpu-native",
+        "metal-hybrid"
+      ],
+      "family_microbenchmarks": {
+        "generator": "typed-air-family-isolated-v1",
+        "seed": "stwo-typed-air-m5-family-v1",
+        "cases": [
+          {
+            "id": "lui",
+            "family": "lui",
+            "operation": "LUI"
+          },
+          {
+            "id": "addi",
+            "family": "base_alu_imm",
+            "operation": "ADDI"
+          },
+          {
+            "id": "signed_load",
+            "family": "load_store",
+            "operation": "LB with the loaded high bit set"
+          },
+          {
+            "id": "jalr",
+            "family": "jalr",
+            "operation": "JALR"
+          },
+          {
+            "id": "div",
+            "family": "div",
+            "operation": "signed DIV with a nonzero divisor"
+          }
+        ],
+        "log_rows": [
+          10,
+          14,
+          18
+        ]
+      },
+      "full_proof_workloads": [
+        {
+          "id": "alu_test",
+          "elf": "vectors/riscv_elfs/alu_test.elf",
+          "input": null
+        },
+        {
+          "id": "mem_ls",
+          "elf": "vectors/riscv_elfs/mem_ls.elf",
+          "input": null
+        },
+        {
+          "id": "jal_jalr",
+          "elf": "vectors/riscv_elfs/jal_jalr.elf",
+          "input": null
+        },
+        {
+          "id": "mul_div",
+          "elf": "vectors/riscv_elfs/mul_div.elf",
+          "input": null
+        },
+        {
+          "id": "branch_fib",
+          "elf": "vectors/riscv_elfs/branch_fib.elf",
+          "input": null
+        }
+      ],
+      "primary_target": {
+        "claim_kind": "non-inferiority",
+        "lane": "cpu-native",
+        "workload": "typed-air-family-isolated-v1:div:log_rows=18",
+        "metric": "witness_speed",
+        "decision": "lower_ci_greater_than_or_equal",
+        "threshold": 0.97
+      },
+      "exact_gates": [
+        "byte-identical witness columns and ordered lookup events",
+        "identical component descriptors, cell geometry, relation summaries, statement, transcript, and proof bytes",
+        "all allocation-accounting gates",
+        "canonical output byte count"
+      ],
+      "statistical_gates": [
+        "universal budgets for every full-proof workload and lane",
+        "witness speed lower CI at least 0.97 for every family/log-row case",
+        "both adjacent row-count time ratios at most 17.6"
+      ],
+      "observational_metrics": [
+        "typed-plan preparation time",
+        "generated-code and executable size",
+        "sub-material witness stages"
+      ]
+    },
+    {
+      "id": "M6",
+      "name": "Poseidon2 guest precompile",
+      "promotion_class": "protocol-changing optimization",
+      "required_lanes": [
+        "cpu-native",
+        "metal-hybrid"
+      ],
+      "corpus": {
+        "generator": "poseidon2-software-precompile-equivalence-v1",
+        "seed": "stwo-typed-air-m6-poseidon2-v1",
+        "call_counts": [
+          0,
+          1,
+          8,
+          64,
+          512,
+          4096
+        ],
+        "arms": [
+          "guest_software",
+          "guest_precompile"
+        ],
+        "shapes": [
+          "core_only",
+          "balanced_core_and_poseidon2",
+          "poseidon2_dominant"
+        ],
+        "input_rule": "software and precompile arms consume byte-identical ordered inputs and publish byte-identical ordered outputs"
+      },
+      "primary_target": {
+        "claim_kind": "improvement",
+        "lane": "cpu-native",
+        "workload": "poseidon2_dominant:calls=4096",
+        "metric": "verified_request_speed",
+        "decision": "lower_ci_greater_than_or_equal",
+        "threshold": 1.10
+      },
+      "exact_gates": {
+        "base_profile_zero_calls": "the candidate prover running an unchanged base-profile zero-call ELF has no extension component, descriptor, committed cell, transcript field, or proof-byte change relative to the predecessor",
+        "extension_profile_zero_calls": "an admitted extension-profile zero-call ELF binds its distinct profile and extension manifest, canonical empty call buffer, two fixed log-four extension descriptors with sixteen all-zero rows each, fixed extension column geometry, and thirteenth relation draw exactly; it is an overhead cohort and is not required or permitted to impersonate base-profile statement or proof identity",
+        "semantic_outputs": "exact equality for every call count and shape",
+        "call_and_relation_multiplicity": "exact equality to the admitted call stream",
+        "committed_cells_at_512_calls_candidate_over_software": 0.85,
+        "committed_cells_at_4096_calls_candidate_over_software": 0.75,
+        "proof_size_at_4096_calls_candidate_over_software": 1.10
+      },
+      "statistical_gates": {
+        "crossover": "the first call count with committed-cell ratio below 1.0 and verified-request speed lower CI above 1.0 is no greater than 512",
+        "cpu_speed_lower_ci_at_4096_calls": 1.10,
+        "metal_speed_lower_ci_at_4096_calls": 1.05,
+        "native_verification_upper_ci_at_4096_calls": 1.05,
+        "process_cpu_upper_ci_at_4096_calls": 1.05,
+        "peak_rss_upper_ci_at_4096_calls": 1.05,
+        "all_other_rows": "universal budgets"
+      },
+      "observational_metrics": [
+        "one-call and eight-call fixed overhead",
+        "precompile call-buffer occupancy",
+        "per-component GPU occupancy and bandwidth"
+      ]
+    },
+    {
+      "id": "M7",
+      "name": "parallel component proving",
+      "promotion_class": "protocol-preserving parallel optimization",
+      "required_lanes": [
+        "cpu-native",
+        "metal-hybrid"
+      ],
+      "corpus": [
+        {
+          "id": "multi_shard_addi",
+          "elf": "vectors/riscv_elfs/multi_shard_addi.elf",
+          "input": null
+        },
+        {
+          "id": "memcpy_loop",
+          "elf": "vectors/riscv_elfs/memcpy_loop.elf",
+          "input": null
+        },
+        {
+          "id": "balanced_core_and_poseidon2",
+          "generator": "poseidon2-software-precompile-equivalence-v1",
+          "seed": "stwo-typed-air-m7-balanced-poseidon2-v1",
+          "shape": "balanced_core_and_poseidon2"
+        },
+        {
+          "id": "poseidon2_dominant",
+          "generator": "poseidon2-software-precompile-equivalence-v1",
+          "seed": "stwo-typed-air-m7-dominant-poseidon2-v1",
+          "shape": "poseidon2_dominant"
+        }
+      ],
+      "worker_counts": [
+        1,
+        2,
+        4,
+        "min(8,physical_cores)"
+      ],
+      "host_admission": "the promotion host has at least four physical cores; otherwise M7 is NO_VERDICT",
+      "primary_target": {
+        "claim_kind": "improvement",
+        "lane": "cpu-native",
+        "workload": "multi_shard_addi",
+        "comparison": "four workers over one worker on the same candidate",
+        "metric": "verified_request_speed",
+        "decision": "lower CI is at least max(1.05, 0.70 times the Amdahl ideal)",
+        "threshold_floor": 1.05
+      },
+      "parallelizable_fraction": {
+        "symbol": "p",
+        "definition": "sum of one-worker durations of dependency-ready parallel-eligible tasks divided by one-worker verified-request duration",
+        "qualifying_minimum": 0.40,
+        "qualifying_minimum_eligible_ns": 500000000,
+        "minimum_qualifying_workloads": 2,
+        "amdahl_ideal": "1 / ((1 - p) + p / N)",
+        "required_speed_lower_ci": "max(1.05, 0.70 / ((1 - p) + p / N)) at N = min(8, physical_cores)"
+      },
+      "exact_gates": [
+        "candidate one-worker proof bytes, statement, transcript, relation summaries, and geometry equal the protocol-preserving predecessor",
+        "all candidate worker counts produce byte-identical proof and protocol artifacts",
+        "peak_active_workers is no greater than configured workers",
+        "submitted equals completed plus failed plus cancelled",
+        "no task starts or completes more than once",
+        "first fatal failure cancels and joins every sibling",
+        "nested work does not create another pool or exceed the global bound",
+        "task events represent overlap without false hierarchical nesting"
+      ],
+      "statistical_gates": {
+        "candidate_one_worker_against_predecessor_one_worker": "universal budgets",
+        "largest_worker_count_speed": "required_speed_lower_ci formula above for every qualifying workload",
+        "largest_worker_count_total_resource_work_over_one_worker_upper_ci": 1.15,
+        "largest_worker_count_peak_rss_over_one_worker_upper_ci": 1.25
+      },
+      "universal_budget_overrides": [
+        "the 1.15 process-CPU, retired-instruction, and GPU-command-work scaling caps and 1.25 peak-RSS scaling cap replace the corresponding universal caps only when comparing candidate N workers to candidate one worker",
+        "the candidate one-worker comparison to its predecessor keeps every universal budget"
+      ],
+      "observational_metrics": [
+        "two- and four-worker scaling when not the primary target",
+        "queue wait",
+        "worker utilization",
+        "steal count",
+        "per-component work and critical path"
+      ]
+    },
+    {
+      "id": "M8",
+      "name": "broad typed-witness migration",
+      "promotion_class": "protocol-preserving compatibility migration",
+      "required_lanes": [
+        "cpu-native",
+        "metal-hybrid"
+      ],
+      "family_microbenchmarks": {
+        "generator": "typed-air-family-isolated-v1",
+        "seed": "stwo-typed-air-m8-all-families-v1",
+        "families": [
+          "auipc",
+          "base_alu_imm",
+          "base_alu_reg",
+          "branch_eq",
+          "branch_lt",
+          "div",
+          "jal",
+          "jalr",
+          "load_store",
+          "lt_imm",
+          "lt_reg",
+          "lui",
+          "mul",
+          "mulh",
+          "shifts_imm",
+          "shifts_reg",
+          "fence"
+        ],
+        "log_rows": [
+          10,
+          14,
+          18
+        ]
+      },
+      "full_proof_workloads": [
+        {
+          "id": "alu_test",
+          "elf": "vectors/riscv_elfs/alu_test.elf",
+          "input": null
+        },
+        {
+          "id": "branch_fib",
+          "elf": "vectors/riscv_elfs/branch_fib.elf",
+          "input": null
+        },
+        {
+          "id": "mem_ls",
+          "elf": "vectors/riscv_elfs/mem_ls.elf",
+          "input": null
+        },
+        {
+          "id": "jal_jalr",
+          "elf": "vectors/riscv_elfs/jal_jalr.elf",
+          "input": null
+        },
+        {
+          "id": "mul_div",
+          "elf": "vectors/riscv_elfs/mul_div.elf",
+          "input": null
+        },
+        {
+          "id": "shift_logic",
+          "elf": "vectors/riscv_elfs/shift_logic.elf",
+          "input": null
+        },
+        {
+          "id": "memcpy_loop",
+          "elf": "vectors/riscv_elfs/memcpy_loop.elf",
+          "input": null
+        },
+        {
+          "id": "multi_shard_addi",
+          "elf": "vectors/riscv_elfs/multi_shard_addi.elf",
+          "input": null
+        },
+        {
+          "id": "sha2_input_128B",
+          "elf": "vectors/riscv_elfs/crypto/sha2_input.elf",
+          "input": "vectors/riscv_elfs/crypto/inputs/msg_128.bin"
+        }
+      ],
+      "primary_target": {
+        "claim_kind": "non-inferiority",
+        "lane": "cpu-native",
+        "workload": "multi_shard_addi",
+        "metric": "witness_speed",
+        "decision": "lower_ci_greater_than_or_equal",
+        "threshold": 0.97
+      },
+      "exact_gates": [
+        "all 17 families independently preserve witness bytes, ordered events, descriptors, cells, degree manifests, relation summaries, statement, transcript, proof bytes, and verifier result",
+        "all 17 families pass every allocation-accounting gate",
+        "handwritten witness writers are not retired until every family and full-proof row passes"
+      ],
+      "statistical_gates": [
+        "universal budgets for every family case, full-proof workload, and lane",
+        "witness speed lower CI at least 0.97 for every family/log-row case",
+        "both adjacent row-count time ratios at most 17.6"
+      ],
+      "observational_metrics": [
+        "build time",
+        "generated-code and executable size",
+        "sub-10-ms family stages"
+      ]
+    },
+    {
+      "id": "M9",
+      "name": "two-to-one recursive aggregation",
+      "promotion_class": "protocol-changing aggregation and parallel optimization",
+      "required_lanes": [
+        "cpu-native",
+        "metal-hybrid"
+      ],
+      "corpus": {
+        "generator": "typed-air-recursion-leaf-corpus-v1",
+        "seed": "stwo-typed-air-m9-recursion-v1",
+        "leaf_log_rows": [
+          14,
+          16,
+          18
+        ],
+        "leaf_counts": [
+          2,
+          4,
+          8,
+          16,
+          32
+        ],
+        "worker_counts": [
+          1,
+          4,
+          8
+        ],
+        "aggregation_tree": "balanced deterministic two-to-one",
+        "comparators": [
+          "the same leaf proofs independently verified without aggregation",
+          "one semantically equivalent monolithic proof"
+        ]
+      },
+      "primary_target": {
+        "claim_kind": "improvement",
+        "lane": "cpu-native",
+        "workload": "leaf_log_rows=18:leaf_count=8:workers=4",
+        "comparison": "recursive wall time over sequential independently verified flat leaves",
+        "metric": "verified_request_speed",
+        "decision": "lower_ci_greater_than_or_equal",
+        "threshold": 1.25
+      },
+      "exact_gates": {
+        "leaf_and_parent_summaries": "every leaf summary, parent relation summary, transcript binding, and root statement matches the deterministic aggregation manifest and verifies independently",
+        "root_proof_size_32_over_2": 1.05,
+        "root_proof_size_over_single_leaf_for_every_leaf_count": 1.10,
+        "aggregation_tree_shape": "exact equality to the balanced canonical tree for every leaf count",
+        "worker_bound_and_cleanup": "all M7 bounded-worker and failure-cleanup gates"
+      },
+      "statistical_gates": {
+        "root_verification_time_32_over_2_upper_ci": 1.10,
+        "fixed_worker_coordinator_peak_rss_32_over_2_upper_ci": 1.10,
+        "total_recursive_resource_work_over_flat_leaf_work_upper_ci": 1.50,
+        "eight_leaf_four_worker_speed_lower_ci": 1.25,
+        "time_crossover": "recursive wall-time lower CI is above 1.0 relative to sequential flat proving no later than eight leaves",
+        "peak_rss_at_crossover_over_equivalent_monolithic_upper_ci": 0.60
+      },
+      "universal_budget_overrides": [
+        "the 1.50 recursive process-CPU, retired-instruction, and GPU-command-work caps replace their universal 1.05 caps only for recursive aggregation against flat leaves",
+        "the 0.60 crossover memory target and 1.10 fixed-worker scaling cap replace the universal 1.05 RSS cap only for the named M9 comparisons"
+      ],
+      "observational_metrics": [
+        "two- and four-leaf fixed overhead",
+        "aggregation-level stage distribution",
+        "network and serialization time when distribution is enabled",
+        "intermediate worker-count scaling"
+      ]
+    }
+  ],
+  "receipt_contract": {
+    "schema": "stwo-typed-air-performance-receipt-v1",
+    "canonical_encoding": "UTF-8 canonical JSON with lexicographically ordered object keys, no insignificant whitespace, and one trailing newline",
+    "content_sha256_definition": "SHA-256 of the canonical receipt object with the content_sha256 member omitted",
+    "required_root_fields": [
+      "schema",
+      "schema_version",
+      "milestone",
+      "outcome",
+      "protocol",
+      "capture_plan",
+      "baseline",
+      "candidate",
+      "builds",
+      "host",
+      "power",
+      "environment",
+      "corpus",
+      "security",
+      "schedule",
+      "a_a_calibration",
+      "raw_bundle",
+      "attempts",
+      "summaries",
+      "gates",
+      "primary_target",
+      "artifacts",
+      "open_claims",
+      "content_sha256"
+    ],
+    "protocol_identity_fields": [
+      "path",
+      "bytes",
+      "sha256"
+    ],
+    "source_identity_fields": [
+      "commit",
+      "tree",
+      "clean_status",
+      "source_closure_sha256"
+    ],
+    "attempt_fields": [
+      "attempt_id",
+      "subject_id",
+      "lane_id",
+      "workload_id",
+      "arm",
+      "warmup",
+      "round",
+      "position",
+      "worker_count",
+      "status",
+      "failure",
+      "timings_ns",
+      "resources",
+      "allocations",
+      "geometry",
+      "proof",
+      "native_verification",
+      "independent_verification",
+      "stage_profile",
+      "task_profile"
+    ],
+    "timing_fields": [
+      "verified_request_ns",
+      "guest_execution_ns",
+      "witness_ns",
+      "proving_ns",
+      "native_verification_ns",
+      "independent_verification_ns"
+    ],
+    "resource_fields": [
+      "peak_rss_bytes",
+      "process_cpu_ns",
+      "retired_instructions",
+      "gpu_command_ns",
+      "native_peak_rss_value",
+      "native_peak_rss_unit"
+    ],
+    "allocation_fields": [
+      "prepare_calls",
+      "prepare_bytes",
+      "hot_calls",
+      "hot_bytes",
+      "hot_reallocations",
+      "hot_frees",
+      "hot_peak_live_bytes",
+      "output_bytes"
+    ],
+    "geometry_fields": [
+      "component_manifest_sha256",
+      "active_rows",
+      "padded_rows",
+      "preprocessed_cells",
+      "main_cells",
+      "interaction_cells",
+      "committed_cells",
+      "quotient_cells",
+      "constraint_degree_histogram",
+      "maximum_constraint_log_degree",
+      "relation_entries",
+      "relation_batches",
+      "committed_bytes",
+      "device_resident_bytes"
+    ],
+    "proof_fields": [
+      "statement_sha256",
+      "transcript_sha256",
+      "program_sha256",
+      "layout_sha256",
+      "relation_summary_sha256",
+      "proof_bytes",
+      "proof_sha256"
+    ],
+    "artifact_fields": [
+      "id",
+      "kind",
+      "path_or_immutable_uri",
+      "bytes",
+      "sha256",
+      "storage_class"
+    ],
+    "required_raw_properties": [
+      "all warmup and measured attempts are retained in launch order",
+      "failed attempts are retained with exact status and bounded stdout and stderr artifacts",
+      "every summary, confidence interval, ratio, and verdict is recomputed from the raw bundle",
+      "at least one complete proof artifact per arm, lane, and workload is retained; every other proof retains byte count, digest, and both verifier receipts",
+      "the receipt digest binds the protocol, capture plan, raw bundle manifest, and every artifact digest"
+    ],
+    "validator_rejections": [
+      "duplicate or unknown JSON fields",
+      "missing, non-finite, negative, or wrong-type values",
+      "threshold, corpus, schedule, estimator, or identity drift",
+      "deleted, reordered, duplicated, retried, replaced, or arm-swapped attempts",
+      "omitted failure or unverifiable proof",
+      "source, executable, input, raw-bundle, proof, verifier-receipt, or artifact digest mismatch",
+      "Metal fallback or missing required resident-dispatch evidence",
+      "a summary or outcome that cannot be reproduced exactly"
+    ]
+  }
+}

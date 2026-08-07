@@ -132,6 +132,99 @@ outputs, complete direct-root evaluation, and mutation coverage admit its
 samples, while any later production decision still requires verified
 proof-path evidence under the full procedure above.
 
+## Normative M5--M9 promotion contract
+
+The machine-readable
+[`performance/m5-m9-protocol-v1.json`](performance/m5-m9-protocol-v1.json)
+is the numerical and procedural authority for M5 through M9 performance
+promotion. The [protocol README](performance/README.md) describes its evidence
+boundary. A milestone does not close its performance scope on an informal
+benchmark, a best sample, or correctness evidence alone.
+
+`python3 scripts/typed_air_performance_protocol.py` validates the frozen
+contract and its digest-bound local authorities before a capture begins. Its
+mutation suite is
+`python3 -m unittest scripts.tests.test_typed_air_performance_protocol`.
+
+Before candidate execution, the capture plan freezes the predecessor commit
+and tree, corpus manifest, build and security parameters, authority hosts and
+backends, and exactly one primary target. Post-selection is forbidden. M5 and
+M8 predeclare non-inferiority targets; the optimization milestones M6, M7, and
+M9 predeclare a real improvement. A threshold change after results are visible
+requires a new reviewed protocol version and a new capture.
+
+### Evidence classes
+
+Exact gates have no noise allowance. They cover semantic outputs and ordered
+multiplicities; component descriptors, padding, cells, degrees, relation
+summaries, statements and transcripts; protocol-preserving proof bytes;
+allocation-free prepared row loops; and bounded task accounting. Cell totals
+are computed as columns times their individual domains, never inferred from
+column counts alone.
+
+Statistical gates cover verified request, proving and verification time,
+process/GPU work, material stages, and peak RSS. A stage is material only when
+its baseline median is at least 10 ms and at least five percent of verified
+request time. Smaller stages and uncalibrated hardware counters are retained
+as observations but cannot decide promotion.
+
+### Sampling and decisions
+
+Every attempt is a fresh serial child and every timed proof is natively and
+independently verified. Each arm receives ten excluded verified warmups and
+three paired alternating AB/BA rounds of ten measured proofs per arm. There is
+a one-second cooldown, no early stopping, no retries, no outlier deletion, and
+no omitted failures. Raw attempts remain in launch order.
+
+Round-median ratios use the digest-pinned epoch-3 Hodges--Lehmann estimator and
+deterministic 4,000-iteration 95% percentile bootstrap. Speed is normalized as
+baseline duration divided by candidate duration; resources are candidate
+divided by baseline. An A/A run of the complete protocol is required for each
+host/backend session. Its interval must contain 1.0 and be no wider than 0.06,
+or the session has no verdict.
+
+Every required workload and backend passes independently. The universal hard
+budgets are:
+
+| Measure | Required result |
+| --- | ---: |
+| Verified-request speed | lower CI `>= 0.97` |
+| Proving speed | lower CI `>= 0.97` |
+| Native verification candidate/baseline | upper CI `<= 1.03` |
+| Peak RSS candidate/baseline | upper CI `<= 1.05`, maxima ratio `<= 1.10` |
+| CPU, supported instruction, and Metal command work | upper CI `<= 1.05` |
+| Protocol-preserving proof bytes | exact equality |
+| Protocol-changing proof size | candidate/baseline `<= 1.10` |
+
+The protocol names narrow M7 and M9 resource overrides where parallelism or
+aggregation deliberately exchanges bounded total work for critical-path time.
+No aggregate or geometric mean can hide a failing workload.
+
+### Milestone benefit gates
+
+| Milestone | Required corpus and distinguishing hard gate |
+| --- | --- |
+| M5 | LUI, ADDI, signed load, JALR, and DIV at logs 10/14/18 plus five full proofs; exact compatibility, zero hot-loop allocation, at-most-linear-plus-10% row scaling, and witness lower CI `>= 0.97`. |
+| M6 | Identical software/precompile Poseidon inputs at 0/1/8/64/512/4096 calls in core, balanced, and dominant shapes; crossover by 512, committed-cell ratios `<= 0.85` at 512 and `<= 0.75` at 4096, and dominant 4096-call speed lower CI `>= 1.10` CPU and `>= 1.05` Metal. |
+| M7 | One/two/four/max-worker sweeps over shard, memory, balanced-hash, and dominant-hash proofs; exact proof identity and bounded task accounting, at least two qualifying parallel workloads, and largest-worker speed lower CI at least `max(1.05, 70% of Amdahl ideal)` with total-work/RSS scaling caps of 1.15/1.25. |
+| M8 | Isolated logs 10/14/18 for all 17 opcode families plus nine full-proof workloads; exact compatibility and M5 allocation/scaling gates for every family, with no portfolio averaging. |
+| M9 | Logs 14/16/18, 2/4/8/16/32 leaves and 1/4/8 workers; deterministic two-to-one summaries, eight-leaf/four-worker speed lower CI `>= 1.25`, crossover by eight leaves, root proof-size 32/2 `<= 1.05`, verifier 32/2 `<= 1.10`, and bounded total-work/RSS scaling. |
+
+### Receipts and outcomes
+
+A promotion receipt binds the protocol and capture-plan identities, clean
+baseline and candidate sources, executables, corpus inputs, host/power state,
+all attempts, raw bundle, geometry, proofs and both verifier results, stage and
+task profiles, summaries, gates, artifacts, and open claims by byte count and
+SHA-256. The validator recomputes every ratio, interval, and outcome and rejects
+unknown or duplicate fields, identity or threshold drift, reordered or
+deleted attempts, omitted failures, fallback, and digest mismatches.
+
+Candidate correctness, exact-invariant, or budget failure is `FAIL`.
+Unstable A/A calibration, environmental identity drift, unavailable mandatory
+counters, or incomplete evidence is `NO_VERDICT`. Neither outcome permits
+promotion.
+
 ## Compiler cost report
 
 Every layout proposal reports a vector rather than one magic score:
