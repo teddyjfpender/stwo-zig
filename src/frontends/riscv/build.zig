@@ -193,6 +193,11 @@ pub fn build(b: *std.Build) void {
         .description = "Run only RISC-V instruction-family AIR tests",
         .root = "air_semantics_test_root.zig",
     });
+    addFocusedTests(b, core, target, optimize, check_only, .{
+        .step = "test-guest-precompile",
+        .description = "Run only proof-side guest-precompile protocol tests",
+        .root = "guest_precompile_test_root.zig",
+    });
 }
 
 const FocusedTest = struct {

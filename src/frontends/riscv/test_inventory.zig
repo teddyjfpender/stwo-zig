@@ -42,6 +42,7 @@ test {
     _ = @import("access_clock.zig");
     _ = @import("air_semantics_test_root.zig");
     _ = @import("execution_profile_identity_test.zig");
+    _ = @import("guest_precompile_test_root.zig");
     _ = @import("infra_trace.zig");
     _ = @import("isa_test_root.zig");
     _ = @import("opcode_coverage_test.zig");
@@ -96,6 +97,7 @@ test {
     _ = @import("air/component.zig");
     _ = @import("air/component_order.zig");
     _ = @import("air/diagnostic_hints_test.zig");
+    _ = @import("air/guest_precompile/relation_test.zig");
     _ = @import("air/interaction.zig");
     _ = @import("air/interaction_gen.zig");
     _ = @import("air/logup.zig");
