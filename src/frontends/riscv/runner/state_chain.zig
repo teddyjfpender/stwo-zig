@@ -53,6 +53,13 @@ pub const ClockUpdate = struct {
 
 /// Tracks access chains for both registers and memory.
 pub const StateChainTracker = struct {
+    pub const Reservation = struct {
+        memory_address_count: usize,
+        access_count: usize,
+        memory_clock_update_count: usize,
+        register_clock_update_count: usize,
+    };
+
     /// Last access clock per register (32 registers).
     reg_last_clk: [32]u32,
     /// Last access clock per memory address.
@@ -161,6 +168,78 @@ pub const StateChainTracker = struct {
         try self.mem_last_clk.put(aligned_addr, clk);
     }
 
+    /// Reserve every collection used by a prepared transition batch. Partial
+    /// capacity growth is logically invisible if a later reserve fails.
+    pub fn reserveTransitions(
+        self: *StateChainTracker,
+        reservation: Reservation,
+    ) error{OutOfMemory}!void {
+        try self.mem_initial.ensureUnusedCapacity(@intCast(reservation.memory_address_count));
+        try self.mem_last_clk.ensureUnusedCapacity(@intCast(reservation.memory_address_count));
+        try self.accesses.ensureUnusedCapacity(self.allocator, reservation.access_count);
+        try self.clock_updates_mem.ensureUnusedCapacity(
+            self.allocator,
+            reservation.memory_clock_update_count,
+        );
+        try self.clock_updates_reg.ensureUnusedCapacity(
+            self.allocator,
+            reservation.register_clock_update_count,
+        );
+    }
+
+    /// Commit one register transition after `reserveTransitions`.
+    pub fn recordRegTransitionAssumeCapacity(
+        self: *StateChainTracker,
+        reg: u5,
+        clk: u32,
+        previous: u32,
+        next: u32,
+    ) void {
+        const effective_prev_clk = self.fillClockGapAssumeCapacity(
+            0,
+            @as(u32, reg),
+            self.reg_last_clk[reg],
+            clk,
+            previous,
+        );
+        self.accesses.appendAssumeCapacity(.{
+            .addr_space = 0,
+            .addr = @as(u32, reg),
+            .clk = clk,
+            .value = next,
+            .clk_prev = effective_prev_clk,
+        });
+        self.reg_last_clk[reg] = clk;
+    }
+
+    /// Commit one aligned memory transition after `reserveTransitions`.
+    pub fn recordMemTransitionAssumeCapacity(
+        self: *StateChainTracker,
+        addr: u32,
+        clk: u32,
+        previous: u32,
+        next: u32,
+    ) void {
+        std.debug.assert(addr & 3 == 0);
+        const initial = self.mem_initial.getOrPutAssumeCapacity(addr);
+        if (!initial.found_existing) initial.value_ptr.* = previous;
+        const effective_prev_clk = self.fillClockGapAssumeCapacity(
+            1,
+            addr,
+            self.mem_last_clk.get(addr) orelse 0,
+            clk,
+            previous,
+        );
+        self.accesses.appendAssumeCapacity(.{
+            .addr_space = 1,
+            .addr = addr,
+            .clk = clk,
+            .value = next,
+            .clk_prev = effective_prev_clk,
+        });
+        self.mem_last_clk.putAssumeCapacity(addr, clk);
+    }
+
     /// Fill clock gaps with intermediate records.
     fn fillClockGap(
         self: *StateChainTracker,
@@ -194,6 +273,44 @@ pub const StateChainTracker = struct {
     pub fn effectivePreviousClock(prev_clk: u32, clk: u32) u32 {
         var current = prev_clk;
         while (clk -| current > MAX_CLOCK_DIFF) current += MAX_CLOCK_DIFF;
+        return current;
+    }
+
+    pub fn clockGapCount(prev_clk: u32, clk: u32) usize {
+        var count: usize = 0;
+        var current = prev_clk;
+        while (clk -| current > MAX_CLOCK_DIFF) {
+            current += MAX_CLOCK_DIFF;
+            count += 1;
+        }
+        return count;
+    }
+
+    fn fillClockGapAssumeCapacity(
+        self: *StateChainTracker,
+        addr_space: u1,
+        addr: u32,
+        prev_clk: u32,
+        clk: u32,
+        value: u32,
+    ) u32 {
+        var current = prev_clk;
+        while (clk -| current > MAX_CLOCK_DIFF) {
+            const next = current + MAX_CLOCK_DIFF;
+            const update = ClockUpdate{
+                .addr_space = addr_space,
+                .addr = addr,
+                .clk = next,
+                .clk_prev = current,
+                .value = value,
+            };
+            if (addr_space == 0) {
+                self.clock_updates_reg.appendAssumeCapacity(update);
+            } else {
+                self.clock_updates_mem.appendAssumeCapacity(update);
+            }
+            current = next;
+        }
         return current;
     }
 
@@ -275,6 +392,28 @@ test "state_chain: memory access tracking" {
     try std.testing.expectEqual(@as(usize, 2), tracker.memAccessCount());
     // Second access should chain back to clock 4.
     try std.testing.expectEqual(@as(u32, 4), tracker.accesses.items[1].clk_prev);
+}
+
+test "state_chain: reserved transition batch commits without allocation" {
+    var tracker = StateChainTracker.init(std.testing.allocator);
+    defer tracker.deinit();
+    const reg_clk: u32 = MAX_CLOCK_DIFF + 2;
+    const mem_clk: u32 = MAX_CLOCK_DIFF + 3;
+    try tracker.reserveTransitions(.{
+        .memory_address_count = 1,
+        .access_count = 2,
+        .memory_clock_update_count = StateChainTracker.clockGapCount(0, mem_clk),
+        .register_clock_update_count = StateChainTracker.clockGapCount(0, reg_clk),
+    });
+    tracker.recordRegTransitionAssumeCapacity(5, reg_clk, 11, 11);
+    tracker.recordMemTransitionAssumeCapacity(0x2000, mem_clk, 7, 9);
+
+    try std.testing.expectEqual(@as(usize, 2), tracker.accesses.items.len);
+    try std.testing.expectEqual(@as(usize, 1), tracker.clock_updates_reg.items.len);
+    try std.testing.expectEqual(@as(usize, 1), tracker.clock_updates_mem.items.len);
+    try std.testing.expectEqual(reg_clk, tracker.reg_last_clk[5]);
+    try std.testing.expectEqual(mem_clk, tracker.mem_last_clk.get(0x2000).?);
+    try std.testing.expectEqual(@as(u32, 7), tracker.mem_initial.get(0x2000).?);
 }
 
 test "state_chain: memory transition retains the first aligned baseline" {

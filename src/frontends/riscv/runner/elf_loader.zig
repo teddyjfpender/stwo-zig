@@ -4,8 +4,13 @@
 //! sparse `Memory` at their specified virtual addresses.
 
 const std = @import("std");
+const execution_profile = @import("../isa/execution_profile.zig");
+const admission = execution_profile.admission;
+const elf_admission = @import("elf_admission.zig");
 const Memory = @import("memory.zig").Memory;
 const MemoryLayout = @import("memory_state.zig").MemoryLayout;
+
+pub const ExecutionProfile = execution_profile.ExecutionProfile;
 
 pub const ElfError = error{
     InvalidMagic,
@@ -13,12 +18,15 @@ pub const ElfError = error{
     NotLittleEndian,
     NotRiscV,
     InvalidProgramHeader,
+    MissingAdmissionNote,
+    RequiredCapabilityUnavailable,
     BufferTooSmall,
     MissingReleaseAbiSymbol,
-};
+} || elf_admission.Error;
 
 /// Information extracted from the ELF header after loading.
 pub const ElfInfo = struct {
+    execution_profile: ExecutionProfile,
     entry_point: u32,
     segments_loaded: usize,
     stack_pointer: u32,
@@ -47,6 +55,9 @@ const ELFCLASS32: u8 = 1;
 const ELFDATA2LSB: u8 = 1;
 const EM_RISCV: u16 = 243;
 const PT_LOAD: u32 = 1;
+const SHT_STRTAB = elf_admission.sht_strtab;
+const SHT_NOTE = elf_admission.sht_note;
+const SHF_ALLOC = elf_admission.shf_alloc;
 
 /// Complete linker contract required by the production Stark-V adapter.
 pub const RELEASE_ABI_SYMBOLS = [_][]const u8{
@@ -68,12 +79,51 @@ pub const RELEASE_ABI_SYMBOLS = [_][]const u8{
 // ELF32 header offsets and sizes
 const ELF_HDR_SIZE: usize = 52;
 const PHDR_SIZE: usize = 32;
+const SHDR_SIZE = elf_admission.section_header_size;
+
+/// Select the exact execution profile requested by an ELF.
+///
+/// Absence of the admission section selects the existing base profile.  A
+/// section named `.note.stwo.zkvm` is authoritative: malformed, duplicate, or
+/// unsupported metadata fails closed instead of being treated as absent.
+pub fn requestedExecutionProfile(elf_bytes: []const u8) ElfError!ExecutionProfile {
+    try validateIdentity(elf_bytes);
+    return elf_admission.parseAfterIdentityValidation(elf_bytes);
+}
+
+/// Require an exact machine profile before loading bytes or initializing a CPU.
+///
+/// The exact-match API prevents a base runner from silently accepting an
+/// extension executable and prevents an extension-selected execution from
+/// proceeding without its required note.
+pub fn requireExecutionProfile(
+    elf_bytes: []const u8,
+    expected: ExecutionProfile,
+) ElfError!ExecutionProfile {
+    const requested = try requestedExecutionProfile(elf_bytes);
+    if (requested == expected) return requested;
+    return switch (requested) {
+        .rv32im_zkvm_v1 => ElfError.MissingAdmissionNote,
+        .rv32im_zkvm_poseidon2_v1 => ElfError.RequiredCapabilityUnavailable,
+    };
+}
 
 /// Load an ELF32 RISC-V binary into `mem`.
 ///
-/// Returns the entry point and the number of segments loaded.
+/// This compatibility entry point is intentionally base-profile-only.
 pub fn loadElf(elf_bytes: []const u8, mem: *Memory) (ElfError || error{OutOfMemory})!ElfInfo {
-    try validateIdentity(elf_bytes);
+    return loadElfForProfile(elf_bytes, mem, .rv32im_zkvm_v1);
+}
+
+/// Load an ELF after exact profile admission.
+///
+/// Admission completes before any PT_LOAD segment mutates `mem`.
+pub fn loadElfForProfile(
+    elf_bytes: []const u8,
+    mem: *Memory,
+    expected_profile: ExecutionProfile,
+) (ElfError || error{OutOfMemory})!ElfInfo {
+    const selected_profile = try requireExecutionProfile(elf_bytes, expected_profile);
 
     // e_entry (offset 24, 4 bytes LE)
     const e_entry = readU32LE(elf_bytes[24..28]);
@@ -151,6 +201,7 @@ pub fn loadElf(elf_bytes: []const u8, mem: *Memory) (ElfError || error{OutOfMemo
     };
 
     return .{
+        .execution_profile = selected_profile,
         .entry_point = e_entry,
         .segments_loaded = segments_loaded,
         .stack_pointer = stack_pointer,
@@ -168,7 +219,7 @@ pub fn loadElf(elf_bytes: []const u8, mem: *Memory) (ElfError || error{OutOfMemo
 /// Rejects compatibility ELFs before the production adapter starts execution.
 /// `loadElf` continues to provide documented defaults for diagnostic callers.
 pub fn validateReleaseAbi(elf_bytes: []const u8) ElfError!void {
-    try validateIdentity(elf_bytes);
+    _ = try requireExecutionProfile(elf_bytes, .rv32im_zkvm_v1);
     for (RELEASE_ABI_SYMBOLS) |symbol| {
         if (findSymbolValue(elf_bytes, symbol) == null)
             return ElfError.MissingReleaseAbiSymbol;
@@ -340,6 +391,93 @@ fn makeMinimalElf() [88]u8 {
     return buf;
 }
 
+const NOTE_FIXTURE_SIZE: usize = 392;
+const NOTE_SECTION_HEADER: usize = 132;
+const NOTE_PAYLOAD: usize = 240;
+const NOTE_DESCRIPTOR: usize = NOTE_PAYLOAD + 20;
+
+fn putU16LE(bytes: []u8, offset: usize, value: u16) void {
+    bytes[offset] = @truncate(value);
+    bytes[offset + 1] = @truncate(value >> 8);
+}
+
+fn putU32LE(bytes: []u8, offset: usize, value: u32) void {
+    bytes[offset] = @truncate(value);
+    bytes[offset + 1] = @truncate(value >> 8);
+    bytes[offset + 2] = @truncate(value >> 16);
+    bytes[offset + 3] = @truncate(value >> 24);
+}
+
+fn putU64LE(bytes: []u8, offset: usize, value: u64) void {
+    putU32LE(bytes, offset, @truncate(value));
+    putU32LE(bytes, offset + 4, @truncate(value >> 32));
+}
+
+/// ELF32 with four section-header slots, three selected sections, and one
+/// canonical `.note.stwo.zkvm` note.  The spare slot and payload space let
+/// duplicate-note/section tests mutate the fixture without allocating.
+fn makeAdmissionNoteElf() [NOTE_FIXTURE_SIZE]u8 {
+    var elf = [_]u8{0} ** NOTE_FIXTURE_SIZE;
+
+    @memcpy(elf[0..4], &ELF_MAGIC);
+    elf[4] = ELFCLASS32;
+    elf[5] = ELFDATA2LSB;
+    elf[6] = 1;
+    putU16LE(&elf, 16, 2); // ET_EXEC
+    putU16LE(&elf, 18, EM_RISCV);
+    putU32LE(&elf, 20, 1); // e_version
+    putU32LE(&elf, 32, ELF_HDR_SIZE); // e_shoff
+    putU16LE(&elf, 40, ELF_HDR_SIZE); // e_ehsize
+    putU16LE(&elf, 46, SHDR_SIZE); // e_shentsize
+    putU16LE(&elf, 48, 3); // null, shstrtab, admission note
+    putU16LE(&elf, 50, 1); // e_shstrndx
+
+    // Section 1: string table at byte 212.
+    const strings = "\x00.shstrtab\x00.note.stwo.zkvm\x00";
+    const string_header: usize = ELF_HDR_SIZE + SHDR_SIZE;
+    putU32LE(&elf, string_header, 1);
+    putU32LE(&elf, string_header + 4, SHT_STRTAB);
+    putU32LE(&elf, string_header + 16, 212);
+    putU32LE(&elf, string_header + 20, strings.len);
+    putU32LE(&elf, string_header + 32, 1);
+    @memcpy(elf[212 .. 212 + strings.len], strings);
+
+    // Section 2: non-allocated, four-byte-aligned admission note.
+    putU32LE(&elf, NOTE_SECTION_HEADER, 11);
+    putU32LE(&elf, NOTE_SECTION_HEADER + 4, SHT_NOTE);
+    putU32LE(&elf, NOTE_SECTION_HEADER + 16, NOTE_PAYLOAD);
+    putU32LE(&elf, NOTE_SECTION_HEADER + 20, 76);
+    putU32LE(&elf, NOTE_SECTION_HEADER + 32, 4);
+
+    putU32LE(&elf, NOTE_PAYLOAD, admission.note_name.len);
+    putU32LE(&elf, NOTE_PAYLOAD + 4, admission.descriptor_size);
+    putU32LE(&elf, NOTE_PAYLOAD + 8, admission.note_type);
+    @memcpy(
+        elf[NOTE_PAYLOAD + 12 .. NOTE_PAYLOAD + 12 + admission.note_name.len],
+        admission.note_name,
+    );
+
+    @memcpy(
+        elf[NOTE_DESCRIPTOR .. NOTE_DESCRIPTOR + admission.descriptor_magic.len],
+        admission.descriptor_magic,
+    );
+    putU16LE(&elf, NOTE_DESCRIPTOR + 8, admission.schema_version);
+    putU16LE(
+        &elf,
+        NOTE_DESCRIPTOR + 10,
+        @intFromEnum(ExecutionProfile.rv32im_zkvm_poseidon2_v1),
+    );
+    putU64LE(&elf, NOTE_DESCRIPTOR + 12, execution_profile.poseidon2_capability_bit);
+    putU16LE(&elf, NOTE_DESCRIPTOR + 20, execution_profile.poseidon2_abi_version);
+    putU16LE(&elf, NOTE_DESCRIPTOR + 22, 0);
+    @memcpy(
+        elf[NOTE_DESCRIPTOR + 24 .. NOTE_DESCRIPTOR + 56],
+        &execution_profile.poseidon2_semantic_digest,
+    );
+
+    return elf;
+}
+
 test "loadElf parses minimal ELF header" {
     var mem = @import("memory.zig").Memory.init(std.testing.allocator);
     defer mem.deinit();
@@ -347,6 +485,7 @@ test "loadElf parses minimal ELF header" {
     const elf = makeMinimalElf();
     const info = try loadElf(&elf, &mem);
 
+    try std.testing.expectEqual(ExecutionProfile.rv32im_zkvm_v1, info.execution_profile);
     try std.testing.expectEqual(@as(u32, 0x00010000), info.entry_point);
     try std.testing.expectEqual(@as(usize, 1), info.segments_loaded);
     try std.testing.expectEqual(DEFAULT_STACK_POINTER, info.stack_pointer);
@@ -363,6 +502,229 @@ test "loadElf parses minimal ELF header" {
 
     // Verify the instruction was loaded at the correct address.
     try std.testing.expectEqual(@as(u32, 0x02A00093), mem.readU32(0x00010000));
+}
+
+test "ELF admission selects base without a note and exact Poseidon2 with one" {
+    const base_elf = makeMinimalElf();
+    try std.testing.expectEqual(
+        ExecutionProfile.rv32im_zkvm_v1,
+        try requestedExecutionProfile(&base_elf),
+    );
+    try std.testing.expectError(
+        ElfError.MissingAdmissionNote,
+        requireExecutionProfile(&base_elf, .rv32im_zkvm_poseidon2_v1),
+    );
+
+    const extension_elf = makeAdmissionNoteElf();
+    try std.testing.expectEqual(
+        ExecutionProfile.rv32im_zkvm_poseidon2_v1,
+        try requestedExecutionProfile(&extension_elf),
+    );
+
+    var mem = Memory.init(std.testing.allocator);
+    defer mem.deinit();
+    const info = try loadElfForProfile(
+        &extension_elf,
+        &mem,
+        .rv32im_zkvm_poseidon2_v1,
+    );
+    try std.testing.expectEqual(
+        ExecutionProfile.rv32im_zkvm_poseidon2_v1,
+        info.execution_profile,
+    );
+}
+
+test "base ELF loader rejects an extension note before loading" {
+    var extension_elf = makeAdmissionNoteElf();
+    putU32LE(&extension_elf, 28, 316); // e_phoff
+    putU16LE(&extension_elf, 42, PHDR_SIZE);
+    putU16LE(&extension_elf, 44, 1);
+    putU32LE(&extension_elf, 316, PT_LOAD);
+    putU32LE(&extension_elf, 320, 348); // p_offset
+    putU32LE(&extension_elf, 324, 0x1000); // p_vaddr
+    putU32LE(&extension_elf, 332, 4); // p_filesz
+    putU32LE(&extension_elf, 336, 4); // p_memsz
+    putU32LE(&extension_elf, 348, 0xdead_beef);
+    var mem = Memory.init(std.testing.allocator);
+    defer mem.deinit();
+
+    try std.testing.expectError(
+        ElfError.RequiredCapabilityUnavailable,
+        loadElf(&extension_elf, &mem),
+    );
+    try std.testing.expectEqual(@as(u32, 0), mem.readU32(0x1000));
+    try std.testing.expectError(
+        ElfError.RequiredCapabilityUnavailable,
+        validateReleaseAbi(&extension_elf),
+    );
+}
+
+test "ELF admission rejects section and note envelope drift" {
+    {
+        var elf = makeAdmissionNoteElf();
+        elf[223] = 'X'; // first byte of `.note.stwo.zkvm` in shstrtab
+        try std.testing.expectEqual(
+            ExecutionProfile.rv32im_zkvm_v1,
+            try requestedExecutionProfile(&elf),
+        );
+    }
+    {
+        var elf = makeAdmissionNoteElf();
+        putU32LE(&elf, NOTE_SECTION_HEADER + 4, 1); // not SHT_NOTE
+        try std.testing.expectError(ElfError.InvalidAdmissionNote, requestedExecutionProfile(&elf));
+    }
+    {
+        var elf = makeAdmissionNoteElf();
+        putU32LE(&elf, NOTE_SECTION_HEADER + 8, SHF_ALLOC);
+        try std.testing.expectError(ElfError.InvalidAdmissionNote, requestedExecutionProfile(&elf));
+    }
+    {
+        var elf = makeAdmissionNoteElf();
+        putU32LE(&elf, NOTE_SECTION_HEADER + 32, 8);
+        try std.testing.expectError(ElfError.InvalidAdmissionNote, requestedExecutionProfile(&elf));
+    }
+    {
+        var elf = makeAdmissionNoteElf();
+        putU32LE(&elf, NOTE_SECTION_HEADER + 16, NOTE_PAYLOAD + 1);
+        try std.testing.expectError(ElfError.InvalidAdmissionNote, requestedExecutionProfile(&elf));
+    }
+    {
+        var elf = makeAdmissionNoteElf();
+        putU32LE(&elf, NOTE_PAYLOAD, admission.note_name.len - 1);
+        try std.testing.expectError(ElfError.InvalidAdmissionNote, requestedExecutionProfile(&elf));
+    }
+    {
+        var elf = makeAdmissionNoteElf();
+        elf[NOTE_PAYLOAD + 12] = 'X';
+        try std.testing.expectError(ElfError.InvalidAdmissionNote, requestedExecutionProfile(&elf));
+    }
+    {
+        var elf = makeAdmissionNoteElf();
+        putU32LE(&elf, NOTE_PAYLOAD + 4, admission.descriptor_size - 1);
+        try std.testing.expectError(ElfError.InvalidAdmissionNote, requestedExecutionProfile(&elf));
+    }
+    {
+        var elf = makeAdmissionNoteElf();
+        putU32LE(&elf, NOTE_PAYLOAD + 8, admission.note_type + 1);
+        try std.testing.expectError(ElfError.InvalidAdmissionNote, requestedExecutionProfile(&elf));
+    }
+    {
+        var elf = makeAdmissionNoteElf();
+        try std.testing.expectError(
+            ElfError.InvalidAdmissionNote,
+            requestedExecutionProfile(elf[0 .. NOTE_PAYLOAD + 75]),
+        );
+    }
+}
+
+test "ELF admission rejects every descriptor identity mismatch" {
+    {
+        var elf = makeAdmissionNoteElf();
+        elf[NOTE_DESCRIPTOR] ^= 1;
+        try std.testing.expectError(ElfError.InvalidAdmissionNote, requestedExecutionProfile(&elf));
+    }
+    {
+        var elf = makeAdmissionNoteElf();
+        putU16LE(&elf, NOTE_DESCRIPTOR + 8, admission.schema_version + 1);
+        try std.testing.expectError(ElfError.InvalidAdmissionNote, requestedExecutionProfile(&elf));
+    }
+    {
+        var elf = makeAdmissionNoteElf();
+        putU16LE(&elf, NOTE_DESCRIPTOR + 10, 2);
+        try std.testing.expectError(ElfError.UnsupportedMachineProfile, requestedExecutionProfile(&elf));
+    }
+    {
+        var elf = makeAdmissionNoteElf();
+        putU64LE(&elf, NOTE_DESCRIPTOR + 12, 0);
+        try std.testing.expectError(
+            ElfError.UnsupportedRequiredCapabilities,
+            requestedExecutionProfile(&elf),
+        );
+    }
+    {
+        var elf = makeAdmissionNoteElf();
+        for (1..64) |bit_index| {
+            putU64LE(
+                &elf,
+                NOTE_DESCRIPTOR + 12,
+                execution_profile.poseidon2_capability_bit |
+                    (@as(u64, 1) << @intCast(bit_index)),
+            );
+            try std.testing.expectError(
+                ElfError.UnsupportedRequiredCapabilities,
+                requestedExecutionProfile(&elf),
+            );
+        }
+    }
+    {
+        var elf = makeAdmissionNoteElf();
+        putU16LE(&elf, NOTE_DESCRIPTOR + 20, execution_profile.poseidon2_abi_version + 1);
+        try std.testing.expectError(ElfError.UnsupportedPoseidon2Abi, requestedExecutionProfile(&elf));
+    }
+    {
+        var elf = makeAdmissionNoteElf();
+        putU16LE(&elf, NOTE_DESCRIPTOR + 22, 1);
+        try std.testing.expectError(ElfError.InvalidAdmissionNote, requestedExecutionProfile(&elf));
+    }
+    {
+        var elf = makeAdmissionNoteElf();
+        for (0..execution_profile.poseidon2_semantic_digest.len) |byte_index| {
+            elf[NOTE_DESCRIPTOR + 24 + byte_index] ^= 1;
+            try std.testing.expectError(
+                ElfError.Poseidon2SemanticDigestMismatch,
+                requestedExecutionProfile(&elf),
+            );
+            elf[NOTE_DESCRIPTOR + 24 + byte_index] ^= 1;
+        }
+    }
+}
+
+test "ELF admission rejects duplicate notes, duplicate sections, and invalid tables" {
+    {
+        var elf = makeAdmissionNoteElf();
+        @memcpy(elf[316..392], elf[NOTE_PAYLOAD .. NOTE_PAYLOAD + 76]);
+        putU32LE(&elf, NOTE_SECTION_HEADER + 20, 152);
+        try std.testing.expectError(ElfError.DuplicateAdmissionNote, requestedExecutionProfile(&elf));
+    }
+    {
+        var elf = makeAdmissionNoteElf();
+        @memcpy(elf[172..212], elf[NOTE_SECTION_HEADER .. NOTE_SECTION_HEADER + SHDR_SIZE]);
+        putU16LE(&elf, 48, 4);
+        try std.testing.expectError(ElfError.DuplicateAdmissionNote, requestedExecutionProfile(&elf));
+    }
+    {
+        var elf = makeAdmissionNoteElf();
+        putU16LE(&elf, 50, 4);
+        try std.testing.expectError(ElfError.InvalidSectionTable, requestedExecutionProfile(&elf));
+    }
+    {
+        var elf = makeAdmissionNoteElf();
+        putU32LE(&elf, ELF_HDR_SIZE + SHDR_SIZE + 20, NOTE_FIXTURE_SIZE);
+        try std.testing.expectError(ElfError.InvalidSectionTable, requestedExecutionProfile(&elf));
+    }
+}
+
+test "ELF admission bounds every truncation of the canonical note" {
+    const elf = makeAdmissionNoteElf();
+    const canonical_end = NOTE_PAYLOAD + 76;
+    for (0..canonical_end) |length| {
+        const expected = if (length < ELF_HDR_SIZE)
+            ElfError.BufferTooSmall
+        else if (length < 239)
+            ElfError.InvalidSectionTable
+        else
+            ElfError.InvalidAdmissionNote;
+        try std.testing.expectError(
+            expected,
+            requestedExecutionProfile(elf[0..length]),
+        );
+    }
+    for (canonical_end..elf.len + 1) |length| {
+        try std.testing.expectEqual(
+            ExecutionProfile.rv32im_zkvm_poseidon2_v1,
+            try requestedExecutionProfile(elf[0..length]),
+        );
+    }
 }
 
 test "release ABI preflight rejects compatibility and malformed ELFs" {

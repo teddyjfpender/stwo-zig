@@ -40,11 +40,12 @@ shape, authoring model, or delivery order.
 | [0020](0020-cost-frontier-materialization-proposals.md) | Cost-frontier materialization proposals | proposed |
 | [0021](0021-backend-neutral-poseidon-program-identity.md) | Backend-neutral Poseidon program identity | accepted |
 | [0022](0022-authenticated-poseidon-layout-benchmark.md) | Authenticated Poseidon layout benchmark boundary | proposed |
+| [0023](0023-relation-bound-typed-effects.md) | Relation-bound typed machine effects | accepted |
+| [0024](0024-guest-poseidon2-custom0-abi.md) | Guest Poseidon2 CUSTOM-0 ABI | accepted |
+| [0025](0025-guest-poseidon2-relation-and-subclocks.md) | Guest Poseidon2 relation and subclocks | accepted |
 
 ## Pending ADRs
 
-- Guest precompile invocation ABI and relationship to the RV32IM profile.
-- Guest Poseidon relation domain/version and duplicate-call policy.
 - Production activation criteria for generated witness writers.
 - Cross-proof relation-summary construction.
 - Recursive verifier field and proof protocol.

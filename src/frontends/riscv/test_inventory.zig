@@ -41,6 +41,7 @@ test {
     // Package root.
     _ = @import("access_clock.zig");
     _ = @import("air_semantics_test_root.zig");
+    _ = @import("execution_profile_identity_test.zig");
     _ = @import("infra_trace.zig");
     _ = @import("isa_test_root.zig");
     _ = @import("opcode_coverage_test.zig");
@@ -58,7 +59,9 @@ test {
 
     // Instruction decode and profile authority.
     _ = @import("isa/authority.zig");
+    _ = @import("isa/custom0.zig");
     _ = @import("isa/decode.zig");
+    _ = @import("isa/execution_profile.zig");
     _ = @import("isa/mod.zig");
     _ = @import("isa/profile.zig");
 
@@ -69,6 +72,11 @@ test {
     _ = @import("runner/decode_cache.zig");
     _ = @import("runner/elf_loader.zig");
     _ = @import("runner/execute.zig");
+    _ = @import("runner/guest_precompile/call_buffer.zig");
+    _ = @import("runner/guest_precompile/mod.zig");
+    _ = @import("runner/guest_precompile/poseidon2_v1.zig");
+    _ = @import("runner/guest_precompile/runner_test.zig");
+    _ = @import("runner/host_integration_test.zig");
     _ = @import("runner/memory.zig");
     _ = @import("runner/memory_state.zig");
     _ = @import("runner/mod.zig");
@@ -106,6 +114,7 @@ test {
     _ = @import("air/trace_columns.zig");
 
     // AIR: isolated typed authoring kernel.
+    _ = @import("air/lang/access_schedule_test.zig");
     _ = @import("air/lang/authoring_test.zig");
     _ = @import("air/lang/compat_layout_test.zig");
     _ = @import("air/lang/compat_manifest_diff_test.zig");

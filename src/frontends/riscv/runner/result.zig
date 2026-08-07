@@ -5,6 +5,7 @@ const Cpu = @import("cpu.zig").Cpu;
 const trace = @import("trace.zig");
 const state_chain = @import("state_chain.zig");
 const memory_state = @import("memory_state.zig");
+const guest_precompile = @import("guest_precompile/mod.zig");
 
 pub const CompletionReason = enum {
     halt_flag,
@@ -59,6 +60,21 @@ pub const RunResult = struct {
         self.execution_trace.deinit();
         self.state_chain_tracker.deinit();
         self.rw_memory.deinit(self.allocator);
+        self.* = undefined;
+    }
+};
+
+/// Owned result for the explicit Poseidon2 extension runner. Keeping extension
+/// storage outside `RunResult` preserves the base runner's type and hot state.
+pub const Poseidon2RunResult = struct {
+    base: RunResult,
+    calls: guest_precompile.call_buffer.Frozen,
+    execution_rows: guest_precompile.poseidon2_v1.FrozenExecutionRows,
+
+    pub fn deinit(self: *Poseidon2RunResult) void {
+        self.calls.deinit();
+        self.execution_rows.deinit();
+        self.base.deinit();
         self.* = undefined;
     }
 };

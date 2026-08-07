@@ -1,6 +1,8 @@
 //! RISC-V RV32IM runner — fetch/decode/execute loop with ELF loading.
 
 const std = @import("std");
+const custom0 = @import("../isa/custom0.zig");
+const execution_profile = @import("../isa/execution_profile.zig");
 const isa_profile = @import("../isa/profile.zig");
 pub const cpu = @import("cpu.zig");
 pub const decode = @import("decode.zig");
@@ -10,6 +12,7 @@ pub const execute_mod = @import("execute.zig");
 pub const elf_loader = @import("elf_loader.zig");
 pub const trace = @import("trace.zig");
 pub const trace_dump = @import("trace_dump.zig");
+pub const guest_precompile = @import("guest_precompile/mod.zig");
 /// Test-only bridge to the pinned Sail oracle; see `sail_oracle.zig`.
 pub const sail_oracle = @import("sail_oracle.zig");
 pub const state_chain = @import("state_chain.zig");
@@ -27,6 +30,32 @@ pub const HostInterface = host_mod.HostInterface;
 pub const CompletionReason = result_mod.CompletionReason;
 pub const OutputWord = result_mod.OutputWord;
 pub const RunResult = result_mod.RunResult;
+pub const Poseidon2RunResult = result_mod.Poseidon2RunResult;
+
+const ExecutionProfile = execution_profile.ExecutionProfile;
+
+const Poseidon2ExecutionState = struct {
+    calls: guest_precompile.call_buffer.Builder,
+    rows: guest_precompile.poseidon2_v1.ExecutionRowsBuilder,
+
+    fn init(allocator: std.mem.Allocator, max_steps: usize) !Poseidon2ExecutionState {
+        const limit = @min(max_steps, guest_precompile.call_buffer.max_calls);
+        return .{
+            .calls = try .init(allocator, limit),
+            .rows = try .init(allocator, limit),
+        };
+    }
+
+    fn deinit(self: *Poseidon2ExecutionState) void {
+        self.calls.deinit();
+        self.rows.deinit();
+        self.* = undefined;
+    }
+};
+
+fn ConfiguredResult(comptime profile: ExecutionProfile) type {
+    return if (profile == .rv32im_zkvm_v1) RunResult else Poseidon2RunResult;
+}
 
 /// Run a RISC-V ELF program to completion (or until `max_steps`).
 ///
@@ -44,7 +73,16 @@ pub fn runWithInput(
     input: []const u8,
     max_steps: usize,
 ) !RunResult {
-    return runConfigured(allocator, elf_bytes, max_steps, null, input, true, true);
+    return runConfigured(
+        .rv32im_zkvm_v1,
+        allocator,
+        elf_bytes,
+        max_steps,
+        null,
+        input,
+        true,
+        true,
+    );
 }
 
 /// Run a RISC-V ELF program with optional host syscall handling.
@@ -58,10 +96,39 @@ pub fn runWithHost(
     max_steps: usize,
     host: ?HostInterface,
 ) !RunResult {
-    return runConfigured(allocator, elf_bytes, max_steps, host, &.{}, false, false);
+    return runConfigured(
+        .rv32im_zkvm_v1,
+        allocator,
+        elf_bytes,
+        max_steps,
+        host,
+        &.{},
+        false,
+        false,
+    );
+}
+
+/// Explicit diagnostic execution entry for the admitted Poseidon2 profile.
+/// Proof production remains unavailable until the extension statement lands.
+pub fn runPoseidon2Extension(
+    allocator: std.mem.Allocator,
+    elf_bytes: []const u8,
+    max_steps: usize,
+) !Poseidon2RunResult {
+    return runConfigured(
+        .rv32im_zkvm_poseidon2_v1,
+        allocator,
+        elf_bytes,
+        max_steps,
+        null,
+        &.{},
+        false,
+        false,
+    );
 }
 
 fn runConfigured(
+    comptime profile: ExecutionProfile,
     allocator: std.mem.Allocator,
     elf_bytes: []const u8,
     max_steps: usize,
@@ -69,11 +136,11 @@ fn runConfigured(
     input: []const u8,
     stop_on_halt_flag: bool,
     strict_completion: bool,
-) !RunResult {
-    var mem = Memory.init(allocator);
+) !ConfiguredResult(profile) {
+    var mem = try Memory.initFallible(allocator);
     defer mem.deinit();
 
-    const elf_info = try elf_loader.loadElf(elf_bytes, &mem);
+    const elf_info = try elf_loader.loadElfForProfile(elf_bytes, &mem, profile);
     var rv_cpu = Cpu.init(elf_info.entry_point, elf_info.stack_pointer);
     rv_cpu.writeReg(3, elf_info.global_pointer);
     const initial_pc = rv_cpu.pc;
@@ -90,6 +157,11 @@ fn runConfigured(
     errdefer chain_tracker.deinit();
     var instruction_cache = try decode_cache.Cache.init(allocator);
     defer instruction_cache.deinit();
+    var extension_state = if (comptime profile == .rv32im_zkvm_poseidon2_v1)
+        try Poseidon2ExecutionState.init(allocator, max_steps)
+    else {};
+    defer if (comptime profile == .rv32im_zkvm_poseidon2_v1)
+        extension_state.deinit();
     var exit_code: ?u32 = null;
     var completion_reason: CompletionReason = undefined;
 
@@ -112,6 +184,24 @@ fn runConfigured(
         const inst_word = mem.readU32(rv_cpu.pc);
         if (strict_completion and (inst_word == 0x00000073 or inst_word == 0x00100073))
             return error.InvalidInstruction;
+        const access_clk: u32 = @intCast(steps + 1);
+        if (comptime profile == .rv32im_zkvm_poseidon2_v1) {
+            if (@as(u7, @truncate(inst_word)) == custom0.major_opcode) {
+                try guest_precompile.poseidon2_v1.execute(
+                    profile,
+                    inst_word,
+                    access_clk,
+                    &rv_cpu,
+                    &mem,
+                    elf_info.memory_layout,
+                    &chain_tracker,
+                    &extension_state.calls,
+                    &extension_state.rows,
+                );
+                steps += 1;
+                continue;
+            }
+        }
         const inst = instruction_cache.decode(inst_word) catch {
             if (strict_completion) return error.InvalidInstruction;
             completion_reason = .invalid_instruction;
@@ -122,7 +212,6 @@ fn runConfigured(
         const rs1_val = rv_cpu.readReg(inst.rs1);
         const rs2_val = rv_cpu.readReg(inst.rs2);
         const rd_prev_val = rv_cpu.readReg(inst.rd);
-        const access_clk: u32 = @intCast(steps + 1);
         const access = access_witness.capture(&chain_tracker, inst, access_clk);
         const memory_access_clock = access_clock.encode(access_clk, .third);
 
@@ -327,7 +416,7 @@ fn runConfigured(
         owned.deinit(allocator);
     }
 
-    return .{
+    const base_result = RunResult{
         .initial_pc = initial_pc,
         .initial_regs = initial_regs,
         .cpu_final = rv_cpu,
@@ -353,6 +442,14 @@ fn runConfigured(
         .exit_code = exit_code,
         .allocator = allocator,
     };
+    if (comptime profile == .rv32im_zkvm_poseidon2_v1) {
+        return .{
+            .base = base_result,
+            .calls = extension_state.calls.freeze(),
+            .execution_rows = extension_state.rows.freeze(),
+        };
+    }
+    return base_result;
 }
 
 const CapturedOutput = struct {
@@ -686,126 +783,6 @@ test "runner: mem_addr and mem_val captured for load/store" {
 
     // Verify final register state
     try std.testing.expectEqual(@as(u32, 0x55), result.cpu_final.readReg(3));
-}
-
-test "runner: runWithHost HALT syscall" {
-    // ELF that does:
-    //   ADDI a7, x0, 0    (set syscall number = HALT)
-    //   ADDI a0, x0, 42   (set exit code = 42)
-    //   ECALL              (trigger syscall)
-    const instructions = [_]u32{
-        // ADDI x17, x0, 0 (a7 = 0 = HALT)
-        @as(u32, 0) << 20 | (0 << 15) | (0b000 << 12) | (17 << 7) | 0x13,
-        // ADDI x10, x0, 42 (a0 = 42)
-        @as(u32, 42) << 20 | (0 << 15) | (0b000 << 12) | (10 << 7) | 0x13,
-        // ECALL
-        0x00000073,
-    };
-    const elf = makeTestElf(&instructions);
-
-    var rt = host_mod.HostRuntime.init(std.testing.allocator, &.{});
-    defer rt.deinit();
-
-    var result = try runWithHost(std.testing.allocator, &elf, 1000, rt.interface());
-    defer result.deinit();
-
-    try std.testing.expectEqual(@as(?u32, 42), result.exit_code);
-    try std.testing.expectEqual(@as(usize, 3), result.step_count);
-}
-
-test "runner: runWithHost WRITE syscall" {
-    // ELF that does:
-    //   ADDI x10, x0, 'H'    store 'H' at 0x2000 via SW
-    //   LUI  x11, 0x2000     x11 = 0x2000 (high bits)
-    //   -- actually let's use a simpler approach: write a known byte
-    //   ADDI a7, x0, 2    (WRITE syscall)
-    //   ADDI a0, x0, 1    (fd = stdout)
-    //   LUI  a1, 0x10     (buf_ptr = 0x10000, which has our ELF code bytes)
-    //   ADDI a2, x0, 4    (len = 4)
-    //   ECALL
-    //   ADDI a7, x0, 0    (HALT)
-    //   ADDI a0, x0, 0    (exit code 0)
-    //   ECALL
-    const instructions = [_]u32{
-        // ADDI x17, x0, 2 (a7 = WRITE)
-        @as(u32, 2) << 20 | (0 << 15) | (0b000 << 12) | (17 << 7) | 0x13,
-        // ADDI x10, x0, 1 (a0 = fd=1 stdout)
-        @as(u32, 1) << 20 | (0 << 15) | (0b000 << 12) | (10 << 7) | 0x13,
-        // LUI x11, 0x10 (a1 = 0x10000 - point at code itself as data)
-        (0x10 << 12) | (11 << 7) | 0x37,
-        // ADDI x12, x0, 4 (a2 = 4 bytes)
-        @as(u32, 4) << 20 | (0 << 15) | (0b000 << 12) | (12 << 7) | 0x13,
-        // ECALL (WRITE)
-        0x00000073,
-        // ADDI x17, x0, 0 (a7 = HALT)
-        @as(u32, 0) << 20 | (0 << 15) | (0b000 << 12) | (17 << 7) | 0x13,
-        // ADDI x10, x0, 0 (a0 = exit code 0)
-        @as(u32, 0) << 20 | (0 << 15) | (0b000 << 12) | (10 << 7) | 0x13,
-        // ECALL (HALT)
-        0x00000073,
-    };
-    const elf = makeTestElf(&instructions);
-
-    var rt = host_mod.HostRuntime.init(std.testing.allocator, &.{});
-    defer rt.deinit();
-
-    var result = try runWithHost(std.testing.allocator, &elf, 1000, rt.interface());
-    defer result.deinit();
-
-    // Should have written 4 bytes from code area to journal.
-    try std.testing.expectEqual(@as(usize, 4), rt.journalData().len);
-    try std.testing.expectEqual(@as(?u32, 0), result.exit_code);
-}
-
-test "runner: runWithHost HINT_LEN and HINT_READ" {
-    const hint_data = [_]u8{ 0xCA, 0xFE, 0xBA, 0xBE };
-    const hints = [_][]const u8{&hint_data};
-
-    const instructions = [_]u32{
-        // HINT_LEN: a7=240
-        @as(u32, 240) << 20 | (0 << 15) | (0b000 << 12) | (17 << 7) | 0x13,
-        0x00000073, // ECALL — a0 gets hint length (4)
-
-        // HINT_READ: a7=241, a0=0x20000, a1=4
-        @as(u32, 241) << 20 | (0 << 15) | (0b000 << 12) | (17 << 7) | 0x13,
-        // LUI x10, 0x20 (a0 = 0x20000)
-        (0x20 << 12) | (10 << 7) | 0x37,
-        // ADDI x11, x0, 4 (a1 = 4)
-        @as(u32, 4) << 20 | (0 << 15) | (0b000 << 12) | (11 << 7) | 0x13,
-        0x00000073, // ECALL (HINT_READ)
-
-        // HALT: a7=0
-        @as(u32, 0) << 20 | (0 << 15) | (0b000 << 12) | (17 << 7) | 0x13,
-        @as(u32, 0) << 20 | (0 << 15) | (0b000 << 12) | (10 << 7) | 0x13,
-        0x00000073, // ECALL (HALT)
-    };
-    const elf = makeTestElf(&instructions);
-
-    var rt = host_mod.HostRuntime.init(std.testing.allocator, &hints);
-    defer rt.deinit();
-
-    var result = try runWithHost(std.testing.allocator, &elf, 1000, rt.interface());
-    defer result.deinit();
-
-    try std.testing.expectEqual(@as(?u32, 0), result.exit_code);
-}
-
-test "runner: runWithHost null host is backwards compatible" {
-    // Same ELF as original ECALL test — should halt immediately on ECALL.
-    const instructions = [_]u32{
-        // ADDI x1, x0, 42
-        @as(u32, 42) << 20 | (0 << 15) | (0b000 << 12) | (1 << 7) | 0x13,
-        // ECALL
-        0x00000073,
-    };
-    const elf = makeTestElf(&instructions);
-
-    var result = try runWithHost(std.testing.allocator, &elf, 1000, null);
-    defer result.deinit();
-
-    try std.testing.expectEqual(@as(u32, 42), result.cpu_final.readReg(1));
-    try std.testing.expectEqual(@as(usize, 2), result.step_count);
-    try std.testing.expectEqual(@as(?u32, null), result.exit_code);
 }
 
 /// Helper: build a minimal ELF from instruction words.

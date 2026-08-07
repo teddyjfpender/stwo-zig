@@ -18,8 +18,12 @@ pub const Memory = struct {
     allocator: std.mem.Allocator,
 
     pub fn init(allocator: std.mem.Allocator) Memory {
-        const pages = allocator.alloc(?*Page, PAGE_COUNT) catch
-            @panic("Memory.init: allocation failed");
+        return initFallible(allocator) catch @panic("Memory.init: allocation failed");
+    }
+
+    /// Fallible constructor used by transactional extension execution.
+    pub fn initFallible(allocator: std.mem.Allocator) error{OutOfMemory}!Memory {
+        const pages = try allocator.alloc(?*Page, PAGE_COUNT);
         @memset(pages, null);
         return .{
             .pages = pages,
@@ -118,6 +122,42 @@ pub const Memory = struct {
         self.writeByte(addr +% 1, @truncate(val >> 8));
         self.writeByte(addr +% 2, @truncate(val >> 16));
         self.writeByte(addr +% 3, @truncate(val >> 24));
+    }
+
+    /// Reserve initialized-word capacity and materialize every sparse page
+    /// required by a later aligned-word commit. Added zero pages are logically
+    /// invisible if a subsequent prepare step fails.
+    pub fn prepareAlignedWordWrites(
+        self: *Memory,
+        addresses: []const u32,
+    ) error{OutOfMemory}!void {
+        var missing_words: usize = 0;
+        for (addresses) |addr| {
+            std.debug.assert(addr & 3 == 0);
+            if (!self.initialized_words.contains(addr)) missing_words += 1;
+        }
+        try self.initialized_words.ensureUnusedCapacity(@intCast(missing_words));
+
+        for (addresses) |addr| {
+            const index = pageIndex(addr);
+            if (self.pages[index] != null) continue;
+            const page = try self.allocator.create(Page);
+            @memset(page, 0);
+            self.pages[index] = page;
+        }
+    }
+
+    /// Commit one aligned write after `prepareAlignedWordWrites` covered its
+    /// address. This path contains no allocator call and cannot fail.
+    pub fn writeU32AssumePrepared(self: *Memory, addr: u32, val: u32) void {
+        std.debug.assert(addr & 3 == 0);
+        const page = self.pages[pageIndex(addr)] orelse unreachable;
+        const offset = pageOffset(addr);
+        page[offset] = @truncate(val);
+        page[offset + 1] = @truncate(val >> 8);
+        page[offset + 2] = @truncate(val >> 16);
+        page[offset + 3] = @truncate(val >> 24);
+        self.initialized_words.putAssumeCapacity(addr, {});
     }
 
     // ----- Bulk access -----
@@ -261,4 +301,15 @@ test "Memory accesses preserve wrapping page-boundary semantics" {
     try std.testing.expectEqual(@as(u32, 0x0403_0201), mem.readU32(0xFFFF_FFFE));
     try std.testing.expectEqual(@as(u8, 0x03), mem.readByte(0));
     try std.testing.expectEqual(@as(u8, 0x04), mem.readByte(1));
+}
+
+test "Memory prepared aligned writes commit without lazy allocation" {
+    var mem = try Memory.initFallible(std.testing.allocator);
+    defer mem.deinit();
+    const addresses = [_]u32{ 0x0000_fffc, 0x0001_0000 };
+    try mem.prepareAlignedWordWrites(&addresses);
+    mem.writeU32AssumePrepared(addresses[0], 0x0403_0201);
+    mem.writeU32AssumePrepared(addresses[1], 0x0807_0605);
+    try std.testing.expectEqual(@as(u32, 0x0403_0201), mem.readU32(addresses[0]));
+    try std.testing.expectEqual(@as(u32, 0x0807_0605), mem.readU32(addresses[1]));
 }
