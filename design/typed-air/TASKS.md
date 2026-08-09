@@ -172,20 +172,27 @@ accepted decision and full proof-path evidence.
 
 ### R-001 implementation checkpoint
 
-The exact-capacity scheduler, worker leases, joined cancellation, deterministic
-failure selection, resource reservations, and coordinator-prepared composition
-capability exist. The current RISC-V component set also has allocation-free
-prepared row evaluators with bounded cancellation polling and an admitted
-128 KiB row-evaluator stack. This is an active implementation slice, not R-001
-or M7 completion:
+The exact-capacity scheduler, preallocated leased submission envelopes, joined
+cancellation, deterministic failure selection, resource reservations,
+coordinator-prepared composition, and explicit per-proof execution request now
+reach the production CPU composition boundary. The specialized RISC-V backend
+schedules admitted tile lanes and prepared fallbacks through the bounded graph.
+Large prepared memory-hash, lookup-table, and opcode-lookup domains subdivide
+into aligned row ranges under pool-exclusive leases. Closed prepared plans
+enforce finite host budgets across coordinator heap plus reserved helper stacks
+and submission envelopes. This remains an active implementation slice, not
+R-001 or M7 completion:
 
-- the specialized CPU composition backend still runs before the generic
-  prepared scheduler and therefore bypasses it in the production CPU proof;
-- no full production proof yet establishes predecessor versus graph `N = 1`
-  parity or the required proof-byte differential;
-- composition work is one task per component rather than row-sharded work; and
-- the compatibility entrypoint has not supplied a finite per-request byte
-  budget or the R-005/R-006 resource and scaling receipt.
+- the opt-in proof-identity reporter establishes exact predecessor/current
+  `N = 1` and current `N = 1/2/4` equality for two development-profile
+  workloads, but the frozen corpus and full-security differential remain open;
+- row sharding currently covers memory-hash, lookup-table, and opcode-lookup
+  prepared domains, not every dominant component or prover stage;
+- structural scheduler/shard telemetry and a controlled `N = 1/2/4`
+  checkpoint exist, but the R-005 queue/run/wait/memory report and normative
+  R-006 receipt do not; and
+- finite budgets fail closed for unprepared fallbacks and non-heap scratch or
+  device-resident plans, so broader resource closure remains open.
 
 ## Cross-cutting validation and tooling
 

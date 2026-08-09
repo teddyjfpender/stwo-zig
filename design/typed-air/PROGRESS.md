@@ -5,8 +5,8 @@
 **Current milestone:** M7 — parallel proving
 **Active task:** R-001 — prepared composition scheduler slice
 **Next ready task:** C-007 — guest precompile main-trace construction
-**Current acceptance gate:** production CPU graph `N = 1` parity and proof-byte
-differential
+**Current acceptance gate:** full-security frozen-corpus proof differential plus
+R-005 telemetry and a normative R-006 receipt
 **Known formal blocker:** the M3 refinement pilot still has the five stale
 generated artifacts recorded in the M3 receipt; no reviewed regeneration or
 current-HEAD receipt closes that blocker
@@ -22,7 +22,7 @@ current-HEAD receipt closes that blocker
 | M4 — Poseidon compiler pilot | complete | H-001 through H-010 and V-006 complete; no layout selected |
 | M5 — effect and witness pilot | ready | E-001 through E-003 complete; opcode authorship, generated witnesses, proof gates, and authority switch remain open |
 | M6 — guest precompile | ready | C-001 through C-006 complete; no guest main/interaction trace or one-proof verification yet |
-| M7 — parallel proving | active | Scheduler core and prepared composition/evaluators exist; production-path parity, sharding, finite budgeting, telemetry, and scaling evidence remain open |
+| M7 — parallel proving | active | Production RISC-V CPU composition is scheduled; selected prepared domains are row-sharded and closed plans admit finite budgets. Full-security frozen-corpus parity, R-005 telemetry, broader stage coverage, and normative R-006 evidence remain open |
 | M8 — broad migration | queued | No opcode family has switched generated-witness authority; E-014/E-015 remain open |
 | M9 — recursive aggregation | deferred | ADR-0030 and a native reference exist only as proposed/test authority; no recursive proof or verifier exists |
 
@@ -343,8 +343,9 @@ current-HEAD receipt closes that blocker
 - The R-001 scheduler core at `24cb7f0f` has exact-capacity planning, explicit
   worker leases, joined cancellation, canonical error selection, nested-submit
   rejection, resource reservation accounting, and focused `N = 1/2/4` tests.
-  This is reusable scheduler evidence, not evidence that a RISC-V proof uses the
-  graph.
+  Commit `78fb94fc` carries admitted production RISC-V CPU composition lanes and
+  prepared fallbacks through that graph. This is production-path evidence, not
+  by itself R-001 completion or a performance-promotion verdict.
 - The active M7 slice at `46e3ca26` adds coordinator-prepared composition tasks,
   canonical coefficient-range ownership, and allocation-free leaf execution.
   Commit `eb6728a3` supplies prepared evaluators for generic memory, semantic,
@@ -355,6 +356,23 @@ current-HEAD receipt closes that blocker
   ReleaseSafe and ReleaseFast with 277/277 and 220/220 tests respectively,
   including independent pre-change row traversals for source order, previous
   rows, denominators, random powers, and final output bytes.
+- Commit `683af21b` finalizes mixed-domain composition directly into prepared
+  result storage. Commits `72527052` and `245a593f` subdivide large prepared
+  memory-hash, lookup-table, and opcode-lookup domains into aligned row ranges
+  under pool-exclusive leases. The bounded cancellation and disjoint-write
+  rules preserve canonical output while allowing within-component scaling.
+- Commit `c6b82ece` threads an explicit worker/contention/host-budget request
+  through the public proof transaction. Commit `4e6e00e1` reserves fixed
+  lease-owned submission envelopes and includes them in graph admission;
+  structured waves perform no backing allocation. Commit `b84bd6c0` applies a
+  hard live-byte allocator to finite generic and specialized RISC-V prepared
+  plans, after first charging helper stacks and submission envelopes.
+- Commit `035db833` adds opt-in post-verification canonical proof length and
+  SHA-256 reporting. Reduced-security development checks establish identical
+  proof bytes across current `N = 1/2/4` and against an instrumented predecessor
+  at `N = 1` for `multi_shard_addi` and Poseidon field16. The exact identities
+  and the separate controlled timing checkpoint are recorded in
+  [the M7 development note](performance/m7-composition-checkpoint-2026-08-09.md).
 - Commit `a928c9fa` implements a native serialization and tree reference for
   ADR-0030. The ADR remains proposed and the code is test authority only: no
   leaf proof authenticates the summary, no recursive verifier consumes it, and
@@ -362,32 +380,37 @@ current-HEAD receipt closes that blocker
 
 ### Open gates for the active scheduler slice
 
-- The specialized CPU composition hook is consulted before the generic
-  prepared path, so the production CPU proof still bypasses the new graph.
-- Mock/component tests establish prepared `N = 1/2/4` identity, but no complete
-  production proof establishes predecessor versus graph `N = 1` parity or the
-  normative proof-byte differential.
-- A prepared component is currently one task. Large domains are not row-sharded,
-  so the slice cannot yet demonstrate the required within-component scaling.
-- The scheduler can enforce a byte budget, and evaluators declare resource
-  geometry, but the compatibility composition entrypoint currently uses the
-  default unbounded request budget. R-005 telemetry and the R-006 performance
-  receipt do not exist.
+- The specialized RISC-V CPU hook now uses the bounded graph for admitted
+  composition lanes and prepared fallbacks. Other backend hooks and unprepared
+  compatibility fallbacks retain fail-closed resource limitations.
+- Reduced-security development checks cover two workloads across current
+  `N = 1/2/4` and an instrumented predecessor at `N = 1`; the full-security,
+  frozen-corpus ADR-0027 differential remains open.
+- Within-component sharding is limited to large prepared memory-hash,
+  lookup-table, and opcode-lookup domains. Other dominant components and the
+  main/interaction construction stages are not yet covered.
+- Finite budgets are enforced for secure recurrence and closed prepared
+  generic/RISC-V plans, including coordinator heap and reserved helper stacks
+  and submission envelopes. Unprepared and non-heap scratch/device plans reject
+  finite caps.
+- Structural graph/RISC-V/shard counters and a controlled checkpoint exist.
+  The R-005 queue/run/wait/memory report and protocol-complete R-006 receipt do
+  not.
 - The independent M3 release blocker remains: the refinement pilot recorded
   drift in five committed generated artifacts after a successful 120-job Lean
   build. This ledger update neither regenerates nor accepts those artifacts.
 
 ## Immediate next actions
 
-1. R-001 — route a full CPU proof through the prepared graph, or remove the
-   specialized-backend bypass for the admitted capture path, then compare the
-   same production workload against the predecessor at graph `N = 1`.
-2. R-001 — add the statement, geometry, complete-column, relation, transcript,
-   proof-byte, verifier, and cleanup differential required by ADR-0027 before
-   treating `N > 1` as evidence.
-3. R-001/R-005 — introduce bounded row shards, pass a finite per-request byte
-   budget, and record task/resource telemetry before attempting the normative
-   R-006 worker sweep.
+1. R-001 — extend the exact predecessor/current differential to the frozen
+   corpus and full-security profile, including statement, geometry,
+   complete-column, relation, transcript, proof-byte, verifier, and cleanup
+   checks required by ADR-0027.
+2. R-001/R-005 — extend prepared sharding and closed resource accounting beyond
+   the current three row-sharded families and expose queue/run/wait/memory
+   telemetry without adding hot-loop allocation.
+3. R-005/R-006 — capture the authenticated raw attempt bundle and
+   validator-recomputed normative receipt under the frozen M5--M9 protocol.
 
 C-007 and E-004/E-010 remain ready dependency-safe tracks, but none is marked
 active while the prepared scheduler slice owns the primary task.
@@ -468,8 +491,8 @@ Pending:
 | Typed DSL becomes stringly or magical | Canon relation/effect rules and constructor validation |
 | Poseidon pilot becomes a toy | Exact 445-column production component target |
 | Precompile weakens base-RV32IM claim | Accepted profile-separated ABI and artifact identity; C-007 through C-009 must still prove the extension path |
-| Parallelism hides total cost | Frozen M5--M9 performance protocol; no M7 verdict until finite budget, telemetry, and R-006 capture exist |
-| Prepared tests are mistaken for production scheduling | Ledger names the specialized CPU bypass and requires predecessor/graph `N = 1` proof-byte differential |
+| Parallelism hides total cost | Frozen M5--M9 performance protocol; no M7 verdict until full R-005 telemetry and a protocol-complete R-006 capture exist; the controlled checkpoint is diagnostic only |
+| Prepared tests are mistaken for production scheduling | Ledger requires a full-security frozen-corpus proof differential and separates the controlled production-path checkpoint from a normative receipt |
 | Recursion balances detached calls | ADR-0030 remains proposed and requires shared session challenges plus authenticated leaf summaries |
 | Hint callback or output drifts silently | Closed versioned registry and checked proof paths |
 | Broad production proof gate is red | V-008 records exact rigidity findings; no release promotion |
@@ -511,13 +534,26 @@ and report identities are recorded in [PERFORMANCE.md](PERFORMANCE.md).
 
 The active M7 structural baseline has a 1,024-task graph bound and prepared AIR
 row evaluators with a 128 KiB admitted worker stack and cancellation tiles no
-larger than 4,096 rows. Those are implementation bounds, not measured
-performance. The current composition slice launches one task per component,
-does not row-shard a dominant component, and does not pass a finite byte budget
-from its compatibility entrypoint. No normative M7 raw-attempt bundle, receipt,
-speed interval, total-work ratio, or peak-RSS verdict exists. R-005/R-006 must
-use the frozen [M5--M9 protocol](performance/m5-m9-protocol-v1.json); H-010
-diagnostic cohorts cannot be reused as M7 evidence.
+larger than 4,096 rows. Fixed submission envelopes make structured leased waves
+backing-allocation-free. Large prepared memory-hash, lookup-table, and
+opcode-lookup domains split into aligned row ranges, and finite closed plans
+charge coordinator heap plus reserved helper stacks and submission envelopes.
+Those are implementation bounds, not a promotion verdict.
+
+A controlled development comparison at clean candidate `72527052` versus
+`4232cc55` used 12 excluded warmups, 60 measured samples, five interleaved
+samples per workload/revision/worker cell, reduced security (`pow_bits=0`,
+`n_queries=3`), and 94/94 verified proof-bearing runs. At two workers,
+`multi_shard_addi` proving improved 11.92% and composition 44.14%; Poseidon
+field16 proving improved 13.22% and composition 46.11%. One-worker performance
+was near-flat, four-worker proving improved about 5%, and median RSS was flat;
+one Poseidon four-worker RSS spike did not reproduce in three extra pairs.
+Exact binary identities, ranges, and proof hashes appear in
+[the checkpoint note](performance/m7-composition-checkpoint-2026-08-09.md).
+This is not a digest-bound M7 attempt bundle or receipt and makes no
+full-security verdict. R-005/R-006 must use the frozen
+[M5--M9 protocol](performance/m5-m9-protocol-v1.json); H-010 diagnostic cohorts
+cannot be reused as M7 evidence.
 
 The following measurements remain assigned to their later owning milestones;
 they are not prerequisites for closing the opcode shadow compiler:
@@ -1132,6 +1168,43 @@ and aggregation-tree model. They authenticate no leaf proof and drive no
 recursive verifier, so M9 remains deferred. Separately, the five generated
 formal artifacts named by the M3 receipt remain stale; no formal regeneration
 or acceptance occurred in this interval.
+
+### 2026-08-09 — production composition path is bounded and measured
+
+The ledger advances from `4232cc55` through clean head `b84bd6c0`. Production
+RISC-V CPU composition now executes its admitted packed lanes and prepared
+fallbacks through the bounded graph. Large prepared memory-hash, lookup-table,
+and opcode-lookup domains use aligned row sharding under pool-exclusive leases.
+Mixed-domain finalization writes into prepared output storage, structured task
+waves reserve fixed submission envelopes with no backing allocation, and an
+explicit per-proof worker/contention/host-budget request reaches both the
+execution-aware CPU backend and generic prepared path.
+
+Finite host caps now charge reserved helper stacks and submission envelopes
+before enforcing a hard live-byte limit over coordinator-owned preparation and
+result storage. Secure recurrence and closed prepared generic/RISC-V plans are
+covered. Unprepared fallback and declared non-heap scratch/device residency
+reject finite caps rather than silently escaping accounting. Focused generic,
+specialized RISC-V, scheduler, allocator, prover API, CPU, and frontend tests
+pass in the exercised ReleaseSafe/ReleaseFast lanes. The full RISC-V CPU product
+lane reached 1,205/1,212 with seven expected Sail skips; its sole failure is the
+already-recorded stale canonical production-AIR source binding.
+
+The controlled development timing checkpoint compares clean `72527052` with
+`4232cc55` under reduced security. It closes the previously observed
+two-worker composition regression for both checked workloads: two-worker
+proving improves 11.92% for `multi_shard_addi` and 13.22% for Poseidon field16,
+with composition-stage improvements of 44.14% and 46.11% respectively.
+One-worker controls remain near-flat, four-worker proving improves about 5%,
+and median RSS is flat. A separate final-head correctness check reports exact
+canonical proof identity across `N = 1/2/4` and against an instrumented
+predecessor at `N = 1` for both workloads.
+
+This remains non-promotional development evidence. R-001 and M7 stay active
+because the full-security frozen corpus, broader component/stage coverage,
+R-005 queue/run/wait/memory telemetry, authenticated raw attempts, and the
+validator-recomputed R-006 receipt remain open. The five stale M3 formal
+artifacts also remain an independent release blocker.
 
 ## Update protocol
 
