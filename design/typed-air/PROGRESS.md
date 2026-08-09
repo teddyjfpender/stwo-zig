@@ -6,7 +6,8 @@
 **Active task:** R-001 — prepared composition scheduler slice
 **Next ready task:** C-007 — guest precompile main-trace construction
 **Current acceptance gate:** full-security frozen-corpus proof differential,
-request-bound R-005 telemetry completion, and a normative R-006 receipt
+semantic task attribution, production Tree-1 execution, exact request-bound
+R-005 telemetry, and a normative R-006 receipt
 **Known formal blocker:** the M3 refinement pilot still has the five stale
 generated artifacts recorded in the M3 receipt; no reviewed regeneration or
 current-HEAD receipt closes that blocker
@@ -22,7 +23,7 @@ current-HEAD receipt closes that blocker
 | M4 — Poseidon compiler pilot | complete | H-001 through H-010 and V-006 complete; no layout selected |
 | M5 — effect and witness pilot | ready | E-001 through E-003 complete; opcode authorship, generated witnesses, proof gates, and authority switch remain open |
 | M6 — guest precompile | ready | C-001 through C-006 complete; no guest main/interaction trace or one-proof verification yet |
-| M7 — parallel proving | active | Production RISC-V CPU composition is scheduled and emits a flat bounded-task profile; selected prepared domains are row-sharded and closed plans admit finite budgets. Full-security frozen-corpus parity, complete R-005 attribution/request timing, broader stage coverage, and normative R-006 evidence remain open |
+| M7 — parallel proving | active | Production RISC-V CPU composition is scheduled and emits a flat bounded-task profile; selected prepared domains are row-sharded, profiled samples bind a coarse verified-request duration, and a pure Tree-1 plan closes deterministic ranges and finite host classes. Production Tree-1 execution, full-security parity, semantic attribution, the exact R-005 partition, and normative R-006 evidence remain open |
 | M8 — broad migration | queued | No opcode family has switched generated-witness authority; E-014/E-015 remain open |
 | M9 — recursive aggregation | deferred | ADR-0030 and a native reference exist only as proposed/test authority; no recursive proof or verifier exists |
 
@@ -381,6 +382,26 @@ current-HEAD receipt closes that blocker
   checked accounting, and a timestamp-ready cancellation handshake. Commit
   `a1fc6786` propagates the existing proof recorder through generic and RISC-V
   CPU composition without changing the public proof request.
+- Commit `4f8dbfb3` makes the RISC-V main-trace stage scopes structurally close
+  after opcode-helper join on success, allocation failure, generation failure,
+  and repeated cleanup. The focused failure fleet passes 26/26 in Debug,
+  ReleaseSafe, and ReleaseFast.
+- Commit `f0504be0` gives profiled benchmark samples their own closed schemas
+  and binds every verified sample index to checked monotonic raw integers plus
+  a deep-owned flat task profile. Guest execution, proving including witness,
+  and native verification sum exactly; proof serialization and all subsequent
+  snapshots, telemetry, artifact, and report work are excluded. The schema is
+  deliberately marked development-coarse and protocol-incomplete until the
+  non-overlapping witness/proving meter lands. The unprofiled `riscv_prove_v1`
+  and `riscv_proof_v2` field sets remain exact, and the adapter's obsolete
+  file-size exception is retired after its extraction to 831 lines.
+- Commit `3b7606bb` introduces a pure, pointer-free Tree-1 coordinator plan. It
+  derives exact descriptor prefixes, 65,536-row opcode and 4,096-row Poseidon
+  partitions, deterministic strict/compatibility worker admission, finite
+  named host-resource classes, private-counter chunk reduction, stable task
+  keys, and 1,024-task wave limits. The plan is capped at 4,096 bytes and
+  executes or commits nothing; backend commitment scratch, allocator metadata,
+  and executor/profile storage remain explicit integration obligations.
 - The final development-profile `multi_shard_addi` proof remains exactly
   161,274 canonical bytes with SHA-256
   `f367ca04d554a9d00d32c9279795b8e26032f4211a453074daa91211a9084293`
@@ -403,7 +424,9 @@ current-HEAD receipt closes that blocker
   frozen-corpus ADR-0027 differential remains open.
 - Within-component sharding is limited to large prepared memory-hash,
   lookup-table, and opcode-lookup domains. Other dominant components and the
-  main/interaction construction stages are not yet covered.
+  main/interaction construction stages are not yet covered. The new Tree-1
+  module is planning authority only; no worker consumes it and commitment
+  publication remains serial.
 - Finite budgets are enforced for secure recurrence and closed prepared
   generic/RISC-V plans, including coordinator heap and reserved helper stacks
   and submission envelopes. Unprepared and non-heap scratch/device plans reject
@@ -411,24 +434,25 @@ current-HEAD receipt closes that blocker
 - The bounded composition graph now reports canonical task events, dependency
   readiness, admission/queue/resource wait, outer-task run time, declared byte
   classes, coarse completed rows/tiles, cancellation, and closed summary
-  accounting. R-005 remains open because full-request duration, semantic
-  attribution for fused lanes, exact nested physical-worker work, and broader
-  prover-stage coverage are not yet available; the R-006 receipt also remains
-  open.
+  accounting. Profiled verified samples now bind a coarse monotonic request
+  partition to that graph, but R-005 remains open because witness and proving
+  are not yet separated, fused lanes lack semantic attribution, nested
+  physical-worker work is not exact, and broader prover-stage coverage is not
+  available. Serialization is intentionally outside the measured partition;
+  the R-006 receipt remains open.
 - The independent M3 release blocker remains: the refinement pilot recorded
   drift in five committed generated artifacts after a successful 120-job Lean
   build. This ledger update neither regenerates nor accepts those artifacts.
 
 ## Immediate next actions
 
-1. R-001 — extend the exact predecessor/current differential to the frozen
-   corpus and full-security profile, including statement, geometry,
-   complete-column, relation, transcript, proof-byte, verifier, and cleanup
-   checks required by ADR-0027.
-2. R-001/R-005 — bind graph captures to the verified-request envelope, add
-   semantic attribution for fused lanes and exact nested-worker evidence, and
-   extend prepared sharding/resource closure beyond the current families.
-3. R-005/R-006 — capture the authenticated raw attempt bundle and
+1. R-001/R-005 — add explicit semantic contributions to fused physical lanes
+   without duplicating task events, timing, or worker activity.
+2. R-002 — execute the pure Tree-1 plan through coordinator-prepared,
+   allocation-free leaves and prove exact serial differential behavior across
+   success, cancellation, and injected failure.
+3. R-005/R-006 — land the non-overlapping witness/proving phase meter, then
+   capture the authenticated fresh-process attempt bundle and
    validator-recomputed normative receipt under the frozen M5--M9 protocol.
 
 C-007 and E-004/E-010 remain ready dependency-safe tracks, but none is marked
@@ -1265,13 +1289,49 @@ prove/total time by +0.098%/+0.082% at `N = 1` and +1.240%/+1.895% at `N = 4`.
 These timings are diagnostic only: they have no A/A calibration, full-security
 corpus, retained raw bundle, CI isolation, RSS, or hardware-counter evidence.
 
-R-001 and M7 remain active, and R-005/R-006 remain open. The profile does not
-yet cover full verified-request duration, exact physical activity inside
-pool-exclusive child waves, semantic attribution within fused RISC-V lanes,
-recurrence/device/legacy work, or every dominant prover stage. Recorder memory
-is also excluded from declared task-resource peaks. Those boundaries, the
-full-security frozen corpus, and a validator-recomputed normative receipt must
-close before any promotion or completion claim.
+R-001 and M7 remain active, and R-005/R-006 remain open. At this checkpoint the
+profile did not yet cover an exact verified-request partition, physical
+activity inside pool-exclusive child waves, semantic attribution within fused
+RISC-V lanes, recurrence/device/legacy work, or every dominant prover stage.
+Recorder memory was also excluded from declared task-resource peaks. Those
+boundaries, the full-security frozen corpus, and a validator-recomputed
+normative receipt must close before any promotion or completion claim.
+
+### 2026-08-09 — verified samples are bound and Tree-1 planning is explicit
+
+The ledger advances through clean implementation head `f0504be0`. Commit
+`4f8dbfb3` first closes main-trace profile scopes through the joined opcode
+helper on every tested exit. Commit `f0504be0` then separates the internal and
+outer profiled schemas from their unprofiled compatibility envelopes. Every
+profiled, successfully verified sample retains checked raw monotonic guest,
+proving-including-witness, and native-verification nanoseconds beside its
+deep-owned flat task profile and sample index. Their sum is exact, proof
+serialization is excluded, and post-verification telemetry, snapshots,
+artifact publication, and report rendering cannot contaminate the authority.
+
+That timing is intentionally labelled development-coarse and
+protocol-incomplete. The exact R-005 contract uses five non-overlapping
+materialization regions and computes proving as the checked complement of the
+proof boundary; existing nested stage totals cannot be summed because opcode
+and infrastructure generation overlap. Until that meter is wired, no receipt
+may relabel the coarse field as normative witness or proving time.
+
+Commit `3b7606bb` independently lands the pure Tree-1 planning seam. It retains
+no statement pointer, allocates nothing, and fixes exact descriptor coverage,
+aligned row partitions, stable task identities, deterministic admission,
+private-counter budget reduction, named host resources, and per-wave capacity.
+Its focused planner suite passes 9/9 in Debug, ReleaseSafe, and ReleaseFast;
+the adapter suite passes 30/30 in all three modes. The 21-package/70-edge
+workspace check and diff hygiene pass. A full Debug frontend run compiled the
+new inventory and reached 918/921 with three expected Sail skips before the
+known inherited signal-6 failure in the opcode prepared-parallel cancellation
+test. Source conformance remains nonzero only for the six recorded inherited
+Metal/source-ingest size findings; the adapter's former exception is gone.
+
+Neither seam executes production Tree-1 work, supplies semantic contributions,
+separates witness from proving, captures a fresh-process attempt bundle, or
+changes the proof protocol. R-001 and M7 therefore remain active, R-002 remains
+queued, and R-005/R-006 remain open.
 
 ## Update protocol
 

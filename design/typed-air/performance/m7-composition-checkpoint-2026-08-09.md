@@ -194,6 +194,39 @@ and incomplete to serve as an overhead bound.
   outside this flat composition profile. Their absence is unprofiled scope,
   not zero work.
 
+## Later request-binding and Tree-1 planning checkpoint
+
+Commits `4f8dbfb3`, `3b7606bb`, and `f0504be0` harden the measurement boundary
+and prepare the next parallel epoch without revising the timing results above.
+Main-trace profile scopes now close after helper join on every tested exit.
+Each opt-in verified benchmark sample then binds its sample index and owned
+flat task profile to checked monotonic raw integers for guest execution,
+proving including witness, and native verification. The three integers sum
+exactly; proof serialization and all later snapshot, telemetry, artifact, and
+report work are excluded.
+
+This is a distinct `riscv_profiled_proof_v1` development schema, not an
+extension of the unprofiled `riscv_proof_v2` contract. Its timing authority
+sets `protocol_partition_complete=false`: witness and proving are not yet
+separated, so these samples cannot satisfy R-005 or become R-006 evidence. The
+accepted exact implementation contract will time five non-overlapping witness
+materialization regions and derive proving as the checked complement of the
+proof boundary. In particular, it will not sum the nested opcode and
+infrastructure diagnostic scopes, whose wall-clock intervals overlap.
+
+The pure Tree-1 plan at `3b7606bb` independently fixes column ownership,
+65,536-row opcode and 4,096-row Poseidon partitions, stable task keys,
+deterministic worker admission, finite named host-resource classes, private
+lookup-counter chunk reduction, and 1,024-task wave limits. It is pointer-free,
+allocation-free, capped at 4,096 bytes, and has no execution or commitment
+authority. Backend commitment scratch, allocator metadata, and executor/profile
+storage remain outside its first resource envelope and must be named before a
+whole-proof memory claim.
+
+Focused planner tests pass 9/9 and adapter tests pass 30/30 in Debug,
+ReleaseSafe, and ReleaseFast. These are structural/correctness gates only; no
+new performance sample, proof identity, or promotional receipt was captured.
+
 ## Promotion boundary
 
 This checkpoint does **not** close M7, R-001, the formal performance-promotion

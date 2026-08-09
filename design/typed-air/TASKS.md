@@ -209,11 +209,20 @@ and remains an active implementation slice rather than R-001 or M7 completion:
   `N = 1/2/4` plus the same compatibility handshake;
 - row sharding currently covers memory-hash, lookup-table, and opcode-lookup
   prepared domains, not every dominant component or prover stage;
+- commit `3b7606bb` supplies a pure, pointer-free Tree-1 plan with exact column
+  coverage, aligned opcode/Poseidon ranges, checked finite-resource classes,
+  deterministic worker admission, and per-wave capacity bounds. It executes no
+  production work yet, so it is R-002 preparation rather than R-002 completion;
 - fused RISC-V pair lanes are truthfully reported as a synthetic aggregate, so
   complete semantic per-component attribution across all stages is still open;
-- complete verified-request duration, full-corpus task capture, receipt wiring,
-  and the normative R-006 attempt bundle and validator-recomputed receipt remain
-  open; and
+- commit `f0504be0` binds each opt-in verified sample to checked monotonic
+  guest, proving-including-witness, and native-verification nanoseconds plus an
+  owned flat task profile. The separate profiled schema labels that partition
+  development-coarse and incomplete; serialization is excluded and the exact
+  witness/proving split remains open; and
+- full-corpus task capture, the exact request partition, fresh-process receipt
+  wiring, and the normative R-006 attempt bundle and validator-recomputed
+  receipt remain open; and
 - finite budgets fail closed for unprepared fallbacks and non-heap scratch or
   device-resident plans, so broader resource closure remains open.
 
