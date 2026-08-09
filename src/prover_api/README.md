@@ -2,7 +2,7 @@
 
 `stwo_prover_api` is the stable transaction boundary shared by frontends,
 integrations, and prover engines. It defines owned/borrowed column requests,
-proof options, stage-profile schemas, and the compile-time engine signature
+proof options, stage- and task-profile schemas, and the compile-time engine signature
 check without importing the prover implementation.
 
 | Property | Value |
@@ -58,7 +58,7 @@ comptime prover_api.assertProverEngine(MyEngine);
 | :--- | :--- |
 | Column transaction | `ColumnEvaluation`, `ColumnSource`, `QuotientOpsError`, `column` |
 | Engine contract | `ProveOptions`, `CpuCompositionContentionPolicy`, `CpuCompositionExecutionRequest`, `DeviceCompositionStage`, `assertProverEngine`, `device_composition`, `engine` |
-| Observability | `stage_profile` |
+| Observability | `stage_profile`, `task_profile`, `TaskProfile`, `TASK_PROFILE_SCHEMA_VERSION` |
 
 `ColumnEvaluation` is a borrowed view and validates both its declared log size
 and storage length. `ColumnSource` records whether a commitment column is
@@ -77,6 +77,12 @@ envelopes are charged separately from coordinator-owned heap. Unprepared
 fallbacks and plans declaring non-heap scratch or device residency reject
 finite caps before launching work. Legacy backend hooks without the
 execution-aware ABI retain their own resource contract.
+`task_profile` is a separate, flat observability schema for bounded task graphs.
+The coordinator reserves exact event and aggregate storage before launch;
+workers write only their assigned slots, publication after join moves those
+buffers without allocation, and snapshots deep-copy borrowed labels. When no
+stage recorder is supplied, task profiling performs no allocation or clock
+sampling.
 `assertProverEngine` checks the associated types and exact `init`, `deinit`,
 `commit`, and `prove` signatures at compile time.
 
@@ -105,8 +111,9 @@ frontend, backend integration, or custom engine implementation.
 ## Contract and invariants
 
 - API signature: the engine transaction is structurally checked.
-- Behavioral invariant: column evaluation rejects invalid storage and lifting
-  geometry.
+- Behavioral invariants: column evaluation rejects invalid storage and lifting
+  geometry; task-graph reservations publish by ownership move and release exact
+  storage when aborted before launch.
 
 Changes to `ProveOptions`, engine method signatures, column ownership, or
 stage-profile schemas affect multiple independently owned packages and require

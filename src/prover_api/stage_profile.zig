@@ -1,6 +1,7 @@
 //! Stable hierarchical prover-stage telemetry schema and recorder.
 
 const std = @import("std");
+const task_profile = @import("task_profile.zig");
 
 pub const SCHEMA_VERSION: u32 = 1;
 
@@ -69,6 +70,7 @@ pub const Recorder = struct {
     example: []const u8,
     roots: std.ArrayList(*MutableNode),
     stack: std.ArrayList(*MutableNode),
+    task_recorder: task_profile.Recorder,
 
     pub fn init(
         allocator: std.mem.Allocator,
@@ -81,6 +83,7 @@ pub const Recorder = struct {
             .example = example,
             .roots = std.ArrayList(*MutableNode).empty,
             .stack = std.ArrayList(*MutableNode).empty,
+            .task_recorder = task_profile.Recorder.init(allocator, runtime, example),
         };
     }
 
@@ -91,6 +94,7 @@ pub const Recorder = struct {
         }
         self.roots.deinit(self.allocator);
         self.stack.deinit(self.allocator);
+        self.task_recorder.deinit();
         self.* = undefined;
     }
 
@@ -101,6 +105,34 @@ pub const Recorder = struct {
             .example = self.example,
             .stages = try snapshotNodes(allocator, self.roots.items),
         };
+    }
+
+    /// Reserves exact flat-task storage before launch. Existing stage timing
+    /// remains independent from this reservation.
+    pub fn reserveTaskGraph(
+        self: *Recorder,
+        event_count: usize,
+        component_work_count: usize,
+    ) !task_profile.PendingGraph {
+        return self.task_recorder.reserveTaskGraph(event_count, component_work_count);
+    }
+
+    /// Moves a fully joined task graph into the separate flat recorder without
+    /// allocation or event copying.
+    pub fn publishTaskGraphAfterJoin(
+        self: *Recorder,
+        pending: *task_profile.PendingGraph,
+        header: task_profile.GraphHeader,
+        summary: task_profile.RequestSummary,
+    ) void {
+        self.task_recorder.publishTaskGraphAfterJoin(pending, header, summary);
+    }
+
+    pub fn taskSnapshot(
+        self: *const Recorder,
+        allocator: std.mem.Allocator,
+    ) !task_profile.TaskProfile {
+        return self.task_recorder.snapshot(allocator);
     }
 
     fn pushStage(self: *Recorder, id: []const u8, label: []const u8) !*MutableNode {
