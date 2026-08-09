@@ -184,6 +184,7 @@ test {
     _ = @import("air/lookups/entry.zig");
     _ = @import("air/lookups/mod.zig");
     _ = @import("air/lookups/opcode_component.zig");
+    _ = @import("air/lookups/opcode_component_prepared_parallel_test.zig");
     _ = @import("air/lookups/opcode_component_prepared_test.zig");
     _ = @import("air/lookups/opcode_entries.zig");
     _ = @import("air/lookups/opcode_interaction_test.zig");
