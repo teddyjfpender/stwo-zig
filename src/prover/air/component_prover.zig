@@ -14,6 +14,7 @@ const prepared_domain = @import("prepared_domain.zig");
 const prover_twiddles = @import("../poly/twiddles.zig");
 const secure_column = @import("../secure_column.zig");
 const work_pool_mod = @import("../work_pool.zig");
+const stage_profile = @import("stwo_prover_api").stage_profile;
 
 const CirclePointQM31 = circle.CirclePointQM31;
 const M31 = m31.M31;
@@ -348,6 +349,9 @@ pub const ComponentProvers = struct {
     n_preprocessed_columns: usize,
     composition_stage: ?device_composition.Stage = null,
     cpu_composition_execution: ?@import("stwo_prover_api").CpuCompositionExecutionRequest = null,
+    /// Borrowed from the proof's existing optional stage recorder. Structured
+    /// composition publishes its independent flat task profile through it.
+    task_recorder: ?*stage_profile.Recorder = null,
 
     pub const ComponentsView = struct {
         prover_components: []ComponentProver,
@@ -470,11 +474,13 @@ pub const ComponentProvers = struct {
             residency_handles,
             composition_twiddles,
             self.cpu_composition_execution,
+            self.task_recorder,
             &resolved_execution,
         )) |evaluation| return evaluation;
         if (resolved_execution == null and self.cpu_composition_execution != null) {
-            resolved_execution = try composition_execution.Execution.resolve(
+            resolved_execution = try composition_execution.Execution.resolveWithRecorder(
                 self.cpu_composition_execution,
+                self.task_recorder,
             );
         }
         if (resolved_execution) |execution| {
@@ -573,7 +579,7 @@ pub const ComponentProvers = struct {
         trace: *const Trace,
         pool: *work_pool_mod.WorkPool,
     ) anyerror!SecureColumnByCoords {
-        return component_parallel.compute(
+        return component_parallel.computeWithRecorder(
             allocator,
             self.components,
             self.compositionLogDegreeBound(),
@@ -581,6 +587,7 @@ pub const ComponentProvers = struct {
             random_coeff,
             trace,
             pool,
+            self.task_recorder,
         );
     }
 };

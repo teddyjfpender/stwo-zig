@@ -295,6 +295,7 @@ fn proveExComponentsWithRecorder(
         .n_preprocessed_columns = scheme.trees.items[PREPROCESSED_TRACE_IDX].columns.len,
         .composition_stage = composition_stage,
         .cpu_composition_execution = cpu_composition_execution,
+        .task_recorder = recorder,
     };
 
     const composition_log_size = component_provers.compositionLogDegreeBound();

@@ -4,6 +4,7 @@ const std = @import("std");
 const core = @import("stwo_core");
 const prover = @import("stwo_prover_engine");
 const composition = @import("riscv_composition.zig");
+const profile_test = @import("riscv_composition_profile_test.zig");
 
 const constraints = core.constraints;
 const m31 = core.fields.m31;
@@ -506,12 +507,13 @@ test "cpu RISC-V composition: exported adjacent pair matches generic and records
     defer reference.deinit(allocator);
 
     const admitted_before = telemetrySnapshot();
-    var accelerated = (try evaluate(
+    var accelerated = try profile_test.serialEvaluation(
         allocator,
         components[0..],
         random_coeff,
         &trace,
-    )).?;
+        row_count,
+    );
     defer accelerated.deinit(allocator);
     inline for (0..qm31.SECURE_EXTENSION_DEGREE) |coordinate| {
         for (reference.columns[coordinate], accelerated.columns[coordinate]) |expected, actual| {
@@ -533,39 +535,14 @@ test "cpu RISC-V composition: exported adjacent pair matches generic and records
     try std.testing.expectEqual(@as(usize, 1), legacy_semantic_calls.load(.monotonic));
     try std.testing.expectEqual(@as(usize, 0), prepared_semantic_calls.load(.monotonic));
     try std.testing.expectEqual(@as(usize, 0), prepared_semantic_runs.load(.monotonic));
-
-    for ([_]usize{ 2, 4 }) |worker_count| {
-        var pool: prover.work_pool.WorkPool = undefined;
-        try pool.initInPlaceWithOptions(.{
-            .worker_count = worker_count,
-            .stack_size = prover.air.prepared_domain.ROW_EVALUATOR_STACK_BYTES,
-        });
-        defer pool.deinit();
-        const explicit_before = telemetrySnapshot();
-        var explicit = (try evaluateWithExecution(
-            allocator,
-            components[0..],
-            random_coeff,
-            &trace,
-            .{
-                .worker_budget = try prover.work_pool.WorkerBudget.init(worker_count),
-                .pool = &pool,
-                .byte_budget = 128 * 1024 * 1024,
-            },
-        )).?;
-        defer explicit.deinit(allocator);
-        inline for (0..qm31.SECURE_EXTENSION_DEGREE) |coordinate| {
-            for (reference.columns[coordinate], explicit.columns[coordinate]) |expected, actual| {
-                try std.testing.expect(expected.eql(actual));
-            }
-        }
-        const explicit_snapshot = telemetrySnapshot().delta(explicit_before);
-        try std.testing.expectEqual(@as(u64, 4), explicit_snapshot.row_tiles);
-        try std.testing.expectEqual(@as(u64, @intCast(worker_count)), explicit_snapshot.execution_lanes);
-        try std.testing.expectEqual(@as(u64, 0), explicit_snapshot.pool_lease_declines);
-        try std.testing.expectEqual(@as(u64, 0), explicit_snapshot.finite_budget_rejections);
-        try std.testing.expect(explicit_snapshot.max_graph_peak_active >= worker_count);
-    }
+    try profile_test.expectParallelEvaluations(
+        allocator,
+        components[0..],
+        random_coeff,
+        &trace,
+        &reference,
+        row_count,
+    );
 
     var preflight_pool: prover.work_pool.WorkPool = undefined;
     try preflight_pool.initInPlaceWithOptions(.{
@@ -659,18 +636,14 @@ test "cpu RISC-V composition: exported adjacent pair matches generic and records
     const strict_contention = telemetrySnapshot().delta(strict_contention_before);
     try std.testing.expectEqual(@as(u64, 0), strict_contention.finite_budget_rejections);
     const contention_before = telemetrySnapshot();
-    var contention_fallback = (try evaluateWithExecution(
+    var contention_fallback = try profile_test.compatibilityEvaluation(
         allocator,
         components[0..],
         random_coeff,
         &trace,
-        .{
-            .worker_budget = try prover.work_pool.WorkerBudget.init(2),
-            .pool = &contention_pool,
-            .byte_budget = 128 * 1024 * 1024,
-            .serial_on_contention = true,
-        },
-    )).?;
+        &contention_pool,
+        row_count,
+    );
     defer contention_fallback.deinit(allocator);
     inline for (0..qm31.SECURE_EXTENSION_DEGREE) |coordinate| {
         try std.testing.expectEqualSlices(
@@ -682,18 +655,17 @@ test "cpu RISC-V composition: exported adjacent pair matches generic and records
     const contention_snapshot = telemetrySnapshot().delta(contention_before);
     try std.testing.expectEqual(@as(u64, 1), contention_snapshot.pool_lease_declines);
     try std.testing.expectEqual(@as(u64, 0), contention_snapshot.finite_budget_rejections);
-
     const mismatched = [_]Component{
         mock.semanticComponent(),
         mock.lookupComponent(true),
     };
     const declined_before = telemetrySnapshot();
-    try std.testing.expect(try evaluate(
+    try profile_test.expectSpecializationDecline(
         allocator,
         mismatched[0..],
         random_coeff,
         &trace,
-    ) == null);
+    );
     const declined = telemetrySnapshot().delta(declined_before);
     try std.testing.expectEqual(@as(u64, 1), declined.attempts);
     try std.testing.expectEqual(@as(u64, 0), declined.admissions);

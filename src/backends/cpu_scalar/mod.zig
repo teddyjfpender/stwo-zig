@@ -75,12 +75,17 @@ pub const CpuBackend = struct {
     ) !?prover_impl.secure_column.SecureColumnByCoords {
         _ = residency_handles;
         _ = composition_twiddles;
+        // The recurrence fast path owns a direct joined row wave, not a
+        // ComponentTaskGraph. Keep it explicitly outside flat task telemetry
+        // until that executor has truthful per-task identities and accounting.
+        var recurrence_execution = execution;
+        recurrence_execution.task_recorder = null;
         if (try secure_composition.evaluateLargeRecurrenceComposition(
             allocator,
             components,
             random_coeff,
             trace,
-            execution,
+            recurrence_execution,
         )) |evaluation| return evaluation;
         const adjusted = execution.adjustedForAvailablePool();
         try adjusted.validateCapacity();
@@ -95,6 +100,9 @@ pub const CpuBackend = struct {
                 .byte_budget = adjusted.host_byte_budget,
                 .serial_on_contention = !execution.isStrict(),
                 .allow_unprepared_fallback = !execution.isStrict(),
+                .requested_worker_count = execution.requestedWorkerCount(),
+                .pool_capacity = execution.poolCapacity(),
+                .task_recorder = execution.task_recorder,
             },
         );
     }
@@ -394,4 +402,5 @@ test "cpu_scalar: batchInverse delegates correctly" {
 
 test {
     _ = @import("riscv_composition_test.zig");
+    _ = @import("riscv_composition_profile_test.zig");
 }

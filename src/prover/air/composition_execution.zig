@@ -5,35 +5,73 @@ const api = @import("stwo_prover_api");
 const secure_column = @import("../secure_column.zig");
 const work_pool = @import("../work_pool.zig");
 
+const StageRecorder = api.stage_profile.Recorder;
+
 pub const Execution = struct {
     worker_budget: work_pool.WorkerBudget,
     pool: ?*work_pool.WorkPool,
     host_byte_budget: usize,
     contention_policy: api.CpuCompositionContentionPolicy,
     explicit: bool,
+    /// Original request width. Compatibility fallback changes
+    /// `worker_budget`, but never relabels the request in task telemetry.
+    requested_worker_count: usize = 0,
+    /// Capacity of the pool selected before any compatibility adjustment.
+    /// A graph with no helper pool still has one coordinator slot.
+    pool_capacity: usize = 0,
+    /// Existing proof-stage recorder, borrowed for this composition call.
+    /// The task graph reserves and publishes only when this is non-null.
+    task_recorder: ?*StageRecorder = null,
 
     pub fn resolve(request: ?api.CpuCompositionExecutionRequest) !Execution {
+        return resolveWithRecorder(request, null);
+    }
+
+    pub fn resolveWithRecorder(
+        request: ?api.CpuCompositionExecutionRequest,
+        recorder: ?*StageRecorder,
+    ) !Execution {
         if (request) |explicit| {
             const worker_budget = try work_pool.WorkerBudget.init(explicit.worker_count);
+            const pool = if (worker_budget.count == 1) null else work_pool.getGlobalPool();
             return .{
                 .worker_budget = worker_budget,
-                .pool = if (worker_budget.count == 1) null else work_pool.getGlobalPool(),
+                .pool = pool,
                 .host_byte_budget = explicit.host_byte_budget,
                 .contention_policy = explicit.contention_policy,
                 .explicit = true,
+                .requested_worker_count = worker_budget.count,
+                .pool_capacity = if (pool) |active| active.workerCount() else 1,
+                .task_recorder = recorder,
             };
         }
         const pool = work_pool.getGlobalPool();
+        const worker_budget = if (pool) |active|
+            try work_pool.WorkerBudget.init(active.workerCount())
+        else
+            work_pool.WorkerBudget.serial();
         return .{
-            .worker_budget = if (pool) |active|
-                try work_pool.WorkerBudget.init(active.workerCount())
-            else
-                work_pool.WorkerBudget.serial(),
+            .worker_budget = worker_budget,
             .pool = pool,
             .host_byte_budget = std.math.maxInt(usize),
             .contention_policy = .compatibility,
             .explicit = false,
+            .requested_worker_count = worker_budget.count,
+            .pool_capacity = if (pool) |active| active.workerCount() else 1,
+            .task_recorder = recorder,
         };
+    }
+
+    pub fn requestedWorkerCount(self: Execution) usize {
+        return if (self.requested_worker_count == 0)
+            self.worker_budget.count
+        else
+            self.requested_worker_count;
+    }
+
+    pub fn poolCapacity(self: Execution) usize {
+        if (self.pool_capacity != 0) return self.pool_capacity;
+        return if (self.pool) |pool| pool.workerCount() else 1;
     }
 
     pub fn isStrict(self: Execution) bool {
@@ -73,6 +111,10 @@ pub const Execution = struct {
 
     pub fn serial(self: Execution) Execution {
         var result = self;
+        // Materialize derived request truth before clearing the pool that
+        // supplied it. This also keeps older internal struct literals honest.
+        result.requested_worker_count = self.requestedWorkerCount();
+        result.pool_capacity = self.poolCapacity();
         result.worker_budget = work_pool.WorkerBudget.serial();
         result.pool = null;
         return result;
@@ -90,11 +132,12 @@ pub fn tryBackend(
     residency_handles: []const ?*anyopaque,
     composition_twiddles: anytype,
     request: ?api.CpuCompositionExecutionRequest,
+    recorder: ?*StageRecorder,
     execution_out: *?Execution,
 ) anyerror!?secure_column.SecureColumnByCoords {
     if (comptime B == void) return null;
     if (comptime @hasDecl(B, "computeCompositionEvaluationWithExecution")) {
-        const execution = try Execution.resolve(request);
+        const execution = try Execution.resolveWithRecorder(request, recorder);
         execution_out.* = execution;
         return B.computeCompositionEvaluationWithExecution(
             allocator,
@@ -161,6 +204,8 @@ test "strict over-capacity stays exact while compatibility becomes serial" {
     compatible.contention_policy = .compatibility;
     const adjusted = compatible.adjustedForAvailablePool();
     try std.testing.expectEqual(@as(usize, 1), adjusted.worker_budget.count);
+    try std.testing.expectEqual(@as(usize, 4), adjusted.requestedWorkerCount());
+    try std.testing.expectEqual(@as(usize, 2), adjusted.poolCapacity());
     try std.testing.expect(adjusted.pool == null);
     try adjusted.validateCapacity();
 }

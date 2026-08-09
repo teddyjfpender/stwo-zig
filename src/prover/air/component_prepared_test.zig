@@ -8,8 +8,11 @@ const composition_execution = @import("composition_execution.zig");
 const prepared_domain = @import("prepared_domain.zig");
 const task_graph = @import("../task_graph.zig");
 const work_pool = @import("../work_pool.zig");
+const prover_api = @import("stwo_prover_api");
 
 const QM31 = qm31.QM31;
+const stage_profile = prover_api.stage_profile;
+const task_profile = prover_api.task_profile;
 
 const Control = struct {
     prepare_calls: std.atomic.Value(usize) = .init(0),
@@ -194,6 +197,130 @@ fn runCompositionWithPool(
     );
 }
 
+fn runProfiledCompositionWithPool(
+    allocator: std.mem.Allocator,
+    components: []const MockComponent,
+    pool: *work_pool.WorkPool,
+    worker_count: usize,
+    contention_policy: prover_api.CpuCompositionContentionPolicy,
+    recorder: *stage_profile.Recorder,
+) !@import("../secure_column.zig").SecureColumnByCoords {
+    const trace: u8 = 0;
+    var total_constraints: usize = 0;
+    for (components) |mock| {
+        total_constraints = try std.math.add(
+            usize,
+            total_constraints,
+            mock.nConstraints(),
+        );
+    }
+    return component_parallel.computeRequested(
+        allocator,
+        components,
+        2,
+        total_constraints,
+        QM31.fromU32Unchecked(3, 1, 0, 0),
+        &trace,
+        .{
+            .worker_budget = try work_pool.WorkerBudget.init(worker_count),
+            .pool = if (worker_count == 1) null else pool,
+            .host_byte_budget = std.math.maxInt(usize),
+            .contention_policy = contention_policy,
+            .explicit = true,
+            .requested_worker_count = worker_count,
+            .pool_capacity = pool.workerCount(),
+            .task_recorder = recorder,
+        },
+    );
+}
+
+fn expectGenericTaskProfile(
+    profile: *const task_profile.TaskProfile,
+    component_count: usize,
+    requested_workers: usize,
+    admitted_workers: usize,
+    pool_capacity: usize,
+) !void {
+    try std.testing.expectEqual(@as(usize, 1), profile.graphs.len);
+    const graph = profile.graphs[0];
+    try std.testing.expectEqualStrings("cpu_composition_generic", graph.graph_id);
+    try std.testing.expectEqual(component_count, graph.events.len);
+    try std.testing.expectEqual(component_count, graph.component_work.len);
+    try std.testing.expectEqual(
+        @as(u32, @intCast(requested_workers)),
+        graph.summary.requested_workers,
+    );
+    try std.testing.expectEqual(
+        @as(u32, @intCast(admitted_workers)),
+        graph.summary.admitted_workers,
+    );
+    try std.testing.expectEqual(
+        @as(u32, @intCast(pool_capacity)),
+        graph.summary.pool_capacity,
+    );
+    try std.testing.expectEqual(@as(u64, @intCast(component_count)), graph.summary.planned_tasks);
+    try std.testing.expectEqual(@as(u64, @intCast(component_count)), graph.summary.submitted_tasks);
+    try std.testing.expectEqual(@as(u64, @intCast(component_count)), graph.summary.completed_tasks);
+    try std.testing.expectEqual(@as(u64, 0), graph.summary.failed_tasks);
+    try std.testing.expectEqual(@as(u64, 0), graph.summary.cancelled_tasks);
+    try std.testing.expectEqual(@as(u64, 0), graph.summary.unsubmitted_cancelled_tasks);
+    try std.testing.expectEqual(@as(u64, @intCast(component_count)), graph.summary.started_tasks);
+    try std.testing.expectEqual(@as(u64, @intCast(component_count)), graph.summary.finished_tasks);
+    try std.testing.expectEqual(@as(u64, 0), graph.summary.duplicate_starts);
+    try std.testing.expectEqual(@as(u64, 0), graph.summary.duplicate_finishes);
+    const peak_workers = graph.summary.peak_active_workers orelse
+        return error.MissingCompositionWorkerPeak;
+    try std.testing.expect(graph.summary.peak_active_tasks >= 1);
+    try std.testing.expect(peak_workers >= 1);
+    try std.testing.expect(
+        @as(usize, peak_workers) <= admitted_workers,
+    );
+    try std.testing.expectEqual(graph.summary.peak_active_tasks, peak_workers);
+    const worker_busy_ns = graph.summary.worker_busy_ns orelse
+        return error.MissingCompositionWorkerBusyTime;
+    try std.testing.expectEqual(graph.summary.task_run_ns, worker_busy_ns);
+    try std.testing.expect(graph.summary.critical_path_ns != null);
+    try std.testing.expectEqual(@as(u64, @intCast(component_count * 4)), graph.summary.total_work_estimate);
+    try std.testing.expectEqual(@as(u64, @intCast(component_count * 4)), graph.summary.completed_rows);
+    try std.testing.expectEqual(@as(u64, 0), graph.summary.completed_tiles);
+    try std.testing.expect(graph.summary.scheduler == .central_queue_no_steal);
+    try std.testing.expectEqual(@as(u64, 0), graph.summary.steal_count);
+
+    for (graph.events, graph.component_work, 0..) |event, work, index| {
+        try std.testing.expectEqual(@as(u32, @intCast(index)), event.key.component_registry_index);
+        try std.testing.expectEqualStrings("composition_domain", event.stage_id);
+        try std.testing.expectEqualStrings("generic_air_component", event.component_kind);
+        try std.testing.expect(event.task_class == .leaf);
+        try std.testing.expect(event.parallel_eligible);
+        try std.testing.expectEqual(@as(u8, 0), event.dependency_count);
+        try std.testing.expect(event.submitted);
+        try std.testing.expect(event.started);
+        try std.testing.expect(event.finished);
+        try std.testing.expect(event.ready_ns != null);
+        try std.testing.expect(event.submitted_ns != null);
+        try std.testing.expect(event.start_ns != null);
+        try std.testing.expect(event.finish_ns != null);
+        try std.testing.expectEqual(@as(u32, @intCast(admitted_workers)), event.configured_workers);
+        try std.testing.expect(event.worker_slot != null);
+        try std.testing.expect(event.worker_kind != null);
+        try std.testing.expect(event.terminal_status == .completed);
+        try std.testing.expect(event.error_name == null);
+        try std.testing.expect(event.cancellation_winner == null);
+        try std.testing.expect(event.cancellation_reason == null);
+        try std.testing.expect(event.cleanup_complete);
+        try std.testing.expectEqual(@as(u64, 4), event.work_estimate);
+        try std.testing.expectEqual(@as(u64, 4), event.completed_rows);
+        try std.testing.expectEqual(@as(u64, 0), event.completed_tiles);
+
+        try std.testing.expectEqual(@as(u32, @intCast(index)), work.component_registry_index);
+        try std.testing.expectEqualStrings("generic_air_component", work.component_kind);
+        try std.testing.expectEqual(@as(u64, 1), work.task_count);
+        try std.testing.expectEqual(@as(u64, 4), work.work_estimate);
+        try std.testing.expectEqual(@as(u64, 4), work.completed_rows);
+        try std.testing.expectEqual(@as(u64, 0), work.completed_tiles);
+    }
+}
+
 fn runRequestedComposition(
     allocator: std.mem.Allocator,
     components: []const MockComponent,
@@ -266,6 +393,64 @@ test "prepared composition is canonical with one two and four workers" {
     try std.testing.expectEqual(@as(usize, 12), control.run_calls.load(.acquire));
     try std.testing.expectEqual(@as(usize, 0), control.legacy_calls.load(.acquire));
     try std.testing.expectEqual(@as(usize, 0), control.live_states.load(.acquire));
+}
+
+test "prepared composition task capture is opt-in" {
+    const allocator = std.testing.allocator;
+    var control = Control{};
+    const components = [_]MockComponent{
+        component(0, 5, &control),
+        component(1, 7, &control),
+    };
+    var recorder = stage_profile.Recorder.init(allocator, "Debug", "generic-disabled");
+    defer recorder.deinit();
+
+    var output = try runComposition(allocator, &components, 1);
+    defer output.deinit(allocator);
+    var profile = try recorder.taskSnapshot(allocator);
+    defer profile.deinit(allocator);
+    try std.testing.expectEqual(@as(usize, 0), profile.graphs.len);
+}
+
+test "prepared composition publishes exact serial and parallel task profiles" {
+    const allocator = std.testing.allocator;
+    var control = Control{};
+    const components = [_]MockComponent{
+        component(0, 5, &control),
+        component(1, 7, &control),
+        component(2, 11, &control),
+        component(3, 13, &control),
+    };
+
+    for ([_]usize{ 1, 4 }) |worker_count| {
+        var pool: work_pool.WorkPool = undefined;
+        try pool.initInPlaceWithOptions(.{
+            .worker_count = worker_count,
+            .stack_size = prepared_domain.ROW_EVALUATOR_STACK_BYTES,
+        });
+        defer pool.deinit();
+        var recorder = stage_profile.Recorder.init(allocator, "Debug", "generic-profiled");
+        defer recorder.deinit();
+
+        var output = try runProfiledCompositionWithPool(
+            allocator,
+            &components,
+            &pool,
+            worker_count,
+            .strict,
+            &recorder,
+        );
+        defer output.deinit(allocator);
+        var profile = try recorder.taskSnapshot(allocator);
+        defer profile.deinit(allocator);
+        try expectGenericTaskProfile(
+            &profile,
+            components.len,
+            worker_count,
+            worker_count,
+            worker_count,
+        );
+    }
 }
 
 test "prepared composition obeys finite host budgets at one two and four workers" {
@@ -342,10 +527,24 @@ test "prepared composition retains identity when the shared lease is busy" {
     defer pool.deinit();
     var competing_lease = try pool.acquire(try work_pool.WorkerBudget.init(2));
     defer competing_lease.deinit();
+    var recorder = stage_profile.Recorder.init(allocator, "Debug", "generic-contention");
+    defer recorder.deinit();
 
-    var output = try runCompositionWithPool(allocator, &components, &pool);
+    var output = try runProfiledCompositionWithPool(
+        allocator,
+        &components,
+        &pool,
+        2,
+        .compatibility,
+        &recorder,
+    );
     defer output.deinit(allocator);
     try expectConstantColumn(&output, expected);
+    var profile = try recorder.taskSnapshot(allocator);
+    defer profile.deinit(allocator);
+    // The declined two-worker attempt reserves nothing. Only the admitted
+    // serial retry is published, while retaining the original request truth.
+    try expectGenericTaskProfile(&profile, components.len, 2, 1, 2);
     try std.testing.expectEqual(@as(usize, 2), control.prepare_calls.load(.acquire));
     try std.testing.expectEqual(@as(usize, 2), control.run_calls.load(.acquire));
     try std.testing.expectEqual(@as(usize, 0), control.legacy_calls.load(.acquire));

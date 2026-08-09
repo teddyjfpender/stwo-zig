@@ -28,6 +28,31 @@ pub fn compute(
     trace: anytype,
     pool: *work_pool.WorkPool,
 ) anyerror!SecureColumnByCoords {
+    return computeWithRecorder(
+        allocator,
+        components,
+        max_log_size,
+        total_constraints,
+        random_coeff,
+        trace,
+        pool,
+        null,
+    );
+}
+
+/// The proof path borrows its existing stage recorder here. Legacy composition
+/// remains deliberately unprofiled because it does not execute a bounded task
+/// graph; the prepared path publishes one flat graph after its joined run.
+pub fn computeWithRecorder(
+    allocator: std.mem.Allocator,
+    components: anytype,
+    max_log_size: u32,
+    total_constraints: usize,
+    random_coeff: QM31,
+    trace: anytype,
+    pool: *work_pool.WorkPool,
+    recorder: ?*@import("stwo_prover_api").stage_profile.Recorder,
+) anyerror!SecureColumnByCoords {
     if (components.len == 0) return error.EmptyComponentSet;
     if (allComponentsPrepared(components)) {
         const execution = composition_execution.Execution{
@@ -36,6 +61,9 @@ pub fn compute(
             .host_byte_budget = std.math.maxInt(usize),
             .contention_policy = .compatibility,
             .explicit = false,
+            .requested_worker_count = pool.workerCount(),
+            .pool_capacity = pool.workerCount(),
+            .task_recorder = recorder,
         };
         return computePrepared(
             allocator,
@@ -231,6 +259,7 @@ fn computePrepared(
     defer if (prepared_output) |*output| output.deinit(allocator);
 
     for (workers, 0..) |*worker, index| {
+        const planned_rows = try componentRows(worker.component);
         if (execution.host_byte_budget != std.math.maxInt(usize)) {
             try requireHeapBackedResources(worker.prepared.resources);
         }
@@ -242,11 +271,15 @@ fn computePrepared(
                 .shard_or_chunk_index = 0,
             },
             .name = "composition-domain",
+            .stage_id = "composition_domain",
+            .component_kind = "generic_air_component",
             .func = Worker.run,
             .context = worker,
             .class = worker.prepared.task_class,
             .resources = worker.prepared.resources,
-            .work_estimate = try componentWorkEstimate(worker.component),
+            .work_estimate = try componentWorkEstimate(worker.component, planned_rows),
+            .work_unit = .rows,
+            .planned_work_units = planned_rows,
         });
     }
 
@@ -255,6 +288,10 @@ fn computePrepared(
         .worker_budget = adjusted.worker_budget,
         .pool = adjusted.pool,
         .ready_policy = .critical_path,
+        .task_profile_recorder = execution.task_recorder,
+        .task_profile_graph_id = "cpu_composition_generic",
+        .requested_worker_count = execution.requestedWorkerCount(),
+        .pool_capacity = execution.poolCapacity(),
     }) catch |failure| switch (failure) {
         // The ordinary prover does not promise exclusive ownership of the
         // process-wide pool. Contention is therefore a scheduling decline,
@@ -266,6 +303,10 @@ fn computePrepared(
         error.WorkerBudgetUnavailable => if (!execution.isStrict()) try graph.execute(.{
             .worker_budget = work_pool.WorkerBudget.serial(),
             .ready_policy = .critical_path,
+            .task_profile_recorder = execution.task_recorder,
+            .task_profile_graph_id = "cpu_composition_generic",
+            .requested_worker_count = execution.requestedWorkerCount(),
+            .pool_capacity = execution.poolCapacity(),
         }) else return failure,
         else => return failure,
     };
@@ -417,13 +458,16 @@ fn allComponentsPrepared(components: anytype) bool {
     return true;
 }
 
-fn componentWorkEstimate(component: anytype) !u64 {
-    const log_size = component.maxConstraintLogDegreeBound();
-    if (log_size >= @bitSizeOf(u64)) return error.WorkEstimateOverflow;
-    const rows = @as(u64, 1) << @intCast(log_size);
+fn componentWorkEstimate(component: anytype, rows: u64) !u64 {
     const constraints = std.math.cast(u64, component.nConstraints()) orelse
         return error.WorkEstimateOverflow;
     return task_graph.checkedWorkEstimate(&.{ rows, constraints });
+}
+
+fn componentRows(component: anytype) !u64 {
+    const log_size = component.maxConstraintLogDegreeBound();
+    if (log_size >= @bitSizeOf(u64)) return error.WorkEstimateOverflow;
+    return @as(u64, 1) << @intCast(log_size);
 }
 
 fn validatePowerRanges(workers: anytype) !void {

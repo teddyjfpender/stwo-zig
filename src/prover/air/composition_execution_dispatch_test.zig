@@ -4,6 +4,7 @@ const component_prover = @import("component_prover.zig");
 const device_composition = @import("device_composition.zig");
 const composition_execution = @import("composition_execution.zig");
 const secure_column = @import("../secure_column.zig");
+const stage_profile = @import("stwo_prover_api").stage_profile;
 
 const QM31 = core.fields.qm31.QM31;
 const TreeVec = core.pcs.TreeVec;
@@ -84,6 +85,7 @@ test "execution-aware backend receives the exact public request" {
         var workers: usize = 0;
         var bytes: usize = 0;
         var strict: bool = false;
+        var received_recorder: bool = false;
 
         pub fn computeCompositionEvaluationWithExecution(
             allocator: std.mem.Allocator,
@@ -97,10 +99,13 @@ test "execution-aware backend receives the exact public request" {
             workers = execution.worker_budget.count;
             bytes = execution.host_byte_budget;
             strict = execution.isStrict();
+            received_recorder = execution.task_recorder != null;
             return try SecureColumn.uninitialized(allocator, 1);
         }
     };
 
+    var recorder = stage_profile.Recorder.init(std.testing.allocator, "Debug", "dispatch");
+    defer recorder.deinit();
     const provers = ComponentProvers{
         .components = &.{},
         .n_preprocessed_columns = 0,
@@ -109,6 +114,7 @@ test "execution-aware backend receives the exact public request" {
             .host_byte_budget = 12345,
             .contention_policy = .strict,
         },
+        .task_recorder = &recorder,
     };
     var trace = try emptyTrace(std.testing.allocator);
     defer trace.polys.deinit(std.testing.allocator);
@@ -124,6 +130,12 @@ test "execution-aware backend receives the exact public request" {
     try std.testing.expectEqual(@as(usize, 4), Backend.workers);
     try std.testing.expectEqual(@as(usize, 12345), Backend.bytes);
     try std.testing.expect(Backend.strict);
+    try std.testing.expect(Backend.received_recorder);
+    var tasks = try recorder.taskSnapshot(std.testing.allocator);
+    defer tasks.deinit(std.testing.allocator);
+    // A backend that returns directly did not execute a bounded graph. Passing
+    // the recorder must not invent an event for it.
+    try std.testing.expectEqual(@as(usize, 0), tasks.graphs.len);
 }
 
 test "legacy backend composition hook remains source compatible" {

@@ -30,9 +30,14 @@ const EvaluationContext = lanes.EvaluationContext;
 const Tile = lanes.Tile;
 const TileLane = lanes.TileLane;
 const TILE_ROWS = lanes.TILE_ROWS;
+/// Exact-pair lanes can span several adjacent semantic/lookup components, so
+/// they belong to one synthetic aggregate rather than impersonating a real
+/// component registry entry. The lane is the canonical chunk identity.
+const PAIR_AGGREGATE_REGISTRY_INDEX: u32 = std.math.maxInt(u32);
 
 pub const TelemetrySnapshot = struct {
     attempts: u64 = 0,
+    /// Prepared-plan admissions; task-profile widths own worker truth.
     admissions: u64 = 0,
     declines: u64 = 0,
     eligible_pairs: u64 = 0,
@@ -41,7 +46,9 @@ pub const TelemetrySnapshot = struct {
     coordinator_fallback_components: u64 = 0,
     distinct_buckets: u64 = 0,
     row_tiles: u64 = 0,
+    /// Planned lanes, not physically admitted or observed workers.
     execution_lanes: u64 = 0,
+    /// Graph attempts; a strict lease decline can follow this counter.
     structured_executions: u64 = 0,
     pool_lease_declines: u64 = 0,
     finite_budget_rejections: u64 = 0,
@@ -113,6 +120,21 @@ pub const ExecutionOptions = struct {
     byte_budget: usize = std.math.maxInt(usize),
     serial_on_contention: bool = false,
     allow_unprepared_fallback: bool = false,
+    requested_worker_count: usize = 0,
+    pool_capacity: usize = 0,
+    task_recorder: ?*prover.stage_profile.Recorder = null,
+
+    fn requestedWorkerCount(self: ExecutionOptions) usize {
+        return if (self.requested_worker_count == 0)
+            self.worker_budget.count
+        else
+            self.requested_worker_count;
+    }
+
+    fn poolCapacity(self: ExecutionOptions) usize {
+        if (self.pool_capacity != 0) return self.pool_capacity;
+        return if (self.pool) |pool| pool.workerCount() else 1;
+    }
 };
 
 pub fn telemetrySnapshot() TelemetrySnapshot {
@@ -159,12 +181,13 @@ const HostWorker = struct {
     fn run(task_context: *prover.task_graph.TaskContext) anyerror!void {
         const self: *HostWorker = @ptrCast(@alignCast(task_context.user_context));
         if (self.prepared_initialized) {
-            return self.prepared.run(task_context);
+            try self.prepared.run(task_context);
+        } else {
+            try self.component.evaluateConstraintQuotientsOnDomain(
+                self.trace,
+                &self.accumulator,
+            );
         }
-        return self.component.evaluateConstraintQuotientsOnDomain(
-            self.trace,
-            &self.accumulator,
-        );
     }
 
     fn taskClass(self: *const HostWorker) prover.task_graph.TaskClass {
@@ -557,8 +580,8 @@ fn evaluatePlan(
         );
         initialized_tile_lanes += 1;
     }
-
     for (host_workers) |*worker| {
+        const planned_rows = try componentRows(worker.component);
         if (execution.byte_budget != std.math.maxInt(usize)) {
             try requireHeapBackedResources(worker.resources());
         }
@@ -570,11 +593,15 @@ fn evaluatePlan(
                 .shard_or_chunk_index = 0,
             },
             .name = "riscv-composition-fallback",
+            .stage_id = "composition_domain",
+            .component_kind = "riscv_fallback_component",
             .func = HostWorker.run,
             .context = worker,
             .class = worker.taskClass(),
             .resources = worker.resources(),
-            .work_estimate = try componentWorkEstimate(worker.component),
+            .work_estimate = try componentWorkEstimate(worker.component, planned_rows),
+            .work_unit = .rows,
+            .planned_work_units = planned_rows,
         });
     }
     for (tile_lanes, 0..) |*lane, lane_index| {
@@ -586,15 +613,21 @@ fn evaluatePlan(
             .key = .{
                 .epoch = 0,
                 .stage_rank = 1,
-                .component_registry_index = std.math.cast(u32, lane_index) orelse
+                .component_registry_index = PAIR_AGGREGATE_REGISTRY_INDEX,
+                .shard_or_chunk_index = std.math.cast(u32, lane_index) orelse
                     return error.InvalidCompositionTaskKey,
-                .shard_or_chunk_index = 0,
             },
             .name = "riscv-composition-tile-lane",
+            .stage_id = "composition_domain",
+            .component_kind = "riscv_pair_lane",
             .func = TileLane.run,
             .context = lane,
             .resources = resources,
             .work_estimate = try lane.workEstimate(),
+            .work_unit = .tiles,
+            .planned_work_units = @intCast(
+                std.math.divCeil(usize, tiles.len - lane_index, lane_count) catch unreachable,
+            ),
         });
     }
 
@@ -634,6 +667,7 @@ fn evaluatePlan(
         null;
     defer if (prepared_output) |*output| output.deinit(allocator);
 
+    // Legacy counters describe the plan; the flat profile owns worker truth.
     _ = telemetry.admissions.fetchAdd(1, .monotonic);
     _ = telemetry.eligible_pairs.fetchAdd(@intCast(pairs.items.len), .monotonic);
     _ = telemetry.fallback_components.fetchAdd(@intCast(fallback_count), .monotonic);
@@ -659,6 +693,10 @@ fn evaluatePlan(
         // still validate worker-stack shape; finite plans reject non-heap scratch.
         .byte_budget = std.math.maxInt(usize),
         .ready_policy = .critical_path,
+        .task_profile_recorder = execution.task_recorder,
+        .task_profile_graph_id = "cpu_composition_riscv",
+        .requested_worker_count = execution.requestedWorkerCount(),
+        .pool_capacity = execution.poolCapacity(),
     }) catch |failure| switch (failure) {
         error.WorkerBudgetUnavailable => if (execution.serial_on_contention) serial: {
             _ = telemetry.pool_lease_declines.fetchAdd(1, .monotonic);
@@ -666,6 +704,10 @@ fn evaluatePlan(
                 .worker_budget = prover.work_pool.WorkerBudget.serial(),
                 .byte_budget = std.math.maxInt(usize),
                 .ready_policy = .critical_path,
+                .task_profile_recorder = execution.task_recorder,
+                .task_profile_graph_id = "cpu_composition_riscv",
+                .requested_worker_count = execution.requestedWorkerCount(),
+                .pool_capacity = execution.poolCapacity(),
             });
         } else return failure,
         else => return failure,
@@ -707,12 +749,16 @@ fn requireHeapBackedResources(resources: prover.task_graph.ResourceReservation) 
     }
 }
 
-fn componentWorkEstimate(component: Component) !u64 {
-    const log_size = component.maxConstraintLogDegreeBound();
-    if (log_size >= @bitSizeOf(u64)) return error.WorkEstimateOverflow;
+fn componentWorkEstimate(component: Component, rows: u64) !u64 {
     return prover.task_graph.checkedWorkEstimate(&.{
-        @as(u64, 1) << @intCast(log_size),
+        rows,
         std.math.cast(u64, component.nConstraints()) orelse
             return error.WorkEstimateOverflow,
     });
+}
+
+fn componentRows(component: Component) !u64 {
+    const log_size = component.maxConstraintLogDegreeBound();
+    if (log_size >= @bitSizeOf(u64)) return error.WorkEstimateOverflow;
+    return @as(u64, 1) << @intCast(log_size);
 }
