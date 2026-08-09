@@ -75,6 +75,10 @@ pub const InitOptions = struct {
 
 pub const WorkPool = struct {
     pool: std.Thread.Pool = undefined,
+    /// Worker threads and the pool allocator retain this address. An
+    /// initialized value may therefore be borrowed only through this exact
+    /// location; copying or moving it is a use-after-move programming error.
+    stable_address: usize = 0,
     n_workers: usize = 0,
     worker_stack_size: usize = WORKER_STACK_SIZE,
     backing_allocator: std.mem.Allocator = std.heap.page_allocator,
@@ -105,6 +109,7 @@ pub const WorkPool = struct {
             if (options.worker_count > 1) return error.SingleThreaded;
         }
         self.* = .{
+            .stable_address = @intFromPtr(self),
             .n_workers = options.worker_count,
             .worker_stack_size = options.stack_size,
             .backing_allocator = options.backing_allocator,
@@ -120,6 +125,7 @@ pub const WorkPool = struct {
     }
 
     pub fn deinit(self: *WorkPool) void {
+        self.assertStableAddress();
         self.lease_mutex.lock();
         const leases_drained = self.leased_workers == 0;
         const slots_released = std.mem.allEqual(bool, &self.structured_reserved, false);
@@ -141,6 +147,7 @@ pub const WorkPool = struct {
         comptime func: anytype,
         args: anytype,
     ) void {
+        self.assertStableAddress();
         if (!self.pool_initialized) {
             @call(.auto, func, args);
             return;
@@ -149,10 +156,12 @@ pub const WorkPool = struct {
     }
 
     pub fn workerCount(self: *const WorkPool) usize {
+        self.assertStableAddress();
         return self.n_workers;
     }
 
     pub fn stackSize(self: *const WorkPool) usize {
+        self.assertStableAddress();
         return self.worker_stack_size;
     }
 
@@ -163,6 +172,7 @@ pub const WorkPool = struct {
         self: *const WorkPool,
         budget: WorkerBudget,
     ) error{ResourceReservationOverflow}!usize {
+        self.assertStableAddress();
         const per_helper = std.math.add(
             usize,
             self.worker_stack_size,
@@ -176,6 +186,7 @@ pub const WorkPool = struct {
     }
 
     pub fn acquire(self: *WorkPool, budget: WorkerBudget) WorkPoolError!WorkLease {
+        self.assertStableAddress();
         _ = try WorkerBudget.init(budget.count);
         if (budget.count > self.n_workers) return error.WorkerBudgetUnavailable;
 
@@ -207,12 +218,14 @@ pub const WorkPool = struct {
     }
 
     pub fn availableWorkers(self: *WorkPool) usize {
+        self.assertStableAddress();
         self.lease_mutex.lock();
         defer self.lease_mutex.unlock();
         return self.n_workers - self.leased_workers;
     }
 
     fn release(self: *WorkPool, count: usize, reserved_slots: []const u8) void {
+        self.assertStableAddress();
         self.lease_mutex.lock();
         defer self.lease_mutex.unlock();
         std.debug.assert(count <= self.leased_workers);
@@ -231,6 +244,7 @@ pub const WorkPool = struct {
         comptime func: anytype,
         args: anytype,
     ) void {
+        self.assertStableAddress();
         comptime {
             const valid = switch (@typeInfo(@TypeOf(args))) {
                 .@"struct" => |info| info.is_tuple and
@@ -256,13 +270,25 @@ pub const WorkPool = struct {
     }
 
     fn waitForStructuredSlot(self: *WorkPool, slot_index: usize) void {
+        self.assertStableAddress();
         const slot = &self.structured_slots[slot_index];
         slot.released.wait();
         std.debug.assert(!slot.in_use.load(.acquire));
     }
 
     fn threadPoolAllocator(self: *WorkPool) std.mem.Allocator {
+        self.assertStableAddress();
         return .{ .ptr = self, .vtable = &thread_pool_allocator_vtable };
+    }
+
+    fn hasStableAddress(self: *const WorkPool) bool {
+        return self.stable_address == @intFromPtr(self);
+    }
+
+    fn assertStableAddress(self: *const WorkPool) void {
+        if (!self.hasStableAddress()) {
+            @panic("initialized WorkPool moved from its stable address");
+        }
     }
 
     fn structuredSlotIndex(self: *WorkPool, pointer: [*]u8) ?usize {
@@ -291,6 +317,7 @@ fn threadPoolAlloc(
     return_address: usize,
 ) ?[*]u8 {
     const self: *WorkPool = @ptrCast(@alignCast(context));
+    self.assertStableAddress();
     if (structured_submission) |*submission| {
         if (submission.pool != self or submission.consumed) {
             @panic("invalid structured submission allocator context");
@@ -319,6 +346,7 @@ fn threadPoolResize(
     return_address: usize,
 ) bool {
     const self: *WorkPool = @ptrCast(@alignCast(context));
+    self.assertStableAddress();
     if (self.structuredSlotIndex(memory.ptr) != null) {
         return new_len <= STRUCTURED_JOB_SLOT_BYTES;
     }
@@ -338,6 +366,7 @@ fn threadPoolRemap(
     return_address: usize,
 ) ?[*]u8 {
     const self: *WorkPool = @ptrCast(@alignCast(context));
+    self.assertStableAddress();
     if (self.structuredSlotIndex(memory.ptr) != null) {
         return if (new_len <= STRUCTURED_JOB_SLOT_BYTES) memory.ptr else null;
     }
@@ -356,6 +385,7 @@ fn threadPoolFree(
     return_address: usize,
 ) void {
     const self: *WorkPool = @ptrCast(@alignCast(context));
+    self.assertStableAddress();
     if (self.structuredSlotIndex(memory.ptr)) |slot_index| {
         const was_in_use = self.structured_slots[slot_index].in_use.swap(false, .release);
         std.debug.assert(was_in_use);
@@ -463,6 +493,19 @@ test "work_pool: detection and test-global behavior" {
     try std.testing.expect(n >= 1);
     try std.testing.expect(n <= MAX_WORKERS);
     try std.testing.expect(getGlobalPool() == null);
+}
+
+test "work pool records and detects its stable initialized address" {
+    var pool: WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{
+        .worker_count = 1,
+        .stack_size = 64 * 1024,
+    });
+    defer pool.deinit();
+
+    try std.testing.expect(pool.hasStableAddress());
+    const relocated_copy = pool;
+    try std.testing.expect(!relocated_copy.hasStableAddress());
 }
 
 test "work_pool: structured leases submit without backing allocations" {
