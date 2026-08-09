@@ -425,6 +425,54 @@ fn runPreparedOnReviewedStack(
     if (invocation.failure) |failure| return failure;
 }
 
+fn runPreparedWithWorkers(
+    prepared: *prepared_domain.PreparedDomainEvaluation,
+    worker_count: usize,
+) !prover_task_graph.ExecutionReport {
+    const Runner = struct {
+        prepared: *prepared_domain.PreparedDomainEvaluation,
+
+        fn run(context: *prover_task_graph.TaskContext) !void {
+            const self: *@This() = @ptrCast(@alignCast(context.user_context));
+            try self.prepared.run(context);
+        }
+    };
+
+    var runner = Runner{ .prepared = prepared };
+    var graph = try prover_task_graph.ComponentTaskGraph.init(std.testing.allocator, 1);
+    defer graph.deinit();
+    _ = try graph.addTask(.{
+        .key = .{
+            .epoch = 0,
+            .stage_rank = 0,
+            .component_registry_index = 0,
+            .shard_or_chunk_index = 0,
+        },
+        .name = "lookup-table-prepared-domain",
+        .func = Runner.run,
+        .context = &runner,
+        .class = prepared.task_class,
+        .resources = prepared.resources,
+        .work_estimate = 1,
+    });
+
+    var pool: work_pool.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{
+        .worker_count = worker_count,
+        .stack_size = prepared_domain.ROW_EVALUATOR_STACK_BYTES,
+    });
+    defer pool.deinit();
+    try std.testing.expectEqual(
+        @as(usize, 128 * 1024),
+        prepared_domain.ROW_EVALUATOR_STACK_BYTES,
+    );
+    try std.testing.expectEqual(prepared_domain.ROW_EVALUATOR_STACK_BYTES, pool.stackSize());
+    return graph.execute(.{
+        .worker_budget = try work_pool.WorkerBudget.init(worker_count),
+        .pool = &pool,
+    });
+}
+
 fn prepareTableDomainForFailure(
     allocator: std.mem.Allocator,
     component: *const LookupTableComponent,
@@ -443,6 +491,57 @@ fn prepareTableDomainForFailure(
         &accumulator,
     )).?;
     defer prepared.deinit();
+}
+
+fn expectParallelRangeFailureCancellation() !void {
+    const allocator = std.testing.allocator;
+    var fixture: TableFixture = undefined;
+    try fixture.init(allocator, .range_check_20);
+    defer fixture.deinit();
+    const relations = relations_mod.Relations.dummy();
+    var component = try LookupTableComponent.initProver(
+        .range_check_20,
+        0,
+        &.{1},
+        0,
+        0,
+        &relations,
+        QM31.zero(),
+    );
+    var accumulator = try prover_air_accumulation.DomainEvaluationAccumulator.init(
+        allocator,
+        QM31.one(),
+        fixture.eval_log_size,
+        component.nConstraints(),
+    );
+    defer accumulator.deinit();
+    var prepared = (try component.asProverComponent().prepareConstraintQuotientsOnDomain(
+        allocator,
+        &fixture.trace_data,
+        &accumulator,
+    )).?;
+    defer prepared.deinit();
+
+    // Preparation captures one tuple column. Switching to a two-tuple schema
+    // makes every started range fail with InvalidTraceShape at its first row.
+    // Range zero must still run even if a helper publishes its failure first.
+    component.kind = .range_check_8_8;
+    const telemetry_before = component_mod.preparedParallelTelemetrySnapshot();
+    try std.testing.expectError(
+        error.InvalidTraceShape,
+        runPreparedWithWorkers(&prepared, 4),
+    );
+    const telemetry = component_mod.PreparedParallelTelemetrySnapshot.delta(
+        component_mod.preparedParallelTelemetrySnapshot(),
+        telemetry_before,
+    );
+    try std.testing.expectEqual(@as(u64, 3), telemetry.child_submissions);
+    try std.testing.expectEqual(@as(u64, 3), telemetry.child_completions);
+    try std.testing.expect(telemetry.range_failures >= 1);
+    try std.testing.expect(telemetry.local_cancellation_requests >= 1);
+    try std.testing.expect(
+        telemetry.local_cancellation_requests <= telemetry.range_failures,
+    );
 }
 
 fn expectByteEquivalent(expected: anytype, actual: anytype) !void {
@@ -502,7 +601,7 @@ test "lookup table prepared domain: legacy bytes allocation freedom stack and ca
         &prepared_accumulator,
     )).?;
     defer prepared.deinit();
-    try std.testing.expectEqual(prover_task_graph.TaskClass.leaf, prepared.task_class);
+    try std.testing.expectEqual(prover_task_graph.TaskClass.pool_exclusive, prepared.task_class);
     try std.testing.expectEqual(
         fixture.eval_size * @sizeOf(QM31),
         prepared.resources.final_output_bytes,
@@ -519,7 +618,16 @@ test "lookup table prepared domain: legacy bytes allocation freedom stack and ca
     failing.fail_index = allocation_count;
     failing.resize_fail_index = resize_count;
     var cancellation = prover_task_graph.CancellationToken{};
+    const serial_telemetry_before = component_mod.preparedParallelTelemetrySnapshot();
     try runPreparedOnReviewedStack(&prepared, &cancellation);
+    const serial_telemetry = component_mod.PreparedParallelTelemetrySnapshot.delta(
+        component_mod.preparedParallelTelemetrySnapshot(),
+        serial_telemetry_before,
+    );
+    try std.testing.expectEqual(@as(u64, 0), serial_telemetry.child_submissions);
+    try std.testing.expectEqual(@as(u64, 0), serial_telemetry.child_completions);
+    try std.testing.expectEqual(@as(u64, 0), serial_telemetry.range_failures);
+    try std.testing.expectEqual(@as(u64, 0), serial_telemetry.local_cancellation_requests);
     try std.testing.expectEqual(allocation_count, failing.alloc_index);
     try std.testing.expectEqual(resize_count, failing.resize_index);
     try std.testing.expect(!failing.has_induced_failure);
@@ -528,6 +636,45 @@ test "lookup table prepared domain: legacy bytes allocation freedom stack and ca
     var actual = try prepared_accumulator.finalize();
     defer actual.deinit(prepared_allocator);
     try expectByteEquivalent(legacy, actual);
+
+    for ([_]usize{ 2, 4 }) |worker_count| {
+        var parallel_accumulator = try prover_air_accumulation.DomainEvaluationAccumulator.init(
+            allocator,
+            random_coeff,
+            fixture.eval_log_size,
+            component.nConstraints(),
+        );
+        defer parallel_accumulator.deinit();
+        var parallel = (try component.asProverComponent().prepareConstraintQuotientsOnDomain(
+            allocator,
+            &fixture.trace_data,
+            &parallel_accumulator,
+        )).?;
+        defer parallel.deinit();
+        const telemetry_before = component_mod.preparedParallelTelemetrySnapshot();
+        const report = try runPreparedWithWorkers(&parallel, worker_count);
+        const telemetry = component_mod.PreparedParallelTelemetrySnapshot.delta(
+            component_mod.preparedParallelTelemetrySnapshot(),
+            telemetry_before,
+        );
+        const expected_children = worker_count - 1;
+        try std.testing.expectEqual(worker_count, report.configured_workers);
+        try std.testing.expectEqual(@as(usize, 1), report.succeeded_tasks);
+        try std.testing.expectEqual(@as(usize, 0), report.failed_tasks);
+        try std.testing.expectEqual(
+            @as(u64, @intCast(expected_children)),
+            telemetry.child_submissions,
+        );
+        try std.testing.expectEqual(
+            @as(u64, @intCast(expected_children)),
+            telemetry.child_completions,
+        );
+        try std.testing.expectEqual(@as(u64, 0), telemetry.range_failures);
+        try std.testing.expectEqual(@as(u64, 0), telemetry.local_cancellation_requests);
+        var parallel_result = try parallel_accumulator.finalize();
+        defer parallel_result.deinit(allocator);
+        try expectByteEquivalent(legacy, parallel_result);
+    }
 
     try std.testing.checkAllAllocationFailures(
         allocator,
@@ -555,6 +702,7 @@ test "lookup table prepared domain: legacy bytes allocation freedom stack and ca
     for (0..cancelled_result.len()) |row| {
         try std.testing.expect(cancelled_result.at(row).isZero());
     }
+    try expectParallelRangeFailureCancellation();
 }
 
 fn expectPrepareError(

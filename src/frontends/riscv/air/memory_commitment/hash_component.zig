@@ -18,9 +18,11 @@ const prover_task_graph = @import("stwo_prover_engine").task_graph;
 const prover_poly = @import("stwo_prover_engine").poly.circle.poly;
 const prover_twiddles = @import("stwo_prover_engine").poly.twiddles;
 const work_pool = @import("stwo_prover_engine").work_pool;
+const prepared_parallel = @import("../prepared_parallel.zig");
 const logup = @import("../logup.zig");
 const relations_mod = @import("../relation_challenges.zig");
 const merkle_node = @import("merkle_node.zig");
+const prepared_support = @import("hash_component_prepared_support.zig");
 const poseidon2_air = @import("poseidon2_air.zig");
 
 const CirclePointQM31 = circle.CirclePointQM31;
@@ -30,6 +32,14 @@ const N_POSEIDON_COMPONENT_CONSTRAINTS: usize =
 
 pub const Kind = enum { merkle, poseidon2 };
 pub const PREPARED_DENOMINATOR_COUNT: usize = 2;
+pub const PARALLEL_DOMAIN_LOG_SIZE: u32 = 12;
+
+pub const PreparedParallelTelemetrySnapshot = prepared_parallel.TelemetrySnapshot;
+var prepared_parallel_telemetry: prepared_parallel.Telemetry = .{};
+
+pub fn preparedParallelTelemetrySnapshot() PreparedParallelTelemetrySnapshot {
+    return prepared_parallel_telemetry.snapshot();
+}
 
 pub const HashComponent = struct {
     kind: Kind,
@@ -280,19 +290,19 @@ pub const HashComponent = struct {
             preprocessed[self.is_active_col_idx],
         };
         inline for (sources) |poly| {
-            if (try validateEvaluationSource(poly, self.log_size, eval_log_size)) {
+            if (try prepared_support.sourceNeedsExtension(poly, self.log_size, eval_log_size)) {
                 owned_count = std.math.add(usize, owned_count, 1) catch
                     return error.ResourceReservationOverflow;
             }
         }
         for (main[self.main_col_offset..main_end]) |poly| {
-            if (try validateEvaluationSource(poly, self.log_size, eval_log_size)) {
+            if (try prepared_support.sourceNeedsExtension(poly, self.log_size, eval_log_size)) {
                 owned_count = std.math.add(usize, owned_count, 1) catch
                     return error.ResourceReservationOverflow;
             }
         }
         for (interaction[self.interaction_col_offset..interaction_end]) |poly| {
-            if (try validateEvaluationSource(poly, self.log_size, eval_log_size)) {
+            if (try prepared_support.sourceNeedsExtension(poly, self.log_size, eval_log_size)) {
                 owned_count = std.math.add(usize, owned_count, 1) catch
                     return error.ResourceReservationOverflow;
             }
@@ -308,7 +318,7 @@ pub const HashComponent = struct {
         }
         var source: usize = 0;
         inline for (sources) |poly| {
-            evaluations[source] = try prepareEvaluationValues(
+            evaluations[source] = try prepared_support.evaluationValues(
                 allocator,
                 poly,
                 eval_log_size,
@@ -319,7 +329,7 @@ pub const HashComponent = struct {
             source += 1;
         }
         for (main[self.main_col_offset..main_end]) |poly| {
-            evaluations[source] = try prepareEvaluationValues(
+            evaluations[source] = try prepared_support.evaluationValues(
                 allocator,
                 poly,
                 eval_log_size,
@@ -330,7 +340,7 @@ pub const HashComponent = struct {
             source += 1;
         }
         for (interaction[self.interaction_col_offset..interaction_end]) |poly| {
-            evaluations[source] = try prepareEvaluationValues(
+            evaluations[source] = try prepared_support.evaluationValues(
                 allocator,
                 poly,
                 eval_log_size,
@@ -356,15 +366,17 @@ pub const HashComponent = struct {
             );
         }
 
-        const denominator_inv = try quotientDenominators(
+        const denominator_inv = try prepared_support.quotientDenominators(
+            PREPARED_DENOMINATOR_COUNT,
             self.log_size,
             eval_log_size,
             eval_domain,
         );
-        const resources = try preparedDomainResources(
+        const resources = try prepared_support.resources(
             eval_size,
             source_count,
             owned_count,
+            @sizeOf(PreparedDomainState),
         );
         const state = try allocator.create(PreparedDomainState);
         errdefer allocator.destroy(state);
@@ -380,6 +392,7 @@ pub const HashComponent = struct {
             .owned_buffers = owned_buffers,
             .denominator_inv = denominator_inv,
             .column_accumulator = accumulators[0],
+            .direct_store = accumulators[0].next_fresh_index == 0,
             .main_start = 2,
             .interaction_start = 2 + n_main,
             .eval_log_size = eval_log_size,
@@ -388,7 +401,10 @@ pub const HashComponent = struct {
         return .{
             .context = state,
             .vtable = &PreparedDomainState.vtable,
-            .task_class = .leaf,
+            .task_class = if (self.log_size >= PARALLEL_DOMAIN_LOG_SIZE)
+                .pool_exclusive
+            else
+                .leaf,
             .resources = resources,
         };
     }
@@ -415,10 +431,13 @@ const PreparedDomainState = struct {
     owned_buffers: [][]M31,
     denominator_inv: [PREPARED_DENOMINATOR_COUNT]M31,
     column_accumulator: prover_air_accumulation.ColumnAccumulator,
+    direct_store: bool,
     main_start: usize,
     interaction_start: usize,
     eval_log_size: u32,
     eval_size: usize,
+    failure_boundary: prepared_parallel.FailureBoundary = .{},
+    range_workers: [work_pool.MAX_WORKERS]PreparedRangeWorker = undefined,
 
     const vtable = prepared_domain.VTable{
         .run = runErased,
@@ -430,7 +449,54 @@ const PreparedDomainState = struct {
         task_context: *prover_task_graph.TaskContext,
     ) anyerror!void {
         const self: *@This() = @ptrCast(@alignCast(context));
-        if (self.evaluateRange(task_context, 0, self.eval_size)) self.finishOutput();
+        self.failure_boundary.reset();
+        const tile_count = std.math.divCeil(
+            usize,
+            self.eval_size,
+            CANCELLATION_POLL_ROWS,
+        ) catch unreachable;
+        const worker_count = @min(task_context.worker_budget.count, tile_count);
+        if (worker_count == 1) {
+            if (try self.evaluateRange(task_context.cancellation, 0, 0, self.eval_size)) {
+                self.finishOutput();
+            }
+            return;
+        }
+
+        std.debug.assert(task_context.task_class == .pool_exclusive);
+        const tiles_per_worker = tile_count / worker_count;
+        const workers_with_extra_tile = tile_count % worker_count;
+        var next_tile: usize = 0;
+        for (self.range_workers[0..worker_count], 0..) |*worker, index| {
+            const assigned_tiles = tiles_per_worker + @intFromBool(index < workers_with_extra_tile);
+            const end_tile = next_tile + assigned_tiles;
+            worker.* = .{
+                .state = self,
+                .parent_cancellation = task_context.cancellation,
+                .range_index = index,
+                .row_start = next_tile * CANCELLATION_POLL_ROWS,
+                .row_end = @min(self.eval_size, end_tile * CANCELLATION_POLL_ROWS),
+                .is_child = index != 0,
+            };
+            next_tile = end_tile;
+        }
+        std.debug.assert(next_tile == tile_count);
+        for (self.range_workers[1..worker_count]) |*worker| {
+            try task_context.spawnChild(PreparedRangeWorker.run, .{worker});
+            prepared_parallel_telemetry.recordChildSubmission();
+        }
+        self.range_workers[0].run();
+        try task_context.waitForChildren();
+        // Ranges are stored in ascending row order. Inspecting failures only
+        // after the join makes the selected error independent of completion
+        // order while local cancellation remains only a work-saving signal.
+        for (self.range_workers[0..worker_count]) |worker| {
+            if (worker.failure) |failure| return failure;
+        }
+        for (self.range_workers[0..worker_count]) |worker| {
+            if (!worker.completed) return;
+        }
+        self.finishOutput();
     }
 
     fn deinitErased(context: *anyopaque) void {
@@ -444,14 +510,16 @@ const PreparedDomainState = struct {
 
     fn evaluateRange(
         self: *@This(),
-        task_context: *prover_task_graph.TaskContext,
+        parent_cancellation: *const prover_task_graph.CancellationToken,
+        range_index: usize,
         row_start: usize,
         row_end: usize,
-    ) bool {
+    ) anyerror!bool {
         const component = self.component;
         for (row_start..row_end) |row| {
             if ((row & (CANCELLATION_POLL_ROWS - 1)) == 0 and
-                task_context.isCancelled()) return false;
+                (parent_cancellation.isCancelled() or
+                    self.failure_boundary.shouldCancel(range_index))) return false;
             const previous_row = utils.previousBitReversedCircleDomainIndex(
                 row,
                 component.log_size,
@@ -528,7 +596,7 @@ const PreparedDomainState = struct {
                 self.denominator_inv[row >> @intCast(component.log_size)],
             );
             const output = self.column_accumulator.col;
-            if (self.column_accumulator.next_fresh_index != null) {
+            if (self.direct_store) {
                 output.set(row, contribution);
             } else {
                 output.set(row, output.at(row).add(contribution));
@@ -538,113 +606,39 @@ const PreparedDomainState = struct {
     }
 
     fn finishOutput(self: *@This()) void {
-        self.column_accumulator.next_fresh_index =
-            if (self.column_accumulator.next_fresh_index != null) self.eval_size else null;
+        self.column_accumulator.next_fresh_index = if (self.direct_store) self.eval_size else null;
     }
 };
 
-fn preparedDomainResources(
-    eval_size: usize,
-    source_count: usize,
-    owned_count: usize,
-) !prover_task_graph.ResourceReservation {
-    const secure_element_bytes = std.math.mul(
-        usize,
-        qm31.SECURE_EXTENSION_DEGREE,
-        @sizeOf(M31),
-    ) catch
-        return error.ResourceReservationOverflow;
-    const final_output_bytes = std.math.mul(
-        usize,
-        eval_size,
-        secure_element_bytes,
-    ) catch return error.ResourceReservationOverflow;
-    const source_bytes = std.math.mul(
-        usize,
-        source_count,
-        @sizeOf([]const M31),
-    ) catch return error.ResourceReservationOverflow;
-    const owned_view_bytes = std.math.mul(
-        usize,
-        owned_count,
-        @sizeOf([]M31),
-    ) catch return error.ResourceReservationOverflow;
-    const owned_value_count = std.math.mul(usize, owned_count, eval_size) catch
-        return error.ResourceReservationOverflow;
-    const owned_value_bytes = std.math.mul(
-        usize,
-        owned_value_count,
-        @sizeOf(M31),
-    ) catch return error.ResourceReservationOverflow;
-    var resident_bytes = std.math.add(
-        usize,
-        @sizeOf(PreparedDomainState),
-        source_bytes,
-    ) catch return error.ResourceReservationOverflow;
-    resident_bytes = std.math.add(usize, resident_bytes, owned_view_bytes) catch
-        return error.ResourceReservationOverflow;
-    resident_bytes = std.math.add(usize, resident_bytes, owned_value_bytes) catch
-        return error.ResourceReservationOverflow;
-    return .{
-        .final_output_bytes = final_output_bytes,
-        .shared_resident_bytes = resident_bytes,
-        .worker_stack_bytes = prepared_domain.ROW_EVALUATOR_STACK_BYTES,
-    };
-}
+const PreparedRangeWorker = struct {
+    state: *PreparedDomainState,
+    parent_cancellation: *const prover_task_graph.CancellationToken,
+    range_index: usize,
+    row_start: usize,
+    row_end: usize,
+    is_child: bool,
+    completed: bool = false,
+    failure: ?anyerror = null,
 
-fn validateEvaluationSource(
-    poly: prover_component.Poly,
-    trace_log_size: u32,
-    eval_log_size: u32,
-) !bool {
-    try poly.validate();
-    if (poly.log_size == eval_log_size) return false;
-    const coefficients = poly.coefficients orelse return error.InvalidProofShape;
-    if (coefficients.logSize() != trace_log_size) return error.InvalidProofShape;
-    return true;
-}
-
-fn prepareEvaluationValues(
-    allocator: std.mem.Allocator,
-    poly: prover_component.Poly,
-    eval_log_size: u32,
-    eval_size: usize,
-    owned_buffers: [][]M31,
-    owned_initialized: *usize,
-) ![]const M31 {
-    if (poly.log_size == eval_log_size) return poly.values;
-    if (owned_initialized.* >= owned_buffers.len) return error.InvalidProofShape;
-    const source = poly.coefficients.?.coefficients();
-    if (source.len > eval_size) return error.InvalidProofShape;
-    const values = try allocator.alloc(M31, eval_size);
-    errdefer allocator.free(values);
-    @memcpy(values[0..source.len], source);
-    @memset(values[source.len..], M31.zero());
-    owned_buffers[owned_initialized.*] = values;
-    owned_initialized.* += 1;
-    return values;
-}
-
-fn quotientDenominators(
-    log_size: u32,
-    eval_log_size: u32,
-    eval_domain: anytype,
-) ![PREPARED_DENOMINATOR_COUNT]M31 {
-    const expected_log_size = std.math.add(u32, log_size, 1) catch
-        return error.InvalidProofShape;
-    if (eval_log_size != expected_log_size) return error.InvalidProofShape;
-    const extension_bits: u5 = 1;
-    var result: [PREPARED_DENOMINATOR_COUNT]M31 = undefined;
-    const coset = canonic.CanonicCoset.new(log_size).coset();
-    for (&result, 0..) |*inverse, index| {
-        inverse.* = try core_constraints.cosetVanishing(
-            M31,
-            coset,
-            eval_domain.at(utils.bitReverseIndex(index, extension_bits)),
-        ).inv();
+    fn run(self: *@This()) void {
+        defer if (self.is_child) {
+            prepared_parallel_telemetry.recordChildCompletion();
+        };
+        self.completed = self.state.evaluateRange(
+            self.parent_cancellation,
+            self.range_index,
+            self.row_start,
+            self.row_end,
+        ) catch |failure| failed: {
+            self.failure = failure;
+            prepared_parallel_telemetry.recordRangeFailure();
+            if (self.state.failure_boundary.recordFailure(self.range_index)) {
+                prepared_parallel_telemetry.recordLocalCancellation();
+            }
+            break :failed false;
+        };
     }
-    return result;
-}
+};
 
 fn serialTaskContext(
     user_context: *anyopaque,

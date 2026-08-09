@@ -191,6 +191,7 @@ test {
     // AIR: preprocessed lookup tables.
     _ = @import("air/lookups/tables/component.zig");
     _ = @import("air/lookups/tables/component_prepared_test.zig");
+    _ = @import("air/prepared_parallel.zig");
     _ = @import("air/lookups/tables/counter.zig");
     _ = @import("air/lookups/tables/interaction.zig");
     _ = @import("air/lookups/tables/mod.zig");

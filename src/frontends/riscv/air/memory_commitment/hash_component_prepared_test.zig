@@ -1,13 +1,10 @@
 //! Focused ownership and execution tests for prepared hash AIR domains.
 const std = @import("std");
 const circle = @import("stwo_core").circle;
-const core_constraints = @import("stwo_core").constraints;
 const M31 = @import("stwo_core").fields.m31.M31;
 const qm31 = @import("stwo_core").fields.qm31;
 const QM31 = qm31.QM31;
 const pcs = @import("stwo_core").pcs;
-const canonic = @import("stwo_core").poly.circle.canonic;
-const core_utils = @import("stwo_core").utils;
 const prover_air_accumulation = @import("stwo_prover_engine").air.accumulation;
 const prover_component = @import("stwo_prover_engine").air.component_prover;
 const prepared_domain = @import("stwo_prover_engine").air.prepared_domain;
@@ -15,6 +12,7 @@ const prover_poly = @import("stwo_prover_engine").poly.circle.poly;
 const prover_task_graph = @import("stwo_prover_engine").task_graph;
 const prover_work_pool = @import("stwo_prover_engine").work_pool;
 const hash_component = @import("hash_component.zig");
+const reference_support = @import("hash_component_reference_test_support.zig");
 const merkle_node = @import("merkle_node.zig");
 const poseidon2_air = @import("poseidon2_air.zig");
 const relations_mod = @import("../relation_challenges.zig");
@@ -41,9 +39,11 @@ const DomainFixture = struct {
         component_value: *const HashComponent,
         mode: SourceMode,
     ) !DomainFixture {
+        const eval_log_size = std.math.add(u32, component_value.log_size, 1) catch
+            return error.InvalidProofShape;
         const value_log_size = switch (mode) {
-            .borrowed_lde => EVAL_LOG_SIZE,
-            .owned_extension => LOG_SIZE,
+            .borrowed_lde => eval_log_size,
+            .owned_extension => component_value.log_size,
         };
         const value_count = @as(usize, 1) << @intCast(value_log_size);
         const values = try allocator.alloc(M31, value_count);
@@ -236,64 +236,52 @@ fn runPreparedOnBoundedHelper(
     try std.testing.expect(runner.ran_on_helper.load(.acquire));
 }
 
+fn runPreparedWithWorkers(
+    prepared: *prepared_domain.PreparedDomainEvaluation,
+    worker_count: usize,
+) !prover_task_graph.ExecutionReport {
+    const Runner = struct {
+        prepared: *prepared_domain.PreparedDomainEvaluation,
+
+        fn run(context: *prover_task_graph.TaskContext) !void {
+            const self: *@This() = @ptrCast(@alignCast(context.user_context));
+            try self.prepared.run(context);
+        }
+    };
+
+    var runner = Runner{ .prepared = prepared };
+    var graph = try prover_task_graph.ComponentTaskGraph.init(std.testing.allocator, 1);
+    defer graph.deinit();
+    _ = try graph.addTask(.{
+        .key = .{
+            .epoch = 0,
+            .stage_rank = 0,
+            .component_registry_index = 0,
+            .shard_or_chunk_index = 0,
+        },
+        .name = "hash-prepared-domain",
+        .func = Runner.run,
+        .context = &runner,
+        .class = prepared.task_class,
+        .resources = prepared.resources,
+        .work_estimate = 1,
+    });
+
+    var pool: prover_work_pool.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{
+        .worker_count = worker_count,
+        .stack_size = HELPER_STACK_BYTES,
+    });
+    defer pool.deinit();
+    return graph.execute(.{
+        .worker_budget = try prover_work_pool.WorkerBudget.init(worker_count),
+        .pool = &pool,
+    });
+}
+
 fn expectSameColumn(lhs: anytype, rhs: anytype) !void {
     try std.testing.expectEqual(lhs.len(), rhs.len());
     for (0..lhs.len()) |row| try std.testing.expect(lhs.at(row).eql(rhs.at(row)));
-}
-
-fn referenceValues(poly: prover_component.Poly, eval_log_size: u32) ![]const M31 {
-    try poly.validate();
-    if (poly.log_size != eval_log_size) return error.InvalidProofShape;
-    return poly.values;
-}
-
-fn referenceSecure(
-    evaluations: []const []const M31,
-    offset: usize,
-    row: usize,
-) QM31 {
-    return QM31.fromM31(
-        evaluations[offset][row],
-        evaluations[offset + 1][row],
-        evaluations[offset + 2][row],
-        evaluations[offset + 3][row],
-    );
-}
-
-fn referenceMain(
-    comptime count: usize,
-    evaluations: []const []const M31,
-    offset: usize,
-    row: usize,
-) [count]QM31 {
-    var result: [count]QM31 = undefined;
-    for (&result, evaluations[offset..][0..count]) |*value, column| {
-        value.* = QM31.fromBase(column[row]);
-    }
-    return result;
-}
-
-fn referenceInteractions(
-    comptime count: usize,
-    evaluations: []const []const M31,
-    offset: usize,
-    row: usize,
-    previous_row: usize,
-    sums: *[count]QM31,
-    previous: *[count]QM31,
-) void {
-    for (0..count) |index| {
-        sums[index] = referenceSecure(evaluations, offset + 4 * index, row);
-        previous[index] = referenceSecure(evaluations, offset + 4 * index, previous_row);
-    }
-}
-
-fn referenceFold(powers: []const QM31, constraints: []const QM31) QM31 {
-    var result = QM31.zero();
-    for (constraints, 0..) |constraint, index| {
-        result = result.add(powers[powers.len - 1 - index].mul(constraint));
-    }
-    return result;
 }
 
 /// Independent reconstruction of the pre-prepared domain traversal.
@@ -303,136 +291,7 @@ fn evaluateReferenceDomain(
     trace_data: *const prover_component.Trace,
     accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
 ) !void {
-    if (trace_data.polys.items.len < 3) return error.InvalidProofShape;
-    const eval_log_size = component_value.log_size + 1;
-    const eval_domain = canonic.CanonicCoset.new(eval_log_size).circleDomain();
-    const eval_size = eval_domain.size();
-    const n_main = hash_component.nMainColumns(component_value.kind);
-    const n_interaction = hash_component.nInteractionColumns(component_value.kind);
-    const evaluations = try allocator.alloc([]const M31, sourceCount(component_value.kind));
-    defer allocator.free(evaluations);
-    const preprocessed = trace_data.polys.items[0];
-    const main = trace_data.polys.items[1];
-    const interaction = trace_data.polys.items[2];
-    if (preprocessed.len <= @max(
-        component_value.is_first_col_idx,
-        component_value.is_active_col_idx,
-    ) or
-        main.len < component_value.main_col_offset + n_main or
-        interaction.len < component_value.interaction_col_offset + n_interaction)
-    {
-        return error.InvalidProofShape;
-    }
-    evaluations[0] = try referenceValues(
-        preprocessed[component_value.is_first_col_idx],
-        eval_log_size,
-    );
-    evaluations[1] = try referenceValues(
-        preprocessed[component_value.is_active_col_idx],
-        eval_log_size,
-    );
-    for (main[component_value.main_col_offset..][0..n_main], evaluations[2..][0..n_main]) |poly, *values| {
-        values.* = try referenceValues(poly, eval_log_size);
-    }
-    const interaction_start = 2 + n_main;
-    for (interaction[component_value.interaction_col_offset..][0..n_interaction], evaluations[interaction_start..]) |poly, *values| {
-        values.* = try referenceValues(poly, eval_log_size);
-    }
-
-    var denominator_inv: [2]M31 = undefined;
-    const trace_coset = canonic.CanonicCoset.new(component_value.log_size).coset();
-    for (&denominator_inv, 0..) |*inverse, index| {
-        inverse.* = try core_constraints.cosetVanishing(
-            M31,
-            trace_coset,
-            eval_domain.at(core_utils.bitReverseIndex(index, 1)),
-        ).inv();
-    }
-    const accumulators = try accumulator.columns(
-        allocator,
-        &.{.{ .log_size = eval_log_size, .n_cols = component_value.nConstraints() }},
-    );
-    defer allocator.free(accumulators);
-    const column_accumulator = &accumulators[0];
-    for (0..eval_size) |row| {
-        const previous_row = core_utils.previousBitReversedCircleDomainIndex(
-            row,
-            component_value.log_size,
-            eval_log_size,
-        );
-        const is_first = QM31.fromBase(evaluations[0][row]);
-        const is_active = QM31.fromBase(evaluations[1][row]);
-        const folded = switch (component_value.kind) {
-            .merkle => merkle: {
-                const row_main = referenceMain(
-                    merkle_node.N_MAIN_COLUMNS,
-                    evaluations,
-                    2,
-                    row,
-                );
-                var sums: [merkle_node.N_SUMS]QM31 = undefined;
-                var previous: [merkle_node.N_SUMS]QM31 = undefined;
-                referenceInteractions(
-                    merkle_node.N_SUMS,
-                    evaluations,
-                    interaction_start,
-                    row,
-                    previous_row,
-                    &sums,
-                    &previous,
-                );
-                const constraints = merkle_node.evaluate(
-                    row_main,
-                    is_active,
-                    is_first,
-                    sums,
-                    previous,
-                    component_value.merkle_claims,
-                    component_value.relations,
-                );
-                break :merkle referenceFold(
-                    column_accumulator.random_coeff_powers,
-                    &constraints,
-                );
-            },
-            .poseidon2 => poseidon: {
-                const row_main = referenceMain(
-                    poseidon2_air.N_MAIN_COLUMNS,
-                    evaluations,
-                    2,
-                    row,
-                );
-                var sums: [poseidon2_air.N_SUMS]QM31 = undefined;
-                var previous: [poseidon2_air.N_SUMS]QM31 = undefined;
-                referenceInteractions(
-                    poseidon2_air.N_SUMS,
-                    evaluations,
-                    interaction_start,
-                    row,
-                    previous_row,
-                    &sums,
-                    &previous,
-                );
-                const constraints = hash_component.poseidonConstraints(
-                    row_main,
-                    is_active,
-                    is_first,
-                    sums,
-                    previous,
-                    component_value.poseidon_claims,
-                    component_value.relations,
-                );
-                break :poseidon referenceFold(
-                    column_accumulator.random_coeff_powers,
-                    &constraints,
-                );
-            },
-        };
-        column_accumulator.accumulate(
-            row,
-            folded.mulM31(denominator_inv[row >> @intCast(component_value.log_size)]),
-        );
-    }
+    return reference_support.evaluate(allocator, component_value, trace_data, accumulator);
 }
 
 test "hash component: exact shapes and prepared capability remain pinned" {
@@ -608,6 +467,81 @@ test "hash prepared domain matches an independent canonical reference without wo
         failing.resize_fail_index = std.math.maxInt(usize);
         var actual = try prepared_accumulator.finalize();
         defer actual.deinit(prepared_allocator);
+        try expectSameColumn(&reference, &actual);
+    }
+}
+
+test "hash prepared domain: pool-exclusive N=1/2/4 bytes on the exact helper stack" {
+    const allocator = std.testing.allocator;
+    const relations = relations_mod.Relations.dummy();
+    var value = component(.merkle, &relations);
+    // One bit above the admission threshold gives the N=4 arm four useful
+    // 4,096-row ranges, so all three exact-stack helpers are exercised.
+    value.log_size = hash_component.PARALLEL_DOMAIN_LOG_SIZE + 1;
+    const eval_log_size = value.log_size + 1;
+
+    var fixture = try DomainFixture.init(allocator, &value, .borrowed_lde);
+    defer fixture.deinit();
+    var trace_data = fixture.trace();
+
+    var reference_accumulator = try prover_air_accumulation.DomainEvaluationAccumulator.init(
+        allocator,
+        QM31.fromU32Unchecked(3, 1, 4, 1),
+        eval_log_size,
+        value.nConstraints(),
+    );
+    defer reference_accumulator.deinit();
+    try evaluateReferenceDomain(
+        allocator,
+        &value,
+        &trace_data,
+        &reference_accumulator,
+    );
+    var reference = try reference_accumulator.finalize();
+    defer reference.deinit(allocator);
+
+    for ([_]usize{ 1, 2, 4 }) |worker_count| {
+        var accumulator = try prover_air_accumulation.DomainEvaluationAccumulator.init(
+            allocator,
+            QM31.fromU32Unchecked(3, 1, 4, 1),
+            eval_log_size,
+            value.nConstraints(),
+        );
+        defer accumulator.deinit();
+        var prepared = try prepare(allocator, &value, &trace_data, &accumulator);
+        defer prepared.deinit();
+        try std.testing.expectEqual(
+            prover_task_graph.TaskClass.pool_exclusive,
+            prepared.task_class,
+        );
+        try std.testing.expectEqual(HELPER_STACK_BYTES, prepared.resources.worker_stack_bytes);
+
+        const telemetry_before = hash_component.preparedParallelTelemetrySnapshot();
+        const report = try runPreparedWithWorkers(&prepared, worker_count);
+        const telemetry = hash_component.PreparedParallelTelemetrySnapshot.delta(
+            hash_component.preparedParallelTelemetrySnapshot(),
+            telemetry_before,
+        );
+        const expected_children = worker_count - 1;
+        try std.testing.expectEqual(worker_count, report.configured_workers);
+        try std.testing.expectEqual(@as(usize, 1), report.submitted_tasks);
+        try std.testing.expectEqual(@as(usize, 1), report.succeeded_tasks);
+        try std.testing.expectEqual(@as(usize, 0), report.failed_tasks);
+        try std.testing.expectEqual(@as(usize, 0), report.duplicate_starts);
+        try std.testing.expectEqual(@as(usize, 0), report.duplicate_finishes);
+        try std.testing.expectEqual(
+            @as(u64, @intCast(expected_children)),
+            telemetry.child_submissions,
+        );
+        try std.testing.expectEqual(
+            @as(u64, @intCast(expected_children)),
+            telemetry.child_completions,
+        );
+        try std.testing.expectEqual(@as(u64, 0), telemetry.range_failures);
+        try std.testing.expectEqual(@as(u64, 0), telemetry.local_cancellation_requests);
+
+        var actual = try accumulator.finalize();
+        defer actual.deinit(allocator);
         try expectSameColumn(&reference, &actual);
     }
 }

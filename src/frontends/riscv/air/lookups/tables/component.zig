@@ -16,12 +16,21 @@ const prover_component = @import("stwo_prover_engine").air.component_prover;
 const prepared_domain = @import("stwo_prover_engine").air.prepared_domain;
 const prover_task_graph = @import("stwo_prover_engine").task_graph;
 const work_pool = @import("stwo_prover_engine").work_pool;
+const prepared_parallel = @import("../../prepared_parallel.zig");
 const logup = @import("../../logup.zig");
 const relations_mod = @import("../../relation_challenges.zig");
 const interaction = @import("interaction.zig");
 const schema = @import("schema.zig");
 
 const CirclePointQM31 = circle.CirclePointQM31;
+pub const PARALLEL_DOMAIN_ROWS: usize = 2 * 4096;
+
+pub const PreparedParallelTelemetrySnapshot = prepared_parallel.TelemetrySnapshot;
+var prepared_parallel_telemetry: prepared_parallel.Telemetry = .{};
+
+pub fn preparedParallelTelemetrySnapshot() PreparedParallelTelemetrySnapshot {
+    return prepared_parallel_telemetry.snapshot();
+}
 
 pub const ConstructionMetadata = struct {
     kind: schema.Kind,
@@ -376,11 +385,15 @@ pub const LookupTableComponent = struct {
             .eval_size = eval_size,
             .denominator_inv = denominator_inv,
             .accumulators = accumulators,
+            .direct_store = accumulators[0].next_fresh_index == 0,
         };
         return .{
             .context = state,
             .vtable = &PreparedDomainState.vtable,
-            .task_class = .leaf,
+            .task_class = if (eval_size >= PARALLEL_DOMAIN_ROWS)
+                .pool_exclusive
+            else
+                .leaf,
             .resources = resources,
         };
     }
@@ -421,6 +434,9 @@ const PreparedDomainState = struct {
     eval_size: usize,
     denominator_inv: [2]M31,
     accumulators: []prover_air_accumulation.ColumnAccumulator,
+    direct_store: bool,
+    failure_boundary: prepared_parallel.FailureBoundary = .{},
+    range_workers: [work_pool.MAX_WORKERS]PreparedRangeWorker = undefined,
 
     const vtable = prepared_domain.VTable{
         .run = runErased,
@@ -441,18 +457,76 @@ const PreparedDomainState = struct {
         task_context: *prover_task_graph.TaskContext,
     ) anyerror!void {
         const self: *@This() = @ptrCast(@alignCast(context));
+        self.failure_boundary.reset();
+        const tile_count = std.math.divCeil(
+            usize,
+            self.eval_size,
+            CANCELLATION_POLL_ROWS,
+        ) catch unreachable;
+        const worker_count = @min(task_context.worker_budget.count, tile_count);
+        if (worker_count == 1) {
+            if (try self.evaluateRange(task_context.cancellation, 0, 0, self.eval_size)) {
+                self.finishOutput();
+            }
+            return;
+        }
+
+        std.debug.assert(task_context.task_class == .pool_exclusive);
+        const tiles_per_worker = tile_count / worker_count;
+        const workers_with_extra_tile = tile_count % worker_count;
+        var next_tile: usize = 0;
+        for (self.range_workers[0..worker_count], 0..) |*worker, index| {
+            const assigned_tiles = tiles_per_worker + @intFromBool(index < workers_with_extra_tile);
+            const end_tile = next_tile + assigned_tiles;
+            worker.* = .{
+                .state = self,
+                .parent_cancellation = task_context.cancellation,
+                .range_index = index,
+                .row_start = next_tile * CANCELLATION_POLL_ROWS,
+                .row_end = @min(self.eval_size, end_tile * CANCELLATION_POLL_ROWS),
+                .is_child = index != 0,
+            };
+            next_tile = end_tile;
+        }
+        std.debug.assert(next_tile == tile_count);
+        for (self.range_workers[1..worker_count]) |*worker| {
+            try task_context.spawnChild(PreparedRangeWorker.run, .{worker});
+            prepared_parallel_telemetry.recordChildSubmission();
+        }
+        self.range_workers[0].run();
+        try task_context.waitForChildren();
+        // Ranges are stored in ascending row order. Inspecting failures only
+        // after the join makes the selected error independent of completion
+        // order while local cancellation remains only a work-saving signal.
+        for (self.range_workers[0..worker_count]) |worker| {
+            if (worker.failure) |failure| return failure;
+        }
+        for (self.range_workers[0..worker_count]) |worker| {
+            if (!worker.completed) return;
+        }
+        self.finishOutput();
+    }
+
+    fn evaluateRange(
+        self: *@This(),
+        parent_cancellation: *const prover_task_graph.CancellationToken,
+        range_index: usize,
+        row_start: usize,
+        row_end: usize,
+    ) !bool {
         const component = self.component;
         const log_size = schema.logSize(component.kind);
         const evaluations = self.evaluations[0..self.source_count];
         const column_accumulator = &self.accumulators[0];
         const denominator_shift: std.math.Log2Int(usize) = @intCast(log_size);
-        for (0..self.eval_size) |row| {
+        for (row_start..row_end) |row| {
             if ((row & (CANCELLATION_POLL_ROWS - 1)) == 0 and
-                task_context.isCancelled())
+                (parent_cancellation.isCancelled() or
+                    self.failure_boundary.shouldCancel(range_index)))
             {
                 // Cancellation is not a competing failure cause. The task
                 // graph retains the sibling error that requested it.
-                return;
+                return false;
             }
             const previous_row = utils.previousBitReversedCircleDomainIndex(
                 row,
@@ -479,8 +553,18 @@ const PreparedDomainState = struct {
             const contribution = column_accumulator.random_coeff_powers[0]
                 .mul(constraint)
                 .mulM31(self.denominator_inv[row >> denominator_shift]);
-            column_accumulator.accumulate(row, contribution);
+            const output = column_accumulator.col;
+            if (self.direct_store) {
+                output.set(row, contribution);
+            } else {
+                output.set(row, output.at(row).add(contribution));
+            }
         }
+        return true;
+    }
+
+    fn finishOutput(self: *@This()) void {
+        self.accumulators[0].next_fresh_index = if (self.direct_store) self.eval_size else null;
     }
 
     fn deinitErased(context: *anyopaque) void {
@@ -488,6 +572,36 @@ const PreparedDomainState = struct {
         const allocator = self.allocator;
         allocator.free(self.accumulators);
         allocator.destroy(self);
+    }
+};
+
+const PreparedRangeWorker = struct {
+    state: *PreparedDomainState,
+    parent_cancellation: *const prover_task_graph.CancellationToken,
+    range_index: usize,
+    row_start: usize,
+    row_end: usize,
+    is_child: bool,
+    completed: bool = false,
+    failure: ?anyerror = null,
+
+    fn run(self: *@This()) void {
+        defer if (self.is_child) {
+            prepared_parallel_telemetry.recordChildCompletion();
+        };
+        self.completed = self.state.evaluateRange(
+            self.parent_cancellation,
+            self.range_index,
+            self.row_start,
+            self.row_end,
+        ) catch |failure| failed: {
+            self.failure = failure;
+            prepared_parallel_telemetry.recordRangeFailure();
+            if (self.state.failure_boundary.recordFailure(self.range_index)) {
+                prepared_parallel_telemetry.recordLocalCancellation();
+            }
+            break :failed false;
+        };
     }
 };
 
