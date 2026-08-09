@@ -23,15 +23,18 @@ pub fn write(writer: anytype, profile: task_profile.TaskProfile) !void {
         );
         try writer.print(
             "    workers requested={d} admitted={d} pool_capacity={d}" ++
-                " worker_stack_bytes={d} peak_active={d}\n",
+                " worker_stack_bytes={d} peak_active_tasks={d}" ++
+                " peak_active_workers=",
             .{
                 summary.requested_workers,
                 summary.admitted_workers,
                 summary.pool_capacity,
                 summary.worker_stack_bytes,
-                summary.peak_active_workers,
+                summary.peak_active_tasks,
             },
         );
+        try writeOptionalU32(writer, summary.peak_active_workers);
+        try writer.writeByte('\n');
         try writer.print(
             "    tasks planned={d} submitted={d} completed={d} failed={d}" ++
                 " cancelled={d} unsubmitted_cancelled={d} started={d}" ++
@@ -56,14 +59,19 @@ pub fn write(writer: anytype, profile: task_profile.TaskProfile) !void {
         try writeOptionalU64(writer, summary.critical_path_ns);
         try writer.print(
             " admission_wait_ns={d} queue_wait_ns={d} resource_wait_ns={d}" ++
-                " worker_busy_ns={d}" ++
-                " worker_capacity_ns={d} graph_elapsed_ns={d}" ++
-                " parallel_eligible_ns={d} cancellation_latency_ns=",
+                " task_run_ns={d} worker_busy_ns=",
             .{
                 summary.admission_wait_ns,
                 summary.queue_wait_ns,
                 summary.resource_wait_ns,
-                summary.worker_busy_ns,
+                summary.task_run_ns,
+            },
+        );
+        try writeOptionalU64(writer, summary.worker_busy_ns);
+        try writer.print(
+            " worker_capacity_ns={d} graph_elapsed_ns={d}" ++
+                " parallel_eligible_ns={d} cancellation_latency_ns=",
+            .{
                 summary.worker_capacity_ns,
                 summary.graph_elapsed_ns,
                 summary.parallel_eligible_ns,
@@ -250,6 +258,7 @@ test "raw task profile summary formatting is deterministic" {
             .admitted_workers = 3,
             .pool_capacity = 8,
             .worker_stack_bytes = 1024,
+            .peak_active_tasks = 2,
             .peak_active_workers = 2,
             .planned_tasks = 5,
             .submitted_tasks = 4,
@@ -263,6 +272,7 @@ test "raw task profile summary formatting is deterministic" {
             .admission_wait_ns = 1,
             .queue_wait_ns = 2,
             .resource_wait_ns = 3,
+            .task_run_ns = 19,
             .worker_busy_ns = 19,
             .worker_capacity_ns = 51,
             .graph_elapsed_ns = 23,
@@ -286,9 +296,9 @@ test "raw task profile summary formatting is deterministic" {
         \\Task profile: schema_version=1 runtime=zig example=riscv graphs=1
         \\  graph id=composition events=0 components=0
         \\    scheduler kind=central_queue_no_steal steal_count=0
-        \\    workers requested=4 admitted=3 pool_capacity=8 worker_stack_bytes=1024 peak_active=2
+        \\    workers requested=4 admitted=3 pool_capacity=8 worker_stack_bytes=1024 peak_active_tasks=2 peak_active_workers=2
         \\    tasks planned=5 submitted=4 completed=3 failed=1 cancelled=0 unsubmitted_cancelled=1 started=4 finished=4 duplicate_starts=0 duplicate_finishes=0
-        \\    timing useful_task_work_ns=11 critical_path_ns=17 admission_wait_ns=1 queue_wait_ns=2 resource_wait_ns=3 worker_busy_ns=19 worker_capacity_ns=51 graph_elapsed_ns=23 parallel_eligible_ns=7 cancellation_latency_ns=none
+        \\    timing useful_task_work_ns=11 critical_path_ns=17 admission_wait_ns=1 queue_wait_ns=2 resource_wait_ns=3 task_run_ns=19 worker_busy_ns=19 worker_capacity_ns=51 graph_elapsed_ns=23 parallel_eligible_ns=7 cancellation_latency_ns=none
         \\    resources peak_reserved_bytes=4096
         \\    work estimate=99 completed_rows=64 completed_tiles=2
         \\

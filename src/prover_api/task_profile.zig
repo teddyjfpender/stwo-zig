@@ -140,7 +140,12 @@ pub const RequestSummary = struct {
     admitted_workers: u32 = 0,
     pool_capacity: u32 = 0,
     worker_stack_bytes: u64 = 0,
-    peak_active_workers: u32 = 0,
+    /// Exact concurrency of outer task callbacks.
+    peak_active_tasks: u32 = 0,
+    /// Exact physical-worker concurrency when observable. This is absent for
+    /// graphs with uninstrumented `pool_exclusive` child work; an occupied
+    /// lease width is not relabelled as an observed peak.
+    peak_active_workers: ?u32 = null,
 
     planned_tasks: u64 = 0,
     submitted_tasks: u64 = 0,
@@ -161,7 +166,11 @@ pub const RequestSummary = struct {
     admission_wait_ns: u64 = 0,
     queue_wait_ns: u64 = 0,
     resource_wait_ns: u64 = 0,
-    worker_busy_ns: u64 = 0,
+    /// Sum of outer task callback run intervals, including failed work.
+    task_run_ns: u64 = 0,
+    /// Aggregate physical-worker busy time when observable. This is absent
+    /// when nested child work is not instrumented exactly.
+    worker_busy_ns: ?u64 = null,
     worker_capacity_ns: u64 = 0,
     /// Time from this graph capture's monotonic origin through its joined
     /// terminal state. Full proof-and-verification request duration belongs to
@@ -462,6 +471,7 @@ test "task profile: reservation publishes by move and snapshot owns strings" {
         .requested_workers = 4,
         .admitted_workers = 4,
         .pool_capacity = 4,
+        .peak_active_tasks = 1,
         .peak_active_workers = 1,
         .planned_tasks = 1,
         .submitted_tasks = 1,
@@ -471,6 +481,7 @@ test "task profile: reservation publishes by move and snapshot owns strings" {
         .useful_task_work_ns = 8,
         .admission_wait_ns = 1,
         .queue_wait_ns = 1,
+        .task_run_ns = 8,
         .worker_busy_ns = 8,
         .worker_capacity_ns = 32,
         .graph_elapsed_ns = 20,
