@@ -7,8 +7,9 @@ const qm31 = @import("stwo_core").fields.qm31;
 const pcs = @import("stwo_core").pcs;
 const accumulation = @import("accumulation.zig");
 const component_parallel = @import("component_parallel.zig");
+const component_trace = @import("component_trace.zig");
 const device_composition = @import("device_composition.zig");
-const prover_circle = @import("../poly/circle/mod.zig");
+const prepared_domain = @import("prepared_domain.zig");
 const prover_twiddles = @import("../poly/twiddles.zig");
 const secure_column = @import("../secure_column.zig");
 const work_pool_mod = @import("../work_pool.zig");
@@ -20,51 +21,9 @@ const TreeVec = pcs.TreeVec;
 const SecureColumnByCoords = secure_column.SecureColumnByCoords;
 const M31TwiddleTree = prover_twiddles.TwiddleTree([]const M31);
 
-pub const ComponentProverError = error{
-    InvalidLogSize,
-    InvalidColumnLength,
-};
-
-/// Trace column retained by the commitment scheme.
-///
-/// `log_size` and `values` describe the committed LDE column, not the base
-/// trace degree. `coefficients`, when present, is a non-owning view of the
-/// minimal trace polynomial in the circle FFT basis.
-pub const Poly = struct {
-    log_size: u32,
-    values: []const M31,
-    /// Constraint evaluators use these to evaluate on domains other than the
-    /// committed LDE. The commitment tree remains the owner.
-    coefficients: ?prover_circle.CircleCoefficients = null,
-
-    pub fn validate(self: Poly) ComponentProverError!void {
-        const expected = try checkedPow2(self.log_size);
-        if (self.values.len != expected) return ComponentProverError.InvalidColumnLength;
-    }
-
-    pub fn valueAtLiftingPosition(
-        self: Poly,
-        lifting_log_size: u32,
-        position: usize,
-    ) ComponentProverError!M31 {
-        try self.validate();
-        if (self.log_size > lifting_log_size) return ComponentProverError.InvalidLogSize;
-
-        const lifting_size = try checkedPow2(lifting_log_size);
-        if (position >= lifting_size) return ComponentProverError.InvalidColumnLength;
-
-        const shift = lifting_log_size - self.log_size;
-        if (shift >= @bitSizeOf(usize)) return ComponentProverError.InvalidLogSize;
-        const shift_amt: std.math.Log2Int(usize) = @intCast(shift + 1);
-        const idx = ((position >> shift_amt) << 1) + (position & 1);
-        if (idx >= self.values.len) return ComponentProverError.InvalidColumnLength;
-        return self.values[idx];
-    }
-};
-
-pub const Trace = struct {
-    polys: TreeVec([]const Poly),
-};
+pub const ComponentProverError = component_trace.Error;
+pub const Poly = component_trace.Poly;
+pub const Trace = component_trace.Trace;
 
 /// Backend-neutral base-field polynomial program exported by a frontend from
 /// the same typed builder used by its reference AIR evaluator. Node order is
@@ -258,6 +217,15 @@ pub const ComponentProver = struct {
     ctx: *const anyopaque,
     vtable: *const ComponentProverVTable,
     backend_composition_capability: ?BackendCompositionCapability = null,
+    /// Optional coordinator-prepared, allocation-free domain evaluator.
+    /// Structured composition scheduling is activated only when every
+    /// component in the stage exposes this capability.
+    prepare_domain_evaluator: ?*const fn (
+        ctx: *const anyopaque,
+        allocator: std.mem.Allocator,
+        trace: *const Trace,
+        evaluation_accumulator: *accumulation.DomainEvaluationAccumulator,
+    ) anyerror!prepared_domain.PreparedDomainEvaluation = null,
     /// Optional caller-owned domain split. The composition scheduler invokes
     /// at most one such evaluator while ordinary component jobs drain from the
     /// same bounded pool, so implementations may enqueue row tasks safely.
@@ -353,6 +321,24 @@ pub const ComponentProver = struct {
         const evaluate = self.domain_parallel_evaluator orelse
             return self.evaluateConstraintQuotientsOnDomain(trace, evaluation_accumulator);
         return evaluate(self.ctx, trace, evaluation_accumulator, pool);
+    }
+
+    pub inline fn prepareConstraintQuotientsOnDomain(
+        self: ComponentProver,
+        allocator: std.mem.Allocator,
+        trace: *const Trace,
+        evaluation_accumulator: *accumulation.DomainEvaluationAccumulator,
+    ) anyerror!?prepared_domain.PreparedDomainEvaluation {
+        const prepare = self.prepare_domain_evaluator orelse return null;
+        var result = try prepare(
+            self.ctx,
+            allocator,
+            trace,
+            evaluation_accumulator,
+        );
+        errdefer result.deinit();
+        try result.validate();
+        return result;
     }
 };
 
@@ -656,11 +642,6 @@ fn coreAdapterEvaluateConstraintQuotientsAtPoint(
         evaluation_accumulator,
         max_log_degree_bound,
     );
-}
-
-fn checkedPow2(log_size: u32) ComponentProverError!usize {
-    if (log_size >= @bitSizeOf(usize)) return ComponentProverError.InvalidLogSize;
-    return @as(usize, 1) << @intCast(log_size);
 }
 
 test "prover air component prover: poly lifting index" {

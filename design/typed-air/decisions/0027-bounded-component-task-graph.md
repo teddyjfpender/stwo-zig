@@ -125,6 +125,13 @@ One proving request has exactly one coordinator and a configured worker count
   `N = 1`; an M7 capture records `NO_VERDICT` rather than silently relabelling a
   smaller lease as the requested arm.
 
+During migration, the pre-existing opportunistic global-pool entrypoint has no
+requested worker count. If its lease is busy before any task starts, it may run
+the already-prepared plan with `N = 1` so unrelated concurrent proofs do not
+begin failing. That compatibility fallback is recorded as non-admissible for an
+M7 scaling capture. The explicit request executor added for promotion retains
+the fail-closed lease rule above.
+
 There are three task classes:
 
 | Class | May run with siblings | May submit nested work | May mutate channel or scheme |
@@ -429,10 +436,17 @@ when no task is running, a task that cannot fit causes
 
 The byte budget includes padded rows, every final base/interaction coordinate,
 temporary coefficient/LDE storage, counter scratch, backend staging, and
-configured worker stacks. The existing 16 MiB worker-stack constant is recorded
-and admitted; reducing it requires a separate stack-watermark test and may not
-put `RiscVStatement`, `ProofWorkspace`, or component-capacity arrays back on a
-worker frame.
+configured worker stacks. The generic pool retains its existing 16 MiB default
+for kernel classes that have not established a smaller bound. Prepared AIR row
+evaluators instead declare the shared 128 KiB
+`ROW_EVALUATOR_STACK_BYTES` admission requirement. Promotion requires both a
+static audit of every fixed local and focused execution of the production row
+loop on a helper configured with exactly that stack. The original 64 KiB
+candidate was rejected after the complete package and product binaries crossed
+its guard in opcode and generic memory evaluators despite isolated focused
+passes. This narrower requirement does not silently resize the generic pool
+and may not put `RiscVStatement`, `ProofWorkspace`, or component-capacity
+arrays back on a worker frame.
 
 Tree-1 generation writes into the existing backend-shaped arena when available.
 The generic path gains equivalent preallocated per-column destinations rather
