@@ -81,3 +81,53 @@ test "pool-exclusive failure joins nested children before returning" {
     try std.testing.expectEqual(@as(usize, 2), pool.availableWorkers());
     try std.testing.expectEqual(@as(usize, 0), graph.report().duplicate_finishes);
 }
+
+test "pool-exclusive task may drain and reuse its child wave" {
+    const State = struct {
+        completed_children: std.atomic.Value(usize) = .init(0),
+
+        fn child(self: *@This()) void {
+            _ = self.completed_children.fetchAdd(1, .release);
+        }
+
+        fn parent(context: *task_graph.TaskContext) !void {
+            const self: *@This() = @ptrCast(@alignCast(context.user_context));
+            for (0..2) |_| {
+                try context.spawnChild(child, .{self});
+                try context.waitForChildren();
+            }
+        }
+    };
+
+    var pool: work_pool.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{
+        .worker_count = 2,
+        .stack_size = TEST_STACK_SIZE,
+    });
+    defer pool.deinit();
+
+    var state = State{};
+    var graph = try task_graph.ComponentTaskGraph.init(std.testing.allocator, 1);
+    defer graph.deinit();
+    _ = try graph.addTask(.{
+        .key = .{
+            .epoch = 0,
+            .stage_rank = 0,
+            .component_registry_index = 0,
+            .shard_or_chunk_index = 0,
+        },
+        .name = "exclusive-two-waves",
+        .func = State.parent,
+        .context = &state,
+        .class = .pool_exclusive,
+    });
+
+    const report = try graph.execute(.{
+        .worker_budget = try work_pool.WorkerBudget.init(2),
+        .pool = &pool,
+    });
+    try std.testing.expectEqual(@as(usize, 2), state.completed_children.load(.acquire));
+    try std.testing.expectEqual(@as(usize, 1), report.succeeded_tasks);
+    try std.testing.expectEqual(@as(usize, 0), report.duplicate_finishes);
+    try std.testing.expectEqual(@as(usize, 2), pool.availableWorkers());
+}

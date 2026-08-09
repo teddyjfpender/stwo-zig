@@ -57,6 +57,7 @@ pub const TaskContext = struct {
     task_class: TaskClass,
     exclusive_lease: ?*work_pool.WorkLease,
     child_wait_group: ?*std.Thread.WaitGroup,
+    child_wave_active: bool = false,
 
     pub fn isCancelled(self: *const TaskContext) bool {
         return self.cancellation.isCancelled();
@@ -76,6 +77,7 @@ pub const TaskContext = struct {
         const wait_group = self.child_wait_group orelse
             return error.NestedSubmissionRejected;
         try lease.spawnWg(wait_group, func, args);
+        self.child_wave_active = true;
     }
 
     /// Joins the current child wave before an exclusive kernel consumes it.
@@ -88,7 +90,9 @@ pub const TaskContext = struct {
 
     /// The executor invokes this after every callback, including error paths.
     pub fn joinChildren(self: *TaskContext) void {
+        if (!self.child_wave_active) return;
         const wait_group = self.child_wait_group orelse return;
+        self.child_wave_active = false;
         wait_group.wait();
         self.exclusive_lease.?.completeWave();
     }
