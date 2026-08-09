@@ -11,6 +11,7 @@ const run_result_mod = @import("runner/result.zig");
 const orchestration = @import("prover/orchestration.zig");
 const types = @import("prover/types.zig");
 
+pub const proof_phase_meter = @import("prover/proof_phase_meter.zig");
 pub const PublicData = types.PublicData;
 pub const Hasher = types.Hasher;
 pub const FamilyComponentDesc = types.FamilyComponentDesc;

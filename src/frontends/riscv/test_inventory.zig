@@ -272,6 +272,7 @@ test {
     _ = @import("prover/main_trace_plan_test.zig");
     _ = @import("prover/opcode_trace.zig");
     _ = @import("prover/preprocessed.zig");
+    _ = @import("prover/proof_phase_meter_test.zig");
     _ = @import("prover/proof_workspace.zig");
     _ = @import("prover/statement_validation.zig");
     _ = @import("prover/test_witness_hook.zig");
