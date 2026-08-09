@@ -11,6 +11,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 const proof_wire = @import("stwo_proof_wire");
 const stage_profile = @import("stwo_prover_api").stage_profile;
+const task_profile_report = @import("task_profile_report.zig");
 const pcs_core = @import("stwo_core").pcs;
 
 const PROOF_IDENTITY_FLAG = "--proof-identity";
@@ -504,6 +505,13 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
         defer profile.deinit(allocator);
         std.debug.print("Profile:\n", .{});
         printProfileNodes(profile.stages, 1);
+
+        var flat_profile = try recorder.taskSnapshot(allocator);
+        defer flat_profile.deinit(allocator);
+        try task_profile_report.write(
+            std.fs.File.stderr().deprecatedWriter(),
+            flat_profile,
+        );
     }
 
     // Canonicalization is deliberately between the measured stages. The
@@ -581,7 +589,7 @@ fn writeUsage(writer: anytype, secure: pcs_core.PcsConfig) !void {
         \\  --pow24-q70       Older stark-v comparison config (pow_bits={d}, n_queries={d})
         \\  --secure          The published SECURE_PCS_CONFIG (pow_bits={d}, n_queries={d})
         \\  --run-only        Execute the guest without proving
-        \\  --profile         Print nested prover stage timings
+        \\  --profile         Print stage timings and raw task-graph records
         \\  --proof-identity  Correctness-only: print canonical proof byte count and SHA-256
         \\  -h, --help        Show this help
         \\
