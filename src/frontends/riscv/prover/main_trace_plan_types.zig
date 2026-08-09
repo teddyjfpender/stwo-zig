@@ -62,6 +62,7 @@ pub const Error = error{
 pub const StageRank = enum(u16) {
     prepare = 0,
     fill = 10,
+    reduce = 15,
     audit = 20,
     lookup_seed = 30,
     finalize = 40,
@@ -72,7 +73,8 @@ pub const MAIN_TRACE_EPOCH: u16 = 1;
 
 comptime {
     if (@intFromEnum(StageRank.prepare) >= @intFromEnum(StageRank.fill) or
-        @intFromEnum(StageRank.fill) >= @intFromEnum(StageRank.audit) or
+        @intFromEnum(StageRank.fill) >= @intFromEnum(StageRank.reduce) or
+        @intFromEnum(StageRank.reduce) >= @intFromEnum(StageRank.audit) or
         @intFromEnum(StageRank.audit) >= @intFromEnum(StageRank.lookup_seed) or
         @intFromEnum(StageRank.lookup_seed) >= @intFromEnum(StageRank.finalize) or
         @intFromEnum(StageRank.finalize) >= @intFromEnum(StageRank.seal))
@@ -102,6 +104,13 @@ pub fn infrastructureFillTaskKey(
 
 pub fn opcodeAuditTaskKey(component_index: u32) task_graph.TaskKey {
     return taskKey(.audit, component_index, 0);
+}
+
+/// Deterministic merge of chunk-private opcode lookup counters. This is a
+/// distinct barrier task: audits and lookup-table seeding may only observe the
+/// merged counter set after it completes.
+pub fn opcodeReduceTaskKey() task_graph.TaskKey {
+    return taskKey(.reduce, 0, 0);
 }
 
 pub fn lookupSeedTaskKey() task_graph.TaskKey {
@@ -160,9 +169,10 @@ pub const RowRange = struct {
     }
 };
 
-/// Every host byte class currently closed by this planning seam. `total` uses
-/// checked addition over every field, so a newly added class cannot be omitted
-/// accidentally from finite-budget admission.
+/// Named host byte classes currently closed by this planning seam. `total`
+/// uses checked addition over every field, so a newly added named class cannot
+/// be omitted accidentally from finite-budget admission. Arena page padding,
+/// allocation metadata, and graph/profile metadata remain outside this seam.
 pub const Resources = struct {
     main_output_payload_bytes: usize = 0,
     retained_opcode_payload_bytes: usize = 0,
@@ -196,7 +206,9 @@ pub const TaskCounts = struct {
     descriptor_slots: u16 = 0,
     prepare_wave: u16 = 0,
     generation_wave: u16 = 0,
+    reduce_wave: u16 = 0,
     audit_wave: u16 = 0,
+    lookup_seed_wave: u16 = 0,
     finalization_wave: u16 = 0,
     seal_wave: u16 = 0,
 
@@ -242,7 +254,9 @@ pub const Plan = struct {
     descriptor_count: u16,
     poseidon_infra_index: u16,
     requested_worker_count: u8,
-    admitted_worker_count: u8,
+    /// Width selected by pure admission planning. Production execution must
+    /// acquire and hold a matching pool lease across all drained graph waves.
+    planned_worker_count: u8,
     pool_capacity: u8,
     opcode_chunk_count: u8,
     poseidon_chunk_count: u8,

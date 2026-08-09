@@ -5,11 +5,11 @@
 //! finite host-resource admission, task-wave capacity, and stable task facts
 //! for the later R-002 integration.
 //!
-//! The resource total is a conservative admission envelope: all named classes
-//! are counted together even where a future lifetime proof could reuse bytes.
-//! Allocator metadata, backend-private commitment scratch, and the
-//! coordinator's pre-existing stack are outside this first seam. They must be
-//! added as named classes before this becomes whole-proof memory authority.
+//! The resource total is conservative across its named classes: each is counted
+//! even where a future lifetime proof could reuse bytes. Arena page padding,
+//! allocation and graph/profile metadata, backend-private commitment scratch,
+//! and the coordinator's pre-existing stack are outside this first seam. They
+//! must be named before this becomes whole-proof memory authority.
 
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
@@ -45,6 +45,7 @@ pub const LOOKUP_COUNTER_SET_DESCRIPTOR_BYTES = plan_types.LOOKUP_COUNTER_SET_DE
 pub const prepareTaskKey = plan_types.prepareTaskKey;
 pub const opcodeFillTaskKey = plan_types.opcodeFillTaskKey;
 pub const infrastructureFillTaskKey = plan_types.infrastructureFillTaskKey;
+pub const opcodeReduceTaskKey = plan_types.opcodeReduceTaskKey;
 pub const opcodeAuditTaskKey = plan_types.opcodeAuditTaskKey;
 pub const lookupSeedTaskKey = plan_types.lookupSeedTaskKey;
 pub const opcodeFinalizeTaskKey = plan_types.opcodeFinalizeTaskKey;
@@ -81,7 +82,7 @@ pub fn build(
         .descriptor_count = shape.descriptor_count,
         .poseidon_infra_index = shape.poseidon_infra_index,
         .requested_worker_count = try plan_types.checkedU8(options.execution.worker_count),
-        .admitted_worker_count = try plan_types.checkedU8(admitted_workers),
+        .planned_worker_count = try plan_types.checkedU8(admitted_workers),
         .pool_capacity = try plan_types.checkedU8(options.pool_capacity),
         .opcode_chunk_count = 0,
         .poseidon_chunk_count = 0,
@@ -185,7 +186,7 @@ pub fn validate(
         .host_byte_budget = plan.host_byte_budget,
         .contention_policy = plan.contention_policy,
     }, plan.pool_capacity);
-    if (@as(usize, plan.admitted_worker_count) != admitted) return error.InvalidPlan;
+    if (@as(usize, plan.planned_worker_count) != admitted) return error.InvalidPlan;
 
     var cursor: usize = 0;
     var registry_index: usize = 0;
@@ -501,7 +502,7 @@ fn deriveTaskCounts(
     var generation = try plan_types.checkedAdd(opcode_chunks, non_table_infra - 1);
     generation = try plan_types.checkedAdd(generation, poseidon_chunks);
     const finalization = try plan_types.checkedAdd(
-        try plan_types.checkedAdd(1, shape.n_components),
+        shape.n_components,
         component_order.LOOKUP_TABLE_COUNT,
     );
     const descriptor_slots = try plan_types.checkedAdd(shape.n_components, shape.n_infra);
@@ -509,7 +510,9 @@ fn deriveTaskCounts(
         .descriptor_slots = try plan_types.checkedTaskCount(descriptor_slots),
         .prepare_wave = 1,
         .generation_wave = try plan_types.checkedTaskCount(generation),
+        .reduce_wave = 1,
         .audit_wave = if (opcode_audit_enabled) shape.n_components else 0,
+        .lookup_seed_wave = 1,
         .finalization_wave = try plan_types.checkedTaskCount(finalization),
         .seal_wave = 1,
     };

@@ -184,12 +184,23 @@ test "main trace plan: construction and task identities are deterministic" {
     const first = try plan_mod.build(&statement, options);
     const second = try plan_mod.build(&statement, options);
     try std.testing.expect(std.meta.eql(first, second));
+    try std.testing.expectEqual(@as(u16, 1), first.task_counts.prepare_wave);
+    try std.testing.expectEqual(@as(u16, 1), first.task_counts.reduce_wave);
+    try std.testing.expectEqual(@as(u16, 1), first.task_counts.lookup_seed_wave);
+    try std.testing.expectEqual(@as(u16, 1), first.task_counts.seal_wave);
+    try std.testing.expectEqual(
+        @as(u16, @intCast(
+            @as(usize, first.n_components) + component_order.LOOKUP_TABLE_COUNT,
+        )),
+        first.task_counts.finalization_wave,
+    );
 
     const keys = [_]task_graph.TaskKey{
         plan_mod.prepareTaskKey(),
         plan_mod.opcodeFillTaskKey(0),
         plan_mod.opcodeFillTaskKey(1),
         try first.infraFillKey(0, 0),
+        plan_mod.opcodeReduceTaskKey(),
         plan_mod.opcodeAuditTaskKey(0),
         plan_mod.lookupSeedTaskKey(),
         plan_mod.opcodeFinalizeTaskKey(0),
@@ -205,7 +216,8 @@ test "main trace plan: construction and task identities are deterministic" {
     try std.testing.expect(task_graph.TaskKey.lessThan(keys[3], keys[4]));
     try std.testing.expect(task_graph.TaskKey.lessThan(keys[4], keys[5]));
     try std.testing.expect(task_graph.TaskKey.lessThan(keys[5], keys[6]));
-    try std.testing.expect(task_graph.TaskKey.lessThan(keys[7], keys[8]));
+    try std.testing.expect(task_graph.TaskKey.lessThan(keys[6], keys[7]));
+    try std.testing.expect(task_graph.TaskKey.lessThan(keys[8], keys[9]));
 }
 
 test "main trace plan: exact finite budget boundary fails one byte under" {
@@ -253,7 +265,7 @@ test "main trace plan: pool contention policy is explicit" {
     compatibility.execution.contention_policy = .compatibility;
     const plan = try plan_mod.build(&statement, compatibility);
     try std.testing.expectEqual(@as(u8, 4), plan.requested_worker_count);
-    try std.testing.expectEqual(@as(u8, 1), plan.admitted_worker_count);
+    try std.testing.expectEqual(@as(u8, 1), plan.planned_worker_count);
     try std.testing.expectEqual(@as(u8, 1), plan.opcode_chunk_count);
 }
 
