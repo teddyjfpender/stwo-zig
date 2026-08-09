@@ -80,8 +80,11 @@ execution-aware ABI retain their own resource contract.
 `task_profile` is a separate, flat observability schema for bounded task graphs.
 The coordinator reserves exact event and aggregate storage before launch;
 workers write only their assigned slots, publication after join moves those
-buffers without allocation, and snapshots deep-copy borrowed labels. When no
-stage recorder is supplied, task profiling performs no allocation or clock
+buffers without allocation, and snapshots deep-copy borrowed labels. Each
+reservation capability binds the recorder identity and a monotonic generation:
+stale copies cannot abort or publish a later reservation, and malformed
+publication returns an error without consuming the current capability. When
+no stage recorder is supplied, task profiling performs no allocation or clock
 sampling.
 `assertProverEngine` checks the associated types and exact `init`, `deinit`,
 `commit`, and `prove` signatures at compile time.
@@ -112,8 +115,8 @@ frontend, backend integration, or custom engine implementation.
 
 - API signature: the engine transaction is structurally checked.
 - Behavioral invariants: column evaluation rejects invalid storage and lifting
-  geometry; task-graph reservations publish by ownership move and release exact
-  storage when aborted before launch.
+  geometry; task-graph reservations publish by checked ownership move, reject
+  stale generations, and release exact storage when aborted before launch.
 
 Changes to `ProveOptions`, engine method signatures, column ownership, or
 stage-profile schemas affect multiple independently owned packages and require

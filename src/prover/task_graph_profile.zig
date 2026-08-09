@@ -250,8 +250,8 @@ pub const Capture = struct {
         self: *Capture,
         graph_id: []const u8,
         summary: wire.RequestSummary,
-    ) void {
-        self.recorder.publishTaskGraphAfterJoin(
+    ) !void {
+        try self.recorder.publishTaskGraphAfterJoin(
             &self.pending,
             .{ .graph_id = graph_id },
             summary,
@@ -396,7 +396,7 @@ pub const Capture = struct {
             critical_path_ns
         else
             null;
-        self.publish(graph_id, summary);
+        try self.publish(graph_id, summary);
     }
 };
 

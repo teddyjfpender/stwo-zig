@@ -124,8 +124,8 @@ pub const Recorder = struct {
         pending: *task_profile.PendingGraph,
         header: task_profile.GraphHeader,
         summary: task_profile.RequestSummary,
-    ) void {
-        self.task_recorder.publishTaskGraphAfterJoin(pending, header, summary);
+    ) !void {
+        try self.task_recorder.publishTaskGraphAfterJoin(pending, header, summary);
     }
 
     pub fn taskSnapshot(
@@ -239,4 +239,32 @@ test "prover stage profile: preserves nested order" {
     try std.testing.expectEqual(@as(usize, 2), children.len);
     try std.testing.expectEqualStrings("inner_a", children[0].id);
     try std.testing.expectEqualStrings("inner_b", children[1].id);
+}
+
+test "prover stage profile: task publication propagates capability errors" {
+    const allocator = std.testing.allocator;
+    var owner = Recorder.init(allocator, "zig", "owner");
+    defer owner.deinit();
+    var other = Recorder.init(allocator, "zig", "other");
+    defer other.deinit();
+
+    var pending = try owner.reserveTaskGraph(0, 0);
+    defer pending.deinit();
+    try std.testing.expectError(
+        error.TaskGraphReservationWrongRecorder,
+        other.publishTaskGraphAfterJoin(
+            &pending,
+            .{ .graph_id = "wrong" },
+            .{},
+        ),
+    );
+    try owner.publishTaskGraphAfterJoin(
+        &pending,
+        .{ .graph_id = "owner" },
+        .{},
+    );
+}
+
+test {
+    _ = @import("task_profile_reservation_test.zig");
 }

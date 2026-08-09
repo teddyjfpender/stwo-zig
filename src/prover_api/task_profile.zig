@@ -243,24 +243,62 @@ const StoredGraph = struct {
     }
 };
 
-/// Move-only exact-capacity reservation. The executor may assign one unique
-/// slot to each task, but must join all tasks before either publishing or
-/// calling `deinit`. `deinit` is a no-op after successful publication.
-pub const PendingGraph = struct {
-    recorder: *Recorder,
+const ActiveReservation = struct {
+    generation: u64,
     events: []TaskEvent,
     component_work: []ComponentWork,
-    active: bool = true,
+};
+
+// Recorder identities are assigned lazily on the cold reservation path. Zero
+// remains the invalid identity carried by consumed handles.
+var next_recorder_identity = std.atomic.Value(u64).init(1);
+
+fn claimRecorderIdentity() !u64 {
+    var candidate = next_recorder_identity.load(.monotonic);
+    while (true) {
+        if (candidate == std.math.maxInt(u64)) {
+            return error.TaskGraphRecorderIdentityExhausted;
+        }
+        if (next_recorder_identity.cmpxchgWeak(
+            candidate,
+            candidate + 1,
+            .monotonic,
+            .monotonic,
+        )) |observed| {
+            candidate = observed;
+        } else {
+            return candidate;
+        }
+    }
+}
+
+/// Exact-capacity reservation capability. Zig values are copyable, so recorder
+/// identity and generation -- not a handle-local boolean -- determine whether
+/// this capability still owns the active allocation. The executor may assign
+/// one unique slot to each task, but must join all tasks before publication or
+/// abort. The recorder must outlive every handle copy.
+pub const PendingGraph = struct {
+    recorder: *Recorder,
+    recorder_identity: u64,
+    generation: u64,
+    events: []TaskEvent,
+    component_work: []ComponentWork,
+
+    /// Aborts only when this handle is the recorder's current capability.
+    /// Stale copies return an error and cannot free a later reservation.
+    pub fn abort(self: *PendingGraph) !void {
+        try self.recorder.abortTaskGraph(self);
+    }
 
     pub fn deinit(self: *PendingGraph) void {
-        if (!self.active) return;
-        std.debug.assert(self.recorder.reservation_active);
-        self.recorder.allocator.free(self.events);
-        self.recorder.allocator.free(self.component_work);
-        self.recorder.reservation_active = false;
+        self.abort() catch self.invalidate();
+    }
+
+    fn invalidate(self: *PendingGraph) void {
+        self.recorder_identity = 0;
+        self.generation = 0;
         self.events = &.{};
         self.component_work = &.{};
-        self.active = false;
     }
 };
 
@@ -272,7 +310,9 @@ pub const Recorder = struct {
     runtime: []const u8,
     example: []const u8,
     graphs: std.ArrayList(StoredGraph),
-    reservation_active: bool = false,
+    recorder_identity: u64 = 0,
+    next_generation: u64 = 0,
+    active_reservation: ?ActiveReservation = null,
 
     pub fn init(
         allocator: std.mem.Allocator,
@@ -288,7 +328,10 @@ pub const Recorder = struct {
     }
 
     pub fn deinit(self: *Recorder) void {
-        std.debug.assert(!self.reservation_active);
+        if (self.active_reservation) |active| {
+            self.allocator.free(active.events);
+            self.allocator.free(active.component_work);
+        }
         for (self.graphs.items) |*graph| graph.deinit(self.allocator);
         self.graphs.deinit(self.allocator);
         self.* = undefined;
@@ -301,7 +344,17 @@ pub const Recorder = struct {
         event_count: usize,
         component_work_count: usize,
     ) !PendingGraph {
-        if (self.reservation_active) return error.TaskGraphReservationActive;
+        if (self.active_reservation != null) {
+            return error.TaskGraphReservationActive;
+        }
+        const generation = std.math.add(
+            u64,
+            self.next_generation,
+            1,
+        ) catch return error.TaskGraphReservationGenerationExhausted;
+        if (self.recorder_identity == 0) {
+            self.recorder_identity = try claimRecorderIdentity();
+        }
         try self.graphs.ensureUnusedCapacity(self.allocator, 1);
 
         const events = try self.allocator.alloc(TaskEvent, event_count);
@@ -312,9 +365,16 @@ pub const Recorder = struct {
         errdefer self.allocator.free(component_work);
         @memset(component_work, .{});
 
-        self.reservation_active = true;
+        self.next_generation = generation;
+        self.active_reservation = .{
+            .generation = generation,
+            .events = events,
+            .component_work = component_work,
+        };
         return .{
             .recorder = self,
+            .recorder_identity = self.recorder_identity,
+            .generation = generation,
             .events = events,
             .component_work = component_work,
         };
@@ -328,28 +388,34 @@ pub const Recorder = struct {
         pending: *PendingGraph,
         header: GraphHeader,
         summary: RequestSummary,
-    ) void {
-        std.debug.assert(pending.active);
-        std.debug.assert(pending.recorder == self);
-        std.debug.assert(self.reservation_active);
-        std.debug.assert(summary.planned_tasks == pending.events.len);
-        std.debug.assert(summary.scheduler == .central_queue_no_steal);
-        std.debug.assert(summary.steal_count == 0);
+    ) !void {
+        const active = try self.validatePending(pending);
+        const event_count = std.math.cast(u64, active.events.len) orelse
+            return error.TaskProfileTaskCountOverflow;
+        if (summary.planned_tasks != event_count) {
+            return error.TaskProfilePlannedTaskCountMismatch;
+        }
+        if (summary.scheduler != .central_queue_no_steal) {
+            return error.TaskProfileUnsupportedScheduler;
+        }
+        if (summary.steal_count != 0) {
+            return error.TaskProfileUnexpectedStealCount;
+        }
 
         self.graphs.appendAssumeCapacity(.{
             .graph_id = header.graph_id,
-            .events = pending.events,
-            .component_work = pending.component_work,
+            .events = active.events,
+            .component_work = active.component_work,
             .summary = summary,
         });
-        self.reservation_active = false;
-        pending.events = &.{};
-        pending.component_work = &.{};
-        pending.active = false;
+        self.active_reservation = null;
+        pending.invalidate();
     }
 
     pub fn snapshot(self: *const Recorder, allocator: std.mem.Allocator) !TaskProfile {
-        std.debug.assert(!self.reservation_active);
+        if (self.active_reservation != null) {
+            return error.TaskGraphReservationActive;
+        }
         const runtime = try allocator.dupe(u8, self.runtime);
         errdefer allocator.free(runtime);
         const example = try allocator.dupe(u8, self.example);
@@ -359,6 +425,41 @@ pub const Recorder = struct {
             .example = example,
             .graphs = try snapshotGraphs(allocator, self.graphs.items),
         };
+    }
+
+    fn abortTaskGraph(self: *Recorder, pending: *PendingGraph) !void {
+        const active = try self.validatePending(pending);
+        self.allocator.free(active.events);
+        self.allocator.free(active.component_work);
+        self.active_reservation = null;
+        pending.invalidate();
+    }
+
+    fn validatePending(
+        self: *const Recorder,
+        pending: *const PendingGraph,
+    ) !ActiveReservation {
+        if (pending.recorder != self) {
+            return error.TaskGraphReservationWrongRecorder;
+        }
+        if (pending.recorder_identity == 0 or
+            pending.recorder_identity != self.recorder_identity)
+        {
+            return error.TaskGraphReservationStale;
+        }
+        const active = self.active_reservation orelse
+            return error.TaskGraphReservationStale;
+        if (pending.generation == 0 or pending.generation != active.generation) {
+            return error.TaskGraphReservationStale;
+        }
+        if (pending.events.ptr != active.events.ptr or
+            pending.events.len != active.events.len or
+            pending.component_work.ptr != active.component_work.ptr or
+            pending.component_work.len != active.component_work.len)
+        {
+            return error.TaskGraphReservationStorageMismatch;
+        }
+        return active;
     }
 };
 
@@ -467,7 +568,7 @@ test "task profile: reservation publishes by move and snapshot owns strings" {
         .run_ns = 8,
     };
     const event_address = @intFromPtr(pending.events.ptr);
-    recorder.publishTaskGraphAfterJoin(&pending, .{ .graph_id = "composition" }, .{
+    try recorder.publishTaskGraphAfterJoin(&pending, .{ .graph_id = "composition" }, .{
         .requested_workers = 4,
         .admitted_workers = 4,
         .pool_capacity = 4,
@@ -489,7 +590,7 @@ test "task profile: reservation publishes by move and snapshot owns strings" {
         .total_work_estimate = 16,
         .completed_rows = 16,
     });
-    try std.testing.expect(!pending.active);
+    try std.testing.expectEqual(@as(u64, 0), pending.generation);
     try std.testing.expectEqual(event_address, @intFromPtr(recorder.graphs.items[0].events.ptr));
 
     var profile = try recorder.snapshot(allocator);
@@ -511,8 +612,8 @@ test "task profile: abort releases exact reservation" {
     defer recorder.deinit();
 
     var pending = try recorder.reserveTaskGraph(2, 0);
-    pending.deinit();
-    try std.testing.expect(!recorder.reservation_active);
+    try pending.abort();
+    try std.testing.expect(recorder.active_reservation == null);
 
     var replacement = try recorder.reserveTaskGraph(0, 0);
     defer replacement.deinit();
@@ -537,7 +638,7 @@ fn exerciseAllocationFailureCleanup(allocator: std.mem.Allocator) !void {
     pending.events[1].stage_id = "composition";
     pending.events[1].component_kind = "table";
     pending.component_work[0].component_kind = "mixed";
-    recorder.publishTaskGraphAfterJoin(
+    try recorder.publishTaskGraphAfterJoin(
         &pending,
         .{ .graph_id = "composition" },
         .{ .planned_tasks = 2 },
