@@ -36,6 +36,7 @@
     "session",
     "stage_profile",
     "task_graph",
+    "task_profile",
     "transaction",
     "vcs",
     "vcs_lifted",

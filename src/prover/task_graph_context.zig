@@ -1,12 +1,24 @@
 //! Worker-visible task identity, cancellation, and nested-work boundary.
 
 const std = @import("std");
+const task_profile = @import("stwo_prover_api").task_profile;
 const work_pool = @import("work_pool.zig");
+
+/// Shared structural graph limits live here so the public model and private
+/// executor cannot drift.
+pub const MAX_COMPONENT_TASKS: usize = 1024;
+pub const ComponentTaskId = u16;
 
 pub const TaskClass = enum {
     leaf,
     pool_exclusive,
     coordinator,
+};
+
+pub const WorkUnit = enum {
+    unspecified,
+    rows,
+    tiles,
 };
 
 pub const TaskKey = struct {
@@ -57,10 +69,34 @@ pub const TaskContext = struct {
     task_class: TaskClass,
     exclusive_lease: ?*work_pool.WorkLease,
     child_wait_group: ?*std.Thread.WaitGroup,
+    profile_event: ?*task_profile.TaskEvent = null,
+    work_unit: WorkUnit = .unspecified,
+    planned_work_units: u64 = 0,
+    profile_completion_recorded: bool = false,
     child_wave_active: bool = false,
 
     pub fn isCancelled(self: *const TaskContext) bool {
         return self.cancellation.isCancelled();
+    }
+
+    /// Records coarse completed rows/tiles once per task. This is deliberately
+    /// not an incrementing hot-loop counter. With profiling disabled the call
+    /// validates the declared bound and otherwise performs no work.
+    pub fn setCompletedWork(self: *TaskContext, units: u64) !void {
+        if (units > self.planned_work_units) {
+            return error.CompletedTaskWorkExceedsPlan;
+        }
+        if (self.profile_event) |event| {
+            if (self.profile_completion_recorded) {
+                return error.DuplicateCompletedTaskWork;
+            }
+            self.profile_completion_recorded = true;
+            switch (self.work_unit) {
+                .unspecified => {},
+                .rows => event.completed_rows = units,
+                .tiles => event.completed_tiles = units,
+            }
+        }
     }
 
     /// Nested work is legal only for a drained `pool_exclusive` task.

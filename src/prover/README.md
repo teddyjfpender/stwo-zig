@@ -60,7 +60,7 @@ comptime prover.engine.assertProverEngine(Engine);
 | Polynomial protocol | `fft_pool`, `line`, `poly`, `secure_column` |
 | Commitments and FRI | `pcs`, `fri`, `vcs`, `vcs_lifted`, `channel` |
 | Scheduling and storage | `task_graph`, `work_pool`, `host_budget_allocator`, `resident_storage`, `mmap_alloc` |
-| Observability | `measurement`, `stage_profile` |
+| Observability | `measurement`, `stage_profile`, `task_profile` |
 | Prepared transaction ownership | `transaction` |
 
 The low-level `prove.prove`, `prove.proveEx`, and
@@ -72,6 +72,10 @@ mixing, and cleanup for frontend-selected engines.
 `host_budget_allocator` is the coordinator-only live-byte limiter used by
 execution-aware CPU backends; shared worker stacks and submission envelopes are
 admitted separately by `work_pool` and `task_graph`.
+`task_profile` re-exports the stable flat schema used by profiled bounded task
+graphs. Its graph-local elapsed time and outer-task concurrency are exact;
+physical-worker concurrency and busy time remain absent when a
+`pool_exclusive` task contains uninstrumented child work.
 
 ## Dependencies
 

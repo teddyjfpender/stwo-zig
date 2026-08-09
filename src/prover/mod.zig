@@ -19,6 +19,7 @@ pub const vcs = @import("vcs/mod.zig");
 pub const vcs_lifted = @import("vcs_lifted/mod.zig");
 pub const prove = @import("prove.zig");
 pub const task_graph = @import("task_graph.zig");
+pub const task_profile = @import("stwo_prover_api").task_profile;
 pub const transaction = @import("transaction.zig");
 pub const work_pool = @import("work_pool.zig");
 pub const resident_storage = @import("resident_storage.zig");
@@ -28,6 +29,8 @@ pub const execution = @import("execution/mod.zig");
 test {
     _ = host_budget_allocator;
     _ = @import("task_graph_nested_test.zig");
+    _ = @import("task_graph_profile_failure_test.zig");
+    _ = @import("task_graph_profile_test.zig");
     _ = @import("task_graph_work_pool_test.zig");
 }
 

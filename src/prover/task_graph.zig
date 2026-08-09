@@ -5,17 +5,22 @@
 //! reports the lowest `TaskKey` failure independent of completion order.
 
 const std = @import("std");
+const prover_api = @import("stwo_prover_api");
 const work_pool = @import("work_pool.zig");
 const task_context = @import("task_graph_context.zig");
+const task_graph_execution = @import("task_graph_execution.zig");
+const task_graph_profile = @import("task_graph_profile.zig");
 const task_resources = @import("task_graph_resources.zig");
 
+const stage_profile = prover_api.stage_profile;
+
 pub const MAX_TASKS: usize = 32;
-pub const MAX_COMPONENT_TASKS: usize = 1024;
+pub const MAX_COMPONENT_TASKS = task_context.MAX_COMPONENT_TASKS;
 pub const MAX_DEPS_PER_TASK: usize = 8;
 
 /// Compatibility identifier for the original 32-slot graph.
 pub const TaskId = u8;
-pub const ComponentTaskId = u16;
+pub const ComponentTaskId = task_context.ComponentTaskId;
 
 pub const TaskStatus = enum {
     pending,
@@ -35,15 +40,24 @@ pub const checkedWorkEstimate = task_resources.checkedWorkEstimate;
 
 pub const ComponentTaskFn = *const fn (context: *TaskContext) anyerror!void;
 
+pub const WorkUnit = task_context.WorkUnit;
+
 pub const ComponentTaskSpec = struct {
     key: TaskKey,
     name: []const u8,
+    /// Stable borrowed identifiers. When profiling is enabled their storage
+    /// must outlive the recorder or its final task snapshot.
+    stage_id: []const u8 = "component_task_graph",
+    component_kind: []const u8 = "unspecified",
     func: ComponentTaskFn,
     context: *anyopaque,
     class: TaskClass = .leaf,
+    parallel_eligible: ?bool = null,
     deps: []const ComponentTaskId = &.{},
     resources: ResourceReservation = .{},
     work_estimate: u64 = 0,
+    work_unit: WorkUnit = .unspecified,
+    planned_work_units: u64 = 0,
 };
 
 pub const ReadyPolicy = enum {
@@ -56,6 +70,16 @@ pub const ExecuteOptions = struct {
     pool: ?*work_pool.WorkPool = null,
     byte_budget: usize = std.math.maxInt(usize),
     ready_policy: ReadyPolicy = .critical_path,
+    /// Optional flat capture. A reservation is acquired only after resource
+    /// validation and pool admission have succeeded.
+    task_profile_recorder: ?*stage_profile.Recorder = null,
+    /// Stable borrowed identifier with the same lifetime as the recorder or
+    /// its final task snapshot.
+    task_profile_graph_id: []const u8 = "component_task_graph",
+    requested_worker_count: ?usize = null,
+    pool_capacity: ?usize = null,
+    /// Injectable only for deterministic clock tests.
+    task_profile_clock: ?task_graph_profile.ClockSource = null,
 };
 
 pub const ExecutionReport = struct {
@@ -72,6 +96,8 @@ pub const ExecutionReport = struct {
     unsubmitted_cancelled_tasks: usize,
     started_tasks: usize,
     finished_tasks: usize,
+    /// Peak concurrent top-level graph callbacks. Nested pool-exclusive helper
+    /// activity is deliberately not relabelled as a graph task.
     peak_active_tasks: usize,
     peak_reserved_bytes: usize,
     cancellation_winner: ?TaskKey,
@@ -100,13 +126,18 @@ pub const TaskTerminalMetadata = struct {
 const ComponentTaskSlot = struct {
     key: TaskKey,
     name: []const u8,
+    stage_id: []const u8,
+    component_kind: []const u8,
     func: ComponentTaskFn,
     context: *anyopaque,
     class: TaskClass,
+    parallel_eligible: bool,
     deps: [MAX_DEPS_PER_TASK]ComponentTaskId = .{0} ** MAX_DEPS_PER_TASK,
     n_deps: u8 = 0,
     resources: ResourceReservation,
     work_estimate: u64,
+    work_unit: WorkUnit,
+    planned_work_units: u64,
     remaining_dependency_level: u16 = 0,
     status: TaskStatus = .pending,
     failure: ?anyerror = null,
@@ -142,6 +173,7 @@ pub const ComponentTaskGraph = struct {
     admitted_submission_bytes: usize = 0,
     fixed_resident_bytes: usize = 0,
     peak_reserved_bytes: usize = 0,
+    active_capture: ?*task_graph_profile.Capture = null,
 
     pub fn init(
         allocator: std.mem.Allocator,
@@ -185,11 +217,17 @@ pub const ComponentTaskGraph = struct {
         var slot = ComponentTaskSlot{
             .key = spec.key,
             .name = spec.name,
+            .stage_id = spec.stage_id,
+            .component_kind = spec.component_kind,
             .func = spec.func,
             .context = spec.context,
             .class = spec.class,
+            .parallel_eligible = spec.parallel_eligible orelse
+                (spec.class != .coordinator),
             .resources = spec.resources,
             .work_estimate = spec.work_estimate,
+            .work_unit = spec.work_unit,
+            .planned_work_units = spec.planned_work_units,
         };
         for (spec.deps, 0..) |dep, dep_index| {
             if (dep >= id) return error.InvalidDependency;
@@ -299,395 +337,9 @@ pub const ComponentTaskGraph = struct {
         self: *ComponentTaskGraph,
         options: ExecuteOptions,
     ) anyerror!ExecutionReport {
-        if (self.executed) return error.TaskGraphAlreadyExecuted;
-        if (self.count != self.capacity) return error.TaskCountMismatch;
-        _ = try work_pool.WorkerBudget.init(options.worker_budget.count);
-        if (options.worker_budget.count > 1 and options.pool == null) {
-            return error.WorkPoolRequired;
-        }
-        const admission = try self.finalizePlan(options);
-
-        var lease_storage: work_pool.WorkLease = undefined;
-        const lease: ?*work_pool.WorkLease = if (options.pool) |pool| lease: {
-            lease_storage = try pool.acquire(options.worker_budget);
-            break :lease &lease_storage;
-        } else null;
-        defer if (lease) |active_lease| active_lease.deinit();
-
-        self.executed = true;
-        self.ready_policy = options.ready_policy;
-        self.configured_workers = options.worker_budget.count;
-        self.admitted_worker_stack_bytes = admission.worker_stack_bytes;
-        self.admitted_submission_bytes = admission.submission_bytes;
-        self.fixed_resident_bytes = admission.fixed_resident_bytes;
-        self.peak_reserved_bytes = admission.baseline_bytes;
-        if (self.count == 0) return self.report();
-
-        while (self.terminalCount() < self.count) {
-            if (self.cancellation.isCancelled()) {
-                self.cancelQueued();
-                break;
-            }
-
-            var ready: [MAX_COMPONENT_TASKS]ComponentTaskId = undefined;
-            const ready_count = self.collectReady(&ready);
-            if (ready_count == 0) {
-                if (self.terminalCount() == self.count) break;
-                return error.DeadlockDetected;
-            }
-            std.sort.heap(
-                ComponentTaskId,
-                ready[0..ready_count],
-                self,
-                readyLessThan,
-            );
-
-            var wave: [work_pool.MAX_WORKERS]ComponentTaskId = undefined;
-            var wave_count: usize = 0;
-            var scratch_bytes: usize = 0;
-            const first = self.slots[ready[0]];
-            if (first.class == .leaf) {
-                for (ready[0..ready_count]) |id| {
-                    const slot = self.slots[id];
-                    if (slot.class != .leaf) continue;
-                    if (wave_count == options.worker_budget.count) break;
-                    if (slot.resources.exclusive_scratch_bytes >
-                        admission.scratch_budget - scratch_bytes)
-                    {
-                        continue;
-                    }
-                    wave[wave_count] = id;
-                    wave_count += 1;
-                    scratch_bytes += slot.resources.exclusive_scratch_bytes;
-                }
-            } else {
-                wave[0] = ready[0];
-                wave_count = 1;
-                scratch_bytes = first.resources.exclusive_scratch_bytes;
-            }
-            std.debug.assert(wave_count > 0);
-            const reserved_bytes = std.math.add(
-                usize,
-                admission.baseline_bytes,
-                scratch_bytes,
-            ) catch return error.ResourceReservationOverflow;
-            self.peak_reserved_bytes = @max(
-                self.peak_reserved_bytes,
-                reserved_bytes,
-            );
-
-            try self.executeWave(
-                wave[0..wave_count],
-                options.worker_budget,
-                lease,
-            );
-        }
-
-        if (self.firstFailure()) |failure| return failure;
-        return self.report();
-    }
-
-    fn finalizePlan(
-        self: *ComponentTaskGraph,
-        options: ExecuteOptions,
-    ) !ResourceAdmission {
-        var reverse_index = self.count;
-        while (reverse_index > 0) {
-            reverse_index -= 1;
-            const id: ComponentTaskId = @intCast(reverse_index);
-            var remaining_level: u16 = 0;
-            for (self.slots[reverse_index + 1 ..]) |dependent| {
-                var direct_dependent = false;
-                for (dependent.deps[0..dependent.n_deps]) |dep| {
-                    if (dep == id) {
-                        direct_dependent = true;
-                        break;
-                    }
-                }
-                if (!direct_dependent) continue;
-                const candidate = std.math.add(
-                    u16,
-                    dependent.remaining_dependency_level,
-                    1,
-                ) catch return error.DependencyLevelOverflow;
-                remaining_level = @max(remaining_level, candidate);
-            }
-            self.slots[reverse_index].remaining_dependency_level = remaining_level;
-        }
-
-        const stack_size = if (options.pool) |pool|
-            pool.stackSize()
-        else
-            work_pool.WORKER_STACK_SIZE;
-        var fixed_resident_bytes: usize = 0;
-        for (self.slots) |slot| {
-            if (slot.resources.worker_stack_bytes > stack_size) {
-                return error.TaskWorkerStackExceeded;
-            }
-            fixed_resident_bytes = std.math.add(
-                usize,
-                fixed_resident_bytes,
-                try slot.resources.residentBytes(),
-            ) catch return error.ResourceReservationOverflow;
-        }
-        const worker_stack_bytes = std.math.mul(
-            usize,
-            options.worker_budget.helperCount(),
-            stack_size,
-        ) catch return error.ResourceReservationOverflow;
-        const submission_bytes = std.math.mul(
-            usize,
-            options.worker_budget.helperCount(),
-            work_pool.STRUCTURED_JOB_RESERVATION_BYTES,
-        ) catch return error.ResourceReservationOverflow;
-        const helper_resident_bytes = std.math.add(
-            usize,
-            worker_stack_bytes,
-            submission_bytes,
-        ) catch return error.ResourceReservationOverflow;
-        const baseline_bytes = std.math.add(
-            usize,
-            fixed_resident_bytes,
-            helper_resident_bytes,
-        ) catch return error.ResourceReservationOverflow;
-        if (baseline_bytes > options.byte_budget) {
-            return error.TaskMemoryBudgetExceeded;
-        }
-        const scratch_budget = options.byte_budget - baseline_bytes;
-        for (self.slots) |slot| {
-            if (slot.resources.exclusive_scratch_bytes > scratch_budget) {
-                return error.TaskMemoryBudgetExceeded;
-            }
-        }
-        return .{
-            .fixed_resident_bytes = fixed_resident_bytes,
-            .worker_stack_bytes = worker_stack_bytes,
-            .submission_bytes = submission_bytes,
-            .baseline_bytes = baseline_bytes,
-            .scratch_budget = scratch_budget,
-        };
-    }
-
-    fn collectReady(
-        self: *ComponentTaskGraph,
-        ready: *[MAX_COMPONENT_TASKS]ComponentTaskId,
-    ) usize {
-        var ready_count: usize = 0;
-        for (self.slots[0..self.count], 0..) |*slot, slot_index| {
-            if (slot.status != .pending and slot.status != .ready) continue;
-            var all_done = true;
-            for (slot.deps[0..slot.n_deps]) |dep| {
-                switch (self.slots[dep].status) {
-                    .done => {},
-                    .failed, .cancelled => {
-                        slot.status = .cancelled;
-                        all_done = false;
-                        break;
-                    },
-                    else => all_done = false,
-                }
-            }
-            if (slot.status == .cancelled or !all_done) continue;
-            slot.status = .ready;
-            ready[ready_count] = @intCast(slot_index);
-            ready_count += 1;
-        }
-        return ready_count;
-    }
-
-    fn executeWave(
-        self: *ComponentTaskGraph,
-        ids: []const ComponentTaskId,
-        budget: work_pool.WorkerBudget,
-        lease: ?*work_pool.WorkLease,
-    ) !void {
-        std.debug.assert(ids.len > 0);
-        std.debug.assert(ids.len <= budget.count);
-
-        var envelopes: [work_pool.MAX_WORKERS]RunEnvelope = undefined;
-        for (ids, 0..) |id, index| {
-            const slot = &self.slots[id];
-            slot.status = .running;
-            std.debug.assert(!slot.submitted);
-            slot.submitted = true;
-            _ = self.submitted.fetchAdd(1, .monotonic);
-            envelopes[index] = .{
-                .graph = self,
-                .id = id,
-                .visible_budget = if (slot.class == .pool_exclusive)
-                    budget
-                else
-                    work_pool.WorkerBudget.serial(),
-                .exclusive_lease = if (slot.class == .pool_exclusive)
-                    lease
-                else
-                    null,
-            };
-        }
-
-        var wait_group = std.Thread.WaitGroup{};
-        if (ids.len > 1) {
-            const active_lease = lease orelse return error.WorkPoolRequired;
-            for (envelopes[1..ids.len]) |*envelope| {
-                try active_lease.spawnWg(
-                    &wait_group,
-                    runEnvelope,
-                    .{@as(*RunEnvelope, envelope)},
-                );
-            }
-        }
-        runEnvelope(&envelopes[0]);
-        wait_group.wait();
-        if (ids.len > 1) lease.?.completeWave();
-    }
-
-    fn terminalCount(self: *const ComponentTaskGraph) usize {
-        var count: usize = 0;
-        for (self.slots[0..self.count]) |slot| {
-            switch (slot.status) {
-                .done, .failed, .cancelled => count += 1,
-                else => {},
-            }
-        }
-        return count;
-    }
-
-    fn cancelQueued(self: *ComponentTaskGraph) void {
-        for (self.slots[0..self.count]) |*slot| {
-            if (slot.status == .pending or slot.status == .ready) {
-                slot.status = .cancelled;
-                slot.finished = true;
-                slot.cleanup_complete = true;
-                _ = self.unsubmitted_cancelled.fetchAdd(1, .monotonic);
-            }
-        }
-    }
-
-    fn firstFailure(self: *const ComponentTaskGraph) ?anyerror {
-        var selected_key: ?TaskKey = null;
-        var selected_error: ?anyerror = null;
-        for (self.slots[0..self.count]) |slot| {
-            const failure = slot.failure orelse continue;
-            if (selected_key == null or slot.key.lessThan(selected_key.?)) {
-                selected_key = slot.key;
-                selected_error = failure;
-            }
-        }
-        return selected_error;
+        return task_graph_execution.execute(self, options);
     }
 };
-
-const ResourceAdmission = struct {
-    fixed_resident_bytes: usize,
-    worker_stack_bytes: usize,
-    submission_bytes: usize,
-    baseline_bytes: usize,
-    scratch_budget: usize,
-};
-
-const RunEnvelope = struct {
-    graph: *ComponentTaskGraph,
-    id: ComponentTaskId,
-    visible_budget: work_pool.WorkerBudget,
-    exclusive_lease: ?*work_pool.WorkLease,
-};
-
-fn runEnvelope(envelope: *RunEnvelope) void {
-    const graph = envelope.graph;
-    const slot = &graph.slots[envelope.id];
-    if (graph.cancellation.isCancelled()) {
-        slot.status = .cancelled;
-        slot.finished = true;
-        slot.cleanup_complete = true;
-        _ = graph.cancelled.fetchAdd(1, .monotonic);
-        _ = graph.finished.fetchAdd(1, .release);
-        return;
-    }
-
-    if (slot.started) {
-        _ = graph.duplicate_starts.fetchAdd(1, .monotonic);
-    }
-    slot.started = true;
-    _ = graph.started.fetchAdd(1, .monotonic);
-    const active = graph.active.fetchAdd(1, .monotonic) + 1;
-    updatePeak(&graph.peak_active, active);
-    defer {
-        _ = graph.active.fetchSub(1, .release);
-        if (slot.finished) {
-            _ = graph.duplicate_finishes.fetchAdd(1, .monotonic);
-        }
-        slot.finished = true;
-        slot.cleanup_complete = true;
-        _ = graph.finished.fetchAdd(1, .release);
-    }
-
-    var child_wait_group = std.Thread.WaitGroup{};
-    var context = TaskContext{
-        .user_context = slot.context,
-        .cancellation = &graph.cancellation,
-        .key = slot.key,
-        .worker_budget = envelope.visible_budget,
-        .task_class = slot.class,
-        .exclusive_lease = envelope.exclusive_lease,
-        .child_wait_group = if (slot.class == .pool_exclusive)
-            &child_wait_group
-        else
-            null,
-    };
-    var task_failure: ?anyerror = null;
-    slot.func(&context) catch |failure| {
-        task_failure = failure;
-    };
-    if (task_failure) |failure| {
-        slot.failure = failure;
-        slot.status = .failed;
-        _ = graph.failed.fetchAdd(1, .monotonic);
-        if (graph.cancellation.request()) {
-            graph.cancellation_winner.store(envelope.id, .release);
-        }
-        // Children observe cancellation, and ownership remains live until join.
-        context.joinChildren();
-        return;
-    }
-    // The executor, not the callback, owns the final join on success too.
-    context.joinChildren();
-    slot.status = .done;
-    _ = graph.succeeded.fetchAdd(1, .monotonic);
-}
-
-fn updatePeak(peak: *std.atomic.Value(usize), candidate: usize) void {
-    var observed = peak.load(.monotonic);
-    while (candidate > observed) {
-        if (peak.cmpxchgWeak(
-            observed,
-            candidate,
-            .monotonic,
-            .monotonic,
-        )) |actual| {
-            observed = actual;
-        } else {
-            return;
-        }
-    }
-}
-
-fn readyLessThan(
-    graph: *ComponentTaskGraph,
-    lhs: ComponentTaskId,
-    rhs: ComponentTaskId,
-) bool {
-    const left = graph.slots[lhs];
-    const right = graph.slots[rhs];
-    if (graph.ready_policy == .critical_path) {
-        if (left.remaining_dependency_level != right.remaining_dependency_level) {
-            return left.remaining_dependency_level > right.remaining_dependency_level;
-        }
-        if (left.work_estimate != right.work_estimate) {
-            return left.work_estimate > right.work_estimate;
-        }
-    }
-    return left.key.lessThan(right.key);
-}
 
 fn metadataLessThan(
     graph: *const ComponentTaskGraph,
