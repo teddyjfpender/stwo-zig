@@ -21,8 +21,12 @@ const LookupProgram = prover.air.component_prover.OwnedLookupPolynomialProgram;
 const Poly = prover.air.component_prover.Poly;
 const Trace = prover.air.component_prover.Trace;
 const Accumulator = prover.air.accumulation.DomainEvaluationAccumulator;
+const ColumnAccumulator = prover.air.accumulation.ColumnAccumulator;
+const PreparedDomainEvaluation = prover.air.prepared_domain.PreparedDomainEvaluation;
+const TaskContext = prover.task_graph.TaskContext;
 
 const evaluate = composition.evaluate;
+const evaluateWithExecution = composition.evaluateWithExecution;
 const telemetrySnapshot = composition.telemetrySnapshot;
 
 fn denominatorScalars(eval_log_size: u32) ![2]M31 {
@@ -96,6 +100,9 @@ const DifferentialPair = struct {
     relation_z: QM31,
     relation_alpha: QM31,
     claim: QM31,
+    legacy_semantic_calls: ?*std.atomic.Value(usize) = null,
+    prepared_semantic_calls: ?*std.atomic.Value(usize) = null,
+    prepared_semantic_runs: ?*std.atomic.Value(usize) = null,
 
     fn cast(ctx: *const anyopaque) *const DifferentialPair {
         return @ptrCast(@alignCast(ctx));
@@ -125,6 +132,7 @@ const DifferentialPair = struct {
                     .export_program = exportSemanticProgram,
                 },
             },
+            .prepare_domain_evaluator = prepareSemanticDomain,
         };
     }
 
@@ -255,6 +263,7 @@ const DifferentialPair = struct {
         accumulator: *Accumulator,
     ) !void {
         const self = cast(ctx);
+        if (self.legacy_semantic_calls) |calls| _ = calls.fetchAdd(1, .monotonic);
         const eval_log_size = self.trace_log_size + 1;
         const row_count = @as(usize, 1) << @intCast(eval_log_size);
         const main = trace.polys.items[1];
@@ -314,6 +323,96 @@ const DifferentialPair = struct {
         }
     }
 
+    const PreparedSemanticState = struct {
+        allocator: std.mem.Allocator,
+        owner: *const DifferentialPair,
+        main_0: []const M31,
+        main_1: []const M31,
+        is_active: []const M31,
+        denominators: [2]M31,
+        column_accumulators: []ColumnAccumulator,
+
+        const vtable = prover.air.prepared_domain.VTable{
+            .run = runErased,
+            .deinit = deinitErased,
+        };
+
+        fn runErased(context: *anyopaque, task_context: *TaskContext) !void {
+            const self: *@This() = @ptrCast(@alignCast(context));
+            if (self.owner.prepared_semantic_runs) |runs| {
+                _ = runs.fetchAdd(1, .monotonic);
+            }
+            const column = &self.column_accumulators[0];
+            for (self.main_0, self.main_1, self.is_active, 0..) |lhs, rhs, active, row| {
+                if (task_context.isCancelled()) return;
+                const constraint = lhs.mul(rhs).sub(active);
+                column.accumulate(
+                    row,
+                    column.random_coeff_powers[0].mulM31(constraint)
+                        .mulM31(self.denominators[@intFromBool(row >= self.main_0.len / 2)]),
+                );
+            }
+        }
+
+        fn deinitErased(context: *anyopaque) void {
+            const self: *@This() = @ptrCast(@alignCast(context));
+            const allocator = self.allocator;
+            allocator.free(self.column_accumulators);
+            allocator.destroy(self);
+        }
+    };
+
+    fn prepareSemanticDomain(
+        ctx: *const anyopaque,
+        allocator: std.mem.Allocator,
+        trace: *const Trace,
+        accumulator: *Accumulator,
+    ) !PreparedDomainEvaluation {
+        const self = cast(ctx);
+        if (self.prepared_semantic_calls) |calls| _ = calls.fetchAdd(1, .monotonic);
+        const eval_log_size = self.trace_log_size + 1;
+        const row_count = @as(usize, 1) << @intCast(eval_log_size);
+        if (trace.polys.items.len < 2 or trace.polys.items[0].len < 2 or
+            trace.polys.items[1].len < 2)
+        {
+            return error.InvalidProofShape;
+        }
+        const main = trace.polys.items[1];
+        const is_active = trace.polys.items[0][1].values;
+        if (main[0].values.len != row_count or main[1].values.len != row_count or
+            is_active.len != row_count)
+        {
+            return error.InvalidProofShape;
+        }
+
+        const denominators = try denominatorScalars(eval_log_size);
+        const state = try allocator.create(PreparedSemanticState);
+        errdefer allocator.destroy(state);
+        const columns = try accumulator.columns(
+            allocator,
+            &.{.{ .log_size = eval_log_size, .n_cols = 1 }},
+        );
+        errdefer allocator.free(columns);
+        state.* = .{
+            .allocator = allocator,
+            .owner = self,
+            .main_0 = main[0].values,
+            .main_1 = main[1].values,
+            .is_active = is_active,
+            .denominators = denominators,
+            .column_accumulators = columns,
+        };
+        return .{
+            .context = state,
+            .vtable = &PreparedSemanticState.vtable,
+            .resources = .{
+                .final_output_bytes = row_count * qm31.SECURE_EXTENSION_DEGREE * @sizeOf(M31),
+                .shared_resident_bytes = @sizeOf(PreparedSemanticState) + @sizeOf(ColumnAccumulator),
+                .worker_stack_bytes = prover.air.prepared_domain.ROW_EVALUATOR_STACK_BYTES,
+            },
+        };
+    }
+
     fn secureAt(columns: []const Poly, row: usize) QM31 {
         return QM31.fromM31(
             columns[0].values[row],
@@ -326,13 +425,21 @@ const DifferentialPair = struct {
 
 test "cpu RISC-V composition: exported adjacent pair matches generic and records admission" {
     const allocator = std.testing.allocator;
-    const eval_log_size: u32 = @intCast(std.math.log2_int(usize, m31.PACK_WIDTH) + 1);
+    // Four 4,096-row accelerator tiles exercise the same canonical plan with
+    // one, two, and four execution lanes below.
+    const eval_log_size: u32 = 14;
     const row_count = @as(usize, 1) << @intCast(eval_log_size);
+    var legacy_semantic_calls: std.atomic.Value(usize) = .init(0);
+    var prepared_semantic_calls: std.atomic.Value(usize) = .init(0);
+    var prepared_semantic_runs: std.atomic.Value(usize) = .init(0);
     const mock = DifferentialPair{
         .trace_log_size = eval_log_size - 1,
         .relation_z = QM31.fromU32Unchecked(3, 5, 7, 11),
         .relation_alpha = QM31.fromU32Unchecked(13, 17, 19, 23),
         .claim = QM31.fromU32Unchecked(29, 31, 37, 41),
+        .legacy_semantic_calls = &legacy_semantic_calls,
+        .prepared_semantic_calls = &prepared_semantic_calls,
+        .prepared_semantic_runs = &prepared_semantic_runs,
     };
 
     const is_first = try allocator.alloc(M31, row_count);
@@ -418,8 +525,108 @@ test "cpu RISC-V composition: exported adjacent pair matches generic and records
     try std.testing.expectEqual(@as(u64, 1), admitted.eligible_pairs);
     try std.testing.expectEqual(@as(u64, 0), admitted.fallback_components);
     try std.testing.expectEqual(@as(u64, 1), admitted.distinct_buckets);
-    try std.testing.expectEqual(@as(u64, 1), admitted.row_tiles);
+    try std.testing.expectEqual(@as(u64, 4), admitted.row_tiles);
+    try std.testing.expectEqual(@as(u64, 1), admitted.execution_lanes);
+    try std.testing.expectEqual(@as(u64, 1), admitted.structured_executions);
+    try std.testing.expectEqual(@as(u64, 1), admitted.max_graph_peak_active);
     try std.testing.expect(admitted.max_scratch_bytes_per_worker != 0);
+    try std.testing.expectEqual(@as(usize, 1), legacy_semantic_calls.load(.monotonic));
+    try std.testing.expectEqual(@as(usize, 0), prepared_semantic_calls.load(.monotonic));
+    try std.testing.expectEqual(@as(usize, 0), prepared_semantic_runs.load(.monotonic));
+
+    for ([_]usize{ 2, 4 }) |worker_count| {
+        var pool: prover.work_pool.WorkPool = undefined;
+        try pool.initInPlaceWithOptions(.{
+            .worker_count = worker_count,
+            .stack_size = prover.air.prepared_domain.ROW_EVALUATOR_STACK_BYTES,
+        });
+        defer pool.deinit();
+        const explicit_before = telemetrySnapshot();
+        var explicit = (try evaluateWithExecution(
+            allocator,
+            components[0..],
+            random_coeff,
+            &trace,
+            .{
+                .worker_budget = try prover.work_pool.WorkerBudget.init(worker_count),
+                .pool = &pool,
+            },
+        )).?;
+        defer explicit.deinit(allocator);
+        inline for (0..qm31.SECURE_EXTENSION_DEGREE) |coordinate| {
+            for (reference.columns[coordinate], explicit.columns[coordinate]) |expected, actual| {
+                try std.testing.expect(expected.eql(actual));
+            }
+        }
+        const explicit_snapshot = telemetrySnapshot().delta(explicit_before);
+        try std.testing.expectEqual(@as(u64, 4), explicit_snapshot.row_tiles);
+        try std.testing.expectEqual(@as(u64, @intCast(worker_count)), explicit_snapshot.execution_lanes);
+        try std.testing.expectEqual(@as(u64, 0), explicit_snapshot.pool_lease_declines);
+        try std.testing.expect(explicit_snapshot.max_graph_peak_active >= worker_count);
+    }
+
+    const finite_budget_before = telemetrySnapshot();
+    try std.testing.expectError(
+        error.FiniteCompositionByteBudgetUnsupported,
+        evaluateWithExecution(
+            allocator,
+            components[0..],
+            random_coeff,
+            &trace,
+            .{ .byte_budget = 1 },
+        ),
+    );
+    const finite_budget_snapshot = telemetrySnapshot().delta(finite_budget_before);
+    try std.testing.expectEqual(@as(u64, 1), finite_budget_snapshot.finite_budget_rejections);
+
+    // Strict callers observe lease contention before any task starts. The
+    // compatibility wrapper may reuse the already-prepared graph serially,
+    // and must report that it did not honor the requested parallel lease.
+    var contention_pool: prover.work_pool.WorkPool = undefined;
+    try contention_pool.initInPlaceWithOptions(.{
+        .worker_count = 2,
+        .stack_size = prover.air.prepared_domain.ROW_EVALUATOR_STACK_BYTES,
+    });
+    defer contention_pool.deinit();
+    var competing_lease = try contention_pool.acquire(
+        try prover.work_pool.WorkerBudget.init(2),
+    );
+    defer competing_lease.deinit();
+    try std.testing.expectError(
+        error.WorkerBudgetUnavailable,
+        evaluateWithExecution(
+            allocator,
+            components[0..],
+            random_coeff,
+            &trace,
+            .{
+                .worker_budget = try prover.work_pool.WorkerBudget.init(2),
+                .pool = &contention_pool,
+            },
+        ),
+    );
+    const contention_before = telemetrySnapshot();
+    var contention_fallback = (try evaluateWithExecution(
+        allocator,
+        components[0..],
+        random_coeff,
+        &trace,
+        .{
+            .worker_budget = try prover.work_pool.WorkerBudget.init(2),
+            .pool = &contention_pool,
+            .serial_on_contention = true,
+        },
+    )).?;
+    defer contention_fallback.deinit(allocator);
+    inline for (0..qm31.SECURE_EXTENSION_DEGREE) |coordinate| {
+        try std.testing.expectEqualSlices(
+            M31,
+            reference.columns[coordinate],
+            contention_fallback.columns[coordinate],
+        );
+    }
+    const contention_snapshot = telemetrySnapshot().delta(contention_before);
+    try std.testing.expectEqual(@as(u64, 1), contention_snapshot.pool_lease_declines);
 
     const mismatched = [_]Component{
         mock.semanticComponent(),
@@ -436,6 +643,13 @@ test "cpu RISC-V composition: exported adjacent pair matches generic and records
     try std.testing.expectEqual(@as(u64, 1), declined.attempts);
     try std.testing.expectEqual(@as(u64, 0), declined.admissions);
     try std.testing.expectEqual(@as(u64, 1), declined.declines);
+    try std.testing.expect(try evaluateWithExecution(
+        allocator,
+        mismatched[0..],
+        random_coeff,
+        &trace,
+        .{ .byte_budget = 1 },
+    ) == null);
 
     var fallback_semantic = mock.semanticComponent();
     fallback_semantic.backend_composition_capability = null;
@@ -454,6 +668,7 @@ test "cpu RISC-V composition: exported adjacent pair matches generic and records
         &trace,
     );
     defer mixed_reference.deinit(allocator);
+    const legacy_calls_before_acceleration = legacy_semantic_calls.load(.monotonic);
 
     const mixed_before = telemetrySnapshot();
     var mixed_accelerated = (try evaluate(
@@ -475,5 +690,42 @@ test "cpu RISC-V composition: exported adjacent pair matches generic and records
     try std.testing.expectEqual(@as(u64, 1), mixed_snapshot.eligible_pairs);
     try std.testing.expectEqual(@as(u64, 1), mixed_snapshot.fallback_components);
     try std.testing.expectEqual(@as(u64, 1), mixed_snapshot.distinct_buckets);
-    try std.testing.expectEqual(@as(u64, 1), mixed_snapshot.row_tiles);
+    try std.testing.expectEqual(@as(u64, 4), mixed_snapshot.row_tiles);
+    try std.testing.expectEqual(@as(u64, 1), mixed_snapshot.execution_lanes);
+    try std.testing.expectEqual(@as(u64, 1), mixed_snapshot.structured_executions);
+    try std.testing.expectEqual(@as(u64, 1), mixed_snapshot.prepared_fallback_components);
+    try std.testing.expectEqual(@as(u64, 0), mixed_snapshot.coordinator_fallback_components);
+    try std.testing.expectEqual(
+        legacy_calls_before_acceleration,
+        legacy_semantic_calls.load(.monotonic),
+    );
+    try std.testing.expectEqual(@as(usize, 1), prepared_semantic_calls.load(.monotonic));
+    try std.testing.expectEqual(@as(usize, 1), prepared_semantic_runs.load(.monotonic));
+
+    for ([_]usize{ 2, 4 }) |worker_count| {
+        var pool: prover.work_pool.WorkPool = undefined;
+        try pool.initInPlaceWithOptions(.{
+            .worker_count = worker_count,
+            .stack_size = prover.air.prepared_domain.ROW_EVALUATOR_STACK_BYTES,
+        });
+        defer pool.deinit();
+        var parallel_mixed = (try evaluateWithExecution(
+            allocator,
+            mixed[0..],
+            random_coeff,
+            &trace,
+            .{
+                .worker_budget = try prover.work_pool.WorkerBudget.init(worker_count),
+                .pool = &pool,
+            },
+        )).?;
+        defer parallel_mixed.deinit(allocator);
+        inline for (0..qm31.SECURE_EXTENSION_DEGREE) |coordinate| {
+            try std.testing.expectEqualSlices(
+                M31,
+                mixed_reference.columns[coordinate],
+                parallel_mixed.columns[coordinate],
+            );
+        }
+    }
 }
