@@ -24,9 +24,12 @@ pub const resident_storage = @import("resident_storage.zig");
 pub const measurement = @import("measurement/mod.zig");
 pub const execution = @import("execution/mod.zig");
 
-test "api signature: engine reexports the stable transaction contract" {
+test {
     _ = @import("task_graph_nested_test.zig");
     _ = @import("task_graph_work_pool_test.zig");
+}
+
+test "api signature: engine reexports the stable transaction contract" {
     comptime {
         if (engine.ProveOptions != prover_api.ProveOptions) {
             @compileError("engine ProveOptions drifted from stwo_prover_api");

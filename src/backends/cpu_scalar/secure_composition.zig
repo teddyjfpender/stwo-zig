@@ -172,15 +172,14 @@ pub fn evaluateLargeRecurrenceComposition(
     if (adjusted.worker_budget.count > 1 and adjusted.pool == null) {
         return error.WorkPoolRequired;
     }
-    const helper_stack_bytes = if (adjusted.pool) |pool| try std.math.mul(
-        usize,
-        pool.stackSize(),
-        adjusted.worker_budget.helperCount(),
-    ) else 0;
+    const helper_resident_bytes = if (adjusted.pool) |pool|
+        try pool.helperReservationBytes(adjusted.worker_budget)
+    else
+        0;
     if (try requiredHostBytes(
         shape,
         @min(adjusted.worker_budget.count, packed_rows),
-        helper_stack_bytes,
+        helper_resident_bytes,
     ) >
         execution.host_byte_budget)
     {
@@ -285,7 +284,7 @@ pub fn evaluateLargeRecurrenceComposition(
 fn requiredHostBytes(
     shape: RecurrenceShape,
     worker_count: usize,
-    helper_stack_bytes: usize,
+    helper_resident_bytes: usize,
 ) !usize {
     var total: usize = 0;
     inline for (.{
@@ -299,7 +298,7 @@ fn requiredHostBytes(
         total = std.math.add(usize, total, bytes) catch
             return error.ResourceReservationOverflow;
     }
-    return std.math.add(usize, total, helper_stack_bytes) catch
+    return std.math.add(usize, total, helper_resident_bytes) catch
         error.ResourceReservationOverflow;
 }
 
@@ -358,14 +357,15 @@ test "secure composition host accounting is closed over owned buffers" {
         .constraint_count = 32,
         .eval_log_size = 10,
     };
-    const helper_stack_bytes: usize = 3 * 128 * 1024;
+    const helper_resident_bytes: usize = 3 *
+        (128 * 1024 + prover.work_pool.STRUCTURED_JOB_RESERVATION_BYTES);
     const expected = shape.constraint_count * @sizeOf(QM31) +
         shape.constraint_count * @sizeOf(PackedPower) +
         shape.row_count * qm31.SECURE_EXTENSION_DEGREE * @sizeOf(M31) +
-        4 * @sizeOf(Worker) + helper_stack_bytes;
+        4 * @sizeOf(Worker) + helper_resident_bytes;
     try std.testing.expectEqual(
         expected,
-        try requiredHostBytes(shape, 4, helper_stack_bytes),
+        try requiredHostBytes(shape, 4, helper_resident_bytes),
     );
 }
 

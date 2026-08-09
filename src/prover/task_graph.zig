@@ -61,6 +61,7 @@ pub const ExecuteOptions = struct {
 pub const ExecutionReport = struct {
     configured_workers: usize,
     admitted_worker_stack_bytes: usize,
+    admitted_submission_bytes: usize,
     fixed_resident_bytes: usize,
     submitted_tasks: usize,
     succeeded_tasks: usize,
@@ -138,6 +139,7 @@ pub const ComponentTaskGraph = struct {
     peak_active: std.atomic.Value(usize) = .init(0),
     configured_workers: usize = 0,
     admitted_worker_stack_bytes: usize = 0,
+    admitted_submission_bytes: usize = 0,
     fixed_resident_bytes: usize = 0,
     peak_reserved_bytes: usize = 0,
 
@@ -225,6 +227,7 @@ pub const ComponentTaskGraph = struct {
         return .{
             .configured_workers = self.configured_workers,
             .admitted_worker_stack_bytes = self.admitted_worker_stack_bytes,
+            .admitted_submission_bytes = self.admitted_submission_bytes,
             .fixed_resident_bytes = self.fixed_resident_bytes,
             .submitted_tasks = self.submitted.load(.acquire),
             .succeeded_tasks = self.succeeded.load(.acquire),
@@ -315,6 +318,7 @@ pub const ComponentTaskGraph = struct {
         self.ready_policy = options.ready_policy;
         self.configured_workers = options.worker_budget.count;
         self.admitted_worker_stack_bytes = admission.worker_stack_bytes;
+        self.admitted_submission_bytes = admission.submission_bytes;
         self.fixed_resident_bytes = admission.fixed_resident_bytes;
         self.peak_reserved_bytes = admission.baseline_bytes;
         if (self.count == 0) return self.report();
@@ -431,10 +435,20 @@ pub const ComponentTaskGraph = struct {
             options.worker_budget.helperCount(),
             stack_size,
         ) catch return error.ResourceReservationOverflow;
+        const submission_bytes = std.math.mul(
+            usize,
+            options.worker_budget.helperCount(),
+            work_pool.STRUCTURED_JOB_RESERVATION_BYTES,
+        ) catch return error.ResourceReservationOverflow;
+        const helper_resident_bytes = std.math.add(
+            usize,
+            worker_stack_bytes,
+            submission_bytes,
+        ) catch return error.ResourceReservationOverflow;
         const baseline_bytes = std.math.add(
             usize,
             fixed_resident_bytes,
-            worker_stack_bytes,
+            helper_resident_bytes,
         ) catch return error.ResourceReservationOverflow;
         if (baseline_bytes > options.byte_budget) {
             return error.TaskMemoryBudgetExceeded;
@@ -448,6 +462,7 @@ pub const ComponentTaskGraph = struct {
         return .{
             .fixed_resident_bytes = fixed_resident_bytes,
             .worker_stack_bytes = worker_stack_bytes,
+            .submission_bytes = submission_bytes,
             .baseline_bytes = baseline_bytes,
             .scratch_budget = scratch_budget,
         };
@@ -565,6 +580,7 @@ pub const ComponentTaskGraph = struct {
 const ResourceAdmission = struct {
     fixed_resident_bytes: usize,
     worker_stack_bytes: usize,
+    submission_bytes: usize,
     baseline_bytes: usize,
     scratch_budget: usize,
 };

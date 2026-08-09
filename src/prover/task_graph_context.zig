@@ -95,5 +95,6 @@ pub const TaskContext = struct {
         self.child_wave_active = false;
         wait_group.wait();
         self.exclusive_lease.?.completeWave();
+        wait_group.reset();
     }
 };

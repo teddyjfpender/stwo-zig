@@ -432,15 +432,23 @@ test "component task graph byte reservations backpressure ready tasks" {
     const report = try graph.execute(.{
         .worker_budget = try work_pool.WorkerBudget.init(2),
         .pool = &pool,
-        .byte_budget = TEST_STACK_SIZE + 10,
+        .byte_budget = TEST_STACK_SIZE +
+            work_pool.STRUCTURED_JOB_RESERVATION_BYTES + 10,
     });
     try std.testing.expectEqual(
-        @as(usize, TEST_STACK_SIZE + 6),
+        @as(
+            usize,
+            TEST_STACK_SIZE + work_pool.STRUCTURED_JOB_RESERVATION_BYTES + 6,
+        ),
         report.peak_reserved_bytes,
     );
     try std.testing.expectEqual(
         @as(usize, TEST_STACK_SIZE),
         report.admitted_worker_stack_bytes,
+    );
+    try std.testing.expectEqual(
+        work_pool.STRUCTURED_JOB_RESERVATION_BYTES,
+        report.admitted_submission_bytes,
     );
     try std.testing.expectEqual(@as(usize, 1), report.peak_active_tasks);
 }
@@ -498,6 +506,7 @@ test "component task graph admits all five resource classes with checked stacks"
     const report = try graph.execute(.{ .byte_budget = 26 });
     try std.testing.expectEqual(@as(usize, 15), report.fixed_resident_bytes);
     try std.testing.expectEqual(@as(usize, 0), report.admitted_worker_stack_bytes);
+    try std.testing.expectEqual(@as(usize, 0), report.admitted_submission_bytes);
     try std.testing.expectEqual(@as(usize, 26), report.peak_reserved_bytes);
 
     var pool: work_pool.WorkPool = undefined;
