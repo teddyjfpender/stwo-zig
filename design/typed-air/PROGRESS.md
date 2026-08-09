@@ -5,8 +5,8 @@
 **Current milestone:** M7 — parallel proving
 **Active task:** R-001 — prepared composition scheduler slice
 **Next ready task:** C-007 — guest precompile main-trace construction
-**Current acceptance gate:** full-security frozen-corpus proof differential plus
-R-005 telemetry and a normative R-006 receipt
+**Current acceptance gate:** full-security frozen-corpus proof differential,
+request-bound R-005 telemetry completion, and a normative R-006 receipt
 **Known formal blocker:** the M3 refinement pilot still has the five stale
 generated artifacts recorded in the M3 receipt; no reviewed regeneration or
 current-HEAD receipt closes that blocker
@@ -22,7 +22,7 @@ current-HEAD receipt closes that blocker
 | M4 — Poseidon compiler pilot | complete | H-001 through H-010 and V-006 complete; no layout selected |
 | M5 — effect and witness pilot | ready | E-001 through E-003 complete; opcode authorship, generated witnesses, proof gates, and authority switch remain open |
 | M6 — guest precompile | ready | C-001 through C-006 complete; no guest main/interaction trace or one-proof verification yet |
-| M7 — parallel proving | active | Production RISC-V CPU composition is scheduled; selected prepared domains are row-sharded and closed plans admit finite budgets. Full-security frozen-corpus parity, R-005 telemetry, broader stage coverage, and normative R-006 evidence remain open |
+| M7 — parallel proving | active | Production RISC-V CPU composition is scheduled and emits a flat bounded-task profile; selected prepared domains are row-sharded and closed plans admit finite budgets. Full-security frozen-corpus parity, complete R-005 attribution/request timing, broader stage coverage, and normative R-006 evidence remain open |
 | M8 — broad migration | queued | No opcode family has switched generated-witness authority; E-014/E-015 remain open |
 | M9 — recursive aggregation | deferred | ADR-0030 and a native reference exist only as proposed/test authority; no recursive proof or verifier exists |
 
@@ -373,6 +373,21 @@ current-HEAD receipt closes that blocker
   at `N = 1` for `multi_shard_addi` and Poseidon field16. The exact identities
   and the separate controlled timing checkpoint are recorded in
   [the M7 development note](performance/m7-composition-checkpoint-2026-08-09.md).
+- Commits `dc8617f3`, `0d5c4a26`, and `5f4dc56c` define and render a stable flat
+  task-profile schema that distinguishes exact outer-task activity from
+  physical-worker activity that is unobservable inside pool-exclusive child
+  waves. Commit `e73c5e8b` captures exact-capacity task graphs with prelaunch
+  reservation, unique event-slot writes, canonical post-join publication,
+  checked accounting, and a timestamp-ready cancellation handshake. Commit
+  `a1fc6786` propagates the existing proof recorder through generic and RISC-V
+  CPU composition without changing the public proof request.
+- The final development-profile `multi_shard_addi` proof remains exactly
+  161,274 canonical bytes with SHA-256
+  `f367ca04d554a9d00d32c9279795b8e26032f4211a453074daa91211a9084293`
+  at one, two, and four workers. A profiled four-worker proof verifies and
+  publishes one 15-event graph with exact closed task accounting. The focused
+  prover API, prover, CPU, and benchmark CLI suites pass in Debug,
+  ReleaseSafe, and ReleaseFast.
 - Commit `a928c9fa` implements a native serialization and tree reference for
   ADR-0030. The ADR remains proposed and the code is test authority only: no
   leaf proof authenticates the summary, no recursive verifier consumes it, and
@@ -393,9 +408,13 @@ current-HEAD receipt closes that blocker
   generic/RISC-V plans, including coordinator heap and reserved helper stacks
   and submission envelopes. Unprepared and non-heap scratch/device plans reject
   finite caps.
-- Structural graph/RISC-V/shard counters and a controlled checkpoint exist.
-  The R-005 queue/run/wait/memory report and protocol-complete R-006 receipt do
-  not.
+- The bounded composition graph now reports canonical task events, dependency
+  readiness, admission/queue/resource wait, outer-task run time, declared byte
+  classes, coarse completed rows/tiles, cancellation, and closed summary
+  accounting. R-005 remains open because full-request duration, semantic
+  attribution for fused lanes, exact nested physical-worker work, and broader
+  prover-stage coverage are not yet available; the R-006 receipt also remains
+  open.
 - The independent M3 release blocker remains: the refinement pilot recorded
   drift in five committed generated artifacts after a successful 120-job Lean
   build. This ledger update neither regenerates nor accepts those artifacts.
@@ -406,9 +425,9 @@ current-HEAD receipt closes that blocker
    corpus and full-security profile, including statement, geometry,
    complete-column, relation, transcript, proof-byte, verifier, and cleanup
    checks required by ADR-0027.
-2. R-001/R-005 — extend prepared sharding and closed resource accounting beyond
-   the current three row-sharded families and expose queue/run/wait/memory
-   telemetry without adding hot-loop allocation.
+2. R-001/R-005 — bind graph captures to the verified-request envelope, add
+   semantic attribution for fused lanes and exact nested-worker evidence, and
+   extend prepared sharding/resource closure beyond the current families.
 3. R-005/R-006 — capture the authenticated raw attempt bundle and
    validator-recomputed normative receipt under the frozen M5--M9 protocol.
 
@@ -491,7 +510,7 @@ Pending:
 | Typed DSL becomes stringly or magical | Canon relation/effect rules and constructor validation |
 | Poseidon pilot becomes a toy | Exact 445-column production component target |
 | Precompile weakens base-RV32IM claim | Accepted profile-separated ABI and artifact identity; C-007 through C-009 must still prove the extension path |
-| Parallelism hides total cost | Frozen M5--M9 performance protocol; no M7 verdict until full R-005 telemetry and a protocol-complete R-006 capture exist; the controlled checkpoint is diagnostic only |
+| Parallelism hides total cost | Frozen M5--M9 performance protocol; flat composition telemetry is graph-local and excludes unobserved nested-worker/profile-allocation cost, so no M7 verdict exists until R-005 closes and a protocol-complete R-006 capture passes |
 | Prepared tests are mistaken for production scheduling | Ledger requires a full-security frozen-corpus proof differential and separates the controlled production-path checkpoint from a normative receipt |
 | Recursion balances detached calls | ADR-0030 remains proposed and requires shared session challenges plus authenticated leaf summaries |
 | Hint callback or output drifts silently | Closed versioned registry and checked proof paths |
@@ -539,6 +558,14 @@ backing-allocation-free. Large prepared memory-hash, lookup-table, and
 opcode-lookup domains split into aligned row ranges, and finite closed plans
 charge coordinator heap plus reserved helper stacks and submission envelopes.
 Those are implementation bounds, not a promotion verdict.
+
+The bounded graph now also has an opt-in, allocation-before-launch flat profile.
+It reports exact task accounting and canonical events without a shared worker
+append. `graph_elapsed_ns` is deliberately graph-local; task peak/run metrics
+remain exact while physical-worker peak/busy metrics are absent for graphs
+containing uninstrumented pool-exclusive child work. Declared task-resource
+peaks exclude recorder storage and are not RSS evidence. These boundaries are
+part of the schema contract, not presentation caveats.
 
 A controlled development comparison at clean candidate `72527052` versus
 `4232cc55` used 12 excluded warmups, 60 measured samples, five interleaved
@@ -1205,6 +1232,46 @@ because the full-security frozen corpus, broader component/stage coverage,
 R-005 queue/run/wait/memory telemetry, authenticated raw attempts, and the
 validator-recomputed R-006 receipt remain open. The five stale M3 formal
 artifacts also remain an independent release blocker.
+
+### 2026-08-09 — bounded composition task profiles are live
+
+The ledger advances through implementation head `a1fc6786`. Commits
+`dc8617f3`, `0d5c4a26`, and `5f4dc56c` establish the public flat task-profile
+schema and deterministic renderer. Commit `e73c5e8b` adds exact-capacity graph
+capture with allocation before launch, preassigned event slots, canonical
+post-join publication, checked accounting, and a timestamp-ready cancellation
+handshake. Commit `a1fc6786` carries the recorder through generic prepared and
+specialized RISC-V CPU composition while leaving the public proof request and
+proof protocol unchanged.
+
+The focused prover API, prover, CPU backend, and benchmark suites pass in
+Debug, ReleaseSafe, and ReleaseFast; the 21-package/70-edge workspace check and
+diff hygiene pass. A ReleaseFast `multi_shard_addi` proof at reduced security
+verifies with exactly 161,274 canonical bytes and SHA-256
+`f367ca04d554a9d00d32c9279795b8e26032f4211a453074daa91211a9084293`
+at `N = 1/2/4`. Its profiled four-worker run publishes one canonical 15-event
+graph with 15 planned, submitted, and completed tasks, zero failed, cancelled,
+unsubmitted, or duplicate terminals, 12 component aggregates, and four peak
+active outer tasks. Pool-exclusive nested work makes physical-worker peak and
+busy time correctly absent rather than estimated. The full RISC-V CPU product
+lane remains at 1,205/1,212 with seven expected Sail skips and only the known
+stale canonical production-AIR source binding failure.
+
+A five-pair, alternating-order ReleaseFast regression screen against clean
+predecessor `5f4dc56c`, with profiling disabled, is directionally flat. Median
+prove/total deltas are -0.031%/+0.056% at `N = 1` and +0.346%/+0.255% at
+`N = 4`. On the candidate, enabling the optional recorder changes median
+prove/total time by +0.098%/+0.082% at `N = 1` and +1.240%/+1.895% at `N = 4`.
+These timings are diagnostic only: they have no A/A calibration, full-security
+corpus, retained raw bundle, CI isolation, RSS, or hardware-counter evidence.
+
+R-001 and M7 remain active, and R-005/R-006 remain open. The profile does not
+yet cover full verified-request duration, exact physical activity inside
+pool-exclusive child waves, semantic attribution within fused RISC-V lanes,
+recurrence/device/legacy work, or every dominant prover stage. Recorder memory
+is also excluded from declared task-resource peaks. Those boundaries, the
+full-security frozen corpus, and a validator-recomputed normative receipt must
+close before any promotion or completion claim.
 
 ## Update protocol
 

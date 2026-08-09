@@ -180,17 +180,40 @@ schedules admitted tile lanes and prepared fallbacks through the bounded graph.
 Large prepared memory-hash, lookup-table, and opcode-lookup domains subdivide
 into aligned row ranges under pool-exclusive leases. Closed prepared plans
 enforce finite host budgets across coordinator heap plus reserved helper stacks
-and submission envelopes. This remains an active implementation slice, not
-R-001 or M7 completion:
+and submission envelopes.
+
+The bounded graph also has an opt-in flat task capture. It reserves exact event
+and component-work storage only after lease admission, gives each worker one
+preassigned event slot, joins all work before canonical `TaskKey` publication,
+and validates the published terminal counts against the scheduler's
+cancellation/accounting handshake. Each event carries exact
+ready-to-submission admission wait, submission-to-start queue wait, callback run
+time, resource wait, completed rows or tiles, and the five declared memory
+classes. The graph summary retains requested, admitted, and pool-capacity
+widths, exact terminal and duplicate counts, graph-local elapsed and DAG
+critical-path time, and declared peak-reserved bytes. It does not relabel that
+graph-local interval as verified-request duration. Physical-worker peak and
+busy time remain nullable when a `pool_exclusive` callback launches child work
+that is not yet instrumented exactly.
+
+This is implementation groundwork for R-005, not its report-level acceptance,
+and remains an active implementation slice rather than R-001 or M7 completion:
 
 - the opt-in proof-identity reporter establishes exact predecessor/current
   `N = 1` and current `N = 1/2/4` equality for two development-profile
   workloads, but the frozen corpus and full-security differential remain open;
+- generic prepared-composition correctness covers `N = 1/2/4`, its exact flat
+  profile covers `N = 1/4`, and its compatibility-contention test proves that a
+  declined parallel lease publishes only the admitted serial retry while
+  preserving request identity. The specialized RISC-V flat profile covers
+  `N = 1/2/4` plus the same compatibility handshake;
 - row sharding currently covers memory-hash, lookup-table, and opcode-lookup
   prepared domains, not every dominant component or prover stage;
-- structural scheduler/shard telemetry and a controlled `N = 1/2/4`
-  checkpoint exist, but the R-005 queue/run/wait/memory report and normative
-  R-006 receipt do not; and
+- fused RISC-V pair lanes are truthfully reported as a synthetic aggregate, so
+  complete semantic per-component attribution across all stages is still open;
+- complete verified-request duration, full-corpus task capture, receipt wiring,
+  and the normative R-006 attempt bundle and validator-recomputed receipt remain
+  open; and
 - finite budgets fail closed for unprepared fallbacks and non-heap scratch or
   device-resident plans, so broader resource closure remains open.
 

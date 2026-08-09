@@ -73,6 +73,127 @@ is a correctness-only diagnostic and was deliberately excluded from all
 timing runs, so encoding and hashing costs do not contaminate the performance
 comparison.
 
+## Flat task-profile checkpoint — non-promotional
+
+The later commit sequence below adds graph-local observability without changing
+the proof request or proof protocol:
+
+- `dc8617f3` defines the independently versioned flat task-profile schema and
+  exact-capacity recorder reservation;
+- `0d5c4a26` renders its raw integer authority in the RISC-V benchmark console;
+- `5f4dc56c` distinguishes exact outer-task activity from physical-worker
+  activity that cannot be observed inside pool-exclusive child waves;
+- `e73c5e8b` captures bounded task graphs into canonical post-join events with
+  checked accounting and cancellation causality; and
+- `a1fc6786` publishes generic and RISC-V CPU composition through the existing
+  opt-in proof recorder.
+
+This is a flat-task-profile development checkpoint, not a new timing baseline
+and not an M7 or R-006 receipt.
+
+### Exact proof identity and observed graph
+
+For `multi_shard_addi` under the development profile, the verified canonical
+proof identity remained byte-for-byte identical at every exercised worker
+count:
+
+| Workers | Canonical bytes | SHA-256 |
+| ---: | ---: | --- |
+| 1 | 161274 | `f367ca04d554a9d00d32c9279795b8e26032f4211a453074daa91211a9084293` |
+| 2 | 161274 | `f367ca04d554a9d00d32c9279795b8e26032f4211a453074daa91211a9084293` |
+| 4 | 161274 | `f367ca04d554a9d00d32c9279795b8e26032f4211a453074daa91211a9084293` |
+
+The real profiled four-worker proof verified and published one graph with the
+following raw structure. `null` is an intentional statement that physical
+worker activity inside pool-exclusive child waves is not observable; it must
+not be read as zero activity.
+
+| Graph field | Exact value |
+| --- | ---: |
+| Events | 15 |
+| Component aggregates | 12 |
+| Requested / admitted / pool-capacity workers | 4 / 4 / 4 |
+| Peak active outer tasks | 4 |
+| Peak active physical workers | `null` |
+| Physical-worker busy nanoseconds | `null` |
+| Planned / submitted / completed tasks | 15 / 15 / 15 |
+| Failed / submitted-cancelled / unsubmitted-cancelled tasks | 0 / 0 / 0 |
+| Started / finished tasks | 15 / 15 |
+| Duplicate starts / duplicate finishes | 0 / 0 |
+| Scheduler / steal count | `central_queue_no_steal` / 0 |
+| Completed rows | 5964368 |
+| Completed tiles | 33 |
+
+The 15 events are in canonical `TaskKey` order. The 12 component records are
+aggregates, not a second event count: in particular, the fused lane remains one
+component aggregate while its constituent task events remain independently
+visible.
+
+The full RISC-V CPU product test body reached 1,205 passed out of 1,212
+collected tests, with seven expected Sail skips. The enclosing product gate's
+sole remaining failure was the already-recorded stale canonical production-AIR
+source binding. This checkpoint did not regenerate or accept that binding.
+
+### Five-pair predecessor/candidate diagnostic
+
+This diagnostic used five A/B pairs. In the table, A is predecessor
+`5f4dc56c`, B is candidate `a1fc6786`, all times are milliseconds, and the
+relative delta is `(B - A) / A`. These are descriptive central results from the
+five-pair check, not confidence intervals.
+
+| Workers | Metric | A: predecessor | B: candidate | B - A | Relative delta |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 1 | Prove | 1932.9 | 1932.3 | -0.6 | -0.03% |
+| 1 | Total | 2304.7 | 2306.0 | +1.3 | +0.06% |
+| 4 | Prove | 896.6 | 899.7 | +3.1 | +0.35% |
+| 4 | Total | 1058.7 | 1061.4 | +2.7 | +0.26% |
+
+The candidate is effectively flat in this small diagnostic: its one-worker
+prove time is 0.03% lower, while the other reported deltas range from +0.06%
+to +0.35%. This does not establish either a regression or an improvement.
+
+### Five-pair disabled/profiled diagnostic
+
+This second five-pair A/B check used candidate `a1fc6786` on both sides. A had
+flat task profiling disabled and B had it enabled; times and deltas use the
+same conventions as the predecessor/candidate table.
+
+| Workers | Metric | A: disabled | B: profiled | B - A | Relative delta |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 1 | Prove | 1940.8 | 1942.7 | +1.9 | +0.10% |
+| 1 | Total | 2317.8 | 2319.7 | +1.9 | +0.08% |
+| 4 | Prove | 903.3 | 914.5 | +11.2 | +1.24% |
+| 4 | Total | 1065.8 | 1086.0 | +20.2 | +1.90% |
+
+The observed profiled-minus-disabled deltas are +0.10% prove and +0.08% total
+at one worker, and +1.24% prove and +1.90% total at four workers. They are a
+diagnostic estimate of the current opt-in path only; the capture is too small
+and incomplete to serve as an overhead bound.
+
+### Limits of this checkpoint
+
+- This was not a frozen-protocol capture, authenticated raw attempt bundle, or
+  validator-recomputed receipt. It cannot promote M7, R-001, R-005, or R-006.
+- It used the reduced-security development profile, not the required
+  full-security corpus and parameter matrix.
+- Five pairs provide no confidence interval, A/A noise study, or controlled
+  distributional result. No instruction count or RSS comparison was captured
+  for these two diagnostics.
+- Task timestamps and `graph_elapsed_ns` are graph-local. They are not proof
+  duration, end-to-end request duration, or a cross-graph critical path.
+- Recorder-owned profile memory is allocated outside composition admission and
+  is excluded from the graph's resource-byte authority. This checkpoint did
+  not separately measure that memory.
+- Pool-exclusive tasks can execute nested child waves. Consequently,
+  `peak_active_workers` and `worker_busy_ns` are nullable and were `null` in the
+  real four-worker graph even though outer-task concurrency was measured
+  exactly.
+- The fused lane is represented by a component aggregate; aggregate count must
+  not be substituted for event count or physical-worker count.
+- Secure-recurrence kernels, device execution, and legacy backend hooks remain
+  outside this flat composition profile. Their absence is unprofiled scope,
+  not zero work.
+
 ## Promotion boundary
 
 This checkpoint does **not** close M7, R-001, the formal performance-promotion
