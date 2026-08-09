@@ -507,6 +507,7 @@ fn computeBodyDegree(
             ) catch return error.DegreeOverflow,
             .machine_derived => |derived| switch (derived) {
                 .register_address => |address| degrees[types.idIndex(address.index)],
+                .aligned_word_address => |address| degrees[types.idIndex(address.word_index)],
                 .access_clock => |clock| degrees[types.idIndex(clock.instruction_clock)],
                 .strict_clock_gap => |gap| @max(
                     degrees[types.idIndex(gap.current_clock)],
@@ -530,6 +531,7 @@ fn operands(op: expr.Op) [3]?types.ValueId {
         },
         .machine_derived => |derived| switch (derived) {
             .register_address => |address| .{ address.index, null, null },
+            .aligned_word_address => |address| .{ address.word_index, null, null },
             .access_clock => |clock| .{ clock.instruction_clock, null, null },
             .strict_clock_gap => |gap| .{
                 gap.current_clock,

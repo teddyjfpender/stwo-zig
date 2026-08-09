@@ -501,6 +501,7 @@ fn chooseOperand(
         },
         .machine_derived => |derived| switch (derived) {
             .register_address => |address| candidates[0] = address.index,
+            .aligned_word_address => |address| candidates[0] = address.word_index,
             .access_clock => |clock| candidates[0] = clock.instruction_clock,
             .strict_clock_gap => |gap| {
                 const maximum = @max(
@@ -635,6 +636,7 @@ fn computeDegrees(
             ),
             .machine_derived => |derived| switch (derived) {
                 .register_address => |address| degreeOf(degrees, address.index),
+                .aligned_word_address => |address| degreeOf(degrees, address.word_index),
                 .access_clock => |clock| degreeOf(degrees, clock.instruction_clock),
                 .strict_clock_gap => |gap| @max(
                     degreeOf(degrees, gap.current_clock),
@@ -778,6 +780,7 @@ fn operands(op: expr.Op) [3]?types.ValueId {
         },
         .machine_derived => |derived| switch (derived) {
             .register_address => |address| .{ address.index, null, null },
+            .aligned_word_address => |address| .{ address.word_index, null, null },
             .access_clock => |clock| .{ clock.instruction_clock, null, null },
             .strict_clock_gap => |gap| .{
                 gap.current_clock,

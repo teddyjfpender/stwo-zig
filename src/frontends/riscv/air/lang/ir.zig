@@ -367,12 +367,31 @@ pub const Arena = struct {
         }, span);
     }
 
-    /// Derive `4 * (instruction_clock - 1) + ordinal` for one of the three
-    /// protocol access positions. The ordinal is one-based by construction.
+    /// Refine a range-constrained word index into its aligned byte address.
+    /// The fixed load/store plan owns the matching range request; constructing
+    /// this node alone never grants memory-access authority.
+    pub fn alignedWordAddress(
+        self: *Arena,
+        word_index: types.ValueId,
+        span: source_mod.SourceSpan,
+    ) Error!types.ValueId {
+        const index_node = self.node(word_index) orelse return error.UnknownValue;
+        if (!std.meta.eql(index_node.key.ty, types.Type.uint20))
+            return error.InvalidMachineDerivedOperand;
+        return self.internNode(.{
+            .ty = .address,
+            .op = .{ .machine_derived = .{
+                .aligned_word_address = .{ .word_index = word_index },
+            } },
+        }, span);
+    }
+
+    /// Derive `4 * (instruction_clock - 1) + phase` for one of the three
+    /// physical access positions. The phase is one-based by construction.
     pub fn accessClock(
         self: *Arena,
         instruction_clock: types.ValueId,
-        ordinal: types.AccessOrdinal,
+        phase: types.AccessPhase,
         span: source_mod.SourceSpan,
     ) Error!types.ValueId {
         const clock_node = self.node(instruction_clock) orelse
@@ -384,7 +403,7 @@ pub const Arena = struct {
             .op = .{ .machine_derived = .{
                 .access_clock = .{
                     .instruction_clock = instruction_clock,
-                    .ordinal = ordinal,
+                    .phase = phase,
                 },
             } },
         }, span);
@@ -399,7 +418,7 @@ pub const Arena = struct {
         current_clock: types.ValueId,
         previous_clock: types.ValueId,
         active: types.ValueId,
-        ordinal: types.AccessOrdinal,
+        phase: types.AccessPhase,
         span: source_mod.SourceSpan,
     ) Error!types.ValueId {
         const current_node = self.node(current_clock) orelse
@@ -420,7 +439,7 @@ pub const Arena = struct {
             },
             else => return error.InvalidMachineDerivedOperand,
         };
-        if (current.ordinal != ordinal)
+        if (current.phase != phase)
             return error.InvalidMachineDerivedOperand;
         return self.internNode(.{
             .ty = .uint20,
@@ -429,7 +448,7 @@ pub const Arena = struct {
                     .current_clock = current_clock,
                     .previous_clock = previous_clock,
                     .active = active,
-                    .ordinal = ordinal,
+                    .phase = phase,
                 },
             } },
         }, span);
@@ -588,6 +607,17 @@ pub const Arena = struct {
     ) std.mem.Allocator.Error!void {
         try self.effect_values.ensureUnusedCapacity(self.allocator, value_count);
         try self.effects.ensureUnusedCapacity(self.allocator, effect_count);
+    }
+
+    /// Reserve both canonical node stores before a prepared compound append.
+    /// Successful capacity growth is not a logical mutation and may remain
+    /// after a later reservation failure.
+    pub fn ensureUnusedNodeCapacity(
+        self: *Arena,
+        node_count: u32,
+    ) std.mem.Allocator.Error!void {
+        try self.nodes.ensureUnusedCapacity(self.allocator, node_count);
+        try self.interned_nodes.ensureUnusedCapacity(node_count);
     }
 
     pub fn rollbackToEffectCheckpoint(

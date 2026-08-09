@@ -490,9 +490,12 @@ fn evaluate(arena: *const ir.Arena, root: types.ValueId) !u32 {
                 values[types.idIndex(selection.when_false)],
             .machine_derived => |derived| switch (derived) {
                 .register_address => |address| values[types.idIndex(address.index)],
+                .aligned_word_address => |address| reduce(
+                    @as(u64, values[types.idIndex(address.word_index)]) * 4,
+                ),
                 .access_clock => |clock| reduce(
                     (@as(u64, values[types.idIndex(clock.instruction_clock)]) +
-                        modulus - 1) * 4 + @intFromEnum(clock.ordinal),
+                        modulus - 1) * 4 + @intFromEnum(clock.phase),
                 ),
                 .strict_clock_gap => |gap| reduce(
                     @as(u64, values[types.idIndex(gap.current_clock)]) +

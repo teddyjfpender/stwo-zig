@@ -158,6 +158,7 @@ fn operands(op: expr.Op) [3]?types.ValueId {
         },
         .machine_derived => |derived| switch (derived) {
             .register_address => |address| .{ address.index, null, null },
+            .aligned_word_address => |address| .{ address.word_index, null, null },
             .access_clock => |clock| .{ clock.instruction_clock, null, null },
             .strict_clock_gap => |gap| .{
                 gap.current_clock,

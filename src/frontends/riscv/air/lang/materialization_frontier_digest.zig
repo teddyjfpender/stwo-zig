@@ -252,7 +252,8 @@ pub fn computeCutForIdentity(
 
 fn validateTypedSemanticFormat(format: u16) IdentityError!void {
     if (format != semantic.typed_effect_format_version and
-        format != semantic.register_group_format_version)
+        format != semantic.register_group_format_version and
+        format != semantic.memory_access_format_version)
     {
         return error.UnsupportedSemanticDigestFormat;
     }

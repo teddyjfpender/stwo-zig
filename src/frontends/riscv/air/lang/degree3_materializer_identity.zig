@@ -29,6 +29,7 @@ pub const SourceOp = enum(u8) {
     register_address,
     access_clock,
     strict_clock_gap,
+    aligned_word_address,
 };
 
 const maximum_name_length = 112;
@@ -75,7 +76,8 @@ pub fn fingerprintForIdentity(
     if (program_digest_format == digest.format_version)
         return fingerprint(program_digest, value, gate, policy);
     if (program_digest_format != digest.typed_effect_format_version and
-        program_digest_format != digest.register_group_format_version)
+        program_digest_format != digest.register_group_format_version and
+        program_digest_format != digest.memory_access_format_version)
     {
         return error.UnsupportedProgramDigestFormat;
     }
@@ -134,6 +136,7 @@ pub fn sourceOp(op: expr.Op) SourceOp {
         .call_output => .call_output,
         .machine_derived => |derived| switch (derived) {
             .register_address => .register_address,
+            .aligned_word_address => .aligned_word_address,
             .access_clock => .access_clock,
             .strict_clock_gap => .strict_clock_gap,
         },

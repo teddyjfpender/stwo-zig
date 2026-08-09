@@ -29,16 +29,20 @@ pub const RegisterAddress = struct {
     index: types.ValueId,
 };
 
+pub const AlignedWordAddress = struct {
+    word_index: types.ValueId,
+};
+
 pub const AccessClock = struct {
     instruction_clock: types.ValueId,
-    ordinal: types.AccessOrdinal,
+    phase: types.AccessPhase,
 };
 
 pub const StrictClockGap = struct {
     current_clock: types.ValueId,
     previous_clock: types.ValueId,
     active: types.ValueId,
-    ordinal: types.AccessOrdinal,
+    phase: types.AccessPhase,
 };
 
 /// Closed machine refinements whose result type and polynomial meaning are
@@ -48,12 +52,14 @@ pub const MachineDerivedTag = enum(u8) {
     register_address = 0,
     access_clock = 1,
     strict_clock_gap = 2,
+    aligned_word_address = 3,
 };
 
 pub const MachineDerived = union(MachineDerivedTag) {
     register_address: RegisterAddress,
     access_clock: AccessClock,
     strict_clock_gap: StrictClockGap,
+    aligned_word_address: AlignedWordAddress,
 };
 
 pub const Op = union(enum) {
@@ -163,15 +169,18 @@ fn hashOp(state: *u64, op: Op) void {
                 .register_address => |address| {
                     mix(state, @intFromEnum(address.index));
                 },
+                .aligned_word_address => |address| {
+                    mix(state, @intFromEnum(address.word_index));
+                },
                 .access_clock => |clock| {
                     mix(state, @intFromEnum(clock.instruction_clock));
-                    mix(state, @intFromEnum(clock.ordinal));
+                    mix(state, @intFromEnum(clock.phase));
                 },
                 .strict_clock_gap => |gap| {
                     mix(state, @intFromEnum(gap.current_clock));
                     mix(state, @intFromEnum(gap.previous_clock));
                     mix(state, @intFromEnum(gap.active));
-                    mix(state, @intFromEnum(gap.ordinal));
+                    mix(state, @intFromEnum(gap.phase));
                 },
             }
         },

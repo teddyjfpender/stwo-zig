@@ -37,6 +37,17 @@ pub const AccessOrdinal = enum(u8) {
     third = 3,
 };
 
+/// One-based physical phase within the four-subclock instruction window.
+///
+/// Its numeric encoding intentionally matches `AccessOrdinal`, but the two
+/// types are not interchangeable: loads serialize relation groups in ordinal
+/// order `1,2,3` while resolving them at physical phases `1,3,2`.
+pub const AccessPhase = enum(u8) {
+    first = 1,
+    second = 2,
+    third = 3,
+};
+
 pub const IdError = error{IdOverflow};
 
 /// Converts a collection index into one of this module's typed enum IDs.

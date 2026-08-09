@@ -376,6 +376,7 @@ fn analyzeWideDegrees(
             ),
             .machine_derived => |derived| switch (derived) {
                 .register_address => |address| result[types.idIndex(address.index)],
+                .aligned_word_address => |address| result[types.idIndex(address.word_index)],
                 .access_clock => |clock| result[types.idIndex(clock.instruction_clock)],
                 .strict_clock_gap => |gap| @max(
                     result[types.idIndex(gap.current_clock)],

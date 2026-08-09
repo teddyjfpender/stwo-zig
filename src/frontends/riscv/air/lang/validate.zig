@@ -272,6 +272,14 @@ fn validateNode(arena: *const ir.Arena, node: expr.Node, index: usize) Error!voi
                     return error.InvalidNodeShape;
                 }
             },
+            .aligned_word_address => |address| {
+                const word_index = try priorNode(arena, address.word_index, index);
+                if (!std.meta.eql(node.key.ty, types.Type.address) or
+                    !std.meta.eql(word_index.key.ty, types.Type.uint20))
+                {
+                    return error.InvalidNodeShape;
+                }
+            },
             .access_clock => |clock| {
                 const instruction_clock = try priorNode(
                     arena,
@@ -302,7 +310,7 @@ fn validateNode(arena: *const ir.Arena, node: expr.Node, index: usize) Error!voi
                     },
                     else => return error.InvalidNodeShape,
                 };
-                if (current_clock.ordinal != gap.ordinal)
+                if (current_clock.phase != gap.phase)
                     return error.InvalidNodeShape;
             },
         },

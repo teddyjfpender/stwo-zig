@@ -23,10 +23,13 @@ pub const typed_effect_format_version: u16 = 4;
 pub const typed_effect_logical_schema_version: u16 = 3;
 pub const register_group_format_version: u16 = 5;
 pub const register_group_logical_schema_version: u16 = 4;
+pub const memory_access_format_version: u16 = 6;
+pub const memory_access_logical_schema_version: u16 = 5;
 
 pub const ManifestError = error{
     ManifestTooLarge,
     MachineDerivedRequiresManifestV5,
+    MemoryAccessRequiresManifestV6,
     RelationBindingsRequireManifestV4,
 };
 pub const Error = std.mem.Allocator.Error || validate.Error || ManifestError;
@@ -63,9 +66,35 @@ pub fn serializeAllocV5(
     arena: *const ir.Arena,
 ) Error![]u8 {
     try validate.validate(arena);
+    try requireNoMemoryAccessCapability(arena);
     var bytes: std.ArrayList(u8) = .empty;
     errdefer bytes.deinit(allocator);
     try writeValidated(bytes.writer(allocator), arena, .register_group_v5);
+    return bytes.toOwnedSlice(allocator);
+}
+
+/// Canonical logical encoding for fixed load/store access plans.
+pub fn serializeAllocV6(
+    allocator: std.mem.Allocator,
+    arena: *const ir.Arena,
+) Error![]u8 {
+    try validate.validate(arena);
+    var bytes: std.ArrayList(u8) = .empty;
+    errdefer bytes.deinit(allocator);
+    try writeValidated(bytes.writer(allocator), arena, .memory_access_v6);
+    return bytes.toOwnedSlice(allocator);
+}
+
+/// Selects the least capable canonical format accepted by `arena`.
+pub fn serializeAllocCurrent(
+    allocator: std.mem.Allocator,
+    arena: *const ir.Arena,
+) Error![]u8 {
+    try validate.validate(arena);
+    const encoding = leastCapableEncoding(arena);
+    var bytes: std.ArrayList(u8) = .empty;
+    errdefer bytes.deinit(allocator);
+    try writeValidated(bytes.writer(allocator), arena, encoding);
     return bytes.toOwnedSlice(allocator);
 }
 
@@ -84,10 +113,26 @@ pub fn writeCanonicalV4(writer: anytype, arena: *const ir.Arena) !void {
 
 pub fn writeCanonicalV5(writer: anytype, arena: *const ir.Arena) !void {
     try validate.validate(arena);
+    try requireNoMemoryAccessCapability(arena);
     try writeValidated(writer, arena, .register_group_v5);
 }
 
-const Encoding = enum { legacy_v3, typed_effect_v4, register_group_v5 };
+pub fn writeCanonicalV6(writer: anytype, arena: *const ir.Arena) !void {
+    try validate.validate(arena);
+    try writeValidated(writer, arena, .memory_access_v6);
+}
+
+pub fn writeCanonicalCurrent(writer: anytype, arena: *const ir.Arena) !void {
+    try validate.validate(arena);
+    try writeValidated(writer, arena, leastCapableEncoding(arena));
+}
+
+const Encoding = enum {
+    legacy_v3,
+    typed_effect_v4,
+    register_group_v5,
+    memory_access_v6,
+};
 
 fn writeValidated(
     writer: anytype,
@@ -99,11 +144,13 @@ fn writeValidated(
         .legacy_v3 => format_version,
         .typed_effect_v4 => typed_effect_format_version,
         .register_group_v5 => register_group_format_version,
+        .memory_access_v6 => memory_access_format_version,
     });
     try writeInt(writer, u16, switch (encoding) {
         .legacy_v3 => logical_schema_version,
         .typed_effect_v4 => typed_effect_logical_schema_version,
         .register_group_v5 => register_group_logical_schema_version,
+        .memory_access_v6 => memory_access_logical_schema_version,
     });
     try writeCount(writer, arena.nodesView().len);
     try writeCount(writer, arena.constraintsView().len);
@@ -183,6 +230,46 @@ fn requireNoMachineDerivedNodes(arena: *const ir.Arena) ManifestError!void {
     };
 }
 
+fn requireNoMemoryAccessCapability(arena: *const ir.Arena) ManifestError!void {
+    if (hasMemoryAccessCapability(arena))
+        return error.MemoryAccessRequiresManifestV6;
+}
+
+fn leastCapableEncoding(arena: *const ir.Arena) Encoding {
+    if (hasMemoryAccessCapability(arena)) return .memory_access_v6;
+    if (hasMachineDerivedNodes(arena)) return .register_group_v5;
+    if (hasRelationBindings(arena)) return .typed_effect_v4;
+    return .legacy_v3;
+}
+
+fn hasRelationBindings(arena: *const ir.Arena) bool {
+    for (arena.effectsView()) |effect| if (effect.binding != null) return true;
+    return false;
+}
+
+fn hasMachineDerivedNodes(arena: *const ir.Arena) bool {
+    for (arena.nodesView()) |node| switch (node.key.op) {
+        .machine_derived => return true,
+        else => {},
+    };
+    return false;
+}
+
+fn hasMemoryAccessCapability(arena: *const ir.Arena) bool {
+    for (arena.effectsView()) |effect| switch (effect.kind) {
+        .memory_read, .memory_write => return true,
+        else => {},
+    };
+    for (arena.nodesView()) |node| switch (node.key.op) {
+        .machine_derived => |derived| switch (derived) {
+            .aligned_word_address => return true,
+            else => {},
+        },
+        else => {},
+    };
+    return false;
+}
+
 fn writeRelationBinding(
     writer: anytype,
     binding: ?program.RelationBinding,
@@ -253,17 +340,21 @@ fn writeNode(writer: anytype, arena: *const ir.Arena, node: expr.Node) !void {
                     try writeInt(writer, u8, 0);
                     try writeValueId(writer, address.index);
                 },
+                .aligned_word_address => |address| {
+                    try writeInt(writer, u8, 3);
+                    try writeValueId(writer, address.word_index);
+                },
                 .access_clock => |clock| {
                     try writeInt(writer, u8, 1);
                     try writeValueId(writer, clock.instruction_clock);
-                    try writeInt(writer, u8, @intFromEnum(clock.ordinal));
+                    try writeInt(writer, u8, @intFromEnum(clock.phase));
                 },
                 .strict_clock_gap => |gap| {
                     try writeInt(writer, u8, 2);
                     try writeValueId(writer, gap.current_clock);
                     try writeValueId(writer, gap.previous_clock);
                     try writeValueId(writer, gap.active);
-                    try writeInt(writer, u8, @intFromEnum(gap.ordinal));
+                    try writeInt(writer, u8, @intFromEnum(gap.phase));
                 },
             }
         },

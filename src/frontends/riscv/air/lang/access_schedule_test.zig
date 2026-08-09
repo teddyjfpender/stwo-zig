@@ -17,6 +17,9 @@ test "access ordinals use pinned one-based wire values" {
     try std.testing.expectEqual(@as(u8, 1), @intFromEnum(types.AccessOrdinal.first));
     try std.testing.expectEqual(@as(u8, 2), @intFromEnum(types.AccessOrdinal.second));
     try std.testing.expectEqual(@as(u8, 3), @intFromEnum(types.AccessOrdinal.third));
+    try std.testing.expectEqual(@as(u8, 1), @intFromEnum(types.AccessPhase.first));
+    try std.testing.expectEqual(@as(u8, 2), @intFromEnum(types.AccessPhase.second));
+    try std.testing.expectEqual(@as(u8, 3), @intFromEnum(types.AccessPhase.third));
     try std.testing.expectEqual(@as(u2, 0), @intFromEnum(production_clock.Ordinal.first));
     try std.testing.expectEqual(@as(u2, 1), @intFromEnum(production_clock.Ordinal.second));
     try std.testing.expectEqual(@as(u2, 2), @intFromEnum(production_clock.Ordinal.third));
@@ -500,10 +503,12 @@ fn replayMachineNodes(arena: *const ir.Arena, values: []M31) !void {
             .input => values[index],
             .machine_derived => |derived| switch (derived) {
                 .register_address => |address| values[types.idIndex(address.index)],
+                .aligned_word_address => |address| values[types.idIndex(address.word_index)]
+                    .mul(M31.fromCanonical(4)),
                 .access_clock => |clock| values[types.idIndex(clock.instruction_clock)]
                     .sub(M31.one())
                     .mul(M31.fromCanonical(4))
-                    .add(M31.fromCanonical(@intFromEnum(clock.ordinal))),
+                    .add(M31.fromCanonical(@intFromEnum(clock.phase))),
                 .strict_clock_gap => |gap| values[types.idIndex(gap.current_clock)]
                     .sub(values[types.idIndex(gap.previous_clock)])
                     .sub(M31.one()),

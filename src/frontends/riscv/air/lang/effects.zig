@@ -8,6 +8,7 @@ const std = @import("std");
 const access_schedule = @import("access_schedule.zig");
 const expr = @import("expr.zig");
 const ir = @import("ir.zig");
+const memory_access = @import("memory_access_validation.zig");
 const program = @import("program.zig");
 const relation = @import("relation.zig");
 const source = @import("source.zig");
@@ -16,7 +17,8 @@ const types = @import("types.zig");
 pub const MAX_ARITY: usize = 32;
 pub const MAX_ACCESS_GROUPS = access_schedule.MAX_ACCESS_GROUPS;
 
-pub const Error = ir.Error || relation.Error || access_schedule.Error || error{
+pub const Error = ir.Error || relation.Error || access_schedule.Error ||
+    memory_access.Error || error{
     BindingKindMismatch,
     BindingVersionMismatch,
     InvalidAccessGroup,
@@ -34,6 +36,17 @@ pub const RegisterReadInput = access_schedule.RegisterReadInput;
 pub const RegisterWriteInput = access_schedule.RegisterWriteInput;
 pub const RegisterAccessGroup = access_schedule.RegisterAccessGroup;
 pub const AccessSchedule = access_schedule.AccessSchedule;
+pub const MemoryReadInput = access_schedule.MemoryReadInput;
+pub const MemoryWriteInput = access_schedule.MemoryWriteInput;
+pub const LoadAccessInput = access_schedule.LoadAccessInput;
+pub const StoreAccessInput = access_schedule.StoreAccessInput;
+pub const AccessPlanKind = access_schedule.AccessPlanKind;
+pub const LoadStoreAccessPlan = access_schedule.LoadStoreAccessPlan;
+pub const PreparedAccessPlan = memory_access.PreparedPlan;
+
+pub fn prepareAccessPlan(arena: *const ir.Arena) Error!PreparedAccessPlan {
+    return memory_access.prepare(arena);
+}
 
 /// Canonical decoded five-field program relation tuple.
 pub const ProgramTuple = struct {
@@ -180,6 +193,11 @@ pub fn validateProgram(arena: *const ir.Arena) Error!void {
     // effect scan for legacy programs.
     if (!typed_mode) return;
 
+    const memory_mode = memory_access.hasMemoryCapability(arena);
+    const memory_plan = if (memory_mode)
+        try memory_access.prepare(arena)
+    else
+        null;
     var groups = ValidatedAccessGroups{};
     var index: usize = 0;
     while (index < arena.effectsView().len) {
@@ -201,6 +219,10 @@ pub fn validateProgram(arena: *const ir.Arena) Error!void {
         const active = effect.liveness orelse
             return error.MissingRelationLiveness;
 
+        if (memory_mode and memory_access.isAccessKind(effect.kind)) {
+            index += 3;
+            continue;
+        }
         if (isRegisterKind(effect.kind)) {
             if (groups.len >= groups.items.len)
                 return error.AccessScheduleExhausted;
@@ -212,6 +234,37 @@ pub fn validateProgram(arena: *const ir.Arena) Error!void {
             );
             groups.len += 1;
             index += 3;
+            continue;
+        }
+
+        if (memory_plan) |prepared| {
+            if (index == types.idIndex(prepared.aligned_range)) {
+                index += 1;
+                continue;
+            }
+        }
+
+        // E-003 must compose with the opcode body's independent mask, sign,
+        // and carry ranges. Keep standalone range authoring fail-closed, but
+        // validate every non-plan range normally inside a reviewed memory plan.
+        if (memory_mode and effect.kind == .range_request) {
+            try preflightRelation(
+                arena,
+                relation_binding,
+                values,
+                active,
+                effect.access_ordinal,
+                effect.source_span,
+            );
+            const schema = relation.getById(relation_binding.schema) orelse
+                return error.UnknownSchema;
+            if (!isRangeDomain(schema.domain) or
+                relation_binding.role != .request or
+                effect.access_ordinal != null)
+            {
+                return error.BindingKindMismatch;
+            }
+            index += 1;
             continue;
         }
 
@@ -249,7 +302,7 @@ pub fn validateProgram(arena: *const ir.Arena) Error!void {
         index += 1;
     }
 
-    if (groups.len != 0) {
+    if (!memory_mode and groups.len != 0) {
         const first = groups.items[0];
         for (groups.items[1..groups.len]) |group| {
             if (group.instruction_clock != first.instruction_clock or
@@ -259,7 +312,7 @@ pub fn validateProgram(arena: *const ir.Arena) Error!void {
             }
         }
     }
-    try validateMachineDerivedUses(arena, groups);
+    if (!memory_mode) try validateMachineDerivedUses(arena, groups);
 }
 
 fn binding(
@@ -462,6 +515,7 @@ fn validateRegisterGroup(
     };
 
     const ordinal: types.AccessOrdinal = @enumFromInt(expected_ordinal);
+    const phase = phaseForOrdinal(ordinal);
     const current_node = arena.node(emit_values[2]) orelse
         return error.UnknownValue;
     const current = switch (current_node.key.op) {
@@ -471,7 +525,7 @@ fn validateRegisterGroup(
         },
         else => return error.InvalidAccessGroup,
     };
-    if (current.ordinal != ordinal) return error.InvalidAccessGroup;
+    if (current.phase != phase) return error.InvalidAccessGroup;
 
     const gap_node = arena.node(gap_values[0]) orelse return error.UnknownValue;
     const gap = switch (gap_node.key.op) {
@@ -484,7 +538,7 @@ fn validateRegisterGroup(
     if (gap.current_clock != emit_values[2] or
         gap.previous_clock != consume_values[2] or
         gap.active != active or
-        gap.ordinal != ordinal)
+        gap.phase != phase)
     {
         return error.InvalidAccessGroup;
     }
@@ -526,6 +580,9 @@ fn validateMachineDerivedUses(
         .machine_derived => |derived| switch (derived) {
             .register_address => |address| {
                 try rejectMachineDerived(arena, address.index);
+            },
+            .aligned_word_address => |address| {
+                try rejectMachineDerived(arena, address.word_index);
             },
             .access_clock => |clock| {
                 try rejectMachineDerived(arena, clock.instruction_clock);
@@ -579,6 +636,7 @@ fn validateMachineDerivedUses(
             for (groups.items[0..groups.len]) |group| {
                 matched = matched or switch (derived) {
                     .register_address => id == group.address,
+                    .aligned_word_address => false,
                     .access_clock => id == group.current_clock,
                     .strict_clock_gap => id == group.gap,
                 };
@@ -673,6 +731,26 @@ fn requireType(
 
 fn isRegisterKind(kind: program.EffectKind) bool {
     return kind == .register_read or kind == .register_write;
+}
+
+fn isRangeDomain(domain: relation.Domain) bool {
+    return switch (domain) {
+        .range_check_20,
+        .range_check_8_11,
+        .range_check_8_8_4,
+        .range_check_8_8,
+        .range_check_m31,
+        => true,
+        else => false,
+    };
+}
+
+fn phaseForOrdinal(ordinal: types.AccessOrdinal) types.AccessPhase {
+    return switch (ordinal) {
+        .first => .first,
+        .second => .second,
+        .third => .third,
+    };
 }
 
 fn validateKindBinding(

@@ -501,6 +501,7 @@ fn markOperands(flags: []bool, op: expr.Op) void {
         },
         .machine_derived => |derived| switch (derived) {
             .register_address => |address| flags[types.idIndex(address.index)] = true,
+            .aligned_word_address => |address| flags[types.idIndex(address.word_index)] = true,
             .access_clock => |clock| flags[types.idIndex(clock.instruction_clock)] = true,
             .strict_clock_gap => |gap| {
                 flags[types.idIndex(gap.current_clock)] = true;
@@ -517,12 +518,20 @@ fn lowerMachineDerived(
 ) Error!u32 {
     return switch (derived) {
         .register_address => |address| directOperand(mapped, address.index),
+        .aligned_word_address => |address| blk: {
+            const four = try direct_arena.intern(.{ .op = .constant, .value = 4 });
+            break :blk direct_arena.binary(
+                .mul,
+                try directOperand(mapped, address.word_index),
+                four,
+            );
+        },
         .access_clock => |clock| blk: {
             const one = try direct_arena.intern(.{ .op = .constant, .value = 1 });
             const four = try direct_arena.intern(.{ .op = .constant, .value = 4 });
-            const ordinal = try direct_arena.intern(.{
+            const phase = try direct_arena.intern(.{
                 .op = .constant,
-                .value = @intFromEnum(clock.ordinal),
+                .value = @intFromEnum(clock.phase),
             });
             const shifted = try direct_arena.binary(
                 .sub,
@@ -530,7 +539,7 @@ fn lowerMachineDerived(
                 one,
             );
             const scaled = try direct_arena.binary(.mul, shifted, four);
-            break :blk direct_arena.binary(.add, scaled, ordinal);
+            break :blk direct_arena.binary(.add, scaled, phase);
         },
         .strict_clock_gap => |gap| blk: {
             const one = try direct_arena.intern(.{ .op = .constant, .value = 1 });

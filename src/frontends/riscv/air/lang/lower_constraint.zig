@@ -206,6 +206,11 @@ pub fn lowerValues(
                     reverse,
                     address.index,
                 ),
+                .aligned_word_address => |address| try markOperand(
+                    reachable,
+                    reverse,
+                    address.word_index,
+                ),
                 .access_clock => |clock| try markOperand(
                     reachable,
                     reverse,
@@ -462,12 +467,20 @@ fn lowerMachineDerived(
 ) LowerError!u32 {
     return switch (derived) {
         .register_address => |address| operand(mapped, address.index),
+        .aligned_word_address => |address| blk: {
+            const four = try target.intern(.{ .op = .constant, .value = 4 });
+            break :blk target.binary(
+                .mul,
+                try operand(mapped, address.word_index),
+                four,
+            );
+        },
         .access_clock => |clock| blk: {
             const one = try target.intern(.{ .op = .constant, .value = 1 });
             const four = try target.intern(.{ .op = .constant, .value = 4 });
-            const ordinal = try target.intern(.{
+            const phase = try target.intern(.{
                 .op = .constant,
-                .value = @intFromEnum(clock.ordinal),
+                .value = @intFromEnum(clock.phase),
             });
             const shifted = try target.binary(
                 .sub,
@@ -475,7 +488,7 @@ fn lowerMachineDerived(
                 one,
             );
             const scaled = try target.binary(.mul, shifted, four);
-            break :blk target.binary(.add, scaled, ordinal);
+            break :blk target.binary(.add, scaled, phase);
         },
         .strict_clock_gap => |gap| blk: {
             const one = try target.intern(.{ .op = .constant, .value = 1 });

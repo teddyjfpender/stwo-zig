@@ -264,6 +264,7 @@ fn directlyUses(op: expr.Op, dependency: types.ValueId) bool {
             selection.when_false == dependency,
         .machine_derived => |derived| switch (derived) {
             .register_address => |address| address.index == dependency,
+            .aligned_word_address => |address| address.word_index == dependency,
             .access_clock => |clock| clock.instruction_clock == dependency,
             .strict_clock_gap => |gap| gap.current_clock == dependency or
                 gap.previous_clock == dependency,

@@ -21,6 +21,7 @@ pub const Digest = [32]u8;
 pub const format_version: u16 = 1;
 pub const typed_effect_format_version: u16 = 2;
 pub const register_group_format_version: u16 = 3;
+pub const memory_access_format_version: u16 = 4;
 pub const domain_separator = "stwo-zig/typed-air/semantic";
 pub const Error = validate.Error;
 
@@ -48,11 +49,26 @@ pub fn computeV2(arena: *const ir.Arena) validate.Error!Digest {
 /// instruction-local access groups in addition to typed relation metadata.
 pub fn computeV3(arena: *const ir.Arena) validate.Error!Digest {
     try validate.validate(arena);
+    if (hasMemoryAccessCapability(arena)) return error.InvalidEffect;
     return computeValidated(arena, .register_group_v3);
+}
+
+/// Semantic identity v4 for fixed load/store access plans and aligned memory
+/// addresses. Relation ordinal and physical phase remain independently bound.
+pub fn computeV4(arena: *const ir.Arena) validate.Error!Digest {
+    try validate.validate(arena);
+    if (!hasMemoryAccessCapability(arena)) return error.InvalidEffect;
+    return computeValidated(arena, .memory_access_v4);
 }
 
 pub fn computeIdentity(arena: *const ir.Arena) validate.Error!Identity {
     try validate.validate(arena);
+    if (hasMemoryAccessCapability(arena)) {
+        return .{
+            .format_version = memory_access_format_version,
+            .bytes = computeValidated(arena, .memory_access_v4),
+        };
+    }
     if (hasMachineDerivedNodes(arena)) {
         return .{
             .format_version = register_group_format_version,
@@ -71,7 +87,12 @@ pub fn computeIdentity(arena: *const ir.Arena) validate.Error!Identity {
     };
 }
 
-const Projection = enum { legacy_v1, typed_effect_v2, register_group_v3 };
+const Projection = enum {
+    legacy_v1,
+    typed_effect_v2,
+    register_group_v3,
+    memory_access_v4,
+};
 
 fn computeValidated(arena: *const ir.Arena, projection: Projection) Digest {
     var hash = Sha256.init(.{});
@@ -80,6 +101,7 @@ fn computeValidated(arena: *const ir.Arena, projection: Projection) Digest {
         .legacy_v1 => format_version,
         .typed_effect_v2 => typed_effect_format_version,
         .register_group_v3 => register_group_format_version,
+        .memory_access_v4 => memory_access_format_version,
     });
     hashCount(&hash, arena.nodesView().len);
     hashCount(&hash, arena.constraintsView().len);
@@ -149,6 +171,21 @@ fn hasRelationBindings(arena: *const ir.Arena) bool {
 fn hasMachineDerivedNodes(arena: *const ir.Arena) bool {
     for (arena.nodesView()) |node| switch (node.key.op) {
         .machine_derived => return true,
+        else => {},
+    };
+    return false;
+}
+
+fn hasMemoryAccessCapability(arena: *const ir.Arena) bool {
+    for (arena.effectsView()) |effect| switch (effect.kind) {
+        .memory_read, .memory_write => return true,
+        else => {},
+    };
+    for (arena.nodesView()) |node| switch (node.key.op) {
+        .machine_derived => |derived| switch (derived) {
+            .aligned_word_address => return true,
+            else => {},
+        },
         else => {},
     };
     return false;
@@ -224,17 +261,21 @@ fn hashNode(hash: *Sha256, arena: *const ir.Arena, node: expr.Node) void {
                     hashInt(hash, u8, 0);
                     hashValueId(hash, address.index);
                 },
+                .aligned_word_address => |address| {
+                    hashInt(hash, u8, 3);
+                    hashValueId(hash, address.word_index);
+                },
                 .access_clock => |clock| {
                     hashInt(hash, u8, 1);
                     hashValueId(hash, clock.instruction_clock);
-                    hashInt(hash, u8, @intFromEnum(clock.ordinal));
+                    hashInt(hash, u8, @intFromEnum(clock.phase));
                 },
                 .strict_clock_gap => |gap| {
                     hashInt(hash, u8, 2);
                     hashValueId(hash, gap.current_clock);
                     hashValueId(hash, gap.previous_clock);
                     hashValueId(hash, gap.active);
-                    hashInt(hash, u8, @intFromEnum(gap.ordinal));
+                    hashInt(hash, u8, @intFromEnum(gap.phase));
                 },
             }
         },
