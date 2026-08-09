@@ -8,8 +8,8 @@
 //!
 //! Two obligations, and only one of them is about numbers.
 //!
-//! The value obligation -- `stagedPcsConfig(.secure)` equals the shared constant
-//! -- lives beside the profiles in `proof_adapter.zig`. It catches a *drifted*
+//! The value obligation -- `select(.secure)` equals the shared constant -- lives
+//! beside the profiles in `pcs_profile.zig`. It catches a *drifted*
 //! restatement, and a wave-2 verifier confirmed it does: replacing the arm with a
 //! literal carrying `pow_bits = 24` turns it red.
 //!
@@ -21,26 +21,25 @@
 //! the same numbers as the shared profile", and the distinction is the entire
 //! lesson of the defect.
 //!
-//! Kept in its own file because `proof_adapter.zig` is within twenty lines of the
-//! 850-line manual-source ceiling; `proof_adapter.zig` imports it so the product's
-//! test step compiles it.
+//! Kept separate from the selector so the structural fixture cannot count its
+//! own references; the product adapter imports this file for tests.
 
 const std = @import("std");
 
-/// The adapter's own text. Embedded rather than read from disk so the check has
+/// The selector's own text. Embedded rather than read from disk so the check has
 /// no working-directory premise and a moved function fails at compile time.
-const ADAPTER_SOURCE = @embedFile("../proof_adapter.zig");
+const PROFILE_SOURCE = @embedFile("pcs_profile.zig");
 
 /// The single cross-language name for the published profile.
 const SHARED_CONSTANT = "SECURE_PCS_CONFIG";
 
-/// Return the text of `stagedPcsConfig`'s `.secure` switch arm.
+/// Return the text of `select`'s `.secure` switch arm.
 ///
 /// Bounded by the next arm rather than by a brace count: the point is to look at
 /// what the secure arm alone contains, and the sibling profiles legitimately do
 /// restate their own numbers.
 fn secureArm(source: []const u8) ![]const u8 {
-    const declaration = std.mem.indexOf(u8, source, "fn stagedPcsConfig(") orelse
+    const declaration = std.mem.indexOf(u8, source, "pub fn select(") orelse
         return error.StagedPcsConfigMissing;
     const body = source[declaration..];
     const arm = std.mem.indexOf(u8, body, ".secure =>") orelse
@@ -51,7 +50,7 @@ fn secureArm(source: []const u8) ![]const u8 {
 }
 
 test "adapter secure profile is the shared constant rather than a second literal" {
-    const arm = try secureArm(ADAPTER_SOURCE);
+    const arm = try secureArm(PROFILE_SOURCE);
 
     // It names the shared constant.
     if (std.mem.indexOf(u8, arm, SHARED_CONSTANT) == null) {
@@ -89,10 +88,10 @@ test "the staged profile selector reaches the shared constant exactly once" {
     // the secure profile -- how `--production` and `--secure` came to disagree
     // about which profile they meant. Counted over the selector rather than the
     // file, because the tests beside it name the constant on purpose.
-    const declaration = std.mem.indexOf(u8, ADAPTER_SOURCE, "fn stagedPcsConfig(").?;
-    const closing = std.mem.indexOf(u8, ADAPTER_SOURCE[declaration..], "\n}\n") orelse
+    const declaration = std.mem.indexOf(u8, PROFILE_SOURCE, "pub fn select(").?;
+    const closing = std.mem.indexOf(u8, PROFILE_SOURCE[declaration..], "\n}\n") orelse
         return error.StagedPcsConfigNotClosed;
-    const selector = ADAPTER_SOURCE[declaration .. declaration + closing];
+    const selector = PROFILE_SOURCE[declaration .. declaration + closing];
     try std.testing.expectEqual(
         @as(usize, 1),
         std.mem.count(u8, selector, SHARED_CONSTANT),
@@ -103,9 +102,9 @@ test "the fixtures this file reads still exist" {
     // Fails closed. Every check above is a substring search, and a search over
     // text that no longer holds the function it describes reports success. This
     // is the pin that says the file is still looking at something.
-    try std.testing.expect(ADAPTER_SOURCE.len > 1024);
-    try std.testing.expect((try secureArm(ADAPTER_SOURCE)).len != 0);
+    try std.testing.expect(PROFILE_SOURCE.len > 512);
+    try std.testing.expect((try secureArm(PROFILE_SOURCE)).len != 0);
     try std.testing.expect(
-        std.mem.indexOf(u8, ADAPTER_SOURCE, "fn stagedPcsConfig(") != null,
+        std.mem.indexOf(u8, PROFILE_SOURCE, "pub fn select(") != null,
     );
 }

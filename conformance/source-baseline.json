@@ -38,15 +38,6 @@
       "max_lines": 923
     },
     {
-      "key": "file-size:integrations/riscv_cpu/proof_adapter.zig",
-      "owner": "riscv-integration",
-      "track": "active_native_backend",
-      "reason": "The RISC-V product adapter combines admission, publication, verification, and CLI-facing diagnostics.",
-      "next_extraction": "Extract atomic artifact publication and verification into private integration owners.",
-      "plan": "conformance/decomposition-plan.md",
-      "max_lines": 935
-    },
-    {
       "key": "file-size:prover/air/component_prover.zig",
       "owner": "prover-air",
       "track": "active_native_backend",
