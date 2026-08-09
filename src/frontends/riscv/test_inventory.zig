@@ -53,6 +53,11 @@ test {
     _ = @import("testing.zig");
     _ = @import("witness_layout.zig");
 
+    // Isolated native/non-recursive aggregation reference.
+    _ = @import("aggregation/manifest_test.zig");
+    _ = @import("aggregation/reference_test.zig");
+    _ = @import("aggregation/summary_test.zig");
+
     // Host interface.
     _ = @import("host/hint_oracle.zig");
     _ = @import("host/mod.zig");
@@ -97,8 +102,8 @@ test {
     _ = @import("air/component.zig");
     _ = @import("air/component_order.zig");
     _ = @import("air/diagnostic_hints_test.zig");
-    _ = @import("air/guest_precompile/relation_test.zig");
     _ = @import("air/guest_precompile/identity_test.zig");
+    _ = @import("air/guest_precompile/relation_test.zig");
     _ = @import("air/interaction.zig");
     _ = @import("air/interaction_gen.zig");
     _ = @import("air/logup.zig");
