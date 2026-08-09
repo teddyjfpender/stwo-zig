@@ -1,9 +1,7 @@
 const std = @import("std");
-const m31_mod = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
 const secure_column = @import("../secure_column.zig");
 
-const M31 = m31_mod.M31;
 const QM31 = qm31.QM31;
 const SecureColumnByCoords = secure_column.SecureColumnByCoords;
 
@@ -312,6 +310,39 @@ pub const DomainEvaluationAccumulator = struct {
         }
 
         return out;
+    }
+
+    /// Writes the finalized composition into caller-owned max-domain storage
+    /// without allocating. This is the structured-scheduler boundary: callers
+    /// can reserve the only possible general-case output before worker launch,
+    /// then merge independent accumulators and finish infallibly with respect
+    /// to allocation.
+    ///
+    /// `out` must not alias an accumulator-owned bucket. Its ownership remains
+    /// with the caller, while `self` retains ownership of every bucket. Contract
+    /// validation completes before `out` is modified.
+    pub fn finalizeInto(
+        self: *const DomainEvaluationAccumulator,
+        out: *SecureColumnByCoords,
+    ) AccumulationError!void {
+        if (self.next_power_index != 0) return AccumulationError.UnusedCoefficients;
+        const max_size = try checkedPow2(self.max_log_size);
+        if (out.len() != max_size) return AccumulationError.ShapeMismatch;
+
+        var constant = QM31.zero();
+        for (self.constant_accumulations) |value| constant = constant.add(value);
+        const coordinates = constant.toM31Array();
+        inline for (0..qm31.SECURE_EXTENSION_DEGREE) |coordinate| {
+            @memset(out.columns[coordinate], coordinates[coordinate]);
+        }
+        for (self.sub_accumulations, 0..) |maybe_sub, log_size_usize| {
+            const sub = maybe_sub orelse continue;
+            const log_size: u32 = @intCast(log_size_usize);
+            for (0..max_size) |position| {
+                const lifted = try liftedValueAt(sub, log_size, self.max_log_size, position);
+                out.set(position, out.at(position).add(lifted));
+            }
+        }
     }
 };
 
