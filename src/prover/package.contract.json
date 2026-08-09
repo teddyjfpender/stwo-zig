@@ -23,6 +23,7 @@
     "execution",
     "fft_pool",
     "fri",
+    "host_budget_allocator",
     "line",
     "lookups",
     "measurement",

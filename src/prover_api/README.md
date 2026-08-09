@@ -57,7 +57,7 @@ comptime prover_api.assertProverEngine(MyEngine);
 | Area | Exports |
 | :--- | :--- |
 | Column transaction | `ColumnEvaluation`, `ColumnSource`, `QuotientOpsError`, `column` |
-| Engine contract | `ProveOptions`, `CpuCompositionExecutionRequest`, `DeviceCompositionStage`, `assertProverEngine`, `device_composition`, `engine` |
+| Engine contract | `ProveOptions`, `CpuCompositionContentionPolicy`, `CpuCompositionExecutionRequest`, `DeviceCompositionStage`, `assertProverEngine`, `device_composition`, `engine` |
 | Observability | `stage_profile` |
 
 `ColumnEvaluation` is a borrowed view and validates both its declared log size
@@ -68,12 +68,15 @@ storage is type-erased so this package does not import prover implementation
 types; only the engine and an integration that already owns those types adapt
 the callback.
 `CpuCompositionExecutionRequest` carries only worker count, host byte budget,
-and strict-versus-compatibility policy. The engine privately adapts it to its
-worker pool after an optional device composition stage declines. A finite
-budget is admitted only by composition plans with closed host-memory
-accounting; other plans reject it before launching work. Backend-owned
-composition evaluators are consulted first and remain governed by their own
-resource contract; this request governs CPU work after they decline.
+and strict-versus-compatibility policy. After an optional device composition
+stage declines, the engine privately adapts the request to its worker pool and
+threads it through execution-aware CPU backend evaluators and the generic
+prepared fallback. Closed secure-recurrence and fully prepared generic/RISC-V
+plans admit finite budgets: reserved helper stacks and fixed submission
+envelopes are charged separately from coordinator-owned heap. Unprepared
+fallbacks and plans declaring non-heap scratch or device residency reject
+finite caps before launching work. Legacy backend hooks without the
+execution-aware ABI retain their own resource contract.
 `assertProverEngine` checks the associated types and exact `init`, `deinit`,
 `commit`, and `prove` signatures at compile time.
 

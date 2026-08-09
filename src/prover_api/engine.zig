@@ -13,9 +13,11 @@ pub const CpuCompositionContentionPolicy = enum {
     compatibility,
 };
 
-/// Per-proof CPU composition resources used after any backend-owned evaluator
-/// declines. The prover resolves the worker count to its private shared pool;
-/// no executor implementation type crosses this stable API boundary.
+/// Per-proof CPU composition resources used after an optional device stage
+/// declines. The prover resolves the worker count to its private shared pool
+/// and passes the request through execution-aware CPU backends and prepared
+/// fallback paths; no executor implementation type crosses this stable API
+/// boundary.
 pub const CpuCompositionExecutionRequest = struct {
     worker_count: usize,
     host_byte_budget: usize,
