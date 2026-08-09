@@ -101,6 +101,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv", .description = "Run RISC-V runner tests (trace_dump)", .scope = .riscv_cpu_compat },
     .{ .name = "test-riscv-prover", .description = "Run RISC-V prover tests (prove+verify)", .scope = .riscv_cpu_compat },
     .{ .name = "riscv-bench", .description = "Build RISC-V benchmark CLI", .scope = .compatibility_tools },
+    .{ .name = "test-riscv-bench", .description = "Run focused RISC-V benchmark CLI contract tests", .scope = .compatibility_tools },
     .{ .name = "native-proof-bench-cpu", .description = "Build the machine-readable native CPU full-proof benchmark with SIMD hot paths", .scope = .compatibility_tools },
     .{ .name = "riscv-trace-dump", .description = "Build RISC-V trace dumper CLI", .scope = .riscv_cpu },
     .{ .name = "stwo-zig-riscv-cpu-static", .description = "Build the static x86_64-linux-musl RISC-V CPU challenge executable", .scope = .riscv_cpu },

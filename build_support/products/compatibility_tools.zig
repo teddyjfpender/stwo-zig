@@ -246,6 +246,7 @@ pub fn addProducts(context: Context) void {
 
     const riscv_bench = consumer(context, protocol, "src/riscv_bench_cli.zig");
     riscv_bench.addImport("stwo_cpu_backend", cpu_backend);
+    riscv_bench.addImport("stwo_proof_wire", proof_wire);
     const bench_riscv_frontend = graph.addRiscVFrontendImport(
         b,
         protocol,
@@ -265,6 +266,12 @@ pub fn addProducts(context: Context) void {
         riscv_bench,
     );
     addExecutable(context, riscv_bench, "riscv-bench", "riscv-bench", "Build RISC-V benchmark CLI", false);
+    const riscv_bench_tests = b.addTest(.{ .root_module = riscv_bench });
+    const run_riscv_bench_tests = b.addRunArtifact(riscv_bench_tests);
+    b.step(
+        "test-riscv-bench",
+        "Run focused RISC-V benchmark CLI contract tests",
+    ).dependOn(&run_riscv_bench_tests.step);
 
     const native_bench = consumer(context, protocol, "src/tools/native_proof_bench/cpu.zig");
     native_bench.addImport("stwo", stwo);

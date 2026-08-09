@@ -5,12 +5,15 @@
 //! comparison with stark-v's published ~567 kHz on M2 Max.
 //!
 //! Usage:
-//!   ./riscv_bench --fib-n 500000
+//!   ./riscv_bench --fib-n 500000 --proof-identity
 
 const std = @import("std");
 const builtin = @import("builtin");
+const proof_wire = @import("stwo_proof_wire");
 const stage_profile = @import("stwo_prover_api").stage_profile;
 const pcs_core = @import("stwo_core").pcs;
+
+const PROOF_IDENTITY_FLAG = "--proof-identity";
 
 /// Which PCS profile the run measures. Flags are named after their parameters,
 /// or after the constant they resolve to, so no flag can connote authority it
@@ -165,10 +168,11 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
     var hint_path: ?[]const u8 = null;
     var run_only: bool = false;
     var profile_enabled: bool = false;
+    var proof_identity_enabled: bool = false;
     var i: usize = 1;
     while (i < args.len) : (i += 1) {
         if (std.mem.eql(u8, args[i], "--help") or std.mem.eql(u8, args[i], "-h")) {
-            printUsage(riscv_prover.SECURE_PCS_CONFIG);
+            try printUsage(riscv_prover.SECURE_PCS_CONFIG);
             return;
         } else if (std.mem.eql(u8, args[i], "--fib-n") and i + 1 < args.len) {
             i += 1;
@@ -217,11 +221,21 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
             run_only = true;
         } else if (std.mem.eql(u8, args[i], "--profile")) {
             profile_enabled = true;
+        } else if (isProofIdentityFlag(args[i])) {
+            proof_identity_enabled = true;
         } else {
             std.debug.print("unknown argument: {s}\n\n", .{args[i]});
-            printUsage(riscv_prover.SECURE_PCS_CONFIG);
+            try printUsage(riscv_prover.SECURE_PCS_CONFIG);
             return error.InvalidArgument;
         }
+    }
+
+    if (run_only and proof_identity_enabled) {
+        std.debug.print(
+            "{s} requires proving; remove --run-only\n",
+            .{PROOF_IDENTITY_FLAG},
+        );
+        return error.IncompatibleBenchmarkModes;
     }
 
     switch (security_profile) {
@@ -447,7 +461,13 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
             },
         },
     );
-    defer output.deinitAfterProofMoved(allocator);
+    var proof_owned = true;
+    defer if (proof_owned) {
+        var owned_output = output;
+        owned_output.deinit(allocator);
+    } else {
+        output.deinitAfterProofMoved(allocator);
+    };
     const prove_ms = t_prove.elapsedMs();
 
     std.debug.print("Prove:    {d:.1}ms\n", .{prove_ms});
@@ -486,9 +506,22 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
         printProfileNodes(profile.stages, 1);
     }
 
+    // Canonicalization is deliberately between the measured stages. The
+    // verifier consumes the proof on both success and failure, so identity
+    // cannot be obtained afterwards without cloning the entire proof. Hash and
+    // release the encoding before verification; reporting still waits for a
+    // successful verification. Identity-enabled totals remain correctness-only
+    // because they include this work.
+    const proof_identity = if (proof_identity_enabled) identity: {
+        const canonical_proof = try proof_wire.encodeProofBytes(allocator, output.proof);
+        defer allocator.free(canonical_proof);
+        break :identity ProofIdentity.fromCanonicalBytes(canonical_proof);
+    } else null;
+
     // Stage 4: Verify
     const t_verify = Timer.begin();
     // Verification is backend-neutral; the engine supplies the protocol types.
+    proof_owned = false;
     try riscv_prover.verifyRiscVWithEngine(
         Engine,
         allocator,
@@ -500,6 +533,10 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
     const verify_ms = t_verify.elapsedMs();
 
     std.debug.print("Verify:   {d:.1}ms\n", .{verify_ms});
+    if (proof_identity) |identity| try writeProofIdentity(
+        std.fs.File.stderr().deprecatedWriter(),
+        identity,
+    );
 
     const total_ms = t_total.elapsedMs();
     const prove_verify_ms = prove_ms + verify_ms;
@@ -520,8 +557,16 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
 
 /// The profile parameters are formatted from the constants themselves, so the
 /// help text cannot describe a profile the flags no longer select.
-fn printUsage(secure: pcs_core.PcsConfig) void {
-    std.debug.print(
+fn isProofIdentityFlag(arg: []const u8) bool {
+    return std.mem.eql(u8, arg, PROOF_IDENTITY_FLAG);
+}
+
+fn printUsage(secure: pcs_core.PcsConfig) !void {
+    return writeUsage(std.fs.File.stderr().deprecatedWriter(), secure);
+}
+
+fn writeUsage(writer: anytype, secure: pcs_core.PcsConfig) !void {
+    try writer.print(
         \\Usage: riscv-bench [options]
         \\
         \\  --fib-n N         Prove a generated fib(N) guest (default: 10000)
@@ -537,6 +582,7 @@ fn printUsage(secure: pcs_core.PcsConfig) void {
         \\  --secure          The published SECURE_PCS_CONFIG (pow_bits={d}, n_queries={d})
         \\  --run-only        Execute the guest without proving
         \\  --profile         Print nested prover stage timings
+        \\  --proof-identity  Correctness-only: print canonical proof byte count and SHA-256
         \\  -h, --help        Show this help
         \\
     , .{
@@ -547,10 +593,59 @@ fn printUsage(secure: pcs_core.PcsConfig) void {
     });
 }
 
+const ProofIdentity = struct {
+    canonical_bytes: usize,
+    sha256: [std.crypto.hash.sha2.Sha256.digest_length]u8,
+
+    fn fromCanonicalBytes(canonical_proof: []const u8) ProofIdentity {
+        var digest: [std.crypto.hash.sha2.Sha256.digest_length]u8 = undefined;
+        std.crypto.hash.sha2.Sha256.hash(canonical_proof, &digest, .{});
+        return .{ .canonical_bytes = canonical_proof.len, .sha256 = digest };
+    }
+};
+
+fn writeProofIdentity(writer: anytype, identity: ProofIdentity) !void {
+    const digest_hex = std.fmt.bytesToHex(identity.sha256, .lower);
+    try writer.print(
+        "Proof identity: canonical_bytes={d} sha256={s}\n",
+        .{ identity.canonical_bytes, &digest_hex },
+    );
+}
+
 fn printProfileNodes(nodes: []const stage_profile.StageNode, depth: usize) void {
     for (nodes) |node| {
         for (0..depth) |_| std.debug.print("  ", .{});
         std.debug.print("{s}: {d:.3}s\n", .{ node.id, node.seconds });
         if (node.children) |children| printProfileNodes(children, depth + 1);
     }
+}
+
+test "proof identity report is deterministic and machine-readable" {
+    var output = std.ArrayList(u8).empty;
+    defer output.deinit(std.testing.allocator);
+
+    try writeProofIdentity(
+        output.writer(std.testing.allocator),
+        ProofIdentity.fromCanonicalBytes("abc"),
+    );
+    try std.testing.expectEqualStrings(
+        "Proof identity: canonical_bytes=3 sha256=" ++
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad\n",
+        output.items,
+    );
+}
+
+test "proof identity flag is documented by benchmark help" {
+    try std.testing.expect(isProofIdentityFlag(PROOF_IDENTITY_FLAG));
+    try std.testing.expect(!isProofIdentityFlag("--proof-digest"));
+
+    var output = std.ArrayList(u8).empty;
+    defer output.deinit(std.testing.allocator);
+    try writeUsage(output.writer(std.testing.allocator), POW24_Q70_PCS_CONFIG);
+    try std.testing.expect(std.mem.indexOf(u8, output.items, PROOF_IDENTITY_FLAG) != null);
+    try std.testing.expect(std.mem.indexOf(
+        u8,
+        output.items,
+        "canonical proof byte count and SHA-256",
+    ) != null);
 }
