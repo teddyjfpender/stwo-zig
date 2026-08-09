@@ -550,6 +550,7 @@ test "cpu RISC-V composition: exported adjacent pair matches generic and records
             .{
                 .worker_budget = try prover.work_pool.WorkerBudget.init(worker_count),
                 .pool = &pool,
+                .byte_budget = 128 * 1024 * 1024,
             },
         )).?;
         defer explicit.deinit(allocator);
@@ -562,7 +563,51 @@ test "cpu RISC-V composition: exported adjacent pair matches generic and records
         try std.testing.expectEqual(@as(u64, 4), explicit_snapshot.row_tiles);
         try std.testing.expectEqual(@as(u64, @intCast(worker_count)), explicit_snapshot.execution_lanes);
         try std.testing.expectEqual(@as(u64, 0), explicit_snapshot.pool_lease_declines);
+        try std.testing.expectEqual(@as(u64, 0), explicit_snapshot.finite_budget_rejections);
         try std.testing.expect(explicit_snapshot.max_graph_peak_active >= worker_count);
+    }
+
+    var preflight_pool: prover.work_pool.WorkPool = undefined;
+    try preflight_pool.initInPlaceWithOptions(.{
+        .worker_count = 4,
+        .stack_size = prover.air.prepared_domain.ROW_EVALUATOR_STACK_BYTES,
+    });
+    defer preflight_pool.deinit();
+    const preflight_workers = try prover.work_pool.WorkerBudget.init(4);
+    const helper_reservation = try preflight_pool.helperReservationBytes(preflight_workers);
+    var preflight_failing = std.testing.FailingAllocator.init(allocator, .{ .fail_index = 0 });
+    const preflight_before = telemetrySnapshot();
+    try std.testing.expectError(error.TaskMemoryBudgetExceeded, evaluateWithExecution(
+        preflight_failing.allocator(),
+        components[0..],
+        random_coeff,
+        &trace,
+        .{
+            .worker_budget = preflight_workers,
+            .pool = &preflight_pool,
+            .byte_budget = helper_reservation - 1,
+        },
+    ));
+    try std.testing.expect(!preflight_failing.has_induced_failure);
+    const preflight_snapshot = telemetrySnapshot().delta(preflight_before);
+    try std.testing.expectEqual(@as(u64, 1), preflight_snapshot.finite_budget_rejections);
+    try std.testing.expectEqual(@as(u64, 0), preflight_snapshot.attempts);
+    try std.testing.expectEqual(@as(u64, 0), preflight_snapshot.structured_executions);
+
+    var finite_admitted = (try evaluateWithExecution(
+        allocator,
+        components[0..],
+        random_coeff,
+        &trace,
+        .{ .byte_budget = 128 * 1024 * 1024 },
+    )).?;
+    defer finite_admitted.deinit(allocator);
+    inline for (0..qm31.SECURE_EXTENSION_DEGREE) |coordinate| {
+        try std.testing.expectEqualSlices(
+            M31,
+            reference.columns[coordinate],
+            finite_admitted.columns[coordinate],
+        );
     }
 
     const finite_budget_before = telemetrySnapshot();
@@ -570,7 +615,7 @@ test "cpu RISC-V composition: exported adjacent pair matches generic and records
     finite_failing.fail_index = finite_failing.alloc_index;
     finite_failing.resize_fail_index = finite_failing.resize_index;
     try std.testing.expectError(
-        error.FiniteCompositionByteBudgetUnsupported,
+        error.TaskMemoryBudgetExceeded,
         evaluateWithExecution(
             finite_failing.allocator(),
             components[0..],
@@ -596,6 +641,7 @@ test "cpu RISC-V composition: exported adjacent pair matches generic and records
         try prover.work_pool.WorkerBudget.init(2),
     );
     defer competing_lease.deinit();
+    const strict_contention_before = telemetrySnapshot();
     try std.testing.expectError(
         error.WorkerBudgetUnavailable,
         evaluateWithExecution(
@@ -606,9 +652,12 @@ test "cpu RISC-V composition: exported adjacent pair matches generic and records
             .{
                 .worker_budget = try prover.work_pool.WorkerBudget.init(2),
                 .pool = &contention_pool,
+                .byte_budget = 128 * 1024 * 1024,
             },
         ),
     );
+    const strict_contention = telemetrySnapshot().delta(strict_contention_before);
+    try std.testing.expectEqual(@as(u64, 0), strict_contention.finite_budget_rejections);
     const contention_before = telemetrySnapshot();
     var contention_fallback = (try evaluateWithExecution(
         allocator,
@@ -618,6 +667,7 @@ test "cpu RISC-V composition: exported adjacent pair matches generic and records
         .{
             .worker_budget = try prover.work_pool.WorkerBudget.init(2),
             .pool = &contention_pool,
+            .byte_budget = 128 * 1024 * 1024,
             .serial_on_contention = true,
         },
     )).?;
@@ -631,6 +681,7 @@ test "cpu RISC-V composition: exported adjacent pair matches generic and records
     }
     const contention_snapshot = telemetrySnapshot().delta(contention_before);
     try std.testing.expectEqual(@as(u64, 1), contention_snapshot.pool_lease_declines);
+    try std.testing.expectEqual(@as(u64, 0), contention_snapshot.finite_budget_rejections);
 
     const mismatched = [_]Component{
         mock.semanticComponent(),
@@ -648,7 +699,7 @@ test "cpu RISC-V composition: exported adjacent pair matches generic and records
     try std.testing.expectEqual(@as(u64, 0), declined.admissions);
     try std.testing.expectEqual(@as(u64, 1), declined.declines);
     try std.testing.expectError(
-        error.FiniteCompositionByteBudgetUnsupported,
+        error.TaskMemoryBudgetExceeded,
         evaluateWithExecution(
             allocator,
             mismatched[0..],

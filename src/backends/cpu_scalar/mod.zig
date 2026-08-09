@@ -84,12 +84,6 @@ pub const CpuBackend = struct {
         )) |evaluation| return evaluation;
         const adjusted = execution.adjustedForAvailablePool();
         try adjusted.validateCapacity();
-        if (execution.host_byte_budget != std.math.maxInt(usize)) {
-            // The secure recurrence above has closed accounting. Generic and
-            // RISC-V mixed plans reject finite caps before allocating until
-            // their coordinator-owned planning storage is accounted too.
-            return error.FiniteCompositionByteBudgetUnsupported;
-        }
         return riscv_composition.evaluateWithExecution(
             allocator,
             components,

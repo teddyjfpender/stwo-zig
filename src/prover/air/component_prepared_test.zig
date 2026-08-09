@@ -4,6 +4,7 @@ const std = @import("std");
 const qm31 = @import("stwo_core").fields.qm31;
 const accumulation = @import("accumulation.zig");
 const component_parallel = @import("component_parallel.zig");
+const composition_execution = @import("composition_execution.zig");
 const prepared_domain = @import("prepared_domain.zig");
 const task_graph = @import("../task_graph.zig");
 const work_pool = @import("../work_pool.zig");
@@ -193,6 +194,44 @@ fn runCompositionWithPool(
     );
 }
 
+fn runRequestedComposition(
+    allocator: std.mem.Allocator,
+    components: []const MockComponent,
+    worker_count: usize,
+    host_byte_budget: usize,
+) !@import("../secure_column.zig").SecureColumnByCoords {
+    var pool: work_pool.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{
+        .worker_count = worker_count,
+        .stack_size = prepared_domain.ROW_EVALUATOR_STACK_BYTES,
+    });
+    defer pool.deinit();
+    var total_constraints: usize = 0;
+    for (components) |mock| {
+        total_constraints = try std.math.add(
+            usize,
+            total_constraints,
+            mock.nConstraints(),
+        );
+    }
+    const trace: u8 = 0;
+    return component_parallel.computeRequested(
+        allocator,
+        components,
+        2,
+        total_constraints,
+        QM31.fromU32Unchecked(3, 1, 0, 0),
+        &trace,
+        composition_execution.Execution{
+            .worker_budget = try work_pool.WorkerBudget.init(worker_count),
+            .pool = if (worker_count == 1) null else &pool,
+            .host_byte_budget = host_byte_budget,
+            .contention_policy = .strict,
+            .explicit = true,
+        },
+    );
+}
+
 fn expectConstantColumn(
     column: anytype,
     expected: QM31,
@@ -226,6 +265,43 @@ test "prepared composition is canonical with one two and four workers" {
     try std.testing.expectEqual(@as(usize, 12), control.prepare_calls.load(.acquire));
     try std.testing.expectEqual(@as(usize, 12), control.run_calls.load(.acquire));
     try std.testing.expectEqual(@as(usize, 0), control.legacy_calls.load(.acquire));
+    try std.testing.expectEqual(@as(usize, 0), control.live_states.load(.acquire));
+}
+
+test "prepared composition obeys finite host budgets at one two and four workers" {
+    const allocator = std.testing.allocator;
+    var control = Control{};
+    const components = [_]MockComponent{
+        component(0, 5, &control),
+        component(1, 7, &control),
+        component(2, 11, &control),
+        component(3, 13, &control),
+    };
+    const alpha = QM31.fromU32Unchecked(3, 1, 0, 0);
+    const expected = components[0].value.mul(alpha.mul(alpha).mul(alpha))
+        .add(components[1].value.mul(alpha.mul(alpha)))
+        .add(components[2].value.mul(alpha))
+        .add(components[3].value);
+
+    for ([_]usize{ 1, 2, 4 }) |worker_count| {
+        var output = try runRequestedComposition(
+            allocator,
+            &components,
+            worker_count,
+            2 * 1024 * 1024,
+        );
+        defer output.deinit(allocator);
+        try expectConstantColumn(&output, expected);
+    }
+
+    var failing = std.testing.FailingAllocator.init(allocator, .{ .fail_index = 0 });
+    const runs_before = control.run_calls.load(.acquire);
+    try std.testing.expectError(
+        error.TaskMemoryBudgetExceeded,
+        runRequestedComposition(failing.allocator(), &components, 1, 1),
+    );
+    try std.testing.expect(!failing.has_induced_failure);
+    try std.testing.expectEqual(runs_before, control.run_calls.load(.acquire));
     try std.testing.expectEqual(@as(usize, 0), control.live_states.load(.acquire));
 }
 

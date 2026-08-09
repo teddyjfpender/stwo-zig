@@ -54,6 +54,13 @@ pub const Execution = struct {
         }
     }
 
+    pub fn helperResidentBytes(self: Execution) !usize {
+        const helper_count = self.worker_budget.helperCount();
+        if (helper_count == 0) return 0;
+        const pool = self.pool orelse return error.WorkPoolRequired;
+        return pool.helperReservationBytes(self.worker_budget);
+    }
+
     /// Compatibility requests may use the same prepared plan serially when
     /// the process pool cannot represent their requested width. Active lease
     /// contention is handled by the scheduler after planning.

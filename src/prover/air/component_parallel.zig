@@ -5,6 +5,7 @@ const qm31 = @import("stwo_core").fields.qm31;
 const accumulation = @import("accumulation.zig");
 const composition_execution = @import("composition_execution.zig");
 const prepared_domain = @import("prepared_domain.zig");
+const host_budget_allocator = @import("../host_budget_allocator.zig");
 const secure_column = @import("../secure_column.zig");
 const task_graph = @import("../task_graph.zig");
 const work_pool = @import("../work_pool.zig");
@@ -71,15 +72,14 @@ pub fn computeRequested(
     if (components.len == 0) return error.EmptyComponentSet;
     const adjusted = execution.adjustedForAvailablePool();
     try adjusted.validateCapacity();
-    if (!allComponentsPrepared(components)) {
+    const fully_prepared = allComponentsPrepared(components);
+    if (!fully_prepared) {
         if (adjusted.isStrict()) return error.UnpreparedCompositionFallback;
     }
-    // The graph accounts task reservations, but not yet its coordinator-owned
-    // powers, accumulators, worker records, and plan storage.
-    if (adjusted.host_byte_budget != std.math.maxInt(usize)) {
+    if (!fully_prepared and adjusted.host_byte_budget != std.math.maxInt(usize)) {
         return error.FiniteCompositionByteBudgetUnsupported;
     }
-    if (!allComponentsPrepared(components)) {
+    if (!fully_prepared) {
         return computeSequential(
             allocator,
             components,
@@ -88,6 +88,32 @@ pub fn computeRequested(
             random_coeff,
             trace,
         );
+    }
+    if (adjusted.host_byte_budget != std.math.maxInt(usize)) {
+        const helper_bytes = try adjusted.helperResidentBytes();
+        const heap_budget = std.math.sub(
+            usize,
+            adjusted.host_byte_budget,
+            helper_bytes,
+        ) catch return error.TaskMemoryBudgetExceeded;
+        var bounded = host_budget_allocator.HostBudgetAllocator.init(
+            allocator,
+            heap_budget,
+        );
+        return computePrepared(
+            bounded.allocator(),
+            components,
+            max_log_size,
+            total_constraints,
+            random_coeff,
+            trace,
+            adjusted,
+        ) catch |failure| {
+            if (failure == error.OutOfMemory and bounded.didExceedBudget()) {
+                return error.TaskMemoryBudgetExceeded;
+            }
+            return failure;
+        };
     }
     return computePrepared(
         allocator,
@@ -205,6 +231,9 @@ fn computePrepared(
     defer if (prepared_output) |*output| output.deinit(allocator);
 
     for (workers, 0..) |*worker, index| {
+        if (execution.host_byte_budget != std.math.maxInt(usize)) {
+            try requireHeapBackedResources(worker.prepared.resources);
+        }
         _ = try graph.addTask(.{
             .key = .{
                 .epoch = 0,
@@ -253,6 +282,12 @@ fn computePrepared(
         return result;
     }
     return workers[0].accumulator.finalize();
+}
+
+fn requireHeapBackedResources(resources: task_graph.ResourceReservation) !void {
+    if (resources.exclusive_scratch_bytes != 0 or resources.device_resident_bytes != 0) {
+        return error.FiniteCompositionByteBudgetUnsupported;
+    }
 }
 
 fn computeSequential(

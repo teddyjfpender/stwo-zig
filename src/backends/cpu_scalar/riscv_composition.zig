@@ -107,8 +107,6 @@ var telemetry: Telemetry = .{};
 /// backend wrapper enables it because it has no request-level admission API.
 /// Strict callers also leave `allow_unprepared_fallback` false so every worker
 /// path is prepared before the structured graph can launch.
-/// Finite byte budgets are rejected until the coordinator-owned plan storage
-/// is included in the same closed accounting model as task reservations.
 pub const ExecutionOptions = struct {
     worker_budget: prover.work_pool.WorkerBudget = prover.work_pool.WorkerBudget.serial(),
     pool: ?*prover.work_pool.WorkPool = null,
@@ -239,11 +237,56 @@ pub fn evaluateWithExecution(
             return error.WorkerBudgetUnavailable;
         }
     }
-    if (execution.byte_budget != std.math.maxInt(usize)) {
-        _ = telemetry.finite_budget_rejections.fetchAdd(1, .monotonic);
-        return error.FiniteCompositionByteBudgetUnsupported;
-    }
     if (!admission.hasCandidatePair(components)) return null;
+
+    if (execution.byte_budget == std.math.maxInt(usize)) {
+        return evaluatePlan(allocator, components, random_coeff, trace, execution);
+    }
+    const helper_bytes = try helperResidentBytes(execution);
+    const heap_budget = std.math.sub(
+        usize,
+        execution.byte_budget,
+        helper_bytes,
+    ) catch {
+        _ = telemetry.finite_budget_rejections.fetchAdd(1, .monotonic);
+        return error.TaskMemoryBudgetExceeded;
+    };
+    var bounded = prover.host_budget_allocator.HostBudgetAllocator.init(
+        allocator,
+        heap_budget,
+    );
+    return evaluatePlan(
+        bounded.allocator(),
+        components,
+        random_coeff,
+        trace,
+        execution,
+    ) catch |failure| {
+        if (failure == error.OutOfMemory and bounded.didExceedBudget()) {
+            _ = telemetry.finite_budget_rejections.fetchAdd(1, .monotonic);
+            return error.TaskMemoryBudgetExceeded;
+        }
+        if (failure == error.FiniteCompositionByteBudgetUnsupported) {
+            _ = telemetry.finite_budget_rejections.fetchAdd(1, .monotonic);
+        }
+        return failure;
+    };
+}
+
+fn helperResidentBytes(execution: ExecutionOptions) !usize {
+    const helper_count = execution.worker_budget.helperCount();
+    if (helper_count == 0) return 0;
+    const pool = execution.pool orelse return error.WorkPoolRequired;
+    return pool.helperReservationBytes(execution.worker_budget);
+}
+
+fn evaluatePlan(
+    allocator: std.mem.Allocator,
+    components: []const Component,
+    random_coeff: QM31,
+    trace: *const Trace,
+    execution: ExecutionOptions,
+) !?SecureColumn {
     _ = telemetry.attempts.fetchAdd(1, .monotonic);
 
     var base_programs = std.ArrayList(BaseProgramEntry).empty;
@@ -462,6 +505,11 @@ pub fn evaluateWithExecution(
     {
         return error.InvalidCompositionPowerOrder;
     }
+    if (execution.byte_budget != std.math.maxInt(usize) and
+        prepared_fallback_count != fallback_count)
+    {
+        return error.FiniteCompositionByteBudgetUnsupported;
+    }
 
     const tiles = try allocator.alloc(Tile, tile_count);
     defer allocator.free(tiles);
@@ -511,6 +559,9 @@ pub fn evaluateWithExecution(
     }
 
     for (host_workers) |*worker| {
+        if (execution.byte_budget != std.math.maxInt(usize)) {
+            try requireHeapBackedResources(worker.resources());
+        }
         _ = try graph.addTask(.{
             .key = .{
                 .epoch = 0,
@@ -527,6 +578,10 @@ pub fn evaluateWithExecution(
         });
     }
     for (tile_lanes, 0..) |*lane, lane_index| {
+        const resources = try lane.resources(scratch_bytes);
+        if (execution.byte_budget != std.math.maxInt(usize)) {
+            try requireHeapBackedResources(resources);
+        }
         _ = try graph.addTask(.{
             .key = .{
                 .epoch = 0,
@@ -538,7 +593,7 @@ pub fn evaluateWithExecution(
             .name = "riscv-composition-tile-lane",
             .func = TileLane.run,
             .context = lane,
-            .resources = try lane.resources(scratch_bytes),
+            .resources = resources,
             .work_estimate = try lane.workEstimate(),
         });
     }
@@ -599,14 +654,17 @@ pub fn evaluateWithExecution(
     const execution_report = graph.execute(.{
         .worker_budget = execution.worker_budget,
         .pool = execution.pool,
-        .byte_budget = execution.byte_budget,
+        // Finite heap ownership is enforced by HostBudgetAllocator and shared
+        // helper residency was reserved before planning. Resource declarations
+        // still validate worker-stack shape; finite plans reject non-heap scratch.
+        .byte_budget = std.math.maxInt(usize),
         .ready_policy = .critical_path,
     }) catch |failure| switch (failure) {
         error.WorkerBudgetUnavailable => if (execution.serial_on_contention) serial: {
             _ = telemetry.pool_lease_declines.fetchAdd(1, .monotonic);
             break :serial try graph.execute(.{
                 .worker_budget = prover.work_pool.WorkerBudget.serial(),
-                .byte_budget = execution.byte_budget,
+                .byte_budget = std.math.maxInt(usize),
                 .ready_policy = .critical_path,
             });
         } else return failure,
@@ -641,6 +699,12 @@ pub fn evaluateWithExecution(
         return result;
     }
     return try combined.finalize();
+}
+
+fn requireHeapBackedResources(resources: prover.task_graph.ResourceReservation) !void {
+    if (resources.exclusive_scratch_bytes != 0 or resources.device_resident_bytes != 0) {
+        return error.FiniteCompositionByteBudgetUnsupported;
+    }
 }
 
 fn componentWorkEstimate(component: Component) !u64 {
