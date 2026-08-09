@@ -83,9 +83,10 @@ workers write only their assigned slots, publication after join moves those
 buffers without allocation, and snapshots deep-copy borrowed labels. Each
 reservation capability binds the recorder identity and a monotonic generation:
 stale copies cannot abort or publish a later reservation, and malformed
-publication returns an error without consuming the current capability. When
-no stage recorder is supplied, task profiling performs no allocation or clock
-sampling.
+publication returns an error without consuming the current capability.
+`Recorder.initWithOptions(..., .{ .capture_tasks = false })` retains stage
+timing while withholding the task recorder from composition; task profiling
+then performs no graph allocation or clock sampling.
 `assertProverEngine` checks the associated types and exact `init`, `deinit`,
 `commit`, and `prove` signatures at compile time.
 

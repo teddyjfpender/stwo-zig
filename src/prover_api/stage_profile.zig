@@ -5,6 +5,14 @@ const task_profile = @import("task_profile.zig");
 
 pub const SCHEMA_VERSION: u32 = 1;
 
+pub const RecorderOptions = struct {
+    /// Flat task capture is opt-in independently from hierarchical stage
+    /// timing. Disabling it keeps stage boundaries available while ensuring
+    /// bounded graphs receive no recorder and therefore allocate or sample no
+    /// task-profile state.
+    capture_tasks: bool = true,
+};
+
 pub const StageNode = struct {
     id: []const u8,
     label: []const u8,
@@ -71,11 +79,21 @@ pub const Recorder = struct {
     roots: std.ArrayList(*MutableNode),
     stack: std.ArrayList(*MutableNode),
     task_recorder: task_profile.Recorder,
+    capture_tasks: bool,
 
     pub fn init(
         allocator: std.mem.Allocator,
         runtime: []const u8,
         example: []const u8,
+    ) Recorder {
+        return initWithOptions(allocator, runtime, example, .{});
+    }
+
+    pub fn initWithOptions(
+        allocator: std.mem.Allocator,
+        runtime: []const u8,
+        example: []const u8,
+        options: RecorderOptions,
     ) Recorder {
         return .{
             .allocator = allocator,
@@ -84,6 +102,7 @@ pub const Recorder = struct {
             .roots = std.ArrayList(*MutableNode).empty,
             .stack = std.ArrayList(*MutableNode).empty,
             .task_recorder = task_profile.Recorder.init(allocator, runtime, example),
+            .capture_tasks = options.capture_tasks,
         };
     }
 
@@ -133,6 +152,13 @@ pub const Recorder = struct {
         allocator: std.mem.Allocator,
     ) !task_profile.TaskProfile {
         return self.task_recorder.snapshot(allocator);
+    }
+
+    /// Returns the recorder only when flat task capture is enabled. Prover
+    /// orchestration calls this once before composition dispatch; workers and
+    /// disabled graph execution never branch on the option.
+    pub fn taskCaptureRecorder(self: *Recorder) ?*Recorder {
+        return if (self.capture_tasks) self else null;
     }
 
     fn pushStage(self: *Recorder, id: []const u8, label: []const u8) !*MutableNode {
@@ -263,6 +289,29 @@ test "prover stage profile: task publication propagates capability errors" {
         .{ .graph_id = "owner" },
         .{},
     );
+}
+
+test "prover stage profile: stage-only recorder suppresses flat task capture" {
+    const allocator = std.testing.allocator;
+    var recorder = Recorder.initWithOptions(
+        allocator,
+        "zig",
+        "stage-only",
+        .{ .capture_tasks = false },
+    );
+    defer recorder.deinit();
+
+    try std.testing.expect(recorder.taskCaptureRecorder() == null);
+    var scope = try StageScope.begin(&recorder, "outer", "Outer");
+    scope.end();
+
+    var stages = try recorder.snapshot(allocator);
+    defer stages.deinit(allocator);
+    try std.testing.expectEqual(@as(usize, 1), stages.stages.len);
+
+    var tasks = try recorder.taskSnapshot(allocator);
+    defer tasks.deinit(allocator);
+    try std.testing.expectEqual(@as(usize, 0), tasks.graphs.len);
 }
 
 test {

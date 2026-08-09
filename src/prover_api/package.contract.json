@@ -34,6 +34,7 @@
     ],
     "invariant_tests": [
       "column.zig::column evaluation validates storage and lifting geometry",
+      "stage_profile.zig::prover stage profile: stage-only recorder suppresses flat task capture",
       "stage_profile.zig::prover stage profile: task publication propagates capability errors",
       "task_profile.zig::task profile: abort releases exact reservation",
       "task_profile.zig::task profile: reservation and snapshot clean up every allocation failure",
