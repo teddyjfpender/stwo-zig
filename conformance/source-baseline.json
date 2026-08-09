@@ -2,15 +2,6 @@
   "version": 3,
   "findings": [
     {
-      "key": "file-size:backends/cpu_scalar/riscv_composition.zig",
-      "owner": "cpu-backend",
-      "track": "active_native_backend",
-      "reason": "The resident RISC-V base and lookup composition path landed as one owner in PR 177.",
-      "next_extraction": "Split capability discovery, program collection, base execution, and lookup execution into bounded internal modules.",
-      "plan": "conformance/decomposition-plan.md",
-      "max_lines": 1559
-    },
-    {
       "key": "file-size:backends/metal/kernels.metal",
       "owner": "metal-backend",
       "track": "active_native_backend",
@@ -45,24 +36,6 @@
       "next_extraction": "Split immutable source inventory from composition and ABI validation.",
       "plan": "conformance/decomposition-plan.md",
       "max_lines": 923
-    },
-    {
-      "key": "file-size:frontends/riscv/air/lookups/opcode_component.zig",
-      "owner": "riscv-air",
-      "track": "active_native_backend",
-      "reason": "Opcode component construction and its contract tests grew together during the base-field lookup specialization.",
-      "next_extraction": "Move reusable component construction or the focused tests to a named owner without changing AIR order.",
-      "plan": "conformance/decomposition-plan.md",
-      "max_lines": 909
-    },
-    {
-      "key": "file-size:frontends/riscv/air/lookups/opcode_interaction.zig",
-      "owner": "riscv-air",
-      "track": "active_native_backend",
-      "reason": "Opcode interaction construction, batching, and contract tests exceed one auditable owner.",
-      "next_extraction": "Separate interaction-column construction from batch execution and retain exact declaration order tests.",
-      "plan": "conformance/decomposition-plan.md",
-      "max_lines": 914
     },
     {
       "key": "file-size:integrations/riscv_cpu/proof_adapter.zig",
