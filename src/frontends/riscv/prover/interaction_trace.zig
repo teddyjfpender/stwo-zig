@@ -23,10 +23,10 @@
 //!
 //! The generated `ColumnEvaluation` array is **transferred** to the commitment
 //! scheme at the commit point and released here on every path that does not
-//! reach it. Each generator's *shifted cumulative* columns are a different
-//! matter: composition borrows them after this stage returns, so they are parked
-//! in the caller's `ProofWorkspace` and released by
-//! transferred to the commitment scheme, never retained as duplicate masks.
+//! reach it. Generator results transfer their column buffers into that array;
+//! only the fixed-size claims are copied into `RiscVInteractionClaim`. No
+//! duplicate interaction masks remain in `ProofWorkspace`: composition later
+//! borrows the committed Tree-2 values from the scheme.
 
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
@@ -164,9 +164,8 @@ pub fn generateAndCommit(
 
 /// One opcode shard's interactions, from the exact buffers Tree 1 committed.
 ///
-/// The result is parked in the workspace before its columns are taken: the
-/// shifted cumulative columns it also holds are borrowed by composition, so the
-/// value may not stay in this frame.
+/// The generated columns move into the Tree-2 owner below; the fixed-size claim
+/// is copied into its canonical registry slot before the temporary is consumed.
 fn generateOpcode(
     allocator: std.mem.Allocator,
     workspace: *ProofWorkspace,

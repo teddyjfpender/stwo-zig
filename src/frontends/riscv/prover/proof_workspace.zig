@@ -163,9 +163,9 @@ pub const ProofWorkspace = struct {
     }
 
     /// Allocates and prepares one workspace. Owned by the caller; release with
-    /// `destroy`. Fields whose first writer is a stage (`opcode_columns`, the
-    /// component arrays, `opcode_results`, `table_results`) stay `undefined`
-    /// exactly as the previous stack locals did.
+    /// `destroy`. Fields whose first writer is a stage (`opcode_columns` and
+    /// the component arrays) stay `undefined` exactly as the previous stack
+    /// locals did.
     pub fn create(allocator: std.mem.Allocator) !*ProofWorkspace {
         const self = try allocator.create(ProofWorkspace);
         self.statement.n_components = 0;
