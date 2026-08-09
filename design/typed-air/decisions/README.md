@@ -1,7 +1,7 @@
 # Architecture decision records
 
 **Status:** active index
-**Last updated:** 2026-08-06
+**Last updated:** 2026-08-09
 
 ADRs record decisions that change the project's trusted boundary, protocol
 shape, authoring model, or delivery order.
@@ -43,11 +43,16 @@ shape, authoring model, or delivery order.
 | [0023](0023-relation-bound-typed-effects.md) | Relation-bound typed machine effects | accepted |
 | [0024](0024-guest-poseidon2-custom0-abi.md) | Guest Poseidon2 CUSTOM-0 ABI | accepted |
 | [0025](0025-guest-poseidon2-relation-and-subclocks.md) | Guest Poseidon2 relation and subclocks | accepted |
+| [0026](0026-typed-register-access-groups.md) | Typed register access groups and strict subclocks | accepted |
+| [0027](0027-bounded-component-task-graph.md) | Bounded component task graph | accepted |
+| [0028](0028-memory-access-groups-and-load-phase-plan.md) | Memory access groups and load/store phase plans | accepted |
+| [0029](0029-guest-component-statement-and-artifact-identity.md) | Guest Poseidon2 component, statement, and artifact identity | accepted |
+| [0030](0030-session-bound-cross-proof-relation-summaries.md) | Session-bound cross-proof relation summaries | proposed |
 
 ## Pending ADRs
 
 - Production activation criteria for generated witness writers.
-- Cross-proof relation-summary construction.
+- Review and acceptance of the proposed cross-proof relation-summary design.
 - Recursive verifier field and proof protocol.
 
 ## Template

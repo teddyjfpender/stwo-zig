@@ -1,10 +1,15 @@
 # Progress ledger
 
-**Status date:** 2026-08-06
+**Status date:** 2026-08-09
 **Branch:** `feat/typed-air-precompiles`
-**Current milestone:** M6 — guest precompile
-**Active task:** C-001 — guest precompile ABI decision
-**Next ready task:** E-001 — typed program-state effect boundary
+**Current milestone:** M7 — parallel proving
+**Active task:** R-001 — prepared composition scheduler slice
+**Next ready task:** C-007 — guest precompile main-trace construction
+**Current acceptance gate:** production CPU graph `N = 1` parity and proof-byte
+differential
+**Known formal blocker:** the M3 refinement pilot still has the five stale
+generated artifacts recorded in the M3 receipt; no reviewed regeneration or
+current-HEAD receipt closes that blocker
 
 ## Dashboard
 
@@ -15,11 +20,11 @@
 | M2 — shadow compiler | complete | A-001 through A-005 complete and green |
 | M3 — compatibility lowering | blocked | [V-008 evidence](receipts/m3-compatibility-v1.json) recorded; broad proof/formal gates open |
 | M4 — Poseidon compiler pilot | complete | H-001 through H-010 and V-006 complete; no layout selected |
-| M5 — effect and witness pilot | ready | Shared typed schemas and compatibility lowering are complete |
-| M6 — guest precompile | active | C-001 guest ABI decision active; no extension accepted yet |
-| M7 — parallel proving | queued | Requires working component |
-| M8 — broad migration | queued | Requires vertical opcode ladder |
-| M9 — recursive aggregation | deferred | Requires relation-summary design |
+| M5 — effect and witness pilot | ready | E-001 through E-003 complete; opcode authorship, generated witnesses, proof gates, and authority switch remain open |
+| M6 — guest precompile | ready | C-001 through C-006 complete; no guest main/interaction trace or one-proof verification yet |
+| M7 — parallel proving | active | Scheduler core and prepared composition/evaluators exist; production-path parity, sharding, finite budgeting, telemetry, and scaling evidence remain open |
+| M8 — broad migration | queued | No opcode family has switched generated-witness authority; E-014/E-015 remain open |
+| M9 — recursive aggregation | deferred | ADR-0030 and a native reference exist only as proposed/test authority; no recursive proof or verifier exists |
 
 ## Completed
 
@@ -320,16 +325,72 @@
   [H-010 receipt](receipts/h010-authenticated-poseidon-layout-benchmark-v1.json)
   names the exact evidence and bounded conclusion.
 
+## Current implementation evidence
+
+- M5 foundations advanced without completing a vertical opcode slice.
+  Commit `a3150a5c` supplies relation-bound program fetch and adjacent state
+  consume/produce effects (E-001), `6cd0d64c` supplies typed register access
+  groups with strict subclocks and alias validation (E-002), and `768d2972`
+  supplies fixed register/memory access plans including the distinct load
+  relation-order and physical-phase rules (E-003). LUI authoring, witness
+  generation, proof differentials, and any authority switch remain open.
+- M6 foundations advanced through C-006 without constructing a provable guest
+  trace. Commit `3ee82e98` accepts the profile-scoped CUSTOM-0 ABI and adds the
+  owned transactional call buffer and runner/host boundary; `ecfdbe2c` adds the
+  guest relation registry, challenges, and events; and `2aa5701b` adds the
+  profile component registry, statement geometry, manifest, and artifact
+  identity. C-007 through C-009 remain the minimum path to a one-proof claim.
+- The R-001 scheduler core at `24cb7f0f` has exact-capacity planning, explicit
+  worker leases, joined cancellation, canonical error selection, nested-submit
+  rejection, resource reservation accounting, and focused `N = 1/2/4` tests.
+  This is reusable scheduler evidence, not evidence that a RISC-V proof uses the
+  graph.
+- The active M7 slice at `46e3ca26` adds coordinator-prepared composition tasks,
+  canonical coefficient-range ownership, and allocation-free leaf execution.
+  Commit `eb6728a3` supplies prepared evaluators for generic memory, semantic,
+  clock-update, opcode lookup, lookup-table, and memory-hash components. The row
+  evaluators admit a 128 KiB worker stack, poll cancellation at bounded tiles no
+  larger than 4,096 rows, validate geometry before execution, and keep fallible
+  allocation on the coordinator. Focused generic-memory and semantic roots pass
+  ReleaseSafe and ReleaseFast with 277/277 and 220/220 tests respectively,
+  including independent pre-change row traversals for source order, previous
+  rows, denominators, random powers, and final output bytes.
+- Commit `a928c9fa` implements a native serialization and tree reference for
+  ADR-0030. The ADR remains proposed and the code is test authority only: no
+  leaf proof authenticates the summary, no recursive verifier consumes it, and
+  M9 remains deferred.
+
+### Open gates for the active scheduler slice
+
+- The specialized CPU composition hook is consulted before the generic
+  prepared path, so the production CPU proof still bypasses the new graph.
+- Mock/component tests establish prepared `N = 1/2/4` identity, but no complete
+  production proof establishes predecessor versus graph `N = 1` parity or the
+  normative proof-byte differential.
+- A prepared component is currently one task. Large domains are not row-sharded,
+  so the slice cannot yet demonstrate the required within-component scaling.
+- The scheduler can enforce a byte budget, and evaluators declare resource
+  geometry, but the compatibility composition entrypoint currently uses the
+  default unbounded request budget. R-005 telemetry and the R-006 performance
+  receipt do not exist.
+- The independent M3 release blocker remains: the refinement pilot recorded
+  drift in five committed generated artifacts after a successful 120-job Lean
+  build. This ledger update neither regenerates nor accepts those artifacts.
+
 ## Immediate next actions
 
-1. C-001 — accept or reject an explicit guest precompile ABI and failure policy
-   without silently changing the base RV32IM claim.
-2. C-002 — prepare the guest Poseidon relation/version decision so it can begin
-   immediately after C-001 without pre-empting that ABI authority.
-3. E-001 — prepare the typed program-state effect boundary on the parallel
-   ready track without activating a generated witness or changing production.
+1. R-001 — route a full CPU proof through the prepared graph, or remove the
+   specialized-backend bypass for the admitted capture path, then compare the
+   same production workload against the predecessor at graph `N = 1`.
+2. R-001 — add the statement, geometry, complete-column, relation, transcript,
+   proof-byte, verifier, and cleanup differential required by ADR-0027 before
+   treating `N > 1` as evidence.
+3. R-001/R-005 — introduce bounded row shards, pass a finite per-request byte
+   budget, and record task/resource telemetry before attempting the normative
+   R-006 worker sweep.
 
-No production behavior should change in these tasks.
+C-007 and E-004/E-010 remain ready dependency-safe tracks, but none is marked
+active while the prepared scheduler slice owns the primary task.
 
 ## Decisions
 
@@ -377,13 +438,24 @@ Accepted:
   selecting a materialization layout. Its two complete default cohorts are
   diagnostic CPU evidence only; proof, Metal-candidate, production-layout, and
   promotion authority remain false.
+- Relation-bound state effects, strict register subclocks, and the distinct
+  load/store access-phase plan are fixed by ADR-0023, ADR-0026, and ADR-0028.
+- The profile-scoped guest Poseidon2 ABI, relation/subclock rules, and separate
+  component/statement/artifact identity are fixed by ADR-0024, ADR-0025, and
+  ADR-0029. These decisions do not claim a completed guest proof.
+- The bounded component task graph and its migration constraints are fixed by
+  ADR-0027. Acceptance of the design does not mark R-001 or M7 complete.
+
+Proposed:
+
+- ADR-0030 defines a session-bound cross-proof relation-summary design and has
+  a native test reference. It has no production or recursive-verifier
+  authority.
 
 Pending:
 
-- guest invocation ABI;
-- guest Poseidon relation schema/version;
 - generated witness activation policy;
-- cross-proof relation summary;
+- review and acceptance of ADR-0030;
 - recursive verifier field/protocol.
 
 ## Risks under watch
@@ -395,9 +467,10 @@ Pending:
 | Layout changes silently | Versioned deterministic manifests |
 | Typed DSL becomes stringly or magical | Canon relation/effect rules and constructor validation |
 | Poseidon pilot becomes a toy | Exact 445-column production component target |
-| Precompile weakens base-RV32IM claim | Pending explicit guest ABI ADR |
-| Parallelism hides total cost | Performance vector and critical-path telemetry |
-| Recursion balances detached calls | IR v0 rejects recursive function graphs |
+| Precompile weakens base-RV32IM claim | Accepted profile-separated ABI and artifact identity; C-007 through C-009 must still prove the extension path |
+| Parallelism hides total cost | Frozen M5--M9 performance protocol; no M7 verdict until finite budget, telemetry, and R-006 capture exist |
+| Prepared tests are mistaken for production scheduling | Ledger names the specialized CPU bypass and requires predecessor/graph `N = 1` proof-byte differential |
+| Recursion balances detached calls | ADR-0030 remains proposed and requires shared session challenges plus authenticated leaf summaries |
 | Hint callback or output drifts silently | Closed versioned registry and checked proof paths |
 | Broad production proof gate is red | V-008 records exact rigidity findings; no release promotion |
 | Formal generated artifacts are stale | Refinement pilot fails closed on five named files; reviewed workflow required |
@@ -405,6 +478,7 @@ Pending:
 | Shadow equality is mistaken for proof evidence | H-007 requires generated artifacts inside CPU/Metal proofs before promotion |
 | Local identity co-attestation is mistaken for protocol binding | V-006 states that the transcript, public statement, proof bytes, and production verifier are unchanged |
 | Noisy microbenchmark movement is mistaken for a layout winner | H-010 has two complete independent cohorts; q0/q100 log-14 witness directions flip within MAD/noise, so no layout is selected |
+| Native aggregation reference is mistaken for M9 evidence | Reference serialization/tree tests are explicitly unauthenticated by leaf proofs and unused by a recursive verifier |
 
 ## Baseline metrics
 
@@ -434,6 +508,16 @@ inconsistent; q0/q100 log-14 witness directions reverse between runs. The
 authoritative interpretation is no meaningful repeatable layout regression
 and no selected layout, not a zero-cost or proving-speed claim. Exact ranges
 and report identities are recorded in [PERFORMANCE.md](PERFORMANCE.md).
+
+The active M7 structural baseline has a 1,024-task graph bound and prepared AIR
+row evaluators with a 128 KiB admitted worker stack and cancellation tiles no
+larger than 4,096 rows. Those are implementation bounds, not measured
+performance. The current composition slice launches one task per component,
+does not row-shard a dominant component, and does not pass a finite byte budget
+from its compatibility entrypoint. No normative M7 raw-attempt bundle, receipt,
+speed interval, total-work ratio, or peak-RSS verdict exists. R-005/R-006 must
+use the frozen [M5--M9 protocol](performance/m5-m9-protocol-v1.json); H-010
+diagnostic cohorts cannot be reused as M7 evidence.
 
 The following measurements remain assigned to their later owning milestones;
 they are not prerequisites for closing the opcode shadow compiler:
@@ -1014,6 +1098,40 @@ records the immutable implementation, both report identities, clean gates, and
 exclusions. Proof, verification, Metal-candidate, production-layout, and
 promotion claims remain false. M4 and H-010 are complete; C-001 is now the sole
 active task and must decide the guest ABI before any precompile implementation.
+
+### 2026-08-09 — prepared composition scheduler slice is active
+
+The ledger catches up through implementation commit `4232cc55`. M5 now has the
+relation-bound state, register, and memory access foundations required by
+E-001 through E-003, but none of the LUI/ADDI/load/JALR/DIV vertical witness
+slices is complete. M6 has an accepted profile-separated ABI and relation,
+transactional guest calls, and authenticated component/statement geometry
+through C-006, but no guest main trace, interaction trace, proof, or verifier
+evidence. Both milestones therefore remain incomplete and ready rather than
+active.
+
+M7 owns the sole active task. The bounded scheduler core and prepared
+composition interface now enforce exact-capacity planning, worker leases,
+joined cancellation, canonical failure selection, coordinator-owned
+allocation, declared resource geometry, and allocation-free row loops. The
+RISC-V memory, semantic, clock-update, opcode lookup, lookup-table, and hash
+components expose prepared capabilities. Independent generic-memory and
+semantic references pass their focused ReleaseSafe/ReleaseFast roots at
+277/277 and 220/220 tests.
+
+This is deliberately not an R-001 or M7 completion claim. Production CPU
+composition still selects its specialized backend before the generic graph;
+there is no complete predecessor/graph `N = 1` proof-byte differential; large
+components are not row-sharded; and the compatibility entrypoint supplies no
+finite request byte budget or performance telemetry. Consequently no M7
+capture or performance verdict exists. The next implementation must close
+those exact gates before R-002 through R-006 or any throughput claim advances.
+
+ADR-0030 and its native reference establish only a proposed M9 serialization
+and aggregation-tree model. They authenticate no leaf proof and drive no
+recursive verifier, so M9 remains deferred. Separately, the five generated
+formal artifacts named by the M3 receipt remain stale; no formal regeneration
+or acceptance occurred in this interval.
 
 ## Update protocol
 

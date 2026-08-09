@@ -1,7 +1,7 @@
 # Task graph
 
 **Status:** active backlog
-**Last updated:** 2026-08-06
+**Last updated:** 2026-08-09
 
 ## Status vocabulary
 
@@ -25,8 +25,8 @@ first production milestone. `P2` improves breadth or optimization.
 | M3 | Compatibility lowering | LUI and then all families round-trip exactly | blocked |
 | M4 | Pure compiler pilot | Poseidon2 compatibility path verified; H-010 default cohort reviewed | done |
 | M5 | Effect/witness pilot | LUI, ADDI, signed load/JALR, DIV vertical slices | ready |
-| M6 | Guest precompile | Poseidon2 calls close in one proof | active |
-| M7 | Parallel proving | Component stages scheduled and measured | queued |
+| M6 | Guest precompile | Poseidon2 calls close in one proof | ready |
+| M7 | Parallel proving | Component stages scheduled and measured | active |
 | M8 | Broad migration | Handwritten witness duplication retired | queued |
 | M9 | Recursive aggregation | Bound leaf summaries aggregate two-to-one | deferred |
 
@@ -118,36 +118,36 @@ accepted decision and full proof-path evidence.
 
 ## Typed effects and opcode migration
 
-| ID | Priority | Task | Depends | Acceptance |
-| --- | --- | --- | --- | --- |
-| E-001 | P0 | Implement program fetch and state consume/produce effects | F-006, A-008 | Current schemas/order reproduced |
-| E-002 | P0 | Implement register read/write with strict subclocks | E-001 | Alias and historical self-loop negatives reject |
-| E-003 | P0 | Implement memory read/write and range effects | E-002 | Load/store masks, gaps, and address bounds represented |
-| E-004 | P0 | Author LUI in typed surface | E-001, A-010 | Full compatibility and proof gates exact |
-| E-005 | P0 | Generate LUI witness in shadow mode | E-004, F-008 | Column equality across corpus |
-| E-006 | P0 | Author ADDI | E-002, E-004 | x0, aliases, overflow, carries, Sail differential |
-| E-007 | P0 | Generate ADDI witness in shadow mode | E-006 | Column/event equality and forged carry rejection |
-| E-008 | P1 | Author signed-load pilot | E-003, E-007 | Sign hint, memory mask, and bound mutations reject |
-| E-009 | P1 | Author JALR pilot | E-003, E-007 | Target, bit zero, range, state transition exact |
-| E-010 | P0 | Define quotient/remainder hint recipes | F-008, E-003 | All RISC-V exceptional classes specified |
-| E-011 | P0 | Author DIV-family pilot | E-010 | 292 operand-class corpus and adversarial tests pass |
-| E-012 | P1 | Add generic direct-to-column witness executor | E-005, H-005 | Preplanned storage, bounded dispatch, deterministic errors |
-| E-013 | P1 | Switch one family witness to generated authority | E-012 | Old writer test-only; full clean-tree gates green |
-| E-014 | P1 | Migrate remaining families in reviewed groups | E-013 | Per-family checklist complete |
-| E-015 | P1 | Retire redundant witness writers | E-014 | No production imports; retained history documented |
-| E-016 | P2 | Evaluate generated concrete executor | E-014 | Sail/Spike differential and ADR; no authority change |
+| ID | Priority | Task | Depends | Acceptance | Status |
+| --- | --- | --- | --- | --- | --- |
+| E-001 | P0 | Implement program fetch and state consume/produce effects | F-006, A-008 | Current schemas/order reproduced | done |
+| E-002 | P0 | Implement register read/write with strict subclocks | E-001 | Alias and historical self-loop negatives reject | done |
+| E-003 | P0 | Implement memory read/write and range effects | E-002 | Load/store masks, gaps, and address bounds represented | done |
+| E-004 | P0 | Author LUI in typed surface | E-001, A-010 | Full compatibility and proof gates exact | ready |
+| E-005 | P0 | Generate LUI witness in shadow mode | E-004, F-008 | Column equality across corpus | queued |
+| E-006 | P0 | Author ADDI | E-002, E-004 | x0, aliases, overflow, carries, Sail differential | queued |
+| E-007 | P0 | Generate ADDI witness in shadow mode | E-006 | Column/event equality and forged carry rejection | queued |
+| E-008 | P1 | Author signed-load pilot | E-003, E-007 | Sign hint, memory mask, and bound mutations reject | queued |
+| E-009 | P1 | Author JALR pilot | E-003, E-007 | Target, bit zero, range, state transition exact | queued |
+| E-010 | P0 | Define quotient/remainder hint recipes | F-008, E-003 | All RISC-V exceptional classes specified | ready |
+| E-011 | P0 | Author DIV-family pilot | E-010 | 292 operand-class corpus and adversarial tests pass | queued |
+| E-012 | P1 | Add generic direct-to-column witness executor | E-005, H-005 | Preplanned storage, bounded dispatch, deterministic errors | queued |
+| E-013 | P1 | Switch one family witness to generated authority | E-012 | Old writer test-only; full clean-tree gates green | queued |
+| E-014 | P1 | Migrate remaining families in reviewed groups | E-013 | Per-family checklist complete | queued |
+| E-015 | P1 | Retire redundant witness writers | E-014 | No production imports; retained history documented | queued |
+| E-016 | P2 | Evaluate generated concrete executor | E-014 | Sail/Spike differential and ADR; no authority change | queued |
 
 ## Guest precompile
 
 | ID | Priority | Task | Depends | Acceptance | Status |
 | --- | --- | --- | --- | --- | --- |
-| C-001 | P0 | Accept guest ABI ADR | H-007 | Explicit extension semantics and failure policy | active |
-| C-002 | P0 | Accept guest relation/version ADR | C-001, F-006 | Domain separation and multiplicity policy fixed | queued |
-| C-003 | P0 | Implement owned typed call buffer | C-002 | Stable order, duplicates, empty case, allocation failure tests | queued |
-| C-004 | P0 | Implement runner/host invocation boundary | C-003 | Invalid calls reject before mutation; output corpus matches | queued |
-| C-005 | P0 | Add guest Poseidon component registry entry | C-003 | Stable kind/version and verifier construction | queued |
-| C-006 | P0 | Extend statement geometry and artifact identity | C-005 | Call count/columns/log size bound and malformed artifacts reject | queued |
-| C-007 | P0 | Generate guest precompile main trace | C-004, C-006 | Calls map exactly to active rows; padding inactive | queued |
+| C-001 | P0 | Accept guest ABI ADR | H-007 | Explicit extension semantics and failure policy | done |
+| C-002 | P0 | Accept guest relation/version ADR | C-001, F-006 | Domain separation and multiplicity policy fixed | done |
+| C-003 | P0 | Implement owned typed call buffer | C-002 | Stable order, duplicates, empty case, allocation failure tests | done |
+| C-004 | P0 | Implement runner/host invocation boundary | C-003 | Invalid calls reject before mutation; output corpus matches | done |
+| C-005 | P0 | Add guest Poseidon component registry entry | C-003 | Stable kind/version and verifier construction | done |
+| C-006 | P0 | Extend statement geometry and artifact identity | C-005 | Call count/columns/log size bound and malformed artifacts reject | done |
+| C-007 | P0 | Generate guest precompile main trace | C-004, C-006 | Calls map exactly to active rows; padding inactive | ready |
 | C-008 | P0 | Generate shared-challenge relation interactions | C-007 | Source/supply sums close; omission/duplication fail | queued |
 | C-009 | P0 | Prove and independently verify one guest program | C-008 | CPU proof and new-process verifier green | queued |
 | C-010 | P1 | Add Metal component admission | C-009 | Authenticated AOT or reviewed generic path; no CPU fallback | queued |
@@ -157,18 +157,35 @@ accepted decision and full proof-path evidence.
 
 ## Parallelism and recursion
 
-| ID | Priority | Task | Depends | Acceptance |
-| --- | --- | --- | --- | --- |
-| R-001 | P1 | Model component build stages as bounded tasks | C-009 | Explicit dependencies, ownership, cancellation |
-| R-002 | P1 | Parallelize independent main-trace construction | R-001 | Canonical output; serial differential |
-| R-003 | P1 | Parallelize independent interaction construction | R-002 | Shared challenges; canonical claims |
-| R-004 | P1 | Integrate with heterogeneous quotient scheduler | R-003 | No nested oversubscription; failure propagation |
-| R-005 | P1 | Add component critical-path telemetry | R-004 | queue/run/wait/memory metrics in report |
-| R-006 | P1 | Thread-count and workload scaling study | R-005 | verified 1/N-worker sweep and resource disclosure |
-| R-007 | P2 | Specify cross-proof relation summary | C-012 | Reviewed soundness argument and serialization |
-| R-008 | P2 | Implement one core/precompile leaf-pair prototype | R-007 | Swapped/omitted/cross-transcript negatives reject |
-| R-009 | P2 | Implement two-to-one aggregation tree | R-008 | Final verifier binds all leaves and statement |
-| R-010 | P2 | Measure recursion crossover | R-009 | Proof size, verifier, memory, total work, wall time |
+| ID | Priority | Task | Depends | Acceptance | Status |
+| --- | --- | --- | --- | --- | --- |
+| R-001 | P1 | Model component build stages as bounded tasks | C-009 | Explicit dependencies, ownership, cancellation | active |
+| R-002 | P1 | Parallelize independent main-trace construction | R-001 | Canonical output; serial differential | queued |
+| R-003 | P1 | Parallelize independent interaction construction | R-002 | Shared challenges; canonical claims | queued |
+| R-004 | P1 | Integrate with heterogeneous quotient scheduler | R-003 | No nested oversubscription; failure propagation | queued |
+| R-005 | P1 | Add component critical-path telemetry | R-004 | queue/run/wait/memory metrics in report | queued |
+| R-006 | P1 | Thread-count and workload scaling study | R-005 | verified 1/N-worker sweep and resource disclosure | queued |
+| R-007 | P2 | Specify cross-proof relation summary | C-012 | Reviewed soundness argument and serialization | deferred |
+| R-008 | P2 | Implement one core/precompile leaf-pair prototype | R-007 | Swapped/omitted/cross-transcript negatives reject | deferred |
+| R-009 | P2 | Implement two-to-one aggregation tree | R-008 | Final verifier binds all leaves and statement | deferred |
+| R-010 | P2 | Measure recursion crossover | R-009 | Proof size, verifier, memory, total work, wall time | deferred |
+
+### R-001 implementation checkpoint
+
+The exact-capacity scheduler, worker leases, joined cancellation, deterministic
+failure selection, resource reservations, and coordinator-prepared composition
+capability exist. The current RISC-V component set also has allocation-free
+prepared row evaluators with bounded cancellation polling and an admitted
+128 KiB row-evaluator stack. This is an active implementation slice, not R-001
+or M7 completion:
+
+- the specialized CPU composition backend still runs before the generic
+  prepared scheduler and therefore bypasses it in the production CPU proof;
+- no full production proof yet establishes predecessor versus graph `N = 1`
+  parity or the required proof-byte differential;
+- composition work is one task per component rather than row-sharded work; and
+- the compatibility entrypoint has not supplied a finite per-request byte
+  budget or the R-005/R-006 resource and scaling receipt.
 
 ## Cross-cutting validation and tooling
 
