@@ -7,6 +7,11 @@ const challenges = @import("relation_challenges.zig");
 const relation_event = @import("relation_event.zig");
 const types = @import("../lang/types.zig");
 
+test {
+    _ = @import("identity_test.zig");
+    std.testing.refAllDeclsRecursive(@import("production_adapter.zig"));
+}
+
 test "guest relation registry is appended only for the extension profile" {
     const base = registry_mod.Registry.forProfile(.rv32im_zkvm_v1);
     const extension = registry_mod.Registry.forProfile(
