@@ -12,7 +12,8 @@ const device_composition = @import("air/device_composition.zig");
 const prover_air_accumulation = @import("air/accumulation.zig");
 const prover_circle = @import("poly/circle/mod.zig");
 const pcs_prover = @import("pcs/mod.zig");
-const stage_profile = @import("stwo_prover_api").stage_profile;
+const prover_api = @import("stwo_prover_api");
+const stage_profile = prover_api.stage_profile;
 
 const QM31 = qm31.QM31;
 const CirclePointQM31 = circle.CirclePointQM31;
@@ -115,6 +116,36 @@ pub fn proveExWithStage(
     recorder: ?*stage_profile.Recorder,
     composition_stage: ?device_composition.Stage,
 ) !proof_mod.ExtendedStarkProof(H) {
+    return proveExWithExecution(
+        B,
+        H,
+        MC,
+        allocator,
+        components,
+        channel,
+        commitment_scheme,
+        include_all_preprocessed_columns,
+        recorder,
+        composition_stage,
+        null,
+    );
+}
+
+/// Adds an explicit per-proof CPU composition request without changing the
+/// established device-stage entrypoint.
+pub fn proveExWithExecution(
+    comptime B: type,
+    comptime H: type,
+    comptime MC: type,
+    allocator: std.mem.Allocator,
+    components: []const component_prover.ComponentProver,
+    channel: anytype,
+    commitment_scheme: pcs_prover.CommitmentSchemeProver(B, H, MC),
+    include_all_preprocessed_columns: bool,
+    recorder: ?*stage_profile.Recorder,
+    composition_stage: ?device_composition.Stage,
+    cpu_composition_execution: ?prover_api.CpuCompositionExecutionRequest,
+) !proof_mod.ExtendedStarkProof(H) {
     return proveExComponentsWithRecorder(
         B,
         H,
@@ -126,6 +157,7 @@ pub fn proveExWithStage(
         include_all_preprocessed_columns,
         recorder,
         composition_stage,
+        cpu_composition_execution,
     );
 }
 
@@ -233,6 +265,7 @@ fn proveExComponents(
         include_all_preprocessed_columns,
         null,
         null,
+        null,
     );
 }
 
@@ -247,6 +280,7 @@ fn proveExComponentsWithRecorder(
     include_all_preprocessed_columns: bool,
     recorder: ?*stage_profile.Recorder,
     composition_stage: ?device_composition.Stage,
+    cpu_composition_execution: ?prover_api.CpuCompositionExecutionRequest,
 ) !proof_mod.ExtendedStarkProof(H) {
     var scheme = commitment_scheme;
     var owns_scheme = true;
@@ -260,6 +294,7 @@ fn proveExComponentsWithRecorder(
         .components = components,
         .n_preprocessed_columns = scheme.trees.items[PREPROCESSED_TRACE_IDX].columns.len,
         .composition_stage = composition_stage,
+        .cpu_composition_execution = cpu_composition_execution,
     };
 
     const composition_log_size = component_provers.compositionLogDegreeBound();

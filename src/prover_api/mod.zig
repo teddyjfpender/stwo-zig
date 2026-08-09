@@ -15,6 +15,8 @@ pub const ColumnEvaluation = column.ColumnEvaluation;
 pub const ColumnSource = column.ColumnSource;
 pub const DeviceCompositionStage = device_composition.Stage;
 pub const QuotientOpsError = column.QuotientOpsError;
+pub const CpuCompositionContentionPolicy = engine.CpuCompositionContentionPolicy;
+pub const CpuCompositionExecutionRequest = engine.CpuCompositionExecutionRequest;
 pub const ProveOptions = engine.ProveOptions;
 pub const assertProverEngine = engine.assertProverEngine;
 

@@ -164,8 +164,28 @@ pub fn evaluateLargeRecurrenceComposition(
     components: []const ComponentProver,
     random_coeff: QM31,
     trace: *const Trace,
+    execution: prover.air.composition_execution.Execution,
 ) !?SecureColumnByCoords {
     const shape = recurrenceShape(components, trace) orelse return null;
+    const packed_rows = shape.row_count / m31.PACK_WIDTH;
+    var adjusted = execution.adjustedForAvailablePool();
+    if (adjusted.worker_budget.count > 1 and adjusted.pool == null) {
+        return error.WorkPoolRequired;
+    }
+    const helper_stack_bytes = if (adjusted.pool) |pool| try std.math.mul(
+        usize,
+        pool.stackSize(),
+        adjusted.worker_budget.helperCount(),
+    ) else 0;
+    if (try requiredHostBytes(
+        shape,
+        @min(adjusted.worker_budget.count, packed_rows),
+        helper_stack_bytes,
+    ) >
+        execution.host_byte_budget)
+    {
+        return error.TaskMemoryBudgetExceeded;
+    }
 
     const powers = try prover.air.accumulation.generateSecurePowers(
         allocator,
@@ -200,10 +220,27 @@ pub fn evaluateLargeRecurrenceComposition(
         output_pointers[coordinate] = output.columns[coordinate].ptr;
     }
 
-    const pool = prover.work_pool.getGlobalPool();
-    const requested_workers = if (pool) |active| active.workerCount() else 1;
-    const packed_rows = shape.row_count / m31.PACK_WIDTH;
-    const worker_count = @min(requested_workers, packed_rows);
+    // Hold the shared lease only after all large, fallible preparation has
+    // completed. Compatibility contention can still reuse the same immutable
+    // powers and output allocation under a serial partition.
+    var lease_storage: prover.work_pool.WorkLease = undefined;
+    var lease: ?*prover.work_pool.WorkLease = null;
+    if (adjusted.pool) |pool| {
+        if (pool.acquire(adjusted.worker_budget)) |acquired| {
+            lease_storage = acquired;
+            lease = &lease_storage;
+        } else |failure| switch (failure) {
+            error.WorkerBudgetUnavailable => if (execution.isStrict()) {
+                return failure;
+            } else {
+                adjusted = execution.serial();
+            },
+            else => return failure,
+        }
+    }
+    defer if (lease) |active| active.deinit();
+
+    const worker_count = @min(adjusted.worker_budget.count, packed_rows);
     const workers = try allocator.alloc(Worker, worker_count);
     defer allocator.free(workers);
     for (workers, 0..) |*worker, index| {
@@ -222,16 +259,48 @@ pub fn evaluateLargeRecurrenceComposition(
         };
     }
 
-    if (pool) |active| {
+    if (lease) |active| {
         var wait_group = std.Thread.WaitGroup{};
-        for (workers[1..]) |*worker| active.spawnWg(&wait_group, Worker.run, .{worker});
+        var submitted: usize = 0;
+        for (workers[1..]) |*worker| {
+            active.spawnWg(&wait_group, Worker.run, .{worker}) catch |failure| {
+                if (submitted != 0) {
+                    wait_group.wait();
+                    active.completeWave();
+                }
+                return failure;
+            };
+            submitted += 1;
+        }
         Worker.run(&workers[0]);
         wait_group.wait();
+        if (submitted != 0) active.completeWave();
     } else {
         Worker.run(&workers[0]);
     }
 
     return output;
+}
+
+fn requiredHostBytes(
+    shape: RecurrenceShape,
+    worker_count: usize,
+    helper_stack_bytes: usize,
+) !usize {
+    var total: usize = 0;
+    inline for (.{
+        .{ shape.constraint_count, @sizeOf(QM31) },
+        .{ shape.constraint_count, @sizeOf(PackedPower) },
+        .{ shape.row_count, qm31.SECURE_EXTENSION_DEGREE * @sizeOf(M31) },
+        .{ worker_count, @sizeOf(Worker) },
+    }) |term| {
+        const bytes = std.math.mul(usize, term[0], term[1]) catch
+            return error.ResourceReservationOverflow;
+        total = std.math.add(usize, total, bytes) catch
+            return error.ResourceReservationOverflow;
+    }
+    return std.math.add(usize, total, helper_stack_bytes) catch
+        error.ResourceReservationOverflow;
 }
 
 fn recurrenceShape(components: []const ComponentProver, trace: *const Trace) ?RecurrenceShape {
@@ -277,4 +346,41 @@ fn recurrenceShape(components: []const ComponentProver, trace: *const Trace) ?Re
         .constraint_count = columns.len - 2,
         .eval_log_size = eval_log_size,
     };
+}
+
+test "secure composition host accounting is closed over owned buffers" {
+    var first = [_]M31{M31.zero()};
+    const shape = RecurrenceShape{
+        .first_column = &first,
+        .row_count = 1024,
+        .column_count = 34,
+        .column_stride = 1024,
+        .constraint_count = 32,
+        .eval_log_size = 10,
+    };
+    const helper_stack_bytes: usize = 3 * 128 * 1024;
+    const expected = shape.constraint_count * @sizeOf(QM31) +
+        shape.constraint_count * @sizeOf(PackedPower) +
+        shape.row_count * qm31.SECURE_EXTENSION_DEGREE * @sizeOf(M31) +
+        4 * @sizeOf(Worker) + helper_stack_bytes;
+    try std.testing.expectEqual(
+        expected,
+        try requiredHostBytes(shape, 4, helper_stack_bytes),
+    );
+}
+
+test "secure composition host accounting rejects overflow" {
+    var first = [_]M31{M31.zero()};
+    const shape = RecurrenceShape{
+        .first_column = &first,
+        .row_count = std.math.maxInt(usize),
+        .column_count = 34,
+        .column_stride = 1,
+        .constraint_count = 32,
+        .eval_log_size = 10,
+    };
+    try std.testing.expectError(
+        error.ResourceReservationOverflow,
+        requiredHostBytes(shape, 1, 0),
+    );
 }

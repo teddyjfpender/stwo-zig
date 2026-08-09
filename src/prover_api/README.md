@@ -37,12 +37,18 @@ lifecycle policy.
 ## Public API
 
 ```zig
+const std = @import("std");
 const prover_api = @import("stwo_prover_api");
 
 const options = prover_api.ProveOptions{
     .include_all_preprocessed_columns = false,
     .recorder = null,
     .composition_stage = null,
+    .cpu_composition_execution = .{
+        .worker_count = 4,
+        .host_byte_budget = std.math.maxInt(usize),
+        .contention_policy = .strict,
+    },
 };
 
 comptime prover_api.assertProverEngine(MyEngine);
@@ -51,7 +57,7 @@ comptime prover_api.assertProverEngine(MyEngine);
 | Area | Exports |
 | :--- | :--- |
 | Column transaction | `ColumnEvaluation`, `ColumnSource`, `QuotientOpsError`, `column` |
-| Engine contract | `ProveOptions`, `DeviceCompositionStage`, `assertProverEngine`, `device_composition`, `engine` |
+| Engine contract | `ProveOptions`, `CpuCompositionExecutionRequest`, `DeviceCompositionStage`, `assertProverEngine`, `device_composition`, `engine` |
 | Observability | `stage_profile` |
 
 `ColumnEvaluation` is a borrowed view and validates both its declared log size
@@ -61,6 +67,13 @@ materialized or produced by a recognized structural recipe.
 storage is type-erased so this package does not import prover implementation
 types; only the engine and an integration that already owns those types adapt
 the callback.
+`CpuCompositionExecutionRequest` carries only worker count, host byte budget,
+and strict-versus-compatibility policy. The engine privately adapts it to its
+worker pool after an optional device composition stage declines. A finite
+budget is admitted only by composition plans with closed host-memory
+accounting; other plans reject it before launching work. Backend-owned
+composition evaluators are consulted first and remain governed by their own
+resource contract; this request governs CPU work after they decline.
 `assertProverEngine` checks the associated types and exact `init`, `deinit`,
 `commit`, and `prove` signatures at compile time.
 

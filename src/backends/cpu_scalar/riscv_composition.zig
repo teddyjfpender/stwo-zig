@@ -45,6 +45,7 @@ pub const TelemetrySnapshot = struct {
     structured_executions: u64 = 0,
     pool_lease_declines: u64 = 0,
     finite_budget_rejections: u64 = 0,
+    unprepared_fallback_rejections: u64 = 0,
     /// Process-lifetime high-water mark; `delta` intentionally preserves the
     /// absolute value rather than pretending maxima are additive counters.
     max_graph_peak_active: u64 = 0,
@@ -69,6 +70,8 @@ pub const TelemetrySnapshot = struct {
             .pool_lease_declines = after.pool_lease_declines -| before.pool_lease_declines,
             .finite_budget_rejections = after.finite_budget_rejections -|
                 before.finite_budget_rejections,
+            .unprepared_fallback_rejections = after.unprepared_fallback_rejections -|
+                before.unprepared_fallback_rejections,
             .max_graph_peak_active = after.max_graph_peak_active,
             .max_scratch_bytes_per_worker = after.max_scratch_bytes_per_worker,
         };
@@ -91,6 +94,7 @@ const Telemetry = struct {
     structured_executions: AtomicCounter = .init(0),
     pool_lease_declines: AtomicCounter = .init(0),
     finite_budget_rejections: AtomicCounter = .init(0),
+    unprepared_fallback_rejections: AtomicCounter = .init(0),
     max_graph_peak_active: AtomicCounter = .init(0),
     max_scratch_bytes_per_worker: AtomicCounter = .init(0),
 };
@@ -101,6 +105,8 @@ var telemetry: Telemetry = .{};
 /// `worker_budget` includes the coordinator. Callers that require an
 /// admissible scaling result leave `serial_on_contention` false; the legacy
 /// backend wrapper enables it because it has no request-level admission API.
+/// Strict callers also leave `allow_unprepared_fallback` false so every worker
+/// path is prepared before the structured graph can launch.
 /// Finite byte budgets are rejected until the coordinator-owned plan storage
 /// is included in the same closed accounting model as task reservations.
 pub const ExecutionOptions = struct {
@@ -108,6 +114,7 @@ pub const ExecutionOptions = struct {
     pool: ?*prover.work_pool.WorkPool = null,
     byte_budget: usize = std.math.maxInt(usize),
     serial_on_contention: bool = false,
+    allow_unprepared_fallback: bool = false,
 };
 
 pub fn telemetrySnapshot() TelemetrySnapshot {
@@ -125,6 +132,7 @@ pub fn telemetrySnapshot() TelemetrySnapshot {
         .structured_executions = telemetry.structured_executions.load(.monotonic),
         .pool_lease_declines = telemetry.pool_lease_declines.load(.monotonic),
         .finite_budget_rejections = telemetry.finite_budget_rejections.load(.monotonic),
+        .unprepared_fallback_rejections = telemetry.unprepared_fallback_rejections.load(.monotonic),
         .max_graph_peak_active = telemetry.max_graph_peak_active.load(.monotonic),
         .max_scratch_bytes_per_worker = telemetry.max_scratch_bytes_per_worker.load(.monotonic),
     };
@@ -200,6 +208,7 @@ pub fn evaluate(
                 .worker_budget = try prover.work_pool.WorkerBudget.init(pool.workerCount()),
                 .pool = pool,
                 .serial_on_contention = true,
+                .allow_unprepared_fallback = true,
             },
         );
     }
@@ -208,7 +217,7 @@ pub fn evaluate(
         components,
         random_coeff,
         trace,
-        .{},
+        .{ .allow_unprepared_fallback = true },
     );
 }
 
@@ -229,6 +238,10 @@ pub fn evaluateWithExecution(
         if (execution.worker_budget.count > pool.workerCount()) {
             return error.WorkerBudgetUnavailable;
         }
+    }
+    if (execution.byte_budget != std.math.maxInt(usize)) {
+        _ = telemetry.finite_budget_rejections.fetchAdd(1, .monotonic);
+        return error.FiniteCompositionByteBudgetUnsupported;
     }
     if (!admission.hasCandidatePair(components)) return null;
     _ = telemetry.attempts.fetchAdd(1, .monotonic);
@@ -279,11 +292,14 @@ pub fn evaluateWithExecution(
         _ = telemetry.declines.fetchAdd(1, .monotonic);
         return null;
     }
-    if (execution.byte_budget != std.math.maxInt(usize)) {
-        _ = telemetry.finite_budget_rejections.fetchAdd(1, .monotonic);
-        return error.FiniteCompositionByteBudgetUnsupported;
+    if (!execution.allow_unprepared_fallback) {
+        for (components, eligible) |component, is_eligible| {
+            if (!is_eligible and component.prepare_domain_evaluator == null) {
+                _ = telemetry.unprepared_fallback_rejections.fetchAdd(1, .monotonic);
+                return error.UnpreparedCompositionFallback;
+            }
+        }
     }
-
     var total_constraints: usize = 0;
     var max_log_size: u32 = 0;
     for (components) |component| {

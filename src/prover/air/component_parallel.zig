@@ -3,6 +3,7 @@
 const std = @import("std");
 const qm31 = @import("stwo_core").fields.qm31;
 const accumulation = @import("accumulation.zig");
+const composition_execution = @import("composition_execution.zig");
 const prepared_domain = @import("prepared_domain.zig");
 const secure_column = @import("../secure_column.zig");
 const task_graph = @import("../task_graph.zig");
@@ -28,6 +29,13 @@ pub fn compute(
 ) anyerror!SecureColumnByCoords {
     if (components.len == 0) return error.EmptyComponentSet;
     if (allComponentsPrepared(components)) {
+        const execution = composition_execution.Execution{
+            .worker_budget = try work_pool.WorkerBudget.init(pool.workerCount()),
+            .pool = pool,
+            .host_byte_budget = std.math.maxInt(usize),
+            .contention_policy = .compatibility,
+            .explicit = false,
+        };
         return computePrepared(
             allocator,
             components,
@@ -35,7 +43,7 @@ pub fn compute(
             total_constraints,
             random_coeff,
             trace,
-            pool,
+            execution,
         );
     }
     return computeLegacy(
@@ -49,6 +57,49 @@ pub fn compute(
     );
 }
 
+/// Executes an exact public request without letting generic composition
+/// rediscover or exceed the request's worker and host-memory budgets.
+pub fn computeRequested(
+    allocator: std.mem.Allocator,
+    components: anytype,
+    max_log_size: u32,
+    total_constraints: usize,
+    random_coeff: QM31,
+    trace: anytype,
+    execution: composition_execution.Execution,
+) anyerror!SecureColumnByCoords {
+    if (components.len == 0) return error.EmptyComponentSet;
+    const adjusted = execution.adjustedForAvailablePool();
+    try adjusted.validateCapacity();
+    if (!allComponentsPrepared(components)) {
+        if (adjusted.isStrict()) return error.UnpreparedCompositionFallback;
+    }
+    // The graph accounts task reservations, but not yet its coordinator-owned
+    // powers, accumulators, worker records, and plan storage.
+    if (adjusted.host_byte_budget != std.math.maxInt(usize)) {
+        return error.FiniteCompositionByteBudgetUnsupported;
+    }
+    if (!allComponentsPrepared(components)) {
+        return computeSequential(
+            allocator,
+            components,
+            max_log_size,
+            total_constraints,
+            random_coeff,
+            trace,
+        );
+    }
+    return computePrepared(
+        allocator,
+        components,
+        max_log_size,
+        total_constraints,
+        random_coeff,
+        trace,
+        adjusted,
+    );
+}
+
 /// Structured path used only after every component has crossed the prepared
 /// ownership boundary. A mixed stage retains the protocol-preserving legacy
 /// scheduler until its final component is migrated.
@@ -59,7 +110,7 @@ fn computePrepared(
     total_constraints: usize,
     random_coeff: QM31,
     trace: anytype,
-    pool: *work_pool.WorkPool,
+    execution: composition_execution.Execution,
 ) anyerror!SecureColumnByCoords {
     const Component = @TypeOf(components[0]);
     const Worker = struct {
@@ -129,9 +180,29 @@ fn computePrepared(
             &worker.accumulator,
         )) orelse return error.PreparedDomainCapabilityDisappeared;
         worker.prepared_initialized = true;
+        if (worker.accumulator.next_power_index != next_power_cursor) {
+            return error.ConstraintPowerRangeMismatch;
+        }
         power_cursor = next_power_cursor;
     }
     if (power_cursor != 0) return error.ConstraintPowerRangeMismatch;
+
+    var has_max_bucket = false;
+    var has_lower_bucket = false;
+    for (workers) |worker| {
+        for (worker.accumulator.sub_accumulations, 0..) |bucket, log_size| {
+            if (bucket == null) continue;
+            if (log_size == max_log_size) has_max_bucket = true else has_lower_bucket = true;
+        }
+    }
+    var prepared_output: ?SecureColumnByCoords = if (has_lower_bucket or !has_max_bucket)
+        try SecureColumnByCoords.uninitialized(
+            allocator,
+            @as(usize, 1) << @intCast(max_log_size),
+        )
+    else
+        null;
+    defer if (prepared_output) |*output| output.deinit(allocator);
 
     for (workers, 0..) |*worker, index| {
         _ = try graph.addTask(.{
@@ -150,9 +221,10 @@ fn computePrepared(
         });
     }
 
+    const adjusted = execution.adjustedForAvailablePool();
     _ = graph.execute(.{
-        .worker_budget = try work_pool.WorkerBudget.init(pool.workerCount()),
-        .pool = pool,
+        .worker_budget = adjusted.worker_budget,
+        .pool = adjusted.pool,
         .ready_policy = .critical_path,
     }) catch |failure| switch (failure) {
         // The ordinary prover does not promise exclusive ownership of the
@@ -162,10 +234,10 @@ fn computePrepared(
         // or reallocating component state. This compatibility fallback is not
         // an M7 scaling arm; the explicit request executor must report a lease
         // decline rather than relabel it as the requested worker count.
-        error.WorkerBudgetUnavailable => try graph.execute(.{
+        error.WorkerBudgetUnavailable => if (!execution.isStrict()) try graph.execute(.{
             .worker_budget = work_pool.WorkerBudget.serial(),
             .ready_policy = .critical_path,
-        }),
+        }) else return failure,
         else => return failure,
     };
 
@@ -174,7 +246,34 @@ fn computePrepared(
         workers[0].accumulator.merge(&worker.accumulator);
     }
     workers[0].accumulator.next_power_index = 0;
+    if (prepared_output) |*output| {
+        try workers[0].accumulator.finalizeInto(output);
+        const result = output.*;
+        prepared_output = null;
+        return result;
+    }
     return workers[0].accumulator.finalize();
+}
+
+fn computeSequential(
+    allocator: std.mem.Allocator,
+    components: anytype,
+    max_log_size: u32,
+    total_constraints: usize,
+    random_coeff: QM31,
+    trace: anytype,
+) anyerror!SecureColumnByCoords {
+    var accumulator = try accumulation.DomainEvaluationAccumulator.init(
+        allocator,
+        random_coeff,
+        max_log_size,
+        total_constraints,
+    );
+    defer accumulator.deinit();
+    for (components) |component| {
+        try component.evaluateConstraintQuotientsOnDomain(trace, &accumulator);
+    }
+    return accumulator.finalize();
 }
 
 fn computeLegacy(

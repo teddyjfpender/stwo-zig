@@ -32,10 +32,9 @@ const Control = struct {
 
 const PreparedState = struct {
     allocator: std.mem.Allocator,
-    accumulator: *accumulation.DomainEvaluationAccumulator,
+    accumulators: []accumulation.ColumnAccumulator,
     control: *Control,
     value: QM31,
-    emitted_constraints: usize,
     run_error: ?anyerror,
 
     fn run(raw: *anyopaque, context: *task_graph.TaskContext) anyerror!void {
@@ -46,14 +45,19 @@ const PreparedState = struct {
         _ = self.control.run_calls.fetchAdd(1, .monotonic);
         try self.control.waitAtBarrier();
         if (self.run_error) |run_error| return run_error;
-        for (0..self.emitted_constraints) |_| {
-            try self.accumulator.accumulateConstant(2, self.value);
+        for (self.accumulators) |*column| {
+            var folded = QM31.zero();
+            for (column.random_coeff_powers) |power| {
+                folded = folded.add(self.value.mul(power));
+            }
+            for (0..4) |row| column.accumulate(row, folded);
         }
     }
 
     fn deinit(raw: *anyopaque) void {
         const self: *PreparedState = @ptrCast(@alignCast(raw));
         const allocator = self.allocator;
+        allocator.free(self.accumulators);
         _ = self.control.live_states.fetchSub(1, .monotonic);
         allocator.destroy(self);
     }
@@ -96,13 +100,17 @@ const MockComponent = struct {
         _ = self.control.prepare_calls.fetchAdd(1, .monotonic);
         if (self.preparation_error) |prepare_error| return prepare_error;
 
+        const accumulators = try accumulator.columns(allocator, &.{.{
+            .log_size = 2,
+            .n_cols = self.emitted_constraints,
+        }});
+        errdefer allocator.free(accumulators);
         const state = try allocator.create(PreparedState);
         state.* = .{
             .allocator = allocator,
-            .accumulator = accumulator,
+            .accumulators = accumulators,
             .control = self.control,
             .value = self.value,
-            .emitted_constraints = self.emitted_constraints,
             .run_error = self.run_error,
         };
         _ = self.control.live_states.fetchAdd(1, .monotonic);
@@ -306,7 +314,7 @@ test "prepared composition rejects a component that under-consumes its power ran
         error.ConstraintPowerRangeMismatch,
         runComposition(allocator, &components, 2),
     );
-    try std.testing.expectEqual(@as(usize, 2), control.run_calls.load(.acquire));
+    try std.testing.expectEqual(@as(usize, 0), control.run_calls.load(.acquire));
     try std.testing.expectEqual(@as(usize, 0), control.live_states.load(.acquire));
 }
 

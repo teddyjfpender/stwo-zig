@@ -6,12 +6,43 @@ const column = @import("column.zig");
 const device_composition = @import("device_composition.zig");
 const stage_profile = @import("stage_profile.zig");
 
+/// Admission behavior when a CPU composition request cannot obtain its exact
+/// worker count or would require an unprepared coordinator fallback.
+pub const CpuCompositionContentionPolicy = enum {
+    strict,
+    compatibility,
+};
+
+/// Per-proof CPU composition resources used after any backend-owned evaluator
+/// declines. The prover resolves the worker count to its private shared pool;
+/// no executor implementation type crosses this stable API boundary.
+pub const CpuCompositionExecutionRequest = struct {
+    worker_count: usize,
+    host_byte_budget: usize,
+    contention_policy: CpuCompositionContentionPolicy = .strict,
+};
+
 pub const ProveOptions = struct {
     include_all_preprocessed_columns: bool = false,
     recorder: ?*stage_profile.Recorder = null,
     /// Optional whole-stage device evaluator scoped to this prove call.
     composition_stage: ?device_composition.Stage = null,
+    /// Optional exact CPU composition scheduling request for this prove call.
+    cpu_composition_execution: ?CpuCompositionExecutionRequest = null,
 };
+
+test "CPU composition execution is a value-only public request" {
+    const request = CpuCompositionExecutionRequest{
+        .worker_count = 4,
+        .host_byte_budget = 8 * 1024 * 1024,
+        .contention_policy = .compatibility,
+    };
+    try std.testing.expectEqual(@as(usize, 4), request.worker_count);
+    try std.testing.expectEqual(
+        CpuCompositionContentionPolicy.compatibility,
+        request.contention_policy,
+    );
+}
 
 /// Checks the complete transaction-level surface expected by frontends.
 ///

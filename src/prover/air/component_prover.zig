@@ -6,6 +6,7 @@ const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
 const pcs = @import("stwo_core").pcs;
 const accumulation = @import("accumulation.zig");
+const composition_execution = @import("composition_execution.zig");
 const component_parallel = @import("component_parallel.zig");
 const component_trace = @import("component_trace.zig");
 const device_composition = @import("device_composition.zig");
@@ -345,10 +346,8 @@ pub const ComponentProver = struct {
 pub const ComponentProvers = struct {
     components: []const ComponentProver,
     n_preprocessed_columns: usize,
-    /// Optional whole-stage device composition evaluator for this one proof.
-    /// See `device_composition.zig` for the fail-closed contract; a stage that
-    /// declines leaves every line below unchanged.
     composition_stage: ?device_composition.Stage = null,
+    cpu_composition_execution: ?@import("stwo_prover_api").CpuCompositionExecutionRequest = null,
 
     pub const ComponentsView = struct {
         prover_components: []ComponentProver,
@@ -445,9 +444,6 @@ pub const ComponentProvers = struct {
         );
     }
 
-    /// Routes an optional accelerator through the proof's backend type. This
-    /// keeps CPU and Metal proofs isolated even when they execute concurrently
-    /// in one process; no process-global hook participates in dispatch.
     pub fn computeCompositionEvaluationForBackend(
         self: ComponentProvers,
         comptime B: type,
@@ -457,8 +453,6 @@ pub const ComponentProvers = struct {
         residency_handles: []const ?*anyopaque,
         composition_twiddles: ?M31TwiddleTree,
     ) anyerror!SecureColumnByCoords {
-        // Consulted first and exactly once; a decline falls through to the
-        // unchanged host path below, which is what makes the hook default-safe.
         if (try device_composition.tryStage(self.composition_stage, .{
             .allocator = allocator,
             .random_coeff = random_coeff,
@@ -466,44 +460,59 @@ pub const ComponentProvers = struct {
             .total_constraints = self.totalConstraints(),
             .trace = trace,
         })) |evaluation| return evaluation;
-        if (comptime B != void and @hasDecl(B, "computeCompositionEvaluation")) {
-            if (try B.computeCompositionEvaluation(
+        var resolved_execution: ?composition_execution.Execution = null;
+        if (try composition_execution.tryBackend(
+            B,
+            allocator,
+            self.components,
+            random_coeff,
+            trace,
+            residency_handles,
+            composition_twiddles,
+            self.cpu_composition_execution,
+            &resolved_execution,
+        )) |evaluation| return evaluation;
+        if (resolved_execution == null and self.cpu_composition_execution != null) {
+            resolved_execution = try composition_execution.Execution.resolve(
+                self.cpu_composition_execution,
+            );
+        }
+        if (resolved_execution) |execution| {
+            if (execution.explicit) return component_parallel.computeRequested(
                 allocator,
                 self.components,
+                self.compositionLogDegreeBound(),
+                self.totalConstraints(),
                 random_coeff,
                 trace,
-                residency_handles,
-                composition_twiddles,
-            )) |evaluation| {
-                return evaluation;
-            }
-        }
-        // Try parallel path when a work pool is available and there are
-        // multiple components to evaluate.
-        if (self.components.len > 1) {
-            if (work_pool_mod.getGlobalPool()) |pool| {
-                return self.computeCompositionEvaluationParallel(
-                    allocator,
-                    random_coeff,
-                    trace,
-                    pool,
-                );
-            }
-        }
-        if (self.components.len == 1 and
-            self.components[0].domain_parallel_evaluator != null)
-        {
-            if (work_pool_mod.getGlobalPool()) |pool| {
-                return self.computeCompositionEvaluationSingleParallel(
-                    allocator,
-                    random_coeff,
-                    trace,
-                    pool,
-                );
-            }
+                execution,
+            );
         }
 
-        // Sequential fallback (single component, no pool, or test mode).
+        const pool_eligible = self.components.len > 1 or
+            (self.components.len == 1 and
+                self.components[0].domain_parallel_evaluator != null);
+        const pool = if (resolved_execution) |execution|
+            execution.pool
+        else if (pool_eligible)
+            work_pool_mod.getGlobalPool()
+        else
+            null;
+        if (pool) |active| {
+            if (self.components.len > 1) return self.computeCompositionEvaluationParallel(
+                allocator,
+                random_coeff,
+                trace,
+                active,
+            );
+            return self.computeCompositionEvaluationSingleParallel(
+                allocator,
+                random_coeff,
+                trace,
+                active,
+            );
+        }
+
         return self.computeCompositionEvaluationSequential(
             allocator,
             random_coeff,

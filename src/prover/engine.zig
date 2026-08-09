@@ -11,6 +11,8 @@ const session_mod = @import("session.zig");
 const stage_profile = api.stage_profile;
 
 pub const ProveOptions = api.ProveOptions;
+pub const CpuCompositionContentionPolicy = api.CpuCompositionContentionPolicy;
+pub const CpuCompositionExecutionRequest = api.CpuCompositionExecutionRequest;
 pub const assertProverEngine = api.assertProverEngine;
 
 /// Builds a complete proving engine from a PCS backend and protocol types.
@@ -164,7 +166,7 @@ pub fn ProverEngine(
             scheme: Scheme,
             options: ProveOptions,
         ) !ExtendedProof {
-            return prove_mod.proveExWithStage(
+            return prove_mod.proveExWithExecution(
                 B,
                 H,
                 MC,
@@ -175,6 +177,7 @@ pub fn ProverEngine(
                 options.include_all_preprocessed_columns,
                 options.recorder,
                 options.composition_stage,
+                options.cpu_composition_execution,
             );
         }
     };

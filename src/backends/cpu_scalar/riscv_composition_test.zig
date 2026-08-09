@@ -566,16 +566,20 @@ test "cpu RISC-V composition: exported adjacent pair matches generic and records
     }
 
     const finite_budget_before = telemetrySnapshot();
+    var finite_failing = std.testing.FailingAllocator.init(allocator, .{});
+    finite_failing.fail_index = finite_failing.alloc_index;
+    finite_failing.resize_fail_index = finite_failing.resize_index;
     try std.testing.expectError(
         error.FiniteCompositionByteBudgetUnsupported,
         evaluateWithExecution(
-            allocator,
+            finite_failing.allocator(),
             components[0..],
             random_coeff,
             &trace,
             .{ .byte_budget = 1 },
         ),
     );
+    try std.testing.expect(!finite_failing.has_induced_failure);
     const finite_budget_snapshot = telemetrySnapshot().delta(finite_budget_before);
     try std.testing.expectEqual(@as(u64, 1), finite_budget_snapshot.finite_budget_rejections);
 
@@ -643,13 +647,46 @@ test "cpu RISC-V composition: exported adjacent pair matches generic and records
     try std.testing.expectEqual(@as(u64, 1), declined.attempts);
     try std.testing.expectEqual(@as(u64, 0), declined.admissions);
     try std.testing.expectEqual(@as(u64, 1), declined.declines);
-    try std.testing.expect(try evaluateWithExecution(
-        allocator,
-        mismatched[0..],
-        random_coeff,
-        &trace,
-        .{ .byte_budget = 1 },
-    ) == null);
+    try std.testing.expectError(
+        error.FiniteCompositionByteBudgetUnsupported,
+        evaluateWithExecution(
+            allocator,
+            mismatched[0..],
+            random_coeff,
+            &trace,
+            .{ .byte_budget = 1 },
+        ),
+    );
+
+    var legacy_fallback = mock.semanticComponent();
+    legacy_fallback.backend_composition_capability = null;
+    legacy_fallback.prepare_domain_evaluator = null;
+    const strict_mixed = [_]Component{
+        legacy_fallback,
+        mock.semanticComponent(),
+        mock.lookupComponent(false),
+    };
+    const strict_before = telemetrySnapshot();
+    const legacy_before_strict = legacy_semantic_calls.load(.monotonic);
+    try std.testing.expectError(
+        error.UnpreparedCompositionFallback,
+        evaluateWithExecution(
+            allocator,
+            strict_mixed[0..],
+            random_coeff,
+            &trace,
+            .{},
+        ),
+    );
+    const strict_snapshot = telemetrySnapshot().delta(strict_before);
+    try std.testing.expectEqual(
+        @as(u64, 1),
+        strict_snapshot.unprepared_fallback_rejections,
+    );
+    try std.testing.expectEqual(
+        legacy_before_strict,
+        legacy_semantic_calls.load(.monotonic),
+    );
 
     var fallback_semantic = mock.semanticComponent();
     fallback_semantic.backend_composition_capability = null;

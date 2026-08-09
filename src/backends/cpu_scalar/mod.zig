@@ -53,6 +53,26 @@ pub const CpuBackend = struct {
         residency_handles: []const ?*anyopaque,
         composition_twiddles: ?@import("stwo_prover_engine").poly.twiddles.TwiddleTree([]const M31),
     ) !?@import("stwo_prover_engine").secure_column.SecureColumnByCoords {
+        return computeCompositionEvaluationWithExecution(
+            allocator,
+            components,
+            random_coeff,
+            trace,
+            residency_handles,
+            composition_twiddles,
+            try prover_impl.air.composition_execution.Execution.resolve(null),
+        );
+    }
+
+    pub fn computeCompositionEvaluationWithExecution(
+        allocator: std.mem.Allocator,
+        components: []const prover_impl.air.component_prover.ComponentProver,
+        random_coeff: QM31,
+        trace: *const prover_impl.air.component_prover.Trace,
+        residency_handles: []const ?*anyopaque,
+        composition_twiddles: ?prover_impl.poly.twiddles.TwiddleTree([]const M31),
+        execution: prover_impl.air.composition_execution.Execution,
+    ) !?prover_impl.secure_column.SecureColumnByCoords {
         _ = residency_handles;
         _ = composition_twiddles;
         if (try secure_composition.evaluateLargeRecurrenceComposition(
@@ -60,12 +80,28 @@ pub const CpuBackend = struct {
             components,
             random_coeff,
             trace,
+            execution,
         )) |evaluation| return evaluation;
-        return riscv_composition.evaluate(
+        const adjusted = execution.adjustedForAvailablePool();
+        try adjusted.validateCapacity();
+        if (execution.host_byte_budget != std.math.maxInt(usize)) {
+            // The secure recurrence above has closed accounting. Generic and
+            // RISC-V mixed plans reject finite caps before allocating until
+            // their coordinator-owned planning storage is accounted too.
+            return error.FiniteCompositionByteBudgetUnsupported;
+        }
+        return riscv_composition.evaluateWithExecution(
             allocator,
             components,
             random_coeff,
             trace,
+            .{
+                .worker_budget = adjusted.worker_budget,
+                .pool = adjusted.pool,
+                .byte_budget = adjusted.host_byte_budget,
+                .serial_on_contention = !execution.isStrict(),
+                .allow_unprepared_fallback = !execution.isStrict(),
+            },
         );
     }
 
