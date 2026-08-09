@@ -83,11 +83,11 @@ pub fn Builder(comptime S: type) type {
             /// events and their range-check-20 clock-gap request carry it.
             access_ordinal: ?u8 = null,
 
-            pub fn validate(self: @This()) Error!void {
+            pub fn validate(self: *const @This()) Error!void {
                 if (self.arity != expectedArity(self.domain)) return error.InvalidRelationArity;
             }
 
-            pub fn denominator(self: @This(), relations: *const relations_mod.Relations) Error!QM31 {
+            pub fn denominator(self: *const @This(), relations: *const relations_mod.Relations) Error!QM31 {
                 try self.validate();
                 return switch (self.domain) {
                     .registers_state => relations.registers_state.combineSecure(self.values[0..2].*),
@@ -117,16 +117,16 @@ pub fn Builder(comptime S: type) type {
                 self.len += 1;
             }
 
-            pub fn batchCount(self: @This()) usize {
+            pub fn batchCount(self: *const @This()) usize {
                 return (self.len + self.batch_size - 1) / self.batch_size;
             }
 
-            pub fn pair(self: @This(), batch: usize, relations: *const relations_mod.Relations) Error!logup.RowPair {
-                const first = self.entries[batch * self.batch_size];
+            pub fn pair(self: *const @This(), batch: usize, relations: *const relations_mod.Relations) Error!logup.RowPair {
+                const first = &self.entries[batch * self.batch_size];
                 if (self.batch_size == 1 or batch * self.batch_size + 1 == self.len) {
                     return logup.RowPair.single(first.numerator, try first.denominator(relations));
                 }
-                const second = self.entries[batch * self.batch_size + 1];
+                const second = &self.entries[batch * self.batch_size + 1];
                 return .{
                     .n1 = first.numerator,
                     .d1 = try first.denominator(relations),

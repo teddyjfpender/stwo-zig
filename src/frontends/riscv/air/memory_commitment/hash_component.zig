@@ -7,11 +7,14 @@ const core_air_derive = @import("stwo_core").air.derive;
 const core_constraints = @import("stwo_core").constraints;
 const circle = @import("stwo_core").circle;
 const M31 = @import("stwo_core").fields.m31.M31;
-const QM31 = @import("stwo_core").fields.qm31.QM31;
+const qm31 = @import("stwo_core").fields.qm31;
+const QM31 = qm31.QM31;
 const canonic = @import("stwo_core").poly.circle.canonic;
 const utils = @import("stwo_core").utils;
 const prover_air_accumulation = @import("stwo_prover_engine").air.accumulation;
 const prover_component = @import("stwo_prover_engine").air.component_prover;
+const prepared_domain = @import("stwo_prover_engine").air.prepared_domain;
+const prover_task_graph = @import("stwo_prover_engine").task_graph;
 const prover_poly = @import("stwo_prover_engine").poly.circle.poly;
 const prover_twiddles = @import("stwo_prover_engine").poly.twiddles;
 const work_pool = @import("stwo_prover_engine").work_pool;
@@ -26,6 +29,7 @@ const N_POSEIDON_COMPONENT_CONSTRAINTS: usize =
     poseidon2_air.N_CONSTRAINTS + N_POSEIDON_SHELL_CONSTRAINTS + poseidon2_air.N_SUMS;
 
 pub const Kind = enum { merkle, poseidon2 };
+pub const PREPARED_DENOMINATOR_COUNT: usize = 2;
 
 pub const HashComponent = struct {
     kind: Kind,
@@ -48,10 +52,18 @@ pub const HashComponent = struct {
 
     pub fn asProverComponent(self: *const @This()) prover_component.ComponentProver {
         var component = Adapter.asProverComponent(self);
-        if (self.log_size >= 12) {
-            component.domain_parallel_evaluator = evaluateDomainParallelAdapter;
-        }
+        component.prepare_domain_evaluator = prepareDomainEvaluatorErased;
         return component;
+    }
+
+    fn prepareDomainEvaluatorErased(
+        ctx: *const anyopaque,
+        allocator: std.mem.Allocator,
+        trace_data: *const prover_component.Trace,
+        accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
+    ) anyerror!prepared_domain.PreparedDomainEvaluation {
+        const self: *const @This() = @ptrCast(@alignCast(ctx));
+        return self.prepareDomainEvaluator(allocator, trace_data, accumulator);
     }
 
     pub fn asVerifierComponent(self: *const @This()) core_air_components.Component {
@@ -208,172 +220,242 @@ pub const HashComponent = struct {
 
     pub fn evaluateConstraintQuotientsOnDomain(
         self: *const @This(),
-        trace: *const prover_component.Trace,
+        trace_data: *const prover_component.Trace,
         accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
     ) !void {
-        return self.evaluateConstraintQuotientsOnDomainImpl(trace, accumulator, null);
+        var prepared = try self.prepareDomainEvaluator(
+            accumulator.allocator,
+            trace_data,
+            accumulator,
+        );
+        defer prepared.deinit();
+        var cancellation = prover_task_graph.CancellationToken{};
+        var task_context = serialTaskContext(prepared.context, &cancellation);
+        try prepared.run(&task_context);
     }
 
-    pub fn evaluateConstraintQuotientsOnDomainParallel(
+    fn prepareDomainEvaluator(
         self: *const @This(),
-        trace: *const prover_component.Trace,
+        allocator: std.mem.Allocator,
+        trace_data: *const prover_component.Trace,
         accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
-        pool: *work_pool.WorkPool,
-    ) !void {
-        return self.evaluateConstraintQuotientsOnDomainImpl(trace, accumulator, pool);
-    }
-
-    fn evaluateConstraintQuotientsOnDomainImpl(
-        self: *const @This(),
-        trace: *const prover_component.Trace,
-        accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
-        maybe_pool: ?*work_pool.WorkPool,
-    ) !void {
-        if (trace.polys.items.len < 3) return error.InvalidProofShape;
-        const allocator = accumulator.allocator;
-        const eval_log_size = self.maxConstraintLogDegreeBound();
+    ) !prepared_domain.PreparedDomainEvaluation {
+        if (trace_data.polys.items.len < 3) return error.InvalidProofShape;
+        const eval_log_size = std.math.add(u32, self.log_size, 1) catch
+            return error.InvalidProofShape;
+        if (self.log_size == 0 or eval_log_size >= circle.M31_CIRCLE_LOG_ORDER) {
+            return error.InvalidProofShape;
+        }
         const eval_domain = canonic.CanonicCoset.new(eval_log_size).circleDomain();
         const eval_size = eval_domain.size();
+        const trace_size = @as(usize, 1) << @intCast(self.log_size);
+        if (@as(usize, self.n_rows) > trace_size) return error.InvalidProofShape;
         const n_main = nMainColumns(self.kind);
         const n_interaction = nInteractionColumns(self.kind);
-        const n_committed = 2 + n_main + n_interaction;
-        const n_sources = n_committed;
-        const preprocessed = trace.polys.items[0];
-        const main_polys = trace.polys.items[1];
-        const interaction_polys = trace.polys.items[2];
-        if (preprocessed.len <= self.is_active_col_idx or
-            main_polys.len < self.main_col_offset + n_main or
-            interaction_polys.len < self.interaction_col_offset + n_interaction)
+        const main_end = std.math.add(usize, self.main_col_offset, n_main) catch
             return error.InvalidProofShape;
+        const interaction_end = std.math.add(
+            usize,
+            self.interaction_col_offset,
+            n_interaction,
+        ) catch return error.InvalidProofShape;
+        const source_count = std.math.add(
+            usize,
+            std.math.add(usize, 2, n_main) catch
+                return error.ResourceReservationOverflow,
+            n_interaction,
+        ) catch return error.ResourceReservationOverflow;
+        const preprocessed = trace_data.polys.items[0];
+        const main = trace_data.polys.items[1];
+        const interaction = trace_data.polys.items[2];
+        if (preprocessed.len <= @max(self.is_first_col_idx, self.is_active_col_idx) or
+            main.len < main_end or interaction.len < interaction_end)
+        {
+            return error.InvalidProofShape;
+        }
 
-        const evaluations = try allocator.alloc([]const M31, n_sources);
-        defer allocator.free(evaluations);
-        var extension_buffers = std.ArrayList([]M31).empty;
-        defer {
-            for (extension_buffers.items) |values| allocator.free(values);
-            extension_buffers.deinit(allocator);
+        var owned_count: usize = 0;
+        const sources = .{
+            preprocessed[self.is_first_col_idx],
+            preprocessed[self.is_active_col_idx],
+        };
+        inline for (sources) |poly| {
+            if (try validateEvaluationSource(poly, self.log_size, eval_log_size)) {
+                owned_count = std.math.add(usize, owned_count, 1) catch
+                    return error.ResourceReservationOverflow;
+            }
+        }
+        for (main[self.main_col_offset..main_end]) |poly| {
+            if (try validateEvaluationSource(poly, self.log_size, eval_log_size)) {
+                owned_count = std.math.add(usize, owned_count, 1) catch
+                    return error.ResourceReservationOverflow;
+            }
+        }
+        for (interaction[self.interaction_col_offset..interaction_end]) |poly| {
+            if (try validateEvaluationSource(poly, self.log_size, eval_log_size)) {
+                owned_count = std.math.add(usize, owned_count, 1) catch
+                    return error.ResourceReservationOverflow;
+            }
+        }
+
+        const evaluations = try allocator.alloc([]const M31, source_count);
+        errdefer allocator.free(evaluations);
+        const owned_buffers = try allocator.alloc([]M31, owned_count);
+        var owned_initialized: usize = 0;
+        errdefer {
+            for (owned_buffers[0..owned_initialized]) |values| allocator.free(values);
+            allocator.free(owned_buffers);
         }
         var source: usize = 0;
-        const committed = try allocator.alloc(prover_component.Poly, n_committed);
-        defer allocator.free(committed);
-        committed[0] = preprocessed[self.is_first_col_idx];
-        committed[1] = preprocessed[self.is_active_col_idx];
-        for (0..n_main) |index| committed[2 + index] = main_polys[self.main_col_offset + index];
-        for (0..n_interaction) |index| {
-            committed[2 + n_main + index] = interaction_polys[self.interaction_col_offset + index];
-        }
-        for (committed) |poly| {
-            try poly.validate();
-            if (poly.log_size == eval_log_size) {
-                evaluations[source] = poly.values;
-            } else {
-                const coefficients = poly.coefficients orelse return error.InvalidProofShape;
-                if (coefficients.logSize() != self.log_size) return error.InvalidProofShape;
-                const extended = try allocator.alloc(M31, eval_size);
-                errdefer allocator.free(extended);
-                const values = coefficients.coefficients();
-                @memcpy(extended[0..values.len], values);
-                @memset(extended[values.len..], M31.zero());
-                try extension_buffers.append(allocator, extended);
-                evaluations[source] = extended;
-            }
+        inline for (sources) |poly| {
+            evaluations[source] = try prepareEvaluationValues(
+                allocator,
+                poly,
+                eval_log_size,
+                eval_size,
+                owned_buffers,
+                &owned_initialized,
+            );
             source += 1;
         }
-        std.debug.assert(source == n_sources);
-        var eval_twiddles = try prover_twiddles.precomputeM31(allocator, eval_domain.half_coset);
-        defer prover_twiddles.deinitM31(allocator, &eval_twiddles);
-        const eval_twiddle_view = prover_twiddles.TwiddleTree([]const M31).init(
-            eval_twiddles.root_coset,
-            eval_twiddles.twiddles,
-            eval_twiddles.itwiddles,
-        );
-        try prover_poly.evaluateBuffersWithTwiddles(
-            extension_buffers.items,
-            eval_domain,
-            eval_twiddle_view,
-        );
-
-        const trace_coset = canonic.CanonicCoset.new(self.log_size).coset();
-        const extension_bits: u5 = @intCast(eval_log_size - self.log_size);
-        var denominator_inv: [2]M31 = undefined;
-        const denominator_count = @as(usize, 1) << extension_bits;
-        std.debug.assert(denominator_count == denominator_inv.len);
-        for (denominator_inv[0..denominator_count], 0..) |*inverse, index| {
-            inverse.* = try core_constraints.cosetVanishing(
-                M31,
-                trace_coset,
-                eval_domain.at(utils.bitReverseIndex(index, extension_bits)),
-            ).inv();
+        for (main[self.main_col_offset..main_end]) |poly| {
+            evaluations[source] = try prepareEvaluationValues(
+                allocator,
+                poly,
+                eval_log_size,
+                eval_size,
+                owned_buffers,
+                &owned_initialized,
+            );
+            source += 1;
         }
-        var accumulators = try accumulator.columns(
+        for (interaction[self.interaction_col_offset..interaction_end]) |poly| {
+            evaluations[source] = try prepareEvaluationValues(
+                allocator,
+                poly,
+                eval_log_size,
+                eval_size,
+                owned_buffers,
+                &owned_initialized,
+            );
+            source += 1;
+        }
+        std.debug.assert(source == source_count);
+        std.debug.assert(owned_initialized == owned_count);
+        if (owned_buffers.len != 0) {
+            var twiddles = try prover_twiddles.precomputeM31(allocator, eval_domain.half_coset);
+            defer prover_twiddles.deinitM31(allocator, &twiddles);
+            try prover_poly.evaluateBuffersWithTwiddles(
+                owned_buffers,
+                eval_domain,
+                prover_twiddles.TwiddleTree([]const M31).init(
+                    twiddles.root_coset,
+                    twiddles.twiddles,
+                    twiddles.itwiddles,
+                ),
+            );
+        }
+
+        const denominator_inv = try quotientDenominators(
+            self.log_size,
+            eval_log_size,
+            eval_domain,
+        );
+        const resources = try preparedDomainResources(
+            eval_size,
+            source_count,
+            owned_count,
+        );
+        const state = try allocator.create(PreparedDomainState);
+        errdefer allocator.destroy(state);
+        const accumulators = try accumulator.columns(
             allocator,
             &.{.{ .log_size = eval_log_size, .n_cols = self.nConstraints() }},
         );
         defer allocator.free(accumulators);
-        const column_accumulator = &accumulators[0];
-        const main_start: usize = 2;
-        const interaction_start = main_start + n_main;
-        const direct_store = column_accumulator.next_fresh_index == 0;
-        const evaluation = HashDomainEvaluation{
+        state.* = .{
+            .allocator = allocator,
             .component = self,
             .evaluations = evaluations,
-            .main_start = main_start,
-            .interaction_start = interaction_start,
-            .column_accumulator = column_accumulator,
+            .owned_buffers = owned_buffers,
             .denominator_inv = denominator_inv,
-            .direct_store = direct_store,
+            .column_accumulator = accumulators[0],
+            .main_start = 2,
+            .interaction_start = 2 + n_main,
+            .eval_log_size = eval_log_size,
+            .eval_size = eval_size,
         };
-        if (maybe_pool) |pool| {
-            try evaluation.evaluateParallel(allocator, pool, eval_size);
-        } else {
-            try evaluation.evaluateRange(0, eval_size);
-        }
-        column_accumulator.next_fresh_index = if (direct_store) eval_size else null;
+        return .{
+            .context = state,
+            .vtable = &PreparedDomainState.vtable,
+            .task_class = .leaf,
+            .resources = resources,
+        };
     }
 };
 
-const HashDomainEvaluation = struct {
-    component: *const HashComponent,
-    evaluations: []const []const M31,
-    main_start: usize,
-    interaction_start: usize,
-    column_accumulator: *prover_air_accumulation.ColumnAccumulator,
-    denominator_inv: [2]M31,
-    direct_store: bool,
+const PreparedDomainState = struct {
+    const CANCELLATION_POLL_ROWS: usize = 4096;
 
-    fn evaluateParallel(
-        self: *const @This(),
-        allocator: std.mem.Allocator,
-        pool: *work_pool.WorkPool,
-        row_count: usize,
-    ) !void {
-        const worker_count = @min(pool.workerCount(), @max(@as(usize, 1), row_count / 4096));
-        if (worker_count <= 1) return self.evaluateRange(0, row_count);
-
-        const workers = try allocator.alloc(HashRangeWorker, worker_count);
-        defer allocator.free(workers);
-        for (workers, 0..) |*worker, index| {
-            worker.* = .{
-                .evaluation = self,
-                .row_start = row_count * index / worker_count,
-                .row_end = row_count * (index + 1) / worker_count,
-            };
+    comptime {
+        if (PREPARED_DENOMINATOR_COUNT != 2) {
+            @compileError("hash composition domains own exactly two quotient denominators");
         }
-        var wait_group = std.Thread.WaitGroup{};
-        for (workers[1..]) |*worker| pool.spawnWg(&wait_group, HashRangeWorker.run, .{worker});
-        HashRangeWorker.run(&workers[0]);
-        wait_group.wait();
-        for (workers) |worker| if (worker.err) |err| return err;
+        if (CANCELLATION_POLL_ROWS == 0 or
+            CANCELLATION_POLL_ROWS > 4096 or
+            !std.math.isPowerOfTwo(CANCELLATION_POLL_ROWS))
+        {
+            @compileError("prepared domain cancellation polls must be power-of-two tiles of at most 4,096 rows");
+        }
     }
 
-    fn evaluateRange(self: *const @This(), row_start: usize, row_end: usize) !void {
+    allocator: std.mem.Allocator,
+    component: *const HashComponent,
+    evaluations: [][]const M31,
+    owned_buffers: [][]M31,
+    denominator_inv: [PREPARED_DENOMINATOR_COUNT]M31,
+    column_accumulator: prover_air_accumulation.ColumnAccumulator,
+    main_start: usize,
+    interaction_start: usize,
+    eval_log_size: u32,
+    eval_size: usize,
+
+    const vtable = prepared_domain.VTable{
+        .run = runErased,
+        .deinit = deinitErased,
+    };
+
+    fn runErased(
+        context: *anyopaque,
+        task_context: *prover_task_graph.TaskContext,
+    ) anyerror!void {
+        const self: *@This() = @ptrCast(@alignCast(context));
+        if (self.evaluateRange(task_context, 0, self.eval_size)) self.finishOutput();
+    }
+
+    fn deinitErased(context: *anyopaque) void {
+        const self: *@This() = @ptrCast(@alignCast(context));
+        const allocator = self.allocator;
+        for (self.owned_buffers) |values| allocator.free(values);
+        allocator.free(self.owned_buffers);
+        allocator.free(self.evaluations);
+        allocator.destroy(self);
+    }
+
+    fn evaluateRange(
+        self: *@This(),
+        task_context: *prover_task_graph.TaskContext,
+        row_start: usize,
+        row_end: usize,
+    ) bool {
         const component = self.component;
-        const eval_log_size = component.maxConstraintLogDegreeBound();
         for (row_start..row_end) |row| {
+            if ((row & (CANCELLATION_POLL_ROWS - 1)) == 0 and
+                task_context.isCancelled()) return false;
             const previous_row = utils.previousBitReversedCircleDomainIndex(
                 row,
                 component.log_size,
-                eval_log_size,
+                self.eval_log_size,
             );
             const is_first = QM31.fromBase(self.evaluations[0][row]);
             const is_active = QM31.fromBase(self.evaluations[1][row]);
@@ -446,36 +528,142 @@ const HashDomainEvaluation = struct {
                 self.denominator_inv[row >> @intCast(component.log_size)],
             );
             const output = self.column_accumulator.col;
-            if (self.direct_store) {
+            if (self.column_accumulator.next_fresh_index != null) {
                 output.set(row, contribution);
             } else {
                 output.set(row, output.at(row).add(contribution));
             }
         }
+        return true;
+    }
+
+    fn finishOutput(self: *@This()) void {
+        self.column_accumulator.next_fresh_index =
+            if (self.column_accumulator.next_fresh_index != null) self.eval_size else null;
     }
 };
 
-const HashRangeWorker = struct {
-    evaluation: *const HashDomainEvaluation,
-    row_start: usize,
-    row_end: usize,
-    err: ?anyerror = null,
+fn preparedDomainResources(
+    eval_size: usize,
+    source_count: usize,
+    owned_count: usize,
+) !prover_task_graph.ResourceReservation {
+    const secure_element_bytes = std.math.mul(
+        usize,
+        qm31.SECURE_EXTENSION_DEGREE,
+        @sizeOf(M31),
+    ) catch
+        return error.ResourceReservationOverflow;
+    const final_output_bytes = std.math.mul(
+        usize,
+        eval_size,
+        secure_element_bytes,
+    ) catch return error.ResourceReservationOverflow;
+    const source_bytes = std.math.mul(
+        usize,
+        source_count,
+        @sizeOf([]const M31),
+    ) catch return error.ResourceReservationOverflow;
+    const owned_view_bytes = std.math.mul(
+        usize,
+        owned_count,
+        @sizeOf([]M31),
+    ) catch return error.ResourceReservationOverflow;
+    const owned_value_count = std.math.mul(usize, owned_count, eval_size) catch
+        return error.ResourceReservationOverflow;
+    const owned_value_bytes = std.math.mul(
+        usize,
+        owned_value_count,
+        @sizeOf(M31),
+    ) catch return error.ResourceReservationOverflow;
+    var resident_bytes = std.math.add(
+        usize,
+        @sizeOf(PreparedDomainState),
+        source_bytes,
+    ) catch return error.ResourceReservationOverflow;
+    resident_bytes = std.math.add(usize, resident_bytes, owned_view_bytes) catch
+        return error.ResourceReservationOverflow;
+    resident_bytes = std.math.add(usize, resident_bytes, owned_value_bytes) catch
+        return error.ResourceReservationOverflow;
+    return .{
+        .final_output_bytes = final_output_bytes,
+        .shared_resident_bytes = resident_bytes,
+        .worker_stack_bytes = prepared_domain.ROW_EVALUATOR_STACK_BYTES,
+    };
+}
 
-    fn run(self: *@This()) void {
-        self.evaluation.evaluateRange(self.row_start, self.row_end) catch |err| {
-            self.err = err;
-        };
+fn validateEvaluationSource(
+    poly: prover_component.Poly,
+    trace_log_size: u32,
+    eval_log_size: u32,
+) !bool {
+    try poly.validate();
+    if (poly.log_size == eval_log_size) return false;
+    const coefficients = poly.coefficients orelse return error.InvalidProofShape;
+    if (coefficients.logSize() != trace_log_size) return error.InvalidProofShape;
+    return true;
+}
+
+fn prepareEvaluationValues(
+    allocator: std.mem.Allocator,
+    poly: prover_component.Poly,
+    eval_log_size: u32,
+    eval_size: usize,
+    owned_buffers: [][]M31,
+    owned_initialized: *usize,
+) ![]const M31 {
+    if (poly.log_size == eval_log_size) return poly.values;
+    if (owned_initialized.* >= owned_buffers.len) return error.InvalidProofShape;
+    const source = poly.coefficients.?.coefficients();
+    if (source.len > eval_size) return error.InvalidProofShape;
+    const values = try allocator.alloc(M31, eval_size);
+    errdefer allocator.free(values);
+    @memcpy(values[0..source.len], source);
+    @memset(values[source.len..], M31.zero());
+    owned_buffers[owned_initialized.*] = values;
+    owned_initialized.* += 1;
+    return values;
+}
+
+fn quotientDenominators(
+    log_size: u32,
+    eval_log_size: u32,
+    eval_domain: anytype,
+) ![PREPARED_DENOMINATOR_COUNT]M31 {
+    const expected_log_size = std.math.add(u32, log_size, 1) catch
+        return error.InvalidProofShape;
+    if (eval_log_size != expected_log_size) return error.InvalidProofShape;
+    const extension_bits: u5 = 1;
+    var result: [PREPARED_DENOMINATOR_COUNT]M31 = undefined;
+    const coset = canonic.CanonicCoset.new(log_size).coset();
+    for (&result, 0..) |*inverse, index| {
+        inverse.* = try core_constraints.cosetVanishing(
+            M31,
+            coset,
+            eval_domain.at(utils.bitReverseIndex(index, extension_bits)),
+        ).inv();
     }
-};
+    return result;
+}
 
-fn evaluateDomainParallelAdapter(
-    raw_context: *const anyopaque,
-    trace_data: *const prover_component.Trace,
-    accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
-    pool: *work_pool.WorkPool,
-) anyerror!void {
-    const self: *const HashComponent = @ptrCast(@alignCast(raw_context));
-    return self.evaluateConstraintQuotientsOnDomainParallel(trace_data, accumulator, pool);
+fn serialTaskContext(
+    user_context: *anyopaque,
+    cancellation: *const prover_task_graph.CancellationToken,
+) prover_task_graph.TaskContext {
+    return .{
+        .user_context = user_context,
+        .cancellation = cancellation,
+        .key = .{
+            .epoch = 0,
+            .stage_rank = 0,
+            .component_registry_index = 0,
+            .shard_or_chunk_index = 0,
+        },
+        .worker_budget = work_pool.WorkerBudget.serial(),
+        .task_class = .leaf,
+        .exclusive_lease = null,
+        .child_wait_group = null,
+    };
 }
 
 pub fn nMainColumns(kind: Kind) usize {
@@ -492,7 +680,7 @@ pub fn nInteractionColumns(kind: Kind) usize {
     };
 }
 
-fn poseidonConstraints(
+pub fn poseidonConstraints(
     main: [poseidon2_air.N_MAIN_COLUMNS]QM31,
     is_active: QM31,
     is_first: QM31,
@@ -637,141 +825,4 @@ fn combineConstraints(powers: []const QM31, constraints: []const QM31) QM31 {
         result = result.add(powers[powers.len - 1 - index].mul(constraint));
     }
     return result;
-}
-
-test "hash component: exact shapes remain pinned" {
-    try std.testing.expectEqual(@as(usize, 445), nMainColumns(.poseidon2));
-    try std.testing.expectEqual(@as(usize, 8), nInteractionColumns(.poseidon2));
-    try std.testing.expectEqual(@as(usize, 435), N_POSEIDON_COMPONENT_CONSTRAINTS);
-    try std.testing.expectEqual(@as(usize, 10), nMainColumns(.merkle));
-    try std.testing.expectEqual(@as(usize, 12), nInteractionColumns(.merkle));
-}
-
-test "hash component: large domains expose one bounded row splitter" {
-    const relations = relations_mod.Relations.dummy();
-    var component = HashComponent{
-        .kind = .poseidon2,
-        .log_size = 11,
-        .n_rows = 1,
-        .is_first_col_idx = 0,
-        .is_active_col_idx = 1,
-        .main_col_offset = 0,
-        .interaction_col_offset = 0,
-        .relations = &relations,
-    };
-    try std.testing.expect(component.asProverComponent().domain_parallel_evaluator == null);
-    component.log_size = 12;
-    const split = component.asProverComponent();
-    try std.testing.expect(split.domain_parallel_evaluator != null);
-    try std.testing.expect(!split.pool_exclusive_domain);
-}
-
-test "hash component: RISC-V Poseidon shell binds selector and narrow mode" {
-    const row = poseidon2_air.fill(poseidon2_air.Call.narrow(1, 2));
-    var main: [poseidon2_air.N_MAIN_COLUMNS]QM31 = undefined;
-    for (&main, row) |*dst, value| dst.* = QM31.fromBase(value);
-    const zeros = [_]QM31{QM31.zero()} ** poseidon2_air.N_SUMS;
-    const relations = relations_mod.Relations.dummy();
-    const honest = poseidonConstraints(
-        main,
-        QM31.one(),
-        QM31.one(),
-        zeros,
-        zeros,
-        zeros,
-        &relations,
-    );
-    for (honest[0..poseidon2_air.N_CONSTRAINTS]) |constraint| {
-        try std.testing.expect(constraint.isZero());
-    }
-    try std.testing.expect(honest[poseidon2_air.N_CONSTRAINTS].isZero());
-    try std.testing.expect(honest[poseidon2_air.N_CONSTRAINTS + 1].isZero());
-    try std.testing.expect(honest[poseidon2_air.N_CONSTRAINTS + 2].isZero());
-
-    const inactive = poseidonConstraints(
-        main,
-        QM31.zero(),
-        QM31.one(),
-        zeros,
-        zeros,
-        zeros,
-        &relations,
-    );
-    for (inactive[0..poseidon2_air.N_CONSTRAINTS], honest[0..poseidon2_air.N_CONSTRAINTS]) |actual, expected| {
-        try std.testing.expect(actual.eql(expected));
-    }
-    try std.testing.expect(!inactive[poseidon2_air.N_CONSTRAINTS].isZero());
-
-    var wide_call = poseidon2_air.Call.narrow(1, 2);
-    wide_call.wide = true;
-    const wide_row = poseidon2_air.fill(wide_call);
-    for (&main, wide_row) |*dst, value| dst.* = QM31.fromBase(value);
-    const wide = poseidonConstraints(
-        main,
-        QM31.one(),
-        QM31.one(),
-        zeros,
-        zeros,
-        zeros,
-        &relations,
-    );
-    for (wide[0..poseidon2_air.N_CONSTRAINTS]) |constraint| {
-        try std.testing.expect(constraint.isZero());
-    }
-    try std.testing.expect(!wide[poseidon2_air.N_CONSTRAINTS + 1].isZero());
-    try std.testing.expect(wide[poseidon2_air.N_CONSTRAINTS + 2].isZero());
-
-    var io_call = poseidon2_air.Call.narrow(1, 2);
-    io_call.io = true;
-    const io_row = poseidon2_air.fill(io_call);
-    for (&main, io_row) |*dst, value| dst.* = QM31.fromBase(value);
-    const io = poseidonConstraints(
-        main,
-        QM31.one(),
-        QM31.one(),
-        zeros,
-        zeros,
-        zeros,
-        &relations,
-    );
-    for (io[0..poseidon2_air.N_CONSTRAINTS]) |constraint| {
-        try std.testing.expect(constraint.isZero());
-    }
-    try std.testing.expect(io[poseidon2_air.N_CONSTRAINTS + 1].isZero());
-    try std.testing.expect(!io[poseidon2_air.N_CONSTRAINTS + 2].isZero());
-}
-
-fn allocateHashMetadata(
-    allocator: std.mem.Allocator,
-    component: *const HashComponent,
-) !void {
-    var bounds = try component.traceLogDegreeBounds(allocator);
-    defer bounds.deinitDeep(allocator);
-    var masks = try component.maskPoints(
-        allocator,
-        circle.SECURE_FIELD_CIRCLE_GEN,
-        component.maxConstraintLogDegreeBound(),
-    );
-    defer masks.deinitDeep(allocator);
-    const indices = try component.preprocessedColumnIndices(allocator);
-    defer allocator.free(indices);
-}
-
-test "hash component: metadata allocations roll back completely" {
-    const relations = relations_mod.Relations.dummy();
-    const component = HashComponent{
-        .kind = .poseidon2,
-        .log_size = 4,
-        .n_rows = 1,
-        .is_first_col_idx = 0,
-        .is_active_col_idx = 1,
-        .main_col_offset = 0,
-        .interaction_col_offset = 0,
-        .relations = &relations,
-    };
-    try std.testing.checkAllAllocationFailures(
-        std.testing.allocator,
-        allocateHashMetadata,
-        .{&component},
-    );
 }

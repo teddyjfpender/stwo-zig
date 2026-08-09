@@ -7,11 +7,14 @@ const core_air_derive = @import("stwo_core").air.derive;
 const core_constraints = @import("stwo_core").constraints;
 const circle = @import("stwo_core").circle;
 const M31 = @import("stwo_core").fields.m31.M31;
-const QM31 = @import("stwo_core").fields.qm31.QM31;
+const qm31 = @import("stwo_core").fields.qm31;
+const QM31 = qm31.QM31;
 const canonic = @import("stwo_core").poly.circle.canonic;
 const utils = @import("stwo_core").utils;
 const prover_air_accumulation = @import("stwo_prover_engine").air.accumulation;
 const prover_component = @import("stwo_prover_engine").air.component_prover;
+const prepared_domain = @import("stwo_prover_engine").air.prepared_domain;
+const prover_task_graph = @import("stwo_prover_engine").task_graph;
 const work_pool = @import("stwo_prover_engine").work_pool;
 const logup = @import("../../logup.zig");
 const relations_mod = @import("../../relation_challenges.zig");
@@ -135,8 +138,18 @@ pub const LookupTableComponent = struct {
 
     pub fn asProverComponent(self: *const @This()) prover_component.ComponentProver {
         var component = Adapter.asProverComponent(self);
-        component.domain_parallel_evaluator = evaluateDomainParallelAdapter;
+        component.prepare_domain_evaluator = prepareDomainEvaluatorErased;
         return component;
+    }
+
+    fn prepareDomainEvaluatorErased(
+        ctx: *const anyopaque,
+        allocator: std.mem.Allocator,
+        trace_data: *const prover_component.Trace,
+        accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
+    ) anyerror!prepared_domain.PreparedDomainEvaluation {
+        const self: *const @This() = @ptrCast(@alignCast(ctx));
+        return self.prepareDomainEvaluator(allocator, trace_data, accumulator);
     }
 
     pub fn asVerifierComponent(self: *const @This()) core_air_components.Component {
@@ -263,7 +276,16 @@ pub const LookupTableComponent = struct {
         trace: *const prover_component.Trace,
         accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
     ) !void {
-        return self.evaluateConstraintQuotientsOnDomainImpl(trace, accumulator, null);
+        var prepared = try self.prepareDomainEvaluator(
+            accumulator.allocator,
+            trace,
+            accumulator,
+        );
+        defer prepared.deinit();
+
+        var cancellation = prover_task_graph.CancellationToken{};
+        var task_context = serialTaskContext(prepared.context, &cancellation);
+        try prepared.run(&task_context);
     }
 
     pub fn evaluateConstraintQuotientsOnDomainParallel(
@@ -272,99 +294,95 @@ pub const LookupTableComponent = struct {
         accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
         pool: *work_pool.WorkPool,
     ) !void {
-        return self.evaluateConstraintQuotientsOnDomainImpl(trace, accumulator, pool);
+        _ = pool;
+        return self.evaluateConstraintQuotientsOnDomain(trace, accumulator);
     }
 
-    fn evaluateConstraintQuotientsOnDomainImpl(
+    fn prepareDomainEvaluator(
         self: *const @This(),
+        allocator: std.mem.Allocator,
         trace: *const prover_component.Trace,
         accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
-        maybe_pool: ?*work_pool.WorkPool,
-    ) !void {
+    ) !prepared_domain.PreparedDomainEvaluation {
         if (trace.polys.items.len < 3) return error.InvalidProofShape;
-        const allocator = accumulator.allocator;
         const log_size = schema.logSize(self.kind);
-        const eval_log_size = log_size + 1;
+        const eval_log_size = std.math.add(u32, log_size, 1) catch
+            return error.InvalidProofShape;
         const eval_domain = canonic.CanonicCoset.new(eval_log_size).circleDomain();
         const eval_size = eval_domain.size();
         const n_tuple = schema.arity(self.kind);
-        const n_committed = 1 + n_tuple + 1 + interaction.N_COLUMNS;
-        const n_sources = n_committed;
+        const n_sources = 1 + n_tuple + 1 + interaction.N_COLUMNS;
         const preprocessed = trace.polys.items[0];
         const main = trace.polys.items[1];
         const secure = trace.polys.items[2];
+        const interaction_end = std.math.add(
+            usize,
+            self.interaction_col_offset,
+            interaction.N_COLUMNS,
+        ) catch return error.InvalidProofShape;
         if (preprocessed.len <= self.is_first_col_idx or
             main.len <= self.main_col_offset or
-            secure.len < self.interaction_col_offset + interaction.N_COLUMNS)
+            secure.len < interaction_end)
             return error.InvalidProofShape;
 
-        const committed = try allocator.alloc(prover_component.Poly, n_committed);
-        defer allocator.free(committed);
-        var committed_index: usize = 0;
-        committed[committed_index] = preprocessed[self.is_first_col_idx];
-        committed_index += 1;
+        if (n_sources > PreparedDomainState.MAX_SOURCES) return error.InvalidProofShape;
+        var evaluations = [_][]const M31{&.{}} ** PreparedDomainState.MAX_SOURCES;
+        var source: usize = 0;
+        evaluations[source] = try committedValues(
+            preprocessed[self.is_first_col_idx],
+            eval_log_size,
+        );
+        source += 1;
         for (self.tuple_col_indices[0..n_tuple]) |column_index| {
             if (preprocessed.len <= column_index) return error.InvalidProofShape;
-            committed[committed_index] = preprocessed[column_index];
-            committed_index += 1;
-        }
-        committed[committed_index] = main[self.main_col_offset];
-        committed_index += 1;
-        for (0..interaction.N_COLUMNS) |coordinate| {
-            committed[committed_index] = secure[self.interaction_col_offset + coordinate];
-            committed_index += 1;
-        }
-        std.debug.assert(committed_index == n_committed);
-
-        const evaluations = try allocator.alloc([]const M31, n_sources);
-        defer allocator.free(evaluations);
-        var source: usize = 0;
-        for (committed) |poly| {
-            try poly.validate();
-            if (poly.log_size != eval_log_size) return error.InvalidProofShape;
-            evaluations[source] = poly.values;
+            evaluations[source] = try committedValues(
+                preprocessed[column_index],
+                eval_log_size,
+            );
             source += 1;
         }
-
+        evaluations[source] = try committedValues(main[self.main_col_offset], eval_log_size);
+        source += 1;
+        for (0..interaction.N_COLUMNS) |coordinate| {
+            evaluations[source] = try committedValues(
+                secure[self.interaction_col_offset + coordinate],
+                eval_log_size,
+            );
+            source += 1;
+        }
         std.debug.assert(source == n_sources);
 
-        const trace_coset = canonic.CanonicCoset.new(log_size).coset();
-        var denominator_inv: [2]M31 = undefined;
-        for (&denominator_inv, 0..) |*inverse, index| {
-            inverse.* = try core_constraints.cosetVanishing(
-                M31,
-                trace_coset,
-                eval_domain.at(index),
-            ).inv();
-        }
-        var accumulators = try accumulator.columns(
+        const denominator_inv = try quotientDenominators(
+            log_size,
+            eval_log_size,
+            eval_domain,
+        );
+        const resources = try preparedDomainResources(eval_size);
+        const state = try allocator.create(PreparedDomainState);
+        errdefer allocator.destroy(state);
+        const accumulators = try accumulator.columns(
             allocator,
             &.{.{ .log_size = eval_log_size, .n_cols = 1 }},
         );
-        defer allocator.free(accumulators);
-        const column_accumulator = &accumulators[0];
-        const tuple_start: usize = 1;
-        const main_index = tuple_start + n_tuple;
-        const interaction_start = main_index + 1;
-        const direct_store = column_accumulator.next_fresh_index == 0;
-        const evaluation = TableDomainEvaluation{
+        state.* = .{
             .allocator = allocator,
             .component = self,
             .evaluations = evaluations,
+            .source_count = n_sources,
             .n_tuple = n_tuple,
-            .main_index = main_index,
-            .interaction_start = interaction_start,
+            .main_index = 1 + n_tuple,
+            .interaction_start = 2 + n_tuple,
             .eval_log_size = eval_log_size,
+            .eval_size = eval_size,
             .denominator_inv = denominator_inv,
-            .column_accumulator = column_accumulator,
-            .direct_store = direct_store,
+            .accumulators = accumulators,
         };
-        if (maybe_pool) |pool| {
-            try evaluation.evaluateParallel(pool, eval_size);
-        } else {
-            try evaluation.evaluateRange(0, eval_size);
-        }
-        column_accumulator.next_fresh_index = if (direct_store) eval_size else null;
+        return .{
+            .context = state,
+            .vtable = &PreparedDomainState.vtable,
+            .task_class = .leaf,
+            .resources = resources,
+        };
     }
 
     pub fn evaluateRow(
@@ -388,98 +406,164 @@ pub const LookupTableComponent = struct {
     }
 };
 
-const TableDomainEvaluation = struct {
+const PreparedDomainState = struct {
+    const CANCELLATION_POLL_ROWS: usize = 4096;
+    const MAX_SOURCES: usize = 2 + schema.MAX_ARITY + interaction.N_COLUMNS;
+
     allocator: std.mem.Allocator,
     component: *const LookupTableComponent,
-    evaluations: []const []const M31,
+    evaluations: [MAX_SOURCES][]const M31,
+    source_count: usize,
     n_tuple: usize,
     main_index: usize,
     interaction_start: usize,
     eval_log_size: u32,
+    eval_size: usize,
     denominator_inv: [2]M31,
-    column_accumulator: *prover_air_accumulation.ColumnAccumulator,
-    direct_store: bool,
+    accumulators: []prover_air_accumulation.ColumnAccumulator,
 
-    fn evaluateParallel(self: *const @This(), pool: *work_pool.WorkPool, row_count: usize) !void {
-        const worker_count = @min(pool.workerCount(), @max(@as(usize, 1), row_count / 4096));
-        if (worker_count <= 1) return self.evaluateRange(0, row_count);
+    const vtable = prepared_domain.VTable{
+        .run = runErased,
+        .deinit = deinitErased,
+    };
 
-        const workers = try self.allocator.alloc(TableRangeWorker, worker_count);
-        defer self.allocator.free(workers);
-        for (workers, 0..) |*worker, index| {
-            worker.* = .{
-                .evaluation = self,
-                .row_start = row_count * index / worker_count,
-                .row_end = row_count * (index + 1) / worker_count,
-            };
+    comptime {
+        if (CANCELLATION_POLL_ROWS == 0 or
+            CANCELLATION_POLL_ROWS > 4096 or
+            !std.math.isPowerOfTwo(CANCELLATION_POLL_ROWS))
+        {
+            @compileError("table prepared-domain cancellation polls must be power-of-two tiles of at most 4,096 rows");
         }
-        var wait_group = std.Thread.WaitGroup{};
-        for (workers[1..]) |*worker| pool.spawnWg(&wait_group, TableRangeWorker.run, .{worker});
-        TableRangeWorker.run(&workers[0]);
-        wait_group.wait();
-        for (workers) |worker| if (worker.err) |err| return err;
     }
 
-    fn evaluateRange(self: *const @This(), row_start: usize, row_end: usize) !void {
+    fn runErased(
+        context: *anyopaque,
+        task_context: *prover_task_graph.TaskContext,
+    ) anyerror!void {
+        const self: *@This() = @ptrCast(@alignCast(context));
         const component = self.component;
         const log_size = schema.logSize(component.kind);
-        for (row_start..row_end) |row| {
+        const evaluations = self.evaluations[0..self.source_count];
+        const column_accumulator = &self.accumulators[0];
+        const denominator_shift: std.math.Log2Int(usize) = @intCast(log_size);
+        for (0..self.eval_size) |row| {
+            if ((row & (CANCELLATION_POLL_ROWS - 1)) == 0 and
+                task_context.isCancelled())
+            {
+                // Cancellation is not a competing failure cause. The task
+                // graph retains the sibling error that requested it.
+                return;
+            }
             const previous_row = utils.previousBitReversedCircleDomainIndex(
                 row,
                 log_size,
                 self.eval_log_size,
             );
             var tuple: [schema.MAX_ARITY]QM31 = undefined;
-            for (tuple[0..self.n_tuple], self.evaluations[1..][0..self.n_tuple]) |*value, column| {
+            for (tuple[0..self.n_tuple], evaluations[1..][0..self.n_tuple]) |*value, column| {
                 value.* = QM31.fromBase(column[row]);
             }
             const constraint = try component.evaluateRow(
                 tuple[0..self.n_tuple],
-                QM31.fromBase(self.evaluations[self.main_index][row]),
+                QM31.fromBase(evaluations[self.main_index][row]),
                 secureAt(
-                    self.evaluations[self.interaction_start..][0..interaction.N_COLUMNS],
+                    evaluations[self.interaction_start..][0..interaction.N_COLUMNS],
                     row,
                 ),
                 secureAt(
-                    self.evaluations[self.interaction_start..][0..interaction.N_COLUMNS],
+                    evaluations[self.interaction_start..][0..interaction.N_COLUMNS],
                     previous_row,
                 ),
-                QM31.fromBase(self.evaluations[0][row]),
+                QM31.fromBase(evaluations[0][row]),
             );
-            const contribution = self.column_accumulator.random_coeff_powers[0]
+            const contribution = column_accumulator.random_coeff_powers[0]
                 .mul(constraint)
-                .mulM31(self.denominator_inv[row >> @intCast(log_size)]);
-            const output = self.column_accumulator.col;
-            if (self.direct_store) {
-                output.set(row, contribution);
-            } else {
-                output.set(row, output.at(row).add(contribution));
-            }
+                .mulM31(self.denominator_inv[row >> denominator_shift]);
+            column_accumulator.accumulate(row, contribution);
         }
     }
-};
 
-const TableRangeWorker = struct {
-    evaluation: *const TableDomainEvaluation,
-    row_start: usize,
-    row_end: usize,
-    err: ?anyerror = null,
-
-    fn run(self: *@This()) void {
-        self.evaluation.evaluateRange(self.row_start, self.row_end) catch |err| {
-            self.err = err;
-        };
+    fn deinitErased(context: *anyopaque) void {
+        const self: *@This() = @ptrCast(@alignCast(context));
+        const allocator = self.allocator;
+        allocator.free(self.accumulators);
+        allocator.destroy(self);
     }
 };
 
-fn evaluateDomainParallelAdapter(
-    raw_context: *const anyopaque,
-    trace_data: *const prover_component.Trace,
-    accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
-    pool: *work_pool.WorkPool,
-) anyerror!void {
-    const self: *const LookupTableComponent = @ptrCast(@alignCast(raw_context));
-    return self.evaluateConstraintQuotientsOnDomainParallel(trace_data, accumulator, pool);
+fn committedValues(poly: prover_component.Poly, expected_log_size: u32) ![]const M31 {
+    try poly.validate();
+    if (poly.log_size != expected_log_size) return error.InvalidProofShape;
+    return poly.values;
+}
+
+fn quotientDenominators(
+    log_size: u32,
+    eval_log_size: u32,
+    eval_domain: anytype,
+) ![2]M31 {
+    const expected_log_size = std.math.add(u32, log_size, 1) catch
+        return error.InvalidProofShape;
+    if (eval_log_size != expected_log_size) return error.InvalidProofShape;
+    const extension_bits: u5 = 1;
+    var result: [2]M31 = undefined;
+    const coset = canonic.CanonicCoset.new(log_size).coset();
+    for (&result, 0..) |*inverse, index| {
+        inverse.* = try core_constraints.cosetVanishing(
+            M31,
+            coset,
+            eval_domain.at(utils.bitReverseIndex(index, extension_bits)),
+        ).inv();
+    }
+    return result;
+}
+
+fn preparedDomainResources(eval_size: usize) !prover_task_graph.ResourceReservation {
+    const secure_element_bytes = std.math.mul(
+        usize,
+        qm31.SECURE_EXTENSION_DEGREE,
+        @sizeOf(M31),
+    ) catch return error.ResourceReservationOverflow;
+    const final_output_bytes = std.math.mul(
+        usize,
+        eval_size,
+        secure_element_bytes,
+    ) catch return error.ResourceReservationOverflow;
+    const shared_resident_bytes = std.math.add(
+        usize,
+        @sizeOf(PreparedDomainState),
+        @sizeOf(prover_air_accumulation.ColumnAccumulator),
+    ) catch return error.ResourceReservationOverflow;
+    _ = std.math.add(
+        usize,
+        final_output_bytes,
+        shared_resident_bytes,
+    ) catch return error.ResourceReservationOverflow;
+    return .{
+        .final_output_bytes = final_output_bytes,
+        .shared_resident_bytes = shared_resident_bytes,
+        .worker_stack_bytes = prepared_domain.ROW_EVALUATOR_STACK_BYTES,
+    };
+}
+
+fn serialTaskContext(
+    user_context: *anyopaque,
+    cancellation: *const prover_task_graph.CancellationToken,
+) prover_task_graph.TaskContext {
+    return .{
+        .user_context = user_context,
+        .cancellation = cancellation,
+        .key = .{
+            .epoch = 0,
+            .stage_rank = 0,
+            .component_registry_index = 0,
+            .shard_or_chunk_index = 0,
+        },
+        .worker_budget = work_pool.WorkerBudget.serial(),
+        .task_class = .leaf,
+        .exclusive_lease = null,
+        .child_wait_group = null,
+    };
 }
 
 fn currentPointColumns(
@@ -519,245 +603,25 @@ fn secureAt(columns: []const []const M31, row: usize) QM31 {
     return QM31.fromM31(columns[0][row], columns[1][row], columns[2][row], columns[3][row]);
 }
 
-fn secureTuple(tuple: schema.Tuple) [schema.MAX_ARITY]QM31 {
-    var result: [schema.MAX_ARITY]QM31 = .{QM31.zero()} ** schema.MAX_ARITY;
-    for (tuple.slice(), result[0..tuple.len]) |value, *dst| dst.* = QM31.fromBase(value);
-    return result;
-}
-
-test "lookup table component: construction metadata pins all schemas" {
-    const expected_logs = [_]u32{ 18, 20, 19, 20, 16, 15 };
-    const expected_arities = [_]usize{ 4, 1, 2, 3, 2, 2 };
-    for (0..schema.KIND_COUNT) |index| {
-        const kind: schema.Kind = @enumFromInt(index);
-        const metadata = ConstructionMetadata.forKind(kind);
-        try std.testing.expectEqual(expected_logs[index], metadata.log_size);
-        try std.testing.expectEqual(expected_arities[index], metadata.tuple_columns);
-        try std.testing.expectEqual(1 + expected_arities[index], metadata.preprocessed_columns);
-        try std.testing.expectEqual(@as(usize, 1), metadata.main_columns);
-        try std.testing.expectEqual(@as(usize, 4), metadata.interaction_columns);
-        try std.testing.expectEqual(@as(usize, 4), metadata.previous_masks);
-        try std.testing.expectEqual(@as(usize, 1), metadata.constraints);
-    }
-}
-
-test "lookup table component: verifier construction exposes exact masks and columns" {
-    const allocator = std.testing.allocator;
-    const relations = relations_mod.Relations.dummy();
-    const component = try LookupTableComponent.initVerifier(
-        .range_check_8_8_4,
-        3,
-        &.{ 7, 8, 9 },
-        11,
-        13,
-        &relations,
-        QM31.zero(),
+test "lookup table prepared domain: resource geometry and cancellation cadence are bounded" {
+    const secure_element_bytes = qm31.SECURE_EXTENSION_DEGREE * @sizeOf(M31);
+    const resources = try preparedDomainResources(17);
+    try std.testing.expectEqual(17 * secure_element_bytes, resources.final_output_bytes);
+    try std.testing.expectEqual(
+        @sizeOf(PreparedDomainState) + @sizeOf(prover_air_accumulation.ColumnAccumulator),
+        resources.shared_resident_bytes,
     );
-    const verifier = component.asVerifierComponent();
-    try std.testing.expectEqual(@as(usize, 1), verifier.nConstraints());
-    try std.testing.expectEqual(@as(u32, 21), verifier.maxConstraintLogDegreeBound());
-    const indices = try verifier.preprocessedColumnIndices(allocator);
-    defer allocator.free(indices);
-    try std.testing.expectEqualSlices(usize, &.{ 3, 7, 8, 9 }, indices);
-
-    var bounds = try verifier.traceLogDegreeBounds(allocator);
-    defer bounds.deinitDeep(allocator);
-    try std.testing.expectEqual(@as(usize, 3), bounds.items.len);
-    try std.testing.expectEqual(@as(usize, 4), bounds.items[0].len);
-    try std.testing.expectEqual(@as(usize, 1), bounds.items[1].len);
-    try std.testing.expectEqual(@as(usize, 4), bounds.items[2].len);
-
-    var masks = try verifier.maskPoints(
-        allocator,
-        circle.SECURE_FIELD_CIRCLE_GEN,
-        verifier.maxConstraintLogDegreeBound(),
+    try std.testing.expectEqual(
+        prepared_domain.ROW_EVALUATOR_STACK_BYTES,
+        resources.worker_stack_bytes,
     );
-    defer masks.deinitDeep(allocator);
-    try std.testing.expectEqual(@as(usize, 4), masks.items[0].len);
-    try std.testing.expectEqual(@as(usize, 1), masks.items[1].len);
-    for (masks.items[2]) |column| try std.testing.expectEqual(@as(usize, 2), column.len);
-}
-
-test "lookup table component: singleton identity rejects all placement mutations" {
-    const allocator = std.testing.allocator;
-    const relations = relations_mod.Relations.dummy();
-    const kind: schema.Kind = .range_check_8_8;
-    const tuple0 = try schema.tupleAt(kind, 1);
-    const tuple1 = try schema.tupleAt(kind, 258);
-    const signed_multiplicity = M31.one().neg();
-    const pairs = [_]logup.RowPair{
-        try interaction.rowPair(kind, tuple0, signed_multiplicity, &relations),
-        try interaction.rowPair(kind, tuple1, signed_multiplicity, &relations),
-    };
-    var cumulative = try logup.cumulativeColumn(allocator, &pairs);
-    defer cumulative.deinit(allocator);
-    const component = try LookupTableComponent.initVerifier(
-        kind,
-        0,
-        &.{ 1, 2 },
-        0,
-        0,
-        &relations,
-        cumulative.claimed,
-    );
-    const secure0 = secureTuple(tuple0);
-    const secure1 = secureTuple(tuple1);
-    const multiplicity = QM31.fromBase(signed_multiplicity);
-
-    try std.testing.expect((try component.evaluateRow(
-        secure0[0..tuple0.len],
-        multiplicity,
-        cumulative.sums[0],
-        cumulative.sums[1],
-        QM31.one(),
-    )).isZero());
-    try std.testing.expect((try component.evaluateRow(
-        secure1[0..tuple1.len],
-        multiplicity,
-        cumulative.sums[1],
-        cumulative.sums[0],
-        QM31.zero(),
-    )).isZero());
-
-    var bad_tuple = secure0;
-    bad_tuple[0] = bad_tuple[0].add(QM31.one());
-    try std.testing.expect(!(try component.evaluateRow(
-        bad_tuple[0..tuple0.len],
-        multiplicity,
-        cumulative.sums[0],
-        cumulative.sums[1],
-        QM31.one(),
-    )).isZero());
-    try std.testing.expect(!(try component.evaluateRow(
-        secure0[0..tuple0.len],
-        multiplicity.add(QM31.one()),
-        cumulative.sums[0],
-        cumulative.sums[1],
-        QM31.one(),
-    )).isZero());
-
-    var bad_claim = component;
-    bad_claim.claim = bad_claim.claim.add(QM31.one());
-    try std.testing.expect(!(try bad_claim.evaluateRow(
-        secure0[0..tuple0.len],
-        multiplicity,
-        cumulative.sums[0],
-        cumulative.sums[1],
-        QM31.one(),
-    )).isZero());
-    try std.testing.expect(!(try component.evaluateRow(
-        secure1[0..tuple1.len],
-        multiplicity,
-        cumulative.sums[1],
-        cumulative.sums[1],
-        QM31.zero(),
-    )).isZero());
-}
-
-test "lookup table component: OODS adapter enforces predecessor ordering" {
-    const allocator = std.testing.allocator;
-    const relations = relations_mod.Relations.dummy();
-    const kind: schema.Kind = .range_check_8_8;
-    const table_tuple = try schema.tupleAt(kind, 258);
-    const signed_multiplicity = M31.one().neg();
-    const pairs = [_]logup.RowPair{
-        try interaction.rowPair(kind, table_tuple, signed_multiplicity, &relations),
-    };
-    var cumulative = try logup.cumulativeColumn(allocator, &pairs);
-    defer cumulative.deinit(allocator);
-    const component = try LookupTableComponent.initVerifier(
-        kind,
-        0,
-        &.{ 1, 2 },
-        0,
-        0,
-        &relations,
-        cumulative.claimed,
-    );
-
-    var is_first_values = [_]QM31{QM31.one()};
-    var tuple0_values = [_]QM31{QM31.fromBase(table_tuple.values[0])};
-    var tuple1_values = [_]QM31{QM31.fromBase(table_tuple.values[1])};
-    var preprocessed = [_][]QM31{
-        &is_first_values,
-        &tuple0_values,
-        &tuple1_values,
-    };
-    var multiplicity_values = [_]QM31{QM31.fromBase(signed_multiplicity)};
-    var main = [_][]QM31{&multiplicity_values};
-    const current_coordinates = cumulative.sums[0].toM31Array();
-    const previous_coordinates = cumulative.sums[0].toM31Array();
-    var coordinate0 = [_]QM31{
-        QM31.fromBase(current_coordinates[0]),
-        QM31.fromBase(previous_coordinates[0]),
-    };
-    var coordinate1 = [_]QM31{
-        QM31.fromBase(current_coordinates[1]),
-        QM31.fromBase(previous_coordinates[1]),
-    };
-    var coordinate2 = [_]QM31{
-        QM31.fromBase(current_coordinates[2]),
-        QM31.fromBase(previous_coordinates[2]),
-    };
-    var coordinate3 = [_]QM31{
-        QM31.fromBase(current_coordinates[3]),
-        QM31.fromBase(previous_coordinates[3]),
-    };
-    var secure = [_][]QM31{ &coordinate0, &coordinate1, &coordinate2, &coordinate3 };
-    var trees = [_][][]QM31{ &preprocessed, &main, &secure };
-    const mask = core_air_components.MaskValues.initOwned(&trees);
-    const point = circle.SECURE_FIELD_CIRCLE_GEN.mul(29);
-    var honest = core_air_accumulation.PointEvaluationAccumulator.init(QM31.one());
-    try component.evaluateConstraintQuotientsAtPoint(
-        point,
-        &mask,
-        &honest,
-        component.maxConstraintLogDegreeBound(),
-    );
-    try std.testing.expect(honest.finalize().isZero());
-
-    coordinate0[1] = coordinate0[1].add(QM31.one());
-    var reordered = core_air_accumulation.PointEvaluationAccumulator.init(QM31.one());
-    try component.evaluateConstraintQuotientsAtPoint(
-        point,
-        &mask,
-        &reordered,
-        component.maxConstraintLogDegreeBound(),
-    );
-    try std.testing.expect(!reordered.finalize().isZero());
-}
-
-test "lookup table component: constructors fail closed on ambiguous bindings" {
-    const relations = relations_mod.Relations.dummy();
+    try std.testing.expect(PreparedDomainState.CANCELLATION_POLL_ROWS <= 4096);
     try std.testing.expectError(
-        error.InvalidTraceShape,
-        LookupTableComponent.initVerifier(.range_check_8_8, 0, &.{1}, 0, 0, &relations, QM31.zero()),
+        error.ResourceReservationOverflow,
+        preparedDomainResources(std.math.maxInt(usize) / secure_element_bytes),
     );
     try std.testing.expectError(
-        error.InvalidTraceShape,
-        LookupTableComponent.initVerifier(.range_check_8_8, 0, &.{ 1, 1 }, 0, 0, &relations, QM31.zero()),
+        error.ResourceReservationOverflow,
+        preparedDomainResources(std.math.maxInt(usize)),
     );
-    try std.testing.expectError(
-        error.InvalidTraceShape,
-        LookupTableComponent.initVerifier(.range_check_8_8, 0, &.{ 0, 1 }, 0, 0, &relations, QM31.zero()),
-    );
-}
-
-test "lookup table component: prover construction uses committed shift masks" {
-    const relations = relations_mod.Relations.dummy();
-    const kind: schema.Kind = .range_check_m31;
-    const component = try LookupTableComponent.initProver(
-        kind,
-        0,
-        &.{ 1, 2 },
-        3,
-        4,
-        &relations,
-        QM31.zero(),
-    );
-    const prover = component.asProverComponent();
-    try std.testing.expectEqual(@as(usize, 1), prover.nConstraints());
-    try std.testing.expectEqual(@as(u32, 16), prover.maxConstraintLogDegreeBound());
-    try std.testing.expect(prover.domain_parallel_evaluator != null);
-    try std.testing.expect(!prover.pool_exclusive_domain);
 }

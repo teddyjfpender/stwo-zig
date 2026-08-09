@@ -25,6 +25,9 @@ const canonic = @import("stwo_core").poly.circle.canonic;
 const utils = @import("stwo_core").utils;
 const prover_air_accumulation = @import("stwo_prover_engine").air.accumulation;
 const prover_component = @import("stwo_prover_engine").air.component_prover;
+const prepared_domain = @import("stwo_prover_engine").air.prepared_domain;
+const prover_task_graph = @import("stwo_prover_engine").task_graph;
+const prover_work_pool = @import("stwo_prover_engine").work_pool;
 const interaction_gen = @import("interaction_gen.zig");
 const logup = @import("logup.zig");
 const memory_interaction = @import("memory_commitment/interaction.zig");
@@ -88,7 +91,19 @@ pub const RiscVTraceComponent = struct {
     );
 
     pub fn asProverComponent(self: *const @This()) prover_component.ComponentProver {
-        return Adapter.asProverComponent(self);
+        var component = Adapter.asProverComponent(self);
+        component.prepare_domain_evaluator = prepareDomainEvaluatorErased;
+        return component;
+    }
+
+    fn prepareDomainEvaluatorErased(
+        ctx: *const anyopaque,
+        allocator: std.mem.Allocator,
+        trace_data: *const prover_component.Trace,
+        accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
+    ) anyerror!prepared_domain.PreparedDomainEvaluation {
+        const self: *const @This() = @ptrCast(@alignCast(ctx));
+        return self.prepareDomainEvaluator(allocator, trace_data, accumulator);
     }
 
     pub fn asVerifierComponent(self: *const @This()) core_air_components.Component {
@@ -368,7 +383,37 @@ pub const RiscVTraceComponent = struct {
         trace: *const prover_component.Trace,
         evaluation_accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
     ) !void {
-        const allocator = evaluation_accumulator.allocator;
+        var prepared = try self.prepareDomainEvaluator(
+            evaluation_accumulator.allocator,
+            trace,
+            evaluation_accumulator,
+        );
+        defer prepared.deinit();
+
+        var cancellation = prover_task_graph.CancellationToken{};
+        var task_context = prover_task_graph.TaskContext{
+            .user_context = prepared.context,
+            .cancellation = &cancellation,
+            .key = .{
+                .epoch = 0,
+                .stage_rank = 0,
+                .component_registry_index = 0,
+                .shard_or_chunk_index = 0,
+            },
+            .worker_budget = prover_work_pool.WorkerBudget.serial(),
+            .task_class = .leaf,
+            .exclusive_lease = null,
+            .child_wait_group = null,
+        };
+        try prepared.run(&task_context);
+    }
+
+    fn prepareDomainEvaluator(
+        self: *const @This(),
+        allocator: std.mem.Allocator,
+        trace: *const prover_component.Trace,
+        evaluation_accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
+    ) !prepared_domain.PreparedDomainEvaluation {
         const log_size = self.desc.log_size;
         // Evaluate the quotient on the committed LDE domain (log_size + 1):
         // the retained commitment columns already hold those values in
@@ -376,7 +421,7 @@ pub const RiscVTraceComponent = struct {
         // composition domain, which composes the quotient with the doubling
         // map — exactly matching the folded points at which the PCS samples
         // this component's columns for the at-point OODS check.
-        const eval_log_size = log_size + 1;
+        const eval_log_size = try quotientEvaluationLogSize(log_size);
         const eval_domain = canonic.CanonicCoset.new(eval_log_size).circleDomain();
         const eval_size = eval_domain.size();
 
@@ -385,61 +430,54 @@ pub const RiscVTraceComponent = struct {
         const main = trace.polys.items[1];
         const inter = trace.polys.items[2];
         const n_inter: usize = nInteractionCols(self.kind);
-        if (pp.len <= self.is_active_col_idx) return error.InvalidProofShape;
-        if (main.len < self.main_col_offset + self.desc.n_columns) return error.InvalidProofShape;
-        if (inter.len < self.interaction_col_offset + n_inter) return error.InvalidProofShape;
-
+        const descriptor_main_sources = std.math.cast(usize, self.desc.n_columns) orelse
+            return error.InvalidProofShape;
+        const main_source_count: usize = switch (self.kind) {
+            .opcode => trace_mod.nColumnsForFamily(self.desc.family),
+            .program => program_commitment.N_MAIN_COLUMNS,
+            .memory => 8,
+        };
+        if (descriptor_main_sources != main_source_count) {
+            return error.InvalidProofShape;
+        }
+        const main_end = std.math.add(usize, self.main_col_offset, main_source_count) catch
+            return error.InvalidProofShape;
+        const inter_end = std.math.add(usize, self.interaction_col_offset, n_inter) catch
+            return error.InvalidProofShape;
+        if (pp.len <= @max(self.is_first_col_idx, self.is_active_col_idx) or
+            main.len < main_end or inter.len < inter_end)
+        {
+            return error.InvalidProofShape;
+        }
         // Source order is selectors, relation inputs from the pre-challenge
         // main tree, cumulative interaction columns, then shifted S columns.
-        const has_direct_semantics = self.kind == .opcode and
-            semantic_eval.isTraceCompatible(self.desc.family);
-        const opcode_main_sources: usize = if (self.kind == .opcode) self.desc.n_columns else 0;
-        const n_sources: usize = switch (self.kind) {
-            .opcode => 2 + opcode_main_sources + n_inter,
-            .program => 2 + program_commitment.N_MAIN_COLUMNS + n_inter,
-            .memory => 2 + 8 + n_inter,
-        };
+        var n_sources = std.math.add(usize, 2, main_source_count) catch
+            return error.ResourceReservationOverflow;
+        n_sources = std.math.add(usize, n_sources, n_inter) catch
+            return error.ResourceReservationOverflow;
         const evaluations = try allocator.alloc([]const M31, n_sources);
-        defer allocator.free(evaluations);
+        errdefer allocator.free(evaluations);
 
         var source_index: usize = 0;
         // Committed polynomials: deterministic selectors, relation inputs
         // from main, and cumulative columns from interaction.
-        {
-            var polys_buf: [96]prover_component.Poly = undefined;
-            var n_polys: usize = 0;
-            polys_buf[n_polys] = pp[self.is_first_col_idx];
-            n_polys += 1;
-            polys_buf[n_polys] = pp[self.is_active_col_idx];
-            n_polys += 1;
-            if (self.kind == .opcode) {
-                for (0..self.desc.n_columns) |i| {
-                    polys_buf[n_polys] = main[self.main_col_offset + i];
-                    n_polys += 1;
-                }
-            } else if (self.kind == .program) {
-                for (0..program_commitment.N_MAIN_COLUMNS) |i| {
-                    polys_buf[n_polys] = main[self.main_col_offset + i];
-                    n_polys += 1;
-                }
-            } else {
-                for (0..8) |i| {
-                    polys_buf[n_polys] = main[self.main_col_offset + i];
-                    n_polys += 1;
-                }
-            }
-            for (0..n_inter) |i| {
-                polys_buf[n_polys] = inter[self.interaction_col_offset + i];
-                n_polys += 1;
-            }
-            for (polys_buf[0..n_polys]) |poly| {
-                try poly.validate();
-                // The committed column with one blowup bit is already the
-                // quotient-domain evaluation in committed order.
-                if (poly.log_size != eval_log_size) return error.InvalidProofShape;
-                evaluations[source_index] = poly.values;
-                source_index += 1;
-            }
+        evaluations[source_index] = try committedValues(
+            pp[self.is_first_col_idx],
+            eval_log_size,
+        );
+        source_index += 1;
+        evaluations[source_index] = try committedValues(
+            pp[self.is_active_col_idx],
+            eval_log_size,
+        );
+        source_index += 1;
+        for (main[self.main_col_offset..main_end]) |poly| {
+            evaluations[source_index] = try committedValues(poly, eval_log_size);
+            source_index += 1;
+        }
+        for (inter[self.interaction_col_offset..inter_end]) |poly| {
+            evaluations[source_index] = try committedValues(poly, eval_log_size);
+            source_index += 1;
         }
         std.debug.assert(source_index == n_sources);
 
@@ -452,7 +490,7 @@ pub const RiscVTraceComponent = struct {
         const extension_bits: u5 = @intCast(eval_log_size - log_size);
         const trace_coset = canonic.CanonicCoset.new(log_size).coset();
         const denominator_inv = try allocator.alloc(M31, @as(usize, 1) << extension_bits);
-        defer allocator.free(denominator_inv);
+        errdefer allocator.free(denominator_inv);
         for (denominator_inv, 0..) |*inv, k| {
             inv.* = try core_constraints.cosetVanishing(
                 M31,
@@ -461,18 +499,61 @@ pub const RiscVTraceComponent = struct {
             ).inv();
         }
 
-        var accumulators = try evaluation_accumulator.columns(
+        const resources = try preparedDomainResources(
+            eval_size,
+            n_sources,
+            denominator_inv.len,
+        );
+        const state = try allocator.create(PreparedDomainState);
+        errdefer allocator.destroy(state);
+        const accumulators = try evaluation_accumulator.columns(
             allocator,
             &[_]prover_air_accumulation.ColumnRequest{.{
                 .log_size = eval_log_size,
                 .n_cols = self.nConstraints(),
             }},
         );
-        defer allocator.free(accumulators);
-        var column_accumulator = &accumulators[0];
+        state.* = .{
+            .allocator = allocator,
+            .component = self,
+            .evaluations = evaluations,
+            .denominator_inv = denominator_inv,
+            .accumulators = accumulators,
+            .eval_log_size = eval_log_size,
+            .eval_size = eval_size,
+            .opcode_main_sources = descriptor_main_sources,
+        };
+        return .{
+            .context = state,
+            .vtable = &PreparedDomainState.vtable,
+            .task_class = .leaf,
+            .resources = resources,
+        };
+    }
 
+    fn runPreparedDomain(
+        self: *const @This(),
+        state: *PreparedDomainState,
+        task_context: *prover_task_graph.TaskContext,
+    ) !void {
+        const log_size = self.desc.log_size;
+        const eval_log_size = state.eval_log_size;
+        const eval_size = state.eval_size;
+        const evaluations = state.evaluations;
+        const denominator_inv = state.denominator_inv;
+        const opcode_main_sources = state.opcode_main_sources;
+        const has_direct_semantics = self.kind == .opcode and
+            semantic_eval.isTraceCompatible(self.desc.family);
+        const column_accumulator = &state.accumulators[0];
         const denominator_shift: std.math.Log2Int(usize) = @intCast(log_size);
         for (0..eval_size) |row| {
+            if ((row & (PreparedDomainState.CANCELLATION_POLL_ROWS - 1)) == 0 and
+                task_context.isCancelled())
+            {
+                // Cancellation is not a competing failure cause. The graph
+                // discards partial component output with the failed stage.
+                return;
+            }
             const previous_row = utils.previousBitReversedCircleDomainIndex(
                 row,
                 log_size,
@@ -651,38 +732,110 @@ pub const RiscVTraceComponent = struct {
     }
 };
 
-fn secureAt(coords: []const []const M31, row: usize) QM31 {
-    return QM31.fromM31(coords[0][row], coords[1][row], coords[2][row], coords[3][row]);
-}
-
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
-
-test "component: coset vanishing is block-constant over the extended quotient domain" {
-    // The on-domain evaluator indexes the vanishing denominators by
-    // `row >> log_size` in committed (bit-reversed circle-domain) order,
-    // where block b maps to domain point index bitrev(b, extension_bits).
-    // Verify this against the exact position -> point mapping.
-    inline for ([_][2]u32{ .{ 1, 3 }, .{ 2, 4 }, .{ 2, 5 }, .{ 1, 5 }, .{ 3, 6 } }) |sizes| {
-        const log_size = sizes[0];
-        const eval_log_size = sizes[1];
-        const eval_domain = canonic.CanonicCoset.new(eval_log_size).circleDomain();
-        const trace_coset = canonic.CanonicCoset.new(log_size).coset();
-        for (0..eval_domain.size()) |position| {
-            const domain_index = utils.bitReverseIndex(position, eval_log_size);
-            const at_position = core_constraints.cosetVanishing(
-                M31,
-                trace_coset,
-                eval_domain.at(domain_index),
-            );
-            const block = position >> @intCast(log_size);
-            const by_block = core_constraints.cosetVanishing(
-                M31,
-                trace_coset,
-                eval_domain.at(utils.bitReverseIndex(block, eval_log_size - log_size)),
-            );
-            try std.testing.expect(at_position.eql(by_block));
+const PreparedDomainState = struct {
+    const CANCELLATION_POLL_ROWS: usize = 4096;
+    comptime {
+        if (CANCELLATION_POLL_ROWS == 0 or
+            CANCELLATION_POLL_ROWS > 4096 or
+            (CANCELLATION_POLL_ROWS & (CANCELLATION_POLL_ROWS - 1)) != 0)
+        {
+            @compileError("component cancellation polling must be power-of-two and at most 4096 rows");
         }
     }
+
+    allocator: std.mem.Allocator,
+    component: *const RiscVTraceComponent,
+    evaluations: [][]const M31,
+    denominator_inv: []M31,
+    accumulators: []prover_air_accumulation.ColumnAccumulator,
+    eval_log_size: u32,
+    eval_size: usize,
+    opcode_main_sources: usize,
+
+    const vtable = prepared_domain.VTable{
+        .run = runErased,
+        .deinit = deinitErased,
+    };
+
+    fn runErased(
+        context: *anyopaque,
+        task_context: *prover_task_graph.TaskContext,
+    ) anyerror!void {
+        const self: *@This() = @ptrCast(@alignCast(context));
+        try self.component.runPreparedDomain(self, task_context);
+    }
+
+    fn deinitErased(context: *anyopaque) void {
+        const self: *@This() = @ptrCast(@alignCast(context));
+        const allocator = self.allocator;
+        allocator.free(self.accumulators);
+        allocator.free(self.denominator_inv);
+        allocator.free(self.evaluations);
+        allocator.destroy(self);
+    }
+};
+
+fn quotientEvaluationLogSize(log_size: u32) !u32 {
+    if (log_size == 0) return error.InvalidProofShape;
+    const eval_log_size = std.math.add(u32, log_size, 1) catch
+        return error.InvalidProofShape;
+    if (eval_log_size >= circle.M31_CIRCLE_LOG_ORDER) {
+        return error.InvalidProofShape;
+    }
+    return eval_log_size;
+}
+
+fn preparedDomainResources(
+    eval_size: usize,
+    source_count: usize,
+    denominator_count: usize,
+) !prover_task_graph.ResourceReservation {
+    const final_output_bytes = std.math.mul(
+        usize,
+        eval_size,
+        @sizeOf(QM31),
+    ) catch return error.ResourceReservationOverflow;
+    const source_bytes = std.math.mul(
+        usize,
+        source_count,
+        @sizeOf([]const M31),
+    ) catch return error.ResourceReservationOverflow;
+    const denominator_bytes = std.math.mul(
+        usize,
+        denominator_count,
+        @sizeOf(M31),
+    ) catch return error.ResourceReservationOverflow;
+    var resident_bytes = std.math.add(
+        usize,
+        @sizeOf(PreparedDomainState),
+        source_bytes,
+    ) catch return error.ResourceReservationOverflow;
+    resident_bytes = std.math.add(
+        usize,
+        resident_bytes,
+        denominator_bytes,
+    ) catch return error.ResourceReservationOverflow;
+    resident_bytes = std.math.add(
+        usize,
+        resident_bytes,
+        @sizeOf(prover_air_accumulation.ColumnAccumulator),
+    ) catch return error.ResourceReservationOverflow;
+    return .{
+        .final_output_bytes = final_output_bytes,
+        .shared_resident_bytes = resident_bytes,
+        .worker_stack_bytes = prepared_domain.ROW_EVALUATOR_STACK_BYTES,
+    };
+}
+
+fn committedValues(
+    poly: prover_component.Poly,
+    expected_log_size: u32,
+) ![]const M31 {
+    try poly.validate();
+    if (poly.log_size != expected_log_size) return error.InvalidProofShape;
+    return poly.values;
+}
+
+fn secureAt(coords: []const []const M31, row: usize) QM31 {
+    return QM31.fromM31(coords[0][row], coords[1][row], coords[2][row], coords[3][row]);
 }

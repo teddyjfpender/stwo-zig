@@ -14,13 +14,15 @@ const core_air_derive = @import("stwo_core").air.derive;
 const core_constraints = @import("stwo_core").constraints;
 const circle = @import("stwo_core").circle;
 const M31 = @import("stwo_core").fields.m31.M31;
-const QM31 = @import("stwo_core").fields.qm31.QM31;
+const qm31 = @import("stwo_core").fields.qm31;
+const QM31 = qm31.QM31;
 const canonic = @import("stwo_core").poly.circle.canonic;
 const utils = @import("stwo_core").utils;
 const prover_air_accumulation = @import("stwo_prover_engine").air.accumulation;
 const prover_component = @import("stwo_prover_engine").air.component_prover;
+const prepared_domain = @import("stwo_prover_engine").air.prepared_domain;
+const prover_task_graph = @import("stwo_prover_engine").task_graph;
 const work_pool = @import("stwo_prover_engine").work_pool;
-const infra = @import("../../infra_trace.zig");
 const logup = @import("../logup.zig");
 const relations_mod = @import("../relation_challenges.zig");
 const trace = @import("../../runner/trace.zig");
@@ -141,10 +143,18 @@ pub const OpcodeLookupComponent = struct {
                 .export_parameters = exportRuntimeParameters,
             },
         };
-        if (self.log_size >= 12) {
-            component.domain_parallel_evaluator = evaluateDomainParallelAdapter;
-        }
+        component.prepare_domain_evaluator = prepareDomainEvaluatorErased;
         return component;
+    }
+
+    fn prepareDomainEvaluatorErased(
+        ctx: *const anyopaque,
+        allocator: std.mem.Allocator,
+        trace_data: *const prover_component.Trace,
+        accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
+    ) anyerror!prepared_domain.PreparedDomainEvaluation {
+        const self: *const @This() = @ptrCast(@alignCast(ctx));
+        return self.prepareDomainEvaluator(allocator, trace_data, accumulator);
     }
 
     fn exportRuntimeProgram(
@@ -295,7 +305,16 @@ pub const OpcodeLookupComponent = struct {
         trace_data: *const prover_component.Trace,
         accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
     ) !void {
-        return self.evaluateConstraintQuotientsOnDomainImpl(trace_data, accumulator, null);
+        var prepared = try self.prepareDomainEvaluator(
+            accumulator.allocator,
+            trace_data,
+            accumulator,
+        );
+        defer prepared.deinit();
+
+        var cancellation = prover_task_graph.CancellationToken{};
+        var task_context = serialTaskContext(prepared.context, &cancellation);
+        try prepared.run(&task_context);
     }
 
     pub fn evaluateConstraintQuotientsOnDomainParallel(
@@ -304,18 +323,25 @@ pub const OpcodeLookupComponent = struct {
         accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
         pool: *work_pool.WorkPool,
     ) !void {
-        return self.evaluateConstraintQuotientsOnDomainImpl(trace_data, accumulator, pool);
+        _ = pool;
+        return self.evaluateConstraintQuotientsOnDomain(trace_data, accumulator);
     }
 
-    fn evaluateConstraintQuotientsOnDomainImpl(
+    fn prepareDomainEvaluator(
         self: *const @This(),
+        allocator: std.mem.Allocator,
         trace_data: *const prover_component.Trace,
         accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
-        maybe_pool: ?*work_pool.WorkPool,
-    ) !void {
+    ) !prepared_domain.PreparedDomainEvaluation {
         if (trace_data.polys.items.len < 3) return error.InvalidProofShape;
-        const allocator = accumulator.allocator;
-        const eval_log_size = self.log_size + 1;
+        const eval_log_size = std.math.add(u32, self.log_size, 1) catch
+            return error.InvalidProofShape;
+        if (self.log_size == 0 or
+            eval_log_size > circle.M31_CIRCLE_LOG_ORDER - 1 or
+            eval_log_size >= @bitSizeOf(usize))
+        {
+            return error.InvalidProofShape;
+        }
         const eval_domain = canonic.CanonicCoset.new(eval_log_size).circleDomain();
         const eval_size = eval_domain.size();
         const n_main = trace.nColumnsForFamily(self.family);
@@ -323,22 +349,31 @@ pub const OpcodeLookupComponent = struct {
         const preprocessed = trace_data.polys.items[0];
         const main = trace_data.polys.items[1];
         const secure = trace_data.polys.items[2];
+        const main_end = std.math.add(usize, self.main_col_offset, n_main) catch
+            return error.InvalidProofShape;
+        const interaction_end = std.math.add(
+            usize,
+            self.interaction_col_offset,
+            n_interaction,
+        ) catch return error.InvalidProofShape;
         if (preprocessed.len <= self.is_first_col_idx or
-            main.len < self.main_col_offset + n_main or
-            secure.len < self.interaction_col_offset + n_interaction)
+            main.len < main_end or secure.len < interaction_end)
             return error.InvalidProofShape;
 
-        const n_sources = 1 + n_main + n_interaction;
-        const evaluations = try allocator.alloc([]const M31, n_sources);
-        defer allocator.free(evaluations);
+        var n_sources = std.math.add(usize, 1, n_main) catch
+            return error.InvalidProofShape;
+        n_sources = std.math.add(usize, n_sources, n_interaction) catch
+            return error.InvalidProofShape;
+        if (n_sources > PreparedDomainState.MAX_SOURCES) return error.InvalidProofShape;
+        var evaluations = [_][]const M31{&.{}} ** PreparedDomainState.MAX_SOURCES;
         var source: usize = 0;
         evaluations[source] = try committedValues(preprocessed[self.is_first_col_idx], eval_log_size);
         source += 1;
-        for (main[self.main_col_offset..][0..n_main]) |poly| {
+        for (main[self.main_col_offset..main_end]) |poly| {
             evaluations[source] = try committedValues(poly, eval_log_size);
             source += 1;
         }
-        for (secure[self.interaction_col_offset..][0..n_interaction]) |poly| {
+        for (secure[self.interaction_col_offset..interaction_end]) |poly| {
             evaluations[source] = try committedValues(poly, eval_log_size);
             source += 1;
         }
@@ -346,38 +381,35 @@ pub const OpcodeLookupComponent = struct {
         std.debug.assert(source == n_sources);
 
         const denominator_inv = try quotientDenominators(
-            allocator,
             self.log_size,
             eval_log_size,
             eval_domain,
         );
-        defer allocator.free(denominator_inv);
-        var accumulators = try accumulator.columns(
+        const resources = try preparedDomainResources(eval_size);
+        const state = try allocator.create(PreparedDomainState);
+        errdefer allocator.destroy(state);
+        const accumulators = try accumulator.columns(
             allocator,
             &.{.{ .log_size = eval_log_size, .n_cols = self.nConstraints() }},
         );
-        defer allocator.free(accumulators);
-        const column_accumulator = &accumulators[0];
-        const main_start: usize = 1;
-        const interaction_start = main_start + n_main;
-        const direct_store = column_accumulator.next_fresh_index == 0;
-        const evaluation = OpcodeDomainEvaluation{
+        state.* = .{
             .allocator = allocator,
             .component = self,
             .evaluations = evaluations,
+            .source_count = n_sources,
             .n_main = n_main,
-            .interaction_start = interaction_start,
+            .interaction_start = 1 + n_main,
             .eval_log_size = eval_log_size,
+            .eval_size = eval_size,
             .denominator_inv = denominator_inv,
-            .column_accumulator = column_accumulator,
-            .direct_store = direct_store,
+            .accumulators = accumulators,
         };
-        if (maybe_pool) |pool| {
-            try evaluation.evaluateParallel(pool, eval_size);
-        } else {
-            try evaluation.evaluateRange(0, eval_size);
-        }
-        column_accumulator.next_fresh_index = if (direct_store) eval_size else null;
+        return .{
+            .context = state,
+            .vtable = &PreparedDomainState.vtable,
+            .task_class = .leaf,
+            .resources = resources,
+        };
     }
 
     pub fn evaluateRow(
@@ -407,60 +439,72 @@ pub const OpcodeLookupComponent = struct {
     }
 };
 
-const OpcodeDomainEvaluation = struct {
+const PreparedDomainState = struct {
+    const CANCELLATION_POLL_ROWS: usize = 4096;
+    const MAX_SOURCES: usize = 1 + trace.MAX_FAMILY_COLUMNS + opcode_interaction.MAX_COLUMNS;
+
     allocator: std.mem.Allocator,
     component: *const OpcodeLookupComponent,
-    evaluations: []const []const M31,
+    evaluations: [MAX_SOURCES][]const M31,
+    source_count: usize,
     n_main: usize,
     interaction_start: usize,
     eval_log_size: u32,
-    denominator_inv: []const M31,
-    column_accumulator: *prover_air_accumulation.ColumnAccumulator,
-    direct_store: bool,
+    eval_size: usize,
+    denominator_inv: [2]M31,
+    accumulators: []prover_air_accumulation.ColumnAccumulator,
 
-    fn evaluateParallel(self: *const @This(), pool: *work_pool.WorkPool, row_count: usize) !void {
-        const worker_count = @min(pool.workerCount(), @max(@as(usize, 1), row_count / 4096));
-        if (worker_count <= 1) return self.evaluateRange(0, row_count);
+    const vtable = prepared_domain.VTable{
+        .run = runErased,
+        .deinit = deinitErased,
+    };
 
-        const workers = try self.allocator.alloc(RangeWorker, worker_count);
-        defer self.allocator.free(workers);
-        for (workers, 0..) |*worker, index| {
-            worker.* = .{
-                .evaluation = self,
-                .row_start = row_count * index / worker_count,
-                .row_end = row_count * (index + 1) / worker_count,
-            };
+    comptime {
+        if (CANCELLATION_POLL_ROWS == 0 or
+            CANCELLATION_POLL_ROWS > 4096 or
+            !std.math.isPowerOfTwo(CANCELLATION_POLL_ROWS))
+        {
+            @compileError("opcode prepared-domain cancellation polls must be power-of-two tiles of at most 4,096 rows");
         }
-        var wait_group = std.Thread.WaitGroup{};
-        for (workers[1..]) |*worker| pool.spawnWg(&wait_group, RangeWorker.run, .{worker});
-        RangeWorker.run(&workers[0]);
-        wait_group.wait();
-        for (workers) |worker| if (worker.err) |err| return err;
     }
 
-    fn evaluateRange(self: *const @This(), row_start: usize, row_end: usize) !void {
+    fn runErased(
+        context: *anyopaque,
+        task_context: *prover_task_graph.TaskContext,
+    ) anyerror!void {
+        const self: *@This() = @ptrCast(@alignCast(context));
         const component = self.component;
         const batch_count = component.nConstraints();
-        const powers = self.column_accumulator.random_coeff_powers;
-        for (row_start..row_end) |row| {
+        const column_accumulator = &self.accumulators[0];
+        const powers = column_accumulator.random_coeff_powers;
+        const evaluations = self.evaluations[0..self.source_count];
+        const denominator_shift: std.math.Log2Int(usize) = @intCast(component.log_size);
+        for (0..self.eval_size) |row| {
+            if ((row & (CANCELLATION_POLL_ROWS - 1)) == 0 and
+                task_context.isCancelled())
+            {
+                // Cancellation is not a competing failure cause. The task
+                // graph retains the sibling error that requested it.
+                return;
+            }
             const previous_row = utils.previousBitReversedCircleDomainIndex(
                 row,
                 component.log_size,
                 self.eval_log_size,
             );
             var sampled: [trace.MAX_FAMILY_COLUMNS]QM31 = undefined;
-            for (sampled[0..self.n_main], self.evaluations[1..][0..self.n_main]) |*value, column| {
+            for (sampled[0..self.n_main], evaluations[1..][0..self.n_main]) |*value, column| {
                 value.* = QM31.fromBase(column[row]);
             }
             var current = [_]QM31{QM31.zero()} ** entry.MAX_BATCHES;
             var previous = [_]QM31{QM31.zero()} ** entry.MAX_BATCHES;
             for (0..batch_count) |batch| {
                 current[batch] = secureAt(
-                    self.evaluations[self.interaction_start + 4 * batch ..][0..4],
+                    evaluations[self.interaction_start + 4 * batch ..][0..4],
                     row,
                 );
                 previous[batch] = secureAt(
-                    self.evaluations[self.interaction_start + 4 * batch ..][0..4],
+                    evaluations[self.interaction_start + 4 * batch ..][0..4],
                     previous_row,
                 );
             }
@@ -468,35 +512,24 @@ const OpcodeDomainEvaluation = struct {
                 sampled[0..self.n_main],
                 current[0..batch_count],
                 previous[0..batch_count],
-                QM31.fromBase(self.evaluations[0][row]),
+                QM31.fromBase(evaluations[0][row]),
             );
             var folded = QM31.zero();
             for (constraints.values[0..constraints.len], 0..) |constraint, index| {
                 folded = folded.add(powers[powers.len - 1 - index].mul(constraint));
             }
             const contribution = folded.mulM31(
-                self.denominator_inv[row >> @intCast(component.log_size)],
+                self.denominator_inv[row >> denominator_shift],
             );
-            const output = self.column_accumulator.col;
-            if (self.direct_store) {
-                output.set(row, contribution);
-            } else {
-                output.set(row, output.at(row).add(contribution));
-            }
+            column_accumulator.accumulate(row, contribution);
         }
     }
-};
 
-const RangeWorker = struct {
-    evaluation: *const OpcodeDomainEvaluation,
-    row_start: usize,
-    row_end: usize,
-    err: ?anyerror = null,
-
-    fn run(self: *@This()) void {
-        self.evaluation.evaluateRange(self.row_start, self.row_end) catch |err| {
-            self.err = err;
-        };
+    fn deinitErased(context: *anyopaque) void {
+        const self: *@This() = @ptrCast(@alignCast(context));
+        const allocator = self.allocator;
+        allocator.free(self.accumulators);
+        allocator.destroy(self);
     }
 };
 
@@ -531,16 +564,6 @@ fn appendRelation(
     try parameters.appendSlice(allocator, &relation.alpha_powers);
 }
 
-fn evaluateDomainParallelAdapter(
-    raw_context: *const anyopaque,
-    trace_data: *const prover_component.Trace,
-    accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
-    pool: *work_pool.WorkPool,
-) anyerror!void {
-    const self: *const OpcodeLookupComponent = @ptrCast(@alignCast(raw_context));
-    return self.evaluateConstraintQuotientsOnDomainParallel(trace_data, accumulator, pool);
-}
-
 fn committedValues(poly: prover_component.Poly, expected_log_size: u32) ![]const M31 {
     try poly.validate();
     if (poly.log_size != expected_log_size) return error.InvalidProofShape;
@@ -562,16 +585,17 @@ fn secureAt(columns: []const []const M31, row: usize) QM31 {
 }
 
 fn quotientDenominators(
-    allocator: std.mem.Allocator,
     log_size: u32,
     eval_log_size: u32,
     eval_domain: anytype,
-) ![]M31 {
-    const extension_bits: u5 = @intCast(eval_log_size - log_size);
-    const result = try allocator.alloc(M31, @as(usize, 1) << extension_bits);
-    errdefer allocator.free(result);
+) ![2]M31 {
+    const expected_log_size = std.math.add(u32, log_size, 1) catch
+        return error.InvalidProofShape;
+    if (eval_log_size != expected_log_size) return error.InvalidProofShape;
+    const extension_bits: u5 = 1;
+    var result: [2]M31 = undefined;
     const coset = canonic.CanonicCoset.new(log_size).coset();
-    for (result, 0..) |*inverse, index| {
+    for (&result, 0..) |*inverse, index| {
         inverse.* = try core_constraints.cosetVanishing(
             M31,
             coset,
@@ -579,6 +603,54 @@ fn quotientDenominators(
         ).inv();
     }
     return result;
+}
+
+fn preparedDomainResources(eval_size: usize) !prover_task_graph.ResourceReservation {
+    const secure_element_bytes = std.math.mul(
+        usize,
+        qm31.SECURE_EXTENSION_DEGREE,
+        @sizeOf(M31),
+    ) catch return error.ResourceReservationOverflow;
+    const final_output_bytes = std.math.mul(
+        usize,
+        eval_size,
+        secure_element_bytes,
+    ) catch return error.ResourceReservationOverflow;
+    const shared_resident_bytes = std.math.add(
+        usize,
+        @sizeOf(PreparedDomainState),
+        @sizeOf(prover_air_accumulation.ColumnAccumulator),
+    ) catch return error.ResourceReservationOverflow;
+    _ = std.math.add(
+        usize,
+        final_output_bytes,
+        shared_resident_bytes,
+    ) catch return error.ResourceReservationOverflow;
+    return .{
+        .final_output_bytes = final_output_bytes,
+        .shared_resident_bytes = shared_resident_bytes,
+        .worker_stack_bytes = prepared_domain.ROW_EVALUATOR_STACK_BYTES,
+    };
+}
+
+fn serialTaskContext(
+    user_context: *anyopaque,
+    cancellation: *const prover_task_graph.CancellationToken,
+) prover_task_graph.TaskContext {
+    return .{
+        .user_context = user_context,
+        .cancellation = cancellation,
+        .key = .{
+            .epoch = 0,
+            .stage_rank = 0,
+            .component_registry_index = 0,
+            .shard_or_chunk_index = 0,
+        },
+        .worker_budget = work_pool.WorkerBudget.serial(),
+        .task_class = .leaf,
+        .exclusive_lease = null,
+        .child_wait_group = null,
+    };
 }
 
 fn currentPointColumns(
@@ -623,287 +695,25 @@ fn freePointColumns(allocator: std.mem.Allocator, columns: [][]CirclePointQM31) 
     allocator.free(columns);
 }
 
-fn activeAddiRow() trace.TraceRow {
-    return .{
-        .clk = 1,
-        .pc = 0x1000,
-        .opcode = .ADDI,
-        .rd = 1,
-        .rs1 = 0,
-        .rs2 = 0,
-        .imm = 1,
-        .rs1_val = 0,
-        .rs2_val = 0,
-        .rd_val = 1,
-        .rd_prev_val = 0,
-        .rd_prev_clk = 0,
-        .mem_addr = 0,
-        .mem_val = 0,
-        .is_load = false,
-        .is_store = false,
-        .branch_taken = false,
-        .next_pc = 0x1004,
-        .inst_word = 0x0010_0093,
-    };
-}
-
-test "opcode lookup component: every family has exact variable-width metadata" {
-    const relations = relations_mod.Relations.dummy();
-    for (0..trace.N_FAMILIES) |index| {
-        const family: trace.OpcodeFamily = @enumFromInt(index);
-        const n_batches = opcode_entries.batchCount(family);
-        const claims = [_]QM31{QM31.zero()} ** entry.MAX_BATCHES;
-        const component = try OpcodeLookupComponent.initVerifier(
-            family,
-            4,
-            0,
-            0,
-            0,
-            &relations,
-            claims[0..n_batches],
-        );
-        try std.testing.expectEqual(n_batches, component.nConstraints());
-        var bounds = try component.traceLogDegreeBounds(std.testing.allocator);
-        defer bounds.deinitDeep(std.testing.allocator);
-        try std.testing.expectEqual(
-            opcode_entries.interactionColumnCount(family),
-            bounds.items[2].len,
-        );
-        try std.testing.expectEqual(@as(usize, 0), bounds.items[1].len);
-        _ = component.asVerifierComponent();
-    }
-}
-
-test "opcode lookup component: large domains expose sharding without monopolizing the pool" {
-    const relations = relations_mod.Relations.dummy();
-    const family: trace.OpcodeFamily = .base_alu_imm;
-    const claims = [_]QM31{QM31.zero()} ** entry.MAX_BATCHES;
-    const component = try OpcodeLookupComponent.initProver(
-        family,
-        12,
-        0,
-        0,
-        0,
-        &relations,
-        claims[0..opcode_entries.batchCount(family)],
+test "opcode prepared domain: resource geometry and cancellation cadence are bounded" {
+    const secure_element_bytes = qm31.SECURE_EXTENSION_DEGREE * @sizeOf(M31);
+    const resources = try preparedDomainResources(17);
+    try std.testing.expectEqual(17 * secure_element_bytes, resources.final_output_bytes);
+    try std.testing.expectEqual(
+        @sizeOf(PreparedDomainState) + @sizeOf(prover_air_accumulation.ColumnAccumulator),
+        resources.shared_resident_bytes,
     );
-    const prover = component.asProverComponent();
-    try std.testing.expect(prover.domain_parallel_evaluator != null);
-    try std.testing.expect(!prover.pool_exclusive_domain);
-}
-
-test "opcode lookup component: generated active row satisfies every batch" {
-    const allocator = std.testing.allocator;
-    const family: trace.OpcodeFamily = .base_alu_imm;
-    const log_size: u32 = 4;
-    const size = @as(usize, 1) << @intCast(log_size);
-    const n_main = trace.nColumnsForFamily(family);
-    var main_storage: [trace.MAX_FAMILY_COLUMNS][]M31 = undefined;
-    for (main_storage[0..n_main]) |*column| {
-        column.* = try allocator.alloc(M31, size);
-        @memset(column.*, M31.zero());
-    }
-    defer for (main_storage[0..n_main]) |column| allocator.free(column);
-    const placement = try infra.BitReversalTable.init(allocator, log_size);
-    defer placement.deinit(allocator);
-    trace.fillFamilyColumns(&main_storage, placement.map(0), activeAddiRow(), family);
-    const relations = relations_mod.Relations.dummy();
-    var generated = try opcode_interaction.generate(
-        allocator,
-        family,
-        main_storage[0..n_main],
-        log_size,
-        &relations,
+    try std.testing.expectEqual(
+        prepared_domain.ROW_EVALUATOR_STACK_BYTES,
+        resources.worker_stack_bytes,
     );
-    defer generated.deinit(allocator);
-    const component = try OpcodeLookupComponent.initProver(
-        family,
-        log_size,
-        0,
-        0,
-        0,
-        &relations,
-        generated.claims[0..generated.n_batches],
-    );
-    _ = component.asProverComponent();
-    var sampled: [trace.MAX_FAMILY_COLUMNS]QM31 = undefined;
-    const committed_row = placement.map(0);
-    for (main_storage[0..n_main], sampled[0..n_main]) |column, *value| {
-        value.* = QM31.fromBase(column[committed_row]);
-    }
-    var current = [_]QM31{QM31.zero()} ** entry.MAX_BATCHES;
-    var previous = [_]QM31{QM31.zero()} ** entry.MAX_BATCHES;
-    const previous_row = placement.map(size - 1);
-    for (0..generated.n_batches) |batch| {
-        current[batch] = secureAt(generated.columns[4 * batch ..][0..4], committed_row);
-        previous[batch] = secureAt(generated.columns[4 * batch ..][0..4], previous_row);
-    }
-    const honest = try component.evaluateRow(
-        sampled[0..n_main],
-        current[0..generated.n_batches],
-        previous[0..generated.n_batches],
-        QM31.one(),
-    );
-    try std.testing.expect(honest.allZero());
-    current[0] = current[0].add(QM31.one());
-    const mutated = try component.evaluateRow(
-        sampled[0..n_main],
-        current[0..generated.n_batches],
-        previous[0..generated.n_batches],
-        QM31.one(),
-    );
-    try std.testing.expect(!mutated.allZero());
-}
-
-test "opcode lookup component: prover construction rejects wrong claim count" {
-    const relations = relations_mod.Relations.dummy();
-    const claims = [_]QM31{QM31.zero()} ** entry.MAX_BATCHES;
+    try std.testing.expect(PreparedDomainState.CANCELLATION_POLL_ROWS <= 4096);
     try std.testing.expectError(
-        error.InvalidTraceShape,
-        OpcodeLookupComponent.initProver(
-            .div,
-            4,
-            0,
-            0,
-            0,
-            &relations,
-            claims[0..1],
-        ),
+        error.ResourceReservationOverflow,
+        preparedDomainResources(std.math.maxInt(usize) / secure_element_bytes),
     );
-}
-
-test "opcode lookup component: OODS uses exact global offsets" {
-    const allocator = std.testing.allocator;
-    const family: trace.OpcodeFamily = .base_alu_imm;
-    const log_size: u32 = 4;
-    const size = @as(usize, 1) << @intCast(log_size);
-    const n_main = trace.nColumnsForFamily(family);
-    const n_interaction = opcode_entries.interactionColumnCount(family);
-    const main_offset: usize = 3;
-    const interaction_offset: usize = 5;
-    const is_first_col_idx: usize = 2;
-    var main_columns: [trace.MAX_FAMILY_COLUMNS][]M31 = undefined;
-    for (main_columns[0..n_main]) |*column| {
-        column.* = try allocator.alloc(M31, size);
-        @memset(column.*, M31.zero());
-    }
-    defer for (main_columns[0..n_main]) |column| allocator.free(column);
-    const placement = try infra.BitReversalTable.init(allocator, log_size);
-    defer placement.deinit(allocator);
-    trace.fillFamilyColumns(&main_columns, placement.map(0), activeAddiRow(), family);
-    const relations = relations_mod.Relations.dummy();
-    var generated = try opcode_interaction.generate(
-        allocator,
-        family,
-        main_columns[0..n_main],
-        log_size,
-        &relations,
-    );
-    defer generated.deinit(allocator);
-    const component = try OpcodeLookupComponent.initVerifier(
-        family,
-        log_size,
-        is_first_col_idx,
-        main_offset,
-        interaction_offset,
-        &relations,
-        generated.claims[0..generated.n_batches],
-    );
-
-    var preprocessed_storage = [_][1]QM31{.{QM31.fromU32Unchecked(17, 3, 5, 7)}} ** 4;
-    preprocessed_storage[is_first_col_idx][0] = QM31.one();
-    var preprocessed: [preprocessed_storage.len][]QM31 = undefined;
-    for (&preprocessed, &preprocessed_storage) |*column, *values| column.* = values;
-
-    var main_storage = [_][1]QM31{.{QM31.fromU32Unchecked(19, 2, 11, 13)}} **
-        (trace.MAX_FAMILY_COLUMNS + main_offset + 2);
-    const committed_row = placement.map(0);
-    const previous_row = placement.map(size - 1);
-    for (main_columns[0..n_main], main_storage[main_offset..][0..n_main]) |column, *value| {
-        value[0] = QM31.fromBase(column[committed_row]);
-    }
-    var main: [main_storage.len][]QM31 = undefined;
-    for (&main, &main_storage) |*column, *values| column.* = values;
-
-    var interaction_storage = [_][2]QM31{.{
-        QM31.fromU32Unchecked(23, 17, 5, 3),
-        QM31.fromU32Unchecked(29, 19, 7, 2),
-    }} ** (opcode_interaction.MAX_COLUMNS + interaction_offset + 2);
-    for (0..generated.n_batches) |batch| {
-        for (0..4) |coordinate| {
-            interaction_storage[interaction_offset + 4 * batch + coordinate][0] =
-                QM31.fromBase(generated.columns[4 * batch + coordinate][committed_row]);
-            interaction_storage[interaction_offset + 4 * batch + coordinate][1] =
-                QM31.fromBase(generated.columns[4 * batch + coordinate][previous_row]);
-        }
-    }
-    var secure: [interaction_storage.len][]QM31 = undefined;
-    for (&secure, &interaction_storage) |*column, *values| column.* = values;
-    var trees = [_][][]QM31{ &preprocessed, &main, &secure };
-    const mask = core_air_components.MaskValues.initOwned(&trees);
-    const point = circle.SECURE_FIELD_CIRCLE_GEN.mul(29);
-    var honest = core_air_accumulation.PointEvaluationAccumulator.init(QM31.one());
-    try component.evaluateConstraintQuotientsAtPoint(
-        point,
-        &mask,
-        &honest,
-        component.maxConstraintLogDegreeBound(),
-    );
-    try std.testing.expect(honest.finalize().isZero());
-
-    interaction_storage[interaction_offset][0] =
-        interaction_storage[interaction_offset][0].add(QM31.one());
-    var mutated = core_air_accumulation.PointEvaluationAccumulator.init(QM31.one());
-    try component.evaluateConstraintQuotientsAtPoint(
-        point,
-        &mask,
-        &mutated,
-        component.maxConstraintLogDegreeBound(),
-    );
-    try std.testing.expect(!mutated.finalize().isZero());
-    try std.testing.expectEqual(n_interaction, 4 * generated.n_batches);
-}
-
-fn allocateAdapterMetadata(
-    allocator: std.mem.Allocator,
-    component: *const OpcodeLookupComponent,
-) !void {
-    var bounds = try component.traceLogDegreeBounds(allocator);
-    defer bounds.deinitDeep(allocator);
-    var masks = try component.maskPoints(
-        allocator,
-        circle.SECURE_FIELD_CIRCLE_GEN,
-        component.maxConstraintLogDegreeBound() + 2,
-    );
-    defer masks.deinitDeep(allocator);
-    const indices = try component.preprocessedColumnIndices(allocator);
-    defer allocator.free(indices);
-    const expected_previous = logup.prevRowPoint(
-        component.maxConstraintLogDegreeBound() + 2,
-        circle.SECURE_FIELD_CIRCLE_GEN,
-    );
-    for (masks.items[2]) |column| {
-        try std.testing.expectEqual(@as(usize, 2), column.len);
-        try std.testing.expect(column[1].x.eql(expected_previous.x));
-        try std.testing.expect(column[1].y.eql(expected_previous.y));
-    }
-}
-
-test "opcode lookup component: metadata allocations roll back completely" {
-    const relations = relations_mod.Relations.dummy();
-    const claims = [_]QM31{QM31.zero()} ** entry.MAX_BATCHES;
-    const component = try OpcodeLookupComponent.initVerifier(
-        .div,
-        4,
-        7,
-        11,
-        13,
-        &relations,
-        claims[0..opcode_entries.batchCount(.div)],
-    );
-    try std.testing.checkAllAllocationFailures(
-        std.testing.allocator,
-        allocateAdapterMetadata,
-        .{&component},
+    try std.testing.expectError(
+        error.ResourceReservationOverflow,
+        preparedDomainResources(std.math.maxInt(usize)),
     );
 }

@@ -98,8 +98,9 @@ test {
 
     // AIR: claims, components, relations and diagnostics.
     _ = @import("air/claims.zig");
+    _ = @import("air/clock_update_component_prepared_test.zig");
     _ = @import("air/clock_update_component_test.zig");
-    _ = @import("air/component.zig");
+    _ = @import("air/component_prepared_test.zig");
     _ = @import("air/component_order.zig");
     _ = @import("air/diagnostic_hints_test.zig");
     _ = @import("air/guest_precompile/identity_test.zig");
@@ -183,11 +184,13 @@ test {
     _ = @import("air/lookups/entry.zig");
     _ = @import("air/lookups/mod.zig");
     _ = @import("air/lookups/opcode_component.zig");
+    _ = @import("air/lookups/opcode_component_prepared_test.zig");
     _ = @import("air/lookups/opcode_entries.zig");
     _ = @import("air/lookups/opcode_interaction_test.zig");
 
     // AIR: preprocessed lookup tables.
     _ = @import("air/lookups/tables/component.zig");
+    _ = @import("air/lookups/tables/component_prepared_test.zig");
     _ = @import("air/lookups/tables/counter.zig");
     _ = @import("air/lookups/tables/interaction.zig");
     _ = @import("air/lookups/tables/mod.zig");
@@ -196,7 +199,7 @@ test {
 
     // AIR: memory commitment.
     _ = @import("air/memory_commitment/boundary.zig");
-    _ = @import("air/memory_commitment/hash_component.zig");
+    _ = @import("air/memory_commitment/hash_component_prepared_test.zig");
     _ = @import("air/memory_commitment/interaction.zig");
     _ = @import("air/memory_commitment/merkle_node.zig");
     _ = @import("air/memory_commitment/mod.zig");

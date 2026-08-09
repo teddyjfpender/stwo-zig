@@ -6,8 +6,12 @@ const m31 = @import("stwo_core").fields.m31;
 const M31 = m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const pcs = @import("stwo_core").pcs;
-const prover_air_accumulation = @import("stwo_prover_engine").air.accumulation;
-const prover_component = @import("stwo_prover_engine").air.component_prover;
+const prover_engine = @import("stwo_prover_engine");
+const prover_air_accumulation = prover_engine.air.accumulation;
+const prover_component = prover_engine.air.component_prover;
+const prepared_domain = prover_engine.air.prepared_domain;
+const prover_task_graph = prover_engine.task_graph;
+const prover_work_pool = prover_engine.work_pool;
 const ClockUpdateComponent = @import("clock_update_component.zig").ClockUpdateComponent;
 const interaction = @import("clock_update_interaction.zig");
 const infra = @import("../infra_trace.zig");
@@ -99,6 +103,117 @@ fn expectSameMemoryTuple(
 
 fn secureAt(columns: []const []const M31, row: usize) QM31 {
     return QM31.fromM31(columns[0][row], columns[1][row], columns[2][row], columns[3][row]);
+}
+
+fn testLeafTaskContext(
+    user_context: *anyopaque,
+    cancellation: *const prover_task_graph.CancellationToken,
+) prover_task_graph.TaskContext {
+    return .{
+        .user_context = user_context,
+        .cancellation = cancellation,
+        .key = .{
+            .epoch = 0,
+            .stage_rank = 0,
+            .component_registry_index = 0,
+            .shard_or_chunk_index = 0,
+        },
+        .worker_budget = prover_work_pool.WorkerBudget.serial(),
+        .task_class = .leaf,
+        .exclusive_lease = null,
+        .child_wait_group = null,
+    };
+}
+
+fn runPreparedOnBoundedHelper(
+    prepared: *prepared_domain.PreparedDomainEvaluation,
+) !void {
+    const Runner = struct {
+        prepared: *prepared_domain.PreparedDomainEvaluation,
+        coordinator_thread: std.Thread.Id,
+        ran_on_helper: std.atomic.Value(bool) = .init(false),
+
+        fn run(context: *prover_task_graph.TaskContext) !void {
+            const self: *@This() = @ptrCast(@alignCast(context.user_context));
+            if (std.Thread.getCurrentId() == self.coordinator_thread) {
+                return error.PreparedDomainDidNotUseHelper;
+            }
+            self.ran_on_helper.store(true, .release);
+            try self.prepared.run(context);
+        }
+    };
+    const Coordinator = struct {
+        fn run(_: *prover_task_graph.TaskContext) !void {}
+    };
+
+    var runner = Runner{
+        .prepared = prepared,
+        .coordinator_thread = std.Thread.getCurrentId(),
+    };
+    var coordinator_byte: u8 = 0;
+    var graph = try prover_task_graph.ComponentTaskGraph.init(
+        std.testing.allocator,
+        2,
+    );
+    defer graph.deinit();
+    _ = try graph.addTask(.{
+        .key = .{
+            .epoch = 0,
+            .stage_rank = 0,
+            .component_registry_index = 0,
+            .shard_or_chunk_index = 0,
+        },
+        .name = "clock-stack-probe-coordinator",
+        .func = Coordinator.run,
+        .context = &coordinator_byte,
+        .work_estimate = 2,
+    });
+    _ = try graph.addTask(.{
+        .key = .{
+            .epoch = 0,
+            .stage_rank = 0,
+            .component_registry_index = 1,
+            .shard_or_chunk_index = 0,
+        },
+        .name = "clock-stack-probe-prepared",
+        .func = Runner.run,
+        .context = &runner,
+        .resources = prepared.resources,
+        .work_estimate = 1,
+    });
+
+    var pool: prover_work_pool.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{
+        .worker_count = 2,
+        .stack_size = prepared_domain.ROW_EVALUATOR_STACK_BYTES,
+    });
+    defer pool.deinit();
+    _ = try graph.execute(.{
+        .worker_budget = try prover_work_pool.WorkerBudget.init(2),
+        .pool = &pool,
+    });
+    try std.testing.expect(runner.ran_on_helper.load(.acquire));
+}
+
+fn prepareClockUpdateDomain(
+    allocator: std.mem.Allocator,
+    component: *const ClockUpdateComponent,
+    trace_data: *const prover_component.Trace,
+    eval_log_size: u32,
+) !void {
+    var accumulator = try prover_air_accumulation.DomainEvaluationAccumulator.init(
+        allocator,
+        QM31.one(),
+        eval_log_size,
+        component.nConstraints(),
+    );
+    defer accumulator.deinit();
+    var prepared = (try component.asProverComponent().prepareConstraintQuotientsOnDomain(
+        allocator,
+        trace_data,
+        &accumulator,
+    )).?;
+    defer prepared.deinit();
 }
 
 test "clock update exposes the exact memory pair and bounds its predecessor clock" {
@@ -561,6 +676,81 @@ test "clock update on-domain path enforces inactive padding" {
         saw_nonzero = saw_nonzero or !mutated_result.at(row).isZero();
     }
     try std.testing.expect(saw_nonzero);
+
+    // The coordinator-prepared capability owns every allocation. Poison the
+    // allocator after preparation so the same production row loop proves it
+    // performs no hidden worker-side allocation.
+    var failing = std.testing.FailingAllocator.init(allocator, .{});
+    const prepared_allocator = failing.allocator();
+    var prepared_accumulator = try prover_air_accumulation.DomainEvaluationAccumulator.init(
+        prepared_allocator,
+        QM31.one(),
+        eval_log_size,
+        component.nConstraints(),
+    );
+    defer prepared_accumulator.deinit();
+    const prover = component.asProverComponent();
+    try std.testing.expect(prover.prepare_domain_evaluator != null);
+    var prepared = (try prover.prepareConstraintQuotientsOnDomain(
+        prepared_allocator,
+        &trace_data,
+        &prepared_accumulator,
+    )).?;
+    defer prepared.deinit();
+    try std.testing.expectEqual(
+        eval_size * @sizeOf(QM31),
+        prepared.resources.final_output_bytes,
+    );
+    try std.testing.expect(prepared.resources.shared_resident_bytes > 0);
+    try std.testing.expectEqual(
+        prover_engine.air.prepared_domain.ROW_EVALUATOR_STACK_BYTES,
+        prepared.resources.worker_stack_bytes,
+    );
+
+    const allocation_count = failing.alloc_index;
+    failing.fail_index = allocation_count;
+    try runPreparedOnBoundedHelper(&prepared);
+    try std.testing.expectEqual(allocation_count, failing.alloc_index);
+    try std.testing.expect(!failing.has_induced_failure);
+    failing.fail_index = std.math.maxInt(usize);
+    var prepared_result = try prepared_accumulator.finalize();
+    defer prepared_result.deinit(prepared_allocator);
+    try std.testing.expectEqual(mutated_result.len(), prepared_result.len());
+    for (0..prepared_result.len()) |row| {
+        try std.testing.expect(mutated_result.at(row).eql(prepared_result.at(row)));
+    }
+
+    // A pre-existing sibling failure is observed at the first bounded poll.
+    // Cancellation returns successfully so it cannot replace that failure as
+    // the task graph's canonical cause.
+    var cancelled_accumulator = try prover_air_accumulation.DomainEvaluationAccumulator.init(
+        allocator,
+        QM31.one(),
+        eval_log_size,
+        component.nConstraints(),
+    );
+    defer cancelled_accumulator.deinit();
+    var cancelled = (try prover.prepareConstraintQuotientsOnDomain(
+        allocator,
+        &trace_data,
+        &cancelled_accumulator,
+    )).?;
+    defer cancelled.deinit();
+    var cancelled_token = prover_task_graph.CancellationToken{};
+    _ = cancelled_token.request();
+    var cancelled_context = testLeafTaskContext(cancelled.context, &cancelled_token);
+    try cancelled.run(&cancelled_context);
+    var cancelled_result = try cancelled_accumulator.finalize();
+    defer cancelled_result.deinit(allocator);
+    for (0..cancelled_result.len()) |row| {
+        try std.testing.expect(cancelled_result.at(row).isZero());
+    }
+
+    try std.testing.checkAllAllocationFailures(
+        allocator,
+        prepareClockUpdateDomain,
+        .{ &component, &trace_data, eval_log_size },
+    );
 }
 
 fn generateInteraction(
