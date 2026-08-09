@@ -383,10 +383,6 @@ pub const Capture = struct {
         }
 
         canonicalizeEvents(self.pending.events);
-        try fillComponentWork(
-            self.pending.events,
-            self.pending.component_work,
-        );
         var summary = try summarize(
             self.pending.events,
             accounting,
@@ -445,8 +441,7 @@ pub fn componentCount(graph: anytype) usize {
         var seen = false;
         for (graph.slots[0..index]) |earlier| {
             if (earlier.key.component_registry_index ==
-                slot.key.component_registry_index and
-                std.mem.eql(u8, earlier.component_kind, slot.component_kind))
+                slot.key.component_registry_index)
             {
                 seen = true;
                 break;
@@ -483,63 +478,6 @@ fn canonicalizeEvents(events: []wire.TaskEvent) void {
     std.sort.heap(wire.TaskEvent, events, {}, struct {
         fn lessThan(_: void, lhs: wire.TaskEvent, rhs: wire.TaskEvent) bool {
             return lhs.key.lessThan(rhs.key);
-        }
-    }.lessThan);
-}
-
-fn fillComponentWork(
-    events: []const wire.TaskEvent,
-    components: []wire.ComponentWork,
-) !void {
-    @memset(components, .{});
-    var initialized: usize = 0;
-    for (events) |event| {
-        var selected: ?*wire.ComponentWork = null;
-        for (components[0..initialized]) |*component| {
-            if (component.component_registry_index ==
-                event.key.component_registry_index and
-                std.mem.eql(u8, component.component_kind, event.component_kind))
-            {
-                selected = component;
-                break;
-            }
-        }
-        if (selected == null) {
-            if (initialized == components.len) {
-                return error.TaskProfileComponentCountMismatch;
-            }
-            components[initialized] = .{
-                .component_registry_index = event.key.component_registry_index,
-                .component_kind = event.component_kind,
-            };
-            selected = &components[initialized];
-            initialized += 1;
-        }
-        const component = selected.?;
-        component.task_count = try checkedAdd(component.task_count, 1);
-        component.work_estimate = try checkedAdd(
-            component.work_estimate,
-            event.work_estimate,
-        );
-        component.completed_rows = try checkedAdd(
-            component.completed_rows,
-            event.completed_rows,
-        );
-        component.completed_tiles = try checkedAdd(
-            component.completed_tiles,
-            event.completed_tiles,
-        );
-        component.run_ns = try checkedAdd(component.run_ns, event.run_ns);
-    }
-    if (initialized != components.len) {
-        return error.TaskProfileComponentCountMismatch;
-    }
-    std.sort.heap(wire.ComponentWork, components, {}, struct {
-        fn lessThan(_: void, lhs: wire.ComponentWork, rhs: wire.ComponentWork) bool {
-            if (lhs.component_registry_index != rhs.component_registry_index) {
-                return lhs.component_registry_index < rhs.component_registry_index;
-            }
-            return std.mem.lessThan(u8, lhs.component_kind, rhs.component_kind);
         }
     }.lessThan);
 }

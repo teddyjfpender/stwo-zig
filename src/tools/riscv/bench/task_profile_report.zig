@@ -14,8 +14,13 @@ pub fn write(writer: anytype, profile: task_profile.TaskProfile) !void {
     for (profile.graphs) |graph| {
         const summary = graph.summary;
         try writer.print(
-            "  graph id={s} events={d} components={d}\n",
-            .{ graph.graph_id, graph.events.len, graph.component_work.len },
+            "  graph id={s} events={d} contributions={d} components={d}\n",
+            .{
+                graph.graph_id,
+                graph.events.len,
+                graph.contributions.len,
+                graph.component_work.len,
+            },
         );
         try writer.print(
             "    scheduler kind={s} steal_count={d}\n",
@@ -90,21 +95,9 @@ pub fn write(writer: anytype, profile: task_profile.TaskProfile) !void {
             },
         );
 
-        for (graph.component_work) |component| {
-            try writer.print(
-                "    component index={d} kind={s} tasks={d} estimate={d}" ++
-                    " completed_rows={d} completed_tiles={d} run_ns={d}\n",
-                .{
-                    component.component_registry_index,
-                    component.component_kind,
-                    component.task_count,
-                    component.work_estimate,
-                    component.completed_rows,
-                    component.completed_tiles,
-                    component.run_ns,
-                },
-            );
-        }
+        for (graph.component_work) |component| try writeComponent(writer, component);
+        for (graph.contributions, 0..) |contribution, index|
+            try writeContribution(writer, index, contribution);
 
         // The producer publishes this slice in canonical TaskKey order. Keep
         // that order visible instead of sorting or grouping for presentation.
@@ -112,16 +105,64 @@ pub fn write(writer: anytype, profile: task_profile.TaskProfile) !void {
     }
 }
 
+fn writeComponent(writer: anytype, component: task_profile.ComponentWork) !void {
+    try writer.print(
+        "    component index={d} kind={s} role={s} tasks={d}" ++
+            " estimate={d} planned_rows={d} planned_tiles={d}" ++
+            " completed_rows=",
+        .{
+            component.component_registry_index,
+            component.component_kind,
+            @tagName(component.role),
+            component.task_count,
+            component.work_estimate,
+            component.planned_rows,
+            component.planned_tiles,
+        },
+    );
+    try writeOptionalU64(writer, component.completed_rows);
+    try writer.writeAll(" completed_tiles=");
+    try writeOptionalU64(writer, component.completed_tiles);
+    try writer.writeByte('\n');
+}
+
+fn writeContribution(
+    writer: anytype,
+    index: usize,
+    contribution: task_profile.Contribution,
+) !void {
+    try writer.print(
+        "    contribution index={d} component_index={d} kind={s}" ++
+            " role={s} estimate={d} planned_rows={d}" ++
+            " planned_tiles={d} completed_rows=",
+        .{
+            index,
+            contribution.component_registry_index,
+            contribution.component_kind,
+            @tagName(contribution.role),
+            contribution.work_estimate,
+            contribution.planned_rows,
+            contribution.planned_tiles,
+        },
+    );
+    try writeOptionalU64(writer, contribution.completed_rows);
+    try writer.writeAll(" completed_tiles=");
+    try writeOptionalU64(writer, contribution.completed_tiles);
+    try writer.writeByte('\n');
+}
+
 fn writeEvent(writer: anytype, event: task_profile.TaskEvent) !void {
     try writer.writeAll("    event key=");
     try writeTaskKey(writer, event.key);
     try writer.print(
-        " stage={s} component={s} class={s} parallel_eligible={} deps=[",
+        " stage={s} component={s} class={s} parallel_eligible={} contributions={d}+{d} deps=[",
         .{
             event.stage_id,
             event.component_kind,
             @tagName(event.task_class),
             event.parallel_eligible,
+            event.contribution_range.start,
+            event.contribution_range.len,
         },
     );
     for (event.dependencySlice(), 0..) |dependency, index| {
@@ -248,10 +289,12 @@ fn writeOptionalString(writer: anytype, value: ?[]const u8) !void {
 
 test "raw task profile summary formatting is deterministic" {
     var no_events: [0]task_profile.TaskEvent = .{};
+    var no_contributions: [0]task_profile.Contribution = .{};
     var no_components: [0]task_profile.ComponentWork = .{};
     var graphs = [_]task_profile.GraphRecord{.{
         .graph_id = "composition",
         .events = &no_events,
+        .contributions = &no_contributions,
         .component_work = &no_components,
         .summary = .{
             .requested_workers = 4,
@@ -293,8 +336,8 @@ test "raw task profile summary formatting is deterministic" {
     defer output.deinit(std.testing.allocator);
     try write(output.writer(std.testing.allocator), profile);
     try std.testing.expectEqualStrings(
-        \\Task profile: schema_version=1 runtime=zig example=riscv graphs=1
-        \\  graph id=composition events=0 components=0
+        \\Task profile: schema_version=2 runtime=zig example=riscv graphs=1
+        \\  graph id=composition events=0 contributions=0 components=0
         \\    scheduler kind=central_queue_no_steal steal_count=0
         \\    workers requested=4 admitted=3 pool_capacity=8 worker_stack_bytes=1024 peak_active_tasks=2 peak_active_workers=2
         \\    tasks planned=5 submitted=4 completed=3 failed=1 cancelled=0 unsubmitted_cancelled=1 started=4 finished=4 duplicate_starts=0 duplicate_finishes=0
@@ -315,6 +358,7 @@ test "raw task event formatting preserves canonical identities" {
         },
         .stage_id = "interaction",
         .component_kind = "poseidon2",
+        .contribution_range = .{ .start = 8, .len = 2 },
         .task_class = .pool_exclusive,
         .dependency_count = 1,
         .parallel_eligible = true,
@@ -366,13 +410,45 @@ test "raw task event formatting preserves canonical identities" {
     defer output.deinit(std.testing.allocator);
     try writeEvent(output.writer(std.testing.allocator), event);
     try std.testing.expectEqualStrings(
-        \\    event key=2:3:5:7 stage=interaction component=poseidon2 class=pool_exclusive parallel_eligible=true deps=[1:9:4:6]
+        \\    event key=2:3:5:7 stage=interaction component=poseidon2 class=pool_exclusive parallel_eligible=true contributions=8+2 deps=[1:9:4:6]
         \\      state submitted=true started=true finished=true cleanup_complete=true
         \\      timestamps submitted_ns=10 ready_ns=8 start_ns=12 cancellation_requested_ns=none finish_ns=21
         \\      execution configured_workers=4 worker_slot=1 worker_kind=helper admission_wait_ns=3 queue_wait_ns=4 run_ns=9 resource_wait_ns=2
         \\      bytes final_output=100 exclusive_scratch=200 shared_resident=300 device_resident=400 worker_stack=500
         \\      terminal status=cancelled error=InjectedFailure cancellation_winner=2:3:4:0 cancellation_reason=sibling_failure
         \\      work estimate=1024 planned_rows=512 planned_tiles=2 completed_rows=256 completed_tiles=1
+        \\
+    , output.items);
+}
+
+test "raw semantic attribution formatting keeps unknown completion explicit" {
+    var output = std.ArrayList(u8).empty;
+    defer output.deinit(std.testing.allocator);
+    const writer = output.writer(std.testing.allocator);
+
+    try writeComponent(writer, .{
+        .component_registry_index = 11,
+        .component_kind = "poseidon2",
+        .role = .semantic_constraints,
+        .task_count = 2,
+        .work_estimate = 17,
+        .planned_rows = 12,
+        .planned_tiles = 3,
+        .completed_rows = null,
+        .completed_tiles = null,
+    });
+    try writeContribution(writer, 4, .{
+        .component_registry_index = 12,
+        .component_kind = "lookup",
+        .role = .lookup_constraints,
+        .work_estimate = 8,
+        .planned_rows = 8,
+        .completed_rows = 8,
+    });
+
+    try std.testing.expectEqualStrings(
+        \\    component index=11 kind=poseidon2 role=semantic_constraints tasks=2 estimate=17 planned_rows=12 planned_tiles=3 completed_rows=none completed_tiles=none
+        \\    contribution index=4 component_index=12 kind=lookup role=lookup_constraints estimate=8 planned_rows=8 planned_tiles=0 completed_rows=8 completed_tiles=0
         \\
     , output.items);
 }

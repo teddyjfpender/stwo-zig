@@ -36,14 +36,18 @@
       "column.zig::column evaluation validates storage and lifting geometry",
       "stage_profile.zig::prover stage profile: stage-only recorder suppresses flat task capture",
       "stage_profile.zig::prover stage profile: task publication propagates capability errors",
-      "task_profile.zig::task profile: abort releases exact reservation",
-      "task_profile.zig::task profile: reservation and snapshot clean up every allocation failure",
-      "task_profile.zig::task profile: reservation publishes by move and snapshot owns strings",
+      "task_profile_reservation_test.zig::task profile reservation: completion state and aggregate overflow fail closed",
+      "task_profile_reservation_test.zig::task profile reservation: component identity drift and duplicates fail closed",
+      "task_profile_reservation_test.zig::task profile reservation: exact ranges are validated before move",
       "task_profile_reservation_test.zig::task profile reservation: generation exhaustion fails before allocation",
       "task_profile_reservation_test.zig::task profile reservation: malformed publication preserves capability",
       "task_profile_reservation_test.zig::task profile reservation: stale aborted copy cannot free replacement",
       "task_profile_reservation_test.zig::task profile reservation: stale published copy cannot affect next generation",
-      "task_profile_reservation_test.zig::task profile reservation: wrong recorder publication is rejected"
+      "task_profile_reservation_test.zig::task profile reservation: wrong recorder publication is rejected",
+      "task_profile_reservation_test.zig::task profile: abort releases exact reservation",
+      "task_profile_reservation_test.zig::task profile: compatibility reservation synthesizes exact exclusive work",
+      "task_profile_reservation_test.zig::task profile: reservation and snapshot clean up every allocation failure",
+      "task_profile_reservation_test.zig::task profile: reservation publishes by move and snapshot owns strings"
     ]
   },
   "ci": {

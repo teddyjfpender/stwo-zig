@@ -126,14 +126,23 @@ pub const Recorder = struct {
         };
     }
 
-    /// Reserves exact flat-task storage before launch. Existing stage timing
-    /// remains independent from this reservation.
+    /// Compatibility reservation for producers without semantic attribution.
+    /// Existing stage timing remains independent from this reservation.
     pub fn reserveTaskGraph(
         self: *Recorder,
         event_count: usize,
         component_work_count: usize,
     ) !task_profile.PendingGraph {
         return self.task_recorder.reserveTaskGraph(event_count, component_work_count);
+    }
+
+    /// Reserves exact schema-v2 event, contribution, and aggregate storage
+    /// before launch.
+    pub fn reserveTaskGraphShape(
+        self: *Recorder,
+        shape: task_profile.ReservationShape,
+    ) !task_profile.PendingGraph {
+        return self.task_recorder.reserveTaskGraphShape(shape);
     }
 
     /// Moves a fully joined task graph into the separate flat recorder without

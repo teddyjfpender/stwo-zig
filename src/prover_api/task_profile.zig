@@ -5,10 +5,11 @@
 //! joined every task, and produces deep-owned snapshots.
 
 const std = @import("std");
+const attribution = @import("task_profile_contributions.zig");
 
 /// Version of the flat task-profile schema. This is intentionally independent
 /// from `stage_profile.SCHEMA_VERSION`.
-pub const TASK_PROFILE_SCHEMA_VERSION: u32 = 1;
+pub const TASK_PROFILE_SCHEMA_VERSION: u32 = 2;
 
 pub const MAX_DEPENDENCIES: usize = 8;
 
@@ -36,6 +37,20 @@ pub const TerminalStatus = enum {
 pub const CancellationReason = enum {
     sibling_failure,
     request_cancelled,
+};
+
+/// The semantic relationship between a physical task and a registry
+/// component. `exclusive` is reserved for lanes that execute exactly one
+/// component, including graphs admitted through the v1-producer adapter.
+pub const ContributionRole = attribution.Role;
+pub const ContributionRange = attribution.Range;
+pub const Contribution = attribution.Contribution;
+
+/// Exact storage shape decided before any task launches.
+pub const ReservationShape = struct {
+    event_count: usize,
+    contribution_count: usize,
+    component_work_count: usize,
 };
 
 /// Stable task identity. Lexicographic order is the canonical event order.
@@ -84,6 +99,7 @@ pub const TaskEvent = struct {
     dependencies: [MAX_DEPENDENCIES]TaskKey = [_]TaskKey{.{}} ** MAX_DEPENDENCIES,
     dependency_count: u8 = 0,
     parallel_eligible: bool = false,
+    contribution_range: ContributionRange = .{},
 
     submitted: bool = false,
     started: bool = false,
@@ -122,17 +138,10 @@ pub const TaskEvent = struct {
     }
 };
 
-/// Raw per-component totals; presentation layers may derive ratios from these
-/// integers, but floating-point values are never task-profile authority.
-pub const ComponentWork = struct {
-    component_registry_index: u32 = 0,
-    component_kind: []const u8 = "",
-    task_count: u64 = 0,
-    work_estimate: u64 = 0,
-    completed_rows: u64 = 0,
-    completed_tiles: u64 = 0,
-    run_ns: u64 = 0,
-};
+/// Semantic per-component totals derived from contributions at publication.
+/// Physical run time remains exclusively event-owned and is intentionally not
+/// attributed to components in a fused lane.
+pub const ComponentWork = attribution.ComponentWork;
 
 /// Raw integer summary for one joined graph execution.
 pub const RequestSummary = struct {
@@ -195,6 +204,7 @@ pub const GraphHeader = struct {
 pub const GraphRecord = struct {
     graph_id: []const u8,
     events: []TaskEvent,
+    contributions: []Contribution,
     component_work: []ComponentWork,
     summary: RequestSummary,
 
@@ -206,6 +216,10 @@ pub const GraphRecord = struct {
             if (event.error_name) |name| allocator.free(name);
         }
         allocator.free(self.events);
+        for (self.contributions) |contribution| {
+            allocator.free(contribution.component_kind);
+        }
+        allocator.free(self.contributions);
         for (self.component_work) |component| {
             allocator.free(component.component_kind);
         }
@@ -233,11 +247,13 @@ pub const TaskProfile = struct {
 const StoredGraph = struct {
     graph_id: []const u8,
     events: []TaskEvent,
+    contributions: []Contribution,
     component_work: []ComponentWork,
     summary: RequestSummary,
 
     fn deinit(self: *StoredGraph, allocator: std.mem.Allocator) void {
         allocator.free(self.events);
+        allocator.free(self.contributions);
         allocator.free(self.component_work);
         self.* = undefined;
     }
@@ -246,7 +262,9 @@ const StoredGraph = struct {
 const ActiveReservation = struct {
     generation: u64,
     events: []TaskEvent,
+    contributions: []Contribution,
     component_work: []ComponentWork,
+    compatibility_one_contribution_per_event: bool,
 };
 
 // Recorder identities are assigned lazily on the cold reservation path. Zero
@@ -282,7 +300,9 @@ pub const PendingGraph = struct {
     recorder_identity: u64,
     generation: u64,
     events: []TaskEvent,
+    contributions: []Contribution,
     component_work: []ComponentWork,
+    compatibility_one_contribution_per_event: bool,
 
     /// Aborts only when this handle is the recorder's current capability.
     /// Stale copies return an error and cannot free a later reservation.
@@ -298,7 +318,9 @@ pub const PendingGraph = struct {
         self.recorder_identity = 0;
         self.generation = 0;
         self.events = &.{};
+        self.contributions = &.{};
         self.component_work = &.{};
+        self.compatibility_one_contribution_per_event = false;
     }
 };
 
@@ -330,6 +352,7 @@ pub const Recorder = struct {
     pub fn deinit(self: *Recorder) void {
         if (self.active_reservation) |active| {
             self.allocator.free(active.events);
+            self.allocator.free(active.contributions);
             self.allocator.free(active.component_work);
         }
         for (self.graphs.items) |*graph| graph.deinit(self.allocator);
@@ -337,15 +360,44 @@ pub const Recorder = struct {
         self.* = undefined;
     }
 
-    /// Reserves all mutable graph storage and the recorder append slot before
-    /// any task launches. Only one graph reservation may be active at a time.
+    /// Compatibility reservation for schema-v1 producers. It pre-reserves one
+    /// `.exclusive` contribution per event and synthesizes those contributions
+    /// from the legacy event work fields at publication, without allocation.
+    /// New semantic producers must call `reserveTaskGraphShape`.
     pub fn reserveTaskGraph(
         self: *Recorder,
         event_count: usize,
         component_work_count: usize,
     ) !PendingGraph {
+        return self.reserveTaskGraphInternal(.{
+            .event_count = event_count,
+            .contribution_count = event_count,
+            .component_work_count = component_work_count,
+        }, true);
+    }
+
+    /// Reserves every graph-owned slice and the recorder append slot before
+    /// launch. Only one graph reservation may be active at a time.
+    pub fn reserveTaskGraphShape(
+        self: *Recorder,
+        shape: ReservationShape,
+    ) !PendingGraph {
+        return self.reserveTaskGraphInternal(shape, false);
+    }
+
+    fn reserveTaskGraphInternal(
+        self: *Recorder,
+        shape: ReservationShape,
+        compatibility_one_contribution_per_event: bool,
+    ) !PendingGraph {
         if (self.active_reservation != null) {
             return error.TaskGraphReservationActive;
+        }
+        if (shape.contribution_count > std.math.maxInt(u32)) {
+            return error.TaskProfileContributionCountOverflow;
+        }
+        if (shape.component_work_count > shape.contribution_count) {
+            return error.TaskProfileComponentWorkCountImpossible;
         }
         const generation = std.math.add(
             u64,
@@ -357,11 +409,21 @@ pub const Recorder = struct {
         }
         try self.graphs.ensureUnusedCapacity(self.allocator, 1);
 
-        const events = try self.allocator.alloc(TaskEvent, event_count);
+        const events = try self.allocator.alloc(TaskEvent, shape.event_count);
         errdefer self.allocator.free(events);
         @memset(events, .{});
 
-        const component_work = try self.allocator.alloc(ComponentWork, component_work_count);
+        const contributions = try self.allocator.alloc(
+            Contribution,
+            shape.contribution_count,
+        );
+        errdefer self.allocator.free(contributions);
+        @memset(contributions, .{});
+
+        const component_work = try self.allocator.alloc(
+            ComponentWork,
+            shape.component_work_count,
+        );
         errdefer self.allocator.free(component_work);
         @memset(component_work, .{});
 
@@ -369,14 +431,18 @@ pub const Recorder = struct {
         self.active_reservation = .{
             .generation = generation,
             .events = events,
+            .contributions = contributions,
             .component_work = component_work,
+            .compatibility_one_contribution_per_event = compatibility_one_contribution_per_event,
         };
         return .{
             .recorder = self,
             .recorder_identity = self.recorder_identity,
             .generation = generation,
             .events = events,
+            .contributions = contributions,
             .component_work = component_work,
+            .compatibility_one_contribution_per_event = compatibility_one_contribution_per_event,
         };
     }
 
@@ -401,10 +467,19 @@ pub const Recorder = struct {
         if (summary.steal_count != 0) {
             return error.TaskProfileUnexpectedStealCount;
         }
+        if (active.compatibility_one_contribution_per_event) {
+            attribution.synthesizeCompatibility(active.events, active.contributions);
+        }
+        try attribution.deriveComponentWork(
+            active.events,
+            active.contributions,
+            active.component_work,
+        );
 
         self.graphs.appendAssumeCapacity(.{
             .graph_id = header.graph_id,
             .events = active.events,
+            .contributions = active.contributions,
             .component_work = active.component_work,
             .summary = summary,
         });
@@ -430,6 +505,7 @@ pub const Recorder = struct {
     fn abortTaskGraph(self: *Recorder, pending: *PendingGraph) !void {
         const active = try self.validatePending(pending);
         self.allocator.free(active.events);
+        self.allocator.free(active.contributions);
         self.allocator.free(active.component_work);
         self.active_reservation = null;
         pending.invalidate();
@@ -454,8 +530,12 @@ pub const Recorder = struct {
         }
         if (pending.events.ptr != active.events.ptr or
             pending.events.len != active.events.len or
+            pending.contributions.ptr != active.contributions.ptr or
+            pending.contributions.len != active.contributions.len or
             pending.component_work.ptr != active.component_work.ptr or
-            pending.component_work.len != active.component_work.len)
+            pending.component_work.len != active.component_work.len or
+            pending.compatibility_one_contribution_per_event !=
+                active.compatibility_one_contribution_per_event)
         {
             return error.TaskGraphReservationStorageMismatch;
         }
@@ -506,6 +586,20 @@ fn snapshotGraph(allocator: std.mem.Allocator, source: StoredGraph) !GraphRecord
         initialized_events += 1;
     }
 
+    const contributions = try allocator.alloc(Contribution, source.contributions.len);
+    errdefer allocator.free(contributions);
+    var initialized_contributions: usize = 0;
+    errdefer {
+        for (contributions[0..initialized_contributions]) |contribution| {
+            allocator.free(contribution.component_kind);
+        }
+    }
+    for (source.contributions, contributions) |contribution, *owned| {
+        owned.* = contribution;
+        owned.component_kind = try allocator.dupe(u8, contribution.component_kind);
+        initialized_contributions += 1;
+    }
+
     const components = try allocator.alloc(ComponentWork, source.component_work.len);
     errdefer allocator.free(components);
     var initialized_components: usize = 0;
@@ -523,127 +617,8 @@ fn snapshotGraph(allocator: std.mem.Allocator, source: StoredGraph) !GraphRecord
     return .{
         .graph_id = graph_id,
         .events = events,
+        .contributions = contributions,
         .component_work = components,
         .summary = source.summary,
     };
-}
-
-test "task profile: reservation publishes by move and snapshot owns strings" {
-    const allocator = std.testing.allocator;
-    var recorder = Recorder.init(allocator, "zig", "riscv");
-    defer recorder.deinit();
-
-    var pending = try recorder.reserveTaskGraph(1, 1);
-    defer pending.deinit();
-    pending.events[0] = .{
-        .key = .{ .epoch = 1, .stage_rank = 2, .component_registry_index = 3 },
-        .stage_id = "composition",
-        .component_kind = "opcode",
-        .parallel_eligible = true,
-        .submitted = true,
-        .started = true,
-        .finished = true,
-        .ready_ns = 10,
-        .submitted_ns = 11,
-        .start_ns = 12,
-        .finish_ns = 20,
-        .configured_workers = 4,
-        .worker_slot = 1,
-        .worker_kind = .helper,
-        .admission_wait_ns = 1,
-        .queue_wait_ns = 1,
-        .run_ns = 8,
-        .terminal_status = .completed,
-        .cleanup_complete = true,
-        .work_estimate = 16,
-        .planned_rows = 16,
-        .completed_rows = 16,
-    };
-    pending.component_work[0] = .{
-        .component_registry_index = 3,
-        .component_kind = "opcode",
-        .task_count = 1,
-        .work_estimate = 16,
-        .completed_rows = 16,
-        .run_ns = 8,
-    };
-    const event_address = @intFromPtr(pending.events.ptr);
-    try recorder.publishTaskGraphAfterJoin(&pending, .{ .graph_id = "composition" }, .{
-        .requested_workers = 4,
-        .admitted_workers = 4,
-        .pool_capacity = 4,
-        .peak_active_tasks = 1,
-        .peak_active_workers = 1,
-        .planned_tasks = 1,
-        .submitted_tasks = 1,
-        .completed_tasks = 1,
-        .started_tasks = 1,
-        .finished_tasks = 1,
-        .useful_task_work_ns = 8,
-        .admission_wait_ns = 1,
-        .queue_wait_ns = 1,
-        .task_run_ns = 8,
-        .worker_busy_ns = 8,
-        .worker_capacity_ns = 32,
-        .graph_elapsed_ns = 20,
-        .parallel_eligible_ns = 8,
-        .total_work_estimate = 16,
-        .completed_rows = 16,
-    });
-    try std.testing.expectEqual(@as(u64, 0), pending.generation);
-    try std.testing.expectEqual(event_address, @intFromPtr(recorder.graphs.items[0].events.ptr));
-
-    var profile = try recorder.snapshot(allocator);
-    defer profile.deinit(allocator);
-    try std.testing.expectEqual(TASK_PROFILE_SCHEMA_VERSION, profile.schema_version);
-    try std.testing.expectEqualStrings("zig", profile.runtime);
-    try std.testing.expectEqualStrings("riscv", profile.example);
-    try std.testing.expectEqual(@as(usize, 1), profile.graphs.len);
-    try std.testing.expectEqualStrings("composition", profile.graphs[0].graph_id);
-    try std.testing.expectEqualStrings("opcode", profile.graphs[0].events[0].component_kind);
-    try std.testing.expectEqual(@as(u64, 16), profile.graphs[0].events[0].planned_rows);
-    try std.testing.expectEqual(@as(u64, 1), profile.graphs[0].summary.admission_wait_ns);
-    try std.testing.expectEqual(@as(u64, 16), profile.graphs[0].summary.total_work_estimate);
-}
-
-test "task profile: abort releases exact reservation" {
-    const allocator = std.testing.allocator;
-    var recorder = Recorder.init(allocator, "zig", "riscv");
-    defer recorder.deinit();
-
-    var pending = try recorder.reserveTaskGraph(2, 0);
-    try pending.abort();
-    try std.testing.expect(recorder.active_reservation == null);
-
-    var replacement = try recorder.reserveTaskGraph(0, 0);
-    defer replacement.deinit();
-}
-
-test "task profile: reservation and snapshot clean up every allocation failure" {
-    try std.testing.checkAllAllocationFailures(
-        std.testing.allocator,
-        exerciseAllocationFailureCleanup,
-        .{},
-    );
-}
-
-fn exerciseAllocationFailureCleanup(allocator: std.mem.Allocator) !void {
-    var recorder = Recorder.init(allocator, "zig", "riscv");
-    defer recorder.deinit();
-
-    var pending = try recorder.reserveTaskGraph(2, 1);
-    defer pending.deinit();
-    pending.events[0].stage_id = "composition";
-    pending.events[0].component_kind = "opcode";
-    pending.events[1].stage_id = "composition";
-    pending.events[1].component_kind = "table";
-    pending.component_work[0].component_kind = "mixed";
-    try recorder.publishTaskGraphAfterJoin(
-        &pending,
-        .{ .graph_id = "composition" },
-        .{ .planned_tasks = 2 },
-    );
-
-    var snapshot = try recorder.snapshot(allocator);
-    defer snapshot.deinit(allocator);
 }
