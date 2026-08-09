@@ -6,5 +6,6 @@ pub const relation_event = @import("relation_event.zig");
 pub const component_registry = @import("component_registry.zig");
 pub const manifest = @import("manifest.zig");
 pub const statement = @import("statement.zig");
+pub const main_trace = @import("main_trace.zig");
 pub const artifact_identity = @import("artifact_identity.zig");
 pub const production_adapter = @import("production_adapter.zig");

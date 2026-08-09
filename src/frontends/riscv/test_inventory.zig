@@ -104,6 +104,7 @@ test {
     _ = @import("air/component_order.zig");
     _ = @import("air/diagnostic_hints_test.zig");
     _ = @import("air/guest_precompile/identity_test.zig");
+    _ = @import("air/guest_precompile/main_trace_test.zig");
     _ = @import("air/guest_precompile/relation_test.zig");
     _ = @import("air/interaction.zig");
     _ = @import("air/interaction_gen.zig");

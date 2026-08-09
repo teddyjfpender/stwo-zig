@@ -2,7 +2,7 @@ const std = @import("std");
 
 /// Fewest tests this package's test binary must contain.
 ///
-/// Measured on this tree: 929. Zig collects a `test` only from a file it was
+/// Measured on this tree: 935. Zig collects a `test` only from a file it was
 /// made to analyse, so before the explicit inventory this step silently compiled
 /// only 319 of the then-461 named tests -- `refAllDecls` in a `mod.zig` does not
 /// pull a file's tests in, and nothing said so. A binary that compiled almost
@@ -13,7 +13,7 @@ const std = @import("std");
 /// `test_inventory_test.zig` fails when a file is missing from that list. This
 /// floor is the backstop for the wiring itself. Raise it deliberately as the
 /// suite grows; never lower it to make a build pass.
-const test_floor = 929;
+const test_floor = 935;
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
@@ -178,25 +178,26 @@ pub fn build(b: *std.Build) void {
         "Install the isolated H-010 runner for fresh-process host sampling",
     ).dependOn(&b.addInstallArtifact(layout_benchmark, .{}).step);
 
-    addFocusedTests(b, core, target, optimize, check_only, .{
+    addFocusedTests(b, core, prover, target, optimize, check_only, .{
         .step = "test-isa",
         .description = "Run only RISC-V ISA authority and decoder tests",
         .root = "isa_test_root.zig",
     });
-    addFocusedTests(b, core, target, optimize, check_only, .{
+    addFocusedTests(b, core, prover, target, optimize, check_only, .{
         .step = "test-runner",
         .description = "Run only RISC-V execution-runner tests",
         .root = "runner_test_root.zig",
     });
-    addFocusedTests(b, core, target, optimize, check_only, .{
+    addFocusedTests(b, core, prover, target, optimize, check_only, .{
         .step = "test-air-semantics",
         .description = "Run only RISC-V instruction-family AIR tests",
         .root = "air_semantics_test_root.zig",
     });
-    addFocusedTests(b, core, target, optimize, check_only, .{
+    addFocusedTests(b, core, prover, target, optimize, check_only, .{
         .step = "test-guest-precompile",
         .description = "Run only proof-side guest-precompile protocol tests",
         .root = "guest_precompile_test_root.zig",
+        .imports_prover_engine = true,
     });
 }
 
@@ -204,11 +205,13 @@ const FocusedTest = struct {
     step: []const u8,
     description: []const u8,
     root: []const u8,
+    imports_prover_engine: bool = false,
 };
 
 fn addFocusedTests(
     b: *std.Build,
     core: *std.Build.Module,
+    prover: *std.Build.Module,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
     check_only: bool,
@@ -220,6 +223,8 @@ fn addFocusedTests(
         .optimize = optimize,
     });
     root.addImport("stwo_core", core);
+    if (spec.imports_prover_engine)
+        root.addImport("stwo_prover_engine", prover);
     const tests = b.addTest(.{ .root_module = root });
     b.step(spec.step, spec.description).dependOn(
         if (check_only) &tests.step else &b.addRunArtifact(tests).step,
