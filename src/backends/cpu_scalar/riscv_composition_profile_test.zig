@@ -100,6 +100,50 @@ pub fn compatibilityEvaluation(
     return result;
 }
 
+pub fn mixedEvaluation(
+    allocator: std.mem.Allocator,
+    components: []const Component,
+    random_coeff: QM31,
+    trace: *const Trace,
+    row_count: usize,
+) !SecureColumn {
+    var recorder = initRecorder(allocator, "riscv-profiled-mixed");
+    defer recorder.deinit();
+    var result = (try composition.evaluateWithExecution(
+        allocator,
+        components,
+        random_coeff,
+        trace,
+        serialOptions(&recorder),
+    )).?;
+    errdefer result.deinit(allocator);
+
+    var profile = try recorder.taskSnapshot(allocator);
+    defer profile.deinit(allocator);
+    const graph = profile.graphs[0];
+    try std.testing.expectEqual(@as(usize, 2), graph.events.len);
+    try std.testing.expectEqual(@as(usize, 3), graph.contributions.len);
+    try std.testing.expectEqual(@as(usize, 3), graph.component_work.len);
+    try std.testing.expectEqual(@as(u32, 0), graph.events[0].contribution_range.start);
+    try std.testing.expectEqual(@as(u32, 1), graph.events[0].contribution_range.len);
+    try std.testing.expectEqual(@as(u32, 1), graph.events[1].contribution_range.start);
+    try std.testing.expectEqual(@as(u32, 2), graph.events[1].contribution_range.len);
+
+    const expected_roles = [_]prover.task_profile.ContributionRole{
+        .exclusive,
+        .semantic_constraints,
+        .lookup_constraints,
+    };
+    for (graph.component_work, expected_roles, 0..) |work, role, index| {
+        try std.testing.expectEqual(@as(u32, @intCast(index)), work.component_registry_index);
+        try std.testing.expectEqual(role, work.role);
+        try std.testing.expectEqual(@as(u64, 1), work.task_count);
+        try std.testing.expectEqual(@as(u64, @intCast(row_count)), work.planned_rows);
+        try std.testing.expectEqual(@as(?u64, @intCast(row_count)), work.completed_rows);
+    }
+    return result;
+}
+
 pub fn expectSpecializationDecline(
     allocator: std.mem.Allocator,
     components: []const Component,
@@ -197,7 +241,8 @@ fn expectProfile(
     const graph = profile.graphs[0];
     try std.testing.expectEqualStrings("cpu_composition_riscv", graph.graph_id);
     try std.testing.expectEqual(expected_tasks, graph.events.len);
-    try std.testing.expectEqual(@as(usize, 1), graph.component_work.len);
+    try std.testing.expectEqual(expected_tasks * 2, graph.contributions.len);
+    try std.testing.expectEqual(@as(usize, 2), graph.component_work.len);
     try std.testing.expectEqual(
         @as(u32, @intCast(requested_workers)),
         graph.summary.requested_workers,
@@ -244,6 +289,8 @@ fn expectProfile(
         try std.testing.expectEqual(@as(u16, 1), event.key.stage_rank);
         try std.testing.expectEqual(std.math.maxInt(u32), event.key.component_registry_index);
         try std.testing.expectEqual(@as(u32, @intCast(index)), event.key.shard_or_chunk_index);
+        try std.testing.expectEqual(@as(u32, @intCast(index * 2)), event.contribution_range.start);
+        try std.testing.expectEqual(@as(u32, 2), event.contribution_range.len);
         try std.testing.expectEqualStrings("composition_domain", event.stage_id);
         try std.testing.expectEqualStrings("riscv_pair_lane", event.component_kind);
         try std.testing.expect(event.task_class == .leaf);
@@ -268,14 +315,50 @@ fn expectProfile(
 
         event_work = try std.math.add(u64, event_work, event.work_estimate);
         event_tiles = try std.math.add(u64, event_tiles, event.completed_tiles);
+        const semantic = graph.contributions[index * 2];
+        const lookup = graph.contributions[index * 2 + 1];
+        try std.testing.expectEqual(@as(u32, 0), semantic.component_registry_index);
+        try std.testing.expectEqualStrings("riscv_semantic_component", semantic.component_kind);
+        try std.testing.expectEqual(
+            prover.task_profile.ContributionRole.semantic_constraints,
+            semantic.role,
+        );
+        try std.testing.expectEqual(@as(u32, 1), lookup.component_registry_index);
+        try std.testing.expectEqualStrings("riscv_lookup_component", lookup.component_kind);
+        try std.testing.expectEqual(
+            prover.task_profile.ContributionRole.lookup_constraints,
+            lookup.role,
+        );
+        try std.testing.expectEqual(semantic.planned_rows, semantic.completed_rows.?);
+        try std.testing.expectEqual(lookup.planned_rows, lookup.completed_rows.?);
+        try std.testing.expectEqual(event.completed_tiles, semantic.planned_tiles);
+        try std.testing.expectEqual(event.completed_tiles, lookup.planned_tiles);
     }
     try std.testing.expectEqual(@as(u64, @intCast(row_count)), event_work);
     try std.testing.expectEqual(@as(u64, 4), event_tiles);
-    const work = graph.component_work[0];
-    try std.testing.expectEqual(std.math.maxInt(u32), work.component_registry_index);
-    try std.testing.expectEqualStrings("riscv_pair_lane", work.component_kind);
-    try std.testing.expectEqual(@as(u64, @intCast(expected_tasks)), work.task_count);
-    try std.testing.expectEqual(event_work, work.work_estimate);
-    try std.testing.expectEqual(@as(u64, 0), work.completed_rows);
-    try std.testing.expectEqual(event_tiles, work.completed_tiles);
+    const semantic_work = graph.component_work[0];
+    try std.testing.expectEqual(@as(u32, 0), semantic_work.component_registry_index);
+    try std.testing.expectEqualStrings("riscv_semantic_component", semantic_work.component_kind);
+    try std.testing.expectEqual(
+        prover.task_profile.ContributionRole.semantic_constraints,
+        semantic_work.role,
+    );
+    try std.testing.expectEqual(@as(u64, @intCast(expected_tasks)), semantic_work.task_count);
+    try std.testing.expectEqual(@as(u64, @intCast(row_count)), semantic_work.work_estimate);
+    try std.testing.expectEqual(@as(u64, @intCast(row_count)), semantic_work.planned_rows);
+    try std.testing.expectEqual(@as(?u64, @intCast(row_count)), semantic_work.completed_rows);
+    try std.testing.expectEqual(event_tiles, semantic_work.planned_tiles);
+    try std.testing.expectEqual(@as(?u64, event_tiles), semantic_work.completed_tiles);
+
+    const lookup_work = graph.component_work[1];
+    try std.testing.expectEqual(@as(u32, 1), lookup_work.component_registry_index);
+    try std.testing.expectEqualStrings("riscv_lookup_component", lookup_work.component_kind);
+    try std.testing.expectEqual(
+        prover.task_profile.ContributionRole.lookup_constraints,
+        lookup_work.role,
+    );
+    try std.testing.expectEqual(semantic_work.task_count, lookup_work.task_count);
+    try std.testing.expectEqual(semantic_work.work_estimate, lookup_work.work_estimate);
+    try std.testing.expectEqual(semantic_work.planned_rows, lookup_work.planned_rows);
+    try std.testing.expectEqual(semantic_work.completed_rows, lookup_work.completed_rows);
 }

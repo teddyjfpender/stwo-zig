@@ -704,14 +704,14 @@ test "component task graph cancels queued work and joins running siblings" {
     try std.testing.expect(shared.observed_cancellation.load(.acquire));
     try std.testing.expectEqual(@as(usize, 0), shared.queued_runs.load(.acquire));
     try std.testing.expectEqual(task_graph.TaskStatus.failed, graph.status(failed));
-    try std.testing.expectEqual(task_graph.TaskStatus.done, graph.status(observer));
+    try std.testing.expectEqual(task_graph.TaskStatus.cancelled, graph.status(observer));
     try std.testing.expectEqual(task_graph.TaskStatus.cancelled, graph.status(queued));
     const report = graph.report();
     try std.testing.expectEqual(@as(usize, 2), report.submitted_tasks);
     try std.testing.expectEqual(report.submitted_tasks, report.finished_tasks);
-    try std.testing.expectEqual(@as(usize, 1), report.succeeded_tasks);
+    try std.testing.expectEqual(@as(usize, 0), report.succeeded_tasks);
     try std.testing.expectEqual(@as(usize, 1), report.failed_tasks);
-    try std.testing.expectEqual(@as(usize, 0), report.cancelled_tasks);
+    try std.testing.expectEqual(@as(usize, 1), report.cancelled_tasks);
     try std.testing.expectEqual(@as(usize, 1), report.unsubmitted_cancelled_tasks);
     try std.testing.expectEqual(
         report.submitted_tasks,

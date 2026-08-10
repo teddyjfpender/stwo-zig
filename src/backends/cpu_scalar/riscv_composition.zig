@@ -11,6 +11,7 @@ const std = @import("std");
 const core = @import("stwo_core");
 const prover = @import("stwo_prover_engine");
 const admission = @import("riscv_composition_admission.zig");
+const attribution = @import("riscv_composition_attribution.zig");
 const lanes = @import("riscv_composition_lanes.zig");
 
 const qm31 = core.fields.qm31;
@@ -345,6 +346,10 @@ fn evaluatePlan(
         if (pair) |admitted_value| {
             var admitted = admitted_value;
             errdefer admitted.deinit(allocator);
+            admitted.semantic_registry_index = std.math.cast(u32, component_index) orelse
+                return error.InvalidCompositionTaskKey;
+            admitted.lookup_registry_index = std.math.cast(u32, component_index + 1) orelse
+                return error.InvalidCompositionTaskKey;
             try pairs.append(allocator, admitted);
             eligible[component_index] = true;
             eligible[component_index + 1] = true;
@@ -580,7 +585,21 @@ fn evaluatePlan(
         );
         initialized_tile_lanes += 1;
     }
-    for (host_workers) |*worker| {
+    var attribution_plan: ?attribution.Plan = if (execution.task_recorder != null)
+        try attribution.Plan.init(
+            allocator,
+            host_workers,
+            pairs.items,
+            base_programs.items,
+            lookup_programs.items,
+            tiles,
+            lane_count,
+        )
+    else
+        null;
+    defer if (attribution_plan) |*plan| plan.deinit();
+
+    for (host_workers, 0..) |*worker, task_index| {
         const planned_rows = try componentRows(worker.component);
         if (execution.byte_budget != std.math.maxInt(usize)) {
             try requireHeapBackedResources(worker.resources());
@@ -602,6 +621,10 @@ fn evaluatePlan(
             .work_estimate = try componentWorkEstimate(worker.component, planned_rows),
             .work_unit = .rows,
             .planned_work_units = planned_rows,
+            .contributions = if (attribution_plan) |*plan|
+                plan.forTask(task_index)
+            else
+                null,
         });
     }
     for (tile_lanes, 0..) |*lane, lane_index| {
@@ -628,6 +651,10 @@ fn evaluatePlan(
             .planned_work_units = @intCast(
                 std.math.divCeil(usize, tiles.len - lane_index, lane_count) catch unreachable,
             ),
+            .contributions = if (attribution_plan) |*plan|
+                plan.forTask(fallback_count + lane_index)
+            else
+                null,
         });
     }
 

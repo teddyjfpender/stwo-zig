@@ -332,17 +332,31 @@ test "task graph profile linearizes cancellation timestamp before publication" {
     defer graph.deinit();
     var clock = CancellationCausalityClock{ .cancellation = &graph.cancellation };
     var sibling = Sibling{ .barrier = &barrier, .clock = &clock };
+    const failing_contribution = [_]task_graph.TaskContributionPlan{.{
+        .component_registry_index = 0,
+        .component_kind = "failing-semantic",
+        .role = .semantic_constraints,
+        .planned_rows = 8,
+    }};
+    const sibling_contribution = [_]task_graph.TaskContributionPlan{.{
+        .component_registry_index = 1,
+        .component_kind = "cancelled-semantic",
+        .role = .semantic_constraints,
+        .planned_rows = 8,
+    }};
     _ = try graph.addTask(.{
         .key = key(0),
         .name = "causal-failure",
         .func = Failing.run,
         .context = &failing,
+        .contributions = &failing_contribution,
     });
     _ = try graph.addTask(.{
         .key = key(1),
         .name = "cancellation-observer",
         .func = Sibling.run,
         .context = &sibling,
+        .contributions = &sibling_contribution,
     });
     var recorder = prover_api.stage_profile.Recorder.init(allocator, "Debug", "causality");
     defer recorder.deinit();
@@ -362,6 +376,26 @@ test "task graph profile linearizes cancellation timestamp before publication" {
     try std.testing.expect(events[1].finish_ns.? >= requested_ns);
     try std.testing.expect(events[0].finish_ns.? >= requested_ns);
     try std.testing.expect(!clock.early_sibling_finish_sample.load(.acquire));
+    try std.testing.expectEqual(
+        prover_api.task_profile.TerminalStatus.failed,
+        events[0].terminal_status,
+    );
+    try std.testing.expectEqual(
+        prover_api.task_profile.TerminalStatus.cancelled,
+        events[1].terminal_status,
+    );
+    const recorded = profile.graphs[0];
+    try std.testing.expectEqual(@as(u64, 0), recorded.summary.completed_tasks);
+    try std.testing.expectEqual(@as(u64, 1), recorded.summary.failed_tasks);
+    try std.testing.expectEqual(@as(u64, 1), recorded.summary.cancelled_tasks);
+    for (recorded.contributions) |contribution| {
+        try std.testing.expect(contribution.completed_rows == null);
+        try std.testing.expect(contribution.completed_tiles == null);
+    }
+    for (recorded.component_work) |work| {
+        try std.testing.expect(work.completed_rows == null);
+        try std.testing.expect(work.completed_tiles == null);
+    }
 }
 
 test "task graph profile publishes an exact empty graph" {

@@ -160,6 +160,8 @@ pub const RequestSummary = struct {
     submitted_tasks: u64 = 0,
     completed_tasks: u64 = 0,
     failed_tasks: u64 = 0,
+    /// Includes callbacks cancelled before start and running callbacks that
+    /// cooperatively returned after observing graph cancellation.
     cancelled_tasks: u64 = 0,
     unsubmitted_cancelled_tasks: u64 = 0,
     started_tasks: u64 = 0,

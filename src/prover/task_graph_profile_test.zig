@@ -130,6 +130,240 @@ test "task graph profile disabled path never samples the supplied clock" {
     try std.testing.expectEqual(@as(u64, 0), clock.next_ns.load(.acquire));
 }
 
+test "task graph profile preserves canonical fused semantic contributions" {
+    const allocator = std.testing.allocator;
+    var ignored: u8 = 0;
+    var graph = try task_graph.ComponentTaskGraph.init(allocator, 2);
+    defer graph.deinit();
+
+    const later = [_]task_graph.TaskContributionPlan{
+        .{
+            .component_registry_index = 3,
+            .component_kind = "opcode",
+            .role = .semantic_constraints,
+            .work_estimate = 10,
+            .planned_rows = 5,
+        },
+        .{
+            .component_registry_index = 4,
+            .component_kind = "lookup",
+            .role = .lookup_constraints,
+            .work_estimate = 15,
+            .planned_rows = 5,
+        },
+    };
+    const earlier = [_]task_graph.TaskContributionPlan{
+        .{
+            .component_registry_index = 3,
+            .component_kind = "opcode",
+            .role = .semantic_constraints,
+            .work_estimate = 14,
+            .planned_rows = 7,
+        },
+        .{
+            .component_registry_index = 4,
+            .component_kind = "lookup",
+            .role = .lookup_constraints,
+            .work_estimate = 21,
+            .planned_rows = 7,
+        },
+    };
+    _ = try graph.addTask(.{
+        .key = key(20),
+        .name = "later-key",
+        .component_kind = "fused_lane",
+        .func = Noop.run,
+        .context = &ignored,
+        .contributions = &later,
+    });
+    _ = try graph.addTask(.{
+        .key = key(10),
+        .name = "earlier-key",
+        .component_kind = "fused_lane",
+        .func = Noop.run,
+        .context = &ignored,
+        .contributions = &earlier,
+    });
+
+    var recorder = prover_api.stage_profile.Recorder.init(allocator, "Debug", "semantic");
+    defer recorder.deinit();
+    var clock = AtomicClock{};
+    _ = try graph.execute(.{
+        .task_profile_recorder = &recorder,
+        .task_profile_graph_id = "semantic",
+        .task_profile_clock = clock.source(),
+    });
+
+    var profile = try recorder.taskSnapshot(allocator);
+    defer profile.deinit(allocator);
+    const recorded = profile.graphs[0];
+    try std.testing.expectEqual(@as(usize, 2), recorded.events.len);
+    try std.testing.expectEqual(@as(usize, 4), recorded.contributions.len);
+    try std.testing.expectEqual(@as(usize, 2), recorded.component_work.len);
+    try std.testing.expectEqual(@as(u32, 10), recorded.events[0].key.component_registry_index);
+    try std.testing.expectEqual(@as(u32, 0), recorded.events[0].contribution_range.start);
+    try std.testing.expectEqual(@as(u32, 2), recorded.events[0].contribution_range.len);
+    try std.testing.expectEqual(@as(u64, 7), recorded.contributions[0].planned_rows);
+    try std.testing.expectEqual(@as(?u64, 7), recorded.contributions[0].completed_rows);
+    try std.testing.expectEqual(@as(u64, 5), recorded.contributions[2].planned_rows);
+
+    const semantic = recorded.component_work[0];
+    try std.testing.expectEqual(@as(u32, 3), semantic.component_registry_index);
+    try std.testing.expectEqual(task_graph.ContributionRole.semantic_constraints, semantic.role);
+    try std.testing.expectEqual(@as(u64, 2), semantic.task_count);
+    try std.testing.expectEqual(@as(u64, 24), semantic.work_estimate);
+    try std.testing.expectEqual(@as(u64, 12), semantic.planned_rows);
+    try std.testing.expectEqual(@as(?u64, 12), semantic.completed_rows);
+    const lookup = recorded.component_work[1];
+    try std.testing.expectEqual(task_graph.ContributionRole.lookup_constraints, lookup.role);
+    try std.testing.expectEqual(@as(u64, 36), lookup.work_estimate);
+}
+
+test "task graph profile rejects mixed attribution before launch" {
+    const Counter = struct {
+        value: usize = 0,
+
+        fn run(context: *task_graph.TaskContext) !void {
+            const self: *@This() = @ptrCast(@alignCast(context.user_context));
+            self.value += 1;
+        }
+    };
+    var counter = Counter{};
+    var graph = try task_graph.ComponentTaskGraph.init(std.testing.allocator, 2);
+    defer graph.deinit();
+    const contribution = [_]task_graph.TaskContributionPlan{.{
+        .component_registry_index = 0,
+        .component_kind = "explicit",
+        .role = .exclusive,
+    }};
+    _ = try graph.addTask(.{
+        .key = key(0),
+        .name = "explicit",
+        .func = Counter.run,
+        .context = &counter,
+        .contributions = &contribution,
+    });
+    _ = try graph.addTask(.{
+        .key = key(1),
+        .name = "compatibility",
+        .func = Counter.run,
+        .context = &counter,
+    });
+    var recorder = prover_api.stage_profile.Recorder.init(
+        std.testing.allocator,
+        "Debug",
+        "mixed",
+    );
+    defer recorder.deinit();
+    try std.testing.expectError(
+        error.TaskProfileMixedAttributionModes,
+        graph.execute(.{ .task_profile_recorder = &recorder }),
+    );
+    try std.testing.expectEqual(@as(usize, 0), counter.value);
+}
+
+test "task graph profile rejects invalid attribution before launch" {
+    const Counter = struct {
+        value: usize = 0,
+
+        fn run(context: *task_graph.TaskContext) !void {
+            const self: *@This() = @ptrCast(@alignCast(context.user_context));
+            self.value += 1;
+        }
+    };
+    const allocator = std.testing.allocator;
+    var counter = Counter{};
+    var recorder = prover_api.stage_profile.Recorder.init(
+        allocator,
+        "Debug",
+        "invalid-attribution",
+    );
+    defer recorder.deinit();
+
+    var exclusive_graph = try task_graph.ComponentTaskGraph.init(allocator, 1);
+    defer exclusive_graph.deinit();
+    const invalid_exclusive = [_]task_graph.TaskContributionPlan{
+        .{
+            .component_registry_index = 0,
+            .component_kind = "exclusive",
+            .role = .exclusive,
+        },
+        .{
+            .component_registry_index = 1,
+            .component_kind = "semantic",
+            .role = .semantic_constraints,
+        },
+    };
+    _ = try exclusive_graph.addTask(.{
+        .key = key(0),
+        .name = "invalid-exclusive",
+        .func = Counter.run,
+        .context = &counter,
+        .contributions = &invalid_exclusive,
+    });
+    try std.testing.expectError(
+        error.TaskProfileExclusiveContributionNotExclusive,
+        exclusive_graph.execute(.{ .task_profile_recorder = &recorder }),
+    );
+
+    var overflow_graph = try task_graph.ComponentTaskGraph.init(allocator, 2);
+    defer overflow_graph.deinit();
+    const overflow_first = [_]task_graph.TaskContributionPlan{.{
+        .component_registry_index = 0,
+        .component_kind = "semantic",
+        .role = .semantic_constraints,
+        .work_estimate = std.math.maxInt(u64),
+    }};
+    const overflow_second = [_]task_graph.TaskContributionPlan{.{
+        .component_registry_index = 0,
+        .component_kind = "semantic",
+        .role = .semantic_constraints,
+        .work_estimate = 1,
+    }};
+    _ = try overflow_graph.addTask(.{
+        .key = key(0),
+        .name = "overflow-first",
+        .func = Counter.run,
+        .context = &counter,
+        .contributions = &overflow_first,
+    });
+    var second_key = key(0);
+    second_key.shard_or_chunk_index = 1;
+    _ = try overflow_graph.addTask(.{
+        .key = second_key,
+        .name = "overflow-second",
+        .func = Counter.run,
+        .context = &counter,
+        .contributions = &overflow_second,
+    });
+    try std.testing.expectError(
+        error.TaskProfileComponentWorkOverflow,
+        overflow_graph.execute(.{ .task_profile_recorder = &recorder }),
+    );
+
+    var compatibility_graph = try task_graph.ComponentTaskGraph.init(allocator, 2);
+    defer compatibility_graph.deinit();
+    _ = try compatibility_graph.addTask(.{
+        .key = key(0),
+        .name = "compatibility-first",
+        .component_kind = "first-kind",
+        .func = Counter.run,
+        .context = &counter,
+    });
+    _ = try compatibility_graph.addTask(.{
+        .key = second_key,
+        .name = "compatibility-second",
+        .component_kind = "second-kind",
+        .func = Counter.run,
+        .context = &counter,
+    });
+    try std.testing.expectError(
+        error.TaskProfileComponentKindDrift,
+        compatibility_graph.execute(.{ .task_profile_recorder = &recorder }),
+    );
+    try std.testing.expectEqual(@as(usize, 0), counter.value);
+}
+
 test "task graph profile disabled path performs no capture allocation" {
     var failing = std.testing.FailingAllocator.init(
         std.testing.allocator,

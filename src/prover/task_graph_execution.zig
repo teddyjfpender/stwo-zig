@@ -53,8 +53,7 @@ pub fn execute(graph: anytype, options: anytype) anyerror!@TypeOf(graph.report()
         capture_storage = try task_graph_profile.Capture.init(
             graph.allocator,
             recorder,
-            graph.count,
-            task_graph_profile.componentCount(graph),
+            graph,
             options.task_profile_clock,
         );
         capture_initialized = true;
@@ -468,9 +467,16 @@ fn RunEnvelope(comptime GraphPointer: type) type {
                 return;
             }
             context.joinChildren();
+            // A callback that returns normally after observing a sibling's
+            // cancellation has completed cleanup, not its planned semantic
+            // work. Preserve that distinction in terminal accounting.
+            if (graph.cancellation.isCancelled()) {
+                slot.status = .cancelled;
+                _ = graph.cancelled.fetchAdd(1, .monotonic);
+                return;
+            }
             if (envelope.profile_event) |event| {
-                if (!graph.cancellation.isCancelled() and
-                    !context.profile_completion_recorded and
+                if (!context.profile_completion_recorded and
                     slot.planned_work_units != 0 and
                     event.completed_rows == 0 and event.completed_tiles == 0)
                 {

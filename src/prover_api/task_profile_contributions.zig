@@ -107,6 +107,14 @@ pub fn deriveComponentWork(
         }
         const event_contributions = contributions[range_start..range_end];
 
+        if (event_contributions.len != 1) {
+            for (event_contributions) |contribution| {
+                if (contribution.role == .exclusive) {
+                    return error.TaskProfileExclusiveContributionNotExclusive;
+                }
+            }
+        }
+
         for (event_contributions, 0..) |contribution, contribution_offset| {
             try validateCompletion(event, contribution);
             for (event_contributions[0..contribution_offset]) |prior| {

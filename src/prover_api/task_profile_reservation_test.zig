@@ -427,6 +427,12 @@ test "task profile reservation: component identity drift and duplicates fail clo
     duplicate.contributions[0].component_registry_index = 1;
     duplicate.contributions[1].component_registry_index = 1;
     try std.testing.expectError(
+        error.TaskProfileExclusiveContributionNotExclusive,
+        recorder.publishTaskGraphAfterJoin(&duplicate, .{ .graph_id = "exclusive" }, summary(1)),
+    );
+    duplicate.contributions[0].role = .semantic_constraints;
+    duplicate.contributions[1].role = .semantic_constraints;
+    try std.testing.expectError(
         error.TaskProfileDuplicateComponentContribution,
         recorder.publishTaskGraphAfterJoin(&duplicate, .{ .graph_id = "duplicate" }, summary(1)),
     );

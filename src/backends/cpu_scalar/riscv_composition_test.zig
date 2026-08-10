@@ -731,12 +731,13 @@ test "cpu RISC-V composition: exported adjacent pair matches generic and records
     const legacy_calls_before_acceleration = legacy_semantic_calls.load(.monotonic);
 
     const mixed_before = telemetrySnapshot();
-    var mixed_accelerated = (try evaluate(
+    var mixed_accelerated = try profile_test.mixedEvaluation(
         allocator,
         mixed[0..],
         random_coeff,
         &trace,
-    )).?;
+        row_count,
+    );
     defer mixed_accelerated.deinit(allocator);
     inline for (0..qm31.SECURE_EXTENSION_DEGREE) |coordinate| {
         for (mixed_reference.columns[coordinate], mixed_accelerated.columns[coordinate]) |expected, actual| {

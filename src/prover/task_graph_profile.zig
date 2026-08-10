@@ -6,6 +6,7 @@
 
 const std = @import("std");
 const prover_api = @import("stwo_prover_api");
+const attribution = @import("task_graph_attribution.zig");
 const task_context = @import("task_graph_context.zig");
 
 const stage_profile = prover_api.stage_profile;
@@ -131,6 +132,7 @@ pub const Capture = struct {
     allocator: std.mem.Allocator,
     recorder: *stage_profile.Recorder,
     pending: wire.PendingGraph,
+    attribution_mode: attribution.Mode,
     clock: Clock,
     failure: std.atomic.Value(u8) = .init(@intFromEnum(ClockFailure.none)),
     cancellation_started: std.atomic.Value(bool) = .init(false),
@@ -140,22 +142,26 @@ pub const Capture = struct {
     pub fn init(
         allocator: std.mem.Allocator,
         recorder: *stage_profile.Recorder,
-        event_count: usize,
-        component_work_count: usize,
+        graph: anytype,
         source: ?ClockSource,
     ) !Capture {
-        var pending = try recorder.reserveTaskGraph(
-            event_count,
-            component_work_count,
-        );
+        const shape = try attribution.deriveShape(allocator, graph);
+        var pending = switch (shape.mode) {
+            .compatibility => try recorder.reserveTaskGraph(
+                shape.reservation.event_count,
+                shape.reservation.component_work_count,
+            ),
+            .semantic => try recorder.reserveTaskGraphShape(shape.reservation),
+        };
         errdefer pending.deinit();
-        const resource_blocked = try allocator.alloc(bool, event_count);
+        const resource_blocked = try allocator.alloc(bool, graph.count);
         errdefer allocator.free(resource_blocked);
         @memset(resource_blocked, false);
         return .{
             .allocator = allocator,
             .recorder = recorder,
             .pending = pending,
+            .attribution_mode = shape.mode,
             .clock = try Clock.start(source),
             .resource_blocked = resource_blocked,
         };
@@ -302,6 +308,13 @@ pub const Capture = struct {
                 event.dependencies[index] = profileKey(graph.slots[dependency].key);
             }
         }
+        if (self.attribution_mode == .semantic) {
+            attribution.initialize(
+                graph,
+                self.pending.events,
+                self.pending.contributions,
+            );
+        }
     }
 
     pub fn finalizeAndPublish(
@@ -383,6 +396,12 @@ pub const Capture = struct {
         }
 
         canonicalizeEvents(self.pending.events);
+        if (self.attribution_mode == .semantic) {
+            attribution.finish(
+                self.pending.events,
+                self.pending.contributions,
+            );
+        }
         var summary = try summarize(
             self.pending.events,
             accounting,
@@ -433,23 +452,6 @@ pub fn validateConfiguration(
     _ = try castU32(requested_workers);
     _ = try castU32(admitted_workers);
     _ = try castU32(pool_capacity);
-}
-
-pub fn componentCount(graph: anytype) usize {
-    var result: usize = 0;
-    for (graph.slots[0..graph.count], 0..) |slot, index| {
-        var seen = false;
-        for (graph.slots[0..index]) |earlier| {
-            if (earlier.key.component_registry_index ==
-                slot.key.component_registry_index)
-            {
-                seen = true;
-                break;
-            }
-        }
-        if (!seen) result += 1;
-    }
-    return result;
 }
 
 fn finalizeDurations(event: *wire.TaskEvent) !void {
@@ -639,20 +641,25 @@ fn validateAccounting(accounting: Accounting) !void {
     {
         return error.InvalidTaskProfileAccounting;
     }
-    const submitted_outcomes = try checkedAdd(
+    const completed_or_failed = try checkedAdd(
         try castU64(accounting.completed_tasks),
         try castU64(accounting.failed_tasks),
     );
     const all_submitted_outcomes = try checkedAdd(
-        submitted_outcomes,
+        completed_or_failed,
         try castU64(accounting.cancelled_tasks),
     );
+    const started = try castU64(accounting.started_tasks);
+    if (started < completed_or_failed or
+        started - completed_or_failed > try castU64(accounting.cancelled_tasks))
+    {
+        return error.InvalidTaskProfileAccounting;
+    }
     if (try castU64(accounting.submitted_tasks) != all_submitted_outcomes or
         try castU64(accounting.planned_tasks) != try checkedAdd(
             try castU64(accounting.submitted_tasks),
             try castU64(accounting.unsubmitted_cancelled_tasks),
         ) or
-        try castU64(accounting.started_tasks) != submitted_outcomes or
         accounting.finished_tasks != accounting.submitted_tasks)
     {
         return error.InvalidTaskProfileAccounting;

@@ -53,6 +53,8 @@ pub const LookupProgramEntry = struct {
 };
 
 pub const PairJob = struct {
+    semantic_registry_index: u32 = 0,
+    lookup_registry_index: u32 = 0,
     base_program_index: usize,
     lookup_program_index: usize,
     eval_log_size: u32,

@@ -42,6 +42,22 @@ pub const ComponentTaskFn = *const fn (context: *TaskContext) anyerror!void;
 
 pub const WorkUnit = task_context.WorkUnit;
 
+pub const ContributionRole = prover_api.task_profile.ContributionRole;
+
+/// Pre-launch semantic attribution for one component touched by a physical
+/// task. Completion is derived from the task's terminal lifecycle; producers
+/// cannot publish an optimistic completion value here.
+pub const TaskContributionPlan = struct {
+    component_registry_index: u32,
+    /// Borrowed until the recorder is destroyed or its final snapshot has
+    /// deep-copied the string.
+    component_kind: []const u8,
+    role: ContributionRole,
+    work_estimate: u64 = 0,
+    planned_rows: u64 = 0,
+    planned_tiles: u64 = 0,
+};
+
 pub const ComponentTaskSpec = struct {
     key: TaskKey,
     name: []const u8,
@@ -58,6 +74,11 @@ pub const ComponentTaskSpec = struct {
     work_estimate: u64 = 0,
     work_unit: WorkUnit = .unspecified,
     planned_work_units: u64 = 0,
+    /// `null` selects the compatibility attribution path. An explicit graph
+    /// must provide a non-null slice for every task; an empty slice is valid
+    /// for a physical coordination lane with no semantic component work. The
+    /// slice backing store must remain alive until `execute` returns.
+    contributions: ?[]const TaskContributionPlan = null,
 };
 
 pub const ReadyPolicy = enum {
@@ -90,7 +111,8 @@ pub const ExecutionReport = struct {
     submitted_tasks: usize,
     succeeded_tasks: usize,
     failed_tasks: usize,
-    /// Submitted tasks cancelled before their callback started.
+    /// Submitted tasks cancelled either before callback start or cooperatively
+    /// after a running callback observes the graph cancellation token.
     cancelled_tasks: usize,
     /// Planned tasks cancelled without submission after a sibling failure.
     unsubmitted_cancelled_tasks: usize,
@@ -138,6 +160,7 @@ const ComponentTaskSlot = struct {
     work_estimate: u64,
     work_unit: WorkUnit,
     planned_work_units: u64,
+    contributions: ?[]const TaskContributionPlan,
     remaining_dependency_level: u16 = 0,
     status: TaskStatus = .pending,
     failure: ?anyerror = null,
@@ -228,6 +251,7 @@ pub const ComponentTaskGraph = struct {
             .work_estimate = spec.work_estimate,
             .work_unit = spec.work_unit,
             .planned_work_units = spec.planned_work_units,
+            .contributions = spec.contributions,
         };
         for (spec.deps, 0..) |dep, dep_index| {
             if (dep >= id) return error.InvalidDependency;
