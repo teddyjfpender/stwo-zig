@@ -7,6 +7,7 @@ pub const component_registry = @import("component_registry.zig");
 pub const manifest = @import("manifest.zig");
 pub const statement = @import("statement.zig");
 pub const main_trace = @import("main_trace.zig");
+pub const direct_constraints = @import("direct_constraints.zig");
 pub const interaction = @import("interaction.zig");
 pub const proof_admission = @import("proof_admission.zig");
 pub const program_commitment = @import("program_commitment.zig");

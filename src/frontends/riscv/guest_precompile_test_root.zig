@@ -1,6 +1,7 @@
 //! Focused proof-side guest-precompile test root.
 
 test {
+    _ = @import("air/guest_precompile/direct_constraints_test.zig");
     _ = @import("air/guest_precompile/interaction_chunk_test.zig");
     _ = @import("air/guest_precompile/interaction_test.zig");
     _ = @import("air/guest_precompile/main_trace_test.zig");

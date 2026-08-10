@@ -22,7 +22,7 @@ current-HEAD receipt closes that blocker
 | M3 — compatibility lowering | blocked | [V-008 evidence](receipts/m3-compatibility-v1.json) recorded; broad proof/formal gates open |
 | M4 — Poseidon compiler pilot | complete | H-001 through H-010 and V-006 complete; no layout selected |
 | M5 — effect and witness pilot | ready | E-001 through E-005 complete; typed LUI authorship and its authenticated direct-to-SoA shadow witness are production-exact, while proof authority and further opcode families remain open |
-| M6 — guest precompile | ready | C-001 through C-008 complete; C-009 now has profile-authenticated retirement admission and exact mixed-stream program commitment, while proof components, transcript integration, and independent one-proof verification remain open |
+| M6 — guest precompile | ready | C-001 through C-008 complete; C-009 now has profile-authenticated admission, mixed-stream program commitment, and bounded direct AIR for both guest components, while adapters, transcript integration, and independent one-proof verification remain open |
 | M7 — parallel proving | active | Production RISC-V CPU composition is scheduled and emits a flat bounded-task profile with exact semantic contributions for fused lanes; selected prepared domains are row-sharded, profiled samples bind a coarse verified-request duration, and a pure Tree-1 plan closes deterministic ranges and finite host classes. Production Tree-1 execution, full-security parity, the exact R-005 partition, and normative R-006 evidence remain open |
 | M8 — broad migration | queued | No opcode family has switched generated-witness authority; E-014/E-015 remain open |
 | M9 — recursive aggregation | deferred | ADR-0030 and a native reference exist only as proposed/test authority; no recursive proof or verifier exists |
@@ -519,6 +519,10 @@ Accepted:
   unchanged, canonical CUSTOM-0 maps to appended protocol opcode 46, and the
   declared-program commitment consumes base, guest, and completion fetches as
   borrowed streams without allocating a concatenated execution trace.
+- Guest direct AIR preserves the accepted component identities: the caller
+  has 417 ordered constraints, the provider has 875, both remain degree at
+  most three, and the provider reuses all 430 compatibility Poseidon2
+  constraints without the Merkle-only narrow-mode shell.
 - The bounded component task graph and its migration constraints are fixed by
   ADR-0027. Acceptance of the design does not mark R-001 or M7 complete.
 
@@ -544,6 +548,7 @@ Pending:
 | Typed DSL becomes stringly or magical | Canon relation/effect rules and constructor validation |
 | Poseidon pilot becomes a toy | Exact 445-column production component target |
 | Precompile weakens base-RV32IM claim | Base validation and decoding remain closed; the extension has independent pre-transcript admission and program authority, while C-009 must still close the proof and fresh-process verifier path |
+| Direct guest equations are mistaken for standalone range proofs | Tests distinguish polynomial equalities from their authenticated fixed-table premises; noncanonical words and wrapped pointers require both surfaces exactly as ADR-0025 specifies |
 | Parallelism hides total cost | Frozen M5--M9 performance protocol; flat composition telemetry is graph-local and excludes unobserved nested-worker/profile-allocation cost, so no M7 verdict exists until R-005 closes and a protocol-complete R-006 capture passes |
 | Prepared tests are mistaken for production scheduling | Ledger requires a full-security frozen-corpus proof differential and separates the controlled production-path checkpoint from a normative receipt |
 | Recursion balances detached calls | ADR-0030 remains proposed and requires shared session challenges plus authenticated leaf summaries |
@@ -1456,6 +1461,34 @@ ReleaseSafe, and ReleaseFast, and the package workspace remains 21 packages,
 caller/provider AIR adapters, shared-tree ownership, lookup multiplicities,
 profile transcript, global cancellation, and fresh-process verifier remain
 open.
+
+### 2026-08-10 — guest direct AIR is fixed-shape and degree-bounded
+
+The pure direct-constraint half of C-009 is complete. The allocation-free
+caller evaluator maps 286 main values plus the authenticated activity column
+to 417 constraints in a public fixed order: selector booleanity and binding,
+285 inactive-row zero constraints, two pointer geometry equations, and four
+canonical-field gadget equations for each of 16 inputs and 16 outputs. Its
+maximum algebraic degree is three. Padding is fully closed and the active hot
+path uses only fixed stack values and field operations.
+
+The provider evaluator maps the exact 445-column compatibility witness to 875
+constraints. It retains all 430 pinned Poseidon2 equations unchanged, binds
+enabler and atomic-I/O mode to activity, forces wide mode to zero, and closes
+all 442 non-mode padding cells. It deliberately does not reuse the legacy
+Merkle narrow-mode wrapper, which rejects the guest's honest atomic-I/O rows.
+
+Ten named tests cover every honest active and padding row, the zero-call
+profile, all caller and provider padding cells, every canonical byte and
+materialization, pointer composition and span, every Poseidon input,
+temporary, and output, non-base secure-field points, exact order/count/degree,
+and the canonical field boundary. The evidence explicitly separates direct
+polynomial rejection from authenticated lookup premises: the direct gadget
+rejects `p`, while `p+1`, `2p`, `u32::max`, and self-consistent pointer wrap
+violate the high-limb table requests required by ADR-0025. Debug, ReleaseSafe,
+and ReleaseFast focused suites pass. The next C-009 boundary is the pair of
+Stwo adapters that combine these equations with the already-generated lookup
+interactions.
 
 ## Update protocol
 

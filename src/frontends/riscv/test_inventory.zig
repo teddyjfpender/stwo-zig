@@ -103,6 +103,7 @@ test {
     _ = @import("air/component_prepared_test.zig");
     _ = @import("air/component_order.zig");
     _ = @import("air/diagnostic_hints_test.zig");
+    _ = @import("air/guest_precompile/direct_constraints_test.zig");
     _ = @import("air/guest_precompile/identity_test.zig");
     _ = @import("air/guest_precompile/interaction_chunk_test.zig");
     _ = @import("air/guest_precompile/interaction_test.zig");
