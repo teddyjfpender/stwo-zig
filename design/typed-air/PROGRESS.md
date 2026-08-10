@@ -22,7 +22,7 @@ current-HEAD receipt closes that blocker
 | M3 — compatibility lowering | blocked | [V-008 evidence](receipts/m3-compatibility-v1.json) recorded; broad proof/formal gates open |
 | M4 — Poseidon compiler pilot | complete | H-001 through H-010 and V-006 complete; no layout selected |
 | M5 — effect and witness pilot | ready | E-001 through E-004 complete; typed LUI has exact 18-column/9-root/7-event parity, while generated witness equality, proof authority, and further opcode families remain open |
-| M6 — guest precompile | ready | C-001 through C-008 complete; committed guest rows now produce exact shared-challenge interactions and cancellation evidence, while proof components and independent one-proof verification remain open |
+| M6 — guest precompile | ready | C-001 through C-008 complete; C-009 now has profile-authenticated retirement admission and exact mixed-stream program commitment, while proof components, transcript integration, and independent one-proof verification remain open |
 | M7 — parallel proving | active | Production RISC-V CPU composition is scheduled and emits a flat bounded-task profile with exact semantic contributions for fused lanes; selected prepared domains are row-sharded, profiled samples bind a coarse verified-request duration, and a pure Tree-1 plan closes deterministic ranges and finite host classes. Production Tree-1 execution, full-security parity, the exact R-005 partition, and normative R-006 evidence remain open |
 | M8 — broad migration | queued | No opcode family has switched generated-witness authority; E-014/E-015 remain open |
 | M9 — recursive aggregation | deferred | ADR-0030 and a native reference exist only as proposed/test authority; no recursive proof or verifier exists |
@@ -452,12 +452,14 @@ current-HEAD receipt closes that blocker
 2. R-005/R-006 — land the non-overlapping witness/proving phase meter, then
    capture the authenticated fresh-process attempt bundle and
    validator-recomputed normative receipt under the frozen M5--M9 protocol.
-3. C-009/E-005 — integrate the admitted guest components into one CPU proof
-   while completing exact LUI shadow-witness column equality without changing
-   base production authority.
+3. C-009/E-005 — add the guest caller/provider proof-component adapters and
+   profile transcript while completing exact LUI shadow-witness column
+   equality without changing base production authority.
 
-C-009 and E-005/E-006/E-010 remain ready dependency-safe tracks, but none is
-marked active while the prepared scheduler slice owns the primary task.
+C-009 and E-005/E-006/E-010 remain dependency-safe tracks, but none is marked
+active while the prepared scheduler slice owns the primary task. C-009's
+pre-transcript admission and program-authority slice is complete; its task
+status remains ready until the proof-component boundary is integrated.
 
 ## Decisions
 
@@ -510,6 +512,10 @@ Accepted:
 - The profile-scoped guest Poseidon2 ABI, relation/subclock rules, and separate
   component/statement/artifact identity are fixed by ADR-0024, ADR-0025, and
   ADR-0029. These decisions do not claim a completed guest proof.
+- Guest program authority is profile-separated: the closed RV32IM decoder is
+  unchanged, canonical CUSTOM-0 maps to appended protocol opcode 46, and the
+  declared-program commitment consumes base, guest, and completion fetches as
+  borrowed streams without allocating a concatenated execution trace.
 - The bounded component task graph and its migration constraints are fixed by
   ADR-0027. Acceptance of the design does not mark R-001 or M7 complete.
 
@@ -534,7 +540,7 @@ Pending:
 | Layout changes silently | Versioned deterministic manifests |
 | Typed DSL becomes stringly or magical | Canon relation/effect rules and constructor validation |
 | Poseidon pilot becomes a toy | Exact 445-column production component target |
-| Precompile weakens base-RV32IM claim | Accepted profile-separated ABI and artifact identity; C-007 through C-009 must still prove the extension path |
+| Precompile weakens base-RV32IM claim | Base validation and decoding remain closed; the extension has independent pre-transcript admission and program authority, while C-009 must still close the proof and fresh-process verifier path |
 | Parallelism hides total cost | Frozen M5--M9 performance protocol; flat composition telemetry is graph-local and excludes unobserved nested-worker/profile-allocation cost, so no M7 verdict exists until R-005 closes and a protocol-complete R-006 capture passes |
 | Prepared tests are mistaken for production scheduling | Ledger requires a full-security frozen-corpus proof differential and separates the controlled production-path checkpoint from a normative receipt |
 | Recursion balances detached calls | ADR-0030 remains proposed and requires shared session challenges plus authenticated leaf summaries |
@@ -1387,6 +1393,39 @@ This is directional kernel evidence only, not a protocol-complete benchmark or
 proof-speed claim. C-009 still owns the guest AIR components, transcript and
 claim integration, global cancellation at the proof boundary, and independent
 fresh-process verification.
+
+### 2026-08-10 — guest admission and program authority are profile-exact
+
+C-009's first pre-transcript slice is complete without widening either base
+statement validation or the base RV32IM decoder. An authenticated retirement
+supplement composes base opcode rows with guest rows and checks the exact
+memory-relation coefficient budget before any channel state is consumed. The
+guest boundary independently reconstructs component constructions and the
+canonical artifact identity; malformed row counts, coefficient certificates,
+and decoded identities fail closed. The zero-call profile is canonical, while
+the unchanged base validator continues to require every base retirement to
+occupy an ordinary opcode-family row.
+
+The profile decoder admits only the exact reserved-bit-clean CUSTOM-0
+Poseidon2 encoding and maps it to `{46, 0, rs1, 0}` after all 46 base protocol
+IDs. Program commitment now counts base execution rows, frozen guest rows, and
+the optional completion fetch through heterogeneous borrowed streams. It does
+not concatenate retirement logs, performs no per-retirement allocation, and
+decodes every declared nonzero word under the selected profile before building
+the existing sorted sparse-Merkle authority. The legacy base construction and
+public base API remain byte-exact and reject CUSTOM-0.
+
+Thirteen new tests are inventoried: three admission tests, eight guest program
+tests, and two decoder tests in the existing program module. The program
+slice's zero-versus-1,024-row
+allocation probe records identical allocation count and bytes for fixed ROM
+geometry; exact rows, root, leaves, and nodes match the independent legacy
+path for ordinary programs. The focused guest suite passes in Debug,
+ReleaseSafe, and ReleaseFast, and the package workspace remains 21 packages,
+21 public modules, and 70 dependency edges. This is not C-009 completion: the
+caller/provider AIR adapters, shared-tree ownership, lookup multiplicities,
+profile transcript, global cancellation, and fresh-process verifier remain
+open.
 
 ## Update protocol
 

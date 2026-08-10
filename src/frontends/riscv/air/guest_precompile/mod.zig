@@ -8,5 +8,7 @@ pub const manifest = @import("manifest.zig");
 pub const statement = @import("statement.zig");
 pub const main_trace = @import("main_trace.zig");
 pub const interaction = @import("interaction.zig");
+pub const proof_admission = @import("proof_admission.zig");
+pub const program_commitment = @import("program_commitment.zig");
 pub const artifact_identity = @import("artifact_identity.zig");
 pub const production_adapter = @import("production_adapter.zig");

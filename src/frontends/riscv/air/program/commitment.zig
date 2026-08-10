@@ -116,6 +116,61 @@ pub fn buildDeclared(
     program_words: []const memory_state.WordState,
     extra_fetch: ?table.Fetch,
 ) !Commitment {
+    return buildDeclaredFromSources(
+        allocator,
+        .base,
+        .{execution_rows},
+        program_words,
+        extra_fetch,
+    );
+}
+
+/// Builds a declared-program commitment for an admitted extension profile.
+///
+/// `base_execution_rows` and `extension_execution_rows` are heterogeneous
+/// slices whose elements expose `pc` and `inst_word`. They are consumed as two
+/// borrowed streams by the same accumulator; no concatenated fetch buffer is
+/// allocated. Declared words, including unfetched words, are decoded under the
+/// selected profile before the Merkle tree is built.
+pub fn buildDeclaredForProfile(
+    allocator: std.mem.Allocator,
+    selected_profile: decode.ExecutionProfile,
+    base_execution_rows: anytype,
+    extension_execution_rows: anytype,
+    program_words: []const memory_state.WordState,
+    extra_fetch: ?table.Fetch,
+) !Commitment {
+    return buildDeclaredFromSources(
+        allocator,
+        .{ .profile = selected_profile },
+        .{ base_execution_rows, extension_execution_rows },
+        program_words,
+        extra_fetch,
+    );
+}
+
+const DeclaredDecodeAuthority = union(enum) {
+    base,
+    profile: decode.ExecutionProfile,
+
+    fn decodeWord(self: DeclaredDecodeAuthority, word: u32) !decode.ProgramValues {
+        return switch (self) {
+            .base => decode.decodeProgramWord(word),
+            .profile => |selected_profile| decode.decodeProgramWordForProfile(
+                selected_profile,
+                word,
+            ),
+        };
+    }
+};
+
+fn buildDeclaredFromSources(
+    allocator: std.mem.Allocator,
+    decoder: DeclaredDecodeAuthority,
+    execution_sources: anytype,
+    program_words: []const memory_state.WordState,
+    extra_fetch: ?table.Fetch,
+) !Commitment {
     if (program_words.len == 0) return error.EmptyProgramCommitment;
     var index = try DeclaredWordIndex.init(allocator, program_words);
     defer index.deinit(allocator);
@@ -123,16 +178,19 @@ pub fn buildDeclared(
     defer allocator.free(multiplicities);
     @memset(multiplicities, 0);
 
-    for (execution_rows) |row| {
-        try registerDeclaredFetch(
-            program_words,
-            &index,
-            multiplicities,
-            .{ .pc = row.pc, .word = row.inst_word },
-        );
+    inline for (execution_sources) |execution_rows| {
+        for (execution_rows) |row| {
+            try registerDeclaredFetch(
+                decoder,
+                program_words,
+                &index,
+                multiplicities,
+                .{ .pc = row.pc, .word = row.inst_word },
+            );
+        }
     }
     if (extra_fetch) |fetch| {
-        try registerDeclaredFetch(program_words, &index, multiplicities, fetch);
+        try registerDeclaredFetch(decoder, program_words, &index, multiplicities, fetch);
     }
 
     var pending: std.ArrayList(Row) = .{};
@@ -144,7 +202,7 @@ pub fn buildDeclared(
         if (word.initial_word == 0) continue;
         pending.appendAssumeCapacity(.{
             .addr = word.addr,
-            .values = try decode.decodeProgramWord(word.initial_word),
+            .values = try decoder.decodeWord(word.initial_word),
             .multiplicity = multiplicity,
             .root = 0,
         });
@@ -224,6 +282,7 @@ const DeclaredWordIndex = union(enum) {
 };
 
 fn registerDeclaredFetch(
+    decoder: DeclaredDecodeAuthority,
     words: []const memory_state.WordState,
     index: *const DeclaredWordIndex,
     multiplicities: []u32,
@@ -236,7 +295,7 @@ fn registerDeclaredFetch(
     if (fetch.word == 0) {
         // Preserve the old fetch-table error surface for an executed zero
         // instruction instead of reporting it merely as an omitted ROM row.
-        _ = try decode.decodeProgramWord(fetch.word);
+        _ = try decoder.decodeWord(fetch.word);
         unreachable;
     }
     if (multiplicities[word_index] == std.math.maxInt(u32))

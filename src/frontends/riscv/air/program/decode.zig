@@ -5,17 +5,27 @@
 
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
+const custom0 = @import("../../isa/custom0.zig");
 const isa_decode = @import("../../isa/decode.zig");
+const execution_profile = @import("../../isa/execution_profile.zig");
 const opcode_manifest = @import("../../opcode_manifest.zig");
 const opcode_mod = @import("opcode.zig");
 
 pub const Opcode = opcode_mod.Opcode;
 pub const ProgramValues = [4]u32;
+pub const ExecutionProfile = execution_profile.ExecutionProfile;
+
+/// The first profile-local opcode follows the 46 pinned base protocol IDs.
+/// Keep this numeric: the closed base `Opcode` enum must not acquire an
+/// extension variant and silently alter base protocol surfaces.
+pub const poseidon2_v1_program_opcode_id: u32 = 46;
 
 pub const Error = error{
     InvalidInstruction,
     UnsupportedInstructionClass,
 };
+
+pub const ProfileError = Error || custom0.DecodeError;
 
 pub const DecodedInstruction = struct {
     opcode: Opcode,
@@ -69,6 +79,30 @@ pub fn decodeProgramWord(word: u32) Error!ProgramValues {
             inst.rd,
             inst.rs1,
             @as(u32, @bitCast(inst.imm)) & 0xfff,
+        },
+    };
+}
+
+/// Decode a program word under an explicitly admitted execution profile.
+///
+/// Ordinary RV32IM words delegate to `decodeProgramWord`, preserving the Sail
+/// projection as the sole base authority. Only the CUSTOM-0 major opcode is
+/// routed through the profile decoder, which compares every reserved bit
+/// before assigning the profile-local protocol ID.
+pub fn decodeProgramWordForProfile(
+    selected_profile: ExecutionProfile,
+    word: u32,
+) ProfileError!ProgramValues {
+    if (@as(u7, @truncate(word)) != custom0.major_opcode)
+        return decodeProgramWord(word);
+
+    const inst = try custom0.decode(selected_profile, word);
+    return switch (inst.opcode) {
+        .poseidon2_m31_permute_in_place_v1 => .{
+            poseidon2_v1_program_opcode_id,
+            0,
+            inst.rs1,
+            0,
         },
     };
 }
@@ -185,4 +219,44 @@ test "decoded program: rejects the manifest-owned proof preflight matrix" {
         };
         try std.testing.expectError(expected, decodeProgramWord(vector.word));
     }
+}
+
+test "decoded program: Poseidon2 profile appends one exact CUSTOM-0 tuple" {
+    for (0..32) |register_index| {
+        const rs1: u5 = @intCast(register_index);
+        try std.testing.expectEqual(
+            ProgramValues{ poseidon2_v1_program_opcode_id, 0, rs1, 0 },
+            try decodeProgramWordForProfile(
+                .rv32im_zkvm_poseidon2_v1,
+                custom0.encodePoseidon2(rs1),
+            ),
+        );
+    }
+
+    const addi: u32 = 0x00100093;
+    try std.testing.expectEqual(
+        try decodeProgramWord(addi),
+        try decodeProgramWordForProfile(.rv32im_zkvm_poseidon2_v1, addi),
+    );
+}
+
+test "decoded program: CUSTOM-0 authority remains profile-separated" {
+    const canonical = custom0.encodePoseidon2(17);
+    try std.testing.expectError(error.InvalidInstruction, decodeProgramWord(canonical));
+    try std.testing.expectError(
+        error.RequiredCapabilityUnavailable,
+        decodeProgramWordForProfile(.rv32im_zkvm_v1, canonical),
+    );
+
+    // `rd` is reserved by v1. Keeping the CUSTOM-0 major opcode while setting
+    // it must not alias the admitted instruction.
+    try std.testing.expectError(
+        error.InvalidPrecompileEncoding,
+        decodeProgramWordForProfile(.rv32im_zkvm_poseidon2_v1, canonical | (1 << 7)),
+    );
+}
+
+comptime {
+    if (@typeInfo(Opcode).@"enum".fields.len != poseidon2_v1_program_opcode_id)
+        @compileError("Poseidon2 program opcode must append after every base opcode");
 }

@@ -56,11 +56,49 @@ pub const AdmissionPolicy = enum {
     relation_diagnostic,
 };
 
+/// Profile-owned retirement rows which participate in the shared CPU buses
+/// without occupying one of the closed base opcode-family shards.
+///
+/// The base validator never constructs this value.  An extension validator
+/// must first authenticate its own statement, then provide both the exact row
+/// count and the independently reconstructed memory-coefficient total.  The
+/// latter is checked here against the common infrastructure geometry before a
+/// transcript can be touched.
+pub const RetirementSupplement = struct {
+    rows: u32,
+    extra_memory_terms_per_row: u8,
+    expected_memory_relation_terms: u64,
+};
+
 pub fn validate(
     statement: types.RiscVStatement,
     policy: AdmissionPolicy,
 ) types.ProverError!void {
-    if (statement.n_components == 0 or statement.n_components > types.MAX_COMPONENTS)
+    return validateInternal(statement, policy, null);
+}
+
+/// Validate the unchanged base statement shape under an already-authenticated
+/// profile supplement.  This is deliberately separate from `validate`: base
+/// proofs retain the exact closed invariant that every retirement occupies a
+/// base opcode-family row.
+pub fn validateWithRetirementSupplement(
+    statement: types.RiscVStatement,
+    policy: AdmissionPolicy,
+    supplement: RetirementSupplement,
+) types.ProverError!void {
+    if (supplement.extra_memory_terms_per_row == 0)
+        return types.ProverError.InvalidStatement;
+    return validateInternal(statement, policy, supplement);
+}
+
+fn validateInternal(
+    statement: types.RiscVStatement,
+    policy: AdmissionPolicy,
+    supplement: ?RetirementSupplement,
+) types.ProverError!void {
+    const supplemental_rows = if (supplement) |value| value.rows else 0;
+    if ((statement.n_components == 0 and supplemental_rows == 0) or
+        statement.n_components > types.MAX_COMPONENTS)
         return types.ProverError.InvalidStatement;
     if (statement.n_infra < 10 or statement.n_infra > types.MAX_INFRA_COMPONENTS)
         return types.ProverError.InvalidStatement;
@@ -94,7 +132,9 @@ pub fn validate(
         previous_rows = desc.n_rows;
         total_rows += desc.n_rows;
     }
-    if (total_rows != statement.total_steps) return types.ProverError.InvalidStatement;
+    const retired_rows = std.math.add(u64, total_rows, supplemental_rows) catch
+        return types.ProverError.InvalidStatement;
+    if (retired_rows != statement.total_steps) return types.ProverError.InvalidStatement;
 
     const program = statement.infra_descs[0];
     if (program.kind != .program or program.n_rows == 0 or
@@ -125,11 +165,23 @@ pub fn validate(
         return types.ProverError.InvalidStatement;
     if (poseidon_desc.n_rows != merkle_desc.n_rows) return types.ProverError.InvalidStatement;
     try validateMerkleCoefficientLift(program.n_rows, memory_shards, merkle_desc.n_rows);
-    try validateMemoryRelationCoefficientLift(
-        statement.total_steps,
-        memory_shards,
-        clock_update.n_rows,
-    );
+    if (supplement) |value| {
+        const terms = computeMemoryRelationTerms(
+            statement.total_steps,
+            memory_shards,
+            clock_update.n_rows,
+            value.rows,
+            value.extra_memory_terms_per_row,
+        ) catch return types.ProverError.InvalidStatement;
+        if (terms != value.expected_memory_relation_terms or terms >= m31.Modulus)
+            return types.ProverError.InvalidStatement;
+    } else {
+        try validateMemoryRelationCoefficientLift(
+            statement.total_steps,
+            memory_shards,
+            clock_update.n_rows,
+        );
+    }
     index += 3;
     for (component_order.lookupTables()) |kind| {
         const desc = statement.infra_descs[index];
@@ -190,12 +242,47 @@ fn validateMemoryRelationCoefficientLift(
     // word can coincide with the halt tuple, giving public multiplicity two.
     // A total below p prevents a nonzero integer coefficient from disappearing
     // in M31 and supplies the lift used by the strict-clock memory-path lemma.
-    var terms_per_side =
-        @as(u64, total_steps) * @as(u64, access_clock.MAX_ACCESSES_PER_INSTRUCTION) +
-        @as(u64, clock_update_rows) + MAX_PUBLIC_MEMORY_TUPLE_MULTIPLICITY;
-    for (memory_shards) |desc| terms_per_side += @as(u64, desc.n_rows);
+    const terms_per_side = computeMemoryRelationTerms(
+        total_steps,
+        memory_shards,
+        clock_update_rows,
+        0,
+        0,
+    ) catch return types.ProverError.InvalidStatement;
     if (terms_per_side >= m31.Modulus)
         return types.ProverError.InvalidStatement;
+}
+
+fn computeMemoryRelationTerms(
+    total_steps: u32,
+    memory_shards: []const statement_mod.InfraComponentDesc,
+    clock_update_rows: u32,
+    supplemental_rows: u32,
+    extra_terms_per_supplemental_row: u8,
+) error{Overflow}!u64 {
+    var terms = std.math.mul(
+        u64,
+        total_steps,
+        access_clock.MAX_ACCESSES_PER_INSTRUCTION,
+    ) catch return error.Overflow;
+    terms = std.math.add(
+        u64,
+        terms,
+        std.math.mul(
+            u64,
+            supplemental_rows,
+            extra_terms_per_supplemental_row,
+        ) catch return error.Overflow,
+    ) catch return error.Overflow;
+    terms = std.math.add(u64, terms, clock_update_rows) catch
+        return error.Overflow;
+    terms = std.math.add(u64, terms, MAX_PUBLIC_MEMORY_TUPLE_MULTIPLICITY) catch
+        return error.Overflow;
+    for (memory_shards) |desc| {
+        terms = std.math.add(u64, terms, desc.n_rows) catch
+            return error.Overflow;
+    }
+    return terms;
 }
 
 fn validateFamily(
