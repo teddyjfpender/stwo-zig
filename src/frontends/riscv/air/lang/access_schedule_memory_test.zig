@@ -458,6 +458,10 @@ fn replayMachineNodes(arena: *const ir.Arena, values: []M31) !void {
                 .add(M31.fromCanonical(@intFromEnum(clock.phase))),
             .strict_clock_gap => |gap| values[types.idIndex(gap.current_clock)]
                 .sub(values[types.idIndex(gap.previous_clock)]).sub(M31.one()),
+            .instruction_next_pc => |next| values[types.idIndex(next.current)]
+                .add(M31.fromCanonical(4)),
+            .instruction_next_clock => |next| values[types.idIndex(next.current)]
+                .add(M31.one()),
         },
         else => return error.UnsupportedReplayNode,
     };

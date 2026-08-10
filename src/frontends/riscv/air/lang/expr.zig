@@ -45,6 +45,14 @@ pub const StrictClockGap = struct {
     phase: types.AccessPhase,
 };
 
+pub const InstructionNextPc = struct {
+    current: types.ValueId,
+};
+
+pub const InstructionNextClock = struct {
+    current: types.ValueId,
+};
+
 /// Closed machine refinements whose result type and polynomial meaning are
 /// fixed by the variant. This is intentionally not a general cast or affine
 /// expression escape hatch.
@@ -53,6 +61,8 @@ pub const MachineDerivedTag = enum(u8) {
     access_clock = 1,
     strict_clock_gap = 2,
     aligned_word_address = 3,
+    instruction_next_pc = 4,
+    instruction_next_clock = 5,
 };
 
 pub const MachineDerived = union(MachineDerivedTag) {
@@ -60,6 +70,8 @@ pub const MachineDerived = union(MachineDerivedTag) {
     access_clock: AccessClock,
     strict_clock_gap: StrictClockGap,
     aligned_word_address: AlignedWordAddress,
+    instruction_next_pc: InstructionNextPc,
+    instruction_next_clock: InstructionNextClock,
 };
 
 pub const Op = union(enum) {
@@ -181,6 +193,12 @@ fn hashOp(state: *u64, op: Op) void {
                     mix(state, @intFromEnum(gap.previous_clock));
                     mix(state, @intFromEnum(gap.active));
                     mix(state, @intFromEnum(gap.phase));
+                },
+                .instruction_next_pc => |next| {
+                    mix(state, @intFromEnum(next.current));
+                },
+                .instruction_next_clock => |next| {
+                    mix(state, @intFromEnum(next.current));
                 },
             }
         },

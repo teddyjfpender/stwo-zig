@@ -502,6 +502,12 @@ fn evaluate(arena: *const ir.Arena, root: types.ValueId) !u32 {
                         modulus - values[types.idIndex(gap.previous_clock)] +
                         modulus - 1,
                 ),
+                .instruction_next_pc => |next| reduce(
+                    @as(u64, values[types.idIndex(next.current)]) + 4,
+                ),
+                .instruction_next_clock => |next| reduce(
+                    @as(u64, values[types.idIndex(next.current)]) + 1,
+                ),
             },
             .input, .hint_output, .call_output => return error.NotConcrete,
         };

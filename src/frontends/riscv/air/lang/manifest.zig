@@ -25,12 +25,15 @@ pub const register_group_format_version: u16 = 5;
 pub const register_group_logical_schema_version: u16 = 4;
 pub const memory_access_format_version: u16 = 6;
 pub const memory_access_logical_schema_version: u16 = 5;
+pub const sequential_retirement_format_version: u16 = 7;
+pub const sequential_retirement_logical_schema_version: u16 = 6;
 
 pub const ManifestError = error{
     ManifestTooLarge,
     MachineDerivedRequiresManifestV5,
     MemoryAccessRequiresManifestV6,
     RelationBindingsRequireManifestV4,
+    SequentialRetirementRequiresManifestV7,
 };
 pub const Error = std.mem.Allocator.Error || validate.Error || ManifestError;
 
@@ -66,6 +69,7 @@ pub fn serializeAllocV5(
     arena: *const ir.Arena,
 ) Error![]u8 {
     try validate.validate(arena);
+    try requireNoSequentialRetirementCapability(arena);
     try requireNoMemoryAccessCapability(arena);
     var bytes: std.ArrayList(u8) = .empty;
     errdefer bytes.deinit(allocator);
@@ -79,9 +83,23 @@ pub fn serializeAllocV6(
     arena: *const ir.Arena,
 ) Error![]u8 {
     try validate.validate(arena);
+    try requireNoSequentialRetirementCapability(arena);
     var bytes: std.ArrayList(u8) = .empty;
     errdefer bytes.deinit(allocator);
     try writeValidated(bytes.writer(allocator), arena, .memory_access_v6);
+    return bytes.toOwnedSlice(allocator);
+}
+
+/// Canonical logical encoding for fixed sequential retirement derivations and
+/// every earlier typed capability, including load/store access plans.
+pub fn serializeAllocV7(
+    allocator: std.mem.Allocator,
+    arena: *const ir.Arena,
+) Error![]u8 {
+    try validate.validate(arena);
+    var bytes: std.ArrayList(u8) = .empty;
+    errdefer bytes.deinit(allocator);
+    try writeValidated(bytes.writer(allocator), arena, .sequential_retirement_v7);
     return bytes.toOwnedSlice(allocator);
 }
 
@@ -113,13 +131,20 @@ pub fn writeCanonicalV4(writer: anytype, arena: *const ir.Arena) !void {
 
 pub fn writeCanonicalV5(writer: anytype, arena: *const ir.Arena) !void {
     try validate.validate(arena);
+    try requireNoSequentialRetirementCapability(arena);
     try requireNoMemoryAccessCapability(arena);
     try writeValidated(writer, arena, .register_group_v5);
 }
 
 pub fn writeCanonicalV6(writer: anytype, arena: *const ir.Arena) !void {
     try validate.validate(arena);
+    try requireNoSequentialRetirementCapability(arena);
     try writeValidated(writer, arena, .memory_access_v6);
+}
+
+pub fn writeCanonicalV7(writer: anytype, arena: *const ir.Arena) !void {
+    try validate.validate(arena);
+    try writeValidated(writer, arena, .sequential_retirement_v7);
 }
 
 pub fn writeCanonicalCurrent(writer: anytype, arena: *const ir.Arena) !void {
@@ -132,6 +157,7 @@ const Encoding = enum {
     typed_effect_v4,
     register_group_v5,
     memory_access_v6,
+    sequential_retirement_v7,
 };
 
 fn writeValidated(
@@ -145,12 +171,14 @@ fn writeValidated(
         .typed_effect_v4 => typed_effect_format_version,
         .register_group_v5 => register_group_format_version,
         .memory_access_v6 => memory_access_format_version,
+        .sequential_retirement_v7 => sequential_retirement_format_version,
     });
     try writeInt(writer, u16, switch (encoding) {
         .legacy_v3 => logical_schema_version,
         .typed_effect_v4 => typed_effect_logical_schema_version,
         .register_group_v5 => register_group_logical_schema_version,
         .memory_access_v6 => memory_access_logical_schema_version,
+        .sequential_retirement_v7 => sequential_retirement_logical_schema_version,
     });
     try writeCount(writer, arena.nodesView().len);
     try writeCount(writer, arena.constraintsView().len);
@@ -235,7 +263,16 @@ fn requireNoMemoryAccessCapability(arena: *const ir.Arena) ManifestError!void {
         return error.MemoryAccessRequiresManifestV6;
 }
 
+fn requireNoSequentialRetirementCapability(
+    arena: *const ir.Arena,
+) ManifestError!void {
+    if (hasSequentialRetirementCapability(arena))
+        return error.SequentialRetirementRequiresManifestV7;
+}
+
 fn leastCapableEncoding(arena: *const ir.Arena) Encoding {
+    if (hasSequentialRetirementCapability(arena))
+        return .sequential_retirement_v7;
     if (hasMemoryAccessCapability(arena)) return .memory_access_v6;
     if (hasMachineDerivedNodes(arena)) return .register_group_v5;
     if (hasRelationBindings(arena)) return .typed_effect_v4;
@@ -263,6 +300,17 @@ fn hasMemoryAccessCapability(arena: *const ir.Arena) bool {
     for (arena.nodesView()) |node| switch (node.key.op) {
         .machine_derived => |derived| switch (derived) {
             .aligned_word_address => return true,
+            else => {},
+        },
+        else => {},
+    };
+    return false;
+}
+
+fn hasSequentialRetirementCapability(arena: *const ir.Arena) bool {
+    for (arena.nodesView()) |node| switch (node.key.op) {
+        .machine_derived => |derived| switch (derived) {
+            .instruction_next_pc, .instruction_next_clock => return true,
             else => {},
         },
         else => {},
@@ -355,6 +403,14 @@ fn writeNode(writer: anytype, arena: *const ir.Arena, node: expr.Node) !void {
                     try writeValueId(writer, gap.previous_clock);
                     try writeValueId(writer, gap.active);
                     try writeInt(writer, u8, @intFromEnum(gap.phase));
+                },
+                .instruction_next_pc => |next| {
+                    try writeInt(writer, u8, 4);
+                    try writeValueId(writer, next.current);
+                },
+                .instruction_next_clock => |next| {
+                    try writeInt(writer, u8, 5);
+                    try writeValueId(writer, next.current);
                 },
             }
         },

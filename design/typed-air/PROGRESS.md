@@ -1,13 +1,13 @@
 # Progress ledger
 
-**Status date:** 2026-08-09
+**Status date:** 2026-08-10
 **Branch:** `feat/typed-air-precompiles`
 **Current milestone:** M7 — parallel proving
 **Active task:** R-001 — prepared composition scheduler slice
-**Next ready task:** C-007 — guest precompile main-trace construction
+**Next ready task:** C-008 — guest precompile relation interactions
 **Current acceptance gate:** full-security frozen-corpus proof differential,
-semantic task attribution, production Tree-1 execution, exact request-bound
-R-005 telemetry, and a normative R-006 receipt
+production Tree-1 execution, exact request-bound R-005 telemetry, and a
+normative R-006 receipt
 **Known formal blocker:** the M3 refinement pilot still has the five stale
 generated artifacts recorded in the M3 receipt; no reviewed regeneration or
 current-HEAD receipt closes that blocker
@@ -21,9 +21,9 @@ current-HEAD receipt closes that blocker
 | M2 — shadow compiler | complete | A-001 through A-005 complete and green |
 | M3 — compatibility lowering | blocked | [V-008 evidence](receipts/m3-compatibility-v1.json) recorded; broad proof/formal gates open |
 | M4 — Poseidon compiler pilot | complete | H-001 through H-010 and V-006 complete; no layout selected |
-| M5 — effect and witness pilot | ready | E-001 through E-003 complete; opcode authorship, generated witnesses, proof gates, and authority switch remain open |
-| M6 — guest precompile | ready | C-001 through C-006 complete; no guest main/interaction trace or one-proof verification yet |
-| M7 — parallel proving | active | Production RISC-V CPU composition is scheduled and emits a flat bounded-task profile; selected prepared domains are row-sharded, profiled samples bind a coarse verified-request duration, and a pure Tree-1 plan closes deterministic ranges and finite host classes. Production Tree-1 execution, full-security parity, semantic attribution, the exact R-005 partition, and normative R-006 evidence remain open |
+| M5 — effect and witness pilot | ready | E-001 through E-004 complete; typed LUI has exact 18-column/9-root/7-event parity, while generated witness equality, proof authority, and further opcode families remain open |
+| M6 — guest precompile | ready | C-001 through C-007 complete; the guest main trace is constructed, while interactions and one-proof verification remain open |
+| M7 — parallel proving | active | Production RISC-V CPU composition is scheduled and emits a flat bounded-task profile with exact semantic contributions for fused lanes; selected prepared domains are row-sharded, profiled samples bind a coarse verified-request duration, and a pure Tree-1 plan closes deterministic ranges and finite host classes. Production Tree-1 execution, full-security parity, the exact R-005 partition, and normative R-006 evidence remain open |
 | M8 — broad migration | queued | No opcode family has switched generated-witness authority; E-014/E-015 remain open |
 | M9 — recursive aggregation | deferred | ADR-0030 and a native reference exist only as proposed/test authority; no recursive proof or verifier exists |
 
@@ -446,17 +446,17 @@ current-HEAD receipt closes that blocker
 
 ## Immediate next actions
 
-1. R-001/R-005 — add explicit semantic contributions to fused physical lanes
-   without duplicating task events, timing, or worker activity.
-2. R-002 — execute the pure Tree-1 plan through coordinator-prepared,
+1. R-001/R-002 — execute the pure Tree-1 plan through coordinator-prepared,
    allocation-free leaves and prove exact serial differential behavior across
    success, cancellation, and injected failure.
-3. R-005/R-006 — land the non-overlapping witness/proving phase meter, then
+2. R-005/R-006 — land the non-overlapping witness/proving phase meter, then
    capture the authenticated fresh-process attempt bundle and
    validator-recomputed normative receipt under the frozen M5--M9 protocol.
+3. C-008/E-005 — close guest interaction authority, then begin exact LUI
+   shadow-witness column equality without changing production authority.
 
-C-007 and E-004/E-010 remain ready dependency-safe tracks, but none is marked
-active while the prepared scheduler slice owns the primary task.
+C-008 and E-005/E-006/E-010 remain ready dependency-safe tracks, but none is
+marked active while the prepared scheduler slice owns the primary task.
 
 ## Decisions
 
@@ -1332,6 +1332,26 @@ Neither seam executes production Tree-1 work, supplies semantic contributions,
 separates witness from proving, captures a fresh-process attempt bundle, or
 changes the proof protocol. R-001 and M7 therefore remain active, R-002 remains
 queued, and R-005/R-006 remain open.
+
+### 2026-08-10 — typed LUI authorship is compatibility-exact
+
+E-004 is complete. ADR-0031 fixes closed `pc + 4` and `clock + 1` retirement,
+the exact `range_check_8_8_4@1` constructor, and a new canonical capability
+boundary: manifest format 7/logical schema 6 and semantic digest format 5.
+Formats 5/6 and digests 3/4 reject the new sequential derivations instead of
+silently expanding their grammars.
+
+The native typed LUI definition reproduces all 18 production main columns,
+nine direct roots, and seven ordered relation events. Canonical fingerprints
+match every production root and relation field; maximum direct degree remains
+two. Its defensive validator binds the complete source-independent semantic
+digest and rejects coordinated opcode, immediate, root, result, state,
+relation, and destination substitutions. Closed-use, partial-pair, allocation
+failure, and rollback adversaries are inventoried separately from the parity
+fleet to preserve source-size headroom. The focused instruction AIR suite
+passes 216/216 in Debug, ReleaseSafe, and ReleaseFast. Production witness,
+component selection, commitment geometry, transcript, and proof authority are
+unchanged; E-005 remains the next LUI gate.
 
 ## Update protocol
 

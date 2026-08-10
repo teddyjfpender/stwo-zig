@@ -220,6 +220,16 @@ pub fn lowerValues(
                     try markOperand(reachable, reverse, gap.current_clock);
                     try markOperand(reachable, reverse, gap.previous_clock);
                 },
+                .instruction_next_pc => |next| try markOperand(
+                    reachable,
+                    reverse,
+                    next.current,
+                ),
+                .instruction_next_clock => |next| try markOperand(
+                    reachable,
+                    reverse,
+                    next.current,
+                ),
             },
         }
     }
@@ -498,6 +508,22 @@ fn lowerMachineDerived(
                 try operand(mapped, gap.previous_clock),
             );
             break :blk target.binary(.sub, delta, one);
+        },
+        .instruction_next_pc => |next| blk: {
+            const four = try target.intern(.{ .op = .constant, .value = 4 });
+            break :blk target.binary(
+                .add,
+                try operand(mapped, next.current),
+                four,
+            );
+        },
+        .instruction_next_clock => |next| blk: {
+            const one = try target.intern(.{ .op = .constant, .value = 1 });
+            break :blk target.binary(
+                .add,
+                try operand(mapped, next.current),
+                one,
+            );
         },
     };
 }

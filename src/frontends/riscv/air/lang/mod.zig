@@ -15,9 +15,11 @@ pub const typed_poseidon2_compat = @import("typed_poseidon2_compat.zig");
 pub const typed_poseidon2_identity = @import("typed_poseidon2_identity.zig");
 pub const typed_poseidon2_relations = @import("typed_poseidon2_relations.zig");
 pub const typed_poseidon2_witness = @import("typed_poseidon2_witness.zig");
+pub const typed_lui = @import("typed_lui.zig");
 pub const program = @import("program.zig");
 pub const ir = @import("ir.zig");
 pub const effects = @import("effects.zig");
+pub const instruction_effects = @import("instruction_effects.zig");
 pub const validate = @import("validate.zig");
 pub const manifest = @import("manifest.zig");
 pub const relation = @import("relation.zig");
@@ -53,6 +55,8 @@ pub const REGISTER_GROUP_LOGICAL_SCHEMA_VERSION =
     manifest.register_group_logical_schema_version;
 pub const MEMORY_ACCESS_LOGICAL_SCHEMA_VERSION =
     manifest.memory_access_logical_schema_version;
+pub const SEQUENTIAL_RETIREMENT_LOGICAL_SCHEMA_VERSION =
+    manifest.sequential_retirement_logical_schema_version;
 
 test "typed AIR language: isolated kernel has an explicit logical version" {
     try std.testing.expectEqual(@as(u16, 2), LOGICAL_SCHEMA_VERSION);
@@ -67,5 +71,9 @@ test "typed AIR language: isolated kernel has an explicit logical version" {
     try std.testing.expectEqual(
         @as(u16, 5),
         MEMORY_ACCESS_LOGICAL_SCHEMA_VERSION,
+    );
+    try std.testing.expectEqual(
+        @as(u16, 6),
+        SEQUENTIAL_RETIREMENT_LOGICAL_SCHEMA_VERSION,
     );
 }

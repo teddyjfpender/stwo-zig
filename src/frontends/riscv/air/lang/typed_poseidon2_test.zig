@@ -382,6 +382,8 @@ fn analyzeWideDegrees(
                     result[types.idIndex(gap.current_clock)],
                     result[types.idIndex(gap.previous_clock)],
                 ),
+                .instruction_next_pc => |next| result[types.idIndex(next.current)],
+                .instruction_next_clock => |next| result[types.idIndex(next.current)],
             },
         };
     }

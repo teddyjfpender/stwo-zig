@@ -165,6 +165,8 @@ fn operands(op: expr.Op) [3]?types.ValueId {
                 gap.previous_clock,
                 null,
             },
+            .instruction_next_pc => |next| .{ next.current, null, null },
+            .instruction_next_clock => |next| .{ next.current, null, null },
         },
     };
 }

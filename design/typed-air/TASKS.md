@@ -123,9 +123,9 @@ accepted decision and full proof-path evidence.
 | E-001 | P0 | Implement program fetch and state consume/produce effects | F-006, A-008 | Current schemas/order reproduced | done |
 | E-002 | P0 | Implement register read/write with strict subclocks | E-001 | Alias and historical self-loop negatives reject | done |
 | E-003 | P0 | Implement memory read/write and range effects | E-002 | Load/store masks, gaps, and address bounds represented | done |
-| E-004 | P0 | Author LUI in typed surface | E-001, A-010 | Full compatibility and proof gates exact | ready |
-| E-005 | P0 | Generate LUI witness in shadow mode | E-004, F-008 | Column equality across corpus | queued |
-| E-006 | P0 | Author ADDI | E-002, E-004 | x0, aliases, overflow, carries, Sail differential | queued |
+| E-004 | P0 | Author LUI in typed surface | E-001, A-010 | Full compatibility and proof gates exact | done |
+| E-005 | P0 | Generate LUI witness in shadow mode | E-004, F-008 | Column equality across corpus | ready |
+| E-006 | P0 | Author ADDI | E-002, E-004 | x0, aliases, overflow, carries, Sail differential | ready |
 | E-007 | P0 | Generate ADDI witness in shadow mode | E-006 | Column/event equality and forged carry rejection | queued |
 | E-008 | P1 | Author signed-load pilot | E-003, E-007 | Sign hint, memory mask, and bound mutations reject | queued |
 | E-009 | P1 | Author JALR pilot | E-003, E-007 | Target, bit zero, range, state transition exact | queued |

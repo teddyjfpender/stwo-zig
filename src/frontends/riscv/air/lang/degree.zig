@@ -101,6 +101,8 @@ pub fn analyze(
                     value_degrees[types.idIndex(gap.current_clock)],
                     value_degrees[types.idIndex(gap.previous_clock)],
                 ),
+                .instruction_next_pc => |next| value_degrees[types.idIndex(next.current)],
+                .instruction_next_clock => |next| value_degrees[types.idIndex(next.current)],
             },
         };
     }

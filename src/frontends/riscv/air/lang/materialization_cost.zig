@@ -438,6 +438,8 @@ fn markOperands(flags: []bool, op: expr.Op) void {
                 flags[types.idIndex(gap.current_clock)] = true;
                 flags[types.idIndex(gap.previous_clock)] = true;
             },
+            .instruction_next_pc => |next| flags[types.idIndex(next.current)] = true,
+            .instruction_next_clock => |next| flags[types.idIndex(next.current)] = true,
         },
     }
 }
@@ -486,6 +488,8 @@ fn computeDegrees(
                     degrees[types.idIndex(gap.current_clock)],
                     degrees[types.idIndex(gap.previous_clock)],
                 ),
+                .instruction_next_pc => |next| degrees[types.idIndex(next.current)],
+                .instruction_next_clock => |next| degrees[types.idIndex(next.current)],
             },
         };
     }

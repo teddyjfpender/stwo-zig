@@ -22,6 +22,7 @@ pub const format_version: u16 = 1;
 pub const typed_effect_format_version: u16 = 2;
 pub const register_group_format_version: u16 = 3;
 pub const memory_access_format_version: u16 = 4;
+pub const sequential_retirement_format_version: u16 = 5;
 pub const domain_separator = "stwo-zig/typed-air/semantic";
 pub const Error = validate.Error;
 
@@ -49,7 +50,8 @@ pub fn computeV2(arena: *const ir.Arena) validate.Error!Digest {
 /// instruction-local access groups in addition to typed relation metadata.
 pub fn computeV3(arena: *const ir.Arena) validate.Error!Digest {
     try validate.validate(arena);
-    if (hasMemoryAccessCapability(arena)) return error.InvalidEffect;
+    if (hasMemoryAccessCapability(arena) or
+        hasSequentialRetirementCapability(arena)) return error.InvalidEffect;
     return computeValidated(arena, .register_group_v3);
 }
 
@@ -57,12 +59,27 @@ pub fn computeV3(arena: *const ir.Arena) validate.Error!Digest {
 /// addresses. Relation ordinal and physical phase remain independently bound.
 pub fn computeV4(arena: *const ir.Arena) validate.Error!Digest {
     try validate.validate(arena);
-    if (!hasMemoryAccessCapability(arena)) return error.InvalidEffect;
+    if (!hasMemoryAccessCapability(arena) or
+        hasSequentialRetirementCapability(arena)) return error.InvalidEffect;
     return computeValidated(arena, .memory_access_v4);
+}
+
+/// Semantic identity v5 for fixed sequential instruction retirement and every
+/// earlier typed capability, including load/store access plans.
+pub fn computeV5(arena: *const ir.Arena) validate.Error!Digest {
+    try validate.validate(arena);
+    if (!hasSequentialRetirementCapability(arena)) return error.InvalidEffect;
+    return computeValidated(arena, .sequential_retirement_v5);
 }
 
 pub fn computeIdentity(arena: *const ir.Arena) validate.Error!Identity {
     try validate.validate(arena);
+    if (hasSequentialRetirementCapability(arena)) {
+        return .{
+            .format_version = sequential_retirement_format_version,
+            .bytes = computeValidated(arena, .sequential_retirement_v5),
+        };
+    }
     if (hasMemoryAccessCapability(arena)) {
         return .{
             .format_version = memory_access_format_version,
@@ -92,6 +109,7 @@ const Projection = enum {
     typed_effect_v2,
     register_group_v3,
     memory_access_v4,
+    sequential_retirement_v5,
 };
 
 fn computeValidated(arena: *const ir.Arena, projection: Projection) Digest {
@@ -102,6 +120,7 @@ fn computeValidated(arena: *const ir.Arena, projection: Projection) Digest {
         .typed_effect_v2 => typed_effect_format_version,
         .register_group_v3 => register_group_format_version,
         .memory_access_v4 => memory_access_format_version,
+        .sequential_retirement_v5 => sequential_retirement_format_version,
     });
     hashCount(&hash, arena.nodesView().len);
     hashCount(&hash, arena.constraintsView().len);
@@ -184,6 +203,17 @@ fn hasMemoryAccessCapability(arena: *const ir.Arena) bool {
     for (arena.nodesView()) |node| switch (node.key.op) {
         .machine_derived => |derived| switch (derived) {
             .aligned_word_address => return true,
+            else => {},
+        },
+        else => {},
+    };
+    return false;
+}
+
+fn hasSequentialRetirementCapability(arena: *const ir.Arena) bool {
+    for (arena.nodesView()) |node| switch (node.key.op) {
+        .machine_derived => |derived| switch (derived) {
+            .instruction_next_pc, .instruction_next_clock => return true,
             else => {},
         },
         else => {},
@@ -276,6 +306,14 @@ fn hashNode(hash: *Sha256, arena: *const ir.Arena, node: expr.Node) void {
                     hashValueId(hash, gap.previous_clock);
                     hashValueId(hash, gap.active);
                     hashInt(hash, u8, @intFromEnum(gap.phase));
+                },
+                .instruction_next_pc => |next| {
+                    hashInt(hash, u8, 4);
+                    hashValueId(hash, next.current);
+                },
+                .instruction_next_clock => |next| {
+                    hashInt(hash, u8, 5);
+                    hashValueId(hash, next.current);
                 },
             }
         },

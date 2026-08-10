@@ -1,7 +1,7 @@
 # Architecture decision records
 
 **Status:** active index
-**Last updated:** 2026-08-09
+**Last updated:** 2026-08-10
 
 ADRs record decisions that change the project's trusted boundary, protocol
 shape, authoring model, or delivery order.
@@ -48,6 +48,7 @@ shape, authoring model, or delivery order.
 | [0028](0028-memory-access-groups-and-load-phase-plan.md) | Memory access groups and load/store phase plans | accepted |
 | [0029](0029-guest-component-statement-and-artifact-identity.md) | Guest Poseidon2 component, statement, and artifact identity | accepted |
 | [0030](0030-session-bound-cross-proof-relation-summaries.md) | Session-bound cross-proof relation summaries | proposed |
+| [0031](0031-closed-sequential-retirement-and-typed-lui.md) | Closed sequential retirement and typed LUI | accepted |
 
 ## Pending ADRs
 

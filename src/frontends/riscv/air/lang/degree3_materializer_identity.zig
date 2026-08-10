@@ -30,6 +30,8 @@ pub const SourceOp = enum(u8) {
     access_clock,
     strict_clock_gap,
     aligned_word_address,
+    instruction_next_pc,
+    instruction_next_clock,
 };
 
 const maximum_name_length = 112;
@@ -139,6 +141,8 @@ pub fn sourceOp(op: expr.Op) SourceOp {
             .aligned_word_address => .aligned_word_address,
             .access_clock => .access_clock,
             .strict_clock_gap => .strict_clock_gap,
+            .instruction_next_pc => .instruction_next_pc,
+            .instruction_next_clock => .instruction_next_clock,
         },
     };
 }

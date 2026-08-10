@@ -507,6 +507,8 @@ fn markOperands(flags: []bool, op: expr.Op) void {
                 flags[types.idIndex(gap.current_clock)] = true;
                 flags[types.idIndex(gap.previous_clock)] = true;
             },
+            .instruction_next_pc => |next| flags[types.idIndex(next.current)] = true,
+            .instruction_next_clock => |next| flags[types.idIndex(next.current)] = true,
         },
     }
 }
@@ -549,6 +551,22 @@ fn lowerMachineDerived(
                 try directOperand(mapped, gap.previous_clock),
             );
             break :blk direct_arena.binary(.sub, delta, one);
+        },
+        .instruction_next_pc => |next| blk: {
+            const four = try direct_arena.intern(.{ .op = .constant, .value = 4 });
+            break :blk direct_arena.binary(
+                .add,
+                try directOperand(mapped, next.current),
+                four,
+            );
+        },
+        .instruction_next_clock => |next| blk: {
+            const one = try direct_arena.intern(.{ .op = .constant, .value = 1 });
+            break :blk direct_arena.binary(
+                .add,
+                try directOperand(mapped, next.current),
+                one,
+            );
         },
     };
 }

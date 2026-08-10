@@ -513,6 +513,8 @@ fn computeBodyDegree(
                     degrees[types.idIndex(gap.current_clock)],
                     degrees[types.idIndex(gap.previous_clock)],
                 ),
+                .instruction_next_pc => |next| degrees[types.idIndex(next.current)],
+                .instruction_next_clock => |next| degrees[types.idIndex(next.current)],
             },
         };
     }
@@ -538,6 +540,8 @@ fn operands(op: expr.Op) [3]?types.ValueId {
                 gap.previous_clock,
                 null,
             },
+            .instruction_next_pc => |next| .{ next.current, null, null },
+            .instruction_next_clock => |next| .{ next.current, null, null },
         },
     };
 }

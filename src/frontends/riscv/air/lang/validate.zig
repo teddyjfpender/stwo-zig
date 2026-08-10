@@ -313,6 +313,22 @@ fn validateNode(arena: *const ir.Arena, node: expr.Node, index: usize) Error!voi
                 if (current_clock.phase != gap.phase)
                     return error.InvalidNodeShape;
             },
+            .instruction_next_pc => |next| {
+                const current = try priorNode(arena, next.current, index);
+                if (!std.meta.eql(node.key.ty, types.Type.pc) or
+                    !std.meta.eql(current.key.ty, types.Type.pc))
+                {
+                    return error.InvalidNodeShape;
+                }
+            },
+            .instruction_next_clock => |next| {
+                const current = try priorNode(arena, next.current, index);
+                if (!std.meta.eql(node.key.ty, types.Type.clock) or
+                    !std.meta.eql(current.key.ty, types.Type.clock))
+                {
+                    return error.InvalidNodeShape;
+                }
+            },
         },
     }
 }

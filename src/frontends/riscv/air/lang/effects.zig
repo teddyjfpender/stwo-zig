@@ -6,8 +6,8 @@
 
 const std = @import("std");
 const access_schedule = @import("access_schedule.zig");
-const expr = @import("expr.zig");
 const ir = @import("ir.zig");
+const machine_validation = @import("machine_derived_validation.zig");
 const memory_access = @import("memory_access_validation.zig");
 const program = @import("program.zig");
 const relation = @import("relation.zig");
@@ -244,10 +244,9 @@ pub fn validateProgram(arena: *const ir.Arena) Error!void {
             }
         }
 
-        // E-003 must compose with the opcode body's independent mask, sign,
-        // and carry ranges. Keep standalone range authoring fail-closed, but
-        // validate every non-plan range normally inside a reviewed memory plan.
-        if (memory_mode and effect.kind == .range_request) {
+        // E-003 memory plans may carry their opcode-body ranges. E-004 also
+        // reviews the exact three-limb LUI immediate range outside memory mode.
+        if (effect.kind == .range_request) {
             try preflightRelation(
                 arena,
                 relation_binding,
@@ -258,8 +257,12 @@ pub fn validateProgram(arena: *const ir.Arena) Error!void {
             );
             const schema = relation.getById(relation_binding.schema) orelse
                 return error.UnknownSchema;
-            if (!isRangeDomain(schema.domain) or
-                relation_binding.role != .request or
+            if (!(memory_mode and isRangeDomain(schema.domain)) and
+                schema.domain != .range_check_8_8_4)
+            {
+                return error.BindingKindMismatch;
+            }
+            if (relation_binding.role != .request or
                 effect.access_ordinal != null)
             {
                 return error.BindingKindMismatch;
@@ -312,7 +315,7 @@ pub fn validateProgram(arena: *const ir.Arena) Error!void {
             }
         }
     }
-    if (!memory_mode) try validateMachineDerivedUses(arena, groups);
+    if (!memory_mode) try machine_validation.validate(arena, groups);
 }
 
 fn binding(
@@ -408,19 +411,8 @@ fn preflightRelation(
     );
 }
 
-const ValidatedAccessGroup = struct {
-    first_effect: usize,
-    address: types.ValueId,
-    current_clock: types.ValueId,
-    gap: types.ValueId,
-    instruction_clock: types.ValueId,
-    active: types.ValueId,
-};
-
-const ValidatedAccessGroups = struct {
-    items: [MAX_ACCESS_GROUPS]ValidatedAccessGroup = undefined,
-    len: usize = 0,
-};
+const ValidatedAccessGroup = machine_validation.AccessGroup;
+const ValidatedAccessGroups = machine_validation.AccessGroups;
 
 fn validateRegisterGroup(
     arena: *const ir.Arena,
@@ -559,143 +551,6 @@ fn validateRegisterGroup(
     };
 }
 
-fn validateMachineDerivedUses(
-    arena: *const ir.Arena,
-    groups: ValidatedAccessGroups,
-) Error!void {
-    // Derived values may not leak into generic expression construction. The
-    // only node-to-node edge is the current clock carried by its strict gap.
-    for (arena.nodesView()) |node| switch (node.key.op) {
-        .constant, .input, .hint_output, .call_output => {},
-        .add, .sub, .mul => |binary| {
-            try rejectMachineDerived(arena, binary.lhs);
-            try rejectMachineDerived(arena, binary.rhs);
-        },
-        .neg => |value| try rejectMachineDerived(arena, value),
-        .select => |selection| {
-            try rejectMachineDerived(arena, selection.selector);
-            try rejectMachineDerived(arena, selection.when_true);
-            try rejectMachineDerived(arena, selection.when_false);
-        },
-        .machine_derived => |derived| switch (derived) {
-            .register_address => |address| {
-                try rejectMachineDerived(arena, address.index);
-            },
-            .aligned_word_address => |address| {
-                try rejectMachineDerived(arena, address.word_index);
-            },
-            .access_clock => |clock| {
-                try rejectMachineDerived(arena, clock.instruction_clock);
-            },
-            .strict_clock_gap => |gap| {
-                try rejectMachineDerived(arena, gap.previous_clock);
-                try rejectMachineDerived(arena, gap.active);
-                const current = machineDerived(arena, gap.current_clock) orelse
-                    return error.UnexpectedMachineDerivedUse;
-                switch (current) {
-                    .access_clock => {},
-                    else => return error.UnexpectedMachineDerivedUse,
-                }
-            },
-        },
-    };
-
-    for (arena.constraintsView()) |constraint| {
-        try rejectMachineDerived(arena, constraint.root);
-        if (constraint.gate) |gate| try rejectMachineDerived(arena, gate);
-    }
-    inline for (.{
-        arena.hint_inputs.items,
-        arena.hint_outputs.items,
-        arena.hint_binding_values.items,
-        arena.function_inputs.items,
-        arena.function_outputs.items,
-        arena.call_arguments.items,
-        arena.call_outputs.items,
-    }) |values| {
-        for (values) |value| try rejectMachineDerived(arena, value);
-    }
-
-    for (arena.effectsView(), 0..) |_, effect_index| {
-        const effect_id = types.idFromIndex(types.EffectId, effect_index) catch
-            return error.UnknownEffect;
-        const values = arena.effectValues(effect_id) orelse
-            return error.UnknownEffect;
-        for (values, 0..) |value, field_index| {
-            if (machineDerived(arena, value) == null) continue;
-            if (!allowedEffectUse(groups, effect_index, field_index, value))
-                return error.UnexpectedMachineDerivedUse;
-        }
-    }
-
-    for (arena.nodesView(), 0..) |node, node_index| switch (node.key.op) {
-        .machine_derived => |derived| {
-            const id = types.idFromIndex(types.ValueId, node_index) catch
-                return error.UnknownValue;
-            var matched = false;
-            for (groups.items[0..groups.len]) |group| {
-                matched = matched or switch (derived) {
-                    .register_address => id == group.address,
-                    .aligned_word_address => false,
-                    .access_clock => id == group.current_clock,
-                    .strict_clock_gap => id == group.gap,
-                };
-            }
-            if (!matched) return error.OrphanedMachineDerived;
-        },
-        else => {},
-    };
-}
-
-fn allowedEffectUse(
-    groups: ValidatedAccessGroups,
-    effect_index: usize,
-    field_index: usize,
-    value: types.ValueId,
-) bool {
-    for (groups.items[0..groups.len]) |group| {
-        if (value == group.address and
-            (effect_index == group.first_effect or
-                effect_index == group.first_effect + 1) and
-            field_index == 1)
-        {
-            return true;
-        }
-        if (value == group.current_clock and
-            effect_index == group.first_effect + 1 and
-            field_index == 2)
-        {
-            return true;
-        }
-        if (value == group.gap and
-            effect_index == group.first_effect + 2 and
-            field_index == 0)
-        {
-            return true;
-        }
-    }
-    return false;
-}
-
-fn machineDerived(
-    arena: *const ir.Arena,
-    value: types.ValueId,
-) ?expr.MachineDerived {
-    const node = arena.node(value) orelse return null;
-    return switch (node.key.op) {
-        .machine_derived => |derived| derived,
-        else => null,
-    };
-}
-
-fn rejectMachineDerived(
-    arena: *const ir.Arena,
-    value: types.ValueId,
-) Error!void {
-    if (machineDerived(arena, value) != null)
-        return error.UnexpectedMachineDerivedUse;
-}
-
 fn isCanonicalFeltZero(arena: *const ir.Arena, value: types.ValueId) bool {
     const node = arena.node(value) orelse return false;
     if (!std.meta.eql(node.key.ty, types.Type.felt)) return false;
@@ -716,17 +571,6 @@ fn bindingEqual(
     return present.schema == expected.schema and
         present.schema_version == expected.schema_version and
         present.role == expected.role;
-}
-
-fn requireType(
-    arena: *const ir.Arena,
-    value: types.ValueId,
-    expected: types.Type,
-) Error!void {
-    const node = arena.node(value) orelse return error.UnknownValue;
-    if (!std.meta.eql(node.key.ty, expected)) return error.InvalidFieldType;
-    if (machineDerived(arena, value) != null)
-        return error.UnexpectedMachineDerivedUse;
 }
 
 fn isRegisterKind(kind: program.EffectKind) bool {

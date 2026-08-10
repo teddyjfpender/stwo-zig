@@ -7,6 +7,7 @@ const std = @import("std");
 const access_schedule = @import("access_schedule.zig");
 const expr = @import("expr.zig");
 const ir = @import("ir.zig");
+const machine_validation = @import("machine_derived_validation.zig");
 const program = @import("program.zig");
 const relation = @import("relation.zig");
 const types = @import("types.zig");
@@ -145,7 +146,18 @@ pub fn prepare(arena: *const ir.Arena) Error!PreparedPlan {
         aligned.word_index,
         first.active,
     );
-    try validateMachineDerivedUses(arena, groups);
+    var derived_groups = machine_validation.AccessGroups{ .len = GROUP_COUNT };
+    for (groups, &derived_groups.items) |group, *derived| {
+        derived.* = .{
+            .first_effect = group.first_effect,
+            .address = group.address,
+            .current_clock = group.current_clock,
+            .gap = group.gap,
+            .instruction_clock = group.instruction_clock,
+            .active = group.active,
+        };
+    }
+    try machine_validation.validate(arena, derived_groups);
 
     var prepared_groups: [GROUP_COUNT]Group = undefined;
     for (groups, &prepared_groups) |group, *prepared| {
@@ -312,93 +324,6 @@ fn validateAlignedRange(
     );
 }
 
-fn validateMachineDerivedUses(
-    arena: *const ir.Arena,
-    groups: [GROUP_COUNT]ValidatedGroup,
-) Error!void {
-    for (arena.nodesView()) |node| switch (node.key.op) {
-        .constant, .input, .hint_output, .call_output => {},
-        .add, .sub, .mul => |binary| {
-            try rejectMachineDerived(arena, binary.lhs);
-            try rejectMachineDerived(arena, binary.rhs);
-        },
-        .neg => |value| try rejectMachineDerived(arena, value),
-        .select => |selection| {
-            try rejectMachineDerived(arena, selection.selector);
-            try rejectMachineDerived(arena, selection.when_true);
-            try rejectMachineDerived(arena, selection.when_false);
-        },
-        .machine_derived => |derived| switch (derived) {
-            .register_address => |address| try rejectMachineDerived(arena, address.index),
-            .aligned_word_address => |address| try rejectMachineDerived(arena, address.word_index),
-            .access_clock => |clock| try rejectMachineDerived(arena, clock.instruction_clock),
-            .strict_clock_gap => |gap| {
-                try rejectMachineDerived(arena, gap.previous_clock);
-                try rejectMachineDerived(arena, gap.active);
-                switch (machineDerived(arena, gap.current_clock) orelse
-                    return error.UnexpectedMachineDerivedUse) {
-                    .access_clock => {},
-                    else => return error.UnexpectedMachineDerivedUse,
-                }
-            },
-        },
-    };
-    for (arena.constraintsView()) |constraint| {
-        try rejectMachineDerived(arena, constraint.root);
-        if (constraint.gate) |gate| try rejectMachineDerived(arena, gate);
-    }
-    inline for (.{
-        arena.hint_inputs.items,
-        arena.hint_outputs.items,
-        arena.hint_binding_values.items,
-        arena.function_inputs.items,
-        arena.function_outputs.items,
-        arena.call_arguments.items,
-        arena.call_outputs.items,
-    }) |pool| for (pool) |value| try rejectMachineDerived(arena, value);
-
-    for (arena.effectsView(), 0..) |_, effect_index| {
-        const values = try valuesAt(arena, effect_index);
-        for (values, 0..) |value, field_index| {
-            if (machineDerived(arena, value) == null) continue;
-            if (!allowedEffectUse(groups, effect_index, field_index, value))
-                return error.UnexpectedMachineDerivedUse;
-        }
-    }
-    for (arena.nodesView(), 0..) |node, node_index| switch (node.key.op) {
-        .machine_derived => |derived| {
-            const id = types.idFromIndex(types.ValueId, node_index) catch
-                return error.UnknownValue;
-            var matched = false;
-            for (groups) |group| matched = matched or switch (derived) {
-                .register_address, .aligned_word_address => id == group.address,
-                .access_clock => id == group.current_clock,
-                .strict_clock_gap => id == group.gap,
-            };
-            if (!matched) return error.OrphanedMachineDerived;
-        },
-        else => {},
-    };
-}
-
-fn allowedEffectUse(
-    groups: [GROUP_COUNT]ValidatedGroup,
-    effect_index: usize,
-    field_index: usize,
-    value: types.ValueId,
-) bool {
-    for (groups) |group| {
-        if (value == group.address and
-            (effect_index == group.first_effect or effect_index == group.first_effect + 1) and
-            field_index == 1) return true;
-        if (value == group.current_clock and
-            effect_index == group.first_effect + 1 and field_index == 2) return true;
-        if (value == group.gap and
-            effect_index == group.first_effect + 2 and field_index == 0) return true;
-    }
-    return false;
-}
-
 fn preflightRelation(
     arena: *const ir.Arena,
     relation_binding: program.RelationBinding,
@@ -450,11 +375,6 @@ fn machineDerived(arena: *const ir.Arena, value: types.ValueId) ?expr.MachineDer
         .machine_derived => |derived| derived,
         else => null,
     };
-}
-
-fn rejectMachineDerived(arena: *const ir.Arena, value: types.ValueId) Error!void {
-    if (machineDerived(arena, value) != null)
-        return error.UnexpectedMachineDerivedUse;
 }
 
 fn isCanonicalFelt(arena: *const ir.Arena, value: types.ValueId, wanted: u32) bool {

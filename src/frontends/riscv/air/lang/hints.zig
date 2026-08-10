@@ -268,6 +268,8 @@ fn directlyUses(op: expr.Op, dependency: types.ValueId) bool {
             .access_clock => |clock| clock.instruction_clock == dependency,
             .strict_clock_gap => |gap| gap.current_clock == dependency or
                 gap.previous_clock == dependency,
+            .instruction_next_pc => |next| next.current == dependency,
+            .instruction_next_clock => |next| next.current == dependency,
         },
         .constant, .input, .hint_output, .call_output => false,
     };

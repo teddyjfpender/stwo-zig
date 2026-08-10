@@ -386,6 +386,40 @@ pub const Arena = struct {
         }, span);
     }
 
+    /// Derive the fixed sequential instruction address `current + 4`.
+    pub fn instructionNextPc(
+        self: *Arena,
+        current: types.ValueId,
+        span: source_mod.SourceSpan,
+    ) Error!types.ValueId {
+        const current_node = self.node(current) orelse return error.UnknownValue;
+        if (!std.meta.eql(current_node.key.ty, types.Type.pc))
+            return error.InvalidMachineDerivedOperand;
+        return self.internNode(.{
+            .ty = .pc,
+            .op = .{ .machine_derived = .{
+                .instruction_next_pc = .{ .current = current },
+            } },
+        }, span);
+    }
+
+    /// Derive the fixed next instruction clock `current + 1`.
+    pub fn instructionNextClock(
+        self: *Arena,
+        current: types.ValueId,
+        span: source_mod.SourceSpan,
+    ) Error!types.ValueId {
+        const current_node = self.node(current) orelse return error.UnknownValue;
+        if (!std.meta.eql(current_node.key.ty, types.Type.clock))
+            return error.InvalidMachineDerivedOperand;
+        return self.internNode(.{
+            .ty = .clock,
+            .op = .{ .machine_derived = .{
+                .instruction_next_clock = .{ .current = current },
+            } },
+        }, span);
+    }
+
     /// Derive `4 * (instruction_clock - 1) + phase` for one of the three
     /// physical access positions. The phase is one-based by construction.
     pub fn accessClock(

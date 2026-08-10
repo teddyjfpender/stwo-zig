@@ -513,6 +513,8 @@ fn chooseOperand(
                 if (degreeOf(degrees, gap.previous_clock) == maximum)
                     candidates[1] = gap.previous_clock;
             },
+            .instruction_next_pc => |next| candidates[0] = next.current,
+            .instruction_next_clock => |next| candidates[0] = next.current,
         },
         .constant, .input, .hint_output, .call_output => return null,
     }
@@ -642,6 +644,8 @@ fn computeDegrees(
                     degreeOf(degrees, gap.current_clock),
                     degreeOf(degrees, gap.previous_clock),
                 ),
+                .instruction_next_pc => |next| degreeOf(degrees, next.current),
+                .instruction_next_clock => |next| degreeOf(degrees, next.current),
             },
         };
     }
@@ -787,6 +791,8 @@ fn operands(op: expr.Op) [3]?types.ValueId {
                 gap.previous_clock,
                 null,
             },
+            .instruction_next_pc => |next| .{ next.current, null, null },
+            .instruction_next_clock => |next| .{ next.current, null, null },
         },
     };
 }

@@ -179,6 +179,8 @@ test {
     _ = @import("air/lang/typed_poseidon2_layout_executor_test.zig");
     _ = @import("air/lang/typed_poseidon2_relations_test.zig");
     _ = @import("air/lang/typed_poseidon2_witness_test.zig");
+    _ = @import("air/lang/typed_lui_adversarial_test.zig");
+    _ = @import("air/lang/typed_lui_test.zig");
     _ = @import("air/lang/validate_test.zig");
 
     // AIR: relation wiring.
