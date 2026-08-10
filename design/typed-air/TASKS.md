@@ -124,14 +124,14 @@ accepted decision and full proof-path evidence.
 | E-002 | P0 | Implement register read/write with strict subclocks | E-001 | Alias and historical self-loop negatives reject | done |
 | E-003 | P0 | Implement memory read/write and range effects | E-002 | Load/store masks, gaps, and address bounds represented | done |
 | E-004 | P0 | Author LUI in typed surface | E-001, A-010 | Full compatibility and proof gates exact | done |
-| E-005 | P0 | Generate LUI witness in shadow mode | E-004, F-008 | Column equality across corpus | ready |
+| E-005 | P0 | Generate LUI witness in shadow mode | E-004, F-008 | Column equality across corpus | done |
 | E-006 | P0 | Author ADDI | E-002, E-004 | x0, aliases, overflow, carries, Sail differential | ready |
 | E-007 | P0 | Generate ADDI witness in shadow mode | E-006 | Column/event equality and forged carry rejection | queued |
 | E-008 | P1 | Author signed-load pilot | E-003, E-007 | Sign hint, memory mask, and bound mutations reject | queued |
 | E-009 | P1 | Author JALR pilot | E-003, E-007 | Target, bit zero, range, state transition exact | queued |
 | E-010 | P0 | Define quotient/remainder hint recipes | F-008, E-003 | All RISC-V exceptional classes specified | ready |
 | E-011 | P0 | Author DIV-family pilot | E-010 | 292 operand-class corpus and adversarial tests pass | queued |
-| E-012 | P1 | Add generic direct-to-column witness executor | E-005, H-005 | Preplanned storage, bounded dispatch, deterministic errors | queued |
+| E-012 | P1 | Add generic direct-to-column witness executor | E-005, H-005 | Preplanned storage, bounded dispatch, deterministic errors | ready |
 | E-013 | P1 | Switch one family witness to generated authority | E-012 | Old writer test-only; full clean-tree gates green | queued |
 | E-014 | P1 | Migrate remaining families in reviewed groups | E-013 | Per-family checklist complete | queued |
 | E-015 | P1 | Retire redundant witness writers | E-014 | No production imports; retained history documented | queued |

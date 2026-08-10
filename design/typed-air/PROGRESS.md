@@ -21,7 +21,7 @@ current-HEAD receipt closes that blocker
 | M2 — shadow compiler | complete | A-001 through A-005 complete and green |
 | M3 — compatibility lowering | blocked | [V-008 evidence](receipts/m3-compatibility-v1.json) recorded; broad proof/formal gates open |
 | M4 — Poseidon compiler pilot | complete | H-001 through H-010 and V-006 complete; no layout selected |
-| M5 — effect and witness pilot | ready | E-001 through E-004 complete; typed LUI has exact 18-column/9-root/7-event parity, while generated witness equality, proof authority, and further opcode families remain open |
+| M5 — effect and witness pilot | ready | E-001 through E-005 complete; typed LUI authorship and its authenticated direct-to-SoA shadow witness are production-exact, while proof authority and further opcode families remain open |
 | M6 — guest precompile | ready | C-001 through C-008 complete; C-009 now has profile-authenticated retirement admission and exact mixed-stream program commitment, while proof components, transcript integration, and independent one-proof verification remain open |
 | M7 — parallel proving | active | Production RISC-V CPU composition is scheduled and emits a flat bounded-task profile with exact semantic contributions for fused lanes; selected prepared domains are row-sharded, profiled samples bind a coarse verified-request duration, and a pure Tree-1 plan closes deterministic ranges and finite host classes. Production Tree-1 execution, full-security parity, the exact R-005 partition, and normative R-006 evidence remain open |
 | M8 — broad migration | queued | No opcode family has switched generated-witness authority; E-014/E-015 remain open |
@@ -452,11 +452,11 @@ current-HEAD receipt closes that blocker
 2. R-005/R-006 — land the non-overlapping witness/proving phase meter, then
    capture the authenticated fresh-process attempt bundle and
    validator-recomputed normative receipt under the frozen M5--M9 protocol.
-3. C-009/E-005 — add the guest caller/provider proof-component adapters and
-   profile transcript while completing exact LUI shadow-witness column
-   equality without changing base production authority.
+3. C-009/E-006/E-012 — add the guest caller/provider proof-component adapters
+   and profile transcript while authoring ADDI and extracting the authenticated
+   LUI writer into the generic direct-to-column executor.
 
-C-009 and E-005/E-006/E-010 remain dependency-safe tracks, but none is marked
+C-009 and E-006/E-010/E-012 remain dependency-safe tracks, but none is marked
 active while the prepared scheduler slice owns the primary task. C-009's
 pre-transcript admission and program-authority slice is complete; its task
 status remains ready until the proof-component boundary is integrated.
@@ -512,6 +512,9 @@ Accepted:
 - The profile-scoped guest Poseidon2 ABI, relation/subclock rules, and separate
   component/statement/artifact identity are fixed by ADR-0024, ADR-0025, and
   ADR-0029. These decisions do not claim a completed guest proof.
+- The typed LUI shadow writer executes only an authenticated, versioned numeric
+  row-source recipe. It owns no authored-arena pointers or mutable scratch,
+  writes final SoA storage directly, and does not change production authority.
 - Guest program authority is profile-separated: the closed RV32IM decoder is
   unchanged, canonical CUSTOM-0 maps to appended protocol opcode 46, and the
   declared-program commitment consumes base, guest, and completion fetches as
@@ -547,7 +550,7 @@ Pending:
 | Hint callback or output drifts silently | Closed versioned registry and checked proof paths |
 | Broad production proof gate is red | V-008 records exact rigidity findings; no release promotion |
 | Formal generated artifacts are stale | Refinement pilot fails closed on five named files; reviewed workflow required |
-| Compiled witness drifts after binding | Executable digest, structural preflight, and independent canonical recompilation |
+| Compiled witness drifts after binding | Pinned binding digest over exact physical IDs, names, types, and row sources; failure-atomic preflight and production-corpus differential |
 | Shadow equality is mistaken for proof evidence | H-007 requires generated artifacts inside CPU/Metal proofs before promotion |
 | Local identity co-attestation is mistaken for protocol binding | V-006 states that the transcript, public statement, proof bytes, and production verifier are unchanged |
 | Noisy microbenchmark movement is mistaken for a layout winner | H-010 has two complete independent cohorts; q0/q100 log-14 witness directions flip within MAD/noise, so no layout is selected |
@@ -1358,7 +1361,34 @@ failure, and rollback adversaries are inventoried separately from the parity
 fleet to preserve source-size headroom. The focused instruction AIR suite
 passes 216/216 in Debug, ReleaseSafe, and ReleaseFast. Production witness,
 component selection, commitment geometry, transcript, and proof authority are
-unchanged; E-005 remains the next LUI gate.
+unchanged; at this authorship checkpoint E-005 remained the next LUI gate.
+
+### 2026-08-10 — typed LUI shadow witness is production-exact
+
+E-005 is complete. The shadow writer authenticates a pointer-free version-1
+binding over the typed LUI semantic digest, opcode, all 18 physical value IDs,
+their exact names and types, and a stable numeric row-source recipe. The
+resulting immutable executor remains valid after the authored arena is
+released. It owns no allocator or mutable scratch and writes caller-owned
+column-major M31 storage directly, with no allocation or runtime recipe
+dispatch in the row loop.
+
+All shapes, opcodes, address arithmetic, destination overlap, input/output
+overlap, and protected-object overlap are preflighted before the first byte is
+changed. Accepted calls write exact production row order and zero only final
+padding. Rejected calls are failure-atomic. The eight focused tests cover every
+destination register, immediate limb boundaries, x0 and repeated-register
+chains, 96 deterministic random rows, malformed binding dimensions, aliases,
+guards, overflow, padding, and the complete allocation-failure sweep. Every
+cell is compared byte-for-byte with `Trace.columnsForFamily(.lui)`.
+
+The same executor additionally passes every sampled LUI row in the shared
+RISC-V rigidity corpus: 1,097 rows under the exhaustive profile on this tree,
+compared across the complete power-of-two domain including padding. The
+focused AIR-semantics root passes in Debug, ReleaseSafe, and ReleaseFast. This
+is shadow evidence only: production witness selection, commitment geometry,
+transcript bytes, and proof authority are unchanged. E-012 is now ready to
+generalize the executor boundary; E-013 remains the first authority switch.
 
 ### 2026-08-10 — guest main and interaction traces close exactly
 

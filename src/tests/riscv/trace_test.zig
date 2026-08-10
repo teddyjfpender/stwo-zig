@@ -56,4 +56,5 @@ test {
     _ = @import("uniqueness_ir_test.zig");
     _ = @import("uniqueness_counterexample_test.zig");
     _ = @import("witness_rigidity_test.zig");
+    _ = @import("typed_lui_witness_corpus_test.zig");
 }

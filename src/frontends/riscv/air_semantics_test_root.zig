@@ -22,4 +22,5 @@ test {
     _ = @import("air/semantics/shifts_reg.zig");
     _ = @import("air/lang/typed_lui_adversarial_test.zig");
     _ = @import("air/lang/typed_lui_test.zig");
+    _ = @import("air/lang/typed_lui_witness_test.zig");
 }

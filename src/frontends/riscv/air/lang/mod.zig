@@ -16,6 +16,7 @@ pub const typed_poseidon2_identity = @import("typed_poseidon2_identity.zig");
 pub const typed_poseidon2_relations = @import("typed_poseidon2_relations.zig");
 pub const typed_poseidon2_witness = @import("typed_poseidon2_witness.zig");
 pub const typed_lui = @import("typed_lui.zig");
+pub const typed_lui_witness = @import("typed_lui_witness.zig");
 pub const program = @import("program.zig");
 pub const ir = @import("ir.zig");
 pub const effects = @import("effects.zig");
