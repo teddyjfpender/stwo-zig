@@ -1,7 +1,7 @@
 # Task graph
 
 **Status:** active backlog
-**Last updated:** 2026-08-09
+**Last updated:** 2026-08-10
 
 ## Status vocabulary
 
@@ -147,9 +147,9 @@ accepted decision and full proof-path evidence.
 | C-004 | P0 | Implement runner/host invocation boundary | C-003 | Invalid calls reject before mutation; output corpus matches | done |
 | C-005 | P0 | Add guest Poseidon component registry entry | C-003 | Stable kind/version and verifier construction | done |
 | C-006 | P0 | Extend statement geometry and artifact identity | C-005 | Call count/columns/log size bound and malformed artifacts reject | done |
-| C-007 | P0 | Generate guest precompile main trace | C-004, C-006 | Calls map exactly to active rows; padding inactive | ready |
-| C-008 | P0 | Generate shared-challenge relation interactions | C-007 | Source/supply sums close; omission/duplication fail | queued |
-| C-009 | P0 | Prove and independently verify one guest program | C-008 | CPU proof and new-process verifier green | queued |
+| C-007 | P0 | Generate guest precompile main trace | C-004, C-006 | Calls map exactly to active rows; padding inactive | done |
+| C-008 | P0 | Generate shared-challenge relation interactions | C-007 | Source/supply sums close; omission/duplication fail | done |
+| C-009 | P0 | Prove and independently verify one guest program | C-008 | CPU proof and new-process verifier green | ready |
 | C-010 | P1 | Add Metal component admission | C-009 | Authenticated AOT or reviewed generic path; no CPU fallback | queued |
 | C-011 | P0 | Add native-versus-precompile semantic corpus | C-009 | Same advertised outputs; extension labelled | queued |
 | C-012 | P1 | Add precompile mutation fleet | C-009 | Input, output, mode, multiplicity, padding, count forgeries reject | queued |

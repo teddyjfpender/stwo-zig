@@ -4,7 +4,7 @@
 **Branch:** `feat/typed-air-precompiles`
 **Current milestone:** M7 — parallel proving
 **Active task:** R-001 — prepared composition scheduler slice
-**Next ready task:** C-008 — guest precompile relation interactions
+**Next ready task:** C-009 — one-proof guest integration
 **Current acceptance gate:** full-security frozen-corpus proof differential,
 production Tree-1 execution, exact request-bound R-005 telemetry, and a
 normative R-006 receipt
@@ -22,7 +22,7 @@ current-HEAD receipt closes that blocker
 | M3 — compatibility lowering | blocked | [V-008 evidence](receipts/m3-compatibility-v1.json) recorded; broad proof/formal gates open |
 | M4 — Poseidon compiler pilot | complete | H-001 through H-010 and V-006 complete; no layout selected |
 | M5 — effect and witness pilot | ready | E-001 through E-004 complete; typed LUI has exact 18-column/9-root/7-event parity, while generated witness equality, proof authority, and further opcode families remain open |
-| M6 — guest precompile | ready | C-001 through C-007 complete; the guest main trace is constructed, while interactions and one-proof verification remain open |
+| M6 — guest precompile | ready | C-001 through C-008 complete; committed guest rows now produce exact shared-challenge interactions and cancellation evidence, while proof components and independent one-proof verification remain open |
 | M7 — parallel proving | active | Production RISC-V CPU composition is scheduled and emits a flat bounded-task profile with exact semantic contributions for fused lanes; selected prepared domains are row-sharded, profiled samples bind a coarse verified-request duration, and a pure Tree-1 plan closes deterministic ranges and finite host classes. Production Tree-1 execution, full-security parity, the exact R-005 partition, and normative R-006 evidence remain open |
 | M8 — broad migration | queued | No opcode family has switched generated-witness authority; E-014/E-015 remain open |
 | M9 — recursive aggregation | deferred | ADR-0030 and a native reference exist only as proposed/test authority; no recursive proof or verifier exists |
@@ -452,10 +452,11 @@ current-HEAD receipt closes that blocker
 2. R-005/R-006 — land the non-overlapping witness/proving phase meter, then
    capture the authenticated fresh-process attempt bundle and
    validator-recomputed normative receipt under the frozen M5--M9 protocol.
-3. C-008/E-005 — close guest interaction authority, then begin exact LUI
-   shadow-witness column equality without changing production authority.
+3. C-009/E-005 — integrate the admitted guest components into one CPU proof
+   while completing exact LUI shadow-witness column equality without changing
+   base production authority.
 
-C-008 and E-005/E-006/E-010 remain ready dependency-safe tracks, but none is
+C-009 and E-005/E-006/E-010 remain ready dependency-safe tracks, but none is
 marked active while the prepared scheduler slice owns the primary task.
 
 ## Decisions
@@ -1352,6 +1353,40 @@ fleet to preserve source-size headroom. The focused instruction AIR suite
 passes 216/216 in Debug, ReleaseSafe, and ReleaseFast. Production witness,
 component selection, commitment geometry, transcript, and proof authority are
 unchanged; E-005 remains the next LUI gate.
+
+### 2026-08-10 — guest main and interaction traces close exactly
+
+C-007 and C-008 are complete. The profile-scoped caller and compatibility
+provider main traces are constructed transactionally from the two frozen
+execution authorities in one committed-order allocation. Active rows are a
+contiguous prefix, padding is inactive, provider outputs are recomputed before
+allocation, and the exact 286-column caller plus 445-column provider layouts
+remain authenticated by the accepted component registry.
+
+The interaction generator reconstructs every tuple only from those committed
+columns under the one appended guest challenge pair. Its fixed plan contains
+153 caller events in 77 batches and four provider events in two batches,
+producing exactly 308 plus eight interaction columns. Authenticated
+`BatchPlan.interaction_column_start` values are the sole output-placement
+authority and are compile-time checked for bounds, overlap, order, and complete
+ownership. Static event specialization removes schema/arity dispatch from the
+row loop; the three coefficient-zero legacy provider events perform no
+denominator work. Generation writes normalized caller terms directly into a
+bounded 256-row inversion scratch, retains one output allocation, allocates
+nothing per row, and extends the zero-padding prefix without inversions.
+
+Eleven named C-008 tests are inventoried and pass in Debug, ReleaseSafe, and
+ReleaseFast. They cover independent offset authority, exact 255-to-256 chunk
+rollover at 257 active rows, every active/padding/cyclic boundary equation,
+zero calls, omission, duplication, committed-column mutation, malformed
+zero-coefficient entries, zero denominators, allocation rollback, and exact
+caller/provider guest cancellation. A local ReleaseFast development probe
+measured roughly 2.89 microseconds per row at 4,096 rows and 3.25 microseconds
+per row at 16,384 rows, versus the earlier 4.2--4.3 microsecond implementation.
+This is directional kernel evidence only, not a protocol-complete benchmark or
+proof-speed claim. C-009 still owns the guest AIR components, transcript and
+claim integration, global cancellation at the proof boundary, and independent
+fresh-process verification.
 
 ## Update protocol
 
