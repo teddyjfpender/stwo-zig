@@ -647,7 +647,7 @@ def validate_report(
         "schema": report_schema,
         "release_status": "release_gated",
         "mode": "bench",
-        "experimental": True,
+        "experimental": False,
         "profiled": True,
         "recursion_enabled": False,
         "warmups": 0,

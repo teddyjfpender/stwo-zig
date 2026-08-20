@@ -177,7 +177,6 @@ def proof_command(plan: dict[str, Any], attempt: dict[str, Any]) -> tuple[str, .
             "--samples",
             "1",
             "--profiled",
-            "--experimental",
             "--proof-out",
             attempt["proof_path"],
         )

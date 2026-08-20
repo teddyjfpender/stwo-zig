@@ -380,7 +380,7 @@ class R006Fixture(unittest.TestCase):
             ),
             "release_status": "release_gated",
             "mode": "bench",
-            "experimental": True,
+            "experimental": False,
             "profiled": True,
             "recursion_enabled": False,
             "warmups": 0,
@@ -604,6 +604,7 @@ class PlanTests(R006Fixture):
         self.assertEqual(metal["lane"]["cli_backend"], "metal")
         command = proof_command(metal, metal["attempts"][0])
         self.assertEqual(command[command.index("--backend") + 1], "metal")
+        self.assertNotIn("--experimental", command)
 
     def test_executable_marker_gate_accepts_only_complete_versioned_pairs(self) -> None:
         exact = self.scratch / "exact-work-binary"
