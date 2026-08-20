@@ -434,7 +434,6 @@ pub fn Recorder(comptime enabled: bool) type {
             defer self.mutex.unlock();
             if (self.producer_coverage_finalized) return true;
             if (self.incomplete or !self.source_mask.complete()) return false;
-            if (!self.field_coverage_finalized) return false;
             if (self.legacy_site_coverage) return false;
             if (!std.mem.eql(u64, &self.planned_sites, &self.completed_sites) or
                 (try sumSiteCounts(self.planned_sites)) != self.record_count or
@@ -443,6 +442,13 @@ pub fn Recorder(comptime enabled: bool) type {
             {
                 return error.InvalidProducerCoverage;
             }
+            // This is the terminal production-request boundary: every
+            // independently planned site has completed and all six source
+            // families are present. Close field coverage in the same commit
+            // as producer coverage so the production adapter does not depend
+            // on a separate, caller-owned pre-seal. No state changes before
+            // the equality checks above, preserving failure atomicity.
+            self.field_coverage_finalized = true;
             self.expected_producers = self.planned_producers;
             self.producer_coverage_finalized = true;
             return true;

@@ -419,8 +419,6 @@ test "verified request attempt: complete exact work promotes v3 transactionally"
             .merkle_compressions = 1_023,
         },
     });
-    try work.finalizeFieldCoverage();
-
     var attempt = try Attempt.capture(allocator, 0, 8, 5, 8, 8, &recorder);
     defer attempt.deinit(allocator);
     try std.testing.expectEqualStrings(EXACT_WORK_SCHEMA, attempt.schema);
