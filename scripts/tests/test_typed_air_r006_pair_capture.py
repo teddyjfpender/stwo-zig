@@ -185,7 +185,7 @@ class PairedCaptureTests(R006Fixture):
                 proof = f"proof:{attempt['workload_id']}".encode("ascii")
                 (Path(cwd) / relative).write_bytes(proof)
                 return ProcessResult(0, self.report(lane_plan, attempt, proof), b"", 123)
-            return ProcessResult(0, b"", b"", 45)
+            return ProcessResult(0, self.verifier_receipt(lane_plan), b"", 45)
 
         def capture_one():
             return capture_pair(

@@ -30,6 +30,7 @@ from .model import (
     CaptureError,
 )
 from .report import validate_report
+from .verifier_receipt import validate_verifier_receipt
 
 
 JOURNAL_HEADER_SCHEMA = "stwo.typed-air.r006-journal-header.v1"
@@ -389,10 +390,22 @@ def run_attempt(
             verify_stdout = verify_result.stdout
             verify_stderr = verify_result.stderr
             verify_failure = None
+            verify_failure_detail = None
             if verify_result.returncode != 0:
                 verify_failure = "verifier-nonzero-exit"
-            elif verify_stdout or verify_stderr:
+            elif verify_stderr:
                 verify_failure = "verifier-output"
+                verify_failure_detail = "independent verifier wrote stderr"
+            else:
+                try:
+                    validate_verifier_receipt(
+                        verify_stdout,
+                        plan=plan,
+                        identity=identity,
+                    )
+                except CaptureError as error:
+                    verify_failure = "verifier-receipt-invalid"
+                    verify_failure_detail = str(error)[:1024]
             verification = {
                 "status": "verified" if verify_failure is None else "failed",
                 "failure_code": verify_failure,
@@ -403,7 +416,9 @@ def run_attempt(
             }
             if verify_failure is not None:
                 failure_code = verify_failure
-                failure_detail = "independent verifier did not accept silently"
+                failure_detail = verify_failure_detail or (
+                    "independent verifier did not accept the retained proof"
+                )
         except CaptureError as error:
             verification = {
                 "status": "failed",
@@ -709,13 +724,17 @@ def _validate_record(
         or verification["launcher_elapsed_ns"] < 0
         or type(verification["process_cpu_ns"]) is not int
         or verification["process_cpu_ns"] < 0
-        or verify_stdout.read_bytes()
         or verify_stderr.read_bytes()
         or verification["command_sha256"] != _command_digest(
             verify_command(plan, attempt, identity["statement_sha256"])
         )
     ):
         raise CaptureError("independent verification receipt is incomplete")
+    validate_verifier_receipt(
+        verify_stdout.read_bytes(),
+        plan=plan,
+        identity=identity,
+    )
     if record["launcher_elapsed_ns"] == 0 or record["process_cpu_ns"] == 0:
         raise CaptureError("verified proof child lacks elapsed or process-CPU work")
     if verification["launcher_elapsed_ns"] == 0 or verification["process_cpu_ns"] == 0:

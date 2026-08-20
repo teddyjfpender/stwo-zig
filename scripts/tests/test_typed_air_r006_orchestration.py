@@ -131,7 +131,7 @@ class OrchestrationTests(R006Fixture):
                 return ProcessResult(0, self.report(plan, attempt, proof), b"", 123)
             if mutation is not None:
                 mutation()
-            return ProcessResult(0, b"", b"", 45)
+            return ProcessResult(0, self.verifier_receipt(plan), b"", 45)
 
         return runner, lambda: calls
 

@@ -191,6 +191,31 @@ class R006Fixture(unittest.TestCase):
         }
 
     @staticmethod
+    def verifier_receipt(
+        plan: dict[str, object],
+        *,
+        statement_sha256: str = "4" * 64,
+        transcript_state_blake2s: str = "5" * 64,
+        proof_payload: bytes = b"verified-pcs-proof",
+    ) -> bytes:
+        receipt = {
+            "schema": "riscv_verify_v1",
+            "status": "verified",
+            "artifact_kind": "stwo_riscv_proof",
+            "artifact_schema_version": 4,
+            "release_status": "release_gated",
+            "security_policy": "secure",
+            "statement_sha256": statement_sha256,
+            "proof_bytes": len(proof_payload),
+            "proof_sha256": hashlib.sha256(proof_payload).hexdigest(),
+            "transcript_state_blake2s": transcript_state_blake2s,
+            "implementation_commit": plan["source"]["commit"],
+            "implementation_dirty": False,
+            "executable_sha256": plan["build"]["executable_sha256"],
+        }
+        return json.dumps(receipt, separators=(",", ":")).encode("ascii") + b"\n"
+
+    @staticmethod
     def report(
         plan: dict[str, object],
         attempt: dict[str, object],
