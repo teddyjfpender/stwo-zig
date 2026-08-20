@@ -393,8 +393,8 @@ def install_candidate(
     command = (
         str(zig),
         "build",
-        "stwo-zig-riscv-cpu",
-        "stwo-zig-riscv-metal",
+        LANES["cpu-native"]["build_step"],
+        LANES["metal-hybrid"]["build_step"],
         "-Doptimize=ReleaseFast",
         "--prefix",
         str(install_prefix),

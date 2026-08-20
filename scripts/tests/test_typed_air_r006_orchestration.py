@@ -86,6 +86,10 @@ class OrchestrationTests(R006Fixture):
             self.assertEqual(environment["PYTHONHASHSEED"], "0")
             self.assertNotIn("STWO_ZIG_WORKERS", environment)
             if command[1] == "build":
+                self.assertEqual(
+                    command[2:4],
+                    ("stwo-zig-riscv-cpu", "stwo-riscv-metal"),
+                )
                 (prefix / "bin").mkdir(parents=True)
                 for lane in ("cpu-native", "metal-hybrid"):
                     path = prefix / "bin" / (

@@ -25,7 +25,7 @@ LANES = {
         "backend": "metal-hybrid",
         "cli_backend": "metal",
         "executable": "stwo-zig-riscv-metal",
-        "build_step": "stwo-zig-riscv-metal",
+        "build_step": "stwo-riscv-metal",
     },
 }
 WORKLOAD_IDS = (
