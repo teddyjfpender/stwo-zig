@@ -11,6 +11,7 @@ const memory_trace = @import("../air/memory_commitment/trace.zig");
 const program_commitment = @import("../air/program/commitment.zig");
 const semantic_eval = @import("../air/semantic_eval.zig");
 const statement_mod = @import("../air/statement.zig");
+const statement_v2 = @import("../air/statement_v2.zig");
 const infra = @import("../infra_trace.zig");
 const access_clock = @import("../access_clock.zig");
 const state_chain = @import("../runner/state_chain.zig");
@@ -74,7 +75,33 @@ pub fn validate(
     statement: types.RiscVStatement,
     policy: AdmissionPolicy,
 ) types.ProverError!void {
-    return validateInternal(statement, policy, null);
+    try validateV1Boundary(statement);
+    return validateGeometry(
+        statement,
+        policy,
+        null,
+        MAX_PUBLIC_MEMORY_TUPLE_MULTIPLICITY,
+        MAX_PUBLIC_MERKLE_TUPLE_MULTIPLICITY,
+    );
+}
+
+/// Admit a V2 envelope without passing its compatibility projection through
+/// V1 public-data rules.  Descriptor validation remains one implementation;
+/// only the versioned public boundary and its exact coefficient counts differ.
+pub fn validateV2(
+    statement: *const statement_v2.RiscVStatementV2,
+    policy: AdmissionPolicy,
+) types.ProverError!void {
+    statement.validate() catch return types.ProverError.InvalidStatement;
+    const terms = statement_v2.nativePublicTermCounts(&statement.public_data) catch
+        return types.ProverError.InvalidStatement;
+    return validateGeometry(
+        statement.core,
+        policy,
+        null,
+        terms.memory,
+        terms.merkle,
+    );
 }
 
 /// Validate the unchanged base statement shape under an already-authenticated
@@ -88,13 +115,34 @@ pub fn validateWithRetirementSupplement(
 ) types.ProverError!void {
     if (supplement.extra_memory_terms_per_row == 0)
         return types.ProverError.InvalidStatement;
-    return validateInternal(statement, policy, supplement);
+    try validateV1Boundary(statement);
+    return validateGeometry(
+        statement,
+        policy,
+        supplement,
+        MAX_PUBLIC_MEMORY_TUPLE_MULTIPLICITY,
+        MAX_PUBLIC_MERKLE_TUPLE_MULTIPLICITY,
+    );
 }
 
-fn validateInternal(
+fn validateV1Boundary(statement: types.RiscVStatement) types.ProverError!void {
+    statement.public_data.validate() catch return types.ProverError.InvalidStatement;
+    if (statement.public_data.initial_pc != statement.initial_pc or
+        statement.public_data.final_pc != statement.final_pc or
+        statement.public_data.clock != statement.total_steps or
+        statement.public_data.io_entries.input_words.len !=
+            std.math.divCeil(usize, statement.public_data.io_entries.input_len, 4) catch unreachable)
+    {
+        return types.ProverError.InvalidStatement;
+    }
+}
+
+fn validateGeometry(
     statement: types.RiscVStatement,
     policy: AdmissionPolicy,
     supplement: ?RetirementSupplement,
+    public_memory_terms: u64,
+    public_merkle_terms: u64,
 ) types.ProverError!void {
     const supplemental_rows = if (supplement) |value| value.rows else 0;
     if ((statement.n_components == 0 and supplemental_rows == 0) or
@@ -103,13 +151,6 @@ fn validateInternal(
     if (statement.n_infra < 10 or statement.n_infra > types.MAX_INFRA_COMPONENTS)
         return types.ProverError.InvalidStatement;
     try validateTotalStepsFieldCycle(statement.total_steps);
-    statement.public_data.validate() catch return types.ProverError.InvalidStatement;
-    if (statement.public_data.initial_pc != statement.initial_pc or
-        statement.public_data.final_pc != statement.final_pc or
-        statement.public_data.clock != statement.total_steps or
-        statement.public_data.io_entries.input_words.len !=
-            std.math.divCeil(usize, statement.public_data.io_entries.input_len, 4) catch unreachable)
-        return types.ProverError.InvalidStatement;
 
     var total_rows: u64 = 0;
     var previous_family_index: ?usize = null;
@@ -164,7 +205,12 @@ fn validateInternal(
         clock_update.log_size != @max(@as(u32, 4), computeLogSize(clock_update.n_rows)))
         return types.ProverError.InvalidStatement;
     if (poseidon_desc.n_rows != merkle_desc.n_rows) return types.ProverError.InvalidStatement;
-    try validateMerkleCoefficientLift(program.n_rows, memory_shards, merkle_desc.n_rows);
+    try validateMerkleCoefficientLift(
+        program.n_rows,
+        memory_shards,
+        merkle_desc.n_rows,
+        public_merkle_terms,
+    );
     if (supplement) |value| {
         const terms = computeMemoryRelationTerms(
             statement.total_steps,
@@ -172,6 +218,7 @@ fn validateInternal(
             clock_update.n_rows,
             value.rows,
             value.extra_memory_terms_per_row,
+            public_memory_terms,
         ) catch return types.ProverError.InvalidStatement;
         if (terms != value.expected_memory_relation_terms or terms >= m31.Modulus)
             return types.ProverError.InvalidStatement;
@@ -180,6 +227,7 @@ fn validateInternal(
             statement.total_steps,
             memory_shards,
             clock_update.n_rows,
+            public_memory_terms,
         );
     }
     index += 3;
@@ -212,6 +260,7 @@ fn validateMerkleCoefficientLift(
     program_rows: u32,
     memory_shards: []const statement_mod.InfraComponentDesc,
     merkle_rows: u32,
+    public_terms: u64,
 ) types.ProverError!void {
     // A malicious tuple need not occupy an honest depth: its negative side can
     // combine a coefficient-two node parent with one term from every program
@@ -226,7 +275,7 @@ fn validateMerkleCoefficientLift(
     var terms_per_side =
         @as(u64, merkle_rows) * 2 +
         @as(u64, program_rows) +
-        MAX_PUBLIC_MERKLE_TUPLE_MULTIPLICITY;
+        public_terms;
     for (memory_shards) |desc| terms_per_side += @as(u64, desc.n_rows);
     if (terms_per_side >= m31.Modulus)
         return types.ProverError.InvalidStatement;
@@ -236,6 +285,7 @@ fn validateMemoryRelationCoefficientLift(
     total_steps: u32,
     memory_shards: []const statement_mod.InfraComponentDesc,
     clock_update_rows: u32,
+    public_terms: u64,
 ) types.ProverError!void {
     // Every opcode contributes at most three access edges. Clock-update and
     // RW-boundary rows contribute one edge/term apiece; at most one output
@@ -248,6 +298,7 @@ fn validateMemoryRelationCoefficientLift(
         clock_update_rows,
         0,
         0,
+        public_terms,
     ) catch return types.ProverError.InvalidStatement;
     if (terms_per_side >= m31.Modulus)
         return types.ProverError.InvalidStatement;
@@ -259,6 +310,7 @@ fn computeMemoryRelationTerms(
     clock_update_rows: u32,
     supplemental_rows: u32,
     extra_terms_per_supplemental_row: u8,
+    public_terms: u64,
 ) error{Overflow}!u64 {
     var terms = std.math.mul(
         u64,
@@ -276,7 +328,7 @@ fn computeMemoryRelationTerms(
     ) catch return error.Overflow;
     terms = std.math.add(u64, terms, clock_update_rows) catch
         return error.Overflow;
-    terms = std.math.add(u64, terms, MAX_PUBLIC_MEMORY_TUPLE_MULTIPLICITY) catch
+    terms = std.math.add(u64, terms, public_terms) catch
         return error.Overflow;
     for (memory_shards) |desc| {
         terms = std.math.add(u64, terms, desc.n_rows) catch
@@ -312,7 +364,7 @@ pub fn verifyPreprocessedRoot(
     allocator: std.mem.Allocator,
     pcs_config: pcs_core.PcsConfig,
     statement: types.RiscVStatement,
-    actual: types.Hasher.Hash,
+    actual: types.HasherForEngine(Engine).Hash,
 ) !void {
     const columns = try preprocessed_trace.generate(allocator, statement);
     var columns_moved = false;
@@ -324,8 +376,10 @@ pub fn verifyPreprocessedRoot(
     var scheme = try Engine.init(allocator, pcs_config);
     defer Engine.deinit(&scheme, allocator);
     var channel = Engine.Channel{};
-    try Engine.commit(&scheme, allocator, columns, null, &channel);
+    // `Engine.commit` consumes the generated columns on every return path.
+    // Relinquish rollback ownership immediately before the call.
     columns_moved = true;
+    try Engine.commit(&scheme, allocator, columns, null, &channel);
     var roots = try scheme.roots(allocator);
     defer roots.deinit(allocator);
     if (roots.items.len != 1 or !std.meta.eql(roots.items[0], actual))
@@ -387,11 +441,12 @@ test "statement validation: execution clock cannot wrap the base field" {
 }
 
 test "statement validation: every Merkle coefficient side lifts to integers" {
-    try validateMerkleCoefficientLift(1, &.{}, 0);
+    try validateMerkleCoefficientLift(1, &.{}, 0, MAX_PUBLIC_MERKLE_TUPLE_MULTIPLICITY);
     try validateMerkleCoefficientLift(
         1,
         &.{},
         (m31.Modulus - 5) / 2,
+        MAX_PUBLIC_MERKLE_TUPLE_MULTIPLICITY,
     );
     try std.testing.expectError(
         error.InvalidStatement,
@@ -399,17 +454,29 @@ test "statement validation: every Merkle coefficient side lifts to integers" {
             1,
             &.{},
             (m31.Modulus - 3) / 2,
+            MAX_PUBLIC_MERKLE_TUPLE_MULTIPLICITY,
         ),
     );
-    try validateMerkleCoefficientLift(m31.Modulus - 4, &.{}, 0);
+    try validateMerkleCoefficientLift(
+        m31.Modulus - 4,
+        &.{},
+        0,
+        MAX_PUBLIC_MERKLE_TUPLE_MULTIPLICITY,
+    );
     try std.testing.expectError(
         error.InvalidStatement,
-        validateMerkleCoefficientLift(m31.Modulus - 3, &.{}, 0),
+        validateMerkleCoefficientLift(
+            m31.Modulus - 3,
+            &.{},
+            0,
+            MAX_PUBLIC_MERKLE_TUPLE_MULTIPLICITY,
+        ),
     );
     try validateMerkleCoefficientLift(
         m31.Modulus - 20,
         &.{memoryShard(16)},
         0,
+        MAX_PUBLIC_MERKLE_TUPLE_MULTIPLICITY,
     );
     try std.testing.expectError(
         error.InvalidStatement,
@@ -417,15 +484,26 @@ test "statement validation: every Merkle coefficient side lifts to integers" {
             m31.Modulus - 20,
             &.{memoryShard(17)},
             0,
+            MAX_PUBLIC_MERKLE_TUPLE_MULTIPLICITY,
         ),
     );
 }
 
 test "statement validation: memory relation coefficients cannot wrap the base field" {
-    try validateMemoryRelationCoefficientLift(0, &.{}, m31.Modulus - 3);
+    try validateMemoryRelationCoefficientLift(
+        0,
+        &.{},
+        m31.Modulus - 3,
+        MAX_PUBLIC_MEMORY_TUPLE_MULTIPLICITY,
+    );
     try std.testing.expectError(
         error.InvalidStatement,
-        validateMemoryRelationCoefficientLift(0, &.{}, m31.Modulus - 2),
+        validateMemoryRelationCoefficientLift(
+            0,
+            &.{},
+            m31.Modulus - 2,
+            MAX_PUBLIC_MEMORY_TUPLE_MULTIPLICITY,
+        ),
     );
     try std.testing.expectError(
         error.InvalidStatement,
@@ -433,6 +511,7 @@ test "statement validation: memory relation coefficients cannot wrap the base fi
             @intCast(MAX_EXECUTION_STEPS),
             &.{memoryShard(MAX_MEMORY_SHARD_ROWS)},
             m31.Modulus - 3,
+            MAX_PUBLIC_MEMORY_TUPLE_MULTIPLICITY,
         ),
     );
 }

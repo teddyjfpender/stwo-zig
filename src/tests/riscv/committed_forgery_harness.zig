@@ -135,7 +135,12 @@ pub const Guest = struct {
         // A guest that stopped for any other reason has a different public
         // completion record, so every downstream expectation would be about a
         // program the caller did not write.
-        if (run.completion_reason != .halt_flag) return error.GuestDidNotHalt;
+        const expected_completion: runner.CompletionReason = switch (spec.completion) {
+            .halt_flag => .halt_flag,
+            .self_loop => .self_loop,
+        };
+        if (run.completion_reason != expected_completion)
+            return error.GuestDidNotCompleteAsSpecified;
         const public = try public_values.derive(allocator, &run);
         return .{ .allocator = allocator, .elf = elf, .run = run, .public = public };
     }

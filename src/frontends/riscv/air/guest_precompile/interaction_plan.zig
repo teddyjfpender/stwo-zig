@@ -111,6 +111,35 @@ fn ProjectedEntry(comptime S: type) type {
             };
         }
 
+        /// Cold profile replay over the same authenticated event plan. The
+        /// production M31/QM31 projection above remains untouched; this path
+        /// accepts the counting relation adapter and returns the original
+        /// scalar type so every executed formula operation is observable.
+        fn denominatorForProfile(
+            self: *const Self,
+            comptime event: components.EventPlan,
+            relations: anytype,
+        ) S {
+            comptime validateStaticPlan(event);
+            return switch (comptime types.idIndex(event.schema)) {
+                0 => relations.base.registers_state.combine(self.values[0..2].*),
+                1 => relations.base.memory_access.combine(self.values[0..7].*),
+                2 => relations.base.program_access.combine(self.values[0..5].*),
+                3 => relations.base.merkle.combine(self.values[0..4].*),
+                4 => relations.base.poseidon2.combine(self.values[0..16].*),
+                5 => relations.base.poseidon2_io.combine(self.values[0..32].*),
+                6 => relations.base.bitwise.combine(self.values[0..4].*),
+                7 => relations.base.range_check_20.combine(self.values[0..1].*),
+                8 => relations.base.range_check_8_11.combine(self.values[0..2].*),
+                9 => relations.base.range_check_8_8_4.combine(self.values[0..3].*),
+                10 => relations.base.range_check_8_8.combine(self.values[0..2].*),
+                11 => relations.base.range_check_m31.combine(self.values[0..2].*),
+                registry.guest_schema_numeric_id => relations.guest_poseidon2_io
+                    .combine(self.values),
+                else => unreachable,
+            };
+        }
+
         pub fn term(self: *const Self, relations: *const Relations) Error!QM31 {
             try self.validate();
             const numerator = lift(self.numerator);
@@ -166,6 +195,60 @@ pub fn providerRowPairs(
     if (main.len != main_trace.provider_main_column_count)
         return error.InvalidMainTraceShape;
     return providerPairsFromView(QM31, providerView(QM31, main), relations);
+}
+
+pub fn callerRowPairsGeneric(
+    comptime S: type,
+    main: []const S,
+    relations: anytype,
+) Error![caller_batch_count]logup.RowPairFor(S) {
+    if (main.len != main_trace.caller_main_column_count)
+        return error.InvalidMainTraceShape;
+    var result: [caller_batch_count]logup.RowPairFor(S) = undefined;
+    inline for (components.caller_batches) |batch| {
+        const first_event = components.caller_events[batch.first_event];
+        const first = callerEntryStatic(S, main, first_event);
+        const d1 = first.denominatorForProfile(first_event, relations);
+        if (comptime batch.second_event) |second_index| {
+            const second_event = components.caller_events[second_index];
+            const second = callerEntryStatic(S, main, second_event);
+            result[batch.ordinal] = .{
+                .n1 = first.numerator,
+                .d1 = d1,
+                .n2 = second.numerator,
+                .d2 = second.denominatorForProfile(second_event, relations),
+            };
+        } else {
+            result[batch.ordinal] = logup.RowPairFor(S).single(first.numerator, d1);
+        }
+    }
+    return result;
+}
+
+pub fn providerRowPairsGeneric(
+    comptime S: type,
+    main: []const S,
+    relations: anytype,
+) Error![provider_batch_count]logup.RowPairFor(S) {
+    if (main.len != main_trace.provider_main_column_count)
+        return error.InvalidMainTraceShape;
+    const view = providerView(S, main);
+    var result: [provider_batch_count]logup.RowPairFor(S) = undefined;
+    inline for (components.provider_batches) |batch| {
+        const first_event = components.provider_events[batch.first_event];
+        const second_index = comptime batch.second_event orelse
+            @compileError("provider batches must remain paired");
+        const second_event = components.provider_events[second_index];
+        const first = providerEntryStatic(S, view, first_event);
+        const second = providerEntryStatic(S, view, second_event);
+        result[batch.ordinal] = .{
+            .n1 = first.numerator,
+            .d1 = first.denominatorForProfile(first_event, relations),
+            .n2 = second.numerator,
+            .d2 = second.denominatorForProfile(second_event, relations),
+        };
+    }
+    return result;
 }
 
 pub fn writeCallerGenerationTerms(
@@ -554,7 +637,7 @@ fn expectedArity(schema: usize) ?u8 {
 fn scalar(comptime S: type, value: anytype) S {
     if (comptime S == M31) return M31.fromU64(@as(u64, value));
     if (comptime S == QM31) return QM31.fromBase(M31.fromU64(@as(u64, value)));
-    @compileError("guest projection supports only M31 and QM31");
+    return S.fromBase(M31.fromU64(@as(u64, value)));
 }
 
 fn lift(value: anytype) QM31 {
@@ -568,7 +651,7 @@ fn mulConstant(comptime S: type, value: S, coefficient: u32) S {
     const base = M31.fromCanonical(coefficient);
     if (comptime S == M31) return value.mul(base);
     if (comptime S == QM31) return value.mulM31(base);
-    @compileError("guest projection supports only M31 and QM31");
+    return value.mul(S.fromBase(base));
 }
 
 comptime {

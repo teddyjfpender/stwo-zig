@@ -205,11 +205,12 @@ class JsonContractTests(unittest.TestCase):
 
     def test_benchmark_report_binds_samples_timing_and_retained_artifact(self) -> None:
         report = {
-            "schema": "riscv_proof_v2",
+            "schema": "riscv_proof_v3",
             "release_status": "not_release_gated",
             "mode": "bench",
             "experimental": True,
             "profiled": False,
+            "recursion_enabled": False,
             "warmups": 0,
             "samples": 2,
             "verified_samples": 2,

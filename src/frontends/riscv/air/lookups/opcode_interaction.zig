@@ -25,6 +25,8 @@ const BaseScalar = @import("base_scalar.zig").Scalar;
 const entry = @import("entry.zig");
 const opcode_entries = @import("opcode_entries.zig");
 const runtime_program = @import("../extract/runtime_program.zig");
+const selected_batching = @import("../lang/lookup_batch_execution.zig");
+const validation = @import("opcode_interaction_validation.zig");
 
 pub const MAX_BATCHES: usize = entry.MAX_BATCHES;
 pub const MAX_COLUMNS: usize = 4 * MAX_BATCHES;
@@ -125,9 +127,197 @@ pub fn generate(
     log_size: u32,
     relations: *const relations_mod.Relations,
 ) !Result {
+    return generateSequential(
+        allocator,
+        family,
+        main_columns,
+        log_size,
+        relations,
+        CompatibilityBatching{},
+        opcode_entries.batchCount(family),
+    );
+}
+
+/// Shadow candidate using the authenticated compiler-selected batch plan.
+/// This deliberately returns the existing `Result` shape so trace/claim and
+/// allocation differentials can run before any statement or proof protocol is
+/// versioned. It is not selected by production orchestration.
+pub fn generateSelected(
+    allocator: std.mem.Allocator,
+    family_plan: *const selected_batching.FamilyPlan,
+    main_columns: []const []const M31,
+    log_size: u32,
+    relations: *const relations_mod.Relations,
+) !Result {
+    try family_plan.validate();
+    return generateSequential(
+        allocator,
+        family_plan.family,
+        main_columns,
+        log_size,
+        relations,
+        SelectedBatching{ .plan = family_plan },
+        family_plan.batchCount(),
+    );
+}
+
+/// Production-shaped selected generator over the static physical record. The
+/// hot row loop reads only pinned contiguous ranges; setup performs no planner
+/// or typed-arena work.
+pub fn generateSelectedRangesV2(
+    allocator: std.mem.Allocator,
+    family: trace.OpcodeFamily,
+    entry_count: u32,
+    batches: []const prover_component.LookupPolynomialBatchV2,
+    main_columns: []const []const M31,
+    log_size: u32,
+    relations: *const relations_mod.Relations,
+) !Result {
+    var cursor: u32 = 0;
+    for (batches) |batch| {
+        if (batch.first_entry != cursor or
+            batch.entry_count == 0 or
+            batch.entry_count > 2)
+        {
+            return error.InvalidBatchCount;
+        }
+        cursor = std.math.add(u32, cursor, batch.entry_count) catch
+            return error.InvalidBatchCount;
+    }
+    if (cursor != entry_count) return error.InvalidBatchCount;
+    return generateSequential(
+        allocator,
+        family,
+        main_columns,
+        log_size,
+        relations,
+        PhysicalBatching{
+            .entry_count = entry_count,
+            .batches = batches,
+        },
+        batches.len,
+    );
+}
+
+const CompatibilityBatching = struct {
+    fn validateList(
+        _: @This(),
+        list: *const BaseList,
+        expected_batches: usize,
+    ) !void {
+        if (list.batchCount() != expected_batches)
+            return error.InvalidBatchCount;
+    }
+
+    fn rowPair(
+        _: @This(),
+        list: *const BaseList,
+        batch: usize,
+        relations: *const relations_mod.Relations,
+    ) !logup.RowPair {
+        return pairBase(list, batch, relations);
+    }
+
+    fn isSingleton(
+        _: @This(),
+        list: *const BaseList,
+        batch: usize,
+    ) bool {
+        return list.batch_size == 1 or
+            batch * list.batch_size + 1 == list.len;
+    }
+};
+
+const SelectedBatching = struct {
+    plan: *const selected_batching.FamilyPlan,
+
+    fn validateList(
+        self: @This(),
+        list: *const BaseList,
+        expected_batches: usize,
+    ) !void {
+        if (list.len != self.plan.selection.event_count or
+            self.plan.batchCount() != expected_batches)
+        {
+            return error.InvalidBatchCount;
+        }
+    }
+
+    fn rowPair(
+        self: @This(),
+        list: *const BaseList,
+        batch: usize,
+        relations: *const relations_mod.Relations,
+    ) !logup.RowPair {
+        return pairBaseSelected(
+            list,
+            self.plan.selection.batches[batch],
+            relations,
+        );
+    }
+
+    fn isSingleton(
+        self: @This(),
+        _: *const BaseList,
+        batch: usize,
+    ) bool {
+        return self.plan.selection.batches[batch].event_count == 1;
+    }
+};
+
+const PhysicalBatching = struct {
+    entry_count: u32,
+    batches: []const prover_component.LookupPolynomialBatchV2,
+
+    fn validateList(
+        self: @This(),
+        list: *const BaseList,
+        expected_batches: usize,
+    ) !void {
+        if (list.len != self.entry_count or
+            self.batches.len != expected_batches)
+        {
+            return error.InvalidBatchCount;
+        }
+    }
+
+    fn rowPair(
+        self: @This(),
+        list: *const BaseList,
+        batch: usize,
+        relations: *const relations_mod.Relations,
+    ) !logup.RowPair {
+        const range = self.batches[batch];
+        return pairBaseRange(
+            list,
+            range.first_entry,
+            range.entry_count,
+            relations,
+        );
+    }
+
+    fn isSingleton(
+        self: @This(),
+        _: *const BaseList,
+        batch: usize,
+    ) bool {
+        return self.batches[batch].entry_count == 1;
+    }
+};
+
+fn generateSequential(
+    allocator: std.mem.Allocator,
+    family: trace.OpcodeFamily,
+    main_columns: []const []const M31,
+    log_size: u32,
+    relations: *const relations_mod.Relations,
+    batching: anytype,
+    n_batches: usize,
+) !Result {
     const size = @as(usize, 1) << @intCast(log_size);
     try validateColumns(family, main_columns, size);
-    const n_batches = opcode_entries.batchCount(family);
+    if (n_batches == 0 or n_batches > MAX_BATCHES)
+        return error.InvalidBatchCount;
     var result = Result{ .n_batches = n_batches };
     var allocated_columns: usize = 0;
     errdefer {
@@ -163,11 +353,11 @@ pub fn generate(
                 family,
                 base[0..main_columns.len],
             );
-            if (list.batchCount() != n_batches) return error.InvalidBatchCount;
+            try batching.validateList(&list, n_batches);
             for (0..n_batches) |batch| {
-                const pair = try pairBase(&list, batch, relations);
+                const pair = try batching.rowPair(&list, batch, relations);
                 const index = batch * chunk_len + local_row;
-                if (list.batch_size == 1) {
+                if (batching.isSingleton(&list, batch)) {
                     denominators[index] = pair.d1;
                     numerators[index] = pair.n1;
                 } else {
@@ -517,6 +707,48 @@ fn pairBase(
     };
 }
 
+fn pairBaseSelected(
+    list: *const BaseList,
+    batch: @import("../lang/lookup_batch_planner.zig").Batch,
+    relations: *const relations_mod.Relations,
+) !logup.RowPair {
+    return pairBaseRange(
+        list,
+        batch.first_event,
+        batch.event_count,
+        relations,
+    );
+}
+
+fn pairBaseRange(
+    list: *const BaseList,
+    first_event: u32,
+    event_count: u8,
+    relations: *const relations_mod.Relations,
+) !logup.RowPair {
+    const first_index: usize = first_event;
+    if (event_count == 0 or event_count > 2 or
+        first_index >= list.len or first_index + event_count > list.len)
+    {
+        return error.InvalidBatchCount;
+    }
+    const first = &list.entries[first_index];
+    const first_numerator = QM31.fromBase(first.numerator.value);
+    if (event_count == 1) {
+        return logup.RowPair.single(
+            first_numerator,
+            try denominatorBase(first, relations),
+        );
+    }
+    const second = &list.entries[first_index + 1];
+    return .{
+        .n1 = first_numerator,
+        .d1 = try denominatorBase(first, relations),
+        .n2 = QM31.fromBase(second.numerator.value),
+        .d2 = try denominatorBase(second, relations),
+    };
+}
+
 const PackedRowPair = struct {
     n1: PackedM31,
     d1: PackedQM31,
@@ -592,63 +824,9 @@ fn pairPlanned(
     };
 }
 
-fn evaluateNodes(
-    nodes: []const prover_component.BasePolynomialNode,
-    reachable: []const bool,
-    values: []PackedM31,
-    columns: []const PackedM31,
-) void {
-    for (nodes, reachable, 0..) |node, is_reachable, index| {
-        if (!is_reachable) continue;
-        values[index] = switch (node.op) {
-            .constant => @splat(node.value),
-            .column => columns[node.value],
-            .add => m31.addPacked(values[node.lhs], values[node.rhs]),
-            .sub => m31.subPacked(values[node.lhs], values[node.rhs]),
-            .mul => m31.mulPacked(values[node.lhs], values[node.rhs]),
-            .neg => m31.negPacked(values[node.lhs]),
-        };
-    }
-}
-
-fn lookupReachable(
-    allocator: std.mem.Allocator,
-    program: prover_component.OwnedLookupPolynomialProgram,
-) ![]bool {
-    const reachable = try allocator.alloc(bool, program.nodes.len);
-    @memset(reachable, false);
-    for (program.entries) |lookup| {
-        reachable[lookup.numerator] = true;
-        for (lookup.values[0..lookup.arity]) |value| reachable[value] = true;
-    }
-    var cursor = program.nodes.len;
-    while (cursor != 0) {
-        cursor -= 1;
-        if (!reachable[cursor]) continue;
-        const node = program.nodes[cursor];
-        switch (node.op) {
-            .constant, .column => {},
-            .add, .sub, .mul => {
-                reachable[node.lhs] = true;
-                reachable[node.rhs] = true;
-            },
-            .neg => reachable[node.lhs] = true,
-        }
-    }
-    return reachable;
-}
-
-fn validateColumns(
-    family: trace.OpcodeFamily,
-    columns: []const []const M31,
-    size: usize,
-) !void {
-    if (columns.len != trace.nColumnsForFamily(family))
-        return error.InvalidColumnCount;
-    for (columns) |column| {
-        if (column.len != size) return error.InvalidColumnLength;
-    }
-}
+const evaluateNodes = validation.evaluateNodes;
+const lookupReachable = validation.lookupReachable;
+const validateColumns = validation.validateColumns;
 
 /// Narrow test-only access to production-private reconstruction primitives.
 ///

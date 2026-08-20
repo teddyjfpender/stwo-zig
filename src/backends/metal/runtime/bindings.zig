@@ -1,5 +1,6 @@
 //! Objective-C/Metal entry points consumed by the Zig runtime stages.
 
+const std = @import("std");
 const runtime = @import("../runtime.zig");
 
 const ArenaCopyRange = runtime.ArenaCopyRange;
@@ -11,6 +12,26 @@ const WitnessLayout = runtime.WitnessLayout;
 const BasePolynomialDispatch = runtime.BasePolynomialDispatch;
 const BasePolynomialOutput = runtime.BasePolynomialOutput;
 const LookupPolynomialDispatch = runtime.LookupPolynomialDispatch;
+
+pub const QuotientWorkReceipt = extern struct {
+    schema_version: u32,
+    path: u32,
+    reserved0: u32,
+    reserved1: u32,
+    row_count: u64,
+    batch_count: u64,
+    view_count: u64,
+    grouped_partial_count: u64,
+    numerator_additions: u64,
+    numerator_multiplications: u64,
+    domain_circle_additions: u64,
+    batch_inverse_calls: u64,
+};
+
+comptime {
+    std.debug.assert(@sizeOf(QuotientWorkReceipt) == 80);
+    std.debug.assert(@offsetOf(QuotientWorkReceipt, "row_count") == 16);
+}
 
 pub extern fn stwo_zig_metal_runtime_destroy(runtime: ?*anyopaque) void;
 pub extern fn stwo_zig_metal_runtime_identity(
@@ -651,7 +672,9 @@ pub extern fn stwo_zig_metal_compute_quotients(
     fri_domain_step_size: u32,
     fri_channel_state: ?*[10]u32,
     fri_trees: ?[*]?*anyopaque,
+    fri_inverse_generation_mask: ?*u32,
     fri_stats: ?*CommandEpochStats,
+    quotient_work_receipt: ?*QuotientWorkReceipt,
     tree: *?*anyopaque,
     gpu_milliseconds: *f64,
     error_message: [*]u8,
@@ -673,6 +696,8 @@ pub extern fn stwo_zig_metal_eval_polynomials(
     task_count: u32,
     output_count: u32,
     output: [*]u32,
+    basis_threadgroup_width: *u32,
+    evaluation_threadgroup_width: *u32,
     gpu_milliseconds: *f64,
     error_message: [*]u8,
     error_message_len: usize,
@@ -707,6 +732,11 @@ pub extern fn stwo_zig_metal_circle_lde(
     /// `telemetry.CommitSourceBinding`. Reported from the branch itself so the
     /// no-copy alias can be attributed rather than assumed.
     source_binding: *u32,
+    /// Out: actual interpolation normalization batches completed by this
+    /// dispatch. Written only after successful command completion.
+    normalization_batch_count: *u32,
+    /// Out: logical forward FFT layers elided by the executed fused branch.
+    forward_skipped_layers: *u32,
     gpu_milliseconds: *f64,
     error_message: [*]u8,
     error_message_len: usize,

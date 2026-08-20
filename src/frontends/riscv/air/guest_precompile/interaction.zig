@@ -46,9 +46,39 @@ pub const Error = statement_mod.Error || interaction_plan.Error || error{
     TraceSizeOverflow,
     MainTraceSelectorMismatch,
     UnbalancedGuestRelation,
+    InvalidDestinationShape,
+    OverlappingDestinations,
 };
 
 pub const Entry = interaction_plan.Entry;
+
+pub const Destinations = struct {
+    caller: [caller_column_count][]M31,
+    provider: [provider_column_count][]M31,
+};
+
+pub const Claims = struct {
+    caller: [caller_batch_count]QM31,
+    provider: [provider_batch_count]QM31,
+
+    pub fn callerTotal(self: *const Claims) QM31 {
+        return sumClaims(&self.caller);
+    }
+
+    pub fn providerTotal(self: *const Claims) QM31 {
+        return sumClaims(&self.provider);
+    }
+
+    pub fn guestRelationTotal(self: *const Claims) QM31 {
+        return self.caller[caller_batch_count - 1]
+            .add(self.provider[provider_batch_count - 1]);
+    }
+
+    pub fn verifyGuestCancellation(self: *const Claims) Error!void {
+        if (!self.guestRelationTotal().isZero())
+            return error.UnbalancedGuestRelation;
+    }
+};
 
 /// One allocation containing caller then provider committed interaction rows.
 pub const Result = struct {
@@ -81,6 +111,17 @@ pub const Result = struct {
     pub fn providerColumn(self: *const Result, index: usize) []const M31 {
         std.debug.assert(index < provider_column_count);
         return self.column(provider_column_start + index);
+    }
+
+    pub fn mutableDestinations(self: *Result) Destinations {
+        var destinations: Destinations = undefined;
+        for (&destinations.caller, 0..) |*destination, index| {
+            destination.* = @constCast(self.callerColumn(index));
+        }
+        for (&destinations.provider, 0..) |*destination, index| {
+            destination.* = @constCast(self.providerColumn(index));
+        }
+        return destinations;
     }
 
     pub fn callerTotal(self: *const Result) QM31 {
@@ -129,6 +170,62 @@ pub fn generate(
     ) catch return error.TraceSizeOverflow;
     _ = std.math.mul(usize, output_cells, @sizeOf(M31)) catch
         return error.TraceSizeOverflow;
+    const storage = try allocator.alloc(M31, output_cells);
+    errdefer allocator.free(storage);
+    var result = Result{
+        .allocator = allocator,
+        .storage = storage,
+        .log_size = geometry.log_size,
+        .n_rows = main.n_rows,
+        .domain_size = geometry.domain_size,
+        .caller_claims = .{QM31.zero()} ** caller_batch_count,
+        .provider_claims = .{QM31.zero()} ** provider_batch_count,
+    };
+    var destinations = result.mutableDestinations();
+    const claims = try generatePreparedInto(
+        allocator,
+        main,
+        relations,
+        geometry,
+        &destinations,
+    );
+    result.caller_claims = claims.caller;
+    result.provider_claims = claims.provider;
+    return result;
+}
+
+/// Generate Tree-2 values directly into final owned column storage from the
+/// compact post-Tree-1 projection. Destination validation and scratch sizing
+/// finish before the first output cell is written.
+pub fn generateFromRelationSourceInto(
+    allocator: std.mem.Allocator,
+    core: *const RiscVStatement,
+    extension: *const ExtensionStatement,
+    main: *const main_trace.RelationSource,
+    relations: *const Relations,
+    destinations: *const Destinations,
+) Error!Claims {
+    try extension.validate(core);
+    try validateConstructionAuthority(extension);
+    const geometry = try preflightRelationSource(extension, main);
+    try validateDestinations(destinations, geometry.domain_size);
+    return generatePreparedInto(
+        allocator,
+        main,
+        relations,
+        geometry,
+        destinations,
+    );
+}
+
+fn generatePreparedInto(
+    allocator: std.mem.Allocator,
+    main: anytype,
+    relations: *const Relations,
+    geometry: Geometry,
+    output_destinations: *const Destinations,
+) Error!Claims {
+    try validateDestinations(output_destinations, geometry.domain_size);
     const chunk_capacity = @min(chunk_rows, geometry.domain_size);
     const scratch_rows = @min(chunk_rows, @as(usize, main.n_rows));
     const term_capacity = std.math.mul(
@@ -140,40 +237,28 @@ pub fn generate(
         return error.TraceSizeOverflow;
     _ = std.math.mul(usize, scratch_cells, @sizeOf(QM31)) catch
         return error.TraceSizeOverflow;
-
-    const storage = try allocator.alloc(M31, output_cells);
-    errdefer allocator.free(storage);
     const scratch = try allocator.alloc(QM31, scratch_cells);
     defer allocator.free(scratch);
     const numerators = scratch[0..term_capacity];
     const denominators = scratch[term_capacity..][0..term_capacity];
     const inverses = scratch[2 * term_capacity ..][0..term_capacity];
 
-    var result = Result{
-        .allocator = allocator,
-        .storage = storage,
-        .log_size = geometry.log_size,
-        .n_rows = main.n_rows,
-        .domain_size = geometry.domain_size,
-        .caller_claims = .{QM31.zero()} ** caller_batch_count,
-        .provider_claims = .{QM31.zero()} ** provider_batch_count,
-    };
     var accumulators = [_]QM31{QM31.zero()} ** total_batch_count;
-    var destinations: [chunk_rows]usize = undefined;
+    var row_destinations: [chunk_rows]usize = undefined;
 
     var row_start: usize = 0;
     while (row_start < main.n_rows) {
         const chunk_len = @min(chunk_capacity, main.n_rows - row_start);
         const term_len = total_batch_count * chunk_len;
         for (0..chunk_len) |local_row| {
-            destinations[local_row] = main_trace.committedRow(
+            row_destinations[local_row] = main_trace.committedRow(
                 row_start + local_row,
                 geometry.log_size,
             );
             setActiveTerms(
                 main,
                 relations,
-                destinations[local_row],
+                row_destinations[local_row],
                 numerators,
                 denominators,
                 chunk_len,
@@ -195,9 +280,10 @@ pub fn generate(
                 );
                 const coordinates = accumulators[batch].toM31Array();
                 for (coordinates, 0..) |coordinate, index| {
-                    result.write(
+                    writeDestination(
+                        output_destinations,
                         output_column + index,
-                        destinations[local_row],
+                        row_destinations[local_row],
                         coordinate,
                     );
                 }
@@ -211,7 +297,7 @@ pub fn generate(
     while (row_start < geometry.domain_size) {
         const chunk_len = @min(chunk_capacity, geometry.domain_size - row_start);
         for (0..chunk_len) |local_row| {
-            destinations[local_row] = main_trace.committedRow(
+            row_destinations[local_row] = main_trace.committedRow(
                 row_start + local_row,
                 geometry.log_size,
             );
@@ -221,9 +307,10 @@ pub fn generate(
             const output_column = output_column_starts[batch];
             for (0..chunk_len) |local_row| {
                 for (coordinates, 0..) |coordinate, index| {
-                    result.write(
+                    writeDestination(
+                        output_destinations,
                         output_column + index,
-                        destinations[local_row],
+                        row_destinations[local_row],
                         coordinate,
                     );
                 }
@@ -232,9 +319,10 @@ pub fn generate(
         row_start += chunk_len;
     }
 
-    result.caller_claims = accumulators[0..caller_batch_count].*;
-    result.provider_claims = accumulators[caller_batch_count..][0..provider_batch_count].*;
-    return result;
+    return .{
+        .caller = accumulators[0..caller_batch_count].*,
+        .provider = accumulators[caller_batch_count..][0..provider_batch_count].*,
+    };
 }
 
 pub const callerEntry = interaction_plan.callerEntry;
@@ -311,6 +399,67 @@ fn preflightGeometry(
     return .{ .log_size = log_size, .domain_size = domain_size };
 }
 
+fn preflightRelationSource(
+    extension: *const ExtensionStatement,
+    main: *const main_trace.RelationSource,
+) Error!Geometry {
+    const log_size = extension.components[0].log_size;
+    if (log_size >= @bitSizeOf(usize)) return error.TraceSizeOverflow;
+    const domain_size = @as(usize, 1) << @intCast(log_size);
+    const expected_cells = std.math.mul(
+        usize,
+        main_trace.relation_source_column_count,
+        domain_size,
+    ) catch return error.TraceSizeOverflow;
+    if (extension.components[1].log_size != log_size or
+        main.log_size != log_size or
+        main.n_rows != extension.counts.n_guest or
+        main.domainSize() != domain_size or
+        main.committedCells().len != expected_cells)
+    {
+        return error.InvalidMainTraceShape;
+    }
+    return .{ .log_size = log_size, .domain_size = domain_size };
+}
+
+fn validateDestinations(
+    destinations: *const Destinations,
+    domain_size: usize,
+) Error!void {
+    for (0..total_column_count) |index| {
+        const current = destinationAt(destinations, index);
+        if (current.len != domain_size) return error.InvalidDestinationShape;
+        for (0..index) |prior_index| {
+            if (overlap(current, destinationAt(destinations, prior_index)))
+                return error.OverlappingDestinations;
+        }
+    }
+}
+
+fn destinationAt(destinations: *const Destinations, index: usize) []M31 {
+    return if (index < caller_column_count)
+        destinations.caller[index]
+    else
+        destinations.provider[index - caller_column_count];
+}
+
+fn writeDestination(
+    destinations: *const Destinations,
+    column_index: usize,
+    row: usize,
+    value: M31,
+) void {
+    destinationAt(destinations, column_index)[row] = value;
+}
+
+fn overlap(lhs: []const M31, rhs: []const M31) bool {
+    const lhs_start = @intFromPtr(lhs.ptr);
+    const rhs_start = @intFromPtr(rhs.ptr);
+    const lhs_end = lhs_start + lhs.len * @sizeOf(M31);
+    const rhs_end = rhs_start + rhs.len * @sizeOf(M31);
+    return lhs_start < rhs_end and rhs_start < lhs_end;
+}
+
 fn validateConstructionAuthority(extension: *const ExtensionStatement) Error!void {
     const authority = components.Registry.forProfile(extension.profile);
     const caller = try authority.verifierConstruction(extension.components[0]);
@@ -326,7 +475,7 @@ fn validateConstructionAuthority(extension: *const ExtensionStatement) Error!voi
 }
 
 fn setActiveTerms(
-    main: *const main_trace.Result,
+    main: anytype,
     relations: *const Relations,
     committed_row: usize,
     numerators: []QM31,

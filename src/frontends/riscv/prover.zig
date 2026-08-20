@@ -12,12 +12,18 @@ const orchestration = @import("prover/orchestration.zig");
 const types = @import("prover/types.zig");
 
 pub const proof_phase_meter = @import("prover/proof_phase_meter.zig");
+pub const guest_precompile = @import("prover/guest_precompile/mod.zig");
+pub const main_trace_plan_execution = @import("prover/main_trace_plan_execution.zig");
+pub const main_trace_plan_execution_production =
+    @import("prover/main_trace_plan_execution_production.zig");
 pub const PublicData = types.PublicData;
+pub const PublicDataV2 = @import("air/public_data_v2.zig").PublicDataV2;
 pub const Hasher = types.Hasher;
 pub const FamilyComponentDesc = types.FamilyComponentDesc;
 pub const InfraKind = types.InfraKind;
 pub const InfraComponentDesc = types.InfraComponentDesc;
 pub const RiscVStatement = types.RiscVStatement;
+pub const RiscVStatementV2 = types.RiscVStatementV2;
 pub const RiscVInteractionClaim = types.RiscVInteractionClaim;
 pub const MAX_COMPONENTS = types.MAX_COMPONENTS;
 pub const MAX_INFRA_COMPONENTS = types.MAX_INFRA_COMPONENTS;
@@ -26,9 +32,38 @@ pub const ExtendedProof = types.ExtendedProof;
 pub const OwnedRiscVStatement = types.OwnedRiscVStatement;
 pub const RelationDiagnostic = types.RelationDiagnostic;
 pub const ProveOutput = types.ProveOutput;
+pub const ProveOutputV2 = types.ProveOutputV2;
 pub const ProverError = types.ProverError;
+pub const ExecutionOptions = orchestration.ExecutionOptions;
+pub const StatementAdmission = orchestration.StatementAdmission;
+pub const StatementAdmissionV2 = orchestration.StatementAdmissionV2;
+pub const ExecutionOptionsV2 = orchestration.ExecutionOptionsV2;
 pub const assertProverEngine = types.assertProverEngine;
 pub const ProverEngineForBackend = types.ProverEngineForBackend;
+pub const Poseidon2InteractionClaim = guest_precompile.InteractionClaim;
+pub const Poseidon2ProveOutput = guest_precompile.ProveOutput;
+pub const provePoseidon2WithEngineAndPublicData =
+    guest_precompile.provePoseidon2WithEngineAndPublicData;
+pub const provePoseidon2WithEngineAndPublicDataUsingChannel =
+    guest_precompile.provePoseidon2WithEngineAndPublicDataUsingChannel;
+pub const verifyPoseidon2WithEngine = guest_precompile.verifyPoseidon2WithEngine;
+pub const verifyPoseidon2WithEngineUsingChannel =
+    guest_precompile.verifyPoseidon2WithEngineUsingChannel;
+pub const proveRiscVSegmentV2WithEngine =
+    orchestration.runRiscVSegmentV2WithEngine;
+pub const proveRiscVSegmentV2WithEngineUsingChannel =
+    orchestration.runRiscVSegmentV2WithEngineUsingChannel;
+pub const proveRiscVSegmentV2WithEngineUsingChannelAndExecution =
+    orchestration.runRiscVSegmentV2WithEngineUsingChannelAndExecution;
+/// Explicit protocol-changing entry point for the authenticated, degree-aware
+/// physical lookup layout. Ordinary V1 and segment-V2 calls remain on their
+/// compatibility transcript and Tree-2 geometry.
+pub const proveRiscVSegmentLookupV2WithEngine =
+    orchestration.runRiscVSegmentLookupV2WithEngine;
+pub const proveRiscVSegmentLookupV2WithEngineUsingChannel =
+    orchestration.runRiscVSegmentLookupV2WithEngineUsingChannel;
+pub const inspectRiscVSegmentLookupV2FullCohort =
+    orchestration.inspectRiscVSegmentLookupV2FullCohort;
 
 /// The one secure PCS profile this repository publishes, and the single source
 /// of truth every "secure" selector resolves to: the staged adapter's `.secure`
@@ -168,7 +203,7 @@ pub fn proveRiscVTraceOnlyNoPublicIo(
     opt_chain: ?*const state_chain.StateChainTracker,
     opt_memory: ?*const memory_state.Snapshot,
     recorder: ?*stage_profile.Recorder,
-) !ProveOutput {
+) !types.ProveOutputForEngine(Engine) {
     var channel = Engine.Channel{};
     return proveRiscVTraceOnlyNoPublicIoUsingChannel(
         Engine,
@@ -203,7 +238,7 @@ pub fn proveRiscVTraceOnlyNoPublicIoUsingChannel(
     opt_memory: ?*const memory_state.Snapshot,
     recorder: ?*stage_profile.Recorder,
     channel: *Engine.Channel,
-) !ProveOutput {
+) !types.ProveOutputForEngine(Engine) {
     if (classifyPublicIo(opt_memory, PublishedIo.none)) |rejection| return rejection.toError();
     const register_boundary = try opcode_memory.deriveRegisterBoundary(exec_trace.rows.items);
     if (opt_chain) |chain| {
@@ -251,7 +286,7 @@ pub fn proveRiscVWithEngineAndPublicData(
     opt_memory: ?*const memory_state.Snapshot,
     recorder: ?*stage_profile.Recorder,
     public_data: PublicData,
-) !ProveOutput {
+) !types.ProveOutputForEngine(Engine) {
     var channel = Engine.Channel{};
     return proveRiscVWithEngineAndPublicDataUsingChannel(
         Engine,
@@ -266,6 +301,31 @@ pub fn proveRiscVWithEngineAndPublicData(
     );
 }
 
+pub fn proveRiscVWithEngineAndPublicDataWithExecution(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    pcs_config: pcs_core.PcsConfig,
+    exec_trace: *const trace_mod.Trace,
+    opt_chain: ?*const state_chain.StateChainTracker,
+    opt_memory: ?*const memory_state.Snapshot,
+    recorder: ?*stage_profile.Recorder,
+    public_data: PublicData,
+    execution: ExecutionOptions,
+) !types.ProveOutputForEngine(Engine) {
+    return orchestration.runRiscVWithEngineAndPublicDataWithExecution(
+        Engine,
+        .prove,
+        allocator,
+        pcs_config,
+        exec_trace,
+        opt_chain,
+        opt_memory,
+        recorder,
+        public_data,
+        execution,
+    );
+}
+
 pub fn proveRiscVWithEngineAndPublicDataUsingChannel(
     comptime Engine: type,
     allocator: std.mem.Allocator,
@@ -276,7 +336,7 @@ pub fn proveRiscVWithEngineAndPublicDataUsingChannel(
     recorder: ?*stage_profile.Recorder,
     public_data: PublicData,
     channel: *Engine.Channel,
-) !ProveOutput {
+) !types.ProveOutputForEngine(Engine) {
     return orchestration.runRiscVWithEngineAndPublicDataUsingChannel(
         Engine,
         .prove,
@@ -290,6 +350,65 @@ pub fn proveRiscVWithEngineAndPublicDataUsingChannel(
         channel,
         null,
         null,
+    );
+}
+
+/// Opt-in exact witness/proving partition for profiled product attempts. The
+/// ordinary entrypoint above remains the unmetered production path, and this
+/// wrapper does not select a parallel execution policy.
+pub fn proveRiscVWithEngineAndPublicDataUsingChannelAndPhaseMeter(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    pcs_config: pcs_core.PcsConfig,
+    exec_trace: *const trace_mod.Trace,
+    opt_chain: ?*const state_chain.StateChainTracker,
+    opt_memory: ?*const memory_state.Snapshot,
+    recorder: ?*stage_profile.Recorder,
+    public_data: PublicData,
+    channel: *Engine.Channel,
+    phase_meter: *proof_phase_meter.Meter,
+) !types.ProveOutputForEngine(Engine) {
+    return orchestration.runRiscVWithEngineAndPublicDataUsingChannelAndPhaseMeter(
+        Engine,
+        .prove,
+        allocator,
+        pcs_config,
+        exec_trace,
+        opt_chain,
+        opt_memory,
+        recorder,
+        public_data,
+        channel,
+        phase_meter,
+    );
+}
+
+pub fn proveRiscVWithEngineAndPublicDataUsingChannelAndExecution(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    pcs_config: pcs_core.PcsConfig,
+    exec_trace: *const trace_mod.Trace,
+    opt_chain: ?*const state_chain.StateChainTracker,
+    opt_memory: ?*const memory_state.Snapshot,
+    recorder: ?*stage_profile.Recorder,
+    public_data: PublicData,
+    channel: *Engine.Channel,
+    execution: ExecutionOptions,
+) !types.ProveOutputForEngine(Engine) {
+    return orchestration.runRiscVWithEngineAndPublicDataUsingChannelAndExecution(
+        Engine,
+        .prove,
+        allocator,
+        pcs_config,
+        exec_trace,
+        opt_chain,
+        opt_memory,
+        recorder,
+        public_data,
+        channel,
+        null,
+        null,
+        execution,
     );
 }
 
@@ -318,6 +437,27 @@ pub fn diagnoseRiscVRelationsWithEngineAndPublicData(
 
 const verifier = @import("prover/verifier.zig");
 pub const verifier_diagnostic_wiring_source = verifier.diagnostic_wiring_source;
+pub const QueryCapture = verifier.QueryCapture;
+pub const ProofCaptureForEngine = verifier.ProofCaptureForEngine;
+pub const RecursiveLeafCaptureForEngine = verifier.RecursiveLeafCaptureForEngine;
+pub const VerifiedSegmentV2CaptureForEngine =
+    verifier.VerifiedSegmentV2CaptureForEngine;
 pub const verifyRiscVWithEngine = verifier.verifyRiscVWithEngine;
 pub const verifyRiscVWithEngineUsingChannel = verifier.verifyRiscVWithEngineUsingChannel;
+pub const verifyRiscVWithEngineUsingChannelAndQueryCapture =
+    verifier.verifyRiscVWithEngineUsingChannelAndQueryCapture;
+pub const verifyRiscVWithEngineUsingChannelAndProofCapture =
+    verifier.verifyRiscVWithEngineUsingChannelAndProofCapture;
+pub const verifyRiscVWithEngineUsingChannelAndRecursiveLeafCapture =
+    verifier.verifyRiscVWithEngineUsingChannelAndRecursiveLeafCapture;
+pub const verifyRiscVSegmentV2WithEngine =
+    verifier.verifyRiscVSegmentV2WithEngine;
+pub const verifyRiscVSegmentV2WithEngineUsingChannel =
+    verifier.verifyRiscVSegmentV2WithEngineUsingChannel;
+pub const verifyRiscVSegmentV2WithEngineUsingChannelAndCapture =
+    verifier.verifyRiscVSegmentV2WithEngineUsingChannelAndCapture;
+pub const verifyRiscVSegmentLookupV2WithEngine =
+    verifier.verifyRiscVSegmentLookupV2WithEngine;
+pub const verifyRiscVSegmentLookupV2WithEngineUsingChannel =
+    verifier.verifyRiscVSegmentLookupV2WithEngineUsingChannel;
 pub const proveAndVerifyElfWithEngine = @import("prover/elf.zig").proveAndVerifyElfWithEngine;

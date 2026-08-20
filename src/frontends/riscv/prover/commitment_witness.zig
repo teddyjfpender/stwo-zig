@@ -20,11 +20,17 @@ const memory_boundary = @import("../air/memory_commitment/boundary.zig");
 const merkle_node = @import("../air/memory_commitment/merkle_node.zig");
 const poseidon2_air = @import("../air/memory_commitment/poseidon2_air.zig");
 const program_commitment = @import("../air/program/commitment.zig");
+const guest_program_commitment = @import("../air/guest_precompile/program_commitment.zig");
 const sparse_merkle = @import("../air/memory_commitment/sparse_merkle.zig");
 const program_table = @import("../air/program/table.zig");
 const public_data_mod = @import("../air/public_data.zig");
+const public_data_v2 = @import("../air/public_data_v2.zig");
+const statement_v2 = @import("../air/statement_v2.zig");
+const segment_v2 = @import("../recursion/segment_statement_v2.zig");
 const memory_state = @import("../runner/memory_state.zig");
 const trace_mod = @import("../runner/trace.zig");
+const guest_runner = @import("../runner/guest_precompile/poseidon2_v1.zig");
+const poseidon_work = @import("poseidon_witness_work.zig");
 const types = @import("types.zig");
 
 const PublicData = types.PublicData;
@@ -64,6 +70,10 @@ pub const CommitmentWitness = struct {
     program: program_commitment.Commitment,
     poseidon_calls: std.ArrayList(poseidon2_air.Call),
     merkle_rows: std.ArrayList(merkle_node.NodeRow),
+    /// Present only on an explicitly profiled request. It contains every
+    /// completed sparse-tree construction and validation permutation; Tree-1
+    /// materialization merges into it before terminal publication.
+    poseidon_work: ?poseidon_work.Shard = null,
 
     /// Derives every commitment table for one execution. Owned by the caller.
     pub fn build(
@@ -95,6 +105,268 @@ pub const CommitmentWitness = struct {
             .program = program,
             .poseidon_calls = poseidon_calls,
             .merkle_rows = merkle_rows,
+            .poseidon_work = null,
+        };
+    }
+
+    pub fn buildWithWorkReceipt(
+        allocator: std.mem.Allocator,
+        exec_trace: *const trace_mod.Trace,
+        opt_memory: ?*const memory_state.Snapshot,
+        completion: public_data_mod.Completion,
+        authority: *const poseidon_work.Authority,
+    ) !CommitmentWitness {
+        var completed = poseidon_work.Shard{};
+        var boundary: ?memory_boundary.Claims = if (opt_memory) |snapshot| blk: {
+            var built = try memory_boundary.buildWithWorkReceipt(
+                allocator,
+                snapshot.words,
+                authority,
+            );
+            errdefer built.claims.deinit(allocator);
+            try completed.merge(built.work);
+            break :blk built.claims;
+        } else null;
+        errdefer if (boundary) |*claims| claims.deinit(allocator);
+        if (boundary) |claims| {
+            const validated = try claims.validateWithWorkReceipt(allocator, authority);
+            try completed.merge(validated);
+        }
+
+        const built_program = try buildProgramWithWorkReceipt(
+            allocator,
+            exec_trace,
+            opt_memory,
+            completion,
+            authority,
+        );
+        var program = built_program.commitment;
+        errdefer program.deinit(allocator);
+        try completed.merge(built_program.work);
+
+        var poseidon_calls: std.ArrayList(poseidon2_air.Call) = .{};
+        errdefer poseidon_calls.deinit(allocator);
+        try appendPoseidonCalls(allocator, &poseidon_calls, program, boundary);
+
+        var merkle_rows: std.ArrayList(merkle_node.NodeRow) = .{};
+        errdefer merkle_rows.deinit(allocator);
+        try appendMerkleRows(allocator, &merkle_rows, program, boundary);
+
+        return .{
+            .boundary = boundary,
+            .program = program,
+            .poseidon_calls = poseidon_calls,
+            .merkle_rows = merkle_rows,
+            .poseidon_work = completed,
+        };
+    }
+
+    /// Version-separated resumed-segment commitment derivation.
+    ///
+    /// V2 public boundary events close the entire register/RW access chain, so
+    /// no legacy memory-boundary row is emitted.  The exact authenticated entry
+    /// and exit sparse trees are nevertheless committed by the existing Merkle
+    /// and Poseidon2 components; verifier-side V2 public terms consume their
+    /// retained nonzero leaves.
+    pub fn buildV2(
+        allocator: std.mem.Allocator,
+        exec_trace: *const trace_mod.Trace,
+        opt_memory: ?*const memory_state.Snapshot,
+        data: *const public_data_v2.PublicDataV2,
+    ) !CommitmentWitness {
+        const snapshot = opt_memory orelse return ProverError.InvalidStatement;
+        const view = try segment_v2.authenticateCanonicalWire(data.words());
+        if (!std.meta.eql(view.wire_id, data.wireId()))
+            return ProverError.InvalidStatement;
+
+        var boundary = try buildV2Boundary(allocator, &view);
+        errdefer boundary.deinit(allocator);
+
+        const core_public = try statement_v2.canonicalCorePublicData(data);
+        var program = try buildProgram(
+            allocator,
+            exec_trace,
+            snapshot,
+            core_public.completion,
+        );
+        errdefer program.deinit(allocator);
+        if (core_public.program_root == null or
+            core_public.program_root.? != program.tree.root)
+        {
+            return ProverError.InvalidStatement;
+        }
+
+        var poseidon_calls: std.ArrayList(poseidon2_air.Call) = .{};
+        errdefer poseidon_calls.deinit(allocator);
+        try appendPoseidonCalls(allocator, &poseidon_calls, program, boundary);
+
+        var merkle_rows: std.ArrayList(merkle_node.NodeRow) = .{};
+        errdefer merkle_rows.deinit(allocator);
+        try appendMerkleRows(allocator, &merkle_rows, program, boundary);
+
+        return .{
+            .boundary = boundary,
+            .program = program,
+            .poseidon_calls = poseidon_calls,
+            .merkle_rows = merkle_rows,
+            .poseidon_work = null,
+        };
+    }
+
+    pub fn buildV2WithWorkReceipt(
+        allocator: std.mem.Allocator,
+        exec_trace: *const trace_mod.Trace,
+        opt_memory: ?*const memory_state.Snapshot,
+        data: *const public_data_v2.PublicDataV2,
+        authority: *const poseidon_work.Authority,
+    ) !CommitmentWitness {
+        const snapshot = opt_memory orelse return ProverError.InvalidStatement;
+        const view = try segment_v2.authenticateCanonicalWire(data.words());
+        if (!std.meta.eql(view.wire_id, data.wireId()))
+            return ProverError.InvalidStatement;
+
+        const boundary_built = try buildV2BoundaryWithWorkReceipt(
+            allocator,
+            &view,
+            authority,
+        );
+        var boundary = boundary_built.claims;
+        errdefer boundary.deinit(allocator);
+        var completed = boundary_built.work;
+
+        const core_public = try statement_v2.canonicalCorePublicData(data);
+        const built_program = try buildProgramWithWorkReceipt(
+            allocator,
+            exec_trace,
+            snapshot,
+            core_public.completion,
+            authority,
+        );
+        var program = built_program.commitment;
+        errdefer program.deinit(allocator);
+        try completed.merge(built_program.work);
+        if (core_public.program_root == null or
+            core_public.program_root.? != program.tree.root)
+        {
+            return ProverError.InvalidStatement;
+        }
+
+        var poseidon_calls: std.ArrayList(poseidon2_air.Call) = .{};
+        errdefer poseidon_calls.deinit(allocator);
+        try appendPoseidonCalls(allocator, &poseidon_calls, program, boundary);
+
+        var merkle_rows: std.ArrayList(merkle_node.NodeRow) = .{};
+        errdefer merkle_rows.deinit(allocator);
+        try appendMerkleRows(allocator, &merkle_rows, program, boundary);
+
+        return .{
+            .boundary = boundary,
+            .program = program,
+            .poseidon_calls = poseidon_calls,
+            .merkle_rows = merkle_rows,
+            .poseidon_work = completed,
+        };
+    }
+
+    /// Derives the same four commitment tables under the Poseidon2 execution
+    /// profile. The only difference is program-fetch authority: ordinary and
+    /// frozen CUSTOM-0 retirements are counted as two borrowed streams and all
+    /// declared words are decoded under the admitted profile.
+    pub fn buildPoseidon2(
+        allocator: std.mem.Allocator,
+        exec_trace: *const trace_mod.Trace,
+        guest_execution_rows: *const guest_runner.FrozenExecutionRows,
+        opt_memory: ?*const memory_state.Snapshot,
+        completion: public_data_mod.Completion,
+    ) !CommitmentWitness {
+        var boundary: ?memory_boundary.Claims = if (opt_memory) |snapshot|
+            try memory_boundary.build(allocator, snapshot.words)
+        else
+            null;
+        errdefer if (boundary) |*claims| claims.deinit(allocator);
+        if (boundary) |claims| try claims.validate(allocator);
+
+        const snapshot = opt_memory orelse return ProverError.InvalidStatement;
+        if (snapshot.program_words.len == 0) return ProverError.InvalidStatement;
+        var program = try guest_program_commitment.buildDeclared(
+            allocator,
+            exec_trace.rows.items,
+            guest_execution_rows,
+            snapshot.program_words,
+            completionFetch(completion),
+        );
+        errdefer program.deinit(allocator);
+
+        var poseidon_calls: std.ArrayList(poseidon2_air.Call) = .{};
+        errdefer poseidon_calls.deinit(allocator);
+        try appendPoseidonCalls(allocator, &poseidon_calls, program, boundary);
+
+        var merkle_rows: std.ArrayList(merkle_node.NodeRow) = .{};
+        errdefer merkle_rows.deinit(allocator);
+        try appendMerkleRows(allocator, &merkle_rows, program, boundary);
+
+        return .{
+            .boundary = boundary,
+            .program = program,
+            .poseidon_calls = poseidon_calls,
+            .merkle_rows = merkle_rows,
+            .poseidon_work = null,
+        };
+    }
+
+    pub fn buildPoseidon2WithWorkReceipt(
+        allocator: std.mem.Allocator,
+        exec_trace: *const trace_mod.Trace,
+        guest_execution_rows: *const guest_runner.FrozenExecutionRows,
+        opt_memory: ?*const memory_state.Snapshot,
+        completion: public_data_mod.Completion,
+        authority: *const poseidon_work.Authority,
+    ) !CommitmentWitness {
+        var completed = poseidon_work.Shard{};
+        var boundary: ?memory_boundary.Claims = if (opt_memory) |snapshot| blk: {
+            var built = try memory_boundary.buildWithWorkReceipt(
+                allocator,
+                snapshot.words,
+                authority,
+            );
+            errdefer built.claims.deinit(allocator);
+            try completed.merge(built.work);
+            break :blk built.claims;
+        } else null;
+        errdefer if (boundary) |*claims| claims.deinit(allocator);
+        if (boundary) |claims| {
+            const validated = try claims.validateWithWorkReceipt(allocator, authority);
+            try completed.merge(validated);
+        }
+
+        const snapshot = opt_memory orelse return ProverError.InvalidStatement;
+        if (snapshot.program_words.len == 0) return ProverError.InvalidStatement;
+        const built_program = try guest_program_commitment.buildDeclaredWithWorkReceipt(
+            allocator,
+            exec_trace.rows.items,
+            guest_execution_rows,
+            snapshot.program_words,
+            completionFetch(completion),
+            authority,
+        );
+        var program = built_program.commitment;
+        errdefer program.deinit(allocator);
+        try completed.merge(built_program.work);
+
+        var poseidon_calls: std.ArrayList(poseidon2_air.Call) = .{};
+        errdefer poseidon_calls.deinit(allocator);
+        try appendPoseidonCalls(allocator, &poseidon_calls, program, boundary);
+
+        var merkle_rows: std.ArrayList(merkle_node.NodeRow) = .{};
+        errdefer merkle_rows.deinit(allocator);
+        try appendMerkleRows(allocator, &merkle_rows, program, boundary);
+
+        return .{
+            .boundary = boundary,
+            .program = program,
+            .poseidon_calls = poseidon_calls,
+            .merkle_rows = merkle_rows,
+            .poseidon_work = completed,
         };
     }
 
@@ -115,6 +387,10 @@ pub const CommitmentWitness = struct {
     pub fn merkleRows(self: *const CommitmentWitness) []const merkle_node.NodeRow {
         return self.merkle_rows.items;
     }
+
+    pub fn poseidonWorkShard(self: *const CommitmentWitness) ?poseidon_work.Shard {
+        return self.poseidon_work;
+    }
 };
 
 /// Decoded-program commitment over every fetched word.
@@ -127,13 +403,10 @@ fn buildProgram(
     allocator: std.mem.Allocator,
     exec_trace: *const trace_mod.Trace,
     opt_memory: ?*const memory_state.Snapshot,
-    completion: public_data_mod.Completion,
+    completion: ?public_data_mod.Completion,
 ) !program_commitment.Commitment {
-    const has_public_fetch = completion.kind == .unretired_self_loop;
-    const public_fetch: ?program_table.Fetch = if (has_public_fetch)
-        .{ .pc = completion.address, .word = completion.value }
-    else
-        null;
+    const public_fetch = completionFetch(completion);
+    const has_public_fetch = public_fetch != null;
     if (opt_memory) |snapshot| {
         if (snapshot.program_words.len != 0) {
             return program_commitment.buildDeclared(
@@ -160,6 +433,162 @@ fn buildProgram(
         fetches,
         if (opt_memory) |snapshot| snapshot.program_words else &.{},
     );
+}
+
+fn buildProgramWithWorkReceipt(
+    allocator: std.mem.Allocator,
+    exec_trace: *const trace_mod.Trace,
+    opt_memory: ?*const memory_state.Snapshot,
+    completion: ?public_data_mod.Completion,
+    authority: *const poseidon_work.Authority,
+) !program_commitment.BuiltWithWorkReceipt {
+    const public_fetch = completionFetch(completion);
+    const has_public_fetch = public_fetch != null;
+    if (opt_memory) |snapshot| {
+        if (snapshot.program_words.len != 0) {
+            return program_commitment.buildDeclaredWithWorkReceipt(
+                allocator,
+                exec_trace.rows.items,
+                snapshot.program_words,
+                public_fetch,
+                authority,
+            );
+        }
+    }
+    const fetches = try allocator.alloc(
+        program_table.Fetch,
+        exec_trace.rows.items.len + @intFromBool(has_public_fetch),
+    );
+    defer allocator.free(fetches);
+    for (exec_trace.rows.items, fetches[0..exec_trace.rows.items.len]) |row, *fetch| {
+        fetch.* = .{ .pc = row.pc, .word = row.inst_word };
+    }
+    if (has_public_fetch) fetches[fetches.len - 1] = public_fetch.?;
+    return program_commitment.buildWithWorkReceipt(
+        allocator,
+        fetches,
+        if (opt_memory) |snapshot| snapshot.program_words else &.{},
+        authority,
+    );
+}
+
+fn completionFetch(completion: ?public_data_mod.Completion) ?program_table.Fetch {
+    const value = completion orelse return null;
+    return if (value.kind == .unretired_self_loop)
+        .{ .pc = value.address, .word = value.value }
+    else
+        null;
+}
+
+fn buildV2Boundary(
+    allocator: std.mem.Allocator,
+    view: *const segment_v2.CanonicalWireViewV2,
+) !memory_boundary.Claims {
+    var initial_tree = try buildV2Tree(allocator, view, view.entry_snapshot);
+    errdefer initial_tree.deinit(allocator);
+    if (initial_tree.root != view.statement.entry_continuation_root)
+        return error.MerkleBoundaryMismatch;
+
+    var final_tree = try buildV2Tree(allocator, view, view.exit_snapshot);
+    errdefer final_tree.deinit(allocator);
+    if (final_tree.root != view.statement.exit_continuation_root)
+        return error.MerkleBoundaryMismatch;
+
+    return .{
+        .rows = try allocator.alloc(memory_boundary.Row, 0),
+        .initial_tree = initial_tree,
+        .final_tree = final_tree,
+    };
+}
+
+const BuiltV2BoundaryWithWorkReceipt = struct {
+    claims: memory_boundary.Claims,
+    work: poseidon_work.Shard,
+};
+
+fn buildV2BoundaryWithWorkReceipt(
+    allocator: std.mem.Allocator,
+    view: *const segment_v2.CanonicalWireViewV2,
+    authority: *const poseidon_work.Authority,
+) !BuiltV2BoundaryWithWorkReceipt {
+    var initial_built = try buildV2TreeWithWorkReceipt(
+        allocator,
+        view,
+        view.entry_snapshot,
+        authority,
+    );
+    errdefer initial_built.tree.deinit(allocator);
+    if (initial_built.tree.root != view.statement.entry_continuation_root)
+        return error.MerkleBoundaryMismatch;
+
+    var final_built = try buildV2TreeWithWorkReceipt(
+        allocator,
+        view,
+        view.exit_snapshot,
+        authority,
+    );
+    errdefer final_built.tree.deinit(allocator);
+    if (final_built.tree.root != view.statement.exit_continuation_root)
+        return error.MerkleBoundaryMismatch;
+
+    var completed = poseidon_work.Shard{};
+    try completed.observe(authority, initial_built.receipt);
+    try completed.observe(authority, final_built.receipt);
+    return .{
+        .claims = .{
+            .rows = try allocator.alloc(memory_boundary.Row, 0),
+            .initial_tree = initial_built.tree,
+            .final_tree = final_built.tree,
+        },
+        .work = completed,
+    };
+}
+
+fn buildV2Tree(
+    allocator: std.mem.Allocator,
+    view: *const segment_v2.CanonicalWireViewV2,
+    section: segment_v2.RetainedSectionV2,
+) !sparse_merkle.Tree {
+    var leaves: std.ArrayList(sparse_merkle.Leaf) = .{};
+    defer leaves.deinit(allocator);
+    try leaves.ensureTotalCapacity(allocator, @as(usize, section.count) * 4);
+    for (0..section.count) |index| {
+        const entry = view.sparseEntry(section, index);
+        for (0..4) |limb| {
+            const shift: u5 = @intCast(limb * 8);
+            const value: u8 = @truncate(entry.value >> shift);
+            if (value == 0) continue;
+            leaves.appendAssumeCapacity(.{
+                .index = entry.address + @as(u32, @intCast(limb)),
+                .value = value,
+            });
+        }
+    }
+    return sparse_merkle.build(allocator, leaves.items);
+}
+
+fn buildV2TreeWithWorkReceipt(
+    allocator: std.mem.Allocator,
+    view: *const segment_v2.CanonicalWireViewV2,
+    section: segment_v2.RetainedSectionV2,
+    authority: *const poseidon_work.Authority,
+) !sparse_merkle.BuildWithWorkReceipt {
+    var leaves: std.ArrayList(sparse_merkle.Leaf) = .{};
+    defer leaves.deinit(allocator);
+    try leaves.ensureTotalCapacity(allocator, @as(usize, section.count) * 4);
+    for (0..section.count) |index| {
+        const entry = view.sparseEntry(section, index);
+        for (0..4) |limb| {
+            const shift: u5 = @intCast(limb * 8);
+            const value: u8 = @truncate(entry.value >> shift);
+            if (value == 0) continue;
+            leaves.appendAssumeCapacity(.{
+                .index = entry.address + @as(u32, @intCast(limb)),
+                .value = value,
+            });
+        }
+    }
+    return sparse_merkle.buildWithWorkReceipt(allocator, leaves.items, authority);
 }
 
 /// Pinned Stark-V visits Poseidon calls program -> initial RW -> final RW.

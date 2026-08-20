@@ -1,7 +1,7 @@
 # Architecture decision records
 
 **Status:** active index
-**Last updated:** 2026-08-10
+**Last updated:** 2026-08-15
 
 ADRs record decisions that change the project's trusted boundary, protocol
 shape, authoring model, or delivery order.
@@ -49,12 +49,22 @@ shape, authoring model, or delivery order.
 | [0029](0029-guest-component-statement-and-artifact-identity.md) | Guest Poseidon2 component, statement, and artifact identity | accepted |
 | [0030](0030-session-bound-cross-proof-relation-summaries.md) | Session-bound cross-proof relation summaries | proposed |
 | [0031](0031-closed-sequential-retirement-and-typed-lui.md) | Closed sequential retirement and typed LUI | accepted |
+| [0032](0032-bounded-lookup-authorship-and-typed-addi.md) | Bounded lookup authorship and typed ADDI | accepted |
+| [0033](0033-rv32-divrem-hint-and-shadow-div-boundary.md) | RV32 DIV/REM hint and shadow DIV boundary | accepted |
+| [0034](0034-c013-source-identical-workload-shapes-and-schedule.md) | C-013 source-identical workload shapes and schedule | accepted |
+| [0035](0035-proof-carrying-program-control-targets.md) | Proof-carrying derived and committed program control targets | accepted |
+| [0036](0036-recursion-v1-suite-and-verifier-owned-profile.md) | Recursion V1 suite and verifier-owned profile | proposed |
+| [0037](0037-compiler-owned-function-frames-and-activation-relations.md) | Compiler-owned function frames and activation relations | accepted |
+| [0038](0038-pinned-typed-opcode-authority-and-generated-retirement.md) | Pinned typed opcode authority and generated retirement | accepted |
+| [0039](0039-recursion-provider-auxiliary-claim-abi.md) | Authenticated auxiliary claims for recursive shared providers | accepted |
+| [0040](0040-separate-split-proof-join-from-temporal-recursion.md) | Separate split-proof joining from temporal recursion | accepted |
+| [0041](0041-versioned-41-input-recursion-composition-abi.md) | Versioned 41-input recursion composition ABI | proposed |
 
 ## Pending ADRs
 
-- Production activation criteria for generated witness writers.
 - Review and acceptance of the proposed cross-proof relation-summary design.
-- Recursive verifier field and proof protocol.
+- Review and activation of the proposed recursion V1 suite and fixed profile.
+- Production activation of compiler-owned function relations and public roots.
 
 ## Template
 

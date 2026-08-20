@@ -147,6 +147,20 @@ pub const Memory = struct {
         }
     }
 
+    /// Whether one later `writeU32AssumePrepared` is guaranteed not to
+    /// allocate. Retirement transactions use this read-only predicate to keep
+    /// the common store path out of both the allocator and the reserve helper.
+    pub inline fn alignedWordWriteIsPrepared(
+        self: *const Memory,
+        addr: u32,
+    ) bool {
+        if (addr & 3 != 0 or self.pages[pageIndex(addr)] == null) return false;
+        if (self.initialized_words.contains(addr)) return true;
+        const maximum_entries = self.initialized_words.capacity() *
+            std.hash_map.default_max_load_percentage / 100;
+        return maximum_entries - self.initialized_words.count() >= 1;
+    }
+
     /// Commit one aligned write after `prepareAlignedWordWrites` covered its
     /// address. This path contains no allocator call and cannot fail.
     pub fn writeU32AssumePrepared(self: *Memory, addr: u32, val: u32) void {
@@ -307,7 +321,12 @@ test "Memory prepared aligned writes commit without lazy allocation" {
     var mem = try Memory.initFallible(std.testing.allocator);
     defer mem.deinit();
     const addresses = [_]u32{ 0x0000_fffc, 0x0001_0000 };
+    try std.testing.expect(!mem.alignedWordWriteIsPrepared(addresses[0]));
+    try std.testing.expect(!mem.alignedWordWriteIsPrepared(addresses[1]));
+    try std.testing.expect(!mem.alignedWordWriteIsPrepared(addresses[0] + 1));
     try mem.prepareAlignedWordWrites(&addresses);
+    try std.testing.expect(mem.alignedWordWriteIsPrepared(addresses[0]));
+    try std.testing.expect(mem.alignedWordWriteIsPrepared(addresses[1]));
     mem.writeU32AssumePrepared(addresses[0], 0x0403_0201);
     mem.writeU32AssumePrepared(addresses[1], 0x0807_0605);
     try std.testing.expectEqual(@as(u32, 0x0403_0201), mem.readU32(addresses[0]));

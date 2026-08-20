@@ -25,6 +25,16 @@ pub const max_core_infrastructure: usize = 512;
 pub const statement_digest_domain =
     "stwo-zig/riscv/guest-poseidon2-statement/v1";
 
+/// Little-endian bytes `STWGICG2`, followed by the authenticated claim-order
+/// version and extension component count. Runtime words encode the exact base
+/// slice length and the two fixed extension runs.
+pub const interaction_claim_geometry_domain_words = [4]u32{
+    0x4757_5453,
+    0x3247_4349,
+    manifest.claim_order_version,
+    components.extension_component_count,
+};
+
 pub const CountBinding = struct {
     n_guest: u32,
     custom_retirements: u32,
@@ -229,20 +239,23 @@ pub const InteractionClaim = struct {
     }
 
     pub fn mixInto(self: *const InteractionClaim, channel: anytype) void {
-        for (self.base.claimed_sums) |claimed_sum|
-            channel.mixFelts(&.{claimed_sum});
-        for (self.extension_sums) |claimed_sum|
-            channel.mixFelts(&.{claimed_sum});
-        const extension_columns = @as(u64, components.caller_interaction_columns) +
+        channel.mixFelts(&self.base.claimed_sums);
+        channel.mixFelts(&self.extension_sums);
+        const extension_columns = @as(u32, components.caller_interaction_columns) +
             components.provider_interaction_columns;
-        channel.mixU64(@as(u64, @intCast(self.base.log_sizes.len)) +
-            extension_columns);
-        for (self.base.log_sizes) |log_size|
-            channel.mixU64(@as(u64, log_size));
-        for (0..components.caller_interaction_columns) |_|
-            channel.mixU64(self.extension_log_sizes[0]);
-        for (0..components.provider_interaction_columns) |_|
-            channel.mixU64(self.extension_log_sizes[1]);
+        channel.mixU32s(&[interaction_claim_geometry_domain_words.len + 6]u32{
+            interaction_claim_geometry_domain_words[0],
+            interaction_claim_geometry_domain_words[1],
+            interaction_claim_geometry_domain_words[2],
+            interaction_claim_geometry_domain_words[3],
+            @intCast(self.base.log_sizes.len),
+            components.caller_interaction_columns,
+            self.extension_log_sizes[0],
+            components.provider_interaction_columns,
+            self.extension_log_sizes[1],
+            @intCast(self.base.log_sizes.len + @as(usize, extension_columns)),
+        });
+        channel.mixU32s(self.base.log_sizes);
     }
 
     pub fn total(self: *const InteractionClaim) QM31 {

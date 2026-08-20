@@ -487,6 +487,11 @@ fn setOnce(slot: *?u32, value: u32) Error!void {
 
 fn productionDomain(schema_id: @import("types.zig").RelationSchemaId) ?production_entry.Domain {
     const schema = relation.getById(schema_id) orelse return null;
+    if (@intFromEnum(schema.domain) >=
+        @typeInfo(production_entry.Domain).@"enum".fields.len)
+    {
+        return null;
+    }
     return @enumFromInt(@intFromEnum(schema.domain));
 }
 
@@ -496,12 +501,12 @@ fn productionRole(role: relation.Role) production_entry.EventRole {
 
 comptime {
     @setEvalBranchQuota(10_000);
-    if (@typeInfo(relation.Domain).@"enum".fields.len !=
+    if (relation.schemas.len !=
         @typeInfo(production_entry.Domain).@"enum".fields.len)
     {
         @compileError("AIR IR compatibility requires aligned relation domains");
     }
-    for (@typeInfo(relation.Domain).@"enum".fields) |field| {
+    for (@typeInfo(relation.Domain).@"enum".fields[0..relation.schemas.len]) |field| {
         const target = std.meta.stringToEnum(
             production_entry.Domain,
             field.name,

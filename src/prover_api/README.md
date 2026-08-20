@@ -58,7 +58,7 @@ comptime prover_api.assertProverEngine(MyEngine);
 | :--- | :--- |
 | Column transaction | `ColumnEvaluation`, `ColumnSource`, `QuotientOpsError`, `column` |
 | Engine contract | `ProveOptions`, `CpuCompositionContentionPolicy`, `CpuCompositionExecutionRequest`, `DeviceCompositionStage`, `assertProverEngine`, `device_composition`, `engine` |
-| Observability | `stage_profile`, `task_profile`, `TaskProfile`, `TASK_PROFILE_SCHEMA_VERSION` |
+| Observability | `stage_profile`, `task_profile`, `work_profile`, `TaskProfile`, `TASK_PROFILE_SCHEMA_VERSION` |
 
 `ColumnEvaluation` is a borrowed view and validates both its declared log size
 and storage length. `ColumnSource` records whether a commitment column is
@@ -87,6 +87,9 @@ publication returns an error without consuming the current capability.
 `Recorder.initWithOptions(..., .{ .capture_tasks = false })` retains stage
 timing while withholding the task recorder from composition; task profiling
 then performs no graph allocation or clock sampling.
+`work_profile` defines the stable exact-work completion records shared by the
+engine and backend integrations; it carries identities and counts, not prover
+implementation policy.
 `assertProverEngine` checks the associated types and exact `init`, `deinit`,
 `commit`, and `prove` signatures at compile time.
 

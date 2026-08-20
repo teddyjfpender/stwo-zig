@@ -29,6 +29,21 @@ typedef struct {
 } StwoZigRawQuotientView;
 
 typedef struct {
+    uint32_t schema_version;
+    uint32_t path;
+    uint32_t reserved0;
+    uint32_t reserved1;
+    uint64_t row_count;
+    uint64_t batch_count;
+    uint64_t view_count;
+    uint64_t grouped_partial_count;
+    uint64_t numerator_additions;
+    uint64_t numerator_multiplications;
+    uint64_t domain_circle_additions;
+    uint64_t batch_inverse_calls;
+} StwoZigQuotientWorkReceipt;
+
+typedef struct {
     uint32_t coefficient_offset, coefficient_length, basis_offset, log_size, output_index;
 } StwoZigPolynomialEvalTask;
 
@@ -147,6 +162,8 @@ size_t stwo_zig_metal_runtime_identity(void *runtime, char *output, size_t outpu
 
 _Static_assert(sizeof(StwoZigCommandEpochStats) == 56u, "StwoZigCommandEpochStats ABI");
 _Static_assert(sizeof(StwoZigRawQuotientView) == 36u, "StwoZigRawQuotientView ABI");
+_Static_assert(sizeof(StwoZigQuotientWorkReceipt) == 80u, "StwoZigQuotientWorkReceipt ABI");
+_Static_assert(offsetof(StwoZigQuotientWorkReceipt, row_count) == 16u, "quotient work row ABI");
 _Static_assert(sizeof(StwoZigPolynomialEvalTask) == 20u, "StwoZigPolynomialEvalTask ABI");
 _Static_assert(offsetof(StwoZigPolynomialEvalTask, coefficient_offset) == 0u, "coefficient_offset ABI");
 _Static_assert(offsetof(StwoZigPolynomialEvalTask, coefficient_length) == 4u, "coefficient_length ABI");

@@ -52,6 +52,33 @@ test "semantic component owns exact main bounds for every compatible family" {
     }
 }
 
+test "semantic component fails closed on row-window binding corruption" {
+    var component = try SemanticComponent.init(.lui, 4, 7, 11);
+    const original = component.mask_binding;
+
+    component.mask_binding.geometry_source_digest[0] ^= 1;
+    try std.testing.expectError(
+        error.InvalidWindowDigest,
+        component.traceLogDegreeBounds(std.testing.allocator),
+    );
+    component.mask_binding = original;
+    component.mask_binding.owned_main_current_columns += 1;
+    try std.testing.expectError(
+        error.InvalidWindowDigest,
+        component.maskPoints(
+            std.testing.allocator,
+            circle.SECURE_FIELD_CIRCLE_GEN,
+            5,
+        ),
+    );
+    component.mask_binding = original;
+    component.family = .auipc;
+    try std.testing.expectError(
+        error.InvalidProofShape,
+        component.preprocessedColumnIndices(std.testing.allocator),
+    );
+}
+
 test "semantic component delegates identical row semantics for every family" {
     var columns = [_]QM31{QM31.zero()} ** trace.MAX_FAMILY_COLUMNS;
     for (0..trace.N_FAMILIES) |index| {

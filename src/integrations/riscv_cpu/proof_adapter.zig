@@ -21,6 +21,7 @@ const stwo = @import("stwo");
 const capabilities = @import("riscv_cpu_capabilities");
 const build_identity = @import("build_identity");
 const artifact_validation = @import("proof_adapter/artifact_validation.zig");
+const artifact_verifier = @import("proof_adapter/artifact_verifier.zig");
 const benchmark_report = @import("proof_adapter/benchmark_report.zig");
 const pcs_profile = @import("proof_adapter/pcs_profile.zig");
 const transcript_state = @import("proof_adapter/transcript_state.zig");
@@ -69,6 +70,11 @@ pub const Options = struct {
 };
 
 const ProcessIdentity = artifact_validation.ProcessIdentity;
+
+fn readProofPhaseClock(context: *anyopaque) anyerror!u64 {
+    const timer: *std.time.Timer = @ptrCast(@alignCast(context));
+    return timer.read();
+}
 
 /// Runs the staged ELF adapter and returns an owned machine-readable report.
 ///
@@ -160,7 +166,10 @@ fn runProve(
         allocator,
         @tagName(@import("builtin").mode),
         "sail_rv32im_zkvm_v1",
-        .{ .capture_tasks = profiled_sample_index != null },
+        .{
+            .capture_tasks = profiled_sample_index != null,
+            .capture_work = profiled_sample_index != null,
+        },
     );
     defer recorder.deinit();
     const telemetry_before = if (comptime backend == .metal)
@@ -193,6 +202,12 @@ fn runProve(
         timer.read()
     else
         null;
+    var proof_phase_meter = prover.proof_phase_meter.Meter.init(
+        if (profile_phase_timer) |*timer|
+            .{ .context = timer, .now_fn = readProofPhaseClock }
+        else
+            null,
+    );
 
     const input_words = try pd_mod.packInputWords(allocator, run_result.input);
     defer allocator.free(input_words);
@@ -205,37 +220,52 @@ fn runProve(
     };
     var proving_timer = try std.time.Timer.start();
     var prove_channel = Engine.Channel{};
-    var output = try prover.proveRiscVWithEngineAndPublicDataUsingChannel(
-        Engine,
-        allocator,
-        config,
-        &run_result.execution_trace,
-        &run_result.state_chain_tracker,
-        &run_result.rw_memory,
-        &recorder,
-        .{
-            .initial_pc = run_result.initial_pc,
-            .final_pc = run_result.final_pc,
-            .clock = @intCast(run_result.step_count),
-            .initial_regs = run_result.initial_regs,
-            .final_regs = run_result.final_regs,
-            .reg_last_clock = run_result.state_chain_tracker.reg_last_clk,
-            .program_root = null,
-            .initial_rw_root = null,
-            .final_rw_root = null,
-            .completion = try pd_mod.completionFromRun(run_result),
-            .io_entries = .{
-                .input_start = run_result.input_start,
-                .input_len = @intCast(run_result.input.len),
-                .input_words = input_words,
-                .output_len = run_result.output_len,
-                .output_len_addr = run_result.output_len_addr,
-                .output_data_addr = run_result.output_data_addr,
-                .output_words = out_words,
-            },
+    const public_data = prover.PublicData{
+        .initial_pc = run_result.initial_pc,
+        .final_pc = run_result.final_pc,
+        .clock = @intCast(run_result.step_count),
+        .initial_regs = run_result.initial_regs,
+        .final_regs = run_result.final_regs,
+        .reg_last_clock = run_result.state_chain_tracker.reg_last_clk,
+        .program_root = null,
+        .initial_rw_root = null,
+        .final_rw_root = null,
+        .completion = try pd_mod.completionFromRun(run_result),
+        .io_entries = .{
+            .input_start = run_result.input_start,
+            .input_len = @intCast(run_result.input.len),
+            .input_words = input_words,
+            .output_len = run_result.output_len,
+            .output_len_addr = run_result.output_len_addr,
+            .output_data_addr = run_result.output_data_addr,
+            .output_words = out_words,
         },
-        &prove_channel,
-    );
+    };
+    var output = if (profiled_sample_index != null)
+        try prover.proveRiscVWithEngineAndPublicDataUsingChannelAndPhaseMeter(
+            Engine,
+            allocator,
+            config,
+            &run_result.execution_trace,
+            &run_result.state_chain_tracker,
+            &run_result.rw_memory,
+            &recorder,
+            public_data,
+            &prove_channel,
+            &proof_phase_meter,
+        )
+    else
+        try prover.proveRiscVWithEngineAndPublicDataUsingChannel(
+            Engine,
+            allocator,
+            config,
+            &run_result.execution_trace,
+            &run_result.state_chain_tracker,
+            &run_result.rw_memory,
+            &recorder,
+            public_data,
+            &prove_channel,
+        );
     defer output.deinitAfterProofMoved(allocator);
     const transcript_state_digest = transcript_state.receiptDigest(
         prove_channel.digestBytes(),
@@ -247,10 +277,19 @@ fn runProve(
             return error.ProfileClockRegression
     else
         null;
+    const witness_ns: ?u64 = if (profiled_sample_index != null)
+        proof_phase_meter.witness_ns
+    else
+        null;
+    const proving_ns: ?u64 = if (witness_ns) |witness|
+        std.math.sub(u64, proving_including_witness_ns.?, witness) catch
+            return error.ProfileWitnessExceedsProofBoundary
+    else
+        null;
     var proof_owned = true;
     defer if (proof_owned) output.proof.deinit(allocator);
 
-    // Serialization is outside the coarse protocol partition. It must still
+    // Serialization is outside the exact protocol partition. It must still
     // precede native verification because verification consumes the proof.
     var proof_bytes: std.ArrayList(u8) = .{};
     defer proof_bytes.deinit(allocator);
@@ -297,15 +336,26 @@ fn runProve(
     }
     var profile = try recorder.snapshot(allocator);
     defer profile.deinit(allocator);
-    const witness_seconds = witnessSeconds(profile.stages);
-    const proving_seconds = @max(0.0, proving_with_witness_seconds - witness_seconds);
+    // This adapter is the legacy/current native baseline. A recursive or outer
+    // stage appearing anywhere in its recorder is a cohort-contamination
+    // error, not a timing to publish under `recursion_enabled=false`.
+    try benchmark_report.requireNativeOnlyStages(profile.stages);
+    const witness_seconds = if (witness_ns) |value|
+        seconds(value)
+    else
+        witnessSeconds(profile.stages);
+    const proving_seconds = if (proving_ns) |value|
+        seconds(value)
+    else
+        @max(0.0, proving_with_witness_seconds - witness_seconds);
 
     var profiled_attempt: ?verified_request_attempt.Attempt = if (profiled_sample_index) |index|
         try verified_request_attempt.Attempt.capture(
             allocator,
             index,
             guest_execution_ns.?,
-            proving_including_witness_ns.?,
+            witness_ns.?,
+            proving_ns.?,
             verification_ns,
             &recorder,
         )
@@ -313,7 +363,9 @@ fn runProve(
         null;
     defer if (profiled_attempt) |*attempt| attempt.deinit(allocator);
     const encoded_attempt: ?[]u8 = if (profiled_attempt) |attempt|
-        try std.json.Stringify.valueAlloc(allocator, attempt, .{})
+        try std.json.Stringify.valueAlloc(allocator, attempt, .{
+            .emit_null_optional_fields = false,
+        })
     else
         null;
     defer if (encoded_attempt) |encoded| allocator.free(encoded);
@@ -626,14 +678,26 @@ fn runBenchmark(
     | {
         slot.* = if (retained.value.profiled_attempt) |*attempt| attempt else unreachable;
     }
+    var exact_work_attempts: usize = 0;
+    for (profiled_attempts) |attempt| {
+        if (attempt.work_profile != null) exact_work_attempts += 1;
+    }
+    if (exact_work_attempts != 0 and exact_work_attempts != profiled_attempts.len)
+        return error.MixedExactWorkProfileSchemas;
+    const exact_work_profiled = profiled_attempts.len != 0 and
+        exact_work_attempts == profiled_attempts.len;
     const report = BenchmarkReport{
         .schema = if (benchmark.profiled)
-            verified_request_attempt.PROFILED_BENCHMARK_SCHEMA
+            if (exact_work_profiled)
+                verified_request_attempt.EXACT_WORK_PROFILED_BENCHMARK_SCHEMA
+            else
+                verified_request_attempt.PROFILED_BENCHMARK_SCHEMA
         else
-            "riscv_proof_v2",
+            benchmark_report.NATIVE_BENCHMARK_SCHEMA,
         .release_status = stwo.interop.riscv_artifact.RELEASE_STATUS,
         .experimental = options.experimental,
         .profiled = benchmark.profiled,
+        .recursion_enabled = false,
         .warmups = benchmark.warmups,
         .samples = benchmark.samples,
         .verified_samples = benchmark.samples,
@@ -663,11 +727,7 @@ fn runBenchmark(
     });
 }
 
-/// Cryptographically verifies a staged artifact: structural validation,
-/// statement/claim/proof reconstruction from the wire, then the full
-/// verifier including global LogUp cancellation. Acceptance is reported
-/// with the artifact's own release status so staged verification can never
-/// be mistaken for promotion.
+/// Cryptographically verifies a staged artifact using the focused verifier.
 pub fn verifyArtifact(
     comptime Engine: type,
     allocator: std.mem.Allocator,
@@ -676,93 +736,14 @@ pub fn verifyArtifact(
     expected_statement_digest: [32]u8,
     elf_path: []const u8,
 ) !void {
-    const artifact_mod = stwo.interop.riscv_artifact;
-    const prover = stwo.frontends.riscv.prover_mod;
-
-    try artifact_mod.validateForPolicy(artifact, switch (requested_policy) {
-        .secure => .secure,
-        .functional => .functional,
-        .smoke => .smoke,
-    });
-    try artifact_validation.validateLocalProvenance(artifact.provenance);
-    try artifact_validation.validateElfBinding(allocator, artifact, elf_path);
-    const actual_statement_digest = artifact_mod.statementDigest(
-        artifact.protocol,
-        artifact.pcs_config,
-        artifact.source,
-        artifact.statement,
-    );
-    if (!std.mem.eql(u8, &expected_statement_digest, &actual_statement_digest))
-        return error.StatementDigestMismatch;
-
-    var reconstructed = try wire_reconstruct.Reconstruction.init(allocator, artifact);
-    defer reconstructed.deinit(allocator);
-
-    if (artifact.proof_bytes_hex.len % 2 != 0) return error.InvalidArtifact;
-    const proof_raw = try allocator.alloc(u8, artifact.proof_bytes_hex.len / 2);
-    defer allocator.free(proof_raw);
-    _ = std.fmt.hexToBytes(proof_raw, artifact.proof_bytes_hex) catch
-        return error.InvalidArtifact;
-    try stwo.interop.postcard.proof_preflight.validate(
-        proof_raw,
-        try artifact_validation.proofPreflightShape(artifact),
-    );
-    var stream = std.io.fixedBufferStream(proof_raw);
-    var proof = try stwo.interop.postcard.deserializeProof(
-        prover.Hasher,
-        allocator,
-        stream.reader(),
-    );
-    if (stream.pos != proof_raw.len) {
-        proof.deinit(allocator);
-        return error.InvalidArtifact;
-    }
-
-    const config = @TypeOf(stagedPcsConfig(.secure)){
-        .pow_bits = artifact.pcs_config.pow_bits,
-        .fri_config = .{
-            .log_blowup_factor = artifact.pcs_config.fri_config.log_blowup_factor,
-            .log_last_layer_degree_bound = artifact.pcs_config.fri_config.log_last_layer_degree_bound,
-            .n_queries = artifact.pcs_config.fri_config.n_queries,
-        },
-    };
-    if (!artifact_validation.pcsConfigsEqual(config, proof.commitment_scheme_proof.config)) {
-        proof.deinit(allocator);
-        return error.ProofConfigMismatch;
-    }
-    var verify_channel = Engine.Channel{};
-    try prover.verifyRiscVWithEngineUsingChannel(
+    return artifact_verifier.verify(
         Engine,
         allocator,
-        config,
-        reconstructed.statement,
-        proof,
-        &reconstructed.claim,
-        &verify_channel,
+        artifact,
+        requested_policy,
+        expected_statement_digest,
+        elf_path,
     );
-
-    var proof_digest: [32]u8 = undefined;
-    std.crypto.hash.sha2.Sha256.hash(proof_raw, &proof_digest, .{});
-    const process_identity = try artifact_validation.measureProcessIdentity(allocator);
-    const receipt = try verify_receipt.encode(allocator, .{
-        .artifact_kind = artifact.artifact_kind,
-        .artifact_schema_version = artifact.schema_version,
-        .release_status = artifact.release_status,
-        .security_policy = @tagName(requested_policy),
-        .statement_sha256 = actual_statement_digest,
-        .proof_bytes = proof_raw.len,
-        .proof_sha256 = proof_digest,
-        .transcript_state_blake2s = transcript_state.receiptDigest(
-            verify_channel.digestBytes(),
-            verify_channel.n_draws,
-        ),
-        .implementation_commit = build_identity.implementation_commit,
-        .implementation_dirty = build_identity.implementation_dirty,
-        .executable_sha256 = process_identity.executable_sha256,
-    });
-    defer allocator.free(receipt);
-    try std.fs.File.stdout().writeAll(receipt);
-    try std.fs.File.stdout().writeAll("\n");
 }
 
 /// The engine this module's own tests exercise, resolved from whichever product
@@ -807,6 +788,7 @@ test "adapter preserves the complete sampled benchmark contract" {
 }
 
 test {
+    _ = @import("proof_adapter/benchmark_report.zig");
     _ = @import("proof_adapter/provenance_test.zig");
     _ = @import("proof_adapter/staged_pcs_profile_test.zig");
     _ = @import("proof_adapter/verified_request_binding_test.zig");

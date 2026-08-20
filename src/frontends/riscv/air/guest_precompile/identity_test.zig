@@ -485,6 +485,8 @@ test "checked admission rejects historical formula boundary and u64 overflow" {
 const RecordingChannel = struct {
     u64s: [400]u64 = undefined,
     n_u64s: usize = 0,
+    u32s: [400]u32 = undefined,
+    n_u32s: usize = 0,
     felts: [components.component_count]QM31 = undefined,
     n_felts: usize = 0,
 
@@ -493,10 +495,16 @@ const RecordingChannel = struct {
         self.n_u64s += 1;
     }
 
+    pub fn mixU32s(self: *RecordingChannel, values: []const u32) void {
+        std.debug.assert(values.len <= self.u32s.len - self.n_u32s);
+        @memcpy(self.u32s[self.n_u32s..][0..values.len], values);
+        self.n_u32s += values.len;
+    }
+
     pub fn mixFelts(self: *RecordingChannel, values: []const QM31) void {
-        std.debug.assert(values.len == 1);
-        self.felts[self.n_felts] = values[0];
-        self.n_felts += 1;
+        std.debug.assert(values.len <= self.felts.len - self.n_felts);
+        @memcpy(self.felts[self.n_felts..][0..values.len], values);
+        self.n_felts += values.len;
     }
 };
 
@@ -534,13 +542,26 @@ test "extension claims preserve base values and append exact transcript order" {
         try std.testing.expect(expected.eql(actual));
     try std.testing.expect(caller_sum.eql(channel.felts[28]));
     try std.testing.expect(provider_sum.eql(channel.felts[29]));
-    try std.testing.expectEqual(@as(u64, 318), channel.u64s[0]);
-    try std.testing.expectEqual(@as(u64, 7), channel.u64s[1]);
-    try std.testing.expectEqual(@as(u64, 8), channel.u64s[2]);
-    for (channel.u64s[3 .. 3 + 308]) |log_size|
-        try std.testing.expectEqual(@as(u64, 4), log_size);
-    for (channel.u64s[311 .. 311 + 8]) |log_size|
-        try std.testing.expectEqual(@as(u64, 4), log_size);
+    try std.testing.expectEqual(@as(usize, 0), channel.n_u64s);
+    try std.testing.expectEqual(@as(usize, 12), channel.n_u32s);
+    try std.testing.expectEqualSlices(
+        u32,
+        &.{
+            statement_mod.interaction_claim_geometry_domain_words[0],
+            statement_mod.interaction_claim_geometry_domain_words[1],
+            statement_mod.interaction_claim_geometry_domain_words[2],
+            statement_mod.interaction_claim_geometry_domain_words[3],
+            2,
+            components.caller_interaction_columns,
+            4,
+            components.provider_interaction_columns,
+            4,
+            318,
+            7,
+            8,
+        },
+        channel.u32s[0..channel.n_u32s],
+    );
 }
 
 test "artifact encoding round trips and every identity digest is authoritative" {

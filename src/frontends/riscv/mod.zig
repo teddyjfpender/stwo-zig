@@ -11,9 +11,15 @@ pub const isa = @import("isa/mod.zig");
 pub const opcode_manifest = @import("opcode_manifest.zig");
 pub const witness_layout = @import("witness_layout.zig");
 pub const prover_mod = @import("prover.zig");
+pub const statement_shape_inspection =
+    @import("prover/statement_shape_inspection.zig");
 pub const owned_statement = @import("owned_statement.zig");
 pub const infra_trace = @import("infra_trace.zig");
 pub const host = @import("host/mod.zig");
+pub const recursion = @import("recursion/mod.zig");
+/// Shared process resource sampler used by authenticated benchmark capture.
+/// It is measurement-only and does not participate in proof semantics.
+pub const process_usage = @import("stwo_prover_engine").measurement.process_usage;
 /// Explicitly unstable helpers used by the repository's adversarial corpus.
 /// Downstream production code must stay on the package surface above.
 pub const testing = @import("testing.zig");
@@ -29,7 +35,22 @@ pub const runWithInput = runner.runWithInput;
 pub const RiscVClaim = air.claims.RiscVClaim;
 pub const proveRiscVTraceOnlyNoPublicIo = prover_mod.proveRiscVTraceOnlyNoPublicIo;
 pub const proveRiscVWithEngineAndPublicData = prover_mod.proveRiscVWithEngineAndPublicData;
+pub const proveRiscVWithEngineAndPublicDataWithExecution =
+    prover_mod.proveRiscVWithEngineAndPublicDataWithExecution;
+pub const proveRiscVSegmentV2WithEngine =
+    prover_mod.proveRiscVSegmentV2WithEngine;
 pub const verifyRiscVWithEngine = prover_mod.verifyRiscVWithEngine;
+pub const verifyRiscVSegmentV2WithEngine =
+    prover_mod.verifyRiscVSegmentV2WithEngine;
+pub const verifyRiscVSegmentV2WithEngineUsingChannelAndCapture =
+    prover_mod.verifyRiscVSegmentV2WithEngineUsingChannelAndCapture;
+pub const verifyRiscVWithEngineUsingChannelAndQueryCapture =
+    prover_mod.verifyRiscVWithEngineUsingChannelAndQueryCapture;
+pub const verifyRiscVWithEngineUsingChannelAndProofCapture =
+    prover_mod.verifyRiscVWithEngineUsingChannelAndProofCapture;
+pub const provePoseidon2WithEngineAndPublicData =
+    prover_mod.provePoseidon2WithEngineAndPublicData;
+pub const verifyPoseidon2WithEngine = prover_mod.verifyPoseidon2WithEngine;
 pub const proveAndVerifyElfWithEngine = prover_mod.proveAndVerifyElfWithEngine;
 
 test "api signature: RISC-V facade preserves runner and prover entry points" {

@@ -118,7 +118,7 @@ class PromoteClaimedTest(unittest.TestCase):
                     "board": "riscv",
                     "build_step": "true",
                     "binary": "bin/riscv",
-                    "report_schema": "riscv_proof_v2",
+                    "report_schema": "riscv_proof_v3",
                     "mechanism_telemetry": {
                         "fail_closed": True,
                         "required_fields": [

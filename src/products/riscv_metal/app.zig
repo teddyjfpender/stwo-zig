@@ -15,8 +15,10 @@
 
 const std = @import("std");
 const base_adapter = @import("riscv_adapter");
+const guest_poseidon2 = @import("guest_poseidon2_app.zig");
 const shared = @import("riscv_shared_app");
 const metal_aot_config = @import("metal_aot_config");
+const runtime_admission = @import("runtime_admission.zig");
 
 /// Product-local adapter guard. The shared RISC-V shell remains backend-neutral,
 /// while every proving or benchmark transaction initializes the Metal engine
@@ -39,18 +41,8 @@ const AuthenticatedAdapter = struct {
         input_path: ?[]const u8,
         options: Options,
     ) ![]u8 {
-        const before = Engine.runtimeLifecycleSnapshot();
-        if (before.initialized) return error.RuntimeAlreadyInitialized;
-
-        const bundle_path = try resolveBundlePath(allocator);
-        defer allocator.free(bundle_path);
-        try Engine.initializeRuntime(allocator, .{
-            .authenticated_aot = .{
-                .bundle_path = bundle_path,
-                .manifest_sha256 = metal_aot_config.manifest_sha256,
-            },
-        });
-        errdefer Engine.Backend.shutdown() catch {};
+        var runtime = try runtime_admission.Guard(Engine).init(allocator);
+        defer runtime.deinit();
 
         const report = try base_adapter.run(
             Engine,
@@ -61,7 +53,7 @@ const AuthenticatedAdapter = struct {
             options,
         );
         errdefer allocator.free(report);
-        try Engine.Backend.shutdown();
+        try runtime.finish();
         return report;
     }
 };
@@ -78,31 +70,31 @@ const Deps = struct {
 
 const app = shared.App(Deps);
 
-pub const main = app.main;
-
-fn resolveBundlePath(allocator: std.mem.Allocator) ![]u8 {
-    const configured = std.process.getEnvVarOwned(
-        allocator,
-        "STWO_RISCV_METAL_AOT_BUNDLE",
-    ) catch |err| switch (err) {
-        error.EnvironmentVariableNotFound => null,
-        else => return err,
+pub fn main() !void {
+    const allocator = std.heap.smp_allocator;
+    const process_args = try std.process.argsAlloc(allocator);
+    defer std.process.argsFree(allocator, process_args);
+    const guest = Deps.cli.parseGuest(process_args[1..]) catch |err| {
+        const writer = std.fs.File.stderr().deprecatedWriter();
+        if (process_args.len > 1 and std.mem.eql(
+            u8,
+            process_args[1],
+            "guest-poseidon2-prove",
+        )) {
+            try Deps.cli.writeGuestUsage(writer, .prove);
+        } else if (process_args.len > 1 and std.mem.eql(
+            u8,
+            process_args[1],
+            "guest-poseidon2-verify",
+        )) {
+            try Deps.cli.writeGuestUsage(writer, .verify);
+        } else {
+            try Deps.cli.writeUsage(writer, null);
+        }
+        return err;
     };
-    if (configured) |path| {
-        errdefer allocator.free(path);
-        if (path.len == 0 or !std.fs.path.isAbsolute(path))
-            return error.InvalidMetalAotBundlePath;
-        return path;
-    }
-
-    const executable = try std.fs.selfExePathAlloc(allocator);
-    defer allocator.free(executable);
-    const bin_dir = std.fs.path.dirname(executable) orelse
-        return error.InvalidExecutablePath;
-    return std.fs.path.resolve(
-        allocator,
-        &.{ bin_dir, "..", metal_aot_config.install_subdir },
-    );
+    if (guest) |request| return guest_poseidon2.run(allocator, request);
+    return app.main();
 }
 
 test "focused verifier rejects non-RISC-V artifacts" {

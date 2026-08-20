@@ -13,6 +13,8 @@ const prover = @import("stwo_prover_engine");
 const admission = @import("riscv_composition_admission.zig");
 const attribution = @import("riscv_composition_attribution.zig");
 const lanes = @import("riscv_composition_lanes.zig");
+const composition_support = @import("riscv_composition_work.zig");
+const composition_work = prover.air.composition_work;
 
 const qm31 = core.fields.qm31;
 const packed_qm31 = core.fields.packed_qm31;
@@ -25,16 +27,22 @@ const Accumulator = prover.air.accumulation.DomainEvaluationAccumulator;
 const SecureColumn = prover.secure_column.SecureColumnByCoords;
 const BaseProgramEntry = admission.BaseProgramEntry;
 const LookupProgramEntry = admission.LookupProgramEntry;
+const LookupProgramV2Entry = admission.LookupProgramV2Entry;
 const PairJob = admission.PairJob;
 const Bucket = lanes.Bucket;
 const EvaluationContext = lanes.EvaluationContext;
 const Tile = lanes.Tile;
 const TileLane = lanes.TileLane;
 const TILE_ROWS = lanes.TILE_ROWS;
+const buildWorkReceipt = composition_support.buildWorkReceipt;
+const requireHeapBackedResources = composition_support.requireHeapBackedResources;
+const componentWorkEstimate = composition_support.componentWorkEstimate;
+const componentRows = composition_support.componentRows;
 /// Exact-pair lanes can span several adjacent semantic/lookup components, so
 /// they belong to one synthetic aggregate rather than impersonating a real
 /// component registry entry. The lane is the canonical chunk identity.
 const PAIR_AGGREGATE_REGISTRY_INDEX: u32 = std.math.maxInt(u32);
+pub const LookupV2Activation = admission.LookupV2Activation;
 
 pub const TelemetrySnapshot = struct {
     attempts: u64 = 0,
@@ -124,6 +132,11 @@ pub const ExecutionOptions = struct {
     requested_worker_count: usize = 0,
     pool_capacity: usize = 0,
     task_recorder: ?*prover.stage_profile.Recorder = null,
+    /// Must only be set after the caller authenticates the versioned statement
+    /// that owns the V2 lookup partition. The ordinary prover path leaves this
+    /// disabled, even if a component happens to publish a V2 capability.
+    lookup_v2_activation: LookupV2Activation = .disabled,
+    work_capture: ?*composition_work.Capture = null,
 
     fn requestedWorkerCount(self: ExecutionOptions) usize {
         return if (self.requested_worker_count == 0)
@@ -261,7 +274,10 @@ pub fn evaluateWithExecution(
             return error.WorkerBudgetUnavailable;
         }
     }
-    if (!admission.hasCandidatePair(components)) return null;
+    if (!admission.hasCandidatePair(
+        components,
+        execution.lookup_v2_activation,
+    )) return null;
 
     if (execution.byte_budget == std.math.maxInt(usize)) {
         return evaluatePlan(allocator, components, random_coeff, trace, execution);
@@ -323,6 +339,11 @@ fn evaluatePlan(
         for (lookup_programs.items) |*entry| entry.deinit(allocator);
         lookup_programs.deinit(allocator);
     }
+    var lookup_programs_v2 = std.ArrayList(LookupProgramV2Entry).empty;
+    defer {
+        for (lookup_programs_v2.items) |*entry| entry.deinit(allocator);
+        lookup_programs_v2.deinit(allocator);
+    }
     var pairs = std.ArrayList(PairJob).empty;
     defer {
         for (pairs.items) |*pair| pair.deinit(allocator);
@@ -342,6 +363,8 @@ fn evaluatePlan(
             trace,
             &base_programs,
             &lookup_programs,
+            &lookup_programs_v2,
+            execution.lookup_v2_activation,
         );
         if (pair) |admitted_value| {
             var admitted = admitted_value;
@@ -407,26 +430,50 @@ fn evaluatePlan(
     var max_base_nodes: usize = 0;
     var max_lookup_nodes: usize = 0;
     var max_lookup_entries: usize = 0;
+    var max_lookup_v2_nodes: usize = 0;
+    var max_lookup_v2_entries: usize = 0;
     for (pairs.items) |pair| {
         max_main_columns = @max(max_main_columns, pair.main_columns.len);
         max_base_nodes = @max(
             max_base_nodes,
             base_programs.items[pair.base_program_index].program.nodes.len,
         );
-        max_lookup_nodes = @max(
-            max_lookup_nodes,
-            lookup_programs.items[pair.lookup_program_index].program.nodes.len,
-        );
-        max_lookup_entries = @max(
-            max_lookup_entries,
-            lookup_programs.items[pair.lookup_program_index].program.entries.len,
-        );
+        switch (pair.lookup_version) {
+            .v1 => {
+                max_lookup_nodes = @max(
+                    max_lookup_nodes,
+                    lookup_programs.items[pair.lookup_program_index].program.nodes.len,
+                );
+                max_lookup_entries = @max(
+                    max_lookup_entries,
+                    lookup_programs.items[pair.lookup_program_index].program.entries.len,
+                );
+            },
+            .v2 => {
+                max_lookup_v2_nodes = @max(
+                    max_lookup_v2_nodes,
+                    lookup_programs_v2.items[pair.lookup_program_index].program.nodes.len,
+                );
+                max_lookup_v2_entries = @max(
+                    max_lookup_v2_entries,
+                    lookup_programs_v2.items[pair.lookup_program_index].program.entries.len,
+                );
+            },
+        }
     }
-    const scratch_bytes = try lanes.scratchBytes(
+    var scratch_bytes = try lanes.scratchBytes(
         max_main_columns,
         max_base_nodes,
         max_lookup_nodes,
         max_lookup_entries,
+    );
+    scratch_bytes = try std.math.add(
+        usize,
+        scratch_bytes,
+        try lanes.lookupV2ScratchBytes(
+            max_lookup_v2_nodes,
+            max_lookup_v2_entries,
+        ),
     );
 
     var tile_count: usize = 0;
@@ -545,11 +592,14 @@ fn evaluatePlan(
         .pairs = pairs.items,
         .base_programs = base_programs.items,
         .lookup_programs = lookup_programs.items,
+        .lookup_programs_v2 = lookup_programs_v2.items,
         .powers = packed_powers,
         .max_main_columns = max_main_columns,
         .max_base_nodes = max_base_nodes,
         .max_lookup_nodes = max_lookup_nodes,
         .max_lookup_entries = max_lookup_entries,
+        .max_lookup_v2_nodes = max_lookup_v2_nodes,
+        .max_lookup_v2_entries = max_lookup_v2_entries,
     };
     var tile_cursor: usize = 0;
     for (buckets.items) |*bucket| {
@@ -592,6 +642,7 @@ fn evaluatePlan(
             pairs.items,
             base_programs.items,
             lookup_programs.items,
+            lookup_programs_v2.items,
             tiles,
             lane_count,
         )
@@ -746,6 +797,21 @@ fn evaluatePlan(
         }
     }
 
+    const work_receipt = if (execution.work_capture != null)
+        try buildWorkReceipt(
+            allocator,
+            components,
+            total_constraints,
+            max_log_size,
+            eligible,
+            pairs.items,
+            buckets.items,
+            host_workers,
+            prepared_output != null,
+        )
+    else
+        null;
+
     for (host_workers) |*worker| combined.merge(&worker.accumulator);
     for (buckets.items) |*bucket| {
         const log_size = bucket.eval_log_size;
@@ -763,29 +829,14 @@ fn evaluatePlan(
     }
     if (prepared_output) |*output| {
         try combined.finalizeInto(output);
-        const result = output.*;
+        var result = output.*;
         prepared_output = null;
+        errdefer result.deinit(allocator);
+        if (work_receipt) |receipt| try execution.work_capture.?.publish(receipt);
         return result;
     }
-    return try combined.finalize();
-}
-
-fn requireHeapBackedResources(resources: prover.task_graph.ResourceReservation) !void {
-    if (resources.exclusive_scratch_bytes != 0 or resources.device_resident_bytes != 0) {
-        return error.FiniteCompositionByteBudgetUnsupported;
-    }
-}
-
-fn componentWorkEstimate(component: Component, rows: u64) !u64 {
-    return prover.task_graph.checkedWorkEstimate(&.{
-        rows,
-        std.math.cast(u64, component.nConstraints()) orelse
-            return error.WorkEstimateOverflow,
-    });
-}
-
-fn componentRows(component: Component) !u64 {
-    const log_size = component.maxConstraintLogDegreeBound();
-    if (log_size >= @bitSizeOf(u64)) return error.WorkEstimateOverflow;
-    return @as(u64, 1) << @intCast(log_size);
+    var result = try combined.finalize();
+    errdefer result.deinit(allocator);
+    if (work_receipt) |receipt| try execution.work_capture.?.publish(receipt);
+    return result;
 }

@@ -132,6 +132,7 @@ pub const Binding = struct {
             roleProduct(self.product, .@"test"),
             self.target,
             self.optimize,
+            null,
         );
         // Compatibility, H-009, and H-010 tests consume checked-in typed-AIR fixtures
         // through separate generated module names. Keep those design-time

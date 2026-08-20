@@ -1,7 +1,8 @@
 //! Native typed AIR authorship for the compatibility-exact RV32 LUI family.
 //!
-//! This module is shadow-only: it does not change production selection,
-//! witness authority, commitment geometry, or the proof transcript.
+//! Its constraint definition remains a shadow of the shipped AIR. Its
+//! authenticated witness recipe is the production LUI row authority; the
+//! cutover preserves commitment geometry and the proof transcript exactly.
 
 const std = @import("std");
 const digest = @import("digest.zig");

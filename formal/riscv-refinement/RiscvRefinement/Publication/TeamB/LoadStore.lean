@@ -4172,56 +4172,56 @@ def lbProgramIdentity : ProgramIdentity where
   mnemonic := "lb"
   family := .loadStore
   contentDigest :=
-    "be64f6f847266cff147de247401d07f6b7b1b83031d6291cd2dd1e2a5987a1c5"
+    "8c63862acc341a4dca936e7fc5ae98a46bd38ed87a616b8e070d38bff91d5fab"
 
 def lhProgramIdentity : ProgramIdentity where
   manifestId := 20
   mnemonic := "lh"
   family := .loadStore
   contentDigest :=
-    "99ae422d6abb3b50225bfb54f14607da860a06083d3d2e66f99cdf391505fe9d"
+    "21f11b9f8b0a1146a0f221354106a6322f2ccb0a233975cedfc944715e902a73"
 
 def lwProgramIdentity : ProgramIdentity where
   manifestId := 21
   mnemonic := "lw"
   family := .loadStore
   contentDigest :=
-    "eec3daae2f539e73bad2168b06e8928639c6a2907b81577f3b0422ece1f651fa"
+    "3cb600a3970cb736e5f5e85afd21d4a1b902f0b52d0204114f6b24620a00f6ee"
 
 def lbuProgramIdentity : ProgramIdentity where
   manifestId := 22
   mnemonic := "lbu"
   family := .loadStore
   contentDigest :=
-    "336403b9d469a78eea46cd518ea1dd21c3b50ff4c7c443a2d643b201786dd5fa"
+    "0b859fab41ce88f1732b73352065bdc6eba0fac801952922a021c35dd2c8bdba"
 
 def lhuProgramIdentity : ProgramIdentity where
   manifestId := 23
   mnemonic := "lhu"
   family := .loadStore
   contentDigest :=
-    "1725ac9731173083c4506fff6e58084ba7ba1ee589d02dbe53b46f37eb1e4a46"
+    "169f16b00cf6ec7bd61c6f38d810b6c19f9b5c35a6205253402eb02349a68605"
 
 def sbProgramIdentity : ProgramIdentity where
   manifestId := 24
   mnemonic := "sb"
   family := .loadStore
   contentDigest :=
-    "0e6f10a9f0704131216768f519fbefe13d717045db8921126c2526f3f2c35feb"
+    "f309fb7651fd9dea9f888472d89d275edb5809aa4c64994fe3dd35a98f75618d"
 
 def shProgramIdentity : ProgramIdentity where
   manifestId := 25
   mnemonic := "sh"
   family := .loadStore
   contentDigest :=
-    "c976c15184a275903b133a66c1af4d6e76f4a9cf49d13e0de6778c293668e9cc"
+    "89ba7d9e219f73ab732b68e2e7f96cfe324499dd76157631c41ee110633a6d95"
 
 def swProgramIdentity : ProgramIdentity where
   manifestId := 26
   mnemonic := "sw"
   family := .loadStore
   contentDigest :=
-    "d508e05548286d811929e7553b54532e9e272071c9fbf09930917e4d8b3440d6"
+    "41732b22881b3cde4811eaaa9c36aebc3749bed250a5d9bb799cc0ee4ca3e0d2"
 
 structure ExactSelectorIdentity
     (program : LocalProgram)

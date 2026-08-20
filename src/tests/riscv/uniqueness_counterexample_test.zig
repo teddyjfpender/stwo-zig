@@ -30,7 +30,10 @@ const lookup_entry = @import("stwo_riscv_frontend").air.lookups.entry;
 const lookup_table = @import("stwo_riscv_frontend").air.lookups.tables.schema;
 const row_admissibility = @import("row_admissibility.zig");
 const semantic_eval = @import("stwo_riscv_frontend").air.semantic_eval;
-const semantics = @import("stwo_riscv_frontend").air.semantics;
+const shifts_imm_test_oracle =
+    @import("stwo_riscv_frontend").testing.shifts_imm_semantics.Semantics(QM31);
+const shifts_reg_test_oracle =
+    @import("stwo_riscv_frontend").testing.shifts_reg_semantics.Semantics(QM31);
 const trace_mod = @import("stwo_riscv_frontend").runner.trace;
 const uniqueness_ir = @import("uniqueness_ir_test.zig");
 
@@ -244,8 +247,8 @@ test "shift carry window: every byte candidate is admitted iff below the multipl
     };
     inline for ([_]OpcodeFamily{ .shifts_imm, .shifts_reg }) |family| {
         const module = switch (family) {
-            .shifts_imm => semantics.shifts_imm,
-            .shifts_reg => semantics.shifts_reg,
+            .shifts_imm => shifts_imm_test_oracle,
+            .shifts_reg => shifts_reg_test_oracle,
             else => unreachable,
         };
         inline for (0..8) |bit_shift| {

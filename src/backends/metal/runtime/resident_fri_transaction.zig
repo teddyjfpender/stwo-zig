@@ -2,6 +2,7 @@ const std = @import("std");
 const commit_policy = @import("../commit_policy.zig");
 const shared_runtime = @import("../shared_runtime.zig");
 const telemetry = @import("../telemetry.zig");
+const work_profile = @import("stwo_prover_api").work_profile;
 
 const fri_inverse_cache_min_values: usize = 1 << 13;
 
@@ -18,6 +19,62 @@ pub fn Ops(comptime B: type) type {
             config: @import("stwo_core").fri.FriConfig,
             circle_domain: @import("stwo_core").poly.circle.domain.CircleDomain,
             provider: anytype,
+        ) !?LazyFriCommitResult {
+            return commitLazyFriTransactionInternal(
+                H,
+                FirstLayerProver,
+                InnerLayerProver,
+                InnerCommitResult,
+                LazyFriCommitResult,
+                allocator,
+                channel,
+                config,
+                circle_domain,
+                provider,
+                null,
+            );
+        }
+
+        pub fn commitLazyFriTransactionWithReceipt(
+            comptime H: type,
+            comptime FirstLayerProver: type,
+            comptime InnerLayerProver: type,
+            comptime InnerCommitResult: type,
+            comptime LazyFriCommitResult: type,
+            allocator: std.mem.Allocator,
+            channel: anytype,
+            config: @import("stwo_core").fri.FriConfig,
+            circle_domain: @import("stwo_core").poly.circle.domain.CircleDomain,
+            provider: anytype,
+            ledger: *work_profile.FriFoldExecutionLedger,
+        ) !?LazyFriCommitResult {
+            return commitLazyFriTransactionInternal(
+                H,
+                FirstLayerProver,
+                InnerLayerProver,
+                InnerCommitResult,
+                LazyFriCommitResult,
+                allocator,
+                channel,
+                config,
+                circle_domain,
+                provider,
+                ledger,
+            );
+        }
+
+        fn commitLazyFriTransactionInternal(
+            comptime H: type,
+            comptime FirstLayerProver: type,
+            comptime InnerLayerProver: type,
+            comptime InnerCommitResult: type,
+            comptime LazyFriCommitResult: type,
+            allocator: std.mem.Allocator,
+            channel: anytype,
+            config: @import("stwo_core").fri.FriConfig,
+            circle_domain: @import("stwo_core").poly.circle.domain.CircleDomain,
+            provider: anytype,
+            ledger: ?*work_profile.FriFoldExecutionLedger,
         ) !?LazyFriCommitResult {
             const channel_blake2s = @import("stwo_core").channel.blake2s;
             const line = @import("stwo_core").poly.line;
@@ -94,7 +151,28 @@ pub fn Ops(comptime B: type) type {
             const initial_coset = line_domain.coset();
             var lease = try shared_runtime.acquire();
             defer lease.deinit();
-            var runtime_result = try lease.runtime.computeQuotientsAndCommitFri(
+            var runtime_result: @import("../runtime.zig").QuotientFriCommitResult = if (ledger != null) blk: {
+                const profiled = try lease.runtime.computeQuotientsAndCommitFriWithReceipt(
+                    allocator,
+                    provider,
+                    &first_column,
+                    line_storage.handle,
+                    coordinate_handles,
+                    terminal_storage.handle,
+                    @intCast(initial_coset.initial_index.v),
+                    @intCast(initial_coset.step_size.v),
+                    &channel_state,
+                    H.leafSeed(),
+                    H.nodeSeed(),
+                    H.domainPrefixBytes(),
+                );
+                try provider.completeMetalRowExecution(profiled.execution);
+                break :blk .{
+                    .gpu_ms = profiled.gpu_ms,
+                    .tree = profiled.tree,
+                    .fri = profiled.fri,
+                };
+            } else try lease.runtime.computeQuotientsAndCommitFri(
                 allocator,
                 provider,
                 &first_column,
@@ -168,6 +246,38 @@ pub fn Ops(comptime B: type) type {
                 },
             );
 
+            if (ledger) |active| {
+                active.observe(.{
+                    .kind = .circle_to_line,
+                    .initial_count = provider.domain_size,
+                    .fold_count = 1,
+                    .domain_log_size = line_domain.logSize(),
+                    .domain_initial_index = @intCast(initial_coset.initial_index.v),
+                    .domain_step_size = @intCast(initial_coset.step_size.v),
+                    .inverse_path = if (runtime_result.fri.inverse_generation_mask & 1 != 0)
+                        .metal_direct
+                    else
+                        .retained,
+                    .alpha_squares = 0,
+                    .domain_doubles = 0,
+                    .optimized_zero_accumulator = true,
+                });
+                active.observe(.{
+                    .kind = .line,
+                    .initial_count = line_domain.size(),
+                    .fold_count = @intCast(layer_count),
+                    .domain_log_size = line_domain.logSize(),
+                    .domain_initial_index = @intCast(initial_coset.initial_index.v),
+                    .domain_step_size = @intCast(initial_coset.step_size.v),
+                    .inverse_path = if (runtime_result.fri.inverse_generation_mask & 2 != 0)
+                        .metal_direct
+                    else
+                        .retained,
+                    .alpha_squares = 0,
+                    .domain_doubles = @intCast(2 * layer_count),
+                });
+            }
+
             return .{
                 .first_layer = FirstLayerProver{
                     .domain = circle_domain,
@@ -191,6 +301,58 @@ pub fn Ops(comptime B: type) type {
             line_domain: @import("stwo_core").poly.line.LineDomain,
             channel: anytype,
             config: @import("stwo_core").fri.FriConfig,
+        ) !?InnerCommitResult {
+            return commitFriCircleLayersInternal(
+                H,
+                InnerLayerProver,
+                InnerCommitResult,
+                allocator,
+                circle_column,
+                circle_domain,
+                line_domain,
+                channel,
+                config,
+                null,
+            );
+        }
+
+        pub fn commitFriCircleLayersWithReceipt(
+            comptime H: type,
+            comptime InnerLayerProver: type,
+            comptime InnerCommitResult: type,
+            allocator: std.mem.Allocator,
+            circle_column: @import("stwo_prover_engine").secure_column.SecureColumnByCoords,
+            circle_domain: @import("stwo_core").poly.circle.domain.CircleDomain,
+            line_domain: @import("stwo_core").poly.line.LineDomain,
+            channel: anytype,
+            config: @import("stwo_core").fri.FriConfig,
+            ledger: *work_profile.FriFoldExecutionLedger,
+        ) !?InnerCommitResult {
+            return commitFriCircleLayersInternal(
+                H,
+                InnerLayerProver,
+                InnerCommitResult,
+                allocator,
+                circle_column,
+                circle_domain,
+                line_domain,
+                channel,
+                config,
+                ledger,
+            );
+        }
+
+        fn commitFriCircleLayersInternal(
+            comptime H: type,
+            comptime InnerLayerProver: type,
+            comptime InnerCommitResult: type,
+            allocator: std.mem.Allocator,
+            circle_column: @import("stwo_prover_engine").secure_column.SecureColumnByCoords,
+            circle_domain: @import("stwo_core").poly.circle.domain.CircleDomain,
+            line_domain: @import("stwo_core").poly.line.LineDomain,
+            channel: anytype,
+            config: @import("stwo_core").fri.FriConfig,
+            ledger: ?*work_profile.FriFoldExecutionLedger,
         ) !?InnerCommitResult {
             const channel_blake2s = @import("stwo_core").channel.blake2s;
             if (comptime @TypeOf(channel.*) != channel_blake2s.Blake2sChannel) return null;
@@ -217,17 +379,31 @@ pub fn Ops(comptime B: type) type {
                 alpha_coordinates[2].v,
                 alpha_coordinates[3].v,
             };
-            var cascade = (try B.commitFriLineCascade(
-                H,
-                allocator,
-                evaluation,
-                channel,
-                &workspace,
-                config.lastLayerDomainSize(),
-                config.fold_step,
-                circle_column.resident_storage.?.handle,
-                alpha_words,
-            )) orelse return error.InvalidColumns;
+            var cascade = (if (ledger) |active|
+                try B.commitFriLineCascadeWithReceipt(
+                    H,
+                    allocator,
+                    evaluation,
+                    channel,
+                    &workspace,
+                    config.lastLayerDomainSize(),
+                    config.fold_step,
+                    circle_column.resident_storage.?.handle,
+                    alpha_words,
+                    active,
+                )
+            else
+                try B.commitFriLineCascade(
+                    H,
+                    allocator,
+                    evaluation,
+                    channel,
+                    &workspace,
+                    config.lastLayerDomainSize(),
+                    config.fold_step,
+                    circle_column.resident_storage.?.handle,
+                    alpha_words,
+                )) orelse return error.InvalidColumns;
             telemetry.record(.metal_fri_circle_fold_dispatch);
 
             std.debug.assert(cascade.columns.len == cascade.trees.len);

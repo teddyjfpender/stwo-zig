@@ -20,6 +20,7 @@ const memory_trace = @import("../air/memory_commitment/trace.zig");
 const merkle_node = @import("../air/memory_commitment/merkle_node.zig");
 const poseidon2_air = @import("../air/memory_commitment/poseidon2_air.zig");
 const program_commitment = @import("../air/program/commitment.zig");
+const guest_statement = @import("../air/guest_precompile/statement.zig");
 const statement_mod = @import("../air/statement.zig");
 const infra = @import("../infra_trace.zig");
 const trace_mod = @import("../runner/trace.zig");
@@ -56,11 +57,44 @@ pub const counterSetReservationBytes = plan_types.counterSetReservationBytes;
 
 const work_pool = plan_types.work_pool;
 
+/// Runtime cardinalities which bind an extension-aware base plan to all three
+/// independently owned sources: ordinary trace rows, frozen call records, and
+/// frozen guest execution rows.
+pub const Poseidon2ExecutionCounts = struct {
+    ordinary_rows: usize,
+    call_records: usize,
+    guest_execution_rows: usize,
+};
+
 pub fn build(
     statement: *const statement_mod.RiscVStatement,
     options: BuildOptions,
 ) Error!Plan {
-    const shape = try validateStatementGeometry(statement);
+    return buildWithOrdinarySteps(statement, statement.total_steps, options);
+}
+
+/// Builds the base Tree-1 plan for a Poseidon2 extension statement. Guest
+/// retirements remain statement-visible but never enter ordinary-row chunking.
+pub fn buildPoseidon2(
+    statement: *const statement_mod.RiscVStatement,
+    extension: *const guest_statement.ExtensionStatement,
+    counts: Poseidon2ExecutionCounts,
+    options: BuildOptions,
+) Error!Plan {
+    const ordinary_steps = try validatePoseidon2Binding(
+        statement,
+        extension,
+        counts,
+    );
+    return buildWithOrdinarySteps(statement, ordinary_steps, options);
+}
+
+fn buildWithOrdinarySteps(
+    statement: *const statement_mod.RiscVStatement,
+    ordinary_steps: u32,
+    options: BuildOptions,
+) Error!Plan {
+    const shape = try validateStatementGeometry(statement, ordinary_steps);
     const admitted_workers = try resolveAdmittedWorkers(
         options.execution,
         options.pool_capacity,
@@ -76,6 +110,7 @@ pub fn build(
         .opcode_chunk_ranges = .{RowRange{}} ** work_pool.MAX_WORKERS,
         .poseidon_chunk_ranges = .{RowRange{}} ** work_pool.MAX_WORKERS,
         .total_steps = statement.total_steps,
+        .ordinary_steps = ordinary_steps,
         .total_columns = 0,
         .n_components = shape.n_components,
         .n_infra = shape.n_infra,
@@ -106,7 +141,7 @@ pub fn build(
     result.total_columns = try plan_types.checkedU32(cursor);
 
     const natural_opcode_chunks = plan_types.naturalChunkCount(
-        statement.total_steps,
+        ordinary_steps,
         OPCODE_ROWS_PER_CHUNK,
         admitted_workers,
     );
@@ -120,6 +155,7 @@ pub fn build(
     const fixed_resources = try fixedResources(
         statement,
         shape,
+        ordinary_steps,
         admitted_workers,
         options.worker_stack_bytes,
     );
@@ -135,7 +171,7 @@ pub fn build(
     try plan_types.writeAlignedPartition(
         &result.opcode_chunk_ranges,
         opcode_chunks,
-        statement.total_steps,
+        ordinary_steps,
         OPCODE_ROWS_PER_CHUNK,
     );
     try plan_types.writeAlignedPartition(
@@ -163,7 +199,7 @@ pub fn build(
         poseidon_chunks,
         options.enable_opcode_audit,
     );
-    try validate(&result, statement);
+    try validateCommon(&result, statement, ordinary_steps);
     return result;
 }
 
@@ -173,12 +209,39 @@ pub fn validate(
     plan: *const Plan,
     statement: *const statement_mod.RiscVStatement,
 ) Error!void {
-    const shape = try validateStatementGeometry(statement);
+    if (plan.ordinary_steps != statement.total_steps)
+        return error.InvalidPlan;
+    return validateCommon(plan, statement, statement.total_steps);
+}
+
+/// Revalidates both the compact plan and the extension/runtime cardinality
+/// binding. A plan created for one call count cannot be replayed for another.
+pub fn validatePoseidon2(
+    plan: *const Plan,
+    statement: *const statement_mod.RiscVStatement,
+    extension: *const guest_statement.ExtensionStatement,
+    counts: Poseidon2ExecutionCounts,
+) Error!void {
+    const ordinary_steps = try validatePoseidon2Binding(
+        statement,
+        extension,
+        counts,
+    );
+    return validateCommon(plan, statement, ordinary_steps);
+}
+
+fn validateCommon(
+    plan: *const Plan,
+    statement: *const statement_mod.RiscVStatement,
+    ordinary_steps: u32,
+) Error!void {
+    const shape = try validateStatementGeometry(statement, ordinary_steps);
     if (plan.n_components != shape.n_components or
         plan.n_infra != shape.n_infra or
         plan.descriptor_count != shape.descriptor_count or
         plan.poseidon_infra_index != shape.poseidon_infra_index or
-        plan.total_steps != statement.total_steps)
+        plan.total_steps != statement.total_steps or
+        plan.ordinary_steps != ordinary_steps)
         return error.InvalidPlan;
 
     const admitted = try resolveAdmittedWorkers(.{
@@ -212,7 +275,7 @@ pub fn validate(
     }
 
     const natural_opcode_chunks = plan_types.naturalChunkCount(
-        statement.total_steps,
+        ordinary_steps,
         OPCODE_ROWS_PER_CHUNK,
         admitted,
     );
@@ -221,7 +284,7 @@ pub fn validate(
         return error.InvalidChunkCoverage;
     try plan_types.validateAlignedPartition(
         plan.opcodeChunks(),
-        statement.total_steps,
+        ordinary_steps,
         OPCODE_ROWS_PER_CHUNK,
     );
 
@@ -243,6 +306,7 @@ pub fn validate(
     const fixed_resources = try fixedResources(
         statement,
         shape,
+        ordinary_steps,
         admitted,
         plan.worker_stack_bytes,
     );
@@ -278,6 +342,39 @@ pub fn validate(
     try plan.task_counts.validate();
 }
 
+fn validatePoseidon2Binding(
+    statement: *const statement_mod.RiscVStatement,
+    extension: *const guest_statement.ExtensionStatement,
+    counts: Poseidon2ExecutionCounts,
+) Error!u32 {
+    extension.validate(statement) catch
+        return error.InvalidPoseidon2ExecutionBinding;
+    const ordinary_rows = std.math.cast(u32, counts.ordinary_rows) orelse
+        return error.InvalidPoseidon2ExecutionBinding;
+    const call_records = std.math.cast(u32, counts.call_records) orelse
+        return error.InvalidPoseidon2ExecutionBinding;
+    const guest_execution_rows = std.math.cast(
+        u32,
+        counts.guest_execution_rows,
+    ) orelse return error.InvalidPoseidon2ExecutionBinding;
+    const n_guest = extension.counts.n_guest;
+    if (extension.counts.custom_retirements != n_guest or
+        extension.counts.frozen_call_count != n_guest or
+        call_records != n_guest or
+        guest_execution_rows != n_guest)
+    {
+        return error.InvalidPoseidon2ExecutionBinding;
+    }
+    const expected_ordinary = std.math.sub(
+        u32,
+        statement.total_steps,
+        n_guest,
+    ) catch return error.InvalidPoseidon2ExecutionBinding;
+    if (ordinary_rows != expected_ordinary)
+        return error.InvalidPoseidon2ExecutionBinding;
+    return ordinary_rows;
+}
+
 const StatementShape = struct {
     n_components: u16,
     n_infra: u16,
@@ -285,7 +382,12 @@ const StatementShape = struct {
     poseidon_infra_index: u16,
 };
 
-fn validateStatementGeometry(statement: *const statement_mod.RiscVStatement) Error!StatementShape {
+fn validateStatementGeometry(
+    statement: *const statement_mod.RiscVStatement,
+    ordinary_steps: u32,
+) Error!StatementShape {
+    if (ordinary_steps == 0 or ordinary_steps > statement.total_steps)
+        return error.InvalidTotalSteps;
     if (statement.n_components == 0 or
         statement.n_components > statement_mod.MAX_COMPONENTS)
         return error.InvalidComponentCount;
@@ -314,7 +416,7 @@ fn validateStatementGeometry(statement: *const statement_mod.RiscVStatement) Err
         total_rows = std.math.add(u64, total_rows, desc.n_rows) catch
             return error.ResourceCalculationOverflow;
     }
-    if (total_rows != statement.total_steps) return error.InvalidTotalSteps;
+    if (total_rows != ordinary_steps) return error.InvalidTotalSteps;
 
     const program = statement.infra_descs[0];
     if (program.kind != .program or program.n_rows == 0 or
@@ -386,6 +488,7 @@ fn validateStatementGeometry(statement: *const statement_mod.RiscVStatement) Err
 fn fixedResources(
     statement: *const statement_mod.RiscVStatement,
     shape: StatementShape,
+    ordinary_steps: u32,
     admitted_workers: usize,
     worker_stack_bytes: usize,
 ) Error!Resources {
@@ -432,7 +535,7 @@ fn fixedResources(
     result.column_log_size_bytes = try plan_types.checkedMul(total_columns, @sizeOf(u32));
     result.ownership_ledger_bytes = try plan_types.checkedMul(total_columns, @sizeOf(bool));
     result.opcode_classification_bytes = try plan_types.checkedMul(
-        statement.total_steps,
+        ordinary_steps,
         @sizeOf(trace_mod.ProofOpcode),
     );
 

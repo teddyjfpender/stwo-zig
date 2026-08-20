@@ -3,6 +3,7 @@
 const std = @import("std");
 const api = @import("stwo_prover_api");
 const secure_column = @import("../secure_column.zig");
+const composition_work = @import("composition_work.zig");
 const work_pool = @import("../work_pool.zig");
 
 const StageRecorder = api.stage_profile.Recorder;
@@ -22,6 +23,10 @@ pub const Execution = struct {
     /// Existing proof-stage recorder, borrowed for this composition call.
     /// The task graph reserves and publishes only when this is non-null.
     task_recorder: ?*StageRecorder = null,
+    /// Optional fail-atomic exact-work handoff. Backends that cannot publish a
+    /// complete receipt leave it empty; the proof boundary then fails profile
+    /// completeness without changing ordinary proving behavior.
+    composition_work_capture: ?*composition_work.Capture = null,
 
     pub fn resolve(request: ?api.CpuCompositionExecutionRequest) !Execution {
         return resolveWithRecorder(request, null);
@@ -34,6 +39,7 @@ pub const Execution = struct {
         if (request) |explicit| {
             const worker_budget = try work_pool.WorkerBudget.init(explicit.worker_count);
             const pool = if (worker_budget.count == 1) null else work_pool.getGlobalPool();
+            try work_pool.observeProofPoolStageForTest(.composition, pool);
             return .{
                 .worker_budget = worker_budget,
                 .pool = pool,
@@ -46,6 +52,7 @@ pub const Execution = struct {
             };
         }
         const pool = work_pool.getGlobalPool();
+        try work_pool.observeProofPoolStageForTest(.composition, pool);
         const worker_budget = if (pool) |active|
             try work_pool.WorkerBudget.init(active.workerCount())
         else
@@ -133,11 +140,13 @@ pub fn tryBackend(
     composition_twiddles: anytype,
     request: ?api.CpuCompositionExecutionRequest,
     recorder: ?*StageRecorder,
+    composition_work_capture: ?*composition_work.Capture,
     execution_out: *?Execution,
 ) anyerror!?secure_column.SecureColumnByCoords {
     if (comptime B == void) return null;
     if (comptime @hasDecl(B, "computeCompositionEvaluationWithExecution")) {
-        const execution = try Execution.resolveWithRecorder(request, recorder);
+        var execution = try Execution.resolveWithRecorder(request, recorder);
+        execution.composition_work_capture = composition_work_capture;
         execution_out.* = execution;
         return B.computeCompositionEvaluationWithExecution(
             allocator,
@@ -147,6 +156,17 @@ pub fn tryBackend(
             residency_handles,
             composition_twiddles,
             execution,
+        );
+    }
+    if (comptime @hasDecl(B, "computeCompositionEvaluationWithWorkCapture")) {
+        return B.computeCompositionEvaluationWithWorkCapture(
+            allocator,
+            components,
+            random_coeff,
+            trace,
+            residency_handles,
+            composition_twiddles,
+            composition_work_capture,
         );
     }
     if (comptime @hasDecl(B, "computeCompositionEvaluation")) {

@@ -479,7 +479,7 @@ class RetainedReportTests(unittest.TestCase):
         )
 
     def test_superseded_evidence_never_claims_the_current_shape(self) -> None:
-        """The retained CPU report is authentic v2 evidence, not relabelled v3.
+        """The retained CPU report is authentic v2 evidence, not relabelled v4.
 
         It predates power certification and executable provenance, so it must
         neither carry those fields nor wear the current schema name.  The two
@@ -685,48 +685,6 @@ class ResidentPolynomialTelemetryTests(unittest.TestCase):
         )
 
 
-class BackendResolutionTests(unittest.TestCase):
-    @staticmethod
-    def arguments(
-        backend: str,
-        cli: Path | None = None,
-        report_out: Path | None = None,
-    ) -> argparse.Namespace:
-        return argparse.Namespace(backend=backend, cli=cli, report_out=report_out)
-
-    def test_cpu_defaults_are_the_committed_evidence_paths(self) -> None:
-        cli, report_out = csp._resolve_backend_paths(self.arguments("cpu"))
-        self.assertEqual(csp.DEFAULT_CLI.resolve(), cli)
-        self.assertEqual(csp.DEFAULT_REPORT.resolve(), report_out)
-
-    def test_metal_defaults_never_clobber_cpu_evidence(self) -> None:
-        cli, report_out = csp._resolve_backend_paths(self.arguments("metal"))
-        self.assertEqual(
-            (csp.ROOT / "zig-out" / "bin" / "stwo-zig-riscv-metal").resolve(),
-            cli,
-        )
-        self.assertEqual(
-            (
-                csp.ROOT
-                / "vectors"
-                / "reports"
-                / "riscv_csp_benchmark_report.metal.json"
-            ).resolve(),
-            report_out,
-        )
-        self.assertNotEqual(csp.DEFAULT_REPORT.resolve(), report_out)
-
-    def test_explicit_paths_win_for_every_backend(self) -> None:
-        explicit_cli = Path("/opt/example/prover")
-        explicit_report = Path("/opt/example/report.json")
-        for backend in csp.BACKENDS:
-            with self.subTest(backend=backend):
-                cli, report_out = csp._resolve_backend_paths(
-                    self.arguments(backend, explicit_cli, explicit_report)
-                )
-                self.assertEqual(explicit_cli, cli)
-                self.assertEqual(explicit_report, report_out)
-
 
 class MetalHostMatchTests(unittest.TestCase):
     @staticmethod
@@ -848,7 +806,8 @@ class BuildRegistrationTests(unittest.TestCase):
         )
         self.assertIn(
             '.protocol_manifest = "rv32im-zkvm-v1+lifted-pcs-v1+'
-            'metal-runtime-v2+authenticated-core-aot-v2"',
+            'metal-runtime-v2+authenticated-core-aot-v2+'
+            'rv32im-zkvm-poseidon2-v1"',
             catalog,
         )
 

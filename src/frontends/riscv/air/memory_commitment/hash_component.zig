@@ -18,6 +18,7 @@ const prover_task_graph = @import("stwo_prover_engine").task_graph;
 const prover_poly = @import("stwo_prover_engine").poly.circle.poly;
 const prover_twiddles = @import("stwo_prover_engine").poly.twiddles;
 const work_pool = @import("stwo_prover_engine").work_pool;
+const composition_work_support = @import("../composition_work_support.zig");
 const prepared_parallel = @import("../prepared_parallel.zig");
 const logup = @import("../logup.zig");
 const relations_mod = @import("../relation_challenges.zig");
@@ -26,11 +27,37 @@ const prepared_support = @import("hash_component_prepared_support.zig");
 const poseidon2_air = @import("poseidon2_air.zig");
 
 const CirclePointQM31 = circle.CirclePointQM31;
-const N_POSEIDON_SHELL_CONSTRAINTS: usize = 3;
-const N_POSEIDON_COMPONENT_CONSTRAINTS: usize =
+pub const N_POSEIDON_SHELL_CONSTRAINTS: usize = 3;
+pub const N_POSEIDON_COMPONENT_CONSTRAINTS: usize =
     poseidon2_air.N_CONSTRAINTS + N_POSEIDON_SHELL_CONSTRAINTS + poseidon2_air.N_SUMS;
+/// Stark-V general mode owns the canonical 430 direct constraints and two
+/// pairs-batched LogUp recurrences. It intentionally omits only the three
+/// RISC-V sparse-memory shell constraints.
+pub const N_POSEIDON_GENERAL_COMPONENT_CONSTRAINTS: usize =
+    poseidon2_air.N_CONSTRAINTS + poseidon2_air.N_SUMS;
 
 pub const Kind = enum { merkle, poseidon2 };
+pub const PoseidonShell = enum {
+    /// Sparse-memory ownership: bind the committed enabler to an external
+    /// activity selector and prohibit wide/atomic-IO modes.
+    narrow_memory,
+    /// Stark-V's generated shared provider: the committed enabler and mode
+    /// flags are already constrained by the canonical Poseidon2 AIR.
+    universal,
+};
+
+/// Single authority for the verifier-visible constraint count of a hash
+/// component.  Recursive schedule construction calls this rather than
+/// transcribing the Poseidon shell arithmetic a second time.
+pub fn constraintCount(kind: Kind, poseidon_shell: PoseidonShell) usize {
+    return switch (kind) {
+        .merkle => merkle_node.N_CONSTRAINTS,
+        .poseidon2 => switch (poseidon_shell) {
+            .narrow_memory => N_POSEIDON_COMPONENT_CONSTRAINTS,
+            .universal => N_POSEIDON_GENERAL_COMPONENT_CONSTRAINTS,
+        },
+    };
+}
 pub const PREPARED_DENOMINATOR_COUNT: usize = 2;
 pub const PARALLEL_DOMAIN_LOG_SIZE: u32 = 12;
 
@@ -50,6 +77,7 @@ pub const HashComponent = struct {
     main_col_offset: usize,
     interaction_col_offset: usize,
     relations: *const relations_mod.Relations,
+    poseidon_shell: PoseidonShell = .narrow_memory,
     merkle_claims: [merkle_node.N_SUMS]QM31 = .{QM31.zero()} ** merkle_node.N_SUMS,
     poseidon_claims: [poseidon2_air.N_SUMS]QM31 = .{QM31.zero()} ** poseidon2_air.N_SUMS,
 
@@ -63,7 +91,128 @@ pub const HashComponent = struct {
     pub fn asProverComponent(self: *const @This()) prover_component.ComponentProver {
         var component = Adapter.asProverComponent(self);
         component.prepare_domain_evaluator = prepareDomainEvaluatorErased;
+        component.composition_work_profile = compositionWorkProfileErased;
+        component.oods_work_profile = oodsWorkProfileErased;
         return component;
+    }
+
+    fn oodsWorkProfileErased(
+        ctx: *const anyopaque,
+        allocator: std.mem.Allocator,
+        max_log_degree_bound: u32,
+        source: *const composition_work_support.ComponentProfile,
+    ) anyerror!composition_work_support.OodsComponentProfile {
+        _ = allocator;
+        const self: *const @This() = @ptrCast(@alignCast(ctx));
+        const partial_evaluations: usize = switch (self.kind) {
+            .merkle => 2 * merkle_node.N_SUMS,
+            .poseidon2 => 2 * poseidon2_air.N_SUMS,
+        };
+        return composition_work_support.oodsProfile(
+            source,
+            self.log_size,
+            max_log_degree_bound,
+            partial_evaluations,
+            true,
+        );
+    }
+
+    fn compositionWorkProfileErased(
+        ctx: *const anyopaque,
+        allocator: std.mem.Allocator,
+    ) anyerror!composition_work_support.ComponentProfile {
+        _ = allocator;
+        const self: *const @This() = @ptrCast(@alignCast(ctx));
+        const Scalar = composition_work_support.Scalar;
+        const relations = composition_work_support.Relations.init();
+        const is_first = composition_work_support.values(1, 900)[0];
+        const is_active = composition_work_support.values(1, 901)[0];
+        var expression: composition_work_support.FieldOperations = undefined;
+        switch (self.kind) {
+            .merkle => {
+                const main = composition_work_support.values(
+                    merkle_node.N_MAIN_COLUMNS,
+                    0,
+                );
+                const sums = composition_work_support.values(merkle_node.N_SUMS, 32);
+                const previous = composition_work_support.values(merkle_node.N_SUMS, 48);
+                const claims = composition_work_support.values(merkle_node.N_SUMS, 64);
+                try composition_work_support.begin(&expression);
+                defer composition_work_support.end();
+                _ = merkle_node.evaluateGeneric(
+                    Scalar,
+                    main,
+                    is_active,
+                    is_first,
+                    sums,
+                    previous,
+                    claims,
+                    &relations,
+                );
+                return composition_work_support.profile(
+                    .merkle,
+                    "riscv-merkle-node-evaluate-generic-v1",
+                    self.maxConstraintLogDegreeBound(),
+                    self.nConstraints(),
+                    expression,
+                    .{},
+                    &.{
+                        @as(u64, self.log_size),
+                        @as(u64, merkle_node.N_MAIN_COLUMNS),
+                        @as(u64, merkle_node.N_SUMS),
+                    },
+                );
+            },
+            .poseidon2 => {
+                const main = composition_work_support.values(
+                    poseidon2_air.N_MAIN_COLUMNS,
+                    0,
+                );
+                const sums = composition_work_support.values(poseidon2_air.N_SUMS, 500);
+                const previous = composition_work_support.values(poseidon2_air.N_SUMS, 520);
+                const claims = composition_work_support.values(poseidon2_air.N_SUMS, 540);
+                try composition_work_support.begin(&expression);
+                defer composition_work_support.end();
+                switch (self.poseidon_shell) {
+                    .narrow_memory => _ = poseidonConstraintsGeneric(
+                        Scalar,
+                        main,
+                        is_active,
+                        is_first,
+                        sums,
+                        previous,
+                        claims,
+                        &relations,
+                    ),
+                    .universal => _ = poseidonGeneralConstraintsGeneric(
+                        Scalar,
+                        main,
+                        is_first,
+                        sums,
+                        previous,
+                        claims,
+                        &relations,
+                    ),
+                }
+                return composition_work_support.profile(
+                    .poseidon2,
+                    switch (self.poseidon_shell) {
+                        .narrow_memory => "riscv-poseidon2-narrow-evaluate-generic-v1",
+                        .universal => "riscv-poseidon2-general-evaluate-generic-v1",
+                    },
+                    self.maxConstraintLogDegreeBound(),
+                    self.nConstraints(),
+                    expression,
+                    .{},
+                    &.{
+                        @as(u64, self.log_size),
+                        @as(u64, @intFromEnum(self.poseidon_shell)),
+                        @as(u64, poseidon2_air.N_MAIN_COLUMNS),
+                        @as(u64, poseidon2_air.N_SUMS),
+                    },
+                );
+            },
+        }
     }
 
     fn prepareDomainEvaluatorErased(
@@ -81,10 +230,15 @@ pub const HashComponent = struct {
     }
 
     pub fn nConstraints(self: *const @This()) usize {
-        return switch (self.kind) {
-            .merkle => merkle_node.N_CONSTRAINTS,
-            .poseidon2 => N_POSEIDON_COMPONENT_CONSTRAINTS,
-        };
+        return constraintCount(self.kind, self.poseidon_shell);
+    }
+
+    pub fn nPreprocessedColumns(self: *const @This()) usize {
+        return @as(usize, 1) + @intFromBool(self.usesActiveSelector());
+    }
+
+    fn usesActiveSelector(self: *const @This()) bool {
+        return self.kind == .merkle or self.poseidon_shell == .narrow_memory;
     }
 
     pub fn maxConstraintLogDegreeBound(self: *const @This()) u32 {
@@ -98,8 +252,9 @@ pub const HashComponent = struct {
         self: *const @This(),
         allocator: std.mem.Allocator,
     ) !core_air_components.TraceLogDegreeBounds {
-        const preprocessed = try allocator.dupe(u32, &[_]u32{ self.log_size, self.log_size });
+        const preprocessed = try allocator.alloc(u32, self.nPreprocessedColumns());
         errdefer allocator.free(preprocessed);
+        @memset(preprocessed, self.log_size);
         const main = try allocator.alloc(u32, nMainColumns(self.kind));
         errdefer allocator.free(main);
         @memset(main, self.log_size);
@@ -117,7 +272,11 @@ pub const HashComponent = struct {
         point: CirclePointQM31,
         max_log_degree_bound: u32,
     ) !core_air_components.MaskPoints {
-        const preprocessed = try currentPointColumns(allocator, 2, point);
+        const preprocessed = try currentPointColumns(
+            allocator,
+            self.nPreprocessedColumns(),
+            point,
+        );
         errdefer freePointColumns(allocator, preprocessed);
         const main = try currentPointColumns(allocator, nMainColumns(self.kind), point);
         errdefer freePointColumns(allocator, main);
@@ -138,7 +297,11 @@ pub const HashComponent = struct {
         self: *const @This(),
         allocator: std.mem.Allocator,
     ) ![]usize {
-        return allocator.dupe(usize, &.{ self.is_first_col_idx, self.is_active_col_idx });
+        if (self.usesActiveSelector()) return allocator.dupe(
+            usize,
+            &.{ self.is_first_col_idx, self.is_active_col_idx },
+        );
+        return allocator.dupe(usize, &.{self.is_first_col_idx});
     }
 
     pub fn evaluateConstraintQuotientsAtPoint(
@@ -155,9 +318,11 @@ pub const HashComponent = struct {
         const interaction_mask = mask.items[2];
         const n_main = nMainColumns(self.kind);
         const n_interaction = nInteractionColumns(self.kind);
-        if (preprocessed.len <= self.is_active_col_idx or
+        if (preprocessed.len <= self.is_first_col_idx or
             preprocessed[self.is_first_col_idx].len < 1 or
-            preprocessed[self.is_active_col_idx].len < 1 or
+            (self.usesActiveSelector() and
+                (preprocessed.len <= self.is_active_col_idx or
+                    preprocessed[self.is_active_col_idx].len < 1)) or
             main_mask.len < self.main_col_offset + n_main or
             interaction_mask.len < self.interaction_col_offset + n_interaction)
             return error.InvalidProofShape;
@@ -168,10 +333,10 @@ pub const HashComponent = struct {
             point.repeatedDouble(fold),
         ).inv();
         const is_first = preprocessed[self.is_first_col_idx][0];
-        const is_active = preprocessed[self.is_active_col_idx][0];
 
         switch (self.kind) {
             .merkle => {
+                const is_active = preprocessed[self.is_active_col_idx][0];
                 const main = try sampleMain(
                     merkle_node.N_MAIN_COLUMNS,
                     main_mask,
@@ -212,17 +377,34 @@ pub const HashComponent = struct {
                     &sums,
                     &previous,
                 );
-                const constraints = poseidonConstraints(
-                    main,
-                    is_active,
-                    is_first,
-                    sums,
-                    previous,
-                    self.poseidon_claims,
-                    self.relations,
-                );
-                for (constraints) |constraint| {
-                    accumulator.accumulate(constraint.mul(denominator_inv));
+                switch (self.poseidon_shell) {
+                    .narrow_memory => {
+                        const constraints = poseidonConstraints(
+                            main,
+                            preprocessed[self.is_active_col_idx][0],
+                            is_first,
+                            sums,
+                            previous,
+                            self.poseidon_claims,
+                            self.relations,
+                        );
+                        for (constraints) |constraint| accumulator.accumulate(
+                            constraint.mul(denominator_inv),
+                        );
+                    },
+                    .universal => {
+                        const constraints = poseidonGeneralConstraints(
+                            main,
+                            is_first,
+                            sums,
+                            previous,
+                            self.poseidon_claims,
+                            self.relations,
+                        );
+                        for (constraints) |constraint| accumulator.accumulate(
+                            constraint.mul(denominator_inv),
+                        );
+                    },
                 }
             },
         }
@@ -262,6 +444,7 @@ pub const HashComponent = struct {
         if (@as(usize, self.n_rows) > trace_size) return error.InvalidProofShape;
         const n_main = nMainColumns(self.kind);
         const n_interaction = nInteractionColumns(self.kind);
+        const n_preprocessed = self.nPreprocessedColumns();
         const main_end = std.math.add(usize, self.main_col_offset, n_main) catch
             return error.InvalidProofShape;
         const interaction_end = std.math.add(
@@ -271,29 +454,37 @@ pub const HashComponent = struct {
         ) catch return error.InvalidProofShape;
         const source_count = std.math.add(
             usize,
-            std.math.add(usize, 2, n_main) catch
+            std.math.add(usize, n_preprocessed, n_main) catch
                 return error.ResourceReservationOverflow,
             n_interaction,
         ) catch return error.ResourceReservationOverflow;
         const preprocessed = trace_data.polys.items[0];
         const main = trace_data.polys.items[1];
         const interaction = trace_data.polys.items[2];
-        if (preprocessed.len <= @max(self.is_first_col_idx, self.is_active_col_idx) or
+        if (preprocessed.len <= self.is_first_col_idx or
+            (self.usesActiveSelector() and
+                preprocessed.len <= self.is_active_col_idx) or
             main.len < main_end or interaction.len < interaction_end)
         {
             return error.InvalidProofShape;
         }
 
         var owned_count: usize = 0;
-        const sources = .{
+        if (try prepared_support.sourceNeedsExtension(
             preprocessed[self.is_first_col_idx],
+            self.log_size,
+            eval_log_size,
+        )) {
+            owned_count = std.math.add(usize, owned_count, 1) catch
+                return error.ResourceReservationOverflow;
+        }
+        if (self.usesActiveSelector() and try prepared_support.sourceNeedsExtension(
             preprocessed[self.is_active_col_idx],
-        };
-        inline for (sources) |poly| {
-            if (try prepared_support.sourceNeedsExtension(poly, self.log_size, eval_log_size)) {
-                owned_count = std.math.add(usize, owned_count, 1) catch
-                    return error.ResourceReservationOverflow;
-            }
+            self.log_size,
+            eval_log_size,
+        )) {
+            owned_count = std.math.add(usize, owned_count, 1) catch
+                return error.ResourceReservationOverflow;
         }
         for (main[self.main_col_offset..main_end]) |poly| {
             if (try prepared_support.sourceNeedsExtension(poly, self.log_size, eval_log_size)) {
@@ -317,10 +508,19 @@ pub const HashComponent = struct {
             allocator.free(owned_buffers);
         }
         var source: usize = 0;
-        inline for (sources) |poly| {
+        evaluations[source] = try prepared_support.evaluationValues(
+            allocator,
+            preprocessed[self.is_first_col_idx],
+            eval_log_size,
+            eval_size,
+            owned_buffers,
+            &owned_initialized,
+        );
+        source += 1;
+        if (self.usesActiveSelector()) {
             evaluations[source] = try prepared_support.evaluationValues(
                 allocator,
-                poly,
+                preprocessed[self.is_active_col_idx],
                 eval_log_size,
                 eval_size,
                 owned_buffers,
@@ -393,8 +593,8 @@ pub const HashComponent = struct {
             .denominator_inv = denominator_inv,
             .column_accumulator = accumulators[0],
             .direct_store = accumulators[0].next_fresh_index == 0,
-            .main_start = 2,
-            .interaction_start = 2 + n_main,
+            .main_start = n_preprocessed,
+            .interaction_start = n_preprocessed + n_main,
             .eval_log_size = eval_log_size,
             .eval_size = eval_size,
         };
@@ -410,255 +610,30 @@ pub const HashComponent = struct {
     }
 };
 
-const PreparedDomainState = struct {
-    const CANCELLATION_POLL_ROWS: usize = 4096;
-
-    comptime {
-        if (PREPARED_DENOMINATOR_COUNT != 2) {
-            @compileError("hash composition domains own exactly two quotient denominators");
-        }
-        if (CANCELLATION_POLL_ROWS == 0 or
-            CANCELLATION_POLL_ROWS > 4096 or
-            !std.math.isPowerOfTwo(CANCELLATION_POLL_ROWS))
-        {
-            @compileError("prepared domain cancellation polls must be power-of-two tiles of at most 4,096 rows");
-        }
-    }
-
-    allocator: std.mem.Allocator,
-    component: *const HashComponent,
-    evaluations: [][]const M31,
-    owned_buffers: [][]M31,
-    denominator_inv: [PREPARED_DENOMINATOR_COUNT]M31,
-    column_accumulator: prover_air_accumulation.ColumnAccumulator,
-    direct_store: bool,
-    main_start: usize,
-    interaction_start: usize,
-    eval_log_size: u32,
-    eval_size: usize,
-    failure_boundary: prepared_parallel.FailureBoundary = .{},
-    range_workers: [work_pool.MAX_WORKERS]PreparedRangeWorker = undefined,
-
-    const vtable = prepared_domain.VTable{
-        .run = runErased,
-        .deinit = deinitErased,
-    };
-
-    fn runErased(
-        context: *anyopaque,
-        task_context: *prover_task_graph.TaskContext,
-    ) anyerror!void {
-        const self: *@This() = @ptrCast(@alignCast(context));
-        self.failure_boundary.reset();
-        const tile_count = std.math.divCeil(
-            usize,
-            self.eval_size,
-            CANCELLATION_POLL_ROWS,
-        ) catch unreachable;
-        const worker_count = @min(task_context.worker_budget.count, tile_count);
-        if (worker_count == 1) {
-            if (try self.evaluateRange(task_context.cancellation, 0, 0, self.eval_size)) {
-                self.finishOutput();
-            }
-            return;
-        }
-
-        std.debug.assert(task_context.task_class == .pool_exclusive);
-        const tiles_per_worker = tile_count / worker_count;
-        const workers_with_extra_tile = tile_count % worker_count;
-        var next_tile: usize = 0;
-        for (self.range_workers[0..worker_count], 0..) |*worker, index| {
-            const assigned_tiles = tiles_per_worker + @intFromBool(index < workers_with_extra_tile);
-            const end_tile = next_tile + assigned_tiles;
-            worker.* = .{
-                .state = self,
-                .parent_cancellation = task_context.cancellation,
-                .range_index = index,
-                .row_start = next_tile * CANCELLATION_POLL_ROWS,
-                .row_end = @min(self.eval_size, end_tile * CANCELLATION_POLL_ROWS),
-                .is_child = index != 0,
-            };
-            next_tile = end_tile;
-        }
-        std.debug.assert(next_tile == tile_count);
-        for (self.range_workers[1..worker_count]) |*worker| {
-            try task_context.spawnChild(PreparedRangeWorker.run, .{worker});
-            prepared_parallel_telemetry.recordChildSubmission();
-        }
-        self.range_workers[0].run();
-        try task_context.waitForChildren();
-        // Ranges are stored in ascending row order. Inspecting failures only
-        // after the join makes the selected error independent of completion
-        // order while local cancellation remains only a work-saving signal.
-        for (self.range_workers[0..worker_count]) |worker| {
-            if (worker.failure) |failure| return failure;
-        }
-        for (self.range_workers[0..worker_count]) |worker| {
-            if (!worker.completed) return;
-        }
-        self.finishOutput();
-    }
-
-    fn deinitErased(context: *anyopaque) void {
-        const self: *@This() = @ptrCast(@alignCast(context));
-        const allocator = self.allocator;
-        for (self.owned_buffers) |values| allocator.free(values);
-        allocator.free(self.owned_buffers);
-        allocator.free(self.evaluations);
-        allocator.destroy(self);
-    }
-
-    fn evaluateRange(
-        self: *@This(),
-        parent_cancellation: *const prover_task_graph.CancellationToken,
-        range_index: usize,
-        row_start: usize,
-        row_end: usize,
-    ) anyerror!bool {
-        const component = self.component;
-        for (row_start..row_end) |row| {
-            if ((row & (CANCELLATION_POLL_ROWS - 1)) == 0 and
-                (parent_cancellation.isCancelled() or
-                    self.failure_boundary.shouldCancel(range_index))) return false;
-            const previous_row = utils.previousBitReversedCircleDomainIndex(
-                row,
-                component.log_size,
-                self.eval_log_size,
-            );
-            const is_first = QM31.fromBase(self.evaluations[0][row]);
-            const is_active = QM31.fromBase(self.evaluations[1][row]);
-            var row_evaluation = QM31.zero();
-            switch (component.kind) {
-                .merkle => {
-                    const main = readMain(
-                        merkle_node.N_MAIN_COLUMNS,
-                        self.evaluations[self.main_start..][0..merkle_node.N_MAIN_COLUMNS],
-                        row,
-                    );
-                    var sums: [merkle_node.N_SUMS]QM31 = undefined;
-                    var previous: [merkle_node.N_SUMS]QM31 = undefined;
-                    readInteraction(
-                        merkle_node.N_SUMS,
-                        self.evaluations,
-                        self.interaction_start,
-                        row,
-                        previous_row,
-                        &sums,
-                        &previous,
-                    );
-                    const constraints = merkle_node.evaluate(
-                        main,
-                        is_active,
-                        is_first,
-                        sums,
-                        previous,
-                        component.merkle_claims,
-                        component.relations,
-                    );
-                    row_evaluation = combineConstraints(
-                        self.column_accumulator.random_coeff_powers,
-                        &constraints,
-                    );
-                },
-                .poseidon2 => {
-                    const main = readMain(
-                        poseidon2_air.N_MAIN_COLUMNS,
-                        self.evaluations[self.main_start..][0..poseidon2_air.N_MAIN_COLUMNS],
-                        row,
-                    );
-                    var sums: [poseidon2_air.N_SUMS]QM31 = undefined;
-                    var previous: [poseidon2_air.N_SUMS]QM31 = undefined;
-                    readInteraction(
-                        poseidon2_air.N_SUMS,
-                        self.evaluations,
-                        self.interaction_start,
-                        row,
-                        previous_row,
-                        &sums,
-                        &previous,
-                    );
-                    const constraints = poseidonConstraints(
-                        main,
-                        is_active,
-                        is_first,
-                        sums,
-                        previous,
-                        component.poseidon_claims,
-                        component.relations,
-                    );
-                    row_evaluation = combineConstraints(
-                        self.column_accumulator.random_coeff_powers,
-                        &constraints,
-                    );
-                },
-            }
-            const contribution = row_evaluation.mulM31(
-                self.denominator_inv[row >> @intCast(component.log_size)],
-            );
-            const output = self.column_accumulator.col;
-            if (self.direct_store) {
-                output.set(row, contribution);
-            } else {
-                output.set(row, output.at(row).add(contribution));
-            }
-        }
-        return true;
-    }
-
-    fn finishOutput(self: *@This()) void {
-        self.column_accumulator.next_fresh_index = if (self.direct_store) self.eval_size else null;
-    }
-};
-
-const PreparedRangeWorker = struct {
-    state: *PreparedDomainState,
-    parent_cancellation: *const prover_task_graph.CancellationToken,
-    range_index: usize,
-    row_start: usize,
-    row_end: usize,
-    is_child: bool,
-    completed: bool = false,
-    failure: ?anyerror = null,
-
-    fn run(self: *@This()) void {
-        defer if (self.is_child) {
-            prepared_parallel_telemetry.recordChildCompletion();
-        };
-        self.completed = self.state.evaluateRange(
-            self.parent_cancellation,
-            self.range_index,
-            self.row_start,
-            self.row_end,
-        ) catch |failure| failed: {
-            self.failure = failure;
-            prepared_parallel_telemetry.recordRangeFailure();
-            if (self.state.failure_boundary.recordFailure(self.range_index)) {
-                prepared_parallel_telemetry.recordLocalCancellation();
-            }
-            break :failed false;
-        };
-    }
-};
-
-fn serialTaskContext(
-    user_context: *anyopaque,
-    cancellation: *const prover_task_graph.CancellationToken,
-) prover_task_graph.TaskContext {
-    return .{
-        .user_context = user_context,
-        .cancellation = cancellation,
-        .key = .{
-            .epoch = 0,
-            .stage_rank = 0,
-            .component_registry_index = 0,
-            .shard_or_chunk_index = 0,
-        },
-        .worker_budget = work_pool.WorkerBudget.serial(),
-        .task_class = .leaf,
-        .exclusive_lease = null,
-        .child_wait_group = null,
-    };
-}
+const hash_component_prepared_domain = @import("hash_component_prepared_domain.zig").Namespace(.{
+    .std = std,
+    .M31 = M31,
+    .QM31 = QM31,
+    .utils = utils,
+    .prover_air_accumulation = prover_air_accumulation,
+    .prepared_domain = prepared_domain,
+    .prover_task_graph = prover_task_graph,
+    .work_pool = work_pool,
+    .prepared_parallel = prepared_parallel,
+    .merkle_node = merkle_node,
+    .poseidon2_air = poseidon2_air,
+    .PREPARED_DENOMINATOR_COUNT = PREPARED_DENOMINATOR_COUNT,
+    .prepared_parallel_telemetry = &prepared_parallel_telemetry,
+    .HashComponent = HashComponent,
+    .poseidonConstraints = poseidonConstraints,
+    .poseidonGeneralConstraints = poseidonGeneralConstraints,
+    .readMain = readMain,
+    .readInteraction = readInteraction,
+    .combineConstraints = combineConstraints,
+});
+const PreparedDomainState = hash_component_prepared_domain.PreparedDomainState;
+const PreparedRangeWorker = hash_component_prepared_domain.PreparedRangeWorker;
+const serialTaskContext = hash_component_prepared_domain.serialTaskContext;
 
 pub fn nMainColumns(kind: Kind) usize {
     return switch (kind) {
@@ -683,8 +658,31 @@ pub fn poseidonConstraints(
     claims: [poseidon2_air.N_SUMS]QM31,
     relations: *const relations_mod.Relations,
 ) [N_POSEIDON_COMPONENT_CONSTRAINTS]QM31 {
-    const air_constraints = poseidon2_air.evaluate(main);
-    const interaction_constraints = poseidon2_air.interactionConstraints(
+    return poseidonConstraintsGeneric(
+        QM31,
+        main,
+        is_active,
+        is_first,
+        sums,
+        previous,
+        claims,
+        relations,
+    );
+}
+
+pub fn poseidonConstraintsGeneric(
+    comptime S: type,
+    main: [poseidon2_air.N_MAIN_COLUMNS]S,
+    is_active: S,
+    is_first: S,
+    sums: [poseidon2_air.N_SUMS]S,
+    previous: [poseidon2_air.N_SUMS]S,
+    claims: [poseidon2_air.N_SUMS]S,
+    relations: anytype,
+) [N_POSEIDON_COMPONENT_CONSTRAINTS]S {
+    const air_constraints = poseidon2_air.evaluateGeneric(S, main);
+    const interaction_constraints = poseidon2_air.interactionConstraintsGeneric(
+        S,
         main,
         is_first,
         sums,
@@ -692,10 +690,10 @@ pub fn poseidonConstraints(
         claims,
         relations,
     );
-    var constraints: [N_POSEIDON_COMPONENT_CONSTRAINTS]QM31 = undefined;
+    var constraints: [N_POSEIDON_COMPONENT_CONSTRAINTS]S = undefined;
     @memcpy(constraints[0..poseidon2_air.N_CONSTRAINTS], &air_constraints);
     constraints[poseidon2_air.N_CONSTRAINTS] = main[0].sub(is_active);
-    const narrow_mode = poseidon2_air.narrowModeConstraints(main);
+    const narrow_mode = poseidon2_air.narrowModeConstraintsGeneric(S, main);
     @memcpy(
         constraints[poseidon2_air.N_CONSTRAINTS + 1 ..][0..narrow_mode.len],
         &narrow_mode,
@@ -707,116 +705,78 @@ pub fn poseidonConstraints(
     return constraints;
 }
 
-fn currentPointColumns(
-    allocator: std.mem.Allocator,
-    count: usize,
-    point: CirclePointQM31,
-) ![][]CirclePointQM31 {
-    const result = try allocator.alloc([]CirclePointQM31, count);
-    var initialized: usize = 0;
-    errdefer {
-        for (result[0..initialized]) |column| allocator.free(column);
-        allocator.free(result);
-    }
-    for (result) |*column| {
-        column.* = try allocator.dupe(CirclePointQM31, &.{point});
-        initialized += 1;
-    }
-    return result;
+/// Exact general-mode component generated by Stark-V's embedded Poseidon2
+/// function: canonical permutation/enabler/mode constraints followed by the
+/// two pairs-batched LogUp recurrences.  Unlike the sparse-memory shell above,
+/// it permits narrow, wide, and atomic input/output provider rows.
+pub fn poseidonGeneralConstraints(
+    main: [poseidon2_air.N_MAIN_COLUMNS]QM31,
+    is_first: QM31,
+    sums: [poseidon2_air.N_SUMS]QM31,
+    previous: [poseidon2_air.N_SUMS]QM31,
+    claims: [poseidon2_air.N_SUMS]QM31,
+    relations: *const relations_mod.Relations,
+) [N_POSEIDON_GENERAL_COMPONENT_CONSTRAINTS]QM31 {
+    return poseidonGeneralConstraintsGeneric(
+        QM31,
+        main,
+        is_first,
+        sums,
+        previous,
+        claims,
+        relations,
+    );
 }
 
-fn currentAndPreviousPointColumns(
-    allocator: std.mem.Allocator,
-    count: usize,
-    point: CirclePointQM31,
-    previous: CirclePointQM31,
-) ![][]CirclePointQM31 {
-    const result = try allocator.alloc([]CirclePointQM31, count);
-    var initialized: usize = 0;
-    errdefer {
-        for (result[0..initialized]) |column| allocator.free(column);
-        allocator.free(result);
+pub fn poseidonGeneralConstraintsGeneric(
+    comptime S: type,
+    main: [poseidon2_air.N_MAIN_COLUMNS]S,
+    is_first: S,
+    sums: [poseidon2_air.N_SUMS]S,
+    previous: [poseidon2_air.N_SUMS]S,
+    claims: [poseidon2_air.N_SUMS]S,
+    relations: anytype,
+) [N_POSEIDON_GENERAL_COMPONENT_CONSTRAINTS]S {
+    const air_constraints = poseidon2_air.evaluateGeneric(S, main);
+    const interaction_constraints = poseidon2_air.interactionConstraintsGeneric(
+        S,
+        main,
+        is_first,
+        sums,
+        previous,
+        claims,
+        relations,
+    );
+    var constraints: [N_POSEIDON_GENERAL_COMPONENT_CONSTRAINTS]S = undefined;
+    @memcpy(constraints[0..poseidon2_air.N_CONSTRAINTS], &air_constraints);
+    @memcpy(constraints[poseidon2_air.N_CONSTRAINTS..], &interaction_constraints);
+    return constraints;
+}
+
+const hash_component_sampling = @import("hash_component_sampling.zig").Namespace(.{
+    .std = std,
+    .M31 = M31,
+    .QM31 = QM31,
+    .CirclePointQM31 = CirclePointQM31,
+});
+const currentPointColumns = hash_component_sampling.currentPointColumns;
+const currentAndPreviousPointColumns = hash_component_sampling.currentAndPreviousPointColumns;
+const freePointColumns = hash_component_sampling.freePointColumns;
+const sampleMain = hash_component_sampling.sampleMain;
+const sampleInteraction = hash_component_sampling.sampleInteraction;
+const sampledSecure = hash_component_sampling.sampledSecure;
+const readMain = hash_component_sampling.readMain;
+const readInteraction = hash_component_sampling.readInteraction;
+const secureAt = hash_component_sampling.secureAt;
+const combineConstraints = hash_component_sampling.combineConstraints;
+
+comptime {
+    if (poseidon2_air.N_CONSTRAINTS != 430 or
+        poseidon2_air.N_SUMS != 2 or
+        N_POSEIDON_SHELL_CONSTRAINTS != 3 or
+        N_POSEIDON_COMPONENT_CONSTRAINTS != 435 or
+        N_POSEIDON_GENERAL_COMPONENT_CONSTRAINTS != 432)
+    {
+        @compileError("Poseidon2 general/sparse component constraint geometry drifted");
     }
-    for (result) |*column| {
-        column.* = try allocator.dupe(CirclePointQM31, &.{ point, previous });
-        initialized += 1;
-    }
-    return result;
-}
-
-fn freePointColumns(allocator: std.mem.Allocator, columns: [][]CirclePointQM31) void {
-    for (columns) |column| allocator.free(column);
-    allocator.free(columns);
-}
-
-fn sampleMain(
-    comptime n: usize,
-    columns: [][]QM31,
-    offset: usize,
-) ![n]QM31 {
-    if (columns.len < offset + n) return error.InvalidProofShape;
-    var result: [n]QM31 = undefined;
-    for (&result, columns[offset..][0..n]) |*value, column| {
-        if (column.len < 1) return error.InvalidProofShape;
-        value.* = column[0];
-    }
-    return result;
-}
-
-fn sampleInteraction(
-    comptime n: usize,
-    columns: [][]QM31,
-    offset: usize,
-    sums: *[n]QM31,
-    previous: *[n]QM31,
-) !void {
-    for (0..n) |index| {
-        sums[index] = try sampledSecure(columns, offset + 4 * index, 0);
-        previous[index] = try sampledSecure(columns, offset + 4 * index, 1);
-    }
-}
-
-fn sampledSecure(columns: [][]QM31, offset: usize, point: usize) !QM31 {
-    var coordinates: [4]QM31 = undefined;
-    for (&coordinates, 0..) |*value, index| {
-        if (columns[offset + index].len <= point) return error.InvalidProofShape;
-        value.* = columns[offset + index][point];
-    }
-    return QM31.fromPartialEvals(coordinates);
-}
-
-fn readMain(comptime n: usize, columns: []const []const M31, row: usize) [n]QM31 {
-    var result: [n]QM31 = undefined;
-    for (&result, columns) |*value, column| value.* = QM31.fromBase(column[row]);
-    return result;
-}
-
-fn readInteraction(
-    comptime n: usize,
-    evaluations: []const []const M31,
-    interaction_start: usize,
-    row: usize,
-    previous_row: usize,
-    sums: *[n]QM31,
-    previous: *[n]QM31,
-) void {
-    for (0..n) |index| {
-        sums[index] = secureAt(evaluations[interaction_start + 4 * index ..][0..4], row);
-        previous[index] = secureAt(
-            evaluations[interaction_start + 4 * index ..][0..4],
-            previous_row,
-        );
-    }
-}
-
-fn secureAt(columns: []const []const M31, row: usize) QM31 {
-    return QM31.fromM31(columns[0][row], columns[1][row], columns[2][row], columns[3][row]);
-}
-
-fn combineConstraints(powers: []const QM31, constraints: []const QM31) QM31 {
-    var result = QM31.zero();
-    for (constraints, 0..) |constraint, index| {
-        result = result.add(powers[powers.len - 1 - index].mul(constraint));
-    }
-    return result;
 }

@@ -23,28 +23,32 @@ comptime {
     std.debug.assert(infra.CLOCK_UPDATE_COLS == N_MAIN_COLUMNS);
 }
 
-pub const Row = struct {
-    enabler: QM31,
-    addr_space: QM31,
-    addr: QM31,
-    clock_prev: QM31,
-    value: [4]QM31,
-    clock_prev_low20: QM31,
-    clock_prev_high6: QM31,
+pub fn RowFor(comptime S: type) type {
+    return struct {
+        enabler: S,
+        addr_space: S,
+        addr: S,
+        clock_prev: S,
+        value: [4]S,
+        clock_prev_low20: S,
+        clock_prev_high6: S,
 
-    pub fn fromMain(main: []const QM31) !Row {
-        if (main.len != N_MAIN_COLUMNS) return error.InvalidMainTraceShape;
-        return .{
-            .enabler = main[0],
-            .addr_space = main[1],
-            .addr = main[2],
-            .clock_prev = main[3],
-            .value = .{ main[4], main[5], main[6], main[7] },
-            .clock_prev_low20 = main[8],
-            .clock_prev_high6 = main[9],
-        };
-    }
-};
+        pub fn fromMain(main: []const S) !@This() {
+            if (main.len != N_MAIN_COLUMNS) return error.InvalidMainTraceShape;
+            return .{
+                .enabler = main[0],
+                .addr_space = main[1],
+                .addr = main[2],
+                .clock_prev = main[3],
+                .value = .{ main[4], main[5], main[6], main[7] },
+                .clock_prev_low20 = main[8],
+                .clock_prev_high6 = main[9],
+            };
+        }
+    };
+}
+
+pub const Row = RowFor(QM31);
 
 /// The first pair is the pinned memory-bus transition. The second pair binds
 /// the predecessor clock to an integer in `[0, 2^26)`: low20 is checked by the
@@ -53,27 +57,36 @@ pub const Row = struct {
 /// recomposes them. This prevents a synthetic chain from reaching the top of
 /// M31 and closing through a wrapped opcode access.
 pub fn orderedEntries(row: Row) entry.List {
-    var result = entry.List{};
-    entry.memory(&result, row.enabler.neg(), memoryTuple(row, row.clock_prev));
-    entry.memory(
+    return orderedEntriesGeneric(QM31, row);
+}
+
+pub fn orderedEntriesGeneric(comptime S: type, row: RowFor(S)) entry.Builder(S).List {
+    const EntryBuilder = entry.Builder(S);
+    var result = EntryBuilder.List{};
+    EntryBuilder.memory(&result, row.enabler.neg(), memoryTupleGeneric(S, row, row.clock_prev));
+    EntryBuilder.memory(
         &result,
         row.enabler,
-        memoryTuple(row, row.clock_prev.add(q(state_chain.MAX_CLOCK_DIFF))),
+        memoryTupleGeneric(S, row, row.clock_prev.add(qGeneric(S, state_chain.MAX_CLOCK_DIFF))),
     );
-    entry.range20(&result, row.enabler.neg(), row.clock_prev_low20);
-    entry.range88(
+    EntryBuilder.range20(&result, row.enabler.neg(), row.clock_prev_low20);
+    EntryBuilder.range88(
         &result,
         row.enabler.neg(),
-        .{ row.clock_prev_high6, row.clock_prev_high6.mul(q(4)) },
+        .{ row.clock_prev_high6, row.clock_prev_high6.mul(qGeneric(S, 4)) },
     );
     return result;
 }
 
 pub fn pairs(row: Row, relations: *const relations_mod.Relations) ![N_SUMS]logup.RowPair {
-    const list = orderedEntries(row);
+    return pairsGeneric(QM31, row, relations);
+}
+
+pub fn pairsGeneric(comptime S: type, row: RowFor(S), relations: anytype) ![N_SUMS]logup.RowPairFor(S) {
+    const list = orderedEntriesGeneric(S, row);
     return .{
-        try list.pair(0, relations),
-        try list.pair(1, relations),
+        try list.pairWith(0, relations),
+        try list.pairWith(1, relations),
     };
 }
 
@@ -181,6 +194,10 @@ pub fn generate(
 }
 
 fn memoryTuple(row: Row, clock: QM31) common.Qm31.MemoryAccessTuple {
+    return memoryTupleGeneric(QM31, row, clock);
+}
+
+fn memoryTupleGeneric(comptime S: type, row: RowFor(S), clock: S) common.Ops(S).MemoryAccessTuple {
     return .{
         .addr_space = row.addr_space,
         .addr = row.addr,
@@ -197,5 +214,9 @@ fn validateColumns(columns: []const []const M31, size: usize) !void {
 }
 
 fn q(value: u32) QM31 {
-    return QM31.fromBase(M31.fromU64(value));
+    return qGeneric(QM31, value);
+}
+
+fn qGeneric(comptime S: type, value: u32) S {
+    return S.fromBase(M31.fromU64(value));
 }

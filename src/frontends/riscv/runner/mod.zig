@@ -1,25 +1,40 @@
 //! RISC-V RV32IM runner — fetch/decode/execute loop with ELF loading.
 
 const std = @import("std");
-const custom0 = @import("../isa/custom0.zig");
 const execution_profile = @import("../isa/execution_profile.zig");
-const isa_profile = @import("../isa/profile.zig");
 pub const cpu = @import("cpu.zig");
 pub const decode = @import("decode.zig");
-const decode_cache = @import("decode_cache.zig");
 pub const memory = @import("memory.zig");
 pub const execute_mod = @import("execute.zig");
+pub const auipc_retirement = @import("auipc_retirement.zig");
+pub const base_alu_imm_retirement = @import("base_alu_imm_retirement.zig");
+pub const base_alu_reg_retirement = @import("base_alu_reg_retirement.zig");
+pub const branch_eq_retirement = @import("branch_eq_retirement.zig");
+pub const branch_lt_retirement = @import("branch_lt_retirement.zig");
 pub const elf_loader = @import("elf_loader.zig");
 pub const trace = @import("trace.zig");
 pub const trace_dump = @import("trace_dump.zig");
+pub const fence_retirement = @import("fence_retirement.zig");
+pub const jal_retirement = @import("jal_retirement.zig");
+pub const jalr_retirement = @import("jalr_retirement.zig");
+pub const lt_imm_retirement = @import("lt_imm_retirement.zig");
+pub const lt_reg_retirement = @import("lt_reg_retirement.zig");
+pub const lui_retirement = @import("lui_retirement.zig");
+pub const shifts_imm_retirement = @import("shifts_imm_retirement.zig");
+pub const shifts_reg_retirement = @import("shifts_reg_retirement.zig");
+pub const load_store_retirement = @import("load_store_retirement.zig");
+pub const mul_retirement = @import("mul_retirement.zig");
+pub const mulh_retirement = @import("mulh_retirement.zig");
+pub const div_retirement = @import("div_retirement.zig");
+/// Compile-time registry for production typed retirement authorities.
+pub const generated_retirement = @import("generated_retirement.zig");
 pub const guest_precompile = @import("guest_precompile/mod.zig");
 /// Test-only bridge to the pinned Sail oracle; see `sail_oracle.zig`.
 pub const sail_oracle = @import("sail_oracle.zig");
 pub const state_chain = @import("state_chain.zig");
 pub const memory_state = @import("memory_state.zig");
 pub const result_mod = @import("result.zig");
-const access_witness = @import("access_witness.zig");
-const access_clock = @import("../access_clock.zig");
+pub const segment_session = @import("segment_session.zig");
 pub const host_mod = @import("../host/mod.zig");
 
 pub const Cpu = cpu.Cpu;
@@ -31,27 +46,15 @@ pub const CompletionReason = result_mod.CompletionReason;
 pub const OutputWord = result_mod.OutputWord;
 pub const RunResult = result_mod.RunResult;
 pub const Poseidon2RunResult = result_mod.Poseidon2RunResult;
+pub const SegmentResult = result_mod.SegmentResult;
+pub const Poseidon2SegmentResult = result_mod.Poseidon2SegmentResult;
+pub const ContinuationToken = result_mod.ContinuationToken;
+pub const SessionOptions = segment_session.SessionOptions;
+pub const ExecutionSession = segment_session.ExecutionSession;
+pub const BaseExecutionSession = ExecutionSession(.rv32im_zkvm_v1);
+pub const Poseidon2ExecutionSession = ExecutionSession(.rv32im_zkvm_poseidon2_v1);
 
 const ExecutionProfile = execution_profile.ExecutionProfile;
-
-const Poseidon2ExecutionState = struct {
-    calls: guest_precompile.call_buffer.Builder,
-    rows: guest_precompile.poseidon2_v1.ExecutionRowsBuilder,
-
-    fn init(allocator: std.mem.Allocator, max_steps: usize) !Poseidon2ExecutionState {
-        const limit = @min(max_steps, guest_precompile.call_buffer.max_calls);
-        return .{
-            .calls = try .init(allocator, limit),
-            .rows = try .init(allocator, limit),
-        };
-    }
-
-    fn deinit(self: *Poseidon2ExecutionState) void {
-        self.calls.deinit();
-        self.rows.deinit();
-        self.* = undefined;
-    }
-};
 
 fn ConfiguredResult(comptime profile: ExecutionProfile) type {
     return if (profile == .rv32im_zkvm_v1) RunResult else Poseidon2RunResult;
@@ -127,6 +130,27 @@ pub fn runPoseidon2Extension(
     );
 }
 
+/// Execute an admitted Poseidon2-profile ELF through `runWithInput`'s exact
+/// linker-declared input, halt, and strict-completion contract. C-013's two
+/// arms receive identical input while admission keeps CUSTOM-0 out of base RV32IM.
+pub fn runPoseidon2ExtensionWithInput(
+    allocator: std.mem.Allocator,
+    elf_bytes: []const u8,
+    input: []const u8,
+    max_steps: usize,
+) !Poseidon2RunResult {
+    return runConfigured(
+        .rv32im_zkvm_poseidon2_v1,
+        allocator,
+        elf_bytes,
+        max_steps,
+        null,
+        input,
+        true,
+        true,
+    );
+}
+
 fn runConfigured(
     comptime profile: ExecutionProfile,
     allocator: std.mem.Allocator,
@@ -137,406 +161,14 @@ fn runConfigured(
     stop_on_halt_flag: bool,
     strict_completion: bool,
 ) !ConfiguredResult(profile) {
-    var mem = try Memory.initFallible(allocator);
-    defer mem.deinit();
-
-    const elf_info = try elf_loader.loadElfForProfile(elf_bytes, &mem, profile);
-    var rv_cpu = Cpu.init(elf_info.entry_point, elf_info.stack_pointer);
-    rv_cpu.writeReg(3, elf_info.global_pointer);
-    const initial_pc = rv_cpu.pc;
-    const initial_regs = snapshotRegisters(rv_cpu);
-    if (input.len != 0) {
-        const input_capacity = elf_info.input_end -| elf_info.input_start;
-        if (input.len > input_capacity) return error.InputTooLarge;
-        mem.writeSlice(elf_info.input_start, input);
-    }
-    var exec_trace = trace.Trace.init(allocator);
-    errdefer exec_trace.deinit();
-    exec_trace.initial_pc = rv_cpu.pc;
-    var chain_tracker = state_chain.StateChainTracker.init(allocator);
-    errdefer chain_tracker.deinit();
-    var instruction_cache = try decode_cache.Cache.init(allocator);
-    defer instruction_cache.deinit();
-    var extension_state = if (comptime profile == .rv32im_zkvm_poseidon2_v1)
-        try Poseidon2ExecutionState.init(allocator, max_steps)
-    else {};
-    defer if (comptime profile == .rv32im_zkvm_poseidon2_v1)
-        extension_state.deinit();
-    var exit_code: ?u32 = null;
-    var completion_reason: CompletionReason = undefined;
-
-    var steps: usize = 0;
-    while (true) {
-        if (stop_on_halt_flag) {
-            if (mem.readU32(elf_info.halt_flag) != 0) {
-                completion_reason = .halt_flag;
-                break;
-            }
-        }
-        if (steps >= max_steps) {
-            if (strict_completion) return error.MaxStepsExceeded;
-            completion_reason = .max_steps;
-            break;
-        }
-        const pc_before = rv_cpu.pc;
-        isa_profile.requireInstructionAligned(pc_before) catch
-            return error.InstructionAddressMisaligned;
-        const inst_word = mem.readU32(rv_cpu.pc);
-        if (strict_completion and (inst_word == 0x00000073 or inst_word == 0x00100073))
-            return error.InvalidInstruction;
-        const access_clk: u32 = @intCast(steps + 1);
-        if (comptime profile == .rv32im_zkvm_poseidon2_v1) {
-            if (@as(u7, @truncate(inst_word)) == custom0.major_opcode) {
-                try guest_precompile.poseidon2_v1.execute(
-                    profile,
-                    inst_word,
-                    access_clk,
-                    &rv_cpu,
-                    &mem,
-                    elf_info.memory_layout,
-                    &chain_tracker,
-                    &extension_state.calls,
-                    &extension_state.rows,
-                );
-                steps += 1;
-                continue;
-            }
-        }
-        const inst = instruction_cache.decode(inst_word) catch {
-            if (strict_completion) return error.InvalidInstruction;
-            completion_reason = .invalid_instruction;
-            break;
-        };
-
-        // Capture pre-execution register values.
-        const rs1_val = rv_cpu.readReg(inst.rs1);
-        const rs2_val = rv_cpu.readReg(inst.rs2);
-        const rd_prev_val = rv_cpu.readReg(inst.rd);
-        const access = access_witness.capture(&chain_tracker, inst, access_clk);
-        const memory_access_clock = access_clock.encode(access_clk, .third);
-
-        // The zkVM completion sentinel is an environment event, not a retired
-        // instruction: `jal x0, 0`, or `jalr x0` targeting itself.
-        const is_self_loop = switch (inst.opcode) {
-            .JAL => inst.rd == 0 and inst.imm == 0,
-            .JALR => inst.rd == 0 and
-                ((rs1_val +% @as(u32, @bitCast(inst.imm))) & ~@as(u32, 1)) == pc_before,
-            else => false,
-        };
-        if (is_self_loop) {
-            completion_reason = .self_loop;
-            break;
-        }
-
-        // Capture memory address and value for load/store instructions
-        // BEFORE execution modifies CPU state.
-        var mem_addr: u32 = 0;
-        var mem_val: u32 = 0;
-        var mem_prev_word: u32 = 0;
-        var mem_prev_clk: u32 = 0;
-        const is_load = decode.isLoad(inst.opcode);
-        const is_store = decode.isStore(inst.opcode);
-
-        if (is_load or is_store) {
-            mem_addr = rs1_val +% @as(u32, @bitCast(inst.imm));
-            const aligned_addr = mem_addr & ~@as(u32, 3);
-            mem_prev_word = mem.readU32(aligned_addr);
-            mem_prev_clk = state_chain.StateChainTracker.effectivePreviousClock(
-                chain_tracker.mem_last_clk.get(aligned_addr) orelse 0,
-                memory_access_clock,
-            );
-            if (is_load) {
-                mem_val = switch (inst.opcode) {
-                    .LB, .LBU => @as(u32, mem.readByte(mem_addr)),
-                    .LH, .LHU => @as(u32, mem.readU16(mem_addr)),
-                    .LW => mem.readU32(mem_addr),
-                    else => 0,
-                };
-            } else {
-                mem_val = rs2_val;
-            }
-        }
-
-        // Execute the instruction.
-        var halted = false;
-        execute_mod.execute(&rv_cpu, &mem, inst) catch |err| switch (err) {
-            error.Ecall => {
-                if (host) |h| {
-                    // Dispatch to host syscall handler.
-                    const result = h.handleSyscall(&rv_cpu, &mem);
-
-                    // Record any memory writes the syscall performed
-                    // into the state chain tracker.
-                    for (h.lastMemoryWrites()) |mw| {
-                        try chain_tracker.recordMemTransition(
-                            mw.addr,
-                            memory_access_clock,
-                            mw.previous_value,
-                            mw.value,
-                        );
-                    }
-
-                    // Record any register writes (a0 return value).
-                    // The syscall may have written a0 (x10) as a return value.
-                    // We capture rd_val below which will pick up the new a0.
-
-                    switch (result) {
-                        .Halt => |code| {
-                            exit_code = code;
-                            completion_reason = .host_halt;
-                            halted = true;
-                        },
-                        .Continue => {
-                            // Advance PC past the ECALL instruction.
-                            rv_cpu.pc +%= 4;
-                        },
-                    }
-                } else {
-                    completion_reason = .ecall;
-                    halted = true;
-                }
-            },
-            error.Ebreak => {
-                completion_reason = .ebreak;
-                halted = true;
-            },
-            error.MisalignedMemoryAccess => return error.MisalignedMemoryAccess,
-            error.InstructionAddressMisaligned => return error.InstructionAddressMisaligned,
-        };
-
-        const rd_val = rv_cpu.readReg(inst.rd);
-
-        // Record trace row.
-        try exec_trace.append(.{
-            .clk = access_clk,
-            .pc = pc_before,
-            .opcode = inst.opcode,
-            .rd = inst.rd,
-            .rs1 = inst.rs1,
-            .rs2 = inst.rs2,
-            .imm = inst.imm,
-            .rs1_val = rs1_val,
-            .rs2_val = rs2_val,
-            .rs1_prev_clk = access.rs1_prev_clock,
-            .rs2_prev_clk = access.rs2_prev_clock,
-            .rd_prev_val = rd_prev_val,
-            .rd_prev_clk = access.rd_prev_clock,
-            .rd_val = rd_val,
-            .mem_addr = mem_addr,
-            .mem_val = mem_val,
-            .mem_prev_word = mem_prev_word,
-            .mem_next_word = if (is_load or is_store)
-                mem.readU32(mem_addr & ~@as(u32, 3))
-            else
-                0,
-            .mem_prev_clk = mem_prev_clk,
-            .is_load = is_load,
-            .is_store = is_store,
-            .branch_taken = (rv_cpu.pc != pc_before + 4),
-            .next_pc = rv_cpu.pc,
-            .inst_word = inst_word,
-        });
-
-        // Record state-chain accesses at strict protocol subclocks derived
-        // from the one-based instruction clock, in source-then-destination
-        // order. This intentionally diverges from Stark-V's shared clock.
-        try access.recordRegisters(
-            &chain_tracker,
-            inst,
-            rs1_val,
-            rs2_val,
-            rd_prev_val,
-            rd_val,
-        );
-        if (is_load or is_store) {
-            const aligned_addr = mem_addr & ~@as(u32, 3);
-            try chain_tracker.recordMemTransition(
-                aligned_addr,
-                memory_access_clock,
-                mem_prev_word,
-                mem.readU32(aligned_addr),
-            );
-        }
-
-        steps += 1;
-
-        if (halted) break;
-
-        // Backup infinite-loop halt: the retired instruction left PC unchanged.
-        if (rv_cpu.pc == pc_before) {
-            completion_reason = .stalled_pc;
-            break;
-        }
-    }
-
-    exec_trace.final_pc = rv_cpu.pc;
-
-    const owned_input = try allocator.dupe(u8, input);
-    errdefer allocator.free(owned_input);
-    const captured_output = try captureOutput(
-        allocator,
-        &mem,
-        &chain_tracker,
-        elf_info,
-        strict_completion,
-    );
-    errdefer {
-        if (captured_output.bytes) |output| allocator.free(output);
-        allocator.free(captured_output.words);
-    }
-    const completion_address: u32 = switch (completion_reason) {
-        .halt_flag => elf_info.halt_flag,
-        .self_loop => rv_cpu.pc,
-        else => 0,
-    };
-    const completion_value: u32 = switch (completion_reason) {
-        .halt_flag => mem.readU32(elf_info.halt_flag),
-        .self_loop => mem.readU32(rv_cpu.pc),
-        else => 0,
-    };
-    const completion_clock: u32 = switch (completion_reason) {
-        .halt_flag => chain_tracker.mem_last_clk.get(elf_info.halt_flag & ~@as(u32, 3)) orelse 0,
-        else => 0,
-    };
-    const rw_memory = try memory_state.capture(
-        allocator,
-        &mem,
-        &chain_tracker,
-        elf_info.memory_layout,
-        memory_state.SegmentRole.single(),
-        captured_output.len,
-        if (completion_reason == .halt_flag)
-            elf_info.halt_flag & ~@as(u32, 3)
-        else
-            null,
-    );
-    chain_tracker.releaseMemoryBaselines();
-    errdefer {
-        var owned = rw_memory;
-        owned.deinit(allocator);
-    }
-
-    const base_result = RunResult{
-        .initial_pc = initial_pc,
-        .initial_regs = initial_regs,
-        .cpu_final = rv_cpu,
-        .final_pc = rv_cpu.pc,
-        .final_regs = snapshotRegisters(rv_cpu),
-        .step_count = steps,
-        .completion_reason = completion_reason,
-        .completion_address = completion_address,
-        .completion_value = completion_value,
-        .completion_clock = completion_clock,
-        .input = owned_input,
-        .input_start = elf_info.input_start,
-        .input_end = elf_info.input_end,
-        .output = captured_output.bytes,
-        .output_len = captured_output.len,
-        .output_len_addr = elf_info.output_len,
-        .output_data_addr = elf_info.output_data,
-        .output_end_addr = elf_info.output_end,
-        .output_words = captured_output.words,
-        .execution_trace = exec_trace,
-        .state_chain_tracker = chain_tracker,
-        .rw_memory = rw_memory,
-        .exit_code = exit_code,
-        .allocator = allocator,
-    };
-    if (comptime profile == .rv32im_zkvm_poseidon2_v1) {
-        return .{
-            .base = base_result,
-            .calls = extension_state.calls.freeze(),
-            .execution_rows = extension_state.rows.freeze(),
-        };
-    }
-    return base_result;
-}
-
-const CapturedOutput = struct {
-    bytes: ?[]u8,
-    len: u32,
-    words: []OutputWord,
-};
-
-fn snapshotRegisters(rv_cpu: Cpu) [32]u32 {
-    var regs: [32]u32 = undefined;
-    for (&regs, 0..) |*value, index| {
-        value.* = rv_cpu.readReg(@intCast(index));
-    }
-    return regs;
-}
-
-fn captureOutput(
-    allocator: std.mem.Allocator,
-    mem: *const Memory,
-    tracker: *const state_chain.StateChainTracker,
-    elf_info: elf_loader.ElfInfo,
-    require_access: bool,
-) !CapturedOutput {
-    const output_len = mem.readU32(elf_info.output_len);
-    const capacity = elf_info.output_end -| elf_info.output_data;
-    const valid_len = output_len != 0 and output_len <= capacity;
-
-    var bytes: ?[]u8 = null;
-    errdefer if (bytes) |output| allocator.free(output);
-    if (valid_len) {
-        const output = try allocator.alloc(u8, output_len);
-        mem.readSlice(elf_info.output_data, output);
-        bytes = output;
-    }
-
-    var words: std.ArrayList(OutputWord) = .{};
-    errdefer words.deinit(allocator);
-    try appendOutputWord(
-        allocator,
-        &words,
-        mem,
-        tracker,
-        elf_info.output_len & ~@as(u32, 3),
-        require_access,
-    );
-
-    if (valid_len) {
-        const first = elf_info.output_data & ~@as(u32, 3);
-        const end = @as(u64, elf_info.output_data) + output_len;
-        const end_aligned = (end + 3) & ~@as(u64, 3);
-        var addr: u64 = first;
-        while (addr < end_aligned) : (addr += 4) {
-            try appendOutputWord(
-                allocator,
-                &words,
-                mem,
-                tracker,
-                @intCast(addr),
-                require_access,
-            );
-        }
-    }
-
-    return .{
-        .bytes = bytes,
-        .len = output_len,
-        .words = try words.toOwnedSlice(allocator),
-    };
-}
-
-fn appendOutputWord(
-    allocator: std.mem.Allocator,
-    words: *std.ArrayList(OutputWord),
-    mem: *const Memory,
-    tracker: *const state_chain.StateChainTracker,
-    addr: u32,
-    require_access: bool,
-) !void {
-    const clock = tracker.mem_last_clk.get(addr) orelse {
-        if (require_access) return error.OutputAddressNotAccessed;
-        return;
-    };
-    try words.append(allocator, .{
-        .addr = addr,
-        .value = mem.readU32(addr),
-        .clock = clock,
+    var session = try ExecutionSession(profile).initLegacy(allocator, elf_bytes, .{
+        .host = host,
+        .input = input,
+        .stop_on_halt_flag = stop_on_halt_flag,
+        .strict_completion = strict_completion,
     });
+    defer session.deinit();
+    return session.runLegacy(max_steps);
 }
 
 // ---------------------------------------------------------------------------
@@ -614,6 +246,317 @@ test "runner: run minimal ELF to ecall" {
     try std.testing.expectEqual(elf_loader.DEFAULT_STACK_POINTER, result.initial_regs[2]);
     try std.testing.expectEqual(elf_loader.DEFAULT_GLOBAL_POINTER, result.initial_regs[3]);
     try std.testing.expectEqual(@as(u32, 42), result.final_regs[1]);
+}
+
+test "runner: production LUI uses typed retirement transaction" {
+    const instructions = [_]u32{
+        0x1234_50b7, // LUI x1,  0x12345
+        0xffff_f037, // LUI x0,  0xfffff (discarded)
+        0x0000_0073, // ECALL
+    };
+    const elf = makeTestElf(&instructions);
+
+    var result = try run(std.testing.allocator, &elf, 1000);
+    defer result.deinit();
+
+    try std.testing.expectEqual(@as(u32, 0x1234_5000), result.final_regs[1]);
+    try std.testing.expectEqual(@as(u32, 0), result.final_regs[0]);
+    try std.testing.expectEqual(@as(usize, instructions.len), result.step_count);
+    try std.testing.expectEqual(@as(usize, instructions.len), result.execution_trace.rows.items.len);
+    try std.testing.expectEqual(@as(usize, 2), result.state_chain_tracker.accesses.items.len);
+    try std.testing.expectEqual(Opcode.LUI, result.execution_trace.rows.items[0].opcode);
+    try std.testing.expectEqual(@as(u32, 0x1234_5000), result.execution_trace.rows.items[0].rd_val);
+    try std.testing.expectEqual(Opcode.LUI, result.execution_trace.rows.items[1].opcode);
+    try std.testing.expectEqual(@as(u32, 0), result.execution_trace.rows.items[1].rd_val);
+    try std.testing.expectEqual(CompletionReason.ecall, result.completion_reason);
+}
+
+test "runner: production FENCE uses typed empty-effect retirement transaction" {
+    const fence_word = (@as(u32, 0xf53) << 20) |
+        (@as(u32, 17) << 15) |
+        (@as(u32, 31) << 7) |
+        0b0001111;
+    const instructions = [_]u32{
+        0x1234_50b7, // LUI x1, 0x12345: establish a non-empty access chain.
+        fence_word, // FENCE with non-zero reserved rd/rs1/immediate fields.
+        0x0000_0073, // ECALL
+    };
+    const elf = makeTestElf(&instructions);
+
+    var result = try run(std.testing.allocator, &elf, 1000);
+    defer result.deinit();
+
+    try std.testing.expectEqual(@as(usize, instructions.len), result.step_count);
+    try std.testing.expectEqual(@as(usize, instructions.len), result.execution_trace.rows.items.len);
+    // Only LUI owns a register transition; FENCE's reserved register fields do
+    // not become architectural accesses.
+    try std.testing.expectEqual(@as(usize, 1), result.state_chain_tracker.accesses.items.len);
+    const row = result.execution_trace.rows.items[1];
+    try std.testing.expectEqual(Opcode.FENCE, row.opcode);
+    try std.testing.expectEqual(@as(u5, 31), row.rd);
+    try std.testing.expectEqual(@as(u5, 17), row.rs1);
+    try std.testing.expectEqual(@as(i32, -173), row.imm);
+    try std.testing.expectEqual(row.rd_prev_val, row.rd_val);
+    try std.testing.expectEqual(@as(u32, 0), row.rd_prev_clk);
+    try std.testing.expectEqual(row.pc +% 4, row.next_pc);
+    try std.testing.expect(!row.branch_taken);
+    try std.testing.expectEqual(CompletionReason.ecall, result.completion_reason);
+}
+
+test "runner: production JAL uses typed retirement transaction" {
+    const instructions = [_]u32{
+        0x0080_00ef, // JAL x1, +8: skip the following instruction.
+        0xffff_f137, // LUI x2, 0xfffff: unreachable.
+        0x0040_006f, // JAL x0, +4: a retired fallthrough-equivalent jump.
+        0x0000_0073, // ECALL
+    };
+    const elf = makeTestElf(&instructions);
+
+    var result = try run(std.testing.allocator, &elf, 1000);
+    defer result.deinit();
+
+    try std.testing.expectEqual(@as(u32, 0x1_0004), result.final_regs[1]);
+    try std.testing.expectEqual(@as(u32, 0), result.final_regs[0]);
+    try std.testing.expectEqual(result.initial_regs[2], result.final_regs[2]);
+    try std.testing.expectEqual(@as(usize, 3), result.step_count);
+    try std.testing.expectEqual(@as(usize, 3), result.execution_trace.rows.items.len);
+    try std.testing.expectEqual(@as(usize, 2), result.state_chain_tracker.accesses.items.len);
+
+    const linked = result.execution_trace.rows.items[0];
+    try std.testing.expectEqual(Opcode.JAL, linked.opcode);
+    try std.testing.expectEqual(@as(u5, 1), linked.rd);
+    try std.testing.expectEqual(@as(u32, 0x1_0004), linked.rd_val);
+    try std.testing.expectEqual(@as(u32, 0x1_0008), linked.next_pc);
+    try std.testing.expect(linked.branch_taken);
+
+    const discarded = result.execution_trace.rows.items[1];
+    try std.testing.expectEqual(Opcode.JAL, discarded.opcode);
+    try std.testing.expectEqual(@as(u5, 0), discarded.rd);
+    try std.testing.expectEqual(@as(u32, 0), discarded.rd_val);
+    try std.testing.expectEqual(@as(u32, 0x1_000c), discarded.next_pc);
+    try std.testing.expect(!discarded.branch_taken);
+    try std.testing.expectEqual(CompletionReason.ecall, result.completion_reason);
+}
+
+test "runner: production JALR uses typed retirement transaction" {
+    const instructions = [_]u32{
+        0x0000_0297, // AUIPC x5, 0: x5 = 0x10000.
+        0x00c2_80e7, // JALR x1, x5, +12: target 0x1000c.
+        0xffff_f137, // LUI x2, 0xfffff: unreachable.
+        0x0102_8067, // JALR x0, x5, +16: retired fallthrough target.
+        0x0000_0073, // ECALL
+    };
+    const elf = makeTestElf(&instructions);
+
+    var result = try run(std.testing.allocator, &elf, 1000);
+    defer result.deinit();
+
+    try std.testing.expectEqual(@as(u32, 0x1_0008), result.final_regs[1]);
+    try std.testing.expectEqual(@as(u32, 0), result.final_regs[0]);
+    try std.testing.expectEqual(result.initial_regs[2], result.final_regs[2]);
+    try std.testing.expectEqual(@as(usize, 4), result.step_count);
+    try std.testing.expectEqual(@as(usize, 4), result.execution_trace.rows.items.len);
+    try std.testing.expectEqual(@as(usize, 5), result.state_chain_tracker.accesses.items.len);
+
+    const linked = result.execution_trace.rows.items[1];
+    try std.testing.expectEqual(Opcode.JALR, linked.opcode);
+    try std.testing.expectEqual(@as(u5, 5), linked.rs1);
+    try std.testing.expectEqual(@as(u32, 0x1_0000), linked.rs1_val);
+    try std.testing.expectEqual(@as(u5, 1), linked.rd);
+    try std.testing.expectEqual(@as(u32, 0x1_0008), linked.rd_val);
+    try std.testing.expectEqual(@as(u32, 0x1_000c), linked.next_pc);
+    try std.testing.expect(linked.branch_taken);
+
+    const discarded = result.execution_trace.rows.items[2];
+    try std.testing.expectEqual(Opcode.JALR, discarded.opcode);
+    try std.testing.expectEqual(@as(u5, 0), discarded.rd);
+    try std.testing.expectEqual(@as(u32, 0), discarded.rd_val);
+    try std.testing.expectEqual(@as(u32, 0x1_0010), discarded.next_pc);
+    try std.testing.expect(!discarded.branch_taken);
+    try std.testing.expectEqual(CompletionReason.ecall, result.completion_reason);
+}
+
+test "runner: production BRANCH_EQ uses typed retirement transactions" {
+    const instructions = [_]u32{
+        0x0010_0093, // ADDI x1, x0, 1.
+        0x0010_0113, // ADDI x2, x0, 1.
+        0x0020_8463, // BEQ  x1, x2, +8: taken, skip the next instruction.
+        0xffff_f1b7, // LUI  x3, 0xfffff: unreachable.
+        0x0020_9263, // BNE  x1, x2, +4: not taken.
+        0x0011_0113, // ADDI x2, x2, 1.
+        0x0020_9463, // BNE  x1, x2, +8: taken, skip the next instruction.
+        0xffff_f237, // LUI  x4, 0xfffff: unreachable.
+        0x0010_8263, // BEQ  x1, x1, +4: taken but sequential next PC.
+        0x0000_0073, // ECALL.
+    };
+    const elf = makeTestElf(&instructions);
+
+    var result = try run(std.testing.allocator, &elf, 1000);
+    defer result.deinit();
+
+    try std.testing.expectEqual(@as(u32, 1), result.final_regs[1]);
+    try std.testing.expectEqual(@as(u32, 2), result.final_regs[2]);
+    try std.testing.expectEqual(result.initial_regs[3], result.final_regs[3]);
+    try std.testing.expectEqual(@as(u32, 0), result.final_regs[4]);
+    try std.testing.expectEqual(@as(usize, 8), result.step_count);
+    try std.testing.expectEqual(@as(usize, 8), result.execution_trace.rows.items.len);
+    try std.testing.expectEqual(@as(usize, 14), result.state_chain_tracker.accesses.items.len);
+
+    const branches = [_]struct {
+        trace_index: usize,
+        opcode: Opcode,
+        pc: u32,
+        next_pc: u32,
+        branch_taken: bool,
+        source_1: u32,
+        source_2: u32,
+    }{
+        .{ .trace_index = 2, .opcode = .BEQ, .pc = 0x1_0008, .next_pc = 0x1_0010, .branch_taken = true, .source_1 = 1, .source_2 = 1 },
+        .{ .trace_index = 3, .opcode = .BNE, .pc = 0x1_0010, .next_pc = 0x1_0014, .branch_taken = false, .source_1 = 1, .source_2 = 1 },
+        .{ .trace_index = 5, .opcode = .BNE, .pc = 0x1_0018, .next_pc = 0x1_0020, .branch_taken = true, .source_1 = 1, .source_2 = 2 },
+        .{ .trace_index = 6, .opcode = .BEQ, .pc = 0x1_0020, .next_pc = 0x1_0024, .branch_taken = false, .source_1 = 1, .source_2 = 1 },
+    };
+    for (branches) |expected| {
+        const row = result.execution_trace.rows.items[expected.trace_index];
+        try std.testing.expectEqual(expected.opcode, row.opcode);
+        try std.testing.expectEqual(expected.pc, row.pc);
+        try std.testing.expectEqual(expected.next_pc, row.next_pc);
+        try std.testing.expectEqual(expected.branch_taken, row.branch_taken);
+        try std.testing.expectEqual(expected.source_1, row.rs1_val);
+        try std.testing.expectEqual(expected.source_2, row.rs2_val);
+        try std.testing.expectEqual(row.rd_prev_val, row.rd_val);
+    }
+    try std.testing.expectEqual(CompletionReason.ecall, result.completion_reason);
+}
+
+test "runner: production BRANCH_LT uses typed retirement transactions" {
+    const instructions = [_]u32{
+        0x8000_02b7, // LUI   x5, 0x80000: signed minimum, unsigned high bit.
+        0xfff0_0313, // ADDI  x6, x0, -1: signed -1, unsigned maximum.
+        0x0062_c463, // BLT   x5, x6, +8: taken.
+        0xffff_fa37, // LUI   x20, 0xfffff: unreachable.
+        0x0053_4263, // BLT   x6, x5, +4: not taken.
+        0x0062_e463, // BLTU  x5, x6, +8: taken.
+        0xffff_fab7, // LUI   x21, 0xfffff: unreachable.
+        0x0053_6263, // BLTU  x6, x5, +4: not taken.
+        0x0053_5463, // BGE   x6, x5, +8: taken.
+        0xffff_fb37, // LUI   x22, 0xfffff: unreachable.
+        0x0062_d263, // BGE   x5, x6, +4: not taken.
+        0x0053_7463, // BGEU  x6, x5, +8: taken.
+        0xffff_fbb7, // LUI   x23, 0xfffff: unreachable.
+        0x0062_f263, // BGEU  x5, x6, +4: not taken.
+        0x0000_0073, // ECALL.
+    };
+    const elf = makeTestElf(&instructions);
+
+    var result = try run(std.testing.allocator, &elf, 1000);
+    defer result.deinit();
+
+    try std.testing.expectEqual(@as(u32, 0x8000_0000), result.final_regs[5]);
+    try std.testing.expectEqual(@as(u32, 0xffff_ffff), result.final_regs[6]);
+    inline for ([_]usize{ 20, 21, 22, 23 }) |register|
+        try std.testing.expectEqual(
+            result.initial_regs[register],
+            result.final_regs[register],
+        );
+    try std.testing.expectEqual(@as(usize, 11), result.step_count);
+    try std.testing.expectEqual(@as(usize, 11), result.execution_trace.rows.items.len);
+    try std.testing.expectEqual(@as(usize, 19), result.state_chain_tracker.accesses.items.len);
+
+    const branches = [_]struct {
+        trace_index: usize,
+        opcode: Opcode,
+        pc: u32,
+        next_pc: u32,
+        branch_taken: bool,
+    }{
+        .{ .trace_index = 2, .opcode = .BLT, .pc = 0x1_0008, .next_pc = 0x1_0010, .branch_taken = true },
+        .{ .trace_index = 3, .opcode = .BLT, .pc = 0x1_0010, .next_pc = 0x1_0014, .branch_taken = false },
+        .{ .trace_index = 4, .opcode = .BLTU, .pc = 0x1_0014, .next_pc = 0x1_001c, .branch_taken = true },
+        .{ .trace_index = 5, .opcode = .BLTU, .pc = 0x1_001c, .next_pc = 0x1_0020, .branch_taken = false },
+        .{ .trace_index = 6, .opcode = .BGE, .pc = 0x1_0020, .next_pc = 0x1_0028, .branch_taken = true },
+        .{ .trace_index = 7, .opcode = .BGE, .pc = 0x1_0028, .next_pc = 0x1_002c, .branch_taken = false },
+        .{ .trace_index = 8, .opcode = .BGEU, .pc = 0x1_002c, .next_pc = 0x1_0034, .branch_taken = true },
+        .{ .trace_index = 9, .opcode = .BGEU, .pc = 0x1_0034, .next_pc = 0x1_0038, .branch_taken = false },
+    };
+    for (branches) |expected| {
+        const row = result.execution_trace.rows.items[expected.trace_index];
+        try std.testing.expectEqual(expected.opcode, row.opcode);
+        try std.testing.expectEqual(expected.pc, row.pc);
+        try std.testing.expectEqual(expected.next_pc, row.next_pc);
+        try std.testing.expectEqual(expected.branch_taken, row.branch_taken);
+        try std.testing.expectEqual(
+            if (row.rs1 == 5) @as(u32, 0x8000_0000) else 0xffff_ffff,
+            row.rs1_val,
+        );
+        try std.testing.expectEqual(
+            if (row.rs2 == 5) @as(u32, 0x8000_0000) else 0xffff_ffff,
+            row.rs2_val,
+        );
+        try std.testing.expectEqual(row.rd_prev_val, row.rd_val);
+    }
+    try std.testing.expectEqual(CompletionReason.ecall, result.completion_reason);
+}
+
+test "runner: production LT_IMM uses typed retirement transactions" {
+    const instructions = [_]u32{
+        0x8000_02b7, // LUI   x5, 0x80000: signed minimum, unsigned high bit.
+        0x0002_a313, // SLTI  x6, x5, 0: true.
+        0x0002_a013, // SLTI  x0, x5, 0: true result discarded.
+        0x8002_a413, // SLTI  x8, x5, -2048: true.
+        0x0000_2493, // SLTI  x9, x0, 0: false equality.
+        0xfff2_b393, // SLTIU x7, x5, -1: true.
+        0x0002_b513, // SLTIU x10, x5, 0: false.
+        0xfff0_3593, // SLTIU x11, x0, -1: true.
+        0x8002_a293, // SLTI  x5, x5, -2048: true with rd == rs1.
+        0x0000_0073, // ECALL.
+    };
+    const elf = makeTestElf(&instructions);
+
+    var result = try run(std.testing.allocator, &elf, 1000);
+    defer result.deinit();
+
+    try std.testing.expectEqual(@as(u32, 1), result.final_regs[5]);
+    try std.testing.expectEqual(@as(u32, 1), result.final_regs[6]);
+    try std.testing.expectEqual(@as(u32, 1), result.final_regs[7]);
+    try std.testing.expectEqual(@as(u32, 1), result.final_regs[8]);
+    try std.testing.expectEqual(@as(u32, 0), result.final_regs[9]);
+    try std.testing.expectEqual(@as(u32, 0), result.final_regs[10]);
+    try std.testing.expectEqual(@as(u32, 1), result.final_regs[11]);
+    try std.testing.expectEqual(@as(u32, 0), result.final_regs[0]);
+    try std.testing.expectEqual(@as(usize, instructions.len), result.step_count);
+    try std.testing.expectEqual(
+        @as(usize, instructions.len),
+        result.execution_trace.rows.items.len,
+    );
+    try std.testing.expectEqual(
+        @as(usize, 17),
+        result.state_chain_tracker.accesses.items.len,
+    );
+
+    const expectations = [_]struct {
+        opcode: Opcode,
+        value: u32,
+        rd: u5,
+    }{
+        .{ .opcode = .SLTI, .value = 1, .rd = 6 },
+        .{ .opcode = .SLTI, .value = 0, .rd = 0 },
+        .{ .opcode = .SLTI, .value = 1, .rd = 8 },
+        .{ .opcode = .SLTI, .value = 0, .rd = 9 },
+        .{ .opcode = .SLTIU, .value = 1, .rd = 7 },
+        .{ .opcode = .SLTIU, .value = 0, .rd = 10 },
+        .{ .opcode = .SLTIU, .value = 1, .rd = 11 },
+        .{ .opcode = .SLTI, .value = 1, .rd = 5 },
+    };
+    for (expectations, 1..) |expected, trace_index| {
+        const row = result.execution_trace.rows.items[trace_index];
+        try std.testing.expectEqual(expected.opcode, row.opcode);
+        try std.testing.expectEqual(expected.rd, row.rd);
+        try std.testing.expectEqual(expected.value, row.rd_val);
+        try std.testing.expectEqual(row.pc +% 4, row.next_pc);
+        try std.testing.expect(!row.branch_taken);
+    }
+    try std.testing.expectEqual(CompletionReason.ecall, result.completion_reason);
 }
 
 test "runner: runWithInput captures Stark-V public IO with access clocks" {
@@ -824,4 +767,8 @@ fn makeTestElf(instructions: []const u32) [84 + 64]u8 {
     }
 
     return buf;
+}
+
+test {
+    _ = @import("segment_continuation_test.zig");
 }

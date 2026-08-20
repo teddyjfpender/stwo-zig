@@ -762,3 +762,88 @@ test "nonzero guest coefficient rejects a zero denominator without leaks" {
         &relations,
     ));
 }
+
+test "guest interaction writes final columns from the compact committed projection" {
+    const allocator = std.testing.allocator;
+    var core = support.coreFixture(17);
+    const extension = try statement_mod.ExtensionStatement.canonical(&core, 17);
+    var logs = try support.logsFixture(allocator, 17);
+    defer logs.deinit();
+    var main = try main_trace.generate(
+        allocator,
+        &core,
+        &extension,
+        &logs.calls,
+        &logs.rows,
+    );
+    defer main.deinit();
+    const relations = relation_challenges.Poseidon2V1Relations.dummy();
+    var canonical = try subject.generate(
+        allocator,
+        &core,
+        &extension,
+        &main,
+        &relations,
+    );
+    defer canonical.deinit();
+    var main_destinations = main.mutableMainDestinations();
+    var retained = try main_trace.RelationSource.capture(
+        allocator,
+        &main_destinations,
+        main.log_size,
+        main.n_rows,
+    );
+    defer retained.deinit();
+    const domain_size = main.domainSize();
+    const storage = try allocator.alloc(M31, subject.total_column_count * domain_size);
+    defer allocator.free(storage);
+    @memset(storage, M31.fromCanonical(7654321));
+    var destinations: subject.Destinations = undefined;
+    var physical_column: usize = 0;
+    for (&destinations.caller) |*destination| {
+        destination.* = storage[physical_column * domain_size ..][0..domain_size];
+        physical_column += 1;
+    }
+    for (&destinations.provider) |*destination| {
+        destination.* = storage[physical_column * domain_size ..][0..domain_size];
+        physical_column += 1;
+    }
+    try std.testing.expectEqual(subject.total_column_count, physical_column);
+    const claims = try subject.generateFromRelationSourceInto(
+        allocator,
+        &core,
+        &extension,
+        &retained,
+        &relations,
+        &destinations,
+    );
+    for (claims.caller, canonical.caller_claims) |actual, expected| {
+        try std.testing.expect(actual.eql(expected));
+    }
+    for (claims.provider, canonical.provider_claims) |actual, expected| {
+        try std.testing.expect(actual.eql(expected));
+    }
+    try claims.verifyGuestCancellation();
+    for (destinations.caller, 0..) |actual, column| {
+        try std.testing.expectEqualSlices(M31, canonical.callerColumn(column), actual);
+    }
+    for (destinations.provider, 0..) |actual, column| {
+        try std.testing.expectEqualSlices(M31, canonical.providerColumn(column), actual);
+    }
+    const second = destinations.caller[1];
+    destinations.caller[1] = destinations.caller[0];
+    @memset(storage, M31.fromCanonical(99));
+    try std.testing.expectError(
+        error.OverlappingDestinations,
+        subject.generateFromRelationSourceInto(
+            allocator,
+            &core,
+            &extension,
+            &retained,
+            &relations,
+            &destinations,
+        ),
+    );
+    for (storage) |value| try std.testing.expect(value.eql(M31.fromCanonical(99)));
+    destinations.caller[1] = second;
+}

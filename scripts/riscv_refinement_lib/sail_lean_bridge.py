@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import concurrent.futures
 import json
 import os
 import re
@@ -18,10 +19,10 @@ BRIDGE_DIRECTORY = Path("formal/riscv-refinement/generated-sail-bridge")
 PILOT_SOURCE = BRIDGE_DIRECTORY / "Pilot.lean"
 COMPOSITION_SOURCE = BRIDGE_DIRECTORY / "Composition.lean"
 PUBLICATION_SOURCE = BRIDGE_DIRECTORY / "Publication.lean"
-# Keep the exact 47-source kernel-build closure in dependency order.  Every
-# source is compiled to the same temporary olean directory, so later modules
-# resolve only artifacts produced earlier in this sequence (plus the pinned
-# generated/formal projects).
+# Keep the exact 47-source kernel-build closure in topological dependency
+# order. Every source is compiled to the same temporary olean directory; the
+# bounded scheduler admits a module only after its local imports are complete,
+# while independent proof branches may use separate Lean processes.
 BRIDGE_SOURCES = tuple(
     BRIDGE_DIRECTORY / name
     for name in (
@@ -77,6 +78,7 @@ BRIDGE_SOURCES = tuple(
 # The publication module is the public cross-project axiom-print entrypoint.
 # Keep the singular alias for callers that intentionally mutate that entrypoint.
 BRIDGE_SOURCE = PUBLICATION_SOURCE
+BRIDGE_BUILD_MAX_JOBS = 4
 SUPPORT_PATCH = Path("conformance/riscv/sail-lean-riscv-extras.patch")
 COMMITTED_RECEIPT = Path(
     "generated/sail/generated-monad-bridge-receipt-v1.json"
@@ -438,6 +440,63 @@ def _bridge_lean_command(
     return command
 
 
+def _bridge_source_dependencies(paths: Paths) -> dict[Path, tuple[Path, ...]]:
+    """Recover and validate the declared bridge's local import DAG."""
+    by_module = {source.stem: source for source in BRIDGE_SOURCES}
+    if len(by_module) != len(BRIDGE_SOURCES):
+        raise RefinementError("generated Sail bridge has duplicate module names")
+    order = {source: index for index, source in enumerate(BRIDGE_SOURCES)}
+    dependencies: dict[Path, tuple[Path, ...]] = {}
+    for source in BRIDGE_SOURCES:
+        path = paths.root / source
+        try:
+            lines = path.read_text(encoding="utf-8").splitlines()
+        except (OSError, UnicodeError) as exc:
+            raise RefinementError(
+                f"generated Sail bridge source is unreadable: {source}"
+            ) from exc
+        imported: set[Path] = set()
+        for raw_line in lines:
+            line = raw_line.strip()
+            if line.startswith("public import "):
+                modules = line.removeprefix("public import ").split()
+            elif line.startswith("import "):
+                modules = line.removeprefix("import ").split()
+            else:
+                continue
+            imported.update(
+                by_module[module]
+                for module in modules
+                if module in by_module
+            )
+        local = tuple(
+            candidate for candidate in BRIDGE_SOURCES if candidate in imported
+        )
+        forward = [
+            dependency
+            for dependency in local
+            if order[dependency] >= order[source]
+        ]
+        if forward:
+            raise RefinementError(
+                f"generated Sail bridge source {source} imports a module "
+                "outside the reviewed dependency order: "
+                + ", ".join(dependency.as_posix() for dependency in forward)
+            )
+        dependencies[source] = local
+    return dependencies
+
+
+def _bridge_build_jobs(source_count: int) -> int:
+    if source_count <= 0:
+        raise RefinementError("generated Sail bridge closure is empty")
+    logical_cpus = max(1, os.cpu_count() or 1)
+    # Lean itself can use more than one logical CPU. Reserve two logical CPUs
+    # per process before applying the hard memory/concurrency ceiling.
+    cpu_budget = max(1, (logical_cpus + 1) // 2)
+    return min(BRIDGE_BUILD_MAX_JOBS, cpu_budget, source_count)
+
+
 def _kernel_build_bridge_sources(
     paths: Paths,
     project: Path,
@@ -452,18 +511,58 @@ def _kernel_build_bridge_sources(
         if not inherited_lean_path
         else f"{output_dir}{os.pathsep}{inherited_lean_path}"
     )
-    outputs: list[str] = []
-    for source in BRIDGE_SOURCES:
+    dependencies = _bridge_source_dependencies(paths)
+    order = {source: index for index, source in enumerate(BRIDGE_SOURCES)}
+    outputs: dict[Path, str] = {}
+    completed: set[Path] = set()
+    pending = set(BRIDGE_SOURCES)
+    running: dict[concurrent.futures.Future[str], Path] = {}
+    max_workers = _bridge_build_jobs(len(BRIDGE_SOURCES))
+
+    def compile_source(source: Path) -> str:
         output = output_dir / source.with_suffix(".olean").name
-        outputs.append(
-            _run(
-                _bridge_lean_command(paths, source, output),
-                project,
-                env=bridge_environment,
-                timeout=600,
-            )
+        return _run(
+            _bridge_lean_command(paths, source, output),
+            project,
+            env=bridge_environment,
+            timeout=600,
         )
-    return "\n".join(fragment for fragment in outputs if fragment)
+
+    with concurrent.futures.ThreadPoolExecutor(
+        max_workers=max_workers,
+        thread_name_prefix="sail-lean-bridge",
+    ) as executor:
+        while pending or running:
+            available = max_workers - len(running)
+            ready = [
+                source
+                for source in BRIDGE_SOURCES
+                if source in pending
+                and all(
+                    dependency in completed
+                    for dependency in dependencies[source]
+                )
+            ]
+            for source in ready[:available]:
+                pending.remove(source)
+                running[executor.submit(compile_source, source)] = source
+            if not running:
+                raise RefinementError(
+                    "generated Sail bridge dependency graph cannot make progress"
+                )
+            finished, _ = concurrent.futures.wait(
+                running,
+                return_when=concurrent.futures.FIRST_COMPLETED,
+            )
+            for future in sorted(finished, key=lambda item: order[running[item]]):
+                source = running.pop(future)
+                outputs[source] = future.result()
+                completed.add(source)
+    return "\n".join(
+        outputs[source]
+        for source in BRIDGE_SOURCES
+        if outputs[source]
+    )
 
 
 def _patch_support(paths: Paths, project: Path) -> None:
@@ -542,108 +641,27 @@ def _lean_sail_revision(project: Path) -> str:
 
 
 def _source_closure(project: Path) -> tuple[int, str]:
-    sources = sorted((project / "LeanRV32IM").glob("*.lean"))
-    if not sources:
-        raise RefinementError("generated Sail Lean source closure is empty")
-    mapping = {
-        source.relative_to(project).as_posix(): codec.sha256_file(source)
-        for source in sources
-        if not source.is_symlink() and source.is_file()
-    }
-    if len(mapping) != len(sources):
-        raise RefinementError(
-            "generated Sail Lean source closure contains a non-regular file"
-        )
-    for relative, expected in GENERATED_MODULE_SHA256.items():
-        if mapping.get(relative) != expected:
-            raise RefinementError(
-                f"generated Sail bridge input drifted: {relative}"
-            )
-    return len(mapping), codec.sha256_bytes(codec.canonical_bytes(mapping))
+    from .sail_lean_evidence import source_closure
+
+    return source_closure(project)
 
 
 def _extract_definition(text: str, name: str) -> str:
-    marker = f"def {name} "
-    try:
-        start = text.index(marker)
-    except ValueError as exc:
-        raise RefinementError(
-            f"generated Sail output has no {name}"
-        ) from exc
-    next_definition = re.search(
-        r"\ndef [A-Za-z0-9_]+ ",
-        text[start + 1 :],
-    )
-    end = (
-        start + 1 + next_definition.start()
-        if next_definition is not None
-        else len(text)
-    )
-    return text[start:end].rstrip() + "\n"
+    from .sail_lean_evidence import extract_definition
+
+    return extract_definition(text, name)
 
 
 def _validate_selector_source_digests(generated_file: Path) -> None:
-    try:
-        generated_text = generated_file.read_text(encoding="utf-8")
-    except (OSError, UnicodeError) as exc:
-        raise RefinementError(
-            "generated Sail execute definitions are unreadable"
-        ) from exc
-    actual = {
-        name: codec.sha256_bytes(
-            _extract_definition(generated_text, name).encode("utf-8")
-        )
-        for name in GENERATED_EXECUTE_DEFINITION_SHA256
-    }
-    if actual != GENERATED_EXECUTE_DEFINITION_SHA256:
-        changed = sorted(
-            name
-            for name, digest in actual.items()
-            if GENERATED_EXECUTE_DEFINITION_SHA256.get(name) != digest
-        )
-        raise RefinementError(
-            "generated Sail publication execute definitions drifted: "
-            + ", ".join(changed)
-        )
+    from .sail_lean_evidence import validate_selector_source_digests
+
+    validate_selector_source_digests(generated_file)
 
 
 def _proof_axioms(output: str) -> dict[str, list[str]]:
-    found: dict[str, list[str]] = {}
-    for theorem, raw_axioms in _AXIOM_LINE.findall(output):
-        axioms = [
-            axiom.strip()
-            for axiom in raw_axioms.split(",")
-            if axiom.strip()
-        ]
-        if theorem in found:
-            raise RefinementError(
-                f"generated Sail bridge repeated axiom output for {theorem}"
-            )
-        found[theorem] = sorted(axioms)
-    if set(found) != set(THEOREMS):
-        raise RefinementError(
-            "generated Sail bridge axiom inventory is incomplete: "
-            f"found={sorted(found)}, expected={sorted(THEOREMS)}"
-        )
-    unexpected = {
-        axiom
-        for axioms in found.values()
-        for axiom in axioms
-        if axiom not in APPROVED_AXIOMS
-    }
-    if unexpected:
-        raise RefinementError(
-            "generated Sail bridge uses unapproved axioms: "
-            + ", ".join(sorted(unexpected))
-        )
-    ordered = {theorem: found[theorem] for theorem in THEOREMS}
-    if ordered != EXPECTED_THEOREM_AXIOMS:
-        raise RefinementError(
-            "generated Sail bridge axiom inventory drifted from the exact "
-            "per-theorem contract"
-        )
-    return ordered
+    from .sail_lean_evidence import proof_axioms
 
+    return proof_axioms(output)
 
 def _bridge_source_identities(paths: Paths) -> list[dict[str, str]]:
     """Scan and bind every source in the declared bridge closure."""

@@ -6,6 +6,7 @@
 
 const std = @import("std");
 const opcode_manifest = @import("../opcode_manifest.zig");
+const composition_manifest = @import("lang/opcode_composition_manifest.zig");
 const table_schema = @import("lookups/tables/schema.zig");
 const transcript_claims = @import("transcript/claims.zig");
 
@@ -13,30 +14,13 @@ pub const OpcodeFamily = opcode_manifest.Family;
 pub const TableKind = table_schema.Kind;
 pub const TranscriptComponent = transcript_claims.Component;
 
-pub const OPCODE_FAMILY_COUNT: usize = 17;
+pub const OPCODE_FAMILY_COUNT: usize = composition_manifest.FAMILY_COUNT;
 pub const LOOKUP_TABLE_COUNT: usize = 6;
 pub const LOOKUP_TABLE_COMPONENT_START: usize = 22;
 pub const TRANSCRIPT_COMPONENT_COUNT: usize = 28;
 
-pub const OPCODE_FAMILIES = [OPCODE_FAMILY_COUNT]OpcodeFamily{
-    .auipc,
-    .base_alu_imm,
-    .base_alu_reg,
-    .branch_eq,
-    .branch_lt,
-    .div,
-    .jal,
-    .jalr,
-    .load_store,
-    .lt_imm,
-    .lt_reg,
-    .lui,
-    .mul,
-    .mulh,
-    .shifts_imm,
-    .shifts_reg,
-    .fence,
-};
+pub const OPCODE_FAMILIES: [OPCODE_FAMILY_COUNT]OpcodeFamily =
+    composition_manifest.TRANSCRIPT_ORDER;
 
 pub const LOOKUP_TABLES = [LOOKUP_TABLE_COUNT]TableKind{
     .bitwise,
@@ -64,25 +48,7 @@ pub fn lookupTableAt(index: usize) ?TableKind {
 }
 
 pub fn opcodeFamilyIndex(family: OpcodeFamily) usize {
-    return switch (family) {
-        .auipc => 0,
-        .base_alu_imm => 1,
-        .base_alu_reg => 2,
-        .branch_eq => 3,
-        .branch_lt => 4,
-        .div => 5,
-        .jal => 6,
-        .jalr => 7,
-        .load_store => 8,
-        .lt_imm => 9,
-        .lt_reg => 10,
-        .lui => 11,
-        .mul => 12,
-        .mulh => 13,
-        .shifts_imm => 14,
-        .shifts_reg => 15,
-        .fence => 16,
-    };
+    return composition_manifest.compositionIndex(family);
 }
 
 pub fn lookupTableIndex(kind: TableKind) usize {
@@ -97,25 +63,7 @@ pub fn lookupTableIndex(kind: TableKind) usize {
 }
 
 pub fn transcriptComponentForOpcodeFamily(family: OpcodeFamily) TranscriptComponent {
-    return switch (family) {
-        .auipc => .auipc,
-        .base_alu_imm => .base_alu_imm,
-        .base_alu_reg => .base_alu_reg,
-        .branch_eq => .branch_eq,
-        .branch_lt => .branch_lt,
-        .div => .div,
-        .jal => .jal,
-        .jalr => .jalr,
-        .load_store => .load_store,
-        .lt_imm => .lt_imm,
-        .lt_reg => .lt_reg,
-        .lui => .lui,
-        .mul => .mul,
-        .mulh => .mulh,
-        .shifts_imm => .shifts_imm,
-        .shifts_reg => .shifts_reg,
-        .fence => .fence,
-    };
+    return composition_manifest.transcriptComponent(family);
 }
 
 pub fn transcriptComponentForLookupTable(kind: TableKind) TranscriptComponent {

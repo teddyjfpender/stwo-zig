@@ -449,7 +449,134 @@ test "guest main trace preflights before allocation and releases every failure" 
     );
 }
 
+test "guest main trace writes final columns directly and retains only relation sources" {
+    const allocator = std.testing.allocator;
+    var core = support.coreFixture(17);
+    const extension = try statement_mod.ExtensionStatement.canonical(&core, 17);
+    var logs = try support.logsFixture(allocator, 17);
+    defer logs.deinit();
+    var canonical = try subject.generate(
+        allocator,
+        &core,
+        &extension,
+        &logs.calls,
+        &logs.rows,
+    );
+    defer canonical.deinit();
+
+    const domain_size = canonical.domainSize();
+    const cells = subject.main_column_count * domain_size;
+    const storage = try allocator.alloc(M31, cells);
+    defer allocator.free(storage);
+    @memset(storage, M31.fromCanonical(123456));
+    var destinations: subject.MainDestinations = undefined;
+    var physical_column: usize = 0;
+    for (&destinations.caller) |*destination| {
+        destination.* = storage[physical_column * domain_size ..][0..domain_size];
+        physical_column += 1;
+    }
+    for (&destinations.provider) |*destination| {
+        destination.* = storage[physical_column * domain_size ..][0..domain_size];
+        physical_column += 1;
+    }
+    try std.testing.expectEqual(subject.main_column_count, physical_column);
+
+    try subject.generateMainInto(
+        &core,
+        &extension,
+        &logs.calls,
+        &logs.rows,
+        &destinations,
+    );
+    for (destinations.caller, 0..) |actual, column| {
+        try std.testing.expectEqualSlices(M31, canonical.callerMain(column), actual);
+    }
+    for (destinations.provider, 0..) |actual, column| {
+        try std.testing.expectEqualSlices(M31, canonical.providerMain(column), actual);
+    }
+
+    var retained = try subject.RelationSource.capture(
+        allocator,
+        &destinations,
+        extension.components[0].log_size,
+        extension.counts.n_guest,
+    );
+    defer retained.deinit();
+    try std.testing.expectEqual(
+        subject.relation_source_column_count * domain_size,
+        retained.committedCells().len,
+    );
+    for (0..subject.caller_relation_source_column_count) |column| {
+        try std.testing.expectEqualSlices(
+            M31,
+            canonical.callerMain(column),
+            retained.callerMain(column),
+        );
+    }
+    try std.testing.expectEqualSlices(M31, canonical.providerMain(0), retained.providerMain(0));
+    for (1..17) |column| {
+        try std.testing.expectEqualSlices(
+            M31,
+            canonical.providerMain(column),
+            retained.providerMain(column),
+        );
+    }
+    const output_start = 1 + poseidon2_air.N_TEMPORARIES;
+    for (output_start..output_start + 16) |column| {
+        try std.testing.expectEqualSlices(
+            M31,
+            canonical.providerMain(column),
+            retained.providerMain(column),
+        );
+    }
+}
+
+test "guest direct main destinations reject shape and alias before mutation" {
+    const allocator = std.testing.allocator;
+    var core = support.coreFixture(1);
+    const extension = try statement_mod.ExtensionStatement.canonical(&core, 1);
+    var logs = try support.logsFixture(allocator, 1);
+    defer logs.deinit();
+    const domain_size: usize = 16;
+    const guard = M31.fromCanonical(777);
+    const storage = try allocator.alloc(M31, subject.main_column_count * domain_size);
+    defer allocator.free(storage);
+    @memset(storage, guard);
+    var destinations: subject.MainDestinations = undefined;
+    var physical_column: usize = 0;
+    for (&destinations.caller) |*destination| {
+        destination.* = storage[physical_column * domain_size ..][0..domain_size];
+        physical_column += 1;
+    }
+    for (&destinations.provider) |*destination| {
+        destination.* = storage[physical_column * domain_size ..][0..domain_size];
+        physical_column += 1;
+    }
+
+    const caller_one = destinations.caller[1];
+    destinations.caller[1] = destinations.caller[0];
+    try std.testing.expectError(error.OverlappingDestinations, subject.generateMainInto(
+        &core,
+        &extension,
+        &logs.calls,
+        &logs.rows,
+        &destinations,
+    ));
+    for (storage) |value| try std.testing.expect(value.eql(guard));
+
+    destinations.caller[1] = caller_one[0 .. domain_size - 1];
+    try std.testing.expectError(error.InvalidDestinationShape, subject.generateMainInto(
+        &core,
+        &extension,
+        &logs.calls,
+        &logs.rows,
+        &destinations,
+    ));
+    for (storage) |value| try std.testing.expect(value.eql(guard));
+}
+
 comptime {
-    if (call_buffer.lane_count != 16 or subject.total_column_count != 735)
+    if (call_buffer.lane_count != 16 or subject.total_column_count != 735 or
+        subject.relation_source_column_count != 191)
         @compileError("C-007 evidence geometry drifted");
 }

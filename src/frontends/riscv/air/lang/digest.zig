@@ -6,6 +6,7 @@
 //! interning-table state, allocation capacity, and addresses are excluded.
 
 const std = @import("std");
+const capabilities = @import("capabilities.zig");
 const expr = @import("expr.zig");
 const functions = @import("functions.zig");
 const hint_recipe = @import("hint_recipe.zig");
@@ -23,6 +24,12 @@ pub const typed_effect_format_version: u16 = 2;
 pub const register_group_format_version: u16 = 3;
 pub const memory_access_format_version: u16 = 4;
 pub const sequential_retirement_format_version: u16 = 5;
+pub const typed_lookup_request_format_version: u16 = 6;
+pub const range_refinement_format_version: u16 = 7;
+pub const conditional_access_format_version: u16 = 8;
+pub const program_control_target_format_version: u16 = 9;
+pub const committed_program_control_target_format_version: u16 = 10;
+pub const function_body_format_version: u16 = 11;
 pub const domain_separator = "stwo-zig/typed-air/semantic";
 pub const Error = validate.Error;
 
@@ -34,7 +41,8 @@ pub const Identity = struct {
 /// Computes a semantic digest without allocating.
 pub fn compute(arena: *const ir.Arena) Error!Digest {
     try validate.validate(arena);
-    if (hasRelationBindings(arena))
+    if (capabilities.hasRelationBindings(arena) or
+        capabilities.hasFunctionBodyOwnership(arena))
         return error.InvalidEffect;
     return computeValidated(arena, .legacy_v1);
 }
@@ -42,7 +50,10 @@ pub fn compute(arena: *const ir.Arena) Error!Digest {
 /// Semantic identity v2, which explicitly binds typed relation ABI metadata.
 pub fn computeV2(arena: *const ir.Arena) validate.Error!Digest {
     try validate.validate(arena);
-    if (hasMachineDerivedNodes(arena)) return error.InvalidEffect;
+    if (capabilities.hasMachineDerivedNodes(arena) or
+        capabilities.hasTypedLookupRequest(arena) or
+        capabilities.hasRangeRefinement(arena) or
+        capabilities.hasFunctionBodyOwnership(arena)) return error.InvalidEffect;
     return computeValidated(arena, .typed_effect_v2);
 }
 
@@ -50,8 +61,11 @@ pub fn computeV2(arena: *const ir.Arena) validate.Error!Digest {
 /// instruction-local access groups in addition to typed relation metadata.
 pub fn computeV3(arena: *const ir.Arena) validate.Error!Digest {
     try validate.validate(arena);
-    if (hasMemoryAccessCapability(arena) or
-        hasSequentialRetirementCapability(arena)) return error.InvalidEffect;
+    if (capabilities.hasMemoryAccess(arena) or
+        capabilities.hasSequentialRetirement(arena) or
+        capabilities.hasTypedLookupRequest(arena) or
+        capabilities.hasRangeRefinement(arena) or
+        capabilities.hasFunctionBodyOwnership(arena)) return error.InvalidEffect;
     return computeValidated(arena, .register_group_v3);
 }
 
@@ -59,8 +73,11 @@ pub fn computeV3(arena: *const ir.Arena) validate.Error!Digest {
 /// addresses. Relation ordinal and physical phase remain independently bound.
 pub fn computeV4(arena: *const ir.Arena) validate.Error!Digest {
     try validate.validate(arena);
-    if (!hasMemoryAccessCapability(arena) or
-        hasSequentialRetirementCapability(arena)) return error.InvalidEffect;
+    if (!capabilities.hasMemoryAccess(arena) or
+        capabilities.hasSequentialRetirement(arena) or
+        capabilities.hasTypedLookupRequest(arena) or
+        capabilities.hasRangeRefinement(arena) or
+        capabilities.hasFunctionBodyOwnership(arena)) return error.InvalidEffect;
     return computeValidated(arena, .memory_access_v4);
 }
 
@@ -68,31 +85,146 @@ pub fn computeV4(arena: *const ir.Arena) validate.Error!Digest {
 /// earlier typed capability, including load/store access plans.
 pub fn computeV5(arena: *const ir.Arena) validate.Error!Digest {
     try validate.validate(arena);
-    if (!hasSequentialRetirementCapability(arena)) return error.InvalidEffect;
+    if (!capabilities.hasSequentialRetirement(arena) or
+        capabilities.hasTypedLookupRequest(arena) or
+        capabilities.hasRangeRefinement(arena) or
+        capabilities.hasFunctionBodyOwnership(arena)) return error.InvalidEffect;
     return computeValidated(arena, .sequential_retirement_v5);
+}
+
+/// Semantic identity v6 for explicit fixed-table operation requests and
+/// statically bounded arithmetic. Earlier projections reject these additions,
+/// so old v1-v5 digests retain exactly their prior byte domain.
+pub fn computeV6(arena: *const ir.Arena) validate.Error!Digest {
+    try validate.validate(arena);
+    if (!capabilities.hasTypedLookupRequest(arena) or
+        capabilities.hasRangeRefinement(arena) or
+        capabilities.hasFunctionBodyOwnership(arena)) return error.InvalidEffect;
+    return computeValidated(arena, .typed_lookup_request_v6);
+}
+
+/// Semantic identity v7 binds proof-carrying range refinements and their exact
+/// constraint/effect premises in addition to the complete v6 program.
+pub fn computeV7(arena: *const ir.Arena) validate.Error!Digest {
+    try validate.validate(arena);
+    if (!capabilities.hasRangeRefinement(arena) or
+        capabilities.hasConditionalAccess(arena) or
+        capabilities.hasProgramControlTarget(arena) or
+        capabilities.hasCommittedProgramControlTarget(arena) or
+        capabilities.hasFunctionBodyOwnership(arena))
+    {
+        return error.InvalidEffect;
+    }
+    return computeValidated(arena, .range_refinement_v7);
+}
+
+/// Semantic identity v8 binds the closed conditional load/store access proof,
+/// including every zero-column alias and its exact direct/range premises.
+pub fn computeV8(arena: *const ir.Arena) validate.Error!Digest {
+    try validate.validate(arena);
+    if (!capabilities.hasConditionalAccess(arena) or
+        capabilities.hasProgramControlTarget(arena) or
+        capabilities.hasCommittedProgramControlTarget(arena) or
+        capabilities.hasFunctionBodyOwnership(arena))
+    {
+        return error.InvalidEffect;
+    }
+    return computeValidated(arena, .conditional_access_v8);
+}
+
+/// Semantic identity v9 binds program-authenticated jump and branch targets.
+/// This is a new byte domain: v7/v8 remain frozen and explicitly reject the
+/// added premise tag rather than changing an already published projection.
+pub fn computeV9(arena: *const ir.Arena) validate.Error!Digest {
+    try validate.validate(arena);
+    if (!capabilities.hasProgramControlTarget(arena) or
+        capabilities.hasCommittedProgramControlTarget(arena) or
+        capabilities.hasFunctionBodyOwnership(arena))
+    {
+        return error.InvalidEffect;
+    }
+    return computeValidated(arena, .program_control_target_v9);
+}
+
+/// Semantic identity v10 binds a physical committed control target to its
+/// exact program tuple, scalar compatibility views, decision-bit premise, and
+/// gated target-equality premise. V1-v9 byte domains remain frozen.
+pub fn computeV10(arena: *const ir.Arena) validate.Error!Digest {
+    try validate.validate(arena);
+    if (!capabilities.hasCommittedProgramControlTarget(arena) or
+        capabilities.hasFunctionBodyOwnership(arena))
+        return error.InvalidEffect;
+    return computeValidated(arena, .committed_program_control_target_v10);
+}
+
+/// Semantic identity v11 binds explicit per-function ownership for every
+/// proof-bearing record and the redundant sealed body ranges. It is an
+/// additive projection over v10's full capability surface; v1-v10 reject this
+/// feature so their published byte domains remain frozen.
+pub fn computeV11(arena: *const ir.Arena) validate.Error!Digest {
+    try validate.validate(arena);
+    if (!capabilities.hasFunctionBodyOwnership(arena))
+        return error.InvalidEffect;
+    return computeValidated(arena, .function_body_v11);
 }
 
 pub fn computeIdentity(arena: *const ir.Arena) validate.Error!Identity {
     try validate.validate(arena);
-    if (hasSequentialRetirementCapability(arena)) {
+    if (capabilities.hasFunctionBodyOwnership(arena)) {
+        return .{
+            .format_version = function_body_format_version,
+            .bytes = computeValidated(arena, .function_body_v11),
+        };
+    }
+    if (capabilities.hasCommittedProgramControlTarget(arena)) {
+        return .{
+            .format_version = committed_program_control_target_format_version,
+            .bytes = computeValidated(arena, .committed_program_control_target_v10),
+        };
+    }
+    if (capabilities.hasProgramControlTarget(arena)) {
+        return .{
+            .format_version = program_control_target_format_version,
+            .bytes = computeValidated(arena, .program_control_target_v9),
+        };
+    }
+    if (capabilities.hasConditionalAccess(arena)) {
+        return .{
+            .format_version = conditional_access_format_version,
+            .bytes = computeValidated(arena, .conditional_access_v8),
+        };
+    }
+    if (capabilities.hasRangeRefinement(arena)) {
+        return .{
+            .format_version = range_refinement_format_version,
+            .bytes = computeValidated(arena, .range_refinement_v7),
+        };
+    }
+    if (capabilities.hasTypedLookupRequest(arena)) {
+        return .{
+            .format_version = typed_lookup_request_format_version,
+            .bytes = computeValidated(arena, .typed_lookup_request_v6),
+        };
+    }
+    if (capabilities.hasSequentialRetirement(arena)) {
         return .{
             .format_version = sequential_retirement_format_version,
             .bytes = computeValidated(arena, .sequential_retirement_v5),
         };
     }
-    if (hasMemoryAccessCapability(arena)) {
+    if (capabilities.hasMemoryAccess(arena)) {
         return .{
             .format_version = memory_access_format_version,
             .bytes = computeValidated(arena, .memory_access_v4),
         };
     }
-    if (hasMachineDerivedNodes(arena)) {
+    if (capabilities.hasMachineDerivedNodes(arena)) {
         return .{
             .format_version = register_group_format_version,
             .bytes = computeValidated(arena, .register_group_v3),
         };
     }
-    if (hasRelationBindings(arena)) {
+    if (capabilities.hasRelationBindings(arena)) {
         return .{
             .format_version = typed_effect_format_version,
             .bytes = computeValidated(arena, .typed_effect_v2),
@@ -110,6 +242,12 @@ const Projection = enum {
     register_group_v3,
     memory_access_v4,
     sequential_retirement_v5,
+    typed_lookup_request_v6,
+    range_refinement_v7,
+    conditional_access_v8,
+    program_control_target_v9,
+    committed_program_control_target_v10,
+    function_body_v11,
 };
 
 fn computeValidated(arena: *const ir.Arena, projection: Projection) Digest {
@@ -121,16 +259,32 @@ fn computeValidated(arena: *const ir.Arena, projection: Projection) Digest {
         .register_group_v3 => register_group_format_version,
         .memory_access_v4 => memory_access_format_version,
         .sequential_retirement_v5 => sequential_retirement_format_version,
+        .typed_lookup_request_v6 => typed_lookup_request_format_version,
+        .range_refinement_v7 => range_refinement_format_version,
+        .conditional_access_v8 => conditional_access_format_version,
+        .program_control_target_v9 => program_control_target_format_version,
+        .committed_program_control_target_v10 => committed_program_control_target_format_version,
+        .function_body_v11 => function_body_format_version,
     });
     hashCount(&hash, arena.nodesView().len);
     hashCount(&hash, arena.constraintsView().len);
     hashCount(&hash, hints.view(arena).len);
     hashCount(&hash, arena.effectsView().len);
+    if (projectionHasRangeRefinement(projection))
+        hashCount(&hash, arena.range_refinements.items.len);
+    if (projectionHasRangeRefinement(projection))
+        hashCount(&hash, arena.fixed_table_requests.items.len);
+    if (projectionHasConditionalAccess(projection))
+        hashCount(&hash, arena.conditional_access_plans.items.len);
+    if (projectionHasCommittedProgramControlTarget(projection))
+        hashCount(&hash, arena.committed_program_control_targets.items.len);
     hashCount(&hash, functions.view(arena).len);
     hashCount(&hash, functions.calls(arena).len);
 
     for (arena.nodesView()) |node| hashNode(&hash, arena, node);
     for (arena.constraintsView()) |constraint| {
+        if (projectionHasFunctionBody(projection))
+            hashOptionalFunctionId(&hash, constraint.owner);
         hashName(&hash, arena, constraint.name);
         hashValueId(&hash, constraint.root);
         hashOptionalValueId(&hash, constraint.gate);
@@ -139,6 +293,8 @@ fn computeValidated(arena: *const ir.Arena, projection: Projection) Digest {
     for (hints.view(arena), 0..) |hint, index| {
         const hint_id = types.idFromIndex(types.HintId, index) catch unreachable;
         const recipe = hint_recipe.getById(hint.recipe).?;
+        if (projectionHasFunctionBody(projection))
+            hashOptionalFunctionId(&hash, hint.owner);
         hashInt(&hash, u16, @intFromEnum(hint.recipe));
         hashInt(&hash, u16, recipe.version);
         hashInt(&hash, u16, @intFromEnum(recipe.algorithm));
@@ -156,6 +312,8 @@ fn computeValidated(arena: *const ir.Arena, projection: Projection) Digest {
     }
     for (arena.effectsView(), 0..) |effect, index| {
         const effect_id = types.idFromIndex(types.EffectId, index) catch unreachable;
+        if (projectionHasFunctionBody(projection))
+            hashOptionalFunctionId(&hash, effect.owner);
         hashInt(&hash, u8, effectKindTag(effect.kind));
         if (projection != .legacy_v1)
             hashRelationBinding(&hash, effect.binding);
@@ -163,11 +321,66 @@ fn computeValidated(arena: *const ir.Arena, projection: Projection) Digest {
         hashOptionalValueId(&hash, effect.liveness);
         hashOptionalInt(&hash, u8, effect.access_ordinal);
     }
+    if (projectionHasRangeRefinement(projection)) {
+        for (arena.fixed_table_requests.items) |proof| {
+            hashInt(&hash, u32, @intFromEnum(proof.effect));
+            hashValueId(&hash, proof.liveness);
+        }
+        for (arena.range_refinements.items) |item| {
+            hashValueId(&hash, item.source);
+            hashValueId(&hash, item.target);
+            switch (item.premise) {
+                .constraint_boolean => |proof| {
+                    hashInt(&hash, u8, 0);
+                    hashInt(&hash, u32, @intFromEnum(proof.constraint));
+                },
+                .fixed_table_field => |proof| {
+                    hashInt(&hash, u8, 1);
+                    hashInt(&hash, u32, @intFromEnum(proof.effect));
+                    hashInt(&hash, u8, proof.field_index);
+                    hashValueId(&hash, proof.liveness);
+                },
+                .aligned_control_target => |proof| {
+                    hashInt(&hash, u8, 2);
+                    hashValueId(&hash, proof.low);
+                    hashValueId(&hash, proof.high);
+                    hashInt(&hash, u32, @intFromEnum(proof.low_effect));
+                    hashInt(&hash, u32, @intFromEnum(proof.high_effect));
+                    hashValueId(&hash, proof.liveness);
+                },
+                .program_control_target => |proof| {
+                    hashInt(&hash, u8, 3);
+                    hashInt(&hash, u32, @intFromEnum(proof.program_effect));
+                    hashValueId(&hash, proof.current_pc);
+                    hashValueId(&hash, proof.offset);
+                    switch (proof.kind) {
+                        .jump => hashInt(&hash, u8, 0),
+                        .branch => |branch| {
+                            hashInt(&hash, u8, 1);
+                            hashValueId(&hash, branch.condition);
+                            hashInt(&hash, u32, @intFromEnum(branch.condition_constraint));
+                        },
+                    }
+                    hashValueId(&hash, proof.liveness);
+                },
+            }
+        }
+    }
+    if (projectionHasConditionalAccess(projection)) {
+        for (arena.conditional_access_plans.items) |proof|
+            hashConditionalAccessPlan(&hash, proof);
+    }
+    if (projectionHasCommittedProgramControlTarget(projection)) {
+        for (arena.committed_program_control_targets.items) |proof|
+            hashCommittedProgramControlTarget(&hash, proof);
+    }
     for (functions.view(arena), 0..) |function, index| {
         const function_id = types.idFromIndex(types.FunctionId, index) catch unreachable;
         hashName(&hash, arena, function.name);
         hashValues(&hash, functions.inputs(arena, function_id).?);
         hashValues(&hash, functions.outputs(arena, function_id).?);
+        if (projectionHasFunctionBody(projection))
+            hashFunctionBody(&hash, function.body);
     }
     for (functions.calls(arena), 0..) |call, index| {
         const call_id = types.idFromIndex(types.CallId, index) catch unreachable;
@@ -180,45 +393,109 @@ fn computeValidated(arena: *const ir.Arena, projection: Projection) Digest {
     return hash.finalResult();
 }
 
-fn hasRelationBindings(arena: *const ir.Arena) bool {
-    for (arena.effectsView()) |effect| {
-        if (effect.binding != null) return true;
+fn projectionHasRangeRefinement(projection: Projection) bool {
+    return switch (projection) {
+        .range_refinement_v7,
+        .conditional_access_v8,
+        .program_control_target_v9,
+        .committed_program_control_target_v10,
+        .function_body_v11,
+        => true,
+        else => false,
+    };
+}
+
+fn projectionHasConditionalAccess(projection: Projection) bool {
+    return switch (projection) {
+        .conditional_access_v8,
+        .program_control_target_v9,
+        .committed_program_control_target_v10,
+        .function_body_v11,
+        => true,
+        else => false,
+    };
+}
+
+fn projectionHasCommittedProgramControlTarget(projection: Projection) bool {
+    return projection == .committed_program_control_target_v10 or
+        projection == .function_body_v11;
+}
+
+fn projectionHasFunctionBody(projection: Projection) bool {
+    return projection == .function_body_v11;
+}
+
+fn hashFunctionBody(hash: *Sha256, body: ?program.FunctionBody) void {
+    if (body) |present| {
+        hashInt(hash, u8, 1);
+        inline for (.{
+            present.constraints,
+            present.effects,
+            present.hints,
+            present.calls,
+        }) |range| {
+            hashInt(hash, u32, range.start);
+            hashInt(hash, u32, range.len);
+        }
+    } else {
+        hashInt(hash, u8, 0);
     }
-    return false;
 }
 
-fn hasMachineDerivedNodes(arena: *const ir.Arena) bool {
-    for (arena.nodesView()) |node| switch (node.key.op) {
-        .machine_derived => return true,
-        else => {},
-    };
-    return false;
+fn hashCommittedProgramControlTarget(
+    hash: *Sha256,
+    proof: program.CommittedProgramControlTargetProof,
+) void {
+    hashInt(hash, u32, @intFromEnum(proof.program_effect));
+    inline for (.{
+        proof.current_pc,
+        proof.current_pc_polynomial,
+        proof.offset,
+        proof.condition,
+    }) |value| hashValueId(hash, value);
+    hashInt(hash, u32, @intFromEnum(proof.condition_constraint));
+    hashValueId(hash, proof.committed_target);
+    hashValueId(hash, proof.committed_target_polynomial);
+    hashInt(hash, u32, @intFromEnum(proof.target_constraint));
+    hashValueId(hash, proof.liveness);
 }
 
-fn hasMemoryAccessCapability(arena: *const ir.Arena) bool {
-    for (arena.effectsView()) |effect| switch (effect.kind) {
-        .memory_read, .memory_write => return true,
-        else => {},
-    };
-    for (arena.nodesView()) |node| switch (node.key.op) {
-        .machine_derived => |derived| switch (derived) {
-            .aligned_word_address => return true,
-            else => {},
-        },
-        else => {},
-    };
-    return false;
-}
-
-fn hasSequentialRetirementCapability(arena: *const ir.Arena) bool {
-    for (arena.nodesView()) |node| switch (node.key.op) {
-        .machine_derived => |derived| switch (derived) {
-            .instruction_next_pc, .instruction_next_clock => return true,
-            else => {},
-        },
-        else => {},
-    };
-    return false;
+fn hashConditionalAccessPlan(
+    hash: *Sha256,
+    proof: program.ConditionalAccessPlanProof,
+) void {
+    hashInt(hash, u32, @intFromEnum(proof.first_effect));
+    hashInt(hash, u32, @intFromEnum(proof.aligned_range));
+    hashInt(hash, u32, @intFromEnum(proof.base_range));
+    inline for (.{
+        proof.active_source,
+        proof.active,
+        proof.store_source,
+        proof.store_selector,
+        proof.is_load,
+        proof.instruction_clock,
+        proof.second_clock,
+        proof.memory_address,
+        proof.shift_amount,
+        proof.register_index,
+        proof.word_source,
+        proof.word_index,
+        proof.base_low,
+        proof.base_high,
+    }) |value| hashValueId(hash, value);
+    hashInt(hash, u32, @intFromEnum(proof.source_address_constraint));
+    hashInt(hash, u32, @intFromEnum(proof.destination_address_constraint));
+    inline for (.{
+        proof.source_address,
+        proof.source_clock,
+        proof.source_gap,
+        proof.destination_address,
+        proof.destination_clock,
+        proof.destination_gap,
+    }) |alias| {
+        hashValueId(hash, alias.source);
+        hashValueId(hash, alias.target);
+    }
 }
 
 fn hashRelationBinding(
@@ -471,6 +748,7 @@ fn effectKindTag(kind: program.EffectKind) u8 {
         .component_call => 8,
         .public_consume => 9,
         .public_produce => 10,
+        .bitwise_request => 11,
     };
 }
 

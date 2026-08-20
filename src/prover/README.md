@@ -60,7 +60,7 @@ comptime prover.engine.assertProverEngine(Engine);
 | Polynomial protocol | `fft_pool`, `line`, `poly`, `secure_column` |
 | Commitments and FRI | `pcs`, `fri`, `vcs`, `vcs_lifted`, `channel` |
 | Scheduling and storage | `task_graph`, `work_pool`, `host_budget_allocator`, `resident_storage`, `mmap_alloc` |
-| Observability | `measurement`, `stage_profile`, `task_profile` |
+| Observability | `measurement`, `stage_profile`, `task_profile`, `work_profile` |
 | Prepared transaction ownership | `transaction` |
 
 The low-level `prove.prove`, `prove.proveEx`, and
@@ -76,6 +76,9 @@ admitted separately by `work_pool` and `task_graph`.
 graphs. Its graph-local elapsed time and outer-task concurrency are exact;
 physical-worker concurrency and busy time remain absent when a
 `pool_exclusive` task contains uninstrumented child work.
+`work_profile` owns the exact-work site inventory and completion receipts used
+to join prover execution with the typed-AIR static profile. Receipts publish
+only after their producer-defined transaction succeeds.
 
 ## Dependencies
 

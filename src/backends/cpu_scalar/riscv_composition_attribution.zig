@@ -11,6 +11,7 @@ const lanes = @import("riscv_composition_lanes.zig");
 
 const BaseProgramEntry = admission.BaseProgramEntry;
 const LookupProgramEntry = admission.LookupProgramEntry;
+const LookupProgramV2Entry = admission.LookupProgramV2Entry;
 const PairJob = admission.PairJob;
 const Tile = lanes.Tile;
 
@@ -35,6 +36,7 @@ pub const Plan = struct {
         pairs: []const PairJob,
         base_programs: []const BaseProgramEntry,
         lookup_programs: []const LookupProgramEntry,
+        lookup_programs_v2: []const LookupProgramV2Entry,
         tiles: []const Tile,
         lane_count: usize,
     ) !Plan {
@@ -104,7 +106,14 @@ pub const Plan = struct {
                 const work = pair_work[lane_index * pairs.len + pair_index];
                 if (work.tiles == 0) continue;
                 const base = base_programs[pair.base_program_index].program;
-                const lookup = lookup_programs[pair.lookup_program_index].program;
+                const lookup_constraint_count = switch (pair.lookup_version) {
+                    .v1 => lookup_programs[
+                        pair.lookup_program_index
+                    ].program.batchCount(),
+                    .v2 => lookup_programs_v2[
+                        pair.lookup_program_index
+                    ].program.batchCount(),
+                };
                 contributions[cursor] = .{
                     .component_registry_index = pair.semantic_registry_index,
                     .component_kind = "riscv_semantic_component",
@@ -118,7 +127,10 @@ pub const Plan = struct {
                     .component_registry_index = pair.lookup_registry_index,
                     .component_kind = "riscv_lookup_component",
                     .role = .lookup_constraints,
-                    .work_estimate = try checkedWork(work.rows, lookup.batchCount()),
+                    .work_estimate = try checkedWork(
+                        work.rows,
+                        lookup_constraint_count,
+                    ),
                     .planned_rows = work.rows,
                     .planned_tiles = work.tiles,
                 };

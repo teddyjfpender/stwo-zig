@@ -1,0 +1,154 @@
+//! Test-only, scalar Poseidon2-M31 oracle for C-011.
+//!
+//! This deliberately imports neither the production permutation nor its Zig
+//! constants. The parameters are transcribed from the pinned Stark-V source,
+//! while the linear layers use literal matrix arithmetic rather than the
+//! production addition schedule. That separation makes round order, constants,
+//! field arithmetic, and optimized-matrix drift observable.
+
+pub const modulus: u32 = 0x7fff_ffff;
+pub const width: usize = 16;
+pub const State = [width]u32;
+
+pub fn permute(input: State) State {
+    var state = input;
+    externalMatrix(&state);
+    for (external_rounds[0..4]) |round| fullRound(&state, round);
+    for (internal_rounds) |round_constant| {
+        state[0] = fifthPower(add(state[0], round_constant));
+        internalMatrix(&state);
+    }
+    for (external_rounds[4..8]) |round| fullRound(&state, round);
+    return state;
+}
+
+fn fullRound(state: *State, constants: State) void {
+    for (state, constants) |*value, constant| {
+        value.* = fifthPower(add(value.*, constant));
+    }
+    externalMatrix(state);
+}
+
+fn fifthPower(value: u32) u32 {
+    const square = multiply(value, value);
+    return multiply(multiply(square, square), value);
+}
+
+fn add(lhs: u32, rhs: u32) u32 {
+    const sum = lhs + rhs;
+    return if (sum >= modulus) sum - modulus else sum;
+}
+
+fn multiply(lhs: u32, rhs: u32) u32 {
+    return @intCast((@as(u64, lhs) * @as(u64, rhs)) % modulus);
+}
+
+/// Direct matrix multiplication by the Stark-V M4 matrix. The production
+/// evaluator uses a hand-scheduled addition network instead.
+fn m4(input: [4]u32) [4]u32 {
+    const matrix = [4][4]u32{
+        .{ 5, 7, 1, 3 },
+        .{ 4, 6, 1, 1 },
+        .{ 1, 3, 5, 7 },
+        .{ 1, 1, 4, 6 },
+    };
+    var output: [4]u32 = undefined;
+    for (matrix, &output) |row, *result| {
+        var sum: u64 = 0;
+        for (row, input) |coefficient, value| {
+            sum += @as(u64, coefficient) * @as(u64, value);
+        }
+        result.* = @intCast(sum % modulus);
+    }
+    return output;
+}
+
+fn externalMatrix(state: *State) void {
+    var local: [4][4]u32 = undefined;
+    for (0..4) |block| {
+        local[block] = m4(state[4 * block ..][0..4].*);
+    }
+    for (0..4) |lane| {
+        var lane_sum: u32 = 0;
+        for (0..4) |block| lane_sum = add(lane_sum, local[block][lane]);
+        for (0..4) |block| {
+            const index = 4 * block + lane;
+            state[index] = add(local[block][lane], lane_sum);
+        }
+    }
+}
+
+fn internalMatrix(state: *State) void {
+    var state_sum: u32 = 0;
+    for (state) |value| state_sum = add(state_sum, value);
+    for (state, internal_matrix) |*value, diagonal| {
+        value.* = add(multiply(value.*, diagonal), state_sum);
+    }
+}
+
+// Oracle: stark-v d478f783055aa0d73a93768a433a3c6c31c91d1c,
+// crates/air/src/poseidon2.rs. These are intentionally copied into the oracle
+// instead of imported from production.
+const external_rounds: [8]State = .{
+    .{
+        1988864850, 1893772157, 1025928330, 1839472709,
+        1611656994, 1104858731, 1694088660, 1564660990,
+        1991332205, 1875486487, 1890340790, 1658614,
+        582370530,  528029397,  1196956642, 655401251,
+    },
+    .{
+        1652877415, 26032894,  1576640243, 1277052539,
+        1450142396, 697623591, 1401580866, 1568404175,
+        2145004971, 265835716, 1183985610, 1031234465,
+        436012490,  172735299, 352802897,  1032863094,
+    },
+    .{
+        757665783,  1082171296, 1507509996, 309929890,
+        1807683232, 43258895,   611592566,  1854193793,
+        575164234,  894217817,  72613857,   1061659596,
+        8921166,    1617355017, 998001536,  1800758877,
+    },
+    .{
+        1002748055, 1935405944, 1351462722, 411368491,
+        1913975372, 1956167178, 442558016,  855898408,
+        699687798,  1553382248, 1708169125, 490049183,
+        1251643415, 1193594742, 880473871,  511174042,
+    },
+    .{
+        1460209171, 530850056,  398192464,  536338716,
+        75179210,   1309934197, 1335920373, 127611036,
+        291093831,  1832379621, 123571662,  303176864,
+        2137685056, 1759609530, 1418928155, 71608334,
+    },
+    .{
+        6616262,    1684515814, 1721194338, 720801691,
+        878392254,  460379263,  87930647,   940673483,
+        1136203256, 551499412,  256220454,  2007034235,
+        796124985,  410436345,  1705042586, 1286336446,
+    },
+    .{
+        1522340456, 1295296352, 309794713,  1772145068,
+        956898901,  2137070800, 988829146,  2059451359,
+        1846491684, 1105442551, 1236497773, 1452000568,
+        549485016,  385992492,  1987107948, 1514377269,
+    },
+    .{
+        2090065934, 1444920141, 293113979,  41120774,
+        855319793,  1663284746, 1789994008, 1120509162,
+        358222743,  1406256810, 735183687,  664485235,
+        1331641456, 38121324,   595810771,  1234594393,
+    },
+};
+
+const internal_rounds: [14]u32 = .{
+    2139014335, 69309039,   1368974953, 886780232,  1130937085,
+    1718115455, 2027103386, 1612216449, 1994053242, 110146615,
+    514413329,  1088763546, 955319292,  488794657,
+};
+
+const internal_matrix: State = .{
+    129501892,  1809435443, 1223573407, 1331944729,
+    415581875,  1526242955, 1341275624, 1333308150,
+    1404946132, 1549369918, 709303410,  1284988537,
+    1490838740, 115945821,  754131590,  800486749,
+};

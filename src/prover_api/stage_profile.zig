@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const task_profile = @import("task_profile.zig");
+const work_profile = @import("work_profile.zig");
 
 pub const SCHEMA_VERSION: u32 = 1;
 
@@ -11,6 +12,9 @@ pub const RecorderOptions = struct {
     /// bounded graphs receive no recorder and therefore allocate or sample no
     /// task-profile state.
     capture_tasks: bool = true,
+    /// Exact logical work is a separate opt-in capability. The ordinary
+    /// recorder path never exposes its state to prover operation boundaries.
+    capture_work: bool = false,
 };
 
 pub const StageNode = struct {
@@ -79,7 +83,9 @@ pub const Recorder = struct {
     roots: std.ArrayList(*MutableNode),
     stack: std.ArrayList(*MutableNode),
     task_recorder: task_profile.Recorder,
+    work_recorder: work_profile.Recorder(true),
     capture_tasks: bool,
+    capture_work: bool,
 
     pub fn init(
         allocator: std.mem.Allocator,
@@ -102,7 +108,9 @@ pub const Recorder = struct {
             .roots = std.ArrayList(*MutableNode).empty,
             .stack = std.ArrayList(*MutableNode).empty,
             .task_recorder = task_profile.Recorder.init(allocator, runtime, example),
+            .work_recorder = .{},
             .capture_tasks = options.capture_tasks,
+            .capture_work = options.capture_work,
         };
     }
 
@@ -168,6 +176,22 @@ pub const Recorder = struct {
     /// disabled graph execution never branch on the option.
     pub fn taskCaptureRecorder(self: *Recorder) ?*Recorder {
         return if (self.capture_tasks) self else null;
+    }
+
+    /// Returns one request-scoped exact-work capability only on the explicitly
+    /// profiled path. Callers cache this pointer at a whole-operation boundary;
+    /// no field/SIMD inner loop observes the option.
+    pub fn workCaptureRecorder(
+        self: *Recorder,
+    ) ?*work_profile.Recorder(true) {
+        return if (self.capture_work) &self.work_recorder else null;
+    }
+
+    /// Produces an unavailable receipt for the ordinary path and for an opted-
+    /// in request before any source boundary has published completed work.
+    pub fn workSnapshot(self: *Recorder) work_profile.Error!work_profile.Profile {
+        if (!self.capture_work) return work_profile.Profile.unavailable();
+        return self.work_recorder.snapshot();
     }
 
     fn pushStage(self: *Recorder, id: []const u8, label: []const u8) !*MutableNode {
@@ -321,6 +345,32 @@ test "prover stage profile: stage-only recorder suppresses flat task capture" {
     var tasks = try recorder.taskSnapshot(allocator);
     defer tasks.deinit(allocator);
     try std.testing.expectEqual(@as(usize, 0), tasks.graphs.len);
+    try std.testing.expect(recorder.workCaptureRecorder() == null);
+    const work = try recorder.workSnapshot();
+    try work.validate();
+    try std.testing.expect(!work.completeExact());
+}
+
+test "prover stage profile: exact work capability is independently opt in" {
+    const allocator = std.testing.allocator;
+    var recorder = Recorder.initWithOptions(
+        allocator,
+        "zig",
+        "work-profile",
+        .{ .capture_tasks = false, .capture_work = true },
+    );
+    defer recorder.deinit();
+
+    const work = recorder.workCaptureRecorder() orelse unreachable;
+    try work.record(.{
+        .producer = .column_preparation_fft,
+        .source_mask = work_profile.SourceMask.one(.fft_butterflies),
+        .counters = .{ .fft_butterflies = 32 },
+    });
+    const snapshot = try recorder.workSnapshot();
+    try snapshot.validate();
+    try std.testing.expectEqual(@as(u64, 32), snapshot.counters.fft_butterflies);
+    try std.testing.expect(!snapshot.completeExact());
 }
 
 test {

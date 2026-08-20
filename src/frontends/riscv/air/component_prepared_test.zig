@@ -12,6 +12,7 @@ const prover_task_graph = @import("stwo_prover_engine").task_graph;
 const prover_work_pool = @import("stwo_prover_engine").work_pool;
 const component_mod = @import("component.zig");
 const memory_interaction = @import("memory_commitment/interaction.zig");
+const prepared_evaluation = @import("prepared_evaluation_owner.zig");
 const relation_challenges = @import("relation_challenges.zig");
 
 const RiscVTraceComponent = component_mod.RiscVTraceComponent;
@@ -305,12 +306,38 @@ const PreparedStateLayout = struct {
     allocator: std.mem.Allocator,
     component: *const RiscVTraceComponent,
     evaluations: [][]const M31,
+    // Retained even on the zero-copy V1 path so candidate PCS domains can own
+    // reconstructed quotient-domain views without changing task state shape.
+    evaluation_owner: prepared_evaluation.Owner,
     denominator_inv: []M31,
     accumulators: []prover_air_accumulation.ColumnAccumulator,
     eval_log_size: u32,
     eval_size: usize,
     opcode_main_sources: usize,
 };
+
+test "component: prepared memory domain ownership is explicit and fail closed" {
+    var equal_domain_values = [_]M31{M31.zero()} ** 32;
+    const equal_domain = prover_component.Poly{
+        .log_size = 5,
+        .values = &equal_domain_values,
+    };
+    try std.testing.expect(!try prepared_evaluation.needsOwned(equal_domain, 4, 5));
+    try std.testing.expectEqual(
+        @as(usize, 0),
+        try prepared_evaluation.residentBytes(0, equal_domain_values.len),
+    );
+
+    var wider_values = [_]M31{M31.zero()} ** 64;
+    const unbacked_wider_domain = prover_component.Poly{
+        .log_size = 6,
+        .values = &wider_values,
+    };
+    try std.testing.expectError(
+        error.InvalidProofShape,
+        prepared_evaluation.needsOwned(unbacked_wider_domain, 4, 5),
+    );
+}
 
 test "component: prepared memory evaluator is exact and allocation-free" {
     const allocator = std.testing.allocator;
@@ -399,6 +426,7 @@ test "component: prepared memory evaluator is exact and allocation-free" {
     const expected_resident_bytes = @sizeOf(PreparedStateLayout) +
         source_count * @sizeOf([]const M31) +
         2 * @sizeOf(M31) +
+        try prepared_evaluation.residentBytes(0, eval_size) +
         @sizeOf(prover_air_accumulation.ColumnAccumulator);
     try std.testing.expectEqual(
         eval_size * @sizeOf(QM31),

@@ -43,6 +43,13 @@ EXPECTED_TEAM_A = {
 
 
 class TeamAGateTest(unittest.TestCase):
+    @staticmethod
+    def _manifest_selectors() -> list[str]:
+        return [
+            mnemonic.upper()
+            for mnemonic, _, _ in team_a.manifest_opcodes()
+        ]
+
     def _index(self) -> dict:
         return json.loads(
             team_a.CERTIFICATE_INDEX.read_text(encoding="utf-8")
@@ -90,11 +97,8 @@ class TeamAGateTest(unittest.TestCase):
             "evidence_source": "exact-pinned-generated-backend",
             "claim_boundary": {
                 "generated_execute_clause_monad_normalization": True,
-                "team_a_execute_clause_input_binding": True,
-                "input_bound_team_a_selectors": [
-                    selector.upper()
-                    for selector in team_a.GENERATED_SAIL_INPUT_THEOREMS
-                ],
+                "generated_execute_clause_input_binding": True,
+                "input_bound_selectors": self._manifest_selectors(),
                 "normalized_retirement_selectors": normalized,
             },
             "theorems": theorems,
@@ -244,12 +248,12 @@ class TeamAGateTest(unittest.TestCase):
             ):
                 team_a.check_coverage()
 
-    def test_generated_input_binding_does_not_imply_retirement(self):
+    def test_generated_input_theorem_cannot_masquerade_as_retirement(self):
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
             certificate = self._generated_sail_fixture(
                 root,
-                ["LUI", "ADDI"],
+                self._manifest_selectors(),
                 mnemonic="auipc",
             )
             with mock.patch.object(team_a, "REPOSITORY_ROOT", root):
@@ -260,7 +264,7 @@ class TeamAGateTest(unittest.TestCase):
                 )
                 with self.assertRaisesRegex(
                     team_a.TeamAError,
-                    "expected None",
+                    "expected .* for generated-retirement",
                 ):
                     team_a._check_generated_sail_binding(
                         "auipc",
@@ -295,15 +299,13 @@ class TeamAGateTest(unittest.TestCase):
             root = Path(raw)
             certificate = self._generated_sail_fixture(
                 root,
-                ["LUI", "ADDI"],
+                self._manifest_selectors(),
                 mnemonic="auipc",
             )
             payload = json.loads(
                 (root / "receipt.json").read_text(encoding="utf-8")
             )
-            payload["claim_boundary"]["input_bound_team_a_selectors"] = [
-                "LUI"
-            ]
+            payload["claim_boundary"]["input_bound_selectors"] = ["LUI"]
             payload["canonical_digest"] = team_a.shared.canonical_digest(
                 payload
             )

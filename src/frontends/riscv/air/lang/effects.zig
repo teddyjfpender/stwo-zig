@@ -6,19 +6,23 @@
 
 const std = @import("std");
 const access_schedule = @import("access_schedule.zig");
+const conditional_access = @import("conditional_access_plan.zig");
 const ir = @import("ir.zig");
 const machine_validation = @import("machine_derived_validation.zig");
 const memory_access = @import("memory_access_validation.zig");
 const program = @import("program.zig");
+const range_refinement = @import("range_refinement.zig");
 const relation = @import("relation.zig");
 const source = @import("source.zig");
 const types = @import("types.zig");
 
-pub const MAX_ARITY: usize = 32;
+/// Maximum across the exact 47-relation universal registry. Query-bit rows
+/// carry one raw query word plus its canonical 32-bit decomposition.
+pub const MAX_ARITY: usize = 33;
 pub const MAX_ACCESS_GROUPS = access_schedule.MAX_ACCESS_GROUPS;
 
 pub const Error = ir.Error || relation.Error || access_schedule.Error ||
-    memory_access.Error || error{
+    memory_access.Error || conditional_access.Error || error{
     BindingKindMismatch,
     BindingVersionMismatch,
     InvalidAccessGroup,
@@ -33,6 +37,7 @@ pub const Error = ir.Error || relation.Error || access_schedule.Error ||
 };
 
 pub const RegisterReadInput = access_schedule.RegisterReadInput;
+pub const RegisterReadTransitionInput = access_schedule.RegisterReadTransitionInput;
 pub const RegisterWriteInput = access_schedule.RegisterWriteInput;
 pub const RegisterAccessGroup = access_schedule.RegisterAccessGroup;
 pub const AccessSchedule = access_schedule.AccessSchedule;
@@ -193,7 +198,9 @@ pub fn validateProgram(arena: *const ir.Arena) Error!void {
     // effect scan for legacy programs.
     if (!typed_mode) return;
 
-    const memory_mode = memory_access.hasMemoryCapability(arena);
+    const conditional_plan = try conditional_access.prepare(arena);
+    const memory_mode = conditional_plan == null and
+        memory_access.hasMemoryCapability(arena);
     const memory_plan = if (memory_mode)
         try memory_access.prepare(arena)
     else
@@ -218,6 +225,11 @@ pub fn validateProgram(arena: *const ir.Arena) Error!void {
         };
         const active = effect.liveness orelse
             return error.MissingRelationLiveness;
+
+        if (conditional_plan) |prepared| if (prepared.owns(index)) {
+            index += 1;
+            continue;
+        };
 
         if (memory_mode and memory_access.isAccessKind(effect.kind)) {
             index += 3;
@@ -244,8 +256,9 @@ pub fn validateProgram(arena: *const ir.Arena) Error!void {
             }
         }
 
-        // E-003 memory plans may carry their opcode-body ranges. E-004 also
-        // reviews the exact three-limb LUI immediate range outside memory mode.
+        // E-003 memory plans may carry their opcode-body ranges. Opcode-local
+        // constructors additionally own the three reviewed immediate/result
+        // schemas; no generic range-domain selection is admitted here.
         if (effect.kind == .range_request) {
             try preflightRelation(
                 arena,
@@ -254,11 +267,15 @@ pub fn validateProgram(arena: *const ir.Arena) Error!void {
                 active,
                 effect.access_ordinal,
                 effect.source_span,
+                false,
             );
             const schema = relation.getById(relation_binding.schema) orelse
                 return error.UnknownSchema;
-            if (!(memory_mode and isRangeDomain(schema.domain)) and
-                schema.domain != .range_check_8_8_4)
+            if (!range_refinement.effectHasFixedPremise(arena, effect_id) and
+                !(memory_mode and isRangeDomain(schema.domain)) and
+                schema.domain != .range_check_8_8_4 and
+                schema.domain != .range_check_8_11 and
+                schema.domain != .range_check_8_8)
             {
                 return error.BindingKindMismatch;
             }
@@ -315,7 +332,8 @@ pub fn validateProgram(arena: *const ir.Arena) Error!void {
             }
         }
     }
-    if (!memory_mode) try machine_validation.validate(arena, groups);
+    if (!memory_mode and conditional_plan == null)
+        try machine_validation.validate(arena, groups);
 }
 
 fn binding(
@@ -374,9 +392,14 @@ fn preflight(
         active,
         access_ordinal,
         span,
+        kind == .component_call,
     );
     const schema = relation.getById(relation_binding.schema) orelse
         return error.UnknownSchema;
+    if (kind != .range_request and kind != .component_call) {
+        const active_node = arena.node(active) orelse return error.UnknownValue;
+        if (!active_node.key.ty.isSelector()) return error.InvalidEffectLiveness;
+    }
     try validateKindBinding(kind, schema.domain, relation_binding.role, access_ordinal);
 }
 
@@ -387,16 +410,23 @@ fn preflightRelation(
     active: types.ValueId,
     access_ordinal: ?u8,
     span: source.SourceSpan,
+    allow_component_weight: bool,
 ) Error!void {
     try arena.validateSpan(span);
-    const active_node = arena.node(active) orelse return error.UnknownValue;
-    if (!active_node.key.ty.isSelector()) return error.InvalidEffectLiveness;
     if (values.len > MAX_ARITY) return error.RelationArityTooLarge;
 
     const schema = relation.getById(relation_binding.schema) orelse
         return error.UnknownSchema;
     if (schema.version != relation_binding.schema_version)
         return error.BindingVersionMismatch;
+    const active_node = arena.node(active) orelse return error.UnknownValue;
+    const valid_liveness = if (allow_component_weight)
+        active_node.key.ty.isFieldScalar()
+    else switch (schema.multiplicity) {
+        .role_signed_liveness => range_refinement.isBoundedLiveness(arena, active),
+        .role_signed_weight => active_node.key.ty.isFieldScalar(),
+    };
+    if (!valid_liveness) return error.InvalidEffectLiveness;
 
     var field_types: [MAX_ARITY]types.Type = undefined;
     for (values, field_types[0..values.len]) |value, *field_type| {
@@ -432,6 +462,8 @@ fn validateRegisterGroup(
         return error.InvalidAccessGroup;
     }
     const active = consume.liveness orelse return error.MissingRelationLiveness;
+    const active_node = arena.node(active) orelse return error.UnknownValue;
+    if (!active_node.key.ty.isSelector()) return error.InvalidEffectLiveness;
     if (emitted.liveness != active or gap_effect.liveness != active)
         return error.InvalidAccessGroup;
     if (consume.access_ordinal != expected_ordinal or
@@ -470,6 +502,7 @@ fn validateRegisterGroup(
         active,
         expected_ordinal,
         consume.source_span,
+        false,
     );
     try preflightRelation(
         arena,
@@ -478,6 +511,7 @@ fn validateRegisterGroup(
         active,
         expected_ordinal,
         emitted.source_span,
+        false,
     );
     try preflightRelation(
         arena,
@@ -486,6 +520,7 @@ fn validateRegisterGroup(
         active,
         expected_ordinal,
         gap_effect.source_span,
+        false,
     );
 
     if (consume_values.len != 7 or emit_values.len != 7 or gap_values.len != 1)
@@ -537,7 +572,11 @@ fn validateRegisterGroup(
 
     if (consume.kind == .register_read) {
         for (consume_values[3..7], emit_values[3..7]) |previous, next| {
-            if (previous != next) return error.InvalidAccessGroup;
+            if (previous != next and
+                !hasReadOnlyConstraint(arena, active, previous, next))
+            {
+                return error.InvalidAccessGroup;
+            }
         }
     }
 
@@ -549,6 +588,37 @@ fn validateRegisterGroup(
         .instruction_clock = current.instruction_clock,
         .active = active,
     };
+}
+
+fn hasReadOnlyConstraint(
+    arena: *const ir.Arena,
+    active: types.ValueId,
+    previous: types.ValueId,
+    next: types.ValueId,
+) bool {
+    for (arena.constraintsView()) |constraint| {
+        if (constraint.gate != null or constraint.category != .semantic)
+            continue;
+        const root = arena.node(constraint.root) orelse continue;
+        const product = switch (root.key.op) {
+            .mul => |binary| binary,
+            else => continue,
+        };
+        const difference_id = if (product.lhs == active)
+            product.rhs
+        else if (product.rhs == active)
+            product.lhs
+        else
+            continue;
+        const difference = arena.node(difference_id) orelse continue;
+        const subtraction = switch (difference.key.op) {
+            .sub => |binary| binary,
+            else => continue,
+        };
+        if (subtraction.lhs == next and subtraction.rhs == previous)
+            return true;
+    }
+    return false;
 }
 
 fn isCanonicalFeltZero(arena: *const ir.Arena, value: types.ValueId) bool {
@@ -607,6 +677,7 @@ fn validateKindBinding(
         .program_fetch => domain == .program_access and role == .request and access_ordinal == null,
         .state_consume => domain == .registers_state and role == .consume and access_ordinal == null,
         .state_produce => domain == .registers_state and role == .emit and access_ordinal == null,
+        .bitwise_request => domain == .bitwise and role == .request and access_ordinal == null,
         // Their enum cases and schema registry entries are storage groundwork,
         // not authoring authority. E-002/E-003 and the component milestone must
         // install instruction-local group validators before these can validate.
@@ -615,8 +686,15 @@ fn validateKindBinding(
         .memory_read,
         .memory_write,
         .range_request,
-        .component_call,
         => return error.UnexpectedRelationBinding,
+        .component_call => blk: {
+            // Reviewed component authors may use any exact universal relation;
+            // role and tuple types were already checked against its schema.
+            // The exact-schema admission rejects the known VM Merkle 4-vs-18
+            // gap, so no component can silently pad that tuple.
+            _ = try relation.requireExactUniversalSchema(domain);
+            break :blk access_ordinal == null;
+        },
         .public_consume, .public_produce => return error.UnexpectedRelationBinding,
     };
     if (!matches) return error.BindingKindMismatch;
@@ -633,6 +711,7 @@ fn requiresTypedBinding(kind: program.EffectKind) bool {
         .state_consume,
         .state_produce,
         .component_call,
+        .bitwise_request,
         => true,
         .public_consume, .public_produce => false,
     };
@@ -656,6 +735,7 @@ fn hasMachineDerivedNode(arena: *const ir.Arena) bool {
 comptime {
     var maximum: usize = 0;
     for (relation.schemas) |schema| maximum = @max(maximum, schema.fields.len);
+    for (relation.extension_schemas) |schema| maximum = @max(maximum, schema.fields.len);
     if (maximum != MAX_ARITY)
         @compileError("typed effect arity must track the relation registry");
 }

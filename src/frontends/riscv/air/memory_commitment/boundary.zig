@@ -11,6 +11,7 @@ const QM31 = @import("stwo_core").fields.qm31.QM31;
 const relation_challenges = @import("../relation_challenges.zig");
 const sparse_merkle = @import("sparse_merkle.zig");
 const memory_state = @import("../../runner/memory_state.zig");
+const poseidon_work = @import("../../prover/poseidon_witness_work.zig");
 
 pub const Error = sparse_merkle.Error || error{
     DuplicateWord,
@@ -67,7 +68,30 @@ pub const Claims = struct {
     pub fn validate(self: Claims, allocator: std.mem.Allocator) Error!void {
         if (self.initial_tree) |tree| try tree.validate(allocator);
         if (self.final_tree) |tree| try tree.validate(allocator);
+        try self.validateRows(allocator);
+    }
 
+    /// Exact validation route. Tree rebuild receipts remain local until both
+    /// hashes and every boundary row/leaf linkage have been accepted.
+    pub fn validateWithWorkReceipt(
+        self: Claims,
+        allocator: std.mem.Allocator,
+        authority: *const poseidon_work.Authority,
+    ) !poseidon_work.Shard {
+        var completed = poseidon_work.Shard{};
+        if (self.initial_tree) |tree| {
+            const receipt = try tree.validateWithWorkReceipt(allocator, authority);
+            try completed.observe(authority, receipt);
+        }
+        if (self.final_tree) |tree| {
+            const receipt = try tree.validateWithWorkReceipt(allocator, authority);
+            try completed.observe(authority, receipt);
+        }
+        try self.validateRows(allocator);
+        return completed;
+    }
+
+    fn validateRows(self: Claims, allocator: std.mem.Allocator) Error!void {
         var initial_leaves: std.ArrayList(sparse_merkle.Leaf) = .{};
         defer initial_leaves.deinit(allocator);
         var final_leaves: std.ArrayList(sparse_merkle.Leaf) = .{};
@@ -146,6 +170,33 @@ pub const Claims = struct {
 };
 
 pub fn build(allocator: std.mem.Allocator, input: []const WordState) Error!Claims {
+    return buildInternal(false, allocator, input, null);
+}
+
+pub const BuiltWithWorkReceipt = struct {
+    claims: Claims,
+    work: poseidon_work.Shard,
+};
+
+pub fn buildWithWorkReceipt(
+    allocator: std.mem.Allocator,
+    input: []const WordState,
+    authority: *const poseidon_work.Authority,
+) !BuiltWithWorkReceipt {
+    return buildInternal(true, allocator, input, authority);
+}
+
+fn BuildResult(comptime capture_work: bool) type {
+    return if (capture_work) BuiltWithWorkReceipt else Claims;
+}
+
+fn buildInternal(
+    comptime capture_work: bool,
+    allocator: std.mem.Allocator,
+    input: []const WordState,
+    authority: ?*const poseidon_work.Authority,
+) !BuildResult(capture_work) {
+    var completed = poseidon_work.Shard{};
     const words = try allocator.dupe(WordState, input);
     defer allocator.free(words);
     std.mem.sort(WordState, words, {}, lessWord);
@@ -166,13 +217,29 @@ pub fn build(allocator: std.mem.Allocator, input: []const WordState) Error!Claim
 
     var initial_tree: ?sparse_merkle.Tree = if (initial_leaves.items.len == 0)
         null
-    else
-        try sparse_merkle.build(allocator, initial_leaves.items);
+    else if (capture_work) blk: {
+        var built = try sparse_merkle.buildWithWorkReceipt(
+            allocator,
+            initial_leaves.items,
+            authority.?,
+        );
+        errdefer built.tree.deinit(allocator);
+        try completed.observe(authority.?, built.receipt);
+        break :blk built.tree;
+    } else try sparse_merkle.build(allocator, initial_leaves.items);
     errdefer if (initial_tree) |*tree| tree.deinit(allocator);
     var final_tree: ?sparse_merkle.Tree = if (final_leaves.items.len == 0)
         null
-    else
-        try sparse_merkle.build(allocator, final_leaves.items);
+    else if (capture_work) blk: {
+        var built = try sparse_merkle.buildWithWorkReceipt(
+            allocator,
+            final_leaves.items,
+            authority.?,
+        );
+        errdefer built.tree.deinit(allocator);
+        try completed.observe(authority.?, built.receipt);
+        break :blk built.tree;
+    } else try sparse_merkle.build(allocator, final_leaves.items);
     errdefer if (final_tree) |*tree| tree.deinit(allocator);
 
     var rows: std.ArrayList(Row) = .{};
@@ -197,14 +264,17 @@ pub fn build(allocator: std.mem.Allocator, input: []const WordState) Error!Claim
             });
         }
     }
-    const result = Claims{
+    const claims = Claims{
         .rows = try rows.toOwnedSlice(allocator),
         .initial_tree = initial_tree,
         .final_tree = final_tree,
     };
     initial_tree = null;
     final_tree = null;
-    return result;
+    return if (capture_work)
+        .{ .claims = claims, .work = completed }
+    else
+        claims;
 }
 
 fn appendWordLeaves(

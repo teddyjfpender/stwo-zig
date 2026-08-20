@@ -8,6 +8,7 @@ const std = @import("std");
 const prover_api = @import("stwo_prover_api");
 const attribution = @import("task_graph_attribution.zig");
 const task_context = @import("task_graph_context.zig");
+const work_pool = @import("work_pool.zig");
 
 const stage_profile = prover_api.stage_profile;
 pub const wire = prover_api.task_profile;
@@ -138,6 +139,12 @@ pub const Capture = struct {
     cancellation_started: std.atomic.Value(bool) = .init(false),
     cancellation_timestamp_ready: std.Thread.ResetEvent = .{},
     resource_blocked: []bool,
+    active_physical_workers: std.atomic.Value(usize) = .init(0),
+    peak_active_physical_workers: std.atomic.Value(usize) = .init(0),
+    child_submitted: std.atomic.Value(u64) = .init(0),
+    child_started: std.atomic.Value(u64) = .init(0),
+    child_finished: std.atomic.Value(u64) = .init(0),
+    child_busy_ns: std.atomic.Value(u64) = .init(0),
 
     pub fn init(
         allocator: std.mem.Allocator,
@@ -179,6 +186,69 @@ pub const Capture = struct {
 
     pub fn sample(self: *Capture) ?u64 {
         return self.clock.sample(&self.failure);
+    }
+
+    /// Marks an outer task callback as occupying one physical worker. Timing
+    /// remains event-owned, so this adds no clock samples to existing event
+    /// intervals and cannot perturb the disabled path.
+    pub fn outerWorkerStarted(self: *Capture) void {
+        self.workerStarted();
+    }
+
+    pub fn outerWorkerFinished(self: *Capture) void {
+        self.workerFinished();
+    }
+
+    /// Observer installed only in profiled pool-exclusive task contexts. Child
+    /// callbacks use the graph clock and atomics, while their fixed submission
+    /// envelopes remain allocation-free.
+    pub fn childWorkerObserver(self: *Capture) work_pool.StructuredWorkerObserver {
+        return .{
+            .context = self,
+            .submitted_fn = childSubmitted,
+            .begin_fn = childBegin,
+            .finish_fn = childFinish,
+        };
+    }
+
+    fn childSubmitted(raw: *anyopaque) void {
+        const self: *Capture = @ptrCast(@alignCast(raw));
+        checkedAtomicIncrement(&self.child_submitted, &self.failure);
+    }
+
+    fn childBegin(raw: *anyopaque) ?u64 {
+        const self: *Capture = @ptrCast(@alignCast(raw));
+        self.workerStarted();
+        checkedAtomicIncrement(&self.child_started, &self.failure);
+        return self.sample();
+    }
+
+    fn childFinish(raw: *anyopaque, start_ns: ?u64) void {
+        const self: *Capture = @ptrCast(@alignCast(raw));
+        const finish_ns = self.sample();
+        if (start_ns) |start| {
+            if (finish_ns) |finish| {
+                const elapsed = checkedElapsed(start, finish) catch {
+                    recordClockFailure(&self.failure, .regression);
+                    self.workerFinished();
+                    checkedAtomicIncrement(&self.child_finished, &self.failure);
+                    return;
+                };
+                checkedAtomicAdd(&self.child_busy_ns, elapsed, &self.failure);
+            }
+        }
+        self.workerFinished();
+        checkedAtomicIncrement(&self.child_finished, &self.failure);
+    }
+
+    fn workerStarted(self: *Capture) void {
+        const active = self.active_physical_workers.fetchAdd(1, .acq_rel) + 1;
+        updateAtomicPeak(&self.peak_active_physical_workers, active);
+    }
+
+    fn workerFinished(self: *Capture) void {
+        const previous = self.active_physical_workers.fetchSub(1, .acq_rel);
+        std.debug.assert(previous != 0);
     }
 
     /// Claims the profiled cancellation transition before the graph flag, so
@@ -406,6 +476,7 @@ pub const Capture = struct {
             self.pending.events,
             accounting,
             graph_elapsed_ns,
+            try self.physicalWorkerAccounting(),
         );
         summary.critical_path_ns = if (all_completed)
             critical_path_ns
@@ -413,6 +484,27 @@ pub const Capture = struct {
             null;
         try self.publish(graph_id, summary);
     }
+
+    fn physicalWorkerAccounting(self: *Capture) !PhysicalWorkerAccounting {
+        if (self.active_physical_workers.load(.acquire) != 0) {
+            return error.TaskProfilePhysicalWorkerStillActive;
+        }
+        const submitted = self.child_submitted.load(.acquire);
+        const started = self.child_started.load(.acquire);
+        const finished = self.child_finished.load(.acquire);
+        if (submitted != started or started != finished) {
+            return error.TaskProfilePhysicalWorkerAccountingMismatch;
+        }
+        return .{
+            .peak_active_workers = self.peak_active_physical_workers.load(.acquire),
+            .child_busy_ns = self.child_busy_ns.load(.acquire),
+        };
+    }
+};
+
+const PhysicalWorkerAccounting = struct {
+    peak_active_workers: usize,
+    child_busy_ns: u64,
 };
 
 pub const Accounting = struct {
@@ -488,6 +580,7 @@ fn summarize(
     events: []const wire.TaskEvent,
     accounting: Accounting,
     graph_elapsed_ns: u64,
+    physical: PhysicalWorkerAccounting,
 ) !wire.RequestSummary {
     try validateAccounting(accounting);
     var useful_task_work_ns: u64 = 0;
@@ -501,7 +594,6 @@ fn summarize(
     var completed_tiles: u64 = 0;
     var cancellation_requested_ns: ?u64 = null;
     var latest_finish_ns: u64 = 0;
-    var has_pool_exclusive = false;
     var observed_submitted: u64 = 0;
     var observed_started: u64 = 0;
     var observed_finished_submitted: u64 = 0;
@@ -510,8 +602,6 @@ fn summarize(
     var observed_cancelled: u64 = 0;
     var observed_unsubmitted_cancelled: u64 = 0;
     for (events) |event| {
-        has_pool_exclusive = has_pool_exclusive or
-            event.task_class == .pool_exclusive;
         queue_wait_ns = try checkedAdd(queue_wait_ns, event.queue_wait_ns);
         admission_wait_ns = try checkedAdd(
             admission_wait_ns,
@@ -585,16 +675,26 @@ fn summarize(
         try checkedElapsed(requested, latest_finish_ns)
     else
         null;
+    const physical_worker_busy_ns = try checkedAdd(
+        worker_busy_ns,
+        physical.child_busy_ns,
+    );
+    const physical_worker_capacity_ns = try checkedMul(
+        try castU64(accounting.admitted_workers),
+        graph_elapsed_ns,
+    );
+    if (physical.peak_active_workers > accounting.admitted_workers or
+        physical_worker_busy_ns > physical_worker_capacity_ns)
+    {
+        return error.InvalidTaskProfilePhysicalWorkerAccounting;
+    }
     return .{
         .requested_workers = try castU32(accounting.requested_workers),
         .admitted_workers = try castU32(accounting.admitted_workers),
         .pool_capacity = try castU32(accounting.pool_capacity),
         .worker_stack_bytes = try castU64(accounting.worker_stack_bytes),
         .peak_active_tasks = try castU32(accounting.peak_active_tasks),
-        .peak_active_workers = if (has_pool_exclusive)
-            null
-        else
-            try castU32(accounting.peak_active_tasks),
+        .peak_active_workers = try castU32(physical.peak_active_workers),
         .planned_tasks = try castU64(accounting.planned_tasks),
         .submitted_tasks = try castU64(accounting.submitted_tasks),
         .completed_tasks = try castU64(accounting.completed_tasks),
@@ -612,11 +712,8 @@ fn summarize(
         .admission_wait_ns = admission_wait_ns,
         .resource_wait_ns = resource_wait_ns,
         .task_run_ns = worker_busy_ns,
-        .worker_busy_ns = if (has_pool_exclusive) null else worker_busy_ns,
-        .worker_capacity_ns = try checkedMul(
-            try castU64(accounting.admitted_workers),
-            graph_elapsed_ns,
-        ),
+        .worker_busy_ns = physical_worker_busy_ns,
+        .worker_capacity_ns = physical_worker_capacity_ns,
         .graph_elapsed_ns = graph_elapsed_ns,
         .parallel_eligible_ns = parallel_eligible_ns,
         .cancellation_latency_ns = cancellation_latency_ns,
@@ -627,6 +724,43 @@ fn summarize(
         .scheduler = .central_queue_no_steal,
         .steal_count = 0,
     };
+}
+
+fn updateAtomicPeak(peak: *std.atomic.Value(usize), candidate: usize) void {
+    var observed = peak.load(.monotonic);
+    while (candidate > observed) {
+        if (peak.cmpxchgWeak(observed, candidate, .monotonic, .monotonic)) |actual| {
+            observed = actual;
+        } else {
+            return;
+        }
+    }
+}
+
+fn checkedAtomicIncrement(
+    counter: *std.atomic.Value(u64),
+    failure: *std.atomic.Value(u8),
+) void {
+    checkedAtomicAdd(counter, 1, failure);
+}
+
+fn checkedAtomicAdd(
+    counter: *std.atomic.Value(u64),
+    increment: u64,
+    failure: *std.atomic.Value(u8),
+) void {
+    var observed = counter.load(.monotonic);
+    while (true) {
+        const candidate = std.math.add(u64, observed, increment) catch {
+            recordCounterOverflow(failure);
+            return;
+        };
+        if (counter.cmpxchgWeak(observed, candidate, .acq_rel, .monotonic)) |actual| {
+            observed = actual;
+        } else {
+            return;
+        }
+    }
 }
 
 fn validateAccounting(accounting: Accounting) !void {

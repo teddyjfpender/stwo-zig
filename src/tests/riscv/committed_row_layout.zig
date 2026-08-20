@@ -12,12 +12,13 @@
 //!   layout struct, and `selectorOpcodes` is verified against the corpus by
 //!   `witness_rigidity_test.zig` (on each honest row exactly the selector named
 //!   for the executed opcode must be one);
-//! - the access block offsets mirror the private `opcode_memory.accessOffset`
-//!   and are bound to `opcode_memory.accessFromMain` — the verifier's own layout
-//!   map — by the sentinel test in `witness_rigidity_test.zig`.
+//! - access positions come directly from `opcode_memory.accessLayout` — the
+//!   verifier's production API — including the six-column source blocks whose
+//!   emitted limbs alias their consumed limbs by construction.
 
 const std = @import("std");
 const layouts = @import("stwo_riscv_frontend").air.trace_columns;
+const opcode_memory = @import("stwo_riscv_frontend").air.opcode_memory;
 const semantic_eval = @import("stwo_riscv_frontend").air.semantic_eval;
 const trace_mod = @import("stwo_riscv_frontend").runner.trace;
 const isa_decode = @import("stwo_riscv_frontend").isa.decode;
@@ -53,19 +54,29 @@ pub const SELECTORS: [trace_mod.N_FAMILIES]SelectorLayout = blk: {
     break :blk table;
 };
 
-/// Committed access blocks are ten contiguous columns — `addr`, four `previous`
-/// limbs, `previous_clock`, four `next` limbs — packed immediately after the
-/// clock and pc columns. Mirrors the private `opcode_memory.accessOffset`.
+pub const AccessMode = opcode_memory.AccessMode;
+pub const AccessLayout = opcode_memory.AccessLayout;
+pub const accessLayout = opcode_memory.accessLayout;
+
+/// First physical column of an access. This compatibility accessor delegates
+/// to the production descriptor; invalid slots terminate the test rather than
+/// manufacturing a column index.
 pub fn accessOffset(family: OpcodeFamily, slot: usize) usize {
-    return semantic_eval.pcColumn(family) + 1 + slot * 10;
+    return requireAccessLayout(family, slot).addressColumn();
 }
 
 pub fn previousLimbColumn(family: OpcodeFamily, slot: usize, limb: usize) usize {
-    return accessOffset(family, slot) + 1 + limb;
+    return requireAccessLayout(family, slot).previousLimbColumn(limb) orelse
+        @panic("invalid opcode access limb");
 }
 
 pub fn nextLimbColumn(family: OpcodeFamily, slot: usize, limb: usize) usize {
-    return accessOffset(family, slot) + 6 + limb;
+    return requireAccessLayout(family, slot).nextLimbColumn(limb) orelse
+        @panic("invalid opcode access limb");
+}
+
+fn requireAccessLayout(family: OpcodeFamily, slot: usize) AccessLayout {
+    return accessLayout(family, slot) orelse @panic("invalid opcode access slot");
 }
 
 /// Column index of the named field of `family`'s committed layout struct.
@@ -87,15 +98,10 @@ pub fn columnOf(comptime family: OpcodeFamily, comptime name: []const u8) usize 
     };
 }
 
-/// The slot whose `next` is pinned to the row's computed result rather than to
-/// its own `previous`, or null when the family writes nothing. Mirrors
-/// `opcode_memory.accessKind`: slot 0 is `rd` for every writing family and
-/// `dst` for `load_store`; branches and `fence` write no register or memory.
+/// The slot whose emitted value is pinned to the row's computed result rather
+/// than to its consumed value, or null when the family writes nothing.
 pub fn writtenSlot(family: OpcodeFamily) ?usize {
-    return switch (family) {
-        .branch_eq, .branch_lt, .fence => null,
-        else => 0,
-    };
+    return opcode_memory.writtenSlot(family);
 }
 
 /// Architectural opcode behind each `opcode_*_flag` column, in layout order.
@@ -144,6 +150,58 @@ fn LayoutFor(comptime family: OpcodeFamily) type {
     };
 }
 
+/// Field-name stem for the production access slot. This deliberately lives in
+/// the independent test map: comparing it with `opcode_memory.accessLayout`
+/// catches either the production descriptor or a committed struct reorder
+/// instead of deriving both sides from the same offset arithmetic.
+fn accessPrefix(comptime family: OpcodeFamily, comptime slot: usize) []const u8 {
+    return switch (family) {
+        .base_alu_reg, .shifts_reg, .lt_reg, .mul, .mulh, .div => switch (slot) {
+            0 => "rd",
+            1 => "rs1",
+            2 => "rs2",
+            else => @compileError("invalid three-access slot"),
+        },
+        .base_alu_imm, .shifts_imm, .lt_imm => switch (slot) {
+            0 => "rd",
+            1 => "rs1",
+            else => @compileError("invalid two-access slot"),
+        },
+        .branch_eq, .branch_lt => switch (slot) {
+            0 => "rs1",
+            1 => "rs2",
+            else => @compileError("invalid branch access slot"),
+        },
+        .lui, .auipc, .jal => if (slot == 0)
+            "rd"
+        else
+            @compileError("invalid one-access slot"),
+        .jalr => switch (slot) {
+            0 => "rd",
+            1 => "rs1",
+            else => @compileError("invalid jalr access slot"),
+        },
+        .load_store => switch (slot) {
+            0 => "dst",
+            1 => "rs1",
+            2 => "src",
+            else => @compileError("invalid load/store access slot"),
+        },
+        .fence => @compileError("fence has no access slots"),
+    };
+}
+
+fn accessFieldColumn(
+    comptime family: OpcodeFamily,
+    comptime slot: usize,
+    comptime suffix: []const u8,
+) usize {
+    return columnOf(
+        family,
+        std.fmt.comptimePrint("{s}{s}", .{ accessPrefix(family, slot), suffix }),
+    );
+}
+
 fn selectorLayout(comptime family: OpcodeFamily) SelectorLayout {
     @setEvalBranchQuota(20_000);
     const opcodes = selectorOpcodes(family);
@@ -184,6 +242,18 @@ test "committed row layout: named columns agree with the AIR's own accessors" {
         columnOf(.div, "rs2_prev_0"),
     );
     try std.testing.expectEqual(nextLimbColumn(.div, 2, 3), columnOf(.div, "rs2_next_3"));
+    try std.testing.expectEqual(
+        previousLimbColumn(.base_alu_reg, 1, 0),
+        columnOf(.base_alu_reg, "rs1_prev_0"),
+    );
+    try std.testing.expectEqual(
+        previousLimbColumn(.base_alu_reg, 1, 0),
+        nextLimbColumn(.base_alu_reg, 1, 0),
+    );
+    try std.testing.expectEqual(
+        accessOffset(.load_store, 2),
+        columnOf(.load_store, "src_addr"),
+    );
     const div_selectors = SELECTORS[@intFromEnum(OpcodeFamily.div)];
     try std.testing.expectEqual(
         div_selectors.column(div_selectors.indexOf(.DIVU).?),
@@ -199,6 +269,40 @@ test "committed row layout: every selector column lies inside its family" {
             try std.testing.expect(
                 selectors.column(slot) < trace_mod.nColumnsForFamily(family),
             );
+        }
+    }
+}
+
+test "committed row layout: production access descriptors match every named field" {
+    inline for (0..trace_mod.N_FAMILIES) |family_index| {
+        const family: OpcodeFamily = comptime @enumFromInt(family_index);
+        const access_count = comptime opcode_memory.accessCount(family);
+        inline for (0..access_count) |slot| {
+            const access = accessLayout(family, slot).?;
+            try std.testing.expectEqual(
+                accessFieldColumn(family, slot, "_addr"),
+                access.addressColumn(),
+            );
+            try std.testing.expectEqual(
+                accessFieldColumn(family, slot, "_prev_0"),
+                access.previousLimbColumn(0).?,
+            );
+            try std.testing.expectEqual(
+                accessFieldColumn(family, slot, "_clock_prev"),
+                access.previousClockColumn(),
+            );
+            if (access.aliasesEmittedValue()) {
+                try std.testing.expectEqual(access.previousColumns(), access.nextColumns());
+            } else {
+                try std.testing.expectEqual(
+                    accessFieldColumn(family, slot, "_next_0"),
+                    access.nextLimbColumn(0).?,
+                );
+                try std.testing.expectEqual(
+                    accessFieldColumn(family, slot, "_next_3"),
+                    access.nextLimbColumn(3).?,
+                );
+            }
         }
     }
 }

@@ -3,9 +3,9 @@
 -- Authority: the exported symbolic IR at /tmp/tb-ir/div.json
 --   family "div", modulus 2147483647, 73 columns, 434 nodes,
 --   85 constraints, 25 lookups, 9 unmodelled bus requests,
---   sha256 430a06a8919e469251deab180b492e89a4a6452de0014b2b0c3ea6c350912e4d
--- and its Zig source src/frontends/riscv/air/semantics/div.zig plus
--- src/frontends/riscv/air/semantics/common.zig.
+--   sha256 b06e011252a31ccf9072078d8c91c01312fbd43203aea35fd04722b0abd25d56
+-- and its Zig source src/frontends/riscv/air/lang/typed_div_authority.zig,
+-- dispatched by src/frontends/riscv/air/constraint_program.zig.
 --
 -- Transcription conventions, each recording an exact production fact:
 --   * A column that carries a `range_check_8_8` / `range_check_8_11` byte
@@ -29,7 +29,11 @@ open RiscvRefinement
 
 /-- sha256 of the exported production symbolic AIR this file transcribes. -/
 def divIrDigest : String :=
-  "430a06a8919e469251deab180b492e89a4a6452de0014b2b0c3ea6c350912e4d"
+  "b06e011252a31ccf9072078d8c91c01312fbd43203aea35fd04722b0abd25d56"
+
+/-- Sparse-polynomial identity shared by the reviewed and typed exports. -/
+def divPolynomialDigest : String :=
+  "355d6b67cf4fe79d494c191b93133e4415b1c77a3b5f18cf2d44a9c726ae43ce"
 
 /-- Column count of the exported production AIR. -/
 def divIrColumns : Nat := 73

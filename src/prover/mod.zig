@@ -14,6 +14,7 @@ pub const poly = @import("poly/mod.zig");
 pub const secure_column = @import("secure_column.zig");
 pub const session = @import("session.zig");
 pub const stage_profile = @import("stwo_prover_api").stage_profile;
+pub const work_profile = prover_api.work_profile;
 pub const host_budget_allocator = @import("host_budget_allocator.zig");
 pub const vcs = @import("vcs/mod.zig");
 pub const vcs_lifted = @import("vcs_lifted/mod.zig");
@@ -27,10 +28,13 @@ pub const measurement = @import("measurement/mod.zig");
 pub const execution = @import("execution/mod.zig");
 
 test {
+    _ = @import("fri_work_test.zig");
+    _ = @import("work_pool_test.zig");
     _ = host_budget_allocator;
     _ = @import("task_graph_nested_test.zig");
     _ = @import("task_graph_profile_failure_test.zig");
     _ = @import("task_graph_profile_test.zig");
+    _ = @import("task_graph_retained_lease_test.zig");
     _ = @import("task_graph_work_pool_test.zig");
 }
 

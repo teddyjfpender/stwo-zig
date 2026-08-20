@@ -1,7 +1,7 @@
 # Validation and evidence plan
 
 **Status:** required gate design
-**Last updated:** 2026-08-06
+**Last updated:** 2026-08-15
 
 ## Principle
 
@@ -86,7 +86,111 @@ Answers: did the change improve its stated resource without hiding another?
 - proof size and verification time;
 - host, power, compiler, commit, and protocol identity.
 
+### P-003/R-006 exact-work promotion gate
+
+V2 work-profile transport and digest validation are necessary but do not prove
+producer exhaustiveness. An `instrumented_exact` R-006 attempt may advance to
+the real V4 schema only when all of the following hold:
+
+- every executable producer uses a typed `Site` identity for both its planned
+  and completed record; free-form marker comments are not coverage authority;
+- compile-time `Site -> Boundary` aggregation and per-site expected/completed
+  arrays reject a missing, duplicate, substituted, or unfinished site before
+  the terminal coverage seal;
+- every field-operation class in the P-003 closure ledger returns a checked
+  exact delta for the schedule it actually executed; unsupported backend
+  schedules make the counter unavailable rather than estimated;
+- the counter-semantics version states whether guest execution, witness
+  materialization, proof serialization, and independent verification are in
+  the logical-work partition;
+- FFT butterflies, FRI folds, and Merkle compressions have the same typed-site
+  deletion and substitution protection as field operations; and
+- one installed production binary emits a V4 attempt only after the proof has
+  independently verified, then passes the strict fresh-process capture and
+  raw-bundle replay validators.
+
+At the 2026-08-15 checkpoint, only generic M31 polynomial-commit forward FFT
+field work is exact. The ten-site/seven-boundary marker inventory is
+provisional, normal production deliberately remains V3 without a work profile,
+and V4 records are fixtures only. This is the required fail-closed state while
+the typed-site ledger and remaining producer formulas are implemented.
+
 ## Focused development commands
+
+Parallel development lanes must use the bounded compiler controller. It admits
+at most three commands, injects a distinct Git-private Zig local cache for each
+occupied slot, and keeps the global cache shared so immutable dependencies
+remain reusable:
+
+```sh
+python3 scripts/typed_air_zig_lane.py --label <short-owner> -- \
+  zig build --build-file src/frontends/riscv/build.zig \
+  <focused-step> -Doptimize=Debug
+```
+
+The label must be stable and contain no whitespace. Exit 75 means all slots are
+occupied, so the caller returns to source-only work and retries after a reported
+owner releases. Release evidence still uses the ordinary clean, isolated build
+protocol; slot caches are development accelerators, not receipt inputs. Full
+proof transactions remain host-serialized even when focused compilation is
+parallel.
+
+The recursive binary path has independent edit-loop gates. Run the smallest
+owner-specific gate first; the cohort gate is the first command that composes
+all 36 rows and therefore must not be substituted with a source-only pass:
+
+```sh
+zig build --build-file src/frontends/riscv/build.zig \
+  --cache-dir /tmp/stwo-zig-cache-recursion-row18 \
+  --global-cache-dir "$HOME/.cache/zig" \
+  test-recursion-binary-fri-row18 -Doptimize=Debug
+
+zig build --build-file src/frontends/riscv/build.zig \
+  --cache-dir /tmp/stwo-zig-cache-recursion-source \
+  --global-cache-dir "$HOME/.cache/zig" \
+  test-recursion-binary-fri -Doptimize=Debug
+
+zig build --build-file src/frontends/riscv/build.zig \
+  --cache-dir /tmp/stwo-zig-cache-recursion-closure \
+  --global-cache-dir "$HOME/.cache/zig" \
+  test-recursion-binary-closure -Doptimize=Debug
+
+zig build --build-file src/integrations/riscv_cpu/build.zig \
+  --cache-dir /tmp/stwo-zig-cache-recursion-cohort \
+  --global-cache-dir "$HOME/.cache/zig" \
+  check-recursive-binary-cohort -Doptimize=Debug
+
+zig build --build-file src/integrations/riscv_cpu/build.zig \
+  --cache-dir /tmp/stwo-zig-cache-recursion-cohort \
+  --global-cache-dir "$HOME/.cache/zig" \
+  audit-recursive-binary-cohort -Doptimize=Debug
+
+# Only after the 47-domain audit closes: run the expensive proof and its
+# independent verifier without executing unrelated cohort tests.
+zig build --build-file src/integrations/riscv_cpu/build.zig \
+  --cache-dir /tmp/stwo-zig-cache-recursion-cohort-proof \
+  --global-cache-dir "$HOME/.cache/zig" \
+  prove-recursive-binary-cohort -Doptimize=ReleaseFast
+
+# On `ConstraintsNotSatisfied`, retain committed coefficients and print the
+# exact first prover/verifier component differential. This intentionally uses
+# more memory and is diagnostic evidence, not a benchmark invocation.
+STWO_RECURSION_DIAGNOSE_COMPOSITION=1 \
+zig build --build-file src/integrations/riscv_cpu/build.zig \
+  --cache-dir /tmp/stwo-zig-cache-recursion-cohort-diagnostic \
+  --global-cache-dir "$HOME/.cache/zig" \
+  prove-recursive-binary-cohort -Doptimize=ReleaseFast
+
+zig build --build-file src/integrations/riscv_cpu/build.zig \
+  --cache-dir /tmp/stwo-zig-cache-recursion-cohort \
+  --global-cache-dir "$HOME/.cache/zig" \
+  test-recursive-binary-cohort -Doptimize=ReleaseFast
+```
+
+Concurrent agents never share one local cache, and they never compile a
+source file while another agent owns a partial edit in that file. File
+ownership is handed off explicitly before a downstream proof or timing lane
+starts.
 
 RISC-V package:
 
@@ -512,6 +616,69 @@ records the clean H-010 implementation tree, both exact locally retained
 report identities, the independently rerun gates, and the no-selection
 conclusion. It does not convert the microbenchmark into proof-path or
 production evidence.
+
+## A-013 generated-composition production exit
+
+The A-013 V3 gate must execute two independent proofs over the same real
+17-family statement. Its reference backend aliases every production CPU
+operation except the optional composition hooks; the generated arm uses the
+ordinary production `CpuBackend`. The gate rejects unless:
+
+- generated execution telemetry records one admission, 17 eligible pairs, and
+  zero declines;
+- the produced V1 statement itself owns 17 components and exactly 688 Tree-2
+  columns, without depending on A-014 inspection or activation APIs;
+- statement, interaction claim, canonical proof bytes, and terminal transcript
+  are exact between arms; and
+- both independently generated proofs verify through the ordinary production
+  engine.
+
+The final Debug and ReleaseFast gates pass. Canonical proof size is 51,581
+bytes, SHA-256 is
+`3a93cb594f9021f1d0625c3f31431401a668ab266d6502ade64129e0a10f783a`,
+and terminal transcript digest is
+`3690d6814dbdf9ec02a85c3a59cb16d2ed87036291fed3e531c740b546c08293`.
+
+```text
+python3 scripts/typed_air_zig_lane.py --label a013-final-drift-guarded-debug -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-generated-composition-native-proof -Doptimize=Debug -j1 --summary all
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+
+python3 scripts/typed_air_zig_lane.py --label a013-generated-composition-releasefast-proof -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-generated-composition-native-proof -Doptimize=ReleaseFast -j1 --summary all
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+```
+
+Elapsed times from these single-process executions are attribution only. They
+are not V5 evidence; A-013 retains a paired global P-004 performance gate.
+
+## A-014 authenticated lookup-V2 CPU proof
+
+The A-014 V3 gate holds the real all-family execution, public statement, PCS
+profile, and CPU engine fixed while proving compatibility V1 and authenticated
+lookup V2. It requires independent verification in both protocols and
+reciprocal cross-protocol rejection. Exact accepted geometry is 620 to 548
+opcode interaction columns with 68 infrastructure columns unchanged: 688 to
+616 total (-72, -10.47% total and -11.61% opcode). Canonical proof size is
+51,863 to 50,256 bytes (-1,607, -3.10%). Manifest, statement, and activation
+identities are:
+
+- `f205a9fb631bbab2b93efbb961fe662c5a2c0ee55d7d60d606d49d030a2de849`;
+- `8b1b08f4635daa583a55d91914103c49ad15a7db996a4290e23b6686109eeff0`;
+- `d5771e0a86bb81a25f4e6d0a3b52e6a88766c3be3c1115d39f9846443a50fd51`.
+
+```text
+python3 scripts/typed_air_zig_lane.py --label a014-full-cohort-real-proof-final -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-lookup-v2-native-proof -Doptimize=Debug -j1 --summary all
+Build Summary: 1/1 steps succeeded
+
+python3 scripts/typed_air_zig_lane.py --label a014-releasefast-real-proof -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-lookup-v2-native-proof -Doptimize=ReleaseFast -j1 --summary all
+Build Summary: 1/1 steps succeeded
+
+python3 scripts/typed_air_zig_lane.py --label a014-full-lookup-debug -- /usr/bin/time -l zig build --build-file src/frontends/riscv/build.zig test-lookup-batching -Doptimize=Debug -j1 --summary all
+Build Summary: 3/3 steps succeeded; 326/326 tests passed
+```
+
+The exact structural and proof-byte reductions are admitted evidence. Debug
+and ReleaseFast single-sample timing directions disagree, so no speed claim is
+admitted. Native Metal V2 and a no-CPU-fallback receipt remain required.
 
 ## Required gates by change class
 

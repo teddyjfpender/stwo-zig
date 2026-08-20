@@ -254,6 +254,10 @@ zig build riscv-metal-bench -Doptimize=ReleaseFast  # Metal commitments CLI (mac
 zig build riscv-csp-bench -Doptimize=ReleaseFast    # full CPU EthProofs CSP matrix
 zig build riscv-csp-bench-metal -Doptimize=ReleaseFast # full resident Metal CSP matrix
 zig build riscv-trace-dump -Doptimize=ReleaseFast   # trace dumper for equivalence runs
+zig build riscv-recursion-csp-producer -Doptimize=ReleaseFast # canonical verified outer-child producer
+zig build riscv-recursion-shape-inspector -Doptimize=ReleaseFast # proof-independent CSP profile audit
+
+python3 scripts/riscv_recursion_csp_benchmark.py --help # sealed native/recursive cohort workflow
 
 python3 scripts/riscv_formal_tools.py verify \
   --workspace /tmp/stwo-riscv-formal

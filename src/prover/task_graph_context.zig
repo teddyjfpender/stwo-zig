@@ -69,6 +69,7 @@ pub const TaskContext = struct {
     task_class: TaskClass,
     exclusive_lease: ?*work_pool.WorkLease,
     child_wait_group: ?*std.Thread.WaitGroup,
+    child_worker_observer: ?work_pool.StructuredWorkerObserver = null,
     profile_event: ?*task_profile.TaskEvent = null,
     work_unit: WorkUnit = .unspecified,
     planned_work_units: u64 = 0,
@@ -112,7 +113,11 @@ pub const TaskContext = struct {
             return error.NestedSubmissionRejected;
         const wait_group = self.child_wait_group orelse
             return error.NestedSubmissionRejected;
-        try lease.spawnWg(wait_group, func, args);
+        if (self.child_worker_observer) |observer| {
+            try lease.spawnObservedWg(wait_group, func, args, observer);
+        } else {
+            try lease.spawnWg(wait_group, func, args);
+        }
         self.child_wave_active = true;
     }
 

@@ -133,10 +133,12 @@ bool stwo_zig_metal_fri_fold_circle(
     void *runtime_ptr, const uint32_t *source, uint32_t source_count,
     const uint32_t *inverse_y, uint32_t domain_initial_index,
     uint32_t domain_step_size, const uint32_t *alpha, uint32_t *destination,
-    double *gpu_milliseconds, char *error_message, size_t error_message_len
+    bool *inverse_generated, double *gpu_milliseconds,
+    char *error_message, size_t error_message_len
 ) {
     if (runtime_ptr == NULL || source == NULL || alpha == NULL || destination == NULL ||
-        source_count < 2u || (source_count & (source_count - 1u)) != 0u) return false;
+        source_count < 2u ||
+        (source_count & (source_count - 1u)) != 0u) return false;
     @autoreleasepool {
         StwoZigMetalRuntime *runtime = (__bridge StwoZigMetalRuntime *)runtime_ptr;
         uint32_t destination_count = source_count >> 1u;
@@ -205,6 +207,7 @@ bool stwo_zig_metal_fri_fold_circle(
             }
         }
         if (!direct_destination) memcpy(destination, destination_buffer.contents, destination_bytes);
+        if (inverse_generated != NULL) *inverse_generated = build_inverse_cache;
         if (gpu_milliseconds) *gpu_milliseconds = (command.GPUEndTime - command.GPUStartTime) * 1000.0;
         return true;
     }

@@ -6,12 +6,15 @@ const types = @import("types.zig");
 test "relation domain and role wire tags are pinned to production" {
     const logical_domains = std.meta.tags(relation.Domain);
     const production_domains = std.meta.tags(production.Domain);
-    try std.testing.expectEqual(@as(usize, 12), logical_domains.len);
-    try std.testing.expectEqual(logical_domains.len, production_domains.len);
-    for (logical_domains, production_domains, 0..) |logical, shipped, index| {
+    try std.testing.expectEqual(@as(usize, 47), logical_domains.len);
+    try std.testing.expectEqual(@as(usize, 12), production_domains.len);
+    for (logical_domains[0..production_domains.len], production_domains, 0..) |logical, shipped, index| {
         try std.testing.expectEqual(index, @intFromEnum(logical));
         try std.testing.expectEqual(index, @intFromEnum(shipped));
     }
+    try std.testing.expectEqual(relation.Domain.recursion_merkle_node, logical_domains[12]);
+    try std.testing.expectEqual(relation.Domain.recursion_wire, logical_domains[13]);
+    try std.testing.expectEqual(relation.Domain.recursion_step, logical_domains[14]);
 
     const logical_roles = std.meta.tags(relation.Role);
     const production_roles = std.meta.tags(production.EventRole);
@@ -21,6 +24,95 @@ test "relation domain and role wire tags are pinned to production" {
         try std.testing.expectEqual(index, @intFromEnum(logical));
         try std.testing.expectEqual(index, @intFromEnum(shipped));
     }
+}
+
+test "relation registry appends exact universal recursion order without changing production prefix" {
+    try std.testing.expectEqual(@as(usize, 12), relation.schemas.len);
+    try std.testing.expectEqual(@as(usize, 35), relation.extension_schemas.len);
+    const merkle_node = relation.get(.recursion_merkle_node);
+    try std.testing.expectEqual(@as(usize, 12), types.idIndex(merkle_node.id));
+    try std.testing.expectEqualStrings("MerkleNodeRelation", merkle_node.name);
+    try std.testing.expectEqual(@as(usize, 11), merkle_node.fields.len);
+    const schema = relation.get(.recursion_wire);
+    try std.testing.expectEqual(@as(usize, 13), types.idIndex(schema.id));
+    try std.testing.expectEqualStrings("WireRelation", schema.name);
+    try std.testing.expectEqual(@as(usize, 6), schema.fields.len);
+    const step = relation.get(.recursion_step);
+    try std.testing.expectEqual(@as(usize, 14), types.idIndex(step.id));
+    try std.testing.expectEqualStrings("VerifierStepRelation", step.name);
+    try std.testing.expectEqual(@as(usize, 7), step.fields.len);
+    const tail = relation.get(.recursion_fri_verifier_route_word);
+    try std.testing.expectEqual(@as(usize, 46), types.idIndex(tail.id));
+    try std.testing.expectEqualStrings("FriVerifierRouteWordRelation", tail.name);
+    try std.testing.expectEqual(@as(usize, 6), tail.fields.len);
+    const fields = [_]types.Type{.felt} ** 6;
+    try relation.validateEvent(schema.id, .consume, &fields, null);
+    try relation.validateEvent(schema.id, .emit, &fields, null);
+    try std.testing.expectError(
+        error.InvalidRole,
+        relation.validateEvent(schema.id, .request, &fields, null),
+    );
+}
+
+test "universal relation registry order digest is pinned" {
+    try std.testing.expectEqualStrings(
+        relation.REGISTRY_ORDER_DIGEST_HEX,
+        &std.fmt.bytesToHex(relation.registryOrderDigest(), .lower),
+    );
+}
+
+test "universal relation registry digest rejects order name and arity mutation" {
+    const honest = relation.registryOrderDigest();
+    var descriptors = relation.universal_descriptors;
+    std.mem.swap(
+        relation.UniversalDescriptor,
+        &descriptors[0],
+        &descriptors[1],
+    );
+    try std.testing.expect(!std.mem.eql(
+        u8,
+        &honest,
+        &relation.computeRegistryOrderDigest(&descriptors),
+    ));
+    descriptors = relation.universal_descriptors;
+    descriptors[0].reference_name = "memory_access";
+    try std.testing.expect(!std.mem.eql(
+        u8,
+        &honest,
+        &relation.computeRegistryOrderDigest(&descriptors),
+    ));
+    descriptors = relation.universal_descriptors;
+    descriptors[0].arity -= 1;
+    try std.testing.expect(!std.mem.eql(
+        u8,
+        &honest,
+        &relation.computeRegistryOrderDigest(&descriptors),
+    ));
+}
+
+test "universal registry exposes and fails closed on base Merkle ABI gap" {
+    const descriptor = relation.universalDescriptor(.merkle);
+    const shipped = relation.get(.merkle);
+    try std.testing.expectEqual(
+        @as(u8, relation.BASE_MERKLE_UNIVERSAL_ARITY),
+        descriptor.arity,
+    );
+    try std.testing.expectEqual(
+        @as(usize, relation.BASE_MERKLE_SHIPPED_ARITY),
+        shipped.fields.len,
+    );
+    try std.testing.expectEqualStrings(
+        "base_merkle_abi_4_vs_recursion_18",
+        relation.BASE_MERKLE_ABI_GAP,
+    );
+    try std.testing.expectError(
+        error.UniversalSchemaMismatch,
+        relation.requireExactUniversalSchema(.merkle),
+    );
+    try std.testing.expectEqual(
+        relation.get(.recursion_wire),
+        try relation.requireExactUniversalSchema(.recursion_wire),
+    );
 }
 
 test "relation registry covers the exact production domain order and arity" {
@@ -65,6 +157,30 @@ test "relation registry accepts only declared roles" {
             null,
         ),
     );
+    try relation.validateEvent(
+        relation.id(.range_check_8_8),
+        .request,
+        &.{ .byte, .byte },
+        null,
+    );
+    try std.testing.expectError(
+        error.InvalidRole,
+        relation.validateEvent(
+            relation.id(.range_check_8_8),
+            .consume,
+            &.{ .byte, .byte },
+            null,
+        ),
+    );
+    try std.testing.expectError(
+        error.InvalidRole,
+        relation.validateEvent(
+            relation.id(.range_check_8_8),
+            .emit,
+            &.{ .byte, .byte },
+            null,
+        ),
+    );
 }
 
 test "relation registry rejects invalid arity before field matching" {
@@ -92,6 +208,35 @@ test "relation registry rejects invalid semantic field types" {
             relation.id(.bitwise),
             .request,
             &.{ .byte, .byte, .felt, try types.Type.boundedField(2) },
+            null,
+        ),
+    );
+}
+
+test "universal recursion relations preserve bounded scalar refinements" {
+    try relation.validateEvent(
+        relation.id(.recursion_vm_public_claim_byte),
+        .emit,
+        &.{ .felt, .felt, .byte },
+        null,
+    );
+    try std.testing.expectError(
+        error.InvalidFieldType,
+        relation.validateEvent(
+            relation.id(.recursion_vm_public_claim_byte),
+            .emit,
+            &.{ .felt, .felt, try types.Type.staticArray(.byte, 1) },
+            null,
+        ),
+    );
+    // The broader BaseField ABI applies only to universal recursion schemas.
+    // Exact VM table schemas must still reject a different scalar refinement.
+    try std.testing.expectError(
+        error.InvalidFieldType,
+        relation.validateEvent(
+            relation.id(.range_check_8_8),
+            .request,
+            &.{ .selector, .byte },
             null,
         ),
     );

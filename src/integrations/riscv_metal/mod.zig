@@ -17,6 +17,7 @@ const stage_profile = @import("stwo_prover_api").stage_profile;
 
 pub const MetalProverEngine = MetalProverEngineImpl;
 pub const riscv_polynomial_codegen = @import("stwo_metal_backend").riscv_polynomial_codegen;
+pub const guest_precompile = @import("guest_precompile.zig");
 
 comptime {
     prover_mod.assertProverEngine(MetalProverEngine);
@@ -120,4 +121,8 @@ test "api invariant: RISC-V Metal integration cannot select the CPU backend" {
     try std.testing.expect(
         MetalProverEngine.Backend == @import("stwo_metal_backend").MetalCommitBackend,
     );
+}
+
+test {
+    _ = @import("guest_precompile_test.zig");
 }

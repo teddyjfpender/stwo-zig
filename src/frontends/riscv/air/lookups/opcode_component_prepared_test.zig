@@ -18,6 +18,7 @@ const entry = @import("entry.zig");
 const opcode_entries = @import("opcode_entries.zig");
 const opcode_interaction = @import("opcode_interaction.zig");
 const support = @import("opcode_component_prepared_test_support.zig");
+const row_window = @import("../lang/row_window.zig");
 
 const OpcodeLookupComponent = component_mod.OpcodeLookupComponent;
 
@@ -61,6 +62,23 @@ test "opcode lookup component: every family has exact variable-width metadata" {
             claims[0..n_batches],
         );
         try std.testing.expectEqual(n_batches, component.nConstraints());
+        try component.mask_binding.validate();
+        try std.testing.expectEqual(
+            row_window.ComponentMaskBinding.Mode.compatibility,
+            component.mask_binding.mode,
+        );
+        try std.testing.expectEqual(
+            trace.nColumnsForFamily(family),
+            component.mask_binding.borrowed_main_current_columns,
+        );
+        const source_hex = std.fmt.bytesToHex(
+            component.mask_binding.geometry_source_digest,
+            .lower,
+        );
+        try std.testing.expectEqualStrings(
+            row_window.EXPECTED_NATIVE_PLAN_DIGEST_HEX[index],
+            &source_hex,
+        );
         var bounds = try component.traceLogDegreeBounds(std.testing.allocator);
         defer bounds.deinitDeep(std.testing.allocator);
         try std.testing.expectEqual(
@@ -70,6 +88,36 @@ test "opcode lookup component: every family has exact variable-width metadata" {
         try std.testing.expectEqual(@as(usize, 0), bounds.items[1].len);
         _ = component.asVerifierComponent();
     }
+}
+
+test "opcode lookup component: compiler-owned mask binding rejects corruption" {
+    const relations = relations_mod.Relations.dummy();
+    const claims = [_]QM31{QM31.zero()} ** entry.MAX_BATCHES;
+    const component = try OpcodeLookupComponent.initVerifier(
+        .div,
+        4,
+        0,
+        0,
+        0,
+        &relations,
+        claims[0..opcode_entries.batchCount(.div)],
+    );
+    var corrupted = component;
+    corrupted.mask_binding.binding_digest[0] ^= 1;
+    try std.testing.expectError(
+        error.InvalidWindowDigest,
+        corrupted.traceLogDegreeBounds(std.testing.allocator),
+    );
+    corrupted = component;
+    corrupted.mask_binding.owned_interaction_current_previous_columns -= 4;
+    try std.testing.expectError(
+        error.InvalidWindowDigest,
+        corrupted.maskPoints(
+            std.testing.allocator,
+            circle.SECURE_FIELD_CIRCLE_GEN,
+            6,
+        ),
+    );
 }
 
 test "opcode lookup component: large domains expose coordinator-prepared leaf work" {

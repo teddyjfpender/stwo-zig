@@ -126,6 +126,7 @@ pub fn add(
     }
 
     try arena.hints.append(arena.allocator, .{
+        .owner = if (arena.open_function_body) arena.open_function else null,
         .recipe = recipe.id,
         .inputs = input_range,
         .outputs = output_range,

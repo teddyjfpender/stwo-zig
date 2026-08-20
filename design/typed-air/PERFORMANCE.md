@@ -225,6 +225,24 @@ Unstable A/A calibration, environmental identity drift, unavailable mandatory
 counters, or incomplete evidence is `NO_VERDICT`. Neither outcome permits
 promotion.
 
+### C-013 CPU capture boundary
+
+The repository-owned C-013 CPU controller is
+`scripts/typed_air_c013_capture.py`. Before planning, install the current
+ReleaseFast `riscv-poseidon2-proof-child`, `riscv-c013-aa-proof-child`, and
+`riscv-c013-corpus-manifest` artifacts; plan admission checks their embedded
+protocol versions so a stale `zig-out/bin` executable cannot consume a cohort.
+The `plan`, `capture`, and `validate-bundle` commands respectively freeze the
+1,520-attempt authority, retain the append-only raw bundle, and independently
+recompute the 18 CPU rows plus per-shape crossover.
+
+The retained `cpu-reduction.json` reports uncertainty, exact cells and proof
+bytes, fresh-child wall time, CPU/counter work, RSS, and its environment
+binding. It is a CPU-lane reduction only. It leaves the M6 outcome null until
+the required Metal cohort and complete promotion receipt validate. The exact
+runbook and current measurement gap are recorded in the
+[C-013 CPU capture readiness note](notes/2026-08-12-c013-cpu-capture-readiness.md).
+
 ## Compiler cost report
 
 Every layout proposal reports a vector rather than one magic score:

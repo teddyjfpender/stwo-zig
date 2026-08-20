@@ -1,34 +1,359 @@
 # Progress ledger
 
-**Status date:** 2026-08-10
+**Status date:** 2026-08-20
 **Branch:** `feat/typed-air-precompiles`
-**Current milestone:** M7 — parallel proving
-**Active task:** R-001 — prepared composition scheduler slice
-**Next ready task:** C-009 — one-proof guest integration
-**Current acceptance gate:** full-security frozen-corpus proof differential,
-production Tree-1 execution, exact request-bound R-005 telemetry, and a
-normative R-006 receipt
-**Known formal blocker:** the M3 refinement pilot still has the five stale
-generated artifacts recorded in the M3 receipt; no reviewed regeneration or
-current-HEAD receipt closes that blocker
+**Current milestones:** M7 — parallel proving; M9 — recursive aggregation
+**Active tasks:** A-013 — paired global performance only; A-014 — native
+Metal/no-fallback and normative performance evidence; R-006 — installed V4
+smoke and scaling evidence; R-009/R-010 — multi-level aggregation and
+crossover evidence
+**Next ready task:** freeze a reviewable commit, build and smoke the installed
+V4 CPU/Metal candidates, capture the 1/2/4/max-worker scaling cohort on an
+admitted quiet host, then compare the independently verified temporal parent
+against the old-system ETHProof CSP benchmark
+**Current acceptance gate:** exact statement/claim/transcript/proof identity,
+independent verification, fail-closed protocol identities, ownership and
+allocation safety, plus whole-proof performance/resource evidence
+**Known formal state:** the final reseal is green `59/59`, with formal digest
+`375b77cc4c11c2af324b3d66a989fd1e69a58c809dbb68e444d6b6a25fdeba86`
+and source closure
+`c9bc6c362663ce20aac44b9a004a4d86e71f9888bf2a809512116733db0a8bb2`.
+No clean top-level receipt has yet been minted for this checkout, and the
+formal result does not set `whole_frontend_verified` or
+`proof_system_soundness` true
 
 ## Dashboard
 
 | Milestone | State | Evidence |
 | --- | --- | --- |
 | M0 — engineering dossier | complete | This directory and initial ADRs |
-| M1 — validated logical IR | complete | F-001 through F-012 complete and green |
+| M1 — validated logical IR | complete | F-001 through F-015 complete and green; live activation lowering carries compiler-owned degree/provenance and verifier-owned public-root claims, while programs with no owned relation-backed function remain a zero-cost compatibility no-op |
 | M2 — shadow compiler | complete | A-001 through A-005 complete and green |
-| M3 — compatibility lowering | blocked | [V-008 evidence](receipts/m3-compatibility-v1.json) recorded; broad proof/formal gates open |
+| M3 — compatibility lowering | ready | Current checkout gates are green and ready for a clean immutable receipt. [V-008](receipts/m3-compatibility-v1.json) remains the immutable historical red snapshot; it is not the receipt for this tree. This milestone does not claim a full proof or whole-frontend verification |
 | M4 — Poseidon compiler pilot | complete | H-001 through H-010 and V-006 complete; no layout selected |
-| M5 — effect and witness pilot | ready | E-001 through E-005 complete; typed LUI authorship and its authenticated direct-to-SoA shadow witness are production-exact, while proof authority and further opcode families remain open |
-| M6 — guest precompile | ready | C-001 through C-008 complete; C-009 now has profile-authenticated admission, mixed-stream program commitment, and bounded direct AIR for both guest components, while adapters, transcript integration, and independent one-proof verification remain open |
-| M7 — parallel proving | active | Production RISC-V CPU composition is scheduled and emits a flat bounded-task profile with exact semantic contributions for fused lanes; selected prepared domains are row-sharded, profiled samples bind a coarse verified-request duration, and a pure Tree-1 plan closes deterministic ranges and finite host classes. Production Tree-1 execution, full-security parity, the exact R-005 partition, and normative R-006 evidence remain open |
-| M8 — broad migration | queued | No opcode family has switched generated-witness authority; E-014/E-015 remain open |
-| M9 — recursive aggregation | deferred | ADR-0030 and a native reference exist only as proposed/test authority; no recursive proof or verifier exists |
+| M5 — effect and witness pilot | ready | E-001 through E-015 complete. All seventeen opcode families use authenticated typed production witnesses with exact legacy proof parity and per-family non-regression gates. The frozen M5 performance receipt remains open |
+| M6 — guest precompile | ready | C-001 through C-012 complete: one CPU proof closes caller/provider components in the same STARK and verifies in a fresh process; the semantic pair and mutation fleet pass; the authenticated-AOT Metal product route proves on-device and verifies device-independently with zero backend CPU fallback. C-013 now has a fail-closed CPU controller and reducer; its clean secure CPU/Metal crossover receipt remains open |
+| M7 — parallel proving | active | R-002/R-003/R-004 are closed: production Tree-1 and Tree-2 construction, heterogeneous quotient composition, and PCS openings share one bounded proof pool and preserve exact predecessor/`N=1/2/4` proof identity with staged failure recovery. R-005 is closed. P-003 is producer-exhaustive at CPU/Metal/joint 16/16 across schema-9's 23 typed sites, with real CPU `N=1/2/4` and authenticated-AOT Metal proofs. R-006's plan V2 binds that matrix and inventory and revalidates them at capture; a clean installed V4 smoke and immutable CPU/Metal scaling capture remain open |
+| M8 — broad migration | complete | All 17 family witness writers and all 17 execution/AIR families are production-typed. All 46 proof-bearing opcodes dispatch through the typed registry; one shared manifest now assembles all 17 opcode and 11 infrastructure components for both prover and verifier. Exact generated-versus-legacy proof/transcript A/B passes for every family with one draw, fail-closed legacy execution passes 17/17, and fresh formal extraction validates all 17 families. The final formal reseal is green `59/59`; a clean top-level receipt remains open |
+| M9 — recursive aggregation | active | Universal AIR authority is closed 36/36 and the capture-backed SegmentV2 leaf proves the complete append-only 39-component cohort. The temporal source consumes two distinct, independently verified native SegmentV2 proofs, carries verifier-owned authority through rows 0--35, and closes the exact global relation boundary. The frozen ReleaseFast test executes coherent context plus every-row-20--35 authority mutations before independently accepting the 94,740-byte parent; the lean path measured 6.778 s proving / 6.209 s verification and reproduced proof SHA `a43d756e…203b`. The prepared pair path performs zero hot Poseidon permutations. Multi-level aggregation, R-010 crossover evidence, whole-frontend verification, and proof-system soundness remain open. `temporal_parent_verified = true`, `whole_frontend_verified = false`, and `proof_system_soundness = false` |
+
+## Current release-candidate gates
+
+These results describe the current shared checkout. They are green readiness
+evidence, not an immutable release receipt:
+
+| Gate | Current result |
+| --- | --- |
+| Package workspace | `21/21` packages and 70 dependency edges pass |
+| M3 compatibility manifests | `17/17` regenerate and compare exactly |
+| A-013 generated composition | Separate reference/generated proofs admit 17/17 generated pairs with exact 51,581-byte proof and terminal-transcript parity in Debug and ReleaseFast; both independently verify; V1 Tree 2 remains 688 columns |
+| A-014 selected lookup V2 | Real 17-family CPU proofs independently verify and reject reciprocal protocol replay; Tree 2 is 688 -> 616 columns (-10.47% total, -11.61% opcode) and proof size is 51,863 -> 50,256 bytes (-3.10%); native Metal/no-fallback remains open |
+| RISC-V frontend Debug | 2,149 pass; one intentional skip |
+| Recursion AIR | `583/583` pass in Debug, ReleaseSafe, and ReleaseFast |
+| Relocated native recursion proof | CPU-integration-owned gate passes in all three modes with exact 5,184-byte proof estimate and identical transcript |
+| Active captured-leaf outer proof | Contiguous rows 18--34 prove and independently verify; frozen V1 is 66,308 bytes; 18/36 honest proof union including row 0; five mutations reject |
+| SegmentV2 complete leaf outer proof | All 39 components and 47 relation domains prove and independently verify from verifier-owned capture; 91,722 canonical bytes; one-worker ReleaseFast development observation 1.155 s prove / 0.831 s verify; composition differential 39/39 |
+| P-003 exact-work closure | CPU/Metal/joint `16/16`, schema 9 / 23 typed sites; matrix SHA `b1eef5cc…24d1`, inventory SHA `13807efb…982f`; real CPU `N=1/2/4` and real-device Metal proofs independently verify with exact-once OODS and PCS-shell receipts. CPU authority/receipt are `df914f…b14` / `9e99cc…f68`; shell receipt is `864d55…46f`. The Metal gate emitted no separate canonical identity |
+| Temporal `2 -> 1` parent | Current-tree ReleaseFast mutation and lean gates independently verify the same 94,740-byte proof; proof SHA `a43d756e…203b`; rows 20--35 and coherent context mutations reject; `pair_poseidon=0` |
+| RISC-V CPU integration | `17/17` pass in ReleaseFast |
+| Formal | Final reseal green `59/59`; digest `375b77cc4c11c2af324b3d66a989fd1e69a58c809dbb68e444d6b6a25fdeba86`; source closure `c9bc6c362663ce20aac44b9a004a4d86e71f9888bf2a809512116733db0a8bb2` |
+| Immutable promotion receipt | Open; no clean top-level receipt exists for this checkout |
+
+The current M3 gates are therefore green and the milestone is ready for a
+clean immutable capture. SegmentV2 supplies the complete recursive leaf and
+the temporal V3 path now proves and independently verifies the first canonical
+ordered `2 -> 1` parent. This is not yet a multi-level aggregation tree, an
+accepted-proof-to-whole-trace theorem, or a proof-system soundness result. The
+historical Level-1 LUI/ADDI pilot remains `2/46`; SegmentV2 leaf proof coverage
+is 36/36 universal rows plus its three append-only components.
+`temporal_parent_verified = true`, `whole_frontend_verified = false`, and
+`proof_system_soundness = false`.
 
 ## Completed
 
+### 2026-08-20 — producer-exhaustive profiling and the hardened real parent close
+
+P-003 now closes all sixteen reviewed prover-work families on CPU and Metal.
+The deletion-resistant inventory is schema 9 with 23 ordered sites; the matrix
+recomputes to 16 complete / 0 partial / 0 absent for CPU, Metal, and joint
+coverage. Real CPU `N=1/2/4` proofs publish byte-identical exact-once OODS and
+PCS-shell receipts and independently verify. The authenticated-AOT Metal gate
+accepts 118 exact exports, exercises the resident/fused FRI path, publishes the
+same required sites exactly once, and independently verifies. The canonical
+matrix SHA is `b1eef5ccf8405de9373c11b8fe9bd505a331add0601ab1904a1b038df0ee24d1`;
+the inventory SHA is
+`13807efba664c2abc49325a80d8bc67c15896e7250ea48416e0d58e0f029982f`.
+The CPU work authority and receipt SHA-256 values are respectively
+`df914f214597393737a7795fc988680df17ca0e5ba09d9d577930260cb703b14`
+and `9e99ccedbe8302548ef7c95babd445b48f270b355a26090badcec64388350f68`;
+the Blake2s shell receipt is
+`864d550670c284c36dd79fc8521852504b2dd6221410d47cfffceeb56473b46f`.
+The real-device Metal gate did not print a separate proof, transcript, work,
+or shell identity, so none is inferred from the CPU values. Its evidence is
+the green 3/3 product gate, 118 authenticated AOT exports with AOT/JIT parity,
+exact-once producer completion, independent verification, 305.58 s wall time,
+and 4,967,989,248-byte maximum RSS.
+Ordinary row/SIMD/Metal kernels contain no profiler callback or branch; bounded
+cold null/root checks remain, so no measured zero-overhead claim is made.
+
+The R-006 plan schema is now V2 and fail-closed over that exact global closure.
+Plan build, load, and capture recompute the matrix and inventory authority, and
+paired plans require identical CPU/Metal closure. The 37-test combined
+P-003/R-006 mutation suite passes. The current blocker is environmental only:
+AC power, low-power mode off, thermal state, minimum idle, and normalized load
+passed, while median idle was 93.81% against the required 95%. Installed V4
+smoke and the immutable 2,080-attempt scaling receipt remain open.
+
+The temporal parent publication boundary is also hardened. After native proof
+verification, one complete verifier replay reconstructs every row, both public
+boundaries, provider authority, and closure before an opaque stack-scoped
+success capability can be minted. Coherently resealed mutations cover every
+row 20--34, row 35's separate provider, pair context, statement context, and
+child ordering. The ReleaseFast mutation gate and lean runner accept the same
+94,740-byte proof and five identities. The proof SHA is
+`a43d756e1b1832105922579ccef1df55b73e9cd861c8e9dfcf7ea87845b7203b`;
+the lean development observation was 6.778 s prove / 6.209 s verify with zero
+hot pair-authentication Poseidon permutations. Multi-level recursion and
+normative performance receipts remain explicitly open.
+
+- Closed the two remaining single-source boundaries in parallel. Temporal
+  parent rows 0--9 now come from one exact `RecordingChannel` replay:
+  binary control, sponge-call/provider emission, call binding, digest-state
+  transitions, versioned payload classification, checked PCS-PoW frames, and
+  semantically annotated composition/OODS/DEEP/FRI/query draws retain compact
+  operation/frame metadata once and write typed SoA columns allocation-free
+  and fail-atomically. The versioned packed-QM31 row-8 authority represents
+  both challenges without changing frozen V2, and the honest typed mask is
+  now exactly `0x3ff`. In the execution frontend, a pointer-free
+  zero-allocation opcode-composition manifest now derives exact geometry,
+  claim order, semantic/lookup masks, trace widths, maximum width, and witness
+  receipt order for all 17 typed authorities. One shared authority now
+  assembles those 17 opcode and all 11 infrastructure components for both
+  prover and verifier with O(1) offsets and fail-atomic drift rejection.
+  Debug and ReleaseFast pass 324/324, maximum-width cold allocation counts are
+  unchanged, and the semantic/row-window performance gates are green.
+- Repaired the M7 proof-pool development gate. Its pinned filter still named
+  the retired structural Tree-1 test and could therefore exit green after
+  selecting no named test. Both compatibility and the new explicit
+  `test-riscv-proof-pool-parity` target now select the real predecessor versus
+  `N=1/2/4` full-proof identity and failure-recovery tests, covering Tree 1,
+  Tree 2, quotient composition, PCS openings, independent verification, and
+  scoped-pool unwind. A minimum-two-test build guard makes future stale pinned
+  filters fail closed. The real ReleaseFast gate is green with a 56,385-byte
+  proof, SHA-256
+  `605bb8af62f3e4b1c1b59a6be7e2714e0c92f65ef0248d21b1c04c447a4c8f7b`,
+  transcript digest
+  `69d6160da376ceff44733dea25c0b8c5e05e4fbcd0bcb9fee27aeba5061018b3`,
+  and one draw for every worker count. This closes R-002, R-003, and R-004;
+  R-006 remains the M7 scaling and promotion-evidence boundary.
+- Added the proof-kind-aware V3 heterogeneous graph-construction substrate.
+  One max-sized sampled-value ABI is derived from separate verifier-owned
+  SegmentV2 and universal capture layouts; the exact 39-row Segment program
+  and independently initialized 36-row binary/empty programs replay through
+  one private transaction with separate quotient-denominator caches, fixed
+  41-claim policy constraints, parent/child selector equations, and global
+  LogUp closure. Binary verifier custody now has a pointer-free V3 sidecar that
+  binds every dynamic capture field, statement/claim/relation data, provider
+  partials, manifest, and selected program descriptor, and its allocation-free
+  recorder handoff is green. Production `CircuitAuthorityV3` minting remains
+  deliberately unavailable until a real canonical empty cohort joins the
+  already-real Segment and binary lanes in the same graph.
+- Crossed two downstream recursion handoffs against one real, successfully
+  verified SegmentV2 artifact. `TemporalChildTranscriptReplayV2` reconstructs
+  Tree 0/1, the exact source-specific authority prefix, all 94 relation draws,
+  39 claims, the public-wire boundary, Tree 2/composition, PCS/FRI/PoW, and
+  every query through the verifier-published transcript identity; prefix and
+  terminal-state mutations reject. `SegmentV2RecorderBridgeV3` independently
+  joins the exact 39+2 claim profile to the V3 descriptor, derives its sampled
+  layout from the capture, and retains the 41 claims, 47 relations,
+  composition randomness, and OODS input for an allocation-free 39-row
+  symbolic recorder handoff. The combined real 39-row/47-domain proof gate is
+  green. At this earlier checkpoint temporal rows 0--9 still needed their
+  typed parent AIR, and the V3 binary/empty programs still needed one shared
+  heterogeneous graph authority; the later temporal-parent entry below
+  supersedes the first of those two limitations.
+- Extended the verifier-minted SegmentV2 recursive witness with the exact
+  source-specific transcript prefix required to rebuild temporal rows 0--9:
+  non-core/core authority identities, core layout and call-buffer identities,
+  exact core call count, and the relation-dependent public-wire boundary. The
+  pointer-free schema is independently sealed, linked into the witness and
+  publication identities, and covered by version, padding, zero-identity,
+  count-bound, canonicity, field, and identity mutations. The ordinary
+  temporal-child harness now has its complete prover imports and passes as a
+  focused ReleaseFast gate. A real SegmentV2 prove/verify/publication run with
+  this schema remained green at 39 components and 47 domains, producing
+  91,722 canonical bytes in 1.486 s proving, 0.931 s verification, and 3.76 ms
+  publication on the development host. These are engineering observations,
+  not a normative performance receipt.
+- Closed the native temporal V2 prepared-authentication optimization with
+  executed-path evidence. Cold preparation now executes 13 hashes / 281
+  scalar Poseidon permutations versus 499 in the historical duplicate call
+  tree, eliminating 218 permutations (43.7%). A 4,096-iteration successful
+  prepared loop plus a mutation rejection executes zero hashes and zero
+  permutations. One ReleaseFast ABBA observation measured 170,764 ns for the
+  cold convenience path and 764 ns for prepared-hot authentication. The
+  legacy V1 authority remains a distinct 94/55/38-permutation path, and none
+  of these native measurements claim a temporal parent proof speedup.
+- Closed the complete capture-backed SegmentV2 recursive leaf transaction.
+  The independently reconstructed prover and verifier cohorts bind all 39
+  component claims and all 47 relation domains, including the two V2 boundary
+  sources and row 38's committed verifier-input provider. Exact tuple closure
+  contains 102,099 contributions and no unmatched tuple. The real one-worker
+  ReleaseFast gate reports 91,722 canonical proof bytes, 1.155 s proving, and
+  0.831 s verification; these are development observations, not a normative
+  performance receipt. The composition differential agrees for all 39
+  components. Its diagnosis first isolated row 38 and then alpha-zero isolated
+  its final LogUp constraint: main/preprocessed values had been copied in
+  logical order while Tree 2 was already in circle-domain commitment order.
+  Tree 0/1 now scatter exactly once through `committedRow`; Tree 2 remains an
+  exact copy, with a focused order regression test. The resulting publication
+  was ready as a temporal child. At that checkpoint no parent proof existed;
+  the independently verified parent recorded later in this 2026-08-20 entry
+  supersedes that historical boundary.
+- Closed F-015 with opt-in, sealed per-function ownership of constraints,
+  effects, hints, and calls. Owned bodies select semantic identity v11 and
+  manifest v13 while every legacy identity and manifest remains byte-stable.
+  Frame plans bind exact owned record ranges and body-only dependencies;
+  `compileOwnedBody` expands all inline calls, instantiates direct constraints
+  per invocation, and never lowers an unsupported proof-aware value into an
+  unconstrained committed cell. Prepared execution allocates nothing and
+  checks every constraint before publishing outputs. The new ownership suite,
+  legacy lowering suite, function-frame suite, and full frontend package pass
+  independently in Debug and ReleaseFast.
+- Added row 18's production VM AIR-composition input to the same active outer
+  proof as rows 19--34. Its prepared graph is derived from the exact native VM
+  component evaluation, validates all 19,352 graph nodes and 4,589 input
+  bindings allocation-free, and binds 4,805 scheduled input rows into the
+  shared arithmetic wire closure. The resulting 17-component proof commits
+  347 preprocessing, 760 main, and 276 interaction columns, evaluates 862
+  constraints, and closes 52,303 Poseidon2 calls. The frozen 2x/193 proof has
+  a 66,308-byte estimate, proves in 30.954 s and independently verifies in
+  10.779 s with eight workers; all five mutations reject. Retaining one small
+  authenticated binary-mode capacity anchor while removing four redundant
+  inactive child graphs reduced proof time by 32.5%, assembly by 31.1%, the
+  STARK body by 45.8%, and verification by 31.0% against the first sound row-18
+  run. These are single-run engineering measurements, not a normative M9
+  benchmark receipt.
+- Added row 19's verifier-owned AIR-composition control slice to the outer
+  proof, making rows 19--34 contiguous and raising the honest union with row 0
+  to 17/36. The component has zero main columns: its nine fixed schedule
+  columns are rebuilt from authenticated VM/recursion plans, and its claimed
+  sum is recomputed independently before the verifier consumes proof bytes.
+  Frozen V1 proves at a 66,360-byte estimate in 55.499 s and verifies in
+  18.161 s; measured 4x/97 proves at 64,760 bytes in 28.137 s and verifies in
+  9.251 s. A dedicated claimed-sum forgery joins the existing mutation fleet,
+  which now rejects 4/4 outer mutations failure-atomically. The arithmetic
+  graph and its active row counts are unchanged, and the timing delta is
+  favorable within run noise rather than evidence of a speedup.
+- Added row 24's exact PCS/DEEP verifier circuit to the same captured-leaf
+  outer proof, making rows 20--34 contiguous. The 15-component proof commits
+  307 preprocessing, 758 main, and 252 interaction columns and evaluates 848
+  constraints. Frozen V1 (2x/193) lowers a 764,768-node PCS graph into
+  540,626 multiply, 16,021 inverse, and 470,147 linear active rows; its
+  64,476-byte proof estimate independently verifies in 57.974 s with four
+  workers, and all three mutations reject. The measured 4x/97 candidate
+  independently verifies at 62,908 bytes in 28.766 s. Its 26,675 Poseidon2
+  requests close exactly against the sole row-34 provider. Together with the
+  separate row-0 gate, honest real-proof coverage is now 16/36.
+- Preserved the local query-bit, position, route, and active-row constraints
+  after profiling an apparently faster variant. Those constraints cannot be
+  delegated to lookup cancellation until the full outer proves the relevant
+  global relation claims. The accepted PCS optimization instead uses exact
+  batch factorization, denominator-coefficient caching, and constant folding.
+  Against the first sound row-24 V1 run it reduces proof time by 17.4%,
+  assembly by 20.0%, verification by 25.3%, and proof estimate by 3.3%, while
+  preserving proof geometry, all local constraints, and mutation outcomes.
+- The captured proof values remain verifier-owned: trace siblings, query
+  coordinates, column logs, composition randomness, OODS randomness, and FRI
+  randomness all come from the transactionally successful native verifier
+  capture. Exact local wire and Poseidon request/provider claims cancel before
+  proof assembly; full cross-domain global cancellation remains a completion
+  gate for the 36-row proof.
+- Removed an accidental quadratic recursive-assembly path. Rows 23 and 25--28
+  previously rebuilt stateful Merkle witnesses and SHA-256-authenticated their
+  complete preprocessing schedule once per interaction row. Interaction rows
+  are now captured directly from the exact logical Tree-1 columns before those
+  columns move into PCS ownership, eliminating both redundant computation and
+  a second witness implementation. On the same 4x/97 ReleaseSafe leaf, the
+  verified outer prove fell from 650.480 s to 14.086 s at one worker (46.2x),
+  and to 12.608 s at four workers (51.6x versus the predecessor). Assembly fell
+  from 647.176 s to 10.819 s at one worker (59.8x); four workers additionally
+  reduced the STARK body from 3.261 s to 1.577 s. Geometry, constraints, proof
+  estimate, verifier result, provider-call count, transcript draws, and all
+  three mutations stayed fixed. These are single-run engineering measurements,
+  not a normative M9 benchmark receipt.
+- Promoted the typed Poseidon2 proof authority into a production module and
+  installed it as the sole row-34 provider. Its identity-gated specialized
+  writer remains byte-exact with the typed interpreter, retains the 16 output
+  words needed by Tree 2, and prevents interaction generation from replaying
+  26,675 scalar permutations. The outer assembly locally audits exact
+  `poseidon2_io` cancellation; the verifier binds the provider claims and AIR.
+- Relocated ownership of the rows-29/33 real native PCS/FRI proof gate from the
+  frontend package to the RISC-V CPU integration package, where the concrete
+  CPU backend and prover engine belong. The frontend retains the backend-free
+  manifest, adapter, witness, relation, and verifier construction authority.
+  The integration gate proves and independently verifies in Debug,
+  ReleaseSafe, and ReleaseFast; all modes report the exact 5,184-byte estimate
+  and the same transcript. ReleaseFast integration closes `17/17`. This raises
+  no recursion coverage count at that checkpoint: rows 0, 29, and 33 remained
+  the same `3/36` proof-bearing rows before the later captured-leaf outer proof.
+- Landed the A2/A3 authenticated pair-node shadow substrate without promoting
+  R-009. Its fixed 752-byte canonical record binds ordered core-request and
+  Poseidon-provider claims to exact expected child-verifier outputs and a
+  verifier-rederived session, challenge, full authority context, public-call
+  commitment, event count, power-of-two session leaf count, and aggregator VK.
+  Root authentication pins the injected VK and returns a distinct authorized
+  type; checked first-layer folding requires exact relation closure and rejects
+  count padding above `kappa <= 1024`. Versioned identity domains and separate
+  statement/proof/transcript/summary folds and node identity are pinned; the
+  record hash is diagnostic rather than part of the mandatory recursive node
+  path. The allocation-free codec is alias-safe and failure-atomic. After
+  protocol audit and expanded authority/cardinality negatives, the current
+  focused build passes 259 tests with one intentional environment-gated
+  benchmark skip in Debug, ReleaseSafe, and ReleaseFast; its directly declared
+  R-009 surface passes 18/18 non-benchmark tests. The module cannot establish
+  the provenance of caller-supplied verifier results, inspect child proof
+  bytes, execute the outer AIR, or verify/produce a parent proof, so R-009 and
+  the temporal parent remain active. The historical 229-permutation audit
+  maps to 94 through the compatibility API and 55 with suite preparation. A
+  by-value prepared authority context moves another exact 17 permutations to
+  the cold path, leaving 38 on repeated hot authentication. Golden outputs,
+  independent mutation rejection, and the zero-allocation ledger are pinned;
+  no 55-to-38 wall-time speedup is claimed pending quiet AC evidence. This
+  closes the known duplicate-validation optimization without promoting the
+  shadow to recursive-proof evidence.
+- Closed the universal recursion AIR roster at 36/36 without duplicating
+  shared primitive equations: 34 exact typed-logical rows use one generic
+  adapter, and authenticated native providers own Poseidon2 and the fixed
+  `(8, 8)` range table. Rows 1, 13, and 14 now carry exact Stark-V source,
+  semantic, witness-binding, schedule, cancellation, allocation, alias, and
+  adversarial evidence. A single allocation-free manifest fixes every row,
+  log size, column offset, claimed-sum index, protocol degree, and semantic
+  identity in roster order. The integrated core and aggregate recursion gates
+  pass in Debug, ReleaseSafe, and ReleaseFast. At that checkpoint this closed
+  AIR/component authority, not the then-open outer proof or recursive `2 -> 1`
+  node; the complete SegmentV2 leaf and first parent are recorded above.
+- Added a non-promotional, allocation-free FRI profile frontier. It preserves
+  V1's exact 209-bit configured query-plus-PoW ledger while exposing the
+  blowup/query trade from `(1,193)` through `(6,33)` with fixed-schedule upper
+  bounds for trace paths, FRI authentication digests, fold values, and domain
+  expansion. Protocol V1 remains unchanged pending real proof measurements
+  and security review.
+- Admitted universal recursion rows 3 (`transcript_state`) and 5
+  (`transcript_payload`) through the same compiler-owned generic adapter,
+  moving the exact typed-logical and adapter closure to 31/36. Row-3
+  preprocessing is derived from authenticated row-2 call
+  schedules; row-2 frame outputs/words, internal digest-state multiplicities,
+  and row-8 draw consumers cancel exactly. Row 5 binds every fixed protocol
+  and PCS constant plus indexed statement/proof-word ownership to row-4 word
+  events. Each owned cold snapshot uses one allocation, all hot writers are
+  failure-atomic and allocation-free, and the integrated core passes 351/351
+  in Debug, ReleaseSafe, and ReleaseFast.
+- Removed an aggregate semantic-evaluator Debug stack regression without
+  widening the reviewed 128 KiB worker-stack envelope. Exhaustive fixed-family
+  direct dispatch now reaches each typed recipe without materializing the
+  aggregate switch frame; the focused semantic-component gate passes 200/200
+  in all three modes and preserves independent reference equality.
 - Created local branch `feat/typed-air-precompiles` from clean
   `origin/main` at `385efb9a`.
 - Read and analyzed the felt-to-AIR design supplied by the user.
@@ -102,6 +427,17 @@ current-HEAD receipt closes that blocker
   state where possible, and prove allocated/freed byte equality. Together with
   arena, manifest, degree, and diagnostic allocation enumeration, every owning
   foundation object has partial-initialization cleanup evidence.
+- Completed F-013: `function_frames.zig` compiles the global logical DAG into
+  Cairo-style per-function frames. It rejects transitive undeclared-input
+  reads, duplicate arguments, cross-frame hint ownership, hinted/non-field
+  relation returns, and malformed activation geometry. Canonical write-once
+  locals, exact `(args..., rets...)` tuples, per-function ABI digests, and
+  callee/caller/public consume/emit events are authenticated by a pinned plan
+  digest. The owned validator allocates nothing, strong validation regenerates
+  from the full arena, allocation failures are exhaustive, and all 7 focused
+  tests pass in Debug, ReleaseSafe, and ReleaseFast. Live LogUp lowering,
+  inline substitution, and complete constraint/effect ownership remain
+  F-014/F-015 rather than being implied by the plan.
 - Completed A-001: the shipped symbolic polynomial DAG imports through checked
   typed constructors with an explicit source-node map, owned column names,
   canonical M31 constants, and linear replay. Deterministic randomized replay
@@ -306,7 +642,8 @@ current-HEAD receipt closes that blocker
   also records rather than waives the broad prover-core rigidity failures,
   eight baseline source-conformance errors, and five stale artifacts detected
   by the refinement pilot after the 120-job Lean build passed. Compatibility
-  implementation is complete; M3 release promotion remains blocked.
+  implementation was complete, but M3 release promotion remained blocked at
+  that historical snapshot.
 - Completed H-010: clean implementation commit
   `82bf6b9cd5eb1ab48edd6fb7c0c88a3be687e8c6`, tree
   `8cbb9300fa9b820baa079eeb94addf71db97f130`, authenticates four
@@ -410,9 +747,13 @@ current-HEAD receipt closes that blocker
   prover API, prover, CPU, and benchmark CLI suites pass in Debug,
   ReleaseSafe, and ReleaseFast.
 - Commit `a928c9fa` implements a native serialization and tree reference for
-  ADR-0030. The ADR remains proposed and the code is test authority only: no
-  leaf proof authenticates the summary, no recursive verifier consumes it, and
-  M9 remains deferred.
+  ADR-0030. At that checkpoint the code was test authority only. The current
+  SegmentV2 transaction now verifies a complete leaf outer proof and mints a
+  temporal-child-ready publication from verifier-owned values. The current
+  temporal V3 path consumes two such publications and independently verifies
+  their ordered 94,740-byte parent. M9 remains active for multi-level
+  aggregation, crossover evidence, whole-frontend verification, and
+  proof-system soundness.
 
 ### Open gates for the active scheduler slice
 
@@ -424,9 +765,10 @@ current-HEAD receipt closes that blocker
   frozen-corpus ADR-0027 differential remains open.
 - Within-component sharding is limited to large prepared memory-hash,
   lookup-table, and opcode-lookup domains. Other dominant components and the
-  main/interaction construction stages are not yet covered. The new Tree-1
-  module is planning authority only; no worker consumes it and commitment
-  publication remains serial.
+  main/interaction construction stages are not yet covered. The Tree-1
+  structural executor now consumes the complete seven-wave plan, but its
+  callbacks are not yet bound to production generators or final commitment
+  destinations.
 - Finite budgets are enforced for secure recurrence and closed prepared
   generic/RISC-V plans, including coordinator heap and reserved helper stacks
   and submission envelopes. Unprepared and non-heap scratch/device plans reject
@@ -434,32 +776,36 @@ current-HEAD receipt closes that blocker
 - The bounded composition graph now reports canonical task events, dependency
   readiness, admission/queue/resource wait, outer-task run time, declared byte
   classes, coarse completed rows/tiles, cancellation, and closed summary
-  accounting. Profiled verified samples now bind a coarse monotonic request
-  partition to that graph, but R-005 remains open because witness and proving
-  are not yet separated, fused lanes lack semantic attribution, nested
-  physical-worker work is not exact, and broader prover-stage coverage is not
-  available. Serialization is intentionally outside the measured partition;
-  the R-006 receipt remains open.
-- The independent M3 release blocker remains: the refinement pilot recorded
-  drift in five committed generated artifacts after a successful 120-job Lean
-  build. This ledger update neither regenerates nor accepts those artifacts.
+  accounting. Profiled verified samples now bind an exact five-region witness
+  materialization partition and compute cryptographic proving as its checked
+  complement inside one monotonic verified-request boundary. Queue/run/wait,
+  declared memory, semantic fused-lane attribution, and nested physical-worker
+  accounting are retained in the same owned task profile. A real proof has
+  passed this boundary and independent verification in Debug; current-source
+  ReleaseFast confirmation remains the final R-005 gate. Serialization is
+  intentionally outside the measured partition, and the fresh-process R-006
+  attempt bundle and validator-recomputed scaling receipt remain open.
+- Historical V-008 continues to record the five generated-artifact drifts and
+  broad-gate findings at its detached snapshot. Those findings are not erased.
+  Current gates, including the final formal reseal, are green; the remaining
+  M3 promotion boundary is a clean immutable V-009 receipt.
 
 ## Immediate next actions
 
-1. R-001/R-002 — execute the pure Tree-1 plan through coordinator-prepared,
-   allocation-free leaves and prove exact serial differential behavior across
-   success, cancellation, and injected failure.
-2. R-005/R-006 — land the non-overlapping witness/proving phase meter, then
-   capture the authenticated fresh-process attempt bundle and
-   validator-recomputed normative receipt under the frozen M5--M9 protocol.
-3. C-009/E-006/E-012 — add the guest caller/provider proof-component adapters
-   and profile transcript while authoring ADDI and extracting the authenticated
-   LUI writer into the generic direct-to-column executor.
+1. R-006 — freeze the reviewable source revision, pass installed V4 CPU/Metal
+   smoke, then mint the independently replayed 1/2/4/max-worker scaling receipt
+   on a quiet, AC-powered host. P-003 producer closure is already 16/16.
+2. R-009 — extend the verified first `2 -> 1` parent into a multi-level tree
+   while preserving ordered statement/session/authority custody at each level.
+3. R-010 — freeze a quiet-host receipt and compare the completed leaf and
+   temporal parent against the old-system ETHProof CSP RISC-V benchmark across
+   proof bytes, prove/verify time, peak memory, total work, and security bits.
+4. V-009 — after the implementation revision is frozen, mint and replay a
+   clean immutable M3 receipt without rewriting historical V-008.
 
-C-009 and E-006/E-010/E-012 remain dependency-safe tracks, but none is marked
-active while the prepared scheduler slice owns the primary task. C-009's
-pre-transcript admission and program-authority slice is complete; its task
-status remains ready until the proof-component boundary is integrated.
+The opcode, split-proof, and recursion lanes own disjoint source regions. Shared
+manifest regeneration happens only after each lane reports a stable identity;
+in-progress source drift is never promoted into a golden artifact.
 
 ## Decisions
 
@@ -512,9 +858,11 @@ Accepted:
 - The profile-scoped guest Poseidon2 ABI, relation/subclock rules, and separate
   component/statement/artifact identity are fixed by ADR-0024, ADR-0025, and
   ADR-0029. These decisions do not claim a completed guest proof.
-- The typed LUI shadow writer executes only an authenticated, versioned numeric
-  row-source recipe. It owns no authored-arena pointers or mutable scratch,
-  writes final SoA storage directly, and does not change production authority.
+- The typed LUI generated writer executes only an authenticated, versioned
+  numeric row-source recipe. It owns no authored-arena pointers or mutable
+  scratch, writes final SoA storage directly, and was the first production
+  witness authority. ADR-0038 has since promoted the complete fixed LUI and
+  FENCE execution/witness/AIR authorities and fail-closed generated dispatch.
 - Guest program authority is profile-separated: the closed RV32IM decoder is
   unchanged, canonical CUSTOM-0 maps to appended protocol opcode 46, and the
   declared-program commitment consumes base, guest, and completion fetches as
@@ -544,22 +892,27 @@ Pending:
 | --- | --- |
 | New abstraction drifts from production | Shadow import and exact compatibility lowering |
 | Compiler shares wrong semantics with witness | Sail, mutation, formal, and independent runner evidence |
+| A generated path is compared to itself | Retired formulas remain explicit test-only oracles; Sail and independent proof verification are mandatory production gates |
 | Layout changes silently | Versioned deterministic manifests |
 | Typed DSL becomes stringly or magical | Canon relation/effect rules and constructor validation |
 | Poseidon pilot becomes a toy | Exact 445-column production component target |
-| Precompile weakens base-RV32IM claim | Base validation and decoding remain closed; the extension has independent pre-transcript admission and program authority, while C-009 must still close the proof and fresh-process verifier path |
+| Precompile weakens base-RV32IM claim | Base validation and decoding remain closed; the extension has separate artifact/profile authority, a fresh-process CPU verifier, and authenticated-AOT Metal admission with zero backend CPU fallback |
 | Direct guest equations are mistaken for standalone range proofs | Tests distinguish polynomial equalities from their authenticated fixed-table premises; noncanonical words and wrapped pointers require both surfaces exactly as ADR-0025 specifies |
 | Parallelism hides total cost | Frozen M5--M9 performance protocol; flat composition telemetry is graph-local and excludes unobserved nested-worker/profile-allocation cost, so no M7 verdict exists until R-005 closes and a protocol-complete R-006 capture passes |
 | Prepared tests are mistaken for production scheduling | Ledger requires a full-security frozen-corpus proof differential and separates the controlled production-path checkpoint from a normative receipt |
 | Recursion balances detached calls | ADR-0030 remains proposed and requires shared session challenges plus authenticated leaf summaries |
 | Hint callback or output drifts silently | Closed versioned registry and checked proof paths |
-| Broad production proof gate is red | V-008 records exact rigidity findings; no release promotion |
-| Formal generated artifacts are stale | Refinement pilot fails closed on five named files; reviewed workflow required |
+| Historical V-008 failures are mistaken for current gate state | V-008 remains immutable and red at its recorded snapshot; current gates are separately green, and promotion waits for a new clean receipt |
+| A prior formal seal is mistaken for the final source-freeze seal | The final `59/59` result binds formal digest `375b77cc...ba86` and source closure `c9bc6c36...8bb2`; the earlier `59/59/24/46` evidence remains historical |
+| Parallel artifact generation captures an in-progress family | Golden updates are serialized after semantic/layout identity stabilizes; check mode must fail on transient drift |
 | Compiled witness drifts after binding | Pinned binding digest over exact physical IDs, names, types, and row sources; failure-atomic preflight and production-corpus differential |
+| DIV/load lookup parity is mistaken for native typed effects | ADR-0033 names the inline shadow record and requires constraint-proven range refinement before canonical lowering or authority |
+| Structural Tree-1 callbacks are mistaken for production parallelism | R-002 remains active until final production destinations, committed columns, and proof bytes pass serial/`N=1/2/4` differentials |
 | Shadow equality is mistaken for proof evidence | H-007 requires generated artifacts inside CPU/Metal proofs before promotion |
 | Local identity co-attestation is mistaken for protocol binding | V-006 states that the transcript, public statement, proof bytes, and production verifier are unchanged |
 | Noisy microbenchmark movement is mistaken for a layout winner | H-010 has two complete independent cohorts; q0/q100 log-14 witness directions flip within MAD/noise, so no layout is selected |
 | Native aggregation reference is mistaken for M9 evidence | Reference serialization/tree tests are explicitly unauthenticated by leaf proofs and unused by a recursive verifier |
+| A complete SegmentV2 leaf is mistaken for temporal recursion | The verified publication is pinned `temporalChildReady() == true` and `completeParentReady() == false`; `temporal_parent_verified`, `whole_frontend_verified`, and `proof_system_soundness` remain false until a real ordered parent proof verifies |
 
 ## Baseline metrics
 
@@ -1368,7 +1721,7 @@ passes 216/216 in Debug, ReleaseSafe, and ReleaseFast. Production witness,
 component selection, commitment geometry, transcript, and proof authority are
 unchanged; at this authorship checkpoint E-005 remained the next LUI gate.
 
-### 2026-08-10 — typed LUI shadow witness is production-exact
+### 2026-08-10 — typed LUI shadow witness became production-exact
 
 E-005 is complete. The shadow writer authenticates a pointer-free version-1
 binding over the typed LUI semantic digest, opcode, all 18 physical value IDs,
@@ -1390,10 +1743,11 @@ cell is compared byte-for-byte with `Trace.columnsForFamily(.lui)`.
 The same executor additionally passes every sampled LUI row in the shared
 RISC-V rigidity corpus: 1,097 rows under the exhaustive profile on this tree,
 compared across the complete power-of-two domain including padding. The
-focused AIR-semantics root passes in Debug, ReleaseSafe, and ReleaseFast. This
-is shadow evidence only: production witness selection, commitment geometry,
-transcript bytes, and proof authority are unchanged. E-012 is now ready to
-generalize the executor boundary; E-013 remains the first authority switch.
+focused AIR-semantics root passes in Debug, ReleaseSafe, and ReleaseFast. At
+this E-005 checkpoint the evidence was shadow-only: production witness
+selection, commitment geometry, transcript bytes, and proof authority were
+unchanged. E-013 has since promoted this exact LUI witness recipe, as recorded
+in the current checkpoint above; the typed constraint surface remains shadow.
 
 ### 2026-08-10 — guest main and interaction traces close exactly
 
@@ -1490,6 +1844,888 @@ and ReleaseFast focused suites pass. The next C-009 boundary is the pair of
 Stwo adapters that combine these equations with the already-generated lookup
 interactions.
 
+### 2026-08-10 — opcode, one-proof, Metal, and Tree-1 closure checkpoint
+
+ADRs 0032 and 0033 record the new typed-opcode boundaries. E-006 reproduces the
+shared ALU-immediate component's exact 35 columns, 22 roots, and 16 ordered
+events with maximum direct degree three. Its bounded arithmetic derives carries
+without columns and its fixed lookup requests are typed, versioned effects.
+E-007 authenticates the complete ADDI row recipe, arithmetic/carry policy,
+inverse hint metadata, slots, and event bindings under digest
+`402a9f967e68d9a1f33efd9c646b6bdd51952ce89f9aa477c6de9c470f234595`.
+All 35 columns and 16 events match production over boundary, alias, x0,
+overflow, padding, and deterministic 512-row cases. The accepted row loop
+writes final SoA storage directly with no allocation; 253 focused tests pass in
+Debug, ReleaseSafe, and ReleaseFast. Production authority is unchanged.
+
+E-010 fixes one `rv32_divrem@1` recipe for unsigned and truncation-toward-zero
+signed quotient/remainder plus exact zero-divisor and `INT_MIN / -1` classes.
+E-011 independently reproduces the DIV family's 67 columns, 79 direct roots,
+25 ordered lookups, batch size one, and maximum degree three. Every root and
+native effect matches production over exactly 292 operand/opcode rows. Fourteen
+proof-carrying refinements and eleven fixed-request ownership records bind the
+derived carry, quotient, sign, and comparison ranges without trace columns or
+casts. Manifest v9/logical schema 8 and semantic digest v7 authenticate the
+proof pools; the DIV identity is
+`a33fd73890a391f954566eac75c54111c3ab5da54f20554ce095f7083b9e3ec2`.
+The former lookup sidecar is gone. Coordinated proof-premise edits, direct-root
+forgeries, wrong gates, ranges, ordering, liveness, aligned targets, and all
+allocation failures reject. The full AIR-semantics suite passes in all three
+modes with unchanged columns, effects, degree, and lowering polynomials.
+
+E-009 uses the same closed capability boundary for JALR. It exactly reproduces
+41 physical columns, 23 roots, all 18 ordered native effects, batch size two,
+and maximum direct degree two. The target's cleared low bit, 20/8-bit split,
+M31 range, immediate `8/8/4` refinement, result range, aligned arbitrary-PC
+production, register phases, clocks, x0, aliases, and padding are proof-bound.
+Normalized roots and every effect field/liveness/schema/ordinal match
+production over 8,192 exhaustive immediate/low-bit rows plus boundary cases.
+Its identity is
+`9e374e33bcc65926240d5181eac52bad8b57b699097a211425715ba372a86f28`;
+224 Debug and 12 focused ReleaseSafe/ReleaseFast tests pass. At this E-009
+checkpoint the production writer and proof authority remained unchanged;
+the later E-020 promotion is recorded below.
+
+E-008 closes the full eight-opcode load/store family at the native typed-effect
+boundary. All 16 ordered lookup records now live in `Arena.effects`; the old
+shadow records remain only as an exact test oracle. The component preserves 48
+physical columns, 63 direct roots, maximum degree three, batch size two, and
+every production tuple polynomial, role, schema, ordinal, and liveness rule.
+Proof-carrying selector, range, address, and conditional-access evidence closes
+coordinated liveness and alias-target forgeries without adding trace columns.
+The 48-row LB corpus, all eight opcodes, phase/gap mutations, inactive padding,
+identity changes, and allocation failures pass in Debug, ReleaseSafe, and
+ReleaseFast. Manifest v10/logical schema v9 pins semantic digest
+`ec8aefea7299e84a480524c3848c1ccc73241caea4e89f983f7c2605e6b04e90`.
+The production prover remains unchanged; this is native typed constraint/effect
+authority, not yet a witness-writer switch.
+
+E-013 makes LUI the first generated production-witness authority without
+changing its production constraints, column geometry, statement, transcript,
+or proof protocol. `runner/trace.zig` dispatches active LUI rows directly to
+the authenticated 18-column recipe; the former handwritten writer is reachable
+only through a test oracle. The hot path is compile-time unrolled direct SoA
+stores with no allocator, runtime recipe loop, tag/string dispatch, scratch
+buffer, or copy. A serial generated-versus-legacy proof test rewrites complete
+LUI shards before lookup ingestion, proves and independently verifies both
+arms, then requires exact descriptors, public data, interaction claims,
+terminal transcript state, and postcard proof bytes. Debug, ReleaseSafe, and
+ReleaseFast AIR, corpus, allocation, hook, and proof differentials pass. The
+ReleaseFast proof is 53,233 bytes with SHA-256
+`d08ac8bcd6c43294dda3807e7de07cc3188d8ba691a40f2d2896eccb7576a504`;
+its transcript digest is
+`cdf8ab815ed2448389b1f7a56f993d4c603cf6c33a0796d9642856be9303017d`.
+Nine alternating ReleaseFast samples are flat to slightly favorable at logs
+10/14/18 (generated/legacy ratios 1.0000/1.0121/1.0164), and row scaling stays
+below the frozen linear-plus-ten-percent bound.
+
+C-009 now closes one caller/provider profile in the same CPU STARK, serializes
+the complete bounded artifact in one process, and independently decodes,
+admits, and verifies it in a second process. C-012 reuses one immutable honest
+proof across eleven freshly decoded one-at-a-time forgeries covering public
+I/O authority, profile and semantic identity, counts, padding, descriptors,
+caller/provider multiplicity, detailed claims, and a proof opening. Structural
+and proof-level failures are asserted at distinct boundaries. C-011/C-013 add
+one source-identical portable-versus-`CUSTOM-0` guest pair. At eight calls both
+arms return identical bytes while VM steps fall from 464,096 to 448.
+
+The first opt-in one-call functional CPU proof comparison independently
+verifies both arms. Software/precompile main cells are
+9,346,976/3,457,792, interaction cells are 14,441,344/11,957,632, and this
+single prove boundary is 604,949,709/479,975,417 ns. The precompile proof is
+larger, 114,188 versus 83,052 bytes. This is useful directional evidence, not
+C-013 promotion: it is one in-process functional-security attempt without A/A,
+RSS, confidence intervals, secure call-count/shape sweeps, or a validated
+receipt. ADR-0034 now closes the previously undefined shape authority with one
+source and six feature-selected ELFs: zero, one, or fifteen identical portable
+background permutations per compared call for dominant, balanced, and
+core-dominated cohorts. One-call semantic checks produce identical outputs at
+58,054/84, 116,096/58,058, and 927,079/868,707 software/precompile VM steps.
+The exact allocation-free global launch schedule starts with an 80-attempt
+A/A admission gate and proceeds to the 1,440 M6 attempts only after it passes;
+it is pinned by digest
+`20153896cdcc903d6784499fba267f0ff5c8e532573b9b415b28121352775dd4`.
+The v3 fresh Poseidon child and v2 A/A child bind every non-diagnostic request
+to that schedule, clean source/tree, and exact executable and ELF digests. A
+create-only canonical plan, append-and-fsync attempt journal, retained raw
+streams, and fail-closed serial executor independently replay all 1,520
+attempts and stop before M6 unless the digest-pinned A/A gate passes. A pinned
+host-native corpus manifest covers 0/1/8/64/512/4096 calls. Darwin process CPU
+is converted from Mach absolute-time ticks with the host timebase and wide
+arithmetic; peak footprint, energy, instructions, and cycles are captured in
+the same fresh child. Diagnostic proof-child and A/A smokes independently
+verify and report all required counters. Arm, call, phase, shape, schedule,
+corpus, source, ELF, or executable substitution fails before execution. No
+secure repeated capture, Metal cohort, confidence interval, or verdict has yet
+been produced.
+
+C-010 admits exactly the profile-tagged caller/provider tail to the reviewed
+generic combined direct-plus-LogUp evaluator while retaining authenticated-AOT
+Metal commitments and backend proof work. It rejects altered geometry,
+capabilities, evaluator ownership, per-proof overrides, and CPU composition
+requests; audit proxies require exactly one domain and one OODS evaluation per
+profile component. Post-proof gates require stable runtime identity, resident
+Merkle evidence, matching resident base/lookup dispatches, and zero backend CPU
+fallback before releasing the proof. Real-device eight-call proof plus
+independent verification passes six tests in each optimization mode. During
+that sweep an inherited multi-job pointer packer was found to pair unequal
+slices unsafely; the new exact-subslice helper is allocation-free, rejects
+overflow, and has unequal-job coverage for base, lookup-main, and interaction
+lanes. The additive Metal product commands now prove the admitted extension on
+the real device and verify without a Metal device. The final eight-call route
+records 65 Metal dispatches, 24 resident Merkle commitments, all 8/8 semantic
+and lookup components eligible and resident, and zero CPU/fallback/decline
+counters; base CLI behavior is unchanged.
+
+R-001 is complete. A retained work-pool lease carries admitted capacity across
+dependent waves and releases once. The pointer-free Tree-1 executor consumes
+the exact seven-wave plan with deterministic destination ownership,
+cancellation, and failure selection; structural serial and `N = 1/2/4` tests
+pass in all three modes. It still calls structural callbacks rather than the
+production trace generators. R-002 therefore owns coordinator-preallocated
+final destinations, direct-range generator adapters, and exact committed-column
+and proof-byte differentials.
+
+At this checkpoint formatting and diff hygiene pass, and source conformance
+reports exactly the six inherited Metal/source-ingest findings with no new
+violation. Full workspace and inventory gates are rerun after the active
+refinement, signed-load, and Metal product slices stop editing shared sources.
+
+### 2026-08-11 — M8 closes all seventeen production typed-witness families
+
+E-014/E-015 are complete. Production witness dispatch uses authenticated typed
+writers for all 17 families: base ALU
+immediate/register, shifts immediate/register, less-than immediate/register,
+LUI, AUIPC, JALR, JAL, load/store, MUL, MULH, DIV, FENCE, and branch
+less-than. Each cutover retains a
+separate test-only legacy oracle and requires exact physical rows, ordered
+relation entries, proof inputs, independently verified proof bytes and
+transcript state, adversarial rejection, failure atomicity, padding, and paired
+all-mode throughput before the handwritten production entry point retires.
+
+The latest completed tranche adds LT_IMM, LT_REG, SHIFTS_IMM, SHIFTS_REG, and
+MUL. LT_REG's exact A/B proof is 58,475 bytes with SHA-256
+`41903dd780a9a1b9eefa6d1cad162fce84b30c020886ec2a4ef14bef825cd0cb`
+and transcript
+`cb8385b0af4c1b786801bf0c1e11e802582cdf0f03083bf48dd5200e850dea09`.
+SHIFTS_IMM/SHIFTS_REG proofs are respectively 57,802/58,094 bytes and are
+byte- and transcript-identical across generated and legacy authority in Debug,
+ReleaseSafe, and ReleaseFast. Their deterministic exhaustions cover all three
+directions, all 32 shift amounts, sign/word boundaries, and low-byte quotient
+classes. An initially measured 19.8% SHIFTS_REG slowdown was rejected; the
+replacement direct scalar writer is effectively at parity, with repeated
+large-workload results within roughly one percent. MUL's direct writer is
+approximately 25% faster at the largest isolated workload while retaining its
+exact 60,222-byte proof.
+
+Source retirement is literal rather than dispatch-only: the obsolete shift
+writer module and dead DIV, control-transfer, M-extension, and branch-less-than
+production writers are removed, while explicitly
+named legacy oracles remain reachable only from differential tests and proof
+hooks. MULH is exact at 47 physical columns, 24 direct roots, 22 ordered
+effects, degree two, ten proof-owned refinements, and semantic digest
+`00d717cfbaa5ba3f82604ce9fdedd1e3f4de1ede56d3fe09ddd835d3118c0e7b`.
+Its generated and legacy authorities produce the same 62,003-byte proof in
+Debug, ReleaseSafe, and ReleaseFast (SHA-256
+`1ce681db92dac4427d49b6826030c942f7577b452ef48d7c66f30afd5acee8e3`,
+transcript
+`90a869d1f91aff8c2e604cfed0f1fa07722908861930b1e8d9c3a4da8a31fc71`,
+one draw) while the large witness benchmarks remain at parity.
+
+JAL uses the closed proof-carrying program-target capability from ADR-0035
+without adding protocol columns, roots, effects, witness work, or transcript
+draws. Its all-mode exact proof is 54,850 bytes (SHA-256
+`ef797c33718909bece536409c81d39fd4b064500f3c1fe85649e3ddd197163ba`,
+transcript
+`39367abaaddac2755434c66518fb3bbd36586ed73c559c0d53580b9fa673c431`,
+one draw). BRANCH_LT consumes the committed-target form, preserves all 37
+physical columns, 33 direct roots, and 11 ordered effects, and its ReleaseFast
+generated/legacy proof is the same 56,132 bytes (SHA-256
+`e9baeb3697eec792fbf7a30aff4ae16b279dae4d7d41e67d7df0f1c39bc55f44`,
+transcript
+`f21881aeb03399e0cbb3b70800eec988b391ca765678c5f97f472aabc660d3c5`,
+one draw).
+
+BRANCH_EQ closes the portfolio at 30 physical columns, nine ordered effects,
+lookup batch size two, semantic digest
+`4b7ac248bf672d93a01cbd659e59a7a98f1ec81ab5b50dd29090ca8816e49b09`,
+and witness-binding digest
+`18b4a5dc55e5bcd193c714daaf62f6399023af74080f5653aa58e51d4bea48e6`.
+The generated and retired test-only authorities produce the same 57,073-byte
+proof in Debug, ReleaseSafe, and ReleaseFast (SHA-256
+`1188c212cf160b7e4b77294e6f4b94d75b4ad8915db674f96a3349370df8b7d2`,
+transcript
+`79f12b629a0be20d86df373b302fee35e701922e819cca5f75ee87b5359e1537`,
+one draw). The shared corpus performs 6,918 admissibility evaluations in every
+mode; ReleaseFast generation is 1.1123x--1.1266x faster across the pinned
+workloads. Production-source and physical/effect conformance guards pass, and
+the final handwritten compare writer is absent. M8 is therefore complete for
+its stated witness-retirement exit; test-only independent oracles remain solely
+for regression authority. This does not close the original proposal's
+execution/AIR single-source requirement: E-018 through E-022 track that
+separate production migration and composition retirement explicitly.
+
+### 2026-08-12 — P-002 closes the native family profile inventory
+
+P-002 is complete. A compile-time registry binds all 17 protocol-ordered
+production witness families to concrete native typed definitions, with ADDI
+explicitly representing `base_alu_imm`. The cold collector produces fixed-shape
+P-001 profiles without witness execution, runtime telemetry, or name-based
+dispatch. Its aggregate is 644 physical columns, 545 direct roots, 242 lookup
+events, 155 batches, and 620 interaction coordinates; maximum direct,
+numerator, denominator, and modeled interaction degrees are 3/2/2/3.
+
+The checked P-002 TSV carries the complete P-001 machine schema for every
+family, and the paired Markdown is the readable review surface. Their SHA-256
+digests are
+`d4b187cbdf5baee61f4eb2541acf1d69e8e84ddae91007b574ec4a6663a18c6b`
+and
+`52bf9cff23de5ea05da9588846a1af2e21be67ad16379fd580bb4057cab34d1c`;
+the underlying report digest is
+`0dd67acd8705f77a5c482a8d3706b38929d799091b3971e995b20dcc44f56772`.
+Every check/update run independently recompiles the A-005 production shadow
+and requires exact family-by-family layout, batch, interaction, and degree
+agreement before admitting bytes. Update is explicit and atomic. Production
+activation remains `not_assessed`; no proof or performance claim is made.
+
+### 2026-08-12 — C-013 CPU capture and reduction boundary closes
+
+C-013 now has a create-only clean-source plan, the exact 80-attempt A/A plus
+1,440-attempt M6 serial executor, an append-and-fsync raw journal, a retained
+CPU reduction, and independent bundle replay. The reducer preserves all 18
+shape/call rows, uses the pinned epoch-3 Hodges--Lehmann/bootstrap authority,
+computes crossover separately for every shape, and reports launcher wall time,
+verified/proving/verification time, CPU, instructions, cycles, energy, RSS,
+proof bytes, and exact committed cells. The result explicitly remains a CPU
+reduction verdict; it cannot populate the M6 promotion outcome without Metal
+and the complete receipt contract.
+
+The audit found a stale installed v1 proof child even though the build-graph
+v3 check was green. Plan publication now rejects executables without the
+current protocol markers, and the runbook explicitly installs all three
+ReleaseFast capture tools before planning. Thirty-one focused Python tests,
+twelve protocol mutation tests, the all-shape/corpus/A/A/proof-child ReleaseFast
+preflight, and explicit artifact installation pass. One current v3 secure
+dominant one-call diagnostic verifies both arms and shows the expected mixed
+cost vector: verified-request speed `1.081174`, committed-cell ratio
+`0.744605`, RSS ratio `0.914643`, CPU-work ratio `1.041787`, instruction-work
+ratio `1.058546`, and proof-size ratio `1.273228`. It is retained only as a
+dirty-tree, unpaired diagnostic.
+
+The normative measurement remains `NO_VERDICT`: plan creation correctly
+rejects the dirty shared feature checkout, and the full Metal cohort plus
+source/build/toolchain closure, separate verifier receipts, complete geometry,
+cross-lane checks, and final receipt renderer remain absent. The frozen CPU
+schedule alone requires 25 minutes 19 seconds of cooldown; proof time and the
+intentionally expensive core-dominated 4,096-call arm are additional and are
+not extrapolated from the diagnostic. The exact runbook and gap are in the
+[C-013 CPU capture readiness note](notes/2026-08-12-c013-cpu-capture-readiness.md).
+
+### 2026-08-12 — generated geometry, batching, runtime profiling, and LUI SSOT advance
+
+At this checkpoint A-013 owned an authenticated row-window and mask plan for all seventeen
+families. The live opcode lookup component consumes its compact mask binding,
+and real CPU proofs reject both row-zero recurrence-anchor and row-one
+cross-row interaction forgeries through the ordinary Tree-2 commitment path.
+Semantic main-column masks and statement-wide generated composition remained
+open at this checkpoint; their later production closure is recorded below.
+
+A-014 at this checkpoint had an authenticated degree-aware batching candidate. It preserves event
+order and proof-wide maximum degree three while reducing the shadow native
+inventory from 155 to 137 batches and 620 to 548 interaction M31 columns. Exact
+algebra, collision, selected-component, allocation, and all-mode gates pass;
+local ReleaseFast interaction generation improves by roughly 1.20--1.23x for
+MUL/MULH/DIV. Production allocation, verifier order, protocol versioning, and
+whole-proof evidence were still open at this checkpoint; CPU proof activation
+is recorded below.
+
+P-003 now has a versioned allocation-free join between the complete P-002 AIR
+inventory, hierarchical stages, bounded task graphs, and independently verified
+proof/runtime identities. It validates lifecycle accounting and semantic
+attribution, authenticates complete source records, distinguishes exact
+instrumentation from structural estimates, and emits canonical JSON. The
+opt-in compatibility benchmark publishes a real receipt after verification.
+Darwin capture now fills the shared process authority's lifetime peak physical
+footprint and interval instructions/cycles/energy; unsupported hosts remain
+explicit. Missing exact field/FFT/FRI/Merkle counters still prevent promotion.
+Focused Debug, ReleaseSafe, and ReleaseFast tests pass.
+
+The LUI convergence tranche now exposes retirement, witness generation, direct
+constraints, ordered relations, and byte-exact formal/runtime export through
+one authenticated authority. It has crossed the production boundary: the
+generated retirement registry owns the runner route, the legacy executor fails
+closed, and the former Stark-V-shaped AIR is a named test-only oracle. The
+retirement hot path compiles a compact single-event transaction and skips
+duplicate validation only while no allocator or other external code can run.
+The pinned live Sail gate, exact proof, malicious rejection, and paired
+performance gates are green. The exact proof remains 53,233 bytes with
+SHA-256 `d08ac8d7dd90d63683ba75f63194101662967981ae2380ebcc16cac3568d5d0f`,
+transcript
+`cdf8abf6152bcf3a17fd02f9a15bbc809424b751567348604841146e02fc29ab`,
+and one draw. A current ReleaseFast run measured 132,333 ns for 4,096 atomic
+retirements versus 143,792 ns for the independent legacy path (1.0866x).
+
+FENCE is the second production SSOT family. Its fixed typed authority owns the
+six-column witness, two direct roots, three ordered relations, empty access
+geometry, sequential execution, and formal/runtime export. Generated dispatch
+cannot fall through to the legacy executor; the retired semantic implementation
+is test-only. Its exact proof remains 55,922 bytes with SHA-256
+`d40169c9015b816f043da0f7c8b613ca0b950b7f01e408ca4ec2583b34c82864`,
+transcript
+`a1c12df7dd49f82e44219e982299a47ecd23c670b05a9fb5d9a75bfde5dc91db`,
+and one draw. The current ReleaseFast paired retirement sample is 714,583 ns
+typed versus 781,458 ns legacy (1.1013x). Caller-owned direct output removes
+the maximum-family return copy; the generic production direct path is now
+1.0700x faster than the fixed FENCE reference while lookup construction is at
+parity. ADR-0038 fixes this production activation pattern.
+
+### 2026-08-12 — BASE_ALU_REG becomes the fifth production SSOT family
+
+E-020 now has three of its fifteen post-LUI/FENCE families complete.
+BASE_ALU_REG's pointer-free authority owns ADD, SUB, XOR, OR, and AND
+architectural results and x0 behavior, all 35 witness columns, 22 direct roots,
+18 ordered relations, formal extraction, and three-event failure-atomic
+retirement. The production semantic registry no longer exports the retired
+evaluator, witness projection goes through the pinned authority, generated
+dispatch owns all five opcodes, and the legacy executor fails closed. The
+all-alias destination correctly consumes the later phase-2 source event.
+
+The canonical AIR and runner roots pass 668/668 and 319/319 tests respectively
+in Debug, ReleaseSafe, and ReleaseFast. Required-live Sail covers every family
+opcode, x0 discard, and `rd == rs1 == rs2`. The exact generated-versus-legacy
+proof is 55,171 bytes with SHA-256
+`e95dff718cf31f6cce4ade9ea8dce269437bb73e914e25e8d1fc3296af56ce50`,
+transcript
+`659a61c4c45bf996f91f8029457364e6231258179e06249bc88d89d410a8e4f8`,
+and one draw. Canonical ReleaseFast measured the fixed direct evaluator at
+1.3249x and atomic retirement at 1.1830x; witness medians were 0.9961x,
+0.9973x, and 0.9888x, all above the strict 0.97x floor. The repaired
+BASE_ALU_IMM retirement gate simultaneously measured 1.2463x, closing its
+reopened executable admission. No compatibility manifest was regenerated;
+the combined artifact update remains a serialized cross-family review step.
+
+### 2026-08-12 — JAL becomes the sixth production SSOT family
+
+JAL now crosses the complete E-020/E-021 production boundary. Its pinned typed
+authority owns execution, witness projection, all direct roots and ordered
+relations, production runtime/formal extraction, and failure-atomic retirement.
+Generated dispatch owns the architectural route, the retired evaluator is
+test-only, and required-live Sail passes on the exact proven stream.
+
+Debug and ReleaseSafe AIR/runner gates, the ReleaseFast runner gate, and the
+focused 65/65 ReleaseFast JAL AIR gate are green. Formal extraction covers all
+17 families across 32 trials; the JAL corpus performs 6,918 admissibility
+evaluations. Generated and retained-legacy arms independently verify to the
+same 54,850-byte proof with SHA-256
+`ef797c33718909bece536409c81d39fd4b064500f3c1fe85649e3ddd197163ba`,
+transcript
+`39367abaaddac2755434c66518fb3bbd36586ed73c559c0d53580b9fa673c431`,
+and one draw. Three repeated ReleaseFast evaluator gates put direct evaluation
+at 1.0787x--1.1129x and lookup construction at 1.0032x--1.0314x legacy
+throughput; the production retirement typed/legacy time ratio is 0.8678. A
+whole-suite ReleaseFast run reached and passed JAL before unrelated noisy
+LT_REG/MULH performance gates, which are not attributed to this promotion.
+
+### 2026-08-12 — JALR becomes the seventh production SSOT family
+
+JALR now crosses the complete production boundary with one pointer-free typed
+authority for indirect-control retirement, 41 witness columns, 23 direct roots,
+18 ordered relations, and formal extraction. Generated dispatch owns the
+architectural route, the legacy executor fails closed, and the handwritten AIR
+survives only as a named differential oracle. The admission additionally caught
+and repaired a field-equal but symbolically distinct phase-two access-clock DAG,
+so authored and production programs now agree structurally as well as by value.
+
+Debug and ReleaseSafe AIR/runner roots pass 678/678 and 336/336; the ReleaseFast
+runner root passes 336/336. Formal extraction covers 17 families × 32 trials,
+and the exhaustive corpus closes 6,918 admissibility evaluations. Exact A/B
+proofs independently verify to 59,502 identical bytes with SHA-256
+`bdc91a1290cac3ac66500581fa4f414621f90f5fef67af1aa3c0a2a4c0354f81`,
+transcript
+`d0fc1b48bfdcabecf41cd0b3953825a85d19aa08eba4306b8b94b129c584c0dd`,
+one draw, and required-live Sail agreement. ReleaseFast production medians are
+1.0439x for direct AIR, 3.1631x for lookup construction, and 1.5390x for
+failure-atomic retirement. The full ReleaseFast AIR root passed every JALR gate
+and stopped only on the unrelated noisy BASE_ALU_REG witness threshold.
+
+### 2026-08-12 — BRANCH_EQ becomes the eighth production SSOT family
+
+BEQ/BNE now cross the full production boundary through one authenticated,
+pointer-free typed authority. Generated retirement owns both architectural
+opcodes, the legacy executor fails closed, production witness projection and
+AIR/formal construction share the fixed capability, and the handwritten
+semantic evaluator is retained only as an explicitly named differential
+oracle. The exact geometry remains 30 main columns, 18 direct roots, nine
+ordered relation events, and lookup batch size two; its authority digest is
+`afa781f9d1a02f5906706554bcc694f39658998470b6da79ee85717e4b0232f4`.
+
+Debug and ReleaseSafe AIR roots pass 686/686; runner roots pass 346/346 in
+Debug, ReleaseSafe, and ReleaseFast. Formal extraction covers 17 families × 32
+trials and the exhaustive corpus closes 6,918 admissibility evaluations.
+Generated and retained-legacy proofs independently verify to 57,073 identical
+bytes with SHA-256
+`1188c212cf160b7e4b77294e6f4b94d75b4ad8915db674f96a3349370df8b7d2`,
+transcript
+`79f12b629a0be20d86df373b302fee35e701922e819cca5f75ee87b5359e1537`,
+one draw, and required-live Sail agreement.
+
+Two final focused ReleaseFast samples place production direct evaluation at
+1.1256x--1.1365x and lookup construction at 0.9962x--0.9986x retained legacy
+throughput. Failure-atomic retirement is 1.6560x and the independent witness
+scaling route is 1.1018x--1.1389x. The strict 0.97x floor remains unchanged.
+Complete ReleaseFast AIR reruns also expose unrelated noisy BASE_ALU_REG,
+FENCE, LT_REG, and MULH microbenchmark samples; none is waived or attributed
+to this promotion.
+
+### 2026-08-12 — BRANCH_LT becomes the ninth production SSOT family
+
+BLT/BLTU/BGE/BGEU now cross the full production boundary through one
+authenticated, pointer-free typed authority. Generated retirement owns all
+four architectural opcodes, the legacy executor fails closed, production
+witness projection and AIR/formal construction share the fixed capability,
+and the handwritten semantic evaluator remains only as a named differential
+oracle. Exact geometry is 37 main columns, 33 direct roots, 11 ordered
+relations, and lookup batch size two; the authority digest is
+`77e729cdac93b45bfd71ecfb8f7afa9411a1db09f9caf567c9fd87d460412a95`.
+
+Debug and ReleaseSafe AIR roots pass 693/693; runner roots pass 355/355 in
+Debug, ReleaseSafe, and ReleaseFast. Formal extraction covers 17 families × 32
+trials, and exhaustive rigidity closes 6,918 admissibility evaluations.
+Generated and retained-legacy proofs independently verify to 56,132 identical
+bytes with SHA-256
+`e9baeb3697eec792fbf7a30aff4ae16b279dae4d7d41e67d7df0f1c39bc55f44`,
+transcript
+`f21881aeb03399e0cbb3b70800eec988b391ca765678c5f97f472aabc660d3c5`,
+one draw, and required-live Sail agreement.
+
+Three focused ReleaseFast evaluator samples place production direct evaluation
+at 1.1073x--1.1132x and lookup construction at 2.3772x--2.4420x retained
+legacy throughput. Failure-atomic retirement is 1.5243x--1.5832x, and the
+independent witness scaling route is 1.0620x--1.0739x from 1,024 through
+262,144 rows. The strict 0.97x floor remains unchanged.
+
+### 2026-08-12 — LT_IMM becomes the tenth production SSOT family
+
+SLTI/SLTIU now cross the complete production boundary through one
+authenticated, pointer-free typed authority. Generated retirement owns both
+architectural opcodes, the legacy executor fails closed, production witness
+projection and AIR/formal construction share the fixed capability, and the
+handwritten semantic evaluator remains only as a named differential oracle.
+Exact geometry is 37 main columns, 33 direct roots, 11 ordered relations, and
+lookup batch size two; the authority digest is
+`bfe5a4896da341e2efd83feaf82c2ac289937712a3d2971162f3d783a25b491f`.
+
+Debug and ReleaseSafe AIR roots pass 702/702; runner roots pass 365/365.
+Formal extraction covers 17 families × 32 trials, and exhaustive rigidity
+closes 6,918 admissibility evaluations. Generated and retained-legacy proofs
+independently verify to 55,680 identical bytes with SHA-256
+`adc29b4eb673320042dbbc08a7ab87945ea19636ddb6ce65d624b5db7d043726`,
+transcript
+`9ed39ee4acb48175243824e4212318a51d821ac30eed565494c26b0339e69b05`,
+one draw, and required-live Sail agreement.
+
+Repeated focused ReleaseFast admissions place production direct evaluation at
+1.1262x--1.1312x and lookup construction at 4.6455x--4.9150x retained legacy throughput.
+Failure-atomic retirement is 1.2383x, and independent witness scaling is
+1.0265x--1.0504x from 1,024 through 262,144 rows. The exact word gate covers
+8,388,608 opcode/immediate/register encodings, and the strict 0.97x performance
+floor remains unchanged.
+
+### 2026-08-12 — Cairo frame and function-activation compiler lands
+
+F-013 closes the structural hole between typed call metadata and the original
+function-as-AIR-table design. The compiler now derives each function's
+`[fp-args, fp+frame)` logical window from transitive dataflow, admits only
+declared input leaves, emits every local once in topological order, and assigns
+each untrusted hint invocation to one frame. Determinism propagates through the
+acyclic call graph; a relation-backed return depending on a hint fails closed.
+
+Every function has a domain-separated ABI identity bound to the current
+semantic program digest, stable name, and exact input/output types. Required
+relations receive one callee-consume event followed by caller or public emits
+in canonical call order. The focused plan digest is
+`6839b8661426cac5c33bb112eeb4daf0df1fbaf1abfbb68afdd31e5f577743da`;
+7/7 tests pass in all three optimization modes, including mutations and full
+allocation-failure enumeration. ADR-0037 deliberately keeps this as compiler
+authority until F-014 binds its identities and events into prover/verifier
+challenge draws and F-015 gives complete constraints/effects and inline calls
+one frame-owned lowering path.
+
+### 2026-08-12 — authenticated pair-node protocol substrate lands
+
+R-009 now has a native, allocation-free shadow for its first canonical pair.
+The exact 752-byte record orders the core-request leaf before the
+Poseidon-provider leaf and compares every encoded field against exact expected
+child-verifier output. Session, challenge, full authority, call commitment,
+event count, power-of-two session leaf count, and aggregator VK are rebound.
+The A2 VK-injection/root-pin seam and distinct root-authorized result, plus A3
+derivation, exact relation closure, canonical empty-case, and
+`kappa <= 1024` guards, are therefore concrete rather than prose. Versioned
+identity domains and independent statement, proof, transcript, summary, and
+node identities bind the recursive meaning; the record hash remains diagnostic.
+
+Protocol review drove exact-child authority checks, a protocol-identical M31
+event boundary, power-of-two session cardinality, schema-version binding, and
+expanded adversarial coverage. The focused pair-node root passes 28/28 and the
+integrated recursion-protocol gate passes in Debug, ReleaseSafe, and
+ReleaseFast. This remains deliberately non-promotional: the shadow cannot prove
+that its expected outputs came from a successful child verifier and neither
+verifies child proof bytes nor builds, proves, or verifies the 36-row outer
+circuit. R-009 remains active. See the
+[authenticated pair-node note](notes/2026-08-12-r009-authenticated-pair-node.md).
+
+### 2026-08-13 — current gates green; immutable capture remains open
+
+The final release sweep advances M3 from blocked to ready without rewriting
+its history. The workspace passes `21/21` packages and 70 edges, compatibility
+manifests pass `17/17`, frontend Debug reports 2,149 passes plus one intentional
+skip, and recursion passes `583/583` in Debug, ReleaseSafe, and ReleaseFast.
+The concrete rows-29/33 proof gate now lives in the RISC-V CPU integration
+package rather than the backend-neutral frontend; all three modes independently
+verify the exact 5,184-byte proof estimate and identical transcript, and the
+ReleaseFast CPU integration suite passes `17/17`.
+
+The final formal reseal is green `59/59`, with formal digest
+`375b77cc4c11c2af324b3d66a989fd1e69a58c809dbb68e444d6b6a25fdeba86`
+and source closure
+`c9bc6c362663ce20aac44b9a004a4d86e71f9888bf2a809512116733db0a8bb2`.
+No clean top-level receipt yet covers this checkout. V-008 therefore remains
+an immutable historical red snapshot while V-009 owns the new capture. Claim
+boundaries remain unchanged: the historical Level-1 pilot is `2/46`, recursion
+proof coverage is `3/36`, no child proof is actually verified, no full outer
+proof exists, and both `whole_frontend_verified` and
+`proof_system_soundness` remain `false`. Separately, the pair-node audit's
+roughly 229 scalar Poseidon permutations remain a profile-and-deduplicate
+follow-up, with no speedup claimed before measurement.
+
+### 2026-08-13 — captured-leaf outer proof reaches 15/36
+
+Later on the same development day, rows 20--23 and 25--34 entered one real
+captured-leaf outer proof, including the shared row-34 Poseidon2 provider. The
+14-component proof independently verifies at 58,284 bytes; union with the
+separate row-0 gate raises honest proof coverage to 15/36. It is still not a
+complete recursive verifier: row 24, upstream transcript/DEEP ownership, the
+remaining rows, and global relation closure are open.
+
+Live profiling also found and removed the quadratic interaction-row rebuild.
+The same ReleaseSafe 4x/97 workload fell from 650.480 seconds to 14.086 seconds
+at one worker and 12.608 seconds at four, without changing proof geometry or
+the three mutation outcomes. The earlier pair-node follow-up is likewise now
+measured: prepared authentication uses 55 scalar permutations rather than 229,
+the compatibility path uses 94, and the focused benchmark reports about
+1.898x improvement.
+
+### 2026-08-13 — exact PCS/DEEP row reaches the outer proof
+
+Row 24 now joins the captured-leaf outer proof, so the proved subsystem is a
+contiguous 15-component span over rows 20--34 and the honest union with row 0
+is 16/36. The verifier independently rebuilds both the PCS/DEEP and FRI
+arithmetic circuits, all six segment/binary lowering lanes, their schedules,
+preprocessing, component programs, and public boundaries. The input rows are
+populated only from a transactionally successful native verifier capture.
+
+The accepted frozen-V1 ReleaseSafe run uses four workers and the 2x/193
+profile. It commits 307 preprocessing, 758 main, and 252 interaction columns,
+evaluates 848 constraints, estimates 64,476 proof bytes, proves in 57.974 s,
+and independently verifies in 18.860 s. All three outer mutations and all 21
+fixed-adapter mutations reject. The same code under the non-promotional 4x/97
+frontier candidate estimates 62,908 bytes, proves in 28.766 s, verifies in
+9.440 s, and closes exactly 26,675 Poseidon2 requests.
+
+Exact PCS batch factorization, cached denominator coefficients, and graph
+constant identities reduce the first sound row-24 V1 checkpoint by 17.4% in
+prove time, 20.0% in assembly, 25.3% in verification, and 3.3% in proof
+estimate. A faster experiment that removed local query/route constraints was
+rejected and reverted: the partial outer does not yet prove the global lookup
+closure needed to justify that delegation. This remains a subsystem proof, not
+a complete recursive verifier or a proved `2 -> 1` node; rows 1--19, row 35,
+full relation closure, and child-proof binding remain open.
+
+### 2026-08-13 — verifier-owned composition control reaches 17/36
+
+Row 19 now precedes the arithmetic subsystem in the same real proof, making
+the covered range contiguous from row 19 through row 34. Its preprocessing is
+rebuilt from the exact authenticated VM and recursion schedule plans. Because
+the row has no main columns, the verifier also recomputes its complete claimed
+sum from that schedule, the fixed segment proof kind, and its own relation
+challenges before consuming proof bytes. A forged row-19 claim therefore
+rejects failure-atomically as the fourth outer mutation.
+
+The four-worker frozen-V1 proof commits 316 preprocessing, 758 main, and 256
+interaction columns, evaluates 850 constraints, estimates 66,360 bytes, proves
+in 55.499 s, and verifies in 18.161 s. The measured 4x/97 candidate estimates
+64,760 bytes, proves in 28.137 s, and verifies in 9.251 s. The PCS graph and
+all arithmetic active/capacity counts remain byte-for-byte unchanged; the
+small favorable timing delta is treated as run noise, not a claimed speedup.
+The honest proof union is now 17/36. Row 18's production composition graph,
+rows 1--17, row 35/global closure, complete child-proof binding, and the proved
+`2 -> 1` node remain open.
+
+### 2026-08-13 — production VM composition reaches 18/36
+
+Row 18 now precedes row 19 in the same real proof, making the covered range
+contiguous from row 18 through row 34. Its 19,352-node VM evaluation graph and
+4,805-row input schedule are rebuilt from verifier-authenticated component,
+profile, reference, preprocessing, and schedule authority. Prepared validation
+replays all derived nodes, requires the circuit output to be zero, and binds
+every row-18 value to its exact circuit input. The verifier independently
+recomputes its claimed sum; a row-18 value forgery is the fifth rejecting
+mutation.
+
+The eight-worker frozen-V1 proof commits 347 preprocessing, 760 main, and 276
+interaction columns, evaluates 862 constraints, closes exactly 52,303 shared
+Poseidon2 calls, estimates 66,308 bytes, proves in 30.954 s, and verifies in
+10.779 s. Removing four redundant inactive child arithmetic graphs while
+retaining one authenticated binary-mode capacity anchor reduced proof time by
+32.5%, assembly by 31.1%, the STARK body by 45.8%, and verification by 31.0%
+against the first sound row-18 run. Live arithmetic counts and semantics remain
+unchanged. The honest proof union is now 18/36. Rows 1--17, row 35/global
+closure, complete child-proof binding, and the proved `2 -> 1` node remain open.
+
+### 2026-08-13 — pair-node authority context becomes an immutable hot capability
+
+The R-009 authentication profiler is now one executable 13-entry call tree,
+derived from the exact byte and canonical-word preimage lengths. Compile-time
+checks pin the tree-cold suite at 39 scalar Poseidon2-M31 permutations, the
+authority-cold context at 17, and the transcript-authoritative output path at
+38. This preserves the historical 229 audit, exact 94 convenience path, and
+immutable 55 suite-prepared RED baseline while removing the 17 context
+permutations from repeated authentication.
+
+`prepareRootContext()` validates and copies the verifier-owned authority and
+root pin by value. `authenticateRootWithPreparedContext()` still requires both
+original inputs and rejects source or snapshot drift before validating the
+record. The mutation fleet covers independent authority, pin, cache, context,
+VK, proof, event-count, and balanced-relation changes. All V1 golden folds and
+the final node identity remain bit-for-bit equal. The prepared type is
+compile-time pointer-free and the exact cold/hot heap-allocation ledger is
+zero. The focused build passes 259 tests with one intentional benchmark skip
+in Debug, ReleaseSafe, and ReleaseFast; 18/18 directly declared non-benchmark
+R-009 tests pass.
+
+The exact 55-to-38 change removes 17 scalar permutations (30.9%). The expanded
+ABCCBA microbenchmark is ready, but the development host was loaded, on battery,
+and not suitable for timing evidence. No new wall-time speedup is claimed until
+a quiet AC-powered capture is available.
+
+### 2026-08-15 — SegmentV2 closes the complete recursive leaf
+
+The verifier-owned native capture now crosses into one complete append-only
+SegmentV2 outer proof. Its 39 components comprise all 36 universal rows, two
+authenticated V2 boundary sources, and row 38's committed verifier-input
+provider. Challenge-independent tuple classification closes 102,099
+contributions with no unmatched tuple in any of 47 domains. The independently
+reconstructed verifier admits the 91,722-byte canonical proof; the one-worker
+ReleaseFast development run reports 1.155 s proving and 0.831 s verification.
+These timings are not a frozen benchmark receipt.
+
+The final proving blocker was diagnosed rather than patched by trial. A
+per-component OODS differential placed the only mismatch at row 38; an
+alpha-zero rerun isolated constraint 7, its sole LogUp recurrence. The row-38
+witness wrote Tree 0/1 in logical order, while the framework already wrote Tree
+2 in commitment order, and the generic installer had copied all three. Tree
+0/1 now scatter exactly once through `committedRow`; Tree 2 remains byte-exact.
+The focused order test passes, all 39 component differentials are green, and
+the real 47-domain proof verifies.
+
+This closes the recursive leaf, not temporal recursion. The verifier-minted
+publication is temporal-child-ready and explicitly not complete-parent-ready.
+At this 2026-08-15 checkpoint, `temporal_parent_verified = false`,
+`whole_frontend_verified = false`, and `proof_system_soundness = false`. The
+2026-08-20 parent evidence above supersedes only the first flag.
+
+### 2026-08-15 — production SSOT and exact proof telemetry close; temporal custody advances
+
+One shared production component authority now assembles all 17 opcode and 11
+infrastructure components for both prover and verifier. It owns checked O(1)
+offsets and fails atomically on manifest drift; its Debug and ReleaseFast
+inventory passes 324/324. Function activation lowering separately closes
+F-014 with compiler-owned degree-two LogUp constraints under the authenticated
+degree-three bound, verifier-recomputed public-root claims, allocation-free hot
+evaluation, and 21/21 Debug and ReleaseFast tests. A program without a
+relation-backed production function remains an exact zero-cost compatibility
+no-op.
+
+R-005 is complete. The profiled production adapter records exactly five
+non-overlapping witness-materialization regions, computes proving as their
+checked complement inside the proof boundary, and binds guest, witness,
+proving, native verification, queue/run/wait, and declared resource custody to
+one verified attempt. The ordinary unprofiled API still enters the predecessor
+path without a meter or recursion stage. The focused product gate passes a
+real independently verified proof in Debug and ReleaseFast; serialization and
+receipt work remain outside the timing authority. R-006 now owns the remaining
+fresh-process 1/2/4/max-worker capture and validator-recomputed receipt.
+
+That R-006 evidence path is now executable. Its immutable plan pins the frozen
+protocol hash, clean commit/tree/source closure, ReleaseFast executable,
+Darwin host and power declaration, exact fixed/generated workload bytes, and
+the complete pairwise 1/2/4/max-worker plus A/A schedule: 1,040 fresh serial
+attempts per lane. Each attempt fixes proof and Merkle worker width, leaves PoW
+on the shared pool, runs one profiled proof, then invokes the independent
+verifier outside the timing boundary. The create-only bundle retains every
+proof and stream in an fsynced append-only journal; validation recomputes timing,
+task, contribution, resource, statement, transcript, proof, and inventory
+custody. The protocol plus controller suite passes 21/21. A real installed-
+binary smoke and clean CPU/Metal captures remain open, so R-006 is active.
+
+On the recursive path, active-empty V3.1 now instantiates a concrete canonical
+empty heterogeneous session, pins the provider AIR program to its catalog
+identity, and passes its count-guarded 8/8 Debug gate. Append-only temporal V3
+custody binds rows 0--17, exact placement and layout identity, and 47/47
+relation domains for each ordered verifier-minted SegmentV2 child. Swapped,
+omitted, cross-session, cross-statement, registry, duplicate-domain, and frozen
+row-eight substitutions reject. Temporal source-kind 13 is represented by a
+disjoint, digest-bound payload V2 authority; the frozen 1--12-kind program and
+cross-version truncations reject instead of coercing it. The focused
+ReleaseFast gate passes 6/6. The tree writer and independently verified
+two-to-one parent were still open at that checkpoint. That historical state is
+superseded by the 2026-08-20 evidence above: rows 18--35 are authenticated, the
+real parent independently verifies, and `temporal_parent_verified = true`.
+
+Focused-test latency was also made fail-closed and materially shorter. The
+initial heavy row-window and lookup-batching integration gates each passed
+222/222 with
+nonzero count floors, while their authority edit roots select only the intended
+named tests. On this host the row-window loop fell from a one-minute, 4 GiB
+compile to 5 seconds and 470 MiB; lookup batching compiles in 3 seconds and
+441 MiB. The lightweight gates pass 9/9 and 8/8 respectively and do not replace
+the production integration gates.
+
+### 2026-08-15 — physical expressions, dormant V2 lookup execution, and enforced iteration lanes
+
+A-013 at this checkpoint had an append-only physical expression authority without changing
+the frozen logical V1 union. Shifted committed-column reads compile against the
+authenticated row-window plan into pre-resolved tree/local-column/offset
+bindings with typed component ownership and exact degree. Compilation rejects
+cross-owner arithmetic, dead nodes, duplicate or invalid roots, forward
+references, non-canonical constants, and degree-cap overflow. The prepared hot
+loop uses caller-owned scratch with no allocation, hashing, search, or plan
+lookup; cyclic row-zero semantics, geometry, field canonicity, and alias
+preflight are covered. The live semantic component has also retired its
+separate width lookup in favor of an authenticated row-window
+`SemanticMaskBinding`. The shifted-expression gate is 6/6 in Debug and
+ReleaseFast, the row-window edit gate is 11/11, and the post-cutover integration
+gate is 229/229. The narrow semantic edit loop is 10/10 in 11.28 seconds and
+2.54 GiB compiler RSS, versus the former broad 28.80-second/4.36-GiB loop. The
+later production proof exit is recorded below.
+
+A-014 at this checkpoint exported a dormant authenticated V2
+polynomial capability. Its prepared evaluator is allocation-, hash-, and
+search-free per row, and the CPU scalar backend admits it only under explicit
+`authenticated_statement_v2` activation into worker-private packed scratch.
+The disabled path retains the V1 bucket shape and direct hot loop. Exact
+V1-uniform and selected-pair differentials, serial/two-lane execution,
+identity/degree/geometry/resource mutation, and allocation-failure cleanup are
+green: 9/9 CPU tests in 3.02 seconds and 9/9 frontend tests in 13.92 seconds.
+All 17 V2 authority records and their exact 137-batch/548-column physical
+ranges are generated and pinned. The later explicit CPU proof-path activation
+and real-proof evidence are recorded below; V1 remains the production default.
+
+P-003 now owns one versioned six-source exact-work authority for field
+additions, multiplications, inversions, FFT butterflies, FRI folds, and Merkle
+compressions. Coverage bits distinguish an observed zero from an unwired
+producer; checked aggregation is transactional, complete receipts are
+digest-bound, and `Recorder(false)` is a zero-size no-op capability. The R-006
+validator independently recomputes the little-endian digest and rejects
+partial/extra/malformed groups while retaining explicit legacy schema support.
+Prover-API, runtime-profile, and Python gates are green. This establishes V2
+transport, not producer-exhaustive measurement: the present ten-site inventory
+uses free-form markers and seven coarse boundary counts, so it cannot detect a
+jointly deleted plan and record or prevent one site from impersonating another.
+Only the generic M31 polynomial-commit forward FFT currently reports an exact
+field delta, `(A,M,I)=(2B,B,0)` for `B` completed butterflies. Production does
+not finalize partial coverage and therefore remains `riscv_profiled_proof_v3`;
+V4 exists only in validation fixtures. The exact closure audit now assigns
+formulas and owners to cold twiddles, interpolation and remaining FFTs, secure
+composition, witness/Poseidon work, relation/LogUp work, domain and OODS
+composition, sampled evaluation, quotient preparation/execution, all FRI
+folds and final interpolation, and transcript/VCS zero-or-Poseidon cases. The
+next promotion tranche is a typed executable `Site` ledger with per-site
+expected/completed arrays and compile-time `Site -> Boundary` aggregation,
+followed by those producer deltas and one independently verified installed-
+binary V4 request. During the first FFT tranche, a pre-existing CPU combined-LDE bug was
+isolated: expansion above 2x could transform an uninitialized tail. The 2x
+fast path remains; larger expansion zero-fills and performs the full transform.
+Independent 2x/4x poisoned-tail differentials pass 10/10 in Debug and
+ReleaseSafe before telemetry is allowed to rely on the boundary.
+
+This paragraph records the 2026-08-15 checkpoint. It is superseded for P-003
+closure by the schema-9, 23-site, CPU/Metal/joint 16/16 evidence above; only
+R-006's installed-binary scaling capture and P-004 promotion budgets remain.
+
+Temporal V3 now has a concrete deterministic Tree0/1/2 writer for rows 0--17,
+one reusable maximum interaction scratch, exact placement/ownership, zero and
+alias destination preflight, fail-atomic clearing, and pointer-free receipts.
+Its real-child prefix/runtime bridge and allocation-free hot-plan validation
+pass the declaration-complete binary gate in 15.65 seconds and the direct V3
+writer/mutation gate in 1.92 seconds. At that checkpoint, rows 18--35 and
+global parent closure were next; the 2026-08-20 section above supersedes that
+boundary with `temporal_parent_verified = true`.
+
+Finally, compiler concurrency is bounded and cache-isolated rather than
+coordinated by chat. `scripts/typed_air_zig_lane.py` owns three nonblocking
+Git-private slots, injects a distinct local Zig cache per occupied slot, shares
+only the immutable global cache, publishes owner/PID/argv metadata, and exits
+75 only when all slots are busy. Locks survive a killed controller through
+descriptor inheritance. `--status` distinguishes live locks from stale
+metadata. Eight unit tests cover direct and time-wrapped argv
+execution, cache replacement, live second-slot admission, three-slot
+contention, status, V1 migration exclusion, cleanup, and invalid requests.
+Heavy proof execution remains serialized even
+though focused compilers may run concurrently. All parallel agents must use
+this wrapper for future Zig compile/test commands.
+
+### 2026-08-15 — A-013 generated composition is exact; A-014 proves the selected CPU layout
+
+A-013's correctness and production-activation exit is closed. A dedicated
+reference backend aliases every production CPU operation except the optional
+composition hooks, so its separately executed proof differs only by declining
+generated composition. Against the real all-family statement, the production
+CPU path records one admission, exactly 17/17 semantic/lookup pairs, and zero
+declines. Debug and ReleaseFast both retain the frozen 688-column V1 Tree 2,
+produce the same statement and interaction claim, the same 51,581 canonical
+proof bytes, and the same terminal transcript; both proofs independently
+verify through the ordinary production engine. The common proof SHA-256 is
+`3a93cb594f9021f1d0625c3f31431401a668ab266d6502ade64129e0a10f783a`
+and the transcript digest is
+`3690d6814dbdf9ec02a85c3a59cb16d2ed87036291fed3e531c740b546c08293`.
+One ReleaseFast attribution sample measured 2,113.513 ms reference versus
+2,117.416 ms generated; it is not promoted to a performance claim. Only the
+paired global P-004 evidence remains open for A-013.
+
+A-014 now has a separate, explicit authenticated production protocol on CPU.
+The real 17-family statement reduces opcode Tree-2 width from 620 to 548 while
+leaving 68 infrastructure columns unchanged: 688 to 616 total, a 72-column
+reduction equal to 11.61% of opcode interaction geometry and 10.47% of the
+whole tree. Canonical proof size falls from 51,863 to 50,256 bytes, a 1,607-byte
+or 3.10% reduction. Both protocols independently verify and reciprocal replay
+rejects. Manifest, statement, and activation identities are respectively
+`f205a9fb631bbab2b93efbb961fe662c5a2c0ee55d7d60d606d49d030a2de849`,
+`8b1b08f4635daa583a55d91914103c49ad15a7db996a4290e23b6686109eeff0`,
+and `d5771e0a86bb81a25f4e6d0a3b52e6a88766c3be3c1115d39f9846443a50fd51`.
+Debug and ReleaseFast single samples disagree on proving-time direction, so no
+throughput win is claimed. Compatibility V1 remains the default. Native Metal
+V2 execution and a no-CPU-fallback receipt remain open.
+
+Exact gates:
+
+```text
+python3 scripts/typed_air_zig_lane.py --label a013-final-drift-guarded-debug -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-generated-composition-native-proof -Doptimize=Debug -j1 --summary all
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+
+python3 scripts/typed_air_zig_lane.py --label a013-generated-composition-releasefast-proof -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-generated-composition-native-proof -Doptimize=ReleaseFast -j1 --summary all
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+
+python3 scripts/typed_air_zig_lane.py --label a014-full-cohort-real-proof-final -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-lookup-v2-native-proof -Doptimize=Debug -j1 --summary all
+Build Summary: 1/1 steps succeeded
+
+python3 scripts/typed_air_zig_lane.py --label a014-releasefast-real-proof -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-lookup-v2-native-proof -Doptimize=ReleaseFast -j1 --summary all
+Build Summary: 1/1 steps succeeded
+
+python3 scripts/typed_air_zig_lane.py --label a014-full-lookup-debug -- /usr/bin/time -l zig build --build-file src/frontends/riscv/build.zig test-lookup-batching -Doptimize=Debug -j1 --summary all
+Build Summary: 3/3 steps succeeded; 326/326 tests passed
+```
+
 ## Update protocol
 
 Every progress update changes:
@@ -1502,5 +2738,6 @@ Every progress update changes:
 - new risks or decisions; and
 - one dated log entry.
 
-At most one task is marked active. A task becomes done only when its acceptance
-evidence is named.
+At most one task per dependency lane is marked active. Concurrent active tasks
+must have explicit file ownership and independent acceptance gates. A task
+becomes done only when its acceptance evidence is named.

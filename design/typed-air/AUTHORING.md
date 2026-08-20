@@ -30,6 +30,7 @@ below are compiled by
 | `typed_poseidon2_compat` | Authenticated mapping from generic cuts to the current 426-slot Poseidon layout |
 | `typed_poseidon2_witness` | Authenticated compiled evaluator that writes the 445-column compatibility trace directly into final storage |
 | `typed_poseidon2_relations` | Authenticated four-event/two-batch Poseidon relation, interaction, and claim lowering |
+| `direct_witness_executor` | Shared allocation-free, failure-atomic execution kernel for prepared family-to-column writers |
 | `materialization_diagnostics` | Canonical 426-record source, plan, degree, constraint, and physical-placement report |
 
 Import `air/lang/mod.zig` and use these namespaces. Callers should not mutate
@@ -50,9 +51,11 @@ prove the validator is independent of constructors.
 8. At a physical consumer boundary, validate the H-003 materialization plan and
    H-004 binding before compiling witness or relation plans. Reauthenticate an
    owned plan after transport or mutation-capable ownership transfer.
-9. Preflight final storage before witness execution; one executor owns mutable
-   scratch and is not reentrant. Bulk relation generation authenticates once
-   and then uses allocation-free row kernels.
+9. Preflight final storage before witness execution. Pure family executors use
+   the shared compile-time-dispatched direct-witness kernel and are reentrant;
+   an executor that owns mutable scratch, such as the Poseidon compatibility
+   evaluator, is not. Bulk relation generation authenticates once and then
+   uses allocation-free row kernels.
 10. Call `deinit` exactly once. Views and IDs remain scoped to their arena or
     owning compiled plan.
 
@@ -172,6 +175,21 @@ Every call explicitly chooses `inline_expansion` or `relation_backed`. That
 choice changes both the manifest and semantic digest. Recursion and forward
 references reject.
 
+Run `function_frames.compile` before treating that graph as a collection of AIR
+tables. The compiler rejects transitive reads outside a function's declared
+arguments, derives its write-once local cells in value-topological order, and
+assigns every reachable hint invocation to exactly one frame. A
+`relation_backed` target must return a deterministic, non-empty tuple of at
+most 64 field scalars; hint-dependent returns and limb/array values fail closed
+until an explicit ABI expansion exists.
+
+The resulting activation plan orders callee consumes by function declaration,
+then caller/public emissions by call declaration. Each function relation has a
+domain-separated ABI digest bound to the semantic program identity, stable
+name, and argument/return types. This is compiler substrate: authoring a plan
+does not activate a proof relation until a prover/verifier adapter consumes the
+same authenticated plan.
+
 ## Statically shaped authoring
 
 Use `static_collections.StaticArray(element, N)` when a pure function has a
@@ -211,7 +229,17 @@ implementations agree. It identifies one program; it does not prove refinement.
 
 ## Current boundary
 
-The authoring kernel is executable and defensively validated, but shadow-only.
-AIR IR v2 and the current production builders remain authoritative until the
-adapter, compatibility lowering, proof, mutation, and formal gates in
-[IMPLEMENTATION.md](IMPLEMENTATION.md) are complete.
+The authoring kernel is executable and defensively validated. Its broad
+compiler surface remains under incremental production adoption rather than a
+single global authority switch. All seventeen opcode-family witness writers
+are authenticated typed production paths. LUI and FENCE have additionally
+crossed the stronger E-018/E-019 boundary: fixed typed capabilities now own
+their architectural retirement, witness projection, direct constraints,
+ordered relations, and formal/runtime export, and generated dispatch prevents
+legacy fallback. See [ADR-0038](decisions/0038-pinned-typed-opcode-authority-and-generated-retirement.md).
+
+The remaining fifteen execution/AIR families, live function-activation
+lowering, compiler-owned composition metadata, and recursion-local components
+are still migrations in progress. AIR IR v2, exact compatibility manifests,
+Sail, malicious-proof tests, and independent verification remain mandatory
+oracles throughout; a semantic digest never substitutes for those gates.

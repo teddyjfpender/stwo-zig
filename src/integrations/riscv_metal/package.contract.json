@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_riscv_metal_integration",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "layer": "integration",
   "owner": "riscv-metal-integration",
   "public_modules": {
@@ -17,6 +17,7 @@
   "injected_modules": [],
   "api_surface": [
     "MetalProverEngine",
+    "guest_precompile",
     "proveAndVerifyElf",
     "proveRiscV",
     "proveRiscVWithPublicData",
@@ -26,9 +27,15 @@
   ],
   "api_contract": {
     "signature_tests": [
+      "guest_precompile_test.zig::guest Metal profile preserves the ordinary Metal proof protocol types",
       "mod.zig::RISC-V Metal engine satisfies the shared prover transaction contract"
     ],
     "invariant_tests": [
+      "aot_bundle_admission.zig::authenticated AOT bundle preflight rejects invalid bundles without touching a device",
+      "guest_precompile_test.zig::guest Metal profile admits only the reviewed canonical component tail",
+      "guest_precompile_test.zig::guest Metal profile publishes exact versioned product identity",
+      "guest_precompile_test.zig::guest Metal profile runtime admission requires a complete AOT identity",
+      "guest_precompile_test.zig::guest Metal profile telemetry rejects every fallback and missing dispatch",
       "mod.zig::api invariant: RISC-V Metal integration cannot select the CPU backend"
     ]
   },

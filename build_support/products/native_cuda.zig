@@ -32,6 +32,7 @@ const source_closure = policy.SourceClosure{
         .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
         .{ .name = "stwo_cuda_backend", .source = "src/backends/cuda/mod.zig" },
         .{ .name = "stwo_metal_backend", .source = "src/backends/metal/mod.zig" },
+        .{ .name = "interop_postcard", .source = "src/interop/postcard.zig" },
         .{ .name = "stwo_native_examples", .source = "src/examples/mod.zig" },
         .{ .name = "stwo_native_cuda_integration", .source = "src/integrations/native_cuda/mod.zig" },
         .{ .name = "stwo_prover_api", .source = "src/prover_api/mod.zig" },

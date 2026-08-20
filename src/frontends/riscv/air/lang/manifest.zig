@@ -6,6 +6,7 @@
 //! addresses and interning-table insertion order cannot enter the artifact.
 
 const std = @import("std");
+const capabilities = @import("capabilities.zig");
 const expr = @import("expr.zig");
 const functions = @import("functions.zig");
 const hint_recipe = @import("hint_recipe.zig");
@@ -14,6 +15,7 @@ const ir = @import("ir.zig");
 const program = @import("program.zig");
 const source = @import("source.zig");
 const types = @import("types.zig");
+const manifest_encoding = @import("manifest_encoding.zig");
 const validate = @import("validate.zig");
 
 pub const magic = "STWAIRL\x00";
@@ -27,6 +29,18 @@ pub const memory_access_format_version: u16 = 6;
 pub const memory_access_logical_schema_version: u16 = 5;
 pub const sequential_retirement_format_version: u16 = 7;
 pub const sequential_retirement_logical_schema_version: u16 = 6;
+pub const typed_lookup_request_format_version: u16 = 8;
+pub const typed_lookup_request_logical_schema_version: u16 = 7;
+pub const range_refinement_format_version: u16 = 9;
+pub const range_refinement_logical_schema_version: u16 = 8;
+pub const conditional_access_format_version: u16 = 10;
+pub const conditional_access_logical_schema_version: u16 = 9;
+pub const program_control_target_format_version: u16 = 11;
+pub const program_control_target_logical_schema_version: u16 = 10;
+pub const committed_program_control_target_format_version: u16 = 12;
+pub const committed_program_control_target_logical_schema_version: u16 = 11;
+pub const function_body_format_version: u16 = 13;
+pub const function_body_logical_schema_version: u16 = 12;
 
 pub const ManifestError = error{
     ManifestTooLarge,
@@ -34,6 +48,12 @@ pub const ManifestError = error{
     MemoryAccessRequiresManifestV6,
     RelationBindingsRequireManifestV4,
     SequentialRetirementRequiresManifestV7,
+    TypedLookupRequestRequiresManifestV8,
+    RangeRefinementRequiresManifestV9,
+    ConditionalAccessRequiresManifestV10,
+    ProgramControlTargetRequiresManifestV11,
+    CommittedProgramControlTargetRequiresManifestV12,
+    FunctionBodyOwnershipRequiresManifestV13,
 };
 pub const Error = std.mem.Allocator.Error || validate.Error || ManifestError;
 
@@ -42,6 +62,7 @@ pub fn serializeAlloc(
     arena: *const ir.Arena,
 ) Error![]u8 {
     try validate.validate(arena);
+    try requireNoFunctionBodyOwnership(arena);
     try requireLegacyEffects(arena);
     var bytes: std.ArrayList(u8) = .empty;
     errdefer bytes.deinit(allocator);
@@ -55,6 +76,8 @@ pub fn serializeAllocV4(
     arena: *const ir.Arena,
 ) Error![]u8 {
     try validate.validate(arena);
+    try requireNoFunctionBodyOwnership(arena);
+    try requireNoTypedLookupRequestCapability(arena);
     try requireNoMachineDerivedNodes(arena);
     var bytes: std.ArrayList(u8) = .empty;
     errdefer bytes.deinit(allocator);
@@ -69,6 +92,8 @@ pub fn serializeAllocV5(
     arena: *const ir.Arena,
 ) Error![]u8 {
     try validate.validate(arena);
+    try requireNoFunctionBodyOwnership(arena);
+    try requireNoTypedLookupRequestCapability(arena);
     try requireNoSequentialRetirementCapability(arena);
     try requireNoMemoryAccessCapability(arena);
     var bytes: std.ArrayList(u8) = .empty;
@@ -83,6 +108,8 @@ pub fn serializeAllocV6(
     arena: *const ir.Arena,
 ) Error![]u8 {
     try validate.validate(arena);
+    try requireNoFunctionBodyOwnership(arena);
+    try requireNoTypedLookupRequestCapability(arena);
     try requireNoSequentialRetirementCapability(arena);
     var bytes: std.ArrayList(u8) = .empty;
     errdefer bytes.deinit(allocator);
@@ -97,9 +124,110 @@ pub fn serializeAllocV7(
     arena: *const ir.Arena,
 ) Error![]u8 {
     try validate.validate(arena);
+    try requireNoFunctionBodyOwnership(arena);
+    try requireNoTypedLookupRequestCapability(arena);
     var bytes: std.ArrayList(u8) = .empty;
     errdefer bytes.deinit(allocator);
     try writeValidated(bytes.writer(allocator), arena, .sequential_retirement_v7);
+    return bytes.toOwnedSlice(allocator);
+}
+
+/// Canonical logical encoding for explicit fixed-table operation requests and
+/// bounded arithmetic, plus every capability represented by v3-v7.
+pub fn serializeAllocV8(
+    allocator: std.mem.Allocator,
+    arena: *const ir.Arena,
+) Error![]u8 {
+    try validate.validate(arena);
+    try requireNoFunctionBodyOwnership(arena);
+    try requireNoRangeRefinementCapability(arena);
+    var bytes: std.ArrayList(u8) = .empty;
+    errdefer bytes.deinit(allocator);
+    try writeValidated(bytes.writer(allocator), arena, .typed_lookup_request_v8);
+    return bytes.toOwnedSlice(allocator);
+}
+
+/// Canonical logical encoding for proof-carrying range refinements and every
+/// earlier typed capability.
+pub fn serializeAllocV9(
+    allocator: std.mem.Allocator,
+    arena: *const ir.Arena,
+) Error![]u8 {
+    try validate.validate(arena);
+    try requireNoFunctionBodyOwnership(arena);
+    try requireNoConditionalAccessCapability(arena);
+    try requireNoProgramControlTargetCapability(arena);
+    try requireNoCommittedProgramControlTargetCapability(arena);
+    var bytes: std.ArrayList(u8) = .empty;
+    errdefer bytes.deinit(allocator);
+    try writeValidated(bytes.writer(allocator), arena, .range_refinement_v9);
+    return bytes.toOwnedSlice(allocator);
+}
+
+/// Canonical logical encoding for the closed conditional load/store schedule,
+/// including its proof-only semantic aliases and every prior capability.
+pub fn serializeAllocV10(
+    allocator: std.mem.Allocator,
+    arena: *const ir.Arena,
+) Error![]u8 {
+    try validate.validate(arena);
+    try requireNoFunctionBodyOwnership(arena);
+    try requireNoProgramControlTargetCapability(arena);
+    try requireNoCommittedProgramControlTargetCapability(arena);
+    var bytes: std.ArrayList(u8) = .empty;
+    errdefer bytes.deinit(allocator);
+    try writeValidated(bytes.writer(allocator), arena, .conditional_access_v10);
+    return bytes.toOwnedSlice(allocator);
+}
+
+/// Canonical logical encoding for program-authenticated control targets. This
+/// new version preserves the byte meaning of v9/v10 and also carries a
+/// conditional-access proof when both capabilities appear in one program.
+pub fn serializeAllocV11(
+    allocator: std.mem.Allocator,
+    arena: *const ir.Arena,
+) Error![]u8 {
+    try validate.validate(arena);
+    try requireNoFunctionBodyOwnership(arena);
+    try requireNoCommittedProgramControlTargetCapability(arena);
+    var bytes: std.ArrayList(u8) = .empty;
+    errdefer bytes.deinit(allocator);
+    try writeValidated(bytes.writer(allocator), arena, .program_control_target_v11);
+    return bytes.toOwnedSlice(allocator);
+}
+
+/// Canonical logical encoding for proof-authorized physical control targets.
+/// This preserves every v3-v11 byte domain and includes all prior proof
+/// sections when capabilities coexist.
+pub fn serializeAllocV12(
+    allocator: std.mem.Allocator,
+    arena: *const ir.Arena,
+) Error![]u8 {
+    try validate.validate(arena);
+    try requireNoFunctionBodyOwnership(arena);
+    var bytes: std.ArrayList(u8) = .empty;
+    errdefer bytes.deinit(allocator);
+    try writeValidated(
+        bytes.writer(allocator),
+        arena,
+        .committed_program_control_target_v12,
+    );
+    return bytes.toOwnedSlice(allocator);
+}
+
+/// Canonical logical encoding for sealed per-function proof-record ownership.
+/// This is the complete additive projection over every earlier capability;
+/// V3-V12 reject body ownership and therefore remain byte-for-byte frozen.
+pub fn serializeAllocV13(
+    allocator: std.mem.Allocator,
+    arena: *const ir.Arena,
+) Error![]u8 {
+    try validate.validate(arena);
+    if (!capabilities.hasFunctionBodyOwnership(arena))
+        return error.FunctionBodyOwnershipRequiresManifestV13;
+    var bytes: std.ArrayList(u8) = .empty;
+    errdefer bytes.deinit(allocator);
+    try writeValidated(bytes.writer(allocator), arena, .function_body_v13);
     return bytes.toOwnedSlice(allocator);
 }
 
@@ -119,18 +247,23 @@ pub fn serializeAllocCurrent(
 /// Writes one validated canonical encoding to `writer`.
 pub fn writeCanonical(writer: anytype, arena: *const ir.Arena) !void {
     try validate.validate(arena);
+    try requireNoFunctionBodyOwnership(arena);
     try requireLegacyEffects(arena);
     try writeValidated(writer, arena, .legacy_v3);
 }
 
 pub fn writeCanonicalV4(writer: anytype, arena: *const ir.Arena) !void {
     try validate.validate(arena);
+    try requireNoFunctionBodyOwnership(arena);
+    try requireNoTypedLookupRequestCapability(arena);
     try requireNoMachineDerivedNodes(arena);
     try writeValidated(writer, arena, .typed_effect_v4);
 }
 
 pub fn writeCanonicalV5(writer: anytype, arena: *const ir.Arena) !void {
     try validate.validate(arena);
+    try requireNoFunctionBodyOwnership(arena);
+    try requireNoTypedLookupRequestCapability(arena);
     try requireNoSequentialRetirementCapability(arena);
     try requireNoMemoryAccessCapability(arena);
     try writeValidated(writer, arena, .register_group_v5);
@@ -138,13 +271,61 @@ pub fn writeCanonicalV5(writer: anytype, arena: *const ir.Arena) !void {
 
 pub fn writeCanonicalV6(writer: anytype, arena: *const ir.Arena) !void {
     try validate.validate(arena);
+    try requireNoFunctionBodyOwnership(arena);
+    try requireNoTypedLookupRequestCapability(arena);
     try requireNoSequentialRetirementCapability(arena);
     try writeValidated(writer, arena, .memory_access_v6);
 }
 
 pub fn writeCanonicalV7(writer: anytype, arena: *const ir.Arena) !void {
     try validate.validate(arena);
+    try requireNoFunctionBodyOwnership(arena);
+    try requireNoTypedLookupRequestCapability(arena);
     try writeValidated(writer, arena, .sequential_retirement_v7);
+}
+
+pub fn writeCanonicalV8(writer: anytype, arena: *const ir.Arena) !void {
+    try validate.validate(arena);
+    try requireNoFunctionBodyOwnership(arena);
+    try requireNoRangeRefinementCapability(arena);
+    try writeValidated(writer, arena, .typed_lookup_request_v8);
+}
+
+pub fn writeCanonicalV9(writer: anytype, arena: *const ir.Arena) !void {
+    try validate.validate(arena);
+    try requireNoFunctionBodyOwnership(arena);
+    try requireNoConditionalAccessCapability(arena);
+    try requireNoProgramControlTargetCapability(arena);
+    try requireNoCommittedProgramControlTargetCapability(arena);
+    try writeValidated(writer, arena, .range_refinement_v9);
+}
+
+pub fn writeCanonicalV10(writer: anytype, arena: *const ir.Arena) !void {
+    try validate.validate(arena);
+    try requireNoFunctionBodyOwnership(arena);
+    try requireNoProgramControlTargetCapability(arena);
+    try requireNoCommittedProgramControlTargetCapability(arena);
+    try writeValidated(writer, arena, .conditional_access_v10);
+}
+
+pub fn writeCanonicalV11(writer: anytype, arena: *const ir.Arena) !void {
+    try validate.validate(arena);
+    try requireNoFunctionBodyOwnership(arena);
+    try requireNoCommittedProgramControlTargetCapability(arena);
+    try writeValidated(writer, arena, .program_control_target_v11);
+}
+
+pub fn writeCanonicalV12(writer: anytype, arena: *const ir.Arena) !void {
+    try validate.validate(arena);
+    try requireNoFunctionBodyOwnership(arena);
+    try writeValidated(writer, arena, .committed_program_control_target_v12);
+}
+
+pub fn writeCanonicalV13(writer: anytype, arena: *const ir.Arena) !void {
+    try validate.validate(arena);
+    if (!capabilities.hasFunctionBodyOwnership(arena))
+        return error.FunctionBodyOwnershipRequiresManifestV13;
+    try writeValidated(writer, arena, .function_body_v13);
 }
 
 pub fn writeCanonicalCurrent(writer: anytype, arena: *const ir.Arena) !void {
@@ -158,6 +339,12 @@ const Encoding = enum {
     register_group_v5,
     memory_access_v6,
     sequential_retirement_v7,
+    typed_lookup_request_v8,
+    range_refinement_v9,
+    conditional_access_v10,
+    program_control_target_v11,
+    committed_program_control_target_v12,
+    function_body_v13,
 };
 
 fn writeValidated(
@@ -165,6 +352,11 @@ fn writeValidated(
     arena: *const ir.Arena,
     encoding: Encoding,
 ) !void {
+    if (capabilities.hasFunctionBodyOwnership(arena) and
+        encoding != .function_body_v13)
+    {
+        return error.FunctionBodyOwnershipRequiresManifestV13;
+    }
     try writer.writeAll(magic);
     try writeInt(writer, u16, switch (encoding) {
         .legacy_v3 => format_version,
@@ -172,6 +364,12 @@ fn writeValidated(
         .register_group_v5 => register_group_format_version,
         .memory_access_v6 => memory_access_format_version,
         .sequential_retirement_v7 => sequential_retirement_format_version,
+        .typed_lookup_request_v8 => typed_lookup_request_format_version,
+        .range_refinement_v9 => range_refinement_format_version,
+        .conditional_access_v10 => conditional_access_format_version,
+        .program_control_target_v11 => program_control_target_format_version,
+        .committed_program_control_target_v12 => committed_program_control_target_format_version,
+        .function_body_v13 => function_body_format_version,
     });
     try writeInt(writer, u16, switch (encoding) {
         .legacy_v3 => logical_schema_version,
@@ -179,16 +377,32 @@ fn writeValidated(
         .register_group_v5 => register_group_logical_schema_version,
         .memory_access_v6 => memory_access_logical_schema_version,
         .sequential_retirement_v7 => sequential_retirement_logical_schema_version,
+        .typed_lookup_request_v8 => typed_lookup_request_logical_schema_version,
+        .range_refinement_v9 => range_refinement_logical_schema_version,
+        .conditional_access_v10 => conditional_access_logical_schema_version,
+        .program_control_target_v11 => program_control_target_logical_schema_version,
+        .committed_program_control_target_v12 => committed_program_control_target_logical_schema_version,
+        .function_body_v13 => function_body_logical_schema_version,
     });
     try writeCount(writer, arena.nodesView().len);
     try writeCount(writer, arena.constraintsView().len);
     try writeCount(writer, hints.view(arena).len);
     try writeCount(writer, arena.effectsView().len);
+    if (encodingHasRangeRefinement(encoding))
+        try writeCount(writer, arena.range_refinements.items.len);
+    if (encodingHasRangeRefinement(encoding))
+        try writeCount(writer, arena.fixed_table_requests.items.len);
+    if (encodingHasConditionalAccess(encoding))
+        try writeCount(writer, arena.conditional_access_plans.items.len);
+    if (encodingHasCommittedProgramControlTarget(encoding))
+        try writeCount(writer, arena.committed_program_control_targets.items.len);
     try writeCount(writer, functions.view(arena).len);
     try writeCount(writer, functions.calls(arena).len);
 
     for (arena.nodesView()) |node| try writeNode(writer, arena, node);
     for (arena.constraintsView()) |constraint| {
+        if (encodingHasFunctionBody(encoding))
+            try writeOptionalFunctionId(writer, constraint.owner);
         try writeName(writer, arena, constraint.name);
         try writeValueId(writer, constraint.root);
         try writeOptionalValueId(writer, constraint.gate);
@@ -199,6 +413,8 @@ fn writeValidated(
         const id = types.idFromIndex(types.HintId, index) catch
             return error.ManifestTooLarge;
         const recipe = hint_recipe.getById(hint.recipe) orelse unreachable;
+        if (encodingHasFunctionBody(encoding))
+            try writeOptionalFunctionId(writer, hint.owner);
         try writeInt(writer, u16, @intFromEnum(hint.recipe));
         try writeInt(writer, u16, recipe.version);
         try writeOptionalValueId(writer, hint.activation);
@@ -216,6 +432,8 @@ fn writeValidated(
     for (arena.effectsView(), 0..) |effect, index| {
         const id = types.idFromIndex(types.EffectId, index) catch
             return error.ManifestTooLarge;
+        if (encodingHasFunctionBody(encoding))
+            try writeOptionalFunctionId(writer, effect.owner);
         try writeInt(writer, u8, effectKindTag(effect.kind));
         if (encoding != .legacy_v3)
             try writeRelationBinding(writer, effect.binding);
@@ -224,12 +442,71 @@ fn writeValidated(
         try writeOptionalInt(writer, u8, effect.access_ordinal);
         try writeSpan(writer, arena, effect.source_span);
     }
+    if (encodingHasRangeRefinement(encoding)) {
+        for (arena.fixed_table_requests.items) |proof| {
+            try writeInt(writer, u32, @intFromEnum(proof.effect));
+            try writeValueId(writer, proof.liveness);
+            try writeSpan(writer, arena, proof.source_span);
+        }
+        for (arena.range_refinements.items) |item| {
+            try writeValueId(writer, item.source);
+            try writeValueId(writer, item.target);
+            switch (item.premise) {
+                .constraint_boolean => |proof| {
+                    try writeInt(writer, u8, 0);
+                    try writeInt(writer, u32, @intFromEnum(proof.constraint));
+                },
+                .fixed_table_field => |proof| {
+                    try writeInt(writer, u8, 1);
+                    try writeInt(writer, u32, @intFromEnum(proof.effect));
+                    try writeInt(writer, u8, proof.field_index);
+                    try writeValueId(writer, proof.liveness);
+                },
+                .aligned_control_target => |proof| {
+                    try writeInt(writer, u8, 2);
+                    try writeValueId(writer, proof.low);
+                    try writeValueId(writer, proof.high);
+                    try writeInt(writer, u32, @intFromEnum(proof.low_effect));
+                    try writeInt(writer, u32, @intFromEnum(proof.high_effect));
+                    try writeValueId(writer, proof.liveness);
+                },
+                .program_control_target => |proof| {
+                    try writeInt(writer, u8, 3);
+                    try writeInt(writer, u32, @intFromEnum(proof.program_effect));
+                    try writeValueId(writer, proof.current_pc);
+                    try writeValueId(writer, proof.offset);
+                    switch (proof.kind) {
+                        .jump => try writeInt(writer, u8, 0),
+                        .branch => |branch| {
+                            try writeInt(writer, u8, 1);
+                            try writeValueId(writer, branch.condition);
+                            try writeInt(writer, u32, @intFromEnum(branch.condition_constraint));
+                        },
+                    }
+                    try writeValueId(writer, proof.liveness);
+                },
+            }
+            try writeSpan(writer, arena, item.source_span);
+        }
+    }
+    if (encodingHasConditionalAccess(encoding)) {
+        for (arena.conditional_access_plans.items) |proof| {
+            try writeConditionalAccessPlan(writer, arena, proof);
+        }
+    }
+    if (encodingHasCommittedProgramControlTarget(encoding)) {
+        for (arena.committed_program_control_targets.items) |proof| {
+            try writeCommittedProgramControlTarget(writer, arena, proof);
+        }
+    }
     for (functions.view(arena), 0..) |function, index| {
         const id = types.idFromIndex(types.FunctionId, index) catch
             return error.ManifestTooLarge;
         try writeName(writer, arena, function.name);
         try writeValues(writer, functions.inputs(arena, id).?);
         try writeValues(writer, functions.outputs(arena, id).?);
+        if (encodingHasFunctionBody(encoding))
+            try writeFunctionBody(writer, function.body);
         try writeSpan(writer, arena, function.source_span);
     }
     for (functions.calls(arena), 0..) |call, index| {
@@ -245,358 +522,134 @@ fn writeValidated(
 }
 
 fn requireLegacyEffects(arena: *const ir.Arena) ManifestError!void {
-    for (arena.effectsView()) |effect| {
-        if (effect.binding != null)
-            return error.RelationBindingsRequireManifestV4;
-    }
+    if (capabilities.hasRelationBindings(arena))
+        return error.RelationBindingsRequireManifestV4;
 }
 
 fn requireNoMachineDerivedNodes(arena: *const ir.Arena) ManifestError!void {
-    for (arena.nodesView()) |node| switch (node.key.op) {
-        .machine_derived => return error.MachineDerivedRequiresManifestV5,
-        else => {},
-    };
+    if (capabilities.hasMachineDerivedNodes(arena))
+        return error.MachineDerivedRequiresManifestV5;
 }
 
 fn requireNoMemoryAccessCapability(arena: *const ir.Arena) ManifestError!void {
-    if (hasMemoryAccessCapability(arena))
+    if (capabilities.hasMemoryAccess(arena))
         return error.MemoryAccessRequiresManifestV6;
 }
 
 fn requireNoSequentialRetirementCapability(
     arena: *const ir.Arena,
 ) ManifestError!void {
-    if (hasSequentialRetirementCapability(arena))
+    if (capabilities.hasSequentialRetirement(arena))
         return error.SequentialRetirementRequiresManifestV7;
 }
 
+fn requireNoTypedLookupRequestCapability(
+    arena: *const ir.Arena,
+) ManifestError!void {
+    if (capabilities.hasTypedLookupRequest(arena))
+        return error.TypedLookupRequestRequiresManifestV8;
+}
+
+fn requireNoRangeRefinementCapability(arena: *const ir.Arena) ManifestError!void {
+    if (capabilities.hasRangeRefinement(arena))
+        return error.RangeRefinementRequiresManifestV9;
+}
+
+fn requireNoConditionalAccessCapability(arena: *const ir.Arena) ManifestError!void {
+    if (capabilities.hasConditionalAccess(arena))
+        return error.ConditionalAccessRequiresManifestV10;
+}
+
+fn requireNoProgramControlTargetCapability(
+    arena: *const ir.Arena,
+) ManifestError!void {
+    if (capabilities.hasProgramControlTarget(arena))
+        return error.ProgramControlTargetRequiresManifestV11;
+}
+
+fn requireNoCommittedProgramControlTargetCapability(
+    arena: *const ir.Arena,
+) ManifestError!void {
+    if (capabilities.hasCommittedProgramControlTarget(arena))
+        return error.CommittedProgramControlTargetRequiresManifestV12;
+}
+
+fn requireNoFunctionBodyOwnership(arena: *const ir.Arena) ManifestError!void {
+    if (capabilities.hasFunctionBodyOwnership(arena))
+        return error.FunctionBodyOwnershipRequiresManifestV13;
+}
+
 fn leastCapableEncoding(arena: *const ir.Arena) Encoding {
-    if (hasSequentialRetirementCapability(arena))
+    if (capabilities.hasFunctionBodyOwnership(arena))
+        return .function_body_v13;
+    if (capabilities.hasCommittedProgramControlTarget(arena))
+        return .committed_program_control_target_v12;
+    if (capabilities.hasProgramControlTarget(arena))
+        return .program_control_target_v11;
+    if (capabilities.hasConditionalAccess(arena)) return .conditional_access_v10;
+    if (capabilities.hasRangeRefinement(arena)) return .range_refinement_v9;
+    if (capabilities.hasTypedLookupRequest(arena))
+        return .typed_lookup_request_v8;
+    if (capabilities.hasSequentialRetirement(arena))
         return .sequential_retirement_v7;
-    if (hasMemoryAccessCapability(arena)) return .memory_access_v6;
-    if (hasMachineDerivedNodes(arena)) return .register_group_v5;
-    if (hasRelationBindings(arena)) return .typed_effect_v4;
+    if (capabilities.hasMemoryAccess(arena)) return .memory_access_v6;
+    if (capabilities.hasMachineDerivedNodes(arena)) return .register_group_v5;
+    if (capabilities.hasRelationBindings(arena)) return .typed_effect_v4;
     return .legacy_v3;
 }
 
-fn hasRelationBindings(arena: *const ir.Arena) bool {
-    for (arena.effectsView()) |effect| if (effect.binding != null) return true;
-    return false;
-}
-
-fn hasMachineDerivedNodes(arena: *const ir.Arena) bool {
-    for (arena.nodesView()) |node| switch (node.key.op) {
-        .machine_derived => return true,
-        else => {},
-    };
-    return false;
-}
-
-fn hasMemoryAccessCapability(arena: *const ir.Arena) bool {
-    for (arena.effectsView()) |effect| switch (effect.kind) {
-        .memory_read, .memory_write => return true,
-        else => {},
-    };
-    for (arena.nodesView()) |node| switch (node.key.op) {
-        .machine_derived => |derived| switch (derived) {
-            .aligned_word_address => return true,
-            else => {},
-        },
-        else => {},
-    };
-    return false;
-}
-
-fn hasSequentialRetirementCapability(arena: *const ir.Arena) bool {
-    for (arena.nodesView()) |node| switch (node.key.op) {
-        .machine_derived => |derived| switch (derived) {
-            .instruction_next_pc, .instruction_next_clock => return true,
-            else => {},
-        },
-        else => {},
-    };
-    return false;
-}
-
-fn writeRelationBinding(
-    writer: anytype,
-    binding: ?program.RelationBinding,
-) !void {
-    if (binding) |present| {
-        try writeInt(writer, u8, 1);
-        try writeInt(writer, u16, @intFromEnum(present.schema));
-        try writeInt(writer, u16, present.schema_version);
-        try writeInt(writer, u8, @intFromEnum(present.role));
-    } else {
-        try writeInt(writer, u8, 0);
-    }
-}
-
-fn writeNode(writer: anytype, arena: *const ir.Arena, node: expr.Node) !void {
-    try writeType(writer, node.key.ty);
-    switch (node.key.op) {
-        .constant => |constant| switch (constant) {
-            .field => |value| {
-                try writeInt(writer, u8, 0);
-                try writeInt(writer, u32, value);
-            },
-            .unsigned => |value| {
-                try writeInt(writer, u8, 1);
-                try writeInt(writer, u32, value);
-            },
-        },
-        .input => |name| {
-            try writeInt(writer, u8, 2);
-            try writeName(writer, arena, name);
-        },
-        .add => |binary| {
-            try writeInt(writer, u8, 3);
-            try writeBinary(writer, binary);
-        },
-        .sub => |binary| {
-            try writeInt(writer, u8, 4);
-            try writeBinary(writer, binary);
-        },
-        .mul => |binary| {
-            try writeInt(writer, u8, 5);
-            try writeBinary(writer, binary);
-        },
-        .neg => |value| {
-            try writeInt(writer, u8, 6);
-            try writeValueId(writer, value);
-        },
-        .select => |selection| {
-            try writeInt(writer, u8, 7);
-            try writeValueId(writer, selection.selector);
-            try writeValueId(writer, selection.when_true);
-            try writeValueId(writer, selection.when_false);
-        },
-        .hint_output => |output| {
-            try writeInt(writer, u8, 8);
-            try writeInt(writer, u32, @intFromEnum(output.hint));
-            try writeInt(writer, u16, output.index);
-        },
-        .call_output => |output| {
-            try writeInt(writer, u8, 9);
-            try writeInt(writer, u32, @intFromEnum(output.call));
-            try writeInt(writer, u16, output.index);
-        },
-        .machine_derived => |derived| {
-            try writeInt(writer, u8, 10);
-            switch (derived) {
-                .register_address => |address| {
-                    try writeInt(writer, u8, 0);
-                    try writeValueId(writer, address.index);
-                },
-                .aligned_word_address => |address| {
-                    try writeInt(writer, u8, 3);
-                    try writeValueId(writer, address.word_index);
-                },
-                .access_clock => |clock| {
-                    try writeInt(writer, u8, 1);
-                    try writeValueId(writer, clock.instruction_clock);
-                    try writeInt(writer, u8, @intFromEnum(clock.phase));
-                },
-                .strict_clock_gap => |gap| {
-                    try writeInt(writer, u8, 2);
-                    try writeValueId(writer, gap.current_clock);
-                    try writeValueId(writer, gap.previous_clock);
-                    try writeValueId(writer, gap.active);
-                    try writeInt(writer, u8, @intFromEnum(gap.phase));
-                },
-                .instruction_next_pc => |next| {
-                    try writeInt(writer, u8, 4);
-                    try writeValueId(writer, next.current);
-                },
-                .instruction_next_clock => |next| {
-                    try writeInt(writer, u8, 5);
-                    try writeValueId(writer, next.current);
-                },
-            }
-        },
-    }
-    try writeSpan(writer, arena, node.primary_source);
-}
-
-fn writeType(writer: anytype, ty: types.Type) !void {
-    switch (ty) {
-        .felt => try writeInt(writer, u8, 0),
-        .bit => try writeInt(writer, u8, 1),
-        .byte => try writeInt(writer, u8, 2),
-        .uint16 => try writeInt(writer, u8, 3),
-        .uint20 => try writeInt(writer, u8, 4),
-        .word32 => try writeInt(writer, u8, 5),
-        .register_index => try writeInt(writer, u8, 6),
-        .address => try writeInt(writer, u8, 7),
-        .pc => try writeInt(writer, u8, 8),
-        .clock => try writeInt(writer, u8, 9),
-        .selector => try writeInt(writer, u8, 10),
-        .bounded_uint => |bounded| {
-            try writeInt(writer, u8, 11);
-            try writeInt(writer, u8, bounded.bits);
-            switch (bounded.representation) {
-                .canonical_field => try writeInt(writer, u8, 0),
-                .little_endian_limbs => |layout| {
-                    try writeInt(writer, u8, 1);
-                    try writeInt(writer, u8, layout.limb_bits);
-                    try writeInt(writer, u8, layout.limb_count);
-                },
-            }
-        },
-        .array => |array| {
-            try writeInt(writer, u8, 12);
-            try writeInt(writer, u8, arrayElementTag(array.element));
-            try writeInt(writer, u16, array.len);
-        },
-    }
-}
-
-fn writeSpan(
-    writer: anytype,
-    arena: *const ir.Arena,
-    span: source.SourceSpan,
-) !void {
-    if (span.source) |source_id| {
-        try writeInt(writer, u8, 1);
-        try writeString(writer, arena.sourcePath(source_id).?);
-        try writePosition(writer, span.start);
-        try writePosition(writer, span.end);
-    } else {
-        try writeInt(writer, u8, 0);
-    }
-}
-
-fn writePosition(writer: anytype, position: source.Position) !void {
-    try writeInt(writer, u32, position.byte_offset);
-    try writeInt(writer, u32, position.line);
-    try writeInt(writer, u32, position.column);
-}
-
-fn writeName(writer: anytype, arena: *const ir.Arena, id: types.NameId) !void {
-    try writeString(writer, arena.name(id).?);
-}
-
-fn writeString(writer: anytype, value: []const u8) !void {
-    try writeCount(writer, value.len);
-    try writer.writeAll(value);
-}
-
-fn writeValues(writer: anytype, values: []const types.ValueId) !void {
-    try writeCount(writer, values.len);
-    for (values) |value| try writeValueId(writer, value);
-}
-
-fn writeBinary(writer: anytype, binary: expr.Binary) !void {
-    try writeValueId(writer, binary.lhs);
-    try writeValueId(writer, binary.rhs);
-}
-
-fn writeValueId(writer: anytype, id: types.ValueId) !void {
-    try writeInt(writer, u32, @intFromEnum(id));
-}
-
-fn writeOptionalValueId(writer: anytype, id: ?types.ValueId) !void {
-    if (id) |value| {
-        try writeInt(writer, u8, 1);
-        try writeValueId(writer, value);
-    } else {
-        try writeInt(writer, u8, 0);
-    }
-}
-
-fn writeOptionalFunctionId(writer: anytype, id: ?types.FunctionId) !void {
-    if (id) |value| {
-        try writeInt(writer, u8, 1);
-        try writeInt(writer, u32, @intFromEnum(value));
-    } else {
-        try writeInt(writer, u8, 0);
-    }
-}
-
-fn writeHintBindingTarget(
-    writer: anytype,
-    target: program.HintBindingTarget,
-) !void {
-    switch (target) {
-        .constraint => |id| {
-            try writeInt(writer, u8, 0);
-            try writeInt(writer, u32, @intFromEnum(id));
-        },
-        .effect => |id| {
-            try writeInt(writer, u8, 1);
-            try writeInt(writer, u32, @intFromEnum(id));
-        },
-    }
-}
-
-fn writeOptionalInt(writer: anytype, comptime T: type, value: ?T) !void {
-    if (value) |present| {
-        try writeInt(writer, u8, 1);
-        try writeInt(writer, T, present);
-    } else {
-        try writeInt(writer, u8, 0);
-    }
-}
-
-fn writeCount(writer: anytype, value: usize) !void {
-    const count = std.math.cast(u32, value) orelse
-        return error.ManifestTooLarge;
-    try writeInt(writer, u32, count);
-}
-
-fn writeInt(writer: anytype, comptime T: type, value: T) !void {
-    var encoded: [@sizeOf(T)]u8 = undefined;
-    std.mem.writeInt(T, &encoded, value, .little);
-    try writer.writeAll(&encoded);
-}
-
-fn arrayElementTag(element: types.ArrayElement) u8 {
-    return switch (element) {
-        .felt => 0,
-        .bit => 1,
-        .byte => 2,
-        .uint16 => 3,
-        .uint20 => 4,
-        .word32 => 5,
-        .register_index => 6,
-        .address => 7,
-        .pc => 8,
-        .clock => 9,
-        .selector => 10,
+fn encodingHasRangeRefinement(encoding: Encoding) bool {
+    return switch (encoding) {
+        .range_refinement_v9,
+        .conditional_access_v10,
+        .program_control_target_v11,
+        .committed_program_control_target_v12,
+        .function_body_v13,
+        => true,
+        else => false,
     };
 }
 
-fn constraintCategoryTag(category: program.ConstraintCategory) u8 {
-    return switch (category) {
-        .semantic => 0,
-        .materialization => 1,
-        .type_range => 2,
-        .hint_binding => 3,
-        .boundary => 4,
-        .transition => 5,
-        .relation_transition => 6,
+fn encodingHasConditionalAccess(encoding: Encoding) bool {
+    return switch (encoding) {
+        .conditional_access_v10,
+        .program_control_target_v11,
+        .committed_program_control_target_v12,
+        .function_body_v13,
+        => true,
+        else => false,
     };
 }
 
-fn effectKindTag(kind: program.EffectKind) u8 {
-    return switch (kind) {
-        .program_fetch => 0,
-        .register_read => 1,
-        .register_write => 2,
-        .memory_read => 3,
-        .memory_write => 4,
-        .range_request => 5,
-        .state_consume => 6,
-        .state_produce => 7,
-        .component_call => 8,
-        .public_consume => 9,
-        .public_produce => 10,
-    };
+fn encodingHasCommittedProgramControlTarget(encoding: Encoding) bool {
+    return encoding == .committed_program_control_target_v12 or
+        encoding == .function_body_v13;
 }
 
-fn callStrategyTag(strategy: program.CallStrategy) u8 {
-    return switch (strategy) {
-        .inline_expansion => 0,
-        .relation_backed => 1,
-    };
+fn encodingHasFunctionBody(encoding: Encoding) bool {
+    return encoding == .function_body_v13;
 }
+
+const writeFunctionBody = manifest_encoding.writeFunctionBody;
+const writeCommittedProgramControlTarget = manifest_encoding.writeCommittedProgramControlTarget;
+const writeConditionalAccessPlan = manifest_encoding.writeConditionalAccessPlan;
+const writeRelationBinding = manifest_encoding.writeRelationBinding;
+const writeNode = manifest_encoding.writeNode;
+const writeType = manifest_encoding.writeType;
+const writeSpan = manifest_encoding.writeSpan;
+const writePosition = manifest_encoding.writePosition;
+const writeName = manifest_encoding.writeName;
+const writeString = manifest_encoding.writeString;
+const writeValues = manifest_encoding.writeValues;
+const writeBinary = manifest_encoding.writeBinary;
+const writeValueId = manifest_encoding.writeValueId;
+const writeOptionalValueId = manifest_encoding.writeOptionalValueId;
+const writeOptionalFunctionId = manifest_encoding.writeOptionalFunctionId;
+const writeHintBindingTarget = manifest_encoding.writeHintBindingTarget;
+const writeOptionalInt = manifest_encoding.writeOptionalInt;
+const writeCount = manifest_encoding.writeCount;
+const writeInt = manifest_encoding.writeInt;
+const arrayElementTag = manifest_encoding.arrayElementTag;
+const constraintCategoryTag = manifest_encoding.constraintCategoryTag;
+const effectKindTag = manifest_encoding.effectKindTag;
+const callStrategyTag = manifest_encoding.callStrategyTag;

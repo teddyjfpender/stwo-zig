@@ -18,25 +18,37 @@ pub fn execute(graph: anytype, options: anytype) anyerror!@TypeOf(graph.report()
     if (graph.executed) return error.TaskGraphAlreadyExecuted;
     if (graph.count != graph.capacity) return error.TaskCountMismatch;
     _ = try work_pool.WorkerBudget.init(options.worker_budget.count);
-    if (options.worker_budget.count > 1 and options.pool == null) {
+    if (options.pool != null and options.retained_lease != null) {
+        return error.AmbiguousWorkLeaseOwnership;
+    }
+    if (options.retained_lease) |retained| {
+        try retained.validateRetained(options.worker_budget);
+    }
+    if (options.worker_budget.count > 1 and
+        options.pool == null and
+        options.retained_lease == null)
+    {
         return error.WorkPoolRequired;
     }
     if (options.task_profile_recorder != null) {
         try task_graph_profile.validateConfiguration(
             options.requested_worker_count orelse options.worker_budget.count,
             options.worker_budget.count,
-            options.pool_capacity orelse
-                if (options.pool) |pool| pool.workerCount() else 1,
+            executionPoolCapacity(options),
         );
     }
     const admission = try finalizePlan(graph, options);
 
     var lease_storage: work_pool.WorkLease = undefined;
-    const lease: ?*work_pool.WorkLease = if (options.pool) |pool| lease: {
+    var owns_lease = false;
+    const lease: ?*work_pool.WorkLease = if (options.retained_lease) |retained|
+        retained
+    else if (options.pool) |pool| lease: {
         lease_storage = try pool.acquire(options.worker_budget);
+        owns_lease = true;
         break :lease &lease_storage;
     } else null;
-    defer if (lease) |active_lease| active_lease.deinit();
+    defer if (owns_lease) lease.?.deinit();
 
     graph.executed = true;
     graph.ready_policy = options.ready_policy;
@@ -157,8 +169,7 @@ pub fn execute(graph: anytype, options: anytype) anyerror!@TypeOf(graph.report()
                 .requested_workers = options.requested_worker_count orelse
                     options.worker_budget.count,
                 .admitted_workers = options.worker_budget.count,
-                .pool_capacity = options.pool_capacity orelse
-                    if (options.pool) |pool| pool.workerCount() else 1,
+                .pool_capacity = executionPoolCapacity(options),
                 .worker_stack_bytes = execution_report.admitted_worker_stack_bytes,
                 .peak_active_tasks = execution_report.peak_active_tasks,
                 .planned_tasks = graph.count,
@@ -215,7 +226,9 @@ fn finalizePlan(graph: anytype, options: anytype) !ResourceAdmission {
         graph.slots[reverse_index].remaining_dependency_level = remaining_level;
     }
 
-    const stack_size = if (options.pool) |pool|
+    const stack_size = if (options.retained_lease) |retained|
+        retained.stackSize()
+    else if (options.pool) |pool|
         pool.stackSize()
     else
         work_pool.WORKER_STACK_SIZE;
@@ -266,6 +279,16 @@ fn finalizePlan(graph: anytype, options: anytype) !ResourceAdmission {
         .baseline_bytes = baseline_bytes,
         .scratch_budget = scratch_budget,
     };
+}
+
+fn executionPoolCapacity(options: anytype) usize {
+    return options.pool_capacity orelse
+        if (options.retained_lease) |retained|
+            retained.poolCapacity()
+        else if (options.pool) |pool|
+            pool.workerCount()
+        else
+            1;
 }
 
 fn collectReady(
@@ -399,6 +422,7 @@ fn RunEnvelope(comptime GraphPointer: type) type {
                 _ = graph.duplicate_starts.fetchAdd(1, .monotonic);
             }
             slot.started = true;
+            if (graph.active_capture) |capture| capture.outerWorkerStarted();
             if (envelope.profile_event) |event| {
                 event.started = true;
                 event.start_ns = start_candidate_ns;
@@ -420,6 +444,7 @@ fn RunEnvelope(comptime GraphPointer: type) type {
                         event.finish_ns = capture.sample();
                     }
                 }
+                if (graph.active_capture) |capture| capture.outerWorkerFinished();
                 _ = graph.finished.fetchAdd(1, .release);
             }
 
@@ -433,6 +458,10 @@ fn RunEnvelope(comptime GraphPointer: type) type {
                 .exclusive_lease = envelope.exclusive_lease,
                 .child_wait_group = if (slot.class == .pool_exclusive)
                     &child_wait_group
+                else
+                    null,
+                .child_worker_observer = if (graph.active_capture) |capture|
+                    capture.childWorkerObserver()
                 else
                     null,
                 .profile_event = envelope.profile_event,

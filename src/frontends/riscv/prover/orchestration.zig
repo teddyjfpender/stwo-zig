@@ -50,16 +50,25 @@
 const std = @import("std");
 const pcs_core = @import("stwo_core").pcs;
 const prover_engine = @import("stwo_prover_engine").engine;
+const work_pool = @import("stwo_prover_engine").work_pool;
+const prover_api = @import("stwo_prover_api");
 const stage_profile = @import("stwo_prover_api").stage_profile;
+const lookup_physical_v2 = @import("../air/lang/lookup_physical_manifest_v2.zig");
+const opcode_interaction = @import("../air/lookups/opcode_interaction.zig");
 const relation_challenges = @import("../air/relation_challenges.zig");
+const public_data_v2 = @import("../air/public_data_v2.zig");
+const statement_v2 = @import("../air/statement_v2.zig");
 const trace_mod = @import("../runner/trace.zig");
 const memory_state = @import("../runner/memory_state.zig");
+const runner_result = @import("../runner/result.zig");
 const state_chain = @import("../runner/state_chain.zig");
 const commitment_witness = @import("commitment_witness.zig");
 const interaction_trace = @import("interaction_trace.zig");
 const main_trace = @import("main_trace.zig");
 const preprocessed_trace = @import("preprocessed.zig");
 const proof_finalize = @import("proof_finalize.zig");
+const proof_phase_meter = @import("proof_phase_meter.zig");
+const poseidon_witness_work = @import("poseidon_witness_work.zig");
 const proof_workspace = @import("proof_workspace.zig");
 const relation_diagnostic = @import("relation_diagnostic.zig");
 const statement_geometry = @import("statement_geometry.zig");
@@ -76,10 +85,113 @@ const ProverError = types.ProverError;
 const RiscVInteractionClaim = types.RiscVInteractionClaim;
 const RiscVStatement = types.RiscVStatement;
 const RunMode = types.RunMode;
-const RunOutput = types.RunOutput;
+const RunOutputForEngine = types.RunOutputForEngine;
+const ProveOutputV2ForEngine = types.ProveOutputV2ForEngine;
 
 pub const TestWitnessMutation = test_witness_hook.Mutation;
 pub const TestTraceDump = test_trace_dump.Capture;
+
+/// Proof-local, fail-closed statement admission invoked after the production
+/// statement has been derived but before transcript binding or any trace-tree
+/// construction. The opaque context lets product boundaries compare a
+/// statement with sealed request metadata without rebuilding its commitment
+/// witness solely for preflight.
+pub const StatementAdmission = struct {
+    context: *anyopaque,
+    admit_fn: *const fn (*anyopaque, *const RiscVStatement) anyerror!void,
+
+    pub fn admit(self: StatementAdmission, statement: *const RiscVStatement) !void {
+        try self.admit_fn(self.context, statement);
+    }
+};
+
+pub const StatementAdmissionV2 = struct {
+    context: *anyopaque,
+    admit_fn: *const fn (*anyopaque, *const statement_v2.RiscVStatementV2) anyerror!void,
+
+    pub fn admit(
+        self: StatementAdmissionV2,
+        statement: *const statement_v2.RiscVStatementV2,
+    ) !void {
+        try self.admit_fn(self.context, statement);
+    }
+};
+
+/// One value-only CPU resource request shared by every migrated proving stage.
+/// A null request keeps the predecessor scheduling path. An explicit request
+/// owns one proof-scoped pool shared by Tree 1, Tree 2, quotient composition,
+/// and commitment openings, so nested executors cannot invent independent
+/// worker budgets.
+pub const ExecutionOptions = struct {
+    cpu: ?prover_api.CpuCompositionExecutionRequest = null,
+    /// Optional product policy over the exact derived statement. Rejection
+    /// occurs before Fiat-Shamir state or trace commitments are mutated.
+    statement_admission: ?StatementAdmission = null,
+};
+
+pub const ExecutionOptionsV2 = struct {
+    cpu: ?prover_api.CpuCompositionExecutionRequest = null,
+    statement_admission: ?StatementAdmissionV2 = null,
+};
+
+pub const LookupLayoutV2 = enum {
+    compatibility,
+    authenticated_physical_v2,
+};
+
+/// Stable-address owner for the one CPU worker pool shared by a proving
+/// transaction. The CPU request remains value-only; the scoped binding lets
+/// later prover stages resolve this exact pool without threading an executor
+/// implementation pointer through the public engine API.
+pub const ProofExecutionPool = struct {
+    pool: work_pool.WorkPool = undefined,
+    binding: work_pool.ScopedPoolBinding = undefined,
+    pool_initialized: bool = false,
+    binding_initialized: bool = false,
+
+    /// Initializes in final storage because `WorkPool` workers retain its
+    /// address. Returning an initialized owner by value would be a use-after-
+    /// move bug, hence the explicit in-place contract.
+    pub fn initInPlace(
+        self: *ProofExecutionPool,
+        allocator: std.mem.Allocator,
+        request: ?prover_api.CpuCompositionExecutionRequest,
+    ) !void {
+        self.* = .{};
+        const explicit = request orelse return;
+        _ = try work_pool.WorkerBudget.init(explicit.worker_count);
+        if (explicit.worker_count == 1) return;
+
+        try self.pool.initInPlaceWithOptions(.{
+            .worker_count = explicit.worker_count,
+            .stack_size = work_pool.WORKER_STACK_SIZE,
+            .backing_allocator = allocator,
+        });
+        self.pool_initialized = true;
+        errdefer {
+            self.pool.deinit();
+            self.pool_initialized = false;
+        }
+
+        self.binding = try work_pool.ScopedPoolBinding.init(&self.pool);
+        self.binding_initialized = true;
+    }
+
+    pub fn deinit(self: *ProofExecutionPool) void {
+        if (self.binding_initialized) {
+            self.binding.deinit();
+            self.binding_initialized = false;
+        }
+        if (self.pool_initialized) {
+            self.pool.deinit();
+            self.pool_initialized = false;
+        }
+    }
+
+    pub fn get(self: *ProofExecutionPool) ?*work_pool.WorkPool {
+        return if (self.pool_initialized) &self.pool else null;
+    }
+};
 
 pub fn runRiscVWithEngineAndPublicData(
     comptime Engine: type,
@@ -91,7 +203,7 @@ pub fn runRiscVWithEngineAndPublicData(
     opt_memory: ?*const memory_state.Snapshot,
     recorder: ?*stage_profile.Recorder,
     public_data: PublicData,
-) !RunOutput(mode) {
+) !RunOutputForEngine(Engine, mode) {
     var channel = Engine.Channel{};
     return runRiscVWithEngineAndPublicDataUsingChannel(
         Engine,
@@ -106,6 +218,36 @@ pub fn runRiscVWithEngineAndPublicData(
         &channel,
         null,
         null,
+    );
+}
+
+pub fn runRiscVWithEngineAndPublicDataWithExecution(
+    comptime Engine: type,
+    comptime mode: RunMode,
+    allocator: std.mem.Allocator,
+    pcs_config: pcs_core.PcsConfig,
+    exec_trace: *const trace_mod.Trace,
+    opt_chain: ?*const state_chain.StateChainTracker,
+    opt_memory: ?*const memory_state.Snapshot,
+    recorder: ?*stage_profile.Recorder,
+    public_data: PublicData,
+    execution: ExecutionOptions,
+) !RunOutputForEngine(Engine, mode) {
+    var channel = Engine.Channel{};
+    return runRiscVWithEngineAndPublicDataUsingChannelAndExecution(
+        Engine,
+        mode,
+        allocator,
+        pcs_config,
+        exec_trace,
+        opt_chain,
+        opt_memory,
+        recorder,
+        public_data,
+        &channel,
+        null,
+        null,
+        execution,
     );
 }
 
@@ -131,12 +273,112 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
     channel: *Engine.Channel,
     test_mutation: ?TestWitnessMutation,
     test_dump: ?*TestTraceDump,
-) !RunOutput(mode) {
+) !RunOutputForEngine(Engine, mode) {
+    return runRiscVWithEngineAndPublicDataUsingChannelAndExecution(
+        Engine,
+        mode,
+        allocator,
+        pcs_config,
+        exec_trace,
+        opt_chain,
+        opt_memory,
+        recorder,
+        public_data,
+        channel,
+        test_mutation,
+        test_dump,
+        .{},
+    );
+}
+
+pub fn runRiscVWithEngineAndPublicDataUsingChannelAndExecution(
+    comptime Engine: type,
+    comptime mode: RunMode,
+    allocator: std.mem.Allocator,
+    pcs_config: pcs_core.PcsConfig,
+    exec_trace: *const trace_mod.Trace,
+    opt_chain: ?*const state_chain.StateChainTracker,
+    opt_memory: ?*const memory_state.Snapshot,
+    recorder: ?*stage_profile.Recorder,
+    public_data: PublicData,
+    channel: *Engine.Channel,
+    test_mutation: ?TestWitnessMutation,
+    test_dump: ?*TestTraceDump,
+    execution: ExecutionOptions,
+) !RunOutputForEngine(Engine, mode) {
+    return runRiscVWithEngineAndPublicDataUsingChannelWithControls(
+        Engine,
+        mode,
+        allocator,
+        pcs_config,
+        exec_trace,
+        opt_chain,
+        opt_memory,
+        recorder,
+        public_data,
+        channel,
+        test_mutation,
+        test_dump,
+        execution,
+        null,
+    );
+}
+
+/// Opt-in measurement boundary for a production proof. Scheduling remains the
+/// ordinary predecessor policy; the borrowed meter observes only the five
+/// non-overlapping witness-materialization regions and owns no proof state.
+pub fn runRiscVWithEngineAndPublicDataUsingChannelAndPhaseMeter(
+    comptime Engine: type,
+    comptime mode: RunMode,
+    allocator: std.mem.Allocator,
+    pcs_config: pcs_core.PcsConfig,
+    exec_trace: *const trace_mod.Trace,
+    opt_chain: ?*const state_chain.StateChainTracker,
+    opt_memory: ?*const memory_state.Snapshot,
+    recorder: ?*stage_profile.Recorder,
+    public_data: PublicData,
+    channel: *Engine.Channel,
+    phase_meter: *proof_phase_meter.Meter,
+) !RunOutputForEngine(Engine, mode) {
+    return runRiscVWithEngineAndPublicDataUsingChannelWithControls(
+        Engine,
+        mode,
+        allocator,
+        pcs_config,
+        exec_trace,
+        opt_chain,
+        opt_memory,
+        recorder,
+        public_data,
+        channel,
+        null,
+        null,
+        .{},
+        phase_meter,
+    );
+}
+
+fn runRiscVWithEngineAndPublicDataUsingChannelWithControls(
+    comptime Engine: type,
+    comptime mode: RunMode,
+    allocator: std.mem.Allocator,
+    pcs_config: pcs_core.PcsConfig,
+    exec_trace: *const trace_mod.Trace,
+    opt_chain: ?*const state_chain.StateChainTracker,
+    opt_memory: ?*const memory_state.Snapshot,
+    recorder: ?*stage_profile.Recorder,
+    public_data: PublicData,
+    channel: *Engine.Channel,
+    test_mutation: ?TestWitnessMutation,
+    test_dump: ?*TestTraceDump,
+    execution: ExecutionOptions,
+    phase_meter: ?*proof_phase_meter.Meter,
+) !RunOutputForEngine(Engine, mode) {
     comptime @import("stwo_prover_api").assertProverEngine(Engine);
     const workspace = try ProofWorkspace.create(allocator);
     defer workspace.destroy(allocator);
 
-    var output: RunOutput(mode) = undefined;
+    var output: RunOutputForEngine(Engine, mode) = undefined;
     try proveStages(
         Engine,
         mode,
@@ -152,246 +394,224 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
         channel,
         test_mutation,
         test_dump,
+        execution,
+        phase_meter,
     );
     return output;
 }
 
-/// Executes every proving stage against workspace-resident storage. `!void` and
-/// the out-pointer are deliberate: see the module note on frame slots.
-///
-/// The `defer`s here, and not inside the stages, are the ones whose buffers are
-/// still borrowed by a *later* stage: composition reads the interaction scratch,
-/// and `Engine.prove` reads the components that borrow it, so nothing acquired
-/// for Tree 2 may be released before proving returns.
-fn proveStages(
+/// Proves one authenticated resumable runner segment under the V2 transcript.
+/// This entrypoint is deliberately separate from every V1 wrapper: selecting
+/// V2 is a compile-time call-site decision and adds no branch to legacy proof
+/// or benchmark transactions.
+pub fn runRiscVSegmentV2WithEngine(
     comptime Engine: type,
-    comptime mode: RunMode,
-    workspace: *ProofWorkspace,
-    output: *RunOutput(mode),
     allocator: std.mem.Allocator,
     pcs_config: pcs_core.PcsConfig,
-    exec_trace: *const trace_mod.Trace,
-    opt_chain: ?*const state_chain.StateChainTracker,
-    opt_memory: ?*const memory_state.Snapshot,
+    result: *const runner_result.SegmentResult,
     recorder: ?*stage_profile.Recorder,
-    public_data: PublicData,
-    channel: *Engine.Channel,
-    test_mutation: ?TestWitnessMutation,
-    test_dump: ?*TestTraceDump,
-) !void {
-    if (exec_trace.step_count == 0) return ProverError.EmptyTrace;
-
-    var derived = try derive(mode, allocator, workspace, exec_trace, opt_chain, opt_memory, public_data);
-    defer derived.witness.deinit(allocator);
-    const witness = &derived.witness;
-    const geometry = derived.geometry;
-    const statement = &workspace.statement;
-
-    // Security geometry is part of the RISC-V Fiat–Shamir statement. This
-    // prevents a proof under one profile from sharing a transcript prefix with
-    // another profile even when every execution field is identical.
-    pcs_config.mixInto(channel);
-    statement.public_data.mixInto(channel);
-
-    var scheme = try Engine.init(allocator, pcs_config);
-    var scheme_owned = true;
-    defer if (scheme_owned) Engine.deinit(&scheme, allocator);
-
-    var retained_tree0: ?relation_diagnostic.RetainedTree = null;
-    defer if (retained_tree0) |*tree| tree.deinit(allocator);
-    var retained_tree1: ?relation_diagnostic.RetainedTree = null;
-    defer if (retained_tree1) |*tree| tree.deinit(allocator);
-
-    try preprocessed_trace.generateAndCommit(
-        Engine,
-        mode,
-        allocator,
-        statement,
-        &scheme,
-        channel,
-        recorder,
-        test_mutation,
-        &retained_tree0,
-    );
-
-    var retained = try main_trace.generateAndCommit(
-        Engine,
-        mode,
-        allocator,
-        workspace,
-        &scheme,
-        channel,
-        recorder,
-        exec_trace,
-        witness,
-        geometry,
-        opt_chain,
-        test_mutation,
-        test_dump,
-        &retained_tree1,
-    );
-    defer retained.deinit(allocator, workspace);
-
-    if (comptime mode == .prove) logProofGeometry(statement, geometry, witness.poseidonCalls().len);
-
-    const transcript_prefix = try interaction_trace.drawChallenges(Engine, mode, allocator, channel, statement);
-
-    const interaction_claim = try allocator.create(RiscVInteractionClaim);
-    var interaction_claim_owned = true;
-    defer if (interaction_claim_owned) allocator.destroy(interaction_claim);
-
-    try interaction_trace.generateAndCommit(
+    public_data: public_data_v2.PublicDataV2,
+) !ProveOutputV2ForEngine(Engine) {
+    var transcript_channel = Engine.Channel{};
+    return runRiscVSegmentV2WithEngineUsingChannelAndExecution(
         Engine,
         allocator,
-        workspace,
-        &scheme,
-        channel,
+        pcs_config,
+        result,
         recorder,
-        witness,
-        geometry,
-        &retained.lookup_source,
-        &transcript_prefix,
-        interaction_claim,
+        public_data,
+        &transcript_channel,
+        .{},
     );
-
-    // Exported here and not at the commit point because this is the first
-    // instant at which all four exported artefacts coexist: the opcode buffers
-    // Tree 1 was copied from, the challenges Tree 2 was built under, and the
-    // claims Tree 2 produced. The run continues to a real proof afterwards.
-    if (test_dump) |dump| try dump.record(
-        statement,
-        &transcript_prefix.relations,
-        interaction_claim,
-    );
-
-    if (comptime mode == .relation_diagnostic) {
-        output.* = try buildDiagnostic(
-            Engine,
-            allocator,
-            statement,
-            &scheme,
-            &retained_tree0.?,
-            &retained_tree1.?,
-            transcript_prefix.relations,
-            interaction_claim,
-        );
-        return;
-    }
-
-    scheme_owned = false;
-    const proof = try proof_finalize.prove(
-        Engine,
-        allocator,
-        recorder,
-        scheme,
-        channel,
-        workspace,
-        &transcript_prefix.relations,
-        interaction_claim,
-        statement.nOpcodeMainColumns() + statement.nInfraColumns(),
-        statement.nInteractionColumns(),
-    );
-    interaction_claim_owned = false;
-    output.* = .{
-        .statement = statement.*,
-        .proof = proof,
-        .interaction_claim = interaction_claim,
-    };
 }
 
-/// Everything the proof is derived from, before the transcript opens.
-const Derived = struct {
-    witness: CommitmentWitness,
-    geometry: Geometry,
-};
-
-/// Derives the commitment witness and admits the statement it implies.
-///
-/// Nothing here touches the channel. That is the point of the boundary: the
-/// whole derivation is a function of the execution alone, so a statement the
-/// witness does not support is rejected before a single transcript event has
-/// been mixed, and a rejected run leaves the caller's channel untouched.
-///
-/// The witness is **transferred** to the caller, which releases it once every
-/// stage that takes views into it has finished.
-fn derive(
-    comptime mode: RunMode,
-    allocator: std.mem.Allocator,
-    workspace: *ProofWorkspace,
-    exec_trace: *const trace_mod.Trace,
-    opt_chain: ?*const state_chain.StateChainTracker,
-    opt_memory: ?*const memory_state.Snapshot,
-    public_data: PublicData,
-) !Derived {
-    var bound_public_data = public_data;
-    try commitment_witness.bindCompletion(&bound_public_data, exec_trace.final_pc, opt_memory);
-
-    var witness = try CommitmentWitness.build(
-        allocator,
-        exec_trace,
-        opt_memory,
-        bound_public_data.completion.?,
-    );
-    errdefer witness.deinit(allocator);
-
-    // The two policies are one-to-one with the run modes; `statement_validation`
-    // owns whatever difference they carry.
-    const policy: statement_validation.AdmissionPolicy = switch (mode) {
-        .prove => .proof,
-        .relation_diagnostic => .relation_diagnostic,
-    };
-    const geometry = try statement_geometry.build(
-        allocator,
-        workspace,
-        exec_trace,
-        &witness,
-        opt_chain,
-        bound_public_data,
-        policy,
-    );
-    return .{ .witness = witness, .geometry = geometry };
-}
-
-/// CP-11 relation evidence over the three roots this run committed.
-///
-/// The tree-shape guard is not defensive: `relation_diagnostic` indexes the
-/// roots positionally, so a scheme that committed a different number of trees
-/// would silently attribute one tree's root to another.
-fn buildDiagnostic(
+pub fn runRiscVSegmentV2WithEngineUsingChannel(
     comptime Engine: type,
     allocator: std.mem.Allocator,
-    statement: *const RiscVStatement,
-    scheme: *const Engine.Scheme,
-    tree0: *const relation_diagnostic.RetainedTree,
-    tree1: *const relation_diagnostic.RetainedTree,
-    relations: relation_challenges.Relations,
-    claim: *const RiscVInteractionClaim,
-) !types.RelationDiagnostic {
-    if (scheme.trees.items.len != 3) return error.InvalidTreeShape;
-    return relation_diagnostic.build(allocator, statement, tree0, tree1, .{
-        scheme.trees.items[0].root(),
-        scheme.trees.items[1].root(),
-        scheme.trees.items[2].root(),
-    }, relations, claim);
+    pcs_config: pcs_core.PcsConfig,
+    result: *const runner_result.SegmentResult,
+    recorder: ?*stage_profile.Recorder,
+    public_data: public_data_v2.PublicDataV2,
+    transcript_channel: *Engine.Channel,
+) !ProveOutputV2ForEngine(Engine) {
+    return runRiscVSegmentV2WithEngineUsingChannelAndExecution(
+        Engine,
+        allocator,
+        pcs_config,
+        result,
+        recorder,
+        public_data,
+        transcript_channel,
+        .{},
+    );
 }
 
-/// Column counts of the committed trees, once per proving run.
-fn logProofGeometry(
-    statement: *const RiscVStatement,
-    geometry: Geometry,
-    n_poseidon_calls: usize,
-) void {
-    const n_opcode_main = statement.nOpcodeMainColumns();
-    const n_infra_main = statement.nInfraColumns();
-    std.log.info("Columns: opcode={d} infra={d} total tree1={d} interaction={d}", .{
-        n_opcode_main,
-        n_infra_main,
-        n_opcode_main + n_infra_main,
-        statement.nInteractionColumns(),
-    });
-    std.log.info("Poseidon2 Merkle: {d} exact sparse-node calls, poseidon_log_size={d}, merkle_log_size={d}", .{
-        n_poseidon_calls,
-        geometry.poseidon_log_size,
-        geometry.merkle_log_size,
-    });
+pub fn runRiscVSegmentV2WithEngineUsingChannelAndExecution(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    pcs_config: pcs_core.PcsConfig,
+    result: *const runner_result.SegmentResult,
+    recorder: ?*stage_profile.Recorder,
+    public_data: public_data_v2.PublicDataV2,
+    transcript_channel: *Engine.Channel,
+    execution: ExecutionOptionsV2,
+) !ProveOutputV2ForEngine(Engine) {
+    return runRiscVSegmentV2WithEngineUsingChannelAndExecutionLayout(
+        Engine,
+        .compatibility,
+        allocator,
+        pcs_config,
+        result,
+        recorder,
+        public_data,
+        transcript_channel,
+        execution,
+    );
 }
+
+/// Explicit selected-lookup protocol. It shares V2 public-data semantics but
+/// binds and commits the authenticated 137-batch physical lookup statement.
+pub fn runRiscVSegmentLookupV2WithEngine(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    pcs_config: pcs_core.PcsConfig,
+    result: *const runner_result.SegmentResult,
+    recorder: ?*stage_profile.Recorder,
+    public_data: public_data_v2.PublicDataV2,
+) !ProveOutputV2ForEngine(Engine) {
+    var transcript_channel = Engine.Channel{};
+    return runRiscVSegmentLookupV2WithEngineUsingChannel(
+        Engine,
+        allocator,
+        pcs_config,
+        result,
+        recorder,
+        public_data,
+        &transcript_channel,
+    );
+}
+
+pub fn runRiscVSegmentLookupV2WithEngineUsingChannel(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    pcs_config: pcs_core.PcsConfig,
+    result: *const runner_result.SegmentResult,
+    recorder: ?*stage_profile.Recorder,
+    public_data: public_data_v2.PublicDataV2,
+    transcript_channel: *Engine.Channel,
+) !ProveOutputV2ForEngine(Engine) {
+    return runRiscVSegmentV2WithEngineUsingChannelAndExecutionLayout(
+        Engine,
+        .authenticated_physical_v2,
+        allocator,
+        pcs_config,
+        result,
+        recorder,
+        public_data,
+        transcript_channel,
+        .{},
+    );
+}
+
+/// Proof-independent admission for the statement-wide selected lookup cohort.
+/// It executes the production witness/geometry derivation, requires the exact
+/// seventeen-family manifest permutation, and returns the transcript token
+/// that proving will reconstruct. No commitment or Fiat-Shamir state is made.
+pub const LookupV2FullCohortInspection = struct {
+    activation: lookup_physical_v2.AuthenticatedStatement,
+    infrastructure_count: u32,
+    compatibility_opcode_interaction_columns: u32,
+    infrastructure_interaction_columns: u32,
+    compatibility_interaction_columns: u32,
+    selected_interaction_columns: usize,
+};
+
+pub fn inspectRiscVSegmentLookupV2FullCohort(
+    allocator: std.mem.Allocator,
+    result: *const runner_result.SegmentResult,
+    public_data: public_data_v2.PublicDataV2,
+) !LookupV2FullCohortInspection {
+    const workspace = try ProofWorkspace.create(allocator);
+    defer workspace.destroy(allocator);
+    var derived = try deriveV2(allocator, workspace, result, null, public_data);
+    defer derived.witness.deinit(allocator);
+
+    var manifest = lookup_physical_v2.Manifest.native();
+    if (workspace.statement.n_components != lookup_physical_v2.FAMILY_COUNT)
+        return error.InvalidStatementGeometry;
+    for (workspace.statement.component_descs[0..workspace.statement.n_components], 0..) |
+        descriptor,
+        index,
+    | {
+        if (descriptor.family != manifest.entries[index].family)
+            return error.InvalidFamilyOrder;
+    }
+    const activation = try lookup_physical_v2.AuthenticatedStatement.init(
+        &workspace.statement,
+        &manifest,
+    );
+    var compatibility_opcode_columns: u32 = 0;
+    for (workspace.statement.component_descs[0..workspace.statement.n_components]) |
+        descriptor,
+    | {
+        compatibility_opcode_columns = std.math.add(
+            u32,
+            compatibility_opcode_columns,
+            @intCast(opcode_interaction.nColumns(descriptor.family)),
+        ) catch return error.InvalidStatementGeometry;
+    }
+    const compatibility_total = workspace.statement.nInteractionColumns();
+    const infrastructure_columns = std.math.sub(
+        u32,
+        compatibility_total,
+        compatibility_opcode_columns,
+    ) catch return error.InvalidStatementGeometry;
+    return .{
+        .activation = activation,
+        .infrastructure_count = workspace.statement.n_infra,
+        .compatibility_opcode_interaction_columns = compatibility_opcode_columns,
+        .infrastructure_interaction_columns = infrastructure_columns,
+        .compatibility_interaction_columns = compatibility_total,
+        .selected_interaction_columns = try activation.totalInteractionColumns(
+            &workspace.statement,
+            &manifest,
+        ),
+    };
+}
+
+fn runRiscVSegmentV2WithEngineUsingChannelAndExecutionLayout(
+    comptime Engine: type,
+    comptime lookup_layout: LookupLayoutV2,
+    allocator: std.mem.Allocator,
+    pcs_config: pcs_core.PcsConfig,
+    result: *const runner_result.SegmentResult,
+    recorder: ?*stage_profile.Recorder,
+    public_data: public_data_v2.PublicDataV2,
+    transcript_channel: *Engine.Channel,
+    execution: ExecutionOptionsV2,
+) !ProveOutputV2ForEngine(Engine) {
+    comptime @import("stwo_prover_api").assertProverEngine(Engine);
+    const workspace = try ProofWorkspace.create(allocator);
+    defer workspace.destroy(allocator);
+
+    var output: ProveOutputV2ForEngine(Engine) = undefined;
+    try proveStagesV2(
+        Engine,
+        lookup_layout,
+        workspace,
+        &output,
+        allocator,
+        pcs_config,
+        result,
+        recorder,
+        public_data,
+        transcript_channel,
+        execution,
+    );
+    return output;
+}
+
+const stages = @import("orchestration_stages.zig").Ops(@This());
+const proveStagesV2 = stages.proveStagesV2;
+const proveStages = stages.proveStages;
+const deriveV2 = stages.deriveV2;

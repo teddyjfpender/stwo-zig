@@ -130,58 +130,87 @@ COMMON_SOURCE_PATHS = (
 )
 
 FAMILY_SEMANTIC_PATHS = {
-    "base_alu_reg": ("src/frontends/riscv/air/semantics/base_alu_reg.zig",),
-    "base_alu_imm": ("src/frontends/riscv/air/semantics/base_alu_imm.zig",),
+    "base_alu_reg": (
+        "src/frontends/riscv/air/lang/typed_base_alu_reg.zig",
+        "src/frontends/riscv/air/lang/typed_base_alu_reg_authority.zig",
+    ),
+    "base_alu_imm": (
+        "src/frontends/riscv/air/lang/typed_addi.zig",
+        "src/frontends/riscv/air/lang/typed_base_alu_imm_authority.zig",
+    ),
     "shifts_reg": (
-        "src/frontends/riscv/air/semantics/shift_common.zig",
-        "src/frontends/riscv/air/semantics/shifts_reg.zig",
+        "src/frontends/riscv/air/lang/fixed_shift_common.zig",
+        "src/frontends/riscv/air/lang/typed_shifts_reg.zig",
+        "src/frontends/riscv/air/lang/typed_shifts_reg_authority.zig",
     ),
     "shifts_imm": (
-        "src/frontends/riscv/air/semantics/shift_common.zig",
-        "src/frontends/riscv/air/semantics/shifts_imm.zig",
+        "src/frontends/riscv/air/lang/fixed_shift_common.zig",
+        "src/frontends/riscv/air/lang/typed_shifts_imm.zig",
+        "src/frontends/riscv/air/lang/typed_shifts_imm_authority.zig",
     ),
-    "lt_reg": ("src/frontends/riscv/air/semantics/lt_reg.zig",),
-    "lt_imm": ("src/frontends/riscv/air/semantics/lt_imm.zig",),
+    "lt_reg": (
+        "src/frontends/riscv/air/lang/typed_lt_reg.zig",
+        "src/frontends/riscv/air/lang/typed_lt_reg_authority.zig",
+        "src/frontends/riscv/air/lang/typed_lt_reg_constraints.zig",
+    ),
+    "lt_imm": (
+        "src/frontends/riscv/air/lang/typed_lt_imm.zig",
+        "src/frontends/riscv/air/lang/typed_lt_imm_authority.zig",
+        "src/frontends/riscv/air/lang/typed_lt_imm_constraints.zig",
+    ),
     "branch_eq": (
-        "src/frontends/riscv/air/semantics/branch_eq.zig",
-        "src/frontends/riscv/air/semantics/control_common.zig",
+        "src/frontends/riscv/air/lang/typed_branch_eq.zig",
+        "src/frontends/riscv/air/lang/typed_branch_eq_authority.zig",
+        "src/frontends/riscv/air/lang/typed_branch_eq_constraints.zig",
     ),
     "branch_lt": (
-        "src/frontends/riscv/air/semantics/branch_lt.zig",
-        "src/frontends/riscv/air/semantics/control_common.zig",
+        "src/frontends/riscv/air/lang/typed_branch_lt.zig",
+        "src/frontends/riscv/air/lang/typed_branch_lt_authority.zig",
+        "src/frontends/riscv/air/lang/typed_branch_lt_constraints.zig",
     ),
     "lui": (
-        "src/frontends/riscv/air/semantics/control_common.zig",
-        "src/frontends/riscv/air/semantics/lui.zig",
+        "src/frontends/riscv/air/lang/typed_lui.zig",
+        "src/frontends/riscv/air/lang/typed_lui_authority.zig",
     ),
     "auipc": (
-        "src/frontends/riscv/air/semantics/auipc.zig",
-        "src/frontends/riscv/air/semantics/control_common.zig",
+        "src/frontends/riscv/air/lang/typed_auipc.zig",
+        "src/frontends/riscv/air/lang/typed_auipc_authority.zig",
+        "src/frontends/riscv/air/lang/typed_auipc_constraints.zig",
     ),
     "jalr": (
-        "src/frontends/riscv/air/semantics/control_common.zig",
-        "src/frontends/riscv/air/semantics/jalr.zig",
+        "src/frontends/riscv/air/lang/typed_jalr.zig",
+        "src/frontends/riscv/air/lang/typed_jalr_authority.zig",
+        "src/frontends/riscv/air/lang/typed_jalr_constraints.zig",
     ),
     "jal": (
-        "src/frontends/riscv/air/semantics/control_common.zig",
-        "src/frontends/riscv/air/semantics/jal.zig",
+        "src/frontends/riscv/air/lang/typed_jal.zig",
+        "src/frontends/riscv/air/lang/typed_jal_authority.zig",
+        "src/frontends/riscv/air/lang/typed_jal_constraints.zig",
     ),
-    "load_store": ("src/frontends/riscv/air/semantics/load_store.zig",),
+    "load_store": (
+        "src/frontends/riscv/air/lang/typed_load_store.zig",
+        "src/frontends/riscv/air/lang/typed_load_store_authority.zig",
+        "src/frontends/riscv/air/lang/typed_load_store_constraints.zig",
+    ),
     "mul": (
-        "src/frontends/riscv/air/semantics/control_common.zig",
-        "src/frontends/riscv/air/semantics/mul.zig",
+        "src/frontends/riscv/air/lang/typed_mul.zig",
+        "src/frontends/riscv/air/lang/typed_mul_authority.zig",
+        "src/frontends/riscv/air/lang/typed_mul_constraints.zig",
     ),
     "mulh": (
-        "src/frontends/riscv/air/semantics/control_common.zig",
-        "src/frontends/riscv/air/semantics/mulh.zig",
+        "src/frontends/riscv/air/lang/typed_mulh.zig",
+        "src/frontends/riscv/air/lang/typed_mulh_authority.zig",
+        "src/frontends/riscv/air/lang/typed_mulh_constraints.zig",
     ),
     "div": (
-        "src/frontends/riscv/air/semantics/control_common.zig",
-        "src/frontends/riscv/air/semantics/div.zig",
+        "src/frontends/riscv/air/lang/typed_div.zig",
+        "src/frontends/riscv/air/lang/typed_div_authority.zig",
+        "src/frontends/riscv/air/lang/typed_div_constraints.zig",
     ),
     "fence": (
-        "src/frontends/riscv/air/semantics/control_common.zig",
-        "src/frontends/riscv/air/semantics/fence.zig",
+        "src/frontends/riscv/air/lang/typed_fence.zig",
+        "src/frontends/riscv/air/lang/typed_fence_authority.zig",
+        "src/frontends/riscv/air/lang/typed_fence_constraints.zig",
     ),
 }
 

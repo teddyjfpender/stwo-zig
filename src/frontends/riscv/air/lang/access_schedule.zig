@@ -28,6 +28,16 @@ pub const RegisterReadInput = struct {
     value: [4]types.ValueId,
 };
 
+/// Compatibility form for a production trace that already commits distinct
+/// pre/post read limbs. Whole-program validation accepts it only when every
+/// pair is bound by the exact active-gated read-only constraint.
+pub const RegisterReadTransitionInput = struct {
+    index: types.ValueId,
+    previous_clock: types.ValueId,
+    previous: [4]types.ValueId,
+    next: [4]types.ValueId,
+};
+
 pub const RegisterWriteInput = struct {
     index: types.ValueId,
     previous_clock: types.ValueId,
@@ -116,6 +126,21 @@ pub const AccessSchedule = struct {
             input.previous_clock,
             input.value,
             input.value,
+            span,
+        );
+    }
+
+    pub fn registerReadTransition(
+        self: *AccessSchedule,
+        input: RegisterReadTransitionInput,
+        span: source.SourceSpan,
+    ) Error!RegisterAccessGroup {
+        return self.appendRegisterGroup(
+            .register_read,
+            input.index,
+            input.previous_clock,
+            input.previous,
+            input.next,
             span,
         );
     }

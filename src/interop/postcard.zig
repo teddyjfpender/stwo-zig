@@ -160,7 +160,7 @@ pub fn serializeProof(comptime H: type, writer: anytype, proof_arg: proof_mod.St
     // -- commitments: Vec<Hash> --
     try writeVarint(writer, csp.commitments.items.len);
     for (csp.commitments.items) |hash| {
-        try writer.writeAll(&hash);
+        try writeHash(H, writer, hash);
     }
 
     // -- sampled_values: Vec<Vec<Vec<QM31>>> --
@@ -180,7 +180,7 @@ pub fn serializeProof(comptime H: type, writer: anytype, proof_arg: proof_mod.St
     for (csp.decommitments.items) |decommitment| {
         try writeVarint(writer, decommitment.hash_witness.len);
         for (decommitment.hash_witness) |hash| {
-            try writer.writeAll(&hash);
+            try writeHash(H, writer, hash);
         }
     }
 
@@ -253,8 +253,7 @@ pub fn deserializeProof(
     const commitments_slice = try allocator.alloc(H.Hash, n_commitments);
     errdefer allocator.free(commitments_slice);
     for (commitments_slice) |*hash| {
-        const n = try reader.readAll(hash);
-        if (n != hash.len) return error.EndOfStream;
+        hash.* = try readHash(H, reader);
     }
     const commitments = pcs.TreeVec(H.Hash).initOwned(commitments_slice);
 
@@ -343,6 +342,45 @@ fn writeQm31(writer: anytype, value: QM31) !void {
     }
 }
 
+/// Serde-compatible fixed-array hash encoding. Existing Blake hashes retain
+/// their byte-for-byte `[u8; 32]` representation; recursion's `[u32; 8]`
+/// Poseidon digest is encoded as eight postcard u32 values, rejecting
+/// non-canonical M31 words on decode.
+fn writeHash(comptime H: type, writer: anytype, hash: H.Hash) !void {
+    const info = @typeInfo(H.Hash);
+    if (info != .array) @compileError("postcard proof hash must be a fixed array");
+    const Child = info.array.child;
+    if (Child == u8) {
+        try writer.writeAll(hash[0..]);
+    } else if (Child == u32) {
+        for (hash) |word| {
+            if (word >= m31_mod.Modulus) return error.NonCanonicalM31;
+            try writeU32(writer, word);
+        }
+    } else {
+        @compileError("unsupported postcard proof hash word type");
+    }
+}
+
+fn readHash(comptime H: type, reader: anytype) !H.Hash {
+    const info = @typeInfo(H.Hash);
+    if (info != .array) @compileError("postcard proof hash must be a fixed array");
+    const Child = info.array.child;
+    var hash: H.Hash = undefined;
+    if (Child == u8) {
+        const n = try reader.readAll(hash[0..]);
+        if (n != hash.len) return error.EndOfStream;
+    } else if (Child == u32) {
+        for (&hash) |*word| {
+            word.* = try readU32(reader);
+            if (word.* >= m31_mod.Modulus) return error.NonCanonicalM31;
+        }
+    } else {
+        @compileError("unsupported postcard proof hash word type");
+    }
+    return hash;
+}
+
 fn readQm31(reader: anytype) !QM31 {
     var coords: [4]M31 = undefined;
     for (&coords) |*c| {
@@ -360,9 +398,9 @@ fn writeFriLayer(comptime H: type, writer: anytype, layer: fri.FriLayerProof(H))
     }
     try writeVarint(writer, layer.decommitment.hash_witness.len);
     for (layer.decommitment.hash_witness) |hash| {
-        try writer.writeAll(&hash);
+        try writeHash(H, writer, hash);
     }
-    try writer.writeAll(&layer.commitment);
+    try writeHash(H, writer, layer.commitment);
 }
 
 fn readFriLayer(
@@ -381,13 +419,10 @@ fn readFriLayer(
     const hash_witness = try allocator.alloc(H.Hash, n_hashes);
     errdefer allocator.free(hash_witness);
     for (hash_witness) |*hash| {
-        const n = try reader.readAll(hash);
-        if (n != hash.len) return error.EndOfStream;
+        hash.* = try readHash(H, reader);
     }
 
-    var commitment: H.Hash = undefined;
-    const cn = try reader.readAll(&commitment);
-    if (cn != commitment.len) return error.EndOfStream;
+    const commitment = try readHash(H, reader);
 
     return .{
         .fri_witness = fri_witness,
@@ -485,8 +520,7 @@ fn readDecommitments(
         const hashes = try allocator.alloc(H.Hash, n_hashes);
         errdefer allocator.free(hashes);
         for (hashes) |*hash| {
-            const rd = try reader.readAll(hash);
-            if (rd != hash.len) return error.EndOfStream;
+            hash.* = try readHash(H, reader);
         }
         item.* = .{ .hash_witness = hashes };
         init_count += 1;
@@ -510,6 +544,37 @@ test "postcard: varint roundtrip" {
         const decoded = try readVarint(rbs.reader());
         try std.testing.expectEqual(value, decoded);
     }
+}
+
+test "postcard: canonical M31-word hashes roundtrip without byte reinterpretation" {
+    const WordHasher = struct {
+        pub const Hash = [8]u32;
+    };
+    const expected = WordHasher.Hash{
+        0,
+        1,
+        127,
+        128,
+        16_383,
+        16_384,
+        m31_mod.Modulus - 2,
+        m31_mod.Modulus - 1,
+    };
+    var bytes: [64]u8 = undefined;
+    var output = std.io.fixedBufferStream(&bytes);
+    try writeHash(WordHasher, output.writer(), expected);
+    var input = std.io.fixedBufferStream(output.getWritten());
+    try std.testing.expectEqual(expected, try readHash(WordHasher, input.reader()));
+    try std.testing.expectEqual(input.buffer.len, input.pos);
+
+    var malformed: [8]u8 = undefined;
+    var malformed_output = std.io.fixedBufferStream(&malformed);
+    try writeU32(malformed_output.writer(), m31_mod.Modulus);
+    var malformed_input = std.io.fixedBufferStream(malformed_output.getWritten());
+    try std.testing.expectError(
+        error.NonCanonicalM31,
+        readHash(WordHasher, malformed_input.reader()),
+    );
 }
 
 test "postcard: varint encoding matches known values" {

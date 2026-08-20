@@ -8,6 +8,9 @@ const execution = @import("quotients/execution.zig");
 const lazy_provider = @import("quotients/lazy_provider.zig");
 const planning = @import("quotients/planning.zig");
 const secure_column = @import("../secure_column.zig");
+const work_profile = @import("stwo_prover_api").work_profile;
+
+pub const work_profile_geometry = @import("quotient_work_profile.zig");
 
 const circle_mod = @import("stwo_core").circle;
 const CirclePointQM31 = circle_mod.CirclePointQM31;
@@ -585,16 +588,31 @@ test "prover pcs quotient ops: lazy provider matches materialized output" {
     );
     defer materialized.deinit(alloc);
 
-    // Compute via lazy provider, chunk by chunk.
-    var provider = try LazyQuotientProvider.init(
+    // Compute via the profiled lazy provider, chunk by chunk. Preparation is
+    // published immediately after successful construction; row work remains
+    // absent until the final non-overlapping range completes.
+    var work_recorder: work_profile.Recorder(true) = .{};
+    try work_recorder.expectProducer(.quotient_sample_preparation);
+    try work_recorder.expectProducer(.quotient_row_execution);
+    var provider = try LazyQuotientProvider.initForBackendWithWorkRecorder(
+        void,
         alloc,
         columns_borrowed,
         split_samples.points,
         split_samples.values,
         alpha,
         lifting_log_size,
+        &work_recorder,
     );
     defer provider.deinit(alloc);
+    try std.testing.expectEqual(
+        @as(u64, 1),
+        work_recorder.completed_sites[@intFromEnum(work_profile.Site.quotient_sample_preparation)],
+    );
+    try std.testing.expectEqual(
+        @as(u64, 0),
+        work_recorder.completed_sites[@intFromEnum(work_profile.Site.quotient_row_execution)],
+    );
 
     var lazy_column = try SecureColumnByCoords.uninitialized(alloc, domain_size);
     defer lazy_column.deinit(alloc);
@@ -610,6 +628,10 @@ test "prover pcs quotient ops: lazy provider matches materialized output" {
         try provider.computeChunk(chunk_start, this_chunk, &chunk_coords);
         chunk_start += this_chunk;
     }
+    try std.testing.expectEqual(
+        @as(u64, 1),
+        work_recorder.completed_sites[@intFromEnum(work_profile.Site.quotient_row_execution)],
+    );
 
     // Verify bit-identical output.
     for (0..domain_size) |i| {

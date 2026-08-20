@@ -16,6 +16,26 @@ pub fn resources(
     owned_count: usize,
     state_bytes: usize,
 ) !prover_task_graph.ResourceReservation {
+    return resourcesWithStack(
+        eval_size,
+        source_count,
+        owned_count,
+        state_bytes,
+        prepared_domain.ROW_EVALUATOR_STACK_BYTES,
+    );
+}
+
+/// Build the same checked reservation for a row kernel with an independently
+/// reviewed stack certificate. Wide evaluators must carry their larger bound
+/// explicitly rather than reducing concurrency for every prepared component.
+pub fn resourcesWithStack(
+    eval_size: usize,
+    source_count: usize,
+    owned_count: usize,
+    state_bytes: usize,
+    worker_stack_bytes: usize,
+) !prover_task_graph.ResourceReservation {
+    if (worker_stack_bytes == 0) return error.InvalidPreparedDomainResources;
     const secure_element_bytes = std.math.mul(
         usize,
         qm31.SECURE_EXTENSION_DEGREE,
@@ -52,7 +72,7 @@ pub fn resources(
     return .{
         .final_output_bytes = final_output_bytes,
         .shared_resident_bytes = resident_bytes,
-        .worker_stack_bytes = prepared_domain.ROW_EVALUATOR_STACK_BYTES,
+        .worker_stack_bytes = worker_stack_bytes,
     };
 }
 

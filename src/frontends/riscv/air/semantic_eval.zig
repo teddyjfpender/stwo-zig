@@ -9,7 +9,6 @@ const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const constraint_program = @import("constraint_program.zig");
-const semantics = @import("semantics/mod.zig");
 const trace = @import("../runner/trace.zig");
 
 pub fn Eval(comptime S: type) type {
@@ -33,8 +32,40 @@ pub fn Eval(comptime S: type) type {
             columns: []const S,
             is_active: S,
         ) !Self.Evaluation {
+            var result: Self.Evaluation = undefined;
+            try Self.evaluateInto(family, columns, is_active, &result);
+            return result;
+        }
+
+        /// Caller-owned production row evaluator. This prevents the maximum
+        /// family result buffer from crossing a return boundary on every row.
+        pub fn evaluateInto(
+            family: trace.OpcodeFamily,
+            columns: []const S,
+            is_active: S,
+            result: *Self.Evaluation,
+        ) !void {
+            @setEvalBranchQuota(100_000);
             if (!isTraceCompatible(family)) return error.IncompatibleCommittedTrace;
-            return (try program.buildDirect(family, columns, is_active)).direct_constraints;
+            return switch (family) {
+                .base_alu_imm => program.buildBaseAluImmDirectInto(columns, is_active, result),
+                .base_alu_reg => program.buildBaseAluRegDirectInto(columns, is_active, result),
+                .branch_eq => program.buildBranchEqDirectInto(columns, is_active, result),
+                .branch_lt => program.buildBranchLtDirectInto(columns, is_active, result),
+                .lt_imm => program.buildLtImmDirectInto(columns, is_active, result),
+                .lt_reg => program.buildLtRegDirectInto(columns, is_active, result),
+                .shifts_imm => program.buildShiftsImmDirectInto(columns, is_active, result),
+                .shifts_reg => program.buildShiftsRegDirectInto(columns, is_active, result),
+                .load_store => program.buildLoadStoreDirectInto(columns, is_active, result),
+                .mul => program.buildMulDirectInto(columns, is_active, result),
+                .mulh => program.buildMulhDirectInto(columns, is_active, result),
+                .div => program.buildDivDirectInto(columns, is_active, result),
+                .lui => program.buildLuiDirectInto(columns, is_active, result),
+                .auipc => program.buildAuipcDirectInto(columns, is_active, result),
+                .jalr => program.buildJalrDirectInto(columns, is_active, result),
+                .jal => program.buildJalDirectInto(columns, is_active, result),
+                .fence => program.buildFenceDirectInto(columns, is_active, result),
+            };
         }
     };
 }
@@ -88,28 +119,11 @@ pub const Evaluation = shipped.Evaluation;
 pub const mainColumnCount = shipped.mainColumnCount;
 pub const constraintCount = shipped.constraintCount;
 pub const evaluate = shipped.evaluate;
+pub const evaluateInto = shipped.evaluateInto;
 
 pub fn isTraceCompatible(family: trace.OpcodeFamily) bool {
-    return switch (family) {
-        .base_alu_reg,
-        .base_alu_imm,
-        .branch_eq,
-        .branch_lt,
-        .lui,
-        .auipc,
-        .jalr,
-        .jal,
-        .fence,
-        => true,
-        .shifts_reg => semantics.shifts_reg.CURRENT_TRACE_COMPATIBLE,
-        .shifts_imm => semantics.shifts_imm.CURRENT_TRACE_COMPATIBLE,
-        .lt_reg => semantics.lt_reg.CURRENT_TRACE_COMPATIBLE,
-        .lt_imm => semantics.lt_imm.CURRENT_TRACE_COMPATIBLE,
-        .load_store => semantics.load_store.CURRENT_TRACE_COMPATIBLE,
-        .mul => semantics.mul.CURRENT_TRACE_COMPATIBLE,
-        .mulh => semantics.mulh.CURRENT_TRACE_COMPATIBLE,
-        .div => semantics.div.CURRENT_TRACE_COMPATIBLE,
-    };
+    _ = family;
+    return true;
 }
 
 pub fn clockColumn(family: trace.OpcodeFamily) usize {

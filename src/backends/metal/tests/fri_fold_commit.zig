@@ -67,7 +67,7 @@ test "metal: resident FRI inverse-y cache matches shifted host domains" {
             alpha,
             host_destination.ptr,
         );
-        _ = try runtime.foldFriCircle(
+        const miss_receipt = try runtime.foldFriCircleWithReceipt(
             source.ptr,
             source_count,
             null,
@@ -76,7 +76,7 @@ test "metal: resident FRI inverse-y cache matches shifted host domains" {
             alpha,
             miss_destination.ptr,
         );
-        _ = try runtime.foldFriCircle(
+        const hit_receipt = try runtime.foldFriCircleWithReceipt(
             source.ptr,
             source_count,
             null,
@@ -85,6 +85,8 @@ test "metal: resident FRI inverse-y cache matches shifted host domains" {
             alpha,
             hit_destination.ptr,
         );
+        try std.testing.expect(miss_receipt.inverse_generated);
+        try std.testing.expect(!hit_receipt.inverse_generated);
         try std.testing.expectEqualSlices(u32, host_destination, miss_destination);
         try std.testing.expectEqualSlices(u32, host_destination, hit_destination);
     }
@@ -356,8 +358,6 @@ test "metal: line FRI cascade preserves every root, challenge, and final value" 
     _ = initial_channel.drawSecureFelt();
     var expected_channel = initial_channel;
 
-    const inverse_values = try allocator.alloc(M31, source_count - final_count);
-    defer allocator.free(inverse_values);
     const expected_roots = try allocator.alloc(Hasher.Hash, layer_count);
     defer allocator.free(expected_roots);
     var fold_workspace = try core_fri.FoldLineWorkspace.init(allocator, source_count / 2);
@@ -365,7 +365,6 @@ test "metal: line FRI cascade preserves every root, challenge, and final value" 
     var expected_values = try allocator.dupe(QM31, source_values);
     defer allocator.free(expected_values);
     var expected_domain = domain;
-    var inverse_cursor: usize = 0;
     for (expected_roots) |*root| {
         var expected_coordinates = try secure_column.SecureColumnByCoords.fromSecureSlice(
             allocator,
@@ -394,9 +393,6 @@ test "metal: line FRI cascade preserves every root, challenge, and final value" 
             value.* = expected_domain.at(core_utils.bitReverseIndex(index << 1, expected_domain.logSize()));
         }
         try fields.batchInverseInPlace(M31, x, inverse_x);
-        @memcpy(inverse_values[inverse_cursor .. inverse_cursor + destination_count], inverse_x);
-        inverse_cursor += destination_count;
-
         const folded = try core_fri.foldLineNWithWorkspace(
             allocator,
             expected_values,
@@ -440,14 +436,14 @@ test "metal: line FRI cascade preserves every root, challenge, and final value" 
         );
     }
     channel_state[8] = initial_channel.n_draws;
-    const inverse_words = std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(inverse_values));
-    const result = try runtime.foldFriLineCascade(
+    const domain_coset = domain.coset();
+    const result = try runtime.foldFriLineCascadeWithReceipt(
         allocator,
         source.handle,
         source_count,
-        inverse_words,
-        0,
-        0,
+        null,
+        @intCast(domain_coset.initial_index.v),
+        @intCast(domain_coset.step_size.v),
         coordinate_handles,
         final_destination.handle,
         Hasher.leafSeed(),
@@ -463,7 +459,11 @@ test "metal: line FRI cascade preserves every root, challenge, and final value" 
     try std.testing.expectEqual(@as(u64, 1), result.stats.command_buffers);
     try std.testing.expectEqual(@as(u64, 1), result.stats.wait_count);
     try std.testing.expectEqual(@as(u64, 1), result.stats.compute_encoders);
-    try std.testing.expectEqual(@as(u64, 20), result.stats.dispatches);
+    try std.testing.expectEqual(
+        @as(u64, 20) + @as(u64, @intCast(layer_count)),
+        result.stats.dispatches,
+    );
+    try std.testing.expectEqual(@as(u32, 2), result.inverse_generation_mask);
     for (result.trees, expected_roots) |tree, expected_root| {
         const actual_root = try tree.root();
         try std.testing.expectEqualSlices(u8, &expected_root, &actual_root.hash);
@@ -478,4 +478,40 @@ test "metal: line FRI cascade preserves every root, challenge, and final value" 
     }
     try std.testing.expectEqual(expected_channel.n_draws, channel_state[8]);
     try std.testing.expectEqual(@as(u32, 0), channel_state[9]);
+
+    var hit_channel_state = [_]u32{0} ** 10;
+    for (0..8) |word| {
+        hit_channel_state[word] = std.mem.readInt(
+            u32,
+            initial_channel.digest[word * 4 ..][0..4],
+            .little,
+        );
+    }
+    hit_channel_state[8] = initial_channel.n_draws;
+    const hit_result = try runtime.foldFriLineCascadeWithReceipt(
+        allocator,
+        source.handle,
+        source_count,
+        null,
+        @intCast(domain_coset.initial_index.v),
+        @intCast(domain_coset.step_size.v),
+        coordinate_handles,
+        final_destination.handle,
+        Hasher.leafSeed(),
+        Hasher.nodeSeed(),
+        Hasher.domainPrefixBytes(),
+        &hit_channel_state,
+    );
+    defer {
+        for (hit_result.trees) |*tree| tree.deinit();
+        allocator.free(hit_result.trees);
+    }
+    try std.testing.expectEqual(@as(u32, 0), hit_result.inverse_generation_mask);
+    try std.testing.expectEqual(@as(u64, 20), hit_result.stats.dispatches);
+    for (hit_result.trees, expected_roots) |tree, expected_root| {
+        const actual_root = try tree.root();
+        try std.testing.expectEqualSlices(u8, &expected_root, &actual_root.hash);
+    }
+    try std.testing.expectEqualSlices(QM31, expected_values, actual_final[0..final_count]);
+    try std.testing.expectEqualSlices(u32, &channel_state, &hit_channel_state);
 }

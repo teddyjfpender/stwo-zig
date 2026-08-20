@@ -366,7 +366,7 @@ test "typed mode rejects mixed unbound relation effects but permits public effec
     try validate.validate(&arena);
 }
 
-test "unreviewed bound effect families fail closed" {
+test "bound effect families fail closed unless explicitly reviewed" {
     const Shape = enum { memory, range, program };
     const Case = struct {
         kind: program.EffectKind,
@@ -374,6 +374,7 @@ test "unreviewed bound effect families fail closed" {
         role: relation.Role,
         ordinal: ?u8,
         shape: Shape,
+        reviewed: bool = false,
     };
     const cases = [_]Case{
         .{ .kind = .register_read, .domain = .memory_access, .role = .consume, .ordinal = 0, .shape = .memory },
@@ -381,7 +382,9 @@ test "unreviewed bound effect families fail closed" {
         .{ .kind = .memory_read, .domain = .memory_access, .role = .consume, .ordinal = 1, .shape = .memory },
         .{ .kind = .memory_write, .domain = .memory_access, .role = .emit, .ordinal = 1, .shape = .memory },
         .{ .kind = .range_request, .domain = .range_check_20, .role = .request, .ordinal = null, .shape = .range },
-        .{ .kind = .component_call, .domain = .program_access, .role = .request, .ordinal = null, .shape = .program },
+        // Component calls are explicitly schema-checked universal-relation
+        // events, so their field-scalar weight is a reviewed exception.
+        .{ .kind = .component_call, .domain = .program_access, .role = .request, .ordinal = null, .shape = .program, .reviewed = true },
     };
 
     for (cases) |case| {
@@ -418,7 +421,11 @@ test "unreviewed bound effect families fail closed" {
             case.ordinal,
             generated,
         );
-        try std.testing.expectError(error.InvalidEffect, validate.validate(&arena));
+        if (case.reviewed) {
+            try validate.validate(&arena);
+        } else {
+            try std.testing.expectError(error.InvalidEffect, validate.validate(&arena));
+        }
     }
 }
 

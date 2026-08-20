@@ -119,10 +119,60 @@ pub const Components = struct {
         max_log_degree_bound: u32,
         include_all_preprocessed_columns: bool,
     ) !MaskPoints {
+        return self.maskPointsImpl(
+            allocator,
+            point,
+            max_log_degree_bound,
+            include_all_preprocessed_columns,
+            false,
+            void{},
+        );
+    }
+
+    /// Cold attribution path. The observer is called exactly once, in
+    /// component order, only after that component's dynamic mask call has
+    /// succeeded. The ordinary entrypoint instantiates `observe = false`, so
+    /// it retains no observer call or branch in the component loop.
+    pub fn maskPointsWithObserver(
+        self: Components,
+        allocator: std.mem.Allocator,
+        point: Point,
+        max_log_degree_bound: u32,
+        include_all_preprocessed_columns: bool,
+        observer: anytype,
+    ) !MaskPoints {
+        return self.maskPointsImpl(
+            allocator,
+            point,
+            max_log_degree_bound,
+            include_all_preprocessed_columns,
+            true,
+            observer,
+        );
+    }
+
+    fn maskPointsImpl(
+        self: Components,
+        allocator: std.mem.Allocator,
+        point: Point,
+        max_log_degree_bound: u32,
+        include_all_preprocessed_columns: bool,
+        comptime observe: bool,
+        observer: anytype,
+    ) !MaskPoints {
         var all_masks = std.ArrayList(MaskPoints).empty;
         defer all_masks.deinit(allocator);
-        for (self.components) |component| {
-            try all_masks.append(allocator, try component.maskPoints(allocator, point, max_log_degree_bound));
+        for (self.components, 0..) |component, ordinal| {
+            var component_mask = try component.maskPoints(
+                allocator,
+                point,
+                max_log_degree_bound,
+            );
+            all_masks.append(allocator, component_mask) catch |err| {
+                component_mask.deinitDeep(allocator);
+                return err;
+            };
+            if (comptime observe) try observer.afterComponent(ordinal);
         }
         defer for (all_masks.items) |*tv| tv.deinitDeep(allocator);
 
@@ -173,14 +223,55 @@ pub const Components = struct {
         random_coeff: QM31,
         max_log_degree_bound: u32,
     ) !QM31 {
+        return self.evalCompositionPolynomialAtPointImpl(
+            point,
+            mask_values,
+            random_coeff,
+            max_log_degree_bound,
+            false,
+            void{},
+        );
+    }
+
+    /// Cold attribution path matching `maskPointsWithObserver`. Observation
+    /// happens only after the component has committed all of its constraints
+    /// to the local accumulator.
+    pub fn evalCompositionPolynomialAtPointWithObserver(
+        self: Components,
+        point: Point,
+        mask_values: *const MaskValues,
+        random_coeff: QM31,
+        max_log_degree_bound: u32,
+        observer: anytype,
+    ) !QM31 {
+        return self.evalCompositionPolynomialAtPointImpl(
+            point,
+            mask_values,
+            random_coeff,
+            max_log_degree_bound,
+            true,
+            observer,
+        );
+    }
+
+    fn evalCompositionPolynomialAtPointImpl(
+        self: Components,
+        point: Point,
+        mask_values: *const MaskValues,
+        random_coeff: QM31,
+        max_log_degree_bound: u32,
+        comptime observe: bool,
+        observer: anytype,
+    ) !QM31 {
         var evaluation_accumulator = accumulation.PointEvaluationAccumulator.init(random_coeff);
-        for (self.components) |component| {
+        for (self.components, 0..) |component, ordinal| {
             try component.evaluateConstraintQuotientsAtPoint(
                 point,
                 mask_values,
                 &evaluation_accumulator,
                 max_log_degree_bound,
             );
+            if (comptime observe) try observer.afterComponent(ordinal);
         }
         return evaluation_accumulator.finalize();
     }

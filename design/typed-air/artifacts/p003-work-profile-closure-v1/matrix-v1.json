@@ -1,0 +1,416 @@
+{
+  "counter_partition": "witness_materialization_and_native_prover_included__guest_execution_serialization_and_native_verification_excluded__blake2s_shell_included_as_zero_v1",
+  "families": [
+    {
+      "authority_paths": [
+        "src/prover/poly/twiddle_source.zig",
+        "src/prover/poly/twiddles.zig"
+      ],
+      "cpu": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "id": "cold_m31_twiddle_construction",
+      "metal": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "typed_sites": [
+        "cold_twiddle_construction"
+      ]
+    },
+    {
+      "authority_paths": [
+        "src/backends/metal/commit_backend.zig",
+        "src/prover/pcs/columns/circle_transforms.zig",
+        "src/prover/pcs/columns/preparation.zig",
+        "src/prover/poly/circle/transforms.zig"
+      ],
+      "cpu": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "id": "column_interpolation",
+      "metal": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "typed_sites": [
+        "column_interpolate_only_fft",
+        "column_interpolate_for_extension_fft"
+      ]
+    },
+    {
+      "authority_paths": [
+        "src/backends/metal/commit_backend.zig",
+        "src/backends/metal/runtime/polynomial_operations.zig",
+        "src/prover/pcs/columns/circle_transforms.zig",
+        "src/prover/pcs/columns/preparation.zig",
+        "src/prover/pcs/commit_polys.zig"
+      ],
+      "cpu": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "id": "remaining_forward_circle_fft",
+      "metal": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "typed_sites": [
+        "column_passthrough_fft",
+        "column_extension_fft",
+        "column_combined_fft",
+        "polynomial_commit_forward_fft"
+      ]
+    },
+    {
+      "authority_paths": [
+        "src/backends/cpu_scalar/mod.zig",
+        "src/backends/metal/runtime/secure_composition.zig",
+        "src/prover/poly/circle/secure_poly.zig"
+      ],
+      "cpu": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "id": "secure_composition_interpolation",
+      "metal": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "typed_sites": [
+        "secure_composition_interpolation_fft"
+      ]
+    },
+    {
+      "authority_paths": [
+      "src/frontends/riscv/prover/main_trace.zig",
+      "src/frontends/riscv/prover/main_trace_plan_execution_production.zig",
+      "src/frontends/riscv/prover/main_trace_plan_execution_production_generators.zig",
+      "src/frontends/riscv/prover/main_witness_work.zig",
+      "src/frontends/riscv/prover/opcode_trace.zig"
+    ],
+    "cpu": {
+      "blockers": [],
+      "status": "complete"
+      },
+      "id": "main_witness_field_work",
+    "metal": {
+      "blockers": [],
+      "status": "complete"
+      },
+      "typed_sites": [
+        "main_witness_field"
+      ]
+    },
+    {
+      "authority_paths": [
+        "src/frontends/riscv/air/guest_precompile/main_trace.zig",
+        "src/frontends/riscv/air/guest_precompile/program_commitment.zig",
+        "src/frontends/riscv/air/memory_commitment/boundary.zig",
+        "src/frontends/riscv/air/memory_commitment/poseidon2.zig",
+        "src/frontends/riscv/air/memory_commitment/poseidon2_air.zig",
+        "src/frontends/riscv/air/memory_commitment/sparse_merkle.zig",
+        "src/frontends/riscv/air/program/commitment.zig",
+        "src/frontends/riscv/common/poseidon2.zig",
+        "src/frontends/riscv/prover/commitment_witness.zig",
+        "src/frontends/riscv/prover/guest_precompile/orchestration.zig",
+        "src/frontends/riscv/prover/main_trace.zig",
+        "src/frontends/riscv/prover/main_trace_plan_execution_production.zig",
+        "src/frontends/riscv/prover/main_trace_plan_execution_production_generators.zig",
+        "src/frontends/riscv/prover/orchestration.zig",
+        "src/frontends/riscv/prover/poseidon_witness_work.zig"
+      ],
+      "cpu": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "id": "sparse_memory_and_guest_poseidon_witness",
+      "metal": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "typed_sites": [
+        "sparse_memory_and_guest_poseidon_witness"
+      ]
+    },
+    {
+      "authority_paths": [
+        "src/frontends/riscv/air/logup.zig",
+        "src/frontends/riscv/air/relation_challenges.zig",
+        "src/frontends/riscv/prover/interaction_trace.zig",
+        "src/frontends/riscv/prover/interaction_trace_plan_execution_production.zig",
+        "src/frontends/riscv/prover/interaction_trace_prepared_logup.zig",
+        "src/frontends/riscv/prover/interaction_witness_work.zig"
+      ],
+      "cpu": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "id": "relation_challenges_and_interaction_traces",
+      "metal": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "typed_sites": [
+        "relation_challenges_and_interaction_traces"
+      ]
+    },
+    {
+      "authority_paths": [
+        "src/backends/cpu_scalar/mod.zig",
+        "src/backends/cpu_scalar/riscv_composition.zig",
+        "src/backends/cpu_scalar/riscv_composition_lanes.zig",
+        "src/backends/metal/runtime/backend_composition.zig",
+        "src/backends/metal/runtime/base_polynomial_composition.zig",
+        "src/frontends/riscv/air/clock_update_component.zig",
+        "src/frontends/riscv/air/component.zig",
+        "src/frontends/riscv/air/composition_work_support.zig",
+        "src/frontends/riscv/air/guest_precompile/caller_component.zig",
+        "src/frontends/riscv/air/guest_precompile/direct_constraints.zig",
+        "src/frontends/riscv/air/guest_precompile/interaction_plan.zig",
+        "src/frontends/riscv/air/guest_precompile/provider_component.zig",
+        "src/frontends/riscv/air/lookups/opcode_component.zig",
+        "src/frontends/riscv/air/lookups/tables/component.zig",
+        "src/frontends/riscv/air/memory_commitment/hash_component.zig",
+        "src/frontends/riscv/air/semantic_component.zig",
+        "src/prover/air/accumulation.zig",
+        "src/prover/air/component_prover.zig",
+        "src/prover/air/composition_execution.zig",
+        "src/prover/air/composition_work.zig",
+        "src/prover/air/lookup_polynomial_v2.zig",
+        "src/prover/prove.zig",
+        "src/prover_api/work_profile.zig"
+      ],
+      "cpu": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "id": "air_composition_on_domain",
+      "metal": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "typed_sites": [
+        "air_composition_on_domain"
+      ]
+    },
+    {
+      "authority_paths": [
+        "src/core/air/components.zig",
+        "src/core/circle.zig",
+        "src/frontends/riscv/air/clock_update_component.zig",
+        "src/frontends/riscv/air/component.zig",
+        "src/frontends/riscv/air/composition_work_support.zig",
+        "src/frontends/riscv/air/guest_precompile/caller_component.zig",
+        "src/frontends/riscv/air/guest_precompile/provider_component.zig",
+        "src/frontends/riscv/air/lookups/opcode_component.zig",
+        "src/frontends/riscv/air/lookups/tables/component.zig",
+        "src/frontends/riscv/air/memory_commitment/hash_component.zig",
+        "src/frontends/riscv/air/semantic_component.zig",
+        "src/prover/air/component_prover.zig",
+        "src/prover/air/oods_work.zig",
+        "src/prover/prove.zig"
+      ],
+      "cpu": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "id": "oods_point_masks_and_point_composition",
+      "metal": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "typed_sites": [
+        "oods_seed_to_point",
+        "oods_mask_points",
+        "oods_constraint_evaluation"
+      ]
+    },
+    {
+      "authority_paths": [
+        "src/backends/metal/commit_backend.zig",
+        "src/backends/metal/runtime/polynomial_evaluation.m",
+        "src/backends/metal/runtime/polynomial_operations.zig",
+        "src/backends/metal/shaders/core/polynomial_eval.metal",
+        "src/prover/pcs/sampled_value_work.zig",
+        "src/prover/pcs/sampled_values.zig",
+        "src/prover/poly/circle/evaluation.zig",
+        "src/prover/poly/circle/point_evaluation.zig"
+      ],
+      "cpu": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "id": "sampled_committed_column_evaluation",
+      "metal": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "typed_sites": [
+        "sampled_value_coefficient_evaluation",
+        "sampled_value_barycentric_evaluation"
+      ]
+    },
+    {
+      "authority_paths": [
+        "src/core/pcs/quotients/row_evaluation.zig",
+        "src/core/pcs/quotients/samples.zig",
+        "src/prover/pcs/quotient_work_profile.zig",
+        "src/prover/pcs/quotients/lazy_provider.zig",
+        "src/prover/pcs/scheme.zig",
+        "src/prover_api/work_profile.zig"
+      ],
+      "cpu": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "id": "quotient_sample_preparation",
+      "metal": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "typed_sites": [
+        "quotient_sample_preparation"
+      ]
+    },
+    {
+      "authority_paths": [
+        "src/backends/metal/commit_backend.zig",
+        "src/backends/metal/runtime/polynomial_operations.zig",
+        "src/backends/metal/runtime/quotients.m",
+        "src/core/pcs/quotients/row_evaluation.zig",
+        "src/prover/pcs/quotient_domain_walk.zig",
+        "src/prover/pcs/quotient_row_executor.zig",
+        "src/prover/pcs/quotient_scalar_executor.zig",
+        "src/prover/pcs/quotient_tile_executor.zig",
+        "src/prover/pcs/quotient_work_profile.zig",
+        "src/prover/pcs/quotients/lazy_provider.zig",
+        "src/prover/pcs/scheme.zig",
+        "src/prover_api/work_profile.zig"
+      ],
+      "cpu": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "id": "quotient_row_execution",
+      "metal": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "typed_sites": [
+        "quotient_row_execution"
+      ]
+    },
+    {
+      "authority_paths": [
+        "src/backends/cpu_scalar/mod.zig",
+        "src/backends/metal/commit_backend.zig",
+        "src/backends/metal/runtime/fri_fold_commit.m",
+        "src/backends/metal/runtime/opening_operations.zig",
+        "src/backends/metal/runtime/resident_fri_transaction.zig",
+        "src/backends/metal/runtime/runtime_queries.m",
+        "src/core/fri/folding.zig",
+        "src/prover/fri.zig",
+        "src/prover_api/work_profile.zig"
+      ],
+      "cpu": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "id": "fri_circle_to_line_fold",
+      "metal": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "typed_sites": [
+        "fri_protocol"
+      ]
+    },
+    {
+      "authority_paths": [
+        "src/backends/cpu_scalar/mod.zig",
+        "src/backends/metal/commit_backend.zig",
+        "src/backends/metal/runtime/fri_cascade_operations.zig",
+        "src/backends/metal/runtime/fri_fold_commit.m",
+        "src/backends/metal/runtime/resident_fri_transaction.zig",
+        "src/core/fri/folding.zig",
+        "src/prover/fri.zig",
+        "src/prover_api/work_profile.zig"
+      ],
+      "cpu": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "id": "fri_line_folds",
+      "metal": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "typed_sites": [
+        "fri_protocol"
+      ]
+    },
+    {
+      "authority_paths": [
+        "src/backend/line_evaluation.zig",
+        "src/prover/fri.zig",
+        "src/prover_api/work_profile.zig"
+      ],
+      "cpu": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "id": "fri_last_layer_interpolation",
+      "metal": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "typed_sites": [
+        "fri_protocol"
+      ]
+    },
+    {
+      "authority_paths": [
+        "src/backends/metal/commit_backend.zig",
+        "src/backends/metal/runtime/resident_fri_transaction.zig",
+        "src/core/channel/blake2s.zig",
+        "src/core/queries.zig",
+        "src/core/vcs_lifted/blake2_merkle.zig",
+        "src/prover/fri.zig",
+        "src/prover/pcs/commitment_tree.zig",
+        "src/prover/pcs/deferred_commit.zig",
+        "src/prover/pcs/fri_lazy_commit.zig",
+        "src/prover/pcs/proof_of_work.zig",
+        "src/prover/pcs/sampled_value_transcript.zig",
+        "src/prover/pcs/scheme.zig",
+        "src/prover/pcs/scheme_decommit.zig",
+        "src/prover/pcs/shell_work_profile.zig",
+        "src/prover/pcs/tree_builders.zig"
+      ],
+      "cpu": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "id": "transcript_pcs_merkle_pow_decommitment_and_encoding",
+      "metal": {
+        "blockers": [],
+        "status": "complete"
+      },
+      "typed_sites": [
+        "commitment_tree_merkle",
+        "streaming_commitment_merkle",
+        "fri_protocol",
+        "pcs_transcript_shell"
+      ]
+    }
+  ],
+  "inventory": {
+    "path": "src/prover_api/work_profile_inventory.zig",
+    "schema_version": 9,
+    "site_count": 23
+  },
+  "schema": "stwo.typed-air.p003-work-profile-closure-matrix.v1",
+  "schema_version": 1
+}

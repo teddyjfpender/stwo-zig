@@ -5,6 +5,7 @@ const m31 = @import("stwo_core").fields.m31;
 const pcs_core = @import("stwo_core").pcs;
 const prover_circle = @import("../poly/circle/mod.zig");
 const stage_profile = @import("stwo_prover_api").stage_profile;
+const work_profile = @import("stwo_prover_api").work_profile;
 const vcs_lifted_prover = @import("../vcs_lifted/prover.zig");
 const commitment_tree = @import("commitment_tree.zig");
 const column_preparation = @import("columns/preparation.zig");
@@ -17,6 +18,56 @@ const CoefficientRetentionPolicy = column_storage.CoefficientRetentionPolicy;
 
 const deferred_commit = @import("deferred_commit.zig");
 const merkle_layer_cache = @import("merkle_layer_cache.zig");
+
+const PCS_COLUMN_HISTOGRAM_ENV = "STWO_ZIG_PCS_COLUMN_HISTOGRAM";
+const bounded_prefix_state_budget_bytes: usize = 96 * 1024 * 1024;
+var histogram_print_mutex: std.Thread.Mutex = .{};
+
+fn emitColumnHistogram(comptime H: type, sorted: anytype) void {
+    if (!std.process.hasEnvVarConstant(PCS_COLUMN_HISTOGRAM_ENV)) return;
+    histogram_print_mutex.lock();
+    defer histogram_print_mutex.unlock();
+
+    std.debug.print(
+        "pcs_column_histogram hasher={s} columns={d} groups=",
+        .{ @typeName(H), sorted.len },
+    );
+    var group_start: usize = 0;
+    while (group_start < sorted.len) {
+        const log_size = sorted[group_start].log_size;
+        var group_end = group_start + 1;
+        while (group_end < sorted.len and sorted[group_end].log_size == log_size) {
+            group_end += 1;
+        }
+        std.debug.print(
+            "{s}{d}:{d}",
+            .{ if (group_start == 0) "" else ",", log_size, group_end - group_start },
+        );
+        group_start = group_end;
+    }
+    std.debug.print("\n", .{});
+}
+
+fn emitBoundedPrefixStats(stats: anytype) void {
+    if (!std.process.hasEnvVarConstant(PCS_COLUMN_HISTOGRAM_ENV)) return;
+    histogram_print_mutex.lock();
+    defer histogram_print_mutex.unlock();
+    std.debug.print(
+        "pcs_bounded_prefix final_log={d} prefix_log={d} prefix_columns={d} " ++
+            "tail_columns={d} prefix_state_bytes={d} leaf_bytes={d} " ++
+            "leaf_phase_peak_bytes={d} repeated_tail_absorptions={d}\n",
+        .{
+            stats.final_log_size,
+            stats.prefix_log_size,
+            stats.prefix_column_count,
+            stats.tail_column_count,
+            stats.prefix_state_bytes,
+            stats.leaf_layer_bytes,
+            stats.leaf_phase_peak_bytes,
+            stats.repeated_tail_absorptions,
+        },
+    );
+}
 
 /// Re-derives every layer at or above `spot_check_limit` nodes from the layer
 /// below it. A loaded artifact that passes its own integrity digest can still
@@ -59,7 +110,14 @@ pub fn appendCommittedTree(
     // before this tree is appended — preserving the sequential mix order.
     try deferred_commit.resolve(MC, scheme, allocator, channel);
     try scheme.trees.append(allocator, tree);
-    MC.mixRoot(channel, tree.root());
+    const root = tree.root();
+    MC.mixRoot(channel, root);
+    if (comptime @hasDecl(@TypeOf(scheme.*), "observePreOpeningRootMix")) {
+        scheme.observePreOpeningRootMix(
+            scheme.trees.items.len - 1,
+            std.mem.asBytes(&root),
+        );
+    }
 }
 
 pub fn addColumnsOwnedIndexed(
@@ -365,6 +423,18 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
         /// the root into the channel, and append the tree to the commitment
         /// scheme.
         pub fn commit(self: *Self, channel: anytype) !void {
+            return self.commitWithRecorder(null, channel);
+        }
+
+        pub fn commitWithRecorder(
+            self: *Self,
+            recorder: ?*stage_profile.Recorder,
+            channel: anytype,
+        ) !void {
+            const work_recorder = if (recorder) |active|
+                active.workCaptureRecorder()
+            else
+                null;
             const col_refs = try self.allocator.alloc([]const M31, self.retained_columns.items.len);
             defer self.allocator.free(col_refs);
             for (self.retained_columns.items, col_refs) |column, *reference| {
@@ -372,16 +442,42 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
             }
             const sorted = try MerkleProver.sortColumnsByLogSizeAsc(self.allocator, col_refs);
             defer self.allocator.free(sorted);
+            emitColumnHistogram(H, sorted);
+            const leaf_count: usize = if (sorted.len == 0)
+                1
+            else
+                sorted[sorted.len - 1].values.len;
 
             // An armed layer source may supply the tree outright. Its bytes flow
             // into exactly the pipeline a built tree would, so a wrong load can
             // only produce a transcript the verifier rejects.
             const loaded = self.loadCachedTree(sorted);
 
-            // Preserve incremental lifted hashing for the dense prefix, while
-            // allowing the committer to bypass sparse high-domain expansions.
-            var merkle = loaded orelse
-                try self.streaming_committer.commitColumnsWithSparseTail(sorted);
+            // BLAKE2s' domain-prefixed state can finalize its compact lifted
+            // tail directly. Other suites use a bounded native-height prefix:
+            // this preserves the old path's critical prefix reuse without
+            // retaining a full-domain hasher array. For Poseidon2 at log 21,
+            // the explicit 96 MiB cap selects log 20 (72 MiB of state), then
+            // writes the 64 MiB final leaf layer directly. The prior full-state
+            // path peaked at 208 MiB during this phase; a purely row-batched
+            // fallback was smaller but replayed lower-height prefixes and was
+            // measured at roughly 10x end-to-end on the real proof workload.
+            const supports_sparse_tail = comptime blk: {
+                if (!@hasDecl(H, "domainPrefixBytes")) break :blk false;
+                break :blk H.domainPrefixBytes() == 64;
+            };
+            var bounded_stats: MerkleProver.BoundedPrefixStats = .{};
+            var merkle = loaded orelse if (supports_sparse_tail)
+                try self.streaming_committer.commitColumnsWithSparseTail(sorted)
+            else
+                try self.streaming_committer.commitColumnsWithBoundedPrefix(
+                    sorted,
+                    bounded_prefix_state_budget_bytes,
+                    &bounded_stats,
+                );
+            if (loaded == null and !supports_sparse_tail) {
+                emitBoundedPrefixStats(bounded_stats);
+            }
             if (loaded == null) self.storeCachedTree(sorted, merkle);
             // streaming_committer is now consumed; reinitialize to safe state for deinit.
             self.streaming_committer = MerkleProver.StreamingCommitter.init(self.allocator);
@@ -434,6 +530,80 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
                 .commitment = try adoptStreamingCommitment(B, H, merkle),
             };
             try appendCommittedTree(MC, self.commitment_scheme, self.allocator, tree, channel);
+            recordStreamingMerkleWork(work_recorder, loaded == null, leaf_count);
         }
     };
+}
+
+fn recordStreamingMerkleWork(
+    recorder: ?*work_profile.Recorder(true),
+    built_complete_tree: bool,
+    leaf_count: usize,
+) void {
+    const active = recorder orelse return;
+    if (!built_complete_tree) {
+        active.markIncomplete();
+        return;
+    }
+    const encoded_leaf_count = std.math.cast(u64, leaf_count) orelse
+        return active.markIncomplete();
+    const compression_count = work_profile.logicalMerkleCompressions(
+        encoded_leaf_count,
+        false,
+    ) catch return active.markIncomplete();
+    active.recordCompletedDelta(.{
+        .site = .streaming_commitment_merkle,
+        .producer = .streaming_commitment_merkle,
+        .source_mask = work_profile.SourceMask.one(.merkle_compressions),
+        .counters = .{ .merkle_compressions = compression_count },
+    }) catch active.markIncomplete();
+    // work-profile-complete:streaming-commitment-merkle
+}
+
+test "streaming Merkle work records every completed internal node at its exact site" {
+    var recorder: work_profile.Recorder(true) = .{};
+
+    recordStreamingMerkleWork(&recorder, true, 8);
+
+    try std.testing.expectEqual(@as(u64, 7), recorder.counters.merkle_compressions);
+    try std.testing.expectEqual(@as(u64, 1), recorder.record_count);
+    try std.testing.expectEqual(
+        @as(u64, 1),
+        recorder.completed_sites[@intFromEnum(work_profile.Site.streaming_commitment_merkle)],
+    );
+    try std.testing.expect(!recorder.legacy_site_coverage);
+    try std.testing.expect(!recorder.incomplete);
+}
+
+test "streaming Merkle work records an exercised one-leaf tree as exact zero" {
+    var recorder: work_profile.Recorder(true) = .{};
+
+    recordStreamingMerkleWork(&recorder, true, 1);
+
+    try std.testing.expectEqual(@as(u64, 0), recorder.counters.merkle_compressions);
+    try std.testing.expectEqual(@as(u64, 1), recorder.record_count);
+    try std.testing.expect(recorder.source_mask.contains(.merkle_compressions));
+    try std.testing.expect(!recorder.incomplete);
+}
+
+test "streaming Merkle work fails closed for cache-loaded trees" {
+    var recorder: work_profile.Recorder(true) = .{};
+
+    recordStreamingMerkleWork(&recorder, false, 8);
+
+    try std.testing.expect(recorder.incomplete);
+    try std.testing.expectEqual(@as(u64, 0), recorder.record_count);
+    try std.testing.expectEqual(
+        work_profile.Authority.unavailable,
+        (try recorder.snapshot()).authority,
+    );
+}
+
+test "streaming Merkle work fails closed for a non-binary leaf shape" {
+    var recorder: work_profile.Recorder(true) = .{};
+
+    recordStreamingMerkleWork(&recorder, true, 3);
+
+    try std.testing.expect(recorder.incomplete);
+    try std.testing.expectEqual(@as(u64, 0), recorder.record_count);
 }

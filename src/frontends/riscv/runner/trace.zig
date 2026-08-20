@@ -3,45 +3,75 @@
 const std = @import("std");
 const decode = @import("decode.zig");
 const opcode_manifest = @import("../opcode_manifest.zig");
+const composition_manifest = @import("../air/lang/opcode_composition_manifest.zig");
 const M31 = @import("stwo_core").fields.m31.M31;
-const layouts = @import("../air/trace_columns.zig");
-const base_witness = @import("witness/base.zig");
-const compare_witness = @import("witness/compare.zig");
-const control_witness = @import("witness/control.zig");
-const shift_witness = @import("witness/shift.zig");
-const load_store_witness = @import("witness/load_store.zig");
-const m_extension_witness = @import("witness/m_extension.zig");
+const typed_auipc_authority = @import("../air/lang/typed_auipc_authority.zig");
+const typed_base_alu_imm_authority =
+    @import("../air/lang/typed_base_alu_imm_authority.zig");
+const typed_base_alu_imm_witness =
+    @import("../air/lang/typed_base_alu_imm_witness.zig");
+const typed_base_alu_reg_authority =
+    @import("../air/lang/typed_base_alu_reg_authority.zig");
+const typed_auipc_witness = @import("../air/lang/typed_auipc_witness.zig");
+const typed_branch_eq_authority =
+    @import("../air/lang/typed_branch_eq_authority.zig");
+const typed_branch_lt_authority =
+    @import("../air/lang/typed_branch_lt_authority.zig");
+const typed_lui_witness = @import("../air/lang/typed_lui_witness.zig");
+const typed_div_authority = @import("../air/lang/typed_div_authority.zig");
+const typed_fence_authority = @import("../air/lang/typed_fence_authority.zig");
+const typed_fence_witness = @import("../air/lang/typed_fence_witness.zig");
+const typed_jal_authority = @import("../air/lang/typed_jal_authority.zig");
+const typed_jalr_authority = @import("../air/lang/typed_jalr_authority.zig");
+const typed_lt_imm_authority =
+    @import("../air/lang/typed_lt_imm_authority.zig");
+const typed_lt_reg_authority = @import("../air/lang/typed_lt_reg_authority.zig");
+const typed_lui_authority = @import("../air/lang/typed_lui_authority.zig");
+const typed_mul_authority = @import("../air/lang/typed_mul_authority.zig");
+const typed_mulh_authority = @import("../air/lang/typed_mulh_authority.zig");
+const typed_shifts_imm_authority = @import("../air/lang/typed_shifts_imm_authority.zig");
+const typed_shifts_reg_authority = @import("../air/lang/typed_shifts_reg_authority.zig");
+const typed_load_store_authority = @import("../air/lang/typed_load_store_authority.zig");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const semantics = @import("../air/semantics/mod.zig");
+const base_alu_reg_test_oracle =
+    @import("../air/semantics/base_alu_reg.zig").Semantics(QM31);
+const jal_test_oracle =
+    @import("../air/semantics/jal_legacy_test_oracle.zig").Semantics(QM31);
+const jalr_test_oracle =
+    @import("../air/semantics/jalr_legacy_test_oracle.zig").Semantics(QM31);
+const branch_eq_test_oracle =
+    @import("../air/semantics/branch_eq_legacy_test_oracle.zig").Semantics(QM31);
+const branch_lt_test_oracle =
+    @import("../air/semantics/branch_lt_legacy_test_oracle.zig").Semantics(QM31);
+const lt_imm_test_oracle =
+    @import("../air/semantics/lt_imm_legacy_test_oracle.zig").Semantics(QM31);
+const lt_reg_test_oracle =
+    @import("../air/semantics/lt_reg_legacy_test_oracle.zig").Semantics(QM31);
+const shifts_imm_test_oracle =
+    @import("../air/semantics/shifts_imm_legacy_test_oracle.zig").Semantics(QM31);
+const shifts_reg_test_oracle =
+    @import("../air/semantics/shifts_reg_legacy_test_oracle.zig").Semantics(QM31);
+const load_store_test_oracle =
+    @import("../air/semantics/load_store_legacy_test_oracle.zig").Semantics(QM31);
+
+const BASE_ALU_REG_AUTHORITY = typed_base_alu_reg_authority.Authority.pinned();
+const BRANCH_EQ_AUTHORITY = typed_branch_eq_authority.Authority.pinned();
+const BRANCH_LT_AUTHORITY = typed_branch_lt_authority.Authority.pinned();
+const LT_IMM_AUTHORITY = typed_lt_imm_authority.Authority.pinned();
+const JAL_AUTHORITY = typed_jal_authority.Authority.pinned();
+const JALR_AUTHORITY = typed_jalr_authority.Authority.pinned();
+const LT_REG_AUTHORITY = typed_lt_reg_authority.Authority.pinned();
+const SHIFTS_IMM_AUTHORITY = typed_shifts_imm_authority.Authority.pinned();
+const SHIFTS_REG_AUTHORITY = typed_shifts_reg_authority.Authority.pinned();
+const LOAD_STORE_AUTHORITY = typed_load_store_authority.Authority.pinned();
+const MUL_AUTHORITY = typed_mul_authority.Authority.pinned();
+const MULH_AUTHORITY = typed_mulh_authority.Authority.pinned();
+const DIV_AUTHORITY = typed_div_authority.Authority.pinned();
 
 const Opcode = decode.Opcode;
 
-pub const TraceRow = struct {
-    clk: u32,
-    pc: u32,
-    opcode: Opcode,
-    rd: u5,
-    rs1: u5,
-    rs2: u5,
-    imm: i32,
-    rs1_val: u32,
-    rs2_val: u32,
-    rs1_prev_clk: u32 = 0,
-    rs2_prev_clk: u32 = 0,
-    rd_prev_val: u32 = 0,
-    rd_prev_clk: u32 = 0,
-    rd_val: u32,
-    mem_addr: u32,
-    mem_val: u32,
-    mem_prev_word: u32 = 0,
-    mem_next_word: u32 = 0,
-    mem_prev_clk: u32 = 0,
-    is_load: bool,
-    is_store: bool,
-    branch_taken: bool,
-    next_pc: u32,
-    inst_word: u32 = 0,
-};
+pub const TraceRow = @import("trace_row.zig").TraceRow;
 
 pub const Trace = struct {
     rows: std.ArrayList(TraceRow),
@@ -59,9 +89,31 @@ pub const Trace = struct {
         self.* = undefined;
     }
 
-    pub fn append(self: *Trace, row: TraceRow) !void {
-        try self.rows.append(self.allocator, row);
+    /// Complete the only fallible work required by one later trace append.
+    /// Capacity growth is not logical trace state, so a subsequent prepare
+    /// failure can leave it in place without exposing a retired-row prefix.
+    pub fn reserveOne(self: *Trace) error{OutOfMemory}!void {
+        try self.rows.ensureUnusedCapacity(self.allocator, 1);
+    }
+
+    /// Bulk form used by admission and allocation/performance gates.
+    pub fn reserveAdditional(
+        self: *Trace,
+        additional: usize,
+    ) error{OutOfMemory}!void {
+        try self.rows.ensureUnusedCapacity(self.allocator, additional);
+    }
+
+    /// Publish one row after `reserveOne` (or an equivalent bulk reserve).
+    /// This operation cannot allocate or fail.
+    pub fn appendAssumeCapacity(self: *Trace, row: TraceRow) void {
+        self.rows.appendAssumeCapacity(row);
         self.step_count = self.rows.items.len;
+    }
+
+    pub fn append(self: *Trace, row: TraceRow) !void {
+        try self.reserveOne();
+        self.appendAssumeCapacity(row);
     }
 
     pub fn groupByOpcodeFamily(self: *const Trace, _: std.mem.Allocator) !OpcodeFamilyCounts {
@@ -122,7 +174,10 @@ pub const Trace = struct {
     }
 };
 
-pub const MAX_FAMILY_COLUMNS: usize = 67;
+/// Maximum committed opcode width, derived from the same typed authorities
+/// that own composition geometry.  Keeping this as a compile-time constant
+/// preserves fixed stack storage in every hot trace/prover consumer.
+pub const MAX_FAMILY_COLUMNS: usize = composition_manifest.MAX_MAIN_COLUMNS;
 
 pub const TraceColumns = struct {
     columns: [MAX_FAMILY_COLUMNS][]M31,
@@ -136,25 +191,7 @@ pub const TraceColumns = struct {
 };
 
 pub fn nColumnsForFamily(family: OpcodeFamily) u32 {
-    return switch (family) {
-        .base_alu_reg => layouts.BaseAluRegColumns.N_COLUMNS,
-        .base_alu_imm => layouts.BaseAluImmColumns.N_COLUMNS,
-        .shifts_reg => layouts.ShiftsRegColumns.N_COLUMNS,
-        .shifts_imm => layouts.ShiftsImmColumns.N_COLUMNS,
-        .lt_reg => layouts.LtRegColumns.N_COLUMNS,
-        .lt_imm => layouts.LtImmColumns.N_COLUMNS,
-        .branch_eq => layouts.BranchEqColumns.N_COLUMNS,
-        .branch_lt => layouts.BranchLtColumns.N_COLUMNS,
-        .lui => layouts.LuiColumns.N_COLUMNS,
-        .auipc => layouts.AuipcColumns.N_COLUMNS,
-        .jalr => layouts.JalrColumns.N_COLUMNS,
-        .jal => layouts.JalColumns.N_COLUMNS,
-        .load_store => layouts.LoadStoreColumns.N_COLUMNS,
-        .mul => layouts.MulColumns.N_COLUMNS,
-        .mulh => layouts.MulhColumns.N_COLUMNS,
-        .div => layouts.DivColumns.N_COLUMNS,
-        .fence => layouts.FenceColumns.N_COLUMNS,
-    };
+    return @intCast(composition_manifest.mainColumnCount(family));
 }
 
 pub fn fillFamilyColumns(
@@ -163,24 +200,81 @@ pub fn fillFamilyColumns(
     row: TraceRow,
     family: OpcodeFamily,
 ) void {
+    // Several authenticated writers deliberately unroll their fixed physical
+    // recipes. Raising the compiler's analysis quota here keeps the total
+    // family dispatch exhaustive without changing generated runtime code.
+    @setEvalBranchQuota(100_000);
     switch (family) {
-        .base_alu_reg => base_witness.reg(columns, index, row),
-        .base_alu_imm => base_witness.immediate(columns, index, row),
-        .shifts_reg => shift_witness.reg(columns, index, row),
-        .shifts_imm => shift_witness.immediate(columns, index, row),
-        .lt_reg => compare_witness.reg(columns, index, row),
-        .lt_imm => compare_witness.immediate(columns, index, row),
-        .branch_eq => compare_witness.branchEqual(columns, index, row),
-        .branch_lt => compare_witness.branchLess(columns, index, row),
-        .lui => control_witness.lui(columns, index, row),
-        .auipc => control_witness.auipc(columns, index, row),
-        .jalr => control_witness.jalr(columns, index, row),
-        .jal => control_witness.jal(columns, index, row),
-        .load_store => load_store_witness.fill(columns, index, row),
-        .mul => m_extension_witness.mul(columns, index, row),
-        .mulh => m_extension_witness.mulh(columns, index, row),
-        .div => m_extension_witness.div(columns, index, row),
-        .fence => control_witness.fence(columns, index, row),
+        .base_alu_reg => BASE_ALU_REG_AUTHORITY.writeActiveRow(columns, index, row),
+        .base_alu_imm => typed_base_alu_imm_witness.writeActiveRow(columns, index, row),
+        .shifts_reg => SHIFTS_REG_AUTHORITY.writeActiveRow(columns, index, row),
+        .shifts_imm => SHIFTS_IMM_AUTHORITY.writeActiveRow(columns, index, row),
+        .lt_reg => LT_REG_AUTHORITY.writeActiveRow(columns, index, row),
+        .lt_imm => LT_IMM_AUTHORITY.writeActiveRow(columns, index, row),
+        .branch_eq => BRANCH_EQ_AUTHORITY.writeActiveRow(columns, index, row),
+        .branch_lt => BRANCH_LT_AUTHORITY.writeActiveRow(columns, index, row),
+        .lui => typed_lui_witness.writeActiveRow(columns, index, row),
+        .auipc => typed_auipc_witness.writeActiveRow(columns, index, row),
+        .jalr => JALR_AUTHORITY.writeActiveRow(columns, index, row),
+        .jal => JAL_AUTHORITY.writeActiveRow(columns, index, row),
+        .load_store => LOAD_STORE_AUTHORITY.writeActiveRow(columns, index, row),
+        .mul => MUL_AUTHORITY.writeActiveRow(columns, index, row),
+        .mulh => MULH_AUTHORITY.writeActiveRow(columns, index, row),
+        .div => DIV_AUTHORITY.writeActiveRow(columns, index, row),
+        .fence => typed_fence_witness.writeActiveRow(columns, index, row),
+    }
+}
+
+/// Validates an externally supplied retirement row against the same typed
+/// authority that owns its witness projection. Production proving calls this
+/// before entering `fillFamilyColumns`, whose infallible contract is reserved
+/// for rows already admitted by an authority or constructed by trusted tests.
+///
+/// Every family validator currently reports only `InvalidTraceRow`; normalize
+/// the wider executor error set here so callers cannot accidentally depend on
+/// implementation-only geometry and alias errors from a single-row check.
+pub const FamilyRowValidationError = error{InvalidTraceRow};
+
+pub fn validateFamilyRow(
+    row: TraceRow,
+    family: OpcodeFamily,
+) FamilyRowValidationError!void {
+    @setEvalBranchQuota(100_000);
+    switch (family) {
+        .base_alu_reg => typed_base_alu_reg_authority.validateTraceRow(row) catch
+            return error.InvalidTraceRow,
+        .base_alu_imm => typed_base_alu_imm_authority.validateTraceRow(row) catch
+            return error.InvalidTraceRow,
+        .shifts_reg => typed_shifts_reg_authority.validateTraceRow(row) catch
+            return error.InvalidTraceRow,
+        .shifts_imm => typed_shifts_imm_authority.validateTraceRow(row) catch
+            return error.InvalidTraceRow,
+        .lt_reg => typed_lt_reg_authority.validateTraceRow(row) catch
+            return error.InvalidTraceRow,
+        .lt_imm => typed_lt_imm_authority.validateTraceRow(row) catch
+            return error.InvalidTraceRow,
+        .branch_eq => typed_branch_eq_authority.validateTraceRow(row) catch
+            return error.InvalidTraceRow,
+        .branch_lt => typed_branch_lt_authority.validateTraceRow(row) catch
+            return error.InvalidTraceRow,
+        .lui => typed_lui_authority.validateTraceRow(row) catch
+            return error.InvalidTraceRow,
+        .auipc => typed_auipc_authority.validateTraceRow(row) catch
+            return error.InvalidTraceRow,
+        .jalr => typed_jalr_authority.validateTraceRow(row) catch
+            return error.InvalidTraceRow,
+        .jal => typed_jal_authority.validateTraceRow(row) catch
+            return error.InvalidTraceRow,
+        .load_store => typed_load_store_authority.validateTraceRow(row) catch
+            return error.InvalidTraceRow,
+        .mul => typed_mul_authority.validateTraceRow(row) catch
+            return error.InvalidTraceRow,
+        .mulh => typed_mulh_authority.validateTraceRow(row) catch
+            return error.InvalidTraceRow,
+        .div => typed_div_authority.validateTraceRow(row) catch
+            return error.InvalidTraceRow,
+        .fence => typed_fence_authority.validateTraceRow(row) catch
+            return error.InvalidTraceRow,
     }
 }
 
@@ -377,9 +471,9 @@ test "witness rows satisfy base and shift semantic evaluators" {
     row.rs1_val = 1;
     row.rs2_val = 2;
     row.rd_val = 3;
-    var base_reg_columns = filledRow(semantics.base_alu_reg.N_ORACLE_COLUMNS, row, .base_alu_reg);
-    const base_reg = try semantics.base_alu_reg.Row.fromOracleColumns(&base_reg_columns);
-    try std.testing.expect(semantics.base_alu_reg.evaluate(base_reg).allZero());
+    var base_reg_columns = filledRow(base_alu_reg_test_oracle.N_ORACLE_COLUMNS, row, .base_alu_reg);
+    const base_reg = try base_alu_reg_test_oracle.Row.fromOracleColumns(&base_reg_columns);
+    try std.testing.expect(base_alu_reg_test_oracle.evaluate(base_reg).allZero());
 
     row = testRow(.ADDI);
     row.imm = -1;
@@ -393,17 +487,17 @@ test "witness rows satisfy base and shift semantic evaluators" {
     row.rs1_val = 1;
     row.rs2_val = 1;
     row.rd_val = 2;
-    var shift_reg_columns = filledRow(semantics.shifts_reg.N_ORACLE_COLUMNS, row, .shifts_reg);
-    const shift_reg = try semantics.shifts_reg.Row.fromOracleColumns(&shift_reg_columns);
-    try std.testing.expect(semantics.shifts_reg.evaluate(shift_reg).allZero());
+    var shift_reg_columns = filledRow(shifts_reg_test_oracle.N_ORACLE_COLUMNS, row, .shifts_reg);
+    const shift_reg = try shifts_reg_test_oracle.Row.fromOracleColumns(&shift_reg_columns);
+    try std.testing.expect(shifts_reg_test_oracle.evaluate(shift_reg).allZero());
 
     row = testRow(.SRAI);
     row.imm = 1;
     row.rs1_val = 0x80000000;
     row.rd_val = 0xc0000000;
-    var shift_imm_columns = filledRow(semantics.shifts_imm.N_ORACLE_COLUMNS, row, .shifts_imm);
-    const shift_imm = try semantics.shifts_imm.Row.fromOracleColumns(&shift_imm_columns);
-    try std.testing.expect(semantics.shifts_imm.evaluate(shift_imm).allZero());
+    var shift_imm_columns = filledRow(shifts_imm_test_oracle.N_ORACLE_COLUMNS, row, .shifts_imm);
+    const shift_imm = try shifts_imm_test_oracle.Row.fromOracleColumns(&shift_imm_columns);
+    try std.testing.expect(shifts_imm_test_oracle.evaluate(shift_imm).allZero());
 }
 
 test "witness rows satisfy comparison and branch semantic evaluators" {
@@ -411,44 +505,50 @@ test "witness rows satisfy comparison and branch semantic evaluators" {
     row.rs1_val = 1;
     row.rs2_val = 2;
     row.rd_val = 1;
-    var lt_reg_columns = filledRow(semantics.lt_reg.N_ORACLE_COLUMNS, row, .lt_reg);
-    const lt_reg = try semantics.lt_reg.Row.fromOracleColumns(&lt_reg_columns);
-    try std.testing.expect(semantics.lt_reg.evaluate(lt_reg).allZero());
+    var lt_reg_columns = filledRow(lt_reg_test_oracle.N_ORACLE_COLUMNS, row, .lt_reg);
+    const lt_reg = try lt_reg_test_oracle.Row.fromOracleColumns(&lt_reg_columns);
+    try std.testing.expect(lt_reg_test_oracle.evaluate(lt_reg).allZero());
 
     row = testRow(.SLTI);
     row.imm = 2;
     row.rs1_val = 1;
     row.rd_val = 1;
-    var lt_imm_columns = filledRow(semantics.lt_imm.N_ORACLE_COLUMNS, row, .lt_imm);
-    const lt_imm = try semantics.lt_imm.Row.fromOracleColumns(&lt_imm_columns);
-    try std.testing.expect(semantics.lt_imm.evaluate(lt_imm).allZero());
+    var lt_imm_columns = filledRow(lt_imm_test_oracle.N_ORACLE_COLUMNS, row, .lt_imm);
+    const lt_imm = try lt_imm_test_oracle.Row.fromOracleColumns(&lt_imm_columns);
+    try std.testing.expect(lt_imm_test_oracle.evaluate(lt_imm).allZero());
 
     row = testRow(.BEQ);
     row.rs1_val = 7;
     row.rs2_val = 7;
     row.imm = 8;
     row.next_pc = 108;
-    var branch_eq_columns = filledRow(semantics.branch_eq.N_MAIN_COLUMNS, row, .branch_eq);
-    const branch_eq = try semantics.branch_eq.Row.fromMainColumns(&branch_eq_columns);
-    try std.testing.expect(semantics.branch_eq.evaluate(branch_eq).allZero());
+    row.branch_taken = true;
+    var branch_eq_columns = filledRow(branch_eq_test_oracle.N_MAIN_COLUMNS, row, .branch_eq);
+    const branch_eq = try branch_eq_test_oracle.Row.fromMainColumns(&branch_eq_columns);
+    try std.testing.expect(branch_eq_test_oracle.evaluate(branch_eq).allZero());
 
     row = testRow(.BLTU);
     row.rs1_val = 1;
     row.rs2_val = 2;
     row.imm = 8;
     row.next_pc = 108;
-    var branch_lt_columns = filledRow(semantics.branch_lt.N_MAIN_COLUMNS, row, .branch_lt);
-    const branch_lt = try semantics.branch_lt.Row.fromMainColumns(&branch_lt_columns);
-    try std.testing.expect(semantics.branch_lt.evaluate(branch_lt).allZero());
+    row.branch_taken = true;
+    var branch_lt_columns = filledRow(branch_lt_test_oracle.N_MAIN_COLUMNS, row, .branch_lt);
+    const branch_lt = try branch_lt_test_oracle.Row.fromMainColumns(&branch_lt_columns);
+    try std.testing.expect(branch_lt_test_oracle.evaluate(branch_lt).allZero());
 }
 
 test "witness rows satisfy upper jump and memory semantic evaluators" {
+    const legacy_lui = @import("../air/semantics/lui_legacy_test_oracle.zig")
+        .Semantics(QM31);
+    const legacy_auipc = @import("../air/semantics/auipc_legacy_test_oracle.zig")
+        .Semantics(QM31);
     var row = testRow(.LUI);
     row.imm = @bitCast(@as(u32, 0x12345000));
     row.rd_val = 0x12345000;
-    var lui_columns = filledRow(semantics.lui.N_MAIN_COLUMNS, row, .lui);
-    const lui = try semantics.lui.Row.fromMainColumns(&lui_columns);
-    try std.testing.expect(semantics.lui.evaluate(lui).allZero());
+    var lui_columns = filledRow(legacy_lui.N_MAIN_COLUMNS, row, .lui);
+    const lui = try legacy_lui.Row.fromMainColumns(&lui_columns);
+    try std.testing.expect(legacy_lui.evaluate(lui).allZero());
 
     row = testRow(.AUIPC);
     // U-type immediates are 4096-aligned; the decoder can never emit 20.
@@ -456,29 +556,34 @@ test "witness rows satisfy upper jump and memory semantic evaluators" {
     // use an architecturally reachable immediate.
     row.imm = @bitCast(@as(u32, 0x5000));
     row.rd_val = 100 + 0x5000;
-    var auipc_columns = filledRow(semantics.auipc.N_MAIN_COLUMNS, row, .auipc);
-    const auipc = try semantics.auipc.Row.fromMainColumns(&auipc_columns);
-    try std.testing.expect(semantics.auipc.evaluate(auipc).allZero());
+    var auipc_columns = filledRow(legacy_auipc.N_MAIN_COLUMNS, row, .auipc);
+    const auipc = try legacy_auipc.Row.fromMainColumns(&auipc_columns);
+    try std.testing.expect(legacy_auipc.evaluate(auipc).allZero());
 
     row = testRow(.JAL);
     row.imm = 8;
     row.rd_val = 104;
     row.next_pc = 108;
-    var jal_columns = filledRow(semantics.jal.N_MAIN_COLUMNS, row, .jal);
-    const jal = try semantics.jal.Row.fromMainColumns(&jal_columns);
-    try std.testing.expect(semantics.jal.evaluate(jal).allZero());
+    row.branch_taken = true;
+    var jal_columns = filledRow(jal_test_oracle.N_MAIN_COLUMNS, row, .jal);
+    const jal = try jal_test_oracle.Row.fromMainColumns(&jal_columns);
+    try std.testing.expect(jal_test_oracle.evaluate(jal).allZero());
 
     row = testRow(.JALR);
     row.imm = 4;
     row.rs1_val = 101;
     row.rd_val = 104;
     row.next_pc = 104;
-    var jalr_columns = filledRow(semantics.jalr.N_MAIN_COLUMNS, row, .jalr);
-    const jalr = try semantics.jalr.Row.fromMainColumns(&jalr_columns);
-    try std.testing.expect(semantics.jalr.evaluate(jalr).allZero());
+    var jalr_columns = filledRow(jalr_test_oracle.N_MAIN_COLUMNS, row, .jalr);
+    const jalr = try jalr_test_oracle.Row.fromMainColumns(&jalr_columns);
+    try std.testing.expect(jalr_test_oracle.evaluate(jalr).allZero());
 
     row = testRow(.LW);
     row.rd = 4;
+    // I-type decode retains immediate[4:0] in `rs2`; the authority binds both
+    // that metadata and every instruction bit to the committed program word.
+    row.rs2 = 0;
+    row.inst_word = 0x0001_2203; // LW x4, 0(x2)
     row.rs1_val = 100;
     row.rd_val = 0x04030201;
     row.mem_addr = 100;
@@ -486,12 +591,14 @@ test "witness rows satisfy upper jump and memory semantic evaluators" {
     row.mem_prev_word = row.rd_val;
     row.mem_next_word = row.rd_val;
     row.is_load = true;
-    var memory_columns = filledRow(semantics.load_store.N_ORACLE_COLUMNS, row, .load_store);
-    const memory = try semantics.load_store.Row.fromOracleColumns(&memory_columns);
-    try std.testing.expect(semantics.load_store.evaluate(memory).allZero());
+    var memory_columns = filledRow(load_store_test_oracle.N_ORACLE_COLUMNS, row, .load_store);
+    const memory = try load_store_test_oracle.Row.fromOracleColumns(&memory_columns);
+    try std.testing.expect(load_store_test_oracle.evaluate(memory).allZero());
 
     row = testRow(.LB);
     row.rd = 4;
+    row.rs2 = 0;
+    row.inst_word = 0x0001_0203; // LB x4, 0(x2)
     row.rs1_val = 101;
     row.rd_val = 0xffffff80;
     row.mem_addr = 101;
@@ -499,11 +606,14 @@ test "witness rows satisfy upper jump and memory semantic evaluators" {
     row.mem_prev_word = 0x00008000;
     row.mem_next_word = 0x00008000;
     row.is_load = true;
-    memory_columns = filledRow(semantics.load_store.N_ORACLE_COLUMNS, row, .load_store);
-    const byte_load = try semantics.load_store.Row.fromOracleColumns(&memory_columns);
-    try std.testing.expect(semantics.load_store.evaluate(byte_load).allZero());
+    memory_columns = filledRow(load_store_test_oracle.N_ORACLE_COLUMNS, row, .load_store);
+    const byte_load = try load_store_test_oracle.Row.fromOracleColumns(&memory_columns);
+    try std.testing.expect(load_store_test_oracle.evaluate(byte_load).allZero());
 
     row = testRow(.SH);
+    // S-type decode retains immediate[4:0] in `rd`.
+    row.rd = 0;
+    row.inst_word = 0x0031_1023; // SH x3, 0(x2)
     row.rs1_val = 102;
     row.rs2_val = 0xbeef;
     row.mem_addr = 102;
@@ -511,19 +621,19 @@ test "witness rows satisfy upper jump and memory semantic evaluators" {
     row.mem_prev_word = 0;
     row.mem_next_word = 0xbeef0000;
     row.is_store = true;
-    memory_columns = filledRow(semantics.load_store.N_ORACLE_COLUMNS, row, .load_store);
-    const half_store = try semantics.load_store.Row.fromOracleColumns(&memory_columns);
-    try std.testing.expect(semantics.load_store.evaluate(half_store).allZero());
+    memory_columns = filledRow(load_store_test_oracle.N_ORACLE_COLUMNS, row, .load_store);
+    const half_store = try load_store_test_oracle.Row.fromOracleColumns(&memory_columns);
+    try std.testing.expect(load_store_test_oracle.evaluate(half_store).allZero());
 }
 
 test "padding rows remain inactive for flag and explicit-enabler families" {
-    const zero = [_]QM31{QM31.zero()} ** semantics.base_alu_reg.N_ORACLE_COLUMNS;
-    const base = try semantics.base_alu_reg.Row.fromOracleColumns(&zero);
+    const zero = [_]QM31{QM31.zero()} ** base_alu_reg_test_oracle.N_ORACLE_COLUMNS;
+    const base = try base_alu_reg_test_oracle.Row.fromOracleColumns(&zero);
     try std.testing.expect(base.active().isZero());
-    try std.testing.expect(semantics.base_alu_reg.evaluate(base).allZero());
+    try std.testing.expect(base_alu_reg_test_oracle.evaluate(base).allZero());
 
-    const control_zero = [_]QM31{QM31.zero()} ** semantics.jal.N_MAIN_COLUMNS;
-    const control = try semantics.jal.Row.fromMainColumns(&control_zero);
+    const control_zero = [_]QM31{QM31.zero()} ** jal_test_oracle.N_MAIN_COLUMNS;
+    const control = try jal_test_oracle.Row.fromMainColumns(&control_zero);
     try std.testing.expect(control.enabler.isZero());
-    try std.testing.expect(semantics.jal.evaluate(control).allZero());
+    try std.testing.expect(jal_test_oracle.evaluate(control).allZero());
 }

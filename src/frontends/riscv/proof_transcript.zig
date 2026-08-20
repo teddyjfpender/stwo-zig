@@ -10,11 +10,13 @@ const relation_challenges = @import("air/relation_challenges.zig");
 const statement_mod = @import("air/statement.zig");
 const transcript = @import("air/transcript/mod.zig");
 const statement_validation = @import("prover/statement_validation.zig");
+const interaction_witness_work = @import("prover/interaction_witness_work.zig");
 const trace_mod = @import("runner/trace.zig");
 
 pub const ProverRelations = struct {
     interaction_pow: u64,
     relations: relation_challenges.Relations,
+    challenge_work_receipt: ?interaction_witness_work.ProducerReceipt = null,
 };
 
 pub fn proveToRelations(
@@ -22,9 +24,13 @@ pub fn proveToRelations(
     channel: anytype,
     statement: *const statement_mod.RiscVStatement,
 ) !ProverRelations {
-    const main_claim = statement.canonicalMainClaim();
-    main_claim.mixInto(channel);
-    statement.mixShardManifest(channel);
+    if (comptime @hasDecl(@TypeOf(channel.*), "absorbRiscVPublicClaim")) {
+        try channel.absorbRiscVPublicClaim();
+    } else {
+        const main_claim = statement.canonicalMainClaim();
+        main_claim.mixInto(channel);
+        statement.mixShardManifest(channel);
+    }
     const nonce = channel.grind(transcript.INTERACTION_POW_BITS);
     channel.mixU64(nonce);
     return .{
@@ -33,15 +39,40 @@ pub fn proveToRelations(
     };
 }
 
+/// Profiling-only sibling. The canonical transcript routine remains the sole
+/// draw implementation; this appends a receipt after its complete success.
+pub fn proveToRelationsWithWorkReceipt(
+    allocator: std.mem.Allocator,
+    channel: anytype,
+    statement: *const statement_mod.RiscVStatement,
+    authority: *const interaction_witness_work.Authority,
+) !ProverRelations {
+    var result = try proveToRelations(allocator, channel, statement);
+    const binding = interaction_witness_work.baseSessionDigest(
+        result.interaction_pow,
+        &result.relations,
+    );
+    result.challenge_work_receipt = try interaction_witness_work.completeBaseChallenges(
+        authority,
+        .base,
+        binding,
+    );
+    return result;
+}
+
 pub fn verifyToRelations(
     allocator: std.mem.Allocator,
     channel: anytype,
     statement: *const statement_mod.RiscVStatement,
     interaction_pow: u64,
 ) !relation_challenges.Relations {
-    const main_claim = statement.canonicalMainClaim();
-    main_claim.mixInto(channel);
-    statement.mixShardManifest(channel);
+    if (comptime @hasDecl(@TypeOf(channel.*), "absorbRiscVPublicClaim")) {
+        try channel.absorbRiscVPublicClaim();
+    } else {
+        const main_claim = statement.canonicalMainClaim();
+        main_claim.mixInto(channel);
+        statement.mixShardManifest(channel);
+    }
     if (!channel.verifyPowNonce(transcript.INTERACTION_POW_BITS, interaction_pow))
         return transcript.PrefixError.InvalidInteractionProofOfWork;
     channel.mixU64(interaction_pow);
@@ -55,7 +86,11 @@ pub fn mixInteractionClaim(
 ) !void {
     const canonical = try claim.canonical(statement);
     const view = canonical.view();
-    view.mixInto(channel);
+    if (comptime @hasDecl(@TypeOf(channel.*), "absorbRiscVClaimedSums")) {
+        try channel.absorbRiscVClaimedSums(&view.claimed_sums);
+    } else {
+        view.mixInto(channel);
+    }
 }
 
 const Blake2sChannel = @import("stwo_core").channel.blake2s.Blake2sChannel;

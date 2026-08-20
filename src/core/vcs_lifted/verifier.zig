@@ -64,6 +64,32 @@ pub fn ExtendedMerkleDecommitmentLifted(comptime H: type) type {
     };
 }
 
+/// Full authentication paths reconstructed by a successful multiproof
+/// verification. Paths preserve the caller's query order and duplicates; the
+/// compressed witness itself remains sorted and deduplicated internally.
+pub fn MerklePathCapture(comptime H: type) type {
+    return struct {
+        positions: []usize,
+        path_depth: u32,
+        siblings: []H.Hash,
+
+        const Self = @This();
+
+        pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+            allocator.free(self.positions);
+            allocator.free(self.siblings);
+            self.* = undefined;
+        }
+
+        pub fn path(self: Self, query_index: usize) []const H.Hash {
+            std.debug.assert(query_index < self.positions.len);
+            const depth: usize = @intCast(self.path_depth);
+            const start = query_index * depth;
+            return self.siblings[start..][0..depth];
+        }
+    };
+}
+
 pub fn MerkleVerifierLifted(comptime H: type) type {
     comptime lifted_merkle_hasher.assertMerkleHasherLifted(H);
     return struct {
@@ -96,6 +122,43 @@ pub fn MerkleVerifierLifted(comptime H: type) type {
             query_positions: []const usize,
             queried_values: []const []const M31,
             decommitment: Decommitment,
+        ) (std.mem.Allocator.Error || MerkleVerificationError)!void {
+            return self.verifyImpl(
+                allocator,
+                query_positions,
+                queried_values,
+                decommitment,
+                null,
+            );
+        }
+
+        /// Verifies the compressed multiproof and transactionally publishes
+        /// one complete path per input query. `capture` is untouched on any
+        /// verification or allocation failure.
+        pub fn verifyWithPathCapture(
+            self: Self,
+            allocator: std.mem.Allocator,
+            query_positions: []const usize,
+            queried_values: []const []const M31,
+            decommitment: Decommitment,
+            capture: *MerklePathCapture(H),
+        ) (std.mem.Allocator.Error || MerkleVerificationError)!void {
+            return self.verifyImpl(
+                allocator,
+                query_positions,
+                queried_values,
+                decommitment,
+                capture,
+            );
+        }
+
+        fn verifyImpl(
+            self: Self,
+            allocator: std.mem.Allocator,
+            query_positions: []const usize,
+            queried_values: []const []const M31,
+            decommitment: Decommitment,
+            capture_out: ?*MerklePathCapture(H),
         ) (std.mem.Allocator.Error || MerkleVerificationError)!void {
             if (queried_values.len != self.column_log_sizes.len) {
                 return MerkleVerificationError.InvalidQueryShape;
@@ -194,6 +257,18 @@ pub fn MerkleVerifierLifted(comptime H: type) type {
 
             var witness_idx: usize = 0;
             const max_log_size = maxLogSize(self.column_log_sizes);
+            const path_depth: usize = @intCast(max_log_size);
+            const unique_path_siblings = if (capture_out != null)
+                try allocator.alloc(H.Hash, unique_positions.items.len * path_depth)
+            else
+                null;
+            defer if (unique_path_siblings) |siblings| allocator.free(siblings);
+            const layer_siblings = if (capture_out != null)
+                try allocator.alloc(H.Hash, unique_positions.items.len)
+            else
+                null;
+            defer if (layer_siblings) |siblings| allocator.free(siblings);
+
             var layer: u32 = 0;
             while (layer < max_log_size) : (layer += 1) {
                 var curr = std.ArrayList(Pair).empty;
@@ -209,6 +284,10 @@ pub fn MerkleVerifierLifted(comptime H: type) type {
                         const second = prev_layer.items[p + 1];
                         left_hash = first.hash;
                         right_hash = second.hash;
+                        if (layer_siblings) |siblings| {
+                            siblings[p] = second.hash;
+                            siblings[p + 1] = first.hash;
+                        }
                         chunk_len = 2;
                     } else {
                         if (witness_idx >= decommitment.hash_witness.len) {
@@ -223,12 +302,29 @@ pub fn MerkleVerifierLifted(comptime H: type) type {
                             left_hash = witness;
                             right_hash = first.hash;
                         }
+                        if (layer_siblings) |siblings| siblings[p] = witness;
                     }
                     try curr.append(allocator, .{
                         .idx = first.idx >> 1,
                         .hash = H.hashChildren(.{ .left = left_hash, .right = right_hash }),
                     });
                     p += chunk_len;
+                }
+
+                if (unique_path_siblings) |paths| {
+                    const siblings = layer_siblings.?;
+                    var node_index: usize = 0;
+                    for (unique_positions.items, 0..) |position, unique_index| {
+                        const ancestor = position >> @intCast(layer);
+                        while (node_index < prev_layer.items.len and
+                            prev_layer.items[node_index].idx < ancestor)
+                        {
+                            node_index += 1;
+                        }
+                        std.debug.assert(node_index < prev_layer.items.len);
+                        std.debug.assert(prev_layer.items[node_index].idx == ancestor);
+                        paths[unique_index * path_depth + layer] = siblings[node_index];
+                    }
                 }
 
                 prev_layer.clearRetainingCapacity();
@@ -245,6 +341,37 @@ pub fn MerkleVerifierLifted(comptime H: type) type {
                     std.debug.print("verifier_merkle_expected={any}\n", .{self.root});
                 }
                 return MerkleVerificationError.RootMismatch;
+            }
+
+            if (capture_out) |destination| {
+                var capture = MerklePathCapture(H){
+                    .positions = try allocator.dupe(usize, query_positions),
+                    .path_depth = max_log_size,
+                    .siblings = undefined,
+                };
+                errdefer allocator.free(capture.positions);
+                capture.siblings = try allocator.alloc(
+                    H.Hash,
+                    query_positions.len * path_depth,
+                );
+                errdefer allocator.free(capture.siblings);
+
+                var unique_index: usize = 0;
+                for (query_order, 0..) |original_index, sorted_index| {
+                    if (sorted_index != 0 and
+                        query_positions[original_index] !=
+                            query_positions[query_order[sorted_index - 1]])
+                    {
+                        unique_index += 1;
+                    }
+                    const source_start = unique_index * path_depth;
+                    const destination_start = original_index * path_depth;
+                    @memcpy(
+                        capture.siblings[destination_start..][0..path_depth],
+                        unique_path_siblings.?[source_start..][0..path_depth],
+                    );
+                }
+                destination.* = capture;
             }
         }
     };
@@ -303,7 +430,91 @@ test "vcs_lifted verifier: verifies simple proof" {
     var decommitment = Decommitment{ .hash_witness = try alloc.dupe(Hasher.Hash, &[_]Hasher.Hash{ leaf0, leaf2 }) };
     defer decommitment.deinit(alloc);
 
-    try verifier.verify(alloc, query_positions[0..], queried_values[0..], decommitment);
+    var capture: MerklePathCapture(Hasher) = undefined;
+    try verifier.verifyWithPathCapture(
+        alloc,
+        query_positions[0..],
+        queried_values[0..],
+        decommitment,
+        &capture,
+    );
+    defer capture.deinit(alloc);
+
+    try std.testing.expectEqual(@as(u32, 2), capture.path_depth);
+    try std.testing.expectEqualSlices(usize, query_positions[0..], capture.positions);
+    try std.testing.expect(vcs_hash.eql(capture.path(0)[0], leaf0));
+    try std.testing.expect(vcs_hash.eql(capture.path(0)[1], parent1));
+    try std.testing.expect(vcs_hash.eql(capture.path(1)[0], leaf2));
+    try std.testing.expect(vcs_hash.eql(capture.path(1)[1], parent0));
+}
+
+test "vcs_lifted verifier: captured paths preserve input order and duplicates" {
+    const Hasher = @import("blake2_merkle.zig").Blake2sMerkleHasher;
+    const Decommitment = MerkleDecommitmentLifted(Hasher);
+    const Verifier = MerkleVerifierLifted(Hasher);
+    const alloc = std.testing.allocator;
+
+    const query_positions = [_]usize{ 3, 1, 3 };
+    const queried_values = [_][]const M31{
+        &[_]M31{
+            M31.fromCanonical(30),
+            M31.fromCanonical(10),
+            M31.fromCanonical(30),
+        },
+        &[_]M31{
+            M31.fromCanonical(40),
+            M31.fromCanonical(20),
+            M31.fromCanonical(40),
+        },
+    };
+
+    var row1 = [_]M31{ M31.fromCanonical(10), M31.fromCanonical(20) };
+    var row3 = [_]M31{ M31.fromCanonical(30), M31.fromCanonical(40) };
+    var hasher = Hasher.defaultWithInitialState();
+    hasher.updateLeaf(row1[0..]);
+    const leaf1 = hasher.finalize();
+    hasher = Hasher.defaultWithInitialState();
+    hasher.updateLeaf(row3[0..]);
+    const leaf3 = hasher.finalize();
+
+    var row0 = [_]M31{ M31.fromCanonical(9), M31.fromCanonical(19) };
+    var row2 = [_]M31{ M31.fromCanonical(29), M31.fromCanonical(39) };
+    hasher = Hasher.defaultWithInitialState();
+    hasher.updateLeaf(row0[0..]);
+    const leaf0 = hasher.finalize();
+    hasher = Hasher.defaultWithInitialState();
+    hasher.updateLeaf(row2[0..]);
+    const leaf2 = hasher.finalize();
+
+    const parent0 = Hasher.hashChildren(.{ .left = leaf0, .right = leaf1 });
+    const parent1 = Hasher.hashChildren(.{ .left = leaf2, .right = leaf3 });
+    const root = Hasher.hashChildren(.{ .left = parent0, .right = parent1 });
+
+    var verifier = try Verifier.init(alloc, root, &[_]u32{ 2, 2 });
+    defer verifier.deinit(alloc);
+    var decommitment = Decommitment{
+        .hash_witness = try alloc.dupe(Hasher.Hash, &[_]Hasher.Hash{ leaf0, leaf2 }),
+    };
+    defer decommitment.deinit(alloc);
+
+    var capture: MerklePathCapture(Hasher) = undefined;
+    try verifier.verifyWithPathCapture(
+        alloc,
+        query_positions[0..],
+        queried_values[0..],
+        decommitment,
+        &capture,
+    );
+    defer capture.deinit(alloc);
+
+    try std.testing.expectEqualSlices(usize, query_positions[0..], capture.positions);
+    try std.testing.expect(vcs_hash.eql(capture.path(0)[0], leaf2));
+    try std.testing.expect(vcs_hash.eql(capture.path(0)[1], parent0));
+    try std.testing.expect(vcs_hash.eql(capture.path(1)[0], leaf0));
+    try std.testing.expect(vcs_hash.eql(capture.path(1)[1], parent1));
+    for (capture.path(0), capture.path(2)) |left, right| {
+        try std.testing.expect(vcs_hash.eql(left, right));
+    }
 }
 
 test "vcs_lifted verifier: rejects queried column count mismatch" {

@@ -5,6 +5,11 @@ pub const m2_production_shadow_machine =
 pub const m2_production_shadow_markdown =
     @embedFile("m2-production-shadow-report-v1.md");
 
+pub const p002_native_family_static_profile_machine =
+    @embedFile("p002-native-family-static-profile-v1/profiles-v1.tsv");
+pub const p002_native_family_static_profile_readable =
+    @embedFile("p002-native-family-static-profile-v1/profiles-v1.md");
+
 pub const m3_compat_v1_index =
     @embedFile("m3-compat-v1/index-v1.tsv");
 

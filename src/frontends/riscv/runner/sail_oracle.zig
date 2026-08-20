@@ -413,3 +413,263 @@ test "sail_oracle: a forged integer write is DIVERGENT, never a pass or a skip (
         },
     }
 }
+
+test "E-018 staged typed LUI retirement agrees with pinned Sail (skips visibly when Sail absent)" {
+    const typed_lui = @import("../air/lang/typed_lui.zig");
+    const typed_lui_authority = @import("../air/lang/typed_lui_authority.zig");
+    const alloc = std.testing.allocator;
+    const words = [_]u32{
+        0x1234_50b7, // LUI x1,  0x12345
+        0x8000_0fb7, // LUI x31, 0x80000
+        0xffff_f037, // LUI x0,  0xfffff (architecturally discarded)
+        0x0000_0073, // ECALL (host event, not a retirement in the trace)
+    };
+    const elf = trace_dump.buildTestElf(words.len, words);
+
+    var definition = try typed_lui.build(alloc, .generated);
+    defer definition.deinit();
+    const binding = typed_lui_authority.Binding.canonical(&definition);
+    const authority = try typed_lui_authority.Authority.init(&definition, &binding);
+
+    var cpu = runner.Cpu.init(0x0001_0000, runner.elf_loader.DEFAULT_STACK_POINTER);
+    var exec_trace = runner.trace.Trace.init(alloc);
+    defer exec_trace.deinit();
+    exec_trace.initial_pc = cpu.pc;
+    var tracker = runner.state_chain.StateChainTracker.init(alloc);
+    defer tracker.deinit();
+
+    for (words[0..3], 0..) |word, index| {
+        try runner.lui_retirement.retireAtomic(
+            &authority,
+            &cpu,
+            &exec_trace,
+            &tracker,
+            try runner.DecodedInst.decode(word),
+            word,
+            @intCast(index + 1),
+        );
+    }
+    exec_trace.final_pc = cpu.pc;
+
+    try requireAgreement(
+        alloc,
+        "E-018 staged typed LUI authority",
+        &elf,
+        &exec_trace,
+        cpu,
+        &.{},
+    );
+}
+
+test "E-019 staged typed FENCE retirement agrees with pinned Sail (skips visibly when Sail absent)" {
+    const typed_fence = @import("../air/lang/typed_fence.zig");
+    const typed_fence_authority = @import("../air/lang/typed_fence_authority.zig");
+    const alloc = std.testing.allocator;
+    const words = [_]u32{
+        0x0000_000f, // canonical FENCE
+        0xffff_8f8f, // imm=-1, reserved rs1=x31, rd=x31
+        0x8a53_038f, // negative imm, reserved rs1=x6, rd=x7
+        0x0008_828f, // imm=0, reserved rs1=x17, rd=x5
+        0x0000_0073, // ECALL (host event, not a retirement in the trace)
+    };
+    const elf = trace_dump.buildTestElf(words.len, words);
+
+    var definition = try typed_fence.build(alloc, .generated);
+    defer definition.deinit();
+    const binding = try typed_fence_authority.Binding.canonical(&definition);
+    const authority = try typed_fence_authority.Authority.init(&definition, &binding);
+
+    var cpu = runner.Cpu.init(0x0001_0000, runner.elf_loader.DEFAULT_STACK_POINTER);
+    var exec_trace = runner.trace.Trace.init(alloc);
+    defer exec_trace.deinit();
+    exec_trace.initial_pc = cpu.pc;
+    var tracker = runner.state_chain.StateChainTracker.init(alloc);
+    defer tracker.deinit();
+
+    for (words[0..4], 0..) |word, index| {
+        try runner.fence_retirement.retireAtomic(
+            &authority,
+            &cpu,
+            &exec_trace,
+            &tracker,
+            try runner.DecodedInst.decode(word),
+            word,
+            @intCast(index + 1),
+        );
+    }
+    exec_trace.final_pc = cpu.pc;
+
+    try requireAgreement(
+        alloc,
+        "E-019 staged typed FENCE authority",
+        &elf,
+        &exec_trace,
+        cpu,
+        &.{},
+    );
+}
+
+test "E-020 staged typed BASE_ALU_IMM retirement agrees with pinned Sail (skips visibly when Sail absent)" {
+    const typed_addi = @import("../air/lang/typed_addi.zig");
+    const typed_authority = @import("../air/lang/typed_base_alu_imm_authority.zig");
+    const alloc = std.testing.allocator;
+    const words = [_]u32{
+        0x8000_0093, // ADDI x1, x0, -2048
+        0x7ff0_c113, // XORI x2, x1, 2047
+        0xfff1_6193, // ORI  x3, x2, -1
+        0x8001_f213, // ANDI x4, x3, -2048
+        0x0012_8293, // ADDI x5, x5, 1 (source/destination alias)
+        0xfff0_0013, // ADDI x0, x0, -1 (discarded destination)
+        0x0000_0073, // ECALL (host event, not a retirement in the trace)
+    };
+    const elf = trace_dump.buildTestElf(words.len, words);
+
+    var definition = try typed_addi.build(alloc, .generated);
+    defer definition.deinit();
+    const binding = try typed_authority.Binding.canonical(&definition);
+    const authority = try typed_authority.Authority.init(&definition, &binding);
+
+    var cpu = runner.Cpu.init(0x0001_0000, runner.elf_loader.DEFAULT_STACK_POINTER);
+    var exec_trace = runner.trace.Trace.init(alloc);
+    defer exec_trace.deinit();
+    exec_trace.initial_pc = cpu.pc;
+    var tracker = runner.state_chain.StateChainTracker.init(alloc);
+    defer tracker.deinit();
+
+    for (words[0..6], 0..) |word, index| {
+        try runner.base_alu_imm_retirement.retireAtomic(
+            &authority,
+            &cpu,
+            &exec_trace,
+            &tracker,
+            try runner.DecodedInst.decode(word),
+            word,
+            @intCast(index + 1),
+        );
+    }
+    exec_trace.final_pc = cpu.pc;
+
+    try requireAgreement(
+        alloc,
+        "E-020 staged typed BASE_ALU_IMM authority",
+        &elf,
+        &exec_trace,
+        cpu,
+        &.{},
+    );
+}
+
+test "E-020 staged typed BASE_ALU_REG retirement agrees with pinned Sail (skips visibly when Sail absent)" {
+    const typed_base_alu_reg = @import("../air/lang/typed_base_alu_reg.zig");
+    const typed_authority = @import("../air/lang/typed_base_alu_reg_authority.zig");
+    const alloc = std.testing.allocator;
+    const words = [_]u32{
+        0x02a0_0113, // ADDI x2, x0, 42 (synchronize runner/Sail initial x2)
+        0x0001_00b3, // ADD x1, x2, x0
+        0x4020_81b3, // SUB x3, x1, x2
+        0x0020_c233, // XOR x4, x1, x2
+        0x0000_e2b3, // OR  x5, x1, x0
+        0x0020_f333, // AND x6, x1, x2
+        0x0073_83b3, // ADD x7, x7, x7 (rd == rs1 == rs2)
+        0x0020_8033, // ADD x0, x1, x2 (architecturally discarded)
+        0x0000_0073, // ECALL (host event, not a retirement in the trace)
+    };
+    const elf = trace_dump.buildTestElf(words.len, words);
+
+    var definition = try typed_base_alu_reg.build(alloc, .generated);
+    defer definition.deinit();
+    const binding = try typed_authority.Binding.canonical(&definition);
+    const authority = try typed_authority.Authority.init(&definition, &binding);
+
+    var cpu = runner.Cpu.init(
+        0x0001_0000,
+        runner.elf_loader.DEFAULT_STACK_POINTER,
+    );
+    var exec_trace = runner.trace.Trace.init(alloc);
+    defer exec_trace.deinit();
+    exec_trace.initial_pc = cpu.pc;
+    var tracker = runner.state_chain.StateChainTracker.init(alloc);
+    defer tracker.deinit();
+
+    try runner.base_alu_imm_retirement.retireAtomic(
+        &runner.base_alu_imm_retirement.PINNED_AUTHORITY,
+        &cpu,
+        &exec_trace,
+        &tracker,
+        try runner.DecodedInst.decode(words[0]),
+        words[0],
+        1,
+    );
+    for (words[1..8], 0..) |word, index| {
+        try runner.base_alu_reg_retirement.retireAtomic(
+            &authority,
+            &cpu,
+            &exec_trace,
+            &tracker,
+            try runner.DecodedInst.decode(word),
+            word,
+            @intCast(index + 2),
+        );
+    }
+    exec_trace.final_pc = cpu.pc;
+
+    try requireAgreement(
+        alloc,
+        "E-020 staged typed BASE_ALU_REG authority",
+        &elf,
+        &exec_trace,
+        cpu,
+        &.{},
+    );
+}
+
+test "typed AUIPC retirement agrees with pinned Sail (skips visibly when Sail absent)" {
+    const typed_auipc = @import("../air/lang/typed_auipc.zig");
+    const typed_authority = @import("../air/lang/typed_auipc_authority.zig");
+    const alloc = std.testing.allocator;
+    const words = [_]u32{
+        0x0000_0097, // AUIPC x1, 0
+        0x7fff_f117, // AUIPC x2, 0x7ffff000
+        0x8000_0f97, // AUIPC x31, 0x80000000
+        0xffff_f017, // AUIPC x0, 0xfffff000 (discarded destination)
+        0x0000_0073, // ECALL (host event, not a retirement in the trace)
+    };
+    const elf = trace_dump.buildTestElf(words.len, words);
+
+    var definition = try typed_auipc.build(alloc, .generated);
+    defer definition.deinit();
+    const binding = try typed_authority.Binding.canonical(&definition);
+    const authority = try typed_authority.Authority.init(&definition, &binding);
+
+    var cpu = runner.Cpu.init(
+        0x0001_0000,
+        runner.elf_loader.DEFAULT_STACK_POINTER,
+    );
+    var exec_trace = runner.trace.Trace.init(alloc);
+    defer exec_trace.deinit();
+    exec_trace.initial_pc = cpu.pc;
+    var tracker = runner.state_chain.StateChainTracker.init(alloc);
+    defer tracker.deinit();
+
+    for (words[0..4], 0..) |word, index| {
+        try runner.auipc_retirement.retireAtomic(
+            &authority,
+            &cpu,
+            &exec_trace,
+            &tracker,
+            try runner.DecodedInst.decode(word),
+            word,
+            @intCast(index + 1),
+        );
+    }
+    exec_trace.final_pc = cpu.pc;
+
+    try requireAgreement(
+        alloc,
+        "typed AUIPC authority",
+        &elf,
+        &exec_trace,
+        cpu,
+        &.{},
+    );
+}

@@ -1,4 +1,4 @@
-//! Allocation-free shadow witness generation for native typed RV32 LUI.
+//! Allocation-free production witness generation for native typed RV32 LUI.
 //!
 //! The current typed expression IR deliberately treats every physical LUI
 //! column as an input. It therefore cannot infer whether a cell comes directly
@@ -8,19 +8,22 @@
 //! that recipe against the validated typed definition and production-compatible
 //! physical names and types before returning a self-contained executor.
 //!
-//! This remains a shadow path. Production witness selection, commitment
-//! geometry, and transcript authority are unchanged.
+//! This module is the sole production authority for active LUI family rows.
+//! It writes the final preallocated column storage directly; the runner owns
+//! padding zeroing and physical row placement. The former handwritten writer
+//! is retained only as an independent test oracle.
 
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
+const direct_witness_executor = @import("direct_witness_executor.zig");
 const digest = @import("digest.zig");
-const trace_mod = @import("../../runner/trace.zig");
+const trace_row = @import("../../runner/trace_row.zig");
 const production_columns = @import("../trace_columns/control.zig");
 const typed_lui = @import("typed_lui.zig");
 const types = @import("types.zig");
 
 pub const MAIN_COLUMN_COUNT: usize = typed_lui.MAIN_COLUMN_COUNT;
-pub const TraceRow = trace_mod.TraceRow;
+pub const TraceRow = trace_row.TraceRow;
 
 pub const WITNESS_BINDING_FORMAT_VERSION: u16 = 1;
 pub const WITNESS_BINDING_DOMAIN_SEPARATOR =
@@ -141,13 +144,7 @@ pub const ConstructionError = typed_lui.ValidationError || error{
     InvalidWitnessBinding,
 };
 
-pub const ExecutionError = error{
-    AddressOverflow,
-    AliasedDestination,
-    AliasedInput,
-    InvalidTraceRow,
-    InvalidTraceShape,
-};
+pub const ExecutionError = direct_witness_executor.Error;
 
 /// Immutable, self-contained LUI witness executor.
 ///
@@ -191,58 +188,18 @@ pub const Executor = struct {
         rows: []const TraceRow,
         log_size: u32,
     ) ExecutionError!void {
-        const size = try self.preflight(columns, rows, log_size);
-
-        // Nothing below this boundary can fail. This makes every rejected call
-        // byte-preserving, including bad opcodes and adversarial alias layouts.
-        for (columns) |column| @memset(column, M31.zero());
-        for (rows, 0..) |row, logical_row| writeRow(columns, logical_row, row);
-        std.debug.assert(size == columns[0].len);
-    }
-
-    fn preflight(
-        self: *const Executor,
-        columns: *const [MAIN_COLUMN_COUNT][]M31,
-        rows: []const TraceRow,
-        log_size: u32,
-    ) ExecutionError!usize {
-        if (log_size >= @bitSizeOf(usize)) return error.InvalidTraceShape;
-        const size = @as(usize, 1) << @intCast(log_size);
-        if (rows.len > size) return error.InvalidTraceShape;
-
-        var destinations: [MAIN_COLUMN_COUNT]AddressRange = undefined;
-        for (columns, 0..) |column, index| {
-            if (column.len != size) return error.InvalidTraceShape;
-            destinations[index] = (try rangeOf(M31, column)).?;
-        }
-        const descriptors = try objectRange(columns);
-        const executor_storage = try objectRange(self);
-        const row_storage = try rangeOf(TraceRow, rows);
-
-        if (row_storage) |input| {
-            if (input.overlaps(descriptors) or input.overlaps(executor_storage))
-                return error.AliasedInput;
-        }
-        for (destinations, 0..) |destination, index| {
-            if (destination.overlaps(descriptors) or
-                destination.overlaps(executor_storage))
-            {
-                return error.AliasedDestination;
-            }
-            if (row_storage != null and destination.overlaps(row_storage.?))
-                return error.AliasedInput;
-            for (destinations[0..index]) |previous| {
-                if (destination.overlaps(previous))
-                    return error.AliasedDestination;
-            }
-        }
-
-        // Run only after alias checks, so an input forged over protected local
-        // objects is rejected without being dereferenced.
-        for (rows) |row| {
-            if (row.opcode != .LUI) return error.InvalidTraceRow;
-        }
-        return size;
+        return direct_witness_executor.generateMainInto(
+            M31,
+            TraceRow,
+            MAIN_COLUMN_COUNT,
+            columns,
+            rows,
+            log_size,
+            M31.zero(),
+            self,
+            validateRow,
+            writeActiveRow,
+        );
     }
 };
 
@@ -317,8 +274,14 @@ fn validateBinding(
     }
 }
 
-inline fn writeRow(
-    columns: *[MAIN_COLUMN_COUNT][]M31,
+/// Write one already-admitted active row into final column-major storage.
+///
+/// This is the production hot path called after opcode classification and
+/// shard placement. It is allocation-free, branch-bounded, and contains no
+/// string or recipe dispatch. The checked batch executor above uses the same
+/// function after validating shapes, aliasing, and every row opcode.
+pub inline fn writeActiveRow(
+    columns: anytype,
     row_index: usize,
     row: TraceRow,
 ) void {
@@ -328,27 +291,38 @@ inline fn writeRow(
     const rd = fromUnsigned(row.rd);
     const nonzero = row.rd != 0;
 
-    columns[0][row_index] = M31.one();
-    columns[1][row_index] = fromUnsigned(row.clk);
-    columns[2][row_index] = fromUnsigned(row.pc);
-    columns[3][row_index] = rd;
-    columns[4][row_index] = previous[0];
-    columns[5][row_index] = previous[1];
-    columns[6][row_index] = previous[2];
-    columns[7][row_index] = previous[3];
-    columns[8][row_index] = fromUnsigned(row.rd_prev_clk);
-    columns[9][row_index] = next[0];
-    columns[10][row_index] = next[1];
-    columns[11][row_index] = next[2];
-    columns[12][row_index] = next[3];
-    columns[13][row_index] = fromUnsigned(immediate & 0xf);
-    columns[14][row_index] = fromUnsigned((immediate >> 4) & 0xff);
-    columns[15][row_index] = fromUnsigned(immediate >> 12);
-    columns[16][row_index] = if (nonzero) M31.one() else M31.zero();
-    columns[17][row_index] = if (nonzero)
-        rd.invUncheckedNonZero()
-    else
-        M31.zero();
+    // `inline` makes every source and destination a compile-time constant: the
+    // recipe is the single column-order authority, while emitted code remains
+    // 18 direct stores with no loop or tag dispatch.
+    inline for (CANONICAL_RECIPE, 0..) |source, column| {
+        columns[column][row_index] = switch (source) {
+            .constant_one => M31.one(),
+            .trace_clock => fromUnsigned(row.clk),
+            .trace_pc => fromUnsigned(row.pc),
+            .trace_rd_address => rd,
+            .trace_rd_previous_byte_0 => previous[0],
+            .trace_rd_previous_byte_1 => previous[1],
+            .trace_rd_previous_byte_2 => previous[2],
+            .trace_rd_previous_byte_3 => previous[3],
+            .trace_rd_previous_clock => fromUnsigned(row.rd_prev_clk),
+            .trace_rd_next_byte_0 => next[0],
+            .trace_rd_next_byte_1 => next[1],
+            .trace_rd_next_byte_2 => next[2],
+            .trace_rd_next_byte_3 => next[3],
+            .trace_u_immediate_low_nibble => fromUnsigned(immediate & 0xf),
+            .trace_u_immediate_middle_byte => fromUnsigned((immediate >> 4) & 0xff),
+            .trace_u_immediate_high_byte => fromUnsigned(immediate >> 12),
+            .rd_nonzero => if (nonzero) M31.one() else M31.zero(),
+            .rd_inverse_or_zero => if (nonzero)
+                rd.invUncheckedNonZero()
+            else
+                M31.zero(),
+        };
+    }
+}
+
+fn validateRow(row: TraceRow) ExecutionError!void {
+    if (row.opcode != .LUI) return error.InvalidTraceRow;
 }
 
 inline fn fromUnsigned(value: anytype) M31 {
@@ -368,36 +342,6 @@ fn hashInt(hash: anytype, comptime T: type, value: T) void {
     var encoded: [@sizeOf(T)]u8 = undefined;
     std.mem.writeInt(T, &encoded, value, .little);
     hash.update(&encoded);
-}
-
-const AddressRange = struct {
-    start: usize,
-    end: usize,
-
-    inline fn overlaps(self: AddressRange, other: AddressRange) bool {
-        return self.start < other.end and other.start < self.end;
-    }
-};
-
-fn rangeOf(comptime T: type, values: []const T) ExecutionError!?AddressRange {
-    if (values.len == 0) return null;
-    const byte_len = std.math.mul(usize, values.len, @sizeOf(T)) catch
-        return error.AddressOverflow;
-    const start = @intFromPtr(values.ptr);
-    const end = std.math.add(usize, start, byte_len) catch
-        return error.AddressOverflow;
-    return .{ .start = start, .end = end };
-}
-
-fn objectRange(pointer: anytype) ExecutionError!AddressRange {
-    const Pointer = @TypeOf(pointer);
-    const info = @typeInfo(Pointer);
-    if (info != .pointer or info.pointer.size != .one)
-        @compileError("objectRange requires a single-item pointer");
-    const start = @intFromPtr(pointer);
-    const end = std.math.add(usize, start, @sizeOf(info.pointer.child)) catch
-        return error.AddressOverflow;
-    return .{ .start = start, .end = end };
 }
 
 comptime {

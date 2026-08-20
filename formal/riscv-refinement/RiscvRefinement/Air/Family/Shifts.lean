@@ -4,10 +4,10 @@ import RiscvRefinement.Common
 # Shared shift-family AIR capsule: SLLI/SRLI/SRAI and SLL/SRL/SRA
 
 Reviewed transcription of the production symbolic AIR exported for the two shift
-families. The Zig source of record is
-`src/frontends/riscv/air/semantics/shift_common.zig` together with its two
-instantiations `shifts_imm.zig` and `shifts_reg.zig`; the exported symbolic DAGs
-are pinned by `shiftsImmIrDigest` and `shiftsRegIrDigest` below.
+families. The Zig source of record is the typed evaluator pair
+`typed_shifts_imm_authority.zig` and `typed_shifts_reg_authority.zig`, dispatched
+by `air/constraint_program.zig`; the exported symbolic DAGs are pinned by
+`shiftsImmIrDigest` and `shiftsRegIrDigest` below.
 
 Both families share `shift_common.zig`, so this file carries one `ShiftRow` /
 `ShiftHolds` layer holding the shared hot-one markers, byte carries and result
@@ -40,12 +40,20 @@ open RiscvRefinement
 /-- sha256 of the pinned `shifts_imm` symbolic AIR export
 (56 columns, 349 nodes, 72 constraints, 16 lookups, 7 unmodelled requests). -/
 def shiftsImmIrDigest : String :=
-  "fe50483868853339a3e986374d0ee6e8e5a35f5f058f1f2dcef5c2d7667c3556"
+  "723c3a5b4d198bb49b0bb46a832f990d2c1014d413654cdfdd9f714d1930c1ec"
+
+/-- Sparse-polynomial identity shared by the reviewed and typed exports. -/
+def shiftsImmPolynomialDigest : String :=
+  "5ab0474ce963462428f39a96a2bd95af1d1ff1cf71311e7444348015af741333"
 
 /-- sha256 of the pinned `shifts_reg` symbolic AIR export
 (66 columns, 372 nodes, 76 constraints, 20 lookups, 9 unmodelled requests). -/
 def shiftsRegIrDigest : String :=
-  "1508e095463ba150b2236e8cb604f248c549b0a5965c2a6e55a2ff5e8a4ba2cd"
+  "948b7cee5ca12e55f77ee4d14dde784715320cdd6c74dae4910c5017121a9ef3"
+
+/-- Sparse-polynomial identity shared by the reviewed and typed exports. -/
+def shiftsRegPolynomialDigest : String :=
+  "9cb6442de50707263fd4d9ecf10640e2d15638c292b61489c7b79fd97d8a1ed3"
 
 inductive ShiftKind
   | sll

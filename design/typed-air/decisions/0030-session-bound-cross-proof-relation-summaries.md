@@ -262,6 +262,38 @@ two-pair, and maximum-count boundary cases. Mutation tests flip every field
 class and exercise truncation, extension, noncanonical M31 limbs, overflow,
 role swaps, pair reordering, duplicate jobs, and cross-context merges.
 
+### Shadow recursion pair frame
+
+The first recursion-owned serialization reference is a deliberately narrower
+pair frame, `STWRLS\0\0` version 1. It does not replace the native aggregation
+manifest or claim proof-bound summaries. Its only admitted relation-total
+array has length one and contains relation `(12, 1, 32)`; accepting a second
+relation requires a new format version rather than unused generic capacity.
+
+Each child record repeats the session digest, shared-challenge-context digest,
+and canonical guest-relation-domain digest. It then binds three independently
+reconstructed leaf identities: the statement digest, SHA-256 of canonical
+proof bytes, and the verifier-replayed transcript digest. The record also
+binds the ordered public call commitment, pair and leaf indices, explicit
+left/right position, core/precompile role, relation event count, and signed
+QM31 total in canonical limb order. The fixed pair order is left core request,
+then right Poseidon2 provider. Counts and call commitments must match and the
+two totals must cancel.
+
+The version-1 pair frame is 552 bytes: a 16-byte header followed by two
+268-byte child records. Encoding validates before its first store. The slice
+encoder and decoder allocate nothing; the owned encoder performs one exact
+allocation after validation. Decoding requires the exact frame length and
+rejects trailing data, unknown tags, nonzero reserved fields, noncanonical
+M31 limbs, child swaps, omissions, duplicates, and position/count drift.
+
+Expected statement, proof, and transcript identities remain external verifier
+authority and are intentionally absent as a self-declared comparison object.
+The native validation API accepts those expected identities separately. This
+prevents a serialized summary beside an unrelated valid proof from
+self-authenticating, but it is still only a reference boundary: a future
+recursive verifier must prove the same comparisons inside its proof system.
+
 ### Soundness obligations
 
 Activation requires a reviewed reduction with explicit bounds. At minimum it

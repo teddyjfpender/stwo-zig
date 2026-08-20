@@ -26,6 +26,81 @@ pub fn foldFriCircleLineCascade(
     domain_prefix_bytes: u32,
     channel_state: *[10]u32,
 ) (MetalError || std.mem.Allocator.Error)!FriLineCascadeResult {
+    return foldFriCircleLineCascadeInternal(
+        self,
+        allocator,
+        source,
+        source_count,
+        circle_source,
+        circle_alpha,
+        inverse_x,
+        domain_initial_index,
+        domain_step_size,
+        coordinates,
+        final_destination,
+        leaf_seed,
+        node_seed,
+        domain_prefix_bytes,
+        channel_state,
+        false,
+    );
+}
+
+pub fn foldFriCircleLineCascadeWithReceipt(
+    self: *Runtime,
+    allocator: std.mem.Allocator,
+    source: *anyopaque,
+    source_count: u32,
+    circle_source: ?*anyopaque,
+    circle_alpha: ?[4]u32,
+    inverse_x: ?[]const u32,
+    domain_initial_index: u32,
+    domain_step_size: u32,
+    coordinates: []const *anyopaque,
+    final_destination: *anyopaque,
+    leaf_seed: [8]u32,
+    node_seed: [8]u32,
+    domain_prefix_bytes: u32,
+    channel_state: *[10]u32,
+) (MetalError || std.mem.Allocator.Error)!FriLineCascadeResult {
+    return foldFriCircleLineCascadeInternal(
+        self,
+        allocator,
+        source,
+        source_count,
+        circle_source,
+        circle_alpha,
+        inverse_x,
+        domain_initial_index,
+        domain_step_size,
+        coordinates,
+        final_destination,
+        leaf_seed,
+        node_seed,
+        domain_prefix_bytes,
+        channel_state,
+        true,
+    );
+}
+
+fn foldFriCircleLineCascadeInternal(
+    self: *Runtime,
+    allocator: std.mem.Allocator,
+    source: *anyopaque,
+    source_count: u32,
+    circle_source: ?*anyopaque,
+    circle_alpha: ?[4]u32,
+    inverse_x: ?[]const u32,
+    domain_initial_index: u32,
+    domain_step_size: u32,
+    coordinates: []const *anyopaque,
+    final_destination: *anyopaque,
+    leaf_seed: [8]u32,
+    node_seed: [8]u32,
+    domain_prefix_bytes: u32,
+    channel_state: *[10]u32,
+    capture_inverse_generation: bool,
+) (MetalError || std.mem.Allocator.Error)!FriLineCascadeResult {
     if ((circle_source == null) != (circle_alpha == null) or
         source_count < 2 or coordinates.len == 0 or coordinates.len >= 31 or
         source_count & (source_count - 1) != 0 or
@@ -51,6 +126,7 @@ pub fn foldFriCircleLineCascade(
     defer allocator.free(handles);
     @memset(handles, null);
     var stats: CommandEpochStats = undefined;
+    var inverse_generation_mask: u32 = 0;
     var message: [1024]u8 = [_]u8{0} ** 1024;
     var circle_alpha_value = circle_alpha;
     if (!ffi.stwo_zig_metal_fri_line_cascade(
@@ -74,6 +150,7 @@ pub fn foldFriCircleLineCascade(
         domain_prefix_bytes,
         channel_state,
         handles.ptr,
+        if (capture_inverse_generation) &inverse_generation_mask else null,
         &stats,
         &message,
         message.len,
@@ -89,7 +166,11 @@ pub fn foldFriCircleLineCascade(
             .log_size = std.math.log2_int(u32, source_count >> @intCast(stage)),
         };
     }
-    return .{ .stats = stats, .trees = trees };
+    return .{
+        .stats = stats,
+        .trees = trees,
+        .inverse_generation_mask = inverse_generation_mask,
+    };
 }
 
 pub fn foldFriLineCascade(
@@ -108,6 +189,39 @@ pub fn foldFriLineCascade(
     channel_state: *[10]u32,
 ) (MetalError || std.mem.Allocator.Error)!FriLineCascadeResult {
     return self.foldFriCircleLineCascade(
+        allocator,
+        source,
+        source_count,
+        null,
+        null,
+        inverse_x,
+        domain_initial_index,
+        domain_step_size,
+        coordinates,
+        final_destination,
+        leaf_seed,
+        node_seed,
+        domain_prefix_bytes,
+        channel_state,
+    );
+}
+
+pub fn foldFriLineCascadeWithReceipt(
+    self: *Runtime,
+    allocator: std.mem.Allocator,
+    source: *anyopaque,
+    source_count: u32,
+    inverse_x: ?[]const u32,
+    domain_initial_index: u32,
+    domain_step_size: u32,
+    coordinates: []const *anyopaque,
+    final_destination: *anyopaque,
+    leaf_seed: [8]u32,
+    node_seed: [8]u32,
+    domain_prefix_bytes: u32,
+    channel_state: *[10]u32,
+) (MetalError || std.mem.Allocator.Error)!FriLineCascadeResult {
+    return self.foldFriCircleLineCascadeWithReceipt(
         allocator,
         source,
         source_count,

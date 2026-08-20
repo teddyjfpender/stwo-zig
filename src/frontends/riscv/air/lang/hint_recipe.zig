@@ -12,17 +12,23 @@ const types = @import("types.zig");
 pub const Kind = enum(u16) {
     identity_felt,
     field_inverse_or_zero,
+    rv32_divrem,
 };
 
 pub const Algorithm = enum(u16) {
     identity_felt,
     field_inverse_or_zero,
+    rv32_divrem,
 };
 
 pub const ExceptionalCasePolicy = enum(u8) {
     none,
     /// For input zero, both the inverse and nonzero marker are zero.
     zero_returns_zero_inverse_and_false,
+    /// RV32 DIV/DIVU/REM/REMU: division by zero returns quotient `2^32 - 1`
+    /// and the dividend as remainder; signed `INT_MIN / -1` returns `INT_MIN`
+    /// and zero. Every other input uses truncation toward zero.
+    rv32_divrem_zero_and_signed_overflow,
 };
 
 pub const Recipe = struct {
@@ -48,11 +54,34 @@ pub const EvaluationError = error{
     InvalidHintInputArity,
     InvalidHintOutputArity,
     NonCanonicalHintInput,
+    UnsupportedFieldRecipe,
     UnknownHintRecipe,
+};
+
+pub const DivRemClass = enum(u8) {
+    regular,
+    zero_divisor,
+    signed_overflow,
+};
+
+pub const DivRemOutput = struct {
+    quotient: u32,
+    remainder: u32,
+    class: DivRemClass,
+
+    pub fn zeroDivisor(self: DivRemOutput) bool {
+        return self.class == .zero_divisor;
+    }
+
+    pub fn signedOverflow(self: DivRemOutput) bool {
+        return self.class == .signed_overflow;
+    }
 };
 
 const one_felt = [_]types.Type{.felt};
 const inverse_outputs = [_]types.Type{ .felt, .bit };
+const divrem_inputs = [_]types.Type{ .word32, .word32, .bit };
+const divrem_outputs = [_]types.Type{ .word32, .word32, .bit, .bit };
 
 pub const recipes = [_]Recipe{
     recipe(
@@ -70,6 +99,14 @@ pub const recipes = [_]Recipe{
         &inverse_outputs,
         .field_inverse_or_zero,
         .zero_returns_zero_inverse_and_false,
+    ),
+    recipe(
+        .rv32_divrem,
+        "stwo.air.hint.rv32_divrem",
+        &divrem_inputs,
+        &divrem_outputs,
+        .rv32_divrem,
+        .rv32_divrem_zero_and_signed_overflow,
     ),
 };
 
@@ -121,6 +158,7 @@ pub fn evaluateField(
         return error.InvalidHintInputArity;
     if (outputs.len != item.output_types.len)
         return error.InvalidHintOutputArity;
+    if (item.algorithm == .rv32_divrem) return error.UnsupportedFieldRecipe;
     for (inputs) |input| {
         if (input >= m31.Modulus) return error.NonCanonicalHintInput;
     }
@@ -137,7 +175,57 @@ pub fn evaluateField(
                 outputs[1] = 1;
             }
         },
+        .rv32_divrem => unreachable,
     }
+}
+
+/// Evaluates the exact quotient/remainder pair shared by RV32 DIV, DIVU, REM,
+/// and REMU. Returning both values keeps opcode selection outside the hint and
+/// makes both exceptional flags available for independent AIR constraints.
+pub fn evaluateDivRem(
+    recipe_id: types.HintRecipeId,
+    lhs: u32,
+    rhs: u32,
+    signed: bool,
+) EvaluationError!DivRemOutput {
+    const item = getById(recipe_id) orelse return error.UnknownHintRecipe;
+    if (item.algorithm != .rv32_divrem) return error.UnsupportedFieldRecipe;
+    return evaluateRv32DivRemV1(lhs, rhs, signed);
+}
+
+/// Infallible implementation of the pinned `rv32_divrem@1` algorithm.
+///
+/// Production typed witnesses call this function after their immutable
+/// binding has authenticated the recipe ID and version. Keeping registry
+/// admission in `evaluateDivRem` and arithmetic here avoids both duplicated
+/// DIV semantics and an impossible error branch in the per-row hot path.
+pub inline fn evaluateRv32DivRemV1(
+    lhs: u32,
+    rhs: u32,
+    signed: bool,
+) DivRemOutput {
+    if (rhs == 0) return .{
+        .quotient = std.math.maxInt(u32),
+        .remainder = lhs,
+        .class = .zero_divisor,
+    };
+    if (signed and lhs == 0x8000_0000 and rhs == 0xffff_ffff) return .{
+        .quotient = 0x8000_0000,
+        .remainder = 0,
+        .class = .signed_overflow,
+    };
+    if (!signed) return .{
+        .quotient = lhs / rhs,
+        .remainder = lhs % rhs,
+        .class = .regular,
+    };
+    const signed_lhs: i32 = @bitCast(lhs);
+    const signed_rhs: i32 = @bitCast(rhs);
+    return .{
+        .quotient = @bitCast(@divTrunc(signed_lhs, signed_rhs)),
+        .remainder = @bitCast(@rem(signed_lhs, signed_rhs)),
+        .class = .regular,
+    };
 }
 
 fn recipe(

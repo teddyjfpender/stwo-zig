@@ -1,14 +1,21 @@
-//! Owned storage for the typed AIR logical program.
-//!
-//! The arena owns every stable string and source record. No caller-provided
-//! slice is retained, and no process-global context is used.
+//! Owned storage for the typed AIR logical program. Stable strings and source
+//! records are arena-owned; caller slices and process-global state are absent.
 
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
+const bounded_arithmetic = @import("bounded_arithmetic.zig");
 const expr = @import("expr.zig");
+const ir_type_rules = @import("ir_type_rules.zig");
 const program = @import("program.zig");
 const source_mod = @import("source.zig");
 const types = @import("types.zig");
+const window_ir_v2 = @import("window_ir_v2.zig");
+
+/// Append-only physical expressions over authenticated current/previous-row
+/// samples. Keeping this outside the frozen logical V1 node union preserves
+/// every existing manifest while giving later lowering one typed authority.
+pub const WindowExpressionArenaV2 = window_ir_v2.Arena;
+pub const WindowExpressionDegreeAnalysisV2 = window_ir_v2.DegreeAnalysis;
 
 pub const ArenaError = error{
     EmptyStableName,
@@ -16,10 +23,13 @@ pub const ArenaError = error{
 };
 
 pub const NodeError = error{
+    BoundedResultOutOfField,
     BranchTypeMismatch,
     ConstantOutOfRange,
     InputTypeConflict,
+    InvalidBoundedOperand,
     InvalidMachineDerivedOperand,
+    InvalidOneHotSelector,
     InvalidSelectorType,
     NonCanonicalFieldConstant,
     NonFieldOperand,
@@ -71,6 +81,10 @@ pub const Arena = struct {
     hint_binding_values: std.ArrayList(types.ValueId),
     effects: std.ArrayList(program.Effect),
     effect_values: std.ArrayList(types.ValueId),
+    range_refinements: std.ArrayList(program.RangeRefinement),
+    fixed_table_requests: std.ArrayList(program.FixedTableRequestProof),
+    conditional_access_plans: std.ArrayList(program.ConditionalAccessPlanProof),
+    committed_program_control_targets: std.ArrayList(program.CommittedProgramControlTargetProof),
     functions: std.ArrayList(program.Function),
     function_inputs: std.ArrayList(types.ValueId),
     function_outputs: std.ArrayList(types.ValueId),
@@ -78,6 +92,8 @@ pub const Arena = struct {
     call_arguments: std.ArrayList(types.ValueId),
     call_outputs: std.ArrayList(types.ValueId),
     open_function: ?types.FunctionId,
+    /// True only while an opt-in, proof-bearing function body is open.
+    open_function_body: bool,
 
     pub fn init(allocator: std.mem.Allocator) Arena {
         return .{
@@ -96,6 +112,10 @@ pub const Arena = struct {
             .hint_binding_values = .empty,
             .effects = .empty,
             .effect_values = .empty,
+            .range_refinements = .empty,
+            .fixed_table_requests = .empty,
+            .conditional_access_plans = .empty,
+            .committed_program_control_targets = .empty,
             .functions = .empty,
             .function_inputs = .empty,
             .function_outputs = .empty,
@@ -103,6 +123,7 @@ pub const Arena = struct {
             .call_arguments = .empty,
             .call_outputs = .empty,
             .open_function = null,
+            .open_function_body = false,
         };
     }
 
@@ -115,6 +136,10 @@ pub const Arena = struct {
         self.functions.deinit(self.allocator);
         self.effect_values.deinit(self.allocator);
         self.effects.deinit(self.allocator);
+        self.range_refinements.deinit(self.allocator);
+        self.fixed_table_requests.deinit(self.allocator);
+        self.conditional_access_plans.deinit(self.allocator);
+        self.committed_program_control_targets.deinit(self.allocator);
         self.hint_binding_values.deinit(self.allocator);
         self.hint_bindings.deinit(self.allocator);
         self.hint_outputs.deinit(self.allocator);
@@ -159,6 +184,10 @@ pub const Arena = struct {
         errdefer _ = self.sources.pop();
         try self.sources_by_path.put(path_id, id);
         return id;
+    }
+
+    pub fn sourceCount(self: *const Arena) usize {
+        return self.sources.items.len;
     }
 
     pub fn source(self: *const Arena, id: types.SourceId) ?source_mod.Source {
@@ -306,6 +335,35 @@ pub const Arena = struct {
         span: source_mod.SourceSpan,
     ) Error!types.ValueId {
         return self.fieldBinary(.mul, lhs, rhs, span);
+    }
+
+    /// Statically bounded addition; ordinary `add` still returns `.felt`.
+    pub fn boundedAdd(
+        self: *Arena,
+        lhs: types.ValueId,
+        rhs: types.ValueId,
+        span: source_mod.SourceSpan,
+    ) Error!types.ValueId {
+        return bounded_arithmetic.build(self, .add, lhs, rhs, span);
+    }
+
+    /// Bounded multiplication rejects results at or above the M31 modulus.
+    pub fn boundedMul(
+        self: *Arena,
+        lhs: types.ValueId,
+        rhs: types.ValueId,
+        span: source_mod.SourceSpan,
+    ) Error!types.ValueId {
+        return bounded_arithmetic.build(self, .mul, lhs, rhs, span);
+    }
+
+    /// Exact, allocation-atomic one-hot sum of two to five distinct bits.
+    pub fn oneHotSelector(
+        self: *Arena,
+        values: []const types.ValueId,
+        span: source_mod.SourceSpan,
+    ) Error!types.ValueId {
+        return bounded_arithmetic.oneHotSelector(self, values, span);
     }
 
     pub fn neg(
@@ -516,6 +574,7 @@ pub const Arena = struct {
             self.constraints.items.len,
         );
         try self.constraints.append(self.allocator, .{
+            .owner = if (self.open_function_body) self.open_function else null,
             .name = name_id,
             .root = root,
             .gate = gate,
@@ -544,12 +603,8 @@ pub const Arena = struct {
         );
     }
 
-    /// Unchecked storage hook for reviewed high-level effect builders.
-    ///
-    /// This performs only arena-level structural checks. It does not establish
-    /// that `binding`, `kind`, and `values` form a valid relation event; the
-    /// typed constructors and whole-program validator own those invariants.
-    /// General authoring code must not call this entry point directly.
+    /// Structural storage hook for reviewed builders; whole-program validation
+    /// establishes the relation event. General authoring must not call it.
     pub fn addBoundEffectUnchecked(
         self: *Arena,
         kind: program.EffectKind,
@@ -588,7 +643,11 @@ pub const Arena = struct {
         if (liveness) |liveness_id| {
             const liveness_node = self.node(liveness_id) orelse
                 return error.UnknownValue;
-            if (!isSelector(liveness_node.key.ty))
+            const valid = if (enforce_provisional_ordinal_policy)
+                isSelector(liveness_node.key.ty)
+            else
+                isFieldScalar(liveness_node.key.ty);
+            if (!valid)
                 return error.InvalidEffectLiveness;
         }
         if (enforce_provisional_ordinal_policy and
@@ -613,6 +672,7 @@ pub const Arena = struct {
         errdefer self.effect_values.shrinkRetainingCapacity(value_start);
         try self.effect_values.appendSlice(self.allocator, values);
         try self.effects.append(self.allocator, .{
+            .owner = if (self.open_function_body) self.open_function else null,
             .kind = kind,
             .binding = binding,
             .values = value_range,
@@ -709,6 +769,14 @@ pub const Arena = struct {
         return id;
     }
 
+    pub fn internTypedNode(
+        self: *Arena,
+        key: expr.Key,
+        span: source_mod.SourceSpan,
+    ) Error!types.ValueId {
+        return self.internNode(key, span);
+    }
+
     /// Package-level transaction support for typed derived-node builders.
     pub fn nodeCheckpoint(self: *const Arena) NodeCheckpoint {
         return .{ .len = self.nodes.items.len };
@@ -761,37 +829,17 @@ pub const Arena = struct {
 };
 
 pub fn isFieldScalar(ty: types.Type) bool {
-    return ty.isFieldScalar();
+    return ir_type_rules.isFieldScalar(ty);
 }
 
 pub fn maxUnsignedValue(ty: types.Type) NodeError!u32 {
-    return switch (ty) {
-        .bit, .selector => 1,
-        .byte => std.math.maxInt(u8),
-        .uint16 => std.math.maxInt(u16),
-        .uint20 => (1 << 20) - 1,
-        .register_index => 31,
-        .word32, .address, .pc => std.math.maxInt(u32),
-        .clock => m31.Modulus - 1,
-        .bounded_uint => |bounded| if (bounded.bits == 32)
-            std.math.maxInt(u32)
-        else
-            (@as(u32, 1) << @intCast(bounded.bits)) - 1,
-        .felt, .array => error.UnsupportedConstantType,
-    };
+    return ir_type_rules.maxUnsignedValue(ty);
 }
 
 pub fn isSelector(ty: types.Type) bool {
-    return ty.isSelector();
+    return ir_type_rules.isSelector(ty);
 }
 
 pub fn requiresAccessOrdinal(kind: program.EffectKind) bool {
-    return switch (kind) {
-        .register_read,
-        .register_write,
-        .memory_read,
-        .memory_write,
-        => true,
-        else => false,
-    };
+    return ir_type_rules.requiresAccessOrdinal(kind);
 }

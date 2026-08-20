@@ -14,6 +14,7 @@ const logup = @import("../logup.zig");
 const relations_mod = @import("../relation_challenges.zig");
 const constants = @import("poseidon2_constants.zig");
 const permutation = @import("poseidon2.zig");
+const poseidon_work = @import("../../prover/poseidon_witness_work.zig");
 
 pub const WIDTH: usize = 16;
 pub const N_TEMPORARIES: usize = 426;
@@ -26,8 +27,8 @@ pub const N_SUMS: usize = 2;
 pub const N_INTERACTION_COLUMNS: usize = N_SUMS * 4;
 const INPUT_START: usize = 1;
 const TEMP_START: usize = INPUT_START + WIDTH;
-const WIDE_COLUMN: usize = TEMP_START + N_TEMPORARIES;
-const IO_COLUMN: usize = WIDE_COLUMN + 1;
+pub const WIDE_COLUMN: usize = TEMP_START + N_TEMPORARIES;
+pub const IO_COLUMN: usize = WIDE_COLUMN + 1;
 const FIRST_FULL_ROUND_WIDTH: usize = 2 * WIDTH;
 const MATERIALIZED_FULL_ROUND_WIDTH: usize = 3 * WIDTH;
 const PARTIAL_ROUND_WIDTH: usize = 3;
@@ -98,6 +99,32 @@ pub fn generateMain(
     return .{ .values = columns };
 }
 
+pub const GeneratedMainWithWorkReceipt = struct {
+    columns: Columns,
+    receipt: poseidon_work.ProducerReceipt,
+};
+
+/// Allocating exact-work route for callers that own the returned columns.
+/// Receipt construction occurs after the complete trace succeeds; an
+/// allocation or shape failure cannot publish a partial row count.
+pub fn generateMainWithWorkReceipt(
+    allocator: std.mem.Allocator,
+    calls: []const Call,
+    log_size: u32,
+    authority: *const poseidon_work.Authority,
+) !GeneratedMainWithWorkReceipt {
+    var columns = try generateMain(allocator, calls, log_size);
+    errdefer columns.deinit(allocator);
+    return .{
+        .columns = columns,
+        .receipt = try poseidon_work.complete(
+            authority,
+            .base_air_row_materialization,
+            @intCast(calls.len),
+        ),
+    };
+}
+
 /// Writes the exact main trace into caller-owned final storage.
 ///
 /// The resident Metal path plans all 445 columns before witness generation, so
@@ -154,6 +181,24 @@ pub fn generateMainInto(
         const dst = table.map(row_index);
         for (row, 0..) |value, column| columns.*[column][dst] = value;
     }
+}
+
+/// Caller-owned exact-work route.  The hot implementation remains the same
+/// branch-free loop as `generateMainInto`; only its successful boundary
+/// constructs the digest-bound receipt.
+pub fn generateMainIntoWithWorkReceipt(
+    allocator: std.mem.Allocator,
+    columns: *[N_MAIN_COLUMNS][]M31,
+    calls: []const Call,
+    log_size: u32,
+    authority: *const poseidon_work.Authority,
+) !poseidon_work.ProducerReceipt {
+    try generateMainInto(allocator, columns, calls, log_size);
+    return poseidon_work.complete(
+        authority,
+        .base_air_row_materialization,
+        @intCast(calls.len),
+    );
 }
 
 /// Writes disjoint committed ranges so hundreds of column streams never share
@@ -224,16 +269,22 @@ pub fn output(row: [N_MAIN_COLUMNS]M31) [WIDTH]M31 {
 /// Exact degree-three constraint order emitted by pinned Stark-V's felt AIR
 /// compiler: enabler boolean, 426 materializations, then three flag checks.
 pub fn evaluate(main: [N_MAIN_COLUMNS]QM31) [N_CONSTRAINTS]QM31 {
+    return evaluateGeneric(QM31, main);
+}
+
+/// Single-source constraint replay over either native `QM31` or a recorder.
+pub fn evaluateGeneric(comptime S: type, main: [N_MAIN_COLUMNS]S) [N_CONSTRAINTS]S {
     const enabler = main[0];
     var state = main[INPUT_START..][0..WIDTH].*;
-    externalMatrixSecure(&state);
-    var result: [N_CONSTRAINTS]QM31 = undefined;
+    externalMatrixSecure(S, &state);
+    var result: [N_CONSTRAINTS]S = undefined;
     var constraint: usize = 1;
     var cursor: usize = TEMP_START;
-    const one = QM31.one();
+    const one = S.one();
     result[0] = enabler.mul(one.sub(enabler));
 
     evaluateFirstFullRound(
+        S,
         main,
         &cursor,
         &state,
@@ -244,6 +295,7 @@ pub fn evaluate(main: [N_MAIN_COLUMNS]QM31) [N_CONSTRAINTS]QM31 {
     );
     for (constants.EXTERNAL_ROUND[1..4]) |round| {
         evaluateMaterializedFullRound(
+            S,
             main,
             &cursor,
             &state,
@@ -255,6 +307,7 @@ pub fn evaluate(main: [N_MAIN_COLUMNS]QM31) [N_CONSTRAINTS]QM31 {
     }
     for (constants.INTERNAL_ROUND) |round_constant| {
         evaluateMaterializedPartialRound(
+            S,
             main,
             &cursor,
             &state,
@@ -267,6 +320,7 @@ pub fn evaluate(main: [N_MAIN_COLUMNS]QM31) [N_CONSTRAINTS]QM31 {
     }
     for (constants.EXTERNAL_ROUND[4..8]) |round| {
         evaluateMaterializedFullRound(
+            S,
             main,
             &cursor,
             &state,
@@ -297,6 +351,10 @@ pub fn evaluate(main: [N_MAIN_COLUMNS]QM31) [N_CONSTRAINTS]QM31 {
 /// permutation mode. The generic pinned evaluator deliberately continues to
 /// support wide and atomic-I/O rows.
 pub fn narrowModeConstraints(main: [N_MAIN_COLUMNS]QM31) [2]QM31 {
+    return narrowModeConstraintsGeneric(QM31, main);
+}
+
+pub fn narrowModeConstraintsGeneric(comptime S: type, main: [N_MAIN_COLUMNS]S) [2]S {
     return .{ main[WIDE_COLUMN], main[IO_COLUMN] };
 }
 
@@ -308,12 +366,99 @@ pub fn generateInteraction(
 ) !Interaction {
     const size = @as(usize, 1) << @intCast(log_size);
     if (calls.len > size) return error.InvalidTraceShape;
+    return generateInteractionSerial(
+        allocator,
+        log_size,
+        InteractionContext{ .calls = calls, .relations = relations },
+    );
+}
+
+/// Generates the atomic-I/O interaction trace from outputs already committed
+/// by the typed Poseidon executor. This is the recursion-provider fast path:
+/// it preserves the exact four-entry/batching convention while avoiding a
+/// second scalar permutation merely to recover the 16 output words.
+pub fn generateIoInteractionFromOutputs(
+    allocator: std.mem.Allocator,
+    calls: []const Call,
+    outputs: []const [WIDTH]u32,
+    log_size: u32,
+    relations: *const relations_mod.Relations,
+) !Interaction {
+    try validateIoOutputs(calls, outputs, log_size);
+    return generateInteractionSerial(
+        allocator,
+        log_size,
+        IoInteractionContext{
+            .calls = calls,
+            .outputs = outputs,
+            .relations = relations,
+        },
+    );
+}
+
+/// Rebuilds only the two ordered atomic-I/O LogUp claims from retained typed
+/// executor outputs. This is the allocation-free audit companion to
+/// `generateIoInteractionFromOutputs`: proof generation still uses the full
+/// interaction writer above, while independent receipt checks need not
+/// allocate or materialize cumulative columns.
+///
+/// Padding contributes zero numerators, so iterating the active prefix is
+/// exactly equivalent to traversing the full power-of-two domain. The sum
+/// order remains the protocol order `[poseidon2, poseidon2_io]`.
+pub fn claimsFromIoOutputs(
+    calls: []const Call,
+    outputs: []const [WIDTH]u32,
+    log_size: u32,
+    relations: *const relations_mod.Relations,
+) !Claims {
+    var result: Claims = undefined;
+    try claimsFromIoOutputsInto(
+        &result,
+        calls,
+        outputs,
+        log_size,
+        relations,
+    );
+    return result;
+}
+
+/// Failure-atomic prepared destination form of `claimsFromIoOutputs`.
+/// `destination` is written only after every retained word and denominator
+/// has been validated.
+pub fn claimsFromIoOutputsInto(
+    destination: *Claims,
+    calls: []const Call,
+    outputs: []const [WIDTH]u32,
+    log_size: u32,
+    relations: *const relations_mod.Relations,
+) !void {
+    try validateIoOutputs(calls, outputs, log_size);
+    var claims = Claims{
+        .sums = [_]QM31{QM31.zero()} ** N_SUMS,
+    };
+    for (calls, outputs) |call, output_value| {
+        const pairs = ioRowPairsFromOutput(call, output_value, relations);
+        for (pairs, 0..) |pair, sum_index| {
+            const denominator = pair.d1.mul(pair.d2);
+            const numerator = pair.n1.mul(pair.d2).add(pair.n2.mul(pair.d1));
+            const inverse = denominator.inv() catch return error.ZeroDenominator;
+            claims.sums[sum_index] = claims.sums[sum_index].add(
+                numerator.mul(inverse),
+            );
+        }
+    }
+    destination.* = claims;
+}
+
+fn generateInteractionSerial(
+    allocator: std.mem.Allocator,
+    log_size: u32,
+    context: anytype,
+) !Interaction {
+    const size = @as(usize, 1) << @intCast(log_size);
     const pairs = try allocator.alloc([N_SUMS]logup.RowPair, size);
     defer allocator.free(pairs);
-    for (0..size) |index| pairs[index] = if (index < calls.len)
-        rowPairsFromCall(calls[index], relations)
-    else
-        paddingPairs();
+    for (0..size) |index| pairs[index] = context.rowPairsAt(index);
 
     var cumulative: [N_SUMS]logup.CumulativeColumn = undefined;
     var initialized: usize = 0;
@@ -370,6 +515,34 @@ pub fn generateInteractionParallel(
     };
 }
 
+/// Parallel companion to `generateIoInteractionFromOutputs` for provider
+/// traces large enough to amortize work-pool scheduling.
+pub fn generateIoInteractionFromOutputsParallel(
+    allocator: std.mem.Allocator,
+    calls: []const Call,
+    outputs: []const [WIDTH]u32,
+    log_size: u32,
+    relations: *const relations_mod.Relations,
+    pool: *work_pool.WorkPool,
+) !Interaction {
+    try validateIoOutputs(calls, outputs, log_size);
+    const generated = try logup.generateParallelColumns(
+        N_SUMS,
+        allocator,
+        IoInteractionContext{
+            .calls = calls,
+            .outputs = outputs,
+            .relations = relations,
+        },
+        log_size,
+        pool,
+    );
+    return .{
+        .columns = generated.columns,
+        .claims = .{ .sums = generated.claims },
+    };
+}
+
 const InteractionContext = struct {
     calls: []const Call,
     relations: *const relations_mod.Relations,
@@ -380,6 +553,70 @@ const InteractionContext = struct {
     }
 };
 
+const IoInteractionContext = struct {
+    calls: []const Call,
+    outputs: []const [WIDTH]u32,
+    relations: *const relations_mod.Relations,
+
+    pub fn rowPairsAt(self: @This(), row: usize) [N_SUMS]logup.RowPair {
+        if (row < self.calls.len) return ioRowPairsFromOutput(
+            self.calls[row],
+            self.outputs[row],
+            self.relations,
+        );
+        return paddingPairs();
+    }
+};
+
+fn validateIoOutputs(
+    calls: []const Call,
+    outputs: []const [WIDTH]u32,
+    log_size: u32,
+) !void {
+    if (log_size >= @bitSizeOf(usize)) return error.InvalidTraceShape;
+    const size = @as(usize, 1) << @intCast(log_size);
+    if (calls.len != outputs.len or calls.len > size)
+        return error.InvalidTraceShape;
+    for (calls, outputs) |call, output_value| {
+        if (call.wide or !call.io or call.narrow_output != null)
+            return error.InvalidTraceShape;
+        for (call.input) |word| if (word >= @import("stwo_core").fields.m31.Modulus)
+            return error.InvalidTraceShape;
+        for (output_value) |word| if (word >= @import("stwo_core").fields.m31.Modulus)
+            return error.InvalidTraceShape;
+    }
+}
+
+fn ioRowPairsFromOutput(
+    call: Call,
+    output_value: [WIDTH]u32,
+    relations: *const relations_mod.Relations,
+) [N_SUMS]logup.RowPair {
+    var input: [WIDTH]QM31 = undefined;
+    var output_secure: [WIDTH]QM31 = undefined;
+    for (&input, call.input) |*destination, word|
+        destination.* = QM31.fromBase(M31.fromCanonical(word));
+    for (&output_secure, output_value) |*destination, word|
+        destination.* = QM31.fromBase(M31.fromCanonical(word));
+    var narrow = [_]QM31{QM31.zero()} ** WIDTH;
+    narrow[0] = output_secure[0];
+    var wide_output = [_]QM31{QM31.zero()} ** WIDTH;
+    @memcpy(wide_output[0..8], output_secure[0..8]);
+    var io_tuple: [2 * WIDTH]QM31 = undefined;
+    @memcpy(io_tuple[0..WIDTH], &input);
+    @memcpy(io_tuple[WIDTH..], &output_secure);
+
+    var list = lookup_entry.List{};
+    append(&list, .poseidon2, QM31.zero(), input);
+    append(&list, .poseidon2, QM31.zero(), narrow);
+    append(&list, .poseidon2, QM31.zero(), wide_output);
+    append(&list, .poseidon2_io, QM31.one(), io_tuple);
+    return .{
+        list.pair(0, relations) catch unreachable,
+        list.pair(1, relations) catch unreachable,
+    };
+}
+
 pub fn interactionConstraints(
     main: [N_MAIN_COLUMNS]QM31,
     is_first: QM31,
@@ -388,10 +625,23 @@ pub fn interactionConstraints(
     claims: [N_SUMS]QM31,
     relations: *const relations_mod.Relations,
 ) [N_SUMS]QM31 {
-    const pairs = rowPairs(main, relations);
-    var result: [N_SUMS]QM31 = undefined;
+    return interactionConstraintsGeneric(QM31, main, is_first, sums, previous, claims, relations);
+}
+
+pub fn interactionConstraintsGeneric(
+    comptime S: type,
+    main: [N_MAIN_COLUMNS]S,
+    is_first: S,
+    sums: [N_SUMS]S,
+    previous: [N_SUMS]S,
+    claims: [N_SUMS]S,
+    relations: anytype,
+) [N_SUMS]S {
+    const pairs = rowPairsGeneric(S, main, relations);
+    var result: [N_SUMS]S = undefined;
     for (&result, 0..) |*value, index| {
-        value.* = logup.pairConstraint(
+        value.* = logup.pairConstraintGeneric(
+            S,
             sums[index],
             previous[index],
             is_first,
@@ -419,32 +669,41 @@ pub fn rowPairsFromCall(call: Call, relations: *const relations_mod.Relations) [
 }
 
 pub fn rowPairs(main: [N_MAIN_COLUMNS]QM31, relations: *const relations_mod.Relations) [N_SUMS]logup.RowPair {
-    const list = entries(main);
+    return rowPairsGeneric(QM31, main, relations);
+}
+
+pub fn rowPairsGeneric(comptime S: type, main: [N_MAIN_COLUMNS]S, relations: anytype) [N_SUMS]logup.RowPairFor(S) {
+    const list = entriesGeneric(S, main);
     return .{
-        list.pair(0, relations) catch unreachable,
-        list.pair(1, relations) catch unreachable,
+        list.pairWith(0, relations) catch unreachable,
+        list.pairWith(1, relations) catch unreachable,
     };
 }
 
 pub fn entries(main: [N_MAIN_COLUMNS]QM31) lookup_entry.List {
+    return entriesGeneric(QM31, main);
+}
+
+pub fn entriesGeneric(comptime S: type, main: [N_MAIN_COLUMNS]S) lookup_entry.Builder(S).List {
+    const EntryBuilder = lookup_entry.Builder(S);
     const enabler = main[0];
     const wide = main[WIDE_COLUMN];
     const io = main[IO_COLUMN];
-    const one = QM31.one();
+    const one = S.one();
     const input = main[INPUT_START..][0..WIDTH].*;
     const out = main[OUTPUT_START..][0..WIDTH].*;
-    var narrow = [_]QM31{QM31.zero()} ** WIDTH;
+    var narrow = [_]S{S.zero()} ** WIDTH;
     narrow[0] = out[0];
-    var wide_output = [_]QM31{QM31.zero()} ** WIDTH;
+    var wide_output = [_]S{S.zero()} ** WIDTH;
     @memcpy(wide_output[0..8], out[0..8]);
-    var io_tuple: [2 * WIDTH]QM31 = undefined;
+    var io_tuple: [2 * WIDTH]S = undefined;
     @memcpy(io_tuple[0..WIDTH], &input);
     @memcpy(io_tuple[WIDTH..], &out);
-    var list = lookup_entry.List{};
-    append(&list, .poseidon2, enabler.mul(one.sub(io)).neg(), input);
-    append(&list, .poseidon2, enabler.mul(one.sub(wide).sub(io)), narrow);
-    append(&list, .poseidon2, enabler.mul(wide), wide_output);
-    append(&list, .poseidon2_io, enabler.mul(io), io_tuple);
+    var list = EntryBuilder.List{};
+    appendGeneric(S, &list, .poseidon2, enabler.mul(one.sub(io)).neg(), input);
+    appendGeneric(S, &list, .poseidon2, enabler.mul(one.sub(wide).sub(io)), narrow);
+    appendGeneric(S, &list, .poseidon2, enabler.mul(wide), wide_output);
+    appendGeneric(S, &list, .poseidon2_io, enabler.mul(io), io_tuple);
     return list;
 }
 
@@ -457,352 +716,68 @@ pub fn paddingPairs() [N_SUMS]logup.RowPair {
     };
 }
 
-fn fillFirstFullRound(
-    row: *[N_MAIN_COLUMNS]M31,
-    cursor: *usize,
-    state: *[WIDTH]M31,
-    round: [WIDTH]u32,
-) void {
-    var sboxed: [WIDTH]M31 = undefined;
-    for (state, round, 0..) |value, constant, lane| {
-        const x = value.add(M31.fromCanonical(constant));
-        const x2 = x.square();
-        const x4 = x2.square();
-        row[cursor.* + 2 * lane] = x2;
-        row[cursor.* + 2 * lane + 1] = x4;
-        sboxed[lane] = x.mul(x4);
-    }
-    externalMatrixM31(&sboxed);
-    state.* = sboxed;
-    cursor.* += FIRST_FULL_ROUND_WIDTH;
-}
+const runtime = @import("poseidon2_air_runtime.zig").Runtime(.{
+    .std = std,
+    .M31 = M31,
+    .QM31 = QM31,
+    .lookup_entry = lookup_entry,
+    .WIDTH = WIDTH,
+    .N_MAIN_COLUMNS = N_MAIN_COLUMNS,
+    .N_CONSTRAINTS = N_CONSTRAINTS,
+    .FIRST_FULL_ROUND_WIDTH = FIRST_FULL_ROUND_WIDTH,
+    .MATERIALIZED_FULL_ROUND_WIDTH = MATERIALIZED_FULL_ROUND_WIDTH,
+    .PARTIAL_ROUND_WIDTH = PARTIAL_ROUND_WIDTH,
+});
+const fillFirstFullRound = runtime.fillFirstFullRound;
+const fillMaterializedFullRound = runtime.fillMaterializedFullRound;
+const fillMaterializedPartialRound = runtime.fillMaterializedPartialRound;
+const evaluateFirstFullRound = runtime.evaluateFirstFullRound;
+const evaluateMaterializedFullRound = runtime.evaluateMaterializedFullRound;
+const evaluateMaterializedPartialRound = runtime.evaluateMaterializedPartialRound;
+const externalMatrixM31 = runtime.externalMatrixM31;
+const externalMatrixSecure = runtime.externalMatrixSecure;
+const m4M31 = runtime.m4M31;
+const m4Secure = runtime.m4Secure;
+const internalMatrixM31 = runtime.internalMatrixM31;
+const internalMatrixSecure = runtime.internalMatrixSecure;
+const allocateColumns = runtime.allocateColumns;
+const freeColumns = runtime.freeColumns;
+const baseSecure = runtime.baseSecure;
+const append = runtime.append;
+const appendGeneric = runtime.appendGeneric;
+const secureRow = runtime.secureRow;
+const expectAllZero = runtime.expectAllZero;
 
-fn fillMaterializedFullRound(
-    row: *[N_MAIN_COLUMNS]M31,
-    cursor: *usize,
-    state: *[WIDTH]M31,
-    round: [WIDTH]u32,
-) void {
-    for (state, round, 0..) |*value, constant, lane| {
-        const x = value.add(M31.fromCanonical(constant));
-        const x2 = x.square();
-        const x4 = x2.square();
-        row[cursor.* + 3 * lane] = x;
-        row[cursor.* + 3 * lane + 1] = x2;
-        row[cursor.* + 3 * lane + 2] = x4;
-        value.* = x.mul(x4);
-    }
-    externalMatrixM31(state);
-    cursor.* += MATERIALIZED_FULL_ROUND_WIDTH;
-}
+const AirTests = @import("poseidon2_air_test.zig").Tests(.{
+    .std = std,
+    .M31 = M31,
+    .QM31 = QM31,
+    .logup = logup,
+    .relations_mod = relations_mod,
+    .permutation = permutation,
+    .WIDTH = WIDTH,
+    .N_MAIN_COLUMNS = N_MAIN_COLUMNS,
+    .N_CONSTRAINTS = N_CONSTRAINTS,
+    .INPUT_START = INPUT_START,
+    .TEMP_START = TEMP_START,
+    .WIDE_COLUMN = WIDE_COLUMN,
+    .IO_COLUMN = IO_COLUMN,
+    .OUTPUT_START = OUTPUT_START,
+    .Call = Call,
+    .Claims = Claims,
+    .fill = fill,
+    .output = output,
+    .evaluate = evaluate,
+    .generateInteraction = generateInteraction,
+    .generateIoInteractionFromOutputs = generateIoInteractionFromOutputs,
+    .claimsFromIoOutputs = claimsFromIoOutputs,
+    .claimsFromIoOutputsInto = claimsFromIoOutputsInto,
+    .rowPairsFromCall = rowPairsFromCall,
+    .rowPairs = rowPairs,
+    .secureRow = secureRow,
+    .expectAllZero = expectAllZero,
+});
 
-fn fillMaterializedPartialRound(
-    row: *[N_MAIN_COLUMNS]M31,
-    cursor: *usize,
-    state: *[WIDTH]M31,
-    round_constant: u32,
-    diagonal: [WIDTH]u32,
-) void {
-    const x = state[0].add(M31.fromCanonical(round_constant));
-    const x2 = x.square();
-    const x4 = x2.square();
-    row[cursor.*] = x;
-    row[cursor.* + 1] = x2;
-    row[cursor.* + 2] = x4;
-    state[0] = x.mul(x4);
-    internalMatrixM31(state, diagonal);
-    cursor.* += PARTIAL_ROUND_WIDTH;
-}
-
-fn evaluateFirstFullRound(
-    main: [N_MAIN_COLUMNS]QM31,
-    cursor: *usize,
-    state: *[WIDTH]QM31,
-    round: [WIDTH]u32,
-    enabler: QM31,
-    result: *[N_CONSTRAINTS]QM31,
-    constraint: *usize,
-) void {
-    var sboxed: [WIDTH]QM31 = undefined;
-    for (state, round, 0..) |value, constant, lane| {
-        const x = value.add(baseSecure(constant));
-        const x2 = main[cursor.* + 2 * lane];
-        const x4 = main[cursor.* + 2 * lane + 1];
-        result[constraint.*] = enabler.mul(x2.sub(x.square()));
-        constraint.* += 1;
-        result[constraint.*] = enabler.mul(x4.sub(x2.square()));
-        constraint.* += 1;
-        sboxed[lane] = x.mul(x4);
-    }
-    externalMatrixSecure(&sboxed);
-    state.* = sboxed;
-    cursor.* += FIRST_FULL_ROUND_WIDTH;
-}
-
-fn evaluateMaterializedFullRound(
-    main: [N_MAIN_COLUMNS]QM31,
-    cursor: *usize,
-    state: *[WIDTH]QM31,
-    round: [WIDTH]u32,
-    enabler: QM31,
-    result: *[N_CONSTRAINTS]QM31,
-    constraint: *usize,
-) void {
-    for (state, round, 0..) |*value, constant, lane| {
-        const x = main[cursor.* + 3 * lane];
-        const x2 = main[cursor.* + 3 * lane + 1];
-        const x4 = main[cursor.* + 3 * lane + 2];
-        result[constraint.*] = enabler.mul(x.sub(value.add(baseSecure(constant))));
-        constraint.* += 1;
-        result[constraint.*] = enabler.mul(x2.sub(x.square()));
-        constraint.* += 1;
-        result[constraint.*] = enabler.mul(x4.sub(x2.square()));
-        constraint.* += 1;
-        value.* = x.mul(x4);
-    }
-    externalMatrixSecure(state);
-    cursor.* += MATERIALIZED_FULL_ROUND_WIDTH;
-}
-
-fn evaluateMaterializedPartialRound(
-    main: [N_MAIN_COLUMNS]QM31,
-    cursor: *usize,
-    state: *[WIDTH]QM31,
-    round_constant: u32,
-    diagonal: [WIDTH]u32,
-    enabler: QM31,
-    result: *[N_CONSTRAINTS]QM31,
-    constraint: *usize,
-) void {
-    const x = main[cursor.*];
-    const x2 = main[cursor.* + 1];
-    const x4 = main[cursor.* + 2];
-    result[constraint.*] = enabler.mul(x.sub(state[0].add(baseSecure(round_constant))));
-    constraint.* += 1;
-    result[constraint.*] = enabler.mul(x2.sub(x.square()));
-    constraint.* += 1;
-    result[constraint.*] = enabler.mul(x4.sub(x2.square()));
-    constraint.* += 1;
-    state[0] = x.mul(x4);
-    internalMatrixSecure(state, diagonal);
-    cursor.* += PARTIAL_ROUND_WIDTH;
-}
-
-fn externalMatrixM31(state: *[WIDTH]M31) void {
-    for (0..4) |block| {
-        const start = 4 * block;
-        const mixed = m4M31(state[start..][0..4].*);
-        @memcpy(state[start..][0..4], &mixed);
-    }
-    for (0..4) |lane| {
-        const sum = state[lane].add(state[lane + 4]).add(state[lane + 8]).add(state[lane + 12]);
-        for (0..4) |block| {
-            const index = 4 * block + lane;
-            state[index] = state[index].add(sum);
-        }
-    }
-}
-
-fn externalMatrixSecure(state: *[WIDTH]QM31) void {
-    for (0..4) |block| {
-        const start = 4 * block;
-        const mixed = m4Secure(state[start..][0..4].*);
-        @memcpy(state[start..][0..4], &mixed);
-    }
-    for (0..4) |lane| {
-        const sum = state[lane].add(state[lane + 4]).add(state[lane + 8]).add(state[lane + 12]);
-        for (0..4) |block| {
-            const index = 4 * block + lane;
-            state[index] = state[index].add(sum);
-        }
-    }
-}
-
-fn m4M31(input: [4]M31) [4]M31 {
-    const t0 = input[0].add(input[1]);
-    const t1 = input[2].add(input[3]);
-    const t2 = input[1].add(input[1]).add(t1);
-    const t3 = input[3].add(input[3]).add(t0);
-    const t4 = t1.add(t1).add(t1.add(t1)).add(t3);
-    const t5 = t0.add(t0).add(t0.add(t0)).add(t2);
-    return .{ t3.add(t5), t5, t2.add(t4), t4 };
-}
-
-fn m4Secure(input: [4]QM31) [4]QM31 {
-    const t0 = input[0].add(input[1]);
-    const t1 = input[2].add(input[3]);
-    const t2 = input[1].add(input[1]).add(t1);
-    const t3 = input[3].add(input[3]).add(t0);
-    const t4 = t1.add(t1).add(t1.add(t1)).add(t3);
-    const t5 = t0.add(t0).add(t0.add(t0)).add(t2);
-    return .{ t3.add(t5), t5, t2.add(t4), t4 };
-}
-
-fn internalMatrixM31(state: *[WIDTH]M31, diagonal: [WIDTH]u32) void {
-    var sum = M31.zero();
-    for (state) |value| sum = sum.add(value);
-    for (state, diagonal) |*value, coefficient| {
-        value.* = value.mul(M31.fromCanonical(coefficient)).add(sum);
-    }
-}
-
-fn internalMatrixSecure(state: *[WIDTH]QM31, diagonal: [WIDTH]u32) void {
-    var sum = QM31.zero();
-    for (state) |value| sum = sum.add(value);
-    for (state, diagonal) |*value, coefficient| {
-        value.* = value.mulM31(M31.fromCanonical(coefficient)).add(sum);
-    }
-}
-
-fn allocateColumns(allocator: std.mem.Allocator, comptime n: usize, len: usize) ![n][]M31 {
-    var columns: [n][]M31 = undefined;
-    var initialized: usize = 0;
-    errdefer for (columns[0..initialized]) |column| allocator.free(column);
-    for (&columns) |*column| {
-        column.* = try allocator.alloc(M31, len);
-        initialized += 1;
-    }
-    return columns;
-}
-
-fn freeColumns(allocator: std.mem.Allocator, columns: []const []M31) void {
-    for (columns) |column| allocator.free(column);
-}
-
-fn baseSecure(value: u32) QM31 {
-    return QM31.fromBase(M31.fromCanonical(value));
-}
-
-fn append(list: *lookup_entry.List, domain: lookup_entry.Domain, numerator: QM31, values: anytype) void {
-    var item = lookup_entry.Entry{ .domain = domain, .numerator = numerator, .arity = values.len };
-    inline for (values, 0..) |value, index| item.values[index] = value;
-    list.append(item);
-}
-
-fn secureRow(row: [N_MAIN_COLUMNS]M31) [N_MAIN_COLUMNS]QM31 {
-    var result: [N_MAIN_COLUMNS]QM31 = undefined;
-    for (&result, row) |*dst, value| dst.* = QM31.fromBase(value);
-    return result;
-}
-
-fn expectAllZero(values: []const QM31) !void {
-    for (values) |value| try std.testing.expect(value.isZero());
-}
-
-test "poseidon2 AIR: exact narrow pair matches the pinned permutation" {
-    const row = fill(Call.narrow(1, 2));
-    try std.testing.expectEqual(@as(u32, 1975699496), output(row)[0].toU32());
-    try std.testing.expectEqual(permutation.hashPair(1, 2), output(row)[0].toU32());
-    try expectAllZero(&evaluate(secureRow(row)));
-}
-
-test "poseidon2 AIR: generated column schedule matches pinned Rust" {
-    const row = fill(Call.narrow(1, 2));
-    const expected = [_]struct { column: usize, value: u32 }{
-        .{ .column = 0, .value = 1 },
-        .{ .column = 16, .value = 0 },
-        .{ .column = 17, .value = 888382669 },
-        .{ .column = 48, .value = 1245644797 },
-        .{ .column = 49, .value = 1900086922 },
-        .{ .column = 80, .value = 2142961709 },
-        .{ .column = 128, .value = 125143133 },
-        .{ .column = 176, .value = 1759109891 },
-        .{ .column = 218, .value = 572377586 },
-        .{ .column = 266, .value = 1621981814 },
-        .{ .column = 314, .value = 1610989476 },
-        .{ .column = 362, .value = 738050654 },
-        .{ .column = 409, .value = 260539998 },
-        .{ .column = 410, .value = 59563392 },
-        .{ .column = 425, .value = 1888574172 },
-        .{ .column = 426, .value = 1886810401 },
-        .{ .column = 441, .value = 23371529 },
-        .{ .column = 442, .value = 369091567 },
-        .{ .column = 443, .value = 0 },
-        .{ .column = 444, .value = 0 },
-    };
-    for (expected) |item| {
-        try std.testing.expectEqual(item.value, row[item.column].toU32());
-    }
-}
-
-test "poseidon2 AIR: arbitrary canonical narrow pairs satisfy every constraint" {
-    var prng = std.Random.DefaultPrng.init(0x506f736569646f6e);
-    const random = prng.random();
-    for (0..64) |_| {
-        const lhs = random.int(u32) % @import("stwo_core").fields.m31.Modulus;
-        const rhs = random.int(u32) % @import("stwo_core").fields.m31.Modulus;
-        try expectAllZero(&evaluate(secureRow(fill(Call.narrow(lhs, rhs)))));
-    }
-}
-
-test "poseidon2 AIR: input, intermediate, output, and conflicting flags fail" {
-    const honest = fill(Call.narrow(11, 22));
-    inline for (.{ INPUT_START, TEMP_START, OUTPUT_START }) |column| {
-        var mutated = honest;
-        mutated[column] = mutated[column].add(M31.one());
-        const constraints = evaluate(secureRow(mutated));
-        var nonzero = false;
-        for (constraints) |value| nonzero = nonzero or !value.isZero();
-        try std.testing.expect(nonzero);
-    }
-    var conflicting_flags = honest;
-    conflicting_flags[WIDE_COLUMN] = M31.one();
-    conflicting_flags[IO_COLUMN] = M31.one();
-    const flag_constraints = evaluate(secureRow(conflicting_flags));
-    try std.testing.expect(!flag_constraints[N_CONSTRAINTS - 1].isZero());
-}
-
-test "poseidon2 AIR: padding is zero and the enabler is boolean" {
-    const padding = [_]QM31{QM31.zero()} ** N_MAIN_COLUMNS;
-    try expectAllZero(&evaluate(padding));
-    var non_boolean = padding;
-    non_boolean[0] = QM31.fromBase(M31.fromU64(2));
-    const constraints = evaluate(non_boolean);
-    try std.testing.expect(!constraints[0].isZero());
-}
-
-test "poseidon2 AIR: Merkle input and narrow output cancel exactly" {
-    const relations = relations_mod.Relations.dummy();
-    const call = Call.narrow(31, 41);
-    const row = secureRow(fill(call));
-    const poseidon_pairs = rowPairs(row, &relations);
-    var merkle_input = [_]QM31{QM31.zero()} ** WIDTH;
-    merkle_input[0] = QM31.fromBase(M31.fromU64(31));
-    merkle_input[1] = QM31.fromBase(M31.fromU64(41));
-    var merkle_output = [_]QM31{QM31.zero()} ** WIDTH;
-    merkle_output[0] = row[OUTPUT_START];
-    const merkle_sum = (try relations.poseidon2.combineSecure(merkle_input).inv())
-        .sub(try relations.poseidon2.combineSecure(merkle_output).inv());
-    const poseidon_sum = try pairSum(poseidon_pairs[0]);
-    try std.testing.expect(merkle_sum.add(poseidon_sum).isZero());
-}
-
-test "poseidon2 AIR: carried narrow output preserves active interaction terms" {
-    const relations = relations_mod.Relations.dummy();
-    const plain = Call.narrow(31, 41);
-    const output_value = output(fill(plain))[0].v;
-    const carried = Call.narrowWithOutput(31, 41, output_value);
-    const expected = rowPairsFromCall(plain, &relations);
-    const actual = rowPairsFromCall(carried, &relations);
-    try std.testing.expectEqualDeep(expected[0], actual[0]);
-    try std.testing.expect(actual[1].n1.isZero());
-    try std.testing.expect(actual[1].n2.isZero());
-    try std.testing.expect((try pairSum(expected[1])).isZero());
-    try std.testing.expect((try pairSum(actual[1])).isZero());
-
-    // A carried value is a narrow-only optimization. Other protocol modes
-    // deliberately fall back to the full row so ReleaseFast cannot silently
-    // reinterpret a malformed Call when debug assertions are disabled.
-    var wide = carried;
-    wide.wide = true;
-    var plain_wide = plain;
-    plain_wide.wide = true;
-    try std.testing.expectEqualDeep(
-        rowPairsFromCall(plain_wide, &relations),
-        rowPairsFromCall(wide, &relations),
-    );
-}
-
-fn pairSum(pair: logup.RowPair) !QM31 {
-    return pair.n1.mul(try pair.d1.inv()).add(pair.n2.mul(try pair.d2.inv()));
+test "poseidon2 AIR test module is linked" {
+    _ = AirTests;
 }

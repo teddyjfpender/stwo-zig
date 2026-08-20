@@ -2,14 +2,16 @@
 //! constraints computes `XOR`, `OR` or `AND`, so the whole binding is one
 //! `bitwise` table request per limb.
 //!
-//! What `base_alu_reg` actually constrains. Its twenty-nine direct constraints
+//! What `base_alu_reg` actually constrains. Its direct constraints
 //! are five opcode-flag bits and an activation bit, an ADD byte-carry chain
-//! gated by `is_add`, a SUB chain gated by `is_sub`, the destination block, and
-//! the read-only bindings on both sources. On a bitwise row both carry chains
-//! are switched off, so `result` reaches *no* direct constraint at all. The
+//! gated by `is_add`, a SUB chain gated by `is_sub`, and the destination block.
+//! Both sources use compact read blocks: their emitted bus values alias their
+//! consumed limbs structurally, so there is no duplicate `next` group to bind.
+//! On a bitwise row both carry chains are switched off, so `result` reaches
+//! *no* direct constraint at all. The
 //! only obligations left on it are two `range_check_8_8` pairs, which say the
 //! limbs are bytes and nothing more, and the four `bitwise` requests
-//! `{rs1.next[i], rs2.next[i], result[i], operation_id}`, whose table holds a
+//! `{rs1.value[i], rs2.value[i], result[i], operation_id}`, whose table holds a
 //! row only where `result[i]` is the operation applied to the two operands.
 //! Take the requests away and a bitwise instruction writes an arbitrary word.
 //!
@@ -103,8 +105,8 @@ const TARGET: harness.Target = .{ .opcode = .{ .family = .base_alu_reg } };
 const RESULT_0 = layout.columnOf(.base_alu_reg, "result_0");
 const RD_ADDR = layout.columnOf(.base_alu_reg, "rd_addr");
 const RD_NONZERO = layout.columnOf(.base_alu_reg, "rd_nonzero");
-const RS1_NEXT_0 = layout.columnOf(.base_alu_reg, "rs1_next_0");
-const RS2_NEXT_0 = layout.columnOf(.base_alu_reg, "rs2_next_0");
+const RS1_VALUE_0 = layout.nextLimbColumn(.base_alu_reg, 1, 0);
+const RS2_VALUE_0 = layout.nextLimbColumn(.base_alu_reg, 2, 0);
 const IS_XOR = layout.columnOf(.base_alu_reg, "opcode_xor_flag");
 
 const FORGERY = [_]harness.ColumnValue{.{ .column = RESULT_0, .value = FORGED_LIMB }};
@@ -122,7 +124,7 @@ fn honestRow(guest: *const harness.Guest) !harness.Row {
     return guest.honestRow(.base_alu_reg, 0);
 }
 
-// Runtime: milliseconds. One ten-instruction run and one 43-column row.
+// Runtime: milliseconds. One ten-instruction run and one 35-column row.
 test "bitwise result: the honest XOR row discards its result and is admissible" {
     var guest = try harness.Guest.init(std.testing.allocator, SPEC);
     defer guest.deinit();
@@ -130,8 +132,8 @@ test "bitwise result: the honest XOR row discards its result and is admissible" 
 
     try harness.expectAccepted(.base_alu_reg, honest.slice());
     try std.testing.expectEqual(M31.one(), honest.m31At(IS_XOR));
-    try std.testing.expectEqual(M31.fromCanonical(OPERAND & 0xff), honest.m31At(RS1_NEXT_0));
-    try std.testing.expectEqual(M31.fromCanonical(MASK), honest.m31At(RS2_NEXT_0));
+    try std.testing.expectEqual(M31.fromCanonical(OPERAND & 0xff), honest.m31At(RS1_VALUE_0));
+    try std.testing.expectEqual(M31.fromCanonical(MASK), honest.m31At(RS2_VALUE_0));
     try std.testing.expectEqual(M31.fromCanonical(HONEST_LIMB), honest.m31At(RESULT_0));
 
     // The premise the whole file rests on: the destination is `x0`, so the
@@ -157,9 +159,9 @@ test "bitwise result: the forged result fails only the bitwise table and moves n
 
     // Every direct constraint vanishes — that is what `expectOnlyLookup`
     // asserts before it looks at any table — so the rejection is not a carry
-    // chain, a read-only binding or a destination write in disguise. Both carry
-    // chains are gated off by `is_add` and `is_sub`, which is why `result`
-    // reaches no direct constraint on a bitwise row.
+    // chain, a compact-source alias or a destination write in disguise. Both
+    // carry chains are gated off by `is_add` and `is_sub`, which is why
+    // `result` reaches no direct constraint on a bitwise row.
     const rejection = try harness.expectOnlyLookup(.base_alu_reg, forged.slice(), .bitwise);
     try std.testing.expectEqual(@as(usize, 4), rejection.tuple().len);
     const tuple = rejection.tuple();

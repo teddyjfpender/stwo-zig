@@ -1,8 +1,11 @@
 # RISC-V proof benchmark report v2
 
-`riscv_proof_v2` is the fail-closed benchmark report consumed by the RISC-V
-`stwo-perf` workload group. It replaces `riscv_proof_v1`; consumers must not
-interpret a v1 report as v2.
+`riscv_proof_v2` is the historical fail-closed RISC-V benchmark report. It
+replaced `riscv_proof_v1`; consumers must not interpret a v1 report as v2.
+Retained v2 evidence keeps this label and contract permanently, but new
+`stwo-perf` measurements use
+[`riscv_proof_v3`](riscv-proof-v3.md). A v2 report must never be relabelled as
+v3 because it carries no native-only recursion attestation.
 
 The canonical proof remains the lowercase `proof_bytes_hex` value in the
 retained `stwo_riscv_proof` schema-v4 artifact. The retained artifact is bound

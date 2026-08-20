@@ -11,6 +11,7 @@ pub const device_composition = @import("device_composition.zig");
 pub const engine = @import("engine.zig");
 pub const stage_profile = @import("stage_profile.zig");
 pub const task_profile = @import("task_profile.zig");
+pub const work_profile = @import("work_profile.zig");
 
 pub const ColumnEvaluation = column.ColumnEvaluation;
 pub const ColumnSource = column.ColumnSource;
@@ -78,5 +79,6 @@ test "api signature: prover engine transaction is structurally checked" {
 }
 
 test {
+    _ = @import("work_profile_test.zig");
     std.testing.refAllDecls(@This());
 }

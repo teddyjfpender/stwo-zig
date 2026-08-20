@@ -10,6 +10,7 @@
 const std = @import("std");
 const constraint_program = @import("../constraint_program.zig");
 const entry = @import("../lookups/entry.zig");
+const typed_lui_authority = @import("../lang/typed_lui_authority.zig");
 const model = @import("model.zig");
 const symbolic = @import("symbolic.zig");
 const trace = @import("../../runner/trace.zig");
@@ -126,6 +127,52 @@ pub fn build(arena: *symbolic.Arena, family: trace.OpcodeFamily) !Program {
         scalar_columns[0..column_count],
         Scalar.one(),
     );
+    return assemble(arena, family, column_count, &production);
+}
+
+/// Shadow activation seam for LUI formal export. The complete polynomial and
+/// relation program is obtained through the already-authenticated executable
+/// capability; wire-role/projection assembly remains the shared canonical
+/// serializer path. Production `build` is intentionally unchanged.
+pub fn buildLuiFromAuthority(
+    arena: *symbolic.Arena,
+    compiled: *const typed_lui_authority.Authority,
+) !Program {
+    if (arena.nodes.items.len != 0 or arena.names.items.len != 0)
+        return error.NonEmptySymbolicArena;
+
+    const column_count = LUI_COLUMN_COUNT;
+    var scalar_columns: [LUI_COLUMN_COUNT]Scalar = undefined;
+    try model.declareColumns(arena, .lui, &scalar_columns);
+    if (arena.names.items.len != column_count)
+        return error.InvalidProgramShape;
+
+    const fixed = try compiled.buildProgram(
+        Scalar,
+        &scalar_columns,
+        Scalar.one(),
+    );
+    var direct = Builder.DirectConstraints{
+        .len = typed_lui_authority.DIRECT_CONSTRAINT_COUNT,
+    };
+    @memcpy(
+        direct.values[0..typed_lui_authority.DIRECT_CONSTRAINT_COUNT],
+        &fixed.direct_constraints.values,
+    );
+    const production = Builder.ConstraintProgram{
+        .active_row = fixed.active_row,
+        .direct_constraints = direct,
+        .lookup_entries = fixed.lookup_entries,
+    };
+    return assemble(arena, .lui, column_count, &production);
+}
+
+fn assemble(
+    arena: *symbolic.Arena,
+    family: trace.OpcodeFamily,
+    column_count: usize,
+    production: *const Builder.ConstraintProgram,
+) !Program {
     if (production.direct_constraints.len != Builder.constraintCount(family) or
         production.lookup_entries.len != constraint_program.entryCount(family))
     {
@@ -155,7 +202,7 @@ pub fn build(arena: *symbolic.Arena, family: trace.OpcodeFamily) !Program {
     var result = Program{
         .family = family,
         .column_count = column_count,
-        .production = production,
+        .production = production.*,
         .opcode_selector = undefined,
         .projection = undefined,
     };

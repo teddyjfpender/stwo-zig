@@ -40,7 +40,8 @@
     "transaction",
     "vcs",
     "vcs_lifted",
-    "work_pool"
+    "work_pool",
+    "work_profile"
   ],
   "api_contract": {
     "signature_tests": [

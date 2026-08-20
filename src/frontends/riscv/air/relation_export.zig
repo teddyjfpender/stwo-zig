@@ -12,6 +12,7 @@ const QM31 = @import("stwo_core").fields.qm31.QM31;
 const blake2 = @import("stwo_core").vcs.blake2_hash;
 const infra = @import("../infra_trace.zig");
 const trace = @import("../runner/trace.zig");
+const composition_manifest = @import("lang/opcode_composition_manifest.zig");
 const entry_mod = @import("lookups/entry.zig");
 const opcode_entries = @import("lookups/opcode_entries.zig");
 const public_data = @import("public_data.zig");
@@ -331,7 +332,7 @@ pub fn exportOpcodeFamily(
     sequence: *Sequence,
     observer: anytype,
 ) !ComponentEvidence {
-    const component = componentForFamily(family);
+    const component = composition_manifest.transcriptComponent(family);
     if (shards.len == 0 or shards.len > std.math.maxInt(u32)) return error.InvalidShardCount;
     try sequence.begin(component);
     errdefer sequence.poisoned = true;
@@ -715,28 +716,6 @@ fn executionRow(list: opcode_entries.List) Error!u32 {
     if (!previous.values[1].add(M31.one()).eql(next.values[1]))
         return error.InvalidExecutionProvenance;
     return previous.values[1].toU32();
-}
-
-fn componentForFamily(family: trace.OpcodeFamily) Component {
-    return switch (family) {
-        .auipc => .auipc,
-        .base_alu_imm => .base_alu_imm,
-        .base_alu_reg => .base_alu_reg,
-        .branch_eq => .branch_eq,
-        .branch_lt => .branch_lt,
-        .div => .div,
-        .jal => .jal,
-        .jalr => .jalr,
-        .load_store => .load_store,
-        .lt_imm => .lt_imm,
-        .lt_reg => .lt_reg,
-        .lui => .lui,
-        .mul => .mul,
-        .mulh => .mulh,
-        .shifts_imm => .shifts_imm,
-        .shifts_reg => .shifts_reg,
-        .fence => .fence,
-    };
 }
 
 fn domainArity(domain: Domain) u8 {

@@ -3,8 +3,9 @@
 **Status:** accepted
 **Date:** 2026-08-10
 
-**Classification:** logical authoring boundary; shadow-only until generated
-witness and proof-path authority are accepted
+**Classification:** historical logical constraint authoring boundary; E-013
+later promoted the generated LUI witness, and ADR-0038 supersedes the
+shadow-only constraint classification for the production LUI authority
 
 ## Context
 
@@ -65,7 +66,7 @@ are exactly `(byte, byte, uint4)`, its role is fixed to request, it carries no
 access ordinal, and its liveness is a selector. The constructor does not accept
 a caller-selected schema, role, or result type.
 
-### Typed LUI is compatibility-exact and shadow-only
+### Typed LUI constraints are compatibility-exact and shadow-only
 
 The typed LUI definition fixes:
 
@@ -82,7 +83,10 @@ field against the imported production program. Honest rows, x0, malformed
 inverse/result/selector rows, substituted state outputs, altered schemas,
 effect mutations, and allocation failures are covered. This decision does not
 change production component selection, witness authority, trace layout,
-commitments, transcript draws, or proof bytes.
+commitments, transcript draws, or proof bytes. E-013 subsequently promotes the
+authenticated generated LUI witness only: the retired handwritten writer is a
+test oracle, exact legacy/generated proof bytes match, and constraint authority
+is still unchanged.
 
 ### Canonical identity advances
 

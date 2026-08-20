@@ -50,7 +50,7 @@
 //! Coverage this file does not claim. The gate is `is_sb + is_sh`; only the
 //! `is_sb` half is exercised here, because the guest is deliberately the three
 //! memory operations the bug needs and nothing more. `SH`'s two-limb marker set
-//! relies on the same four constraints and on `semantics/load_store.zig`'s own
+//! relies on the same four constraints and on the typed load/store authority's
 //! row-level test.
 //!
 //! Runtime: four tests in milliseconds, plus about a minute for the end-to-end
@@ -65,6 +65,8 @@ const guest_elf = @import("guest_elf_fixture.zig");
 const harness = @import("committed_forgery_harness.zig");
 const layout = @import("committed_row_layout.zig");
 const semantic_eval = @import("stwo_riscv_frontend").air.semantic_eval;
+const load_store_authority =
+    @import("stwo_riscv_frontend").testing.typed_load_store_authority;
 
 // ---------------------------------------------------------------------------
 // The guest
@@ -134,11 +136,10 @@ fn limbColumns(comptime prefix: []const u8) [4]usize {
     };
 }
 
-/// Direct constraints of `semantics/load_store.zig`, in the order `evaluate`
-/// appends them and therefore the order `harness.attribute` reports. Counting
-/// them out is the only map there is; `constraintCount` is asserted below so a
-/// reordered or resized set fails loudly here instead of moving a probe onto a
-/// neighbouring obligation.
+/// Direct constraints of the typed load/store authority, in canonical recipe
+/// order and therefore the order `harness.attribute` reports. The probes below
+/// name the authority's enum members so a reorder cannot silently move a probe
+/// onto a neighbouring obligation.
 ///
 ///   0        `active` is a bit
 ///   1..8     each opcode flag is a bit
@@ -151,21 +152,25 @@ fn limbColumns(comptime prefix: []const u8) [4]usize {
 ///   32..33   sign fill of a half load's high limbs
 ///   34..41   half-load halves, then `SH`'s halves
 ///   42..45   per limb: `LW` result and `SW` full-word overwrite
-///   46..53   read-only `rs1`, then read-only `src`, per limb
-///   54..57   per limb: `SB`/`SH` preserve every unmarked byte  <- the fix
-///   58..60   destination write-enable witness
-///   61..64   load result link
-///   65..68   a store's unused result witness is zero
-///   69       component placement, appended by `semantic_eval`
-const WORD_STORE_BASE: usize = 42;
-const PARTIAL_STORE_BASE: usize = 54;
-const N_LOAD_STORE_CONSTRAINTS: usize = 70;
+///   46..49   per limb: `SB`/`SH` preserve every unmarked byte  <- the fix
+///   50..52   destination write-enable witness
+///   53..56   load result link
+///   57..60   a store's unused result witness is zero
+///   61       active base-address high byte is zero
+///   62       component placement, appended by `semantic_eval`
+const WORD_STORE_BASE: usize =
+    @intFromEnum(load_store_authority.DirectRecipe.word_result_0);
+const PARTIAL_STORE_BASE: usize =
+    @intFromEnum(load_store_authority.DirectRecipe.partial_store_preserve_0);
+const N_LOAD_STORE_CONSTRAINTS: usize =
+    load_store_authority.DIRECT_CONSTRAINT_COUNT;
 
 /// Within the per-limb pairs at 24..31, the second of each pair is `SB`'s
 /// stored-byte constraint. It is the pinned Stark-V check that already bound the
 /// marked limb, and naming it is how the negative control below shows the fix is
 /// not what binds that limb.
-const STORED_BYTE_BASE: usize = 25;
+const STORED_BYTE_BASE: usize =
+    @intFromEnum(load_store_authority.DirectRecipe.byte_store_0);
 const STORED_BYTE_STRIDE: usize = 2;
 
 // ---------------------------------------------------------------------------
@@ -454,7 +459,8 @@ test "partial store: the honest guest proves and verifies and the corrupted word
     // columns were generated from the un-mutated witness, so the composition
     // check refuses the trace even with the fix deleted. The bridge to
     // attribution is the shared recipe: `wholeWordForgery` is byte-for-byte the
-    // row the test above proves is rejected only by constraints 54, 56 and 57.
+    // row the test above proves is rejected only by the three named
+    // `partial_store_preserve_*` constraints.
     const forgery = wholeWordForgery();
     try harness.expectHonestProofAndForgedRejection(
         std.testing.allocator,

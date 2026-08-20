@@ -2,51 +2,6 @@
   "version": 3,
   "findings": [
     {
-      "key": "file-size:backends/metal/kernels.metal",
-      "owner": "metal-backend",
-      "track": "active_native_backend",
-      "reason": "The shared Metal kernel facade is eight lines over the manual-source ceiling after the resident backend work.",
-      "next_extraction": "Move one coherent group of shared quotient declarations into an owned shader include.",
-      "plan": "conformance/decomposition-plan.md",
-      "max_lines": 858
-    },
-    {
-      "key": "file-size:backends/metal/runtime.m",
-      "owner": "metal-runtime",
-      "track": "active_native_backend",
-      "reason": "The Objective-C Metal facade still owns initialization, cache, dispatch, and lifecycle responsibilities.",
-      "next_extraction": "Extract the next complete runtime responsibility behind an internal header rather than moving arbitrary line ranges.",
-      "plan": "conformance/decomposition-plan.md",
-      "max_lines": 1014
-    },
-    {
-      "key": "file-size:backends/metal/runtime/quotients.m",
-      "owner": "metal-runtime",
-      "track": "active_native_backend",
-      "reason": "Resident quotient packing, planning, dispatch, and telemetry remain coupled in one implementation owner.",
-      "next_extraction": "Separate quotient input packing and dispatch planning from execution while preserving one public runtime boundary.",
-      "plan": "conformance/decomposition-plan.md",
-      "max_lines": 1184
-    },
-    {
-      "key": "file-size:backends/metal/shaders/manifest.zig",
-      "owner": "metal-backend",
-      "track": "active_native_backend",
-      "reason": "The shader manifest combines source inventory, ABI metadata, and composed-library construction.",
-      "next_extraction": "Split immutable source inventory from composition and ABI validation.",
-      "plan": "conformance/decomposition-plan.md",
-      "max_lines": 923
-    },
-    {
-      "key": "file-size:prover/air/component_prover.zig",
-      "owner": "prover-air",
-      "track": "active_native_backend",
-      "reason": "Generic AIR component contracts and the new backend composition capabilities share one source owner.",
-      "next_extraction": "Move capability schemas and validation into a small prover-owned module while keeping the public component interface stable.",
-      "plan": "conformance/decomposition-plan.md",
-      "max_lines": 999
-    },
-    {
       "key": "file-size:scripts/riscv_csp_benchmark.py",
       "owner": "benchmark-tooling",
       "track": "active_native_backend",
@@ -54,23 +9,6 @@
       "next_extraction": "Move one complete report or execution responsibility into riscv_csp_benchmark_lib.",
       "plan": "conformance/decomposition-plan.md",
       "max_lines": 865
-    },
-    {
-      "key": "file-size:scripts/tests/test_riscv_csp_benchmark.py",
-      "owner": "benchmark-tooling",
-      "track": "active_native_backend",
-      "reason": "The CSP benchmark contract suite remains concentrated in one test module.",
-      "next_extraction": "Split report-contract tests from command and admission tests along the production module boundary.",
-      "plan": "conformance/decomposition-plan.md",
-      "max_lines": 857
-    },
-    {
-      "key": "thin-owner:build_support/products/riscv_metal.zig",
-      "owner": "riscv-metal-product",
-      "track": "active_native_backend",
-      "reason": "The RISC-V Metal build owner now configures the product, benchmark, AOT, and test surfaces.",
-      "next_extraction": "Move AOT and benchmark build construction behind private build-support helpers.",
-      "plan": "conformance/decomposition-plan.md"
     }
   ]
 }

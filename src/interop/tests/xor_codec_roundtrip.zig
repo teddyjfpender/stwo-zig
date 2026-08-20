@@ -5,7 +5,7 @@ const core = @import("stwo_core");
 const fri = core.fri;
 const pcs = core.pcs;
 const xor = @import("stwo_native_examples").xor;
-const postcard = @import("../postcard.zig");
+const postcard = @import("interop_postcard");
 const proof_wire = @import("stwo_proof_wire");
 
 fn config() !pcs.PcsConfig {

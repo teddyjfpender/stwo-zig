@@ -83,6 +83,17 @@ pub const PROLOGUE_LEN: usize = PROLOGUE.len;
 /// the halt flag before the next fetch.
 pub const EPILOGUE_LEN: usize = 5;
 
+/// Proof-bearing completion emitted after the public-output stores.
+///
+/// The committed-forgery fleet keeps the release ABI's halt flag by default.
+/// Recursion V1 deliberately admits only the canonical unretired self-loop,
+/// so its real-proof fixture selects `.self_loop` without maintaining a
+/// second ELF assembler or changing the guest's trace geometry.
+pub const Completion = enum {
+    halt_flag,
+    self_loop,
+};
+
 /// What to assemble around a caller's instruction stream.
 pub const Spec = struct {
     /// The instructions under test, retired between prologue and epilogue.
@@ -92,6 +103,7 @@ pub const Spec = struct {
     /// final register values regardless — but it keeps the retired result in
     /// the statement where a reader can see it.
     publish: u5 = 10,
+    completion: Completion = .halt_flag,
 };
 
 /// Total instructions of `spec`, i.e. the retired step count of a
@@ -222,7 +234,7 @@ pub fn build(allocator: std.mem.Allocator, spec: Spec) ![]u8 {
         writeU32(elf, cursor, instruction);
         cursor += @sizeOf(u32);
     }
-    for (epilogue(spec.publish)) |instruction| {
+    for (epilogue(spec.publish, spec.completion)) |instruction| {
         writeU32(elf, cursor, instruction);
         cursor += @sizeOf(u32);
     }
@@ -286,13 +298,16 @@ fn storePublishedWord(register: u5) u32 {
     return (@as(u32, register) << 20) | (1 << 15) | (2 << 12) | (imm << 7) | 0x23;
 }
 
-fn epilogue(publish: u5) [EPILOGUE_LEN]u32 {
+fn epilogue(publish: u5, completion: Completion) [EPILOGUE_LEN]u32 {
     return .{
         0x0040_0113, // ADDI x2, x0, 4
         0x0020_A223, // SW x2, 4(x1): publish output_len = 4
         storePublishedWord(publish),
         0x0010_0113, // ADDI x2, x0, 1
-        0x0020_A023, // SW x2, 0(x1): set the halt flag before the next fetch
+        switch (completion) {
+            .halt_flag => 0x0020_A023, // SW x2, 0(x1): halt before the next fetch
+            .self_loop => 0x0000_006f, // JAL x0, 0: observed, never retired
+        },
     };
 }
 

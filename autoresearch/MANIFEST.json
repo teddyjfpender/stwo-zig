@@ -330,7 +330,7 @@
         "board": "riscv",
         "build_step": "zig build stwo-zig -Doptimize=ReleaseFast",
         "binary": "zig-out/bin/stwo-zig",
-        "report_schema": "riscv_proof_v2",
+        "report_schema": "riscv_proof_v3",
         "correctness_oracle": {
           "authority": "sail-riscv",
           "repository": "https://github.com/riscv/sail-riscv",
@@ -837,16 +837,16 @@
       "riscv_metal": {
         "enabled": false,
         "promotion_eligible": false,
-        "disabled_reason": "riscv_metal is staged only: TRACKS §2 records the RISC-V + Metal product as parity_gated, not released. Three independent things are missing and each of them alone keeps the group dark. (1) The product descriptor in build_support/products/riscv_metal.zig carries state .parity_gated behind its test-riscv-metal, metal-test, and riscv-release-gate release gates. (2) The installed riscv-metal-bench binary is the shared RISC-V bench runner (src/tools/riscv/bench/runner.zig): it prints a human-readable benchmark to stdout and emits no riscv_proof_v2 report, no retained proof artifact, and no resource telemetry, so there is nothing for the harness to parse — see this group's report_adapter block. (3) No RISC-V Metal-lane calibration exists on the designated Apple M5 Max judge host, and the generalized per-board Metal calibration TRACKS §7 requires is not built yet. The RISC-V proof adapter is additionally recorded as CPU-only in vectors/riscv_elfs/crypto/provenance.json (metal_backend: gated_riscv_adapter_is_cpu_only). The group fails closed.",
+        "disabled_reason": "riscv_metal is staged only: TRACKS §2 records the RISC-V + Metal product as parity_gated, not released. Three independent things are missing and each of them alone keeps the group dark. (1) The product descriptor in build_support/products/riscv_metal.zig carries state .parity_gated behind its test-riscv-metal, metal-test, and riscv-release-gate release gates. (2) The installed riscv-metal-bench binary is the shared RISC-V bench runner (src/tools/riscv/bench/runner.zig): it prints a human-readable benchmark to stdout and emits no riscv_proof_v3 report, no retained proof artifact, and no resource telemetry, so there is nothing for the harness to parse — see this group's report_adapter block. (3) No RISC-V Metal-lane calibration exists on the designated Apple M5 Max judge host, and the generalized per-board Metal calibration TRACKS §7 requires is not built yet. The RISC-V proof adapter is additionally recorded as CPU-only in vectors/riscv_elfs/crypto/provenance.json (metal_backend: gated_riscv_adapter_is_cpu_only). The group fails closed.",
         "promotion_blocked_reason": "TRACKS §7: no riscv_metal A/A dispersion or anchors exist on the designated Apple M5 Max judge host, the product is parity_gated rather than released, and no report adapter emits a scoreable row. Promotion fails closed; the gate opens only after the adapter lands and that M5 calibration is committed.",
         "board": "riscv_metal",
         "build_step": "zig build riscv-metal-bench -Doptimize=ReleaseFast",
         "binary": "zig-out/bin/riscv-metal-bench",
-        "report_schema": "riscv_proof_v2",
+        "report_schema": "riscv_proof_v3",
         "report_adapter": {
           "status": "absent",
           "emits": "human-readable stdout only (stage timings, cycle counts, and throughput printed by src/tools/riscv/bench/runner.zig)",
-          "note": "report_schema names the envelope this board's rows MUST carry before they can ever be scored; it is a target, not a claim about today's binary. The parity-gated product installs riscv-metal-bench and stwo-zig-riscv-metal from the same root module (src/riscv_metal_bench_cli.zig), and neither accepts a `bench` subcommand, `--protocol`, `--report-out`, or `--proof-out`. Building the adapter means routing the Metal engine through the riscv_proof_v2 emitter in src/integrations/riscv_cpu/proof_adapter.zig and extending the RISC-V mechanism contract with the Metal dispatch and cpu_fallback counters schema/scoring.md Board 4 eligibility requires. Until status flips to `present`, manifest validation refuses to let this group be enabled or promotion eligible."
+          "note": "report_schema names the envelope this board's rows MUST carry before they can ever be scored; it is a target, not a claim about today's binary. The parity-gated product installs riscv-metal-bench and stwo-zig-riscv-metal from the same root module (src/riscv_metal_bench_cli.zig), and neither accepts a `bench` subcommand, `--protocol`, `--report-out`, or `--proof-out`. Building the adapter means routing the Metal engine through the riscv_proof_v3 emitter in src/integrations/riscv_cpu/proof_adapter.zig and extending the RISC-V mechanism contract with the Metal dispatch and cpu_fallback counters schema/scoring.md Board 4 eligibility requires. Until status flips to `present`, manifest validation refuses to let this group be enabled or promotion eligible."
         },
         "correctness_oracle": {
           "authority": "sail-riscv",

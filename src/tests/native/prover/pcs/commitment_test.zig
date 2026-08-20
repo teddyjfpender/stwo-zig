@@ -519,6 +519,7 @@ test "prover pcs: streaming commitment produces identical root to non-streaming"
     // Streaming: commit in batches of 5.
     var scheme_stream = try Scheme.init(alloc, PcsConfig.default());
     defer scheme_stream.deinit(alloc);
+    scheme_stream.setCoefficientRetentionPolicy(.never);
     var channel_stream = Channel{};
 
     // Build owned copies for the streaming path.
@@ -537,6 +538,9 @@ test "prover pcs: streaming commitment produces identical root to non-streaming"
         &channel_stream,
     );
 
+    try std.testing.expect(scheme_ref.trees.items[0].coefficients != null);
+    try std.testing.expect(scheme_stream.trees.items[0].coefficients == null);
+
     // Verify identical roots.
     var roots_ref = try scheme_ref.roots(alloc);
     defer roots_ref.deinit(alloc);
@@ -550,6 +554,68 @@ test "prover pcs: streaming commitment produces identical root to non-streaming"
 
     // Verify identical channel state (the root mixing should match).
     try std.testing.expectEqualSlices(u8, channel_ref.digestBytes()[0..], channel_stream.digestBytes()[0..]);
+}
+
+test "prover pcs: Poseidon streaming commitment uses bounded leaf construction with identical root" {
+    const recursion = @import("stwo_riscv_frontend").recursion;
+    const Hasher = recursion.engine.Hasher;
+    const MerkleChannel = recursion.engine.MerkleChannel;
+    const Channel = recursion.engine.Channel;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
+    const Scheme = CommitmentSchemeProver(CpuBackend, Hasher, MerkleChannel);
+    const alloc = std.testing.allocator;
+
+    // The largest base column extends to 2^8 leaves under the default
+    // blowup, crossing the bounded-leaf threshold. Mixed heights also cover
+    // lifted indexing and restoration of original PCS column order.
+    const log_sizes = [_]u32{ 7, 4, 6, 7, 5 };
+    const columns = try alloc.alloc(ColumnEvaluation, log_sizes.len);
+    defer {
+        for (columns) |column| alloc.free(column.values);
+        alloc.free(columns);
+    }
+    for (columns, log_sizes, 0..) |*column, log_size, column_index| {
+        const values = try alloc.alloc(M31, @as(usize, 1) << @intCast(log_size));
+        for (values, 0..) |*value, row| {
+            value.* = M31.fromU64(@intCast(
+                (column_index + 11) * 65537 + (row + 3) * (column_index * 2 + 17),
+            ));
+        }
+        column.* = .{ .log_size = log_size, .values = values };
+    }
+
+    var reference = try Scheme.init(alloc, PcsConfig.default());
+    defer reference.deinit(alloc);
+    reference.setCoefficientRetentionPolicy(.never);
+    var reference_channel = Channel{};
+    try reference.commit(alloc, columns, &reference_channel);
+
+    var bounded = try Scheme.init(alloc, PcsConfig.default());
+    defer bounded.deinit(alloc);
+    bounded.setCoefficientRetentionPolicy(.never);
+    var bounded_channel = Channel{};
+    const owned = try alloc.alloc(ColumnEvaluation, columns.len);
+    var initialized: usize = 0;
+    var transferred = false;
+    errdefer if (!transferred) {
+        for (owned[0..initialized]) |column| alloc.free(column.values);
+        alloc.free(owned);
+    };
+    for (columns, owned) |column, *destination| {
+        destination.* = .{
+            .log_size = column.log_size,
+            .values = try alloc.dupe(M31, column.values),
+        };
+        initialized += 1;
+    }
+    transferred = true;
+    try bounded.commitOwnedStreaming(alloc, owned, 2, &bounded_channel);
+
+    try std.testing.expectEqual(reference.trees.items.len, bounded.trees.items.len);
+    try std.testing.expectEqual(reference.trees.items[0].root(), bounded.trees.items[0].root());
+    try std.testing.expectEqual(reference_channel.digestWords(), bounded_channel.digestWords());
+    try std.testing.expectEqual(@as(usize, 72), @sizeOf(Hasher));
+    try std.testing.expectEqual(@as(usize, 32), @sizeOf(Hasher.Hash));
 }
 
 test "prover pcs: streaming commitment with batch_size=1 matches non-streaming" {

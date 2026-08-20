@@ -14,6 +14,7 @@ const leaves_mod = @import("leaves.zig");
 const expand_mod = @import("expand.zig");
 const layers_mod = @import("layers.zig");
 const parameters = @import("parameters.zig");
+const streaming_committer = @import("streaming_committer.zig");
 
 const M31 = m31.M31;
 const SecureColumnByCoords = secure_column.SecureColumnByCoords;
@@ -46,6 +47,24 @@ pub fn MerkleProverLifted(comptime H: type) type {
         pub const DecommitmentResult = decommit_mod.DecommitmentResult(H);
         pub const LazyQuotientCommitStats = quotient_tile_sink.ExecutionStats;
         pub const LazyQuotientCommitMode = enum { tiled, legacy };
+
+        /// Exact allocation and replay ledger for bounded-prefix leaf
+        /// construction. `leaf_phase_peak_bytes` counts the retained prefix
+        /// states and the final leaf layer; column storage and the permanent
+        /// upper Merkle layers are deliberately outside this leaf-builder
+        /// metric.
+        pub const BoundedPrefixStats = struct {
+            final_log_size: u32 = 0,
+            prefix_log_size: u32 = 0,
+            prefix_column_count: usize = 0,
+            tail_column_count: usize = 0,
+            prefix_state_count: usize = 0,
+            prefix_state_bytes: usize = 0,
+            leaf_layer_bytes: usize = 0,
+            leaf_phase_peak_bytes: usize = 0,
+            tail_absorptions: usize = 0,
+            repeated_tail_absorptions: usize = 0,
+        };
 
         pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
             for (self.layers) |layer| self.layer_allocator.free(layer);
@@ -466,269 +485,7 @@ pub fn MerkleProverLifted(comptime H: type) type {
         ///
         /// The resulting Merkle root is bit-identical to calling `commit()` with all
         /// columns at once.
-        pub const StreamingCommitter = struct {
-            allocator: std.mem.Allocator,
-            /// Leaf hasher state — one hasher per leaf position.
-            /// Grows (via expansion) as larger log_size columns are encountered.
-            leaf_hashers: []H,
-            /// Current log_size of the leaf hasher array (number of positions = 1 << leaf_log_size).
-            leaf_log_size: u32,
-            /// Whether any columns have been added yet.
-            initialized: bool,
-
-            pub fn init(allocator: std.mem.Allocator) StreamingCommitter {
-                return .{
-                    .allocator = allocator,
-                    .leaf_hashers = &[_]H{},
-                    .leaf_log_size = 0,
-                    .initialized = false,
-                };
-            }
-
-            pub fn deinit(self: *StreamingCommitter) void {
-                if (self.leaf_hashers.len > 0) {
-                    self.allocator.free(self.leaf_hashers);
-                }
-                self.* = undefined;
-            }
-
-            /// Feed a batch of columns into the streaming hasher.
-            ///
-            /// Columns MUST be supplied in ascending log_size order (matching
-            /// `sortColumnsByLogSizeAsc` within each batch and across batches).
-            /// Columns with the same log_size as columns from a previous batch
-            /// are permitted — they extend the same group.
-            ///
-            /// After this call returns, the caller may free the column value
-            /// slices; their data has been absorbed into the leaf hasher state.
-            pub fn addColumns(
-                self: *StreamingCommitter,
-                columns: []const ColumnRef,
-            ) !void {
-                if (columns.len == 0) return;
-
-                for (columns) |column| {
-                    if (!std.math.isPowerOfTwo(column.values.len) or column.values.len < 2) {
-                        return error.InvalidColumnSize;
-                    }
-                }
-
-                // Initialize seed hasher on first call.
-                if (!self.initialized) {
-                    const seed_hasher = H.defaultWithInitialState();
-                    const first_log_size = columns[0].log_size;
-                    const first_size = @as(usize, 1) << @intCast(first_log_size);
-                    self.leaf_hashers = try self.allocator.alloc(H, first_size);
-                    for (self.leaf_hashers) |*h| h.* = seed_hasher;
-                    self.leaf_log_size = first_log_size;
-                    self.initialized = true;
-                }
-
-                // Process columns in groups by log_size.
-                var group_start: usize = 0;
-                while (group_start < columns.len) {
-                    const log_size = columns[group_start].log_size;
-                    var group_end = group_start + 1;
-                    while (group_end < columns.len and
-                        columns[group_end].log_size == log_size)
-                    {
-                        group_end += 1;
-                    }
-
-                    // Expand leaf hashers if needed for this log_size.
-                    if (log_size > self.leaf_log_size) {
-                        const log_ratio = log_size - self.leaf_log_size;
-                        const layer_size = @as(usize, 1) << @intCast(log_size);
-                        const shift_amt: std.math.Log2Int(usize) = @intCast(log_ratio + 1);
-                        const expanded = try self.allocator.alloc(H, layer_size);
-                        ExpandOps.expandHashers(expanded, self.leaf_hashers, shift_amt);
-                        self.allocator.free(self.leaf_hashers);
-                        self.leaf_hashers = expanded;
-                        self.leaf_log_size = log_size;
-                    }
-
-                    const layer_size = self.leaf_hashers.len;
-                    const group_columns = columns[group_start..group_end];
-
-                    // Feed column values into leaf hashers — same logic as buildLeaves.
-                    if (comptime @hasDecl(H, "updateLeafPackedBytes")) {
-                        try LeafOps.updateHashersPacked(
-                            self.allocator,
-                            self.leaf_hashers,
-                            group_columns,
-                            layer_size,
-                        );
-                    } else {
-                        var idx: usize = 0;
-                        while (idx < layer_size) : (idx += 1) {
-                            for (group_columns) |column| {
-                                self.leaf_hashers[idx].updateLeaf(column.values[idx .. idx + 1]);
-                            }
-                        }
-                    }
-
-                    group_start = group_end;
-                }
-            }
-
-            /// Commits a complete sorted column set while retaining lifted
-            /// hasher-state reuse. When the final higher-domain columns fit in
-            /// the already-open terminal BLAKE2s block, their intermediate
-            /// expanded state arrays are bypassed and finalized directly.
-            pub fn commitColumnsWithSparseTail(
-                self: *StreamingCommitter,
-                columns: []const ColumnRef,
-            ) !Self {
-                for (columns, 0..) |column, index| {
-                    if (!std.math.isPowerOfTwo(column.values.len) or column.values.len < 2) {
-                        return error.InvalidColumnSize;
-                    }
-                    if (index > 0 and column.log_size < columns[index - 1].log_size) {
-                        return error.InvalidColumnOrder;
-                    }
-                }
-
-                const tail_start = liftedTailStart(columns) orelse {
-                    try self.addColumns(columns);
-                    return self.finalize();
-                };
-                try self.addColumns(columns[0..tail_start]);
-                return self.finalizeLiftedTail(columns[tail_start..]);
-            }
-
-            fn liftedTailStart(columns: []const ColumnRef) ?usize {
-                if (comptime !@hasDecl(H, "domainPrefixBytes")) return null;
-                if (H.domainPrefixBytes() != 64 or columns.len < 2) return null;
-
-                const final_log_size = columns[columns.len - 1].log_size;
-                var group_start: usize = 0;
-                while (group_start < columns.len) {
-                    const log_size = columns[group_start].log_size;
-                    var group_end = group_start + 1;
-                    while (group_end < columns.len and
-                        columns[group_end].log_size == log_size)
-                    {
-                        group_end += 1;
-                    }
-                    if (group_end == columns.len) return null;
-
-                    const buffered_words = if ((group_end & 15) == 0)
-                        @as(usize, 16)
-                    else
-                        group_end & 15;
-                    const tail_columns = columns.len - group_end;
-                    if (final_log_size >= log_size + 2 and
-                        tail_columns <= 16 - buffered_words and
-                        tail_columns <= LeafOps.max_lifted_tail_columns)
-                    {
-                        return group_end;
-                    }
-                    group_start = group_end;
-                }
-                return null;
-            }
-
-            fn finalizeLiftedTail(
-                self: *StreamingCommitter,
-                tail_columns: []const ColumnRef,
-            ) !Self {
-                std.debug.assert(self.initialized);
-                std.debug.assert(tail_columns.len > 0);
-                const allocator = self.allocator;
-                const layer_alloc = layerAllocator(allocator);
-                const final_log_size = tail_columns[tail_columns.len - 1].log_size;
-                std.debug.assert(final_log_size > self.leaf_log_size);
-                const leaf_count = @as(usize, 1) << @intCast(final_log_size);
-                const leaves = try layer_alloc.alloc(H.Hash, leaf_count);
-                LeafOps.finalizeLiftedTail(
-                    self.leaf_hashers,
-                    self.leaf_log_size,
-                    tail_columns,
-                    final_log_size,
-                    leaves,
-                );
-                allocator.free(self.leaf_hashers);
-                self.leaf_hashers = &[_]H{};
-
-                const tree = try finishLeaves(allocator, layer_alloc, leaves);
-                self.* = undefined;
-                return tree;
-            }
-
-            fn finishLeaves(
-                allocator: std.mem.Allocator,
-                layer_alloc: std.mem.Allocator,
-                leaves: []H.Hash,
-            ) !Self {
-                const worker_override = merkleWorkerOverride(allocator);
-                const reuse_pool = merklePoolReuseEnabled(allocator);
-
-                var layers_bottom_up = std.ArrayList([]H.Hash).empty;
-                defer layers_bottom_up.deinit(allocator);
-                errdefer {
-                    for (layers_bottom_up.items) |layer| layer_alloc.free(layer);
-                }
-                try layers_bottom_up.append(allocator, leaves);
-
-                if (leaves.len > 1) {
-                    std.debug.assert(std.math.isPowerOfTwo(leaves.len));
-                    const max_log_size = std.math.log2_int(usize, leaves.len);
-                    const max_out_len = leaves.len >> 1;
-                    var executor: LayerExecutor = undefined;
-                    executor.init(max_out_len, worker_override, reuse_pool);
-                    defer executor.deinit();
-
-                    var i: usize = 0;
-                    while (i < max_log_size) : (i += 1) {
-                        const next_layer = try LayerOps.buildNextLayer(
-                            layer_alloc,
-                            layers_bottom_up.items[layers_bottom_up.items.len - 1],
-                            &executor,
-                            worker_override,
-                        );
-                        try layers_bottom_up.append(allocator, next_layer);
-                    }
-                }
-
-                const out_layers = try allocator.alloc([]H.Hash, layers_bottom_up.items.len);
-                var i: usize = 0;
-                while (i < out_layers.len) : (i += 1) {
-                    out_layers[i] = layers_bottom_up.items[out_layers.len - 1 - i];
-                }
-                return .{ .layers = out_layers, .layer_allocator = layer_alloc };
-            }
-
-            /// Finalize the streaming commitment: produce leaf hashes from the
-            /// accumulated hasher state, build internal Merkle layers, and return
-            /// the completed tree.  The `StreamingCommitter` is consumed (its
-            /// hasher memory is freed).
-            pub fn finalize(self: *StreamingCommitter) !Self {
-                const allocator = self.allocator;
-                const layer_alloc = layerAllocator(allocator);
-                if (!self.initialized) {
-                    // No columns were added — replicate the empty-column path
-                    // from buildLeaves.
-                    const seed_hasher = H.defaultWithInitialState();
-                    var h = seed_hasher;
-                    const leaves = try layer_alloc.alloc(H.Hash, 1);
-                    leaves[0] = h.finalize();
-                    const tree = try finishLeaves(allocator, layer_alloc, leaves);
-                    self.* = undefined;
-                    return tree;
-                }
-
-                // Finalize leaf hashers into leaf hashes.
-                const leaf_count = self.leaf_hashers.len;
-                const leaves = try layer_alloc.alloc(H.Hash, leaf_count);
-                LeafOps.finalizeHashers(self.leaf_hashers, leaves);
-                // Free hasher state — column data is no longer needed.
-                allocator.free(self.leaf_hashers);
-                self.leaf_hashers = &[_]H{};
-                const tree = try finishLeaves(allocator, layer_alloc, leaves);
-                self.* = undefined;
-                return tree;
-            }
-        };
+        pub const StreamingCommitter = streaming_committer.StreamingCommitter(H, Self);
 
         /// `builtin.is_test` keeps structural tests close to their assertions
         /// without making these internals callable from production builds.

@@ -45,21 +45,22 @@ correctness merely because its witness generator agrees with it.
 ## Reading order
 
 1. [CHARTER.md](CHARTER.md) — problem, outcome, scope, and success criteria.
-2. [CANON.md](CANON.md) — taste, style, and engineering laws.
-3. [ARCHITECTURE.md](ARCHITECTURE.md) — current seams and target system.
-4. [IR.md](IR.md) — typed intermediate representation and lowering contract.
-5. [AUTHORING.md](AUTHORING.md) — executable public surface and lifecycle.
-6. [PRECOMPILES.md](PRECOMPILES.md) — component ABI and parallel proving model.
-7. [SOUNDNESS.md](SOUNDNESS.md) — threat model and preserved proof obligations.
-8. [IMPLEMENTATION.md](IMPLEMENTATION.md) — staged delivery and first pull requests.
-9. [TASKS.md](TASKS.md) — dependency-ordered executable work.
-10. [VALIDATION.md](VALIDATION.md) — test, formal, and release evidence.
-11. [PERFORMANCE.md](PERFORMANCE.md) — measurement and optimization discipline.
-12. [PROGRESS.md](PROGRESS.md) — current state, next actions, and chronological log.
-13. [decisions/README.md](decisions/README.md) — accepted and proposed decisions.
-14. [notes/README.md](notes/README.md) — dated research and implementation notes.
-15. [artifacts/README.md](artifacts/README.md) — reviewed deterministic evidence.
-16. [receipts/README.md](receipts/README.md) — clean-snapshot milestone evidence and open gates.
+2. [ORIGINAL-SCOPE.md](ORIGINAL-SCOPE.md) — complete proposal-to-production delivery map.
+3. [CANON.md](CANON.md) — taste, style, and engineering laws.
+4. [ARCHITECTURE.md](ARCHITECTURE.md) — current seams and target system.
+5. [IR.md](IR.md) — typed intermediate representation and lowering contract.
+6. [AUTHORING.md](AUTHORING.md) — executable public surface and lifecycle.
+7. [PRECOMPILES.md](PRECOMPILES.md) — component ABI and parallel proving model.
+8. [SOUNDNESS.md](SOUNDNESS.md) — threat model and preserved proof obligations.
+9. [IMPLEMENTATION.md](IMPLEMENTATION.md) — staged delivery and first pull requests.
+10. [TASKS.md](TASKS.md) — dependency-ordered executable work.
+11. [VALIDATION.md](VALIDATION.md) — test, formal, and release evidence.
+12. [PERFORMANCE.md](PERFORMANCE.md) — measurement and optimization discipline.
+13. [PROGRESS.md](PROGRESS.md) — current state, next actions, and chronological log.
+14. [decisions/README.md](decisions/README.md) — accepted and proposed decisions.
+15. [notes/README.md](notes/README.md) — dated research and implementation notes.
+16. [artifacts/README.md](artifacts/README.md) — reviewed deterministic evidence.
+17. [receipts/README.md](receipts/README.md) — clean-snapshot milestone evidence and open gates.
 
 ## Working rules
 

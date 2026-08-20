@@ -12,10 +12,12 @@ const std = @import("std");
 const core = @import("stwo_core");
 const prover = @import("stwo_prover_engine");
 const base_codegen = @import("base_polynomial_codegen.zig");
+const column_pointer_packing = @import("column_pointer_packing.zig");
 const lookup_codegen = @import("lookup_polynomial_codegen.zig");
 const metal_runtime = @import("../runtime.zig");
 const shared_runtime = @import("../shared_runtime.zig");
 const telemetry = @import("../telemetry.zig");
+const base_composition_work = @import("base_composition_work.zig");
 
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
@@ -26,6 +28,7 @@ const BaseCapability = prover.air.component_prover.BasePolynomialCapabilityV1;
 const LookupCapability = prover.air.component_prover.LookupPolynomialCapabilityV1;
 const Accumulator = prover.air.accumulation.DomainEvaluationAccumulator;
 const SecureColumn = prover.secure_column.SecureColumnByCoords;
+const composition_work = prover.air.composition_work;
 
 const disable_env = "STWO_ZIG_RISCV_METAL_SEMANTICS";
 
@@ -107,6 +110,24 @@ pub fn evaluate(
     random_coeff: QM31,
     trace: *const Trace,
     residency_handles: []const ?*anyopaque,
+) !?SecureColumn {
+    return evaluateWithWorkCapture(
+        allocator,
+        components,
+        random_coeff,
+        trace,
+        residency_handles,
+        null,
+    );
+}
+
+pub fn evaluateWithWorkCapture(
+    allocator: std.mem.Allocator,
+    components: []const Component,
+    random_coeff: QM31,
+    trace: *const Trace,
+    residency_handles: []const ?*anyopaque,
+    work_capture: ?*composition_work.Capture,
 ) !?SecureColumn {
     if (components.len == 0) return null;
 
@@ -404,9 +425,7 @@ pub fn evaluate(
                 denominator_inverses[1].toU32(),
             },
         };
-        for (job.main_columns, main_column_ptrs[main_column_cursor..]) |column, *pointer|
-            pointer.* = @ptrCast(column.values.ptr);
-        main_column_cursor += job.main_columns.len;
+        try column_pointer_packing.pack(main_column_ptrs, &main_column_cursor, job.main_columns);
     }
     std.debug.assert(main_column_cursor == main_column_ptrs.len);
 
@@ -467,18 +486,14 @@ pub fn evaluate(
                 denominator_inverses[1].toU32(),
             },
         };
-        for (job.main_columns, lookup_main_column_ptrs[lookup_main_cursor..]) |column, *pointer|
-            pointer.* = @ptrCast(column.values.ptr);
-        for (job.interaction_columns, interaction_column_ptrs[interaction_cursor..]) |column, *pointer|
-            pointer.* = @ptrCast(column.values.ptr);
+        try column_pointer_packing.pack(lookup_main_column_ptrs, &lookup_main_cursor, job.main_columns);
+        try column_pointer_packing.pack(interaction_column_ptrs, &interaction_cursor, job.interaction_columns);
         for (job.parameters, 0..) |parameter, index| {
             const coordinates = parameter.toM31Array();
             inline for (0..4) |coordinate|
                 parameter_words[(parameter_cursor + index) * 4 + coordinate] =
                     coordinates[coordinate].toU32();
         }
-        lookup_main_cursor += job.main_columns.len;
-        interaction_cursor += job.interaction_columns.len;
         parameter_cursor += job.parameters.len;
     }
     std.debug.assert(lookup_main_cursor == lookup_main_column_ptrs.len);
@@ -530,6 +545,20 @@ pub fn evaluate(
         );
     }
 
+    const work_receipt = if (work_capture != null)
+        try base_composition_work.build(
+            allocator,
+            components,
+            total_constraints,
+            max_log_size,
+            semantic_jobs,
+            lookup_jobs,
+            host_workers,
+            buckets,
+        )
+    else
+        null;
+
     var combined = try Accumulator.initForComponent(powers, allocator, max_log_size, 0);
     defer combined.deinit();
     for (host_workers) |*worker| combined.merge(&worker.accumulator);
@@ -546,9 +575,11 @@ pub fn evaluate(
             }
         }
     }
-    return try combined.finalize();
+    var result = try combined.finalize();
+    errdefer result.deinit(allocator);
+    if (work_receipt) |receipt| try work_capture.?.publish(receipt);
+    return result;
 }
-
 /// Picks the host component with the most domain work. Only one component may
 /// recursively split over the shared pool at a time; all others remain leaf
 /// jobs. This is the same scheduling invariant as the generic composition

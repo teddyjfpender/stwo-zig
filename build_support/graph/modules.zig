@@ -75,8 +75,7 @@ pub fn addPublic(b: *std.Build, name: []const u8, spec: ModuleSpec) *std.Build.M
     });
 }
 
-/// Resolves canonical ownership roots through their package manifests. Other
-/// product-local roots remain relative to the repository aggregate package.
+/// Resolves package-owned roots; other roots remain aggregate-relative.
 fn ownedRootSource(b: *std.Build, spec: ModuleSpec) std.Build.LazyPath {
     return source(
         b,
@@ -156,14 +155,14 @@ pub fn createPrivateProtocolModules(
     return createProtocolModules(b, core, target, optimize);
 }
 
-/// Constructs the canonical RISC-V frontend module against an already selected
-/// protocol module set. Product roots must opt into this dependency explicitly.
+/// Constructs the canonical RISC-V frontend against selected protocol modules.
 pub fn createRiscVFrontend(
     b: *std.Build,
     protocol: ProtocolModules,
     product: Product,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
+    proof_wire_override: ?*std.Build.Module,
 ) *std.Build.Module {
     const frontend = create(b, .{
         .product = product,
@@ -172,10 +171,20 @@ pub fn createRiscVFrontend(
         .optimize = optimize,
     });
     protocol.addImports(frontend);
+    const proof_wire = proof_wire_override orelse
+        createProofWire(b, protocol, product, target, optimize);
+    const postcard = create(b, .{
+        .product = product,
+        .root_source_file = "src/interop/postcard.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    postcard.addImport("stwo_core", protocol.core);
+    postcard.addImport("stwo_proof_wire", proof_wire);
+    frontend.addImport("interop_postcard", postcard);
     return frontend;
 }
 
-/// Declares a consumer's dependency on the package-owned RISC-V API.
 pub fn addRiscVFrontendImport(
     b: *std.Build,
     protocol: ProtocolModules,
@@ -190,8 +199,12 @@ pub fn addRiscVFrontendImport(
         product,
         target,
         optimize,
+        consumer.import_table.get("stwo_proof_wire"),
     );
     consumer.addImport("stwo_riscv_frontend", frontend);
+    const postcard = frontend.import_table.get("interop_postcard") orelse
+        @panic("canonical RISC-V frontend is missing interop_postcard");
+    consumer.addImport("interop_postcard", postcard);
     return frontend;
 }
 
@@ -347,9 +360,7 @@ pub fn addMetalBackendImport(
     return backend;
 }
 
-/// Constructs the package-owned persistent Metal-session protocol and artifact
-/// service module. It is host-independent despite being consumed by Metal
-/// products.
+/// Constructs the host-independent persistent Metal-session service module.
 pub fn createMetalSession(
     b: *std.Build,
     product: Product,
@@ -382,8 +393,7 @@ pub fn addMetalSessionImport(
     return metal_session;
 }
 
-/// Constructs the package-owned proof interchange codec against the selected
-/// protocol core.
+/// Constructs the proof interchange codec against the selected protocol core.
 pub fn createProofWire(
     b: *std.Build,
     protocol: ProtocolModules,
@@ -421,8 +431,7 @@ pub fn addProofWireImport(
     return proof_wire;
 }
 
-/// Constructs the package-owned Native example AIR suite against its explicit
-/// protocol, CPU-backend, and proof-codec dependencies.
+/// Constructs Native example AIRs against their explicit dependencies.
 pub fn createNativeExamples(
     b: *std.Build,
     protocol: ProtocolModules,

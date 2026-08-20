@@ -6,6 +6,13 @@
 
 const std = @import("std");
 
+/// The production proof transaction has exactly five non-overlapping
+/// materialization regions: commitment witness, statement geometry,
+/// preprocessed columns, main columns, and interaction columns. The meter
+/// intentionally records their wall-clock union rather than summing nested
+/// diagnostic scopes, which may overlap under parallel execution.
+pub const REGION_COUNT: u64 = 5;
+
 pub const ClockSource = struct {
     context: *anyopaque,
     now_fn: *const fn (context: *anyopaque) anyerror!u64,
@@ -26,6 +33,7 @@ pub const Meter = struct {
     last_boundary_ns: ?u64 = null,
     active: ?ActiveRegion = null,
     next_generation: u64 = 0,
+    completed_regions: u64 = 0,
 
     pub fn init(source: ?ClockSource) Meter {
         return .{ .source = source };
@@ -37,6 +45,8 @@ pub const Meter = struct {
         if (self.active != null) return error.ProofPhaseRegionAlreadyActive;
         const generation = std.math.add(u64, self.next_generation, 1) catch
             return error.ProofPhaseGenerationOverflow;
+        if (generation > REGION_COUNT)
+            return error.ProofPhaseRegionCountExceeded;
 
         const start_ns: ?u64 = if (self.source) |source| sampled: {
             const now_ns = try source.now();
@@ -56,9 +66,25 @@ pub const Meter = struct {
         return self.active != null;
     }
 
+    /// Accepts a profiled proof boundary only after every declared region has
+    /// finished exactly once. Disabled meters follow the same state machine;
+    /// they merely avoid clock reads and duration arithmetic.
+    pub fn requireComplete(self: *const Meter) !void {
+        if (self.active != null or
+            self.next_generation != REGION_COUNT or
+            self.completed_regions != REGION_COUNT)
+        {
+            return error.IncompleteProofPhasePartition;
+        }
+    }
+
     fn finish(self: *Meter, generation: u64) !void {
         const active = self.active orelse return error.ProofPhaseRegionNotActive;
         if (active.generation != generation) return error.ProofPhaseRegionStale;
+        const completed_regions = std.math.add(u64, self.completed_regions, 1) catch
+            return error.ProofPhaseRegionCountExceeded;
+        if (completed_regions > REGION_COUNT)
+            return error.ProofPhaseRegionCountExceeded;
 
         if (self.source) |source| {
             const start_ns = active.start_ns orelse unreachable;
@@ -71,6 +97,7 @@ pub const Meter = struct {
             self.witness_ns = witness_ns;
             self.last_boundary_ns = finish_ns;
         } else std.debug.assert(active.start_ns == null);
+        self.completed_regions = completed_regions;
         self.active = null;
     }
 

@@ -97,6 +97,69 @@ pub const Node = struct {
     primary_source: source.SourceSpan,
 };
 
+/// Trace-order offsets supported by the append-only physical expression IR.
+/// The PCS layer remains cyclic; a window authority must separately bind the
+/// row-zero correction for every admitted previous-row read.
+pub const RowOffset = enum(i8) {
+    previous = -1,
+    current = 0,
+};
+
+pub const WindowBinary = struct {
+    lhs: types.WindowValueId,
+    rhs: types.WindowValueId,
+};
+
+/// Scalar expressions over already-authenticated committed-column samples.
+/// A shifted read names a `ShiftedColumnId` from a versioned row-window plan;
+/// the plan digest, owner, column type, offset, and boundary are validated by
+/// the physical compiler before this graph may be evaluated.
+pub const WindowOp = union(enum) {
+    constant: u32,
+    shifted_column: types.ShiftedColumnId,
+    add: WindowBinary,
+    sub: WindowBinary,
+    mul: WindowBinary,
+    neg: types.WindowValueId,
+};
+
+pub const WindowKey = struct {
+    op: WindowOp,
+};
+
+pub const WindowNode = struct {
+    key: WindowKey,
+    primary_source: source.SourceSpan,
+};
+
+pub const WindowKeyContext = struct {
+    pub fn hash(_: WindowKeyContext, key: WindowKey) u64 {
+        var state: u64 = 0xcbf29ce484222325;
+        mix(&state, @intFromEnum(std.meta.activeTag(key.op)));
+        switch (key.op) {
+            .constant => |value| mix(&state, value),
+            .shifted_column => |column| mix(&state, @intFromEnum(column)),
+            .add, .sub, .mul => |binary| {
+                mix(&state, @intFromEnum(binary.lhs));
+                mix(&state, @intFromEnum(binary.rhs));
+            },
+            .neg => |value| mix(&state, @intFromEnum(value)),
+        }
+        return state;
+    }
+
+    pub fn eql(_: WindowKeyContext, lhs: WindowKey, rhs: WindowKey) bool {
+        return std.meta.eql(lhs, rhs);
+    }
+};
+
+pub const WindowMap = std.HashMap(
+    WindowKey,
+    types.WindowValueId,
+    WindowKeyContext,
+    std.hash_map.default_max_load_percentage,
+);
+
 /// Hashing is explicit so padding bytes, pointers, and rendered source text can
 /// never become structural identity.
 pub const KeyContext = struct {

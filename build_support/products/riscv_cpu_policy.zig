@@ -1,0 +1,75 @@
+//! Dependency-closed source authority for the RISC-V CPU product.
+
+const product_policy = @import("../graph/product.zig");
+const shared_shell = @import("riscv_shared_shell.zig");
+
+pub const source_closure = product_policy.SourceClosure{
+    .entry_roots = &.{
+        "src/products/riscv_cpu/main.zig",
+        "src/stwo_riscv_cpu.zig",
+        "src/tools/riscv/poseidon2_pair/main.zig",
+        "src/tools/riscv/poseidon2_pair/proof_main.zig",
+        "src/tools/riscv/poseidon2_pair/proof_child.zig",
+        "src/tools/riscv/recursive_csp_producer/main.zig",
+        "src/tools/riscv/recursive_csp_shape_inspector/main.zig",
+        "src/riscv_trace_cli.zig",
+        "src/frontends/riscv/refinement_ir_export_test.zig",
+        "src/frontends/riscv/refinement_program_export_test.zig",
+        "src/frontends/riscv/sail_oracle_test_root.zig",
+    },
+    .named_imports = &([_]product_policy.NamedImport{
+        .{ .name = "stwo", .source = "src/stwo_riscv_cpu.zig" },
+        .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
+        .{ .name = "stwo_core", .source = "src/core/mod.zig" },
+        .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
+        .{ .name = "interop_postcard", .source = "src/interop/postcard.zig" },
+        .{ .name = "stwo_proof_wire", .source = "src/interop/proof_wire/mod.zig" },
+        .{ .name = "stwo_riscv_frontend", .source = "src/frontends/riscv/mod.zig" },
+        .{ .name = "stwo_riscv_cpu", .source = "src/stwo_riscv_cpu.zig" },
+        .{ .name = "stwo_prover_api", .source = "src/prover_api/mod.zig" },
+        .{ .name = "stwo_prover_engine", .source = "src/prover/mod.zig" },
+        .{ .name = "stwo_riscv_cpu_integration", .source = "src/integrations/riscv_cpu/mod.zig" },
+        .{ .name = "riscv_adapter", .source = "src/integrations/riscv_cpu/proof_adapter.zig" },
+        .{ .name = "riscv_cpu_capabilities", .source = "src/products/riscv_cpu/capabilities.zig" },
+        .{ .name = "recursive_csp_profile_registry", .source = "src/tools/riscv/recursive_csp_producer/profile_registry.zig" },
+        .{ .name = "atomic_file", .source = "src/interop/atomic_file.zig" },
+        .{ .name = "output_transaction", .source = "src/interop/output_transaction.zig" },
+    } ++ shared_shell.shell_named_imports),
+    // Lexical closure reaches package-only compatibility tests; production
+    // never constructs or consumes their injected design-artifact module.
+    .generated_imports = &shared_shell.frontend_generated_imports,
+    .allowed_files = &.{
+        "src/products/riscv_cpu/main.zig",
+        "src/stwo_riscv_cpu.zig",
+        "src/riscv_trace_cli.zig",
+        "src/interop/atomic_file.zig",
+        "src/interop/output_transaction.zig",
+        "src/interop/postcard.zig",
+        "src/interop/proof_wire/mod.zig",
+        "src/interop/riscv_artifact.zig",
+        "src/products/riscv_cpu/capabilities.zig",
+    },
+    .allowed_prefixes = &.{
+        "src/core",
+        "src/backend",
+        "src/backends/cpu_scalar",
+        "src/prover",
+        "src/prover_api",
+        "src/frontends/riscv",
+        "src/integrations/riscv_cpu",
+        "src/products/riscv_cpu",
+        "src/products/riscv_shared",
+        "src/interop/postcard",
+        "src/interop/riscv_artifact",
+        "src/tools/riscv/trace",
+        "src/tools/riscv/poseidon2_pair",
+        "src/tools/riscv/recursive_csp_producer",
+        "src/tools/riscv/recursive_csp_shape_inspector",
+    },
+    .forbidden_dynamic_dependencies = &.{
+        "Metal.framework",
+        "Foundation.framework",
+        "libobjc",
+        "cuda",
+    },
+};

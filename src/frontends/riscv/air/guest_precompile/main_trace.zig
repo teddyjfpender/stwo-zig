@@ -17,6 +17,7 @@ const poseidon2_air = @import("../memory_commitment/poseidon2_air.zig");
 const riscv_statement = @import("../statement.zig");
 const components = @import("component_registry.zig");
 const statement_mod = @import("statement.zig");
+const poseidon_work = @import("../../prover/poseidon_witness_work.zig");
 
 const M31 = m31.M31;
 const RiscVStatement = riscv_statement.RiscVStatement;
@@ -34,6 +35,11 @@ pub const main_column_count: usize =
     caller_main_column_count + provider_main_column_count;
 pub const total_column_count: usize =
     preprocessed_column_count + main_column_count;
+pub const caller_relation_source_column_count: usize =
+    components.caller_layout.canonical_materializations;
+pub const provider_relation_source_column_count: usize = 1 + 16 + 16;
+pub const relation_source_column_count: usize =
+    caller_relation_source_column_count + provider_relation_source_column_count;
 
 const caller_preprocessed_start: usize = 0;
 const provider_preprocessed_start: usize =
@@ -60,6 +66,121 @@ pub const Error = statement_mod.Error || custom0.DecodeError ||
     NonCanonicalPrecompileWord,
     ProviderOutputMismatch,
     ProviderModeMismatch,
+    InvalidDestinationShape,
+    OverlappingDestinations,
+};
+
+/// Additive R-008 research seam. Production still calls `generate` or
+/// `generateMainInto`; neither function dispatches through this split path.
+pub const SPLIT_MAIN_TRACE_SHADOW_ONLY = true;
+
+pub const CallerMainDestinations = [caller_main_column_count][]M31;
+pub const ProviderMainDestinations = [provider_main_column_count][]M31;
+
+/// Caller-owned final Tree-1 storage. All slices are validated, including
+/// pairwise disjointness, before the first cell is changed.
+pub const MainDestinations = struct {
+    caller: CallerMainDestinations,
+    provider: ProviderMainDestinations,
+};
+
+/// The minimal post-Tree-1 projection needed to derive guest interactions.
+///
+/// The caller needs columns 0..158. The provider needs only its enabler,
+/// sixteen inputs, and sixteen outputs. Retaining 191 columns instead of all
+/// 731 keeps challenge-dependent Tree-2 generation byte-identical to the
+/// committed witness without doubling the wide compatibility trace.
+pub const RelationSource = struct {
+    allocator: std.mem.Allocator,
+    storage: []M31,
+    log_size: u32,
+    n_rows: u32,
+    domain_size: usize,
+
+    pub fn capture(
+        allocator: std.mem.Allocator,
+        destinations: *const MainDestinations,
+        log_size: u32,
+        n_rows: u32,
+    ) Error!RelationSource {
+        if (log_size >= @bitSizeOf(usize)) return error.TraceSizeOverflow;
+        const domain_size = @as(usize, 1) << @intCast(log_size);
+        try validateDestinations(destinations, domain_size);
+        const cells = std.math.mul(
+            usize,
+            relation_source_column_count,
+            domain_size,
+        ) catch return error.TraceSizeOverflow;
+        _ = std.math.mul(usize, cells, @sizeOf(M31)) catch
+            return error.TraceSizeOverflow;
+        const storage = try allocator.alloc(M31, cells);
+        errdefer allocator.free(storage);
+
+        var storage_column: usize = 0;
+        for (destinations.caller[0..caller_relation_source_column_count]) |source_values| {
+            @memcpy(storage[storage_column * domain_size ..][0..domain_size], source_values);
+            storage_column += 1;
+        }
+        @memcpy(
+            storage[storage_column * domain_size ..][0..domain_size],
+            destinations.provider[0],
+        );
+        storage_column += 1;
+        for (destinations.provider[1..17]) |source_values| {
+            @memcpy(storage[storage_column * domain_size ..][0..domain_size], source_values);
+            storage_column += 1;
+        }
+        const provider_output_start = 1 + poseidon2_air.N_TEMPORARIES;
+        for (destinations.provider[provider_output_start..][0..16]) |source_values| {
+            @memcpy(storage[storage_column * domain_size ..][0..domain_size], source_values);
+            storage_column += 1;
+        }
+        std.debug.assert(storage_column == relation_source_column_count);
+        return .{
+            .allocator = allocator,
+            .storage = storage,
+            .log_size = log_size,
+            .n_rows = n_rows,
+            .domain_size = domain_size,
+        };
+    }
+
+    pub fn deinit(self: *RelationSource) void {
+        self.allocator.free(self.storage);
+        self.* = undefined;
+    }
+
+    pub fn domainSize(self: *const RelationSource) usize {
+        return self.domain_size;
+    }
+
+    pub fn committedCells(self: *const RelationSource) []const M31 {
+        return self.storage;
+    }
+
+    pub fn callerMain(self: *const RelationSource, index: usize) []const M31 {
+        std.debug.assert(index < caller_relation_source_column_count);
+        return self.column(index);
+    }
+
+    pub fn providerMain(self: *const RelationSource, index: usize) []const M31 {
+        const source_index = if (index == 0)
+            caller_relation_source_column_count
+        else if (index >= 1 and index < 17)
+            caller_relation_source_column_count + index
+        else if (index >= 1 + poseidon2_air.N_TEMPORARIES and
+            index < 1 + poseidon2_air.N_TEMPORARIES + 16)
+            caller_relation_source_column_count + 17 +
+                index - (1 + poseidon2_air.N_TEMPORARIES)
+        else
+            unreachable;
+        return self.column(source_index);
+    }
+
+    fn column(self: *const RelationSource, index: usize) []const M31 {
+        const start = index * self.domain_size;
+        return self.storage[start..][0..self.domain_size];
+    }
 };
 
 /// One allocation containing all extension selector and main columns.
@@ -106,6 +227,17 @@ pub const Result = struct {
         return self.column(provider_main_start + index);
     }
 
+    pub fn mutableMainDestinations(self: *Result) MainDestinations {
+        var destinations: MainDestinations = undefined;
+        for (&destinations.caller, 0..) |*destination, index| {
+            destination.* = @constCast(self.callerMain(index));
+        }
+        for (&destinations.provider, 0..) |*destination, index| {
+            destination.* = @constCast(self.providerMain(index));
+        }
+        return destinations;
+    }
+
     fn column(self: *const Result, index: usize) []const M31 {
         const start = index * self.domain_size;
         return self.storage[start..][0..self.domain_size];
@@ -124,31 +256,14 @@ pub fn generate(
     calls: *const FrozenCalls,
     execution_rows: *const FrozenExecutionRows,
 ) Error!Result {
-    const records = calls.records();
-    const rows = execution_rows.rows();
-    const frozen_call_count = std.math.cast(u32, records.len) orelse
-        return error.CallCountOutOfRange;
-    const custom_retirements = std.math.cast(u32, rows.len) orelse
-        return error.CallCountOutOfRange;
-
-    try extension.validateConstruction(core, .{
-        .custom_retirements = custom_retirements,
-        .frozen_call_count = frozen_call_count,
-    });
-    try validateConstructionAuthority(extension);
-
-    const log_size = extension.components[0].log_size;
-    if (log_size >= @bitSizeOf(usize)) return error.TraceSizeOverflow;
-    const domain_size = @as(usize, 1) << @intCast(log_size);
+    const prepared = try prepare(core, extension, calls, execution_rows);
     const total_cells = std.math.mul(
         usize,
         total_column_count,
-        domain_size,
+        prepared.domain_size,
     ) catch return error.TraceSizeOverflow;
     _ = std.math.mul(usize, total_cells, @sizeOf(M31)) catch
         return error.TraceSizeOverflow;
-
-    try preflightRows(core, extension, records, rows);
 
     const storage = try allocator.alloc(M31, total_cells);
     errdefer allocator.free(storage);
@@ -156,41 +271,262 @@ pub fn generate(
     var result = Result{
         .allocator = allocator,
         .storage = storage,
+        .log_size = prepared.log_size,
+        .n_rows = prepared.n_rows,
+        .domain_size = prepared.domain_size,
+    };
+
+    const first = committedRow(0, prepared.log_size);
+    result.write(caller_preprocessed_start, first, M31.one());
+    result.write(provider_preprocessed_start, first, M31.one());
+    for (prepared.records, 0..) |_, logical_row| {
+        const destination = committedRow(logical_row, prepared.log_size);
+        if (logical_row == 0) {
+            std.debug.assert(destination == first);
+        }
+        result.write(caller_preprocessed_start + 1, destination, M31.one());
+        result.write(provider_preprocessed_start + 1, destination, M31.one());
+    }
+    var destinations = result.mutableMainDestinations();
+    fillMain(prepared, &destinations);
+    return result;
+}
+
+pub const GuestWorkReceipts = struct {
+    preflight: poseidon_work.ProducerReceipt,
+    materialization: poseidon_work.ProducerReceipt,
+
+    pub fn publishInto(
+        self: GuestWorkReceipts,
+        authority: *const poseidon_work.Authority,
+        shard: *poseidon_work.Shard,
+    ) !void {
+        var next = shard.*;
+        try next.observe(authority, self.preflight);
+        try next.observe(authority, self.materialization);
+        shard.* = next;
+    }
+};
+
+pub const GeneratedWithWorkReceipt = struct {
+    result: Result,
+    work: GuestWorkReceipts,
+};
+
+/// Allocation-owning exact-work route.  `prepare` evaluates one provider row
+/// per call to authenticate its output, then `fillMain` evaluates it again for
+/// the committed witness; those schedules remain independently visible.
+pub fn generateWithWorkReceipt(
+    allocator: std.mem.Allocator,
+    core: *const RiscVStatement,
+    extension: *const ExtensionStatement,
+    calls: *const FrozenCalls,
+    execution_rows: *const FrozenExecutionRows,
+    authority: *const poseidon_work.Authority,
+) !GeneratedWithWorkReceipt {
+    var result = try generate(allocator, core, extension, calls, execution_rows);
+    errdefer result.deinit();
+    return .{
+        .result = result,
+        .work = try guestWorkReceipts(authority, calls.len()),
+    };
+}
+
+/// Validate the frozen authorities and write directly into final Tree-1
+/// column storage. The hot row loop allocates nothing and performs no dynamic
+/// dispatch. All authority and destination checks complete before mutation.
+pub fn generateMainInto(
+    core: *const RiscVStatement,
+    extension: *const ExtensionStatement,
+    calls: *const FrozenCalls,
+    execution_rows: *const FrozenExecutionRows,
+    destinations: *const MainDestinations,
+) Error!void {
+    const prepared = try prepare(core, extension, calls, execution_rows);
+    try validateDestinations(destinations, prepared.domain_size);
+    for (destinations.caller) |destination| @memset(destination, M31.zero());
+    for (destinations.provider) |destination| @memset(destination, M31.zero());
+    fillMain(prepared, destinations);
+}
+
+/// Caller-owned exact-work route.  The ordinary function keeps its allocation-
+/// free, branch-free provider loop; receipts are constructed only after every
+/// destination has been written successfully.
+pub fn generateMainIntoWithWorkReceipt(
+    core: *const RiscVStatement,
+    extension: *const ExtensionStatement,
+    calls: *const FrozenCalls,
+    execution_rows: *const FrozenExecutionRows,
+    destinations: *const MainDestinations,
+    authority: *const poseidon_work.Authority,
+) !GuestWorkReceipts {
+    try generateMainInto(core, extension, calls, execution_rows, destinations);
+    return guestWorkReceipts(authority, calls.len());
+}
+
+fn guestWorkReceipts(
+    authority: *const poseidon_work.Authority,
+    call_count: usize,
+) !GuestWorkReceipts {
+    const completed = std.math.cast(u64, call_count) orelse
+        return error.PoseidonWorkOverflow;
+    return .{
+        .preflight = try poseidon_work.complete(
+            authority,
+            .guest_provider_preflight,
+            completed,
+        ),
+        .materialization = try poseidon_work.complete(
+            authority,
+            .guest_provider_materialization,
+            completed,
+        ),
+    };
+}
+
+const Prepared = struct {
+    records: []const call_buffer.Record,
+    log_size: u32,
+    n_rows: u32,
+    domain_size: usize,
+};
+
+/// Immutable, allocation-free authority for detached caller/provider fills.
+/// It borrows the frozen call storage accepted by `prepareShadowSplitMainV1`;
+/// that storage must remain alive and immutable until both role fills finish.
+pub const ShadowSplitMainAuthorityV1 = struct {
+    records: []const call_buffer.Record,
+    log_size: u32,
+    n_rows: u32,
+    domain_size: usize,
+};
+
+/// Repeat the exact production construction and row preflight before either
+/// split destination is allocated or mutated. This is intentionally detached
+/// from production dispatch and exists only as R-008 differential substrate.
+pub fn prepareShadowSplitMainV1(
+    core: *const RiscVStatement,
+    extension: *const ExtensionStatement,
+    calls: *const FrozenCalls,
+    execution_rows: *const FrozenExecutionRows,
+) Error!ShadowSplitMainAuthorityV1 {
+    const prepared = try prepare(core, extension, calls, execution_rows);
+    return .{
+        .records = prepared.records,
+        .log_size = prepared.log_size,
+        .n_rows = prepared.n_rows,
+        .domain_size = prepared.domain_size,
+    };
+}
+
+/// Infallible caller fill after a split orchestrator has admitted every role
+/// destination. The caller and provider functions touch disjoint slices and
+/// may therefore execute concurrently against one immutable authority.
+pub fn fillShadowCallerMainAssumeAdmittedV1(
+    authority: ShadowSplitMainAuthorityV1,
+    destinations: *const CallerMainDestinations,
+) void {
+    for (authority.records, 0..) |record, logical_row| {
+        const destination = committedRow(logical_row, authority.log_size);
+        const row = fillCaller(record);
+        for (row, destinations.*) |value, destination_column| {
+            destination_column[destination] = value;
+        }
+    }
+}
+
+/// Infallible provider fill after pair-wide destination admission.
+pub fn fillShadowProviderMainAssumeAdmittedV1(
+    authority: ShadowSplitMainAuthorityV1,
+    destinations: *const ProviderMainDestinations,
+) void {
+    for (authority.records, 0..) |record, logical_row| {
+        const destination = committedRow(logical_row, authority.log_size);
+        const row = poseidon2_air.fill(.{
+            .input = record.input,
+            .wide = false,
+            .io = true,
+        });
+        for (row, destinations.*) |value, destination_column| {
+            destination_column[destination] = value;
+        }
+    }
+}
+
+fn prepare(
+    core: *const RiscVStatement,
+    extension: *const ExtensionStatement,
+    calls: *const FrozenCalls,
+    execution_rows: *const FrozenExecutionRows,
+) Error!Prepared {
+    const records = calls.records();
+    const rows = execution_rows.rows();
+    const frozen_call_count = std.math.cast(u32, records.len) orelse
+        return error.CallCountOutOfRange;
+    const custom_retirements = std.math.cast(u32, rows.len) orelse
+        return error.CallCountOutOfRange;
+    try extension.validateConstruction(core, .{
+        .custom_retirements = custom_retirements,
+        .frozen_call_count = frozen_call_count,
+    });
+    try validateConstructionAuthority(extension);
+    const log_size = extension.components[0].log_size;
+    if (log_size >= @bitSizeOf(usize)) return error.TraceSizeOverflow;
+    const domain_size = @as(usize, 1) << @intCast(log_size);
+    try preflightRows(core, extension, records, rows);
+    return .{
+        .records = records,
         .log_size = log_size,
         .n_rows = frozen_call_count,
         .domain_size = domain_size,
     };
+}
 
-    if (records.len == 0) {
-        const first = committedRow(0, log_size);
-        result.write(caller_preprocessed_start, first, M31.one());
-        result.write(provider_preprocessed_start, first, M31.one());
-        return result;
-    }
-
-    for (records, 0..) |record, logical_row| {
-        const destination = committedRow(logical_row, log_size);
-        if (logical_row == 0) {
-            result.write(caller_preprocessed_start, destination, M31.one());
-            result.write(provider_preprocessed_start, destination, M31.one());
-        }
-        result.write(caller_preprocessed_start + 1, destination, M31.one());
-        result.write(provider_preprocessed_start + 1, destination, M31.one());
-
+fn fillMain(prepared: Prepared, destinations: *const MainDestinations) void {
+    for (prepared.records, 0..) |record, logical_row| {
+        const destination = committedRow(logical_row, prepared.log_size);
         const caller_row = fillCaller(record);
-        for (caller_row, 0..) |value, column| {
-            result.write(caller_main_start + column, destination, value);
+        for (caller_row, destinations.caller) |value, destination_column| {
+            destination_column[destination] = value;
         }
         const provider_row = poseidon2_air.fill(.{
             .input = record.input,
             .wide = false,
             .io = true,
         });
-        for (provider_row, 0..) |value, column| {
-            result.write(provider_main_start + column, destination, value);
+        for (provider_row, destinations.provider) |value, destination_column| {
+            destination_column[destination] = value;
         }
     }
-    return result;
+}
+
+fn validateDestinations(
+    destinations: *const MainDestinations,
+    domain_size: usize,
+) Error!void {
+    for (0..main_column_count) |index| {
+        const current = destinationAt(destinations, index);
+        if (current.len != domain_size) return error.InvalidDestinationShape;
+        for (0..index) |prior_index| {
+            if (overlap(current, destinationAt(destinations, prior_index)))
+                return error.OverlappingDestinations;
+        }
+    }
+}
+
+fn destinationAt(destinations: *const MainDestinations, index: usize) []M31 {
+    return if (index < caller_main_column_count)
+        destinations.caller[index]
+    else
+        destinations.provider[index - caller_main_column_count];
+}
+
+fn overlap(lhs: []const M31, rhs: []const M31) bool {
+    const lhs_start = @intFromPtr(lhs.ptr);
+    const rhs_start = @intFromPtr(rhs.ptr);
+    const lhs_end = lhs_start + lhs.len * @sizeOf(M31);
+    const rhs_end = rhs_start + rhs.len * @sizeOf(M31);
+    return lhs_start < rhs_end and rhs_start < lhs_end;
 }
 
 pub inline fn committedRow(logical_row: usize, log_size: u32) usize {

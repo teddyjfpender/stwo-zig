@@ -17,12 +17,19 @@ const prover_component = prover_engine.air.component_prover;
 const prepared_domain = prover_engine.air.prepared_domain;
 const prover_task_graph = prover_engine.task_graph;
 const prover_work_pool = prover_engine.work_pool;
+const composition_work_support = @import("composition_work_support.zig");
 const interaction = @import("clock_update_interaction.zig");
 const logup = @import("logup.zig");
+const prepared_evaluation = @import("prepared_evaluation_owner.zig");
 const relations_mod = @import("relation_challenges.zig");
 const state_chain = @import("../runner/state_chain.zig");
 
 const CirclePointQM31 = circle.CirclePointQM31;
+
+/// Exact number of constraints emitted by the clock-gap component.  Exported
+/// so recursive composition derives its instruction schedule from the same
+/// production authority as the native verifier.
+pub const N_CONSTRAINTS: usize = interaction.N_SUMS + 3;
 
 pub const Evaluation = struct {
     values: [interaction.N_SUMS + 3]QM31,
@@ -32,6 +39,43 @@ pub const Evaluation = struct {
         return true;
     }
 };
+
+pub fn evaluateGeneric(
+    comptime S: type,
+    main: []const S,
+    current: [interaction.N_SUMS]S,
+    previous: [interaction.N_SUMS]S,
+    is_first: S,
+    is_active: S,
+    claims: [interaction.N_SUMS]S,
+    relations: anytype,
+) ![N_CONSTRAINTS]S {
+    const row = try interaction.RowFor(S).fromMain(main);
+    const pairs = try interaction.pairsGeneric(S, row, relations);
+    var result: [N_CONSTRAINTS]S = undefined;
+    for (0..interaction.N_SUMS) |index| {
+        result[index] = logup.pairConstraintGeneric(
+            S,
+            current[index],
+            previous[index],
+            is_first,
+            claims[index],
+            pairs[index],
+        );
+    }
+    result[interaction.N_SUMS] = row.enabler.mul(S.one().sub(row.enabler));
+    result[interaction.N_SUMS + 1] = row.enabler.sub(is_active);
+    result[interaction.N_SUMS + 2] = row.enabler.mul(
+        row.clock_prev.sub(
+            row.clock_prev_low20.add(
+                row.clock_prev_high6.mul(S.fromBase(M31.fromU64(
+                    @as(u32, 1) << state_chain.CLOCK_PREV_LOW_BITS,
+                ))),
+            ),
+        ),
+    );
+    return result;
+}
 
 pub const ClockUpdateComponent = struct {
     log_size: u32,
@@ -116,7 +160,68 @@ pub const ClockUpdateComponent = struct {
     pub fn asProverComponent(self: *const @This()) prover_component.ComponentProver {
         var component = Adapter.asProverComponent(self);
         component.prepare_domain_evaluator = prepareDomainEvaluatorErased;
+        component.composition_work_profile = compositionWorkProfileErased;
+        component.oods_work_profile = oodsWorkProfileErased;
         return component;
+    }
+
+    fn oodsWorkProfileErased(
+        ctx: *const anyopaque,
+        allocator: std.mem.Allocator,
+        max_log_degree_bound: u32,
+        source: *const composition_work_support.ComponentProfile,
+    ) anyerror!composition_work_support.OodsComponentProfile {
+        _ = allocator;
+        const self: *const @This() = @ptrCast(@alignCast(ctx));
+        return composition_work_support.oodsProfile(
+            source,
+            self.log_size,
+            max_log_degree_bound,
+            2 * interaction.N_SUMS,
+            true,
+        );
+    }
+
+    fn compositionWorkProfileErased(
+        ctx: *const anyopaque,
+        allocator: std.mem.Allocator,
+    ) anyerror!composition_work_support.ComponentProfile {
+        _ = allocator;
+        const self: *const @This() = @ptrCast(@alignCast(ctx));
+        const Scalar = composition_work_support.Scalar;
+        const relations = composition_work_support.Relations.init();
+        const main = composition_work_support.values(interaction.N_MAIN_COLUMNS, 0);
+        const current = composition_work_support.values(interaction.N_SUMS, 20);
+        const previous = composition_work_support.values(interaction.N_SUMS, 40);
+        const claims = composition_work_support.values(interaction.N_SUMS, 60);
+        const is_first = composition_work_support.values(1, 100)[0];
+        const is_active = composition_work_support.values(1, 101)[0];
+        var expression: composition_work_support.FieldOperations = undefined;
+        try composition_work_support.begin(&expression);
+        defer composition_work_support.end();
+        _ = try evaluateGeneric(
+            Scalar,
+            &main,
+            current,
+            previous,
+            is_first,
+            is_active,
+            claims,
+            &relations,
+        );
+        return composition_work_support.profile(
+            .clock_update,
+            "riscv-clock-update-evaluate-generic-v1",
+            self.maxConstraintLogDegreeBound(),
+            self.nConstraints(),
+            expression,
+            .{},
+            &.{
+                @as(u64, self.log_size),
+                @as(u64, interaction.N_MAIN_COLUMNS),
+                @as(u64, interaction.N_SUMS),
+            },
+        );
     }
 
     fn prepareDomainEvaluatorErased(
@@ -130,7 +235,7 @@ pub const ClockUpdateComponent = struct {
     }
 
     pub fn nConstraints(_: *const @This()) usize {
-        return interaction.N_SUMS + 3;
+        return N_CONSTRAINTS;
     }
 
     pub fn maxConstraintLogDegreeBound(self: *const @This()) u32 {
@@ -288,29 +393,81 @@ pub const ClockUpdateComponent = struct {
         }
         const eval_domain = canonic.CanonicCoset.new(eval_log_size).circleDomain();
         const eval_size = eval_domain.size();
+        var owned_count: usize = 0;
+        const selector_sources = .{
+            preprocessed[self.is_first_col_idx],
+            preprocessed[self.is_active_col_idx],
+        };
+        inline for (selector_sources) |poly| {
+            owned_count += @intFromBool(try prepared_evaluation.needsOwned(
+                poly,
+                self.log_size,
+                eval_log_size,
+            ));
+        }
+        for (main[self.main_col_offset..][0..interaction.N_MAIN_COLUMNS]) |poly| {
+            owned_count += @intFromBool(try prepared_evaluation.needsOwned(
+                poly,
+                self.log_size,
+                eval_log_size,
+            ));
+        }
+        for (secure[self.interaction_col_offset..][0..interaction.N_INTERACTION_COLUMNS]) |poly| {
+            owned_count += @intFromBool(try prepared_evaluation.needsOwned(
+                poly,
+                self.log_size,
+                eval_log_size,
+            ));
+        }
+        var evaluation_owner = try prepared_evaluation.Owner.init(
+            allocator,
+            owned_count,
+        );
+        errdefer evaluation_owner.deinit();
         var evaluations: [PreparedDomainState.SOURCE_COUNT][]const M31 = undefined;
         var source: usize = 0;
-        evaluations[source] = try committedValues(preprocessed[self.is_first_col_idx], eval_log_size);
+        evaluations[source] = try evaluation_owner.value(
+            preprocessed[self.is_first_col_idx],
+            self.log_size,
+            eval_log_size,
+            eval_size,
+        );
         source += 1;
-        evaluations[source] = try committedValues(preprocessed[self.is_active_col_idx], eval_log_size);
+        evaluations[source] = try evaluation_owner.value(
+            preprocessed[self.is_active_col_idx],
+            self.log_size,
+            eval_log_size,
+            eval_size,
+        );
         source += 1;
         for (main[self.main_col_offset..][0..interaction.N_MAIN_COLUMNS]) |poly| {
-            evaluations[source] = try committedValues(poly, eval_log_size);
+            evaluations[source] = try evaluation_owner.value(
+                poly,
+                self.log_size,
+                eval_log_size,
+                eval_size,
+            );
             source += 1;
         }
         for (secure[self.interaction_col_offset..][0..interaction.N_INTERACTION_COLUMNS]) |poly| {
-            evaluations[source] = try committedValues(poly, eval_log_size);
+            evaluations[source] = try evaluation_owner.value(
+                poly,
+                self.log_size,
+                eval_log_size,
+                eval_size,
+            );
             source += 1;
         }
 
         std.debug.assert(source == evaluations.len);
+        try evaluation_owner.finish(eval_domain);
 
         const denominator_inv = try quotientDenominators(
             self.log_size,
             eval_log_size,
             eval_domain,
         );
-        const resources = try preparedDomainResources(eval_size);
+        const resources = try preparedDomainResources(eval_size, owned_count);
 
         const state = try allocator.create(PreparedDomainState);
         errdefer allocator.destroy(state);
@@ -323,6 +480,7 @@ pub const ClockUpdateComponent = struct {
             .allocator = allocator,
             .component = self,
             .evaluations = evaluations,
+            .evaluation_owner = evaluation_owner,
             .denominator_inv = denominator_inv,
             .column_accumulator = accumulators[0],
             .eval_log_size = eval_log_size,
@@ -398,33 +556,16 @@ pub const ClockUpdateComponent = struct {
         is_first: QM31,
         is_active: QM31,
     ) !Evaluation {
-        const row = try interaction.Row.fromMain(main);
-        const pairs = try interaction.pairs(row, self.relations);
-        var result: Evaluation = undefined;
-        for (0..interaction.N_SUMS) |index| {
-            result.values[index] = logup.pairConstraint(
-                current[index],
-                previous[index],
-                is_first,
-                self.claims[index],
-                pairs[index],
-            );
-        }
-        result.values[interaction.N_SUMS] =
-            row.enabler.mul(QM31.one().sub(row.enabler));
-        result.values[interaction.N_SUMS + 1] = row.enabler.sub(is_active);
-        result.values[interaction.N_SUMS + 2] = row.enabler.mul(
-            row.clock_prev.sub(
-                row.clock_prev_low20.add(
-                    row.clock_prev_high6.mul(
-                        QM31.fromBase(M31.fromU64(
-                            @as(u32, 1) << state_chain.CLOCK_PREV_LOW_BITS,
-                        )),
-                    ),
-                ),
-            ),
-        );
-        return result;
+        return .{ .values = try evaluateGeneric(
+            QM31,
+            main,
+            current,
+            previous,
+            is_first,
+            is_active,
+            self.claims,
+            self.relations,
+        ) };
     }
 };
 
@@ -446,6 +587,7 @@ const PreparedDomainState = struct {
     allocator: std.mem.Allocator,
     component: *const ClockUpdateComponent,
     evaluations: [SOURCE_COUNT][]const M31,
+    evaluation_owner: prepared_evaluation.Owner,
     denominator_inv: [DENOMINATOR_COUNT]M31,
     column_accumulator: prover_air_accumulation.ColumnAccumulator,
     eval_log_size: u32,
@@ -467,11 +609,15 @@ const PreparedDomainState = struct {
     fn deinitErased(context: *anyopaque) void {
         const self: *@This() = @ptrCast(@alignCast(context));
         const allocator = self.allocator;
+        self.evaluation_owner.deinit();
         allocator.destroy(self);
     }
 };
 
-fn preparedDomainResources(eval_size: usize) !prover_task_graph.ResourceReservation {
+fn preparedDomainResources(
+    eval_size: usize,
+    owned_count: usize,
+) !prover_task_graph.ResourceReservation {
     const secure_element_bytes = std.math.mul(
         usize,
         qm31.SECURE_EXTENSION_DEGREE,
@@ -482,24 +628,23 @@ fn preparedDomainResources(eval_size: usize) !prover_task_graph.ResourceReservat
         eval_size,
         secure_element_bytes,
     ) catch return error.ResourceReservationOverflow;
-    _ = std.math.add(
+    var resident_bytes = std.math.add(
         usize,
-        final_output_bytes,
         @sizeOf(PreparedDomainState),
+        try prepared_evaluation.residentBytes(owned_count, eval_size),
+    ) catch return error.ResourceReservationOverflow;
+    resident_bytes = std.math.add(
+        usize,
+        resident_bytes,
+        @sizeOf(prover_air_accumulation.ColumnAccumulator),
     ) catch return error.ResourceReservationOverflow;
     return .{
         .final_output_bytes = final_output_bytes,
         // Preparation records remain live until the complete graph drains, so
         // they are resident rather than wave-reusable exclusive scratch.
-        .shared_resident_bytes = @sizeOf(PreparedDomainState),
+        .shared_resident_bytes = resident_bytes,
         .worker_stack_bytes = prepared_domain.ROW_EVALUATOR_STACK_BYTES,
     };
-}
-
-fn committedValues(poly: prover_component.Poly, expected_log_size: u32) ![]const M31 {
-    try poly.validate();
-    if (poly.log_size != expected_log_size) return error.InvalidProofShape;
-    return poly.values;
 }
 
 fn sampledSecure(columns: [][]QM31, offset: usize, point: usize) !QM31 {

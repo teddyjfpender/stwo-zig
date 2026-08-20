@@ -13,7 +13,11 @@ const hint_recipe = @import("hint_recipe.zig");
 const hints = @import("hints.zig");
 const ir = @import("ir.zig");
 const program = @import("program.zig");
+const range_refinement = @import("range_refinement.zig");
+const relation = @import("relation.zig");
 const types = @import("types.zig");
+const bounded_arithmetic = @import("bounded_arithmetic.zig");
+const validate_support = @import("validate_support.zig");
 
 pub const Error = error{
     DuplicateAccessOrdinal,
@@ -29,6 +33,7 @@ pub const Error = error{
     InvalidConstraint,
     InvalidEffect,
     InvalidFunction,
+    InvalidFunctionBody,
     InvalidHint,
     InvalidHintBinding,
     InvalidHintOutput,
@@ -38,6 +43,7 @@ pub const Error = error{
     InvalidNodeReference,
     InvalidNodeShape,
     InvalidRange,
+    InvalidRangeRefinement,
     InvalidSource,
     InvalidSourceSpan,
     InvalidType,
@@ -59,7 +65,10 @@ pub fn validate(arena: *const ir.Arena) Error!void {
     try validateHintInvocations(arena);
     try validateConstraints(arena);
     try validateEffects(arena);
+    range_refinement.validateProgram(arena) catch
+        return error.InvalidRangeRefinement;
     try validateHintBindings(arena);
+    try validateFunctionBodyOwnership(arena);
 }
 
 fn validateNames(arena: *const ir.Arena) Error!void {
@@ -201,10 +210,17 @@ fn validateNode(arena: *const ir.Arena, node: expr.Node, index: usize) Error!voi
         },
         .input => |name| {
             if (!validName(arena, name)) return error.InvalidNodeShape;
-            for (arena.nodesView()[0..index]) |prior| {
+            const id = types.idFromIndex(types.ValueId, index) catch
+                return error.InvalidNodeReference;
+            const alias_source = semanticAliasSource(arena, id);
+            for (arena.nodesView()[0..index], 0..) |prior, prior_index| {
                 switch (prior.key.op) {
-                    .input => |prior_name| if (prior_name == name)
-                        return error.InvalidNodeShape,
+                    .input => |prior_name| if (prior_name == name and
+                        (alias_source == null or
+                            types.idIndex(alias_source.?) != prior_index))
+                    {
+                        return error.InvalidNodeShape;
+                    },
                     else => {},
                 }
             }
@@ -212,12 +228,52 @@ fn validateNode(arena: *const ir.Arena, node: expr.Node, index: usize) Error!voi
         .add, .sub, .mul => |binary| {
             const lhs = try priorNode(arena, binary.lhs, index);
             const rhs = try priorNode(arena, binary.rhs, index);
-            if (!isFelt(node.key.ty) or
-                !ir.isFieldScalar(lhs.key.ty) or
+            if (!ir.isFieldScalar(lhs.key.ty) or
                 !ir.isFieldScalar(rhs.key.ty))
             {
-                return error.InvalidNodeShape;
+                const id = types.idFromIndex(types.ValueId, index) catch
+                    return error.InvalidNodeReference;
+                if ((!isFelt(node.key.ty) and
+                    !std.meta.eql(node.key.ty, types.Type.pc)) or
+                    !range_refinement.isProgramControlPcAdd(arena, id))
+                {
+                    return error.InvalidNodeShape;
+                }
             }
+            if (!isFelt(node.key.ty)) switch (node.key.op) {
+                .add => {
+                    if (isSemanticAliasTarget(arena, @enumFromInt(index))) {
+                        // The terminal evidence graph validates this clone.
+                    } else if (std.meta.eql(node.key.ty, types.Type.selector)) {
+                        if (!isCanonicalOneHotSelector(arena, index))
+                            return error.InvalidNodeShape;
+                    } else {
+                        const expected = bounded_arithmetic.resultType(
+                            arena,
+                            .add,
+                            binary.lhs,
+                            binary.rhs,
+                        ) catch return error.InvalidNodeShape;
+                        if (!std.meta.eql(node.key.ty, expected))
+                            return error.InvalidNodeShape;
+                    }
+                },
+                .mul => {
+                    if (!isSemanticAliasTarget(arena, @enumFromInt(index))) {
+                        const expected = bounded_arithmetic.resultType(
+                            arena,
+                            .mul,
+                            binary.lhs,
+                            binary.rhs,
+                        ) catch return error.InvalidNodeShape;
+                        if (!std.meta.eql(node.key.ty, expected))
+                            return error.InvalidNodeShape;
+                    }
+                },
+                .sub => if (!isSemanticAliasTarget(arena, @enumFromInt(index)))
+                    return error.InvalidNodeShape,
+                else => unreachable,
+            };
             switch (node.key.op) {
                 .add, .mul => if (types.idIndex(binary.lhs) >
                     types.idIndex(binary.rhs))
@@ -333,6 +389,48 @@ fn validateNode(arena: *const ir.Arena, node: expr.Node, index: usize) Error!voi
     }
 }
 
+fn isCanonicalOneHotSelector(arena: *const ir.Arena, root_index: usize) bool {
+    var leaves: [bounded_arithmetic.MAX_ONE_HOT_INPUTS]types.ValueId = undefined;
+    var leaf_count: usize = 0;
+    const root = types.idFromIndex(types.ValueId, root_index) catch return false;
+    collectOneHotLeaves(arena, root, root_index + 1, &leaves, &leaf_count) catch
+        return false;
+    if (leaf_count < 2 or leaf_count > leaves.len) return false;
+    for (leaves[0..leaf_count], 0..) |leaf, index| {
+        for (leaves[0..index]) |prior| if (prior == leaf) return false;
+    }
+    return true;
+}
+
+fn collectOneHotLeaves(
+    arena: *const ir.Arena,
+    id: types.ValueId,
+    root_limit: usize,
+    leaves: *[bounded_arithmetic.MAX_ONE_HOT_INPUTS]types.ValueId,
+    leaf_count: *usize,
+) error{InvalidShape}!void {
+    const index = types.idIndex(id);
+    if (index >= root_limit) return error.InvalidShape;
+    const node = arena.node(id) orelse return error.InvalidShape;
+    if (std.meta.eql(node.key.ty, types.Type.bit)) {
+        if (leaf_count.* == leaves.len) return error.InvalidShape;
+        leaves[leaf_count.*] = id;
+        leaf_count.* += 1;
+        return;
+    }
+    const binary = switch (node.key.op) {
+        .add => |binary| binary,
+        else => return error.InvalidShape,
+    };
+    if (!(isFelt(node.key.ty) or
+        std.meta.eql(node.key.ty, types.Type.selector)))
+    {
+        return error.InvalidShape;
+    }
+    try collectOneHotLeaves(arena, binary.lhs, index, leaves, leaf_count);
+    try collectOneHotLeaves(arena, binary.rhs, index, leaves, leaf_count);
+}
+
 fn validateConstraints(arena: *const ir.Arena) Error!void {
     for (arena.constraintsView(), 0..) |constraint, index| {
         if (!validName(arena, constraint.name)) return error.InvalidConstraint;
@@ -369,9 +467,22 @@ fn validateEffects(arena: *const ir.Arena) Error!void {
             if (!validValue(arena, value)) return error.InvalidEffect;
         }
         if (effect.liveness) |liveness_id| {
-            const liveness = arena.node(liveness_id) orelse
+            const valid_liveness = if (effect.kind == .component_call)
+                (arena.node(liveness_id) orelse
+                    return error.InvalidEffect).key.ty.isFieldScalar()
+            else if (effect.binding) |binding| blk: {
+                const schema = relation.getById(binding.schema) orelse break :blk false;
+                break :blk switch (schema.multiplicity) {
+                    .role_signed_liveness => range_refinement.isBoundedLiveness(
+                        arena,
+                        liveness_id,
+                    ),
+                    .role_signed_weight => (arena.node(liveness_id) orelse
+                        break :blk false).key.ty.isFieldScalar(),
+                };
+            } else range_refinement.isBoundedLiveness(arena, liveness_id);
+            if (!valid_liveness)
                 return error.InvalidEffect;
-            if (!ir.isSelector(liveness.key.ty)) return error.InvalidEffect;
         }
         // The old provisional record treated ordinals as globally unique.
         // Relation-bound access groups deliberately share one ordinal across
@@ -454,7 +565,8 @@ fn validateHintBindings(arena: *const ir.Arena) Error!void {
 }
 
 fn validateFunctions(arena: *const ir.Arena) Error!void {
-    if (arena.open_function != null) return error.InvalidFunction;
+    if (arena.open_function != null or arena.open_function_body)
+        return error.InvalidFunction;
     var input_cursor: usize = 0;
     var output_cursor: usize = 0;
     for (functions.view(arena), 0..) |function, index| {
@@ -492,149 +604,209 @@ fn validateFunctions(arena: *const ir.Arena) Error!void {
     }
 }
 
-fn validateCalls(arena: *const ir.Arena) Error!void {
-    var argument_cursor: usize = 0;
-    var output_cursor: usize = 0;
-    for (functions.calls(arena), 0..) |call, call_index| {
-        validateSpan(arena, call.source_span) catch
-            return error.InvalidSourceSpan;
-        const callee = functions.get(arena, call.callee) orelse
-            return error.InvalidCall;
-        if (!callee.complete) return error.InvalidCall;
-        if (call.caller) |caller_id| {
-            const caller = functions.get(arena, caller_id) orelse
-                return error.InvalidCall;
-            if (!caller.complete) return error.InvalidCall;
-            if (types.idIndex(call.callee) >= types.idIndex(caller_id))
-                return error.InvalidCallGraph;
+/// Re-establishes the redundant, authenticated owner/range boundary for the
+/// opt-in function-body representation. This pass deliberately allocates
+/// nothing: body ranges are small contiguous indexes and expression nodes are
+/// already topological, so dependency visibility can be checked directly.
+fn validateFunctionBodyOwnership(arena: *const ir.Arena) Error!void {
+    for (functions.view(arena), 0..) |function, function_index| {
+        const body = function.body orelse continue;
+        const owner = types.idFromIndex(types.FunctionId, function_index) catch
+            return error.InvalidFunctionBody;
+
+        try validateItemRange(body.constraints, arena.constraintsView().len);
+        try validateItemRange(body.effects, arena.effectsView().len);
+        try validateItemRange(body.hints, hints.view(arena).len);
+        try validateItemRange(body.calls, functions.calls(arena).len);
+
+        for (@as(usize, body.constraints.start)..itemEnd(body.constraints)) |index| {
+            if (arena.constraintsView()[index].owner != owner)
+                return error.InvalidFunctionBody;
         }
-        const arguments = try canonicalRange(
-            call.arguments,
-            arena.call_arguments.items,
-            &argument_cursor,
-        );
-        const outputs = try canonicalRange(
-            call.outputs,
-            arena.call_outputs.items,
-            &output_cursor,
-        );
-        const expected_inputs = functions.inputs(arena, call.callee) orelse
-            return error.InvalidCall;
-        const expected_outputs = functions.outputs(arena, call.callee) orelse
-            return error.InvalidCall;
-        if (arguments.len != expected_inputs.len or
-            outputs.len != expected_outputs.len)
-        {
-            return error.InvalidCall;
+        for (@as(usize, body.effects.start)..itemEnd(body.effects)) |index| {
+            if (arena.effectsView()[index].owner != owner)
+                return error.InvalidFunctionBody;
         }
-        for (arguments, expected_inputs) |actual_id, expected_id| {
-            const actual = arena.node(actual_id) orelse return error.InvalidCall;
-            const expected = arena.node(expected_id) orelse return error.InvalidCall;
-            if (!std.meta.eql(actual.key.ty, expected.key.ty))
-                return error.InvalidCall;
+        for (@as(usize, body.hints.start)..itemEnd(body.hints)) |index| {
+            if (hints.view(arena)[index].owner != owner)
+                return error.InvalidFunctionBody;
         }
-        for (outputs, expected_outputs, 0..) |output_id, expected_id, output_index| {
-            const output_node = arena.node(output_id) orelse
-                return error.InvalidCallOutput;
-            const expected_node = arena.node(expected_id) orelse
-                return error.InvalidCall;
-            if (!std.meta.eql(output_node.key.ty, expected_node.key.ty))
-                return error.InvalidCallOutput;
-            switch (output_node.key.op) {
-                .call_output => |binding| {
-                    if (types.idIndex(binding.call) != call_index or
-                        binding.index != output_index)
-                    {
-                        return error.InvalidCallOutput;
-                    }
-                },
-                else => return error.InvalidCallOutput,
+        for (@as(usize, body.calls.start)..itemEnd(body.calls)) |index| {
+            if (functions.calls(arena)[index].caller != owner)
+                return error.InvalidFunctionBody;
+        }
+
+        const declared_outputs = functions.outputs(arena, owner) orelse
+            return error.InvalidFunctionBody;
+        for (declared_outputs) |value| {
+            if (!valueAccessibleToOwner(arena, value, owner))
+                return error.InvalidFunctionBody;
+        }
+
+        for (@as(usize, body.constraints.start)..itemEnd(body.constraints)) |index| {
+            const constraint = arena.constraintsView()[index];
+            if (!valueAccessibleToOwner(arena, constraint.root, owner) or
+                (constraint.gate != null and
+                    !valueAccessibleToOwner(arena, constraint.gate.?, owner)))
+            {
+                return error.InvalidFunctionBody;
+            }
+        }
+        for (@as(usize, body.effects.start)..itemEnd(body.effects)) |index| {
+            const effect = arena.effectsView()[index];
+            const values = effect.values.slice(arena.effectValuesView()) orelse
+                return error.InvalidFunctionBody;
+            for (values) |value| {
+                if (!valueAccessibleToOwner(arena, value, owner))
+                    return error.InvalidFunctionBody;
+            }
+            if (effect.liveness) |liveness| {
+                if (!valueAccessibleToOwner(arena, liveness, owner))
+                    return error.InvalidFunctionBody;
+            }
+        }
+        for (@as(usize, body.hints.start)..itemEnd(body.hints)) |index| {
+            const hint_id = types.idFromIndex(types.HintId, index) catch
+                return error.InvalidFunctionBody;
+            const invocation = hints.view(arena)[index];
+            for (hints.inputs(arena, hint_id) orelse
+                return error.InvalidFunctionBody) |value|
+            {
+                if (!valueAccessibleToOwner(arena, value, owner))
+                    return error.InvalidFunctionBody;
+            }
+            if (invocation.activation) |activation| {
+                if (!valueAccessibleToOwner(arena, activation, owner))
+                    return error.InvalidFunctionBody;
+            }
+        }
+        for (@as(usize, body.calls.start)..itemEnd(body.calls)) |index| {
+            const call_id = types.idFromIndex(types.CallId, index) catch
+                return error.InvalidFunctionBody;
+            for (functions.callArguments(arena, call_id) orelse
+                return error.InvalidFunctionBody) |value|
+            {
+                if (!valueAccessibleToOwner(arena, value, owner))
+                    return error.InvalidFunctionBody;
             }
         }
     }
-    if (argument_cursor != arena.call_arguments.items.len or
-        output_cursor != arena.call_outputs.items.len)
-    {
-        return error.InvalidRange;
+
+    // Every explicit owner must be covered by the matching sealed range. This
+    // reverse direction is what catches one-record omissions and truncated
+    // bodies; the forward checks above catch overlap and cross-owner ranges.
+    for (arena.constraintsView(), 0..) |constraint, index| {
+        try requireOwnerCoverage(arena, constraint.owner, .constraints, index);
+    }
+    for (arena.effectsView(), 0..) |effect, index| {
+        try requireOwnerCoverage(arena, effect.owner, .effects, index);
+    }
+    for (hints.view(arena), 0..) |hint, index| {
+        try requireOwnerCoverage(arena, hint.owner, .hints, index);
+        const bindings = hints.bindings(
+            arena,
+            types.idFromIndex(types.HintId, index) catch
+                return error.InvalidFunctionBody,
+        ) orelse return error.InvalidFunctionBody;
+        for (bindings) |binding| {
+            const target_owner = switch (binding.target) {
+                .constraint => |id| (arena.constraint(id) orelse
+                    return error.InvalidFunctionBody).owner,
+                .effect => |id| (arena.effect(id) orelse
+                    return error.InvalidFunctionBody).owner,
+            };
+            if (target_owner != hint.owner) return error.InvalidFunctionBody;
+        }
+    }
+    for (functions.calls(arena), 0..) |call, index| {
+        const caller = call.caller orelse continue;
+        const declaration = functions.get(arena, caller) orelse
+            return error.InvalidFunctionBody;
+        if (declaration.body) |body| {
+            if (!body.calls.contains(index)) return error.InvalidFunctionBody;
+        }
     }
 }
 
-fn canonicalRange(
-    range: program.RefRange,
-    values: []const types.ValueId,
-    cursor: *usize,
-) Error![]const types.ValueId {
-    if (range.start != cursor.*) return error.InvalidRange;
-    const slice = range.slice(values) orelse return error.InvalidRange;
-    cursor.* = std.math.add(usize, cursor.*, slice.len) catch
-        return error.InvalidRange;
-    return slice;
-}
+const BodyRecordKind = enum { constraints, effects, hints };
 
-fn canonicalBindingRange(
-    range: program.RefRange,
-    values: []const program.HintBinding,
-    cursor: *usize,
-) Error![]const program.HintBinding {
-    if (range.start != cursor.*) return error.InvalidRange;
-    const start: usize = range.start;
-    const len: usize = range.len;
-    const end = std.math.add(usize, start, len) catch
-        return error.InvalidRange;
-    if (end > values.len) return error.InvalidRange;
-    cursor.* = end;
-    return values[start..end];
-}
-
-fn hintBindingLess(lhs: program.HintBinding, rhs: program.HintBinding) bool {
-    if (lhs.output_index != rhs.output_index)
-        return lhs.output_index < rhs.output_index;
-    const lhs_tag = hintBindingTargetTag(lhs.target);
-    const rhs_tag = hintBindingTargetTag(rhs.target);
-    if (lhs_tag != rhs_tag) return lhs_tag < rhs_tag;
-    return hintBindingTargetIndex(lhs.target) < hintBindingTargetIndex(rhs.target);
-}
-
-fn hintBindingTargetTag(target: program.HintBindingTarget) u8 {
-    return switch (target) {
-        .constraint => 0,
-        .effect => 1,
-    };
-}
-
-fn hintBindingTargetIndex(target: program.HintBindingTarget) usize {
-    return switch (target) {
-        .constraint => |id| types.idIndex(id),
-        .effect => |id| types.idIndex(id),
-    };
-}
-
-fn priorNode(
+fn requireOwnerCoverage(
     arena: *const ir.Arena,
-    id: types.ValueId,
-    current_index: usize,
-) Error!expr.Node {
-    const index = types.idIndex(id);
-    if (index >= arena.nodesView().len) return error.InvalidNodeReference;
-    if (index >= current_index) return error.InvalidNodeOrder;
-    return arena.nodesView()[index];
+    owner: ?types.FunctionId,
+    comptime kind: BodyRecordKind,
+    index: usize,
+) Error!void {
+    const function_id = owner orelse return;
+    const declaration = functions.get(arena, function_id) orelse
+        return error.InvalidFunctionBody;
+    const body = declaration.body orelse return error.InvalidFunctionBody;
+    const range = switch (kind) {
+        .constraints => body.constraints,
+        .effects => body.effects,
+        .hints => body.hints,
+    };
+    if (!range.contains(index)) return error.InvalidFunctionBody;
 }
 
-fn validName(arena: *const ir.Arena, id: types.NameId) bool {
-    return types.idIndex(id) < arena.names.items.len;
+fn validateItemRange(range: program.ItemRange, item_count: usize) Error!void {
+    if (range.len == 0 and range.start != 0)
+        return error.InvalidFunctionBody;
+    const end = range.end() orelse return error.InvalidFunctionBody;
+    if (end > item_count) return error.InvalidFunctionBody;
 }
 
-fn validValue(arena: *const ir.Arena, id: types.ValueId) bool {
-    return types.idIndex(id) < arena.nodesView().len;
+fn itemEnd(range: program.ItemRange) usize {
+    return @as(usize, range.start) + @as(usize, range.len);
 }
 
-fn validateSpan(arena: *const ir.Arena, span: @import("source.zig").SourceSpan) !void {
-    try arena.validateSpan(span);
-}
-
-fn isFelt(ty: types.Type) bool {
-    return switch (ty) {
-        .felt => true,
-        else => false,
+fn valueAccessibleToOwner(
+    arena: *const ir.Arena,
+    value: types.ValueId,
+    owner: types.FunctionId,
+) bool {
+    const node = arena.node(value) orelse return false;
+    return switch (node.key.op) {
+        .constant => true,
+        .input => containsValue(functions.inputs(arena, owner) orelse return false, value),
+        .add, .sub, .mul => |binary| valueAccessibleToOwner(arena, binary.lhs, owner) and
+            valueAccessibleToOwner(arena, binary.rhs, owner),
+        .neg => |operand| valueAccessibleToOwner(arena, operand, owner),
+        .select => |selection| valueAccessibleToOwner(arena, selection.selector, owner) and
+            valueAccessibleToOwner(arena, selection.when_true, owner) and
+            valueAccessibleToOwner(arena, selection.when_false, owner),
+        .hint_output => |output| blk: {
+            const hint = hints.get(arena, output.hint) orelse break :blk false;
+            break :blk hint.owner == owner;
+        },
+        .call_output => |output| blk: {
+            const call = functions.getCall(arena, output.call) orelse break :blk false;
+            break :blk call.caller == owner;
+        },
+        .machine_derived => |derived| switch (derived) {
+            .register_address => |address| valueAccessibleToOwner(arena, address.index, owner),
+            .aligned_word_address => |address| valueAccessibleToOwner(arena, address.word_index, owner),
+            .access_clock => |clock| valueAccessibleToOwner(arena, clock.instruction_clock, owner),
+            .strict_clock_gap => |gap| valueAccessibleToOwner(arena, gap.current_clock, owner) and
+                valueAccessibleToOwner(arena, gap.previous_clock, owner) and
+                valueAccessibleToOwner(arena, gap.active, owner),
+            .instruction_next_pc => |next| valueAccessibleToOwner(arena, next.current, owner),
+            .instruction_next_clock => |next| valueAccessibleToOwner(arena, next.current, owner),
+        },
     };
 }
+
+fn containsValue(values: []const types.ValueId, wanted: types.ValueId) bool {
+    return std.mem.indexOfScalar(types.ValueId, values, wanted) != null;
+}
+
+const validateCalls = validate_support.validateCalls;
+const canonicalRange = validate_support.canonicalRange;
+const canonicalBindingRange = validate_support.canonicalBindingRange;
+const hintBindingLess = validate_support.hintBindingLess;
+const priorNode = validate_support.priorNode;
+const validName = validate_support.validName;
+const validValue = validate_support.validValue;
+const semanticAliasSource = validate_support.semanticAliasSource;
+const isSemanticAliasTarget = validate_support.isSemanticAliasTarget;
+const validateSpan = validate_support.validateSpan;
+const isFelt = validate_support.isFelt;

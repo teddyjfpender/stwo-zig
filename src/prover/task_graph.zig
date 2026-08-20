@@ -88,7 +88,13 @@ pub const ReadyPolicy = enum {
 
 pub const ExecuteOptions = struct {
     worker_budget: work_pool.WorkerBudget = work_pool.WorkerBudget.serial(),
+    /// Ordinary one-graph ownership: execution acquires and releases a lease.
+    /// Mutually exclusive with `retained_lease`.
     pool: ?*work_pool.WorkPool = null,
+    /// Borrowed request ownership retained by the caller across drained graph
+    /// barriers. Execution requires an idle, live, exact-width lease and
+    /// returns with it idle and still owned by the caller on every path.
+    retained_lease: ?*work_pool.WorkLease = null,
     byte_budget: usize = std.math.maxInt(usize),
     ready_policy: ReadyPolicy = .critical_path,
     /// Optional flat capture. A reservation is acquired only after resource

@@ -6,13 +6,16 @@ const backend_merkle = @import("stwo_backend_contracts").merkle_ops;
 const circle = @import("stwo_core").circle;
 const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
+const core_fri = @import("stwo_core").fri;
 const pcs_core = @import("stwo_core").pcs;
 const verifier_types = @import("stwo_core").verifier_types;
 const vcs_verifier = @import("stwo_core").vcs_lifted.verifier;
 const canonic = @import("stwo_core").poly.circle.canonic;
 const prover_circle = @import("../poly/circle/mod.zig");
 const twiddle_source_mod = @import("../poly/twiddle_source.zig");
+const work_pool = @import("../work_pool.zig");
 const stage_profile = @import("stwo_prover_api").stage_profile;
+const work_profile = @import("stwo_prover_api").work_profile;
 const prover_fri = @import("../fri.zig");
 const commitment_tree = @import("commitment_tree.zig");
 const commit_polys = @import("commit_polys.zig");
@@ -27,6 +30,7 @@ const commit_dispatch = @import("commit_dispatch.zig");
 const backed_columns = @import("backed_columns.zig");
 const scheme_decommit = @import("scheme_decommit.zig");
 const scheme_views = @import("scheme_views.zig");
+const shell_work_profile = @import("shell_work_profile.zig");
 
 pub const quotient_ops = @import("quotient_ops.zig");
 
@@ -81,6 +85,7 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
         coefficient_retention_policy: CoefficientRetentionPolicy,
         twiddle_source: TwiddleSource,
         pending_commit: ?deferred_commit.Pending(BackendCommitmentTree),
+        shell_preopening_audit: shell_work_profile.PreOpeningAudit,
 
         const Self = @This();
 
@@ -97,7 +102,24 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                 .coefficient_retention_policy = .always,
                 .twiddle_source = twiddle_source,
                 .pending_commit = null,
+                .shell_preopening_audit = .{},
             };
+        }
+
+        /// Arms the cold shell audit before the first profiled commitment.
+        /// Starting after a tree exists (or is pending) remains observable and
+        /// makes final publication fail closed.
+        pub fn beginShellWorkProfile(self: *Self, work_recorder: ?*work_profile.Recorder(true)) void {
+            const active = work_recorder orelse return;
+            self.shell_preopening_audit.begin(
+                self.trees.items.len,
+                self.pending_commit != null,
+            );
+            if (!self.shell_preopening_audit.complete) active.markIncomplete();
+        }
+
+        pub fn observePreOpeningRootMix(self: *Self, ordinal: usize, root: []const u8) void {
+            self.shell_preopening_audit.observeRootMixed(ordinal, root);
         }
 
         pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
@@ -112,384 +134,31 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
             self.coefficient_retention_policy = .always;
         }
 
-        pub fn commit(
-            self: *Self,
-            allocator: std.mem.Allocator,
-            columns: []const ColumnEvaluation,
-            channel: anytype,
-        ) !void {
-            var prepared = try column_preparation.prepareColumnsForCommitBorrowedForBackend(
-                B,
-                allocator,
-                columns,
-                self.config.fri_config.log_blowup_factor,
-                self.coefficient_retention_policy,
-                &self.twiddle_source,
-            );
-            errdefer prepared.deinit(allocator);
-
-            var tree = try BackendCommitmentTree.initOwnedWithBacking(
-                allocator,
-                prepared.columns,
-                prepared.coefficients,
-                prepared.column_backing_buffers,
-                prepared.coefficient_backing_buffers,
-            );
-            errdefer tree.deinit(allocator);
-            try self.appendCommittedTree(allocator, tree, channel);
-        }
-
-        /// Commits owned evaluation columns directly, avoiding an extra column clone.
+        /// Selects whether committed evaluation columns retain a second,
+        /// coefficient-form copy until the opening phase.
         ///
-        /// Ownership:
-        /// - On success, ownership is transferred into the commitment tree.
-        /// - On failure, owned columns are fully deinitialized.
-        pub fn commitOwned(
+        /// `.never` bounds commitment residency at the cost of evaluating
+        /// sampled values from the committed extended-domain columns. This
+        /// does not change commitments, Fiat-Shamir inputs, or proof bytes.
+        pub fn setCoefficientRetentionPolicy(
             self: *Self,
-            allocator: std.mem.Allocator,
-            owned_columns: []ColumnEvaluation,
-            channel: anytype,
-        ) !void {
-            return self.commitOwnedWithRecorder(allocator, owned_columns, null, channel);
+            policy: CoefficientRetentionPolicy,
+        ) void {
+            self.coefficient_retention_policy = policy;
         }
 
-        /// Default batch size for streaming column commitment.
-        const streaming_batch_size: usize = 64;
-        /// Column count threshold above which commitOwnedWithRecorder
-        /// automatically uses the streaming path.  Below this threshold
-        /// the monolithic path is used (the overhead of streaming state
-        /// management is not worthwhile for small column sets).
-        const streaming_column_threshold: usize = 128;
-
-        pub fn commitOwnedWithRecorder(
-            self: *Self,
-            allocator: std.mem.Allocator,
-            owned_columns: []ColumnEvaluation,
-            recorder: ?*stage_profile.Recorder,
-            channel: anytype,
-        ) !void {
-            return self.commitOwnedWithRecorderAndBacking(
-                allocator,
-                owned_columns,
-                null,
-                recorder,
-                channel,
-            );
-        }
-
-        /// Ownership-preserving commit for columns that borrow one or more
-        /// shared allocations. Backends may adopt those allocations; generic
-        /// paths detach them into ordinary per-column ownership first.
-        pub fn commitOwnedWithRecorderAndBacking(
-            self: *Self,
-            allocator: std.mem.Allocator,
-            input_columns: []ColumnEvaluation,
-            input_backing_buffers: ?[][]M31,
-            recorder: ?*stage_profile.Recorder,
-            channel: anytype,
-        ) !void {
-            return self.commitOwnedPreparedWithRecorderAndBacking(
-                allocator,
-                input_columns,
-                input_backing_buffers,
-                .materialized,
-                recorder,
-                channel,
-            );
-        }
-
-        /// Commits columns whose values may be represented by an explicit
-        /// structural producer. Adopting backends can encode that producer in
-        /// the commitment epoch; all other paths materialize it before reading
-        /// or detaching the values.
-        pub fn commitOwnedPreparedWithRecorderAndBacking(
-            self: *Self,
-            allocator: std.mem.Allocator,
-            input_columns: []ColumnEvaluation,
-            input_backing_buffers: ?[][]M31,
-            input_source: ColumnSource,
-            recorder: ?*stage_profile.Recorder,
-            channel: anytype,
-        ) !void {
-            var owned_columns = input_columns;
-            var backing_buffers = input_backing_buffers;
-            const source = input_source;
-            if (source.isMaterialized() and column_preparation.columnEvaluationsAreConstant(owned_columns)) {
-                if (backing_buffers) |buffers| {
-                    const detached = backed_columns.detach(allocator, owned_columns) catch |err| {
-                        backed_columns.free(allocator, owned_columns, buffers);
-                        return err;
-                    };
-                    backed_columns.free(allocator, owned_columns, buffers);
-                    owned_columns = detached;
-                    backing_buffers = null;
-                }
-                return commit_dispatch.commitConstant(B, H, self, allocator, owned_columns, channel);
-            }
-            // Auto-dispatch to streaming for large column sets (bounds peak memory).
-            const backend_prefers_monolithic = comptime @hasDecl(B, "preferMonolithicCommit") and B.preferMonolithicCommit;
-            if (source.isMaterialized() and owned_columns.len >= streaming_column_threshold and
-                !backend_prefers_monolithic)
-            {
-                if (backing_buffers) |buffers| {
-                    const detached = backed_columns.detach(allocator, owned_columns) catch |err| {
-                        backed_columns.free(allocator, owned_columns, buffers);
-                        return err;
-                    };
-                    backed_columns.free(allocator, owned_columns, buffers);
-                    owned_columns = detached;
-                    backing_buffers = null;
-                }
-                return self.commitOwnedStreamingWithRecorder(
-                    allocator,
-                    owned_columns,
-                    streaming_batch_size,
-                    recorder,
-                    channel,
-                );
-            }
-            if (try commit_dispatch.tryPrecommitted(
-                B,
-                H,
-                allocator,
-                owned_columns,
-                self.config.fri_config.log_blowup_factor,
-                self.coefficient_retention_policy,
-                &self.twiddle_source,
-                backing_buffers,
-                source,
-            )) |committed| {
-                var tree = committed;
-                errdefer tree.deinit(allocator);
-                if (comptime builtin.is_test and @hasDecl(B, "failAfterOwnershipTransferForTesting")) {
-                    try B.failAfterOwnershipTransferForTesting();
-                }
-                return self.appendCommittedTree(allocator, tree, channel);
-            }
-
-            if (!source.isMaterialized()) {
-                if (comptime !@hasDecl(B, "materializeColumnSource")) {
-                    if (backing_buffers) |buffers|
-                        backed_columns.free(allocator, owned_columns, buffers)
-                    else
-                        column_storage.freeOwnedColumnEvaluations(allocator, owned_columns);
-                    return error.UnsupportedColumnSource;
-                }
-                B.materializeColumnSource(owned_columns, source) catch |err| {
-                    if (backing_buffers) |buffers|
-                        backed_columns.free(allocator, owned_columns, buffers)
-                    else
-                        column_storage.freeOwnedColumnEvaluations(allocator, owned_columns);
-                    return err;
-                };
-            }
-
-            // Offer a shared backing before detaching: generic code frees each
-            // column slice independently, an adopting backend keeps the arena.
-            var source_arena: ?[]M31 = null;
-            if (backing_buffers) |buffers| {
-                const adopted = try backed_columns
-                    .adoptOrDetach(B, allocator, owned_columns, buffers);
-                owned_columns = adopted.columns;
-                source_arena = adopted.arena;
-                backing_buffers = null;
-            }
-            errdefer if (source_arena) |arena| allocator.free(arena);
-            if (source_arena == null and deferred_commit.canDeferFirstTree(self, owned_columns) and
-                deferred_commit.trySpawn(B, BackendCommitmentTree, self, allocator, owned_columns)) return;
-            errdefer backed_columns.freeSource(allocator, owned_columns, source_arena);
-            var prepared = try column_preparation.prepareColumnsForCommitOwnedForBackend(
-                B,
-                allocator,
-                owned_columns,
-                self.config.fri_config.log_blowup_factor,
-                self.coefficient_retention_policy,
-                &self.twiddle_source,
-                recorder,
-                source_arena,
-            );
-            errdefer prepared.deinit(allocator);
-            var merkle_commit_stage = try stage_profile.StageScope.begin(
-                recorder,
-                "merkle_commit",
-                "Merkle commit",
-            );
-            defer merkle_commit_stage.end();
-            var tree = try BackendCommitmentTree.initOwnedWithBacking(
-                allocator,
-                prepared.columns,
-                prepared.coefficients,
-                prepared.column_backing_buffers,
-                prepared.coefficient_backing_buffers,
-            );
-            errdefer tree.deinit(allocator);
-            try self.appendCommittedTree(allocator, tree, channel);
-        }
-
-        /// Commits coefficient-form circle polynomials directly.
-        ///
-        /// Inputs:
-        /// - `polys`: coefficient polynomials over canonic cosets.
-        ///
-        /// Semantics:
-        /// - evaluates each polynomial on the commitment domain extended by
-        ///   `config.fri_config.log_blowup_factor`.
-        /// - optionally stores cloned coefficients according to the
-        ///   configured retention policy.
-        pub fn commitPolys(
-            self: *Self,
-            allocator: std.mem.Allocator,
-            polys: []const prover_circle.CircleCoefficients,
-            channel: anytype,
-        ) !void {
-            return commit_polys.commit(
-                B,
-                H,
-                BackendCommitmentTree,
-                self,
-                allocator,
-                polys,
-                channel,
-            );
-        }
-
-        pub fn treeBuilder(self: *Self, allocator: std.mem.Allocator) TreeBuilder(B, H, MC) {
-            return .{
-                .allocator = allocator,
-                .tree_index = self.trees.items.len,
-                .commitment_scheme = self,
-                .columns = std.ArrayList(ColumnEvaluation).empty,
-            };
-        }
-
-        /// Returns a `StreamingTreeBuilder` that commits columns in
-        /// configurable batches, reducing peak memory.
-        ///
-        /// Usage:
-        ///   1. Call `streamingTreeBuilder()` to obtain a builder.
-        ///   2. Call `builder.addColumns(batch)` for each batch of
-        ///      `ColumnEvaluation` (owned values).  The batch data is prepared
-        ///      (interpolated + extended) and retained for decommitment.
-        ///   3. Call `builder.commit(channel)` to hash the complete sorted shape,
-        ///      finalise the Merkle tree, and append it to the scheme.
-        ///
-        /// The final Merkle root is bit-identical to `commitOwned()`.
-        pub fn streamingTreeBuilder(
-            self: *Self,
-            allocator: std.mem.Allocator,
-            batch_size: u32,
-        ) StreamingTreeBuilder(B, H, MC) {
-            return StreamingTreeBuilder(B, H, MC).init(
-                allocator,
-                self,
-                batch_size,
-            );
-        }
-
-        /// Commits owned evaluation columns in streaming batches to reduce peak
-        /// memory. Semantically identical to `commitOwned()` but prepares
-        /// columns in groups of `batch_size` before one shape-aware leaf pass.
-        ///
-        /// `batch_size` controls the number of columns prepared in each round.
-        /// A value of 0 uses the default (64).
-        pub fn commitOwnedStreaming(
-            self: *Self,
-            allocator: std.mem.Allocator,
-            owned_columns: []ColumnEvaluation,
-            batch_size: u32,
-            channel: anytype,
-        ) !void {
-            return self.commitOwnedStreamingWithRecorder(
-                allocator,
-                owned_columns,
-                batch_size,
-                null,
-                channel,
-            );
-        }
-
-        pub fn commitOwnedStreamingWithRecorder(
-            self: *Self,
-            allocator: std.mem.Allocator,
-            owned_columns: []ColumnEvaluation,
-            batch_size_arg: u32,
-            recorder: ?*stage_profile.Recorder,
-            channel: anytype,
-        ) !void {
-            const effective_batch_size: usize = if (batch_size_arg == 0) 64 else @as(usize, batch_size_arg);
-
-            const ColumnOrder = struct {
-                columns: []const ColumnEvaluation,
-
-                fn lessThan(context: @This(), lhs: usize, rhs: usize) bool {
-                    const lhs_log_size = context.columns[lhs].log_size;
-                    const rhs_log_size = context.columns[rhs].log_size;
-                    return lhs_log_size < rhs_log_size or
-                        (lhs_log_size == rhs_log_size and lhs < rhs);
-                }
-            };
-            const order = try allocator.alloc(usize, owned_columns.len);
-            defer allocator.free(order);
-            for (order, 0..) |*index, i| index.* = i;
-            std.sort.heap(
-                usize,
-                order,
-                ColumnOrder{ .columns = owned_columns },
-                ColumnOrder.lessThan,
-            );
-
-            var builder = StreamingTreeBuilder(B, H, MC).init(allocator, self, effective_batch_size);
-            errdefer builder.deinit();
-
-            // Each batch moves entries out of `owned_columns`; the builder owns
-            // consumed entries and the error paths below free the remainder.
-            var consumed: usize = 0;
-            while (consumed < owned_columns.len) {
-                const end = @min(owned_columns.len, consumed + effective_batch_size);
-                const batch_len = end - consumed;
-
-                const batch = allocator.alloc(ColumnEvaluation, batch_len) catch |err| {
-                    for (owned_columns) |col| {
-                        if (col.values.len > 0) allocator.free(col.values);
-                    }
-                    allocator.free(owned_columns);
-                    return err;
-                };
-                for (order[consumed..end], 0..) |original_index, batch_index| {
-                    batch[batch_index] = owned_columns[original_index];
-                    owned_columns[original_index].values = &[_]M31{};
-                }
-
-                tree_builders.addColumnsOwnedIndexed(
-                    &builder,
-                    batch,
-                    order[consumed..end],
-                    recorder,
-                ) catch |err| {
-                    // batch is owned by addColumnsOwned on success.
-                    // On error, addColumnsOwned's errdefer handles the batch
-                    // via prepareColumnsForCommitOwned's errdefer.
-                    for (owned_columns) |col| {
-                        if (col.values.len > 0) allocator.free(col.values);
-                    }
-                    allocator.free(owned_columns);
-                    return err;
-                };
-                consumed = end;
-            }
-
-            // All column values have been transferred to the builder.
-            allocator.free(owned_columns);
-
-            var merkle_commit_stage = try stage_profile.StageScope.begin(
-                recorder,
-                "merkle_commit",
-                "Merkle commit",
-            );
-            defer merkle_commit_stage.end();
-            try builder.commit(channel);
-        }
-
+        const CommitOps = @import("commit_ops.zig").CommitOps(B, H, MC, Self);
+        pub const commit = CommitOps.commit;
+        pub const commitOwned = CommitOps.commitOwned;
+        pub const commitOwnedWithRecorder = CommitOps.commitOwnedWithRecorder;
+        pub const commitOwnedWithRecorderAndBacking = CommitOps.commitOwnedWithRecorderAndBacking;
+        pub const commitOwnedPreparedWithRecorderAndBacking = CommitOps.commitOwnedPreparedWithRecorderAndBacking;
+        pub const commitPolys = CommitOps.commitPolys;
+        pub const commitPolysWithRecorder = CommitOps.commitPolysWithRecorder;
+        pub const treeBuilder = CommitOps.treeBuilder;
+        pub const streamingTreeBuilder = CommitOps.streamingTreeBuilder;
+        pub const commitOwnedStreaming = CommitOps.commitOwnedStreaming;
+        pub const commitOwnedStreamingWithRecorder = CommitOps.commitOwnedStreamingWithRecorder;
         pub fn roots(self: *Self, allocator: std.mem.Allocator) !TreeVec(H.Hash) {
             try deferred_commit.resolveObserved(self, allocator);
             return scheme_views.roots(H, self.*, allocator);
@@ -578,6 +247,14 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
             var scheme = self;
             var owns_scheme = true;
             errdefer if (owns_scheme) scheme.deinit(allocator);
+            var sampled_points_owned = sampled_points;
+            var owns_sampled_points = true;
+            errdefer if (owns_sampled_points) sampled_points_owned.deinitDeep(allocator);
+
+            try work_pool.observeProofPoolStageForTest(
+                .openings,
+                work_pool.getGlobalPool(),
+            );
 
             const lifting_log_size = try scheme.proofLiftingLogSize();
             const sampled_values = blk: {
@@ -589,16 +266,18 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                 defer sampled_value_eval_stage.end();
                 break :blk try scheme.evaluateSampledValuesAndRelease(
                     allocator,
-                    sampled_points,
+                    sampled_points_owned,
                     lifting_log_size,
+                    recorder,
                 );
             };
 
-            // The downstream method consumes the scheme on both success and error.
+            // The downstream method consumes both owners on success and error.
             owns_scheme = false;
+            owns_sampled_points = false;
             return scheme.proveValuesFromSamplesWithRecorder(
                 allocator,
-                sampled_points,
+                sampled_points_owned,
                 sampled_values,
                 recorder,
                 channel,
@@ -645,6 +324,15 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
             var sampled_values_owned = sampled_values;
             errdefer sampled_values_owned.deinitDeep(allocator);
 
+            const work_recorder = if (recorder) |active|
+                active.workCaptureRecorder()
+            else
+                null;
+            if (work_recorder) |work| {
+                try work.expectProducer(.pcs_transcript_shell);
+                // work-profile-plan:pcs-transcript-shell
+            }
+
             if (scheme.trees.items.len != sampled_points_owned.items.len) {
                 return CommitmentSchemeError.ShapeMismatch;
             }
@@ -652,10 +340,40 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                 return CommitmentSchemeError.ShapeMismatch;
             }
 
+            var sampled_column_count: usize = 0;
+            var sampled_value_count: usize = 0;
             for (scheme.trees.items, sampled_points_owned.items, sampled_values_owned.items) |tree, tree_points, tree_values| {
                 if (tree.columns.len != tree_points.len) return CommitmentSchemeError.ShapeMismatch;
                 if (tree.columns.len != tree_values.len) return CommitmentSchemeError.ShapeMismatch;
+                sampled_column_count = std.math.add(
+                    usize,
+                    sampled_column_count,
+                    tree_values.len,
+                ) catch return CommitmentSchemeError.ShapeMismatch;
+                for (tree_values) |column_values| {
+                    sampled_value_count = std.math.add(
+                        usize,
+                        sampled_value_count,
+                        column_values.len,
+                    ) catch return CommitmentSchemeError.ShapeMismatch;
+                }
             }
+
+            var shell_audit: ?shell_work_profile.Audit = if (work_recorder != null)
+                shell_work_profile.Audit.init(
+                    @TypeOf(channel.*),
+                    H,
+                    MC,
+                    scheme.trees.items.len,
+                    sampled_column_count,
+                    sampled_value_count,
+                    &scheme.shell_preopening_audit,
+                ) catch blk: {
+                    work_recorder.?.markIncomplete();
+                    break :blk null;
+                }
+            else
+                null;
 
             {
                 var sampled_value_mix_stage = try stage_profile.StageScope.begin(
@@ -666,12 +384,19 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                 defer sampled_value_mix_stage.end();
                 try sampled_value_transcript.mixIntoChannel(allocator, channel, sampled_values_owned);
             }
+            if (shell_audit) |*audit| {
+                audit.observeSampledValuesMixed() catch work_recorder.?.markIncomplete();
+            }
 
             const random_coeff = channel.drawSecureFelt();
+            if (shell_audit) |*audit| {
+                audit.observeCoefficientDrawn() catch work_recorder.?.markIncomplete();
+            }
 
             const lifting_log_size = try scheme.proofLiftingLogSize();
             const domain = canonic.CanonicCoset.new(lifting_log_size).circleDomain();
 
+            var fri_root_mix_capture = shell_work_profile.FriRootMixCapture{};
             var fri_prover = blk: {
                 var fri_quotient_stage = try stage_profile.StageScope.begin(
                     recorder,
@@ -702,7 +427,17 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                     residency_handles = handles[0..resident_count];
                 }
 
-                var provider = try quotient_ops.LazyQuotientProvider.initForBackend(
+                const fri_work_recorder = work_recorder;
+                if (fri_work_recorder) |work| {
+                    try work.expectProducer(.quotient_sample_preparation);
+                    // work-profile-plan:quotient-sample-preparation
+                    try work.expectProducer(.quotient_row_execution);
+                    // work-profile-plan:quotient-row-execution
+                    try work.expectProducer(.fri_protocol);
+                    // work-profile-plan:fri-protocol
+                }
+
+                var provider = try quotient_ops.LazyQuotientProvider.initForBackendWithWorkRecorder(
                     B,
                     allocator,
                     TreeVec([]const ColumnEvaluation).initOwned(borrowed_columns_items),
@@ -710,18 +445,36 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                     sampled_values_owned,
                     random_coeff,
                     lifting_log_size,
+                    fri_work_recorder,
                 );
                 defer provider.deinit(allocator);
                 provider.setBackendResidencyHandles(residency_handles);
 
-                break :blk try prover_fri.FriProver(B, H, MC).commitLazy(
+                var result = try prover_fri.FriProver(B, H, MC).commitLazyWithWorkRecorderAndRootMixCapture(
                     allocator,
                     channel,
                     scheme.config.fri_config,
                     domain,
                     &provider,
+                    fri_work_recorder,
+                    if (shell_audit != null) &fri_root_mix_capture else null,
                 );
+                errdefer result.deinit(allocator);
+                break :blk result;
             };
+            if (shell_audit) |*audit| {
+                const fri_layer_count = std.math.add(
+                    usize,
+                    fri_prover.inner_layers.len,
+                    1,
+                ) catch 0;
+                if (fri_root_mix_capture.receipt) |root_mix_receipt| {
+                    audit.observeFriCommitted(
+                        fri_layer_count,
+                        root_mix_receipt,
+                    ) catch work_recorder.?.markIncomplete();
+                } else work_recorder.?.markIncomplete();
+            }
 
             const proof_of_work = blk: {
                 var proof_of_work_stage = try stage_profile.StageScope.begin(
@@ -734,6 +487,12 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                 channel.mixU64(nonce);
                 break :blk nonce;
             };
+            if (shell_audit) |*audit| {
+                audit.observeProofOfWorkMixed(
+                    scheme.config.pow_bits,
+                    proof_of_work,
+                ) catch work_recorder.?.markIncomplete();
+            }
 
             var fri_decommit = blk: {
                 var fri_decommit_stage = try stage_profile.StageScope.begin(
@@ -745,6 +504,12 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                 break :blk try fri_prover.decommit(allocator, channel);
             };
             errdefer fri_decommit.deinit(allocator);
+            if (shell_audit) |*audit| {
+                audit.observeFriDecommitted(
+                    fri_decommit.unsorted_query_locations.len,
+                    fri_decommit.query_positions.len,
+                ) catch work_recorder.?.markIncomplete();
+            }
 
             var trace_decommit = blk: {
                 var trace_decommit_stage = try stage_profile.StageScope.begin(
@@ -772,15 +537,24 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                 );
             };
             errdefer trace_decommit.deinit(allocator);
+            if (shell_audit) |*audit| {
+                audit.observeTraceDecommitted(
+                    trace_decommit.decommitments.items.len,
+                ) catch work_recorder.?.markIncomplete();
+            }
 
             var commitments = try scheme.roots(allocator);
             errdefer commitments.deinit(allocator);
+            if (shell_audit) |*audit| {
+                audit.observeCommitmentRootsMaterialized(commitments.items.len) catch
+                    work_recorder.?.markIncomplete();
+            }
 
             // `query_positions` are only needed for prover-side decommit orchestration.
             allocator.free(fri_decommit.query_positions);
             fri_decommit.query_positions = &[_]usize{};
 
-            return .{
+            const result: pcs_core.ExtendedCommitmentSchemeProof(H) = .{
                 .proof = .{
                     .config = scheme.config,
                     .commitments = commitments,
@@ -796,6 +570,30 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                     .fri = fri_decommit.fri_proof.aux,
                 },
             };
+            if (shell_audit) |*audit| {
+                const receipt = audit.finish(result.proof.commitments.items.len) catch {
+                    work_recorder.?.markIncomplete();
+                    return result;
+                };
+                receipt.validate() catch {
+                    work_recorder.?.markIncomplete();
+                    return result;
+                };
+                work_recorder.?.recordCompletedDelta(.{
+                    .site = .pcs_transcript_shell,
+                    .producer = work_profile.boundaryForSite(.pcs_transcript_shell),
+                    .source_mask = .{ .bits = work_profile.SourceMask.one(.field_additions).bits |
+                        work_profile.SourceMask.one(.field_multiplications).bits |
+                        work_profile.SourceMask.one(.field_inversions).bits },
+                }) catch {
+                    work_recorder.?.markIncomplete();
+                    return result;
+                };
+                if (comptime builtin.is_test)
+                    shell_work_profile.testing.observeAcceptedReceipt(receipt);
+                // work-profile-complete:pcs-transcript-shell
+            }
+            return result;
         }
 
         pub fn appendCommittedTree(
@@ -827,17 +625,121 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
             allocator: std.mem.Allocator,
             sampled_points: TreeVec([][]CirclePointQM31),
             lifting_log_size: u32,
+            recorder: ?*stage_profile.Recorder,
         ) !TreeVec([][]QM31) {
-            return sampled_value_evaluation.evaluateAndRelease(
+            const work_recorder = if (recorder) |active|
+                active.workCaptureRecorder()
+            else
+                null;
+            return sampled_value_evaluation.evaluateAndReleaseWithWorkRecorder(
                 B,
                 H,
                 allocator,
                 self.trees.items,
                 sampled_points,
                 lifting_log_size,
+                work_recorder,
             );
         }
     };
+}
+
+fn friMerkleCompressions(
+    comptime B: type,
+    prover: anytype,
+    config: core_fri.FriConfig,
+) !u64 {
+    var total: u64 = 0;
+    const first_packed = friLayerUsesPackedLeaves(
+        prover.first_layer.column.len(),
+        config.fold_step,
+    );
+    const first_reuses_constant = if (comptime @hasDecl(B, "commitLazyMerkle"))
+        if (first_packed)
+            B.reuses_constant_merkle_parents
+        else
+            B.lazy_merkle_reuses_constant_parents
+    else
+        B.reuses_constant_merkle_parents;
+    total = try addMerkleCompressions(
+        total,
+        try friLayerMerkleCompressions(
+            prover.first_layer.column,
+            first_packed,
+            first_reuses_constant,
+        ),
+    );
+
+    for (prover.inner_layers) |layer| {
+        const uses_packed_leaves = friLayerUsesPackedLeaves(
+            layer.column.len(),
+            layer.fold_step,
+        );
+        total = try addMerkleCompressions(
+            total,
+            try friLayerMerkleCompressions(
+                layer.column,
+                uses_packed_leaves,
+                B.reuses_constant_merkle_parents,
+            ),
+        );
+    }
+    return total;
+}
+
+fn friLayerUsesPackedLeaves(column_len: usize, fold_step: u32) bool {
+    const packed_leaf_size = @as(usize, 1) <<
+        @intCast(core_fri.LOG_PACKED_LEAF_SIZE);
+    return fold_step > 1 and column_len >= packed_leaf_size and
+        std.math.isPowerOfTwo(column_len);
+}
+
+fn friLayerMerkleCompressions(
+    column: anytype,
+    uses_packed_leaves: bool,
+    reuses_constant_parents: bool,
+) !u64 {
+    const packed_leaf_size = @as(usize, 1) <<
+        @intCast(core_fri.LOG_PACKED_LEAF_SIZE);
+    if (column.len() == 0 or !std.math.isPowerOfTwo(column.len()))
+        return error.InvalidCounterGroup;
+    const leaf_count = if (uses_packed_leaves)
+        column.len() / packed_leaf_size
+    else
+        column.len();
+    const encoded_leaf_count = std.math.cast(u64, leaf_count) orelse
+        return error.CounterOverflow;
+    return work_profile.logicalMerkleCompressions(
+        encoded_leaf_count,
+        reuses_constant_parents and
+            friColumnIsMerkleConstant(column, uses_packed_leaves),
+    );
+}
+
+fn friColumnIsMerkleConstant(column: anytype, uses_packed_leaves: bool) bool {
+    const packed_leaf_size = @as(usize, 1) <<
+        @intCast(core_fri.LOG_PACKED_LEAF_SIZE);
+    const leaf_count = if (uses_packed_leaves)
+        column.len() / packed_leaf_size
+    else
+        column.len();
+    if (leaf_count == 0) return false;
+
+    for (column.columns) |coordinate| {
+        const values_per_leaf = if (uses_packed_leaves) packed_leaf_size else 1;
+        for (0..values_per_leaf) |offset| {
+            const first = coordinate[offset];
+            for (1..leaf_count) |leaf| {
+                const index = leaf * values_per_leaf + offset;
+                if (!coordinate[index].eql(first)) return false;
+            }
+        }
+    }
+    return true;
+}
+
+fn addMerkleCompressions(lhs: u64, rhs: u64) !u64 {
+    return std.math.add(u64, lhs, rhs) catch error.CounterOverflow;
 }
 
 pub fn TreeBuilder(comptime B: type, comptime H: type, comptime MC: type) type {
@@ -846,4 +748,61 @@ pub fn TreeBuilder(comptime B: type, comptime H: type, comptime MC: type) type {
 
 pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: type) type {
     return tree_builders.StreamingTreeBuilder(B, H, MC, CommitmentSchemeProver(B, H, MC));
+}
+
+test "FRI Merkle work follows packed-leaf and constant-parent execution" {
+    const TestColumn = struct {
+        columns: [qm31.SECURE_EXTENSION_DEGREE][]const M31,
+
+        fn len(self: @This()) usize {
+            return self.columns[0].len;
+        }
+    };
+    const constant_values = [_]M31{M31.fromCanonical(7)} ** 8;
+    const varying_values = [_]M31{
+        M31.fromCanonical(1),
+        M31.fromCanonical(2),
+        M31.fromCanonical(3),
+        M31.fromCanonical(4),
+        M31.fromCanonical(5),
+        M31.fromCanonical(6),
+        M31.fromCanonical(7),
+        M31.fromCanonical(8),
+    };
+    const constant = TestColumn{ .columns = .{
+        &constant_values,
+        &constant_values,
+        &constant_values,
+        &constant_values,
+    } };
+    const varying = TestColumn{ .columns = .{
+        &varying_values,
+        &constant_values,
+        &constant_values,
+        &constant_values,
+    } };
+
+    try std.testing.expect(friColumnIsMerkleConstant(constant, false));
+    try std.testing.expect(!friColumnIsMerkleConstant(varying, false));
+    try std.testing.expectEqual(
+        @as(u64, 3),
+        try friLayerMerkleCompressions(constant, false, true),
+    );
+    try std.testing.expectEqual(
+        @as(u64, 7),
+        try friLayerMerkleCompressions(varying, false, true),
+    );
+
+    // Four evaluation rows become one packed leaf. Constant packed columns
+    // therefore need zero parent compressions, while two varying packed
+    // leaves require exactly one.
+    try std.testing.expect(friLayerUsesPackedLeaves(8, 2));
+    try std.testing.expectEqual(
+        @as(u64, 0),
+        try friLayerMerkleCompressions(constant, true, true),
+    );
+    try std.testing.expectEqual(
+        @as(u64, 1),
+        try friLayerMerkleCompressions(varying, true, true),
+    );
 }

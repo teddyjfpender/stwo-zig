@@ -7,6 +7,7 @@ const blake2_merkle = @import("stwo_core").vcs_lifted.blake2_merkle;
 const prover_engine = @import("stwo_prover_engine").engine;
 const public_data_mod = @import("../air/public_data.zig");
 const statement_mod = @import("../air/statement.zig");
+const statement_v2_mod = @import("../air/statement_v2.zig");
 const relation_diagnostic = @import("relation_diagnostic.zig");
 
 pub const PublicData = public_data_mod.PublicData;
@@ -18,11 +19,28 @@ pub const FamilyComponentDesc = statement_mod.FamilyComponentDesc;
 pub const InfraKind = statement_mod.InfraKind;
 pub const InfraComponentDesc = statement_mod.InfraComponentDesc;
 pub const RiscVStatement = statement_mod.RiscVStatement;
+pub const RiscVStatementV2 = statement_v2_mod.RiscVStatementV2;
 pub const RiscVInteractionClaim = statement_mod.RiscVInteractionClaim;
 pub const MAX_COMPONENTS = statement_mod.MAX_COMPONENTS;
 pub const MAX_INFRA_COMPONENTS = statement_mod.MAX_INFRA_COMPONENTS;
 
-pub const Proof = core_proof.StarkProof(Hasher);
+pub fn ProofForHasher(comptime H: type) type {
+    return core_proof.StarkProof(H);
+}
+
+/// Compatibility helper for narrow test engines that predate the explicit
+/// protocol-type surface.  Every admitted production engine declares
+/// `Hasher`; the fallback keeps ownership/failure unit tests focused on the
+/// stage contract they model.
+pub fn HasherForEngine(comptime Engine: type) type {
+    return if (@hasDecl(Engine, "Hasher")) Engine.Hasher else Hasher;
+}
+
+pub fn ProofForEngine(comptime Engine: type) type {
+    return ProofForHasher(HasherForEngine(Engine));
+}
+
+pub const Proof = ProofForHasher(Hasher);
 pub const ExtendedProof = core_proof.ExtendedStarkProof(Hasher);
 pub const OwnedRiscVStatement = @import("../owned_statement.zig").OwnedRiscVStatement;
 pub const RelationDiagnostic = relation_diagnostic.Output;
@@ -33,23 +51,63 @@ pub fn RunOutput(comptime mode: RunMode) type {
     return if (mode == .prove) ProveOutput else RelationDiagnostic;
 }
 
-pub const ProveOutput = struct {
-    statement: RiscVStatement,
-    proof: Proof,
-    interaction_claim: *RiscVInteractionClaim,
+pub fn RunOutputForEngine(comptime Engine: type, comptime mode: RunMode) type {
+    return if (mode == .prove) ProveOutputForEngine(Engine) else RelationDiagnostic;
+}
 
-    /// Release the boxed interaction claim after ownership of `proof` has
-    /// moved into the verifier.
-    pub fn deinitAfterProofMoved(self: ProveOutput, allocator: std.mem.Allocator) void {
-        allocator.destroy(self.interaction_claim);
-    }
+pub fn ProveOutputForEngine(comptime Engine: type) type {
+    return ProveOutputForHasher(HasherForEngine(Engine));
+}
 
-    pub fn deinit(self: *ProveOutput, allocator: std.mem.Allocator) void {
-        self.proof.deinit(allocator);
-        allocator.destroy(self.interaction_claim);
-        self.* = undefined;
-    }
-};
+pub fn ProveOutputV2ForEngine(comptime Engine: type) type {
+    return ProveOutputV2ForHasher(HasherForEngine(Engine));
+}
+
+pub fn ProveOutputV2ForHasher(comptime H: type) type {
+    return struct {
+        statement: RiscVStatementV2,
+        proof: ProofForHasher(H),
+        interaction_claim: *RiscVInteractionClaim,
+
+        const Self = @This();
+
+        pub fn deinitAfterProofMoved(self: Self, allocator: std.mem.Allocator) void {
+            allocator.destroy(self.interaction_claim);
+        }
+
+        pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+            self.proof.deinit(allocator);
+            allocator.destroy(self.interaction_claim);
+            self.* = undefined;
+        }
+    };
+}
+
+pub const ProveOutputV2 = ProveOutputV2ForHasher(Hasher);
+
+pub fn ProveOutputForHasher(comptime H: type) type {
+    return struct {
+        statement: RiscVStatement,
+        proof: ProofForHasher(H),
+        interaction_claim: *RiscVInteractionClaim,
+
+        const Self = @This();
+
+        /// Release the boxed interaction claim after ownership of `proof` has
+        /// moved into the verifier.
+        pub fn deinitAfterProofMoved(self: Self, allocator: std.mem.Allocator) void {
+            allocator.destroy(self.interaction_claim);
+        }
+
+        pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+            self.proof.deinit(allocator);
+            allocator.destroy(self.interaction_claim);
+            self.* = undefined;
+        }
+    };
+}
+
+pub const ProveOutput = ProveOutputForHasher(Hasher);
 
 /// Complete proving-engine substitution point.
 ///

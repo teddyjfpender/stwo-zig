@@ -78,14 +78,17 @@ set_option linter.unusedSimpArgs false
 
 -- The generated evaluator and the hand transcription are pinned independently.
 -- `loadStoreProgramIrDigest` is the canonical content digest of the selector
--- AIR IR v2 input. `loadStoreIrDigest` is the byte digest of the legacy family
--- export checked by `riscv_team_b.py`; that compatibility export additionally
--- materialises eight derived bus values, so the two serialisations are not
--- byte-identical even though both are extracted from the same production AIR.
+-- AIR IR v2 input. `loadStoreIrDigest` is the byte digest of the aggregate
+-- typed-family export checked by `riscv_team_b.py`; that compatibility export
+-- additionally materialises eight derived bus values, so the serialisations
+-- are not byte-identical. The polynomial digest is independently checked by
+-- `riscv_air_ir_equivalence.py` against the reviewed pre-cutover family export.
 #guard loadStoreProgramIrDigest ==
-  "be64f6f847266cff147de247401d07f6b7b1b83031d6291cd2dd1e2a5987a1c5"
+  "8c63862acc341a4dca936e7fc5ae98a46bd38ed87a616b8e070d38bff91d5fab"
 #guard loadStoreIrDigest ==
-  "157254ef806da05107bc89142dd488030bc8f8912bd6872ccf898fed6876a62e"
+  "44b8ffa7d86cfff1b914e8dfde132284d356e976a6fe4a90d8b62252a1c21ea9"
+#guard loadStorePolynomialDigest ==
+  "d19899f907d0d5a3ec364963e1f3901e03c2620e3ad203a01bbf2e298775b59f"
 
 /-! ## The `M31` arithmetic this family adds
 

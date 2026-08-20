@@ -43,11 +43,12 @@ def validate_benchmark_report(
     samples: int,
     admission: Admission,
 ) -> str:
-    if report.get("schema") != "riscv_proof_v2" or report.get("mode") != "bench":
+    if report.get("schema") != "riscv_proof_v3" or report.get("mode") != "bench":
         raise BenchmarkError(f"{case.target}/{case.input_size}: report identity drifted")
     if (
         report.get("release_status") != admission.release_status
         or report.get("experimental") is not admission.experimental
+        or report.get("recursion_enabled") is not False
         or report.get("warmups") != warmups
         or report.get("samples") != samples
         or report.get("verified_samples") != samples

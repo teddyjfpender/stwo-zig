@@ -26,7 +26,8 @@
     "device_composition",
     "engine",
     "stage_profile",
-    "task_profile"
+    "task_profile",
+    "work_profile"
   ],
   "api_contract": {
     "signature_tests": [

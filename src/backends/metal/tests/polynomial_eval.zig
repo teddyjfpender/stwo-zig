@@ -70,7 +70,22 @@ test "metal: polynomial evaluation shader unit matches scalar circle evaluation"
     var second_output: [points.len]QM31 = undefined;
     const outputs = [_][]QM31{ &first_output, &second_output };
 
-    _ = try runtime.evaluateCoefficientPlans(allocator, &coefficients, &outputs, &plans);
+    const result = try runtime.evaluateCoefficientPlans(
+        allocator,
+        &coefficients,
+        &outputs,
+        &plans,
+    );
+    try result.execution.validate();
+    try std.testing.expectEqual(@as(u64, 1), result.execution.plan_count);
+    try std.testing.expectEqual(@as(u64, 2), result.execution.basis_task_count);
+    try std.testing.expectEqual(@as(u64, 4), result.execution.evaluation_task_count);
+    try std.testing.expectEqual(
+        @as(u64, 32),
+        result.execution.evaluation_coefficient_terms,
+    );
+    try std.testing.expect(result.execution.basis_threadgroup_width > 0);
+    try std.testing.expect(result.execution.evaluation_threadgroup_width > 0);
 
     for (coefficients, outputs) |polynomial, output| {
         for (points, output) |point, actual| {
@@ -126,7 +141,15 @@ test "metal: polynomial evaluation batches tree-local indices in one epoch" {
         .{ .coefficients = coefficients[1..2], .tree_values = &second_outputs, .plans = &second_plans },
     };
 
-    _ = try runtime.evaluateCoefficientTreePlans(allocator, &tree_plans);
+    const result = try runtime.evaluateCoefficientTreePlans(allocator, &tree_plans);
+    try result.execution.validate();
+    try std.testing.expectEqual(@as(u64, 2), result.execution.plan_count);
+    try std.testing.expectEqual(@as(u64, 4), result.execution.basis_task_count);
+    try std.testing.expectEqual(@as(u64, 4), result.execution.evaluation_task_count);
+    try std.testing.expectEqual(
+        @as(u64, 32),
+        result.execution.evaluation_coefficient_terms,
+    );
 
     for (coefficients, tree_plans) |polynomial, tree_plan| {
         for (points, tree_plan.tree_values[0]) |point, actual| {

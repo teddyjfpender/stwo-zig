@@ -55,6 +55,18 @@ pub const SegmentRole = struct {
     }
 };
 
+/// Compact process-local identity for one complete RW-memory boundary.
+///
+/// This is a misuse guard for the resumable runner, not a cryptographic
+/// commitment.  Recursive public data must authenticate the sparse-Merkle
+/// root derived from the full `Snapshot.words`; retaining those words here is
+/// what makes that later derivation exact and avoids hashing them twice on the
+/// execution path.
+pub const ContinuationIdentity = struct {
+    word_count: u32,
+    fingerprint: u64,
+};
+
 pub const WordRole = struct {
     is_public_input: bool = false,
     is_public_output: bool = false,
@@ -79,6 +91,38 @@ pub const WordState = struct {
     }
 };
 
+pub const BaselineWord = struct {
+    addr: u32,
+    value: u32,
+};
+
+/// Exact RW-memory contents immediately before a segment executes.
+pub const SegmentBaseline = struct {
+    words: []BaselineWord,
+
+    pub fn deinit(self: *SegmentBaseline, allocator: std.mem.Allocator) void {
+        allocator.free(self.words);
+        self.* = undefined;
+    }
+
+    fn value(self: SegmentBaseline, addr: u32) ?u32 {
+        var low: usize = 0;
+        var high = self.words.len;
+        while (low < high) {
+            const mid = low + (high - low) / 2;
+            const candidate = self.words[mid];
+            if (candidate.addr < addr) {
+                low = mid + 1;
+            } else if (candidate.addr > addr) {
+                high = mid;
+            } else {
+                return candidate.value;
+            }
+        }
+        return null;
+    }
+};
+
 /// Compact, deterministic commitment input retained by `RunResult`.
 pub const Snapshot = struct {
     layout: MemoryLayout,
@@ -94,7 +138,114 @@ pub const Snapshot = struct {
         allocator.free(self.program_words);
         self.* = undefined;
     }
+
+    /// Identity of the memory state at this segment's entry boundary.
+    pub fn entryIdentity(self: Snapshot) ContinuationIdentity {
+        return identity(self.words, .initial_word);
+    }
+
+    /// Identity of the memory state at this segment's exit boundary.
+    pub fn exitIdentity(self: Snapshot) ContinuationIdentity {
+        return identity(self.words, .final_word);
+    }
+
+    /// Require exact (not hash-only) continuity between adjacent snapshots.
+    /// The comparison is allocation-free because capture already canonicalizes
+    /// both word sets into strictly increasing address order.  A word first
+    /// touched by the next segment is absent from the previous sparse union;
+    /// absence is the canonical zero leaf and therefore matches only a zero
+    /// entry value.
+    pub fn requireContinuationTo(
+        self: Snapshot,
+        next: Snapshot,
+    ) error{MemoryContinuationMismatch}!void {
+        if (!std.meta.eql(self.layout, next.layout)) {
+            return error.MemoryContinuationMismatch;
+        }
+        var left_index: usize = 0;
+        var right_index: usize = 0;
+        while (left_index < self.words.len or right_index < next.words.len) {
+            if (left_index == self.words.len) {
+                if (next.words[right_index].initial_word != 0)
+                    return error.MemoryContinuationMismatch;
+                right_index += 1;
+                continue;
+            }
+            if (right_index == next.words.len) {
+                if (self.words[left_index].final_word != 0)
+                    return error.MemoryContinuationMismatch;
+                left_index += 1;
+                continue;
+            }
+            const left = self.words[left_index];
+            const right = next.words[right_index];
+            if (left.addr < right.addr) {
+                if (left.final_word != 0) return error.MemoryContinuationMismatch;
+                left_index += 1;
+            } else if (right.addr < left.addr) {
+                if (right.initial_word != 0) return error.MemoryContinuationMismatch;
+                right_index += 1;
+            } else {
+                if (left.final_word != right.initial_word)
+                    return error.MemoryContinuationMismatch;
+                left_index += 1;
+                right_index += 1;
+            }
+        }
+    }
 };
+
+test "memory state: continuation treats newly touched zero words as absent leaves" {
+    const layout = testLayout();
+    var previous_words = [_]WordState{
+        .{ .addr = 0x2000, .initial_word = 3, .final_word = 5, .final_clock = 1 },
+    };
+    var next_words = [_]WordState{
+        .{ .addr = 0x2000, .initial_word = 5, .final_word = 7, .final_clock = 2 },
+        .{ .addr = 0x2004, .initial_word = 0, .final_word = 9, .final_clock = 3 },
+    };
+    const previous = Snapshot{
+        .layout = layout,
+        .segment_role = .{ .is_first = true, .is_last = false },
+        .words = &previous_words,
+    };
+    var next = Snapshot{
+        .layout = layout,
+        .segment_role = .{ .is_first = false, .is_last = true },
+        .words = &next_words,
+    };
+    try previous.requireContinuationTo(next);
+    next.words[1].initial_word = 1;
+    try std.testing.expectError(
+        error.MemoryContinuationMismatch,
+        previous.requireContinuationTo(next),
+    );
+}
+
+const BoundarySide = enum { initial_word, final_word };
+
+fn identity(words: []const WordState, comptime side: BoundarySide) ContinuationIdentity {
+    // FNV-1a is intentionally used only as a cheap in-process corruption
+    // detector.  Domain separation and explicit integer encoding make the
+    // value deterministic across host endianness and Zig versions.
+    var fingerprint: u64 = 0xcbf2_9ce4_8422_2325;
+    fingerprint = identityMix(fingerprint, 0x5354_574f); // "STWO"
+    fingerprint = identityMix(fingerprint, @intCast(words.len));
+    for (words) |word| {
+        fingerprint = identityMix(fingerprint, word.addr);
+        fingerprint = identityMix(fingerprint, @field(word, @tagName(side)));
+    }
+    return .{ .word_count = @intCast(words.len), .fingerprint = fingerprint };
+}
+
+inline fn identityMix(current: u64, value: u64) u64 {
+    var result = current;
+    inline for (0..8) |byte| {
+        result ^= @as(u8, @truncate(value >> @intCast(byte * 8)));
+        result *%= 0x0000_0100_0000_01b3;
+    }
+    return result;
+}
 
 /// Capture Stark-V's sorted union of initialized and accessed RW words.
 pub fn capture(
@@ -105,6 +256,53 @@ pub fn capture(
     segment_role: SegmentRole,
     output_len: u32,
     completion_word_addr: ?u32,
+) !Snapshot {
+    return captureImpl(
+        allocator,
+        memory,
+        tracker,
+        layout,
+        segment_role,
+        output_len,
+        completion_word_addr,
+        null,
+    );
+}
+
+/// Capture the canonical memory snapshot for a resumed segment.  The mutable
+/// state-chain tracker intentionally retains whole-execution baselines for its
+/// clock invariants; this explicit boundary supplies segment-entry values.
+pub fn captureSegment(
+    allocator: std.mem.Allocator,
+    memory: *const Memory,
+    tracker: *const StateChainTracker,
+    layout: MemoryLayout,
+    segment_role: SegmentRole,
+    output_len: u32,
+    completion_word_addr: ?u32,
+    baseline: SegmentBaseline,
+) !Snapshot {
+    return captureImpl(
+        allocator,
+        memory,
+        tracker,
+        layout,
+        segment_role,
+        output_len,
+        completion_word_addr,
+        baseline,
+    );
+}
+
+fn captureImpl(
+    allocator: std.mem.Allocator,
+    memory: *const Memory,
+    tracker: *const StateChainTracker,
+    layout: MemoryLayout,
+    segment_role: SegmentRole,
+    output_len: u32,
+    completion_word_addr: ?u32,
+    baseline: ?SegmentBaseline,
 ) !Snapshot {
     var addresses = std.AutoHashMap(u32, void).init(allocator);
     defer addresses.deinit();
@@ -123,7 +321,10 @@ pub fn capture(
         const final_clock = tracker.mem_last_clk.get(addr) orelse 0;
         words.appendAssumeCapacity(.{
             .addr = addr,
-            .initial_word = tracker.mem_initial.get(addr) orelse final_word,
+            .initial_word = if (baseline) |entry|
+                entry.value(addr) orelse 0
+            else
+                tracker.mem_initial.get(addr) orelse final_word,
             .final_word = final_word,
             .final_clock = final_clock,
             .role = .{
@@ -159,6 +360,36 @@ pub fn capture(
         .words = try words.toOwnedSlice(allocator),
         .program_words = try program_words.toOwnedSlice(allocator),
     };
+}
+
+/// Snapshot all initialized or previously accessed RW words before executing
+/// a segment.  This is paid once per boundary, never per instruction.
+pub fn captureSegmentBaseline(
+    allocator: std.mem.Allocator,
+    memory: *const Memory,
+    tracker: *const StateChainTracker,
+    layout: MemoryLayout,
+) !SegmentBaseline {
+    var addresses = std.AutoHashMap(u32, void).init(allocator);
+    defer addresses.deinit();
+    try memory.addAlignedWordAddresses(&addresses);
+    var accessed = tracker.mem_last_clk.keyIterator();
+    while (accessed.next()) |addr| try addresses.put(addr.* & ~@as(u32, 3), {});
+
+    var words: std.ArrayList(BaselineWord) = .{};
+    errdefer words.deinit(allocator);
+    try words.ensureTotalCapacity(allocator, addresses.count());
+    var iterator = addresses.keyIterator();
+    while (iterator.next()) |addr| {
+        if (!layout.isRwAddr(addr.*)) continue;
+        words.appendAssumeCapacity(.{ .addr = addr.*, .value = memory.readU32(addr.*) });
+    }
+    std.mem.sort(BaselineWord, words.items, {}, lessBaselineWord);
+    return .{ .words = try words.toOwnedSlice(allocator) };
+}
+
+fn lessBaselineWord(_: void, lhs: BaselineWord, rhs: BaselineWord) bool {
+    return lhs.addr < rhs.addr;
 }
 
 fn lessWord(_: void, lhs: WordState, rhs: WordState) bool {

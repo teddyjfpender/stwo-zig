@@ -7,6 +7,7 @@ const poly = @import("poly.zig");
 const eval_mod = @import("evaluation.zig");
 const secure_column = @import("../../secure_column.zig");
 const twiddles_mod = @import("../twiddles.zig");
+const work_profile = @import("stwo_prover_api").work_profile;
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
@@ -14,6 +15,7 @@ const CirclePointQM31 = circle.CirclePointQM31;
 const CircleDomain = domain_mod.CircleDomain;
 const CircleCoefficients = poly.CircleCoefficients;
 const SecureColumnByCoords = secure_column.SecureColumnByCoords;
+const WorkRecorder = work_profile.Recorder(true);
 
 pub const SecurePolyError = error{
     ShapeMismatch,
@@ -226,18 +228,58 @@ pub fn interpolateAndSplitFromEvaluationWithTwiddlesForBackend(
     values: *SecureColumnByCoords,
     twiddle_tree: twiddles_mod.TwiddleTree([]const M31),
 ) !SecureCirclePoly.SplitPair {
+    return interpolateAndSplitFromEvaluationWithTwiddlesForBackendAndWorkRecorder(
+        B,
+        allocator,
+        domain,
+        values,
+        twiddle_tree,
+        null,
+    );
+}
+
+pub fn interpolateAndSplitFromEvaluationWithTwiddlesForBackendAndWorkRecorder(
+    comptime B: type,
+    allocator: std.mem.Allocator,
+    domain: CircleDomain,
+    values: *SecureColumnByCoords,
+    twiddle_tree: twiddles_mod.TwiddleTree([]const M31),
+    work_recorder: ?*WorkRecorder,
+) !SecureCirclePoly.SplitPair {
     if (domain.size() != values.len() or values.len() < 2) return SecurePolyError.ShapeMismatch;
 
+    const already_coefficients = values.representation == .coefficients;
+    if (already_coefficients) {
+        var result = try splitCoefficientColumnsBorrowed(values);
+        errdefer result.deinit(allocator);
+        try recordSecureInterpolation(work_recorder, null);
+        return result;
+    }
+
     if (comptime B != void and @hasDecl(B, "interpolateSecureComposition")) {
-        if (try B.interpolateSecureComposition(
-            allocator,
-            values,
-            domain,
-            twiddle_tree,
-        )) {
-            if (values.representation == .coefficients)
-                return splitCoefficientColumnsBorrowed(values);
-            return splitCoefficientColumns(allocator, values);
+        const dispatch: work_profile.M31InterpolationBackendResult =
+            try B.interpolateSecureComposition(
+                allocator,
+                values,
+                domain,
+                twiddle_tree,
+            );
+        try dispatch.validate();
+        switch (dispatch) {
+            .declined => {
+                if (values.representation != .evaluations)
+                    return SecurePolyError.ShapeMismatch;
+            },
+            .already_coefficients => return SecurePolyError.ShapeMismatch,
+            .transformed => |execution| {
+                try validateSecureExecution(execution, domain.logSize());
+                if (values.representation != .coefficients)
+                    return SecurePolyError.ShapeMismatch;
+                var result = try splitCoefficientColumnsBorrowed(values);
+                errdefer result.deinit(allocator);
+                try recordSecureInterpolation(work_recorder, execution);
+                return result;
+            },
         }
     }
 
@@ -249,7 +291,14 @@ pub fn interpolateAndSplitFromEvaluationWithTwiddlesForBackend(
             twiddle_tree,
         );
         defer polynomial.deinit(allocator);
-        return polynomial.splitAtMid(allocator);
+        var result = try polynomial.splitAtMid(allocator);
+        errdefer result.deinit(allocator);
+        try recordSecureInterpolation(work_recorder, .{
+            .log_size = domain.logSize(),
+            .column_count = qm31.SECURE_EXTENSION_DEGREE,
+            .batch_count = qm31.SECURE_EXTENSION_DEGREE,
+        });
+        return result;
     }
 
     const half_len = values.len() / 2;
@@ -276,10 +325,47 @@ pub fn interpolateAndSplitFromEvaluationWithTwiddlesForBackend(
         initialized += 1;
     }
 
-    return .{
+    var result = SecureCirclePoly.SplitPair{
         .left = try SecureCirclePoly.init(left_polys),
         .right = try SecureCirclePoly.init(right_polys),
     };
+    initialized = 0;
+    errdefer result.deinit(allocator);
+    try recordSecureInterpolation(work_recorder, null);
+    return result;
+}
+
+fn validateSecureExecution(
+    execution: work_profile.M31InterpolationExecution,
+    log_size: u32,
+) !void {
+    try execution.validate();
+    if (execution.log_size != log_size or
+        execution.column_count != qm31.SECURE_EXTENSION_DEGREE)
+    {
+        return error.InvalidCounterGroup;
+    }
+}
+
+fn recordSecureInterpolation(
+    recorder: ?*WorkRecorder,
+    execution: ?work_profile.M31InterpolationExecution,
+) !void {
+    const active = recorder orelse return;
+    const counters: work_profile.Counters = if (execution) |completed|
+        try completed.exactWork()
+    else
+        .{};
+    try active.recordCompletedDelta(.{
+        .site = .secure_composition_interpolation_fft,
+        .producer = work_profile.boundaryForSite(.secure_composition_interpolation_fft),
+        .source_mask = .{ .bits = work_profile.SourceMask.one(.field_additions).bits |
+            work_profile.SourceMask.one(.field_multiplications).bits |
+            work_profile.SourceMask.one(.field_inversions).bits |
+            work_profile.SourceMask.one(.fft_butterflies).bits },
+        .counters = counters,
+    });
+    // work-profile-complete:secure-composition-interpolation-fft
 }
 
 fn splitCoefficientColumnsBorrowed(
@@ -309,32 +395,68 @@ fn evaluationIsConstant(values: *const SecureColumnByCoords) bool {
     return true;
 }
 
-fn splitCoefficientColumns(
-    allocator: std.mem.Allocator,
-    values: *const SecureColumnByCoords,
-) !SecureCirclePoly.SplitPair {
-    var left_polys: [qm31.SECURE_EXTENSION_DEGREE]CircleCoefficients = undefined;
-    var right_polys: [qm31.SECURE_EXTENSION_DEGREE]CircleCoefficients = undefined;
-    var initialized: usize = 0;
-    errdefer {
-        for (0..initialized) |coordinate| {
-            left_polys[coordinate].deinit(allocator);
-            right_polys[coordinate].deinit(allocator);
-        }
-    }
+test "secure interpolation work: four one-column batches own four inversions" {
+    var recorder = WorkRecorder{};
+    try recorder.expectProducer(.secure_composition_interpolation_fft);
+    try recordSecureInterpolation(&recorder, .{
+        .log_size = 3,
+        .column_count = 4,
+        .batch_count = 4,
+    });
 
-    for (values.columns, 0..) |column, coordinate| {
-        const polynomial = try CircleCoefficients.initBorrowed(column);
-        const split = try polynomial.splitAtMid(allocator);
-        left_polys[coordinate] = split.left;
-        right_polys[coordinate] = split.right;
-        initialized += 1;
-    }
+    try std.testing.expectEqual(@as(u64, 96), recorder.counters.field_additions);
+    try std.testing.expectEqual(@as(u64, 80), recorder.counters.field_multiplications);
+    try std.testing.expectEqual(@as(u64, 4), recorder.counters.field_inversions);
+    try std.testing.expectEqual(@as(u64, 48), recorder.counters.fft_butterflies);
+    try std.testing.expect(!recorder.incomplete);
+    try std.testing.expectEqual(
+        @as(u64, 1),
+        recorder.completed_sites[@intFromEnum(work_profile.Site.secure_composition_interpolation_fft)],
+    );
+}
 
-    return .{
-        .left = try SecureCirclePoly.init(left_polys),
-        .right = try SecureCirclePoly.init(right_polys),
+test "secure interpolation work: CPU and Metal receipts preserve lane parity" {
+    const cpu = work_profile.M31InterpolationExecution{
+        .log_size = 19,
+        .column_count = 4,
+        .batch_count = 4,
     };
+    const metal = work_profile.M31InterpolationExecution{
+        .log_size = 19,
+        .column_count = 4,
+        .batch_count = 1,
+    };
+    const cpu_work = try cpu.exactWork();
+    const metal_work = try metal.exactWork();
+    try std.testing.expectEqual(cpu_work.field_additions, metal_work.field_additions);
+    try std.testing.expectEqual(cpu_work.fft_butterflies, metal_work.fft_butterflies);
+    try std.testing.expectEqual(@as(u64, 4), cpu_work.field_inversions);
+    try std.testing.expectEqual(@as(u64, 1), metal_work.field_inversions);
+    try std.testing.expectEqualDeep(
+        try cpu.perColumnBatchProjection(),
+        try metal.perColumnBatchProjection(),
+    );
+    try std.testing.expectError(
+        error.InvalidCounterGroup,
+        validateSecureExecution(.{
+            .log_size = 18,
+            .column_count = 4,
+            .batch_count = 1,
+        }, 19),
+    );
+}
+
+test "secure interpolation work: already-coefficient path is exact zero" {
+    var recorder = WorkRecorder{};
+    try recorder.expectProducer(.secure_composition_interpolation_fft);
+    try recordSecureInterpolation(&recorder, null);
+
+    try std.testing.expect(!recorder.incomplete);
+    try std.testing.expect(recorder.counters.isZero());
+    try std.testing.expectEqual(
+        @as(u8, 0x0f),
+        recorder.source_mask.bits & 0x0f,
+    );
 }
 
 pub fn interpolateFromEvaluationWithTwiddles(

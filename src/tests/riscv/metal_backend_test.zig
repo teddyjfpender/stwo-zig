@@ -3,6 +3,7 @@
 const std = @import("std");
 const pcs = @import("stwo_core").pcs;
 const metal_aot_config = @import("metal_aot_config");
+const prover_api = @import("stwo_prover_api");
 const stwo_riscv_metal = @import("stwo_riscv_metal");
 const riscv = stwo_riscv_metal.frontends.riscv;
 const riscv_metal = stwo_riscv_metal.integrations.riscv_metal;
@@ -46,13 +47,21 @@ test "metal: RV32IM retirement trace proves and verifies without fallback" {
     var run = try runner.run(allocator, &elf, 1000);
     defer run.deinit();
 
+    var recorder = prover_api.stage_profile.Recorder.initWithOptions(
+        allocator,
+        "test",
+        "riscv-metal-exact-work",
+        .{ .capture_work = true },
+    );
+    defer recorder.deinit();
     const telemetry_before = try riscv_metal.MetalProverEngine.telemetrySnapshot();
-    const output = try riscv_metal.proveRiscV(
+    const output = try riscv_metal.proveRiscVWithRecorder(
         allocator,
         TEST_CONFIG,
         &run.execution_trace,
         null,
         null,
+        &recorder,
     );
     defer output.deinitAfterProofMoved(allocator);
     const telemetry_after = try riscv_metal.MetalProverEngine.telemetrySnapshot();
@@ -74,6 +83,23 @@ test "metal: RV32IM retirement trace proves and verifies without fallback" {
         @as(u64, 0),
         telemetry_delta.counters.cpu_riscv_polynomial_composition_declines,
     );
+    const work = recorder.workCaptureRecorder() orelse unreachable;
+    for ([_]prover_api.work_profile.Site{
+        .oods_seed_to_point,
+        .oods_mask_points,
+        .oods_constraint_evaluation,
+        .relation_challenges_and_interaction_traces,
+        .quotient_sample_preparation,
+        .quotient_row_execution,
+        .air_composition_on_domain,
+        .pcs_transcript_shell,
+    }) |site| {
+        const index = @intFromEnum(site);
+        try std.testing.expectEqual(@as(u64, 1), work.planned_sites[index]);
+        try std.testing.expectEqual(@as(u64, 1), work.completed_sites[index]);
+    }
+    const work_snapshot = try recorder.workSnapshot();
+    try work_snapshot.validate();
     try riscv_metal.verifyRiscV(
         allocator,
         TEST_CONFIG,

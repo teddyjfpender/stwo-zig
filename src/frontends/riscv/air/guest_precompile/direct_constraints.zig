@@ -109,10 +109,18 @@ pub fn evaluateCaller(
     main: [caller_main_column_count]QM31,
     is_active: QM31,
 ) [caller_constraint_count]QM31 {
+    return evaluateCallerGeneric(QM31, main, is_active);
+}
+
+pub fn evaluateCallerGeneric(
+    comptime S: type,
+    main: [caller_main_column_count]S,
+    is_active: S,
+) [caller_constraint_count]S {
     const layout = components.caller_layout;
     const enabler = main[layout.enabler];
-    const one = QM31.one();
-    var result: [caller_constraint_count]QM31 = undefined;
+    const one = S.one();
+    var result: [caller_constraint_count]S = undefined;
 
     result[CallerOrder.enabler_boolean] = enabler.mul(one.sub(enabler));
     result[CallerOrder.enabler_activity] = enabler.sub(is_active);
@@ -123,19 +131,19 @@ pub fn evaluateCaller(
 
     const pointer_bytes = main[layout.pointer_bytes..][0..4].*;
     result[CallerOrder.pointer_composition] = composeLittleEndian(
-        QM31,
+        S,
         pointer_bytes,
-    ).sub(mulSmall(QM31, main[layout.pointer_word_index], 4));
+    ).sub(mulSmall(S, main[layout.pointer_word_index], 4));
     const span_limbs = main[layout.span_end_limbs..][0..4].*;
     result[CallerOrder.pointer_span] = main[layout.pointer_word_index]
-        .add(mulSmall(QM31, enabler, 15))
-        .sub(composeLittleEndian(QM31, span_limbs));
+        .add(mulSmall(S, enabler, 15))
+        .sub(composeLittleEndian(S, span_limbs));
 
     inline for (0..canonical_word_count) |word| {
         const output = comptime word >= 16;
         const lane: u8 = @intCast(word % 16);
         const constraints = canonicalWordConstraints(
-            QM31,
+            S,
             &main,
             enabler,
             output,
@@ -158,15 +166,23 @@ pub fn evaluateProvider(
     main: [provider_main_column_count]QM31,
     is_active: QM31,
 ) [provider_constraint_count]QM31 {
-    var result: [provider_constraint_count]QM31 = undefined;
-    const poseidon = poseidon2_air.evaluate(main);
+    return evaluateProviderGeneric(QM31, main, is_active);
+}
+
+pub fn evaluateProviderGeneric(
+    comptime S: type,
+    main: [provider_main_column_count]S,
+    is_active: S,
+) [provider_constraint_count]S {
+    var result: [provider_constraint_count]S = undefined;
+    const poseidon = poseidon2_air.evaluateGeneric(S, main);
     @memcpy(result[ProviderOrder.poseidon_start..][0..poseidon.len], &poseidon);
 
     result[ProviderOrder.enabler_activity] = main[provider_enabler_column]
         .sub(is_active);
     result[ProviderOrder.io_activity] = main[provider_io_column].sub(is_active);
     result[ProviderOrder.wide_zero] = main[provider_wide_column];
-    const padding_mask = QM31.one().sub(is_active);
+    const padding_mask = S.one().sub(is_active);
     for (1..provider_wide_column) |column| {
         result[ProviderOrder.padding(column)] = padding_mask.mul(main[column]);
     }
@@ -215,13 +231,13 @@ fn composeLittleEndian(comptime F: type, limbs: [4]F) F {
 fn mulSmall(comptime F: type, value: F, coefficient: u32) F {
     if (comptime F == M31) return value.mul(M31.fromCanonical(coefficient));
     if (comptime F == QM31) return value.mulM31(M31.fromCanonical(coefficient));
-    @compileError("guest direct AIR supports only M31 and QM31 scalars");
+    return value.mul(F.fromBase(M31.fromCanonical(coefficient)));
 }
 
 fn constant(comptime F: type, value: u32) F {
     if (comptime F == M31) return M31.fromCanonical(value);
     if (comptime F == QM31) return QM31.fromBase(M31.fromCanonical(value));
-    @compileError("guest direct AIR supports only M31 and QM31 scalars");
+    return F.fromBase(M31.fromCanonical(value));
 }
 
 const provider_enabler_column: usize = 0;

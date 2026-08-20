@@ -6,6 +6,8 @@ const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
 const pcs = @import("stwo_core").pcs;
 const accumulation = @import("accumulation.zig");
+const composition_work = @import("composition_work.zig");
+const oods_work = @import("oods_work.zig");
 const composition_execution = @import("composition_execution.zig");
 const component_parallel = @import("component_parallel.zig");
 const component_trace = @import("component_trace.zig");
@@ -31,163 +33,31 @@ pub const Trace = component_trace.Trace;
 /// the same typed builder used by its reference AIR evaluator. Node order is
 /// topological: every operand names an earlier node. `column` values address
 /// the capability's ordered input columns.
-pub const BasePolynomialOp = enum(u8) { constant, column, add, sub, mul, neg };
-
-pub const BasePolynomialNode = struct {
-    op: BasePolynomialOp,
-    lhs: u32 = 0,
-    rhs: u32 = 0,
-    value: u32 = 0,
-};
-
-pub const OwnedBasePolynomialProgram = struct {
-    allocator: std.mem.Allocator,
-    nodes: []BasePolynomialNode,
-    roots: []u32,
-    column_count: usize,
-
-    pub fn deinit(self: *OwnedBasePolynomialProgram) void {
-        self.allocator.free(self.roots);
-        self.allocator.free(self.nodes);
-        self.* = undefined;
-    }
-
-    pub fn validate(self: OwnedBasePolynomialProgram) !void {
-        if (self.column_count == 0 or self.nodes.len == 0 or self.roots.len == 0)
-            return error.InvalidBasePolynomialProgram;
-        for (self.nodes, 0..) |node, index| switch (node.op) {
-            .constant => {},
-            .column => if (node.value >= self.column_count)
-                return error.InvalidBasePolynomialProgram,
-            .add, .sub, .mul => if (node.lhs >= index or node.rhs >= index)
-                return error.InvalidBasePolynomialProgram,
-            .neg => if (node.lhs >= index)
-                return error.InvalidBasePolynomialProgram,
-        };
-        for (self.roots) |root| if (root >= self.nodes.len)
-            return error.InvalidBasePolynomialProgram;
-    }
-};
-
-/// A committed base-polynomial component that a backend may evaluate from the
-/// proof's own residency handles. The selector is the final program input;
-/// preceding inputs are the contiguous main-column block. The exporter is
-/// invoked only during proving and must derive its program from the production
-/// evaluator rather than maintain an independent constraint transcription.
-pub const BasePolynomialCapabilityV1 = struct {
-    program_id: u64,
-    trace_log_size: u32,
-    selector_tree_index: usize,
-    selector_column: usize,
-    main_tree_index: usize,
-    first_main_column: usize,
-    main_column_count: usize,
-    export_program: *const fn (
-        ctx: *const anyopaque,
-        allocator: std.mem.Allocator,
-    ) anyerror!OwnedBasePolynomialProgram,
-};
-
-pub const MAX_LOOKUP_POLYNOMIAL_ARITY: usize = 32;
-
-pub const LookupPolynomialEntry = struct {
-    numerator: u32,
-    values: [MAX_LOOKUP_POLYNOMIAL_ARITY]u32 = undefined,
-    arity: u8,
-};
-
-pub const OwnedLookupPolynomialProgram = struct {
-    allocator: std.mem.Allocator,
-    nodes: []BasePolynomialNode,
-    entries: []LookupPolynomialEntry,
-    column_count: usize,
-    batch_size: usize,
-
-    pub fn deinit(self: *OwnedLookupPolynomialProgram) void {
-        self.allocator.free(self.entries);
-        self.allocator.free(self.nodes);
-        self.* = undefined;
-    }
-
-    pub fn batchCount(self: OwnedLookupPolynomialProgram) usize {
-        return (self.entries.len + self.batch_size - 1) / self.batch_size;
-    }
-
-    pub fn parameterCount(self: OwnedLookupPolynomialProgram) usize {
-        var count = self.batchCount();
-        for (self.entries) |entry| count += 1 + entry.arity;
-        return count;
-    }
-
-    pub fn validate(self: OwnedLookupPolynomialProgram) !void {
-        if (self.column_count == 0 or self.nodes.len == 0 or
-            self.entries.len == 0 or (self.batch_size != 1 and self.batch_size != 2))
-            return error.InvalidLookupPolynomialProgram;
-        for (self.nodes, 0..) |node, index| switch (node.op) {
-            .constant => {},
-            .column => if (node.value >= self.column_count)
-                return error.InvalidLookupPolynomialProgram,
-            .add, .sub, .mul => if (node.lhs >= index or node.rhs >= index)
-                return error.InvalidLookupPolynomialProgram,
-            .neg => if (node.lhs >= index)
-                return error.InvalidLookupPolynomialProgram,
-        };
-        for (self.entries) |entry| {
-            if (entry.arity == 0 or entry.arity > MAX_LOOKUP_POLYNOMIAL_ARITY or
-                entry.numerator >= self.nodes.len)
-                return error.InvalidLookupPolynomialProgram;
-            for (entry.values[0..entry.arity]) |value| if (value >= self.nodes.len)
-                return error.InvalidLookupPolynomialProgram;
-        }
-    }
-};
-
-/// Pairs-batched LogUp transition constraints whose base tuple expressions are
-/// exported from a production typed builder. Parameter order is canonical:
-/// for every entry, `(z, alpha^0, ..., alpha^(arity-1))`, followed by one
-/// claimed sum per batch.
-pub const LookupPolynomialCapabilityV1 = struct {
-    program_id: u64,
-    trace_log_size: u32,
-    selector_tree_index: usize,
-    selector_column: usize,
-    main_tree_index: usize,
-    first_main_column: usize,
-    main_column_count: usize,
-    interaction_tree_index: usize,
-    first_interaction_column: usize,
-    interaction_column_count: usize,
-    export_program: *const fn (
-        ctx: *const anyopaque,
-        allocator: std.mem.Allocator,
-    ) anyerror!OwnedLookupPolynomialProgram,
-    export_parameters: *const fn (
-        ctx: *const anyopaque,
-        allocator: std.mem.Allocator,
-    ) anyerror![]QM31,
-};
-
-/// Reviewed semantic contracts that a backend may accelerate without
-/// identifying a workload or trusting a coincidental vtable address. Each
-/// variant names the complete AIR relation implemented by the accelerated
-/// kernel; unmarked components always use the reference evaluator.
-pub const BackendCompositionCapability = union(enum) {
-    /// For one trace tree with columns `[a, b, c, ...]`, contributes one
-    /// constraint per consecutive triple: `c - (a^2 + b^2)`, in canonical
-    /// component constraint order, divided by the trace-coset vanishing
-    /// polynomial.
-    quadratic_sum_squares_v1: struct {
-        trace_tree_index: usize,
-        first_column: usize,
-    },
-    /// Direct base-field constraints exported from the frontend's production
-    /// typed AIR builder. Random-coefficient order and vanishing denominators
-    /// remain owned by the generic prover.
-    base_polynomial_v1: BasePolynomialCapabilityV1,
-    /// Pairs-batched LogUp transition constraints over production-exported
-    /// base tuple expressions and committed secure cumulative columns.
-    lookup_polynomial_v1: LookupPolynomialCapabilityV1,
-};
+const component_programs = @import("component_programs.zig");
+pub const BasePolynomialOp = component_programs.BasePolynomialOp;
+pub const BasePolynomialNode = component_programs.BasePolynomialNode;
+pub const OwnedBasePolynomialProgram = component_programs.OwnedBasePolynomialProgram;
+pub const BasePolynomialCapabilityV1 = component_programs.BasePolynomialCapabilityV1;
+pub const MAX_LOOKUP_POLYNOMIAL_ARITY = component_programs.MAX_LOOKUP_POLYNOMIAL_ARITY;
+pub const LookupPolynomialEntry = component_programs.LookupPolynomialEntry;
+pub const OwnedLookupPolynomialProgram = component_programs.OwnedLookupPolynomialProgram;
+pub const LOOKUP_POLYNOMIAL_LAYOUT_V2_FORMAT_VERSION = component_programs.LOOKUP_POLYNOMIAL_LAYOUT_V2_FORMAT_VERSION;
+pub const LOOKUP_POLYNOMIAL_LAYOUT_V2_MAXIMUM_BATCH_SIZE = component_programs.LOOKUP_POLYNOMIAL_LAYOUT_V2_MAXIMUM_BATCH_SIZE;
+pub const LOOKUP_POLYNOMIAL_LAYOUT_V2_INTERACTION_COORDINATES = component_programs.LOOKUP_POLYNOMIAL_LAYOUT_V2_INTERACTION_COORDINATES;
+pub const LOOKUP_POLYNOMIAL_LAYOUT_V2_MAXIMUM_DEGREE = component_programs.LOOKUP_POLYNOMIAL_LAYOUT_V2_MAXIMUM_DEGREE;
+pub const LOOKUP_POLYNOMIAL_LAYOUT_V2_IDENTITY_DOMAIN = component_programs.LOOKUP_POLYNOMIAL_LAYOUT_V2_IDENTITY_DOMAIN;
+pub const LOOKUP_POLYNOMIAL_PROGRAM_V2_IDENTITY_DOMAIN = component_programs.LOOKUP_POLYNOMIAL_PROGRAM_V2_IDENTITY_DOMAIN;
+pub const LookupPolynomialIdentity = component_programs.LookupPolynomialIdentity;
+pub const LookupPolynomialProgramV2Error = component_programs.LookupPolynomialProgramV2Error;
+pub const LookupPolynomialEventDegreeV2 = component_programs.LookupPolynomialEventDegreeV2;
+pub const LookupPolynomialBatchV2 = component_programs.LookupPolynomialBatchV2;
+pub const LookupPolynomialLayoutV2 = component_programs.LookupPolynomialLayoutV2;
+pub const LookupPolynomialAuthorityV2 = component_programs.LookupPolynomialAuthorityV2;
+pub const OwnedLookupPolynomialProgramV2 = component_programs.OwnedLookupPolynomialProgramV2;
+pub const LookupPolynomialCapabilityV1 = component_programs.LookupPolynomialCapabilityV1;
+pub const LookupPolynomialCapabilityV2 = component_programs.LookupPolynomialCapabilityV2;
+pub const BackendCompositionCapability = component_programs.BackendCompositionCapability;
+pub const ComponentProfileIdentity = @import("component_profile_identity.zig").ComponentProfileIdentity;
 
 pub const ComponentProverVTable = struct {
     nConstraints: *const fn (ctx: *const anyopaque) usize,
@@ -218,7 +88,25 @@ pub const ComponentProverVTable = struct {
 pub const ComponentProver = struct {
     ctx: *const anyopaque,
     vtable: *const ComponentProverVTable,
+    profile_identity: ?ComponentProfileIdentity = null,
     backend_composition_capability: ?BackendCompositionCapability = null,
+    /// Optional exact one-row formula authority for profiled domain
+    /// composition. The callback is cold and allocation-explicit; ordinary
+    /// proving never invokes it. Backend aggregation remains a separate owner
+    /// because fresh stores, merges, and lifting depend on the selected route.
+    composition_work_profile: ?*const fn (
+        ctx: *const anyopaque,
+        allocator: std.mem.Allocator,
+    ) anyerror!composition_work.ComponentProfile = null,
+    /// Optional backend-neutral authority for the two OODS component calls.
+    /// The callback runs only after a profiled operation has executed; normal
+    /// proving retains the original vtable path with no per-component branch.
+    oods_work_profile: ?*const fn (
+        ctx: *const anyopaque,
+        allocator: std.mem.Allocator,
+        max_log_degree_bound: u32,
+        source: *const composition_work.ComponentProfile,
+    ) anyerror!oods_work.ComponentProfile = null,
     /// Optional coordinator-prepared, allocation-free domain evaluator.
     /// Structured composition scheduling is activated only when every
     /// component in the stage exposes this capability.
@@ -342,6 +230,115 @@ pub const ComponentProver = struct {
         try result.validate();
         return result;
     }
+
+    pub fn compositionWorkProfile(
+        self: ComponentProver,
+        allocator: std.mem.Allocator,
+    ) anyerror!?composition_work.ComponentProfile {
+        const profile = self.composition_work_profile orelse return null;
+        const result = try profile(self.ctx, allocator);
+        try result.validate();
+        if (result.constraint_count != self.nConstraints() or
+            result.evaluation_log_size != self.maxConstraintLogDegreeBound())
+        {
+            return error.InvalidCompositionWorkProfile;
+        }
+        return result;
+    }
+
+    pub fn oodsWorkProfile(
+        self: ComponentProver,
+        allocator: std.mem.Allocator,
+        max_log_degree_bound: u32,
+    ) anyerror!?oods_work.ComponentProfile {
+        const profile = self.oods_work_profile orelse return null;
+        const source = try self.compositionWorkProfile(allocator) orelse
+            return null;
+        const result = try profile(
+            self.ctx,
+            allocator,
+            max_log_degree_bound,
+            &source,
+        );
+        try result.validate();
+        if (result.constraint_count != self.nConstraints() or
+            result.max_log_degree_bound != max_log_degree_bound or
+            result.component_log_degree_bound != self.maxConstraintLogDegreeBound() or
+            !std.mem.eql(
+                u8,
+                &result.composition_profile_digest,
+                &source.profile_digest,
+            ))
+        {
+            return error.InvalidOodsWorkProfile;
+        }
+        return result;
+    }
+};
+
+/// Proof-scoped cold observer for the core component loops. Profile failures
+/// never alter proof execution: they suppress publication, which makes the
+/// terminal work ledger fail closed. Duplicate publication remains a hard
+/// programming error at `Capture.publish`.
+const OodsObserver = struct {
+    components: []const ComponentProver,
+    allocator: std.mem.Allocator,
+    max_log_degree_bound: u32,
+    builder: oods_work.Builder,
+    complete: bool = true,
+
+    fn init(
+        site: oods_work.Site,
+        components: []const ComponentProver,
+        allocator: std.mem.Allocator,
+        max_log_degree_bound: u32,
+    ) OodsObserver {
+        return .{
+            .components = components,
+            .allocator = allocator,
+            .max_log_degree_bound = max_log_degree_bound,
+            .builder = oods_work.Builder.init(site),
+        };
+    }
+
+    pub fn afterComponent(self: *OodsObserver, ordinal: usize) !void {
+        if (!self.complete) return;
+        if (ordinal >= self.components.len) {
+            self.complete = false;
+            return;
+        }
+        const profile = self.components[ordinal].oodsWorkProfile(
+            self.allocator,
+            self.max_log_degree_bound,
+        ) catch {
+            self.complete = false;
+            return;
+        } orelse {
+            self.complete = false;
+            return;
+        };
+        self.builder.addComponent(ordinal, &profile) catch {
+            self.complete = false;
+        };
+    }
+
+    fn addCoordinator(
+        self: *OodsObserver,
+        label: []const u8,
+        operations: oods_work.FieldOperations,
+        geometry: []const u64,
+    ) void {
+        if (!self.complete) return;
+        self.builder.addCoordinator(label, operations, geometry) catch {
+            self.complete = false;
+        };
+    }
+
+    fn publish(self: *OodsObserver, capture: *oods_work.Capture) !void {
+        if (!self.complete) return;
+        const receipt = self.builder.finish() catch return;
+        try capture.publish(receipt);
+    }
 };
 
 pub const ComponentProvers = struct {
@@ -352,6 +349,9 @@ pub const ComponentProvers = struct {
     /// Borrowed from the proof's existing optional stage recorder. Structured
     /// composition publishes its independent flat task profile through it.
     task_recorder: ?*stage_profile.Recorder = null,
+    /// Borrowed proof-scoped receipt slot. A backend publishes only after the
+    /// complete composition result has succeeded.
+    composition_work_capture: ?*composition_work.Capture = null,
 
     pub const ComponentsView = struct {
         prover_components: []ComponentProver,
@@ -369,6 +369,101 @@ pub const ComponentProvers = struct {
                 .components = self.core_components,
                 .n_preprocessed_columns = self.n_preprocessed_columns,
             };
+        }
+
+        /// Executes the established core aggregation unchanged. A profiled
+        /// request adds one cold callback after each successful dynamic vtable
+        /// call and publishes only after the complete mask has been assembled.
+        /// Profiled wall-clock stages intentionally include this bounded
+        /// evidence cost; unprofiled benchmark/proof paths take the direct
+        /// core method and execute no observer work.
+        pub fn maskPointsWithWorkCapture(
+            self: ComponentsView,
+            allocator: std.mem.Allocator,
+            point: CirclePointQM31,
+            max_log_degree_bound: u32,
+            include_all_preprocessed_columns: bool,
+            capture: ?*oods_work.Capture,
+        ) !core_air_components.MaskPoints {
+            const active = capture orelse return self.asCore().maskPoints(
+                allocator,
+                point,
+                max_log_degree_bound,
+                include_all_preprocessed_columns,
+            );
+            var observer = OodsObserver.init(
+                .mask_points,
+                self.prover_components,
+                allocator,
+                max_log_degree_bound,
+            );
+            var result = try self.asCore().maskPointsWithObserver(
+                allocator,
+                point,
+                max_log_degree_bound,
+                include_all_preprocessed_columns,
+                &observer,
+            );
+            errdefer result.deinitDeep(allocator);
+            try observer.publish(active);
+            return result;
+        }
+
+        /// Point-composition analogue of `maskPointsWithWorkCapture`. The
+        /// extraction geometry names the coordinator work that has already
+        /// succeeded immediately before this call.
+        pub fn evalCompositionPolynomialAtPointWithWorkCapture(
+            self: ComponentsView,
+            allocator: std.mem.Allocator,
+            point: CirclePointQM31,
+            mask_values: *const core_air_components.MaskValues,
+            random_coeff: QM31,
+            max_log_degree_bound: u32,
+            composition_log_size: u32,
+            composition_log_split: u32,
+            capture: ?*oods_work.Capture,
+        ) !QM31 {
+            const active = capture orelse
+                return self.asCore().evalCompositionPolynomialAtPoint(
+                    point,
+                    mask_values,
+                    random_coeff,
+                    max_log_degree_bound,
+                );
+            var observer = OodsObserver.init(
+                .constraint_evaluation,
+                self.prover_components,
+                allocator,
+                max_log_degree_bound,
+            );
+            observer.addCoordinator(
+                "composition-chunk-extraction",
+                oods_work.compositionExtractionWork(
+                    composition_log_size,
+                    composition_log_split,
+                ) catch {
+                    observer.complete = false;
+                    return self.asCore().evalCompositionPolynomialAtPoint(
+                        point,
+                        mask_values,
+                        random_coeff,
+                        max_log_degree_bound,
+                    );
+                },
+                &.{
+                    @as(u64, composition_log_size),
+                    @as(u64, composition_log_split),
+                },
+            );
+            const result = try self.asCore().evalCompositionPolynomialAtPointWithObserver(
+                point,
+                mask_values,
+                random_coeff,
+                max_log_degree_bound,
+                &observer,
+            );
+            try observer.publish(active);
+            return result;
         }
     };
 
@@ -475,6 +570,7 @@ pub const ComponentProvers = struct {
             composition_twiddles,
             self.cpu_composition_execution,
             self.task_recorder,
+            self.composition_work_capture,
             &resolved_execution,
         )) |evaluation| return evaluation;
         if (resolved_execution == null and self.cpu_composition_execution != null) {
@@ -658,339 +754,4 @@ fn coreAdapterEvaluateConstraintQuotientsAtPoint(
         evaluation_accumulator,
         max_log_degree_bound,
     );
-}
-
-test "prover air component prover: poly lifting index" {
-    const values = [_]M31{
-        M31.fromCanonical(10),
-        M31.fromCanonical(20),
-        M31.fromCanonical(30),
-        M31.fromCanonical(40),
-    };
-    const poly = Poly{ .log_size = 2, .values = values[0..] };
-    try std.testing.expect((try poly.valueAtLiftingPosition(2, 3)).eql(values[3]));
-
-    const lifted = [_]M31{
-        values[0],
-        values[1],
-        values[0],
-        values[1],
-        values[2],
-        values[3],
-        values[2],
-        values[3],
-    };
-    var i: usize = 0;
-    while (i < lifted.len) : (i += 1) {
-        try std.testing.expect((try poly.valueAtLiftingPosition(3, i)).eql(lifted[i]));
-    }
-}
-
-test "prover air component prover: composition accumulation" {
-    const alloc = std.testing.allocator;
-
-    const Mock = struct {
-        max_log_size: u32,
-
-        fn asComponent(self: *const @This()) ComponentProver {
-            return .{
-                .ctx = self,
-                .vtable = &.{
-                    .nConstraints = nConstraints,
-                    .maxConstraintLogDegreeBound = maxConstraintLogDegreeBound,
-                    .traceLogDegreeBounds = traceLogDegreeBounds,
-                    .maskPoints = maskPoints,
-                    .preprocessedColumnIndices = preprocessedColumnIndices,
-                    .evaluateConstraintQuotientsAtPoint = evaluateConstraintQuotientsAtPoint,
-                    .evaluateConstraintQuotientsOnDomain = evaluateConstraintQuotientsOnDomain,
-                },
-            };
-        }
-
-        fn cast(ctx: *const anyopaque) *const @This() {
-            return @ptrCast(@alignCast(ctx));
-        }
-
-        fn nConstraints(_: *const anyopaque) usize {
-            return 1;
-        }
-
-        fn maxConstraintLogDegreeBound(ctx: *const anyopaque) u32 {
-            return cast(ctx).max_log_size;
-        }
-
-        fn traceLogDegreeBounds(
-            ctx: *const anyopaque,
-            allocator: std.mem.Allocator,
-        ) !core_air_components.TraceLogDegreeBounds {
-            const self = cast(ctx);
-            const preprocessed = try allocator.alloc(u32, 0);
-            const main = try allocator.dupe(u32, &[_]u32{self.max_log_size});
-            return core_air_components.TraceLogDegreeBounds.initOwned(
-                try allocator.dupe([]u32, &[_][]u32{ preprocessed, main }),
-            );
-        }
-
-        fn maskPoints(
-            _: *const anyopaque,
-            allocator: std.mem.Allocator,
-            point: CirclePointQM31,
-            _: u32,
-        ) !core_air_components.MaskPoints {
-            const pp_cols = try allocator.alloc([]CirclePointQM31, 0);
-            const main_col = try allocator.alloc(CirclePointQM31, 1);
-            main_col[0] = point;
-            const main_cols = try allocator.dupe([]CirclePointQM31, &[_][]CirclePointQM31{main_col});
-            return core_air_components.MaskPoints.initOwned(
-                try allocator.dupe([][]CirclePointQM31, &[_][][]CirclePointQM31{
-                    pp_cols,
-                    main_cols,
-                }),
-            );
-        }
-
-        fn preprocessedColumnIndices(_: *const anyopaque, allocator: std.mem.Allocator) ![]usize {
-            return allocator.alloc(usize, 0);
-        }
-
-        fn evaluateConstraintQuotientsAtPoint(
-            _: *const anyopaque,
-            _: CirclePointQM31,
-            _: *const core_air_components.MaskValues,
-            evaluation_accumulator: *core_air_accumulation.PointEvaluationAccumulator,
-            _: u32,
-        ) !void {
-            evaluation_accumulator.accumulate(QM31.fromU32Unchecked(13, 0, 0, 0));
-        }
-
-        fn evaluateConstraintQuotientsOnDomain(
-            _: *const anyopaque,
-            _: *const Trace,
-            evaluation_accumulator: *accumulation.DomainEvaluationAccumulator,
-        ) !void {
-            const values = [_]QM31{
-                QM31.fromU32Unchecked(1, 0, 0, 0),
-                QM31.fromU32Unchecked(2, 0, 0, 0),
-                QM31.fromU32Unchecked(3, 0, 0, 0),
-                QM31.fromU32Unchecked(4, 0, 0, 0),
-            };
-            var col = try SecureColumnByCoords.fromSecureSlice(std.testing.allocator, values[0..]);
-            defer col.deinit(std.testing.allocator);
-            try evaluation_accumulator.accumulateColumn(2, &col);
-        }
-    };
-
-    const mock = Mock{ .max_log_size = 2 };
-    const components_arr = [_]ComponentProver{mock.asComponent()};
-    try std.testing.expect(components_arr[0].backend_composition_capability == null);
-    const component_provers = ComponentProvers{
-        .components = components_arr[0..],
-        .n_preprocessed_columns = 0,
-    };
-
-    var trace = Trace{ .polys = TreeVec([]const Poly).initOwned(try alloc.alloc([]const Poly, 0)) };
-    defer trace.polys.deinit(alloc);
-
-    var combined = try component_provers.computeCompositionEvaluation(
-        alloc,
-        QM31.fromU32Unchecked(7, 0, 0, 0),
-        &trace,
-    );
-    defer combined.deinit(alloc);
-
-    const out = try combined.toVec(alloc);
-    defer alloc.free(out);
-    try std.testing.expectEqual(@as(usize, 4), out.len);
-    try std.testing.expect(out[0].eql(QM31.fromU32Unchecked(1, 0, 0, 0)));
-    try std.testing.expect(out[3].eql(QM31.fromU32Unchecked(4, 0, 0, 0)));
-
-    var view = try component_provers.componentsView(alloc);
-    defer view.deinit(alloc);
-
-    const components = view.asCore();
-    try std.testing.expectEqual(@as(usize, 1), components.components.len);
-    try std.testing.expectEqual(@as(usize, 0), components.n_preprocessed_columns);
-
-    var mask = try components.maskPoints(
-        alloc,
-        circle.SECURE_FIELD_CIRCLE_GEN,
-        mock.max_log_size,
-        true,
-    );
-    defer mask.deinitDeep(alloc);
-    try std.testing.expectEqual(@as(usize, 2), mask.items.len);
-
-    var mask_values = core_air_components.MaskValues.initOwned(try alloc.alloc([][]QM31, 0));
-    defer mask_values.deinitDeep(alloc);
-    const eval = try components.evalCompositionPolynomialAtPoint(
-        circle.SECURE_FIELD_CIRCLE_GEN,
-        &mask_values,
-        QM31.fromU32Unchecked(5, 0, 0, 0),
-        mock.max_log_size,
-    );
-    try std.testing.expect(eval.eql(QM31.fromU32Unchecked(13, 0, 0, 0)));
-}
-
-test "prover air component prover: multi-component sequential matches merged accumulators" {
-    // Verify that splitting accumulation across two independent accumulators
-    // (simulating what the parallel path does) produces the same result as
-    // the sequential path with a single accumulator.
-    const alloc = std.testing.allocator;
-    const alpha = QM31.fromU32Unchecked(7, 0, 0, 0);
-
-    const MockA = struct {
-        fn asComponent(self: *const @This()) ComponentProver {
-            return .{
-                .ctx = self,
-                .vtable = &.{
-                    .nConstraints = nConstraints,
-                    .maxConstraintLogDegreeBound = maxConstraintLogDegreeBound,
-                    .traceLogDegreeBounds = traceLogDegreeBounds,
-                    .maskPoints = maskPoints,
-                    .preprocessedColumnIndices = preprocessedColumnIndices,
-                    .evaluateConstraintQuotientsAtPoint = evaluateConstraintQuotientsAtPoint,
-                    .evaluateConstraintQuotientsOnDomain = evaluateConstraintQuotientsOnDomain,
-                },
-            };
-        }
-        fn nConstraints(_: *const anyopaque) usize {
-            return 1;
-        }
-        fn maxConstraintLogDegreeBound(_: *const anyopaque) u32 {
-            return 2;
-        }
-        fn traceLogDegreeBounds(_: *const anyopaque, a: std.mem.Allocator) !core_air_components.TraceLogDegreeBounds {
-            const preprocessed = try a.alloc(u32, 0);
-            const main_tree = try a.dupe(u32, &[_]u32{2});
-            return core_air_components.TraceLogDegreeBounds.initOwned(
-                try a.dupe([]u32, &[_][]u32{ preprocessed, main_tree }),
-            );
-        }
-        fn maskPoints(_: *const anyopaque, a: std.mem.Allocator, point: CirclePointQM31, _: u32) !core_air_components.MaskPoints {
-            const pp = try a.alloc([]CirclePointQM31, 0);
-            const mc = try a.alloc(CirclePointQM31, 1);
-            mc[0] = point;
-            const mcs = try a.dupe([]CirclePointQM31, &[_][]CirclePointQM31{mc});
-            return core_air_components.MaskPoints.initOwned(
-                try a.dupe([][]CirclePointQM31, &[_][][]CirclePointQM31{ pp, mcs }),
-            );
-        }
-        fn preprocessedColumnIndices(_: *const anyopaque, a: std.mem.Allocator) ![]usize {
-            return a.alloc(usize, 0);
-        }
-        fn evaluateConstraintQuotientsAtPoint(_: *const anyopaque, _: CirclePointQM31, _: *const core_air_components.MaskValues, _: *core_air_accumulation.PointEvaluationAccumulator, _: u32) !void {}
-        fn evaluateConstraintQuotientsOnDomain(
-            _: *const anyopaque,
-            _: *const Trace,
-            evaluation_accumulator: *accumulation.DomainEvaluationAccumulator,
-        ) !void {
-            const values = [_]QM31{
-                QM31.fromU32Unchecked(1, 0, 0, 0),
-                QM31.fromU32Unchecked(2, 0, 0, 0),
-                QM31.fromU32Unchecked(3, 0, 0, 0),
-                QM31.fromU32Unchecked(4, 0, 0, 0),
-            };
-            var col = try SecureColumnByCoords.fromSecureSlice(std.testing.allocator, values[0..]);
-            defer col.deinit(std.testing.allocator);
-            try evaluation_accumulator.accumulateColumn(2, &col);
-        }
-    };
-
-    const MockB = struct {
-        fn asComponent(self: *const @This()) ComponentProver {
-            return .{
-                .ctx = self,
-                .vtable = &.{
-                    .nConstraints = nConstraints,
-                    .maxConstraintLogDegreeBound = maxConstraintLogDegreeBound,
-                    .traceLogDegreeBounds = traceLogDegreeBounds,
-                    .maskPoints = maskPoints,
-                    .preprocessedColumnIndices = preprocessedColumnIndices,
-                    .evaluateConstraintQuotientsAtPoint = evaluateConstraintQuotientsAtPoint,
-                    .evaluateConstraintQuotientsOnDomain = evaluateConstraintQuotientsOnDomain,
-                },
-            };
-        }
-        fn nConstraints(_: *const anyopaque) usize {
-            return 1;
-        }
-        fn maxConstraintLogDegreeBound(_: *const anyopaque) u32 {
-            return 2;
-        }
-        fn traceLogDegreeBounds(_: *const anyopaque, a: std.mem.Allocator) !core_air_components.TraceLogDegreeBounds {
-            const preprocessed = try a.alloc(u32, 0);
-            const main_tree = try a.dupe(u32, &[_]u32{2});
-            return core_air_components.TraceLogDegreeBounds.initOwned(
-                try a.dupe([]u32, &[_][]u32{ preprocessed, main_tree }),
-            );
-        }
-        fn maskPoints(_: *const anyopaque, a: std.mem.Allocator, point: CirclePointQM31, _: u32) !core_air_components.MaskPoints {
-            const pp = try a.alloc([]CirclePointQM31, 0);
-            const mc = try a.alloc(CirclePointQM31, 1);
-            mc[0] = point;
-            const mcs = try a.dupe([]CirclePointQM31, &[_][]CirclePointQM31{mc});
-            return core_air_components.MaskPoints.initOwned(
-                try a.dupe([][]CirclePointQM31, &[_][][]CirclePointQM31{ pp, mcs }),
-            );
-        }
-        fn preprocessedColumnIndices(_: *const anyopaque, a: std.mem.Allocator) ![]usize {
-            return a.alloc(usize, 0);
-        }
-        fn evaluateConstraintQuotientsAtPoint(_: *const anyopaque, _: CirclePointQM31, _: *const core_air_components.MaskValues, _: *core_air_accumulation.PointEvaluationAccumulator, _: u32) !void {}
-        fn evaluateConstraintQuotientsOnDomain(
-            _: *const anyopaque,
-            _: *const Trace,
-            evaluation_accumulator: *accumulation.DomainEvaluationAccumulator,
-        ) !void {
-            const values = [_]QM31{
-                QM31.fromU32Unchecked(10, 0, 0, 0),
-                QM31.fromU32Unchecked(20, 0, 0, 0),
-                QM31.fromU32Unchecked(30, 0, 0, 0),
-                QM31.fromU32Unchecked(40, 0, 0, 0),
-            };
-            var col = try SecureColumnByCoords.fromSecureSlice(std.testing.allocator, values[0..]);
-            defer col.deinit(std.testing.allocator);
-            try evaluation_accumulator.accumulateColumn(2, &col);
-        }
-    };
-
-    const mock_a = MockA{};
-    const mock_b = MockB{};
-    const components_arr = [_]ComponentProver{ mock_a.asComponent(), mock_b.asComponent() };
-    const component_provers = ComponentProvers{
-        .components = components_arr[0..],
-        .n_preprocessed_columns = 0,
-    };
-
-    var trace = Trace{ .polys = TreeVec([]const Poly).initOwned(try alloc.alloc([]const Poly, 0)) };
-    defer trace.polys.deinit(alloc);
-
-    var sequential = try component_provers.computeCompositionEvaluationSequential(
-        alloc,
-        alpha,
-        &trace,
-    );
-    defer sequential.deinit(alloc);
-    const seq_vec = try sequential.toVec(alloc);
-    defer alloc.free(seq_vec);
-    const total_constraints = component_provers.totalConstraints();
-    const max_log_size = component_provers.compositionLogDegreeBound();
-    const powers = try accumulation.generateSecurePowers(alloc, alpha, total_constraints);
-    defer alloc.free(powers);
-    var acc_a = try accumulation.DomainEvaluationAccumulator.initForComponent(powers, alloc, max_log_size, 2);
-    defer acc_a.deinit();
-    var acc_b = try accumulation.DomainEvaluationAccumulator.initForComponent(powers, alloc, max_log_size, 1);
-    defer acc_b.deinit();
-    try components_arr[0].evaluateConstraintQuotientsOnDomain(&trace, &acc_a);
-    try components_arr[1].evaluateConstraintQuotientsOnDomain(&trace, &acc_b);
-    acc_a.merge(&acc_b);
-    acc_a.next_power_index = 0;
-    var merged = try acc_a.finalize();
-    defer merged.deinit(alloc);
-    const merged_vec = try merged.toVec(alloc);
-    defer alloc.free(merged_vec);
-    try std.testing.expectEqual(seq_vec.len, merged_vec.len);
-    for (seq_vec, merged_vec) |s, m| {
-        try std.testing.expect(s.eql(m));
-    }
 }

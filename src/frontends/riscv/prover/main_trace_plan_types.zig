@@ -43,6 +43,7 @@ pub const Error = error{
     InvalidInfrastructureDescriptor,
     InvalidDescriptorOrder,
     InvalidTotalSteps,
+    InvalidPoseidon2ExecutionBinding,
     InvalidPoolCapacity,
     InvalidWorkerBudget,
     InvalidWorkerStackSize,
@@ -247,12 +248,17 @@ pub const Plan = struct {
     column_offsets: [MAX_DESCRIPTORS + 1]u32,
     opcode_chunk_ranges: [work_pool.MAX_WORKERS]RowRange,
     poseidon_chunk_ranges: [work_pool.MAX_WORKERS]RowRange,
-    total_steps: u32,
     total_columns: u32,
     n_components: u16,
     n_infra: u16,
     descriptor_count: u16,
     poseidon_infra_index: u16,
+    /// Statement-wide retirements, including extension-owned instructions.
+    /// Kept separate from `ordinary_steps` so an extension plan cannot make a
+    /// base-only executor index guest rows that do not exist in the base trace.
+    total_steps: u32,
+    /// Rows physically present in the ordinary RISC-V execution trace.
+    ordinary_steps: u32,
     requested_worker_count: u8,
     /// Width selected by pure admission planning. Production execution must
     /// acquire and hold a matching pool lease across all drained graph waves.

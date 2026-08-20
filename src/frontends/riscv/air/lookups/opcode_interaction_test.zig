@@ -72,6 +72,13 @@ fn testColumns(
     defer placement.deinit(allocator);
     if (rows.len > size) return error.InvalidTraceShape;
     for (rows, 0..) |row, index| {
+        trace.validateFamilyRow(row, family) catch |err| {
+            std.debug.print(
+                "invalid opcode interaction fixture: family={s} row={d}\n",
+                .{ @tagName(family), index },
+            );
+            return err;
+        };
         trace.fillFamilyColumns(&result.storage, placement.map(index), row, family);
     }
     return result;
@@ -184,6 +191,7 @@ fn testRowForFamily(family: trace.OpcodeFamily, row_index: usize) trace.TraceRow
     row.rd = 1;
     row.rs1 = 2;
     row.rs2 = 3;
+    row.imm = 0;
     switch (family) {
         .base_alu_reg => {
             row.opcode = .ADD;
@@ -250,18 +258,26 @@ fn testRowForFamily(family: trace.OpcodeFamily, row_index: usize) trace.TraceRow
         .jalr => {
             row.opcode = .JALR;
             row.rs1_val = 0x2000;
+            row.rs2 = 0;
+            row.rs2_val = 0;
+            row.rs2_prev_clk = 0;
             row.imm = 4;
             row.rd_val = row.pc + 4;
             row.next_pc = 0x2004;
+            row.branch_taken = true;
         },
         .jal => {
             row.opcode = .JAL;
             row.imm = 8;
             row.rd_val = row.pc + 4;
             row.next_pc = row.pc + 8;
+            row.branch_taken = true;
         },
         .load_store => {
             row.opcode = .LW;
+            row.rs2 = 0;
+            row.rs2_val = 0;
+            row.rs2_prev_clk = 0;
             row.rs1_val = 0x2000;
             row.imm = 0;
             row.mem_addr = 0x2000;
@@ -270,29 +286,38 @@ fn testRowForFamily(family: trace.OpcodeFamily, row_index: usize) trace.TraceRow
             row.mem_next_word = 0x1122_3344;
             row.rd_val = 0x1122_3344;
             row.is_load = true;
+            row.inst_word = 0x0001_2083;
         },
         .mul => {
             row.opcode = .MUL;
             row.rs1_val = 2;
             row.rs2_val = 3;
             row.rd_val = 6;
+            row.inst_word = 0x0231_00b3;
         },
         .mulh => {
             row.opcode = .MULHU;
             row.rs1_val = 0x1_0000;
             row.rs2_val = 0x1_0000;
             row.rd_val = 1;
+            row.inst_word = 0x0231_30b3;
         },
         .div => {
             row.opcode = .DIVU;
             row.rs1_val = 7;
             row.rs2_val = 3;
             row.rd_val = 2;
+            row.inst_word = 0x0231_50b3;
         },
         .fence => {
             row.opcode = .FENCE;
             row.rd = 0;
             row.rs1 = 0;
+            row.rs2 = 0;
+            row.rs1_prev_clk = 0;
+            row.rs2_prev_clk = 0;
+            row.rd_prev_clk = 0;
+            row.rd_val = 0;
             row.imm = 0x0ff;
             row.inst_word = 0x0ff0000f;
         },

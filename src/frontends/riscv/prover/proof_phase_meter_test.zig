@@ -54,6 +54,25 @@ test "five witness regions sum exactly and exclude every gap" {
     try std.testing.expectEqual(@as(?u64, 1020), meter.last_boundary_ns);
     try std.testing.expectEqual(@as(usize, 10), clock.calls());
     try std.testing.expect(!meter.hasActiveRegion());
+    try meter.requireComplete();
+
+    try std.testing.expectError(
+        error.ProofPhaseRegionCountExceeded,
+        meter.begin(),
+    );
+    try std.testing.expectEqual(@as(usize, 10), clock.calls());
+}
+
+test "completion rejects missing open and aborted regions" {
+    var meter = phase_meter.Meter.init(null);
+    try std.testing.expectError(error.IncompleteProofPhasePartition, meter.requireComplete());
+
+    var open = try meter.begin();
+    try std.testing.expectError(error.IncompleteProofPhasePartition, meter.requireComplete());
+    open.abort();
+
+    for (1..phase_meter.REGION_COUNT) |_| try finishOne(&meter);
+    try std.testing.expectError(error.IncompleteProofPhasePartition, meter.requireComplete());
 }
 
 test "nested begin rejects before sampling and leaves the first region open" {
@@ -219,6 +238,7 @@ test "disabled lifecycle performs zero clock calls and zero allocations" {
     try std.testing.expectEqual(@as(u64, 0), meter.witness_ns);
     try std.testing.expectEqual(@as(?u64, null), meter.last_boundary_ns);
     try std.testing.expect(!meter.hasActiveRegion());
+    try std.testing.expectEqual(@as(u64, 1), meter.completed_regions);
     try std.testing.expectEqual(@as(usize, 0), unused_clock.calls());
     try std.testing.expectEqual(allocation_cursor, fixed.end_index);
 }

@@ -93,11 +93,50 @@ pub fn add(
     return id;
 }
 
+/// Convenience form of `beginBody`/`finish` for a body with no newly appended
+/// proof records. This still opts into v11/v13 ownership and therefore cannot
+/// be lowered through the legacy committed-leaf path.
+pub fn addBody(
+    arena: *ir.Arena,
+    stable_name: []const u8,
+    input_values: []const types.ValueId,
+    output_values: []const types.ValueId,
+    span: source.SourceSpan,
+) Error!types.FunctionId {
+    const id = try beginBody(arena, stable_name, input_values, span);
+    errdefer abortFreshDeclaration(arena, id);
+    try finish(arena, id, output_values);
+    return id;
+}
+
 pub fn begin(
     arena: *ir.Arena,
     stable_name: []const u8,
     input_values: []const types.ValueId,
     span: source.SourceSpan,
+) Error!types.FunctionId {
+    return beginInternal(arena, stable_name, input_values, span, false);
+}
+
+/// Opens an explicitly owned proof-bearing function body. Every constraint,
+/// effect, hint, and call appended before `finish` is sealed into this
+/// function's authenticated ranges. Legacy `begin` deliberately remains
+/// ownerless so existing manifests and semantic identities are unchanged.
+pub fn beginBody(
+    arena: *ir.Arena,
+    stable_name: []const u8,
+    input_values: []const types.ValueId,
+    span: source.SourceSpan,
+) Error!types.FunctionId {
+    return beginInternal(arena, stable_name, input_values, span, true);
+}
+
+fn beginInternal(
+    arena: *ir.Arena,
+    stable_name: []const u8,
+    input_values: []const types.ValueId,
+    span: source.SourceSpan,
+    owns_body: bool,
 ) Error!types.FunctionId {
     if (arena.open_function != null) return error.FunctionAlreadyOpen;
     try arena.validateSpan(span);
@@ -130,10 +169,17 @@ pub fn begin(
         .name = name_id,
         .inputs = input_range,
         .outputs = output_range,
+        .body = if (owns_body) .{
+            .constraints = try program.ItemRange.init(arena.constraints.items.len, 0),
+            .effects = try program.ItemRange.init(arena.effects.items.len, 0),
+            .hints = try program.ItemRange.init(arena.hints.items.len, 0),
+            .calls = try program.ItemRange.init(arena.calls.items.len, 0),
+        } else null,
         .source_span = span,
         .complete = false,
     });
     arena.open_function = id;
+    arena.open_function_body = owns_body;
     return id;
 }
 
@@ -154,12 +200,35 @@ pub fn finish(
         arena.function_outputs.items.len,
         output_values.len,
     );
+    const sealed_body = if (arena.functions.items[index].body) |body|
+        program.FunctionBody{
+            .constraints = try sealedRange(
+                body.constraints.start,
+                arena.constraints.items.len,
+            ),
+            .effects = try sealedRange(
+                body.effects.start,
+                arena.effects.items.len,
+            ),
+            .hints = try sealedRange(
+                body.hints.start,
+                arena.hints.items.len,
+            ),
+            .calls = try sealedRange(
+                body.calls.start,
+                arena.calls.items.len,
+            ),
+        }
+    else
+        null;
     const output_start = arena.function_outputs.items.len;
     errdefer arena.function_outputs.shrinkRetainingCapacity(output_start);
     try arena.function_outputs.appendSlice(arena.allocator, output_values);
     arena.functions.items[index].outputs = output_range;
+    arena.functions.items[index].body = sealed_body;
     arena.functions.items[index].complete = true;
     arena.open_function = null;
+    arena.open_function_body = false;
 }
 
 /// Creates a call owned by the currently open function, or a root call when no
@@ -238,4 +307,18 @@ fn abortFreshDeclaration(arena: *ir.Arena, id: types.FunctionId) void {
     std.debug.assert(!item.complete);
     arena.function_inputs.shrinkRetainingCapacity(item.inputs.start);
     arena.open_function = null;
+    arena.open_function_body = false;
+}
+
+fn sealedLength(start: u32, end: usize) program.RangeError!u32 {
+    if (end < start) return error.ReferenceRangeOverflow;
+    return std.math.cast(u32, end - @as(usize, start)) orelse
+        error.ReferenceRangeOverflow;
+}
+
+fn sealedRange(start: u32, end: usize) program.RangeError!program.ItemRange {
+    const len = try sealedLength(start, end);
+    // Empty body sections carry no position semantics. Canonicalizing their
+    // start avoids multiple authenticated encodings of the same authority.
+    return .{ .start = if (len == 0) 0 else start, .len = len };
 }

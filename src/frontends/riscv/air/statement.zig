@@ -13,6 +13,7 @@ const clock_update_interaction = @import("clock_update_interaction.zig");
 const poseidon2_air = @import("memory_commitment/poseidon2_air.zig");
 const program_interaction = @import("program/interaction.zig");
 const public_data = @import("public_data.zig");
+const composition_manifest = @import("lang/opcode_composition_manifest.zig");
 const trace_mod = @import("../runner/trace.zig");
 const transcript_claims = @import("transcript/claims.zig");
 
@@ -191,7 +192,9 @@ pub const RiscVStatement = struct {
         var log_sizes = [_]u32{0} ** transcript_claims.COMPONENT_COUNT;
         for (0..self.n_components) |i| {
             const desc = self.component_descs[i];
-            const index = @intFromEnum(componentForFamily(desc.family));
+            const index = @intFromEnum(
+                composition_manifest.transcriptComponent(desc.family),
+            );
             log_sizes[index] = @max(log_sizes[index], desc.log_size);
         }
         for (0..self.n_infra) |i| {
@@ -316,6 +319,33 @@ pub const RiscVInteractionClaim = struct {
         };
     }
 
+    /// Borrow one infrastructure component's active detailed claims as a
+    /// contiguous segment. Fixed-capacity slack is never exposed. Besides
+    /// avoiding copies, this lets profile transcripts hash one canonical
+    /// component frame instead of one hash-chain round per physical claim.
+    pub fn infraClaims(
+        self: *const RiscVInteractionClaim,
+        kind: InfraKind,
+        index: usize,
+    ) ![]const QM31 {
+        if (index >= self.n_infra) return error.InvalidInteractionClaim;
+        const count = nClaimedSumsForInfra(kind);
+        return switch (kind) {
+            .program => self.program_claims[index][0..count],
+            .memory => self.memory_claims[index][0..count],
+            .merkle => self.merkle_claims[index][0..count],
+            .poseidon2 => self.poseidon_claims[index][0..count],
+            .clock_update => self.clock_claims[index][0..count],
+            .bitwise,
+            .range_check_20,
+            .range_check_8_11,
+            .range_check_8_8_4,
+            .range_check_8_8,
+            .range_check_m31,
+            => self.lookup_claims[index .. index + 1],
+        };
+    }
+
     pub fn setInfraClaim(
         self: *RiscVInteractionClaim,
         kind: InfraKind,
@@ -362,7 +392,9 @@ pub const RiscVInteractionClaim = struct {
         };
         for (0..statement.n_components) |i| {
             const desc = statement.component_descs[i];
-            const claim_index = @intFromEnum(componentForFamily(desc.family));
+            const claim_index = @intFromEnum(
+                composition_manifest.transcriptComponent(desc.family),
+            );
             result.claimed_sums[claim_index] = result.claimed_sums[claim_index]
                 .add(try self.opcodeClaimTotal(desc.family, i));
             for (0..opcode_interaction.nColumns(desc.family)) |_| {
@@ -385,28 +417,6 @@ pub const RiscVInteractionClaim = struct {
         return result;
     }
 };
-
-fn componentForFamily(family: trace_mod.OpcodeFamily) transcript_claims.Component {
-    return switch (family) {
-        .auipc => .auipc,
-        .base_alu_imm => .base_alu_imm,
-        .base_alu_reg => .base_alu_reg,
-        .branch_eq => .branch_eq,
-        .branch_lt => .branch_lt,
-        .div => .div,
-        .jal => .jal,
-        .jalr => .jalr,
-        .load_store => .load_store,
-        .lt_imm => .lt_imm,
-        .lt_reg => .lt_reg,
-        .lui => .lui,
-        .mul => .mul,
-        .mulh => .mulh,
-        .shifts_imm => .shifts_imm,
-        .shifts_reg => .shifts_reg,
-        .fence => .fence,
-    };
-}
 
 fn componentForInfra(kind: InfraKind) transcript_claims.Component {
     return switch (kind) {

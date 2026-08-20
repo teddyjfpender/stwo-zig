@@ -62,21 +62,12 @@ pub fn Operations(comptime H: type) type {
                 prev_layer = expanded;
 
                 const group_columns = sorted_columns[group_start..group_end];
-                if (comptime @hasDecl(H, "updateLeafPackedBytes")) {
-                    try updateHashersPacked(
-                        allocator,
-                        prev_layer,
-                        group_columns,
-                        layer_size,
-                    );
-                } else {
-                    var idx: usize = 0;
-                    while (idx < layer_size) : (idx += 1) {
-                        for (group_columns) |column| {
-                            prev_layer[idx].updateLeaf(column.values[idx .. idx + 1]);
-                        }
-                    }
-                }
+                try updateHashers(
+                    allocator,
+                    prev_layer,
+                    group_columns,
+                    layer_size,
+                );
 
                 prev_layer_log_size = log_size;
                 group_start = group_end;
@@ -588,6 +579,96 @@ pub fn Operations(comptime H: type) type {
             start: usize,
             end: usize,
         };
+
+        const GenericLeafRangeCtx = struct {
+            leaf_hashers: []H,
+            group_columns: []const ColumnRef,
+            start: usize,
+            end: usize,
+        };
+
+        fn updateLeafHashersGenericRange(ctx: *const GenericLeafRangeCtx) void {
+            if (comptime builtin.is_test and @hasDecl(H, "testingRecordLeafRange")) {
+                H.testingRecordLeafRange(ctx.start, ctx.end);
+            }
+            var leaf_index = ctx.start;
+            while (leaf_index < ctx.end) : (leaf_index += 1) {
+                for (ctx.group_columns) |column| {
+                    ctx.leaf_hashers[leaf_index].updateLeaf(
+                        column.values[leaf_index .. leaf_index + 1],
+                    );
+                }
+            }
+        }
+
+        /// Absorbs one equal-height column group into disjoint leaf-hasher
+        /// ranges. The coordinator owns range zero and joins every helper
+        /// before the next height group can expand or reuse the states.
+        ///
+        /// Test builds remain serial unless a caller explicitly installed a
+        /// `ScopedPoolBinding`; `getGlobalPool` is the single authority for
+        /// that distinction. This is particularly important for the
+        /// Poseidon2 recursion suite, whose incremental hasher intentionally
+        /// exposes only the generic `updateLeaf` contract.
+        fn updateHashersGeneric(
+            leaf_hashers: []H,
+            group_columns: []const ColumnRef,
+        ) void {
+            const pool = if (leaf_hashers.len >= parallel_min_nodes)
+                work_pool_mod.getGlobalPool()
+            else
+                null;
+            const worker_capacity = leaf_hashers.len / parallel_min_nodes_per_worker;
+            const worker_count = if (pool) |active_pool|
+                @min(active_pool.workerCount(), worker_capacity)
+            else
+                1;
+            const actual_workers = @max(@as(usize, 1), worker_count);
+
+            var contexts: [max_parallel_workers]GenericLeafRangeCtx = undefined;
+            for (0..actual_workers) |worker| {
+                contexts[worker] = .{
+                    .leaf_hashers = leaf_hashers,
+                    .group_columns = group_columns,
+                    .start = leaf_hashers.len * worker / actual_workers,
+                    .end = leaf_hashers.len * (worker + 1) / actual_workers,
+                };
+            }
+
+            if (actual_workers == 1) {
+                updateLeafHashersGenericRange(&contexts[0]);
+                return;
+            }
+
+            var wait_group: WaitGroup = .{};
+            for (contexts[1..actual_workers]) |*ctx| {
+                pool.?.spawnWg(
+                    &wait_group,
+                    updateLeafHashersGenericRange,
+                    .{@as(*const GenericLeafRangeCtx, ctx)},
+                );
+            }
+            updateLeafHashersGenericRange(&contexts[0]);
+            wait_group.wait();
+        }
+
+        pub fn updateHashers(
+            allocator: std.mem.Allocator,
+            leaf_hashers: []H,
+            group_columns: []const ColumnRef,
+            layer_size: usize,
+        ) !void {
+            std.debug.assert(leaf_hashers.len == layer_size);
+            if (comptime @hasDecl(H, "updateLeafPackedBytes")) {
+                return updateHashersPacked(
+                    allocator,
+                    leaf_hashers,
+                    group_columns,
+                    layer_size,
+                );
+            }
+            updateHashersGeneric(leaf_hashers, group_columns);
+        }
 
         fn updateLeafHashersPackedRange(ctx: *const PackedLeafRangeCtx) void {
             var tile_start = ctx.start;

@@ -5,8 +5,9 @@
 //! traces over the committed ELF corpus and all decided by `row_admissibility`
 //! — direct constraints AND preprocessed lookup membership, because several
 //! bindings exist only as lookup requests. Column indices come from
-//! `committed_row_layout`, which derives them from the committed layout structs
-//! rather than repeating them here. The honest rows, the profile that bounds
+//! `committed_row_layout`, which delegates access positions to the production
+//! memory descriptor and derives named fields from the layout structs. The
+//! honest rows, the profile that bounds
 //! them and the evaluation budget that prices them come from `rigidity_corpus`.
 //!
 //! 1. OBSERVABILITY. Perturbing a committed column of an honest row must move
@@ -16,23 +17,23 @@
 //!
 //! 2. SELECTOR RIGIDITY. Relabelling an honest row's opcode selector from A to
 //!    B must be rejected whenever A and B disagree architecturally on that
-//!    row's operands. The qualifier is decided by the runner's reference
-//!    `execute` on a scratch machine carrying the row's own operands, not by an
-//!    exception list: LB and LBU genuinely agree on a byte below 128, so
+//!    row's operands. The qualifier is decided by an independent scalar RV32IM
+//!    oracle over the row's own operands, not by an exception list: LB and LBU
+//!    genuinely agree on a byte below 128, so
 //!    acceptance there is not a soundness failure.
 //!
-//! 3. ACCESS DETERMINACY. Every committed access emits `previous` and `next` as
-//!    two independent column groups onto the memory bus, and nothing in the
-//!    global LogUp closure relates them. So `next` must be a function of the
-//!    row's other committed columns: read-only accesses must reject any `next`
-//!    away from `previous`, and the written access must reject any `next` away
-//!    from the row's computed result. This is the property the branch's five
-//!    AIR bugs all violated, and neither 1 nor 2 can see it — `previous` and
-//!    `next` are each individually observable, and the selector is untouched.
+//! 3. ACCESS DETERMINACY. A legacy full access commits `previous` and `next` as
+//!    independent groups, and nothing in the global LogUp closure relates
+//!    them. Its `next` must therefore be a function of the other committed
+//!    columns: a full read-only access rejects `next != previous`, and a write
+//!    rejects `next` away from the computed result. Compact reads need no such
+//!    probe because their bus emission aliases the consumed physical limbs;
+//!    the descriptor/sentinel test below proves that structural equality.
 //!
 //! Bounds, honestly stated. Rows swept exhaustively over the byte domain of
-//! each `next` limb decide determinacy over that domain; every other probe is
-//! a `DELTAS` sweep, which only shows the probed perturbations move. Neither
+//! each separately committed `next` limb decide determinacy over that domain;
+//! every other probe is a `DELTAS` sweep, which only shows the probed
+//! perturbations move. Neither
 //! tier proves rigidity over all of M31, and neither profile probes every
 //! honest row of the corpus.
 //!
@@ -55,9 +56,7 @@ const QM31 = @import("stwo_core").fields.qm31.QM31;
 const corpus_mod = @import("rigidity_corpus.zig");
 const layout = @import("committed_row_layout.zig");
 const opcode_memory = @import("stwo_riscv_frontend").air.opcode_memory;
-const runner = @import("stwo_riscv_frontend").runner;
 const trace_mod = @import("stwo_riscv_frontend").runner.trace;
-const execute_mod = @import("stwo_riscv_frontend").runner.execute_mod;
 const isa_decode = @import("stwo_riscv_frontend").isa.decode;
 
 const Budget = corpus_mod.Budget;
@@ -87,8 +86,8 @@ const BYTE_VALUES: u32 = 256;
 /// observability test asserts they are still dead, so removing them (or
 /// wiring them up) fails here and forces this note to be revisited.
 const DEAD_COLUMNS = [_]struct { family: OpcodeFamily, column: usize }{
-    .{ .family = .load_store, .column = 2 }, // dst_addr
-    .{ .family = .load_store, .column = 22 }, // src_addr
+    .{ .family = .load_store, .column = layout.columnOf(.load_store, "dst_addr") },
+    .{ .family = .load_store, .column = layout.columnOf(.load_store, "src_addr") },
 };
 
 fn isKnownDead(family: OpcodeFamily, column: usize) bool {
@@ -113,29 +112,160 @@ const Effect = struct {
     }
 };
 
-/// Run the runner's reference `execute` for `opcode` on a three-register
-/// scratch machine carrying this row's operands: `x1 = rs1_val`,
-/// `x2 = rs2_val`, destination `x3`, `pc = row.pc`, and the row's memory word
-/// resident at its aligned address. Routing the destination to `x3` keeps a
-/// discarded `x0` write from making every relabelling look identical.
+/// Evaluate one selector with an intentionally independent scalar RV32IM
+/// oracle. Production execution is generated and correctly refuses direct
+/// calls for every migrated opcode; using it here would make every honest row
+/// look illegal. Keeping this oracle in the adversarial test also avoids
+/// reintroducing a second production retirement path.
 ///
-/// Returns null when the opcode is architecturally illegal on these operands —
-/// a misaligned half or word access, say. The caller treats that as a
-/// difference, because the AIR must still reject the relabelling.
-fn referenceEffect(memory: *runner.Memory, row: TraceRow, opcode: Opcode) ?Effect {
-    const aligned = row.mem_addr & ~@as(u32, 3);
-    memory.writeU32(aligned, row.mem_prev_word);
-    var cpu = runner.Cpu.init(row.pc, 0);
-    cpu.regs[1] = row.rs1_val;
-    cpu.regs[2] = row.rs2_val;
-    execute_mod.execute(&cpu, memory, .{
-        .opcode = opcode,
-        .rd = 3,
-        .rs1 = 1,
-        .rs2 = 2,
-        .imm = row.imm,
-    }) catch return null;
-    return .{ .rd = cpu.regs[3], .pc = cpu.pc, .word = memory.readU32(aligned) };
+/// The destination is conceptually `x3`, so x0-discard behavior cannot make
+/// every selector look identical. Returns null for an architecturally illegal
+/// relabelling, such as a misaligned halfword access.
+fn referenceEffect(row: TraceRow, opcode: Opcode) ?Effect {
+    const a = row.rs1_val;
+    const b = row.rs2_val;
+    const immediate: u32 = @bitCast(row.imm);
+    var effect = Effect{
+        .rd = 0,
+        .pc = row.pc +% 4,
+        .word = row.mem_prev_word,
+    };
+
+    switch (opcode) {
+        .ADD => effect.rd = a +% b,
+        .SUB => effect.rd = a -% b,
+        .XOR => effect.rd = a ^ b,
+        .OR => effect.rd = a | b,
+        .AND => effect.rd = a & b,
+        .SLL => effect.rd = a << @as(u5, @truncate(b)),
+        .SRL => effect.rd = a >> @as(u5, @truncate(b)),
+        .SRA => effect.rd = @bitCast(@as(i32, @bitCast(a)) >> @as(u5, @truncate(b))),
+        .SLT => effect.rd = @intFromBool(@as(i32, @bitCast(a)) < @as(i32, @bitCast(b))),
+        .SLTU => effect.rd = @intFromBool(a < b),
+
+        .ADDI => effect.rd = a +% immediate,
+        .XORI => effect.rd = a ^ immediate,
+        .ORI => effect.rd = a | immediate,
+        .ANDI => effect.rd = a & immediate,
+        .SLLI => effect.rd = a << @as(u5, @truncate(immediate)),
+        .SRLI => effect.rd = a >> @as(u5, @truncate(immediate)),
+        .SRAI => effect.rd = @bitCast(
+            @as(i32, @bitCast(a)) >> @as(u5, @truncate(immediate)),
+        ),
+        .SLTI => effect.rd = @intFromBool(@as(i32, @bitCast(a)) < row.imm),
+        .SLTIU => effect.rd = @intFromBool(a < immediate),
+
+        .LB, .LBU, .LH, .LHU, .LW => {
+            const address = a +% immediate;
+            const width: u32 = switch (opcode) {
+                .LB, .LBU => 1,
+                .LH, .LHU => 2,
+                .LW => 4,
+                else => unreachable,
+            };
+            if (address & (width - 1) != 0) return null;
+            const aligned = address & ~@as(u32, 3);
+            const source = if (aligned == (row.mem_addr & ~@as(u32, 3)))
+                row.mem_prev_word
+            else
+                0;
+            const shift: u5 = @intCast((address & 3) * 8);
+            effect.rd = switch (opcode) {
+                .LB => @bitCast(@as(i32, @as(i8, @bitCast(@as(u8, @truncate(source >> shift)))))),
+                .LBU => @as(u8, @truncate(source >> shift)),
+                .LH => @bitCast(@as(i32, @as(i16, @bitCast(@as(u16, @truncate(source >> shift)))))),
+                .LHU => @as(u16, @truncate(source >> shift)),
+                .LW => source,
+                else => unreachable,
+            };
+        },
+        .SB, .SH, .SW => {
+            const address = a +% immediate;
+            const width: u32 = switch (opcode) {
+                .SB => 1,
+                .SH => 2,
+                .SW => 4,
+                else => unreachable,
+            };
+            if (address & (width - 1) != 0) return null;
+            if ((address & ~@as(u32, 3)) == (row.mem_addr & ~@as(u32, 3))) {
+                const shift: u5 = @intCast((address & 3) * 8);
+                const mask: u32 = switch (opcode) {
+                    .SB => @as(u32, 0xff) << shift,
+                    .SH => @as(u32, 0xffff) << shift,
+                    .SW => 0xffff_ffff,
+                    else => unreachable,
+                };
+                effect.word = (effect.word & ~mask) | ((b << shift) & mask);
+            }
+        },
+
+        .BEQ, .BNE, .BLT, .BLTU, .BGE, .BGEU => {
+            const taken = switch (opcode) {
+                .BEQ => a == b,
+                .BNE => a != b,
+                .BLT => @as(i32, @bitCast(a)) < @as(i32, @bitCast(b)),
+                .BLTU => a < b,
+                .BGE => @as(i32, @bitCast(a)) >= @as(i32, @bitCast(b)),
+                .BGEU => a >= b,
+                else => unreachable,
+            };
+            if (taken) {
+                effect.pc = row.pc +% immediate;
+                if (effect.pc & 3 != 0) return null;
+            }
+        },
+        .JAL => {
+            effect.rd = row.pc +% 4;
+            effect.pc = row.pc +% immediate;
+            if (effect.pc & 3 != 0) return null;
+        },
+        .JALR => {
+            effect.rd = row.pc +% 4;
+            effect.pc = (a +% immediate) & ~@as(u32, 1);
+            if (effect.pc & 3 != 0) return null;
+        },
+        .LUI => effect.rd = immediate,
+        .AUIPC => effect.rd = row.pc +% immediate,
+
+        .MUL => effect.rd = @truncate(@as(u64, a) *% @as(u64, b)),
+        .MULH => {
+            const product = @as(i64, @as(i32, @bitCast(a))) *%
+                @as(i64, @as(i32, @bitCast(b)));
+            effect.rd = @truncate(@as(u64, @bitCast(product)) >> 32);
+        },
+        .MULHSU => {
+            const product = @as(i64, @as(i32, @bitCast(a))) *%
+                @as(i64, @intCast(@as(u64, b)));
+            effect.rd = @truncate(@as(u64, @bitCast(product)) >> 32);
+        },
+        .MULHU => effect.rd = @truncate((@as(u64, a) *% @as(u64, b)) >> 32),
+        .DIV => {
+            const signed_a: i32 = @bitCast(a);
+            const signed_b: i32 = @bitCast(b);
+            effect.rd = if (signed_b == 0)
+                0xffff_ffff
+            else if (signed_a == std.math.minInt(i32) and signed_b == -1)
+                a
+            else
+                @bitCast(@divTrunc(signed_a, signed_b));
+        },
+        .DIVU => effect.rd = if (b == 0) 0xffff_ffff else a / b,
+        .REM => {
+            const signed_a: i32 = @bitCast(a);
+            const signed_b: i32 = @bitCast(b);
+            effect.rd = if (signed_b == 0)
+                a
+            else if (signed_a == std.math.minInt(i32) and signed_b == -1)
+                0
+            else
+                @bitCast(@rem(signed_a, signed_b));
+        },
+        .REMU => effect.rd = if (b == 0) a else a % b,
+        .FENCE => {},
+        .ECALL, .EBREAK => return null,
+    }
+    return effect;
 }
 
 fn sameOperandRoles(lhs: Opcode, rhs: Opcode) bool {
@@ -259,7 +389,6 @@ const Confusion = struct {
 /// reported as an undiscriminated one.
 const SelectorAudit = struct {
     allocator: std.mem.Allocator,
-    memory: *runner.Memory,
     budget: *Budget,
     confusions: std.ArrayList(Confusion) = .{},
     settled: [trace_mod.N_FAMILIES][layout.MAX_SELECTORS][layout.MAX_SELECTORS]bool =
@@ -291,7 +420,7 @@ const SelectorAudit = struct {
             const expected = if (index == from) QM31.one() else QM31.zero();
             try std.testing.expect(honest[selectors.column(index)].eql(expected));
         }
-        const honest_effect = referenceEffect(self.memory, row, row.opcode) orelse
+        const honest_effect = referenceEffect(row, row.opcode) orelse
             return error.HonestRowRejectedByReference;
 
         for (0..selectors.len) |to| {
@@ -301,7 +430,7 @@ const SelectorAudit = struct {
             // re-derive the operand columns, which is outside this
             // minimal-perturbation model.
             if (!sameOperandRoles(row.opcode, to_opcode)) continue;
-            if (referenceEffect(self.memory, row, to_opcode)) |effect| {
+            if (referenceEffect(row, to_opcode)) |effect| {
                 if (effect.eql(honest_effect)) {
                     self.identical += 1;
                     continue;
@@ -359,9 +488,7 @@ test "witness rigidity: opcode selectors are not interchangeable" {
     const allocator = std.testing.allocator;
     const corpus = try corpus_mod.shared();
     var budget = Budget{ .label = "selector rigidity", .cap = PROFILE.selector_budget };
-    var memory = runner.Memory.init(allocator);
-    defer memory.deinit();
-    var audit = SelectorAudit{ .allocator = allocator, .memory = &memory, .budget = &budget };
+    var audit = SelectorAudit{ .allocator = allocator, .budget = &budget };
     defer audit.deinit();
 
     // Sequential for the same reason as observability: `settled` accumulates.
@@ -404,7 +531,7 @@ const DeterminacyTask = struct {
     failure: ?anyerror = null,
 };
 
-test "witness rigidity: every committed access emits a determined value" {
+test "witness rigidity: every independently committed access emission is determined" {
     const allocator = std.testing.allocator;
     const corpus = try corpus_mod.shared();
     var budget = Budget{ .label = "access determinacy", .cap = PROFILE.determinacy_budget };
@@ -464,20 +591,23 @@ fn sweepRow(task: *DeterminacyTask) void {
     }
 }
 
-/// Every alternative value of every `next` limb of one access must be
-/// rejected: for a read-only slot because `next` must equal `previous`, for the
-/// written slot because `next` must equal the row's computed result. Nothing in
-/// the global LogUp closure relates the emitted `next` to the consumed
-/// `previous`, so this has to hold row-locally.
+/// Every alternative value of every separately committed `next` limb must be
+/// rejected. Compact reads are deliberately absent: changing their `next`
+/// necessarily changes `previous` because both names resolve to one physical
+/// column, and the global state chain (not row-local semantics) owns that value.
 fn probeAccessNext(task: *DeterminacyTask, slot: usize) !void {
     const sample = task.sample;
     const honest = sample.view();
     const family = sample.family;
+    const access = layout.accessLayout(family, slot) orelse
+        return error.MissingOpcodeAccessLayout;
+    if (access.aliasesEmittedValue()) return;
     var probe: RowBuffer = undefined;
     const view = probe[0..honest.len];
 
     for (0..4) |limb| {
-        const column = layout.nextLimbColumn(family, slot, limb);
+        const column = access.nextLimbColumn(limb) orelse
+            return error.InvalidOpcodeAccessLimb;
         // Access limbs are written as byte limbs, which is what makes the
         // exhaustive tier a complete determinacy argument over their domain.
         const canonical = (honest[column].tryIntoM31() catch
@@ -498,7 +628,7 @@ fn probeAccessNext(task: *DeterminacyTask, slot: usize) !void {
             try task.failures.append(task.allocator, .{
                 .family = family,
                 .slot = slot,
-                .written = layout.writtenSlot(family) == slot,
+                .written = access.mode == .writable,
                 .limb = limb,
                 .forged = forged,
                 .exhaustive = sample.sweep,
@@ -519,25 +649,38 @@ test "witness rigidity: probed access columns match the AIR layout map" {
         const family: OpcodeFamily = @enumFromInt(family_index);
         const width = trace_mod.nColumnsForFamily(family);
         for (0..opcode_memory.accessCount(family)) |slot| {
+            const description = layout.accessLayout(family, slot) orelse
+                return error.MissingOpcodeAccessLayout;
             var columns = [_]QM31{QM31.zero()} ** trace_mod.MAX_FAMILY_COLUMNS;
-            // Distinct sentinels so a transposed limb or group cannot pass.
+            // Full blocks get distinct groups so a transposition cannot pass.
+            // Compact blocks receive one sentinel because both semantic groups
+            // intentionally name the same physical cells.
             for (0..4) |limb| {
                 const offset: u32 = @intCast(limb);
-                columns[layout.previousLimbColumn(family, slot, limb)] =
+                const previous_column = description.previousLimbColumn(limb) orelse
+                    return error.InvalidOpcodeAccessLimb;
+                const next_column = description.nextLimbColumn(limb) orelse
+                    return error.InvalidOpcodeAccessLimb;
+                columns[previous_column] =
                     QM31.fromBase(M31.fromCanonical(0x10 + offset));
-                columns[layout.nextLimbColumn(family, slot, limb)] =
-                    QM31.fromBase(M31.fromCanonical(0x40 + offset));
+                if (!description.aliasesEmittedValue()) {
+                    columns[next_column] = QM31.fromBase(M31.fromCanonical(0x40 + offset));
+                }
             }
             const access = try opcode_memory
                 .accessFromMain(family, columns[0..width], slot, QM31.one());
+            const expected_next_base: u32 = if (description.aliasesEmittedValue())
+                0x10
+            else
+                0x40;
             for (0..4) |limb| {
                 const offset: u32 = @intCast(limb);
                 try std.testing.expect(access.previous[limb]
                     .eql(QM31.fromBase(M31.fromCanonical(0x10 + offset))));
                 try std.testing.expect(access.next[limb]
-                    .eql(QM31.fromBase(M31.fromCanonical(0x40 + offset))));
+                    .eql(QM31.fromBase(M31.fromCanonical(expected_next_base + offset))));
             }
-            try std.testing.expect(layout.nextLimbColumn(family, slot, 3) < width);
+            try std.testing.expect(description.nextLimbColumn(3).? < width);
         }
     }
 }

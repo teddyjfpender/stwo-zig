@@ -13,9 +13,11 @@ const program_table = @import("../program/table.zig");
 const memory_state = @import("../../runner/memory_state.zig");
 const guest_runner = @import("../../runner/guest_precompile/poseidon2_v1.zig");
 const trace = @import("../../runner/trace.zig");
+const poseidon_work = @import("../../prover/poseidon_witness_work.zig");
 
 pub const ProgramValues = program_decode.ProgramValues;
 pub const Commitment = program_commitment.Commitment;
+pub const BuiltWithWorkReceipt = program_commitment.BuiltWithWorkReceipt;
 pub const FrozenExecutionRows = guest_runner.FrozenExecutionRows;
 
 /// Decode one declared word under the exact Poseidon2 v1 execution profile.
@@ -45,6 +47,25 @@ pub fn buildDeclared(
         guest_execution_rows.rows(),
         program_words,
         completion_fetch,
+    );
+}
+
+pub fn buildDeclaredWithWorkReceipt(
+    allocator: std.mem.Allocator,
+    base_execution_rows: []const trace.TraceRow,
+    guest_execution_rows: *const FrozenExecutionRows,
+    program_words: []const memory_state.WordState,
+    completion_fetch: ?program_table.Fetch,
+    authority: *const poseidon_work.Authority,
+) !BuiltWithWorkReceipt {
+    return program_commitment.buildDeclaredForProfileWithWorkReceipt(
+        allocator,
+        .rv32im_zkvm_poseidon2_v1,
+        base_execution_rows,
+        guest_execution_rows.rows(),
+        program_words,
+        completion_fetch,
+        authority,
     );
 }
 

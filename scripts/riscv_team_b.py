@@ -41,12 +41,21 @@ import sys
 from pathlib import Path
 from typing import Any
 
+try:
+    from . import riscv_air_ir_equivalence as air_equivalence
+except ImportError:
+    import riscv_air_ir_equivalence as air_equivalence
+
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 
 OPCODE_MANIFEST = REPOSITORY_ROOT / "src/frontends/riscv/opcode_manifest.zig"
 LEAN_ROOT = REPOSITORY_ROOT / "formal/riscv-refinement/RiscvRefinement"
 CERTIFICATE_INDEX = (
     REPOSITORY_ROOT / "formal/riscv-refinement/team-b-coverage.json"
+)
+SEMANTIC_REBIND_RECEIPT = (
+    REPOSITORY_ROOT
+    / "formal/riscv-refinement/team-b-air-semantic-equivalence-v1.json"
 )
 
 TEAM_B_FAMILIES = (
@@ -391,6 +400,23 @@ def check_ir_digests(air_ir_dir: Path) -> str:
     return f"team B AIR bindings: {checked} family digests match a fresh export"
 
 
+def check_semantic_rebind(air_ir_dir: Path) -> str:
+    """Bind the typed-authority raw hashes to the reviewed capsule semantics.
+
+    The ordinary digest gate above remains intentionally byte-exact.  This
+    second, independently implemented gate explains and pins the one accepted
+    raw-DAG transition: sparse polynomial expansion must reproduce every
+    ordered constraint and lookup from the pre-cutover exports.
+    """
+    try:
+        return air_equivalence.check_receipt(
+            SEMANTIC_REBIND_RECEIPT,
+            air_ir_dir,
+        )
+    except air_equivalence.EquivalenceError as exc:
+        raise TeamBError(f"typed AIR semantic rebind failed: {exc}") from exc
+
+
 def _strip_lean_comments(text: str) -> str:
     """Remove ``--`` line comments and (nested) ``/- ... -/`` block comments.
 
@@ -697,6 +723,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     digests.add_argument("--air-ir-dir", type=Path, required=True)
 
+    semantic_rebind = subparsers.add_parser(
+        "semantic-rebind",
+        help="check the audited legacy-to-typed raw-DAG rebind",
+    )
+    semantic_rebind.add_argument("--air-ir-dir", type=Path, required=True)
+
     check = subparsers.add_parser("check", help="run every Team B gate")
     check.add_argument("--air-ir-dir", type=Path, required=True)
 
@@ -711,6 +743,8 @@ def main(argv: list[str] | None = None) -> int:
             print(inventory())
         elif args.command == "ir-digests":
             print(check_ir_digests(args.air_ir_dir))
+        elif args.command == "semantic-rebind":
+            print(check_semantic_rebind(args.air_ir_dir))
         elif args.command == "profile":
             print(check_profile())
             print(check_contract_binding())
@@ -720,6 +754,7 @@ def main(argv: list[str] | None = None) -> int:
             print(check_profile())
             print(check_contract_binding())
             print(check_ir_digests(args.air_ir_dir))
+            print(check_semantic_rebind(args.air_ir_dir))
     except TeamBError as error:
         print(f"team B gate failed: {error}", file=sys.stderr)
         return 1

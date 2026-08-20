@@ -1,0 +1,25 @@
+[package]
+name = "poseidon2-m31-permute-v1-guest"
+version = "0.1.0"
+edition = "2024"
+
+# Every benchmark arm and workload shape is built from this source. The
+# default is the Poseidon2-dominant portable RV32IM arm; `precompile` replaces
+# only the measured permutation with the admitted CUSTOM-0 instruction. The
+# two shape features add a fixed amount of identical portable work to both
+# arms and are deliberately mutually exclusive.
+[features]
+default = []
+precompile = []
+shape-balanced = []
+shape-core-only = []
+
+[[bin]]
+name = "poseidon2_m31_permute_v1"
+path = "src/main.rs"
+
+[profile.release]
+panic = "abort"
+opt-level = 3
+lto = true
+codegen-units = 1

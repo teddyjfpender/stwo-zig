@@ -47,6 +47,7 @@ const FriTreePlan = runtime.FriTreePlan;
 const FriFinalPlan = runtime.FriFinalPlan;
 const QuotientCommitResult = runtime.QuotientCommitResult;
 const FriFoldCommitResult = runtime.FriFoldCommitResult;
+const FriCircleFoldResult = runtime.FriCircleFoldResult;
 const FriLineCascadeResult = runtime.FriLineCascadeResult;
 const ResidentBuffer = runtime.ResidentBuffer;
 const Tree = runtime.Tree;
@@ -63,6 +64,55 @@ pub fn foldFriCircle(
     alpha: [4]u32,
     destination: [*]u32,
 ) MetalError!f64 {
+    return foldFriCircleInternal(
+        self,
+        source,
+        source_count,
+        inverse_y,
+        domain_initial_index,
+        domain_step_size,
+        alpha,
+        destination,
+        null,
+    );
+}
+
+pub fn foldFriCircleWithReceipt(
+    self: *Runtime,
+    source: [*]const u32,
+    source_count: u32,
+    inverse_y: ?[]const u32,
+    domain_initial_index: u32,
+    domain_step_size: u32,
+    alpha: [4]u32,
+    destination: [*]u32,
+) MetalError!FriCircleFoldResult {
+    var inverse_generated = false;
+    const gpu_ms = try foldFriCircleInternal(
+        self,
+        source,
+        source_count,
+        inverse_y,
+        domain_initial_index,
+        domain_step_size,
+        alpha,
+        destination,
+        &inverse_generated,
+    );
+    return .{ .gpu_ms = gpu_ms, .inverse_generated = inverse_generated };
+}
+
+fn foldFriCircleInternal(
+    self: *Runtime,
+    source: [*]const u32,
+    source_count: u32,
+    inverse_y: ?[]const u32,
+    domain_initial_index: u32,
+    domain_step_size: u32,
+    alpha: [4]u32,
+    destination: [*]u32,
+    inverse_generated: ?*bool,
+) MetalError!f64 {
     if (inverse_y) |values| {
         if (values.len != source_count / 2) return MetalError.InvalidColumns;
     }
@@ -78,6 +128,7 @@ pub fn foldFriCircle(
         domain_step_size,
         &alpha,
         destination,
+        inverse_generated,
         &gpu_ms,
         &message,
         message.len,

@@ -225,7 +225,8 @@ bool stwo_zig_metal_fri_line_cascade(
     uint32_t fri_layer_count,
     const uint32_t *leaf_seed, const uint32_t *node_seed,
     uint32_t domain_prefix_bytes, uint32_t *channel_state,
-    void **tree_outputs, StwoZigCommandEpochStats *stats,
+    void **tree_outputs, uint32_t *inverse_generation_mask,
+    StwoZigCommandEpochStats *stats,
     char *error_message, size_t error_message_len
 ) {
     if (runtime_ptr == NULL || source_ptr == NULL ||
@@ -235,7 +236,8 @@ bool stwo_zig_metal_fri_line_cascade(
             ((circle_alpha == NULL) == (prior_channel_buffer_ptr == NULL))) ||
         coordinate_ptrs == NULL || final_destination_ptr == NULL ||
         leaf_seed == NULL || node_seed == NULL || channel_state == NULL ||
-        tree_outputs == NULL || stats == NULL || source_count < 2u ||
+        tree_outputs == NULL || stats == NULL ||
+        source_count < 2u ||
         (source_count & (source_count - 1u)) != 0u || fri_layer_count == 0u ||
         fri_layer_count >= 31u || source_count >> fri_layer_count == 0u ||
         (domain_prefix_bytes != 0u && domain_prefix_bytes != 64u)) {
@@ -761,6 +763,11 @@ bool stwo_zig_metal_fri_line_cascade(
             StwoZigMetalTree *tree = trees[stage];
             tree.gpuMilliseconds = gpu_milliseconds;
             tree_outputs[stage] = (__bridge_retained void *)tree;
+        }
+        if (inverse_generation_mask != NULL) {
+            *inverse_generation_mask =
+                (build_circle_inverse_cache ? 1u : 0u) |
+                (build_inverse_cache ? 2u : 0u);
         }
         return true;
     }

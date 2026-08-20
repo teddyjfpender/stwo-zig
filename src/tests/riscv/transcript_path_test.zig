@@ -9,7 +9,7 @@ const blake2_merkle = @import("stwo_core").vcs_lifted.blake2_merkle;
 const prover = @import("stwo_riscv_frontend").prover_mod;
 const relation_challenges = @import("stwo_riscv_frontend").air.relation_challenges;
 const runner = @import("stwo_riscv_frontend").runner;
-const postcard = @import("../../interop/postcard.zig");
+const postcard = @import("interop_postcard");
 const prover_engine = @import("stwo_prover_engine").engine;
 
 const QM31 = qm31.QM31;

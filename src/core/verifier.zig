@@ -20,6 +20,8 @@ const MaskPoints = air_components.MaskPoints;
 pub const PREPROCESSED_TRACE_IDX = verifier_types.PREPROCESSED_TRACE_IDX;
 pub const COMPOSITION_LOG_SPLIT = verifier_types.COMPOSITION_LOG_SPLIT;
 pub const VerificationError = verifier_types.VerificationError;
+pub const QueryCapture = pcs_verifier.QueryCapture;
+pub const ProofCapture = pcs_verifier.VerifiedProofCapture;
 
 pub fn verify(
     comptime H: type,
@@ -29,6 +31,80 @@ pub fn verify(
     channel: anytype,
     commitment_scheme: *pcs_verifier.CommitmentSchemeVerifier(H, MC),
     proof_in: proof_mod.StarkProof(H),
+) anyerror!void {
+    return verifyImpl(
+        H,
+        MC,
+        allocator,
+        component_list,
+        channel,
+        commitment_scheme,
+        proof_in,
+        null,
+        null,
+    );
+}
+
+/// Complete STARK verification with transactional publication of the exact
+/// FRI query draw used by the successful PCS verifier.
+pub fn verifyWithQueryCapture(
+    comptime H: type,
+    comptime MC: type,
+    allocator: std.mem.Allocator,
+    component_list: []const air_components.Component,
+    channel: anytype,
+    commitment_scheme: *pcs_verifier.CommitmentSchemeVerifier(H, MC),
+    proof_in: proof_mod.StarkProof(H),
+    capture: *QueryCapture,
+) anyerror!void {
+    return verifyImpl(
+        H,
+        MC,
+        allocator,
+        component_list,
+        channel,
+        commitment_scheme,
+        proof_in,
+        capture,
+        null,
+    );
+}
+
+/// Complete STARK verification with transactional publication of the expanded
+/// fixed-recursion proof material authenticated by the native verifier.
+pub fn verifyWithProofCapture(
+    comptime H: type,
+    comptime MC: type,
+    allocator: std.mem.Allocator,
+    component_list: []const air_components.Component,
+    channel: anytype,
+    commitment_scheme: *pcs_verifier.CommitmentSchemeVerifier(H, MC),
+    proof_in: proof_mod.StarkProof(H),
+    capture: *ProofCapture(H),
+) anyerror!void {
+    return verifyImpl(
+        H,
+        MC,
+        allocator,
+        component_list,
+        channel,
+        commitment_scheme,
+        proof_in,
+        null,
+        capture,
+    );
+}
+
+fn verifyImpl(
+    comptime H: type,
+    comptime MC: type,
+    allocator: std.mem.Allocator,
+    component_list: []const air_components.Component,
+    channel: anytype,
+    commitment_scheme: *pcs_verifier.CommitmentSchemeVerifier(H, MC),
+    proof_in: proof_mod.StarkProof(H),
+    capture_out: ?*QueryCapture,
+    proof_capture_out: ?*ProofCapture(H),
 ) anyerror!void {
     var proof = proof_in;
     var proof_moved = false;
@@ -55,7 +131,7 @@ pub fn verify(
         return VerificationError.InvalidStructure;
     }
 
-    const random_coeff = channel.drawSecureFelt();
+    const composition_randomness = channel.drawSecureFelt();
 
     if (proof.commitment_scheme_proof.commitments.items.len == 0) {
         return VerificationError.InvalidStructure;
@@ -86,7 +162,8 @@ pub fn verify(
         channel,
     );
 
-    const oods_point = circle.randomSecureFieldPoint(channel);
+    const oods_seed = channel.drawSecureFelt();
+    const oods_point = circle.secureFieldPointFromRandomSeed(oods_seed);
     const max_log_degree_bound = composition_log_size - composition_log_split;
 
     var sample_points = try components.maskPoints(
@@ -114,7 +191,7 @@ pub fn verify(
     if (!composition_oods_eval.eql(try components.evalCompositionPolynomialAtPoint(
         oods_point,
         &proof.commitment_scheme_proof.sampled_values,
-        random_coeff,
+        composition_randomness,
         max_log_degree_bound,
     ))) {
         return VerificationError.OodsNotMatching;
@@ -123,7 +200,34 @@ pub fn verify(
     sample_points_moved = true;
     proof_moved = true;
     const pcs_proof = proof.commitment_scheme_proof;
-    try commitment_scheme.verifyValues(allocator, sample_points, pcs_proof, channel);
+    if (proof_capture_out) |capture| {
+        try commitment_scheme.verifyValuesWithProofCapture(
+            allocator,
+            sample_points,
+            pcs_proof,
+            channel,
+            .{
+                .composition_randomness = composition_randomness,
+                .oods_seed = oods_seed,
+            },
+            capture,
+        );
+    } else if (capture_out) |capture| {
+        try commitment_scheme.verifyValuesWithQueryCapture(
+            allocator,
+            sample_points,
+            pcs_proof,
+            channel,
+            capture,
+        );
+    } else {
+        try commitment_scheme.verifyValues(
+            allocator,
+            sample_points,
+            pcs_proof,
+            channel,
+        );
+    }
 }
 
 fn appendCompositionMaskTree(

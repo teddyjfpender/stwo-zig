@@ -34,6 +34,7 @@ pub fn nCommittedColumnsForFamily(family: trace.OpcodeFamily) u32 {
 pub fn generateIsFirst(allocator: std.mem.Allocator, log_size: u32) ![]M31 {
     const size = @as(usize, 1) << @intCast(log_size);
     const values = try allocator.alloc(M31, size);
+    errdefer allocator.free(values);
     @memset(values, M31.zero());
     const placement = try infra.BitReversalTable.init(allocator, log_size);
     defer placement.deinit(allocator);
@@ -49,6 +50,7 @@ pub fn generateIsActive(
     const size = @as(usize, 1) << @intCast(log_size);
     if (n_rows > size) return error.InvalidLogSize;
     const values = try allocator.alloc(M31, size);
+    errdefer allocator.free(values);
     @memset(values, M31.zero());
     const placement = try infra.BitReversalTable.init(allocator, log_size);
     defer placement.deinit(allocator);
@@ -62,6 +64,12 @@ pub const Columns = struct {
     /// writes `components`. Ownership moves to lookup-source assembly; a
     /// forged-row harness discards these pre-mutation values and rescans.
     lookup_counters: ?lookup_counter.Set,
+    /// Exact producer geometry needed by the optional logical-work receipt.
+    /// These two scalars add no branch to the row loop and prevent a later
+    /// profiler pass from guessing which worker reduction and audit actually
+    /// ran.
+    counter_set_merges: usize,
+    direct_semantic_audit_performed: bool,
 
     pub fn takeLookupCounters(self: *Columns) ?lookup_counter.Set {
         const counters = self.lookup_counters orelse return null;
@@ -114,6 +122,8 @@ pub fn generate(
 
     var result: Columns = undefined;
     result.lookup_counters = null;
+    result.counter_set_merges = 0;
+    result.direct_semantic_audit_performed = false;
     var log_sizes: [MAX_COMPONENTS]u32 = undefined;
     var domain_sizes: [MAX_COMPONENTS]usize = undefined;
     var n_cols: [MAX_COMPONENTS]usize = undefined;
@@ -202,6 +212,10 @@ pub fn generate(
                 const row_index = family_row - shard_index * MAX_OPCODE_SHARD_ROWS;
                 if (row_index >= work.domain_sizes[component_index]) continue;
                 const physical_row = work.placements[component_index].?.map(row_index);
+                trace.validateFamilyRow(row, family) catch {
+                    work.err = error.InvalidSemanticWitness;
+                    return;
+                };
                 trace.fillFamilyColumns(
                     &work.result.components[component_index].columns,
                     physical_row,
@@ -290,6 +304,7 @@ pub fn generate(
         worker_counters[0].mergeFrom(set);
         set.deinit(allocator);
     }
+    result.counter_set_merges = worker_count - 1;
     result.lookup_counters = worker_counters[0];
     worker_sets_owned = false;
 
@@ -307,9 +322,11 @@ pub fn generate(
     // domain passes. A malformed witness still fails closed in the proof /
     // verifier path; the audit only moves that rejection before commitment and
     // adds the exact family, row, and constraint diagnostic below.
-    if (directSemanticAuditEnabled()) {
+    const audit_enabled = directSemanticAuditEnabled();
+    if (audit_enabled) {
         try validateDirectSemantics(allocator, statement, &result);
     }
+    result.direct_semantic_audit_performed = audit_enabled;
     return result;
 }
 
@@ -354,10 +371,12 @@ pub fn validateDirectSemantics(
                 QM31.one()
             else
                 QM31.zero();
-            const evaluation = try semantic_eval.evaluate(
+            var evaluation: semantic_eval.Evaluation = undefined;
+            try semantic_eval.evaluateInto(
                 desc.family,
                 sampled[0..component.n_columns],
                 is_active,
+                &evaluation,
             );
             for (evaluation.values[0..evaluation.len], 0..) |value, constraint| {
                 if (!value.isZero()) {

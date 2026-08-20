@@ -1,7 +1,7 @@
 # Task graph
 
 **Status:** active backlog
-**Last updated:** 2026-08-10
+**Last updated:** 2026-08-20
 
 ## Status vocabulary
 
@@ -22,13 +22,29 @@ first production milestone. `P2` improves breadth or optimization.
 | M0 | Engineering dossier | Branch, canon, architecture, tasks, validation, progress | done |
 | M1 | Validated logical IR | Deterministic IR kernel and negative tests | done |
 | M2 | Shadow compiler | All 17 current families imported and degree-reported | done |
-| M3 | Compatibility lowering | LUI and then all families round-trip exactly | blocked |
+| M3 | Compatibility lowering | LUI and then all families round-trip exactly | ready (current gates green; clean immutable receipt open) |
 | M4 | Pure compiler pilot | Poseidon2 compatibility path verified; H-010 default cohort reviewed | done |
 | M5 | Effect/witness pilot | LUI, ADDI, signed load/JALR, DIV vertical slices | ready |
 | M6 | Guest precompile | Poseidon2 calls close in one proof | ready |
 | M7 | Parallel proving | Component stages scheduled and measured | active |
-| M8 | Broad migration | Handwritten witness duplication retired | queued |
-| M9 | Recursive aggregation | Bound leaf summaries aggregate two-to-one | deferred |
+| M8 | Broad migration | Handwritten witness duplication retired | done |
+| M9 | Recursive aggregation | Bound leaf summaries aggregate through a canonical multi-level tree | active |
+
+M3's state refers to the current checkout: the workspace is `21/21` packages
+and 70 edges, compatibility manifests are `17/17`, frontend Debug is 2,149
+passes plus one intentional skip, recursion is `583/583` in all three modes,
+the relocated native proof is exact at 5,184 bytes with the same transcript in
+all modes, and RISC-V CPU integration is `17/17` in ReleaseFast. The final
+formal reseal is green `59/59`, with digest
+`375b77cc4c11c2af324b3d66a989fd1e69a58c809dbb68e444d6b6a25fdeba86`
+and source closure
+`c9bc6c362663ce20aac44b9a004a4d86e71f9888bf2a809512116733db0a8bb2`.
+A clean top-level receipt has not been minted, so M3 is `ready`, not `done`.
+Historical V-008 remains unchanged and is not evidence for this tree.
+Those M3 gates alone do not establish an outer proof, whole-frontend
+verification, or proof-system soundness. Separate current evidence below does
+establish the complete SegmentV2 leaf and first temporal parent within its
+explicitly narrower claim boundary.
 
 ## Immediate queue
 
@@ -51,6 +67,9 @@ first production milestone. `P2` improves breadth or optimization.
 | F-010 | P1 | Add canonical program digest | F-005 | Digest changes for semantic order/type changes and not allocator/address changes | done |
 | F-011 | P1 | Add allocation-failure tests for arena finalization | F-004 | All partially initialized owners deinit cleanly | done |
 | F-012 | P1 | Document public authoring interface | F-004 | One minimal pure and one effectful example compile in tests | done |
+| F-013 | P0 | Compile Cairo-style frames and activation events | F-007, F-010 | Declared-input isolation, write-once locals, hint ownership, deterministic tuple ABI, canonical consume/emit/public events, digest and allocation gates | done |
+| F-014 | P0 | Lower function activations into the live LogUp protocol | F-013, A-014 | Prover/verifier draw bound per-function challenges; calls and public roots balance; omission, duplication, collision, and transcript mutations reject | done (compiler-owned degree-2 lowering under authenticated degree-3 bound; verifier-owned public-root recomputation; 21/21 Debug and ReleaseFast; dormant at zero protocol cost until a production component owns a relation-backed function) |
+| F-015 | P0 | Bind complete function bodies and inline substitution | F-013, A-007 | Constraints/effects/hints/calls have one frame owner; inline call outputs lower and execute without an unconstrained committed cell | done |
 
 ## Shadow analysis and lowering
 
@@ -68,6 +87,8 @@ first production milestone. `P2` improves breadth or optimization.
 | A-010 | P0 | Reproduce AIR IR v2 projection | A-008 | Byte-identical canonical export for LUI | done |
 | A-011 | P1 | Round-trip every current family | A-009, A-010 | 17 compatibility manifests and exports exact | done |
 | A-012 | P1 | Add layout diff command/test helper | A-006 | Diff identifies first semantic/layout divergence with names | done |
+| A-013 | P0 | Add typed masks, shifted columns, and row-window ownership | A-004, A-006 | Boundary and ownership validation, degree lowering, PCS mask emission, and cross-row forgeries pass | active, performance-only (correctness and production activation complete: 17/17 generated semantic/lookup pairs, exact 51,581-byte proof and transcript parity in Debug/ReleaseFast, independent verification; paired global P-004 evidence remains) |
+| A-014 | P1 | Select lookup batches under degree and cost bounds | A-013, P-003 | Deterministic partition is manifest-bound; singleton/pair proof differential and collision negatives pass | active (explicit authenticated CPU V2 proves all 17 families: Tree 2 688 -> 616, proof 51,863 -> 50,256 bytes, independent verification and reciprocal replay rejection; compatibility V1 remains default; native Metal/no-fallback and normative performance remain) |
 
 ## Poseidon2 compiler pilot
 
@@ -125,17 +146,23 @@ accepted decision and full proof-path evidence.
 | E-003 | P0 | Implement memory read/write and range effects | E-002 | Load/store masks, gaps, and address bounds represented | done |
 | E-004 | P0 | Author LUI in typed surface | E-001, A-010 | Full compatibility and proof gates exact | done |
 | E-005 | P0 | Generate LUI witness in shadow mode | E-004, F-008 | Column equality across corpus | done |
-| E-006 | P0 | Author ADDI | E-002, E-004 | x0, aliases, overflow, carries, Sail differential | ready |
-| E-007 | P0 | Generate ADDI witness in shadow mode | E-006 | Column/event equality and forged carry rejection | queued |
-| E-008 | P1 | Author signed-load pilot | E-003, E-007 | Sign hint, memory mask, and bound mutations reject | queued |
-| E-009 | P1 | Author JALR pilot | E-003, E-007 | Target, bit zero, range, state transition exact | queued |
-| E-010 | P0 | Define quotient/remainder hint recipes | F-008, E-003 | All RISC-V exceptional classes specified | ready |
-| E-011 | P0 | Author DIV-family pilot | E-010 | 292 operand-class corpus and adversarial tests pass | queued |
-| E-012 | P1 | Add generic direct-to-column witness executor | E-005, H-005 | Preplanned storage, bounded dispatch, deterministic errors | ready |
-| E-013 | P1 | Switch one family witness to generated authority | E-012 | Old writer test-only; full clean-tree gates green | queued |
-| E-014 | P1 | Migrate remaining families in reviewed groups | E-013 | Per-family checklist complete | queued |
-| E-015 | P1 | Retire redundant witness writers | E-014 | No production imports; retained history documented | queued |
+| E-006 | P0 | Author ADDI | E-002, E-004 | x0, aliases, overflow, carries, Sail differential | done |
+| E-007 | P0 | Generate ADDI witness in shadow mode | E-006 | Column/event equality and forged carry rejection | done |
+| E-008 | P1 | Author signed-load pilot | E-003, E-007 | Sign hint, memory mask, and bound mutations reject | done |
+| E-009 | P1 | Author JALR pilot | E-003, E-007 | Target, bit zero, range, state transition exact | done |
+| E-010 | P0 | Define quotient/remainder hint recipes | F-008, E-003 | All RISC-V exceptional classes specified | done |
+| E-011 | P0 | Author DIV-family pilot | E-010 | 292 operand-class corpus and adversarial tests pass | done |
+| E-012 | P1 | Add generic direct-to-column witness executor | E-005, H-005 | Preplanned storage, bounded dispatch, deterministic errors | done |
+| E-013 | P1 | Switch one family witness to generated authority | E-012 | Old writer test-only; full clean-tree gates green | done |
+| E-014 | P1 | Migrate remaining families in reviewed groups | E-013 | Per-family checklist complete | done (17/17 production-typed) |
+| E-015 | P1 | Retire redundant witness writers | E-014 | No production imports; retained history documented | done |
 | E-016 | P2 | Evaluate generated concrete executor | E-014 | Sail/Spike differential and ADR; no authority change | queued |
+| E-017 | P0 | Generate failure-atomic register/memory access transactions | E-014, A-013 | x0, aliases, clocks, gaps, masks, and misalignment resolve before typed-row publication with no hot-loop allocation | done |
+| E-018 | P0 | Migrate LUI execution, witness, and production AIR to one typed authority | E-017, P-002 | Delete the LUI runner case and handwritten AIR authority after exact Sail/formal/proof/performance parity | done |
+| E-019 | P0 | Migrate FENCE as the second end-to-end SSOT family | E-018 | Generated dispatch and empty-effect edge cases pass; replaced authorities deleted | done |
+| E-020 | P1 | Migrate the remaining fifteen execution/AIR families | E-019 | Each family deletes its runner and handwritten AIR authorities under the complete per-family gate | done (15/15; 17/17 live) |
+| E-021 | P1 | Generate family metadata and dispatch from the typed registry | E-018 | Compile-time exhaustive decode-to-family calls; unsupported opcodes fail closed; no runtime name lookup | done (17/17; 46 proof-bearing opcodes) |
+| E-022 | P1 | Retire handwritten opcode composition machinery | E-020, E-021, A-014 | Claims, masks, geometry, offsets, adapters, and assembly derive from compiled manifests | done (one shared manifest authority assembles all 17 opcode and 11 infrastructure components for prover and verifier; O(1) offsets and failure-atomic drift rejection; 324/324 Debug and ReleaseFast) |
 
 ## Guest precompile
 
@@ -149,28 +176,37 @@ accepted decision and full proof-path evidence.
 | C-006 | P0 | Extend statement geometry and artifact identity | C-005 | Call count/columns/log size bound and malformed artifacts reject | done |
 | C-007 | P0 | Generate guest precompile main trace | C-004, C-006 | Calls map exactly to active rows; padding inactive | done |
 | C-008 | P0 | Generate shared-challenge relation interactions | C-007 | Source/supply sums close; omission/duplication fail | done |
-| C-009 | P0 | Prove and independently verify one guest program | C-008 | CPU proof and new-process verifier green | ready |
-| C-010 | P1 | Add Metal component admission | C-009 | Authenticated AOT or reviewed generic path; no CPU fallback | queued |
-| C-011 | P0 | Add native-versus-precompile semantic corpus | C-009 | Same advertised outputs; extension labelled | queued |
-| C-012 | P1 | Add precompile mutation fleet | C-009 | Input, output, mode, multiplicity, padding, count forgeries reject | queued |
-| C-013 | P1 | Benchmark crossover and total work | C-011, C-012 | Complete report under PERFORMANCE.md | queued |
+| C-009 | P0 | Prove and independently verify one guest program | C-008 | CPU proof and new-process verifier green | done |
+| C-010 | P1 | Add Metal component admission | C-009 | Authenticated AOT or reviewed generic path; no CPU fallback | done |
+| C-011 | P0 | Add native-versus-precompile semantic corpus | C-009 | Same advertised outputs; extension labelled | done |
+| C-012 | P1 | Add precompile mutation fleet | C-009 | Input, output, mode, multiplicity, padding, count forgeries reject | done |
+| C-013 | P1 | Benchmark crossover and total work | C-011, C-012 | Complete report under PERFORMANCE.md | ready |
+
+C-013's frozen CPU controller and independently recomputed lane reduction are
+implemented and tested. The task remains `ready`, not `done`: the shared
+checkout is not a clean immutable capture source, and the required secure CPU
+cohort, Metal cohort, cross-lane evidence, and normative promotion receipt do
+not yet exist. See the
+[CPU capture readiness audit](notes/2026-08-12-c013-cpu-capture-readiness.md).
 
 ## Parallelism and recursion
 
 | ID | Priority | Task | Depends | Acceptance | Status |
 | --- | --- | --- | --- | --- | --- |
-| R-001 | P1 | Model component build stages as bounded tasks | C-009 | Explicit dependencies, ownership, cancellation | active |
-| R-002 | P1 | Parallelize independent main-trace construction | R-001 | Canonical output; serial differential | queued |
-| R-003 | P1 | Parallelize independent interaction construction | R-002 | Shared challenges; canonical claims | queued |
-| R-004 | P1 | Integrate with heterogeneous quotient scheduler | R-003 | No nested oversubscription; failure propagation | queued |
-| R-005 | P1 | Add component critical-path telemetry | R-004 | queue/run/wait/memory metrics in report | queued |
-| R-006 | P1 | Thread-count and workload scaling study | R-005 | verified 1/N-worker sweep and resource disclosure | queued |
-| R-007 | P2 | Specify cross-proof relation summary | C-012 | Reviewed soundness argument and serialization | deferred |
-| R-008 | P2 | Implement one core/precompile leaf-pair prototype | R-007 | Swapped/omitted/cross-transcript negatives reject | deferred |
-| R-009 | P2 | Implement two-to-one aggregation tree | R-008 | Final verifier binds all leaves and statement | deferred |
-| R-010 | P2 | Measure recursion crossover | R-009 | Proof size, verifier, memory, total work, wall time | deferred |
+| R-001 | P1 | Model component build stages as bounded tasks | C-009 | Explicit dependencies, ownership, cancellation | done |
+| R-002 | P1 | Parallelize independent main-trace construction | R-001 | Live final destinations; exact predecessor/`N=1/2/4` statement, claim, transcript, proof, cancellation, and resource evidence | done |
+| R-003 | P1 | Parallelize independent interaction construction | R-002 | Shared challenges, allocation-free joined epoch, canonical claims, and exact full-proof parity | done |
+| R-004 | P1 | Integrate with heterogeneous quotient scheduler | R-003 | No nested oversubscription; failure propagation | done |
+| R-005 | P1 | Add component critical-path telemetry | R-004 | queue/run/wait/memory metrics in report | done (five non-overlapping witness-materialization regions, checked proving complement, exact verified-request partition, and owned task/resource profile pass a real independently verified proof in Debug and ReleaseFast) |
+| R-006 | P1 | Thread-count and workload scaling study | R-005 | verified 1/N-worker sweep and resource disclosure | active (strict fresh-process plan/capture/bundle validator and 1,040-attempt per-lane schedule pass; capture-plan and paired-plan V2 bind and live-recompute P-003's CPU/Metal/joint 16/16 matrix plus schema-9/23-site inventory. The normative scaling receipt is absent/null. The current AC-powered, low-power-off, thermally clear preflight fails only median idle, 93.81% versus 95%. A clean reviewable commit, installed V4 CPU/Metal smoke, admitted preflight, and immutable 2,080-attempt paired capture remain) |
+| R-007 | P0 | Specify and encode session-bound cross-proof relation summaries | C-012 | ADR accepted; fixed codec/digests and swapped/omitted/duplicate/cross-session negatives pass | active |
+| R-011 | P0 | Select and bind the recursive field, hash, PCS, and verifier protocol | R-007 | Security review fixes leaf public inputs and recursive verifier statement | queued |
+| R-012 | P0 | Express every recursion-local component in the typed compiler | R-011, A-013 | Verifier arithmetic, hash, wire, Merkle, and transcript components have no handwritten escape hatch | done as protocol substrate (36/36 universal AIR authority; complete 39-component SegmentV2 leaf outer proof independently verifies all 47 domains from verifier-owned capture. This implementation work completed ahead of R-011; R-011 remains the production protocol-selection and activation gate) |
+| R-008 | P0 | Implement one core/precompile recursive leaf-pair prototype | R-007, R-011 | Native/in-circuit verifier parity; swapped/omitted/cross-transcript/session negatives reject | queued |
+| R-009 | P1 | Implement the canonical two-to-one aggregation tree | R-008, R-012 | Final verifier binds every ordered leaf, relation summary, statement, and session | active as pre-activation substrate (the first real temporal node is complete ahead of R-008's production leaf-pair closure: two distinct independently verified SegmentV2 leaves feed exact rows 0--35, authenticated verifier-input and statement boundaries close globally, and the 94,740-byte ReleaseFast parent independently verifies with proof SHA `a43d756e…203b`. Coherently resealed mutations cover every row 20--35 and the pair/statement/context boundary; the lean path reproduces all identities with zero hot pair hashes/permutations. R-008/R-011 activation and multi-level tree construction remain before task completion; `temporal_parent_verified = true`) |
+| R-010 | P1 | Measure recursion crossover | R-009 | Proof size, verifier, memory, total work, wall time, and security bits | queued |
 
-### R-001 implementation checkpoint
+### R-001 completion and R-002 production boundary
 
 The exact-capacity scheduler, preallocated leased submission envelopes, joined
 cancellation, deterministic failure selection, resource reservations,
@@ -196,8 +232,27 @@ graph-local interval as verified-request duration. Physical-worker peak and
 busy time remain nullable when a `pool_exclusive` callback launches child work
 that is not yet instrumented exactly.
 
-This is implementation groundwork for R-005, not its report-level acceptance,
-and remains an active implementation slice rather than R-001 or M7 completion:
+R-001 is complete at the bounded scheduler/model boundary. A retained lease now
+owns admitted worker capacity across all dependent waves, closes exactly once,
+and cannot be reused after release. The pointer-free Tree-1 executor consumes
+the complete seven-wave plan through fixed callbacks, validates every declared
+range and destination ownership, preserves deterministic cancellation and
+failure selection, and passes serial/one/two/four-worker structural
+differentials in Debug, ReleaseSafe, and ReleaseFast.
+
+R-002, R-003, and R-004 are complete at the production proof boundary. The
+Tree-1 and Tree-2 epochs write live final destinations, and the same
+proof-scoped pool continues through heterogeneous quotient composition and PCS
+openings. The guarded `test-riscv-proof-pool-parity` target runs the real
+predecessor/current `N = 1/2/4` proof differential plus stage-by-stage injected
+failure and recovery. Its ReleaseFast result fixes a 56,385-byte proof,
+SHA-256 `605bb8af62f3e4b1c1b59a6be7e2714e0c92f65ef0248d21b1c04c447a4c8f7b`,
+transcript digest
+`69d6160da376ceff44733dea25c0b8c5e05e4fbcd0bcb9fee27aeba5061018b3`,
+and one draw across every admitted worker count. A minimum-two-test build guard
+prevents this focused target from succeeding with a stale empty filter.
+
+R-005 is complete at the report-level telemetry boundary:
 
 - the opt-in proof-identity reporter establishes exact predecessor/current
   `N = 1` and current `N = 1/2/4` equality for two development-profile
@@ -209,24 +264,35 @@ and remains an active implementation slice rather than R-001 or M7 completion:
   `N = 1/2/4` plus the same compatibility handshake;
 - row sharding currently covers memory-hash, lookup-table, and opcode-lookup
   prepared domains, not every dominant component or prover stage;
-- commit `3b7606bb` supplies a pure, pointer-free Tree-1 plan with exact column
-  coverage, aligned opcode/Poseidon ranges, checked finite-resource classes,
-  deterministic worker admission, and per-wave capacity bounds. It executes no
-  production work yet, so it is R-002 preparation rather than R-002 completion;
-- fused RISC-V pair lanes are truthfully reported as a synthetic aggregate, so
-  complete semantic per-component attribution across all stages is still open;
-- commit `f0504be0` binds each opt-in verified sample to checked monotonic
-  guest, proving-including-witness, and native-verification nanoseconds plus an
-  owned flat task profile. The separate profiled schema labels that partition
-  development-coarse and incomplete; serialization is excluded and the exact
-  witness/proving split remains open; and
-- full-corpus task capture, the exact request partition, fresh-process receipt
-  wiring, and the normative R-006 attempt bundle and validator-recomputed
-  receipt remain open; and
+- the pointer-free Tree-1 plan and executor cover exact columns, aligned
+  opcode/Poseidon ranges, checked finite-resource classes, deterministic worker
+  admission, and per-wave capacity bounds. Its callbacks now invoke production
+  generators into committed final destinations, and the whole-proof gate pins
+  the resulting statement, claims, transcript, and proof bytes;
+- fused RISC-V pair lanes retain their semantic attribution and nested physical
+  worker accounting in the same owned task profile;
+- the profiled schema binds checked monotonic guest, exact five-region witness
+  materialization, cryptographic-proving complement, and native-verification
+  nanoseconds. Their checked sum is `verified_request_ns`; serialization and
+  receipt rendering are explicitly outside the boundary;
+- the focused product gate exercises the complete state machine, schema,
+  report custody, disabled-path neutrality, and one real independently verified
+  proof in Debug and ReleaseFast; and
+- full-corpus fresh-process capture and the normative R-006 attempt bundle and
+  validator-recomputed scaling receipt remain open;
 - finite budgets fail closed for unprepared fallbacks and non-heap scratch or
   device-resident plans, so broader resource closure remains open.
 
 ## Cross-cutting validation and tooling
+
+### AIR profiling and cost authority
+
+| ID | Priority | Task | Depends | Acceptance | Status |
+| --- | --- | --- | --- | --- | --- |
+| P-001 | P0 | Add a deterministic static typed-AIR profile | A-003, A-004 | Versioned digest and JSON/TSV cover columns, DAG/CSE/closure, roots, effects, batches, degrees, and materialization facts | done |
+| P-002 | P0 | Profile the complete native typed-family inventory | P-001, E-014 | Family-ordered report covers all 17 production witness families and cross-checks layout/batch authorities | done |
+| P-003 | P1 | Join static AIR facts with runtime proof telemetry | P-002, R-005 | Stable records bind witness/prove/verify time, field/FFT work, memory, proof bytes, total work, and critical path | done (producer-exhaustive CPU/Metal/joint 16/16 closure over schema 9's 23 typed sites; canonical matrix SHA `b1eef5cc…24d1`, inventory SHA `13807efb…982f`; CPU authority/receipt `df914f…b14` / `9e99cc…f68`, shell receipt `864d55…46f`. The authenticated-AOT real-device Metal 3/3 gate independently verifies with 118 exports and exact-once producers but emitted no separate canonical IDs. R-006 separately owns installed-binary smoke and scaling capture) |
+| P-004 | P1 | Enforce multidimensional performance regression budgets | P-003, R-006 | Frozen A/A-calibrated gates reject meaningful global regressions without promoting noisy local wins | queued |
 
 | ID | Priority | Task | Depends | Acceptance |
 | --- | --- | --- | --- | --- |
@@ -238,6 +304,17 @@ and remains an active implementation slice rather than R-001 or M7 completion:
 | V-006 | P1 | Add CPU/Metal canonical program identity receipt (done) | H-007 | Backend reports same logical/layout digest |
 | V-007 | P1 | Add documentation link and task-state checker | M0 | Broken local links and multiple active tasks fail |
 | V-008 | P1 | Add clean-tree milestone receipt (done) | M3 | Commit, tool versions, manifests, tests, and digests recorded |
+| V-009 | P0 | Mint and replay the current clean immutable M3 receipt (ready) | V-008, E-021 | Frozen source and generated artifacts bind the green `21/21/70`, `17/17`, frontend, recursion, native-proof, CPU-integration, and final formal gates without inflating the claim boundary |
+
+V-008 is complete only as historical evidence for its named detached snapshot;
+its recorded red findings remain part of the audit trail. With the final formal
+reseal green, V-009 supersedes it only for a future clean revision after the
+new receipt is minted and replayed.
+The receipt must preserve the historical `2/46` Level-1 pilot label and record
+the complete 36/36-universal, 39-component SegmentV2 leaf proof separately from
+the independently verified first temporal parent. It must explicitly retain
+`temporal_parent_verified = true`, `whole_frontend_verified = false`, and
+`proof_system_soundness = false`.
 
 ## Critical path
 

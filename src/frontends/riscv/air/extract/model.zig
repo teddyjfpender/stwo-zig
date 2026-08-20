@@ -8,12 +8,27 @@
 const std = @import("std");
 const constraint_program = @import("../constraint_program.zig");
 const symbolic = @import("symbolic.zig");
-const semantics = @import("../semantics/mod.zig");
+const typed_auipc_authority = @import("../lang/typed_auipc_authority.zig");
+const typed_base_alu_imm_authority = @import("../lang/typed_base_alu_imm_authority.zig");
+const typed_base_alu_reg_authority = @import("../lang/typed_base_alu_reg_authority.zig");
+const typed_branch_eq_authority = @import("../lang/typed_branch_eq_authority.zig");
+const typed_branch_lt_authority = @import("../lang/typed_branch_lt_authority.zig");
+const typed_fence_authority = @import("../lang/typed_fence_authority.zig");
+const typed_jal_authority = @import("../lang/typed_jal_authority.zig");
+const typed_jalr_authority = @import("../lang/typed_jalr_authority.zig");
+const typed_lt_imm_authority = @import("../lang/typed_lt_imm_authority.zig");
+const typed_lt_reg_authority = @import("../lang/typed_lt_reg_authority.zig");
+const typed_lui_authority = @import("../lang/typed_lui_authority.zig");
+const typed_shifts_imm_authority = @import("../lang/typed_shifts_imm_authority.zig");
+const typed_shifts_reg_authority = @import("../lang/typed_shifts_reg_authority.zig");
+const typed_load_store_authority = @import("../lang/typed_load_store_authority.zig");
+const typed_mul_authority = @import("../lang/typed_mul_authority.zig");
+const typed_mulh_authority = @import("../lang/typed_mulh_authority.zig");
+const typed_div_authority = @import("../lang/typed_div_authority.zig");
 const entry_mod = @import("../lookups/entry.zig");
 const trace = @import("../../runner/trace.zig");
 
 const Scalar = symbolic.Scalar;
-const sem = semantics.Families(Scalar);
 const Program = constraint_program.Builder(Scalar);
 
 pub const Error = error{
@@ -58,23 +73,23 @@ pub const System = struct {
 
 pub fn moduleOf(comptime family: trace.OpcodeFamily) type {
     return switch (family) {
-        .base_alu_reg => sem.base_alu_reg,
-        .base_alu_imm => sem.base_alu_imm,
-        .shifts_reg => sem.shifts_reg,
-        .shifts_imm => sem.shifts_imm,
-        .lt_reg => sem.lt_reg,
-        .lt_imm => sem.lt_imm,
-        .branch_eq => sem.branch_eq,
-        .branch_lt => sem.branch_lt,
-        .lui => sem.lui,
-        .auipc => sem.auipc,
-        .jalr => sem.jalr,
-        .jal => sem.jal,
-        .load_store => sem.load_store,
-        .mul => sem.mul,
-        .mulh => sem.mulh,
-        .div => sem.div,
-        .fence => sem.fence,
+        .base_alu_reg => typed_base_alu_reg_authority.Evaluator(Scalar),
+        .base_alu_imm => typed_base_alu_imm_authority.Evaluator(Scalar),
+        .shifts_reg => typed_shifts_reg_authority.Evaluator(Scalar),
+        .shifts_imm => typed_shifts_imm_authority.Evaluator(Scalar),
+        .lt_reg => typed_lt_reg_authority.Evaluator(Scalar),
+        .lt_imm => typed_lt_imm_authority.Evaluator(Scalar),
+        .branch_eq => typed_branch_eq_authority.Evaluator(Scalar),
+        .branch_lt => typed_branch_lt_authority.Evaluator(Scalar),
+        .lui => typed_lui_authority.Evaluator(Scalar),
+        .auipc => typed_auipc_authority.Evaluator(Scalar),
+        .jalr => typed_jalr_authority.Evaluator(Scalar),
+        .jal => typed_jal_authority.Evaluator(Scalar),
+        .load_store => typed_load_store_authority.Evaluator(Scalar),
+        .mul => typed_mul_authority.Evaluator(Scalar),
+        .mulh => typed_mulh_authority.Evaluator(Scalar),
+        .div => typed_div_authority.Evaluator(Scalar),
+        .fence => typed_fence_authority.Evaluator(Scalar),
     };
 }
 

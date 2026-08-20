@@ -151,9 +151,8 @@ pub const RequestSummary = struct {
     worker_stack_bytes: u64 = 0,
     /// Exact concurrency of outer task callbacks.
     peak_active_tasks: u32 = 0,
-    /// Exact physical-worker concurrency when observable. This is absent for
-    /// graphs with uninstrumented `pool_exclusive` child work; an occupied
-    /// lease width is not relabelled as an observed peak.
+    /// Exact physical-worker callback concurrency. Profiled pool-exclusive
+    /// child work is observed at fixed-envelope callback boundaries.
     peak_active_workers: ?u32 = null,
 
     planned_tasks: u64 = 0,
@@ -179,8 +178,8 @@ pub const RequestSummary = struct {
     resource_wait_ns: u64 = 0,
     /// Sum of outer task callback run intervals, including failed work.
     task_run_ns: u64 = 0,
-    /// Aggregate physical-worker busy time when observable. This is absent
-    /// when nested child work is not instrumented exactly.
+    /// Aggregate physical-worker callback time: outer task run intervals plus
+    /// exactly observed pool-exclusive child callback intervals.
     worker_busy_ns: ?u64 = null,
     worker_capacity_ns: u64 = 0,
     /// Time from this graph capture's monotonic origin through its joined

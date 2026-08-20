@@ -14,6 +14,31 @@ except ImportError:
     from riscv_team_a_constants import TeamAError
 
 
+def assigned_opcodes(
+    shared: Any,
+    families: tuple[str, ...],
+    expected_count: int,
+) -> list[tuple[str, str, int]]:
+    """Project Team A's exact family assignment from the shared manifest."""
+
+    try:
+        entries = shared.manifest_opcodes()
+    except shared.TeamBError as exc:
+        raise TeamAError(str(exc)) from exc
+    selected = [entry for entry in entries if entry[1] in families]
+    if len(selected) != expected_count:
+        raise TeamAError(
+            f"Team A families cover {len(selected)} opcodes, expected {expected_count}"
+        )
+    observed = {family for _, family, _ in selected}
+    if observed != set(families):
+        raise TeamAError(
+            "Team A family assignment drifted; missing "
+            + ", ".join(sorted(set(families) - observed))
+        )
+    return selected
+
+
 def parse_audit_output(path: Path) -> dict[str, list[str]]:
     try:
         output = path.read_text(encoding="utf-8")

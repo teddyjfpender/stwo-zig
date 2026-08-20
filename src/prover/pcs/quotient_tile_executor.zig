@@ -42,7 +42,7 @@ pub const Scratch = struct {
         batch_count: usize,
         requested_rows: usize,
     ) !Scratch {
-        const capacity = try rowCapacity(batch_count, requested_rows);
+        const capacity = try rowCapacityForBatchCount(batch_count, requested_rows);
         var row_scratch = try row_executor.Scratch.init(allocator, batch_count, capacity);
         errdefer row_scratch.deinit(allocator);
         const plane_count = std.math.mul(
@@ -122,7 +122,7 @@ pub fn initParallelScratch(
     };
 }
 
-fn rowCapacity(batch_count: usize, requested_rows: usize) !usize {
+pub fn rowCapacityForBatchCount(batch_count: usize, requested_rows: usize) !usize {
     if (batch_count == 0 or requested_rows == 0) return error.InvalidChunkSize;
     const denominator_bytes = std.math.mul(usize, batch_count, 2 * @sizeOf(CM31)) catch
         return error.ScratchSizeOverflow;
@@ -705,11 +705,11 @@ test "quotient tile scratch is bounded and rejects overflowing geometry" {
     try std.testing.expect(scratch.numeratorBytes() > 0);
     try std.testing.expectError(
         error.ScratchMemoryLimitExceeded,
-        rowCapacity(MAX_SCRATCH_BYTES_PER_WORKER, 1),
+        rowCapacityForBatchCount(MAX_SCRATCH_BYTES_PER_WORKER, 1),
     );
     try std.testing.expectError(
         error.ScratchSizeOverflow,
-        rowCapacity(std.math.maxInt(usize), 1),
+        rowCapacityForBatchCount(std.math.maxInt(usize), 1),
     );
 }
 

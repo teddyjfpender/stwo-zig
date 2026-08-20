@@ -88,7 +88,7 @@ const IMM_SIGN = columnOf("imm_sign");
 const IMM_FELT = columnOf("imm_felt");
 const PC_LIMBS = limbColumns("pc_limb_");
 
-/// Index of `imm_limbs[0] == 0` in `semantics/auipc.zig`'s constraint order:
+/// Index of `imm_limbs[0] == 0` in the typed AUIPC authority's root order:
 /// enabler bit, pc composition, immediate composition, `imm_sign` bit, **the
 /// low-limb pin**, four adder carries, three destination constraints, four
 /// destination-write constraints, and the placement equality `semantic_eval`

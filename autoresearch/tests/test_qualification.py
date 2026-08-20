@@ -63,7 +63,7 @@ class QualificationTest(unittest.TestCase):
                     "riscv": {
                         "enabled": True, "promotion_eligible": True,
                         "board": "riscv", "build_step": "true",
-                        "binary": "bin/riscv", "report_schema": "riscv_proof_v2",
+                        "binary": "bin/riscv", "report_schema": "riscv_proof_v3",
                         "editable_paths": [
                             {"glob": "src/frontends/riscv/**", "min_rung": "s3"},
                         ],

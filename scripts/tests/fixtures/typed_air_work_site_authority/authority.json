@@ -1,0 +1,42 @@
+{
+  "completion_calls": [
+    {
+      "field": "site",
+      "name": "recordCompletedDelta",
+      "shape": "named_field"
+    }
+  ],
+  "plan_calls": [
+    {
+      "argument": 0,
+      "name": "expectProducer",
+      "shape": "enum_argument"
+    }
+  ],
+  "schema": "stwo.typed-air.work-site-source-authority.v1",
+  "sites": [
+    {
+      "completion_paths": [
+        "complete.zig"
+      ],
+      "name": "alpha_fft",
+      "plan_paths": [
+        "plan.zig"
+      ]
+    },
+    {
+      "completion_paths": [
+        "complete.zig"
+      ],
+      "name": "beta_fri",
+      "plan_paths": [
+        "plan.zig"
+      ]
+    }
+  ],
+  "source_root": ".",
+  "sources": [
+    "complete.zig",
+    "plan.zig"
+  ]
+}

@@ -468,7 +468,7 @@ test "task graph profile records scratch backpressure separately from queue wait
     try std.testing.expectEqual(@as(u32, 1), recorded.summary.peak_active_tasks);
 }
 
-test "task graph profile leaves nested physical worker activity unknown" {
+test "task graph profile measures pool-exclusive outer worker activity" {
     const allocator = std.testing.allocator;
     var pool: work_pool.WorkPool = undefined;
     try pool.initInPlaceWithOptions(.{
@@ -501,7 +501,132 @@ test "task graph profile leaves nested physical worker activity unknown" {
     defer profile.deinit(allocator);
     const summary = profile.graphs[0].summary;
     try std.testing.expectEqual(@as(u32, 1), summary.peak_active_tasks);
-    try std.testing.expect(summary.peak_active_workers == null);
+    try std.testing.expectEqual(@as(u32, 1), summary.peak_active_workers.?);
     try std.testing.expect(summary.task_run_ns > 0);
-    try std.testing.expect(summary.worker_busy_ns == null);
+    try std.testing.expectEqual(summary.task_run_ns, summary.worker_busy_ns.?);
+}
+
+test "task graph profile measures nested physical worker busy time" {
+    const ChildState = struct {
+        ran: std.atomic.Value(bool) = .init(false),
+
+        fn child(self: *@This()) void {
+            self.ran.store(true, .release);
+        }
+
+        fn parent(context: *task_graph.TaskContext) !void {
+            const self: *@This() = @ptrCast(@alignCast(context.user_context));
+            try context.spawnChild(child, .{self});
+            try context.waitForChildren();
+        }
+    };
+
+    const allocator = std.testing.allocator;
+    var pool: work_pool.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{
+        .worker_count = 2,
+        .stack_size = TEST_STACK_SIZE,
+    });
+    defer pool.deinit();
+
+    var state = ChildState{};
+    var graph = try task_graph.ComponentTaskGraph.init(allocator, 1);
+    defer graph.deinit();
+    _ = try graph.addTask(.{
+        .key = key(0),
+        .name = "exclusive-with-child",
+        .func = ChildState.parent,
+        .context = &state,
+        .class = .pool_exclusive,
+    });
+    var recorder = prover_api.stage_profile.Recorder.init(allocator, "Debug", "exclusive-child");
+    defer recorder.deinit();
+    var clock = AtomicClock{};
+    _ = try graph.execute(.{
+        .worker_budget = try work_pool.WorkerBudget.init(2),
+        .pool = &pool,
+        .task_profile_recorder = &recorder,
+        .task_profile_clock = clock.source(),
+    });
+
+    var profile = try recorder.taskSnapshot(allocator);
+    defer profile.deinit(allocator);
+    const summary = profile.graphs[0].summary;
+    try std.testing.expect(state.ran.load(.acquire));
+    try std.testing.expectEqual(@as(u32, 1), summary.peak_active_tasks);
+    try std.testing.expectEqual(@as(u32, 2), summary.peak_active_workers.?);
+    try std.testing.expect(summary.worker_busy_ns.? > summary.task_run_ns);
+    try std.testing.expect(summary.worker_busy_ns.? <= summary.worker_capacity_ns);
+}
+
+test "task graph profile closes nested worker accounting on parent failure" {
+    const FailureState = struct {
+        cancellation: ?*const task_graph.CancellationToken = null,
+        child_finished: std.atomic.Value(bool) = .init(false),
+
+        fn child(self: *@This()) void {
+            while (!self.cancellation.?.isCancelled()) {
+                std.atomic.spinLoopHint();
+            }
+            self.child_finished.store(true, .release);
+        }
+
+        fn parent(context: *task_graph.TaskContext) !void {
+            const self: *@This() = @ptrCast(@alignCast(context.user_context));
+            self.cancellation = context.cancellation;
+            try context.spawnChild(child, .{self});
+            return error.ProfiledExclusiveParentFailure;
+        }
+    };
+
+    const allocator = std.testing.allocator;
+    var pool: work_pool.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{
+        .worker_count = 2,
+        .stack_size = TEST_STACK_SIZE,
+    });
+    defer pool.deinit();
+
+    var state = FailureState{};
+    var graph = try task_graph.ComponentTaskGraph.init(allocator, 1);
+    defer graph.deinit();
+    _ = try graph.addTask(.{
+        .key = key(0),
+        .name = "failing-exclusive-with-child",
+        .func = FailureState.parent,
+        .context = &state,
+        .class = .pool_exclusive,
+    });
+    var recorder = prover_api.stage_profile.Recorder.init(
+        allocator,
+        "Debug",
+        "exclusive-child-failure",
+    );
+    defer recorder.deinit();
+    var clock = AtomicClock{};
+    try std.testing.expectError(
+        error.ProfiledExclusiveParentFailure,
+        graph.execute(.{
+            .worker_budget = try work_pool.WorkerBudget.init(2),
+            .pool = &pool,
+            .task_profile_recorder = &recorder,
+            .task_profile_clock = clock.source(),
+        }),
+    );
+
+    var profile = try recorder.taskSnapshot(allocator);
+    defer profile.deinit(allocator);
+    const recorded = profile.graphs[0];
+    try std.testing.expect(state.child_finished.load(.acquire));
+    try std.testing.expectEqual(@as(u64, 1), recorded.summary.failed_tasks);
+    try std.testing.expectEqual(@as(u64, 1), recorded.summary.submitted_tasks);
+    try std.testing.expectEqual(@as(u64, 1), recorded.summary.finished_tasks);
+    try std.testing.expect(recorded.summary.critical_path_ns == null);
+    try std.testing.expectEqual(@as(u32, 2), recorded.summary.peak_active_workers.?);
+    try std.testing.expect(recorded.summary.worker_busy_ns.? > recorded.summary.task_run_ns);
+    try std.testing.expect(recorded.events[0].cleanup_complete);
+    try std.testing.expectEqualStrings(
+        "ProfiledExclusiveParentFailure",
+        recorded.events[0].error_name.?,
+    );
 }

@@ -6,7 +6,8 @@ const resource_usage = @import("../resource_usage.zig");
 const verified_request_attempt = @import("verified_request_attempt.zig");
 
 pub const UNPROFILED_PROVE_SCHEMA = "riscv_prove_v1";
-pub const PROFILED_PROVE_SCHEMA = "riscv_profiled_prove_attempt_v1";
+pub const PROFILED_PROVE_SCHEMA = "riscv_profiled_prove_attempt_v2";
+pub const NATIVE_BENCHMARK_SCHEMA = "riscv_proof_v3";
 
 pub fn proveSchema(profiled: bool) []const u8 {
     return if (profiled) PROFILED_PROVE_SCHEMA else UNPROFILED_PROVE_SCHEMA;
@@ -25,6 +26,36 @@ pub fn witnessSeconds(nodes: []const stwo.prover.stage_profile.StageNode) f64 {
         if (node.children) |children| total += witnessSeconds(children);
     }
     return total;
+}
+
+/// Fail closed if a stage from the recursive/outer pipeline is ever attached
+/// to the ordinary native benchmark recorder. The public
+/// `recursion_enabled=false` attestation is emitted only after this complete
+/// depth-first scan succeeds for every warmup and measured sample.
+pub fn requireNativeOnlyStages(
+    nodes: []const stwo.prover.stage_profile.StageNode,
+) error{RecursiveStageInNativeBenchmark}!void {
+    for (nodes) |node| {
+        if (isRecursiveStageText(node.id) or isRecursiveStageText(node.label))
+            return error.RecursiveStageInNativeBenchmark;
+        if (node.children) |children| try requireNativeOnlyStages(children);
+    }
+}
+
+fn isRecursiveStageText(value: []const u8) bool {
+    for ([_][]const u8{ "recurs", "outer", "pair_node", "pair-node" }) |marker| {
+        if (containsAsciiIgnoreCase(value, marker)) return true;
+    }
+    return false;
+}
+
+fn containsAsciiIgnoreCase(haystack: []const u8, needle: []const u8) bool {
+    if (needle.len == 0 or haystack.len < needle.len) return false;
+    for (0..haystack.len - needle.len + 1) |offset| {
+        if (std.ascii.eqlIgnoreCase(haystack[offset..][0..needle.len], needle))
+            return true;
+    }
+    return false;
 }
 
 pub const ResidentPolynomialTelemetry = struct {
@@ -157,6 +188,7 @@ pub const BenchmarkReport = struct {
     mode: []const u8 = "bench",
     experimental: bool,
     profiled: bool,
+    recursion_enabled: bool,
     warmups: usize,
     samples: usize,
     verified_samples: usize,
@@ -267,13 +299,14 @@ test "resident telemetry aggregation is checked and atomic" {
     try std.testing.expectEqualDeep(before, total);
 }
 
-test "unprofiled riscv_proof_v2 preserves its exact public field set" {
+test "unprofiled native benchmark preserves its exact recursion-disabled field set" {
     const sample_seconds = [_]f64{1.0};
     const report = BenchmarkReport{
-        .schema = "riscv_proof_v2",
+        .schema = NATIVE_BENCHMARK_SCHEMA,
         .release_status = "staged",
         .experimental = true,
         .profiled = false,
+        .recursion_enabled = false,
         .warmups = 1,
         .samples = 1,
         .verified_samples = 1,
@@ -310,25 +343,72 @@ test "unprofiled riscv_proof_v2 preserves its exact public field set" {
     defer parsed.deinit();
 
     const expected = [_][]const u8{
-        "schema",                    "release_status",
-        "mode",                      "experimental",
-        "profiled",                  "warmups",
-        "samples",                   "verified_samples",
-        "total_steps",               "n_components",
-        "throughput_numerator",      "median_seconds",
-        "throughput_mhz",            "mean_execution_seconds",
-        "mean_witness_seconds",      "mean_proving_seconds",
-        "mean_verification_seconds", "sample_seconds",
-        "statement_sha256",          "transcript_state_blake2s",
-        "implementation_commit",     "implementation_dirty",
-        "executable_sha256",         "artifact_sha256",
-        "proof_path",                "resources",
+        "schema",                   "release_status",
+        "mode",                     "experimental",
+        "profiled",                 "recursion_enabled",
+        "warmups",                  "samples",
+        "verified_samples",         "total_steps",
+        "n_components",             "throughput_numerator",
+        "median_seconds",           "throughput_mhz",
+        "mean_execution_seconds",   "mean_witness_seconds",
+        "mean_proving_seconds",     "mean_verification_seconds",
+        "sample_seconds",           "statement_sha256",
+        "transcript_state_blake2s", "implementation_commit",
+        "implementation_dirty",     "executable_sha256",
+        "artifact_sha256",          "proof_path",
+        "resources",
     };
     const object = parsed.value.object;
     try std.testing.expectEqual(expected.len, object.count());
     for (expected) |field| try std.testing.expect(object.contains(field));
-    try std.testing.expectEqualStrings("riscv_proof_v2", object.get("schema").?.string);
+    try std.testing.expectEqualStrings(
+        NATIVE_BENCHMARK_SCHEMA,
+        object.get("schema").?.string,
+    );
+    try std.testing.expect(!object.get("recursion_enabled").?.bool);
     try std.testing.expect(!object.contains("timing_authority"));
     try std.testing.expect(!object.contains("verified_request_attempts"));
     try std.testing.expect(!object.contains("resident_polynomial_telemetry"));
+}
+
+test "native stage contract rejects recursive outer stages at any depth" {
+    var native_children = [_]stwo.prover.stage_profile.StageNode{.{
+        .id = "composition_domain",
+        .label = "native quotient composition",
+        .seconds = 0.1,
+    }};
+    var native = [_]stwo.prover.stage_profile.StageNode{.{
+        .id = "riscv_main_trace_commit",
+        .label = "RISC-V main trace commit",
+        .seconds = 0.2,
+        .children = &native_children,
+    }};
+    try requireNativeOnlyStages(&native);
+
+    var recursive_children = [_]stwo.prover.stage_profile.StageNode{.{
+        .id = "recursive_fri_outer_prove",
+        .label = "recursive FRI outer proof",
+        .seconds = 0.1,
+    }};
+    var recursive = [_]stwo.prover.stage_profile.StageNode{.{
+        .id = "riscv_main_trace_commit",
+        .label = "RISC-V main trace commit",
+        .seconds = 0.2,
+        .children = &recursive_children,
+    }};
+    try std.testing.expectError(
+        error.RecursiveStageInNativeBenchmark,
+        requireNativeOnlyStages(&recursive),
+    );
+}
+
+test "ordinary execution options contain no active policy or recursion hook" {
+    const options = stwo.frontends.riscv.prover_mod.ExecutionOptions{};
+    try std.testing.expect(options.cpu == null);
+    try std.testing.expect(options.statement_admission == null);
+
+    const fields = @typeInfo(@TypeOf(options)).@"struct".fields;
+    try std.testing.expectEqual(@as(usize, 2), fields.len);
+    try std.testing.expectEqualStrings("cpu", fields[0].name);
+    try std.testing.expectEqualStrings("statement_admission", fields[1].name);
 }

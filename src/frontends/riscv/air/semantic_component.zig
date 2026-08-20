@@ -18,10 +18,12 @@ const utils = @import("stwo_core").utils;
 const prover_air_accumulation = @import("stwo_prover_engine").air.accumulation;
 const prover_component = @import("stwo_prover_engine").air.component_prover;
 const prepared_domain = @import("stwo_prover_engine").air.prepared_domain;
+const composition_work_support = @import("composition_work_support.zig");
 const prover_task_graph = @import("stwo_prover_engine").task_graph;
 const prover_work_pool = @import("stwo_prover_engine").work_pool;
 const prover_poly = @import("stwo_prover_engine").poly.circle.poly;
 const prover_twiddles = @import("stwo_prover_engine").poly.twiddles;
+const row_window = @import("lang/row_window.zig");
 const runtime_program = @import("extract/runtime_program.zig");
 const semantic_eval = @import("semantic_eval.zig");
 const trace = @import("../runner/trace.zig");
@@ -33,6 +35,7 @@ pub const SemanticComponent = struct {
     log_size: u32,
     is_active_col_idx: usize,
     main_col_offset: usize,
+    mask_binding: row_window.SemanticMaskBinding,
 
     const Adapter = core_air_derive.ComponentAdapter(
         @This(),
@@ -50,11 +53,13 @@ pub const SemanticComponent = struct {
         if (!semantic_eval.isTraceCompatible(family)) {
             return error.IncompatibleCommittedTrace;
         }
+        const mask_binding = try row_window.SemanticMaskBinding.init(family);
         return .{
             .family = family,
             .log_size = log_size,
             .is_active_col_idx = is_active_col_idx,
             .main_col_offset = main_col_offset,
+            .mask_binding = mask_binding,
         };
     }
 
@@ -65,6 +70,8 @@ pub const SemanticComponent = struct {
     pub fn asProverComponent(self: *const @This()) prover_component.ComponentProver {
         var component = Adapter.asProverComponent(self);
         component.prepare_domain_evaluator = prepareDomainEvaluatorErased;
+        component.composition_work_profile = compositionWorkProfileErased;
+        component.oods_work_profile = oodsWorkProfileErased;
         component.backend_composition_capability = .{
             .base_polynomial_v1 = .{
                 .program_id = (@as(u64, 1) << 32) | @intFromEnum(self.family),
@@ -78,6 +85,39 @@ pub const SemanticComponent = struct {
             },
         };
         return component;
+    }
+
+    fn oodsWorkProfileErased(
+        ctx: *const anyopaque,
+        allocator: std.mem.Allocator,
+        max_log_degree_bound: u32,
+        source: *const composition_work_support.ComponentProfile,
+    ) anyerror!composition_work_support.OodsComponentProfile {
+        _ = allocator;
+        const self: *const SemanticComponent = @ptrCast(@alignCast(ctx));
+        return composition_work_support.oodsProfile(
+            source,
+            self.log_size,
+            max_log_degree_bound,
+            0,
+            false,
+        );
+    }
+
+    fn compositionWorkProfileErased(
+        ctx: *const anyopaque,
+        allocator: std.mem.Allocator,
+    ) anyerror!@import("stwo_prover_engine").air.composition_work.ComponentProfile {
+        const self: *const SemanticComponent = @ptrCast(@alignCast(ctx));
+        var program = try runtime_program.build(allocator, self.family);
+        defer program.deinit();
+        return composition_work_support.baseProgramProfile(
+            allocator,
+            .base_polynomial,
+            "riscv-semantic-runtime-program-v1",
+            self.maxConstraintLogDegreeBound(),
+            program,
+        );
     }
 
     fn prepareDomainEvaluatorErased(
@@ -99,7 +139,7 @@ pub const SemanticComponent = struct {
     }
 
     pub fn mainColumnCount(self: *const @This()) usize {
-        return semantic_eval.mainColumnCount(self.family);
+        return self.mask_binding.owned_main_current_columns;
     }
 
     pub fn nConstraints(self: *const @This()) usize {
@@ -114,12 +154,23 @@ pub const SemanticComponent = struct {
         self: *const @This(),
         allocator: std.mem.Allocator,
     ) !core_air_components.TraceLogDegreeBounds {
-        const preprocessed = try allocator.dupe(u32, &.{self.log_size});
+        try self.validateMaskBinding();
+        const preprocessed = try allocator.alloc(
+            u32,
+            self.mask_binding.preprocessed_current_columns,
+        );
         errdefer allocator.free(preprocessed);
-        const main = try allocator.alloc(u32, self.mainColumnCount());
+        @memset(preprocessed, self.log_size);
+        const main = try allocator.alloc(
+            u32,
+            self.mask_binding.owned_main_current_columns,
+        );
         errdefer allocator.free(main);
         @memset(main, self.log_size);
-        const interaction = try allocator.alloc(u32, 0);
+        const interaction = try allocator.alloc(
+            u32,
+            self.mask_binding.owned_interaction_columns,
+        );
         errdefer allocator.free(interaction);
         return core_air_components.TraceLogDegreeBounds.initOwned(
             try allocator.dupe([]u32, &.{ preprocessed, main, interaction }),
@@ -133,11 +184,24 @@ pub const SemanticComponent = struct {
         max_log_degree_bound: u32,
     ) !core_air_components.MaskPoints {
         if (max_log_degree_bound < self.log_size) return error.InvalidProofShape;
-        const preprocessed = try currentPointColumns(allocator, 1, point);
+        try self.validateMaskBinding();
+        const preprocessed = try currentPointColumns(
+            allocator,
+            self.mask_binding.preprocessed_current_columns,
+            point,
+        );
         errdefer freePointColumns(allocator, preprocessed);
-        const main = try currentPointColumns(allocator, self.mainColumnCount(), point);
+        const main = try currentPointColumns(
+            allocator,
+            self.mask_binding.owned_main_current_columns,
+            point,
+        );
         errdefer freePointColumns(allocator, main);
-        const interaction = try currentPointColumns(allocator, 0, point);
+        const interaction = try currentPointColumns(
+            allocator,
+            self.mask_binding.owned_interaction_columns,
+            point,
+        );
         errdefer freePointColumns(allocator, interaction);
         return core_air_components.MaskPoints.initOwned(
             try allocator.dupe([][]CirclePointQM31, &.{ preprocessed, main, interaction }),
@@ -148,7 +212,12 @@ pub const SemanticComponent = struct {
         self: *const @This(),
         allocator: std.mem.Allocator,
     ) ![]usize {
-        return allocator.dupe(usize, &.{self.is_active_col_idx});
+        try self.validateMaskBinding();
+        const count = self.mask_binding.preprocessed_current_columns;
+        if (count != 1) return error.InvalidProofShape;
+        const result = try allocator.alloc(usize, count);
+        result[0] = self.is_active_col_idx;
+        return result;
     }
 
     pub fn evaluateConstraintQuotientsAtPoint(
@@ -158,6 +227,7 @@ pub const SemanticComponent = struct {
         accumulator: *core_air_accumulation.PointEvaluationAccumulator,
         max_log_degree_bound: u32,
     ) !void {
+        try self.validateMaskBinding();
         if (max_log_degree_bound < self.log_size or mask.items.len < 3) {
             return error.InvalidProofShape;
         }
@@ -226,6 +296,7 @@ pub const SemanticComponent = struct {
         trace_data: *const prover_component.Trace,
         accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
     ) !prepared_domain.PreparedDomainEvaluation {
+        try self.validateMaskBinding();
         if (trace_data.polys.items.len < 3) return error.InvalidProofShape;
         const preprocessed = trace_data.polys.items[0];
         const main = trace_data.polys.items[1];
@@ -359,10 +430,12 @@ pub const SemanticComponent = struct {
             for (sampled[0..n_main], evaluations[1..]) |*value, column| {
                 value.* = semantic_eval.BaseScalar.fromBase(column[row]);
             }
-            const evaluation = try semantic_eval.BaseEval.evaluate(
+            var evaluation: semantic_eval.BaseEval.Evaluation = undefined;
+            try semantic_eval.BaseEval.evaluateInto(
                 self.family,
                 sampled[0..n_main],
                 semantic_eval.BaseScalar.fromBase(evaluations[0][row]),
+                &evaluation,
             );
             var folded = QM31.zero();
             for (evaluation.values[0..evaluation.len], 0..) |constraint, index| {
@@ -386,6 +459,16 @@ pub const SemanticComponent = struct {
             return error.IncompatibleCommittedTrace;
         }
         return semantic_eval.evaluate(self.family, main, is_active);
+    }
+
+    fn validateMaskBinding(self: *const @This()) !void {
+        try self.mask_binding.validate();
+        if (self.mask_binding.family != self.family or
+            self.mask_binding.owned_main_current_columns !=
+                semantic_eval.mainColumnCount(self.family))
+        {
+            return error.InvalidProofShape;
+        }
     }
 };
 

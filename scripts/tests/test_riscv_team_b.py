@@ -687,6 +687,15 @@ class TeamBAirBindingTest(unittest.TestCase):
         with self.assertRaisesRegex(team_b.TeamBError, "directory is absent"):
             team_b.check_ir_digests(Path("/nonexistent/team-b-ir"))
 
+    def test_committed_typed_rebind_receipt_matches_fresh_exports(self):
+        export_dir = team_b.REPOSITORY_ROOT / "zig-out/uniqueness-ir"
+        if not export_dir.is_dir():
+            self.skipTest("fresh symbolic AIR export is not present")
+        self.assertIn(
+            "6 raw exports preserve exact",
+            team_b.check_semantic_rebind(export_dir),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

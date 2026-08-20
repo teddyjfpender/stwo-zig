@@ -3,6 +3,7 @@
 const std = @import("std");
 const pcs = @import("stwo_core").pcs;
 const riscv_cpu = @import("stwo_riscv_cpu_integration");
+const prover = @import("stwo_riscv_frontend").prover_mod;
 const orchestration = @import("stwo_riscv_frontend").testing.prover_orchestration;
 const witness_hook = @import("stwo_riscv_frontend").testing.witness_hook;
 const public_data_mod = @import("stwo_riscv_frontend").air.public_data;
@@ -13,6 +14,20 @@ const release_elf_fixture = @import("release_elf_fixture.zig");
 const strict_clock_fixture = @import("strict_clock_fixture.zig");
 
 const Mutation = orchestration.TestWitnessMutation;
+
+const RejectingStatementAdmission = struct {
+    invocation_count: usize = 0,
+
+    fn admit(context: *anyopaque, statement: *const prover.RiscVStatement) anyerror!void {
+        const self: *@This() = @ptrCast(@alignCast(context));
+        self.invocation_count += 1;
+        // The callback must observe the production-derived statement, not a
+        // caller-provided shadow. Requiring an active family makes an
+        // accidentally early invocation fail for the fixture below.
+        if (statement.n_components == 0) return error.EmptyAdmissionStatement;
+        return error.StatementAdmissionRejected;
+    }
+};
 
 const TEST_PCS_CONFIG = pcs.PcsConfig{
     .pow_bits = 0,
@@ -87,9 +102,13 @@ const ReleaseFixture = struct {
     }
 };
 
-fn expectCommittedMutationRejected(fixture: *const ReleaseFixture, mutation: Mutation) !void {
+fn expectCommittedMutationRejectedWithExecution(
+    fixture: *const ReleaseFixture,
+    mutation: Mutation,
+    execution: orchestration.ExecutionOptions,
+) !void {
     var channel = riscv_cpu.CpuProverEngine.Channel{};
-    const output = orchestration.runRiscVWithEngineAndPublicDataUsingChannel(
+    const output = orchestration.runRiscVWithEngineAndPublicDataUsingChannelAndExecution(
         riscv_cpu.CpuProverEngine,
         .prove,
         fixture.allocator,
@@ -102,6 +121,7 @@ fn expectCommittedMutationRejected(fixture: *const ReleaseFixture, mutation: Mut
         &channel,
         mutation,
         null,
+        execution,
     ) catch |err| {
         try std.testing.expectEqual(error.ConstraintsNotSatisfied, err);
         return;
@@ -116,8 +136,20 @@ fn expectCommittedMutationRejected(fixture: *const ReleaseFixture, mutation: Mut
     )));
 }
 
+fn expectCommittedMutationRejected(fixture: *const ReleaseFixture, mutation: Mutation) !void {
+    return expectCommittedMutationRejectedWithExecution(fixture, mutation, .{});
+}
+
 fn mainCell(target: witness_hook.Target, column: u32, row: u32) Mutation {
     return .{ .main = .{ .target = target, .column = column, .logical_row = row } };
+}
+
+fn interactionCell(target: witness_hook.Target, column: u32, row: u32) Mutation {
+    return .{ .interaction = .{
+        .target = target,
+        .column = column,
+        .logical_row = row,
+    } };
 }
 
 fn preprocessedCell(
@@ -145,6 +177,11 @@ test "riscv proving or verification rejects each committed witness mutation clas
         .{ .label = "lookup request", .mutation = mainCell(.{ .opcode = .{ .family = .lui } }, 14, 0) },
         .{ .label = "lookup table value", .mutation = preprocessedCell(.{ .infrastructure = .{ .kind = .range_check_8_8_4 } }, 1, 0) },
         .{ .label = "lookup table multiplicity", .mutation = mainCell(.{ .infrastructure = .{ .kind = .range_check_8_8_4 } }, 0, 0) },
+        // Tree-2 cells are changed after the honest claim exists. Row zero
+        // exercises the recurrence anchor; row one exercises its cross-row
+        // transition under the exact compiler-owned interaction mask.
+        .{ .label = "interaction anchor", .mutation = interactionCell(.{ .opcode = .{ .family = .lui } }, 0, 0) },
+        .{ .label = "interaction cross-row recurrence", .mutation = interactionCell(.{ .opcode = .{ .family = .lui } }, 0, 1) },
     };
 
     for (cases) |case| {
@@ -153,6 +190,73 @@ test "riscv proving or verification rejects each committed witness mutation clas
             return err;
         };
     }
+}
+
+test "bounded Tree-2 executor rejects anchor and cross-row interaction forgeries" {
+    var fixture = try ReleaseFixture.init(std.testing.allocator);
+    defer fixture.deinit();
+    const target: witness_hook.Target = .{ .opcode = .{ .family = .lui } };
+
+    for ([_]usize{ 1, 2, 4 }) |worker_count| {
+        try expectCommittedMutationRejectedWithExecution(
+            &fixture,
+            interactionCell(target, 0, 1),
+            .{ .cpu = .{
+                .worker_count = worker_count,
+                .host_byte_budget = std.math.maxInt(usize),
+                .contention_policy = .strict,
+            } },
+        );
+    }
+    try expectCommittedMutationRejectedWithExecution(
+        &fixture,
+        interactionCell(target, 0, 0),
+        .{ .cpu = .{
+            .worker_count = 4,
+            .host_byte_budget = std.math.maxInt(usize),
+            .contention_policy = .strict,
+        } },
+    );
+}
+
+test "statement admission rejects before transcript binding or Tree 0 commitment" {
+    var fixture = try ReleaseFixture.init(std.testing.allocator);
+    defer fixture.deinit();
+
+    var channel = riscv_cpu.CpuProverEngine.Channel{};
+    const pristine_digest = channel.digestBytes();
+    const pristine_draw_count = channel.n_draws;
+    var admission_probe: RejectingStatementAdmission = .{};
+
+    const result = orchestration.runRiscVWithEngineAndPublicDataUsingChannelAndExecution(
+        riscv_cpu.CpuProverEngine,
+        .prove,
+        fixture.allocator,
+        TEST_PCS_CONFIG,
+        &fixture.run.execution_trace,
+        &fixture.run.state_chain_tracker,
+        &fixture.run.rw_memory,
+        null,
+        fixture.publicData(),
+        &channel,
+        null,
+        null,
+        .{ .statement_admission = .{
+            .context = &admission_probe,
+            .admit_fn = RejectingStatementAdmission.admit,
+        } },
+    );
+    if (result) |unexpected| {
+        var output = unexpected;
+        defer output.deinit(fixture.allocator);
+        return error.ExpectedStatementAdmissionRejection;
+    } else |err| {
+        try std.testing.expectEqual(error.StatementAdmissionRejected, err);
+    }
+
+    try std.testing.expectEqual(@as(usize, 1), admission_probe.invocation_count);
+    try std.testing.expectEqual(pristine_draw_count, channel.n_draws);
+    try std.testing.expectEqualSlices(u8, pristine_digest[0..], channel.digestBytes()[0..]);
 }
 
 test "riscv verifier distinguishes absent RW root from present default root" {

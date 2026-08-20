@@ -37,6 +37,18 @@ pub const FractionDegree = struct {
     denominator: Degree,
 };
 
+/// Degrees contributed by compiler-owned row-window and boundary nodes.
+///
+/// Keeping this context explicit lets typed shifted-column lowering reuse the
+/// exact production recurrence without baking `degree == 1` into a second
+/// analysis pass. `interactionTerms` remains the compat-v1 convenience entry
+/// point and supplies the shipped values.
+pub const InteractionContext = struct {
+    row_window: Degree,
+    boundary_selector: Degree,
+    boundary_claim: Degree,
+};
+
 pub const InteractionTerms = struct {
     row_window: Degree,
     boundary_selector: Degree,
@@ -238,13 +250,26 @@ pub fn interactionTerms(
     first: FractionDegree,
     second: ?FractionDegree,
 ) error{DegreeOverflow}!InteractionTerms {
-    // S(x), S(x*g^-1), and is_first(x) are committed/preprocessed columns.
-    // The claimed sum and relation challenges are transcript constants.
-    const row_window: Degree = 1;
-    const boundary_selector: Degree = 1;
-    const boundary_claim: Degree = 0;
-    const boundary_term = try addDegree(boundary_selector, boundary_claim);
-    const delta = @max(row_window, boundary_term);
+    // S(x), S(x*g^-1), and is_first(x) are committed/preprocessed columns;
+    // the claimed sum and relation challenges are transcript constants.
+    return interactionTermsWithContext(first, second, .{
+        .row_window = 1,
+        .boundary_selector = 1,
+        .boundary_claim = 0,
+    });
+}
+
+/// Degree recurrence for an explicitly lowered typed row-window context.
+pub fn interactionTermsWithContext(
+    first: FractionDegree,
+    second: ?FractionDegree,
+    context: InteractionContext,
+) error{DegreeOverflow}!InteractionTerms {
+    const boundary_term = try addDegree(
+        context.boundary_selector,
+        context.boundary_claim,
+    );
+    const delta = @max(context.row_window, boundary_term);
     const second_denominator = if (second) |item| item.denominator else 0;
     const denominator_product = try addDegree(
         first.denominator,
@@ -264,9 +289,9 @@ pub fn interactionTerms(
     );
     const transition_term = try addDegree(delta, denominator_product);
     return .{
-        .row_window = row_window,
-        .boundary_selector = boundary_selector,
-        .boundary_claim = boundary_claim,
+        .row_window = context.row_window,
+        .boundary_selector = context.boundary_selector,
+        .boundary_claim = context.boundary_claim,
         .delta = delta,
         .denominator_product = denominator_product,
         .combined_numerator = combined_numerator,

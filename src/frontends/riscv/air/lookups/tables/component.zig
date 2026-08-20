@@ -16,13 +16,19 @@ const prover_component = @import("stwo_prover_engine").air.component_prover;
 const prepared_domain = @import("stwo_prover_engine").air.prepared_domain;
 const prover_task_graph = @import("stwo_prover_engine").task_graph;
 const work_pool = @import("stwo_prover_engine").work_pool;
+const composition_work_support = @import("../../composition_work_support.zig");
 const prepared_parallel = @import("../../prepared_parallel.zig");
+const prepared_evaluation = @import("../../prepared_evaluation_owner.zig");
+const component_test_support = @import("component_test_support.zig");
 const logup = @import("../../logup.zig");
 const relations_mod = @import("../../relation_challenges.zig");
 const interaction = @import("interaction.zig");
 const schema = @import("schema.zig");
 
 const CirclePointQM31 = circle.CirclePointQM31;
+
+/// A multiplicity table owns one singleton LogUp recurrence.
+pub const N_CONSTRAINTS: usize = 1;
 pub const PARALLEL_DOMAIN_ROWS: usize = 2 * 4096;
 
 pub const PreparedParallelTelemetrySnapshot = prepared_parallel.TelemetrySnapshot;
@@ -148,7 +154,66 @@ pub const LookupTableComponent = struct {
     pub fn asProverComponent(self: *const @This()) prover_component.ComponentProver {
         var component = Adapter.asProverComponent(self);
         component.prepare_domain_evaluator = prepareDomainEvaluatorErased;
+        component.composition_work_profile = compositionWorkProfileErased;
+        component.oods_work_profile = oodsWorkProfileErased;
         return component;
+    }
+
+    fn oodsWorkProfileErased(
+        ctx: *const anyopaque,
+        allocator: std.mem.Allocator,
+        max_log_degree_bound: u32,
+        source: *const composition_work_support.ComponentProfile,
+    ) anyerror!composition_work_support.OodsComponentProfile {
+        _ = allocator;
+        const self: *const @This() = @ptrCast(@alignCast(ctx));
+        return composition_work_support.oodsProfile(
+            source,
+            schema.logSize(self.kind),
+            max_log_degree_bound,
+            2,
+            true,
+        );
+    }
+
+    fn compositionWorkProfileErased(
+        ctx: *const anyopaque,
+        allocator: std.mem.Allocator,
+    ) anyerror!composition_work_support.ComponentProfile {
+        _ = allocator;
+        const self: *const @This() = @ptrCast(@alignCast(ctx));
+        const Scalar = composition_work_support.Scalar;
+        const relations = composition_work_support.Relations.init();
+        const tuple_storage = composition_work_support.values(schema.MAX_ARITY, 0);
+        const tuple = tuple_storage[0..schema.arity(self.kind)];
+        const scalar_inputs = composition_work_support.values(5, 40);
+        var expression: composition_work_support.FieldOperations = undefined;
+        try composition_work_support.begin(&expression);
+        defer composition_work_support.end();
+        _ = try interaction.evaluateGeneric(
+            Scalar,
+            self.kind,
+            tuple,
+            scalar_inputs[0],
+            scalar_inputs[1],
+            scalar_inputs[2],
+            scalar_inputs[3],
+            scalar_inputs[4],
+            &relations,
+        );
+        return composition_work_support.profile(
+            .lookup_table,
+            "riscv-lookup-table-interaction-evaluate-generic-v1",
+            self.maxConstraintLogDegreeBound(),
+            self.nConstraints(),
+            expression,
+            .{},
+            &.{
+                @as(u64, @intFromEnum(self.kind)),
+                @as(u64, schema.logSize(self.kind)),
+                @as(u64, schema.arity(self.kind)),
+            },
+        );
     }
 
     fn prepareDomainEvaluatorErased(
@@ -166,7 +231,7 @@ pub const LookupTableComponent = struct {
     }
 
     pub fn nConstraints(_: *const @This()) usize {
-        return 1;
+        return N_CONSTRAINTS;
     }
 
     pub fn maxConstraintLogDegreeBound(self: *const @This()) u32 {
@@ -335,38 +400,80 @@ pub const LookupTableComponent = struct {
             return error.InvalidProofShape;
 
         if (n_sources > PreparedDomainState.MAX_SOURCES) return error.InvalidProofShape;
+        var owned_count: usize = 0;
+        owned_count += @intFromBool(try prepared_evaluation.needsOwned(
+            preprocessed[self.is_first_col_idx],
+            log_size,
+            eval_log_size,
+        ));
+        for (self.tuple_col_indices[0..n_tuple]) |column_index| {
+            if (preprocessed.len <= column_index) return error.InvalidProofShape;
+            owned_count += @intFromBool(try prepared_evaluation.needsOwned(
+                preprocessed[column_index],
+                log_size,
+                eval_log_size,
+            ));
+        }
+        owned_count += @intFromBool(try prepared_evaluation.needsOwned(
+            main[self.main_col_offset],
+            log_size,
+            eval_log_size,
+        ));
+        for (secure[self.interaction_col_offset..interaction_end]) |poly| {
+            owned_count += @intFromBool(try prepared_evaluation.needsOwned(
+                poly,
+                log_size,
+                eval_log_size,
+            ));
+        }
+        var evaluation_owner = try prepared_evaluation.Owner.init(
+            allocator,
+            owned_count,
+        );
+        errdefer evaluation_owner.deinit();
         var evaluations = [_][]const M31{&.{}} ** PreparedDomainState.MAX_SOURCES;
         var source: usize = 0;
-        evaluations[source] = try committedValues(
+        evaluations[source] = try evaluation_owner.value(
             preprocessed[self.is_first_col_idx],
+            log_size,
             eval_log_size,
+            eval_size,
         );
         source += 1;
         for (self.tuple_col_indices[0..n_tuple]) |column_index| {
-            if (preprocessed.len <= column_index) return error.InvalidProofShape;
-            evaluations[source] = try committedValues(
+            evaluations[source] = try evaluation_owner.value(
                 preprocessed[column_index],
+                log_size,
                 eval_log_size,
+                eval_size,
             );
             source += 1;
         }
-        evaluations[source] = try committedValues(main[self.main_col_offset], eval_log_size);
+        evaluations[source] = try evaluation_owner.value(
+            main[self.main_col_offset],
+            log_size,
+            eval_log_size,
+            eval_size,
+        );
         source += 1;
         for (0..interaction.N_COLUMNS) |coordinate| {
-            evaluations[source] = try committedValues(
+            evaluations[source] = try evaluation_owner.value(
                 secure[self.interaction_col_offset + coordinate],
+                log_size,
                 eval_log_size,
+                eval_size,
             );
             source += 1;
         }
         std.debug.assert(source == n_sources);
+        try evaluation_owner.finish(eval_domain);
 
         const denominator_inv = try quotientDenominators(
             log_size,
             eval_log_size,
             eval_domain,
         );
-        const resources = try preparedDomainResources(eval_size);
+        const resources = try preparedDomainResources(eval_size, owned_count);
         const state = try allocator.create(PreparedDomainState);
         errdefer allocator.destroy(state);
         const accumulators = try accumulator.columns(
@@ -377,6 +484,7 @@ pub const LookupTableComponent = struct {
             .allocator = allocator,
             .component = self,
             .evaluations = evaluations,
+            .evaluation_owner = evaluation_owner,
             .source_count = n_sources,
             .n_tuple = n_tuple,
             .main_index = 1 + n_tuple,
@@ -426,6 +534,7 @@ const PreparedDomainState = struct {
     allocator: std.mem.Allocator,
     component: *const LookupTableComponent,
     evaluations: [MAX_SOURCES][]const M31,
+    evaluation_owner: prepared_evaluation.Owner,
     source_count: usize,
     n_tuple: usize,
     main_index: usize,
@@ -571,6 +680,7 @@ const PreparedDomainState = struct {
         const self: *@This() = @ptrCast(@alignCast(context));
         const allocator = self.allocator;
         allocator.free(self.accumulators);
+        self.evaluation_owner.deinit();
         allocator.destroy(self);
     }
 };
@@ -605,12 +715,6 @@ const PreparedRangeWorker = struct {
     }
 };
 
-fn committedValues(poly: prover_component.Poly, expected_log_size: u32) ![]const M31 {
-    try poly.validate();
-    if (poly.log_size != expected_log_size) return error.InvalidProofShape;
-    return poly.values;
-}
-
 fn quotientDenominators(
     log_size: u32,
     eval_log_size: u32,
@@ -632,7 +736,10 @@ fn quotientDenominators(
     return result;
 }
 
-fn preparedDomainResources(eval_size: usize) !prover_task_graph.ResourceReservation {
+fn preparedDomainResources(
+    eval_size: usize,
+    owned_count: usize,
+) !prover_task_graph.ResourceReservation {
     const secure_element_bytes = std.math.mul(
         usize,
         qm31.SECURE_EXTENSION_DEGREE,
@@ -643,10 +750,15 @@ fn preparedDomainResources(eval_size: usize) !prover_task_graph.ResourceReservat
         eval_size,
         secure_element_bytes,
     ) catch return error.ResourceReservationOverflow;
-    const shared_resident_bytes = std.math.add(
+    var shared_resident_bytes = std.math.add(
         usize,
         @sizeOf(PreparedDomainState),
         @sizeOf(prover_air_accumulation.ColumnAccumulator),
+    ) catch return error.ResourceReservationOverflow;
+    shared_resident_bytes = std.math.add(
+        usize,
+        shared_resident_bytes,
+        try prepared_evaluation.residentBytes(owned_count, eval_size),
     ) catch return error.ResourceReservationOverflow;
     _ = std.math.add(
         usize,
@@ -719,23 +831,14 @@ fn secureAt(columns: []const []const M31, row: usize) QM31 {
 
 test "lookup table prepared domain: resource geometry and cancellation cadence are bounded" {
     const secure_element_bytes = qm31.SECURE_EXTENSION_DEGREE * @sizeOf(M31);
-    const resources = try preparedDomainResources(17);
-    try std.testing.expectEqual(17 * secure_element_bytes, resources.final_output_bytes);
-    try std.testing.expectEqual(
-        @sizeOf(PreparedDomainState) + @sizeOf(prover_air_accumulation.ColumnAccumulator),
-        resources.shared_resident_bytes,
-    );
-    try std.testing.expectEqual(
+    const owned_count: usize = 3;
+    try component_test_support.verifyPreparedDomainResources(
+        preparedDomainResources,
+        secure_element_bytes,
+        @sizeOf(PreparedDomainState) +
+            @sizeOf(prover_air_accumulation.ColumnAccumulator) +
+            try prepared_evaluation.residentBytes(owned_count, 17),
         prepared_domain.ROW_EVALUATOR_STACK_BYTES,
-        resources.worker_stack_bytes,
-    );
-    try std.testing.expect(PreparedDomainState.CANCELLATION_POLL_ROWS <= 4096);
-    try std.testing.expectError(
-        error.ResourceReservationOverflow,
-        preparedDomainResources(std.math.maxInt(usize) / secure_element_bytes),
-    );
-    try std.testing.expectError(
-        error.ResourceReservationOverflow,
-        preparedDomainResources(std.math.maxInt(usize)),
+        PreparedDomainState.CANCELLATION_POLL_ROWS,
     );
 }

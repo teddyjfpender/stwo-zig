@@ -39,12 +39,111 @@ const StructuredSubmission = struct {
 
 threadlocal var structured_submission: ?StructuredSubmission = null;
 
+/// Type-erased boundary observer for one structured helper callback. The
+/// observer owns no storage and must outlive the joined wave. It is used only
+/// when task profiling is enabled; ordinary submissions retain the direct
+/// `spawnWg` path and pay no clock or atomic-accounting cost.
+pub const StructuredWorkerObserver = struct {
+    context: *anyopaque,
+    submitted_fn: *const fn (context: *anyopaque) void,
+    begin_fn: *const fn (context: *anyopaque) ?u64,
+    finish_fn: *const fn (context: *anyopaque, start_ns: ?u64) void,
+
+    fn submitted(self: StructuredWorkerObserver) void {
+        self.submitted_fn(self.context);
+    }
+
+    fn begin(self: StructuredWorkerObserver) ?u64 {
+        return self.begin_fn(self.context);
+    }
+
+    fn finish(self: StructuredWorkerObserver, start_ns: ?u64) void {
+        self.finish_fn(self.context, start_ns);
+    }
+};
+
 pub const WorkPoolError = error{
     InvalidStackSize,
     InvalidWorkerBudget,
+    ScopedPoolAlreadyBound,
     SingleThreaded,
     WorkerBudgetUnavailable,
     SubmissionLimitExceeded,
+    RetainedLeaseReleased,
+    RetainedLeaseWaveActive,
+    RetainedLeaseBudgetMismatch,
+};
+
+/// Named proof boundaries used only by the orchestration acceptance audit.
+/// Keeping the label here lets each consumer attest the pool it actually
+/// resolved without adding an implementation pointer to the public request.
+const audit_mod = @import("work_pool_audit.zig");
+pub const ProofPoolStage = audit_mod.ProofPoolStage;
+pub const TestProofPoolAuditConfig = audit_mod.TestProofPoolAuditConfig;
+pub const TestProofPoolAuditSnapshot = audit_mod.TestProofPoolAuditSnapshot;
+pub const TestProofPoolAudit = audit_mod.TestProofPoolAudit;
+
+threadlocal var active_test_proof_pool_audit: ?*TestProofPoolAudit = null;
+
+pub const TestProofPoolAuditBinding = struct {
+    audit: *TestProofPoolAudit,
+    active: bool = true,
+
+    pub fn init(audit: *TestProofPoolAudit) !TestProofPoolAuditBinding {
+        if (comptime !builtin.is_test) return error.TestOnly;
+        if (active_test_proof_pool_audit != null) {
+            return error.TestProofPoolAuditAlreadyBound;
+        }
+        active_test_proof_pool_audit = audit;
+        return .{ .audit = audit };
+    }
+
+    pub fn deinit(self: *TestProofPoolAuditBinding) void {
+        std.debug.assert(self.active);
+        std.debug.assert(active_test_proof_pool_audit == self.audit);
+        active_test_proof_pool_audit = null;
+        self.active = false;
+    }
+};
+
+/// Coordinator-thread binding for one caller-owned proof pool.
+///
+/// Public execution requests stay pointer-free. A proving transaction creates
+/// its pool at a stable address, binds it for the coordinator, and every
+/// execution-aware stage resolves the same pool through `getGlobalPool`.
+/// Helper threads intentionally do not inherit the pointer: while any scoped
+/// binding exists, an unbound thread receives null instead of lazily creating
+/// the process-global pool, which prevents nested oversubscription.
+pub const ScopedPoolBinding = struct {
+    pool: *WorkPool,
+    active: bool = true,
+
+    pub fn init(pool: *WorkPool) WorkPoolError!ScopedPoolBinding {
+        pool.assertStableAddress();
+        global_state.mutex.lock();
+        defer global_state.mutex.unlock();
+        if (scoped_pool != null) return error.ScopedPoolAlreadyBound;
+        scoped_pool = pool;
+        _ = active_scoped_pools.fetchAdd(1, .acq_rel);
+        if (comptime builtin.is_test) {
+            if (pool.test_audit) |audit| audit.recordBindingInit(@intFromPtr(pool));
+        }
+        return .{ .pool = pool };
+    }
+
+    pub fn deinit(self: *ScopedPoolBinding) void {
+        std.debug.assert(self.active);
+        global_state.mutex.lock();
+        defer global_state.mutex.unlock();
+        std.debug.assert(scoped_pool == self.pool);
+        scoped_pool = null;
+        const previous = active_scoped_pools.fetchSub(1, .acq_rel);
+        std.debug.assert(previous != 0);
+        if (comptime builtin.is_test) {
+            if (self.pool.test_audit) |audit| audit.recordBindingDeinit(@intFromPtr(self.pool));
+        }
+        self.active = false;
+    }
 };
 
 /// A request budget counts the coordinator as worker zero.
@@ -83,6 +182,8 @@ pub const WorkPool = struct {
     worker_stack_size: usize = WORKER_STACK_SIZE,
     backing_allocator: std.mem.Allocator = std.heap.page_allocator,
     pool_initialized: bool = false,
+    test_audit: if (builtin.is_test) ?*TestProofPoolAudit else void =
+        if (builtin.is_test) null else {},
     lease_mutex: std.Thread.Mutex = .{},
     leased_workers: usize = 0,
     structured_slots: [MAX_HELPERS]StructuredJobSlot =
@@ -113,8 +214,16 @@ pub const WorkPool = struct {
             .n_workers = options.worker_count,
             .worker_stack_size = options.stack_size,
             .backing_allocator = options.backing_allocator,
+            .test_audit = if (comptime builtin.is_test)
+                active_test_proof_pool_audit
+            else {},
         };
-        if (options.worker_count == 1) return;
+        if (options.worker_count == 1) {
+            if (comptime builtin.is_test) {
+                if (self.test_audit) |audit| audit.recordPoolInit(@intFromPtr(self));
+            }
+            return;
+        }
 
         try self.pool.init(.{
             .allocator = self.threadPoolAllocator(),
@@ -122,20 +231,36 @@ pub const WorkPool = struct {
             .stack_size = options.stack_size,
         });
         self.pool_initialized = true;
+        if (comptime builtin.is_test) {
+            if (self.test_audit) |audit| audit.recordPoolInit(@intFromPtr(self));
+        }
     }
 
     pub fn deinit(self: *WorkPool) void {
         self.assertStableAddress();
+        const audit = self.test_audit;
         self.lease_mutex.lock();
-        const leases_drained = self.leased_workers == 0;
-        const slots_released = std.mem.allEqual(bool, &self.structured_reserved, false);
-        self.lease_mutex.unlock();
-        std.debug.assert(leases_drained);
-        std.debug.assert(slots_released);
-        for (&self.structured_slots) |*slot| {
-            std.debug.assert(!slot.in_use.load(.acquire));
+        const residual_leased_workers = self.leased_workers;
+        var residual_reserved_slots: usize = 0;
+        for (self.structured_reserved) |reserved| {
+            if (reserved) residual_reserved_slots += 1;
         }
+        var residual_active_slots: usize = 0;
+        for (&self.structured_slots) |*slot| {
+            if (slot.in_use.load(.acquire)) residual_active_slots += 1;
+        }
+        self.lease_mutex.unlock();
+        std.debug.assert(residual_leased_workers == 0);
+        std.debug.assert(residual_reserved_slots == 0);
+        std.debug.assert(residual_active_slots == 0);
         if (self.pool_initialized) self.pool.deinit();
+        if (comptime builtin.is_test) {
+            if (audit) |active| active.recordPoolDeinit(
+                residual_leased_workers,
+                residual_reserved_slots,
+                residual_active_slots,
+            );
+        }
         self.* = undefined;
     }
 
@@ -210,6 +335,11 @@ pub const WorkPool = struct {
             return error.WorkerBudgetUnavailable;
         }
         self.leased_workers += budget.count;
+        if (comptime builtin.is_test) {
+            if (self.test_audit) |audit| {
+                audit.recordLeaseAcquire(@intFromPtr(self), budget.count);
+            }
+        }
         return .{
             .pool = self,
             .budget = budget,
@@ -235,6 +365,11 @@ pub const WorkPool = struct {
             self.structured_reserved[index] = false;
         }
         self.leased_workers -= count;
+        if (comptime builtin.is_test) {
+            if (self.test_audit) |audit| {
+                audit.recordLeaseRelease(@intFromPtr(self), count);
+            }
+        }
     }
 
     fn spawnStructuredWg(
@@ -261,7 +396,67 @@ pub const WorkPool = struct {
             @panic("nested structured submission on one coordinator thread");
         }
         structured_submission = .{ .pool = self, .slot_index = slot_index };
+        if (comptime builtin.is_test) {
+            if (self.test_audit) |audit| audit.recordStructuredSubmitted();
+        }
         self.pool.spawnWg(wg, func, args);
+        const consumed = structured_submission.?.consumed;
+        structured_submission = null;
+        if (!consumed) {
+            @panic("std.Thread.Pool bypassed the reserved structured submission slot");
+        }
+    }
+
+    fn spawnStructuredObservedWg(
+        self: *WorkPool,
+        slot_index: usize,
+        wg: *std.Thread.WaitGroup,
+        comptime func: anytype,
+        args: anytype,
+        observer: StructuredWorkerObserver,
+    ) void {
+        const args_info = @typeInfo(@TypeOf(args));
+        comptime {
+            const valid = switch (args_info) {
+                .@"struct" => |info| info.is_tuple and
+                    (info.fields.len == 0 or
+                        (info.fields.len == 1 and
+                            @typeInfo(info.fields[0].type) == .pointer)),
+                else => false,
+            };
+            if (!valid) {
+                @compileError("observed structured work submissions require zero arguments or one pointer");
+            }
+        }
+
+        const Observed = struct {
+            fn run(active: StructuredWorkerObserver, argument_address: usize) void {
+                const start_ns = active.begin();
+                defer active.finish(start_ns);
+                if (comptime args_info.@"struct".fields.len == 0) {
+                    @call(.auto, func, .{});
+                } else {
+                    const Pointer = args_info.@"struct".fields[0].type;
+                    const argument: Pointer = @ptrFromInt(argument_address);
+                    @call(.auto, func, .{argument});
+                }
+            }
+        };
+        const argument_address = if (comptime args_info.@"struct".fields.len == 0)
+            0
+        else
+            @intFromPtr(args[0]);
+
+        self.assertStableAddress();
+        if (structured_submission != null) {
+            @panic("nested structured submission on one coordinator thread");
+        }
+        structured_submission = .{ .pool = self, .slot_index = slot_index };
+        if (comptime builtin.is_test) {
+            if (self.test_audit) |audit| audit.recordStructuredSubmitted();
+        }
+        observer.submitted();
+        self.pool.spawnWg(wg, Observed.run, .{ observer, argument_address });
         const consumed = structured_submission.?.consumed;
         structured_submission = null;
         if (!consumed) {
@@ -389,6 +584,9 @@ fn threadPoolFree(
     if (self.structuredSlotIndex(memory.ptr)) |slot_index| {
         const was_in_use = self.structured_slots[slot_index].in_use.swap(false, .release);
         std.debug.assert(was_in_use);
+        if (comptime builtin.is_test) {
+            if (self.test_audit) |audit| audit.recordStructuredCompleted();
+        }
         self.structured_slots[slot_index].released.set();
         return;
     }
@@ -413,13 +611,36 @@ pub const WorkLease = struct {
         return self.budget.helperCount();
     }
 
+    pub fn poolCapacity(self: *const WorkLease) usize {
+        return self.pool.workerCount();
+    }
+
+    pub fn stackSize(self: *const WorkLease) usize {
+        return self.pool.stackSize();
+    }
+
+    /// Validates a borrowed lease at a drained-wave boundary. Structured
+    /// graph execution never takes ownership of such a lease; its caller may
+    /// retain the same reservation across multiple exact-capacity graphs.
+    pub fn validateRetained(
+        self: *const WorkLease,
+        budget: WorkerBudget,
+    ) WorkPoolError!void {
+        if (self.released) return error.RetainedLeaseReleased;
+        if (self.helper_submissions != 0) return error.RetainedLeaseWaveActive;
+        if (self.budget.count != budget.count) {
+            return error.RetainedLeaseBudgetMismatch;
+        }
+    }
+
     pub fn spawnWg(
         self: *WorkLease,
         wg: *std.Thread.WaitGroup,
         comptime func: anytype,
         args: anytype,
     ) WorkPoolError!void {
-        if (!self.pool.pool_initialized or
+        if (self.released or
+            !self.pool.pool_initialized or
             self.helper_submissions >= self.helperCount())
         {
             return error.SubmissionLimitExceeded;
@@ -427,6 +648,51 @@ pub const WorkLease = struct {
         const slot_index = self.reserved_slots[self.helper_submissions];
         self.helper_submissions += 1;
         self.pool.spawnStructuredWg(slot_index, wg, func, args);
+    }
+
+    /// Submits one helper through the same fixed closure slot as `spawnWg`,
+    /// with exact begin/end observations around the physical helper callback.
+    /// The accepted argument shape intentionally matches `spawnWg`: zero
+    /// arguments or one pointer. No job allocation occurs on this path.
+    pub fn spawnObservedWg(
+        self: *WorkLease,
+        wg: *std.Thread.WaitGroup,
+        comptime func: anytype,
+        args: anytype,
+        observer: StructuredWorkerObserver,
+    ) WorkPoolError!void {
+        if (self.released or
+            !self.pool.pool_initialized or
+            self.helper_submissions >= self.helperCount())
+        {
+            return error.SubmissionLimitExceeded;
+        }
+
+        const Args = @TypeOf(args);
+        const args_info = @typeInfo(Args);
+        comptime {
+            const valid = switch (args_info) {
+                .@"struct" => |info| info.is_tuple and
+                    (info.fields.len == 0 or
+                        (info.fields.len == 1 and
+                            @typeInfo(info.fields[0].type) == .pointer)),
+                else => false,
+            };
+            if (!valid) {
+                @compileError("observed structured work submissions require zero arguments or one pointer");
+            }
+        }
+
+        const submission_index = self.helper_submissions;
+        const slot_index = self.reserved_slots[submission_index];
+        self.helper_submissions += 1;
+        self.pool.spawnStructuredObservedWg(
+            slot_index,
+            wg,
+            func,
+            args,
+            observer,
+        );
     }
 
     /// Must be called only after the corresponding wait group has drained.
@@ -455,23 +721,103 @@ var global_state: struct {
     init_failed: bool = false,
 } = .{};
 
+threadlocal var scoped_pool: ?*WorkPool = null;
+var active_scoped_pools: std.atomic.Value(usize) = .init(0);
+
 /// Gets or lazily initializes the process-wide pool. Tests use explicit local
 /// pools so their worker budgets and lifetimes remain deterministic.
 pub fn getGlobalPool() ?*WorkPool {
-    if (comptime builtin.single_threaded) return null;
-    if (comptime builtin.is_test) return null;
+    if (scoped_pool) |pool| {
+        pool.assertStableAddress();
+        recordGlobalResolutionForTest(pool);
+        return pool;
+    }
+    if (comptime builtin.single_threaded) {
+        recordGlobalResolutionForTest(null);
+        return null;
+    }
 
     global_state.mutex.lock();
     defer global_state.mutex.unlock();
 
-    if (global_state.init_failed) return null;
-    if (global_state.pool_initialized) return &global_state.pool;
+    // A helper or unrelated unbound coordinator must never create a second
+    // process pool while an explicit proof-scoped pool is live.
+    if (active_scoped_pools.load(.acquire) != 0) {
+        recordGlobalResolutionForTest(null);
+        return null;
+    }
+    if (comptime builtin.is_test) {
+        recordGlobalResolutionForTest(null);
+        return null;
+    }
+
+    if (global_state.init_failed) {
+        recordGlobalResolutionForTest(null);
+        return null;
+    }
+    if (global_state.pool_initialized) {
+        recordGlobalResolutionForTest(&global_state.pool);
+        return &global_state.pool;
+    }
     global_state.pool.initInPlace() catch {
         global_state.init_failed = true;
+        recordGlobalResolutionForTest(null);
         return null;
     };
     global_state.pool_initialized = true;
+    recordGlobalResolutionForTest(&global_state.pool);
     return &global_state.pool;
+}
+
+inline fn recordGlobalResolutionForTest(pool: ?*WorkPool) void {
+    if (comptime !builtin.is_test) return;
+    const audit = active_test_proof_pool_audit orelse return;
+    audit.recordGlobalResolution(if (pool) |active| @intFromPtr(active) else 0);
+}
+
+/// Records the exact pool selected at a production stage. The optional failure
+/// is injected only after the observation has been captured, so the receipt
+/// proves how far the real orchestration progressed before unwinding.
+pub inline fn observeProofPoolStageForTest(
+    stage: ProofPoolStage,
+    pool: ?*WorkPool,
+) !void {
+    if (comptime !builtin.is_test) return;
+    const audit = active_test_proof_pool_audit orelse return;
+    const address = if (pool) |active| @intFromPtr(active) else 0;
+    const inject_failure = audit.recordStage(stage, address);
+
+    if (pool) |active| {
+        if (audit.takeNestedProbe()) {
+            var helper_saw_pool = false;
+            var wait_group: std.Thread.WaitGroup = .{};
+            active.spawnWg(&wait_group, struct {
+                fn run(saw_pool: *bool) void {
+                    saw_pool.* = getGlobalPool() != null;
+                }
+            }.run, .{&helper_saw_pool});
+            wait_group.wait();
+
+            var nested_binding_denied = false;
+            if (ScopedPoolBinding.init(active)) |binding_value| {
+                var unexpected_binding = binding_value;
+                unexpected_binding.deinit();
+            } else |err| {
+                nested_binding_denied = err == error.ScopedPoolAlreadyBound;
+            }
+            audit.recordNestedProbe(helper_saw_pool, nested_binding_denied);
+        }
+    }
+
+    if (inject_failure) return error.ProofPoolAuditInjectedFailure;
+}
+
+/// Publication is deliberately separate from a stage observation: a failed
+/// proof may visit every computational boundary but must never publish output.
+pub inline fn recordProofPublicationForTest(pool: ?*WorkPool) void {
+    if (comptime !builtin.is_test) return;
+    const audit = active_test_proof_pool_audit orelse return;
+    audit.recordPublication(if (pool) |active| @intFromPtr(active) else 0);
 }
 
 fn detectWorkerCount() usize {
@@ -488,68 +834,16 @@ fn detectWorkerCount() usize {
     return @min(@max(cpu_count, 1), MAX_WORKERS);
 }
 
-test "work_pool: detection and test-global behavior" {
-    const n = detectWorkerCount();
-    try std.testing.expect(n >= 1);
-    try std.testing.expect(n <= MAX_WORKERS);
-    try std.testing.expect(getGlobalPool() == null);
-}
+const Root = @This();
 
-test "work pool records and detects its stable initialized address" {
-    var pool: WorkPool = undefined;
-    try pool.initInPlaceWithOptions(.{
-        .worker_count = 1,
-        .stack_size = 64 * 1024,
-    });
-    defer pool.deinit();
+pub const testing = if (builtin.is_test) struct {
+    pub const detectWorkerCount = Root.detectWorkerCount;
 
-    try std.testing.expect(pool.hasStableAddress());
-    const relocated_copy = pool;
-    try std.testing.expect(!relocated_copy.hasStableAddress());
-}
-
-test "work_pool: structured leases submit without backing allocations" {
-    if (comptime builtin.single_threaded) return error.SkipZigTest;
-
-    var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{});
-    var pool: WorkPool = undefined;
-    try pool.initInPlaceWithOptions(.{
-        .worker_count = 3,
-        .stack_size = 64 * 1024,
-        .backing_allocator = failing.allocator(),
-    });
-    defer {
-        failing.fail_index = std.math.maxInt(usize);
-        failing.resize_fail_index = std.math.maxInt(usize);
-        pool.deinit();
+    pub fn activeScopedPoolCount() usize {
+        return active_scoped_pools.load(.acquire);
     }
 
-    const budget = try WorkerBudget.init(3);
-    try std.testing.expectEqual(
-        2 * (64 * 1024 + STRUCTURED_JOB_RESERVATION_BYTES),
-        try pool.helperReservationBytes(budget),
-    );
-    var lease = try pool.acquire(budget);
-    defer lease.deinit();
-
-    const Job = struct {
-        fn run(counter: *std.atomic.Value(usize)) void {
-            _ = counter.fetchAdd(1, .monotonic);
-        }
-    };
-    var counter = std.atomic.Value(usize).init(0);
-    var wait_group = std.Thread.WaitGroup{};
-    const allocation_count = failing.alloc_index;
-    const resize_count = failing.resize_index;
-    failing.fail_index = allocation_count;
-    failing.resize_fail_index = resize_count;
-    try lease.spawnWg(&wait_group, Job.run, .{&counter});
-    try lease.spawnWg(&wait_group, Job.run, .{&counter});
-    wait_group.wait();
-    lease.completeWave();
-
-    try std.testing.expectEqual(@as(usize, 2), counter.load(.acquire));
-    try std.testing.expectEqual(allocation_count, failing.alloc_index);
-    try std.testing.expectEqual(resize_count, failing.resize_index);
-    try std.testing.expect(!failing.has_induced_failure);
-}
+    pub fn hasStableAddress(pool: *const WorkPool) bool {
+        return pool.hasStableAddress();
+    }
+} else struct {};

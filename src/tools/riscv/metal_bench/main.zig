@@ -4,5 +4,5 @@ const MetalProverEngine =
     @import("stwo_riscv_metal_integration").MetalProverEngine;
 
 pub fn main() !void {
-    return benchmark.mainWithEngine(frontend, MetalProverEngine);
+    return benchmark.mainWithEngine(frontend, MetalProverEngine, .metal);
 }

@@ -1,8 +1,8 @@
 {
-  "canonical_digest": "dba7512ca29c5a16f6e86f3e171bd91b052b8cbce34831315262791f99b991d8",
+  "canonical_digest": "7c9f6e70a564d175f88c3a9bd00532ead8969ad1481844a2aaf2cb50dcde19bf",
   "certificates": [
     {
-      "air_digest": "1089f1276d41923b11fbdf8f34fbb58048b163f027dd2835a81ab2d458f66e6f",
+      "air_digest": "ea14d4b4780fc05fa5cb70cd01e1241a7e113b0b23514160a0be0501ae54907a",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -14,10 +14,10 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.BaseAluMutation.Reg.add_mutation",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.BaseAluReg.add_overflow_nonvacuous",
       "proof_target": "RiscvRefinement.Opcodes.BaseAluMutation",
-      "proof_time_ms": 376,
+      "proof_time_ms": 429,
       "refinement_theorem": "RiscvRefinement.Opcodes.BaseAluReg.add_refines",
       "sail_binding": "generated-retirement",
-      "sail_digest": "679c7c68a992fc7e710e8ca76df23015c8379a6e1d675f4657b1b3a0b2f5c650",
+      "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
       "sail_receipt": "formal/riscv-refinement/generated/sail/generated-monad-bridge-receipt-v1.json",
       "sail_theorem": "LeanRV32IM.Functions.complete_ADD_normalizes",
       "selector_theorem": "RiscvRefinement.Opcodes.BaseAluReg.add_selectorAccepted",
@@ -25,7 +25,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.BaseAluReg.add_exactLookupProjection"
     },
     {
-      "air_digest": "ba0c2d9fa4050891cfedd4768d59e66efb7de6b5d81951c57b6de4bd550b3b29",
+      "air_digest": "ce4f42b6988f71ee38d429dccbd0ead76b5c7138cec6f3967b997bdc69a1b1c7",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -37,10 +37,10 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.BaseAluMutation.Reg.sub_mutation",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.BaseAluReg.sub_borrow_nonvacuous",
       "proof_target": "RiscvRefinement.Opcodes.BaseAluMutation",
-      "proof_time_ms": 376,
+      "proof_time_ms": 429,
       "refinement_theorem": "RiscvRefinement.Opcodes.BaseAluReg.sub_refines",
       "sail_binding": "generated-retirement",
-      "sail_digest": "679c7c68a992fc7e710e8ca76df23015c8379a6e1d675f4657b1b3a0b2f5c650",
+      "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
       "sail_receipt": "formal/riscv-refinement/generated/sail/generated-monad-bridge-receipt-v1.json",
       "sail_theorem": "LeanRV32IM.Functions.complete_SUB_normalizes",
       "selector_theorem": "RiscvRefinement.Opcodes.BaseAluReg.sub_selectorAccepted",
@@ -48,7 +48,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.BaseAluReg.sub_exactLookupProjection"
     },
     {
-      "air_digest": "d638904f452145bfaada9b6005cb396a306607bd6097379873490900e5a2d490",
+      "air_digest": "801ad0322cbabc01b301ba9a85000ee3eea6c8cf4c4ba178d9c917a0fe50a1d8",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -60,10 +60,10 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.LtMutation.Reg.slt_wrongManifest_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Lt.Reg.slt_nonvacuous",
       "proof_target": "RiscvRefinement.Opcodes.LtMutation",
-      "proof_time_ms": 332,
+      "proof_time_ms": 384,
       "refinement_theorem": "RiscvRefinement.Opcodes.Lt.Reg.slt_refines",
       "sail_binding": "generated-retirement",
-      "sail_digest": "679c7c68a992fc7e710e8ca76df23015c8379a6e1d675f4657b1b3a0b2f5c650",
+      "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
       "sail_receipt": "formal/riscv-refinement/generated/sail/generated-monad-bridge-receipt-v1.json",
       "sail_theorem": "LeanRV32IM.Functions.complete_SLT_normalizes",
       "selector_theorem": "RiscvRefinement.Opcodes.Lt.Reg.slt_selectorAccepted",
@@ -71,7 +71,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.Lt.Reg.slt_exactLookupTuples"
     },
     {
-      "air_digest": "48813e3a89590c2683450fc97c2fb5b0aca85b5a0019de9302ee7b1e4b328749",
+      "air_digest": "63f345598eb53045513ddf150afa0e3635dd423ac2600cfdb3d8214a3731a881",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -83,10 +83,10 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.LtMutation.Reg.sltu_wrongManifest_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Lt.Reg.sltu_nonvacuous",
       "proof_target": "RiscvRefinement.Opcodes.LtMutation",
-      "proof_time_ms": 332,
+      "proof_time_ms": 384,
       "refinement_theorem": "RiscvRefinement.Opcodes.Lt.Reg.sltu_refines",
       "sail_binding": "generated-retirement",
-      "sail_digest": "679c7c68a992fc7e710e8ca76df23015c8379a6e1d675f4657b1b3a0b2f5c650",
+      "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
       "sail_receipt": "formal/riscv-refinement/generated/sail/generated-monad-bridge-receipt-v1.json",
       "sail_theorem": "LeanRV32IM.Functions.complete_SLTU_normalizes",
       "selector_theorem": "RiscvRefinement.Opcodes.Lt.Reg.sltu_selectorAccepted",
@@ -94,7 +94,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.Lt.Reg.sltu_exactLookupTuples"
     },
     {
-      "air_digest": "bbc9cab370c9232645f5d041706c7a23c4937b09daf02e5a4b4a003b500f82e9",
+      "air_digest": "3767b55b71f6ad2d047a5b418f45eab9a321d2dfc01957baacf00378acd6727d",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -106,10 +106,10 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.BaseAluMutation.Reg.xor_mutation",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.BaseAluReg.xor_nonvacuous",
       "proof_target": "RiscvRefinement.Opcodes.BaseAluMutation",
-      "proof_time_ms": 376,
+      "proof_time_ms": 429,
       "refinement_theorem": "RiscvRefinement.Opcodes.BaseAluReg.xor_refines",
       "sail_binding": "generated-retirement",
-      "sail_digest": "679c7c68a992fc7e710e8ca76df23015c8379a6e1d675f4657b1b3a0b2f5c650",
+      "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
       "sail_receipt": "formal/riscv-refinement/generated/sail/generated-monad-bridge-receipt-v1.json",
       "sail_theorem": "LeanRV32IM.Functions.complete_XOR_normalizes",
       "selector_theorem": "RiscvRefinement.Opcodes.BaseAluReg.xor_selectorAccepted",
@@ -117,7 +117,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.BaseAluReg.xor_exactLookupProjection"
     },
     {
-      "air_digest": "6e73bc9ed146415e517af4af27a1e9e347cd6a08d598c4b12e61ff67fc9f4299",
+      "air_digest": "4e167495d33c5d70f796cfceb64c450bd7fcf812bf38a22e633aae42010c4409",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -129,10 +129,10 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.BaseAluMutation.Reg.or_mutation",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.BaseAluReg.or_nonvacuous",
       "proof_target": "RiscvRefinement.Opcodes.BaseAluMutation",
-      "proof_time_ms": 376,
+      "proof_time_ms": 429,
       "refinement_theorem": "RiscvRefinement.Opcodes.BaseAluReg.or_refines",
       "sail_binding": "generated-retirement",
-      "sail_digest": "679c7c68a992fc7e710e8ca76df23015c8379a6e1d675f4657b1b3a0b2f5c650",
+      "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
       "sail_receipt": "formal/riscv-refinement/generated/sail/generated-monad-bridge-receipt-v1.json",
       "sail_theorem": "LeanRV32IM.Functions.complete_OR_normalizes",
       "selector_theorem": "RiscvRefinement.Opcodes.BaseAluReg.or_selectorAccepted",
@@ -140,7 +140,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.BaseAluReg.or_exactLookupProjection"
     },
     {
-      "air_digest": "b7a731674bfa3a2ed01574ab243cf4f7feeeb6db8e031a122f7c3259cb0a662f",
+      "air_digest": "04836589eb3d5a4777294fe5acc5c9151a0da987d647286dd5f795fcf94158d5",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -152,10 +152,10 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.BaseAluMutation.Reg.and_mutation",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.BaseAluReg.and_nonvacuous",
       "proof_target": "RiscvRefinement.Opcodes.BaseAluMutation",
-      "proof_time_ms": 376,
+      "proof_time_ms": 429,
       "refinement_theorem": "RiscvRefinement.Opcodes.BaseAluReg.and_refines",
       "sail_binding": "generated-retirement",
-      "sail_digest": "679c7c68a992fc7e710e8ca76df23015c8379a6e1d675f4657b1b3a0b2f5c650",
+      "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
       "sail_receipt": "formal/riscv-refinement/generated/sail/generated-monad-bridge-receipt-v1.json",
       "sail_theorem": "LeanRV32IM.Functions.complete_AND_normalizes",
       "selector_theorem": "RiscvRefinement.Opcodes.BaseAluReg.and_selectorAccepted",
@@ -163,7 +163,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.BaseAluReg.and_exactLookupProjection"
     },
     {
-      "air_digest": "c81449734da29c1e76450ace58542a3f9421ae4d8e540d766da674a2a9acbb2a",
+      "air_digest": "d7051000f7bb17bd29e92ee742d861901e3329d7954939a3077b5fa708ab431e",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -176,10 +176,10 @@
       "mutation_theorem": "RiscvRefinement.Air.Bridge.Mutations.addiCarry_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.NonVacuity.addi_production_overflow_exists",
       "proof_target": "RiscvRefinement.Air.Bridge.Mutations",
-      "proof_time_ms": 434,
+      "proof_time_ms": 516,
       "refinement_theorem": "RiscvRefinement.Opcodes.addi_production_refines",
       "sail_binding": "generated-retirement",
-      "sail_digest": "679c7c68a992fc7e710e8ca76df23015c8379a6e1d675f4657b1b3a0b2f5c650",
+      "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
       "sail_receipt": "formal/riscv-refinement/generated/sail/generated-monad-bridge-receipt-v1.json",
       "sail_theorem": "LeanRV32IM.Functions.complete_ADDI_normalizes",
       "selector_theorem": "RiscvRefinement.Air.Bridge.Addi.selectorAccepted",
@@ -187,7 +187,7 @@
       "tuple_theorem": "RiscvRefinement.Air.Bridge.Addi.lookup_projection"
     },
     {
-      "air_digest": "f749061d1b4f84ae1990707debed715c7386d5dc4116ad4a53e6cb52036b0794",
+      "air_digest": "26a94ffe1ccc4b4f352580d8b012d725478e563852861a056290a4043ee894bf",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -199,10 +199,10 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.LtMutation.Imm.slti_wrongManifest_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Lt.Imm.slti_nonvacuous",
       "proof_target": "RiscvRefinement.Opcodes.LtMutation",
-      "proof_time_ms": 332,
+      "proof_time_ms": 384,
       "refinement_theorem": "RiscvRefinement.Opcodes.Lt.Imm.slti_refines",
       "sail_binding": "generated-retirement",
-      "sail_digest": "679c7c68a992fc7e710e8ca76df23015c8379a6e1d675f4657b1b3a0b2f5c650",
+      "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
       "sail_receipt": "formal/riscv-refinement/generated/sail/generated-monad-bridge-receipt-v1.json",
       "sail_theorem": "LeanRV32IM.Functions.complete_SLTI_normalizes",
       "selector_theorem": "RiscvRefinement.Opcodes.Lt.Imm.slti_selectorAccepted",
@@ -210,7 +210,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.Lt.Imm.slti_exactLookupTuples"
     },
     {
-      "air_digest": "bbed2f63b6d08c8b25bdadf11c4be6b1441e61c6901e6f833cfbd2468552b5b8",
+      "air_digest": "a12098569401aa6c1a3697f57d49874b9bac36284e49cc0ec1253ec6dc069ad6",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -222,10 +222,10 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.LtMutation.Imm.sltiu_wrongManifest_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Lt.Imm.sltiu_nonvacuous",
       "proof_target": "RiscvRefinement.Opcodes.LtMutation",
-      "proof_time_ms": 332,
+      "proof_time_ms": 384,
       "refinement_theorem": "RiscvRefinement.Opcodes.Lt.Imm.sltiu_refines",
       "sail_binding": "generated-retirement",
-      "sail_digest": "679c7c68a992fc7e710e8ca76df23015c8379a6e1d675f4657b1b3a0b2f5c650",
+      "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
       "sail_receipt": "formal/riscv-refinement/generated/sail/generated-monad-bridge-receipt-v1.json",
       "sail_theorem": "LeanRV32IM.Functions.complete_SLTIU_normalizes",
       "selector_theorem": "RiscvRefinement.Opcodes.Lt.Imm.sltiu_selectorAccepted",
@@ -233,7 +233,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.Lt.Imm.sltiu_exactLookupTuples"
     },
     {
-      "air_digest": "708f83e7f83af6fbae6f74237a08eb1577d0fc6f4fa9b4aec217d0496daf2b27",
+      "air_digest": "3d03015aea96693e90e43896efd8ea0a16f8224726eec390b283d078f1dd6464",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -246,10 +246,10 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.BaseAluMutation.Imm.xori_mutation",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.BaseAluImm.xori_nonvacuous",
       "proof_target": "RiscvRefinement.Opcodes.BaseAluMutation",
-      "proof_time_ms": 376,
+      "proof_time_ms": 429,
       "refinement_theorem": "RiscvRefinement.Opcodes.BaseAluImm.xori_refines",
       "sail_binding": "generated-retirement",
-      "sail_digest": "679c7c68a992fc7e710e8ca76df23015c8379a6e1d675f4657b1b3a0b2f5c650",
+      "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
       "sail_receipt": "formal/riscv-refinement/generated/sail/generated-monad-bridge-receipt-v1.json",
       "sail_theorem": "LeanRV32IM.Functions.complete_XORI_normalizes",
       "selector_theorem": "RiscvRefinement.Opcodes.BaseAluImm.xori_selectorAccepted",
@@ -257,7 +257,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.BaseAluImm.xori_exactLookupProjection"
     },
     {
-      "air_digest": "4a305fbe805eb7f44e23efb1e47ed74498aa56006f2416d1a733fd5d8a248e83",
+      "air_digest": "1920db3dff2e8d971f9e7870a2274b30565def4ef1f15bd1a0446cace804f335",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -270,10 +270,10 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.BaseAluMutation.Imm.ori_mutation",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.BaseAluImm.ori_nonvacuous",
       "proof_target": "RiscvRefinement.Opcodes.BaseAluMutation",
-      "proof_time_ms": 376,
+      "proof_time_ms": 429,
       "refinement_theorem": "RiscvRefinement.Opcodes.BaseAluImm.ori_refines",
       "sail_binding": "generated-retirement",
-      "sail_digest": "679c7c68a992fc7e710e8ca76df23015c8379a6e1d675f4657b1b3a0b2f5c650",
+      "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
       "sail_receipt": "formal/riscv-refinement/generated/sail/generated-monad-bridge-receipt-v1.json",
       "sail_theorem": "LeanRV32IM.Functions.complete_ORI_normalizes",
       "selector_theorem": "RiscvRefinement.Opcodes.BaseAluImm.ori_selectorAccepted",
@@ -281,7 +281,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.BaseAluImm.ori_exactLookupProjection"
     },
     {
-      "air_digest": "b2d7bf2971f26c7d39fb65ee4211829f1b3f4bbf83cdf84ebb64bc7d8bd93aad",
+      "air_digest": "8784d98dc96d39ca2244dda1c1363f4b47a187302dfe873d1f378cba83c56125",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -294,10 +294,10 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.BaseAluMutation.Imm.andi_mutation",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.BaseAluImm.andi_nonvacuous",
       "proof_target": "RiscvRefinement.Opcodes.BaseAluMutation",
-      "proof_time_ms": 376,
+      "proof_time_ms": 429,
       "refinement_theorem": "RiscvRefinement.Opcodes.BaseAluImm.andi_refines",
       "sail_binding": "generated-retirement",
-      "sail_digest": "679c7c68a992fc7e710e8ca76df23015c8379a6e1d675f4657b1b3a0b2f5c650",
+      "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
       "sail_receipt": "formal/riscv-refinement/generated/sail/generated-monad-bridge-receipt-v1.json",
       "sail_theorem": "LeanRV32IM.Functions.complete_ANDI_normalizes",
       "selector_theorem": "RiscvRefinement.Opcodes.BaseAluImm.andi_selectorAccepted",
@@ -305,7 +305,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.BaseAluImm.andi_exactLookupProjection"
     },
     {
-      "air_digest": "518d3a436310e9c88eca0c3e77accb07cbec721ce10605d1e6fbacbe8e7cafc2",
+      "air_digest": "a9bc0a8b418c545433748c90bdccf808fe1b3e9f737246f01e64589995a21448",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -318,10 +318,10 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.BranchesMutation.beqStateProjection_mutation_theorem",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Branches.Eq.beq_nonvacuity_theorem",
       "proof_target": "RiscvRefinement.Opcodes.BranchesMutation",
-      "proof_time_ms": 351,
+      "proof_time_ms": 429,
       "refinement_theorem": "RiscvRefinement.Opcodes.Branches.Eq.beq_refinement_theorem",
       "sail_binding": "generated-retirement",
-      "sail_digest": "679c7c68a992fc7e710e8ca76df23015c8379a6e1d675f4657b1b3a0b2f5c650",
+      "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
       "sail_receipt": "formal/riscv-refinement/generated/sail/generated-monad-bridge-receipt-v1.json",
       "sail_theorem": "LeanRV32IM.Functions.complete_BEQ_normalizes",
       "selector_theorem": "RiscvRefinement.Opcodes.Branches.Eq.beq_selector_theorem",
@@ -329,7 +329,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.Branches.Eq.beq_tuple_theorem"
     },
     {
-      "air_digest": "96d67d449f6d3991e09d73aa014b462725dd0dc869f229578dc8e46140d9b4ea",
+      "air_digest": "903171124e207468a9e786821a78a0767cb5e1152a4acf10ec7f4466f30a619f",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -342,10 +342,10 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.BranchesMutation.bneStateProjection_mutation_theorem",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Branches.Eq.bne_nonvacuity_theorem",
       "proof_target": "RiscvRefinement.Opcodes.BranchesMutation",
-      "proof_time_ms": 351,
+      "proof_time_ms": 429,
       "refinement_theorem": "RiscvRefinement.Opcodes.Branches.Eq.bne_refinement_theorem",
       "sail_binding": "generated-retirement",
-      "sail_digest": "679c7c68a992fc7e710e8ca76df23015c8379a6e1d675f4657b1b3a0b2f5c650",
+      "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
       "sail_receipt": "formal/riscv-refinement/generated/sail/generated-monad-bridge-receipt-v1.json",
       "sail_theorem": "LeanRV32IM.Functions.complete_BNE_normalizes",
       "selector_theorem": "RiscvRefinement.Opcodes.Branches.Eq.bne_selector_theorem",
@@ -353,7 +353,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.Branches.Eq.bne_tuple_theorem"
     },
     {
-      "air_digest": "24d3e737afd7b38cc80ccd69d60786622c63c127d977fa8910ea588aef0c0c88",
+      "air_digest": "2a87896db896f0cbc72938a33927684a7d4f0accf88734325c91cbc49092afb2",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -366,10 +366,10 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.BranchesMutation.bltStateProjection_mutation_theorem",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Branches.Lt.blt_nonvacuity_theorem",
       "proof_target": "RiscvRefinement.Opcodes.BranchesMutation",
-      "proof_time_ms": 351,
+      "proof_time_ms": 429,
       "refinement_theorem": "RiscvRefinement.Opcodes.Branches.Lt.blt_refinement_theorem",
       "sail_binding": "generated-retirement",
-      "sail_digest": "679c7c68a992fc7e710e8ca76df23015c8379a6e1d675f4657b1b3a0b2f5c650",
+      "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
       "sail_receipt": "formal/riscv-refinement/generated/sail/generated-monad-bridge-receipt-v1.json",
       "sail_theorem": "LeanRV32IM.Functions.complete_BLT_normalizes",
       "selector_theorem": "RiscvRefinement.Opcodes.Branches.Lt.blt_selector_theorem",
@@ -377,7 +377,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.Branches.Lt.blt_tuple_theorem"
     },
     {
-      "air_digest": "98a0b591f6fd3aee208ed24a1bf9571217109a15c30db4d3071a10ebf37669a3",
+      "air_digest": "a5a3fc32933c7a30063f648723fc2d24c2ad1457906017a9a398bfb251592237",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -390,10 +390,10 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.BranchesMutation.bgeStateProjection_mutation_theorem",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Branches.Lt.bge_nonvacuity_theorem",
       "proof_target": "RiscvRefinement.Opcodes.BranchesMutation",
-      "proof_time_ms": 351,
+      "proof_time_ms": 429,
       "refinement_theorem": "RiscvRefinement.Opcodes.Branches.Lt.bge_refinement_theorem",
       "sail_binding": "generated-retirement",
-      "sail_digest": "679c7c68a992fc7e710e8ca76df23015c8379a6e1d675f4657b1b3a0b2f5c650",
+      "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
       "sail_receipt": "formal/riscv-refinement/generated/sail/generated-monad-bridge-receipt-v1.json",
       "sail_theorem": "LeanRV32IM.Functions.complete_BGE_normalizes",
       "selector_theorem": "RiscvRefinement.Opcodes.Branches.Lt.bge_selector_theorem",
@@ -401,7 +401,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.Branches.Lt.bge_tuple_theorem"
     },
     {
-      "air_digest": "499f688b4f82e7db549ebca2bd6333f73393b6a0b96ba30e9510a0b20278e171",
+      "air_digest": "480b643fa15b939ffaa251b0a86d600ceccb3e6fdd4669344926627105b1ff02",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -414,10 +414,10 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.BranchesMutation.bltuStateProjection_mutation_theorem",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Branches.Lt.bltu_nonvacuity_theorem",
       "proof_target": "RiscvRefinement.Opcodes.BranchesMutation",
-      "proof_time_ms": 351,
+      "proof_time_ms": 429,
       "refinement_theorem": "RiscvRefinement.Opcodes.Branches.Lt.bltu_refinement_theorem",
       "sail_binding": "generated-retirement",
-      "sail_digest": "679c7c68a992fc7e710e8ca76df23015c8379a6e1d675f4657b1b3a0b2f5c650",
+      "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
       "sail_receipt": "formal/riscv-refinement/generated/sail/generated-monad-bridge-receipt-v1.json",
       "sail_theorem": "LeanRV32IM.Functions.complete_BLTU_normalizes",
       "selector_theorem": "RiscvRefinement.Opcodes.Branches.Lt.bltu_selector_theorem",
@@ -425,7 +425,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.Branches.Lt.bltu_tuple_theorem"
     },
     {
-      "air_digest": "46c2548d4768c4aaac4a6af592f3198b77f8835d12eff48e9987b33bd32b604d",
+      "air_digest": "cd5b083188ed23d2361b86417ed89d46495c216a385d429a16527a066e35b270",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -438,10 +438,10 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.BranchesMutation.bgeuStateProjection_mutation_theorem",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Branches.Lt.bgeu_nonvacuity_theorem",
       "proof_target": "RiscvRefinement.Opcodes.BranchesMutation",
-      "proof_time_ms": 351,
+      "proof_time_ms": 429,
       "refinement_theorem": "RiscvRefinement.Opcodes.Branches.Lt.bgeu_refinement_theorem",
       "sail_binding": "generated-retirement",
-      "sail_digest": "679c7c68a992fc7e710e8ca76df23015c8379a6e1d675f4657b1b3a0b2f5c650",
+      "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
       "sail_receipt": "formal/riscv-refinement/generated/sail/generated-monad-bridge-receipt-v1.json",
       "sail_theorem": "LeanRV32IM.Functions.complete_BGEU_normalizes",
       "selector_theorem": "RiscvRefinement.Opcodes.Branches.Lt.bgeu_selector_theorem",
@@ -449,7 +449,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.Branches.Lt.bgeu_tuple_theorem"
     },
     {
-      "air_digest": "aaf0ef1ed52224c5acbfcfd6f9bccb17fd0592ed1bf1075ea388dd5ed7403dc4",
+      "air_digest": "7f83bbf2b8f98780308b83d19c586cb38d79c4fa7296110bce5c4e283938357e",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -462,10 +462,10 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.JalMutation.wrongStateEmit_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Jal.jalExists",
       "proof_target": "RiscvRefinement.Opcodes.JalMutation",
-      "proof_time_ms": 298,
+      "proof_time_ms": 348,
       "refinement_theorem": "RiscvRefinement.Opcodes.Jal.refines",
       "sail_binding": "generated-retirement",
-      "sail_digest": "679c7c68a992fc7e710e8ca76df23015c8379a6e1d675f4657b1b3a0b2f5c650",
+      "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
       "sail_receipt": "formal/riscv-refinement/generated/sail/generated-monad-bridge-receipt-v1.json",
       "sail_theorem": "LeanRV32IM.Functions.complete_JAL_normalizes",
       "selector_theorem": "RiscvRefinement.Air.Bridge.Jal.selectorAccepted",
@@ -473,7 +473,7 @@
       "tuple_theorem": "RiscvRefinement.Air.Bridge.Jal.lookupProjection"
     },
     {
-      "air_digest": "2f8e61070de1a6797802b8de7222f226d67cc0758c7621cff09f1cacadd5e777",
+      "air_digest": "328e56d97ca4b3aed03327c696359d2067be66bfc3e42dea9fdbfcf81031824e",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -486,10 +486,10 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.JalrMutation.wrongStateEmit_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Jalr.jalr_nonvacuous",
       "proof_target": "RiscvRefinement.Opcodes.JalrMutation",
-      "proof_time_ms": 426,
+      "proof_time_ms": 484,
       "refinement_theorem": "RiscvRefinement.Opcodes.Jalr.jalr_refines",
       "sail_binding": "generated-retirement",
-      "sail_digest": "679c7c68a992fc7e710e8ca76df23015c8379a6e1d675f4657b1b3a0b2f5c650",
+      "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
       "sail_receipt": "formal/riscv-refinement/generated/sail/generated-monad-bridge-receipt-v1.json",
       "sail_theorem": "LeanRV32IM.Functions.complete_JALR_normalizes",
       "selector_theorem": "RiscvRefinement.Opcodes.Jalr.jalr_selectorAccepted",
@@ -497,7 +497,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.Jalr.jalr_exactLookupProjection"
     },
     {
-      "air_digest": "a10ec4d79f67a21dd5097b21339f7b4bd4a5e98db1698eca7fa8c98c0a39d253",
+      "air_digest": "cad1626eb4d007bdcabd11478305e2d00de93acaa321e1d0f0e7ffedd319b11b",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -510,10 +510,10 @@
       "mutation_theorem": "RiscvRefinement.Air.Bridge.Mutations.luiLowLimb_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.lui_production_nonvacuous",
       "proof_target": "RiscvRefinement.Air.Bridge.Mutations",
-      "proof_time_ms": 434,
+      "proof_time_ms": 516,
       "refinement_theorem": "RiscvRefinement.Opcodes.lui_production_refines",
       "sail_binding": "generated-retirement",
-      "sail_digest": "679c7c68a992fc7e710e8ca76df23015c8379a6e1d675f4657b1b3a0b2f5c650",
+      "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
       "sail_receipt": "formal/riscv-refinement/generated/sail/generated-monad-bridge-receipt-v1.json",
       "sail_theorem": "LeanRV32IM.Functions.complete_LUI_normalizes",
       "selector_theorem": "RiscvRefinement.Air.Bridge.Lui.selectorAccepted",
@@ -521,7 +521,7 @@
       "tuple_theorem": "RiscvRefinement.Air.Bridge.Lui.lookup_projection"
     },
     {
-      "air_digest": "b6b387fff5fe062a97c68c99d4780ec978d5b949570b4c1fd7a0d565088cb669",
+      "air_digest": "fac776de5445a716502c679cf96970c983e0ced2a79d399ec58a537de34be4e4",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -533,10 +533,10 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.AuipcMutation.wrongDestination_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Auipc.auipcExists",
       "proof_target": "RiscvRefinement.Opcodes.AuipcMutation",
-      "proof_time_ms": 548,
+      "proof_time_ms": 630,
       "refinement_theorem": "RiscvRefinement.Opcodes.Auipc.refines",
       "sail_binding": "generated-retirement",
-      "sail_digest": "679c7c68a992fc7e710e8ca76df23015c8379a6e1d675f4657b1b3a0b2f5c650",
+      "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
       "sail_receipt": "formal/riscv-refinement/generated/sail/generated-monad-bridge-receipt-v1.json",
       "sail_theorem": "LeanRV32IM.Functions.complete_AUIPC_normalizes",
       "selector_theorem": "RiscvRefinement.Air.Bridge.Auipc.selectorAccepted",
@@ -544,7 +544,7 @@
       "tuple_theorem": "RiscvRefinement.Air.Bridge.Auipc.allLookupProjection"
     },
     {
-      "air_digest": "e2f97664b63bba84a1a5e5a846f72d18d35842d5bdd72202a03c123e00ce4065",
+      "air_digest": "55b887ab4abf5d7e6a3b159a1ffdb5a1641622e4e24dfd5e3cda6d5c4b50a7a3",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -556,10 +556,10 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.FenceMutation.wrongStateEmit_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Fence.fence_exists",
       "proof_target": "RiscvRefinement.Opcodes.FenceMutation",
-      "proof_time_ms": 283,
+      "proof_time_ms": 318,
       "refinement_theorem": "RiscvRefinement.Opcodes.Fence.refines",
       "sail_binding": "generated-retirement",
-      "sail_digest": "679c7c68a992fc7e710e8ca76df23015c8379a6e1d675f4657b1b3a0b2f5c650",
+      "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
       "sail_receipt": "formal/riscv-refinement/generated/sail/generated-monad-bridge-receipt-v1.json",
       "sail_theorem": "LeanRV32IM.Functions.complete_FENCE_normalizes",
       "selector_theorem": "RiscvRefinement.Air.Bridge.Fence.selectorAccepted",

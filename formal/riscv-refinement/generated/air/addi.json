@@ -1,5 +1,5 @@
 {
-  "canonical_digest": "52d56133b5968e2e6ac42c0ac01fa2837d9294ad1865377a892a355fab75efd2",
+  "canonical_digest": "cefa84d6d1bc739a0175a6d05c8c9aae34a4fcbd798a2f4cb455585c7dbedd06",
   "columns": [
     {
       "name": "clk",
@@ -202,28 +202,28 @@
     {
       "domain": "program_access",
       "label": "request",
-      "numerator": 118,
+      "numerator": 108,
       "tuple": [
         1,
-        129,
+        132,
         2,
         12,
-        135
+        138
       ]
     },
     {
       "domain": "range_check_8_11",
       "label": "request",
-      "numerator": 118,
+      "numerator": 108,
       "tuple": [
         22,
-        131
+        134
       ]
     },
     {
       "domain": "registers_state",
       "label": "consumed",
-      "numerator": 118,
+      "numerator": 108,
       "tuple": [
         1,
         0
@@ -234,14 +234,14 @@
       "label": "emitted",
       "numerator": 38,
       "tuple": [
-        136,
-        137
+        141,
+        142
       ]
     },
     {
       "domain": "memory_access",
       "label": "consumed",
-      "numerator": 118,
+      "numerator": 108,
       "tuple": [
         56,
         12,
@@ -269,59 +269,59 @@
     {
       "domain": "range_check_20",
       "label": "request",
-      "numerator": 118,
+      "numerator": 108,
       "tuple": [
-        117
+        119
       ]
     },
     {
       "domain": "bitwise",
       "label": "request",
-      "numerator": 142,
+      "numerator": 111,
       "tuple": [
         18,
         22,
         29,
-        141
+        140
       ]
     },
     {
       "domain": "bitwise",
       "label": "request",
-      "numerator": 142,
+      "numerator": 111,
       "tuple": [
         19,
         53,
         30,
-        141
+        140
       ]
     },
     {
       "domain": "bitwise",
       "label": "request",
-      "numerator": 142,
+      "numerator": 111,
       "tuple": [
         20,
         55,
         31,
-        141
+        140
       ]
     },
     {
       "domain": "bitwise",
       "label": "request",
-      "numerator": 142,
+      "numerator": 111,
       "tuple": [
         21,
         55,
         32,
-        141
+        140
       ]
     },
     {
       "domain": "range_check_8_8",
       "label": "request",
-      "numerator": 118,
+      "numerator": 108,
       "tuple": [
         29,
         30
@@ -330,7 +330,7 @@
     {
       "domain": "range_check_8_8",
       "label": "request",
-      "numerator": 118,
+      "numerator": 108,
       "tuple": [
         31,
         32
@@ -339,7 +339,7 @@
     {
       "domain": "memory_access",
       "label": "consumed",
-      "numerator": 118,
+      "numerator": 108,
       "tuple": [
         56,
         2,
@@ -357,7 +357,7 @@
       "tuple": [
         56,
         2,
-        112,
+        117,
         8,
         9,
         10,
@@ -367,9 +367,9 @@
     {
       "domain": "range_check_20",
       "label": "request",
-      "numerator": 118,
+      "numerator": 108,
       "tuple": [
-        114
+        121
       ]
     }
   ],
@@ -1013,10 +1013,29 @@
     },
     {
       "args": [
-        0,
-        35
+        38
       ],
-      "op": "sub"
+      "op": "neg"
+    },
+    {
+      "args": [
+        26,
+        27
+      ],
+      "op": "add"
+    },
+    {
+      "args": [
+        109,
+        28
+      ],
+      "op": "add"
+    },
+    {
+      "args": [
+        110
+      ],
+      "op": "neg"
     },
     {
       "op": "const",
@@ -1024,10 +1043,24 @@
     },
     {
       "args": [
-        108,
-        109
+        0,
+        35
+      ],
+      "op": "sub"
+    },
+    {
+      "args": [
+        113,
+        112
       ],
       "op": "mul"
+    },
+    {
+      "args": [
+        114,
+        35
+      ],
+      "op": "add"
     },
     {
       "op": "const",
@@ -1035,29 +1068,8 @@
     },
     {
       "args": [
-        110,
-        111
-      ],
-      "op": "add"
-    },
-    {
-      "args": [
-        112,
-        7
-      ],
-      "op": "sub"
-    },
-    {
-      "args": [
-        113,
-        35
-      ],
-      "op": "sub"
-    },
-    {
-      "args": [
-        110,
-        35
+        114,
+        116
       ],
       "op": "add"
     },
@@ -1070,16 +1082,24 @@
     },
     {
       "args": [
-        116,
+        118,
         35
       ],
       "op": "sub"
     },
     {
       "args": [
-        38
+        117,
+        7
       ],
-      "op": "neg"
+      "op": "sub"
+    },
+    {
+      "args": [
+        120,
+        35
+      ],
+      "op": "sub"
     },
     {
       "op": "const",
@@ -1088,7 +1108,7 @@
     {
       "args": [
         25,
-        119
+        122
       ],
       "op": "mul"
     },
@@ -1099,24 +1119,6 @@
     {
       "args": [
         26,
-        121
-      ],
-      "op": "mul"
-    },
-    {
-      "args": [
-        120,
-        122
-      ],
-      "op": "add"
-    },
-    {
-      "op": "const",
-      "value": 14
-    },
-    {
-      "args": [
-        27,
         124
       ],
       "op": "mul"
@@ -1130,11 +1132,11 @@
     },
     {
       "op": "const",
-      "value": 15
+      "value": 14
     },
     {
       "args": [
-        28,
+        27,
         127
       ],
       "op": "mul"
@@ -1148,19 +1150,37 @@
     },
     {
       "op": "const",
-      "value": 256
+      "value": 15
     },
     {
       "args": [
-        23,
+        28,
         130
       ],
       "op": "mul"
     },
     {
       "args": [
-        22,
+        129,
         131
+      ],
+      "op": "add"
+    },
+    {
+      "op": "const",
+      "value": 256
+    },
+    {
+      "args": [
+        23,
+        133
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        22,
+        134
       ],
       "op": "add"
     },
@@ -1171,21 +1191,35 @@
     {
       "args": [
         24,
-        133
+        136
       ],
       "op": "mul"
     },
     {
       "args": [
-        132,
-        134
+        135,
+        137
+      ],
+      "op": "add"
+    },
+    {
+      "args": [
+        26,
+        116
+      ],
+      "op": "mul"
+    },
+    {
+      "args": [
+        139,
+        27
       ],
       "op": "add"
     },
     {
       "args": [
         1,
-        109
+        112
       ],
       "op": "add"
     },
@@ -1197,47 +1231,13 @@
       "op": "add"
     },
     {
-      "args": [
-        26,
-        27
-      ],
-      "op": "add"
-    },
-    {
-      "args": [
-        138,
-        28
-      ],
-      "op": "add"
-    },
-    {
-      "args": [
-        26,
-        111
-      ],
-      "op": "mul"
-    },
-    {
-      "args": [
-        140,
-        27
-      ],
-      "op": "add"
-    },
-    {
-      "args": [
-        139
-      ],
-      "op": "neg"
-    },
-    {
       "name": "bus_value_35",
       "op": "col"
     },
     {
       "args": [
         143,
-        129
+        132
       ],
       "op": "sub"
     },
@@ -1248,7 +1248,7 @@
     {
       "args": [
         145,
-        135
+        138
       ],
       "op": "sub"
     },
@@ -1259,7 +1259,7 @@
     {
       "args": [
         147,
-        136
+        141
       ],
       "op": "sub"
     },
@@ -1270,7 +1270,7 @@
     {
       "args": [
         149,
-        137
+        142
       ],
       "op": "sub"
     },
@@ -1292,7 +1292,7 @@
     {
       "args": [
         153,
-        112
+        117
       ],
       "op": "sub"
     }
@@ -1313,8 +1313,8 @@
     "differential_trials_per_family": 8,
     "extractor": "src/frontends/riscv/air/extract/mod.zig",
     "level": "level-1-exact-shape-normalizer",
-    "source_closure_sha256": "02cff68915c76eedb33e8344fcfe8686a128d1f3b802cb6b17c4dfc1efa99df8",
-    "source_ir_sha256": "231d6e6b72209d5f983b7334074a1be4f8378f84ded01c8f0494c06439dcbb11"
+    "source_closure_sha256": "64946b6ec841c9c89040d12072224d8d20a754c17f4515f3e720891dd3fdaab0",
+    "source_ir_sha256": "625cecde1f31c06e8d8ea01fb0168f47f74e8098b7256e1039662b92db1c37c3"
   },
   "projection": {
     "destination_access_lookups": [

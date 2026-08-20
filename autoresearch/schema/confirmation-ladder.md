@@ -288,7 +288,7 @@ a bare `stages` list, as `--stage-profile-out` writes), flattened to dotted
 at all fails closed rather than silently passing every claim.
 
 Registered rows: `native_proof_v7` (input/prove/serialize/verify/request),
-`riscv_proof_v2` (execute/witness/prove/verify/request), and `cairo_proof_v1`,
+`riscv_proof_v3` (execute/witness/prove/verify/request), and `cairo_proof_v1`,
 whose row is **derived** from `manifest.CAIRO_PHASE_NAMES` so the ladder cannot
 drift from the schema's canonical cutpoint set. Cairo's `serialize` is always
 null (proof encode/write/hash is outside the recorder), so it drops out of the

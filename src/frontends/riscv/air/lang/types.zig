@@ -17,6 +17,15 @@ pub const NameId = enum(u32) { _ };
 pub const SourceId = enum(u32) { _ };
 pub const RelationSchemaId = enum(u16) { _ };
 
+/// Append-only IDs for the physical row-window expression layer. They are
+/// deliberately distinct from logical `ValueId`: a shifted committed-column
+/// read exists only after deterministic layout and cannot be substituted for
+/// an unshifted SSA value.
+pub const TraceColumnId = enum(u32) { _ };
+pub const RowWindowId = enum(u32) { _ };
+pub const ShiftedColumnId = enum(u32) { _ };
+pub const WindowValueId = enum(u32) { _ };
+
 /// Semantic sign convention for one typed relation event.  This lives beside
 /// the typed IDs so logical program records can carry a role without importing
 /// a lowering implementation.

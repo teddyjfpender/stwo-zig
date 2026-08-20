@@ -14,468 +14,8 @@
 #include <unistd.h>
 
 #include "runtime/abi.h"
+#include "runtime/object_model.h"
 
-@class StwoZigEvalLibraryKey;
-@class StwoZigEvalPipelineKey;
-@class StwoZigEvalArchiveKey;
-
-@interface StwoZigMetalRuntime : NSObject
-@property(nonatomic, strong) id<MTLDevice> device;
-@property(nonatomic, strong) id<MTLCommandQueue> queue;
-@property(nonatomic, strong) id<MTLComputePipelineState> quadraticRecurrenceTrace;
-@property(nonatomic, strong) id<MTLComputePipelineState> quadraticRecurrenceIfftWide;
-@property(nonatomic, strong) id<MTLComputePipelineState> leaves;
-@property(nonatomic, strong) id<MTLComputePipelineState> parents;
-@property(nonatomic, strong) id<MTLComputePipelineState> quotients;
-@property(nonatomic, strong) id<MTLComputePipelineState> rawQuotients;
-@property(nonatomic, strong) id<MTLComputePipelineState> polynomialEval;
-@property(nonatomic, strong) id<MTLComputePipelineState> polynomialBasis;
-@property(nonatomic, strong) id<MTLComputePipelineState> circleIfftFirst;
-@property(nonatomic, strong) id<MTLComputePipelineState> circleIfftLayer;
-@property(nonatomic, strong) id<MTLComputePipelineState> circleRfftLayer;
-@property(nonatomic, strong) id<MTLComputePipelineState> circleRfftLast;
-@property(nonatomic, strong) id<MTLComputePipelineState> circleRescale;
-@property(nonatomic, strong) id<MTLComputePipelineState> circleExpand;
-@property(nonatomic, strong) id<MTLComputePipelineState> circleIfftFused;
-@property(nonatomic, strong) id<MTLComputePipelineState> circleIfftFusedWide;
-@property(nonatomic, strong) id<MTLComputePipelineState> circleRfftFused;
-@property(nonatomic, strong) id<MTLComputePipelineState> quotientNumerator;
-@property(nonatomic, strong) id<MTLComputePipelineState> quotientFinalize;
-@property(nonatomic, strong) id<MTLComputePipelineState> quotientPartialsRaw;
-@property(nonatomic, strong) id<MTLComputePipelineState> quotientCombinePartialsRaw;
-@property(nonatomic, strong) id<MTLComputePipelineState> quotientDomainPointsResident;
-@property(nonatomic, strong) id<MTLBuffer> quotientDomainCache;
-@property(nonatomic) uint32_t quotientDomainCacheRowCount;
-@property(nonatomic) uint32_t quotientDomainCacheLogSize;
-@property(nonatomic) uint32_t quotientDomainCacheInitialIndex;
-@property(nonatomic) uint32_t quotientDomainCacheStepSize;
-@property(nonatomic, strong) id<MTLBuffer> friCircleInverseCache;
-@property(nonatomic) uint32_t friCircleInverseCacheCount;
-@property(nonatomic) uint32_t friCircleInverseCacheInitialIndex;
-@property(nonatomic) uint32_t friCircleInverseCacheStepSize;
-@property(nonatomic, strong) id<MTLBuffer> friLineInverseCache;
-@property(nonatomic) uint32_t friLineInverseCacheSourceCount;
-@property(nonatomic) uint32_t friLineInverseCacheLayerCount;
-@property(nonatomic) uint32_t friLineInverseCacheInitialIndex;
-@property(nonatomic) uint32_t friLineInverseCacheStepSize;
-@property(nonatomic, strong) id<MTLComputePipelineState> quotientDenominatorsResident;
-@property(nonatomic, strong) id<MTLComputePipelineState> quotientCombineResident;
-@property(nonatomic, strong) id<MTLComputePipelineState> quotientCoefficientsResident;
-@property(nonatomic, strong) id<MTLComputePipelineState> friFoldCircle;
-@property(nonatomic, strong) id<MTLComputePipelineState> friFoldLine;
-@property(nonatomic, strong) id<MTLComputePipelineState> friFold3Resident;
-@property(nonatomic, strong) id<MTLComputePipelineState> friFold2Resident;
-@property(nonatomic, strong) id<MTLComputePipelineState> friPackedLeavesResident;
-@property(nonatomic, strong) id<MTLComputePipelineState> friFinalLineResident;
-@property(nonatomic, strong) id<MTLComputePipelineState> transcriptInitResident;
-@property(nonatomic, strong) id<MTLComputePipelineState> transcriptMixResident;
-@property(nonatomic, strong) id<MTLComputePipelineState> transcriptDrawSecureResident;
-@property(nonatomic, strong) id<MTLComputePipelineState> transcriptDrawQueriesResident;
-@property(nonatomic, strong) id<MTLComputePipelineState> decommitNormalizeQueriesResident;
-@property(nonatomic, strong) id<MTLComputePipelineState> decommitPrepareFriQueriesResident;
-@property(nonatomic, strong) id<MTLComputePipelineState> decommitGatherFriValuesResident;
-@property(nonatomic, strong) id<MTLComputePipelineState> decommitPrepareTraceQueriesResident;
-@property(nonatomic, strong) id<MTLComputePipelineState> decommitGatherTraceValuesResident;
-@property(nonatomic, strong) id<MTLComputePipelineState> decommitAssembleFriResident;
-@property(nonatomic, strong) id<MTLComputePipelineState> decommitSparseParentResident;
-@property(nonatomic, strong) id<MTLComputePipelineState> decommitSparseLeavesResident;
-@property(nonatomic, strong) id<MTLComputePipelineState> decommitSparseLeafGroupResident;
-@property(nonatomic, strong) id<MTLComputePipelineState> decommitAssembleTraceResident;
-@property(nonatomic, strong) id<MTLComputePipelineState> qm31ToCoordinates;
-@property(nonatomic, strong) id<MTLComputePipelineState> witnessFeedCounts;
-@property(nonatomic, strong) id<MTLComputePipelineState> witnessInputGatherResident;
-@property(nonatomic, strong) id<MTLComputePipelineState> executionTableSplitResident;
-@property(nonatomic, strong) id<MTLComputePipelineState> memoryAddressBaseTraceResident;
-@property(nonatomic, strong) id<MTLComputePipelineState> memoryValueBaseTraceResident;
-@property(nonatomic, strong) id<MTLComputePipelineState> memoryRc99CountResident;
-@property(nonatomic, strong) id<MTLComputePipelineState> publicMemorySeedResident;
-@property(nonatomic, strong) id<MTLComputePipelineState> leafAbsorbResident;
-@property(nonatomic, strong) id<MTLComputePipelineState> leafAbsorbCompactResident;
-@property(nonatomic, strong) id<MTLComputePipelineState> parentsPlainSparse;
-@property(nonatomic, strong) id<MTLComputePipelineState> clearArenaSpans;
-@property(nonatomic, strong) id<MTLComputePipelineState> circleExpandSparse;
-@property(nonatomic, strong) id<MTLComputePipelineState> circleCopySparse;
-@property(nonatomic, strong) id<MTLComputePipelineState> circleIfftFirstSparse;
-@property(nonatomic, strong) id<MTLComputePipelineState> circleIfftLayerSparse;
-@property(nonatomic, strong) id<MTLComputePipelineState> circleRescaleSparse;
-@property(nonatomic, strong) id<MTLComputePipelineState> circleRfftLayerSparse;
-@property(nonatomic, strong) id<MTLComputePipelineState> circleRfftRadix4Sparse;
-@property(nonatomic, strong) id<MTLComputePipelineState> circleRfftLastSparse;
-@property(nonatomic, strong) id<MTLComputePipelineState> circleRfftFusedSparse;
-@property(nonatomic, strong) id<MTLComputePipelineState> circleRfftFusedSparseWide;
-@property(nonatomic, strong) id<MTLComputePipelineState> circleRfftLayerSparseWide;
-@property(nonatomic, strong) id<MTLComputePipelineState> circleRfftLastSparseWide;
-@property(nonatomic, strong) id<MTLComputePipelineState> relationFused;
-@property(nonatomic, strong) id<MTLComputePipelineState> relationBlockScan;
-@property(nonatomic, strong) id<MTLComputePipelineState> relationScanBlocks;
-@property(nonatomic, strong) id<MTLComputePipelineState> relationScanFinalize;
-@property(nonatomic, strong) id<MTLComputePipelineState> fixedTableLookup;
-@property(nonatomic, strong) id<MTLComputePipelineState> parentsSparse;
-@property(nonatomic, strong) id<MTLComputePipelineState> parentTailSparse;
-@property(nonatomic, strong) id<MTLComputePipelineState> felt252Oracle;
-@property(nonatomic, strong) id<MTLComputePipelineState> ecOpWitness;
-@property(nonatomic, strong) id<MTLComputePipelineState> ecOpLookup;
-@property(nonatomic, strong) id<MTLComputePipelineState> ecOpBaseFinalize;
-@property(nonatomic, strong) id<MTLComputePipelineState> compactGather;
-@property(nonatomic, strong) id<MTLComputePipelineState> compactRadixHistogram;
-@property(nonatomic, strong) id<MTLComputePipelineState> compactRadixPrefix;
-@property(nonatomic, strong) id<MTLComputePipelineState> compactRadixScatter;
-@property(nonatomic, strong) id<MTLComputePipelineState> compactHeads;
-@property(nonatomic, strong) id<MTLComputePipelineState> compactScanLocal;
-@property(nonatomic, strong) id<MTLComputePipelineState> compactScanBlocks;
-@property(nonatomic, strong) id<MTLComputePipelineState> compactScanAdd;
-@property(nonatomic, strong) id<MTLComputePipelineState> compactClearOutputs;
-@property(nonatomic, strong) id<MTLComputePipelineState> compactScatter;
-@property(nonatomic, strong) id<MTLComputePipelineState> compactFinalize;
-@property(nonatomic, strong) id<MTLComputePipelineState> compositionLift;
-@property(nonatomic, strong) id<MTLComputePipelineState> compositionSplit;
-@property(nonatomic, strong) id<MTLComputePipelineState> compositionExpand;
-@property(nonatomic, strong) id<MTLComputePipelineState> compositionRandomPowers;
-@property(nonatomic, strong) id<MTLComputePipelineState> compositionExtParams;
-@property(nonatomic, strong) NSMutableDictionary<NSString *, id<MTLComputePipelineState>> *riscvPolynomialPipelines;
-@property(nonatomic, strong) NSMutableDictionary<StwoZigEvalLibraryKey *, id> *evalLibraries;
-@property(nonatomic, strong) NSMutableDictionary<StwoZigEvalPipelineKey *, id<MTLComputePipelineState>> *evalPipelines;
-@property(nonatomic) uint64_t evalLibraryCacheHits;
-@property(nonatomic) uint64_t evalLibraryCacheMisses;
-@property(nonatomic) uint64_t evalPipelineCacheHits;
-@property(nonatomic) uint64_t evalBinaryArchiveHits;
-@property(nonatomic) uint64_t evalBinaryArchiveMisses;
-@property(nonatomic) uint64_t evalDirectCompiles;
-@property(nonatomic) uint64_t evalArchivePopulations;
-@property(nonatomic) uint64_t evalArchiveSerializations;
-@property(nonatomic) double evalPipelinePreparationSeconds;
-@property(nonatomic) double evalLibraryPreparationSeconds;
-@end
-
-@interface StwoZigWitnessFeedPlan : NSObject
-@property(nonatomic, strong) id<MTLBuffer> descriptors;
-@property(nonatomic, strong) id<MTLBuffer> luts;
-@property(nonatomic, strong) id<MTLBuffer> destinationOffsets;
-@property(nonatomic, strong) id<MTLBuffer> sourceOffsets;
-@property(nonatomic, strong) id<MTLBuffer> clearRanges;
-@property(nonatomic) uint32_t descriptorCount;
-@property(nonatomic) uint32_t clearRangeCount;
-@property(nonatomic) uint32_t clearTotalWords;
-@end
-
-@implementation StwoZigWitnessFeedPlan
-@end
-
-@interface StwoZigWitnessFeedBatch : NSObject
-@property(nonatomic, strong) NSArray<StwoZigWitnessFeedPlan *> *plans;
-@property(nonatomic, strong) NSData *columnLengths;
-@property(nonatomic, strong) id<MTLBuffer> clearSpans;
-@property(nonatomic) uint32_t clearRangeCount;
-@property(nonatomic) uint32_t clearTotalWords;
-@end
-
-@implementation StwoZigWitnessFeedBatch
-@end
-
-@interface StwoZigCircleLdePlan : NSObject
-@property(nonatomic, strong) id<MTLBuffer> sourceOffsets;
-@property(nonatomic, strong) id<MTLBuffer> destinationOffsets;
-@property(nonatomic) uint32_t columnCount;
-@property(nonatomic) uint32_t baseLogSize;
-@property(nonatomic) uint32_t extendedLogSize;
-@property(nonatomic) NSUInteger twiddleByteOffset;
-@end
-
-@implementation StwoZigCircleLdePlan
-@end
-
-@interface StwoZigCircleIfftPlan : NSObject
-@property(nonatomic, strong) id<MTLBuffer> sourceOffsets;
-@property(nonatomic, strong) id<MTLBuffer> destinationOffsets;
-@property(nonatomic) uint32_t columnCount;
-@property(nonatomic) uint32_t logSize;
-@property(nonatomic) uint32_t scaleFactor;
-@property(nonatomic) NSUInteger twiddleByteOffset;
-@end
-
-@implementation StwoZigCircleIfftPlan
-@end
-
-@interface StwoZigRelationPlan : NSObject
-@property(nonatomic, strong) id<MTLBuffer> geometry;
-@property(nonatomic, strong) id<MTLBuffer> sourceOffsets;
-@property(nonatomic, strong) id<MTLBuffer> descriptors;
-@property(nonatomic, strong) id<MTLBuffer> outputOffsets;
-@property(nonatomic) uint32_t instanceCount;
-@property(nonatomic) uint32_t totalBlocks;
-@property(nonatomic) NSUInteger alphaByteOffset;
-@property(nonatomic) NSUInteger zByteOffset;
-@property(nonatomic) NSUInteger scratchByteOffset;
-@end
-
-@implementation StwoZigRelationPlan
-@end
-
-@interface StwoZigFixedTablePlan : NSObject
-@property(nonatomic, strong) id<MTLBuffer> descriptors;
-@property(nonatomic, strong) id<MTLBuffer> sourceOffsets;
-@property(nonatomic, strong) id<MTLBuffer> multiplicityOffsets;
-@property(nonatomic) uint32_t destinationOffset;
-@property(nonatomic) uint32_t rowCount;
-@property(nonatomic) uint32_t outputCount;
-@end
-@implementation StwoZigFixedTablePlan
-@end
-
-@interface StwoZigFixedTableBatch : NSObject
-@property(nonatomic, strong) NSArray<StwoZigFixedTablePlan *> *plans;
-@end
-@implementation StwoZigFixedTableBatch
-@end
-
-@interface StwoZigMerkleParentChain : NSObject
-@property(nonatomic, strong) NSData *childOffsets;
-@property(nonatomic, strong) NSData *destinationOffsets;
-@property(nonatomic, strong) NSData *parentCounts;
-@property(nonatomic, strong) id<MTLBuffer> nodeSeed;
-@property(nonatomic) uint32_t levelCount;
-@property(nonatomic) uint32_t prefixBytes;
-@property(nonatomic) uint32_t bottomLevelCount;
-@property(nonatomic) uint32_t bottomThreadgroupWidth;
-@property(nonatomic) uint32_t bottomThreadgroupCount;
-@property(nonatomic) NSUInteger bottomScratchBytes;
-@property(nonatomic) uint32_t tailStart;
-@property(nonatomic) uint32_t tailThreadgroupWidth;
-@property(nonatomic) NSUInteger tailScratchBytes;
-@end
-@implementation StwoZigMerkleParentChain
-@end
-
-@interface StwoZigEcOpPlan : NSObject
-@property(nonatomic, strong) id<MTLBuffer> executionOffsets;
-@property(nonatomic, strong) id<MTLBuffer> traceOffsets;
-@property(nonatomic, strong) id<MTLBuffer> partialOffsets;
-@property(nonatomic, strong) id<MTLBuffer> multiplicityOffsets;
-@property(nonatomic, strong) id<MTLBuffer> params;
-@property(nonatomic, strong) id<MTLComputePipelineState> pipeline;
-@property(nonatomic) uint32_t rowCount;
-@property(nonatomic) NSUInteger threadgroupWidth;
-@property(nonatomic) bool writeBase;
-@end
-@implementation StwoZigEcOpPlan
-@end
-
-@interface StwoZigCompactPlan : NSObject
-@property(nonatomic, strong) id<MTLBuffer> sourceOffsets;
-@property(nonatomic, strong) id<MTLBuffer> descriptors;
-@property(nonatomic, strong) id<MTLBuffer> outputOffsets;
-@property(nonatomic, strong) id<MTLBuffer> params;
-@property(nonatomic) uint32_t sortRows;
-@property(nonatomic) uint32_t totalRows;
-@property(nonatomic) uint32_t consumerRows;
-@property(nonatomic) uint32_t keyWords;
-@property(nonatomic) uint32_t indicesA;
-@property(nonatomic) uint32_t indicesB;
-@end
-@implementation StwoZigCompactPlan
-@end
-
-@interface StwoZigEvalPlan : NSObject
-@property(nonatomic, strong) id<MTLComputePipelineState> pipeline;
-@property(nonatomic, strong) id<MTLBuffer> arguments;
-@property(nonatomic) uint32_t rowCount;
-@end
-@implementation StwoZigEvalPlan
-@end
-
-@interface StwoZigBasePolynomialPlan : NSObject
-@property(nonatomic, strong) id<MTLComputePipelineState> pipeline;
-@end
-@implementation StwoZigBasePolynomialPlan
-@end
-
-@interface StwoZigLookupPolynomialPlan : NSObject
-@property(nonatomic, strong) id<MTLComputePipelineState> pipeline;
-@end
-@implementation StwoZigLookupPolynomialPlan
-@end
-
-@interface StwoZigWitnessPlan : NSObject
-@property(nonatomic, strong) id<MTLComputePipelineState> pipeline;
-@property(nonatomic, strong) id<MTLBuffer> arguments;
-@property(nonatomic) uint32_t rowCount;
-@end
-@implementation StwoZigWitnessPlan
-@end
-
-@interface StwoZigEvalBatch : NSObject
-@property(nonatomic, strong) NSArray<StwoZigEvalPlan *> *plans;
-@end
-@implementation StwoZigEvalBatch
-@end
-
-@interface StwoZigEvalLibrary : NSObject
-@property(nonatomic, strong) id<MTLLibrary> library;
-@property(nonatomic, strong) id<MTLBinaryArchive> archive;
-@property(nonatomic, strong) NSURL *archiveURL;
-@property(nonatomic, strong) StwoZigEvalLibraryKey *cacheKey;
-@property(nonatomic, strong) StwoZigEvalArchiveKey *archiveKey;
-@property(nonatomic, strong) NSData *sourceBytes;
-@property(nonatomic, weak) StwoZigMetalRuntime *runtimeOwner;
-@property(nonatomic) uint64_t cacheByteCost;
-@property(nonatomic) bool archiveLoaded;
-@property(nonatomic) bool archiveDirty;
-@end
-@implementation StwoZigEvalLibrary
-@end
-
-@interface StwoZigCompositionFinalizePlan : NSObject
-@property(nonatomic, strong) NSData *accumulatorOffsets;
-@property(nonatomic, strong) NSData *accumulatorLogs;
-@property(nonatomic, strong) id<MTLBuffer> coordinateOffsets;
-@property(nonatomic, strong) id<MTLBuffer> outputOffsets;
-@property(nonatomic) uint32_t accumulatorCount;
-@property(nonatomic) NSUInteger inverseTwiddleByteOffset;
-@property(nonatomic) uint32_t scaleFactor;
-@end
-@implementation StwoZigCompositionFinalizePlan
-@end
-
-@interface StwoZigCompositionLdePlan : NSObject
-@property(nonatomic, strong) id<MTLBuffer> sourceOffsets;
-@property(nonatomic, strong) id<MTLBuffer> sourceLogs;
-@property(nonatomic, strong) id<MTLBuffer> destinationOffsets;
-@property(nonatomic) uint32_t columnCount;
-@property(nonatomic) uint32_t extendedLog;
-@property(nonatomic) NSUInteger twiddleByteOffset;
-@property(nonatomic) bool useRadix4;
-@end
-@implementation StwoZigCompositionLdePlan
-@end
-
-@interface StwoZigCompositionInputPlan : NSObject
-@property(nonatomic, strong) id<MTLBuffer> descriptors;
-@property(nonatomic) uint32_t descriptorCount;
-@property(nonatomic) uint32_t randomOffset;
-@property(nonatomic) uint32_t powersOffset;
-@property(nonatomic) uint32_t powerCount;
-@end
-@implementation StwoZigCompositionInputPlan
-@end
-
-@interface StwoZigCompositionFrontPlan : NSObject
-@property(nonatomic, strong) StwoZigCompositionInputPlan *inputs;
-@property(nonatomic, strong) NSArray<StwoZigCompositionLdePlan *> *ldePlans;
-@property(nonatomic, strong) NSArray<StwoZigEvalBatch *> *evalBatches;
-@property(nonatomic) uint32_t accumulatorOffset;
-@property(nonatomic) uint32_t accumulatorWords;
-@end
-@implementation StwoZigCompositionFrontPlan
-@end
-
-@interface StwoZigFriFoldPlan : NSObject
-@property(nonatomic) NSUInteger sourceByteOffset;
-@property(nonatomic) NSUInteger inverseByteOffset;
-@property(nonatomic) NSUInteger alphaByteOffset;
-@property(nonatomic) NSUInteger destinationByteOffset;
-@property(nonatomic) uint32_t sourceCount;
-@property(nonatomic) bool circle;
-@end
-@implementation StwoZigFriFoldPlan
-@end
-
-@interface StwoZigArenaCopyPlan : NSObject
-@property(nonatomic, strong) NSData *ranges;
-@property(nonatomic) uint32_t rangeCount;
-@end
-@implementation StwoZigArenaCopyPlan
-@end
-
-@interface StwoZigQuotientCombinePlan : NSObject
-@property(nonatomic, strong) id<MTLBuffer> partialOffsets;
-@property(nonatomic, strong) id<MTLBuffer> partialLogs;
-@property(nonatomic) uint32_t sampleOffset;
-@property(nonatomic) uint32_t linearOffset;
-@property(nonatomic) uint32_t scratchOffset;
-@property(nonatomic) uint32_t outputOffset;
-@property(nonatomic) uint32_t rowCount;
-@property(nonatomic) uint32_t logSize;
-@property(nonatomic) uint32_t sampleCount;
-@property(nonatomic) uint32_t initialIndex;
-@property(nonatomic) uint32_t stepSize;
-@end
-@implementation StwoZigQuotientCombinePlan
-@end
-
-@interface StwoZigFriRoundPlan : NSObject
-@property(nonatomic) uint32_t twiddleBase, twiddleOffset0, twiddleOffset1, twiddleOffset2;
-@property(nonatomic) uint32_t inputBase, inputStride, alphaBase, outputBase, outputStride;
-@property(nonatomic) uint32_t n, foldCount, firstCircle;
-@end
-@implementation StwoZigFriRoundPlan
-@end
-
-@interface StwoZigFriTreePlan : NSObject
-@property(nonatomic, strong) NSData *layerOffsets;
-@property(nonatomic, strong) id<MTLBuffer> leafSeed;
-@property(nonatomic, strong) id<MTLBuffer> nodeSeed;
-@property(nonatomic) uint32_t evaluationBase, coordinateStride, evaluationSize, logRowsPerLeaf, layerCount;
-@property(nonatomic) uint32_t prefixBytes;
-@end
-@implementation StwoZigFriTreePlan
-@end
-
-@interface StwoZigFriFinalPlan : NSObject
-@property(nonatomic) uint32_t evaluationBase, coordinateStride, inverseX, coefficientBase, degreeError;
-@end
-@implementation StwoZigFriFinalPlan
-@end
-
-@interface StwoZigMerkleLeafPlan : NSObject
-@property(nonatomic, strong) id<MTLBuffer> columnOffsets;
-@property(nonatomic, strong) id<MTLBuffer> columnLogSizes;
-@property(nonatomic, strong) id<MTLBuffer> leafSeed;
-@property(nonatomic) uint32_t columnCount;
-@property(nonatomic) uint32_t liftingLogSize;
-@property(nonatomic) uint32_t destinationOffset;
-@property(nonatomic) uint32_t prefixBytes;
-@end
-@implementation StwoZigMerkleLeafPlan
-@end
-
-@interface StwoZigResidentMerklePlan : NSObject
-@property(nonatomic, strong) id<MTLBuffer> columnOffsets;
-@property(nonatomic, strong) id<MTLBuffer> columnLogSizes;
-@property(nonatomic, strong) NSData *layerOffsets;
-@property(nonatomic, strong) id<MTLBuffer> leafSeed;
-@property(nonatomic, strong) id<MTLBuffer> nodeSeed;
-@property(nonatomic) uint32_t columnCount;
-@property(nonatomic) uint32_t liftingLogSize;
-@property(nonatomic) uint32_t layerCount;
-@property(nonatomic) uint32_t prefixBytes;
-@end
-@implementation StwoZigResidentMerklePlan
-@end
-@implementation StwoZigMetalRuntime
-@end
-
-@interface StwoZigMetalTree : NSObject
-@property(nonatomic, strong) StwoZigMetalRuntime *runtimeOwner;
-@property(nonatomic, strong) NSArray<id<MTLBuffer>> *layers;
-@property(nonatomic, strong) NSData *layerWordOffsets;
-@property(nonatomic, strong) NSData *layerWordLengths;
-@property(nonatomic, strong) id<MTLBuffer> rootReadback;
-@property(nonatomic, assign) uint32_t rootReadbackWordOffset;
-@property(nonatomic, assign) uint32_t logSize;
-@property(nonatomic, assign) double gpuMilliseconds;
-@property(nonatomic, strong) id<MTLBuffer> residentColumns;
-@property(nonatomic, assign) uintptr_t residentColumnsHostBegin;
-@property(nonatomic, assign) NSUInteger residentColumnsWordCount;
-// Proof-owned bindings from authenticated host column arenas to the exact
-// Metal buffers that expose them. A tree may cover several skewed LDE arenas;
-// keeping this map on the tree prevents cross-proof/global residency lookup.
-@property(nonatomic, strong) NSArray<id<MTLBuffer>> *residentColumnBuffers;
-@property(nonatomic, strong) NSData *residentColumnHostBegins;
-@property(nonatomic, strong) NSData *residentColumnWordCounts;
-@property(nonatomic, strong) NSData *residentColumnWordOffsets;
-@end
-@implementation StwoZigMetalTree
-@end
 
 typedef struct {
     __unsafe_unretained StwoZigMetalTree *tree;
@@ -736,11 +276,11 @@ static StwoZigMetalRuntime *create_runtime_from_library(
         runtime.riscvPolynomialPipelines[riscvPolynomialName03] = make_pipeline(
             device, library, riscvPolynomialName03, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName03] == nil) return NULL;
-        NSString *riscvPolynomialName04 = @"stwo_zig_base_poly_875d2026fe2fc2b5e1c47b100b1b8f0d";
+        NSString *riscvPolynomialName04 = @"stwo_zig_base_poly_a972dafabb2bf5eee1d1cdb560f3572e";
         runtime.riscvPolynomialPipelines[riscvPolynomialName04] = make_pipeline(
             device, library, riscvPolynomialName04, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName04] == nil) return NULL;
-        NSString *riscvPolynomialName05 = @"stwo_zig_base_poly_d170513e9cfabf624e38dfa3d7d2f4ed";
+        NSString *riscvPolynomialName05 = @"stwo_zig_base_poly_09e5f90f9696d165cc36093de2564888";
         runtime.riscvPolynomialPipelines[riscvPolynomialName05] = make_pipeline(
             device, library, riscvPolynomialName05, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName05] == nil) return NULL;
@@ -772,15 +312,15 @@ static StwoZigMetalRuntime *create_runtime_from_library(
         runtime.riscvPolynomialPipelines[riscvPolynomialName12] = make_pipeline(
             device, library, riscvPolynomialName12, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName12] == nil) return NULL;
-        NSString *riscvPolynomialName13 = @"stwo_zig_base_poly_2a07b91d7f51809a92cf5dccdf29c1b5";
+        NSString *riscvPolynomialName13 = @"stwo_zig_base_poly_1d58ef609255595a37488e277d52585c";
         runtime.riscvPolynomialPipelines[riscvPolynomialName13] = make_pipeline(
             device, library, riscvPolynomialName13, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName13] == nil) return NULL;
-        NSString *riscvPolynomialName14 = @"stwo_zig_base_poly_04a6d5f01089e9ee1136328c062b3055";
+        NSString *riscvPolynomialName14 = @"stwo_zig_base_poly_208adea2af3accc5bd53faa7807024bb";
         runtime.riscvPolynomialPipelines[riscvPolynomialName14] = make_pipeline(
             device, library, riscvPolynomialName14, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName14] == nil) return NULL;
-        NSString *riscvPolynomialName15 = @"stwo_zig_base_poly_7c3d009f184e1add15cea06850337ed9";
+        NSString *riscvPolynomialName15 = @"stwo_zig_base_poly_9b9a12367c3aeb8830ac01bf757fa64a";
         runtime.riscvPolynomialPipelines[riscvPolynomialName15] = make_pipeline(
             device, library, riscvPolynomialName15, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName15] == nil) return NULL;
@@ -788,27 +328,27 @@ static StwoZigMetalRuntime *create_runtime_from_library(
         runtime.riscvPolynomialPipelines[riscvPolynomialName16] = make_pipeline(
             device, library, riscvPolynomialName16, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName16] == nil) return NULL;
-        NSString *riscvPolynomialName17 = @"stwo_zig_lookup_poly_d3393528172e2c1fd4dfbdc4e0d47c8a";
+        NSString *riscvPolynomialName17 = @"stwo_zig_lookup_poly_6bd1123655f7e5fc662f4e397524645b";
         runtime.riscvPolynomialPipelines[riscvPolynomialName17] = make_pipeline(
             device, library, riscvPolynomialName17, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName17] == nil) return NULL;
-        NSString *riscvPolynomialName18 = @"stwo_zig_lookup_poly_50b304cc2ee4f2f9f39675717cf40382";
+        NSString *riscvPolynomialName18 = @"stwo_zig_lookup_poly_60369e534e1e31666bb1684e6745500b";
         runtime.riscvPolynomialPipelines[riscvPolynomialName18] = make_pipeline(
             device, library, riscvPolynomialName18, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName18] == nil) return NULL;
-        NSString *riscvPolynomialName19 = @"stwo_zig_lookup_poly_075758e47d896ea9b9ed480adcc498d1";
+        NSString *riscvPolynomialName19 = @"stwo_zig_lookup_poly_cae77cf99f2127b1108dc5c1609cc16b";
         runtime.riscvPolynomialPipelines[riscvPolynomialName19] = make_pipeline(
             device, library, riscvPolynomialName19, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName19] == nil) return NULL;
-        NSString *riscvPolynomialName20 = @"stwo_zig_lookup_poly_459147491178ba9a8fea95e70f7ba7de";
+        NSString *riscvPolynomialName20 = @"stwo_zig_lookup_poly_d1b44ec0cc8a532f04e4e39fd0bb648e";
         runtime.riscvPolynomialPipelines[riscvPolynomialName20] = make_pipeline(
             device, library, riscvPolynomialName20, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName20] == nil) return NULL;
-        NSString *riscvPolynomialName21 = @"stwo_zig_lookup_poly_223a80d6062ce49ec32568323089b631";
+        NSString *riscvPolynomialName21 = @"stwo_zig_lookup_poly_88bafd2b2b2bb614f3a37e2e93f88f8f";
         runtime.riscvPolynomialPipelines[riscvPolynomialName21] = make_pipeline(
             device, library, riscvPolynomialName21, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName21] == nil) return NULL;
-        NSString *riscvPolynomialName22 = @"stwo_zig_lookup_poly_e6f321d7e6a5216f0493a7d9dd1cce68";
+        NSString *riscvPolynomialName22 = @"stwo_zig_lookup_poly_f0435e9fbbd4a7a98c7c5162bee7d7a9";
         runtime.riscvPolynomialPipelines[riscvPolynomialName22] = make_pipeline(
             device, library, riscvPolynomialName22, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName22] == nil) return NULL;
@@ -816,7 +356,7 @@ static StwoZigMetalRuntime *create_runtime_from_library(
         runtime.riscvPolynomialPipelines[riscvPolynomialName23] = make_pipeline(
             device, library, riscvPolynomialName23, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName23] == nil) return NULL;
-        NSString *riscvPolynomialName24 = @"stwo_zig_lookup_poly_6417a7b6a721b820c56ded08d4ff45d4";
+        NSString *riscvPolynomialName24 = @"stwo_zig_lookup_poly_b52a532ad3c7e42bdece0624fb56b8aa";
         runtime.riscvPolynomialPipelines[riscvPolynomialName24] = make_pipeline(
             device, library, riscvPolynomialName24, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName24] == nil) return NULL;
@@ -824,35 +364,35 @@ static StwoZigMetalRuntime *create_runtime_from_library(
         runtime.riscvPolynomialPipelines[riscvPolynomialName25] = make_pipeline(
             device, library, riscvPolynomialName25, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName25] == nil) return NULL;
-        NSString *riscvPolynomialName26 = @"stwo_zig_lookup_poly_65a7491625ceb251a9d27754aba62fe9";
+        NSString *riscvPolynomialName26 = @"stwo_zig_lookup_poly_fcc84457fa16172e164408c12324b2c2";
         runtime.riscvPolynomialPipelines[riscvPolynomialName26] = make_pipeline(
             device, library, riscvPolynomialName26, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName26] == nil) return NULL;
-        NSString *riscvPolynomialName27 = @"stwo_zig_lookup_poly_4fae56a01407106338de7b5a0585b863";
+        NSString *riscvPolynomialName27 = @"stwo_zig_lookup_poly_ff9bf971cfa80d96e0aa0e50e4b1b89d";
         runtime.riscvPolynomialPipelines[riscvPolynomialName27] = make_pipeline(
             device, library, riscvPolynomialName27, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName27] == nil) return NULL;
-        NSString *riscvPolynomialName28 = @"stwo_zig_lookup_poly_2a7765f5161c42b7e1e47eb4f38042a6";
+        NSString *riscvPolynomialName28 = @"stwo_zig_lookup_poly_b63d26046143c546183c7769fee7803a";
         runtime.riscvPolynomialPipelines[riscvPolynomialName28] = make_pipeline(
             device, library, riscvPolynomialName28, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName28] == nil) return NULL;
-        NSString *riscvPolynomialName29 = @"stwo_zig_lookup_poly_3fe627edfd1799423093b8b5e01e44bc";
+        NSString *riscvPolynomialName29 = @"stwo_zig_lookup_poly_60da0a81177c1f7c118d91080a104856";
         runtime.riscvPolynomialPipelines[riscvPolynomialName29] = make_pipeline(
             device, library, riscvPolynomialName29, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName29] == nil) return NULL;
-        NSString *riscvPolynomialName30 = @"stwo_zig_lookup_poly_58c75167f9212f9663711e80d150d46d";
+        NSString *riscvPolynomialName30 = @"stwo_zig_lookup_poly_d71f7ff4122659b75334f16e7282cd1e";
         runtime.riscvPolynomialPipelines[riscvPolynomialName30] = make_pipeline(
             device, library, riscvPolynomialName30, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName30] == nil) return NULL;
-        NSString *riscvPolynomialName31 = @"stwo_zig_lookup_poly_05d290ec9454d3ead43a08a8f547ed07";
+        NSString *riscvPolynomialName31 = @"stwo_zig_lookup_poly_2933fad233d8d72eaaaac264f1f08e46";
         runtime.riscvPolynomialPipelines[riscvPolynomialName31] = make_pipeline(
             device, library, riscvPolynomialName31, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName31] == nil) return NULL;
-        NSString *riscvPolynomialName32 = @"stwo_zig_lookup_poly_944959c865e0c8dee4d3972badf854b0";
+        NSString *riscvPolynomialName32 = @"stwo_zig_lookup_poly_55f49d22b3eefd58176c82e98f534eb1";
         runtime.riscvPolynomialPipelines[riscvPolynomialName32] = make_pipeline(
             device, library, riscvPolynomialName32, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName32] == nil) return NULL;
-        NSString *riscvPolynomialName33 = @"stwo_zig_lookup_poly_6036f462a378cec7d80f357b57bff1f4";
+        NSString *riscvPolynomialName33 = @"stwo_zig_lookup_poly_34a73d9627a19782b2486c6dcd96f1fe";
         runtime.riscvPolynomialPipelines[riscvPolynomialName33] = make_pipeline(
             device, library, riscvPolynomialName33, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName33] == nil) return NULL;
@@ -1002,6 +542,8 @@ static void encode_fri_inverse_domain(
 #import "runtime/circle_legacy.m"
 #import "runtime/circle_commit_epoch.m"
 #import "runtime/polynomial_evaluation.m"
+#import "runtime/quotient_planning.m"
+#import "runtime/quotient_completion.m"
 #import "runtime/quotients.m"
 #import "runtime/lifecycle_and_tree.m"
 

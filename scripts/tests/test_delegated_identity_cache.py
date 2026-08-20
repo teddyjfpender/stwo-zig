@@ -110,6 +110,7 @@ class DelegatedIdentityCacheTest(unittest.TestCase):
         repository: Path,
         prefix: Path,
         *,
+        cache_dir: Path | None = None,
         cpu: str | None = None,
     ) -> tuple[dict[str, object], str]:
         command = [
@@ -120,6 +121,8 @@ class DelegatedIdentityCacheTest(unittest.TestCase):
             str(prefix),
             "--verbose",
         ]
+        if cache_dir is not None:
+            command.extend(("--cache-dir", str(cache_dir)))
         if cpu is not None:
             command.append(f"-Dcpu={cpu}")
         result = subprocess.run(
@@ -138,6 +141,7 @@ class DelegatedIdentityCacheTest(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="stwo-delegated-identity-") as raw:
             repository = Path(raw) / "repository"
             prefix = Path(raw) / "prefix"
+            caller_cache = Path(raw) / "caller-cache"
             (repository / "build_support/graph").mkdir(parents=True)
             shutil.copy2(
                 REPOSITORY / "build_support/build_identity.zig",
@@ -155,7 +159,15 @@ class DelegatedIdentityCacheTest(unittest.TestCase):
             self.git(repository, "add", ".")
             self.commit(repository, "baseline")
 
-            baseline, baseline_build = self.build(repository, prefix)
+            baseline, baseline_build = self.build(
+                repository,
+                prefix,
+                cache_dir=caller_cache,
+            )
+            self.assertIn(
+                f"--cache-dir {caller_cache / 'products' / 'probe'}",
+                baseline_build,
+            )
             self.assertIn(
                 f"-Dimplementation-commit={baseline['commit']}", baseline_build
             )
