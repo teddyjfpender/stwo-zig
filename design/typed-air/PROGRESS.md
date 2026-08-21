@@ -33,7 +33,7 @@ formal result does not set `whole_frontend_verified` or
 | M4 — Poseidon compiler pilot | complete | H-001 through H-010 and V-006 complete; no layout selected |
 | M5 — effect and witness pilot | ready | E-001 through E-015 complete. All seventeen opcode families use authenticated typed production witnesses with exact legacy proof parity and per-family non-regression gates. The frozen M5 performance receipt remains open |
 | M6 — guest precompile | ready | C-001 through C-012 complete: one CPU proof closes caller/provider components in the same STARK and verifies in a fresh process; the semantic pair and mutation fleet pass; the authenticated-AOT Metal product route proves on-device and verifies device-independently with zero backend CPU fallback. C-013 now has a fail-closed CPU controller and reducer; its clean secure CPU/Metal crossover receipt remains open |
-| M7 — parallel proving | active | R-002/R-003/R-004 are closed: production Tree-1 and Tree-2 construction, heterogeneous quotient composition, and PCS openings share one bounded proof pool and preserve exact predecessor/`N=1/2/4` proof identity with staged failure recovery. R-005 is closed. P-003 is producer-exhaustive at CPU/Metal/joint 16/16 across schema-9's 23 typed sites, with real CPU `N=1/2/4` and authenticated-AOT Metal proofs. R-006's plan V2 binds that matrix and inventory and revalidates them at capture; a clean installed V4 smoke and immutable CPU/Metal scaling capture remain open |
+| M7 — parallel proving | active | R-002/R-003/R-004 are closed: production Tree-1 and Tree-2 construction, heterogeneous quotient composition, and PCS openings share one bounded proof pool and preserve exact predecessor/`N=1/2/4` proof identity with staged failure recovery. R-005 is closed. P-003 is producer-exhaustive at CPU/Metal/joint 16/16 across schema-9's 23 typed sites, with real CPU `N=1/2/4` and authenticated-AOT Metal proofs. R-006 plan V3 binds that matrix and inventory plus versioned per-workload M7 geometry: balanced at 8 calls and dominant at 4096. A clean installed V4 smoke and immutable CPU/Metal scaling capture remain open |
 | M8 — broad migration | complete | All 17 family witness writers and all 17 execution/AIR families are production-typed. All 46 proof-bearing opcodes dispatch through the typed registry; one shared manifest now assembles all 17 opcode and 11 infrastructure components for both prover and verifier. Exact generated-versus-legacy proof/transcript A/B passes for every family with one draw, fail-closed legacy execution passes 17/17, and fresh formal extraction validates all 17 families. The final formal reseal is green `59/59`; a clean top-level receipt remains open |
 | M9 — recursive aggregation | active | Universal AIR authority is closed 36/36 and the capture-backed SegmentV2 leaf proves the complete append-only 39-component cohort. The temporal source consumes two distinct, independently verified native SegmentV2 proofs, carries verifier-owned authority through rows 0--35, and closes the exact global relation boundary. The frozen ReleaseFast test executes coherent context plus every-row-20--35 authority mutations before independently accepting the 94,740-byte parent; the lean path measured 6.778 s proving / 6.209 s verification and reproduced proof SHA `a43d756e…203b`. The prepared pair path performs zero hot Poseidon permutations. Multi-level aggregation, R-010 crossover evidence, whole-frontend verification, and proof-system soundness remain open. `temporal_parent_verified = true`, `whole_frontend_verified = false`, and `proof_system_soundness = false` |
 
@@ -96,13 +96,29 @@ and 4,967,989,248-byte maximum RSS.
 Ordinary row/SIMD/Metal kernels contain no profiler callback or branch; bounded
 cold null/root checks remain, so no measured zero-overhead claim is made.
 
-The R-006 plan schema is now V2 and fail-closed over that exact global closure.
-Plan build, load, and capture recompute the matrix and inventory authority, and
-paired plans require identical CPU/Metal closure. The 37-test combined
-P-003/R-006 mutation suite passes. The current blocker is environmental only:
-AC power, low-power mode off, thermal state, minimum idle, and normalized load
-passed, while median idle was 93.81% against the required 95%. Installed V4
-smoke and the immutable 2,080-attempt scaling receipt remain open.
+The R-006 plan schema is now V3 and fail-closed over that exact global closure
+and a versioned generated-input geometry. Plan build, load, and capture
+recompute the matrix and inventory authority, and paired plans require
+identical CPU/Metal closure. M7 freezes `balanced_core_and_poseidon2` at 8 calls
+and `poseidon2_dominant` at 4096. The exact balanced recurrence
+`S(n) = 58,018n + 40` yields 464,184 retired guest instructions at 8 calls:
+8 CUSTOM instructions and 464,176 core rows. The exact dominant-4096 execution
+count remains pending the clean smoke. A plan-bound post-capture phase retries
+fresh host samples every 30 seconds for at most 15 minutes without weakening any quiet,
+power, load, or thermal threshold. Attempt intent/preparation/commit,
+per-invocation host boundaries, and lane/pair publication are fsynced and
+independently replayed; an unresolved launch intent fails closed rather than
+retrying, while a fully durable prefix finalizes byte-idempotently without a
+new host sample. Timeout preserves the durable journals for resume. The
+74-test R-006 suite and a complete simulated 2,080-attempt crash/replay pass.
+Installed V4 smoke and the immutable
+2,080-attempt scaling receipt remain open.
+
+This M7 geometry does not revise M6. Its frozen common
+`0/1/8/64/512/4096` corpus remains unchanged. Balanced has one-call total
+`S(1) = 58,058` and recurrence delta 58,018, so `S(4096) = 237,641,768`
+exceeds the current one-shot `2^24` AIR limit. That M6 row has no completion
+claim and remains blocked on segmented/recursive proving.
 
 The temporal parent publication boundary is also hardened. After native proof
 verification, one complete verifier replay reconstructs every row, both public

@@ -23,9 +23,20 @@ The 3/3 real-device Metal gate independently verified with 118 authenticated
 AOT exports and exact-once completion, but emitted no separate canonical
 proof, transcript, work, or shell identity; none is inferred from CPU values.
 
-R-006 plan V2 now binds and recomputes that complete matrix and inventory. Its
-normative scaling receipt is still null: the current AC-powered, low-power-off,
-thermally clear preflight missed only median idle, 93.81% versus 95%.
+R-006 plan V3 now binds and recomputes that complete matrix and inventory plus
+the versioned M7 generated-input geometry: balanced at 8 calls and dominant at
+4096. Balanced uses the exact recurrence `S(n) = 58,018n + 40`, yielding
+464,184 retired guest instructions at 8 calls: 8 CUSTOM instructions and
+464,176 core rows. The exact dominant-4096 count remains pending the clean
+smoke. These M7 counts do not revise M6's frozen common 4096-call gate;
+balanced `S(4096) = 237,641,768` exceeds the current one-shot `2^24` AIR limit
+and remains open pending segmented/recursive proving. A
+plan-bound post-capture phase retries fresh unchanged-threshold host samples
+every 30 seconds for at most 15 minutes. Fsynced attempt-publication and host
+boundary journals enforce no retry, guarded prefix resume, and byte-idempotent
+finalization; a full simulated 2,080-attempt crash/replay passes. Quieting
+timeout leaves that durable evidence resumable. The normative scaling receipt
+is still null.
 
 ## Question
 
