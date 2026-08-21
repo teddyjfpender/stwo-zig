@@ -41,6 +41,22 @@ pub fn build(b: *std.Build) void {
         "test-fri-fold-work-receipt",
         "Run the focused Metal FRI fold execution-receipt test",
     );
+    const precommitted_unit_step = b.step(
+        "test-precommitted-work-receipt",
+        "Run device-free Metal precommitted exact-work receipt tests",
+    );
+    const precommitted_runtime_step = b.step(
+        "test-precommitted-work-runtime",
+        "Run the Metal precommitted exact-work transaction test",
+    );
+    const precommitted_unit_root = b.createModule(.{
+        .root_source_file = b.path("runtime/precommitted_work.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    addImports(precommitted_unit_root, core, backend_contracts, prover_api, prover);
+    const precommitted_unit_tests = b.addTest(.{ .root_module = precommitted_unit_root });
+    precommitted_unit_step.dependOn(&b.addRunArtifact(precommitted_unit_tests).step);
     if (target.result.os.tag != .macos) {
         const unsupported = b.addFail(
             "stwo_metal_backend tests require a macOS target and the Apple Metal SDK",
@@ -49,6 +65,7 @@ pub fn build(b: *std.Build) void {
         lookup_v2_step.dependOn(&unsupported.step);
         sampled_receipt_step.dependOn(&unsupported.step);
         fri_receipt_step.dependOn(&unsupported.step);
+        precommitted_runtime_step.dependOn(&unsupported.step);
         return;
     }
     const tests = b.addTest(.{ .root_module = backend });
@@ -99,6 +116,18 @@ pub fn build(b: *std.Build) void {
     const run_fri_receipt_tests = b.addRunArtifact(fri_receipt_tests);
     run_fri_receipt_tests.has_side_effects = true;
     fri_receipt_step.dependOn(&run_fri_receipt_tests.step);
+
+    const precommitted_runtime_tests = b.addTest(.{
+        .root_module = deep_root,
+        .filters = &.{
+            "metal: heterogeneous precommit authenticates exact transform and Merkle work",
+            "metal: uniform owned and polynomial precommits return device receipts",
+            "metal: profiled heterogeneous post-dispatch failure remains incomplete",
+        },
+    });
+    const run_precommitted_runtime_tests = b.addRunArtifact(precommitted_runtime_tests);
+    run_precommitted_runtime_tests.has_side_effects = true;
+    precommitted_runtime_step.dependOn(&run_precommitted_runtime_tests.step);
 
     test_step.dependOn(&tests.step);
     test_step.dependOn(&deep_tests.step);

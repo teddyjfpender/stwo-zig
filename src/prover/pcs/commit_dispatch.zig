@@ -49,11 +49,6 @@ pub fn tryPrecommitted(
     work_recorder: ?*work_profile.Recorder(true),
 ) !?commitment_tree.CommitmentTreeProverForBackend(B, H) {
     if (comptime !@hasDecl(B, "prepareAndCommitOwned")) return null;
-    // Until the specialized transaction returns its own exact work delta, the
-    // attempt is non-publishable even when the hook eventually declines. A
-    // backend may inspect, stage, or dispatch before returning null; marking
-    // only the adopted result would silently omit that executed work.
-    if (work_recorder) |active| active.markIncomplete();
     // The public commit contract owns `owned_columns` on every error.  A
     // backend returns `null` without consuming them, but an allocation error
     // cannot fall through to the generic path and must release them here.
@@ -62,7 +57,34 @@ pub fn tryPrecommitted(
         for (buffers) |buffer| allocator.free(buffer);
         allocator.free(buffers);
     } else column_storage.freeOwnedColumnEvaluations(allocator, owned_columns);
-    const prepared = (try B.prepareAndCommitOwned(
+    const maybe_prepared = if (work_recorder) |active| blk: {
+        if (comptime @hasDecl(B, "prepareAndCommitOwnedWithWorkRecorder")) {
+            break :blk try B.prepareAndCommitOwnedWithWorkRecorder(
+                H,
+                allocator,
+                owned_columns,
+                log_blowup_factor,
+                retention_policy,
+                twiddle_source,
+                source_backing_buffers,
+                source,
+                active,
+            );
+        }
+        // Legacy hooks cannot attest whether a dynamic decline happened before
+        // or after dispatch, so their profiled attempts remain fail-closed.
+        active.markIncomplete();
+        break :blk try B.prepareAndCommitOwned(
+            H,
+            allocator,
+            owned_columns,
+            log_blowup_factor,
+            retention_policy,
+            twiddle_source,
+            source_backing_buffers,
+            source,
+        );
+    } else try B.prepareAndCommitOwned(
         H,
         allocator,
         owned_columns,
@@ -71,7 +93,8 @@ pub fn tryPrecommitted(
         twiddle_source,
         source_backing_buffers,
         source,
-    )) orelse return null;
+    );
+    const prepared = maybe_prepared orelse return null;
     const backing_teardown = if (comptime @hasField(@TypeOf(prepared), "backing_teardown"))
         prepared.backing_teardown
     else
@@ -97,18 +120,36 @@ pub fn tryPrecommittedPolys(
     work_recorder: ?*work_profile.Recorder(true),
 ) !?commitment_tree.CommitmentTreeProverForBackend(B, H) {
     if (comptime !@hasDecl(B, "prepareAndCommitPolys")) return null;
-    // See `tryPrecommitted`: a declined specialized attempt is still executed
-    // work and therefore cannot be represented by the generic fallback's
-    // counters alone.
-    if (work_recorder) |active| active.markIncomplete();
-    const prepared = (try B.prepareAndCommitPolys(
+    const maybe_prepared = if (work_recorder) |active| blk: {
+        if (comptime @hasDecl(B, "prepareAndCommitPolysWithWorkRecorder")) {
+            break :blk try B.prepareAndCommitPolysWithWorkRecorder(
+                H,
+                allocator,
+                polys,
+                log_blowup_factor,
+                retention_policy,
+                twiddle_source,
+                active,
+            );
+        }
+        active.markIncomplete();
+        break :blk try B.prepareAndCommitPolys(
+            H,
+            allocator,
+            polys,
+            log_blowup_factor,
+            retention_policy,
+            twiddle_source,
+        );
+    } else try B.prepareAndCommitPolys(
         H,
         allocator,
         polys,
         log_blowup_factor,
         retention_policy,
         twiddle_source,
-    )) orelse return null;
+    );
+    const prepared = maybe_prepared orelse return null;
     const backing_teardown = if (comptime @hasField(@TypeOf(prepared), "backing_teardown"))
         prepared.backing_teardown
     else

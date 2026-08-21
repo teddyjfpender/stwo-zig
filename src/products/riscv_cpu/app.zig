@@ -32,6 +32,7 @@ test "focused verifier rejects non-RISC-V artifacts" {
         .{
             .artifact = path,
             .elf_path = "guest.elf",
+            .input_path = null,
             .protocol = .functional,
             .expected_statement_digest = [_]u8{0} ** 32,
         },

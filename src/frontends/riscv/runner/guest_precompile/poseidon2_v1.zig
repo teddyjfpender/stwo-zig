@@ -13,6 +13,7 @@ const m31 = @import("stwo_core").fields.m31;
 const permutation = @import("../../air/memory_commitment/poseidon2.zig");
 const Cpu = @import("../cpu.zig").Cpu;
 const Memory = @import("../memory.zig").Memory;
+const Trace = @import("../trace.zig").Trace;
 const MemoryLayout = @import("../memory_state.zig").MemoryLayout;
 const state_chain = @import("../state_chain.zig");
 const StateChainTracker = state_chain.StateChainTracker;
@@ -126,6 +127,88 @@ pub fn execute(
     calls: *call_buffer.Builder,
     execution_rows: *ExecutionRowsBuilder,
 ) Error!void {
+    const prepared = try prepareAndReserve(
+        profile,
+        inst_word,
+        execution_clock,
+        cpu,
+        memory,
+        layout,
+        tracker,
+        calls,
+        execution_rows,
+    );
+    commit(prepared, cpu, memory, tracker, calls, execution_rows);
+}
+
+/// Profile-scoped execution transaction. The clock token is prepared before
+/// any architectural mutation, then the extension record, row, and clock
+/// authority publish together through one infallible commit.
+pub fn executeWithRecordedClock(
+    profile: ExecutionProfile,
+    inst_word: u32,
+    execution_clock: u32,
+    segment_external_origin: usize,
+    cpu: *Cpu,
+    memory: *Memory,
+    layout: MemoryLayout,
+    tracker: *StateChainTracker,
+    trace: *Trace,
+    calls: *call_buffer.Builder,
+    execution_rows: *ExecutionRowsBuilder,
+) !void {
+    const clock_token = try trace.prepareRecordedExternalRetirement(
+        execution_clock,
+        segment_external_origin,
+        calls.len(),
+        execution_rows.len(),
+    );
+    const prepared = try prepareAndReserve(
+        profile,
+        inst_word,
+        execution_clock,
+        cpu,
+        memory,
+        layout,
+        tracker,
+        calls,
+        execution_rows,
+    );
+    if (!trace.externalRetirementTokenIsCurrent(
+        clock_token,
+        calls.len(),
+        execution_rows.len(),
+    )) return error.ProfileClockAuthorityMismatch;
+    if (!Trace.externalRetirementCommitIsValid(
+        clock_token,
+        calls.len() + 1,
+        execution_rows.len() + 1,
+        prepared.record.execution_clock,
+        prepared.row.execution_clock,
+    )) return error.ProfileClockAuthorityMismatch;
+    commitWithRecordedClock(
+        prepared,
+        cpu,
+        memory,
+        tracker,
+        trace,
+        clock_token,
+        calls,
+        execution_rows,
+    );
+}
+
+fn prepareAndReserve(
+    profile: ExecutionProfile,
+    inst_word: u32,
+    execution_clock: u32,
+    cpu: *Cpu,
+    memory: *Memory,
+    layout: MemoryLayout,
+    tracker: *StateChainTracker,
+    calls: *call_buffer.Builder,
+    execution_rows: *ExecutionRowsBuilder,
+) Error!Prepared {
     const prepared = try prepare(
         profile,
         inst_word,
@@ -136,8 +219,6 @@ pub fn execute(
         tracker,
         calls,
     );
-
-    // Capacity growth is allowed during prepare but no logical append occurs.
     try calls.reserveOne();
     try execution_rows.reserveOne();
 
@@ -159,8 +240,7 @@ pub fn execute(
         .register_clock_update_count = register_gap_count,
     });
     try memory.prepareAlignedWordWrites(&prepared.addresses);
-
-    commit(prepared, cpu, memory, tracker, calls, execution_rows);
+    return prepared;
 }
 
 fn prepare(
@@ -270,6 +350,20 @@ fn commit(
     execution_rows.appendAssumeCapacity(prepared.row);
     calls.appendAssumeCapacity(prepared.record);
     cpu.pc +%= 4;
+}
+
+fn commitWithRecordedClock(
+    prepared: Prepared,
+    cpu: *Cpu,
+    memory: *Memory,
+    tracker: *StateChainTracker,
+    trace: *Trace,
+    clock_token: Trace.ExternalRetirementToken,
+    calls: *call_buffer.Builder,
+    execution_rows: *ExecutionRowsBuilder,
+) void {
+    commit(prepared, cpu, memory, tracker, calls, execution_rows);
+    trace.commitRecordedExternalRetirement(clock_token);
 }
 
 fn spanWithinOneRwInterval(layout: MemoryLayout, start: u32, end: u64) bool {
@@ -488,6 +582,8 @@ test "Poseidon2 v1 allocation-failure sweep preserves complete logical state" {
         defer memory.deinit();
         var tracker = StateChainTracker.init(allocator);
         defer tracker.deinit();
+        var exec_trace = Trace.init(allocator);
+        defer exec_trace.deinit();
         var calls = try call_buffer.Builder.init(allocator, 1);
         defer calls.deinit();
         var rows = try ExecutionRowsBuilder.init(allocator, 1);
@@ -495,14 +591,16 @@ test "Poseidon2 v1 allocation-failure sweep preserves complete logical state" {
         var cpu = Cpu.init(0x1000, 0x4000);
         cpu.writeReg(5, 0x2000);
 
-        execute(
+        executeWithRecordedClock(
             .rv32im_zkvm_poseidon2_v1,
             custom0.encodePoseidon2(5),
             1,
+            0,
             &cpu,
             &memory,
             testLayout(),
             &tracker,
+            &exec_trace,
             &calls,
             &rows,
         ) catch |err| {
@@ -520,11 +618,15 @@ test "Poseidon2 v1 allocation-failure sweep preserves complete logical state" {
             try std.testing.expectEqual(@as(u32, 0), tracker.reg_last_clk[5]);
             try std.testing.expectEqual(@as(usize, 0), calls.len());
             try std.testing.expectEqual(@as(usize, 0), rows.len());
+            try exec_trace.validateClockRange(0, 0, 0);
             continue;
         };
 
         try std.testing.expect(!failing.has_induced_failure);
         try std.testing.expectEqual(@as(u32, 0x1004), cpu.pc);
+        try std.testing.expectEqual(@as(usize, 1), calls.len());
+        try std.testing.expectEqual(@as(usize, 1), rows.len());
+        try exec_trace.validateClockRange(0, 1, 1);
         return;
     }
     return error.AllocationFailureSweepDidNotTerminate;

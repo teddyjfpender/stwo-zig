@@ -18,7 +18,8 @@ const product = graph.Product{
     .frontend = .riscv,
     .backend = .cpu,
     .role = .cli,
-    .protocol_features = "rv32im-zkvm-v1+sail-authoritative+lifted-pcs-v1",
+    .protocol_features = "rv32im-zkvm-v1+sail-authoritative+lifted-pcs-v1" ++
+        "+rv32im-zkvm-poseidon2-v1",
 };
 const source_closure = riscv_cpu_policy.source_closure;
 pub const Context = struct {

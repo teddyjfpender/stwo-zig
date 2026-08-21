@@ -22,6 +22,7 @@ pub const Authority = typed_auipc_authority.Authority;
 
 pub const StageError = typed_auipc_authority.ExecutionError || error{
     ClockOutOfRange,
+    InstructionClockMismatch,
     InstructionWordMismatch,
     NonIncreasingClock,
     TraceInvariantViolation,
@@ -201,7 +202,8 @@ pub const Plan = struct {
             cpu.readReg(self.instruction.rs2) == self.rs2_value and
             cpu.readReg(self.instruction.rd) == self.rd_previous_value and
             exec_trace.rows.items.len == self.expected_trace_len and
-            exec_trace.step_count == self.expected_trace_len;
+            exec_trace.step_count == self.expected_trace_len and
+            exec_trace.expectsNextCoreRetirement(self.instruction_clock);
     }
 
     fn isWellFormed(self: *const Plan) bool {
@@ -283,6 +285,8 @@ pub fn stage(
 ) StageError!Plan {
     if (exec_trace.step_count != exec_trace.rows.items.len)
         return error.TraceInvariantViolation;
+    if (!exec_trace.expectsNextCoreRetirement(instruction_clock))
+        return error.InstructionClockMismatch;
     if (!instructionMatchesWord(instruction, inst_word))
         return error.InstructionWordMismatch;
     const retirement = try authority.retire(instruction, cpu.pc);

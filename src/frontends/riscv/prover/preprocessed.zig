@@ -78,6 +78,30 @@ pub fn generateAndCommitPoseidon2(
     channel: *Engine.Channel,
     recorder: ?*stage_profile.Recorder,
 ) !void {
+    return generateAndCommitPoseidon2WithPhaseMeter(
+        Engine,
+        allocator,
+        statement,
+        extension,
+        scheme,
+        channel,
+        recorder,
+        null,
+    );
+}
+
+/// Profile Tree 0 with the same materialization boundary used by the base
+/// prover. Commitment work is deliberately outside the witness region.
+pub fn generateAndCommitPoseidon2WithPhaseMeter(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    statement: *const statement_mod.RiscVStatement,
+    extension: *const guest_statement.ExtensionStatement,
+    scheme: *Engine.Scheme,
+    channel: *Engine.Channel,
+    recorder: ?*stage_profile.Recorder,
+    phase_meter: ?*proof_phase_meter.Meter,
+) !void {
     var stage = try stage_profile.StageScope.begin(
         recorder,
         "riscv_guest_preprocessed_commit",
@@ -85,9 +109,13 @@ pub fn generateAndCommitPoseidon2(
     );
     defer stage.end();
 
+    var materialization_region: ?proof_phase_meter.WitnessRegion =
+        if (phase_meter) |meter| try meter.begin() else null;
+    errdefer if (materialization_region) |*region| region.abort();
     const columns = try generatePoseidon2(allocator, statement, extension);
     var moved = false;
     errdefer if (!moved) freeColumns(allocator, columns);
+    if (materialization_region) |*region| try region.finish();
     moved = true;
     try Engine.commit(scheme, allocator, columns, recorder, channel);
 }

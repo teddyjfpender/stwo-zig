@@ -256,16 +256,25 @@ test "runner: Poseidon2 extension logs remain segment-owned across resume" {
 
     var session = try Poseidon2ExecutionSession.init(std.testing.allocator, &elf, .{});
     defer session.deinit();
-    var first = try session.startSegment(3);
+    // Yield immediately before CUSTOM-0 so the resumed segment must carry the
+    // omitted retirement while retaining exact global-clock adjacency.
+    var first = try session.startSegment(2);
     defer first.deinit();
     var second = try session.resumeSegment(first.base.continuation.?, 16);
     defer second.deinit();
 
-    try std.testing.expectEqual(@as(usize, 1), first.calls.len());
-    try std.testing.expectEqual(@as(usize, 1), first.execution_rows.rows().len);
-    try std.testing.expectEqual(@as(u32, 3), first.calls.records()[0].execution_clock);
-    try std.testing.expectEqual(@as(usize, 0), second.calls.len());
-    try std.testing.expectEqual(@as(usize, 0), second.execution_rows.rows().len);
+    try std.testing.expectEqual(@as(usize, 0), first.calls.len());
+    try std.testing.expectEqual(@as(usize, 0), first.execution_rows.rows().len);
+    try std.testing.expectEqual(@as(usize, 1), second.calls.len());
+    try std.testing.expectEqual(@as(usize, 1), second.execution_rows.rows().len);
+    try std.testing.expectEqual(@as(u32, 3), second.calls.records()[0].execution_clock);
+    try first.base.execution_trace.validateClockRange(0, 2, 0);
+    try second.base.execution_trace.validateClockRange(2, 4, 1);
+    try one_shot.base.execution_trace.validateClockRange(0, 4, 1);
+    try std.testing.expectEqual(
+        first.base.global_first_cycle + first.base.cycle_count,
+        second.base.global_first_cycle,
+    );
     try std.testing.expectEqual(CompletionReason.ecall, second.base.completion_reason.?);
     try std.testing.expect(std.meta.eql(one_shot.base.cpu_final, second.base.exit_cpu));
     try first.base.rw_memory.requireContinuationTo(second.base.rw_memory);

@@ -20,10 +20,16 @@ void *stwo_zig_metal_circle_lde_merkle_commit(
     const uint32_t *leaf_seed,
     const uint32_t *node_seed,
     uint32_t domain_prefix_bytes,
+    uint32_t *normalization_batch_count,
+    uint32_t *forward_skipped_layers,
+    uint64_t *merkle_compressions,
     double *gpu_milliseconds,
     char *error_message,
     size_t error_message_len
 ) {
+    if (normalization_batch_count != NULL) *normalization_batch_count = 0u;
+    if (forward_skipped_layers != NULL) *forward_skipped_layers = 0u;
+    if (merkle_compressions != NULL) *merkle_compressions = 0u;
     if (runtime_ptr == NULL || source_columns == NULL || base_columns == NULL ||
         extended_words == NULL || inverse_twiddles == NULL || forward_twiddles == NULL ||
         leaf_seed == NULL || node_seed == NULL ||
@@ -164,10 +170,12 @@ void *stwo_zig_metal_circle_lde_merkle_commit(
         uint32_t child_offsets[30] = { 0u };
         uint32_t destination_offsets[30] = { 0u };
         uint32_t parent_counts[30] = { 0u };
+        uint64_t parent_compressions = 0u;
         for (uint32_t level = 0u; level < extended_log_size; ++level) {
             child_offsets[level] = layer_word_offsets[level];
             destination_offsets[level] = layer_word_offsets[level + 1u];
             parent_counts[level] = leaf_count >> (level + 1u);
+            parent_compressions += parent_counts[level];
         }
         void *parent_plan_ptr = stwo_zig_metal_merkle_parent_chain_prepare(
             runtime_ptr, child_offsets, destination_offsets, parent_counts,
@@ -596,6 +604,12 @@ void *stwo_zig_metal_circle_lde_merkle_commit(
             [NSData dataWithBytes:&resident_words length:sizeof(resident_words)];
         tree.residentColumnWordOffsets =
             [NSData dataWithBytes:&resident_offset length:sizeof(resident_offset)];
+        // Publish execution geometry only after the complete device
+        // transaction and retained tree construction have succeeded.
+        if (normalization_batch_count != NULL)
+            *normalization_batch_count = coefficients_ready != 0u ? 0u : 1u;
+        if (forward_skipped_layers != NULL) *forward_skipped_layers = 1u;
+        if (merkle_compressions != NULL) *merkle_compressions = parent_compressions;
         return (__bridge_retained void *)tree;
     }
 }

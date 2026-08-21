@@ -254,9 +254,11 @@ test "focused RISC-V verification requires the source ELF" {
         "verify", "--artifact", "proof.json",
     }));
     const request = (try parse(&.{
-        "verify", "--artifact", "proof.json", "--elf", "guest.elf",
+        "verify",  "--artifact",  "proof.json", "--elf", "guest.elf",
+        "--input", "guest.input",
     })).verify;
     try std.testing.expectEqualStrings("guest.elf", request.elf_path);
+    try std.testing.expectEqualStrings("guest.input", request.input_path.?);
 }
 
 test "the benchmark contract matches the CPU lane it is compared against" {

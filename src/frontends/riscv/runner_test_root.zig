@@ -19,6 +19,7 @@ test {
     _ = @import("runner/guest_precompile/call_buffer.zig");
     _ = @import("runner/guest_precompile/mod.zig");
     _ = @import("runner/guest_precompile/poseidon2_v1.zig");
+    _ = @import("runner/guest_precompile/poseidon2_clock_authority_test.zig");
     _ = @import("runner/guest_precompile/runner_test.zig");
     _ = @import("runner/host_integration_test.zig");
     _ = @import("runner/fence_retirement_test.zig");
@@ -50,6 +51,7 @@ test {
     _ = @import("runner/sail_oracle.zig");
     _ = @import("runner/state_chain.zig");
     _ = @import("runner/trace.zig");
+    _ = @import("runner/trace_clock_authority_test.zig");
     _ = @import("runner/trace_dump.zig");
     _ = @import("runner/witness/load_store_legacy_test_oracle.zig");
 }

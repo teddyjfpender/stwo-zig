@@ -20,6 +20,8 @@ const riscv = @import("stwo_riscv_frontend");
 const InnerEngine = metal.MetalProverEngine;
 const ProverComponent = InnerEngine.Component;
 const component_mod = prover_engine.air.component_prover;
+const composition_work = prover_engine.air.composition_work;
+const oods_work = prover_engine.air.oods_work;
 const accumulation = prover_engine.air.accumulation;
 const prepared_domain = prover_engine.air.prepared_domain;
 const task_graph = prover_engine.task_graph;
@@ -332,6 +334,14 @@ const ComponentAudit = struct {
             .vtable = &audit_vtable,
             .profile_identity = self.original.profile_identity,
             .backend_composition_capability = self.original.backend_composition_capability,
+            .composition_work_profile = if (self.original.composition_work_profile != null)
+                compositionWorkProfile
+            else
+                null,
+            .oods_work_profile = if (self.original.oods_work_profile != null)
+                oodsWorkProfile
+            else
+                null,
             .prepare_domain_evaluator = prepareDomain,
             .domain_parallel_evaluator = if (self.original.domain_parallel_evaluator != null)
                 evaluateDomainParallel
@@ -445,6 +455,37 @@ const ComponentAudit = struct {
         );
     }
 
+    /// The audit changes the erased component context from the frontend owner
+    /// to `ComponentAudit`. Forward cold work-authority callbacks explicitly
+    /// so they still receive the original owner context; copying either raw
+    /// callback into `asComponent` would reinterpret this audit as that owner.
+    fn compositionWorkProfile(
+        context: *const anyopaque,
+        allocator: std.mem.Allocator,
+    ) anyerror!composition_work.ComponentProfile {
+        const self = cast(context);
+        const profile = self.original.composition_work_profile orelse
+            return error.ProfileCompositionWorkAuthorityMissing;
+        return profile(self.original.ctx, allocator);
+    }
+
+    fn oodsWorkProfile(
+        context: *const anyopaque,
+        allocator: std.mem.Allocator,
+        max_log_degree_bound: u32,
+        source: *const composition_work.ComponentProfile,
+    ) anyerror!oods_work.ComponentProfile {
+        const self = cast(context);
+        const profile = self.original.oods_work_profile orelse
+            return error.ProfileOodsWorkAuthorityMissing;
+        return profile(
+            self.original.ctx,
+            allocator,
+            max_log_degree_bound,
+            source,
+        );
+    }
+
     fn prepareDomain(
         context: *const anyopaque,
         allocator: std.mem.Allocator,
@@ -506,6 +547,77 @@ const prepared_audit_vtable = prepared_domain.VTable{
     .run = PreparedAudit.run,
     .deinit = PreparedAudit.deinit,
 };
+
+test "component audit preserves work callbacks with their original context" {
+    const Harness = struct {
+        composition_calls: usize = 0,
+        oods_calls: usize = 0,
+
+        fn cast(context: *const anyopaque) *@This() {
+            return @constCast(@as(*const @This(), @ptrCast(@alignCast(context))));
+        }
+
+        fn composition(
+            context: *const anyopaque,
+            _: std.mem.Allocator,
+        ) anyerror!composition_work.ComponentProfile {
+            cast(context).composition_calls += 1;
+            return error.ExpectedCompositionForwarderCall;
+        }
+
+        fn oods(
+            context: *const anyopaque,
+            _: std.mem.Allocator,
+            _: u32,
+            _: *const composition_work.ComponentProfile,
+        ) anyerror!oods_work.ComponentProfile {
+            cast(context).oods_calls += 1;
+            return error.ExpectedOodsForwarderCall;
+        }
+    };
+
+    var harness = Harness{};
+    const original = ProverComponent{
+        .ctx = &harness,
+        // This focused fixture invokes only the two optional cold callbacks;
+        // the audit replaces the vtable before either callback is observed.
+        .vtable = undefined,
+        .composition_work_profile = Harness.composition,
+        .oods_work_profile = Harness.oods,
+    };
+    var audit = ComponentAudit.init(original);
+    const wrapped = audit.asComponent();
+    try std.testing.expectEqual(@intFromPtr(&audit), @intFromPtr(wrapped.ctx));
+    try std.testing.expect(wrapped.composition_work_profile != null);
+    try std.testing.expect(wrapped.oods_work_profile != null);
+    try std.testing.expect(wrapped.composition_work_profile != original.composition_work_profile);
+    try std.testing.expect(wrapped.oods_work_profile != original.oods_work_profile);
+
+    try std.testing.expectError(
+        error.ExpectedCompositionForwarderCall,
+        wrapped.composition_work_profile.?(wrapped.ctx, std.testing.allocator),
+    );
+    var source: composition_work.ComponentProfile = undefined;
+    try std.testing.expectError(
+        error.ExpectedOodsForwarderCall,
+        wrapped.oods_work_profile.?(
+            wrapped.ctx,
+            std.testing.allocator,
+            7,
+            &source,
+        ),
+    );
+    try std.testing.expectEqual(@as(usize, 1), harness.composition_calls);
+    try std.testing.expectEqual(@as(usize, 1), harness.oods_calls);
+
+    var absent_audit = ComponentAudit.init(.{
+        .ctx = &harness,
+        .vtable = undefined,
+    });
+    const absent = absent_audit.asComponent();
+    try std.testing.expect(absent.composition_work_profile == null);
+    try std.testing.expect(absent.oods_work_profile == null);
+}
 
 comptime {
     prover_api.assertProverEngine(AuthenticatedProfileEngine);

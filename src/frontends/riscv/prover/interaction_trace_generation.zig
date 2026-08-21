@@ -49,6 +49,26 @@ const RiscVInteractionClaim = types.RiscVInteractionClaim;
 const RunMode = types.RunMode;
 const OpcodeBaseEntries = opcode_entries.Entries(BaseScalar);
 
+/// Selects the worker authority for base Tree-2 materialization. Profiled
+/// sequential work must not inherit an ambient proof pool merely because later
+/// proof stages are allowed to use it.
+pub const BaseExecutionPolicy = enum {
+    ambient,
+    sequential,
+
+    pub fn selectedPool(self: BaseExecutionPolicy) ?*work_pool.WorkPool {
+        return switch (self) {
+            .ambient => work_pool.getGlobalPool(),
+            .sequential => null,
+        };
+    }
+
+    pub fn requireSequentialReceipt(self: BaseExecutionPolicy) !void {
+        if (self != .sequential)
+            return error.UnsupportedProfiledInteractionExecution;
+    }
+};
+
 pub fn Ops(comptime Owner: type) type {
     const LookupV2Admission = Owner.LookupV2Admission;
 
@@ -64,7 +84,9 @@ pub fn Ops(comptime Owner: type) type {
             relations: *const Relations,
             claim: *RiscVInteractionClaim,
             lookup_v2: ?LookupV2Admission,
+            execution_policy: BaseExecutionPolicy,
         ) !void {
+            const execution_pool = execution_policy.selectedPool();
             {
                 var sub = try stage_profile.StageScope.begin(recorder, "riscv_interaction_opcode", "RISC-V opcode interactions");
                 defer sub.end();
@@ -86,6 +108,7 @@ pub fn Ops(comptime Owner: type) type {
                         columns,
                         relations,
                         claim,
+                        execution_pool,
                     );
                 }
             }
@@ -102,12 +125,12 @@ pub fn Ops(comptime Owner: type) type {
             {
                 var sub = try stage_profile.StageScope.begin(recorder, "riscv_interaction_merkle", "RISC-V Merkle interactions");
                 defer sub.end();
-                try generateMerkle(allocator, columns, witness, geometry, relations, claim);
+                try generateMerkle(allocator, columns, witness, geometry, relations, claim, execution_pool);
             }
             {
                 var sub = try stage_profile.StageScope.begin(recorder, "riscv_interaction_poseidon", "RISC-V Poseidon interactions");
                 defer sub.end();
-                try generatePoseidon(allocator, columns, witness, geometry, relations, claim);
+                try generatePoseidon(allocator, columns, witness, geometry, relations, claim, execution_pool);
             }
             {
                 var sub = try stage_profile.StageScope.begin(recorder, "riscv_interaction_clock", "RISC-V clock interactions");
@@ -132,6 +155,7 @@ pub fn Ops(comptime Owner: type) type {
                     main_source,
                     relations,
                     claim,
+                    execution_pool,
                 );
             }
         }
@@ -189,10 +213,11 @@ pub fn Ops(comptime Owner: type) type {
             columns: *Columns,
             relations: *const Relations,
             claim: *RiscVInteractionClaim,
+            execution_pool: ?*work_pool.WorkPool,
         ) !void {
             const statement = &workspace.statement;
             if (statement.n_components > 1) {
-                if (work_pool.getGlobalPool()) |pool| {
+                if (execution_pool) |pool| {
                     return generateOpcodeParallel(
                         allocator,
                         workspace,
@@ -345,14 +370,15 @@ pub fn Ops(comptime Owner: type) type {
             geometry: Geometry,
             relations: *const Relations,
             claim: *RiscVInteractionClaim,
+            execution_pool: ?*work_pool.WorkPool,
         ) !void {
-            const generated = if (geometry.merkle_log_size >= 12 and work_pool.getGlobalPool() != null)
+            const generated = if (geometry.merkle_log_size >= 12 and execution_pool != null)
                 try merkle_node.generateInteractionParallel(
                     allocator,
                     witness.merkleRows(),
                     geometry.merkle_log_size,
                     relations,
-                    work_pool.getGlobalPool().?,
+                    execution_pool.?,
                 )
             else
                 try merkle_node.generateInteraction(
@@ -372,14 +398,15 @@ pub fn Ops(comptime Owner: type) type {
             geometry: Geometry,
             relations: *const Relations,
             claim: *RiscVInteractionClaim,
+            execution_pool: ?*work_pool.WorkPool,
         ) !void {
-            const generated = if (geometry.poseidon_log_size >= 12 and work_pool.getGlobalPool() != null)
+            const generated = if (geometry.poseidon_log_size >= 12 and execution_pool != null)
                 try poseidon2_air.generateInteractionParallel(
                     allocator,
                     witness.poseidonCalls(),
                     geometry.poseidon_log_size,
                     relations,
-                    work_pool.getGlobalPool().?,
+                    execution_pool.?,
                 )
             else
                 try poseidon2_air.generateInteraction(
@@ -425,8 +452,9 @@ pub fn Ops(comptime Owner: type) type {
             main_source: *const tree2_main_source.Source,
             relations: *const Relations,
             claim: *RiscVInteractionClaim,
+            execution_pool: ?*work_pool.WorkPool,
         ) !void {
-            if (work_pool.getGlobalPool()) |pool| {
+            if (execution_pool) |pool| {
                 return generateLookupTablesParallel(
                     allocator,
                     workspace,

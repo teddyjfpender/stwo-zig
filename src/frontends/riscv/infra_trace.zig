@@ -160,7 +160,7 @@ test "infra_trace: genProgramColumns basic" {
     defer exec_trace.deinit();
 
     try exec_trace.append(.{
-        .clk = 0,
+        .clk = 1,
         .pc = 0x1000,
         .opcode = .ADDI,
         .rd = 1,
@@ -179,7 +179,7 @@ test "infra_trace: genProgramColumns basic" {
         .inst_word = 0x00100093,
     });
     try exec_trace.append(.{
-        .clk = 1,
+        .clk = 2,
         .pc = 0x1004,
         .opcode = .ADD,
         .rd = 2,
@@ -213,7 +213,7 @@ test "infra_trace: genPreprocessedMultiplicityColumns basic" {
 
     for (0..32) |i| {
         try exec_trace.append(.{
-            .clk = @intCast(i),
+            .clk = @intCast(i + 1),
             .pc = @intCast(0x1000 + i * 4),
             .opcode = .ADDI,
             .rd = 1,

@@ -24,6 +24,7 @@ const artifact_validation = @import("proof_adapter/artifact_validation.zig");
 const artifact_verifier = @import("proof_adapter/artifact_verifier.zig");
 const benchmark_report = @import("proof_adapter/benchmark_report.zig");
 const pcs_profile = @import("proof_adapter/pcs_profile.zig");
+const profile_router = @import("proof_adapter/profile_router.zig");
 const transcript_state = @import("proof_adapter/transcript_state.zig");
 const verified_request_attempt = @import("proof_adapter/verified_request_attempt.zig");
 const verify_receipt = @import("proof_adapter/verify_receipt.zig");
@@ -105,6 +106,15 @@ pub fn run(
     // read from the *after* snapshot.
     if (comptime @hasDecl(Engine, "warmup")) try Engine.warmup();
     const process_identity = try artifact_validation.measureProcessIdentity(allocator);
+    if (try profile_router.runIfSelected(
+        Engine,
+        backend,
+        allocator,
+        elf_path,
+        input_path,
+        options,
+        process_identity,
+    )) |report| return report;
     return switch (options.mode) {
         .prove => runProve(
             Engine,
@@ -745,6 +755,10 @@ pub fn verifyArtifact(
         elf_path,
     );
 }
+
+/// Routes a retained artifact by its exact wire identity. JSON schema-v4 stays
+/// on the unchanged base verifier; only `STWGPF01` reaches the profile decoder.
+pub const verifyPath = profile_router.verifyPath;
 
 /// The engine this module's own tests exercise, resolved from whichever product
 /// facade compiled them. The tests must not name a concrete integration package:

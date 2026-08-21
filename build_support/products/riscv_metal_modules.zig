@@ -119,7 +119,15 @@ pub fn createModule(
         .optimize = context.optimize,
     });
     context.protocol.addImports(module);
-    const dependencies = createDependencies(context, logical_product);
+    const proof_wire = graph.addProofWireImport(
+        context.b,
+        context.protocol,
+        logical_product,
+        context.target,
+        context.optimize,
+        module,
+    );
+    const dependencies = createDependencies(context, logical_product, proof_wire);
     module.addImport("stwo_metal_backend", dependencies.metal_backend);
     module.addImport("stwo_riscv_frontend", dependencies.frontend);
     module.addImport("stwo_riscv_metal_integration", dependencies.integration);
@@ -132,7 +140,7 @@ pub fn createFacadeModule(
     product: graph.Product,
     logical_product: graph.Product,
 ) *std.Build.Module {
-    const dependencies = createDependencies(context, logical_product);
+    const dependencies = createDependencies(context, logical_product, null);
     const facade = graph.create(context.b, .{
         .product = logical_product,
         .root_source_file = "src/products/riscv_metal/root.zig",
@@ -170,6 +178,7 @@ const Dependencies = struct {
 fn createDependencies(
     context: Context,
     logical_product: graph.Product,
+    proof_wire: ?*std.Build.Module,
 ) Dependencies {
     const frontend = graph.createRiscVFrontend(
         context.b,
@@ -177,7 +186,7 @@ fn createDependencies(
         logical_product,
         context.target,
         context.optimize,
-        null,
+        proof_wire,
     );
     const metal_backend = graph.createMetalBackend(
         context.b,

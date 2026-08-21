@@ -16,7 +16,7 @@ const impl = shared_registry.Registry(capabilities, identity, .{ .cpu = true });
 pub const write = impl.write;
 
 test "registry exposes exactly the RISC-V CPU capability" {
-    var storage: [4096]u8 = undefined;
+    var storage: [8192]u8 = undefined;
     var output = std.Io.Writer.fixed(&storage);
     try write(&output);
     var parsed = try std.json.parseFromSlice(
@@ -42,8 +42,21 @@ test "registry exposes exactly the RISC-V CPU capability" {
         try std.testing.expectEqual(@as(usize, 1), applications.items.len);
         try std.testing.expect(applications.items[0].object.get("reason") == null);
     }
+    const guest_profiles = root.get("guest_profiles").?.array;
+    try std.testing.expectEqual(@as(usize, 1), guest_profiles.items.len);
+    const guest = guest_profiles.items[0].object;
+    try std.testing.expectEqualStrings(
+        capabilities.guest_poseidon2.profile,
+        guest.get("profile").?.string,
+    );
+    try std.testing.expectEqualStrings(
+        "cpu_scalar_simd_generic_direct_plus_logup_v1",
+        guest.get("execution_placement").?.string,
+    );
+    try std.testing.expect(!guest.get("backend_fallback_allowed").?.bool);
     const encoded = output.buffered();
-    inline for (.{ "metal", "cuda", "cairo", "wide_fibonacci", "poseidon" }) |forbidden| {
+    inline for (.{ "metal", "cuda", "cairo", "wide_fibonacci" }) |forbidden| {
         try std.testing.expect(std.mem.indexOf(u8, encoded, forbidden) == null);
     }
+    try std.testing.expect(std.mem.indexOf(u8, encoded, "rv32im-zkvm-poseidon2-v1") != null);
 }

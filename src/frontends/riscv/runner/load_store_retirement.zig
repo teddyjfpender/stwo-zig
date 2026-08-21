@@ -228,7 +228,8 @@ pub const Plan = struct {
             memory.initialized_words.contains(self.alignedAddress()) ==
                 self.memory_word_was_initialized and
             trace.rows.items.len == self.expected_trace_len and
-            trace.step_count == self.expected_trace_len;
+            trace.step_count == self.expected_trace_len and
+            trace.expectsNextCoreRetirement(self.instruction_clock);
     }
 
     inline fn accessStateIsCurrent(
@@ -270,7 +271,6 @@ pub const Plan = struct {
         if (self.instruction_clock == 0 or
             access_clock.maximum(self.instruction_clock) >=
                 state_chain.CLOCK_PREV_BOUND or
-            !traceClockMatches(self.expected_trace_len, self.instruction_clock) or
             !instructionMatchesWord(self.instruction, self.inst_word))
         {
             return false;
@@ -363,7 +363,7 @@ pub inline fn stage(
 ) StageError!Plan {
     if (trace.step_count != trace.rows.items.len)
         return error.TraceInvariantViolation;
-    if (!traceClockMatches(trace.rows.items.len, instruction_clock))
+    if (!trace.expectsNextCoreRetirement(instruction_clock))
         return error.InstructionClockMismatch;
     if (!instructionMatchesWord(instruction, inst_word))
         return error.InstructionWordMismatch;
@@ -494,11 +494,6 @@ pub inline fn instructionMatchesWord(
     inst_word: u32,
 ) bool {
     return typed_authority.instructionMatchesWord(instruction, inst_word);
-}
-
-inline fn traceClockMatches(trace_len: usize, instruction_clock: u32) bool {
-    if (trace_len >= std.math.maxInt(u32)) return false;
-    return instruction_clock == @as(u32, @intCast(trace_len)) + 1;
 }
 
 inline fn trackerHasCapacity(

@@ -57,12 +57,18 @@ const ExhaustionPolicy = enum { yield, legacy_terminal };
 const Poseidon2ExecutionState = struct {
     calls: guest_precompile.call_buffer.Builder,
     rows: guest_precompile.poseidon2_v1.ExecutionRowsBuilder,
+    external_step_origin: usize,
 
-    fn init(allocator: std.mem.Allocator, step_budget: usize) !Poseidon2ExecutionState {
+    fn init(
+        allocator: std.mem.Allocator,
+        step_budget: usize,
+        external_step_origin: usize,
+    ) !Poseidon2ExecutionState {
         const limit = @min(step_budget, guest_precompile.call_buffer.max_calls);
         return .{
             .calls = try .init(allocator, limit),
             .rows = try .init(allocator, limit),
+            .external_step_origin = external_step_origin,
         };
     }
 
@@ -74,7 +80,7 @@ const Poseidon2ExecutionState = struct {
 };
 
 const EmptyExtensionState = struct {
-    fn init(_: std.mem.Allocator, _: usize) !EmptyExtensionState {
+    fn init(_: std.mem.Allocator, _: usize, _: usize) !EmptyExtensionState {
         return .{};
     }
     fn deinit(_: *EmptyExtensionState) void {}
@@ -307,7 +313,11 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
             else
                 emptyAccessClockBoundary();
             errdefer entry_access_clocks.deinit(self.allocator);
-            var extension = try ExtensionState(profile).init(self.allocator, step_budget);
+            var extension = try ExtensionState(profile).init(
+                self.allocator,
+                step_budget,
+                self.execution_trace.recordedExternalSteps(),
+            );
             defer extension.deinit();
 
             var local_steps: usize = 0;
@@ -348,6 +358,7 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
                 exit_code = outcome.exit_code;
             }
             self.execution_trace.final_pc = self.cpu.pc;
+            try self.execution_trace.validateClockAuthority();
 
             // Extract this segment only after execution.  Retirement keeps one
             // cumulative trace for its global clock/index invariant, while the
@@ -366,6 +377,25 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
                     self.execution_trace.rows.items[trace_start..],
                 );
                 owned.step_count = owned.rows.items.len;
+                const external_steps = std.math.sub(
+                    usize,
+                    local_steps,
+                    owned.rows.items.len,
+                ) catch return error.ProfileClockAuthorityMismatch;
+                if (comptime profile == .rv32im_zkvm_poseidon2_v1) {
+                    if (extension.calls.len() != external_steps or
+                        extension.rows.len() != external_steps)
+                    {
+                        return error.ProfileClockAuthorityMismatch;
+                    }
+                } else if (external_steps != 0) {
+                    return error.ProfileClockAuthorityMismatch;
+                }
+                try owned.bindExtractedClockRange(
+                    @intCast(first_cycle - 1),
+                    @intCast(self.global_steps),
+                    external_steps,
+                );
                 break :blk owned;
             };
             errdefer segment_trace.deinit();
@@ -557,14 +587,16 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
             }
             if (comptime profile == .rv32im_zkvm_poseidon2_v1) {
                 if (@as(u7, @truncate(inst_word)) == custom0.major_opcode) {
-                    try guest_precompile.poseidon2_v1.execute(
+                    try guest_precompile.poseidon2_v1.executeWithRecordedClock(
                         profile,
                         inst_word,
                         execution_clock,
+                        extension.external_step_origin,
                         &self.cpu,
                         &self.memory,
                         self.elf_info.memory_layout,
                         chain_tracker,
+                        exec_trace,
                         &extension.calls,
                         &extension.rows,
                     );
@@ -595,6 +627,8 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
                 inst_word,
                 execution_clock,
             )) return .{ .retired = true };
+            if (!exec_trace.expectsNextCoreRetirement(execution_clock))
+                return error.InstructionClockMismatch;
 
             const rs2_val = self.cpu.readReg(inst.rs2);
             const rd_prev_val = self.cpu.readReg(inst.rd);

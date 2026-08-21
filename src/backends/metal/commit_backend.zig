@@ -70,7 +70,11 @@ pub const MetalCommitBackend = struct {
     pub const fri_fused_merkle_reuses_constant_parents = false;
 
     pub const prepareAndCommitOwned = heterogeneous_commit.prepareAndCommitOwned;
+    pub const prepareAndCommitOwnedWithWorkRecorder =
+        heterogeneous_commit.prepareAndCommitOwnedWithWorkRecorder;
     pub const prepareAndCommitPolys = combined_commit.prepareAndCommitPolys;
+    pub const prepareAndCommitPolysWithWorkRecorder =
+        combined_commit.prepareAndCommitPolysWithWorkRecorder;
     pub const preferContiguousQuadraticRecurrenceTrace = true;
     pub const preferDeferredQuadraticRecurrenceTrace = true;
     pub const admitsDeferredQuadraticRecurrenceTrace = combined_commit.admitsDeferredQuadraticRecurrenceTrace;

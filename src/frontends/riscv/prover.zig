@@ -27,6 +27,10 @@ pub const RiscVStatementV2 = types.RiscVStatementV2;
 pub const RiscVInteractionClaim = types.RiscVInteractionClaim;
 pub const MAX_COMPONENTS = types.MAX_COMPONENTS;
 pub const MAX_INFRA_COMPONENTS = types.MAX_INFRA_COMPONENTS;
+/// Canonical one-shot execution capacity shared by runner admission, witness
+/// geometry, and every product adapter. Larger workloads require segmentation.
+pub const MAX_EXECUTION_STEPS =
+    @import("prover/statement_validation.zig").MAX_EXECUTION_STEPS;
 pub const Proof = types.Proof;
 pub const ExtendedProof = types.ExtendedProof;
 pub const OwnedRiscVStatement = types.OwnedRiscVStatement;
@@ -46,6 +50,8 @@ pub const provePoseidon2WithEngineAndPublicData =
     guest_precompile.provePoseidon2WithEngineAndPublicData;
 pub const provePoseidon2WithEngineAndPublicDataUsingChannel =
     guest_precompile.provePoseidon2WithEngineAndPublicDataUsingChannel;
+pub const provePoseidon2WithEngineAndPublicDataUsingChannelAndPhaseMeter =
+    guest_precompile.provePoseidon2WithEngineAndPublicDataUsingChannelAndPhaseMeter;
 pub const verifyPoseidon2WithEngine = guest_precompile.verifyPoseidon2WithEngine;
 pub const verifyPoseidon2WithEngineUsingChannel =
     guest_precompile.verifyPoseidon2WithEngineUsingChannel;

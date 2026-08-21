@@ -102,6 +102,11 @@ test "E-018 staged LUI capacity failures expose no retirement prefix" {
         var tracker = StateChainTracker.init(failing.allocator());
         defer tracker.deinit();
         const instruction_clock = state_chain.MAX_CLOCK_DIFF / 4 + 9;
+        try exec_trace.bindExtractedClockRange(
+            instruction_clock - 1,
+            instruction_clock - 1,
+            0,
+        );
         const word = encodeLui(7, 0xabcde);
         const instruction = try decode.DecodedInst.decode(word);
         subject.retireAtomic(
@@ -141,6 +146,11 @@ test "E-018 staged LUI commit is allocation-free after exact preflight" {
     var tracker = StateChainTracker.init(failing.allocator());
     defer tracker.deinit();
     const instruction_clock = state_chain.MAX_CLOCK_DIFF / 4 + 9;
+    try exec_trace.bindExtractedClockRange(
+        instruction_clock - 1,
+        instruction_clock - 1,
+        0,
+    );
     const word = encodeLui(9, 0x80000);
     const instruction = try decode.DecodedInst.decode(word);
     const plan = try subject.stage(

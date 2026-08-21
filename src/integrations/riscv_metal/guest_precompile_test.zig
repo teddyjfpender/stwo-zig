@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const core = @import("stwo_core");
+const prover_api = @import("stwo_prover_api");
 const prover_engine = @import("stwo_prover_engine");
 const metal = @import("stwo_metal_backend");
 const riscv = @import("stwo_riscv_frontend");
@@ -406,6 +407,13 @@ test "guest Metal profile proves and independently verifies when an AOT bundle i
             .fold_step = 1,
         },
     };
+    var recorder = prover_api.stage_profile.Recorder.initWithOptions(
+        allocator,
+        @tagName(@import("builtin").mode),
+        "riscv-metal-guest-poseidon2-exact-work",
+        .{ .capture_tasks = false, .capture_work = true },
+    );
+    defer recorder.deinit();
 
     var output = try subject.provePoseidon2WithPublicData(
         allocator,
@@ -415,7 +423,7 @@ test "guest Metal profile proves and independently verifies when an AOT bundle i
         &run.execution_rows,
         &run.base.state_chain_tracker,
         &run.base.rw_memory,
-        null,
+        &recorder,
         public_data,
     );
     var proof_moved = false;
@@ -434,6 +442,12 @@ test "guest Metal profile proves and independently verifies when an AOT bundle i
         output.proof,
         output.interaction_claim,
     );
+
+    const work = recorder.workCaptureRecorder() orelse unreachable;
+    try std.testing.expect(try work.finalizePlannedProducerCoverage());
+    const snapshot = try recorder.workSnapshot();
+    try snapshot.validate();
+    try std.testing.expect(snapshot.completeExact());
 }
 
 fn readManifestTrustAnchor(

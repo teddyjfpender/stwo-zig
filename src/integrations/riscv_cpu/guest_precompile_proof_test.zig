@@ -3,6 +3,7 @@
 const std = @import("std");
 const pcs_core = @import("stwo_core").pcs;
 const prover_api = @import("stwo_prover_api");
+const work_pool = @import("stwo_prover_engine").work_pool;
 const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 const frontend = @import("stwo_riscv_frontend");
 
@@ -35,6 +36,21 @@ test "P-003 combined Poseidon2 producer publishes main-witness work" {
 
 fn proveAndVerify(include_call: bool, capture_work: bool) !void {
     const allocator = std.testing.allocator;
+    var pool: work_pool.WorkPool = undefined;
+    var pool_live = false;
+    defer if (pool_live) pool.deinit();
+    var pool_binding: work_pool.ScopedPoolBinding = undefined;
+    var pool_bound = false;
+    defer if (pool_bound) pool_binding.deinit();
+    if (capture_work) {
+        try pool.initInPlaceWithOptions(.{
+            .worker_count = 2,
+            .stack_size = 256 * 1024,
+        });
+        pool_live = true;
+        pool_binding = try work_pool.ScopedPoolBinding.init(&pool);
+        pool_bound = true;
+    }
     var recorder = prover_api.stage_profile.Recorder.initWithOptions(
         allocator,
         "test",

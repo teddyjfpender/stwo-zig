@@ -219,7 +219,17 @@ pub fn loadElfForProfile(
 /// Rejects compatibility ELFs before the production adapter starts execution.
 /// `loadElf` continues to provide documented defaults for diagnostic callers.
 pub fn validateReleaseAbi(elf_bytes: []const u8) ElfError!void {
-    _ = try requireExecutionProfile(elf_bytes, .rv32im_zkvm_v1);
+    return validateReleaseAbiForProfile(elf_bytes, .rv32im_zkvm_v1);
+}
+
+/// Profile-explicit release ABI preflight. The legacy entry point above stays
+/// base-only, while extension products can admit their exact note without
+/// weakening or duplicating the symbol contract.
+pub fn validateReleaseAbiForProfile(
+    elf_bytes: []const u8,
+    expected_profile: ExecutionProfile,
+) ElfError!void {
+    _ = try requireExecutionProfile(elf_bytes, expected_profile);
     for (RELEASE_ABI_SYMBOLS) |symbol| {
         if (findSymbolValue(elf_bytes, symbol) == null)
             return ElfError.MissingReleaseAbiSymbol;
@@ -556,6 +566,17 @@ test "base ELF loader rejects an extension note before loading" {
     try std.testing.expectError(
         ElfError.RequiredCapabilityUnavailable,
         validateReleaseAbi(&extension_elf),
+    );
+    // The profile-explicit release preflight admits the exact extension note
+    // and proceeds to the shared symbol contract. This compact fixture has no
+    // symbol table, so reaching MissingReleaseAbiSymbol proves profile
+    // selection succeeded without weakening the base entry point above.
+    try std.testing.expectError(
+        ElfError.MissingReleaseAbiSymbol,
+        validateReleaseAbiForProfile(
+            &extension_elf,
+            .rv32im_zkvm_poseidon2_v1,
+        ),
     );
 }
 

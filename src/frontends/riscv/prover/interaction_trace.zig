@@ -371,6 +371,7 @@ fn generateAndCommitInternal(
         relations,
         claim,
         lookup_v2,
+        .ambient,
     );
     std.debug.assert(columns.filled == n_interaction);
     if (test_mutation) |mutation| {
@@ -547,6 +548,44 @@ pub fn generateAndCommitPoseidon2(
     base_claim: *RiscVInteractionClaim,
     guest_claim: *Poseidon2Claims,
 ) !void {
+    return generateAndCommitPoseidon2WithPhaseMeter(
+        Engine,
+        allocator,
+        workspace,
+        extension,
+        relation_source,
+        scheme,
+        channel,
+        recorder,
+        witness,
+        geometry,
+        lookup_source,
+        prefix,
+        base_claim,
+        guest_claim,
+        null,
+    );
+}
+
+/// Profile Tree 2 with the same materialization boundary used by the base
+/// prover. Commitment work is deliberately outside the witness region.
+pub fn generateAndCommitPoseidon2WithPhaseMeter(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    workspace: *ProofWorkspace,
+    extension: *const guest_statement.ExtensionStatement,
+    relation_source: *const guest_main_trace.RelationSource,
+    scheme: *Engine.Scheme,
+    channel: *Engine.Channel,
+    recorder: ?*stage_profile.Recorder,
+    witness: *const CommitmentWitness,
+    geometry: Geometry,
+    lookup_source: *const lookup_sources.Result,
+    prefix: *const guest_proof_transcript.ProverRelations,
+    base_claim: *RiscVInteractionClaim,
+    guest_claim: *Poseidon2Claims,
+    phase_meter: ?*proof_phase_meter.Meter,
+) !void {
     const base_receipt = prefix.base_challenge_work_receipt;
     const guest_receipt = prefix.guest_challenge_work_receipt;
     if (base_receipt == null and guest_receipt == null) {
@@ -566,6 +605,8 @@ pub fn generateAndCommitPoseidon2(
             &prefix.relations,
             base_claim,
             guest_claim,
+            phase_meter,
+            .ambient,
         );
     }
     if (base_receipt == null or guest_receipt == null)
@@ -585,6 +626,7 @@ pub fn generateAndCommitPoseidon2(
         prefix,
         base_claim,
         guest_claim,
+        phase_meter,
     );
 }
 
@@ -604,6 +646,8 @@ fn generateAndCommitPoseidon2Unprofiled(
     relations: *const guest_relations.Poseidon2V1Relations,
     base_claim: *RiscVInteractionClaim,
     guest_claim: *Poseidon2Claims,
+    phase_meter: ?*proof_phase_meter.Meter,
+    base_execution_policy: BaseExecutionPolicy,
 ) !void {
     const statement = &workspace.statement;
     try extension.validate(statement);
@@ -626,6 +670,9 @@ fn generateAndCommitPoseidon2Unprofiled(
         "RISC-V guest interaction trace generation and commit",
     );
     defer stage.end();
+    var materialization_region: ?proof_phase_meter.WitnessRegion =
+        if (phase_meter) |meter| try meter.begin() else null;
+    errdefer if (materialization_region) |*region| region.abort();
     var columns = try Columns.init(allocator, n_interaction);
     defer columns.deinit(allocator);
 
@@ -640,6 +687,7 @@ fn generateAndCommitPoseidon2Unprofiled(
         &relations.base,
         base_claim,
         null,
+        base_execution_policy,
     );
     if (columns.filled != n_base_interaction) return error.InvalidTraceShape;
     var destinations = try columns.reserveGuest(
@@ -679,6 +727,7 @@ fn generateAndCommitPoseidon2Unprofiled(
         },
     );
 
+    if (materialization_region) |*region| try region.finish();
     columns.moved = true;
     try Engine.commit(scheme, allocator, columns.values, recorder, channel);
 }
@@ -698,12 +747,10 @@ fn generateAndCommitPoseidon2Profiled(
     prefix: *const guest_proof_transcript.ProverRelations,
     base_claim: *RiscVInteractionClaim,
     guest_claim: *Poseidon2Claims,
+    phase_meter: ?*proof_phase_meter.Meter,
 ) !void {
-    // This profile currently has no prepared Tree-2 execution selector. Fail
-    // closed if a process-global pool would silently substitute parallel
-    // opcode/table schedules for the exact sequential authority below.
-    if (work_pool.getGlobalPool() != null)
-        return error.UnsupportedProfiledGuestInteractionExecution;
+    // Tree 2 explicitly ignores the ambient pool so its real execution matches
+    // the sequential work receipt. Later quotient stages retain pool access.
 
     const authority = interaction_witness_work.Authority.init();
     const binding = interaction_witness_work.guestSessionDigest(
@@ -743,8 +790,11 @@ fn generateAndCommitPoseidon2Profiled(
         &prefix.relations,
         base_claim,
         guest_claim,
+        phase_meter,
+        GUEST_PROFILED_TREE2_EXECUTION_POLICY,
     );
 
+    try GUEST_PROFILED_TREE2_EXECUTION_POLICY.requireSequentialReceipt();
     const base_counts = try sequentialBaseWorkCounts(
         &workspace.statement,
         witness,
@@ -785,7 +835,10 @@ fn generateAndCommitPoseidon2Profiled(
     try interaction_witness_work.publish(recorder, receipt);
 }
 
-const generation = @import("interaction_trace_generation.zig").Ops(@This());
+const generation_mod = @import("interaction_trace_generation.zig");
+pub const BaseExecutionPolicy = generation_mod.BaseExecutionPolicy;
+pub const GUEST_PROFILED_TREE2_EXECUTION_POLICY: BaseExecutionPolicy = .sequential;
+const generation = generation_mod.Ops(@This());
 const generateBase = generation.generateBase;
 const sequentialBaseWorkCounts = generation.sequentialBaseWorkCounts;
 const guestInteractionWorkCounts = generation.guestInteractionWorkCounts;

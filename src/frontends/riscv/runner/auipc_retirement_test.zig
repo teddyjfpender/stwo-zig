@@ -34,6 +34,8 @@ test "typed AUIPC retirement is exact across PC result x0 and encoding aliases" 
         0, 1, 0x7ffff, 0x80000, 0xfffff, 0x12345, 0xabcde,
     };
     var clock: u32 = 16;
+    try actual_trace.bindExtractedClockRange(clock - 1, clock - 1, 0);
+    try oracle_trace.bindExtractedClockRange(clock - 1, clock - 1, 0);
     for (0..32) |rd_raw| {
         const rd: u5 = @intCast(rd_raw);
         for (boundaries) |upper| {
@@ -96,6 +98,7 @@ test "typed AUIPC retirement is failure-atomic and allocation-free after preflig
         var tracker = StateChainTracker.init(failing.allocator());
         defer tracker.deinit();
         const clock = state_chain.MAX_CLOCK_DIFF / 4 + 9;
+        try exec_trace.bindExtractedClockRange(clock - 1, clock - 1, 0);
         const word = encodeAuipc(7, 0xabcde);
         subject.retireAtomic(
             &authority,
@@ -127,6 +130,7 @@ test "typed AUIPC retirement is failure-atomic and allocation-free after preflig
     var tracker = StateChainTracker.init(failing.allocator());
     defer tracker.deinit();
     const clock = state_chain.MAX_CLOCK_DIFF / 4 + 9;
+    try exec_trace.bindExtractedClockRange(clock - 1, clock - 1, 0);
     const word = encodeAuipc(9, 0x80000);
     const plan = try subject.stage(
         &authority,

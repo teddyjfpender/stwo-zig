@@ -234,6 +234,40 @@ test "E-020 BASE_ALU_IMM cold allocation failure is atomic and warm path allocat
     try std.testing.expect(@sizeOf(subject.Plan) <= subject.MAX_PLAN_BYTES);
 }
 
+test "E-020 BASE_ALU_IMM cold reserve rejects external-clock reentrancy" {
+    const authority = try subject.authenticateCanonical(std.testing.allocator);
+    var reentrant = ReentrantClockAllocator{ .child = std.testing.allocator };
+    var cpu = Cpu.init(0x1000, 0);
+    cpu.writeReg(2, 41);
+    const cpu_before = cpu;
+    var exec_trace = Trace.init(reentrant.allocator());
+    defer exec_trace.deinit();
+    reentrant.trace = &exec_trace;
+    var tracker = StateChainTracker.init(reentrant.allocator());
+    defer tracker.deinit();
+    const word = encode(.ADDI, 1, 2, 1);
+
+    reentrant.armed = true;
+    try std.testing.expectError(
+        error.StaleRetirement,
+        subject.retireAtomic(
+            &authority,
+            &cpu,
+            &exec_trace,
+            &tracker,
+            try decode.DecodedInst.decode(word),
+            word,
+            1,
+        ),
+    );
+    reentrant.armed = false;
+    try std.testing.expect(reentrant.fired);
+    try std.testing.expectEqualDeep(cpu_before, cpu);
+    try std.testing.expectEqual(@as(usize, 0), exec_trace.rows.items.len);
+    try std.testing.expectEqual(@as(usize, 0), tracker.accesses.items.len);
+    try exec_trace.validateClockRange(0, 1, 1);
+}
+
 test "E-020 BASE_ALU_IMM retirement retains paired legacy throughput" {
     if (builtin.mode != .ReleaseFast) return;
     const authority = try subject.authenticateCanonical(std.testing.allocator);
@@ -303,6 +337,82 @@ fn result(opcode: decode.Opcode, source: u32, imm: i32) u32 {
         else => unreachable,
     };
 }
+
+const ReentrantClockAllocator = struct {
+    child: std.mem.Allocator,
+    trace: ?*Trace = null,
+    armed: bool = false,
+    fired: bool = false,
+
+    fn allocator(self: *@This()) std.mem.Allocator {
+        return .{ .ptr = self, .vtable = &vtable };
+    }
+
+    fn trigger(self: *@This()) void {
+        if (!self.armed or self.fired) return;
+        self.fired = true;
+        const trace = self.trace orelse unreachable;
+        const token = trace.prepareRecordedExternalRetirement(
+            1,
+            0,
+            0,
+            0,
+        ) catch unreachable;
+        trace.commitRecordedExternalRetirement(token);
+    }
+
+    fn alloc(
+        context: *anyopaque,
+        len: usize,
+        alignment: std.mem.Alignment,
+        return_address: usize,
+    ) ?[*]u8 {
+        const self: *@This() = @ptrCast(@alignCast(context));
+        self.trigger();
+        return self.child.rawAlloc(len, alignment, return_address);
+    }
+
+    fn resize(
+        context: *anyopaque,
+        memory: []u8,
+        alignment: std.mem.Alignment,
+        new_len: usize,
+        return_address: usize,
+    ) bool {
+        const self: *@This() = @ptrCast(@alignCast(context));
+        self.trigger();
+        return self.child.rawResize(memory, alignment, new_len, return_address);
+    }
+
+    fn remap(
+        context: *anyopaque,
+        memory: []u8,
+        alignment: std.mem.Alignment,
+        new_len: usize,
+        return_address: usize,
+    ) ?[*]u8 {
+        const self: *@This() = @ptrCast(@alignCast(context));
+        self.trigger();
+        return self.child.rawRemap(memory, alignment, new_len, return_address);
+    }
+
+    fn free(
+        context: *anyopaque,
+        memory: []u8,
+        alignment: std.mem.Alignment,
+        return_address: usize,
+    ) void {
+        const self: *@This() = @ptrCast(@alignCast(context));
+        self.child.rawFree(memory, alignment, return_address);
+    }
+
+    const vtable = std.mem.Allocator.VTable{
+        .alloc = alloc,
+        .resize = resize,
+        .remap = remap,
+        .free = free,
+    };
+};
 
 fn measureStaged(authority: *const subject.Authority, iterations: usize) !u64 {
     var cpu = Cpu.init(0x1000, 0);

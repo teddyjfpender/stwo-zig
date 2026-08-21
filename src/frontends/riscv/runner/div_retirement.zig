@@ -311,7 +311,8 @@ pub const Plan = struct {
             cpu.readReg(self.instruction.rs2) == self.rs2_value and
             cpu.readReg(self.instruction.rd) == self.rd_previous_value and
             trace.rows.items.len == self.expected_trace_len and
-            trace.step_count == self.expected_trace_len;
+            trace.step_count == self.expected_trace_len and
+            trace.expectsNextCoreRetirement(self.instruction_clock);
     }
 
     inline fn accessStateIsCurrent(
@@ -334,7 +335,6 @@ pub const Plan = struct {
 
     fn isWellFormed(self: *const Plan) bool {
         if (!instructionMatchesWord(self.instruction, self.inst_word) or
-            !traceClockMatches(self.expected_trace_len, self.instruction_clock) or
             access_clock.maximum(self.instruction_clock) >=
                 state_chain.CLOCK_PREV_BOUND)
         {
@@ -434,7 +434,7 @@ pub inline fn stage(
 ) StageError!Plan {
     if (trace.step_count != trace.rows.items.len)
         return error.TraceInvariantViolation;
-    if (!traceClockMatches(trace.rows.items.len, instruction_clock))
+    if (!trace.expectsNextCoreRetirement(instruction_clock))
         return error.InstructionClockMismatch;
     if (!instructionMatchesWord(instruction, inst_word))
         return error.InstructionWordMismatch;
@@ -502,11 +502,6 @@ pub inline fn instructionMatchesWord(
     inst_word: u32,
 ) bool {
     return typed_authority.instructionMatchesWord(instruction, inst_word);
-}
-
-inline fn traceClockMatches(trace_len: usize, instruction_clock: u32) bool {
-    if (trace_len >= std.math.maxInt(u32)) return false;
-    return instruction_clock == @as(u32, @intCast(trace_len)) + 1;
 }
 
 const ClockGap = struct {

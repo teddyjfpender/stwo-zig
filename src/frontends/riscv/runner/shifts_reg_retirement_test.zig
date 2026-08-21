@@ -27,6 +27,11 @@ test "SHIFTS_REG retirement is exact across opcodes aliases x0 and extrema" {
         var cpu = Cpu.init(0x1000, 0);
         var exec_trace = Trace.init(std.testing.allocator);
         defer exec_trace.deinit();
+        try exec_trace.bindExtractedClockRange(
+            instruction_clock - 1,
+            instruction_clock - 1,
+            0,
+        );
         var tracker = StateChainTracker.init(std.testing.allocator);
         defer tracker.deinit();
         const lhs = if (case.rs1 == 0) 0 else case.lhs;

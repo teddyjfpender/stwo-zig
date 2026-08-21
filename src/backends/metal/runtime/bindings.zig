@@ -760,6 +760,13 @@ pub extern fn stwo_zig_metal_circle_lde_merkle_commit(
     leaf_seed: *const [8]u32,
     node_seed: *const [8]u32,
     domain_prefix_bytes: u32,
+    /// Out: actual interpolation normalization batches completed by this
+    /// transaction. Coefficient-form input reports zero.
+    normalization_batch_count: *u32,
+    /// Out: logical forward FFT layers elided by the executed fused branch.
+    forward_skipped_layers: *u32,
+    /// Out: internal parent compressions encoded and completed by the device.
+    merkle_compressions: *u64,
     gpu_milliseconds: *f64,
     error_message: [*]u8,
     error_message_len: usize,

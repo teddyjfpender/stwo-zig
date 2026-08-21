@@ -111,6 +111,15 @@ pub const FriLineCascadeResult = struct {
 pub const LdeCommitResult = struct {
     gpu_ms: f64,
     tree: Tree,
+    work: LdeCommitWorkReceipt,
+};
+
+/// Counts written by the combined device epoch only after its command buffer
+/// and complete Merkle parent chain succeed.
+pub const LdeCommitWorkReceipt = struct {
+    normalization_batch_count: u32,
+    forward_skipped_layers: u32,
+    merkle_compressions: u64,
 };
 
 pub const TraceGenerationStats = struct {

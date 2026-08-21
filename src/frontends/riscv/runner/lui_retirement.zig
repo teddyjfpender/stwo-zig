@@ -25,6 +25,7 @@ pub const DecodedInst = typed_lui_authority.DecodedInst;
 pub const Authority = typed_lui_authority.Authority;
 
 pub const StageError = access_transaction.CompileError || error{
+    InstructionClockMismatch,
     InstructionWordMismatch,
     TraceInvariantViolation,
 };
@@ -231,7 +232,8 @@ pub const Plan = struct {
             cpu.readReg(instruction.rs2) == self.rs2_value and
             cpu.readReg(instruction.rd) == self.rd_previous_value and
             exec_trace.rows.items.len == self.expected_trace_len and
-            exec_trace.step_count == self.expected_trace_len;
+            exec_trace.step_count == self.expected_trace_len and
+            exec_trace.expectsNextCoreRetirement(self.instruction_clock);
     }
 
     fn isWellFormed(self: *const Plan) bool {
@@ -312,6 +314,8 @@ pub fn stage(
 ) StageError!Plan {
     if (exec_trace.step_count != exec_trace.rows.items.len)
         return error.TraceInvariantViolation;
+    if (!exec_trace.expectsNextCoreRetirement(instruction_clock))
+        return error.InstructionClockMismatch;
     if (!instructionMatchesWord(instruction, inst_word))
         return error.InstructionWordMismatch;
     const transaction = try access_transaction.compileLuiCompact(authority, tracker, .{

@@ -54,7 +54,6 @@ const shifts_reg_test_oracle =
     @import("../air/semantics/shifts_reg_legacy_test_oracle.zig").Semantics(QM31);
 const load_store_test_oracle =
     @import("../air/semantics/load_store_legacy_test_oracle.zig").Semantics(QM31);
-
 const BASE_ALU_REG_AUTHORITY = typed_base_alu_reg_authority.Authority.pinned();
 const BRANCH_EQ_AUTHORITY = typed_branch_eq_authority.Authority.pinned();
 const BRANCH_LT_AUTHORITY = typed_branch_lt_authority.Authority.pinned();
@@ -79,9 +78,27 @@ pub const Trace = struct {
     initial_pc: u32,
     final_pc: u32,
     step_count: usize,
+    /// Global clock immediately before this trace range. One-shot traces start
+    /// at zero; extracted continuation segments retain their non-zero origin.
+    clock_origin: u32,
+    /// Last globally retired instruction represented by either a core row or
+    /// a transactionally recorded profile-extension row.
+    last_retirement_clock: u32,
+    /// Profile-extension retirements deliberately omitted from `rows` and
+    /// owned by the corresponding extension trace that proving later binds.
+    recorded_external_steps: usize,
 
     pub fn init(allocator: std.mem.Allocator) Trace {
-        return .{ .rows = .{}, .allocator = allocator, .initial_pc = 0, .final_pc = 0, .step_count = 0 };
+        return .{
+            .rows = .{},
+            .allocator = allocator,
+            .initial_pc = 0,
+            .final_pc = 0,
+            .step_count = 0,
+            .clock_origin = 0,
+            .last_retirement_clock = 0,
+            .recorded_external_steps = 0,
+        };
     }
 
     pub fn deinit(self: *Trace) void {
@@ -107,13 +124,194 @@ pub const Trace = struct {
     /// Publish one row after `reserveOne` (or an equivalent bulk reserve).
     /// This operation cannot allocate or fail.
     pub fn appendAssumeCapacity(self: *Trace, row: TraceRow) void {
+        std.debug.assert(self.expectsNextCoreRetirement(row.clk));
         self.rows.appendAssumeCapacity(row);
         self.step_count = self.rows.items.len;
+        self.last_retirement_clock = row.clk;
     }
 
     pub fn append(self: *Trace, row: TraceRow) !void {
+        if (!self.expectsNextCoreRetirement(row.clk))
+            return error.InstructionClockMismatch;
         try self.reserveOne();
         self.appendAssumeCapacity(row);
+    }
+
+    /// A CUSTOM-0 retirement publishes outside the core trace. Preparation is
+    /// fallible and happens before architectural mutation; `commit` below is
+    /// deliberately infallible and validates the execute contract in Debug.
+    pub const ExternalRetirementToken = struct {
+        instruction_clock: u32,
+        segment_external_origin: usize,
+        call_count_before: usize,
+        row_count_before: usize,
+    };
+
+    pub fn recordedExternalSteps(self: *const Trace) usize {
+        return self.recorded_external_steps;
+    }
+
+    pub fn prepareRecordedExternalRetirement(
+        self: *const Trace,
+        instruction_clock: u32,
+        segment_external_origin: usize,
+        call_count: usize,
+        row_count: usize,
+    ) !ExternalRetirementToken {
+        if (!self.expectsNextCoreRetirement(instruction_clock))
+            return error.InstructionClockMismatch;
+        if (!self.clockAuthorityIsValid())
+            return error.ProfileClockAuthorityMismatch;
+        if (call_count != row_count) return error.ProfileClockCountMismatch;
+        const segment_external_steps = std.math.sub(
+            usize,
+            self.recorded_external_steps,
+            segment_external_origin,
+        ) catch return error.ProfileClockCountMismatch;
+        if (segment_external_steps != call_count)
+            return error.ProfileClockCountMismatch;
+        return .{
+            .instruction_clock = instruction_clock,
+            .segment_external_origin = segment_external_origin,
+            .call_count_before = call_count,
+            .row_count_before = row_count,
+        };
+    }
+
+    pub fn externalRetirementCommitIsValid(
+        token: ExternalRetirementToken,
+        call_count_after: usize,
+        row_count_after: usize,
+        call_clock: u32,
+        row_clock: u32,
+    ) bool {
+        const expected_calls = std.math.add(
+            usize,
+            token.call_count_before,
+            1,
+        ) catch return false;
+        const expected_rows = std.math.add(
+            usize,
+            token.row_count_before,
+            1,
+        ) catch return false;
+        return call_count_after == expected_calls and
+            row_count_after == expected_rows and
+            call_clock == token.instruction_clock and
+            row_clock == token.instruction_clock;
+    }
+
+    /// Revalidate a prepared token after every fallible reservation. This is
+    /// deliberately allocation-free: a re-entrant allocator may advance the
+    /// trace clock while capacity grows, and stale publication must be rejected
+    /// before the architectural commit begins.
+    pub fn externalRetirementTokenIsCurrent(
+        self: *const Trace,
+        token: ExternalRetirementToken,
+        call_count: usize,
+        row_count: usize,
+    ) bool {
+        if (!self.clockAuthorityIsValid() or
+            !self.expectsNextCoreRetirement(token.instruction_clock) or
+            call_count != token.call_count_before or
+            row_count != token.row_count_before)
+        {
+            return false;
+        }
+        const segment_external_steps = std.math.sub(
+            usize,
+            self.recorded_external_steps,
+            token.segment_external_origin,
+        ) catch return false;
+        return segment_external_steps == token.call_count_before;
+    }
+
+    pub fn commitRecordedExternalRetirement(
+        self: *Trace,
+        token: ExternalRetirementToken,
+    ) void {
+        std.debug.assert(self.expectsNextCoreRetirement(token.instruction_clock));
+        std.debug.assert(self.recorded_external_steps -
+            token.segment_external_origin == token.call_count_before);
+        self.recorded_external_steps += 1;
+        self.last_retirement_clock = token.instruction_clock;
+        std.debug.assert(self.clockAuthorityIsValid());
+    }
+
+    /// Bind a copied segment range to its global entry clock and the exact
+    /// number of extension rows retained beside it.
+    pub fn bindExtractedClockRange(
+        self: *Trace,
+        clock_origin: u32,
+        last_retirement_clock: u32,
+        recorded_external_steps: usize,
+    ) !void {
+        if (!clockStateIsValid(
+            clock_origin,
+            self.rows.items.len,
+            recorded_external_steps,
+            last_retirement_clock,
+        )) return error.ProfileClockAuthorityMismatch;
+        self.clock_origin = clock_origin;
+        self.last_retirement_clock = last_retirement_clock;
+        self.recorded_external_steps = recorded_external_steps;
+    }
+
+    /// Central next-clock predicate for both generated and legacy retirement.
+    /// The arithmetic identity makes a gap admissible only after an explicitly
+    /// recorded extension retirement advanced this execution authority.
+    pub fn expectsNextCoreRetirement(
+        self: *const Trace,
+        instruction_clock: u32,
+    ) bool {
+        if (self.step_count != self.rows.items.len or
+            self.last_retirement_clock == std.math.maxInt(u32))
+        {
+            return false;
+        }
+        return instruction_clock == self.last_retirement_clock + 1;
+    }
+
+    pub fn validateClockAuthority(self: *const Trace) !void {
+        if (self.step_count != self.rows.items.len or !self.clockAuthorityIsValid())
+            return error.ProfileClockAuthorityMismatch;
+    }
+
+    pub fn validateClockRange(
+        self: *const Trace,
+        clock_origin: u32,
+        last_retirement_clock: u32,
+        recorded_external_steps: usize,
+    ) !void {
+        try self.validateClockAuthority();
+        if (self.clock_origin != clock_origin or
+            self.last_retirement_clock != last_retirement_clock or
+            self.recorded_external_steps != recorded_external_steps)
+        {
+            return error.ProfileClockAuthorityMismatch;
+        }
+    }
+
+    fn clockAuthorityIsValid(self: *const Trace) bool {
+        return clockStateIsValid(
+            self.clock_origin,
+            self.rows.items.len,
+            self.recorded_external_steps,
+            self.last_retirement_clock,
+        );
+    }
+
+    fn clockStateIsValid(
+        origin: u32,
+        core_steps: usize,
+        external_steps: usize,
+        last: u32,
+    ) bool {
+        const core_u32 = std.math.cast(u32, core_steps) orelse return false;
+        const external_u32 = std.math.cast(u32, external_steps) orelse return false;
+        const after_core = std.math.add(u32, origin, core_u32) catch return false;
+        const expected = std.math.add(u32, after_core, external_u32) catch return false;
+        return expected == last;
     }
 
     pub fn groupByOpcodeFamily(self: *const Trace, _: std.mem.Allocator) !OpcodeFamilyCounts {
@@ -381,9 +579,15 @@ test "trace hands out filtered opcodes index-parallel to its rows" {
     const allocator = std.testing.allocator;
     var trace = Trace.init(allocator);
     defer trace.deinit();
-    try trace.append(testRow(.ADD));
-    try trace.append(testRow(.SW));
-    try trace.append(testRow(.FENCE));
+    var add = testRow(.ADD);
+    add.clk = 1;
+    var store = testRow(.SW);
+    store.clk = 2;
+    var fence = testRow(.FENCE);
+    fence.clk = 3;
+    try trace.append(add);
+    try trace.append(store);
+    try trace.append(fence);
 
     const filtered = try trace.proofOpcodes(allocator);
     defer allocator.free(filtered);

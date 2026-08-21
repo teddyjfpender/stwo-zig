@@ -278,6 +278,7 @@ test "JAL forged and stale plans reject before logical mutation" {
         cpu.writeReg(2, 0x2222_2222);
         exec_trace.rows.clearRetainingCapacity();
         exec_trace.step_count = 0;
+        try exec_trace.bindExtractedClockRange(0, 0, 0);
         tracker.reg_last_clk = .{0} ** 32;
         tracker.accesses.clearRetainingCapacity();
         tracker.clock_updates_reg.clearRetainingCapacity();

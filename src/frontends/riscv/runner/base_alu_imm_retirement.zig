@@ -23,6 +23,7 @@ pub const DecodedInst = typed_authority.DecodedInst;
 pub const Authority = typed_authority.Authority;
 
 pub const StageError = access_transaction.CompileError || error{
+    InstructionClockMismatch,
     InstructionWordMismatch,
     TraceInvariantViolation,
 };
@@ -174,7 +175,8 @@ pub const Plan = struct {
             cpu.readReg(self.instruction.rs2) == self.rs2_value and
             cpu.readReg(self.instruction.rd) == self.rd_previous_value and
             exec_trace.rows.items.len == self.expected_trace_len and
-            exec_trace.step_count == self.expected_trace_len;
+            exec_trace.step_count == self.expected_trace_len and
+            exec_trace.expectsNextCoreRetirement(self.instruction_clock);
     }
 
     inline fn accessStateIsCurrent(
@@ -260,6 +262,8 @@ pub inline fn stage(
 ) StageError!Plan {
     if (exec_trace.step_count != exec_trace.rows.items.len)
         return error.TraceInvariantViolation;
+    if (!exec_trace.expectsNextCoreRetirement(instruction_clock))
+        return error.InstructionClockMismatch;
     if (!instructionMatchesWord(instruction, inst_word))
         return error.InstructionWordMismatch;
 
@@ -303,6 +307,8 @@ pub inline fn retireAtomic(
 ) RetireError!void {
     if (exec_trace.step_count != exec_trace.rows.items.len)
         return error.TraceInvariantViolation;
+    if (!exec_trace.expectsNextCoreRetirement(instruction_clock))
+        return error.InstructionClockMismatch;
     if (!instructionMatchesWord(instruction, inst_word))
         return error.InstructionWordMismatch;
 
@@ -347,6 +353,7 @@ pub inline fn retireAtomic(
             cpu.readReg(instruction.rd) != rd_previous_value or
             exec_trace.rows.items.len != expected_trace_len or
             exec_trace.step_count != expected_trace_len or
+            !exec_trace.expectsNextCoreRetirement(instruction_clock) or
             tracker.reg_last_clk[instruction.rs1] !=
                 transaction.source_raw_previous_clock or
             (instruction.rd != instruction.rs1 and

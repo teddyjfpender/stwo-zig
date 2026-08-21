@@ -27,6 +27,8 @@ pub const provePoseidon2WithEngineAndPublicData =
     orchestration.provePoseidon2WithEngineAndPublicData;
 pub const provePoseidon2WithEngineAndPublicDataUsingChannel =
     orchestration.provePoseidon2WithEngineAndPublicDataUsingChannel;
+pub const provePoseidon2WithEngineAndPublicDataUsingChannelAndPhaseMeter =
+    orchestration.provePoseidon2WithEngineAndPublicDataUsingChannelAndPhaseMeter;
 pub const verifyPoseidon2WithEngine = verifier.verifyPoseidon2WithEngine;
 pub const verifyPoseidon2WithEngineUsingChannel =
     verifier.verifyPoseidon2WithEngineUsingChannel;

@@ -33,6 +33,7 @@ pub const HostRuntime = host.HostRuntime;
 pub const runWithHost = runner.runWithHost;
 pub const runWithInput = runner.runWithInput;
 pub const RiscVClaim = air.claims.RiscVClaim;
+pub const MAX_EXECUTION_STEPS = prover_mod.MAX_EXECUTION_STEPS;
 pub const proveRiscVTraceOnlyNoPublicIo = prover_mod.proveRiscVTraceOnlyNoPublicIo;
 pub const proveRiscVWithEngineAndPublicData = prover_mod.proveRiscVWithEngineAndPublicData;
 pub const proveRiscVWithEngineAndPublicDataWithExecution =
@@ -50,6 +51,8 @@ pub const verifyRiscVWithEngineUsingChannelAndProofCapture =
     prover_mod.verifyRiscVWithEngineUsingChannelAndProofCapture;
 pub const provePoseidon2WithEngineAndPublicData =
     prover_mod.provePoseidon2WithEngineAndPublicData;
+pub const provePoseidon2WithEngineAndPublicDataUsingChannelAndPhaseMeter =
+    prover_mod.provePoseidon2WithEngineAndPublicDataUsingChannelAndPhaseMeter;
 pub const verifyPoseidon2WithEngine = prover_mod.verifyPoseidon2WithEngine;
 pub const proveAndVerifyElfWithEngine = prover_mod.proveAndVerifyElfWithEngine;
 

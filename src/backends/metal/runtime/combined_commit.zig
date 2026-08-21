@@ -4,6 +4,7 @@ const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const prover = @import("stwo_prover_engine");
 const metal_merkle = @import("../merkle_tree.zig");
+const precommitted_work = @import("precommitted_work.zig");
 const shared_runtime = @import("../shared_runtime.zig");
 const telemetry = @import("../telemetry.zig");
 
@@ -60,6 +61,57 @@ pub fn prepareAndCommitOwned(
     twiddle_source: anytype,
     source_backing_buffers: ?[][]M31,
     source: ColumnSource,
+) !?PreparedCommitment(H) {
+    return prepareAndCommitOwnedImpl(
+        false,
+        H,
+        allocator,
+        owned_columns,
+        log_blowup_factor,
+        retention_policy,
+        twiddle_source,
+        source_backing_buffers,
+        source,
+        {},
+    );
+}
+
+pub fn prepareAndCommitOwnedWithWorkRecorder(
+    comptime H: type,
+    allocator: std.mem.Allocator,
+    owned_columns: []ColumnEvaluation,
+    log_blowup_factor: u32,
+    retention_policy: anytype,
+    twiddle_source: anytype,
+    source_backing_buffers: ?[][]M31,
+    source: ColumnSource,
+    work_recorder: *precommitted_work.Recorder,
+) !?PreparedCommitment(H) {
+    return prepareAndCommitOwnedImpl(
+        true,
+        H,
+        allocator,
+        owned_columns,
+        log_blowup_factor,
+        retention_policy,
+        twiddle_source,
+        source_backing_buffers,
+        source,
+        work_recorder,
+    );
+}
+
+fn prepareAndCommitOwnedImpl(
+    comptime capture_work: bool,
+    comptime H: type,
+    allocator: std.mem.Allocator,
+    owned_columns: []ColumnEvaluation,
+    log_blowup_factor: u32,
+    retention_policy: anytype,
+    twiddle_source: anytype,
+    source_backing_buffers: ?[][]M31,
+    source: ColumnSource,
+    work_recorder: if (capture_work) *precommitted_work.Recorder else void,
 ) !?PreparedCommitment(H) {
     const supported_column_count = owned_columns.len == composition_column_count or
         (owned_columns.len >= min_columns and owned_columns.len <= max_columns);
@@ -131,10 +183,21 @@ pub fn prepareAndCommitOwned(
         extended_values[index] = transform_buffer[index * extended_stride ..][0..extended_len];
     }
 
-    const base_twiddles = try twiddle_source.get(allocator, base_log_size);
-    const extended_twiddles = try twiddle_source.get(allocator, extended_log_size);
+    const base_twiddles = if (capture_work)
+        try twiddle_source.getWithWorkRecorder(allocator, base_log_size, work_recorder)
+    else
+        try twiddle_source.get(allocator, base_log_size);
+    const extended_twiddles = if (capture_work)
+        try twiddle_source.getWithWorkRecorder(allocator, extended_log_size, work_recorder)
+    else
+        try twiddle_source.get(allocator, extended_log_size);
     var lease = shared_runtime.acquireExisting() catch return null;
     defer lease.deinit();
+    var work_audit: if (capture_work) precommitted_work.Audit else void =
+        if (capture_work)
+            try precommitted_work.Audit.beginOwned(work_recorder)
+        else {};
+    defer if (capture_work) work_audit.deinit();
     const result = lease.runtime.transformCircleLdeAndCommitPrepared(
         allocator,
         source_values,
@@ -181,6 +244,20 @@ pub fn prepareAndCommitOwned(
     };
     errdefer if (!reuse_source) allocator.free(coefficient_backings);
 
+    if (capture_work) {
+        const receipt = try precommitted_work.Receipt.fromUniformOwned(
+            base_log_size,
+            extended_log_size,
+            owned_columns.len,
+            .{
+                .normalization_batch_count = result.work.normalization_batch_count,
+                .forward_skipped_layers = result.work.forward_skipped_layers,
+                .merkle_compressions = result.work.merkle_compressions,
+            },
+        );
+        try work_audit.complete(receipt);
+    }
+
     // The GPU has completed before the source trace is released. Returned
     // coefficient/evaluation slices borrow only the two retained backings.
     if (reuse_source) {
@@ -219,6 +296,49 @@ pub fn prepareAndCommitPolys(
     log_blowup_factor: u32,
     retention_policy: anytype,
     twiddle_source: anytype,
+) !?PreparedCommitment(H) {
+    return prepareAndCommitPolysImpl(
+        false,
+        H,
+        allocator,
+        polys,
+        log_blowup_factor,
+        retention_policy,
+        twiddle_source,
+        {},
+    );
+}
+
+pub fn prepareAndCommitPolysWithWorkRecorder(
+    comptime H: type,
+    allocator: std.mem.Allocator,
+    polys: []const CircleCoefficients,
+    log_blowup_factor: u32,
+    retention_policy: anytype,
+    twiddle_source: anytype,
+    work_recorder: *precommitted_work.Recorder,
+) !?PreparedCommitment(H) {
+    return prepareAndCommitPolysImpl(
+        true,
+        H,
+        allocator,
+        polys,
+        log_blowup_factor,
+        retention_policy,
+        twiddle_source,
+        work_recorder,
+    );
+}
+
+fn prepareAndCommitPolysImpl(
+    comptime capture_work: bool,
+    comptime H: type,
+    allocator: std.mem.Allocator,
+    polys: []const CircleCoefficients,
+    log_blowup_factor: u32,
+    retention_policy: anytype,
+    twiddle_source: anytype,
+    work_recorder: if (capture_work) *precommitted_work.Recorder else void,
 ) !?PreparedCommitment(H) {
     if (retention_policy != .always or log_blowup_factor != 1 or
         polys.len != composition_column_count)
@@ -269,10 +389,21 @@ pub fn prepareAndCommitPolys(
         extended_values[index] = transform_buffer[index * extended_stride ..][0..extended_len];
     }
 
-    const base_twiddles = try twiddle_source.get(allocator, base_log_size);
-    const extended_twiddles = try twiddle_source.get(allocator, extended_log_size);
+    const base_twiddles = if (capture_work)
+        try twiddle_source.getWithWorkRecorder(allocator, base_log_size, work_recorder)
+    else
+        try twiddle_source.get(allocator, base_log_size);
+    const extended_twiddles = if (capture_work)
+        try twiddle_source.getWithWorkRecorder(allocator, extended_log_size, work_recorder)
+    else
+        try twiddle_source.get(allocator, extended_log_size);
     var lease = shared_runtime.acquireExisting() catch return null;
     defer lease.deinit();
+    var work_audit: if (capture_work) precommitted_work.Audit else void =
+        if (capture_work)
+            try precommitted_work.Audit.beginPolynomials(work_recorder)
+        else {};
+    defer if (capture_work) work_audit.deinit();
     const result = lease.runtime.transformCircleLdeAndCommitPrepared(
         allocator,
         source_values,
@@ -318,6 +449,19 @@ pub fn prepareAndCommitPolys(
     const coefficient_backings = try allocator.alloc([]M31, 1);
     errdefer allocator.free(coefficient_backings);
     coefficient_backings[0] = base_buffer;
+
+    if (capture_work) {
+        const receipt = try precommitted_work.Receipt.fromUniformPolynomials(
+            extended_log_size,
+            polys.len,
+            .{
+                .normalization_batch_count = result.work.normalization_batch_count,
+                .forward_skipped_layers = result.work.forward_skipped_layers,
+                .merkle_compressions = result.work.merkle_compressions,
+            },
+        );
+        try work_audit.complete(receipt);
+    }
 
     keep_base = true;
     keep_transform = true;

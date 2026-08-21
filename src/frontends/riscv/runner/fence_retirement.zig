@@ -154,13 +154,13 @@ pub const Plan = struct {
             cpu.readReg(instruction.rs2) == self.rs2_value and
             cpu.readReg(instruction.rd) == self.rd_value and
             exec_trace.rows.items.len == self.expected_trace_len and
-            exec_trace.step_count == self.expected_trace_len;
+            exec_trace.step_count == self.expected_trace_len and
+            exec_trace.expectsNextCoreRetirement(self.instruction_clock);
     }
 
     inline fn isWellFormed(self: *const Plan) bool {
         const instruction = self.instruction;
         return instructionMatchesWord(instruction, self.inst_word) and
-            traceClockMatches(self.expected_trace_len, self.instruction_clock) and
             self.instruction_clock != 0 and
             access_clock.maximum(self.instruction_clock) <
                 state_chain.CLOCK_PREV_BOUND and
@@ -211,7 +211,7 @@ pub inline fn stage(
 ) StageError!Plan {
     if (exec_trace.step_count != exec_trace.rows.items.len)
         return error.TraceInvariantViolation;
-    if (!traceClockMatches(exec_trace.rows.items.len, instruction_clock))
+    if (!exec_trace.expectsNextCoreRetirement(instruction_clock))
         return error.InstructionClockMismatch;
     if (!instructionMatchesWord(instruction, inst_word))
         return error.InstructionWordMismatch;
@@ -288,11 +288,6 @@ inline fn instructionMatchesWord(
         instruction.imm >= -2048 and instruction.imm <= 2047 and
         instruction.rs2 == @as(u5, @truncate(immediate_bits)) and
         inst_word == reconstructed;
-}
-
-inline fn traceClockMatches(trace_len: usize, instruction_clock: u32) bool {
-    if (trace_len >= std.math.maxInt(u32)) return false;
-    return instruction_clock == @as(u32, @intCast(trace_len)) + 1;
 }
 
 inline fn transactionIsCanonicalEmpty(

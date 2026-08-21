@@ -512,6 +512,42 @@ pub fn generateAndCommitPoseidon2(
     geometry: Geometry,
     opt_chain: ?*const state_chain.StateChainTracker,
 ) !Poseidon2Retained {
+    return generateAndCommitPoseidon2WithPhaseMeter(
+        Engine,
+        allocator,
+        workspace,
+        extension,
+        calls,
+        execution_rows,
+        scheme,
+        channel,
+        recorder,
+        exec_trace,
+        witness,
+        geometry,
+        opt_chain,
+        null,
+    );
+}
+
+/// Profile Tree 1 with the same materialization boundary used by the base
+/// prover. Commitment work is deliberately outside the witness region.
+pub fn generateAndCommitPoseidon2WithPhaseMeter(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    workspace: *ProofWorkspace,
+    extension: *const guest_statement.ExtensionStatement,
+    calls: *const guest_call_buffer.Frozen,
+    execution_rows: *const guest_runner.FrozenExecutionRows,
+    scheme: *Engine.Scheme,
+    channel: *Engine.Channel,
+    recorder: ?*stage_profile.Recorder,
+    exec_trace: *const trace_mod.Trace,
+    witness: *const CommitmentWitness,
+    geometry: Geometry,
+    opt_chain: ?*const state_chain.StateChainTracker,
+    phase_meter: ?*proof_phase_meter.Meter,
+) !Poseidon2Retained {
     const capture_main_witness_work = try planMainWitnessFieldWork(recorder);
     var poseidon_capture = try PoseidonWorkCapture.init(witness);
     const statement = &workspace.statement;
@@ -527,6 +563,9 @@ pub fn generateAndCommitPoseidon2(
         @hasDecl(Engine.Backend, "adopts_source_trace_arena") and
         Engine.Backend.adopts_source_trace_arena;
 
+    var materialization_region: ?proof_phase_meter.WitnessRegion =
+        if (phase_meter) |meter| try meter.begin() else null;
+    errdefer if (materialization_region) |*region| region.abort();
     var columns = try Columns.init(
         allocator,
         n_main,
@@ -647,6 +686,7 @@ pub fn generateAndCommitPoseidon2(
         try publishMainWitnessWorkReceipt(recorder, receipt);
     }
 
+    if (materialization_region) |*region| try region.finish();
     {
         var stage = try stage_profile.StageScope.begin(
             recorder,
