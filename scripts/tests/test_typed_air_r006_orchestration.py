@@ -10,7 +10,11 @@ from scripts.typed_air_r006_capture_lib import contract as r006_contract
 from scripts.typed_air_r006_capture_lib import orchestration
 from scripts.typed_air_r006_capture_lib.codec import canonical_bytes, content_digest
 from scripts.typed_air_r006_capture_lib.controller import ProcessResult
-from scripts.typed_air_r006_capture_lib.model import CaptureError
+from scripts.typed_air_r006_capture_lib.model import (
+    GENERATED_WORKLOADS,
+    GENERATED_WORKLOAD_PARAMETERS,
+    CaptureError,
+)
 from scripts.typed_air_r006_capture_lib.orchestration import (
     INSTALL_SCHEMA,
     SNAPSHOT_CLASSIFICATION,
@@ -24,6 +28,10 @@ from scripts.tests.test_typed_air_r006_capture import (
     R006Fixture,
     preflight_host,
     quiet_evidence,
+)
+from scripts.tests.typed_air_r006_guest_fixture import (
+    guest_artifact,
+    guest_verifier_receipt,
 )
 
 
@@ -120,6 +128,7 @@ class OrchestrationTests(R006Fixture):
 
     def smoke_runner(self, plan, attempt, proof, *, mutation=None):
         calls = 0
+        artifact = self.base_artifact(proof)
 
         def runner(command, cwd, timeout, environment):
             nonlocal calls
@@ -127,11 +136,15 @@ class OrchestrationTests(R006Fixture):
             calls += 1
             if command[1] == "bench":
                 proof_path = Path(cwd) / command[command.index("--proof-out") + 1]
-                proof_path.write_bytes(proof)
-                return ProcessResult(0, self.report(plan, attempt, proof), b"", 123)
+                proof_path.write_bytes(artifact)
+                return ProcessResult(
+                    0, self.report(plan, attempt, artifact), b"", 123
+                )
             if mutation is not None:
                 mutation()
-            return ProcessResult(0, self.verifier_receipt(plan), b"", 45)
+            return ProcessResult(
+                0, self.verifier_receipt(plan, proof_payload=proof), b"", 45
+            )
 
         return runner, lambda: calls
 
@@ -268,6 +281,10 @@ class OrchestrationTests(R006Fixture):
             settings,
             source_provider=self.diagnostic_source,
         )
+        self.assertEqual(
+            set(plan["workloads"][0]),
+            {"id", "elf", "input"},
+        )
         runner, calls = self.smoke_runner(plan, attempt, b"installed-v4-proof")
         result = installed_v4_smoke(
             settings,
@@ -275,6 +292,10 @@ class OrchestrationTests(R006Fixture):
             source_provider=self.diagnostic_source,
         )
         self.assertEqual(result["status"], "PASS")
+        self.assertEqual(
+            result["schema"], "stwo.typed-air.r006-installed-v4-smoke.v1"
+        )
+        self.assertEqual(result["schema_version"], 1)
         self.assertEqual(result["independent_verification"], "verified")
         self.assertEqual(
             result["work_disclosure"]["schema"],
@@ -282,6 +303,110 @@ class OrchestrationTests(R006Fixture):
         )
         self.assertFalse(result["normative_performance_receipt"])
         self.assertEqual(calls(), 2)
+
+    def test_installed_guest_smoke_selects_one_frozen_workload_explicitly(self) -> None:
+        prefix, receipt, _ = self.install()
+        executable = prefix / "bin/stwo-zig-riscv-cpu"
+        workload_id = "balanced_core_and_poseidon2"
+        settings = SmokeSettings(
+            repository=self.repository,
+            lane="cpu-native",
+            executable=executable,
+            install_receipt=receipt,
+            elf=self.workloads[workload_id].elf,
+            input_path=self.workloads[workload_id].input,
+            bundle=self.scratch / "guest-smoke-bundle",
+            session_id="fixture-installed-guest-v4",
+            execute_installed_v4_smoke=True,
+            timeout_seconds=10,
+            generated_workload_id=workload_id,
+        )
+        plan, attempt, _ = orchestration._smoke_plan(
+            settings,
+            source_provider=self.diagnostic_source,
+        )
+        workload = plan["workloads"][0]
+        self.assertEqual(workload["id"], workload_id)
+        self.assertEqual(workload["generator"], GENERATED_WORKLOADS[workload_id])
+        self.assertEqual(
+            workload["parameters"],
+            GENERATED_WORKLOAD_PARAMETERS[workload_id],
+        )
+        artifact = guest_artifact()
+        commands = []
+
+        def runner(command, cwd, timeout, environment):
+            del timeout, environment
+            commands.append(tuple(command))
+            if command[1] == "bench":
+                path = Path(cwd) / command[command.index("--proof-out") + 1]
+                path.write_bytes(artifact)
+                return ProcessResult(
+                    0,
+                    self.report(plan, attempt, artifact),
+                    b"",
+                    123,
+                )
+            return ProcessResult(
+                0,
+                guest_verifier_receipt(plan, artifact),
+                b"",
+                45,
+            )
+
+        result = installed_v4_smoke(
+            settings,
+            child_runner=runner,
+            source_provider=self.diagnostic_source,
+        )
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["workload"]["generator"], GENERATED_WORKLOADS[workload_id])
+        self.assertIn("--input", commands[0])
+        self.assertIn("--input", commands[1])
+
+    def test_installed_guest_smoke_rejects_implicit_or_malformed_profiles(self) -> None:
+        prefix, receipt, _ = self.install()
+        executable = prefix / "bin/stwo-zig-riscv-cpu"
+        workload_id = "poseidon2_dominant"
+
+        def settings(name, selected, input_path):
+            return SmokeSettings(
+                repository=self.repository,
+                lane="cpu-native",
+                executable=executable,
+                install_receipt=receipt,
+                elf=self.workloads[workload_id].elf,
+                input_path=input_path,
+                bundle=self.scratch / name,
+                session_id=name,
+                execute_installed_v4_smoke=True,
+                timeout_seconds=10,
+                generated_workload_id=selected,
+            )
+
+        with self.assertRaisesRegex(CaptureError, "requires its canonical input"):
+            orchestration._smoke_plan(
+                settings("missing-input", workload_id, None),
+                source_provider=self.diagnostic_source,
+            )
+        with self.assertRaisesRegex(CaptureError, "not frozen"):
+            orchestration._smoke_plan(
+                settings("unknown-profile", "unknown", self.workloads[workload_id].input),
+                source_provider=self.diagnostic_source,
+            )
+        balanced_input = self.workloads["balanced_core_and_poseidon2"].input
+        with self.assertRaisesRegex(CaptureError, "canonical for poseidon2_dominant"):
+            orchestration._smoke_plan(
+                settings("cross-workload-input", workload_id, balanced_input),
+                source_provider=self.diagnostic_source,
+            )
+        malformed = self.scratch / "malformed-generated.input"
+        malformed.write_bytes(b"\0" * 32)
+        with self.assertRaisesRegex(CaptureError, "shape is not canonical"):
+            orchestration._smoke_plan(
+                settings("malformed-input", workload_id, malformed),
+                source_provider=self.diagnostic_source,
+            )
 
     def test_smoke_rejects_binary_receipt_and_source_drift(self) -> None:
         prefix, receipt, _ = self.install()

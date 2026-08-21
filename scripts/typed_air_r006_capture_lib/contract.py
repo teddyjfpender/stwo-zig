@@ -32,6 +32,7 @@ from .model import (
     DIGEST_RE,
     ENVIRONMENT,
     GENERATED_WORKLOADS,
+    GENERATED_WORKLOAD_PARAMETERS,
     GIT_OID_RE,
     LANES,
     MILESTONE,
@@ -274,7 +275,13 @@ def _protocol(repository: Path) -> dict[str, object]:
     }
 
 
-def _validate_generated_input(path: Path) -> dict[str, int]:
+def _validate_generated_input(
+    path: Path,
+    workload_id: str,
+) -> dict[str, int | str]:
+    expected = GENERATED_WORKLOAD_PARAMETERS.get(workload_id)
+    if expected is None:
+        raise CaptureError("generated Poseidon2 workload identity is not frozen")
     try:
         raw = path.read_bytes()
     except OSError as error:
@@ -282,20 +289,32 @@ def _validate_generated_input(path: Path) -> dict[str, int]:
     if len(raw) < 4:
         raise CaptureError("generated Poseidon2 input lacks its call-count prefix")
     calls = struct.unpack_from("<I", raw)[0]
-    if calls != 4096 or len(raw) != 4 + calls * 16 * 4:
-        raise CaptureError("generated Poseidon2 input shape is not canonical")
+    if (
+        calls != expected["calls"]
+        or len(raw)
+        != 4
+        + calls * expected["width"] * expected["encoding_word_bytes"]
+    ):
+        raise CaptureError(
+            f"generated Poseidon2 input shape is not canonical for {workload_id}"
+        )
     for offset in range(4, len(raw), 4):
         if struct.unpack_from("<I", raw, offset)[0] >= 0x7FFF_FFFF:
             raise CaptureError("generated Poseidon2 input contains a non-canonical M31 word")
     if raw != materialized_poseidon_input(calls):
         raise CaptureError("generated Poseidon2 input differs from its frozen generator")
-    return {"calls": calls, "width": 16, "encoding_word_bytes": 4}
+    return dict(expected)
 
 
-def materialized_poseidon_input(calls: int = 4096) -> bytes:
+def materialized_poseidon_input(calls: int) -> bytes:
     """Replay ``poseidon2-software-precompile-equivalence-v1`` exactly."""
-    if calls != 4096:
-        raise CaptureError("R-006 freezes generated Poseidon2 workloads at 4096 calls")
+    admitted_calls = {
+        parameters["calls"] for parameters in GENERATED_WORKLOAD_PARAMETERS.values()
+    }
+    if type(calls) is not int or calls not in admitted_calls:
+        raise CaptureError(
+            "R-006 materialization accepts only frozen per-workload call counts"
+        )
     modulus = 0x7FFF_FFFF
     mask = (1 << 64) - 1
     random_state = 0x6A09_E667_F3BC_C909
@@ -335,7 +354,7 @@ def _workloads(paths: Mapping[str, WorkloadPaths]) -> list[dict[str, object]]:
             if supplied.input is None:
                 raise CaptureError(f"generated workload {workload_id} requires materialized input")
             generator = dict(generated)
-            parameters = _validate_generated_input(supplied.input)
+            parameters = _validate_generated_input(supplied.input, workload_id)
             input_identity = _file_identity(supplied.input)
         result.append(
             {
@@ -602,12 +621,25 @@ def _validate_workloads(value: Any, *, verify_local: bool) -> list[dict[str, Any
             if workload["generator"] != generated:
                 raise CaptureError(f"generated workload {expected_id} authority changed")
             identity = _validate_file(workload["input"], f"workload {expected_id} input", verify_local=verify_local)
-            parameters = exact_object(workload["parameters"], {"calls", "width", "encoding_word_bytes"}, "generated parameters")
-            if parameters["width"] != 16 or parameters["encoding_word_bytes"] != 4:
-                raise CaptureError("generated Poseidon2 parameters changed")
-            if type(parameters["calls"]) is not int or parameters["calls"] != 4096:
-                raise CaptureError("generated Poseidon2 call count is invalid")
-            if verify_local and _validate_generated_input(Path(identity["path"])) != parameters:
+            parameters = exact_object(
+                workload["parameters"],
+                {
+                    "schema",
+                    "schema_version",
+                    "calls",
+                    "width",
+                    "encoding_word_bytes",
+                },
+                "generated parameters",
+            )
+            expected_parameters = GENERATED_WORKLOAD_PARAMETERS[expected_id]
+            if parameters != expected_parameters:
+                raise CaptureError(
+                    f"generated workload {expected_id} geometry changed"
+                )
+            if verify_local and _validate_generated_input(
+                Path(identity["path"]), expected_id
+            ) != parameters:
                 raise CaptureError(f"generated workload {expected_id} input semantics changed")
         result.append(workload)
     return result

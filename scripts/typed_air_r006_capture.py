@@ -45,6 +45,7 @@ from scripts.typed_air_r006_capture_lib import (  # noqa: E402
 from scripts.typed_air_r006_capture_lib.codec import (  # noqa: E402
     canonical_bytes,
     decode_strict,
+    sha256_bytes,
     write_new,
 )
 from scripts.typed_air_r006_capture_lib.contract import (  # noqa: E402
@@ -53,6 +54,7 @@ from scripts.typed_air_r006_capture_lib.contract import (  # noqa: E402
 )
 from scripts.typed_air_r006_capture_lib.model import (  # noqa: E402
     GENERATED_WORKLOADS,
+    GENERATED_WORKLOAD_PARAMETERS,
     LANES,
     PLAN_ATTEMPTS,
     WORKLOAD_IDS,
@@ -73,7 +75,7 @@ def _parser() -> argparse.ArgumentParser:
 
     materialize = commands.add_parser(
         "materialize-inputs",
-        help="create the two frozen 4096-call generated input files",
+        help="create the two frozen per-workload generated input files",
     )
     materialize.add_argument("--output-dir", type=Path, required=True)
 
@@ -130,6 +132,11 @@ def _parser() -> argparse.ArgumentParser:
     smoke.add_argument("--install-receipt", type=Path, required=True)
     smoke.add_argument("--elf", type=Path, required=True)
     smoke.add_argument("--input", type=Path)
+    smoke.add_argument(
+        "--generated-workload",
+        choices=sorted(GENERATED_WORKLOADS),
+        help="explicitly select one frozen generated Poseidon2 workload",
+    )
     smoke.add_argument("--bundle", type=Path, required=True)
     smoke.add_argument("--session-id", required=True)
     smoke.add_argument("--timeout-seconds", type=float, default=86_400.0)
@@ -329,15 +336,27 @@ def main(argv: list[str] | None = None) -> int:
     exit_code = 0
     try:
         if args.command == "materialize-inputs":
-            raw = materialized_poseidon_input()
             outputs = []
             for workload in GENERATED_WORKLOADS:
+                parameters = GENERATED_WORKLOAD_PARAMETERS[workload]
+                raw = materialized_poseidon_input(parameters["calls"])
                 path = args.output_dir.resolve() / f"{workload}.input.bin"
                 write_new(path, raw)
-                outputs.append({"workload": workload, "path": str(path), "bytes": len(raw)})
+                outputs.append(
+                    {
+                        "workload": workload,
+                        "generator": dict(GENERATED_WORKLOADS[workload]),
+                        "parameters": dict(parameters),
+                        "input": {
+                            "path": str(path),
+                            "bytes": len(raw),
+                            "sha256": sha256_bytes(raw),
+                        },
+                    }
+                )
             result: dict[str, object] = {
-                "schema": "stwo.typed-air.r006-materialized-inputs.v1",
-                "calls": 4096,
+                "schema": "stwo.typed-air.r006-materialized-inputs.v2",
+                "schema_version": 2,
                 "outputs": outputs,
             }
         elif args.command == "snapshot":
@@ -395,6 +414,7 @@ def main(argv: list[str] | None = None) -> int:
                     session_id=args.session_id,
                     execute_installed_v4_smoke=args.execute_installed_v4_smoke,
                     timeout_seconds=args.timeout_seconds,
+                    generated_workload_id=args.generated_workload,
                 )
             )
         elif args.command == "plan":

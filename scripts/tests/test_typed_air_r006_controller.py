@@ -24,7 +24,8 @@ from scripts.tests.test_typed_air_r006_capture import R006Fixture
 class ControllerSmokeTests(R006Fixture):
     def test_one_fresh_profiled_attempt_runs_independent_verifier_and_journals(self) -> None:
         attempt = self.plan["attempts"][80]
-        proof = b"deterministic-proof"
+        proof_payload = b"deterministic-proof"
+        proof = self.base_artifact(proof_payload)
         calls: list[tuple[str, ...]] = []
 
         def runner(command, cwd, timeout, environment):
@@ -41,7 +42,12 @@ class ControllerSmokeTests(R006Fixture):
                 proof_path.write_bytes(proof)
                 return ProcessResult(0, self.report(self.plan, attempt, proof), b"", 123)
             self.assertEqual(command[1], "verify")
-            return ProcessResult(0, self.verifier_receipt(self.plan), b"", 45)
+            return ProcessResult(
+                0,
+                self.verifier_receipt(self.plan, proof_payload=proof_payload),
+                b"",
+                45,
+            )
 
         clock_values = iter(range(100, 1000, 100))
         bundle = self.scratch / "one-attempt-bundle"
@@ -104,7 +110,8 @@ class ControllerSmokeTests(R006Fixture):
 
     def test_verifier_stderr_remains_forbidden_with_a_valid_receipt(self) -> None:
         attempt = self.plan["attempts"][80]
-        proof = b"deterministic-proof"
+        proof_payload = b"deterministic-proof"
+        proof = self.base_artifact(proof_payload)
 
         def runner(command, cwd, timeout, environment):
             del timeout, environment
@@ -114,7 +121,7 @@ class ControllerSmokeTests(R006Fixture):
                 return ProcessResult(0, self.report(self.plan, attempt, proof), b"", 123)
             return ProcessResult(
                 0,
-                self.verifier_receipt(self.plan),
+                self.verifier_receipt(self.plan, proof_payload=proof_payload),
                 b"unexpected diagnostic",
                 45,
             )

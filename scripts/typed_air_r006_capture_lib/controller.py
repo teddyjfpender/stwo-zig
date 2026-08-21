@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any, Callable, Mapping, Sequence
 
+from .bundle_snapshot import attach_validation_snapshot
 from .codec import (
     canonical_bytes,
     content_digest,
@@ -29,8 +30,9 @@ from .model import (
     UTC_RE,
     CaptureError,
 )
+from .receipt import validate_receipt
 from .report import validate_report
-from .verifier_receipt import validate_verifier_receipt
+from .workload_profile import is_guest_workload, workload_for_attempt
 
 
 JOURNAL_HEADER_SCHEMA = "stwo.typed-air.r006-journal-header.v1"
@@ -150,15 +152,9 @@ def _utc(clock: UtcClock) -> str:
     return value.astimezone(dt.timezone.utc).replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def _workload(plan: dict[str, Any], workload_id: str) -> dict[str, Any]:
-    for workload in plan["workloads"]:
-        if workload["id"] == workload_id:
-            return workload
-    raise CaptureError(f"attempt names an unplanned workload: {workload_id}")
-
-
 def proof_command(plan: dict[str, Any], attempt: dict[str, Any]) -> tuple[str, ...]:
-    workload = _workload(plan, attempt["workload_id"])
+    workload = workload_for_attempt(plan, attempt)
+    is_guest_workload(workload)
     arguments = [
         plan["build"]["executable_path"],
         "bench",
@@ -188,19 +184,26 @@ def proof_command(plan: dict[str, Any], attempt: dict[str, Any]) -> tuple[str, .
 def verify_command(
     plan: dict[str, Any], attempt: dict[str, Any], statement_sha256: str
 ) -> tuple[str, ...]:
-    workload = _workload(plan, attempt["workload_id"])
-    return (
+    workload = workload_for_attempt(plan, attempt)
+    arguments = [
         plan["build"]["executable_path"],
         "verify",
         "--artifact",
         attempt["proof_path"],
         "--elf",
         workload["elf"]["path"],
-        "--protocol",
-        "secure",
-        "--expect-statement-digest",
-        statement_sha256,
+    ]
+    if is_guest_workload(workload):
+        arguments.extend(("--input", workload["input"]["path"]))
+    arguments.extend(
+        (
+            "--protocol",
+            "secure",
+            "--expect-statement-digest",
+            statement_sha256,
+        )
     )
+    return tuple(arguments)
 
 
 def _command_digest(command: Sequence[str]) -> str:
@@ -322,6 +325,7 @@ def run_attempt(
     child_runner: ChildRunner,
     monotonic: Monotonic,
     utc_clock: UtcClock,
+    record_stager: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     command = proof_command(plan, attempt)
     started_at = _utc(utc_clock)
@@ -398,9 +402,10 @@ def run_attempt(
                 verify_failure_detail = "independent verifier wrote stderr"
             else:
                 try:
-                    validate_verifier_receipt(
+                    validate_receipt(
                         verify_stdout,
                         plan=plan,
+                        attempt=attempt,
                         identity=identity,
                     )
                 except CaptureError as error:
@@ -442,7 +447,7 @@ def run_attempt(
         }
     verification["stdout"] = journal.retain(attempt["verify_stdout_path"], verify_stdout)
     verification["stderr"] = journal.retain(attempt["verify_stderr_path"], verify_stderr)
-    return {
+    record = {
         "schema": ATTEMPT_RESULT_SCHEMA,
         "ordinal": attempt["ordinal"],
         "attempt_id": attempt["attempt_id"],
@@ -461,6 +466,9 @@ def run_attempt(
         "metrics": metrics,
         "independent_verification": verification,
     }
+    if record_stager is not None:
+        record_stager(record)
+    return record
 
 
 def _identity_consistent(records: list[dict[str, Any]], plan: dict[str, Any]) -> bool:
@@ -730,9 +738,10 @@ def _validate_record(
         )
     ):
         raise CaptureError("independent verification receipt is incomplete")
-    validate_verifier_receipt(
+    validate_receipt(
         verify_stdout.read_bytes(),
         plan=plan,
+        attempt=attempt,
         identity=identity,
     )
     if record["launcher_elapsed_ns"] == 0 or record["process_cpu_ns"] == 0:
@@ -742,7 +751,12 @@ def _validate_record(
     return identity
 
 
-def validate_bundle(repository: Path, bundle_path: Path) -> dict[str, Any]:
+def validate_bundle(
+    repository: Path,
+    bundle_path: Path,
+    *,
+    include_snapshot: bool = False,
+) -> dict[str, Any]:
     inventory = FileInventory(bundle_path)
     plan_raw = inventory.root_file("plan.json")
     plan = decode_strict(plan_raw)
@@ -815,7 +829,7 @@ def validate_bundle(repository: Path, bundle_path: Path) -> dict[str, Any]:
         if bundle[name] != expected or type(bundle[name]) is not int:
             raise CaptureError(f"bundle {name} is not raw-derived")
     inventory.finish()
-    return {
+    result = {
         "schema": "stwo.typed-air.r006-bundle-validation.v1",
         "status": bundle["status"],
         "plan_sha256": plan["content_sha256"],
@@ -826,3 +840,10 @@ def validate_bundle(repository: Path, bundle_path: Path) -> dict[str, Any]:
         "raw_bundle_valid": True,
         "normative_m7_receipt": False,
     }
+    return attach_validation_snapshot(
+        result,
+        include=include_snapshot,
+        plan=plan,
+        bundle=bundle,
+        records=records,
+    )

@@ -103,12 +103,25 @@ def validate_verifier_receipt(
     proof_bytes = receipt["proof_bytes"]
     if type(proof_bytes) is not int or not 0 < proof_bytes <= U64_MAX:
         raise CaptureError("verifier receipt proof byte count is invalid")
-    _digest(receipt["proof_sha256"], "proof")
+    proof_sha256 = _digest(receipt["proof_sha256"], "proof")
+    expected_proof_bytes = identity.get("verifier_proof_bytes")
+    if (
+        type(expected_proof_bytes) is not int
+        or not 0 < expected_proof_bytes <= U64_MAX
+    ):
+        raise CaptureError("verifier receipt expected proof byte count is invalid")
+    expected_proof_sha256 = _digest(
+        identity.get("verifier_proof_sha256"), "expected proof"
+    )
+    if proof_bytes != expected_proof_bytes:
+        raise CaptureError("verifier receipt proof_bytes identity changed")
+    if proof_sha256 != expected_proof_sha256:
+        raise CaptureError("verifier receipt proof_sha256 identity changed")
 
     expected = {
         **fixed,
-        "proof_bytes": proof_bytes,
-        "proof_sha256": receipt["proof_sha256"],
+        "proof_bytes": expected_proof_bytes,
+        "proof_sha256": expected_proof_sha256,
     }
     if raw != _wire_bytes(expected):
         raise CaptureError("verifier receipt is not the canonical production JSON line")

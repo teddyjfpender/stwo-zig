@@ -8,8 +8,20 @@ import struct
 from pathlib import Path
 from typing import Any
 
+from .base_artifact import verifier_payload_identity
 from .codec import decode_strict, exact_object, sha256_file
 from .model import DIGEST_RE, MAX_STREAM_BYTES, CaptureError
+from .workload_profile import (
+    GUEST_ARTIFACT_FORMAT_VERSION,
+    GUEST_ARTIFACT_KIND,
+    GUEST_PROFILE_MANIFEST_SHA256,
+    GUEST_PROFILE_VERSION,
+    GUEST_TASK_PROFILE_EXAMPLE,
+    is_guest_workload,
+    task_profile_example,
+    validate_guest_artifact_header,
+    workload_for_attempt,
+)
 
 
 PROFILED_SCHEMA = "riscv_profiled_proof_v3"
@@ -560,12 +572,17 @@ def _validate_graph(value: Any, requested_workers: int) -> dict[str, int]:
     }
 
 
-def _validate_profile(value: Any, requested_workers: int, proving_boundary_ns: int) -> dict[str, int]:
+def _validate_profile(
+    value: Any,
+    requested_workers: int,
+    proving_boundary_ns: int,
+    expected_example: str,
+) -> dict[str, int]:
     profile = exact_object(value, PROFILE_FIELDS, "task profile")
     if (
         profile["schema_version"] != 2
         or profile["runtime"] != "ReleaseFast"
-        or profile["example"] != "sail_rv32im_zkvm_v1"
+        or profile["example"] != expected_example
     ):
         raise CaptureError("task profile identity changed")
     if type(profile["graphs"]) is not list or not profile["graphs"]:
@@ -625,6 +642,8 @@ def validate_report(
     attempt: dict[str, Any],
     proof_path: Path,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
+    workload = workload_for_attempt(plan, attempt)
+    guest_profile = is_guest_workload(workload)
     if len(raw) > MAX_STREAM_BYTES or not raw.endswith(b"\n") or raw.count(b"\n") != 1 or b"\r" in raw:
         raise CaptureError("profiled child stdout must be one bounded JSON line")
     report = decode_strict(raw)
@@ -684,6 +703,16 @@ def validate_report(
     proof_bytes, actual_proof_digest = sha256_file(proof_path)
     if proof_bytes <= 0 or proof_digest != actual_proof_digest:
         raise CaptureError("retained proof bytes disagree with the benchmark report")
+    if guest_profile:
+        validate_guest_artifact_header(proof_path, proof_bytes)
+        verifier_identity = {}
+    else:
+        verifier_identity = verifier_payload_identity(
+            proof_path,
+            artifact_bytes=proof_bytes,
+            artifact_sha256=proof_digest,
+            expected_backend=plan["lane"]["cli_backend"],
+        )
     resources = _validate_resources(report["resources"])
     authority = exact_object(report["timing_authority"], TIMING_AUTHORITY_FIELDS, "timing authority")
     expected_authority = {
@@ -735,6 +764,7 @@ def validate_report(
         inner["task_profile"],
         attempt["worker_count"],
         inner["proving_including_witness_ns"],
+        task_profile_example(workload),
     )
     work_disclosure = _validate_work_profile(inner["work_profile"]) if exact_work else None
     metal_disclosure = None
@@ -754,9 +784,21 @@ def validate_report(
         "transcript_state_blake2s": transcript,
         "proof_sha256": proof_digest,
         "proof_bytes": proof_bytes,
+        **verifier_identity,
         "total_steps": report["total_steps"],
         "n_components": report["n_components"],
     }
+    if guest_profile:
+        identity.update(
+            {
+                "artifact_kind": GUEST_ARTIFACT_KIND,
+                "artifact_schema_version": GUEST_ARTIFACT_FORMAT_VERSION,
+                "profile_identity": GUEST_TASK_PROFILE_EXAMPLE,
+                "profile_version": GUEST_PROFILE_VERSION,
+                "profile_manifest_sha256": GUEST_PROFILE_MANIFEST_SHA256,
+                "guest_calls": workload["parameters"]["calls"],
+            }
+        )
     metrics = {
         "verified_request_ns": inner["verified_request_ns"],
         "guest_execution_ns": inner["guest_execution_ns"],

@@ -2,17 +2,28 @@ from __future__ import annotations
 
 import copy
 import datetime as dt
+import hashlib
 import json
 from pathlib import Path
 from unittest import mock
 
 from scripts.typed_air_r006_capture_lib import reduction
+from scripts.typed_air_r006_capture_lib import pair as pair_module
+from scripts.typed_air_r006_capture_lib import pair_identity
+from scripts.typed_air_r006_capture_lib import pair_validation
 from scripts.typed_air_r006_capture_lib.codec import content_digest
 from scripts.typed_air_r006_capture_lib.controller import ProcessResult
 from scripts.typed_air_r006_capture_lib.model import PLAN_ATTEMPTS, CaptureError
 from scripts.typed_air_r006_capture_lib.orchestration import (
     SNAPSHOT_CLASSIFICATION,
     host_preflight,
+)
+from scripts.typed_air_r006_capture_lib.workload_profile import (
+    GUEST_ARTIFACT_FORMAT_VERSION,
+    GUEST_ARTIFACT_KIND,
+    GUEST_PROFILE_MANIFEST_SHA256,
+    GUEST_PROFILE_VERSION,
+    GUEST_TASK_PROFILE_EXAMPLE,
 )
 from scripts.typed_air_r006_capture_lib.pair import (
     PAIR_ATTEMPTS,
@@ -28,6 +39,7 @@ from scripts.tests.test_typed_air_r006_capture import (
     preflight_host,
     quiet_evidence,
 )
+from scripts.tests.typed_air_r006_guest_fixture import guest_artifact
 
 
 class PairedCaptureTests(R006Fixture):
@@ -65,9 +77,13 @@ class PairedCaptureTests(R006Fixture):
         plan = self.pair_plan()
         self.assertEqual(
             plan["schema"],
-            "stwo.typed-air.r006-paired-capture-plan.v2",
+            "stwo.typed-air.r006-paired-capture-plan.v3",
         )
-        self.assertEqual(plan["schema_version"], 2)
+        self.assertEqual(plan["schema_version"], 3)
+        self.assertEqual(
+            plan["schedule"]["post_capture_quieting"],
+            pair_module.quieting.POST_CAPTURE_QUIETING_POLICY,
+        )
         self.assertEqual(PAIR_ATTEMPTS, 2 * PLAN_ATTEMPTS)
         self.assertEqual(len(plan["interleaving"]), PAIR_ATTEMPTS)
         self.assertEqual(
@@ -87,6 +103,17 @@ class PairedCaptureTests(R006Fixture):
             plan["lanes"]["cpu-native"]["workloads"],
             plan["lanes"]["metal-hybrid"]["workloads"],
         )
+
+        changed = copy.deepcopy(plan)
+        changed["schedule"]["post_capture_quieting"]["timeout_ns"] -= 1
+        changed["content_sha256"] = content_digest(changed)
+        with self.assertRaisesRegex(CaptureError, "authority changed"):
+            validate_pair_plan(
+                changed,
+                repository=self.repository,
+                verify_local=False,
+                source_provider=self.source,
+            )
 
         changed = copy.deepcopy(plan)
         changed["interleaving"][0], changed["interleaving"][1] = (
@@ -182,10 +209,26 @@ class PairedCaptureTests(R006Fixture):
                 relative = command[command.index("--proof-out") + 1]
                 ordinal = int(Path(relative).name.split(".")[0])
                 attempt = lane_plan["attempts"][ordinal]
-                proof = f"proof:{attempt['workload_id']}".encode("ascii")
-                (Path(cwd) / relative).write_bytes(proof)
-                return ProcessResult(0, self.report(lane_plan, attempt, proof), b"", 123)
-            return ProcessResult(0, self.verifier_receipt(lane_plan), b"", 45)
+                payload = f"proof:{attempt['workload_id']}".encode("ascii")
+                artifact = self.base_artifact(
+                    payload, backend=lane_plan["lane"]["cli_backend"]
+                )
+                (Path(cwd) / relative).write_bytes(artifact)
+                return ProcessResult(
+                    0, self.report(lane_plan, attempt, artifact), b"", 123
+                )
+            relative = command[command.index("--artifact") + 1]
+            return ProcessResult(
+                0,
+                self.verifier_receipt(
+                    lane_plan,
+                    proof_payload=self.base_artifact_payload(
+                        (Path(cwd) / relative).read_bytes()
+                    ),
+                ),
+                b"",
+                45,
+            )
 
         def capture_one():
             return capture_pair(
@@ -218,6 +261,111 @@ class PairedCaptureTests(R006Fixture):
         self.assertEqual(second_record["lane"], "metal-hybrid")
         self.assertEqual(first_record["lane_ordinal"], 0)
         self.assertEqual(second_record["lane_ordinal"], 0)
+
+    def test_post_capture_quieting_timeout_preserves_resumable_journals(self) -> None:
+        plan = self.pair_plan()
+        plan_path = self.scratch / "quiet-timeout-plan.json"
+        bundle = self.scratch / "quiet-timeout-bundle"
+        write_pair_plan_new(plan_path, plan)
+
+        def runner(command, cwd, timeout, environment):
+            del timeout, environment
+            lane = Path(cwd).name
+            lane_plan = plan["lanes"][lane]
+            if command[1] == "bench":
+                relative = command[command.index("--proof-out") + 1]
+                ordinal = int(Path(relative).name.split(".")[0])
+                attempt = lane_plan["attempts"][ordinal]
+                artifact = self.base_artifact(
+                    backend=lane_plan["lane"]["cli_backend"]
+                )
+                (Path(cwd) / relative).write_bytes(artifact)
+                return ProcessResult(
+                    0, self.report(lane_plan, attempt, artifact), b"", 123
+                )
+            relative = command[command.index("--artifact") + 1]
+            return ProcessResult(
+                0,
+                self.verifier_receipt(
+                    lane_plan,
+                    proof_payload=self.base_artifact_payload(
+                        (Path(cwd) / relative).read_bytes()
+                    ),
+                ),
+                b"",
+                45,
+            )
+
+        rejected_host = preflight_host(logical_cpu_count=10)
+        rejected = host_preflight(
+            host_provider=lambda: rejected_host,
+            quiet_provider=lambda _: quiet_evidence(
+                rejected_host,
+                idle_percent=(80.0, 81.0, 82.0),
+            ),
+        )
+        samples = iter((self.preflight(), rejected))
+        original = pair_module.quieting.await_admitted_post_capture_preflight
+
+        def bounded_quieting(**arguments):
+            ticks = iter((0, 2))
+            arguments.update(
+                monotonic=lambda: next(ticks),
+                retry_interval_ns=1,
+                timeout_ns=2,
+            )
+            return original(**arguments)
+
+        settings = PairCaptureSettings(
+            repository=self.repository,
+            plan_path=plan_path,
+            bundle_path=bundle,
+            execute_frozen_2080_attempt_schedule=True,
+            timeout_seconds=10,
+            max_new_attempts=1,
+        )
+        with (
+            mock.patch.object(
+                pair_module.quieting,
+                "await_admitted_post_capture_preflight",
+                side_effect=bounded_quieting,
+            ),
+            self.assertRaisesRegex(CaptureError, "quieting timed out"),
+        ):
+            capture_pair(
+                settings,
+                child_runner=runner,
+                sleeper=lambda _: None,
+                preflight_provider=lambda: next(samples),
+                source_provider=self.source,
+                closure_provider=self.closure,
+            )
+
+        self.assertEqual(
+            len((bundle / "cpu-native/journal.ndjson").read_bytes().splitlines()),
+            2,
+        )
+        self.assertEqual(
+            len((bundle / "metal-hybrid/journal.ndjson").read_bytes().splitlines()),
+            1,
+        )
+        self.assertEqual(
+            len((bundle / "pair-journal.ndjson").read_bytes().splitlines()),
+            2,
+        )
+        self.assertTrue((bundle / "cpu-native/attempts/0000.proof.json").is_file())
+        self.assertFalse((bundle / "pair-bundle.json").exists())
+
+        resumed = capture_pair(
+            settings,
+            child_runner=runner,
+            sleeper=lambda _: None,
+            preflight_provider=self.preflight,
+            source_provider=self.source,
+            closure_provider=self.closure,
+        )
+        self.assertEqual(resumed["completed_attempts"], 2)
+        self.assertEqual(resumed["lane_attempts"], {"cpu-native": 1, "metal-hybrid": 1})
 
     def synthetic_records(
         self,
@@ -278,11 +426,17 @@ class PairedCaptureTests(R006Fixture):
     def test_scaling_reducer_recomputes_pass_but_never_invents_predecessor(self) -> None:
         plan = self.pair_plan()
         records = self.synthetic_records(plan)
+        bundle = {"content_sha256": "a" * 64}
         validation = {
             "failed_attempts": 0,
             "normative_scaling_capture": True,
+            "_snapshot": {
+                "plan": plan,
+                "bundle": bundle,
+                "lane_records": records,
+                "identities": {},
+            },
         }
-        bundle = {"content_sha256": "a" * 64}
         with (
             mock.patch.object(
                 reduction,
@@ -291,13 +445,11 @@ class PairedCaptureTests(R006Fixture):
             ),
             mock.patch.object(
                 reduction,
-                "_read_root_json",
-                side_effect=(plan, bundle),
+                "assert_pair_snapshot_current",
             ),
             mock.patch.object(
                 reduction,
-                "_lane_records",
-                side_effect=lambda path: records[path.name],
+                "_require_unchanged_bundle_validation",
             ),
         ):
             receipt = reduction.evaluate_pair_scaling(
@@ -314,3 +466,242 @@ class PairedCaptureTests(R006Fixture):
         self.assertTrue(receipt["aggregate_gates"]["a_a_calibration"])
         self.assertTrue(receipt["aggregate_gates"]["primary_cpu_four_worker_target"])
         self.assertFalse(receipt["claim_boundary"]["m7_promotion_receipt"])
+
+    def test_reduction_snapshot_rejects_post_validation_replacement(self) -> None:
+        root = self.scratch / "reduction-snapshot"
+        root.mkdir()
+        path = root / "pair-plan.json"
+        original = b"snapshot-a\n"
+        path.write_bytes(original)
+        snapshot = {
+            "identities": {
+                "pair-plan.json": {
+                    "bytes": len(original),
+                    "sha256": hashlib.sha256(original).hexdigest(),
+                }
+            }
+        }
+        pair_validation.assert_pair_snapshot_current(root, snapshot)
+        path.write_bytes(b"snapshot-b\n")
+        with self.assertRaisesRegex(CaptureError, "source changed"):
+            pair_validation.assert_pair_snapshot_current(root, snapshot)
+
+        with (
+            mock.patch.object(
+                reduction,
+                "validate_pair_bundle",
+                return_value={"status": "changed"},
+            ),
+            self.assertRaisesRegex(CaptureError, "changed during scaling"),
+        ):
+            reduction._require_unchanged_bundle_validation(
+                self.repository,
+                root,
+                {"status": "initial"},
+            )
+
+    def test_zero_parallel_and_observational_counters_produce_honest_receipt(self) -> None:
+        plan = self.pair_plan()
+        records = self.synthetic_records(plan)
+        for lane_records in records.values():
+            for record in lane_records:
+                metrics = record["metrics"]
+                metrics["task_disclosure"]["parallel_eligible_ns"] = 0
+                metrics["energy_nj"] = 0
+                metrics["cycles"] = 0
+        bundle = {"content_sha256": "b" * 64}
+        validation = {
+            "failed_attempts": 0,
+            "normative_scaling_capture": True,
+            "_snapshot": {
+                "plan": plan,
+                "bundle": bundle,
+                "lane_records": records,
+                "identities": {},
+            },
+        }
+        with (
+            mock.patch.object(
+                reduction,
+                "validate_pair_bundle",
+                return_value=validation,
+            ),
+            mock.patch.object(reduction, "assert_pair_snapshot_current"),
+            mock.patch.object(
+                reduction, "_require_unchanged_bundle_validation"
+            ),
+        ):
+            receipt = reduction.evaluate_pair_scaling(
+                self.repository,
+                self.scratch / "zero-observational-bundle",
+            )
+        self.assertEqual(receipt["scaling_verdict"], "NO_VERDICT")
+        self.assertEqual(receipt["qualifying_workloads"], [])
+        for row in receipt["rows"]:
+            self.assertEqual(
+                row["parallelizable_fraction"]["median_fraction"], 0.0
+            )
+            for metric in ("energy_nj", "cycles"):
+                statistic = row["statistics"][metric]
+                self.assertEqual(statistic["availability"], "unavailable")
+                self.assertFalse(statistic["blocking"])
+                self.assertIsNone(statistic["ci_lower"])
+
+    def test_exact_work_authority_rejects_cross_worker_and_cross_lane_drift(self) -> None:
+        plan = self.pair_plan()
+        records = self.synthetic_records(plan)
+        authority = pair_validation.validate_exact_work_authority(plan, records)
+        self.assertEqual(set(authority), set(self.workloads))
+
+        cross_worker = copy.deepcopy(records)
+        cross_worker["cpu-native"][1]["metrics"]["work_disclosure"][
+            "field_additions"
+        ] += 1
+        with self.assertRaisesRegex(CaptureError, "across workers or lanes"):
+            pair_validation.validate_exact_work_authority(plan, cross_worker)
+
+        cross_lane = copy.deepcopy(records)
+        cross_lane["metal-hybrid"][0]["metrics"]["work_disclosure"][
+            "field_multiplications"
+        ] += 1
+        with self.assertRaisesRegex(CaptureError, "across workers or lanes"):
+            pair_validation.validate_exact_work_authority(plan, cross_lane)
+
+    def test_cross_lane_identity_uses_plan_selected_semantics(self) -> None:
+        full_plan = self.pair_plan()
+        plan = {"lanes": {}}
+        records: dict[str, list[dict[str, object]]] = {}
+        payload = b"same-decoded-postcard-proof"
+        guest = guest_artifact()
+        for lane in pair_module.PAIR_LANE_ORDER:
+            lane_plan = full_plan["lanes"][lane]
+            base_attempt = next(
+                attempt
+                for attempt in lane_plan["attempts"]
+                if attempt["workload_id"] == "multi_shard_addi"
+            )
+            guest_attempt = next(
+                attempt
+                for attempt in lane_plan["attempts"]
+                if attempt["workload_id"] == "balanced_core_and_poseidon2"
+            )
+            plan["lanes"][lane] = {
+                "attempts": [base_attempt, guest_attempt],
+                "workloads": lane_plan["workloads"],
+            }
+            wrapper = self.base_artifact(
+                payload, backend=lane_plan["lane"]["cli_backend"]
+            )
+            records[lane] = [
+                {
+                    "status": "verified",
+                    "identity": {
+                        "statement_sha256": "4" * 64,
+                        "transcript_state_blake2s": "5" * 64,
+                        "proof_bytes": len(wrapper),
+                        "proof_sha256": hashlib.sha256(wrapper).hexdigest(),
+                        "verifier_proof_bytes": len(payload),
+                        "verifier_proof_sha256": hashlib.sha256(
+                            payload
+                        ).hexdigest(),
+                        "total_steps": 100,
+                        "n_components": 4,
+                    },
+                },
+                {
+                    "status": "verified",
+                    "identity": {
+                        "statement_sha256": "6" * 64,
+                        "transcript_state_blake2s": "7" * 64,
+                        "proof_bytes": len(guest),
+                        "proof_sha256": hashlib.sha256(guest).hexdigest(),
+                        "total_steps": 464_184,
+                        "n_components": 6,
+                        "artifact_kind": GUEST_ARTIFACT_KIND,
+                        "artifact_schema_version": GUEST_ARTIFACT_FORMAT_VERSION,
+                        "profile_identity": GUEST_TASK_PROFILE_EXAMPLE,
+                        "profile_version": GUEST_PROFILE_VERSION,
+                        "profile_manifest_sha256": GUEST_PROFILE_MANIFEST_SHA256,
+                        "guest_calls": 8,
+                    },
+                },
+            ]
+
+        cpu_base = records["cpu-native"][0]["identity"]
+        metal_base = records["metal-hybrid"][0]["identity"]
+        self.assertNotEqual(cpu_base["proof_sha256"], metal_base["proof_sha256"])
+        authority = pair_identity.validate_pair_identity_authority(
+            plan, records, pair_module.PAIR_LANE_ORDER
+        )
+        self.assertEqual(set(authority), {
+            "multi_shard_addi",
+            "balanced_core_and_poseidon2",
+        })
+        self.assertEqual(
+            authority["multi_shard_addi"]["verifier_proof_sha256"],
+            hashlib.sha256(payload).hexdigest(),
+        )
+
+        base_mutations = {
+            "verifier_proof_bytes": len(payload) + 1,
+            "verifier_proof_sha256": "8" * 64,
+            "statement_sha256": "8" * 64,
+            "transcript_state_blake2s": "8" * 64,
+            "total_steps": 101,
+            "n_components": 5,
+        }
+        for name, value in base_mutations.items():
+            with self.subTest(base=name):
+                changed = copy.deepcopy(records)
+                changed["metal-hybrid"][0]["identity"][name] = value
+                with self.assertRaisesRegex(CaptureError, "semantic proof identity"):
+                    pair_identity.validate_pair_identity_authority(
+                        plan, changed, pair_module.PAIR_LANE_ORDER
+                    )
+
+        guest_mutations = {
+            "proof_bytes": len(guest) + 1,
+            "proof_sha256": "8" * 64,
+            "artifact_kind": "wrong_guest_artifact",
+            "artifact_schema_version": 2,
+            "profile_identity": "wrong-profile",
+            "profile_version": 2,
+            "profile_manifest_sha256": "8" * 64,
+            "guest_calls": 7,
+            "statement_sha256": "8" * 64,
+            "transcript_state_blake2s": "8" * 64,
+            "total_steps": 464_185,
+            "n_components": 7,
+        }
+        for name, value in guest_mutations.items():
+            with self.subTest(guest=name):
+                changed = copy.deepcopy(records)
+                changed["metal-hybrid"][1]["identity"][name] = value
+                with self.assertRaisesRegex(CaptureError, "semantic"):
+                    pair_identity.validate_pair_identity_authority(
+                        plan, changed, pair_module.PAIR_LANE_ORDER
+                    )
+
+        self_routed = copy.deepcopy(records)
+        self_routed["metal-hybrid"][0]["identity"] = copy.deepcopy(
+            self_routed["metal-hybrid"][1]["identity"]
+        )
+        with self.assertRaisesRegex(CaptureError, "identity fields drifted"):
+            pair_identity.validate_pair_identity_authority(
+                plan, self_routed, pair_module.PAIR_LANE_ORDER
+            )
+
+        lane_drift_plan = copy.deepcopy(plan)
+        lane_drift_records = copy.deepcopy(records)
+        lane_drift_plan["lanes"]["cpu-native"]["attempts"].append(
+            lane_drift_plan["lanes"]["cpu-native"]["attempts"][0]
+        )
+        duplicate = copy.deepcopy(lane_drift_records["cpu-native"][0])
+        duplicate["identity"]["proof_sha256"] = "9" * 64
+        lane_drift_records["cpu-native"].append(duplicate)
+        with self.assertRaisesRegex(CaptureError, "within-lane proof artifact"):
+            pair_identity.validate_pair_identity_authority(
+                lane_drift_plan,
+                lane_drift_records,
+                pair_module.PAIR_LANE_ORDER,
+            )

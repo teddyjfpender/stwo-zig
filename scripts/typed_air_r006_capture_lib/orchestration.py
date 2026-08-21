@@ -34,9 +34,10 @@ from .contract import (
     EPHEMERAL_SNAPSHOT_MESSAGE_PREFIX,
     _file_identity,
     _require_binary_markers,
+    _validate_generated_input,
 )
 from .controller import Journal, ProcessResult, default_child_runner, run_attempt
-from .model import ENVIRONMENT, LANES, UTC_RE, CaptureError
+from .model import ENVIRONMENT, GENERATED_WORKLOADS, LANES, UTC_RE, CaptureError
 from .preflight import build_host_preflight, validate_host_preflight
 
 
@@ -459,6 +460,7 @@ class SmokeSettings:
     session_id: str
     execute_installed_v4_smoke: bool
     timeout_seconds: float = 86_400.0
+    generated_workload_id: str | None = None
 
 
 def _load_install_receipt(
@@ -498,6 +500,31 @@ def _load_install_receipt(
     return install, _file_identity(receipt)
 
 
+def _smoke_workload(settings: SmokeSettings) -> dict[str, Any]:
+    selected = settings.generated_workload_id
+    if selected is None:
+        return {
+            "id": "installed_v4_smoke",
+            "elf": _file_identity(settings.elf),
+            "input": (
+                _file_identity(settings.input_path)
+                if settings.input_path is not None
+                else None
+            ),
+        }
+    if type(selected) is not str or selected not in GENERATED_WORKLOADS:
+        raise CaptureError("installed smoke generated workload is not frozen")
+    if settings.input_path is None:
+        raise CaptureError("generated installed smoke requires its canonical input")
+    return {
+        "id": selected,
+        "elf": _file_identity(settings.elf),
+        "input": _file_identity(settings.input_path),
+        "generator": dict(GENERATED_WORKLOADS[selected]),
+        "parameters": _validate_generated_input(settings.input_path, selected),
+    }
+
+
 def _smoke_plan(
     settings: SmokeSettings,
     *,
@@ -519,15 +546,7 @@ def _smoke_plan(
     _require_binary_markers(Path(str(executable["path"])))
     if _file_identity(settings.executable, executable=True) != executable:
         raise CaptureError("installed executable changed while its markers were authenticated")
-    workload = {
-        "id": "installed_v4_smoke",
-        "elf": _file_identity(settings.elf),
-        "input": (
-            _file_identity(settings.input_path)
-            if settings.input_path is not None
-            else None
-        ),
-    }
+    workload = _smoke_workload(settings)
     lane = LANES[settings.lane]
     attempt = {
         "ordinal": 0,

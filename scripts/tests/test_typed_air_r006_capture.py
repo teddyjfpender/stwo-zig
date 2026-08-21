@@ -24,11 +24,17 @@ from scripts.typed_air_r006_capture_lib.controller import (
     proof_command,
 )
 from scripts.typed_air_r006_capture_lib.model import (
+    GENERATED_WORKLOAD_PARAMETERS,
     PLAN_ATTEMPTS,
     PROTOCOL_SHA256,
     CaptureError,
 )
 from scripts.typed_air_r006_capture_lib.report import validate_report
+from scripts.typed_air_r006_capture_lib.workload_profile import task_profile_example
+from scripts.tests.typed_air_r006_base_fixture import (
+    base_artifact,
+    base_artifact_payload,
+)
 
 
 def preflight_host(
@@ -84,6 +90,9 @@ def quiet_evidence(
 
 
 class R006Fixture(unittest.TestCase):
+    base_artifact = staticmethod(base_artifact)
+    base_artifact_payload = staticmethod(base_artifact_payload)
+
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.scratch = Path(self.temporary.name)
@@ -94,7 +103,6 @@ class R006Fixture(unittest.TestCase):
             b"stwo.prover.logical-work-profile.v2\0"
         )
         self.executable.chmod(0o700)
-        generated = materialized_poseidon_input()
         self.workloads: dict[str, WorkloadPaths] = {}
         for name in (
             "multi_shard_addi",
@@ -107,7 +115,11 @@ class R006Fixture(unittest.TestCase):
             input_path = None
             if name in {"balanced_core_and_poseidon2", "poseidon2_dominant"}:
                 input_path = self.scratch / f"{name}.input"
-                input_path.write_bytes(generated)
+                input_path.write_bytes(
+                    materialized_poseidon_input(
+                        GENERATED_WORKLOAD_PARAMETERS[name]["calls"]
+                    )
+                )
             self.workloads[name] = WorkloadPaths(elf, input_path)
         self.plan = build_plan(
             PlanSettings(
@@ -224,6 +236,9 @@ class R006Fixture(unittest.TestCase):
         exact_work: bool = True,
     ) -> bytes:
         workers = attempt["worker_count"]
+        workload = next(
+            item for item in plan["workloads"] if item["id"] == attempt["workload_id"]
+        )
         event = {
             "key": {
                 "epoch": 0,
@@ -346,7 +361,7 @@ class R006Fixture(unittest.TestCase):
             "task_profile": {
                 "schema_version": 2,
                 "runtime": "ReleaseFast",
-                "example": "sail_rv32im_zkvm_v1",
+                "example": task_profile_example(workload),
                 "graphs": [graph],
             },
         }
@@ -473,8 +488,8 @@ class R006Fixture(unittest.TestCase):
 
 class PlanTests(R006Fixture):
     def test_plan_freezes_protocol_worker_arms_and_complete_pairwise_schedule(self) -> None:
-        self.assertEqual(self.plan["schema"], "stwo.typed-air.r006-capture-plan.v2")
-        self.assertEqual(self.plan["schema_version"], 2)
+        self.assertEqual(self.plan["schema"], "stwo.typed-air.r006-capture-plan.v3")
+        self.assertEqual(self.plan["schema_version"], 3)
         self.assertEqual(self.plan["protocol"]["sha256"], PROTOCOL_SHA256)
         closure = self.plan["global_exact_work_closure"]
         self.assertTrue(closure["coverage"]["whole_prover_exact"])
@@ -566,7 +581,7 @@ class PlanTests(R006Fixture):
             validate_plan(changed, repository=self.repository, verify_local=False)
 
     def test_generated_input_is_exact_and_local_mutation_rejects(self) -> None:
-        raw = materialized_poseidon_input()
+        raw = materialized_poseidon_input(4096)
         self.assertEqual(len(raw), 262_148)
         self.assertEqual(
             hashlib.sha256(raw).hexdigest(),
@@ -663,7 +678,8 @@ class ProfileValidationTests(R006Fixture):
     def setUp(self) -> None:
         super().setUp()
         self.attempt = self.plan["attempts"][80]
-        self.proof = b"deterministic-proof"
+        self.proof_payload = b"deterministic-proof"
+        self.proof = self.base_artifact(self.proof_payload)
         self.proof_path = self.scratch / self.attempt["proof_path"]
         self.proof_path.parent.mkdir(exist_ok=True)
         self.proof_path.write_bytes(self.proof)
@@ -677,6 +693,10 @@ class ProfileValidationTests(R006Fixture):
             proof_path=self.proof_path,
         )
         self.assertEqual(identity["proof_bytes"], len(self.proof))
+        self.assertEqual(
+            identity["verifier_proof_sha256"],
+            hashlib.sha256(self.proof_payload).hexdigest(),
+        )
         self.assertEqual(metrics["verified_request_ns"], 70)
         self.assertEqual(metrics["peak_rss_bytes"], 200)
         self.assertEqual(metrics["task_disclosure"]["queue_wait_ns"], 1)

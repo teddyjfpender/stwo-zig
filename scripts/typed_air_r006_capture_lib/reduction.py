@@ -24,7 +24,7 @@ from .pair import (
     PAIR_LANE_ORDER,
     validate_pair_bundle,
 )
-from .pair_validation import _lane_records, _read_root_json
+from .pair_validation import assert_pair_snapshot_current
 
 
 REDUCTION_SCHEMA = "stwo.typed-air.r006-paired-scaling-reduction.v1"
@@ -36,6 +36,7 @@ RESOURCE_METRICS = (
     "energy_nj",
     "cycles",
 )
+ZEROABLE_OBSERVATIONAL_METRICS = {"energy_nj", "cycles"}
 CALIBRATION_METRICS = ("verified_request_ns", "proving_ns", "peak_rss_bytes")
 SCALING_COMPARISONS = (
     "two-workers-over-one",
@@ -83,6 +84,22 @@ def _positive(value: Any, name: str) -> int:
     return value
 
 
+def _nonnegative(value: Any, name: str) -> int:
+    if type(value) is not int or value < 0:
+        raise CaptureError(f"R-006 reduction has invalid {name}")
+    return value
+
+
+def _require_unchanged_bundle_validation(
+    repository: Path,
+    bundle_path: Path,
+    initial: dict[str, Any],
+) -> None:
+    replayed = validate_pair_bundle(repository, bundle_path)
+    if replayed != initial:
+        raise CaptureError("R-006 raw bundle changed during scaling reduction")
+
+
 def _metric(record: dict[str, Any], name: str) -> int:
     if name == "process_cpu_ns":
         return _positive(record["process_cpu_ns"], name)
@@ -97,6 +114,8 @@ def _metric(record: dict[str, Any], name: str) -> int:
             metal["base_batch_dispatches"] + metal["lookup_batch_dispatches"],
             name,
         )
+    if name in ZEROABLE_OBSERVATIONAL_METRICS:
+        return _nonnegative(metrics[name], name)
     return _positive(metrics[name], name)
 
 
@@ -112,6 +131,7 @@ def _round_statistic(
     reference_medians: list[float] = []
     subject_medians: list[float] = []
     ratios: list[float] = []
+    unavailable_reason: str | None = None
     for round_index in range(ROUNDS):
         selected = [
             (attempt, record)
@@ -137,9 +157,28 @@ def _round_statistic(
         if orientation == "speed":
             ratios.append(reference_median / subject_median)
         elif orientation == "resource":
-            ratios.append(subject_median / reference_median)
+            if reference_median == 0.0:
+                if metric not in ZEROABLE_OBSERVATIONAL_METRICS:
+                    raise CaptureError(f"R-006 {metric} has a zero reference median")
+                unavailable_reason = "zero_reference_median"
+            else:
+                ratios.append(subject_median / reference_median)
         else:  # pragma: no cover - callers use a closed table.
             raise AssertionError(orientation)
+    if unavailable_reason is not None:
+        return {
+            "subject_id": subject,
+            "orientation": "subject_worker_resource_over_one_worker_resource",
+            "availability": "unavailable",
+            "blocking": False,
+            "reason": unavailable_reason,
+            "reference_round_medians": reference_medians,
+            "subject_round_medians": subject_medians,
+            "round_ratios": None,
+            "hodges_lehmann": None,
+            "ci_lower": None,
+            "ci_upper": None,
+        }
     estimate = authority.hodges_lehmann(ratios)
     lower, upper = authority.bootstrap_ci(
         ratios,
@@ -154,6 +193,9 @@ def _round_statistic(
             if orientation == "speed"
             else "subject_worker_resource_over_one_worker_resource"
         ),
+        "availability": "available",
+        "blocking": metric not in ZEROABLE_OBSERVATIONAL_METRICS,
+        "reason": None,
         "reference_round_medians": reference_medians,
         "subject_round_medians": subject_medians,
         "round_ratios": ratios,
@@ -172,7 +214,7 @@ def _parallel_fraction(
         if attempt["phase"] != "measured" or attempt["arm"] != "reference":
             continue
         metrics = record["metrics"]
-        parallel_ns = _positive(
+        parallel_ns = _nonnegative(
             metrics["task_disclosure"]["parallel_eligible_ns"],
             "one-worker parallel-eligible duration",
         )
@@ -267,12 +309,14 @@ def _calibration(
 
 def evaluate_pair_scaling(repository: Path, bundle_path: Path) -> dict[str, Any]:
     repository = repository.resolve()
-    bundle_validation = validate_pair_bundle(repository, bundle_path)
+    bundle_validation = validate_pair_bundle(
+        repository, bundle_path, include_snapshot=True
+    )
+    snapshot = bundle_validation.pop("_snapshot")
     if bundle_validation["failed_attempts"]:
         raise CaptureError("R-006 scaling reduction requires a failure-free paired bundle")
-    root = bundle_path.resolve()
-    plan = _read_root_json(root / "pair-plan.json")
-    bundle = _read_root_json(root / "pair-bundle.json")
+    plan = snapshot["plan"]
+    bundle = snapshot["bundle"]
     protocol = _protocol(repository)
     authority, statistical_policy = _authority(repository, protocol)
     milestone = next(
@@ -287,7 +331,7 @@ def evaluate_pair_scaling(repository: Path, bundle_path: Path) -> dict[str, Any]
     for lane in PAIR_LANE_ORDER:
         lane_groups[lane] = _groups(
             plan["lanes"][lane],
-            _lane_records(root / lane),
+            snapshot["lane_records"][lane],
         )
         calibration = lane_groups[lane][("multi_shard_addi", "aa-calibration")]
         calibrations[lane] = _calibration(
@@ -310,7 +354,11 @@ def evaluate_pair_scaling(repository: Path, bundle_path: Path) -> dict[str, Any]
                 captures = lane_groups[lane][(workload, comparison)]
                 if len(captures) != 80:
                     raise CaptureError("R-006 scaling cell does not contain eighty attempts")
-                subject_workers = {attempt["worker_count"] for attempt, _ in captures if attempt["arm"] == "subject"}
+                subject_workers = {
+                    attempt["worker_count"]
+                    for attempt, _ in captures
+                    if attempt["arm"] == "subject"
+                }
                 if len(subject_workers) != 1:
                     raise CaptureError("R-006 scaling cell subject worker count changed")
                 workers = next(iter(subject_workers))
@@ -509,6 +557,10 @@ def evaluate_pair_scaling(repository: Path, bundle_path: Path) -> dict[str, Any]
             ],
         },
     }
+    assert_pair_snapshot_current(bundle_path, snapshot)
+    _require_unchanged_bundle_validation(
+        repository, bundle_path, bundle_validation
+    )
     result["content_sha256"] = content_digest(result)
     return result
 

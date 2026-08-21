@@ -5,8 +5,8 @@ from __future__ import annotations
 import re
 
 
-PLAN_SCHEMA = "stwo.typed-air.r006-capture-plan.v2"
-PLAN_VERSION = 2
+PLAN_SCHEMA = "stwo.typed-air.r006-capture-plan.v3"
+PLAN_VERSION = 3
 BUNDLE_SCHEMA = "stwo.typed-air.r006-raw-bundle.v1"
 PROTOCOL_SCHEMA = "stwo-typed-air-m5-m9-performance-protocol-v1"
 PROTOCOL_PATH = "design/typed-air/performance/m5-m9-protocol-v1.json"
@@ -44,6 +44,26 @@ GENERATED_WORKLOADS = {
         "generator": "poseidon2-software-precompile-equivalence-v1",
         "seed": "stwo-typed-air-m7-dominant-poseidon2-v1",
         "shape": "poseidon2_dominant",
+    },
+}
+GENERATED_INPUT_GEOMETRY_SCHEMA = (
+    "stwo.typed-air.r006-generated-input-geometry.v1"
+)
+GENERATED_INPUT_GEOMETRY_VERSION = 1
+GENERATED_WORKLOAD_PARAMETERS = {
+    "balanced_core_and_poseidon2": {
+        "schema": GENERATED_INPUT_GEOMETRY_SCHEMA,
+        "schema_version": GENERATED_INPUT_GEOMETRY_VERSION,
+        "calls": 8,
+        "width": 16,
+        "encoding_word_bytes": 4,
+    },
+    "poseidon2_dominant": {
+        "schema": GENERATED_INPUT_GEOMETRY_SCHEMA,
+        "schema_version": GENERATED_INPUT_GEOMETRY_VERSION,
+        "calls": 4096,
+        "width": 16,
+        "encoding_word_bytes": 4,
     },
 }
 ENVIRONMENT = {"LANG": "C", "LC_ALL": "C", "TZ": "UTC"}

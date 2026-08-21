@@ -28,6 +28,24 @@ OPERATOR_TOOLS: dict[str, str] = {
     # classes; committed outputs are consumed by the frontend tests.
     "riscv_operand_classes.py":
         "Sail-derived RV32IM operand-class corpus generator and auditor",
+    # Owner: typed-air-performance. These create or validate explicit,
+    # operator-authorized benchmark/evidence transactions; none is a CI hook.
+    "riscv_csp_ab_benchmark.py":
+        "operator-run RISC-V CSP predecessor/candidate benchmark",
+    "typed_air_c013_capture.py":
+        "authenticated typed-AIR C-013 capture and reduction workflow",
+    "typed_air_p003_completion.py":
+        "P-003 exact-work inventory and completion validator",
+    "typed_air_performance_protocol.py":
+        "frozen M5--M9 performance-protocol validator",
+    "typed_air_poseidon_benchmark.py":
+        "operator-run typed-AIR Poseidon benchmark capture",
+    "typed_air_r006_capture.py":
+        "R-006 paired CPU/Metal scaling capture and replay workflow",
+    "typed_air_work_site_authority.py":
+        "typed prover-work site inventory authority validator",
+    "typed_air_zig_lane.py":
+        "serialized high-memory Zig gate coordinator for local engineering",
 }
 
 ENTRY_POINT_GLOBS = (

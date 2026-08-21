@@ -9,8 +9,8 @@ attempt.
 
 from __future__ import annotations
 
+import copy
 import datetime as dt
-import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -21,7 +21,6 @@ from .codec import (
     content_digest,
     decode_strict,
     exact_object,
-    sha256_file,
     write_new,
 )
 from .contract import (
@@ -37,17 +36,7 @@ from .contract import (
     validate_global_exact_work_closure,
     validate_plan,
 )
-from .controller import (
-    JOURNAL_HEADER_SCHEMA,
-    FileInventory,
-    Journal,
-    ProcessResult,
-    _journal,
-    _validate_record,
-    default_child_runner,
-    run_attempt,
-    validate_bundle,
-)
+from .controller import ProcessResult, default_child_runner, run_attempt
 from .model import (
     BUNDLE_SCHEMA,
     COOLDOWN_NS,
@@ -58,14 +47,18 @@ from .model import (
     CaptureError,
 )
 from .orchestration import INSTALL_LANES, host_preflight
+from . import post_capture_quieting as quieting
+from . import pair_durability as durability
+from . import pair_identity
+from . import pair_publication as publication
 from .preflight import validate_host_preflight
 
 
-PAIR_PLAN_SCHEMA = "stwo.typed-air.r006-paired-capture-plan.v2"
-PAIR_PROGRESS_HEADER_SCHEMA = "stwo.typed-air.r006-pair-progress-header.v1"
-PAIR_PROGRESS_RECORD_SCHEMA = "stwo.typed-air.r006-pair-progress-record.v1"
-PAIR_BUNDLE_SCHEMA = "stwo.typed-air.r006-paired-raw-bundle.v1"
-PAIR_VALIDATION_SCHEMA = "stwo.typed-air.r006-paired-bundle-validation.v1"
+PAIR_PLAN_SCHEMA = "stwo.typed-air.r006-paired-capture-plan.v3"
+PAIR_PROGRESS_HEADER_SCHEMA = durability.PAIR_PROGRESS_HEADER_SCHEMA
+PAIR_PROGRESS_RECORD_SCHEMA = durability.PAIR_PROGRESS_RECORD_SCHEMA
+PAIR_BUNDLE_SCHEMA = "stwo.typed-air.r006-paired-raw-bundle.v2"
+PAIR_VALIDATION_SCHEMA = "stwo.typed-air.r006-paired-bundle-validation.v2"
 PAIR_LANE_ORDER = INSTALL_LANES
 PAIR_ATTEMPTS = len(PAIR_LANE_ORDER) * PLAN_ATTEMPTS
 
@@ -94,6 +87,7 @@ PAIR_SCHEDULE = {
     "cooldown_ns_after_each_global_attempt": COOLDOWN_NS,
     "retry_failed_attempts": False,
     "resumption": "durable-complete-attempt-prefix-only",
+    "post_capture_quieting": quieting.POST_CAPTURE_QUIETING_POLICY,
 }
 PAIR_BUNDLE_FIELDS = {
     "schema",
@@ -111,6 +105,8 @@ PAIR_BUNDLE_FIELDS = {
     "end_preflight",
     "lanes",
     "pair_journal",
+    "attempt_publication_journal",
+    "preflight_boundary_journal",
     "cross_lane_identity_workloads",
     "independent_verifier_attempts",
     "exact_work_v4_attempts",
@@ -246,7 +242,7 @@ def build_pair_plan(
         lanes[lane] = lane_plan
     document: dict[str, Any] = {
         "schema": PAIR_PLAN_SCHEMA,
-        "schema_version": 2,
+        "schema_version": 3,
         "classification": "normative-pre-execution-paired-capture-authority",
         "created_at_utc": created,
         "session_id": settings.session_id,
@@ -255,7 +251,7 @@ def build_pair_plan(
         "host": host,
         "host_preflight": preflight,
         "lanes": lanes,
-        "schedule": dict(PAIR_SCHEDULE),
+        "schedule": copy.deepcopy(PAIR_SCHEDULE),
         "interleaving": _interleaving(lanes),
     }
     document["content_sha256"] = content_digest(document)
@@ -279,7 +275,7 @@ def validate_pair_plan(
     plan = exact_object(value, PAIR_PLAN_FIELDS, "paired R-006 capture plan")
     if (
         plan["schema"] != PAIR_PLAN_SCHEMA
-        or plan["schema_version"] != 2
+        or plan["schema_version"] != 3
         or plan["classification"]
         != "normative-pre-execution-paired-capture-authority"
         or type(plan["created_at_utc"]) is not str
@@ -365,224 +361,10 @@ def load_pair_plan(
     )
 
 
-class ResumableLaneJournal(Journal):
-    """A lane journal that reopens only an authenticated attempt prefix."""
-
-    completed_records: list[dict[str, Any]]
-
-    def __init__(
-        self,
-        bundle: Path,
-        plan: dict[str, Any],
-        plan_bytes: bytes,
-    ) -> None:
-        if not bundle.exists():
-            super().__init__(bundle, plan, plan_bytes)
-            self.completed_records = []
-            return
-        self.bundle = bundle.resolve()
-        if self.bundle.is_symlink() or not self.bundle.is_dir():
-            raise CaptureError("resumed R-006 lane bundle is not a regular directory")
-        if (self.bundle / "bundle.json").exists():
-            raise CaptureError("cannot resume an already completed R-006 lane bundle")
-        inventory = FileInventory(self.bundle)
-        if inventory.root_file("plan.json") != plan_bytes:
-            raise CaptureError("resumed R-006 lane plan bytes changed")
-        journal_raw = inventory.root_file("journal.ndjson")
-        records = _journal(self.bundle / "journal.ndjson")
-        if not records or canonical_bytes(records[0]) not in journal_raw:
-            raise CaptureError("resumed R-006 lane journal lacks its header")
-        header = exact_object(
-            records[0],
-            {
-                "schema",
-                "session_id",
-                "plan_sha256",
-                "planned_attempts",
-                "content_sha256",
-            },
-            "resumed lane journal header",
-        )
-        if (
-            header["schema"] != JOURNAL_HEADER_SCHEMA
-            or header["session_id"] != plan["session_id"]
-            or header["plan_sha256"] != plan["content_sha256"]
-            or header["planned_attempts"] != PLAN_ATTEMPTS
-        ):
-            raise CaptureError("resumed R-006 lane journal header changed")
-        prior = records[1:]
-        if len(prior) > PLAN_ATTEMPTS:
-            raise CaptureError("resumed R-006 lane journal exceeds its plan")
-        for attempt, record in zip(plan["attempts"], prior, strict=False):
-            _validate_record(
-                record,
-                plan=plan,
-                attempt=attempt,
-                inventory=inventory,
-            )
-        inventory.finish()
-        descriptor = os.open(self.bundle / "journal.ndjson", os.O_WRONLY | os.O_APPEND)
-        self.path = self.bundle / "journal.ndjson"
-        self.output = os.fdopen(descriptor, "wb", buffering=0)
-        self.closed = False
-        self.records = len(records)
-        self.completed_records = prior
-
-
-class PairProgressJournal:
-    def __init__(
-        self,
-        root: Path,
-        plan: dict[str, Any],
-        lane_records: Mapping[str, list[dict[str, Any]]],
-        *,
-        clock: Clock,
-    ) -> None:
-        self.path = root / "pair-journal.ndjson"
-        self.closed = False
-        expected = _completed_interleaving(plan, lane_records)
-        if not self.path.exists():
-            if expected:
-                raise CaptureError(
-                    "paired progress journal is missing after lane attempts were recorded"
-                )
-            descriptor = os.open(
-                self.path,
-                os.O_WRONLY | os.O_CREAT | os.O_EXCL,
-                0o600,
-            )
-            self.output = os.fdopen(descriptor, "wb", buffering=0)
-            self.records: list[dict[str, Any]] = []
-            self.header = self.append(
-                {
-                    "schema": PAIR_PROGRESS_HEADER_SCHEMA,
-                    "session_id": plan["session_id"],
-                    "plan_sha256": plan["content_sha256"],
-                    "planned_attempts": PAIR_ATTEMPTS,
-                    "started_at_utc": _utc(clock),
-                }
-            )
-        else:
-            records = _journal(self.path)
-            if not records:
-                raise CaptureError("paired R-006 progress journal is empty")
-            header = exact_object(
-                records[0],
-                {
-                    "schema",
-                    "session_id",
-                    "plan_sha256",
-                    "planned_attempts",
-                    "started_at_utc",
-                    "content_sha256",
-                },
-                "paired progress header",
-            )
-            if (
-                header["schema"] != PAIR_PROGRESS_HEADER_SCHEMA
-                or header["session_id"] != plan["session_id"]
-                or header["plan_sha256"] != plan["content_sha256"]
-                or header["planned_attempts"] != PAIR_ATTEMPTS
-                or type(header["started_at_utc"]) is not str
-                or UTC_RE.fullmatch(header["started_at_utc"]) is None
-            ):
-                raise CaptureError("paired R-006 progress header changed")
-            self.header = header
-            self.records = records
-            descriptor = os.open(self.path, os.O_WRONLY | os.O_APPEND)
-            self.output = os.fdopen(descriptor, "wb", buffering=0)
-        recorded = self.records[1:]
-        if len(recorded) > len(expected):
-            raise CaptureError("paired progress journal is ahead of lane evidence")
-        for actual, derived in zip(recorded, expected):
-            if actual != derived:
-                raise CaptureError("paired progress journal differs from lane evidence")
-        for record in expected[len(recorded) :]:
-            self.append(record, sealed=True)
-
-    def append(self, value: dict[str, Any], *, sealed: bool = False) -> dict[str, Any]:
-        if self.closed:
-            raise CaptureError("paired progress journal is closed")
-        record = dict(value)
-        if not sealed:
-            record["content_sha256"] = content_digest(record)
-        elif record.get("content_sha256") != content_digest(record):
-            raise CaptureError("derived paired progress record is not sealed")
-        self.output.write(canonical_bytes(record))
-        os.fsync(self.output.fileno())
-        self.records.append(record)
-        return record
-
-    def close(self) -> dict[str, Any]:
-        if self.closed:
-            raise CaptureError("paired progress journal closed twice")
-        self.output.flush()
-        os.fsync(self.output.fileno())
-        self.output.close()
-        self.closed = True
-        size, digest = sha256_file(self.path)
-        return {
-            "path": "pair-journal.ndjson",
-            "bytes": size,
-            "sha256": digest,
-            "records": len(self.records),
-        }
-
-    def abandon(self) -> None:
-        if self.closed:
-            return
-        self.output.flush()
-        os.fsync(self.output.fileno())
-        self.output.close()
-        self.closed = True
-
-
-def _progress_record(
-    schedule: dict[str, Any],
-    lane_record: dict[str, Any],
-) -> dict[str, Any]:
-    result: dict[str, Any] = {
-        "schema": PAIR_PROGRESS_RECORD_SCHEMA,
-        "global_ordinal": schedule["global_ordinal"],
-        "lane": schedule["lane"],
-        "lane_ordinal": schedule["lane_ordinal"],
-        "attempt_id": schedule["attempt_id"],
-        "attempt_record_sha256": lane_record["content_sha256"],
-        "attempt_status": lane_record["status"],
-        "completed_at_utc": lane_record["completed_at_utc"],
-    }
-    result["content_sha256"] = content_digest(result)
-    return result
-
-
-def _completed_interleaving(
-    plan: dict[str, Any],
-    lane_records: Mapping[str, list[dict[str, Any]]],
-) -> list[dict[str, Any]]:
-    consumed = {lane: 0 for lane in PAIR_LANE_ORDER}
-    result: list[dict[str, Any]] = []
-    for scheduled in plan["interleaving"]:
-        lane = scheduled["lane"]
-        index = consumed[lane]
-        if index >= len(lane_records[lane]):
-            break
-        if scheduled["lane_ordinal"] != index:
-            raise CaptureError("paired lane records are not a global schedule prefix")
-        result.append(_progress_record(scheduled, lane_records[lane][index]))
-        consumed[lane] += 1
-    if any(consumed[lane] != len(lane_records[lane]) for lane in PAIR_LANE_ORDER):
-        raise CaptureError("paired lane journals do not form one interleaved prefix")
-    return result
-
-
-def _live_preflight(
-    plan: dict[str, Any],
-    provider: PreflightProvider,
-) -> dict[str, Any]:
-    current = validate_host_preflight(provider(), require_admitted=True)
-    if current["host"] != plan["host_preflight"]["host"]:
-        raise CaptureError("paired R-006 host identity changed since planning")
-    return current
+ResumableLaneJournal = durability.ResumableLaneJournal
+PairProgressJournal = durability.PairProgressJournal
+_progress_record = durability.progress_record
+_completed_interleaving = durability.completed_interleaving
 
 
 def _lane_manifest(
@@ -617,26 +399,50 @@ def _lane_manifest(
     return result
 
 
-def _cross_lane_identity_count(
-    plan: dict[str, Any],
-    lane_records: Mapping[str, list[dict[str, Any]]],
-) -> int:
-    identities: dict[str, dict[str, Any]] = {}
+def _durable_prefix_is_complete(root: Path, plan: dict[str, Any]) -> bool:
+    required = (
+        root / "pair-journal.ndjson",
+        root / publication.PUBLICATION_JOURNAL_NAME,
+        root / durability.BOUNDARY_JOURNAL_NAME,
+        *(root / lane / "journal.ndjson" for lane in PAIR_LANE_ORDER),
+    )
+    if any(not (path.exists() or path.is_symlink()) for path in required):
+        return False
+    lane_records: dict[str, list[dict[str, Any]]] = {}
     for lane in PAIR_LANE_ORDER:
-        for attempt, record in zip(
-            plan["lanes"][lane]["attempts"],
-            lane_records[lane],
-            strict=True,
-        ):
-            if record["status"] != "verified":
-                continue
-            workload = attempt["workload_id"]
-            prior = identities.setdefault(workload, record["identity"])
-            if prior != record["identity"]:
-                raise CaptureError(
-                    f"CPU/Metal proof identity changed for paired workload {workload}"
-                )
-    return len(identities)
+        records = durability.read_journal_regular(
+            root / lane / "journal.ndjson", "paired lane completion probe"
+        )
+        lane_records[lane] = records[1:]
+    if any(len(lane_records[lane]) != PLAN_ATTEMPTS for lane in PAIR_LANE_ORDER):
+        return False
+    publication_summary, _ = publication.read_publication_journal(
+        root / publication.PUBLICATION_JOURNAL_NAME,
+        plan=plan,
+        lane_records=lane_records,
+        require_complete=False,
+    )
+    if (
+        publication_summary["committed_attempts"] != PAIR_ATTEMPTS
+        or publication_summary["pending"] is not None
+    ):
+        return False
+    expected_progress = _completed_interleaving(plan, lane_records)
+    progress = durability.read_journal_regular(
+        root / "pair-journal.ndjson", "paired progress completion probe"
+    )
+    if len(progress) != PAIR_ATTEMPTS + 1 or progress[1:] != expected_progress:
+        raise CaptureError("complete paired progress journal is not lane-derived")
+    boundary_summary, _ = durability.read_boundary_journal(
+        root / durability.BOUNDARY_JOURNAL_NAME,
+        plan=plan,
+        completed_attempts=PAIR_ATTEMPTS,
+        require_complete=False,
+    )
+    return (
+        boundary_summary["open_start"] is None
+        and boundary_summary["closed_prefix"] == PAIR_ATTEMPTS
+    )
 
 
 def capture_pair(
@@ -667,33 +473,98 @@ def capture_pair(
         source_provider=source_provider,
         closure_provider=closure_provider,
     )
-    start_preflight = _live_preflight(plan, preflight_provider)
-    root = settings.bundle_path.resolve()
-    plan_bytes = settings.plan_path.read_bytes()
-    if root.exists():
-        if root.is_symlink() or not root.is_dir():
-            raise CaptureError("paired capture bundle is not a regular directory")
-        if (root / "pair-bundle.json").exists():
-            raise CaptureError("paired capture bundle is already complete")
-        if (root / "pair-plan.json").read_bytes() != plan_bytes:
+    root = settings.bundle_path.absolute()
+    plan_bytes = canonical_bytes(plan)
+    root_exists = root.exists() or root.is_symlink()
+    if root_exists:
+        durability.require_regular_directory(root, "paired capture bundle")
+        stored_plan = root / "pair-plan.json"
+        if not (stored_plan.exists() or stored_plan.is_symlink()):
+            if any(root.iterdir()):
+                raise CaptureError("resumed paired capture is missing its plan")
+            durability.publish_new_or_identical(
+                stored_plan, plan_bytes, staging_directory=root.parent
+            )
+        elif durability.read_regular_bytes(stored_plan, "paired capture plan") != plan_bytes:
             raise CaptureError("resumed paired capture plan bytes changed")
+        completed_manifest = root / "pair-bundle.json"
+        if completed_manifest.exists() or completed_manifest.is_symlink():
+            validate_pair_bundle(repository, root)
+            return durability.read_canonical_json_regular(
+                completed_manifest, "completed paired capture manifest"
+            )
     else:
         root.mkdir(mode=0o700, parents=False, exist_ok=False)
-        write_new(root / "pair-plan.json", plan_bytes)
+        durability.publish_new_or_identical(
+            root / "pair-plan.json", plan_bytes, staging_directory=root.parent
+        )
+    durable_complete = _durable_prefix_is_complete(root, plan)
+    start_preflight = None
+    if not durable_complete:
+        start_preflight = quieting.require_admitted_preflight(
+            preflight_provider,
+            plan["host_preflight"]["host"],
+        )
     journals: dict[str, ResumableLaneJournal] = {}
     progress: PairProgressJournal | None = None
+    boundaries: durability.PreflightBoundaryJournal | None = None
+    publications: publication.AttemptPublicationJournal | None = None
     try:
+        publications = publication.AttemptPublicationJournal(root, plan)
+        publication_state = publications.summary(
+            lane_records=None, require_complete=False
+        )["pending"]
+        if publication_state is not None and publication_state["phase"] == "intent":
+            raise CaptureError(
+                "catastrophic interruption left an unresolved attempt intent; "
+                "the child may already have executed, so start a fresh paired bundle"
+            )
         for lane in PAIR_LANE_ORDER:
+            pending_record = None
+            if (
+                publication_state is not None
+                and publication_state["phase"] == "prepared"
+                and publication_state["schedule"]["lane"] == lane
+            ):
+                pending_record = publication_state["record"]
             journals[lane] = ResumableLaneJournal(
                 root / lane,
                 plan["lanes"][lane],
                 canonical_bytes(plan["lanes"][lane]),
+                repository=repository,
+                pending_record=pending_record,
             )
         lane_records = {
             lane: journals[lane].completed_records for lane in PAIR_LANE_ORDER
         }
         completed = _completed_interleaving(plan, lane_records)
-        progress = PairProgressJournal(root, plan, lane_records, clock=clock)
+        publications.summary(lane_records=lane_records, require_complete=False)
+        progress = PairProgressJournal(
+            root, plan, lane_records, started_at_utc=_utc(clock)
+        )
+        if publication_state is not None and publication_state["phase"] == "prepared":
+            scheduled = publication_state["schedule"]
+            lane = scheduled["lane"]
+            if len(journals[lane].completed_records) == scheduled["lane_ordinal"]:
+                sealed = journals[lane].append(publication_state["record"])
+                if sealed != publication_state["record"]:
+                    raise CaptureError("prepared attempt changed during lane recovery")
+                journals[lane].completed_records.append(sealed)
+                progress.append(_progress_record(scheduled, sealed), sealed=True)
+            publications.commit(scheduled)
+            completed = _completed_interleaving(plan, lane_records)
+        publications.summary(lane_records=lane_records, require_complete=False)
+        boundaries = durability.PreflightBoundaryJournal(root, plan, len(completed))
+        if durable_complete:
+            if len(completed) != PAIR_ATTEMPTS:
+                raise CaptureError("durable completion probe changed during replay")
+            boundaries.summary(
+                completed_attempts=len(completed), require_complete=True
+            )
+            invocation_open = False
+        else:
+            assert start_preflight is not None
+            invocation_open = boundaries.admit(start_preflight, len(completed))
         new_attempts = 0
         for scheduled in plan["interleaving"][len(completed) :]:
             if (
@@ -704,6 +575,7 @@ def capture_pair(
             lane = scheduled["lane"]
             lane_plan = plan["lanes"][lane]
             attempt = lane_plan["attempts"][scheduled["lane_ordinal"]]
+            publications.begin(scheduled, root / lane, attempt)
             record = run_attempt(
                 journal=journals[lane],
                 plan=lane_plan,
@@ -712,33 +584,60 @@ def capture_pair(
                 child_runner=child_runner,
                 monotonic=monotonic,
                 utc_clock=clock,
+                record_stager=lambda value, frozen=scheduled: publications.prepare(
+                    frozen, value
+                ),
             )
+            pending = publications.summary(
+                lane_records=None, require_complete=False
+            )["pending"]
+            if pending is None or pending["phase"] != "prepared":
+                raise CaptureError("attempt returned without a prepared publication")
             sealed = journals[lane].append(record)
+            if sealed != pending["record"]:
+                raise CaptureError("prepared attempt differs from its lane commit")
             journals[lane].completed_records.append(sealed)
             progress.append(_progress_record(scheduled, sealed), sealed=True)
+            publications.commit(scheduled)
             completed.append(_progress_record(scheduled, sealed))
             new_attempts += 1
             if len(completed) < PAIR_ATTEMPTS:
                 sleeper(COOLDOWN_NS / 1_000_000_000)
         complete = len(completed) == PAIR_ATTEMPTS
-        validate_pair_plan(
-            plan,
-            repository=repository,
-            verify_local=True,
-            source_provider=source_provider,
-            closure_provider=closure_provider,
+        if invocation_open:
+            validate_pair_plan(
+                plan,
+                repository=repository,
+                verify_local=True,
+                source_provider=source_provider,
+                closure_provider=closure_provider,
+            )
+            checkpoint_preflight = quieting.await_admitted_post_capture_preflight(
+                provider=preflight_provider,
+                expected_host=plan["host_preflight"]["host"],
+                sleeper=sleeper,
+                monotonic=monotonic,
+            )
+            boundaries.checkpoint(checkpoint_preflight, len(completed))
+        boundary_summary = boundaries.summary(
+            completed_attempts=len(completed), require_complete=complete
         )
-        checkpoint_preflight = _live_preflight(plan, preflight_provider)
-        end_preflight = checkpoint_preflight if complete else None
+        publications.summary(lane_records=lane_records, require_complete=complete)
         journal_identities = {
             lane: journals[lane].close() for lane in PAIR_LANE_ORDER
         }
         progress_identity = progress.close()
+        publication_identity = publications.close()
+        boundary_identity = boundaries.close()
     except BaseException:
         for journal in journals.values():
             journal.abandon()
         if progress is not None:
             progress.abandon()
+        if publications is not None:
+            publications.abandon()
+        if boundaries is not None:
+            boundaries.abandon()
         raise
     counts = {
         lane: len(journals[lane].completed_records) for lane in PAIR_LANE_ORDER
@@ -753,17 +652,28 @@ def capture_pair(
             "remaining_attempts": PAIR_ATTEMPTS - len(completed),
             "lane_attempts": counts,
             "new_attempts": new_attempts,
-            "checkpoint_preflight": checkpoint_preflight,
+            "checkpoint_preflight": boundary_summary["final_preflight"],
+            "attempt_publication_journal": publication_identity,
+            "preflight_boundary_journal": boundary_identity,
             "normative_performance_receipt": False,
         }
-    completed_at = _utc(clock)
-    cross_lane_identities = _cross_lane_identity_count(
-        plan,
-        {
-            lane: journals[lane].completed_records for lane in PAIR_LANE_ORDER
-        },
+    start_boundary = boundary_summary["first_preflight"]
+    end_boundary = boundary_summary["final_preflight"]
+    if start_boundary is None or end_boundary is None:
+        raise CaptureError("complete paired capture lacks preflight boundaries")
+    completed_at = end_boundary["captured_at_utc"]
+    cross_lane_identities = len(
+        pair_identity.validate_pair_identity_authority(
+            plan,
+            {
+                lane: journals[lane].completed_records
+                for lane in PAIR_LANE_ORDER
+            },
+            PAIR_LANE_ORDER,
+        )
     )
     lane_summaries: dict[str, dict[str, Any]] = {}
+    lane_payloads: dict[str, bytes] = {}
     verified = 0
     failed = 0
     exact_work = 0
@@ -777,7 +687,7 @@ def capture_pair(
             started_at=progress.header["started_at_utc"],
             completed_at=completed_at,
         )
-        write_new(root / lane / "bundle.json", canonical_bytes(manifest))
+        lane_payloads[lane] = canonical_bytes(manifest)
         lane_verified = sum(record["status"] == "verified" for record in records)
         lane_failed = PLAN_ATTEMPTS - lane_verified
         verified += lane_verified
@@ -803,7 +713,7 @@ def capture_pair(
         }
     result: dict[str, Any] = {
         "schema": PAIR_BUNDLE_SCHEMA,
-        "schema_version": 1,
+        "schema_version": 2,
         "status": (
             "CAPTURE_COMPLETE_WITH_FAILURES"
             if failed
@@ -817,20 +727,31 @@ def capture_pair(
         "recorded_attempts": PAIR_ATTEMPTS,
         "verified_attempts": verified,
         "failed_attempts": failed,
-        "start_preflight": start_preflight,
-        "end_preflight": end_preflight,
+        "start_preflight": start_boundary,
+        "end_preflight": end_boundary,
         "lanes": lane_summaries,
         "pair_journal": progress_identity,
+        "attempt_publication_journal": publication_identity,
+        "preflight_boundary_journal": boundary_identity,
         "cross_lane_identity_workloads": cross_lane_identities,
         "independent_verifier_attempts": independent,
         "exact_work_v4_attempts": exact_work,
     }
     result["content_sha256"] = content_digest(result)
-    write_new(root / "pair-bundle.json", canonical_bytes(result))
+    durability.publish_pair_manifests(
+        root, lane_payloads, canonical_bytes(result)
+    )
     return result
 
 
-def validate_pair_bundle(repository: Path, bundle_path: Path) -> dict[str, Any]:
+def validate_pair_bundle(
+    repository: Path,
+    bundle_path: Path,
+    *,
+    include_snapshot: bool = False,
+) -> dict[str, Any]:
     from .pair_validation import validate_pair_bundle as validate
 
-    return validate(repository, bundle_path)
+    return validate(
+        repository, bundle_path, include_snapshot=include_snapshot
+    )
