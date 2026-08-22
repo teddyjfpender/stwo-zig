@@ -58,7 +58,7 @@ PAIR_PLAN_SCHEMA = "stwo.typed-air.r006-paired-capture-plan.v3"
 PAIR_PROGRESS_HEADER_SCHEMA = durability.PAIR_PROGRESS_HEADER_SCHEMA
 PAIR_PROGRESS_RECORD_SCHEMA = durability.PAIR_PROGRESS_RECORD_SCHEMA
 PAIR_BUNDLE_SCHEMA = "stwo.typed-air.r006-paired-raw-bundle.v2"
-PAIR_VALIDATION_SCHEMA = "stwo.typed-air.r006-paired-bundle-validation.v2"
+PAIR_VALIDATION_SCHEMA = "stwo.typed-air.r006-paired-bundle-validation.v3"
 PAIR_LANE_ORDER = INSTALL_LANES
 PAIR_ATTEMPTS = len(PAIR_LANE_ORDER) * PLAN_ATTEMPTS
 

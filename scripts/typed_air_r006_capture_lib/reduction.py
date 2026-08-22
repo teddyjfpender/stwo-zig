@@ -25,9 +25,10 @@ from .pair import (
     validate_pair_bundle,
 )
 from .pair_validation import assert_pair_snapshot_current
+from . import exact_work_cells
 
 
-REDUCTION_SCHEMA = "stwo.typed-air.r006-paired-scaling-reduction.v1"
+REDUCTION_SCHEMA = "stwo.typed-air.r006-paired-scaling-reduction.v2"
 SPEED_METRICS = ("verified_request_ns", "proving_ns")
 RESOURCE_METRICS = (
     "peak_rss_bytes",
@@ -238,16 +239,6 @@ def _parallel_fraction(
     }
 
 
-def _exact_work(captures: list[tuple[dict[str, Any], dict[str, Any]]]) -> dict[str, Any]:
-    profiles = {
-        canonical_bytes(record["metrics"]["work_disclosure"])
-        for _, record in captures
-    }
-    if len(profiles) != 1:
-        raise CaptureError("R-006 exact logical work changed across worker counts")
-    return json.loads(next(iter(profiles)))
-
-
 def _groups(
     plan: dict[str, Any],
     records: list[dict[str, Any]],
@@ -315,6 +306,13 @@ def evaluate_pair_scaling(repository: Path, bundle_path: Path) -> dict[str, Any]
     snapshot = bundle_validation.pop("_snapshot")
     if bundle_validation["failed_attempts"]:
         raise CaptureError("R-006 scaling reduction requires a failure-free paired bundle")
+    exact_work_authority = bundle_validation["exact_work_authority"]
+    if (
+        exact_work_authority["every_attempt_complete_exact_work"] is not True
+        or exact_work_authority["every_cell_deterministic"] is not True
+    ):
+        raise CaptureError("R-006 scaling reduction requires complete deterministic cells")
+    exact_work_index = exact_work_cells.cell_index(exact_work_authority)
     plan = snapshot["plan"]
     bundle = snapshot["bundle"]
     protocol = _protocol(repository)
@@ -345,7 +343,6 @@ def evaluate_pair_scaling(repository: Path, bundle_path: Path) -> dict[str, Any]
 
     rows: list[dict[str, Any]] = []
     qualifying_workloads: set[str] = set()
-    all_exact_work = True
     primary_pass = False
     largest_gates_pass = True
     for lane in PAIR_LANE_ORDER:
@@ -404,7 +401,19 @@ def evaluate_pair_scaling(repository: Path, bundle_path: Path) -> dict[str, Any]
                             f"M7:{lane}:{workload}:{comparison}:gpu_dispatches"
                         ),
                     )
-                exact_work = _exact_work(captures)
+                reference_cell, subject_cell = exact_work_cells.require_cells(
+                    exact_work_index,
+                    (
+                        (lane, workload, 1),
+                        (lane, workload, workers),
+                    ),
+                )
+                executed_work = exact_work_cells.compare_cells(
+                    reference_cell,
+                    subject_cell,
+                    relation="subject_worker_minus_lane_local_one_worker",
+                    blocking=False,
+                )
                 gates: dict[str, Any] = {}
                 if (
                     lane == "cpu-native"
@@ -492,7 +501,6 @@ def evaluate_pair_scaling(repository: Path, bundle_path: Path) -> dict[str, Any]
                     largest_gates_pass = largest_gates_pass and all(
                         gate["pass"] for gate in gates.values()
                     )
-                all_exact_work = all_exact_work and bool(exact_work)
                 rows.append(
                     {
                         "lane": lane,
@@ -502,7 +510,7 @@ def evaluate_pair_scaling(repository: Path, bundle_path: Path) -> dict[str, Any]
                         "parallelizable_fraction": parallel,
                         "amdahl_ideal": amdahl,
                         "qualifying": qualifying,
-                        "exact_logical_work": exact_work,
+                        "executed_work_comparison": executed_work,
                         "statistics": statistics_block,
                         "gates": gates,
                     }
@@ -513,15 +521,47 @@ def evaluate_pair_scaling(repository: Path, bundle_path: Path) -> dict[str, Any]
     enough_qualifying = len(qualifying_workloads) >= milestone[
         "parallelizable_fraction"
     ]["minimum_qualifying_workloads"]
+    cross_lane_work: list[dict[str, Any]] = []
+    for workload in WORKLOAD_IDS:
+        widths = sorted(
+            workers
+            for lane, observed_workload, workers in exact_work_index
+            if lane == PAIR_LANE_ORDER[0] and observed_workload == workload
+        )
+        for workers in widths:
+            cpu_cell, metal_cell = exact_work_cells.require_cells(
+                exact_work_index,
+                (
+                    (PAIR_LANE_ORDER[0], workload, workers),
+                    (PAIR_LANE_ORDER[1], workload, workers),
+                ),
+            )
+            cross_lane_work.append(
+                exact_work_cells.compare_cells(
+                    cpu_cell,
+                    metal_cell,
+                    relation="metal_minus_cpu",
+                    blocking=False,
+                )
+            )
+    every_attempt_exact = exact_work_authority[
+        "every_attempt_complete_exact_work"
+    ]
+    every_cell_deterministic = exact_work_authority["every_cell_deterministic"]
     if not calibration_pass or not enough_qualifying:
         scaling_verdict = "NO_VERDICT"
-    elif primary_pass and largest_gates_pass and all_exact_work:
+    elif (
+        primary_pass
+        and largest_gates_pass
+        and every_attempt_exact
+        and every_cell_deterministic
+    ):
         scaling_verdict = "PASS"
     else:
         scaling_verdict = "FAIL"
     result: dict[str, Any] = {
         "schema": REDUCTION_SCHEMA,
-        "schema_version": 1,
+        "schema_version": 2,
         "classification": (
             "authenticated-paired-scaling-reduction-not-m7-promotion-receipt"
         ),
@@ -538,12 +578,14 @@ def evaluate_pair_scaling(repository: Path, bundle_path: Path) -> dict[str, Any]
         "statistical_authority": dict(statistical_policy),
         "calibration": calibrations,
         "rows": rows,
+        "cross_lane_executed_work_observations": cross_lane_work,
         "aggregate_gates": {
             "a_a_calibration": calibration_pass,
             "minimum_two_qualifying_workloads": enough_qualifying,
             "primary_cpu_four_worker_target": primary_pass,
             "all_qualifying_largest_worker_gates": largest_gates_pass,
-            "all_worker_counts_exact_logical_work": all_exact_work,
+            "every_attempt_complete_exact_work": every_attempt_exact,
+            "every_cell_deterministic": every_cell_deterministic,
         },
         "qualifying_workloads": sorted(qualifying_workloads),
         "claim_boundary": {
@@ -578,7 +620,8 @@ def validate_pair_reduction(
     if raw != canonical_bytes(expected):
         raise CaptureError("R-006 scaling receipt differs from raw-bundle recomputation")
     return {
-        "schema": "stwo.typed-air.r006-paired-scaling-validation.v1",
+        "schema": "stwo.typed-air.r006-paired-scaling-validation.v2",
+        "schema_version": 2,
         "status": "VALID",
         "plan_sha256": expected["plan_sha256"],
         "bundle_sha256": expected["bundle_sha256"],

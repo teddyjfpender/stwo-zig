@@ -430,6 +430,9 @@ class PairedCaptureTests(R006Fixture):
         validation = {
             "failed_attempts": 0,
             "normative_scaling_capture": True,
+            "exact_work_authority": pair_validation.validate_exact_work_authority(
+                plan, records
+            ),
             "_snapshot": {
                 "plan": plan,
                 "bundle": bundle,
@@ -462,6 +465,10 @@ class PairedCaptureTests(R006Fixture):
             "NO_VERDICT_MISSING_PREDECESSOR_ONE_WORKER_COHORT",
         )
         self.assertEqual(len(receipt["rows"]), 24)
+        self.assertEqual(receipt["schema_version"], 2)
+        self.assertEqual(
+            len(receipt["cross_lane_executed_work_observations"]), 16
+        )
         self.assertEqual(receipt["qualifying_workloads"], sorted(self.workloads))
         self.assertTrue(receipt["aggregate_gates"]["a_a_calibration"])
         self.assertTrue(receipt["aggregate_gates"]["primary_cpu_four_worker_target"])
@@ -513,6 +520,9 @@ class PairedCaptureTests(R006Fixture):
         validation = {
             "failed_attempts": 0,
             "normative_scaling_capture": True,
+            "exact_work_authority": pair_validation.validate_exact_work_authority(
+                plan, records
+            ),
             "_snapshot": {
                 "plan": plan,
                 "bundle": bundle,
@@ -547,25 +557,34 @@ class PairedCaptureTests(R006Fixture):
                 self.assertFalse(statistic["blocking"])
                 self.assertIsNone(statistic["ci_lower"])
 
-    def test_exact_work_authority_rejects_cross_worker_and_cross_lane_drift(self) -> None:
+    def test_exact_work_authority_is_strict_only_within_execution_cells(self) -> None:
         plan = self.pair_plan()
         records = self.synthetic_records(plan)
         authority = pair_validation.validate_exact_work_authority(plan, records)
-        self.assertEqual(set(authority), set(self.workloads))
+        self.assertTrue(authority["every_attempt_complete_exact_work"])
+        self.assertTrue(authority["every_cell_deterministic"])
+        self.assertEqual(authority["expected_cells"], 32)
 
-        cross_worker = copy.deepcopy(records)
-        cross_worker["cpu-native"][1]["metrics"]["work_disclosure"][
+        same_cell_drift = copy.deepcopy(records)
+        same_cell_drift["cpu-native"][1]["metrics"]["work_disclosure"][
             "field_additions"
         ] += 1
-        with self.assertRaisesRegex(CaptureError, "across workers or lanes"):
-            pair_validation.validate_exact_work_authority(plan, cross_worker)
+        with self.assertRaisesRegex(CaptureError, "within execution cell"):
+            pair_validation.validate_exact_work_authority(plan, same_cell_drift)
 
-        cross_lane = copy.deepcopy(records)
-        cross_lane["metal-hybrid"][0]["metrics"]["work_disclosure"][
-            "field_multiplications"
-        ] += 1
-        with self.assertRaisesRegex(CaptureError, "across workers or lanes"):
-            pair_validation.validate_exact_work_authority(plan, cross_lane)
+        cross_cell = copy.deepcopy(records)
+        for lane in pair_module.PAIR_LANE_ORDER:
+            for attempt, record in zip(
+                plan["lanes"][lane]["attempts"], cross_cell[lane], strict=True
+            ):
+                if attempt["worker_count"] == 2:
+                    work = record["metrics"]["work_disclosure"]
+                    work["field_additions"] += 2_981_970
+                    work["field_multiplications"] += 164
+                    work["field_inversions"] += 3
+                    work["profile_sha256"] = "4" * 64
+        changed = pair_validation.validate_exact_work_authority(plan, cross_cell)
+        self.assertTrue(changed["every_cell_deterministic"])
 
     def test_cross_lane_identity_uses_plan_selected_semantics(self) -> None:
         full_plan = self.pair_plan()

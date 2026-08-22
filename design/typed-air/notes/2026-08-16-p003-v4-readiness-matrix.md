@@ -93,6 +93,18 @@ partition requires a schema change.
 
 ## Scaling receipt
 
+The V2 work profile is an exact receipt for the algorithm schedule that
+actually completed. Worker and backend partitions may therefore have different
+field-operation totals while preserving identical statement, transcript, and
+proof bytes. R-006 bundle validation V3 requires every verified attempt to
+carry a complete V2 receipt and requires byte-identical full disclosures only
+within the same `(lane, workload, worker_count)` cell. The scaling reduction V2
+recomputes signed counter deltas and zero-safe exact ratios against each
+lane-local one-worker cell; CPU-versus-Metal deltas are explicitly
+observational. M7's process-work, retired-instruction, GPU-command, and RSS
+budgets remain the regression gates—cross-worker or cross-backend V2 counter
+equality is not one of them.
+
 The canonical blocker in
 `../artifacts/p003-work-profile-closure-v1/scaling-blocker-v1.json` has been
 regenerated against schema 9, all 23 sites, and the 16/16 matrix. Its only

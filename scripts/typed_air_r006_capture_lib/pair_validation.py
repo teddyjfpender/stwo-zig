@@ -8,6 +8,7 @@ from typing import Any
 from .codec import canonical_bytes, content_digest, exact_object, sha256_bytes
 from .controller import validate_bundle
 from .model import PLAN_ATTEMPTS, UTC_RE, CaptureError
+from . import exact_work_cells
 from . import pair_durability as durability
 from . import pair_identity
 from . import pair_publication as publication
@@ -61,43 +62,14 @@ def assert_pair_snapshot_current(
 def validate_exact_work_authority(
     plan: dict[str, Any],
     lane_records: dict[str, list[dict[str, Any]]],
-) -> dict[str, dict[str, Any]]:
-    """Bind logical work per workload across every worker arm and both lanes."""
+) -> dict[str, Any]:
+    """Bind exact executed work only within identical plan-selected cells."""
 
-    authorities: dict[str, dict[str, Any]] = {}
-    for lane, records in lane_records.items():
-        for attempt, record in zip(
-            plan["lanes"][lane]["attempts"], records, strict=True
-        ):
-            if record["status"] != "verified":
-                continue
-            metrics = record["metrics"]
-            disclosure = (
-                metrics.get("work_disclosure") if type(metrics) is dict else None
-            )
-            if type(disclosure) is not dict:
-                raise CaptureError("verified attempt lacks exact logical-work authority")
-            workload = attempt["workload_id"]
-            prior = authorities.setdefault(
-                workload,
-                {
-                    "disclosure": disclosure,
-                    "sha256": sha256_bytes(canonical_bytes(disclosure)),
-                    "verified_records": 0,
-                },
-            )
-            if prior["disclosure"] != disclosure:
-                raise CaptureError(
-                    f"exact logical work changed across workers or lanes for {workload}"
-                )
-            prior["verified_records"] += 1
-    return {
-        workload: {
-            "sha256": authority["sha256"],
-            "verified_records": authority["verified_records"],
-        }
-        for workload, authority in authorities.items()
-    }
+    from .pair import PAIR_LANE_ORDER
+
+    return exact_work_cells.validate_cell_authority(
+        plan, lane_records, PAIR_LANE_ORDER
+    )
 
 
 def validate_pair_bundle(
@@ -287,7 +259,7 @@ def validate_pair_bundle(
         raise CaptureError("paired R-006 status is not raw-derived")
     result = {
         "schema": PAIR_VALIDATION_SCHEMA,
-        "schema_version": 2,
+        "schema_version": 3,
         "status": expected_status,
         "plan_sha256": plan["content_sha256"],
         "attempts": PAIR_ATTEMPTS,
@@ -310,8 +282,8 @@ def validate_pair_bundle(
             and exact_work == PAIR_ATTEMPTS
             and independent == PAIR_ATTEMPTS
             and len(identities) == 4
-            and len(exact_work_authority)
-            == len(plan["lanes"][PAIR_LANE_ORDER[0]]["workloads"])
+            and exact_work_authority["every_attempt_complete_exact_work"]
+            and exact_work_authority["every_cell_deterministic"]
         ),
         "normative_m7_receipt": False,
     }

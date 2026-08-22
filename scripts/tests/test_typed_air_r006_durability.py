@@ -591,7 +591,7 @@ class R006DurabilityTests(R006Fixture):
         self.assertEqual(completed["schema_version"], 2)
         self.assertEqual(completed["recorded_attempts"], PAIR_ATTEMPTS)
         validation = validate_pair_bundle(self.repository, bundle)
-        self.assertEqual(validation["schema_version"], 2)
+        self.assertEqual(validation["schema_version"], 3)
         self.assertTrue(validation["attempt_publication_journal_valid"])
         self.assertTrue(validation["preflight_boundary_journal_valid"])
 
