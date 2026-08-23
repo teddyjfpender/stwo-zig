@@ -18,6 +18,7 @@ const metal_runtime = @import("../runtime.zig");
 const shared_runtime = @import("../shared_runtime.zig");
 const telemetry = @import("../telemetry.zig");
 const base_composition_work = @import("base_composition_work.zig");
+const host_graph = @import("base_polynomial_host_graph.zig");
 
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
@@ -56,31 +57,7 @@ const LookupProgramEntry = struct {
     }
 };
 
-const HostWorker = struct {
-    component: Component,
-    trace: *const Trace,
-    accumulator: Accumulator,
-    err: ?anyerror = null,
-
-    fn run(self: *HostWorker) void {
-        self.component.evaluateConstraintQuotientsOnDomain(
-            self.trace,
-            &self.accumulator,
-        ) catch |err| {
-            self.err = err;
-        };
-    }
-
-    fn runParallel(self: *HostWorker, pool: *prover.work_pool.WorkPool) void {
-        self.component.evaluateConstraintQuotientsOnDomainParallel(
-            self.trace,
-            &self.accumulator,
-            pool,
-        ) catch |err| {
-            self.err = err;
-        };
-    }
-};
+const HostWorker = host_graph.Worker;
 
 const SemanticJob = struct {
     capability: BaseCapability,
@@ -128,6 +105,46 @@ pub fn evaluateWithWorkCapture(
     trace: *const Trace,
     residency_handles: []const ?*anyopaque,
     work_capture: ?*composition_work.Capture,
+) !?SecureColumn {
+    return evaluateInternal(
+        allocator,
+        components,
+        random_coeff,
+        trace,
+        residency_handles,
+        work_capture,
+        null,
+    );
+}
+
+pub fn evaluateWithExecution(
+    allocator: std.mem.Allocator,
+    components: []const Component,
+    random_coeff: QM31,
+    trace: *const Trace,
+    residency_handles: []const ?*anyopaque,
+    execution: prover.air.composition_execution.Execution,
+) !?SecureColumn {
+    if (execution.task_recorder != null) try execution.validateCapacity();
+    return evaluateInternal(
+        allocator,
+        components,
+        random_coeff,
+        trace,
+        residency_handles,
+        execution.composition_work_capture,
+        if (execution.task_recorder != null) execution else null,
+    );
+}
+
+fn evaluateInternal(
+    allocator: std.mem.Allocator,
+    components: []const Component,
+    random_coeff: QM31,
+    trace: *const Trace,
+    residency_handles: []const ?*anyopaque,
+    work_capture: ?*composition_work.Capture,
+    profiled_execution: ?prover.air.composition_execution.Execution,
 ) !?SecureColumn {
     if (components.len == 0) return null;
 
@@ -214,13 +231,13 @@ pub fn evaluateWithWorkCapture(
     );
     defer allocator.free(host_workers);
     var initialized_workers: usize = 0;
-    defer for (host_workers[0..initialized_workers]) |*worker| worker.accumulator.deinit();
+    defer for (host_workers[0..initialized_workers]) |*worker| worker.deinit();
 
     var power_cursor = total_constraints;
     var semantic_index: usize = 0;
     var lookup_index: usize = 0;
     var host_index: usize = 0;
-    for (components) |component| {
+    for (components, 0..) |component, component_registry_index| {
         const constraint_count = component.nConstraints();
         if (constraint_count > power_cursor) return error.InvalidBasePolynomialProgram;
         const power_start = power_cursor - constraint_count;
@@ -296,8 +313,16 @@ pub fn evaluateWithWorkCapture(
                     max_log_size,
                     power_start + constraint_count,
                 ),
+                .expected_next_power_index = power_start,
+                .component_registry_index = std.math.cast(
+                    u32,
+                    component_registry_index,
+                ) orelse return error.InvalidCompositionTaskKey,
             };
             initialized_workers += 1;
+            if (profiled_execution != null) {
+                try host_workers[host_index].prepare(allocator);
+            }
             host_index += 1;
         }
     }
@@ -306,24 +331,29 @@ pub fn evaluateWithWorkCapture(
     std.debug.assert(lookup_index == lookup_jobs.len);
     std.debug.assert(host_index == host_workers.len);
 
-    // Host-only components are independent once their coefficient slices are
-    // assigned. Start them before resolving the resident AOT pipelines so any
-    // cold-process Metal setup is hidden behind useful composition work. The
-    // largest component with a reviewed domain splitter receives one external
-    // coordinator thread: it can use every bounded-pool worker without a
-    // nested pool wait, while this thread keeps submitting resident GPU work.
+    // Ordinary host-only components start before resident AOT resolution, and
+    // the dominant reviewed splitter may consume the ambient pool while this
+    // thread submits device work. Profiled proving deliberately selects the
+    // separate prepared graph path: it drains under the explicit request
+    // before synchronous device dispatch, so every host worker is attributable
+    // and no private thread or ambient-pool work escapes the task receipt.
     var wait_group = std.Thread.WaitGroup{};
-    const pool = prover.work_pool.getGlobalPool();
+    const pool = if (profiled_execution == null)
+        prover.work_pool.getGlobalPool()
+    else
+        null;
     var host_pending = pool != null;
     defer if (host_pending) wait_group.wait();
     var parallel_thread: ?std.Thread = null;
     defer if (parallel_thread) |thread| thread.join();
     var parallel_on_caller: ?usize = null;
-    if (pool) |active| {
+    if (profiled_execution) |execution| {
+        try host_graph.execute(allocator, host_workers, execution);
+    } else if (pool) |active| {
         const parallel_index = dominantParallelHostWorker(host_workers);
         for (host_workers, 0..) |*worker, index| {
             if (parallel_index != null and index == parallel_index.?) continue;
-            active.spawnWg(&wait_group, HostWorker.run, .{worker});
+            active.spawnWg(&wait_group, HostWorker.runLegacy, .{worker});
         }
         if (parallel_index) |index| {
             parallel_thread = std.Thread.spawn(
@@ -334,7 +364,7 @@ pub fn evaluateWithWorkCapture(
             if (parallel_thread == null) parallel_on_caller = index;
         }
     } else {
-        for (host_workers) |*worker| HostWorker.run(worker);
+        for (host_workers) |*worker| HostWorker.runLegacy(worker);
     }
 
     var lease = shared_runtime.acquireExisting() catch return declineResidentPolynomial();

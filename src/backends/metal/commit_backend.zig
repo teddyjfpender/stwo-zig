@@ -101,6 +101,8 @@ pub const MetalCommitBackend = struct {
     }
 
     pub const computeCompositionEvaluation = backend_composition.computeCompositionEvaluation;
+    pub const computeCompositionEvaluationWithExecution =
+        backend_composition.computeCompositionEvaluationWithExecution;
     pub const computeCompositionEvaluationWithWorkCapture =
         backend_composition.computeCompositionEvaluationWithWorkCapture;
     pub const interpolateSecureComposition = backend_composition.interpolateSecureComposition;

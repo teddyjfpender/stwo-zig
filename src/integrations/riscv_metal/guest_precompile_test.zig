@@ -411,7 +411,7 @@ test "guest Metal profile proves and independently verifies when an AOT bundle i
         allocator,
         @tagName(@import("builtin").mode),
         "riscv-metal-guest-poseidon2-exact-work",
-        .{ .capture_tasks = false, .capture_work = true },
+        .{ .capture_tasks = true, .capture_work = true },
     );
     defer recorder.deinit();
 
@@ -448,6 +448,32 @@ test "guest Metal profile proves and independently verifies when an AOT bundle i
     const snapshot = try recorder.workSnapshot();
     try snapshot.validate();
     try std.testing.expect(snapshot.completeExact());
+
+    var tasks = try recorder.taskSnapshot(allocator);
+    defer tasks.deinit(allocator);
+    try std.testing.expectEqual(@as(usize, 1), tasks.graphs.len);
+    const graph = tasks.graphs[0];
+    try std.testing.expectEqualStrings("metal_composition_riscv", graph.graph_id);
+    try std.testing.expect(graph.events.len != 0);
+    try std.testing.expectEqual(graph.events.len, graph.contributions.len);
+    try std.testing.expectEqual(graph.events.len, graph.component_work.len);
+    for (graph.events, graph.contributions, 0..) |event, contribution, index| {
+        try std.testing.expect(event.task_class != .coordinator);
+        try std.testing.expect(event.parallel_eligible);
+        try std.testing.expect(event.terminal_status == .completed);
+        try std.testing.expectEqualStrings(
+            "riscv_fallback_component",
+            event.component_kind,
+        );
+        try std.testing.expectEqual(@as(u32, 1), event.contribution_range.len);
+        try std.testing.expectEqual(@as(u32, @intCast(index)), event.contribution_range.start);
+        try std.testing.expect(contribution.role == .exclusive);
+        try std.testing.expectEqual(event.key.component_registry_index, contribution.component_registry_index);
+        try std.testing.expectEqual(@as(?u64, contribution.planned_rows), contribution.completed_rows);
+    }
+    try std.testing.expectEqual(@as(u32, 1), graph.summary.requested_workers);
+    try std.testing.expectEqual(@as(u32, 1), graph.summary.admitted_workers);
+    try std.testing.expectEqual(@as(u32, 1), graph.summary.pool_capacity);
 }
 
 fn readManifestTrustAnchor(

@@ -81,6 +81,8 @@ pub fn build(b: *std.Build) void {
         "STWO_RISCV_METAL_AOT_BUNDLE",
         configured_bundle,
     );
+    run_real.setEnvironmentVariable("STWO_ZIG_WORKERS", "1");
+    run_real.setEnvironmentVariable("STWO_ZIG_MERKLE_WORKERS", "1");
     authenticated_aot_step.dependOn(&run_real.step);
 }
 

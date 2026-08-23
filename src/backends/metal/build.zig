@@ -37,6 +37,10 @@ pub fn build(b: *std.Build) void {
         "test-sampled-coefficient-work-receipt",
         "Run the Metal sampled-coefficient execution-receipt tests",
     );
+    const composition_profile_step = b.step(
+        "test-composition-task-profile",
+        "Run the device-free Metal composition task-profile authority tests",
+    );
     const fri_receipt_step = b.step(
         "test-fri-fold-work-receipt",
         "Run the focused Metal FRI fold execution-receipt test",
@@ -64,12 +68,36 @@ pub fn build(b: *std.Build) void {
         test_step.dependOn(&unsupported.step);
         lookup_v2_step.dependOn(&unsupported.step);
         sampled_receipt_step.dependOn(&unsupported.step);
+        composition_profile_step.dependOn(&unsupported.step);
         fri_receipt_step.dependOn(&unsupported.step);
         precommitted_runtime_step.dependOn(&unsupported.step);
         return;
     }
     const tests = b.addTest(.{ .root_module = backend });
     linkRuntime(b, tests);
+    const composition_profile_root = b.createModule(.{
+        .root_source_file = b.path("composition_profile_test_root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    addImports(
+        composition_profile_root,
+        core,
+        backend_contracts,
+        prover_api,
+        prover,
+    );
+    const composition_profile_tests = b.addTest(.{
+        .root_module = composition_profile_root,
+        .filters = &.{
+            "profiled Metal host graph attributes exact 1 2 4 and max worker arms",
+            "profiled Metal composition fails closed when the resident route declines",
+        },
+    });
+    linkRuntime(b, composition_profile_tests);
+    composition_profile_step.dependOn(
+        &b.addRunArtifact(composition_profile_tests).step,
+    );
     const deep_root = b.createModule(.{
         .root_source_file = b.path("testing.zig"),
         .target = target,
