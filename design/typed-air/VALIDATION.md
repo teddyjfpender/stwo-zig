@@ -118,22 +118,28 @@ the typed-site ledger and remaining producer formulas are implemented.
 ## Focused development commands
 
 Parallel development lanes must use the bounded compiler controller. It admits
-at most three commands, injects a distinct Git-private Zig local cache for each
-occupied slot, and keeps the global cache shared so immutable dependencies
-remain reusable:
+at most three commands and injects a stable, exclusively locked Git-private
+local cache for the exact command or named cache group. Related narrow and
+broad gates share a cache group without using it concurrently:
 
 ```sh
-python3 scripts/typed_air_zig_lane.py --label <short-owner> -- \
+python3 scripts/typed_air_zig_lane.py \
+  --label <short-owner> --stage narrow --cache-group <owner> -- \
   zig build --build-file src/frontends/riscv/build.zig \
   <focused-step> -Doptimize=Debug
 ```
 
-The label must be stable and contain no whitespace. Exit 75 means all slots are
-occupied, so the caller returns to source-only work and retries after a reported
-owner releases. Release evidence still uses the ordinary clean, isolated build
-protocol; slot caches are development accelerators, not receipt inputs. Full
-proof transactions remain host-serialized even when focused compilation is
-parallel.
+An exact development GREEN may be reused only when checkout closure, argv,
+toolchain, host, environment, stage, timeout policy, and controller identity
+still match. `--force` reruns it. Exit 74 means authority drift; exit 75 means a
+slot, key, cache group, caller-specified global cache, or automatic heavy lock
+is busy. Proof, benchmark, performance, capture, run, product-build, and
+explicit `--evidence` commands never reuse GREEN and are automatically
+host-serialized. The default Zig global cache remains intentionally shared;
+caller-specified global caches are separately locked. Stable PATH-resolved
+auxiliary tools remain a host trust boundary, while external toolchain/input
+environment paths disable reuse. Gate receipts and retained logs are DevEx
+records only, never protocol, performance, or release evidence.
 
 The recursive binary path has independent edit-loop gates. Run the smallest
 owner-specific gate first; the cohort gate is the first command that composes

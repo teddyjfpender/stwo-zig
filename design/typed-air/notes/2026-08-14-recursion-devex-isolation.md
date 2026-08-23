@@ -35,18 +35,32 @@ Parallel recursion work was paying three avoidable iteration costs:
 - Expensive proof evidence is serialized during development. Independent
   compilation and allocation-free audits may remain parallel; only one native
   proof transaction owns the host at a time.
-- `scripts/typed_air_zig_lane.py` now enforces three bounded compiler slots with
-  nonblocking `flock` state and one Git-private local cache per slot. A fourth
-  invocation exits 75 and prints all active labels, PIDs, and argv instead of
-  waiting or racing. The wrapper replaces any caller-provided local cache on a
-  `zig build` command, while the immutable global cache remains shared. It
-  launches an argv vector directly, never through a shell, and clears ownership
-  under `finally` on every normal command result. Both the slot lock and the
-  migration guard are inherited by the command, so an orphaned compiler retains
-  ownership even if its wrapper is killed. `--status` reports only live locks,
-  ignoring stale metadata. Eight focused unit tests pin wrapped
-  command rewriting, live concurrent admission, V1 migration exclusion, status,
-  metadata, descriptor inheritance, validation, and cleanup.
+- `scripts/typed_air_zig_lane.py` enforces three bounded compiler slots with
+  nonblocking `flock` state. V3 assigns a stable Git-private local cache to the
+  exact command or an explicit cache group, and protects that cache with its
+  own inherited, nonblocking lock. A separate inherited heavy lock serializes
+  evidence, proof, benchmark, run, capture, performance, and product-build
+  commands even when their keys differ. Ordinary diagnostic gates can still
+  occupy the other compiler slots.
+- Development-only GREEN reuse is exact: the key binds the tracked, staged,
+  unstaged, and untracked checkout closure; argv; toolchain binaries and
+  versions; host/kernel identity; full environment identity; stage; timeout
+  policy; and all three controller modules. An exact per-key lock prevents
+  duplicate gates. The
+  controller re-samples that full authority immediately before a cached return
+  and after every successful child; source or authority drift returns 74 and
+  publishes no GREEN. A forced rerun invalidates the prior GREEN only after all
+  execution locks are held, and any RED, TIMEOUT, or DRIFT keeps it invalid.
+- Proof/performance/evidence commands and commands naming an unhashed external
+  semantic path or bundle never reuse a prior run. They still receive a
+  create-only run receipt and retained stdout/stderr. Reusable diagnostics have
+  a 20-minute default process-group timeout; `--timeout-seconds` overrides it.
+  Timeout sends TERM, continues heartbeats during the grace period, then sends
+  KILL and records TIMEOUT. Nonreusable runs remain unbounded unless the caller
+  supplies a timeout.
+- Zig's default immutable global cache remains shared. A caller-specified
+  global cache receives an additional inherited no-wait lock, so distinct
+  commands cannot use that nonstandard path concurrently.
 
 ## Evidence
 
@@ -61,6 +75,7 @@ The following gates passed:
 ```text
 python3 -m unittest scripts.tests.test_delegated_identity_cache
 python3 -m unittest scripts.tests.test_typed_air_zig_lane
+python3 -m unittest scripts.tests.test_typed_air_zig_gate_cache
 zig build riscv-opcode-manifest-check \
   --cache-dir /tmp/stwo-zig-cache-root-delegation-smoke-2 \
   --global-cache-dir <zig-global-cache-dir> --verbose
@@ -87,11 +102,34 @@ evidence and must not enter a publishable performance receipt.
 ## Operating rule
 
 Every development Zig compile/test command is launched through the bounded
-controller; it selects a free slot and injects that slot's local cache:
+controller. Related narrow and broad stages should name the same cache group;
+the stages have different receipt keys but reuse one exclusively locked local
+Zig cache:
 
 ```text
-python3 scripts/typed_air_zig_lane.py --label <short-owner> -- zig build ...
+python3 scripts/typed_air_zig_lane.py \
+  --label <owner>-narrow --stage narrow --cache-group <owner> -- \
+  zig build test-<focused> -Doptimize=Debug
+python3 scripts/typed_air_zig_lane.py \
+  --label <owner>-broad --stage broad --cache-group <owner> -- \
+  zig build test-<package> -Doptimize=Debug
 ```
+
+The first exact GREEN prints its key, run receipt, and retained logs. A later
+exact invocation may return that GREEN without launching Zig and prints the
+same key and receipt. Use `--force` to rerun it. Mark normative work explicitly
+with `--evidence`; target-name classification is an additional fail-closed
+guard, not a substitute for that declaration:
+
+```text
+python3 scripts/typed_air_zig_lane.py \
+  --label <owner>-proof --stage evidence --evidence \
+  --timeout-seconds 7200 -- zig build <proof-target>
+```
+
+Receipts and logs live under Git's private
+`typed-air-zig-gates/{green,runs,logs}` directory. They are development
+coordination records, never protocol, performance, or release evidence.
 
 Inspect capacity without starting a compiler with
 `python3 scripts/typed_air_zig_lane.py --status`.

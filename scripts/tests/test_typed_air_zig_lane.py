@@ -72,6 +72,22 @@ class ZigCompilerLaneTests(unittest.TestCase):
         command = ["zig", "fmt", "source.zig"]
         self.assertEqual(command, lane._prepare_command(command, Path("unused")))
 
+    def test_zig_test_gets_the_exclusively_locked_cache(self) -> None:
+        cache = Path("/private/repository/.git/typed-air-zig-cache/gate")
+        self.assertEqual(
+            [
+                "zig",
+                "test",
+                "--cache-dir",
+                str(cache),
+                "source.zig",
+                "-Doptimize=Debug",
+            ],
+            lane._prepare_command(
+                ["zig", "test", "source.zig", "-Doptimize=Debug"], cache
+            ),
+        )
+
     def test_occupied_first_slot_admits_second_with_distinct_cache(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             repository = Path(directory)
