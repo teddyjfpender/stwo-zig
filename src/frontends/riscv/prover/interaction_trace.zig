@@ -167,6 +167,7 @@ pub fn generateAndCommit(
         claim,
         test_mutation,
         phase_meter,
+        .ambient,
         null,
     );
 }
@@ -227,6 +228,7 @@ pub fn generateAndCommitAuthenticatedLookupV2(
         claim,
         null,
         phase_meter,
+        .ambient,
         .{
             .manifest = manifest,
             .statement = authenticated_statement,
@@ -255,13 +257,6 @@ fn generateAndCommitSequentialProfiled(
     phase_meter: ?*proof_phase_meter.Meter,
     lookup_v2: ?LookupV2Admission,
 ) !void {
-    // Parallel predecessor generators have distinct chunk/offset schedules;
-    // prepared execution below receipts them exactly. The allocation-safe
-    // sequential route fails closed rather than mislabelling a global-pool
-    // substitution.
-    if (work_pool.getGlobalPool() != null)
-        return error.UnsupportedProfiledSequentialInteractionExecution;
-
     const authority = interaction_witness_work.Authority.init();
     const binding = interaction_witness_work.baseSessionDigest(
         prefix.interaction_pow,
@@ -289,6 +284,7 @@ fn generateAndCommitSequentialProfiled(
         claim,
         test_mutation,
         phase_meter,
+        .sequential,
         lookup_v2,
     );
     const counts = try sequentialBaseWorkCounts(
@@ -332,6 +328,7 @@ fn generateAndCommitInternal(
     claim: *RiscVInteractionClaim,
     test_mutation: ?test_witness_hook.Mutation,
     phase_meter: ?*proof_phase_meter.Meter,
+    base_execution_policy: BaseExecutionPolicy,
     lookup_v2: ?LookupV2Admission,
 ) !void {
     const statement = &workspace.statement;
@@ -371,7 +368,7 @@ fn generateAndCommitInternal(
         relations,
         claim,
         lookup_v2,
-        .ambient,
+        base_execution_policy,
     );
     std.debug.assert(columns.filled == n_interaction);
     if (test_mutation) |mutation| {
