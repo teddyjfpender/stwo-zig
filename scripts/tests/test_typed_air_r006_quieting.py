@@ -55,7 +55,7 @@ class PostCaptureQuietingTests(unittest.TestCase):
         self.assertEqual(clock.sleeps, [30.0, 30.0])
         self.assertEqual(
             POST_CAPTURE_QUIETING_POLICY["thresholds"],
-            "host-preflight-v1-unchanged",
+            "host-preflight-v2-unchanged",
         )
 
     def test_timeout_is_bounded_and_never_admits_a_rejected_sample(self) -> None:
@@ -96,6 +96,24 @@ class PostCaptureQuietingTests(unittest.TestCase):
                 provider=lambda: changed,
                 expected_host=expected["host"],
                 sleeper=lambda _: self.fail("host drift must not sleep"),
+                monotonic=lambda: 0,
+            )
+
+    def test_power_source_drift_fails_without_retry(self) -> None:
+        expected = self.preflight(admitted=True)
+        changed_host = preflight_host(
+            logical_cpu_count=10,
+            power_source="Battery Power",
+        )
+        changed = host_preflight(
+            host_provider=lambda: changed_host,
+            quiet_provider=lambda _: quiet_evidence(changed_host),
+        )
+        with self.assertRaisesRegex(CaptureError, "identity changed while quieting"):
+            await_admitted_post_capture_preflight(
+                provider=lambda: changed,
+                expected_host=expected["host"],
+                sleeper=lambda _: self.fail("power-source drift must not sleep"),
                 monotonic=lambda: 0,
             )
 

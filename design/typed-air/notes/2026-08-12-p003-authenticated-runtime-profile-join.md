@@ -23,7 +23,7 @@ The 3/3 real-device Metal gate independently verified with 118 authenticated
 AOT exports and exact-once completion, but emitted no separate canonical
 proof, transcript, work, or shell identity; none is inferred from CPU values.
 
-R-006 plan V3 now binds and recomputes that complete matrix and inventory plus
+R-006 plan V4 now binds and recomputes that complete matrix and inventory plus
 the versioned M7 generated-input geometry: balanced at 8 calls and dominant at
 4096. Balanced uses the exact recurrence `S(n) = 58,018n + 40`, yielding
 464,184 retired guest instructions at 8 calls: 8 CUSTOM instructions and
@@ -31,7 +31,10 @@ the versioned M7 generated-input geometry: balanced at 8 calls and dominant at
 smoke. These M7 counts do not revise M6's frozen common 4096-call gate;
 balanced `S(4096) = 237,641,768` exceeds the current one-shot `2^24` AIR limit
 and remains open pending segmented/recursive proving. A
-plan-bound post-capture phase retries fresh unchanged-threshold host samples
+V4 records and holds stable the machine-observed power source without requiring
+AC; Battery Power is admissible only with Low Power Mode off and the same
+idle/load/thermal thresholds. A plan-bound post-capture phase retries fresh
+unchanged-threshold host samples
 every 30 seconds for at most 15 minutes. Fsynced attempt-publication and host
 boundary journals enforce no retry, guarded prefix resume, and byte-idempotent
 finalization; a full simulated 2,080-attempt crash/replay passes. Quieting

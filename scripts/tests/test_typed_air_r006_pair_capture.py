@@ -77,9 +77,9 @@ class PairedCaptureTests(R006Fixture):
         plan = self.pair_plan()
         self.assertEqual(
             plan["schema"],
-            "stwo.typed-air.r006-paired-capture-plan.v3",
+            "stwo.typed-air.r006-paired-capture-plan.v4",
         )
-        self.assertEqual(plan["schema_version"], 3)
+        self.assertEqual(plan["schema_version"], 4)
         self.assertEqual(
             plan["schedule"]["post_capture_quieting"],
             pair_module.quieting.POST_CAPTURE_QUIETING_POLICY,
@@ -122,6 +122,54 @@ class PairedCaptureTests(R006Fixture):
         )
         changed["content_sha256"] = content_digest(changed)
         with self.assertRaisesRegex(CaptureError, "interleaving"):
+            validate_pair_plan(
+                changed,
+                repository=self.repository,
+                verify_local=False,
+                source_provider=self.source,
+            )
+
+    def test_pair_plan_admits_battery_and_binds_it_as_stable_host_state(self) -> None:
+        battery_preflight_host = preflight_host(
+            logical_cpu_count=10,
+            power_source="Battery Power",
+        )
+        battery_preflight = host_preflight(
+            host_provider=lambda: battery_preflight_host,
+            quiet_provider=lambda _: quiet_evidence(battery_preflight_host),
+        )
+        battery_plan_host = self.host("Battery Power; fixture")
+        battery_plan_host["power_state"] = dict(battery_plan_host["power_state"])
+        battery_plan_host["power_state"]["power_source"] = "Battery Power"
+        plan = build_pair_plan(
+            PairPlanSettings(
+                repository=self.repository,
+                session_id="fixture-r006-battery-pair",
+                power_state="Battery Power; fixture",
+                cpu_executable=self.executable,
+                metal_executable=self.executable,
+                workloads=self.workloads,
+                toolchain="zig:fixture",
+                target="aarch64-macos",
+                cpu_features="apple-m2",
+            ),
+            source_provider=self.source,
+            host_provider=lambda _: battery_plan_host,
+            closure_provider=self.closure,
+            preflight_provider=lambda: battery_preflight,
+            clock=lambda: dt.datetime(2026, 8, 15, tzinfo=dt.timezone.utc),
+        )
+        self.assertEqual(
+            plan["host"]["power_state"]["power_source"], "Battery Power"
+        )
+
+        changed = copy.deepcopy(plan)
+        changed["host_preflight"]["host"]["power_source"] = "AC Power"
+        changed["host_preflight"]["content_sha256"] = content_digest(
+            changed["host_preflight"]
+        )
+        changed["content_sha256"] = content_digest(changed)
+        with self.assertRaises(CaptureError):
             validate_pair_plan(
                 changed,
                 repository=self.repository,
@@ -181,6 +229,7 @@ class PairedCaptureTests(R006Fixture):
         rejected_host = preflight_host(
             logical_cpu_count=10,
             power_source="Battery Power",
+            low_power_mode=True,
         )
         rejected = host_preflight(
             host_provider=lambda: rejected_host,

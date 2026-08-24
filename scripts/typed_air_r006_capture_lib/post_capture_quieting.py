@@ -10,9 +10,9 @@ from .preflight import validate_host_preflight
 
 
 POST_CAPTURE_QUIETING_POLICY = {
-    "schema": "stwo.typed-air.r006-post-capture-quieting.v1",
+    "schema": "stwo.typed-air.r006-post-capture-quieting.v2",
     "retry_fresh_preflight": True,
-    "thresholds": "host-preflight-v1-unchanged",
+    "thresholds": "host-preflight-v2-unchanged",
     "retry_interval_ns": 30_000_000_000,
     "timeout_ns": 900_000_000_000,
 }

@@ -467,7 +467,7 @@ class OrchestrationTests(R006Fixture):
                 source_provider=lambda _: next(identities),
             )
 
-    def test_host_preflight_fails_closed_for_power_low_power_and_thermal(self) -> None:
+    def test_host_preflight_allows_battery_but_rejects_low_power_and_thermal(self) -> None:
         host = preflight_host(
             power_source="Battery Power",
             low_power_mode=True,
@@ -479,9 +479,46 @@ class OrchestrationTests(R006Fixture):
         )
         self.assertFalse(result["admissible"])
         joined = "\n".join(result["reasons"])
-        self.assertIn("AC Power", joined)
+        self.assertNotIn("AC Power", joined)
         self.assertIn("Low Power Mode", joined)
         self.assertIn("thermal", joined)
+
+    def test_host_preflight_admits_observed_battery_power_when_quiet(self) -> None:
+        host = preflight_host(power_source="Battery Power")
+        result = host_preflight(
+            host_provider=lambda: host,
+            quiet_provider=lambda _: quiet_evidence(host),
+        )
+        self.assertTrue(result["admissible"])
+        self.assertEqual(result["host"]["power_source"], "Battery Power")
+        self.assertEqual(
+            result["requirements"]["power_source_policy"],
+            "machine_observed_nonempty_and_stable",
+        )
+        self.assertEqual(
+            result["quiet_host"]["policy"],
+            "stable_observed_power_source_low_power_off_v2",
+        )
+
+    def test_host_preflight_rejects_missing_power_source_and_stale_v1(self) -> None:
+        host = preflight_host(power_source="")
+        with self.assertRaisesRegex(CaptureError, "power source"):
+            host_preflight(
+                host_provider=lambda: host,
+                quiet_provider=lambda _: quiet_evidence(host),
+            )
+
+        battery = preflight_host(power_source="Battery Power")
+        result = host_preflight(
+            host_provider=lambda: battery,
+            quiet_provider=lambda _: quiet_evidence(battery),
+        )
+        stale = copy.deepcopy(result)
+        stale["schema"] = "stwo.typed-air.r006-host-preflight.v1"
+        stale["schema_version"] = 1
+        stale["content_sha256"] = content_digest(stale)
+        with self.assertRaisesRegex(CaptureError, "authority changed"):
+            validate_host_preflight(stale, require_admitted=False)
 
     def test_host_preflight_accepts_only_complete_quiet_metal_authority(self) -> None:
         host = preflight_host()
@@ -524,7 +561,7 @@ class OrchestrationTests(R006Fixture):
                 validate_host_preflight(mutation, require_admitted=False)
 
     def test_host_preflight_cli_replays_rejected_receipt(self) -> None:
-        host = preflight_host(power_source="Battery Power")
+        host = preflight_host(power_source="Battery Power", low_power_mode=True)
         receipt = host_preflight(
             host_provider=lambda: host,
             quiet_provider=lambda _: quiet_evidence(host),

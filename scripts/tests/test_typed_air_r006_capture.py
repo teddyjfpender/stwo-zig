@@ -488,8 +488,8 @@ class R006Fixture(unittest.TestCase):
 
 class PlanTests(R006Fixture):
     def test_plan_freezes_protocol_worker_arms_and_complete_pairwise_schedule(self) -> None:
-        self.assertEqual(self.plan["schema"], "stwo.typed-air.r006-capture-plan.v3")
-        self.assertEqual(self.plan["schema_version"], 3)
+        self.assertEqual(self.plan["schema"], "stwo.typed-air.r006-capture-plan.v4")
+        self.assertEqual(self.plan["schema_version"], 4)
         self.assertEqual(self.plan["protocol"]["sha256"], PROTOCOL_SHA256)
         closure = self.plan["global_exact_work_closure"]
         self.assertTrue(closure["coverage"]["whole_prover_exact"])

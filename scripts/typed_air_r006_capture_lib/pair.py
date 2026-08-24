@@ -54,7 +54,7 @@ from . import pair_publication as publication
 from .preflight import validate_host_preflight
 
 
-PAIR_PLAN_SCHEMA = "stwo.typed-air.r006-paired-capture-plan.v3"
+PAIR_PLAN_SCHEMA = "stwo.typed-air.r006-paired-capture-plan.v4"
 PAIR_PROGRESS_HEADER_SCHEMA = durability.PAIR_PROGRESS_HEADER_SCHEMA
 PAIR_PROGRESS_RECORD_SCHEMA = durability.PAIR_PROGRESS_RECORD_SCHEMA
 PAIR_BUNDLE_SCHEMA = "stwo.typed-air.r006-paired-raw-bundle.v2"
@@ -242,7 +242,7 @@ def build_pair_plan(
         lanes[lane] = lane_plan
     document: dict[str, Any] = {
         "schema": PAIR_PLAN_SCHEMA,
-        "schema_version": 3,
+        "schema_version": 4,
         "classification": "normative-pre-execution-paired-capture-authority",
         "created_at_utc": created,
         "session_id": settings.session_id,
@@ -275,7 +275,7 @@ def validate_pair_plan(
     plan = exact_object(value, PAIR_PLAN_FIELDS, "paired R-006 capture plan")
     if (
         plan["schema"] != PAIR_PLAN_SCHEMA
-        or plan["schema_version"] != 3
+        or plan["schema_version"] != 4
         or plan["classification"]
         != "normative-pre-execution-paired-capture-authority"
         or type(plan["created_at_utc"]) is not str

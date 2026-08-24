@@ -1,6 +1,6 @@
 # P-003 V4 exact-work readiness matrix
 
-**Updated:** 2026-08-20
+**Updated:** 2026-08-24
 **Status:** schema-9 CPU and Metal producer closure is 16/16; a publishable
 R-006 scaling capture remains gated by a fresh admitted host preflight
 
@@ -112,11 +112,13 @@ remaining blocker is the retained inadmissible host preflight; no P-003 closure
 blocker remains. It correctly contains a null R-006 scaling receipt and
 `terminal_v4_seal_authorized=false`.
 
-The current Aug 20 host preflight is AC-powered, has low-power mode disabled,
+The retained Aug 20 V1 host preflight is AC-powered, has low-power mode disabled,
 clear thermal state, minimum idle above 90%, and normalized one-minute load
 below 0.20. It is still inadmissible because median idle was 93.81%, below the
-95% threshold. The older Aug 17 battery observation is historical only and is
-not the canonical blocker authority.
+95% threshold. It remains immutable historical blocker evidence. R-006 V4 now
+admits a newly captured Battery Power cohort when that machine-observed source
+stays stable, Low Power Mode is off, and every unchanged quiet/load/thermal
+gate passes; this does not reinterpret either retained V1 observation.
 
 Non-Zig closure evidence on the settled source:
 

@@ -88,6 +88,13 @@ Answers: did the change improve its stated resource without hiding another?
 
 ### P-003/R-006 exact-work promotion gate
 
+R-006 capture-plan V4 records the machine-observed power source and requires it
+to remain stable across planning, attempts, and boundary preflights. AC and
+Battery Power are both admissible; Low Power Mode off, clear thermal evidence,
+minimum/median idle, and normalized-load thresholds remain mandatory. A power
+source change during capture is still `NO_VERDICT`, matching the frozen M7
+protocol's stable-power requirement.
+
 V2 work-profile transport and digest validation are necessary but do not prove
 producer exhaustiveness. An `instrumented_exact` R-006 attempt may advance to
 the real V4 schema only when all of the following hold:

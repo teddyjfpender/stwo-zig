@@ -46,7 +46,7 @@ class P003CompletionTests(unittest.TestCase):
             "logical_cpu_count": 18,
             "memory_bytes": 64 * 1024**3,
             "power_source": "AC Power" if admitted else "Battery Power",
-            "low_power_mode": False,
+            "low_power_mode": False if admitted else True,
             "python": "fixture",
             "gpu": {
                 "name": "fixture-gpu",

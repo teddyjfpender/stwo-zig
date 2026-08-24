@@ -83,9 +83,10 @@ def host_identity(power_state: str) -> dict[str, object]:
     if not model or not physical or not memory:
         raise CaptureError("host CPU, physical-core, or memory identity is unavailable")
     power_source, low_power_mode = power_evidence()
-    if power_source != "AC Power" or low_power_mode is not False:
+    if not power_source or low_power_mode is not False:
         raise CaptureError(
-            "R-006 normative capture requires machine-observed AC power and low power mode off; "
+            "R-006 normative capture requires a machine-observed stable power source "
+            "and low power mode off; "
             f"observed power={power_source or 'unavailable'}, "
             f"low_power_mode={low_power_mode!r}"
         )

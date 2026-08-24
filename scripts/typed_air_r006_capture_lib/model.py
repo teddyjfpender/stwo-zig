@@ -5,8 +5,8 @@ from __future__ import annotations
 import re
 
 
-PLAN_SCHEMA = "stwo.typed-air.r006-capture-plan.v3"
-PLAN_VERSION = 3
+PLAN_SCHEMA = "stwo.typed-air.r006-capture-plan.v4"
+PLAN_VERSION = 4
 BUNDLE_SCHEMA = "stwo.typed-air.r006-raw-bundle.v1"
 PROTOCOL_SCHEMA = "stwo-typed-air-m5-m9-performance-protocol-v1"
 PROTOCOL_PATH = "design/typed-air/performance/m5-m9-protocol-v1.json"

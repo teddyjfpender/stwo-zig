@@ -11,7 +11,11 @@ from .codec import content_digest, exact_object
 from .model import DIGEST_RE, UTC_RE, CaptureError
 
 
-PREFLIGHT_SCHEMA = "stwo.typed-air.r006-host-preflight.v1"
+PREFLIGHT_SCHEMA = "stwo.typed-air.r006-host-preflight.v2"
+QUIET_SCHEMA = "stwo.typed-air.r006-quiet-host-preflight.v2"
+QUIET_POLICY = "stable_observed_power_source_low_power_off_v2"
+NATIVE_QUIET_SCHEMA = "stwo_native_ab_quiet_host_preflight_v1"
+NATIVE_QUIET_POLICY = "publishable_initial_or_post_build_v1"
 PREFLIGHT_FIELDS = {
     "schema",
     "schema_version",
@@ -25,7 +29,7 @@ PREFLIGHT_FIELDS = {
     "content_sha256",
 }
 PREFLIGHT_REQUIREMENTS = {
-    "power_source": "AC Power",
+    "power_source_policy": "machine_observed_nonempty_and_stable",
     "low_power_mode": False,
     "thermal_warning_state": "clear",
     "minimum_idle_percent": 90.0,
@@ -184,13 +188,20 @@ def _validate_thermal_evidence(value: Any, host: Mapping[str, Any]) -> dict[str,
     return thermal
 
 
-def _validate_quiet_evidence(value: Any, host: Mapping[str, Any]) -> dict[str, Any]:
+def _validate_quiet_evidence(
+    value: Any,
+    host: Mapping[str, Any],
+    *,
+    native_source: bool = False,
+) -> dict[str, Any]:
     quiet = exact_object(value, QUIET_FIELDS, "R-006 quiet-host evidence")
+    expected_schema = NATIVE_QUIET_SCHEMA if native_source else QUIET_SCHEMA
+    expected_policy = NATIVE_QUIET_POLICY if native_source else QUIET_POLICY
     if (
-        quiet["schema"] != "stwo_native_ab_quiet_host_preflight_v1"
+        quiet["schema"] != expected_schema
         or type(quiet["admissible"]) is not bool
         or type(quiet["power_admissible"]) is not bool
-        or quiet["policy"] != "publishable_initial_or_post_build_v1"
+        or quiet["policy"] != expected_policy
     ):
         raise CaptureError("R-006 quiet-host authority changed")
     if type(quiet["reasons"]) is not list or any(
@@ -262,7 +273,9 @@ def _validate_quiet_evidence(value: Any, host: Mapping[str, Any]) -> dict[str, A
         maximum=None,
     )
     thermal = _validate_thermal_evidence(observed["thermal"], host)
-    power_reasons = _power_reasons(host)
+    power_reasons = (
+        _native_power_reasons(host) if native_source else _power_reasons(host)
+    )
     normalized = [value / host["logical_cpu_count"] for value in loads]
     reasons = list(power_reasons)
     if len(idle) != 3 or len(loads) != 3:
@@ -280,11 +293,11 @@ def _validate_quiet_evidence(value: Any, host: Mapping[str, Any]) -> dict[str, A
     if thermal["thermal_clear"] is not True:
         reasons.append("macOS thermal/performance-warning state is not certified clear")
     expected = {
-        "schema": "stwo_native_ab_quiet_host_preflight_v1",
+        "schema": expected_schema,
         "admissible": not reasons,
         "reasons": reasons,
         "power_admissible": not power_reasons,
-        "policy": "publishable_initial_or_post_build_v1",
+        "policy": expected_policy,
         "thresholds": expected_thresholds,
         "observed": {
             "idle_percent": idle,
@@ -303,13 +316,74 @@ def _validate_quiet_evidence(value: Any, host: Mapping[str, Any]) -> dict[str, A
     return quiet
 
 
-def _power_reasons(host: Mapping[str, Any]) -> list[str]:
+def _normalize_quiet_evidence(
+    value: Any,
+    host: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Project the generic CSP sampler into the R-006 battery-capable policy."""
+
+    source = _validate_quiet_evidence(value, host, native_source=True)
+    normalized = {
+        "schema": QUIET_SCHEMA,
+        "admissible": False,
+        "reasons": [],
+        "power_admissible": False,
+        "policy": QUIET_POLICY,
+        "thresholds": source["thresholds"],
+        "observed": source["observed"],
+    }
+    observed = normalized["observed"]
+    idle = observed["idle_percent"]
+    loads = observed["load_1m"]
+    thermal = observed["thermal"]
+    power_reasons = _power_reasons(host)
+    reasons = list(power_reasons)
+    if len(idle) != 3 or len(loads) != 3:
+        reasons.append("quiet-host sampler did not return the required three observations")
+    if not idle or min(idle) < PREFLIGHT_REQUIREMENTS["minimum_idle_percent"]:
+        reasons.append("minimum CPU idle is below 90%")
+    if not idle or statistics.median(idle) < PREFLIGHT_REQUIREMENTS["median_idle_percent"]:
+        reasons.append("median CPU idle is below 95%")
+    normalized_loads = [value / host["logical_cpu_count"] for value in loads]
+    if (
+        not normalized_loads
+        or max(normalized_loads)
+        > PREFLIGHT_REQUIREMENTS["maximum_normalized_load_1m"]
+    ):
+        reasons.append("one-minute load exceeds 0.20 per logical CPU")
+    if thermal["thermal_clear"] is not True:
+        reasons.append("macOS thermal/performance-warning state is not certified clear")
+    normalized["admissible"] = not reasons
+    normalized["reasons"] = reasons
+    normalized["power_admissible"] = not power_reasons
+    return _validate_quiet_evidence(normalized, host)
+
+
+def _native_power_reasons(host: Mapping[str, Any]) -> list[str]:
+    """Recompute the source sampler's historical AC-only verdict."""
+
     reasons: list[str] = []
     source = host["power_source"]
     if source != "AC Power":
         reasons.append(
             "CSP-comparable timings require AC power (observed: "
             f"{source or 'no power-source evidence'})"
+        )
+    low_power_mode = host["low_power_mode"]
+    if low_power_mode is not False:
+        reasons.append(
+            "CSP-comparable timings require low power mode disabled "
+            f"(observed: {'enabled' if low_power_mode else 'no evidence'})"
+        )
+    return reasons
+
+
+def _power_reasons(host: Mapping[str, Any]) -> list[str]:
+    reasons: list[str] = []
+    source = host["power_source"]
+    if type(source) is not str or not source:
+        reasons.append(
+            "R-006 capture requires machine-observed power-source evidence"
         )
     low_power_mode = host["low_power_mode"]
     if low_power_mode is not False:
@@ -327,8 +401,7 @@ def _preflight_reasons(
     reasons = list(quiet["reasons"])
     if host["os"] != "Darwin":
         reasons.append("R-006 resource authority requires Darwin")
-    if host["power_source"] != "AC Power":
-        reasons.append("R-006 normative capture requires machine-observed AC Power")
+    reasons.extend(_power_reasons(host))
     if host["low_power_mode"] is not False:
         reasons.append("R-006 normative capture requires Low Power Mode off")
     thermal = quiet["observed"]["thermal"]
@@ -344,11 +417,11 @@ def build_host_preflight(host_value: Any, quiet_value: Any) -> dict[str, Any]:
     """Seal already observed host evidence under the frozen R-006 schema."""
 
     host = _validate_host_evidence(host_value)
-    quiet = _validate_quiet_evidence(quiet_value, host)
+    quiet = _normalize_quiet_evidence(quiet_value, host)
     reasons = _preflight_reasons(host, quiet)
     result: dict[str, Any] = {
         "schema": PREFLIGHT_SCHEMA,
-        "schema_version": 1,
+        "schema_version": 2,
         "captured_at_utc": _utc_now(),
         "admissible": not reasons,
         "classification": (
@@ -376,7 +449,7 @@ def validate_host_preflight(
     if (
         preflight["schema"] != PREFLIGHT_SCHEMA
         or type(preflight["schema_version"]) is not int
-        or preflight["schema_version"] != 1
+        or preflight["schema_version"] != 2
         or type(preflight["captured_at_utc"]) is not str
         or UTC_RE.fullmatch(preflight["captured_at_utc"]) is None
         or type(preflight["admissible"]) is not bool

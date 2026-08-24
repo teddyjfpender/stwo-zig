@@ -567,7 +567,8 @@ def validate_host(value: Any) -> dict[str, Any]:
         raise CaptureError("capture power declaration is empty")
     if (
         power["machine_verified"] is not True
-        or power["power_source"] != "AC Power"
+        or type(power["power_source"]) is not str
+        or not power["power_source"]
         or power["low_power_mode"] is not False
     ):
         raise CaptureError("capture host lacks admissible machine-verified power evidence")
