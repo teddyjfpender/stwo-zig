@@ -494,19 +494,26 @@ def execute_plan(
     artifact_path: Path,
     *,
     confirmation: str,
+    allow_nonnormative_power: bool = False,
 ) -> Path:
     if confirmation != CONFIRMATION:
         raise contract.ABError(
             f"heavyweight run requires --confirm-heavyweight {CONFIRMATION}"
         )
     plan, plan_raw, active, base_env = _admit_live_plan(plan_path)
-    if plan["status"] != "ready_ephemeral_current":
+    if (
+        plan["status"] != "ready_ephemeral_current"
+        and not (
+            allow_nonnormative_power
+            and plan["status"] == "diagnostic_smoke_only_host_interference"
+        )
+    ):
         raise contract.ABError(
             "full A/B is blocked by the plan's quiet-host/power preflight; "
-            "only diagnostic smoke is admissible"
+            "use --allow-nonnormative-power for a fully disclosed diagnostic cohort"
         )
     execution_preflight = quiet_host_preflight(plan["host"])
-    if not execution_preflight["admissible"]:
+    if not execution_preflight["admissible"] and not allow_nonnormative_power:
         raise contract.ABError(
             "full A/B is blocked by live host interference: "
             + "; ".join(execution_preflight["reasons"])
@@ -535,14 +542,16 @@ def execute_plan(
         post_build = bounded_quiet_gate(
             plan["host"],
             label="post-build recovery",
-            enforce_load_threshold=True,
-            max_attempts=12,
-            retry_seconds=10,
+            enforce_load_threshold=not allow_nonnormative_power,
+            max_attempts=1 if allow_nonnormative_power else 12,
+            retry_seconds=0 if allow_nonnormative_power else 10,
         )
         post_build_relative = Path("gates") / "post-build.json"
         contract.write_new_json(artifact / post_build_relative, post_build)
         post_build_evidence = _gate_evidence(
-            artifact, post_build_relative, require_admissible=True
+            artifact,
+            post_build_relative,
+            require_admissible=not allow_nonnormative_power,
         )
 
         pair_gate_evidence: dict[tuple[int, int], dict[str, Any]] = {}
@@ -561,13 +570,15 @@ def execute_plan(
                     # The one-minute load includes the preceding benchmark pair;
                     # instantaneous idle and thermal state remain enforced.
                     enforce_load_threshold=False,
-                    max_attempts=3,
-                    retry_seconds=5,
+                    max_attempts=1 if allow_nonnormative_power else 3,
+                    retry_seconds=0 if allow_nonnormative_power else 5,
                 )
                 gate_relative = _pair_gate_relative(entry)
                 contract.write_new_json(artifact / gate_relative, gate)
                 pair_gate_evidence[pair_key] = _gate_evidence(
-                    artifact, gate_relative, require_admissible=True
+                    artifact,
+                    gate_relative,
+                    require_admissible=not allow_nonnormative_power,
                 )
             if pair_key not in pair_gate_evidence:
                 raise contract.ABError("paired launch has no admitted quiet-host gate")
@@ -597,6 +608,7 @@ def execute_plan(
                 case=case,
                 settings=plan["settings"],
                 expected_host=plan["host"],
+                require_publishable_power=not allow_nonnormative_power,
             )
             receipt = contract.attach_seal(
                 {
@@ -632,6 +644,7 @@ def execute_plan(
             pair_gates=[
                 pair_gate_evidence[key] for key in sorted(pair_gate_evidence)
             ],
+            allow_nonnormative_power=allow_nonnormative_power,
         )
         output = artifact / "report.json"
         contract.write_new_json(output, report)

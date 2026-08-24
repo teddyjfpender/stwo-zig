@@ -78,19 +78,29 @@ def assemble_report(
     execution_preflight: Mapping[str, Any],
     post_build_gate: Mapping[str, Any],
     pair_gates: Sequence[Mapping[str, Any]],
+    allow_nonnormative_power: bool = False,
 ) -> dict[str, Any]:
     contract.validate_plan(plan)
-    if plan.get("status") != "ready_ephemeral_current":
+    if (
+        plan.get("status") != "ready_ephemeral_current"
+        and not (
+            allow_nonnormative_power
+            and plan.get("status") == "diagnostic_smoke_only_host_interference"
+        )
+    ):
         raise contract.ABError("full A/B assembly requires a publishable plan")
     if (
         execution_preflight.get("schema")
         != "stwo_native_ab_quiet_host_preflight_v1"
-        or execution_preflight.get("admissible") is not True
+        or (
+            execution_preflight.get("admissible") is not True
+            and not allow_nonnormative_power
+        )
     ):
         raise contract.ABError("execution quiet-host preflight was not admissible")
     post_path = Path(str(post_build_gate.get("path", "")))
     actual_post_gate = _gate_evidence(
-        artifact, post_path, require_admissible=True
+        artifact, post_path, require_admissible=not allow_nonnormative_power
     )
     if actual_post_gate != post_build_gate:
         raise contract.ABError("post-build quiet-gate evidence drifted")
@@ -103,7 +113,9 @@ def assemble_report(
         if not isinstance(path_text, str) or path_text in pair_gate_by_path:
             raise contract.ABError("paired quiet-gate path is invalid or duplicated")
         actual = _gate_evidence(
-            artifact, Path(path_text), require_admissible=True
+            artifact,
+            Path(path_text),
+            require_admissible=not allow_nonnormative_power,
         )
         if actual != supplied:
             raise contract.ABError(f"paired quiet-gate evidence drifted: {path_text}")
@@ -124,6 +136,7 @@ def assemble_report(
             case=case,
             settings=plan["settings"],
             expected_host=plan["host"],
+            require_publishable_power=not allow_nonnormative_power,
         )
         receipt_relative = _receipt_relative(entry)
         receipt, receipt_raw = contract.load_json(artifact / receipt_relative)
@@ -138,7 +151,10 @@ def assemble_report(
             or receipt.get("report_sha256") != contract.sha256_bytes(raw)
             or receipt.get("report_bytes") != len(raw)
             or not isinstance(gate_evidence, dict)
-            or gate_evidence.get("admissible") is not True
+            or (
+                gate_evidence.get("admissible") is not True
+                and not allow_nonnormative_power
+            )
             or gate_evidence != expected_gate
         ):
             raise contract.ABError(f"launch receipt {entry['ordinal']} drifted")
@@ -184,7 +200,11 @@ def assemble_report(
             "schema": contract.REPORT_SCHEMA,
             "schema_version": contract.REPORT_VERSION,
             "generated_at": _now(),
-            "status": "paired_native_full_cohort_complete",
+            "status": (
+                "paired_native_full_cohort_complete_nonnormative_power"
+                if allow_nonnormative_power
+                else "paired_native_full_cohort_complete"
+            ),
             "plan": dict(plan_evidence),
             "source_snapshot_bundle": dict(snapshot_bundle),
             "arms": plan["arms"],
@@ -218,7 +238,18 @@ def assemble_report(
                     "No cross-workload aggregate is reported because no workload weighting is justified.",
                     "Peak RSS includes mandatory self-verification and is conservative for prove-only memory.",
                     "This diagnostic is not an EthProofs upload and is not rankable across different hosts.",
+                    *(
+                        [
+                            "Operator accepted nonnormative power/quiet conditions; results are descriptive only."
+                        ]
+                        if allow_nonnormative_power
+                        else []
+                    ),
                 ],
+            },
+            "power_claim_boundary": {
+                "publishable_performance_claim": not allow_nonnormative_power,
+                "operator_accepted_nonnormative_power": allow_nonnormative_power,
             },
         }
     )

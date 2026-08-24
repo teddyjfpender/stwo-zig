@@ -86,6 +86,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     run_parser.add_argument("plan", type=Path)
     run_parser.add_argument("--artifacts", type=Path, required=True)
     run_parser.add_argument("--confirm-heavyweight", required=True)
+    run_parser.add_argument(
+        "--allow-nonnormative-power",
+        action="store_true",
+        help=(
+            "run the full cohort under captured battery/quiet conditions while "
+            "forbidding a publishable performance claim"
+        ),
+    )
 
     args = parser.parse_args(argv)
     if args.command == "plan":
@@ -124,6 +132,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.plan.resolve(),
             artifact,
             confirmation=args.confirm_heavyweight,
+            allow_nonnormative_power=args.allow_nonnormative_power,
         )
     print(f"report: {output}")
     return 0
