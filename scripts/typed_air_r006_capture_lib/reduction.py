@@ -18,7 +18,7 @@ from types import ModuleType
 from typing import Any, Callable
 
 from .codec import canonical_bytes, content_digest, sha256_file
-from .model import PAIRS_PER_ROUND, PLAN_ATTEMPTS, ROUNDS, WORKLOAD_IDS, CaptureError
+from .model import PAIRS_PER_ROUND, ROUNDS, WORKLOAD_IDS, CaptureError
 from .pair import (
     PAIR_ATTEMPTS,
     PAIR_LANE_ORDER,
@@ -243,8 +243,8 @@ def _groups(
     plan: dict[str, Any],
     records: list[dict[str, Any]],
 ) -> dict[tuple[str, str], list[tuple[dict[str, Any], dict[str, Any]]]]:
-    if len(records) != PLAN_ATTEMPTS:
-        raise CaptureError("R-006 lane reduction requires all planned attempts")
+    if len(records) != len(plan["attempts"]):
+        raise CaptureError("R-006 lane reduction differs from its selected attempts")
     grouped: dict[
         tuple[str, str], list[tuple[dict[str, Any], dict[str, Any]]]
     ] = defaultdict(list)

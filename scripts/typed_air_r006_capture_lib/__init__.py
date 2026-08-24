@@ -23,6 +23,11 @@ from .pair import (
     write_pair_plan_new,
 )
 from .reduction import evaluate_pair_scaling, validate_pair_reduction
+from .pair_prefix import validate_pair_prefix
+from .prefix_reduction import (
+    evaluate_pair_prefix_scaling,
+    validate_pair_prefix_reduction,
+)
 from .preflight import validate_host_preflight
 
 __all__ = [
@@ -38,6 +43,7 @@ __all__ = [
     "capture",
     "capture_pair",
     "evaluate_pair_scaling",
+    "evaluate_pair_prefix_scaling",
     "load_plan",
     "load_pair_plan",
     "host_preflight",
@@ -48,6 +54,8 @@ __all__ = [
     "validate_snapshot_receipt",
     "validate_bundle",
     "validate_pair_bundle",
+    "validate_pair_prefix",
+    "validate_pair_prefix_reduction",
     "validate_pair_plan",
     "validate_pair_reduction",
     "validate_plan",

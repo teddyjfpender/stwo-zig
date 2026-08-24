@@ -28,6 +28,7 @@ from scripts.typed_air_r006_capture_lib import (  # noqa: E402
     capture,
     capture_pair,
     evaluate_pair_scaling,
+    evaluate_pair_prefix_scaling,
     host_preflight,
     install_candidate,
     installed_v4_smoke,
@@ -37,6 +38,8 @@ from scripts.typed_air_r006_capture_lib import (  # noqa: E402
     validate_bundle,
     validate_host_preflight,
     validate_pair_bundle,
+    validate_pair_prefix,
+    validate_pair_prefix_reduction,
     validate_pair_reduction,
     validate_snapshot_receipt,
     write_plan_new,
@@ -220,6 +223,32 @@ def _parser() -> argparse.ArgumentParser:
     )
     validate_reduction.add_argument("bundle", type=Path)
     validate_reduction.add_argument("receipt", type=Path)
+
+    validate_prefix = commands.add_parser(
+        "validate-pair-prefix",
+        help="authenticate every retained attempt and select complete comparison blocks",
+    )
+    validate_prefix.add_argument("bundle", type=Path)
+
+    reduce_prefix = commands.add_parser(
+        "reduce-pair-prefix",
+        help="publish an append-compatible scaling receipt from complete blocks",
+    )
+    reduce_prefix.add_argument("bundle", type=Path)
+    reduce_prefix.add_argument("--output", type=Path, required=True)
+    reduce_prefix.add_argument(
+        "--accept-partial-frozen-matrix",
+        action="store_true",
+        required=True,
+        help="acknowledge that the receipt is resumable, partial, and non-promotional",
+    )
+
+    validate_prefix_reduction = commands.add_parser(
+        "validate-pair-prefix-reduction",
+        help="recompute a complete-block prefix receipt from its bound append-only prefix",
+    )
+    validate_prefix_reduction.add_argument("bundle", type=Path)
+    validate_prefix_reduction.add_argument("receipt", type=Path)
 
     validate = commands.add_parser("validate-plan", help="replay an immutable plan")
     validate.add_argument("plan", type=Path)
@@ -539,6 +568,20 @@ def main(argv: list[str] | None = None) -> int:
             write_new(args.output, canonical_bytes(result))
         elif args.command == "validate-pair-reduction":
             result = validate_pair_reduction(
+                repository,
+                args.bundle,
+                args.receipt,
+            )
+        elif args.command == "validate-pair-prefix":
+            result = validate_pair_prefix(repository, args.bundle)
+        elif args.command == "reduce-pair-prefix":
+            if not args.accept_partial_frozen_matrix:
+                raise CaptureError("prefix reduction requires explicit partial-matrix acceptance")
+            _external(args.output, repository, "paired prefix scaling receipt")
+            result = evaluate_pair_prefix_scaling(repository, args.bundle)
+            write_new(args.output, canonical_bytes(result))
+        elif args.command == "validate-pair-prefix-reduction":
+            result = validate_pair_prefix_reduction(
                 repository,
                 args.bundle,
                 args.receipt,

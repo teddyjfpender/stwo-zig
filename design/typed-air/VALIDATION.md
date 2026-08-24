@@ -103,6 +103,16 @@ observed power-source transition before rerunning that one schedule item. The
 derived receipt is explicitly operator-authorized and non-normative; it never
 silently upgrades the frozen no-retry/stable-power M7 claim.
 
+Long captures are not all-or-nothing. `reduce-pair-prefix
+--accept-partial-frozen-matrix` authenticates every retained raw attempt, then
+reduces only complete 80-attempt A/A or 1-vs-N comparison blocks and publishes
+an append-compatible prefix authority. Partial blocks remain disclosed but do
+not enter statistics; unexecuted attempts and omitted workload matrices are
+explicit. `validate-pair-prefix-reduction` replays the bound journal prefixes
+even after later append-only capture progress. Such a receipt is useful scaling
+evidence, but is always non-promotional and cannot claim the complete frozen
+2,080-attempt matrix.
+
 V2 work-profile transport and digest validation are necessary but do not prove
 producer exhaustiveness. An `instrumented_exact` R-006 attempt may advance to
 the real V4 schema only when all of the following hold:
