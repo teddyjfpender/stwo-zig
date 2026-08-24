@@ -188,6 +188,14 @@ def _parser() -> argparse.ArgumentParser:
     execute_pair.add_argument("--timeout-seconds", type=float, default=86_400.0)
     execute_pair.add_argument("--max-new-attempts", type=int)
     execute_pair.add_argument(
+        "--authorize-interrupted-attempt-retry",
+        action="store_true",
+        help=(
+            "explicitly attest that no child remains and authorize one retry of "
+            "the exact pending intent; the recovery is retained in final evidence"
+        ),
+    )
+    execute_pair.add_argument(
         f"--execute-frozen-{PAIR_ATTEMPTS}-attempt-schedule",
         action="store_true",
         required=True,
@@ -506,6 +514,21 @@ def main(argv: list[str] | None = None) -> int:
                     ),
                     timeout_seconds=args.timeout_seconds,
                     max_new_attempts=args.max_new_attempts,
+                    authorize_interrupted_attempt_retry=(
+                        args.authorize_interrupted_attempt_retry
+                    ),
+                    recovery_controller_commit=(
+                        subprocess.run(
+                            ("git", "rev-parse", "HEAD"),
+                            cwd=REPOSITORY,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            check=True,
+                            text=True,
+                        ).stdout.strip()
+                        if args.authorize_interrupted_attempt_retry
+                        else None
+                    ),
                 )
             )
         elif args.command == "validate-pair-bundle":

@@ -95,6 +95,14 @@ minimum/median idle, and normalized-load thresholds remain mandatory. A power
 source change during capture is still `NO_VERDICT`, matching the frozen M7
 protocol's stable-power requirement.
 
+An interrupted run may preserve its durable prefix instead of discarding it.
+If the journal ends at an intent with no prepared record and no retained output,
+`capture-pair --authorize-interrupted-attempt-retry` records an append-only
+operator authorization, the exact retry ordinal, controller commit, and any
+observed power-source transition before rerunning that one schedule item. The
+derived receipt is explicitly operator-authorized and non-normative; it never
+silently upgrades the frozen no-retry/stable-power M7 claim.
+
 V2 work-profile transport and digest validation are necessary but do not prove
 producer exhaustiveness. An `instrumented_exact` R-006 attempt may advance to
 the real V4 schema only when all of the following hold:

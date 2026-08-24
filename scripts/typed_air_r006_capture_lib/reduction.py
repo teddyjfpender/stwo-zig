@@ -599,6 +599,23 @@ def evaluate_pair_scaling(repository: Path, bundle_path: Path) -> dict[str, Any]
             ],
         },
     }
+    recovery_disclosure = bundle_validation.get(
+        "recovery_disclosure",
+        {
+            "schema": "stwo.typed-air.r006-recovery-disclosure.v1",
+            "operator_authorized": False,
+            "authorized_retry_count": 0,
+            "authorizations": [],
+        },
+    )
+    if recovery_disclosure["operator_authorized"]:
+        result["classification"] = (
+            "operator-authorized-interrupted-attempt-recovery-scaling-reduction"
+        )
+        result["claim_boundary"]["operator_authorized_scaling_capture"] = (
+            bundle_validation["operator_authorized_scaling_capture"]
+        )
+        result["claim_boundary"]["recovery_disclosure"] = recovery_disclosure
     assert_pair_snapshot_current(bundle_path, snapshot)
     _require_unchanged_bundle_validation(
         repository, bundle_path, bundle_validation

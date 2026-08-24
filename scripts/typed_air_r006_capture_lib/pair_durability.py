@@ -26,6 +26,7 @@ from .controller import (
 from .model import MAX_STREAM_BYTES, PLAN_ATTEMPTS, UTC_RE, CaptureError
 from .orchestration import INSTALL_LANES
 from .preflight import validate_host_preflight
+from . import pair_recovery as recovery
 
 
 PAIR_PROGRESS_HEADER_SCHEMA = "stwo.typed-air.r006-pair-progress-header.v1"
@@ -496,6 +497,7 @@ def validate_boundary_records(
     plan: dict[str, Any],
     completed_attempts: int,
     require_complete: bool,
+    recovery_authorizations: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     planned = len(plan["interleaving"])
     if type(completed_attempts) is not int or not 0 <= completed_attempts <= planned:
@@ -511,12 +513,15 @@ def validate_boundary_records(
     ):
         raise CaptureError("paired preflight boundary header changed")
     expected_host = plan["host_preflight"]["host"]
+    authorizations = recovery_authorizations or []
     next_invocation = 0
     closed_prefix = 0
     open_start: dict[str, Any] | None = None
     first_preflight: dict[str, Any] | None = None
     final_preflight: dict[str, Any] | None = None
     recoveries = 0
+    authorization_cursor = 0
+    current_power_source = expected_host["power_source"]
     for value in records[1:]:
         record = exact_object(
             value, _BOUNDARY_RECORD_FIELDS, "preflight boundary record"
@@ -533,8 +538,21 @@ def validate_boundary_records(
         ):
             raise CaptureError("paired preflight boundary record is malformed")
         preflight = validate_host_preflight(record["preflight"], require_admitted=True)
-        if preflight["host"] != expected_host:
-            raise CaptureError("paired preflight boundary host identity drifted")
+        if boundary != "start":
+            while (
+                authorization_cursor < len(authorizations)
+                and authorizations[authorization_cursor]["durable_prefix"] <= prefix
+            ):
+                authorization = authorizations[authorization_cursor]
+                if authorization["from_power_source"] != current_power_source:
+                    raise CaptureError("paired recovery power-source chain changed")
+                current_power_source = authorization["to_power_source"]
+                authorization_cursor += 1
+        recovery.require_host_at_prefix(
+            preflight["host"],
+            expected_host,
+            power_source=current_power_source,
+        )
         if boundary == "start":
             if open_start is not None or index != next_invocation or prefix != closed_prefix:
                 raise CaptureError("paired preflight start is out of sequence")
@@ -563,6 +581,8 @@ def validate_boundary_records(
         raise CaptureError("attempt evidence regressed inside a preflight invocation")
     if require_complete and (open_start is not None or closed_prefix != planned):
         raise CaptureError("paired preflight boundary journal is not complete")
+    if authorization_cursor != len(authorizations) and open_start is None:
+        raise CaptureError("paired recovery authorization lacks a boundary transition")
     return {
         "header": header,
         "first_preflight": first_preflight,
@@ -576,9 +596,17 @@ def validate_boundary_records(
 
 
 class PreflightBoundaryJournal:
-    def __init__(self, root: Path, plan: dict[str, Any], completed_attempts: int) -> None:
+    def __init__(
+        self,
+        root: Path,
+        plan: dict[str, Any],
+        completed_attempts: int,
+        *,
+        recovery_authorizations: list[dict[str, Any]] | None = None,
+    ) -> None:
         self.path = root / BOUNDARY_JOURNAL_NAME
         self.plan = plan
+        self.recovery_authorizations = recovery_authorizations or []
         self.closed = False
         if not _lexists(self.path):
             if completed_attempts:
@@ -611,12 +639,18 @@ class PreflightBoundaryJournal:
             plan=self.plan,
             completed_attempts=completed_attempts,
             require_complete=require_complete,
+            recovery_authorizations=self.recovery_authorizations,
         )
 
     def admit(self, preflight: dict[str, Any], completed_attempts: int) -> bool:
         validate_host_preflight(preflight, require_admitted=True)
-        if preflight["host"] != self.plan["host_preflight"]["host"]:
-            raise CaptureError("paired preflight boundary host identity drifted")
+        recovery.require_host_at_prefix(
+            preflight["host"],
+            self.plan["host_preflight"]["host"],
+            power_source=recovery.power_source_at_prefix(
+                self.plan, self.recovery_authorizations, completed_attempts
+            ),
+        )
         summary = self.summary(
             completed_attempts=completed_attempts, require_complete=False
         )
@@ -653,8 +687,13 @@ class PreflightBoundaryJournal:
 
     def checkpoint(self, preflight: dict[str, Any], completed_attempts: int) -> None:
         validate_host_preflight(preflight, require_admitted=True)
-        if preflight["host"] != self.plan["host_preflight"]["host"]:
-            raise CaptureError("paired preflight boundary host identity drifted")
+        recovery.require_host_at_prefix(
+            preflight["host"],
+            self.plan["host_preflight"]["host"],
+            power_source=recovery.power_source_at_prefix(
+                self.plan, self.recovery_authorizations, completed_attempts
+            ),
+        )
         summary = self.summary(
             completed_attempts=completed_attempts, require_complete=False
         )
@@ -699,6 +738,7 @@ def read_boundary_journal(
     plan: dict[str, Any],
     completed_attempts: int,
     require_complete: bool,
+    recovery_authorizations: list[dict[str, Any]] | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     records = read_journal_regular(path, "preflight boundary journal")
     summary = validate_boundary_records(
@@ -706,6 +746,7 @@ def read_boundary_journal(
         plan=plan,
         completed_attempts=completed_attempts,
         require_complete=require_complete,
+        recovery_authorizations=recovery_authorizations,
     )
     return summary, journal_identity(records, BOUNDARY_JOURNAL_NAME)
 

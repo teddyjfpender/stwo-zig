@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import os
+from dataclasses import replace
 from pathlib import Path
 from unittest import mock
 
@@ -41,6 +42,19 @@ class R006DurabilityTests(R006Fixture):
             quiet_provider=lambda _: quiet_evidence(host),
         )
         result["captured_at_utc"] = "2026-08-21T00:00:00Z"
+        result["content_sha256"] = content_digest(result)
+        return result
+
+    def preflight_for_power(self, power_source: str) -> dict[str, object]:
+        host = preflight_host(
+            logical_cpu_count=10,
+            power_source=power_source,
+        )
+        result = host_preflight(
+            host_provider=lambda: host,
+            quiet_provider=lambda _: quiet_evidence(host),
+        )
+        result["captured_at_utc"] = "2026-08-21T00:00:01Z"
         result["content_sha256"] = content_digest(result)
         return result
 
@@ -366,6 +380,84 @@ class R006DurabilityTests(R006Fixture):
                 **self.capture_arguments(),
             )
         self.assertEqual(proof_attempts, [])
+
+    def test_explicit_intent_retry_preserves_prefix_and_discloses_power_change(self) -> None:
+        plan = self.pair_plan("fixture-authorized-intent-retry")
+        plan_path = self.scratch / "authorized-intent-plan.json"
+        bundle = self.scratch / "authorized-intent-bundle"
+        write_pair_plan_new(plan_path, plan)
+        settings = self.settings(plan_path, bundle, maximum=1)
+        proof_attempts: list[tuple[str, int]] = []
+        original = publication.AttemptPublicationJournal.begin
+
+        def crash_after_intent(instance, schedule, lane_root, attempt):
+            original(instance, schedule, lane_root, attempt)
+            raise SimulatedCrash("host death after durable intent")
+
+        with (
+            mock.patch.object(
+                publication.AttemptPublicationJournal,
+                "begin",
+                new=crash_after_intent,
+            ),
+            self.assertRaises(SimulatedCrash),
+        ):
+            capture_pair(
+                settings,
+                child_runner=self.runner_for(plan, proof_attempts),
+                **self.capture_arguments(),
+            )
+        self.assertEqual(proof_attempts, [])
+
+        battery = lambda: self.preflight_for_power("Battery Power")
+        resumed = capture_pair(
+            replace(
+                settings,
+                authorize_interrupted_attempt_retry=True,
+                recovery_controller_commit="4" * 40,
+            ),
+            child_runner=self.runner_for(plan, proof_attempts),
+            sleeper=lambda _: None,
+            preflight_provider=battery,
+            source_provider=self.source,
+            closure_provider=self.closure,
+        )
+        self.assertEqual(resumed["completed_attempts"], 1)
+        self.assertEqual(proof_attempts, [("cpu-native", 0)])
+        publication_records = durability.read_journal_regular(
+            bundle / publication.PUBLICATION_JOURNAL_NAME,
+            "authorized publication journal",
+        )
+        self.assertEqual(
+            [record["phase"] for record in publication_records[1:]],
+            ["intent", "retry_authorized", "intent", "prepared", "committed"],
+        )
+        summary = publication.validate_publication_records(
+            publication_records,
+            plan=plan,
+            lane_records=None,
+            require_complete=False,
+        )
+        self.assertEqual(summary["committed_attempts"], 1)
+        self.assertEqual(summary["current_power_source"], "Battery Power")
+        self.assertEqual(
+            summary["recovery_disclosure"]["authorized_retry_count"], 1
+        )
+        boundary_records = durability.read_journal_regular(
+            bundle / durability.BOUNDARY_JOURNAL_NAME,
+            "authorized preflight journal",
+        )
+        self.assertEqual(
+            [record["boundary"] for record in boundary_records[1:]],
+            ["start", "recovery", "start", "checkpoint"],
+        )
+        self.assertEqual(
+            [
+                record["preflight"]["host"]["power_source"]
+                for record in boundary_records[1:]
+            ],
+            ["AC Power", "Battery Power", "Battery Power", "Battery Power"],
+        )
 
     def test_publication_authority_rejects_reopening_its_pending_intent(self) -> None:
         plan = self.pair_plan("fixture-direct-pending-intent")

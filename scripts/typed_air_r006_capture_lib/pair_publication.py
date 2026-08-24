@@ -9,6 +9,7 @@ from typing import Any, Mapping
 from .codec import content_digest, exact_object
 from .model import CaptureError
 from . import pair_durability as durability
+from . import pair_recovery as recovery
 
 
 PUBLICATION_HEADER_SCHEMA = "stwo.typed-air.r006-attempt-publication-header.v1"
@@ -83,31 +84,68 @@ def validate_publication_records(
     cursor = 1
     committed = 0
     prepared_records: list[dict[str, Any]] = []
+    authorizations: list[dict[str, Any]] = []
+    current_power_source = plan["host_preflight"]["host"]["power_source"]
     pending: dict[str, Any] | None = None
     for schedule in plan["interleaving"]:
         if cursor == len(records):
             break
-        intent = exact_object(
-            records[cursor], _RECORD_FIELDS, "attempt-publication record"
-        )
-        if (
-            intent["schema"] != PUBLICATION_RECORD_SCHEMA
-            or intent["phase"] != "intent"
-            or any(
-                intent[name] != expected
-                for name, expected in _schedule_identity(schedule).items()
+        while True:
+            intent = exact_object(
+                records[cursor], _RECORD_FIELDS, "attempt-publication record"
             )
-            or intent["attempt_record"] is not None
-            or intent["attempt_record_sha256"] is not None
-        ):
-            raise CaptureError("paired attempt-publication intent is out of sequence")
-        pending = {"phase": "intent", "schedule": schedule, "record": None}
-        cursor += 1
-        if cursor == len(records):
+            if (
+                intent["schema"] != PUBLICATION_RECORD_SCHEMA
+                or intent["phase"] != "intent"
+                or any(
+                    intent[name] != expected
+                    for name, expected in _schedule_identity(schedule).items()
+                )
+                or intent["attempt_record"] is not None
+                or intent["attempt_record_sha256"] is not None
+            ):
+                raise CaptureError("paired attempt-publication intent is out of sequence")
+            pending = {
+                "phase": "intent",
+                "schedule": schedule,
+                "record": None,
+                "intent_sha256": intent["content_sha256"],
+            }
+            cursor += 1
+            if cursor == len(records):
+                break
+            next_record = exact_object(
+                records[cursor], _RECORD_FIELDS, "attempt-publication record"
+            )
+            if next_record["phase"] != "retry_authorized":
+                break
+            authorization = recovery.validate_authorization(
+                next_record["attempt_record"],
+                schedule=schedule,
+                durable_prefix=committed,
+                retry_index=len(authorizations) + 1,
+                prior_intent_sha256=intent["content_sha256"],
+                from_power_source=current_power_source,
+            )
+            if (
+                next_record["schema"] != PUBLICATION_RECORD_SCHEMA
+                or any(
+                    next_record[name] != expected
+                    for name, expected in _schedule_identity(schedule).items()
+                )
+                or next_record["attempt_record_sha256"]
+                != authorization["content_sha256"]
+            ):
+                raise CaptureError("attempt retry publication changed")
+            authorizations.append(authorization)
+            current_power_source = authorization["to_power_source"]
+            pending = None
+            cursor += 1
+            if cursor == len(records):
+                break
+        if pending is None or cursor == len(records):
             break
-        prepared = exact_object(
-            records[cursor], _RECORD_FIELDS, "attempt-publication record"
-        )
+        prepared = next_record
         attempt_record = prepared["attempt_record"]
         if (
             prepared["schema"] != PUBLICATION_RECORD_SCHEMA
@@ -167,6 +205,9 @@ def validate_publication_records(
         "header": header,
         "committed_attempts": committed,
         "pending": pending,
+        "authorizations": authorizations,
+        "current_power_source": current_power_source,
+        "recovery_disclosure": recovery.disclosure(authorizations),
         "records": len(records),
     }
 
@@ -248,6 +289,58 @@ class AttemptPublicationJournal:
                 "start a fresh paired bundle"
             )
 
+    def authorize_pending_retry(
+        self,
+        schedule: dict[str, Any],
+        lane_root: Path,
+        attempt: dict[str, Any],
+        *,
+        observed_power_source: str,
+        authorized_at_utc: str,
+        controller_commit: str,
+    ) -> dict[str, Any]:
+        summary = self.summary(lane_records=None, require_complete=False)
+        pending = summary["pending"]
+        if (
+            pending is None
+            or pending["phase"] != "intent"
+            or pending["schedule"] != schedule
+        ):
+            raise CaptureError("attempt retry authorization lacks its pending intent")
+        paths = (
+            attempt["report_path"],
+            attempt["stderr_path"],
+            attempt["proof_path"],
+            attempt["verify_stdout_path"],
+            attempt["verify_stderr_path"],
+        )
+        retained = [relative for relative in paths if os.path.lexists(lane_root / relative)]
+        if retained:
+            raise CaptureError(
+                "interrupted attempt retained output and cannot be retried safely"
+            )
+        authorization = recovery.build_authorization(
+            schedule,
+            durable_prefix=summary["committed_attempts"],
+            retry_index=len(summary["authorizations"]) + 1,
+            prior_intent_sha256=pending["intent_sha256"],
+            from_power_source=summary["current_power_source"],
+            to_power_source=observed_power_source,
+            authorized_at_utc=authorized_at_utc,
+            controller_commit=controller_commit,
+        )
+        durability._append(
+            self.output,
+            self.records,
+            _record(
+                schedule,
+                "retry_authorized",
+                attempt_record=authorization,
+                attempt_record_sha256=authorization["content_sha256"],
+            ),
+        )
+        return authorization
+
     def prepare(self, schedule: dict[str, Any], record: dict[str, Any]) -> None:
         summary = self.summary(lane_records=None, require_complete=False)
         pending = summary["pending"]
@@ -297,9 +390,13 @@ class AttemptPublicationJournal:
         os.fsync(self.output.fileno())
         self.output.close()
         self.closed = True
-        return durability._identity(
+        identity = durability._identity(
             self.path, PUBLICATION_JOURNAL_NAME, len(self.records)
         )
+        summary = self.summary(lane_records=None, require_complete=False)
+        if summary["authorizations"]:
+            identity["recovery_disclosure"] = summary["recovery_disclosure"]
+        return identity
 
     def abandon(self) -> None:
         if self.closed:
@@ -326,6 +423,7 @@ def read_publication_journal(
         lane_records=lane_records,
         require_complete=require_complete,
     )
-    return summary, durability.journal_identity(
-        records, PUBLICATION_JOURNAL_NAME
-    )
+    identity = durability.journal_identity(records, PUBLICATION_JOURNAL_NAME)
+    if summary["authorizations"]:
+        identity["recovery_disclosure"] = summary["recovery_disclosure"]
+    return summary, identity

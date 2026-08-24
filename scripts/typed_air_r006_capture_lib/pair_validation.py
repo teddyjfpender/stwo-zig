@@ -208,6 +208,7 @@ def validate_pair_bundle(
         plan=plan,
         completed_attempts=PAIR_ATTEMPTS,
         require_complete=True,
+        recovery_authorizations=publication_summary["authorizations"],
     )
     if manifest["preflight_boundary_journal"] != boundary_identity:
         raise CaptureError("paired preflight boundary identity changed")
@@ -276,7 +277,18 @@ def validate_pair_bundle(
             publication_summary["committed_attempts"] == PAIR_ATTEMPTS
         ),
         "preflight_boundary_journal_valid": True,
+        "recovery_disclosure": publication_summary["recovery_disclosure"],
         "normative_scaling_capture": (
+            failed == 0
+            and verified == PAIR_ATTEMPTS
+            and exact_work == PAIR_ATTEMPTS
+            and independent == PAIR_ATTEMPTS
+            and len(identities) == 4
+            and exact_work_authority["every_attempt_complete_exact_work"]
+            and exact_work_authority["every_cell_deterministic"]
+            and not publication_summary["authorizations"]
+        ),
+        "operator_authorized_scaling_capture": (
             failed == 0
             and verified == PAIR_ATTEMPTS
             and exact_work == PAIR_ATTEMPTS

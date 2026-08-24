@@ -7,6 +7,7 @@ from typing import Any, Callable
 
 from .model import CaptureError
 from .preflight import validate_host_preflight
+from .pair_recovery import require_host_at_prefix
 
 
 POST_CAPTURE_QUIETING_POLICY = {
@@ -26,10 +27,19 @@ Monotonic = Callable[[], int]
 def require_admitted_preflight(
     provider: PreflightProvider,
     expected_host: dict[str, Any],
+    *,
+    expected_power_source: str | None = None,
 ) -> dict[str, Any]:
     current = validate_host_preflight(provider(), require_admitted=True)
-    if current["host"] != expected_host:
-        raise CaptureError("paired R-006 host identity changed since planning")
+    require_host_at_prefix(
+        current["host"],
+        expected_host,
+        power_source=(
+            expected_host["power_source"]
+            if expected_power_source is None
+            else expected_power_source
+        ),
+    )
     return current
 
 
@@ -37,6 +47,7 @@ def await_admitted_post_capture_preflight(
     *,
     provider: PreflightProvider,
     expected_host: dict[str, Any],
+    expected_power_source: str | None = None,
     sleeper: Sleeper = time.sleep,
     monotonic: Monotonic = time.monotonic_ns,
     retry_interval_ns: int = POST_CAPTURE_QUIETING_POLICY["retry_interval_ns"],
@@ -55,8 +66,15 @@ def await_admitted_post_capture_preflight(
     started_ns = monotonic()
     while True:
         current = validate_host_preflight(provider(), require_admitted=False)
-        if current["host"] != expected_host:
-            raise CaptureError("paired R-006 host identity changed while quieting")
+        require_host_at_prefix(
+            current["host"],
+            expected_host,
+            power_source=(
+                expected_host["power_source"]
+                if expected_power_source is None
+                else expected_power_source
+            ),
+        )
         elapsed_ns = monotonic() - started_ns
         if elapsed_ns < 0:
             raise CaptureError("post-capture quieting monotonic clock regressed")

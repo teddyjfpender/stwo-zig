@@ -51,6 +51,7 @@ from . import post_capture_quieting as quieting
 from . import pair_durability as durability
 from . import pair_identity
 from . import pair_publication as publication
+from . import pair_recovery as recovery
 from .preflight import validate_host_preflight
 
 
@@ -140,6 +141,8 @@ class PairCaptureSettings:
     execute_frozen_2080_attempt_schedule: bool
     timeout_seconds: float = 86_400.0
     max_new_attempts: int | None = None
+    authorize_interrupted_attempt_retry: bool = False
+    recovery_controller_commit: str | None = None
 
 
 def _utc(clock: Clock) -> str:
@@ -438,6 +441,7 @@ def _durable_prefix_is_complete(root: Path, plan: dict[str, Any]) -> bool:
         plan=plan,
         completed_attempts=PAIR_ATTEMPTS,
         require_complete=False,
+        recovery_authorizations=publication_summary["authorizations"],
     )
     return (
         boundary_summary["open_start"] is None
@@ -500,11 +504,6 @@ def capture_pair(
         )
     durable_complete = _durable_prefix_is_complete(root, plan)
     start_preflight = None
-    if not durable_complete:
-        start_preflight = quieting.require_admitted_preflight(
-            preflight_provider,
-            plan["host_preflight"]["host"],
-        )
     journals: dict[str, ResumableLaneJournal] = {}
     progress: PairProgressJournal | None = None
     boundaries: durability.PreflightBoundaryJournal | None = None
@@ -515,10 +514,45 @@ def capture_pair(
             lane_records=None, require_complete=False
         )["pending"]
         if publication_state is not None and publication_state["phase"] == "intent":
-            raise CaptureError(
-                "catastrophic interruption left an unresolved attempt intent; "
-                "the child may already have executed, so start a fresh paired bundle"
+            if not settings.authorize_interrupted_attempt_retry:
+                raise CaptureError(
+                    "catastrophic interruption left an unresolved attempt intent; "
+                    "resume requires explicit interrupted-attempt retry authorization"
+                )
+            if settings.recovery_controller_commit is None:
+                raise CaptureError("attempt retry lacks its controller commit identity")
+            observed = validate_host_preflight(
+                preflight_provider(), require_admitted=True
             )
+            recovery.require_host_at_prefix(
+                observed["host"],
+                plan["host_preflight"]["host"],
+                power_source=observed["host"]["power_source"],
+            )
+            schedule = publication_state["schedule"]
+            lane = schedule["lane"]
+            attempt = plan["lanes"][lane]["attempts"][schedule["lane_ordinal"]]
+            publications.authorize_pending_retry(
+                schedule,
+                root / lane,
+                attempt,
+                observed_power_source=observed["host"]["power_source"],
+                authorized_at_utc=_utc(clock),
+                controller_commit=settings.recovery_controller_commit,
+            )
+            start_preflight = observed
+        elif settings.authorize_interrupted_attempt_retry:
+            raise CaptureError("attempt retry authorization was not consumed")
+        publication_summary = publications.summary(
+            lane_records=None, require_complete=False
+        )
+        if not durable_complete and start_preflight is None:
+            start_preflight = quieting.require_admitted_preflight(
+                preflight_provider,
+                plan["host_preflight"]["host"],
+                expected_power_source=publication_summary["current_power_source"],
+            )
+        publication_state = publication_summary["pending"]
         for lane in PAIR_LANE_ORDER:
             pending_record = None
             if (
@@ -554,7 +588,15 @@ def capture_pair(
             publications.commit(scheduled)
             completed = _completed_interleaving(plan, lane_records)
         publications.summary(lane_records=lane_records, require_complete=False)
-        boundaries = durability.PreflightBoundaryJournal(root, plan, len(completed))
+        publication_summary = publications.summary(
+            lane_records=lane_records, require_complete=False
+        )
+        boundaries = durability.PreflightBoundaryJournal(
+            root,
+            plan,
+            len(completed),
+            recovery_authorizations=publication_summary["authorizations"],
+        )
         if durable_complete:
             if len(completed) != PAIR_ATTEMPTS:
                 raise CaptureError("durable completion probe changed during replay")
@@ -615,6 +657,7 @@ def capture_pair(
             checkpoint_preflight = quieting.await_admitted_post_capture_preflight(
                 provider=preflight_provider,
                 expected_host=plan["host_preflight"]["host"],
+                expected_power_source=publication_summary["current_power_source"],
                 sleeper=sleeper,
                 monotonic=monotonic,
             )

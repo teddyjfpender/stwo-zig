@@ -41,6 +41,14 @@ finalization; a full simulated 2,080-attempt crash/replay passes. Quieting
 timeout leaves that durable evidence resumable. The normative scaling receipt
 is still null.
 
+The recovery controller also supports an explicitly non-normative escape hatch
+for the otherwise ambiguous intent-only crash window. With the operator retry
+flag, and only when all five retained output paths are absent, it appends the
+exact retry/power-transition authorization and resumes the committed prefix.
+Independent replay exposes that authorization and keeps
+`normative_scaling_capture=false`; the original no-retry M7 boundary is not
+weakened.
+
 ## Question
 
 Can runtime measurements be connected to the exact AIR they measured without
