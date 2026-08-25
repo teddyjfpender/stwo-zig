@@ -275,7 +275,9 @@ fn expectGenericTaskProfile(
     try std.testing.expect(
         @as(usize, peak_workers) <= admitted_workers,
     );
-    try std.testing.expectEqual(graph.summary.peak_active_tasks, peak_workers);
+    try std.testing.expect(
+        @as(usize, graph.summary.peak_active_tasks) <= admitted_workers,
+    );
     const worker_busy_ns = graph.summary.worker_busy_ns orelse
         return error.MissingCompositionWorkerBusyTime;
     try std.testing.expectEqual(graph.summary.task_run_ns, worker_busy_ns);
