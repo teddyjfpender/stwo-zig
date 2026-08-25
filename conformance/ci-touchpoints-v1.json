@@ -151,7 +151,7 @@
     },
     "riscv_frontend": {
       "host": "linux",
-      "description": "Independent Sail-authoritative RISC-V frontend package",
+      "description": "Independent Sail-authoritative RISC-V frontend functional package",
       "commands": [
         [
           "zig",
@@ -159,7 +159,7 @@
           "test",
           "--build-file",
           "src/frontends/riscv/build.zig",
-          "-Doptimize=ReleaseFast",
+          "-Doptimize=Debug",
           "-j2"
         ]
       ]
@@ -455,7 +455,7 @@
         [
           "zig",
           "build",
-          "test-riscv-cpu-product",
+          "test-riscv-profile-partition",
           "stwo-zig-riscv-cpu",
           "-Doptimize=ReleaseFast",
           "-j2"
