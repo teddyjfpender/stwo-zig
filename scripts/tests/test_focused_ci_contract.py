@@ -628,7 +628,7 @@ class RunnerReceiptTests(unittest.TestCase):
 
     def test_pass_receipt_binds_identity_output_digests_and_durations(self) -> None:
         policy = runner_policy(
-            [["tool", "--output", "{output_dir}", "--commit", "{commit}"]]
+            [["test-riscv-profile-partition", "--output", "{output_dir}", "--commit", "{commit}"]]
         )
         captured: list[tuple[list[str], dict[str, object]]] = []
         stdout = SimpleNamespace(buffer=io.BytesIO())
@@ -675,7 +675,7 @@ class RunnerReceiptTests(unittest.TestCase):
         self.assertEqual([], [entry for entry in captured if entry[0][:2] == ["git", "rev-parse"]])
         self.assertEqual(
             [
-                "tool",
+                "test-riscv-profile-partition",
                 "--output",
                 str(output.parent.resolve()),
                 "--commit",

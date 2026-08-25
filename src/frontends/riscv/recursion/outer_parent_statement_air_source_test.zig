@@ -4,6 +4,7 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 
 const M31 = stwo_core.fields.m31.M31;
+const QM31 = stwo_core.fields.qm31.QM31;
 
 const admission = @import("outer_parent_child_admission.zig");
 const air_source = @import("outer_parent_statement_air_source.zig");
@@ -16,6 +17,8 @@ const segment_source = @import("segment_statement_outer_source.zig");
 const transcript_support = @import("outer_parent_transcript_source_test.zig");
 const vm_claim = @import("vm_public_claim.zig");
 const lowering = @import("air/verifier_arithmetic_lowering.zig");
+const relation_interaction = @import("air/relation_interaction.zig");
+const row10_air = @import("air/statement_input.zig");
 const row10_relation = @import("air/statement_input_relation.zig");
 const row10_witness = @import("air/statement_input_witness.zig");
 const row11_relation = @import("air/statement_semantics_input_relation.zig");
@@ -353,6 +356,8 @@ test "outer parent statement AIR commits the unique parent lane in all three tre
     try claims.verifyRangeClosure();
     try std.testing.expect(!claims.statement_input.isZero());
     try std.testing.expect(!claims.statement_semantics.isZero());
+    var tuple_ledger = relation_interaction.TupleLedger.init(allocator);
+    defer tuple_ledger.deinit();
     const audits = try air_source.auditInteractionDomains(
         Dimensions,
         &fixture.authority,
@@ -361,18 +366,35 @@ test "outer parent statement AIR commits the unique parent lane in all three tre
         &relations,
         &provider_relations,
         claims,
-        null,
+        &tuple_ledger,
     );
     try std.testing.expect(audits.statement_input.total.eql(claims.statement_input));
     try std.testing.expect(audits.statement_semantics.total.eql(
         claims.statement_semantics,
     ));
-    const statement_domain = @intFromEnum(relation.Domain.recursion_statement_word);
-    try std.testing.expect(
-        audits.statement_input.values[statement_domain].add(
-            audits.statement_semantics.values[statement_domain],
-        ).isZero(),
-    );
+    // LEFT and RIGHT deliberately retain one unmatched emission for row 18.
+    // Check the row-10/row-11 PARENT tuples themselves instead of incorrectly
+    // requiring the whole statement domain to close at this partial boundary.
+    const parent_scope = QM31.fromBase(M31.fromCanonical(
+        row10_air.PARENT_STATEMENT_SCOPE,
+    ));
+    for (fixture.prepared.parent_words, 0..) |word, word_index| {
+        const index = QM31.fromBase(M31.fromCanonical(@intCast(word_index)));
+        const value = QM31.fromBase(word);
+        var signed_weight = QM31.zero();
+        var contribution_count: usize = 0;
+        for (tuple_ledger.contributions.items) |contribution| {
+            if (contribution.domain != .recursion_statement_word or
+                contribution.arity != 3 or
+                !contribution.tuple_prefix[0].eql(parent_scope) or
+                !contribution.tuple_prefix[1].eql(index) or
+                !contribution.tuple_prefix[2].eql(value)) continue;
+            signed_weight = signed_weight.add(contribution.signed_weight);
+            contribution_count += 1;
+        }
+        try std.testing.expectEqual(@as(usize, 2), contribution_count);
+        try std.testing.expect(signed_weight.isZero());
+    }
 }
 
 const Fixture = struct {
