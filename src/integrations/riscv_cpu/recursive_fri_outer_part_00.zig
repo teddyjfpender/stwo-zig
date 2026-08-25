@@ -420,7 +420,7 @@ pub fn Namespace(comptime context: type) type {
             claimed_sum: QM31,
             identity: [32]u8,
 
-            fn init(
+            pub fn init(
                 source_authority_id: [32]u8,
                 snapshot_id: [32]u8,
                 claimed_sum: QM31,

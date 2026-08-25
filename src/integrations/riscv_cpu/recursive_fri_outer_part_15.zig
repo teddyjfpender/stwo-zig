@@ -354,7 +354,7 @@ pub fn Namespace(comptime context: type) type {
             try std.testing.expect(!owned);
         }
 
-        test "recursion Poseidon2 native leaf segment closure rejects cross-domain cancellation" {
+        pub fn testSegmentClosureRejectsCrossDomainCancellation() !void {
             const delta = QM31.fromU32Unchecked(3, 5, 7, 11);
             var totals = [_]QM31{QM31.zero()} ** global_closure.DOMAIN_COUNT;
             totals[@intFromEnum(RelationDomain.recursion_wire)] = delta;
@@ -369,7 +369,7 @@ pub fn Namespace(comptime context: type) type {
             );
         }
 
-        test "recursion Poseidon2 native leaf segment closure receipt mutations and atomicity" {
+        pub fn testSegmentClosureReceiptMutationsAndAtomicity() !void {
             const fixture = try segmentClosureReceiptFixture();
             try fixture.receipt.validate();
 

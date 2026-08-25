@@ -156,7 +156,7 @@ pub const Fixture = struct {
     statement_claims: statement_components.ClaimsV2,
     public_claims: public_components.Claims,
 
-    fn init(allocator: std.mem.Allocator) !Fixture {
+    pub fn init(allocator: std.mem.Allocator) !Fixture {
         var public_fixture = try public_support.Fixture.init(allocator);
         errdefer public_fixture.deinit();
         var plan = try testPlan(allocator);
@@ -471,7 +471,7 @@ pub const Fixture = struct {
         };
     }
 
-    fn deinit(self: *Fixture) void {
+    pub fn deinit(self: *Fixture) void {
         self.range_interaction.deinit();
         self.range_owner.deinit();
         self.range_prepared.deinit();
@@ -500,7 +500,7 @@ pub const Fixture = struct {
         self.* = undefined;
     }
 
-    fn inputs(self: *const Fixture) subject.InputsV2 {
+    pub fn inputs(self: *const Fixture) subject.InputsV2 {
         return .{
             .manifest = &self.manifest,
             .relations = &self.relations,

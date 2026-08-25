@@ -421,6 +421,18 @@ const traceLogSize = Part27.traceLogSize;
 
 const columnRow = Part27.columnRow;
 
+test "segment global closure: native SegmentV2 core owner API is compile-complete" {
+    try Part06.testNativeSegmentCoreOwnerApi();
+}
+
+test "segment global closure: recursion Poseidon2 native leaf segment closure rejects cross-domain cancellation" {
+    try Part15.testSegmentClosureRejectsCrossDomainCancellation();
+}
+
+test "segment global closure: recursion Poseidon2 native leaf segment closure receipt mutations and atomicity" {
+    try Part15.testSegmentClosureReceiptMutationsAndAtomicity();
+}
+
 const Context = struct {
     pub const d_std = std;
     pub const d_stwo_core = stwo_core;

@@ -269,7 +269,7 @@ pub const CaptureLayout = struct {
     quotient_max_log_degree_bound: u32,
     fri_log_blowup: u32,
 
-    fn init(
+    pub fn init(
         allocator: std.mem.Allocator,
         manifest: *const manifest_mod.Manifest,
         capture: anytype,
@@ -374,12 +374,12 @@ pub const CaptureLayout = struct {
         };
     }
 
-    fn deinit(self: *CaptureLayout) void {
+    pub fn deinit(self: *CaptureLayout) void {
         for (self.offsets) |tree| self.allocator.free(tree);
         self.* = undefined;
     }
 
-    fn at(
+    pub fn at(
         self: *const CaptureLayout,
         values: []const recorder.Scalar,
         tree: usize,

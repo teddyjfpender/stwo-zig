@@ -26,6 +26,10 @@ const catalog_v2 = @import("air/segment_outer_typed_catalog_v2.zig");
 const range_bridge = @import("air/range_check_8_8_bridge.zig");
 const statement_components_v2 = @import("segment_statement_outer_components_v2.zig");
 const subject = @import("segment_statement_outer_source_v2.zig");
+const row17_witness_v2 =
+    @import("air/vm_public_logup_control_witness_v2.zig");
+const provider_authority =
+    @import("segment_publication_input_provider_authority_v2.zig");
 
 const config = PcsConfig{
     .pow_bits = 0,
@@ -352,6 +356,7 @@ pub fn providerManifest(statement_log_size: u32) !manifest_v2.Manifest {
     var log_sizes = [_]u32{4} ** universal_roster.COMPONENT_COUNT;
     log_sizes[@intFromEnum(universal_roster.Component.statement_semantics_input)] =
         statement_log_size;
+    log_sizes[17] = row17_witness_v2.TRACE_LOG_SIZE;
     log_sizes[@intFromEnum(universal_roster.Component.range_check_8_8)] =
         range_bridge.LOG_SIZE;
     const catalog = try catalog_v2.build(
@@ -364,6 +369,7 @@ pub fn providerManifest(statement_log_size: u32) !manifest_v2.Manifest {
         .public_manifest_id = testDigest(47),
         .boundary_manifest_id = testDigest(71),
         .boundary_authority_sha_id = testShaDigest(89),
+        .provider_authority_sha_id = provider_authority.sourceAuthorityShaId(),
     });
 }
 
@@ -373,6 +379,7 @@ pub fn statementComponentManifest(
     var log_sizes = [_]u32{4} ** universal_roster.COMPONENT_COUNT;
     log_sizes[@intFromEnum(universal_roster.Component.statement_semantics_input)] =
         prepared.manifest.trace_log_size;
+    log_sizes[17] = row17_witness_v2.TRACE_LOG_SIZE;
     log_sizes[@intFromEnum(universal_roster.Component.range_check_8_8)] =
         range_bridge.LOG_SIZE;
     const catalog = try catalog_v2.build(
@@ -385,6 +392,7 @@ pub fn statementComponentManifest(
         .public_manifest_id = testDigest(47),
         .boundary_manifest_id = testDigest(71),
         .boundary_authority_sha_id = testShaDigest(89),
+        .provider_authority_sha_id = provider_authority.sourceAuthorityShaId(),
     });
 }
 

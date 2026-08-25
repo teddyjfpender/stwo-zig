@@ -44,6 +44,14 @@ pub fn add(ctx: anytype) void {
         main_witness_poseidon2_test_names,
         "Poseidon2 extension main-witness receipt identity guard",
     ));
+    const split_pcs_prepare_tests = b.addRunArtifact(b.addTest(.{
+        .root_module = main_witness_poseidon2_root,
+        .filters = &.{"R-008 actual CPU"},
+    }));
+    b.step(
+        "test-split-pcs-prepare",
+        "Run only the split PCS caller/provider proof gates",
+    ).dependOn(&split_pcs_prepare_tests.step);
     const combined_main_witness_root = support.createHarnessModule(
         b,
         "guest_precompile_proof_test.zig",
@@ -160,7 +168,7 @@ pub fn add(ctx: anytype) void {
     };
     const segment_closure_compile = b.addTest(.{
         .root_module = segment_closure_root,
-        .filters = segment_closure_test_names,
+        .filters = &.{"segment global closure:"},
     });
     b.step(
         "check-recursive-segment-global-closure",

@@ -226,13 +226,14 @@ class EndToEndAttributionCoverageTests(unittest.TestCase):
         covered_families = re.findall(r"\.family = \.([a-z_]+),", coverage_block)
         owners = re.findall(r'\.owner = "([^"]+)",', coverage_block)
 
-        component_source = (
-            REPO_ROOT / "src/frontends/riscv/air/component_order.zig"
+        transcript_source = (
+            REPO_ROOT / "src/frontends/riscv/air/transcript/claims.zig"
         ).read_text()
-        component_block = component_source.split(
-            "pub const OPCODE_FAMILIES = ", 1
+        component_block = transcript_source.split(
+            "pub const Component = enum(u8) {", 1
         )[1].split("\n};", 1)[0]
-        component_families = re.findall(r"^\s+\.([a-z_]+),$", component_block, re.M)
+        component_families = re.findall(r"^\s+([a-z_]+),$", component_block, re.M)
+        component_families = component_families[:component_families.index("program")]
         self.assertEqual(component_families, covered_families)
         self.assertEqual(17, len(covered_families))
         self.assertEqual(len(covered_families), len(set(covered_families)))

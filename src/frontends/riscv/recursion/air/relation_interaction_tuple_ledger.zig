@@ -290,7 +290,7 @@ pub const Entry = struct {
     values: [MAX_ARITY]QM31,
     arity: u8,
 
-    fn denominator(
+    pub fn denominator(
         self: *const Entry,
         relations: *const universal.UniversalRelations,
     ) universal.Error!QM31 {

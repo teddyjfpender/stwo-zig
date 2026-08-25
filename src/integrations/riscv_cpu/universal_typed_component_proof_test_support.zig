@@ -108,7 +108,7 @@ pub const LeafOpeningFixture = struct {
     raw: [3][]M31,
     layers: [3][LEAF_LAYERS.len]fri_leaf_witness.LayerOpening,
 
-    fn init(allocator: std.mem.Allocator) !LeafOpeningFixture {
+    pub fn init(allocator: std.mem.Allocator) !LeafOpeningFixture {
         const words_per_lane = 2 + 2 * (16 + 4 + 2) * 4;
         const storage = try allocator.alloc(M31, 3 * words_per_lane);
         errdefer allocator.free(storage);
@@ -136,12 +136,12 @@ pub const LeafOpeningFixture = struct {
         return result;
     }
 
-    fn deinit(self: *LeafOpeningFixture) void {
+    pub fn deinit(self: *LeafOpeningFixture) void {
         self.allocator.free(self.storage);
         self.* = undefined;
     }
 
-    fn opening(self: *const LeafOpeningFixture, lane: usize) fri_leaf_witness.OpeningSet {
+    pub fn opening(self: *const LeafOpeningFixture, lane: usize) fri_leaf_witness.OpeningSet {
         return .{
             .raw_queries = self.raw[lane],
             .layers = &self.layers[lane],

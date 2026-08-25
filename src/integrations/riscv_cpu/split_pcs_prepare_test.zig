@@ -608,7 +608,7 @@ test "R-008 actual CPU caller preserves production base authority and verifies a
     try std.testing.expectEqual(@as(usize, 3), completed.roots.len);
     const caller_tree2_root = std.fmt.bytesToHex(completed.roots[2], .lower);
     try std.testing.expectEqualStrings(
-        "c61eeeff3c06976a99ab4848478d26714dc439dbc5a107c16964ba0335c9bc1f",
+        "517aae071b13ade54b1cc648eefbc6997ff56e5c6ef416791dd1fc9f890e4b3b",
         &caller_tree2_root,
     );
     completed.ownership.caller_cells += 1;
@@ -693,7 +693,7 @@ test "R-008 actual CPU provider completes and independently verifies a three-tre
     );
     const tree2_root = std.fmt.bytesToHex(completed.roots[2], .lower);
     try std.testing.expectEqualStrings(
-        "f88a5480135a3ea5a0164f8713206fda8a37ce4e5804233696cbaa870b35865b",
+        "2be5b355a95e51e51323eaec2fb7c59d670022b24981d032d1b540d0e5b34aff",
         &tree2_root,
     );
     var wrong_preprocessed_root = completed.roots[0];

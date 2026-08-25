@@ -1,8 +1,8 @@
 {
-  "canonical_digest": "7c9f6e70a564d175f88c3a9bd00532ead8969ad1481844a2aaf2cb50dcde19bf",
+  "canonical_digest": "f8c4218b410b2bccb2d438cac8c2531d8fd270f9f3a49558d1c46f3d6c02074e",
   "certificates": [
     {
-      "air_digest": "ea14d4b4780fc05fa5cb70cd01e1241a7e113b0b23514160a0be0501ae54907a",
+      "air_digest": "a6303e0fa12517cc0d6fb2ae12890b15ae2799a696f540d13000d957c3f0a7d2",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -14,7 +14,7 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.BaseAluMutation.Reg.add_mutation",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.BaseAluReg.add_overflow_nonvacuous",
       "proof_target": "RiscvRefinement.Opcodes.BaseAluMutation",
-      "proof_time_ms": 429,
+      "proof_time_ms": 408,
       "refinement_theorem": "RiscvRefinement.Opcodes.BaseAluReg.add_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -25,7 +25,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.BaseAluReg.add_exactLookupProjection"
     },
     {
-      "air_digest": "ce4f42b6988f71ee38d429dccbd0ead76b5c7138cec6f3967b997bdc69a1b1c7",
+      "air_digest": "6a7950bcee273474dfa3a366685ee3b1caeec5091fc4852fc3181a9ae513402c",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -37,7 +37,7 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.BaseAluMutation.Reg.sub_mutation",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.BaseAluReg.sub_borrow_nonvacuous",
       "proof_target": "RiscvRefinement.Opcodes.BaseAluMutation",
-      "proof_time_ms": 429,
+      "proof_time_ms": 408,
       "refinement_theorem": "RiscvRefinement.Opcodes.BaseAluReg.sub_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -48,7 +48,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.BaseAluReg.sub_exactLookupProjection"
     },
     {
-      "air_digest": "801ad0322cbabc01b301ba9a85000ee3eea6c8cf4c4ba178d9c917a0fe50a1d8",
+      "air_digest": "a5514838afdfa286601efb9856274169e31c6b6d0720bb21d681baa1e70ab892",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -60,7 +60,7 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.LtMutation.Reg.slt_wrongManifest_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Lt.Reg.slt_nonvacuous",
       "proof_target": "RiscvRefinement.Opcodes.LtMutation",
-      "proof_time_ms": 384,
+      "proof_time_ms": 363,
       "refinement_theorem": "RiscvRefinement.Opcodes.Lt.Reg.slt_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -71,7 +71,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.Lt.Reg.slt_exactLookupTuples"
     },
     {
-      "air_digest": "63f345598eb53045513ddf150afa0e3635dd423ac2600cfdb3d8214a3731a881",
+      "air_digest": "4ce9b929880ca4bd00e4f10e95655ddab7f03b73da01a183af698bf036463a56",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -83,7 +83,7 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.LtMutation.Reg.sltu_wrongManifest_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Lt.Reg.sltu_nonvacuous",
       "proof_target": "RiscvRefinement.Opcodes.LtMutation",
-      "proof_time_ms": 384,
+      "proof_time_ms": 363,
       "refinement_theorem": "RiscvRefinement.Opcodes.Lt.Reg.sltu_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -94,7 +94,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.Lt.Reg.sltu_exactLookupTuples"
     },
     {
-      "air_digest": "3767b55b71f6ad2d047a5b418f45eab9a321d2dfc01957baacf00378acd6727d",
+      "air_digest": "f1c95c8f98200eb54a71176ba770850c40233fc93780ab57102cb635e28dfca6",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -106,7 +106,7 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.BaseAluMutation.Reg.xor_mutation",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.BaseAluReg.xor_nonvacuous",
       "proof_target": "RiscvRefinement.Opcodes.BaseAluMutation",
-      "proof_time_ms": 429,
+      "proof_time_ms": 408,
       "refinement_theorem": "RiscvRefinement.Opcodes.BaseAluReg.xor_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -117,7 +117,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.BaseAluReg.xor_exactLookupProjection"
     },
     {
-      "air_digest": "4e167495d33c5d70f796cfceb64c450bd7fcf812bf38a22e633aae42010c4409",
+      "air_digest": "33c55dc1fdc6abb292c6d5f11994b83460bf60fb252057d930c37ead810cc9a1",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -129,7 +129,7 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.BaseAluMutation.Reg.or_mutation",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.BaseAluReg.or_nonvacuous",
       "proof_target": "RiscvRefinement.Opcodes.BaseAluMutation",
-      "proof_time_ms": 429,
+      "proof_time_ms": 408,
       "refinement_theorem": "RiscvRefinement.Opcodes.BaseAluReg.or_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -140,7 +140,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.BaseAluReg.or_exactLookupProjection"
     },
     {
-      "air_digest": "04836589eb3d5a4777294fe5acc5c9151a0da987d647286dd5f795fcf94158d5",
+      "air_digest": "1531795e236217168a70a78bb8ca24e13b0f684d94376a6d7afdbcdb77da3734",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -152,7 +152,7 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.BaseAluMutation.Reg.and_mutation",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.BaseAluReg.and_nonvacuous",
       "proof_target": "RiscvRefinement.Opcodes.BaseAluMutation",
-      "proof_time_ms": 429,
+      "proof_time_ms": 408,
       "refinement_theorem": "RiscvRefinement.Opcodes.BaseAluReg.and_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -163,7 +163,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.BaseAluReg.and_exactLookupProjection"
     },
     {
-      "air_digest": "d7051000f7bb17bd29e92ee742d861901e3329d7954939a3077b5fa708ab431e",
+      "air_digest": "437cc32977f4c9bb767e69e055266ede208c362b348ea35cb3891a38250305c2",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -176,7 +176,7 @@
       "mutation_theorem": "RiscvRefinement.Air.Bridge.Mutations.addiCarry_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.NonVacuity.addi_production_overflow_exists",
       "proof_target": "RiscvRefinement.Air.Bridge.Mutations",
-      "proof_time_ms": 516,
+      "proof_time_ms": 548,
       "refinement_theorem": "RiscvRefinement.Opcodes.addi_production_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -187,7 +187,7 @@
       "tuple_theorem": "RiscvRefinement.Air.Bridge.Addi.lookup_projection"
     },
     {
-      "air_digest": "26a94ffe1ccc4b4f352580d8b012d725478e563852861a056290a4043ee894bf",
+      "air_digest": "013cf0cc544c169eca8a236a0f3df0cdfacce41a7418265a238670aa9fda0960",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -199,7 +199,7 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.LtMutation.Imm.slti_wrongManifest_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Lt.Imm.slti_nonvacuous",
       "proof_target": "RiscvRefinement.Opcodes.LtMutation",
-      "proof_time_ms": 384,
+      "proof_time_ms": 363,
       "refinement_theorem": "RiscvRefinement.Opcodes.Lt.Imm.slti_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -210,7 +210,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.Lt.Imm.slti_exactLookupTuples"
     },
     {
-      "air_digest": "a12098569401aa6c1a3697f57d49874b9bac36284e49cc0ec1253ec6dc069ad6",
+      "air_digest": "eb49bf0eecea44cb1f34d5cd2b0c2c0487de55e704931feffede15f6307cff3c",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -222,7 +222,7 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.LtMutation.Imm.sltiu_wrongManifest_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Lt.Imm.sltiu_nonvacuous",
       "proof_target": "RiscvRefinement.Opcodes.LtMutation",
-      "proof_time_ms": 384,
+      "proof_time_ms": 363,
       "refinement_theorem": "RiscvRefinement.Opcodes.Lt.Imm.sltiu_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -233,7 +233,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.Lt.Imm.sltiu_exactLookupTuples"
     },
     {
-      "air_digest": "3d03015aea96693e90e43896efd8ea0a16f8224726eec390b283d078f1dd6464",
+      "air_digest": "59f4a2b943c1d0da84c61a3f0ab7962dd81feb17be09b9fcb807b0b83a6db359",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -246,7 +246,7 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.BaseAluMutation.Imm.xori_mutation",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.BaseAluImm.xori_nonvacuous",
       "proof_target": "RiscvRefinement.Opcodes.BaseAluMutation",
-      "proof_time_ms": 429,
+      "proof_time_ms": 408,
       "refinement_theorem": "RiscvRefinement.Opcodes.BaseAluImm.xori_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -257,7 +257,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.BaseAluImm.xori_exactLookupProjection"
     },
     {
-      "air_digest": "1920db3dff2e8d971f9e7870a2274b30565def4ef1f15bd1a0446cace804f335",
+      "air_digest": "7390dd29e46e7128a2760e2cefb3051a04a728c9ae838f806a6a7321267c1dbf",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -270,7 +270,7 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.BaseAluMutation.Imm.ori_mutation",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.BaseAluImm.ori_nonvacuous",
       "proof_target": "RiscvRefinement.Opcodes.BaseAluMutation",
-      "proof_time_ms": 429,
+      "proof_time_ms": 408,
       "refinement_theorem": "RiscvRefinement.Opcodes.BaseAluImm.ori_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -281,7 +281,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.BaseAluImm.ori_exactLookupProjection"
     },
     {
-      "air_digest": "8784d98dc96d39ca2244dda1c1363f4b47a187302dfe873d1f378cba83c56125",
+      "air_digest": "b70bfc3590d192c85dbc7d744da2e8203192a9f66fc13ba7c904384d6782b49d",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -294,7 +294,7 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.BaseAluMutation.Imm.andi_mutation",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.BaseAluImm.andi_nonvacuous",
       "proof_target": "RiscvRefinement.Opcodes.BaseAluMutation",
-      "proof_time_ms": 429,
+      "proof_time_ms": 408,
       "refinement_theorem": "RiscvRefinement.Opcodes.BaseAluImm.andi_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -305,7 +305,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.BaseAluImm.andi_exactLookupProjection"
     },
     {
-      "air_digest": "a9bc0a8b418c545433748c90bdccf808fe1b3e9f737246f01e64589995a21448",
+      "air_digest": "5a6adb0f4d3b792225dc5be68fa31b4cec925a871ff118083cbc715ce520113c",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -318,7 +318,7 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.BranchesMutation.beqStateProjection_mutation_theorem",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Branches.Eq.beq_nonvacuity_theorem",
       "proof_target": "RiscvRefinement.Opcodes.BranchesMutation",
-      "proof_time_ms": 429,
+      "proof_time_ms": 413,
       "refinement_theorem": "RiscvRefinement.Opcodes.Branches.Eq.beq_refinement_theorem",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -329,7 +329,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.Branches.Eq.beq_tuple_theorem"
     },
     {
-      "air_digest": "903171124e207468a9e786821a78a0767cb5e1152a4acf10ec7f4466f30a619f",
+      "air_digest": "787402ce2b3363746953984049946c6bf035d2dd762a338cfaee78fdca337a27",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -342,7 +342,7 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.BranchesMutation.bneStateProjection_mutation_theorem",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Branches.Eq.bne_nonvacuity_theorem",
       "proof_target": "RiscvRefinement.Opcodes.BranchesMutation",
-      "proof_time_ms": 429,
+      "proof_time_ms": 413,
       "refinement_theorem": "RiscvRefinement.Opcodes.Branches.Eq.bne_refinement_theorem",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -353,7 +353,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.Branches.Eq.bne_tuple_theorem"
     },
     {
-      "air_digest": "2a87896db896f0cbc72938a33927684a7d4f0accf88734325c91cbc49092afb2",
+      "air_digest": "94e53684f8c1e8ee123f92ab8e2fb0f33e6cdd7fe69b21b0418ea75375648f02",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -366,7 +366,7 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.BranchesMutation.bltStateProjection_mutation_theorem",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Branches.Lt.blt_nonvacuity_theorem",
       "proof_target": "RiscvRefinement.Opcodes.BranchesMutation",
-      "proof_time_ms": 429,
+      "proof_time_ms": 413,
       "refinement_theorem": "RiscvRefinement.Opcodes.Branches.Lt.blt_refinement_theorem",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -377,7 +377,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.Branches.Lt.blt_tuple_theorem"
     },
     {
-      "air_digest": "a5a3fc32933c7a30063f648723fc2d24c2ad1457906017a9a398bfb251592237",
+      "air_digest": "b23a244a355b70ee2f5651eaeb78549a4168431c0c2399b673232407062de85f",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -390,7 +390,7 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.BranchesMutation.bgeStateProjection_mutation_theorem",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Branches.Lt.bge_nonvacuity_theorem",
       "proof_target": "RiscvRefinement.Opcodes.BranchesMutation",
-      "proof_time_ms": 429,
+      "proof_time_ms": 413,
       "refinement_theorem": "RiscvRefinement.Opcodes.Branches.Lt.bge_refinement_theorem",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -401,7 +401,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.Branches.Lt.bge_tuple_theorem"
     },
     {
-      "air_digest": "480b643fa15b939ffaa251b0a86d600ceccb3e6fdd4669344926627105b1ff02",
+      "air_digest": "216bf30a6ed658f1f171d73cb025f1978c569b66bd33cc7e568142baf72c3fd8",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -414,7 +414,7 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.BranchesMutation.bltuStateProjection_mutation_theorem",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Branches.Lt.bltu_nonvacuity_theorem",
       "proof_target": "RiscvRefinement.Opcodes.BranchesMutation",
-      "proof_time_ms": 429,
+      "proof_time_ms": 413,
       "refinement_theorem": "RiscvRefinement.Opcodes.Branches.Lt.bltu_refinement_theorem",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -425,7 +425,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.Branches.Lt.bltu_tuple_theorem"
     },
     {
-      "air_digest": "cd5b083188ed23d2361b86417ed89d46495c216a385d429a16527a066e35b270",
+      "air_digest": "9b67d41cb45015b6691826b09c7eaa00fcc0d77e6237d3dc1ef7415b15514c9b",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -438,7 +438,7 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.BranchesMutation.bgeuStateProjection_mutation_theorem",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Branches.Lt.bgeu_nonvacuity_theorem",
       "proof_target": "RiscvRefinement.Opcodes.BranchesMutation",
-      "proof_time_ms": 429,
+      "proof_time_ms": 413,
       "refinement_theorem": "RiscvRefinement.Opcodes.Branches.Lt.bgeu_refinement_theorem",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -449,7 +449,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.Branches.Lt.bgeu_tuple_theorem"
     },
     {
-      "air_digest": "7f83bbf2b8f98780308b83d19c586cb38d79c4fa7296110bce5c4e283938357e",
+      "air_digest": "43e0f4c3a10272746ae84e195ee7290b5e13e78cb70ac370e21dd5e8679b891d",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -462,7 +462,7 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.JalMutation.wrongStateEmit_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Jal.jalExists",
       "proof_target": "RiscvRefinement.Opcodes.JalMutation",
-      "proof_time_ms": 348,
+      "proof_time_ms": 332,
       "refinement_theorem": "RiscvRefinement.Opcodes.Jal.refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -473,7 +473,7 @@
       "tuple_theorem": "RiscvRefinement.Air.Bridge.Jal.lookupProjection"
     },
     {
-      "air_digest": "328e56d97ca4b3aed03327c696359d2067be66bfc3e42dea9fdbfcf81031824e",
+      "air_digest": "410b6f2ec4f0e7db637dc4ecad3fbbe7e08e9cdb8ca83644c107a2a23dcb8a65",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -486,7 +486,7 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.JalrMutation.wrongStateEmit_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Jalr.jalr_nonvacuous",
       "proof_target": "RiscvRefinement.Opcodes.JalrMutation",
-      "proof_time_ms": 484,
+      "proof_time_ms": 474,
       "refinement_theorem": "RiscvRefinement.Opcodes.Jalr.jalr_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -497,7 +497,7 @@
       "tuple_theorem": "RiscvRefinement.Opcodes.Jalr.jalr_exactLookupProjection"
     },
     {
-      "air_digest": "cad1626eb4d007bdcabd11478305e2d00de93acaa321e1d0f0e7ffedd319b11b",
+      "air_digest": "90b48bf81c506fc024785727ebe33de6e98b96e8e0973bd82299de2a278e287e",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -510,7 +510,7 @@
       "mutation_theorem": "RiscvRefinement.Air.Bridge.Mutations.luiLowLimb_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.lui_production_nonvacuous",
       "proof_target": "RiscvRefinement.Air.Bridge.Mutations",
-      "proof_time_ms": 516,
+      "proof_time_ms": 548,
       "refinement_theorem": "RiscvRefinement.Opcodes.lui_production_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -521,7 +521,7 @@
       "tuple_theorem": "RiscvRefinement.Air.Bridge.Lui.lookup_projection"
     },
     {
-      "air_digest": "fac776de5445a716502c679cf96970c983e0ced2a79d399ec58a537de34be4e4",
+      "air_digest": "accba4813f2c0c3381de8b0cecc2cb44a815b496cf32e11d8688331dfad8b45d",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -533,7 +533,7 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.AuipcMutation.wrongDestination_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Auipc.auipcExists",
       "proof_target": "RiscvRefinement.Opcodes.AuipcMutation",
-      "proof_time_ms": 630,
+      "proof_time_ms": 578,
       "refinement_theorem": "RiscvRefinement.Opcodes.Auipc.refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -544,7 +544,7 @@
       "tuple_theorem": "RiscvRefinement.Air.Bridge.Auipc.allLookupProjection"
     },
     {
-      "air_digest": "55b887ab4abf5d7e6a3b159a1ffdb5a1641622e4e24dfd5e3cda6d5c4b50a7a3",
+      "air_digest": "3d7901704479363a7fc48613fe6953559346fc69a80b45fa252636317010aeb2",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -556,7 +556,7 @@
       "mutation_theorem": "RiscvRefinement.Opcodes.FenceMutation.wrongStateEmit_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Fence.fence_exists",
       "proof_target": "RiscvRefinement.Opcodes.FenceMutation",
-      "proof_time_ms": 318,
+      "proof_time_ms": 301,
       "refinement_theorem": "RiscvRefinement.Opcodes.Fence.refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",

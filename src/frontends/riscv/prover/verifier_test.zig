@@ -41,8 +41,10 @@ const public_data = @import("../air/public_data.zig");
 /// check has no working-directory premise and a moved call fails at compile time.
 const VERIFIER_SOURCE = @embedFile("verifier.zig");
 
-/// The predicate the verifier must hand the reporter, spelled as it appears.
-const SELECTION = "statement.public_data.declaresPublicIo()";
+/// The protocol-selected predicate the verifier must hand the reporter.
+const SELECTION = "Protocol.declaresPublicIo(&statement)";
+const V1_SELECTION = "value.public_data.declaresPublicIo()";
+const V2_SELECTION = "value.declaresPublicIo() catch true";
 
 /// Return the complete argument list of the `reportLogupImbalance` call.
 ///
@@ -78,6 +80,11 @@ test "verifier: the LogUp remedy is selected from the statement, not fixed" {
         );
         return error.LogupCauseNotSelectedFromStatement;
     }
+    // Both protocol adapters must in turn derive the predicate from their
+    // statement representation. This closes the generic-dispatch seam without
+    // requiring the report call to know either statement layout.
+    try std.testing.expect(std.mem.indexOf(u8, VERIFIER_SOURCE, V1_SELECTION) != null);
+    try std.testing.expect(std.mem.indexOf(u8, VERIFIER_SOURCE, V2_SELECTION) != null);
     // A constant here is the mutation: the message would name one cause for both
     // failures and be confidently wrong on one of them.
     for ([_][]const u8{ "true", "false" }) |literal| {

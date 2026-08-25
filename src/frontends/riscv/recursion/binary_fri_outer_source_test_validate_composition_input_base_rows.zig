@@ -195,7 +195,7 @@ pub const ManifestTree = struct {
     columns: [][]M31,
     storage: []M31,
 
-    fn init(
+    pub fn init(
         allocator: std.mem.Allocator,
         manifest: *const air.universal_adapter_manifest.Manifest,
         tree: usize,
@@ -249,18 +249,18 @@ pub const ManifestTree = struct {
         return .{ .allocator = allocator, .columns = columns, .storage = storage };
     }
 
-    fn deinit(self: *ManifestTree) void {
+    pub fn deinit(self: *ManifestTree) void {
         self.allocator.free(self.storage);
         self.allocator.free(self.columns);
         self.* = undefined;
     }
 
-    fn anyNonZero(self: *const ManifestTree) bool {
+    pub fn anyNonZero(self: *const ManifestTree) bool {
         for (self.storage) |value| if (!value.isZero()) return true;
         return false;
     }
 
-    fn allZero(self: *const ManifestTree) bool {
+    pub fn allZero(self: *const ManifestTree) bool {
         return !self.anyNonZero();
     }
 };

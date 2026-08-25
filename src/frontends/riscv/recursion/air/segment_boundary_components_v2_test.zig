@@ -10,6 +10,8 @@ const row17_witness_v2 =
 const range_bridge = @import("range_check_8_8_bridge.zig");
 const authority = @import("../segment_leaf_outer_authority_v2.zig");
 const boundary_air = @import("../segment_leaf_outer_air_v2.zig");
+const provider_authority =
+    @import("../segment_publication_input_provider_authority_v2.zig");
 
 const M31 = stwo_core.fields.m31.M31;
 
@@ -171,6 +173,7 @@ fn fixtureManifest(statement_log_size: u8) !manifest.Manifest {
         .public_manifest_id = nativeDigest(47),
         .boundary_manifest_id = nativeDigest(71),
         .boundary_authority_sha_id = shaDigest(89),
+        .provider_authority_sha_id = provider_authority.sourceAuthorityShaId(),
     });
 }
 

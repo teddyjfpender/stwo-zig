@@ -473,7 +473,7 @@ pub const Source = struct {
         }
     }
 
-    fn validateLeaf(
+    pub fn validateLeaf(
         self: *const Source,
         preprocessing: *const leaf_authority.Preprocessing,
     ) !void {
@@ -491,7 +491,7 @@ pub const Source = struct {
         }
     }
 
-    fn logupRowReference(self: *const Source) !public_logup_witness.Reference {
+    pub fn logupRowReference(self: *const Source) !public_logup_witness.Reference {
         return public_logup_witness.Reference.seal(
             self.logup_reference.circuit_id,
             self.logup_reference.claim_kinds,

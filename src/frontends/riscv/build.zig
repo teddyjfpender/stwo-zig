@@ -427,6 +427,12 @@ pub fn build(b: *std.Build) void {
         .imports_prover_engine = true,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-recursion-binary-transcript-source",
+        .description = "Run only the binary-node rows 0 through 9 source tests",
+        .root = "binary_transcript_outer_source_test_root.zig",
+        .imports_prover_engine = true,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-recursion-segment-leaf-bundle",
         .description = "Run only the composed segment-leaf outer bundle",
         .root = "segment_leaf_outer_bundle_test_root.zig",

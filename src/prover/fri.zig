@@ -165,7 +165,7 @@ const FriFoldWork = struct {
     line_folds: u64,
     final_ifft_butterflies: u64,
 
-    fn totalFolds(self: FriFoldWork) !u64 {
+    pub fn totalFolds(self: FriFoldWork) !u64 {
         return std.math.add(u64, self.circle_folds, self.line_folds) catch
             error.CounterOverflow;
     }

@@ -61,8 +61,10 @@ PRIVATE_COMPLETION_TEST = re.compile(
 # select a completion address rather than deciding admissibility -- a false
 # positive that would make this sweep unrunnable, and did in the original.
 PROOF_BEARING_PAIR = re.compile(
-    r"(?<![\w)\]])\.(?:halt_flag|self_loop),\s*\.(?:halt_flag|self_loop)\s*=>"
-    r"|==\s*\.(?:halt_flag|self_loop)\b[^;{}]*?==\s*\.(?:halt_flag|self_loop)\b",
+    r"switch\s*\(\s*[a-z_][a-z0-9_.]*\s*\)\s*\{\s*"
+    r"\.(?:halt_flag|self_loop),\s*\.(?:halt_flag|self_loop)\s*=>"
+    r"|(?P<reason>[a-z_.]*completion_reason)\s*==\s*\.(?:halt_flag|self_loop)\b"
+    r"\s*(?:or|\|\|)\s*(?P=reason)\s*==\s*\.(?:halt_flag|self_loop)\b",
 )
 
 
@@ -169,7 +171,12 @@ class RunAdmissionGateTest(unittest.TestCase):
         # The guard is the first statement of the body, so a run this path cannot
         # represent is refused before any proving work happens.
         body = text.split("pub fn proveRiscVTraceOnlyNoPublicIoUsingChannel(", 1)[1]
-        first_statement = body.split(") !ProveOutput {", 1)[1].strip().splitlines()[0]
+        signature = re.search(
+            r"\)\s*!types\.ProveOutputForEngine\(Engine\)\s*\{",
+            body,
+        )
+        self.assertIsNotNone(signature)
+        first_statement = body[signature.end():].strip().splitlines()[0]
         self.assertIn("classifyPublicIo(opt_memory, PublishedIo.none)", first_statement)
 
     def test_the_trap_name_is_gone_from_the_repository(self) -> None:

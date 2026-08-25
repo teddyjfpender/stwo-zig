@@ -13,6 +13,8 @@ const universal_roster = @import("recursion/air/universal_roster.zig");
 const universal = @import("recursion/air/universal_challenges.zig");
 const range_bridge = @import("recursion/air/range_check_8_8_bridge.zig");
 const boundary_authority = @import("recursion/segment_leaf_outer_authority_v2.zig");
+const provider_authority =
+    @import("recursion/segment_publication_input_provider_authority_v2.zig");
 
 test "V2 public relay AIR declarations instantiate" {
     std.testing.refAllDeclsRecursive(air.PublicationHeader);
@@ -214,6 +216,7 @@ fn buildManifest(
         .public_manifest_id = prepared.manifest.identity,
         .boundary_manifest_id = boundary.identity,
         .boundary_authority_sha_id = boundary.authority_sha_id,
+        .provider_authority_sha_id = provider_authority.sourceAuthorityShaId(),
     });
 }
 

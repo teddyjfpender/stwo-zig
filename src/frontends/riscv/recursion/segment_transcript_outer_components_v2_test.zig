@@ -26,6 +26,8 @@ const universal_roster = @import("air/universal_roster.zig");
 const source_v2 = @import("segment_transcript_outer_source_v2.zig");
 const subject = @import("segment_transcript_outer_components_v2.zig");
 const transcript = @import("transcript_program_v2.zig");
+const provider_authority =
+    @import("segment_publication_input_provider_authority_v2.zig");
 
 const config = PcsConfig{
     .pow_bits = 0,
@@ -377,6 +379,7 @@ fn buildManifest(prepared: *const source_v2.PreparedV2) !manifest_mod.Manifest {
         .public_manifest_id = nativeDigest(75),
         .boundary_manifest_id = nativeDigest(97),
         .boundary_authority_sha_id = shaDigest(131),
+        .provider_authority_sha_id = provider_authority.sourceAuthorityShaId(),
     });
 }
 

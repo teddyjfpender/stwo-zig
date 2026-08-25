@@ -15,6 +15,10 @@ const leaf_source = @import("segment_leaf_authority_v2.zig");
 const public_source = @import("segment_public_outer_source_v2.zig");
 const subject = @import("segment_public_native_sum_authority_v2.zig");
 const fixture_support = @import("segment_public_outer_test_support.zig");
+const fixed_profile = @import("fixed_profile.zig");
+const protocol = @import("protocol.zig");
+const channel = @import("poseidon2_channel.zig");
+const schedule = @import("air/verifier_schedule.zig");
 
 const Fixture = fixture_support.Fixture;
 
@@ -360,6 +364,7 @@ const EmptyFixture = struct {
     native_sums: native_statement.NativePublicSums,
     receipt: native_statement.VerifiedReceipt,
     publication: leaf_source.VerifiedNativePublicLogUpPublicationV2,
+    vm_plan: schedule.Plan,
 
     fn init(allocator: std.mem.Allocator) !EmptyFixture {
         const support = try public_data_support.Fixture.init();
@@ -410,6 +415,26 @@ const EmptyFixture = struct {
             &fixture_support.component_descs,
             &fixture_support.infra_descs,
         );
+        var vm_plan = try schedule.Plan.initShape(
+            allocator,
+            schedule.VM_PROGRAM_SPEC_V1,
+            .{
+                .protocol_id = channel.hashBytes("native-sum-v2-protocol", 0x4e53_5632),
+                .shape_id = channel.hashBytes("native-sum-v2-shape", 0x4e53_5653),
+                .interaction_pow_bits = 0,
+                .pcs_pow_bits = protocol.PCS_POW_BITS,
+                .query_count = 1,
+                .table_count = 4,
+                .claimed_sum_count = 4,
+                .sampled_value_count = 8,
+                .tree_heights = .{ 9, 9, 9, 9 },
+                .fri = try fixed_profile.FriSchedule.init(
+                    8,
+                    protocol.PCS_CONFIG.fri_config,
+                ),
+            },
+        );
+        errdefer vm_plan.deinit();
         return .{
             .allocator = allocator,
             .owned_public = owned_public,
@@ -420,10 +445,12 @@ const EmptyFixture = struct {
             .native_sums = native_sums,
             .receipt = receipt,
             .publication = publication,
+            .vm_plan = vm_plan,
         };
     }
 
     fn deinit(self: *EmptyFixture) void {
+        self.vm_plan.deinit();
         self.source_trace.deinit();
         self.owned_public.deinit();
         self.* = undefined;
@@ -439,6 +466,7 @@ const EmptyFixture = struct {
             .relations = &self.relations,
             .component_descs = &fixture_support.component_descs,
             .infra_descs = &fixture_support.infra_descs,
+            .vm_plan = &self.vm_plan,
         };
     }
 };

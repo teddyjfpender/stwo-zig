@@ -16,7 +16,7 @@ const max_fri_merkle_layers: usize = @bitSizeOf(usize) + 1;
 const FriWorkTestDomain = struct {
     element_count: usize,
 
-    fn size(self: @This()) usize {
+    pub fn size(self: @This()) usize {
         return self.element_count;
     }
 };
@@ -24,7 +24,7 @@ const FriWorkTestDomain = struct {
 const FriWorkTestShapeColumn = struct {
     element_count: usize,
 
-    fn len(self: @This()) usize {
+    pub fn len(self: @This()) usize {
         return self.element_count;
     }
 };
@@ -66,7 +66,7 @@ test "FRI work derives circle, line, and final IFFT geometry from returned layer
 const FriWorkTestColumn = struct {
     columns: [qm31.SECURE_EXTENSION_DEGREE][]const M31,
 
-    fn len(self: @This()) usize {
+    pub fn len(self: @This()) usize {
         return self.columns[0].len;
     }
 };

@@ -100,7 +100,7 @@ pub const MAX_LOG_SIZE: u32 = 30;
 
 /// One-time construction cost for the ten authenticated typed AIR owners,
 /// their canonical executors, and row-0 preprocessing.
-pub const COLD_SOURCE_HEAP_ALLOCATIONS: usize = 766;
+pub const COLD_SOURCE_HEAP_ALLOCATIONS: usize = 771;
 
 /// Fresh, zero-owned destinations and a retained interaction workspace are
 /// allocation-free across all three trees.

@@ -513,7 +513,7 @@ pub fn Namespace(comptime context: type) type {
             );
         }
 
-        test "native SegmentV2 core owner API is compile-complete" {
+        pub fn testNativeSegmentCoreOwnerApi() !void {
             std.testing.refAllDeclsRecursive(NativeSegmentCoreAuthorityInputsV2);
             std.testing.refAllDeclsRecursive(NativeSegmentCoreGeneratedV2);
             std.testing.refAllDeclsRecursive(NativeSegmentCoreComponentsV2);

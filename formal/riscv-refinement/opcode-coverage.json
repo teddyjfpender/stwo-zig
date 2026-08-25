@@ -1,9 +1,9 @@
 {
-  "canonical_digest": "947b370cdd6ce13357a7d8fa46199a22e1fcaeb2565d08d6839a8e4643b845cf",
+  "canonical_digest": "35293c7b85a6faa6349b76bcda97aad4edc308a56fd8aa53f67e6a9007c8dca2",
   "certificates": [
     {
       "air_binding": "exact-generated-local-program",
-      "air_digest": "ea14d4b4780fc05fa5cb70cd01e1241a7e113b0b23514160a0be0501ae54907a",
+      "air_digest": "a6303e0fa12517cc0d6fb2ae12890b15ae2799a696f540d13000d957c3f0a7d2",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -14,7 +14,7 @@
       "mutation": "RiscvRefinement.Decode.BaseAluRegOp.add-wrong-next-pc-state-emit",
       "mutation_theorem": "RiscvRefinement.Opcodes.BaseAluMutation.Reg.add_mutation",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.BaseAluReg.add_overflow_nonvacuous",
-      "proof_time_ms": 429,
+      "proof_time_ms": 408,
       "refinement_theorem": "RiscvRefinement.Opcodes.BaseAluReg.add_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -27,7 +27,7 @@
     },
     {
       "air_binding": "exact-generated-local-program",
-      "air_digest": "ce4f42b6988f71ee38d429dccbd0ead76b5c7138cec6f3967b997bdc69a1b1c7",
+      "air_digest": "6a7950bcee273474dfa3a366685ee3b1caeec5091fc4852fc3181a9ae513402c",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -38,7 +38,7 @@
       "mutation": "RiscvRefinement.Decode.BaseAluRegOp.sub-wrong-next-pc-state-emit",
       "mutation_theorem": "RiscvRefinement.Opcodes.BaseAluMutation.Reg.sub_mutation",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.BaseAluReg.sub_borrow_nonvacuous",
-      "proof_time_ms": 429,
+      "proof_time_ms": 408,
       "refinement_theorem": "RiscvRefinement.Opcodes.BaseAluReg.sub_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -51,7 +51,7 @@
     },
     {
       "air_binding": "reviewed-family-capsule",
-      "air_digest": "f5786421f55f1955257621a6ac0941496f20e9ad3a13c8c7a822f33b30bf6f77",
+      "air_digest": "7b62fb42ff92827bf55533d67d584724c700ea179d1efcfd2f9b5ae3e20fbb32",
       "axioms": null,
       "family": "shifts_reg",
       "manifest_id": 2,
@@ -69,7 +69,7 @@
     },
     {
       "air_binding": "exact-generated-local-program",
-      "air_digest": "801ad0322cbabc01b301ba9a85000ee3eea6c8cf4c4ba178d9c917a0fe50a1d8",
+      "air_digest": "a5514838afdfa286601efb9856274169e31c6b6d0720bb21d681baa1e70ab892",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -80,7 +80,7 @@
       "mutation": "slt-manifest-replaced-by-sltu",
       "mutation_theorem": "RiscvRefinement.Opcodes.LtMutation.Reg.slt_wrongManifest_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Lt.Reg.slt_nonvacuous",
-      "proof_time_ms": 384,
+      "proof_time_ms": 363,
       "refinement_theorem": "RiscvRefinement.Opcodes.Lt.Reg.slt_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -93,7 +93,7 @@
     },
     {
       "air_binding": "exact-generated-local-program",
-      "air_digest": "63f345598eb53045513ddf150afa0e3635dd423ac2600cfdb3d8214a3731a881",
+      "air_digest": "4ce9b929880ca4bd00e4f10e95655ddab7f03b73da01a183af698bf036463a56",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -104,7 +104,7 @@
       "mutation": "sltu-manifest-replaced-by-slt",
       "mutation_theorem": "RiscvRefinement.Opcodes.LtMutation.Reg.sltu_wrongManifest_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Lt.Reg.sltu_nonvacuous",
-      "proof_time_ms": 384,
+      "proof_time_ms": 363,
       "refinement_theorem": "RiscvRefinement.Opcodes.Lt.Reg.sltu_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -117,7 +117,7 @@
     },
     {
       "air_binding": "exact-generated-local-program",
-      "air_digest": "3767b55b71f6ad2d047a5b418f45eab9a321d2dfc01957baacf00378acd6727d",
+      "air_digest": "f1c95c8f98200eb54a71176ba770850c40233fc93780ab57102cb635e28dfca6",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -128,7 +128,7 @@
       "mutation": "RiscvRefinement.Decode.BaseAluRegOp.xor-wrong-next-pc-state-emit",
       "mutation_theorem": "RiscvRefinement.Opcodes.BaseAluMutation.Reg.xor_mutation",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.BaseAluReg.xor_nonvacuous",
-      "proof_time_ms": 429,
+      "proof_time_ms": 408,
       "refinement_theorem": "RiscvRefinement.Opcodes.BaseAluReg.xor_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -141,7 +141,7 @@
     },
     {
       "air_binding": "reviewed-family-capsule",
-      "air_digest": "e9c5b81fa599d9deb21ffd6eab569d539ef9e01cc77cb06b23b6f5a07cb094d3",
+      "air_digest": "869c9706b00fd61143a8f6ed5b08507aa171c82b784c7d236555f6d2eb679f93",
       "axioms": null,
       "family": "shifts_reg",
       "manifest_id": 6,
@@ -159,7 +159,7 @@
     },
     {
       "air_binding": "reviewed-family-capsule",
-      "air_digest": "78be33bc15d8232c7ad003236b4cc8dfbf77e277cf9590d9aa4a8f430ae02cc9",
+      "air_digest": "4abb1006eb351fc2d570346833d1f3fa4c3175a30d02d0d4f05b5d8098b78b45",
       "axioms": null,
       "family": "shifts_reg",
       "manifest_id": 7,
@@ -177,7 +177,7 @@
     },
     {
       "air_binding": "exact-generated-local-program",
-      "air_digest": "4e167495d33c5d70f796cfceb64c450bd7fcf812bf38a22e633aae42010c4409",
+      "air_digest": "33c55dc1fdc6abb292c6d5f11994b83460bf60fb252057d930c37ead810cc9a1",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -188,7 +188,7 @@
       "mutation": "RiscvRefinement.Decode.BaseAluRegOp.or-wrong-next-pc-state-emit",
       "mutation_theorem": "RiscvRefinement.Opcodes.BaseAluMutation.Reg.or_mutation",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.BaseAluReg.or_nonvacuous",
-      "proof_time_ms": 429,
+      "proof_time_ms": 408,
       "refinement_theorem": "RiscvRefinement.Opcodes.BaseAluReg.or_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -201,7 +201,7 @@
     },
     {
       "air_binding": "exact-generated-local-program",
-      "air_digest": "04836589eb3d5a4777294fe5acc5c9151a0da987d647286dd5f795fcf94158d5",
+      "air_digest": "1531795e236217168a70a78bb8ca24e13b0f684d94376a6d7afdbcdb77da3734",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -212,7 +212,7 @@
       "mutation": "RiscvRefinement.Decode.BaseAluRegOp.and-wrong-next-pc-state-emit",
       "mutation_theorem": "RiscvRefinement.Opcodes.BaseAluMutation.Reg.and_mutation",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.BaseAluReg.and_nonvacuous",
-      "proof_time_ms": 429,
+      "proof_time_ms": 408,
       "refinement_theorem": "RiscvRefinement.Opcodes.BaseAluReg.and_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -225,7 +225,7 @@
     },
     {
       "air_binding": "exact-generated-local-program",
-      "air_digest": "d7051000f7bb17bd29e92ee742d861901e3329d7954939a3077b5fa708ab431e",
+      "air_digest": "437cc32977f4c9bb767e69e055266ede208c362b348ea35cb3891a38250305c2",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -237,7 +237,7 @@
       "mutation": "addi-free-high-carry",
       "mutation_theorem": "RiscvRefinement.Air.Bridge.Mutations.addiCarry_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.NonVacuity.addi_production_overflow_exists",
-      "proof_time_ms": 516,
+      "proof_time_ms": 548,
       "refinement_theorem": "RiscvRefinement.Opcodes.addi_production_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -250,7 +250,7 @@
     },
     {
       "air_binding": "exact-generated-local-program",
-      "air_digest": "26a94ffe1ccc4b4f352580d8b012d725478e563852861a056290a4043ee894bf",
+      "air_digest": "013cf0cc544c169eca8a236a0f3df0cdfacce41a7418265a238670aa9fda0960",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -261,7 +261,7 @@
       "mutation": "slti-manifest-replaced-by-sltiu",
       "mutation_theorem": "RiscvRefinement.Opcodes.LtMutation.Imm.slti_wrongManifest_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Lt.Imm.slti_nonvacuous",
-      "proof_time_ms": 384,
+      "proof_time_ms": 363,
       "refinement_theorem": "RiscvRefinement.Opcodes.Lt.Imm.slti_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -274,7 +274,7 @@
     },
     {
       "air_binding": "exact-generated-local-program",
-      "air_digest": "a12098569401aa6c1a3697f57d49874b9bac36284e49cc0ec1253ec6dc069ad6",
+      "air_digest": "eb49bf0eecea44cb1f34d5cd2b0c2c0487de55e704931feffede15f6307cff3c",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -285,7 +285,7 @@
       "mutation": "sltiu-manifest-replaced-by-slti",
       "mutation_theorem": "RiscvRefinement.Opcodes.LtMutation.Imm.sltiu_wrongManifest_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Lt.Imm.sltiu_nonvacuous",
-      "proof_time_ms": 384,
+      "proof_time_ms": 363,
       "refinement_theorem": "RiscvRefinement.Opcodes.Lt.Imm.sltiu_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -298,7 +298,7 @@
     },
     {
       "air_binding": "exact-generated-local-program",
-      "air_digest": "3d03015aea96693e90e43896efd8ea0a16f8224726eec390b283d078f1dd6464",
+      "air_digest": "59f4a2b943c1d0da84c61a3f0ab7962dd81feb17be09b9fcb807b0b83a6db359",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -310,7 +310,7 @@
       "mutation": "RiscvRefinement.Decode.BaseAluImmOp.xori-wrong-next-pc-state-emit",
       "mutation_theorem": "RiscvRefinement.Opcodes.BaseAluMutation.Imm.xori_mutation",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.BaseAluImm.xori_nonvacuous",
-      "proof_time_ms": 429,
+      "proof_time_ms": 408,
       "refinement_theorem": "RiscvRefinement.Opcodes.BaseAluImm.xori_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -323,7 +323,7 @@
     },
     {
       "air_binding": "exact-generated-local-program",
-      "air_digest": "1920db3dff2e8d971f9e7870a2274b30565def4ef1f15bd1a0446cace804f335",
+      "air_digest": "7390dd29e46e7128a2760e2cefb3051a04a728c9ae838f806a6a7321267c1dbf",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -335,7 +335,7 @@
       "mutation": "RiscvRefinement.Decode.BaseAluImmOp.ori-wrong-next-pc-state-emit",
       "mutation_theorem": "RiscvRefinement.Opcodes.BaseAluMutation.Imm.ori_mutation",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.BaseAluImm.ori_nonvacuous",
-      "proof_time_ms": 429,
+      "proof_time_ms": 408,
       "refinement_theorem": "RiscvRefinement.Opcodes.BaseAluImm.ori_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -348,7 +348,7 @@
     },
     {
       "air_binding": "exact-generated-local-program",
-      "air_digest": "8784d98dc96d39ca2244dda1c1363f4b47a187302dfe873d1f378cba83c56125",
+      "air_digest": "b70bfc3590d192c85dbc7d744da2e8203192a9f66fc13ba7c904384d6782b49d",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -360,7 +360,7 @@
       "mutation": "RiscvRefinement.Decode.BaseAluImmOp.andi-wrong-next-pc-state-emit",
       "mutation_theorem": "RiscvRefinement.Opcodes.BaseAluMutation.Imm.andi_mutation",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.BaseAluImm.andi_nonvacuous",
-      "proof_time_ms": 429,
+      "proof_time_ms": 408,
       "refinement_theorem": "RiscvRefinement.Opcodes.BaseAluImm.andi_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -373,7 +373,7 @@
     },
     {
       "air_binding": "reviewed-family-capsule",
-      "air_digest": "5931abd42cebfc014314ac6e8644e119aabef012e1a0e47a447fcb5fd1fc09fc",
+      "air_digest": "4c055fd72015887caae84bca79261a77464b5c5357adfa57a9959938f53f1dc5",
       "axioms": null,
       "family": "shifts_imm",
       "manifest_id": 16,
@@ -391,7 +391,7 @@
     },
     {
       "air_binding": "reviewed-family-capsule",
-      "air_digest": "ada35113fecf52cd9b09882722abdaeba6e25c5fd2f3aa6938bf2c065b7f36c7",
+      "air_digest": "dc75bfeb776b77851cf313d9228b476d03d806df30af3de0ec40ca2ee94d03ee",
       "axioms": null,
       "family": "shifts_imm",
       "manifest_id": 17,
@@ -409,7 +409,7 @@
     },
     {
       "air_binding": "reviewed-family-capsule",
-      "air_digest": "b4d6c1ca8f1d177dc7f3e9a5b0f8923a60ee95255f582cf50a1cee670afb7784",
+      "air_digest": "f0ebdc717fd1cb70b182fba5dc42dd4294ac8597fa23e04b702e9601292ad637",
       "axioms": null,
       "family": "shifts_imm",
       "manifest_id": 18,
@@ -427,7 +427,7 @@
     },
     {
       "air_binding": "reviewed-family-capsule",
-      "air_digest": "8c63862acc341a4dca936e7fc5ae98a46bd38ed87a616b8e070d38bff91d5fab",
+      "air_digest": "129cebd7398199ce1422ebc94585919ee162b86280d16993ad4b0b0e1e2c1e80",
       "axioms": null,
       "family": "load_store",
       "manifest_id": 19,
@@ -445,7 +445,7 @@
     },
     {
       "air_binding": "reviewed-family-capsule",
-      "air_digest": "21f11b9f8b0a1146a0f221354106a6322f2ccb0a233975cedfc944715e902a73",
+      "air_digest": "0691332a3cd4fb3b4e8d6f58b4f7ea4d76c860d657138b8d997049f57045532e",
       "axioms": null,
       "family": "load_store",
       "manifest_id": 20,
@@ -463,7 +463,7 @@
     },
     {
       "air_binding": "reviewed-family-capsule",
-      "air_digest": "3cb600a3970cb736e5f5e85afd21d4a1b902f0b52d0204114f6b24620a00f6ee",
+      "air_digest": "5f71a5a3cdd16bf69b4b7c8db5371a7d1ba6e60c7dd5942537e6f6f08c3d2f60",
       "axioms": null,
       "family": "load_store",
       "manifest_id": 21,
@@ -481,7 +481,7 @@
     },
     {
       "air_binding": "reviewed-family-capsule",
-      "air_digest": "0b859fab41ce88f1732b73352065bdc6eba0fac801952922a021c35dd2c8bdba",
+      "air_digest": "6ce43657650ebd382bd55113bd5253a73b492811fbcfe0a93937e9f0d95e2a6b",
       "axioms": null,
       "family": "load_store",
       "manifest_id": 22,
@@ -499,7 +499,7 @@
     },
     {
       "air_binding": "reviewed-family-capsule",
-      "air_digest": "169f16b00cf6ec7bd61c6f38d810b6c19f9b5c35a6205253402eb02349a68605",
+      "air_digest": "6497611117cfb2e2662f36d777c5ff10f45cfb8c4fba1e880e6e5d7570862e79",
       "axioms": null,
       "family": "load_store",
       "manifest_id": 23,
@@ -517,7 +517,7 @@
     },
     {
       "air_binding": "reviewed-family-capsule",
-      "air_digest": "f309fb7651fd9dea9f888472d89d275edb5809aa4c64994fe3dd35a98f75618d",
+      "air_digest": "a888ec576c933b71e3c60a96b5ef040d942c688519f07c14fa0fcc6adcfa1213",
       "axioms": null,
       "family": "load_store",
       "manifest_id": 24,
@@ -535,7 +535,7 @@
     },
     {
       "air_binding": "reviewed-family-capsule",
-      "air_digest": "89ba7d9e219f73ab732b68e2e7f96cfe324499dd76157631c41ee110633a6d95",
+      "air_digest": "2b4c68e3d924b8fac221840d913ea14353df3d1e81f7cea231691ab68cacc456",
       "axioms": null,
       "family": "load_store",
       "manifest_id": 25,
@@ -553,7 +553,7 @@
     },
     {
       "air_binding": "reviewed-family-capsule",
-      "air_digest": "41732b22881b3cde4811eaaa9c36aebc3749bed250a5d9bb799cc0ee4ca3e0d2",
+      "air_digest": "c9fd8e5aab6f0c079cbbcf896c28a0aa49ee33045fdcd727ec4c7c1d2a3cd4f7",
       "axioms": null,
       "family": "load_store",
       "manifest_id": 26,
@@ -571,7 +571,7 @@
     },
     {
       "air_binding": "exact-generated-local-program",
-      "air_digest": "a9bc0a8b418c545433748c90bdccf808fe1b3e9f737246f01e64589995a21448",
+      "air_digest": "5a6adb0f4d3b792225dc5be68fa31b4cec925a871ff118083cbc715ce520113c",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -583,7 +583,7 @@
       "mutation": "beq-state-projection-load-bearing",
       "mutation_theorem": "RiscvRefinement.Opcodes.BranchesMutation.beqStateProjection_mutation_theorem",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Branches.Eq.beq_nonvacuity_theorem",
-      "proof_time_ms": 429,
+      "proof_time_ms": 413,
       "refinement_theorem": "RiscvRefinement.Opcodes.Branches.Eq.beq_refinement_theorem",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -596,7 +596,7 @@
     },
     {
       "air_binding": "exact-generated-local-program",
-      "air_digest": "903171124e207468a9e786821a78a0767cb5e1152a4acf10ec7f4466f30a619f",
+      "air_digest": "787402ce2b3363746953984049946c6bf035d2dd762a338cfaee78fdca337a27",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -608,7 +608,7 @@
       "mutation": "bne-state-projection-load-bearing",
       "mutation_theorem": "RiscvRefinement.Opcodes.BranchesMutation.bneStateProjection_mutation_theorem",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Branches.Eq.bne_nonvacuity_theorem",
-      "proof_time_ms": 429,
+      "proof_time_ms": 413,
       "refinement_theorem": "RiscvRefinement.Opcodes.Branches.Eq.bne_refinement_theorem",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -621,7 +621,7 @@
     },
     {
       "air_binding": "exact-generated-local-program",
-      "air_digest": "2a87896db896f0cbc72938a33927684a7d4f0accf88734325c91cbc49092afb2",
+      "air_digest": "94e53684f8c1e8ee123f92ab8e2fb0f33e6cdd7fe69b21b0418ea75375648f02",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -633,7 +633,7 @@
       "mutation": "blt-state-projection-load-bearing",
       "mutation_theorem": "RiscvRefinement.Opcodes.BranchesMutation.bltStateProjection_mutation_theorem",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Branches.Lt.blt_nonvacuity_theorem",
-      "proof_time_ms": 429,
+      "proof_time_ms": 413,
       "refinement_theorem": "RiscvRefinement.Opcodes.Branches.Lt.blt_refinement_theorem",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -646,7 +646,7 @@
     },
     {
       "air_binding": "exact-generated-local-program",
-      "air_digest": "a5a3fc32933c7a30063f648723fc2d24c2ad1457906017a9a398bfb251592237",
+      "air_digest": "b23a244a355b70ee2f5651eaeb78549a4168431c0c2399b673232407062de85f",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -658,7 +658,7 @@
       "mutation": "bge-state-projection-load-bearing",
       "mutation_theorem": "RiscvRefinement.Opcodes.BranchesMutation.bgeStateProjection_mutation_theorem",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Branches.Lt.bge_nonvacuity_theorem",
-      "proof_time_ms": 429,
+      "proof_time_ms": 413,
       "refinement_theorem": "RiscvRefinement.Opcodes.Branches.Lt.bge_refinement_theorem",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -671,7 +671,7 @@
     },
     {
       "air_binding": "exact-generated-local-program",
-      "air_digest": "480b643fa15b939ffaa251b0a86d600ceccb3e6fdd4669344926627105b1ff02",
+      "air_digest": "216bf30a6ed658f1f171d73cb025f1978c569b66bd33cc7e568142baf72c3fd8",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -683,7 +683,7 @@
       "mutation": "bltu-state-projection-load-bearing",
       "mutation_theorem": "RiscvRefinement.Opcodes.BranchesMutation.bltuStateProjection_mutation_theorem",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Branches.Lt.bltu_nonvacuity_theorem",
-      "proof_time_ms": 429,
+      "proof_time_ms": 413,
       "refinement_theorem": "RiscvRefinement.Opcodes.Branches.Lt.bltu_refinement_theorem",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -696,7 +696,7 @@
     },
     {
       "air_binding": "exact-generated-local-program",
-      "air_digest": "cd5b083188ed23d2361b86417ed89d46495c216a385d429a16527a066e35b270",
+      "air_digest": "9b67d41cb45015b6691826b09c7eaa00fcc0d77e6237d3dc1ef7415b15514c9b",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -708,7 +708,7 @@
       "mutation": "bgeu-state-projection-load-bearing",
       "mutation_theorem": "RiscvRefinement.Opcodes.BranchesMutation.bgeuStateProjection_mutation_theorem",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Branches.Lt.bgeu_nonvacuity_theorem",
-      "proof_time_ms": 429,
+      "proof_time_ms": 413,
       "refinement_theorem": "RiscvRefinement.Opcodes.Branches.Lt.bgeu_refinement_theorem",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -721,7 +721,7 @@
     },
     {
       "air_binding": "exact-generated-local-program",
-      "air_digest": "7f83bbf2b8f98780308b83d19c586cb38d79c4fa7296110bce5c4e283938357e",
+      "air_digest": "43e0f4c3a10272746ae84e195ee7290b5e13e78cb70ac370e21dd5e8679b891d",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -733,7 +733,7 @@
       "mutation": "jal-wrong-jump-state-emit",
       "mutation_theorem": "RiscvRefinement.Opcodes.JalMutation.wrongStateEmit_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Jal.jalExists",
-      "proof_time_ms": 348,
+      "proof_time_ms": 332,
       "refinement_theorem": "RiscvRefinement.Opcodes.Jal.refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -746,7 +746,7 @@
     },
     {
       "air_binding": "exact-generated-local-program",
-      "air_digest": "328e56d97ca4b3aed03327c696359d2067be66bfc3e42dea9fdbfcf81031824e",
+      "air_digest": "410b6f2ec4f0e7db637dc4ecad3fbbe7e08e9cdb8ca83644c107a2a23dcb8a65",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -758,7 +758,7 @@
       "mutation": "jalr-target-replaced-by-link-pc",
       "mutation_theorem": "RiscvRefinement.Opcodes.JalrMutation.wrongStateEmit_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Jalr.jalr_nonvacuous",
-      "proof_time_ms": 484,
+      "proof_time_ms": 474,
       "refinement_theorem": "RiscvRefinement.Opcodes.Jalr.jalr_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -771,7 +771,7 @@
     },
     {
       "air_binding": "exact-generated-local-program",
-      "air_digest": "cad1626eb4d007bdcabd11478305e2d00de93acaa321e1d0f0e7ffedd319b11b",
+      "air_digest": "90b48bf81c506fc024785727ebe33de6e98b96e8e0973bd82299de2a278e287e",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -783,7 +783,7 @@
       "mutation": "lui-free-low-limb",
       "mutation_theorem": "RiscvRefinement.Air.Bridge.Mutations.luiLowLimb_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.lui_production_nonvacuous",
-      "proof_time_ms": 516,
+      "proof_time_ms": 548,
       "refinement_theorem": "RiscvRefinement.Opcodes.lui_production_refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -796,7 +796,7 @@
     },
     {
       "air_binding": "exact-generated-local-program",
-      "air_digest": "fac776de5445a716502c679cf96970c983e0ced2a79d399ec58a537de34be4e4",
+      "air_digest": "accba4813f2c0c3381de8b0cecc2cb44a815b496cf32e11d8688331dfad8b45d",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -807,7 +807,7 @@
       "mutation": "auipc-destination-low-byte-plus-four",
       "mutation_theorem": "RiscvRefinement.Opcodes.AuipcMutation.wrongDestination_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Auipc.auipcExists",
-      "proof_time_ms": 630,
+      "proof_time_ms": 578,
       "refinement_theorem": "RiscvRefinement.Opcodes.Auipc.refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -820,7 +820,7 @@
     },
     {
       "air_binding": "reviewed-family-capsule",
-      "air_digest": "7ff4f69a150823fa346fc5bb725a7b25387c8a9ba06aa08b52fe8b69a87f740c",
+      "air_digest": "806a22150acdc82df7208d96ff2fb9ec5ff3ad8fd75f8f6b087f1c8f993e09d6",
       "axioms": null,
       "family": "mul",
       "manifest_id": 37,
@@ -838,7 +838,7 @@
     },
     {
       "air_binding": "reviewed-family-capsule",
-      "air_digest": "4539a77168233c6fffbbc45431384d088ad8315e3ac28919f218efce10a40778",
+      "air_digest": "57eac49375238359ba89eaa1854b36bef14b5211c93976739ab7e1dd71185e56",
       "axioms": null,
       "family": "mulh",
       "manifest_id": 38,
@@ -856,7 +856,7 @@
     },
     {
       "air_binding": "reviewed-family-capsule",
-      "air_digest": "45a50ef65067b7a25d56349a808292825a115c1f2efdbf0c10dc0a267299d204",
+      "air_digest": "b623312b168e8f8b6a193e524183fa1e9671def8266150a6be1176d12d0440ee",
       "axioms": null,
       "family": "mulh",
       "manifest_id": 39,
@@ -874,7 +874,7 @@
     },
     {
       "air_binding": "reviewed-family-capsule",
-      "air_digest": "de5771dac745369dc50abd016e65aa0af9fd3c76eeec152672d68ebbf40af6fe",
+      "air_digest": "223e5dcdb0fb47153da9aad8985c200ae9a38e2f08f83ace848d11475c6ddf88",
       "axioms": null,
       "family": "mulh",
       "manifest_id": 40,
@@ -892,7 +892,7 @@
     },
     {
       "air_binding": "reviewed-family-capsule",
-      "air_digest": "3578197a291d77a20c0cf83b2a9ce56fc0b1b215202f1e1a4f0aaed459a745db",
+      "air_digest": "681d13aee072a72e68cdb3903c76fe58a3e1b4f2e8df6722fc746024dd3314ab",
       "axioms": null,
       "family": "div",
       "manifest_id": 41,
@@ -910,7 +910,7 @@
     },
     {
       "air_binding": "reviewed-family-capsule",
-      "air_digest": "001ccdea48c186c876a8dce9e6b1360981d6fc385c76e3f5f0c86e918f014f87",
+      "air_digest": "882f8fe3a09b3ba780dfea6e7453bc039bff836804ff4dff774ac1edfbddeff8",
       "axioms": null,
       "family": "div",
       "manifest_id": 42,
@@ -928,7 +928,7 @@
     },
     {
       "air_binding": "reviewed-family-capsule",
-      "air_digest": "1861fc303d92601104effcd0380f26c53d82053a4275a1bdb345b152369e20d8",
+      "air_digest": "5ec35248a3836ffa6265131c5e40dc0f69bd2268fb7458f25d57dcb6460b8cde",
       "axioms": null,
       "family": "div",
       "manifest_id": 43,
@@ -946,7 +946,7 @@
     },
     {
       "air_binding": "reviewed-family-capsule",
-      "air_digest": "9a4b272cf1dce095ebdd30d2658c3cacb58f01b01f0aa002361ab5b1c351c419",
+      "air_digest": "31a62c685e287fa010e6ae4bf4cd501d8ef587618a23b5901b116344a8d9de07",
       "axioms": null,
       "family": "div",
       "manifest_id": 44,
@@ -964,7 +964,7 @@
     },
     {
       "air_binding": "exact-generated-local-program",
-      "air_digest": "55b887ab4abf5d7e6a3b159a1ffdb5a1641622e4e24dfd5e3cda6d5c4b50a7a3",
+      "air_digest": "3d7901704479363a7fc48613fe6953559346fc69a80b45fa252636317010aeb2",
       "axioms": [
         "Quot.sound",
         "propext"
@@ -975,7 +975,7 @@
       "mutation": "fence-wrong-next-pc-state-emit",
       "mutation_theorem": "RiscvRefinement.Opcodes.FenceMutation.wrongStateEmit_strictly_weaker",
       "non_vacuity_theorem": "RiscvRefinement.Opcodes.Fence.fence_exists",
-      "proof_time_ms": 318,
+      "proof_time_ms": 301,
       "refinement_theorem": "RiscvRefinement.Opcodes.Fence.refines",
       "sail_binding": "generated-retirement",
       "sail_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
@@ -1005,7 +1005,7 @@
   "kind": "stwo-riscv-opcode-coverage",
   "schema_version": 1,
   "source_indexes": {
-    "team_a": "7c9f6e70a564d175f88c3a9bd00532ead8969ad1481844a2aaf2cb50dcde19bf",
+    "team_a": "f8c4218b410b2bccb2d438cac8c2531d8fd270f9f3a49558d1c46f3d6c02074e",
     "team_b": "682f936ce6f0d0f71f7ad9a810dc040cf6a3fbc8a8f1c7ab5da12fb6df63464a"
   }
 }

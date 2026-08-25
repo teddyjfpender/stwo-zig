@@ -529,7 +529,7 @@ pub const Tree = struct {
     columns: [][]M31,
     storage: []M31,
 
-    fn init(
+    pub fn init(
         allocator: std.mem.Allocator,
         log_sizes: anytype,
         column_counts: anytype,
@@ -558,22 +558,22 @@ pub const Tree = struct {
         return .{ .allocator = allocator, .columns = columns, .storage = storage };
     }
 
-    fn deinit(self: *Tree) void {
+    pub fn deinit(self: *Tree) void {
         self.allocator.free(self.storage);
         self.allocator.free(self.columns);
         self.* = undefined;
     }
 
-    fn fill(self: *Tree, value: M31) void {
+    pub fn fill(self: *Tree, value: M31) void {
         @memset(self.storage, value);
     }
 
-    fn anyNonZero(self: *const Tree) bool {
+    pub fn anyNonZero(self: *const Tree) bool {
         for (self.storage) |value| if (!value.isZero()) return true;
         return false;
     }
 
-    fn expectFilled(self: *const Tree, value: M31) !void {
+    pub fn expectFilled(self: *const Tree, value: M31) !void {
         for (self.storage) |actual| try std.testing.expect(actual.eql(value));
     }
 };

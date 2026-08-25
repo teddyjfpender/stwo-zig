@@ -61,16 +61,11 @@
 //! therefore defence in depth behind `source_ingest`, not a reachable
 //! production verdict.
 //!
-//! What does catch the shortened trace is the register-access chain.
-//! `air/opcode_memory.zig` `deriveRegisterBoundary` replays every row's register
-//! accesses and requires each one to continue the boundary it has built so far;
-//! dropping a retirement leaves the next reader of that register naming a
-//! previous clock and value nobody produced, so it returns
-//! `error.InvalidRegisterAccessChain`. `prover.zig:66` runs it on the entry
-//! point that derives the statement from the trace, which is exactly the
-//! "recompute the geometry" prover. The skip is therefore an access-chain
-//! violation, not a placement violation -- a different acceptance criterion,
-//! owned by the bus-soundness surface.
+//! What catches the shortened trace first is the authenticated retirement
+//! clock: `Trace.append` refuses the gap left by the omitted instruction. A
+//! direct audit of the remaining rows also proves the underlying register
+//! access chain does not close. The skip is therefore a clock/access-chain
+//! violation, not a placement violation.
 //!
 //! The one case this file deliberately does not construct is a shortened trace
 //! carried on the public-data entry point with a *recomputed* statement, which
@@ -96,10 +91,6 @@ const harness = @import("malicious_prover_harness.zig");
 /// body instruction, `ADDI x3, x0, 7`. The body's rows precede the epilogue's
 /// two `ADDI`s in the family, so this names one specific instruction.
 const SKIPPED_ROW: u32 = 0;
-
-/// Smallest domain `source_ingest` admits (`size < 16` is `InvalidDomainSize`),
-/// which is also the domain the production shard of this fixture uses.
-const SHORT_LOG_SIZE: u32 = 4;
 
 /// The active-row placement constraint's index in `semantic_eval` order.
 ///
@@ -205,53 +196,32 @@ test "malicious prover: a skipped instruction is refused at lookup-source ingest
 }
 
 // Runtime: milliseconds. One run of the fixture guest, no proof.
-test "malicious prover: a structurally shortened trace loses on the access chain, not on placement" {
+test "malicious prover: a structurally shortened trace loses on clock and access chains, not placement" {
     const allocator = std.testing.allocator;
     var guest = try committed.Guest.init(allocator, harness.SPEC);
     defer guest.deinit();
-    var short = try shortenedTrace(allocator, &guest.run.execution_trace);
-    defer short.deinit();
 
-    // The declared geometry shrank with the trace instead of keeping a hole:
-    // `n_real_rows` is the count of rows actually written, and the statement's
-    // shard length comes from the same row list.
-    var columns = try short.columnsForFamily(allocator, harness.FAMILY, SHORT_LOG_SIZE);
-    defer columns.deinit(allocator);
-    try std.testing.expectEqual(harness.FAMILY_ROWS - 1, columns.n_real_rows);
+    // Production trace custody rejects the omitted retirement before a
+    // shortened trace can be admitted or committed.
+    try std.testing.expectError(
+        error.InstructionClockMismatch,
+        shortenedTrace(allocator, &guest.run.execution_trace),
+    );
 
-    // So over the whole shard domain, under the `is_active` that the prover and
-    // the verifier both derive from that geometry, every constraint vanishes --
-    // the placement constraint included -- and no real row is inactive. The
-    // skip would survive both `source_ingest` and composition.
-    const size = @as(usize, 1) << @intCast(SHORT_LOG_SIZE);
-    for (0..size) |logical_row| {
-        var cells: [trace_mod.MAX_FAMILY_COLUMNS]QM31 = undefined;
-        for (
-            cells[0..columns.n_columns],
-            columns.columns[0..columns.n_columns],
-        ) |*cell, column| {
-            cell.* = QM31.fromBase(column[logical_row]);
-        }
-        const real = logical_row < columns.n_real_rows;
-        const evaluation = try semantic_eval.evaluate(
-            harness.FAMILY,
-            cells[0..columns.n_columns],
-            if (real) QM31.one() else QM31.zero(),
-        );
-        try std.testing.expect(evaluation.allZero());
-        try std.testing.expectEqual(real, try emitsActiveRequest(cells[0..columns.n_columns]));
+    // The remaining raw rows independently fail the register-access chain.
+    const honest_rows = guest.run.execution_trace.rows.items;
+    const short_rows = try allocator.alloc(trace_mod.TraceRow, honest_rows.len - 1);
+    defer allocator.free(short_rows);
+    var destination: usize = 0;
+    for (honest_rows) |row| {
+        if (row.pc == guest_elf.bodyPc(0)) continue;
+        short_rows[destination] = row;
+        destination += 1;
     }
-
-    // What refuses it instead, on the entry point that recomputes the statement
-    // from the trace (`prover.zig` `proveRiscVTraceOnlyNoPublicIoUsingChannel`): the
-    // register-access chain no longer closes, because the next reader of the
-    // skipped instruction's destination names a previous clock and value that
-    // no retirement produced. The honest rows are the control -- the same
-    // derivation accepts them, so the rejection is the omission and not the
-    // fixture.
+    try std.testing.expectEqual(short_rows.len, destination);
     _ = try opcode_memory.deriveRegisterBoundary(guest.run.execution_trace.rows.items);
     try std.testing.expectError(
         error.InvalidRegisterAccessChain,
-        opcode_memory.deriveRegisterBoundary(short.rows.items),
+        opcode_memory.deriveRegisterBoundary(short_rows),
     );
 }

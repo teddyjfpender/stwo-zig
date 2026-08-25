@@ -114,7 +114,7 @@ pub const OwnedStatementDestinations = struct {
     preprocessed: [statement_source.Air.PREPROCESSED_COLUMN_COUNT][]M31,
     main: [statement_source.Air.PHYSICAL_MAIN_COLUMN_COUNT][]M31,
 
-    fn init(
+    pub fn init(
         allocator: std.mem.Allocator,
         manifest: statement_source.ManifestV2,
     ) !OwnedStatementDestinations {
@@ -164,7 +164,7 @@ pub const OwnedStatementDestinations = struct {
         };
     }
 
-    fn deinit(self: *OwnedStatementDestinations) void {
+    pub fn deinit(self: *OwnedStatementDestinations) void {
         self.allocator.free(self.ranges);
         self.allocator.free(self.events);
         self.allocator.free(self.logical_rows);
@@ -173,7 +173,7 @@ pub const OwnedStatementDestinations = struct {
         self.* = undefined;
     }
 
-    fn destinations(self: *OwnedStatementDestinations) statement_source.DestinationsV2 {
+    pub fn destinations(self: *OwnedStatementDestinations) statement_source.DestinationsV2 {
         return .{
             .trace = .{ .preprocessed = self.preprocessed, .main = self.main },
             .logical_rows = self.logical_rows,
@@ -193,7 +193,7 @@ pub const OwnedBoundaryTraces = struct {
     public_main: [boundary_air.PublicLogUp.PHYSICAL_MAIN_COLUMN_COUNT][]M31,
     public_interaction: [boundary_air.PublicLogUp.INTERACTION_COLUMN_COUNT][]M31,
 
-    fn init(
+    pub fn init(
         allocator: std.mem.Allocator,
         manifest: *const boundary_authority.OuterManifestV2,
     ) !OwnedBoundaryTraces {
@@ -263,12 +263,12 @@ pub const OwnedBoundaryTraces = struct {
         };
     }
 
-    fn deinit(self: *OwnedBoundaryTraces) void {
+    pub fn deinit(self: *OwnedBoundaryTraces) void {
         self.allocator.free(self.storage);
         self.* = undefined;
     }
 
-    fn traces(self: *OwnedBoundaryTraces) boundary_authority.TracesV2 {
+    pub fn traces(self: *OwnedBoundaryTraces) boundary_authority.TracesV2 {
         return .{
             .statement = .{
                 .preprocessed = self.statement_preprocessed,
@@ -289,7 +289,7 @@ pub const InputProviderTrace = struct {
     main: [input_provider_air.PHYSICAL_MAIN_COLUMN_COUNT][input_provider_authority.TRACE_ROW_COUNT]M31 = undefined,
     interaction: [input_provider_air.INTERACTION_COLUMN_COUNT][input_provider_authority.TRACE_ROW_COUNT]M31 = undefined,
 
-    fn trace(self: *InputProviderTrace) input_provider_authority.TraceV2 {
+    pub fn trace(self: *InputProviderTrace) input_provider_authority.TraceV2 {
         var preprocessed: [input_provider_air.PREPROCESSED_COLUMN_COUNT][]M31 = undefined;
         for (&preprocessed, &self.preprocessed) |*destination, *source|
             destination.* = source;
@@ -312,7 +312,7 @@ pub const OwnedTree = struct {
     allocator: std.mem.Allocator,
     columns: [][]M31,
 
-    fn init(
+    pub fn init(
         allocator: std.mem.Allocator,
         manifest: *const manifest_mod.Manifest,
     ) !OwnedTree {
@@ -336,7 +336,7 @@ pub const OwnedTree = struct {
         return .{ .allocator = allocator, .columns = columns };
     }
 
-    fn deinit(self: *OwnedTree) void {
+    pub fn deinit(self: *OwnedTree) void {
         for (self.columns) |column| self.allocator.free(column);
         self.allocator.free(self.columns);
         self.* = undefined;

@@ -58,7 +58,7 @@ pub fn OwnedColumns(comptime count: usize) type {
         storage: []M31,
         columns: [count][]M31,
 
-        fn init(allocator: std.mem.Allocator, size: usize) !Self {
+        pub fn init(allocator: std.mem.Allocator, size: usize) !Self {
             const storage = try allocator.alloc(M31, count * size);
             errdefer allocator.free(storage);
             @memset(storage, M31.zero());
@@ -72,16 +72,16 @@ pub fn OwnedColumns(comptime count: usize) type {
             };
         }
 
-        fn deinit(self: *Self) void {
+        pub fn deinit(self: *Self) void {
             self.allocator.free(self.storage);
             self.* = undefined;
         }
 
-        fn fill(self: *Self, value: M31) void {
+        pub fn fill(self: *Self, value: M31) void {
             @memset(self.storage, value);
         }
 
-        fn expectFilled(self: *const Self, value: M31) !void {
+        pub fn expectFilled(self: *const Self, value: M31) !void {
             for (self.storage) |actual|
                 try std.testing.expect(actual.eql(value));
         }
