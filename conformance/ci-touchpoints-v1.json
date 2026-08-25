@@ -1152,7 +1152,6 @@
         "src/backends/cuda"
       ],
       "lanes": [
-        "riscv_cuda_integration",
         "package",
         "native_cuda_static",
         "native_cuda_device"
@@ -1163,8 +1162,7 @@
         "src/integrations/riscv_cuda"
       ],
       "lanes": [
-        "package",
-        "riscv_cuda_integration"
+        "package"
       ]
     },
     {

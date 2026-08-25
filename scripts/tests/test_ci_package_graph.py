@@ -25,8 +25,8 @@ POLICY = json.loads((ROOT / "conformance/ci-touchpoints-v1.json").read_text(enco
 # The workspace validator's edge count. A change here means a real dependency
 # was added or removed; update the number deliberately, with the closure
 # consequences reviewed.
-EXPECTED_PACKAGES = 21
-EXPECTED_EDGES = 70
+EXPECTED_PACKAGES = 22
+EXPECTED_EDGES = 73
 
 
 def contract(package: str, dependencies: dict[str, str]) -> str:
@@ -202,11 +202,16 @@ class RepositoryGraphTest(unittest.TestCase):
         self.assertNotIn("cuda_backend", lanes)
         self.assertNotIn("native_examples", lanes)
 
-    def test_riscv_frontend_change_avoids_cairo_and_cuda_lanes(self) -> None:
+    def test_riscv_frontend_change_reaches_all_riscv_integrations(self) -> None:
         lanes, _ = graph.selection(["src/frontends/riscv/air.zig"], self.packages, self.bindings)
         self.assertEqual(
             lanes,
-            frozenset({"riscv_frontend", "riscv_cpu_integration", "riscv_metal_integration"}),
+            frozenset({
+                "riscv_frontend",
+                "riscv_cpu_integration",
+                "riscv_cuda_integration",
+                "riscv_metal_integration",
+            }),
         )
 
     def test_sm83_frontend_change_selects_its_backend_integrations(self) -> None:

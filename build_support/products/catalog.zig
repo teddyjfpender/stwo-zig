@@ -276,6 +276,7 @@ pub const configure = [_]Configure{
         .dependency_module_roots = package_dependencies.frontend_cuda_metal_cpu_protocol_package_roots,
         .allowed_module_files = &.{
             "tests/cuda/cumetal/native_frontend_execution.zig",
+            "src/interop/postcard.zig",
             "src/products/native_cuda/blake_route.zig",
             "src/stwo.zig",
             "src/tools/cuda_native_ec_composite_oracle/main.zig",
