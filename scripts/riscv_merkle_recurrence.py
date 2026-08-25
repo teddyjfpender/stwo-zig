@@ -327,11 +327,12 @@ def check_production_contract(repo_root: Path) -> ProductionContract:
         raise AssertionError("production INV2 is not the M31 inverse of two")
 
     required_merkle_fragments = (
-        "append(&list, .merkle, main[6], .{ index, depth, lhs, root });",
-        "append(&list, .merkle, main[7], .{ index.add(one), depth, rhs, root });",
+        "appendGeneric(S, &list, .merkle, main[6], .{ index, depth, lhs, root });",
+        "appendGeneric(S, &list, .merkle, main[7], .{ index.add(one), depth, rhs, root });",
         (
-            "append(&list, .merkle, main[8].neg(), "
-            ".{ index.mul(INV2), depth.sub(one), cur, root });"
+            "appendGeneric(S, &list, .merkle, main[8].neg(), .{ "
+            "index.mul(S.fromBase(M31.fromU64(1073741824))), "
+            "depth.sub(one), cur, root, });"
         ),
     )
     for fragment in required_merkle_fragments:
@@ -351,8 +352,8 @@ def check_production_contract(repo_root: Path) -> ProductionContract:
     if admission_guard not in admission_source:
         raise AssertionError("production Merkle row admission guard changed")
     admission_call = (
-        "try validateMerkleCoefficientLift("
-        "program.n_rows, memory_shards, merkle_desc.n_rows);"
+        "try validateMerkleCoefficientLift( "
+        "program.n_rows, memory_shards, merkle_desc.n_rows, public_merkle_terms, );"
     )
     if admission_call not in admission_source:
         raise AssertionError("Merkle descriptors are not checked by the lift guard")
@@ -361,7 +362,7 @@ def check_production_contract(repo_root: Path) -> ProductionContract:
         (
             "var terms_per_side = @as(u64, merkle_rows) * 2 + "
             "@as(u64, program_rows) + "
-            "MAX_PUBLIC_MERKLE_TUPLE_MULTIPLICITY;"
+            "public_terms;"
         ),
         (
             "for (memory_shards) |desc| "

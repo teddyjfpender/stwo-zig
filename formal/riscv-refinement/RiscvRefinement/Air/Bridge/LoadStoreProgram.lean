@@ -1,6 +1,6 @@
 -- GENERATED FILE. DO NOT EDIT.
 -- Source: generated/air/lb.air-ir-v2.json
--- Content digest: 8c63862acc341a4dca936e7fc5ae98a46bd38ed87a616b8e070d38bff91d5fab
+-- Content digest: 129cebd7398199ce1422ebc94585919ee162b86280d16993ad4b0b0e1e2c1e80
 -- This exact circuit is interpreted by the shared MulhCircuit evaluator.
 
 import RiscvRefinement.Air.Bridge.MulhProgram
@@ -9,7 +9,7 @@ namespace RiscvRefinement.Air.Bridge
 
 /-- Content digest of the canonical production AIR export encoded below. -/
 def loadStoreProgramIrDigest : String :=
-  "8c63862acc341a4dca936e7fc5ae98a46bd38ed87a616b8e070d38bff91d5fab"
+  "129cebd7398199ce1422ebc94585919ee162b86280d16993ad4b0b0e1e2c1e80"
 
 -- 48 columns, 301 nodes, 63 constraints, 16 lookups.
 def loadStoreCircuit : MulhCircuit where

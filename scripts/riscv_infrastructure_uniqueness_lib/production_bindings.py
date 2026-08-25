@@ -66,57 +66,57 @@ SOURCE_BINDINGS: tuple[tuple[str, Path, str], ...] = (
     (
         "program padding multiplicity",
         PROGRAM_INTERACTION_PATH,
-        "result[N_SUMS + 1] = main[6].mul(QM31.one().sub(is_active));",
+        "result[N_SUMS + 1] = main[6].mul(S.one().sub(is_active));",
     ),
     (
         "program address radix",
         PROGRAM_INTERACTION_PATH,
-        "const word_address = main[8].add(main[9].mul(base(@as(u32, 1) << 20)));",
+        "const word_address = main[8].add(main[9].mul(baseGeneric(S, @as(u32, 1) << 20)));",
     ),
     (
         "program address recomposition",
         PROGRAM_INTERACTION_PATH,
-        "main[1].sub(word_address.mul(base(4)))",
+        "main[1].sub(word_address.mul(baseGeneric(S, 4)))",
     ),
     (
         "program tuple emission",
         PROGRAM_INTERACTION_PATH,
-        "append(&list, .program_access, main[6], .{ addr, values[0], values[1], values[2], values[3] });",
+        "appendGeneric(S, &list, .program_access, main[6], .{ addr, values[0], values[1], values[2], values[3] });",
     ),
     (
         "program Merkle leaf depth",
         PROGRAM_INTERACTION_PATH,
-        "const depth = base(30);",
+        "const depth = baseGeneric(S, 30);",
     ),
     (
         "program first Merkle leaf",
         PROGRAM_INTERACTION_PATH,
-        "append(&list, .merkle, enabler.neg(), .{ addr, depth, values[0], root });",
+        "appendGeneric(S, &list, .merkle, enabler.neg(), .{ addr, depth, values[0], root });",
     ),
     (
         "program second Merkle leaf",
         PROGRAM_INTERACTION_PATH,
-        "append(&list, .merkle, enabler.neg(), .{ addr.add(base(1)), depth, values[1], root });",
+        "appendGeneric(S, &list, .merkle, enabler.neg(), .{ addr.add(baseGeneric(S, 1)), depth, values[1], root });",
     ),
     (
         "program third Merkle leaf",
         PROGRAM_INTERACTION_PATH,
-        "append(&list, .merkle, enabler.neg(), .{ addr.add(base(2)), depth, values[2], root });",
+        "appendGeneric(S, &list, .merkle, enabler.neg(), .{ addr.add(baseGeneric(S, 2)), depth, values[2], root });",
     ),
     (
         "program fourth Merkle leaf",
         PROGRAM_INTERACTION_PATH,
-        "append(&list, .merkle, enabler.neg(), .{ addr.add(base(3)), depth, values[3], root });",
+        "appendGeneric(S, &list, .merkle, enabler.neg(), .{ addr.add(baseGeneric(S, 3)), depth, values[3], root });",
     ),
     (
         "program low address range",
         PROGRAM_INTERACTION_PATH,
-        "append(&list, .range_check_20, enabler.neg(), .{main[8]});",
+        "appendGeneric(S, &list, .range_check_20, enabler.neg(), .{main[8]});",
     ),
     (
         "program high address range",
         PROGRAM_INTERACTION_PATH,
-        "append(&list, .range_check_8_8, enabler.neg(), .{ main[9], QM31.zero() });",
+        "appendGeneric(S, &list, .range_check_8_8, enabler.neg(), .{ main[9], S.zero() });",
     ),
     (
         "program builder tree validation",
@@ -146,7 +146,7 @@ SOURCE_BINDINGS: tuple[tuple[str, Path, str], ...] = (
     (
         "memory signed multiplicity polynomial",
         MEMORY_INTERACTION_PATH,
-        "result[N_SUMS] = multiplicity.mul(multiplicity_squared.sub(QM31.one()));",
+        "result[N_SUMS] = multiplicity.mul(multiplicity_squared.sub(S.one()));",
     ),
     (
         "memory active multiplicity square",
@@ -156,42 +156,42 @@ SOURCE_BINDINGS: tuple[tuple[str, Path, str], ...] = (
     (
         "memory tuple boundary",
         MEMORY_INTERACTION_PATH,
-        "append(&list, .memory_access, multiplicity, .{ QM31.one(), addr, clock, values[0], values[1], values[2], values[3], });",
+        "appendGeneric(S, &list, .memory_access, multiplicity, .{ S.one(), addr, clock, values[0], values[1], values[2], values[3], });",
     ),
     (
         "memory first byte range pair",
         MEMORY_INTERACTION_PATH,
-        "append(&list, .range_check_8_8, enabler.neg(), .{ values[0], values[1] });",
+        "appendGeneric(S, &list, .range_check_8_8, enabler.neg(), .{ values[0], values[1] });",
     ),
     (
         "memory second byte range pair",
         MEMORY_INTERACTION_PATH,
-        "append(&list, .range_check_8_8, enabler.neg(), .{ values[2], values[3] });",
+        "appendGeneric(S, &list, .range_check_8_8, enabler.neg(), .{ values[2], values[3] });",
     ),
     (
         "memory Merkle leaf depth",
         MEMORY_INTERACTION_PATH,
-        "const depth = base(30);",
+        "const depth = baseGeneric(S, 30);",
     ),
     (
         "memory first Merkle leaf",
         MEMORY_INTERACTION_PATH,
-        "append(&list, .merkle, enabler.neg(), .{ addr, depth, values[0], root });",
+        "appendGeneric(S, &list, .merkle, enabler.neg(), .{ addr, depth, values[0], root });",
     ),
     (
         "memory second Merkle leaf",
         MEMORY_INTERACTION_PATH,
-        "append(&list, .merkle, enabler.neg(), .{ addr.add(base(1)), depth, values[1], root });",
+        "appendGeneric(S, &list, .merkle, enabler.neg(), .{ addr.add(baseGeneric(S, 1)), depth, values[1], root });",
     ),
     (
         "memory third Merkle leaf",
         MEMORY_INTERACTION_PATH,
-        "append(&list, .merkle, enabler.neg(), .{ addr.add(base(2)), depth, values[2], root });",
+        "appendGeneric(S, &list, .merkle, enabler.neg(), .{ addr.add(baseGeneric(S, 2)), depth, values[2], root });",
     ),
     (
         "memory fourth Merkle leaf",
         MEMORY_INTERACTION_PATH,
-        "append(&list, .merkle, enabler.neg(), .{ addr.add(base(3)), depth, values[3], root });",
+        "appendGeneric(S, &list, .merkle, enabler.neg(), .{ addr.add(baseGeneric(S, 3)), depth, values[3], root });",
     ),
     (
         "memory host tree validation",
@@ -291,37 +291,37 @@ SOURCE_BINDINGS: tuple[tuple[str, Path, str], ...] = (
     (
         "Merkle left child",
         MERKLE_NODE_PATH,
-        "append(&list, .merkle, main[6], .{ index, depth, lhs, root });",
+        "appendGeneric(S, &list, .merkle, main[6], .{ index, depth, lhs, root });",
     ),
     (
         "Merkle right child",
         MERKLE_NODE_PATH,
-        "append(&list, .merkle, main[7], .{ index.add(one), depth, rhs, root });",
+        "appendGeneric(S, &list, .merkle, main[7], .{ index.add(one), depth, rhs, root });",
     ),
     (
         "Merkle parent",
         MERKLE_NODE_PATH,
-        "append(&list, .merkle, main[8].neg(), .{ index.mul(INV2), depth.sub(one), cur, root });",
+        "appendGeneric(S, &list, .merkle, main[8].neg(), .{ index.mul(S.fromBase(M31.fromU64(1073741824))), depth.sub(one), cur, root, });",
     ),
     (
         "Merkle Poseidon zero-padded input",
         MERKLE_NODE_PATH,
-        "var poseidon_input = [_]QM31{QM31.zero()} ** poseidon2_air.WIDTH; poseidon_input[0] = lhs; poseidon_input[1] = rhs;",
+        "var poseidon_input = [_]S{S.zero()} ** poseidon2_air.WIDTH; poseidon_input[0] = lhs; poseidon_input[1] = rhs;",
     ),
     (
         "Merkle Poseidon narrow output",
         MERKLE_NODE_PATH,
-        "var poseidon_output = [_]QM31{QM31.zero()} ** poseidon2_air.WIDTH; poseidon_output[0] = cur;",
+        "var poseidon_output = [_]S{S.zero()} ** poseidon2_air.WIDTH; poseidon_output[0] = cur;",
     ),
     (
         "Merkle Poseidon input",
         MERKLE_NODE_PATH,
-        "append(&list, .poseidon2, enabler, poseidon_input);",
+        "appendGeneric(S, &list, .poseidon2, enabler, poseidon_input);",
     ),
     (
         "Merkle Poseidon output",
         MERKLE_NODE_PATH,
-        "append(&list, .poseidon2, enabler.neg(), poseidon_output);",
+        "appendGeneric(S, &list, .poseidon2, enabler.neg(), poseidon_output);",
     ),
     (
         "sparse Merkle parent index",
@@ -341,47 +341,47 @@ SOURCE_BINDINGS: tuple[tuple[str, Path, str], ...] = (
     (
         "clock previous tuple",
         CLOCK_INTERACTION_PATH,
-        "entry.memory(&result, row.enabler.neg(), memoryTuple(row, row.clock_prev));",
+        "EntryBuilder.memory(&result, row.enabler.neg(), memoryTupleGeneric(S, row, row.clock_prev));",
     ),
     (
         "clock next tuple",
         CLOCK_INTERACTION_PATH,
-        "memoryTuple(row, row.clock_prev.add(q(state_chain.MAX_CLOCK_DIFF)))",
+        "memoryTupleGeneric(S, row, row.clock_prev.add(qGeneric(S, state_chain.MAX_CLOCK_DIFF)))",
     ),
     (
         "clock low range",
         CLOCK_INTERACTION_PATH,
-        "entry.range20(&result, row.enabler.neg(), row.clock_prev_low20);",
+        "EntryBuilder.range20(&result, row.enabler.neg(), row.clock_prev_low20);",
     ),
     (
         "clock high range",
         CLOCK_INTERACTION_PATH,
-        ".{ row.clock_prev_high6, row.clock_prev_high6.mul(q(4)) },",
+        ".{ row.clock_prev_high6, row.clock_prev_high6.mul(qGeneric(S, 4)) },",
     ),
     (
         "clock boolean enabler",
         CLOCK_COMPONENT_PATH,
-        "result.values[interaction.N_SUMS] = row.enabler.mul(QM31.one().sub(row.enabler));",
+        "result[interaction.N_SUMS] = row.enabler.mul(S.one().sub(row.enabler));",
     ),
     (
         "clock active selector",
         CLOCK_COMPONENT_PATH,
-        "result.values[interaction.N_SUMS + 1] = row.enabler.sub(is_active);",
+        "result[interaction.N_SUMS + 1] = row.enabler.sub(is_active);",
     ),
     (
         "clock direct recomposition",
         CLOCK_COMPONENT_PATH,
-        "result.values[interaction.N_SUMS + 2] = row.enabler.mul( row.clock_prev.sub( row.clock_prev_low20.add( row.clock_prev_high6.mul( QM31.fromBase(M31.fromU64( @as(u32, 1) << state_chain.CLOCK_PREV_LOW_BITS, )), ), ), ), );",
+        "result[interaction.N_SUMS + 2] = row.enabler.mul( row.clock_prev.sub( row.clock_prev_low20.add( row.clock_prev_high6.mul(S.fromBase(M31.fromU64( @as(u32, 1) << state_chain.CLOCK_PREV_LOW_BITS, ))), ), ), );",
     ),
     (
         "clock committed row contents",
         CLOCK_TRACE_PATH,
-        "fn placeClockUpdateRow( columns: *[CLOCK_UPDATE_COLS][]M31, row: usize, placement: permutation.BitReversalTable, address_space: u32, update: state_chain.ClockUpdate, ) void { permutation.placeValue(columns[0], row, placement, M31.one()); permutation.placeValue(columns[1], row, placement, M31.fromCanonical(address_space)); permutation.placeValue( columns[2], row, placement, M31.fromCanonical(update.addr & 0x7fff_ffff), ); permutation.placeValue(columns[3], row, placement, M31.fromCanonical(update.clk_prev)); for (update.value_limbs, 0..) |value, limb| { permutation.placeValue(columns[4 + limb], row, placement, value); } permutation.placeValue( columns[8], row, placement, M31.fromCanonical( update.clk_prev & ((@as(u32, 1) << state_chain.CLOCK_PREV_LOW_BITS) - 1), ), ); permutation.placeValue( columns[9], row, placement, M31.fromCanonical(update.clk_prev >> state_chain.CLOCK_PREV_LOW_BITS), ); }",
+        "fn placeClockUpdateRow( columns: *[CLOCK_UPDATE_COLS][]M31, row: usize, placement: permutation.BitReversalTable, address_space: u32, update: state_chain.ClockUpdate, ) void { permutation.placeValue(columns[0], row, placement, M31.one()); permutation.placeValue(columns[1], row, placement, M31.fromCanonical(address_space)); permutation.placeValue( columns[2], row, placement, M31.fromCanonical(update.addr & 0x7fff_ffff), ); permutation.placeValue(columns[3], row, placement, M31.fromCanonical(update.clk_prev)); for (update.valueLimbs(), 0..) |value, limb| { permutation.placeValue(columns[4 + limb], row, placement, value); } permutation.placeValue( columns[8], row, placement, M31.fromCanonical( update.clk_prev & ((@as(u32, 1) << state_chain.CLOCK_PREV_LOW_BITS) - 1), ), ); permutation.placeValue( columns[9], row, placement, M31.fromCanonical(update.clk_prev >> state_chain.CLOCK_PREV_LOW_BITS), ); }",
     ),
     (
         "clock bridge recurrence",
         STATE_CHAIN_PATH,
-        "while (clk -| current > MAX_CLOCK_DIFF) { const next = current + MAX_CLOCK_DIFF;",
+        "fn fillClockGap( self: *StateChainTracker, addr_space: u1, addr: u32, prev_clk: u32, clk: u32, value: u32, ) !u32 { var current = prev_clk; while (clk -| current > MAX_CLOCK_DIFF) { const next = current + MAX_CLOCK_DIFF;",
     ),
     (
         "strict positive opcode access gap",
@@ -396,7 +396,7 @@ SOURCE_BINDINGS: tuple[tuple[str, Path, str], ...] = (
     (
         "Merkle coefficient lift admission",
         STATEMENT_VALIDATION_PATH,
-        "try validateMerkleCoefficientLift(program.n_rows, memory_shards, merkle_desc.n_rows);",
+        "try validateMerkleCoefficientLift( program.n_rows, memory_shards, merkle_desc.n_rows, public_merkle_terms, );",
     ),
     (
         "Merkle node coefficient bound",
@@ -406,17 +406,17 @@ SOURCE_BINDINGS: tuple[tuple[str, Path, str], ...] = (
     (
         "Merkle all-source coefficient bound",
         STATEMENT_VALIDATION_PATH,
-        "var terms_per_side = @as(u64, merkle_rows) * 2 + @as(u64, program_rows) + MAX_PUBLIC_MERKLE_TUPLE_MULTIPLICITY; for (memory_shards) |desc| terms_per_side += @as(u64, desc.n_rows); if (terms_per_side >= m31.Modulus) return types.ProverError.InvalidStatement;",
+        "var terms_per_side = @as(u64, merkle_rows) * 2 + @as(u64, program_rows) + public_terms; for (memory_shards) |desc| terms_per_side += @as(u64, desc.n_rows); if (terms_per_side >= m31.Modulus) return types.ProverError.InvalidStatement;",
     ),
     (
         "memory coefficient lift admission",
         STATEMENT_VALIDATION_PATH,
-        "try validateMemoryRelationCoefficientLift( statement.total_steps, memory_shards, clock_update.n_rows, );",
+        "try validateMemoryRelationCoefficientLift( statement.total_steps, memory_shards, clock_update.n_rows, public_memory_terms, );",
     ),
     (
         "memory coefficient side bound",
         STATEMENT_VALIDATION_PATH,
-        "var terms_per_side = @as(u64, total_steps) * @as(u64, access_clock.MAX_ACCESSES_PER_INSTRUCTION) + @as(u64, clock_update_rows) + MAX_PUBLIC_MEMORY_TUPLE_MULTIPLICITY; for (memory_shards) |desc| terms_per_side += @as(u64, desc.n_rows); if (terms_per_side >= m31.Modulus) return types.ProverError.InvalidStatement;",
+        "var terms = std.math.mul( u64, total_steps, access_clock.MAX_ACCESSES_PER_INSTRUCTION, ) catch return error.Overflow; terms = std.math.add( u64, terms, std.math.mul( u64, supplemental_rows, extra_terms_per_supplemental_row, ) catch return error.Overflow, ) catch return error.Overflow; terms = std.math.add(u64, terms, clock_update_rows) catch return error.Overflow; terms = std.math.add(u64, terms, public_terms) catch return error.Overflow; for (memory_shards) |desc| { terms = std.math.add(u64, terms, desc.n_rows) catch return error.Overflow; } return terms;",
     ),
     (
         "public Merkle root tuple",

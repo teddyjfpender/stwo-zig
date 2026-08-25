@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import tempfile
@@ -125,9 +126,13 @@ class DelegatedIdentityCacheTest(unittest.TestCase):
             command.extend(("--cache-dir", str(cache_dir)))
         if cpu is not None:
             command.append(f"-Dcpu={cpu}")
+        environment = os.environ.copy()
+        environment.pop("ZIG_LOCAL_CACHE_DIR", None)
+        environment.pop("ZIG_GLOBAL_CACHE_DIR", None)
         result = subprocess.run(
             command,
             cwd=repository,
+            env=environment,
             text=True,
             capture_output=True,
             check=True,

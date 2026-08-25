@@ -372,7 +372,7 @@ def check_production_contract(repo_root: Path) -> ProductionContract:
         ),
         "execution geometry sum": (
             admission_source,
-            "if (total_rows != statement.total_steps) return types.ProverError.InvalidStatement;",
+            "const retired_rows = std.math.add(u64, total_rows, supplemental_rows) catch return types.ProverError.InvalidStatement; if (retired_rows != statement.total_steps) return types.ProverError.InvalidStatement;",
         ),
         "clock bridge loop": (
             tracker_source,
@@ -380,11 +380,11 @@ def check_production_contract(repo_root: Path) -> ProductionContract:
         ),
         "clock low range": (
             interaction_source,
-            "entry.range20(&result, row.enabler.neg(), row.clock_prev_low20);",
+            "EntryBuilder.range20(&result, row.enabler.neg(), row.clock_prev_low20);",
         ),
         "clock high range": (
             interaction_source,
-            ".{ row.clock_prev_high6, row.clock_prev_high6.mul(q(4)) },",
+            ".{ row.clock_prev_high6, row.clock_prev_high6.mul(qGeneric(S, 4)) },",
         ),
         "clock recomposition": (
             component_source,

@@ -84,7 +84,7 @@ set_option linter.unusedSimpArgs false
 -- are not byte-identical. The polynomial digest is independently checked by
 -- `riscv_air_ir_equivalence.py` against the reviewed pre-cutover family export.
 #guard loadStoreProgramIrDigest ==
-  "8c63862acc341a4dca936e7fc5ae98a46bd38ed87a616b8e070d38bff91d5fab"
+  "129cebd7398199ce1422ebc94585919ee162b86280d16993ad4b0b0e1e2c1e80"
 #guard loadStoreIrDigest ==
   "44b8ffa7d86cfff1b914e8dfde132284d356e976a6fe4a90d8b62252a1c21ea9"
 #guard loadStorePolynomialDigest ==

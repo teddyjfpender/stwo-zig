@@ -91,7 +91,9 @@ class PostCaptureQuietingTests(unittest.TestCase):
         changed["host"] = dict(changed["host"])
         changed["host"]["cpu"] = "different-host"
         changed["content_sha256"] = content_digest(changed)
-        with self.assertRaisesRegex(CaptureError, "identity changed while quieting"):
+        with self.assertRaisesRegex(
+            CaptureError, "paired preflight boundary host identity drifted"
+        ):
             await_admitted_post_capture_preflight(
                 provider=lambda: changed,
                 expected_host=expected["host"],
@@ -109,7 +111,9 @@ class PostCaptureQuietingTests(unittest.TestCase):
             host_provider=lambda: changed_host,
             quiet_provider=lambda _: quiet_evidence(changed_host),
         )
-        with self.assertRaisesRegex(CaptureError, "identity changed while quieting"):
+        with self.assertRaisesRegex(
+            CaptureError, "paired preflight boundary host identity drifted"
+        ):
             await_admitted_post_capture_preflight(
                 provider=lambda: changed,
                 expected_host=expected["host"],

@@ -608,9 +608,12 @@ class LaneIntegrationTests(unittest.TestCase):
     ) -> tuple[int, str]:
         stderr = io.StringIO()
         with (
+            mock.patch.dict(os.environ, {}, clear=False),
             contextlib.redirect_stdout(io.StringIO()),
             contextlib.redirect_stderr(stderr),
         ):
+            os.environ.pop("ZIG_LOCAL_CACHE_DIR", None)
+            os.environ.pop("ZIG_GLOBAL_CACHE_DIR", None)
             result = lane.run(
                 label,
                 command,
@@ -624,19 +627,22 @@ class LaneIntegrationTests(unittest.TestCase):
     def _authority(
         self, command: list[str], *, cache_group: str | None = None
     ) -> cache.GateAuthority:
-        return cache.build_authority(
-            self.fixture.root,
-            command,
-            stage="gate",
-            cache_group=cache_group,
-            evidence=False,
-            environment=dict(os.environ),
-            controller_files=(
-                Path(lane.__file__),
-                Path(cache.__file__),
-                Path(execution.__file__),
-            ),
-        )
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("ZIG_LOCAL_CACHE_DIR", None)
+            os.environ.pop("ZIG_GLOBAL_CACHE_DIR", None)
+            return cache.build_authority(
+                self.fixture.root,
+                command,
+                stage="gate",
+                cache_group=cache_group,
+                evidence=False,
+                environment=dict(os.environ),
+                controller_files=(
+                    Path(lane.__file__),
+                    Path(cache.__file__),
+                    Path(execution.__file__),
+                ),
+            )
 
     def test_exact_green_reuses_across_labels_and_prints_receipt_key(self) -> None:
         command = self.fixture.command()

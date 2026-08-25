@@ -665,7 +665,10 @@ test "count derivation and overflow are failure atomic" {
     try observeBatchInverse(&counts, 8);
     const operations = try counts.operations();
     try std.testing.expectEqual(@as(u64, 72 + 21 + 5 + 6), operations.additions);
-    try std.testing.expectEqual(@as(u64, 72 + 15 + 6 + 29), operations.multiplications);
+    try std.testing.expectEqual(
+        72 + 15 + 6 + try logicalBatchInverseMultiplications(8),
+        operations.multiplications,
+    );
     try std.testing.expectEqual(@as(u64, 8), operations.inversions);
 
     var saturated = Counts{ .prefix_terms = std.math.maxInt(u64) };
