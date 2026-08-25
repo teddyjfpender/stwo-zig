@@ -18,6 +18,7 @@ pub const Error = error{
     DuplicateArenaSlot,
     EmptyArenaPlan,
     EmptyAllocation,
+    ExecutionProviderMismatch,
     HostReadOutsideProofAssembly,
     HostWriteOutsideIngress,
     InsufficientDeviceMemory,

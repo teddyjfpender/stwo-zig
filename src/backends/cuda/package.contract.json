@@ -12,9 +12,11 @@
   },
   "injected_modules": [],
   "api_surface": [
+    "CuMetalBackend",
     "CudaBackend",
     "abi",
     "aot",
+    "frontend_contract",
     "product_aot",
     "runtime",
     "upstream_sources"

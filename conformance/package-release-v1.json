@@ -66,6 +66,10 @@
       "status": "published",
       "reason": "The release-gated RISC-V CPU composition is a supported Zig source package."
     },
+    "stwo_riscv_cuda_integration": {
+      "status": "deferred",
+      "reason": "The formal provider boundary is available, but RISC-V CUDA execution awaits authenticated AOT and independent proof parity evidence."
+    },
     "stwo_riscv_frontend": {
       "status": "published",
       "reason": "The backend-neutral RISC-V frontend is a supported Zig source package."

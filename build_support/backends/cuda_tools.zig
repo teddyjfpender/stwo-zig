@@ -2,82 +2,13 @@
 
 const std = @import("std");
 const cuda = @import("cuda.zig");
+const cuda_aot = @import("cuda_aot.zig");
+const cuda_cumetal = @import("cuda_cumetal.zig");
+const cuda_portability = @import("cuda_portability.zig");
+pub const Options = @import("cuda_tools_options.zig").Options;
 const construction_observer = @import("../graph/construction_observer.zig");
 const graph = @import("../graph/modules.zig");
 const integration_graph = @import("../graph/integrations.zig");
-
-pub const Options = struct {
-    nvcc: ?[]const u8,
-    host_cxx: ?[]const u8,
-    host_runtime: ?[]const u8,
-    host_unwind_runtime: ?[]const u8,
-    archiver: ?[]const u8,
-    cuda_home: ?[]const u8,
-    library_dir: ?[]const u8,
-    architectures: ?[]const u8,
-    jobs: u16,
-
-    pub fn read(b: *std.Build) Options {
-        return .{
-            .nvcc = b.option([]const u8, "cuda-nvcc", "Explicit nvcc executable"),
-            .host_cxx = b.option([]const u8, "cuda-host-cxx", "Explicit nvcc host C++ compiler"),
-            .host_runtime = b.option([]const u8, "cuda-host-runtime", "Absolute GNU C++ runtime shared-library path"),
-            .host_unwind_runtime = b.option([]const u8, "cuda-host-unwind-runtime", "Absolute GNU C++ unwind runtime shared-library path"),
-            .archiver = b.option([]const u8, "cuda-ar", "Explicit static archiver"),
-            .cuda_home = b.option([]const u8, "cuda-home", "Explicit CUDA toolkit root"),
-            .library_dir = b.option([]const u8, "cuda-library-dir", "Explicit CUDA library directory"),
-            .architectures = b.option([]const u8, "cuda-arch", "Comma-separated numeric CUDA SM targets"),
-            .jobs = b.option(u16, "cuda-build-jobs", "Maximum parallel nvcc processes") orelse 8,
-        };
-    }
-
-    pub fn complete(self: Options) bool {
-        return self.nvcc != null and
-            self.host_cxx != null and
-            self.archiver != null and
-            self.cuda_home != null and
-            self.library_dir != null and
-            self.architectures != null;
-    }
-
-    pub fn runtimeComplete(self: Options) bool {
-        return self.complete() and
-            self.host_runtime != null and
-            self.host_unwind_runtime != null;
-    }
-
-    pub fn toolchain(self: Options) cuda.Toolchain {
-        if (!self.complete()) @panic(
-            "cuda-native-archive requires -Dcuda-nvcc, -Dcuda-host-cxx, " ++
-                "-Dcuda-ar, -Dcuda-home, -Dcuda-library-dir, and -Dcuda-arch",
-        );
-        return .{
-            .nvcc = self.nvcc.?,
-            .host_cxx = self.host_cxx.?,
-            .host_runtime = self.host_runtime orelse "",
-            .host_unwind_runtime = self.host_unwind_runtime orelse "",
-            .archiver = self.archiver.?,
-            .cuda_home = self.cuda_home.?,
-            .library_dir = self.library_dir.?,
-            .architectures = self.architectures.?,
-            .jobs = self.jobs,
-        };
-    }
-
-    pub fn planningToolchain(self: Options) cuda.Toolchain {
-        return .{
-            .nvcc = self.nvcc orelse "/opt/cuda/bin/nvcc",
-            .host_cxx = self.host_cxx orelse "/usr/bin/c++",
-            .host_runtime = self.host_runtime orelse "/usr/lib/libstdc++.so.6",
-            .host_unwind_runtime = self.host_unwind_runtime orelse "/usr/lib/libgcc_s.so.1",
-            .archiver = self.archiver orelse "/usr/bin/ar",
-            .cuda_home = self.cuda_home orelse "/opt/cuda",
-            .library_dir = self.library_dir orelse "/opt/cuda/lib64",
-            .architectures = self.architectures orelse "sm_90",
-            .jobs = self.jobs,
-        };
-    }
-};
 
 pub fn addProducts(
     b: *std.Build,
@@ -85,11 +16,23 @@ pub fn addProducts(
     optimize: std.builtin.OptimizeMode,
 ) void {
     const options = Options.read(b);
+    cuda_portability.addStep(b, target, .{
+        .compiler = options.cumetalc,
+        .root = options.cumetal_root,
+        .inspect = options.air_inspect,
+        .validate = options.air_validate,
+    });
+    cuda_aot.addNativeToolStep(b);
     const source = cuda.addSourceClosureGate(b);
     b.step(
         "cuda-source-closure",
         "Verify the exact pinned CUDA/C++ source authority",
     ).dependOn(&source.step);
+    const external_authority = addExternalAuthority(b);
+    b.step(
+        "cuda-authority-materialize",
+        "Fetch and authenticate the audit-only upstream CUDA workspace",
+    ).dependOn(&external_authority.run.step);
 
     const plan = cuda.addPlan(b, options.planningToolchain());
     b.step(
@@ -104,8 +47,10 @@ pub fn addProducts(
         "scripts.tests.test_cuda_build",
         "scripts.tests.test_cuda_aot_identity",
         "scripts.tests.test_cuda_build_cache",
+        "scripts.tests.test_cuda_cairo_eval_aot",
         "scripts.tests.test_cuda_source_closure",
         "scripts.tests.test_cuda_product_closure",
+        "scripts.tests.test_cuda_recorded_witness_product",
         "scripts.tests.test_cuda_aot_authentication",
         "scripts.tests.test_cuda_blake_aot",
         "scripts.tests.test_cuda_blake_exact_interaction_oracle",
@@ -274,6 +219,7 @@ pub fn addProducts(
         native_cuda,
         stwo,
     );
+    cuda_aot.addCairoEvalToolStep(b, target, stwo);
     _ = integration_graph.addCairoCpuImport(
         b,
         protocol,
@@ -400,36 +346,35 @@ pub fn addProducts(
     });
     blake_exact_step.dependOn(&b.addRunArtifact(blake_route_tests).step);
 
-    const adapter_tests = b.addSystemCommand(&.{
-        "cargo",
-        "+nightly-2025-07-14",
+    addCuMetalNative(b, target, optimize, stwo, options);
+
+    const adapter_tests = addExternalAdapter(
+        b,
         "test",
-        "--locked",
-        "--manifest-path",
-        "tools/stwo-cuda-adapter-rs/Cargo.toml",
-    });
-    adapter_tests.step.dependOn(&source.step);
+        external_authority.directory,
+    );
     b.step(
         "test-cuda-adapter",
-        "Compile and test the isolated copied-backend Native proof adapter",
+        "Compile and test the external-authority Native proof adapter",
     ).dependOn(&adapter_tests.step);
 
     if (options.complete()) {
-        const archive = cuda.addArchive(b, options.toolchain());
+        const archive = cuda.addArchive(
+            b,
+            options.toolchain(),
+            .native,
+            null,
+        );
         b.step(
             "cuda-native-archive",
-            "Build the exact static CUDA runtime and copied AOT pack",
+            "Build the exact static CUDA runtime and generated AOT pack",
         ).dependOn(&archive.build.step);
 
-        const adapter = b.addSystemCommand(&.{
-            "cargo",
-            "+nightly-2025-07-14",
+        const adapter = addExternalAdapter(
+            b,
             "build",
-            "--release",
-            "--locked",
-            "--manifest-path",
-            "tools/stwo-cuda-adapter-rs/Cargo.toml",
-        });
+            external_authority.directory,
+        );
         adapter.setEnvironmentVariable("STWO_CUDA_NVCC", options.nvcc.?);
         adapter.setEnvironmentVariable("STWO_CUDA_HOST_COMPILER", options.host_cxx.?);
         adapter.setEnvironmentVariable("STWO_CUDA_ARCH", options.architectures.?);
@@ -440,7 +385,7 @@ pub fn addProducts(
         adapter.step.dependOn(&source.step);
         b.step(
             "cuda-native-adapter",
-            "Build the copied-backend Native CUDA proof adapter",
+            "Build the external-authority Native CUDA proof adapter",
         ).dependOn(&adapter.step);
     } else {
         const unavailable = b.addFail(
@@ -450,7 +395,7 @@ pub fn addProducts(
         );
         b.step(
             "cuda-native-archive",
-            "Build the exact static CUDA runtime and copied AOT pack",
+            "Build the exact static CUDA runtime and generated AOT pack",
         ).dependOn(&unavailable.step);
 
         const adapter_unavailable = b.addFail(
@@ -459,36 +404,115 @@ pub fn addProducts(
         );
         b.step(
             "cuda-native-adapter",
-            "Build the copied-backend Native CUDA proof adapter",
+            "Build the external-authority Native CUDA proof adapter",
         ).dependOn(&adapter_unavailable.step);
     }
     construction_observer.recordConstructor(b, "backends/cuda_tools.addProducts");
 }
 
-test "CUDA archive options are all-or-nothing" {
-    const absent = Options{
-        .nvcc = null,
-        .host_cxx = null,
-        .host_runtime = null,
-        .host_unwind_runtime = null,
-        .archiver = null,
-        .cuda_home = null,
-        .library_dir = null,
-        .architectures = null,
-        .jobs = 8,
+fn addCuMetalNative(
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    stwo: *std.Build.Module,
+    options: Options,
+) void {
+    const archive_step = b.step(
+        "cuda-cumetal-native-archive",
+        "Build the authenticated Native CuMetal provider archive",
+    );
+    const smoke_step = b.step(
+        "run-native-cumetal-smoke",
+        "Prove and verify Native wide Fibonacci on the Apple GPU",
+    );
+    if (target.result.os.tag != .macos) {
+        const unavailable = b.addFail("the CuMetal provider requires macOS");
+        archive_step.dependOn(&unavailable.step);
+        smoke_step.dependOn(&unavailable.step);
+        return;
+    }
+    const clang = options.cumetal_clang;
+    const compiler = options.cumetalc;
+    const root = options.cumetal_root;
+    const library = options.cumetal_library;
+    const inspect = options.air_inspect;
+    const validate = options.air_validate;
+    if (clang == null or compiler == null or root == null or
+        library == null or inspect == null or validate == null)
+    {
+        const unavailable = b.addFail(
+            "Native CuMetal requires -Dcuda-cumetal-clang, " ++
+                "-Dcuda-cumetalc, -Dcuda-cumetal-root, " ++
+                "-Dcuda-cumetal-library, -Dcuda-air-inspect, and " ++
+                "-Dcuda-air-validate",
+        );
+        archive_step.dependOn(&unavailable.step);
+        smoke_step.dependOn(&unavailable.step);
+        return;
+    }
+    const toolchain = cuda_cumetal.Toolchain{
+        .clang = clang.?,
+        .compiler = compiler.?,
+        .root = root.?,
+        .library = library.?,
+        .air_inspect = inspect.?,
+        .air_validate = validate.?,
+        .archiver = options.cumetal_archiver orelse "/usr/bin/ar",
+        .jobs = options.jobs,
     };
-    try std.testing.expect(!absent.complete());
-    var complete = absent;
-    complete.nvcc = "nvcc";
-    complete.host_cxx = "c++";
-    complete.archiver = "ar";
-    complete.cuda_home = "/cuda";
-    complete.library_dir = "/cuda/lib64";
-    complete.architectures = "sm_90";
-    try std.testing.expect(complete.complete());
-    try std.testing.expect(!complete.runtimeComplete());
-    complete.host_runtime = "/usr/lib/libstdc++.so.6";
-    try std.testing.expect(!complete.runtimeComplete());
-    complete.host_unwind_runtime = "/usr/lib/libgcc_s.so.1";
-    try std.testing.expect(complete.runtimeComplete());
+    const archive = cuda_cumetal.addNativeArchive(b, toolchain);
+    archive_step.dependOn(&archive.build.step);
+    const root_module = b.createModule(.{
+        .root_source_file = b.path(
+            "tests/cuda/cumetal/native_frontend_execution.zig",
+        ),
+        .target = target,
+        .optimize = optimize,
+    });
+    root_module.addImport("stwo_under_test", stwo);
+    const tests = b.addTest(.{ .root_module = root_module });
+    cuda_cumetal.linkRuntime(tests, toolchain, archive);
+    const run = b.addRunArtifact(tests);
+    run.setEnvironmentVariable("CUMETAL_TRACE_GPU", "1");
+    run.setEnvironmentVariable("CUMETAL_MSL_MATH_MODE", "safe");
+    smoke_step.dependOn(&run.step);
+}
+
+const ExternalAuthority = struct {
+    directory: std.Build.LazyPath,
+    run: *std.Build.Step.Run,
+};
+
+fn addExternalAuthority(b: *std.Build) ExternalAuthority {
+    const command = b.addSystemCommand(&.{"python3"});
+    command.addFileArg(b.path("scripts/cuda_external_authority.py"));
+    command.addArg("materialize");
+    command.addArg("--output");
+    const directory = command.addOutputDirectoryArg("cuda-host-authority");
+    command.addFileInput(b.path("src/backends/cuda/source_manifest.json"));
+    command.addFileInput(b.path(
+        "src/backends/cuda/host_source_manifest.json",
+    ));
+    return .{ .directory = directory, .run = command };
+}
+
+fn addExternalAdapter(
+    b: *std.Build,
+    subcommand: []const u8,
+    authority: std.Build.LazyPath,
+) *std.Build.Step.Run {
+    const command = b.addSystemCommand(&.{"python3"});
+    command.addFileArg(b.path("scripts/cuda_adapter_external.py"));
+    command.addFileInput(b.path("scripts/cuda_external_authority.py"));
+    command.addArg(subcommand);
+    command.addArg("--authority-root");
+    command.addDirectoryArg(authority);
+    command.addArg("--adapter-root");
+    command.addDirectoryArg(b.path("tools/stwo-cuda-adapter-rs"));
+    command.addArg("--output");
+    _ = command.addOutputDirectoryArg(b.fmt(
+        "cuda-adapter-{s}",
+        .{subcommand},
+    ));
+    return command;
 }

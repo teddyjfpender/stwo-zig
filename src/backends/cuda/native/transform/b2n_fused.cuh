@@ -2,6 +2,7 @@
 #define STWO_ZIG_CUDA_B2N_FUSED_CUH
 
 #include "../common/circle_twiddle.cuh"
+#include "../common/provider_compat.cuh"
 #include "transform_internal.cuh"
 
 namespace stwo::cuda::transform {
@@ -366,7 +367,7 @@ inline cudaError_t launch_b2n_init(
     const M31 *twiddles,
     cudaStream_t stream) {
     if (log_n < stages || columns == 0)
-        return cudaErrorInvalidConfiguration;
+        return STWO_CUDA_ERROR_INVALID_CONFIGURATION;
     switch (stages) {
         case 7: {
             const uint32_t warps = 1u << (log_n - 7u);
@@ -403,7 +404,7 @@ inline cudaError_t launch_b2n_init(
                 stream>>>(inputs, outputs, log_n, 1u + stages, twiddles);
             break;
         default:
-            return cudaErrorInvalidConfiguration;
+            return STWO_CUDA_ERROR_INVALID_CONFIGURATION;
     }
     return cudaPeekAtLastError();
 }
@@ -420,10 +421,10 @@ inline cudaError_t launch_b2n_continue(
     if (column_count == 0 || start_stage == 0 ||
         start_stage + stages - 1u > log_n ||
         (Duplicate && start_stage + stages - 1u != log_n)) {
-        return cudaErrorInvalidConfiguration;
+        return STWO_CUDA_ERROR_INVALID_CONFIGURATION;
     }
     const uint32_t min_stride = 1u << (start_stage - 1u);
-    if (min_stride < 32u) return cudaErrorInvalidConfiguration;
+    if (min_stride < 32u) return STWO_CUDA_ERROR_INVALID_CONFIGURATION;
     const uint32_t end_stage = start_stage + stages - 1u;
     const dim3 grid{
         min_stride / 32u,
@@ -460,7 +461,7 @@ inline cudaError_t launch_b2n_continue(
                 twiddles,
                 scale);
     } else {
-        return cudaErrorInvalidConfiguration;
+        return STWO_CUDA_ERROR_INVALID_CONFIGURATION;
     }
     return cudaPeekAtLastError();
 }
@@ -483,10 +484,10 @@ inline cudaError_t launch_b2n_continue_compact(
         compact_outputs.stride_words != (1u << (log_n - CompactDepth)) ||
         column_count == 0 || start_stage == 0 ||
         start_stage + stages - 1u != log_n) {
-        return cudaErrorInvalidConfiguration;
+        return STWO_CUDA_ERROR_INVALID_CONFIGURATION;
     }
     const uint32_t min_stride = 1u << (start_stage - 1u);
-    if (min_stride < 32u) return cudaErrorInvalidConfiguration;
+    if (min_stride < 32u) return STWO_CUDA_ERROR_INVALID_CONFIGURATION;
     const dim3 grid{
         min_stride / 32u,
         1u,
@@ -522,7 +523,7 @@ inline cudaError_t launch_b2n_continue_compact(
                 twiddles,
                 scale);
     } else {
-        return cudaErrorInvalidConfiguration;
+        return STWO_CUDA_ERROR_INVALID_CONFIGURATION;
     }
     return cudaPeekAtLastError();
 }

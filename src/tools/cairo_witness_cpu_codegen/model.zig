@@ -38,6 +38,47 @@ pub const Op = enum(u8) {
     deduce_call = 27,
 };
 
+pub const DeduceKind = enum(u32) {
+    blake_g = 0,
+    blake_round_sigma = 1,
+    partial_ec_mul_w18 = 2,
+    pedersen_points_table_w18 = 3,
+    felt_add = 4,
+    felt_sub = 5,
+    felt_mul = 6,
+    felt_div = 7,
+    poseidon_round_keys = 8,
+    cube_252 = 9,
+    poseidon_full_round_chain = 10,
+    poseidon_3_partial_rounds_chain = 11,
+
+    pub fn shape(self: DeduceKind) struct { args: usize, outputs: usize } {
+        return switch (self) {
+            .blake_g => .{ .args = 6, .outputs = 4 },
+            .blake_round_sigma => .{ .args = 1, .outputs = 16 },
+            .partial_ec_mul_w18 => .{ .args = 72, .outputs = 72 },
+            .pedersen_points_table_w18 => .{ .args = 1, .outputs = 56 },
+            .felt_add, .felt_sub, .felt_mul, .felt_div => .{ .args = 56, .outputs = 28 },
+            .poseidon_round_keys => .{ .args = 1, .outputs = 30 },
+            .cube_252 => .{ .args = 10, .outputs = 10 },
+            .poseidon_full_round_chain => .{ .args = 32, .outputs = 32 },
+            .poseidon_3_partial_rounds_chain => .{ .args = 42, .outputs = 42 },
+        };
+    }
+
+    pub fn needsPedersenModule(self: DeduceKind) bool {
+        return self == .partial_ec_mul_w18 or
+            self == .pedersen_points_table_w18;
+    }
+
+    pub fn needsFp256(self: DeduceKind) bool {
+        return switch (self) {
+            .blake_g, .blake_round_sigma => false,
+            else => true,
+        };
+    }
+};
+
 pub const Inst = struct {
     op: Op,
     dst: u16,
@@ -48,6 +89,7 @@ pub const Inst = struct {
 
 pub const Program = struct {
     label: []const u8,
+    semantic_hash: u64,
     insts: []const Inst,
     n_regs: u32,
     n_inputs: u32,
@@ -79,7 +121,42 @@ pub const Program = struct {
         hash.final(&digest);
         return digest;
     }
+
+    pub fn calculatedSemanticHash(self: Program) u64 {
+        var hash: u64 = 0xcbf29ce484222325;
+        for (self.insts) |inst| {
+            fnvMix(&hash, &.{ @intFromEnum(inst.op), 0 });
+            fnvInt(&hash, u16, inst.dst);
+            fnvInt(&hash, u32, inst.a);
+            fnvInt(&hash, u32, inst.b);
+            fnvInt(&hash, u32, inst.imm);
+        }
+        for ([_]u32{
+            self.n_regs,
+            self.n_inputs,
+            self.n_cols,
+            self.n_mult_tables,
+            self.n_lookup_words,
+            self.n_sub_words,
+        }) |count| {
+            fnvInt(&hash, u32, count);
+        }
+        return hash;
+    }
 };
+
+fn fnvMix(hash: *u64, bytes: []const u8) void {
+    for (bytes) |byte| {
+        hash.* ^= byte;
+        hash.* *%= 0x100000001b3;
+    }
+}
+
+fn fnvInt(hash: *u64, comptime T: type, value: T) void {
+    var bytes: [@sizeOf(T)]u8 = undefined;
+    std.mem.writeInt(T, &bytes, value, .little);
+    fnvMix(hash, &bytes);
+}
 
 pub const Bundle = struct {
     allocator: std.mem.Allocator,
@@ -116,7 +193,7 @@ pub const Bundle = struct {
             const n_lookup_words = try cursor.int(u32);
             const n_sub_words = try cursor.int(u32);
             const instruction_count = try cursor.int(u32);
-            _ = try cursor.int(u64);
+            const semantic_hash = try cursor.int(u64);
             if (n_regs == 0 or n_cols == 0 or instruction_count == 0 or
                 instruction_count > max_instructions)
                 return error.InvalidEntry;
@@ -141,6 +218,7 @@ pub const Bundle = struct {
             }
             programs[initialized] = .{
                 .label = label,
+                .semantic_hash = semantic_hash,
                 .insts = insts,
                 .n_regs = n_regs,
                 .n_inputs = n_inputs,
@@ -149,6 +227,8 @@ pub const Bundle = struct {
                 .n_lookup_words = n_lookup_words,
                 .n_sub_words = n_sub_words,
             };
+            if (programs[initialized].calculatedSemanticHash() != semantic_hash)
+                return error.SemanticHashMismatch;
         }
         if (cursor.offset != storage.len) return error.TrailingData;
         return .{

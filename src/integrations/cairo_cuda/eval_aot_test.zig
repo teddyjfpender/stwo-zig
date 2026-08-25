@@ -94,7 +94,7 @@ test "SN2 CUDA eval AOT product covers every part with unique bodies" {
     for (seen) |present| try std.testing.expect(present);
 }
 
-test "SN2 CUDA eval AOT manifest and sources are reproducible" {
+test "SN2 CUDA eval AOT manifest is reproducible" {
     const allocator = std.testing.allocator;
     var bundle = try composition.Bundle.readFile(
         allocator,
@@ -116,23 +116,6 @@ test "SN2 CUDA eval AOT manifest and sources are reproducible" {
     );
     defer allocator.free(checked_in);
     try std.testing.expectEqualStrings(first, checked_in);
-
-    for (product.bodies) |body| {
-        const filename = try body.filename(allocator);
-        defer allocator.free(filename);
-        const path = try std.fs.path.join(
-            allocator,
-            &.{ "src/backends/cuda/aot/native/cairo_eval", filename },
-        );
-        defer allocator.free(path);
-        const source = try std.fs.cwd().readFileAlloc(
-            allocator,
-            path,
-            4 * 1024 * 1024,
-        );
-        defer allocator.free(source);
-        try std.testing.expectEqualStrings(body.source, source);
-    }
 }
 
 test "CUDA eval exact program identity detects semantic input drift" {

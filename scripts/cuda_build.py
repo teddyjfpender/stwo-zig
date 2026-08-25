@@ -27,12 +27,15 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument(
         "--source-root",
         type=Path,
-        default=ROOT / "src/backends/cuda/vendor/upstream",
+        default=(
+            ROOT
+            / "src/backends/cuda/authority/active"
+        ),
     )
     result.add_argument(
         "--source-manifest",
         type=Path,
-        default=ROOT / "src/backends/cuda/source_manifest.json",
+        default=ROOT / "src/backends/cuda/active_source_manifest.json",
     )
     result.add_argument(
         "--product-manifest",
@@ -48,6 +51,25 @@ def parser() -> argparse.ArgumentParser:
         "--native-aot-root",
         type=Path,
         default=ROOT / "src/backends/cuda/aot/native",
+    )
+    result.add_argument(
+        "--frontend",
+        choices=("native", "cairo", "riscv", "sm83"),
+        default="native",
+        help="Frontend whose exact AOT catalog is being built",
+    )
+    result.add_argument(
+        "--aot-set",
+        action="append",
+        choices=(".", "cairo_eval"),
+        help="Authenticated frontend AOT set; defaults to the Native set only",
+    )
+    result.add_argument(
+        "--aot-set-root",
+        action="append",
+        nargs=2,
+        metavar=("NAME", "DIRECTORY"),
+        help="Build-cache source root overriding one selected AOT set",
     )
     result.add_argument("--out-dir", type=Path, required=True)
     result.add_argument("--nvcc", required=True)
@@ -89,6 +111,12 @@ def main() -> int:
                 cuda_library_dir=args.cuda_library_dir.resolve(),
                 sms=normalize_sms(args.arch),
                 jobs=args.jobs,
+            ),
+            frontend=args.frontend,
+            aot_sets=tuple(args.aot_set or (".",)),
+            aot_set_roots=tuple(
+                (name, Path(directory).resolve())
+                for name, directory in (args.aot_set_root or ())
             ),
         )
         if args.plan_only:

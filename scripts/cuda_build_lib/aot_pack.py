@@ -62,12 +62,15 @@ def write_aot_carriers(
     entries: Sequence[dict[str, object]],
     pack: Path,
     output: Path,
+    *,
+    object_format: str = "elf",
 ) -> tuple[Path, Path]:
     _validate_carrier_entries(entries, pack)
     assembly = output / "cuda_aot_pack.S"
     lookup = output / "cuda_aot_lookup.cc"
     pack_path = str(pack.resolve()).replace("\\", "\\\\").replace('"', '\\"')
-    assembly_text = f""".section .rodata
+    if object_format == "elf":
+        assembly_text = f""".section .rodata
 .balign 16
 .global stwo_cuda_aot_pack_start
 .global stwo_cuda_aot_pack_end
@@ -78,6 +81,17 @@ stwo_cuda_aot_pack_end:
 .size stwo_cuda_aot_pack_start, stwo_cuda_aot_pack_end-stwo_cuda_aot_pack_start
 .section .note.GNU-stack,"",@progbits
 """
+    elif object_format == "macho":
+        assembly_text = f""".section __DATA,__const
+.p2align 4
+.globl _stwo_cuda_aot_pack_start
+.globl _stwo_cuda_aot_pack_end
+_stwo_cuda_aot_pack_start:
+.incbin "{pack_path}"
+_stwo_cuda_aot_pack_end:
+"""
+    else:
+        raise AotPackError(f"unsupported AOT carrier object format: {object_format}")
     rows = "\n".join(_entry_row(entry) for entry in entries)
     if not rows:
         rows = '    {0ULL, 0U, 0ULL, 0ULL, 0U, 0U, {}, ""},'

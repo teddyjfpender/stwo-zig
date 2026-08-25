@@ -8,7 +8,16 @@ namespace stwo::cuda::blake2s {
 __device__ __forceinline__ uint32_t progressive_rotate_right(
     uint32_t value,
     uint32_t shift) {
+#if defined(STWO_CUMETAL)
+    uint32_t right;
+    uint32_t left;
+    const uint32_t complement = 32u - shift;
+    asm("shr.b32 %0, %1, %2;" : "=r"(right) : "r"(value), "r"(shift));
+    asm("shl.b32 %0, %1, %2;" : "=r"(left) : "r"(value), "r"(complement));
+    return right | left;
+#else
     return (value >> shift) | (value << (32 - shift));
+#endif
 }
 
 #define STWO_PROGRESSIVE_G(a, b, c, d, x, y) \

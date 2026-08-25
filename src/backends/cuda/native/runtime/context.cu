@@ -5,6 +5,8 @@
 #include <cuda_runtime_api.h>
 #include <nvtx3/nvToolsExt.h>
 
+#include "common/provider_compat.cuh"
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -63,7 +65,7 @@ cudaError_t require_context(
     int current = -1;
     cudaError_t status = cudaGetDevice(&current);
     if (status != cudaSuccess) return status;
-    if (current != context->device) return cudaErrorInvalidDevice;
+    if (current != context->device) return STWO_CUDA_ERROR_INVALID_DEVICE;
     *out_context = context;
     return cudaSuccess;
 }
@@ -106,6 +108,14 @@ __global__ void fill_u32_kernel(
 
 }  // namespace
 
+extern "C" uint32_t stwo_cuda_execution_provider() {
+#if defined(STWO_CUMETAL)
+    return STWO_CUDA_EXECUTION_PROVIDER_CUMETAL;
+#else
+    return STWO_CUDA_EXECUTION_PROVIDER_NVIDIA;
+#endif
+}
+
 extern "C" int stwo_cuda_device_snapshot(
     uint32_t *out_count,
     uint32_t *out_current,
@@ -119,7 +129,7 @@ extern "C" int stwo_cuda_device_snapshot(
     int current = -1;
     cudaDeviceProp properties{};
     cudaError_t status = cudaGetDeviceCount(&count);
-    if (status == cudaSuccess && count <= 0) status = cudaErrorNoDevice;
+    if (status == cudaSuccess && count <= 0) status = STWO_CUDA_ERROR_NO_DEVICE;
     if (status == cudaSuccess) status = cudaGetDevice(&current);
     if (status == cudaSuccess) {
         status = cudaGetDeviceProperties(&properties, current);
@@ -152,10 +162,29 @@ extern "C" int stwo_cuda_platform_snapshot(
         properties.totalGlobalMem == 0 ||
         properties.multiProcessorCount <= 0 || properties.warpSize <= 0 ||
         properties.maxThreadsPerBlock <= 0) {
-        return static_cast<int>(cudaErrorInvalidDevice);
+        return static_cast<int>(STWO_CUDA_ERROR_INVALID_DEVICE);
     }
 
+#if defined(STWO_CUMETAL)
+    // CuMetal has no PCI/IOKit UUID in its CUDA-compatible device structure.
+    // Derive a stable, explicitly synthetic provider-local identity from the
+    // immutable device description rather than publishing an all-zero UUID.
+    uint64_t low = 1469598103934665603ull;
+    for (size_t index = 0;
+         index < sizeof(properties.name) && properties.name[index] != '\0';
+         ++index) {
+        low ^= static_cast<uint8_t>(properties.name[index]);
+        low *= 1099511628211ull;
+    }
+    low ^= static_cast<uint64_t>(properties.totalGlobalMem);
+    low *= 1099511628211ull;
+    low ^= static_cast<uint64_t>(properties.multiProcessorCount);
+    const uint64_t high = low ^ 0x43554d4554414c32ull;
+    std::memcpy(out->uuid, &low, sizeof(low));
+    std::memcpy(out->uuid + sizeof(low), &high, sizeof(high));
+#else
     std::memcpy(out->uuid, properties.uuid.bytes, sizeof(out->uuid));
+#endif
     out->driver_version = static_cast<uint32_t>(driver_version);
     out->runtime_version = static_cast<uint32_t>(runtime_version);
     out->toolkit_version = CUDART_VERSION;
@@ -187,10 +216,17 @@ extern "C" int stwo_exec_context_create(void **out_handle) {
 
     cudaError_t status = cudaGetDevice(&context->device);
     cudaMemPoolProps properties{};
+#if defined(STWO_CUMETAL)
+    // CuMetal's UMA pool accepts a zero-valued compatibility record; its
+    // clean-room structure intentionally does not copy NVIDIA enum types.
+    properties.location_type = 0;
+    properties.location_id = context->device;
+#else
     properties.allocType = cudaMemAllocationTypePinned;
     properties.handleTypes = cudaMemHandleTypeNone;
     properties.location.type = cudaMemLocationTypeDevice;
     properties.location.id = context->device;
+#endif
     if (status == cudaSuccess) {
         status = cudaMemPoolCreate(&context->pool, &properties);
     }
@@ -221,7 +257,7 @@ extern "C" int stwo_exec_context_destroy(void *handle) {
     cudaError_t status = require_context(handle, &context);
     if (status != cudaSuccess) return static_cast<int>(status);
     if (context->allocation_count != 0) {
-        return static_cast<int>(cudaErrorInvalidResourceHandle);
+        return static_cast<int>(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
     }
     cudaError_t event_status = cudaSuccess;
     if (context->nvtx_depth != 0) nvtxRangePop();
@@ -468,7 +504,7 @@ extern "C" int stwo_graph_capture_end(
         return static_cast<int>(status);
     }
     if (graph == nullptr) {
-        return static_cast<int>(cudaErrorInvalidResourceHandle);
+        return static_cast<int>(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
     }
 
     size_t node_count = 0;
@@ -497,7 +533,7 @@ extern "C" int stwo_graph_capture_end(
     if (status != cudaSuccess || kernel_nodes == 0) {
         cudaGraphDestroy(graph);
         return static_cast<int>(
-            status == cudaSuccess ? cudaErrorInvalidResourceHandle : status);
+            status == cudaSuccess ? STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE : status);
     }
 
     cudaGraphExec_t exec = nullptr;
@@ -509,7 +545,7 @@ extern "C" int stwo_graph_capture_end(
         return static_cast<int>(destroy_status);
     }
     if (exec == nullptr) {
-        return static_cast<int>(cudaErrorInvalidResourceHandle);
+        return static_cast<int>(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
     }
     *out_exec = reinterpret_cast<void *>(exec);
     *out_kernel_nodes = kernel_nodes;

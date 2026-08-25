@@ -1,9 +1,15 @@
-//! Reproducible checked-in AOT source generator for the exact SN2 AIR bundle.
+//! Reproducible build-cache AOT source generator for the exact SN2 AIR bundle.
 
 const std = @import("std");
 const stwo = @import("stwo");
-const composition = stwo.frontends.cairo.witness.composition_bundle;
-const eval_aot = stwo.integrations.cairo_cuda.eval_aot;
+const composition = if (@hasDecl(stwo, "frontends"))
+    stwo.frontends.cairo.witness.composition_bundle
+else
+    stwo.frontend.witness.composition_bundle;
+const eval_aot = if (@hasDecl(stwo, "integrations"))
+    stwo.integrations.cairo_cuda.eval_aot
+else
+    stwo.integration.eval_aot;
 
 const usage =
     "usage: cairo-cuda-eval-aot <composition.bin> <output-directory>\n";

@@ -1,0 +1,188 @@
+{
+  "audited_commit": "e88dd103bddaff9a134913dec4bd8439817d160c",
+  "audited_version": "0.1.3",
+  "execution": [
+    {
+      "harness": "tests/cuda/cumetal/powers_execution.cu",
+      "kernel": "expand_powers_kernel",
+      "label": "constraint-powers-qm31",
+      "pass_marker": "PASS: QM31 powers match independent host oracle"
+    }
+  ],
+  "positive_floor_count": 33,
+  "probes": [
+    {
+      "expected": "translated",
+      "label": "cairo-casm-input",
+      "source": "src/backends/cuda/native/cairo/casm_input.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "cairo-eval-params",
+      "source": "src/backends/cuda/native/cairo/eval_params.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "cairo-memory-base",
+      "source": "src/backends/cuda/native/cairo/memory_base.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "cairo-memory-execution",
+      "source": "src/backends/cuda/native/cairo/memory_execution.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "cairo-witness-compact-v2",
+      "source": "src/backends/cuda/native/cairo/witness_compact_v2.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "cairo-witness-edge",
+      "source": "src/backends/cuda/native/cairo/witness_edge.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "cairo-witness-multi-edge",
+      "source": "src/backends/cuda/native/cairo/witness_multi_edge.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "cairo-witness-seed",
+      "source": "src/backends/cuda/native/cairo/witness_seed.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "commitment-merkle",
+      "source": "src/backends/cuda/native/commitment/merkle.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "commitment-progressive",
+      "source": "src/backends/cuda/native/commitment/progressive.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "constraint-powers",
+      "source": "src/backends/cuda/native/constraints/powers.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "decommit-fri",
+      "source": "src/backends/cuda/native/decommit/fri.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "decommit-query-planning",
+      "source": "src/backends/cuda/native/decommit/query_planning.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "decommit-sparse-parents",
+      "source": "src/backends/cuda/native/decommit/sparse_parents.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "decommit-trace",
+      "source": "src/backends/cuda/native/decommit/trace.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "fri-final",
+      "source": "src/backends/cuda/native/fri/final.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "fri-fold",
+      "source": "src/backends/cuda/native/fri/fold.cu"
+    },
+    {
+      "definitions": [
+        "STWO_CUDA_HOST_TEST=1"
+      ],
+      "expected": "translated_host_parity_bitreverse",
+      "label": "trace-wide-fibonacci",
+      "source": "src/backends/cuda/native/kernels/wide_fibonacci_trace.cu"
+    },
+    {
+      "definitions": [
+        "STWO_CUDA_HOST_TEST=1"
+      ],
+      "expected": "translated_host_parity_bitreverse",
+      "label": "trace-xor",
+      "source": "src/backends/cuda/native/kernels/xor_trace.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "oods-barycentric",
+      "source": "src/backends/cuda/native/oods/barycentric.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "oods-evaluate",
+      "source": "src/backends/cuda/native/oods/evaluate.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "pow-search",
+      "source": "src/backends/cuda/native/pow/search.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "quotient-combine",
+      "source": "src/backends/cuda/native/quotient/combine.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "quotient-numerator",
+      "source": "src/backends/cuda/native/quotient/numerator.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "quotient-prepare",
+      "source": "src/backends/cuda/native/quotient/prepare.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "relation-batch-inverse",
+      "source": "src/backends/cuda/native/relation/batch_inverse.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "relation-graph",
+      "source": "src/backends/cuda/native/relation/graph.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "runtime-context",
+      "source": "src/backends/cuda/native/runtime/context.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "transcript",
+      "source": "src/backends/cuda/native/transcript/transcript.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "transform-b2n-retained",
+      "source": "src/backends/cuda/native/transform/b2n_retained.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "transform-composition-split",
+      "source": "src/backends/cuda/native/transform/composition_split.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "transform-lde",
+      "source": "src/backends/cuda/native/transform/lde.cu"
+    },
+    {
+      "expected": "translated",
+      "label": "transform-n2b",
+      "source": "src/backends/cuda/native/transform/n2b.cu"
+    }
+  ],
+  "schema": "stwo-zig-cumetal-compatibility-v1",
+  "strict_translation_count": 31
+}

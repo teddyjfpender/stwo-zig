@@ -7,7 +7,7 @@ const layout = @import("../stages/resident_layout.zig");
 const telemetry = @import("../telemetry.zig");
 
 pub const argument_count: u32 = 11;
-pub const cache_key: u64 = 0x2aff3bfd07da4568;
+pub const cache_key: u64 = 0xf884e4d5897f905c;
 pub const kernel_name =
     "stwo_native_statement_state_machine_v1_6324a81f31d00d9e";
 

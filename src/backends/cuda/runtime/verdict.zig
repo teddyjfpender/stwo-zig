@@ -1,9 +1,11 @@
 //! Authenticated final residency evidence for one CUDA proof.
 
 const types = @import("../abi/types.zig");
+const provider_module = @import("provider.zig");
 const telemetry = @import("telemetry.zig");
 
 pub const Verdict = struct {
+    provider: provider_module.Kind,
     device: types.DeviceSnapshot,
     platform: types.PlatformSnapshot,
     build_identity: [32]u8,

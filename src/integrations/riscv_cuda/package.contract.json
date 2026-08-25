@@ -1,0 +1,46 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_riscv_cuda_integration",
+  "version": "0.1.0",
+  "layer": "integration",
+  "owner": "riscv-cuda-integration",
+  "public_modules": {
+    "stwo_riscv_cuda_integration": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_backend_contracts": "../../backend",
+    "stwo_cuda_backend": "../../backends/cuda",
+    "stwo_riscv_frontend": "../../frontends/riscv"
+  },
+  "injected_modules": [],
+  "api_surface": [
+    "FormalEvidence",
+    "Prepared",
+    "compile",
+    "execution_blocker",
+    "frontend",
+    "production_ready",
+    "requireExecution"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::RISC-V binds formal evidence to NVIDIA and CuMetal plan identities"
+    ],
+    "invariant_tests": [
+      "mod.zig::RISC-V structural admission rejects missing formal evidence"
+    ]
+  },
+  "ci": {
+    "lane": "riscv_cuda_integration",
+    "host": "linux",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/integrations/riscv_cuda/build.zig",
+      "-Doptimize=ReleaseFast",
+      "-j2"
+    ]
+  }
+}

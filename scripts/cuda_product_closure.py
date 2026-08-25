@@ -11,14 +11,24 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CUDA_ROOT = ROOT / "src/backends/cuda"
-SOURCE = CUDA_ROOT / "vendor/upstream"
-SOURCE_MANIFEST = CUDA_ROOT / "source_manifest.json"
+SOURCE = (
+    CUDA_ROOT
+    / "authority/active"
+)
+SOURCE_MANIFEST = CUDA_ROOT / "active_source_manifest.json"
+EXTERNAL_SOURCE_MANIFEST = CUDA_ROOT / "source_manifest.json"
+EXTERNAL_HOST_MANIFEST = CUDA_ROOT / "host_source_manifest.json"
+EXTERNAL_SOURCE_MANIFEST_SHA256 = (
+    "6badbe13d6b040cd823ee8fd74da753d8f5354d7924fba7a51512c28262139b4"
+)
+EXTERNAL_HOST_MANIFEST_SHA256 = (
+    "0454c14abb003ad57ec17c68fb0e2d5b5d3359c6f680ae4a64743a8bf02b4017"
+)
 PRODUCT_MANIFEST = CUDA_ROOT / "product_manifest.json"
 NATIVE = CUDA_ROOT / "native"
 NATIVE_AOT = CUDA_ROOT / "aot/native"
 ABI = CUDA_ROOT / "abi"
 RUNTIME_STAGES = CUDA_ROOT / "runtime/stages"
-HOST_AUTHORITY = CUDA_ROOT / "vendor/host_authority"
 ORDINARY_ROLES = (
     "resident_candidates",
     "quarantined_migration",
@@ -38,7 +48,6 @@ C_EXTERN_RE = re.compile(
     r"\b(stwo_[A-Za-z0-9_]+)\s*\(",
     re.DOTALL,
 )
-RUST_EXTERN_RE = re.compile(r"\bpub\s+fn\s+(stwo_[A-Za-z0-9_]+)\s*\(")
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -193,12 +202,20 @@ def validate_abi(
     policy = product.get("abi")
     if not isinstance(policy, dict):
         raise ProductClosureError("CUDA ABI policy is absent")
-    raw_relative = policy.get("rust_authority")
-    if not isinstance(raw_relative, str):
-        raise ProductClosureError("CUDA ABI Rust authority is absent")
-    raw_path = HOST_AUTHORITY / raw_relative
-    if not raw_path.is_file():
-        raise ProductClosureError(f"CUDA ABI Rust authority is absent: {raw_path}")
+    symbol_relative = policy.get("upstream_symbol_authority")
+    if not isinstance(symbol_relative, str):
+        raise ProductClosureError("CUDA upstream ABI symbol authority is absent")
+    symbol_path = CUDA_ROOT / symbol_relative
+    symbol_pin = read_json(symbol_path)
+    if (
+        not isinstance(symbol_pin, dict)
+        or symbol_pin.get("schema") != "stwo-zig-cuda-upstream-abi-symbols-v1"
+        or symbol_pin.get("upstream_commit")
+        != "1d1d10c31fdac45c9ecb7aee9d3e8935b5cf8035"
+        or not isinstance(symbol_pin.get("source_sha256"), str)
+        or SHA256_RE.fullmatch(str(symbol_pin["source_sha256"])) is None
+    ):
+        raise ProductClosureError("CUDA upstream ABI symbol pin is malformed")
 
     abi_files = sorted(ABI.rglob("*.zig"))
     declared = symbols(abi_files, ZIG_EXTERN_RE)
@@ -272,13 +289,21 @@ def validate_abi(
             f"{missing_staged_definitions}"
         )
 
-    rust_symbols = symbols([raw_path], RUST_EXTERN_RE)
-    missing_authority = sorted(active - rust_symbols - zig_owned_symbols - generated_symbols)
+    pinned_symbols = symbol_pin.get("symbols")
+    if (
+        not isinstance(pinned_symbols, list)
+        or pinned_symbols != sorted(set(pinned_symbols))
+    ):
+        raise ProductClosureError("CUDA upstream ABI symbols are not canonical")
+    upstream_symbols = {str(symbol) for symbol in pinned_symbols}
+    missing_authority = sorted(
+        active - upstream_symbols - zig_owned_symbols - generated_symbols
+    )
     if missing_authority:
         raise ProductClosureError(
             f"resident CUDA ABI is absent from pinned Rust declarations: {missing_authority}"
         )
-    missing_staged_authority = sorted(staged - rust_symbols)
+    missing_staged_authority = sorted(staged - upstream_symbols)
     if missing_staged_authority:
         raise ProductClosureError(
             f"staged CUDA ABI is absent from pinned Rust declarations: "
@@ -304,7 +329,7 @@ def validate_abi(
     return {
         "active_symbols": len(active),
         "staged_symbols": len(staged),
-        "rust_authority_symbols": len(active & rust_symbols),
+        "upstream_authority_symbols": len(active & upstream_symbols),
         "zig_owned_symbols": len(active & zig_owned_symbols),
         "generated_symbols": len(active & generated_symbols),
         "wrapped_stage_symbols": len(stage_symbols),
@@ -318,15 +343,46 @@ def read_json(path: Path) -> object:
         raise ProductClosureError(f"cannot decode {path}: {error}") from error
 
 
+def file_sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 def validate() -> dict[str, object]:
     authority = read_json(SOURCE_MANIFEST)
+    external_authority = read_json(EXTERNAL_SOURCE_MANIFEST)
+    external_host = read_json(EXTERNAL_HOST_MANIFEST)
     product = read_json(PRODUCT_MANIFEST)
-    if not isinstance(authority, dict) or not isinstance(product, dict):
+    if (
+        not isinstance(authority, dict)
+        or not isinstance(external_authority, dict)
+        or not isinstance(external_host, dict)
+        or not isinstance(product, dict)
+    ):
         raise ProductClosureError("CUDA manifests must be JSON objects")
     if product.get("schema") != "stwo-zig-cuda-product-closure-v1":
         raise ProductClosureError("unsupported CUDA product-closure schema")
     if product.get("source_authority_sha256") != authority.get("closure_sha256"):
         raise ProductClosureError("product closure is not pinned to the source authority")
+    external = product.get("external_authority")
+    expected_external = {
+        "branch": "perf-optimizations",
+        "commit": "1d1d10c31fdac45c9ecb7aee9d3e8935b5cf8035",
+        "host_closure_sha256": "8592124d6ad17610e23171fa7160030f8f76e21f4deff35e76699de8ad515341",
+        "host_manifest_sha256": EXTERNAL_HOST_MANIFEST_SHA256,
+        "kernel_closure_sha256": "63c7503f83ed467fdcf010be867b0f395ace8a4a0d1d11572112ce7405cbbe2b",
+        "kernel_manifest_sha256": EXTERNAL_SOURCE_MANIFEST_SHA256,
+        "kernel_tree": "044f995e98ba6f2fdb5a1634a99c14927d7a93c0",
+        "repository": "https://github.com/teddyjfpender/stwo",
+        "repository_tree": "55cbec6c408dfc4e81c722deca9f5526d3785536",
+    }
+    if (
+        external != expected_external
+        or file_sha256(EXTERNAL_HOST_MANIFEST)
+        != EXTERNAL_HOST_MANIFEST_SHA256
+        or file_sha256(EXTERNAL_SOURCE_MANIFEST)
+        != EXTERNAL_SOURCE_MANIFEST_SHA256
+    ):
+        raise ProductClosureError("external CUDA authority pin drifted")
 
     expected = {
         str(entry["path"])
@@ -357,15 +413,59 @@ def validate() -> dict[str, object]:
             f"CUDA source classification mismatch: missing={missing}, extra={extra}"
         )
 
+    external_expected = {
+        str(entry["path"])
+        for entry in external_authority.get("files", [])
+        if str(entry["path"]).endswith((".cu", ".cpp"))
+        and "generated/" not in str(entry["path"])
+    }
+    external_inventory = product.get("external_ordinary_inventory")
+    external_roles = {*ORDINARY_ROLES, "product_sources"}
+    if (
+        not isinstance(external_inventory, dict)
+        or set(external_inventory) != external_roles
+    ):
+        raise ProductClosureError("external CUDA ordinary inventory is absent")
+    external_classified: dict[str, str] = {}
+    for role in ORDINARY_ROLES:
+        paths = external_inventory[role]
+        if not isinstance(paths, list) or paths != sorted(set(paths)):
+            raise ProductClosureError(
+                f"external CUDA role {role} must be sorted and unique"
+            )
+        for raw in paths:
+            path = str(raw)
+            if path in external_classified:
+                raise ProductClosureError(
+                    f"external CUDA source {path} has multiple roles"
+                )
+            external_classified[path] = role
+    external_products = external_inventory["product_sources"]
+    if (
+        not isinstance(external_products, list)
+        or external_products != sorted(set(external_products))
+        or not set(external_products).issubset(
+            external_inventory["resident_candidates"]
+        )
+    ):
+        raise ProductClosureError(
+            "external CUDA product sources must be a resident-candidate subset"
+        )
+    if set(external_classified) != external_expected:
+        raise ProductClosureError("external CUDA ordinary inventory drifted")
+
     generated = product.get("generated_aot")
     if not isinstance(generated, dict):
         raise ProductClosureError("generated AOT disposition is absent")
-    copied_aot = read_json(SOURCE / "generated/aot_manifest.json")
-    if not isinstance(copied_aot, list) or len(copied_aot) != generated.get(
-        "copied_entry_count"
-    ):
+    copied_aot_count = sum(
+        str(entry.get("path", "")).startswith("generated/")
+        and str(entry.get("path", "")).endswith(".cu")
+        for entry in external_authority.get("files", [])
+        if isinstance(entry, dict)
+    )
+    if copied_aot_count != generated.get("copied_entry_count"):
         raise ProductClosureError("copied AOT disposition count is stale")
-    if generated.get("copied_disposition") != "cairo_reference_only":
+    if generated.get("copied_disposition") != "external_reference_only":
         raise ProductClosureError("copied Cairo AOT sources cannot enter the Native product")
     native_aot = read_json(NATIVE_AOT / "aot_manifest.json")
     if not isinstance(native_aot, list) or len(native_aot) != generated.get(
@@ -424,7 +524,7 @@ def validate() -> dict[str, object]:
         "resident_candidates": len(ordinary["resident_candidates"]),
         "quarantined_or_deferred": len(classified)
         - len(ordinary["resident_candidates"]),
-        "copied_aot_reference_entries": len(copied_aot),
+        "copied_aot_reference_entries": copied_aot_count,
         "native_aot_entries": len(native_aot),
         "cairo_eval_aot_entries": len(cairo_eval_aot),
         "cairo_eval_occurrences": cairo_eval_occurrences,

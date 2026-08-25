@@ -48,7 +48,16 @@ static __device__ __constant__ uint8_t kSigma[10][16] = {
 __device__ __forceinline__ uint32_t rotate_right(
     uint32_t value,
     uint32_t shift) {
+#if defined(STWO_CUMETAL)
+    uint32_t right;
+    uint32_t left;
+    const uint32_t complement = 32u - shift;
+    asm("shr.b32 %0, %1, %2;" : "=r"(right) : "r"(value), "r"(shift));
+    asm("shl.b32 %0, %1, %2;" : "=r"(left) : "r"(value), "r"(complement));
+    return right | left;
+#else
     return (value >> shift) | (value << (32u - shift));
+#endif
 }
 
 #define STWO_BLAKE2S_G(r, i, a, b, c, d)                               \

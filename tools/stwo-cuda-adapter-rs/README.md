@@ -21,9 +21,17 @@ Native AIR kernels that must be added to the copied AOT pack.
 The tool fails before proving when it was built without CUDA. A successful
 non-CUDA Cargo build is only source/build-contract evidence.
 
+The checked Cargo manifest uses an intentionally unresolved `.authority`
+placeholder; the 1,003-file workspace is no longer tracked. Use the
+authenticated external wrapper, which rewrites a temporary manifest to the
+verified projection. Do not run this manifest directly:
+
 ```sh
-cargo +nightly-2025-07-14 run --release --locked \
-  --manifest-path tools/stwo-cuda-adapter-rs/Cargo.toml -- \
+python3 scripts/cuda_external_authority.py materialize \
+  --output /tmp/stwo-cuda-authority
+python3 scripts/cuda_adapter_external.py run \
+  --authority-root /tmp/stwo-cuda-authority \
+  --output /tmp/stwo-cuda-adapter -- \
   --mode bench \
   --backend cuda \
   --cuda-kernel-policy strict-aot \

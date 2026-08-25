@@ -82,6 +82,9 @@ class BuildConfig:
     native_aot_root: Path
     output_dir: Path
     toolchain: Toolchain
+    frontend: str = "native"
+    aot_sets: tuple[str, ...] = (".",)
+    aot_set_roots: tuple[tuple[str, Path], ...] = ()
 
 
 def normalize_sms(values: Iterable[str]) -> tuple[int, ...]:
@@ -108,8 +111,8 @@ def load_source_closure(source_root: Path, manifest_path: Path) -> SourceClosure
         raise BuildError(f"cannot read CUDA source manifest: {error}") from error
     if expected.get("schema") != "stwo-zig-cuda-source-closure-v1":
         raise BuildError("unsupported CUDA source-closure manifest")
-    if expected.get("authority") != "kernels":
-        raise BuildError("CUDA builder requires the pinned kernel authority")
+    if expected.get("authority") != "active-product-kernels":
+        raise BuildError("CUDA builder requires the pinned active kernel closure")
 
     files = sorted(path for path in source_root.rglob("*") if path.is_file())
     if not files:
@@ -153,14 +156,10 @@ def load_source_closure(source_root: Path, manifest_path: Path) -> SourceClosure
         for path in files
         if path.suffix == ".cu" and GENERATED not in path.relative_to(source_root).parts
     )
-    generated_dir = source_root / GENERATED
-    aot_manifest_path = generated_dir / "aot_manifest.json"
-    try:
-        aot_manifest = json.loads(aot_manifest_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
-        raise BuildError(f"cannot read copied AOT manifest: {error}") from error
-    validate_aot_manifest(generated_dir, aot_manifest)
-    generated = tuple(generated_dir / str(entry["file"]) for entry in aot_manifest)
+    # Generated upstream AOT is audit-only and lives in the external authority.
+    # Product AOT is selected independently from the Zig-owned cache root.
+    aot_manifest: list[dict[str, object]] = []
+    generated: tuple[Path, ...] = ()
     include_dirs = tuple(
         sorted({source_root, *(path for path in source_root.rglob("*") if path.is_dir())})
     )
@@ -205,6 +204,8 @@ def build_plan(config: BuildConfig, probe_tools: bool) -> dict[str, object]:
         "product_manifest_sha256": product.manifest_sha256,
         "native_runtime_closure_sha256": native["closure_sha256"],
         "native_aot_closure_sha256": product.aot_closure_sha256,
+        "frontend": config.frontend,
+        "aot_product_sets": list(product.aot_sets),
         "tools": tools,
         "target_sms": list(toolchain.sms),
         "fixed_flags": fixed,

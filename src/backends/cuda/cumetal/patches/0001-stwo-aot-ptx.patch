@@ -1,0 +1,243 @@
+From e88dd103bddaff9a134913dec4bd8439817d160c Mon Sep 17 00:00:00 2001
+Subject: [PATCH] compiler/runtime: support stwo Clang PTX forms and ABI
+
+stwo-zig's authenticated CUDA sources exercise two PTX forms that CuMetal
+0.1.3 does not yet lower: Clang's initialized `__const_$` global arrays and
+`shf.{l,r}.{wrap,clamp}.b32`.  Keep this patch explicit and hash-bound until
+the equivalent support lands upstream. Clang also distinguishes pointer-width
+scalars from pointers with `.ptr`; preserve that ABI in both compilation and
+runtime registration.
+---
+ compiler/passes/src/intrinsic_lower.cpp |  4 +-
+ compiler/ptx/src/lower_to_llvm.cpp      | 86 +++++++++++++++++++++++++-
+ compiler/ptx/src/parser.cpp             | 12 +++--
+ runtime/registration/registration.cpp   | 22 +++++++--
+ 4 files changed, 113 insertions(+), 11 deletions(-)
+
+diff --git a/compiler/passes/src/intrinsic_lower.cpp b/compiler/passes/src/intrinsic_lower.cpp
+index 37b25df..e9d3e5b 100644
+--- a/compiler/passes/src/intrinsic_lower.cpp
++++ b/compiler/passes/src/intrinsic_lower.cpp
+@@ -494,7 +494,9 @@ IntrinsicLowerResult lower_intrinsics(const cumetal::ptx::EntryFunction& entry,
+                 instruction.opcode.rfind("bra", 0) == 0 || instruction.opcode.rfind("cvt", 0) == 0 ||
+                 instruction.opcode.rfind("cvta", 0) == 0 || instruction.opcode.rfind("mov", 0) == 0 ||
+                 instruction.opcode.rfind("call", 0) == 0 || instruction.opcode.rfind("atom", 0) == 0 ||
+-                instruction.opcode.rfind("selp", 0) == 0 || instruction.opcode.rfind("set.", 0) == 0) {
++                instruction.opcode.rfind("selp", 0) == 0 ||
++                instruction.opcode.rfind("set.", 0) == 0 ||
++                instruction.opcode.rfind("shf", 0) == 0) {
+                 // keep instruction as-is; lowering not needed yet for this stage.
+             } else {
+                 result.warnings.push_back("intrinsic_lower: no mapping for opcode '" + instruction.opcode + "'");
+diff --git a/compiler/ptx/src/lower_to_llvm.cpp b/compiler/ptx/src/lower_to_llvm.cpp
+index 98b84b6..f4c066a 100644
+--- a/compiler/ptx/src/lower_to_llvm.cpp
++++ b/compiler/ptx/src/lower_to_llvm.cpp
+@@ -379,7 +379,12 @@ std::vector<ParsedConstB8Array> parse_ptx_const_b8_arrays(std::string_view ptx_t
+     std::string line;
+     while (std::getline(lines, line)) {
+         const std::string t = trim(line);
+-        if (t.find(".const") == std::string::npos || t.find(".b8") == std::string::npos ||
++        const bool constant_storage = t.find(".const") != std::string::npos;
++        const bool compiler_readonly_global =
++            t.find(".global") != std::string::npos &&
++            t.find("__const_$") != std::string::npos;
++        if ((!constant_storage && !compiler_readonly_global) ||
++            t.find(".b8") == std::string::npos ||
+             t.find('{') == std::string::npos || t.find('}') == std::string::npos) {
+             continue;
+         }
+@@ -2026,6 +2031,76 @@ class GenericLlvmEmitter {
+         return emit_store_reg_bits(os, dst, ensure_reg_slot(dst).bits, out, bits);
+     }
+ 
++    bool emit_funnel_shift(
++        std::ostringstream& os,
++        const cumetal::ptx::EntryFunction::Instruction& instr) {
++        if (instr.operands.size() < 4 ||
++            !is_register_name(instr.operands[0]) ||
++            instr.opcode.find(".b32") == std::string::npos) {
++            return fail(instr, "shf requires b32 dst, low, high, shift");
++        }
++        const std::string& dst = instr.operands[0];
++        auto low = emit_integer_from_any(os, instr.operands[1], 32, false);
++        auto high = emit_integer_from_any(os, instr.operands[2], 32, false);
++        auto raw_shift = emit_integer_from_any(os, instr.operands[3], 32, false);
++        if (!low || !high || !raw_shift) {
++            return fail(instr, "shf source unsupported");
++        }
++        const bool clamp = instr.opcode.find(".clamp.") != std::string::npos;
++        const std::string shift = next_tmp("shf_shift");
++        if (clamp) {
++            const std::string beyond = next_tmp("shf_beyond");
++            os << "  " << beyond << " = icmp ugt i32 " << *raw_shift << ", 32\n";
++            os << "  " << shift << " = select i1 " << beyond
++               << ", i32 32, i32 " << *raw_shift << "\n";
++        } else {
++            os << "  " << shift << " = and i32 " << *raw_shift << ", 31\n";
++        }
++        const std::string zero = next_tmp("shf_zero");
++        os << "  " << zero << " = icmp eq i32 " << shift << ", 0\n";
++        std::string boundary_shift = zero;
++        std::string at_width;
++        if (clamp) {
++            at_width = next_tmp("shf_width");
++            os << "  " << at_width << " = icmp eq i32 " << shift << ", 32\n";
++            boundary_shift = next_tmp("shf_boundary_shift");
++            os << "  " << boundary_shift << " = or i1 " << zero
++               << ", " << at_width << "\n";
++        }
++        const std::string safe_shift = next_tmp("shf_safe");
++        os << "  " << safe_shift << " = select i1 " << boundary_shift
++           << ", i32 1, i32 " << shift << "\n";
++        const std::string inverse_raw = next_tmp("shf_inverse_raw");
++        const std::string inverse = next_tmp("shf_inverse");
++        os << "  " << inverse_raw << " = sub i32 32, " << safe_shift << "\n";
++        os << "  " << inverse << " = and i32 " << inverse_raw << ", 31\n";
++        const bool left_mode = instr.opcode.find(".l.") != std::string::npos;
++        const std::string shifted_a = next_tmp("shf_a");
++        const std::string shifted_b = next_tmp("shf_b");
++        if (left_mode) {
++            os << "  " << shifted_a << " = lshr i32 " << *low << ", " << inverse << "\n";
++            os << "  " << shifted_b << " = shl i32 " << *high << ", " << safe_shift << "\n";
++        } else {
++            os << "  " << shifted_a << " = lshr i32 " << *low << ", " << safe_shift << "\n";
++            os << "  " << shifted_b << " = shl i32 " << *high << ", " << inverse << "\n";
++        }
++        const std::string combined = next_tmp("shf_or");
++        os << "  " << combined << " = or i32 " << shifted_a << ", " << shifted_b << "\n";
++        const std::string boundary_zero = next_tmp("shf_boundary_zero");
++        const std::string zero_value = left_mode ? *high : *low;
++        os << "  " << boundary_zero << " = select i1 " << zero << ", i32 "
++           << zero_value << ", i32 " << combined << "\n";
++        std::string boundary = boundary_zero;
++        if (clamp) {
++            boundary = next_tmp("shf_boundary_width");
++            const std::string width_value = left_mode ? *low : *high;
++            os << "  " << boundary << " = select i1 " << at_width
++               << ", i32 " << width_value << ", i32 " << boundary_zero << "\n";
++        }
++        return emit_store_reg_bits(
++            os, dst, ensure_reg_slot(dst).bits, boundary, 32);
++    }
++
+     bool emit_binary_float_op(std::ostringstream& os,
+                               const cumetal::ptx::EntryFunction::Instruction& instr,
+                               const std::string& llvm_op) {
+@@ -2939,6 +3014,14 @@ class GenericLlvmEmitter {
+             return fail(instr, "only global/const/param/shared/local ld/st supported in generic LLVM path");
+         }
+ 
++        if (is_register_name(mem.base)) {
++            const auto as_it = reg_pointer_as_.find(mem.base);
++            if (as_it != reg_pointer_as_.end() &&
++                as_it->second == PointerAs::kParam) {
++                addr_space = 2;
++            }
++        }
++
+         std::string base_i64;
+         if (is_register_name(mem.base)) {
+             base_i64 = emit_load_reg_bits(os, mem.base, 64);
+@@ -4655,6 +4738,7 @@ class GenericLlvmEmitter {
+             return emit_setp(os, instr);
+         }
+         if (root == "selp") return emit_selp(os, instr);
++        if (root == "shf") return emit_funnel_shift(os, instr);
+         if (root == "shfl") return emit_shfl(os, instr);
+         if (root == "bar") return emit_barrier(os, instr);
+         if (root == "add") return opcode_uses_float_math(instr.opcode) ? emit_binary_float_op(os, instr, "fadd") : emit_binary_int_op(os, instr, "add");
+diff --git a/compiler/ptx/src/parser.cpp b/compiler/ptx/src/parser.cpp
+index 32ce318..852b59b 100644
+--- a/compiler/ptx/src/parser.cpp
++++ b/compiler/ptx/src/parser.cpp
+@@ -133,7 +133,7 @@ bool is_supported_opcode(const std::string& opcode) {
+         "ld",        "lg2",        "lop3",      "mad",   "match", "max",      "membar","min",
+         "mov",       "mul",        "nanosleep", "neg",   "not",   "or",       "popc",  "prmt",
+         "rcp",       "redux",      "rem",       "ret",   "rsqrt", "sad",      "selp",  "set",
+-        "setp",      "shl",        "shr",       "shfl",  "sin",   "sqrt",     "st",    "sub",
++        "setp",      "shf",        "shl",       "shr",   "shfl",  "sin",      "sqrt",  "st",    "sub",
+         "fence",     "prefetch",   "prefetchu", "red",   "testp",  "trap",      "vote",  "xor",
+     };
+     return kSupportedRoots.contains(root);
+@@ -335,8 +335,10 @@ bool is_64bit_param_type(const std::string& type) {
+     return type == ".u64" || type == ".s64" || type == ".b64";
+ }
+ 
+-void infer_pointer_parameters(EntryFunction* entry) {
+-    if (entry == nullptr) {
++void infer_pointer_parameters(
++    EntryFunction* entry,
++    bool has_explicit_pointer_qualifiers) {
++    if (entry == nullptr || has_explicit_pointer_qualifiers) {
+         return;
+     }
+ 
+@@ -627,6 +629,7 @@ ParseResult parse_ptx(std::string_view text, const ParseOptions& options) {
+ 
+         EntryFunction entry;
+         entry.name = (*iter)[1].str();
++        bool has_explicit_pointer_qualifiers = false;
+ 
+         const std::string params_blob = (*iter)[2].str();
+         std::sregex_iterator param_iter(params_blob.begin(), params_blob.end(), param_decl_regex);
+@@ -654,6 +657,7 @@ ParseResult parse_ptx(std::string_view text, const ParseOptions& options) {
+             }
+             const bool is_pointer =
+                 std::find(tokens.begin(), tokens.end(), ".ptr") != tokens.end();
++            has_explicit_pointer_qualifiers |= is_pointer;
+ 
+             std::string name = sanitize_param_name(tokens.back());
+             if (name.empty()) {
+@@ -673,7 +677,7 @@ ParseResult parse_ptx(std::string_view text, const ParseOptions& options) {
+         }
+         const int start_line = count_line_number_at_offset(source, body_start);
+         parse_instructions(body, start_line, &entry, &result.warnings);
+-        infer_pointer_parameters(&entry);
++        infer_pointer_parameters(&entry, has_explicit_pointer_qualifiers);
+ 
+         result.module.entries.push_back(std::move(entry));
+     }
+diff --git a/runtime/registration/registration.cpp b/runtime/registration/registration.cpp
+index 0889de0..52c71d8 100644
+--- a/runtime/registration/registration.cpp
++++ b/runtime/registration/registration.cpp
+@@ -672,6 +672,16 @@ std::string_view next_ptx_token(std::string_view source, std::size_t* cursor) {
+ 
+ std::vector<cumetalKernelArgInfo_t> scan_ptx_entry_params(std::string_view params) {
+     std::vector<cumetalKernelArgInfo_t> result;
++    bool entry_has_pointer_qualifiers = false;
++    std::size_t qualifier_cursor = 0;
++    while (qualifier_cursor < params.size()) {
++        const std::string_view token = next_ptx_token(params, &qualifier_cursor);
++        if (token == ".ptr") {
++            entry_has_pointer_qualifiers = true;
++            break;
++        }
++        if (token.empty() && qualifier_cursor < params.size()) ++qualifier_cursor;
++    }
+     std::size_t segment_begin = 0;
+     while (segment_begin < params.size()) {
+         std::size_t segment_end = segment_begin;
+@@ -698,12 +708,14 @@ std::vector<cumetalKernelArgInfo_t> scan_ptx_entry_params(std::string_view param
+         }
+         if (is_param && !type.empty()) {
+             // NVCC commonly emits kernel pointers as unqualified .u64/.s64/.b64
+-            // parameters. The full PTX parser refines ambiguous 64-bit values from
+-            // body data flow, but deliberately defaults them to pointers when it
+-            // cannot prove scalar use. Keep that compatibility rule here. At launch,
+-            // allocation lookup safely reclassifies an over-inferred small scalar.
++            // parameters. Clang, however, qualifies every pointer in an entry and
++            // leaves 64-bit scalar values unqualified. Once an entry demonstrates
++            // that convention, preserve the distinction instead of treating large
++            // scalar hashes as device addresses. For an entirely unqualified entry,
++            // retain the conservative NVCC compatibility rule.
+             const bool is_unannotated_pointer_width =
+-                type == ".u64" || type == ".s64" || type == ".b64";
++                !entry_has_pointer_qualifiers &&
++                (type == ".u64" || type == ".s64" || type == ".b64");
+             const bool is_pointer = has_pointer_qualifier || is_unannotated_pointer_width;
+             cumetalKernelArgInfo_t info{};
+             info.kind = is_pointer ? CUMETAL_ARG_BUFFER : CUMETAL_ARG_BYTES;
+-- 
+2.51.0

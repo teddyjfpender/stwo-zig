@@ -1,0 +1,11 @@
+.{
+    .fingerprint = 0xb27a0cfc1b49376a,
+    .name = .stwo_riscv_cuda_integration,
+    .version = "0.1.0",
+    .paths = .{"."},
+    .dependencies = .{
+        .stwo_backend_contracts = .{ .path = "../../backend" },
+        .stwo_cuda_backend = .{ .path = "../../backends/cuda" },
+        .stwo_riscv_frontend = .{ .path = "../../frontends/riscv" },
+    },
+}

@@ -7,6 +7,7 @@
 
 const std = @import("std");
 const cuda_plan = @import("stwo_cuda_backend").runtime.execution_plan;
+const frontend_contract = @import("stwo_cuda_backend").frontend_contract;
 const product_aot = @import("stwo_cuda_backend").aot.product_registry;
 const prover = @import("stwo_cairo_frontend").prover;
 const proof_plan = @import("stwo_cairo_frontend").proof_plan;
@@ -105,6 +106,7 @@ pub const PreparedRequest = struct {
     statement_bootstrap: statement_bootstrap.OwnedStatementBootstrap,
     missing_lowerings: []MissingLowering,
     receipt: AdmissionReceipt,
+    frontend_receipt: frontend_contract.Receipt,
 
     pub fn deinit(self: *PreparedRequest) void {
         self.resident.deinit(self.allocator);
@@ -270,6 +272,10 @@ fn finishDevelopmentRequest(
     );
     var plan = try cuda_plan.CudaPlan.compile(allocator, proof_program, target);
     errdefer plan.deinit(allocator);
+    const frontend_receipt = try frontend_contract.admitStructural(
+        proof_program,
+        plan,
+    );
 
     var product_registry = try product_aot.Registry.initProduct(allocator);
     defer product_registry.deinit();
@@ -337,6 +343,7 @@ fn finishDevelopmentRequest(
         .statement_bootstrap = bootstrap,
         .missing_lowerings = lowering_admission.missing,
         .receipt = receipt,
+        .frontend_receipt = frontend_receipt,
     };
 }
 

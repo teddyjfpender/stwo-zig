@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const arena = @import("arena.zig");
+const execution_provider = @import("provider.zig");
 const runtime_error = @import("error.zig");
 const telemetry = @import("telemetry.zig");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
@@ -10,6 +11,7 @@ pub const schedule_version: u32 = 2;
 pub const graph_schema_version: u32 = 1;
 
 pub const CompileOptions = struct {
+    provider: execution_provider.Kind = .nvidia_cuda,
     sm: u32,
     device_uuid: [16]u8,
     driver_version: u32,
@@ -215,6 +217,7 @@ pub fn cacheKey(
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
     hash.update("stwo-zig-cuda-plan-v2");
     hash.update(&program_digest);
+    hashInt(&hash, u8, @intFromEnum(options.provider));
     hash.update(&options.device_uuid);
     hash.update(&options.runtime_build_identity);
     hash.update(&options.host_toolchain_identity);
@@ -323,6 +326,7 @@ test "CUDA planning binds target identity and rejects unimplemented lanes" {
         &cacheKey(program.program_digest, changed),
     ));
     const identity_variants = [_]CompileOptions{
+        changedOptions(options, .provider),
         changedOptions(options, .device_uuid),
         changedOptions(options, .driver_version),
         changedOptions(options, .runtime_version),
@@ -341,7 +345,11 @@ test "CUDA planning binds target identity and rejects unimplemented lanes" {
         ));
     }
 
-    var resource_changed = try testProgramWithGraph(allocator, false);
+    var resource_changed = try testProgramWithGraph(
+        allocator,
+        .native,
+        false,
+    );
     defer resource_changed.deinit(allocator);
     try std.testing.expectEqualSlices(
         u8,
@@ -356,6 +364,7 @@ test "CUDA planning binds target identity and rejects unimplemented lanes" {
 }
 
 const ChangedIdentity = enum {
+    provider,
     device_uuid,
     driver_version,
     runtime_version,
@@ -373,6 +382,7 @@ fn changedOptions(
 ) CompileOptions {
     var changed = options;
     switch (field) {
+        .provider => changed.provider = .cumetal,
         .device_uuid => changed.device_uuid[0] ^= 0xff,
         .driver_version => changed.driver_version += 1,
         .runtime_version => changed.runtime_version += 1,
@@ -387,11 +397,12 @@ fn changedOptions(
 }
 
 fn testProgram(allocator: std.mem.Allocator) !proof_ir.ProofProgram {
-    return testProgramWithGraph(allocator, true);
+    return testProgramWithGraph(allocator, .native, true);
 }
 
 fn testProgramWithGraph(
     allocator: std.mem.Allocator,
+    frontend: proof_ir.Frontend,
     graph_candidate: bool,
 ) !proof_ir.ProofProgram {
     const nodes = [_]proof_ir.Node{
@@ -428,7 +439,7 @@ fn testProgramWithGraph(
     };
     return proof_ir.ProofProgram.init(allocator, .{
         .identity = .{
-            .frontend = .native,
+            .frontend = frontend,
             .air = proof_ir.identityDigest("air"),
             .statement = proof_ir.identityDigest("statement"),
             .protocol = proof_ir.identityDigest("protocol"),
@@ -489,3 +500,30 @@ fn testProgramWithGraph(
         .dependency_ids = &.{0},
     });
 }
+
+/// Deterministic fixtures shared by backend integration-contract tests.
+pub const testing = struct {
+    pub fn program(
+        allocator: std.mem.Allocator,
+        frontend: proof_ir.Frontend,
+    ) !proof_ir.ProofProgram {
+        return testProgramWithGraph(allocator, frontend, true);
+    }
+
+    pub fn target(kind: execution_provider.Kind) CompileOptions {
+        const identity = proof_ir.identityDigest("runtime");
+        return .{
+            .provider = kind,
+            .sm = 80,
+            .device_uuid = [_]u8{0x42} ** 16,
+            .driver_version = 12080,
+            .runtime_version = 12080,
+            .toolkit_version = 12080,
+            .runtime_build_identity = identity,
+            .host_toolchain_identity = proof_ir.identityDigest("toolchain"),
+            .kernel_pack_identity = proof_ir.identityDigest("pack"),
+            .lane_streams = 0,
+            .enable_graphs = false,
+        };
+    }
+};

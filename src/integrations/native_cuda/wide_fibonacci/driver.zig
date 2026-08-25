@@ -8,3 +8,8 @@ pub const NativeTransaction =
         .ResidentProofTransaction;
 pub const NativeRuntime =
     @import("stwo_cuda_backend").runtime.process_runtime.NativeRuntime;
+pub const CuMetalTransaction =
+    @import("stwo_cuda_backend").runtime.proof_transaction
+        .CuMetalProofTransaction;
+pub const CuMetalRuntime =
+    @import("stwo_cuda_backend").runtime.process_runtime.CuMetalRuntime;

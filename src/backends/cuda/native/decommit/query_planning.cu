@@ -1,5 +1,10 @@
 #include "contract.cuh"
 
+#if defined(STWO_CUMETAL)
+extern "C" int stwo_cumetal_register_decommit_normalize(
+    const void *host_stub);
+#endif
+
 namespace stwo::cuda::decommit {
 namespace {
 
@@ -221,6 +226,12 @@ extern "C" int stwo_decommit_normalize_queries_on(
         stream == nullptr || !disjoint_ranges(pointers, bytes, 4)) {
         return cudaErrorInvalidValue;
     }
+#if defined(STWO_CUMETAL)
+    if (stwo_cumetal_register_decommit_normalize(
+            reinterpret_cast<const void *>(normalize_queries_kernel)) != 0) {
+        return cudaErrorUnknown;
+    }
+#endif
     normalize_queries_kernel<<<
         1, 1, 0, reinterpret_cast<cudaStream_t>(stream)>>>(
         raw_queries,

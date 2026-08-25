@@ -2,6 +2,8 @@
 .zig-cache/
 zig-out/
 target/
+src/backends/cuda/vendor/host_authority/
+tools/stwo-cuda-adapter-rs/.authority/
 tools/stwo-vector-gen/target/
 tools/stwo-interop-rs/target/
 formal/**/.lake/
