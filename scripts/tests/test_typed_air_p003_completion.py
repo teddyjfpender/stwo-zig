@@ -23,6 +23,7 @@ from scripts.typed_air_p003_completion import (
     validate_matrix,
 )
 from scripts.typed_air_r006_capture_lib.codec import canonical_bytes, decode_strict
+from scripts.typed_air_r006_capture_lib.model import CaptureError
 from scripts.typed_air_r006_capture_lib.orchestration import host_preflight
 
 
@@ -176,6 +177,16 @@ class P003CompletionTests(unittest.TestCase):
         changed_path.write_bytes(canonical_bytes(changed))
         with self.assertRaisesRegex(CompletionError, "authority changed"):
             validate_blocker_receipt(DEFAULT_MATRIX, changed_path)
+
+    def test_tracked_legacy_blocker_replays_without_admitting_v1_capture(self) -> None:
+        path = Path(
+            "design/typed-air/artifacts/p003-work-profile-closure-v1/"
+            "scaling-blocker-v1.json"
+        )
+        receipt = validate_blocker_receipt(DEFAULT_MATRIX, path)
+        self.assertEqual(receipt["host_preflight"]["schema_version"], 1)
+        with self.assertRaisesRegex(CaptureError, "host-preflight authority changed"):
+            build_blocker_receipt(DEFAULT_MATRIX, receipt["host_preflight"])
 
     def test_cli_emits_create_only_blocker_and_replays_it(self) -> None:
         preflight = self.scratch / "preflight.json"

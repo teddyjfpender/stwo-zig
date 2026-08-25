@@ -12,6 +12,7 @@ from .model import DIGEST_RE, UTC_RE, CaptureError
 
 
 PREFLIGHT_SCHEMA = "stwo.typed-air.r006-host-preflight.v2"
+LEGACY_PREFLIGHT_SCHEMA = "stwo.typed-air.r006-host-preflight.v1"
 QUIET_SCHEMA = "stwo.typed-air.r006-quiet-host-preflight.v2"
 QUIET_POLICY = "stable_observed_power_source_low_power_off_v2"
 NATIVE_QUIET_SCHEMA = "stwo_native_ab_quiet_host_preflight_v1"
@@ -30,6 +31,15 @@ PREFLIGHT_FIELDS = {
 }
 PREFLIGHT_REQUIREMENTS = {
     "power_source_policy": "machine_observed_nonempty_and_stable",
+    "low_power_mode": False,
+    "thermal_warning_state": "clear",
+    "minimum_idle_percent": 90.0,
+    "median_idle_percent": 95.0,
+    "maximum_normalized_load_1m": 0.20,
+    "metal_identity_required": True,
+}
+LEGACY_PREFLIGHT_REQUIREMENTS = {
+    "power_source": "AC Power",
     "low_power_mode": False,
     "thermal_warning_state": "clear",
     "minimum_idle_percent": 90.0,
@@ -413,6 +423,25 @@ def _preflight_reasons(
     return list(dict.fromkeys(reasons))
 
 
+def _legacy_preflight_reasons(
+    host: Mapping[str, Any],
+    quiet: Mapping[str, Any],
+) -> list[str]:
+    reasons = list(quiet["reasons"])
+    if host["os"] != "Darwin":
+        reasons.append("R-006 resource authority requires Darwin")
+    if host["power_source"] != "AC Power":
+        reasons.append("R-006 normative capture requires machine-observed AC Power")
+    if host["low_power_mode"] is not False:
+        reasons.append("R-006 normative capture requires Low Power Mode off")
+    if quiet["observed"]["thermal"]["thermal_clear"] is not True:
+        reasons.append("R-006 thermal/performance-warning state is not certified clear")
+    gpu = host["gpu"]
+    if not gpu["name"] or not gpu["core_count"] or not gpu["metal_support"]:
+        reasons.append("Metal identity/core-count/support evidence is incomplete")
+    return list(dict.fromkeys(reasons))
+
+
 def build_host_preflight(host_value: Any, quiet_value: Any) -> dict[str, Any]:
     """Seal already observed host evidence under the frozen R-006 schema."""
 
@@ -494,4 +523,51 @@ def validate_host_preflight(
             "R-006 normative capture host is inadmissible: "
             + "; ".join(preflight["reasons"])
         )
+    return preflight
+
+
+def validate_legacy_host_preflight(value: Any) -> dict[str, Any]:
+    """Replay immutable V1 evidence without admitting it to new captures."""
+
+    preflight = exact_object(value, PREFLIGHT_FIELDS, "legacy R-006 host preflight")
+    if (
+        preflight["schema"] != LEGACY_PREFLIGHT_SCHEMA
+        or preflight["schema_version"] != 1
+        or type(preflight["captured_at_utc"]) is not str
+        or UTC_RE.fullmatch(preflight["captured_at_utc"]) is None
+        or type(preflight["admissible"]) is not bool
+        or type(preflight["content_sha256"]) is not str
+        or DIGEST_RE.fullmatch(preflight["content_sha256"]) is None
+        or preflight["content_sha256"] != content_digest(preflight)
+    ):
+        raise CaptureError("legacy R-006 host-preflight authority changed")
+    requirements = exact_object(
+        preflight["requirements"],
+        set(LEGACY_PREFLIGHT_REQUIREMENTS),
+        "legacy R-006 host-preflight requirements",
+    )
+    if requirements != LEGACY_PREFLIGHT_REQUIREMENTS or any(
+        type(requirements[name]) is not type(expected)
+        for name, expected in LEGACY_PREFLIGHT_REQUIREMENTS.items()
+    ):
+        raise CaptureError("legacy R-006 host-preflight requirements changed")
+    if type(preflight["reasons"]) is not list or any(
+        type(reason) is not str or not reason for reason in preflight["reasons"]
+    ):
+        raise CaptureError("legacy R-006 host-preflight reasons are malformed")
+    admitted = preflight["admissible"] is True
+    classification = (
+        "normative-capture-host-admitted"
+        if admitted
+        else "normative-capture-host-rejected"
+    )
+    if preflight["classification"] != classification:
+        raise CaptureError("legacy R-006 host-preflight classification disagrees")
+    host = _validate_host_evidence(preflight["host"])
+    quiet = _validate_quiet_evidence(
+        preflight["quiet_host"], host, native_source=True
+    )
+    expected_reasons = _legacy_preflight_reasons(host, quiet)
+    if preflight["reasons"] != expected_reasons or admitted != (not expected_reasons):
+        raise CaptureError("legacy R-006 host-preflight verdict is not evidence-derived")
     return preflight

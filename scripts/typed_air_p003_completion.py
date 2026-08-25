@@ -30,7 +30,9 @@ from scripts.typed_air_r006_capture_lib.codec import (  # noqa: E402
 )
 from scripts.typed_air_r006_capture_lib.model import CaptureError  # noqa: E402
 from scripts.typed_air_r006_capture_lib.preflight import (  # noqa: E402
+    LEGACY_PREFLIGHT_SCHEMA,
     validate_host_preflight,
+    validate_legacy_host_preflight,
 )
 from scripts.typed_air_work_profile_contract_lib import (  # noqa: E402
     FAMILY_IDS,
@@ -119,6 +121,14 @@ def build_blocker_receipt(
 ) -> dict[str, Any]:
     report = validate_matrix(matrix_path)
     preflight = validate_host_preflight(host_preflight_value, require_admitted=False)
+    return _build_blocker_receipt(matrix_path, report, preflight)
+
+
+def _build_blocker_receipt(
+    matrix_path: Path,
+    report: dict[str, Any],
+    preflight: dict[str, Any],
+) -> dict[str, Any]:
     blockers = _coverage_blockers(report["coverage"])
     if not preflight["admissible"]:
         blockers.append(
@@ -168,7 +178,19 @@ def validate_blocker_receipt(
         or receipt["content_sha256"] != content_digest(receipt)
     ):
         raise CompletionError("P-003 blocker receipt authority changed")
-    expected = build_blocker_receipt(matrix_path, receipt["host_preflight"])
+    preflight_value = receipt["host_preflight"]
+    if (
+        type(preflight_value) is dict
+        and preflight_value.get("schema") == LEGACY_PREFLIGHT_SCHEMA
+    ):
+        preflight = validate_legacy_host_preflight(preflight_value)
+    else:
+        preflight = validate_host_preflight(
+            preflight_value, require_admitted=False
+        )
+    expected = _build_blocker_receipt(
+        matrix_path, validate_matrix(matrix_path), preflight
+    )
     if receipt != expected:
         raise CompletionError("P-003 blocker receipt differs from independent recomputation")
     return receipt
