@@ -8,7 +8,7 @@ const M31 = m31.M31;
 pub fn canFuseThreeLayersPacked(lowest_stage: u32) bool {
     if (lowest_stage >= @bitSizeOf(usize)) return false;
     const distance = @as(usize, 1) << @intCast(lowest_stage);
-    return distance >= m31.PACK_WIDTH and distance % m31.PACK_WIDTH == 0;
+    return distance >= m31.VEC_WIDTH and distance % m31.VEC_WIDTH == 0;
 }
 
 fn run(
@@ -35,8 +35,11 @@ fn run(
     const distance = @as(usize, 1) << @intCast(lowest_stage);
     const group_count = values.len >> @intCast(lowest_stage + 3);
     std.debug.assert(!duplicate_upper_from_lower or group_count == 2);
-    const PW = m31.PACK_WIDTH;
-    const normalization_packed: m31.PackedM31 = @splat(normalization.v);
+    // Keep the radix tuple on the portable four-lane primitives. Native x86
+    // u32 widths widen the u64 products beyond the target's vector width and
+    // Zig 0.15.2 miscompiles later radix groups.
+    const PW = m31.VEC_WIDTH;
+    const normalization_packed: m31.Vec4u32 = @splat(normalization.v);
 
     // Expansion starts with the upper group while its lower-half source is
     // intact. Normal transforms retain ascending traversal.
@@ -48,9 +51,9 @@ fn run(
         const load_base = if (duplicate_upper_from_lower and group == 1) 0 else base;
         var lane: usize = 0;
         while (lane < distance) : (lane += PW) {
-            var tuple: [8]m31.PackedM31 = undefined;
+            var tuple: [8]m31.Vec4u32 = undefined;
             inline for (0..8) |item| {
-                tuple[item] = m31.loadPacked(values.ptr + load_base + lane + item * distance);
+                tuple[item] = m31.loadVec4(values.ptr + load_base + lane + item * distance);
             }
 
             inline for (0..3) |step| {
@@ -68,7 +71,7 @@ fn run(
 
                 inline for (0..block_count) |block| {
                     const raw_twiddle = twiddles[twiddle_offset + group * block_count + block];
-                    const twiddle: m31.PackedM31 = @splat(
+                    const twiddle: m31.Vec4u32 = @splat(
                         if (inverse_transform and normalize and step == 2)
                             raw_twiddle.mul(normalization).v
                         else
@@ -82,21 +85,21 @@ fn run(
                         const rhs = tuple[hi];
                         if (inverse_transform) {
                             tuple[lo] = if (normalize and step == 2)
-                                m31.mulPacked(m31.addPacked(lhs, rhs), normalization_packed)
+                                m31.mulVec4(m31.addVec4(lhs, rhs), normalization_packed)
                             else
-                                m31.addPacked(lhs, rhs);
-                            tuple[hi] = m31.mulPacked(m31.subPacked(lhs, rhs), twiddle);
+                                m31.addVec4(lhs, rhs);
+                            tuple[hi] = m31.mulVec4(m31.subVec4(lhs, rhs), twiddle);
                         } else {
-                            const product = m31.mulPacked(rhs, twiddle);
-                            tuple[lo] = m31.addPacked(lhs, product);
-                            tuple[hi] = m31.subPacked(lhs, product);
+                            const product = m31.mulVec4(rhs, twiddle);
+                            tuple[lo] = m31.addVec4(lhs, product);
+                            tuple[hi] = m31.subVec4(lhs, product);
                         }
                     }
                 }
             }
 
             inline for (0..8) |item| {
-                m31.storePacked(values.ptr + base + lane + item * distance, tuple[item]);
+                m31.storeVec4(values.ptr + base + lane + item * distance, tuple[item]);
             }
         }
         if (!duplicate_upper_from_lower) group_cursor += 1;
