@@ -74,7 +74,7 @@
       "test",
       "--build-file",
       "src/frontends/riscv/build.zig",
-      "-Doptimize=ReleaseFast",
+      "-Doptimize=Debug",
       "-j2"
     ]
   }

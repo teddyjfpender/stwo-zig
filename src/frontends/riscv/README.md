@@ -85,7 +85,7 @@ No concrete backend dependency is allowed in the frontend.
 Focused package tests:
 
 ```sh
-zig build test --build-file src/frontends/riscv/build.zig -Doptimize=ReleaseFast -j2
+zig build test --build-file src/frontends/riscv/build.zig -Doptimize=Debug -j2
 ```
 
 The same tests also run under the product gate, so they can be focused by name:
