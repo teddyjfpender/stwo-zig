@@ -785,7 +785,7 @@ test "guest provider component: prepared zero-call domain is exact bounded and a
     );
     try std.testing.expect(prepared.resources.shared_resident_bytes > 0);
     try std.testing.expectEqual(
-        @as(usize, 256 * 1024),
+        subject.prepared_row_stack_bytes,
         prepared.resources.worker_stack_bytes,
     );
     const allocation_count = failing.alloc_index;

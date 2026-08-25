@@ -47,10 +47,9 @@ pub const constraint_count: usize =
 pub const maximum_constraint_degree: u8 = direct.maximum_constraint_degree;
 pub const row_evaluation_allocation_count: usize = 0;
 /// Reviewed Debug-safe stack certificate for the 445-input/875-output
-/// Poseidon2 provider row. The generic 128 KiB evaluator bound is retained for
-/// narrow components; this wide kernel carries its own reservation so task
-/// admission remains exact.
-pub const prepared_row_stack_bytes: usize = 256 * 1024;
+/// Poseidon2 provider row. This wide kernel carries its own reservation so the
+/// generic 256 KiB evaluator bound remains available to narrower components.
+pub const prepared_row_stack_bytes: usize = 1024 * 1024;
 const prepared_source_count = preprocessed_column_count + main_column_count +
     interaction_column_count;
 
