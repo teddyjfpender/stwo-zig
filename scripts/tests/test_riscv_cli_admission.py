@@ -52,6 +52,24 @@ def registry(*, promoted: bool, focused: bool = False) -> dict[str, object]:
             "optimize": "ReleaseFast",
             "runtime": {},
         }
+        result["guest_profiles"] = [
+            {
+                "profile": "rv32im-zkvm-poseidon2-v1",
+                "version": 1,
+                "capability": "poseidon2-m31-permute",
+                "manifest_sha256": "3" * 64,
+                "status": "parity_gated",
+                "caller_component": "riscv_guest_poseidon2_caller_v1",
+                "provider_component": "riscv_guest_poseidon2_provider_v1",
+                "execution_placement": "cpu_scalar_simd_generic_direct_plus_logup_v1",
+                "runtime_requirement": "none",
+                "pcs_policies": ["secure", "functional-development"],
+                "prove_command": "prove",
+                "verify_command": "verify",
+                "backend_fallback_allowed": False,
+                "verification_requires_metal_device": False,
+            }
+        ]
         del result["product_matrix"]
     return result
 
@@ -83,6 +101,15 @@ class AdmissionContractTests(unittest.TestCase):
         payload = registry(promoted=False, focused=True)
         payload["product"]["frontend"] = "native-examples"
         with self.assertRaisesRegex(admission.AdmissionError, "identity drifted"):
+            admission.parse(json.dumps(payload))
+
+    def test_focused_guest_profile_is_exact_and_required(self) -> None:
+        payload = registry(promoted=True, focused=True)
+        payload["guest_profiles"][0]["profile"] = "stale-profile"
+        with self.assertRaisesRegex(admission.AdmissionError, "profile identity"):
+            admission.parse(json.dumps(payload))
+        del payload["guest_profiles"]
+        with self.assertRaisesRegex(admission.AdmissionError, "fields drifted"):
             admission.parse(json.dumps(payload))
 
     def test_duplicate_adapter_placement_fails_closed(self) -> None:

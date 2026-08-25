@@ -28,12 +28,18 @@ AGGREGATE_FIELDS = {
 }
 FOCUSED_FIELDS = {
     "schema_version", "product", "backend_availability", "applications",
-    "deferred_adapters",
+    "deferred_adapters", "guest_profiles",
 }
 FOCUSED_PRODUCT_FIELDS = {
     "schema_version", "name", "frontend", "backend", "role",
     "protocol_features", "protocol_manifest_sha256", "identity_sha256",
     "source", "zig_version", "target", "optimize", "runtime",
+}
+GUEST_PROFILE_FIELDS = {
+    "profile", "version", "capability", "manifest_sha256", "status",
+    "caller_component", "provider_component", "execution_placement",
+    "runtime_requirement", "pcs_policies", "prove_command", "verify_command",
+    "backend_fallback_allowed", "verification_requires_metal_device",
 }
 
 
@@ -106,6 +112,31 @@ def parse(raw: bytes | str, *, backend: str = "cpu") -> Admission:
         availability = root["backend_availability"]
         if availability != {backend: True}:
             raise AdmissionError("focused RISC-V backend availability drifted")
+        profiles = root["guest_profiles"]
+        if not isinstance(profiles, list) or len(profiles) != 1:
+            raise AdmissionError("focused RISC-V guest-profile inventory drifted")
+        profile = profiles[0]
+        if not isinstance(profile, dict):
+            raise AdmissionError("focused RISC-V guest profile is not an object")
+        _exact_fields(profile, GUEST_PROFILE_FIELDS, "focused RISC-V guest profile")
+        fixed_profile = {
+            "profile": "rv32im-zkvm-poseidon2-v1",
+            "version": 1,
+            "status": "parity_gated",
+            "caller_component": "riscv_guest_poseidon2_caller_v1",
+            "provider_component": "riscv_guest_poseidon2_provider_v1",
+            "pcs_policies": ["secure", "functional-development"],
+            "backend_fallback_allowed": False,
+            "verification_requires_metal_device": False,
+        }
+        if any(profile.get(name) != value for name, value in fixed_profile.items()):
+            raise AdmissionError("focused RISC-V guest profile identity drifted")
+        for name in (
+            "capability", "manifest_sha256", "execution_placement",
+            "runtime_requirement", "prove_command", "verify_command",
+        ):
+            if not isinstance(profile.get(name), str) or not profile[name]:
+                raise AdmissionError("focused RISC-V guest profile authority is incomplete")
     elif root_fields == AGGREGATE_FIELDS:
         if backend != "cpu":
             raise AdmissionError(
