@@ -13,7 +13,7 @@ const task_graph = @import("../task_graph.zig");
 /// classes. Every component opting into `PreparedDomainEvaluation` must keep
 /// fixed locals below this bound and execute its production row loop on a
 /// helper configured with exactly this stack in its focused tests.
-pub const ROW_EVALUATOR_STACK_BYTES: usize = 128 * 1024;
+pub const ROW_EVALUATOR_STACK_BYTES: usize = 256 * 1024;
 
 pub const Error = error{
     CoordinatorPreparedDomainRejected,

@@ -108,11 +108,11 @@ fn runPreparedOnReviewedStack(
     var pool: prover_work_pool.WorkPool = undefined;
     try pool.initInPlaceWithOptions(.{
         .worker_count = 2,
-        .stack_size = prepared.resources.worker_stack_bytes,
+        .stack_size = prepared_domain.ROW_EVALUATOR_STACK_BYTES,
     });
     defer pool.deinit();
     try std.testing.expectEqual(
-        prepared.resources.worker_stack_bytes,
+        prepared_domain.ROW_EVALUATOR_STACK_BYTES,
         pool.stackSize(),
     );
 
@@ -439,7 +439,7 @@ test "component: prepared memory evaluator is exact and allocation-free" {
     try std.testing.expectEqual(@as(usize, 0), prepared.resources.exclusive_scratch_bytes);
     try std.testing.expectEqual(@as(usize, 0), prepared.resources.device_resident_bytes);
     try std.testing.expectEqual(
-        component_mod.memory_prepared_row_stack_bytes,
+        prepared_domain.ROW_EVALUATOR_STACK_BYTES,
         prepared.resources.worker_stack_bytes,
     );
     try prepared.validate();

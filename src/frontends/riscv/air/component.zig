@@ -45,12 +45,6 @@ const M31 = m31.M31;
 const QM31 = qm31.QM31;
 const CirclePointQM31 = circle.CirclePointQM31;
 
-/// The memory-interaction row evaluator needs additional Debug-codegen
-/// headroom on x86_64 Linux. Keep the generic 128 KiB certificate for the
-/// narrower component kinds rather than reducing every prepared pool's
-/// admitted concurrency.
-pub const memory_prepared_row_stack_bytes: usize = 256 * 1024;
-
 /// Per-family component descriptor within the proof.
 pub const FamilyComponentDesc = struct {
     family: trace_mod.OpcodeFamily,
@@ -692,10 +686,6 @@ pub const RiscVTraceComponent = struct {
             n_sources,
             owned_count,
             denominator_inv.len,
-            switch (self.kind) {
-                .memory => memory_prepared_row_stack_bytes,
-                .opcode, .program => prepared_domain.ROW_EVALUATOR_STACK_BYTES,
-            },
         );
         const state = try allocator.create(PreparedDomainState);
         errdefer allocator.destroy(state);
@@ -794,7 +784,6 @@ fn preparedDomainResources(
     source_count: usize,
     owned_count: usize,
     denominator_count: usize,
-    worker_stack_bytes: usize,
 ) !prover_task_graph.ResourceReservation {
     const final_output_bytes = std.math.mul(
         usize,
@@ -834,7 +823,7 @@ fn preparedDomainResources(
     return .{
         .final_output_bytes = final_output_bytes,
         .shared_resident_bytes = resident_bytes,
-        .worker_stack_bytes = worker_stack_bytes,
+        .worker_stack_bytes = prepared_domain.ROW_EVALUATOR_STACK_BYTES,
     };
 }
 
