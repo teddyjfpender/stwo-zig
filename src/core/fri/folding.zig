@@ -422,8 +422,8 @@ pub fn foldLineWithWorkspace(
 }
 
 /// Performs a single in-place fold (halving) on a mutable evaluation buffer.
-/// The buffer is compacted to its first half and then reallocated to the
-/// smaller size.
+/// The buffer is compacted to its first half; the outer multi-step operation
+/// retains the original allocation until every fold has completed.
 fn foldLineInPlaceSingleStep(
     allocator: std.mem.Allocator,
     eval: []QM31,
@@ -450,10 +450,9 @@ fn foldLineInPlaceSingleStep(
         eval[i] = f0.add(alpha.mul(f1));
     }
 
-    const resized = try allocator.realloc(eval, folded_len);
     return .{
         .domain = domain.double(),
-        .values = resized,
+        .values = eval[0..folded_len],
     };
 }
 
@@ -489,9 +488,13 @@ pub fn foldLineInPlaceNWithWorkspace(
         current_alpha = current_alpha.square();
     }
 
+    const resized = if (current_eval.len == eval.len)
+        eval
+    else
+        try allocator.realloc(eval, current_eval.len);
     return .{
         .domain = current_domain,
-        .values = current_eval,
+        .values = resized,
     };
 }
 
