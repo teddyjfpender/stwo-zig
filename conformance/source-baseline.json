@@ -1,14 +1,4 @@
 {
   "version": 3,
-  "findings": [
-    {
-      "key": "file-size:scripts/riscv_csp_benchmark.py",
-      "owner": "benchmark-tooling",
-      "track": "active_native_backend",
-      "reason": "The CSP benchmark command still combines admission, execution, measurement, and report publication.",
-      "next_extraction": "Move one complete report or execution responsibility into riscv_csp_benchmark_lib.",
-      "plan": "conformance/decomposition-plan.md",
-      "max_lines": 865
-    }
-  ]
+  "findings": []
 }

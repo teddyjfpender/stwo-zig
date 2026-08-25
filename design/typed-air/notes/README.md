@@ -48,6 +48,7 @@ Notes are evidence, not authority. Durable decisions move into
 - [2026-08-13 bounded-prefix Poseidon PCS commitment](2026-08-13-pcs-bounded-prefix-commitment.md)
 - [2026-08-14 recursive CSP source-cohort authority](2026-08-14-recursive-csp-source-cohort.md)
 - [2026-08-14 canonical recursive CSP profile registry](2026-08-14-recursive-csp-profile-registry.md)
+- [2026-08-25 R-006 prefix and native CSP closeout](2026-08-25-r006-csp-closeout.md)
 - [2026-08-14 recursion iteration isolation](2026-08-14-recursion-devex-isolation.md)
 - [2026-08-14 native V2 segment proof custody](2026-08-14-native-v2-segment-proof-custody.md)
 - [2026-08-15 P-003 quotient exact-work receipts](2026-08-15-p003-quotient-exact-work-receipts.md)

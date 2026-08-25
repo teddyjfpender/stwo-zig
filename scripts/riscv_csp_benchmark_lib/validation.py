@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Mapping, Protocol
+from typing import Any, Mapping, Protocol, Sequence
 
 from scripts.riscv_csp_benchmark_lib.contract import (
     BenchmarkError,
@@ -33,6 +33,43 @@ class Admission(Protocol):
 
     release_status: str
     experimental: bool
+
+
+def summarize_evidence(
+    rows: Sequence[Mapping[str, Any]],
+    negative_evidence: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Project the terminal all-row checks used by the public CSP report."""
+    return {
+        "row_count": len(rows),
+        "target_count": len({row["target"] for row in rows}),
+        "all_outputs_match": all(
+            row["evidence"]["output_digest"]
+            == row["evidence"]["expected_output_digest"]
+            for row in rows
+        ),
+        "all_proofs_verified": all(
+            row["evidence"]["status"] == "verified" for row in rows
+        ),
+        "all_recursion_disabled": all(
+            row.get("recursion_enabled") is False for row in rows
+        ),
+        "all_peak_memory_available": all(
+            row["peak_memory"] is not None for row in rows
+        ),
+        "all_negative_fixtures_rejected": all(
+            item["status"] == "rejected_as_expected"
+            for item in negative_evidence
+        ),
+        "all_metal_resident_polynomial_dispatches_verified": all(
+            row.get("backend") != "metal"
+            or isinstance(
+                (row.get("evidence") or {}).get("resident_polynomial_telemetry"),
+                dict,
+            )
+            for row in rows
+        ),
+    }
 
 
 def validate_benchmark_report(

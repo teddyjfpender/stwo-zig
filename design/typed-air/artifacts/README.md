@@ -182,6 +182,17 @@ unchanged. A new V-009 receipt must separately record the current complete
 than inherit those historical absences. It must still set
 `whole_frontend_verified = false` and `proof_system_soundness = false`.
 
+## R-006 and native CSP closeout
+
+[`r006-csp-closeout-v1/receipt-v1.json`](r006-csp-closeout-v1/receipt-v1.json)
+binds the independently validated 1,754-attempt R-006 complete-block prefix and
+the completed 64-launch native CSP old-versus-current cohort. The R-006 result
+is an append-compatible `NO_VERDICT`, not an M7 promotion receipt. The CSP
+result is descriptive because the operator explicitly accepted nonnormative
+power/quiet conditions; the historical source is retained only as the frozen
+benchmark denominator. Raw evidence remains external and is named and hashed
+by the checked receipt.
+
 ## H-009 Poseidon2 materialization cost frontier
 
 - [`h009-poseidon2-cost-v1/frontier.stwairm`](h009-poseidon2-cost-v1/frontier.stwairm)

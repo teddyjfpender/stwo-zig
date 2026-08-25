@@ -1,16 +1,14 @@
 # Progress ledger
 
-**Status date:** 2026-08-20
+**Status date:** 2026-08-25
 **Branch:** `feat/typed-air-precompiles`
 **Current milestones:** M7 — parallel proving; M9 — recursive aggregation
-**Active tasks:** A-013 — paired global performance only; A-014 — native
-Metal/no-fallback and normative performance evidence; R-006 — installed V4
-smoke and scaling evidence; R-009/R-010 — multi-level aggregation and
+**Active tasks:** A-013 — paired global performance only; A-014 — normative
+performance evidence; R-009/R-010 — multi-level aggregation and recursive
 crossover evidence
-**Next ready task:** freeze a reviewable commit, build and smoke the installed
-V4 CPU/Metal candidates, capture the 1/2/4/max-worker scaling cohort on an
-admitted quiet host, then compare the independently verified temporal parent
-against the old-system ETHProof CSP benchmark
+**Next ready task:** preserve the replayable R-006 prefix and completed native
+CSP cohort as the current performance closeout; resume the remaining R-006
+matrix only if a later M7 promotion decision requires it
 **Current acceptance gate:** exact statement/claim/transcript/proof identity,
 independent verification, fail-closed protocol identities, ownership and
 allocation safety, plus whole-proof performance/resource evidence
@@ -33,7 +31,7 @@ formal result does not set `whole_frontend_verified` or
 | M4 — Poseidon compiler pilot | complete | H-001 through H-010 and V-006 complete; no layout selected |
 | M5 — effect and witness pilot | ready | E-001 through E-015 complete. All seventeen opcode families use authenticated typed production witnesses with exact legacy proof parity and per-family non-regression gates. The frozen M5 performance receipt remains open |
 | M6 — guest precompile | ready | C-001 through C-012 complete: one CPU proof closes caller/provider components in the same STARK and verifies in a fresh process; the semantic pair and mutation fleet pass; the authenticated-AOT Metal product route proves on-device and verifies device-independently with zero backend CPU fallback. C-013 now has a fail-closed CPU controller and reducer; its clean secure CPU/Metal crossover receipt remains open |
-| M7 — parallel proving | active | R-002/R-003/R-004 are closed: production Tree-1 and Tree-2 construction, heterogeneous quotient composition, and PCS openings share one bounded proof pool and preserve exact predecessor/`N=1/2/4` proof identity with staged failure recovery. R-005 is closed. P-003 is producer-exhaustive at CPU/Metal/joint 16/16 across schema-9's 23 typed sites, with real CPU `N=1/2/4` and authenticated-AOT Metal proofs. R-006 plan V4 binds that matrix and inventory plus versioned per-workload M7 geometry: balanced at 8 calls and dominant at 4096. Power source is machine-observed, disclosure-bound, and stable during a capture; Battery Power is admissible when Low Power Mode is off and the unchanged quiet/thermal gates pass. A clean installed V4 smoke and immutable CPU/Metal scaling capture remain open |
+| M7 — parallel proving | active | R-002/R-003/R-004 are closed: production Tree-1 and Tree-2 construction, heterogeneous quotient composition, and PCS openings share one bounded proof pool and preserve exact predecessor/`N=1/2/4` proof identity with staged failure recovery. R-005 is closed. P-003 is producer-exhaustive at CPU/Metal/joint 16/16 across schema-9's 23 typed sites, with real CPU `N=1/2/4` and authenticated-AOT Metal proofs. R-006 now has a replayed append-compatible prefix: 1,754 retained attempts, 1,600 scored attempts, 24 complete deterministic exact-work cells, zero failures, and `NO_VERDICT_PARTIAL_FROZEN_MATRIX`. The capture remains resumable with 326 attempts unexecuted; this is not an M7 promotion receipt. |
 | M8 — broad migration | complete | All 17 family witness writers and all 17 execution/AIR families are production-typed. All 46 proof-bearing opcodes dispatch through the typed registry; one shared manifest now assembles all 17 opcode and 11 infrastructure components for both prover and verifier. Exact generated-versus-legacy proof/transcript A/B passes for every family with one draw, fail-closed legacy execution passes 17/17, and fresh formal extraction validates all 17 families. The final formal reseal is green `59/59`; a clean top-level receipt remains open |
 | M9 — recursive aggregation | active | Universal AIR authority is closed 36/36 and the capture-backed SegmentV2 leaf proves the complete append-only 39-component cohort. The temporal source consumes two distinct, independently verified native SegmentV2 proofs, carries verifier-owned authority through rows 0--35, and closes the exact global relation boundary. The frozen ReleaseFast test executes coherent context plus every-row-20--35 authority mutations before independently accepting the 94,740-byte parent; the lean path measured 6.778 s proving / 6.209 s verification and reproduced proof SHA `a43d756e…203b`. The prepared pair path performs zero hot Poseidon permutations. Multi-level aggregation, R-010 crossover evidence, whole-frontend verification, and proof-system soundness remain open. `temporal_parent_verified = true`, `whole_frontend_verified = false`, and `proof_system_soundness = false` |
 
@@ -811,14 +809,14 @@ normative performance receipts remain explicitly open.
 
 ## Immediate next actions
 
-1. R-006 — freeze the reviewable source revision, pass installed V4 CPU/Metal
-   smoke, then mint the independently replayed 1/2/4/max-worker scaling receipt
-   on a quiet, AC-powered host. P-003 producer closure is already 16/16.
-2. R-009 — extend the verified first `2 -> 1` parent into a multi-level tree
+1. R-009 — extend the verified first `2 -> 1` parent into a multi-level tree
    while preserving ordered statement/session/authority custody at each level.
-3. R-010 — freeze a quiet-host receipt and compare the completed leaf and
-   temporal parent against the old-system ETHProof CSP RISC-V benchmark across
-   proof bytes, prove/verify time, peak memory, total work, and security bits.
+2. R-010 — use the completed native CSP cohort as descriptive leaf evidence;
+   a publishable recursive crossover still requires the recursive producer and
+   an admitted host. The old system remains a denominator, never live authority.
+3. R-006 — resume the remaining 326 attempts only if an M7 promotion decision
+   requires the full frozen matrix. The checked complete-prefix receipt is the
+   current honest result and reports `NO_VERDICT`.
 4. V-009 — after the implementation revision is frozen, mint and replay a
    clean immutable M3 receipt without rewriting historical V-008.
 

@@ -78,6 +78,7 @@ from scripts.riscv_csp_benchmark_lib.source_audit import (  # noqa: E402
     audit_csp_source,
 )
 from scripts.riscv_csp_benchmark_lib.validation import (  # noqa: E402
+    summarize_evidence,
     validate_artifact,
     validate_benchmark_report,
     validate_resident_polynomial_telemetry,
@@ -509,40 +510,7 @@ def _atomic_write_json(path: Path, value: Mapping[str, Any]) -> None:
             temporary.unlink()
 
 
-def _summary(
-    rows: Sequence[Mapping[str, Any]],
-    negative_evidence: Sequence[Mapping[str, Any]],
-) -> dict[str, Any]:
-    return {
-        "row_count": len(rows),
-        "target_count": len({row["target"] for row in rows}),
-        "all_outputs_match": all(
-            row["evidence"]["output_digest"]
-            == row["evidence"]["expected_output_digest"]
-            for row in rows
-        ),
-        "all_proofs_verified": all(
-            row["evidence"]["status"] == "verified" for row in rows
-        ),
-        "all_recursion_disabled": all(
-            row.get("recursion_enabled") is False for row in rows
-        ),
-        "all_peak_memory_available": all(row["peak_memory"] is not None for row in rows),
-        "all_negative_fixtures_rejected": all(
-            item["status"] == "rejected_as_expected"
-            for item in negative_evidence
-        ),
-        "all_metal_resident_polynomial_dispatches_verified": all(
-            row.get("backend") != "metal"
-            or isinstance(
-                (row.get("evidence") or {}).get(
-                    "resident_polynomial_telemetry"
-                ),
-                dict,
-            )
-            for row in rows
-        ),
-    }
+_summary = summarize_evidence
 
 
 def _resolve_backend_paths(args: argparse.Namespace) -> tuple[Path, Path]:

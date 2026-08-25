@@ -11,7 +11,11 @@ recursion and outer proving disabled. The comparison therefore detects regressio
 or improvements in the RISC-V execution/AIR/prover path without allowing recursive
 work to enter either timing cohort.
 
-No measurement has been run as part of this implementation note. The checked
+A complete measurement was later captured on 2026-08-25 and is recorded in
+[`2026-08-25-r006-csp-closeout.md`](2026-08-25-r006-csp-closeout.md). It sealed
+all 64 launches and validated every proof, fresh verification, and negative
+fixture. Because the operator accepted Battery Power and a non-admitted final
+load sample, that result is descriptive rather than publishable. The checked
 historical schema-v2 report remains context only and is never used as the A/B
 denominator.
 
