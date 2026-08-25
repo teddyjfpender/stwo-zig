@@ -608,12 +608,14 @@ class LaneIntegrationTests(unittest.TestCase):
     ) -> tuple[int, str]:
         stderr = io.StringIO()
         with (
-            mock.patch.dict(os.environ, {}, clear=False),
+            mock.patch.dict(
+                os.environ,
+                {"PATH": os.environ.get("PATH", os.defpath)},
+                clear=True,
+            ),
             contextlib.redirect_stdout(io.StringIO()),
             contextlib.redirect_stderr(stderr),
         ):
-            os.environ.pop("ZIG_LOCAL_CACHE_DIR", None)
-            os.environ.pop("ZIG_GLOBAL_CACHE_DIR", None)
             result = lane.run(
                 label,
                 command,
@@ -627,9 +629,11 @@ class LaneIntegrationTests(unittest.TestCase):
     def _authority(
         self, command: list[str], *, cache_group: str | None = None
     ) -> cache.GateAuthority:
-        with mock.patch.dict(os.environ, {}, clear=False):
-            os.environ.pop("ZIG_LOCAL_CACHE_DIR", None)
-            os.environ.pop("ZIG_GLOBAL_CACHE_DIR", None)
+        with mock.patch.dict(
+            os.environ,
+            {"PATH": os.environ.get("PATH", os.defpath)},
+            clear=True,
+        ):
             return cache.build_authority(
                 self.fixture.root,
                 command,

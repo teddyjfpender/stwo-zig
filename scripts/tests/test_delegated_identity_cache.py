@@ -127,6 +127,7 @@ class DelegatedIdentityCacheTest(unittest.TestCase):
         if cpu is not None:
             command.append(f"-Dcpu={cpu}")
         environment = os.environ.copy()
+        environment.pop("STWO_CI_CACHE_DIR", None)
         environment.pop("ZIG_LOCAL_CACHE_DIR", None)
         environment.pop("ZIG_GLOBAL_CACHE_DIR", None)
         result = subprocess.run(
