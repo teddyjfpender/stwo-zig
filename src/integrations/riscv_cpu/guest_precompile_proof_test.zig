@@ -45,7 +45,8 @@ fn proveAndVerify(include_call: bool, capture_work: bool) !void {
     if (capture_work) {
         try pool.initInPlaceWithOptions(.{
             .worker_count = 2,
-            .stack_size = 256 * 1024,
+            .stack_size = frontend.air.guest_precompile.provider_component
+                .prepared_row_stack_bytes,
         });
         pool_live = true;
         pool_binding = try work_pool.ScopedPoolBinding.init(&pool);
