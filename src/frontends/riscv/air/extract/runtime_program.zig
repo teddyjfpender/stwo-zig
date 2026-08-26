@@ -9,13 +9,16 @@
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const constraint_program = @import("../constraint_program.zig");
+const entry = @import("../lookups/entry.zig");
 const semantic_eval = @import("../semantic_eval.zig");
+const typed_lui_authority = @import("../lang/typed_lui_authority.zig");
 const prover_component = @import("stwo_prover_engine").air.component_prover;
 const model = @import("model.zig");
 const symbolic = @import("symbolic.zig");
 const trace = @import("../../runner/trace.zig");
 
 const Builder = constraint_program.Builder(symbolic.Scalar);
+const SymbolicLookupList = entry.Builder(symbolic.Scalar).List;
 
 pub fn build(
     allocator: std.mem.Allocator,
@@ -36,6 +39,48 @@ pub fn build(
         selector,
     )).direct_constraints;
 
+    return ownDirectProgram(
+        allocator,
+        &arena,
+        direct.values[0..direct.len],
+        main_column_count,
+    );
+}
+
+/// Shadow activation seam for the LUI runtime direct program. The scalar DAG
+/// is emitted through the same authenticated capability used by retirement
+/// and witness projection; ownership conversion is shared with production.
+pub fn buildLuiFromAuthority(
+    allocator: std.mem.Allocator,
+    compiled: *const typed_lui_authority.Authority,
+) !prover_component.OwnedBasePolynomialProgram {
+    var arena = symbolic.Arena.init(allocator);
+    defer arena.deinit();
+    symbolic.begin(&arena);
+    defer symbolic.end();
+
+    var columns: [typed_lui_authority.MAIN_COLUMN_COUNT]symbolic.Scalar = undefined;
+    try model.declareColumns(&arena, .lui, &columns);
+    const selector = arena.column("is_active");
+    const direct = try compiled.evaluateDirect(
+        symbolic.Scalar,
+        &columns,
+        selector,
+    );
+    return ownDirectProgram(
+        allocator,
+        &arena,
+        &direct.values,
+        typed_lui_authority.MAIN_COLUMN_COUNT,
+    );
+}
+
+fn ownDirectProgram(
+    allocator: std.mem.Allocator,
+    arena: *const symbolic.Arena,
+    direct: []const symbolic.Scalar,
+    main_column_count: usize,
+) !prover_component.OwnedBasePolynomialProgram {
     const nodes = try allocator.alloc(
         prover_component.BasePolynomialNode,
         arena.nodes.items.len,
@@ -52,7 +97,7 @@ pub fn build(
 
     const roots = try allocator.alloc(u32, direct.len);
     errdefer allocator.free(roots);
-    for (direct.values[0..direct.len], roots) |constraint, *root|
+    for (direct, roots) |constraint, *root|
         root.* = constraint.id;
 
     const result = prover_component.OwnedBasePolynomialProgram{
@@ -82,6 +127,44 @@ pub fn buildLookups(
         columns[0..main_column_count],
     )).lookup_entries;
 
+    return ownLookupProgram(
+        allocator,
+        &arena,
+        &lookups,
+        main_column_count,
+    );
+}
+
+/// Shadow activation seam for the LUI runtime relation program. The fixed
+/// writer stores directly into caller-owned lookup storage before the common
+/// ownership conversion.
+pub fn buildLuiLookupsFromAuthority(
+    allocator: std.mem.Allocator,
+    compiled: *const typed_lui_authority.Authority,
+) !prover_component.OwnedLookupPolynomialProgram {
+    var arena = symbolic.Arena.init(allocator);
+    defer arena.deinit();
+    symbolic.begin(&arena);
+    defer symbolic.end();
+
+    var columns: [typed_lui_authority.MAIN_COLUMN_COUNT]symbolic.Scalar = undefined;
+    try model.declareColumns(&arena, .lui, &columns);
+    var lookups: SymbolicLookupList = undefined;
+    try compiled.buildLookupsInto(symbolic.Scalar, &columns, &lookups);
+    return ownLookupProgram(
+        allocator,
+        &arena,
+        &lookups,
+        typed_lui_authority.MAIN_COLUMN_COUNT,
+    );
+}
+
+fn ownLookupProgram(
+    allocator: std.mem.Allocator,
+    arena: *const symbolic.Arena,
+    lookups: *const SymbolicLookupList,
+    main_column_count: usize,
+) !prover_component.OwnedLookupPolynomialProgram {
     const nodes = try copyNodes(allocator, arena.nodes.items);
     errdefer allocator.free(nodes);
     const entries = try allocator.alloc(

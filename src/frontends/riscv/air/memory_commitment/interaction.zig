@@ -136,21 +136,35 @@ pub fn evaluate(
     claims: [N_SUMS]QM31,
     relations: *const relations_mod.Relations,
 ) [N_CONSTRAINTS]QM31 {
+    return evaluateGeneric(QM31, main, is_active, is_first, sums, previous, claims, relations);
+}
+
+pub fn evaluateGeneric(
+    comptime S: type,
+    main: [8]S,
+    is_active: S,
+    is_first: S,
+    sums: [N_SUMS]S,
+    previous: [N_SUMS]S,
+    claims: [N_SUMS]S,
+    relations: anytype,
+) [N_CONSTRAINTS]S {
     const addr = main[0];
     const clock = main[1];
     const values = main[2..6];
     const multiplicity = main[6];
     const root = main[7];
-    const list = entries(.{ addr, clock, values[0], values[1], values[2], values[3], multiplicity, root }, is_active);
-    const pairs = [N_SUMS]logup.RowPair{
-        list.pair(0, relations) catch unreachable,
-        list.pair(1, relations) catch unreachable,
-        list.pair(2, relations) catch unreachable,
-        list.pair(3, relations) catch unreachable,
+    const list = entriesGeneric(S, .{ addr, clock, values[0], values[1], values[2], values[3], multiplicity, root }, is_active);
+    const pairs = [N_SUMS]logup.RowPairFor(S){
+        list.pairWith(0, relations) catch unreachable,
+        list.pairWith(1, relations) catch unreachable,
+        list.pairWith(2, relations) catch unreachable,
+        list.pairWith(3, relations) catch unreachable,
     };
-    var result: [N_CONSTRAINTS]QM31 = undefined;
+    var result: [N_CONSTRAINTS]S = undefined;
     for (0..N_SUMS) |index| {
-        result[index] = logup.pairConstraint(
+        result[index] = logup.pairConstraintGeneric(
+            S,
             sums[index],
             previous[index],
             is_first,
@@ -159,28 +173,33 @@ pub fn evaluate(
         );
     }
     const multiplicity_squared = multiplicity.square();
-    result[N_SUMS] = multiplicity.mul(multiplicity_squared.sub(QM31.one()));
+    result[N_SUMS] = multiplicity.mul(multiplicity_squared.sub(S.one()));
     result[N_SUMS + 1] = multiplicity_squared.sub(is_active);
     return result;
 }
 
 pub fn entries(main: [8]QM31, enabler: QM31) lookup_entry.List {
+    return entriesGeneric(QM31, main, enabler);
+}
+
+pub fn entriesGeneric(comptime S: type, main: [8]S, enabler: S) lookup_entry.Builder(S).List {
+    const EntryBuilder = lookup_entry.Builder(S);
     const addr = main[0];
     const clock = main[1];
     const values = main[2..6];
     const multiplicity = main[6];
     const root = main[7];
-    const depth = base(30);
-    var list = lookup_entry.List{};
-    append(&list, .range_check_8_8, enabler.neg(), .{ values[0], values[1] });
-    append(&list, .range_check_8_8, enabler.neg(), .{ values[2], values[3] });
-    append(&list, .memory_access, multiplicity, .{
-        QM31.one(), addr, clock, values[0], values[1], values[2], values[3],
+    const depth = baseGeneric(S, 30);
+    var list = EntryBuilder.List{};
+    appendGeneric(S, &list, .range_check_8_8, enabler.neg(), .{ values[0], values[1] });
+    appendGeneric(S, &list, .range_check_8_8, enabler.neg(), .{ values[2], values[3] });
+    appendGeneric(S, &list, .memory_access, multiplicity, .{
+        S.one(), addr, clock, values[0], values[1], values[2], values[3],
     });
-    append(&list, .merkle, enabler.neg(), .{ addr, depth, values[0], root });
-    append(&list, .merkle, enabler.neg(), .{ addr.add(base(1)), depth, values[1], root });
-    append(&list, .merkle, enabler.neg(), .{ addr.add(base(2)), depth, values[2], root });
-    append(&list, .merkle, enabler.neg(), .{ addr.add(base(3)), depth, values[3], root });
+    appendGeneric(S, &list, .merkle, enabler.neg(), .{ addr, depth, values[0], root });
+    appendGeneric(S, &list, .merkle, enabler.neg(), .{ addr.add(baseGeneric(S, 1)), depth, values[1], root });
+    appendGeneric(S, &list, .merkle, enabler.neg(), .{ addr.add(baseGeneric(S, 2)), depth, values[2], root });
+    appendGeneric(S, &list, .merkle, enabler.neg(), .{ addr.add(baseGeneric(S, 3)), depth, values[3], root });
     return list;
 }
 
@@ -202,7 +221,11 @@ pub fn diagnosticSum(
 }
 
 fn append(list: *lookup_entry.List, domain: lookup_entry.Domain, numerator: QM31, values: anytype) void {
-    var item = lookup_entry.Entry{ .domain = domain, .numerator = numerator, .arity = values.len };
+    return appendGeneric(QM31, list, domain, numerator, values);
+}
+
+fn appendGeneric(comptime S: type, list: *lookup_entry.Builder(S).List, domain: lookup_entry.Domain, numerator: S, values: anytype) void {
+    var item = lookup_entry.Builder(S).Entry{ .domain = domain, .numerator = numerator, .arity = values.len };
     inline for (values, 0..) |value, index| item.values[index] = value;
     list.append(item);
 }
@@ -224,6 +247,10 @@ fn freeColumns(allocator: std.mem.Allocator, columns: []const []M31) void {
 
 fn base(value: anytype) QM31 {
     return QM31.fromBase(M31.fromU64(@as(u64, value)));
+}
+
+fn baseGeneric(comptime S: type, value: anytype) S {
+    return S.fromBase(M31.fromU64(@as(u64, value)));
 }
 
 test "memory boundary interaction is padding invariant" {

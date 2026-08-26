@@ -9,6 +9,7 @@ pub const ColumnEvaluation = scheme.ColumnEvaluation;
 pub const ColumnSource = @import("column_source.zig").ColumnSource;
 pub const BackingTeardownToken = @import("commitment_tree.zig").BackingTeardownToken;
 pub const merkle_layer_cache = @import("merkle_layer_cache.zig");
+pub const shell_work_profile = @import("shell_work_profile.zig");
 
 pub fn CommitmentTreeProver(comptime H: type) type {
     return scheme.CommitmentTreeProver(H);

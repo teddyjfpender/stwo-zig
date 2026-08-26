@@ -1,0 +1,228 @@
+{
+  "schema_version": 1,
+  "kind": "stwo-typed-air-milestone-receipt",
+  "milestone": "M3-compatibility-lowering",
+  "status": "implementation-evidence-recorded-release-gate-open",
+  "recorded_on": "2026-08-05",
+  "branch": "feat/typed-air-precompiles",
+  "evidence_snapshot": {
+    "repository_revision": "7cdf41d5b246baf845adeb99d02444d9a6090514",
+    "tree": "24a6e49b3acce11163a3f94107ae5d9d95c8fd83",
+    "worktree_clean": true,
+    "method": "commands run in a detached worktree at repository_revision"
+  },
+  "scope": {
+    "production_consumer_changed": false,
+    "proof_protocol_changed": false,
+    "witness_authority_changed": false,
+    "formal_artifact_changed": false,
+    "description": "isolated typed shadow import, exact compatibility lowering, canonical manifests, and field-aware review diagnostics"
+  },
+  "toolchain": {
+    "zig": "0.15.2",
+    "python": "3.14.6",
+    "lake": "Lake version 5.0.0-src+98dc76e (Lean version 4.29.0)",
+    "lean": "Lean (version 4.29.0, arm64-apple-darwin24.6.0, commit 98dc76e3c0a9b856c9b98726b713fb04fab16740, Release)",
+    "sail": {
+      "status": "not-on-path",
+      "applicability": "not required because this checkpoint changes no architectural semantics, formal source, or published formal artifact"
+    }
+  },
+  "artifacts": {
+    "m2_shadow_report": {
+      "machine": {
+        "path": "design/typed-air/artifacts/m2-production-shadow-report-v1.tsv",
+        "bytes": 1926,
+        "sha256": "f8ea66a12379a3aace08fa031b8c7a6fc9ea76d5a4e547ad6ef9867228e4a6d5"
+      },
+      "readable": {
+        "path": "design/typed-air/artifacts/m2-production-shadow-report-v1.md",
+        "bytes": 4359,
+        "sha256": "b375a38bb1fac90d30a7edd4fb296c068648b8e9b102571946bf272af95768d5"
+      },
+      "totals": {
+        "families": 17,
+        "source_nodes": 3051,
+        "typed_nodes": 3049,
+        "canonical_merges": 2,
+        "main_columns": 644,
+        "direct_constraints": 545,
+        "lookup_events": 242,
+        "interaction_batches": 155,
+        "interaction_constraints": 155,
+        "interaction_columns": 620,
+        "maximum_direct_degree": 3,
+        "maximum_interaction_degree": 3
+      }
+    },
+    "m3_compatibility_manifests": {
+      "index": {
+        "path": "design/typed-air/artifacts/m3-compat-v1/index-v1.tsv",
+        "bytes": 9681,
+        "sha256": "693fe3e285d79b41d5714b3a4c3f65011447844a48e933c73f4dc51004ca5779"
+      },
+      "binary_directory": "design/typed-air/artifacts/m3-compat-v1",
+      "binary_count": 17,
+      "binary_bytes": 206660,
+      "binary_and_index_bytes": 216341,
+      "totals": {
+        "families": 17,
+        "main_columns": 644,
+        "direct_constraints": 545,
+        "lookup_events": 242,
+        "interaction_batches": 155,
+        "formal_exports": 46,
+        "maximum_direct_degree": 3,
+        "maximum_interaction_degree": 3
+      }
+    },
+    "formal_receipts": {
+      "refinement": {
+        "path": "formal/riscv-refinement/refinement-receipt.json",
+        "file_sha256": "54341fdf8d411a301fecde71893c9b86eb46584564e7b26948a451347c354abb",
+        "canonical_digest": "faf7e2cbd15498a68d02df4248ee69fb633a3d3840506a57687dfc4beac975c5",
+        "embedded_repository_revision": "4a0a612d838ae7ad67d47a076d64a6ef26784713",
+        "embedded_repository_dirty": false
+      },
+      "generated_manifest": {
+        "path": "formal/riscv-refinement/generated-manifest.json",
+        "file_sha256": "800a0f3b2e1d1eeb8649855fa125a669ade81fb3c3b5d7d4fd3ce5a8052d0622"
+      },
+      "generated_sail_monad_bridge": {
+        "path": "formal/riscv-refinement/generated/sail/generated-monad-bridge-receipt-v1.json",
+        "file_sha256": "8d122c475bd5ad1ba6bf4606da1db403e95e3235fc7267e00cab4995d9f31696",
+        "canonical_digest": "679c7c68a992fc7e710e8ca76df23015c8379a6e1d675f4657b1b3a0b2f5c650"
+      },
+      "sail_translation": {
+        "path": "formal/riscv-refinement/generated/sail/translation-receipt-v1.json",
+        "file_sha256": "ae7ba363506f1f96d5cb4eeeb4b2b123f02db8efdf5e19f1a98682ea70c2fcef",
+        "canonical_digest": "008459d979422ef9e471897bfc0436e33b1fd7c7c5af77c2211be74a2280fa25"
+      },
+      "claim_boundary": {
+        "graded_opcode_index": "46/46",
+        "publication_level": "0/46",
+        "whole_frontend_verified": false,
+        "proof_system_soundness": false
+      }
+    }
+  },
+  "validation": [
+    {
+      "id": "package-release-fast",
+      "command": "zig build test --build-file src/frontends/riscv/build.zig -Doptimize=ReleaseFast -j2",
+      "status": "passed",
+      "compiled_tests": 657,
+      "passed_tests": 656,
+      "skipped_tests": 1,
+      "failed_tests": 0,
+      "note": "the two register-boundary negative diagnostics on stderr are expected"
+    },
+    {
+      "id": "package-release-safe",
+      "command": "zig build test --build-file src/frontends/riscv/build.zig -Doptimize=ReleaseSafe -j2",
+      "status": "passed",
+      "compiled_tests": 657,
+      "passed_tests": 656,
+      "skipped_tests": 1,
+      "failed_tests": 0,
+      "note": "the two register-boundary negative diagnostics on stderr are expected"
+    },
+    {
+      "id": "compatibility-artifacts",
+      "command": "zig build typed-air-manifest --build-file src/frontends/riscv/build.zig -Doptimize=ReleaseFast",
+      "status": "passed",
+      "families_checked": 17
+    },
+    {
+      "id": "package-workspace",
+      "command": "python3 scripts/check_package_workspace.py --repo .",
+      "status": "passed",
+      "packages": 21,
+      "public_modules": 21,
+      "dependency_edges": 70
+    },
+    {
+      "id": "air-satisfaction",
+      "command": "zig build test-riscv-air-satisfaction -Doptimize=ReleaseFast -j2",
+      "status": "passed",
+      "python_tests": 29,
+      "family_geometries": 17
+    },
+    {
+      "id": "focused-real-proof",
+      "command": "zig build test-riscv-prover-core -Doptimize=ReleaseFast -Driscv-test-filter='end-to-end ELF prove and verify' -j2",
+      "status": "passed",
+      "tests": 1
+    },
+    {
+      "id": "broad-prover-core",
+      "command": "zig build test-riscv-prover-core -Doptimize=ReleaseFast -j2",
+      "status": "failed",
+      "compiled_tests": 53,
+      "passed_tests": 50,
+      "skipped_tests": 1,
+      "failed_tests": 2,
+      "findings": [
+        "witness rigidity: every committed column is observable somewhere: UNOBSERVABLE family=load_store column=18",
+        "witness rigidity: every committed access emits a determined value: read-only access next values remain admissible, beginning with base_alu_reg slot 1"
+      ],
+      "classification": "open production proof-gate findings; the typed shadow implementation has no production import and this receipt does not waive them"
+    },
+    {
+      "id": "lean-source-build",
+      "command": "(cd formal/riscv-refinement && lake build)",
+      "status": "passed",
+      "jobs": 120,
+      "note": "run after the cold riscv-refinement-pilot invocation reported a missing Memory.olean prerequisite"
+    },
+    {
+      "id": "refinement-pilot",
+      "command": "zig build riscv-refinement-pilot -j2",
+      "status": "failed-generated-artifact-drift",
+      "build_tests_passed": 6,
+      "drifted_artifacts": [
+        "formal/riscv-refinement/generated/air/lui.json",
+        "formal/riscv-refinement/generated/air/addi.json",
+        "formal/riscv-refinement/generated/sail/generated-monad-bridge-receipt-v1.json",
+        "formal/riscv-refinement/RiscvRefinement/Air/Generated/Pilot.lean",
+        "formal/riscv-refinement/generated-manifest.json"
+      ],
+      "note": "the initial cold invocation first lacked Memory.olean; after lake build completed all 120 jobs, the pilot advanced to its authoritative comparison and failed on these five stale committed artifacts"
+    },
+    {
+      "id": "source-conformance",
+      "command": "python3 scripts/check_source_conformance.py",
+      "status": "failed-baseline",
+      "warnings": [
+        "src/frontends/riscv/air/lang/compat_manifest.zig is 812 lines",
+        "src/frontends/riscv/air/lang/compat_manifest_diff.zig is 799 lines"
+      ],
+      "errors": [
+        "backends/metal/commit_backend.zig exceeds the 850-line ceiling",
+        "frontends/riscv/air/lookups/tables/source_ingest.zig exceeds the 850-line ceiling",
+        "stale baseline entry: backends/cpu_scalar/riscv_composition.zig",
+        "stale baseline entry: frontends/riscv/air/lookups/opcode_interaction.zig",
+        "backends/metal/kernels.metal exceeds its baseline budget",
+        "backends/metal/runtime.m exceeds its baseline budget",
+        "backends/metal/runtime/quotients.m exceeds its baseline budget",
+        "backends/metal/shaders/manifest.zig exceeds its baseline budget"
+      ],
+      "classification": "pre-existing repository baseline; retained visibly and not treated as green"
+    }
+  ],
+  "performance": {
+    "benchmark_report": null,
+    "status": "not-applicable",
+    "reason": "this checkpoint changes no production hot path, witness layout, component geometry, or proof protocol"
+  },
+  "open_claims": [
+    "M3 release promotion remains open until the broad prover-core gate is green or its production findings are resolved through the repository soundness process",
+    "M3 release promotion also remains open until the refinement pilot's five generated-artifact drifts are reviewed and resolved through the formal artifact workflow",
+    "FV-3 Word32/M31 representation remains open and blocking",
+    "FV-4 arbitrary-trace composition remains open and blocking",
+    "FV-5 independent reproduction and sign-off remains open and blocking",
+    "whole_frontend_verified remains false",
+    "proof_system_soundness remains false",
+    "this receipt does not claim production activation, optimized layout, witness equivalence, Metal equivalence, or a precompile ABI"
+  ]
+}

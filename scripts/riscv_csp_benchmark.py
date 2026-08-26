@@ -26,7 +26,6 @@ import datetime as dt
 import inspect
 import json
 import os
-import struct
 import subprocess
 import sys
 import tempfile
@@ -72,10 +71,14 @@ from scripts.riscv_csp_benchmark_lib.host import (  # noqa: E402
     official_host_match,
     power_conditions_admissible,
 )
+from scripts.riscv_csp_benchmark_lib.public_output import (  # noqa: E402
+    reconstruct_public_output,
+)
 from scripts.riscv_csp_benchmark_lib.source_audit import (  # noqa: E402
     audit_csp_source,
 )
 from scripts.riscv_csp_benchmark_lib.validation import (  # noqa: E402
+    summarize_evidence,
     validate_artifact,
     validate_benchmark_report,
     validate_resident_polynomial_telemetry,
@@ -83,12 +86,16 @@ from scripts.riscv_csp_benchmark_lib.validation import (  # noqa: E402
 )
 
 
-SCHEMA = "stwo_riscv_csp_benchmark_v3"
-# v3 added the power-condition fields and class, host.host_architecture, and
-# the prover and trace identity blocks.  Retained v2 evidence keeps its own
-# name: a report is relabelled by regeneration, never by editing the label.
-SUPERSEDED_SCHEMAS = ("stwo_riscv_csp_benchmark_v2",)
+SCHEMA = "stwo_riscv_csp_benchmark_v4"
+# v4 binds the native-only execution boundary. v3 added power conditions and
+# executable provenance; retained evidence keeps its original schema name: a
+# report is relabelled by regeneration, never by editing the label.
+SUPERSEDED_SCHEMAS = (
+    "stwo_riscv_csp_benchmark_v2",
+    "stwo_riscv_csp_benchmark_v3",
+)
 MAX_EXECUTION_STEPS = 10_000_000
+RECURSION_ENV_PREFIX = "STWO_RECURSION_"
 
 
 def _run(
@@ -126,55 +133,6 @@ def _git_output(*args: str, cwd: Path = ROOT) -> str:
 
 def _command_text(argv: Sequence[str], *, cwd: Path = ROOT) -> str:
     return _run(argv, cwd=cwd, timeout=30).stdout.decode("utf-8", "replace").strip()
-
-
-def reconstruct_public_output(public_values: Mapping[str, Any]) -> bytes:
-    if public_values.get("schema") != "riscv-public-values-diagnostic-v1":
-        raise BenchmarkError("public-values diagnostic schema drifted")
-    public_data = public_values.get("public_data")
-    if not isinstance(public_data, dict):
-        raise BenchmarkError("public-values diagnostic has no public_data object")
-    io = public_data.get("io_entries")
-    if not isinstance(io, dict):
-        raise BenchmarkError("public-values diagnostic has no io_entries object")
-    output_len = io.get("output_len")
-    output_len_addr = io.get("output_len_addr")
-    output_data_addr = io.get("output_data_addr")
-    words = io.get("output_words")
-    if (
-        not isinstance(output_len, int)
-        or isinstance(output_len, bool)
-        or output_len < 0
-        or not isinstance(output_len_addr, int)
-        or not isinstance(output_data_addr, int)
-        or not isinstance(words, list)
-        or not words
-    ):
-        raise BenchmarkError("public output framing is invalid")
-    length_word = words[0]
-    if (
-        not isinstance(length_word, dict)
-        or length_word.get("addr") != output_len_addr
-        or length_word.get("value") != output_len
-    ):
-        raise BenchmarkError("public output length word is invalid")
-    expected_data_words = (output_len + 3) // 4
-    if len(words) != expected_data_words + 1:
-        raise BenchmarkError("public output word count is invalid")
-    encoded = bytearray()
-    for index, word in enumerate(words[1:]):
-        if (
-            not isinstance(word, dict)
-            or word.get("addr") != output_data_addr + index * 4
-            or not isinstance(word.get("value"), int)
-            or isinstance(word.get("value"), bool)
-            or not 0 <= word["value"] <= 0xFFFF_FFFF
-        ):
-            raise BenchmarkError("public output word is invalid")
-        encoded.extend(struct.pack("<I", word["value"]))
-    if any(encoded[output_len:]):
-        raise BenchmarkError("public output padding is nonzero")
-    return bytes(encoded[:output_len])
 
 
 def _execute_guest(
@@ -297,6 +255,40 @@ def _peak_memory(report: Mapping[str, Any]) -> tuple[int | None, str]:
     if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
         return None, "resource telemetry has no positive peak footprint"
     return value, str(resources.get("source") or "unknown")
+
+
+def native_benchmark_environment(
+    inherited: Mapping[str, str],
+    workers: int | None,
+) -> tuple[dict[str, str], dict[str, str], list[str]]:
+    """Build the native cohort environment without recursion feature gates.
+
+    The recursion tools deliberately use ``STWO_RECURSION_*`` diagnostics and
+    activation switches. A standard CSP run inherits the user's environment,
+    so it must remove that entire namespace before launching either the prover
+    or retained verifier. Variable names (never values) are retained as audit
+    evidence that sanitization actually occurred.
+    """
+
+    removed = sorted(
+        name for name in inherited if name.startswith(RECURSION_ENV_PREFIX)
+    )
+    env = {
+        name: value
+        for name, value in inherited.items()
+        if not name.startswith(RECURSION_ENV_PREFIX)
+    }
+    environment_overrides: dict[str, str] = {}
+    worker_names = ("STWO_ZIG_WORKERS", "STWO_ZIG_MERKLE_WORKERS")
+    if workers is not None:
+        for name in worker_names:
+            env[name] = str(workers)
+            environment_overrides[name] = str(workers)
+    else:
+        for name in worker_names:
+            if name in env:
+                environment_overrides[name] = env[name]
+    return env, environment_overrides, removed
 
 
 def benchmark_case(
@@ -441,6 +433,7 @@ def benchmark_case(
     row = {
         "system": "stwo-zig-riscv",
         "backend": backend,
+        "recursion_enabled": report["recursion_enabled"],
         "target": case.target,
         "input_size": case.input_size,
         "proof_duration": round(prove_seconds * 1_000_000_000),
@@ -517,37 +510,7 @@ def _atomic_write_json(path: Path, value: Mapping[str, Any]) -> None:
             temporary.unlink()
 
 
-def _summary(
-    rows: Sequence[Mapping[str, Any]],
-    negative_evidence: Sequence[Mapping[str, Any]],
-) -> dict[str, Any]:
-    return {
-        "row_count": len(rows),
-        "target_count": len({row["target"] for row in rows}),
-        "all_outputs_match": all(
-            row["evidence"]["output_digest"]
-            == row["evidence"]["expected_output_digest"]
-            for row in rows
-        ),
-        "all_proofs_verified": all(
-            row["evidence"]["status"] == "verified" for row in rows
-        ),
-        "all_peak_memory_available": all(row["peak_memory"] is not None for row in rows),
-        "all_negative_fixtures_rejected": all(
-            item["status"] == "rejected_as_expected"
-            for item in negative_evidence
-        ),
-        "all_metal_resident_polynomial_dispatches_verified": all(
-            row.get("backend") != "metal"
-            or isinstance(
-                (row.get("evidence") or {}).get(
-                    "resident_polynomial_telemetry"
-                ),
-                dict,
-            )
-            for row in rows
-        ),
-    }
+_summary = summarize_evidence
 
 
 def _resolve_backend_paths(args: argparse.Namespace) -> tuple[Path, Path]:
@@ -674,16 +637,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             "(system_profiler SPDisplaysDataType); refusing to record "
             "GPU-dependent timings without GPU identity"
         )
-    env = os.environ.copy()
-    environment_overrides: dict[str, str] = {}
-    if args.workers is not None:
-        for name in ("STWO_ZIG_WORKERS", "STWO_ZIG_MERKLE_WORKERS"):
-            env[name] = str(args.workers)
-            environment_overrides[name] = str(args.workers)
-    else:
-        for name in ("STWO_ZIG_WORKERS", "STWO_ZIG_MERKLE_WORKERS"):
-            if name in env:
-                environment_overrides[name] = env[name]
+    env, environment_overrides, removed_recursion_environment_variables = (
+        native_benchmark_environment(os.environ, args.workers)
+    )
 
     rows: list[dict[str, Any]] = []
     commits: set[str] = set()
@@ -719,6 +675,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
     if len(commits) != 1:
         raise BenchmarkError(f"rows used multiple implementation commits: {sorted(commits)}")
+    if any(row.get("recursion_enabled") is not False for row in rows):
+        raise BenchmarkError(
+            "native CSP cohort contains a recursive or unauthenticated execution row"
+        )
     measurement_commit = commits.pop()
     if repository_head != measurement_commit:
         raise BenchmarkError(
@@ -796,6 +756,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 target: list(TARGET_SIZES[target]) for target in TARGET_ORDER
             },
             "uses_precompile": False,
+            "proof_scope": "native RISC-V leaf STARK; recursion and outer proving disabled",
             "proof_duration": "mean execution + witness + proof generation",
             "verify_duration": "mean production verification",
             "proof_size": "Postcard proof bytes, excluding schema-v4 JSON framing",
@@ -830,6 +791,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             "samples": args.samples,
             "workers": args.workers,
             "environment_overrides": environment_overrides,
+            "recursion_enabled": False,
+            "recursion_environment_prefix": RECURSION_ENV_PREFIX,
+            "removed_recursion_environment_variables": (
+                removed_recursion_environment_variables
+            ),
             "complete_matrix": complete_matrix,
             "release_status": admission.release_status,
             "experimental": admission.experimental,

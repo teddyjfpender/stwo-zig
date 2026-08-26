@@ -7,6 +7,7 @@ const qm31 = @import("stwo_core").fields.qm31;
 const canonic = @import("stwo_core").poly.circle.canonic;
 const domain_mod = @import("stwo_core").poly.circle.domain;
 const prover = @import("stwo_prover_engine");
+const work_profile = @import("stwo_prover_api").work_profile;
 const prover_air = prover.air;
 const prover_poly = prover.poly;
 const shared_runtime = @import("../shared_runtime.zig");
@@ -28,10 +29,14 @@ pub fn interpolateLargeSecureComposition(
     values: *SecureColumnByCoords,
     domain: CircleDomain,
     twiddle_tree: TwiddleTree,
-) !bool {
-    if (values.representation == .coefficients) return true;
-    if (domain.logSize() < min_secure_ifft_log_size) return false;
-    var lease = shared_runtime.acquireExisting() catch return false;
+) !work_profile.M31InterpolationBackendResult {
+    if (values.representation == .coefficients)
+        return .already_coefficients;
+    for (values.columns) |coordinate| {
+        if (coordinate.len != domain.size()) return .declined;
+    }
+    if (domain.logSize() < min_secure_ifft_log_size) return .declined;
+    var lease = shared_runtime.acquireExisting() catch return .declined;
     defer lease.deinit();
     _ = try lease.runtime.transformCircle(
         allocator,
@@ -42,7 +47,14 @@ pub fn interpolateLargeSecureComposition(
     );
     values.representation = .coefficients;
     telemetry.record(.metal_circle_transform_dispatch);
-    return true;
+    return .{
+        .transformed = .{
+            .log_size = domain.logSize(),
+            .column_count = qm31.SECURE_EXTENSION_DEGREE,
+            // One inverse scale factor is shared by all four Metal columns.
+            .batch_count = 1,
+        },
+    };
 }
 
 pub fn evaluateLargeRecurrenceComposition(

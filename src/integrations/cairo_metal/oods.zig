@@ -266,7 +266,7 @@ fn evaluateMetal(
     var prepared = try prepareMetalEvaluation(allocator, tasks, points, output);
     defer prepared.deinit(allocator);
 
-    return metal.evaluateCoefficientPlans(
+    return metal.evaluateCoefficientPlansUnprofiled(
         allocator,
         prepared.coefficients,
         prepared.tree_values,

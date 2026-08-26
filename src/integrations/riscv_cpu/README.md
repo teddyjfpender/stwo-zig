@@ -49,13 +49,47 @@ defer statement.deinit(allocator);
 | Export | Responsibility |
 | :--- | :--- |
 | `CpuProverEngine` | Stable transaction instantiated with `CpuBackend` |
+| `Poseidon2ProveOutput`, `Poseidon2InteractionClaim` | Owned profile proof and detailed-claim types |
+| `poseidon2_proof_artifact` | Canonical bounded fresh-process artifact codec |
 | `proveRiscV` | Prove an execution trace |
+| `proveRiscVSegmentV2`, `verifyRiscVSegmentV2` | Prove or independently verify one versioned segment statement for recursive admission |
 | `proveRiscVWithRecorder` | Prove while collecting stage-profile data |
 | `proveRiscVWithPublicData` | Bind explicit public data into the statement |
+| `proveRiscVWithPublicDataAndExecution` | Return the owned execution result alongside the public-data-bound proof |
+| `provePoseidon2WithPublicData` | Prove profile caller/provider components in the same CPU-backed STARK |
 | `diagnoseRiscVRelations` | Produce relation diagnostics without publishing a proof |
+| `verifyPoseidon2` | Independently reconstruct and verify the profile transcript |
 | `verifyRiscV` | Verify proof, statement, and interaction claim |
 | `proveAndVerifyElf` | Execute, prove, and verify an ELF |
 | `proveEthereumBlock` | Host-bound Ethereum block proving helper |
+
+The recursive integration surface is deliberately explicit. Binary-parent
+construction and publication are exported as
+`recursive_binary_composition_authority`, `recursive_binary_outer`,
+`recursive_binary_outer_cohort`, and `recursive_binary_verified_publication`;
+the PCS/FRI authority is `recursive_fri_outer`. Parent-statement ownership is
+split between `recursive_parent_statement_source` and
+`recursive_parent_statement_air_source`.
+
+Segment V2 admission and publication are owned by
+`recursive_segment_v2_leaf_outer`, `recursive_segment_v2_noncore_owner`,
+`recursive_segment_v2_outer_admission_v2`, `recursive_segment_v2_outer_cohort`,
+`recursive_segment_v2_outer_engine`,
+`recursive_segment_v2_temporal_child_authority`,
+`recursive_segment_v2_tuple_closure_diagnostic`,
+`recursive_segment_v2_verified_artifact`, and
+`recursive_segment_v2_verified_publication`. Temporal 2-to-1 authority is
+exported through `recursive_temporal_child_authority`,
+`recursive_temporal_nonfri_source_v2`, `recursive_temporal_pair_authority_v2`,
+`recursive_temporal_parent_cohort_v3`,
+`recursive_temporal_parent_manifest_v3`,
+`recursive_temporal_parent_prefix_runtime`,
+`recursive_temporal_parent_row18_source_v3`,
+`recursive_temporal_parent_row35_owner_v1`,
+`recursive_temporal_parent_suffix_v3`, and
+`recursive_temporal_parent_verifier_input_publication_v3`. These modules expose
+authenticated authorities and verified-publication types; they do not make an
+unverified proof or capture publishable.
 
 Returned proof/statement values own allocations according to the frontend
 types. Callers must deinitialize them and must not publish before verification
@@ -77,6 +111,14 @@ Focused package tests:
 
 ```sh
 zig build test --build-file src/integrations/riscv_cpu/build.zig -Doptimize=ReleaseFast -j2
+```
+
+Run the backend-owned universal recursion PCS/FRI proof gate directly with:
+
+```sh
+zig build test-recursion-air-proof \
+  --build-file src/integrations/riscv_cpu/build.zig \
+  -Doptimize=ReleaseSafe -j1
 ```
 
 Build the released product and run its application registry:

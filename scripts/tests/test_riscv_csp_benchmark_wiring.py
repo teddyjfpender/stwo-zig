@@ -126,6 +126,7 @@ class HarnessWiringTests(unittest.TestCase):
             {
                 "target": case.target,
                 "input_size": case.input_size,
+                "recursion_enabled": False,
                 "proof_duration": 1,
                 "verify_duration": 1,
                 "proof_size": 1,
@@ -158,6 +159,7 @@ class HarnessWiringTests(unittest.TestCase):
         host: dict | None = None,
         registry: bytes | None = None,
         trace: bytes | None = None,
+        benchmark_case=None,
     ):
         """Fake only the process boundaries; every gate runs for real."""
         registry = self.registry() if registry is None else registry
@@ -206,7 +208,11 @@ class HarnessWiringTests(unittest.TestCase):
                 )
                 stack.enter_context(
                     mock.patch.object(
-                        csp, "benchmark_case", self.fake_benchmark_case
+                        csp,
+                        "benchmark_case",
+                        self.fake_benchmark_case
+                        if benchmark_case is None
+                        else benchmark_case,
                     )
                 )
                 stack.enter_context(
@@ -295,9 +301,30 @@ class HarnessWiringTests(unittest.TestCase):
 
     def test_written_report_declares_the_bumped_schema(self) -> None:
         report = self.report()
-        self.assertEqual("stwo_riscv_csp_benchmark_v3", report["schema"])
+        self.assertEqual("stwo_riscv_csp_benchmark_v4", report["schema"])
         self.assertEqual(csp.SCHEMA, report["schema"])
         self.assertNotIn(report["schema"], csp.SUPERSEDED_SCHEMAS)
+
+    def test_written_report_attests_native_recursion_isolation(self) -> None:
+        report = self.report()
+        self.assertIs(False, report["run"]["recursion_enabled"])
+        self.assertEqual("STWO_RECURSION_", report["run"]["recursion_environment_prefix"])
+        self.assertEqual([], report["run"]["removed_recursion_environment_variables"])
+        self.assertTrue(report["summary"]["all_recursion_disabled"])
+        self.assertTrue(
+            all(row["recursion_enabled"] is False for row in report["measurements"])
+        )
+
+    def test_recursive_measurement_row_is_refused_before_publication(self) -> None:
+        def contaminated(case, cli, trace_cli, **kwargs):
+            row, commit = self.fake_benchmark_case(case, cli, trace_cli, **kwargs)
+            row["recursion_enabled"] = True
+            return row, commit
+
+        self.refusal(
+            "recursive or unauthenticated execution row",
+            benchmark_case=contaminated,
+        )
 
 if __name__ == "__main__":
     unittest.main()

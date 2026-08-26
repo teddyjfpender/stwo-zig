@@ -59,10 +59,13 @@ const Claim = riscv.RiscVClaim;
 | :--- | :--- |
 | Execution | `runner`, `Cpu`, `Memory`, `Opcode`, `runWithInput`, `runWithHost` |
 | Host boundary | `host`, `HostInterface`, `HostRuntime` |
-| AIR and witness | `air`, `access_clock`, `infra_trace`, `witness_layout`, `opcode_manifest` |
+| AIR, recursion, and witness | `air`, `recursion`, `access_clock`, `infra_trace`, `witness_layout`, `opcode_manifest`, `statement_shape_inspection` |
 | ISA and diagnostics | `isa`, `diagnostics`, `testing` |
 | Statement ownership | `RiscVClaim`, `owned_statement` |
-| Engine-generic proving | `prover_mod`, `proveRiscVWithEngineAndPublicData`, `verifyRiscVWithEngine`, `proveAndVerifyElfWithEngine` |
+| Engine-generic proving | `prover_mod`, `proveRiscVWithEngineAndPublicData`, `proveRiscVWithEngineAndPublicDataWithExecution`, `verifyRiscVWithEngine`, `provePoseidon2WithEngineAndPublicData`, `verifyPoseidon2WithEngine`, `proveAndVerifyElfWithEngine` |
+| Segment proving and verified capture | `proveRiscVSegmentV2WithEngine`, `verifyRiscVSegmentV2WithEngine`, `verifyRiscVSegmentV2WithEngineUsingChannelAndCapture`, `verifyRiscVWithEngineUsingChannelAndProofCapture`, `verifyRiscVWithEngineUsingChannelAndQueryCapture` |
+| Proving instrumentation | `process_usage`, `provePoseidon2WithEngineAndPublicDataUsingChannelAndPhaseMeter` |
+| Execution geometry | `MAX_EXECUTION_STEPS` — the canonical one-shot AIR clock bound shared by execution admission and guest-profile routing |
 | Trace-only proving | `proveRiscVTraceOnlyNoPublicIo` — synthesizes an empty public-I/O region, so it is for hand-built traces and I/O-free guests only and rejects a run whose committed memory carries public I/O |
 
 The execution result and proof objects contain owned allocations; follow the
@@ -82,7 +85,7 @@ No concrete backend dependency is allowed in the frontend.
 Focused package tests:
 
 ```sh
-zig build test --build-file src/frontends/riscv/build.zig -Doptimize=ReleaseFast -j2
+zig build test --build-file src/frontends/riscv/build.zig -Doptimize=Debug -j2
 ```
 
 The same tests also run under the product gate, so they can be focused by name:

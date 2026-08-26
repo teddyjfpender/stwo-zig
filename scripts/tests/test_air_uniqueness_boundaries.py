@@ -65,7 +65,7 @@ class ZigTableTranscriptionTest(unittest.TestCase):
         enum_body = re.search(r"pub const Domain = enum\(u8\) \{(.*?)\};", text, re.S)
         assert enum_body is not None
         declared = {
-            line.strip().rstrip(",")
+            line.strip().rstrip(",").split("=", 1)[0].strip()
             for line in enum_body.group(1).splitlines()
             if line.strip() and not line.strip().startswith("//")
         }

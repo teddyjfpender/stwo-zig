@@ -167,10 +167,12 @@ python3 scripts/riscv_refinement.py verify-receipt \
 Receipt generation never accepts a carried or stale Sail result as fresh
 evidence. The generated bridge runner pins Lean's external source root with
 `-R`, creates a fresh temporary olean directory, and compiles all 47 sources in
-the ordered `BRIDGE_SOURCES` dependency closure before checking the public
-entrypoint. The receipt binds every source path and digest, so changing or
-omitting a decoder, execution, arithmetic, or publication module invalidates
-the evidence.
+the topological `BRIDGE_SOURCES` dependency closure before checking the public
+entrypoint. A scheduler with at most four workers runs independent proof
+branches in parallel, but admits each module only after its local imports are
+complete and aggregates output in declared order. The receipt binds every
+source path and digest, so changing or omitting a decoder, execution,
+arithmetic, or publication module invalidates the evidence.
 
 ## Generated inputs
 
@@ -183,6 +185,14 @@ Do not edit generated artifacts by hand. Important generated surfaces include:
 - `generated/sail/generated-monad-bridge-receipt-v1.json`;
 - `RiscvRefinement/Air/Generated/*.lean`; and
 - `generated-manifest.json`.
+
+`air-program-node-layout-v1.json` is a reviewed generator input rather than a
+generated proof artifact. It permits only structural node renumbering: the
+normalizer must recover the exact reviewed unsigned AIR object, including its
+ordered constraints, lookups, tuples, projections, columns, and fixed tables,
+before current source identity is attached. Check it independently with
+`scripts/riscv_air_program_layout.py check` against the fresh
+`zig-out/refinement-air-ir-v2` export.
 
 A semantic source change must flow through regeneration and invalidate the
 corresponding digest, theorem audit, or receipt. Byte-identical regeneration

@@ -116,6 +116,9 @@ pub fn transformCircleLdeAndCommitPrepared(
     const transform_words = std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(transform_buffer));
     const inverse_words = std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(inverse_twiddles));
     const forward_words = std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(forward_twiddles));
+    var normalization_batch_count: u32 = 0;
+    var forward_skipped_layers: u32 = 0;
+    var merkle_compressions: u64 = 0;
     var gpu_ms: f64 = 0;
     var message: [1024]u8 = [_]u8{0} ** 1024;
     var recipe_storage: [7]u32 = undefined;
@@ -144,6 +147,9 @@ pub fn transformCircleLdeAndCommitPrepared(
         &leaf_seed,
         &node_seed,
         domain_prefix_bytes,
+        &normalization_batch_count,
+        &forward_skipped_layers,
+        &merkle_compressions,
         &gpu_ms,
         &message,
         message.len,
@@ -157,6 +163,11 @@ pub fn transformCircleLdeAndCommitPrepared(
             .handle = tree_handle,
             .runtime_handle = self.handle,
             .log_size = extended_log_size,
+        },
+        .work = .{
+            .normalization_batch_count = normalization_batch_count,
+            .forward_skipped_layers = forward_skipped_layers,
+            .merkle_compressions = merkle_compressions,
         },
     };
 }

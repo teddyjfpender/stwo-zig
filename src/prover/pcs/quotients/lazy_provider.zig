@@ -18,8 +18,10 @@ const tile_executor = @import("../quotient_tile_executor.zig");
 const tile_sink = @import("../quotient_tile_sink.zig");
 const execution = @import("execution.zig");
 const planning = @import("planning.zig");
+const quotient_work = @import("../quotient_work_profile.zig");
 const secure_column = @import("../../secure_column.zig");
 const work_pool_mod = @import("../../work_pool.zig");
+const work_profile = @import("stwo_prover_api").work_profile;
 
 const CirclePointQM31 = circle.CirclePointQM31;
 const M31 = m31.M31;
@@ -72,222 +74,19 @@ pub const LazyQuotientProvider = struct {
     domain: circle_domain.CircleDomain,
     lifting_log_size: u32,
     domain_size: usize,
+    work_recorder: ?*quotient_work.WorkRecorder,
+    row_work_tally: quotient_work.Tally,
+    row_work_next: usize,
+    row_work_path: ?work_profile.QuotientRowPath,
+    row_work_contribution_count: usize,
+    row_work_completed: bool,
 
-    pub fn init(
-        allocator: std.mem.Allocator,
-        columns: TreeVec([]const ColumnEvaluation),
-        sampled_points: TreeVec([][]CirclePointQM31),
-        sampled_values: TreeVec([][]QM31),
-        random_coeff: QM31,
-        lifting_log_size: u32,
-    ) !LazyQuotientProvider {
-        return initWithMode(
-            allocator,
-            columns,
-            sampled_points,
-            sampled_values,
-            random_coeff,
-            lifting_log_size,
-            if (tile_executor.shouldUseBoundedInput(lifting_log_size))
-                .bounded_cpu
-            else
-                .combined_compatibility,
-        );
-    }
-
-    pub fn initWithMode(
-        allocator: std.mem.Allocator,
-        columns: TreeVec([]const ColumnEvaluation),
-        sampled_points: TreeVec([][]CirclePointQM31),
-        sampled_values: TreeVec([][]QM31),
-        random_coeff: QM31,
-        lifting_log_size: u32,
-        input_mode: InputMode,
-    ) !LazyQuotientProvider {
-        return initForBackendWithMode(
-            void,
-            allocator,
-            columns,
-            sampled_points,
-            sampled_values,
-            random_coeff,
-            lifting_log_size,
-            input_mode,
-        );
-    }
-
-    pub fn initForBackend(
-        comptime B: type,
-        allocator: std.mem.Allocator,
-        columns: TreeVec([]const ColumnEvaluation),
-        sampled_points: TreeVec([][]CirclePointQM31),
-        sampled_values: TreeVec([][]QM31),
-        random_coeff: QM31,
-        lifting_log_size: u32,
-    ) !LazyQuotientProvider {
-        const backend_raw = comptime B != void and @hasDecl(B, "rawQuotientInputs") and B.rawQuotientInputs;
-        return initForBackendWithMode(
-            B,
-            allocator,
-            columns,
-            sampled_points,
-            sampled_values,
-            random_coeff,
-            lifting_log_size,
-            if (backend_raw)
-                .raw_backend
-            else if (tile_executor.shouldUseBoundedInput(lifting_log_size))
-                .bounded_cpu
-            else
-                .combined_compatibility,
-        );
-    }
-
-    pub fn initForBackendWithMode(
-        comptime B: type,
-        allocator: std.mem.Allocator,
-        columns: TreeVec([]const ColumnEvaluation),
-        sampled_points: TreeVec([][]CirclePointQM31),
-        sampled_values: TreeVec([][]QM31),
-        random_coeff: QM31,
-        lifting_log_size: u32,
-        input_mode: InputMode,
-    ) !LazyQuotientProvider {
-        if (columns.items.len != sampled_points.items.len) return QuotientOpsError.ShapeMismatch;
-        if (columns.items.len != sampled_values.items.len) return QuotientOpsError.ShapeMismatch;
-
-        for (columns.items, sampled_points.items, sampled_values.items) |tree_columns, tree_points, tree_values| {
-            if (tree_columns.len != tree_points.len) return QuotientOpsError.ShapeMismatch;
-            if (tree_columns.len != tree_values.len) return QuotientOpsError.ShapeMismatch;
-            for (tree_columns, tree_points) |column, points| {
-                try column.validate();
-                if (points.len != 0 and column.log_size > lifting_log_size) {
-                    return QuotientOpsError.InvalidColumnLogSize;
-                }
-            }
-        }
-
-        var column_log_sizes = try column_geometry.buildColumnLogSizes(allocator, columns);
-        defer column_log_sizes.deinitDeep(allocator);
-
-        const domain_size = try column_geometry.checkedPow2(lifting_log_size);
-        const flat_columns = try column_geometry.flattenColumnsBorrowed(allocator, columns);
-        errdefer allocator.free(flat_columns);
-
-        var prepared = try planning.prepareContext(
-            allocator,
-            column_log_sizes,
-            sampled_points,
-            sampled_values,
-            random_coeff,
-            lifting_log_size,
-            flat_columns.len,
-        );
-        errdefer prepared.deinit(allocator);
-
-        const nonzero_columns = try planning.markNonzeroColumnsAndSamples(
-            allocator,
-            columns,
-            sampled_values,
-        );
-        defer allocator.free(nonzero_columns);
-
-        const backend_raw = comptime B != void and @hasDecl(B, "rawQuotientInputs") and B.rawQuotientInputs;
-        if ((input_mode == .raw_backend) != backend_raw) return error.InvalidQuotientInputMode;
-        var combined_views: []CombinedContributionView = &.{};
-        var compact_plan = planning.CompactContributionPlan{ .groups = &.{}, .members = &.{} };
-        var direct_plan = tile_executor.DirectContributionPlan{ .views = &.{}, .ranges = &.{} };
-        errdefer {
-            var combined_plan = planning.CombinedContributionPlan{ .views = combined_views };
-            combined_plan.deinit(allocator);
-            compact_plan.deinit(allocator);
-            direct_plan.deinit(allocator);
-        }
-        switch (input_mode) {
-            .combined_compatibility => {
-                const combined_plan = try planning.buildCombinedContributionPlan(
-                    allocator,
-                    flat_columns,
-                    prepared.contribution_plan.active_column_indices,
-                    prepared.contribution_plan.ranges,
-                    prepared.contribution_plan.contributions,
-                    nonzero_columns,
-                    lifting_log_size,
-                );
-                combined_views = combined_plan.views;
-            },
-            .bounded_cpu => {
-                const optional_compact_plan = try planning.buildCompactContributionPlan(
-                    allocator,
-                    flat_columns,
-                    prepared.contribution_plan.active_column_indices,
-                    prepared.contribution_plan.ranges,
-                    prepared.contribution_plan.contributions,
-                    nonzero_columns,
-                    lifting_log_size,
-                    COMPACT_GROUP_MIN_SHIFT,
-                    MAX_COMPACT_GROUP_BYTES,
-                );
-                const compact_admitted = optional_compact_plan != null;
-                if (optional_compact_plan) |plan| compact_plan = plan;
-                direct_plan = try tile_executor.buildDirectContributionPlan(
-                    allocator,
-                    flat_columns,
-                    prepared.contribution_plan.active_column_indices,
-                    prepared.contribution_plan.ranges,
-                    nonzero_columns,
-                    lifting_log_size,
-                    if (compact_admitted) COMPACT_GROUP_MIN_SHIFT else null,
-                );
-            },
-            .raw_backend => {},
-        }
-
-        var workspace = try quotients.RowQuotientWorkspace.init(allocator, prepared.sample_batches);
-        errdefer workspace.deinit(allocator);
-        var chunk_scratch: ?row_executor.Scratch = null;
-        if (input_mode == .combined_compatibility) {
-            chunk_scratch = try row_executor.initScratchOrScalarFallback(
-                allocator,
-                prepared.sample_batches.len,
-                LAZY_QUOTIENT_CHUNK_SIZE,
-                domain_size,
-            );
-        }
-        errdefer if (chunk_scratch) |*scratch| scratch.deinit(allocator);
-        var direct_chunk_scratch: ?tile_executor.Scratch = null;
-        if (input_mode == .bounded_cpu) {
-            direct_chunk_scratch = try tile_executor.initScratchOrScalarFallback(
-                allocator,
-                prepared.sample_batches.len,
-                tile_sink.DEFAULT_TILE_ROWS,
-                domain_size,
-            );
-        }
-        errdefer if (direct_chunk_scratch) |*scratch| scratch.deinit(allocator);
-
-        const domain = canonic.CanonicCoset.new(lifting_log_size).circleDomain();
-
-        return .{
-            .prepared = prepared,
-            .input_mode = input_mode,
-            .combined_views = combined_views,
-            .compact_plan = compact_plan,
-            .direct_plan = direct_plan,
-            .raw_columns = if (input_mode == .raw_backend) flat_columns else blk: {
-                allocator.free(flat_columns);
-                break :blk &.{};
-            },
-            .backend_residency_handles = &.{},
-            .workspace = workspace,
-            .chunk_scratch = chunk_scratch,
-            .direct_chunk_scratch = direct_chunk_scratch,
-            .allow_parallel_scalar = input_mode != .raw_backend and !row_executor.shouldBatchDomain(domain_size),
-            .domain = domain,
-            .lifting_log_size = lifting_log_size,
-            .domain_size = domain_size,
-        };
-    }
+    const InitOps = @import("lazy_provider_init.zig").InitOps(@This(), InputMode);
+    pub const init = InitOps.init;
+    pub const initWithMode = InitOps.initWithMode;
+    pub const initForBackend = InitOps.initForBackend;
+    pub const initForBackendWithWorkRecorder = InitOps.initForBackendWithWorkRecorder;
+    pub const initForBackendWithMode = InitOps.initForBackendWithMode;
 
     /// Borrows the proof-session residency set for the lifetime of this
     /// provider. The caller retains ownership of both the slice and handles.
@@ -298,7 +97,187 @@ pub const LazyQuotientProvider = struct {
         self.backend_residency_handles = handles;
     }
 
+    pub inline fn rowWorkProfileEnabled(self: *const LazyQuotientProvider) bool {
+        return self.work_recorder != null;
+    }
+
+    pub fn materializedDomainCircleAdditions(
+        self: *const LazyQuotientProvider,
+    ) !u64 {
+        return quotient_work.materializedDomainCircleAdditions(
+            self.domain,
+            self.lifting_log_size,
+        );
+    }
+
+    pub inline fn combinedPlanSourceCells(
+        self: *const LazyQuotientProvider,
+    ) u64 {
+        return self.row_work_tally.combined_plan_source_cells;
+    }
+
+    pub inline fn executedContributionCount(
+        self: *const LazyQuotientProvider,
+    ) usize {
+        return self.row_work_contribution_count;
+    }
+
+    fn observeHostRowRange(
+        self: *LazyQuotientProvider,
+        path: work_profile.QuotientRowPath,
+        start: usize,
+        end: usize,
+        tally: quotient_work.Tally,
+    ) !void {
+        if (self.work_recorder == null) return;
+        if (self.row_work_completed or start != self.row_work_next or
+            end <= start or end > self.domain_size)
+        {
+            return error.InvalidRowGeometry;
+        }
+        if (self.row_work_path) |selected| {
+            if (selected != path) return error.InvalidRowGeometry;
+        } else {
+            self.row_work_path = path;
+        }
+        try self.row_work_tally.merge(tally);
+        self.row_work_next = end;
+        if (end != self.domain_size) return;
+
+        const execution_receipt = try quotient_work.executionFromTally(
+            path,
+            self.lifting_log_size,
+            self.prepared.sample_batches.len,
+            self.row_work_contribution_count,
+            self.combined_views.len,
+            0,
+            self.row_work_tally,
+        );
+        try quotient_work.recordRows(self.work_recorder, execution_receipt);
+        self.row_work_completed = true;
+    }
+
+    pub fn completeMetalRowExecution(
+        self: *LazyQuotientProvider,
+        execution_receipt: work_profile.QuotientRowExecution,
+    ) !void {
+        if (self.work_recorder == null) return;
+        if (self.row_work_completed or self.row_work_next != 0)
+            return error.InvalidRowGeometry;
+        try execution_receipt.validate();
+        const expected_row_count: u64 = @intCast(self.domain_size);
+        const expected_batch_count: u64 = @intCast(self.prepared.sample_batches.len);
+        const expected_contribution_count: u64 = @intCast(self.row_work_contribution_count);
+        const expected_combined_view_count: u64 = @intCast(self.combined_views.len);
+        if (execution_receipt.lifting_log_size != self.lifting_log_size or
+            execution_receipt.row_count != expected_row_count or
+            execution_receipt.sample_batch_count != expected_batch_count or
+            execution_receipt.contribution_count != expected_contribution_count or
+            execution_receipt.combined_view_count != expected_combined_view_count or
+            execution_receipt.combined_plan_source_cells !=
+                self.row_work_tally.combined_plan_source_cells)
+        {
+            return error.InvalidRowGeometry;
+        }
+        switch (execution_receipt.path) {
+            .metal_combined,
+            .metal_raw_direct,
+            .metal_raw_segmented,
+            .metal_raw_grouped_partials,
+            => {},
+            else => return error.InvalidRowGeometry,
+        }
+        try quotient_work.recordRows(self.work_recorder, execution_receipt);
+        self.row_work_next = self.domain_size;
+        self.row_work_path = execution_receipt.path;
+        self.row_work_completed = true;
+    }
+
+    fn observeCpuFullExecution(
+        self: *LazyQuotientProvider,
+        worker_count: usize,
+    ) !void {
+        if (!self.rowWorkProfileEnabled()) return;
+        if (worker_count == 0) return error.InvalidRowGeometry;
+        const worker_span = try row_executor.workerSpan(self.domain_size, worker_count);
+        var total: quotient_work.Tally = .{};
+        var selected_path: work_profile.QuotientRowPath = undefined;
+        for (0..worker_count) |worker| {
+            const range = try row_executor.workerRange(
+                self.domain_size,
+                worker_span,
+                worker,
+            );
+            if (range.start == range.end) continue;
+            const partial = switch (self.input_mode) {
+                .bounded_cpu => blk: {
+                    const schedule: quotient_work.InverseSchedule = if (self.direct_chunk_scratch != null) schedule: {
+                        const capacity = if (worker_count == 1)
+                            self.direct_chunk_scratch.?.row_capacity
+                        else
+                            try tile_executor.rowCapacityForBatchCount(
+                                self.prepared.sample_batches.len,
+                                @min(worker_span, tile_sink.DEFAULT_TILE_ROWS),
+                            );
+                        break :schedule .{ .batched_rows = capacity };
+                    } else .scalar_per_row;
+                    selected_path = if (self.direct_chunk_scratch != null)
+                        .host_bounded_batched
+                    else
+                        .host_bounded_scalar;
+                    break :blk try quotient_work.boundedRangeTally(
+                        self.domain,
+                        self.lifting_log_size,
+                        range.start,
+                        range.end,
+                        self.prepared.sample_batches.len,
+                        self.compact_plan.groups,
+                        self.direct_plan.views,
+                        self.direct_plan.ranges,
+                        schedule,
+                    );
+                },
+                .combined_compatibility => blk: {
+                    const schedule: quotient_work.InverseSchedule = if (self.chunk_scratch != null) schedule: {
+                        const capacity = if (worker_count == 1)
+                            self.chunk_scratch.?.rowCapacity()
+                        else
+                            try row_executor.rowCapacityForBatchCount(
+                                self.prepared.sample_batches.len,
+                                @min(worker_span, row_executor.MAX_ROWS),
+                            );
+                        break :schedule .{ .batched_rows = capacity };
+                    } else if (self.prepared.sample_batches.len <= 16)
+                        .scalar_chunked
+                    else
+                        .scalar_per_row;
+                    selected_path = .host_streaming;
+                    break :blk try quotient_work.streamingRangeTally(
+                        self.domain,
+                        self.lifting_log_size,
+                        range.start,
+                        range.end,
+                        self.prepared.sample_batches.len,
+                        self.combined_views.len,
+                        schedule,
+                    );
+                },
+                .raw_backend => return error.UnsupportedQuotientInputMode,
+            };
+            try total.merge(partial);
+        }
+        try self.observeHostRowRange(
+            selected_path,
+            0,
+            self.domain_size,
+            total,
+        );
+    }
+
     pub fn deinit(self: *LazyQuotientProvider, allocator: std.mem.Allocator) void {
+        if (self.work_recorder) |active| {
+            if (!self.row_work_completed) active.markIncomplete();
+        }
         if (self.direct_chunk_scratch) |*scratch| scratch.deinit(allocator);
         if (self.chunk_scratch) |*scratch| scratch.deinit(allocator);
         self.workspace.deinit(allocator);
@@ -346,6 +325,28 @@ pub const LazyQuotientProvider = struct {
                     .lifting_log_size = self.lifting_log_size,
                 };
                 try tile_executor.execute(&work);
+                if (self.rowWorkProfileEnabled()) {
+                    const schedule: quotient_work.InverseSchedule = if (work.scratch) |scratch|
+                        .{ .batched_rows = scratch.row_capacity }
+                    else
+                        .scalar_per_row;
+                    const path: work_profile.QuotientRowPath = if (work.scratch != null)
+                        .host_bounded_batched
+                    else
+                        .host_bounded_scalar;
+                    const tally = try quotient_work.boundedRangeTally(
+                        self.domain,
+                        self.lifting_log_size,
+                        chunk_start,
+                        chunk_end,
+                        self.prepared.sample_batches.len,
+                        self.compact_plan.groups,
+                        self.direct_plan.views,
+                        self.direct_plan.ranges,
+                        schedule,
+                    );
+                    try self.observeHostRowRange(path, chunk_start, chunk_end, tally);
+                }
             },
             .combined_compatibility => {
                 var work = row_executor.StreamingWork{
@@ -361,6 +362,29 @@ pub const LazyQuotientProvider = struct {
                     .lifting_log_size = self.lifting_log_size,
                 };
                 try row_executor.executeStreaming(&work);
+                if (self.rowWorkProfileEnabled()) {
+                    const schedule: quotient_work.InverseSchedule = if (work.scratch) |scratch|
+                        .{ .batched_rows = scratch.rowCapacity() }
+                    else if (self.prepared.sample_batches.len <= 16)
+                        .scalar_chunked
+                    else
+                        .scalar_per_row;
+                    const tally = try quotient_work.streamingRangeTally(
+                        self.domain,
+                        self.lifting_log_size,
+                        chunk_start,
+                        chunk_end,
+                        self.prepared.sample_batches.len,
+                        self.combined_views.len,
+                        schedule,
+                    );
+                    try self.observeHostRowRange(
+                        .host_streaming,
+                        chunk_start,
+                        chunk_end,
+                        tally,
+                    );
+                }
             },
             .raw_backend => return error.UnsupportedQuotientInputMode,
         }
@@ -376,7 +400,10 @@ pub const LazyQuotientProvider = struct {
         if (out.len() != self.domain_size) return QuotientOpsError.ShapeMismatch;
 
         if (!builtin.single_threaded) {
-            if (try self.computeAllParallel(allocator, out, null) != null) return;
+            if (try self.computeAllParallel(allocator, out, null)) |stats| {
+                try self.observeCpuFullExecution(stats.worker_count);
+                return;
+            }
         }
 
         var chunk_start: usize = 0;
@@ -402,7 +429,10 @@ pub const LazyQuotientProvider = struct {
         if (out.len() != self.domain_size) return QuotientOpsError.ShapeMismatch;
 
         if (!builtin.single_threaded) {
-            if (try self.computeAllParallel(allocator, out, factory)) |stats| return stats;
+            if (try self.computeAllParallel(allocator, out, factory)) |stats| {
+                try self.observeCpuFullExecution(stats.worker_count);
+                return stats;
+            }
         }
 
         const writer = try factory.prepareWriter(0, .{ .start = 0, .end = self.domain_size });
@@ -446,6 +476,7 @@ pub const LazyQuotientProvider = struct {
             .raw_backend => return error.UnsupportedQuotientInputMode,
         }
         try factory.finishWriters(1);
+        try self.observeCpuFullExecution(1);
         const scratch_bytes = switch (self.input_mode) {
             .bounded_cpu => if (self.direct_chunk_scratch) |scratch| scratch.retainedBytes() else 0,
             .combined_compatibility => if (self.chunk_scratch) |scratch| scratch.retainedBytes() else 0,

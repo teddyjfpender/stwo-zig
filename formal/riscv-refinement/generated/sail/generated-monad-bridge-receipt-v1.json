@@ -8,7 +8,7 @@
     },
     {
       "path": "formal/riscv-refinement/generated-sail-bridge/Composition.lean",
-      "sha256": "07d27d1a8b19623a57f08daa423b17875228cea4b796275c2dcc863bca1e3c55"
+      "sha256": "f33f572cc688f95f6b935dfcfa251664df2af3d8802e6c9a0b407808c3f8e15e"
     },
     {
       "path": "formal/riscv-refinement/generated-sail-bridge/ExecutionClosure.lean",
@@ -96,7 +96,7 @@
     },
     {
       "path": "formal/riscv-refinement/generated-sail-bridge/DecodeMulDiv.lean",
-      "sha256": "d9eda663453d193365c80bda37f562f94108795e56c5a0a63da28db91b8e9377"
+      "sha256": "d3d5707b367c91acc43beaa5182e505068517dcf46010eb42461fe2f4ef06095"
     },
     {
       "path": "formal/riscv-refinement/generated-sail-bridge/MulDivArithmetic.lean",
@@ -184,14 +184,14 @@
     },
     {
       "path": "formal/riscv-refinement/generated-sail-bridge/PublicationMulDiv.lean",
-      "sha256": "9a402c573fb5b4c870576ddc23218dad9bd3373eab270ef9580af3bcc768e8bb"
+      "sha256": "dc57444b5cc6478f42187db46a28457f5c6332d38fc2b40905435ee1516c8e6f"
     },
     {
       "path": "formal/riscv-refinement/generated-sail-bridge/Publication.lean",
       "sha256": "ce3e6a26c3ab281b32446da2a5bb9143847da8d8bdfc2cad5505329dbb15f6f6"
     }
   ],
-  "canonical_digest": "679c7c68a992fc7e710e8ca76df23015c8379a6e1d675f4657b1b3a0b2f5c650",
+  "canonical_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
   "claim_boundary": {
     "constructive_row_local_execution": true,
     "fetch_interrupt_trap_and_step_loop_framing": true,

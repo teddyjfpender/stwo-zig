@@ -5,6 +5,7 @@ const builtin = @import("builtin");
 const m31 = @import("stwo_core").fields.m31;
 const canonic = @import("stwo_core").poly.circle.canonic;
 const prover_circle = @import("../../poly/circle/mod.zig");
+const work_profile = @import("stwo_prover_api").work_profile;
 const twiddle_source_mod = @import("../../poly/twiddle_source.zig");
 const twiddles_mod = @import("../../poly/twiddles.zig");
 const work_pool_mod = @import("../../work_pool.zig");
@@ -14,6 +15,7 @@ const column_storage = @import("storage.zig");
 const M31 = m31.M31;
 const ColumnEvaluation = commitment_tree.ColumnEvaluation;
 const TwiddleSource = twiddle_source_mod.TwiddleSource;
+const WorkRecorder = work_profile.Recorder(true);
 const fft_batch_target_bytes: usize = 256 * 1024;
 
 pub const InterpolatedCoefficients = struct {
@@ -23,7 +25,7 @@ pub const InterpolatedCoefficients = struct {
     /// CircleCoefficients (owns_coeffs == false). Must be freed separately.
     backing_buffers: [][]M31,
 
-    fn deinit(self: *InterpolatedCoefficients, allocator: std.mem.Allocator) void {
+    pub fn deinit(self: *InterpolatedCoefficients, allocator: std.mem.Allocator) void {
         for (self.coefficients) |*coeff| {
             @constCast(coeff).deinit(allocator);
         }
@@ -38,6 +40,7 @@ pub fn interpolateCoefficientColumns(
     allocator: std.mem.Allocator,
     columns: []const ColumnEvaluation,
     twiddle_source: *TwiddleSource,
+    work_recorder: ?*WorkRecorder,
 ) !InterpolatedCoefficients {
     const out = try allocator.alloc(prover_circle.CircleCoefficients, columns.len);
 
@@ -80,7 +83,11 @@ pub fn interpolateCoefficientColumns(
     var total_columns: usize = 0;
 
     for (groups.items, 0..) |group, group_idx| {
-        const twiddle_tree = try twiddle_source.get(allocator, group.log_size);
+        const twiddle_tree = try twiddle_source.getWithWorkRecorder(
+            allocator,
+            group.log_size,
+            work_recorder,
+        );
         const domain = canonic.CanonicCoset.new(group.log_size).circleDomain();
         const batch_len = preferredCpuFftBatchLen(domain.size(), group.indices.items.len);
         var batch_start: usize = 0;
@@ -159,6 +166,12 @@ pub fn interpolateCoefficientColumns(
         }
     }
 
+    try recordInterpolationCompletion(
+        work_recorder,
+        .column_interpolate_only_fft,
+        work_items.items,
+        true,
+    );
     const owned_backing = try backing_buffers.toOwnedSlice(allocator);
     return .{
         .coefficients = out,
@@ -171,6 +184,7 @@ pub fn interpolateOwnedColumnsForExtensionForBackend(
     allocator: std.mem.Allocator,
     owned_columns: []ColumnEvaluation,
     twiddle_source: *TwiddleSource,
+    work_recorder: ?*WorkRecorder,
 ) ![]prover_circle.CircleCoefficients {
     const out = try allocator.alloc(prover_circle.CircleCoefficients, owned_columns.len);
     errdefer allocator.free(out);
@@ -207,7 +221,11 @@ pub fn interpolateOwnedColumnsForExtensionForBackend(
     var total_columns: usize = 0;
 
     for (groups.items, 0..) |group, group_idx| {
-        const twiddle_tree = try twiddle_source.get(allocator, group.log_size);
+        const twiddle_tree = try twiddle_source.getWithWorkRecorder(
+            allocator,
+            group.log_size,
+            work_recorder,
+        );
         const domain = canonic.CanonicCoset.new(group.log_size).circleDomain();
         const batch_len = if (comptime @hasDecl(B, "interpolateCircleBuffers"))
             group.indices.items.len
@@ -247,7 +265,12 @@ pub fn interpolateOwnedColumnsForExtensionForBackend(
 
     if (comptime @hasDecl(B, "interpolateCircleBuffers")) {
         for (work_items.items) |*item| {
-            try B.interpolateCircleBuffers(allocator, item.values, item.domain, item.twiddle_tree);
+            item.backend_execution = try B.interpolateCircleBuffers(
+                allocator,
+                item.values,
+                item.domain,
+                item.twiddle_tree,
+            );
         }
     } else if (use_parallel) {
         if (getOrInitFftPool()) |pool| {
@@ -279,7 +302,53 @@ pub fn interpolateOwnedColumnsForExtensionForBackend(
         }
     }
 
+    try recordInterpolationCompletion(
+        work_recorder,
+        .column_interpolate_for_extension_fft,
+        work_items.items,
+        comptime !@hasDecl(B, "interpolateCircleBuffers"),
+    );
+
     return out;
+}
+
+fn recordInterpolationCompletion(
+    recorder: ?*WorkRecorder,
+    site: work_profile.Site,
+    work_items: []const IfftWorkItem,
+    comptime generic_execution: bool,
+) !void {
+    const active = recorder orelse return;
+    var counters: work_profile.Counters = .{};
+    for (work_items) |item| {
+        const batch_columns = std.math.cast(u64, item.values.len) orelse
+            return error.CounterOverflow;
+        if (generic_execution) {
+            counters = try counters.add(try work_profile.logicalM31InterpolationWork(
+                item.domain.logSize(),
+                batch_columns,
+            ));
+        } else {
+            const execution = item.backend_execution orelse
+                return error.InvalidCounterGroup;
+            try execution.validate();
+            if (execution.log_size != item.domain.logSize() or
+                execution.column_count != batch_columns)
+            {
+                return error.InvalidCounterGroup;
+            }
+            counters = try counters.add(try execution.exactWork());
+        }
+    }
+    try active.recordCompletedDelta(.{
+        .site = site,
+        .producer = work_profile.boundaryForSite(site),
+        .source_mask = .{ .bits = work_profile.SourceMask.one(.field_additions).bits |
+            work_profile.SourceMask.one(.field_multiplications).bits |
+            work_profile.SourceMask.one(.field_inversions).bits |
+            work_profile.SourceMask.one(.fft_butterflies).bits },
+        .counters = counters,
+    });
 }
 
 // ---------------------------------------------------------------------------
@@ -305,6 +374,9 @@ const FftEvalWorkItem = struct {
     /// Upper halves are unwritten and mathematically zero (2x extension);
     /// the worker uses the degenerate-first-layer path.
     extension: bool = false,
+    /// Populated only by a selected backend transform. It prevents the caller
+    /// from inferring device layer execution from input geometry.
+    backend_execution: ?work_profile.M31ForwardFftExecution = null,
 };
 
 fn fftEvalWorker(item: *const FftEvalWorkItem) void {
@@ -328,6 +400,9 @@ const IfftWorkItem = struct {
     values: [][]M31,
     domain: prover_circle.CircleDomain,
     twiddle_tree: twiddles_mod.TwiddleTree([]const M31),
+    /// Populated only by a selected backend transform. Generic host work is
+    /// derived from the live batch item instead.
+    backend_execution: ?work_profile.M31InterpolationExecution = null,
 };
 
 fn ifftWorker(item: *const IfftWorkItem) void {
@@ -346,6 +421,8 @@ pub fn extendCoefficientColumnsByGroupForBackend(
     coeffs: []const prover_circle.CircleCoefficients,
     log_blowup_factor: u32,
     twiddle_source: *TwiddleSource,
+    work_recorder: ?*WorkRecorder,
+    completion_site: work_profile.Site,
 ) ![]ColumnEvaluation {
     const out = try allocator.alloc(ColumnEvaluation, coeffs.len);
     errdefer allocator.free(out);
@@ -385,7 +462,11 @@ pub fn extendCoefficientColumnsByGroupForBackend(
     for (groups.items) |group| {
         const extended_log_size = std.math.add(u32, group.log_size, log_blowup_factor) catch
             return error.ShapeMismatch;
-        const twiddle_tree = try twiddle_source.get(allocator, extended_log_size);
+        const twiddle_tree = try twiddle_source.getWithWorkRecorder(
+            allocator,
+            extended_log_size,
+            work_recorder,
+        );
         const domain = canonic.CanonicCoset.new(extended_log_size).circleDomain();
         const domain_size = domain.size();
 
@@ -446,9 +527,13 @@ pub fn extendCoefficientColumnsByGroupForBackend(
         // so materialize that invariant before they can read or upload them.
         materializeBackendExtensionZeros(work_items.items);
         for (work_items.items) |*item| {
-            try B.evaluateCircleBuffers(allocator, item.values, item.domain, item.twiddle_tree);
+            item.backend_execution = try B.evaluateCircleBuffers(
+                allocator,
+                item.values,
+                item.domain,
+                item.twiddle_tree,
+            );
         }
-        return out;
     } else if (use_parallel) {
         if (getOrInitFftPool()) |pool| {
             var wait_group: std.Thread.WaitGroup = .{};
@@ -459,16 +544,70 @@ pub fn extendCoefficientColumnsByGroupForBackend(
             }
             fftEvalWorker(&work_items.items[0]);
             wait_group.wait();
-            return out;
+        } else {
+            for (work_items.items) |*item| fftEvalWorker(item);
         }
+    } else {
+        // Sequential fallback.
+        for (work_items.items) |*item| fftEvalWorker(item);
     }
 
-    // Sequential fallback.
-    for (work_items.items) |*item| {
-        fftEvalWorker(item);
-    }
-
+    try recordForwardCompletion(
+        work_recorder,
+        completion_site,
+        work_items.items,
+        comptime @hasDecl(B, "evaluateCircleBuffers"),
+    );
     return out;
+}
+
+fn recordForwardCompletion(
+    recorder: ?*WorkRecorder,
+    site: work_profile.Site,
+    work_items: []const FftEvalWorkItem,
+    comptime backend_execution: bool,
+) !void {
+    const active = recorder orelse return;
+    var butterflies: u64 = 0;
+    for (work_items) |item| {
+        const column_count = std.math.cast(u64, item.values.len) orelse
+            return error.CounterOverflow;
+        const execution = if (backend_execution) blk: {
+            const completed = item.backend_execution orelse
+                return error.InvalidCounterGroup;
+            try completed.validate();
+            if (completed.log_size != item.domain.logSize() or
+                completed.column_count != column_count)
+            {
+                return error.InvalidCounterGroup;
+            }
+            break :blk completed;
+        } else work_profile.M31ForwardFftExecution{
+            .log_size = item.domain.logSize(),
+            .column_count = column_count,
+            .skipped_layers = if (item.extension) 1 else 0,
+        };
+        butterflies = std.math.add(
+            u64,
+            butterflies,
+            (try execution.exactWork()).fft_butterflies,
+        ) catch return error.CounterOverflow;
+    }
+    const fields = try work_profile.logicalM31ForwardFftFieldOperations(butterflies);
+    try active.recordCompletedDelta(.{
+        .site = site,
+        .producer = work_profile.boundaryForSite(site),
+        .source_mask = .{ .bits = work_profile.SourceMask.one(.field_additions).bits |
+            work_profile.SourceMask.one(.field_multiplications).bits |
+            work_profile.SourceMask.one(.field_inversions).bits |
+            work_profile.SourceMask.one(.fft_butterflies).bits },
+        .counters = .{
+            .field_additions = fields.additions,
+            .field_multiplications = fields.multiplications,
+            .field_inversions = fields.inversions,
+            .fft_butterflies = butterflies,
+        },
+    });
 }
 
 fn materializeBackendExtensionZeros(work_items: []const FftEvalWorkItem) void {
@@ -602,36 +741,13 @@ fn preferredCpuFftBatchLenForWorkers(
     return @min(cache_batch, @max(@as(usize, 1), columns_per_worker));
 }
 
-test "circle transforms: CPU FFT batch exposes one task per worker" {
-    try std.testing.expectEqual(
-        @as(usize, 8),
-        preferredCpuFftBatchLenForWorkers(16, 32, 4),
-    );
-    try std.testing.expectEqual(
-        @as(usize, 1),
-        preferredCpuFftBatchLenForWorkers(16, 4, 12),
-    );
-    try std.testing.expectEqual(
-        @as(usize, 16),
-        preferredCpuFftBatchLenForWorkers(16, 64, 2),
-    );
-}
+const Root = @This();
 
-test "circle transforms: backend extension buffers materialize implicit zeros" {
-    const allocator = std.testing.allocator;
-    const values = try allocator.alloc(M31, 16);
-    defer allocator.free(values);
-    @memset(values, M31.fromCanonical(0x5a5a));
-
-    var slices = [_][]M31{values};
-    const items = [_]FftEvalWorkItem{.{
-        .values = slices[0..],
-        .domain = canonic.CanonicCoset.new(4).circleDomain(),
-        .twiddle_tree = undefined,
-        .extension = true,
-    }};
-    materializeBackendExtensionZeros(items[0..]);
-
-    for (values[0..8]) |value| try std.testing.expectEqual(M31.fromCanonical(0x5a5a), value);
-    for (values[8..]) |value| try std.testing.expectEqual(M31.zero(), value);
-}
+pub const testing = if (builtin.is_test) struct {
+    pub const IfftWorkItem = Root.IfftWorkItem;
+    pub const FftEvalWorkItem = Root.FftEvalWorkItem;
+    pub const preferredCpuFftBatchLenForWorkers = Root.preferredCpuFftBatchLenForWorkers;
+    pub const recordInterpolationCompletion = Root.recordInterpolationCompletion;
+    pub const recordForwardCompletion = Root.recordForwardCompletion;
+    pub const materializeBackendExtensionZeros = Root.materializeBackendExtensionZeros;
+} else struct {};

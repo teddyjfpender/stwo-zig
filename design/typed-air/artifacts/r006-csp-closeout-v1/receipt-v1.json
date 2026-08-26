@@ -1,0 +1,81 @@
+{
+  "schema": "stwo.typed-air.r006-csp-closeout.v1",
+  "schema_version": 1,
+  "recorded_on": "2026-08-25",
+  "source": {
+    "branch": "feat/typed-air-precompiles",
+    "head": "2f1a5227d4f560755992424a1a4be88dcb08d0ca",
+    "worktree_clean_at_csp_plan": true
+  },
+  "r006_complete_prefix": {
+    "classification": "operator-requested-resumable-complete-block-prefix-reduction",
+    "raw_capture_root": "/private/tmp/stwo-r006-799c4690.U9VvRv/evidence/r006-pair-bundle",
+    "reduction_path": "/private/tmp/stwo-r006-799c4690.U9VvRv/evidence/r006-complete-prefix-reduction-v1.json",
+    "reduction_file_sha256": "c83de5c5da9bfd138a3f8e9b898651a78564c82d312c1e18293f4245bb02959d",
+    "reduction_content_sha256": "d1ed5de048a3905b74b7e6a34eac0c5f119858ab8b9ad7f8f0c0de09a6a5fbc5",
+    "validation_path": "/private/tmp/stwo-r006-799c4690.U9VvRv/evidence/r006-complete-prefix-validation-v1.json",
+    "validation_file_sha256": "de9236d31e3581f2d12797306d4b7442ce8891187777451ddacae43afc8f7d83",
+    "prefix_authority_sha256": "f36c7441b6b325db4f397c8ce32c182066295679fefa3b0225b5c8b93e6e8114",
+    "planned_attempts": 2080,
+    "retained_attempts": 1754,
+    "statistical_attempts": 1600,
+    "independent_verifier_attempts": 1754,
+    "failed_attempts": 0,
+    "complete_cells": 24,
+    "included_workloads": [
+      "multi_shard_addi",
+      "memcpy_loop",
+      "balanced_core_and_poseidon2"
+    ],
+    "every_statistical_attempt_complete_exact_work": true,
+    "every_statistical_cell_deterministic": true,
+    "observed_complete_block_verdict": "NO_VERDICT",
+    "m7_verdict": "NO_VERDICT_PARTIAL_FROZEN_MATRIX",
+    "capture_remains_resumable": true,
+    "not_executed_attempts": 326,
+    "m7_promotion_receipt": false
+  },
+  "native_csp_ab": {
+    "classification": "paired_native_full_cohort_complete_nonnormative_power",
+    "artifact_root": "/private/tmp/stwo-native-csp-ab-2f1a5227.rrq1O4/full",
+    "report_path": "/private/tmp/stwo-native-csp-ab-2f1a5227.rrq1O4/full/report.json",
+    "report_bytes": 221613,
+    "report_file_sha256": "03bad5358a4f830b4a50eb17ff4886ce8c1746ea987167617ab6dc1e8f36badb",
+    "report_seal_sha256": "627aeccf0943d46333063b86f120b151d13076b323c512bdee87975f7d34dd47",
+    "plan_seal_sha256": "6f439748154ba01a568b6eef625c8ead176c2bf6e8d105c95056258adb19aec2",
+    "baseline_commit": "b6c4f6326aee9c4f57432ac30c55c5b1f2296fab",
+    "current_active_head": "2f1a5227d4f560755992424a1a4be88dcb08d0ca",
+    "current_temporary_commit": "b24a708594eb58aefc9f754ce372f5c8c5028790",
+    "case_count": 16,
+    "capture_count": 64,
+    "rounds": 2,
+    "samples_per_launch": 5,
+    "all_captures_validated": true,
+    "recursion_enabled": false,
+    "old_source_role": "benchmark-denominator-only",
+    "publishable_performance_claim": false,
+    "operator_accepted_nonnormative_power": true,
+    "descriptive_case_counts": {
+      "current_prove_faster": 7,
+      "current_prove_slower": 9,
+      "current_verify_faster": 6,
+      "current_proof_smaller": 8,
+      "current_peak_rss_lower": 6
+    },
+    "aggregate_speedup_claim": false
+  },
+  "source_conformance": {
+    "strict_track": "active_native_backend",
+    "explained_legacy_findings": 0,
+    "new_violations": 0
+  },
+  "claim_boundary": {
+    "typed_air_product_path_is_current": true,
+    "historical_baseline_is_not_product_authority": true,
+    "r006_full_matrix_completed": false,
+    "r006_m7_promotion_claim": false,
+    "csp_publishable_performance_claim": false,
+    "whole_frontend_verified": false,
+    "proof_system_soundness": false
+  }
+}

@@ -51,6 +51,7 @@ pub fn Cli(comptime spec: Spec) type {
         pub const Verify = struct {
             artifact: []const u8,
             elf_path: []const u8,
+            input_path: ?[]const u8,
             protocol: Protocol,
             expected_statement_digest: ?[32]u8,
         };
@@ -168,10 +169,17 @@ pub fn Cli(comptime spec: Spec) type {
                     } };
                 },
                 .verify => {
-                    try requireOnly(scratch, &.{ .artifact, .elf, .protocol, .expect_statement_digest });
+                    try requireOnly(scratch, &.{
+                        .artifact,
+                        .elf,
+                        .input,
+                        .protocol,
+                        .expect_statement_digest,
+                    });
                     return .{ .verify = .{
                         .artifact = try requiredPath(scratch.artifact, error.MissingArtifact),
                         .elf_path = try requiredPath(scratch.elf, error.MissingElf),
+                        .input_path = try optionalPath(scratch.input),
                         .protocol = scratch.protocol,
                         .expected_statement_digest = scratch.expected_statement_digest,
                     } };
@@ -287,6 +295,7 @@ pub fn Cli(comptime spec: Spec) type {
         const usage_verify = std.fmt.comptimePrint(
             \\Usage: {s} verify --artifact PATH --elf PATH [options]
             \\  --elf PATH                         Rebuild and bind the decoded program root
+            \\  --input PATH                       Bind exact profile input bytes
             \\  --protocol NAME                    secure, functional, or smoke
             \\  --expect-statement-digest SHA256   Require the external statement digest
             \\

@@ -8,16 +8,25 @@ const canonic = @import("stwo_core").poly.circle.canonic;
 const proof_mod = @import("stwo_core").proof;
 const verifier_types = @import("stwo_core").verifier_types;
 const component_prover = @import("air/component_prover.zig");
+const composition_work = @import("air/composition_work.zig");
+const oods_work = @import("air/oods_work.zig");
+const proof_work_completion = @import("air/proof_work_completion.zig");
 const device_composition = @import("air/device_composition.zig");
 const prover_air_accumulation = @import("air/accumulation.zig");
 const prover_circle = @import("poly/circle/mod.zig");
 const pcs_prover = @import("pcs/mod.zig");
-const stage_profile = @import("stwo_prover_api").stage_profile;
+const prover_api = @import("stwo_prover_api");
+const stage_profile = prover_api.stage_profile;
+const work_profile = prover_api.work_profile;
 
 const QM31 = qm31.QM31;
 const CirclePointQM31 = circle.CirclePointQM31;
 const PREPROCESSED_TRACE_IDX = verifier_types.PREPROCESSED_TRACE_IDX;
 const TreeVec = pcs_core.TreeVec;
+const WorkRecorder = work_profile.Recorder(true);
+const completeAirCompositionWork = proof_work_completion.completeAirCompositionWork;
+const completeOodsSeedToPointWork = proof_work_completion.completeOodsSeedToPointWork;
+const completeOodsWork = proof_work_completion.completeOodsWork;
 
 pub const ProvingError = error{
     MissingPreprocessedTree,
@@ -115,6 +124,36 @@ pub fn proveExWithStage(
     recorder: ?*stage_profile.Recorder,
     composition_stage: ?device_composition.Stage,
 ) !proof_mod.ExtendedStarkProof(H) {
+    return proveExWithExecution(
+        B,
+        H,
+        MC,
+        allocator,
+        components,
+        channel,
+        commitment_scheme,
+        include_all_preprocessed_columns,
+        recorder,
+        composition_stage,
+        null,
+    );
+}
+
+/// Adds an explicit per-proof CPU composition request without changing the
+/// established device-stage entrypoint.
+pub fn proveExWithExecution(
+    comptime B: type,
+    comptime H: type,
+    comptime MC: type,
+    allocator: std.mem.Allocator,
+    components: []const component_prover.ComponentProver,
+    channel: anytype,
+    commitment_scheme: pcs_prover.CommitmentSchemeProver(B, H, MC),
+    include_all_preprocessed_columns: bool,
+    recorder: ?*stage_profile.Recorder,
+    composition_stage: ?device_composition.Stage,
+    cpu_composition_execution: ?prover_api.CpuCompositionExecutionRequest,
+) !proof_mod.ExtendedStarkProof(H) {
     return proveExComponentsWithRecorder(
         B,
         H,
@@ -126,6 +165,7 @@ pub fn proveExWithStage(
         include_all_preprocessed_columns,
         recorder,
         composition_stage,
+        cpu_composition_execution,
     );
 }
 
@@ -233,6 +273,7 @@ fn proveExComponents(
         include_all_preprocessed_columns,
         null,
         null,
+        null,
     );
 }
 
@@ -247,10 +288,19 @@ fn proveExComponentsWithRecorder(
     include_all_preprocessed_columns: bool,
     recorder: ?*stage_profile.Recorder,
     composition_stage: ?device_composition.Stage,
+    cpu_composition_execution: ?prover_api.CpuCompositionExecutionRequest,
 ) !proof_mod.ExtendedStarkProof(H) {
     var scheme = commitment_scheme;
     var owns_scheme = true;
     errdefer if (owns_scheme) scheme.deinit(allocator);
+
+    const work_recorder = if (recorder) |active|
+        active.workCaptureRecorder()
+    else
+        null;
+    var composition_work_capture = composition_work.Capture{};
+    var oods_mask_work_capture = oods_work.Capture{};
+    var oods_constraint_work_capture = oods_work.Capture{};
 
     if (scheme.trees.items.len <= PREPROCESSED_TRACE_IDX) {
         return ProvingError.MissingPreprocessedTree;
@@ -260,6 +310,15 @@ fn proveExComponentsWithRecorder(
         .components = components,
         .n_preprocessed_columns = scheme.trees.items[PREPROCESSED_TRACE_IDX].columns.len,
         .composition_stage = composition_stage,
+        .cpu_composition_execution = cpu_composition_execution,
+        .task_recorder = if (recorder) |active|
+            active.taskCaptureRecorder()
+        else
+            null,
+        .composition_work_capture = if (work_recorder != null)
+            &composition_work_capture
+        else
+            null,
     };
 
     const composition_log_size = component_provers.compositionLogDegreeBound();
@@ -293,9 +352,10 @@ fn proveExComponentsWithRecorder(
         };
         defer trace.polys.deinitDeep(allocator);
 
-        const composition_twiddles = try scheme.twiddle_source.get(
+        const composition_twiddles = try scheme.twiddle_source.getWithWorkRecorder(
             allocator,
             composition_log_size,
+            work_recorder,
         );
 
         var composition_eval = blk: {
@@ -305,6 +365,9 @@ fn proveExComponentsWithRecorder(
                 "Composition evaluation",
             );
             defer composition_eval_stage.end();
+            if (work_recorder) |work|
+                try work.expectProducer(.air_composition_on_domain);
+            // work-profile-plan:air-composition-on-domain
             break :blk try component_provers.computeCompositionEvaluationForBackend(
                 B,
                 allocator,
@@ -315,6 +378,7 @@ fn proveExComponentsWithRecorder(
             );
         };
         defer composition_eval.deinit(allocator);
+        completeAirCompositionWork(work_recorder, &composition_work_capture);
 
         var composition_split = blk: {
             var composition_interpolate_stage = try stage_profile.StageScope.begin(
@@ -323,12 +387,16 @@ fn proveExComponentsWithRecorder(
                 "Composition interpolate and split",
             );
             defer composition_interpolate_stage.end();
-            break :blk try prover_circle.secure_poly.interpolateAndSplitFromEvaluationWithTwiddlesForBackend(
+            if (work_recorder) |work|
+                try work.expectProducer(.secure_composition_interpolation_fft);
+            // work-profile-plan:secure-composition-interpolation-fft
+            break :blk try prover_circle.secure_poly.interpolateAndSplitFromEvaluationWithTwiddlesForBackendAndWorkRecorder(
                 B,
                 allocator,
                 canonic.CanonicCoset.new(composition_log_size).circleDomain(),
                 &composition_eval,
                 composition_twiddles,
+                work_recorder,
             );
         };
         defer composition_split.deinit(allocator);
@@ -353,6 +421,7 @@ fn proveExComponentsWithRecorder(
                 allocator,
                 &scheme,
                 composition_chunks.chunks,
+                recorder,
                 channel,
             );
         }
@@ -360,7 +429,6 @@ fn proveExComponentsWithRecorder(
 
     var components_view = try component_provers.componentsView(allocator);
     defer components_view.deinit(allocator);
-    const core_components = components_view.asCore();
 
     const OodsSampling = struct {
         point: CirclePointQM31,
@@ -373,12 +441,20 @@ fn proveExComponentsWithRecorder(
             "OODS point and mask points",
         );
         defer oods_stage.end();
+        if (work_recorder) |work| {
+            try work.expectProducer(.oods_seed_to_point);
+            // work-profile-plan:oods-seed-to-point
+            try work.expectProducer(.oods_mask_points);
+            // work-profile-plan:oods-mask-points
+        }
         const oods_point = circle.randomSecureFieldPoint(channel);
-        var sample_points = try core_components.maskPoints(
+        completeOodsSeedToPointWork(work_recorder);
+        var sample_points = try components_view.maskPointsWithWorkCapture(
             allocator,
             oods_point,
             max_log_degree_bound,
             include_all_preprocessed_columns,
+            if (work_recorder != null) &oods_mask_work_capture else null,
         );
         errdefer sample_points.deinitDeep(allocator);
         try appendCompositionMaskTree(
@@ -386,6 +462,11 @@ fn proveExComponentsWithRecorder(
             &sample_points,
             oods_point,
             composition_log_split,
+        );
+        completeOodsWork(
+            work_recorder,
+            &oods_mask_work_capture,
+            .mask_points,
         );
         break :blk OodsSampling{
             .point = oods_point,
@@ -416,24 +497,37 @@ fn proveExComponentsWithRecorder(
         );
         defer constraint_stage.end();
 
+        if (work_recorder) |work| {
+            try work.expectProducer(.oods_constraint_evaluation);
+            // work-profile-plan:oods-constraint-evaluation
+        }
+
         const composition_oods_eval = ext_proof.proof.extractCompositionOodsEvalWithSplit(
             oods_sampling.point,
             composition_log_size,
             composition_log_split,
         ) orelse return ProvingError.InvalidStructure;
 
-        const expected = try core_components.evalCompositionPolynomialAtPoint(
+        const expected = try components_view.evalCompositionPolynomialAtPointWithWorkCapture(
+            allocator,
             oods_sampling.point,
             &ext_proof.proof.commitment_scheme_proof.sampled_values,
             random_coeff,
             max_log_degree_bound,
+            composition_log_size,
+            composition_log_split,
+            if (work_recorder != null) &oods_constraint_work_capture else null,
+        );
+        completeOodsWork(
+            work_recorder,
+            &oods_constraint_work_capture,
+            .constraint_evaluation,
         );
         if (!composition_oods_eval.eql(expected)) return ProvingError.ConstraintsNotSatisfied;
     }
 
     return ext_proof;
 }
-
 fn proveComponents(
     comptime B: type,
     comptime H: type,
@@ -550,6 +644,7 @@ fn commitCompositionChunks(
     allocator: std.mem.Allocator,
     commitment_scheme: *pcs_prover.CommitmentSchemeProver(B, H, MC),
     chunks: []const prover_circle.SecureCirclePoly,
+    recorder: ?*stage_profile.Recorder,
     channel: anytype,
 ) !void {
     if (chunks.len == 0) return ProvingError.InvalidStructure;
@@ -573,7 +668,12 @@ fn commitCompositionChunks(
         }
     }
 
-    try commitment_scheme.commitPolys(allocator, polys, channel);
+    try commitment_scheme.commitPolysWithRecorder(
+        allocator,
+        polys,
+        recorder,
+        channel,
+    );
 }
 
 fn appendCompositionMaskTree(

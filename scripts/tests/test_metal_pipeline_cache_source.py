@@ -10,6 +10,7 @@ SOURCE_PATHS = (
     ROOT / "src/backends/metal/runtime/lifecycle_and_tree.m",
     ROOT / "src/backends/metal/runtime.m",
     ROOT / "src/backends/metal/runtime/runtime_queries.m",
+    ROOT / "src/backends/metal/runtime/object_model.h",
     ROOT / "src/backends/metal/runtime/abi.h",
 )
 ZIG_SOURCE_PATH = ROOT / "src/backends/metal/runtime.zig"

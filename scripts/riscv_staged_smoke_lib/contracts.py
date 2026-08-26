@@ -41,7 +41,7 @@ VERIFY_RECEIPT_FIELDS = {
 }
 BENCHMARK_REPORT_FIELDS = {
     "schema", "release_status", "mode", "experimental", "profiled",
-    "warmups", "samples", "verified_samples", "total_steps", "n_components",
+    "recursion_enabled", "warmups", "samples", "verified_samples", "total_steps", "n_components",
     "throughput_numerator", "median_seconds", "throughput_mhz",
     "mean_execution_seconds", "mean_witness_seconds", "mean_proving_seconds",
     "mean_verification_seconds", "sample_seconds", "statement_sha256",
@@ -324,10 +324,12 @@ def validate_benchmark_report(
     require_resource_availability: bool = True,
 ) -> None:
     exact_fields(payload, BENCHMARK_REPORT_FIELDS, "benchmark report")
-    if payload["schema"] != "riscv_proof_v2" or payload["mode"] != "bench":
+    if payload["schema"] != "riscv_proof_v3" or payload["mode"] != "bench":
         raise ContractError("benchmark report: schema/mode drifted")
     if payload["release_status"] != expected_status or payload["experimental"] is not experimental:
         raise ContractError("benchmark report: release/admission drifted")
+    if payload["recursion_enabled"] is not False:
+        raise ContractError("benchmark report: recursive cohort contamination")
     if payload["warmups"] != warmups or payload["samples"] != samples or \
             payload["verified_samples"] != samples:
         raise ContractError("benchmark report: sample accounting drifted")

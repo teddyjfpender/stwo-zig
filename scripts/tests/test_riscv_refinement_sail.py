@@ -136,13 +136,86 @@ class RefinementSailTest(unittest.TestCase):
             [source.stem for source in sail_lean_bridge.BRIDGE_SOURCES],
         )
         self.assertEqual(
-            [
+            set(
                 Path(call.args[0][-1]).relative_to(ROOT)
                 for call in kernel_run.call_args_list
-            ],
-            list(sail_lean_bridge.BRIDGE_SOURCES),
+            ),
+            set(sail_lean_bridge.BRIDGE_SOURCES),
+        )
+        self.assertEqual(
+            kernel_run.call_count,
+            len(sail_lean_bridge.BRIDGE_SOURCES),
         )
         self.assertEqual(environment, {"LEAN_PATH": "/tmp/formal-oleans"})
+
+    def test_live_bridge_dependency_graph_is_reviewed_and_topological(self) -> None:
+        paths = Paths(ROOT)
+        dependencies = sail_lean_bridge._bridge_source_dependencies(paths)
+        order = {
+            source: index
+            for index, source in enumerate(sail_lean_bridge.BRIDGE_SOURCES)
+        }
+        self.assertEqual(set(dependencies), set(sail_lean_bridge.BRIDGE_SOURCES))
+        for source, imported in dependencies.items():
+            with self.subTest(source=source):
+                self.assertTrue(
+                    all(order[dependency] < order[source] for dependency in imported)
+                )
+        self.assertEqual(
+            dependencies[sail_lean_bridge.PUBLICATION_SOURCE],
+            tuple(
+                sail_lean_bridge.BRIDGE_DIRECTORY / name
+                for name in (
+                    "PublicationAlu.lean",
+                    "PublicationCompare.lean",
+                    "PublicationShifts.lean",
+                    "PublicationControl.lean",
+                    "PublicationMemoryTheorem.lean",
+                    "PublicationMulDiv.lean",
+                )
+            ),
+        )
+
+    def test_live_bridge_rejects_a_forward_local_import(self) -> None:
+        sources = (Path("bridge/First.lean"), Path("bridge/Second.lean"))
+        with tempfile.TemporaryDirectory() as raw:
+            paths = Paths(Path(raw))
+            for source, text in zip(
+                sources,
+                ("import Second\n", "theorem clean : True := trivial\n"),
+                strict=True,
+            ):
+                absolute = paths.root / source
+                absolute.parent.mkdir(parents=True, exist_ok=True)
+                absolute.write_text(text, encoding="utf-8")
+            with (
+                mock.patch.object(sail_lean_bridge, "BRIDGE_SOURCES", sources),
+                self.assertRaisesRegex(
+                    RefinementError,
+                    "outside the reviewed dependency order",
+                ),
+            ):
+                sail_lean_bridge._bridge_source_dependencies(paths)
+
+    def test_live_bridge_worker_budget_reserves_lean_cpu_capacity(self) -> None:
+        for logical_cpus, expected in ((1, 1), (2, 1), (3, 2), (8, 4), (128, 4)):
+            with (
+                self.subTest(logical_cpus=logical_cpus),
+                mock.patch.object(
+                    sail_lean_bridge.os,
+                    "cpu_count",
+                    return_value=logical_cpus,
+                ),
+            ):
+                self.assertEqual(sail_lean_bridge._bridge_build_jobs(47), expected)
+        with mock.patch.object(
+            sail_lean_bridge.os,
+            "cpu_count",
+            return_value=128,
+        ):
+            self.assertEqual(sail_lean_bridge._bridge_build_jobs(2), 2)
+        with self.assertRaisesRegex(RefinementError, "closure is empty"):
+            sail_lean_bridge._bridge_build_jobs(0)
 
     def test_live_bridge_scans_every_declared_source_for_escapes(self) -> None:
         sources = (Path("bridge/First.lean"), Path("bridge/Second.lean"))

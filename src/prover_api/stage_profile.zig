@@ -1,8 +1,21 @@
 //! Stable hierarchical prover-stage telemetry schema and recorder.
 
 const std = @import("std");
+const task_profile = @import("task_profile.zig");
+const work_profile = @import("work_profile.zig");
 
 pub const SCHEMA_VERSION: u32 = 1;
+
+pub const RecorderOptions = struct {
+    /// Flat task capture is opt-in independently from hierarchical stage
+    /// timing. Disabling it keeps stage boundaries available while ensuring
+    /// bounded graphs receive no recorder and therefore allocate or sample no
+    /// task-profile state.
+    capture_tasks: bool = true,
+    /// Exact logical work is a separate opt-in capability. The ordinary
+    /// recorder path never exposes its state to prover operation boundaries.
+    capture_work: bool = false,
+};
 
 pub const StageNode = struct {
     id: []const u8,
@@ -69,11 +82,24 @@ pub const Recorder = struct {
     example: []const u8,
     roots: std.ArrayList(*MutableNode),
     stack: std.ArrayList(*MutableNode),
+    task_recorder: task_profile.Recorder,
+    work_recorder: work_profile.Recorder(true),
+    capture_tasks: bool,
+    capture_work: bool,
 
     pub fn init(
         allocator: std.mem.Allocator,
         runtime: []const u8,
         example: []const u8,
+    ) Recorder {
+        return initWithOptions(allocator, runtime, example, .{});
+    }
+
+    pub fn initWithOptions(
+        allocator: std.mem.Allocator,
+        runtime: []const u8,
+        example: []const u8,
+        options: RecorderOptions,
     ) Recorder {
         return .{
             .allocator = allocator,
@@ -81,6 +107,10 @@ pub const Recorder = struct {
             .example = example,
             .roots = std.ArrayList(*MutableNode).empty,
             .stack = std.ArrayList(*MutableNode).empty,
+            .task_recorder = task_profile.Recorder.init(allocator, runtime, example),
+            .work_recorder = .{},
+            .capture_tasks = options.capture_tasks,
+            .capture_work = options.capture_work,
         };
     }
 
@@ -91,6 +121,7 @@ pub const Recorder = struct {
         }
         self.roots.deinit(self.allocator);
         self.stack.deinit(self.allocator);
+        self.task_recorder.deinit();
         self.* = undefined;
     }
 
@@ -101,6 +132,66 @@ pub const Recorder = struct {
             .example = self.example,
             .stages = try snapshotNodes(allocator, self.roots.items),
         };
+    }
+
+    /// Compatibility reservation for producers without semantic attribution.
+    /// Existing stage timing remains independent from this reservation.
+    pub fn reserveTaskGraph(
+        self: *Recorder,
+        event_count: usize,
+        component_work_count: usize,
+    ) !task_profile.PendingGraph {
+        return self.task_recorder.reserveTaskGraph(event_count, component_work_count);
+    }
+
+    /// Reserves exact schema-v2 event, contribution, and aggregate storage
+    /// before launch.
+    pub fn reserveTaskGraphShape(
+        self: *Recorder,
+        shape: task_profile.ReservationShape,
+    ) !task_profile.PendingGraph {
+        return self.task_recorder.reserveTaskGraphShape(shape);
+    }
+
+    /// Moves a fully joined task graph into the separate flat recorder without
+    /// allocation or event copying.
+    pub fn publishTaskGraphAfterJoin(
+        self: *Recorder,
+        pending: *task_profile.PendingGraph,
+        header: task_profile.GraphHeader,
+        summary: task_profile.RequestSummary,
+    ) !void {
+        try self.task_recorder.publishTaskGraphAfterJoin(pending, header, summary);
+    }
+
+    pub fn taskSnapshot(
+        self: *const Recorder,
+        allocator: std.mem.Allocator,
+    ) !task_profile.TaskProfile {
+        return self.task_recorder.snapshot(allocator);
+    }
+
+    /// Returns the recorder only when flat task capture is enabled. Prover
+    /// orchestration calls this once before composition dispatch; workers and
+    /// disabled graph execution never branch on the option.
+    pub fn taskCaptureRecorder(self: *Recorder) ?*Recorder {
+        return if (self.capture_tasks) self else null;
+    }
+
+    /// Returns one request-scoped exact-work capability only on the explicitly
+    /// profiled path. Callers cache this pointer at a whole-operation boundary;
+    /// no field/SIMD inner loop observes the option.
+    pub fn workCaptureRecorder(
+        self: *Recorder,
+    ) ?*work_profile.Recorder(true) {
+        return if (self.capture_work) &self.work_recorder else null;
+    }
+
+    /// Produces an unavailable receipt for the ordinary path and for an opted-
+    /// in request before any source boundary has published completed work.
+    pub fn workSnapshot(self: *Recorder) work_profile.Error!work_profile.Profile {
+        if (!self.capture_work) return work_profile.Profile.unavailable();
+        return self.work_recorder.snapshot();
     }
 
     fn pushStage(self: *Recorder, id: []const u8, label: []const u8) !*MutableNode {
@@ -207,4 +298,81 @@ test "prover stage profile: preserves nested order" {
     try std.testing.expectEqual(@as(usize, 2), children.len);
     try std.testing.expectEqualStrings("inner_a", children[0].id);
     try std.testing.expectEqualStrings("inner_b", children[1].id);
+}
+
+test "prover stage profile: task publication propagates capability errors" {
+    const allocator = std.testing.allocator;
+    var owner = Recorder.init(allocator, "zig", "owner");
+    defer owner.deinit();
+    var other = Recorder.init(allocator, "zig", "other");
+    defer other.deinit();
+
+    var pending = try owner.reserveTaskGraph(0, 0);
+    defer pending.deinit();
+    try std.testing.expectError(
+        error.TaskGraphReservationWrongRecorder,
+        other.publishTaskGraphAfterJoin(
+            &pending,
+            .{ .graph_id = "wrong" },
+            .{},
+        ),
+    );
+    try owner.publishTaskGraphAfterJoin(
+        &pending,
+        .{ .graph_id = "owner" },
+        .{},
+    );
+}
+
+test "prover stage profile: stage-only recorder suppresses flat task capture" {
+    const allocator = std.testing.allocator;
+    var recorder = Recorder.initWithOptions(
+        allocator,
+        "zig",
+        "stage-only",
+        .{ .capture_tasks = false },
+    );
+    defer recorder.deinit();
+
+    try std.testing.expect(recorder.taskCaptureRecorder() == null);
+    var scope = try StageScope.begin(&recorder, "outer", "Outer");
+    scope.end();
+
+    var stages = try recorder.snapshot(allocator);
+    defer stages.deinit(allocator);
+    try std.testing.expectEqual(@as(usize, 1), stages.stages.len);
+
+    var tasks = try recorder.taskSnapshot(allocator);
+    defer tasks.deinit(allocator);
+    try std.testing.expectEqual(@as(usize, 0), tasks.graphs.len);
+    try std.testing.expect(recorder.workCaptureRecorder() == null);
+    const work = try recorder.workSnapshot();
+    try work.validate();
+    try std.testing.expect(!work.completeExact());
+}
+
+test "prover stage profile: exact work capability is independently opt in" {
+    const allocator = std.testing.allocator;
+    var recorder = Recorder.initWithOptions(
+        allocator,
+        "zig",
+        "work-profile",
+        .{ .capture_tasks = false, .capture_work = true },
+    );
+    defer recorder.deinit();
+
+    const work = recorder.workCaptureRecorder() orelse unreachable;
+    try work.record(.{
+        .producer = .column_preparation_fft,
+        .source_mask = work_profile.SourceMask.one(.fft_butterflies),
+        .counters = .{ .fft_butterflies = 32 },
+    });
+    const snapshot = try recorder.workSnapshot();
+    try snapshot.validate();
+    try std.testing.expectEqual(@as(u64, 32), snapshot.counters.fft_butterflies);
+    try std.testing.expect(!snapshot.completeExact());
+}
+
+test {
+    _ = @import("task_profile_reservation_test.zig");
 }

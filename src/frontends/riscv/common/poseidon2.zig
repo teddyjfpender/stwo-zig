@@ -1,5 +1,6 @@
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
+const poseidon_work = @import("../prover/poseidon_witness_work.zig");
 
 pub const STATE_WIDTH: usize = 16;
 pub const N_FULL_ROUNDS_FIRST: usize = 4;
@@ -34,6 +35,31 @@ pub fn permute(state: *State) void {
         sboxFull(state);
         externalLinearLayer(state);
     }
+}
+
+pub const PermutationWithWorkReceipt = struct {
+    state: State,
+    receipt: poseidon_work.ProducerReceipt,
+};
+
+/// Explicit receipt surface for the retained common implementation.  The
+/// shipping RISC-V prover has no callsite for it; callers cannot accidentally
+/// report its 1,382-add schedule as the active Stark-V 1,418-add schedule.
+pub fn permuteWithWorkReceipt(
+    state: State,
+    authority: *const poseidon_work.Authority,
+) !PermutationWithWorkReceipt {
+    try authority.validate();
+    var output = state;
+    permute(&output);
+    return .{
+        .state = output,
+        .receipt = try poseidon_work.complete(
+            authority,
+            .legacy_common_trace,
+            1,
+        ),
+    };
 }
 
 /// S-box: x^5 in M31.
@@ -205,6 +231,27 @@ pub fn permuteTraced(state: *State) PermuteTrace {
     }
 
     return trace;
+}
+
+pub const TracedPermutationWithWorkReceipt = struct {
+    trace: PermuteTrace,
+    receipt: poseidon_work.ProducerReceipt,
+};
+
+pub fn permuteTracedWithWorkReceipt(
+    state: *State,
+    authority: *const poseidon_work.Authority,
+) !TracedPermutationWithWorkReceipt {
+    try authority.validate();
+    const trace = permuteTraced(state);
+    return .{
+        .trace = trace,
+        .receipt = try poseidon_work.complete(
+            authority,
+            .legacy_common_trace,
+            1,
+        ),
+    };
 }
 
 // ---------------------------------------------------------------------------

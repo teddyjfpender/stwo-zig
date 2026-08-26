@@ -5,6 +5,7 @@ const m31 = @import("stwo_core").fields.m31;
 const canonic = @import("stwo_core").poly.circle.canonic;
 const prover_circle = @import("../../poly/circle/mod.zig");
 const stage_profile = @import("stwo_prover_api").stage_profile;
+const work_profile = @import("stwo_prover_api").work_profile;
 const twiddle_source_mod = @import("../../poly/twiddle_source.zig");
 const commitment_tree = @import("../commitment_tree.zig");
 const circle_transforms = @import("circle_transforms.zig");
@@ -15,6 +16,14 @@ const ColumnEvaluation = commitment_tree.ColumnEvaluation;
 const CoefficientRetentionPolicy = column_storage.CoefficientRetentionPolicy;
 const PreparedCommitmentColumns = column_storage.PreparedCommitmentColumns;
 const TwiddleSource = twiddle_source_mod.TwiddleSource;
+const WorkRecorder = work_profile.Recorder(true);
+
+const PreparationWorkPlan = enum {
+    passthrough,
+    interpolate_only,
+    interpolate_and_extend,
+    combined,
+};
 
 pub fn columnEvaluationsAreConstant(columns: []const ColumnEvaluation) bool {
     if (columns.len == 0) return false;
@@ -107,6 +116,7 @@ pub fn prepareColumnsForCommitBorrowedForBackend(
         retention_policy,
         twiddle_source,
         null,
+        null,
     );
 }
 
@@ -123,17 +133,41 @@ pub fn prepareColumnsForCommitOwnedForBackend(
     /// are not contiguous inside it still get their own coefficient buffer.
     source_arena: ?[]M31,
 ) !PreparedCommitmentColumns {
+    const work_recorder: ?*WorkRecorder = if (recorder) |active|
+        active.workCaptureRecorder()
+    else
+        null;
+    return prepareColumnsForCommitOwnedForBackendWithWorkRecorder(
+        B,
+        allocator,
+        owned_columns,
+        log_blowup_factor,
+        retention_policy,
+        twiddle_source,
+        recorder,
+        source_arena,
+        work_recorder,
+    );
+}
+
+/// Variant for a deferred commitment worker. Stage timing remains on its
+/// owning thread while the independently synchronized work recorder can cross
+/// the join boundary safely.
+pub fn prepareColumnsForCommitOwnedForBackendWithWorkRecorder(
+    comptime B: type,
+    allocator: std.mem.Allocator,
+    owned_columns: []ColumnEvaluation,
+    log_blowup_factor: u32,
+    retention_policy: CoefficientRetentionPolicy,
+    twiddle_source: *TwiddleSource,
+    recorder: ?*stage_profile.Recorder,
+    source_arena: ?[]M31,
+    work_recorder: ?*WorkRecorder,
+) !PreparedCommitmentColumns {
     const retain_coefficients = column_storage.shouldRetainCoefficients(owned_columns, retention_policy);
     if (source_arena != null and (log_blowup_factor == 0 or
         !(comptime @hasDecl(B, "interpolateAndEvaluateCircleBuffers"))))
         return error.UnsupportedTraceArena;
-    if (log_blowup_factor == 0 and !retain_coefficients) {
-        return .{
-            .columns = owned_columns,
-            .coefficients = null,
-        };
-    }
-
     const combined_commit_min_columns = if (comptime @hasDecl(B, "combined_commit_min_columns"))
         B.combined_commit_min_columns
     else
@@ -142,11 +176,30 @@ pub fn prepareColumnsForCommitOwnedForBackend(
         B.combined_commit_max_columns
     else
         std.math.maxInt(usize);
-    if (log_blowup_factor != 0 and
+    const work_plan: PreparationWorkPlan = if (log_blowup_factor == 0 and
+        !retain_coefficients)
+        .passthrough
+    else if (log_blowup_factor != 0 and
         (comptime @hasDecl(B, "interpolateAndEvaluateCircleBuffers")) and
         owned_columns.len >= combined_commit_min_columns and
         owned_columns.len <= combined_commit_max_columns)
-    {
+        .combined
+    else if (log_blowup_factor == 0)
+        .interpolate_only
+    else
+        .interpolate_and_extend;
+    try planPreparationWork(work_recorder, work_plan);
+
+    if (work_plan == .passthrough) {
+        try recordFftButterflies(work_recorder, .column_passthrough_fft, 0);
+        // work-profile-complete:column-passthrough-fft
+        return .{
+            .columns = owned_columns,
+            .coefficients = null,
+        };
+    }
+
+    if (work_plan == .combined) {
         return prepareColumnsCombinedForBackend(
             B,
             allocator,
@@ -155,11 +208,12 @@ pub fn prepareColumnsForCommitOwnedForBackend(
             retain_coefficients,
             twiddle_source,
             source_arena,
+            work_recorder,
         );
     }
     if (source_arena != null) return error.UnsupportedTraceArena;
 
-    if (log_blowup_factor == 0) {
+    if (work_plan == .interpolate_only) {
         {
             var interpolate_stage = try stage_profile.StageScope.begin(
                 recorder,
@@ -167,7 +221,14 @@ pub fn prepareColumnsForCommitOwnedForBackend(
                 "Interpolate columns",
             );
             defer interpolate_stage.end();
-            const result = try circle_transforms.interpolateCoefficientColumns(allocator, owned_columns, twiddle_source);
+            var result = try circle_transforms.interpolateCoefficientColumns(
+                allocator,
+                owned_columns,
+                twiddle_source,
+                work_recorder,
+            );
+            errdefer result.deinit(allocator);
+            // work-profile-complete:column-interpolate-only-fft
             return .{
                 .columns = owned_columns,
                 .coefficients = result.coefficients,
@@ -183,10 +244,17 @@ pub fn prepareColumnsForCommitOwnedForBackend(
             "Interpolate columns",
         );
         defer interpolate_stage.end();
-        break :blk try circle_transforms.interpolateOwnedColumnsForExtensionForBackend(B, allocator, owned_columns, twiddle_source);
+        break :blk try circle_transforms.interpolateOwnedColumnsForExtensionForBackend(
+            B,
+            allocator,
+            owned_columns,
+            twiddle_source,
+            work_recorder,
+        );
     };
     errdefer column_storage.deinitOwnedCoefficientColumns(allocator, coeffs);
     allocator.free(owned_columns);
+    // work-profile-complete:column-interpolate-for-extension-fft
 
     const extended = blk: {
         var eval_stage = try stage_profile.StageScope.begin(
@@ -201,8 +269,12 @@ pub fn prepareColumnsForCommitOwnedForBackend(
             coeffs,
             log_blowup_factor,
             twiddle_source,
+            work_recorder,
+            .column_extension_fft,
         );
     };
+    errdefer column_storage.freeOwnedColumnEvaluations(allocator, extended);
+    // work-profile-complete:column-extension-fft
 
     if (!retain_coefficients) {
         column_storage.deinitOwnedCoefficientColumns(allocator, coeffs);
@@ -226,7 +298,9 @@ fn prepareColumnsCombinedForBackend(
     retain_coefficients: bool,
     twiddle_source: *TwiddleSource,
     source_arena: ?[]M31,
+    work_recorder: ?*WorkRecorder,
 ) !PreparedCommitmentColumns {
+    var completed_work: work_profile.Counters = .{};
     const extended = try allocator.alloc(ColumnEvaluation, owned_columns.len);
     for (extended) |*column| column.* = .{ .log_size = 0, .values = &.{} };
     errdefer allocator.free(extended);
@@ -310,8 +384,16 @@ fn prepareColumnsCombinedForBackend(
             return error.ShapeMismatch;
         const base_domain = canonic.CanonicCoset.new(group.log_size).circleDomain();
         const extended_domain = canonic.CanonicCoset.new(extended_log_size).circleDomain();
-        const base_twiddles = try twiddle_source.get(allocator, group.log_size);
-        const extended_twiddles = try twiddle_source.get(allocator, extended_log_size);
+        const base_twiddles = try twiddle_source.getWithWorkRecorder(
+            allocator,
+            group.log_size,
+            work_recorder,
+        );
+        const extended_twiddles = try twiddle_source.getWithWorkRecorder(
+            allocator,
+            extended_log_size,
+            work_recorder,
+        );
 
         const column_count = group.indices.items.len;
         const base_in_place = comptime @hasDecl(B, "combined_base_in_place") and
@@ -379,19 +461,29 @@ fn prepareColumnsCombinedForBackend(
             extended_values[group_index] = values;
             extended[column_index] = .{ .log_size = extended_log_size, .values = values };
         }
-        try B.interpolateAndEvaluateCircleBuffers(
-            allocator,
-            source_values,
-            base_values,
-            extended_values,
-            transform_buffer,
-            extended_start,
-            extended_stride,
-            base_domain,
-            base_twiddles,
-            extended_domain,
-            extended_twiddles,
-        );
+        const execution: work_profile.M31CircleLdeExecution =
+            try B.interpolateAndEvaluateCircleBuffers(
+                allocator,
+                source_values,
+                base_values,
+                extended_values,
+                transform_buffer,
+                extended_start,
+                extended_stride,
+                base_domain,
+                base_twiddles,
+                extended_domain,
+                extended_twiddles,
+            );
+        if (work_recorder != null) {
+            try validateCombinedExecution(
+                execution,
+                group.log_size,
+                extended_log_size,
+                column_count,
+            );
+            completed_work = try completed_work.add(try execution.exactWork());
+        }
 
         for (group.indices.items, base_values) |column_index, base| {
             coefficients[column_index] = if (base_in_place) blk: {
@@ -403,6 +495,13 @@ fn prepareColumnsCombinedForBackend(
         }
     }
     std.debug.assert(transform_arena_cursor == transform_arena.len);
+    try recordM31TransformCompletion(
+        work_recorder,
+        .column_combined_fft,
+        if (work_recorder != null) completed_work else null,
+        0,
+    );
+    // work-profile-complete:column-combined-fft
 
     if (source_arena) |arena| {
         // Column values borrow the arena; the arena is released exactly once,
@@ -443,6 +542,136 @@ fn prepareColumnsCombinedForBackend(
     };
 }
 
+pub fn coefficientExtensionFftButterflies(
+    comptime B: type,
+    coefficients: []const prover_circle.CircleCoefficients,
+    log_blowup_factor: u32,
+) !u64 {
+    var total: u64 = 0;
+    for (coefficients) |coefficient| {
+        const extended_log_size = std.math.add(
+            u32,
+            coefficient.logSize(),
+            log_blowup_factor,
+        ) catch return error.CounterOverflow;
+        // Generic backend hooks consume materialized zero tails and perform a
+        // full FFT. The host engine alone uses its exact-2x degenerate-layer
+        // specialization, and small domains deliberately fall back to full.
+        const skipped_layers: u32 = if (!(comptime @hasDecl(B, "evaluateCircleBuffers")) and
+            log_blowup_factor == 1 and extended_log_size > 2)
+            1
+        else
+            0;
+        total = std.math.add(
+            u64,
+            total,
+            try work_profile.logicalFftButterflies(extended_log_size, skipped_layers),
+        ) catch return error.CounterOverflow;
+    }
+    return total;
+}
+
+fn validateCombinedExecution(
+    execution: work_profile.M31CircleLdeExecution,
+    base_log_size: u32,
+    extended_log_size: u32,
+    column_count: usize,
+) !void {
+    try execution.validate();
+    const columns = std.math.cast(u64, column_count) orelse
+        return error.CounterOverflow;
+    if (execution.interpolation.log_size != base_log_size or
+        execution.interpolation.column_count != columns or
+        execution.forward.log_size != extended_log_size or
+        execution.forward.column_count != columns)
+    {
+        return error.InvalidProducerCoverage;
+    }
+}
+
+pub fn recordFftButterflies(
+    recorder: ?*WorkRecorder,
+    site: work_profile.Site,
+    count: u64,
+) !void {
+    return recordM31TransformCompletion(recorder, site, null, count);
+}
+
+/// Records the complete scalar-field work of a forward M31 FFT together with
+/// its logical butterfly count. This intentionally excludes interpolation
+/// normalization/inversion, whose formula is a separate producer boundary.
+pub fn recordM31ForwardFftWork(
+    recorder: ?*WorkRecorder,
+    site: work_profile.Site,
+    butterflies: u64,
+) !void {
+    if (recorder == null) return;
+    const fields = try work_profile.logicalM31ForwardFftFieldOperations(
+        butterflies,
+    );
+    return recordM31TransformCompletion(
+        recorder,
+        site,
+        .{
+            .field_additions = fields.additions,
+            .field_multiplications = fields.multiplications,
+            .field_inversions = fields.inversions,
+            .fft_butterflies = butterflies,
+        },
+        butterflies,
+    );
+}
+
+fn recordM31TransformCompletion(
+    recorder: ?*WorkRecorder,
+    site: work_profile.Site,
+    exact_work: ?work_profile.Counters,
+    diagnostic_butterflies: u64,
+) !void {
+    const active = recorder orelse return;
+    try active.recordCompletedDelta(.{
+        .site = site,
+        .producer = work_profile.boundaryForSite(site),
+        .source_mask = if (exact_work != null)
+            .{ .bits = work_profile.SourceMask.one(.field_additions).bits |
+                work_profile.SourceMask.one(.field_multiplications).bits |
+                work_profile.SourceMask.one(.field_inversions).bits |
+                work_profile.SourceMask.one(.fft_butterflies).bits }
+        else
+            work_profile.SourceMask.one(.fft_butterflies),
+        .counters = exact_work orelse .{
+            .fft_butterflies = diagnostic_butterflies,
+        },
+    });
+}
+
+fn planPreparationWork(
+    recorder: ?*WorkRecorder,
+    plan: PreparationWorkPlan,
+) !void {
+    const active = recorder orelse return;
+    switch (plan) {
+        .passthrough => {
+            try active.expectProducer(.column_passthrough_fft);
+            // work-profile-plan:column-passthrough-fft
+        },
+        .interpolate_only => {
+            try active.expectProducer(.column_interpolate_only_fft);
+            // work-profile-plan:column-interpolate-only-fft
+        },
+        .interpolate_and_extend => {
+            try active.expectProducer(.column_interpolate_for_extension_fft);
+            // work-profile-plan:column-interpolate-for-extension-fft
+            try active.expectProducer(.column_extension_fft);
+            // work-profile-plan:column-extension-fft
+        },
+        .combined => {
+            try active.expectProducer(.column_combined_fft);
+            // work-profile-plan:column-combined-fft
+        },
+    }
+}
+
 /// Returns the arena run that already holds this group's columns, in group
 /// order, or null when the group is not one contiguous run inside the arena.
 /// The no-copy device binding rests on this being checked, not assumed.
@@ -466,4 +695,20 @@ fn arenaGroupRun(
         if (column.values.ptr != arena.ptr + start + position * column_len) return null;
     }
     return arena[start..][0..words];
+}
+
+test "column preparation: combined backend receipts are bound to request geometry" {
+    const execution = work_profile.M31CircleLdeExecution{
+        .interpolation = .{ .log_size = 3, .column_count = 2, .batch_count = 1 },
+        .forward = .{ .log_size = 4, .column_count = 2, .skipped_layers = 1 },
+    };
+    try validateCombinedExecution(execution, 3, 4, 2);
+    try std.testing.expectError(
+        error.InvalidProducerCoverage,
+        validateCombinedExecution(execution, 3, 5, 2),
+    );
+    try std.testing.expectError(
+        error.InvalidProducerCoverage,
+        validateCombinedExecution(execution, 3, 4, 3),
+    );
 }

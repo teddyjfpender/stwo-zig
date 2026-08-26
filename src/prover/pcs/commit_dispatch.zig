@@ -1,6 +1,7 @@
 //! Optional commitment fast paths kept outside the size-bounded scheme driver.
 
 const std = @import("std");
+const work_profile = @import("stwo_prover_api").work_profile;
 const column_preparation = @import("columns/preparation.zig");
 const column_storage = @import("columns/storage.zig");
 const commitment_tree = @import("commitment_tree.zig");
@@ -11,6 +12,7 @@ pub fn commitConstant(
     scheme: anytype,
     allocator: std.mem.Allocator,
     owned_columns: []commitment_tree.ColumnEvaluation,
+    work_recorder: ?*work_profile.Recorder(true),
     channel: anytype,
 ) !void {
     const BackendCommitmentTree = commitment_tree.CommitmentTreeProverForBackend(B, H);
@@ -22,10 +24,13 @@ pub fn commitConstant(
         scheme.coefficient_retention_policy,
     );
     errdefer prepared.deinit(allocator);
-    var tree = try BackendCommitmentTree.initOwnedWithCoefficients(
+    var tree = try BackendCommitmentTree.initOwnedWithBackingAndWorkRecorder(
         allocator,
         prepared.columns,
         prepared.coefficients,
+        null,
+        null,
+        work_recorder,
     );
     errdefer tree.deinit(allocator);
     return scheme.appendCommittedTree(allocator, tree, channel);
@@ -41,6 +46,7 @@ pub fn tryPrecommitted(
     twiddle_source: anytype,
     source_backing_buffers: ?[][]@import("stwo_core").fields.m31.M31,
     source: @import("column_source.zig").ColumnSource,
+    work_recorder: ?*work_profile.Recorder(true),
 ) !?commitment_tree.CommitmentTreeProverForBackend(B, H) {
     if (comptime !@hasDecl(B, "prepareAndCommitOwned")) return null;
     // The public commit contract owns `owned_columns` on every error.  A
@@ -51,7 +57,34 @@ pub fn tryPrecommitted(
         for (buffers) |buffer| allocator.free(buffer);
         allocator.free(buffers);
     } else column_storage.freeOwnedColumnEvaluations(allocator, owned_columns);
-    const prepared = (try B.prepareAndCommitOwned(
+    const maybe_prepared = if (work_recorder) |active| blk: {
+        if (comptime @hasDecl(B, "prepareAndCommitOwnedWithWorkRecorder")) {
+            break :blk try B.prepareAndCommitOwnedWithWorkRecorder(
+                H,
+                allocator,
+                owned_columns,
+                log_blowup_factor,
+                retention_policy,
+                twiddle_source,
+                source_backing_buffers,
+                source,
+                active,
+            );
+        }
+        // Legacy hooks cannot attest whether a dynamic decline happened before
+        // or after dispatch, so their profiled attempts remain fail-closed.
+        active.markIncomplete();
+        break :blk try B.prepareAndCommitOwned(
+            H,
+            allocator,
+            owned_columns,
+            log_blowup_factor,
+            retention_policy,
+            twiddle_source,
+            source_backing_buffers,
+            source,
+        );
+    } else try B.prepareAndCommitOwned(
         H,
         allocator,
         owned_columns,
@@ -60,7 +93,8 @@ pub fn tryPrecommitted(
         twiddle_source,
         source_backing_buffers,
         source,
-    )) orelse return null;
+    );
+    const prepared = maybe_prepared orelse return null;
     const backing_teardown = if (comptime @hasField(@TypeOf(prepared), "backing_teardown"))
         prepared.backing_teardown
     else
@@ -83,16 +117,39 @@ pub fn tryPrecommittedPolys(
     log_blowup_factor: u32,
     retention_policy: anytype,
     twiddle_source: anytype,
+    work_recorder: ?*work_profile.Recorder(true),
 ) !?commitment_tree.CommitmentTreeProverForBackend(B, H) {
     if (comptime !@hasDecl(B, "prepareAndCommitPolys")) return null;
-    const prepared = (try B.prepareAndCommitPolys(
+    const maybe_prepared = if (work_recorder) |active| blk: {
+        if (comptime @hasDecl(B, "prepareAndCommitPolysWithWorkRecorder")) {
+            break :blk try B.prepareAndCommitPolysWithWorkRecorder(
+                H,
+                allocator,
+                polys,
+                log_blowup_factor,
+                retention_policy,
+                twiddle_source,
+                active,
+            );
+        }
+        active.markIncomplete();
+        break :blk try B.prepareAndCommitPolys(
+            H,
+            allocator,
+            polys,
+            log_blowup_factor,
+            retention_policy,
+            twiddle_source,
+        );
+    } else try B.prepareAndCommitPolys(
         H,
         allocator,
         polys,
         log_blowup_factor,
         retention_policy,
         twiddle_source,
-    )) orelse return null;
+    );
+    const prepared = maybe_prepared orelse return null;
     const backing_teardown = if (comptime @hasField(@TypeOf(prepared), "backing_teardown"))
         prepared.backing_teardown
     else

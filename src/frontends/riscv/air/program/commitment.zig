@@ -5,6 +5,7 @@ const M31 = @import("stwo_core").fields.m31.M31;
 const infra = @import("../../infra_trace.zig");
 const memory_state = @import("../../runner/memory_state.zig");
 const sparse_merkle = @import("../memory_commitment/sparse_merkle.zig");
+const poseidon_work = @import("../../prover/poseidon_witness_work.zig");
 const profile = @import("../../isa/profile.zig");
 const decode = @import("decode.zig");
 const table = @import("table.zig");
@@ -32,6 +33,20 @@ pub const Commitment = struct {
 
     pub fn validate(self: Commitment, allocator: std.mem.Allocator) !void {
         try self.tree.validate(allocator);
+        try self.validateRows();
+    }
+
+    pub fn validateWithWorkReceipt(
+        self: Commitment,
+        allocator: std.mem.Allocator,
+        authority: *const poseidon_work.Authority,
+    ) !poseidon_work.ProducerReceipt {
+        const receipt = try self.tree.validateWithWorkReceipt(allocator, authority);
+        try self.validateRows();
+        return receipt;
+    }
+
+    fn validateRows(self: Commitment) !void {
         if (self.rows.len * 4 != self.tree.leaves.len) return error.InvalidProgramCommitment;
         for (self.rows, 0..) |row, index| {
             profile.requireProgramWordAddress(row.addr) catch
@@ -45,6 +60,15 @@ pub const Commitment = struct {
         }
     }
 };
+
+pub const BuiltWithWorkReceipt = struct {
+    commitment: Commitment,
+    work: poseidon_work.Shard,
+};
+
+fn BuildResult(comptime capture_work: bool) type {
+    return if (capture_work) BuiltWithWorkReceipt else Commitment;
+}
 
 pub const Columns = struct {
     values: [N_MAIN_COLUMNS][]M31,
@@ -62,6 +86,25 @@ pub fn build(
     fetches: []const table.Fetch,
     program_words: []const memory_state.WordState,
 ) !Commitment {
+    return buildFromFetches(false, allocator, fetches, program_words, null);
+}
+
+pub fn buildWithWorkReceipt(
+    allocator: std.mem.Allocator,
+    fetches: []const table.Fetch,
+    program_words: []const memory_state.WordState,
+    authority: *const poseidon_work.Authority,
+) !BuiltWithWorkReceipt {
+    return buildFromFetches(true, allocator, fetches, program_words, authority);
+}
+
+fn buildFromFetches(
+    comptime capture_work: bool,
+    allocator: std.mem.Allocator,
+    fetches: []const table.Fetch,
+    program_words: []const memory_state.WordState,
+    authority: ?*const poseidon_work.Authority,
+) !BuildResult(capture_work) {
     var fetch_table = try table.generate(allocator, fetches);
     defer fetch_table.deinit();
     var fetch_by_addr = std.AutoHashMap(u32, table.Row).init(allocator);
@@ -99,7 +142,7 @@ pub fn build(
         });
     }
     if (pending.items.len == 0) return error.EmptyProgramCommitment;
-    return finishCommitment(allocator, &pending);
+    return finishCommitment(capture_work, allocator, &pending, authority);
 }
 
 /// Builds the declared-program commitment directly from execution rows.
@@ -116,6 +159,105 @@ pub fn buildDeclared(
     program_words: []const memory_state.WordState,
     extra_fetch: ?table.Fetch,
 ) !Commitment {
+    return buildDeclaredFromSources(
+        false,
+        allocator,
+        .base,
+        .{execution_rows},
+        program_words,
+        extra_fetch,
+        null,
+    );
+}
+
+pub fn buildDeclaredWithWorkReceipt(
+    allocator: std.mem.Allocator,
+    execution_rows: anytype,
+    program_words: []const memory_state.WordState,
+    extra_fetch: ?table.Fetch,
+    authority: *const poseidon_work.Authority,
+) !BuiltWithWorkReceipt {
+    return buildDeclaredFromSources(
+        true,
+        allocator,
+        .base,
+        .{execution_rows},
+        program_words,
+        extra_fetch,
+        authority,
+    );
+}
+
+/// Builds a declared-program commitment for an admitted extension profile.
+///
+/// `base_execution_rows` and `extension_execution_rows` are heterogeneous
+/// slices whose elements expose `pc` and `inst_word`. They are consumed as two
+/// borrowed streams by the same accumulator; no concatenated fetch buffer is
+/// allocated. Declared words, including unfetched words, are decoded under the
+/// selected profile before the Merkle tree is built.
+pub fn buildDeclaredForProfile(
+    allocator: std.mem.Allocator,
+    selected_profile: decode.ExecutionProfile,
+    base_execution_rows: anytype,
+    extension_execution_rows: anytype,
+    program_words: []const memory_state.WordState,
+    extra_fetch: ?table.Fetch,
+) !Commitment {
+    return buildDeclaredFromSources(
+        false,
+        allocator,
+        .{ .profile = selected_profile },
+        .{ base_execution_rows, extension_execution_rows },
+        program_words,
+        extra_fetch,
+        null,
+    );
+}
+
+pub fn buildDeclaredForProfileWithWorkReceipt(
+    allocator: std.mem.Allocator,
+    selected_profile: decode.ExecutionProfile,
+    base_execution_rows: anytype,
+    extension_execution_rows: anytype,
+    program_words: []const memory_state.WordState,
+    extra_fetch: ?table.Fetch,
+    authority: *const poseidon_work.Authority,
+) !BuiltWithWorkReceipt {
+    return buildDeclaredFromSources(
+        true,
+        allocator,
+        .{ .profile = selected_profile },
+        .{ base_execution_rows, extension_execution_rows },
+        program_words,
+        extra_fetch,
+        authority,
+    );
+}
+
+const DeclaredDecodeAuthority = union(enum) {
+    base,
+    profile: decode.ExecutionProfile,
+
+    fn decodeWord(self: DeclaredDecodeAuthority, word: u32) !decode.ProgramValues {
+        return switch (self) {
+            .base => decode.decodeProgramWord(word),
+            .profile => |selected_profile| decode.decodeProgramWordForProfile(
+                selected_profile,
+                word,
+            ),
+        };
+    }
+};
+
+fn buildDeclaredFromSources(
+    comptime capture_work: bool,
+    allocator: std.mem.Allocator,
+    decoder: DeclaredDecodeAuthority,
+    execution_sources: anytype,
+    program_words: []const memory_state.WordState,
+    extra_fetch: ?table.Fetch,
+    authority: ?*const poseidon_work.Authority,
+) !BuildResult(capture_work) {
     if (program_words.len == 0) return error.EmptyProgramCommitment;
     var index = try DeclaredWordIndex.init(allocator, program_words);
     defer index.deinit(allocator);
@@ -123,16 +265,19 @@ pub fn buildDeclared(
     defer allocator.free(multiplicities);
     @memset(multiplicities, 0);
 
-    for (execution_rows) |row| {
-        try registerDeclaredFetch(
-            program_words,
-            &index,
-            multiplicities,
-            .{ .pc = row.pc, .word = row.inst_word },
-        );
+    inline for (execution_sources) |execution_rows| {
+        for (execution_rows) |row| {
+            try registerDeclaredFetch(
+                decoder,
+                program_words,
+                &index,
+                multiplicities,
+                .{ .pc = row.pc, .word = row.inst_word },
+            );
+        }
     }
     if (extra_fetch) |fetch| {
-        try registerDeclaredFetch(program_words, &index, multiplicities, fetch);
+        try registerDeclaredFetch(decoder, program_words, &index, multiplicities, fetch);
     }
 
     var pending: std.ArrayList(Row) = .{};
@@ -144,13 +289,13 @@ pub fn buildDeclared(
         if (word.initial_word == 0) continue;
         pending.appendAssumeCapacity(.{
             .addr = word.addr,
-            .values = try decode.decodeProgramWord(word.initial_word),
+            .values = try decoder.decodeWord(word.initial_word),
             .multiplicity = multiplicity,
             .root = 0,
         });
     }
     if (pending.items.len == 0) return error.EmptyProgramCommitment;
-    return finishCommitment(allocator, &pending);
+    return finishCommitment(capture_work, allocator, &pending, authority);
 }
 
 const MAX_DENSE_PROGRAM_WORD_SLOTS: usize = 1 << 22;
@@ -224,6 +369,7 @@ const DeclaredWordIndex = union(enum) {
 };
 
 fn registerDeclaredFetch(
+    decoder: DeclaredDecodeAuthority,
     words: []const memory_state.WordState,
     index: *const DeclaredWordIndex,
     multiplicities: []u32,
@@ -236,7 +382,7 @@ fn registerDeclaredFetch(
     if (fetch.word == 0) {
         // Preserve the old fetch-table error surface for an executed zero
         // instruction instead of reporting it merely as an omitted ROM row.
-        _ = try decode.decodeProgramWord(fetch.word);
+        _ = try decoder.decodeWord(fetch.word);
         unreachable;
     }
     if (multiplicities[word_index] == std.math.maxInt(u32))
@@ -245,9 +391,12 @@ fn registerDeclaredFetch(
 }
 
 fn finishCommitment(
+    comptime capture_work: bool,
     allocator: std.mem.Allocator,
     pending: *std.ArrayList(Row),
-) !Commitment {
+    authority: ?*const poseidon_work.Authority,
+) !BuildResult(capture_work) {
+    var completed = poseidon_work.Shard{};
     std.mem.sort(Row, pending.items, {}, lessRow);
 
     var leaves: std.ArrayList(sparse_merkle.Leaf) = .{};
@@ -258,7 +407,16 @@ fn finishCommitment(
             .value = value,
         });
     }
-    var tree = try sparse_merkle.build(allocator, leaves.items);
+    var tree = if (capture_work) blk: {
+        var built = try sparse_merkle.buildWithWorkReceipt(
+            allocator,
+            leaves.items,
+            authority.?,
+        );
+        errdefer built.tree.deinit(allocator);
+        try completed.observe(authority.?, built.receipt);
+        break :blk built.tree;
+    } else try sparse_merkle.build(allocator, leaves.items);
     errdefer tree.deinit(allocator);
     for (pending.items) |*row| row.root = tree.root;
     const rows = try pending.toOwnedSlice(allocator);
@@ -267,6 +425,14 @@ fn finishCommitment(
         .rows = rows,
         .tree = tree,
     };
+    if (capture_work) {
+        const validation = try result.validateWithWorkReceipt(
+            allocator,
+            authority.?,
+        );
+        try completed.observe(authority.?, validation);
+        return .{ .commitment = result, .work = completed };
+    }
     try result.validate(allocator);
     return result;
 }

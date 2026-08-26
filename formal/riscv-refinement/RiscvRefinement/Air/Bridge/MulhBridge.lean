@@ -54,11 +54,17 @@ open RiscvRefinement.Air.Family
 
 set_option maxRecDepth 8000
 
--- The encoded node table and the hand transcription in
--- `Air/Family/Multiply.lean` are pinned to the same export.
--- `mulhProgramIrDigest` is written by the generator from the sha256 of the
--- bytes it read; `mulhIrDigest` is the constant the transcription carries.
-#guard mulhProgramIrDigest == mulhIrDigest
+-- The selector circuit remains byte-identical to the reviewed pre-cutover
+-- export. The aggregate typed-family export interns the same polynomial DAG in
+-- a different order, so its byte digest is distinct. The three pins below and
+-- `riscv_air_ir_equivalence.py` bind both serialisations through the reviewed
+-- sparse-polynomial digest instead of asserting a false byte identity.
+#guard mulhProgramIrDigest ==
+  "461461c9adcf8b65f3c5a8d14f9336ddb65b3fea28c1ca9bbe530156ad88f28b"
+#guard mulhIrDigest ==
+  "6dbd2b5bcff91a77a78fb6c551c72003c4b0a061a08127571d5f293bb00d73a9"
+#guard mulhPolynomialDigest ==
+  "7680862951ca1d0498b9b9d90b8b61a0c3fe8b63dc2cfc237de968c526692d46"
 
 /-! ## The `M31` arithmetic this family adds
 

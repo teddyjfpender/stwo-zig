@@ -51,16 +51,20 @@ pub fn prevRowPoint(log_size: u32, point: CirclePointQM31) CirclePointQM31 {
 
 /// One pairs-batched row: the fraction n1/d1 + n2/d2. Single-fraction rows
 /// set `n2 = 0, d2 = 1`.
-pub const RowPair = struct {
-    n1: QM31,
-    d1: QM31,
-    n2: QM31,
-    d2: QM31,
+pub fn RowPairFor(comptime S: type) type {
+    return struct {
+        n1: S,
+        d1: S,
+        n2: S,
+        d2: S,
 
-    pub fn single(n: QM31, d: QM31) RowPair {
-        return .{ .n1 = n, .d1 = d, .n2 = QM31.zero(), .d2 = QM31.one() };
-    }
-};
+        pub fn single(n: S, d: S) @This() {
+            return .{ .n1 = n, .d1 = d, .n2 = S.zero(), .d2 = S.one() };
+        }
+    };
+}
+
+pub const RowPair = RowPairFor(QM31);
 
 /// Cumulative sums in TRACE ORDER plus the component's claimed sum.
 pub const CumulativeColumn = struct {
@@ -251,7 +255,7 @@ fn ParallelColumnGenerator(comptime n_sums: usize, comptime Context: type) type 
                 result.claims[sum_index] = claim;
             }
 
-            const placement = try infra.BitReversalTable.init(allocator, log_size);
+            const placement = try permutation.BitReversalTable.init(allocator, log_size);
             defer placement.deinit(allocator);
             const logical_rows = try allocator.alloc(usize, size);
             defer allocator.free(logical_rows);
@@ -311,6 +315,20 @@ pub fn pairConstraint(
     claimed: QM31,
     pair: RowPair,
 ) QM31 {
+    return pairConstraintGeneric(QM31, s, s_prev, is_first, claimed, pair);
+}
+
+/// Scalar-generic authority used unchanged by native and recursive OODS
+/// composition. The returned polynomial remains cubic; this is algebraic
+/// degree, not runtime complexity.
+pub fn pairConstraintGeneric(
+    comptime S: type,
+    s: S,
+    s_prev: S,
+    is_first: S,
+    claimed: S,
+    pair: RowPairFor(S),
+) S {
     const delta = s.sub(s_prev).add(is_first.mul(claimed));
     return delta.mul(pair.d1).mul(pair.d2)
         .sub(pair.n1.mul(pair.d2)).sub(pair.n2.mul(pair.d1));
@@ -429,7 +447,7 @@ pub fn verifyGlobalCancellation(claims: []const QM31, boundary: QM31) !void {
 
 const eval_mod = @import("stwo_prover_engine").poly.circle.evaluation;
 const poly_mod = @import("stwo_prover_engine").poly.circle.poly;
-const infra = @import("../infra_trace.zig");
+const permutation = @import("../infra_trace/permutation.zig");
 
 test "geometry: trace-order shift equals evaluation at point minus coset step" {
     const allocator = std.testing.allocator;
@@ -441,7 +459,7 @@ test "geometry: trace-order shift equals evaluation at point minus coset step" {
     var shifted: [8]M31 = undefined;
     for (0..n) |i| shifted[i] = values[(i + n - 1) % n];
 
-    const table = try infra.BitReversalTable.init(allocator, log_size);
+    const table = try permutation.BitReversalTable.init(allocator, log_size);
     defer table.deinit(allocator);
 
     var col_a = [_]M31{M31.zero()} ** 8;

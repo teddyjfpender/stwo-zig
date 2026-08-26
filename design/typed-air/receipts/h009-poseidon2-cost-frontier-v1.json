@@ -1,0 +1,570 @@
+{
+  "schema_version": 1,
+  "kind": "stwo-typed-air-task-receipt",
+  "milestone": "M4-poseidon-compiler-pilot",
+  "task": "H-009",
+  "status": "prototype-evidence-recorded-structural-plateau-no-production-activation",
+  "recorded_on": "2026-08-06",
+  "branch": "feat/typed-air-precompiles",
+  "decision": "design/typed-air/decisions/0020-cost-frontier-materialization-proposals.md",
+  "receipt_state": {
+    "final": true,
+    "reason": "the isolated bounded search, corrected evaluator-scope language, complete declared neighbourhood accounting, canonical artifacts, exact structural plateau, product regressions, and proposal-isolation gates are recorded against one clean immutable snapshot",
+    "claim_boundary": "final for the H-009 prototype only; no layout is selected or activated and no proving-speed, memory, proof-size, global-optimality, or production claim is made",
+    "performance_handoff": "H-010 must measure compatibility and any retained representative under design/typed-air/PERFORMANCE.md before an optimization decision"
+  },
+  "evidence_snapshot": {
+    "repository_revision": "ee14cc8b9bed1a20dfd8dfce7f6c7f112ccee850",
+    "tree": "3ff754ef6eecaa2bdfb8514c92fee7fbd431f1f4",
+    "worktree_clean": true,
+    "clean_before_commands": true,
+    "clean_after_commands": true,
+    "method": "all recorded frontend, artifact, CPU, Metal, package, and conformance commands ran from this exact clean revision and tree before this later receipt-only finalization commit was authored"
+  },
+  "prerequisite": {
+    "task": "H-007",
+    "receipt": "design/typed-air/receipts/h007-poseidon-proof-equivalence-v1.json",
+    "receipt_bytes": 9681,
+    "receipt_sha256": "ef5a7295340b5c718c82d2805f9605f6065caaf8002a13d08cba62ff43855f7b",
+    "interpretation": "H-007 establishes test-only proof-path equivalence for the compatibility layout; H-009 does not alter or supersede its proof, protocol, security, or production-authority limits"
+  },
+  "scope": {
+    "production_runtime_changed": false,
+    "production_witness_authority_changed": false,
+    "production_constraint_authority_changed": false,
+    "production_layout_changed": false,
+    "proof_protocol_changed": false,
+    "proof_transcript_changed": false,
+    "public_statement_changed": false,
+    "production_verifier_changed": false,
+    "formal_artifact_changed": false,
+    "test_product_graph_changed": true,
+    "description": "isolated cost-aware materialization proposal search for the typed Poseidon2 permutation direct AIR, with a canonical complete binary receipt and exact readable projections"
+  },
+  "toolchain": {
+    "architecture": "arm64",
+    "kernel": "Darwin 25.6.0",
+    "operating_system": "macOS 26.6",
+    "operating_system_build": "25G72",
+    "zig": "0.15.2",
+    "python": "3.14.6",
+    "metal": {
+      "xcode_version": "26.6",
+      "xcode_build": "17F113",
+      "sdk_version": "26.5",
+      "sdk_build": "25F70",
+      "compiler": "Apple metal 32023.883"
+    }
+  },
+  "proposal_policy": {
+    "id": "stwo.typed-air.materialize.cost-frontier-v1",
+    "version": 1,
+    "seed_policy": "stwo.typed-air.materialize.degree-bounded-v1",
+    "neighbourhood": "semantic_dag_edge_v1",
+    "artifact_magic_ascii": "STWAIRM\\0",
+    "artifact_magic_hex": "5354574149524d00",
+    "artifact_format_version": 1,
+    "binary_sections": 4,
+    "hash": "sha256",
+    "integer_encoding": "checked fixed-width unsigned little-endian",
+    "determinism": "allocator order, host, backend, thread count, floating-point weights, and wall-clock measurements do not participate in policy or proposal identity"
+  },
+  "identity": {
+    "semantic_digest": "9e8c3b5accdc2be31cf8ca128b5b27c87613f691ee8fd25e031f4286ceac81ed",
+    "frontier_identity_digest": "d85aa12bb4de8b676d88e184558bf2ef047cf286fab2f6b7ee4e3825001faa68",
+    "fixed_program_digest": "ef32024ba1d25b470c217ef96af95b52038948c67f6ac4ce1e14875bf68ea6a5",
+    "cost_model_digest": "12670408a3c3020c62d279c997338d9c427d0755697aca2a954f6a1d88a9ba11",
+    "search_configuration_digest": "32dc4c0b5e265c74b159a6e661d4f6f0b06f3b54d62efe286364b5dae92db8ed",
+    "result_digest": "7948117553242d3154a8bd09ca1664c4bf6e5cbcc515a4ce80461cf544d39193",
+    "baseline_cut_digest": "b10cb7f66e3519788ecec6edc4095541a24eaf642a3ed8877fbe87c85e8ba9c5",
+    "baseline_proposal_digest": "7a585031ef8710d62adac55d1c2d8072c0b2a6ce82a562b4862d4329623a23ef",
+    "first_frontier_proposal_digest": "009f28b183b765331f19cb21f939aa2c08c58fe0ab5b133476d713e897919ab1",
+    "last_frontier_proposal_digest": "feb957cf4784a7c2a062b4e16e58ee1708fe06b11062d0eee2a8aaa0ec05970e",
+    "semantic_roots": 16,
+    "gate_value_id": 0,
+    "maximum_constraint_degree": 3,
+    "row_mask_degree": 0
+  },
+  "fixed_direct_scope": {
+    "id": "stwo.typed-air.cost.poseidon2-permutation-direct",
+    "version": 1,
+    "description": "the Poseidon permutation direct AIR only: enabler booleanity, candidate materialization equalities, wide and I/O booleanity, and wide/I/O mutual exclusion",
+    "materialization_tree": "main",
+    "materialization_column_interval": {
+      "start_inclusive": 17,
+      "end_exclusive": 443,
+      "columns": 426
+    },
+    "fixed_columns": [
+      {
+        "role": "enabler",
+        "absolute_main_column": 0
+      },
+      {
+        "role": "wide",
+        "absolute_main_column": 443
+      },
+      {
+        "role": "io",
+        "absolute_main_column": 444
+      }
+    ],
+    "fixed_column_count": 3,
+    "fixed_ssa_nodes": 11,
+    "fixed_roots": 4,
+    "phase_schedule": [
+      "fixed prefix: enabler booleanity",
+      "426 candidate materialization equalities",
+      "fixed suffix: wide booleanity, I/O booleanity, and mutual exclusion"
+    ],
+    "geometry_accounted_but_not_lowered_into_the_direct_dag": "eight invariant interaction columns and exact main, interaction, and total committed cell/byte counts",
+    "excluded": [
+      "surrounding sparse-Merkle hash-component shell",
+      "LogUp interaction expressions and batch evaluation",
+      "cryptographic commitment, LDE, FRI, transcript, and verification work",
+      "guest precompile ABI and component scheduling"
+    ]
+  },
+  "search_configuration": {
+    "maximum_passes": 1,
+    "maximum_candidate_evaluations": 2048,
+    "beam_width": 64,
+    "frontier_limit": 128,
+    "scenario_log_sizes": [
+      4,
+      6,
+      10,
+      14,
+      18
+    ],
+    "geometry": {
+      "preprocessed_columns": 0,
+      "base_main_columns": 19,
+      "fixed_direct_roots": 4,
+      "interaction_columns": 8,
+      "field_element_bytes": 4
+    },
+    "candidate_validation": "every candidate is rebuilt from its canonical ordered cut and fully revalidated for semantic reachability, degree, dependency, gate, row mask, topology, fixed-column placement, and root completeness before costing"
+  },
+  "run_accounting": {
+    "declared_neighbourhood_complete": true,
+    "passes_completed": 1,
+    "attempted_evaluations": 1124,
+    "attempted_by_edit": {
+      "removal": 410,
+      "addition": 304,
+      "swap": 410
+    },
+    "feasible_unique_proposals": 430,
+    "rejected_infeasible": 694,
+    "duplicate_proposals": 0,
+    "retained_non_seed_frontier": 126,
+    "budget_exhausted": false,
+    "frontier_truncated": false,
+    "all_retained_exactly_baseline_equivalent": true,
+    "interpretation": "the complete declared one-edit neighbourhood is a structural cost plateau; this is useful local negative evidence, not a proof of global optimality"
+  },
+  "baseline_cost_vector": {
+    "materialization_count": 426,
+    "base_main_columns": 19,
+    "candidate_main_columns": 445,
+    "direct_roots": 430,
+    "interaction_columns": 8,
+    "canonical_direct_nodes": 3460,
+    "canonical_direct_additions": 1346,
+    "canonical_direct_subtractions": 429,
+    "canonical_direct_negations": 0,
+    "canonical_direct_multiplications": 1080,
+    "unique_committed_column_reads": 445,
+    "canonical_streaming_peak_live_nodes": 39,
+    "semantic_witness_nodes": 2171,
+    "modeled_retained_interpreter_nodes": 3460,
+    "production_poseidon_evaluator": "separate static 445-column component evaluator; it does not execute this proposal DAG",
+    "metal_candidate_execution_supported": false,
+    "streaming_coordinate_classification": "theoretical first-intern/root-fold schedule only; neither 39 live nodes nor 3460 retained nodes is an observed production-backend memory measurement"
+  },
+  "scenario_costs": [
+    {
+      "log_size": 4,
+      "rows": 16,
+      "main_cells": 7120,
+      "interaction_cells": 128,
+      "committed_cells": 7248,
+      "main_bytes": 28480,
+      "interaction_bytes": 512,
+      "committed_bytes": 28992
+    },
+    {
+      "log_size": 6,
+      "rows": 64,
+      "main_cells": 28480,
+      "interaction_cells": 512,
+      "committed_cells": 28992,
+      "main_bytes": 113920,
+      "interaction_bytes": 2048,
+      "committed_bytes": 115968
+    },
+    {
+      "log_size": 10,
+      "rows": 1024,
+      "main_cells": 455680,
+      "interaction_cells": 8192,
+      "committed_cells": 463872,
+      "main_bytes": 1822720,
+      "interaction_bytes": 32768,
+      "committed_bytes": 1855488
+    },
+    {
+      "log_size": 14,
+      "rows": 16384,
+      "main_cells": 7290880,
+      "interaction_cells": 131072,
+      "committed_cells": 7421952,
+      "main_bytes": 29163520,
+      "interaction_bytes": 524288,
+      "committed_bytes": 29687808
+    },
+    {
+      "log_size": 18,
+      "rows": 262144,
+      "main_cells": 116654080,
+      "interaction_cells": 2097152,
+      "committed_cells": 118751232,
+      "main_bytes": 466616320,
+      "interaction_bytes": 8388608,
+      "committed_bytes": 475004928
+    }
+  ],
+  "canonical_artifacts": {
+    "complete_binary": {
+      "path": "design/typed-air/artifacts/h009-poseidon2-cost-v1/frontier.stwairm",
+      "bytes": 275153,
+      "sha256": "5ead00cfcb8cfd396836be9cc3a79ed80bfb0b8bc7913a1c6ab38dbcff879494",
+      "coverage": "complete encoded semantic identity (digest, roots, gate, and degree policy), fixed-program identity/counts/schedule, cost model, search configuration, scenarios, accounting, baseline, and 126 proposals; it does not embed the semantic or fixed-program source bodies"
+    },
+    "exact_tsv_projection": {
+      "path": "design/typed-air/artifacts/h009-poseidon2-cost-v1/frontier-v1.tsv",
+      "bytes": 335821,
+      "sha256": "7bd29a3c85b02fd11d77f5a4c35780fcf5a0787b57ac77652dd3ecf63348bb15",
+      "coverage": "deterministic selective review projection; not an alternate complete authority encoding"
+    },
+    "exact_markdown_projection": {
+      "path": "design/typed-air/artifacts/h009-poseidon2-cost-v1/frontier-v1.md",
+      "bytes": 17505,
+      "sha256": "e0bca4d449a7f2c715ca13fa3bc122d58357b00b24d6c04ba15e624d48f025de",
+      "coverage": "deterministic selective human review projection; not an alternate complete authority encoding"
+    },
+    "aggregate_bytes": 628479,
+    "check_mode": "fail closed and never writes",
+    "update_mode": "explicit -Dtyped-air-frontier-mode=update with atomic replacement"
+  },
+  "source_artifacts": {
+    "search": {
+      "path": "src/frontends/riscv/air/lang/cost_aware_materializer.zig",
+      "bytes": 24728,
+      "sha256": "e914f3bdb947014e5a4b8bc71b827e2af06e81ae47c79ff2feb8eb8ac66f87fd"
+    },
+    "cost_model": {
+      "path": "src/frontends/riscv/air/lang/materialization_cost.zig",
+      "bytes": 26629,
+      "sha256": "cf598d82c4da66ad602490eec66a33fb4af16a12d2c6128de25ac9613133a665"
+    },
+    "fixed_direct_ir": {
+      "path": "src/frontends/riscv/air/lang/materialization_fixed_direct.zig",
+      "bytes": 21331,
+      "sha256": "5bab007449dae23f440fc43d1b3f8300ca2a5dab2111996ab679df4c9970bdf7"
+    },
+    "poseidon_fixed_direct_profile": {
+      "path": "src/frontends/riscv/air/lang/typed_poseidon2_fixed_direct.zig",
+      "bytes": 3363,
+      "sha256": "d59d15482bcfd79d332dfe28d6cf94d6c07d33c9eb3634dcc337c4f10404fabb"
+    },
+    "manifest": {
+      "path": "src/frontends/riscv/air/lang/materialization_frontier_manifest.zig",
+      "bytes": 30200,
+      "sha256": "21c6f04d7029243e193f1b40bb3a44a6b3fafa8450ab7da990869034df081a33"
+    },
+    "artifact_generator": {
+      "path": "src/frontends/riscv/air/lang/typed_poseidon2_frontier_artifact.zig",
+      "bytes": 13608,
+      "sha256": "3fb2953eda8455646218d46cda669d60d3dd1cfe64e359e12bb70349d09abc8f"
+    },
+    "proposal_isolation_policy": {
+      "path": "scripts/source_conformance_lib/typed_air_proposals.py",
+      "bytes": 4195,
+      "sha256": "1039e355566018a5748c1f7abdb36e9e64894ca29fe4e6b700e58fb971d55c4b"
+    },
+    "decision": {
+      "path": "design/typed-air/decisions/0020-cost-frontier-materialization-proposals.md",
+      "bytes": 9201,
+      "sha256": "5d8d451b25037d647dcb7fcf812c526e37faa32269e738d86b1e92ea0dbfc5be"
+    }
+  },
+  "correctness_and_negative_evidence": [
+    {
+      "case": "late root reuses an earlier interned node",
+      "result": "explicit node-birth and ordered root-fold events keep theoretical liveness accounting sound"
+    },
+    {
+      "case": "fixed columns alias the candidate materialization interval",
+      "result": "cost-model construction rejects before analysis"
+    },
+    {
+      "case": "fixed program tree, start column, format, columns, nodes, roots, or phase schedule changes",
+      "result": "fixed-program or cost-model identity changes and canonical validation rejects the artifact"
+    },
+    {
+      "case": "prefix and suffix use different direct-DAG emitters",
+      "result": "phase-emitter drift is rejected; both phases share one hash-consing authority"
+    },
+    {
+      "case": "duplicate ordered fixed roots are present",
+      "result": "root multiplicity remains authenticated and representable rather than silently deduplicated"
+    },
+    {
+      "case": "candidate cuts are forged, unsorted, duplicated, root-incomplete, unreachable, degree-infeasible, or fixed-column-invalid",
+      "result": "safe validation rejects before a proposal is costed or emitted"
+    },
+    {
+      "case": "safe edit application is compared with trusted internal edit enumeration",
+      "result": "canonical removal, addition, and swap neighbourhoods agree exactly"
+    },
+    {
+      "case": "each of the four fixed Poseidon direct roots is evaluated on fixed and deterministic randomized M31 assignments",
+      "result": "the reconstructed root agrees root by root with the production fixed formula"
+    },
+    {
+      "case": "raw binary sections, lengths, tags, canonical ordering, counts, digests, costs, or trailing bytes are corrupted without coherent resealing",
+      "result": "decode or canonical self-validation fails closed"
+    },
+    {
+      "case": "a false structural report is coherently resealed so its internal digests remain self-consistent",
+      "result": "the check command reconstructs the typed program and H-003 seed, reruns the bounded search, independently validates and replays the projected result, and rejects the byte mismatch"
+    },
+    {
+      "case": "readable views or checked embeds drift",
+      "result": "package tests decode the complete binary and regenerate TSV and Markdown byte for byte"
+    }
+  ],
+  "proposal_isolation": {
+    "production_exported_from_air_lang_mod": false,
+    "embedded_artifact_module": "design/typed-air/artifacts/h009_embedded.zig",
+    "compatibility_artifact_bridge_contains_h009": false,
+    "policy": "an exact allowlist admits only reviewed authoring, package-test, dedicated-tool, and generated test-import consumers",
+    "scanner_rejects": [
+      "proposal module imports from unreviewed production sources",
+      "proposal identifiers exposed through a production public surface",
+      "H-009 generated artifact fields imported outside the exact test/tool bridge"
+    ],
+    "new_h009_source_conformance_findings": 0
+  },
+  "product_closures": {
+    "cpu": {
+      "receipt_sha256": "d74bbac6be1af985689a2c226f4fac6d6d8ec1853f045340b239d6eeec74ed26",
+      "manifest_sha256": "056728c78fe104dbd62baa80204458224c4607570178cc202c109a10e886256d",
+      "source_count": 507,
+      "source_content_sha256": "8fece2d7f245d91da502d8c874b5caa6a142bc0a877355f38f84be1a43cfd95c",
+      "binary_sha256": "e544eba39b308ced37c23e085c69a9e01761208ac67fd5e9c8fa478583cd5710",
+      "static_x86_64_binary_sha256": "7acd02dbfc0d6bfb296f2526a59efcbed7b7fe3dc069b0f78f0bcbb9a05aaf3e"
+    },
+    "metal": {
+      "receipt_sha256": "d22c61dcf59677300b97b7093c33edd770f48b186ef0a6ea33cc793c5e8a6967",
+      "manifest_sha256": "cce9cb892ec35cd8950159c3360beca474ecd13503b4c64698e538345c519a9d",
+      "source_count": 564,
+      "source_content_sha256": "78f1a7158efdec6d5e6cc61d0be5b97b878b4d9eefb44cbee77f7ba0e936722a",
+      "binary_sha256": "e2b15212d2f618d6066202be8f5056565665d64f76cddcce9a488cb9e1dedb92",
+      "aot_manifest_sha256": "0c2bd2960707ce5f86ca844e5fac9d43f667297c780e7cdda2ea228915281449",
+      "aot_source_sha256": "304911285a54a8089068e755cb457bceacceb3add65e226574ed8abde29c7abc",
+      "aot_air_sha256": "c4478d16d30128d7741e9567af6cc62d321ab07228974601a473f434d7dcb9fb",
+      "aot_metallib_sha256": "e0f1f7b95233c97971f97984a161462f350b823591af72a57f2173fb3b5302de",
+      "aot_exports": 118,
+      "aot_function_constants": 0
+    }
+  },
+  "validation_evidence_state": "final: every observation below was reproduced against evidence_snapshot with exact HEAD, tree, and empty porcelain before and after",
+  "validation": [
+    {
+      "id": "frontend-release-fast",
+      "command": "zig build test --build-file src/frontends/riscv/build.zig -Doptimize=ReleaseFast -j1",
+      "status": "passed",
+      "build_steps_passed": 4,
+      "build_steps_total": 4,
+      "tests_passed": 762,
+      "tests_total": 763,
+      "tests_skipped": 1,
+      "expected_negative_proof_admission_stderr_events": 2
+    },
+    {
+      "id": "frontend-release-safe",
+      "command": "zig build test --build-file src/frontends/riscv/build.zig -Doptimize=ReleaseSafe -j1",
+      "status": "passed",
+      "build_steps_passed": 4,
+      "build_steps_total": 4,
+      "tests_passed": 762,
+      "tests_total": 763,
+      "tests_skipped": 1,
+      "expected_negative_proof_admission_stderr_events": 2
+    },
+    {
+      "id": "typed-air-frontier",
+      "command": "zig build typed-air-frontier --build-file src/frontends/riscv/build.zig -Doptimize=ReleaseFast",
+      "status": "passed",
+      "build_steps_passed": 3,
+      "build_steps_total": 3,
+      "artifacts_checked": 3,
+      "search_reexecuted": true,
+      "projection_revalidated_against_search": true,
+      "all_generated_files_byte_compared": true
+    },
+    {
+      "id": "typed-air-manifest",
+      "command": "zig build typed-air-manifest --build-file src/frontends/riscv/build.zig -Doptimize=ReleaseFast",
+      "status": "passed",
+      "build_steps_passed": 3,
+      "build_steps_total": 3,
+      "families_checked": 17
+    },
+    {
+      "id": "cpu-product",
+      "command": "zig build test-riscv-cpu-product -Doptimize=ReleaseFast -j1",
+      "status": "passed",
+      "product_markers_passed": 15,
+      "opcode_coverage": "46/46",
+      "closure": "PASS (507 transitive Zig sources)"
+    },
+    {
+      "id": "metal-product",
+      "command": "zig build test-riscv-metal -Doptimize=ReleaseFast -j1",
+      "status": "passed",
+      "closure": "PASS (564 transitive Zig sources)",
+      "authenticated_aot_admitted": true,
+      "resident_risc_polynomial_execution_observed": true,
+      "cpu_riscv_polynomial_composition_declines": 0,
+      "candidate_poseidon_metal_execution": false,
+      "telemetry_boundary": "resident base and lookup counters belong to eligible RISC polynomial components in the whole proof; Poseidon composition and alternative H-009 layouts are not Metal-executed"
+    },
+    {
+      "id": "package-workspace-python",
+      "command": "python3 scripts/check_package_workspace.py --repo .",
+      "status": "passed",
+      "packages": 21,
+      "public_modules": 21,
+      "dependency_edges": 70
+    },
+    {
+      "id": "package-workspace-build",
+      "command": "zig build package-workspace --summary all",
+      "status": "passed",
+      "build_steps_passed": 2,
+      "build_steps_total": 2,
+      "packages": 21,
+      "public_modules": 21,
+      "dependency_edges": 70
+    },
+    {
+      "id": "source-conformance-unit",
+      "command": "python3 -m unittest scripts.tests.test_source_conformance scripts.tests.test_typed_air_proposal_isolation",
+      "status": "passed",
+      "tests_passed": 34
+    },
+    {
+      "id": "source-conformance",
+      "command": "python3 scripts/check_source_conformance.py",
+      "status": "failed-known-baseline",
+      "exit_code": 1,
+      "new_h009_findings": 0,
+      "warnings": [
+        "build_support/products/riscv_cpu.zig: 499 lines approaches the 500-line build-support owner ceiling (1 line(s) of headroom)",
+        "src/frontends/riscv/air/lang/compat_manifest.zig: 812 lines approaches the 850-line manual-source ceiling (38 line(s) of headroom)",
+        "src/frontends/riscv/air/lang/compat_manifest_diff.zig: 799 lines approaches the 850-line manual-source ceiling (51 line(s) of headroom)"
+      ],
+      "unchanged_files_within_ten_percent_of_ceiling": 122,
+      "errors": [
+        "backends/metal/commit_backend.zig: 855 lines exceeds the 850-line manual-source ceiling",
+        "frontends/riscv/air/lookups/tables/source_ingest.zig: 1010 lines exceeds the 850-line manual-source ceiling",
+        "stale baseline entry must be removed: file-size:backends/cpu_scalar/riscv_composition.zig",
+        "stale baseline entry must be removed: file-size:frontends/riscv/air/lookups/opcode_interaction.zig",
+        "backends/metal/kernels.metal: 984 lines exceeds the 850-line manual-source ceiling; baseline budget is 858 lines",
+        "backends/metal/runtime.m: 1019 lines exceeds the 850-line manual-source ceiling; baseline budget is 1014 lines",
+        "backends/metal/runtime/quotients.m: 1465 lines exceeds the 850-line manual-source ceiling; baseline budget is 1184 lines",
+        "backends/metal/shaders/manifest.zig: 927 lines exceeds the 850-line manual-source ceiling; baseline budget is 923 lines"
+      ],
+      "classification": "the eight errors are the known unrelated repository baseline; no waiver, H-009 attribution, or green-gate claim is made"
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "immutable-snapshot",
+      "requirement": "all evidence commands run against one named clean repository revision and tree",
+      "met": true
+    },
+    {
+      "id": "separate-policy-identity",
+      "requirement": "the proposal policy, fixed direct program, cost model, search configuration, result, baseline cut, and every retained proposal have independent canonical identities",
+      "met": true
+    },
+    {
+      "id": "complete-declared-neighbourhood",
+      "requirement": "all 410 removals, 304 additions, and 410 swaps in the declared one-pass semantic-DAG-edge neighbourhood are attempted without budget exhaustion or frontier truncation",
+      "met": true
+    },
+    {
+      "id": "candidate-revalidation",
+      "requirement": "each candidate is reconstructed and fully validated rather than trusting its edit provenance",
+      "met": true
+    },
+    {
+      "id": "fixed-program-authentication",
+      "requirement": "tree, materialization interval, fixed column roles, fixed SSA, ordered roots, and prefix/equality/suffix schedule are authenticated and reject drift or aliasing",
+      "met": true
+    },
+    {
+      "id": "global-direct-cost",
+      "requirement": "the complete direct program is lowered through one hash-consed emitter and reports the full checked integer vector and five scenario vectors",
+      "met": true
+    },
+    {
+      "id": "semantic-differential",
+      "requirement": "candidate feasibility and fixed root-by-root deterministic randomized evaluation agree with the canonical typed and production Poseidon formulas",
+      "met": true
+    },
+    {
+      "id": "canonical-artifact-replay",
+      "requirement": "the check command reconstructs the typed program and H-003 seed, reruns the exact bounded search, independently validates/replays the projection, and byte-compares the complete STWAIRM binary plus exact TSV and Markdown views",
+      "met": true
+    },
+    {
+      "id": "honest-plateau-classification",
+      "requirement": "all 126 retained non-seed cuts are reported as exactly baseline-equivalent rather than described as improvements",
+      "met": true
+    },
+    {
+      "id": "proposal-isolation",
+      "requirement": "proposal modules and artifact fields remain absent from production exports and consumers under an exact source-conformance allowlist",
+      "met": true
+    },
+    {
+      "id": "regression-gates",
+      "requirement": "frontend, artifact, CPU, Metal, and package gates pass and introduce no H-009 source-conformance finding",
+      "met": true
+    },
+    {
+      "id": "no-activation",
+      "requirement": "the receipt and ADR make no production layout, proving-speed, proof-size, global-optimality, or authority claim and hand measured evaluation to H-010",
+      "met": true
+    }
+  ],
+  "limitations": [
+    "the complete result is complete only for the declared one-pass semantic-DAG-edge neighbourhood; it is not a proof of global optimality",
+    "all retained proposals have the exact compatibility structural vector, so H-009 identifies no benchmark or production winner",
+    "the direct-DAG scope excludes the surrounding hash-component shell, LogUp algebra, and cryptographic commitment/LDE/FRI/transcript/verifier work; its vector still accounts for the invariant eight interaction columns and exact main/interaction committed-cell and byte geometry",
+    "the five scenario costs are exact geometry projections, not backend timings or measured resource consumption",
+    "canonical_streaming_peak_live_nodes equals 39 only for the idealized root-fold schedule; 3460 is the modeled proposal-DAG size, while production Poseidon uses a separate static evaluator and neither value is observed production scratch",
+    "Poseidon composition has no Metal backend capability and alternative H-009 layouts do not currently execute on CPU or Metal; resident Metal telemetry in the regression proof comes from other RISC polynomial components",
+    "the 2171-node semantic witness closure is unchanged by every retained proposal and no witness-generation saving is claimed",
+    "the CPU and Metal product passes are regression evidence for the unchanged compatibility path; alternative H-009 layouts do not enter those proofs",
+    "the proposal modules, checked artifacts, and test imports remain isolated and shadow-only; no production witness, constraint, layout, prover, verifier, transcript, or formal authority changes",
+    "the source-conformance command remains non-green on eight unrelated repository-baseline errors that are recorded rather than waived",
+    "whole_frontend_verified, proof_system_soundness, proving_speed_improved, proof_size_improved, and production_activation remain false"
+  ]
+}

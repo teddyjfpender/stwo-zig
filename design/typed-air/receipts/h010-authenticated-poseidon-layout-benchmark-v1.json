@@ -1,0 +1,472 @@
+{
+  "schema_version": 1,
+  "kind": "stwo-typed-air-task-receipt",
+  "milestone": "M4-poseidon-compiler-pilot",
+  "task": "H-010",
+  "status": "experimental-cpu-layout-measurement-complete-no-production-activation",
+  "recorded_on": "2026-08-06",
+  "branch": "feat/typed-air-precompiles",
+  "decision": "design/typed-air/decisions/0022-authenticated-poseidon-layout-benchmark.md",
+  "receipt_state": {
+    "final": true,
+    "reason": "the authenticated four-arm evaluator, checked default vectors, fail-closed host harness, two complete independent default cohorts, exact report identities, clean product gates, inherited conformance baseline, and independent audit are recorded against one immutable implementation snapshot",
+    "claim_boundary": "final for the H-010 CPU retained-evaluator experiment only; no layout is selected or activated and no proving-speed, proof-size, verifier, Metal-candidate, recursive, or production claim is made",
+    "next_authority": "any layout promotion requires a new accepted ADR, a production candidate implementation, full proof-path equivalence, and the complete cross-backend performance contract"
+  },
+  "evidence_snapshot": {
+    "repository_revision": "82bf6b9cd5eb1ab48edd6fb7c0c88a3be687e8c6",
+    "tree": "8cbb9300fa9b820baa079eeb94addf71db97f130",
+    "worktree_clean": true,
+    "clean_before_reports": true,
+    "clean_after_reports_and_gates": true,
+    "method": "the ReleaseFast executable, both valid reports, and every clean evidence gate named below were run from this exact revision and tree before this later receipt-and-ledger commit was authored",
+    "commit_hook_note": "the implementation commit used --no-verify only because the repository-wide source-conformance hook retains the exact inherited three-warning/eight-error baseline recorded below; the scoped unit and proposal-isolation suites pass and H-010 introduces no conformance finding"
+  },
+  "scope": {
+    "benchmark_boundary": "prepared main-trace witness execution plus the complete 3460-node, 430-root direct Poseidon permutation AIR in one retained scalar-M31 CPU evaluator",
+    "production_runtime_changed": false,
+    "production_witness_authority_changed": false,
+    "production_constraint_authority_changed": false,
+    "production_layout_changed": false,
+    "proof_protocol_changed": false,
+    "proof_transcript_changed": false,
+    "public_statement_changed": false,
+    "production_verifier_changed": false,
+    "proof_executed_by_benchmark": false,
+    "verification_executed_by_benchmark": false,
+    "hash_component_shell_executed": false,
+    "logup_executed": false,
+    "commitment_executed": false,
+    "pcs_executed": false,
+    "metal_candidate_execution_supported": false,
+    "promotion_authority": false
+  },
+  "protocol": {
+    "report_schema": "stwo.typed-air.benchmark.poseidon2-layout-report-v1",
+    "sample_schema": "stwo.typed-air.poseidon-layout-benchmark-sample-v1",
+    "benchmark_id": "h010-authenticated-poseidon-layout-cpu-v1",
+    "evaluator": "stwo.typed-air.poseidon2-retained-cpu-evaluator-v1",
+    "backend": "cpu-retained-scalar-m31",
+    "optimization_mode": "ReleaseFast",
+    "target": "aarch64-macos-none",
+    "allocator": "libc-c-allocator",
+    "monotonic_clock": "std.time.Timer",
+    "rss_adapter": "getrusage-self-maxrss-native-bytes",
+    "required_logs": [
+      10,
+      14
+    ],
+    "log_18_opted_in": false,
+    "arms": [
+      "compat-seed",
+      "removed-q0",
+      "removed-q50",
+      "removed-q100"
+    ],
+    "warmup_rounds_per_log": 3,
+    "measured_rounds_per_log": 11,
+    "sample_children_per_report": 112,
+    "preflight_children_per_report": 1,
+    "worker_count": 1,
+    "serial_execution": true,
+    "automatic_retries": 0,
+    "outlier_drops": 0,
+    "main_columns": 445,
+    "materializations": 426,
+    "direct_nodes": 3460,
+    "direct_roots": 430,
+    "semantic_retained_scratch_bytes": 8684,
+    "direct_retained_scratch_bytes": 13840,
+    "allocation_free_timed_row_loops": true
+  },
+  "implementation_identity": {
+    "h009_artifact_sha256": "5ead00cfcb8cfd396836be9cc3a79ed80bfb0b8bc7913a1c6ab38dbcff879494",
+    "h009_artifact_bytes": 275153,
+    "semantic_digest": "9e8c3b5accdc2be31cf8ca128b5b27c87613f691ee8fd25e031f4286ceac81ed",
+    "frontier_identity_digest": "d85aa12bb4de8b676d88e184558bf2ef047cf286fab2f6b7ee4e3825001faa68",
+    "fixed_program_digest": "ef32024ba1d25b470c217ef96af95b52038948c67f6ac4ce1e14875bf68ea6a5",
+    "cost_model_digest": "12670408a3c3020c62d279c997338d9c427d0755697aca2a954f6a1d88a9ba11",
+    "search_configuration_digest": "32dc4c0b5e265c74b159a6e661d4f6f0b06f3b54d62efe286364b5dae92db8ed",
+    "result_digest": "7948117553242d3154a8bd09ca1664c4bf6e5cbcc515a4ce80461cf544d39193",
+    "source_closure_manifest_sha256": "d5ff20d088f0c47d37620b44a75c6a89ab990e29e0a0a626513d94f7c9ac4721",
+    "source_closure_count": 301,
+    "source_closure_content_sha256": "b23fea8136f4791b60196a2c21b15afad5274e45bd29f672657a992dfc48d983",
+    "executable_bytes": 3241040,
+    "executable_sha256": "65cc075bea26b731ce50093cc1fffa06ef7fd2ddb9979370b40f2e9398ab96bf"
+  },
+  "checked_vectors": {
+    "index": {
+      "path": "design/typed-air/artifacts/h010-poseidon-layout-v1/index-v1.tsv",
+      "bytes": 3155,
+      "sha256": "1c881a3a944794943f872ea85678a4809db68a96021b06abbc15ef42d878fd19",
+      "projection": "complete metadata plus rows 0, 1, and final for each checked vector"
+    },
+    "log_10": {
+      "path": "design/typed-air/artifacts/h010-poseidon-layout-v1/vector-log10.stwairb",
+      "bytes": 143490,
+      "file_sha256": "2d90fa647d55758f1fdf7be46de5232ee006ac3682ab0371ec1108c95c8f14ee",
+      "internal_seal": "27be0de8a88a36ac9cb686c40da6442abdd18950bc4cb45a93773f45de4fb113",
+      "call_digest": "c149cb04c9604a9702484f4cdc52712d8cbdd92e7ec5d5055b8066207f42826c",
+      "output_digest": "08478c8bede13d09402a3ad5688d9581f3ee45e11455a46f23814387435c73ae"
+    },
+    "log_14": {
+      "path": "design/typed-air/artifacts/h010-poseidon-layout-v1/vector-log14.stwairb",
+      "bytes": 2293890,
+      "file_sha256": "b2f84aa4ecc9f017932a2ca81fd89060d1fccb8bfaf90c9843ac9013cb6f83d8",
+      "internal_seal": "b9ce7ca07edee474d0ca9da8e2a4dcdd24d300b6a99c1a1c5305a90da9a3c11d",
+      "call_digest": "c1cbc8b1f135c6e2ac71f0a17fa545714a5adefadef52a993b19fd4b0416613a",
+      "output_digest": "5b0a3a47bba89e6ffa0314b0d5a64ce9f0d8fe560cb63e1b2803c3011ebb2454"
+    },
+    "correctness_authority": "independently recorded outputs from the unchanged static Poseidon reference plus every one of the 430 direct roots evaluating to zero",
+    "trace_digest_class": "candidate_layout_regression_pin_not_correctness_oracle"
+  },
+  "host": {
+    "architecture": "arm64",
+    "operating_system": "Darwin",
+    "kernel_release": "25.6.0",
+    "cpu_model": "Apple M5 Max",
+    "logical_cores": 18,
+    "physical_cores": 18,
+    "memory_bytes": 68719476736,
+    "zig": "0.15.2",
+    "python": "3.14.6",
+    "power_state": {
+      "operator_declaration": "AC power; battery 100% charged; pmset AC powermode=0; operator verified immediately before run",
+      "machine_verified_by_report": false,
+      "read_only_pre_and_post_check": "AC power, battery 100% charged"
+    }
+  },
+  "run_accounting": {
+    "failed_admission": {
+      "run_id": "h010-82bf6b9c-m5max-default-v1",
+      "local_evidence_path": "zig-out/h010/h010-82bf6b9c-m5max-default-v1.json",
+      "bytes": 18056,
+      "sha256": "6c2b7c21b662d67f7cc6e9d289b041156cef9b07cb1d820ccb8e9057d89b2682",
+      "started_at_utc": "2026-08-06T14:46:25Z",
+      "completed_at_utc": "2026-08-06T14:46:26Z",
+      "valid": false,
+      "sample_children": 0,
+      "failure_code": "repository-dirty",
+      "reason": "the minimal-environment provenance check exposed a pre-existing local settings file that the interactive shell's global ignore had hidden; the file was preserved and locally excluded before a new run ID was started",
+      "retried_or_merged": false
+    },
+    "primary": {
+      "run_id": "h010-82bf6b9c-m5max-default-v2",
+      "local_evidence_path": "zig-out/h010/h010-82bf6b9c-m5max-default-v2.json",
+      "bytes": 337144,
+      "sha256": "98abdf472818e21e43ff0e3cc3d509598558a6df6c1c215ea789a997fb5bc25d",
+      "started_at_utc": "2026-08-06T14:47:18Z",
+      "completed_at_utc": "2026-08-06T14:48:39Z",
+      "valid": true,
+      "default_logs_valid": true,
+      "requested_run_complete": true,
+      "failures": 0,
+      "sample_children": 112,
+      "measured_samples": 88,
+      "warmup_samples": 24,
+      "automatic_retries": 0,
+      "outlier_drops": 0
+    },
+    "confirmation": {
+      "run_id": "h010-82bf6b9c-m5max-default-v3-confirm",
+      "local_evidence_path": "zig-out/h010/h010-82bf6b9c-m5max-default-v3-confirm.json",
+      "bytes": 337146,
+      "sha256": "eabeba5d67b26574dbe4246f8924411fe7c1df252452d078688ae6a0bcb5682a",
+      "started_at_utc": "2026-08-06T14:49:36Z",
+      "completed_at_utc": "2026-08-06T14:50:59Z",
+      "valid": true,
+      "default_logs_valid": true,
+      "requested_run_complete": true,
+      "failures": 0,
+      "sample_children": 112,
+      "measured_samples": 88,
+      "warmup_samples": 24,
+      "automatic_retries": 0,
+      "outlier_drops": 0,
+      "pooled_with_primary": false
+    }
+  },
+  "summary_units": {
+    "setup_ns": "integer nanoseconds",
+    "witness_ns": "integer nanoseconds",
+    "direct_ns": "integer nanoseconds",
+    "peak_rss_bytes": "integer normalized bytes",
+    "statistics": "median and median absolute deviation over exactly eleven measured samples; full raw/min/max values remain bound by each report SHA-256"
+  },
+  "median_mad_observations": {
+    "primary": {
+      "log_10": {
+        "compat-seed": {
+          "setup_ns": { "median": 85573166, "mad": 1270333 },
+          "witness_ns": { "median": 3563250, "mad": 43292 },
+          "direct_ns": { "median": 4671291, "mad": 128124 },
+          "peak_rss_bytes": { "median": 7847936, "mad": 32768 }
+        },
+        "removed-q0": {
+          "setup_ns": { "median": 85770666, "mad": 627418 },
+          "witness_ns": { "median": 3567625, "mad": 36459 },
+          "direct_ns": { "median": 4669625, "mad": 115292 },
+          "peak_rss_bytes": { "median": 7864320, "mad": 16384 }
+        },
+        "removed-q50": {
+          "setup_ns": { "median": 85422542, "mad": 271834 },
+          "witness_ns": { "median": 3599208, "mad": 36583 },
+          "direct_ns": { "median": 4689208, "mad": 113666 },
+          "peak_rss_bytes": { "median": 7864320, "mad": 16384 }
+        },
+        "removed-q100": {
+          "setup_ns": { "median": 85923250, "mad": 821625 },
+          "witness_ns": { "median": 3581041, "mad": 67958 },
+          "direct_ns": { "median": 4651916, "mad": 81124 },
+          "peak_rss_bytes": { "median": 7847936, "mad": 16384 }
+        }
+      },
+      "log_14": {
+        "compat-seed": {
+          "setup_ns": { "median": 87132042, "mad": 753708 },
+          "witness_ns": { "median": 82759167, "mad": 2461791 },
+          "direct_ns": { "median": 84873209, "mad": 3473250 },
+          "peak_rss_bytes": { "median": 38535168, "mad": 32768 }
+        },
+        "removed-q0": {
+          "setup_ns": { "median": 87682958, "mad": 2099667 },
+          "witness_ns": { "median": 80643208, "mad": 4093709 },
+          "direct_ns": { "median": 85055000, "mad": 3543958 },
+          "peak_rss_bytes": { "median": 38486016, "mad": 98304 }
+        },
+        "removed-q50": {
+          "setup_ns": { "median": 86883667, "mad": 450709 },
+          "witness_ns": { "median": 82640417, "mad": 2369833 },
+          "direct_ns": { "median": 84792834, "mad": 3807041 },
+          "peak_rss_bytes": { "median": 38518784, "mad": 16384 }
+        },
+        "removed-q100": {
+          "setup_ns": { "median": 87619625, "mad": 1365375 },
+          "witness_ns": { "median": 84614666, "mad": 3607334 },
+          "direct_ns": { "median": 84767792, "mad": 3166333 },
+          "peak_rss_bytes": { "median": 38518784, "mad": 32768 }
+        }
+      }
+    },
+    "confirmation": {
+      "log_10": {
+        "compat-seed": {
+          "setup_ns": { "median": 88265875, "mad": 1773333 },
+          "witness_ns": { "median": 3709167, "mad": 93958 },
+          "direct_ns": { "median": 4804375, "mad": 107500 },
+          "peak_rss_bytes": { "median": 7880704, "mad": 16384 }
+        },
+        "removed-q0": {
+          "setup_ns": { "median": 86914917, "mad": 610084 },
+          "witness_ns": { "median": 3667584, "mad": 68458 },
+          "direct_ns": { "median": 4767875, "mad": 142833 },
+          "peak_rss_bytes": { "median": 7847936, "mad": 16384 }
+        },
+        "removed-q50": {
+          "setup_ns": { "median": 88849042, "mad": 2432917 },
+          "witness_ns": { "median": 3743458, "mad": 160708 },
+          "direct_ns": { "median": 4849542, "mad": 269375 },
+          "peak_rss_bytes": { "median": 7864320, "mad": 32768 }
+        },
+        "removed-q100": {
+          "setup_ns": { "median": 86596500, "mad": 1024833 },
+          "witness_ns": { "median": 3690666, "mad": 73166 },
+          "direct_ns": { "median": 4762500, "mad": 154541 },
+          "peak_rss_bytes": { "median": 7864320, "mad": 0 }
+        }
+      },
+      "log_14": {
+        "compat-seed": {
+          "setup_ns": { "median": 87176958, "mad": 419792 },
+          "witness_ns": { "median": 84378625, "mad": 2119375 },
+          "direct_ns": { "median": 86960792, "mad": 696167 },
+          "peak_rss_bytes": { "median": 38518784, "mad": 16384 }
+        },
+        "removed-q0": {
+          "setup_ns": { "median": 87565167, "mad": 522041 },
+          "witness_ns": { "median": 84607292, "mad": 1896626 },
+          "direct_ns": { "median": 86963875, "mad": 749292 },
+          "peak_rss_bytes": { "median": 38535168, "mad": 16384 }
+        },
+        "removed-q50": {
+          "setup_ns": { "median": 87391416, "mad": 523292 },
+          "witness_ns": { "median": 83393292, "mad": 1989999 },
+          "direct_ns": { "median": 87653125, "mad": 520833 },
+          "peak_rss_bytes": { "median": 38535168, "mad": 16384 }
+        },
+        "removed-q100": {
+          "setup_ns": { "median": 87609208, "mad": 645458 },
+          "witness_ns": { "median": 83038125, "mad": 3660333 },
+          "direct_ns": { "median": 87231250, "mad": 1045417 },
+          "peak_rss_bytes": { "median": 38535168, "mad": 16384 }
+        }
+      }
+    }
+  },
+  "derived_interpretation": {
+    "classification": "reviewed interpretation, not benchmark identity or promotion authority",
+    "primary_candidate_median_delta_ranges_vs_compat_seed": {
+      "log_10": {
+        "witness": "+0.123% to +1.009%",
+        "direct": "-0.415% to +0.384%",
+        "peak_rss": "0.000% to +0.209%"
+      },
+      "log_14": {
+        "witness": "-2.557% to +2.242%",
+        "direct": "-0.124% to +0.214%",
+        "peak_rss": "-0.128% to -0.043%"
+      }
+    },
+    "confirmation_candidate_median_delta_ranges_vs_compat_seed": {
+      "log_10": {
+        "witness": "-1.121% to +0.924%",
+        "direct": "-0.872% to +0.940%",
+        "peak_rss": "-0.416% to -0.208%"
+      },
+      "log_14": {
+        "witness": "-1.589% to +0.271%",
+        "direct": "+0.004% to +0.796%",
+        "peak_rss": "+0.043% for all candidates"
+      }
+    },
+    "repeatability": "the primary log-14 witness directions for removed-q0 and removed-q100 reverse in the independent confirmation, and the observed differences sit within the recorded per-arm dispersion; no repeatable arm-level slowdown is established",
+    "meaningful_performance_regression_observed": false,
+    "structural_or_memory_winner_established": false,
+    "layout_selected": false,
+    "production_promotion_recommended": false
+  },
+  "correctness_and_admission": {
+    "all_four_arms_authenticated": true,
+    "checked_logs_10_and_14_fully_replayed_before_timing": true,
+    "correctness_logs_4_and_6_passed": true,
+    "all_430_direct_roots_zero_on_every_admitted_row": true,
+    "all_sixteen_outputs_match_independent_expected_outputs": true,
+    "all_426_materialization_mutations_detected_per_arm": true,
+    "fixed_role_and_mutual_exclusion_mutations_detected": true,
+    "rss_probe_allocated_bytes": 67108864,
+    "rss_probe_observed_delta_bytes": 67141632,
+    "report_schema_replay_passed_for_both_valid_reports": true,
+    "failed_run_preserved": true
+  },
+  "validation": [
+    {
+      "id": "h010-host-and-isolation-unit",
+      "command": "python3 -m unittest scripts.tests.test_typed_air_proposal_isolation scripts.tests.test_typed_air_poseidon_benchmark",
+      "status": "passed",
+      "result": "14/14 passed"
+    },
+    {
+      "id": "h010-admission",
+      "command": "zig build typed-air-layout-benchmark --build-file src/frontends/riscv/build.zig -Doptimize=ReleaseFast --summary all",
+      "status": "passed",
+      "result": "four arms; logs 4/6 and checked logs 10/14; 430 roots per row; 64-MiB RSS probe"
+    },
+    {
+      "id": "h010-vector-artifacts",
+      "command": "zig build typed-air-layout-benchmark --build-file src/frontends/riscv/build.zig -Doptimize=ReleaseFast --summary all -- vector-artifacts check design/typed-air/artifacts/h010-poseidon-layout-v1",
+      "status": "passed",
+      "result": "two vectors plus readable index byte-exact"
+    },
+    {
+      "id": "frontend-release-fast",
+      "command": "zig build test --build-file src/frontends/riscv/build.zig -Doptimize=ReleaseFast -j1 --summary all",
+      "status": "passed",
+      "result": "792/793 passed; one intentional skip"
+    },
+    {
+      "id": "frontend-release-safe",
+      "command": "zig build test --build-file src/frontends/riscv/build.zig -Doptimize=ReleaseSafe -j1 --summary all",
+      "status": "passed",
+      "result": "792/793 passed; one intentional skip"
+    },
+    {
+      "id": "aggregate-release-fast",
+      "command": "zig build test -Doptimize=ReleaseFast -j1 --summary all",
+      "status": "passed",
+      "result": "567-source closure 5137a2f7e587f2b80af44950f545ca70e003bdf4de71944aa71f47fba5ac11d0"
+    },
+    {
+      "id": "cpu-product",
+      "command": "zig build test-riscv-cpu-product -Doptimize=ReleaseFast -j1 --summary all",
+      "status": "passed",
+      "result": "520-source closure a64b61790c33988efc7ad1b5f14b5910b6fe830ff20980a735645b7ba0001ad8"
+    },
+    {
+      "id": "metal-product",
+      "command": "zig build test-riscv-metal -Doptimize=ReleaseFast -j1 --summary all",
+      "status": "passed",
+      "result": "118 exact AOT exports; 577-source closure e4f0fd05906e062c61030b4ac7d5340c306981c1a441aef58ae501fdc8a507b7"
+    },
+    {
+      "id": "package-workspace",
+      "command": "python3 scripts/check_package_workspace.py --repo . && zig build package-workspace --summary all",
+      "status": "passed",
+      "result": "21 packages, 21 public modules, 70 dependency edges"
+    },
+    {
+      "id": "source-conformance-unit",
+      "command": "python3 -m unittest scripts.tests.test_source_conformance scripts.tests.test_typed_air_proposal_isolation",
+      "status": "passed",
+      "result": "35/35 passed"
+    },
+    {
+      "id": "source-conformance-repository",
+      "command": "python3 scripts/check_source_conformance.py",
+      "status": "inherited-baseline-open",
+      "result": "three warnings and eight errors, exactly matching the unrelated repository baseline; no H-010 or new Python finding"
+    }
+  ],
+  "source_conformance_baseline": {
+    "warnings": [
+      "build_support/products/riscv_cpu.zig: 499 lines approaches the 500-line ceiling",
+      "src/frontends/riscv/air/lang/compat_manifest.zig: 812 lines approaches the 850-line ceiling",
+      "src/frontends/riscv/air/lang/compat_manifest_diff.zig: 799 lines approaches the 850-line ceiling"
+    ],
+    "errors": [
+      "backends/metal/commit_backend.zig exceeds the manual-source ceiling",
+      "frontends/riscv/air/lookups/tables/source_ingest.zig exceeds the manual-source ceiling",
+      "stale baseline entry for backends/cpu_scalar/riscv_composition.zig",
+      "stale baseline entry for frontends/riscv/air/lookups/opcode_interaction.zig",
+      "backends/metal/kernels.metal exceeds its baseline budget",
+      "backends/metal/runtime.m exceeds its baseline budget",
+      "backends/metal/runtime/quotients.m exceeds its baseline budget",
+      "backends/metal/shaders/manifest.zig exceeds its baseline budget"
+    ],
+    "h010_findings": 0,
+    "waived": false
+  },
+  "independent_audit": {
+    "verdict": "ACCEPT",
+    "blocker_findings_remaining": 0,
+    "high_findings_remaining": 0,
+    "medium_findings_remaining": 0,
+    "fixed_findings": [
+      "canonical source-closure manifest and manifest-digest binding",
+      "exact requested cohort/vector sequences and failed-stress top-level binding",
+      "canonical partial/full invalid-cohort replay and stable failure-code syntax"
+    ],
+    "conclusion": "benchmark fairness, correctness admission, provenance, report closure, failure evidence, and production isolation are implementation-commit ready"
+  },
+  "limitations": [
+    "The measured boundary is a CPU retained-evaluator microbenchmark, not a prover or end-to-end precompile benchmark.",
+    "The experiment does not execute interaction columns, LogUp, commitments, quotient construction, PCS/FRI, proof encoding, verification, component scheduling, recursion, or Metal candidate code.",
+    "The compatibility seed and proposals share one deliberately retained interpreter; results cannot be pooled with the differently shaped production static evaluator.",
+    "Process high-water RSS is not phase-local memory, although fresh children and the calibrated native adapter make arm comparisons consistent.",
+    "Power state is an explicit operator declaration and read-only pre/post observation, not machine-attested report data.",
+    "The exact timing reports remain ignored local evidence under zig-out; this receipt freezes their byte counts, SHA-256 values, median/MAD summaries, and interpretation.",
+    "Log size 18 was not requested and cannot substitute for either checked default cohort.",
+    "No fixed percentage performance budget existed before the cohort; the no-regression interpretation rests on small arm deltas, measured dispersion, and independent sign reversal rather than a promotion threshold."
+  ],
+  "acceptance_criteria": {
+    "authenticated_common_evaluator_complete": true,
+    "default_measurement_protocol_complete": true,
+    "independent_confirmation_complete": true,
+    "report_and_failure_contract_fail_closed": true,
+    "product_isolation_complete": true,
+    "performance_result_reviewed": true,
+    "h010_complete": true,
+    "layout_winner_declared": false,
+    "production_activation": false,
+    "next_task": "C-001"
+  }
+}

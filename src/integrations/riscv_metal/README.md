@@ -2,11 +2,11 @@
 
 `stwo_riscv_metal_integration` binds the backend-neutral RV32IM frontend to the
 fail-closed Metal commitment engine. It preserves frontend-owned execution and
-AIR semantics while selecting a device-only proving transaction.
+AIR semantics while selecting a manifest-bound Metal proving transaction.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `0.1.0` |
+| Version | `0.2.0` |
 | Layer | `integration` |
 | Owner | `riscv-metal-integration` |
 | Public Zig module | `stwo_riscv_metal_integration` |
@@ -48,6 +48,7 @@ defer statement.deinit(allocator);
 | Export | Responsibility |
 | :--- | :--- |
 | `MetalProverEngine` | Stable transaction instantiated with `MetalCommitBackend` |
+| `guest_precompile` | Exact authenticated-AOT admission for `rv32im-zkvm-poseidon2-v1` |
 | `proveRiscV` | Prove an execution trace |
 | `proveRiscVWithRecorder` | Prove with stage-profile recording |
 | `proveRiscVWithPublicData` | Bind explicit public data |
@@ -67,26 +68,49 @@ defer statement.deinit(allocator);
 
 ## Build, test, and run
 
-The focused package step requires macOS and the Apple Metal SDK and compiles the
-integration test root:
+The focused package step requires macOS and the Apple Metal SDK. It executes the
+device-free contract suite; the real-device proof skips unless its dedicated
+lane supplies a bundle:
 
 ```sh
 zig build test --build-file src/integrations/riscv_metal/build.zig -Doptimize=ReleaseSafe -j2
 ```
 
+Run the explicit integration acceptance lane on a Metal-capable Mac:
+
+```sh
+zig build test-authenticated-aot --build-file src/integrations/riscv_metal/build.zig -Doptimize=ReleaseFast -Dmetal-core-aot-bundle=/absolute/path/to/core -j2
+```
+
 Build and exercise the assembled product on a Metal-capable Mac:
 
 ```sh
-zig build stwo-riscv-metal -Doptimize=ReleaseFast
-zig build test-riscv-metal -Doptimize=ReleaseFast
-zig build riscv-csp-bench-metal -Doptimize=ReleaseFast
+zig build stwo-riscv-metal -Doptimize=ReleaseFast -Dmetal-core-aot-bundle=/absolute/path/to/core
+zig build test-riscv-metal -Doptimize=ReleaseFast -Dmetal-core-aot-bundle=/absolute/path/to/core
+zig build test-riscv-metal-guest-poseidon2-aot -Doptimize=ReleaseFast -Dmetal-core-aot-bundle=/absolute/path/to/core -j2
+zig build riscv-csp-bench-metal -Doptimize=ReleaseFast -Dmetal-core-aot-bundle=/absolute/path/to/core
 ```
 
 Use `zig-out/bin/stwo-zig-riscv-metal` for the installed CLI; inspect its help
-or application registry for the exact current flags. The root build produces
-the authenticated core AOT bundle first and installs it beside the CLI; an
-explicit retained bundle can instead be supplied with
-`-Dmetal-core-aot-bundle=<absolute-path>`.
+or application registry for the exact current flags. The root build consumes
+the explicit retained bundle supplied with
+`-Dmetal-core-aot-bundle=<absolute-path>` and installs that authenticated
+closure beside the CLI.
+
+The installed CLI keeps the existing base commands unchanged. The only guest
+extension routes are explicit:
+
+```sh
+zig-out/bin/stwo-zig-riscv-metal guest-poseidon2-prove \
+  --elf guest.elf --input input.bin --backend metal --max-steps 900000 \
+  --output proof.stw --report-out proof-report.json
+zig-out/bin/stwo-zig-riscv-metal guest-poseidon2-verify \
+  --artifact proof.stw
+```
+
+Both default to the secure PCS policy. `--protocol functional` is an explicit
+development/evidence policy and is labelled `functional-development` in the
+receipt. No command claims generic guest or generic precompile support.
 
 ## Contract and invariants
 
@@ -97,6 +121,13 @@ explicit retained bundle can instead be supplied with
   authenticated metallib before warmup; source JIT is not a product fallback.
 - Evidence invariant: both resident semantic and lookup polynomial batches must
   dispatch for every verified sample, with zero eligible-route declines.
+- Guest-profile invariant: the final caller/provider components carry the exact
+  version-1 semantic identities. They intentionally use the reviewed generic
+  evaluator because each combines direct and LogUp constraints; that placement
+  is not a backend fallback. Every backend fallback counter must remain zero.
+- Publication invariant: the product independently verifies the bounded binary
+  profile artifact and cleanly shuts down the authenticated runtime before the
+  proof becomes visible.
 
 Device acceptance must also prove deterministic parity, real Metal execution,
 zero fallback, runtime identity, and successful independent verification.

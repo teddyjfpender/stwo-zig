@@ -152,9 +152,10 @@ test "claim phase: invalid interaction proof of work fails before relation draws
 }
 
 test "claim phase: deterministic pinned transcript checkpoints" {
-    // The first two checkpoints preserve the legacy public-data/root prefix.
-    // Later checkpoints bind the Sail-authoritative 28-component schema and
-    // exact mix-call boundaries. The one-bit grind is a deterministic fixture;
+    // The first checkpoint deliberately includes the RVST/v1 statement
+    // domain prefix. Every later value is regenerated from that authenticated
+    // prefix and binds the Sail-authoritative 28-component schema and exact
+    // mix-call boundaries. The one-bit grind is a deterministic fixture;
     // production helpers always use INTERACTION_POW_BITS.
     const data = fixturePublicData();
     const main_claim = fixtureMainClaim();
@@ -163,21 +164,21 @@ test "claim phase: deterministic pinned transcript checkpoints" {
 
     data.mixInto(&channel);
     try expectDigest(channel.digestBytes(), .{
-        67,  48,  110, 191, 120, 36, 9,   40, 113, 113, 198, 101, 80,  46,  213, 58,
-        114, 227, 178, 70,  8,   57, 224, 40, 196, 108, 167, 179, 132, 126, 169, 152,
+        242, 16, 147, 249, 151, 251, 168, 12,  187, 174, 181, 3,  72, 197, 29, 200,
+        22,  50, 131, 135, 18,  202, 160, 249, 220, 39,  164, 94, 22, 100, 56, 51,
     });
 
     Blake2sMerkleChannel.mixRoot(&channel, [_]u8{0x11} ** 32);
     try expectDigest(channel.digestBytes(), .{
-        197, 221, 67, 34,  167, 148, 253, 140, 83,  65,  253, 8,   146, 49, 22,  128,
-        56,  208, 33, 129, 228, 96,  209, 51,  162, 161, 196, 125, 231, 20, 147, 29,
+        238, 230, 175, 6,  134, 27, 155, 252, 86,  15,  84, 33, 69, 193, 116, 149,
+        10,  10,  197, 43, 176, 99, 168, 124, 175, 211, 6,  49, 90, 150, 160, 117,
     });
 
     Blake2sMerkleChannel.mixRoot(&channel, [_]u8{0x22} ** 32);
     main_claim.mixInto(&channel);
     try expectDigest(channel.digestBytes(), .{
-        33, 120, 47,  140, 74, 81, 212, 253, 169, 67,  110, 253, 213, 217, 125, 154,
-        42, 10,  235, 84,  64, 78, 148, 124, 189, 167, 165, 173, 88,  164, 101, 56,
+        31,  43,  238, 7,   163, 205, 175, 216, 192, 7,  154, 119, 81, 241, 124, 251,
+        109, 184, 9,   164, 119, 47,  30,  132, 176, 55, 160, 145, 84, 143, 78,  144,
     });
 
     const nonce = channel.grind(1);
@@ -188,21 +189,21 @@ test "claim phase: deterministic pinned transcript checkpoints" {
         &channel,
     );
     try expectLimbs(relations.registers_state.z, .{
-        1211976735,
-        1092870877,
-        1930337713,
-        1027156036,
+        2016346130,
+        1951509438,
+        1461118113,
+        386917271,
     });
     try expectLimbs(relations.range_check_m31.alpha, .{
-        1459832336,
-        724782805,
-        1683350619,
-        1917464742,
+        1383787405,
+        360336575,
+        128396165,
+        354039216,
     });
     try std.testing.expectEqual(@as(u32, 12), channel.n_draws);
     try expectDigest(channel.digestBytes(), .{
-        87,  44,  30,  9,   218, 170, 59,  160, 57, 191, 219, 144, 105, 126, 143, 6,
-        222, 110, 240, 191, 133, 97,  176, 99,  34, 96,  55,  250, 54,  73,  150, 116,
+        97, 48, 202, 71,  73,  34, 81, 68,  68,  14,  124, 129, 102, 197, 222, 86,
+        47, 51, 79,  211, 102, 71, 22, 139, 194, 202, 62,  170, 252, 184, 214, 223,
     });
 
     finishWithInteractionRoot(
@@ -212,10 +213,42 @@ test "claim phase: deterministic pinned transcript checkpoints" {
         [_]u8{0x33} ** 32,
     );
     try expectDigest(channel.digestBytes(), .{
-        196, 41, 67,  137, 218, 58, 130, 184, 143, 180, 142, 164, 78, 234, 86,  228,
-        30,  83, 196, 127, 232, 16, 70,  147, 63,  176, 197, 40,  38, 58,  156, 229,
+        248, 93,  182, 4,   216, 182, 38,  25, 186, 121, 221, 236, 250, 212, 33,  7,
+        248, 131, 144, 226, 54,  160, 142, 50, 226, 52,  225, 101, 211, 77,  102, 177,
     });
 }
+
+test "claim phase: statement transcript version is digest-bound" {
+    const data = fixturePublicData();
+    var canonical = Blake2sChannel{};
+    data.mixInto(&canonical);
+
+    var changed = VersionMutationChannel{};
+    data.mixInto(&changed);
+    try std.testing.expect(changed.mutated);
+    try std.testing.expect(!std.mem.eql(
+        u8,
+        &canonical.digestBytes(),
+        &changed.inner.digestBytes(),
+    ));
+}
+
+const VersionMutationChannel = struct {
+    inner: Blake2sChannel = .{},
+    mutated: bool = false,
+
+    pub fn mixU32s(self: *@This(), values: []const u32) void {
+        if (!self.mutated and values.len == 2 and
+            values[0] == @import("../public_data.zig").STATEMENT_TRANSCRIPT_DOMAIN)
+        {
+            var changed = [2]u32{ values[0], values[1] +% 1 };
+            self.inner.mixU32s(&changed);
+            self.mutated = true;
+            return;
+        }
+        self.inner.mixU32s(values);
+    }
+};
 
 fn expectDigest(actual: [32]u8, expected: [32]u8) !void {
     try std.testing.expectEqualSlices(u8, &expected, &actual);

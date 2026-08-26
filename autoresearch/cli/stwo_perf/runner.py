@@ -155,7 +155,7 @@ PHASE_SECONDS_FIELDS: dict[str, dict[str, tuple[str, ...]]] = {
         "verify": ("timing", "verify_seconds", "median"),
         "request": ("timing", "request_seconds", "median"),
     },
-    "riscv_proof_v2": {
+    "riscv_proof_v3": {
         "execute": ("mean_execution_seconds",),
         "witness": ("mean_witness_seconds",),
         "prove": ("mean_proving_seconds",),
@@ -198,11 +198,11 @@ _NATIVE_RESOURCE_KEYS = {
 }
 
 
-# --- RISC-V (riscv_proof_v2) ----------------------------------------------
+# --- RISC-V (riscv_proof_v3) ----------------------------------------------
 #
 # The harness report schema and retained proof-artifact schema are separate
 # contracts. The current release-gated Sail artifact is v4; the report remains
-# `riscv_proof_v2`. Tests bind these constants back to the Zig publication
+# `riscv_proof_v3`. Tests bind these constants back to the Zig publication
 # contract so a future artifact bump cannot leave hosted qualification parsing
 # an obsolete fixture again.
 RISCV_ARTIFACT_SCHEMA_VERSION = 4
@@ -347,7 +347,7 @@ _CAIRO_ORACLE_VERDICT_KEYS = {
 # paired round requires to be identical across the A and B arms and across
 # rounds. A schema absent here has no cross-arm mechanism contract.
 STABLE_MECHANISM_FIELDS_BY_SCHEMA: dict[str, tuple[str, frozenset]] = {
-    "riscv_proof_v2": ("RISC-V", RISCV_STABLE_MECHANISM_FIELDS),
+    "riscv_proof_v3": ("RISC-V", RISCV_STABLE_MECHANISM_FIELDS),
     "cairo_proof_v1": ("Cairo", CAIRO_STABLE_MECHANISM_FIELDS),
 }
 
@@ -686,7 +686,7 @@ def _format_workload_args(
     samples: int,
 ) -> str:
     admission = ""
-    if group.report_schema == "riscv_proof_v2":
+    if group.report_schema == "riscv_proof_v3":
         if "{admission}" not in workload.args:
             raise RunError(
                 f"{workload.workload_id}: RISC-V workload command lacks "
@@ -758,7 +758,7 @@ def bench_once(
             ) from exc
     proof_path = None
     product_report_path = None
-    if group.report_schema == "riscv_proof_v2":
+    if group.report_schema == "riscv_proof_v3":
         proof_path = (out_dir / f"{workload.workload_id}.{tag}.proof.json").resolve()
     elif group.report_schema == "native_cuda_product_v6":
         proof_path = (out_dir / f"{workload.workload_id}.{tag}.proof.json").resolve()
@@ -773,7 +773,7 @@ def bench_once(
     args = _format_workload_args(
         arm_root, group, workload, warmups, command_samples,
     )
-    if group.report_schema == "riscv_proof_v2":
+    if group.report_schema == "riscv_proof_v3":
         extra = f" --proof-out {shlex.quote(str(proof_path))}"
     elif group.report_schema == "native_cuda_product_v6":
         assert proof_path is not None and product_report_path is not None
@@ -810,7 +810,7 @@ def bench_once(
             result = _parse_native_report(
                 report, group, workload, warmups, samples, out_path,
             )
-        elif group.report_schema == "riscv_proof_v2":
+        elif group.report_schema == "riscv_proof_v3":
             assert proof_path is not None
             result = _parse_riscv_report(
                 report, group, workload, warmups, samples, out_path, proof_path, arm_root,
@@ -1089,6 +1089,7 @@ def _parse_riscv_report(
 ) -> ArmResult:
     expected_fields = {
         "schema", "release_status", "mode", "experimental", "profiled",
+        "recursion_enabled",
         "warmups", "samples", "verified_samples", "total_steps", "n_components",
         "throughput_numerator", "median_seconds", "throughput_mhz",
         "mean_execution_seconds", "mean_witness_seconds", "mean_proving_seconds",
@@ -1115,6 +1116,8 @@ def _parse_riscv_report(
         raise ValueError("RISC-V report does not match the typed admission phase")
     if report.get("mode") != "bench" or report.get("profiled") is not False:
         raise ValueError("RISC-V report must be an unprofiled bench run")
+    if report.get("recursion_enabled") is not False:
+        raise ValueError("RISC-V report must attest recursion_enabled=false")
     if type(report.get("warmups")) is not int or report["warmups"] != warmups:
         raise ValueError(f"warmups must equal requested warmups ({warmups})")
     reported_samples = report.get("samples")
@@ -2226,7 +2229,7 @@ def paired_rounds(
                 )
             mechanism_reference = stable_b
             mechanism_verified = True
-        if group.report_schema == "riscv_proof_v2":
+        if group.report_schema == "riscv_proof_v3":
             if a.resources_complete is not b.resources_complete:
                 raise RunError(
                     f"{workload.workload_id}: RISC-V resource availability differs "
@@ -3162,7 +3165,7 @@ def rust_oracle_check(candidate_root: Path, manifest: Manifest,
         return _native_rust_oracle_check(
             candidate_root, group, workload, out_dir,
         )
-    if group.report_schema == "riscv_proof_v2":
+    if group.report_schema == "riscv_proof_v3":
         return _riscv_sail_oracle_check(
             candidate_root, group, workload, out_dir,
         )

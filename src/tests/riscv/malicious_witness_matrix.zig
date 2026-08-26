@@ -3,7 +3,7 @@
 const std = @import("std");
 const riscv_cpu = @import("stwo_riscv_cpu_integration");
 const prover = @import("stwo_riscv_frontend").prover_mod;
-const postcard = @import("../../interop/postcard.zig");
+const postcard = @import("interop_postcard");
 const transcript = @import("stwo_riscv_frontend").air.transcript;
 const pcs_core = @import("stwo_core").pcs;
 

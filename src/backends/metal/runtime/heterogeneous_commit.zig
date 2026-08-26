@@ -13,6 +13,7 @@ const combined_commit = @import("combined_commit.zig");
 const commit_memory = @import("commit_memory.zig");
 const metal_merkle = @import("../merkle_tree.zig");
 const ownership_testing = @import("ownership_testing.zig");
+const precommitted_work = @import("precommitted_work.zig");
 const shared_runtime = @import("../shared_runtime.zig");
 const telemetry = @import("../telemetry.zig");
 
@@ -75,7 +76,8 @@ pub fn prepareAndCommitOwned(
     source_backing_buffers: ?[][]M31,
     source: ColumnSource,
 ) !?combined_commit.PreparedCommitment(H) {
-    if (try combined_commit.prepareAndCommitOwned(
+    return prepareAndCommitOwnedImpl(
+        false,
         H,
         allocator,
         owned_columns,
@@ -84,21 +86,11 @@ pub fn prepareAndCommitOwned(
         twiddle_source,
         source_backing_buffers,
         source,
-    )) |prepared| return prepared;
-
-    return prepareAndCommitBackedHeterogeneous(
-        H,
-        allocator,
-        owned_columns,
-        log_blowup_factor,
-        retention_policy,
-        twiddle_source,
-        source_backing_buffers,
-        source,
+        {},
     );
 }
 
-fn prepareAndCommitBackedHeterogeneous(
+pub fn prepareAndCommitOwnedWithWorkRecorder(
     comptime H: type,
     allocator: std.mem.Allocator,
     owned_columns: []ColumnEvaluation,
@@ -107,6 +99,84 @@ fn prepareAndCommitBackedHeterogeneous(
     twiddle_source: anytype,
     source_backing_buffers: ?[][]M31,
     source: ColumnSource,
+    work_recorder: *precommitted_work.Recorder,
+) !?combined_commit.PreparedCommitment(H) {
+    return prepareAndCommitOwnedImpl(
+        true,
+        H,
+        allocator,
+        owned_columns,
+        log_blowup_factor,
+        retention_policy,
+        twiddle_source,
+        source_backing_buffers,
+        source,
+        work_recorder,
+    );
+}
+
+fn prepareAndCommitOwnedImpl(
+    comptime capture_work: bool,
+    comptime H: type,
+    allocator: std.mem.Allocator,
+    owned_columns: []ColumnEvaluation,
+    log_blowup_factor: u32,
+    retention_policy: anytype,
+    twiddle_source: anytype,
+    source_backing_buffers: ?[][]M31,
+    source: ColumnSource,
+    work_recorder: if (capture_work) *precommitted_work.Recorder else void,
+) !?combined_commit.PreparedCommitment(H) {
+    const uniform = if (capture_work)
+        try combined_commit.prepareAndCommitOwnedWithWorkRecorder(
+            H,
+            allocator,
+            owned_columns,
+            log_blowup_factor,
+            retention_policy,
+            twiddle_source,
+            source_backing_buffers,
+            source,
+            work_recorder,
+        )
+    else
+        try combined_commit.prepareAndCommitOwned(
+            H,
+            allocator,
+            owned_columns,
+            log_blowup_factor,
+            retention_policy,
+            twiddle_source,
+            source_backing_buffers,
+            source,
+        );
+    if (uniform) |prepared| return prepared;
+
+    return prepareAndCommitBackedHeterogeneous(
+        capture_work,
+        H,
+        allocator,
+        owned_columns,
+        log_blowup_factor,
+        retention_policy,
+        twiddle_source,
+        source_backing_buffers,
+        source,
+        work_recorder,
+    );
+}
+
+fn prepareAndCommitBackedHeterogeneous(
+    comptime capture_work: bool,
+    comptime H: type,
+    allocator: std.mem.Allocator,
+    owned_columns: []ColumnEvaluation,
+    log_blowup_factor: u32,
+    retention_policy: anytype,
+    twiddle_source: anytype,
+    source_backing_buffers: ?[][]M31,
+    source: ColumnSource,
+    work_recorder: if (capture_work) *precommitted_work.Recorder else void,
 ) !?combined_commit.PreparedCommitment(H) {
     if (retention_policy != .always or log_blowup_factor != 1 or
         !source.isMaterialized() or owned_columns.len == 0 or
@@ -187,8 +257,22 @@ fn prepareAndCommitBackedHeterogeneous(
     // then place them over the later Merkle workspace rather than permanently
     // extending the retained arena.
     for (groups.items) |*group| {
-        const base_twiddles = try twiddle_source.get(allocator, group.log_size);
-        const extended_twiddles = try twiddle_source.get(allocator, group.log_size + 1);
+        const base_twiddles = if (capture_work)
+            try twiddle_source.getWithWorkRecorder(
+                allocator,
+                group.log_size,
+                work_recorder,
+            )
+        else
+            try twiddle_source.get(allocator, group.log_size);
+        const extended_twiddles = if (capture_work)
+            try twiddle_source.getWithWorkRecorder(
+                allocator,
+                group.log_size + 1,
+                work_recorder,
+            )
+        else
+            try twiddle_source.get(allocator, group.log_size + 1);
         group.inverse_twiddles = base_twiddles.itwiddles;
         group.forward_twiddles = extended_twiddles.twiddles;
     }
@@ -373,6 +457,11 @@ fn prepareAndCommitBackedHeterogeneous(
     try ownership_testing.failHeterogeneousAt(.after_alias);
     var epoch = try lease.runtime.beginCommandEpoch(resident_arena);
     defer epoch.deinit();
+    var work_audit: if (capture_work) precommitted_work.Audit else void =
+        if (capture_work)
+            try precommitted_work.Audit.beginOwned(work_recorder)
+        else {};
+    defer if (capture_work) work_audit.deinit();
     for (groups.items) |group| {
         try epoch.encodeCircleIfft(group.ifft_plan.?);
         try epoch.encodeCircleLde(group.lde_plan.?);
@@ -416,6 +505,16 @@ fn prepareAndCommitBackedHeterogeneous(
         initialized_coefficients += 1;
         if (descriptor_index == 0)
             try ownership_testing.failHeterogeneousAt(.during_descriptor_initialization);
+    }
+
+    if (capture_work) {
+        var receipt_builder: precommitted_work.HeterogeneousReceipt = .{};
+        for (groups.items) |group|
+            try receipt_builder.addGroup(group.log_size, group.indices.items.len);
+        const receipt = try receipt_builder.finish(
+            @as(u64, 1) << @intCast(lifting_log_size),
+        );
+        try work_audit.complete(receipt);
     }
 
     // Only the descriptor array is obsolete; the resized backing now owns all

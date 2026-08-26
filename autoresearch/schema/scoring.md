@@ -132,7 +132,7 @@ run.
   `zig build riscv-metal-bench`.
 - **State:** `enabled: false`, `promotion_eligible: false`. The product is
   `parity_gated`; the installed benchmark prints human-readable output and
-  emits no `riscv_proof_v2` report, which the group states in its
+  emits no `riscv_proof_v3` report, which the group states in its
   `report_adapter` block (`status: "absent"`). Manifest validation refuses to
   let a group with an absent adapter be enabled or promotion eligible, so the
   three failures — gated product, missing adapter, missing M5 calibration —

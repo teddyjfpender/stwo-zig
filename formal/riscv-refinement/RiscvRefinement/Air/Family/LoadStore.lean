@@ -5,12 +5,12 @@ import RiscvRefinement.Memory
 
 This file is a hand transcription of the **exported production symbolic AIR**
 for the `load_store` family (`LB`, `LH`, `LW`, `LBU`, `LHU`, `SB`, `SH`, `SW`),
-taken from `src/frontends/riscv/air/semantics/load_store.zig` through the
-symbolic collector export. The export this file was checked against is recorded
-as `loadStoreIrDigest`; if the production AIR changes, the digest changes and
-this transcription must be re-derived. This file is reviewed hand transcription,
-**not** generator output; producing it mechanically from the export is an open
-obligation.
+taken from `typed_load_store_authority.zig` through the shared constraint-program
+and symbolic collector export. The export this file was checked against is
+recorded as `loadStoreIrDigest`; if the production AIR changes, the digest
+changes and this transcription must be re-derived. This file is reviewed hand
+transcription, **not** generator output; producing it mechanically from the
+export is an open obligation.
 
 Modelling conventions, stated once:
 
@@ -42,7 +42,11 @@ open RiscvRefinement
 
 /-- SHA-256 of the exported production symbolic AIR this file transcribes. -/
 def loadStoreIrDigest : String :=
-  "157254ef806da05107bc89142dd488030bc8f8912bd6872ccf898fed6876a62e"
+  "44b8ffa7d86cfff1b914e8dfde132284d356e976a6fe4a90d8b62252a1c21ea9"
+
+/-- Sparse-polynomial identity shared by the reviewed and typed exports. -/
+def loadStorePolynomialDigest : String :=
+  "d19899f907d0d5a3ec364963e1f3901e03c2620e3ad203a01bbf2e298775b59f"
 
 /-- The base field the production AIR evaluates in. -/
 def m31Modulus : Nat := 2147483647

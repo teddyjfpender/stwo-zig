@@ -7,4 +7,5 @@ test {
     _ = @import("proof_admission_test.zig");
     _ = @import("prove_admission_gate_test.zig");
     _ = @import("public_relation_binding_test.zig");
+    _ = @import("typed_poseidon2_proof_equivalence_test.zig");
 }

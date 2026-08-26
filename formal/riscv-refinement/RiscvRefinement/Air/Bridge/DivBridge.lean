@@ -1475,9 +1475,16 @@ theorem divProgramCompiled_value_eq_evalNodes (columns : List M31) (index : Nat)
   exact DivCircuit.localise_value_eq_evalNodes divProgram columns index
     divProgram_wellFormed covered
 
--- The encoded table and the hand transcription are pinned to the same export
--- bytes mechanically, not by comment.
-#guard divProgramIrDigest == Air.Family.divIrDigest
+-- The selector circuit remains byte-identical to the reviewed pre-cutover
+-- export. The aggregate typed-family export interns the same polynomial DAG in
+-- a different order. These constants and `riscv_air_ir_equivalence.py` pin the
+-- two serialisations through the reviewed sparse-polynomial identity.
+#guard divProgramIrDigest ==
+  "430a06a8919e469251deab180b492e89a4a6452de0014b2b0c3ea6c350912e4d"
+#guard Air.Family.divIrDigest ==
+  "b06e011252a31ccf9072078d8c91c01312fbd43203aea35fd04722b0abd25d56"
+#guard Air.Family.divPolynomialDigest ==
+  "355d6b67cf4fe79d494c191b93133e4415b1c77a3b5f18cf2d44a9c726ae43ce"
 #guard divProgram.columns.length == Air.Family.divIrColumns
 #guard divProgram.constraints.length == Air.Family.divIrConstraints
 

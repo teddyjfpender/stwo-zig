@@ -53,7 +53,10 @@ def run_lane(
         raise PlanError(f"CI lane {lane} requires {spec['host']}, current host is {host}")
     for command in spec["commands"]:
         targets = {argument for argument in command if not argument.startswith("-")}
-        forbidden = sorted(target for target in targets if "benchmark" in target or "profile" in target)
+        forbidden = sorted(
+            target for target in targets
+            if "benchmark" in target or ("profile" in target and not target.startswith("test-"))
+        )
         if forbidden:
             raise PlanError(f"focused lane {lane} contains workload targets: {forbidden}")
     root = root.resolve(strict=True)

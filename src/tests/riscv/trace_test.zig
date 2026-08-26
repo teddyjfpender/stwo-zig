@@ -49,10 +49,41 @@ test {
     _ = @import("prover_test.zig");
     _ = @import("public_relation_binding_test.zig");
     _ = @import("transcript_path_test.zig");
+    _ = @import("typed_poseidon2_proof_equivalence_test.zig");
     // The extraction differential guards every uniqueness verdict: if the IR
     // stops matching `Semantics(QM31)`, the solver is answering about a system
     // we no longer ship. Unregistered it never ran, so the guard was nominal.
     _ = @import("uniqueness_ir_test.zig");
     _ = @import("uniqueness_counterexample_test.zig");
     _ = @import("witness_rigidity_test.zig");
+    _ = @import("typed_lui_witness_corpus_test.zig");
+    _ = @import("typed_jalr_witness_corpus_test.zig");
+    _ = @import("typed_jal_witness_corpus_test.zig");
+    _ = @import("typed_branch_eq_witness_corpus_test.zig");
+    _ = @import("typed_branch_lt_witness_corpus_test.zig");
+    _ = @import("typed_lui_witness_authority_test.zig");
+    _ = @import("typed_base_alu_imm_witness_authority_test.zig");
+    _ = @import("typed_base_alu_reg_witness_authority_test.zig");
+    _ = @import("typed_div_witness_authority_test.zig");
+    _ = @import("typed_fence_witness_authority_test.zig");
+    _ = @import("typed_auipc_witness_authority_test.zig");
+    _ = @import("typed_jalr_witness_authority_test.zig");
+    _ = @import("typed_jal_witness_authority_test.zig");
+    _ = @import("typed_branch_eq_witness_authority_test.zig");
+    _ = @import("typed_branch_lt_witness_authority_test.zig");
+    _ = @import("main_trace_planned_proof_test.zig");
+    _ = @import("recursion_poseidon_leaf_test.zig");
+    _ = @import("recursion_control_typed_proof_test.zig");
+    _ = @import("typed_load_store_witness_authority_test.zig");
+    _ = @import("typed_lt_imm_witness_corpus_test.zig");
+    _ = @import("typed_lt_imm_witness_authority_test.zig");
+    _ = @import("typed_lt_reg_witness_corpus_test.zig");
+    _ = @import("typed_lt_reg_witness_authority_test.zig");
+    _ = @import("typed_mul_witness_authority_test.zig");
+    _ = @import("typed_mulh_witness_corpus_test.zig");
+    _ = @import("typed_mulh_witness_authority_test.zig");
+    _ = @import("typed_shifts_imm_witness_corpus_test.zig");
+    _ = @import("typed_shifts_imm_witness_authority_test.zig");
+    _ = @import("typed_shifts_reg_witness_corpus_test.zig");
+    _ = @import("typed_shifts_reg_witness_authority_test.zig");
 }

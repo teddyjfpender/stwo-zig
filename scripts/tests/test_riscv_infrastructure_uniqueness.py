@@ -567,8 +567,8 @@ class ProductionBindingTests(unittest.TestCase):
     def test_program_relation_mutation_fails_closed(self) -> None:
         self.mutate(
             uniqueness.PROGRAM_INTERACTION_PATH,
-            "append(&list, .program_access, main[6],",
-            "append(&list, .memory_access, main[6],",
+            "appendGeneric(S, &list, .program_access, main[6],",
+            "appendGeneric(S, &list, .memory_access, main[6],",
         )
         with self.assertRaisesRegex(AssertionError, "program tuple emission"):
             uniqueness.check_production_contract(self.repo)
@@ -587,8 +587,8 @@ class ProductionBindingTests(unittest.TestCase):
     def test_memory_second_range_mutation_fails_closed(self) -> None:
         self.mutate(
             uniqueness.MEMORY_INTERACTION_PATH,
-            "append(&list, .range_check_8_8, enabler.neg(), .{ values[2], values[3] });",
-            "append(&list, .range_check_8_8, enabler.neg(), .{ values[2], values[2] });",
+            "appendGeneric(S, &list, .range_check_8_8, enabler.neg(), .{ values[2], values[3] });",
+            "appendGeneric(S, &list, .range_check_8_8, enabler.neg(), .{ values[2], values[2] });",
         )
         with self.assertRaisesRegex(
             AssertionError, "memory second byte range pair"
@@ -607,8 +607,8 @@ class ProductionBindingTests(unittest.TestCase):
     def test_clock_successor_mutation_fails_closed(self) -> None:
         self.mutate(
             uniqueness.CLOCK_INTERACTION_PATH,
-            "row.clock_prev.add(q(state_chain.MAX_CLOCK_DIFF))",
-            "row.clock_prev.sub(q(state_chain.MAX_CLOCK_DIFF))",
+            "row.clock_prev.add(qGeneric(S, state_chain.MAX_CLOCK_DIFF))",
+            "row.clock_prev.sub(qGeneric(S, state_chain.MAX_CLOCK_DIFF))",
         )
         with self.assertRaisesRegex(AssertionError, "clock next tuple"):
             uniqueness.check_production_contract(self.repo)

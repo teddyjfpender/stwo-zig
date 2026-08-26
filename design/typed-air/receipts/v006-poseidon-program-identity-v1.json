@@ -1,0 +1,467 @@
+{
+  "schema_version": 1,
+  "kind": "stwo-typed-air-task-receipt",
+  "milestone": "M4-poseidon-compiler-pilot",
+  "task": "V-006",
+  "status": "program-identity-co-attestation-recorded-test-only",
+  "recorded_on": "2026-08-06",
+  "branch": "feat/typed-air-precompiles",
+  "decision": "design/typed-air/decisions/0021-backend-neutral-poseidon-program-identity.md",
+  "receipt_state": {
+    "final": true,
+    "reason": "every acceptance criterion is met against one clean immutable CPU, Metal, and structural evidence snapshot",
+    "claim_boundary": "final for V-006 local proof-path co-attestation only; this is not transcript binding, public-statement binding, or production-verifier authentication"
+  },
+  "evidence_snapshot": {
+    "repository_revision": "4a020b85a5b0c5c566c2e09cbec5cf083753e3e7",
+    "tree": "08578f0874369a5545e0e31a51db8fbe800d8844",
+    "worktree_clean": true,
+    "clean_before_commands": true,
+    "clean_after_commands": true,
+    "method": "all recorded CPU, Metal, frontend, artifact, package, and conformance commands ran from this exact clean revision and tree before the later receipt-only commit was authored"
+  },
+  "scope": {
+    "production_runtime_changed": false,
+    "production_witness_authority_changed": false,
+    "proof_protocol_changed": false,
+    "proof_transcript_changed": false,
+    "public_statement_changed": false,
+    "production_verifier_changed": false,
+    "formal_artifact_changed": false,
+    "test_product_graph_changed": true,
+    "description": "test-only backend-neutral identity for the authenticated typed Poseidon semantic program, physical layout, witness executor, and relation plan, returned beside real CPU and Metal proof-path evidence"
+  },
+  "toolchain": {
+    "architecture": "arm64",
+    "kernel": "Darwin 25.6.0",
+    "operating_system": "macOS 26.6",
+    "operating_system_build": "25G72",
+    "zig": "0.15.2",
+    "python": "3.14.6",
+    "metal": {
+      "xcode_version": "26.6",
+      "xcode_build": "17F113",
+      "sdk_version": "26.5",
+      "sdk_build": "25F70",
+      "compiler": "Apple metal 32023.883",
+      "toolchain_identifier": "com.apple.dt.toolchain.Metal.32023.883"
+    }
+  },
+  "program_identity": {
+    "component_id": "stwo.riscv.poseidon2-m31",
+    "format_version": 1,
+    "hash": "sha256",
+    "combined_domain": "stwo-zig/typed-air/poseidon2-program-identity/v1",
+    "transport_magic_ascii": "STWAIRP\\0",
+    "transport_magic_hex": "5354574149525000",
+    "canonical_preimage_bytes": 182,
+    "transport_receipt_bytes": 214,
+    "integer_encoding": "fixed-width unsigned little-endian",
+    "children": [
+      {
+        "tag": 1,
+        "name": "semantic",
+        "format_version": 1,
+        "domain": "stwo-zig/typed-air/semantic",
+        "digest": "9e8c3b5accdc2be31cf8ca128b5b27c87613f691ee8fd25e031f4286ceac81ed",
+        "coverage": "source-independent validated typed-AIR logical program"
+      },
+      {
+        "tag": 2,
+        "name": "layout",
+        "format_version": 1,
+        "domain": "stwo-zig/typed-air/poseidon2-layout/v1",
+        "digest": "afbe1dfdf19fff06e2b6954276fd53d9d4bd67eea614acaba84c5678a8b31633",
+        "coverage": "authenticated compatibility and materializer identities, gate and policy, 445 ordered main-column roles and mappings, eight ordered interaction-column roles, and two ordered claim slots"
+      },
+      {
+        "tag": 3,
+        "name": "executor",
+        "format_version": 1,
+        "domain": "stwo-zig/typed-air/poseidon2-witness-executor/v1",
+        "digest": "6fe46c3c4dfc48b9dccc248ae23af8f246a83de3ec03b97274f6b7f90dbb9b88",
+        "coverage": "authenticated H-005 envelope, compiled instruction stream, input slots, and materialization slots"
+      },
+      {
+        "tag": 4,
+        "name": "relation",
+        "format_version": 1,
+        "domain": "stwo-zig/typed-air/poseidon2-relations/v1",
+        "digest": "e70e62b2ff2815f52011468ad39e29b26c621c3039a9281298215ecaf90988b3",
+        "coverage": "authenticated H-006 identity, all four ordered event records and both batch records, bound to semantic and layout identities"
+      }
+    ],
+    "geometry": {
+      "main_columns": 445,
+      "materialized_columns": 426,
+      "interaction_columns": 8,
+      "claim_slots": 2
+    },
+    "combined_digest": "594c88bfe11d6c8cb65918a7bfcf72257a79b61674997dbed24151ea3fb88a65",
+    "transport_receipt_sha256": "745d92b8b7b0dc78a12397454d865f3818ce774b8589cc7de12ee357c92bc36c",
+    "excluded": [
+      "source paths and spans",
+      "allocator and host memory representation",
+      "backend name",
+      "repository and product-closure revisions",
+      "Metal AOT bundle identity",
+      "backend telemetry"
+    ]
+  },
+  "proof_path_co_attestation": {
+    "construction": "the test-only proof authority reconstructs all four child identities from authenticated owned H-003/H-004/H-005/H-006 components before the concrete proof engine observes a committed column",
+    "finalization": "receipt creation reconstructs the identity after proof construction and typed output-claim installation and rejects if it differs from the value sealed at authority construction",
+    "validation": "the returned receipt validates its combined seal and requires exact equality with the canonical five-digest identity",
+    "backend_contract": "the CPU and Metal product exercises each compare the returned combined digest with the same canonical constant after an honest proof verifies through the unchanged production verifier",
+    "identity_in_transcript": false,
+    "identity_in_public_statement": false,
+    "identity_checked_by_production_verifier": false,
+    "classification": "local proof-path co-attestation; not a cryptographic binding between arbitrary proof bytes and the program-identity receipt"
+  },
+  "source_artifacts": {
+    "identity": {
+      "path": "src/frontends/riscv/air/lang/typed_poseidon2_identity.zig",
+      "bytes": 28755,
+      "sha256": "b8716cd07b55c9649a4e380f6e0c0fe7b533b7072210a2c9fecc171d3e4e14db"
+    },
+    "reviewed_goldens": {
+      "path": "src/frontends/riscv/air/lang/typed_poseidon2_identity_golden.zig",
+      "bytes": 1559,
+      "sha256": "4415d3ce7e8eef9584f4f7a0dc37bf51e625d35a102bca5dcfbb1b69d4623cb2"
+    },
+    "identity_tests": {
+      "path": "src/frontends/riscv/air/lang/typed_poseidon2_identity_test.zig",
+      "bytes": 17540,
+      "sha256": "7c004f9085d62ece5b9829913d49211e3ae7e773446a8ab88a2f530c5ad30696"
+    },
+    "proof_authority": {
+      "path": "src/frontends/riscv/air/lang/typed_poseidon2_proof_authority.zig",
+      "bytes": 6365,
+      "sha256": "3d7d7cac4959e5aa8a3909c09ea50c5ed802626005cf07ed535f9d96eb8c7b3e"
+    },
+    "proof_harness": {
+      "path": "src/frontends/riscv/air/lang/typed_poseidon2_proof_harness.zig",
+      "bytes": 26699,
+      "sha256": "298914ce2741b0818b73caed6f81737ca154c977d7f1755d199359c4c0a3103e"
+    },
+    "cpu_product_tests": {
+      "path": "src/tests/riscv/typed_poseidon2_proof_equivalence_test.zig",
+      "bytes": 1645,
+      "sha256": "1b98d034034aa65a0c4f880aad53c1f897bd17c0f7094e38be2afe8fe8d5e167"
+    },
+    "metal_product_tests": {
+      "path": "src/tests/riscv/metal_backend_test.zig",
+      "bytes": 7056,
+      "sha256": "fad8339ef2b14bd526b774a13085395bc3bfb90c4228da68cc710295b63cc36c"
+    }
+  },
+  "product_closures": {
+    "cpu": {
+      "local_evidence_path": "zig-out/release-evidence/architecture/product-closures/stwo-riscv-cpu.json",
+      "availability": "reproducible build output; digest and salient fields retained here, raw JSON not repository-retained",
+      "receipt_sha256": "989412d6c9ccb07c8fa44f3c5b8526316b4c9e72cedf4b1cfb9072927fad86ce",
+      "manifest_sha256": "056728c78fe104dbd62baa80204458224c4607570178cc202c109a10e886256d",
+      "source_count": 507,
+      "source_content_sha256": "9c563cb632dae0e434d6c8a6d227bada03ace8714a6d381e09bbff416a503604",
+      "binary_sha256": "1743c3879ff90d5718124eeea04489230ba59622c3a2b3ff94d5000e251dbae8",
+      "static_x86_64_binary_sha256": "716e4fa88aa47e3056cd6a703e7566db1528f873e1ae33c3b214ccf135f98411",
+      "generated_imports_include": [
+        "typed_air_artifacts",
+        "typed_air_h009_artifacts"
+      ]
+    },
+    "metal": {
+      "local_evidence_path": "zig-out/release-evidence/architecture/product-closures/stwo-riscv-metal.json",
+      "availability": "reproducible build output; digest and salient fields retained here, raw JSON not repository-retained",
+      "receipt_sha256": "ee03109ac983b6bd49745e491e103806f1e5a0ed142982a6846c687a8c1c604e",
+      "manifest_sha256": "cce9cb892ec35cd8950159c3360beca474ecd13503b4c64698e538345c519a9d",
+      "source_count": 564,
+      "source_content_sha256": "53bfec326fc538602eb243da9895e47774e3637803aed7ba2fba972a32258506",
+      "binary_sha256": "434eb07c8fc4ae638136002f03c2b12edef98c8a99ed63e30933cbb86754bf94",
+      "generated_imports_include": [
+        "typed_air_artifacts",
+        "typed_air_h009_artifacts"
+      ]
+    }
+  },
+  "metal_aot": {
+    "local_bundle_path": "zig-out/share/stwo-zig/metal/core",
+    "availability": "reproducible authenticated build output; identities retained here, bundle not repository-retained",
+    "format": "stwo-zig-metal-core-aot-v2",
+    "core_shader_abi": 12,
+    "exports": 118,
+    "function_constants": 0,
+    "manifest_json_bytes": 45234,
+    "manifest_sidecar_bytes": 94,
+    "manifest_sidecar_sha256": "3d57f07693c76ce3e502267840a1101b880d71741140e04aef86b12a234d4d61",
+    "source_bytes": 591172,
+    "air_bytes": 1133296,
+    "metallib_bytes": 1595105,
+    "manifest_json_sha256": "0c2bd2960707ce5f86ca844e5fac9d43f667297c780e7cdda2ea228915281449",
+    "source_sha256": "304911285a54a8089068e755cb457bceacceb3add65e226574ed8abde29c7abc",
+    "air_sha256": "c4478d16d30128d7741e9567af6cc62d321ab07228974601a473f434d7dcb9fb",
+    "metallib_sha256": "e0f1f7b95233c97971f97984a161462f350b823591af72a57f2173fb3b5302de",
+    "compile_profile": "macosx / metal3.1 / safe math / warnings as errors",
+    "target_policy": "macOS 14.0 minimum / portable metallib / runtime-compatible Metal 3 device family",
+    "owner_export_counts": {
+      "arena_ops": 1,
+      "circle_transform": 22,
+      "commitments": 7,
+      "compaction": 11,
+      "composition": 5,
+      "decommit": 10,
+      "fri": 6,
+      "polynomial_eval": 2,
+      "quotient": 11,
+      "relation": 4,
+      "riscv_polynomials": 34,
+      "trace_generation": 1,
+      "transcript": 4
+    },
+    "admission": "native core metallib authenticated and accepted with the exact 118-export inventory, zero function constants, and AOT/JIT kernel parity"
+  },
+  "test_configuration": {
+    "fixture": {
+      "active_rows": 46,
+      "narrow_rows": 46,
+      "wide_rows": 0,
+      "io_rows": 0
+    },
+    "pcs_test_security": {
+      "pow_bits": 0,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "n_queries": 3
+    }
+  },
+  "validation": [
+    {
+      "id": "frontend-release-fast",
+      "command": "zig build test --build-file src/frontends/riscv/build.zig -Doptimize=ReleaseFast -j1",
+      "status": "passed",
+      "build_steps_passed": 4,
+      "build_steps_total": 4,
+      "tests_passed": 762,
+      "tests_total": 763,
+      "tests_skipped": 1,
+      "expected_negative_proof_admission_stderr_events": 2,
+      "coverage": "identity construction, golden equality, source/allocation invariance, child sensitivity, exact transport round trip, corruption rejection, layout coverage, executor binding, relation coverage, lifecycle reconstruction, and noncanonical-receipt rejection"
+    },
+    {
+      "id": "frontend-release-safe",
+      "command": "zig build test --build-file src/frontends/riscv/build.zig -Doptimize=ReleaseSafe -j1",
+      "status": "passed",
+      "build_steps_passed": 4,
+      "build_steps_total": 4,
+      "tests_passed": 762,
+      "tests_total": 763,
+      "tests_skipped": 1,
+      "expected_negative_proof_admission_stderr_events": 2
+    },
+    {
+      "id": "cpu-product",
+      "command": "zig build test-riscv-cpu-product -Doptimize=ReleaseFast -j1",
+      "status": "passed",
+      "product_markers_passed": 15,
+      "opcode_coverage": "46/46",
+      "closure": "PASS (507 transitive Zig sources)",
+      "honest_proof_verified": true,
+      "receipt_validated": true,
+      "asserted_combined_digest": "594c88bfe11d6c8cb65918a7bfcf72257a79b61674997dbed24151ea3fb88a65",
+      "generated_artifact_negative_cases_passed": 4
+    },
+    {
+      "id": "metal-product",
+      "command": "zig build test-riscv-metal -Doptimize=ReleaseFast -j1",
+      "status": "passed",
+      "closure": "PASS (564 transitive Zig sources)",
+      "honest_proof_verified": true,
+      "receipt_validated": true,
+      "asserted_combined_digest": "594c88bfe11d6c8cb65918a7bfcf72257a79b61674997dbed24151ea3fb88a65",
+      "authenticated_aot_admitted": true,
+      "resident_risc_polynomial_execution_observed": true,
+      "cpu_riscv_polynomial_composition_declines": 0,
+      "telemetry": "authenticated AOT admission, resident RISC base and lookup polynomial execution, and zero CPU polynomial-composition declines"
+    },
+    {
+      "id": "typed-air-frontier",
+      "command": "zig build typed-air-frontier --build-file src/frontends/riscv/build.zig -Doptimize=ReleaseFast",
+      "status": "passed",
+      "artifacts_checked": 3
+    },
+    {
+      "id": "typed-air-manifest",
+      "command": "zig build typed-air-manifest --build-file src/frontends/riscv/build.zig -Doptimize=ReleaseFast",
+      "status": "passed",
+      "families_checked": 17
+    },
+    {
+      "id": "package-workspace-python",
+      "command": "python3 scripts/check_package_workspace.py --repo .",
+      "status": "passed",
+      "packages": 21,
+      "public_modules": 21,
+      "dependency_edges": 70
+    },
+    {
+      "id": "package-workspace-build",
+      "command": "zig build package-workspace --summary all",
+      "status": "passed",
+      "build_steps_passed": 2,
+      "build_steps_total": 2,
+      "packages": 21,
+      "public_modules": 21,
+      "dependency_edges": 70
+    },
+    {
+      "id": "source-conformance-unit",
+      "command": "python3 -m unittest scripts.tests.test_source_conformance scripts.tests.test_typed_air_proposal_isolation",
+      "status": "passed",
+      "tests_passed": 34
+    },
+    {
+      "id": "source-conformance",
+      "command": "python3 scripts/check_source_conformance.py",
+      "status": "failed-known-baseline",
+      "exit_code": 1,
+      "new_v006_findings": 0,
+      "warnings": [
+        "build_support/products/riscv_cpu.zig: 499 lines approaches the 500-line build-support owner ceiling (1 line(s) of headroom)",
+        "src/frontends/riscv/air/lang/compat_manifest.zig: 812 lines approaches the 850-line manual-source ceiling (38 line(s) of headroom)",
+        "src/frontends/riscv/air/lang/compat_manifest_diff.zig: 799 lines approaches the 850-line manual-source ceiling (51 line(s) of headroom)"
+      ],
+      "unchanged_files_within_ten_percent_of_ceiling": 122,
+      "errors": [
+        "backends/metal/commit_backend.zig: 855 lines exceeds the 850-line manual-source ceiling",
+        "frontends/riscv/air/lookups/tables/source_ingest.zig: 1010 lines exceeds the 850-line manual-source ceiling",
+        "stale baseline entry must be removed: file-size:backends/cpu_scalar/riscv_composition.zig",
+        "stale baseline entry must be removed: file-size:frontends/riscv/air/lookups/opcode_interaction.zig",
+        "backends/metal/kernels.metal: 984 lines exceeds the 850-line manual-source ceiling; baseline budget is 858 lines",
+        "backends/metal/runtime.m: 1019 lines exceeds the 850-line manual-source ceiling; baseline budget is 1014 lines",
+        "backends/metal/runtime/quotients.m: 1465 lines exceeds the 850-line manual-source ceiling; baseline budget is 1184 lines",
+        "backends/metal/shaders/manifest.zig: 927 lines exceeds the 850-line manual-source ceiling; baseline budget is 923 lines"
+      ],
+      "classification": "the eight errors are the known unrelated repository baseline; the command is recorded as non-green and no waiver or V-006 attribution is claimed"
+    }
+  ],
+  "lifecycle_and_negative_evidence": {
+    "identity": [
+      {
+        "case": "source paths, source spans, and allocator implementation differ while the authenticated logical program is unchanged",
+        "result": "all four children and the combined digest equal the reviewed canonical goldens"
+      },
+      {
+        "case": "each semantic, layout, executor, and relation child digest is independently changed",
+        "result": "every mutation changes the combined seal"
+      },
+      {
+        "case": "each byte of the 214-byte transport is independently bit-corrupted",
+        "result": "every corrupted receipt rejects"
+      },
+      {
+        "case": "each of the 426 materialization mappings is independently permuted, with representative main-role/order, interaction-coordinate, and claim-batch perturbations",
+        "result": "layout identity changes or malformed geometry rejects"
+      },
+      {
+        "case": "every encoded event-field and batch-field class is perturbed on a canonical record, and the bound layout digest is changed",
+        "result": "relation identity changes"
+      },
+      {
+        "case": "executor instructions, slots, and cross-component bindings are corrupted",
+        "result": "executor construction or identity validation fails closed"
+      },
+      {
+        "case": "owned authenticated H-003 state drifts after proof-authority construction",
+        "result": "final receipt reconstruction reauthenticates the H-005/H-006 dependency chain and rejects the lifecycle drift"
+      },
+      {
+        "case": "a self-consistent but noncanonical program identity has a valid recomputed combined seal",
+        "result": "final proof receipt rejects it because canonical equality is required in addition to internal seal validity"
+      },
+      {
+        "case": "allocation fails at each reachable identity-construction allocation point",
+        "result": "every partial allocation is released"
+      }
+    ],
+    "proof_path": [
+      {
+        "mutation": "one M31 in a generated main column after authentication",
+        "result": "ConstraintsNotSatisfied"
+      },
+      {
+        "mutation": "one M31 in a generated interaction column after authentication",
+        "result": "ConstraintsNotSatisfied"
+      },
+      {
+        "mutation": "one typed QM31 component claim after authentication",
+        "result": "ConstraintsNotSatisfied"
+      },
+      {
+        "mutation": "out-of-range main-column mutation request",
+        "result": "InvalidCandidateMutation with allocator cleanup"
+      }
+    ]
+  },
+  "acceptance_criteria": [
+    {
+      "id": "immutable-snapshot",
+      "requirement": "all evidence commands run against one named clean repository revision and tree",
+      "met": true
+    },
+    {
+      "id": "canonical-encoding",
+      "requirement": "the 182-byte preimage, 214-byte transport, five golden digests, and transport SHA-256 match the reviewed constants exactly",
+      "met": true
+    },
+    {
+      "id": "complete-child-binding",
+      "requirement": "semantic, layout, executor, and relation mutation/sensitivity tests demonstrate that every child participates in the combined identity and malformed transport rejects",
+      "met": true
+    },
+    {
+      "id": "proof-lifecycle-reconstruction",
+      "requirement": "the proof authority seals identity before backend work, reconstructs it at receipt creation, and rejects drift or a noncanonical receipt",
+      "met": true
+    },
+    {
+      "id": "frontend-build-matrix",
+      "requirement": "the complete frontend suite passes in ReleaseFast and ReleaseSafe with identical 762-pass, one-skip outcomes",
+      "met": true
+    },
+    {
+      "id": "cpu-evidence",
+      "requirement": "the CPU product command passes, its honest proof verifies, and its receipt returns combined digest 594c88bfe11d6c8cb65918a7bfcf72257a79b61674997dbed24151ea3fb88a65",
+      "met": true
+    },
+    {
+      "id": "metal-evidence",
+      "requirement": "the Metal product command passes with authenticated resident execution, its honest proof verifies, and its receipt returns the same combined digest with zero CPU polynomial-composition declines",
+      "met": true
+    },
+    {
+      "id": "backend-neutrality",
+      "requirement": "backend name, AOT identity, telemetry, and product-closure identity remain evidence metadata and do not affect the canonical program digest",
+      "met": true
+    },
+    {
+      "id": "regression-gates",
+      "requirement": "package-workspace and source-conformance gates introduce no V-006 regression, and product-closure identities are recorded",
+      "met": true
+    },
+    {
+      "id": "claim-boundary",
+      "requirement": "the final receipt and ADR state explicitly that identity is co-attested, not transcript-bound or production-verifier-authenticated",
+      "met": true
+    }
+  ],
+  "limitations": [
+    "the program identity is not mixed into the Fiat-Shamir channel, proof commitment, or public statement and is not checked by the production verifier",
+    "the identity receipt and verified proof are co-attested by the local test path; they are not one cryptographically inseparable artifact",
+    "the typed proof authority and substitution harness remain test-only and shadow-only; no production witness, constraint, prover, verifier, or transcript authority changes",
+    "the real RISC-V proof fixture exercises narrow mode only; H-005/H-006 differentials cover wide and I/O generation outside this full-proof receipt",
+    "the PCS parameters are integration-test parameters and do not establish production-security soundness",
+    "backend-neutral program equality does not authenticate the Metal build; AOT admission and telemetry remain separate evidence",
+    "this receipt makes no proving-speed, proof-size, optimized-materialization, precompile-ABI, recursion, or parallel-scheduling claim",
+    "whole_frontend_verified and proof_system_soundness remain false"
+  ]
+}

@@ -19,6 +19,7 @@ pub extern fn stwo_zig_metal_fri_fold_circle(
     domain_step_size: u32,
     alpha: *const [4]u32,
     destination: [*]u32,
+    inverse_generated: ?*bool,
     gpu_milliseconds: *f64,
     error_message: [*]u8,
     error_message_len: usize,
@@ -72,6 +73,7 @@ pub extern fn stwo_zig_metal_fri_line_cascade(
     domain_prefix_bytes: u32,
     channel_state: *[10]u32,
     trees: [*]?*anyopaque,
+    inverse_generation_mask: ?*u32,
     stats: *CommandEpochStats,
     error_message: [*]u8,
     error_message_len: usize,
@@ -440,8 +442,8 @@ test "opening bindings retain canonical shared ABI parameter types" {
     try std.testing.expect(fold_commit.return_type.? == ?*anyopaque);
 
     const cascade = @typeInfo(@TypeOf(stwo_zig_metal_fri_line_cascade)).@"fn";
-    try std.testing.expectEqual(@as(usize, 18), cascade.params.len);
-    try std.testing.expect(cascade.params[15].type.? == *CommandEpochStats);
+    try std.testing.expectEqual(@as(usize, 19), cascade.params.len);
+    try std.testing.expect(cascade.params[16].type.? == *CommandEpochStats);
     try std.testing.expect(cascade.return_type.? == bool);
 
     const quotient = @typeInfo(@TypeOf(stwo_zig_metal_quotient_coefficients_resident)).@"fn";

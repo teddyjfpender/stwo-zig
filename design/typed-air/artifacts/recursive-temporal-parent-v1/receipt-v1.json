@@ -1,0 +1,19 @@
+{
+  "audit_sha256": "71ac4304cc3cb3811cc0d9764bd304184ddec889a12e7c3b0463a00aab9be54f",
+  "canonical_proof_bytes": 94740,
+  "classification": "development-correctness-evidence",
+  "closure_receipt_sha256": "a678ca532443de395bcbfc2b72707462c0991e7111c2da44c9626c71b50b63a0",
+  "cohort_authority_sha256": "e9fb54b38946066ca4f8a87cce90ce076316b57850dc437c899cdc069aca95be",
+  "independently_verified": true,
+  "lean_gate": "run-recursive-temporal-parent-real-proof ReleaseFast",
+  "mutation_gate": "test-recursive-temporal-parent-real-proof ReleaseFast",
+  "pair_authentication_poseidon_permutations": 0,
+  "proof_sha256": "a43d756e1b1832105922579ccef1df55b73e9cd861c8e9dfcf7ea87845b7203b",
+  "proof_system_soundness": false,
+  "publication_sha256": "2a6bf58a8ca8006f01df44a86120519fa28ad3a18b9f0ec06410b5e8c04fa867",
+  "roster_count": 36,
+  "schema": "stwo.typed-air.recursive-temporal-parent-receipt.v1",
+  "schema_version": 1,
+  "temporal_parent_verified": true,
+  "whole_frontend_verified": false
+}

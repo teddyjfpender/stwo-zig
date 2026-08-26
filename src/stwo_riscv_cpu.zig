@@ -17,6 +17,6 @@ pub const integrations = struct {
 
 pub const interop = struct {
     pub const atomic_file = @import("interop/atomic_file.zig");
-    pub const postcard = @import("interop/postcard.zig");
+    pub const postcard = @import("interop_postcard");
     pub const riscv_artifact = @import("interop/riscv_artifact.zig");
 };

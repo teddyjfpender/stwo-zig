@@ -7,6 +7,7 @@
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const poseidon2 = @import("poseidon2.zig");
+const poseidon_work = @import("../../prover/poseidon_witness_work.zig");
 
 pub const LEAF_DEPTH: u32 = 30;
 pub const LEAF_COUNT: u32 = @as(u32, 1) << @intCast(LEAF_DEPTH);
@@ -79,6 +80,35 @@ pub const Tree = struct {
             if (!std.meta.eql(actual, expected)) return error.InvalidTree;
         }
     }
+
+    /// Profiled validation returns the exact completed rebuild receipt only
+    /// after every root and node comparison succeeds.  Rejected trees publish
+    /// no work into the request coordinator.
+    pub fn validateWithWorkReceipt(
+        self: Tree,
+        allocator: std.mem.Allocator,
+        authority: *const poseidon_work.Authority,
+    ) (Error || error{
+        PoseidonWorkOverflow,
+        PoseidonWorkSourceMismatch,
+    })!poseidon_work.ProducerReceipt {
+        var rebuilt = try buildWithWorkReceipt(allocator, self.leaves, authority);
+        defer rebuilt.tree.deinit(allocator);
+        if (self.root != rebuilt.tree.root or
+            self.nodes.len != rebuilt.tree.nodes.len)
+        {
+            return error.InvalidTree;
+        }
+        for (self.nodes, rebuilt.tree.nodes) |actual, expected| {
+            if (!std.meta.eql(actual, expected)) return error.InvalidTree;
+        }
+        return rebuilt.receipt;
+    }
+};
+
+pub const BuildWithWorkReceipt = struct {
+    tree: Tree,
+    receipt: poseidon_work.ProducerReceipt,
 };
 
 pub fn build(allocator: std.mem.Allocator, input: []const Leaf) Error!Tree {
@@ -145,6 +175,28 @@ pub fn build(allocator: std.mem.Allocator, input: []const Leaf) Error!Tree {
         .leaves = leaves,
         .nodes = try nodes.toOwnedSlice(allocator),
         .root = root,
+    };
+}
+
+/// Exact producer-returned sparse-tree receipt.  The ordinary `build` route is
+/// unchanged and has no profiling branch in its node loop.
+pub fn buildWithWorkReceipt(
+    allocator: std.mem.Allocator,
+    input: []const Leaf,
+    authority: *const poseidon_work.Authority,
+) (Error || error{
+    PoseidonWorkOverflow,
+    PoseidonWorkSourceMismatch,
+})!BuildWithWorkReceipt {
+    var tree = try build(allocator, input);
+    errdefer tree.deinit(allocator);
+    return .{
+        .tree = tree,
+        .receipt = try poseidon_work.complete(
+            authority,
+            .sparse_tree_permutation,
+            @intCast(tree.nodes.len),
+        ),
     };
 }
 

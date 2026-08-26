@@ -12,6 +12,7 @@ from typing import Any
 from . import (
     air,
     air_program,
+    air_program_layout,
     air_program_lean as air_program_lean_source,
     air_program_registry_lean,
     codec,
@@ -407,7 +408,7 @@ def _source_digests(paths: Paths) -> dict[str, str]:
                 f"could not enumerate version-controlled source tree {tree}"
             ) from exc
         try:
-            relatives.update(
+            listed_relatives = tuple(
                 entry.decode("utf-8")
                 for entry in listed.split(b"\0")
                 if entry
@@ -416,6 +417,20 @@ def _source_digests(paths: Paths) -> dict[str, str]:
             raise RefinementError(
                 f"source tree {tree} contains a non-UTF-8 path"
             ) from exc
+        # `git ls-files --cached` deliberately reports tracked paths that are
+        # deleted in the working tree. A source-authority migration must be
+        # renderable before it is committed, so those tombstones are not part
+        # of the live production closure. Explicit SOURCE_PATHS remain strict
+        # in the validation loop below and therefore cannot be hidden here.
+        for relative in listed_relatives:
+            path = paths.root / relative
+            if path.is_symlink():
+                raise RefinementError(f"invalid production source {relative}")
+            if not path.exists():
+                continue
+            if not path.is_file():
+                raise RefinementError(f"invalid production source {relative}")
+            relatives.add(relative)
     for relative in sorted(relatives):
         path = paths.root / relative
         if path.is_symlink() or not path.is_file():
@@ -610,7 +625,14 @@ def export_air(paths: Paths) -> None:
 
 def artifacts(paths: Paths, evidence: sail.SailEvidence) -> dict[Path, bytes]:
     source_digests = _source_digests(paths)
-    unsigned_air_programs = validate_air_program_export(paths.air_program_ir)
+    emitted_air_programs = validate_air_program_export(paths.air_program_ir)
+    layout_receipt = air_program_layout.load_receipt(
+        paths.root / air_program_layout.RECEIPT_RELATIVE_PATH
+    )
+    unsigned_air_programs = air_program_layout.normalize_inventory(
+        emitted_air_programs,
+        layout_receipt,
+    )
     air_programs = {
         mnemonic: air_program.package_unsigned(payload, paths.root)
         for mnemonic, payload in unsigned_air_programs.items()

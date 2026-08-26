@@ -1,11 +1,11 @@
 -- REVIEWED TRANSCRIPTION. Not a generated file.
 --
--- Source of truth: the fresh export of the production symbolic AIR,
+-- Source of truth: the fresh typed-authority export of the production symbolic AIR,
 --   /tmp/tb-ir/mul.json   (44 columns, 130 nodes, 22 constraints, 16 lookups)
 --   /tmp/tb-ir/mulh.json  (53 columns, 221 nodes, 30 constraints, 22 lookups)
--- cross-checked constraint by constraint against the Zig semantics in
---   src/frontends/riscv/air/semantics/mul.zig
---   src/frontends/riscv/air/semantics/mulh.zig
+-- cross-checked constraint by constraint against the typed evaluators in
+--   src/frontends/riscv/air/lang/typed_mul_authority.zig
+--   src/frontends/riscv/air/lang/typed_mulh_authority.zig
 --
 -- Transcription conventions, all of which are exact:
 --   * the AIR's `enabler` / `is_mulh + is_mulhsu + is_mulhu` selector column is
@@ -34,12 +34,20 @@ open RiscvRefinement
 
 /-- sha256 of `/tmp/tb-ir/mul.json`, the exported production AIR for `MUL`. -/
 def mulIrDigest : String :=
-  "20036f269882cc1ca77d9a83f9b8863763e3b4b9e4fd3d28c6b1d78bfb931146"
+  "67a5815ebf8ceb4005fc1a5882bc16d604c948af2302e43241f7c33c0ef7dcec"
+
+/-- Sparse-polynomial identity shared by the reviewed and typed exports. -/
+def mulPolynomialDigest : String :=
+  "a201a238d385380123fe3bf52dc324750de397a3381297135ec1066360d709b2"
 
 /-- sha256 of `/tmp/tb-ir/mulh.json`, the exported production AIR for the
 `MULH` / `MULHSU` / `MULHU` family. -/
 def mulhIrDigest : String :=
-  "461461c9adcf8b65f3c5a8d14f9336ddb65b3fea28c1ca9bbe530156ad88f28b"
+  "6dbd2b5bcff91a77a78fb6c551c72003c4b0a061a08127571d5f293bb00d73a9"
+
+/-- Sparse-polynomial identity shared by the reviewed and typed exports. -/
+def mulhPolynomialDigest : String :=
+  "7680862951ca1d0498b9b9d90b8b61a0c3fe8b63dc2cfc237de968c526692d46"
 
 /-! ## Limb arithmetic shared by both families -/
 

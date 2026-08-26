@@ -5,6 +5,7 @@
 
 const std = @import("std");
 const builtin = @import("builtin");
+const work_profile = @import("stwo_prover_api").work_profile;
 const circle = @import("stwo_core").circle;
 const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
@@ -12,13 +13,24 @@ const pcs_core = @import("stwo_core").pcs;
 const canonic = @import("stwo_core").poly.circle.canonic;
 const prover_circle = @import("../poly/circle/mod.zig");
 const prover_circle_eval = @import("../poly/circle/evaluation.zig");
+const point_evaluation = @import("../poly/circle/point_evaluation.zig");
 const work_pool_mod = @import("../work_pool.zig");
 const commitment_tree = @import("commitment_tree.zig");
+const sampled_work = @import("sampled_value_work.zig");
+const coefficient_plan_ops = @import("sampled_coefficient_plans.zig");
+const CoefficientEvalPlan = coefficient_plan_ops.CoefficientEvalPlan;
+const CoefficientEvalTreePlan = coefficient_plan_ops.CoefficientEvalTreePlan;
+const deinitCoefficientEvalPlans = coefficient_plan_ops.deinitCoefficientEvalPlans;
+const getOrCreateCoefficientEvalPlan = coefficient_plan_ops.getOrCreateCoefficientEvalPlan;
+const evaluateBarycentricColumn = coefficient_plan_ops.evaluateBarycentricColumn;
+const evaluateCoefficientPlans = coefficient_plan_ops.evaluateCoefficientPlans;
+const coefficientsAreZero = coefficient_plan_ops.coefficientsAreZero;
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
 const CirclePointQM31 = circle.CirclePointQM31;
 const TreeVec = pcs_core.TreeVec;
+const WorkRecorder = work_profile.Recorder(true);
 
 pub fn evaluateAndRelease(
     comptime B: type,
@@ -27,6 +39,26 @@ pub fn evaluateAndRelease(
     trees: []commitment_tree.CommitmentTreeProverForBackend(B, H),
     sampled_points: TreeVec([][]CirclePointQM31),
     lifting_log_size: u32,
+) !TreeVec([][]QM31) {
+    return evaluateAndReleaseWithWorkRecorder(
+        B,
+        H,
+        allocator,
+        trees,
+        sampled_points,
+        lifting_log_size,
+        null,
+    );
+}
+
+pub fn evaluateAndReleaseWithWorkRecorder(
+    comptime B: type,
+    comptime H: type,
+    allocator: std.mem.Allocator,
+    trees: []commitment_tree.CommitmentTreeProverForBackend(B, H),
+    sampled_points: TreeVec([][]CirclePointQM31),
+    lifting_log_size: u32,
+    work_recorder: ?*WorkRecorder,
 ) !TreeVec([][]QM31) {
     if (trees.len != sampled_points.items.len) return error.ShapeMismatch;
 
@@ -67,6 +99,39 @@ pub fn evaluateAndRelease(
         }
     }
 
+    var selected_coefficient_evaluation = false;
+    var selected_barycentric_evaluation = false;
+    if (work_recorder) |active| {
+        // Selection is a profile-only planning pass. Keeping it outside the
+        // validation/allocation loop gives recorder-null proofs their original
+        // branch-free per-column path.
+        for (trees, sampled_points.items) |tree, tree_points| {
+            for (tree_points) |points| {
+                if (points.len == 0) continue;
+                if (tree.coefficients != null)
+                    selected_coefficient_evaluation = true
+                else
+                    selected_barycentric_evaluation = true;
+            }
+        }
+        if (selected_coefficient_evaluation)
+            try active.expectProducer(.sampled_value_coefficient_evaluation);
+        // work-profile-plan:sampled-value-coefficient-evaluation
+        if (selected_barycentric_evaluation)
+            try active.expectProducer(.sampled_value_barycentric_evaluation);
+        // work-profile-plan:sampled-value-barycentric-evaluation
+    }
+
+    // Keep logical-work accounting entirely outside the ordinary prover path.
+    // The optional pointers below are resolved once per request; hot
+    // polynomial loops only touch an audit when the caller explicitly enabled
+    // work capture.
+    const capture_work = work_recorder != null;
+    var coefficient_work: sampled_work.Audit = .{};
+    var barycentric_work: sampled_work.Audit = .{};
+    const coefficient_work_audit = if (capture_work) &coefficient_work else null;
+    const barycentric_work_audit = if (capture_work) &barycentric_work else null;
+
     if (comptime @hasDecl(B, "evaluateCoefficientPlans")) {
         if (try evaluateCoefficientTreesWithBackend(
             B,
@@ -76,8 +141,12 @@ pub fn evaluateAndRelease(
             out,
             allocator,
             lifting_log_size,
+            coefficient_work_audit,
         )) {
             releaseTreeCoefficients(B, H, trees, allocator);
+            if (selected_coefficient_evaluation) {
+                finishCoefficientWork(work_recorder, coefficient_work);
+            }
             return TreeVec([][]QM31).initOwned(out);
         }
     }
@@ -106,62 +175,64 @@ pub fn evaluateAndRelease(
                     allocator,
                     column.log_size,
                 );
+                if (barycentric_work_audit) |audit|
+                    audit.observeBarycentricContext(column.log_size);
             }
         }
     }
 
-    const use_parallel = !builtin.single_threaded and !builtin.is_test and trees.len > 1;
-    if (use_parallel) {
-        if (work_pool_mod.getGlobalPool()) |pool| {
-            const worker_contexts = try allocator.alloc(SampledValueWorkerCtx(B, H), trees.len);
-            defer allocator.free(worker_contexts);
+    // Tests must never create the process-global pool implicitly, but an
+    // explicitly scoped proof pool is deterministic transaction authority,
+    // not ambient test parallelism. `getGlobalPool` already enforces exactly
+    // that distinction in test builds: it returns null unless the coordinator
+    // installed a `ScopedPoolBinding`. Keeping a second `builtin.is_test`
+    // prohibition here silently serialized the largest real-proof evidence
+    // gates even when they requested and owned a bounded worker pool.
+    if (parallelEvaluationPool(trees.len)) |pool| {
+        const worker_contexts = try allocator.alloc(SampledValueWorkerCtx(B, H), trees.len);
+        defer allocator.free(worker_contexts);
 
-            for (trees, sampled_points.items, out, worker_contexts) |
-                *tree,
-                tree_points,
-                tree_values,
-                *worker_context,
-            | {
-                worker_context.* = .{
-                    .tree = tree,
-                    .tree_points = tree_points,
-                    .tree_values = tree_values,
-                    .lifting_log_size = lifting_log_size,
-                    .barycentric_cache = &barycentric_cache,
-                    .parallel_coefficient_plans = false,
-                    .failed = false,
-                };
-            }
+        for (trees, sampled_points.items, out, worker_contexts) |
+            *tree,
+            tree_points,
+            tree_values,
+            *worker_context,
+        | {
+            worker_context.* = .{
+                .tree = tree,
+                .tree_points = tree_points,
+                .tree_values = tree_values,
+                .lifting_log_size = lifting_log_size,
+                .barycentric_cache = &barycentric_cache,
+                .parallel_coefficient_plans = false,
+                .capture_work = capture_work,
+                .coefficient_work = .{},
+                .barycentric_work = .{},
+                .failed = false,
+            };
+        }
 
-            const primary_tree = largestTreeIndex(trees, sampled_points.items);
-            worker_contexts[primary_tree].parallel_coefficient_plans = true;
+        const primary_tree = largestTreeIndex(trees, sampled_points.items);
+        worker_contexts[primary_tree].parallel_coefficient_plans = true;
 
-            var wait_group: std.Thread.WaitGroup = .{};
-            for (worker_contexts, 0..) |*worker_context, tree_idx| {
-                if (tree_idx == primary_tree) continue;
-                pool.spawnWg(
-                    &wait_group,
-                    SampledValueWorkerCtx(B, H).run,
-                    .{worker_context},
-                );
-            }
-            SampledValueWorkerCtx(B, H).run(&worker_contexts[primary_tree]);
-            wait_group.wait();
-
-            for (worker_contexts) |worker_context| {
-                if (worker_context.failed) return error.ShapeMismatch;
-            }
-        } else {
-            try evaluateTreesSequential(
-                B,
-                H,
-                trees,
-                sampled_points.items,
-                out,
-                allocator,
-                &barycentric_cache,
-                lifting_log_size,
+        var wait_group: std.Thread.WaitGroup = .{};
+        for (worker_contexts, 0..) |*worker_context, tree_idx| {
+            if (tree_idx == primary_tree) continue;
+            pool.spawnWg(
+                &wait_group,
+                SampledValueWorkerCtx(B, H).run,
+                .{worker_context},
             );
+        }
+        SampledValueWorkerCtx(B, H).run(&worker_contexts[primary_tree]);
+        wait_group.wait();
+
+        for (worker_contexts) |worker_context| {
+            if (worker_context.failed) return error.ShapeMismatch;
+            if (capture_work) {
+                coefficient_work.merge(worker_context.coefficient_work);
+                barycentric_work.merge(worker_context.barycentric_work);
+            }
         }
     } else {
         try evaluateTreesSequential(
@@ -173,11 +244,74 @@ pub fn evaluateAndRelease(
             allocator,
             &barycentric_cache,
             lifting_log_size,
+            coefficient_work_audit,
+            barycentric_work_audit,
         );
     }
 
     releaseTreeCoefficients(B, H, trees, allocator);
+    if (selected_coefficient_evaluation)
+        finishCoefficientWork(work_recorder, coefficient_work);
+    if (selected_barycentric_evaluation)
+        finishBarycentricWork(work_recorder, barycentric_work);
     return TreeVec([][]QM31).initOwned(out);
+}
+
+const exact_field_source_mask = work_profile.SourceMask{
+    .bits = work_profile.SourceMask.one(.field_additions).bits |
+        work_profile.SourceMask.one(.field_multiplications).bits |
+        work_profile.SourceMask.one(.field_inversions).bits,
+};
+
+fn finishCoefficientWork(
+    recorder: ?*WorkRecorder,
+    audit: ?sampled_work.Audit,
+) void {
+    const active = recorder orelse return;
+    const exact = audit != null and audit.?.complete;
+    if (!exact) {
+        // An unavailable execution receipt is not a zero-work receipt. Keep
+        // the planned site incomplete instead of publishing invented zeros.
+        active.markIncomplete();
+        return;
+    }
+    active.recordCompletedDelta(.{
+        .site = .sampled_value_coefficient_evaluation,
+        .producer = work_profile.boundaryForSite(
+            .sampled_value_coefficient_evaluation,
+        ),
+        .source_mask = exact_field_source_mask,
+        .counters = audit.?.counters,
+    }) catch active.markIncomplete();
+    // work-profile-complete:sampled-value-coefficient-evaluation
+}
+
+fn finishBarycentricWork(
+    recorder: ?*WorkRecorder,
+    audit: ?sampled_work.Audit,
+) void {
+    const active = recorder orelse return;
+    const exact = audit != null and audit.?.complete;
+    if (!exact) {
+        // See `finishCoefficientWork`: absence is fail-closed, never encoded
+        // as an exact zero contribution.
+        active.markIncomplete();
+        return;
+    }
+    active.recordCompletedDelta(.{
+        .site = .sampled_value_barycentric_evaluation,
+        .producer = work_profile.boundaryForSite(
+            .sampled_value_barycentric_evaluation,
+        ),
+        .source_mask = exact_field_source_mask,
+        .counters = audit.?.counters,
+    }) catch active.markIncomplete();
+    // work-profile-complete:sampled-value-barycentric-evaluation
+}
+
+fn parallelEvaluationPool(tree_count: usize) ?*work_pool_mod.WorkPool {
+    if (builtin.single_threaded or tree_count <= 1) return null;
+    return work_pool_mod.getGlobalPool();
 }
 
 fn largestTreeIndex(
@@ -201,315 +335,6 @@ fn largestTreeIndex(
     return primary_tree;
 }
 
-const CoefficientEvalPlan = struct {
-    coeff_log_size: u32,
-    fold_count: u32,
-    normalized_points: []CirclePointQM31,
-    flat_factors: []QM31,
-    column_indices: std.ArrayList(usize),
-    next_same_hash: ?usize,
-
-    fn deinit(self: *CoefficientEvalPlan, allocator: std.mem.Allocator) void {
-        allocator.free(self.normalized_points);
-        allocator.free(self.flat_factors);
-        self.column_indices.deinit(allocator);
-        self.* = undefined;
-    }
-};
-
-const CoefficientEvalTreePlan = struct {
-    coefficients: []const prover_circle.CircleCoefficients,
-    tree_values: [][]QM31,
-    plans: []const CoefficientEvalPlan,
-};
-
-fn deinitCoefficientEvalPlans(
-    allocator: std.mem.Allocator,
-    plans: *std.ArrayList(CoefficientEvalPlan),
-) void {
-    for (plans.items) |*plan| plan.deinit(allocator);
-    plans.deinit(allocator);
-}
-
-fn getOrCreateCoefficientEvalPlan(
-    allocator: std.mem.Allocator,
-    index: *std.AutoHashMap(u64, usize),
-    plans: *std.ArrayList(CoefficientEvalPlan),
-    coeff_log_size: u32,
-    fold_count: u32,
-    points: []const CirclePointQM31,
-) !*CoefficientEvalPlan {
-    const plan_hash = hashCoefficientEvalPlanKey(coeff_log_size, fold_count, points);
-    var existing_plan_idx = index.get(plan_hash);
-    while (existing_plan_idx) |plan_idx| {
-        const plan = &plans.items[plan_idx];
-        if (plan.coeff_log_size == coeff_log_size and
-            plan.fold_count == fold_count and
-            coefficientEvalPlanMatchesPoints(plan.*, points))
-        {
-            return plan;
-        }
-        existing_plan_idx = plan.next_same_hash;
-    }
-
-    const normalized = try buildCoefficientEvalPlanData(
-        allocator,
-        coeff_log_size,
-        fold_count,
-        points,
-    );
-    errdefer allocator.free(normalized.normalized_points);
-    errdefer allocator.free(normalized.flat_factors);
-
-    try plans.append(allocator, .{
-        .coeff_log_size = coeff_log_size,
-        .fold_count = fold_count,
-        .normalized_points = normalized.normalized_points,
-        .flat_factors = normalized.flat_factors,
-        .column_indices = std.ArrayList(usize).empty,
-        .next_same_hash = index.get(plan_hash),
-    });
-    errdefer {
-        var plan = plans.items[plans.items.len - 1];
-        plans.items.len -= 1;
-        plan.deinit(allocator);
-    }
-    try index.put(plan_hash, plans.items.len - 1);
-    return &plans.items[plans.items.len - 1];
-}
-
-const CoefficientEvalPlanData = struct {
-    normalized_points: []CirclePointQM31,
-    flat_factors: []QM31,
-};
-
-const coefficient_plan_key_point_bytes =
-    2 * qm31.SECURE_EXTENSION_DEGREE * @sizeOf(M31);
-
-fn hashCoefficientEvalPlanKey(
-    coeff_log_size: u32,
-    fold_count: u32,
-    points: []const CirclePointQM31,
-) u64 {
-    var hasher = std.hash.Wyhash.init(0);
-    var header: [3 * @sizeOf(u32)]u8 = undefined;
-    std.mem.writeInt(u32, header[0..4], coeff_log_size, .little);
-    std.mem.writeInt(u32, header[4..8], fold_count, .little);
-    std.mem.writeInt(u32, header[8..12], @intCast(points.len), .little);
-    hasher.update(header[0..]);
-
-    var point_bytes: [coefficient_plan_key_point_bytes]u8 = undefined;
-    for (points) |point| {
-        packPointKeyBytes(
-            point_bytes[0..],
-            if (fold_count == 0) point else point.repeatedDouble(fold_count),
-        );
-        hasher.update(point_bytes[0..]);
-    }
-    return hasher.final();
-}
-
-fn buildCoefficientEvalPlanData(
-    allocator: std.mem.Allocator,
-    coeff_log_size: u32,
-    fold_count: u32,
-    points: []const CirclePointQM31,
-) !CoefficientEvalPlanData {
-    const normalized_points = try allocator.alloc(CirclePointQM31, points.len);
-    errdefer allocator.free(normalized_points);
-
-    const flat_factors = try allocator.alloc(QM31, points.len * coeff_log_size);
-    errdefer allocator.free(flat_factors);
-
-    var factor_buffer: [circle.M31_CIRCLE_LOG_ORDER]QM31 = undefined;
-    var factor_at: usize = 0;
-    for (points, 0..) |point, point_idx| {
-        const folded_point = if (fold_count == 0) point else point.repeatedDouble(fold_count);
-        normalized_points[point_idx] = folded_point;
-
-        if (coeff_log_size == 0) continue;
-        const factors = prover_circle.poly.fillEvalFactorsForPoint(
-            folded_point,
-            coeff_log_size,
-            &factor_buffer,
-        );
-        @memcpy(flat_factors[factor_at .. factor_at + coeff_log_size], factors);
-        factor_at += coeff_log_size;
-    }
-
-    return .{
-        .normalized_points = normalized_points,
-        .flat_factors = flat_factors,
-    };
-}
-
-fn coefficientEvalPlanMatchesPoints(
-    plan: CoefficientEvalPlan,
-    points: []const CirclePointQM31,
-) bool {
-    if (plan.normalized_points.len != points.len) return false;
-    for (points, plan.normalized_points) |point, normalized_point| {
-        const folded_point = if (plan.fold_count == 0)
-            point
-        else
-            point.repeatedDouble(plan.fold_count);
-        if (!folded_point.eql(normalized_point)) return false;
-    }
-    return true;
-}
-
-fn packPointKeyBytes(dst: []u8, point: CirclePointQM31) void {
-    std.debug.assert(dst.len == coefficient_plan_key_point_bytes);
-    var at: usize = 0;
-    inline for (.{ point.x, point.y }) |coordinate| {
-        const coordinates = coordinate.toM31Array();
-        inline for (coordinates) |m31_coordinate| {
-            const encoded = m31_coordinate.toBytesLe();
-            @memcpy(dst[at .. at + @sizeOf(M31)], encoded[0..]);
-            at += @sizeOf(M31);
-        }
-    }
-}
-
-fn evaluateCoefficientPlans(
-    allocator: std.mem.Allocator,
-    coefficients: []const prover_circle.CircleCoefficients,
-    tree_values: [][]QM31,
-    plans: []const CoefficientEvalPlan,
-    allow_parallel: bool,
-) !void {
-    var batch_coefficients: []prover_circle.CircleCoefficients =
-        &[_]prover_circle.CircleCoefficients{};
-    defer if (batch_coefficients.len != 0) allocator.free(batch_coefficients);
-    var batch_out: [][]QM31 = &[_][]QM31{};
-    defer if (batch_out.len != 0) allocator.free(batch_out);
-    var basis_scratch: []QM31 = &[_]QM31{};
-    defer if (basis_scratch.len != 0) allocator.free(basis_scratch);
-
-    for (plans) |plan| {
-        if (plan.column_indices.items.len == 0) continue;
-        if (plan.column_indices.items.len == 1) {
-            const column_idx = plan.column_indices.items[0];
-            coefficients[column_idx].evalAtPointsWithFlatFactors(
-                plan.flat_factors,
-                tree_values[column_idx],
-            );
-            continue;
-        }
-
-        const batch_len = plan.column_indices.items.len;
-        if (batch_coefficients.len < batch_len) {
-            if (batch_coefficients.len != 0) allocator.free(batch_coefficients);
-            if (batch_out.len != 0) allocator.free(batch_out);
-            batch_coefficients = try allocator.alloc(prover_circle.CircleCoefficients, batch_len);
-            batch_out = try allocator.alloc([]QM31, batch_len);
-        }
-        const coefficient_view = batch_coefficients[0..batch_len];
-        const out_view = batch_out[0..batch_len];
-
-        for (plan.column_indices.items, 0..) |column_idx, batch_idx| {
-            coefficient_view[batch_idx] = coefficients[column_idx];
-            out_view[batch_idx] = tree_values[column_idx];
-        }
-
-        if (!allow_parallel or !evaluateCoefficientBatchParallel(
-            coefficient_view,
-            plan.flat_factors,
-            out_view,
-        )) {
-            const basis_len = std.math.mul(
-                usize,
-                @as(usize, 1) << @intCast(plan.coeff_log_size),
-                plan.normalized_points.len,
-            ) catch return error.ShapeMismatch;
-            if (basis_scratch.len < basis_len) {
-                if (basis_scratch.len != 0) allocator.free(basis_scratch);
-                basis_scratch = try allocator.alloc(QM31, basis_len);
-            }
-            prover_circle.poly.CircleCoefficients.evalManyAtPointsWithFlatFactors(
-                coefficient_view,
-                plan.flat_factors,
-                out_view,
-                basis_scratch,
-            );
-        }
-    }
-}
-
-const CoefficientEvalWork = struct {
-    coefficients: []const prover_circle.CircleCoefficients,
-    out: []const []QM31,
-    point_bases: []const QM31,
-
-    fn run(self: *const CoefficientEvalWork) void {
-        prover_circle.poly.CircleCoefficients.evalManyAtPointsWithSubsetProductBases(
-            self.coefficients,
-            self.point_bases,
-            self.out,
-        );
-    }
-};
-
-fn evaluateCoefficientBatchParallel(
-    coefficients: []const prover_circle.CircleCoefficients,
-    flat_factors: []const QM31,
-    out: []const []QM31,
-) bool {
-    // Each wide column evaluates a full 2^log basis, so even four columns
-    // provide ample work to amortize one existing-pool dispatch. Keeping the
-    // old eight-column floor stranded six of eighteen M5 Max cores for the
-    // width-100 tree's final OODS evaluations.
-    const min_columns_per_worker: usize = 4;
-    const pool = work_pool_mod.getGlobalPool() orelse return false;
-    const worker_count = @min(pool.workerCount(), coefficients.len / min_columns_per_worker);
-    if (worker_count <= 1) return false;
-
-    const basis_len = coefficients[0].coeffs.len;
-    const point_count = out[0].len;
-    const total_basis_len = std.math.mul(usize, point_count, basis_len) catch return false;
-    const basis_storage = std.heap.page_allocator.alloc(QM31, total_basis_len) catch return false;
-    defer std.heap.page_allocator.free(basis_storage);
-    var factor_at: usize = 0;
-    var basis_at: usize = 0;
-    for (0..point_count) |_| {
-        @import("../poly/circle/point_evaluation.zig").fillSubsetProductBasis(
-            flat_factors[factor_at .. factor_at + coefficients[0].log_size],
-            basis_storage[basis_at .. basis_at + basis_len],
-        );
-        factor_at += coefficients[0].log_size;
-        basis_at += basis_len;
-    }
-
-    var work: [work_pool_mod.MAX_WORKERS]CoefficientEvalWork = undefined;
-    const chunk_len = (coefficients.len + worker_count - 1) / worker_count;
-    for (0..worker_count) |worker| {
-        // Clamp the start as well: with ceiling-divided chunks a trailing
-        // worker's nominal start can land past the end of the slice.
-        const start = @min(coefficients.len, worker * chunk_len);
-        const end = @min(coefficients.len, start + chunk_len);
-        work[worker] = .{
-            .coefficients = coefficients[start..end],
-            .out = out[start..end],
-            .point_bases = basis_storage,
-        };
-    }
-
-    var wait_group: std.Thread.WaitGroup = .{};
-    for (work[1..worker_count]) |*item| {
-        pool.spawnWg(&wait_group, CoefficientEvalWork.run, .{@as(*const CoefficientEvalWork, item)});
-    }
-    work[0].run();
-    wait_group.wait();
-    return true;
-}
-
-fn coefficientsAreZero(coefficients: prover_circle.CircleCoefficients) bool {
-    for (coefficients.coeffs) |coefficient| {
-        if (!coefficient.isZero()) return false;
-    }
-    return true;
-}
-
 fn SampledValueWorkerCtx(comptime B: type, comptime H: type) type {
     return struct {
         tree: *commitment_tree.CommitmentTreeProverForBackend(B, H),
@@ -518,6 +343,9 @@ fn SampledValueWorkerCtx(comptime B: type, comptime H: type) type {
         lifting_log_size: u32,
         barycentric_cache: *const std.AutoHashMap(u32, prover_circle_eval.BarycentricContext),
         parallel_coefficient_plans: bool,
+        capture_work: bool,
+        coefficient_work: sampled_work.Audit,
+        barycentric_work: sampled_work.Audit,
         failed: bool,
 
         const WorkerSelf = @This();
@@ -530,6 +358,14 @@ fn SampledValueWorkerCtx(comptime B: type, comptime H: type) type {
 
         fn runInner(self: *WorkerSelf) !void {
             const scratch_allocator = std.heap.page_allocator;
+            const coefficient_work_audit = if (self.capture_work)
+                &self.coefficient_work
+            else
+                null;
+            const barycentric_work_audit = if (self.capture_work)
+                &self.barycentric_work
+            else
+                null;
             var coefficient_plans = std.ArrayList(CoefficientEvalPlan).empty;
             defer deinitCoefficientEvalPlans(scratch_allocator, &coefficient_plans);
             var coefficient_plan_index = std.AutoHashMap(u64, usize).init(scratch_allocator);
@@ -553,6 +389,7 @@ fn SampledValueWorkerCtx(comptime B: type, comptime H: type) type {
                         coefficient.logSize(),
                         fold_count,
                         points,
+                        coefficient_work_audit,
                     );
                     try plan.column_indices.append(scratch_allocator, column_idx);
                 } else {
@@ -565,14 +402,16 @@ fn SampledValueWorkerCtx(comptime B: type, comptime H: type) type {
                     var workspace = prover_circle_eval.BarycentricWorkspace.init();
                     defer workspace.deinit(scratch_allocator);
 
-                    for (points, 0..) |point, point_idx| {
-                        values[point_idx] = try evaluation.barycentricEvalAtPointWithContext(
-                            scratch_allocator,
-                            context,
-                            &workspace,
-                            point.repeatedDouble(fold_count),
-                        );
-                    }
+                    try evaluateBarycentricColumn(
+                        scratch_allocator,
+                        evaluation,
+                        context,
+                        &workspace,
+                        points,
+                        values,
+                        fold_count,
+                        barycentric_work_audit,
+                    );
                 }
             }
 
@@ -583,6 +422,7 @@ fn SampledValueWorkerCtx(comptime B: type, comptime H: type) type {
                     self.tree_values,
                     coefficient_plans.items,
                     self.parallel_coefficient_plans,
+                    coefficient_work_audit,
                 );
             }
         }
@@ -598,6 +438,8 @@ fn evaluateTreesSequential(
     allocator: std.mem.Allocator,
     barycentric_cache: *std.AutoHashMap(u32, prover_circle_eval.BarycentricContext),
     lifting_log_size: u32,
+    coefficient_work: ?*sampled_work.Audit,
+    barycentric_work: ?*sampled_work.Audit,
 ) !void {
     var workspace_cache = std.AutoHashMap(u32, prover_circle_eval.BarycentricWorkspace).init(allocator);
     defer {
@@ -632,6 +474,7 @@ fn evaluateTreesSequential(
                     coefficient.logSize(),
                     fold_count,
                     points,
+                    coefficient_work,
                 );
                 try plan.column_indices.append(allocator, column_idx);
             } else {
@@ -645,14 +488,16 @@ fn evaluateTreesSequential(
                 if (!workspace.found_existing) {
                     workspace.value_ptr.* = prover_circle_eval.BarycentricWorkspace.init();
                 }
-                for (points, 0..) |point, point_idx| {
-                    values[point_idx] = try evaluation.barycentricEvalAtPointWithContext(
-                        allocator,
-                        context,
-                        workspace.value_ptr,
-                        point.repeatedDouble(fold_count),
-                    );
-                }
+                try evaluateBarycentricColumn(
+                    allocator,
+                    evaluation,
+                    context,
+                    workspace.value_ptr,
+                    points,
+                    values,
+                    fold_count,
+                    barycentric_work,
+                );
             }
         }
 
@@ -663,6 +508,7 @@ fn evaluateTreesSequential(
                 tree_values,
                 coefficient_plans.items,
                 false,
+                coefficient_work,
             );
         }
     }
@@ -676,6 +522,7 @@ fn evaluateCoefficientTreesWithBackend(
     out: [][][]QM31,
     allocator: std.mem.Allocator,
     lifting_log_size: u32,
+    work_audit: ?*sampled_work.Audit,
 ) !bool {
     for (trees, 0..) |tree, tree_index| if (tree.coefficients == null) {
         std.log.debug(
@@ -702,6 +549,7 @@ fn evaluateCoefficientTreesWithBackend(
                 tree_points,
                 tree.coefficients.?,
                 lifting_log_size,
+                work_audit,
             );
             initialized += 1;
             tree_plans[tree_index] = .{
@@ -710,7 +558,20 @@ fn evaluateCoefficientTreesWithBackend(
                 .plans = plan_lists[tree_index].items,
             };
         }
-        try B.evaluateCoefficientTreePlans(allocator, tree_plans);
+        if (comptime @hasDecl(B, "evaluateCoefficientTreePlansWithReceipt")) {
+            if (work_audit) |audit| {
+                const execution = try B.evaluateCoefficientTreePlansWithReceipt(
+                    allocator,
+                    tree_plans,
+                );
+                mergeBackendCoefficientExecution(audit, execution, tree_plans);
+            } else {
+                try B.evaluateCoefficientTreePlans(allocator, tree_plans);
+            }
+        } else {
+            try B.evaluateCoefficientTreePlans(allocator, tree_plans);
+            if (work_audit) |audit| audit.complete = false;
+        }
         return true;
     }
 
@@ -722,11 +583,130 @@ fn evaluateCoefficientTreesWithBackend(
             tree_points,
             coefficients,
             lifting_log_size,
+            work_audit,
         );
         defer deinitCoefficientEvalPlans(allocator, &plans);
-        try B.evaluateCoefficientPlans(allocator, coefficients, tree_values, plans.items);
+        if (comptime @hasDecl(B, "evaluateCoefficientPlansWithReceipt")) {
+            if (work_audit) |audit| {
+                const execution = try B.evaluateCoefficientPlansWithReceipt(
+                    allocator,
+                    coefficients,
+                    tree_values,
+                    plans.items,
+                );
+                const SingleTreePlan = struct {
+                    coefficients: @TypeOf(coefficients),
+                    tree_values: @TypeOf(tree_values),
+                    plans: @TypeOf(plans.items),
+                };
+                const tree_plan = [_]SingleTreePlan{.{
+                    .coefficients = coefficients,
+                    .tree_values = tree_values,
+                    .plans = plans.items,
+                }};
+                mergeBackendCoefficientExecution(audit, execution, &tree_plan);
+            } else {
+                try B.evaluateCoefficientPlans(
+                    allocator,
+                    coefficients,
+                    tree_values,
+                    plans.items,
+                );
+            }
+        } else {
+            try B.evaluateCoefficientPlans(
+                allocator,
+                coefficients,
+                tree_values,
+                plans.items,
+            );
+            if (work_audit) |audit| audit.complete = false;
+        }
     }
     return true;
+}
+
+fn mergeBackendCoefficientExecution(
+    audit: *sampled_work.Audit,
+    execution: work_profile.SampledCoefficientExecution,
+    tree_plans: anytype,
+) void {
+    if (!audit.complete) return;
+    execution.validate() catch return invalidateSampledAudit(audit);
+
+    var plan_count: u64 = 0;
+    var basis_task_count: u64 = 0;
+    var evaluation_task_count: u64 = 0;
+    var evaluation_coefficient_terms: u64 = 0;
+    var basis_multiplications: u64 = 0;
+    for (tree_plans) |tree_plan| {
+        for (tree_plan.plans) |plan| {
+            plan_count = checkedSampledAdd(plan_count, 1) orelse
+                return invalidateSampledAudit(audit);
+            const point_count = std.math.cast(u64, plan.normalized_points.len) orelse
+                return invalidateSampledAudit(audit);
+            basis_task_count = checkedSampledAdd(
+                basis_task_count,
+                point_count,
+            ) orelse return invalidateSampledAudit(audit);
+            const column_count = std.math.cast(u64, plan.column_indices.items.len) orelse
+                return invalidateSampledAudit(audit);
+            const plan_evaluations = checkedSampledMul(
+                point_count,
+                column_count,
+            ) orelse return invalidateSampledAudit(audit);
+            evaluation_task_count = checkedSampledAdd(
+                evaluation_task_count,
+                plan_evaluations,
+            ) orelse return invalidateSampledAudit(audit);
+            const basis_per_point = work_profile.logicalSampledCoefficientBasisMultiplications(
+                plan.coeff_log_size,
+                execution.basis_threadgroup_width,
+            ) catch return invalidateSampledAudit(audit);
+            basis_multiplications = checkedSampledAdd(
+                basis_multiplications,
+                checkedSampledMul(point_count, basis_per_point) orelse
+                    return invalidateSampledAudit(audit),
+            ) orelse return invalidateSampledAudit(audit);
+            for (plan.column_indices.items) |column_index| {
+                if (column_index >= tree_plan.coefficients.len)
+                    return invalidateSampledAudit(audit);
+                const coefficient_count = std.math.cast(
+                    u64,
+                    tree_plan.coefficients[column_index].coefficients().len,
+                ) orelse return invalidateSampledAudit(audit);
+                evaluation_coefficient_terms = checkedSampledAdd(
+                    evaluation_coefficient_terms,
+                    checkedSampledMul(point_count, coefficient_count) orelse
+                        return invalidateSampledAudit(audit),
+                ) orelse return invalidateSampledAudit(audit);
+            }
+        }
+    }
+
+    if (execution.plan_count != plan_count or
+        execution.basis_task_count != basis_task_count or
+        execution.evaluation_task_count != evaluation_task_count or
+        execution.evaluation_coefficient_terms != evaluation_coefficient_terms or
+        execution.basis_multiplications != basis_multiplications)
+    {
+        return invalidateSampledAudit(audit);
+    }
+    const device_work = execution.exactWork() catch
+        return invalidateSampledAudit(audit);
+    audit.merge(.{ .counters = device_work });
+}
+
+fn checkedSampledAdd(lhs: u64, rhs: u64) ?u64 {
+    return std.math.add(u64, lhs, rhs) catch null;
+}
+
+fn checkedSampledMul(lhs: u64, rhs: u64) ?u64 {
+    return std.math.mul(u64, lhs, rhs) catch null;
+}
+
+fn invalidateSampledAudit(audit: *sampled_work.Audit) void {
+    audit.complete = false;
 }
 
 fn buildCoefficientPlansForTree(
@@ -735,6 +715,7 @@ fn buildCoefficientPlansForTree(
     tree_points: [][]CirclePointQM31,
     coefficients: []const prover_circle.CircleCoefficients,
     lifting_log_size: u32,
+    work_audit: ?*sampled_work.Audit,
 ) !std.ArrayList(CoefficientEvalPlan) {
     var plans = std.ArrayList(CoefficientEvalPlan).empty;
     errdefer deinitCoefficientEvalPlans(allocator, &plans);
@@ -749,6 +730,7 @@ fn buildCoefficientPlansForTree(
             coefficients[column_idx].logSize(),
             lifting_log_size - column.log_size,
             points,
+            work_audit,
         );
         try plan.column_indices.append(allocator, column_idx);
     }
@@ -770,31 +752,11 @@ fn releaseTreeCoefficients(
     }
 }
 
-test "prover pcs: coefficient eval plan cache reuses duplicate point sets" {
-    const allocator = std.testing.allocator;
-    const points_a = try allocator.dupe(CirclePointQM31, &[_]CirclePointQM31{
-        circle.SECURE_FIELD_CIRCLE_GEN.mul(17),
-        circle.SECURE_FIELD_CIRCLE_GEN.mul(23),
-    });
-    defer allocator.free(points_a);
-    const points_b = try allocator.dupe(CirclePointQM31, points_a);
-    defer allocator.free(points_b);
-    const points_c = try allocator.dupe(CirclePointQM31, &[_]CirclePointQM31{
-        circle.SECURE_FIELD_CIRCLE_GEN.mul(29),
-    });
-    defer allocator.free(points_c);
+const Root = @This();
 
-    var plans = std.ArrayList(CoefficientEvalPlan).empty;
-    defer deinitCoefficientEvalPlans(allocator, &plans);
-    var index = std.AutoHashMap(u64, usize).init(allocator);
-    defer index.deinit();
-
-    const plan_a = try getOrCreateCoefficientEvalPlan(allocator, &index, &plans, 6, 1, points_a);
-    try plan_a.column_indices.append(allocator, 0);
-
-    _ = try getOrCreateCoefficientEvalPlan(allocator, &index, &plans, 6, 1, points_b);
-    try std.testing.expectEqual(@as(usize, 1), plans.items.len);
-
-    _ = try getOrCreateCoefficientEvalPlan(allocator, &index, &plans, 6, 1, points_c);
-    try std.testing.expectEqual(@as(usize, 2), plans.items.len);
-}
+pub const testing = if (builtin.is_test) struct {
+    pub const finishCoefficientWork = Root.finishCoefficientWork;
+    pub const finishBarycentricWork = Root.finishBarycentricWork;
+    pub const parallelEvaluationPool = Root.parallelEvaluationPool;
+    pub const mergeBackendCoefficientExecution = Root.mergeBackendCoefficientExecution;
+} else struct {};

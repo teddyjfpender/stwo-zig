@@ -10,13 +10,19 @@ pub const column = @import("column.zig");
 pub const device_composition = @import("device_composition.zig");
 pub const engine = @import("engine.zig");
 pub const stage_profile = @import("stage_profile.zig");
+pub const task_profile = @import("task_profile.zig");
+pub const work_profile = @import("work_profile.zig");
 
 pub const ColumnEvaluation = column.ColumnEvaluation;
 pub const ColumnSource = column.ColumnSource;
 pub const DeviceCompositionStage = device_composition.Stage;
 pub const QuotientOpsError = column.QuotientOpsError;
+pub const CpuCompositionContentionPolicy = engine.CpuCompositionContentionPolicy;
+pub const CpuCompositionExecutionRequest = engine.CpuCompositionExecutionRequest;
 pub const ProveOptions = engine.ProveOptions;
 pub const assertProverEngine = engine.assertProverEngine;
+pub const TASK_PROFILE_SCHEMA_VERSION = task_profile.TASK_PROFILE_SCHEMA_VERSION;
+pub const TaskProfile = task_profile.TaskProfile;
 
 test "api signature: prover engine transaction is structurally checked" {
     const core = @import("stwo_core");
@@ -73,5 +79,6 @@ test "api signature: prover engine transaction is structurally checked" {
 }
 
 test {
+    _ = @import("work_profile_test.zig");
     std.testing.refAllDecls(@This());
 }

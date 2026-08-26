@@ -13,9 +13,14 @@ const vcs_verifier = @import("vcs_lifted/verifier.zig");
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
+const buildMerkleVerificationInputs = merkle_queries.build;
+const findSubsetIndex = merkle_queries.findSubsetIndex;
+const findPosition = merkle_queries.findPosition;
 
 const config_mod = @import("fri/config.zig");
 const folding = @import("fri/folding.zig");
+const merkle_queries = @import("fri/merkle_queries.zig");
+const query_capture = @import("fri/query_capture.zig");
 
 pub const geometry = @import("fri/geometry.zig");
 
@@ -29,6 +34,11 @@ pub const LinePolyDegreeBound = config_mod.LinePolyDegreeBound;
 
 pub const SparseEvaluation = folding.SparseEvaluation;
 pub const ComputeDecommitmentResult = folding.ComputeDecommitmentResult;
+
+pub const SampledQueryPositions = query_capture.SampledQueryPositions;
+pub const FriLayerQueryCapture = query_capture.FriLayerQueryCapture;
+pub const FriQueryCapture = query_capture.FriQueryCapture;
+
 pub fn FriVerifier(comptime H: type, comptime MC: type) type {
     return struct {
         config: FriConfig,
@@ -139,18 +149,42 @@ pub fn FriVerifier(comptime H: type, comptime MC: type) type {
             allocator: std.mem.Allocator,
             channel: anytype,
         ) ![]usize {
+            const sampled = try self.sampleQueryPositionsWithRaw(
+                allocator,
+                channel,
+            );
+            allocator.free(sampled.raw);
+            return sampled.unique;
+        }
+
+        /// Samples once and retains the exact raw draw alongside the unique
+        /// Merkle-verifier set. Publication is failure-atomic: neither slice
+        /// escapes unless query normalization and the returned duplicate both
+        /// succeed.
+        pub fn sampleQueryPositionsWithRaw(
+            self: *Self,
+            allocator: std.mem.Allocator,
+            channel: anytype,
+        ) !SampledQueryPositions {
             const first_layer_log_size = self.first_layer.column_commitment_domain.logSize();
-            const unsorted = try queries_mod.drawQueries(
+            const raw = try queries_mod.drawQueries(
                 channel,
                 allocator,
                 first_layer_log_size,
                 self.config.n_queries,
             );
-            defer allocator.free(unsorted);
+            errdefer allocator.free(raw);
 
             if (self.queries) |*queries| queries.deinit(allocator);
-            self.queries = try queries_mod.Queries.init(allocator, unsorted, first_layer_log_size);
-            return allocator.dupe(usize, self.queries.?.positions);
+            self.queries = try queries_mod.Queries.init(
+                allocator,
+                raw,
+                first_layer_log_size,
+            );
+            return .{
+                .raw = raw,
+                .unique = try allocator.dupe(usize, self.queries.?.positions),
+            };
         }
 
         pub fn decommit(
@@ -158,14 +192,74 @@ pub fn FriVerifier(comptime H: type, comptime MC: type) type {
             allocator: std.mem.Allocator,
             first_layer_query_evals: []const QM31,
         ) !void {
+            return self.decommitImpl(
+                allocator,
+                first_layer_query_evals,
+                null,
+                null,
+            );
+        }
+
+        /// Completes FRI verification and publishes raw-query values and full
+        /// authentication paths only after the terminal polynomial check.
+        pub fn decommitWithQueryCapture(
+            self: *Self,
+            allocator: std.mem.Allocator,
+            first_layer_query_evals: []const QM31,
+            raw_query_positions: []const usize,
+            capture: *FriQueryCapture(H),
+        ) !void {
+            return self.decommitImpl(
+                allocator,
+                first_layer_query_evals,
+                raw_query_positions,
+                capture,
+            );
+        }
+
+        fn decommitImpl(
+            self: *Self,
+            allocator: std.mem.Allocator,
+            first_layer_query_evals: []const QM31,
+            raw_query_positions: ?[]const usize,
+            capture_out: ?*FriQueryCapture(H),
+        ) !void {
+            if ((raw_query_positions == null) != (capture_out == null))
+                return FriVerificationError.FirstLayerEvaluationsInvalid;
             const queries = self.queries orelse return FriVerificationError.FirstLayerEvaluationsInvalid;
-            var first_layer_sparse_eval = try self.first_layer.verify(
+            const capture_layers = if (capture_out != null)
+                try allocator.alloc(
+                    FriLayerQueryCapture(H),
+                    1 + self.inner_layers.len,
+                )
+            else
+                null;
+            var initialized_layers: usize = 0;
+            errdefer if (capture_layers) |layers| {
+                for (layers[0..initialized_layers]) |*layer| layer.deinit(allocator);
+                allocator.free(layers);
+            };
+
+            const raw_positions = if (raw_query_positions) |positions|
+                try allocator.dupe(usize, positions)
+            else
+                null;
+            defer if (raw_positions) |positions| allocator.free(positions);
+
+            var first_layer_capture: FriLayerQueryCapture(H) = undefined;
+            var first_layer_sparse_eval = try self.first_layer.verifyImpl(
                 allocator,
                 queries,
                 first_layer_query_evals,
                 self.config.fold_step,
+                raw_positions,
+                if (capture_out != null) &first_layer_capture else null,
             );
             defer first_layer_sparse_eval.deinit(allocator);
+            if (capture_layers) |layers| {
+                layers[0] = first_layer_capture;
+                initialized_layers = 1;
+            }
 
             var layer_queries = try queries.fold(allocator, self.config.fold_step);
             defer layer_queries.deinit(allocator);
@@ -177,16 +271,38 @@ pub fn FriVerifier(comptime H: type, comptime MC: type) type {
             );
             defer allocator.free(layer_query_evals);
 
-            for (self.inner_layers) |layer| {
-                const folded = try layer.verifyAndFold(allocator, layer_queries, layer_query_evals);
+            if (raw_positions) |positions| {
+                for (positions) |*position| position.* >>= @intCast(self.config.fold_step);
+            }
+
+            for (self.inner_layers, 0..) |layer, layer_index| {
+                var layer_capture: FriLayerQueryCapture(H) = undefined;
+                const folded = try layer.verifyAndFoldImpl(
+                    allocator,
+                    layer_queries,
+                    layer_query_evals,
+                    raw_positions,
+                    if (capture_out != null) &layer_capture else null,
+                );
+                if (capture_layers) |layers| {
+                    layers[layer_index + 1] = layer_capture;
+                    initialized_layers += 1;
+                }
 
                 layer_queries.deinit(allocator);
                 allocator.free(layer_query_evals);
                 layer_queries = folded.queries;
                 layer_query_evals = folded.evals;
+
+                if (raw_positions) |positions| {
+                    for (positions) |*position| position.* >>= @intCast(layer.fold_step);
+                }
             }
 
             try self.decommitLastLayer(allocator, layer_queries, layer_query_evals);
+            if (capture_out) |destination| {
+                destination.* = .{ .layers = capture_layers.? };
+            }
         }
 
         fn decommitLastLayer(
@@ -267,6 +383,27 @@ fn FriFirstLayerVerifier(comptime H: type) type {
             column_query_evals: []const QM31,
             fold_step: u32,
         ) !SparseEvaluation {
+            return self.verifyImpl(
+                allocator,
+                queries,
+                column_query_evals,
+                fold_step,
+                null,
+                null,
+            );
+        }
+
+        fn verifyImpl(
+            self: Self,
+            allocator: std.mem.Allocator,
+            queries: queries_mod.Queries,
+            column_query_evals: []const QM31,
+            fold_step: u32,
+            raw_query_positions: ?[]const usize,
+            capture_out: ?*FriLayerQueryCapture(H),
+        ) !SparseEvaluation {
+            if ((raw_query_positions == null) != (capture_out == null))
+                return FriVerificationError.FirstLayerEvaluationsInvalid;
             if (queries.log_domain_size != self.column_commitment_domain.logSize()) {
                 return FriVerificationError.FirstLayerEvaluationsInvalid;
             }
@@ -302,12 +439,38 @@ fn FriFirstLayerVerifier(comptime H: type) type {
             );
             defer merkle_verifier.deinit(allocator);
 
-            merkle_verifier.verify(
-                allocator,
-                merkle_inputs.positions,
-                merkle_inputs.columns,
-                self.proof.decommitment,
-            ) catch return FriVerificationError.FirstLayerCommitmentInvalid;
+            if (capture_out) |destination| {
+                var merkle_capture: vcs_verifier.MerklePathCapture(H) = undefined;
+                merkle_verifier.verifyWithPathCapture(
+                    allocator,
+                    merkle_inputs.positions,
+                    merkle_inputs.columns,
+                    self.proof.decommitment,
+                    &merkle_capture,
+                ) catch return FriVerificationError.FirstLayerCommitmentInvalid;
+                defer merkle_capture.deinit(allocator);
+
+                destination.* = try buildFriLayerQueryCapture(
+                    H,
+                    allocator,
+                    self.proof.commitment,
+                    self.folding_alpha,
+                    self.column_commitment_domain.logSize(),
+                    fold_step,
+                    leaf_log_size,
+                    raw_query_positions.?,
+                    rebuilt.decommitment_positions,
+                    rebuilt.sparse_evaluation,
+                    merkle_capture,
+                );
+            } else {
+                merkle_verifier.verify(
+                    allocator,
+                    merkle_inputs.positions,
+                    merkle_inputs.columns,
+                    self.proof.decommitment,
+                ) catch return FriVerificationError.FirstLayerCommitmentInvalid;
+            }
 
             allocator.free(rebuilt.decommitment_positions);
             return rebuilt.sparse_evaluation;
@@ -340,6 +503,25 @@ fn FriInnerLayerVerifier(comptime H: type) type {
             queries: queries_mod.Queries,
             evals_at_queries: []const QM31,
         ) !FoldedLayerState {
+            return self.verifyAndFoldImpl(
+                allocator,
+                queries,
+                evals_at_queries,
+                null,
+                null,
+            );
+        }
+
+        fn verifyAndFoldImpl(
+            self: Self,
+            allocator: std.mem.Allocator,
+            queries: queries_mod.Queries,
+            evals_at_queries: []const QM31,
+            raw_query_positions: ?[]const usize,
+            capture_out: ?*FriLayerQueryCapture(H),
+        ) !FoldedLayerState {
+            if ((raw_query_positions == null) != (capture_out == null))
+                return FriVerificationError.InnerLayerEvaluationsInvalid;
             if (queries.log_domain_size != self.domain.logSize()) {
                 return FriVerificationError.InnerLayerEvaluationsInvalid;
             }
@@ -375,12 +557,38 @@ fn FriInnerLayerVerifier(comptime H: type) type {
             );
             defer merkle_verifier.deinit(allocator);
 
-            merkle_verifier.verify(
-                allocator,
-                merkle_inputs.positions,
-                merkle_inputs.columns,
-                self.proof.decommitment,
-            ) catch return FriVerificationError.InnerLayerCommitmentInvalid;
+            if (capture_out) |destination| {
+                var merkle_capture: vcs_verifier.MerklePathCapture(H) = undefined;
+                merkle_verifier.verifyWithPathCapture(
+                    allocator,
+                    merkle_inputs.positions,
+                    merkle_inputs.columns,
+                    self.proof.decommitment,
+                    &merkle_capture,
+                ) catch return FriVerificationError.InnerLayerCommitmentInvalid;
+                defer merkle_capture.deinit(allocator);
+
+                destination.* = try buildFriLayerQueryCapture(
+                    H,
+                    allocator,
+                    self.proof.commitment,
+                    self.folding_alpha,
+                    self.domain.logSize(),
+                    self.fold_step,
+                    leaf_log_size,
+                    raw_query_positions.?,
+                    rebuilt.decommitment_positions,
+                    rebuilt.sparse_evaluation,
+                    merkle_capture,
+                );
+            } else {
+                merkle_verifier.verify(
+                    allocator,
+                    merkle_inputs.positions,
+                    merkle_inputs.columns,
+                    self.proof.decommitment,
+                ) catch return FriVerificationError.InnerLayerCommitmentInvalid;
+            }
 
             var folded_queries = try queries.fold(allocator, self.fold_step);
             errdefer folded_queries.deinit(allocator);
@@ -412,95 +620,94 @@ const FoldedLayerState = struct {
     }
 };
 
-const MerkleVerificationInputs = struct {
-    positions: []usize,
-    columns: [][]M31,
-
-    fn deinit(self: *MerkleVerificationInputs, allocator: std.mem.Allocator) void {
-        allocator.free(self.positions);
-        for (self.columns) |column| allocator.free(column);
-        allocator.free(self.columns);
-        self.* = undefined;
-    }
-};
-
-/// Converts reconstructed FRI evaluations into the leaf layout committed by
-/// STWO. With packed leaves, four consecutive QM31 values become one Merkle
-/// row with coordinates ordered by value first, then extension coordinate.
-fn buildMerkleVerificationInputs(
+fn buildFriLayerQueryCapture(
+    comptime H: type,
     allocator: std.mem.Allocator,
+    commitment: H.Hash,
+    folding_alpha: QM31,
+    evaluation_log_size: u32,
+    fold_step: u32,
+    leaf_log_size: u32,
+    raw_query_positions: []const usize,
     decommitment_positions: []const usize,
     sparse: SparseEvaluation,
-    leaf_log_size: u32,
-) !MerkleVerificationInputs {
-    if (leaf_log_size >= @bitSizeOf(usize)) return error.ShapeMismatch;
-    const leaf_size: usize = @as(usize, 1) << @intCast(leaf_log_size);
-
-    var value_count: usize = 0;
-    for (sparse.subset_evals) |subset| value_count += subset.len;
-    if (value_count != decommitment_positions.len or
-        decommitment_positions.len % leaf_size != 0)
+    merkle_capture: vcs_verifier.MerklePathCapture(H),
+) !FriLayerQueryCapture(H) {
+    if (fold_step == 0 or fold_step >= @bitSizeOf(usize) or
+        leaf_log_size > fold_step or leaf_log_size >= @bitSizeOf(usize))
     {
         return error.ShapeMismatch;
     }
-
-    const merkle_position_count = decommitment_positions.len / leaf_size;
-    const positions = try allocator.alloc(usize, merkle_position_count);
-    errdefer allocator.free(positions);
-
-    var leaf_index: usize = 0;
-    while (leaf_index < merkle_position_count) : (leaf_index += 1) {
-        const first_index = leaf_index * leaf_size;
-        const merkle_position = decommitment_positions[first_index] >> @intCast(leaf_log_size);
-        positions[leaf_index] = merkle_position;
-        var offset: usize = 0;
-        while (offset < leaf_size) : (offset += 1) {
-            const position = decommitment_positions[first_index + offset];
-            if ((position >> @intCast(leaf_log_size)) != merkle_position or
-                (position & (leaf_size - 1)) != offset)
-            {
-                return error.ShapeMismatch;
-            }
-        }
-        if (leaf_index > 0 and positions[leaf_index - 1] >= merkle_position) {
-            return error.ShapeMismatch;
-        }
+    const fold_width: usize = @as(usize, 1) << @intCast(fold_step);
+    const leaf_width: usize = @as(usize, 1) << @intCast(leaf_log_size);
+    const authenticated_subtree_height = fold_step - leaf_log_size;
+    if (merkle_capture.path_depth < authenticated_subtree_height)
+        return error.ShapeMismatch;
+    const authentication_path_depth =
+        merkle_capture.path_depth - authenticated_subtree_height;
+    const subset_count = sparse.subset_evals.len;
+    if (subset_count != sparse.subset_domain_initial_indexes.len or
+        decommitment_positions.len != subset_count * fold_width or
+        merkle_capture.positions.len != decommitment_positions.len / leaf_width)
+    {
+        return error.ShapeMismatch;
     }
-
-    const flattened_values = try allocator.alloc(QM31, value_count);
-    defer allocator.free(flattened_values);
-    var value_index: usize = 0;
     for (sparse.subset_evals) |subset| {
-        @memcpy(flattened_values[value_index..][0..subset.len], subset);
-        value_index += subset.len;
+        if (subset.len != fold_width) return error.ShapeMismatch;
     }
 
-    const column_count = qm31.SECURE_EXTENSION_DEGREE * leaf_size;
-    const columns = try allocator.alloc([]M31, column_count);
-    errdefer allocator.free(columns);
-    var initialized_columns: usize = 0;
-    errdefer {
-        for (columns[0..initialized_columns]) |column| allocator.free(column);
-    }
-    while (initialized_columns < columns.len) : (initialized_columns += 1) {
-        columns[initialized_columns] = try allocator.alloc(M31, merkle_position_count);
-    }
-
-    leaf_index = 0;
-    while (leaf_index < merkle_position_count) : (leaf_index += 1) {
-        var offset: usize = 0;
-        while (offset < leaf_size) : (offset += 1) {
-            const coords = flattened_values[leaf_index * leaf_size + offset].toM31Array();
-            inline for (coords, 0..) |coord, coordinate| {
-                columns[offset * qm31.SECURE_EXTENSION_DEGREE + coordinate][leaf_index] = coord;
-            }
-        }
-    }
-
-    return .{
-        .positions = positions,
-        .columns = columns,
+    const captured_positions = try allocator.dupe(usize, raw_query_positions);
+    errdefer allocator.free(captured_positions);
+    const captured_values = try allocator.alloc(
+        QM31,
+        raw_query_positions.len * fold_width,
+    );
+    errdefer allocator.free(captured_values);
+    var capture = FriLayerQueryCapture(H){
+        .commitment = commitment,
+        .folding_alpha = folding_alpha,
+        .fold_step = fold_step,
+        .fold_width = @intCast(fold_width),
+        .path_depth = authentication_path_depth,
+        .query_count = raw_query_positions.len,
+        .positions = captured_positions,
+        .values = captured_values,
+        .siblings = undefined,
     };
+    capture.siblings = try allocator.alloc(
+        H.Hash,
+        raw_query_positions.len * @as(usize, @intCast(capture.path_depth)),
+    );
+    errdefer allocator.free(capture.siblings);
+
+    for (raw_query_positions, 0..) |position, raw_index| {
+        const subset_start = (position >> @intCast(fold_step)) << @intCast(fold_step);
+        const subset_index = findSubsetIndex(
+            decommitment_positions,
+            fold_width,
+            subset_start,
+        ) orelse return error.ShapeMismatch;
+        @memcpy(
+            capture.values[raw_index * fold_width ..][0..fold_width],
+            sparse.subset_evals[subset_index],
+        );
+
+        const leaf_position = subset_start >> @intCast(leaf_log_size);
+        const merkle_index = findPosition(
+            merkle_capture.positions,
+            leaf_position,
+        ) orelse return error.ShapeMismatch;
+        const source_path = merkle_capture.path(merkle_index)[authenticated_subtree_height..];
+        const path_depth: usize = @intCast(capture.path_depth);
+        @memcpy(
+            capture.siblings[raw_index * path_depth ..][0..path_depth],
+            source_path,
+        );
+    }
+
+    const expected_path_depth = evaluation_log_size - fold_step;
+    if (capture.path_depth != expected_path_depth) return error.ShapeMismatch;
+    return capture;
 }
 
 pub fn FriLayerProofAux(comptime H: type) type {
@@ -602,79 +809,3 @@ pub const foldCircleIntoLine = folding.foldCircleIntoLine;
 pub const foldCircleIntoLineWithWorkspace = folding.foldCircleIntoLineWithWorkspace;
 pub const foldCircleColumnsIntoLineWithWorkspace = folding.foldCircleColumnsIntoLineWithWorkspace;
 pub const accumulateLine = folding.accumulateLine;
-
-test "fri: packed Merkle inputs preserve STWO leaf coordinate order" {
-    const alloc = std.testing.allocator;
-    var first_leaf: [4]QM31 = undefined;
-    var second_leaf: [4]QM31 = undefined;
-    for (&first_leaf, 0..) |*value, i| {
-        const base: u32 = @intCast(i * qm31.SECURE_EXTENSION_DEGREE + 1);
-        value.* = QM31.fromU32Unchecked(base, base + 1, base + 2, base + 3);
-    }
-    for (&second_leaf, 0..) |*value, i| {
-        const base: u32 = @intCast((i + first_leaf.len) * qm31.SECURE_EXTENSION_DEGREE + 1);
-        value.* = QM31.fromU32Unchecked(base, base + 1, base + 2, base + 3);
-    }
-    var subsets = [_][]QM31{ first_leaf[0..], second_leaf[0..] };
-    var subset_initials = [_]usize{ 0, 0 };
-    const sparse = SparseEvaluation{
-        .subset_evals = subsets[0..],
-        .subset_domain_initial_indexes = subset_initials[0..],
-    };
-    const decommitment_positions = [_]usize{ 4, 5, 6, 7, 12, 13, 14, 15 };
-
-    var inputs = try buildMerkleVerificationInputs(
-        alloc,
-        decommitment_positions[0..],
-        sparse,
-        LOG_PACKED_LEAF_SIZE,
-    );
-    defer inputs.deinit(alloc);
-
-    try std.testing.expectEqualSlices(usize, &[_]usize{ 1, 3 }, inputs.positions);
-    try std.testing.expectEqual(@as(usize, 16), inputs.columns.len);
-    for (inputs.columns, 0..) |column, column_index| {
-        const offset = column_index / qm31.SECURE_EXTENSION_DEGREE;
-        const coordinate = column_index % qm31.SECURE_EXTENSION_DEGREE;
-        for (column, 0..) |value, leaf_index| {
-            const source_value = leaf_index * 4 + offset;
-            const expected: u32 = @intCast(
-                source_value * qm31.SECURE_EXTENSION_DEGREE + coordinate + 1,
-            );
-            try std.testing.expect(value.eql(M31.fromCanonical(expected)));
-        }
-    }
-
-    const Hasher = @import("vcs_lifted/blake2_merkle.zig").Blake2sMerkleHasher;
-    var opened_leaf_hashes: [2]Hasher.Hash = undefined;
-    for (&opened_leaf_hashes, 0..) |*hash, opened_index| {
-        var row: [16]M31 = undefined;
-        for (inputs.columns, 0..) |column, column_index| row[column_index] = column[opened_index];
-        var hasher = Hasher.defaultWithInitialState();
-        hasher.updateLeaf(row[0..]);
-        hash.* = hasher.finalize();
-    }
-    var sibling_row = [_]M31{M31.zero()} ** 16;
-    var sibling_hasher = Hasher.defaultWithInitialState();
-    sibling_hasher.updateLeaf(sibling_row[0..]);
-    const leaf_zero = sibling_hasher.finalize();
-    @memset(sibling_row[0..], M31.one());
-    sibling_hasher = Hasher.defaultWithInitialState();
-    sibling_hasher.updateLeaf(sibling_row[0..]);
-    const leaf_two = sibling_hasher.finalize();
-    const root = Hasher.hashChildren(.{
-        .left = Hasher.hashChildren(.{ .left = leaf_zero, .right = opened_leaf_hashes[0] }),
-        .right = Hasher.hashChildren(.{ .left = leaf_two, .right = opened_leaf_hashes[1] }),
-    });
-    var verifier = try vcs_verifier.MerkleVerifierLifted(Hasher).init(
-        alloc,
-        root,
-        &([_]u32{2} ** 16),
-    );
-    defer verifier.deinit(alloc);
-    var decommitment = vcs_verifier.MerkleDecommitmentLifted(Hasher){
-        .hash_witness = try alloc.dupe(Hasher.Hash, &[_]Hasher.Hash{ leaf_zero, leaf_two }),
-    };
-    defer decommitment.deinit(alloc);
-    try verifier.verify(alloc, inputs.positions, inputs.columns, decommitment);
-}

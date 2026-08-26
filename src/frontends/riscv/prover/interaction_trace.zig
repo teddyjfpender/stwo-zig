@@ -23,21 +23,31 @@
 //!
 //! The generated `ColumnEvaluation` array is **transferred** to the commitment
 //! scheme at the commit point and released here on every path that does not
-//! reach it. Each generator's *shifted cumulative* columns are a different
-//! matter: composition borrows them after this stage returns, so they are parked
-//! in the caller's `ProofWorkspace` and released by
-//! transferred to the commitment scheme, never retained as duplicate masks.
+//! reach it. Generator results transfer their column buffers into that array;
+//! only the fixed-size claims are copied into `RiscVInteractionClaim`. No
+//! duplicate interaction masks remain in `ProofWorkspace`: composition later
+//! borrows the committed Tree-2 values from the scheme.
 
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const prover_pcs = @import("stwo_prover_engine").pcs;
 const work_pool = @import("stwo_prover_engine").work_pool;
+const prover_api = @import("stwo_prover_api");
 const stage_profile = @import("stwo_prover_api").stage_profile;
 const clock_update_interaction = @import("../air/clock_update_interaction.zig");
 const component_order = @import("../air/component_order.zig");
+const guest_interaction = @import("../air/guest_precompile/interaction.zig");
+const guest_components = @import("../air/guest_precompile/component_registry.zig");
+const guest_main_trace = @import("../air/guest_precompile/main_trace.zig");
+const guest_proof_transcript = @import("../air/guest_precompile/proof_transcript.zig");
+const guest_relations = @import("../air/guest_precompile/relation_challenges.zig");
+const guest_statement = @import("../air/guest_precompile/statement.zig");
 const lookup_table_interaction = @import("../air/lookups/tables/interaction.zig");
 const lookup_table_schema = @import("../air/lookups/tables/schema.zig");
+const lookup_physical_v2 = @import("../air/lang/lookup_physical_manifest_v2.zig");
+const opcode_entries = @import("../air/lookups/opcode_entries.zig");
 const opcode_interaction = @import("../air/lookups/opcode_interaction.zig");
+const BaseScalar = @import("../air/lookups/base_scalar.zig").Scalar;
 const memory_interaction = @import("../air/memory_commitment/interaction.zig");
 const merkle_node = @import("../air/memory_commitment/merkle_node.zig");
 const poseidon2_air = @import("../air/memory_commitment/poseidon2_air.zig");
@@ -47,17 +57,25 @@ const proof_transcript = @import("../proof_transcript.zig");
 const trace_mod = @import("../runner/trace.zig");
 const commitment_witness = @import("commitment_witness.zig");
 const lookup_sources = @import("lookup_sources.zig");
+const interaction_production = @import("interaction_trace_plan_execution_production.zig");
+const interaction_witness_work = @import("interaction_witness_work.zig");
+const proof_phase_meter = @import("proof_phase_meter.zig");
 const proof_workspace = @import("proof_workspace.zig");
 const statement_geometry = @import("statement_geometry.zig");
+const statement_mod = @import("../air/statement.zig");
+const test_witness_hook = @import("test_witness_hook.zig");
+const tree2_main_source = @import("tree2_main_source.zig");
 const types = @import("types.zig");
 
 const M31 = m31.M31;
+const QM31 = @import("stwo_core").fields.qm31.QM31;
 const CommitmentWitness = commitment_witness.CommitmentWitness;
 const Geometry = statement_geometry.Geometry;
 const ProofWorkspace = proof_workspace.ProofWorkspace;
 const Relations = relation_challenges.Relations;
 const RiscVInteractionClaim = types.RiscVInteractionClaim;
 const RunMode = types.RunMode;
+const OpcodeBaseEntries = opcode_entries.Entries(BaseScalar);
 
 /// Draws the relation challenges that parameterise Tree 2.
 ///
@@ -75,8 +93,18 @@ pub fn drawChallenges(
     allocator: std.mem.Allocator,
     channel: *Engine.Channel,
     statement: *const types.RiscVStatement,
+    recorder: ?*stage_profile.Recorder,
 ) !proof_transcript.ProverRelations {
     if (comptime mode == .prove) {
+        var work_authority = try interaction_witness_work.plan(recorder);
+        if (work_authority) |*authority| {
+            return proof_transcript.proveToRelationsWithWorkReceipt(
+                allocator,
+                channel,
+                statement,
+                authority,
+            );
+        }
         return proof_transcript.proveToRelations(allocator, channel, statement);
     }
     var diagnostic_channel = Engine.Channel{};
@@ -101,396 +129,714 @@ pub fn generateAndCommit(
     recorder: ?*stage_profile.Recorder,
     witness: *const CommitmentWitness,
     geometry: Geometry,
-    lookup_source: *const lookup_sources.Result,
+    main_source: *const tree2_main_source.Source,
     prefix: *const proof_transcript.ProverRelations,
     claim: *RiscVInteractionClaim,
+    test_mutation: ?test_witness_hook.Mutation,
+    phase_meter: ?*proof_phase_meter.Meter,
+) !void {
+    if (prefix.challenge_work_receipt != null) {
+        return generateAndCommitSequentialProfiled(
+            Engine,
+            allocator,
+            workspace,
+            scheme,
+            channel,
+            recorder,
+            witness,
+            geometry,
+            main_source,
+            prefix,
+            claim,
+            test_mutation,
+            phase_meter,
+            null,
+        );
+    }
+    return generateAndCommitInternal(
+        Engine,
+        allocator,
+        workspace,
+        scheme,
+        channel,
+        recorder,
+        witness,
+        geometry,
+        main_source,
+        prefix,
+        claim,
+        test_mutation,
+        phase_meter,
+        .ambient,
+        null,
+    );
+}
+
+/// Append-only Tree-2 construction for an authenticated selected statement.
+/// It deliberately has no execution-policy parameter yet: the first complete
+/// proof uses the allocation-safe sequential generator, while V1 retains its
+/// existing parallel selection without a branch.
+pub fn generateAndCommitAuthenticatedLookupV2(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    workspace: *ProofWorkspace,
+    scheme: *Engine.Scheme,
+    channel: *Engine.Channel,
+    recorder: ?*stage_profile.Recorder,
+    witness: *const CommitmentWitness,
+    geometry: Geometry,
+    main_source: *const tree2_main_source.Source,
+    prefix: *const proof_transcript.ProverRelations,
+    claim: *RiscVInteractionClaim,
+    phase_meter: ?*proof_phase_meter.Meter,
+    manifest: *const lookup_physical_v2.Manifest,
+    authenticated_statement: *const lookup_physical_v2.AuthenticatedStatement,
+) !void {
+    try authenticated_statement.validateAgainst(&workspace.statement, manifest);
+    if (prefix.challenge_work_receipt != null) {
+        return generateAndCommitSequentialProfiled(
+            Engine,
+            allocator,
+            workspace,
+            scheme,
+            channel,
+            recorder,
+            witness,
+            geometry,
+            main_source,
+            prefix,
+            claim,
+            null,
+            phase_meter,
+            .{
+                .manifest = manifest,
+                .statement = authenticated_statement,
+            },
+        );
+    }
+    return generateAndCommitInternal(
+        Engine,
+        allocator,
+        workspace,
+        scheme,
+        channel,
+        recorder,
+        witness,
+        geometry,
+        main_source,
+        prefix,
+        claim,
+        null,
+        phase_meter,
+        .ambient,
+        .{
+            .manifest = manifest,
+            .statement = authenticated_statement,
+        },
+    );
+}
+
+pub const LookupV2Admission = struct {
+    manifest: *const lookup_physical_v2.Manifest,
+    statement: *const lookup_physical_v2.AuthenticatedStatement,
+};
+
+fn generateAndCommitSequentialProfiled(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    workspace: *ProofWorkspace,
+    scheme: *Engine.Scheme,
+    channel: *Engine.Channel,
+    recorder: ?*stage_profile.Recorder,
+    witness: *const CommitmentWitness,
+    geometry: Geometry,
+    main_source: *const tree2_main_source.Source,
+    prefix: *const proof_transcript.ProverRelations,
+    claim: *RiscVInteractionClaim,
+    test_mutation: ?test_witness_hook.Mutation,
+    phase_meter: ?*proof_phase_meter.Meter,
+    lookup_v2: ?LookupV2Admission,
+) !void {
+    const authority = interaction_witness_work.Authority.init();
+    const binding = interaction_witness_work.baseSessionDigest(
+        prefix.interaction_pow,
+        &prefix.relations,
+    );
+    var completed = interaction_witness_work.Shard{};
+    try completed.observe(
+        &authority,
+        .base,
+        binding,
+        prefix.challenge_work_receipt.?,
+    );
+
+    try generateAndCommitInternal(
+        Engine,
+        allocator,
+        workspace,
+        scheme,
+        channel,
+        recorder,
+        witness,
+        geometry,
+        main_source,
+        prefix,
+        claim,
+        test_mutation,
+        phase_meter,
+        .sequential,
+        lookup_v2,
+    );
+    const counts = try sequentialBaseWorkCounts(
+        &workspace.statement,
+        witness,
+        geometry,
+        if (lookup_v2) |authenticated| authenticated.manifest else null,
+    );
+    try completed.observe(
+        &authority,
+        .base,
+        binding,
+        try interaction_witness_work.completeInteraction(
+            &authority,
+            .base_interaction_trace,
+            .base,
+            binding,
+            counts,
+        ),
+    );
+    const receipt = try interaction_witness_work.seal(
+        &authority,
+        .base,
+        binding,
+        completed,
+    );
+    try interaction_witness_work.publish(recorder, receipt);
+}
+
+fn generateAndCommitInternal(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    workspace: *ProofWorkspace,
+    scheme: *Engine.Scheme,
+    channel: *Engine.Channel,
+    recorder: ?*stage_profile.Recorder,
+    witness: *const CommitmentWitness,
+    geometry: Geometry,
+    main_source: *const tree2_main_source.Source,
+    prefix: *const proof_transcript.ProverRelations,
+    claim: *RiscVInteractionClaim,
+    test_mutation: ?test_witness_hook.Mutation,
+    phase_meter: ?*proof_phase_meter.Meter,
+    base_execution_policy: BaseExecutionPolicy,
+    lookup_v2: ?LookupV2Admission,
 ) !void {
     const statement = &workspace.statement;
+    try main_source.validate(statement);
     claim.initZeroInto();
     claim.n_components = statement.n_components;
     claim.n_infra = statement.n_infra;
     claim.interaction_pow = prefix.interaction_pow;
 
     const relations = &prefix.relations;
-    const n_interaction = statement.nInteractionColumns();
+    const n_interaction = if (lookup_v2) |authenticated|
+        try authenticated.statement.totalInteractionColumns(
+            statement,
+            authenticated.manifest,
+        )
+    else
+        statement.nInteractionColumns();
 
     var stage = try stage_profile.StageScope.begin(recorder, "riscv_interaction_commit", "RISC-V interaction trace generation and commit");
     defer stage.end();
 
+    var materialization_region: ?proof_phase_meter.WitnessRegion =
+        if (phase_meter) |meter| try meter.begin() else null;
+    errdefer if (materialization_region) |*region| region.abort();
+
     var columns = try Columns.init(allocator, n_interaction);
     defer columns.deinit(allocator);
 
-    {
-        var sub = try stage_profile.StageScope.begin(recorder, "riscv_interaction_opcode", "RISC-V opcode interactions");
-        defer sub.end();
-        try generateOpcode(allocator, workspace, &columns, relations, claim);
-    }
-    {
-        var sub = try stage_profile.StageScope.begin(recorder, "riscv_interaction_program", "RISC-V program interactions");
-        defer sub.end();
-        try generateProgram(allocator, &columns, witness, geometry, relations, claim);
-    }
-    {
-        var sub = try stage_profile.StageScope.begin(recorder, "riscv_interaction_memory", "RISC-V memory interactions");
-        defer sub.end();
-        try generateMemory(allocator, workspace, &columns, witness, relations, claim);
-    }
-    {
-        var sub = try stage_profile.StageScope.begin(recorder, "riscv_interaction_merkle", "RISC-V Merkle interactions");
-        defer sub.end();
-        try generateMerkle(allocator, &columns, witness, geometry, relations, claim);
-    }
-    {
-        var sub = try stage_profile.StageScope.begin(recorder, "riscv_interaction_poseidon", "RISC-V Poseidon interactions");
-        defer sub.end();
-        try generatePoseidon(allocator, &columns, witness, geometry, relations, claim);
-    }
-    {
-        var sub = try stage_profile.StageScope.begin(recorder, "riscv_interaction_clock", "RISC-V clock interactions");
-        defer sub.end();
-        try generateClock(allocator, workspace, &columns, geometry, relations, claim);
-    }
-    {
-        var sub = try stage_profile.StageScope.begin(recorder, "riscv_interaction_tables", "RISC-V lookup-table interactions");
-        defer sub.end();
-        try generateLookupTables(allocator, workspace, &columns, lookup_source, relations, claim);
-    }
+    try generateBase(
+        allocator,
+        workspace,
+        &columns,
+        recorder,
+        witness,
+        geometry,
+        main_source,
+        relations,
+        claim,
+        lookup_v2,
+        base_execution_policy,
+    );
     std.debug.assert(columns.filled == n_interaction);
+    if (test_mutation) |mutation| {
+        try test_witness_hook.applyInteraction(
+            allocator,
+            statement.*,
+            columns.values,
+            mutation,
+        );
+    }
 
-    try proof_transcript.mixInteractionClaim(channel, statement, claim);
+    if (materialization_region) |*region| try region.finish();
+    if (lookup_v2) |authenticated| {
+        try authenticated.statement.mixInteractionClaim(
+            channel,
+            statement,
+            authenticated.manifest,
+            claim,
+        );
+    } else {
+        try proof_transcript.mixInteractionClaim(channel, statement, claim);
+    }
     columns.moved = true;
     try Engine.commit(scheme, allocator, columns.values, recorder, channel);
 }
 
-/// One opcode shard's interactions, from the exact buffers Tree 1 committed.
-///
-/// The result is parked in the workspace before its columns are taken: the
-/// shifted cumulative columns it also holds are borrowed by composition, so the
-/// value may not stay in this frame.
-fn generateOpcode(
+/// Selects the predecessor or the explicitly requested bounded Tree-2 epoch.
+/// A null request enters `generateAndCommit` directly, preserving its generator
+/// selection, allocation order, and commitment path. The requested path
+/// prepares all destinations and scratch before acquiring its finite pool.
+pub fn generateAndCommitWithExecution(
+    comptime Engine: type,
     allocator: std.mem.Allocator,
     workspace: *ProofWorkspace,
-    columns: *Columns,
-    relations: *const Relations,
-    claim: *RiscVInteractionClaim,
-) !void {
-    const statement = &workspace.statement;
-    if (statement.n_components > 1) {
-        if (work_pool.getGlobalPool()) |pool| {
-            return generateOpcodeParallel(
-                allocator,
-                workspace,
-                columns,
-                relations,
-                claim,
-                pool,
-            );
-        }
-    }
-    var opcode_main_offset: usize = 0;
-    for (0..statement.n_components) |i| {
-        const desc = statement.component_descs[i];
-        const n_family_columns: usize = @intCast(desc.n_columns);
-        var family_columns: [trace_mod.MAX_FAMILY_COLUMNS][]const M31 = undefined;
-        for (
-            workspace.opcode_columns.components[i].columns[0..n_family_columns],
-            family_columns[0..n_family_columns],
-        ) |column, *values| values.* = column;
-        var generated = try opcode_interaction.generate(
-            allocator,
-            desc.family,
-            family_columns[0..n_family_columns],
-            desc.log_size,
-            relations,
-        );
-        @memcpy(
-            claim.opcode_claims[i][0..generated.n_batches],
-            generated.claims[0..generated.n_batches],
-        );
-        const n_columns = generated.nColumns();
-        const taken = generated.takeColumns();
-        for (taken[0..n_columns]) |values| columns.append(desc.log_size, values);
-        opcode_main_offset += n_family_columns;
-    }
-    std.debug.assert(opcode_main_offset == statement.nOpcodeMainColumns());
-}
-
-/// Gives each large opcode family the whole bounded pool in turn. This avoids
-/// nested waits and lets the family generator parallelize its row-local tuple,
-/// inversion and scan work before results are appended in protocol order.
-fn generateOpcodeParallel(
-    allocator: std.mem.Allocator,
-    workspace: *ProofWorkspace,
-    columns: *Columns,
-    relations: *const Relations,
-    claim: *RiscVInteractionClaim,
-    pool: *work_pool.WorkPool,
-) !void {
-    const statement = &workspace.statement;
-    var opcode_main_offset: usize = 0;
-    var retained_plan: ?opcode_interaction.Plan = null;
-    defer if (retained_plan) |*plan| plan.deinit();
-    for (0..statement.n_components) |index| {
-        const desc = statement.component_descs[index];
-        const n_family_columns: usize = @intCast(desc.n_columns);
-        var family_columns: [trace_mod.MAX_FAMILY_COLUMNS][]const M31 = undefined;
-        for (
-            workspace.opcode_columns.components[index].columns[0..n_family_columns],
-            family_columns[0..n_family_columns],
-        ) |column, *values| values.* = column;
-        var generated = if (desc.log_size >= 12) blk: {
-            if (retained_plan == null or retained_plan.?.family != desc.family) {
-                if (retained_plan) |*plan| plan.deinit();
-                retained_plan = null;
-                retained_plan = try opcode_interaction.Plan.init(allocator, desc.family);
-            }
-            const plan = if (retained_plan) |*value| value else unreachable;
-            break :blk try opcode_interaction.generateParallelPlanned(
-                allocator,
-                plan,
-                family_columns[0..n_family_columns],
-                desc.log_size,
-                relations,
-                pool,
-            );
-        } else try opcode_interaction.generate(
-            allocator,
-            desc.family,
-            family_columns[0..n_family_columns],
-            desc.log_size,
-            relations,
-        );
-        @memcpy(
-            claim.opcode_claims[index][0..generated.n_batches],
-            generated.claims[0..generated.n_batches],
-        );
-        const n_columns = generated.nColumns();
-        const taken = generated.takeColumns();
-        for (taken[0..n_columns]) |values| columns.append(desc.log_size, values);
-        opcode_main_offset += @intCast(desc.n_columns);
-    }
-    std.debug.assert(opcode_main_offset == statement.nOpcodeMainColumns());
-}
-
-/// Program-table interactions. Program is infrastructure index 0 by
-/// construction, which is the index its claim is published under.
-fn generateProgram(
-    allocator: std.mem.Allocator,
-    columns: *Columns,
+    scheme: *Engine.Scheme,
+    channel: *Engine.Channel,
+    recorder: ?*stage_profile.Recorder,
     witness: *const CommitmentWitness,
     geometry: Geometry,
-    relations: *const Relations,
+    main_source: *const tree2_main_source.Source,
+    prefix: *const proof_transcript.ProverRelations,
     claim: *RiscVInteractionClaim,
+    test_mutation: ?test_witness_hook.Mutation,
+    execution_request: ?prover_api.CpuCompositionExecutionRequest,
+    pool: ?*work_pool.WorkPool,
+    phase_meter: ?*proof_phase_meter.Meter,
 ) !void {
-    const generated = try program_interaction.generate(
+    const request = execution_request orelse return generateAndCommit(
+        Engine,
         allocator,
-        witness.program.rows,
-        geometry.program_log_size,
-        relations,
+        workspace,
+        scheme,
+        channel,
+        recorder,
+        witness,
+        geometry,
+        main_source,
+        prefix,
+        claim,
+        test_mutation,
+        phase_meter,
     );
-    claim.program_claims[0] = generated.claims.sums;
-    for (generated.columns) |values| columns.append(geometry.program_log_size, values);
-}
 
-/// RW-memory boundary interactions, over the shard partition Tree 1 committed.
-///
-/// The rows are consumed by walking the declared shard descriptors rather than
-/// `memory_shard_lengths`, because each shard's claim is published under its
-/// infrastructure index; the running `row_start` and the final assertion are
-/// what tie the two views of the same partition together.
-fn generateMemory(
-    allocator: std.mem.Allocator,
-    workspace: *ProofWorkspace,
-    columns: *Columns,
-    witness: *const CommitmentWitness,
-    relations: *const Relations,
-    claim: *RiscVInteractionClaim,
-) !void {
-    const boundary = witness.boundary orelse return;
     const statement = &workspace.statement;
-    var row_start: usize = 0;
-    for (0..statement.n_infra) |infra_index| {
-        const desc = statement.infra_descs[infra_index];
-        if (desc.kind != .memory) continue;
-        const row_end = row_start + desc.n_rows;
-        const generated = try memory_interaction.generate(
-            allocator,
-            boundary.rows[row_start..row_end],
-            desc.log_size,
-            relations,
-        );
-        claim.memory_claims[infra_index] = generated.claims.sums;
-        for (generated.columns) |values| columns.append(desc.log_size, values);
-        row_start = row_end;
-    }
-    std.debug.assert(row_start == boundary.rows.len);
-}
+    if (request.worker_count > 1 and pool == null) return error.WorkPoolRequired;
+    try work_pool.observeProofPoolStageForTest(.tree2, pool);
+    try main_source.validate(statement);
+    claim.initZeroInto();
+    claim.n_components = statement.n_components;
+    claim.n_infra = statement.n_infra;
+    claim.interaction_pow = prefix.interaction_pow;
 
-fn generateMerkle(
-    allocator: std.mem.Allocator,
-    columns: *Columns,
-    witness: *const CommitmentWitness,
-    geometry: Geometry,
-    relations: *const Relations,
-    claim: *RiscVInteractionClaim,
-) !void {
-    const generated = if (geometry.merkle_log_size >= 12 and work_pool.getGlobalPool() != null)
-        try merkle_node.generateInteractionParallel(
+    var stage = try stage_profile.StageScope.begin(
+        recorder,
+        "riscv_interaction_commit",
+        "RISC-V interaction trace generation and commit",
+    );
+    defer stage.end();
+
+    var materialization_region: ?proof_phase_meter.WitnessRegion =
+        if (phase_meter) |meter| try meter.begin() else null;
+    errdefer if (materialization_region) |*region| region.abort();
+
+    const prepared_inputs = interaction_production.Inputs{
+        .witness = witness,
+        .geometry = geometry,
+        .main_source = main_source.*,
+        .relations = &prefix.relations,
+        .claim = claim,
+    };
+    const pool_capacity = if (pool) |active_pool| active_pool.workerCount() else 1;
+    const worker_stack_bytes = if (pool) |active_pool|
+        active_pool.stackSize()
+    else
+        work_pool.WORKER_STACK_SIZE;
+    const challenge_work = prefix.challenge_work_receipt;
+    const work_authority = interaction_witness_work.Authority.init();
+    const work_binding = interaction_witness_work.baseSessionDigest(
+        prefix.interaction_pow,
+        &prefix.relations,
+    );
+    var prepared = if (challenge_work) |challenge_receipt|
+        try interaction_production.Prepared.prepareWithWorkReceipt(
             allocator,
-            witness.merkleRows(),
-            geometry.merkle_log_size,
-            relations,
-            work_pool.getGlobalPool().?,
+            statement,
+            prepared_inputs,
+            request,
+            pool_capacity,
+            worker_stack_bytes,
+            .{
+                .authority = work_authority,
+                .session_digest = work_binding,
+                .challenge_receipt = challenge_receipt,
+            },
         )
     else
-        try merkle_node.generateInteraction(
+        try interaction_production.Prepared.prepare(
             allocator,
-            witness.merkleRows(),
-            geometry.merkle_log_size,
-            relations,
+            statement,
+            prepared_inputs,
+            request,
+            pool_capacity,
+            worker_stack_bytes,
         );
-    claim.merkle_claims[geometry.merkle_infra_index] = generated.claims.sums;
-    for (generated.columns) |values| columns.append(geometry.merkle_log_size, values);
-}
-
-fn generatePoseidon(
-    allocator: std.mem.Allocator,
-    columns: *Columns,
-    witness: *const CommitmentWitness,
-    geometry: Geometry,
-    relations: *const Relations,
-    claim: *RiscVInteractionClaim,
-) !void {
-    const generated = if (geometry.poseidon_log_size >= 12 and work_pool.getGlobalPool() != null)
-        try poseidon2_air.generateInteractionParallel(
+    defer prepared.deinit();
+    _ = try prepared.execute(pool);
+    if (test_mutation) |mutation| {
+        try test_witness_hook.applyInteraction(
             allocator,
-            witness.poseidonCalls(),
-            geometry.poseidon_log_size,
-            relations,
-            work_pool.getGlobalPool().?,
-        )
+            statement.*,
+            try prepared.borrowPublishedColumnsForTest(),
+            mutation,
+        );
+    }
+
+    if (materialization_region) |*region| try region.finish();
+    try proof_transcript.mixInteractionClaim(channel, statement, claim);
+    const work_receipt = if (challenge_work != null)
+        try prepared.interactionWorkReceipt()
     else
-        try poseidon2_air.generateInteraction(
-            allocator,
-            witness.poseidonCalls(),
-            geometry.poseidon_log_size,
-            relations,
-        );
-    claim.poseidon_claims[geometry.poseidon_infra_index] = generated.claims.sums;
-    for (generated.columns) |values| columns.append(geometry.poseidon_log_size, values);
+        null;
+    const columns = try prepared.takeColumns();
+    // The engine consumes descriptors and payloads on both success and error;
+    // the prepared owner is disarmed immediately before this call.
+    try Engine.commit(scheme, allocator, columns, recorder, channel);
+    if (work_receipt) |receipt|
+        try interaction_witness_work.publish(recorder, receipt);
 }
 
-/// Clock-update interactions read the workspace copy of the clock main columns,
-/// which is byte-identical to the copy Tree 1 transferred to the scheme.
-fn generateClock(
-    allocator: std.mem.Allocator,
-    workspace: *ProofWorkspace,
-    columns: *Columns,
-    geometry: Geometry,
-    relations: *const Relations,
-    claim: *RiscVInteractionClaim,
-) !void {
-    var views: [clock_update_interaction.N_MAIN_COLUMNS][]const M31 = undefined;
-    for (&views, workspace.clock_main) |*view, column| view.* = column;
-    var generated = try clock_update_interaction.generate(
-        allocator,
-        &views,
-        geometry.clock_update_log,
-        relations,
-    );
-    claim.clock_claims[geometry.clock_infra_index] = generated.claims;
-    const taken = generated.takeColumns();
-    for (taken) |values| columns.append(geometry.clock_update_log, values);
-}
+/// Detailed extension recurrence claims. The two transcript-visible component
+/// sums are recomputed from these arrays by `guest_statement.InteractionClaim`.
+pub const Poseidon2Claims = struct {
+    caller: [guest_interaction.caller_batch_count]QM31,
+    provider: [guest_interaction.provider_batch_count]QM31,
 
-/// The fixed lookup tables close the registry, so their infrastructure indices
-/// are the last `LOOKUP_TABLE_COUNT` slots in declaration order.
-fn generateLookupTables(
-    allocator: std.mem.Allocator,
-    workspace: *ProofWorkspace,
-    columns: *Columns,
-    lookup_source: *const lookup_sources.Result,
-    relations: *const Relations,
-    claim: *RiscVInteractionClaim,
-) !void {
-    if (work_pool.getGlobalPool()) |pool| {
-        return generateLookupTablesParallel(
-            allocator,
-            workspace,
-            columns,
-            lookup_source,
-            relations,
-            claim,
-            pool,
-        );
-    }
-    const table_infra_start = workspace.statement.n_infra - component_order.LOOKUP_TABLE_COUNT;
-    for (component_order.lookupTables(), 0..) |kind, table_index| {
-        var generated = try lookup_table_interaction.generate(
-            allocator,
-            &lookup_source.counters.counters[@intFromEnum(kind)],
-            relations,
-        );
-        claim.lookup_claims[table_infra_start + table_index] = generated.claim;
-        const taken = generated.takeColumns();
-        for (taken) |values| columns.append(lookup_table_schema.logSize(kind), values);
-    }
-}
-
-/// Gives each large fixed table the whole bounded pool in turn. The table
-/// generator performs a chunk-local scan plus ordered offset fix-up, while
-/// columns and claims are still appended in protocol declaration order.
-fn generateLookupTablesParallel(
-    allocator: std.mem.Allocator,
-    workspace: *ProofWorkspace,
-    columns: *Columns,
-    lookup_source: *const lookup_sources.Result,
-    relations: *const Relations,
-    claim: *RiscVInteractionClaim,
-    pool: *work_pool.WorkPool,
-) !void {
-    const table_infra_start = workspace.statement.n_infra - component_order.LOOKUP_TABLE_COUNT;
-    for (component_order.lookupTables(), 0..) |kind, table_index| {
-        var generated = try lookup_table_interaction.generateParallel(
-            allocator,
-            &lookup_source.counters.counters[@intFromEnum(kind)],
-            relations,
-            pool,
-        );
-        claim.lookup_claims[table_infra_start + table_index] = generated.claim;
-        const taken = generated.takeColumns();
-        for (taken) |values| columns.append(lookup_table_schema.logSize(kind), values);
-    }
-}
-
-/// The committed column array, filled strictly front to back.
-///
-/// A prefix counter is enough here (unlike Tree 1, which writes two disjoint
-/// regions) because interaction columns are appended in declaration order and
-/// never addressed absolutely.
-const Columns = struct {
-    values: []prover_pcs.ColumnEvaluation,
-    filled: usize,
-    moved: bool,
-
-    fn init(allocator: std.mem.Allocator, n_interaction: usize) !Columns {
-        return .{
-            .values = try allocator.alloc(prover_pcs.ColumnEvaluation, n_interaction),
-            .filled = 0,
-            .moved = false,
-        };
-    }
-
-    fn append(self: *Columns, log_size: u32, values: []M31) void {
-        self.values[self.filled] = .{ .log_size = log_size, .values = values };
-        self.filled += 1;
-    }
-
-    /// Releases the filled prefix only while this array still owns it: after
-    /// `moved` the commitment scheme does.
-    fn deinit(self: *Columns, allocator: std.mem.Allocator) void {
-        if (self.moved) return;
-        for (self.values[0..self.filled]) |column| allocator.free(@constCast(column.values));
-        allocator.free(self.values);
+    pub fn canonical(self: *const Poseidon2Claims) guest_interaction.Claims {
+        return .{ .caller = self.caller, .provider = self.provider };
     }
 };
+
+pub fn generateAndCommitPoseidon2(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    workspace: *ProofWorkspace,
+    extension: *const guest_statement.ExtensionStatement,
+    relation_source: *const guest_main_trace.RelationSource,
+    scheme: *Engine.Scheme,
+    channel: *Engine.Channel,
+    recorder: ?*stage_profile.Recorder,
+    witness: *const CommitmentWitness,
+    geometry: Geometry,
+    lookup_source: *const lookup_sources.Result,
+    prefix: *const guest_proof_transcript.ProverRelations,
+    base_claim: *RiscVInteractionClaim,
+    guest_claim: *Poseidon2Claims,
+) !void {
+    return generateAndCommitPoseidon2WithPhaseMeter(
+        Engine,
+        allocator,
+        workspace,
+        extension,
+        relation_source,
+        scheme,
+        channel,
+        recorder,
+        witness,
+        geometry,
+        lookup_source,
+        prefix,
+        base_claim,
+        guest_claim,
+        null,
+    );
+}
+
+/// Profile Tree 2 with the same materialization boundary used by the base
+/// prover. Commitment work is deliberately outside the witness region.
+pub fn generateAndCommitPoseidon2WithPhaseMeter(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    workspace: *ProofWorkspace,
+    extension: *const guest_statement.ExtensionStatement,
+    relation_source: *const guest_main_trace.RelationSource,
+    scheme: *Engine.Scheme,
+    channel: *Engine.Channel,
+    recorder: ?*stage_profile.Recorder,
+    witness: *const CommitmentWitness,
+    geometry: Geometry,
+    lookup_source: *const lookup_sources.Result,
+    prefix: *const guest_proof_transcript.ProverRelations,
+    base_claim: *RiscVInteractionClaim,
+    guest_claim: *Poseidon2Claims,
+    phase_meter: ?*proof_phase_meter.Meter,
+) !void {
+    const base_receipt = prefix.base_challenge_work_receipt;
+    const guest_receipt = prefix.guest_challenge_work_receipt;
+    if (base_receipt == null and guest_receipt == null) {
+        return generateAndCommitPoseidon2Unprofiled(
+            Engine,
+            allocator,
+            workspace,
+            extension,
+            relation_source,
+            scheme,
+            channel,
+            recorder,
+            witness,
+            geometry,
+            lookup_source,
+            prefix.interaction_pow,
+            &prefix.relations,
+            base_claim,
+            guest_claim,
+            phase_meter,
+            .ambient,
+        );
+    }
+    if (base_receipt == null or guest_receipt == null)
+        return error.IncompleteInteractionChallengeWork;
+    return generateAndCommitPoseidon2Profiled(
+        Engine,
+        allocator,
+        workspace,
+        extension,
+        relation_source,
+        scheme,
+        channel,
+        recorder,
+        witness,
+        geometry,
+        lookup_source,
+        prefix,
+        base_claim,
+        guest_claim,
+        phase_meter,
+    );
+}
+
+fn generateAndCommitPoseidon2Unprofiled(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    workspace: *ProofWorkspace,
+    extension: *const guest_statement.ExtensionStatement,
+    relation_source: *const guest_main_trace.RelationSource,
+    scheme: *Engine.Scheme,
+    channel: *Engine.Channel,
+    recorder: ?*stage_profile.Recorder,
+    witness: *const CommitmentWitness,
+    geometry: Geometry,
+    lookup_source: *const lookup_sources.Result,
+    interaction_pow: u64,
+    relations: *const guest_relations.Poseidon2V1Relations,
+    base_claim: *RiscVInteractionClaim,
+    guest_claim: *Poseidon2Claims,
+    phase_meter: ?*proof_phase_meter.Meter,
+    base_execution_policy: BaseExecutionPolicy,
+) !void {
+    const statement = &workspace.statement;
+    try extension.validate(statement);
+    const main_source = tree2_main_source.Source.fromLegacy(workspace, lookup_source);
+    try main_source.validate(statement);
+    base_claim.initZeroInto();
+    base_claim.n_components = statement.n_components;
+    base_claim.n_infra = statement.n_infra;
+    base_claim.interaction_pow = interaction_pow;
+
+    const n_base_interaction = statement.nInteractionColumns();
+    const n_interaction = std.math.add(
+        usize,
+        n_base_interaction,
+        guest_interaction.total_column_count,
+    ) catch return error.InvalidTraceShape;
+    var stage = try stage_profile.StageScope.begin(
+        recorder,
+        "riscv_guest_interaction_commit",
+        "RISC-V guest interaction trace generation and commit",
+    );
+    defer stage.end();
+    var materialization_region: ?proof_phase_meter.WitnessRegion =
+        if (phase_meter) |meter| try meter.begin() else null;
+    errdefer if (materialization_region) |*region| region.abort();
+    var columns = try Columns.init(allocator, n_interaction);
+    defer columns.deinit(allocator);
+
+    try generateBase(
+        allocator,
+        workspace,
+        &columns,
+        recorder,
+        witness,
+        geometry,
+        &main_source,
+        &relations.base,
+        base_claim,
+        null,
+        base_execution_policy,
+    );
+    if (columns.filled != n_base_interaction) return error.InvalidTraceShape;
+    var destinations = try columns.reserveGuest(
+        allocator,
+        extension.components[0].log_size,
+    );
+    const generated = try guest_interaction.generateFromRelationSourceInto(
+        allocator,
+        statement,
+        extension,
+        relation_source,
+        relations,
+        &destinations,
+    );
+    guest_claim.* = .{ .caller = generated.caller, .provider = generated.provider };
+    try generated.verifyGuestCancellation();
+    if (columns.filled != n_interaction) return error.InvalidTraceShape;
+
+    const canonical_base = try allocator.create(statement_mod.CanonicalInteractionClaim);
+    defer allocator.destroy(canonical_base);
+    canonical_base.* = try base_claim.canonical(statement);
+    const extended_claim = guest_statement.InteractionClaim.init(
+        canonical_base.view(),
+        generated.callerTotal(),
+        generated.providerTotal(),
+        extension,
+    );
+    try guest_proof_transcript.mixInteractionClaim(
+        channel,
+        statement,
+        extension,
+        &extended_claim,
+        .{
+            .base = base_claim,
+            .caller = &guest_claim.caller,
+            .provider = &guest_claim.provider,
+        },
+    );
+
+    if (materialization_region) |*region| try region.finish();
+    columns.moved = true;
+    try Engine.commit(scheme, allocator, columns.values, recorder, channel);
+}
+
+fn generateAndCommitPoseidon2Profiled(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    workspace: *ProofWorkspace,
+    extension: *const guest_statement.ExtensionStatement,
+    relation_source: *const guest_main_trace.RelationSource,
+    scheme: *Engine.Scheme,
+    channel: *Engine.Channel,
+    recorder: ?*stage_profile.Recorder,
+    witness: *const CommitmentWitness,
+    geometry: Geometry,
+    lookup_source: *const lookup_sources.Result,
+    prefix: *const guest_proof_transcript.ProverRelations,
+    base_claim: *RiscVInteractionClaim,
+    guest_claim: *Poseidon2Claims,
+    phase_meter: ?*proof_phase_meter.Meter,
+) !void {
+    // Tree 2 explicitly ignores the ambient pool so its real execution matches
+    // the sequential work receipt. Later quotient stages retain pool access.
+
+    const authority = interaction_witness_work.Authority.init();
+    const binding = interaction_witness_work.guestSessionDigest(
+        prefix.interaction_pow,
+        &prefix.relations,
+    );
+    var completed = interaction_witness_work.Shard{};
+    try completed.observe(
+        &authority,
+        .poseidon2_guest,
+        binding,
+        prefix.base_challenge_work_receipt.?,
+    );
+    try completed.observe(
+        &authority,
+        .poseidon2_guest,
+        binding,
+        prefix.guest_challenge_work_receipt.?,
+    );
+
+    // Completion publication is deliberately after the real Tree-2 commit.
+    // Any allocation, denominator, cancellation, claim, or commit failure
+    // therefore leaves the aggregate site incomplete.
+    try generateAndCommitPoseidon2Unprofiled(
+        Engine,
+        allocator,
+        workspace,
+        extension,
+        relation_source,
+        scheme,
+        channel,
+        recorder,
+        witness,
+        geometry,
+        lookup_source,
+        prefix.interaction_pow,
+        &prefix.relations,
+        base_claim,
+        guest_claim,
+        phase_meter,
+        GUEST_PROFILED_TREE2_EXECUTION_POLICY,
+    );
+
+    try GUEST_PROFILED_TREE2_EXECUTION_POLICY.requireSequentialReceipt();
+    const base_counts = try sequentialBaseWorkCounts(
+        &workspace.statement,
+        witness,
+        geometry,
+        null,
+    );
+    try completed.observe(
+        &authority,
+        .poseidon2_guest,
+        binding,
+        try interaction_witness_work.completeInteraction(
+            &authority,
+            .base_interaction_trace,
+            .poseidon2_guest,
+            binding,
+            base_counts,
+        ),
+    );
+    const guest_counts = try guestInteractionWorkCounts(extension.counts.n_guest);
+    try completed.observe(
+        &authority,
+        .poseidon2_guest,
+        binding,
+        try interaction_witness_work.completeInteraction(
+            &authority,
+            .guest_interaction_trace,
+            .poseidon2_guest,
+            binding,
+            guest_counts,
+        ),
+    );
+    const receipt = try interaction_witness_work.seal(
+        &authority,
+        .poseidon2_guest,
+        binding,
+        completed,
+    );
+    try interaction_witness_work.publish(recorder, receipt);
+}
+
+const generation_mod = @import("interaction_trace_generation.zig");
+pub const BaseExecutionPolicy = generation_mod.BaseExecutionPolicy;
+pub const GUEST_PROFILED_TREE2_EXECUTION_POLICY: BaseExecutionPolicy = .sequential;
+const generation = generation_mod.Ops(@This());
+const generateBase = generation.generateBase;
+const sequentialBaseWorkCounts = generation.sequentialBaseWorkCounts;
+const guestInteractionWorkCounts = generation.guestInteractionWorkCounts;
+const Columns = generation.Columns;

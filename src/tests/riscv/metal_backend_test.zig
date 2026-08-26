@@ -3,6 +3,7 @@
 const std = @import("std");
 const pcs = @import("stwo_core").pcs;
 const metal_aot_config = @import("metal_aot_config");
+const prover_api = @import("stwo_prover_api");
 const stwo_riscv_metal = @import("stwo_riscv_metal");
 const riscv = stwo_riscv_metal.frontends.riscv;
 const riscv_metal = stwo_riscv_metal.integrations.riscv_metal;
@@ -46,13 +47,21 @@ test "metal: RV32IM retirement trace proves and verifies without fallback" {
     var run = try runner.run(allocator, &elf, 1000);
     defer run.deinit();
 
+    var recorder = prover_api.stage_profile.Recorder.initWithOptions(
+        allocator,
+        "test",
+        "riscv-metal-exact-work",
+        .{ .capture_work = true },
+    );
+    defer recorder.deinit();
     const telemetry_before = try riscv_metal.MetalProverEngine.telemetrySnapshot();
-    const output = try riscv_metal.proveRiscV(
+    const output = try riscv_metal.proveRiscVWithRecorder(
         allocator,
         TEST_CONFIG,
         &run.execution_trace,
         null,
         null,
+        &recorder,
     );
     defer output.deinitAfterProofMoved(allocator);
     const telemetry_after = try riscv_metal.MetalProverEngine.telemetrySnapshot();
@@ -74,6 +83,23 @@ test "metal: RV32IM retirement trace proves and verifies without fallback" {
         @as(u64, 0),
         telemetry_delta.counters.cpu_riscv_polynomial_composition_declines,
     );
+    const work = recorder.workCaptureRecorder() orelse unreachable;
+    for ([_]prover_api.work_profile.Site{
+        .oods_seed_to_point,
+        .oods_mask_points,
+        .oods_constraint_evaluation,
+        .relation_challenges_and_interaction_traces,
+        .quotient_sample_preparation,
+        .quotient_row_execution,
+        .air_composition_on_domain,
+        .pcs_transcript_shell,
+    }) |site| {
+        const index = @intFromEnum(site);
+        try std.testing.expectEqual(@as(u64, 1), work.planned_sites[index]);
+        try std.testing.expectEqual(@as(u64, 1), work.completed_sites[index]);
+    }
+    const work_snapshot = try recorder.workSnapshot();
+    try work_snapshot.validate();
     try riscv_metal.verifyRiscV(
         allocator,
         TEST_CONFIG,
@@ -93,6 +119,50 @@ test "metal: RV32IM retirement trace proves and verifies without fallback" {
         &run.execution_trace,
         run.cpu_final,
         &.{},
+    );
+}
+
+test "metal: typed Poseidon2 artifacts prove and verify without fallback" {
+    const allocator = std.testing.allocator;
+    const bundle_path = try std.process.getEnvVarOwned(
+        allocator,
+        "STWO_RISCV_METAL_AOT_BUNDLE",
+    );
+    defer allocator.free(bundle_path);
+    try riscv_metal.MetalProverEngine.initializeRuntime(allocator, .{
+        .authenticated_aot = .{
+            .bundle_path = bundle_path,
+            .manifest_sha256 = metal_aot_config.manifest_sha256,
+        },
+    });
+    defer riscv_metal.MetalProverEngine.Backend.shutdown() catch unreachable;
+
+    const telemetry_before = try riscv_metal.MetalProverEngine.telemetrySnapshot();
+    const receipt = try riscv.testing.typed_poseidon2_proof_test.exerciseBackend(
+        riscv_metal.MetalProverEngine.Backend,
+        allocator,
+    );
+    const telemetry_after = try riscv_metal.MetalProverEngine.telemetrySnapshot();
+    const telemetry_delta = telemetry_after.delta(telemetry_before);
+
+    try receipt.validate();
+    try std.testing.expectEqualStrings(
+        @typeName(riscv_metal.MetalProverEngine.Backend),
+        receipt.backend_name,
+    );
+    try std.testing.expectEqual(@as(usize, 46), receipt.active_rows);
+    try std.testing.expectEqual(receipt.active_rows, receipt.narrow_rows);
+    try std.testing.expectEqual(@as(usize, 0), receipt.wide_rows);
+    try std.testing.expectEqual(@as(usize, 0), receipt.io_rows);
+    try std.testing.expectEqualSlices(
+        u8,
+        &riscv.testing.typed_poseidon2_proof_test.CANONICAL_PROGRAM_IDENTITY_DIGEST,
+        &receipt.program_identity.combined_digest,
+    );
+    try telemetry_delta.requireResidentRiscPolynomialExecution();
+    try std.testing.expectEqual(
+        @as(u64, 0),
+        telemetry_delta.counters.cpu_riscv_polynomial_composition_declines,
     );
 }
 

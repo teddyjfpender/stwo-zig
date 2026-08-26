@@ -45,6 +45,86 @@ const excluded = [_]struct { path: []const u8, why: []const u8 }{
         .path = "build.zig",
         .why = "this package's build script, not part of the module",
     },
+    .{
+        .path = "r012_universal_adapter_test_root.zig",
+        .why = "explicit focused evidence root; its tests are collected through the canonical root",
+    },
+    .{
+        .path = "recursion_air_core_test_root.zig",
+        .why = "explicit production-decoupled recursion edit root",
+    },
+    .{
+        .path = "recursion_vm_composition_test_root.zig",
+        .why = "compile-isolated row-18 VM composition edit root",
+    },
+    .{
+        .path = "semantic_component_test_root.zig",
+        .why = "explicit semantic-component prepared-domain edit root",
+    },
+    .{
+        .path = "r012_fri_circuit_test_root.zig",
+        .why = "temporary focused R-012 circuit evidence root",
+    },
+    .{
+        .path = "recursion_air_r012_composition_circuit_dev_test_root.zig",
+        .why = "temporary focused R-012 composition evidence root",
+    },
+    .{
+        .path = "recursion_air_r012_dev_test_root.zig",
+        .why = "temporary focused R-012 development root",
+    },
+    .{
+        .path = "transcript_word_dev_test_root.zig",
+        .why = "temporary focused row-4 development root",
+    },
+    .{
+        .path = "transcript_binding_test_root.zig",
+        .why = "temporary focused row-2 development root",
+    },
+    .{
+        .path = "transcript_state_test_root.zig",
+        .why = "temporary focused row-3 development root",
+    },
+    .{
+        .path = "vm_public_claim_hash_test_root.zig",
+        .why = "focused row-13 development root; its tests are collected through the canonical root",
+    },
+    .{
+        .path = "vm_public_io_hash_test_root.zig",
+        .why = "focused row-14 development root; its tests are collected through the canonical root",
+    },
+    .{
+        .path = "pair_node_test_root.zig",
+        .why = "focused pair-node evidence root; its tests are collected through the canonical root",
+    },
+    .{
+        .path = "shifts_imm_private_test_root.zig",
+        .why = "focused private-cutover evidence root",
+    },
+    .{
+        .path = "shifts_reg_private_test_root.zig",
+        .why = "focused private-cutover evidence root",
+    },
+    .{
+        .path = "load_store_private_test_root.zig",
+        .why = "focused private-cutover evidence root",
+    },
+    .{
+        .path = "lt_reg_private_test_root.zig",
+        .why = "focused private-cutover evidence root",
+    },
+    .{
+        .path = "mul_private_test_root.zig",
+        .why = "focused private-cutover evidence root",
+    },
+    .{
+        .path = "mulh_private_test_root.zig",
+        .why = "focused private-cutover evidence root",
+    },
+    .{
+        .path = "div_private_test_root.zig",
+        .why = "focused private-cutover evidence root",
+    },
 };
 
 /// Where this package's sources sit, relative to the test's working directory.

@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const fields = @import("stwo_core").fields;
+const core_utils = @import("stwo_core").utils;
 const work_pool = @import("stwo_prover_engine").work_pool;
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
@@ -68,41 +69,165 @@ pub fn generate(
     if (counter.values.len != size) return error.InvalidTraceShape;
     var columns = try allocateColumns(allocator, size);
     errdefer freeColumns(allocator, &columns);
-    const table = try infra.BitReversalTable.init(allocator, schema.logSize(counter.kind));
-    defer table.deinit(allocator);
-
     const chunk_capacity = @min(size, CHUNK_ROWS);
     const denominators = try allocator.alloc(QM31, chunk_capacity);
     defer allocator.free(denominators);
     const inverses = try allocator.alloc(QM31, chunk_capacity);
     defer allocator.free(inverses);
+    const claim = try generateInto(
+        counter,
+        relations,
+        &columns,
+        denominators,
+        inverses,
+    );
+    return .{ .columns = columns, .claim = claim };
+}
 
+/// Allocation-free singleton interaction writer. All geometry, alias, and
+/// denominator checks complete before the first destination store, so a
+/// rejected challenge or malformed workspace leaves Tree 2 untouched.
+/// Exactly two `CHUNK_ROWS` QM31 scratch spans are reused for the full table.
+pub fn generateInto(
+    counter: *const counter_mod.Counter,
+    relations: *const relations_mod.Relations,
+    columns: *[N_COLUMNS][]M31,
+    denominators: []QM31,
+    inverses: []QM31,
+) !QM31 {
+    const size = schema.size(counter.kind);
+    const scratch_len = @min(size, CHUNK_ROWS);
+    if (counter.values.len != size or
+        denominators.len < scratch_len or inverses.len < scratch_len)
+    {
+        return error.InvalidTraceShape;
+    }
+    try preflightIntoAliases(
+        counter,
+        relations,
+        columns,
+        denominators[0..scratch_len],
+        inverses[0..scratch_len],
+        size,
+    );
+
+    // A full read-only pass is intentional: batch inversion is the only
+    // data-dependent failure after structural validation. Proving every
+    // denominator non-zero here makes all following chunk writes infallible.
+    for (0..size) |row| {
+        const tuple = try schema.tupleAt(counter.kind, row);
+        const relation_entry = tableEntry(
+            counter.kind,
+            tuple,
+            counter.values[row],
+        );
+        if ((try relation_entry.denominator(relations)).isZero())
+            return error.DivisionByZero;
+    }
+
+    const log_size = schema.logSize(counter.kind);
     var accumulator = QM31.zero();
     var row_start: usize = 0;
     while (row_start < size) {
         const chunk_len = @min(CHUNK_ROWS, size - row_start);
         for (denominators[0..chunk_len], 0..) |*denominator, local_row| {
             const row = row_start + local_row;
-            const tuple = try schema.tupleAt(counter.kind, row);
-            const relation_entry = tableEntry(counter.kind, tuple, counter.values[row]);
-            denominator.* = try relation_entry.denominator(relations);
+            const tuple = schema.tupleAt(counter.kind, row) catch unreachable;
+            const relation_entry = tableEntry(
+                counter.kind,
+                tuple,
+                counter.values[row],
+            );
+            denominator.* = relation_entry.denominator(relations) catch unreachable;
         }
-        try fields.batchInverseInPlace(
+        fields.batchInverseInPlace(
             QM31,
             denominators[0..chunk_len],
             inverses[0..chunk_len],
-        );
-        for (inverses[0..chunk_len], counter.values[row_start .. row_start + chunk_len], 0..) |denominator_inverse, multiplicity, local_row| {
+        ) catch unreachable;
+        for (
+            inverses[0..chunk_len],
+            counter.values[row_start .. row_start + chunk_len],
+            0..,
+        ) |denominator_inverse, multiplicity, local_row| {
             const row = row_start + local_row;
-            accumulator = accumulator.add(QM31.fromBase(multiplicity).neg().mul(denominator_inverse));
+            accumulator = accumulator.add(
+                QM31.fromBase(multiplicity).neg().mul(denominator_inverse),
+            );
             const current = accumulator.toM31Array();
-            const dst = table.map(row);
-            for (0..N_COLUMNS) |coordinate| columns[coordinate][dst] = current[coordinate];
+            const dst = core_utils.bitReverseIndex(
+                core_utils.cosetIndexToCircleDomainIndex(row, log_size),
+                log_size,
+            );
+            for (0..N_COLUMNS) |coordinate|
+                columns[coordinate][dst] = current[coordinate];
         }
         row_start += chunk_len;
     }
+    return accumulator;
+}
 
-    return .{ .columns = columns, .claim = accumulator };
+const AddressRange = struct {
+    start: usize,
+    end: usize,
+
+    fn overlaps(self: AddressRange, other: AddressRange) bool {
+        return self.start < other.end and other.start < self.end;
+    }
+};
+
+fn byteRange(comptime T: type, values: []const T) !AddressRange {
+    const start = @intFromPtr(values.ptr);
+    const bytes = std.math.mul(usize, values.len, @sizeOf(T)) catch
+        return error.InvalidTraceShape;
+    const end = std.math.add(usize, start, bytes) catch
+        return error.InvalidTraceShape;
+    return .{ .start = start, .end = end };
+}
+
+fn objectRange(value: anytype) !AddressRange {
+    return byteRange(u8, std.mem.asBytes(value));
+}
+
+fn preflightIntoAliases(
+    counter: *const counter_mod.Counter,
+    relations: *const relations_mod.Relations,
+    columns: *const [N_COLUMNS][]M31,
+    denominators: []QM31,
+    inverses: []QM31,
+    size: usize,
+) !void {
+    const counter_header = try objectRange(counter);
+    const relation_header = try objectRange(relations);
+    const counter_values = try byteRange(M31, counter.values);
+    const denominator_range = try byteRange(QM31, denominators);
+    const inverse_range = try byteRange(QM31, inverses);
+    if (denominator_range.overlaps(inverse_range) or
+        denominator_range.overlaps(counter_header) or
+        denominator_range.overlaps(counter_values) or
+        denominator_range.overlaps(relation_header) or
+        inverse_range.overlaps(counter_header) or
+        inverse_range.overlaps(counter_values) or
+        inverse_range.overlaps(relation_header))
+    {
+        return error.AliasedInput;
+    }
+    var ranges: [N_COLUMNS]AddressRange = undefined;
+    for (columns, 0..) |column, index| {
+        if (column.len != size) return error.InvalidTraceShape;
+        ranges[index] = try byteRange(M31, column);
+        if (ranges[index].overlaps(counter_header) or
+            ranges[index].overlaps(counter_values) or
+            ranges[index].overlaps(relation_header) or
+            ranges[index].overlaps(denominator_range) or
+            ranges[index].overlaps(inverse_range))
+        {
+            return error.AliasedInput;
+        }
+        for (ranges[0..index]) |previous|
+            if (ranges[index].overlaps(previous))
+                return error.AliasedDestination;
+    }
 }
 
 /// Work-efficient two-level inclusive scan. Chunks derive and invert their
@@ -230,19 +355,47 @@ pub fn evaluate(
     claim: QM31,
     relations: *const relations_mod.Relations,
 ) !QM31 {
+    return evaluateGeneric(
+        QM31,
+        kind,
+        tuple,
+        signed_multiplicity,
+        current,
+        previous,
+        is_first,
+        claim,
+        relations,
+    );
+}
+
+pub fn evaluateGeneric(
+    comptime S: type,
+    kind: schema.Kind,
+    tuple: []const S,
+    signed_multiplicity: S,
+    current: S,
+    previous: S,
+    is_first: S,
+    claim: S,
+    relations: anytype,
+) !S {
     if (tuple.len != schema.arity(kind)) return error.InvalidTraceShape;
-    var relation_entry = entry.Entry{
+    var relation_entry = entry.Builder(S).Entry{
         .domain = schema.domain(kind),
         .numerator = signed_multiplicity.neg(),
         .arity = @intCast(tuple.len),
     };
     @memcpy(relation_entry.values[0..tuple.len], tuple);
-    return logup.pairConstraint(
+    return logup.pairConstraintGeneric(
+        S,
         current,
         previous,
         is_first,
         claim,
-        logup.RowPair.single(relation_entry.numerator, try relation_entry.denominator(relations)),
+        logup.RowPairFor(S).single(
+            relation_entry.numerator,
+            try relation_entry.denominatorWith(relations),
+        ),
     );
 }
 

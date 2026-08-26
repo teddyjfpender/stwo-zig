@@ -99,11 +99,13 @@ pub fn addProduct(context: Context) Result {
     identity_step.dependOn(&install_object.step);
 
     const tests = context.b.addTest(.{ .root_module = surfaceModule(context, module) });
+    const engine_tests = context.b.addTest(.{ .root_module = protocol.prover });
     const test_step = context.b.step(
         "test-stwo-prover",
         "Test the focused generic prover, backend contracts, and purity boundary",
     );
     test_step.dependOn(&context.b.addRunArtifact(tests).step);
+    test_step.dependOn(&context.b.addRunArtifact(engine_tests).step);
     test_step.dependOn(&closure.step);
     test_step.dependOn(&purity.step);
 

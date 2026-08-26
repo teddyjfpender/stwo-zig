@@ -22,6 +22,17 @@ pub const Config = struct {
     lifting_log_size: ?u32,
 };
 
+/// Postcard representation of one Merkle hash.
+///
+/// Blake-family hashes are fixed byte arrays and therefore occupy exactly
+/// `hash_size` bytes.  Poseidon hashes are arrays of M31 words; postcard
+/// serializes each word as a canonical varint, so their encoded size is not
+/// fixed and every word must be parsed rather than skipped.
+pub const HashEncoding = enum {
+    raw_bytes,
+    canonical_m31_words,
+};
+
 /// Shape known before proof decoding from an independently validated statement.
 pub const Shape = struct {
     config: Config,
@@ -29,7 +40,10 @@ pub const Shape = struct {
     tree_columns: [TREE_COUNT]u32,
     /// Maximum column log size after composition splitting and before FRI.
     max_column_log_size: u32,
+    /// In-memory hash width.  For `canonical_m31_words` this must be a
+    /// non-zero multiple of four and determines the number of M31 words.
     hash_size: u32,
+    hash_encoding: HashEncoding = .raw_bytes,
     max_wire_bytes: usize,
 };
 
@@ -55,7 +69,7 @@ pub fn validate(raw: []const u8, shape: Shape) Error!void {
     try expectConfig(&cursor, shape.config);
 
     try expectCount(&cursor, TREE_COUNT);
-    try cursor.skip(try multiply(TREE_COUNT, bounds.hash_size));
+    for (0..TREE_COUNT) |_| try skipHash(&cursor, bounds);
 
     try expectCount(&cursor, TREE_COUNT);
     for (shape.tree_columns, SAMPLE_WIDTH_LIMITS) |column_count, sample_width_limit| {
@@ -101,6 +115,8 @@ const Bounds = struct {
     max_fri_witnesses: usize,
     inner_layer_count: usize,
     last_layer_coefficients: usize,
+    hash_encoding: HashEncoding,
+    hash_word_count: usize,
 
     fn init(shape: Shape) Error!Bounds {
         const config = shape.config;
@@ -115,6 +131,14 @@ const Bounds = struct {
         for (shape.tree_columns) |count| {
             if (count == 0) return error.InvalidPreflightShape;
         }
+        const hash_word_count: usize = switch (shape.hash_encoding) {
+            .raw_bytes => 0,
+            .canonical_m31_words => blk: {
+                if (shape.hash_size % @sizeOf(u32) != 0)
+                    return error.InvalidPreflightShape;
+                break :blk @intCast(shape.hash_size / @sizeOf(u32));
+            },
+        };
 
         const n_queries: usize = @intCast(config.n_queries);
         const merkle_depth_u32 = std.math.add(
@@ -144,6 +168,8 @@ const Bounds = struct {
             .max_fri_witnesses = max_fri_witnesses,
             .inner_layer_count = inner_layer_count,
             .last_layer_coefficients = last_layer_coefficients,
+            .hash_encoding = shape.hash_encoding,
+            .hash_word_count = hash_word_count,
         };
     }
 };
@@ -182,14 +208,28 @@ fn readFriLayer(cursor: *Cursor, bounds: Bounds) Error!void {
         return error.ProofResourceLimitExceeded;
     for (0..witness_count) |_| try cursor.readQm31();
     try skipHashWitness(cursor, bounds);
-    try cursor.skip(bounds.hash_size);
+    try skipHash(cursor, bounds);
 }
 
 fn skipHashWitness(cursor: *Cursor, bounds: Bounds) Error!void {
     const hash_count = try cursor.readUsize();
     if (hash_count > bounds.max_hash_witnesses)
         return error.ProofResourceLimitExceeded;
-    try cursor.skip(try multiply(hash_count, bounds.hash_size));
+    switch (bounds.hash_encoding) {
+        .raw_bytes => try cursor.skip(try multiply(hash_count, bounds.hash_size)),
+        .canonical_m31_words => {
+            for (0..hash_count) |_| try skipHash(cursor, bounds);
+        },
+    }
+}
+
+fn skipHash(cursor: *Cursor, bounds: Bounds) Error!void {
+    switch (bounds.hash_encoding) {
+        .raw_bytes => try cursor.skip(bounds.hash_size),
+        .canonical_m31_words => {
+            for (0..bounds.hash_word_count) |_| try cursor.readM31();
+        },
+    }
 }
 
 fn expectCount(cursor: *Cursor, expected: anytype) Error!void {
@@ -297,13 +337,32 @@ fn appendConfig(allocator: std.mem.Allocator, bytes: *std.ArrayList(u8), shape: 
     try bytes.append(allocator, 0);
 }
 
+fn appendZeroHash(
+    allocator: std.mem.Allocator,
+    bytes: *std.ArrayList(u8),
+    shape: Shape,
+) !void {
+    switch (shape.hash_encoding) {
+        .raw_bytes => try bytes.appendNTimes(allocator, 0, shape.hash_size),
+        .canonical_m31_words => {
+            if (shape.hash_size == 0 or shape.hash_size % @sizeOf(u32) != 0)
+                return error.InvalidPreflightShape;
+            try bytes.appendNTimes(
+                allocator,
+                0,
+                shape.hash_size / @sizeOf(u32),
+            );
+        },
+    }
+}
+
 fn validWire(allocator: std.mem.Allocator, shape: Shape) ![]u8 {
     var bytes: std.ArrayList(u8) = .{};
     errdefer bytes.deinit(allocator);
     try appendConfig(allocator, &bytes, shape);
 
     try appendVarint(allocator, &bytes, TREE_COUNT);
-    try bytes.appendNTimes(allocator, 0, TREE_COUNT * shape.hash_size);
+    for (0..TREE_COUNT) |_| try appendZeroHash(allocator, &bytes, shape);
 
     try appendSamples(allocator, &bytes, shape);
 
@@ -321,7 +380,7 @@ fn validWire(allocator: std.mem.Allocator, shape: Shape) ![]u8 {
     try appendVarint(allocator, &bytes, 0); // proof of work
     try appendVarint(allocator, &bytes, 0); // first FRI witness
     try appendVarint(allocator, &bytes, 0); // first FRI Merkle witness
-    try bytes.appendNTimes(allocator, 0, shape.hash_size);
+    try appendZeroHash(allocator, &bytes, shape);
     try appendVarint(allocator, &bytes, 0); // no inner layers for max log 1
     try appendVarint(allocator, &bytes, 1);
     try appendZeroQm31(allocator, &bytes);
@@ -357,6 +416,30 @@ test "proof preflight accepts a complete bounded wire without allocation" {
     const raw = try validWire(std.testing.allocator, shape);
     defer std.testing.allocator.free(raw);
     try validate(raw, shape);
+}
+
+test "proof preflight parses canonical M31-word hashes without allocation" {
+    var shape = testShape();
+    shape.hash_encoding = .canonical_m31_words;
+    const raw = try validWire(std.testing.allocator, shape);
+    defer std.testing.allocator.free(raw);
+    try validate(raw, shape);
+
+    var noncanonical: std.ArrayList(u8) = .{};
+    defer noncanonical.deinit(std.testing.allocator);
+    try appendConfig(std.testing.allocator, &noncanonical, shape);
+    try appendVarint(std.testing.allocator, &noncanonical, TREE_COUNT);
+    try appendVarint(std.testing.allocator, &noncanonical, M31_MODULUS);
+    try std.testing.expectError(
+        error.NonCanonicalM31,
+        validate(noncanonical.items, shape),
+    );
+
+    shape.hash_size -= 1;
+    try std.testing.expectError(
+        error.InvalidPreflightShape,
+        validate(raw, shape),
+    );
 }
 
 test "proof preflight bounds sample widths without assuming exact AIR masks" {

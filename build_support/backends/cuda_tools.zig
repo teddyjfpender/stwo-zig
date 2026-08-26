@@ -4,6 +4,7 @@ const std = @import("std");
 const cuda = @import("cuda.zig");
 const cuda_aot = @import("cuda_aot.zig");
 const cuda_cumetal = @import("cuda_cumetal.zig");
+const cuda_external = @import("cuda_external.zig");
 const cuda_portability = @import("cuda_portability.zig");
 pub const Options = @import("cuda_tools_options.zig").Options;
 const construction_observer = @import("../graph/construction_observer.zig");
@@ -28,7 +29,7 @@ pub fn addProducts(
         "cuda-source-closure",
         "Verify the exact pinned CUDA/C++ source authority",
     ).dependOn(&source.step);
-    const external_authority = addExternalAuthority(b);
+    const external_authority = cuda_external.addAuthority(b);
     b.step(
         "cuda-authority-materialize",
         "Fetch and authenticate the audit-only upstream CUDA workspace",
@@ -348,7 +349,7 @@ pub fn addProducts(
 
     addCuMetalNative(b, target, optimize, stwo, options);
 
-    const adapter_tests = addExternalAdapter(
+    const adapter_tests = cuda_external.addAdapter(
         b,
         "test",
         external_authority.directory,
@@ -370,7 +371,7 @@ pub fn addProducts(
             "Build the exact static CUDA runtime and generated AOT pack",
         ).dependOn(&archive.build.step);
 
-        const adapter = addExternalAdapter(
+        const adapter = cuda_external.addAdapter(
             b,
             "build",
             external_authority.directory,
@@ -476,43 +477,4 @@ fn addCuMetalNative(
     run.setEnvironmentVariable("CUMETAL_TRACE_GPU", "1");
     run.setEnvironmentVariable("CUMETAL_MSL_MATH_MODE", "safe");
     smoke_step.dependOn(&run.step);
-}
-
-const ExternalAuthority = struct {
-    directory: std.Build.LazyPath,
-    run: *std.Build.Step.Run,
-};
-
-fn addExternalAuthority(b: *std.Build) ExternalAuthority {
-    const command = b.addSystemCommand(&.{"python3"});
-    command.addFileArg(b.path("scripts/cuda_external_authority.py"));
-    command.addArg("materialize");
-    command.addArg("--output");
-    const directory = command.addOutputDirectoryArg("cuda-host-authority");
-    command.addFileInput(b.path("src/backends/cuda/source_manifest.json"));
-    command.addFileInput(b.path(
-        "src/backends/cuda/host_source_manifest.json",
-    ));
-    return .{ .directory = directory, .run = command };
-}
-
-fn addExternalAdapter(
-    b: *std.Build,
-    subcommand: []const u8,
-    authority: std.Build.LazyPath,
-) *std.Build.Step.Run {
-    const command = b.addSystemCommand(&.{"python3"});
-    command.addFileArg(b.path("scripts/cuda_adapter_external.py"));
-    command.addFileInput(b.path("scripts/cuda_external_authority.py"));
-    command.addArg(subcommand);
-    command.addArg("--authority-root");
-    command.addDirectoryArg(authority);
-    command.addArg("--adapter-root");
-    command.addDirectoryArg(b.path("tools/stwo-cuda-adapter-rs"));
-    command.addArg("--output");
-    _ = command.addOutputDirectoryArg(b.fmt(
-        "cuda-adapter-{s}",
-        .{subcommand},
-    ));
-    return command;
 }

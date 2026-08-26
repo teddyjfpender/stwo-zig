@@ -19,18 +19,18 @@ pub const MAX_BATCHES: usize = 25;
 /// Relation order is transcript order and must stay aligned with
 /// `relation_challenges.Relations.fromDraws`.
 pub const Domain = enum(u8) {
-    registers_state,
-    memory_access,
-    program_access,
-    merkle,
-    poseidon2,
-    poseidon2_io,
-    bitwise,
-    range_check_20,
-    range_check_8_11,
-    range_check_8_8_4,
-    range_check_8_8,
-    range_check_m31,
+    registers_state = 0,
+    memory_access = 1,
+    program_access = 2,
+    merkle = 3,
+    poseidon2 = 4,
+    poseidon2_io = 5,
+    bitwise = 6,
+    range_check_20 = 7,
+    range_check_8_11 = 8,
+    range_check_8_8_4 = 9,
+    range_check_8_8 = 10,
+    range_check_m31 = 11,
 };
 
 pub const DOMAIN_COUNT: usize = @typeInfo(Domain).@"enum".fields.len;
@@ -43,9 +43,9 @@ pub const Error = error{InvalidRelationArity};
 /// it beside the exact production entry lets formal export distinguish bus
 /// consumption from emission without inferring roles from adjacent domains.
 pub const EventRole = enum(u8) {
-    request,
-    consume,
-    emit,
+    request = 0,
+    consume = 1,
+    emit = 2,
 };
 
 pub fn expectedArity(domain: Domain) u8 {
@@ -83,25 +83,29 @@ pub fn Builder(comptime S: type) type {
             /// events and their range-check-20 clock-gap request carry it.
             access_ordinal: ?u8 = null,
 
-            pub fn validate(self: @This()) Error!void {
+            pub fn validate(self: *const @This()) Error!void {
                 if (self.arity != expectedArity(self.domain)) return error.InvalidRelationArity;
             }
 
-            pub fn denominator(self: @This(), relations: *const relations_mod.Relations) Error!QM31 {
+            pub fn denominator(self: *const @This(), relations: *const relations_mod.Relations) Error!QM31 {
+                return self.denominatorWith(relations);
+            }
+
+            pub fn denominatorWith(self: *const @This(), relations: anytype) Error!S {
                 try self.validate();
                 return switch (self.domain) {
-                    .registers_state => relations.registers_state.combineSecure(self.values[0..2].*),
-                    .memory_access => relations.memory_access.combineSecure(self.values[0..7].*),
-                    .program_access => relations.program_access.combineSecure(self.values[0..5].*),
-                    .merkle => relations.merkle.combineSecure(self.values[0..4].*),
-                    .poseidon2 => relations.poseidon2.combineSecure(self.values[0..16].*),
-                    .poseidon2_io => relations.poseidon2_io.combineSecure(self.values[0..32].*),
-                    .bitwise => relations.bitwise.combineSecure(self.values[0..4].*),
-                    .range_check_20 => relations.range_check_20.combineSecure(self.values[0..1].*),
-                    .range_check_8_11 => relations.range_check_8_11.combineSecure(self.values[0..2].*),
-                    .range_check_8_8_4 => relations.range_check_8_8_4.combineSecure(self.values[0..3].*),
-                    .range_check_8_8 => relations.range_check_8_8.combineSecure(self.values[0..2].*),
-                    .range_check_m31 => relations.range_check_m31.combineSecure(self.values[0..2].*),
+                    .registers_state => relations.registers_state.combine(self.values[0..2].*),
+                    .memory_access => relations.memory_access.combine(self.values[0..7].*),
+                    .program_access => relations.program_access.combine(self.values[0..5].*),
+                    .merkle => relations.merkle.combine(self.values[0..4].*),
+                    .poseidon2 => relations.poseidon2.combine(self.values[0..16].*),
+                    .poseidon2_io => relations.poseidon2_io.combine(self.values[0..32].*),
+                    .bitwise => relations.bitwise.combine(self.values[0..4].*),
+                    .range_check_20 => relations.range_check_20.combine(self.values[0..1].*),
+                    .range_check_8_11 => relations.range_check_8_11.combine(self.values[0..2].*),
+                    .range_check_8_8_4 => relations.range_check_8_8_4.combine(self.values[0..3].*),
+                    .range_check_8_8 => relations.range_check_8_8.combine(self.values[0..2].*),
+                    .range_check_m31 => relations.range_check_m31.combine(self.values[0..2].*),
                 };
             }
         };
@@ -117,21 +121,28 @@ pub fn Builder(comptime S: type) type {
                 self.len += 1;
             }
 
-            pub fn batchCount(self: @This()) usize {
+            pub fn batchCount(self: *const @This()) usize {
                 return (self.len + self.batch_size - 1) / self.batch_size;
             }
 
-            pub fn pair(self: @This(), batch: usize, relations: *const relations_mod.Relations) Error!logup.RowPair {
-                const first = self.entries[batch * self.batch_size];
+            pub fn pair(self: *const @This(), batch: usize, relations: *const relations_mod.Relations) Error!logup.RowPair {
+                return self.pairWith(batch, relations);
+            }
+
+            pub fn pairWith(self: *const @This(), batch: usize, relations: anytype) Error!logup.RowPairFor(S) {
+                const first = &self.entries[batch * self.batch_size];
                 if (self.batch_size == 1 or batch * self.batch_size + 1 == self.len) {
-                    return logup.RowPair.single(first.numerator, try first.denominator(relations));
+                    return logup.RowPairFor(S).single(
+                        first.numerator,
+                        try first.denominatorWith(relations),
+                    );
                 }
-                const second = self.entries[batch * self.batch_size + 1];
+                const second = &self.entries[batch * self.batch_size + 1];
                 return .{
                     .n1 = first.numerator,
-                    .d1 = try first.denominator(relations),
+                    .d1 = try first.denominatorWith(relations),
                     .n2 = second.numerator,
-                    .d2 = try second.denominator(relations),
+                    .d2 = try second.denominatorWith(relations),
                 };
             }
         };

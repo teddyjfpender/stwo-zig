@@ -1,10 +1,12 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const prover = @import("stwo_prover_engine");
+const work_profile = @import("stwo_prover_api").work_profile;
 const backend_mod = @import("../commit_backend.zig");
 const engine_mod = @import("../prover_engine.zig");
 const commit_memory = @import("../runtime/commit_memory.zig");
 const ownership_testing = @import("../runtime/ownership_testing.zig");
+const precommitted_work = @import("../runtime/precommitted_work.zig");
 
 const M31 = core.fields.m31.M31;
 const Hasher = core.vcs_lifted.blake2_merkle.Blake2sPrefixedMerkleHasher;
@@ -341,6 +343,198 @@ test "metal: backed heterogeneous commit has one submit, one wait, and canonical
     try std.testing.expectEqual(
         resources_before,
         MetalBackend.runtimeLifecycleSnapshot().live_resident_resources,
+    );
+}
+
+test "metal: heterogeneous precommit authenticates exact transform and Merkle work" {
+    const runtime_was_initialized = MetalBackend.runtimeLifecycleSnapshot().initialized;
+    try MetalBackend.initializeRuntime(std.testing.allocator, .source_jit);
+    defer if (!runtime_was_initialized) MetalBackend.shutdown() catch unreachable;
+    const allocator = std.heap.page_allocator;
+    ownership_testing.setForceHeterogeneousAdmission(true);
+    defer ownership_testing.setForceHeterogeneousAdmission(false);
+
+    var input = try makeBackedColumns(allocator);
+    defer input.deinit(allocator);
+    var twiddle_source = TwiddleSource.initOwned(allocator);
+    defer twiddle_source.deinit(allocator);
+    var recorder: precommitted_work.Recorder = .{};
+
+    const result = try MetalBackend.prepareAndCommitOwnedWithWorkRecorder(
+        Hasher,
+        allocator,
+        input.columns,
+        1,
+        .always,
+        &twiddle_source,
+        input.backings,
+        .materialized,
+        &recorder,
+    );
+    const prepared = result orelse return error.HeterogeneousCommitDeclined;
+    input.moved = true;
+    defer deinitPrepared(allocator, prepared);
+
+    var receipt_builder: precommitted_work.HeterogeneousReceipt = .{};
+    try receipt_builder.addGroup(8, 2);
+    try receipt_builder.addGroup(6, 2);
+    try receipt_builder.addGroup(7, 1);
+    const expected = try receipt_builder.finish(@as(u64, 1) << 9);
+    try std.testing.expect(!recorder.incomplete);
+    try std.testing.expectEqual(
+        @as(u64, 1),
+        recorder.planned_sites[@intFromEnum(work_profile.Site.column_combined_fft)],
+    );
+    try std.testing.expectEqual(
+        @as(u64, 1),
+        recorder.completed_sites[@intFromEnum(work_profile.Site.column_combined_fft)],
+    );
+    try std.testing.expectEqual(
+        @as(u64, 1),
+        recorder.completed_sites[@intFromEnum(work_profile.Site.commitment_tree_merkle)],
+    );
+    try std.testing.expectEqual(expected.transform.fft_butterflies, recorder.counters.fft_butterflies);
+    try std.testing.expectEqual(expected.merkle_compressions, recorder.counters.merkle_compressions);
+}
+
+test "metal: uniform owned and polynomial precommits return device receipts" {
+    const runtime_was_initialized = MetalBackend.runtimeLifecycleSnapshot().initialized;
+    try MetalBackend.initializeRuntime(std.testing.allocator, .source_jit);
+    defer if (!runtime_was_initialized) MetalBackend.shutdown() catch unreachable;
+    const allocator = std.heap.page_allocator;
+    const log_size: u32 = 16;
+    const column_count: usize = 8;
+    const row_count = @as(usize, 1) << @intCast(log_size);
+    var twiddle_source = TwiddleSource.initOwned(allocator);
+    defer twiddle_source.deinit(allocator);
+
+    const owned_columns = try allocator.alloc(ColumnEvaluation, column_count);
+    var initialized_columns: usize = 0;
+    var columns_consumed = false;
+    defer if (!columns_consumed) {
+        for (owned_columns[0..initialized_columns]) |column| allocator.free(@constCast(column.values));
+        allocator.free(owned_columns);
+    };
+    for (owned_columns, 0..) |*column, column_index| {
+        const values = try allocator.alloc(M31, row_count);
+        for (values, 0..) |*value, row|
+            value.* = M31.fromCanonical(@intCast((column_index * 313 + row * 17 + 11) % 0x7fffffff));
+        column.* = .{ .log_size = log_size, .values = values };
+        initialized_columns += 1;
+    }
+    var owned_recorder: precommitted_work.Recorder = .{};
+    const owned_result = try MetalBackend.prepareAndCommitOwnedWithWorkRecorder(
+        Hasher,
+        allocator,
+        owned_columns,
+        1,
+        .always,
+        &twiddle_source,
+        null,
+        .materialized,
+        &owned_recorder,
+    );
+    const owned_prepared = owned_result orelse return error.UniformCommitDeclined;
+    columns_consumed = true;
+    defer deinitPrepared(allocator, owned_prepared);
+    const expected_owned = try precommitted_work.Receipt.fromUniformOwned(16, 17, 8, .{
+        .normalization_batch_count = 1,
+        .forward_skipped_layers = 1,
+        .merkle_compressions = (@as(u64, 1) << 17) - 1,
+    });
+    try std.testing.expect(!owned_recorder.incomplete);
+    try std.testing.expectEqual(
+        expected_owned.transform.fft_butterflies,
+        owned_recorder.counters.fft_butterflies,
+    );
+    try std.testing.expectEqual(
+        expected_owned.merkle_compressions,
+        owned_recorder.counters.merkle_compressions,
+    );
+
+    const polys = try allocator.alloc(CircleCoefficients, column_count);
+    var initialized_polys: usize = 0;
+    defer {
+        for (polys[0..initialized_polys]) |*poly| poly.deinit(allocator);
+        allocator.free(polys);
+    }
+    for (polys, 0..) |*poly, column_index| {
+        const coefficients = try allocator.alloc(M31, row_count);
+        for (coefficients, 0..) |*value, row|
+            value.* = M31.fromCanonical(@intCast((column_index * 659 + row * 19 + 23) % 0x7fffffff));
+        poly.* = try CircleCoefficients.initOwned(coefficients);
+        initialized_polys += 1;
+    }
+    var polynomial_recorder: precommitted_work.Recorder = .{};
+    const polynomial_result = try MetalBackend.prepareAndCommitPolysWithWorkRecorder(
+        Hasher,
+        allocator,
+        polys,
+        1,
+        .always,
+        &twiddle_source,
+        &polynomial_recorder,
+    );
+    const polynomial_prepared = polynomial_result orelse return error.UniformCommitDeclined;
+    defer deinitPrepared(allocator, polynomial_prepared);
+    const expected_polynomial = try precommitted_work.Receipt.fromUniformPolynomials(17, 8, .{
+        .normalization_batch_count = 0,
+        .forward_skipped_layers = 1,
+        .merkle_compressions = (@as(u64, 1) << 17) - 1,
+    });
+    try std.testing.expect(!polynomial_recorder.incomplete);
+    try std.testing.expectEqual(
+        expected_polynomial.transform.fft_butterflies,
+        polynomial_recorder.counters.fft_butterflies,
+    );
+    try std.testing.expectEqual(
+        expected_polynomial.merkle_compressions,
+        polynomial_recorder.counters.merkle_compressions,
+    );
+}
+
+test "metal: profiled heterogeneous post-dispatch failure remains incomplete" {
+    const runtime_was_initialized = MetalBackend.runtimeLifecycleSnapshot().initialized;
+    try MetalBackend.initializeRuntime(std.testing.allocator, .source_jit);
+    defer if (!runtime_was_initialized) MetalBackend.shutdown() catch unreachable;
+    const allocator = std.heap.page_allocator;
+    ownership_testing.setForceHeterogeneousAdmission(true);
+    defer ownership_testing.setForceHeterogeneousAdmission(false);
+
+    var input = try makeBackedColumns(allocator);
+    defer input.deinit(allocator);
+    var twiddle_source = TwiddleSource.initOwned(allocator);
+    defer twiddle_source.deinit(allocator);
+    var recorder: precommitted_work.Recorder = .{};
+    ownership_testing.armHeterogeneousFailure(.after_wait);
+    defer ownership_testing.clearHeterogeneousFailure();
+
+    try std.testing.expectError(
+        error.InjectedHeterogeneousCommitFailure,
+        MetalBackend.prepareAndCommitOwnedWithWorkRecorder(
+            Hasher,
+            allocator,
+            input.columns,
+            1,
+            .always,
+            &twiddle_source,
+            input.backings,
+            .materialized,
+            &recorder,
+        ),
+    );
+    try std.testing.expect(recorder.incomplete);
+    try std.testing.expectEqual(
+        @as(u64, 1),
+        recorder.planned_sites[@intFromEnum(work_profile.Site.column_combined_fft)],
+    );
+    try std.testing.expectEqual(
+        @as(u64, 0),
+        recorder.completed_sites[@intFromEnum(work_profile.Site.column_combined_fft)],
+    );
+    try std.testing.expectEqual(
+        @as(u64, 0),
+        recorder.completed_sites[@intFromEnum(work_profile.Site.commitment_tree_merkle)],
     );
 }
 

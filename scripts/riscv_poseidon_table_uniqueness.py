@@ -91,29 +91,29 @@ SOURCE_BINDINGS: dict[str, str] = {
     "src/core/utils.zig":
         "e6a4427e8cca5a83e0d2accd5c05cc08d9ac167238833fc225155dfd36f2fd18",
     "src/frontends/riscv/air/memory_commitment/poseidon2_air.zig":
-        "e2d0d5b9e67a428edc2dd279cb5a36f55ed558a7a886271b80e0559ecbeafae7",
+        "336c816f98081e133d363533cadbdc58a6db9d6be931fc45f58bc2eb5461cb71",
     "src/frontends/riscv/air/memory_commitment/poseidon2_constants.zig":
         "d02b32f2f5302d21a440fbace2112d3232603e759cd0b24691c32e81d2bd4cfd",
     "src/frontends/riscv/air/memory_commitment/hash_component.zig":
-        "207731d35d1a8398f63176a4b5179ed2a7d6b139e7049a8985f7d8c551df5c50",
+        "f5bb7502be037c442c367a26feabe975b829cc578f80621bc44f05e0541ee93a",
     "src/frontends/riscv/air/lookups/tables/schema.zig":
         "8ab73ea534acd89deb9ceb8fad83b1d9e775bf96aeb5a1e7344a0e1551bc3cef",
     "src/frontends/riscv/air/lookups/tables/interaction.zig":
-        "ef018282c8c27e8c9c03024cfd88ab0c508c7efe1311e47010d7f239733a0a03",
+        "fccaf56a4c74234b3ab0a7acc4a425cf93f5e2df5b7e7fd0d894d4ea89bcdfd9",
     "src/frontends/riscv/air/lookups/tables/component.zig":
-        "f7bc4f12a43710b5d247815eed3d26f080fb31a69faf44ea013078b9cf7b8066",
+        "bcdea5560300c0457e2fa0377cd46f7ece23203cf06891d6c63aefdd475ac41b",
     "src/frontends/riscv/air/lookups/tables/counter.zig":
-        "c371e5a5146fa1cc6efeca71210b51f2b9635b2af48850352e256f28f79c6d19",
+        "ac27a42de635d78816b37c5cc1e096432b0c6733b6c8c3c3377f64b9d02ba324",
     "src/frontends/riscv/air/lookups/entry.zig":
-        "b1cc858ee10e0a9b49b19b265e50b338b1def97a59d6ffbb49808e172b26082d",
+        "b304989c184b0cddcdb8f6e7474edb8ff33c72253ec2b153f4dc90f08c9701e4",
     "src/frontends/riscv/air/logup.zig":
-        "83aff2399844afc6fb733cf50df483bc1a62306d51d77263d37b2f438098aec1",
+        "c2264e61781e94a4080b977c2d5e045bcf1e6caad0b0290693dcf59bd338ed06",
     "src/frontends/riscv/air/relation_challenges.zig":
-        "72929411eef7fd4bf13811db52275fe31dc357187de69344cd46053e839327df",
+        "6c56083bc2467de1d2de73b74da4b20adc6422eec5ddfc8385a397719f9a36cf",
     "src/frontends/riscv/prover/preprocessed.zig":
-        "703134062751202f3bae288cded347e5bd869aac787359c05c069d5a6b7812bc",
+        "c5081225763ed08d88cf740124759297d465a45075e38e4a49251c379cd7e80b",
     "src/frontends/riscv/prover/opcode_trace.zig":
-        "f122f7c0f77e6ab4317789e1d8910b0c71b4af20bf49b7318c8f40575632e6bd",
+        "d648017174f8f122562617b0d823843900ad0b7eb8ba5db2ac3d91f20e86335b",
     "src/frontends/riscv/infra_trace/permutation.zig":
         "2e6551f2c758b18f4a620d166b908a269297e9f1a74308c2ebd769dd8a474b98",
     "scripts/air_satisfaction_lib/poseidon2.py":
@@ -252,7 +252,7 @@ def _production_semantic_anchors(root: Path) -> None:
     shell = _compact_zig((root / shell_source).read_text(encoding="utf-8"))
     for anchor in (
         "constraints[poseidon2_air.N_CONSTRAINTS]=main[0].sub(is_active);",
-        "constnarrow_mode=poseidon2_air.narrowModeConstraints(main);",
+        "constnarrow_mode=poseidon2_air.narrowModeConstraintsGeneric(S,main);",
         "poseidon2_air.N_CONSTRAINTS+N_POSEIDON_SHELL_CONSTRAINTS+poseidon2_air.N_SUMS",
     ):
         _require_anchor(shell, anchor, shell_source)
@@ -275,25 +275,25 @@ def _production_semantic_anchors(root: Path) -> None:
         ".numerator=QM31.fromBase(signed_multiplicity).neg(),",
         "returnlogup.RowPair.single(relation_entry.numerator,"
         "tryrelation_entry.denominator(relations));",
-        "returnlogup.pairConstraint(current,previous,is_first,claim,"
-        "logup.RowPair.single(relation_entry.numerator,"
-        "tryrelation_entry.denominator(relations)),);",
+        "returnlogup.pairConstraintGeneric(S,current,previous,is_first,claim,"
+        "logup.RowPairFor(S).single(relation_entry.numerator,"
+        "tryrelation_entry.denominatorWith(relations),),);",
     ):
         _require_anchor(table_interaction, anchor, table_interaction_source)
 
     entry_source = "src/frontends/riscv/air/lookups/entry.zig"
     entry = _compact_zig((root / entry_source).read_text(encoding="utf-8"))
     for anchor in (
-        ".bitwise=>relations.bitwise.combineSecure(self.values[0..4].*),",
-        ".range_check_20=>relations.range_check_20.combineSecure("
+        ".bitwise=>relations.bitwise.combine(self.values[0..4].*),",
+        ".range_check_20=>relations.range_check_20.combine("
         "self.values[0..1].*),",
-        ".range_check_8_11=>relations.range_check_8_11.combineSecure("
+        ".range_check_8_11=>relations.range_check_8_11.combine("
         "self.values[0..2].*),",
-        ".range_check_8_8_4=>relations.range_check_8_8_4.combineSecure("
+        ".range_check_8_8_4=>relations.range_check_8_8_4.combine("
         "self.values[0..3].*),",
-        ".range_check_8_8=>relations.range_check_8_8.combineSecure("
+        ".range_check_8_8=>relations.range_check_8_8.combine("
         "self.values[0..2].*),",
-        ".range_check_m31=>relations.range_check_m31.combineSecure("
+        ".range_check_m31=>relations.range_check_m31.combine("
         "self.values[0..2].*),",
     ):
         _require_anchor(entry, anchor, entry_source)
@@ -315,7 +315,7 @@ def _production_semantic_anchors(root: Path) -> None:
         (root / table_component_source).read_text(encoding="utf-8")
     )
     for anchor in (
-        "pubfnnConstraints(_:*const@This())usize{return1;}",
+        "pubfnnConstraints(_:*const@This())usize{returnN_CONSTRAINTS;}",
         "result[0]=self.is_first_col_idx;",
         "@memcpy(result[1..],self.tuple_col_indices[0..schema.arity(self.kind)]);",
         "returninteraction.evaluate(self.kind,tuple,signed_multiplicity,current,"

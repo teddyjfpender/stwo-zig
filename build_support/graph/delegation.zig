@@ -371,7 +371,14 @@ fn productCacheDir(b: *std.Build, scope: []const u8) []const u8 {
     if (b.graph.env_map.get("STWO_CI_CACHE_DIR")) |configured| {
         return if (std.fs.path.isAbsolute(configured)) configured else b.pathFromRoot(configured);
     }
-    return b.pathFromRoot(b.fmt(".zig-cache/products/{s}", .{scope}));
+    // A caller-provided `--cache-dir` is a lane boundary, not merely a cache
+    // hint.  Delegated product builds must stay below that exact root; falling
+    // back to the repository's shared `.zig-cache` makes otherwise isolated
+    // agents invalidate and contend on the same product graph.
+    return b.cache_root.join(
+        b.allocator,
+        &.{ "products", scope },
+    ) catch @panic("cannot construct delegated product cache directory");
 }
 
 test "production Metal product scopes automatically consume authenticated core AOT" {

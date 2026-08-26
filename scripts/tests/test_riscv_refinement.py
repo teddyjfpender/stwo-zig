@@ -88,12 +88,19 @@ class RefinementAirTest(unittest.TestCase):
         for relative in (
             ".github/workflows/riscv-sail-formal.yml",
             ".github/workflows/riscv-refinement.yml",
+            "scripts/riscv_air_ir_equivalence.py",
+            "scripts/riscv_air_program_layout.py",
             "scripts/riscv_opcode_coverage.py",
             "scripts/riscv_team_a.py",
             "scripts/riscv_team_b.py",
             "scripts/riscv_team_b_inventory.py",
             "scripts/riscv_team_b_refresh.py",
             "scripts/riscv_team_b_witnesses.py",
+            "scripts/riscv_refinement_lib/air_program_layout.py",
+            "scripts/tests/test_riscv_air_ir_equivalence.py",
+            "scripts/tests/test_riscv_air_program_layout.py",
+            "formal/riscv-refinement/air-program-node-layout-v1.json",
+            "formal/riscv-refinement/team-b-air-semantic-equivalence-v1.json",
         ):
             self.assertIn(relative, digests)
 

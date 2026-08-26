@@ -18,6 +18,7 @@
 
 const std = @import("std");
 const builtin = @import("builtin");
+const work_profile = @import("stwo_prover_api").work_profile;
 const column_preparation = @import("columns/preparation.zig");
 const column_storage = @import("columns/storage.zig");
 const commitment_tree = @import("commitment_tree.zig");
@@ -58,6 +59,7 @@ pub fn trySpawn(
     scheme: anytype,
     allocator: std.mem.Allocator,
     owned_columns: []ColumnEvaluation,
+    work_recorder: ?*work_profile.Recorder(true),
 ) bool {
     const P = Pending(Tree);
     const slot = allocator.create(P.Slot) catch return false;
@@ -67,9 +69,10 @@ pub fn trySpawn(
             scheme_ptr: @TypeOf(scheme),
             worker_allocator: std.mem.Allocator,
             columns: []ColumnEvaluation,
+            worker_work_recorder: ?*work_profile.Recorder(true),
             out: *P.Slot,
         ) void {
-            var prepared = column_preparation.prepareColumnsForCommitOwnedForBackend(
+            var prepared = column_preparation.prepareColumnsForCommitOwnedForBackendWithWorkRecorder(
                 B,
                 worker_allocator,
                 columns,
@@ -78,17 +81,26 @@ pub fn trySpawn(
                 &scheme_ptr.twiddle_source,
                 null,
                 null,
+                worker_work_recorder,
             ) catch |err| {
                 column_storage.freeOwnedColumnEvaluations(worker_allocator, columns);
                 out.err = err;
                 return;
             };
-            const tree = Tree.initOwnedWithBacking(
+            if (worker_work_recorder) |work|
+                work.expectProducer(.commitment_tree_merkle) catch |err| {
+                    prepared.deinit(worker_allocator);
+                    out.err = err;
+                    return;
+                };
+            // work-profile-plan:commitment-tree-merkle
+            const tree = Tree.initOwnedWithBackingAndWorkRecorder(
                 worker_allocator,
                 prepared.columns,
                 prepared.coefficients,
                 prepared.column_backing_buffers,
                 prepared.coefficient_backing_buffers,
+                worker_work_recorder,
             ) catch |err| {
                 prepared.deinit(worker_allocator);
                 out.err = err;
@@ -100,7 +112,7 @@ pub fn trySpawn(
     const thread = std.Thread.spawn(
         .{},
         Worker.run,
-        .{ scheme, allocator, owned_columns, slot },
+        .{ scheme, allocator, owned_columns, work_recorder, slot },
     ) catch {
         allocator.destroy(slot);
         return false;
@@ -124,7 +136,11 @@ pub fn resolve(
     scheme.pending_commit = null;
     if (pending.appended_unmixed) {
         allocator.destroy(pending.slot);
-        MC.mixRoot(channel, scheme.trees.items[0].root());
+        const root = scheme.trees.items[0].root();
+        MC.mixRoot(channel, root);
+        if (comptime @hasDecl(@TypeOf(scheme.*), "observePreOpeningRootMix")) {
+            scheme.observePreOpeningRootMix(0, std.mem.asBytes(&root));
+        }
         return;
     }
     pending.thread.?.join();

@@ -1,15 +1,22 @@
 //! Public statement data for RV32IM proofs.
 //!
-//! The field layout and transcript order mirror Stark-V's `PublicData` at the
-//! pinned RISC-V oracle revision. Access-clock values intentionally use this
-//! implementation's strict derived subclocks instead of Stark-V's shared
-//! instruction clock. PC and clock bind through registers-state, registers and
-//! I/O close through memory-access, and roots are checked against the committed
-//! program and RW-memory trees before entering the transcript.
+//! The field layout after the leading domain/version words mirrors Stark-V's
+//! `PublicData` at the pinned RISC-V oracle revision. Access-clock values
+//! intentionally use this implementation's strict derived subclocks instead
+//! of Stark-V's shared instruction clock. PC and clock bind through
+//! registers-state, registers and I/O close through memory-access, and roots
+//! are checked against the committed program and RW-memory trees before
+//! entering the transcript.
 
 const std = @import("std");
 const profile = @import("../isa/profile.zig");
 const access_clock = @import("../access_clock.zig");
+
+/// First-class version of the base RISC-V statement transcript. This prefix is
+/// mixed before every public-data field, closing the ambiguity in which future
+/// layouts could otherwise share a transcript prefix with today's statement.
+pub const STATEMENT_TRANSCRIPT_DOMAIN: u32 = 0x5256_5354; // "RVST"
+pub const STATEMENT_TRANSCRIPT_VERSION: u32 = 1;
 
 pub const ValidationError = error{
     InputAddressOverflow,
@@ -271,8 +278,13 @@ pub const PublicData = struct {
         }
     }
 
-    /// Mix fields in the exact order used by pinned Stark-V `PublicData`.
+    /// Mix the versioned Zig statement prefix followed by fields in the exact
+    /// order used by pinned Stark-V `PublicData`.
     pub fn mixInto(self: *const PublicData, channel: anytype) void {
+        channel.mixU32s(&.{
+            STATEMENT_TRANSCRIPT_DOMAIN,
+            STATEMENT_TRANSCRIPT_VERSION,
+        });
         channel.mixU32s(&.{ self.initial_pc, self.final_pc, self.clock });
         channel.mixU32s(&self.initial_regs);
         channel.mixU32s(&self.final_regs);
@@ -355,7 +367,7 @@ fn sequence(comptime n: usize, start: u32) [n]u32 {
     return result;
 }
 
-test "public data: transcript mix order matches pinned Stark-V" {
+test "public data: versioned transcript preserves pinned Stark-V field order" {
     const initial_regs = sequence(32, 100);
     const final_regs = sequence(32, 200);
     const reg_last_clock = sequence(32, 300);
@@ -389,14 +401,14 @@ test "public data: transcript mix order matches pinned Stark-V" {
     var channel = RecordingChannel{};
     public_data.mixInto(&channel);
 
-    const expected_call_lengths = [_]usize{ 3, 32, 32, 32, 3, 3, 5, 6, 2, 3, 3 };
+    const expected_call_lengths = [_]usize{ 2, 3, 32, 32, 32, 3, 3, 5, 6, 2, 3, 3 };
     try std.testing.expectEqualSlices(
         usize,
         &expected_call_lengths,
         channel.call_lengths[0..channel.calls_len],
     );
 
-    var expected: [124]u32 = undefined;
+    var expected: [126]u32 = undefined;
     var cursor: usize = 0;
     const append = struct {
         fn values(dst: []u32, at: *usize, src: []const u32) void {
@@ -404,6 +416,10 @@ test "public data: transcript mix order matches pinned Stark-V" {
             at.* += src.len;
         }
     }.values;
+    append(&expected, &cursor, &.{
+        STATEMENT_TRANSCRIPT_DOMAIN,
+        STATEMENT_TRANSCRIPT_VERSION,
+    });
     append(&expected, &cursor, &.{ 11, 22, 33 });
     append(&expected, &cursor, &initial_regs);
     append(&expected, &cursor, &final_regs);
@@ -419,7 +435,7 @@ test "public data: transcript mix order matches pinned Stark-V" {
     try std.testing.expectEqualSlices(u32, &expected, channel.words[0..channel.words_len]);
 }
 
-test "public data: absent roots and empty input preserve upstream mix calls" {
+test "public data: absent roots and empty input preserve versioned field calls" {
     const public_data = PublicData{
         .initial_pc = 1,
         .final_pc = 2,
@@ -446,14 +462,20 @@ test "public data: absent roots and empty input preserve upstream mix calls" {
     public_data.mixInto(&channel);
     try std.testing.expectEqualSlices(
         usize,
-        &.{ 3, 32, 32, 32, 3, 3, 5, 6, 0 },
+        &.{ 2, 3, 32, 32, 32, 3, 3, 5, 6, 0 },
         channel.call_lengths[0..channel.calls_len],
     );
     try std.testing.expectEqualSlices(
         u32,
         &.{ 0, 0, 0, 1, 2, 2, CANONICAL_SELF_LOOP_WORD, 0 },
-        channel.words[102..110],
+        channel.words[104..112],
     );
+}
+
+test "public data: statement transcript version is a nonzero domain prefix" {
+    try std.testing.expect(STATEMENT_TRANSCRIPT_VERSION != 0);
+    try std.testing.expect(STATEMENT_TRANSCRIPT_DOMAIN != 0);
+    try std.testing.expect(STATEMENT_TRANSCRIPT_DOMAIN != STATEMENT_TRANSCRIPT_VERSION);
 }
 
 test "public data: pack input words is little endian with zero padding" {

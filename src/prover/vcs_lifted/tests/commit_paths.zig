@@ -3,9 +3,65 @@
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const prover_mod = @import("stwo_prover_engine").vcs_lifted.prover;
+const work_pool = @import("stwo_prover_engine").work_pool;
 
 const M31 = m31.M31;
 const MerkleProverLifted = prover_mod.MerkleProverLifted;
+
+/// Deliberately omits the packed-byte leaf API so commitment tests exercise
+/// the generic incremental path used by the recursion Poseidon2 hasher.
+const GenericLeafHasher = struct {
+    const Base = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
+
+    inner: Base,
+    var observed_ranges: std.atomic.Value(usize) = .init(0);
+
+    pub const Hash = Base.Hash;
+    pub const NodeSeed = Base.NodeSeed;
+
+    pub fn defaultWithInitialState() @This() {
+        return .{ .inner = Base.defaultWithInitialState() };
+    }
+
+    pub fn hashChildren(children: struct { left: Hash, right: Hash }) Hash {
+        return Base.hashChildren(.{ .left = children.left, .right = children.right });
+    }
+
+    pub fn nodeSeed() NodeSeed {
+        return Base.nodeSeed();
+    }
+
+    pub fn hashChildrenWithSeed(
+        seed: NodeSeed,
+        children: struct { left: Hash, right: Hash },
+    ) Hash {
+        return Base.hashChildrenWithSeed(seed, .{
+            .left = children.left,
+            .right = children.right,
+        });
+    }
+
+    pub fn updateLeaf(self: *@This(), column_values: []const M31) void {
+        self.inner.updateLeaf(column_values);
+    }
+
+    pub fn finalize(self: *@This()) Hash {
+        return self.inner.finalize();
+    }
+
+    pub fn testingRecordLeafRange(start: usize, end: usize) void {
+        std.debug.assert(start < end);
+        _ = observed_ranges.fetchAdd(1, .monotonic);
+    }
+
+    fn resetObservedRanges() void {
+        observed_ranges.store(0, .release);
+    }
+
+    fn observedRangeCount() usize {
+        return observed_ranges.load(.acquire);
+    }
+};
 
 test "prover vcs_lifted: root is stable across large-layer worker-count overrides" {
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
@@ -248,6 +304,62 @@ test "prover vcs_lifted: streaming committer produces identical root — many co
     defer streaming_prover.deinit(alloc);
 
     try std.testing.expectEqualSlices(u8, expected_root[0..], streaming_prover.root()[0..]);
+}
+
+test "prover vcs_lifted: generic streaming prefix is identical with four scoped workers" {
+    if (@import("builtin").single_threaded) return;
+
+    const Prover = MerkleProverLifted(GenericLeafHasher);
+    const alloc = std.testing.allocator;
+    const column_count: usize = 7;
+    const row_count: usize = 1 << 12;
+
+    const storage = try alloc.alloc([]M31, column_count);
+    defer {
+        for (storage) |column| alloc.free(column);
+        alloc.free(storage);
+    }
+    const columns = try alloc.alloc([]const M31, column_count);
+    defer alloc.free(columns);
+    for (storage, columns, 0..) |*owned, *column, column_index| {
+        owned.* = try alloc.alloc(M31, row_count);
+        column.* = owned.*;
+        for (owned.*, 0..) |*value, row_index| {
+            value.* = M31.fromU64(
+                (@as(u64, @intCast(column_index + 3)) * 65_537) +
+                    (@as(u64, @intCast(row_index + 5)) * 1_009) +
+                    @as(u64, @intCast(column_index ^ row_index)),
+            );
+        }
+    }
+    const sorted = try Prover.sortColumnsByLogSizeAsc(alloc, columns);
+    defer alloc.free(sorted);
+
+    // Test binaries have no ambient pool, so this is the exact serial
+    // reference for the generic prefix kernel.
+    GenericLeafHasher.resetObservedRanges();
+    var serial_committer = Prover.StreamingCommitter.init(alloc);
+    errdefer serial_committer.deinit();
+    try serial_committer.addColumns(sorted);
+    var serial = try serial_committer.finalize();
+    defer serial.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 1), GenericLeafHasher.observedRangeCount());
+
+    var pool: work_pool.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 4 });
+    defer pool.deinit();
+    var binding = try work_pool.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+
+    GenericLeafHasher.resetObservedRanges();
+    var parallel_committer = Prover.StreamingCommitter.init(alloc);
+    errdefer parallel_committer.deinit();
+    try parallel_committer.addColumns(sorted);
+    var parallel = try parallel_committer.finalize();
+    defer parallel.deinit(alloc);
+
+    try std.testing.expectEqual(@as(usize, 4), GenericLeafHasher.observedRangeCount());
+    try std.testing.expectEqualSlices(u8, serial.root()[0..], parallel.root()[0..]);
 }
 
 test "prover vcs_lifted: sparse terminal-block tail matches materialized commitment" {

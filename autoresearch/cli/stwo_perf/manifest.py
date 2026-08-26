@@ -18,7 +18,7 @@ REPORT_SCHEMA_VERSIONS = {
     "native_proof_v7": 7,
     "native_cuda_product_v6": 6,
     "pr6_supremacy_v1": 1,
-    "riscv_proof_v2": 2,
+    "riscv_proof_v3": 3,
     # Harness envelope version for the Cairo frontend products. It is NOT the
     # product report's own schema_version (that is pinned separately in
     # runner.CAIRO_PRODUCT_REPORT_SCHEMA_VERSION); see
@@ -1129,7 +1129,7 @@ def _validate_group_mechanism_telemetry(
     if report_schema == "cairo_proof_v1":
         _validate_cairo_mechanism_telemetry(gid, telemetry)
         return
-    if report_schema != "riscv_proof_v2":
+    if report_schema != "riscv_proof_v3":
         return
     if set(telemetry) != {"fail_closed", "required_fields"}:
         raise ManifestError(
@@ -2225,11 +2225,11 @@ def _validate_group_resource_telemetry(
                 "require per-sample admission, allocation, and peak-RSS evidence"
             )
         return
-    if report_schema != "riscv_proof_v2":
+    if report_schema != "riscv_proof_v3":
         if telemetry:
             raise ManifestError(
                 f"workload group {gid}: resource_telemetry is only valid for "
-                "riscv_proof_v2"
+                "riscv_proof_v3"
             )
         return
     if telemetry != RISCV_RESOURCE_TELEMETRY:

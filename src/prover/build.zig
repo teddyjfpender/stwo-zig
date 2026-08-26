@@ -61,6 +61,11 @@ pub fn build(b: *std.Build) void {
         .root = "pcs_commitments_test_root.zig",
     });
     _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
+        .step = "test-pcs-shell-work",
+        .description = "Run only transcript and PCS shell exact-work tests",
+        .root = "pcs_shell_work_test_root.zig",
+    });
+    _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
         .step = "test-pcs-quotient-geometry",
         .description = "Run only prover quotient geometry tests",
         .root = "pcs_quotient_geometry_test_root.zig",

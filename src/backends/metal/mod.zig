@@ -12,6 +12,8 @@ pub const source_contract = @import("source_contract.zig");
 pub const riscv_polynomial_codegen = struct {
     pub const base = @import("runtime/base_polynomial_codegen.zig");
     pub const lookup = @import("runtime/lookup_polynomial_codegen.zig");
+    pub const lookup_v2 = @import("runtime/lookup_polynomial_v2_codegen.zig");
+    pub const lookup_v2_owner = @import("runtime/lookup_polynomial_v2_owner.zig");
     pub const aot = @import("runtime/riscv_polynomial_aot_codegen.zig");
     pub const source = @embedFile("shaders/core/riscv_polynomials.metal");
 };
@@ -30,4 +32,8 @@ pub const PlainMetalProverEngine = prover_engine.PlainMetalProverEngine;
 
 test "api signature: Metal backend satisfies the declared capability contract" {
     comptime @import("stwo_backend_contracts").assertBackend(MetalCommitBackend);
+}
+
+test {
+    _ = @import("shaders/manifest_test.zig");
 }

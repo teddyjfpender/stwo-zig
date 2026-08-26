@@ -1,7 +1,8 @@
-//! Exact direct semantics for the base ALU immediate family.
+//! Test-only oracle for retired BASE_ALU_IMM semantics.
 //!
-//! The committed trace carries Stark-V's exact 12-bit decomposition so byte
-//! carries cannot alias through the M31 modulus.
+//! Production consumes `typed_base_alu_imm_authority.zig`. This independent
+//! Stark-V-shaped evaluator remains rooted by tests to detect polynomial or
+//! relation-order drift.
 
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;

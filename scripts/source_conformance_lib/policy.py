@@ -37,6 +37,7 @@ PYTHON_FOUNDATION_LIBRARIES = frozenset({
     "process_resources_lib",
     "product_identity_lib",
     "riscv_air_ir_lib",
+    "typed_air_work_profile_contract_lib",
     "zig_protocol_lib",
 })
 # Controller packages with historical executable names that are not a direct
@@ -65,6 +66,18 @@ PYTHON_LIBRARY_DEPENDENCIES = {
         "air_satisfaction_lib",
     }),
     "riscv_sail_oracle_lib": frozenset({"riscv_equivalence_lib"}),
+    # Differential CSP evidence composes the canonical single-lane benchmark
+    # contract rather than reimplementing its proof and host authorities.
+    "riscv_csp_ab_benchmark_lib": frozenset({"riscv_csp_benchmark_lib"}),
+    "riscv_recursion_csp_benchmark_lib": frozenset({
+        "riscv_csp_benchmark_lib",
+    }),
+    # R-006 is the terminal paired capture controller.  It deliberately
+    # consumes the lower-level CSP lane contract and its AB host classifier.
+    "typed_air_r006_capture_lib": frozenset({
+        "riscv_csp_ab_benchmark_lib",
+        "riscv_csp_benchmark_lib",
+    }),
     "native_profile_capture_lib": frozenset({
         "metal_profile_report_lib",
         "native_proof_matrix_lib",

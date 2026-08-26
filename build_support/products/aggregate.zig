@@ -57,6 +57,7 @@ const metal_allowed_files = common_allowed_files ++ .{
     "src/backends/metal/mod.zig",
     "src/backends/metal/command_epoch.zig",
     "src/backends/metal/commit_backend.zig",
+    "src/backends/metal/commit_backend_fri.zig",
     "src/backends/metal/commit_policy.zig",
     "src/backends/metal/core_aot.zig",
     "src/backends/metal/host_primitives.zig",
@@ -73,6 +74,7 @@ const metal_allowed_files = common_allowed_files ++ .{
     "src/backends/metal/shaders/abi_contract.zig",
     "src/backends/metal/shaders/build_contract.zig",
     "src/backends/metal/shaders/manifest.zig",
+    "src/backends/metal/shaders/manifest_test.zig",
     "src/backends/metal/shared_runtime.zig",
     "src/backends/metal/source_contract.zig",
     "src/backends/metal/telemetry.zig",
@@ -87,6 +89,7 @@ const shared_named_imports = [_]policy.NamedImport{
     .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
     .{ .name = "stwo_core", .source = "src/core/mod.zig" },
     .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
+    .{ .name = "interop_postcard", .source = "src/interop/postcard.zig" },
     .{ .name = "stwo_native_examples", .source = "src/examples/mod.zig" },
     .{ .name = "stwo_proof_wire", .source = "src/interop/proof_wire/mod.zig" },
     .{ .name = "stwo_prover_api", .source = "src/prover_api/mod.zig" },
@@ -126,7 +129,15 @@ fn sourceClosure(comptime metal: bool) policy.SourceClosure {
             "src/prover/native/runner.zig",
         },
         .named_imports = if (metal) &metal_named_imports else &cpu_named_imports,
-        .generated_imports = &.{"aggregate_capabilities"},
+        // Lexical closure reaches the RISC-V package's compatibility and
+        // proposal tests. These fixtures are injected only on the fresh test
+        // module; neither aggregate executable constructs or consumes them.
+        .generated_imports = &.{
+            "aggregate_capabilities",
+            "typed_air_artifacts",
+            "typed_air_h009_artifacts",
+            "typed_air_h010_artifacts",
+        },
         .allowed_files = if (metal) &metal_allowed_files else &common_allowed_files,
         .allowed_prefixes = if (metal) &metal_allowed_prefixes else &common_allowed_prefixes,
         .required_dynamic_dependencies = if (metal) &.{

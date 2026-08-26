@@ -47,7 +47,40 @@ pub fn Entries(comptime S: type) type {
             family: trace.OpcodeFamily,
             columns: []const S,
         ) !e.List {
-            return (try program.buildLookups(family, columns)).lookup_entries;
+            var result: e.List = undefined;
+            try @This().fromMainInto(family, columns, &result);
+            return result;
+        }
+
+        /// Fill caller-owned storage without retaining a large by-value result
+        /// at every prepared-evaluator adapter boundary.
+        pub fn fromMainInto(
+            family: trace.OpcodeFamily,
+            columns: []const S,
+            result: *e.List,
+        ) anyerror!void {
+            @setEvalBranchQuota(100_000);
+            if (family == .branch_eq)
+                return program.buildBranchEqLookupsInto(columns, result);
+            if (family == .branch_lt)
+                return program.buildBranchLtLookupsInto(columns, result);
+            if (family == .lt_imm)
+                return program.buildLtImmLookupsInto(columns, result);
+            if (family == .lt_reg)
+                return program.buildLtRegLookupsInto(columns, result);
+            if (family == .shifts_imm)
+                return program.buildShiftsImmLookupsInto(columns, result);
+            if (family == .shifts_reg)
+                return program.buildShiftsRegLookupsInto(columns, result);
+            if (family == .load_store)
+                return program.buildLoadStoreLookupsInto(columns, result);
+            if (family == .mul)
+                return program.buildMulLookupsInto(columns, result);
+            if (family == .mulh)
+                return program.buildMulhLookupsInto(columns, result);
+            if (family == .div)
+                return program.buildDivLookupsInto(columns, result);
+            try program.buildLookupsInto(family, columns, result);
         }
     };
 }
@@ -55,6 +88,33 @@ pub fn Entries(comptime S: type) type {
 const shipped = Entries(QM31);
 
 pub const fromMain = shipped.fromMain;
+pub const fromMainInto = shipped.fromMainInto;
+
+test "opcode lookup caller-owned and by-value paths are exact" {
+    var columns: [trace.MAX_FAMILY_COLUMNS]QM31 = undefined;
+    for (&columns, 0..) |*column, index| {
+        column.* = QM31.fromBase(M31.fromU64(index * 1_000_003 + 17));
+    }
+    for (0..trace.N_FAMILIES) |index| {
+        const family: trace.OpcodeFamily = @enumFromInt(index);
+        const source = columns[0..trace.nColumnsForFamily(family)];
+        const expected = try fromMain(family, source);
+        var actual: List = undefined;
+        try fromMainInto(family, source, &actual);
+        try std.testing.expectEqual(expected.len, actual.len);
+        try std.testing.expectEqual(expected.batch_size, actual.batch_size);
+        for (expected.entries[0..expected.len], actual.entries[0..actual.len]) |want, got| {
+            try std.testing.expectEqual(want.domain, got.domain);
+            try std.testing.expect(want.numerator.eql(got.numerator));
+            try std.testing.expectEqual(want.arity, got.arity);
+            try std.testing.expectEqual(want.role, got.role);
+            try std.testing.expectEqual(want.access_ordinal, got.access_ordinal);
+            for (want.values[0..want.arity], got.values[0..got.arity]) |want_value, got_value| {
+                try std.testing.expect(want_value.eql(got_value));
+            }
+        }
+    }
+}
 
 test "opcode lookup matrix preserves reviewed family geometry" {
     const expected_entries = [_]usize{ 18, 16, 20, 16, 14, 11, 9, 11, 7, 12, 18, 8, 16, 16, 22, 25, 3 };

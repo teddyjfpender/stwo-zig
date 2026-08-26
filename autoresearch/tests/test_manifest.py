@@ -228,7 +228,7 @@ class ManifestTest(unittest.TestCase):
         self.assertIsNone(riscv.disabled_reason)
         self.assertEqual(riscv.binary, "zig-out/bin/stwo-zig")
         self.assertEqual(riscv.build_step, "zig build stwo-zig -Doptimize=ReleaseFast")
-        self.assertEqual(riscv.report_schema, "riscv_proof_v2")
+        self.assertEqual(riscv.report_schema, "riscv_proof_v3")
         self.assertEqual(
             riscv.resource_telemetry, manifest_mod.RISCV_RESOURCE_TELEMETRY,
         )
@@ -365,7 +365,7 @@ class RegistryValidationTest(unittest.TestCase):
             "board": "riscv",
             "build_step": "true",
             "binary": "bin/riscv",
-            "report_schema": "riscv_proof_v2",
+            "report_schema": "riscv_proof_v3",
             "resource_telemetry": manifest_mod.RISCV_RESOURCE_TELEMETRY,
             "workloads": {},
         }
@@ -416,17 +416,19 @@ class RegistryValidationTest(unittest.TestCase):
         workload["args"] += " --resource-profile extreme"
         manifest_mod._validate(raw)
 
-    def test_legacy_riscv_report_schema_is_rejected(self):
-        raw = self._base_raw()
-        raw["workload_registry"]["groups"]["native"]["report_schema"] = \
-            "riscv_proof_v1"
-        with self.assertRaisesRegex(manifest_mod.ManifestError, "unsupported report_schema"):
-            manifest_mod._validate(raw)
+    def test_legacy_riscv_report_schemas_are_rejected(self):
+        for schema in ("riscv_proof_v1", "riscv_proof_v2"):
+            raw = self._base_raw()
+            raw["workload_registry"]["groups"]["native"]["report_schema"] = schema
+            with self.subTest(schema=schema), self.assertRaisesRegex(
+                manifest_mod.ManifestError, "unsupported report_schema"
+            ):
+                manifest_mod._validate(raw)
 
-    def test_riscv_v2_requires_exact_resource_policy(self):
+    def test_riscv_v3_requires_exact_resource_policy(self):
         raw = self._base_raw()
         group = raw["workload_registry"]["groups"]["native"]
-        group["report_schema"] = "riscv_proof_v2"
+        group["report_schema"] = "riscv_proof_v3"
         group["mechanism_telemetry"] = {
             "fail_closed": True,
             "required_fields": sorted(manifest_mod.RISCV_MECHANISM_FIELDS),

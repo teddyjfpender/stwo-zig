@@ -198,11 +198,15 @@ bool stwo_zig_metal_circle_lde(
     const uint32_t *forward_twiddles,
     uint32_t scale_factor,
     uint32_t *source_binding,
+    uint32_t *normalization_batch_count,
+    uint32_t *forward_skipped_layers,
     double *gpu_milliseconds,
     char *error_message,
     size_t error_message_len
 ) {
     if (source_binding != NULL) *source_binding = 0u;
+    if (normalization_batch_count != NULL) *normalization_batch_count = 0u;
+    if (forward_skipped_layers != NULL) *forward_skipped_layers = 0u;
     if (runtime_ptr == NULL || source_columns == NULL || base_columns == NULL || extended_words == NULL ||
         inverse_twiddles == NULL || forward_twiddles == NULL || column_count == 0u ||
         base_log_size < 3u || extended_log_size <= base_log_size || extended_log_size >= 31u) return false;
@@ -530,6 +534,8 @@ bool stwo_zig_metal_circle_lde(
                            (size_t)extended_len * sizeof(uint32_t));
             }
         }
+        if (normalization_batch_count != NULL) *normalization_batch_count = 1u;
+        if (forward_skipped_layers != NULL) *forward_skipped_layers = fuse_top_two != 0u ? 1u : 0u;
         if (gpu_milliseconds != NULL) *gpu_milliseconds = (command.GPUEndTime - command.GPUStartTime) * 1000.0;
         return true;
     }

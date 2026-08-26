@@ -107,7 +107,7 @@ class RiscvMetalRegistrationTest(unittest.TestCase):
     def test_report_adapter_is_declared_absent_because_the_product_emits_none(self):
         group = self.m.group_for_board("riscv_metal")
         self.assertEqual(group.report_adapter["status"], "absent")
-        self.assertEqual(group.report_schema, "riscv_proof_v2")
+        self.assertEqual(group.report_schema, "riscv_proof_v3")
         # The claim is checkable: the installed benchmark is the shared RISC-V
         # bench runner, which has no bench subcommand and no report output.
         runner_src = (
@@ -115,7 +115,7 @@ class RiscvMetalRegistrationTest(unittest.TestCase):
         ).read_text()
         for absent in ("--report-out", "--proof-out", "--protocol"):
             self.assertNotIn(absent, runner_src)
-        self.assertNotIn("riscv_proof_v2", runner_src)
+        self.assertNotIn("riscv_proof_v3", runner_src)
 
     def test_absent_adapter_makes_the_group_structurally_unpromotable(self):
         raw = raw_manifest()
@@ -232,7 +232,7 @@ class RiscvCspStagedBasketTest(unittest.TestCase):
             self.assertIn("--protocol secure", args, rid)
             self.assertNotIn("--protocol functional", args, rid)
             self.assertIn("--backend cpu", args, rid)
-            # riscv_proof_v2 groups must carry the admission token or the
+            # riscv_proof_v3 groups must carry the admission token or the
             # runner refuses the command outright.
             self.assertIn("{admission}", args, rid)
             self.assertIn("{warmups}", args, rid)

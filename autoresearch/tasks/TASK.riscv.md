@@ -8,7 +8,7 @@ This brief is generated from `autoresearch/MANIFEST.json` and `autoresearch/ledg
 
 ## Track state
 
-- **Board**: `riscv` · **group**: `riscv` · **report schema**: `riscv_proof_v2`
+- **Board**: `riscv` · **group**: `riscv` · **report schema**: `riscv_proof_v3`
 - **Enabled**: yes · **promotion eligible**: yes
 - **Build**: `zig build stwo-zig -Doptimize=ReleaseFast` → `zig-out/bin/stwo-zig`
 - **Era**: 2 (epoch `2`), status `open`, opened 2026-07-21T16:00:00Z

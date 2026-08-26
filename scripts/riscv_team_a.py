@@ -32,12 +32,12 @@ from typing import Any
 try:
     from . import riscv_team_a_support as _support
     from . import riscv_team_b as shared
-    from .riscv_refinement_lib import air_program, render
+    from .riscv_refinement_lib import air_program, air_program_layout, render
     from .riscv_refinement_lib.model import RefinementError
 except ImportError:
     import riscv_team_a_support as _support
     import riscv_team_b as shared
-    from riscv_refinement_lib import air_program, render
+    from riscv_refinement_lib import air_program, air_program_layout, render
     from riscv_refinement_lib.model import RefinementError
 
 
@@ -97,23 +97,11 @@ def manifest_opcodes() -> list[tuple[str, str, int]]:
 
 
 def team_a_opcodes() -> list[tuple[str, str, int]]:
-    selected = [
-        entry
-        for entry in manifest_opcodes()
-        if entry[1] in TEAM_A_FAMILIES
-    ]
-    if len(selected) != TEAM_A_OPCODE_COUNT:
-        raise TeamAError(
-            f"Team A families cover {len(selected)} opcodes, "
-            f"expected {TEAM_A_OPCODE_COUNT}"
-        )
-    families = {family for _, family, _ in selected}
-    if families != set(TEAM_A_FAMILIES):
-        raise TeamAError(
-            "Team A family assignment drifted; missing "
-            + ", ".join(sorted(set(TEAM_A_FAMILIES) - families))
-        )
-    return selected
+    return _support.assigned_opcodes(
+        shared,
+        TEAM_A_FAMILIES,
+        TEAM_A_OPCODE_COUNT,
+    )
 
 
 def load_certificates() -> dict[str, Any]:
@@ -507,6 +495,20 @@ def check_air_programs(
             raise TeamAError(
                 "fresh unsigned AIR IR v2 export is invalid: "
                 f"{exc}"
+            ) from exc
+        try:
+            receipt = air_program_layout.load_receipt(
+                Path(__file__).resolve().parents[1]
+                / air_program_layout.RECEIPT_RELATIVE_PATH
+            )
+            fresh_unsigned = air_program_layout.normalize_inventory(
+                fresh_unsigned,
+                receipt,
+            )
+        except RefinementError as exc:
+            raise TeamAError(
+                "packaged production AIR program does not match the fresh "
+                "unsigned AIR IR v2 export"
             ) from exc
 
     certificates = _certificates_by_mnemonic()

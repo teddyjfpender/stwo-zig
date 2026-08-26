@@ -5,12 +5,29 @@
 //! comparison with stark-v's published ~567 kHz on M2 Max.
 //!
 //! Usage:
-//!   ./riscv_bench --fib-n 500000
+//!   ./riscv_bench --fib-n 500000 --proof-identity
 
 const std = @import("std");
 const builtin = @import("builtin");
+const proof_wire = @import("stwo_proof_wire");
 const stage_profile = @import("stwo_prover_api").stage_profile;
+const task_profile_report = @import("task_profile_report.zig");
 const pcs_core = @import("stwo_core").pcs;
+const Sha256 = std.crypto.hash.sha2.Sha256;
+const runner_support = @import("runner_support.zig");
+const isProofIdentityFlag = runner_support.isProofIdentityFlag;
+const printUsage = runner_support.printUsage;
+const writeUsage = runner_support.writeUsage;
+const ProofIdentity = runner_support.ProofIdentity;
+const writeProofIdentity = runner_support.writeProofIdentity;
+const printProfileNodes = runner_support.printProfileNodes;
+const nanosecondsToMilliseconds = runner_support.nanosecondsToMilliseconds;
+const checkedTimingSum = runner_support.checkedTimingSum;
+const hashSelfExecutable = runner_support.hashSelfExecutable;
+const runtimeWorkloadDigest = runner_support.runtimeWorkloadDigest;
+const runtimeProtocolDigest = runner_support.runtimeProtocolDigest;
+
+const PROOF_IDENTITY_FLAG = "--proof-identity";
 
 /// Which PCS profile the run measures. Flags are named after their parameters,
 /// or after the constant they resolve to, so no flag can connote authority it
@@ -43,12 +60,11 @@ const Timer = struct {
     fn begin() Timer {
         return .{ .start = std.time.nanoTimestamp() };
     }
-    fn elapsedMs(self: Timer) f64 {
-        const ns = std.time.nanoTimestamp() - self.start;
-        return @as(f64, @floatFromInt(ns)) / 1_000_000.0;
-    }
-    fn elapsedSec(self: Timer) f64 {
-        return self.elapsedMs() / 1000.0;
+    fn elapsedNs(self: Timer) !u64 {
+        const now = std.time.nanoTimestamp();
+        if (now < self.start) return error.BenchmarkClockRegression;
+        return std.math.cast(u64, now - self.start) orelse
+            error.BenchmarkClockOverflow;
     }
 };
 
@@ -142,7 +158,11 @@ fn encodeBne(rs1: u5, rs2: u5, offset: i13) u32 {
         (0b001 << 12) | (@as(u32, imm4_1) << 8) | (@as(u32, imm11) << 7) | 0x63;
 }
 
-pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
+pub fn mainWithEngine(
+    comptime frontend: type,
+    comptime Engine: type,
+    comptime runtime_backend: frontend.air.profiling.runtime.Backend,
+) !void {
     const runner = frontend.runner;
     const riscv_prover = frontend.prover_mod;
     const host_mod = frontend.host;
@@ -165,10 +185,11 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
     var hint_path: ?[]const u8 = null;
     var run_only: bool = false;
     var profile_enabled: bool = false;
+    var proof_identity_enabled: bool = false;
     var i: usize = 1;
     while (i < args.len) : (i += 1) {
         if (std.mem.eql(u8, args[i], "--help") or std.mem.eql(u8, args[i], "-h")) {
-            printUsage(riscv_prover.SECURE_PCS_CONFIG);
+            try printUsage(riscv_prover.SECURE_PCS_CONFIG);
             return;
         } else if (std.mem.eql(u8, args[i], "--fib-n") and i + 1 < args.len) {
             i += 1;
@@ -217,11 +238,21 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
             run_only = true;
         } else if (std.mem.eql(u8, args[i], "--profile")) {
             profile_enabled = true;
+        } else if (isProofIdentityFlag(args[i])) {
+            proof_identity_enabled = true;
         } else {
             std.debug.print("unknown argument: {s}\n\n", .{args[i]});
-            printUsage(riscv_prover.SECURE_PCS_CONFIG);
+            try printUsage(riscv_prover.SECURE_PCS_CONFIG);
             return error.InvalidArgument;
         }
+    }
+
+    if (run_only and proof_identity_enabled) {
+        std.debug.print(
+            "{s} requires proving; remove --run-only\n",
+            .{PROOF_IDENTITY_FLAG},
+        );
+        return error.IncompatibleBenchmarkModes;
     }
 
     switch (security_profile) {
@@ -281,6 +312,14 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
 
     // Stage 2: Execute
     const t_exec = Timer.begin();
+    // Keep resource deltas on the same interval as the benchmark's measured
+    // request: input/hint preparation, execution, proving, proof encoding, and
+    // independent verification. ELF generation/loading is setup, just as it is
+    // for the nanosecond accounting above.
+    const resource_before = if (profile_enabled)
+        try frontend.process_usage.sample()
+    else
+        null;
 
     var input_buf: ?[]const u8 = null;
     defer if (input_buf) |buf| allocator.free(buf);
@@ -318,21 +357,28 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
 
     if (input_buf != null and hosted) return error.IncompatibleInputModes;
     const step_limit = if (elf_path != null) max_steps else fib_n * 6;
-    // The default (no input, no host) path must watch the linker-declared
-    // halt flag exactly like the production ELF adapter
+    // External no-input guests must watch the linker-declared halt flag exactly
+    // like the production ELF adapter
     // (`src/integrations/riscv_cpu/proof_adapter.zig` -> `runWithInput`),
     // or a guest that halts by flag store sails past its own completion
     // into undecodable words and the run arrives unbindable
     // (issue #169: every committed basket ELF was refused this way on the
-    // Metal lane while the CPU product proved the same artifacts).
+    // Metal lane while the CPU product proved the same artifacts). The
+    // generated compatibility ELF deliberately has no release-ABI symbols and
+    // terminates on the self-loop sentinel, so it stays on the legacy runner;
+    // it cannot be mistaken for a release-ABI guest with an untouched
+    // output-length word.
     var run_result = if (input_buf) |input|
         try runner.runWithInput(allocator, elf_bytes, input, step_limit)
     else if (hosted)
         try runner.runWithHost(allocator, elf_bytes, step_limit, host_iface)
+    else if (elf_path == null)
+        try runner.runWithHost(allocator, elf_bytes, step_limit, null)
     else
         try runner.runWithInput(allocator, elf_bytes, &.{}, step_limit);
     defer run_result.deinit();
-    const exec_ms = t_exec.elapsedMs();
+    const exec_ns = try t_exec.elapsedNs();
+    const exec_ms = nanosecondsToMilliseconds(exec_ns);
 
     if (run_result.exit_code) |code| {
         std.debug.print("Exit code: {d}\n", .{code});
@@ -356,7 +402,7 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
     });
 
     if (run_only) {
-        const total_ms = t_total.elapsedMs();
+        const total_ms = nanosecondsToMilliseconds(try t_total.elapsedNs());
         std.debug.print("\nTotal (run-only): {d:.1}ms\n", .{total_ms});
         return;
     }
@@ -447,8 +493,15 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
             },
         },
     );
-    defer output.deinitAfterProofMoved(allocator);
-    const prove_ms = t_prove.elapsedMs();
+    var proof_owned = true;
+    defer if (proof_owned) {
+        var owned_output = output;
+        owned_output.deinit(allocator);
+    } else {
+        output.deinitAfterProofMoved(allocator);
+    };
+    const prove_ns = try t_prove.elapsedNs();
+    const prove_ms = nanosecondsToMilliseconds(prove_ns);
 
     std.debug.print("Prove:    {d:.1}ms\n", .{prove_ms});
     const preprocessed_cells = output.statement.nPreprocessedCells();
@@ -464,6 +517,10 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
     std.debug.print("Committed cells/cycle: {d:.2}\n", .{
         @as(f64, @floatFromInt(committed_cells)) / @as(f64, @floatFromInt(cycles)),
     });
+    var captured_stages: ?stage_profile.StageProfile = null;
+    defer if (captured_stages) |*profile| profile.deinit(allocator);
+    var captured_tasks: ?@import("stwo_prover_api").task_profile.TaskProfile = null;
+    defer if (captured_tasks) |*profile| profile.deinit(allocator);
     if (profile_enabled) {
         std.debug.print("Trace layout:\n", .{});
         for (0..output.statement.n_components) |component_index| {
@@ -480,15 +537,36 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
                 @tagName(desc.kind), desc.log_size, desc.n_columns, cells,
             });
         }
-        var profile = try recorder.snapshot(allocator);
-        defer profile.deinit(allocator);
+        captured_stages = try recorder.snapshot(allocator);
         std.debug.print("Profile:\n", .{});
-        printProfileNodes(profile.stages, 1);
+        printProfileNodes(captured_stages.?.stages, 1);
+
+        captured_tasks = try recorder.taskSnapshot(allocator);
+        try task_profile_report.write(
+            std.fs.File.stderr().deprecatedWriter(),
+            captured_tasks.?,
+        );
     }
+
+    // Canonicalization is deliberately between the measured stages. The
+    // verifier consumes the proof on both success and failure, so identity
+    // cannot be obtained afterwards without cloning the entire proof. Hash and
+    // release the encoding before verification; reporting still waits for a
+    // successful verification. Identity-enabled totals remain correctness-only
+    // because they include this work.
+    var proof_encode_ns: u64 = 0;
+    const canonical_proof_identity = if (proof_identity_enabled or profile_enabled) identity: {
+        const encode_timer = Timer.begin();
+        const canonical_proof = try proof_wire.encodeProofBytes(allocator, output.proof);
+        defer allocator.free(canonical_proof);
+        proof_encode_ns = try encode_timer.elapsedNs();
+        break :identity ProofIdentity.fromCanonicalBytes(canonical_proof);
+    } else null;
 
     // Stage 4: Verify
     const t_verify = Timer.begin();
     // Verification is backend-neutral; the engine supplies the protocol types.
+    proof_owned = false;
     try riscv_prover.verifyRiscVWithEngine(
         Engine,
         allocator,
@@ -497,11 +575,97 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
         output.proof,
         output.interaction_claim,
     );
-    const verify_ms = t_verify.elapsedMs();
+    const verify_ns = try t_verify.elapsedNs();
+    const verify_ms = nanosecondsToMilliseconds(verify_ns);
+    const resource_delta = if (resource_before) |before|
+        try frontend.process_usage.difference(
+            before,
+            try frontend.process_usage.sample(),
+        )
+    else
+        null;
 
     std.debug.print("Verify:   {d:.1}ms\n", .{verify_ms});
+    if (proof_identity_enabled) try writeProofIdentity(
+        std.fs.File.stderr().deprecatedWriter(),
+        canonical_proof_identity.?,
+    );
 
-    const total_ms = t_total.elapsedMs();
+    if (profile_enabled) {
+        const typed_profiles = frontend.air.profiling;
+        const static_report = try typed_profiles.static_registry.collect(allocator);
+        const implementation = try hashSelfExecutable();
+        const workload = runtimeWorkloadDigest(
+            elf_bytes,
+            input_buf orelse &.{},
+            hint_data_buf orelse &.{},
+            hosted,
+        );
+        const protocol = runtimeProtocolDigest(
+            config,
+            frontend.witness_layout.digest(),
+        );
+        const measured_request_ns = try checkedTimingSum(.{
+            exec_ns,
+            prove_ns,
+            proof_encode_ns,
+            verify_ns,
+        });
+        const runtime_receipt = try typed_profiles.runtime.join(
+            &static_report,
+            &captured_stages.?,
+            &captured_tasks.?,
+            .{
+                .identity = .{
+                    .implementation = implementation,
+                    .workload = workload,
+                    .protocol = protocol,
+                    .proof = canonical_proof_identity.?.sha256,
+                },
+                .backend = runtime_backend,
+                .optimize = switch (builtin.mode) {
+                    .Debug => .debug,
+                    .ReleaseSafe => .release_safe,
+                    .ReleaseFast => .release_fast,
+                    .ReleaseSmall => .release_small,
+                },
+                .configured_workers = std.math.cast(u32, cpu_count) orelse
+                    return error.BenchmarkWorkerCountOverflow,
+                .independently_verified = true,
+                .timings = .{
+                    .input_and_execution_ns = exec_ns,
+                    .prove_ns = prove_ns,
+                    .encode_ns = proof_encode_ns,
+                    .verify_ns = verify_ns,
+                    .request_ns = measured_request_ns,
+                },
+                .proof_bytes = std.math.cast(
+                    u64,
+                    canonical_proof_identity.?.canonical_bytes,
+                ) orelse return error.BenchmarkProofSizeOverflow,
+                .committed_trace_cells = committed_cells,
+                // Darwin publishes exact self-process counters for the
+                // complete execution/prove/encode/verify interval. Peak
+                // footprint is lifetime-scoped by the kernel API and is named
+                // accordingly in the sampler; unsupported hosts remain
+                // explicitly unavailable. Exact field/FFT counters are still
+                // absent, so the receipt cannot pass `evidenceComplete`.
+                .resources = if (resource_delta) |resources| .{
+                    .peak_rss_bytes = resources.lifetime_peak_physical_footprint_bytes,
+                    .instructions = resources.instructions,
+                    .cycles = resources.cycles,
+                    .energy_nanojoules = resources.energy_nj,
+                } else .{},
+                .work = .{},
+            },
+        );
+        var encoded = std.Io.Writer.Allocating.init(allocator);
+        defer encoded.deinit();
+        try typed_profiles.runtime.writeJson(&encoded.writer, &runtime_receipt);
+        std.debug.print("Typed AIR runtime profile:\n{s}", .{encoded.written()});
+    }
+
+    const total_ms = nanosecondsToMilliseconds(try t_total.elapsedNs());
     const prove_verify_ms = prove_ms + verify_ms;
     const run_prove_ms = exec_ms + prove_ms;
 
@@ -518,39 +682,93 @@ pub fn mainWithEngine(comptime frontend: type, comptime Engine: type) !void {
     std.debug.print("Throughput (run+prove): {d:.1} kHz\n", .{run_prove_khz});
 }
 
-/// The profile parameters are formatted from the constants themselves, so the
-/// help text cannot describe a profile the flags no longer select.
-fn printUsage(secure: pcs_core.PcsConfig) void {
-    std.debug.print(
-        \\Usage: riscv-bench [options]
-        \\
-        \\  --fib-n N         Prove a generated fib(N) guest (default: 10000)
-        \\  --elf PATH        Prove an RV32IM ELF instead of the generated guest
-        \\  --input PATH      Load bytes into the ELF's linker-defined input region
-        \\  --input-u32 N     Pass one little-endian u32 to the guest
-        \\  --max-steps N     Execution limit for --elf (default: 10000000)
-        \\  --hosted          Enable host-call support
-        \\  --hint PATH       Host hint input
-        \\  --pow-bits N      Proof-of-work bits (default: 0)
-        \\  --n-queries N     FRI query count (default: 3)
-        \\  --pow24-q70       Older stark-v comparison config (pow_bits={d}, n_queries={d})
-        \\  --secure          The published SECURE_PCS_CONFIG (pow_bits={d}, n_queries={d})
-        \\  --run-only        Execute the guest without proving
-        \\  --profile         Print nested prover stage timings
-        \\  -h, --help        Show this help
-        \\
-    , .{
-        POW24_Q70_PCS_CONFIG.pow_bits,
-        POW24_Q70_PCS_CONFIG.fri_config.n_queries,
-        secure.pow_bits,
-        secure.fri_config.n_queries,
-    });
+test "proof identity report is deterministic and machine-readable" {
+    var output = std.ArrayList(u8).empty;
+    defer output.deinit(std.testing.allocator);
+
+    try writeProofIdentity(
+        output.writer(std.testing.allocator),
+        ProofIdentity.fromCanonicalBytes("abc"),
+    );
+    try std.testing.expectEqualStrings(
+        "Proof identity: canonical_bytes=3 sha256=" ++
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad\n",
+        output.items,
+    );
 }
 
-fn printProfileNodes(nodes: []const stage_profile.StageNode, depth: usize) void {
-    for (nodes) |node| {
-        for (0..depth) |_| std.debug.print("  ", .{});
-        std.debug.print("{s}: {d:.3}s\n", .{ node.id, node.seconds });
-        if (node.children) |children| printProfileNodes(children, depth + 1);
-    }
+test "proof identity flag is documented by benchmark help" {
+    try std.testing.expect(isProofIdentityFlag(PROOF_IDENTITY_FLAG));
+    try std.testing.expect(!isProofIdentityFlag("--proof-digest"));
+
+    var output = std.ArrayList(u8).empty;
+    defer output.deinit(std.testing.allocator);
+    try writeUsage(output.writer(std.testing.allocator), POW24_Q70_PCS_CONFIG);
+    try std.testing.expect(std.mem.indexOf(u8, output.items, PROOF_IDENTITY_FLAG) != null);
+    try std.testing.expect(std.mem.indexOf(
+        u8,
+        output.items,
+        "canonical proof byte count and SHA-256",
+    ) != null);
+}
+
+test "generated benchmark ELF executes under its explicit legacy contract" {
+    const frontend = @import("stwo_riscv_frontend");
+    const elf = try makeFibElf(std.testing.allocator, 8);
+    defer std.testing.allocator.free(elf);
+    var result = try frontend.runner.runWithHost(
+        std.testing.allocator,
+        elf,
+        8 * 6,
+        null,
+    );
+    defer result.deinit();
+
+    try std.testing.expectEqual(
+        frontend.runner.CompletionReason.self_loop,
+        result.completion_reason,
+    );
+    try std.testing.expectEqual(@as(usize, 36), result.step_count);
+}
+
+test "runtime profile identities bind workload and protocol inputs" {
+    const first = runtimeWorkloadDigest("elf", "input", "hint", false);
+    try std.testing.expect(!std.mem.eql(
+        u8,
+        &first,
+        &runtimeWorkloadDigest("elf!", "input", "hint", false),
+    ));
+    try std.testing.expect(!std.mem.eql(
+        u8,
+        &first,
+        &runtimeWorkloadDigest("elf", "input!", "hint", false),
+    ));
+    try std.testing.expect(!std.mem.eql(
+        u8,
+        &first,
+        &runtimeWorkloadDigest("elf", "input", "hint!", false),
+    ));
+    try std.testing.expect(!std.mem.eql(
+        u8,
+        &first,
+        &runtimeWorkloadDigest("elf", "input", "hint", true),
+    ));
+
+    const layout = [_]u8{7} ** Sha256.digest_length;
+    const base = pcs_core.PcsConfig.default();
+    const protocol = runtimeProtocolDigest(base, layout);
+    var changed = base;
+    changed.fri_config.n_queries += 1;
+    try std.testing.expect(!std.mem.eql(
+        u8,
+        &protocol,
+        &runtimeProtocolDigest(changed, layout),
+    ));
+    var changed_layout = layout;
+    changed_layout[0] ^= 1;
+    try std.testing.expect(!std.mem.eql(
+        u8,
+        &protocol,
+        &runtimeProtocolDigest(base, changed_layout),
+    ));
 }

@@ -197,10 +197,24 @@ pub fn evaluate(
     claims: [N_SUMS]QM31,
     relations: *const relations_mod.Relations,
 ) [N_CONSTRAINTS]QM31 {
-    const pairs = rowPairs(main, relations);
-    var result: [N_CONSTRAINTS]QM31 = undefined;
+    return evaluateGeneric(QM31, main, is_active, is_first, sums, previous, claims, relations);
+}
+
+pub fn evaluateGeneric(
+    comptime S: type,
+    main: [N_MAIN_COLUMNS]S,
+    is_active: S,
+    is_first: S,
+    sums: [N_SUMS]S,
+    previous: [N_SUMS]S,
+    claims: [N_SUMS]S,
+    relations: anytype,
+) [N_CONSTRAINTS]S {
+    const pairs = rowPairsGeneric(S, main, relations);
+    var result: [N_CONSTRAINTS]S = undefined;
     for (0..N_SUMS) |index| {
-        result[index] = logup.pairConstraint(
+        result[index] = logup.pairConstraintGeneric(
+            S,
             sums[index],
             previous[index],
             is_first,
@@ -213,7 +227,7 @@ pub fn evaluate(
     result[N_SUMS + 1] = multiplicityConstraint(main[6]);
     result[N_SUMS + 2] = multiplicityConstraint(main[7]);
     result[N_SUMS + 3] = multiplicityConstraint(main[8]);
-    const is_padding = QM31.one().sub(is_active);
+    const is_padding = S.one().sub(is_active);
     result[N_SUMS + 4] = main[6].mul(is_padding);
     result[N_SUMS + 5] = main[7].mul(is_padding);
     result[N_SUMS + 6] = main[8].mul(is_padding);
@@ -228,15 +242,24 @@ pub fn rowPairsFromNode(row: NodeRow, relations: *const relations_mod.Relations)
 }
 
 pub fn rowPairs(main: [N_MAIN_COLUMNS]QM31, relations: *const relations_mod.Relations) [N_SUMS]logup.RowPair {
-    const list = entries(main);
+    return rowPairsGeneric(QM31, main, relations);
+}
+
+pub fn rowPairsGeneric(comptime S: type, main: [N_MAIN_COLUMNS]S, relations: anytype) [N_SUMS]logup.RowPairFor(S) {
+    const list = entriesGeneric(S, main);
     return .{
-        list.pair(0, relations) catch unreachable,
-        list.pair(1, relations) catch unreachable,
-        list.pair(2, relations) catch unreachable,
+        list.pairWith(0, relations) catch unreachable,
+        list.pairWith(1, relations) catch unreachable,
+        list.pairWith(2, relations) catch unreachable,
     };
 }
 
 pub fn entries(main: [N_MAIN_COLUMNS]QM31) lookup_entry.List {
+    return entriesGeneric(QM31, main);
+}
+
+pub fn entriesGeneric(comptime S: type, main: [N_MAIN_COLUMNS]S) lookup_entry.Builder(S).List {
+    const EntryBuilder = lookup_entry.Builder(S);
     const enabler = main[0];
     const index = main[1];
     const depth = main[2];
@@ -244,18 +267,20 @@ pub fn entries(main: [N_MAIN_COLUMNS]QM31) lookup_entry.List {
     const rhs = main[4];
     const cur = main[5];
     const root = main[9];
-    const one = QM31.one();
-    var poseidon_input = [_]QM31{QM31.zero()} ** poseidon2_air.WIDTH;
+    const one = S.one();
+    var poseidon_input = [_]S{S.zero()} ** poseidon2_air.WIDTH;
     poseidon_input[0] = lhs;
     poseidon_input[1] = rhs;
-    var poseidon_output = [_]QM31{QM31.zero()} ** poseidon2_air.WIDTH;
+    var poseidon_output = [_]S{S.zero()} ** poseidon2_air.WIDTH;
     poseidon_output[0] = cur;
-    var list = lookup_entry.List{};
-    append(&list, .merkle, main[6], .{ index, depth, lhs, root });
-    append(&list, .merkle, main[7], .{ index.add(one), depth, rhs, root });
-    append(&list, .merkle, main[8].neg(), .{ index.mul(INV2), depth.sub(one), cur, root });
-    append(&list, .poseidon2, enabler, poseidon_input);
-    append(&list, .poseidon2, enabler.neg(), poseidon_output);
+    var list = EntryBuilder.List{};
+    appendGeneric(S, &list, .merkle, main[6], .{ index, depth, lhs, root });
+    appendGeneric(S, &list, .merkle, main[7], .{ index.add(one), depth, rhs, root });
+    appendGeneric(S, &list, .merkle, main[8].neg(), .{
+        index.mul(S.fromBase(M31.fromU64(1073741824))), depth.sub(one), cur, root,
+    });
+    appendGeneric(S, &list, .poseidon2, enabler, poseidon_input);
+    appendGeneric(S, &list, .poseidon2, enabler.neg(), poseidon_output);
     return list;
 }
 
@@ -306,9 +331,10 @@ fn mainValues(row: NodeRow) [N_MAIN_COLUMNS]M31 {
     };
 }
 
-fn multiplicityConstraint(value: QM31) QM31 {
-    const one = QM31.one();
-    const two = QM31.fromBase(M31.fromU64(2));
+fn multiplicityConstraint(value: anytype) @TypeOf(value) {
+    const S = @TypeOf(value);
+    const one = S.one();
+    const two = S.fromBase(M31.fromU64(2));
     return value.mul(value.sub(one)).mul(value.sub(two));
 }
 
@@ -328,7 +354,11 @@ fn freeColumns(allocator: std.mem.Allocator, columns: []const []M31) void {
 }
 
 fn append(list: *lookup_entry.List, domain: lookup_entry.Domain, numerator: QM31, values: anytype) void {
-    var item = lookup_entry.Entry{ .domain = domain, .numerator = numerator, .arity = values.len };
+    return appendGeneric(QM31, list, domain, numerator, values);
+}
+
+fn appendGeneric(comptime S: type, list: *lookup_entry.Builder(S).List, domain: lookup_entry.Domain, numerator: S, values: anytype) void {
+    var item = lookup_entry.Builder(S).Entry{ .domain = domain, .numerator = numerator, .arity = values.len };
     inline for (values, 0..) |value, index| item.values[index] = value;
     list.append(item);
 }

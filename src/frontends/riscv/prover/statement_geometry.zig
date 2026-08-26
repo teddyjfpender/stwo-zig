@@ -18,7 +18,12 @@ const memory_trace = @import("../air/memory_commitment/trace.zig");
 const merkle_node = @import("../air/memory_commitment/merkle_node.zig");
 const poseidon2_air = @import("../air/memory_commitment/poseidon2_air.zig");
 const program_commitment = @import("../air/program/commitment.zig");
+const public_data_v2 = @import("../air/public_data_v2.zig");
 const statement_mod = @import("../air/statement.zig");
+const statement_v2 = @import("../air/statement_v2.zig");
+const guest_artifact = @import("../air/guest_precompile/artifact_identity.zig");
+const guest_proof_admission = @import("../air/guest_precompile/proof_admission.zig");
+const guest_statement = @import("../air/guest_precompile/statement.zig");
 const infra = @import("../infra_trace.zig");
 const state_chain = @import("../runner/state_chain.zig");
 const trace_mod = @import("../runner/trace.zig");
@@ -51,6 +56,17 @@ pub const Geometry = struct {
     clock_infra_index: usize,
 };
 
+pub const Poseidon2Geometry = struct {
+    base: Geometry,
+    extension: guest_statement.ExtensionStatement,
+    artifact: guest_artifact.Identity,
+};
+
+pub const V2Geometry = struct {
+    base: Geometry,
+    statement: statement_v2.RiscVStatementV2,
+};
+
 /// Fills `workspace.statement` and admits it.
 ///
 /// The commitment roots are bound between the RW-memory shards and the hash
@@ -65,17 +81,118 @@ pub fn build(
     public_data: PublicData,
     policy: statement_validation.AdmissionPolicy,
 ) !Geometry {
+    const total_steps = std.math.cast(u32, exec_trace.step_count) orelse
+        return ProverError.InvalidStatement;
+    const geometry = try populate(
+        allocator,
+        workspace,
+        exec_trace,
+        witness,
+        opt_chain,
+        public_data,
+        total_steps,
+        false,
+    );
+    try workspace.validateStatement(policy);
+    return geometry;
+}
+
+/// Builds the unchanged typed component geometry under a V2 public envelope.
+/// The V1-shaped projection exists only for internal descriptor/root plumbing;
+/// admission and transcript binding consume the authenticated V2 statement.
+pub fn buildV2(
+    allocator: std.mem.Allocator,
+    workspace: *ProofWorkspace,
+    exec_trace: *const trace_mod.Trace,
+    witness: *const CommitmentWitness,
+    opt_chain: ?*const state_chain.StateChainTracker,
+    public_data: public_data_v2.PublicDataV2,
+    policy: statement_validation.AdmissionPolicy,
+) !V2Geometry {
+    const total_steps = std.math.cast(u32, exec_trace.step_count) orelse
+        return ProverError.InvalidStatement;
+    const projection = statement_v2.canonicalCorePublicData(&public_data) catch
+        return ProverError.InvalidStatement;
+    const geometry = try populate(
+        allocator,
+        workspace,
+        exec_trace,
+        witness,
+        opt_chain,
+        projection,
+        total_steps,
+        false,
+    );
+    const statement = statement_v2.RiscVStatementV2.init(
+        workspace.statement,
+        public_data,
+    ) catch return ProverError.InvalidStatement;
+    try statement_validation.validateV2(&statement, policy);
+    return .{ .base = geometry, .statement = statement };
+}
+
+/// Builds and authenticates the profile-separated core/extension statement.
+/// The core descriptor arrays continue to describe only ordinary shards; its
+/// `total_steps` includes the frozen guest retirements and is admitted through
+/// the extension supplement rather than the closed base validator.
+pub fn buildPoseidon2(
+    allocator: std.mem.Allocator,
+    workspace: *ProofWorkspace,
+    exec_trace: *const trace_mod.Trace,
+    witness: *const CommitmentWitness,
+    opt_chain: ?*const state_chain.StateChainTracker,
+    public_data: PublicData,
+    n_guest: u32,
+    policy: statement_validation.AdmissionPolicy,
+) !Poseidon2Geometry {
+    const base_steps = std.math.cast(u32, exec_trace.step_count) orelse
+        return ProverError.InvalidStatement;
+    const total_steps = std.math.add(u32, base_steps, n_guest) catch
+        return ProverError.InvalidStatement;
+    const geometry = try populate(
+        allocator,
+        workspace,
+        exec_trace,
+        witness,
+        opt_chain,
+        public_data,
+        total_steps,
+        n_guest != 0,
+    );
+    const extension = try guest_statement.ExtensionStatement.canonical(
+        &workspace.statement,
+        n_guest,
+    );
+    const artifact = try guest_proof_admission.canonical(
+        &workspace.statement,
+        &extension,
+        policy,
+    );
+    return .{ .base = geometry, .extension = extension, .artifact = artifact };
+}
+
+fn populate(
+    allocator: std.mem.Allocator,
+    workspace: *ProofWorkspace,
+    exec_trace: *const trace_mod.Trace,
+    witness: *const CommitmentWitness,
+    opt_chain: ?*const state_chain.StateChainTracker,
+    public_data: PublicData,
+    total_steps: u32,
+    allow_empty_opcode: bool,
+) !Geometry {
     const counts = try exec_trace.groupByOpcodeFamily(allocator);
 
     const statement = &workspace.statement;
     statement.n_components = 0;
     statement.initial_pc = exec_trace.initial_pc;
     statement.final_pc = exec_trace.final_pc;
-    statement.total_steps = @intCast(exec_trace.step_count);
+    statement.total_steps = total_steps;
     statement.public_data = public_data;
 
     try describeOpcodeShards(statement, counts);
-    if (statement.n_components == 0) return ProverError.EmptyTrace;
+    if (statement.n_components == 0 and !allow_empty_opcode)
+        return ProverError.EmptyTrace;
 
     statement.n_infra = 0;
     var geometry: Geometry = .{
@@ -94,7 +211,6 @@ pub fn build(
     describeClockUpdate(statement, opt_chain, &geometry);
     try describeLookupTables(statement);
 
-    try workspace.validateStatement(policy);
     return geometry;
 }
 

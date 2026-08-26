@@ -10,6 +10,8 @@ bool stwo_zig_metal_eval_polynomials(
     const void *tasks, const uint32_t *task_columns, uint32_t task_count,
     uint32_t output_count,
     uint32_t *output,
+    uint32_t *basis_threadgroup_width,
+    uint32_t *evaluation_threadgroup_width,
     double *gpu_milliseconds,
     char *error_message, size_t error_message_len
 ) {
@@ -170,6 +172,12 @@ bool stwo_zig_metal_eval_polynomials(
             total_gpu_milliseconds += (command.GPUEndTime - command.GPUStartTime) * 1000.0;
         }
         memcpy(output, output_buffer.contents, (NSUInteger)output_count * 4u * sizeof(uint32_t));
+        if (basis_threadgroup_width != NULL) {
+            *basis_threadgroup_width = (uint32_t)basis_width;
+        }
+        if (evaluation_threadgroup_width != NULL) {
+            *evaluation_threadgroup_width = (uint32_t)width;
+        }
         if (gpu_milliseconds != NULL) {
             *gpu_milliseconds = total_gpu_milliseconds;
         }

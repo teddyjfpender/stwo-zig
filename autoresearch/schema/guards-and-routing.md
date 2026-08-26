@@ -143,7 +143,7 @@ exactly as before.
 ## 5. G3 gates every mechanism-bearing schema
 
 `paired_rounds` computes `mechanism_verified` for every report schema listed in
-`STABLE_MECHANISM_FIELDS_BY_SCHEMA` — today `riscv_proof_v2` and
+`STABLE_MECHANISM_FIELDS_BY_SCHEMA` — today `riscv_proof_v3` and
 `cairo_proof_v1`. G3 gates all of them from that same table, so a schema whose
 telemetry is checked can never have its verdict left ungated. Cairo cannot
 promote yet, which is exactly why the gate lands before eligibility flips

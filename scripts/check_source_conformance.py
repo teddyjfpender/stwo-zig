@@ -41,6 +41,7 @@ try:
         python_graph,
         report,
         rust_graph,
+        typed_air_proposals,
     )
     from scripts.source_conformance_lib.model import Finding, headroom, is_headroom
 except ModuleNotFoundError:  # Direct execution adds scripts/, not the repository root.
@@ -52,6 +53,7 @@ except ModuleNotFoundError:  # Direct execution adds scripts/, not the repositor
         python_graph,
         report,
         rust_graph,
+        typed_air_proposals,
     )
     from source_conformance_lib.model import Finding, headroom, is_headroom
 
@@ -253,6 +255,7 @@ def measure(repo: Path) -> list[Finding]:
     findings.extend(build_graph.scan(repo))
     findings.extend(rust_graph.scan(repo))
     findings.extend(owners.scan(repo))
+    findings.extend(typed_air_proposals.scan(repo))
     return sorted(set(findings))
 
 

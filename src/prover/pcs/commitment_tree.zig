@@ -5,12 +5,14 @@
 
 const std = @import("std");
 const backend_merkle = @import("stwo_backend_contracts").merkle_ops;
+const work_profile = @import("stwo_prover_api").work_profile;
 const m31 = @import("stwo_core").fields.m31;
 const prover_circle = @import("../poly/circle/mod.zig");
 const vcs_lifted_prover = @import("../vcs_lifted/prover.zig");
 const quotient_ops = @import("quotient_ops.zig");
 
 const M31 = m31.M31;
+const WorkRecorder = work_profile.Recorder(true);
 
 pub const ColumnEvaluation = quotient_ops.ColumnEvaluation;
 
@@ -40,6 +42,8 @@ pub const BackingTeardownToken = struct {
 };
 
 const HostMerkleBackend = struct {
+    pub const reuses_constant_merkle_parents = true;
+
     pub fn MerkleTree(comptime H: type) type {
         return vcs_lifted_prover.MerkleProverLifted(H);
     }
@@ -106,6 +110,24 @@ pub fn CommitmentTreeProverForBackend(comptime B: type, comptime H: type) type {
             column_backing_buffers: ?[][]M31,
             coefficient_backing_buffers: ?[][]M31,
         ) !Self {
+            return initOwnedWithBackingAndWorkRecorder(
+                allocator,
+                owned_columns,
+                owned_coefficients,
+                column_backing_buffers,
+                coefficient_backing_buffers,
+                null,
+            );
+        }
+
+        pub fn initOwnedWithBackingAndWorkRecorder(
+            allocator: std.mem.Allocator,
+            owned_columns: []ColumnEvaluation,
+            owned_coefficients: ?[]prover_circle.CircleCoefficients,
+            column_backing_buffers: ?[][]M31,
+            coefficient_backing_buffers: ?[][]M31,
+            work_recorder: ?*WorkRecorder,
+        ) !Self {
             for (owned_columns) |column| try column.validate();
             if (owned_coefficients) |coeffs| {
                 if (coeffs.len != owned_columns.len) return error.ShapeMismatch;
@@ -125,6 +147,7 @@ pub fn CommitmentTreeProverForBackend(comptime B: type, comptime H: type) type {
             else
                 try B.commitMerkle(H, allocator, column_refs);
             errdefer commitment.deinit(allocator);
+            recordMerkleWork(B, work_recorder, column_refs);
 
             return .{
                 .columns = owned_columns,
@@ -290,6 +313,136 @@ pub fn CommitmentTreeProverForBackend(comptime B: type, comptime H: type) type {
             allocator.free(columns);
         }
     };
+}
+
+fn recordMerkleWork(
+    comptime B: type,
+    recorder: ?*WorkRecorder,
+    columns: []const []const M31,
+) void {
+    const active = recorder orelse return;
+    if (comptime !@hasDecl(B, "reuses_constant_merkle_parents")) {
+        active.markIncomplete();
+        return;
+    }
+    var leaf_count: usize = 1;
+    var all_constant = columns.len != 0;
+    for (columns) |column| {
+        leaf_count = @max(leaf_count, column.len);
+        if (column.len == 0) {
+            all_constant = false;
+            continue;
+        }
+        const first = column[0];
+        for (column[1..]) |value| {
+            if (!value.eql(first)) {
+                all_constant = false;
+                break;
+            }
+        }
+    }
+    const encoded_leaf_count = std.math.cast(u64, leaf_count) orelse
+        return active.markIncomplete();
+    const count = work_profile.logicalMerkleCompressions(
+        encoded_leaf_count,
+        all_constant and B.reuses_constant_merkle_parents,
+    ) catch return active.markIncomplete();
+    active.recordCompletedDelta(.{
+        .site = .commitment_tree_merkle,
+        .producer = .commitment_tree_merkle,
+        .source_mask = work_profile.SourceMask.one(.merkle_compressions),
+        .counters = .{ .merkle_compressions = count },
+    }) catch active.markIncomplete();
+    // work-profile-complete:commitment-tree-merkle
+}
+
+test "Merkle work records every ordinary internal node at its exact site" {
+    const Backend = struct {
+        pub const reuses_constant_merkle_parents = false;
+    };
+    const values = [_]M31{
+        M31.fromCanonical(0),
+        M31.fromCanonical(1),
+        M31.fromCanonical(2),
+        M31.fromCanonical(3),
+        M31.fromCanonical(4),
+        M31.fromCanonical(5),
+        M31.fromCanonical(6),
+        M31.fromCanonical(7),
+    };
+    const columns = [_][]const M31{values[0..]};
+    var recorder: WorkRecorder = .{};
+
+    recordMerkleWork(Backend, &recorder, columns[0..]);
+
+    try std.testing.expectEqual(@as(u64, 7), recorder.counters.merkle_compressions);
+    try std.testing.expectEqual(@as(u64, 1), recorder.record_count);
+    try std.testing.expectEqual(
+        @as(u64, 1),
+        recorder.completed_sites[@intFromEnum(work_profile.Site.commitment_tree_merkle)],
+    );
+    try std.testing.expect(!recorder.legacy_site_coverage);
+    try std.testing.expect(!recorder.incomplete);
+}
+
+test "Merkle work counts one reused constant parent per layer" {
+    const Backend = struct {
+        pub const reuses_constant_merkle_parents = true;
+    };
+    const values = [_]M31{M31.fromCanonical(11)} ** 8;
+    const columns = [_][]const M31{values[0..]};
+    var recorder: WorkRecorder = .{};
+
+    recordMerkleWork(Backend, &recorder, columns[0..]);
+
+    try std.testing.expectEqual(@as(u64, 3), recorder.counters.merkle_compressions);
+    try std.testing.expectEqual(@as(u64, 1), recorder.record_count);
+    try std.testing.expect(!recorder.incomplete);
+}
+
+test "Merkle work does not claim constant reuse for an ordinary backend" {
+    const Backend = struct {
+        pub const reuses_constant_merkle_parents = false;
+    };
+    const values = [_]M31{M31.fromCanonical(11)} ** 8;
+    const columns = [_][]const M31{values[0..]};
+    var recorder: WorkRecorder = .{};
+
+    recordMerkleWork(Backend, &recorder, columns[0..]);
+
+    try std.testing.expectEqual(@as(u64, 7), recorder.counters.merkle_compressions);
+    try std.testing.expectEqual(@as(u64, 1), recorder.record_count);
+    try std.testing.expect(!recorder.incomplete);
+}
+
+test "Merkle work fails closed when backend reuse semantics are unknown" {
+    const UnsupportedBackend = struct {};
+    const values = [_]M31{M31.one()} ** 8;
+    const columns = [_][]const M31{values[0..]};
+    var recorder: WorkRecorder = .{};
+
+    recordMerkleWork(UnsupportedBackend, &recorder, columns[0..]);
+
+    try std.testing.expect(recorder.incomplete);
+    try std.testing.expectEqual(@as(u64, 0), recorder.record_count);
+    try std.testing.expectEqual(
+        work_profile.Authority.unavailable,
+        (try recorder.snapshot()).authority,
+    );
+}
+
+test "Merkle work fails closed for a non-binary leaf shape" {
+    const Backend = struct {
+        pub const reuses_constant_merkle_parents = false;
+    };
+    const values = [_]M31{ M31.zero(), M31.one(), M31.zero() };
+    const columns = [_][]const M31{values[0..]};
+    var recorder: WorkRecorder = .{};
+
+    recordMerkleWork(Backend, &recorder, columns[0..]);
+
+    try std.testing.expect(recorder.incomplete);
+    try std.testing.expectEqual(@as(u64, 0), recorder.record_count);
 }
 
 test "backing teardown token releases exactly once" {

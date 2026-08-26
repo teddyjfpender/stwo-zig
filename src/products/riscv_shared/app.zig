@@ -131,26 +131,17 @@ pub fn App(comptime Deps: type) type {
         }
 
         pub fn verifyArtifact(allocator: std.mem.Allocator, request: cli.Verify) !void {
-            var classified = try stwo.interop.riscv_artifact.classifyPath(
+            const expected = request.expected_statement_digest orelse
+                return error.MissingExpectedStatementDigest;
+            return adapter.verifyPath(
+                Engine,
                 allocator,
                 request.artifact,
+                protocol(request.protocol),
+                expected,
+                request.elf_path,
+                request.input_path,
             );
-            defer classified.deinit(allocator);
-            switch (classified) {
-                .riscv => |parsed| {
-                    const expected = request.expected_statement_digest orelse
-                        return error.MissingExpectedStatementDigest;
-                    return adapter.verifyArtifact(
-                        Engine,
-                        allocator,
-                        parsed.value,
-                        protocol(request.protocol),
-                        expected,
-                        request.elf_path,
-                    );
-                },
-                .other => return error.UnsupportedArtifactKind,
-            }
         }
 
         fn protocol(value: cli.Protocol) adapter.Protocol {

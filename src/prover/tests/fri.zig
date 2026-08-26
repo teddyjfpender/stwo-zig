@@ -131,6 +131,60 @@ test "prover fri: layer decommit extended contains proof and aux values" {
     try std.testing.expect(extended.aux.all_values[0][1].value.eql(values[1]));
 }
 
+test "prover fri: four-fold layer commits and decommits packed STWO leaves" {
+    const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
+    const LiftedProver = vcs_lifted_prover.MerkleProverLifted(Hasher);
+    const LiftedVerifier = vcs_lifted_verifier.MerkleVerifierLifted(Hasher);
+    const alloc = std.testing.allocator;
+
+    var values: [16]QM31 = undefined;
+    for (&values, 0..) |*value, i| {
+        const base: u32 = @intCast(i * qm31.SECURE_EXTENSION_DEGREE + 1);
+        value.* = QM31.fromU32Unchecked(base, base + 1, base + 2, base + 3);
+    }
+    var column = try secure_column.SecureColumnByCoords.fromSecureSlice(alloc, values[0..]);
+    defer column.deinit(alloc);
+
+    var packed_storage: [16][4]M31 = undefined;
+    for (0..4) |leaf| {
+        inline for (0..4) |offset| {
+            inline for (0..qm31.SECURE_EXTENSION_DEGREE) |coordinate| {
+                packed_storage[offset * qm31.SECURE_EXTENSION_DEGREE + coordinate][leaf] =
+                    column.columns[coordinate][leaf * 4 + offset];
+            }
+        }
+    }
+    var packed_columns: [16][]const M31 = undefined;
+    for (&packed_columns, &packed_storage) |*out, *storage| out.* = storage[0..];
+
+    var merkle = try LiftedProver.commit(alloc, packed_columns[0..]);
+    defer merkle.deinit(alloc);
+
+    const query_positions = [_]usize{ 1, 14 };
+    var extended = try decommitLayerExtended(
+        Hasher,
+        alloc,
+        merkle,
+        column,
+        query_positions[0..],
+        4,
+    );
+    defer extended.deinit(alloc);
+
+    try std.testing.expectEqual(@as(usize, 14), extended.proof.fri_witness.len);
+    try std.testing.expectEqual(@as(usize, 16), extended.aux.all_values[0].len);
+    const packed_positions = [_]usize{ 0, 1, 2, 3 };
+    const repeated_sizes = [_]u32{2} ** 16;
+    var verifier = try LiftedVerifier.init(alloc, merkle.root(), repeated_sizes[0..]);
+    defer verifier.deinit(alloc);
+    try verifier.verify(
+        alloc,
+        packed_positions[0..],
+        packed_columns[0..],
+        extended.proof.decommitment,
+    );
+}
+
 test "prover fri: layer decommit extended query out of range fails" {
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const LiftedProver = vcs_lifted_prover.MerkleProverLifted(Hasher);

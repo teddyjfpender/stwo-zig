@@ -63,6 +63,7 @@ pub fn Registry(
                     &[_]Application{}
                 else
                     &[_]Application{Application.deferred()},
+                .guest_profiles = &[_]GuestProfile{GuestProfile.canonical()},
             }, .{}, writer);
         }
 
@@ -101,6 +102,43 @@ pub fn Registry(
                 return .{
                     .status = "not_release_gated",
                     .reason = capabilities.deferred_reason,
+                };
+            }
+        };
+
+        const GuestProfile = struct {
+            profile: []const u8,
+            version: u16,
+            capability: []const u8,
+            manifest_sha256: []const u8,
+            status: []const u8,
+            caller_component: []const u8,
+            provider_component: []const u8,
+            execution_placement: []const u8,
+            runtime_requirement: []const u8,
+            pcs_policies: []const []const u8,
+            prove_command: []const u8,
+            verify_command: []const u8,
+            backend_fallback_allowed: bool,
+            verification_requires_metal_device: bool,
+
+            fn canonical() GuestProfile {
+                const profile = capabilities.guest_poseidon2;
+                return .{
+                    .profile = profile.profile,
+                    .version = profile.version,
+                    .capability = profile.capability,
+                    .manifest_sha256 = profile.manifest_sha256,
+                    .status = "parity_gated",
+                    .caller_component = profile.caller_component,
+                    .provider_component = profile.provider_component,
+                    .execution_placement = profile.execution_placement,
+                    .runtime_requirement = profile.runtime_requirement,
+                    .pcs_policies = &.{ "secure", "functional-development" },
+                    .prove_command = profile.prove_command,
+                    .verify_command = profile.verify_command,
+                    .backend_fallback_allowed = profile.backend_fallback_allowed,
+                    .verification_requires_metal_device = false,
                 };
             }
         };

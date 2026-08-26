@@ -2,6 +2,7 @@ const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const canonic = @import("stwo_core").poly.circle.canonic;
 const domain = @import("stwo_core").poly.circle.domain;
+const work_profile = @import("stwo_prover_api").work_profile;
 const twiddles = @import("twiddles.zig");
 const twiddle_tower = @import("twiddle_tower.zig");
 
@@ -9,6 +10,7 @@ const M31 = m31.M31;
 const M31TwiddleTree = twiddles.TwiddleTree([]M31);
 const ConstM31TwiddleTree = twiddles.TwiddleTree([]const M31);
 const M31TwiddleTower = twiddle_tower.M31TwiddleTower;
+const WorkRecorder = work_profile.Recorder(true);
 
 /// A per-scheme twiddle provider.
 ///
@@ -79,6 +81,18 @@ pub const TwiddleSource = struct {
         allocator: std.mem.Allocator,
         circle_log: u32,
     ) !ConstM31TwiddleTree {
+        return self.getWithWorkRecorder(allocator, circle_log, null);
+    }
+
+    /// Returns an exact-log tree and charges construction only to the request
+    /// that wins an owned-cache miss. Borrowed views and owned cache hits do
+    /// not plan or complete a cold-twiddle producer.
+    pub fn getWithWorkRecorder(
+        self: *Self,
+        allocator: std.mem.Allocator,
+        circle_log: u32,
+        work_recorder: ?*WorkRecorder,
+    ) !ConstM31TwiddleTree {
         _ = @atomicRmw(u64, &self.request_count, .Add, 1, .monotonic);
         if (circle_log < domain.MIN_CIRCLE_DOMAIN_LOG_SIZE or
             circle_log > domain.MAX_CIRCLE_DOMAIN_LOG_SIZE)
@@ -104,13 +118,35 @@ pub const TwiddleSource = struct {
                     break :blk treeConst(tree);
                 }
 
+                // Reserve map storage before publishing a plan or completing
+                // expensive construction. The final insertion is infallible
+                // while this mutex excludes another builder for the same log.
+                try owned.cache.ensureUnusedCapacity(1);
+                const cold_work = if (work_recorder != null)
+                    try work_profile.logicalM31ColdTwiddleWork(circle_log)
+                else
+                    null;
+                if (work_recorder) |active|
+                    try active.expectProducer(.cold_twiddle_construction);
+
                 var tree = try twiddles.precomputeM31(
                     allocator,
                     canonic.CanonicCoset.new(circle_log).circleDomain().half_coset,
                 );
                 errdefer twiddles.deinitM31(allocator, &tree);
 
-                const gop = try owned.cache.getOrPut(circle_log);
+                if (work_recorder) |active| {
+                    try active.recordCompletedDelta(.{
+                        .site = .cold_twiddle_construction,
+                        .producer = work_profile.boundaryForSite(.cold_twiddle_construction),
+                        .source_mask = .{ .bits = work_profile.SourceMask.one(.field_additions).bits |
+                            work_profile.SourceMask.one(.field_multiplications).bits |
+                            work_profile.SourceMask.one(.field_inversions).bits },
+                        .counters = cold_work.?,
+                    });
+                }
+
+                const gop = owned.cache.getOrPutAssumeCapacity(circle_log);
                 std.debug.assert(!gop.found_existing);
                 gop.value_ptr.* = tree;
                 self.tree_build_count +|= 1;
@@ -234,6 +270,50 @@ test "twiddle source: owned cache reuse does not rebuild" {
     try std.testing.expectEqual(cold.tree_build_count, warm.tree_build_count);
     try std.testing.expectEqual(@as(u64, 1), warm.cache_hit_count);
     try std.testing.expectEqual(cold.retained_bytes, warm.retained_bytes);
+}
+
+test "twiddle source: exact work belongs only to the cold owned-cache miss" {
+    const allocator = std.testing.allocator;
+    var source = TwiddleSource.initOwned(allocator);
+    defer source.deinit(allocator);
+    var recorder = WorkRecorder{};
+
+    _ = try source.getWithWorkRecorder(allocator, 8, &recorder);
+    const expected = try work_profile.logicalM31ColdTwiddleWork(8);
+    try std.testing.expectEqual(expected.field_additions, recorder.counters.field_additions);
+    try std.testing.expectEqual(expected.field_multiplications, recorder.counters.field_multiplications);
+    try std.testing.expectEqual(expected.field_inversions, recorder.counters.field_inversions);
+    try std.testing.expectEqual(
+        @as(u64, 1),
+        recorder.planned_sites[@intFromEnum(work_profile.Site.cold_twiddle_construction)],
+    );
+    try std.testing.expectEqual(
+        @as(u64, 1),
+        recorder.completed_sites[@intFromEnum(work_profile.Site.cold_twiddle_construction)],
+    );
+
+    _ = try source.getWithWorkRecorder(allocator, 8, &recorder);
+    try std.testing.expectEqual(expected.field_additions, recorder.counters.field_additions);
+    try std.testing.expectEqual(
+        @as(u64, 1),
+        recorder.completed_sites[@intFromEnum(work_profile.Site.cold_twiddle_construction)],
+    );
+}
+
+test "twiddle source: borrowed views never charge a later request" {
+    const allocator = std.testing.allocator;
+    var tower = try M31TwiddleTower.init(allocator, 8, 1 << 20);
+    defer tower.deinit(allocator);
+    var source = TwiddleSource.initBorrowed(&tower);
+    defer source.deinit(allocator);
+    var recorder = WorkRecorder{};
+
+    _ = try source.getWithWorkRecorder(allocator, 8, &recorder);
+    try std.testing.expectEqual(@as(u64, 0), recorder.record_count);
+    try std.testing.expectEqual(
+        @as(u64, 0),
+        recorder.planned_sites[@intFromEnum(work_profile.Site.cold_twiddle_construction)],
+    );
 }
 
 test "twiddle source: returned owned slices survive source movement and map growth" {

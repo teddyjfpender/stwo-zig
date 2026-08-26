@@ -64,7 +64,7 @@ def make_raw(riscv_enabled: bool, native_binary: str = "bin/fakebench") -> dict:
         "board": "riscv",
         "build_step": "true",
         "binary": "bin/missing-riscv-bench",
-        "report_schema": "riscv_proof_v2",
+        "report_schema": "riscv_proof_v3",
         "correctness_oracle": {
             "authority": "sail-riscv",
             "repository": "https://github.com/riscv/sail-riscv",
@@ -260,11 +260,12 @@ class RunnerGroupTest(unittest.TestCase):
             encoded = json.dumps(artifact, separators=(",", ":")).encode()
             proof_path.write_bytes(encoded)
             report = {
-                "schema": "riscv_proof_v2",
+                "schema": "riscv_proof_v3",
                 "release_status": status,
                 "mode": "bench",
                 "experimental": experimental,
                 "profiled": False,
+                "recursion_enabled": False,
                 "warmups": 0,
                 "samples": 1,
                 "verified_samples": 1,
@@ -581,6 +582,40 @@ class RunnerGroupTest(unittest.TestCase):
                 self.root, manifest, workload, 0, 1, self.out_dir, "a1",
             )
 
+    def test_riscv_bench_rejects_missing_or_enabled_recursion_attestation(self):
+        self._set_riscv_phase(promoted=True)
+        manifest = self._riscv_manifest()
+        workload = manifest.workloads("wide", board="riscv")[0]
+        mutations = {
+            "missing": lambda report: report.pop("recursion_enabled"),
+            "enabled": lambda report: report.update(recursion_enabled=True),
+        }
+        for name, mutate in mutations.items():
+            _commands, fake_run = self._riscv_run(
+                "release_gated", False, mutate_report=mutate,
+            )
+            with self.subTest(name=name), \
+                    mock.patch.object(runner, "_run", side_effect=fake_run), \
+                    self.assertRaisesRegex(runner.RunError, "recursion_enabled"):
+                runner.bench_once(
+                    self.root, manifest, workload, 0, 1, self.out_dir, name,
+                )
+
+    def test_riscv_bench_rejects_historical_v2_envelope_without_relabelling(self):
+        self._set_riscv_phase(promoted=True)
+        manifest = self._riscv_manifest()
+        workload = manifest.workloads("wide", board="riscv")[0]
+        _commands, fake_run = self._riscv_run(
+            "release_gated",
+            False,
+            mutate_report=lambda report: report.update(schema="riscv_proof_v2"),
+        )
+        with mock.patch.object(runner, "_run", side_effect=fake_run), \
+                self.assertRaisesRegex(runner.RunError, "expected.*riscv_proof_v3"):
+            runner.bench_once(
+                self.root, manifest, workload, 0, 1, self.out_dir, "historical-v2",
+            )
+
     def test_riscv_bench_uses_promoted_admission_without_experimental(self):
         self._set_riscv_phase(promoted=True)
         manifest = self._riscv_manifest()
@@ -592,7 +627,21 @@ class RunnerGroupTest(unittest.TestCase):
             )
         self.assertNotIn("--experimental", shlex.split(commands[0]))
 
-    def test_riscv_runner_artifact_contract_matches_source_schema(self):
+    def test_riscv_runner_contracts_match_product_source_schemas(self):
+        benchmark_report = (
+            REPO_ROOT
+            / "src/integrations/riscv_cpu/proof_adapter/benchmark_report.zig"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            'pub const NATIVE_BENCHMARK_SCHEMA = "riscv_proof_v3";',
+            benchmark_report,
+        )
+        self.assertIn("recursion_enabled: bool,", benchmark_report)
+        self.assertEqual(3, manifest_mod.REPORT_SCHEMA_VERSIONS["riscv_proof_v3"])
+        self.assertTrue(
+            (REPO_ROOT / "autoresearch/schema/riscv-proof-v3.md").is_file()
+        )
+
         schema = (
             REPO_ROOT / "src/interop/riscv_artifact/schema.zig"
         ).read_text(encoding="utf-8")

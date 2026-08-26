@@ -10,7 +10,8 @@ const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 
 pub const RELATION_COUNT: usize = 12;
-const CHALLENGES_PER_RELATION: usize = 2;
+pub const CHALLENGES_PER_RELATION: usize = 2;
+pub const DRAW_COUNT: usize = RELATION_COUNT * CHALLENGES_PER_RELATION;
 
 pub fn RelationElements(comptime arity: usize) type {
     return struct {
@@ -46,6 +47,13 @@ pub fn RelationElements(comptime arity: usize) type {
         }
 
         pub fn combineSecure(self: Self, values: [arity]QM31) QM31 {
+            return self.combine(values);
+        }
+
+        /// Common relation interface used by generic AIR recorders. Native
+        /// challenges remain concrete QM31 values; recursive recorders provide
+        /// their own relation type with the same method surface.
+        pub fn combine(self: Self, values: [arity]QM31) QM31 {
             var result = QM31.zero();
             for (values, self.alpha_powers) |value, power| {
                 result = result.add(power.mul(value));
@@ -76,10 +84,38 @@ pub const Relations = struct {
     pub fn draw(allocator: std.mem.Allocator, channel: anytype) !Relations {
         const values = try channel.drawSecureFelts(
             allocator,
-            RELATION_COUNT * CHALLENGES_PER_RELATION,
+            DRAW_COUNT,
         );
         defer allocator.free(values);
-        std.debug.assert(values.len == RELATION_COUNT * CHALLENGES_PER_RELATION);
+        std.debug.assert(values.len == DRAW_COUNT);
+        return fromDraws(values);
+    }
+
+    /// Copies the exact transcript draw sequence `(z, alpha)` for all relation
+    /// buses into caller-owned storage. This is the recursion leaf sidecar's
+    /// single authority for challenge order; it deliberately does not expose
+    /// derived alpha powers.
+    pub fn writeDraws(self: Relations, destination: []QM31) error{OutputLengthMismatch}!void {
+        if (destination.len != DRAW_COUNT) return error.OutputLengthMismatch;
+        writePair(destination, 0, self.registers_state);
+        writePair(destination, 1, self.memory_access);
+        writePair(destination, 2, self.program_access);
+        writePair(destination, 3, self.merkle);
+        writePair(destination, 4, self.poseidon2);
+        writePair(destination, 5, self.poseidon2_io);
+        writePair(destination, 6, self.bitwise);
+        writePair(destination, 7, self.range_check_20);
+        writePair(destination, 8, self.range_check_8_11);
+        writePair(destination, 9, self.range_check_8_8_4);
+        writePair(destination, 10, self.range_check_8_8);
+        writePair(destination, 11, self.range_check_m31);
+    }
+
+    /// Reconstructs the canonical relation suite from the exact verifier-owned
+    /// draw sequence captured at the native-to-recursive boundary. The fixed
+    /// array type makes truncation, extension, and schema-order ambiguity
+    /// unrepresentable at this seam.
+    pub fn fromDrawSequence(values: *const [DRAW_COUNT]QM31) Relations {
         return fromDraws(values);
     }
 
@@ -117,6 +153,11 @@ pub const Relations = struct {
         };
     }
 };
+
+fn writePair(destination: []QM31, index: usize, relation: anytype) void {
+    destination[2 * index] = relation.z;
+    destination[2 * index + 1] = relation.alpha;
+}
 
 fn pair(comptime arity: usize, values: []const QM31, index: usize) RelationElements(arity) {
     return RelationElements(arity).init(values[2 * index], values[2 * index + 1]);
@@ -157,6 +198,23 @@ test "relation challenges: bulk draw matches twelve oracle pair draws" {
     try std.testing.expect(actual.merkle.z.eql(expected.merkle.z));
     try std.testing.expect(actual.range_check_m31.alpha.eql(expected.range_check_m31.alpha));
     try std.testing.expect(actual_channel.drawSecureFelt().eql(oracle_channel.drawSecureFelt()));
+}
+
+test "relation challenges: writeDraws preserves schema order" {
+    var values: [DRAW_COUNT]QM31 = undefined;
+    for (&values, 0..) |*value, index| {
+        value.* = QM31.fromU32Unchecked(@intCast(index + 1), 0, 0, 0);
+    }
+    const relations = Relations.fromDrawSequence(&values);
+    var copied: [DRAW_COUNT]QM31 = undefined;
+    try relations.writeDraws(&copied);
+    for (values, copied) |expected, actual| {
+        try std.testing.expect(actual.eql(expected));
+    }
+    try std.testing.expectError(
+        error.OutputLengthMismatch,
+        relations.writeDraws(copied[0 .. copied.len - 1]),
+    );
 }
 
 test "relation challenges: default-channel limbs match pinned Stark-V" {

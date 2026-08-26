@@ -156,14 +156,29 @@ pub fn secureFieldPoint(index: u128) CirclePointQM31 {
     return SECURE_FIELD_CIRCLE_GEN.mul(index);
 }
 
-pub fn randomSecureFieldPoint(channel: anytype) CirclePointQM31 {
-    const t = channel.drawSecureFelt();
+/// Maps the transcript's secure-field seed to the circle point used for OODS.
+/// Keeping this transformation separate from the channel draw lets a
+/// successful verifier capture the exact seed without replaying or forking the
+/// transcript.
+pub fn secureFieldPointFromRandomSeed(t: QM31) CirclePointQM31 {
+    return secureFieldPointFromRandomSeedChecked(t) catch unreachable;
+}
+
+/// Checked form for trust boundaries that may receive adversarially mutated
+/// transcript captures. The rational map is undefined at the two square roots
+/// of -1; callers admitting untrusted values must reject those seeds rather
+/// than inherit the transcript fast path's unreachable assertion.
+pub fn secureFieldPointFromRandomSeedChecked(t: QM31) QM31.Error!CirclePointQM31 {
     const t_square = t.square();
-    const one_plus_t_square_inv = t_square.add(QM31.one()).inv() catch unreachable;
+    const one_plus_t_square_inv = try t_square.add(QM31.one()).inv();
 
     const x = QM31.one().sub(t_square).mul(one_plus_t_square_inv);
     const y = t.add(t).mul(one_plus_t_square_inv);
     return .{ .x = x, .y = y };
+}
+
+pub fn randomSecureFieldPoint(channel: anytype) CirclePointQM31 {
+    return secureFieldPointFromRandomSeed(channel.drawSecureFelt());
 }
 
 /// Backwards-compatible alias for the M31 generator.
@@ -499,6 +514,14 @@ test "circle: random secure point is deterministic and on-curve" {
     const p1 = randomSecureFieldPoint(&channel1);
     try std.testing.expect(p0.eql(p1));
     try std.testing.expect(p0.isOnCircle());
+}
+
+test "circle: checked secure-point map rejects a zero denominator" {
+    const square_root_of_minus_one = QM31.fromU32Unchecked(0, 1, 0, 0);
+    try std.testing.expectError(
+        error.DivisionByZero,
+        secureFieldPointFromRandomSeedChecked(square_root_of_minus_one),
+    );
 }
 
 test "circle: coset cached half-step invariants" {

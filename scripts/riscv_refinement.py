@@ -609,6 +609,8 @@ def verify(args: argparse.Namespace, paths: Paths) -> Verification:
             "-m",
             "unittest",
             "scripts.tests.test_riscv_refinement",
+            "scripts.tests.test_riscv_air_program_layout",
+            "scripts.tests.test_riscv_air_ir_equivalence",
             "scripts.tests.test_riscv_team_b",
             "scripts.tests.test_riscv_team_b_witnesses",
             "scripts.tests.test_riscv_team_a",

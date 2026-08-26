@@ -96,14 +96,30 @@ pub const FriFoldCommitResult = struct {
     tree: Tree,
 };
 
+pub const FriCircleFoldResult = struct {
+    gpu_ms: f64,
+    inverse_generated: bool,
+};
+
 pub const FriLineCascadeResult = struct {
     stats: CommandEpochStats,
     trees: []Tree,
+    /// Bit 0: circle inverse grid generated; bit 1: line grid generated.
+    inverse_generation_mask: u32,
 };
 
 pub const LdeCommitResult = struct {
     gpu_ms: f64,
     tree: Tree,
+    work: LdeCommitWorkReceipt,
+};
+
+/// Counts written by the combined device epoch only after its command buffer
+/// and complete Merkle parent chain succeed.
+pub const LdeCommitWorkReceipt = struct {
+    normalization_batch_count: u32,
+    forward_skipped_layers: u32,
+    merkle_compressions: u64,
 };
 
 pub const TraceGenerationStats = struct {
@@ -196,10 +212,13 @@ pub const Runtime = struct {
     pub const prepareRelation = composition_ops.prepareRelation;
     pub const relationPrepared = composition_ops.relationPrepared;
     pub const foldFriCircle = opening_ops.foldFriCircle;
+    pub const foldFriCircleWithReceipt = opening_ops.foldFriCircleWithReceipt;
     pub const foldFriLine = opening_ops.foldFriLine;
     pub const foldFriLineAndCommit = opening_ops.foldFriLineAndCommit;
     pub const foldFriCircleLineCascade = fri_cascade_ops.foldFriCircleLineCascade;
+    pub const foldFriCircleLineCascadeWithReceipt = fri_cascade_ops.foldFriCircleLineCascadeWithReceipt;
     pub const foldFriLineCascade = fri_cascade_ops.foldFriLineCascade;
+    pub const foldFriLineCascadeWithReceipt = fri_cascade_ops.foldFriLineCascadeWithReceipt;
     pub const prepareFriFold = opening_ops.prepareFriFold;
     pub const friFoldPrepared = opening_ops.friFoldPrepared;
     pub const prepareQuotientCombine = opening_ops.prepareQuotientCombine;
@@ -243,10 +262,15 @@ pub const Runtime = struct {
     pub const commitColumns = resident_ops.commitColumns;
     pub const commitColumnsWithBacking = resident_ops.commitColumnsWithBacking;
     pub const computeQuotients = polynomial_ops.computeQuotients;
+    pub const computeQuotientsWithReceipt = polynomial_ops.computeQuotientsWithReceipt;
     pub const computeQuotientsAndCommit = polynomial_ops.computeQuotientsAndCommit;
+    pub const computeQuotientsAndCommitWithReceipt = polynomial_ops.computeQuotientsAndCommitWithReceipt;
     pub const computeQuotientsAndCommitFri = polynomial_ops.computeQuotientsAndCommitFri;
+    pub const computeQuotientsAndCommitFriWithReceipt = polynomial_ops.computeQuotientsAndCommitFriWithReceipt;
     pub const evaluateCoefficientPlans = polynomial_ops.evaluateCoefficientPlans;
+    pub const evaluateCoefficientPlansUnprofiled = polynomial_ops.evaluateCoefficientPlansUnprofiled;
     pub const evaluateCoefficientTreePlans = polynomial_ops.evaluateCoefficientTreePlans;
+    pub const evaluateCoefficientTreePlansUnprofiled = polynomial_ops.evaluateCoefficientTreePlansUnprofiled;
     pub const transformCircle = polynomial_ops.transformCircle;
     pub const transformCircleResident = polynomial_ops.transformCircleResident;
     pub const transformCircleLde = polynomial_ops.transformCircleLde;

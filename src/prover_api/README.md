@@ -2,7 +2,7 @@
 
 `stwo_prover_api` is the stable transaction boundary shared by frontends,
 integrations, and prover engines. It defines owned/borrowed column requests,
-proof options, stage-profile schemas, and the compile-time engine signature
+proof options, stage- and task-profile schemas, and the compile-time engine signature
 check without importing the prover implementation.
 
 | Property | Value |
@@ -37,12 +37,18 @@ lifecycle policy.
 ## Public API
 
 ```zig
+const std = @import("std");
 const prover_api = @import("stwo_prover_api");
 
 const options = prover_api.ProveOptions{
     .include_all_preprocessed_columns = false,
     .recorder = null,
     .composition_stage = null,
+    .cpu_composition_execution = .{
+        .worker_count = 4,
+        .host_byte_budget = std.math.maxInt(usize),
+        .contention_policy = .strict,
+    },
 };
 
 comptime prover_api.assertProverEngine(MyEngine);
@@ -51,8 +57,8 @@ comptime prover_api.assertProverEngine(MyEngine);
 | Area | Exports |
 | :--- | :--- |
 | Column transaction | `ColumnEvaluation`, `ColumnSource`, `QuotientOpsError`, `column` |
-| Engine contract | `ProveOptions`, `DeviceCompositionStage`, `assertProverEngine`, `device_composition`, `engine` |
-| Observability | `stage_profile` |
+| Engine contract | `ProveOptions`, `CpuCompositionContentionPolicy`, `CpuCompositionExecutionRequest`, `DeviceCompositionStage`, `assertProverEngine`, `device_composition`, `engine` |
+| Observability | `stage_profile`, `task_profile`, `work_profile`, `TaskProfile`, `TASK_PROFILE_SCHEMA_VERSION` |
 
 `ColumnEvaluation` is a borrowed view and validates both its declared log size
 and storage length. `ColumnSource` records whether a commitment column is
@@ -61,6 +67,29 @@ materialized or produced by a recognized structural recipe.
 storage is type-erased so this package does not import prover implementation
 types; only the engine and an integration that already owns those types adapt
 the callback.
+`CpuCompositionExecutionRequest` carries only worker count, host byte budget,
+and strict-versus-compatibility policy. After an optional device composition
+stage declines, the engine privately adapts the request to its worker pool and
+threads it through execution-aware CPU backend evaluators and the generic
+prepared fallback. Closed secure-recurrence and fully prepared generic/RISC-V
+plans admit finite budgets: reserved helper stacks and fixed submission
+envelopes are charged separately from coordinator-owned heap. Unprepared
+fallbacks and plans declaring non-heap scratch or device residency reject
+finite caps before launching work. Legacy backend hooks without the
+execution-aware ABI retain their own resource contract.
+`task_profile` is a separate, flat observability schema for bounded task graphs.
+The coordinator reserves exact event and aggregate storage before launch;
+workers write only their assigned slots, publication after join moves those
+buffers without allocation, and snapshots deep-copy borrowed labels. Each
+reservation capability binds the recorder identity and a monotonic generation:
+stale copies cannot abort or publish a later reservation, and malformed
+publication returns an error without consuming the current capability.
+`Recorder.initWithOptions(..., .{ .capture_tasks = false })` retains stage
+timing while withholding the task recorder from composition; task profiling
+then performs no graph allocation or clock sampling.
+`work_profile` defines the stable exact-work completion records shared by the
+engine and backend integrations; it carries identities and counts, not prover
+implementation policy.
 `assertProverEngine` checks the associated types and exact `init`, `deinit`,
 `commit`, and `prove` signatures at compile time.
 
@@ -89,8 +118,9 @@ frontend, backend integration, or custom engine implementation.
 ## Contract and invariants
 
 - API signature: the engine transaction is structurally checked.
-- Behavioral invariant: column evaluation rejects invalid storage and lifting
-  geometry.
+- Behavioral invariants: column evaluation rejects invalid storage and lifting
+  geometry; task-graph reservations publish by checked ownership move, reject
+  stale generations, and release exact storage when aborted before launch.
 
 Changes to `ProveOptions`, engine method signatures, column ownership, or
 stage-profile schemas affect multiple independently owned packages and require

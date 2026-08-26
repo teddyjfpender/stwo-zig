@@ -23,6 +23,7 @@
     "execution",
     "fft_pool",
     "fri",
+    "host_budget_allocator",
     "line",
     "lookups",
     "measurement",
@@ -35,10 +36,12 @@
     "session",
     "stage_profile",
     "task_graph",
+    "task_profile",
     "transaction",
     "vcs",
     "vcs_lifted",
-    "work_pool"
+    "work_pool",
+    "work_profile"
   ],
   "api_contract": {
     "signature_tests": [

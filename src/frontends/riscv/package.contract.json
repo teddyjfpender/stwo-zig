@@ -12,11 +12,17 @@
     "stwo_prover_api": "../../prover_api",
     "stwo_prover_engine": "../../prover"
   },
-  "injected_modules": [],
+  "injected_modules": [
+    "interop_postcard",
+    "typed_air_artifacts",
+    "typed_air_h009_artifacts",
+    "typed_air_h010_artifacts"
+  ],
   "api_surface": [
     "Cpu",
     "HostInterface",
     "HostRuntime",
+    "MAX_EXECUTION_STEPS",
     "Memory",
     "Opcode",
     "RiscVClaim",
@@ -28,15 +34,27 @@
     "isa",
     "opcode_manifest",
     "owned_statement",
+    "process_usage",
     "proveAndVerifyElfWithEngine",
+    "provePoseidon2WithEngineAndPublicData",
+    "provePoseidon2WithEngineAndPublicDataUsingChannelAndPhaseMeter",
+    "proveRiscVSegmentV2WithEngine",
     "proveRiscVTraceOnlyNoPublicIo",
     "proveRiscVWithEngineAndPublicData",
+    "proveRiscVWithEngineAndPublicDataWithExecution",
     "prover_mod",
+    "recursion",
     "runWithHost",
     "runWithInput",
     "runner",
+    "statement_shape_inspection",
     "testing",
+    "verifyPoseidon2WithEngine",
+    "verifyRiscVSegmentV2WithEngine",
+    "verifyRiscVSegmentV2WithEngineUsingChannelAndCapture",
     "verifyRiscVWithEngine",
+    "verifyRiscVWithEngineUsingChannelAndProofCapture",
+    "verifyRiscVWithEngineUsingChannelAndQueryCapture",
     "witness_layout"
   ],
   "api_contract": {
@@ -56,7 +74,7 @@
       "test",
       "--build-file",
       "src/frontends/riscv/build.zig",
-      "-Doptimize=ReleaseFast",
+      "-Doptimize=Debug",
       "-j2"
     ]
   }
