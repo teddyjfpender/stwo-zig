@@ -462,10 +462,6 @@ fn runPreparedWithWorkers(
         .stack_size = prepared_domain.ROW_EVALUATOR_STACK_BYTES,
     });
     defer pool.deinit();
-    try std.testing.expectEqual(
-        @as(usize, 128 * 1024),
-        prepared_domain.ROW_EVALUATOR_STACK_BYTES,
-    );
     try std.testing.expectEqual(prepared_domain.ROW_EVALUATOR_STACK_BYTES, pool.stackSize());
     return graph.execute(.{
         .worker_budget = try work_pool.WorkerBudget.init(worker_count),

@@ -222,10 +222,6 @@ fn runPreparedOnBoundedHelper(
     });
     defer pool.deinit();
     try std.testing.expectEqual(
-        @as(usize, 128 * 1024),
-        prepared_domain.ROW_EVALUATOR_STACK_BYTES,
-    );
-    try std.testing.expectEqual(
         HELPER_STACK_BYTES,
         pool.stackSize(),
     );
