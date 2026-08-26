@@ -458,7 +458,7 @@ pub fn runRiscVSegmentV2WithEngineUsingChannelAndExecution(
 ) !ProveOutputV2ForEngine(Engine) {
     return runRiscVSegmentV2WithEngineUsingChannelAndExecutionLayout(
         Engine,
-        .compatibility,
+        .authenticated_physical_v2,
         allocator,
         pcs_config,
         result,
@@ -469,8 +469,52 @@ pub fn runRiscVSegmentV2WithEngineUsingChannelAndExecution(
     );
 }
 
-/// Explicit selected-lookup protocol. It shares V2 public-data semantics but
-/// binds and commits the authenticated 137-batch physical lookup statement.
+/// Retained V1 lookup-layout compatibility route. New SegmentV2 proofs use the
+/// authenticated selected layout by default; callers replaying old artifacts
+/// must choose this symbol explicitly.
+pub fn runRiscVSegmentLookupV1CompatibilityWithEngine(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    pcs_config: pcs_core.PcsConfig,
+    result: *const runner_result.SegmentResult,
+    recorder: ?*stage_profile.Recorder,
+    public_data: public_data_v2.PublicDataV2,
+) !ProveOutputV2ForEngine(Engine) {
+    var transcript_channel = Engine.Channel{};
+    return runRiscVSegmentLookupV1CompatibilityWithEngineUsingChannel(
+        Engine,
+        allocator,
+        pcs_config,
+        result,
+        recorder,
+        public_data,
+        &transcript_channel,
+    );
+}
+
+pub fn runRiscVSegmentLookupV1CompatibilityWithEngineUsingChannel(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    pcs_config: pcs_core.PcsConfig,
+    result: *const runner_result.SegmentResult,
+    recorder: ?*stage_profile.Recorder,
+    public_data: public_data_v2.PublicDataV2,
+    transcript_channel: *Engine.Channel,
+) !ProveOutputV2ForEngine(Engine) {
+    return runRiscVSegmentV2WithEngineUsingChannelAndExecutionLayout(
+        Engine,
+        .compatibility,
+        allocator,
+        pcs_config,
+        result,
+        recorder,
+        public_data,
+        transcript_channel,
+        .{},
+    );
+}
+
+/// Explicit spelling of the default selected-lookup protocol.
 pub fn runRiscVSegmentLookupV2WithEngine(
     comptime Engine: type,
     allocator: std.mem.Allocator,

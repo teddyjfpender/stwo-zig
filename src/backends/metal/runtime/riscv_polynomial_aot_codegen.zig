@@ -3,13 +3,16 @@
 const std = @import("std");
 const base_codegen = @import("base_polynomial_codegen.zig");
 const lookup_codegen = @import("lookup_polynomial_codegen.zig");
+const lookup_v2_codegen = @import("lookup_polynomial_v2_codegen.zig");
 
 pub fn generateLibrary(
     allocator: std.mem.Allocator,
     base_entries: []const base_codegen.Entry,
     lookup_entries: []const lookup_codegen.Entry,
+    lookup_v2_entries: []const lookup_v2_codegen.Entry,
 ) ![]u8 {
-    if (base_entries.len == 0 or lookup_entries.len == 0)
+    if (base_entries.len == 0 or lookup_entries.len == 0 or
+        lookup_v2_entries.len == 0)
         return error.InvalidRiscvPolynomialLibrary;
     var source = std.ArrayList(u8).empty;
     errdefer source.deinit(allocator);
@@ -32,6 +35,12 @@ pub fn generateLibrary(
         const name = try lookup_codegen.kernelName(allocator, entry.program);
         defer allocator.free(name);
         try lookup_codegen.emitKernel(allocator, writer, name, entry.program);
+    }
+    for (lookup_v2_entries) |entry| {
+        try entry.program.validateAgainst(&entry.authority);
+        const name = try lookup_v2_codegen.kernelName(allocator, &entry.program);
+        defer allocator.free(name);
+        try lookup_v2_codegen.emitKernel(allocator, writer, name, &entry.program);
     }
     return source.toOwnedSlice(allocator);
 }

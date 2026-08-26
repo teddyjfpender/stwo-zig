@@ -252,6 +252,52 @@ pub fn addProduct(context: Context) void {
         "metal_aot_config",
         aot_bundle.addOptions(context.b),
     );
+    const lookup_v2_test_backend = context.b.createModule(.{
+        .root_source_file = context.b.path(
+            "src/integrations/riscv_metal/lookup_v2_test_backend.zig",
+        ),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    lookup_v2_test_backend.addImport(
+        "stwo_riscv_metal_integration",
+        proof_test_module.import_table.get("stwo_riscv_metal_integration") orelse
+            @panic("RISC-V Metal proof test is missing its integration module"),
+    );
+    lookup_v2_test_backend.addOptions(
+        "metal_aot_config",
+        aot_bundle.addOptions(context.b),
+    );
+    proof_test_module.addImport(
+        "lookup_v2_test_backend",
+        lookup_v2_test_backend,
+    );
+    const lookup_v2_proof_test = context.b.createModule(.{
+        .root_source_file = context.b.path(
+            "src/integrations/riscv_cpu/lookup_v2_native_proof_test.zig",
+        ),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    inline for (.{ "stwo_core", "stwo_riscv_frontend" }) |import_name| {
+        lookup_v2_proof_test.addImport(
+            import_name,
+            proof_test_module.import_table.get(import_name) orelse
+                @panic("RISC-V Metal proof test dependency is missing"),
+        );
+    }
+    const proof_frontend = proof_test_module.import_table.get(
+        "stwo_riscv_frontend",
+    ).?;
+    lookup_v2_proof_test.addImport(
+        "interop_postcard",
+        proof_frontend.import_table.get("interop_postcard") orelse
+            @panic("RISC-V frontend is missing interop_postcard"),
+    );
+    lookup_v2_proof_test.addImport(
+        "lookup_v2_test_backend",
+        lookup_v2_test_backend,
+    );
     const stwo = riscv_metal_modules.createFacadeModule(
         context,
         product,
@@ -262,6 +308,39 @@ pub fn addProduct(context: Context) void {
         .root_module = proof_test_module,
     });
     metal.linkRuntime(context.b, proof_tests);
+    const lookup_v2_aot_tests = context.b.addTest(.{
+        .root_module = lookup_v2_proof_test,
+        .filters = &.{
+            "authenticated lookup V2 proves, independently verifies, and rejects compatibility replay",
+        },
+    });
+    metal.linkRuntime(context.b, lookup_v2_aot_tests);
+    const run_lookup_v2_aot_tests = context.b.addRunArtifact(
+        lookup_v2_aot_tests,
+    );
+    run_lookup_v2_aot_tests.setEnvironmentVariable(
+        "STWO_RISCV_METAL_AOT_BUNDLE",
+        aot_bundle.absolute_path,
+    );
+    context.b.step(
+        "test-riscv-metal-lookup-v2-aot",
+        "Prove and verify default lookup V2 against authenticated Metal AOT",
+    ).dependOn(&run_lookup_v2_aot_tests.step);
+    const polynomial_aot_update_tests = context.b.addTest(.{
+        .root_module = proof_test_module,
+        .filters = &.{"metal: AOT source matches every production RISC-V polynomial DAG"},
+    });
+    const run_polynomial_aot_update = context.b.addRunArtifact(
+        polynomial_aot_update_tests,
+    );
+    run_polynomial_aot_update.setEnvironmentVariable(
+        "STWO_ZIG_REGENERATE_RISCV_POLYNOMIAL_AOT",
+        "1",
+    );
+    context.b.step(
+        "update-riscv-polynomial-aot",
+        "Regenerate only the authenticated RISC-V Metal polynomial source",
+    ).dependOn(&run_polynomial_aot_update.step);
 
     const test_step = context.b.step(
         descriptor.test_step.?,

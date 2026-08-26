@@ -762,8 +762,7 @@ pub const BackendCompositionCapability = union(enum) {
     /// Pairs-batched LogUp transition constraints over production-exported
     /// base tuple expressions and committed secure cumulative columns.
     lookup_polynomial_v1: LookupPolynomialCapabilityV1,
-    /// Authenticated variable singleton/pair partition. No production frontend
-    /// publishes this variant until its statement and proof layout are
-    /// deliberately versioned.
+    /// Authenticated variable singleton/pair partition used by the versioned
+    /// SegmentV2 statement and proof layout.
     lookup_polynomial_v2: LookupPolynomialCapabilityV2,
 };

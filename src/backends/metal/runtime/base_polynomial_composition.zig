@@ -13,7 +13,7 @@ const core = @import("stwo_core");
 const prover = @import("stwo_prover_engine");
 const base_codegen = @import("base_polynomial_codegen.zig");
 const column_pointer_packing = @import("column_pointer_packing.zig");
-const lookup_codegen = @import("lookup_polynomial_codegen.zig");
+const lookup_resident = @import("base_polynomial_lookup_jobs.zig");
 const metal_runtime = @import("../runtime.zig");
 const shared_runtime = @import("../shared_runtime.zig");
 const telemetry = @import("../telemetry.zig");
@@ -26,7 +26,6 @@ const Component = prover.air.component_prover.ComponentProver;
 const Trace = prover.air.component_prover.Trace;
 const Poly = prover.air.component_prover.Poly;
 const BaseCapability = prover.air.component_prover.BasePolynomialCapabilityV1;
-const LookupCapability = prover.air.component_prover.LookupPolynomialCapabilityV1;
 const Accumulator = prover.air.accumulation.DomainEvaluationAccumulator;
 const SecureColumn = prover.secure_column.SecureColumnByCoords;
 const composition_work = prover.air.composition_work;
@@ -45,18 +44,6 @@ const BaseProgramEntry = struct {
     }
 };
 
-const LookupProgramEntry = struct {
-    program_id: u64,
-    program: prover.air.component_prover.OwnedLookupPolynomialProgram,
-    plan: ?metal_runtime.LookupPolynomialPlan = null,
-
-    fn deinit(self: *LookupProgramEntry) void {
-        if (self.plan) |*plan| plan.deinit();
-        self.program.deinit();
-        self.* = undefined;
-    }
-};
-
 const HostWorker = host_graph.Worker;
 
 const SemanticJob = struct {
@@ -67,18 +54,6 @@ const SemanticJob = struct {
     eval_log_size: u32,
     main_columns: []const Poly,
     selector: [*]const M31,
-};
-
-const LookupJob = struct {
-    capability: LookupCapability,
-    component: Component,
-    power_start: usize,
-    row_count: usize,
-    eval_log_size: u32,
-    main_columns: []const Poly,
-    interaction_columns: []const Poly,
-    selector: [*]const M31,
-    parameters: []QM31,
 };
 
 pub fn evaluate(
@@ -160,7 +135,7 @@ fn evaluateInternal(
         );
         max_log_size = @max(max_log_size, component.maxConstraintLogDegreeBound());
         if (baseCapability(component) != null) semantic_count += 1;
-        if (lookupCapability(component) != null) lookup_count += 1;
+        if (lookup_resident.capability(component) != null) lookup_count += 1;
     }
     if (semantic_count + lookup_count == 0) return null;
     telemetry.recordN(
@@ -183,15 +158,9 @@ fn evaluateInternal(
                 &.{ capability.selector_tree_index, capability.main_tree_index },
             )) return declineResidentPolynomial();
         }
-        if (lookupCapability(component)) |capability| {
-            if (!hasTreeResidency(
-                residency_handles,
-                &.{
-                    capability.selector_tree_index,
-                    capability.main_tree_index,
-                    capability.interaction_tree_index,
-                },
-            )) return declineResidentPolynomial();
+        if (lookup_resident.capability(component)) |capability| {
+            if (!lookup_resident.hasResidency(capability, residency_handles))
+                return declineResidentPolynomial();
         }
     }
 
@@ -214,17 +183,14 @@ fn evaluateInternal(
         for (base_programs.items) |*entry| entry.deinit();
         base_programs.deinit(allocator);
     }
-    var lookup_programs = std.ArrayList(LookupProgramEntry).empty;
-    defer {
-        for (lookup_programs.items) |*entry| entry.deinit();
-        lookup_programs.deinit(allocator);
-    }
+    var lookup_catalog = lookup_resident.Catalog.init(allocator);
+    defer lookup_catalog.deinit();
     const semantic_jobs = try allocator.alloc(SemanticJob, semantic_count);
     defer allocator.free(semantic_jobs);
-    const lookup_jobs = try allocator.alloc(LookupJob, lookup_count);
+    const lookup_jobs = try allocator.alloc(lookup_resident.Job, lookup_count);
     defer allocator.free(lookup_jobs);
     var initialized_lookup_jobs: usize = 0;
-    defer for (lookup_jobs[0..initialized_lookup_jobs]) |job| allocator.free(job.parameters);
+    defer for (lookup_jobs[0..initialized_lookup_jobs]) |*job| job.deinit(allocator);
     const host_workers = try allocator.alloc(
         HostWorker,
         components.len - semantic_count - lookup_count,
@@ -268,36 +234,14 @@ fn evaluateInternal(
             continue;
         }
 
-        if (lookupCapability(component)) |capability| {
-            const job = try resolveLookupJob(component, capability, trace, residency_handles);
-            if (findLookupProgram(lookup_programs.items, capability.program_id) == null) {
-                var program = try capability.export_program(component.ctx, allocator);
-                errdefer program.deinit();
-                try validateLookupProgram(program, capability, component);
-                try lookup_programs.append(allocator, .{
-                    .program_id = capability.program_id,
-                    .program = program,
-                });
-            }
-            const program = findLookupProgram(
-                lookup_programs.items,
-                capability.program_id,
-            ).?.program;
-            const parameters = try capability.export_parameters(component.ctx, allocator);
-            errdefer allocator.free(parameters);
-            if (parameters.len != program.parameterCount())
-                return error.InvalidLookupPolynomialProgram;
-            lookup_jobs[lookup_index] = .{
-                .capability = capability,
-                .component = component,
-                .power_start = power_start,
-                .row_count = job.row_count,
-                .eval_log_size = job.eval_log_size,
-                .main_columns = job.main_columns,
-                .interaction_columns = job.interaction_columns,
-                .selector = job.selector,
-                .parameters = parameters,
-            };
+        if (lookup_resident.capability(component)) |capability| {
+            lookup_jobs[lookup_index] = try lookup_catalog.appendJob(
+                component,
+                capability,
+                trace,
+                residency_handles,
+                power_start,
+            );
             initialized_lookup_jobs += 1;
             lookup_index += 1;
             continue;
@@ -375,12 +319,7 @@ fn evaluateInternal(
         entry.plan = lease.runtime.prepareBasePolynomialAot(name) catch
             return declineResidentPolynomial();
     }
-    for (lookup_programs.items) |*entry| {
-        const name = try lookup_codegen.kernelName(allocator, entry.program);
-        defer allocator.free(name);
-        entry.plan = lease.runtime.prepareLookupPolynomialAot(name) catch
-            return declineResidentPolynomial();
-    }
+    lookup_catalog.prepareAll(lease.runtime) catch return declineResidentPolynomial();
 
     const bucket_index = try allocator.alloc(?u32, max_log_size + 1);
     defer allocator.free(bucket_index);
@@ -490,16 +429,12 @@ fn evaluateInternal(
     var interaction_cursor: usize = 0;
     var parameter_cursor: usize = 0;
     for (lookup_jobs, lookup_dispatches) |job, *dispatch| {
-        const entry = findLookupProgram(
-            lookup_programs.items,
-            job.capability.program_id,
-        ).?;
         const denominator_inverses = try denominators(
-            job.capability.trace_log_size,
+            job.trace_log_size,
             job.eval_log_size,
         );
         dispatch.* = .{
-            .plan = entry.plan.?.handle,
+            .plan = lookup_catalog.planHandle(job.program_index),
             .selector = @ptrCast(job.selector),
             .main_column_offset = @intCast(lookup_main_cursor),
             .main_column_count = @intCast(job.main_columns.len),
@@ -571,7 +506,7 @@ fn evaluateInternal(
         telemetry.record(.metal_riscv_lookup_polynomial_batch_dispatch);
         std.log.info(
             "resident RISC-V lookup composition: {d} components, {d} kernels, {d:.3} ms GPU",
-            .{ lookup_jobs.len, lookup_programs.items.len, gpu_ms },
+            .{ lookup_jobs.len, lookup_catalog.programs.items.len, gpu_ms },
         );
     }
 
@@ -644,25 +579,12 @@ fn baseCapability(component: Component) ?BaseCapability {
     };
 }
 
-fn lookupCapability(component: Component) ?LookupCapability {
-    const capability = component.backend_composition_capability orelse return null;
-    return switch (capability) {
-        .lookup_polynomial_v1 => |value| value,
-        else => null,
-    };
-}
-
 fn hasTreeResidency(handles: []const ?*anyopaque, indices: []const usize) bool {
     for (indices) |index| if (index >= handles.len or handles[index] == null) return false;
     return true;
 }
 
 fn findBaseProgram(entries: []BaseProgramEntry, program_id: u64) ?*BaseProgramEntry {
-    for (entries) |*entry| if (entry.program_id == program_id) return entry;
-    return null;
-}
-
-fn findLookupProgram(entries: []LookupProgramEntry, program_id: u64) ?*LookupProgramEntry {
     for (entries) |*entry| if (entry.program_id == program_id) return entry;
     return null;
 }
@@ -676,18 +598,6 @@ fn validateBaseProgram(
     if (program.column_count != capability.main_column_count + 1 or
         program.roots.len != component.nConstraints())
         return error.InvalidBasePolynomialProgram;
-}
-
-fn validateLookupProgram(
-    program: prover.air.component_prover.OwnedLookupPolynomialProgram,
-    capability: LookupCapability,
-    component: Component,
-) !void {
-    try program.validate();
-    if (program.column_count != capability.main_column_count or
-        program.batchCount() != component.nConstraints() or
-        capability.interaction_column_count != program.batchCount() * 4)
-        return error.InvalidLookupPolynomialProgram;
 }
 
 const ResolvedBaseJob = struct {
@@ -733,67 +643,6 @@ fn resolveBaseJob(
         .row_count = row_count,
         .eval_log_size = eval_log_size,
         .main_columns = main,
-        .selector = selector.values.ptr,
-    };
-}
-
-const ResolvedLookupJob = struct {
-    row_count: usize,
-    eval_log_size: u32,
-    main_columns: []const Poly,
-    interaction_columns: []const Poly,
-    selector: [*]const M31,
-};
-
-fn resolveLookupJob(
-    component: Component,
-    capability: LookupCapability,
-    trace: *const Trace,
-    residency_handles: []const ?*anyopaque,
-) !ResolvedLookupJob {
-    if (capability.selector_tree_index >= trace.polys.items.len or
-        capability.main_tree_index >= trace.polys.items.len or
-        capability.interaction_tree_index >= trace.polys.items.len or
-        capability.selector_tree_index >= residency_handles.len or
-        capability.main_tree_index >= residency_handles.len or
-        capability.interaction_tree_index >= residency_handles.len or
-        residency_handles[capability.selector_tree_index] == null or
-        residency_handles[capability.main_tree_index] == null or
-        residency_handles[capability.interaction_tree_index] == null)
-        return error.MissingLookupPolynomialResidency;
-    const eval_log_size = component.maxConstraintLogDegreeBound();
-    if (eval_log_size != capability.trace_log_size + 1 or
-        eval_log_size >= @bitSizeOf(usize))
-        return error.InvalidLookupPolynomialProgram;
-    const row_count = @as(usize, 1) << @intCast(eval_log_size);
-    const selector_tree = trace.polys.items[capability.selector_tree_index];
-    const main_tree = trace.polys.items[capability.main_tree_index];
-    const interaction_tree = trace.polys.items[capability.interaction_tree_index];
-    if (capability.selector_column >= selector_tree.len or
-        capability.first_main_column > main_tree.len or
-        capability.main_column_count > main_tree.len - capability.first_main_column or
-        capability.first_interaction_column > interaction_tree.len or
-        capability.interaction_column_count >
-            interaction_tree.len - capability.first_interaction_column)
-        return error.InvalidLookupPolynomialProgram;
-    const selector = selector_tree[capability.selector_column];
-    if (selector.log_size != eval_log_size or selector.values.len != row_count)
-        return error.InvalidLookupPolynomialProgram;
-    const main = main_tree[capability.first_main_column..][0..capability.main_column_count];
-    const interaction = interaction_tree[capability.first_interaction_column..][0..capability.interaction_column_count];
-    for (main) |column| {
-        if (column.log_size != eval_log_size or column.values.len != row_count)
-            return error.InvalidLookupPolynomialProgram;
-    }
-    for (interaction) |column| {
-        if (column.log_size != eval_log_size or column.values.len != row_count)
-            return error.InvalidLookupPolynomialProgram;
-    }
-    return .{
-        .row_count = row_count,
-        .eval_log_size = eval_log_size,
-        .main_columns = main,
-        .interaction_columns = interaction,
         .selector = selector.values.ptr,
     };
 }

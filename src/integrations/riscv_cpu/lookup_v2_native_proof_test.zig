@@ -7,9 +7,9 @@
 
 const std = @import("std");
 const stwo_core = @import("stwo_core");
-const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 const frontend = @import("stwo_riscv_frontend");
 const postcard = @import("interop_postcard");
+const test_backend = @import("lookup_v2_test_backend");
 
 const M31 = stwo_core.fields.m31.M31;
 const pcs_core = stwo_core.pcs;
@@ -20,7 +20,7 @@ const protocol = frontend.recursion.protocol;
 const segment_v2 = frontend.recursion.segment_statement_v2;
 const span = frontend.recursion.span_statement;
 const physical = frontend.air.lookup_physical_manifest_v2;
-const Engine = prover.ProverEngineForBackend(CpuBackend);
+const Engine = test_backend.Engine;
 
 /// Development-security profile: one query and no proof of work make this a
 /// fast protocol/geometry gate, never production security evidence.
@@ -36,6 +36,8 @@ const test_config = pcs_core.PcsConfig{
 
 test "authenticated lookup V2 proves, independently verifies, and rejects compatibility replay" {
     const allocator = std.testing.allocator;
+    try test_backend.initialize(allocator);
+    defer test_backend.shutdown();
     const elf = frontend.testing.guest_precompile_test_elf.buildAllFamilies();
 
     var session = try runner.Poseidon2ExecutionSession.init(allocator, &elf, .{});
@@ -134,7 +136,7 @@ test "authenticated lookup V2 proves, independently verifies, and rejects compat
     );
 
     var compatibility_prove_timer = try std.time.Timer.start();
-    var compatibility = try prover.proveRiscVSegmentV2WithEngine(
+    var compatibility = try prover.proveRiscVSegmentLookupV1CompatibilityWithEngine(
         Engine,
         allocator,
         test_config,
@@ -150,7 +152,7 @@ test "authenticated lookup V2 proves, independently verifies, and rejects compat
         compatibility.deinit(allocator);
 
     var selected_prove_timer = try std.time.Timer.start();
-    var selected = try prover.proveRiscVSegmentLookupV2WithEngine(
+    var selected = try prover.proveRiscVSegmentV2WithEngine(
         Engine,
         allocator,
         test_config,
@@ -217,7 +219,7 @@ test "authenticated lookup V2 proves, independently verifies, and rejects compat
         selected_stream.reader(),
     );
     try std.testing.expectEqual(selected_bytes.items.len, selected_stream.pos);
-    if (prover.verifyRiscVSegmentV2WithEngine(
+    if (prover.verifyRiscVSegmentLookupV1CompatibilityWithEngine(
         Engine,
         allocator,
         test_config,
@@ -240,7 +242,7 @@ test "authenticated lookup V2 proves, independently verifies, and rejects compat
         compatibility_bytes.items.len,
         compatibility_stream.pos,
     );
-    if (prover.verifyRiscVSegmentLookupV2WithEngine(
+    if (prover.verifyRiscVSegmentV2WithEngine(
         Engine,
         allocator,
         test_config,
@@ -253,7 +255,7 @@ test "authenticated lookup V2 proves, independently verifies, and rejects compat
 
     compatibility_proof_moved = true;
     var compatibility_verify_timer = try std.time.Timer.start();
-    try prover.verifyRiscVSegmentV2WithEngine(
+    try prover.verifyRiscVSegmentLookupV1CompatibilityWithEngine(
         Engine,
         allocator,
         test_config,
@@ -265,7 +267,7 @@ test "authenticated lookup V2 proves, independently verifies, and rejects compat
 
     selected_proof_moved = true;
     var selected_verify_timer = try std.time.Timer.start();
-    try prover.verifyRiscVSegmentLookupV2WithEngine(
+    try prover.verifyRiscVSegmentV2WithEngine(
         Engine,
         allocator,
         test_config,

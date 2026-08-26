@@ -235,6 +235,17 @@ pub fn add(ctx: anytype) void {
     lookup_v2_native_root.addImport("stwo_prover_api", prover_api);
     lookup_v2_native_root.addImport("stwo_prover_engine", prover);
     lookup_v2_native_root.addImport("interop_postcard", postcard);
+    const lookup_v2_test_backend = b.createModule(.{
+        .root_source_file = b.path("lookup_v2_cpu_test_backend.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    lookup_v2_test_backend.addImport("stwo_cpu_backend", cpu_backend);
+    lookup_v2_test_backend.addImport("stwo_riscv_frontend", frontend);
+    lookup_v2_native_root.addImport(
+        "lookup_v2_test_backend",
+        lookup_v2_test_backend,
+    );
     const lookup_v2_native_test_names: []const []const u8 = &.{
         "authenticated lookup V2 proves, independently verifies, and rejects compatibility replay",
     };

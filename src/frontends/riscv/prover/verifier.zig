@@ -35,7 +35,7 @@ const types = @import("types.zig");
 
 const VerificationWorkspace = proof_workspace.VerificationWorkspace;
 
-const LookupLayoutV2 = enum {
+pub const LookupLayoutV2 = enum {
     compatibility,
     authenticated_physical_v2,
 };
@@ -154,7 +154,7 @@ const V1Protocol = struct {
     }
 };
 
-const V2Protocol = struct {
+pub const V2Protocol = struct {
     pub const Statement = statement_v2.RiscVStatementV2;
     pub const is_v2 = true;
 
@@ -363,7 +363,7 @@ pub fn verifyRiscVSegmentV2WithEngineUsingChannel(
     return verifyRiscVWithEngineUsingChannelImpl(
         V2Protocol,
         Engine,
-        .compatibility,
+        .authenticated_physical_v2,
         allocator,
         pcs_config,
         statement,
@@ -390,7 +390,7 @@ pub fn verifyRiscVSegmentV2WithEngineUsingChannelAndCapture(
     return verifyRiscVWithEngineUsingChannelImpl(
         V2Protocol,
         Engine,
-        .compatibility,
+        .authenticated_physical_v2,
         allocator,
         pcs_config,
         statement,
@@ -404,9 +404,7 @@ pub fn verifyRiscVSegmentV2WithEngineUsingChannelAndCapture(
     );
 }
 
-/// Independent verifier for the selected physical lookup protocol. Choosing
-/// this symbol is explicit protocol selection; ordinary V1 and segment-V2
-/// callers retain compatibility geometry and transcript bytes.
+/// Explicit spelling of the default selected physical lookup verifier.
 pub fn verifyRiscVSegmentLookupV2WithEngine(
     comptime Engine: type,
     allocator: std.mem.Allocator,
@@ -453,7 +451,7 @@ pub fn verifyRiscVSegmentLookupV2WithEngineUsingChannel(
     );
 }
 
-fn verifyRiscVWithEngineUsingChannelImpl(
+pub fn verifyRiscVWithEngineUsingChannelImpl(
     comptime Protocol: type,
     comptime Engine: type,
     comptime lookup_layout: LookupLayoutV2,
