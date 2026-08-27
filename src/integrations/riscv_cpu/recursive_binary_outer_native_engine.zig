@@ -15,6 +15,8 @@ const segment_artifact = @import("recursive_segment_v2_verified_artifact.zig");
 const temporal_child_authority = @import("recursive_segment_v2_temporal_child_authority.zig");
 const temporal_pair_authority = @import("recursive_temporal_pair_authority_v2.zig");
 const fri_outer_diagnostic = @import("recursive_fri_outer.zig");
+const temporal_admission = @import("recursive_temporal_parent_recursive_admission_v1.zig");
+const temporal_artifact = @import("recursive_temporal_parent_verified_artifact_v1.zig");
 
 const M31 = stwo_core.fields.m31.M31;
 const recursion = frontend.recursion;
@@ -447,6 +449,11 @@ pub fn NativeEngineKernelForManifest(
                 commitments[ManifestContract.INTERACTION_TREE_INDEX],
                 &channel,
             );
+            const pre_core_channel =
+                recursion.outer_parent_child_admission.ChannelCheckpointV1{
+                    .digest = channel.digestWords(),
+                    .draw_count = channel.n_draws,
+                };
 
             var components = try cohort.initComponents(
                 &generated,
@@ -486,6 +493,17 @@ pub fn NativeEngineKernelForManifest(
                 &provider_relations,
             );
 
+            const context = cohort.suffix.contextReceipt();
+            const recursive_admission = try temporal_admission.prepare(
+                manifest,
+                &cohort.prefix.statement_rows.parent_words,
+                context.parent_vk_id,
+                &claims,
+                &audited,
+                pre_core_channel,
+                &capture,
+            );
+
             if (comptime @import("builtin").is_test and
                 @hasDecl(Cohort, "runPublicationMutationFleetForTest"))
             {
@@ -510,6 +528,7 @@ pub fn NativeEngineKernelForManifest(
                 ),
                 &claims,
                 &audited,
+                recursive_admission.identity,
             );
             var evidence_storage: TemporalVerifierSuccessEvidenceStorageV1 =
                 undefined;
@@ -528,9 +547,11 @@ pub fn NativeEngineKernelForManifest(
                     &provider_relations,
                 );
             const staged_artifact = if (artifact_out != null)
-                try cohort.publishVerifiedArtifact(
+                try temporal_artifact.mintFromSuccessfulVerifier(
                     evidence,
                     &staged_publication,
+                    &recursive_admission,
+                    &capture,
                 )
             else
                 null;

@@ -596,6 +596,7 @@ pub const Cohort = struct {
         transcript_id: channel.Digest,
         claims: *const manifest_mod.ClaimVector,
         audited: *const AuditedInteractionsV2,
+        recursive_admission_sha_id: [32]u8,
     ) !binary_driver.TemporalVerifierSuccessBindingV1 {
         try self.validate();
         try proof.validate();
@@ -614,6 +615,7 @@ pub const Cohort = struct {
             .generated_interactions_sha_id = audited.suffix.generated.identity,
             .audit_sha_id = audited.identity,
             .closure_receipt_sha_id = audited.closure.closure_id,
+            .recursive_admission_sha_id = recursive_admission_sha_id,
         };
         try result.validate();
         return result;
@@ -819,20 +821,6 @@ pub const Cohort = struct {
         if (comptime @import("builtin").is_test)
             try publication_mod.validateMutationFleetForTest(result);
         return result;
-    }
-
-    /// Append-only multi-level custody output. The opaque evidence is minted
-    /// only after native verification; this method cannot promote a detached
-    /// publication or proof-shaped value into a recursive child.
-    pub fn publishVerifiedArtifact(
-        _: *Self,
-        evidence: *const binary_driver.TemporalVerifierSuccessEvidenceV1,
-        publication: *const VerifiedPublicationV1,
-    ) !VerifiedArtifactV1 {
-        return verified_artifact_mod.mintFromSuccessfulVerifier(
-            evidence,
-            publication,
-        );
     }
 };
 

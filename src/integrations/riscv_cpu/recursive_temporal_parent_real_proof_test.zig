@@ -327,6 +327,23 @@ pub fn proveTemporalParentWithConsumer(
     defer parent_capture.deinit(allocator);
     try parent_publication.validate();
     try parent_artifact.validateAgainst(&parent_publication);
+    try parent_artifact.recursive_admission.validateAgainst(&parent_capture);
+    try std.testing.expectEqual(
+        parent_artifact.recursive_wire_bytes,
+        try recursion.outer_parent_child_admission.runtimeCanonicalByteCount(
+            parent_artifact.recursive_admission.seal,
+            &parent_artifact.recursive_admission.receipt,
+            &parent_capture,
+        ),
+    );
+    try std.testing.expectEqual(
+        parent_artifact.recursive_proof_id,
+        try recursion.outer_parent_child_admission.proofIdRuntime(
+            parent_artifact.recursive_admission.seal,
+            &parent_artifact.recursive_admission.receipt,
+            &parent_capture,
+        ),
+    );
     try std.testing.expect(temporal_cohort.COMPLETE_PARENT_PROOF_AVAILABLE);
     try std.testing.expect(temporal_cohort.TEMPORAL_PARENT_VERIFIED);
     try std.testing.expect(!temporal_cohort.PROTOCOL_SUBSTRATE_ONLY);

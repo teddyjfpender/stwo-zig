@@ -10,6 +10,7 @@ const segment_artifact = @import("recursive_segment_v2_verified_artifact.zig");
 const temporal_relation_profile = @import("recursive_temporal_child_relation_profile.zig");
 const temporal_child_authority = @import("recursive_segment_v2_temporal_child_authority.zig");
 const temporal_pair_authority = @import("recursive_temporal_pair_authority_v2.zig");
+const temporal_success = @import("recursive_temporal_parent_verifier_success_v1.zig");
 
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
@@ -57,9 +58,9 @@ pub const PRODUCTION_ACTIVATION = false;
 pub const CANONICAL_PROOF_SERIALIZATION_PASSES: u8 = 2;
 pub const RETAINED_CANONICAL_PROOF_BYTES: usize = 0;
 pub const TEMPORAL_PARENT_CAPABILITY_FORMAT_VERSION: u16 = 1;
-pub const TEMPORAL_VERIFIER_EVIDENCE_FORMAT_VERSION: u16 = 1;
-pub const TEMPORAL_VERIFIER_PUBLIC_MINT_AVAILABLE = false;
-pub const TEMPORAL_VERIFIER_EVIDENCE_HEAP_ALLOCATIONS: usize = 0;
+pub const TEMPORAL_VERIFIER_EVIDENCE_FORMAT_VERSION = temporal_success.FORMAT_VERSION;
+pub const TEMPORAL_VERIFIER_PUBLIC_MINT_AVAILABLE = temporal_success.PUBLIC_MINT_AVAILABLE;
+pub const TEMPORAL_VERIFIER_EVIDENCE_HEAP_ALLOCATIONS = temporal_success.HEAP_ALLOCATIONS_PER_MINT;
 pub const TEMPORAL_ARTIFACT_PREFLIGHT_FORMAT_VERSION: u16 = 1;
 pub const HEAP_ALLOCATIONS_PER_TEMPORAL_ARTIFACT_PREFLIGHT: usize = 0;
 pub const PROOF_DECODING_PASSES_PER_TEMPORAL_ARTIFACT_PREFLIGHT: usize = 0;
@@ -105,124 +106,11 @@ pub const Error = error{
     WorkerPoolMismatch,
 };
 
-/// Value-only statement sealed into the transaction-local successful-verifier
-/// capability below.  It binds the exact proof/capture pair to the complete
-/// temporal cohort, manifest, claims, independently replayed audit, and global
-/// closure which the native verifier accepted.
-pub const TemporalVerifierSuccessBindingV1 = struct {
-    canonical_proof_byte_count: u32,
-    proof_id: poseidon2_channel.Digest,
-    canonical_proof_sha_id: [32]u8,
-    capture_id: poseidon2_channel.Digest,
-    transcript_id: poseidon2_channel.Digest,
-    cohort_authority_sha_id: [32]u8,
-    manifest_sha_id: [32]u8,
-    claims_sha_id: [32]u8,
-    generated_interactions_sha_id: [32]u8,
-    audit_sha_id: [32]u8,
-    closure_receipt_sha_id: [32]u8,
-
-    pub fn validate(self: *const TemporalVerifierSuccessBindingV1) !void {
-        if (self.canonical_proof_byte_count == 0 or
-            !nativeDigestCanonicalNonzero(self.proof_id) or
-            !nativeDigestCanonicalNonzero(self.capture_id) or
-            !nativeDigestCanonicalNonzero(self.transcript_id))
-        {
-            return error.TemporalVerifierEvidenceMismatch;
-        }
-        inline for (.{
-            self.canonical_proof_sha_id,
-            self.cohort_authority_sha_id,
-            self.manifest_sha_id,
-            self.claims_sha_id,
-            self.generated_interactions_sha_id,
-            self.audit_sha_id,
-            self.closure_receipt_sha_id,
-        }) |value| if (std.mem.allEqual(u8, &value, 0))
-            return error.TemporalVerifierEvidenceMismatch;
-    }
-};
-
-/// Opaque, borrowed capability.  Production code exposes validation but no
-/// constructor: the only mint is lexically inside this verifier module and is
-/// called after `verifyWithProofCapture` succeeds.  The backing storage lives
-/// on that verifier stack and is consumed synchronously by publication.
-pub const TemporalVerifierSuccessEvidenceV1 = opaque {};
-
-pub const TemporalVerifierSuccessEvidenceStorageV1 = struct {
-    format_version: u16 = TEMPORAL_VERIFIER_EVIDENCE_FORMAT_VERSION,
-    verified: bool = true,
-    padding: [5]u8 = [_]u8{0} ** 5,
-    binding: TemporalVerifierSuccessBindingV1,
-    identity: [32]u8,
-};
-
-pub fn mintTemporalVerifierSuccessEvidence(
-    storage: *TemporalVerifierSuccessEvidenceStorageV1,
-    binding: TemporalVerifierSuccessBindingV1,
-) !*const TemporalVerifierSuccessEvidenceV1 {
-    try binding.validate();
-    storage.* = .{
-        .binding = binding,
-        .identity = undefined,
-    };
-    storage.identity = temporalVerifierEvidenceIdentity(storage);
-    return @ptrCast(storage);
-}
-
-fn temporalVerifierEvidenceIdentity(
-    evidence: *const TemporalVerifierSuccessEvidenceStorageV1,
-) [32]u8 {
-    var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    hash.update("stwo-zig/typed-air/temporal-verifier-success-evidence/v1\x00");
-    evidenceHashInt(&hash, u16, evidence.format_version);
-    evidenceHashInt(&hash, u8, @intFromBool(evidence.verified));
-    hash.update(&evidence.padding);
-    const binding = evidence.binding;
-    evidenceHashInt(&hash, u32, binding.canonical_proof_byte_count);
-    for (binding.proof_id) |word| evidenceHashInt(&hash, u32, word);
-    hash.update(&binding.canonical_proof_sha_id);
-    for (binding.capture_id) |word| evidenceHashInt(&hash, u32, word);
-    for (binding.transcript_id) |word| evidenceHashInt(&hash, u32, word);
-    hash.update(&binding.cohort_authority_sha_id);
-    hash.update(&binding.manifest_sha_id);
-    hash.update(&binding.claims_sha_id);
-    hash.update(&binding.generated_interactions_sha_id);
-    hash.update(&binding.audit_sha_id);
-    hash.update(&binding.closure_receipt_sha_id);
-    return hash.finalResult();
-}
-
-fn evidenceHashInt(
-    hash: *std.crypto.hash.sha2.Sha256,
-    comptime T: type,
-    value: anytype,
-) void {
-    var encoded: [@sizeOf(T)]u8 = undefined;
-    std.mem.writeInt(T, &encoded, @intCast(value), .little);
-    hash.update(&encoded);
-}
-
-/// Opens a capability without extending its lifetime.  Revalidation includes
-/// the complete binding and mutation-detecting storage identity.
-pub fn openTemporalVerifierSuccessEvidence(
-    evidence: *const TemporalVerifierSuccessEvidenceV1,
-) !TemporalVerifierSuccessBindingV1 {
-    const storage: *const TemporalVerifierSuccessEvidenceStorageV1 =
-        @ptrCast(@alignCast(evidence));
-    if (storage.format_version != TEMPORAL_VERIFIER_EVIDENCE_FORMAT_VERSION or
-        !storage.verified or !std.mem.allEqual(u8, &storage.padding, 0) or
-        !std.mem.eql(
-            u8,
-            &storage.identity,
-            &temporalVerifierEvidenceIdentity(storage),
-        ))
-    {
-        return error.TemporalVerifierEvidenceMismatch;
-    }
-    try storage.binding.validate();
-    return storage.binding;
-}
+pub const TemporalVerifierSuccessBindingV1 = temporal_success.BindingV1;
+pub const TemporalVerifierSuccessEvidenceV1 = temporal_success.EvidenceV1;
+pub const TemporalVerifierSuccessEvidenceStorageV1 = temporal_success.StorageV1;
+pub const mintTemporalVerifierSuccessEvidence = temporal_success.mint;
+pub const openTemporalVerifierSuccessEvidence = temporal_success.open;
 
 /// Value-only CPU resource request for one binary outer proof. Worker count is
 /// an execution concern only: authority, commitments, transcript, claims, and
