@@ -514,6 +514,10 @@ pub fn payloadMetadata(
         .shard_infra,
         .interaction_log_count,
         .interaction_log_size,
+        .lookup_activation_header,
+        .lookup_manifest_identity,
+        .lookup_statement_identity,
+        .lookup_activation_identity,
         => constantPayload(.public_geometry, instruction.sub_index, payload_index),
         else => unreachable,
     };

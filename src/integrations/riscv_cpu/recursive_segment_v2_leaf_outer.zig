@@ -250,7 +250,7 @@ pub const PreparedNativeV2LeafOuter = struct {
         );
         errdefer vm_air.deinit();
 
-        var transcript_program = try transcript_v2.Program.init(
+        var transcript_program = try transcript_v2.Program.initAuthenticatedLookupV2(
             allocator,
             &vm_plan,
             pcs_config,

@@ -166,6 +166,7 @@ test "temporal verifier success capability rejects mutation and forged storage" 
         .proof_id = @splat(1),
         .canonical_proof_sha_id = @splat(2),
         .capture_id = @splat(3),
+        .transcript_id = @splat(10),
         .cohort_authority_sha_id = @splat(4),
         .manifest_sha_id = @splat(5),
         .claims_sha_id = @splat(6),

@@ -114,6 +114,7 @@ pub const TemporalVerifierSuccessBindingV1 = struct {
     proof_id: poseidon2_channel.Digest,
     canonical_proof_sha_id: [32]u8,
     capture_id: poseidon2_channel.Digest,
+    transcript_id: poseidon2_channel.Digest,
     cohort_authority_sha_id: [32]u8,
     manifest_sha_id: [32]u8,
     claims_sha_id: [32]u8,
@@ -124,7 +125,8 @@ pub const TemporalVerifierSuccessBindingV1 = struct {
     pub fn validate(self: *const TemporalVerifierSuccessBindingV1) !void {
         if (self.canonical_proof_byte_count == 0 or
             !nativeDigestCanonicalNonzero(self.proof_id) or
-            !nativeDigestCanonicalNonzero(self.capture_id))
+            !nativeDigestCanonicalNonzero(self.capture_id) or
+            !nativeDigestCanonicalNonzero(self.transcript_id))
         {
             return error.TemporalVerifierEvidenceMismatch;
         }
@@ -181,6 +183,7 @@ fn temporalVerifierEvidenceIdentity(
     for (binding.proof_id) |word| evidenceHashInt(&hash, u32, word);
     hash.update(&binding.canonical_proof_sha_id);
     for (binding.capture_id) |word| evidenceHashInt(&hash, u32, word);
+    for (binding.transcript_id) |word| evidenceHashInt(&hash, u32, word);
     hash.update(&binding.cohort_authority_sha_id);
     hash.update(&binding.manifest_sha_id);
     hash.update(&binding.claims_sha_id);

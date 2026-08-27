@@ -48,6 +48,8 @@ const assertNativeCohortContract = support.assertNativeCohortContract;
 const assertManifestContract = support.assertManifestContract;
 const moveOwnedForVerifier = support.moveOwnedForVerifier;
 const rejectNativeTransactionOutputAlias = support.rejectNativeTransactionOutputAlias;
+const rejectNativeArtifactTransactionOutputAlias =
+    support.rejectNativeArtifactTransactionOutputAlias;
 const rejectV3TransactionOutputAlias = support.rejectV3TransactionOutputAlias;
 const nativeDigestCanonicalNonzero = support.nativeDigestCanonicalNonzero;
 const commitVerifierTreeForManifest = support.commitVerifierTreeForManifest;
@@ -65,6 +67,7 @@ pub fn NativeEngineKernelForManifest(
         const ManifestContract = manifest_contract;
         const TreeStorage = TreeStorageForManifest(ManifestContract);
         pub const VerifiedPublicationV1 = Cohort.VerifiedPublicationV1;
+        pub const VerifiedArtifactV1 = Cohort.VerifiedArtifactV1;
 
         pub fn proveAndVerify(
             allocator: std.mem.Allocator,
@@ -87,6 +90,66 @@ pub fn NativeEngineKernelForManifest(
             execution: ExecutionOptions,
             capture_out: *OuterProofCapture,
             publication_out: *VerifiedPublicationV1,
+        ) !Receipt {
+            return runTransaction(
+                allocator,
+                authority_inputs,
+                execution,
+                capture_out,
+                publication_out,
+                null,
+            );
+        }
+
+        pub fn proveAndVerifyWithArtifact(
+            allocator: std.mem.Allocator,
+            authority_inputs: Cohort.AuthorityInputs,
+            capture_out: *OuterProofCapture,
+            publication_out: *VerifiedPublicationV1,
+            artifact_out: *VerifiedArtifactV1,
+        ) !Receipt {
+            return proveAndVerifyWithExecutionAndArtifact(
+                allocator,
+                authority_inputs,
+                .{},
+                capture_out,
+                publication_out,
+                artifact_out,
+            );
+        }
+
+        pub fn proveAndVerifyWithExecutionAndArtifact(
+            allocator: std.mem.Allocator,
+            authority_inputs: Cohort.AuthorityInputs,
+            execution: ExecutionOptions,
+            capture_out: *OuterProofCapture,
+            publication_out: *VerifiedPublicationV1,
+            artifact_out: *VerifiedArtifactV1,
+        ) !Receipt {
+            try rejectNativeArtifactTransactionOutputAlias(
+                VerifiedPublicationV1,
+                VerifiedArtifactV1,
+                capture_out,
+                publication_out,
+                artifact_out,
+            );
+            return runTransaction(
+                allocator,
+                authority_inputs,
+                execution,
+                capture_out,
+                publication_out,
+                artifact_out,
+            );
+        }
+
+        fn runTransaction(
+            allocator: std.mem.Allocator,
+            authority_inputs: Cohort.AuthorityInputs,
+            execution: ExecutionOptions,
+            capture_out: *OuterProofCapture,
+            publication_out: *VerifiedPublicationV1,
+            artifact_out: ?*VerifiedArtifactV1,
         ) !Receipt {
             comptime @import("stwo_prover_api").assertProverEngine(Engine);
             try rejectNativeTransactionOutputAlias(
@@ -141,6 +204,7 @@ pub fn NativeEngineKernelForManifest(
                 proof_identity,
                 capture_out,
                 publication_out,
+                artifact_out,
             );
             std.debug.assert(!proof_owned);
             const canonical_proof_bytes: usize = proof_identity.byte_count;
@@ -312,6 +376,7 @@ pub fn NativeEngineKernelForManifest(
             proof_identity: verified_publication.CanonicalProofIdentityV1,
             capture_out: *OuterProofCapture,
             publication_out: *VerifiedPublicationV1,
+            artifact_out: ?*VerifiedArtifactV1,
         ) !NativeVerifierReceipt {
             if (!proof_owned.*) return error.ProofAlreadyConsumed;
             const manifest = cohort.manifest();
@@ -439,6 +504,10 @@ pub fn NativeEngineKernelForManifest(
             const evidence_binding = try cohort.verifierSuccessBinding(
                 proof_identity,
                 &capture,
+                recursion.protocol.transcriptId(
+                    channel.digestWords(),
+                    channel.n_draws,
+                ),
                 &claims,
                 &audited,
             );
@@ -458,11 +527,20 @@ pub fn NativeEngineKernelForManifest(
                     &relations,
                     &provider_relations,
                 );
+            const staged_artifact = if (artifact_out != null)
+                try cohort.publishVerifiedArtifact(
+                    evidence,
+                    &staged_publication,
+                )
+            else
+                null;
             const publication_ns = publication_timer.read();
 
-            // The publication and capture are both complete. No fallible
-            // operation is permitted after these two caller writes.
+            // Every requested output is complete. No fallible operation is
+            // permitted after the first caller write.
             publication_out.* = staged_publication;
+            if (artifact_out) |destination|
+                destination.* = staged_artifact.?;
             capture_out.* = capture;
             return .{
                 .publication_ns = publication_ns,

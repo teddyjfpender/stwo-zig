@@ -38,6 +38,10 @@ pub const recursive_segment_v2_verified_artifact = @import("recursive_segment_v2
 pub const recursive_segment_v2_verified_publication = @import("recursive_segment_v2_verified_publication.zig");
 pub const recursive_segment_v2_temporal_child_authority = @import("recursive_segment_v2_temporal_child_authority.zig");
 pub const recursive_temporal_pair_authority_v2 = @import("recursive_temporal_pair_authority_v2.zig");
+pub const recursive_temporal_parent_verified_artifact_v1 =
+    @import("recursive_temporal_parent_verified_artifact_v1.zig");
+pub const recursive_temporal_parent_pair_authority_v1 =
+    @import("recursive_temporal_parent_pair_authority_v1.zig");
 pub const recursive_temporal_nonfri_source_v2 = @import("recursive_temporal_nonfri_source_v2.zig");
 pub const recursive_temporal_parent_prefix_runtime = @import("recursive_temporal_parent_prefix_runtime.zig");
 pub const recursive_temporal_parent_row35_owner_v1 = @import("recursive_temporal_parent_row35_owner_v1.zig");

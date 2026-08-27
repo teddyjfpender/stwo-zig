@@ -76,7 +76,10 @@ pub fn cohortIdentity(
     hash.update(&cohort.plan.identity);
     hash.update(&cohort.noncore_authority_id);
     hash.update(&cohort.core_authority_id);
-    hashInt(&hash, u32, cohort_protocol.MEASURED_TOTAL_POSEIDON_CALLS);
+    // `plan.identity` already authenticates the complete provider schedule;
+    // retain the explicit count in this local authority seal as a derived
+    // value rather than pinning a historical transcript measurement.
+    hashInt(&hash, u32, cohort.plan.provider.logical_call_count);
     hashInt(&hash, u8, provider_instance_count);
     return hash.finalResult();
 }

@@ -180,7 +180,8 @@ pub const Cohort = struct {
         try core.finalizeSharedProviderMain();
         const complete_layout = try core.completeScheduleReceipt();
         const complete_calls = try core.completePoseidonCalls();
-        const plan = try cohort_protocol.CohortPlanV2.measuredCanonical(
+        // Authenticated geometry, not a frozen measured call count, is authoritative.
+        const plan = try cohort_protocol.CohortPlanV2.init(
             complete_manifest,
             &complete_layout,
             complete_calls,
@@ -269,7 +270,6 @@ pub const Cohort = struct {
             calls,
         );
         if (self.complete_manifest.roster_count != COMPONENT_COUNT or
-            calls.len != cohort_protocol.MEASURED_TOTAL_POSEIDON_CALLS or
             self.plan.provider.provider_instance_count !=
                 SHARED_ROW34_PROVIDER_INSTANCE_COUNT or
             !std.mem.eql(u8, &self.prepared_identity, &self.prepared.identity) or
