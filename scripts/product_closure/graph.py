@@ -86,7 +86,12 @@ def resolve_imports(
 ) -> tuple[set[Path], set[Path]]:
     targets: set[Path] = set()
     named_targets: set[Path] = set()
-    for imported in literal_imports(source.read_text(encoding="utf-8")):
+    try:
+        imports = literal_imports(source.read_text(encoding="utf-8"))
+    except ClosureError as error:
+        relative = source.relative_to(repository)
+        raise ClosureError(f"{relative}: {error}") from error
+    for imported in imports:
         if imported in generated:
             continue
         if imported in named:
@@ -148,6 +153,8 @@ def parse_import(source: str, start: int) -> tuple[str, int]:
         raise ClosureError("unterminated Zig import path")
     imported = source[index + 1 : end]
     index = skip_space(source, end + 1)
+    if index < len(source) and source[index] == ",":
+        index = skip_space(source, index + 1)
     if index >= len(source) or source[index] != ")":
         raise ClosureError("unsupported non-literal @import expression")
     return imported, index + 1

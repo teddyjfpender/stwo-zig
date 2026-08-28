@@ -42,6 +42,8 @@ OPERATOR_TOOLS: dict[str, str] = {
         "operator-run typed-AIR Poseidon benchmark capture",
     "typed_air_r006_capture.py":
         "R-006 paired CPU/Metal scaling capture and replay workflow",
+    "typed_air_v009_receipt.py":
+        "operator-minted clean immutable typed-AIR release receipt",
     "typed_air_work_site_authority.py":
         "typed prover-work site inventory authority validator",
     "typed_air_zig_lane.py":
