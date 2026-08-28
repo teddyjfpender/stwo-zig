@@ -55,11 +55,11 @@
     "generated/sail/definitions/execute_ITYPE.lean": "1d014d14c56ab01dc511fc36c8c6ee4dea56a63708257b8a5df451e7c6f6b17d",
     "generated/sail/definitions/execute_RTYPE.lean": "01359d58d0543ce431b7315caf9961ea80329de2f017f2ea6cb205a7149cd628",
     "generated/sail/definitions/execute_UTYPE.lean": "f746995b8c903140529bb742379c295bee8d95a02de2d730990dc77fe1cacf1c",
-    "generated/sail/generated-monad-bridge-receipt-v1.json": "fa21d828d19b6b542ace49807655d4f9080b12f033564bcac50f9135253bbd8e",
+    "generated/sail/generated-monad-bridge-receipt-v1.json": "ff01dc349e22437e4d7e24df4146b5b115e532691ddc8a46b49dc41b05e56f50",
     "generated/sail/rv32im-zkvm-v1.json": "5c31e516a205d693386564242d623dbaf4dc1566573f9ecfdcb026611c8fc2c1",
     "generated/sail/translation-receipt-v1.json": "ae7ba363506f1f96d5cb4eeeb4b2b123f02db8efdf5e19f1a98682ea70c2fcef"
   },
-  "canonical_digest": "e23a6ed8a38561437ac2424db72c8d0b13fc3a41d9a48e36a7d1c9b2344fe949",
+  "canonical_digest": "2bd5bd6c0c8f06ff535f62bdcd6ddca4d1943f7399e942dcff4ec5b33a55d895",
   "claim_boundary": {
     "addi_air_to_normalized_composition": true,
     "generated_sail_ast_translation_receipt": true,
@@ -1818,7 +1818,7 @@
     },
     "generated_monad_bridge_receipt": {
       "artifact": "generated/sail/generated-monad-bridge-receipt-v1.json",
-      "canonical_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
+      "canonical_digest": "5bdd02edda2a284eaa2876b64f237734b3571478cb0898c927484cd8ca211b49",
       "claim_boundary": {
         "constructive_row_local_execution": true,
         "fetch_interrupt_trap_and_step_loop_framing": true,
