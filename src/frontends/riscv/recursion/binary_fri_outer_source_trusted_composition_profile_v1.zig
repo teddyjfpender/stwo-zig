@@ -390,6 +390,7 @@ pub const AuthenticatedRecorderVerifierInputBoundaryDescriptor = struct {
     capture_sample_counts: [CHILD_COUNT]u32,
     recorder_sample_counts: [CHILD_COUNT]u32,
     zero_padding_item_counts: [CHILD_COUNT]u32,
+    inactive_claim_item_counts: [CHILD_COUNT]u32,
     poseidon_partial_claim_ranges: [CHILD_COUNT]PublicBoundaryIndexRange,
 
     pub fn validate(
@@ -401,11 +402,13 @@ pub const AuthenticatedRecorderVerifierInputBoundaryDescriptor = struct {
             self.capture_sample_counts,
             self.recorder_sample_counts,
             self.zero_padding_item_counts,
+            self.inactive_claim_item_counts,
             self.poseidon_partial_claim_ranges,
-        ) |capture_count, recorder_count, padding_count, partial_range| {
+        ) |capture_count, recorder_count, padding_count, inactive_count, partial_range| {
             if (capture_count > recorder_count or
                 recorder_count - capture_count != padding_count or
                 partial_range.end < partial_range.start or
+                inactive_count > partial_range.start or
                 partial_range.end - partial_range.start !=
                     partial_claim_count)
             {
@@ -413,7 +416,7 @@ pub const AuthenticatedRecorderVerifierInputBoundaryDescriptor = struct {
             }
             const item_count = std.math.add(
                 u32,
-                padding_count,
+                try std.math.add(u32, padding_count, inactive_count),
                 partial_range.end - partial_range.start,
             ) catch return error.ArithmeticOverflow;
             expected_tuple_count = std.math.add(

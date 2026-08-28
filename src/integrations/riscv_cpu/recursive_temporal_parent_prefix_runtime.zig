@@ -149,7 +149,7 @@ pub const Row35AuthorityV1 = struct {
     }
 };
 
-const OwnedTreeV3 = struct {
+pub const OwnedTreeV3 = struct {
     allocator: std.mem.Allocator,
     tree_index: u8,
     padding: [7]u8 = .{ 0, 0, 0, 0, 0, 0, 0 },
@@ -157,7 +157,7 @@ const OwnedTreeV3 = struct {
     columns: [][]M31,
     cells: []M31,
 
-    fn init(
+    pub fn init(
         allocator: std.mem.Allocator,
         layout: *const temporal_nonfri.TemporalPrefixCommitmentLayoutV3,
         tree: usize,
@@ -257,12 +257,12 @@ const OwnedTreeV3 = struct {
     }
 };
 
-const OwnedPrefixTreesV3 = struct {
+pub const OwnedPrefixTreesV3 = struct {
     tree0: OwnedTreeV3,
     tree1: OwnedTreeV3,
     tree2: OwnedTreeV3,
 
-    fn init(
+    pub fn init(
         allocator: std.mem.Allocator,
         layout: *const temporal_nonfri.TemporalPrefixCommitmentLayoutV3,
     ) !OwnedPrefixTreesV3 {
@@ -287,7 +287,7 @@ const OwnedPrefixTreesV3 = struct {
         return .{ .tree0 = tree0, .tree1 = tree1, .tree2 = tree2 };
     }
 
-    fn deinit(self: *OwnedPrefixTreesV3) void {
+    pub fn deinit(self: *OwnedPrefixTreesV3) void {
         self.tree2.deinit();
         self.tree1.deinit();
         self.tree0.deinit();

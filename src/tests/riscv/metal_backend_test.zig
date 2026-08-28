@@ -182,6 +182,11 @@ test "metal: AOT source matches every production RISC-V polynomial DAG" {
         for (lookup_entries.items) |*item| item.program.deinit();
         lookup_entries.deinit(std.testing.allocator);
     }
+    var lookup_v2_entries = std.ArrayList(codegen.lookup_v2.Entry).empty;
+    defer {
+        for (lookup_v2_entries.items) |*item| item.program.deinit();
+        lookup_v2_entries.deinit(std.testing.allocator);
+    }
     for (0..trace.N_FAMILIES) |family_index| {
         const family: trace.OpcodeFamily = @enumFromInt(family_index);
         if (!semantic_eval.isTraceCompatible(family)) continue;
@@ -193,11 +198,26 @@ test "metal: AOT source matches every production RISC-V polynomial DAG" {
             .program_id = (@as(u64, 2) << 32) | @as(u64, @intCast(family_index)),
             .program = try runtime_program.buildLookups(std.testing.allocator, family),
         });
+        var plan = try riscv.air.lookup_batch_execution.FamilyPlan.initNativeV1(
+            std.testing.allocator,
+            family,
+        );
+        defer plan.deinit();
+        var selected = try riscv.air.lookup_polynomial_program_v2.lowerSelected(
+            std.testing.allocator,
+            &plan,
+        );
+        errdefer selected.deinit();
+        try lookup_v2_entries.append(std.testing.allocator, .{
+            .authority = try selected.authority(),
+            .program = selected,
+        });
     }
     const source = try codegen.aot.generateLibrary(
         std.testing.allocator,
         base_entries.items,
         lookup_entries.items,
+        lookup_v2_entries.items,
     );
     defer std.testing.allocator.free(source);
 

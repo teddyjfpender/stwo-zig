@@ -15,6 +15,22 @@ const global_closure = recursion.binary_global_closure_outer_source;
 const manifest_mod = temporal_manifest;
 const PROVIDER_ROW: usize = 35;
 
+pub fn ensurePrefixBaseTrees(self: anytype) !void {
+    if (self.prefix.phase == .cold) _ = try self.prefix.fillBaseTrees();
+}
+
+pub fn requireManifest(
+    self: anytype,
+    active_manifest: *const manifest_mod.Manifest,
+) !void {
+    try self.validate();
+    if (active_manifest != &self.manifest_value and
+        !std.meta.eql(active_manifest.*, self.manifest_value))
+    {
+        return error.ManifestGeometryMismatch;
+    }
+}
+
 /// Test-build mutation fleet over the publication trust boundary. Each
 /// adversary recomputes the outer audit identity, proving rejection comes
 /// from source/closure authority rather than a stale checksum alone.

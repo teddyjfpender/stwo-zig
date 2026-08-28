@@ -7,6 +7,7 @@ pub fn Namespace(comptime context: type) type {
         const inactive = context.d_inactive;
         const leaf_authority = context.d_leaf_authority;
         const range_owner = context.d_range_owner;
+        const manifest_mod = context.d_manifest_mod;
         const schedule = context.d_schedule;
         const segment_public = context.d_segment_public;
         const statement_air = context.d_statement_air;
@@ -141,6 +142,9 @@ pub fn Namespace(comptime context: type) type {
                 .lane_frame_counts = lane_frame_counts,
                 .lane_word_counts = lane_word_counts,
                 .lane_payload_counts = lane_payload_counts,
+                .lane_claim_counts = [_]u32{
+                    @intCast(manifest_mod.COMPONENT_COUNT),
+                } ** temporal.CHILD_COUNT,
                 .child_replays = child_replays,
                 .rows = rows,
                 .operations = operations,

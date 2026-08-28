@@ -633,6 +633,9 @@ pub fn SourceForBoundary(
             pub const LEFT_RECURSION_VERIFIER_ID = vm_binary_fri_source.LEFT_RECURSION_VERIFIER_ID;
             pub const RIGHT_RECURSION_VERIFIER_ID = vm_binary_fri_source.RIGHT_RECURSION_VERIFIER_ID;
             pub const POSEIDON2_PARTIAL_COUNT = vm_binary_fri_source.POSEIDON2_PARTIAL_COUNT;
+            pub const PHYSICAL_CLAIM_COUNT: u32 = @intCast(
+                dimensions.claimed_sum_count,
+            );
             pub const PublicBoundaryEvidence = dependency_1.PublicBoundaryEvidence;
             pub const AuthenticatedRecorderVerifierInputBoundaryDescriptor = dependency_1.AuthenticatedRecorderVerifierInputBoundaryDescriptor;
             pub const AuthenticatedRecorderVerifierInputBoundaryEvidence = dependency_1.AuthenticatedRecorderVerifierInputBoundaryEvidence;

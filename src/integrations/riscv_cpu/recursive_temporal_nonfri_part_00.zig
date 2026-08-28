@@ -322,7 +322,11 @@ pub fn Namespace(comptime context: type) type {
         pub const PUBLIC_WIRE_BOUNDARY_TRANSCRIPT_DOMAIN: u32 = 0x5742_5632; // "WBV2"
         pub const TRANSCRIPT_REPLAY_ID_DOMAIN: u32 = 0x5452_5632; // "TRV2"
         pub const TRANSCRIPT_ROWS_FORMAT_VERSION: u16 = 2;
-        pub const TRANSCRIPT_ROWS_SCHEMA_VERSION: u16 = 1;
+        /// Schema 2 authenticates the per-lane interaction-claim count so the
+        /// same typed transcript rows admit both 39-claim SegmentV2 children
+        /// and 36-claim universal temporal parents without misclassifying the
+        /// following public wire, samples, or last-layer coefficients.
+        pub const TRANSCRIPT_ROWS_SCHEMA_VERSION: u16 = 2;
         pub const TRANSCRIPT_ROWS_AUTHORITY_DOMAIN =
             "stwo-zig/typed-air/recursive-temporal-transcript-rows/v2\x00";
         pub const TRANSCRIPT_MANIFEST_FORMAT_VERSION: u16 = 2;

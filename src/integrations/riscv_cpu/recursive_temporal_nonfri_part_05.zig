@@ -81,6 +81,10 @@ pub fn Namespace(comptime context: type) type {
             lane_frame_counts: [temporal.CHILD_COUNT]usize,
             lane_word_counts: [temporal.CHILD_COUNT]usize,
             lane_payload_counts: [temporal.CHILD_COUNT]usize,
+            /// Exact number of interaction claims mixed by each admitted
+            /// child transcript before its public-wire boundary. SegmentV2
+            /// uses 39; a universal temporal parent uses 36.
+            lane_claim_counts: [temporal.CHILD_COUNT]u32,
             child_replays: [temporal.CHILD_COUNT]TemporalChildTranscriptReplayV2,
             rows: []TranscriptAirRow,
             operations: []TranscriptControlRow,
@@ -143,6 +147,9 @@ pub fn Namespace(comptime context: type) type {
                 {
                     return error.InvalidTranscriptRecorder;
                 }
+                for (self.lane_claim_counts) |claim_count|
+                    if (claim_count == 0 or claim_count >= m31.Modulus)
+                        return error.InvalidTranscriptRecorder;
                 try requireDigest(self.pair_authority_id);
                 for (&self.child_replays) |*replay| try replay.validate();
                 try validateTranscriptRowsV2(self);
@@ -185,6 +192,9 @@ pub fn Namespace(comptime context: type) type {
                 ) or !std.meta.eql(
                     self.lane_payload_counts,
                     expected.lane_payload_counts,
+                ) or !std.meta.eql(
+                    self.lane_claim_counts,
+                    expected.lane_claim_counts,
                 ) or
                     !std.meta.eql(self.child_replays, expected.child_replays) or
                     !metaSlicesEql(TranscriptAirRow, self.rows, expected.rows) or
@@ -577,6 +587,7 @@ pub fn Namespace(comptime context: type) type {
                         const descriptor = try classifyTemporalPayloadFrame(
                             frame,
                             &classification,
+                            self.lane_claim_counts[lane],
                         );
                         for (0..frame.payload_word_count) |payload_index| {
                             const word_index = channel.RATE + payload_index;

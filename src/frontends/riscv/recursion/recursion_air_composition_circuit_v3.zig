@@ -127,6 +127,7 @@ pub const RecordedHeterogeneousCircuitV3 = shard_3.RecordedHeterogeneousCircuitV
 /// all hot row replays use borrowed symbolic inputs and separate denominator
 /// caches for the Segment and universal quotient geometries.
 pub const HeterogeneousSessionV3 = shard_3.HeterogeneousSessionV3;
+pub const takeSecureRecorderInput = shard_4.takeSecureRecorderInput;
 pub const reconstructSplitCompositionForLayout = shard_4.reconstructSplitCompositionForLayout;
 /// Strict, allocation-free claim assembler.  Every rejection occurs before
 /// the first destination write, including overlap and canonicity failures.

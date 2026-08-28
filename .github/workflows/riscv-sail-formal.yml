@@ -158,26 +158,29 @@ jobs:
             --sail-compiler "$RUNNER_TEMP/sail/bin/sail" \
             | tee "$RUNNER_TEMP/riscv-formal-tools-receipt.json"
 
+      # Build the repository theorem library before preparing the generated
+      # Sail bridge.  prepare-sail kernel-checks sources outside the Lake
+      # library which import RiscvRefinement.Memory through LEAN_PATH; a cold
+      # checkout therefore needs that olean closure before the bridge check.
+      # The pilot and receipt gates below re-run `lake build` through
+      # scripts/riscv_refinement.py, where this becomes an incremental no-op.
+      - name: Build every Lean theorem
+        run: |
+          set -euo pipefail
+          cd formal/riscv-refinement
+          lake build
+
       # Merges the repository's normative RV32IM overrides into the
       # generated base configuration, validates it with the freshly built
-      # pinned simulator (ISA string must be rv32im), and generates the Sail
-      # Lean theorem backend from that exact configuration.
+      # pinned simulator (ISA string must be rv32im), generates the Sail Lean
+      # theorem backend from that exact configuration, and kernel-checks the
+      # cross-project bridge against the theorem library built above.
       - name: Generate the exact RV32IM Sail theorem backend
         run: |
           set -euo pipefail
           python3 scripts/riscv_refinement.py prepare-sail \
             --sail-riscv-dir "$RUNNER_TOOL_CACHE/stwo-zig/riscv-formal/source/sail-riscv" \
             --sail-bin "$RUNNER_TEMP/sail/bin/sail"
-
-      # Warm the Lean build as its own step. The pilot and receipt gates
-      # below re-run `lake build` through scripts/riscv_refinement.py, which
-      # caps each subprocess at 600 s -- fine for the incremental no-op this
-      # step guarantees, fatal for a cold build of the whole proof tree.
-      - name: Build every Lean theorem
-        run: |
-          set -euo pipefail
-          cd formal/riscv-refinement
-          lake build
 
       # The Sail-bound 46-opcode FV-1/FV-2 publication gate, previously a
       # laptop-only command: fresh symbolic AIR export, byte-identical generated

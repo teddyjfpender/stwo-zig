@@ -22,6 +22,7 @@ pub const VerifiedPublicationV1 = struct {
     proof_id: channel.Digest,
     canonical_proof_sha_id: [32]u8,
     capture_id: channel.Digest,
+    transcript_id: channel.Digest,
     statement_words: recursion.span_statement.StatementWords,
     pair_authority_id: channel.Digest,
     context: suffix_mod.ContextReceiptV3,
@@ -60,6 +61,7 @@ pub const VerifiedPublicationV1 = struct {
         )) return error.InvalidPublication;
         try requireNativeDigest(self.proof_id);
         try requireNativeDigest(self.capture_id);
+        try requireNativeDigest(self.transcript_id);
         try requireNativeDigest(self.pair_authority_id);
         inline for (.{
             self.canonical_proof_sha_id,
@@ -96,6 +98,7 @@ pub fn identity(value: *const VerifiedPublicationV1) [32]u8 {
     hashNative(&hash, value.proof_id);
     hash.update(&value.canonical_proof_sha_id);
     hashNative(&hash, value.capture_id);
+    hashNative(&hash, value.transcript_id);
     for (value.statement_words) |word| hashInt(&hash, u32, word.toU32());
     hashNative(&hash, value.pair_authority_id);
     hash.update(&value.context.identity);

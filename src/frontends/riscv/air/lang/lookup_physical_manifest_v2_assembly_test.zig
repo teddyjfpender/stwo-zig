@@ -91,7 +91,7 @@ test "lookup polynomial v2: authenticated prover and verifier construction share
     }
 }
 
-test "lookup polynomial v2: failed admission is atomic and V1 stays the default" {
+test "lookup polynomial v2: failed admission is atomic and explicit V1 compatibility remains" {
     const allocator = std.testing.allocator;
     var manifest = subject.Manifest.native();
     var statement = fixture.canonicalStatement();

@@ -168,6 +168,7 @@ pub fn assertNativeCohortContract(comptime Cohort: type) void {
         "GeneratedInteractionsV1",
         "AuditedInteractionsV2",
         "VerifiedPublicationV1",
+        "VerifiedArtifactV1",
         "PAIR_AUTHENTICATION_POSEIDON_PERMUTATIONS",
         "init",
         "deinit",
@@ -254,6 +255,27 @@ pub fn rejectNativeTransactionOutputAlias(
     )) return error.TransactionOutputAlias;
 }
 
+pub fn rejectNativeArtifactTransactionOutputAlias(
+    comptime Publication: type,
+    comptime Artifact: type,
+    capture_out: *OuterProofCapture,
+    publication_out: *Publication,
+    artifact_out: *Artifact,
+) !void {
+    try rejectNativeTransactionOutputAlias(
+        Publication,
+        capture_out,
+        publication_out,
+    );
+    if (memoryOverlaps(
+        std.mem.asBytes(capture_out),
+        std.mem.asBytes(artifact_out),
+    ) or memoryOverlaps(
+        std.mem.asBytes(publication_out),
+        std.mem.asBytes(artifact_out),
+    )) return error.TransactionOutputAlias;
+}
+
 pub fn rejectV3TransactionOutputAlias(
     capture_out: *OuterProofCapture,
     publication_out: *VerifiedBinaryClosurePublicationV2,
@@ -300,6 +322,7 @@ pub fn temporalVerifierEvidenceIdentity(
     for (binding.proof_id) |word| evidenceHashInt(&hash, u32, word);
     hash.update(&binding.canonical_proof_sha_id);
     for (binding.capture_id) |word| evidenceHashInt(&hash, u32, word);
+    for (binding.transcript_id) |word| evidenceHashInt(&hash, u32, word);
     hash.update(&binding.cohort_authority_sha_id);
     hash.update(&binding.manifest_sha_id);
     hash.update(&binding.claims_sha_id);

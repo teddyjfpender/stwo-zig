@@ -667,7 +667,7 @@ pub fn runTemporalPairGateWithHook(
 /// mint a prepared leaf: external bytes are shape-preflighted before decode,
 /// the decoded proof is independently verified with capture, and the capture
 /// moves only after the recursive owner has validated all derived authority.
-fn prepareTemporalNativeLeaf(
+pub fn prepareTemporalNativeLeaf(
     allocator: std.mem.Allocator,
     result: *const runner.SegmentResult,
     statement: span.SpanStatement,
@@ -792,7 +792,7 @@ const NoOpHook = struct {
     ) !void {}
 };
 
-fn leafStatement(
+pub fn leafStatement(
     job: span.JobContext,
     result: *const runner.SegmentResult,
     entry: span.MachineState,
@@ -817,7 +817,7 @@ fn leafStatement(
     );
 }
 
-fn machineState(
+pub fn machineState(
     cpu: runner.Cpu,
     rw_memory: span.Digest,
     public_io_state: span.Digest,
@@ -835,11 +835,11 @@ fn encode(
     return words;
 }
 
-fn digest(label: []const u8) span.Digest {
+pub fn digest(label: []const u8) span.Digest {
     return channel.hashBytes(label, 0x5632_504f); // "V2PO"
 }
 
-fn scalarDigest(value: u32) span.Digest {
+pub fn scalarDigest(value: u32) span.Digest {
     var result: span.Digest = .{0} ** channel.RATE;
     result[0] = value;
     return result;

@@ -57,6 +57,28 @@ pub fn buildTemporalPair() [temporal_pair_elf_size]u8 {
     );
 }
 
+/// Four adjacent single-instruction segments for the first multi-level
+/// temporal aggregation gate.  A terminal self-loop remains outside all four
+/// executed spans.
+pub const temporal_quad_instructions = [_]u32{
+    0x0010_00B7, // LUI x1, 0x100.
+    0x0010_0137, // LUI x2, 0x100.
+    0x0010_01B7, // LUI x3, 0x100.
+    0x0010_0237, // LUI x4, 0x100.
+    0x0000_006F, // JAL x0, 0: proof-bearing completion.
+    0x0000_0013, // Unreachable NOP; keeps data clear of the terminal word.
+};
+
+pub const temporal_quad_elf_size: usize =
+    imageSize(temporal_quad_instructions.len);
+
+pub fn buildTemporalQuad() [temporal_quad_elf_size]u8 {
+    return buildProgram(
+        temporal_quad_instructions.len,
+        &temporal_quad_instructions,
+    );
+}
+
 /// A straight-line production witness containing at least one retirement from
 /// every canonical RV32IM opcode family. The final self-loop is observed but
 /// not retired, matching recursive segment completion semantics.

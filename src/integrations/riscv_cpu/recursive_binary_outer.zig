@@ -38,6 +38,8 @@ const temporal_pair_authority = @import("recursive_temporal_pair_authority_v2.zi
 const contract = @import("recursive_binary_outer_contract.zig");
 const legacy_engine = @import("recursive_binary_outer_legacy_engine.zig");
 const native_engine = @import("recursive_binary_outer_native_engine.zig");
+const native_core_engine =
+    @import("recursive_binary_outer_native_core_engine.zig");
 const outer_support = @import("recursive_binary_outer_support.zig");
 
 const M31 = stwo_core.fields.m31.M31;
@@ -124,6 +126,8 @@ pub const proveAndVerifyCurrent = legacy_engine.proveAndVerifyCurrent;
 pub const EngineKernel = legacy_engine.EngineKernel;
 pub const EngineKernelForManifest = legacy_engine.EngineKernelForManifest;
 pub const NativeEngineKernelForManifest = native_engine.NativeEngineKernelForManifest;
+pub const NativeCoreEngineKernelForManifest =
+    native_core_engine.NativeCoreEngineKernelForManifest;
 
 const TemporalVerifierSuccessEvidenceStorageV1 =
     contract.TemporalVerifierSuccessEvidenceStorageV1;
@@ -166,6 +170,7 @@ test "temporal verifier success capability rejects mutation and forged storage" 
         .proof_id = @splat(1),
         .canonical_proof_sha_id = @splat(2),
         .capture_id = @splat(3),
+        .transcript_id = @splat(10),
         .cohort_authority_sha_id = @splat(4),
         .manifest_sha_id = @splat(5),
         .claims_sha_id = @splat(6),

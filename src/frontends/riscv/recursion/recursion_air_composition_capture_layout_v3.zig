@@ -65,6 +65,7 @@ pub const Error = std.mem.Allocator.Error || segment_manifest_mod.Error ||
 pub const ManifestFamily = enum(u8) {
     universal_v1 = 1,
     segment_v2 = 2,
+    temporal_parent_v3 = 3,
 };
 
 /// Owned, verifier-derived offset table.  `offsets[tree][column]` indexes the
@@ -125,6 +126,29 @@ pub const CaptureLayoutV3 = struct {
         );
     }
 
+    /// Manifest-parametric binary layout for a versioned recursive program
+    /// which retains the universal 36-row ABI but has its own authenticated
+    /// placement semantics. The family tag is part of the layout identity;
+    /// callers cannot relabel this value as frozen universal V1.
+    pub fn initAuthenticatedBinary(
+        allocator: std.mem.Allocator,
+        comptime family: ManifestFamily,
+        manifest: anytype,
+        capture: anytype,
+    ) !CaptureLayoutV3 {
+        if (family == .universal_v1 or family == .segment_v2)
+            return error.InvalidProofKind;
+        try manifest.validate();
+        return initForManifest(
+            allocator,
+            .binary_node,
+            family,
+            manifest,
+            [_]u8{0} ** 32,
+            capture,
+        );
+    }
+
     pub fn deinit(self: *CaptureLayoutV3) void {
         for (self.offsets) |tree| self.allocator.free(tree);
         self.* = undefined;
@@ -161,6 +185,25 @@ pub const CaptureLayoutV3 = struct {
         if (self.proof_kind != .binary_node or
             self.manifest_family != .universal_v1 or
             self.component_count != universal_roster.COMPONENT_COUNT or
+            !std.mem.eql(u8, &self.manifest_seal, &manifest.seal) or
+            !allZero(&self.catalog_identity))
+        {
+            return error.ManifestAuthorityMismatch;
+        }
+    }
+
+    pub fn validateAgainstAuthenticatedBinary(
+        self: *const CaptureLayoutV3,
+        comptime family: ManifestFamily,
+        manifest: anytype,
+    ) !void {
+        if (family == .universal_v1 or family == .segment_v2)
+            return error.InvalidProofKind;
+        try manifest.validate();
+        try self.validateSelfConsistency();
+        if (self.proof_kind != .binary_node or
+            self.manifest_family != family or
+            self.component_count != manifest.roster_count or
             !std.mem.eql(u8, &self.manifest_seal, &manifest.seal) or
             !allZero(&self.catalog_identity))
         {

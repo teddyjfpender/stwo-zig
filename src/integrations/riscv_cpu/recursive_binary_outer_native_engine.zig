@@ -15,6 +15,10 @@ const segment_artifact = @import("recursive_segment_v2_verified_artifact.zig");
 const temporal_child_authority = @import("recursive_segment_v2_temporal_child_authority.zig");
 const temporal_pair_authority = @import("recursive_temporal_pair_authority_v2.zig");
 const fri_outer_diagnostic = @import("recursive_fri_outer.zig");
+const temporal_admission = @import("recursive_temporal_parent_recursive_admission_v1.zig");
+const temporal_artifact = @import("recursive_temporal_parent_verified_artifact_v1.zig");
+const temporal_transcript_prefix =
+    @import("recursive_temporal_parent_transcript_prefix_v1.zig");
 
 const M31 = stwo_core.fields.m31.M31;
 const recursion = frontend.recursion;
@@ -48,6 +52,8 @@ const assertNativeCohortContract = support.assertNativeCohortContract;
 const assertManifestContract = support.assertManifestContract;
 const moveOwnedForVerifier = support.moveOwnedForVerifier;
 const rejectNativeTransactionOutputAlias = support.rejectNativeTransactionOutputAlias;
+const rejectNativeArtifactTransactionOutputAlias =
+    support.rejectNativeArtifactTransactionOutputAlias;
 const rejectV3TransactionOutputAlias = support.rejectV3TransactionOutputAlias;
 const nativeDigestCanonicalNonzero = support.nativeDigestCanonicalNonzero;
 const commitVerifierTreeForManifest = support.commitVerifierTreeForManifest;
@@ -65,6 +71,7 @@ pub fn NativeEngineKernelForManifest(
         const ManifestContract = manifest_contract;
         const TreeStorage = TreeStorageForManifest(ManifestContract);
         pub const VerifiedPublicationV1 = Cohort.VerifiedPublicationV1;
+        pub const VerifiedArtifactV1 = Cohort.VerifiedArtifactV1;
 
         pub fn proveAndVerify(
             allocator: std.mem.Allocator,
@@ -87,6 +94,66 @@ pub fn NativeEngineKernelForManifest(
             execution: ExecutionOptions,
             capture_out: *OuterProofCapture,
             publication_out: *VerifiedPublicationV1,
+        ) !Receipt {
+            return runTransaction(
+                allocator,
+                authority_inputs,
+                execution,
+                capture_out,
+                publication_out,
+                null,
+            );
+        }
+
+        pub fn proveAndVerifyWithArtifact(
+            allocator: std.mem.Allocator,
+            authority_inputs: Cohort.AuthorityInputs,
+            capture_out: *OuterProofCapture,
+            publication_out: *VerifiedPublicationV1,
+            artifact_out: *VerifiedArtifactV1,
+        ) !Receipt {
+            return proveAndVerifyWithExecutionAndArtifact(
+                allocator,
+                authority_inputs,
+                .{},
+                capture_out,
+                publication_out,
+                artifact_out,
+            );
+        }
+
+        pub fn proveAndVerifyWithExecutionAndArtifact(
+            allocator: std.mem.Allocator,
+            authority_inputs: Cohort.AuthorityInputs,
+            execution: ExecutionOptions,
+            capture_out: *OuterProofCapture,
+            publication_out: *VerifiedPublicationV1,
+            artifact_out: *VerifiedArtifactV1,
+        ) !Receipt {
+            try rejectNativeArtifactTransactionOutputAlias(
+                VerifiedPublicationV1,
+                VerifiedArtifactV1,
+                capture_out,
+                publication_out,
+                artifact_out,
+            );
+            return runTransaction(
+                allocator,
+                authority_inputs,
+                execution,
+                capture_out,
+                publication_out,
+                artifact_out,
+            );
+        }
+
+        fn runTransaction(
+            allocator: std.mem.Allocator,
+            authority_inputs: Cohort.AuthorityInputs,
+            execution: ExecutionOptions,
+            capture_out: *OuterProofCapture,
+            publication_out: *VerifiedPublicationV1,
+            artifact_out: ?*VerifiedArtifactV1,
         ) !Receipt {
             comptime @import("stwo_prover_api").assertProverEngine(Engine);
             try rejectNativeTransactionOutputAlias(
@@ -141,6 +208,7 @@ pub fn NativeEngineKernelForManifest(
                 proof_identity,
                 capture_out,
                 publication_out,
+                artifact_out,
             );
             std.debug.assert(!proof_owned);
             const canonical_proof_bytes: usize = proof_identity.byte_count;
@@ -257,13 +325,17 @@ pub fn NativeEngineKernelForManifest(
             );
             var claims = try cohort.claimVector(&generated);
             try claims.validate(manifest);
-            try cohort.auditGlobalClosure(
+            const audited = try cohort.auditGlobalClosureV2(
                 &generated,
                 &claims,
                 &relations,
                 &provider_relations,
             );
             try claims.mixInteractionClaims(manifest, &channel);
+            try temporal_transcript_prefix.mixWireBoundaryEvidence(
+                &channel,
+                audited.wire_boundary,
+            );
             try interaction.commit(&scheme, &channel);
 
             var components = try cohort.initComponents(
@@ -312,6 +384,7 @@ pub fn NativeEngineKernelForManifest(
             proof_identity: verified_publication.CanonicalProofIdentityV1,
             capture_out: *OuterProofCapture,
             publication_out: *VerifiedPublicationV1,
+            artifact_out: ?*VerifiedArtifactV1,
         ) !NativeVerifierReceipt {
             if (!proof_owned.*) return error.ProofAlreadyConsumed;
             const manifest = cohort.manifest();
@@ -373,6 +446,10 @@ pub fn NativeEngineKernelForManifest(
                 &provider_relations,
             );
             try claims.mixInteractionClaims(manifest, &channel);
+            try temporal_transcript_prefix.mixWireBoundaryEvidence(
+                &channel,
+                audited.wire_boundary,
+            );
             try commitVerifierTreeForManifest(
                 ManifestContract,
                 allocator,
@@ -382,6 +459,11 @@ pub fn NativeEngineKernelForManifest(
                 commitments[ManifestContract.INTERACTION_TREE_INDEX],
                 &channel,
             );
+            const pre_core_channel =
+                recursion.outer_parent_child_admission.ChannelCheckpointV1{
+                    .digest = channel.digestWords(),
+                    .draw_count = channel.n_draws,
+                };
 
             var components = try cohort.initComponents(
                 &generated,
@@ -421,6 +503,24 @@ pub fn NativeEngineKernelForManifest(
                 &provider_relations,
             );
 
+            const context = cohort.suffix.contextReceipt();
+            const recursive_admission = try temporal_admission.prepare(
+                manifest,
+                &cohort.prefix.statement_rows.parent_words,
+                context.parent_vk_id,
+                &claims,
+                &audited,
+                pre_core_channel,
+                &capture,
+            );
+            const transcript_prefix = try temporal_transcript_prefix.PrefixV1.init(
+                manifest,
+                &relations,
+                audited.suffix.generated.claims.poseidon2_partials,
+                audited.wire_boundary,
+                audited.verifier_input_boundary,
+            );
+
             if (comptime @import("builtin").is_test and
                 @hasDecl(Cohort, "runPublicationMutationFleetForTest"))
             {
@@ -439,8 +539,13 @@ pub fn NativeEngineKernelForManifest(
             const evidence_binding = try cohort.verifierSuccessBinding(
                 proof_identity,
                 &capture,
+                recursion.protocol.transcriptId(
+                    channel.digestWords(),
+                    channel.n_draws,
+                ),
                 &claims,
                 &audited,
+                recursive_admission.identity,
             );
             var evidence_storage: TemporalVerifierSuccessEvidenceStorageV1 =
                 undefined;
@@ -458,11 +563,23 @@ pub fn NativeEngineKernelForManifest(
                     &relations,
                     &provider_relations,
                 );
+            const staged_artifact = if (artifact_out != null)
+                try temporal_artifact.mintFromSuccessfulVerifier(
+                    evidence,
+                    &staged_publication,
+                    &recursive_admission,
+                    &transcript_prefix,
+                    &capture,
+                )
+            else
+                null;
             const publication_ns = publication_timer.read();
 
-            // The publication and capture are both complete. No fallible
-            // operation is permitted after these two caller writes.
+            // Every requested output is complete. No fallible operation is
+            // permitted after the first caller write.
             publication_out.* = staged_publication;
+            if (artifact_out) |destination|
+                destination.* = staged_artifact.?;
             capture_out.* = capture;
             return .{
                 .publication_ns = publication_ns,

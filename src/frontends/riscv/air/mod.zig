@@ -23,6 +23,9 @@ pub const logup = @import("logup.zig");
 pub const lookups = @import("lookups/mod.zig");
 pub const lookup_physical_manifest_v2 =
     @import("lang/lookup_physical_manifest_v2.zig");
+pub const lookup_batch_execution = @import("lang/lookup_batch_execution.zig");
+pub const lookup_polynomial_program_v2 =
+    @import("lang/lookup_polynomial_program_v2.zig");
 pub const memory_commitment = @import("memory_commitment/mod.zig");
 pub const typed_poseidon2_authority = @import("lang/typed_poseidon2_authority.zig");
 pub const memory_logup = @import("memory_logup.zig");

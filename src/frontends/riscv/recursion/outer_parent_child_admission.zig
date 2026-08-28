@@ -85,6 +85,11 @@ pub const PairChildInputsV1 = shard_0.PairChildInputsV1;
 /// `capture`. Consumers compare against that published value; they must not
 /// call this function to bless untrusted input themselves.
 pub const deriveVerifierSeal = shard_2.deriveVerifierSeal;
+/// Replays and validates the complete verifier-owned receipt/capture pair,
+/// returning the exact runtime geometry which selects the next-layer fixed
+/// wire.  This is an inspection boundary only; callers still need the
+/// verifier-published seal when admitting bytes.
+pub const deriveAdmission = shard_2.deriveAdmission;
 /// Validates first, publishes the caller-owned wire once, and derives the
 /// exact pair-child proof identity from its canonical encoding. `destination`
 /// remains byte-for-byte unchanged on every error.
@@ -126,6 +131,11 @@ pub const runtimeCanonicalByteCount = shard_2.runtimeCanonicalByteCount;
 /// caller-authored capture fields never become proof authority merely because
 /// they can be streamed through the hash.
 pub const proofIdRuntime = shard_2.proofIdRuntime;
+/// Populates an already-selected fixed wire from a previously validated
+/// receipt/capture pair.  Admission remains the authority boundary; this
+/// helper is exposed for recursive owners which retain that admitted seal and
+/// need a typed, pointer-free wire for the next proof layer.
+pub const populatePayload = shard_2.populatePayload;
 pub const serializedByteCount = shard_0.serializedByteCount;
 pub const serializedByteCountRuntime = shard_0.serializedByteCountRuntime;
 /// Validates the only mask-point layouts emitted by the admitted outer AIRs.

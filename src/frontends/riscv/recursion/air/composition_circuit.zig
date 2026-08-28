@@ -62,6 +62,7 @@ pub const computeReferenceDigest = shard_0.computeReferenceDigest;
 pub const computeScheduleDigest = shard_1.computeScheduleDigest;
 pub const validateCompiledRows = shard_1.validateCompiledRows;
 pub const validateRow = shard_1.validateRow;
+pub const validateRecursionBindings = shard_0.validateRecursionBindings;
 pub const vmInputCount = shard_0.vmInputCount;
 pub const recursionInputCount = shard_0.recursionInputCount;
 pub const expectedVmSource = shard_0.expectedVmSource;

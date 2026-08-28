@@ -9,6 +9,8 @@ pub const QM31 = stwo_core.fields.qm31.QM31;
 pub const PcsConfig = stwo_core.pcs.PcsConfig;
 pub const permutation = @import("../air/memory_commitment/poseidon2.zig");
 pub const opcode_interaction = @import("../air/lookups/opcode_interaction.zig");
+pub const lookup_physical_v2 =
+    @import("../air/lang/lookup_physical_manifest_v2.zig");
 pub const public_data_v2 = @import("../air/public_data_v2.zig");
 pub const relation_challenges = @import("../air/relation_challenges.zig");
 pub const statement_v1 = @import("../air/statement.zig");
@@ -79,6 +81,10 @@ pub const Kind = enum(u8) {
     last_layer_coefficients,
     pcs_pow,
     query_draw,
+    lookup_activation_header,
+    lookup_manifest_identity,
+    lookup_statement_identity,
+    lookup_activation_identity,
 };
 
 pub const Effect = enum(u8) { mix, draw, pow };
@@ -112,6 +118,11 @@ pub const Instruction = struct {
             .statement_header => 8,
             .statement_wire_id => 2 * RATE,
             .statement_words => @intCast(self.args[0]),
+            .lookup_activation_header => 14,
+            .lookup_manifest_identity,
+            .lookup_statement_identity,
+            .lookup_activation_identity,
+            => 16,
             .trace_commitment, .fri_commitment => RATE,
             .main_log_size,
             .interaction_pow,
@@ -142,6 +153,8 @@ pub fn buildInstructions(
     wire_word_count: u32,
     component_descs: []const statement_v1.FamilyComponentDesc,
     infra_descs: []const statement_v1.InfraComponentDesc,
+    lookup_activation: ?lookup_physical_v2.AuthenticatedStatement,
+    lookup_manifest: ?*const lookup_physical_v2.Manifest,
 ) Error!void {
     var core: statement_v1.RiscVStatement = undefined;
     core.n_components = @intCast(component_descs.len);
@@ -149,7 +162,13 @@ pub fn buildInstructions(
     core.n_infra = @intCast(infra_descs.len);
     @memcpy(core.infra_descs[0..infra_descs.len], infra_descs);
     const main_claim = core.canonicalMainClaim();
-    const interaction_log_count = try interactionLogCount(component_descs, infra_descs);
+    const interaction_log_count = if (lookup_activation) |activation|
+        try addU32(
+            activation.opcode_interaction_columns,
+            try infraInteractionLogCount(infra_descs),
+        )
+    else
+        try interactionLogCount(component_descs, infra_descs);
     const pcs_felt_count: u32 = if (pcs_config.fri_config.fold_step !=
         stwo_core.fri.FOLD_STEP or pcs_config.lifting_log_size != null) 2 else 1;
 
@@ -167,6 +186,17 @@ pub fn buildInstructions(
                 try appendInstruction(allocator, destination, 1, &sub_index, .statement_words, .{
                     wire_word_count, 0, 0, 0,
                 });
+                if (lookup_activation != null) {
+                    // Lookup activation is part of the authenticated statement
+                    // step, immediately following its canonical words.  Giving
+                    // these frames the PCS sequence would split one PCS
+                    // operation around sequence 1 and consume the same
+                    // recursion-step tuple twice.
+                    try appendInstruction(allocator, destination, 1, &sub_index, .lookup_activation_header, .{0} ** 4);
+                    try appendInstruction(allocator, destination, 1, &sub_index, .lookup_manifest_identity, .{0} ** 4);
+                    try appendInstruction(allocator, destination, 1, &sub_index, .lookup_statement_identity, .{0} ** 4);
+                    try appendInstruction(allocator, destination, 1, &sub_index, .lookup_activation_identity, .{0} ** 4);
+                }
             },
             .absorb_trace_commitment => |item| try appendInstruction(
                 allocator,
@@ -231,7 +261,11 @@ pub fn buildInstructions(
                 });
                 var log_index: u32 = 0;
                 for (component_descs) |descriptor| {
-                    for (0..opcode_interaction.nColumns(descriptor.family)) |_| {
+                    const column_count = if (lookup_manifest) |manifest|
+                        manifest.entryForFamily(descriptor.family).interaction_column_count
+                    else
+                        opcode_interaction.nColumns(descriptor.family);
+                    for (0..column_count) |_| {
                         try appendInstruction(allocator, destination, sequence, &sub_index, .interaction_log_size, .{
                             log_index, descriptor.log_size, 0, 0,
                         });
@@ -324,6 +358,19 @@ pub fn buildInstructions(
             else => {},
         }
     }
+}
+
+fn infraInteractionLogCount(
+    infra_descs: []const statement_v1.InfraComponentDesc,
+) Error!u32 {
+    var result: u64 = 0;
+    for (infra_descs) |descriptor|
+        result += statement_v1.nInteractionColsForInfra(descriptor.kind);
+    return std.math.cast(u32, result) orelse error.ArithmeticOverflow;
+}
+
+fn addU32(left: u32, right: u32) Error!u32 {
+    return std.math.add(u32, left, right) catch error.ArithmeticOverflow;
 }
 
 pub fn appendInstruction(

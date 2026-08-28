@@ -314,6 +314,51 @@ pub fn add(ctx: anytype) void {
         &.{temporal_parent_real_proof_name},
         "Authenticated temporal parent proof identity guard",
     ));
+    const temporal_multilevel_real_proof_root = support.createHarnessModule(
+        b,
+        "recursive_temporal_multilevel_real_proof_test.zig",
+        target,
+        optimize,
+        core,
+        cpu_backend,
+        frontend,
+        integration,
+    );
+    temporal_multilevel_real_proof_root.addImport(
+        "stwo_prover_api",
+        prover_api,
+    );
+    temporal_multilevel_real_proof_root.addImport(
+        "stwo_prover_engine",
+        prover,
+    );
+    temporal_multilevel_real_proof_root.addImport(
+        "interop_postcard",
+        postcard,
+    );
+    const temporal_multilevel_real_proof_name =
+        "real four-leaf temporal tree authenticates two verified parents";
+    const temporal_multilevel_real_proof_compile = b.addTest(.{
+        .root_module = temporal_multilevel_real_proof_root,
+        .filters = &.{temporal_multilevel_real_proof_name},
+    });
+    b.step(
+        "check-recursive-temporal-multilevel-real-proof",
+        "Compile the authenticated four-leaf temporal aggregation gate",
+    ).dependOn(&temporal_multilevel_real_proof_compile.step);
+    const temporal_multilevel_real_proof_tests = b.addRunArtifact(
+        temporal_multilevel_real_proof_compile,
+    );
+    temporal_multilevel_real_proof_tests.has_side_effects = true;
+    b.step(
+        "test-recursive-temporal-multilevel-real-proof",
+        "Verify two temporal parents and authenticate their height-2 root",
+    ).dependOn(support.ProofTestGuard.add(
+        b,
+        temporal_multilevel_real_proof_tests,
+        &.{temporal_multilevel_real_proof_name},
+        "Authenticated multi-level temporal identity guard",
+    ));
     const temporal_parent_real_runner_root = support.createHarnessModule(
         b,
         "recursive_temporal_parent_real_proof_runner.zig",

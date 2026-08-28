@@ -2,8 +2,8 @@
 //! the append-only variable-partition lookup-polynomial V2 authority.
 //!
 //! This module deliberately does not install a backend capability or change a
-//! proof layout. It creates the exact artifact that a later versioned physical
-//! manifest can pin, while V1 remains the only production consumer.
+//! proof layout. It creates the exact artifact pinned by the production V2
+//! physical manifest; V1 remains available only for explicit compatibility.
 
 const std = @import("std");
 const prover_component = @import("stwo_prover_engine").air.component_prover;

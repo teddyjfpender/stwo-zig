@@ -1,7 +1,7 @@
 //! Versioned physical authority for degree-selected opcode lookups.
 //!
-//! V1 remains the default proof layout. This append-only V2 artifact pins the
-//! complete seventeen-family cohort, including typed-component identity,
+//! This V2 artifact pins the default seventeen-family cohort, including
+//! typed-component identity,
 //! polynomial authority, selected singleton/pair ranges, claim placement, and
 //! physical tree offsets. Production setup consumes only this fixed record;
 //! rebuilding a symbolic program or running the planner is an audit operation.

@@ -11,6 +11,7 @@ const FORMAT_VERSION = dependency_0.FORMAT_VERSION;
 const HashFrame = dependency_0.HashFrame;
 const IdentityHasher = dependency_0.IdentityHasher;
 const Instruction = dependency_0.Instruction;
+const lookup_physical_v2 = dependency_0.lookup_physical_v2;
 const M31 = dependency_0.M31;
 const PROGRAM_ID_DOMAIN = dependency_0.PROGRAM_ID_DOMAIN;
 const PcsConfig = dependency_0.PcsConfig;
@@ -45,6 +46,7 @@ pub const Program = struct {
     statement_authority_id: Digest,
     wire_word_count: u32,
     pcs_config: PcsConfig,
+    lookup_activation: ?lookup_physical_v2.AuthenticatedStatement = null,
     instructions: []Instruction,
     identity: Digest,
 
@@ -55,6 +57,47 @@ pub const Program = struct {
         data: *const public_data_v2.PublicDataV2,
         component_descs: []const statement_v1.FamilyComponentDesc,
         infra_descs: []const statement_v1.InfraComponentDesc,
+    ) Error!Program {
+        return initForLookupLayout(
+            allocator,
+            plan,
+            pcs_config,
+            data,
+            component_descs,
+            infra_descs,
+            false,
+        );
+    }
+
+    /// Exact default SegmentV2 transcript, including its four authenticated
+    /// physical-lookup V2 mixes and selected Tree-2 column geometry.
+    pub fn initAuthenticatedLookupV2(
+        allocator: std.mem.Allocator,
+        plan: *const schedule.Plan,
+        pcs_config: PcsConfig,
+        data: *const public_data_v2.PublicDataV2,
+        component_descs: []const statement_v1.FamilyComponentDesc,
+        infra_descs: []const statement_v1.InfraComponentDesc,
+    ) Error!Program {
+        return initForLookupLayout(
+            allocator,
+            plan,
+            pcs_config,
+            data,
+            component_descs,
+            infra_descs,
+            true,
+        );
+    }
+
+    fn initForLookupLayout(
+        allocator: std.mem.Allocator,
+        plan: *const schedule.Plan,
+        pcs_config: PcsConfig,
+        data: *const public_data_v2.PublicDataV2,
+        component_descs: []const statement_v1.FamilyComponentDesc,
+        infra_descs: []const statement_v1.InfraComponentDesc,
+        authenticated_lookup_v2: bool,
     ) Error!Program {
         try plan.validate();
         try data.validate();
@@ -73,6 +116,13 @@ pub const Program = struct {
             component_descs,
             infra_descs,
         );
+        var lookup_manifest = lookup_physical_v2.Manifest.native();
+        const lookup_activation = if (authenticated_lookup_v2)
+            try lookupActivation(component_descs, &lookup_manifest)
+        else
+            null;
+        if (authenticated_lookup_v2)
+            lookup_manifest.validate() catch return error.ProgramShapeMismatch;
         var instructions: std.ArrayList(Instruction) = .empty;
         errdefer instructions.deinit(allocator);
         try buildInstructions(
@@ -83,6 +133,8 @@ pub const Program = struct {
             wire_word_count,
             component_descs,
             infra_descs,
+            lookup_activation,
+            if (authenticated_lookup_v2) &lookup_manifest else null,
         );
         const owned = try instructions.toOwnedSlice(allocator);
         errdefer allocator.free(owned);
@@ -93,6 +145,7 @@ pub const Program = struct {
             .statement_authority_id = statement_authority_id,
             .wire_word_count = wire_word_count,
             .pcs_config = pcs_config,
+            .lookup_activation = lookup_activation,
             .instructions = owned,
             .identity = undefined,
         };
@@ -134,11 +187,17 @@ pub const Program = struct {
             component_descs,
             infra_descs,
         );
+        var lookup_manifest = lookup_physical_v2.Manifest.native();
+        const expected_lookup = if (self.lookup_activation != null)
+            try lookupActivation(component_descs, &lookup_manifest)
+        else
+            null;
         if (!std.meta.eql(self.plan_id, plan.authority_digest) or
             !std.meta.eql(self.wire_id, data.wireId()) or
             !std.meta.eql(self.statement_authority_id, authority_id) or
             self.wire_word_count != data.words().len or
             !pcsConfigEql(self.pcs_config, pcs_config) or
+            !std.meta.eql(self.lookup_activation, expected_lookup) or
             self.instructions.len == 0 or
             !std.meta.eql(self.identity, programIdentity(self)))
         {
@@ -384,6 +443,34 @@ pub fn writePayload(
         }),
         .statement_wire_id => writeU32s(destination, &program.wire_id),
         .statement_words => @memcpy(destination, data.words()),
+        .lookup_activation_header => {
+            const activation = program.lookup_activation orelse
+                return error.ProgramShapeMismatch;
+            writeU32s(destination, &.{
+                lookup_physical_v2.TRANSCRIPT_TAG,
+                lookup_physical_v2.FORMAT_VERSION,
+                activation.format_version,
+                activation.component_count,
+                activation.opcode_main_columns,
+                activation.opcode_interaction_columns,
+                activation.detailed_claim_count,
+            });
+        },
+        .lookup_manifest_identity => try writeSha256Digest(
+            destination,
+            (program.lookup_activation orelse
+                return error.ProgramShapeMismatch).manifest_identity,
+        ),
+        .lookup_statement_identity => try writeSha256Digest(
+            destination,
+            (program.lookup_activation orelse
+                return error.ProgramShapeMismatch).statement_identity,
+        ),
+        .lookup_activation_identity => try writeSha256Digest(
+            destination,
+            (program.lookup_activation orelse
+                return error.ProgramShapeMismatch).activation_identity,
+        ),
         .trace_commitment => try writeDigest(
             destination,
             inputs.trace_commitments[instruction.args[0]],
@@ -424,6 +511,7 @@ pub fn validateInstructionShape(program: *const Program) Error!void {
     var saw_wire = false;
     var saw_words = false;
     var saw_pcs = false;
+    var lookup_mix_count: usize = 0;
     for (program.instructions) |instruction| {
         _ = try instruction.payloadWordCount();
         switch (instruction.kind) {
@@ -433,10 +521,22 @@ pub fn validateInstructionShape(program: *const Program) Error!void {
             .statement_words => {
                 saw_words = instruction.args[0] == program.wire_word_count;
             },
+            .lookup_activation_header,
+            .lookup_manifest_identity,
+            .lookup_statement_identity,
+            .lookup_activation_identity,
+            => {
+                if (instruction.verifier_sequence != 1)
+                    return error.ProgramShapeMismatch;
+                lookup_mix_count += 1;
+            },
             else => {},
         }
     }
+    const expected_lookup_mix_count: usize =
+        if (program.lookup_activation != null) 4 else 0;
     if (!saw_pcs or !saw_header or !saw_wire or !saw_words or
+        lookup_mix_count != expected_lookup_mix_count or
         program.relationDrawCount() != relation_challenges.RELATION_COUNT or
         program.traceCommitmentCount() != 4)
     {
@@ -453,6 +553,17 @@ pub fn programIdentity(program: *const Program) Digest {
     hash.digest(program.statement_authority_id);
     hash.u32Value(program.wire_word_count);
     hashPcsConfig(&hash, program.pcs_config);
+    if (program.lookup_activation) |activation| {
+        hash.scalar(lookup_physical_v2.FORMAT_VERSION);
+        hash.scalar(activation.format_version);
+        hash.bytes(&activation.manifest_identity);
+        hash.bytes(&activation.statement_identity);
+        hash.bytes(&activation.activation_identity);
+        hash.u32Value(activation.component_count);
+        hash.u32Value(activation.opcode_main_columns);
+        hash.u32Value(activation.opcode_interaction_columns);
+        hash.u32Value(activation.detailed_claim_count);
+    }
     hash.u32Value(@intCast(program.instructions.len));
     for (program.instructions) |instruction| {
         hash.scalar(@intFromEnum(instruction.kind));
@@ -604,6 +715,35 @@ pub fn writeQm31s(destination: []M31, values: []const QM31) void {
 pub fn writeDigest(destination: []M31, value: Digest) Error!void {
     if (destination.len != RATE) return error.DestinationLengthMismatch;
     for (destination, value) |*word, raw| word.* = try canonical(raw);
+}
+
+fn writeSha256Digest(
+    destination: []M31,
+    value: lookup_physical_v2.Digest,
+) Error!void {
+    if (destination.len != 16) return error.DestinationLengthMismatch;
+    var limbs: [8]u32 = undefined;
+    for (&limbs, 0..) |*limb, index| {
+        limb.* = std.mem.readInt(
+            u32,
+            value[index * @sizeOf(u32) ..][0..@sizeOf(u32)],
+            .little,
+        );
+    }
+    writeU32s(destination, &limbs);
+}
+
+fn lookupActivation(
+    component_descs: []const statement_v1.FamilyComponentDesc,
+    manifest: *const lookup_physical_v2.Manifest,
+) Error!lookup_physical_v2.AuthenticatedStatement {
+    var core: statement_v1.RiscVStatement = undefined;
+    core.n_components = @intCast(component_descs.len);
+    @memcpy(core.component_descs[0..component_descs.len], component_descs);
+    return lookup_physical_v2.AuthenticatedStatement.init(
+        &core,
+        manifest,
+    ) catch error.ProgramShapeMismatch;
 }
 
 pub fn validateDigest(value: Digest) Error!void {

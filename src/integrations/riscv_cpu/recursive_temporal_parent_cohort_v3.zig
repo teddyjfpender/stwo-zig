@@ -24,6 +24,7 @@ const manifest_mod = @import("recursive_temporal_parent_manifest_v3.zig");
 const cohort_contract = @import("recursive_temporal_parent_cohort_contract.zig");
 const cohort_support = @import("recursive_temporal_parent_cohort_support.zig");
 const publication_mod = @import("recursive_temporal_parent_publication_v3.zig");
+const verified_artifact_mod = @import("recursive_temporal_parent_verified_artifact_v1.zig");
 
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
@@ -90,6 +91,7 @@ pub const Cohort = struct {
     pub const GeneratedInteractionsV1 = cohort_contract.GeneratedInteractionsV1;
     pub const AuditedInteractionsV2 = cohort_contract.AuditedInteractionsV2;
     pub const VerifiedPublicationV1 = publication_mod.VerifiedPublicationV1;
+    pub const VerifiedArtifactV1 = verified_artifact_mod.VerifiedTemporalParentArtifactV1;
     pub const Components = cohort_contract.Components;
 
     allocator: std.mem.Allocator,
@@ -224,14 +226,14 @@ pub const Cohort = struct {
         active_manifest: *const manifest_mod.Manifest,
         destination: [][]M31,
     ) !void {
-        try self.requireManifest(active_manifest);
+        try cohort_support.requireManifest(self, active_manifest);
         try cohort_support.preflightTree(
             active_manifest,
             manifest_mod.PREPROCESSED_TREE_INDEX,
             destination,
         );
         errdefer cohort_support.clearTree(destination);
-        try self.ensurePrefixBaseTrees();
+        try cohort_support.ensurePrefixBaseTrees(self);
         try cohort_support.copyPrefixTree(self.prefix, 0, destination);
         try self.fri.fillPreprocessedInto(active_manifest, destination);
         var provider = try cohort_support.row35Columns(
@@ -248,10 +250,10 @@ pub const Cohort = struct {
         active_manifest: *const manifest_mod.Manifest,
         destination: [][]M31,
     ) !void {
-        try self.requireManifest(active_manifest);
+        try cohort_support.requireManifest(self, active_manifest);
         try cohort_support.preflightTree(active_manifest, manifest_mod.MAIN_TREE_INDEX, destination);
         errdefer cohort_support.clearTree(destination);
-        try self.ensurePrefixBaseTrees();
+        try cohort_support.ensurePrefixBaseTrees(self);
         try cohort_support.copyPrefixTree(self.prefix, 1, destination);
         try self.fri.fillMainInto(active_manifest, destination);
         var provider = try cohort_support.row35Columns(
@@ -270,14 +272,14 @@ pub const Cohort = struct {
         provider_relations: *const shared_provider.SharedProviderRelations,
         destination: [][]M31,
     ) !GeneratedInteractionsV1 {
-        try self.requireManifest(active_manifest);
+        try cohort_support.requireManifest(self, active_manifest);
         try cohort_support.preflightTree(
             active_manifest,
             manifest_mod.INTERACTION_TREE_INDEX,
             destination,
         );
         errdefer cohort_support.clearTree(destination);
-        try self.ensurePrefixBaseTrees();
+        try cohort_support.ensurePrefixBaseTrees(self);
         const prefix = switch (self.prefix.phase) {
             .base_trees_filled => try self.prefix.fillInteractionTree(relations),
             .prefix_trees_filled => self.prefix.interactions.?,
@@ -591,8 +593,10 @@ pub const Cohort = struct {
         self: *Self,
         proof: canonical_proof.CanonicalProofIdentityV1,
         capture: *const binary_driver.OuterProofCapture,
+        transcript_id: channel.Digest,
         claims: *const manifest_mod.ClaimVector,
         audited: *const AuditedInteractionsV2,
+        recursive_admission_sha_id: [32]u8,
     ) !binary_driver.TemporalVerifierSuccessBindingV1 {
         try self.validate();
         try proof.validate();
@@ -604,12 +608,14 @@ pub const Cohort = struct {
             .proof_id = proof.proof_id,
             .canonical_proof_sha_id = proof.canonical_proof_sha_id,
             .capture_id = segment_publication.captureIdentity(capture),
+            .transcript_id = transcript_id,
             .cohort_authority_sha_id = self.authority_sha_id,
             .manifest_sha_id = self.manifest_value.seal,
             .claims_sha_id = claims.seal,
             .generated_interactions_sha_id = audited.suffix.generated.identity,
             .audit_sha_id = audited.identity,
             .closure_receipt_sha_id = audited.closure.closure_id,
+            .recursive_admission_sha_id = recursive_admission_sha_id,
         };
         try result.validate();
         return result;
@@ -798,6 +804,7 @@ pub const Cohort = struct {
             .proof_id = verified.proof_id,
             .canonical_proof_sha_id = verified.canonical_proof_sha_id,
             .capture_id = verified.capture_id,
+            .transcript_id = verified.transcript_id,
             .statement_words = self.prefix.statement_rows.parent_words,
             .pair_authority_id = self.inputs.runtime.artifacts.pair.authority_id,
             .context = audited.context,
@@ -814,22 +821,6 @@ pub const Cohort = struct {
         if (comptime @import("builtin").is_test)
             try publication_mod.validateMutationFleetForTest(result);
         return result;
-    }
-
-    fn ensurePrefixBaseTrees(self: *Self) !void {
-        if (self.prefix.phase == .cold) _ = try self.prefix.fillBaseTrees();
-    }
-
-    fn requireManifest(
-        self: *Self,
-        active_manifest: *const manifest_mod.Manifest,
-    ) !void {
-        try self.validate();
-        if (active_manifest != &self.manifest_value and
-            !std.meta.eql(active_manifest.*, self.manifest_value))
-        {
-            return error.ManifestGeometryMismatch;
-        }
     }
 };
 

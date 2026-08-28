@@ -61,15 +61,19 @@ pub const proveRiscVSegmentV2WithEngineUsingChannel =
     orchestration.runRiscVSegmentV2WithEngineUsingChannel;
 pub const proveRiscVSegmentV2WithEngineUsingChannelAndExecution =
     orchestration.runRiscVSegmentV2WithEngineUsingChannelAndExecution;
-/// Explicit protocol-changing entry point for the authenticated, degree-aware
-/// physical lookup layout. Ordinary V1 and segment-V2 calls remain on their
-/// compatibility transcript and Tree-2 geometry.
+/// SegmentV2 defaults to the authenticated degree-aware physical lookup
+/// layout. The old physical layout remains available only through the explicit
+/// compatibility symbols below.
 pub const proveRiscVSegmentLookupV2WithEngine =
     orchestration.runRiscVSegmentLookupV2WithEngine;
 pub const proveRiscVSegmentLookupV2WithEngineUsingChannel =
     orchestration.runRiscVSegmentLookupV2WithEngineUsingChannel;
 pub const inspectRiscVSegmentLookupV2FullCohort =
     orchestration.inspectRiscVSegmentLookupV2FullCohort;
+pub const proveRiscVSegmentLookupV1CompatibilityWithEngine =
+    orchestration.runRiscVSegmentLookupV1CompatibilityWithEngine;
+pub const proveRiscVSegmentLookupV1CompatibilityWithEngineUsingChannel =
+    orchestration.runRiscVSegmentLookupV1CompatibilityWithEngineUsingChannel;
 
 /// The one secure PCS profile this repository publishes, and the single source
 /// of truth every "secure" selector resolves to: the staged adapter's `.secure`
@@ -442,6 +446,9 @@ pub fn diagnoseRiscVRelationsWithEngineAndPublicData(
 }
 
 const verifier = @import("prover/verifier.zig");
+const verifier_lookup_v1 = @import(
+    "prover/verifier_lookup_v1_compatibility.zig",
+);
 pub const verifier_diagnostic_wiring_source = verifier.diagnostic_wiring_source;
 pub const QueryCapture = verifier.QueryCapture;
 pub const ProofCaptureForEngine = verifier.ProofCaptureForEngine;
@@ -462,6 +469,10 @@ pub const verifyRiscVSegmentV2WithEngineUsingChannel =
     verifier.verifyRiscVSegmentV2WithEngineUsingChannel;
 pub const verifyRiscVSegmentV2WithEngineUsingChannelAndCapture =
     verifier.verifyRiscVSegmentV2WithEngineUsingChannelAndCapture;
+pub const verifyRiscVSegmentLookupV1CompatibilityWithEngine =
+    verifier_lookup_v1.verifyWithEngine;
+pub const verifyRiscVSegmentLookupV1CompatibilityWithEngineUsingChannel =
+    verifier_lookup_v1.verifyUsingChannel;
 pub const verifyRiscVSegmentLookupV2WithEngine =
     verifier.verifyRiscVSegmentLookupV2WithEngine;
 pub const verifyRiscVSegmentLookupV2WithEngineUsingChannel =

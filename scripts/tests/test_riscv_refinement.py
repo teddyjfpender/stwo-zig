@@ -51,6 +51,16 @@ class RefinementAirTest(unittest.TestCase):
         )
         self.assertIn("z3 --version", workflow)
 
+    def test_live_sail_workflow_builds_formal_imports_before_bridge(self) -> None:
+        workflow = (
+            ROOT / ".github/workflows/riscv-sail-formal.yml"
+        ).read_text(encoding="utf-8")
+        build = workflow.index("- name: Build every Lean theorem")
+        bridge = workflow.index(
+            "- name: Generate the exact RV32IM Sail theorem backend"
+        )
+        self.assertLess(build, bridge)
+
     def test_proof_closure_covers_all_handwritten_lean_and_certificates(
         self,
     ) -> None:
