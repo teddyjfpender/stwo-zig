@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 
 from scripts.tests.riscv_refinement_test_support import *
 
@@ -106,7 +107,10 @@ class RefinementSailTest(unittest.TestCase):
         ) -> str:
             source = Path(argv[-1])
             self.assertEqual(cwd, project)
-            self.assertEqual(timeout, 600)
+            self.assertEqual(
+                timeout,
+                sail_lean_bridge.BRIDGE_BUILD_TIMEOUT_SECONDS,
+            )
             self.assertIsNotNone(env)
             assert env is not None
             self.assertEqual(
@@ -197,25 +201,32 @@ class RefinementSailTest(unittest.TestCase):
             ):
                 sail_lean_bridge._bridge_source_dependencies(paths)
 
-    def test_live_bridge_worker_budget_reserves_lean_cpu_capacity(self) -> None:
-        for logical_cpus, expected in ((1, 1), (2, 1), (3, 2), (8, 4), (128, 4)):
-            with (
-                self.subTest(logical_cpus=logical_cpus),
-                mock.patch.object(
-                    sail_lean_bridge.os,
-                    "cpu_count",
-                    return_value=logical_cpus,
-                ),
-            ):
-                self.assertEqual(sail_lean_bridge._bridge_build_jobs(47), expected)
-        with mock.patch.object(
-            sail_lean_bridge.os,
-            "cpu_count",
-            return_value=128,
-        ):
-            self.assertEqual(sail_lean_bridge._bridge_build_jobs(2), 2)
+    def test_live_bridge_worker_budget_serializes_memory_heavy_lean(self) -> None:
+        self.assertEqual(sail_lean_bridge._bridge_build_jobs(47), 1)
+        self.assertEqual(sail_lean_bridge._bridge_build_jobs(2), 1)
         with self.assertRaisesRegex(RefinementError, "closure is empty"):
             sail_lean_bridge._bridge_build_jobs(0)
+
+    def test_live_bridge_command_failures_name_exit_and_timeout(self) -> None:
+        command = ["lean", "Bridge.lean"]
+        with (
+            mock.patch.object(
+                sail_lean_bridge.subprocess,
+                "run",
+                side_effect=subprocess.TimeoutExpired(command, 17),
+            ),
+            self.assertRaisesRegex(RefinementError, "timed out after 17s"),
+        ):
+            sail_lean_bridge._run(command, ROOT, timeout=17)
+        with (
+            mock.patch.object(
+                sail_lean_bridge.subprocess,
+                "run",
+                side_effect=subprocess.CalledProcessError(137, command),
+            ),
+            self.assertRaisesRegex(RefinementError, "exited 137"),
+        ):
+            sail_lean_bridge._run(command, ROOT)
 
     def test_live_bridge_scans_every_declared_source_for_escapes(self) -> None:
         sources = (Path("bridge/First.lean"), Path("bridge/Second.lean"))
