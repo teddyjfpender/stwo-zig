@@ -178,16 +178,25 @@ def evidence(args: argparse.Namespace, paths: Paths) -> sail.SailEvidence:
     )
 
 
-def prepared_outputs(
+def _prepared_outputs_with_evidence(
     args: argparse.Namespace,
     paths: Paths,
-) -> dict[Path, bytes]:
+) -> tuple[dict[Path, bytes], sail.SailEvidence]:
     if not args.no_export_air:
         render.export_air(paths)
     else:
         render.validate_air_export(paths.uniqueness_ir)
         render.validate_air_program_export(paths.air_program_ir)
-    return render.artifacts(paths, evidence(args, paths))
+    sail_evidence = evidence(args, paths)
+    return render.artifacts(paths, sail_evidence), sail_evidence
+
+
+def prepared_outputs(
+    args: argparse.Namespace,
+    paths: Paths,
+) -> dict[Path, bytes]:
+    outputs, _ = _prepared_outputs_with_evidence(args, paths)
+    return outputs
 
 
 def generate(args: argparse.Namespace, paths: Paths) -> None:
@@ -232,10 +241,18 @@ def capture_sail_translation(
     )
 
 
-def check_generated(args: argparse.Namespace, paths: Paths) -> None:
-    outputs = prepared_outputs(args, paths)
+def _check_generated_with_evidence(
+    args: argparse.Namespace,
+    paths: Paths,
+) -> sail.SailEvidence:
+    outputs, sail_evidence = _prepared_outputs_with_evidence(args, paths)
     render.check_artifacts(paths, outputs)
     print(f"checked {len(outputs)} byte-identical refinement artifacts")
+    return sail_evidence
+
+
+def check_generated(args: argparse.Namespace, paths: Paths) -> None:
+    _check_generated_with_evidence(args, paths)
 
 
 def opcode_manifest(paths: Paths) -> tuple[str, ...]:
@@ -571,8 +588,11 @@ def audited_theorems(args: argparse.Namespace, paths: Paths) -> None:
 
 
 
-def verify(args: argparse.Namespace, paths: Paths) -> Verification:
-    check_generated(args, paths)
+def _verify_with_evidence(
+    args: argparse.Namespace,
+    paths: Paths,
+) -> tuple[Verification, sail.SailEvidence]:
+    sail_evidence = _check_generated_with_evidence(args, paths)
     coverage(paths)
     negative_controls(paths)
     _scan_forbidden_proof_terms(paths)
@@ -640,7 +660,12 @@ def verify(args: argparse.Namespace, paths: Paths) -> Verification:
         "and 46/46 certificate coverage, negative controls, unit tests, "
         f"Lean build, and axiom audit; {FV_CLAIM_SUMMARY}"
     )
-    return Verification(theorem_axioms=axiom_report)
+    return Verification(theorem_axioms=axiom_report), sail_evidence
+
+
+def verify(args: argparse.Namespace, paths: Paths) -> Verification:
+    verification, _ = _verify_with_evidence(args, paths)
+    return verification
 
 
 def receipt(args: argparse.Namespace, paths: Paths) -> None:
@@ -654,8 +679,7 @@ def receipt(args: argparse.Namespace, paths: Paths) -> None:
             "release receipts require live Sail toolchain evidence; "
             "--reuse-committed-sail-evidence is forbidden"
         )
-    verification = verify(args, paths)
-    sail_evidence = evidence(args, paths)
+    verification, sail_evidence = _verify_with_evidence(args, paths)
     revision, dirty_paths = _repository_state(paths)
     if dirty_paths:
         raise RefinementError(
@@ -690,8 +714,7 @@ def verify_receipt(args: argparse.Namespace, paths: Paths) -> None:
     payload = codec.load_json(paths.receipt)
     _validate_receipt_structure(payload)
     _receipt_revision_matches(paths, payload["repository_revision"])
-    verification = verify(args, paths)
-    sail_evidence = evidence(args, paths)
+    verification, sail_evidence = _verify_with_evidence(args, paths)
     expected = _build_receipt_payload(
         paths,
         verification,
