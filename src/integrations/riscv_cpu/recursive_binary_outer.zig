@@ -177,6 +177,7 @@ test "temporal verifier success capability rejects mutation and forged storage" 
         .generated_interactions_sha_id = @splat(7),
         .audit_sha_id = @splat(8),
         .closure_receipt_sha_id = @splat(9),
+        .recursive_admission_sha_id = @splat(11),
     };
     var storage: TemporalVerifierSuccessEvidenceStorageV1 = undefined;
     const evidence = try mintTemporalVerifierSuccessEvidence(&storage, binding);
@@ -193,6 +194,12 @@ test "temporal verifier success capability rejects mutation and forged storage" 
     );
     forged = storage;
     forged.binding.audit_sha_id[0] ^= 1;
+    try std.testing.expectError(
+        error.TemporalVerifierEvidenceMismatch,
+        openTemporalVerifierSuccessEvidence(@ptrCast(&forged)),
+    );
+    forged = storage;
+    forged.binding.recursive_admission_sha_id[0] ^= 1;
     try std.testing.expectError(
         error.TemporalVerifierEvidenceMismatch,
         openTemporalVerifierSuccessEvidence(@ptrCast(&forged)),
