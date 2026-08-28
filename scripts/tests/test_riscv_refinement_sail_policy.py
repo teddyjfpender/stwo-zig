@@ -3,12 +3,36 @@
 from __future__ import annotations
 
 import hashlib
+import json
 
 from scripts import riscv_refinement_publication as publication
 from scripts.tests.riscv_refinement_test_support import *
 
 
 class RefinementPublicationPolicyTest(unittest.TestCase):
+    def test_pilot_composition_digests_follow_generated_air(self) -> None:
+        composition = (
+            ROOT / sail_lean_bridge.COMPOSITION_SOURCE
+        ).read_text(encoding="utf-8")
+        sections = {
+            "fence": composition.split(
+                "def FenceAcceptedGeneratedComposition",
+                1,
+            )[1].split("theorem FENCE_accepted_air_refines", 1)[0],
+            "lui": composition.split(
+                "structure LuiPublicationResult",
+                1,
+            )[1].split("theorem LUI_accepted_air_refines", 1)[0],
+        }
+        for family, section in sections.items():
+            payload = json.loads(
+                (
+                    ROOT
+                    / f"formal/riscv-refinement/generated/air/{family}.air-ir-v2.json"
+                ).read_text(encoding="utf-8")
+            )
+            self.assertEqual(1, section.count(f'"{payload["content_digest"]}"'))
+
     def test_public_composition_requires_constructive_state_indexed_execution(
         self,
     ) -> None:
