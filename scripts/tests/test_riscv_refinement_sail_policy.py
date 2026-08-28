@@ -198,7 +198,8 @@ class RefinementPublicationPolicyTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as raw, mock.patch.object(
             riscv_refinement,
-            "check_generated",
+            "_check_generated_with_evidence",
+            return_value=mock.Mock(),
         ), mock.patch.object(
             riscv_refinement,
             "coverage",
@@ -230,14 +231,18 @@ class RefinementPublicationPolicyTest(unittest.TestCase):
             no_export_air=False,
             reuse_committed_sail_evidence=False,
         )
+        live_evidence = mock.Mock()
         with tempfile.TemporaryDirectory() as raw, mock.patch.object(
             riscv_refinement,
-            "verify",
-            return_value=riscv_refinement.Verification(theorem_axioms={}),
+            "_verify_with_evidence",
+            return_value=(
+                riscv_refinement.Verification(theorem_axioms={}),
+                live_evidence,
+            ),
         ), mock.patch.object(
             riscv_refinement,
             "evidence",
-            return_value=mock.Mock(),
+            side_effect=AssertionError("receipt recollected Sail evidence"),
         ), mock.patch.object(
             riscv_refinement,
             "_repository_state",
@@ -246,11 +251,13 @@ class RefinementPublicationPolicyTest(unittest.TestCase):
             riscv_refinement,
             "_build_receipt_payload",
             return_value={"canonical_digest": "1" * 64},
-        ), mock.patch.object(
+        ) as build_payload, mock.patch.object(
             riscv_refinement.codec,
             "atomic_write",
         ), mock.patch("builtins.print") as printing:
             riscv_refinement.receipt(arguments, Paths(Path(raw)))
+
+        self.assertIs(build_payload.call_args.args[2], live_evidence)
 
         receipt_output = "\n".join(
             str(call.args[0])
@@ -258,6 +265,47 @@ class RefinementPublicationPolicyTest(unittest.TestCase):
             if call.args
         )
         self.assertIn(riscv_refinement.FV_CLAIM_SUMMARY, receipt_output)
+
+    def test_receipt_replay_reuses_verified_live_sail_evidence(self) -> None:
+        arguments = Namespace(
+            no_export_air=False,
+            reuse_committed_sail_evidence=False,
+        )
+        live_evidence = mock.Mock()
+        payload = {
+            "canonical_digest": "1" * 64,
+            "repository_revision": "0" * 40,
+            "theorem_axiom_index": {"entries": {}},
+        }
+        with tempfile.TemporaryDirectory() as raw, mock.patch.object(
+            riscv_refinement.codec,
+            "load_json",
+            return_value=payload,
+        ), mock.patch.object(
+            riscv_refinement,
+            "_validate_receipt_structure",
+        ), mock.patch.object(
+            riscv_refinement,
+            "_receipt_revision_matches",
+        ), mock.patch.object(
+            riscv_refinement,
+            "_verify_with_evidence",
+            return_value=(
+                riscv_refinement.Verification(theorem_axioms={}),
+                live_evidence,
+            ),
+        ), mock.patch.object(
+            riscv_refinement,
+            "evidence",
+            side_effect=AssertionError("receipt replay recollected Sail evidence"),
+        ), mock.patch.object(
+            riscv_refinement,
+            "_build_receipt_payload",
+            return_value=payload,
+        ) as build_payload:
+            riscv_refinement.verify_receipt(arguments, Paths(Path(raw)))
+
+        self.assertIs(build_payload.call_args.args[2], live_evidence)
 
     def test_generated_sail_model_axioms_are_exactly_scoped(self) -> None:
         for selector in sail_lean_bridge.ADMITTED_SELECTORS:
