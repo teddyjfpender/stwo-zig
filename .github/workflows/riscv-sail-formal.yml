@@ -70,6 +70,14 @@ jobs:
         with:
           version: 0.15.2
 
+      # This check is intentionally ahead of every Lean/Sail build.  The live
+      # publication gate below is expensive, while committed manifest drift is
+      # deterministic and can be rejected from the carried evidence immediately.
+      - name: Fail fast on committed generated-artifact drift
+        run: >-
+          python3 scripts/riscv_refinement.py check-generated
+          --reuse-committed-sail-evidence
+
       - name: Setup Lean at the pinned toolchain
         uses: leanprover/lean-action@38fbc41a8c28c4cbaec22d7f7de508ec2e7c0dd9  # v1.5.0
         with:
