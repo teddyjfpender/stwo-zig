@@ -10,9 +10,9 @@ namespace RiscvRefinement.Air.Generated
 
 open RiscvRefinement
 
-def luiAirDigest : String := "b612ddef8ef62ec1e20eadf7769d36d212d0f22f3ef50e056c0ee95f8c7851ae"
+def luiAirDigest : String := "8b03c6742fbc16e5afcfc0226cd4de2043b18abf31ae9f259eaff45b7310f126"
 
-def addiAirDigest : String := "36067f6d81b28b64099215af782cdea0dbd533cb2fa9a7943408a9d07387eb7f"
+def addiAirDigest : String := "1c27a8685008c580fed565fe5b4ae8b3b6f6fa969bd03969574c2bc862329898"
 
 def luiImmediate
     (imm0 : BitVec 4)
