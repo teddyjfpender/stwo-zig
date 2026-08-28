@@ -8,7 +8,7 @@
     },
     {
       "path": "formal/riscv-refinement/generated-sail-bridge/Composition.lean",
-      "sha256": "f33f572cc688f95f6b935dfcfa251664df2af3d8802e6c9a0b407808c3f8e15e"
+      "sha256": "05e181079a4135005dfd166f060cb4a4b046764ad232507127ccc65a1d71fa9a"
     },
     {
       "path": "formal/riscv-refinement/generated-sail-bridge/ExecutionClosure.lean",
@@ -191,7 +191,7 @@
       "sha256": "ce3e6a26c3ab281b32446da2a5bb9143847da8d8bdfc2cad5505329dbb15f6f6"
     }
   ],
-  "canonical_digest": "ba192042fb5c5a46fcc797f93b1b6f43da0eb45041f6f832f6bd0a88a6f0643d",
+  "canonical_digest": "5bdd02edda2a284eaa2876b64f237734b3571478cb0898c927484cd8ca211b49",
   "claim_boundary": {
     "constructive_row_local_execution": true,
     "fetch_interrupt_trap_and_step_loop_framing": true,
