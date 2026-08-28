@@ -71,12 +71,26 @@ SUBJECT_FIELDS = {"branch", "commit", "tree", "worktree_clean"}
 ARTIFACT_FIELDS = {"bytes", "path", "sha256"}
 RUN_FIELDS = {"conclusion", "head_sha", "run_id", "url", "workflow"}
 RECURSION_FIELDS = {
+    "crossover",
     "leaf_count",
+    "leaf_proof_bytes",
+    "leaf_prove_us",
+    "leaf_verify_us",
     "parent_count",
+    "parent_proof_bytes",
+    "parent_prove_us",
+    "parent_verify_us",
+    "peak_rss_bytes",
+    "pipeline_prove_us",
+    "pipeline_single_worker_work_us",
+    "pipeline_verify_us",
+    "process_wall_us",
     "protocol_id_words",
     "root_height",
     "root_proof_bytes",
+    "root_prove_us",
     "root_proof_sha256",
+    "root_verify_us",
     "target_security_bits",
     "temporal_parent_verified",
     "universal_typed_air_rows",
@@ -95,6 +109,19 @@ MULTILEVEL = re.compile(
     rb"root_prove_ms=([0-9]+\.[0-9]+) root_verify_ms=([0-9]+\.[0-9]+) "
     rb"root_sha256=([0-9a-f]{64}) root_proof=true"
 )
+LEAF_PROOF = re.compile(
+    rb"SEGMENT_V2_OUTER status=verified rows=(\d+) domains=(\d+) "
+    rb"proof_size_estimate_bytes=\d+ canonical_proof_bytes=(\d+) "
+    rb"canonicalize_ms=([0-9]+\.[0-9]+) prove_ms=([0-9]+\.[0-9]+) "
+    rb"verify_ms=([0-9]+\.[0-9]+) publication_ms=([0-9]+\.[0-9]+) "
+    rb"draws=\d+ cols=\d+/\d+/\d+ workers=(\d+)"
+)
+PARENT_PROOF = re.compile(
+    rb"TEMPORAL_PARENT_REAL_PROOF bytes=(\d+) prove_ms=([0-9]+\.[0-9]+) "
+    rb"verify_ms=([0-9]+\.[0-9]+) rows=(\d+) pair_poseidon=(\d+)"
+)
+MAX_RSS = re.compile(rb"(?m)^\s*(\d+)\s+maximum resident set size\s*$")
+PROCESS_WALL = re.compile(rb"(?m)^\s*([0-9]+\.[0-9]+)\s+real(?:\s|$)")
 
 
 class ReceiptError(CaptureError):
@@ -196,7 +223,36 @@ def _multilevel_record(path: Path) -> dict[str, Any]:
     matches = MULTILEVEL.findall(raw)
     if len(matches) != 1:
         raise ReceiptError("multilevel gate log must contain exactly one terminal receipt")
-    leaves, parents, height, _parent_bytes, root_bytes, _prove, _verify, digest = matches[0]
+    leaves, parents, height, parent_bytes, root_bytes, prove, verify, digest = matches[0]
+    leaf_matches = LEAF_PROOF.findall(raw)
+    parent_matches = PARENT_PROOF.findall(raw)
+    rss_matches = MAX_RSS.findall(raw)
+    wall_matches = PROCESS_WALL.findall(raw)
+    if len(leaf_matches) != 4 or len(parent_matches) != 2:
+        raise ReceiptError("multilevel gate log has incomplete leaf or parent evidence")
+    if len(rss_matches) != 1 or len(wall_matches) != 1:
+        raise ReceiptError("multilevel gate log has incomplete process resource evidence")
+
+    leaf_bytes = [int(match[2]) for match in leaf_matches]
+    leaf_prove_us = [_milliseconds_to_us(match[4]) for match in leaf_matches]
+    leaf_verify_us = [_milliseconds_to_us(match[5]) for match in leaf_matches]
+    parent_proof_bytes = [int(match[0]) for match in parent_matches]
+    parent_prove_us = [_milliseconds_to_us(match[1]) for match in parent_matches]
+    parent_verify_us = [_milliseconds_to_us(match[2]) for match in parent_matches]
+    root_prove_us = _milliseconds_to_us(prove)
+    root_verify_us = _milliseconds_to_us(verify)
+    pipeline_prove_us = sum(leaf_prove_us) + sum(parent_prove_us) + root_prove_us
+    pipeline_verify_us = sum(leaf_verify_us) + sum(parent_verify_us) + root_verify_us
+    direct_leaf_bytes = sum(leaf_bytes)
+    total_parent_bytes = sum(parent_proof_bytes)
+    root_byte_count = int(root_bytes)
+    if (
+        any(int(match[0]) != 39 or int(match[1]) != 47 or int(match[7]) != 1
+            for match in leaf_matches)
+        or any(int(match[3]) != 36 or int(match[4]) != 0 for match in parent_matches)
+        or int(parent_bytes) != total_parent_bytes
+    ):
+        raise ReceiptError("multilevel proof geometry or single-worker custody changed")
     return {
         "protocol_id_words": [
             369535897,
@@ -211,12 +267,51 @@ def _multilevel_record(path: Path) -> dict[str, Any]:
         "target_security_bits": 120,
         "universal_typed_air_rows": 36,
         "leaf_count": int(leaves),
+        "leaf_proof_bytes": leaf_bytes,
+        "leaf_prove_us": leaf_prove_us,
+        "leaf_verify_us": leaf_verify_us,
         "parent_count": int(parents),
+        "parent_proof_bytes": parent_proof_bytes,
+        "parent_prove_us": parent_prove_us,
+        "parent_verify_us": parent_verify_us,
         "root_height": int(height),
-        "root_proof_bytes": int(root_bytes),
+        "root_proof_bytes": root_byte_count,
+        "root_prove_us": root_prove_us,
+        "root_verify_us": root_verify_us,
         "root_proof_sha256": digest.decode("ascii"),
+        "pipeline_prove_us": pipeline_prove_us,
+        "pipeline_verify_us": pipeline_verify_us,
+        "pipeline_single_worker_work_us": pipeline_prove_us + pipeline_verify_us,
+        "process_wall_us": _seconds_to_us(wall_matches[0]),
+        "peak_rss_bytes": int(rss_matches[0]),
+        "crossover": {
+            "direct_leaf_proof_bytes": direct_leaf_bytes,
+            "two_parent_proof_bytes": total_parent_bytes,
+            "root_over_direct_leaf": {
+                "numerator": root_byte_count,
+                "denominator": direct_leaf_bytes,
+            },
+            "root_over_two_parent": {
+                "numerator": root_byte_count,
+                "denominator": total_parent_bytes,
+            },
+        },
         "temporal_parent_verified": True,
     }
+
+
+def _milliseconds_to_us(value: bytes) -> int:
+    whole, fraction = value.split(b".", 1)
+    if len(fraction) != 3:
+        raise ReceiptError("proof timing must have millisecond precision")
+    return int(whole) * 1000 + int(fraction)
+
+
+def _seconds_to_us(value: bytes) -> int:
+    whole, fraction = value.split(b".", 1)
+    if not 1 <= len(fraction) <= 6:
+        raise ReceiptError("process timing precision is unsupported")
+    return int(whole) * 1_000_000 + int(fraction.ljust(6, b"0"))
 
 
 def mint_receipt(
@@ -360,10 +455,15 @@ def validate_receipt_value(
         or recursion["root_height"] != 2
         or type(recursion["root_proof_bytes"]) is not int
         or recursion["root_proof_bytes"] <= 0
+        or type(recursion["peak_rss_bytes"]) is not int
+        or recursion["peak_rss_bytes"] <= 0
+        or type(recursion["process_wall_us"]) is not int
+        or recursion["process_wall_us"] <= 0
         or recursion["temporal_parent_verified"] is not True
     ):
         raise ReceiptError("V-009 recursion boundary changed")
     _require_digest(recursion["root_proof_sha256"], "root proof digest", HEX64)
+    _validate_crossover(recursion)
 
     claims = exact_object(receipt["claim_boundary"], CLAIM_FIELDS, "V-009 claims")
     if claims != {
@@ -374,6 +474,69 @@ def validate_receipt_value(
     }:
         raise ReceiptError("V-009 claim boundary changed")
     return receipt
+
+
+def _positive_int_list(value: Any, expected: int, label: str) -> list[int]:
+    if (
+        type(value) is not list
+        or len(value) != expected
+        or any(type(item) is not int or item <= 0 for item in value)
+    ):
+        raise ReceiptError(f"{label} must contain {expected} positive integers")
+    return value
+
+
+def _validate_ratio(value: Any, numerator: int, denominator: int, label: str) -> None:
+    ratio = exact_object(value, {"denominator", "numerator"}, label)
+    if ratio != {"numerator": numerator, "denominator": denominator}:
+        raise ReceiptError(f"{label} changed")
+
+
+def _validate_crossover(recursion: dict[str, Any]) -> None:
+    leaf_bytes = _positive_int_list(recursion["leaf_proof_bytes"], 4, "leaf bytes")
+    leaf_prove = _positive_int_list(recursion["leaf_prove_us"], 4, "leaf prove")
+    leaf_verify = _positive_int_list(recursion["leaf_verify_us"], 4, "leaf verify")
+    parent_bytes = _positive_int_list(recursion["parent_proof_bytes"], 2, "parent bytes")
+    parent_prove = _positive_int_list(recursion["parent_prove_us"], 2, "parent prove")
+    parent_verify = _positive_int_list(recursion["parent_verify_us"], 2, "parent verify")
+    for name in ("root_prove_us", "root_verify_us", "pipeline_prove_us",
+                 "pipeline_verify_us", "pipeline_single_worker_work_us"):
+        if type(recursion[name]) is not int or recursion[name] <= 0:
+            raise ReceiptError(f"{name} must be positive")
+    expected_prove = sum(leaf_prove) + sum(parent_prove) + recursion["root_prove_us"]
+    expected_verify = sum(leaf_verify) + sum(parent_verify) + recursion["root_verify_us"]
+    if (
+        recursion["pipeline_prove_us"] != expected_prove
+        or recursion["pipeline_verify_us"] != expected_verify
+        or recursion["pipeline_single_worker_work_us"] != expected_prove + expected_verify
+    ):
+        raise ReceiptError("recursive pipeline work accounting changed")
+    crossover = exact_object(
+        recursion["crossover"],
+        {"direct_leaf_proof_bytes", "root_over_direct_leaf", "root_over_two_parent", "two_parent_proof_bytes"},
+        "V-009 recursion crossover",
+    )
+    direct_bytes = sum(leaf_bytes)
+    two_parent_bytes = sum(parent_bytes)
+    if (
+        crossover["direct_leaf_proof_bytes"] != direct_bytes
+        or crossover["two_parent_proof_bytes"] != two_parent_bytes
+        or two_parent_bytes <= recursion["root_proof_bytes"]
+        or direct_bytes <= recursion["root_proof_bytes"]
+    ):
+        raise ReceiptError("recursive proof-size crossover changed")
+    _validate_ratio(
+        crossover["root_over_direct_leaf"],
+        recursion["root_proof_bytes"],
+        direct_bytes,
+        "root/direct-leaf ratio",
+    )
+    _validate_ratio(
+        crossover["root_over_two_parent"],
+        recursion["root_proof_bytes"],
+        two_parent_bytes,
+        "root/two-parent ratio",
+    )
 
 
 def validate_receipt(root: Path, path: Path) -> dict[str, Any]:

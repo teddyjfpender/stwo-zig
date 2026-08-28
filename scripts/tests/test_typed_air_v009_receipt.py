@@ -31,10 +31,20 @@ class V009ReceiptTests(unittest.TestCase):
             path.write_bytes((relative + "\n").encode("ascii"))
         self.log = self.root / "multilevel.log"
         self.log.write_text(
+            "SEGMENT_V2_OUTER status=verified rows=39 domains=47 "
+            "proof_size_estimate_bytes=1 canonical_proof_bytes=90000 "
+            "canonicalize_ms=1.000 prove_ms=2.000 verify_ms=3.000 "
+            "publication_ms=1.000 draws=1 cols=1/1/1 workers=1\n" * 4 +
+            "TEMPORAL_PARENT_REAL_PROOF bytes=94731 prove_ms=4.000 "
+            "verify_ms=5.000 rows=36 pair_poseidon=0\n" +
+            "TEMPORAL_PARENT_REAL_PROOF bytes=94732 prove_ms=4.100 "
+            "verify_ms=5.100 rows=36 pair_poseidon=0\n" +
             "TEMPORAL_MULTILEVEL_REAL leaves=4 verified_parents=2 "
             "root_height=2 parent_bytes=189463 root_bytes=93507 "
             "root_prove_ms=11071.974 root_verify_ms=4842.995 "
-            f"root_sha256={'3' * 64} root_proof=true\n",
+            f"root_sha256={'3' * 64} root_proof=true\n" +
+            "      120.25 real 100.00 user 10.00 sys\n" +
+            "  123456789 maximum resident set size\n",
             encoding="ascii",
         )
 
@@ -94,6 +104,11 @@ class V009ReceiptTests(unittest.TestCase):
         receipt = self._receipt()
         self.assertEqual(receipt["recursion"]["root_height"], 2)
         self.assertEqual(receipt["recursion"]["root_proof_bytes"], 93507)
+        self.assertEqual(receipt["recursion"]["peak_rss_bytes"], 123456789)
+        self.assertEqual(
+            receipt["recursion"]["crossover"]["direct_leaf_proof_bytes"],
+            360000,
+        )
         self.assertFalse(receipt["claim_boundary"]["proof_system_soundness"])
         with mock.patch(
             "scripts.typed_air_v009_receipt._git", return_value=TREE
