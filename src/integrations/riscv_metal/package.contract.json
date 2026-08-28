@@ -14,7 +14,9 @@
     "stwo_prover_engine": "../../prover",
     "stwo_riscv_frontend": "../../frontends/riscv"
   },
-  "injected_modules": [],
+  "injected_modules": [
+    "metal_aot_config"
+  ],
   "api_surface": [
     "MetalProverEngine",
     "guest_precompile",

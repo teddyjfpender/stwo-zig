@@ -91,6 +91,18 @@ exported through `recursive_temporal_child_authority`,
 authenticated authorities and verified-publication types; they do not make an
 unverified proof or capture publishable.
 
+The retained height-two composition surface is exported through
+`recursive_temporal_level2_cohort_v1`,
+`recursive_temporal_level2_composition_v1`,
+`recursive_temporal_level2_prefix_v1`,
+`recursive_temporal_level2_suffix_v1`,
+`recursive_temporal_level2_transcript_v1`,
+`recursive_temporal_level2_verifier_input_v1`,
+`recursive_temporal_parent_pair_authority_v1`,
+`recursive_temporal_parent_recursive_admission_v1`,
+`recursive_temporal_parent_transcript_prefix_v1`, and
+`recursive_temporal_parent_verified_artifact_v1`.
+
 Returned proof/statement values own allocations according to the frontend
 types. Callers must deinitialize them and must not publish before verification
 and output-transaction commit.
