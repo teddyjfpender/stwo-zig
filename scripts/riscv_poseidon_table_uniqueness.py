@@ -95,7 +95,7 @@ SOURCE_BINDINGS: dict[str, str] = {
     "src/frontends/riscv/air/memory_commitment/poseidon2_constants.zig":
         "d02b32f2f5302d21a440fbace2112d3232603e759cd0b24691c32e81d2bd4cfd",
     "src/frontends/riscv/air/memory_commitment/hash_component.zig":
-        "f5bb7502be037c442c367a26feabe975b829cc578f80621bc44f05e0541ee93a",
+        "d48925894e83352fcf99f6b5bf5a016a02b06c30b406b9b651bd93bb40284c70",
     "src/frontends/riscv/air/lookups/tables/schema.zig":
         "8ab73ea534acd89deb9ceb8fad83b1d9e775bf96aeb5a1e7344a0e1551bc3cef",
     "src/frontends/riscv/air/lookups/tables/interaction.zig":

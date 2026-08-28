@@ -46,7 +46,7 @@ class SourceClosureTest(unittest.TestCase):
         self.write(
             "src/product/main.zig",
             'const std = @import("std");\nconst core = @import("core");\n'
-            'const child = @import("child.zig");\n',
+            'const child = @import(\n    "child.zig",\n);\n',
         )
         self.write("src/product/child.zig", "pub const value = 1;\n")
         self.write("src/core/mod.zig", "pub const value = 2;\n")
@@ -133,7 +133,10 @@ class SourceClosureTest(unittest.TestCase):
     def test_rejects_non_literal_import(self) -> None:
         self.write("src/product/main.zig", "const hidden = @import(path);\n")
         self.write("src/core/mod.zig", "")
-        with self.assertRaisesRegex(ClosureError, "non-literal"):
+        with self.assertRaisesRegex(
+            ClosureError,
+            r"src/product/main\.zig: unsupported non-literal",
+        ):
             inspect_sources(self.root, self.manifest())
 
 
