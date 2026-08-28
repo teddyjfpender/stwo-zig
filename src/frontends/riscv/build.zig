@@ -265,6 +265,13 @@ pub fn build(b: *std.Build) void {
         .minimum = 8,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-hash-component-prepared",
+        .description = "Run only memory-hash prepared-domain and stack-certificate tests",
+        .root = "hash_component_prepared_test_root.zig",
+        .imports_prover_engine = true,
+        .minimum = 9,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-air-static-profile",
         .description = "Run only typed-AIR static profiler tests",
         .root = "air_static_profile_test_root.zig",

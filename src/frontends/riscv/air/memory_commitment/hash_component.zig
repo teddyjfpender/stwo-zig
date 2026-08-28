@@ -60,6 +60,10 @@ pub fn constraintCount(kind: Kind, poseidon_shell: PoseidonShell) usize {
 }
 pub const PREPARED_DENOMINATOR_COUNT: usize = 2;
 pub const PARALLEL_DOMAIN_LOG_SIZE: u32 = 12;
+/// Reviewed cross-host stack certificate for the generated Merkle/Poseidon2
+/// row evaluator. Linux x86_64 Debug code generation exceeds the generic
+/// prepared-row bound, so this wide component carries a local reservation.
+pub const prepared_row_stack_bytes: usize = 1024 * 1024;
 
 pub const PreparedParallelTelemetrySnapshot = prepared_parallel.TelemetrySnapshot;
 var prepared_parallel_telemetry: prepared_parallel.Telemetry = .{};
@@ -572,11 +576,12 @@ pub const HashComponent = struct {
             eval_log_size,
             eval_domain,
         );
-        const resources = try prepared_support.resources(
+        const resources = try prepared_support.resourcesWithStack(
             eval_size,
             source_count,
             owned_count,
             @sizeOf(PreparedDomainState),
+            prepared_row_stack_bytes,
         );
         const state = try allocator.create(PreparedDomainState);
         errdefer allocator.destroy(state);

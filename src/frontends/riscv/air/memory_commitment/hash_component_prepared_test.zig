@@ -24,7 +24,7 @@ const IS_FIRST_INDEX: usize = 1;
 const IS_ACTIVE_INDEX: usize = 3;
 const MAIN_OFFSET: usize = 2;
 const INTERACTION_OFFSET: usize = 3;
-const HELPER_STACK_BYTES = prepared_domain.ROW_EVALUATOR_STACK_BYTES;
+const HELPER_STACK_BYTES = hash_component.prepared_row_stack_bytes;
 const SourceMode = enum { borrowed_lde, owned_extension };
 const DomainFixture = struct {
     allocator: std.mem.Allocator,
@@ -447,7 +447,7 @@ test "hash prepared domain matches an independent canonical reference without wo
         try std.testing.expectEqual(@as(usize, 0), prepared.resources.exclusive_scratch_bytes);
         try std.testing.expectEqual(@as(usize, 0), prepared.resources.device_resident_bytes);
         try std.testing.expectEqual(
-            prepared_domain.ROW_EVALUATOR_STACK_BYTES,
+            hash_component.prepared_row_stack_bytes,
             prepared.resources.worker_stack_bytes,
         );
 
