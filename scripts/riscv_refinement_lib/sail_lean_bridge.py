@@ -78,7 +78,8 @@ BRIDGE_SOURCES = tuple(
 # The publication module is the public cross-project axiom-print entrypoint.
 # Keep the singular alias for callers that intentionally mutate that entrypoint.
 BRIDGE_SOURCE = PUBLICATION_SOURCE
-BRIDGE_BUILD_MAX_JOBS = 4
+BRIDGE_BUILD_MAX_JOBS = 1
+BRIDGE_BUILD_TIMEOUT_SECONDS = 1800
 SUPPORT_PATCH = Path("conformance/riscv/sail-lean-riscv-extras.patch")
 COMMITTED_RECEIPT = Path(
     "generated/sail/generated-monad-bridge-receipt-v1.json"
@@ -390,16 +391,24 @@ def _run(
             text=True,
             timeout=timeout,
         )
-    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
-        detail = ""
-        if isinstance(exc, subprocess.CalledProcessError):
-            detail = (exc.stderr or exc.stdout or "").strip()
-            if len(detail) > 8000:
-                detail = "... " + detail[-8000:]
+    except subprocess.TimeoutExpired as exc:
         raise RefinementError(
-            "generated Sail Lean bridge command failed: "
+            f"generated Sail Lean bridge command timed out after {timeout}s: "
+            + " ".join(argv)
+        ) from exc
+    except subprocess.CalledProcessError as exc:
+        detail = (exc.stderr or exc.stdout or "").strip()
+        if len(detail) > 8000:
+            detail = "... " + detail[-8000:]
+        raise RefinementError(
+            f"generated Sail Lean bridge command exited {exc.returncode}: "
             + " ".join(argv)
             + (f": {detail}" if detail else "")
+        ) from exc
+    except OSError as exc:
+        raise RefinementError(
+            "generated Sail Lean bridge command could not start: "
+            + " ".join(argv)
         ) from exc
     return completed.stdout.strip()
 
@@ -490,11 +499,9 @@ def _bridge_source_dependencies(paths: Paths) -> dict[Path, tuple[Path, ...]]:
 def _bridge_build_jobs(source_count: int) -> int:
     if source_count <= 0:
         raise RefinementError("generated Sail bridge closure is empty")
-    logical_cpus = max(1, os.cpu_count() or 1)
-    # Lean itself can use more than one logical CPU. Reserve two logical CPUs
-    # per process before applying the hard memory/concurrency ceiling.
-    cpu_budget = max(1, (logical_cpus + 1) // 2)
-    return min(BRIDGE_BUILD_MAX_JOBS, cpu_budget, source_count)
+    # Lean itself uses multiple CPUs and substantial memory; the reviewed cap
+    # deliberately serializes the hosted bridge closure.
+    return min(BRIDGE_BUILD_MAX_JOBS, source_count)
 
 
 def _kernel_build_bridge_sources(
@@ -525,7 +532,7 @@ def _kernel_build_bridge_sources(
             _bridge_lean_command(paths, source, output),
             project,
             env=bridge_environment,
-            timeout=600,
+            timeout=BRIDGE_BUILD_TIMEOUT_SECONDS,
         )
 
     with concurrent.futures.ThreadPoolExecutor(
