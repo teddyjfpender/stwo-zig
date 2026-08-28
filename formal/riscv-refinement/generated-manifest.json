@@ -59,7 +59,7 @@
     "generated/sail/rv32im-zkvm-v1.json": "5c31e516a205d693386564242d623dbaf4dc1566573f9ecfdcb026611c8fc2c1",
     "generated/sail/translation-receipt-v1.json": "ae7ba363506f1f96d5cb4eeeb4b2b123f02db8efdf5e19f1a98682ea70c2fcef"
   },
-  "canonical_digest": "09cd22fc93a12b169d42167cabcc632336eabeb908ee6d2c3aa384ec0336087b",
+  "canonical_digest": "831d16529fdf8702e1c1d6f92c1c770a861cee5cc4a591dbaf76283c752d1b5b",
   "claim_boundary": {
     "addi_air_to_normalized_composition": true,
     "generated_sail_ast_translation_receipt": true,
@@ -72,7 +72,7 @@
   },
   "generators": {
     ".github/workflows/riscv-refinement.yml": "53f884de59f85f9bb81da4ead43e7b688a1cd00d7fe467fa281f92eefc5dc42c",
-    ".github/workflows/riscv-sail-formal.yml": "f206648a665d037dbd018c5aee2d527b3fb7c377adb3c7e16fcdaffe809976d3",
+    ".github/workflows/riscv-sail-formal.yml": "7a5ca7f3710109e5ec6fbbcf01c696ca88bc88d3d325e8a98d26a2f4d1e53e03",
     "formal/riscv-refinement/air-program-node-layout-v1.json": "94410ec9c868241b4d589e56b76d762fe1980acc8b84b9dba4ed9c7a2dda0ddf",
     "formal/riscv-refinement/team-b-air-semantic-equivalence-v1.json": "c3d0d2d39ba035246b18229a2e436a76590905971913c81cfab314b36ebeca0f",
     "scripts/riscv_air_ir_equivalence.py": "c0ad85779e66bee26c0f65dea3f60d2dfa5e8f5a79143d4666dcce2a31df61c3",
@@ -98,7 +98,7 @@
     "scripts/riscv_refinement_lib/sail_backend.py": "282a2ce5dde50e7bd47b3d1478b41e47d66fd97c78a3a832e65256ed601c4a22",
     "scripts/riscv_refinement_lib/sail_carried.py": "a4a246d8e8b5e1143febe9d052bcd2c2c04eb5a3e2cf326f53ff6950de4cf5ac",
     "scripts/riscv_refinement_lib/sail_contract.py": "55f06c6f6b52efc386f3052ab28fd71d620f2a6c22a4e26a85f3cd5103206e5d",
-    "scripts/riscv_refinement_lib/sail_lean_bridge.py": "7f689f126efeac3958b1265ec24a676c75becec2fcced971b8fbc50433512a72",
+    "scripts/riscv_refinement_lib/sail_lean_bridge.py": "935bc4ba3ec8afe2c5a7c531aa73c3529881d301a436fcfc71bd3d13f0dfe5fd",
     "scripts/riscv_refinement_lib/sail_lean_evidence.py": "ac2221d338e2ef53061a00268afe8341cf02570386a31d0625c6a29447e08c6b",
     "scripts/riscv_refinement_lib/sail_translation.py": "a068cfcffa1ea1f8d43a0c1ecb76a59e33077ee09a95634c174ea0a64fad7f68",
     "scripts/riscv_refinement_lib/sail_translation_model.py": "f2310d4c0da99719710eb979aa4abd809663799aa0500f8cd9d37114a8a37ae7",
@@ -135,7 +135,7 @@
     "scripts/tests/test_riscv_refinement_manifest_identity.py": "605ba164a3be3531921d4e8b433600bdacc6242d13b04d68b082c78268ce56f6",
     "scripts/tests/test_riscv_refinement_publication.py": "1d87b08b968ff251a62463a71a3d1397ff9621baea915da8a88e69e84f48499b",
     "scripts/tests/test_riscv_refinement_receipt.py": "92065932ea8dd6476c538d351bfa2821da8fc73e41f13478f42fb83cc75770a0",
-    "scripts/tests/test_riscv_refinement_sail.py": "4a96acc10f8fd9c1d2d5dad0477f181d1e3ba8d730dda19894d558c7b90e01fd",
+    "scripts/tests/test_riscv_refinement_sail.py": "8c70526cfaba5e340203ee0221236b23f162d7db39abfcbb95f4f5a5abac7772",
     "scripts/tests/test_riscv_refinement_sail_policy.py": "95591d660ed0d86898af265d8172179dfe93bcfa93535e06af03091fb4192fc2",
     "scripts/tests/test_riscv_team_a.py": "5a84bfb023b2721564733055a992142d44a40eadb384e8ba0669948f284f4f9f",
     "scripts/tests/test_riscv_team_b.py": "0fe8213b9893de5f26349cf418ed44d3dfc88c6312d3b850990104d36ca4ebd0",
