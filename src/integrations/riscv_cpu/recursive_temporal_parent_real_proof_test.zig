@@ -25,6 +25,9 @@ const prefix_runtime = integration.recursive_temporal_parent_prefix_runtime;
 const row18_source = integration.recursive_temporal_parent_row18_source_v3;
 const temporal_cohort = integration.recursive_temporal_parent_cohort_v3;
 const temporal_manifest = integration.recursive_temporal_parent_manifest_v3;
+const temporal_nonfri = integration.recursive_temporal_nonfri_source_v2;
+const level2_composition =
+    integration.recursive_temporal_level2_composition_v1;
 const binary_driver = integration.recursive_binary_outer;
 const binary_cohort_mod = integration.recursive_binary_outer_cohort;
 
@@ -67,8 +70,12 @@ const DefaultParentConsumer = struct {
         _: DefaultParentConsumer,
         _: *const ParentKernel.VerifiedPublicationV1,
         _: *const ParentKernel.VerifiedArtifactV1,
+        _: *binary_driver.OuterProofCapture,
+        _: *level2_composition.CaptureV1,
         _: binary_driver.Receipt,
-    ) !void {}
+    ) !bool {
+        return false;
+    }
 };
 
 pub fn proveTemporalParentWithConsumer(
@@ -303,17 +310,17 @@ pub fn proveTemporalParentWithConsumer(
     defer row18.deinit();
     try row18.validateAgainst(runtime);
 
-    {
-        var parent_preflight = temporal_cohort.Cohort.init(
-            allocator,
-            .{ .runtime = runtime, .row18 = row18 },
-        ) catch |err| return stageFailure("parent_cohort_init", err);
-        defer parent_preflight.deinit();
-        parent_preflight.validate() catch |err|
-            return stageFailure("parent_cohort_validate", err);
-    }
+    var parent_preflight = temporal_cohort.Cohort.init(
+        allocator,
+        .{ .runtime = runtime, .row18 = row18 },
+    ) catch |err| return stageFailure("parent_cohort_init", err);
+    defer parent_preflight.deinit();
+    parent_preflight.validate() catch |err|
+        return stageFailure("parent_cohort_validate", err);
 
     var parent_capture: binary_driver.OuterProofCapture = undefined;
+    var parent_capture_owned = true;
+    defer if (parent_capture_owned) parent_capture.deinit(allocator);
     var parent_publication: ParentKernel.VerifiedPublicationV1 = undefined;
     var parent_artifact: ParentKernel.VerifiedArtifactV1 = undefined;
     const receipt = ParentKernel.proveAndVerifyWithExecutionAndArtifact(
@@ -324,10 +331,44 @@ pub fn proveTemporalParentWithConsumer(
         &parent_publication,
         &parent_artifact,
     ) catch |err| return stageFailure("parent_prove_verify", err);
-    defer parent_capture.deinit(allocator);
     try parent_publication.validate();
     try parent_artifact.validateAgainst(&parent_publication);
     try parent_artifact.recursive_admission.validateAgainst(&parent_capture);
+    var parent_composition = level2_composition.CaptureV1.init(
+        allocator,
+        &parent_preflight,
+        &parent_capture,
+        &parent_publication,
+        &parent_artifact,
+    ) catch |err| return stageFailure("parent_composition_capture", err);
+    var parent_composition_owned = true;
+    defer if (parent_composition_owned) parent_composition.deinit();
+    const recursive_geometry = try recursion.outer_parent_child_admission
+        .deriveAdmission(
+        &parent_artifact.recursive_admission.receipt,
+        &parent_capture,
+    );
+    _ = try temporal_nonfri.outerScheduleShapeForClaimCount(
+        &parent_capture,
+        temporal_manifest.COMPONENT_COUNT,
+    );
+    std.debug.print(
+        "TEMPORAL_PARENT_WIRE_DIMENSIONS commitments={d} claims={d} " ++
+            "samples={d} queried={d} paths={d} fri={d} queries={d} " ++
+            "fold={d} coefficients={d} depth={d}\n",
+        .{
+            recursive_geometry.dimensions.commitment_count,
+            recursive_geometry.dimensions.claimed_sum_count,
+            recursive_geometry.dimensions.sampled_value_count,
+            recursive_geometry.dimensions.queried_value_count,
+            recursive_geometry.dimensions.trace_path_count,
+            recursive_geometry.dimensions.fri_layer_count,
+            recursive_geometry.dimensions.query_count,
+            recursive_geometry.dimensions.maximum_fold_width,
+            recursive_geometry.dimensions.last_layer_coefficient_count,
+            recursive_geometry.dimensions.maximum_merkle_depth,
+        },
+    );
     try std.testing.expectEqual(
         parent_artifact.recursive_wire_bytes,
         try recursion.outer_parent_child_admission.runtimeCanonicalByteCount(
@@ -405,7 +446,16 @@ pub fn proveTemporalParentWithConsumer(
             &closure_receipt_sha256_hex,
         },
     );
-    try consumer.consume(&parent_publication, &parent_artifact, receipt);
+    if (try consumer.consume(
+        &parent_publication,
+        &parent_artifact,
+        &parent_capture,
+        &parent_composition,
+        receipt,
+    )) {
+        parent_capture_owned = false;
+        parent_composition_owned = false;
+    }
 }
 
 fn milliseconds(nanoseconds: u64) f64 {

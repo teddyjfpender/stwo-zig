@@ -20,6 +20,7 @@ pub fn Operations(comptime Context: type) type {
     const LEFT_RECURSION_VERIFIER_ID = Context.LEFT_RECURSION_VERIFIER_ID;
     const RIGHT_RECURSION_VERIFIER_ID = Context.RIGHT_RECURSION_VERIFIER_ID;
     const POSEIDON2_PARTIAL_COUNT = Context.POSEIDON2_PARTIAL_COUNT;
+    const PHYSICAL_CLAIM_COUNT = Context.PHYSICAL_CLAIM_COUNT;
     const PublicBoundaryEvidence = Context.PublicBoundaryEvidence;
     const AuthenticatedRecorderVerifierInputBoundaryDescriptor = Context.AuthenticatedRecorderVerifierInputBoundaryDescriptor;
     const AuthenticatedRecorderVerifierInputBoundaryEvidence = Context.AuthenticatedRecorderVerifierInputBoundaryEvidence;
@@ -223,22 +224,34 @@ pub fn Operations(comptime Context: type) type {
                     lane.profile.sampled_value_count - capture_sample_count,
                     composition_input_witness.SECURE_VALUE_WORD_COUNT,
                 ) catch return error.ArithmeticOverflow;
-                expected[child_index][1] = std.math.mul(
-                    u32,
-                    partial_claim_count,
-                    composition_input_witness.SECURE_VALUE_WORD_COUNT,
-                ) catch return error.ArithmeticOverflow;
             }
             if (!seen[LEFT_CHILD] or !seen[RIGHT_CHILD])
                 return error.CompositionAuthorityMismatch;
             const partial_ranges = try poseidonPartialClaimRanges(rows);
+            var inactive_claim_counts = [_]u32{0} ** CHILD_COUNT;
+            for (partial_ranges, 0..) |range, child_index| {
+                if (PHYSICAL_CLAIM_COUNT > range.start)
+                    return error.CompositionAuthorityMismatch;
+                inactive_claim_counts[child_index] =
+                    range.start - PHYSICAL_CLAIM_COUNT;
+                const external_claim_count = std.math.add(
+                    u32,
+                    inactive_claim_counts[child_index],
+                    partial_claim_count,
+                ) catch return error.ArithmeticOverflow;
+                expected[child_index][1] = std.math.mul(
+                    u32,
+                    external_claim_count,
+                    composition_input_witness.SECURE_VALUE_WORD_COUNT,
+                ) catch return error.ArithmeticOverflow;
+            }
 
             var counts = [_][2]u32{.{ 0, 0 }} ** CHILD_COUNT;
             var tuple_count: u32 = 0;
             var claim = QM31.zero();
             var provenance = std.crypto.hash.sha2.Sha256.init(.{});
             provenance.update(
-                "stwo-zig/typed-air/authenticated-recorder-external-verifier-input-tuples/v1\x00",
+                "stwo-zig/typed-air/authenticated-recorder-external-verifier-input-tuples/v2\x00",
             );
             provenance.update(&rows.input_preprocessing.authority_digest);
             provenance.update(&rows.authority_digest);
@@ -254,6 +267,8 @@ pub fn Operations(comptime Context: type) type {
                 hashInt(&provenance, u32, sample_ends[child_index]);
                 hashInt(&provenance, u32, partial_ranges[child_index].start);
                 hashInt(&provenance, u32, partial_ranges[child_index].end);
+                hashInt(&provenance, u32, PHYSICAL_CLAIM_COUNT);
+                hashInt(&provenance, u32, inactive_claim_counts[child_index]);
                 hashInt(&provenance, u32, lane_counts[0]);
                 hashInt(&provenance, u32, lane_counts[1]);
             }
@@ -293,8 +308,13 @@ pub fn Operations(comptime Context: type) type {
                     },
                     .claimed_sum => |coordinate| blk: {
                         const range = partial_ranges[child_index];
-                        if (coordinate.item_index < range.start)
+                        if (coordinate.item_index < PHYSICAL_CLAIM_COUNT)
                             continue;
+                        if (coordinate.item_index < range.start and
+                            !value.isZero())
+                        {
+                            return error.CompositionAuthorityMismatch;
+                        }
                         if (coordinate.item_index >= range.end)
                             return error.CompositionAuthorityMismatch;
                         break :blk .{
@@ -382,6 +402,7 @@ pub fn Operations(comptime Context: type) type {
                     sample_ends[LEFT_CHILD] - sample_starts[LEFT_CHILD],
                     sample_ends[RIGHT_CHILD] - sample_starts[RIGHT_CHILD],
                 },
+                .inactive_claim_item_counts = inactive_claim_counts,
                 .poseidon_partial_claim_ranges = .{
                     .{
                         .start = partial_ranges[LEFT_CHILD].start,

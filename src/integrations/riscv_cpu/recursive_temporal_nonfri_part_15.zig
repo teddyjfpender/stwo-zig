@@ -311,6 +311,7 @@ pub fn Namespace(comptime context: type) type {
             for (value.lane_frame_counts) |count| shaInt(&hash, u64, count);
             for (value.lane_word_counts) |count| shaInt(&hash, u64, count);
             for (value.lane_payload_counts) |count| shaInt(&hash, u64, count);
+            for (value.lane_claim_counts) |count| shaInt(&hash, u32, count);
             for (value.child_replays) |replay|
                 for (replay.replay_id) |word| shaInt(&hash, u32, word);
             shaInt(&hash, u64, value.rows.len);

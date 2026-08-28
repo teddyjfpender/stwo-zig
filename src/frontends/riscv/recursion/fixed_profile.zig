@@ -9,8 +9,11 @@ const protocol = @import("protocol.zig");
 const channel = @import("poseidon2_channel.zig");
 
 pub const TREE_COUNT: usize = protocol.COMMITMENT_TREE_COUNT;
-pub const MAX_FRI_ROUNDS: usize = 16;
 pub const MAX_DOMAIN_LOG: u32 = 30;
+// A valid fold-two proof can consume one round per degree bit. Keep the fixed
+// schedule capacity aligned with the already-reviewed domain ceiling rather
+// than the narrower fold-four leaf profile.
+pub const MAX_FRI_ROUNDS: usize = MAX_DOMAIN_LOG;
 pub const PACKED_LEAF_LOG: u32 = 2;
 pub const PROFILE_SHAPE_ID_DOMAIN: u32 = 0x5053_4850; // "PSHP"
 const SHAPE_ID_WORD_CAPACITY: usize = 160;
@@ -351,6 +354,17 @@ test "recursion fixed profile: partial final fold and paths are derived" {
 
     try std.testing.expectEqual(@as(u32, 21), try friQueryPathDepth(23, 16));
     try std.testing.expectEqual(@as(u32, 4), try friQueryPathDepth(5, 2));
+}
+
+test "recursion fixed profile: fold-two parent reaches seventeen rounds" {
+    var config = protocol.PCS_CONFIG.fri_config;
+    config.fold_step = 1;
+    const schedule = try FriSchedule.init(17, config);
+    try std.testing.expectEqual(@as(u32, 17), schedule.count);
+    for (schedule.active()) |round| {
+        try std.testing.expectEqual(@as(u32, 1), round.fold_step);
+        try std.testing.expectEqual(@as(u32, 2), round.fold_width);
+    }
 }
 
 test "recursion fixed profile: proof-selected geometry rejects" {

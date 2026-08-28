@@ -1,90 +1,67 @@
+//! Core proof transaction for any complete native binary-outer cohort.
+//!
+//! This is the publication-independent part of the recursive outer engine. It
+//! constructs prover and verifier cohorts independently, commits the same
+//! three manifest trees, replays the complete transcript and global closure,
+//! and returns only after the resulting STARK has been independently
+//! verified. A higher-level publication capability is deliberately not
+//! fabricated for cohorts whose recursive child envelope is still separate.
+
 const std = @import("std");
 const stwo_core = @import("stwo_core");
 const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 const frontend = @import("stwo_riscv_frontend");
-const postcard = @import("interop_postcard");
 const prover_engine = @import("stwo_prover_engine");
-const prover_pcs = prover_engine.pcs;
+
 const contract = @import("recursive_binary_outer_contract.zig");
 const support = @import("recursive_binary_outer_support.zig");
-const binary_composition_authority = @import("recursive_binary_composition_authority.zig");
-const verified_publication = @import("recursive_binary_verified_publication.zig");
-const verified_artifact_v3 = @import("recursive_binary_v3_verified_artifact.zig");
-const segment_publication = @import("recursive_segment_v2_verified_publication.zig");
-const segment_artifact = @import("recursive_segment_v2_verified_artifact.zig");
-const temporal_child_authority = @import("recursive_segment_v2_temporal_child_authority.zig");
-const temporal_pair_authority = @import("recursive_temporal_pair_authority_v2.zig");
 const fri_outer_diagnostic = @import("recursive_fri_outer.zig");
-const temporal_admission = @import("recursive_temporal_parent_recursive_admission_v1.zig");
-const temporal_artifact = @import("recursive_temporal_parent_verified_artifact_v1.zig");
 const temporal_transcript_prefix =
     @import("recursive_temporal_parent_transcript_prefix_v1.zig");
 
-const M31 = stwo_core.fields.m31.M31;
 const recursion = frontend.recursion;
 const air = recursion.air;
 const shared_provider = air.universal_shared_provider;
 const universal = air.universal_challenges;
 const poseidon2_channel = recursion.poseidon2_channel;
 const Engine = recursion.engine.ProverEngineForBackend(CpuBackend);
-const OuterProofCapture = stwo_core.pcs.verifier.VerifiedProofCapture(
-    recursion.engine.Hasher,
-);
 const VerifierScheme = stwo_core.pcs.verifier.CommitmentSchemeVerifier(
     recursion.engine.Hasher,
     recursion.engine.MerkleChannel,
 );
-const VerifiedBinaryArtifactV3 = contract.VerifiedBinaryArtifactV3;
-const BinaryProgramDescriptorV3 = contract.BinaryProgramDescriptorV3;
-const TemporalVerifierSuccessBindingV1 = contract.TemporalVerifierSuccessBindingV1;
-const TemporalVerifierSuccessEvidenceV1 = contract.TemporalVerifierSuccessEvidenceV1;
-const TemporalVerifierSuccessEvidenceStorageV1 =
-    contract.TemporalVerifierSuccessEvidenceStorageV1;
-const TemporalParentArtifactViewV1 = contract.TemporalParentArtifactViewV1;
+const OuterProofCapture = stwo_core.pcs.verifier.VerifiedProofCapture(
+    recursion.engine.Hasher,
+);
 const ExecutionOptions = contract.ExecutionOptions;
 const Receipt = contract.Receipt;
 const OUTER_CONFIG = contract.OUTER_CONFIG;
-const CANONICAL_PROOF_SERIALIZATION_PASSES = contract.CANONICAL_PROOF_SERIALIZATION_PASSES;
+const CANONICAL_PROOF_SERIALIZATION_PASSES =
+    contract.CANONICAL_PROOF_SERIALIZATION_PASSES;
 const RETAINED_CANONICAL_PROOF_BYTES = contract.RETAINED_CANONICAL_PROOF_BYTES;
 const canonicalProofIdentity = support.canonicalProofIdentity;
 const ProofExecutionPool = support.ProofExecutionPool;
-const assertNativeCohortContract = support.assertNativeCohortContract;
-const assertManifestContract = support.assertManifestContract;
 const moveOwnedForVerifier = support.moveOwnedForVerifier;
-const rejectNativeTransactionOutputAlias = support.rejectNativeTransactionOutputAlias;
-const rejectNativeArtifactTransactionOutputAlias =
-    support.rejectNativeArtifactTransactionOutputAlias;
-const rejectV3TransactionOutputAlias = support.rejectV3TransactionOutputAlias;
-const nativeDigestCanonicalNonzero = support.nativeDigestCanonicalNonzero;
 const commitVerifierTreeForManifest = support.commitVerifierTreeForManifest;
 const TreeStorageForManifest = support.TreeStorageForManifest;
-const mintTemporalVerifierSuccessEvidence =
-    contract.mintTemporalVerifierSuccessEvidence;
 
-pub fn NativeEngineKernelForManifest(
+pub fn NativeCoreEngineKernelForManifest(
     comptime Cohort: type,
     comptime manifest_contract: type,
 ) type {
-    assertNativeCohortContract(Cohort);
-    assertManifestContract(manifest_contract);
+    assertCoreCohortContract(Cohort);
+    support.assertManifestContract(manifest_contract);
     return struct {
         const ManifestContract = manifest_contract;
         const TreeStorage = TreeStorageForManifest(ManifestContract);
-        pub const VerifiedPublicationV1 = Cohort.VerifiedPublicationV1;
-        pub const VerifiedArtifactV1 = Cohort.VerifiedArtifactV1;
 
         pub fn proveAndVerify(
             allocator: std.mem.Allocator,
             authority_inputs: Cohort.AuthorityInputs,
-            capture_out: *OuterProofCapture,
-            publication_out: *VerifiedPublicationV1,
         ) !Receipt {
             return proveAndVerifyWithExecution(
                 allocator,
                 authority_inputs,
                 .{},
-                capture_out,
-                publication_out,
             );
         }
 
@@ -92,75 +69,8 @@ pub fn NativeEngineKernelForManifest(
             allocator: std.mem.Allocator,
             authority_inputs: Cohort.AuthorityInputs,
             execution: ExecutionOptions,
-            capture_out: *OuterProofCapture,
-            publication_out: *VerifiedPublicationV1,
-        ) !Receipt {
-            return runTransaction(
-                allocator,
-                authority_inputs,
-                execution,
-                capture_out,
-                publication_out,
-                null,
-            );
-        }
-
-        pub fn proveAndVerifyWithArtifact(
-            allocator: std.mem.Allocator,
-            authority_inputs: Cohort.AuthorityInputs,
-            capture_out: *OuterProofCapture,
-            publication_out: *VerifiedPublicationV1,
-            artifact_out: *VerifiedArtifactV1,
-        ) !Receipt {
-            return proveAndVerifyWithExecutionAndArtifact(
-                allocator,
-                authority_inputs,
-                .{},
-                capture_out,
-                publication_out,
-                artifact_out,
-            );
-        }
-
-        pub fn proveAndVerifyWithExecutionAndArtifact(
-            allocator: std.mem.Allocator,
-            authority_inputs: Cohort.AuthorityInputs,
-            execution: ExecutionOptions,
-            capture_out: *OuterProofCapture,
-            publication_out: *VerifiedPublicationV1,
-            artifact_out: *VerifiedArtifactV1,
-        ) !Receipt {
-            try rejectNativeArtifactTransactionOutputAlias(
-                VerifiedPublicationV1,
-                VerifiedArtifactV1,
-                capture_out,
-                publication_out,
-                artifact_out,
-            );
-            return runTransaction(
-                allocator,
-                authority_inputs,
-                execution,
-                capture_out,
-                publication_out,
-                artifact_out,
-            );
-        }
-
-        fn runTransaction(
-            allocator: std.mem.Allocator,
-            authority_inputs: Cohort.AuthorityInputs,
-            execution: ExecutionOptions,
-            capture_out: *OuterProofCapture,
-            publication_out: *VerifiedPublicationV1,
-            artifact_out: ?*VerifiedArtifactV1,
         ) !Receipt {
             comptime @import("stwo_prover_api").assertProverEngine(Engine);
-            try rejectNativeTransactionOutputAlias(
-                VerifiedPublicationV1,
-                capture_out,
-                publication_out,
-            );
 
             var execution_pool: ProofExecutionPool = .{};
             try execution_pool.initInPlace(allocator, execution.worker_count);
@@ -171,17 +81,18 @@ pub fn NativeEngineKernelForManifest(
             var prover = try Cohort.init(allocator, authority_inputs);
             defer prover.deinit();
             try prover.validate();
+            const manifest = prover.manifest();
             const preprocessed_columns = std.math.cast(
                 u32,
-                prover.manifest().total_preprocessed_columns,
+                manifest.total_preprocessed_columns,
             ) orelse return error.ArithmeticOverflow;
             const main_columns = std.math.cast(
                 u32,
-                prover.manifest().total_main_columns,
+                manifest.total_main_columns,
             ) orelse return error.ArithmeticOverflow;
             const interaction_columns = std.math.cast(
                 u32,
-                prover.manifest().total_interaction_columns,
+                manifest.total_interaction_columns,
             ) orelse return error.ArithmeticOverflow;
 
             var prove_timer = try std.time.Timer.start();
@@ -190,6 +101,7 @@ pub fn NativeEngineKernelForManifest(
             defer if (proof_owned) proof_bundle.proof.deinit(allocator);
             const prove_ns = prove_timer.read();
             const proof_size = proof_bundle.proof.sizeEstimate();
+
             var canonical_timer = try std.time.Timer.start();
             const proof_identity = try canonicalProofIdentity(
                 proof_bundle.proof,
@@ -205,12 +117,9 @@ pub fn NativeEngineKernelForManifest(
                 &verifier,
                 &proof_bundle.proof,
                 &proof_owned,
-                proof_identity,
-                capture_out,
-                publication_out,
-                artifact_out,
             );
             std.debug.assert(!proof_owned);
+            const verify_ns = verify_timer.read();
             const canonical_proof_bytes: usize = proof_identity.byte_count;
             const canonical_proof_streamed_bytes = try std.math.mul(
                 usize,
@@ -225,14 +134,12 @@ pub fn NativeEngineKernelForManifest(
                 .canonical_proof_retained_bytes = RETAINED_CANONICAL_PROOF_BYTES,
                 .canonical_proof_id = proof_identity.proof_id,
                 .canonical_proof_sha256 = proof_identity.canonical_proof_sha_id,
-                .canonical_proof_id_poseidon_permutations = poseidon2_channel.bytePermutationCount(
-                    canonical_proof_bytes,
-                ),
+                .canonical_proof_id_poseidon_permutations = poseidon2_channel.bytePermutationCount(canonical_proof_bytes),
                 .proof_canonicalize_ns = proof_canonicalize_ns,
                 .prove_ns = prove_ns,
-                .verify_ns = verify_timer.read(),
+                .verify_ns = verify_ns,
                 .pair_authority_prepare_ns = 0,
-                .publication_ns = verifier_receipt.publication_ns,
+                .publication_ns = 0,
                 .pair_authentication_poseidon_permutations = Cohort.PAIR_AUTHENTICATION_POSEIDON_PERMUTATIONS,
                 .cohort_authority_sha256 = verifier_receipt.cohort_authority_sha_id,
                 .closure_receipt_sha256 = verifier_receipt.closure_receipt_sha_id,
@@ -240,7 +147,7 @@ pub fn NativeEngineKernelForManifest(
                 .preprocessed_columns = preprocessed_columns,
                 .main_columns = main_columns,
                 .interaction_columns = interaction_columns,
-                .roster_count = prover.manifest().roster_count,
+                .roster_count = manifest.roster_count,
                 .worker_count = effective_worker_count,
             };
         }
@@ -250,8 +157,7 @@ pub fn NativeEngineKernelForManifest(
             transcript_draws: usize,
         };
 
-        const NativeVerifierReceipt = struct {
-            publication_ns: u64,
+        const CoreVerifierReceipt = struct {
             cohort_authority_sha_id: [32]u8,
             closure_receipt_sha_id: [32]u8,
         };
@@ -381,11 +287,7 @@ pub fn NativeEngineKernelForManifest(
             cohort: *Cohort,
             proof_in: *recursion.engine.Proof,
             proof_owned: *bool,
-            proof_identity: verified_publication.CanonicalProofIdentityV1,
-            capture_out: *OuterProofCapture,
-            publication_out: *VerifiedPublicationV1,
-            artifact_out: ?*VerifiedArtifactV1,
-        ) !NativeVerifierReceipt {
+        ) !CoreVerifierReceipt {
             if (!proof_owned.*) return error.ProofAlreadyConsumed;
             const manifest = cohort.manifest();
             try manifest.validate();
@@ -459,11 +361,6 @@ pub fn NativeEngineKernelForManifest(
                 commitments[ManifestContract.INTERACTION_TREE_INDEX],
                 &channel,
             );
-            const pre_core_channel =
-                recursion.outer_parent_child_admission.ChannelCheckpointV1{
-                    .digest = channel.digestWords(),
-                    .draw_count = channel.n_draws,
-                };
 
             var components = try cohort.initComponents(
                 &generated,
@@ -491,100 +388,16 @@ pub fn NativeEngineKernelForManifest(
                 proof,
                 &capture,
             );
-            errdefer capture.deinit(allocator);
-
-            // Complete the one independent audit/closure replay before the
-            // successful-verifier capability can exist. Publication later
-            // performs only sealed-identity and cohort-binding checks.
+            defer capture.deinit(allocator);
             try cohort.validateAuditedInteractions(
                 &audited,
                 &claims,
                 &relations,
                 &provider_relations,
             );
-
-            const context = cohort.suffix.contextReceipt();
-            const recursive_admission = try temporal_admission.prepare(
-                manifest,
-                &cohort.prefix.statement_rows.parent_words,
-                context.parent_vk_id,
-                &claims,
-                &audited,
-                pre_core_channel,
-                &capture,
-            );
-            const transcript_prefix = try temporal_transcript_prefix.PrefixV1.init(
-                manifest,
-                &relations,
-                audited.suffix.generated.claims.poseidon2_partials,
-                audited.wire_boundary,
-                audited.verifier_input_boundary,
-            );
-
-            if (comptime @import("builtin").is_test and
-                @hasDecl(Cohort, "runPublicationMutationFleetForTest"))
-            {
-                try cohort.runPublicationMutationFleetForTest(
-                    &audited,
-                    &claims,
-                    &relations,
-                    &provider_relations,
-                );
-            }
-
-            // Mint the only successful-verifier capability while the accepted
-            // proof capture and independently reconstructed cohort are still
-            // transaction-local. Publication consumes this borrowed capability
-            // synchronously and cannot be reached from proof-shaped values.
-            const evidence_binding = try cohort.verifierSuccessBinding(
-                proof_identity,
-                &capture,
-                recursion.protocol.transcriptId(
-                    channel.digestWords(),
-                    channel.n_draws,
-                ),
-                &claims,
-                &audited,
-                recursive_admission.identity,
-            );
-            var evidence_storage: TemporalVerifierSuccessEvidenceStorageV1 =
-                undefined;
-            const evidence = try mintTemporalVerifierSuccessEvidence(
-                &evidence_storage,
-                evidence_binding,
-            );
-
-            var publication_timer = try std.time.Timer.start();
-            const staged_publication =
-                try cohort.publishSuccessfulVerifier(
-                    evidence,
-                    &claims,
-                    &audited,
-                    &relations,
-                    &provider_relations,
-                );
-            const staged_artifact = if (artifact_out != null)
-                try temporal_artifact.mintFromSuccessfulVerifier(
-                    evidence,
-                    &staged_publication,
-                    &recursive_admission,
-                    &transcript_prefix,
-                    &capture,
-                )
-            else
-                null;
-            const publication_ns = publication_timer.read();
-
-            // Every requested output is complete. No fallible operation is
-            // permitted after the first caller write.
-            publication_out.* = staged_publication;
-            if (artifact_out) |destination|
-                destination.* = staged_artifact.?;
-            capture_out.* = capture;
             return .{
-                .publication_ns = publication_ns,
-                .cohort_authority_sha_id = staged_publication.cohort_authority_sha_id,
-                .closure_receipt_sha_id = staged_publication.closure_receipt_sha_id,
+                .cohort_authority_sha_id = cohort.authority_sha_id,
+                .closure_receipt_sha_id = audited.closure.closure_id,
             };
         }
 
@@ -612,4 +425,30 @@ pub fn NativeEngineKernelForManifest(
                 return error.PreprocessedRootMismatch;
         }
     };
+}
+
+fn assertCoreCohortContract(comptime Cohort: type) void {
+    inline for (.{
+        "AuthorityInputs",
+        "GeneratedInteractionsV1",
+        "AuditedInteractionsV2",
+        "PAIR_AUTHENTICATION_POSEIDON_PERMUTATIONS",
+        "init",
+        "deinit",
+        "validate",
+        "manifest",
+        "mixAuthority",
+        "fillPreprocessedInto",
+        "fillMainInto",
+        "fillInteractionInto",
+        "validateGenerated",
+        "auditGlobalClosureV2",
+        "claimVector",
+        "rebuildGeneratedInteractions",
+        "initComponents",
+        "validateAuditedInteractions",
+    }) |name| if (!@hasDecl(Cohort, name))
+        @compileError(
+            "native core Cohort contract is incomplete: missing " ++ name,
+        );
 }

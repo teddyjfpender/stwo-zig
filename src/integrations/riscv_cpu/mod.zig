@@ -42,8 +42,22 @@ pub const recursive_temporal_parent_verified_artifact_v1 =
     @import("recursive_temporal_parent_verified_artifact_v1.zig");
 pub const recursive_temporal_parent_recursive_admission_v1 =
     @import("recursive_temporal_parent_recursive_admission_v1.zig");
+pub const recursive_temporal_parent_transcript_prefix_v1 =
+    @import("recursive_temporal_parent_transcript_prefix_v1.zig");
 pub const recursive_temporal_parent_pair_authority_v1 =
     @import("recursive_temporal_parent_pair_authority_v1.zig");
+pub const recursive_temporal_level2_transcript_v1 =
+    @import("recursive_temporal_level2_transcript_v1.zig");
+pub const recursive_temporal_level2_prefix_v1 =
+    @import("recursive_temporal_level2_prefix_v1.zig");
+pub const recursive_temporal_level2_composition_v1 =
+    @import("recursive_temporal_level2_composition_v1.zig");
+pub const recursive_temporal_level2_suffix_v1 =
+    @import("recursive_temporal_level2_suffix_v1.zig");
+pub const recursive_temporal_level2_verifier_input_v1 =
+    @import("recursive_temporal_level2_verifier_input_v1.zig");
+pub const recursive_temporal_level2_cohort_v1 =
+    @import("recursive_temporal_level2_cohort_v1.zig");
 pub const recursive_temporal_nonfri_source_v2 = @import("recursive_temporal_nonfri_source_v2.zig");
 pub const recursive_temporal_parent_prefix_runtime = @import("recursive_temporal_parent_prefix_runtime.zig");
 pub const recursive_temporal_parent_row35_owner_v1 = @import("recursive_temporal_parent_row35_owner_v1.zig");

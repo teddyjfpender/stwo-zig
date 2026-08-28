@@ -8,6 +8,7 @@ pub fn Namespace(comptime context: type) type {
         const recursion = context.d_recursion;
         const channel = context.d_channel;
         const schedule = context.d_schedule;
+        const manifest_mod = context.d_manifest_mod;
         const transcript_program = context.d_transcript_program;
         const statement_air = context.d_statement_air;
         const temporal = context.d_temporal;
@@ -183,6 +184,9 @@ pub fn Namespace(comptime context: type) type {
                     try transcriptPayloadCount(frames[0..left_frame_count]),
                     try transcriptPayloadCount(frames[left_frame_count..]),
                 },
+                .lane_claim_counts = [_]u32{
+                    @intCast(manifest_mod.COMPONENT_COUNT),
+                } ** temporal.CHILD_COUNT,
                 .child_replays = .{
                     try syntheticReplayForTest(31),
                     try syntheticReplayForTest(47),

@@ -20,7 +20,7 @@ const channel = recursion.poseidon2_channel;
 const temporal = recursion.temporal_pair_node;
 
 pub const FORMAT_VERSION: u16 = 1;
-pub const SCHEMA_VERSION: u16 = 1;
+pub const SCHEMA_VERSION: u16 = 2;
 pub const CHILD_COUNT: usize = 2;
 pub const FIRST_MULTI_LEVEL_HEIGHT: u8 = 2;
 pub const ROOT_PROOF_AVAILABLE = false;
@@ -29,6 +29,7 @@ pub const HEAP_ALLOCATIONS_PER_PREPARE: usize = 0;
 
 const CHILD_ADMISSION_ID_DOMAIN: u32 = 0x4d4c_4331; // "MLC1"
 const PAIR_AUTHORITY_ID_DOMAIN: u32 = 0x4d4c_5031; // "MLP1"
+const ADJACENCY_ID_DOMAIN: u32 = 0x4d4c_4131; // "MLA1"
 
 pub const Digest = channel.Digest;
 pub const Publication = publication_mod.VerifiedPublicationV1;
@@ -108,6 +109,8 @@ pub const PreparedLevel2PairV1 = struct {
     production_activation: bool = PRODUCTION_ACTIVATION,
     padding: [1]u8 = .{0},
     child_admission_ids: [CHILD_COUNT]Digest,
+    child_publication_ids: [CHILD_COUNT]Digest,
+    adjacency_id: Digest,
     prepared_root: temporal.PreparedRootContextV2,
     authority_id: Digest,
 
@@ -120,6 +123,8 @@ pub const PreparedLevel2PairV1 = struct {
             return error.UnsupportedFormat;
         }
         for (self.child_admission_ids) |value| try requireDigest(value);
+        for (self.child_publication_ids) |value| try requireDigest(value);
+        try requireDigest(self.adjacency_id);
         try requireDigest(self.authority_id);
         const reconstructed = try temporal.prepareRootContext(
             &self.prepared_root.authority_snapshot,
@@ -127,6 +132,7 @@ pub const PreparedLevel2PairV1 = struct {
         );
         if (!std.meta.eql(reconstructed, self.prepared_root) or
             reconstructed.result.pair.parent_height != FIRST_MULTI_LEVEL_HEIGHT or
+            !std.meta.eql(self.adjacency_id, adjacencyIdentity(self)) or
             !std.meta.eql(self.authority_id, pairAuthorityIdentity(self)))
         {
             return error.AuthorityIdentityMismatch;
@@ -225,9 +231,12 @@ pub fn prepareInto(
     const prepared_root = try temporal.prepareRootContext(&authority, root_pin);
     var result = PreparedLevel2PairV1{
         .child_admission_ids = .{ left.admission_id, right.admission_id },
+        .child_publication_ids = .{ left.publication_id, right.publication_id },
+        .adjacency_id = undefined,
         .prepared_root = prepared_root,
         .authority_id = undefined,
     };
+    result.adjacency_id = adjacencyIdentity(&result);
     result.authority_id = pairAuthorityIdentity(&result);
     try result.validate();
     destination.* = result;
@@ -256,10 +265,27 @@ fn pairAuthorityIdentity(value: *const PreparedLevel2PairV1) Digest {
     hasher.addU32(@intFromBool(value.production_activation));
     hasher.digest(value.child_admission_ids[0]);
     hasher.digest(value.child_admission_ids[1]);
+    hasher.digest(value.child_publication_ids[0]);
+    hasher.digest(value.child_publication_ids[1]);
+    hasher.digest(value.adjacency_id);
     hasher.digest(pair.context_id);
     hasher.digest(pair.node_id);
     hasher.digest(pair.record_id);
     hasher.digest(pair.parent_statement_id);
+    return hasher.finalize();
+}
+
+fn adjacencyIdentity(value: *const PreparedLevel2PairV1) Digest {
+    const pair = value.prepared_root.result.pair;
+    var hasher = IdentityHasher.init(ADJACENCY_ID_DOMAIN);
+    hasher.addU32(value.format_version);
+    hasher.addU32(value.schema_version);
+    hasher.digest(value.child_publication_ids[0]);
+    hasher.digest(value.child_publication_ids[1]);
+    hasher.digest(pair.child_ids[0]);
+    hasher.digest(pair.child_ids[1]);
+    hasher.digest(pair.parent_statement_id);
+    hasher.addU32(pair.parent_height);
     return hasher.finalize();
 }
 

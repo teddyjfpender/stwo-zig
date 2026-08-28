@@ -434,7 +434,29 @@ pub fn Namespace(comptime context: type) type {
         pub fn outerScheduleShape(
             capture: *const OuterProofCapture,
         ) Error!schedule.ScheduleShape {
-            try validateCaptureTranscriptShape(capture);
+            return outerScheduleShapeForClaimCount(
+                capture,
+                segment_artifact.CLAIM_COUNT,
+            );
+        }
+
+        /// Derives an exact verifier schedule for a recursively verified
+        /// proof whose manifest owns `claimed_sum_count` physical claims.
+        /// The retained leaf entry point above stays pinned to the SegmentV2
+        /// count; higher recursion levels must provide their own manifest
+        /// count instead of inheriting leaf geometry.
+        pub fn outerScheduleShapeForClaimCount(
+            capture: *const OuterProofCapture,
+            claimed_sum_count: u32,
+        ) Error!schedule.ScheduleShape {
+            validateCaptureTranscriptShape(capture) catch |err| {
+                std.debug.print(
+                    "\nTEMPORAL_OUTER_SCHEDULE_FAIL stage=capture error={s}\n",
+                    .{@errorName(err)},
+                );
+                return err;
+            };
+            if (claimed_sum_count == 0) return error.CaptureShapeMismatch;
 
             const query_count = capture.queries.raw.len;
             if (capture.queried_values.len % query_count != 0)
@@ -477,11 +499,26 @@ pub fn Namespace(comptime context: type) type {
                 .{
                     .sampled_value_count = sampled_value_count,
                     .queried_values_per_query = queried_values_per_query,
-                    .claimed_sum_count = segment_artifact.CLAIM_COUNT,
+                    .claimed_sum_count = claimed_sum_count,
                     .interaction_pow_bits = outer_admission.INTERACTION_POW_BITS,
                     .pcs_pow_bits = outer_admission.PCS_POW_BITS,
                 },
-            ) catch return error.CaptureShapeMismatch;
+            ) catch |err| {
+                std.debug.print(
+                    "\nTEMPORAL_OUTER_SCHEDULE_FAIL stage=derive error={s} " ++
+                        "lifting={d} layers={d} claims={d} samples={d} " ++
+                        "queried_per_query={d}\n",
+                    .{
+                        @errorName(err),
+                        lifting_log_size,
+                        fold_widths.len,
+                        claimed_sum_count,
+                        sampled_value_count,
+                        queried_values_per_query,
+                    },
+                );
+                return error.CaptureShapeMismatch;
+            };
         }
 
         // Pointer-free result of replaying one successful SegmentV2 outer verifier.

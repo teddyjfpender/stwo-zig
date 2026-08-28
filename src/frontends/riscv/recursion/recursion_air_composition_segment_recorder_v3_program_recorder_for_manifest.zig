@@ -92,6 +92,46 @@ pub fn ProgramRecorderForManifest(
             };
         }
 
+        /// Binary recorder for a non-V1 authenticated 36-row manifest. The
+        /// concrete manifest type remains a comptime authority and the family
+        /// discriminator is sealed by the capture layout itself.
+        pub fn initAuthenticatedBinary(
+            builder: *recorder.Builder,
+            manifest: *const manifest_contract.Manifest,
+            comptime family: capture_layout.ManifestFamily,
+            layout: *const capture_layout.CaptureLayoutV3,
+            sampled_values: []const recorder.Scalar,
+            claim_inputs: *const [COMPOSITION_CLAIM_INPUT_COUNT]recorder.Scalar,
+            challenges: *const recorder.ChallengeSet,
+            composition_randomness: recorder.Scalar,
+            oods_point: circle.CirclePoint(recorder.Scalar),
+            denominator_cache: *recorder.DenominatorCache,
+        ) !Self {
+            if (proof_kind != .binary_node or
+                program_row_count != universal_roster.COMPONENT_COUNT)
+            {
+                return error.InvalidManifest;
+            }
+            if (!builder.active) return error.CircuitAlreadyFinished;
+            try manifest.validate();
+            try layout.validateAgainstAuthenticatedBinary(family, manifest);
+            if (manifest.roster_count != program_row_count)
+                return error.InvalidManifest;
+            if (sampled_values.len != layout.sampled_value_count)
+                return error.InvalidSampleInputCount;
+            return .{
+                .builder = builder,
+                .manifest = manifest,
+                .layout = layout,
+                .sampled_values = sampled_values,
+                .claim_inputs = claim_inputs,
+                .challenges = challenges,
+                .composition_randomness = composition_randomness,
+                .oods_point = oods_point,
+                .denominator_cache = denominator_cache,
+            };
+        }
+
         /// Dedicated proofless-empty admission.  The layout owns a deep copy
         /// of universal capture geometry under an empty-specific identity;
         /// callers therefore cannot route a binary capture layout directly
@@ -489,7 +529,8 @@ pub fn ProgramRecorderForManifest(
             {
                 return error.ComponentOrderMismatch;
             }
-            _ = try adapter.binding(self.manifest);
+            _ = adapter.binding(self.manifest) catch
+                return error.ManifestAuthorityMismatch;
             const placement = self.manifest.placements[POSEIDON_ROW] orelse
                 return error.InvalidManifest;
             if (!adapter.placement.eql(placement) or
@@ -519,7 +560,8 @@ pub fn ProgramRecorderForManifest(
             {
                 return error.ComponentOrderMismatch;
             }
-            _ = try adapter.binding(self.manifest);
+            _ = adapter.binding(self.manifest) catch
+                return error.ManifestAuthorityMismatch;
             const placement = self.manifest.placements[RANGE_ROW] orelse
                 return error.InvalidManifest;
             if (!adapter.placement.eql(placement) or
@@ -548,7 +590,8 @@ pub fn ProgramRecorderForManifest(
             try self.requireActive();
             if (self.next_row != POSEIDON_ROW)
                 return error.ComponentOrderMismatch;
-            _ = try adapter.binding(self.manifest);
+            _ = adapter.binding(self.manifest) catch
+                return error.ManifestAuthorityMismatch;
 
             const placement = self.manifest.placements[POSEIDON_ROW] orelse
                 return error.InvalidManifest;
@@ -615,7 +658,8 @@ pub fn ProgramRecorderForManifest(
         ) Error!usize {
             try self.requireActive();
             if (self.next_row != RANGE_ROW) return error.ComponentOrderMismatch;
-            _ = try adapter.binding(self.manifest);
+            _ = adapter.binding(self.manifest) catch
+                return error.ManifestAuthorityMismatch;
 
             const placement = self.manifest.placements[RANGE_ROW] orelse
                 return error.InvalidManifest;

@@ -332,8 +332,11 @@ pub fn Namespace(comptime context: type) type {
             {
                 return error.CaptureShapeMismatch;
             }
-            for (logs) |log_size|
-                if (log_size != query_log) return error.CaptureShapeMismatch;
+            // A recursive parent commits components with distinct native log
+            // sizes into the composition tree. Query indices are sampled over
+            // the authenticated maximum tree depth; shorter columns retain
+            // their own log sizes and are opened through the same tree. Requiring
+            // every column to equal the maximum was a leaf-only assumption.
             return query_log;
         }
 

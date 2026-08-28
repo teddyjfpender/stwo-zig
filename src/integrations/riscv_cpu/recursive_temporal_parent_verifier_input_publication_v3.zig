@@ -487,6 +487,7 @@ fn validateRecorderDescriptor(
         [_]u32{RECORDER_PROFILE_SAMPLE_COUNT} ** CHILD_COUNT;
     const expected_padding_counts =
         [_]u32{ZERO_PADDING_ITEM_COUNT} ** CHILD_COUNT;
+    const expected_inactive_claim_counts = [_]u32{0} ** CHILD_COUNT;
     const expected_partial_ranges =
         [_]rows_source.PublicBoundaryIndexRange{.{
             .start = POSEIDON_PARTIAL_CLAIM_START,
@@ -495,6 +496,10 @@ fn validateRecorderDescriptor(
     if (!std.meta.eql(value.capture_sample_counts, expected_capture_counts) or
         !std.meta.eql(value.recorder_sample_counts, expected_recorder_counts) or
         !std.meta.eql(value.zero_padding_item_counts, expected_padding_counts) or
+        !std.meta.eql(
+            value.inactive_claim_item_counts,
+            expected_inactive_claim_counts,
+        ) or
         !std.meta.eql(
             value.poseidon_partial_claim_ranges,
             expected_partial_ranges,
@@ -533,11 +538,13 @@ fn hashRecorderDescriptor(
         value.capture_sample_counts,
         value.recorder_sample_counts,
         value.zero_padding_item_counts,
+        value.inactive_claim_item_counts,
         value.poseidon_partial_claim_ranges,
-    ) |capture_count, recorder_count, padding_count, partial_range| {
+    ) |capture_count, recorder_count, padding_count, inactive_count, partial_range| {
         hashInt(hash, u32, capture_count);
         hashInt(hash, u32, recorder_count);
         hashInt(hash, u32, padding_count);
+        hashInt(hash, u32, inactive_count);
         hashInt(hash, u32, partial_range.start);
         hashInt(hash, u32, partial_range.end);
     }
@@ -589,6 +596,7 @@ fn testFacts() SourceFactsV3 {
             .capture_sample_counts = [_]u32{CHILD_CAPTURE_SAMPLE_COUNT} ** CHILD_COUNT,
             .recorder_sample_counts = [_]u32{RECORDER_PROFILE_SAMPLE_COUNT} ** CHILD_COUNT,
             .zero_padding_item_counts = [_]u32{ZERO_PADDING_ITEM_COUNT} ** CHILD_COUNT,
+            .inactive_claim_item_counts = [_]u32{0} ** CHILD_COUNT,
             .poseidon_partial_claim_ranges = [_]rows_source.PublicBoundaryIndexRange{.{
                 .start = POSEIDON_PARTIAL_CLAIM_START,
                 .end = POSEIDON_PARTIAL_CLAIM_END,

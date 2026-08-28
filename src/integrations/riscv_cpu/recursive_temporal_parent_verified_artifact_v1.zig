@@ -13,6 +13,8 @@ const frontend = @import("stwo_riscv_frontend");
 const contract = @import("recursive_binary_outer_contract.zig");
 const publication_mod = @import("recursive_temporal_parent_publication_v3.zig");
 const recursive_admission = @import("recursive_temporal_parent_recursive_admission_v1.zig");
+const transcript_prefix_mod =
+    @import("recursive_temporal_parent_transcript_prefix_v1.zig");
 
 const M31 = stwo_core.fields.m31.M31;
 const m31 = stwo_core.fields.m31;
@@ -22,7 +24,7 @@ const channel = recursion.poseidon2_channel;
 const temporal = recursion.temporal_pair_node;
 
 pub const FORMAT_VERSION: u16 = 1;
-pub const SCHEMA_VERSION: u16 = 2;
+pub const SCHEMA_VERSION: u16 = 5;
 pub const ROSTER_COUNT: u8 = temporal.COMPLETE_ROSTER_COUNT;
 pub const PRODUCTION_ACTIVATION = false;
 pub const PUBLIC_MINT_CONSTRUCTOR_AVAILABLE = false;
@@ -59,6 +61,7 @@ pub const VerifiedTemporalParentArtifactV1 = struct {
     publication_sha_id: [32]u8,
     publication_id: Digest,
     recursive_admission: recursive_admission.PreparedAdmissionV1,
+    transcript_prefix: transcript_prefix_mod.PrefixV1,
     recursive_wire_bytes: u32,
     recursive_proof_id: Digest,
     child: temporal.VerifiedChildV2,
@@ -79,6 +82,7 @@ pub const VerifiedTemporalParentArtifactV1 = struct {
         try requireDigest(self.child_id);
         try requireDigest(self.artifact_id);
         try self.recursive_admission.validateRetained();
+        try self.transcript_prefix.validate();
         if (self.child.kind != .binary_node or
             self.child.scope != .complete_execution or
             !self.child.proof_present or
@@ -140,6 +144,10 @@ pub const VerifiedTemporalParentArtifactV1 = struct {
             ) or !std.meta.eql(
             self.child.verification_key_id,
             publication.context.parent_vk_id,
+        ) or !std.mem.eql(
+            u8,
+            &self.transcript_prefix.manifest_sha_id,
+            &publication.manifest_sha_id,
         )) return error.PublicationMismatch;
     }
 };
@@ -150,11 +158,13 @@ pub fn mintFromSuccessfulVerifier(
     evidence: *const SuccessEvidence,
     publication: *const Publication,
     admission_value: *const recursive_admission.PreparedAdmissionV1,
+    transcript_prefix: *const transcript_prefix_mod.PrefixV1,
     capture: *const recursive_admission.OuterProofCapture,
 ) !VerifiedTemporalParentArtifactV1 {
     const verified = try contract.openTemporalVerifierSuccessEvidence(evidence);
     try publication.validate();
     try admission_value.validateAgainst(capture);
+    try transcript_prefix.validate();
     if (!std.meta.eql(verified.proof_id, publication.proof_id) or
         !std.meta.eql(verified.capture_id, publication.capture_id) or
         !std.meta.eql(verified.transcript_id, publication.transcript_id) or
@@ -279,6 +289,7 @@ pub fn mintFromSuccessfulVerifier(
             PUBLICATION_ID_DOMAIN,
         ),
         .recursive_admission = admission_value.*,
+        .transcript_prefix = transcript_prefix.*,
         .recursive_wire_bytes = std.math.cast(u32, recursive_wire_bytes) orelse
             return error.ArtifactIdentityMismatch,
         .recursive_proof_id = recursive_proof_id,
@@ -304,6 +315,10 @@ fn artifactIdentity(value: *const VerifiedTemporalParentArtifactV1) Digest {
     hasher.digest(value.recursive_admission.seal.profile_id);
     hasher.digest(value.recursive_admission.seal.receipt_id);
     hasher.digest(value.recursive_admission.seal.claimed_sums_id);
+    hasher.digest(channel.hashBytes(
+        &value.transcript_prefix.identity,
+        ARTIFACT_ID_DOMAIN + 1,
+    ));
     hasher.digest(value.child_id);
     hasher.digest(value.child.proof_id);
     hasher.digest(value.child.transcript_id);

@@ -3,6 +3,7 @@
 pub fn Namespace(comptime context: type) type {
     return struct {
         const std = context.d_std;
+        const m31 = context.d_m31;
         const recursion = context.d_recursion;
         const channel = context.d_channel;
         const manifest_mod = context.d_manifest_mod;
@@ -54,8 +55,11 @@ pub fn Namespace(comptime context: type) type {
         pub fn classifyTemporalPayloadFrame(
             frame: RecordedFrameV2,
             state: *TemporalPayloadClassificationStateV2,
+            claim_count: u32,
         ) Error!TemporalPayloadDescriptorV2 {
             if (frame.purpose != .mix or frame.payload_word_count == 0)
+                return error.InvalidTranscriptRecorder;
+            if (claim_count == 0 or claim_count >= m31.Modulus)
                 return error.InvalidTranscriptRecorder;
             const tag: TemporalTranscriptOperationTag = @enumFromInt(frame.tag);
             return switch (tag) {
@@ -89,28 +93,28 @@ pub fn Namespace(comptime context: type) type {
                 .mix_felts => blk: {
                     const ordinal = state.felt_frame;
                     state.felt_frame += 1;
-                    if (ordinal < manifest_mod.COMPONENT_COUNT) break :blk .{
+                    if (ordinal < claim_count) break :blk .{
                         .source_kind = .claimed_sum,
                         .item_base = ordinal,
                         .limb_width = 4,
                         .constant_mask = 0,
                         .input_use_count = 1,
                     };
-                    if (ordinal == manifest_mod.COMPONENT_COUNT) break :blk .{
+                    if (ordinal == claim_count) break :blk .{
                         .source_kind = .claimed_sum,
                         .item_base = PUBLIC_WIRE_BOUNDARY_CLAIMED_SUM_ITEM_INDEX,
                         .limb_width = 4,
                         .constant_mask = 0,
                         .input_use_count = 1,
                     };
-                    if (ordinal == manifest_mod.COMPONENT_COUNT + 1) break :blk .{
+                    if (ordinal == claim_count + 1) break :blk .{
                         .source_kind = .sampled_value,
                         .item_base = 0,
                         .limb_width = 4,
                         .constant_mask = 0,
                         .input_use_count = 2,
                     };
-                    if (ordinal == manifest_mod.COMPONENT_COUNT + 2) break :blk .{
+                    if (ordinal == claim_count + 2) break :blk .{
                         .source_kind = .last_layer_coefficient,
                         .item_base = 0,
                         .limb_width = 4,
