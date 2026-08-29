@@ -156,6 +156,7 @@ pub const steps = [_]Step{
     .{ .name = "metal-test", .description = "Run resident Metal backend parity tests", .scope = .metal_tools },
     .{ .name = "metal-check", .description = "Compile and link resident Metal backend tests without executing them", .scope = .metal_tools },
     .{ .name = "metal-bench", .description = "Build resident Metal commitment benchmark", .scope = .metal_tools },
+    .{ .name = "metal-circle-lde-bench", .description = "Build isolated Metal circle-LDE benchmark", .scope = .metal_tools },
     .{ .name = "cuda-test", .description = "Unavailable compatibility alias; CUDA now requires an explicit product toolchain", .scope = .deferred },
     .{ .name = "riscv-release-gate", .description = "Run the staged CLI and validate committed Sail/Spike evidence", .scope = .verification },
     .{ .name = "deep-gate", .description = "Run expanded deep graph coverage", .scope = .verification },

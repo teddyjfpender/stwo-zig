@@ -231,6 +231,20 @@ pub fn addProducts(context: Context) void {
     const install_metal_bench = b.addInstallArtifact(metal_bench, .{});
     const metal_bench_step = b.step("metal-bench", "Build resident Metal commitment benchmark");
     metal_bench_step.dependOn(&install_metal_bench.step);
+
+    const circle_lde_bench_module = consumer(context, "src/bench/metal/circle_lde.zig");
+    circle_lde_bench_module.addImport("stwo", stwo_module);
+    const circle_lde_bench = b.addExecutable(.{
+        .name = "metal-circle-lde-bench",
+        .root_module = circle_lde_bench_module,
+    });
+    metal_backend.linkRuntime(b, circle_lde_bench);
+    const install_circle_lde_bench = b.addInstallArtifact(circle_lde_bench, .{});
+    const circle_lde_bench_step = b.step(
+        "metal-circle-lde-bench",
+        "Build isolated Metal circle-LDE benchmark",
+    );
+    circle_lde_bench_step.dependOn(&install_circle_lde_bench.step);
 }
 
 fn consumer(context: Context, root_source_file: []const u8) *std.Build.Module {
@@ -261,6 +275,7 @@ fn addUnavailableProducts(b: *std.Build) void {
         "metal-test",
         "metal-check",
         "metal-bench",
+        "metal-circle-lde-bench",
     }) |name| {
         const step = b.step(name, reason);
         step.dependOn(&failure.step);

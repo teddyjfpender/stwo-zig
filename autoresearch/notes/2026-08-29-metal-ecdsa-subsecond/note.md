@@ -213,3 +213,114 @@ generator output; shader manifest/runtime registry 3/3; prepared hash component
 gate green; ReleaseFast field suite 17/17; real secure ECDSA, Keccak, and
 Poseidon proofs verified; source conformance reports no new violations; and
 `git diff --check` is green.
+
+### Rejected: comptime opcode-family dispatch
+
+A post-retention host sample placed typed opcode lookup construction at the top
+of the active CPU stacks. A narrow experiment replaced the existing reviewed
+runtime family selection with an inline switch so every family constructor had
+a compile-time-selected call edge. The focused lookup gate passed, but a live
+reverse-balanced ECDSA comparison measured 2.313517 seconds for the retained
+binary and 2.309513 seconds for the candidate, only 0.17%. Candidate proving
+time was slightly worse (1.473744 versus 1.469178 seconds). The proof,
+statement, and transcript remained exact and all diagnostic streams were
+empty.
+
+The dispatch itself is therefore not the bottleneck and the experiment was
+reverted. Sampling instead shows the same typed relation entries being
+materialized from committed opcode columns during Tree 1 and reconstructed
+again for Tree 2. The next frontend experiment must remove or amortize that
+duplicate row work; adding another family switch specialization is not
+justified.
+
+### Frontend follow-up: measured rejections and next architecture
+
+A complete all-family microbenchmark compared the typed direct opcode lookup
+builders with the existing hash-consed scalar lookup DAG. The DAG was slower in
+15 of 17 families: representative candidate/baseline ratios were 1.157 for
+base-ALU-register, 1.715 for register shifts, 1.944 for `mulh`, and 2.216 for
+division. Only `jal` (0.989) and `fence` (0.835) improved. All 197 differential
+checks passed, but scalar DAG replay is not a viable replacement for direct
+typed construction. The large Tree-2 shards already use the packed,
+chunk-parallel DAG, where hash-consing is amortized across four lanes; this
+finding specifically rules out extending it to scalar Tree-1 ingestion.
+
+The retained product was also swept at 4/8/12/16/18 host workers with one
+warmup and three verified ECDSA samples. Median request times were
+3.2673/2.6176/2.4254/2.3225/2.3179 seconds respectively. Eighteen workers is
+therefore still the best total-latency setting on this 18-logical-core host;
+reducing the default to relieve contention is not an optimization.
+
+Two data-path experiments then targeted sampled frontend work:
+
+- A packed dense lookup-counter merge removed scalar field additions from the
+  worker reduction. The full main-trace ReleaseFast suite passed 318/318, but a
+  six-sample reverse-balanced proof comparison measured 2.27469 seconds
+  retained versus 2.26886 seconds candidate (-0.26%). Candidate proving was
+  slightly worse (1.44554 versus 1.44301 seconds). The change was reverted.
+- Pre-broadcasting all packed relation challenges once per shard passed the
+  ReleaseFast interaction suite, but a six-sample reverse-balanced comparison
+  measured 2.25746 seconds retained versus 2.26671 seconds candidate (+0.41%).
+  Challenge broadcast and relation dispatch are below the end-to-end noise
+  floor, so the change was reverted.
+
+Finally, keeping four LogUp numerators packed through the post-inversion
+fraction multiply produced a strong isolated result: 131,072 full-extension
+products fell from 1,063,041 ns to 529,875 ns (2.0x), with an identical
+checksum. The complete proof nevertheless measured 2.40379 seconds retained
+versus 2.40777 seconds candidate (+0.17%), and proving was flat at
+1.52715/1.52745 seconds. This transformation was also reverted: fraction
+multiplication is too small a share of the request to justify another data
+layout.
+
+Every rejected proof arm retained decoded proof SHA-256
+`eaa345bdb4435f12c1da4d914e700fdff6b50f0d94b4f6c02ffddf0c2633782d`,
+statement `1449ccca36b95b3ea979c7f567b14720c229f51310836ed093deda2f5d719268`,
+and transcript
+`79ff8e7d790b605f392176a22fbf3d09d3d82f461b8b530f5b9bc56b59bd481f`.
+All diagnostic stdout/stderr files were empty.
+
+These experiments sharpen the next typed-AIR direction. The useful unit is not
+a field operation, switch, or counter loop; it is the duplicated materialized
+row. Tree 1 currently constructs typed lookup entries to register source
+counters, then Tree 2 reconstructs the same semantics from committed columns.
+A future retained improvement should publish a reusable, ownership-safe row or
+prepared-shard authority that both consumers can read without duplicating
+witness state or weakening commitment-derived verification. That requires a
+cohesive frontend design and workload-spanning benchmarks, rather than another
+local hot-loop substitution.
+
+### Research DevEx observation
+
+Each one-file frontend experiment required a monolithic ReleaseFast product
+relink after the focused gate. The last two links took about 14 minutes each,
+while the decisive four-leg proof A/B took under one minute. The development
+gate cache correctly reuses narrow test results, but the installed product is a
+single root compilation unit and source changes invalidate that unit. The next
+DevEx optimization should split stable product/frontend/backend modules into
+separately cacheable artifacts or provide a benchmark-only product graph that
+links the same release code without rebuilding unrelated AOT/product closure.
+This is now a larger iteration cost than the benchmark itself.
+
+To shorten the next Metal loop, this round adds
+`zig build metal-circle-lde-bench -Doptimize=ReleaseFast`. The small installed
+tool drives the production circle-LDE runtime directly with configurable column
+count, domain log size, and repetitions; it reports median/minimum GPU time and
+an output checksum. Building it takes seconds rather than relinking the entire
+RISC-V product. Its first controlled sweep on 64 columns at base log 18 measured
+4.0705 ms at 256 threads per radix group, 5.4514 ms at 128 (+33.9%), and
+4.1455 ms at 512 (+1.8%). The existing 256-thread choice is retained. This
+falsified a scheduler experiment without another product build and leaves a
+reusable, general circle-transform tuning harness in the repository.
+
+The harness then tested porting the combined-commit scheduler's existing
+four-/three-/two-layer radix modes into the generic circle-LDE path. At large
+isolated geometries this reduced median GPU time from 4.0801 to 3.5055 ms at
+base log 18 (-14.1%) and from 4.7756 to 4.1610 ms at base log 20 (-12.9%);
+base log 16 required the established two-layer path. A domain-gated production
+candidate was therefore built and proved. The full reverse-balanced ECDSA
+result rejected it: 2.30853 seconds retained versus 2.32788 seconds candidate
+(+0.84%), with proving effectively flat at 1.46783/1.46742 seconds. The decoded
+proof, statement, and transcript remained exact. The scheduler changes were
+reverted; the benchmark remains because it correctly distinguishes isolated
+transform work from system-level value.
