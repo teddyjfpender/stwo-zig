@@ -648,6 +648,7 @@ pub const stwo_zig_metal_parent_plain = resident_data_bindings.stwo_zig_metal_pa
 pub const stwo_zig_metal_qm31_to_coordinates = resident_data_bindings.stwo_zig_metal_qm31_to_coordinates;
 pub const stwo_zig_metal_felt252_oracle = resident_data_bindings.stwo_zig_metal_felt252_oracle;
 pub const stwo_zig_metal_merkle_commit = resident_data_bindings.stwo_zig_metal_merkle_commit;
+pub const stwo_zig_metal_tree_copy_queried_values = resident_data_bindings.stwo_zig_metal_tree_copy_queried_values;
 pub extern fn stwo_zig_metal_compute_quotients(
     runtime: *anyopaque,
     flat_views: [*]const u32,

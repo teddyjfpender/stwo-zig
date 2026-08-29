@@ -155,6 +155,7 @@ pub const steps = [_]Step{
     .{ .name = "metal-witness-source", .description = "Build the exact Cairo witness Metal source generator", .scope = .metal_tools },
     .{ .name = "metal-test", .description = "Run resident Metal backend parity tests", .scope = .metal_tools },
     .{ .name = "metal-check", .description = "Compile and link resident Metal backend tests without executing them", .scope = .metal_tools },
+    .{ .name = "test-metal-resident-decommit", .description = "Run focused resident Metal Merkle decommit parity tests", .scope = .metal_tools },
     .{ .name = "metal-bench", .description = "Build resident Metal commitment benchmark", .scope = .metal_tools },
     .{ .name = "metal-circle-lde-bench", .description = "Build isolated Metal circle-LDE benchmark", .scope = .metal_tools },
     .{ .name = "cuda-test", .description = "Unavailable compatibility alias; CUDA now requires an explicit product toolchain", .scope = .deferred },

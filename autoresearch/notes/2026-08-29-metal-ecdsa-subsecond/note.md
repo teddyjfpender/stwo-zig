@@ -401,3 +401,51 @@ seconds (-0.14%) and 2.311612 versus 2.319881 seconds (-0.36%). Keccak/128 was
 neutral within 0.1% (0.522405 versus 0.522044 seconds CSP duration), establishing
 that the chain does not specialize ECDSA geometry. The ECDSA proof freshly
 verified with the exact statement and transcript identities above.
+
+### Retained: device-resident queried-value gather
+
+The next host sample attributed 235 samples to the random queried-value reads
+in lifted Merkle decommitment. The committed evaluation columns were still
+resident in the Metal tree, but the generic decommitter reread every opening
+from multi-gigabyte host column arenas before asking Metal only for sibling
+hashes.
+
+The retained path adds one bounded gather kernel over the immutable resident
+column arena. A tree authenticates the complete caller column set against its
+retained host-pointer/length/offset map, uploads only query positions and
+metadata, and returns a flat column-major opening buffer. Trees without a
+resident column map keep the prior host fallback; an advertised map mismatch
+fails closed. Combined circle-LDE commitments now retain exact per-column map
+entries rather than one coarse backing span. The proof object, query ordering,
+hash-witness construction, and verifier path are unchanged.
+
+A new `test-metal-resident-decommit` development target covers both mixed-log
+ordinary commitments and the combined circle-LDE tree, including caller-order
+permutations and a different-pointer/same-bytes rejection. This target reruns
+in roughly 3--7 seconds from the shared gate cache; it replaced the 15-minute
+79-test Metal loop during development. The authenticated AOT bundle accepts
+142 exact exports, zero function constants, and AOT/JIT parity.
+
+A three-sample reverse-balanced ECDSA screen measured 2.022812 seconds CSP
+duration candidate versus 2.125852 seconds retained (-4.85%). A five-sample
+confirmation measured:
+
+| workload | retained CSP duration | resident-gather CSP duration | change |
+|---|---:|---:|---:|
+| ECDSA/32 | 2.153263 s | 2.060225 s | -4.32% |
+| Keccak/128 | 0.532644 s | 0.532716 s | +0.01% |
+
+The complete ECDSA request fell from 2.311489 to 2.222649 seconds (-3.84%).
+The candidate command profile contains four resident gather commands totaling
+0.588 ms GPU time and 3.305 ms host wait, replacing the sampled host random
+reads. Total command GPU time was 493.564 ms over 70 commands, with zero
+errors. Keccak's proof-duration result is neutral; its complete-request mean
+was 0.43% slower, within the larger verifier/request noise that the official
+CSP boundary intentionally excludes.
+
+Every ECDSA arm decoded to the same 3,304,541-byte proof with SHA-256
+`eaa345bdb4435f12c1da4d914e700fdff6b50f0d94b4f6c02ffddf0c2633782d`.
+Every Keccak arm decoded to the same 827,978-byte proof with SHA-256
+`b060b18a76d3ec5611ec79ddf58e15a1827e30584c21aaa05fb35d46a83063a8`.
+The ECDSA candidate passed a fresh-process verifier with the unchanged
+statement and transcript identities above.

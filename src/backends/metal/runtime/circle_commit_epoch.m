@@ -594,16 +594,30 @@ void *stwo_zig_metal_circle_lde_merkle_commit(
         tree.residentColumns = extended;
         tree.residentColumnsHostBegin = (uintptr_t)extended_words;
         tree.residentColumnsWordCount = extended_word_count;
-        uintptr_t resident_begin = (uintptr_t)extended_words;
-        size_t resident_words = extended_word_count;
-        uint32_t resident_offset = 0u;
+        NSMutableData *resident_begins =
+            [NSMutableData dataWithLength:(NSUInteger)column_count * sizeof(uintptr_t)];
+        NSMutableData *resident_counts =
+            [NSMutableData dataWithLength:(NSUInteger)column_count * sizeof(size_t)];
+        NSMutableData *resident_offsets =
+            [NSMutableData dataWithLength:(NSUInteger)column_count * sizeof(uint32_t)];
+        if (resident_begins == nil || resident_counts == nil || resident_offsets == nil) {
+            write_error(error_message, error_message_len,
+                @"Combined Metal resident column map allocation failed");
+            return NULL;
+        }
+        uintptr_t *resident_begin_values = resident_begins.mutableBytes;
+        size_t *resident_count_values = resident_counts.mutableBytes;
+        uint32_t *resident_offset_values = resident_offsets.mutableBytes;
+        for (uint32_t column = 0u; column < column_count; ++column) {
+            uint32_t offset = extended_start + column * extended_stride;
+            resident_begin_values[column] = (uintptr_t)(extended_words + offset);
+            resident_count_values[column] = extended_len;
+            resident_offset_values[column] = offset;
+        }
         tree.residentColumnBuffers = @[ extended ];
-        tree.residentColumnHostBegins =
-            [NSData dataWithBytes:&resident_begin length:sizeof(resident_begin)];
-        tree.residentColumnWordCounts =
-            [NSData dataWithBytes:&resident_words length:sizeof(resident_words)];
-        tree.residentColumnWordOffsets =
-            [NSData dataWithBytes:&resident_offset length:sizeof(resident_offset)];
+        tree.residentColumnHostBegins = resident_begins;
+        tree.residentColumnWordCounts = resident_counts;
+        tree.residentColumnWordOffsets = resident_offsets;
         // Publish execution geometry only after the complete device
         // transaction and retained tree construction have succeeded.
         if (normalization_batch_count != NULL)

@@ -63,6 +63,7 @@
 @property(nonatomic, strong) id<MTLComputePipelineState> decommitGatherFriValuesResident;
 @property(nonatomic, strong) id<MTLComputePipelineState> decommitPrepareTraceQueriesResident;
 @property(nonatomic, strong) id<MTLComputePipelineState> decommitGatherTraceValuesResident;
+@property(nonatomic, strong) id<MTLComputePipelineState> decommitGatherTreeValuesResident;
 @property(nonatomic, strong) id<MTLComputePipelineState> decommitAssembleFriResident;
 @property(nonatomic, strong) id<MTLComputePipelineState> decommitSparseParentResident;
 @property(nonatomic, strong) id<MTLComputePipelineState> decommitSparseLeavesResident;

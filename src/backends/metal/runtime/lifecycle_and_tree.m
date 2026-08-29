@@ -583,3 +583,152 @@ bool stwo_zig_metal_tree_copy_hashes_batch(
         return true;
     }
 }
+
+// Return values: 1 = gathered, 2 = this tree has no resident-column map and
+// the caller may use its host fallback, 0 = an advertised map or execution was
+// invalid. This distinction prevents a mismatched proof column list from
+// silently falling back after resident admission.
+int32_t stwo_zig_metal_tree_copy_queried_values(
+    void *runtime_ptr,
+    void *tree_ptr,
+    const uint32_t *const *columns,
+    const size_t *column_lengths,
+    uint32_t column_count,
+    const uint32_t *queries,
+    uint32_t query_count,
+    uint32_t *destination,
+    size_t destination_words,
+    char *error_message,
+    size_t error_message_len
+) {
+    if (runtime_ptr == NULL || tree_ptr == NULL || columns == NULL ||
+        column_lengths == NULL || column_count == 0u || queries == NULL ||
+        query_count == 0u || destination == NULL) return 0;
+    @autoreleasepool {
+        StwoZigMetalRuntime *runtime = (__bridge StwoZigMetalRuntime *)runtime_ptr;
+        StwoZigMetalTree *tree = (__bridge StwoZigMetalTree *)tree_ptr;
+        if (tree.residentColumnBuffers == nil || tree.residentColumnBuffers.count == 0u ||
+            tree.residentColumnHostBegins == nil || tree.residentColumnWordCounts == nil ||
+            tree.residentColumnWordOffsets == nil) return 2;
+        if (tree.residentColumnBuffers.count != 1u || tree.logSize >= 31u ||
+            tree.residentColumnHostBegins.length != (NSUInteger)column_count * sizeof(uintptr_t) ||
+            tree.residentColumnWordCounts.length != (NSUInteger)column_count * sizeof(size_t) ||
+            tree.residentColumnWordOffsets.length != (NSUInteger)column_count * sizeof(uint32_t)) {
+            write_error(error_message, error_message_len,
+                        @"Metal resident queried-value map shape mismatch");
+            return 0;
+        }
+        if ((size_t)column_count > SIZE_MAX / (size_t)query_count ||
+            destination_words < (size_t)column_count * (size_t)query_count) {
+            write_error(error_message, error_message_len,
+                        @"Metal queried-value output exceeds address space");
+            return 0;
+        }
+
+        const uintptr_t *resident_begins = tree.residentColumnHostBegins.bytes;
+        const size_t *resident_counts = tree.residentColumnWordCounts.bytes;
+        const uint32_t *resident_offsets = tree.residentColumnWordOffsets.bytes;
+        id<MTLBuffer> source = tree.residentColumnBuffers[0];
+        size_t source_words = source.length / sizeof(uint32_t);
+        NSMutableData *log_data =
+            [NSMutableData dataWithLength:(NSUInteger)column_count * sizeof(uint32_t)];
+        NSMutableData *offset_data =
+            [NSMutableData dataWithLength:(NSUInteger)column_count * sizeof(uint32_t)];
+        NSMutableData *matched_data =
+            [NSMutableData dataWithLength:(NSUInteger)column_count * sizeof(uint8_t)];
+        if (log_data == nil || offset_data == nil || matched_data == nil) {
+            write_error(error_message, error_message_len,
+                        @"Metal queried-value metadata allocation failed");
+            return 0;
+        }
+        uint32_t *logs = log_data.mutableBytes;
+        uint32_t *offsets = offset_data.mutableBytes;
+        uint8_t *matched = matched_data.mutableBytes;
+        for (uint32_t column = 0u; column < column_count; ++column) {
+            size_t words = column_lengths[column];
+            uint32_t resident = column_count;
+            for (uint32_t candidate = 0u; candidate < column_count; ++candidate) {
+                if (matched[candidate] == 0u &&
+                    (uintptr_t)columns[column] == resident_begins[candidate] &&
+                    words == resident_counts[candidate]) {
+                    resident = candidate;
+                    break;
+                }
+            }
+            if (resident == column_count || words < 2u ||
+                (words & (words - 1u)) != 0u ||
+                (size_t)resident_offsets[resident] > source_words ||
+                words > source_words - (size_t)resident_offsets[resident]) {
+                write_error(error_message, error_message_len,
+                            @"Metal queried-value columns do not match the committed tree");
+                return 0;
+            }
+            matched[resident] = 1u;
+            offsets[column] = resident_offsets[resident];
+            uint32_t log_size = (uint32_t)__builtin_ctzll((unsigned long long)words);
+            if (log_size > tree.logSize) {
+                write_error(error_message, error_message_len,
+                            @"Metal queried-value column log exceeds the tree");
+                return 0;
+            }
+            logs[column] = log_size;
+        }
+        uint32_t query_limit = 1u << tree.logSize;
+        for (uint32_t query = 0u; query < query_count; ++query) {
+            if (queries[query] >= query_limit) {
+                write_error(error_message, error_message_len,
+                            @"Metal queried-value position exceeds the tree");
+                return 0;
+            }
+        }
+
+        id<MTLBuffer> offsets_buffer = [runtime.device
+            newBufferWithBytes:offsets
+            length:(NSUInteger)column_count * sizeof(uint32_t)
+            options:MTLResourceStorageModeShared];
+        id<MTLBuffer> logs_buffer = [runtime.device
+            newBufferWithBytes:logs
+            length:(NSUInteger)column_count * sizeof(uint32_t)
+            options:MTLResourceStorageModeShared];
+        id<MTLBuffer> queries_buffer = [runtime.device
+            newBufferWithBytes:queries
+            length:(NSUInteger)query_count * sizeof(uint32_t)
+            options:MTLResourceStorageModeShared];
+        id<MTLBuffer> output = [runtime.device
+            newBufferWithLength:(NSUInteger)column_count * (NSUInteger)query_count * sizeof(uint32_t)
+            options:MTLResourceStorageModeShared];
+        id<MTLCommandBuffer> command = [runtime.queue commandBuffer];
+        id<MTLComputeCommandEncoder> encoder = [command computeCommandEncoder];
+        if (offsets_buffer == nil || logs_buffer == nil || queries_buffer == nil ||
+            output == nil || command == nil || encoder == nil) {
+            write_error(error_message, error_message_len,
+                        @"Metal queried-value command allocation failed");
+            return 0;
+        }
+        [encoder setComputePipelineState:runtime.decommitGatherTreeValuesResident];
+        [encoder setBuffer:source offset:0u atIndex:0];
+        [encoder setBuffer:offsets_buffer offset:0u atIndex:1];
+        [encoder setBuffer:logs_buffer offset:0u atIndex:2];
+        [encoder setBytes:&column_count length:sizeof(column_count) atIndex:3];
+        uint32_t lifting_log = tree.logSize;
+        [encoder setBytes:&lifting_log length:sizeof(lifting_log) atIndex:4];
+        [encoder setBuffer:queries_buffer offset:0u atIndex:5];
+        [encoder setBytes:&query_count length:sizeof(query_count) atIndex:6];
+        [encoder setBuffer:output offset:0u atIndex:7];
+        NSUInteger width = MIN((NSUInteger)query_count, 32u);
+        NSUInteger height = MIN((NSUInteger)column_count, 8u);
+        [encoder dispatchThreads:MTLSizeMake(query_count, column_count, 1u)
+            threadsPerThreadgroup:MTLSizeMake(width, height, 1u)];
+        [encoder endEncoding];
+        [command commit];
+        [command waitUntilCompleted];
+        if (command.status == MTLCommandBufferStatusError) {
+            write_error(error_message, error_message_len,
+                        command.error.localizedDescription ?: @"Metal queried-value gather failed");
+            return 0;
+        }
+        memcpy(destination, output.contents,
+               (size_t)column_count * (size_t)query_count * sizeof(uint32_t));
+        return 1;
+    }
+}

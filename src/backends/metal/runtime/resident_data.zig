@@ -213,6 +213,19 @@ pub extern fn stwo_zig_metal_tree_copy_hashes_batch(
     error_message: [*]u8,
     error_message_len: usize,
 ) bool;
+pub extern fn stwo_zig_metal_tree_copy_queried_values(
+    runtime: *anyopaque,
+    tree: *anyopaque,
+    columns: [*]const [*]const u32,
+    column_lengths: [*]const usize,
+    column_count: u32,
+    queries: [*]const u32,
+    query_count: u32,
+    destination: [*]u32,
+    destination_words: usize,
+    error_message: [*]u8,
+    error_message_len: usize,
+) i32;
 
 pub fn ResidentData(comptime MetalError: type, comptime Runtime: type) type {
     return struct {
@@ -343,6 +356,69 @@ pub fn ResidentData(comptime MetalError: type, comptime Runtime: type) type {
                     return MetalError.RootReadFailed;
                 }
                 return outputs;
+            }
+
+            /// Attempts one device gather of every requested lifted column
+            /// value. `null` means this tree has no retained resident-column
+            /// map (for example, a legacy FRI tree), so the caller may use its
+            /// ordinary host-column path. Any present but mismatched map fails
+            /// closed instead of falling back to different bytes.
+            pub fn tryCopyQueriedValuesFlat(
+                self: Tree,
+                allocator: std.mem.Allocator,
+                columns: []const []const u32,
+                query_positions: []const usize,
+            ) (MetalError || std.mem.Allocator.Error)!?[]u32 {
+                if (columns.len == 0 or query_positions.len == 0) return null;
+                const column_count = std.math.cast(u32, columns.len) orelse
+                    return MetalError.RootReadFailed;
+                const query_count = std.math.cast(u32, query_positions.len) orelse
+                    return MetalError.RootReadFailed;
+                const total_words = std.math.mul(
+                    usize,
+                    columns.len,
+                    query_positions.len,
+                ) catch return MetalError.RootReadFailed;
+
+                const column_pointers = try allocator.alloc([*]const u32, columns.len);
+                defer allocator.free(column_pointers);
+                const column_lengths = try allocator.alloc(usize, columns.len);
+                defer allocator.free(column_lengths);
+                for (columns, column_pointers, column_lengths) |column, *pointer, *length| {
+                    pointer.* = column.ptr;
+                    length.* = column.len;
+                }
+                const queries = try allocator.alloc(u32, query_positions.len);
+                defer allocator.free(queries);
+                for (query_positions, queries) |position, *query| {
+                    query.* = std.math.cast(u32, position) orelse
+                        return MetalError.RootReadFailed;
+                }
+
+                const output = try allocator.alloc(u32, total_words);
+                errdefer allocator.free(output);
+                var message: [1024]u8 = [_]u8{0} ** 1024;
+                const status = stwo_zig_metal_tree_copy_queried_values(
+                    self.runtime_handle,
+                    self.handle,
+                    column_pointers.ptr,
+                    column_lengths.ptr,
+                    column_count,
+                    queries.ptr,
+                    query_count,
+                    output.ptr,
+                    output.len,
+                    &message,
+                    message.len,
+                );
+                if (status == 2) {
+                    allocator.free(output);
+                    return null;
+                }
+                if (status != 1) {
+                    return MetalError.RootReadFailed;
+                }
+                return output;
             }
 
             /// Copies all layers in root-to-leaf order. This is a compatibility path

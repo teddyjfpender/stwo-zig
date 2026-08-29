@@ -1,6 +1,6 @@
 const std = @import("std");
 
-pub const core_shader_abi: u32 = 14;
+pub const core_shader_abi: u32 = 15;
 pub const witness_codegen_support_version: u64 = 6;
 
 pub const CompileProfile = struct {
@@ -134,6 +134,7 @@ pub const exports = [_]Export{
     .{ .name = "stwo_zig_decommit_prepare_fri_queries_resident", .owner = .decommit },
     .{ .name = "stwo_zig_decommit_prepare_trace_queries_resident", .owner = .decommit },
     .{ .name = "stwo_zig_decommit_gather_trace_values_resident", .owner = .decommit },
+    .{ .name = "stwo_zig_decommit_gather_tree_values_resident", .owner = .decommit },
     .{ .name = "stwo_zig_decommit_gather_fri_values_resident", .owner = .decommit },
     .{ .name = "stwo_zig_decommit_sparse_parent_resident", .owner = .decommit },
     .{ .name = "stwo_zig_decommit_sparse_leaves_resident", .owner = .decommit },

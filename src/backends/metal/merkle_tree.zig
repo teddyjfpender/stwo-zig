@@ -62,6 +62,50 @@ pub fn MetalMerkleTree(comptime H: type) type {
                 }
                 return .{ .layers = layers };
             }
+
+            pub fn readQueriedValuesBatch(
+                self: @This(),
+                allocator: std.mem.Allocator,
+                query_positions: []const usize,
+                columns: []const []const M31,
+            ) (std.mem.Allocator.Error || error{InvalidColumnSize})!?[][]M31 {
+                const word_columns = try allocator.alloc([]const u32, columns.len);
+                defer allocator.free(word_columns);
+                for (columns, word_columns) |column, *words| {
+                    words.* = std.mem.bytesAsSlice(
+                        u32,
+                        std.mem.sliceAsBytes(column),
+                    );
+                }
+                const flat = self.tree.tryCopyQueriedValuesFlat(
+                    allocator,
+                    word_columns,
+                    query_positions,
+                ) catch |err| switch (err) {
+                    error.OutOfMemory => return error.OutOfMemory,
+                    else => return error.InvalidColumnSize,
+                } orelse return null;
+                defer allocator.free(flat);
+
+                const result = try allocator.alloc([]M31, columns.len);
+                var initialized: usize = 0;
+                errdefer {
+                    for (result[0..initialized]) |values| allocator.free(values);
+                    allocator.free(result);
+                }
+                var canonical = true;
+                for (result, 0..) |*values, column| {
+                    values.* = try allocator.alloc(M31, query_positions.len);
+                    initialized += 1;
+                    const source = flat[column * query_positions.len .. (column + 1) * query_positions.len];
+                    for (source, values.*) |raw, *value| {
+                        canonical = canonical and raw < m31.Modulus;
+                        value.* = M31.fromU32Unchecked(raw);
+                    }
+                }
+                if (!canonical) return error.InvalidColumnSize;
+                return result;
+            }
         };
         const Storage = union(enum) {
             host: HostTree,

@@ -99,7 +99,7 @@ test "metal shader manifest exactly covers source and runtime exports" {
 }
 
 test "commitment shader bindings match core ABI version 14" {
-    try std.testing.expectEqual(@as(u32, 14), core_shader_abi);
+    try std.testing.expectEqual(@as(u32, 15), core_shader_abi);
     const bindings = [_]struct { kernel: []const u8, argument: []const u8 }{
         .{ .kernel = "stwo_zig_blake2s_leaves", .argument = "prefix_bytes [[buffer(7)]]" },
         .{ .kernel = "stwo_zig_blake2s_parents", .argument = "prefix_bytes [[buffer(4)]]" },

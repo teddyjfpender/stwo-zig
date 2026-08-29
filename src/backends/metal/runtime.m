@@ -214,6 +214,7 @@ static StwoZigMetalRuntime *create_runtime_from_library(
         runtime.decommitGatherFriValuesResident = make_pipeline(device, library, @"stwo_zig_decommit_gather_fri_values_resident", error_message, error_message_len);
         runtime.decommitPrepareTraceQueriesResident = make_pipeline(device, library, @"stwo_zig_decommit_prepare_trace_queries_resident", error_message, error_message_len);
         runtime.decommitGatherTraceValuesResident = make_pipeline(device, library, @"stwo_zig_decommit_gather_trace_values_resident", error_message, error_message_len);
+        runtime.decommitGatherTreeValuesResident = make_pipeline(device, library, @"stwo_zig_decommit_gather_tree_values_resident", error_message, error_message_len);
         runtime.decommitAssembleFriResident = make_pipeline(device, library, @"stwo_zig_decommit_assemble_fri_resident", error_message, error_message_len);
         runtime.decommitSparseParentResident = make_pipeline(device, library, @"stwo_zig_decommit_sparse_parent_resident", error_message, error_message_len);
         runtime.decommitSparseLeavesResident = make_pipeline(device, library, @"stwo_zig_decommit_sparse_leaves_resident", error_message, error_message_len);
@@ -506,7 +507,8 @@ static StwoZigMetalRuntime *create_runtime_from_library(
             runtime.transcriptDrawSecureResident == nil || runtime.transcriptDrawQueriesResident == nil ||
             runtime.decommitNormalizeQueriesResident == nil || runtime.decommitPrepareFriQueriesResident == nil ||
             runtime.decommitGatherFriValuesResident == nil || runtime.decommitPrepareTraceQueriesResident == nil ||
-            runtime.decommitGatherTraceValuesResident == nil || runtime.qm31ToCoordinates == nil ||
+            runtime.decommitGatherTraceValuesResident == nil || runtime.decommitGatherTreeValuesResident == nil ||
+            runtime.qm31ToCoordinates == nil ||
             runtime.proofOfWork == nil ||
             runtime.decommitAssembleFriResident == nil ||
             runtime.decommitSparseParentResident == nil || runtime.decommitAssembleTraceResident == nil ||
