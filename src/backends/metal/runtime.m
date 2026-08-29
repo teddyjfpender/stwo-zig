@@ -161,7 +161,7 @@ static StwoZigMetalRuntime *create_runtime_from_library(
         StwoZigMetalRuntime *runtime = [StwoZigMetalRuntime new];
         runtime.device = device;
         runtime.queue = stwo_zig_metal_profile_queue([device newCommandQueue], device);
-        runtime.riscvPolynomialPipelines = [NSMutableDictionary dictionaryWithCapacity:34u];
+        runtime.riscvPolynomialPipelines = [NSMutableDictionary dictionaryWithCapacity:56u];
         runtime.evalLibraries = [NSMutableDictionary dictionary];
         runtime.evalPipelines = [NSMutableDictionary dictionary];
         runtime.quadraticRecurrenceTrace = make_pipeline(device, library, @"stwo_zig_quadratic_recurrence_trace",
@@ -466,6 +466,26 @@ static StwoZigMetalRuntime *create_runtime_from_library(
         runtime.riscvPolynomialPipelines[riscvPolynomialName50] = make_pipeline(
             device, library, riscvPolynomialName50, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName50] == nil) return NULL;
+        NSString *riscvPolynomialName51 = @"stwo_zig_base_poly_36d08376e46f89a95aa87cfd73a8f1b2";
+        runtime.riscvPolynomialPipelines[riscvPolynomialName51] = make_pipeline(
+            device, library, riscvPolynomialName51, error_message, error_message_len);
+        if (runtime.riscvPolynomialPipelines[riscvPolynomialName51] == nil) return NULL;
+        NSString *riscvPolynomialName52 = @"stwo_zig_base_poly_a7b649843c680bf1f54376843df20215";
+        runtime.riscvPolynomialPipelines[riscvPolynomialName52] = make_pipeline(
+            device, library, riscvPolynomialName52, error_message, error_message_len);
+        if (runtime.riscvPolynomialPipelines[riscvPolynomialName52] == nil) return NULL;
+        NSString *riscvPolynomialName53 = @"stwo_zig_base_poly_ca24287d77f5fc63504b53801a2b2274";
+        runtime.riscvPolynomialPipelines[riscvPolynomialName53] = make_pipeline(
+            device, library, riscvPolynomialName53, error_message, error_message_len);
+        if (runtime.riscvPolynomialPipelines[riscvPolynomialName53] == nil) return NULL;
+        NSString *riscvPolynomialName54 = @"stwo_zig_base_poly_0f4cf9db0689add32aaa333e736a8cab";
+        runtime.riscvPolynomialPipelines[riscvPolynomialName54] = make_pipeline(
+            device, library, riscvPolynomialName54, error_message, error_message_len);
+        if (runtime.riscvPolynomialPipelines[riscvPolynomialName54] == nil) return NULL;
+        NSString *riscvPolynomialName55 = @"stwo_zig_lookup_poly_092020ad7fba2603f1ea5eec7d354c27";
+        runtime.riscvPolynomialPipelines[riscvPolynomialName55] = make_pipeline(
+            device, library, riscvPolynomialName55, error_message, error_message_len);
+        if (runtime.riscvPolynomialPipelines[riscvPolynomialName55] == nil) return NULL;
         // END GENERATED RISC-V POLYNOMIAL PIPELINES.
 
         if (runtime.queue == nil || runtime.quadraticRecurrenceTrace == nil ||

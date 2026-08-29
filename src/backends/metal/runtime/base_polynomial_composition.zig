@@ -26,11 +26,17 @@ const Component = prover.air.component_prover.ComponentProver;
 const Trace = prover.air.component_prover.Trace;
 const Poly = prover.air.component_prover.Poly;
 const BaseCapability = prover.air.component_prover.BasePolynomialCapabilityV1;
+const ConstraintRange = prover.air.component_prover.ComponentConstraintRangeV1;
 const Accumulator = prover.air.accumulation.DomainEvaluationAccumulator;
 const SecureColumn = prover.secure_column.SecureColumnByCoords;
 const composition_work = prover.air.composition_work;
 
 const disable_env = "STWO_ZIG_RISCV_METAL_SEMANTICS";
+/// Below 2^16 evaluation rows, four direct dispatches plus one lookup dispatch
+/// do not amortize the resident command setup. Keep the complete reference
+/// component on the host until this measured crossover; larger components use
+/// the split resident programs without changing their relation or transcript.
+const mixed_component_min_eval_log_size: u32 = 16;
 
 const BaseProgramEntry = struct {
     program_id: u64,
@@ -50,10 +56,25 @@ const SemanticJob = struct {
     capability: BaseCapability,
     component: Component,
     power_start: usize,
+    constraint_count: usize,
     row_count: usize,
     eval_log_size: u32,
     main_columns: []const Poly,
     selector: [*]const M31,
+};
+
+const ComponentPartition = struct {
+    bases: [prover.air.component_prover.MAX_BASE_POLYNOMIAL_PARTITIONS_V1]struct {
+        capability: BaseCapability,
+        constraints: ConstraintRange,
+    } = undefined,
+    base_count: usize = 0,
+    lookup: ?lookup_resident.Capability = null,
+    lookup_constraints: ConstraintRange = .{ .start = 0, .count = 0 },
+
+    fn accelerated(self: @This()) bool {
+        return self.base_count != 0 or self.lookup != null;
+    }
 };
 
 pub fn evaluate(
@@ -127,15 +148,20 @@ fn evaluateInternal(
     var max_log_size: u32 = 0;
     var semantic_count: usize = 0;
     var lookup_count: usize = 0;
-    for (components) |component| {
+    var accelerated_component_count: usize = 0;
+    const partitions = try allocator.alloc(ComponentPartition, components.len);
+    defer allocator.free(partitions);
+    for (components, partitions) |component, *partition| {
         total_constraints = try std.math.add(
             usize,
             total_constraints,
             component.nConstraints(),
         );
         max_log_size = @max(max_log_size, component.maxConstraintLogDegreeBound());
-        if (baseCapability(component) != null) semantic_count += 1;
-        if (lookup_resident.capability(component) != null) lookup_count += 1;
+        partition.* = try componentPartition(component);
+        semantic_count += partition.base_count;
+        if (partition.lookup != null) lookup_count += 1;
+        if (partition.accelerated()) accelerated_component_count += 1;
     }
     if (semantic_count + lookup_count == 0) return null;
     telemetry.recordN(
@@ -151,14 +177,15 @@ fn evaluateInternal(
     }
     if (trace.polys.items.len == 0 or residency_handles.len == 0)
         return declineResidentPolynomial();
-    for (components) |component| {
-        if (baseCapability(component)) |capability| {
+    for (partitions) |partition| {
+        for (partition.bases[0..partition.base_count]) |base| {
+            const capability = base.capability;
             if (!hasTreeResidency(
                 residency_handles,
                 &.{ capability.selector_tree_index, capability.main_tree_index },
             )) return declineResidentPolynomial();
         }
-        if (lookup_resident.capability(component)) |capability| {
+        if (partition.lookup) |capability| {
             if (!lookup_resident.hasResidency(capability, residency_handles))
                 return declineResidentPolynomial();
         }
@@ -193,7 +220,7 @@ fn evaluateInternal(
     defer for (lookup_jobs[0..initialized_lookup_jobs]) |*job| job.deinit(allocator);
     const host_workers = try allocator.alloc(
         HostWorker,
-        components.len - semantic_count - lookup_count,
+        components.len - accelerated_component_count,
     );
     defer allocator.free(host_workers);
     var initialized_workers: usize = 0;
@@ -203,18 +230,26 @@ fn evaluateInternal(
     var semantic_index: usize = 0;
     var lookup_index: usize = 0;
     var host_index: usize = 0;
-    for (components, 0..) |component, component_registry_index| {
+    for (components, partitions, 0..) |component, partition, component_registry_index| {
         const constraint_count = component.nConstraints();
         if (constraint_count > power_cursor) return error.InvalidBasePolynomialProgram;
         const power_start = power_cursor - constraint_count;
         power_cursor = power_start;
 
-        if (baseCapability(component)) |capability| {
+        for (partition.bases[0..partition.base_count]) |base| {
+            const capability = base.capability;
+            const range = base.constraints;
+            const job_power_start = try rangePowerStart(
+                power_start,
+                constraint_count,
+                range,
+            );
             const job = try resolveBaseJob(component, capability, trace, residency_handles);
             semantic_jobs[semantic_index] = .{
                 .capability = capability,
                 .component = component,
-                .power_start = power_start,
+                .power_start = job_power_start,
+                .constraint_count = range.count,
                 .row_count = job.row_count,
                 .eval_log_size = job.eval_log_size,
                 .main_columns = job.main_columns,
@@ -225,27 +260,29 @@ fn evaluateInternal(
             if (findBaseProgram(base_programs.items, capability.program_id) == null) {
                 var program = try capability.export_program(component.ctx, allocator);
                 errdefer program.deinit();
-                try validateBaseProgram(program, capability, component);
+                try validateBaseProgram(program, capability, range.count);
                 try base_programs.append(allocator, .{
                     .program_id = capability.program_id,
                     .program = program,
                 });
             }
-            continue;
         }
 
-        if (lookup_resident.capability(component)) |capability| {
+        if (partition.lookup) |capability| {
+            const range = partition.lookup_constraints;
             lookup_jobs[lookup_index] = try lookup_catalog.appendJob(
                 component,
                 capability,
                 trace,
                 residency_handles,
-                power_start,
+                try rangePowerStart(power_start, constraint_count, range),
+                range.count,
             );
             initialized_lookup_jobs += 1;
             lookup_index += 1;
-            continue;
         }
+
+        if (partition.accelerated()) continue;
 
         {
             host_workers[host_index] = .{
@@ -387,7 +424,7 @@ fn evaluateInternal(
             .main_column_count = @intCast(job.capability.main_column_count),
             .row_count = @intCast(job.row_count),
             .power_word_offset = @intCast(job.power_start * 4),
-            .power_word_count = @intCast(job.component.nConstraints() * 4),
+            .power_word_count = @intCast(job.constraint_count * 4),
             .output_index = bucket_index[job.eval_log_size].?,
             .denominator_inverses = .{
                 denominator_inverses[0].toU32(),
@@ -442,7 +479,7 @@ fn evaluateInternal(
             .interaction_column_count = @intCast(job.interaction_columns.len),
             .row_count = @intCast(job.row_count),
             .power_word_offset = @intCast(job.power_start * 4),
-            .power_word_count = @intCast(job.component.nConstraints() * 4),
+            .power_word_count = @intCast(job.constraint_count * 4),
             .parameter_word_offset = @intCast(parameter_cursor * 4),
             .parameter_word_count = @intCast(job.parameters.len * 4),
             .output_index = bucket_index[job.eval_log_size].?,
@@ -571,12 +608,66 @@ fn declineResidentPolynomial() ?SecureColumn {
     return null;
 }
 
-fn baseCapability(component: Component) ?BaseCapability {
-    const capability = component.backend_composition_capability orelse return null;
+fn componentPartition(component: Component) !ComponentPartition {
+    const capability = component.backend_composition_capability orelse return .{};
     return switch (capability) {
-        .base_polynomial_v1 => |value| value,
-        else => null,
+        .base_polynomial_v1 => |value| singleBasePartition(
+            value,
+            .{ .start = 0, .count = component.nConstraints() },
+        ),
+        .lookup_polynomial_v1 => |value| .{
+            .lookup = .{ .v1 = value },
+            .lookup_constraints = .{ .start = 0, .count = component.nConstraints() },
+        },
+        .lookup_polynomial_v2 => |value| .{
+            .lookup = .{ .v2 = value },
+            .lookup_constraints = .{ .start = 0, .count = component.nConstraints() },
+        },
+        .base_lookup_polynomial_v1 => |selected| blk: {
+            if (component.maxConstraintLogDegreeBound() < mixed_component_min_eval_log_size)
+                break :blk .{};
+            const exported = try selected.export_capabilities(component.ctx);
+            try exported.validate(component.nConstraints());
+            var result = ComponentPartition{
+                .base_count = exported.base_partition_count,
+                .lookup = .{ .v1 = exported.lookup },
+                .lookup_constraints = exported.lookup_constraints,
+            };
+            for (exported.base_partitions[0..exported.base_partition_count], 0..) |base, index| {
+                result.bases[index] = .{
+                    .capability = base.capability,
+                    .constraints = base.constraints,
+                };
+            }
+            break :blk result;
+        },
+        else => .{},
     };
+}
+
+fn singleBasePartition(
+    capability: BaseCapability,
+    constraints: ConstraintRange,
+) ComponentPartition {
+    var result = ComponentPartition{ .base_count = 1 };
+    result.bases[0] = .{ .capability = capability, .constraints = constraints };
+    return result;
+}
+
+fn rangePowerStart(
+    component_power_start: usize,
+    total_constraints: usize,
+    range: ConstraintRange,
+) !usize {
+    const range_end = std.math.add(usize, range.start, range.count) catch
+        return error.InvalidBackendCompositionPartition;
+    if (range.count == 0 or range_end > total_constraints)
+        return error.InvalidBackendCompositionPartition;
+    return std.math.add(
+        usize,
+        component_power_start,
+        total_constraints - range_end,
+    ) catch error.InvalidBackendCompositionPartition;
 }
 
 fn hasTreeResidency(handles: []const ?*anyopaque, indices: []const usize) bool {
@@ -592,11 +683,11 @@ fn findBaseProgram(entries: []BaseProgramEntry, program_id: u64) ?*BaseProgramEn
 fn validateBaseProgram(
     program: prover.air.component_prover.OwnedBasePolynomialProgram,
     capability: BaseCapability,
-    component: Component,
+    expected_constraint_count: usize,
 ) !void {
     try program.validate();
     if (program.column_count != capability.main_column_count + 1 or
-        program.roots.len != component.nConstraints())
+        program.roots.len != expected_constraint_count)
         return error.InvalidBasePolynomialProgram;
 }
 

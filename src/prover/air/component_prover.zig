@@ -56,6 +56,12 @@ pub const LookupPolynomialAuthorityV2 = component_programs.LookupPolynomialAutho
 pub const OwnedLookupPolynomialProgramV2 = component_programs.OwnedLookupPolynomialProgramV2;
 pub const LookupPolynomialCapabilityV1 = component_programs.LookupPolynomialCapabilityV1;
 pub const LookupPolynomialCapabilityV2 = component_programs.LookupPolynomialCapabilityV2;
+pub const ComponentConstraintRangeV1 = component_programs.ComponentConstraintRangeV1;
+pub const BasePolynomialPartitionV1 = component_programs.BasePolynomialPartitionV1;
+pub const MAX_BASE_POLYNOMIAL_PARTITIONS_V1 =
+    component_programs.MAX_BASE_POLYNOMIAL_PARTITIONS_V1;
+pub const BaseLookupPolynomialCapabilitiesV1 = component_programs.BaseLookupPolynomialCapabilitiesV1;
+pub const BaseLookupPolynomialCapabilityV1 = component_programs.BaseLookupPolynomialCapabilityV1;
 pub const BackendCompositionCapability = component_programs.BackendCompositionCapability;
 pub const ComponentProfileIdentity = @import("component_profile_identity.zig").ComponentProfileIdentity;
 

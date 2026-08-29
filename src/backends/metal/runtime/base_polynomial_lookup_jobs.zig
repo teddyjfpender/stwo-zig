@@ -27,6 +27,7 @@ pub const Capability = union(enum) {
 pub const Job = struct {
     component: Component,
     power_start: usize,
+    constraint_count: usize,
     row_count: usize,
     eval_log_size: u32,
     trace_log_size: u32,
@@ -131,10 +132,15 @@ pub const Catalog = struct {
         trace: *const Trace,
         residency_handles: []const ?*anyopaque,
         power_start: usize,
+        constraint_count: usize,
     ) !Job {
         const geometry = physicalGeometry(capability_value);
         const resolved = try resolveJob(component, geometry, trace, residency_handles);
-        const program_index = try self.ensureProgram(component, capability_value);
+        const program_index = try self.ensureProgram(
+            component,
+            capability_value,
+            constraint_count,
+        );
         const parameters = try exportParameters(component, capability_value, self.allocator);
         errdefer self.allocator.free(parameters);
         const expected_parameters = switch (self.programs.items[program_index]) {
@@ -146,6 +152,7 @@ pub const Catalog = struct {
         return .{
             .component = component,
             .power_start = power_start,
+            .constraint_count = constraint_count,
             .row_count = resolved.row_count,
             .eval_log_size = resolved.eval_log_size,
             .trace_log_size = geometry.trace_log_size,
@@ -170,10 +177,15 @@ pub const Catalog = struct {
         self: *Catalog,
         component: Component,
         capability_value: Capability,
+        constraint_count: usize,
     ) !usize {
         for (self.programs.items, 0..) |*program, index| {
             if (!program.matches(capability_value)) continue;
-            try validateExisting(program, component, capability_value);
+            try validateExisting(
+                program,
+                capability_value,
+                constraint_count,
+            );
             return index;
         }
         const index = self.programs.items.len;
@@ -181,7 +193,7 @@ pub const Catalog = struct {
             .v1 => |capability_v1| {
                 var program = try capability_v1.export_program(component.ctx, self.allocator);
                 errdefer program.deinit();
-                try validateV1(program, capability_v1, component);
+                try validateV1(program, capability_v1, constraint_count);
                 try self.programs.append(self.allocator, .{ .v1 = .{
                     .program_id = capability_v1.program_id,
                     .program = program,
@@ -195,7 +207,7 @@ pub const Catalog = struct {
                 _ = try v2_owner.JobIdentity.init(
                     capability_v2,
                     &owner,
-                    component.nConstraints(),
+                    constraint_count,
                 );
                 try self.programs.append(self.allocator, .{ .v2 = .{ .owner = owner } });
             },
@@ -266,21 +278,21 @@ fn exportParameters(
 
 fn validateExisting(
     program: *const Program,
-    component: Component,
     capability_value: Capability,
+    constraint_count: usize,
 ) !void {
     switch (program.*) {
         .v1 => |entry| try validateV1(
             entry.program,
             capability_value.v1,
-            component,
+            constraint_count,
         ),
         .v2 => |entry| {
             const selected = capability_value.v2;
             _ = try v2_owner.JobIdentity.init(
                 selected,
                 &entry.owner,
-                component.nConstraints(),
+                constraint_count,
             );
         },
     }
@@ -289,11 +301,11 @@ fn validateExisting(
 fn validateV1(
     program: prover.air.component_prover.OwnedLookupPolynomialProgram,
     capability_v1: V1,
-    component: Component,
+    constraint_count: usize,
 ) !void {
     try program.validate();
     if (program.column_count != capability_v1.main_column_count or
-        program.batchCount() != component.nConstraints() or
+        program.batchCount() != constraint_count or
         capability_v1.interaction_column_count != program.batchCount() * 4)
     {
         return error.InvalidLookupPolynomialProgram;

@@ -2,6 +2,7 @@
 
 pub const boundary = @import("boundary.zig");
 pub const hash_component = @import("hash_component.zig");
+pub const hash_runtime_program = @import("hash_runtime_program.zig");
 pub const interaction = @import("interaction.zig");
 pub const merkle_node = @import("merkle_node.zig");
 pub const poseidon2 = @import("poseidon2.zig");

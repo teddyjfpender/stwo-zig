@@ -120,6 +120,10 @@ pub const Scalar = struct {
         return binary(.mul, self, other);
     }
 
+    pub fn square(self: Scalar) Scalar {
+        return self.mul(self);
+    }
+
     pub fn neg(self: Scalar) Scalar {
         return .{ .id = current().intern(.{ .op = .neg, .lhs = self.id }) };
     }

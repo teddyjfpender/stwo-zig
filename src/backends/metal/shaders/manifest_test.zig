@@ -48,7 +48,7 @@ const countKernelDeclarations = manifest.testing.countKernelDeclarations;
 const kernelDeclaration = manifest.testing.kernelDeclaration;
 
 test "Native core source exactly covers its non-Cairo export ABI" {
-    try std.testing.expectEqual(@as(usize, 136), native_exports.len);
+    try std.testing.expectEqual(@as(usize, 141), native_exports.len);
     try std.testing.expectEqual(native_exports.len, std.mem.count(u8, native_amalgamated_source, "kernel void "));
     try std.testing.expect(std.mem.indexOf(u8, native_amalgamated_source, "shaders/cairo/") == null);
     for (native_support_headers) |unit| try std.testing.expect(std.mem.indexOf(u8, unit.path, "/cairo/") == null);
@@ -71,7 +71,7 @@ fn expectIsolated(source: []const u8, names: []const []const u8) !void {
 
 test "metal shader manifest exactly covers source and runtime exports" {
     const runtime_source = @embedFile("../runtime.m");
-    try std.testing.expectEqual(@as(usize, 147), exports.len);
+    try std.testing.expectEqual(@as(usize, 152), exports.len);
 
     var declaration_count: usize = 0;
     var remaining: []const u8 = amalgamated_source[0 .. amalgamated_source.len - 1];
@@ -181,8 +181,13 @@ test "RISC-V polynomial kernels have an exact isolated export ABI" {
         "stwo_zig_lookup_poly_v2_1cab02ea628504e58cb4a0dbf15dbca36cccc7cad4f36949bb10265a08cd44cc",
         "stwo_zig_lookup_poly_v2_74e0c5ba6845f3d863a1b821d0f22ea76e38570ccd234b537ea4fb9e8f19bf77",
         "stwo_zig_lookup_poly_v2_e9b9d5d433a734c48921694aa7185fafe3fb15e7bd89dc42261cc4290f894352",
+        "stwo_zig_base_poly_36d08376e46f89a95aa87cfd73a8f1b2",
+        "stwo_zig_base_poly_a7b649843c680bf1f54376843df20215",
+        "stwo_zig_base_poly_ca24287d77f5fc63504b53801a2b2274",
+        "stwo_zig_base_poly_0f4cf9db0689add32aaa333e736a8cab",
+        "stwo_zig_lookup_poly_092020ad7fba2603f1ea5eec7d354c27",
     };
-    try std.testing.expectEqual(@as(usize, 51), names.len);
+    try std.testing.expectEqual(@as(usize, 56), names.len);
     try std.testing.expectEqual(names.len, std.mem.count(u8, riscv_polynomials_source, "kernel void "));
 
     var owned_count: usize = 0;

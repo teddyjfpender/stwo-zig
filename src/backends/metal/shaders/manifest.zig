@@ -193,6 +193,11 @@ pub const exports = [_]Export{
     .{ .name = "stwo_zig_lookup_poly_v2_1cab02ea628504e58cb4a0dbf15dbca36cccc7cad4f36949bb10265a08cd44cc", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_lookup_poly_v2_74e0c5ba6845f3d863a1b821d0f22ea76e38570ccd234b537ea4fb9e8f19bf77", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_lookup_poly_v2_e9b9d5d433a734c48921694aa7185fafe3fb15e7bd89dc42261cc4290f894352", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_36d08376e46f89a95aa87cfd73a8f1b2", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_a7b649843c680bf1f54376843df20215", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_ca24287d77f5fc63504b53801a2b2274", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_0f4cf9db0689add32aaa333e736a8cab", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_092020ad7fba2603f1ea5eec7d354c27", .owner = .riscv_polynomials },
 };
 
 pub fn isDeferredOwner(owner: Unit) bool {

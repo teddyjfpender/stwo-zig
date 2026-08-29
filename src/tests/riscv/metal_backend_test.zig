@@ -213,6 +213,22 @@ test "metal: AOT source matches every production RISC-V polynomial DAG" {
             .program = selected,
         });
     }
+    const hash_program = riscv.air.memory_commitment.hash_runtime_program;
+    for (0..hash_program.DIRECT_PARTITION_COUNT) |partition| {
+        try base_entries.append(std.testing.allocator, .{
+            .program_id = (@as(u64, 3) << 32) |
+                @as(u64, @intCast(partition)),
+            .program = try hash_program.buildPoseidonDirectRange(
+                std.testing.allocator,
+                .narrow_memory,
+                hash_program.directPartitionRange(.narrow_memory, partition),
+            ),
+        });
+    }
+    try lookup_entries.append(std.testing.allocator, .{
+        .program_id = (@as(u64, 4) << 32) | 1,
+        .program = try hash_program.buildPoseidonLookups(std.testing.allocator),
+    });
     const source = try codegen.aot.generateLibrary(
         std.testing.allocator,
         base_entries.items,

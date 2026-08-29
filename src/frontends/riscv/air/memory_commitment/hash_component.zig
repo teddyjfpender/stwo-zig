@@ -97,6 +97,9 @@ pub const HashComponent = struct {
         component.prepare_domain_evaluator = prepareDomainEvaluatorErased;
         component.composition_work_profile = compositionWorkProfileErased;
         component.oods_work_profile = oodsWorkProfileErased;
+        if (self.kind == .poseidon2 and self.poseidon_shell == .narrow_memory) {
+            component.backend_composition_capability = hash_component_backend.capability();
+        }
         return component;
     }
 
@@ -614,6 +617,9 @@ pub const HashComponent = struct {
         };
     }
 };
+
+const hash_component_backend =
+    @import("hash_component_backend.zig").Namespace(HashComponent);
 
 const hash_component_prepared_domain = @import("hash_component_prepared_domain.zig").Namespace(.{
     .std = std,

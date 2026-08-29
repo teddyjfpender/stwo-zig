@@ -512,7 +512,7 @@ pub const OpcodeLookupComponent = struct {
         var parameters = std.ArrayList(QM31).empty;
         errdefer parameters.deinit(allocator);
         for (lookups.entries[0..lookups.len]) |lookup|
-            try appendRelationParameters(
+            try entry.appendRelationParameters(
                 &parameters,
                 allocator,
                 self.relations,
@@ -794,34 +794,3 @@ pub const OpcodeLookupComponent = struct {
         return result;
     }
 };
-
-fn appendRelationParameters(
-    parameters: *std.ArrayList(QM31),
-    allocator: std.mem.Allocator,
-    relations: *const relations_mod.Relations,
-    domain: entry.Domain,
-) !void {
-    switch (domain) {
-        .registers_state => try appendRelation(parameters, allocator, relations.registers_state),
-        .memory_access => try appendRelation(parameters, allocator, relations.memory_access),
-        .program_access => try appendRelation(parameters, allocator, relations.program_access),
-        .merkle => try appendRelation(parameters, allocator, relations.merkle),
-        .poseidon2 => try appendRelation(parameters, allocator, relations.poseidon2),
-        .poseidon2_io => try appendRelation(parameters, allocator, relations.poseidon2_io),
-        .bitwise => try appendRelation(parameters, allocator, relations.bitwise),
-        .range_check_20 => try appendRelation(parameters, allocator, relations.range_check_20),
-        .range_check_8_11 => try appendRelation(parameters, allocator, relations.range_check_8_11),
-        .range_check_8_8_4 => try appendRelation(parameters, allocator, relations.range_check_8_8_4),
-        .range_check_8_8 => try appendRelation(parameters, allocator, relations.range_check_8_8),
-        .range_check_m31 => try appendRelation(parameters, allocator, relations.range_check_m31),
-    }
-}
-
-fn appendRelation(
-    parameters: *std.ArrayList(QM31),
-    allocator: std.mem.Allocator,
-    relation: anytype,
-) !void {
-    try parameters.append(allocator, relation.z);
-    try parameters.appendSlice(allocator, &relation.alpha_powers);
-}
