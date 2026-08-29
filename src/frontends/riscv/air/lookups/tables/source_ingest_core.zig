@@ -555,9 +555,11 @@ fn scanShard(
             shard.committed_columns,
             base[0..shard.committed_columns.len],
         ) |column, *value| value.* = BaseScalar.fromBase(column[committed_row]);
-        const list = base_opcode_entries.fromMain(
+        var list: BaseList = undefined;
+        base_opcode_entries.fromMainInto(
             family,
             base[0..shard.committed_columns.len],
+            &list,
         ) catch return error.InvalidCommittedRow;
         const active = try registerBaseList(
             &list,
@@ -590,9 +592,11 @@ pub fn registerGeneratedCommittedRow(
         columns[0..column_count],
         base[0..column_count],
     ) |column, *value| value.* = BaseScalar.fromBase(column[physical_row]);
-    const list = base_opcode_entries.fromMain(
+    var list: BaseList = undefined;
+    base_opcode_entries.fromMainInto(
         family,
         base[0..column_count],
+        &list,
     ) catch return error.InvalidCommittedRow;
     if (!try registerBaseList(&list, counters, .{}, null, false))
         return error.InactiveRealRow;

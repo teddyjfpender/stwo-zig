@@ -498,3 +498,55 @@ freshly verifies, decodes to SHA-256
 `eaa345bdb4435f12c1da4d914e700fdff6b50f0d94b4f6c02ffddf0c2633782d`,
 and retains the statement/transcript identities above. All Keccak arms decode
 to `b060b18a76d3ec5611ec79ddf58e15a1827e30584c21aaa05fb35d46a83063a8`.
+
+### Rejected: implicit LDE-to-Merkle overlap through aliased host pages
+
+An overlap prototype submitted the commitment-scoped LDE command without a
+host wait, retained a type-erased completion token with the transformed column
+storage, and waited only after the subsequent Merkle commitment. Both a broad
+version and a conservative version restricted to page-aligned arenas of at
+least 1 MiB failed the proof with `ConstraintsNotSatisfied`.
+
+The failed trace made the ownership error concrete. The two large deferred
+circle commands took 160.90 ms and 165.60 ms, versus 178.39 ms total for all
+four circle commands in the retained synchronous profile, while the following
+Merkle commands ran concurrently. Creating distinct no-copy `MTLBuffer`
+objects over the same unified-memory pages does not give Metal a resource
+dependency between those command buffers; the reader and writer raced despite
+aliasing the same physical storage.
+
+A sound future overlap must express an actual device dependency: use the same
+Metal resource object, place both phases in one command buffer, or signal/wait
+an explicit shared event. The generic deferred-completion prototype was
+therefore reverted in full rather than retained as a fragile platform
+heuristic.
+
+### Retained: caller-owned opcode source-entry reconstruction
+
+A whole-process sample after the resident-gather and command-batching changes
+showed opcode source ingestion as the hottest active frontend stack. The
+write-through generator reconstructed each row's relation entries through a
+large by-value `List` return even though the opcode authority already exposes
+`fromMainInto` specifically for caller-owned storage. Sampled copies appeared
+as 456 `memmove` leaf samples alongside 1,003 `fromMain` samples.
+
+Both generated-row registration and the strict scanned-source fallback now
+fill a caller-owned `List`. The relation constructor, entry order, table-index
+validation, counters, committed columns, and proof are unchanged; only the
+redundant return-value copy is removed.
+
+A three-sample-per-leg reverse-balanced ECDSA screen measured:
+
+| implementation | witness | CSP `proof_duration` | complete request |
+|---|---:|---:|---:|
+| retained command batching | 0.379035 s | 2.039852 s | 2.192187 s |
+| caller-owned source entries | 0.363105 s | 2.024116 s | 2.173981 s |
+
+This reduces witness time by 4.20%, the official CSP boundary by 0.77%, and
+the complete request by 0.83%. Two complementary Keccak/128 guards (20 samples
+per implementation in total) were neutral within noise: 0.515420 versus
+0.516750 seconds CSP duration and 0.584343 versus 0.586984 seconds complete
+request. The ECDSA proof remained 3,304,541 bytes with SHA-256
+`eaa345bdb4435f12c1da4d914e700fdff6b50f0d94b4f6c02ffddf0c2633782d`
+and passed a fresh-process secure verifier with the unchanged statement and
+transcript identities.

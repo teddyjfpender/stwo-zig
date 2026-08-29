@@ -323,6 +323,13 @@ pub fn build(b: *std.Build) void {
         .minimum = 16,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-lookup-source-ingest",
+        .description = "Run exact opcode-source ingestion and rollback tests",
+        .root = "lookup_source_ingest_test_root.zig",
+        .imports_prover_engine = true,
+        .minimum = 5,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-lookup-batching-edit",
         .description = "Run the lightweight authenticated lookup-batch planner edit loop",
         .root = "lookup_batch_edit_test_root.zig",
